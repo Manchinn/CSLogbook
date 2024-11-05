@@ -26,7 +26,7 @@ const students = [
     studentID: "12345678",
     firstName: "Chinnakrit",
     lastName: "Sripan",
-    email: "s6404062630295@gmail.com"   // อีเมลผู้รับ
+    email: "s6404062630295@email.kmutnb.ac.th"   // อีเมลผู้รับ
   },
   {
     username: "jane_smith",
@@ -40,26 +40,26 @@ const students = [
 // API สำหรับการล็อกอิน
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
+
   const student = students.find(
     (stu) => stu.username === username && stu.password === password
   );
 
   if (student) {
-    // หากล็อกอินสำเร็จ ให้ส่งอีเมลแจ้งเตือน
-    sendLoginNotification(student.email, student.username);
-
-    // ส่ง response กลับไปยัง client
-    res.json({
-      message: 'Login successful',
-      studentID: student.studentID,
-      firstName: student.firstName,
-      lastName: student.lastName
-    });
-
-    // แจ้งข้อมูลใหม่แบบ realtime ผ่าน WebSocket
-    io.emit('studentUpdate', student);
+    try {
+      sendLoginNotification(student.email, student.username); // ส่งอีเมลแจ้งเตือน
+      res.json({
+        message: 'Login successful',
+        studentID: student.studentID,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      res.status(500).json({ error: 'Failed to send notification email' });
+    }
   } else {
-    // หาก username หรือ password ไม่ถูกต้อง ส่ง status 401
     res.status(401).json({ error: "Invalid username or password" });
   }
 });
