@@ -36,8 +36,8 @@ const students = [
     username: "jane_smith02",
     password: "12345678",
     studentID: "87654321",
-    firstName: "Jane",
-    lastName: "Smith"
+    firstName: "ja",
+    lastName: "Smth"
   }
 ];
 
