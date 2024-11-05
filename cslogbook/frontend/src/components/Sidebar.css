@@ -1,0 +1,88 @@
+/* Sidebar styles */
+.sidebar {
+  width: 250px; /* Width of the sidebar */
+  background-color: #282c34; /* Dark background for elegance */
+  height: 100vh; /* Full height */
+  padding: 20px; /* Padding inside sidebar */
+  color: #ffffff; /* White text for contrast */
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5); /* Subtle shadow for depth */
+  transition: transform 0.3s ease; /* Smooth transition for opening and closing */
+}
+
+.sidebar-menu {
+  list-style: none; /* Remove bullet points */
+  padding: 0; /* Remove default padding */
+}
+
+.sidebar-item {
+  display: flex; /* Flexbox for alignment */
+  align-items: center; /* Center items vertically */
+  padding: 15px; /* Padding for each item */
+  text-decoration: none; /* Remove underline from links */
+  color: #ffffff; /* White text for sidebar items */
+  transition: background-color 0.3s, transform 0.2s; /* Smooth hover effects */
+}
+
+.sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.1); /* Light background on hover */
+  transform: translateX(5px); /* Slightly move the item on hover */
+}
+
+.sidebar-toggle {
+  cursor: pointer; /* Change cursor on hover */
+}
+
+.sidebar-submenu {
+  list-style: none; /* Remove bullet points for submenu */
+  padding: 0 0 0 20px; /* Indent for submenus */
+}
+
+.sidebar-subitem {
+  display: block; /* Display submenu items as block */
+  padding: 10px; /* Padding for submenu items */
+  text-decoration: none; /* Remove underline */
+  color: #ffffff; /* White text for submenu items */
+  transition: background-color 0.3s; /* Smooth background change */
+}
+
+.sidebar-subitem:hover {
+  background-color: rgba(255, 255, 255, 0.1); /* Light background on hover */
+}
+
+.divider {
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle divider line */
+  margin: 10px 0; /* Margin around divider */
+}
+
+/* Hamburger button styles */
+.hamburger {
+  display: none; /* Hidden by default */
+  font-size: 30px; /* Size of the hamburger icon */
+  background: none; /* No background */
+  border: none; /* No border */
+  color: #ffffff; /* Match with sidebar text color */
+  padding: 10px; /* Padding for button */
+  cursor: pointer; /* Pointer cursor */
+  position: absolute; /* Position relative to parent */
+  top: 20px; /* Distance from top */
+  left: 20px; /* Distance from left */
+  z-index: 1000; /* Ensure it appears above other content */
+}
+
+/* Responsive styles */
+@media (max-width: 800px) {
+  .hamburger {
+    display: block; /* Show hamburger button on small screens */
+  }
+
+  .sidebar {
+    position: fixed; /* Fix sidebar position when opened */
+    left: 0; /* Align to left */
+    top: 0; /* Align to top */
+    transform: translateX(0); /* Default position */
+    width: 250px; /* Sidebar width */
+    background-color: #282c34; /* Dark background */
+    height: 100vh; /* Full height */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5); /* Shadow effect */
+  }
+}
