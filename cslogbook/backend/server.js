@@ -37,8 +37,8 @@ const students = [
     password: "12345678",
     studentID: "87654321",
     firstName: "ja",
-    lastName: "Smth"
-  }
+    lastName: "Smthttttt"
+  },
 ];
 
 // API สำหรับการล็อกอิน
