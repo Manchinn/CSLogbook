@@ -1,72 +1,78 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import './Sidebar.css'; // Ensure your CSS file is updated
+import { FaHome, FaBook, FaUserGraduate, FaHistory, FaClipboardCheck } from 'react-icons/fa';
+import { MdLogout } from 'react-icons/md';
+import '../style/Sidebar.css';
 
-export default function Sidebar() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [learningPlanOpen, setLearningPlanOpen] = useState(false);
-  const [internshipPlanOpen, setInternshipPlanOpen] = useState(false);
+function Sidebar() {
+  const [isStudyPlanOpen, setStudyPlanOpen] = useState(false);
+  const [isInternshipOpen, setInternshipOpen] = useState(false);
+  const [isClosed, setIsClosed] = useState(false); // สถานะการเปิดปิด Sidebar
+
+  const toggleStudyPlan = () => {
+    setStudyPlanOpen(!isStudyPlanOpen);
+  };
+
+  const toggleInternship = () => {
+    setInternshipOpen(!isInternshipOpen);
+  };
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    setIsClosed(!isClosed);
   };
 
   return (
-    <div>
-      <button className="hamburger" onClick={toggleSidebar}>
-        ☰
+    <div className={`sidebar ${isClosed ? 'closed' : ''}`}>
+      <button className="toggle-button" onClick={toggleSidebar}>
+        {isClosed ? '☰' : '×'} {/* ปรับ icon ตามสถานะ */}
       </button>
-      {isSidebarOpen && (
-        <div className="sidebar">
-          <ul className="sidebar-menu">
-            <li>
-              <Link to="/dashboard" className="sidebar-item">
-                <span className="icon">🏠</span>
-                Home
-              </Link>
-            </li>
-            <hr className="divider" />
-            <li>
-              <div onClick={() => setLearningPlanOpen(!learningPlanOpen)} className="sidebar-item sidebar-toggle">
-                <span className="icon">📚</span>
-                Learning Plan
-                <span className="arrow">{learningPlanOpen ? '▲' : '▼'}</span>
-              </div>
-              {learningPlanOpen && (
-                <ul className="sidebar-submenu">
-                  <li>
-                    <Link to="/yearly-learning-plan" className="sidebar-subitem">Yearly Learning Plan</Link>
-                  </li>
-                  <li>
-                    <Link to="/learning-plan-by-stream" className="sidebar-subitem">Learning Plan by Stream</Link>
-                  </li>
-                </ul>
-              )}
-            </li>
-            <hr className="divider" />
-            <li>
-              <div onClick={() => setInternshipPlanOpen(!internshipPlanOpen)} className="sidebar-item sidebar-toggle">
-                <span className="icon">📊</span>
-                Internship Plan
-                <span className="arrow">{internshipPlanOpen ? '▲' : '▼'}</span>
-              </div>
-              {internshipPlanOpen && (
-                <ul className="sidebar-submenu">
-                  <li>
-                    <Link to="/employer-status" className="sidebar-subitem">Employer Status Information</Link>
-                  </li>
-                  <li>
-                    <Link to="/work-attendance" className="sidebar-subitem">Work Attendance and Details</Link>
-                  </li>
-                  <li>
-                    <Link to="/internship-logs" className="sidebar-subitem">Internship Logs</Link>
-                  </li>
-                </ul>
-              )}
-            </li>
-          </ul>
+      <div className="profile">
+        <img src="https://via.placeholder.com/80" alt="Profile" className="profile-image" />
+        <h3 className={`profile-name ${isClosed ? 'hidden' : ''}`}>Chinnakrit Sripan</h3>
+      </div>
+      <nav className="menu">
+        <a href="#home" className="menu-item">
+          <FaHome className="menu-icon" /> หน้าหลัก
+          <span className="dropdown-arrow" />
+        </a>
+        <div className="menu-item" onClick={toggleStudyPlan}>
+          <FaBook className="menu-icon" /> แผนการเรียน
+          <span className="dropdown-arrow">{isStudyPlanOpen ? '▼' : '^'}</span>
         </div>
-      )}
+        {isStudyPlanOpen && (
+          <div className="dropdown">
+            <a href="#yearly-plan" className="dropdown-item">แผนการเรียนรายปี</a>
+            <a href="#stream-plan" className="dropdown-item">แผนการเรียนตามสาขา</a>
+          </div>
+        )}
+        <div className="menu-item" onClick={toggleInternship}>
+          <FaClipboardCheck className="menu-icon" /> สมุดบันทึกการฝึกงาน
+          <span className="dropdown-arrow">{isInternshipOpen ? '▼' : '^'}</span>
+        </div>
+        {isInternshipOpen && (
+          <div className="dropdown">
+            <a href="#employer-status" className="dropdown-item">ข้อมูลสถานะนายจ้าง</a>
+            <a href="#attendance" className="dropdown-item">การเข้าทำงานและรายละเอียด</a>
+            <a href="#internship-logs" className="dropdown-item">บันทึกการฝึกงาน</a>
+          </div>
+        )}
+        <a href="#degree" className="menu-item">
+          <FaUserGraduate className="menu-icon" /> ปริญญานิพนธ์
+          <span className="dropdown-arrow" />
+        </a>
+        <a href="#resume" className="menu-item">
+          <FaHistory className="menu-icon" /> ประวัติย่อฉบับ
+          <span className="dropdown-arrow" />
+        </a>
+        <a href="#plan" className="menu-item">
+          <FaClipboardCheck className="menu-icon" /> แผนควบคุม
+          <span className="dropdown-arrow" />
+        </a>
+      </nav>
+      <button className="logout">
+        <MdLogout className="menu-icon" /> Log out
+      </button>
     </div>
   );
 }
+
+export default Sidebar;

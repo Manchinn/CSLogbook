@@ -1,0 +1,135 @@
+body {
+  margin: 0;
+}
+
+.sidebar {
+  width: 250px;
+  height: 95vh;
+  background-color: #ffffff;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: width 0.3s ease;
+}
+
+.sidebar.closed {
+  width: 60px; /* Width when closed */
+}
+
+.toggle-button {
+  cursor: pointer;
+  font-size: 24px;
+  margin-bottom: 20px;
+  background: none;
+  border: none;
+  color: #333;
+}
+
+.toggle-button {
+  display: none; /* Hide toggle button by default */
+}
+
+.profile {
+  text-align: center;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+.profile-name {
+  font-size: 18px;
+  color: #333;
+}
+
+.sidebar.closed .profile-name {
+  display: none; /* Ensure name is hidden when sidebar is closed */
+}
+
+.menu {
+  width: 100%;
+  flex-grow: 1;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  color: #333;
+  text-decoration: none;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  transition: background-color 0.3s ease;
+  justify-content: space-between; /* Align the dropdown arrow to the right */
+}
+
+.menu-item:hover {
+  background-color: #f0f2f5;
+}
+
+.menu-icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.logout {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+  padding: 10px;
+  color: #f00;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.logout .menu-icon {
+  margin-right: 5px;
+}
+
+.dropdown {
+  padding-left: 20px;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 10px 15px;
+  color: #000;
+  text-decoration: none;
+}
+
+.dropdown-item:hover {
+  background-color: #C6DBFF;
+}
+
+.dropdown-arrow {
+  margin-left: auto; /* Align the dropdown arrow to the right */
+  font-size: 16px; /* Adjust the font size of the dropdown arrow */
+}
+
+/* Responsive styles */
+@media (max-width: 800px) {
+  .toggle-button {
+    display: block; /* Show toggle button on small screens */
+  }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 1000; /* Ensure it overlays on other content */
+  }
+}
+.profile-name.hidden {
+  display: none; /* ซ่อนชื่อโปรไฟล์เมื่อ Sidebar ปิด */
+}
