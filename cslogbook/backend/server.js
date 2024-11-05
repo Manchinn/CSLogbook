@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const { sendLoginNotification } = require('./utils/mailer'); // เรียกใช้ฟังก์ชันจาก mailer.js
 
 const app = express();
 const server = http.createServer(app);
@@ -23,8 +24,9 @@ const students = [
     username: "admin",
     password: "admin",
     studentID: "12345678",
-    firstName: "John",
-    lastName: "Doe"
+    firstName: "Chinnakrit",
+    lastName: "Sripan",
+    email: "s6404062630295@gmail.com"   // อีเมลผู้รับ
   },
   {
     username: "jane_smith",
@@ -41,13 +43,23 @@ app.post('/login', (req, res) => {
   const student = students.find(
     (stu) => stu.username === username && stu.password === password
   );
-  res.json({ message: 'Login successful' });
 
   if (student) {
-    res.json(student);
+    // หากล็อกอินสำเร็จ ให้ส่งอีเมลแจ้งเตือน
+    sendLoginNotification(student.email, student.username);
+
+    // ส่ง response กลับไปยัง client
+    res.json({
+      message: 'Login successful',
+      studentID: student.studentID,
+      firstName: student.firstName,
+      lastName: student.lastName
+    });
+
     // แจ้งข้อมูลใหม่แบบ realtime ผ่าน WebSocket
     io.emit('studentUpdate', student);
   } else {
+    // หาก username หรือ password ไม่ถูกต้อง ส่ง status 401
     res.status(401).json({ error: "Invalid username or password" });
   }
 });
