@@ -1,0 +1,193 @@
+// mockStudentData.js
+const mockStudentData = [
+    {
+        username: "s6404062630295",
+        password: "admin",
+        studentID: "6404062630295",
+        firstName: "ชินกฤต",
+        lastName: "ศรีป่าน",
+        email: "s6404062630295@email.kmutnb.ac.th",
+        lastLoginNotification: null,
+        isEligibleForInternship: true,
+        isEligibleForProject: true
+      },
+    {
+      username: "s6304062616013",
+      password: "6304062616013",
+      studentID: "6304062616013",
+      firstName: "กริน",
+      lastName: "นนทจิตต์",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062610294",
+      password: "6404062610294",
+      studentID: "6404062610294",
+      firstName: "นิวัฒน์",
+      lastName: "เสียงใส",
+      email: "s6404062610294@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062610286",
+      password: "6404062610286",
+      studentID: "6404062610286",
+      firstName: "นพดล",
+      lastName: "เกียรติศิริ",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062610324",
+      password: "6404062610324",
+      studentID: "6404062610324",
+      firstName: "พชร",
+      lastName: "วรวัตร",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062620125",
+      password: "6404062620125",
+      studentID: "6404062620125",
+      firstName: "กัญญาพัชร",
+      lastName: "ก้อนนิล",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6504062610030",
+      password: "6504062610030",
+      studentID: "6504062610030",
+      firstName: "กิจจาพัฒน์",
+      lastName: "หนูบุญ",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6504062620221",
+      password: "6504062620221",
+      studentID: "6504062620221",
+      firstName: "อรรถพร",
+      lastName: "ศึกสพ",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6604062610411",
+      password: "6604062610411",
+      studentID: "6604062610411",
+      firstName: "ปณิธาน",
+      lastName: "เกตุมณี",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6604062620158",
+      password: "6604062620158",
+      studentID: "6604062620158",
+      firstName: "นำชัย",
+      lastName: "ฮังกาสี",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6604062630471",
+      password: "6604062630471",
+      studentID: "6604062630471",
+      firstName: "รัฐศาสตร์",
+      lastName: "ขันขาว",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6704062611115",
+      password: "6704062611115",
+      studentID: "6704062611115",
+      firstName: "กฤติพงศ์",
+      lastName: "ตีระสี",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6704062611352",
+      password: "6704062611352",
+      studentID: "6704062611352",
+      firstName: "ธิติวุฒิ",
+      lastName: "แช่มประเสริฐ",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6704062660019",
+      password: "6704062660019",
+      studentID: "6704062660019",
+      firstName: "ดนุเดช",
+      lastName: "นาคสิงห์",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062610138",
+      password: "6404062610138",
+      studentID: "6404062610138",
+      firstName: "พชร",
+      lastName: "เต็มใจ",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062610162",
+      password: "6404062610162",
+      studentID: "6404062610162",
+      firstName: "พีรภัทร",
+      lastName: "ต้นคำ",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    },
+    {
+      username: "s6404062610081",
+      password: "6404062610081",
+      studentID: "6404062610081",
+      firstName: "ธัชไธย์",
+      lastName: "ดวงงาม",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      lastLoginNotification: null,
+      isEligibleForInternship: true,
+      isEligibleForProject: true
+    }
+  ];
+  
+  module.exports = mockStudentData;
+  
