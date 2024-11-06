@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 // ฟังก์ชันสำหรับส่งอีเมลแจ้งเตือน
 function sendLoginNotification(email, username) {
   const mailOptions = {
-    from: 'chinnakrit500@hotmail.com',
+    from: 'chinnakrit50@hotmail.com',
     to: email,
     subject: 'Login Notification',
     text: `User ${username} has logged in.`

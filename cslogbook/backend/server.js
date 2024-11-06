@@ -62,6 +62,22 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// API สำหรับตรวจสอบสิทธิ์ในการฝึกงานและทำโปรเจกต์
+app.get('/check-eligibility/:studentID', (req, res) => {
+  const { studentID } = req.params;
+  const student = mockStudentData.find((stu) => stu.studentID === studentID);
+
+  if (student) {
+    res.json({
+      studentID: student.studentID,
+      isEligibleForInternship: student.isEligibleForInternship,
+      isEligibleForProject: student.isEligibleForProject
+    });
+  } else {
+    res.status(404).json({ error: 'Student not found' });
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
