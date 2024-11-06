@@ -27,7 +27,6 @@ function sendLoginNotification(email, username) {
       console.error('Error sending email:', error);
     } else {
       console.log('Email sent:', info.response);
-      console.log('Email sent:', info.response);
     }
   });
 }
