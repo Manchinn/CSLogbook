@@ -8,16 +8,27 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const onFinish = (values) => {
+  const handleSubmit = async (values) => {
     setLoading(true);
-    // จำลองการเข้าสู่ระบบ
-    if (values.username === 'admin' && values.password === 'admin') {
-      message.success('Login successful');
-      navigate('/dashboard');
-    } else {
-      message.error('Invalid username or password');
+    try {
+      const response = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),  // ส่ง username และ password จากฟอร์ม
+      });
+
+      if (response.ok) {
+        message.success('Login successful');
+        navigate('/dashboard');  // เปลี่ยนหน้าไปที่ dashboard
+      } else {
+        message.error('Invalid username or password');
+      }
+    } catch (error) {
+      message.error('Something went wrong. Please try again later.');
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -26,7 +37,7 @@ const LoginForm = () => {
       <Form
         name="login"
         initialValues={{ remember: true }}
-        onFinish={onFinish}
+        onFinish={handleSubmit}
         layout="vertical"
       >
         <Form.Item
