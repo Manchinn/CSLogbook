@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layout, Menu, Avatar, Typography, Card } from 'antd';
 import {
   HomeOutlined,
@@ -12,6 +13,23 @@ const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const [studentID, setStudentID] = useState(null);
+
+  useEffect(() => {
+    // ดึง studentID จาก localStorage
+    const storedStudentID = localStorage.getItem('studentID');
+    if (storedStudentID) {
+      setStudentID(storedStudentID);
+    }
+  }, []);
+
+  const handleMenuClick = (key) => {
+    if (key === 'studentProfile' && studentID) {
+      navigate(`/student/${studentID}`); // ใช้ studentID ในการนำทางไปยังหน้าโปรไฟล์
+    }
+  };
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {/* Sidebar */}
@@ -21,7 +39,7 @@ const Dashboard = () => {
           <Title level={4} style={{ marginTop: 10 }}>Chinnakrit Sripan</Title>
         </div>
         <Menu mode="inline" defaultSelectedKeys={['1']} style={{ borderRight: 0 }}>
-          <Menu.Item key="1" icon={<HomeOutlined />}>
+          <Menu.Item key="1" icon={<HomeOutlined />} onClick={() => navigate('/dashboard')}>
             หน้าแรก
           </Menu.Item>
           <Menu.SubMenu key="sub1" icon={<BookOutlined />} title="แผนการเรียน">
@@ -30,7 +48,7 @@ const Dashboard = () => {
           <Menu.SubMenu key="sub2" icon={<FileTextOutlined />} title="ข้อมูลฝึกการศึกษา">
             <Menu.Item key="3">ข้อมูลฝึกการศึกษา</Menu.Item>
           </Menu.SubMenu>
-          <Menu.Item key="4" icon={<TeamOutlined />}>
+          <Menu.Item key="studentProfile" icon={<TeamOutlined />} onClick={() => handleMenuClick('studentProfile')}>
             ประวัตินักศึกษา
           </Menu.Item>
           <Menu.Item key="5" icon={<FileTextOutlined />}>
