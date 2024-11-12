@@ -21,7 +21,7 @@ const universityAPIData = [
         role: "admin"
       },
       {
-        studentID: "6404062630295",
+        studentID: "4000000000000",
         firstName: "student1",
         lastName: "student1",
         email: "student1@email.kmutnb.ac.th",
@@ -33,13 +33,6 @@ const universityAPIData = [
         lastName: "teacher1",
         email: "teacher1@email.kmutnb.ac.th",
         role: "teacher"
-      },
-    {
-        studentID: "6404062630295",
-        firstName: "ชินกฤต",
-        lastName: "ศรีป่าน",
-        email: "s6404062630295@email.kmutnb.ac.th",
-        role: "student"
       },
     {
       studentID: "6304062616013",
