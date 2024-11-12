@@ -18,7 +18,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       }}
     >
       <Title level={3} style={{ color: '#000', margin: 0 }}>
-        CS Logbook
+        CS Logbook ติดตามแผนการเรียนและฝึกงานสำหรับนักศึกษา
       </Title>
       {isMobile && (
         <Button

@@ -8,25 +8,36 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // ฟังก์ชันการส่งข้อมูลการล็อกอิน
   const handleSubmit = async (values) => {
     setLoading(true);
-    // จำลองการ login สำเร็จ
-    const response = await fetch('http://localhost:5000/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    });
+    try {
+      const response = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      message.success('Login successful');
-      
-      // เก็บ studentID ใน localStorage
-      localStorage.setItem('studentID', data.studentID);
+      if (response.ok) {
+        const data = await response.json();
+        message.success('Login successful');
 
-      navigate('/dashboard');
-    } else {
-      message.error('Invalid username or password');
+        // เก็บข้อมูลที่ได้รับจาก API ใน localStorage
+        localStorage.setItem('studentID', data.studentID);
+        localStorage.setItem('firstName', data.firstName);
+        localStorage.setItem('lastName', data.lastName);
+        localStorage.setItem('email', data.email);
+        localStorage.setItem('role', data.role);
+
+        // นำผู้ใช้ไปยังหน้า Dashboard
+        navigate('/dashboard');
+      } else {
+        const errorData = await response.json();
+        message.error(errorData.error || 'Invalid username or password');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      message.error('Something went wrong. Please try again.');
     }
     setLoading(false);
   };
@@ -66,7 +77,6 @@ const LoginForm = () => {
             </Button>
           </Form.Item>
         </Form>
-
       </Card>
     </div>
   );

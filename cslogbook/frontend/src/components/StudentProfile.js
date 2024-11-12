@@ -1,47 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Card, Spin, message } from 'antd';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Typography, Card, Spin, Alert } from 'antd';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
 
-function StudentProfile() {
-  const [studentData, setStudentData] = useState(null);
+const StudentProfile = () => {
+  const { studentID } = useParams();
+  const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { studentID } = useParams(); // รับ studentID จาก URL
+  const [error, setError] = useState(null);
 
+  // ตรวจสอบ studentID ที่ได้รับจาก URL
+  console.log("Student ID from URL:", studentID);
+
+  // ใช้ useEffect เพื่อดึงข้อมูลนักศึกษาจาก API
   useEffect(() => {
-    const fetchEligibility = async () => {
+    const fetchStudentData = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/check-eligibility/${studentID}`);
-        setStudentData(response.data);
+        console.log("API Response:", response.data);
+        setStudent(response.data);
       } catch (error) {
-        message.error("Error fetching student eligibility data.");
-        console.error("Error:", error);
+        console.error('Error fetching student data:', error);
+        setError('ไม่พบข้อมูลนักศึกษา');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEligibility();
+    fetchStudentData();
   }, [studentID]);
 
-  if (loading) return <Spin tip="Loading..." />;
+  if (loading) {
+    console.log("Loading student data...");
+    return <Spin tip="Loading..." />;
+  }
 
-  if (!studentData) return <Text type="danger">No data found for the student.</Text>;
+  if (error) {
+    console.error("Error:", error);
+    return <Alert message={error} type="error" />;
+  }
+
+  if (!student) {
+    console.warn("No student data found");
+    return <Text>ไม่พบข้อมูลนักศึกษา</Text>;
+  }
 
   return (
-    <div style={{ padding: '24px' }}>
+    <Card style={{ margin: '24px', padding: '24px', borderRadius: '8px' }}>
       <Title level={2}>ประวัตินักศึกษา</Title>
-      <Card style={{ backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
-        <Text>รหัสนักศึกษา: {studentData.studentID}</Text>
-        <br />
-        <Text>สิทธิ์ฝึกงาน: {studentData.isEligibleForInternship ? 'มี' : 'ไม่มี'}</Text>
-        <br />
-        <Text>สิทธิ์ทำโครงงานพิเศษ: {studentData.isEligibleForProject ? 'มี' : 'ไม่มี'}</Text>
-      </Card>
-    </div>
+      <Text><b>รหัสนักศึกษา:</b> {student.studentID}</Text>
+      <br />
+      <Text><b>สิทธิ์ฝึกงาน:</b> {student.isEligibleForInternship ? 'มี' : 'ไม่มี'}</Text>
+      <br />
+      <Text><b>สิทธิ์ทำโครงงานพิเศษ:</b> {student.isEligibleForProject ? 'มี' : 'ไม่มี'}</Text>
+    </Card>
   );
-}
+};
 
 export default StudentProfile;

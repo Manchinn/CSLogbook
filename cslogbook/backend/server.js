@@ -3,75 +3,86 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const mockStudentData = require('./mockStudentData'); // นำเข้าข้อมูล mock
-const { sendLoginNotification } = require('./utils/mailer'); // นำเข้าฟังก์ชันจาก mailer.js
+const { sendLoginNotification } = require('./utils/mailer'); // ฟังก์ชันส่งอีเมล
+const { authenticateUser, checkEligibility } = require('./authSystem'); // ระบบตรวจสอบสิทธิ์
+const { getUniversityData } = require('./universityAPI'); // Mockup API มหาวิทยาลัย
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",  // อนุญาตให้ frontend เชื่อมต่อ
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+
+// ตรวจสอบว่าข้อมูล mockStudentData ถูกต้องหรือไม่
+console.log('Loaded mock student data:', mockStudentData);
+
+
 // API สำหรับการเรียกดูข้อมูลนักศึกษาทั้งหมด
 app.get('/students', (req, res) => {
-  // ส่งข้อมูล mock ไปยัง client
+  console.log('Fetching all student data');
   res.json(mockStudentData);
 });
 
 // API สำหรับการล็อกอิน
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log('Received login request:', username);
 
-  // ค้นหานักศึกษาจาก mock data
-  const student = mockStudentData.find(
-    (stu) => stu.username === username && stu.password === password
-  );
+  // ตรวจสอบการล็อกอิน
+  const user = authenticateUser(username, password);
+  if (user) {
+    const universityData = getUniversityData(user.studentID);
+    
+    if (universityData) {
+      const today = new Date().toDateString();
 
-  if (student) {
-    const today = new Date().toDateString();
-
-    // ตรวจสอบว่าเคยส่งอีเมลแจ้งเตือนแล้วในวันนี้หรือไม่
-    if (student.lastLoginNotification !== today) {
-      try {
-        await sendLoginNotification(student.email, student.username); // ส่งอีเมลแจ้งเตือน
-        student.lastLoginNotification = today; // อัปเดตวันที่ล่าสุดที่ส่งอีเมล
-      } catch (error) {
-        console.error('Error sending email:', error);
-        res.status(500).json({ error: 'Login successful, but failed to send notification email' });
-        return;
+      // ตรวจสอบว่าเคยส่งอีเมลแจ้งเตือนวันนี้หรือไม่
+      if (user.lastLoginNotification !== today) {
+        try {
+          await sendLoginNotification(user.email, user.username);
+          user.lastLoginNotification = today;
+        } catch (error) {
+          console.error('Error sending email:', error);
+          res.status(500).json({ error: 'Login successful, but failed to send notification email' });
+          return;
+        }
       }
-    }
 
-    // ส่งข้อมูลการเข้าสู่ระบบกลับไปยัง client
-    res.json({
-      message: 'Login successful',
-      studentID: student.studentID,
-      firstName: student.firstName,
-      lastName: student.lastName,
-      email: student.email
-    });
+      res.json({
+        message: 'Login successful',
+        studentID: universityData.studentID,
+        firstName: universityData.firstName,
+        lastName: universityData.lastName,
+        email: universityData.email,
+        role: universityData.role,
+      });
+    } else {
+      res.status(404).json({ error: "Student data not found in university API" });
+    }
   } else {
     res.status(401).json({ error: "Invalid username or password" });
   }
 });
 
-// API สำหรับตรวจสอบสิทธิ์ในการฝึกงานและทำโปรเจกต์
+// API สำหรับตรวจสอบสิทธิ์
 app.get('/check-eligibility/:studentID', (req, res) => {
   const { studentID } = req.params;
-  const student = mockStudentData.find((stu) => stu.studentID === studentID);
+  const eligibility = checkEligibility(studentID);
 
-  if (student) {
+  if (eligibility) {
     res.json({
-      studentID: student.studentID,
-      isEligibleForInternship: student.isEligibleForInternship,
-      isEligibleForProject: student.isEligibleForProject
+      studentID,
+      ...eligibility
     });
   } else {
     res.status(404).json({ error: 'Student not found' });

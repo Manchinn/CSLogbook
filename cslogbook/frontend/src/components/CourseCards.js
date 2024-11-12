@@ -3,7 +3,7 @@ import { Card, Col, Row, Typography, Layout } from 'antd';
 import {
   DatabaseOutlined,
   CodeOutlined,
-  ClusterOutlined,
+  
   RobotOutlined,
   LaptopOutlined,
   SecurityScanOutlined,
