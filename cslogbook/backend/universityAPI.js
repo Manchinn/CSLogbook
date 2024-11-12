@@ -14,9 +14,9 @@ const universityAPIData = [
       role: "student"
     },
     {
-        studentID: "6404062630295",
-        firstName: "Hello",
-        lastName: "World",
+        studentID: "4000000000",
+        firstName: "admin1",
+        lastName: "admin1",
         email: "admin1@email.kmutnb.ac.th",
         role: "admin"
       },

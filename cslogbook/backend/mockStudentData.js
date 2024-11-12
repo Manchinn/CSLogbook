@@ -3,19 +3,17 @@ const mockStudentData = [
     {
         username: "admin1",
         password: "admin1",
-        studentID: "6404062630295",
-        firstName: "Hello",
-        lastName: "World",
+        studentID: "4000000000",
+        firstName: "admin1",
+        lastName: "admin1",
         email: "admin1@email.kmutnb.ac.th",
-        role: "admin",
-        lastLoginNotification: null,
-        isEligibleForInternship: true,
-        isEligibleForProject: false
+        role: "admin",  
+        lastLoginNotification: null
       },
       {
         username: "student1",
         password: "student1",
-        studentID: "6404062630295",
+        studentID: "4000000000000",
         firstName: "student1",
         lastName: "student1",
         email: "student1@email.kmutnb.ac.th",

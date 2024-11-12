@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Avatar, Typography, message  } from 'antd';
+import { Layout, Menu, Avatar, Typography, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   HomeOutlined,
@@ -9,44 +9,48 @@ import {
   LogoutOutlined,
   CalendarOutlined,
   EditOutlined,
+  FolderOpenOutlined,
+  CheckCircleOutlined,
+  UploadOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
 const { Title } = Typography;
 
-const Sidebar = ({ loggedInStudent }) => {
+const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
 
   const firstName = localStorage.getItem('firstName');
   const lastName = localStorage.getItem('lastName');
   const studentID = localStorage.getItem('studentID');
-
-  // ตรวจสอบข้อมูลใน console
-  console.log("Student Info from localStorage:", { firstName, lastName, studentID });
+  const role = localStorage.getItem('role');
 
   // ตรวจสอบการเปลี่ยนขนาดหน้าจอ
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
- // ฟังก์ชันนำทางไปยังหน้าโปรไฟล์นักศึกษา
- const navigateToProfile = () => {
-  if (studentID) {
-    console.log("Navigating to Student Profile:", studentID);
-    navigate(`/student-profile/${studentID}`);
-  } else {
-    console.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
-    message.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+  // ฟังก์ชันนำทางไปยังหน้าโปรไฟล์นักศึกษา
+  const navigateToProfile = () => {
+    if (studentID) {
+      navigate(`/student-profile/${studentID}`);
+    } else {
+      message.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+      navigate('/login');
+    }
+  };
+
+  // ฟังก์ชัน Log out
+  const handleLogout = () => {
+    localStorage.clear();
     navigate('/login');
-  }
-};
+  };
 
   return (
     <Sider
@@ -55,8 +59,6 @@ const Sidebar = ({ loggedInStudent }) => {
         backgroundColor: '#fff',
         height: '100vh',
         position: isMobile ? 'fixed' : 'relative',
-        left: isMobile ? 0 : 'auto',
-        top: 0,
         zIndex: 1000,
         overflow: 'auto',
       }}
@@ -70,38 +72,60 @@ const Sidebar = ({ loggedInStudent }) => {
       </div>
 
       {/* เมนูการนำทาง */}
-      <Menu mode="inline" defaultSelectedKeys={['1']} style={{ borderRight: 0 }}>
+      <Menu mode="inline" defaultSelectedKeys={['dashboard']} style={{ borderRight: 0 }}>
         <Menu.Item key="dashboard" icon={<HomeOutlined />} onClick={() => navigate('/dashboard')}>
           หน้าแรก
         </Menu.Item>
 
-        <Menu.SubMenu key="sub1" icon={<BookOutlined />} title="แผนการเรียน">
-          <Menu.Item key="2" icon={<CalendarOutlined />} onClick={() => navigate('/Ptstudy')}>
-            แผนการเรียนรายปี
-          </Menu.Item>
-          <Menu.Item key="3" icon={<EditOutlined />} onClick={() => navigate('/Ptag')}>
-            แผนการเรียนแต่สาย
-          </Menu.Item>
-        </Menu.SubMenu>
+        {/* เมนูเพิ่มเติมตาม Role */}
+        {role === 'student' && (
+          <>
+            <Menu.Item key="internship-status" icon={<CheckCircleOutlined />} onClick={() => navigate('/internship-status')}>
+              ดูสถานะฝึกงาน
+            </Menu.Item>
+            <Menu.Item key="project-status" icon={<CheckCircleOutlined />} onClick={() => navigate('/project-status')}>
+              ดูสถานะโครงงาน
+            </Menu.Item>
+            <Menu.Item key="upload-documents" icon={<UploadOutlined />} onClick={() => navigate('/document-upload')}>
+              อัปโหลดเอกสาร
+            </Menu.Item>
+          </>
+        )}
 
-        <Menu.SubMenu key="sub2" icon={<FileTextOutlined />} title="สมุดบันทึกฝึกงาน">
-          <Menu.Item key="4" icon={<TeamOutlined />} onClick={() => navigate('/PCompanyInfo')}>
-            ข้อมูลสถานประกอบการ
-          </Menu.Item>
-          <Menu.Item key="5" icon={<EditOutlined />}>ลงชื่อเข้างาน</Menu.Item>
-        </Menu.SubMenu>
+        {role === 'teacher' && (
+          <>
+            <Menu.Item key="review-documents" icon={<FolderOpenOutlined />} onClick={() => navigate('/review-documents')}>
+              ตรวจสอบเอกสารโครงงาน
+            </Menu.Item>
+            <Menu.Item key="advise-projects" icon={<EditOutlined />} onClick={() => navigate('/advise-projects')}>
+              ให้คำแนะนำโครงงาน
+            </Menu.Item>
+            <Menu.Item key="approve-documents" icon={<CheckCircleOutlined />} onClick={() => navigate('/approve-documents')}>
+              อนุมัติเอกสาร
+            </Menu.Item>
+          </>
+        )}
 
-        {/* นำทางไปยังหน้าประวัตินักศึกษาพร้อม studentID */}
-        <Menu.Item
-          key="student-profile"
-          icon={<TeamOutlined />}
-          onClick={navigateToProfile}
-        >
+        {role === 'admin' && (
+          <>
+            <Menu.Item key="manage-students" icon={<TeamOutlined />} onClick={() => navigate('/manage-students')}>
+              จัดการข้อมูลนักศึกษา
+            </Menu.Item>
+            <Menu.Item key="update-courses" icon={<CalendarOutlined />} onClick={() => navigate('/update-courses')}>
+              อัปเดตรายวิชา
+            </Menu.Item>
+            <Menu.Item key="set-permissions" icon={<EditOutlined />} onClick={() => navigate('/set-permissions')}>
+              กำหนดสิทธิ์ฝึกงาน/โครงงาน
+            </Menu.Item>
+          </>
+        )}
+
+        <Menu.Item key="student-profile" icon={<TeamOutlined />} onClick={navigateToProfile}>
           ประวัตินักศึกษา
         </Menu.Item>
 
         {/* ปุ่ม Log out */}
-        <Menu.Item key="7" icon={<LogoutOutlined />} onClick={() => navigate('/login')} style={{ color: 'red' }}>
+        <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout} style={{ color: 'red' }}>
           Log out
         </Menu.Item>
       </Menu>

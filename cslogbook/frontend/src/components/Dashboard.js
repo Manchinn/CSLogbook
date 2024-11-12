@@ -1,57 +1,39 @@
 import React, { useEffect, useState } from 'react';
+import { Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
+
+const { Title } = Typography;
 
 const Dashboard = () => {
   const [role, setRole] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedRole = localStorage.getItem('role');
-    if (!storedRole) {
+    // ดึงข้อมูล Role และชื่อผู้ใช้จาก localStorage
+    const userRole = localStorage.getItem('role');
+    const firstName = localStorage.getItem('firstName');
+    const lastName = localStorage.getItem('lastName');
+
+    if (!userRole) {
       navigate('/login');
     } else {
-      setRole(storedRole);
+      setRole(userRole);
+      setFirstName(firstName);
+      setLastName(lastName);
     }
   }, [navigate]);
 
   return (
-    <div>
-      <h2>Welcome to the Dashboard</h2>
+    <div style={{ padding: '20px' }}>
+      <Title level={2}>Welcome to the Dashboard</Title>
+      <p>สวัสดี, {firstName} {lastName}</p>
 
-      {/* ฟีเจอร์สำหรับนักศึกษา */}
-      {role === 'student' && (
-        <>
-          <h3>Student Features</h3>
-          <button>ดูสถานะฝึกงาน</button>
-          <button>ดูสถานะโครงงาน</button>
-          <button>อัปโหลดเอกสาร</button>
-        </>
-      )}
-
-      {/* ฟีเจอร์สำหรับอาจารย์ที่ปรึกษา */}
-      {role === 'teacher' && (
-        <>
-          <h3>Teacher Features</h3>
-          <button>ตรวจสอบเอกสารโครงงาน</button>
-          <button>ให้คำแนะนำโครงงาน</button>
-          <button>อนุมัติเอกสาร</button>
-        </>
-      )}
-
-      {/* ฟีเจอร์สำหรับเจ้าหน้าที่ภาควิชา */}
-      {role === 'admin' && (
-        <>
-          <h3>Admin Features</h3>
-          <button>จัดการข้อมูลนักศึกษา</button>
-          <button>อัปเดตรายวิชา</button>
-          <button>กำหนดสิทธิ์ฝึกงาน/โครงงาน</button>
-        </>
-      )}
-
-      <button onClick={() => {
-        localStorage.clear();
-        navigate('/login');
-      }}>Logout</button>
+      {/* แสดงข้อความต้อนรับตาม Role */}
+      {role === 'student' && <p>คุณสามารถจัดการการฝึกงานและโครงงานของคุณได้จากเมนูด้านซ้าย</p>}
+      {role === 'teacher' && <p>ตรวจสอบและให้คำแนะนำโครงงานนักศึกษาได้จากเมนูด้านซ้าย</p>}
+      {role === 'admin' && <p>จัดการข้อมูลนักศึกษาและรายวิชาได้จากเมนูด้านซ้าย</p>}
     </div>
   );
 };
