@@ -2,10 +2,10 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const mockStudentData = require('./mockStudentData'); // นำเข้าข้อมูล mock
-const { sendLoginNotification } = require('./utils/mailer'); // ฟังก์ชันส่งอีเมล
-const { authenticateUser, checkEligibility } = require('./authSystem'); // ระบบตรวจสอบสิทธิ์
-const { getUniversityData } = require('./universityAPI'); // Mockup API มหาวิทยาลัย
+const mockStudentData = require('./mockStudentData');
+const { sendLoginNotification } = require('./utils/mailer');
+const { authenticateUser, checkEligibility } = require('./authSystem'); 
+const { getUniversityData } = require('./universityAPI'); 
 
 const app = express();
 const server = http.createServer(app);
@@ -18,27 +18,22 @@ const io = new Server(server, {
 
 const PORT = 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
 
-// ตรวจสอบว่าข้อมูล mockStudentData ถูกต้องหรือไม่
 console.log('Loaded mock student data:', mockStudentData);
 
 
-// API สำหรับการเรียกดูข้อมูลนักศึกษาทั้งหมด
 app.get('/students', (req, res) => {
   console.log('Fetching all student data');
   res.json(mockStudentData);
 });
 
-// API สำหรับการล็อกอิน
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   console.log('Received login request:', username);
 
-  // ตรวจสอบการล็อกอิน
   const user = authenticateUser(username, password);
   if (user) {
     const universityData = getUniversityData(user.studentID);
@@ -46,7 +41,6 @@ app.post('/login', async (req, res) => {
     if (universityData) {
       const today = new Date().toDateString();
 
-      // ตรวจสอบว่าเคยส่งอีเมลแจ้งเตือนวันนี้หรือไม่
       if (user.lastLoginNotification !== today) {
         try {
           await sendLoginNotification(user.email, user.username);
@@ -74,7 +68,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// API สำหรับตรวจสอบสิทธิ์
 app.get('/check-eligibility/:studentID', (req, res) => {
   const { studentID } = req.params;
   const eligibility = checkEligibility(studentID);

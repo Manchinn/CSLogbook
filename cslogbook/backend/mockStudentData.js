@@ -1,4 +1,3 @@
-// mockStudentData.js
 const mockStudentData = [
     {
         username: "admin1",

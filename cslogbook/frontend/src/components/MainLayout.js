@@ -10,11 +10,11 @@ const { Content } = Layout;
 const MainLayout = () => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sidebar /> {/* Sidebar จะแสดงอยู่ทุกหน้า */}
+      <Sidebar /> {}
       <Layout>
         <HeaderComponent />
         <Content style={{ padding: '24px', backgroundColor: '#f0f2f5' }}>
-          <Outlet /> {/* ใช้ Outlet สำหรับแสดงเนื้อหาของหน้าต่างๆ */}
+          <Outlet /> {}
         </Content>
       </Layout>
     </Layout>

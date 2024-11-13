@@ -8,7 +8,6 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // ฟังก์ชันการส่งข้อมูลการล็อกอิน
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
@@ -22,14 +21,13 @@ const LoginForm = () => {
         const data = await response.json();
         message.success('Login successful');
 
-        // เก็บข้อมูลที่ได้รับจาก API ใน localStorage
+        // เก็บข้อมูลที่รับจากAPIในlocalStorage
         localStorage.setItem('studentID', data.studentID);
         localStorage.setItem('firstName', data.firstName);
         localStorage.setItem('lastName', data.lastName);
         localStorage.setItem('email', data.email);
         localStorage.setItem('role', data.role);
 
-        // นำผู้ใช้ไปยังหน้า Dashboard
         navigate('/dashboard');
       } else {
         const errorData = await response.json();

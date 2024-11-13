@@ -11,10 +11,8 @@ const StudentProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ตรวจสอบ studentID ที่ได้รับจาก URL
   console.log("Student ID from URL:", studentID);
 
-  // ใช้ useEffect เพื่อดึงข้อมูลนักศึกษาจาก API
   useEffect(() => {
     const fetchStudentData = async () => {
       try {

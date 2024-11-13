@@ -24,7 +24,7 @@ const Sidebar = () => {
   const firstName = localStorage.getItem('firstName');
   const lastName = localStorage.getItem('lastName');
   const studentID = localStorage.getItem('studentID');
-  const role = localStorage.getItem('role'); // ดึง role จาก localStorage
+  const role = localStorage.getItem('role');
 
   useEffect(() => {
     const handleResize = () => {
@@ -41,7 +41,6 @@ const Sidebar = () => {
     navigate('/login');
   };
 
-   // ฟังก์ชันนำทางไปยังหน้าโปรไฟล์นักศึกษา
  const navigateToProfile = () => {
   if (studentID) {
     console.log("Navigating to Student Profile:", studentID);
@@ -102,7 +101,6 @@ const Sidebar = () => {
                 อัปโหลดเอกสาร
               </Menu.Item>
             </Menu.SubMenu>
-            {/* นำทางไปยังหน้าประวัตินักศึกษา */}
             <Menu.Item key="student-profile" icon={<TeamOutlined />} onClick={navigateToProfile}>
               ประวัตินักศึกษา
             </Menu.Item>
@@ -137,7 +135,6 @@ const Sidebar = () => {
           </>
         )}
 
-        {/* ปุ่ม Log out */}
         <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout} style={{ color: 'red' }}>
           Log out
         </Menu.Item>

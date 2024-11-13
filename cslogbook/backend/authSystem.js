@@ -8,7 +8,7 @@ function authenticateUser(username, password) {
   ) || null;
 }
 
-// ตรวจสอบสิทธิ์
+// ตรวจสอบสิทธิ์การฝึกงานกับการทำโปรเจค
 function checkEligibility(studentID) {
   const student = mockStudentData.find(user => user.studentID === studentID);
   return student ? {
