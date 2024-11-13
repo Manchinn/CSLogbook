@@ -31,8 +31,18 @@ const AdminUpload = () => {
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Surname', dataIndex: 'surname', key: 'surname' },
     { title: 'Role', dataIndex: 'role', key: 'role' },
-    { title: 'Internship', dataIndex: 'isEligibleForInternship', key: 'internship' },
-    { title: 'Project', dataIndex: 'isEligibleForProject', key: 'project' },
+    { 
+        title: 'Internship', 
+        dataIndex: 'isEligibleForInternship', 
+        key: 'internship', 
+        render: (isEligible) => isEligible ? '✅' : '❌' 
+      },
+      { 
+        title: 'Project', 
+        dataIndex: 'isEligibleForProject', 
+        key: 'project', 
+        render: (isEligible) => isEligible ? '✅' : '❌' 
+      },
   ];
 
   return (

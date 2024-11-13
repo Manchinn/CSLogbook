@@ -31,17 +31,57 @@ const upload = multer({ dest: 'uploads/' });
 
 console.log('Loaded mock student data:', mockStudentData);
 
+
 // API สำหรับการอัปโหลด CSV
 app.post('/upload-csv', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
   const results = [];
   const filePath = req.file.path;
 
+  // อ่านข้อมูลจาก CSV และส่งกลับเป็น array
   fs.createReadStream(filePath)
     .pipe(csv())
-    .on('data', (data) => results.push(data))
+    .on('data', (data) => {
+      // ตรวจสอบว่ามีนักศึกษาที่มี studentID เดียวกันอยู่ในระบบหรือไม่
+      const existingStudent = mockStudentData.find(
+        (student) => student.studentID === data.studentID
+      );
+
+      // ถ้าไม่ซ้ำกัน ให้เพิ่มเข้าไปใน mockStudentData
+      if (!existingStudent) {
+        mockStudentData.push({
+          username: data.username,
+          password: data.password,
+          studentID: data.studentID,
+          firstName: data.name,
+          lastName: data.surname,
+          email: data.email,
+          role: data.role,
+          isEligibleForInternship: data.internship === 'true',
+          isEligibleForProject: data.project === 'true',
+          lastLoginNotification: null
+        });
+      } else {
+        console.log(`นักศึกษาที่มี studentID ${data.studentID} มีอยู่แล้ว`);
+      }
+
+      // ปรับโครงสร้างข้อมูลที่อ่านจาก CSV ให้เหมาะสม
+      const student = {
+        studentID: data['Student ID'],
+        name: data['Name'],
+        surname: data['Surname'],
+        role: data['Role'],
+        isEligibleForInternship: data['Internship'] === 'true',
+        isEligibleForProject: data['Project'] === 'true'
+      };
+      results.push(student);
+    })
     .on('end', () => {
       fs.unlinkSync(filePath); // ลบไฟล์หลังจากอ่านเสร็จ
-      res.json({ message: 'File uploaded and processed successfully', data: results });
+      res.json(results); // ส่งข้อมูลในรูปแบบ array กลับไปยัง frontend
     })
     .on('error', (err) => {
       console.error('Error reading CSV file:', err);
@@ -61,7 +101,7 @@ app.post('/login', async (req, res) => {
   const user = authenticateUser(username, password);
   if (user) {
     const universityData = getUniversityData(user.studentID);
-    
+
     if (universityData) {
       const today = new Date().toDateString();
 
