@@ -4,6 +4,7 @@ import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
 import StudentProfile from './components/StudentProfile';
 import MainLayout from './components/MainLayout';
+import AdminUpload from './components/AdminUpload';
 
 function App() {
   const [loggedInStudent, setLoggedInStudent] = useState(null);
@@ -17,6 +18,8 @@ function App() {
           <Route path="/student-profile/:studentID" element={<StudentProfile student={loggedInStudent} />} />
         </Route>
         <Route path="/" element={<LoginForm setLoggedInStudent={setLoggedInStudent} />} />
+        <Route path="/admin/upload" element={<AdminUpload />} />
+
       </Routes>
     </Router>
   );

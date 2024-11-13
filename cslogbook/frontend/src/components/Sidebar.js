@@ -132,6 +132,9 @@ const Sidebar = () => {
             <Menu.Item key="assign-rights" icon={<CheckCircleOutlined />} onClick={() => navigate('/assign-rights')}>
               กำหนดสิทธิ์ฝึกงาน/โครงงาน
             </Menu.Item>
+            <Menu.Item key="upload-csv" icon={<UploadOutlined />} onClick={() => navigate('/admin/upload')}>
+              Upload Student CSV
+            </Menu.Item>
           </>
         )}
 

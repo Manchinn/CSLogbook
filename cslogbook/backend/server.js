@@ -5,7 +5,11 @@ const cors = require('cors');
 const mockStudentData = require('./mockStudentData');
 const { sendLoginNotification } = require('./utils/mailer');
 const { authenticateUser, checkEligibility } = require('./authSystem'); 
-const { getUniversityData } = require('./universityAPI'); 
+const { getUniversityData } = require('./universityAPI');
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,8 +26,28 @@ app.use(cors());
 app.use(express.json());
 
 
+// กำหนดตำแหน่งที่เก็บไฟล์ที่อัปโหลด
+const upload = multer({ dest: 'uploads/' });
+
 console.log('Loaded mock student data:', mockStudentData);
 
+// API สำหรับการอัปโหลด CSV
+app.post('/upload-csv', upload.single('file'), (req, res) => {
+  const results = [];
+  const filePath = req.file.path;
+
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', () => {
+      fs.unlinkSync(filePath); // ลบไฟล์หลังจากอ่านเสร็จ
+      res.json({ message: 'File uploaded and processed successfully', data: results });
+    })
+    .on('error', (err) => {
+      console.error('Error reading CSV file:', err);
+      res.status(500).json({ error: 'Error reading CSV file' });
+    });
+});
 
 app.get('/students', (req, res) => {
   console.log('Fetching all student data');
