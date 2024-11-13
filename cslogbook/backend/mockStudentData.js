@@ -1,5 +1,38 @@
-// mockStudentData.js
 const mockStudentData = [
+    {
+        username: "admin1",
+        password: "admin1",
+        studentID: "4000000000",
+        firstName: "admin1",
+        lastName: "admin1",
+        email: "admin1@email.kmutnb.ac.th",
+        role: "admin",  
+        lastLoginNotification: null
+      },
+      {
+        username: "student1",
+        password: "student1",
+        studentID: "4000000000000",
+        firstName: "student1",
+        lastName: "student1",
+        email: "student1@email.kmutnb.ac.th",
+        role: "student",
+        lastLoginNotification: null,
+        isEligibleForInternship: true,
+        isEligibleForProject: true
+      },
+      {
+        username: "teacher1",
+        password: "teacher1",
+        studentID: "6400000000000",
+        firstName: "teacher1",
+        lastName: "teacher1",
+        email: "teacher1@email.kmutnb.ac.th",
+        role: "teacher1",
+        lastLoginNotification: null,
+        isEligibleForInternship: true,
+        isEligibleForProject: true
+      },
     {
         username: "s6404062630295",
         password: "admin",
@@ -7,6 +40,7 @@ const mockStudentData = [
         firstName: "ชินกฤต",
         lastName: "ศรีป่าน",
         email: "s6404062630295@email.kmutnb.ac.th",
+        role: "student",
         lastLoginNotification: null,
         isEligibleForInternship: true,
         isEligibleForProject: true
@@ -18,6 +52,7 @@ const mockStudentData = [
       firstName: "กริน",
       lastName: "นนทจิตต์",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -29,8 +64,9 @@ const mockStudentData = [
       firstName: "นิวัฒน์",
       lastName: "เสียงใส",
       email: "s6404062610294@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
-      isEligibleForInternship: true,
+      isEligibleForInternship: false,
       isEligibleForProject: true
     },
     {
@@ -40,6 +76,7 @@ const mockStudentData = [
       firstName: "นพดล",
       lastName: "เกียรติศิริ",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -51,6 +88,7 @@ const mockStudentData = [
       firstName: "พชร",
       lastName: "วรวัตร",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -62,6 +100,7 @@ const mockStudentData = [
       firstName: "กัญญาพัชร",
       lastName: "ก้อนนิล",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -73,6 +112,7 @@ const mockStudentData = [
       firstName: "กิจจาพัฒน์",
       lastName: "หนูบุญ",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -84,6 +124,7 @@ const mockStudentData = [
       firstName: "อรรถพร",
       lastName: "ศึกสพ",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -95,6 +136,7 @@ const mockStudentData = [
       firstName: "ปณิธาน",
       lastName: "เกตุมณี",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -106,6 +148,7 @@ const mockStudentData = [
       firstName: "นำชัย",
       lastName: "ฮังกาสี",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -117,6 +160,7 @@ const mockStudentData = [
       firstName: "รัฐศาสตร์",
       lastName: "ขันขาว",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -128,6 +172,7 @@ const mockStudentData = [
       firstName: "กฤติพงศ์",
       lastName: "ตีระสี",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -139,6 +184,7 @@ const mockStudentData = [
       firstName: "ธิติวุฒิ",
       lastName: "แช่มประเสริฐ",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -150,6 +196,7 @@ const mockStudentData = [
       firstName: "ดนุเดช",
       lastName: "นาคสิงห์",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -161,6 +208,7 @@ const mockStudentData = [
       firstName: "พชร",
       lastName: "เต็มใจ",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -172,6 +220,7 @@ const mockStudentData = [
       firstName: "พีรภัทร",
       lastName: "ต้นคำ",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
@@ -183,6 +232,7 @@ const mockStudentData = [
       firstName: "ธัชไธย์",
       lastName: "ดวงงาม",
       email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student",
       lastLoginNotification: null,
       isEligibleForInternship: true,
       isEligibleForProject: true
