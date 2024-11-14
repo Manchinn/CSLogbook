@@ -100,9 +100,9 @@ app.post('/login', async (req, res) => {
 
   const user = authenticateUser(username, password);
   if (user) {
-    const universityData = getUniversityData(user.studentID);
+    const eligibility = getUniversityData(user.studentID);
 
-    if (universityData) {
+    if (eligibility) {
       const today = new Date().toDateString();
 
       if (user.lastLoginNotification !== today) {
@@ -118,31 +118,19 @@ app.post('/login', async (req, res) => {
 
       res.json({
         message: 'Login successful',
-        studentID: universityData.studentID,
-        firstName: universityData.firstName,
-        lastName: universityData.lastName,
-        email: universityData.email,
-        role: universityData.role,
+        studentID: user.studentID,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isEligibleForInternship: eligibility.isEligibleForInternship,
+        isEligibleForProject: eligibility.isEligibleForProject
       });
     } else {
       res.status(404).json({ error: "Student data not found in university API" });
     }
   } else {
     res.status(401).json({ error: "Invalid username or password" });
-  }
-});
-
-app.get('/check-eligibility/:studentID', (req, res) => {
-  const { studentID } = req.params;
-  const eligibility = checkEligibility(studentID);
-
-  if (eligibility) {
-    res.json({
-      studentID,
-      ...eligibility
-    });
-  } else {
-    res.status(404).json({ error: 'Student not found' });
   }
 });
 
