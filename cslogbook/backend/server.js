@@ -33,6 +33,7 @@ console.log('Loaded mock student data:', mockStudentData);
 
 
 // API สำหรับการอัปโหลด CSV
+/*
 app.post('/upload-csv', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
@@ -41,45 +42,71 @@ app.post('/upload-csv', upload.single('file'), (req, res) => {
   const results = [];
   const filePath = req.file.path;
 
-  // อ่านข้อมูลจาก CSV และส่งกลับเป็น array
   fs.createReadStream(filePath)
     .pipe(csv())
     .on('data', (data) => {
+      console.log('Received CSV data:', data);
+
+      // ตรวจสอบข้อมูลที่อัปโหลดว่ามีฟิลด์ที่จำเป็นครบถ้วนหรือไม่
+      if (
+        !data['Student ID'] || 
+        !data['Name'] || 
+        !data['Surname'] || 
+        !data['Role'] || 
+        (data['Internship'].toUpperCase() !== 'TRUE' && data['Internship'].toUpperCase() !== 'FALSE') ||
+        (data['Project'].toUpperCase() !== 'TRUE' && data['Project'].toUpperCase() !== 'FALSE')
+      ) {
+        console.error('Invalid data in CSV file:', data);
+        results.push({ studentID: data['Student ID'], status: 'Invalid Data' });
+        return;
+      }
+
+      // แปลง Student ID ให้เป็น string ปกติ (รองรับการนำเข้าที่เป็น Scientific Notation)
+      let studentID = data['Student ID'];
+      if (typeof studentID === 'string' && studentID.includes('E')) {
+        studentID = parseFloat(studentID).toFixed(0);
+      }
+      studentID = studentID.toString();
+
       // ตรวจสอบว่ามีนักศึกษาที่มี studentID เดียวกันอยู่ในระบบหรือไม่
       const existingStudent = mockStudentData.find(
-        (student) => student.studentID === data.studentID
+        (student) => student.studentID === studentID
       );
 
       // ถ้าไม่ซ้ำกัน ให้เพิ่มเข้าไปใน mockStudentData
       if (!existingStudent) {
-        mockStudentData.push({
-          username: data.username,
-          password: data.password,
-          studentID: data.studentID,
-          firstName: data.name,
-          lastName: data.surname,
-          email: data.email,
-          role: data.role,
-          isEligibleForInternship: data.internship === 'true',
-          isEligibleForProject: data.project === 'true',
+        const newStudent = {
+          studentID: studentID,
+          firstName: data['Name'],
+          lastName: data['Surname'],
+          role: data['Role'],
+          isEligibleForInternship: data['Internship'].toUpperCase() === 'TRUE',
+          isEligibleForProject: data['Project'].toUpperCase() === 'TRUE',
           lastLoginNotification: null
+        };
+        mockStudentData.push(newStudent);
+        results.push({ 
+          studentID, 
+          name: data['Name'], 
+          surname: data['Surname'], 
+          role: data['Role'], 
+          isEligibleForInternship: data['Internship'].toUpperCase() === 'TRUE', 
+          isEligibleForProject: data['Project'].toUpperCase() === 'TRUE', 
+          status: 'Added' 
         });
       } else {
-        console.log(`นักศึกษาที่มี studentID ${data.studentID} มีอยู่แล้ว`);
+        console.log(`นักศึกษาที่มี studentID ${studentID} มีอยู่แล้ว`);
+        results.push({ 
+          studentID, 
+          name: data['Name'], 
+          surname: data['Surname'], 
+          role: data['Role'], 
+          status: 'Duplicate' 
+        });
       }
-
-      // ปรับโครงสร้างข้อมูลที่อ่านจาก CSV ให้เหมาะสม
-      const student = {
-        studentID: data['Student ID'],
-        name: data['Name'],
-        surname: data['Surname'],
-        role: data['Role'],
-        isEligibleForInternship: data['Internship'] === 'true',
-        isEligibleForProject: data['Project'] === 'true'
-      };
-      results.push(student);
     })
     .on('end', () => {
+      console.log('Final processed data:', results);
       fs.unlinkSync(filePath); // ลบไฟล์หลังจากอ่านเสร็จ
       res.json(results); // ส่งข้อมูลในรูปแบบ array กลับไปยัง frontend
     })
@@ -88,6 +115,8 @@ app.post('/upload-csv', upload.single('file'), (req, res) => {
       res.status(500).json({ error: 'Error reading CSV file' });
     });
 });
+*/
+
 
 app.get('/students', (req, res) => {
   console.log('Fetching all student data');

@@ -7,6 +7,7 @@ const AdminUpload = () => {
   const [fileList, setFileList] = useState([]);
   const [students, setStudents] = useState([]);
 
+  // ฟังก์ชันสำหรับการอัปโหลด CSV
   const handleUpload = async () => {
     if (fileList.length === 0) {
       message.error("Please upload a CSV file");
@@ -18,31 +19,45 @@ const AdminUpload = () => {
 
     try {
       const response = await axios.post('http://localhost:5000/upload-csv', formData);
-      setStudents(response.data);
-      message.success("CSV uploaded successfully");
+      
+      console.log('Response Data:', response.data); // ตรวจสอบข้อมูลที่ได้จาก Backend
+
+      if (response.data) {
+        setStudents(response.data); // อัปเดตข้อมูลนักศึกษาจากการอัปโหลด
+        message.success("CSV uploaded successfully");
+      } else {
+        message.error("Failed to upload CSV");
+      }
     } catch (error) {
       console.error('Error uploading CSV:', error);
       message.error("Failed to upload CSV");
     }
   };
 
+  // กำหนด columns สำหรับตาราง
   const columns = [
     { title: 'Student ID', dataIndex: 'studentID', key: 'studentID' },
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Surname', dataIndex: 'surname', key: 'surname' },
     { title: 'Role', dataIndex: 'role', key: 'role' },
     { 
-        title: 'Internship', 
-        dataIndex: 'isEligibleForInternship', 
-        key: 'internship', 
-        render: (isEligible) => isEligible ? '✅' : '❌' 
-      },
-      { 
-        title: 'Project', 
-        dataIndex: 'isEligibleForProject', 
-        key: 'project', 
-        render: (isEligible) => isEligible ? '✅' : '❌' 
-      },
+      title: 'Internship', 
+      dataIndex: 'isEligibleForInternship', 
+      key: 'internship', 
+      render: (isEligible) => isEligible ? '✅' : '❌' 
+    },
+    { 
+      title: 'Project', 
+      dataIndex: 'isEligibleForProject', 
+      key: 'project', 
+      render: (isEligible) => isEligible ? '✅' : '❌' 
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status',
+      render: (status) => status === 'Duplicate' ? '⚠️ Duplicate' : '✅ Added'
+    },
   ];
 
   return (
@@ -60,7 +75,13 @@ const AdminUpload = () => {
       <Button type="primary" onClick={handleUpload} style={{ marginTop: '10px' }}>
         Upload
       </Button>
-      <Table dataSource={students} columns={columns} rowKey="studentID" style={{ marginTop: '20px' }} />
+      <Table 
+        dataSource={students} 
+        columns={columns} 
+        rowKey="studentID" 
+        style={{ marginTop: '20px' }} 
+        pagination={{ pageSize: 10 }}
+      />
     </div>
   );
 };

@@ -24,7 +24,7 @@ const universityAPIData = [
       firstName: "teacher1",
       lastName: "teacher1",
       email: "teacher1@email.kmutnb.ac.th",
-      role: "teacher1"
+      role: "teacher"
     },
     {
       username: "s6404062630295",
@@ -34,35 +34,7 @@ const universityAPIData = [
       lastName: "ศรีป่าน",
       email: "s6404062630295@email.kmutnb.ac.th",
       role: "student"
-    },/*
-    {
-      studentID: "6304062616013",
-      firstName: "กริน",
-      lastName: "นนทจิตต์",
-      email: "s6304062616013@email.kmutnb.ac.th",
-      role: "student"
     },
-    {
-        studentID: "4000000000",
-        firstName: "admin1",
-        lastName: "admin1",
-        email: "admin1@email.kmutnb.ac.th",
-        role: "admin"
-      },
-      {
-        studentID: "4000000000000",
-        firstName: "student1",
-        lastName: "student1",
-        email: "student1@email.kmutnb.ac.th",
-        role: "student"
-      },
-      {
-        studentID: "6400000000000",
-        firstName: "teacher1",
-        lastName: "teacher1",
-        email: "teacher1@email.kmutnb.ac.th",
-        role: "teacher"
-      },
     {
       username: "s6304062616013",
       password: "6304062616013",
@@ -80,14 +52,16 @@ const universityAPIData = [
       lastName: "เสียงใส",
       email: "s6404062610294@email.kmutnb.ac.th",
       role: "student"
-    },
+    },/*
     {
+      username: "s6404062610286",
+      password: "6404062610286",
       studentID: "6404062610286",
       firstName: "นพดล",
       lastName: "เกียรติศิริ",
       email: "s6404062630295@email.kmutnb.ac.th",
       role: "student"
-    },
+    },/*
     {
       studentID: "6404062610324",
       firstName: "พชร",
