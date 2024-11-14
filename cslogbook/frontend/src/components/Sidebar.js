@@ -17,6 +17,19 @@ import {
 const { Sider } = Layout;
 const { Title } = Typography;
 
+const getRoleColor = (role) => {
+  switch (role) {
+    case 'student':
+      return '#e6f7ff'; // สีฟ้าสำหรับนักศึกษา
+    case 'teacher':
+      return '#f0e68c'; // สีเหลืองสำหรับอาจารย์
+    case 'admin':
+      return '#f4cccc'; // สีแดงสำหรับผู้ดูแลระบบ
+    default:
+      return '#fff';
+  }
+};
+
 const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
@@ -25,6 +38,7 @@ const Sidebar = () => {
   const lastName = localStorage.getItem('lastName');
   const studentID = localStorage.getItem('studentID');
   const role = localStorage.getItem('role');
+  
 
   useEffect(() => {
     const handleResize = () => {
