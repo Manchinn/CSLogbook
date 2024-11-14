@@ -1,4 +1,4 @@
-const universityAPIData = [
+let universityAPIData = [
     {
       username: "admin1",
       password: "admin1",
@@ -52,7 +52,16 @@ const universityAPIData = [
       lastName: "เสียงใส",
       email: "s6404062610294@email.kmutnb.ac.th",
       role: "student"
-    },/*
+    },,
+    {
+      username: "s6604062620158",
+      password: "6604062620158",
+      studentID: "6604062620158",
+      firstName: "นำชัย",
+      lastName: "ฮังกาสี",
+      email: "s6404062630295@email.kmutnb.ac.th",
+      role: "student"
+    },
     {
       username: "s6404062610286",
       password: "6404062610286",
@@ -78,14 +87,61 @@ const universityAPIData = [
     }*/
   ];
   
-  // Function to simulate fetching student data from the university API
-  function getUniversityData(studentID) {
-    return universityAPIData.find(student => student.studentID === studentID) || null;
-  }
+// ฟังก์ชันค้นหาข้อมูลนักศึกษา
+const getUniversityData = (studentID) => {
+  return universityAPIData.find(student => student.studentID === studentID) || null;
+};
 
-  function authenticateUser(username, password) {
-    return universityAPIData.find(user => user.username === username && user.password === password) || null;
+// ฟังก์ชันตรวจสอบการเข้าสู่ระบบ
+const authenticateUser = (username, password) => {
+  return universityAPIData.find(user => 
+      user.username === username && user.password === password
+  ) || null;
+};
+
+// ฟังก์ชันอัปเดตหรือเพิ่มข้อมูลใหม่
+const updateUniversityData = (studentData) => {
+  try {
+      const username = `s${studentData.studentID}`;
+      
+      const userData = {
+          username,
+          password: studentData.studentID, // รหัสผ่านเริ่มต้นคือรหัสนักศึกษา
+          studentID: studentData.studentID,
+          firstName: studentData.firstName,
+          lastName: studentData.lastName,
+          email: `s${studentData.studentID}@email.kmutnb.ac.th`,
+          role: studentData.role
+      };
+
+      const existingIndex = universityAPIData.findIndex(
+          user => user.studentID === studentData.studentID
+      );
+
+      if (existingIndex !== -1) {
+          universityAPIData[existingIndex] = userData;
+          console.log('Updated user data:', userData);
+      } else {
+          universityAPIData.push(userData);
+          console.log('Added new user data:', userData);
+      }
+
+      return true;
+  } catch (error) {
+      console.error('Error updating university data:', error);
+      return false;
   }
-  
-  module.exports = { getUniversityData, authenticateUser };
+};
+
+// ฟังก์ชันดึงข้อมูลทั้งหมด
+const getAllUniversityData = () => {
+  return universityAPIData;
+};
+
+module.exports = {
+  getUniversityData,
+  authenticateUser,
+  updateUniversityData,
+  getAllUniversityData
+};
   

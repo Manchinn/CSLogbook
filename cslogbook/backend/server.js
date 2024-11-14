@@ -5,7 +5,9 @@ const cors = require('cors');
 const mockStudentData = require('./mockStudentData');
 const { sendLoginNotification } = require('./utils/mailer');
 const { authenticateUser, checkEligibility } = require('./authSystem'); 
-const { getUniversityData } = require('./universityAPI');
+const { getUniversityData,getAllUniversityData } = require('./universityAPI');
+const { updateUniversityData } = require('./universityAPI');
+const { validateCSVRow } = require('./utils/csvParser');
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -22,7 +24,13 @@ const io = new Server(server, {
 
 const PORT = 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+
+}));
+
 app.use(express.json());
 
 
@@ -33,7 +41,6 @@ console.log('Loaded mock student data:', mockStudentData);
 
 
 // API สำหรับการอัปโหลด CSV
-/*
 app.post('/upload-csv', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
@@ -42,81 +49,99 @@ app.post('/upload-csv', upload.single('file'), (req, res) => {
   const results = [];
   const filePath = req.file.path;
 
-  fs.createReadStream(filePath)
-    .pipe(csv())
-    .on('data', (data) => {
-      console.log('Received CSV data:', data);
-
-      // ตรวจสอบข้อมูลที่อัปโหลดว่ามีฟิลด์ที่จำเป็นครบถ้วนหรือไม่
-      if (
-        !data['Student ID'] || 
-        !data['Name'] || 
-        !data['Surname'] || 
-        !data['Role'] || 
-        (data['Internship'].toUpperCase() !== 'TRUE' && data['Internship'].toUpperCase() !== 'FALSE') ||
-        (data['Project'].toUpperCase() !== 'TRUE' && data['Project'].toUpperCase() !== 'FALSE')
-      ) {
-        console.error('Invalid data in CSV file:', data);
-        results.push({ studentID: data['Student ID'], status: 'Invalid Data' });
-        return;
-      }
-
-      // แปลง Student ID ให้เป็น string ปกติ (รองรับการนำเข้าที่เป็น Scientific Notation)
-      let studentID = data['Student ID'];
-      if (typeof studentID === 'string' && studentID.includes('E')) {
-        studentID = parseFloat(studentID).toFixed(0);
-      }
-      studentID = studentID.toString();
-
-      // ตรวจสอบว่ามีนักศึกษาที่มี studentID เดียวกันอยู่ในระบบหรือไม่
-      const existingStudent = mockStudentData.find(
-        (student) => student.studentID === studentID
-      );
-
-      // ถ้าไม่ซ้ำกัน ให้เพิ่มเข้าไปใน mockStudentData
-      if (!existingStudent) {
-        const newStudent = {
-          studentID: studentID,
-          firstName: data['Name'],
-          lastName: data['Surname'],
-          role: data['Role'],
-          isEligibleForInternship: data['Internship'].toUpperCase() === 'TRUE',
-          isEligibleForProject: data['Project'].toUpperCase() === 'TRUE',
-          lastLoginNotification: null
-        };
-        mockStudentData.push(newStudent);
-        results.push({ 
-          studentID, 
-          name: data['Name'], 
-          surname: data['Surname'], 
-          role: data['Role'], 
-          isEligibleForInternship: data['Internship'].toUpperCase() === 'TRUE', 
-          isEligibleForProject: data['Project'].toUpperCase() === 'TRUE', 
-          status: 'Added' 
-        });
-      } else {
-        console.log(`นักศึกษาที่มี studentID ${studentID} มีอยู่แล้ว`);
-        results.push({ 
-          studentID, 
-          name: data['Name'], 
-          surname: data['Surname'], 
-          role: data['Role'], 
-          status: 'Duplicate' 
-        });
-      }
+  fs.createReadStream(filePath, { encoding: 'utf-8' })
+    .pipe(csv({
+      skipEmptyLines: true,
+      trim: true,
+    }))
+    .on('data', (row) => {
+      try{
+          const validation = validateCSVRow(row);
+          console.log('Processing CSV row:', row);
+          console.log('Validation result:', validation);
+          
+          if (validation.isValid && validation.normalizedData) {
+            const { normalizedData } = validation;
+            
+            // อัปเดต mockStudentData
+            const existingStudent = mockStudentData.find(
+              student => student.studentID === normalizedData.studentID
+            );
+            
+            if (existingStudent) {
+              // อัปเดตข้อมูลที่มีอยู่
+              Object.assign(existingStudent, normalizedData);
+              // อัปเดตข้อมูล login ด้วย
+              const updated = updateUniversityData(normalizedData);
+              results.push({
+                  ...normalizedData,
+                  status: updated ? 'Updated' : 'Update Failed'
+              });
+            } else {
+              // เพิ่มข้อมูลใหม่
+              mockStudentData.push(normalizedData);
+              // เพิ่มข้อมูล login ใหม่
+              const added = updateUniversityData(normalizedData);
+              results.push({
+                ...normalizedData,
+                status: added ? 'Added' : 'Add Failed'
+              });
+              console.log('Added new student:', normalizedData);
+            }
+          } else {
+            // กรณีข้อมูลไม่ถูกต้อง
+            console.log('Invalid data:', row, 'Errors:', validation.errors);
+            results.push({
+              studentID: row['Student ID'] || '-',
+              firstName: row['Name'] || '-',
+              lastName: row['Surname'] || '-',
+              role: row['Role'] || '-',
+              status: 'Invalid',
+              errors: validation.errors
+            });
+          }
+        }catch(error){
+          console.error('Error processing row:', error);
+          results.push({
+              ...row,
+              status: 'Error',
+              error: error.message
+          });
+        }
     })
     .on('end', () => {
-      console.log('Final processed data:', results);
-      fs.unlinkSync(filePath); // ลบไฟล์หลังจากอ่านเสร็จ
-      res.json(results); // ส่งข้อมูลในรูปแบบ array กลับไปยัง frontend
+      // เพิ่ม logging ตรงนี้
+      console.log('=== CSV Processing Complete ===');
+      console.log('Updated mockStudentData:', mockStudentData);
+      console.log('Updated universityAPIData:', getAllUniversityData());
+      console.log('Final processed results:', results);
+      console.log('Updated mockStudentData:', mockStudentData);
+      console.log('Summary:', {
+        total: results.length,
+        added: results.filter(r => r.status === 'Added').length,
+        updated: results.filter(r => r.status === 'Updated').length,
+        invalid: results.filter(r => r.status === 'Invalid').length
+      });
+      console.log('===============================');
+
+      fs.unlinkSync(filePath);
+      
+      res.json({
+        success: true,
+        results,
+        summary: {
+          total: results.length,
+          added: results.filter(r => r.status === 'Added').length,
+          updated: results.filter(r => r.status === 'Updated').length,
+          invalid: results.filter(r => r.status === 'Invalid').length
+        }
+      });
     })
     .on('error', (err) => {
-      console.error('Error reading CSV file:', err);
-      res.status(500).json({ error: 'Error reading CSV file' });
+      console.error('Error processing CSV file:', err);
+      res.status(500).json({ error: 'Error processing CSV file' });
     });
 });
-*/
-
 
 app.get('/students', (req, res) => {
   console.log('Fetching all student data');
@@ -160,6 +185,32 @@ app.post('/login', async (req, res) => {
     }
   } else {
     res.status(401).json({ error: "Invalid username or password" });
+  }
+});
+
+// เพิ่ม endpoint สำหรับดึงข้อมูลนักศึกษา
+app.get('/api/students', (req, res) => {
+  try {
+      console.log('Sending student data:', mockStudentData);
+      res.json(mockStudentData);
+  } catch (error) {
+      console.error('Error getting students:', error);
+      res.status(500).json({ error: 'Error fetching student data' });
+  }
+});
+
+// เพิ่ม endpoint สำหรับดึงข้อมูลนักศึกษาตาม ID
+app.get('/api/students/:id', (req, res) => {
+  try {
+      const student = mockStudentData.find(s => s.studentID === req.params.id);
+      if (student) {
+          res.json(student);
+      } else {
+          res.status(404).json({ error: 'Student not found' });
+      }
+  } catch (error) {
+      console.error('Error getting student:', error);
+      res.status(500).json({ error: 'Error fetching student data' });
   }
 });
 

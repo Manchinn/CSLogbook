@@ -7,7 +7,6 @@ import {
   FileTextOutlined,
   TeamOutlined,
   LogoutOutlined,
-  CalendarOutlined,
   EditOutlined,
   CheckCircleOutlined,
   UploadOutlined,
@@ -148,6 +147,9 @@ const Sidebar = () => {
             </Menu.Item>
             <Menu.Item key="upload-csv" icon={<UploadOutlined />} onClick={() => navigate('/admin/upload')}>
               Upload Student CSV
+            </Menu.Item>
+            <Menu.Item key="manage-students" icon={<TeamOutlined />} onClick={() => navigate('/students')}>
+              รายชื่อนักศึกษา
             </Menu.Item>
           </>
         )}
