@@ -52,7 +52,7 @@ let universityAPIData = [
       lastName: "เสียงใส",
       email: "s6404062610294@email.kmutnb.ac.th",
       role: "student"
-    },,
+    },
     {
       username: "s6604062620158",
       password: "6604062620158",
@@ -92,26 +92,22 @@ const getUniversityData = (studentID) => {
   return universityAPIData.find(student => student.studentID === studentID) || null;
 };
 
-// ฟังก์ชันตรวจสอบการเข้าสู่ระบบ
-const authenticateUser = (username, password) => {
-  return universityAPIData.find(user => 
-      user.username === username && user.password === password
-  ) || null;
-};
-
-// ฟังก์ชันอัปเดตหรือเพิ่มข้อมูลใหม่
 const updateUniversityData = (studentData) => {
   try {
-      const username = `s${studentData.studentID}`;
-      
+      if (!studentData.studentID) {
+          console.error('Invalid student ID:', studentData);
+          return false;
+      }
+
+      // สร้างข้อมูลสำหรับ universityAPIData
       const userData = {
-          username,
+          username: `s${studentData.studentID}`,
           password: studentData.studentID, // รหัสผ่านเริ่มต้นคือรหัสนักศึกษา
           studentID: studentData.studentID,
           firstName: studentData.firstName,
           lastName: studentData.lastName,
           email: `s${studentData.studentID}@email.kmutnb.ac.th`,
-          role: studentData.role
+          role: studentData.role,
       };
 
       const existingIndex = universityAPIData.findIndex(
@@ -119,13 +115,20 @@ const updateUniversityData = (studentData) => {
       );
 
       if (existingIndex !== -1) {
-          universityAPIData[existingIndex] = userData;
-          console.log('Updated user data:', userData);
+          // อัปเดตข้อมูลที่มีอยู่
+          universityAPIData[existingIndex] = {
+              ...universityAPIData[existingIndex],
+              ...userData
+          };
+          console.log('Updated user login data:', userData);
       } else {
+          // เพิ่มข้อมูลใหม่
           universityAPIData.push(userData);
-          console.log('Added new user data:', userData);
+          console.log('Added new user login data:', userData);
       }
 
+      // แสดงข้อมูลทั้งหมดเพื่อตรวจสอบ
+      console.log('Current universityAPIData:', universityAPIData);
       return true;
   } catch (error) {
       console.error('Error updating university data:', error);
@@ -133,8 +136,25 @@ const updateUniversityData = (studentData) => {
   }
 };
 
-// ฟังก์ชันดึงข้อมูลทั้งหมด
+// เพิ่ม logging ใน authenticateUser เพื่อตรวจสอบ
+const authenticateUser = (username, password) => {
+  console.log('Login attempt:', { username, password });
+  
+  const user = universityAPIData.find(user => {
+    if (user && user.username && user.password) {
+      console.log('Checking user:', user.username, user.password);
+      return user.username === username && user.password === password;
+    }
+    return false;
+  });
+  
+  console.log('Found user:', user);
+  return user || null;
+};
+
+// ฟังก์ชันสำหรับตรวจสอบข้อมูลทั้งหมด
 const getAllUniversityData = () => {
+  console.log('Getting all university data:', universityAPIData);
   return universityAPIData;
 };
 

@@ -55,75 +55,67 @@ app.post('/upload-csv', upload.single('file'), (req, res) => {
       trim: true,
     }))
     .on('data', (row) => {
-      try{
-          const validation = validateCSVRow(row);
-          console.log('Processing CSV row:', row);
-          console.log('Validation result:', validation);
+      try {
+        const validation = validateCSVRow(row);
+        console.log('Processing CSV row:', row);
+        console.log('Validation result:', validation);
+        
+        if (validation.isValid && validation.normalizedData) {
+          const { normalizedData } = validation;
           
-          if (validation.isValid && validation.normalizedData) {
-            const { normalizedData } = validation;
-            
-            // อัปเดต mockStudentData
-            const existingStudent = mockStudentData.find(
-              student => student.studentID === normalizedData.studentID
-            );
-            
-            if (existingStudent) {
-              // อัปเดตข้อมูลที่มีอยู่
-              Object.assign(existingStudent, normalizedData);
-              // อัปเดตข้อมูล login ด้วย
-              const updated = updateUniversityData(normalizedData);
-              results.push({
-                  ...normalizedData,
-                  status: updated ? 'Updated' : 'Update Failed'
-              });
-            } else {
-              // เพิ่มข้อมูลใหม่
-              mockStudentData.push(normalizedData);
-              // เพิ่มข้อมูล login ใหม่
-              const added = updateUniversityData(normalizedData);
-              results.push({
-                ...normalizedData,
-                status: added ? 'Added' : 'Add Failed'
-              });
-              console.log('Added new student:', normalizedData);
-            }
+          // อัปเดต mockStudentData
+          const existingStudent = mockStudentData.find(
+            student => student.studentID === normalizedData.studentID
+          );
+          
+          if (existingStudent) {
+            // อัปเดตข้อมูลที่มีอยู่
+            Object.assign(existingStudent, normalizedData);
           } else {
-            // กรณีข้อมูลไม่ถูกต้อง
-            console.log('Invalid data:', row, 'Errors:', validation.errors);
-            results.push({
-              studentID: row['Student ID'] || '-',
-              firstName: row['Name'] || '-',
-              lastName: row['Surname'] || '-',
-              role: row['Role'] || '-',
-              status: 'Invalid',
-              errors: validation.errors
-            });
+            // เพิ่มข้อมูลใหม่
+            mockStudentData.push(normalizedData);
           }
-        }catch(error){
-          console.error('Error processing row:', error);
+
+          // อัปเดตข้อมูลใน universityAPIData
+          const loginData = {
+            ...normalizedData,
+            username: `s${normalizedData.studentID}`,
+            password: normalizedData.studentID,
+            email: `s${normalizedData.studentID}@email.kmutnb.ac.th`
+          };
+
+          const updated = updateUniversityData(loginData);
           results.push({
-              ...row,
-              status: 'Error',
-              error: error.message
+            ...normalizedData,
+            status: updated ? (existingStudent ? 'Updated' : 'Added') : 'Update Failed'
+          });
+
+        } else {
+          console.log('Invalid data:', row, 'Errors:', validation.errors);
+          results.push({
+            studentID: row['Student ID'] || '-',
+            firstName: row['Name'] || '-',
+            lastName: row['Surname'] || '-',
+            role: row['Role'] || '-',
+            status: 'Invalid',
+            errors: validation.errors
           });
         }
+      } catch (error) {
+        console.error('Error processing row:', error);
+        results.push({
+          ...row,
+          status: 'Error',
+          error: error.message
+        });
+      }
     })
     .on('end', () => {
-      // เพิ่ม logging ตรงนี้
       console.log('=== CSV Processing Complete ===');
       console.log('Updated mockStudentData:', mockStudentData);
       console.log('Updated universityAPIData:', getAllUniversityData());
       console.log('Final processed results:', results);
-      console.log('Updated mockStudentData:', mockStudentData);
-      console.log('Summary:', {
-        total: results.length,
-        added: results.filter(r => r.status === 'Added').length,
-        updated: results.filter(r => r.status === 'Updated').length,
-        invalid: results.filter(r => r.status === 'Invalid').length
-      });
-      console.log('===============================');
-
+      
       fs.unlinkSync(filePath);
       
       res.json({
@@ -161,7 +153,7 @@ app.post('/login', async (req, res) => {
 
       if (user.lastLoginNotification !== today) {
         try {
-          await sendLoginNotification(user.email, user.username);
+          await sendLoginNotification(user.email, user.username, user.firstName, user.lastName);
           user.lastLoginNotification = today;
         } catch (error) {
           console.error('Error sending email:', error);

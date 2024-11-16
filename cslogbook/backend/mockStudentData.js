@@ -11,7 +11,7 @@ const mockStudentData = [
         studentID: "4000000000000",
         firstName: "student1",
         lastName: "student1",
-        email: "student1@email.kmutnb.ac.th",
+        email: "s6404062630295@email.kmutnb.ac.th",
         role: "student",
         lastLoginNotification: null,
         isEligibleForInternship: true,
