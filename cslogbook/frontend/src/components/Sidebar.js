@@ -7,7 +7,6 @@ import {
   FileTextOutlined,
   TeamOutlined,
   LogoutOutlined,
-  CalendarOutlined,
   EditOutlined,
   CheckCircleOutlined,
   UploadOutlined,
@@ -17,6 +16,20 @@ import {
 const { Sider } = Layout;
 const { Title } = Typography;
 
+const getRoleColor = (role) => {
+  switch (role) {
+    case 'student':
+      return '#e6f7ff'; // สีฟ้าสำหรับนักศึกษา
+    case 'teacher':
+      return '#f0e68c'; // สีเหลืองสำหรับอาจารย์
+    case 'admin':
+      return '#f4cccc'; // สีแดงสำหรับผู้ดูแลระบบ
+    default:
+      return '#fff';
+  }
+};
+
+
 const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
@@ -25,6 +38,7 @@ const Sidebar = () => {
   const lastName = localStorage.getItem('lastName');
   const studentID = localStorage.getItem('studentID');
   const role = localStorage.getItem('role');
+  
 
   useEffect(() => {
     const handleResize = () => {
@@ -49,6 +63,7 @@ const Sidebar = () => {
     message.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
     navigate('/login');
   }
+  
 };
   
   return (
@@ -131,6 +146,12 @@ const Sidebar = () => {
             </Menu.Item>
             <Menu.Item key="assign-rights" icon={<CheckCircleOutlined />} onClick={() => navigate('/assign-rights')}>
               กำหนดสิทธิ์ฝึกงาน/โครงงาน
+            </Menu.Item>
+            <Menu.Item key="upload-csv" icon={<UploadOutlined />} onClick={() => navigate('/admin/upload')}>
+              Upload Student CSV
+            </Menu.Item>
+            <Menu.Item key="manage-students" icon={<TeamOutlined />} onClick={() => navigate('/students')}>
+              รายชื่อนักศึกษา
             </Menu.Item>
           </>
         )}
