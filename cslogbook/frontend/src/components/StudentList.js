@@ -1,4 +1,3 @@
-// components/StudentList.js
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Input, Space, Typography, Button, Tag, message } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';

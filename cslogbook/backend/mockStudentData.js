@@ -48,16 +48,6 @@ const mockStudentData = [
       isEligibleForProject: true
     },
     {
-      studentID: "6404062610294",
-      firstName: "นิวัฒน์",
-      lastName: "เสียงใส",
-      email: "s6404062610294@email.kmutnb.ac.th",
-      role: "student",
-      lastLoginNotification: null,
-      isEligibleForInternship: false,
-      isEligibleForProject: true
-    },
-    {
       studentID: "6404062610286",
       firstName: "นพดล",
       lastName: "เกียรติศิริ",

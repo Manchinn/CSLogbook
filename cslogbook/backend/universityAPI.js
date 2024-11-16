@@ -45,15 +45,6 @@ let universityAPIData = [
       role: "student"
     },
     {
-      username: "s6404062610294",
-      password: "6404062610294",
-      studentID: "6404062610294",
-      firstName: "นิวัฒน์",
-      lastName: "เสียงใส",
-      email: "s6404062610294@email.kmutnb.ac.th",
-      role: "student"
-    },
-    {
       username: "s6604062620158",
       password: "6604062620158",
       studentID: "6604062620158",
