@@ -3,6 +3,9 @@
 /.pnp
 .pnp.js
 
+# frontend/.env
+REACT_APP_API_URL=http://localhost:5000
+
 # Testing
 /coverage
 

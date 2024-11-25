@@ -16,7 +16,7 @@ function App() {
         <Route path="/login" element={<LoginForm setLoggedInStudent={setLoggedInStudent} />} />
         <Route element={<MainLayout loggedInStudent={loggedInStudent} />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/student-profile/:studentID" element={<StudentProfile student={loggedInStudent} />} />
+          <Route path="/student-profile/:id" element={<StudentProfile />} />
         </Route>
         <Route path="/" element={<LoginForm setLoggedInStudent={setLoggedInStudent} />} />
         <Route path="/admin/upload" element={<AdminUpload />} />

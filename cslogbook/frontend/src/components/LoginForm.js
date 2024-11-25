@@ -1,77 +1,109 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Typography, message, Card } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+
 
 const { Title, Text } = Typography;
 
 const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch('http://localhost:5000/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values)
       });
-
+  
+      const data = await response.json();
+      console.log('Response data:', data); // Debug log
+  
+      // ตรวจสอบ response.ok แทน data.success
       if (response.ok) {
-        const data = await response.json();
-        message.success('Login successful');
-
-        // เก็บข้อมูลที่รับจากAPIในlocalStorage
+        // Store user data
         localStorage.setItem('studentID', data.studentID);
         localStorage.setItem('firstName', data.firstName);
         localStorage.setItem('lastName', data.lastName);
         localStorage.setItem('email', data.email);
         localStorage.setItem('role', data.role);
-
+        if (data.isEligibleForInternship !== undefined) {
+          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
+        }
+        if (data.isEligibleForProject !== undefined) {
+          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
+        }
+  
+        message.success('เข้าสู่ระบบสำเร็จ');
         navigate('/dashboard');
       } else {
-        const errorData = await response.json();
-        message.error(errorData.error || 'Invalid username or password');
+        // แสดง error message จาก server
+        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
       }
     } catch (error) {
-      console.error('Error:', error);
-      message.error('Something went wrong. Please try again.');
+      console.error('Login error:', error);
+      message.error(error.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f5f5f5' }}>
-      <Card style={{ width: 400, padding: '30px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <Title level={3} style={{ color: '#1890ff' }}>เข้าสู่ระบบ</Title>
-          <Text type="secondary">กรุณาป้อน ICT Account และรหัสผ่าน</Text>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh',
+      backgroundColor: '#f0f2f5' 
+    }}>
+      <Card style={{ width: 400, padding: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Title level={2}>เข้าสู่ระบบ</Title>
+          <Text type="secondary">กรุณาใช้บัญชี ICIT Account ของท่าน</Text>
         </div>
+
         <Form
-          name="login"
-          initialValues={{ remember: true }}
+          form={form}
           onFinish={handleSubmit}
           layout="vertical"
         >
           <Form.Item
-            label="ICT Account"
             name="username"
-            rules={[{ required: true, message: 'Please input your username!' }]}
+            rules={[{ required: true, message: 'กรุณากรอก ICIT Account' }]}
           >
-            <Input placeholder="*********" />
+            <Input 
+              prefix={<UserOutlined />}
+              placeholder="ICIT Account"
+              size="large"
+            />
           </Form.Item>
 
           <Form.Item
-            label="รหัสผ่าน"
             name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
+            rules={[{ required: true, message: 'กรุณากรอกรหัสผ่าน' }]}
           >
-            <Input.Password placeholder="******" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="รหัสผ่าน"
+              size="large"
+            />
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block style={{ backgroundColor: '#1890ff', borderColor: '#1890ff' }}>
-              Login
+            <Button 
+              type="primary" 
+              htmlType="submit"
+              loading={loading}
+              block
+              size="large"
+            >
+              เข้าสู่ระบบ
             </Button>
           </Form.Item>
         </Form>

@@ -2,210 +2,80 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const mockStudentData = require('./mockStudentData');
-const { sendLoginNotification } = require('./utils/mailer');
-const { authenticateUser, checkEligibility } = require('./authSystem'); 
-const { getUniversityData,getAllUniversityData } = require('./universityAPI');
-const { updateUniversityData } = require('./universityAPI');
-const { validateCSVRow } = require('./utils/csvParser');
+require('dotenv').config();
 const multer = require('multer');
-const csv = require('csv-parser');
-const fs = require('fs');
-const path = require('path');
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const studentRoutes = require('./routes/students');
+const { uploadCSV } = require('./routes/upload');
 
 const app = express();
 const server = http.createServer(app);
+
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
 
-const PORT = 5000;
+// Basic Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// CORS configuration
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: "http://localhost:3000",
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
-
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
-app.use(express.json());
-
-
-// กำหนดตำแหน่งที่เก็บไฟล์ที่อัปโหลด
-const upload = multer({ dest: 'uploads/' });
-
-console.log('Loaded mock student data:', mockStudentData);
-
-
-// API สำหรับการอัปโหลด CSV
-app.post('/upload-csv', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-  const results = [];
-  const filePath = req.file.path;
-
-  fs.createReadStream(filePath, { encoding: 'utf-8' })
-    .pipe(csv({
-      skipEmptyLines: true,
-      trim: true,
-    }))
-    .on('data', (row) => {
-      try {
-        const validation = validateCSVRow(row);
-        console.log('Processing CSV row:', row);
-        console.log('Validation result:', validation);
-        
-        if (validation.isValid && validation.normalizedData) {
-          const { normalizedData } = validation;
-          
-          // อัปเดต mockStudentData
-          const existingStudent = mockStudentData.find(
-            student => student.studentID === normalizedData.studentID
-          );
-          
-          if (existingStudent) {
-            // อัปเดตข้อมูลที่มีอยู่
-            Object.assign(existingStudent, normalizedData);
-          } else {
-            // เพิ่มข้อมูลใหม่
-            mockStudentData.push(normalizedData);
-          }
-
-          // อัปเดตข้อมูลใน universityAPIData
-          const loginData = {
-            ...normalizedData,
-            username: `s${normalizedData.studentID}`,
-            password: normalizedData.studentID,
-            email: `s${normalizedData.studentID}@email.kmutnb.ac.th`
-          };
-
-          const updated = updateUniversityData(loginData);
-          results.push({
-            ...normalizedData,
-            status: updated ? (existingStudent ? 'Updated' : 'Added') : 'Update Failed'
-          });
-
-        } else {
-          console.log('Invalid data:', row, 'Errors:', validation.errors);
-          results.push({
-            studentID: row['Student ID'] || '-',
-            firstName: row['Name'] || '-',
-            lastName: row['Surname'] || '-',
-            role: row['Role'] || '-',
-            status: 'Invalid',
-            errors: validation.errors
-          });
-        }
-      } catch (error) {
-        console.error('Error processing row:', error);
-        results.push({
-          ...row,
-          status: 'Error',
-          error: error.message
-        });
-      }
-    })
-    .on('end', () => {
-      console.log('=== CSV Processing Complete ===');
-      console.log('Updated mockStudentData:', mockStudentData);
-      console.log('Updated universityAPIData:', getAllUniversityData());
-      console.log('Final processed results:', results);
-      
-      fs.unlinkSync(filePath);
-      
-      res.json({
-        success: true,
-        results,
-        summary: {
-          total: results.length,
-          added: results.filter(r => r.status === 'Added').length,
-          updated: results.filter(r => r.status === 'Updated').length,
-          invalid: results.filter(r => r.status === 'Invalid').length
-        }
-      });
-    })
-    .on('error', (err) => {
-      console.error('Error processing CSV file:', err);
-      res.status(500).json({ error: 'Error processing CSV file' });
-    });
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`, req.body);
+  next();
 });
 
-app.get('/students', (req, res) => {
-  console.log('Fetching all student data');
-  res.json(mockStudentData);
-});
-
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  console.log('Received login request:', username);
-
-  const user = authenticateUser(username, password);
-  if (user) {
-    const eligibility = getUniversityData(user.studentID);
-
-    if (eligibility) {
-      const today = new Date().toDateString();
-
-      if (user.lastLoginNotification !== today) {
-        try {
-          await sendLoginNotification(user.email, user.username, user.firstName, user.lastName);
-          user.lastLoginNotification = today;
-        } catch (error) {
-          console.error('Error sending email:', error);
-          res.status(500).json({ error: 'Login successful, but failed to send notification email' });
-          return;
-        }
-      }
-
-      res.json({
-        message: 'Login successful',
-        studentID: user.studentID,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        isEligibleForInternship: eligibility.isEligibleForInternship,
-        isEligibleForProject: eligibility.isEligibleForProject
-      });
-    } else {
-      res.status(404).json({ error: "Student data not found in university API" });
-    }
-  } else {
-    res.status(401).json({ error: "Invalid username or password" });
+// Upload configuration
+const uploadDir = process.env.UPLOAD_DIR || 'uploads/';
+const upload = multer({ 
+  dest: uploadDir,
+  limits: {
+    fileSize: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024
   }
 });
 
-// เพิ่ม endpoint สำหรับดึงข้อมูลนักศึกษา
-app.get('/api/students', (req, res) => {
-  try {
-      console.log('Sending student data:', mockStudentData);
-      res.json(mockStudentData);
-  } catch (error) {
-      console.error('Error getting students:', error);
-      res.status(500).json({ error: 'Error fetching student data' });
-  }
+// Routes
+app.use('/auth', authRoutes); // Login จะอยู่ที่ /auth/login
+app.use('/api/students', studentRoutes);
+
+// CSV upload route
+app.post('/upload-csv', upload.single('file'), uploadCSV);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    success: false,
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+  });
 });
 
-// เพิ่ม endpoint สำหรับดึงข้อมูลนักศึกษาตาม ID
-app.get('/api/students/:id', (req, res) => {
-  try {
-      const student = mockStudentData.find(s => s.studentID === req.params.id);
-      if (student) {
-          res.json(student);
-      } else {
-          res.status(404).json({ error: 'Student not found' });
-      }
-  } catch (error) {
-      console.error('Error getting student:', error);
-      res.status(500).json({ error: 'Error fetching student data' });
-  }
-});
-
+// Server startup
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.info('SIGTERM signal received.');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
