@@ -137,7 +137,7 @@ const Sidebar = () => {
           {firstName} {lastName}
         </Title>
         <Badge
-          count={role === 'admin' ? 'ผู้ดูแลระบบ' : role === 'teacher' ? 'อาจารย์' : 'นักศึกษา'}
+          count={role === 'admin' ? 'ผู้ดูแลระบบ' : role === 'teacher' ? 'อาจารย์' : role === 'student' ? 'นักศึกษา' : 'ผู้ใช้งาน'}
           style={{
             backgroundColor: theme.primary,
             fontSize: '12px',

@@ -1,30 +1,33 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './components/MainLayout';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
-import StudentProfile from './components/StudentProfile';
-import MainLayout from './components/MainLayout';
-import AdminUpload from './components/AdminUpload';
 import StudentList from './components/StudentList';
+import AdminUpload from './components/AdminUpload';
+import StudentProfile from './components/StudentProfile';
 
-function App() {
-  const [loggedInStudent, setLoggedInStudent] = useState(null);
-
+const App = () => {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginForm setLoggedInStudent={setLoggedInStudent} />} />
-        <Route element={<MainLayout loggedInStudent={loggedInStudent} />}>
+        {/* Public route */}
+        <Route path="/login" element={<LoginForm />} />
+        
+        {/* Protected routes wrapped in MainLayout */}
+        <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/students" element={<StudentList />} />
+          <Route path="/admin/upload" element={<AdminUpload />} />
           <Route path="/student-profile/:id" element={<StudentProfile />} />
+          {/* Add other routes here */}
         </Route>
-        <Route path="/" element={<LoginForm setLoggedInStudent={setLoggedInStudent} />} />
-        <Route path="/admin/upload" element={<AdminUpload />} />
-        <Route path="/students" element={<StudentList />} />
 
+        {/* Redirect root to dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

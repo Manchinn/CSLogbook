@@ -3,6 +3,7 @@ import { Card, Row, Col, Statistic, Typography, Alert, Space, Button } from 'ant
 import { UserOutlined, ProjectOutlined, TeamOutlined, 
          FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const { Title } = Typography;
 
@@ -15,6 +16,12 @@ const Dashboard = () => {
     isEligibleForInternship: false,
     isEligibleForProject: false
   });
+  const [studentStats, setStudentStats] = useState({
+    total: 0,
+    internshipEligible: 0,
+    projectEligible: 0
+  });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +35,33 @@ const Dashboard = () => {
       isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
       isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
     });
+
+    // Fetch student statistics if user is admin
+    if (storedRole === 'admin') {
+      fetchStudentStats();
+    }
   }, []);
+
+  const fetchStudentStats = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:5000/api/students');
+      const students = response.data;
+      
+      // กรองเฉพาะ role 'student' เท่านั้น
+      const onlyStudents = students.filter(user => user.role === 'student');
+      
+      setStudentStats({
+        total: onlyStudents.length,
+        internshipEligible: onlyStudents.filter(student => student.isEligibleForInternship).length,
+        projectEligible: onlyStudents.filter(student => student.isEligibleForProject).length
+      });
+    } catch (error) {
+      console.error('Error fetching student stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const StudentDashboard = () => (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -132,28 +165,34 @@ const Dashboard = () => {
           <Card hoverable onClick={() => navigate('/students')}>
             <Statistic
               title="จำนวนนักศึกษา"
-              value={0}
+              value={studentStats.total}
+              loading={loading}
               prefix={<TeamOutlined />}
+              suffix="คน"
             />
           </Card>
         </Col>
         
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/manage-students')}>
+          <Card hoverable onClick={() => navigate('/students')}>
             <Statistic
-              title="รอการอนุมัติสิทธิ์"
-              value={0}
+              title="มีสิทธิ์ฝึกงาน"
+              value={studentStats.internshipEligible}
+              loading={loading}
               prefix={<UserOutlined />}
+              suffix={`/${studentStats.total} คน`}
             />
           </Card>
         </Col>
         
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/update-courses')}>
+          <Card hoverable onClick={() => navigate('/students')}>
             <Statistic
-              title="รายวิชาที่เปิดสอน"
-              value={0}
-              prefix={<FileTextOutlined />}
+              title="มีสิทธิ์ทำโปรเจค"
+              value={studentStats.projectEligible}
+              loading={loading}
+              prefix={<ProjectOutlined />}
+              suffix={`/${studentStats.total} คน`}
             />
           </Card>
         </Col>
@@ -161,8 +200,13 @@ const Dashboard = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24}>
-          <Button type="primary" icon={<TeamOutlined />} 
-                  onClick={() => navigate('/admin/upload')} block>
+          <Button 
+            type="primary" 
+            icon={<TeamOutlined />} 
+            onClick={() => navigate('/admin/upload')} 
+            block
+            style={{ height: '40px', fontSize: '16px' }}
+          >
             อัปโหลดข้อมูลนักศึกษา (CSV)
           </Button>
         </Col>

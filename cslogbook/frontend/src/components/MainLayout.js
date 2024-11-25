@@ -9,7 +9,7 @@ const { Content } = Layout;
 
 const MainLayout = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile] = useState(window.innerWidth <= 768);
 
   const showDrawer = () => {
     setDrawerVisible(true);
