@@ -13,6 +13,16 @@ const { uploadCSV } = require('./routes/upload');
 const app = express();
 const server = http.createServer(app);
 
+const pool = require('./config/database');
+
+// เพิ่มการจัดการ error database
+app.use((err, req, res, next) => {
+  if (err.code === 'ECONNREFUSED') {
+    return res.status(500).json({ error: 'Database connection failed' });
+  }
+  next(err);
+});
+
 // Socket.IO setup
 const io = new Server(server, {
   cors: {

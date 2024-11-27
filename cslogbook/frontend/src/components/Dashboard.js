@@ -28,15 +28,33 @@ const Dashboard = () => {
     // ดึงข้อมูลจาก localStorage
     const storedRole = localStorage.getItem('role');
     setRole(storedRole);
-    setUserData({
-      firstName: localStorage.getItem('firstName') || '',
-      lastName: localStorage.getItem('lastName') || '',
-      studentID: localStorage.getItem('studentID') || '',
-      isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
-      isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
-    });
+    const storedStudentID = localStorage.getItem('studentID');
+    
+    if (storedStudentID) {
+      // ดึงข้อมูลล่าสุดจาก API
+      axios.get(`http://localhost:5000/api/students/${storedStudentID}`)
+        .then(response => {
+          const userData = response.data;
+          setUserData({
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            studentID: userData.studentID,
+            isEligibleForInternship: userData.isEligibleForInternship || false,
+            isEligibleForProject: userData.isEligibleForProject || false
+          });
+          
+          // อัพเดท localStorage ด้วยข้อมูลล่าสุด
+          localStorage.setItem('firstName', userData.firstName);
+          localStorage.setItem('lastName', userData.lastName);
+          localStorage.setItem('isEligibleForInternship', userData.isEligibleForInternship);
+          localStorage.setItem('isEligibleForProject', userData.isEligibleForProject);
+        })
+        .catch(error => {
+          console.error('Error fetching user data:', error);
+        });
+    }
 
-    // Fetch student statistics if user is admin
+    // ดึงสถิตินักศึกษาถ้าเป็น admin
     if (storedRole === 'admin') {
       fetchStudentStats();
     }

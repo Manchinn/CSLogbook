@@ -1,8 +1,7 @@
-const mockStudentData = require('../mockStudentData');
-const { validateCSVRow } = require('../utils/csvParser');
-const { updateUniversityData } = require('../universityAPI');
 const fs = require('fs');
 const csv = require('csv-parser');
+const pool = require('../config/database');
+const { validateCSVRow } = require('../utils/csvParser');
 
 const uploadCSV = async (req, res, next) => {
   try {
@@ -12,73 +11,133 @@ const uploadCSV = async (req, res, next) => {
 
     const results = [];
     const filePath = req.file.path;
+    const connection = await pool.getConnection();
 
-    const stream = fs.createReadStream(filePath, { encoding: 'utf-8' })
-      .pipe(csv({
-        skipEmptyLines: true,
-        trim: true,
-      }));
+    try {
+      await connection.beginTransaction();
 
-    for await (const row of stream) {
-      try {
-        const validation = validateCSVRow(row);
-        if (validation.isValid && validation.normalizedData) {
-          const { normalizedData } = validation;
-          const existingStudent = mockStudentData.find(
-            student => student.studentID === normalizedData.studentID
-          );
-          
-          if (existingStudent) {
-            Object.assign(existingStudent, normalizedData);
+      const stream = fs.createReadStream(filePath, { encoding: 'utf-8' })
+        .pipe(csv({
+          skipEmptyLines: true,
+          trim: true,
+        }));
+
+      for await (const row of stream) {
+        try {
+          const validation = validateCSVRow(row);
+          if (validation.isValid && validation.normalizedData) {
+            const { normalizedData } = validation;
+
+            // Check if student exists
+            const [existingUser] = await connection.execute(
+              'SELECT studentID FROM users WHERE studentID = ?',
+              [normalizedData.studentID]
+            );
+
+            if (existingUser.length > 0) {
+              // Update existing user
+              await connection.execute(`
+                UPDATE users 
+                SET firstName = ?, lastName = ?, email = ?, role = ?
+                WHERE studentID = ?
+              `, [
+                normalizedData.firstName,
+                normalizedData.lastName,
+                normalizedData.email,
+                normalizedData.role,
+                normalizedData.studentID
+              ]);
+
+              // Update student_data
+              await connection.execute(`
+                UPDATE student_data 
+                SET isEligibleForInternship = ?, isEligibleForProject = ?
+                WHERE studentID = ?
+              `, [
+                normalizedData.isEligibleForInternship,
+                normalizedData.isEligibleForProject,
+                normalizedData.studentID
+              ]);
+
+              results.push({
+                ...normalizedData,
+                status: 'Updated'
+              });
+            } else {
+              // Insert new user
+              await connection.execute(`
+                INSERT INTO users (studentID, username, password, firstName, lastName, email, role)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+              `, [
+                normalizedData.studentID,
+                `s${normalizedData.studentID}`,
+                normalizedData.studentID,
+                normalizedData.firstName,
+                normalizedData.lastName,
+                normalizedData.email,
+                normalizedData.role
+              ]);
+
+              // Insert student_data if role is student
+              if (normalizedData.role === 'student') {
+                await connection.execute(`
+                  INSERT INTO student_data (studentID, isEligibleForInternship, isEligibleForProject)
+                  VALUES (?, ?, ?)
+                `, [
+                  normalizedData.studentID,
+                  normalizedData.isEligibleForInternship,
+                  normalizedData.isEligibleForProject
+                ]);
+              }
+
+              results.push({
+                ...normalizedData,
+                status: 'Added'
+              });
+            }
+
           } else {
-            mockStudentData.push(normalizedData);
+            results.push({
+              studentID: row['Student ID'] || '-',
+              firstName: row['Name'] || '-',
+              lastName: row['Surname'] || '-',
+              role: row['Role'] || '-',
+              status: 'Invalid',
+              errors: validation.errors
+            });
           }
-
-          const loginData = {
-            ...normalizedData,
-            username: `s${normalizedData.studentID}`,
-            password: normalizedData.studentID,
-            email: `s${normalizedData.studentID}@email.kmutnb.ac.th`
-          };
-
-          const updated = await updateUniversityData(loginData);
+        } catch (error) {
+          console.error('Row processing error:', error);
           results.push({
-            ...normalizedData,
-            status: updated ? (existingStudent ? 'Updated' : 'Added') : 'Update Failed'
-          });
-        } else {
-          results.push({
-            studentID: row['Student ID'] || '-',
-            firstName: row['Name'] || '-',
-            lastName: row['Surname'] || '-',
-            role: row['Role'] || '-',
-            status: 'Invalid',
-            errors: validation.errors
+            ...row,
+            status: 'Error',
+            error: error.message
           });
         }
-      } catch (error) {
-        console.error('Row processing error:', error);
-        results.push({
-          ...row,
-          status: 'Error',
-          error: error.message
-        });
       }
+
+      await connection.commit();
+
+      // Cleanup
+      await fs.promises.unlink(filePath);
+
+      res.json({
+        success: true,
+        results,
+        summary: {
+          total: results.length,
+          added: results.filter(r => r.status === 'Added').length,
+          updated: results.filter(r => r.status === 'Updated').length,
+          invalid: results.filter(r => r.status === 'Invalid').length
+        }
+      });
+
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
-
-    // Cleanup
-    await fs.promises.unlink(filePath);
-
-    res.json({
-      success: true,
-      results,
-      summary: {
-        total: results.length,
-        added: results.filter(r => r.status === 'Added').length,
-        updated: results.filter(r => r.status === 'Updated').length,
-        invalid: results.filter(r => r.status === 'Invalid').length
-      }
-    });
   } catch (error) {
     next(error);
   }

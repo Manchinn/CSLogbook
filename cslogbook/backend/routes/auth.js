@@ -1,47 +1,45 @@
 const express = require('express');
 const router = express.Router();
-
-// แก้ไขการ import ให้ถูกต้อง
-const { authenticateUser } = require('../universityAPI');
-const { getUniversityData } = require('../universityAPI');
+const pool = require('../config/database');
 const { sendLoginNotification } = require('../utils/mailer');
-const { checkEligibility } = require('../authSystem');
 
-// Login route
 router.post('/login', async (req, res, next) => {
   try {
     const { username, password } = req.body;
-    console.log('Login attempt:', { username });
+    console.log('Login attempt:', { username, password });
 
-    const user = authenticateUser(username, password);
-    if (!user) {
-      return res.status(401).json({ 
+    // ใช้ JOIN เพื่อดึงข้อมูลสิทธิ์พร้อมกับข้อมูลผู้ใช้
+    const [users] = await pool.execute(`
+      SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
+      FROM users u 
+      LEFT JOIN student_data sd ON u.studentID = sd.studentID 
+      WHERE u.username = ? AND u.password = ?
+    `, [username, password]);
+
+    if (users.length === 0) {
+      return res.status(401).json({
         success: false,
-        error: "Invalid username or password" 
+        error: "Invalid username or password"
       });
     }
 
-    const eligibility = getUniversityData(user.studentID);
-    if (!eligibility) {
-      return res.status(404).json({ 
-        success: false,
-        error: "Student data not found" 
-      });
-    }
+    const user = users[0];
 
-    // เพิ่มการตรวจสอบสิทธิ์
-    const eligibilityStatus = await checkEligibility(user.studentID);
-    
+    // ส่งอีเมลแจ้งเตือนการล็อกอิน
     const today = new Date().toDateString();
     if (user.lastLoginNotification !== today) {
       try {
-        await sendLoginNotification(user.email, user.username, user.firstName, user.lastName);
-        user.lastLoginNotification = today;
+        await sendLoginNotification(user.email, user.username);
+        await pool.execute(
+          'UPDATE users SET lastLoginNotification = CURRENT_TIMESTAMP WHERE username = ?',
+          [user.username]
+        );
       } catch (error) {
         console.error('Email notification error:', error);
       }
     }
 
+    // ส่งข้อมูลกลับไปยัง client
     res.json({
       success: true,
       message: 'Login successful',
@@ -50,10 +48,12 @@ router.post('/login', async (req, res, next) => {
       lastName: user.lastName,
       email: user.email,
       role: user.role,
-      isEligibleForInternship: eligibilityStatus?.isEligibleForInternship,
-      isEligibleForProject: eligibilityStatus?.isEligibleForProject
+      isEligibleForInternship: user.isEligibleForInternship || false,
+      isEligibleForProject: user.isEligibleForProject || false
     });
+
   } catch (error) {
+    console.error('Login error:', error);
     next(error);
   }
 });

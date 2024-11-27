@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Avatar, Typography, Badge, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   HomeOutlined,
   BookOutlined,
@@ -16,7 +17,7 @@ import {
 const { Sider } = Layout;
 const { Title } = Typography;
 
-// Theme configuration
+// Theme configuration คงเดิม
 const themeConfig = {
   student: {
     primary: '#1890ff',
@@ -38,17 +39,51 @@ const themeConfig = {
 const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
+  const [userData, setUserData] = useState({
+    firstName: '',
+    lastName: '',
+    studentID: '',
+    role: '',
+    isEligibleForInternship: false,
+    isEligibleForProject: false
+  });
 
-  // Get user info and permissions
-  const firstName = localStorage.getItem('firstName');
-  const lastName = localStorage.getItem('lastName');
-  const studentID = localStorage.getItem('studentID');
-  const role = localStorage.getItem('role');
-  const isEligibleForInternship = localStorage.getItem('isEligibleForInternship') === 'true';
-  const isEligibleForProject = localStorage.getItem('isEligibleForProject') === 'true';
+  // ดึงข้อมูลเริ่มต้นจาก localStorage
+  useEffect(() => {
+    const storedStudentID = localStorage.getItem('studentID');
+    const storedRole = localStorage.getItem('role');
+    
+    setUserData({
+      firstName: localStorage.getItem('firstName') || '',
+      lastName: localStorage.getItem('lastName') || '',
+      studentID: storedStudentID || '',
+      role: storedRole || '',
+      isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
+      isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
+    });
 
-  const theme = themeConfig[role] || themeConfig.student;
+    // ถ้าเป็น student ให้ดึงข้อมูลสิทธิ์ล่าสุดจาก API
+    if (storedStudentID && storedRole === 'student') {
+      axios.get(`http://localhost:5000/api/students/${storedStudentID}`)
+        .then(response => {
+          const data = response.data;
+          setUserData(prev => ({
+            ...prev,
+            isEligibleForInternship: data.isEligibleForInternship || false,
+            isEligibleForProject: data.isEligibleForProject || false,
+          }));
+          
+          // อัพเดท localStorage ด้วยข้อมูลล่าสุด
+          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
+          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
+        })
+        .catch(error => {
+          console.error('Error fetching user permissions:', error);
+        });
+    }
+  }, []);
 
+  // Mobile responsive handler คงเดิม
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -61,7 +96,8 @@ const Sidebar = () => {
     navigate('/login');
   };
 
-  // Custom styles
+  // Custom styles คงเดิม...
+  const theme = themeConfig[userData.role] || themeConfig.student;
   const siderStyle = {
     backgroundColor: '#fff',
     height: '100vh',
@@ -112,8 +148,8 @@ const Sidebar = () => {
   };
 
   const navigateToProfile = () => {
-    if (studentID) {
-      navigate(`/student-profile/${studentID}`);
+    if (userData.studentID) {
+      navigate(`/student-profile/${userData.studentID}`);
     } else {
       message.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
       navigate('/login');
@@ -131,13 +167,13 @@ const Sidebar = () => {
             fontSize: '24px',
           }}
         >
-          {firstName?.charAt(0)?.toUpperCase()}
+          {userData.firstName?.charAt(0)?.toUpperCase()}
         </Avatar>
         <Title level={5} style={{ margin: '8px 0 4px' }}>
-          {firstName} {lastName}
+          {userData.firstName} {userData.lastName}
         </Title>
         <Badge
-          count={role === 'admin' ? 'ผู้ดูแลระบบ' : role === 'teacher' ? 'อาจารย์' : role === 'student' ? 'นักศึกษา' : 'ผู้ใช้งาน'}
+          count={userData.role === 'admin' ? 'ผู้ดูแลระบบ' : userData.role === 'teacher' ? 'อาจารย์' : userData.role === 'student' ? 'นักศึกษา' : 'ผู้ใช้งาน'}
           style={{
             backgroundColor: theme.primary,
             fontSize: '12px',
@@ -154,9 +190,9 @@ const Sidebar = () => {
           หน้าแรก
         </Menu.Item>
 
-        {role === 'student' && (
+        {userData.role === 'student' && (
           <>
-            {isEligibleForInternship && (
+            {userData.isEligibleForInternship && (
               <Menu.SubMenu key="internship" icon={<FileTextOutlined />} title="สมุดบันทึกฝึกงาน">
                 <Menu.Item key="internship-status" icon={<CheckCircleOutlined />} onClick={() => navigate('/internship-status')}>
                   ดูสถานะฝึกงาน
@@ -170,7 +206,7 @@ const Sidebar = () => {
               </Menu.SubMenu>
             )}
 
-            {isEligibleForProject && (
+            {userData.isEligibleForProject && (
               <Menu.SubMenu key="project" icon={<ProjectOutlined />} title="โปรเจค">
                 <Menu.Item key="project-status" icon={<CheckCircleOutlined />} onClick={() => navigate('/project-status')}>
                   ดูสถานะโครงงาน
@@ -187,7 +223,8 @@ const Sidebar = () => {
           </>
         )}
 
-        {role === 'teacher' && (
+        {/* ส่วนเมนูของ teacher และ admin คงเดิม */}
+        {userData.role === 'teacher' && (
           <>
             <Menu.Item key="review-documents" icon={<FileTextOutlined />} onClick={() => navigate('/review-documents')}>
               ตรวจสอบเอกสารโครงงาน
@@ -201,7 +238,7 @@ const Sidebar = () => {
           </>
         )}
 
-        {role === 'admin' && (
+        {userData.role === 'admin' && (
           <>
             <Menu.Item key="manage-students" icon={<TeamOutlined />} onClick={() => navigate('/manage-students')}>
               จัดการข้อมูลนักศึกษา
