@@ -28,7 +28,7 @@ let universityAPIData = [
     },
     {
       username: "s6404062630295",
-      password: "admin",
+      password: "6404062630295",
       studentID: "6404062630295",
       firstName: "ชินกฤต",
       lastName: "ศรีป่าน",
