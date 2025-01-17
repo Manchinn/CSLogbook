@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, Button, Table, message, Space, Typography, Row, Col, Card } from 'antd';
 import { UploadOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -10,6 +10,8 @@ const AdminUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
+  // เพิ่ม state สำหรับเช็คสถานะ login
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Custom styles
   const tableHeaderStyle = {
@@ -115,7 +117,31 @@ const AdminUpload = () => {
     }
   ];
 
+  // เพิ่ม useEffect เพื่อตรวจสอบ token เมื่อ component โหลด
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  // ฟังก์ชันตรวจสอบสถานะ authentication
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsAuthenticated(false);
+      message.error('กรุณาเข้าสู่ระบบก่อนใช้งาน');
+      // อาจจะ redirect ไปหน้า login ถ้าต้องการ
+      // window.location.href = '/login';
+    } else {
+      setIsAuthenticated(true);
+    }
+  };
+
   const handleUpload = async () => {
+
+    if (!isAuthenticated) {
+      message.error('กรุณาเข้าสู่ระบบก่อนอัพโหลดไฟล์');
+      return;
+    }
+
     if (fileList.length === 0) {
       message.error('กรุณาเลือกไฟล์ CSV ก่อนอัปโหลด');
       return;
@@ -126,23 +152,71 @@ const AdminUpload = () => {
     formData.append('file', fileList[0]);
 
     try {
-      const response = await axios.post('http://localhost:5000/upload-csv', formData);
-      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        message.error('กรุณาเข้าสู่ระบบก่อนอัพโหลดไฟล์');
+        // อาจจะ redirect ไปหน้า login
+        // window.location.href = '/login';
+        return;
+      }
+
+      const response = await axios.post(
+        'http://localhost:5000/upload-csv', 
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
       if (response.data.success) {
+        console.log('Upload success:', response.data); // Debug log
         setResults(response.data.results);
         setSummary(response.data.summary);
         message.success('อัปโหลดไฟล์สำเร็จ');
       } else {
-        message.error('ไม่สามารถประมวลผลไฟล์ได้');
+        throw new Error(response.data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      message.error('เกิดข้อผิดพลาดในการอัปโหลด');
-    } finally {
+      // จัดการ error ตามประเภท
+      if (error.response?.status === 401) {
+        message.error('ไม่มีสิทธิ์เข้าถึง กรุณาเข้าสู่ระบบใหม่');
+        // อาจจะ redirect ไปหน้า login
+        // window.location.href = '/login';
+      } else if (error.response?.status === 413) {
+        message.error('ไฟล์มีขนาดใหญ่เกินไป');
+      } else if (error.response?.status === 415) {
+        message.error('รูปแบบไฟล์ไม่ถูกต้อง');
+      } else {
+        message.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+      }
+    }finally {
       setUploading(false);
       setFileList([]);
     }
   };
+
+    // เพิ่มฟังก์ชันตรวจสอบไฟล์ก่อนอัพโหลด
+    const beforeUpload = (file) => {
+      const isCSV = file.type === 'text/csv' || file.name.endsWith('.csv');
+      if (!isCSV) {
+        message.error('สามารถอัปโหลดได้เฉพาะไฟล์ CSV เท่านั้น');
+        return false;
+      }
+  
+      // ตรวจสอบขนาดไฟล์ (ตัวอย่าง: จำกัดที่ 5MB)
+      const isLessThan5MB = file.size / 1024 / 1024 < 5;
+      if (!isLessThan5MB) {
+        message.error('ไฟล์ต้องมีขนาดไม่เกิน 5MB');
+        return false;
+      }
+  
+      setFileList([file]);
+      return false;
+    };
 
   return (
     <div style={{ height: 'calc(100vh - 184px)', display: 'flex', flexDirection: 'column', padding: '24px', gap: '24px' }}>
@@ -154,17 +228,9 @@ const AdminUpload = () => {
 
       <Card bodyStyle={{ padding: '16px' }}>
         <Space style={{ width: '100%' }} direction="horizontal" align="center">
-          <Upload
+        <Upload
             accept=".csv"
-            beforeUpload={(file) => {
-              const isCSV = file.type === 'text/csv' || file.name.endsWith('.csv');
-              if (!isCSV) {
-                message.error('สามารถอัปโหลดได้เฉพาะไฟล์ CSV เท่านั้น');
-                return false;
-              }
-              setFileList([file]);
-              return false;
-            }}
+            beforeUpload={beforeUpload}
             fileList={fileList}
             onRemove={() => setFileList([])}
           >

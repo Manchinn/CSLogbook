@@ -14,6 +14,8 @@ const LoginForm = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
+      console.log('Sending login request:', values); // เพิ่ม log เพื่อตรวจสอบข้อมูลที่ส่ง
+  
       const response = await fetch('http://localhost:5000/auth/login', {
         method: 'POST',
         headers: {
@@ -25,8 +27,9 @@ const LoginForm = () => {
       const data = await response.json();
       console.log('Response data:', data); // Debug log
   
-      // ตรวจสอบ response.ok แทน data.success
-      if (response.ok) {
+      // เปลี่ยนเป็นเช็ค data.success แทน response.ok
+      if (data.success) {
+        localStorage.setItem('token', data.token);
         // Store user data
         localStorage.setItem('studentID', data.studentID);
         localStorage.setItem('firstName', data.firstName);
@@ -44,7 +47,7 @@ const LoginForm = () => {
         navigate('/dashboard');
       } else {
         // แสดง error message จาก server
-        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
+        throw new Error(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       }
     } catch (error) {
       console.error('Login error:', error);

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Input, Space, Typography, Button, Tag, Row, Col } from 'antd';
+import { Table, Input, Space, Typography, Button, Tag, Row, Col, message } from 'antd';
 import { SearchOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
 
 const { Title } = Typography;
 
@@ -11,19 +13,31 @@ const StudentList = () => {
     const [searchText, setSearchText] = useState('');
     const [sortedInfo, setSortedInfo] = useState({});
 
-    // ใช้ useCallback เพื่อ memoize ฟังก์ชัน
+    // แก้ไขฟังก์ชัน fetchStudents
     const fetchStudents = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost:5000/api/students');
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:5000/api/students', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const studentOnly = response.data.filter(user => user.role === 'student');
             setStudents(studentOnly);
         } catch (error) {
             console.error('Error fetching students:', error);
+            if (error.response?.status === 401) {
+                // ถ้า token หมดอายุหรือไม่ถูกต้อง ให้ redirect ไปหน้า login
+                message.error('กรุณาเข้าสู่ระบบใหม่');
+                navigate('/login');
+            }
         } finally {
             setLoading(false);
         }
-    }, []); // ไม่มี dependencies เพราะไม่ได้ใช้ค่าจากภายนอก
+    }, []); // ไม่มี dependencies
+    // เพิ่ม useNavigate
+    const navigate = useNavigate();
 
     // ใช้ useCallback สำหรับ updateSummary
     const updateSummary = useCallback((data) => {

@@ -48,40 +48,52 @@ const Sidebar = () => {
     isEligibleForProject: false
   });
 
-  // ดึงข้อมูลเริ่มต้นจาก localStorage
-  useEffect(() => {
-    const storedStudentID = localStorage.getItem('studentID');
-    const storedRole = localStorage.getItem('role');
-    
-    setUserData({
-      firstName: localStorage.getItem('firstName') || '',
-      lastName: localStorage.getItem('lastName') || '',
-      studentID: storedStudentID || '',
-      role: storedRole || '',
-      isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
-      isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
-    });
+// แก้ไขส่วน useEffect ที่ดึงข้อมูลผู้ใช้
+useEffect(() => {
+  const storedStudentID = localStorage.getItem('studentID');
+  const storedRole = localStorage.getItem('role');
+  const token = localStorage.getItem('token');
+  
+  setUserData({
+    firstName: localStorage.getItem('firstName') || '',
+    lastName: localStorage.getItem('lastName') || '',
+    studentID: storedStudentID || '',
+    role: storedRole || '',
+    isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
+    isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
+  });
 
-    // ถ้าเป็น student ให้ดึงข้อมูลสิทธิ์ล่าสุดจาก API
-    if (storedStudentID && storedRole === 'student') {
-      axios.get(`http://localhost:5000/api/students/${storedStudentID}`)
-        .then(response => {
-          const data = response.data;
-          setUserData(prev => ({
-            ...prev,
-            isEligibleForInternship: data.isEligibleForInternship || false,
-            isEligibleForProject: data.isEligibleForProject || false,
-          }));
-          
-          // อัพเดท localStorage ด้วยข้อมูลล่าสุด
-          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
-          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
-        })
-        .catch(error => {
-          console.error('Error fetching user permissions:', error);
-        });
-    }
-  }, []);
+  // ถ้าเป็น student และมี token ให้ดึงข้อมูลสิทธิ์ล่าสุดจาก API
+  if (storedStudentID && storedRole === 'student' && token) {
+    axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
+      headers: {
+        'Authorization': `Bearer ${token}` // เพิ่ม token ในส่วน headers
+      }
+    })
+      .then(response => {
+        const data = response.data;
+        setUserData(prev => ({
+          ...prev,
+          isEligibleForInternship: data.isEligibleForInternship || false,
+          isEligibleForProject: data.isEligibleForProject || false,
+        }));
+        
+        // อัพเดท localStorage ด้วยข้อมูลล่าสุด
+        localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
+        localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
+      })
+      .catch(error => {
+        console.error('Error fetching user permissions:', error);
+        if (error.response?.status === 401) {
+          message.error('กรุณาเข้าสู่ระบบใหม่');
+          localStorage.clear(); // ล้าง localStorage เมื่อ token หมดอายุ
+          navigate('/login');
+        } else {
+          message.error('ไม่สามารถดึงข้อมูลสิทธิ์ได้');
+        }
+      });
+  }
+}, [navigate]); // เพิ่ม navigate เป็น dependency
 
   // Mobile responsive handler คงเดิม
   useEffect(() => {

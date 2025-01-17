@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 require('dotenv').config();
 const multer = require('multer');
+const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -12,10 +13,9 @@ const { uploadCSV } = require('./routes/upload');
 
 const app = express();
 const server = http.createServer(app);
-
 const pool = require('./config/database');
 
-// เพิ่มการจัดการ error database
+// Error handling database
 app.use((err, req, res, next) => {
   if (err.code === 'ECONNREFUSED') {
     return res.status(500).json({ error: 'Database connection failed' });
@@ -26,7 +26,7 @@ app.use((err, req, res, next) => {
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",  // เปลี่ยนเป็นใช้จาก env
     methods: ["GET", "POST"]
   }
 });
@@ -37,8 +37,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 app.use(cors({
-  origin: "http://localhost:3000",
-  methods: ['GET', 'POST'],
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // เพิ่ม methods ที่จำเป็น
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -58,12 +58,19 @@ const upload = multer({
   }
 });
 
-// Routes
-app.use('/auth', authRoutes); // Login จะอยู่ที่ /auth/login
-app.use('/api/students', studentRoutes);
+// Public routes
+app.use('/auth', authRoutes);
 
-// CSV upload route
-app.post('/upload-csv', upload.single('file'), uploadCSV);
+// Protected routes
+app.use('/api/students', authenticateToken, studentRoutes);
+
+// Protected upload route - เฉพาะ admin เท่านั้น
+app.post('/upload-csv', 
+  authenticateToken, 
+  checkRole(['admin']), 
+  upload.single('file'), 
+  uploadCSV
+);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

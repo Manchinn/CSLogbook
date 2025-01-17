@@ -28,7 +28,6 @@ const uploadCSV = async (req, res, next) => {
           if (validation.isValid && validation.normalizedData) {
             const { normalizedData } = validation;
 
-            // Check if student exists
             const [existingUser] = await connection.execute(
               'SELECT studentID FROM users WHERE studentID = ?',
               [normalizedData.studentID]
@@ -118,18 +117,35 @@ const uploadCSV = async (req, res, next) => {
 
       await connection.commit();
 
+      // Record upload history
+      const summary = {
+        total: results.length,
+        added: results.filter(r => r.status === 'Added').length,
+        updated: results.filter(r => r.status === 'Updated').length,
+        invalid: results.filter(r => r.status === 'Invalid').length
+      };
+
+      await connection.execute(`
+        INSERT INTO upload_history (academic_year, semester, file_name, uploaded_by, total_records, successful_updates, failed_updates, status_summary)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        '2567', // Example academic year
+        '1', // Example semester
+        req.file.originalname,
+        'admin', // Placeholder for user (adjust as necessary)
+        summary.total,
+        summary.added + summary.updated,
+        summary.invalid,
+        JSON.stringify(summary)
+      ]);
+
       // Cleanup
       await fs.promises.unlink(filePath);
 
       res.json({
         success: true,
         results,
-        summary: {
-          total: results.length,
-          added: results.filter(r => r.status === 'Added').length,
-          updated: results.filter(r => r.status === 'Updated').length,
-          invalid: results.filter(r => r.status === 'Invalid').length
-        }
+        summary
       });
 
     } catch (error) {
@@ -139,6 +155,7 @@ const uploadCSV = async (req, res, next) => {
       connection.release();
     }
   } catch (error) {
+    console.error('Upload error:', error);
     next(error);
   }
 };

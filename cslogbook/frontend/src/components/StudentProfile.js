@@ -20,8 +20,11 @@ const StudentProfile = () => {
         console.log('Fetching student data for ID:', id); // Debug log
         setLoading(true);
         // ใช้ API endpoint ที่มีอยู่แล้วจาก mockStudentData
-        const response = await axios.get(`http://localhost:5000/api/students/${id}`);
-        console.log('Response:', response.data); // Debug log
+        const response = await axios.get(`http://localhost:5000/api/students/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });        console.log('Response:', response.data); // Debug log
         setStudent(response.data);
         setError(null);
       } catch (err) {

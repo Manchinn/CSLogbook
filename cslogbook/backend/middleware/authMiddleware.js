@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/database');
 
 const authMiddleware = {
   // ตรวจสอบ token
@@ -11,10 +12,18 @@ const authMiddleware = {
     }
 
     try {
+      // แก้ไขตรงนี้ เอา decoded ออกเพราะไม่ได้ประกาศ
       const user = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Authenticated user:', {
+        userId: user.userId,
+        role: user.role,
+        studentID: user.studentID
+      });
       req.user = user;
+      // เพิ่ม log เพื่อดู user info
       next();
     } catch (err) {
+      console.error('Token verification error:', err);
       return res.status(403).json({ error: 'Token ไม่ถูกต้องหรือหมดอายุ' });
     }
   },
@@ -35,25 +44,39 @@ const authMiddleware = {
 
   // ตรวจสอบสิทธิ์การฝึกงานและโปรเจค
   checkEligibility: (type) => {
-    return (req, res, next) => {
+    return async (req, res, next) => {
       if (!req.user) {
         return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบ' });
       }
 
-      const student = mockStudentData.find(s => s.studentID === req.user.studentID);
-      if (!student) {
-        return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
-      }
+      try {
+        // ดึงข้อมูลสิทธิ์จากฐานข้อมูล
+        const [students] = await pool.execute(`
+          SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject
+          FROM users u
+          LEFT JOIN student_data sd ON u.studentID = sd.studentID
+          WHERE u.studentID = ?
+        `, [req.user.studentID]);
 
-      if (type === 'internship' && !student.isEligibleForInternship) {
-        return res.status(403).json({ error: 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน' });
-      }
+        if (students.length === 0) {
+          return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
+        }
 
-      if (type === 'project' && !student.isEligibleForProject) {
-        return res.status(403).json({ error: 'คุณยังไม่มีสิทธิ์เข้าถึงระบบโปรเจค' });
-      }
+        const student = students[0];
 
-      next();
+        if (type === 'internship' && !student.isEligibleForInternship) {
+          return res.status(403).json({ error: 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน' });
+        }
+
+        if (type === 'project' && !student.isEligibleForProject) {
+          return res.status(403).json({ error: 'คุณยังไม่มีสิทธิ์เข้าถึงระบบโปรเจค' });
+        }
+
+        next();
+      } catch (error) {
+        console.error('Error checking eligibility:', error);
+        return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์' });
+      }
     };
   }
 };

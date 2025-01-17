@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Typography, Alert, Space, Button } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Alert, Space, Button, message } from 'antd';
 import { UserOutlined, ProjectOutlined, TeamOutlined, 
          FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -25,14 +25,26 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // ดึงข้อมูลจาก localStorage
+    const token = localStorage.getItem('token');
     const storedRole = localStorage.getItem('role');
-    setRole(storedRole);
     const storedStudentID = localStorage.getItem('studentID');
-    
+
+    // ถ้าไม่มี token ให้ redirect ไปหน้า login
+    if (!token) {
+      message.error('กรุณาเข้าสู่ระบบ');
+      navigate('/login');
+      return;
+    }
+
+    setRole(storedRole);
+
     if (storedStudentID) {
       // ดึงข้อมูลล่าสุดจาก API
-      axios.get(`http://localhost:5000/api/students/${storedStudentID}`)
+      axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
         .then(response => {
           const userData = response.data;
           setUserData({
@@ -58,15 +70,31 @@ const Dashboard = () => {
     if (storedRole === 'admin') {
       fetchStudentStats();
     }
-  }, []);
+  }, [navigate]);
 
   const fetchStudentStats = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/students');
-      const students = response.data;
+      const token = localStorage.getItem('token');
+      // เพิ่ม log เพื่อตรวจสอบ token
+      console.log('Fetching with token:', token);
       
-      // กรองเฉพาะ role 'student' เท่านั้น
+      if (!token) {
+        message.error('กรุณาเข้าสู่ระบบใหม่');
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get('http://localhost:5000/api/students', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // เพิ่ม log เพื่อตรวจสอบ response
+      console.log('Student stats response:', response.data);
+      
+      const students = response.data;
       const onlyStudents = students.filter(user => user.role === 'student');
       
       setStudentStats({
@@ -76,10 +104,14 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching student stats:', error);
+      if (error.response?.status === 403) {
+        message.error('ไม่มีสิทธิ์เข้าถึงข้อมูล กรุณาเข้าสู่ระบบใหม่');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
-  };
+};
 
   const StudentDashboard = () => (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
