@@ -227,10 +227,22 @@ const AdminUpload = () => {
       </Row>
 
       <Card bodyStyle={{ padding: '16px' }}>
-        <Space style={{ width: '100%' }} direction="horizontal" align="center">
-        <Upload
+      <Space style={{ width: '100%' }} direction="horizontal" align="center">
+          <Upload
             accept=".csv"
-            beforeUpload={beforeUpload}
+            beforeUpload={(file) => {
+              if (!isAuthenticated) {
+                message.error('กรุณาเข้าสู่ระบบก่อนอัพโหลดไฟล์');
+                return false;
+              }
+              const isCSV = file.type === 'text/csv' || file.name.endsWith('.csv');
+              if (!isCSV) {
+                message.error('สามารถอัปโหลดได้เฉพาะไฟล์ CSV เท่านั้น');
+                return false;
+              }
+              setFileList([file]);
+              return false;
+            }}
             fileList={fileList}
             onRemove={() => setFileList([])}
           >

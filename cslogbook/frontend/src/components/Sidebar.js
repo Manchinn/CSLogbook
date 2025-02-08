@@ -205,15 +205,12 @@ useEffect(() => {
         {userData.role === 'student' && (
           <>
             {userData.isEligibleForInternship && (
-              <Menu.SubMenu key="internship" icon={<FileTextOutlined />} title="สมุดบันทึกฝึกงาน">
-                <Menu.Item key="internship-status" icon={<CheckCircleOutlined />} onClick={() => navigate('/internship-status')}>
-                  ดูสถานะฝึกงาน
-                </Menu.Item>
-                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() => navigate('/PCompanyInfo')}>
+              <Menu.SubMenu key="internship" icon={<FileTextOutlined />} title="ระบบฝึกงาน">
+                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() =>  navigate('/internship/company')}>
                   ข้อมูลสถานประกอบการ
                 </Menu.Item>
-                <Menu.Item key="attendance" icon={<EditOutlined />}>
-                  ลงชื่อเข้างาน
+                <Menu.Item key="daily-log" icon={<EditOutlined />} onClick={() => navigate('/internship/log')}>
+                  บันทึกประจำวัน
                 </Menu.Item>
               </Menu.SubMenu>
             )}
