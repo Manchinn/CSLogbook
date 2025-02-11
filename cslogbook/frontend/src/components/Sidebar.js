@@ -205,8 +205,8 @@ useEffect(() => {
           <>
             {userData.isEligibleForInternship && (
               <Menu.SubMenu key="internship" icon={<FileTextOutlined />} title="ระบบฝึกงาน">
-                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() =>  navigate('/internship')}>
-                  ข้อมูลสถานประกอบการ
+                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() =>  navigate('/internship-terms')}>
+                  ลงทะเบียนฝึกงาน
                 </Menu.Item>
                 <Menu.Item key="internship-documents" icon={<UploadOutlined />} onClick={() => navigate('/internship-documents')}>
                   เอกสารฝึกงาน

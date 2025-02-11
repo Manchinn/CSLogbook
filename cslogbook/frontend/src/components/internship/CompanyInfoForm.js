@@ -1,34 +1,46 @@
 import React from 'react';
-import { Form, Input, Button, Card, Typography, Space } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Steps  } from 'antd';
+import { useNavigate } from "react-router-dom";
+import InternshipSteps from "./InternshipSteps";
+
 
 const { Title } = Typography;
+const { Step } = Steps;
+
 
 const CompanyInfoForm = () => {
   const [form] = Form.useForm();
+  const navigate = useNavigate();
+
 
   const onFinish = async (values) => {
+    localStorage.setItem("companyInfo", JSON.stringify(values)); // ✅ บันทึกข้อมูล
     console.log('Form values:', values);
+    navigate("/internship-documents");
   };
 
   return (
     <div style={{ 
-      display: 'flex', 
+      maxWidth: '100%',
       justifyContent: 'center', 
       alignItems: 'center', 
-      minHeight: '85vh', 
+      minHeight: '55vh', 
       backgroundColor: '#f5f5f5', 
       padding: '20px'
     }}>
-      <Card 
-        style={{ 
+      <InternshipSteps />
+      <Card style={{ 
           width: '100%', 
-          maxWidth: 1000, 
+          maxWidth: '90%', 
           padding: 10, 
           borderRadius: 10, 
-          boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+          marginLeft: '30px',
+          margin: '20px auto',
         }}
-      >
-        <Title level={3} style={{ textAlign: 'center', marginBottom: 20 }}>ข้อมูลสถานประกอบการ</Title>
+      > 
+        <Title level={3} style={{ textAlign: 'left', marginBottom: 20 }}>ข้อมูลสถานประกอบการ</Title>
+
         <Form
           form={form}
           layout="vertical"
@@ -74,7 +86,10 @@ const CompanyInfoForm = () => {
               <Button type="primary" htmlType="submit" size="large">
                 บันทึกข้อมูล
               </Button>
-              <Button type="primary" size="large">
+              <Button type="primary" size="large" onClick={() => navigate("/internship-terms")}>
+                ย้อนกลับ
+              </Button>
+              <Button type="primary" size="large" onClick={() => navigate("/internship-documents")}>
                 ต่อไป
               </Button>
             </Space>
