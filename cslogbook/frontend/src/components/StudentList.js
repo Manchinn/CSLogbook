@@ -1,17 +1,45 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Input, Space, Typography, Button, Tag, Row, Col, message } from 'antd';
-import { SearchOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
+import {
+    Table, 
+    Input, 
+    Space, 
+    Typography, 
+    Button, 
+    Tag, 
+    Row, 
+    Col, 
+    message, 
+    Popconfirm, 
+    Modal, 
+    Form, 
+    Select} from 'antd';
+import { 
+     SearchOutlined,
+     ReloadOutlined, 
+     UserOutlined, 
+     PlusOutlined, 
+     EditOutlined, 
+     DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+//import StudentForm from "./StudentForm";
+
 
 const { Title } = Typography;
+const { Option } = Select;
+
 
 const StudentList = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [sortedInfo, setSortedInfo] = useState({});
+    const [visible, setVisible] = useState(false);
+    const [editingStudent, setEditingStudent] = useState(null);
+    const [form] = Form.useForm();
+    
+    const navigate = useNavigate();
 
     // แก้ไขฟังก์ชัน fetchStudents
     const fetchStudents = useCallback(async () => {
@@ -32,12 +60,43 @@ const StudentList = () => {
                 message.error('กรุณาเข้าสู่ระบบใหม่');
                 navigate('/login');
             }
-        } finally {
+        } finally { 
             setLoading(false);
         }
-    }, []); // ไม่มี dependencies
-    // เพิ่ม useNavigate
-    const navigate = useNavigate();
+    }, [navigate]);
+
+    const handleAddOrEdit = async (values) => {
+        try {
+            if (editingStudent) {
+                await axios.put(`http://localhost:5000/api/students/${editingStudent.studentID}`, values);
+                message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
+            } else {
+                await axios.post("http://localhost:5000/api/students", values);
+                message.success("เพิ่มนักศึกษาเรียบร้อย!");
+            }
+            fetchStudents();
+            setVisible(false);
+            setEditingStudent(null);
+        } catch (error) {
+            message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        }
+    };
+    
+    const handleDelete = async (studentID) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/students/${studentID}`);
+            message.success("ลบนักศึกษาเรียบร้อย!");
+            fetchStudents();
+        } catch (error) {
+            message.error("เกิดข้อผิดพลาดในการลบข้อมูล");
+        }
+    };
+
+    const openModal = (student = null) => {
+        setEditingStudent(student);
+        setVisible(true);
+        form.setFieldsValue(student || { studentID: '', firstName: '', lastName: '', email: '', internshipStatus: '' });
+    };
 
     // ใช้ useCallback สำหรับ updateSummary
     const updateSummary = useCallback((data) => {
@@ -154,7 +213,7 @@ const StudentList = () => {
                     {isEligible ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                 </Tag>
             )
-        },
+        },/*
         {
             title: 'อีเมล',
             dataIndex: 'email',
@@ -165,7 +224,25 @@ const StudentList = () => {
             sorter: (a, b) => a.email.localeCompare(b.email),
             sortOrder: sortedInfo.columnKey === 'email' && sortedInfo.order,
             render: email => <span style={{ color: '#666' }}>{email}</span>
-        }
+        },*/
+        {
+            title: "จัดการ",
+            key: "actions",
+            width: 130,
+            align: 'center',
+            render: (record) => (
+                <Space>
+                    <Button icon={<EditOutlined />} onClick={() => openModal(record)}>
+                        แก้ไข
+                    </Button>
+                    <Popconfirm title="คุณแน่ใจหรือไม่ที่จะลบ?" onConfirm={() => handleDelete(record.studentID)}>
+                        <Button icon={<DeleteOutlined />} danger>
+                            ลบ
+                        </Button>
+                    </Popconfirm>
+                </Space>
+            ),
+        },
     ];
 
     return (
@@ -184,6 +261,44 @@ const StudentList = () => {
             }}>
                 รายชื่อนักศึกษา
             </Title>
+
+            <Modal
+                visible={visible}
+                title={editingStudent ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา"}
+                okText={editingStudent ? "บันทึก" : "เพิ่ม"}
+                cancelText="ยกเลิก"
+                onCancel={() => setVisible(false)}
+                onOk={() => {
+                    form.validateFields()
+                        .then(values => {
+                            handleAddOrEdit(values);
+                            form.resetFields();
+                        })
+                        .catch(info => console.log("Validation Failed:", info));
+                }}
+            >
+                <Form form={form} layout="vertical">
+                    <Form.Item name="studentID" label="รหัสนักศึกษา" rules={[{ required: true, message: "กรุณากรอกรหัสนักศึกษา!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="firstName" label="ชื่อ" rules={[{ required: true, message: "กรุณากรอกชื่อนักศึกษา!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="lastName" label="นามสกุล" rules={[{ required: true, message: "กรุณากรอกนามสกุล!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="email" label="อีเมล" rules={[{ required: true, type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="internshipStatus" label="สถานะฝึกงาน" rules={[{ required: true, message: "กรุณาเลือกสถานะฝึกงาน!" }]}>
+                        <Select>
+                            <Option value="active">กำลังฝึกงาน</Option>
+                            <Option value="completed">ฝึกงานเสร็จแล้ว</Option>
+                            <Option value="pending">รออนุมัติ</Option>
+                        </Select>
+                    </Form.Item>
+                </Form>
+            </Modal>
 
             {/* แถวควบคุมและสรุปข้อมูล */}
             <Row justify="space-between" align="middle">
@@ -236,6 +351,15 @@ const StudentList = () => {
                             style={{ borderRadius: '6px' }}
                         >
                             รีเฟรชข้อมูล
+                        </Button>
+                        <Button 
+                            type="primary" 
+                            icon={<PlusOutlined />} 
+                            onClick={() => 
+                                openModal(null)
+                            }
+                        >
+                            เพิ่มนักศึกษา
                         </Button>
                     </Space>
                 </Col>

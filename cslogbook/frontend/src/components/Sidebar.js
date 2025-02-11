@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   HomeOutlined,
-  BookOutlined,
   FileTextOutlined,
   TeamOutlined,
   LogoutOutlined,
@@ -206,8 +205,11 @@ useEffect(() => {
           <>
             {userData.isEligibleForInternship && (
               <Menu.SubMenu key="internship" icon={<FileTextOutlined />} title="ระบบฝึกงาน">
-                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() =>  navigate('/internship/company')}>
+                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() =>  navigate('/internship')}>
                   ข้อมูลสถานประกอบการ
+                </Menu.Item>
+                <Menu.Item key="internship-documents" icon={<UploadOutlined />} onClick={() => navigate('/internship-documents')}>
+                  เอกสารฝึกงาน
                 </Menu.Item>
                 <Menu.Item key="daily-log" icon={<EditOutlined />} onClick={() => navigate('/internship/log')}>
                   บันทึกประจำวัน
@@ -249,20 +251,13 @@ useEffect(() => {
 
         {userData.role === 'admin' && (
           <>
-            <Menu.Item key="manage-students" icon={<TeamOutlined />} onClick={() => navigate('/manage-students')}>
-              จัดการข้อมูลนักศึกษา
-            </Menu.Item>
-            <Menu.Item key="update-courses" icon={<BookOutlined />} onClick={() => navigate('/update-courses')}>
-              อัปเดตรายวิชา
-            </Menu.Item>
-            <Menu.Item key="assign-rights" icon={<CheckCircleOutlined />} onClick={() => navigate('/assign-rights')}>
-              กำหนดสิทธิ์ฝึกงาน/โครงงาน
-            </Menu.Item>
+            <Menu.SubMenu key="students-submenu" icon={<TeamOutlined />} title="จัดการข้อมูลนักศึกษา">
+              <Menu.Item key="student-list" onClick={() => navigate('/students')}>
+                รายชื่อนักศึกษา
+              </Menu.Item>
+            </Menu.SubMenu>
             <Menu.Item key="upload-csv" icon={<UploadOutlined />} onClick={() => navigate('/admin/upload')}>
-              Upload Student CSV
-            </Menu.Item>
-            <Menu.Item key="student-list" icon={<TeamOutlined />} onClick={() => navigate('/students')}>
-              รายชื่อนักศึกษา
+              อัปโหลดรายชื่อนักศึกษา
             </Menu.Item>
           </>
         )}

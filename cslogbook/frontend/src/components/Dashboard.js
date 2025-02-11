@@ -132,7 +132,7 @@ const Dashboard = () => {
               prefix={userData.isEligibleForInternship ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
             />
             {userData.isEligibleForInternship && (
-              <Button type="primary" onClick={() => navigate('/internship-status')} 
+              <Button type="primary" onClick={() => navigate('/internship')} 
                       style={{ marginTop: 16 }}>
                 จัดการฝึกงาน
               </Button>
@@ -149,7 +149,7 @@ const Dashboard = () => {
               prefix={userData.isEligibleForProject ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
             />
             {userData.isEligibleForProject && (
-              <Button type="primary" onClick={() => navigate('/project-status')} 
+              <Button type="primary" onClick={() => navigate('/project')} 
                       style={{ marginTop: 16 }}>
                 จัดการโปรเจค
               </Button>

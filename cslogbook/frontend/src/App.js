@@ -7,6 +7,8 @@ import Dashboard from './components/Dashboard';
 import StudentList from './components/StudentList';
 import AdminUpload from './components/AdminUpload';
 import StudentProfile from './components/StudentProfile';
+import CompanyInfoForm from './components/internship/CompanyInfoForm';
+import InternshipDocuments from './components/internship/InternshipDocument';
 
 const App = () => {
   return (
@@ -22,6 +24,8 @@ const App = () => {
             <Route path="/students" element={<StudentList />} />
             <Route path="/admin/upload" element={<AdminUpload />} />
             <Route path="/student-profile/:id" element={<StudentProfile />} />
+            <Route path="/internship" element={<CompanyInfoForm />} />
+            <Route path="/internship-documents" element={<InternshipDocuments />} />
           </Route>
 
           {/* Redirect root to dashboard */}
