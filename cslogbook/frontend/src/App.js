@@ -11,6 +11,10 @@ import InternshipTerms from "./components/internship/InternshipTerms";
 import CompanyInfoForm from './components/internship/CompanyInfoForm';
 import InternshipDocuments from './components/internship/InternshipDocument';
 import InternshipReview from "./components/internship/InternshipReview";
+import DocumentDetails from "./components/admin/DocumentDetails";
+import DocumentManagement from "./components/admin/DocumentManagement";
+import ProjectProposalForm from "./components/project/ProjectProposalForm";
+
 
 const App = () => {
   return (
@@ -30,6 +34,11 @@ const App = () => {
             <Route path="/internship-company" element={<CompanyInfoForm />} />
             <Route path="/internship-documents" element={<InternshipDocuments />} />
             <Route path="/internship-review" element={<InternshipReview />} />
+            <Route path="/document-management/internship" element={<DocumentManagement type="internship" />} />
+            <Route path="/document-management/project" element={<DocumentManagement type="project" />} />
+            <Route path="/document-details/:id" element={<DocumentDetails />} />
+            <Route path="/project-proposal" element={<ProjectProposalForm />} />
+
           </Route>
 
           {/* Redirect root to dashboard */}

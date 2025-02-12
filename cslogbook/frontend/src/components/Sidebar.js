@@ -218,9 +218,9 @@ useEffect(() => {
             )}
 
             {userData.isEligibleForProject && (
-              <Menu.SubMenu key="project" icon={<ProjectOutlined />} title="โปรเจค">
-                <Menu.Item key="project-status" icon={<CheckCircleOutlined />} onClick={() => navigate('/project-status')}>
-                  ดูสถานะโครงงาน
+              <Menu.SubMenu key="project" icon={<ProjectOutlined />} title="โครงงานพิเศษ">
+                <Menu.Item key="project-status" icon={<TeamOutlined />} onClick={() => navigate('/project-proposal')}>
+                  ฟอร์มเสนอหัวข้อ
                 </Menu.Item>
                 <Menu.Item key="upload-documents" icon={<UploadOutlined />} onClick={() => navigate('/document-upload')}>
                   อัปโหลดเอกสาร
@@ -254,6 +254,14 @@ useEffect(() => {
             <Menu.SubMenu key="students-submenu" icon={<TeamOutlined />} title="จัดการข้อมูลนักศึกษา">
               <Menu.Item key="student-list" onClick={() => navigate('/students')}>
                 รายชื่อนักศึกษา
+              </Menu.Item>
+            </Menu.SubMenu>
+            <Menu.SubMenu key="document-management" icon={<FileTextOutlined />} title="จัดการเอกสาร">
+              <Menu.Item key="internship-documents" onClick={() => navigate('/document-management/internship')}>
+                เอกสารฝึกงาน
+              </Menu.Item>
+              <Menu.Item key="project-documents" onClick={() => navigate('/document-management/project')}>
+                เอกสารโครงงานพิเศษ
               </Menu.Item>
             </Menu.SubMenu>
             <Menu.Item key="upload-csv" icon={<UploadOutlined />} onClick={() => navigate('/admin/upload')}>
