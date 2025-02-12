@@ -112,13 +112,14 @@ useEffect(() => {
   const siderStyle = {
     backgroundColor: '#fff',
     height: '100vh',
-    position: isMobile ? 'fixed' : 'relative',
+    position: 'fixed',
     left: isMobile ? 0 : 'auto',
     top: 0,
     zIndex: 1000,
     overflow: 'auto',
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
     borderRight: '1px solid #f0f0f0',
+    width: '230px'
   };
 
   const profileStyle = {

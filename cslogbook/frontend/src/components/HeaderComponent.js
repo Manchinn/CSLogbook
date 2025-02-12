@@ -75,6 +75,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
         zIndex: 1000,
         borderRadius: '0 0 16px 16px',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+        marginLeft: isMobile ? 0 : '230px',
       }}
     >
       <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>

@@ -30,7 +30,6 @@ const MainLayout = () => {
         onClose={onClose}
         open={drawerVisible}
         width={280}
-        bodyStyle={{ padding: 0 }}
       >
         <Sidebar />
       </Drawer>
@@ -50,7 +49,7 @@ const MainLayout = () => {
         )}
 
         {/* Main Content */}
-        <Content className="p-6 bg-gray-50">
+        <Content className="p-6 bg-gray-50" style={{ marginLeft: isMobile ? 0 : '230px' }} >
           <div className="bg-white rounded-lg shadow-sm p-6">
             <Outlet />
           </div>

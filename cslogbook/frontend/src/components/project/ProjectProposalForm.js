@@ -137,6 +137,61 @@ const ProjectProposalForm = () => {
                 <Option value="csb">นักศึกษาจากโครงการ CSB</Option>
               </Select>
             </Form.Item>
+            {/* นักศึกษา คนที่ 2 
+            เมื่อใส่รหัสนักศึกษาคนที่2แล้ว จะเช็คว่ามีรหัสนศ, ชื่อ-นามสกุล อยู่ในระบบหรือไม่ 
+            และ เช็คเงื่อนไขว่าหากมีการอัปเดตไปที่เจ้าหน้าที่ภาคแล้ว จะไม่ขึ้นฟีเจอร์นี้ให้นศ.อีกคน*/}
+            <Form.Item
+                label="รหัสนักศึกษา คนที่ 2"
+                name="studentId2"
+                rules={[{ required: true, message: "กรุณากรอกรหัสนักศึกษา!" }]}
+            >
+                <Input placeholder="กรอกรหัสนักศึกษา คนที่ 2" />
+            </Form.Item>
+
+            <Form.Item
+                label="ชื่อ-สกุล นักศึกษา คนที่ 2"
+                name="studentName2"
+                rules={[{ required: true, message: "กรุณากรอกชื่อ-สกุล!" }]}
+            >
+                <Input placeholder="กรอกชื่อ-สกุล นักศึกษา คนที่ 2" />
+            </Form.Item>
+
+            <Form.Item
+                label="ประเภทนักศึกษา คนที่ 2"
+                name="studentType2"
+                rules={[{ required: true, message: "กรุณาเลือกประเภทนักศึกษา!" }]}
+            >
+                <Select>
+                <Option value="regular">นักศึกษาปกติ</Option>
+                <Option value="csb">นักศึกษาจากโครงการ CSB</Option>
+                </Select>
+            </Form.Item>
+            {/* หมวดของโครงงาน */}
+            <Form.Item
+                label="ระบบหมวด (track) ของโครงงาน"
+                name="track"
+                rules={[{ required: true, message: "กรุณาเลือกระบบหมวด!" }]}
+            >
+                <Select>
+                <Option value="network_security">Network & Cyber Security</Option>
+                <Option value="mobile_web">Mobile and Web Technology</Option>
+                <Option value="smart_technology">Smart Technology</Option>
+                <Option value="ai">Artificial Intelligence</Option>
+                <Option value="games">Games & Multimedia</Option>
+                </Select>
+            </Form.Item>
+            {/* ประเภทของโครงงาน */}
+            <Form.Item
+                label="ประเภทของโครงงาน"
+                name="projectCategory"
+                rules={[{ required: true, message: "กรุณาเลือกประเภทของโครงงาน!" }]}
+            >
+                <Select>
+                <Option value="government">ทำให้กับหน่วยงานของรัฐ</Option>
+                <Option value="private">ทำให้กับองค์กรภาคเอกชน</Option>
+                <Option value="research">คิดค้นขึ้นมาเอง หรือเป็นผลงานวิจัย</Option>
+                </Select>
+            </Form.Item>
 
             {/* อัปโหลดเอกสาร PDF */}
             <Form.Item
@@ -144,7 +199,7 @@ const ProjectProposalForm = () => {
                 name="file"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e && e.fileList}
-                rules={[{ required: true, message: "กรุณาอัปโหลดเอกสาร!" }]}
+                //rules={[{ required: true, message: "กรุณาอัปโหลดเอกสาร!" }]}
             >
                 <Upload.Dragger
                 name="file"
