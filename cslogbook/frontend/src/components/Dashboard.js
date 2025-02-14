@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Typography, Alert, Space, Button, message } from 'antd';
+import { Card, Row, Col, Statistic, Alert, Space, Button, message } from 'antd';
 import { UserOutlined, ProjectOutlined, TeamOutlined, 
          FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const { Title } = Typography;
 
 const Dashboard = () => {
   const [role, setRole] = useState('');
@@ -70,7 +68,7 @@ const Dashboard = () => {
     if (storedRole === 'admin') {
       fetchStudentStats();
     }
-  }, [navigate]);
+  }, []);
 
   const fetchStudentStats = async () => {
     setLoading(true);
@@ -113,18 +111,41 @@ const Dashboard = () => {
     }
 };
 
+  const commonCardStyle = {
+    width: "100%",
+    maxWidth: "90%",
+    padding: 10,
+    borderRadius: 10,
+    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+    margin: "20px auto",
+  };
+
+  const commonAlertStyle = {
+    width: "100%",
+    maxWidth: "50%",
+    marginLeft: "30px",
+    borderRadius: '10px',
+  };
+
+  const commonSpaceStyle = {
+    width: "100%",
+    maxWidth: "90%",
+    marginLeft: "30px",
+  };
+
   const StudentDashboard = () => (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="large" style={commonSpaceStyle}>
       <Alert
         message={`สวัสดี คุณ${userData.firstName} ${userData.lastName}`}
         description={`รหัสนักศึกษา: ${userData.studentID}`}
         type="info"
         showIcon
+        style={commonAlertStyle}
       />
       
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12}>
-          <Card>
+          <Card style={commonCardStyle}>
             <Statistic
               title="สถานะการฝึกงาน"
               value={userData.isEligibleForInternship ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
@@ -132,7 +153,7 @@ const Dashboard = () => {
               prefix={userData.isEligibleForInternship ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
             />
             {userData.isEligibleForInternship && (
-              <Button type="primary" onClick={() => navigate('/internship')} 
+              <Button type="primary" onClick={() => navigate('/internship-terms')} 
                       style={{ marginTop: 16 }}>
                 จัดการฝึกงาน
               </Button>
@@ -141,7 +162,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={12}>
-          <Card>
+          <Card style={commonCardStyle}>
             <Statistic
               title="สถานะโปรเจค"
               value={userData.isEligibleForProject ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
@@ -149,7 +170,7 @@ const Dashboard = () => {
               prefix={userData.isEligibleForProject ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
             />
             {userData.isEligibleForProject && (
-              <Button type="primary" onClick={() => navigate('/project')} 
+              <Button type="primary" onClick={() => navigate('/project-proposal')} 
                       style={{ marginTop: 16 }}>
                 จัดการโปรเจค
               </Button>
@@ -161,16 +182,17 @@ const Dashboard = () => {
   );
 
   const TeacherDashboard = () => (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="large" style={commonSpaceStyle}>
       <Alert
         message={`สวัสดี อาจารย์${userData.firstName} ${userData.lastName}`}
         type="info"
         showIcon
+        style={commonAlertStyle}
       />
       
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/review-documents')}>
+          <Card hoverable onClick={() => navigate('/review-documents')} style={commonCardStyle}>
             <Statistic
               title="เอกสารรอตรวจสอบ"
               value={0}
@@ -180,7 +202,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/advise-project')}>
+          <Card hoverable onClick={() => navigate('/advise-project')} style={commonCardStyle}>
             <Statistic
               title="โปรเจคที่ปรึกษา"
               value={0}
@@ -190,7 +212,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/approve-documents')}>
+          <Card hoverable onClick={() => navigate('/approve-documents')} style={commonCardStyle}>
             <Statistic
               title="รออนุมัติ"
               value={0}
@@ -203,16 +225,17 @@ const Dashboard = () => {
   );
 
   const AdminDashboard = () => (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="large" style={commonSpaceStyle}>
       <Alert
         message={`สวัสดี ผู้ดูแลระบบ ${userData.firstName} ${userData.lastName}`}
         type="info"
         showIcon
+        style={commonAlertStyle}
       />
       
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/students')}>
+          <Card hoverable onClick={() => navigate('/students')} style={commonCardStyle}>
             <Statistic
               title="จำนวนนักศึกษา"
               value={studentStats.total}
@@ -224,7 +247,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/students')}>
+          <Card hoverable onClick={() => navigate('/students')} style={commonCardStyle}>
             <Statistic
               title="มีสิทธิ์ฝึกงาน"
               value={studentStats.internshipEligible}
@@ -236,7 +259,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/students')}>
+          <Card hoverable onClick={() => navigate('/students')} style={commonCardStyle}>
             <Statistic
               title="มีสิทธิ์ทำโปรเจค"
               value={studentStats.projectEligible}
@@ -265,8 +288,7 @@ const Dashboard = () => {
   );
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2}>แผงควบคุม</Title>
+    <div style={{ padding: '24px', background: '#f5f5f5', borderRadius: '8px' }}>
       {role === 'student' && <StudentDashboard />}
       {role === 'teacher' && <TeacherDashboard />}
       {role === 'admin' && <AdminDashboard />}

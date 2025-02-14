@@ -7,7 +7,6 @@ import {
   FileTextOutlined,
   TeamOutlined,
   LogoutOutlined,
-  EditOutlined,
   CheckCircleOutlined,
   UploadOutlined,
   ProjectOutlined,

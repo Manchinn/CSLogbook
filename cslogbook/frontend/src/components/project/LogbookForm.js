@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { Layout, Form, Input, Button, Space, message, Card, Modal, Table, DatePicker, Typography, Row, Col, Segmented, Select } from "antd";
-import { InboxOutlined, PlusCircleOutlined, EditOutlined } from "@ant-design/icons";  // นำเข้าไอคอนที่ต้องการ
+import { Layout, Form, Input, Button, Space, message, Card, Modal, DatePicker, Typography, Row, Col, Segmented } from "antd";
+import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";  // นำเข้าไอคอนที่ต้องการ
 
 const { Content } = Layout;
-const { Title, Text } = Typography;
-const { Option } = Select;
+const { Text } = Typography;
 
 const LogbookForm = () => {
   const [form] = Form.useForm();
