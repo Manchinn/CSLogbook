@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Form, Input, Button, Space, message, Card, Modal, DatePicker, Typography, Row, Col, Segmented } from "antd";
 import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
-import "./LogbookForm.css"; // Import the new CSS file
+import "./ProjectStyles.css"; // Import the combined CSS file
 
 const { Content } = Layout;
 const { Text } = Typography;

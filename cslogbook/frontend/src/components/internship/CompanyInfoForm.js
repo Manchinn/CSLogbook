@@ -1,46 +1,26 @@
 import React from 'react';
-import { Form, Input, Button, Card, Typography, Space, Steps  } from 'antd';
+import { Form, Input, Button, Card, Typography, Space } from 'antd';
 import { useNavigate } from "react-router-dom";
 import InternshipSteps from "./InternshipSteps";
-
+import "./InternshipStyles.css"; // Import shared CSS
 
 const { Title } = Typography;
-const { Step } = Steps;
-
 
 const CompanyInfoForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-
   const onFinish = async (values) => {
-    localStorage.setItem("companyInfo", JSON.stringify(values)); // ✅ บันทึกข้อมูล
+    localStorage.setItem("companyInfo", JSON.stringify(values));
     console.log('Form values:', values);
     navigate("/internship-documents");
   };
 
   return (
-    <div style={{ 
-      maxWidth: '100%',
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '55vh', 
-      backgroundColor: '#f5f5f5', 
-      padding: '20px'
-    }}>
+    <div className="internship-container">
       <InternshipSteps />
-      <Card style={{ 
-          width: '100%', 
-          maxWidth: '90%', 
-          padding: 10, 
-          borderRadius: 10, 
-          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-          marginLeft: '30px',
-          margin: '20px auto',
-        }}
-      > 
+      <Card className="internship-card">
         <Title level={3} style={{ textAlign: 'left', marginBottom: 20 }}>ข้อมูลสถานประกอบการ</Title>
-
         <Form
           form={form}
           layout="vertical"
@@ -53,7 +33,6 @@ const CompanyInfoForm = () => {
           >
             <Input placeholder="ชื่อบริษัท" />
           </Form.Item>
-
           <Form.Item
             name="contact_name"
             label="ชื่อผู้ควบคุมงาน"
@@ -61,7 +40,6 @@ const CompanyInfoForm = () => {
           >
             <Input placeholder="ชื่อชื่อผู้ควบคุมงาน" />
           </Form.Item>
-
           <Form.Item
             name="contact_phone"
             label="เบอร์โทรศัพท์"
@@ -69,7 +47,6 @@ const CompanyInfoForm = () => {
           >
             <Input placeholder="เบอร์โทรศัพท์" />
           </Form.Item>
-
           <Form.Item
             name="contact_email"
             label="อีเมลผู้ควบคุมงาน"
@@ -80,7 +57,6 @@ const CompanyInfoForm = () => {
           >
             <Input placeholder="อีเมล" />
           </Form.Item>
-
           <Form.Item>
             <Space style={{ display: 'flex', justifyContent: 'center' }}>
               <Button type="primary" htmlType="submit" size="large">

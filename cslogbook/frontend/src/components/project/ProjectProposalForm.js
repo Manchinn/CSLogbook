@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Layout, Form, Input, Button, Select, Space, Card, Typography, Upload, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { InboxOutlined } from "@ant-design/icons";
-import "./ProjectProposalForm.css"; // Import the new CSS file
+import "./ProjectStyles.css"; // Import the combined CSS file
 
 const { Title, Paragraph, Link } = Typography;
 const { Option } = Select;

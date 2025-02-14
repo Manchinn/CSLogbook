@@ -2,6 +2,7 @@ import React from "react";
 import { Steps } from "antd";
 import { useLocation } from "react-router-dom";
 import { CheckCircleOutlined, FormOutlined, UploadOutlined, EyeOutlined } from "@ant-design/icons";
+import "./InternshipStyles.css"; // Import shared CSS
 
 const { Step } = Steps;
 
@@ -24,41 +25,30 @@ const InternshipSteps = () => {
   };
 
   return (
-    <div style={{
-      width: "100%",
-      padding: "15px 0",
-      backgroundColor: "#f5f5f5",
-      borderRadius: "10px",
-      textAlign: "center",
-      display: "flex",
-      justifyContent: "center",
-    }}>
+    <div className="internship-steps-container">
       <Steps 
         current={getCurrentStep()} 
         size="default" 
         labelPlacement="horizontal"
-        style={{ 
-            width: "85%", 
-            maxWidth: 1000 
-        }}>
-            
+        className="internship-steps"
+      >
         <Step 
-          title={<span style={{ fontWeight: "bold" }}>เงื่อนไข</span>} 
+          title={<span className="internship-step-title">เงื่อนไข</span>} 
           description="ยอมรับเงื่อนไขการฝึกงาน"
           icon={<CheckCircleOutlined />} 
         />
         <Step 
-          title={<span style={{ fontWeight: "bold" }}>ข้อมูลสถานประกอบการ</span>} 
+          title={<span className="internship-step-title">ข้อมูลสถานประกอบการ</span>} 
           description="กรอกข้อมูลบริษัทที่ฝึกงาน" 
           icon={<FormOutlined />} 
         />
         <Step 
-          title={<span style={{ fontWeight: "bold" }}>อัปโหลดเอกสาร</span>} 
+          title={<span className="internship-step-title">อัปโหลดเอกสาร</span>} 
           description="แนบไฟล์เอกสารที่จำเป็น" 
           icon={<UploadOutlined />} 
         />
         <Step 
-          title={<span style={{ fontWeight: "bold" }}>ตรวจสอบและยืนยัน</span>} 
+          title={<span className="internship-step-title">ตรวจสอบและยืนยัน</span>} 
           description="ตรวจสอบและยืนยันข้อมูลก่อนส่ง" 
           icon={<EyeOutlined />} 
         />
