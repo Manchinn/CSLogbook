@@ -14,6 +14,7 @@ import InternshipReview from "./components/internship/InternshipReview";
 import DocumentDetails from "./components/admin/DocumentDetails";
 import DocumentManagement from "./components/admin/DocumentManagement";
 import ProjectProposalForm from "./components/project/ProjectProposalForm";
+import LogbookForm from "./components/project/LogbookForm";
 
 
 const App = () => {
@@ -38,6 +39,7 @@ const App = () => {
             <Route path="/document-management/project" element={<DocumentManagement type="project" />} />
             <Route path="/document-details/:id" element={<DocumentDetails />} />
             <Route path="/project-proposal" element={<ProjectProposalForm />} />
+            <Route path="/project-logbook" element={<LogbookForm />} />
 
           </Route>
 

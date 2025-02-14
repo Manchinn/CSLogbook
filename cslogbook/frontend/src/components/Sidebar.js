@@ -212,9 +212,9 @@ useEffect(() => {
                 <Menu.Item key="internship-documents" icon={<UploadOutlined />} onClick={() => navigate('/internship-documents')}>
                   เอกสารฝึกงาน
                 </Menu.Item>
-                <Menu.Item key="daily-log" icon={<EditOutlined />} onClick={() => navigate('/internship/log')}>
+                {/* <Menu.Item key="daily-log" icon={<EditOutlined />} onClick={() => navigate('/internship/log')}>
                   บันทึกประจำวัน
-                </Menu.Item>
+                </Menu.Item>*/}
               </Menu.SubMenu>
             )}
 
@@ -223,12 +223,12 @@ useEffect(() => {
                 <Menu.Item key="project-status" icon={<TeamOutlined />} onClick={() => navigate('/project-proposal')}>
                   ฟอร์มเสนอหัวข้อ
                 </Menu.Item>
-                <Menu.Item key="upload-documents" icon={<UploadOutlined />} onClick={() => navigate('/document-upload')}>
-                  อัปโหลดเอกสาร
+                <Menu.Item key="project-logbook" icon={<FileTextOutlined />} onClick={() => navigate('/project-logbook')}>
+                  บันทึก Logbook
                 </Menu.Item>
               </Menu.SubMenu>
             )}
-
+            
             <Menu.Item key="student-profile" icon={<TeamOutlined />} onClick={navigateToProfile}>
               ประวัตินักศึกษา
             </Menu.Item>

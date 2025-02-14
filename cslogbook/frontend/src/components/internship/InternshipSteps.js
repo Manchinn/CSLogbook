@@ -27,7 +27,7 @@ const InternshipSteps = () => {
     <div style={{
       width: "100%",
       padding: "15px 0",
-      backgroundColor: "#f8f8f8",
+      backgroundColor: "#f5f5f5",
       borderRadius: "10px",
       textAlign: "center",
       display: "flex",

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout, Button, Typography, Space, Avatar, Badge } from 'antd';
-import { MenuOutlined, BellOutlined } from '@ant-design/icons';
+import { MenuOutlined } from '@ant-design/icons';
 
 const { Header } = Layout;
 const { Title, Text } = Typography;
@@ -61,96 +61,72 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
   };
 
   return (
-    <Header
-      style={{
-        background: theme.gradient,
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: 'auto',
-        minHeight: '72px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-        borderRadius: '0 0 16px 16px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-        marginLeft: isMobile ? 0 : '230px',
-      }}
-    >
-      <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
-        {isMobile && (
-          <Button
-            type="text"
-            icon={<MenuOutlined style={{ fontSize: '20px', color: theme.primary }} />}
-            onClick={showDrawer}
-            style={{
-              ...buttonStyle,
-              padding: '8px',
-              width: '40px',
-              height: '40px',
-              '&:hover': {
-                backgroundColor: theme.buttonHover,
-                transform: 'translateY(-1px)',
-              },
-            }}
-          />
-        )}
+    <Layout>
+      {/* First Header (Main Header) */}
+      <Header
+        style={{
+          marginTop: '20px',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+          background: theme.gradient,
+          backdropFilter: 'blur(10px)', // ใช้ blur เพื่อทำให้เนื้อหาหลัง header เบลอ
+          padding: '0 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 'auto',
+          minHeight: '72px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          zIndex: 11, // ให้อยู่บนสุด
+          borderRadius: '16px',
+          marginLeft: isMobile ? 0 : '290px',
+          width: isMobile ? '100%' : 'calc(100% - 375px)',
+        }}
+      >
+        <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
+          {isMobile && (
+            <Button
+              type="text"
+              icon={<MenuOutlined style={{ fontSize: '20px', color: theme.primary }} />}
+              onClick={showDrawer}
+              style={{
+                ...buttonStyle,
+                padding: '8px',
+                width: '40px',
+                height: '40px',
+              }}
+            />
+          )}
 
-        <Space direction="vertical" size={4} style={{ maxWidth: isMobile ? '200px' : '600px' }}>
-          <Title
-            level={4}
-            style={{
-              margin: 0,
-              fontSize: isMobile ? '20px' : '24px',
-              color: theme.text,
-              lineHeight: 1.4,
-              fontWeight: 600,
-            }}
-          >
-            CS Logbook
-          </Title>
-          <Text
-            style={{
-              fontSize: '14px',
-              color: 'rgba(0, 0, 0, 0.65)',
-              lineHeight: 1.5,
-              margin: 0,
-              display: 'block',
-            }}
-          >
-            {isMobile ? 'ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงาน' : 
-                       'ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ'}
-          </Text>
+          <Space direction="vertical" size={4} style={{ maxWidth: isMobile ? '200px' : '600px' }}>
+            <Title
+              level={4}
+              style={{
+                margin: 0,
+                fontSize: isMobile ? '20px' : '24px',
+                color: theme.text,
+                lineHeight: 1.4,
+                fontWeight: 600,
+              }}
+            >
+              CS Logbook
+            </Title>
+            <Text
+              style={{
+                fontSize: '14px',
+                color: 'rgba(0, 0, 0, 0.65)',
+                lineHeight: 1.5,
+                margin: 0,
+                display: 'block',
+              }}
+            >
+              ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
+            </Text>
+          </Space>
         </Space>
-      </Space>
 
-      <Space size={16} align="center">
-        <Button
-          type="text"
-          icon={<BellOutlined style={{ fontSize: '20px', color: theme.primary }} />}
-          style={{
-            ...buttonStyle,
-            width: '40px',
-            height: '40px',
-            '&:hover': {
-              backgroundColor: theme.buttonHover,
-              transform: 'translateY(-1px)',
-            },
-          }}
-        />
-
-        <Space 
-          style={{
-            ...buttonStyle,
-            padding: '4px 12px',
-            cursor: 'pointer',
-            '&:hover': {
-              backgroundColor: theme.buttonHover,
-              transform: 'translateY(-1px)',
-            },
-          }}
-        >
+        <Space size={16} align="center">
           <Avatar
             style={{
               backgroundColor: theme.badge,
@@ -160,32 +136,57 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
           >
             {firstName?.charAt(0)?.toUpperCase()}
           </Avatar>
-          
-          {!isMobile && (
-            <Space direction="vertical" size={0}>
-              <Text 
-                strong 
-                style={{ 
-                  fontSize: '14px',
-                  color: theme.text,
-                }}
-              >
-                {firstName} {lastName}
-              </Text>
-              <Badge
-                count={getRoleTitle(role)}
-                style={{
-                  backgroundColor: theme.badge,
-                  fontSize: '12px',
-                  padding: '0 8px',
-                  borderRadius: '6px',
-                }}
-              />
-            </Space>
-          )}
+
+          <Space direction="vertical" size={0}>
+            <Text strong style={{ fontSize: '14px', color: theme.text }}>
+              {firstName} {lastName}
+            </Text>
+            <Badge
+              count={getRoleTitle(role)}
+              style={{
+                backgroundColor: theme.badge,
+                fontSize: '12px',
+                padding: '0 8px',
+                borderRadius: '6px',
+              }}
+            />
+          </Space>
         </Space>
-      </Space>
-    </Header>
+      </Header>
+
+      {/* New Block Header (Second Header) */}
+      <div
+        style={{
+          backgroundColor: '#f5f5f5', // พื้นหลังโปร่งใส
+          position: 'fixed',
+          top: 0, // วางใต้ header หลัก
+          left: 0,
+          width: '100%',
+          height: '115px', // ความสูงของ header ที่สอง
+          zIndex: 10, // ให้ header ใหม่อยู่ด้านหลัง main header
+        }}
+      >
+        <h2
+          style={{
+            textAlign: 'center',
+            color: 'white',
+            paddingTop: '15px',
+            fontSize: '18px',
+            fontWeight: 'bold',
+          }}
+        >
+        </h2>
+      </div>
+
+      {/* Main Content */}
+      <div
+        style={{
+          backgroundColor: '#f4f4f4',
+          padding: '20px',
+        }}
+      >
+      </div>
+    </Layout>
   );
 };
 

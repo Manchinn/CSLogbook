@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Layout, Form, Input, Button, Select, Space, Card, Typography, Upload,message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { InboxOutlined } from "@ant-design/icons";
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Link } = Typography;
 const { Option } = Select;
 const { Content } = Layout;
 
@@ -36,7 +36,7 @@ const ProjectProposalForm = () => {
           padding: "24px",
           margin: 0,
           minHeight: 280,
-          background: "#f8f8f8",
+          background: "#f5f5f5",
           borderRadius: "8px",
         }}
       >
@@ -76,7 +76,7 @@ const ProjectProposalForm = () => {
           padding: "24px",
           margin: 0,
           minHeight: 280,
-          background: "#f8f8f8",
+          background: "#f5f5f5",
           borderRadius: "8px",
         }}
       >
@@ -201,6 +201,15 @@ const ProjectProposalForm = () => {
                 getValueFromEvent={(e) => e && e.fileList}
                 //rules={[{ required: true, message: "กรุณาอัปโหลดเอกสาร!" }]}
             >
+                <Form.Item>
+                  <Link
+                    href="http://cs.kmutnb.ac.th/pdf/student/%E0%B9%82%E0%B8%84%E0%B8%A3%E0%B8%87%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%9E%E0%B8%B4%E0%B9%80%E0%B8%A8%E0%B8%A9,%E0%B8%9B%E0%B8%A3%E0%B8%B4%E0%B8%8D%E0%B8%8D%E0%B8%B2%E0%B8%99%E0%B8%B4%E0%B8%9E%E0%B8%99%E0%B8%98%E0%B9%8C/%E0%B8%84%E0%B8%9E.01_%E0%B9%81%E0%B8%9A%E0%B8%9A%E0%B8%9F%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%A1%E0%B9%80%E0%B8%AA%E0%B8%99%E0%B8%AD%E0%B8%AB%E0%B8%B1%E0%B8%A7%E0%B8%82%E0%B9%89%E0%B8%AD%E0%B9%82%E0%B8%84%E0%B8%A3%E0%B8%87%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%9E%E0%B8%B4%E0%B9%80%E0%B8%A8%E0%B8%A9_update.pdf"
+                    target="_blank"
+                  >
+                    ดาวน์โหลด คพ.01
+                  </Link>
+                  <li>เอกสารแสดงผลการเรียนทุกภาคเรียน (Transcript)</li>
+                </Form.Item>
                 <Upload.Dragger
                 name="file"
                 beforeUpload={(file) => file.size / 1024 / 1024 <= 10}
