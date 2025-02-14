@@ -8,8 +8,15 @@ const validateStudentID = (id) => {
     }
     return null;
   };
-  
-  const validateCSVRow = (row) => {
+
+const normalizeBoolean = (value) => {
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true';
+  }
+  return Boolean(value);
+};
+
+const validateCSVRow = (row) => {
     const errors = [];
     
     if (!row || Object.values(row).every(val => !val)) {
@@ -19,7 +26,7 @@ const validateStudentID = (id) => {
             normalizedData: null
         };
     }
-  
+
     // ตรวจสอบ Student ID
     let studentID = null;
     if (row['Student ID']) {
@@ -30,7 +37,7 @@ const validateStudentID = (id) => {
     } else {
         errors.push('Missing required field: Student ID');
     }
-  
+
     // ตรวจสอบฟิลด์ที่จำเป็น
     const requiredFields = ['Name', 'Surname', 'Role'];
     for (const field of requiredFields) {
@@ -38,18 +45,11 @@ const validateStudentID = (id) => {
             errors.push(`Missing required field: ${field}`);
         }
     }
-  
+
     if (row['Role'] && !['student', 'teacher', 'admin'].includes(row['Role'].toLowerCase())) {
         errors.push('Invalid Role: must be student, teacher, or admin');
     }
-  
-    const normalizeBoolean = (value) => {
-        if (typeof value === 'string') {
-            return value.toLowerCase() === 'true';
-        }
-        return Boolean(value);
-    };
-  
+
     // สร้างข้อมูลที่ normalize แล้ว
     const normalizedData = errors.length === 0 ? {
         studentID,
@@ -64,16 +64,15 @@ const validateStudentID = (id) => {
         username: `s${studentID}`,
         password: studentID // ใช้รหัสนักศึกษาเป็นรหัสผ่านเริ่มต้น
     } : null;
-  
+
     return {
         isValid: errors.length === 0,
         errors,
         normalizedData
     };
-  };
-  
-  module.exports = {
+};
+
+module.exports = {
     validateStudentID,
     validateCSVRow
-  };
-  
+};

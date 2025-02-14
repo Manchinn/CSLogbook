@@ -1,137 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Descriptions, Spin, Alert, Tag,Avatar,Row,Col } from 'antd';
-import {
-  UserOutlined
-} from '@ant-design/icons';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, Descriptions, Button, message, Spin } from 'antd';
 import axios from 'axios';
 
-const { Title } = Typography;
-
 const StudentProfile = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { id } = useParams(); // รับ id จาก URL parameter
 
   useEffect(() => {
-    const fetchStudentData = async () => {
+    const fetchStudent = async () => {
       try {
-        console.log('Fetching student data for ID:', id); // Debug log
-        setLoading(true);
-        // ใช้ API endpoint ที่มีอยู่แล้วจาก mockStudentData
+        const token = localStorage.getItem('token');
+        if (!token) {
+          message.error('กรุณาเข้าสู่ระบบ');
+          navigate('/login');
+          return;
+        }
+
         const response = await axios.get(`http://localhost:5000/api/students/${id}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
           }
-        });        console.log('Response:', response.data); // Debug log
+        });
+
         setStudent(response.data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching student data:', err);
-        setError('ไม่พบข้อมูลนักศึกษา');
+      } catch (error) {
+        console.error('Error fetching student data:', error);
+        message.error('เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา');
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchStudentData();
-    }
-  }, [id]);
+    fetchStudent();
+  }, [id, navigate]);
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <Spin size="large" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <Alert
-        message="ไม่พบข้อมูล"
-        description={error}
-        type="error"
-        showIcon
-        style={{ margin: '20px' }}
-      />
-    );
+  if (!student) {
+    return <div>ไม่พบนักศึกษา</div>;
   }
 
-  const headerStyle = {
-    background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
-    padding: '24px',
-    borderRadius: '8px 8px 0 0',
-    position: 'relative',
-    height: '200px',
-    display: 'flex',
-    alignItems: 'flex-end',
-    marginBottom: '60px'
-  };
-
-  const avatarContainerStyle = {
-    position: 'absolute',
-    left: '24px',
-    bottom: '-40px',
-    background: '#fff',
-    padding: '4px',
-    borderRadius: '50%',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
-  };
-
   return (
-    <Card bordered={false} style={{ margin: '24px' }}>
-      {/* Header Section */}
-      <div style={headerStyle}>
-        <div style={avatarContainerStyle}>
-          <Avatar 
-            size={96} 
-            icon={<UserOutlined />} 
-            style={{ background: '#1890ff' }}
-          />
-        </div>
-      </div>
-
-      {/* Profile Content */}
-      <div style={{ padding: '0 24px 24px' }}>
-        <Row gutter={[24, 24]}>
-          <Col span={24}>
-            <Title level={3}>
-              {student.firstName} {student.lastName}
-            </Title>
-            <Tag color="blue">{student.role?.toUpperCase()}</Tag>
-          </Col>
-        </Row>
-
-        <Descriptions 
-          layout="vertical" 
-          column={{ xs: 1, sm: 2, md: 2 }}
-          style={{ marginTop: '24px' }}
-        >
-          <Descriptions.Item label="Student ID">
-            <span style={{ fontSize: '16px' }}>{student.studentID}</span>
+    <div style={{ padding: '24px', background: '#f5f5f5', borderRadius: '8px', maxWidth: 800, margin: '0 auto' }}>
+      <Card title="ข้อมูลนักศึกษา" style={{ borderRadius: '8px' }}>
+        <Descriptions bordered column={1}>
+          <Descriptions.Item label="ชื่อ">{student.firstName}</Descriptions.Item>
+          <Descriptions.Item label="นามสกุล">{student.lastName}</Descriptions.Item>
+          <Descriptions.Item label="รหัสนักศึกษา">{student.studentID}</Descriptions.Item>
+          <Descriptions.Item label="อีเมล">{student.email}</Descriptions.Item>
+          <Descriptions.Item label="สถานะการฝึกงาน">
+            {student.isEligibleForInternship ? 'มีสิทธิ์' : 'ยังไม่มีสิทธิ์'}
           </Descriptions.Item>
-          
-          <Descriptions.Item label="Email">
-            <span style={{ fontSize: '16px' }}>{student.email}</span>
-          </Descriptions.Item>
-          
-          <Descriptions.Item label="Internship Status">
-            <Tag color={student.isEligibleForInternship ? 'success' : 'error'}>
-              {student.isEligibleForInternship ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
-            </Tag>
-          </Descriptions.Item>
-          
-          <Descriptions.Item label="Project Status">
-            <Tag color={student.isEligibleForProject ? 'success' : 'error'}>
-              {student.isEligibleForProject ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
-            </Tag>
+          <Descriptions.Item label="สถานะโปรเจค">
+            {student.isEligibleForProject ? 'มีสิทธิ์' : 'ยังไม่มีสิทธิ์'}
           </Descriptions.Item>
         </Descriptions>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };
 

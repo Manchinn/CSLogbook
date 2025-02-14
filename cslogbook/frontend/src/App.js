@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import LoginForm from './components/LoginForm';
-import Dashboard from './components/Dashboard';
+import Dashboard from './components/dashboards/Dashboard';
 import StudentList from './components/StudentList';
 import AdminUpload from './components/AdminUpload';
 import StudentProfile from './components/StudentProfile';

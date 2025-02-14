@@ -1,4 +1,3 @@
-
 export const fetchDocuments = async (type) => {
   const response = await fetch(`/api/documents?type=${type}`);
   const data = await response.json();
@@ -11,4 +10,10 @@ export const handleApprove = async (documentId) => {
 
 export const handleReject = async (documentId) => {
   await fetch(`/api/documents/${documentId}/reject`, { method: 'POST' });
+};
+
+export const fetchStudentList = async () => {
+  const response = await fetch('/api/students');
+  const data = await response.json();
+  return data;
 };

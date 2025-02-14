@@ -22,9 +22,8 @@ import {
      DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
-//import StudentForm from "./StudentForm";
-
+import StudentForm from "./StudentForm";
+import './StudentList.css';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -128,15 +127,11 @@ const StudentList = () => {
     );
 
     const tableHeaderStyle = {
-        background: '#fafafa',
-        fontWeight: 500,
-        padding: '12px 16px',
-        borderBottom: '2px solid #f0f0f0',
+        className: 'table-header'
     };
 
     const tableCellStyle = {
-        padding: '12px 16px',
-        fontSize: '14px'
+        className: 'table-cell'
     };
 
     const currentSummary = updateSummary(students);
@@ -246,21 +241,11 @@ const StudentList = () => {
     ];
 
     return (
-        <div style={{ 
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '24px',
-            background: '#fff'
-        }}>
+        <div className="container-studentlist">
             {/* หัวข้อ */}
-            <Title level={2} style={{ 
-                marginTop: 0,
-                marginBottom: '2px',
-                fontSize: '24px'
-            }}>
+            {/* <Title level={2} className="title">
                 รายชื่อนักศึกษา
-            </Title>
+            </Title> */}
 
             <Modal
                 visible={visible}
