@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Form, Input, Button, Space, message, Card, Modal, DatePicker, Typography, Row, Col, Segmented } from "antd";
-import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";  // นำเข้าไอคอนที่ต้องการ
+import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
+import "./LogbookForm.css"; // Import the new CSS file
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -150,109 +151,42 @@ const LogbookForm = () => {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
-      <Content
-        style={{
-          padding: "24px",
-          margin: 0,
-          minHeight: 280,
-          background: "#f5f5f5",
-          borderRadius: "8px",
-        }}
-      >
-        {/* ปุ่มสร้าง Logbook ใหม่ ที่มีไอคอน และ Filter */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
-            <Text style={{ marginRight: '10px' }}>สถานะ:</Text>
+    <Layout className="layout">
+      <Content className="content">
+        <div className="header-2">
+          <div className="filter">
+            <Text className="filter-text">สถานะ:</Text>
             <Segmented
-                options={['All', 'Pending', 'Complete']}
-                defaultValue="All"
-                onChange={handleFilterChange}
-                style={{ width: "900px" }}
+              options={['All', 'Pending', 'Complete']}
+              defaultValue="All"
+              onChange={handleFilterChange}
+              className="segmented"
             />
           </div>
-          <Button
-            type="primary"
-            onClick={showModal}
-            style={{
-              backgroundColor: "#1890ff",
-              borderColor: "#1890ff",
-              width: "100%",
-              maxWidth: "10%",
-              fontSize: "20px",
-              padding: "15px 0",
-              marginRight: "10px",
-            }}
-          >
-            <PlusCircleOutlined style={{ marginRight: "8px" }} />
+          <Button type="primary" onClick={showModal} className="add-button">
+            <PlusCircleOutlined className="add-icon" />
           </Button>
         </div>
 
-        {/* ประวัติการบันทึก */}
-        <Card
-          style={{
-            width: "100%",
-            maxWidth: "90%",
-            padding: 20,
-            borderRadius: 10,
-            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-            marginBottom: "20px",
-            marginLeft: "30px",
-            margin: "20px auto",
-          }}
-        >
-          <h3 style={{ color: "#1890ff", marginBottom: "20px" }}>ประวัติการบันทึก Logbook</h3>
+        <Card className="history-card">
+          <h3 className="history-title">ประวัติการบันทึก Logbook</h3>
           {filteredLogbookHistory.length > 0 ? (
             <Row gutter={[16, 16]}>
               {filteredLogbookHistory.map((log, index) => (
                 <Col xs={24} sm={12} md={8} key={index}>
-                  <Card
-                    style={{
-                      marginBottom: "20px",
-                      padding: "15px",
-                      borderRadius: "8px",
-                      border: "1px solid #e0e0e0",
-                      backgroundColor: "#f9f9f9",
-                      position: 'relative',
-                      height: '250px',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                    }}
-                    title={log.title}
-                    onClick={() => showViewModal(log)}
-                  >
-                    <EditOutlined 
+                  <Card className="log-card" title={log.title} onClick={() => showViewModal(log)}>
+                    <EditOutlined
                       onClick={(e) => {
                         e.stopPropagation();
                         showEditModal(log);
-                      }} 
-                      style={{ 
-                        fontSize: '20px', 
-                        cursor: 'pointer', 
-                        position: 'absolute', 
-                        top: '10px', 
-                        right: '10px', 
-                        margin: '15px',
-                        transition: 'color 0.3s',
                       }}
-                      onMouseEnter={(e) => e.target.style.color = '#1890ff'}
-                      onMouseLeave={(e) => e.target.style.color = 'inherit'}
-                      title="แก้ไข"
+                      className="edit-icon"
                     />
                     <p><strong>วันที่และเวลา:</strong> {log.date}</p>
-                    <p style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <strong>รายละเอียดการนัดพบ:</strong> {log.meetingDetails}
-                    </p>
-                    <p style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <strong>ความคืบหน้าโครงงาน:</strong> {log.progressUpdate}
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'right', alignItems: 'center', marginTop: '10px' }}>
-                      <span style={{ 
-                        color: log.status === "Complete" ? "green" : "orange",
-                        border: `1px solid ${log.status === "Complete" ? "green" : "orange"}`,
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                      }}>
+                    <p className="ellipsis"><strong>รายละเอียดการนัดพบ:</strong> {log.meetingDetails}</p>
+                    <p className="ellipsis"><strong>ความคืบหน้าโครงงาน:</strong> {log.progressUpdate}</p>
+                    <div className="status">
+                      <span className={log.status === "Complete" ? "status-complete" : "status-pending"}>
                         {log.status === "Complete" ? "Complete" : "Pending"}
                       </span>
                     </div>

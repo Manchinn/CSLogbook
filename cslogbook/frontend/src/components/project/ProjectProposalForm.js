@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { Layout, Form, Input, Button, Select, Space, Card, Typography, Upload,message } from "antd";
+import { Layout, Form, Input, Button, Select, Space, Card, Typography, Upload, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { InboxOutlined } from "@ant-design/icons";
+import "./ProjectProposalForm.css"; // Import the new CSS file
+
 const { Title, Paragraph, Link } = Typography;
 const { Option } = Select;
 const { Content } = Layout;
@@ -31,37 +33,16 @@ const ProjectProposalForm = () => {
   // ถ้ายังไม่ยอมรับเงื่อนไข จะแสดงหน้าเงื่อนไข
   if (!isAccepted) {
     return (
-      <Content
-        style={{
-          padding: "24px",
-          margin: 0,
-          minHeight: 280,
-          background: "#f5f5f5",
-          borderRadius: "8px",
-        }}
-      >
-        <Card
-          style={{
-            width: "100%",
-            maxWidth: "90%",
-            padding: 10,
-            borderRadius: 10,
-            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-            margin: "20px auto",
-          }}
-        >
+      <Content className="content">
+        <Card className="card">
           <Title level={2}>เงื่อนไขการทำโครงงานพิเศษ</Title>
-          <Paragraph style={{ textAlign: "left", fontSize: "16px" }}>
+          <Paragraph className="paragraph">
             - นักศึกษาจะมีสิทธิ์เสนอหัวข้อโครงงานพิเศษได้ ต้องสอบผ่านข้อสอบรวม ไม่ต่ำกว่า 95 คะแนน และต้องไม่ขาดเกณฑ์ในภาควิชาของภาคครูไม่ต่ำกว่า 57 หน่วยกิจ
             <br />
             - แต่ละหัวข้อโครงงาน ส่งเพียงครั้งเดียวเท่านั้น
           </Paragraph>
 
-          <Button
-            type="primary"
-            onClick={handleAcceptConditions}
-            style={{ marginTop: "10px", fontSize: "18px", padding: "20px" }}
-          >
+          <Button type="primary" onClick={handleAcceptConditions} className="accept-button">
             ยอมรับเงื่อนไข
           </Button>
         </Card>
@@ -70,27 +51,10 @@ const ProjectProposalForm = () => {
   }
 
   return (
-    <Layout style={{ minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
-      <Content
-        style={{
-          padding: "24px",
-          margin: 0,
-          minHeight: 280,
-          background: "#f5f5f5",
-          borderRadius: "8px",
-        }}
-      >
-        <Card
-          style={{
-            width: "100%",
-            maxWidth: "90%",
-            padding: 10,
-            borderRadius: 10,
-            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-            margin: "20px auto",
-          }}
-        >
-          <Title level={3} style={{ textAlign: "left", marginBottom: 20 }}>
+    <Layout className="layout">
+      <Content className="content">
+        <Card className="card">
+          <Title level={3} className="title">
             ฟอร์มเสนอหัวข้อโครงงานพิเศษ
           </Title>
 
