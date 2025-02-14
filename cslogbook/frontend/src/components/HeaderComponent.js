@@ -1,6 +1,7 @@
 import React from 'react';
 import { Layout, Button, Typography, Space, Avatar, Badge } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
+import './HeaderComponent.css';
 
 const { Header } = Layout;
 const { Title, Text } = Typography;

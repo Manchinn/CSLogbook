@@ -4,6 +4,7 @@ import { MenuOutlined } from '@ant-design/icons';
 import Sidebar from './Sidebar';
 import HeaderComponent from './HeaderComponent';
 import { Outlet } from 'react-router-dom';
+import './MainLayout.css';
 
 const { Content } = Layout;
 

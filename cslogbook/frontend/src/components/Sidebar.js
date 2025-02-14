@@ -11,6 +11,7 @@ import {
   UploadOutlined,
   ProjectOutlined,
 } from '@ant-design/icons';
+import './Sidebar.css';
 
 const { Sider } = Layout;
 const { Title } = Typography;
@@ -108,55 +109,8 @@ useEffect(() => {
 
   // Custom styles คงเดิม...
   const theme = themeConfig[userData.role] || themeConfig.student;
-  const siderStyle = {
-    backgroundColor: '#fff',
-    height: '100vh',
-    position: 'fixed',
-    left: isMobile ? 0 : 'auto',
-    top: 0,
-    zIndex: 1000,
-    overflow: 'auto',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    borderRight: '1px solid #f0f0f0',
-    width: '230px'
-  };
-
-  const profileStyle = {
-    padding: '24px',
-    textAlign: 'center',
-    borderBottom: '1px solid #f0f0f0',
-    backgroundColor: '#fff',
-  };
-
-  const menuStyle = {
-    '.ant-menu-item': {
-      margin: '4px 8px !important',
-      borderRadius: '6px',
-      '&:hover': {
-        backgroundColor: `${theme.menuHover} !important`,
-        color: `${theme.activeColor} !important`,
-      },
-    },
-    '.ant-menu-item-selected': {
-      backgroundColor: `${theme.menuHover} !important`,
-      color: `${theme.activeColor} !important`,
-      borderRadius: '6px',
-      '&::after': {
-        display: 'none',
-      },
-    },
-    '.ant-menu-submenu-title': {
-      margin: '4px 8px !important',
-      borderRadius: '6px',
-      '&:hover': {
-        backgroundColor: `${theme.menuHover} !important`,
-        color: `${theme.activeColor} !important`,
-      },
-    },
-    '.ant-menu-sub': {
-      backgroundColor: 'transparent !important',
-    },
-  };
+  document.documentElement.style.setProperty('--menu-hover', theme.menuHover);
+  document.documentElement.style.setProperty('--active-color', theme.activeColor);
 
   const navigateToProfile = () => {
     if (userData.studentID) {
@@ -168,8 +122,8 @@ useEffect(() => {
   };
 
   return (
-    <Sider width={230} style={siderStyle}>
-      <div style={profileStyle}>
+    <Sider width={230} className="sider">
+      <div className="profile">
         <Avatar
           size={64}
           style={{
@@ -195,7 +149,7 @@ useEffect(() => {
       <Menu
         mode="inline"
         defaultSelectedKeys={['dashboard']}
-        style={menuStyle}
+        className="menu"
       >
         <Menu.Item key="dashboard" icon={<HomeOutlined />} onClick={() => navigate('/dashboard')}>
           หน้าแรก
@@ -274,14 +228,7 @@ useEffect(() => {
           key="logout" 
           icon={<LogoutOutlined />} 
           onClick={handleLogout}
-          style={{ 
-            marginTop: 20,
-            color: '#ff4d4f',
-            '&:hover': {
-              color: '#ff7875',
-              backgroundColor: '#fff1f0',
-            },
-          }}
+          className="logout"
         >
           ออกจากระบบ
         </Menu.Item>
