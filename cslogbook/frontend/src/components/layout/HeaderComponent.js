@@ -69,7 +69,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
           marginTop: '20px',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
           background: theme.gradient,
-          backdropFilter: 'blur(10px)', // ใช้ blur เพื่อทำให้เนื้อหาหลัง header เบลอ
+          backdropFilter: 'blur(10px)',
           padding: '0 16px',
           display: 'flex',
           alignItems: 'center',
@@ -79,7 +79,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
           position: 'fixed',
           top: 0,
           left: 0,
-          zIndex: 11, // ให้อยู่บนสุด
+          zIndex: 11,
           borderRadius: '16px',
           marginLeft: isMobile ? 0 : '290px',
           width: isMobile ? '100%' : 'calc(100% - 375px)',
@@ -158,13 +158,13 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       {/* New Block Header (Second Header) */}
       <div
         style={{
-          backgroundColor: '#f5f5f5', // พื้นหลังโปร่งใส
+          backgroundColor: '#f5f5f5',
           position: 'fixed',
-          top: 0, // วางใต้ header หลัก
+          top: 0,
           left: 0,
           width: '100%',
-          height: '115px', // ความสูงของ header ที่สอง
-          zIndex: 10, // ให้ header ใหม่อยู่ด้านหลัง main header
+          height: '115px',
+          zIndex: 10,
         }}
       >
         <h2

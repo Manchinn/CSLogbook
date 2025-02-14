@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import MainLayout from './components/MainLayout';
+import MainLayout from './components/layout/MainLayout';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
 import StudentList from './components/StudentList';
@@ -15,7 +15,6 @@ import DocumentDetails from "./components/admin/DocumentDetails";
 import DocumentManagement from "./components/admin/DocumentManagement";
 import ProjectProposalForm from "./components/project/ProjectProposalForm";
 import LogbookForm from "./components/project/LogbookForm";
-
 
 const App = () => {
   return (
@@ -40,7 +39,6 @@ const App = () => {
             <Route path="/document-details/:id" element={<DocumentDetails />} />
             <Route path="/project-proposal" element={<ProjectProposalForm />} />
             <Route path="/project-logbook" element={<LogbookForm />} />
-
           </Route>
 
           {/* Redirect root to dashboard */}

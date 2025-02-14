@@ -16,7 +16,7 @@ import './Sidebar.css';
 const { Sider } = Layout;
 const { Title } = Typography;
 
-// Theme configuration คงเดิม
+// Theme configuration
 const themeConfig = {
   student: {
     primary: '#1890ff',
@@ -47,54 +47,50 @@ const Sidebar = () => {
     isEligibleForProject: false
   });
 
-// แก้ไขส่วน useEffect ที่ดึงข้อมูลผู้ใช้
-useEffect(() => {
-  const storedStudentID = localStorage.getItem('studentID');
-  const storedRole = localStorage.getItem('role');
-  const token = localStorage.getItem('token');
-  
-  setUserData({
-    firstName: localStorage.getItem('firstName') || '',
-    lastName: localStorage.getItem('lastName') || '',
-    studentID: storedStudentID || '',
-    role: storedRole || '',
-    isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
-    isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
-  });
+  useEffect(() => {
+    const storedStudentID = localStorage.getItem('studentID');
+    const storedRole = localStorage.getItem('role');
+    const token = localStorage.getItem('token');
+    
+    setUserData({
+      firstName: localStorage.getItem('firstName') || '',
+      lastName: localStorage.getItem('lastName') || '',
+      studentID: storedStudentID || '',
+      role: storedRole || '',
+      isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
+      isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
+    });
 
-  // ถ้าเป็น student และมี token ให้ดึงข้อมูลสิทธิ์ล่าสุดจาก API
-  if (storedStudentID && storedRole === 'student' && token) {
-    axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
-      headers: {
-        'Authorization': `Bearer ${token}` // เพิ่ม token ในส่วน headers
-      }
-    })
-      .then(response => {
-        const data = response.data;
-        setUserData(prev => ({
-          ...prev,
-          isEligibleForInternship: data.isEligibleForInternship || false,
-          isEligibleForProject: data.isEligibleForProject || false,
-        }));
-        
-        // อัพเดท localStorage ด้วยข้อมูลล่าสุด
-        localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
-        localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
-      })
-      .catch(error => {
-        console.error('Error fetching user permissions:', error);
-        if (error.response?.status === 401) {
-          message.error('กรุณาเข้าสู่ระบบใหม่');
-          localStorage.clear(); // ล้าง localStorage เมื่อ token หมดอายุ
-          navigate('/login');
-        } else {
-          message.error('ไม่สามารถดึงข้อมูลสิทธิ์ได้');
+    if (storedStudentID && storedRole === 'student' && token) {
+      axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      });
-  }
-}, [navigate]); // เพิ่ม navigate เป็น dependency
+      })
+        .then(response => {
+          const data = response.data;
+          setUserData(prev => ({
+            ...prev,
+            isEligibleForInternship: data.isEligibleForInternship || false,
+            isEligibleForProject: data.isEligibleForProject || false,
+          }));
+          
+          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
+          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
+        })
+        .catch(error => {
+          console.error('Error fetching user permissions:', error);
+          if (error.response?.status === 401) {
+            message.error('กรุณาเข้าสู่ระบบใหม่');
+            localStorage.clear();
+            navigate('/login');
+          } else {
+            message.error('ไม่สามารถดึงข้อมูลสิทธิ์ได้');
+          }
+        });
+    }
+  }, [navigate]);
 
-  // Mobile responsive handler คงเดิม
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -107,7 +103,6 @@ useEffect(() => {
     navigate('/login');
   };
 
-  // Custom styles คงเดิม...
   const theme = themeConfig[userData.role] || themeConfig.student;
   document.documentElement.style.setProperty('--menu-hover', theme.menuHover);
   document.documentElement.style.setProperty('--active-color', theme.activeColor);
@@ -165,9 +160,6 @@ useEffect(() => {
                 <Menu.Item key="internship-documents" icon={<UploadOutlined />} onClick={() => navigate('/internship-documents')}>
                   เอกสารฝึกงาน
                 </Menu.Item>
-                {/* <Menu.Item key="daily-log" icon={<EditOutlined />} onClick={() => navigate('/internship/log')}>
-                  บันทึกประจำวัน
-                </Menu.Item>*/}
               </Menu.SubMenu>
             )}
 
@@ -188,7 +180,6 @@ useEffect(() => {
           </>
         )}
 
-        {/* ส่วนเมนูของ teacher และ admin คงเดิม */}
         {userData.role === 'teacher' && (
           <>
             <Menu.Item key="review-documents" icon={<FileTextOutlined />} onClick={() => navigate('/review-documents')}>

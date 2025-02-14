@@ -55,10 +55,9 @@ const MainLayout = () => {
           style={{ 
             marginLeft: isMobile ? 0 : '200px',
             paddingTop: '80px', 
-            overflow: 'hidden',  // ซ่อนเนื้อหาหลัง header
-            backdropFilter: 'blur(10px)',  // ใช้ blur ทำให้เนื้อหาหลัง header เบลอ
-            zIndex: 0,  // ให้เนื้อหาหลัง header อยู่ด้านล่าง
-            
+            overflow: 'hidden',
+            backdropFilter: 'blur(10px)',
+            zIndex: 0,
         }}> 
           <div className="bg-white rounded-lg shadow-sm p-6">
             <Outlet />
