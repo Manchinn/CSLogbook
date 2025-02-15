@@ -1,0 +1,36 @@
+.common-card-style {
+  width: 100%;
+  max-width: 90%;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 20px auto;
+}
+
+.common-alert-style {
+  width: 100%;
+  max-width: 90%;
+  margin-left: 30px;
+  border-radius: 10px;
+}
+
+.common-space-style {
+  width: 100%;
+  max-width: 90%;
+  margin-left: 30px;
+}
+
+/* Custom styles for Ant Design components */
+.ant-btn-primary {
+  height: 40px;
+  font-size: 16px;
+}
+
+.ant-statistic-title {
+  font-weight: bold;
+}
+
+.ant-alert-info {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}

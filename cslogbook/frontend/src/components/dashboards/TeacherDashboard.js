@@ -1,41 +1,20 @@
 import React from 'react';
 import { Card, Row, Col, Statistic, Alert, Space } from 'antd';
 import { FileTextOutlined, ProjectOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import './Dashboard.css';
 
 const TeacherDashboard = ({ userData, navigate }) => {
-  const commonCardStyle = {
-    width: "100%",
-    maxWidth: "90%",
-    padding: 10,
-    borderRadius: 10,
-    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-    margin: "20px auto",
-  };
-
-  const commonAlertStyle = {
-    width: "100%",
-    maxWidth: "50%",
-    marginLeft: "30px",
-    borderRadius: '10px',
-  };
-
-  const commonSpaceStyle = {
-    width: "100%",
-    maxWidth: "90%",
-    marginLeft: "30px",
-  };
-
   return (
-    <Space direction="vertical" size="large" style={commonSpaceStyle}>
+    <Space direction="vertical" size="large" className="common-space-style">
       <Alert
         message={`สวัสดี อาจารย์${userData.firstName} ${userData.lastName}`}
         type="info"
         showIcon
-        style={commonAlertStyle}
+        className="common-alert-style"
       />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/review-documents')} style={commonCardStyle}>
+          <Card hoverable onClick={() => navigate('/review-documents')} className="common-card-style">
             <Statistic
               title="เอกสารรอตรวจสอบ"
               value={0}
@@ -44,7 +23,7 @@ const TeacherDashboard = ({ userData, navigate }) => {
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/advise-project')} style={commonCardStyle}>
+          <Card hoverable onClick={() => navigate('/advise-project')} className="common-card-style">
             <Statistic
               title="โปรเจคที่ปรึกษา"
               value={0}
@@ -53,7 +32,7 @@ const TeacherDashboard = ({ userData, navigate }) => {
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/approve-documents')} style={commonCardStyle}>
+          <Card hoverable onClick={() => navigate('/approve-documents')} className="common-card-style">
             <Statistic
               title="รออนุมัติ"
               value={0}

@@ -1,42 +1,21 @@
 import React from 'react';
 import { Card, Row, Col, Statistic, Alert, Space, Button } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import './Dashboard.css';
 
 const StudentDashboard = ({ userData, navigate }) => {
-  const commonCardStyle = {
-    width: "100%",
-    maxWidth: "90%",
-    padding: 10,
-    borderRadius: 10,
-    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-    margin: "20px auto",
-  };
-
-  const commonAlertStyle = {
-    width: "100%",
-    maxWidth: "50%",
-    marginLeft: "30px",
-    borderRadius: '10px',
-  };
-
-  const commonSpaceStyle = {
-    width: "100%",
-    maxWidth: "90%",
-    marginLeft: "30px",
-  };
-
   return (
-    <Space direction="vertical" size="large" style={commonSpaceStyle}>
+    <Space direction="vertical" size="large" className="common-space-style">
       <Alert
         message={`สวัสดี คุณ${userData.firstName} ${userData.lastName}`}
         description={`รหัสนักศึกษา: ${userData.studentID}`}
         type="info"
         showIcon
-        style={commonAlertStyle}
+        className="common-alert-style"
       />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12}>
-          <Card style={commonCardStyle}>
+          <Card className="common-card-style">
             <Statistic
               title="สถานะการฝึกงาน"
               value={userData.isEligibleForInternship ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
@@ -52,7 +31,7 @@ const StudentDashboard = ({ userData, navigate }) => {
           </Card>
         </Col>
         <Col xs={24} sm={12}>
-          <Card style={commonCardStyle}>
+          <Card className="common-card-style">
             <Statistic
               title="สถานะโปรเจค"
               value={userData.isEligibleForProject ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
@@ -61,7 +40,7 @@ const StudentDashboard = ({ userData, navigate }) => {
             />
             {userData.isEligibleForProject && (
               <Button type="primary" onClick={() => navigate('/project-proposal')} 
-                      style={{ marginTop: 16 }}>
+                      className="ant-btn-primary">
                 จัดการโปรเจค
               </Button>
             )}
