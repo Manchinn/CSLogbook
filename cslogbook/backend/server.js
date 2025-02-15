@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 require('dotenv').config();
 const multer = require('multer');
+const path = require('path');
 const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 
 // Import routes
@@ -71,6 +72,17 @@ app.post('/upload-csv',
   upload.single('file'), 
   uploadCSV
 );
+
+// Route to download CSV template
+app.get('/template/download-template', (req, res) => {
+  const filePath = path.join(__dirname, 'templates/student_template.csv');
+  res.download(filePath, 'student_template.csv', (err) => {
+    if (err) {
+      console.error('Error downloading template:', err);
+      res.status(500).send('Error downloading template');
+    }
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

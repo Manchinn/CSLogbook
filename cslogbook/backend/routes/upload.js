@@ -1,5 +1,7 @@
 const fs = require('fs');
 const csv = require('csv-parser');
+const iconv = require('iconv-lite');
+const bcrypt = require('bcrypt');
 const pool = require('../config/database');
 const { validateCSVRow } = require('../utils/csvParser');
 
@@ -16,7 +18,8 @@ const uploadCSV = async (req, res, next) => {
     try {
       await connection.beginTransaction();
 
-      const stream = fs.createReadStream(filePath, { encoding: 'utf-8' })
+      const stream = fs.createReadStream(filePath)
+        .pipe(iconv.decodeStream('utf-8'))
         .pipe(csv({
           skipEmptyLines: true,
           trim: true,
@@ -70,7 +73,7 @@ const uploadCSV = async (req, res, next) => {
               `, [
                 normalizedData.studentID,
                 `s${normalizedData.studentID}`,
-                normalizedData.studentID,
+                await bcrypt.hash(normalizedData.studentID, 10), // Hash the password
                 normalizedData.firstName,
                 normalizedData.lastName,
                 normalizedData.email,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Button, Table, message, Space, Typography, Card } from 'antd';
-import { UploadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { UploadOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
@@ -178,6 +178,10 @@ const AdminUpload = () => {
     return false;
   };
 
+  const handleDownloadTemplate = () => {
+    window.location.href = 'http://localhost:5000/template/download-template';
+  };
+
   return (
     <div style={{
       width: '100%',
@@ -212,8 +216,17 @@ const AdminUpload = () => {
             loading={uploading}
             icon={<ReloadOutlined />}
             style={{ borderRadius: '6px', height: '40px' }}
-          >
+          > 
             {uploading ? 'กำลังอัปโหลด...' : 'เริ่มอัปโหลด'}
+          </Button>
+
+          <Button
+            type="default"
+            onClick={handleDownloadTemplate}
+            icon={<DownloadOutlined />}
+            style={{ borderRadius: '6px', height: '40px' }}
+          >
+            ดาวน์โหลดเทมเพลต CSV
           </Button>
 
           {summary && (
