@@ -3,10 +3,9 @@ const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware.js');
 
-// students.js (route)
+// Route to get all students
 router.get('/', authenticateToken, checkRole(['admin', 'teacher']), async (req, res, next) => {
   try {
-    // เพิ่ม log เพื่อตรวจสอบ user
     console.log('User accessing student list:', req.user);
 
     const [students] = await pool.execute(`
@@ -16,9 +15,7 @@ router.get('/', authenticateToken, checkRole(['admin', 'teacher']), async (req, 
       WHERE u.role = 'student'
     `);
 
-    // เพิ่ม log ข้อมูลที่จะส่งกลับ
     console.log('Sending student data, count:', students.length);
-
     res.json(students);
   } catch (error) {
     console.error('Error in student list route:', error);
@@ -26,7 +23,7 @@ router.get('/', authenticateToken, checkRole(['admin', 'teacher']), async (req, 
   }
 });
 
-// routes/students.js
+// Route to get a specific student by ID
 router.get('/:id', authenticateToken, async (req, res, next) => {
   try {
     console.log('Requesting student data:', {
@@ -35,7 +32,6 @@ router.get('/:id', authenticateToken, async (req, res, next) => {
       userRole: req.user.role
     });
 
-    // อนุญาตให้ admin และเจ้าของข้อมูลเข้าถึงได้
     if (req.user.role === 'admin' || req.user.studentID === req.params.id) {
       const [student] = await pool.execute(`
         SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
@@ -52,6 +48,35 @@ router.get('/:id', authenticateToken, async (req, res, next) => {
       res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึงข้อมูล' });
     }
   } catch (error) {
+    next(error);
+  }
+});
+
+// Route to update a student's information
+router.put('/:id', authenticateToken, checkRole(['admin']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, email, isEligibleForInternship, isEligibleForProject } = req.body;
+
+    const [result] = await pool.execute(`
+      UPDATE users 
+      SET firstName = ?, lastName = ?, email = ?
+      WHERE studentID = ?
+    `, [firstName, lastName, email, id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
+    }
+
+    await pool.execute(`
+      UPDATE student_data 
+      SET isEligibleForInternship = ?, isEligibleForProject = ?
+      WHERE studentID = ?
+    `, [isEligibleForInternship, isEligibleForProject, id]);
+
+    res.json({ success: true, message: 'แก้ไขข้อมูลนักศึกษาเรียบร้อย' });
+  } catch (error) {
+    console.error('Error updating student:', error);
     next(error);
   }
 });

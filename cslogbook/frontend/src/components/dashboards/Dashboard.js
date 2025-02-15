@@ -44,6 +44,7 @@ const Dashboard = () => {
       })
         .then(response => {
           const userData = response.data;
+          console.log('User Data:', userData);
           setUserData({
             firstName: userData.firstName,
             lastName: userData.lastName,
@@ -58,7 +59,6 @@ const Dashboard = () => {
           localStorage.setItem('isEligibleForProject', userData.isEligibleForProject);
         })
         .catch(error => {
-          console.error('Error fetching user data:', error);
         });
     }
 
@@ -71,8 +71,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching with token:', token);
-      
+
       if (!token) {
         message.error('กรุณาเข้าสู่ระบบใหม่');
         navigate('/login');
@@ -84,9 +83,7 @@ const Dashboard = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
-      console.log('Student stats response:', response.data);
-      
+            
       const students = response.data;
       const onlyStudents = students.filter(user => user.role === 'student');
       
@@ -96,7 +93,6 @@ const Dashboard = () => {
         projectEligible: onlyStudents.filter(student => student.isEligibleForProject).length
       });
     } catch (error) {
-      console.error('Error fetching student stats:', error);
       if (error.response?.status === 403) {
         message.error('ไม่มีสิทธิ์เข้าถึงข้อมูล กรุณาเข้าสู่ระบบใหม่');
         navigate('/login');

@@ -28,7 +28,6 @@ import './StudentList.css';
 const { Title } = Typography;
 const { Option } = Select;
 
-
 const StudentList = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -40,7 +39,6 @@ const StudentList = () => {
     
     const navigate = useNavigate();
 
-    // แก้ไขฟังก์ชัน fetchStudents
     const fetchStudents = useCallback(async () => {
         setLoading(true);
         try {
@@ -55,7 +53,6 @@ const StudentList = () => {
         } catch (error) {
             console.error('Error fetching students:', error);
             if (error.response?.status === 401) {
-                // ถ้า token หมดอายุหรือไม่ถูกต้อง ให้ redirect ไปหน้า login
                 message.error('กรุณาเข้าสู่ระบบใหม่');
                 navigate('/login');
             }
@@ -68,25 +65,34 @@ const StudentList = () => {
         try {
             if (editingStudent) {
                 await axios.put(`http://localhost:5000/api/students/${editingStudent.studentID}`, values);
+                console.log('Edited student:', values);
                 message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
             } else {
                 await axios.post("http://localhost:5000/api/students", values);
+                console.log('Added student:', values);
                 message.success("เพิ่มนักศึกษาเรียบร้อย!");
             }
             fetchStudents();
             setVisible(false);
             setEditingStudent(null);
         } catch (error) {
-            message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+            console.error('Error saving student data:', error);
+            if (error.response?.status === 404) {
+                message.error("ไม่พบข้อมูลนักศึกษา");
+            } else {
+                message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+            }
         }
     };
     
     const handleDelete = async (studentID) => {
         try {
             await axios.delete(`http://localhost:5000/api/students/${studentID}`);
+            console.log('Deleted student ID:', studentID);
             message.success("ลบนักศึกษาเรียบร้อย!");
             fetchStudents();
         } catch (error) {
+            console.error('Error deleting student:', error);
             message.error("เกิดข้อผิดพลาดในการลบข้อมูล");
         }
     };
@@ -94,27 +100,29 @@ const StudentList = () => {
     const openModal = (student = null) => {
         setEditingStudent(student);
         setVisible(true);
-        form.setFieldsValue(student || { studentID: '', firstName: '', lastName: '', email: '', internshipStatus: '' });
+        form.setFieldsValue(student ? {
+            ...student,
+            isEligibleForInternship: student.isEligibleForInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์',
+            isEligibleForProject: student.isEligibleForProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'
+        } : { studentID: '', firstName: '', lastName: '', email: '', internshipStatus: '', isEligibleForInternship: 'ไม่มีสิทธิ์', isEligibleForProject: 'ไม่มีสิทธิ์' });
     };
 
-    // ใช้ useCallback สำหรับ updateSummary
     const updateSummary = useCallback((data) => {
         const filteredData = data.filter(student =>
             student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
             student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
             student.lastName?.toLowerCase().includes(searchText.toLowerCase())
         );
-        // ส่งค่ากลับแทนการใช้ state
         return {
             total: filteredData.length,
             internshipEligible: filteredData.filter(s => s.isEligibleForInternship).length,
             projectEligible: filteredData.filter(s => s.isEligibleForProject).length
         };
-    }, [searchText]); // dependency เป็น searchText เพราะใช้ในการกรอง
+    }, [searchText]);
 
     useEffect(() => {
         fetchStudents();
-    }, [fetchStudents]); // เพิ่ม dependency
+    }, [fetchStudents]);
 
     const handleTableChange = (pagination, filters, sorter) => {
         setSortedInfo(sorter);
@@ -208,18 +216,7 @@ const StudentList = () => {
                     {isEligible ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                 </Tag>
             )
-        },/*
-        {
-            title: 'อีเมล',
-            dataIndex: 'email',
-            key: 'email',
-            width: 300,
-            onHeaderCell: () => ({ style: tableHeaderStyle }),
-            onCell: () => ({ style: tableCellStyle }),
-            sorter: (a, b) => a.email.localeCompare(b.email),
-            sortOrder: sortedInfo.columnKey === 'email' && sortedInfo.order,
-            render: email => <span style={{ color: '#666' }}>{email}</span>
-        },*/
+        },
         {
             title: "จัดการ",
             key: "actions",
@@ -242,11 +239,6 @@ const StudentList = () => {
 
     return (
         <div className="container-studentlist">
-            {/* หัวข้อ */}
-            {/* <Title level={2} className="title">
-                รายชื่อนักศึกษา
-            </Title> */}
-
             <Modal
                 visible={visible}
                 title={editingStudent ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา"}
@@ -256,6 +248,8 @@ const StudentList = () => {
                 onOk={() => {
                     form.validateFields()
                         .then(values => {
+                            values.isEligibleForInternship = values.isEligibleForInternship === 'มีสิทธิ์';
+                            values.isEligibleForProject = values.isEligibleForProject === 'มีสิทธิ์';
                             handleAddOrEdit(values);
                             form.resetFields();
                         })
@@ -275,17 +269,21 @@ const StudentList = () => {
                     <Form.Item name="email" label="อีเมล" rules={[{ required: true, type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="internshipStatus" label="สถานะฝึกงาน" rules={[{ required: true, message: "กรุณาเลือกสถานะฝึกงาน!" }]}>
+                    <Form.Item name="isEligibleForInternship" label="สถานะฝึกงาน" rules={[{ required: true, message: "กรุณาเลือกสถานะฝึกงาน!" }]}>
                         <Select>
-                            <Option value="active">กำลังฝึกงาน</Option>
-                            <Option value="completed">ฝึกงานเสร็จแล้ว</Option>
-                            <Option value="pending">รออนุมัติ</Option>
+                            <Option value="มีสิทธิ์">มีสิทธิ์</Option>
+                            <Option value="ไม่มีสิทธิ์">ไม่มีสิทธิ์</Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item name="isEligibleForProject" label="สถานะโปรเจค" rules={[{ required: true, message: "กรุณาเลือกสถานะโปรเจค!" }]}>
+                        <Select>
+                            <Option value="มีสิทธิ์">มีสิทธิ์</Option>
+                            <Option value="ไม่มีสิทธิ์">ไม่มีสิทธิ์</Option>
                         </Select>
                     </Form.Item>
                 </Form>
             </Modal>
 
-            {/* แถวควบคุมและสรุปข้อมูล */}
             <Row justify="space-between" align="middle">
                 <Col flex="auto">
                     <Row gutter={40} align="middle">
@@ -350,7 +348,6 @@ const StudentList = () => {
                 </Col>
             </Row>
 
-            {/* ตาราง */}
             <Table
                 columns={columns}
                 dataSource={filteredStudents}
@@ -360,9 +357,9 @@ const StudentList = () => {
                 onChange={handleTableChange}
                 scroll={{ 
                     x: 1000,
-                    y: 'calc(100vh - 350px)' // ปรับความสูงเนื่องจากลดพื้นที่ด้านบน
+                    y: 'calc(100vh - 350px)'
                 }}
-                sortDirections={['ascend', 'descend', 'ascend']} // เพิ่มทิศทางการ sort ที่เป็นไปได้
+                sortDirections={['ascend', 'descend', 'ascend']}
             />
         </div>
     );

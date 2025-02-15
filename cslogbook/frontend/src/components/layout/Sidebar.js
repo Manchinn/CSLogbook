@@ -116,6 +116,119 @@ const Sidebar = () => {
     }
   };
 
+  const menuItems = [
+    {
+      key: 'dashboard',
+      icon: <HomeOutlined />,
+      label: 'หน้าแรก',
+      onClick: () => navigate('/dashboard'),
+    },
+    userData.role === 'student' && userData.isEligibleForInternship && {
+      key: 'internship',
+      icon: <FileTextOutlined />,
+      label: 'ระบบฝึกงาน',
+      children: [
+        {
+          key: 'company-info',
+          icon: <TeamOutlined />,
+          label: 'ลงทะเบียนฝึกงาน',
+          onClick: () => navigate('/internship-terms'),
+        },
+        {
+          key: 'internship-documents',
+          icon: <UploadOutlined />,
+          label: 'เอกสารฝึกงาน',
+          onClick: () => navigate('/internship-documents'),
+        },
+      ],
+    },
+    userData.role === 'student' && userData.isEligibleForProject && {
+      key: 'project',
+      icon: <ProjectOutlined />,
+      label: 'โครงงานพิเศษ',
+      children: [
+        {
+          key: 'project-status',
+          icon: <TeamOutlined />,
+          label: 'ฟอร์มเสนอหัวข้อ',
+          onClick: () => navigate('/project-proposal'),
+        },
+        {
+          key: 'project-logbook',
+          icon: <FileTextOutlined />,
+          label: 'บันทึก Logbook',
+          onClick: () => navigate('/project-logbook'),
+        },
+      ],
+    },
+    userData.role === 'student' && {
+      key: 'student-profile',
+      icon: <TeamOutlined />,
+      label: 'ประวัตินักศึกษา',
+      onClick: navigateToProfile,
+    },
+    userData.role === 'teacher' && {
+      key: 'review-documents',
+      icon: <FileTextOutlined />,
+      label: 'ตรวจสอบเอกสารโครงงาน',
+      onClick: () => navigate('/review-documents'),
+    },
+    userData.role === 'teacher' && {
+      key: 'advise-project',
+      icon: <ProjectOutlined />,
+      label: 'ให้คำแนะนำโครงงาน',
+      onClick: () => navigate('/advise-project'),
+    },
+    userData.role === 'teacher' && {
+      key: 'approve-documents',
+      icon: <CheckCircleOutlined />,
+      label: 'อนุมัติเอกสาร',
+      onClick: () => navigate('/approve-documents'),
+    },
+    userData.role === 'admin' && {
+      key: 'students-submenu',
+      icon: <TeamOutlined />,
+      label: 'จัดการข้อมูลนักศึกษา',
+      children: [
+        {
+          key: 'student-list',
+          label: 'รายชื่อนักศึกษา',
+          onClick: () => navigate('/students'),
+        },
+      ],
+    },
+    userData.role === 'admin' && {
+      key: 'document-management',
+      icon: <FileTextOutlined />,
+      label: 'จัดการเอกสาร',
+      children: [
+        {
+          key: 'internship-documents',
+          label: 'เอกสารฝึกงาน',
+          onClick: () => navigate('/document-management/internship'),
+        },
+        {
+          key: 'project-documents',
+          label: 'เอกสารโครงงานพิเศษ',
+          onClick: () => navigate('/document-management/project'),
+        },
+      ],
+    },
+    userData.role === 'admin' && {
+      key: 'upload-csv',
+      icon: <UploadOutlined />,
+      label: 'อัปโหลดรายชื่อนักศึกษา',
+      onClick: () => navigate('/admin/upload'),
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'ออกจากระบบ',
+      onClick: handleLogout,
+      className: 'logout',
+    },
+  ].filter(Boolean);
+
   return (
     <Sider width={230} className="sider">
       <div className="profile">
@@ -141,89 +254,7 @@ const Sidebar = () => {
         />
       </div>
 
-      <Menu
-        mode="inline"
-        defaultSelectedKeys={['dashboard']}
-        className="menu"
-      >
-        <Menu.Item key="dashboard" icon={<HomeOutlined />} onClick={() => navigate('/dashboard')}>
-          หน้าแรก
-        </Menu.Item>
-
-        {userData.role === 'student' && (
-          <>
-            {userData.isEligibleForInternship && (
-              <Menu.SubMenu key="internship" icon={<FileTextOutlined />} title="ระบบฝึกงาน">
-                <Menu.Item key="company-info" icon={<TeamOutlined />} onClick={() =>  navigate('/internship-terms')}>
-                  ลงทะเบียนฝึกงาน
-                </Menu.Item>
-                <Menu.Item key="internship-documents" icon={<UploadOutlined />} onClick={() => navigate('/internship-documents')}>
-                  เอกสารฝึกงาน
-                </Menu.Item>
-              </Menu.SubMenu>
-            )}
-
-            {userData.isEligibleForProject && (
-              <Menu.SubMenu key="project" icon={<ProjectOutlined />} title="โครงงานพิเศษ">
-                <Menu.Item key="project-status" icon={<TeamOutlined />} onClick={() => navigate('/project-proposal')}>
-                  ฟอร์มเสนอหัวข้อ
-                </Menu.Item>
-                <Menu.Item key="project-logbook" icon={<FileTextOutlined />} onClick={() => navigate('/project-logbook')}>
-                  บันทึก Logbook
-                </Menu.Item>
-              </Menu.SubMenu>
-            )}
-            
-            <Menu.Item key="student-profile" icon={<TeamOutlined />} onClick={navigateToProfile}>
-              ประวัตินักศึกษา
-            </Menu.Item>
-          </>
-        )}
-
-        {userData.role === 'teacher' && (
-          <>
-            <Menu.Item key="review-documents" icon={<FileTextOutlined />} onClick={() => navigate('/review-documents')}>
-              ตรวจสอบเอกสารโครงงาน
-            </Menu.Item>
-            <Menu.Item key="advise-project" icon={<ProjectOutlined />} onClick={() => navigate('/advise-project')}>
-              ให้คำแนะนำโครงงาน
-            </Menu.Item>
-            <Menu.Item key="approve-documents" icon={<CheckCircleOutlined />} onClick={() => navigate('/approve-documents')}>
-              อนุมัติเอกสาร
-            </Menu.Item>
-          </>
-        )}
-
-        {userData.role === 'admin' && (
-          <>
-            <Menu.SubMenu key="students-submenu" icon={<TeamOutlined />} title="จัดการข้อมูลนักศึกษา">
-              <Menu.Item key="student-list" onClick={() => navigate('/students')}>
-                รายชื่อนักศึกษา
-              </Menu.Item>
-            </Menu.SubMenu>
-            <Menu.SubMenu key="document-management" icon={<FileTextOutlined />} title="จัดการเอกสาร">
-              <Menu.Item key="internship-documents" onClick={() => navigate('/document-management/internship')}>
-                เอกสารฝึกงาน
-              </Menu.Item>
-              <Menu.Item key="project-documents" onClick={() => navigate('/document-management/project')}>
-                เอกสารโครงงานพิเศษ
-              </Menu.Item>
-            </Menu.SubMenu>
-            <Menu.Item key="upload-csv" icon={<UploadOutlined />} onClick={() => navigate('/admin/upload')}>
-              อัปโหลดรายชื่อนักศึกษา
-            </Menu.Item>
-          </>
-        )}
-
-        <Menu.Item 
-          key="logout" 
-          icon={<LogoutOutlined />} 
-          onClick={handleLogout}
-          className="logout"
-        >
-          ออกจากระบบ
-        </Menu.Item>
-      </Menu>
+      <Menu mode="inline" items={menuItems} defaultSelectedKeys={['dashboard']} className="menu" />
     </Sider>
   );
 };
