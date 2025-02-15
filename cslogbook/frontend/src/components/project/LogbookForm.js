@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Form, Input, Button, Space, message, Card, Modal, DatePicker, Typography, Row, Col, Segmented } from "antd";
 import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
-import "./ProjectStyles.css"; // Import the combined CSS file
+import "./ProjectStyles.css";
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -202,7 +202,7 @@ const LogbookForm = () => {
         {/* Modal สำหรับการสร้าง Logbook ใหม่ */}
         <Modal
           title="สร้าง Logbook ใหม่"
-          visible={isModalVisible}
+          open={isModalVisible}
           onCancel={handleCancel}
           footer={null}
           style={{
@@ -273,7 +273,7 @@ const LogbookForm = () => {
         {/* Modal สำหรับการแก้ไข Logbook */}
         <Modal
           title="แก้ไข Logbook"
-          visible={isEditModalVisible}
+          open={isEditModalVisible}
           onCancel={handleCancel}
           footer={null}
           style={{
@@ -344,7 +344,7 @@ const LogbookForm = () => {
         {/* Modal สำหรับการดูรายละเอียด Logbook */}
         <Modal
           title="รายละเอียด Logbook"
-          visible={isViewModalVisible}
+          open={isViewModalVisible}
           onCancel={handleCancel}
           footer={null}
           style={{

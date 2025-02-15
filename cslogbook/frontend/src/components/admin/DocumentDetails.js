@@ -5,7 +5,7 @@ const DocumentDetails = ({ document, visible, onClose }) => {
   return (
     <Modal
       title="รายละเอียดเอกสาร"
-      visible={visible}
+      open={visible}
       onCancel={onClose}
       footer={null}
     >

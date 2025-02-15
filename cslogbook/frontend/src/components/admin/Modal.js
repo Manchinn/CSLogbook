@@ -1,11 +1,11 @@
 import React from 'react';
 import { Modal, Button } from 'antd';
 
-const ModalComponent = ({ document, open, onClose }) => {
+const ModalComponent = ({ document, visible, onClose }) => {
   return (
     <Modal
       title="รายละเอียดเอกสาร"
-      open={open}
+      open={visible}
       onCancel={onClose}
       footer={null}
     >

@@ -16,7 +16,7 @@ const StudentForm = ({ visible, onCreate, onCancel, student }) => {
 
   return (
     <Modal
-      visible={visible}
+      open={visible}
       title={student ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา"}
       okText={student ? "บันทึก" : "เพิ่ม"}
       cancelText="ยกเลิก"

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const bcrypt = require('bcrypt');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware.js');
 
 // Route to get all students
@@ -77,6 +78,65 @@ router.put('/:id', authenticateToken, checkRole(['admin']), async (req, res, nex
     res.json({ success: true, message: 'แก้ไขข้อมูลนักศึกษาเรียบร้อย' });
   } catch (error) {
     console.error('Error updating student:', error);
+    next(error);
+  }
+});
+
+// Route to delete a student by ID
+router.delete('/:id', authenticateToken, checkRole(['admin']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.execute(`
+      DELETE FROM users WHERE studentID = ?
+    `, [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
+    }
+
+    await pool.execute(`
+      DELETE FROM student_data WHERE studentID = ?
+    `, [id]);
+
+    res.json({ success: true, message: 'ลบข้อมูลนักศึกษาเรียบร้อย' });
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    next(error);
+  }
+});
+
+// Route to add a new student
+router.post('/', authenticateToken, checkRole(['admin']), async (req, res, next) => {
+  try {
+    const { studentID, firstName, lastName, email, isEligibleForInternship, isEligibleForProject } = req.body;
+
+    // Generate username and password based on studentID
+    const username = `s${studentID}`;
+    const password = studentID;
+
+    // Check if all required fields are provided
+    if (!username || !password || !firstName || !lastName || !email) {
+      console.error('Missing required fields:', { username, password, firstName, lastName, email });
+      return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+    }
+
+    // Hash the password before storing it
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const [result] = await pool.execute(`
+      INSERT INTO users (studentID, username, password, firstName, lastName, email, role)
+      VALUES (?, ?, ?, ?, ?, ?, 'student')
+    `, [studentID, username, hashedPassword, firstName, lastName, email]);
+
+    await pool.execute(`
+      INSERT INTO student_data (studentID, isEligibleForInternship, isEligibleForProject)
+      VALUES (?, ?, ?)
+    `, [studentID, isEligibleForInternship, isEligibleForProject]);
+
+    res.status(201).json({ success: true, message: 'เพิ่มข้อมูลนักศึกษาเรียบร้อย' });
+  } catch (error) {
+    console.error('Error adding student:', error);
     next(error);
   }
 });

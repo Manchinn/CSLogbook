@@ -60,7 +60,7 @@ const DocumentManagement = ({type}) => {
   return (
     <div>
       <Table columns={columns} dataSource={documents} />
-      <DocumentDetails document={selectedDocument} visible={isModalVisible} onClose={handleCloseModal} />
+      <DocumentDetails document={selectedDocument} open={isModalVisible} onClose={handleCloseModal} />
     </div>
   );
 };

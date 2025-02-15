@@ -22,7 +22,6 @@ import {
      DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import StudentForm from "./StudentForm";
 import './StudentList.css';
 
 const { Title } = Typography;
@@ -68,6 +67,10 @@ const StudentList = () => {
                 console.log('Edited student:', values);
                 message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
             } else {
+                // Generate username and password based on studentID
+                values.username = `s${values.studentID}`;
+                values.password = values.studentID;
+
                 await axios.post("http://localhost:5000/api/students", values);
                 console.log('Added student:', values);
                 message.success("เพิ่มนักศึกษาเรียบร้อย!");
@@ -240,7 +243,7 @@ const StudentList = () => {
     return (
         <div className="container-studentlist">
             <Modal
-                visible={visible}
+                open={visible}
                 title={editingStudent ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา"}
                 okText={editingStudent ? "บันทึก" : "เพิ่ม"}
                 cancelText="ยกเลิก"

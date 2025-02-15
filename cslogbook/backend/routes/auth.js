@@ -6,6 +6,26 @@ const jwt = require('jsonwebtoken'); // เพิ่มบรรทัดนี�
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/jwt');
 const { sendLoginNotification } = require('../utils/mailer');
 
+// Remove the /register endpoint
+// router.post('/register', async (req, res, next) => {
+//   try {
+//     const { username, password, firstName, lastName, email } = req.body;
+
+//     // Hash the password before storing it
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     await pool.execute(`
+//       INSERT INTO users (username, password, firstName, lastName, email, role)
+//       VALUES (?, ?, ?, ?, ?, 'student')
+//     `, [username, hashedPassword, firstName, lastName, email]);
+
+//     res.status(201).json({ success: true, message: 'User registered successfully' });
+//   } catch (error) {
+//     console.error('Registration error:', error);
+//     next(error);
+//   }
+// });
+
 router.post('/login', async (req, res, next) => {
   try {
     const { username, password } = req.body;
@@ -16,10 +36,9 @@ router.post('/login', async (req, res, next) => {
       SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
       FROM users u 
       LEFT JOIN student_data sd ON u.studentID = sd.studentID 
-      WHERE u.username = ? AND u.password = ?
-    `, [username, password]); // เปลี่ยนเป็นเช็ค password ตรงๆ
+      WHERE u.username = ?
+    `, [username]);
     console.log('Found users:', users.length); // เพิ่ม log
-
 
     if (users.length === 0) {
       return res.status(401).json({
@@ -31,8 +50,8 @@ router.post('/login', async (req, res, next) => {
     const user = users[0];
     console.log('User found:', { id: user.id, username: user.username });
 
-    // เปรียบเทียบรหัสผ่านตรงๆ (เนื่องจากในฐานข้อมูลไม่ได้ hash)
-    const isPasswordValid = user.password === password;
+    // เปรียบเทียบรหัสผ่านโดยใช้ bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     console.log('Password match:', isPasswordValid);
 
     if (!isPasswordValid) {
@@ -42,18 +61,18 @@ router.post('/login', async (req, res, next) => {
       });
     }
 
-        // สร้าง JWT token
-        const token = jwt.sign(
-          {
-            userId: user.id,
-            studentID: user.studentID,
-            role: user.role,
-            firstName: user.firstName, // เพิ่มข้อมูลที่จำเป็น
-            lastName: user.lastName,
-          },
-          JWT_SECRET,
-          { expiresIn: JWT_EXPIRES_IN }
-        );
+    // สร้าง JWT token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        studentID: user.studentID,
+        role: user.role,
+        firstName: user.firstName, // เพิ่มข้อมูลที่จำเป็น
+        lastName: user.lastName,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
 
     // เพิ่ม log ก่อนส่ง response
     console.log('Token created for user:', {
