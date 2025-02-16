@@ -10,6 +10,7 @@ const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 // Import routes
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
+const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
 const { uploadCSV } = require('./routes/upload');
 
 const app = express();
@@ -64,6 +65,7 @@ app.use('/auth', authRoutes);
 
 // Protected routes
 app.use('/api/students', authenticateToken, studentRoutes);
+app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.post('/upload-csv', 

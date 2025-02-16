@@ -15,6 +15,7 @@ import DocumentDetails from "./components/admin/DocumentDetails";
 import DocumentManagement from "./components/admin/DocumentManagement";
 import ProjectProposalForm from "./components/project/ProjectProposalForm";
 import LogbookForm from "./components/project/LogbookForm";
+import StatusCheck from "./components/project/StatusCheck";
 
 const App = () => {
   return (
@@ -39,6 +40,7 @@ const App = () => {
             <Route path="/document-details/:id" element={<DocumentDetails />} />
             <Route path="/project-proposal" element={<ProjectProposalForm />} />
             <Route path="/project-logbook" element={<LogbookForm />} />
+            <Route path="/status-check" element={<StatusCheck />} />
           </Route>
 
           {/* Redirect root to dashboard */}

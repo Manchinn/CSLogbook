@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Layout, Form, Input, Button, Select, Space, Card, Typography, Upload, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { InboxOutlined } from "@ant-design/icons";
+import axios from 'axios'; // นำเข้า axios
 import "./ProjectStyles.css"; // Import the combined CSS file
 
 const { Title, Paragraph, Link } = Typography;
@@ -20,11 +21,22 @@ const ProjectProposalForm = () => {
 
   const handleSubmit = async (values) => {
     try {
-      // ส่งข้อมูลไปยัง backend หรือส่งอีเมล
-      console.log(values);
+      // ส่งข้อมูลไปยัง backend
+      await axios.post('http://localhost:5000/api/project-proposals', {
+        projectNameTH: values.projectNameTH,
+        projectNameEN: values.projectNameEN,
+        studentId1: values.studentId1,
+        studentName1: values.studentName1,
+        studentType1: values.studentType1,
+        studentId2: values.studentId2,
+        studentName2: values.studentName2,
+        studentType2: values.studentType2,
+        track: values.track,
+        projectCategory: values.projectCategory
+      });
       message.success("คำขอเสนอหัวข้อโครงงานของคุณถูกส่งเรียบร้อยแล้ว!");
       form.resetFields();
-      navigate("/next-step"); // เปลี่ยนเส้นทางไปหน้าอื่นหลังจากส่งฟอร์ม
+      navigate("/status-check"); // เปลี่ยนเส้นทางไปหน้าอื่นหลังจากส่งฟอร์ม
     } catch (error) {
       message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
     }
