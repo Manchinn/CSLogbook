@@ -10,6 +10,11 @@ const InternshipTerms = () => {
   const [accepted, setAccepted] = useState(false);
   const navigate = useNavigate();
 
+  const handleAccept = () => {
+    setAccepted(true);
+    navigate("/internship-company", { state: { accepted: true } });
+  };
+
   return (
     <div className="internship-container">
       <InternshipSteps />
@@ -27,7 +32,7 @@ const InternshipTerms = () => {
         <br />
         <Button 
           type="primary" 
-          onClick={() => navigate("/internship-company")} 
+          onClick={handleAccept} 
           className="internship-button"
         >
           ยอมรับและดำเนินการต่อ

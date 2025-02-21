@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, message } from 'antd';
-import { fetchProjectProposals, handleApproveProjectProposal, handleRejectProjectProposal, fetchDocuments, handleApprove, handleReject } from './api';
+import { 
+  fetchProjectProposals,
+  fetchDocuments, 
+  handleApprove, 
+  handleReject, 
+  fetchInternshipDocuments } from './api';
 import DocumentDetails from './DocumentDetails';
 
 const DocumentManagement = ({ type }) => {
@@ -8,27 +13,24 @@ const DocumentManagement = ({ type }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        let data;
-        if (type === 'project') {
-          data = await fetchProjectProposals();
-        } else {
-          data = await fetchDocuments(type);
-        }
-        if (Array.isArray(data)) {
-          setDocuments(data);
-        } else {
-          throw new Error('Data is not an array');
-        }
-      } catch (error) {
-        message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
+  const fetchData = async (type) => {
+    try {
+      const documentsData = await fetchDocuments(type);
+      if (Array.isArray(documentsData)) {
+        setDocuments(documentsData);
+      } else {
+        throw new Error('Data is not an array');
       }
-    };
+    } catch (error) {
+      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
+    }
+  };
 
-    fetchData();
+  useEffect(() => {
+    fetchData(type);
   }, [type]);
+
+  
 
   const handleViewDetails = (document) => {
     setSelectedDocument(document);
@@ -41,50 +43,42 @@ const DocumentManagement = ({ type }) => {
 
   const handleApproveDocument = async (documentId) => {
     try {
-      if (type === 'project') {
-        await handleApproveProjectProposal(documentId);
-      } else {
-        await handleApprove(documentId);
-      }
-      message.success('อนุมัติโครงงานเรียบร้อยแล้ว');
-      setDocuments(documents.filter(doc => doc.id !== documentId));
+      await handleApprove(documentId);
+      message.success('อนุมัติหัวข้อโครงงานพิเศษเรียบร้อยแล้ว');
+      setDocuments(documents.map(doc => doc.id === documentId ? { ...doc, status: 'approved' } : doc));
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการอนุมัติโครงงาน');
+      message.error('เกิดข้อผิดพลาดในการอนุมัติหัวข้อโครงงานพิเศษ');
     }
   };
 
   const handleRejectDocument = async (documentId) => {
     try {
-      if (type === 'project') {
-        await handleRejectProjectProposal(documentId);
-      } else {
-        await handleReject(documentId);
-      }
-      message.success('ปฏิเสธโครงงานเรียบร้อยแล้ว');
-      setDocuments(documents.filter(doc => doc.id !== documentId));
+      await handleReject(documentId);
+      message.success('ปฏิเสธหัวข้อโครงงานพิเศษเรียบร้อยแล้ว');
+      setDocuments(documents.map(doc => doc.id === documentId ? { ...doc, status: 'rejected' } : doc));
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการปฏิเสธโครงงาน');
+      message.error('เกิดข้อผิดพลาดในการปฏิเสธหัวข้อโครงงานพิเศษ');
     }
   };
 
   const columns = [
     {
       title: 'ชื่อเอกสาร',
-      dataIndex: 'project_name_th',
-      key: 'project_name_th',
+      dataIndex: 'document_name',
+      key: 'document_name',
       render: (text, record) => (
         <button onClick={() => handleViewDetails(record)}>{text}</button> 
       ),
     },
     {
       title: 'ชื่อนักศึกษา',
-      dataIndex: 'studentName1',
-      key: 'studentName1',
+      dataIndex: 'student_name',
+      key: 'student_name',
     },
     {
       title: 'วันที่อัปโหลด',
-      dataIndex: 'uploadDate',
-      key: 'uploadDate',
+      dataIndex: 'upload_date',
+      key: 'upload_date',
     },
     {
       title: 'สถานะเอกสาร',
@@ -105,7 +99,7 @@ const DocumentManagement = ({ type }) => {
 
   return (
     <div>
-      <Table columns={columns} dataSource={documents} />
+      <Table columns={columns} dataSource={documents} style={{width:'100%',maxWidth:'90%', marginLeft:'70px', padding:'20px'}}/>
       <DocumentDetails document={selectedDocument} open={isModalVisible} onClose={handleCloseModal} />
     </div>
   );

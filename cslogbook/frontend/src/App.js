@@ -12,10 +12,12 @@ import CompanyInfoForm from './components/internship/CompanyInfoForm';
 import InternshipDocuments from './components/internship/InternshipDocument';
 import InternshipReview from "./components/internship/InternshipReview";
 import DocumentDetails from "./components/admin/DocumentDetails";
-import DocumentManagement from "./components/admin/DocumentManagement";
+import InternshipDocumentManagement from "./components/admin/InternshipDocumentManagement";
+import ProjectDocumentManagement from "./components/admin/ProjectDocumentManagement";
 import ProjectProposalForm from "./components/project/ProjectProposalForm";
 import LogbookForm from "./components/project/LogbookForm";
 import StatusCheck from "./components/project/StatusCheck";
+import InternshipDocumentForm from "./components/internship/InternshipDocumentForm"; // นำเข้า InternshipDocumentForm
 
 const App = () => {
   return (
@@ -35,8 +37,8 @@ const App = () => {
             <Route path="/internship-company" element={<CompanyInfoForm />} />
             <Route path="/internship-documents" element={<InternshipDocuments />} />
             <Route path="/internship-review" element={<InternshipReview />} />
-            <Route path="/document-management/internship" element={<DocumentManagement type="internship" />} />
-            <Route path="/document-management/project" element={<DocumentManagement type="project" />} />
+            <Route path="/document-management/internship" element={<InternshipDocumentManagement />} />
+            <Route path="/document-management/project" element={<ProjectDocumentManagement />} />
             <Route path="/document-details/:id" element={<DocumentDetails />} />
             <Route path="/project-proposal" element={<ProjectProposalForm />} />
             <Route path="/project-logbook" element={<LogbookForm />} />

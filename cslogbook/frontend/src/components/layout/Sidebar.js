@@ -133,13 +133,7 @@ const Sidebar = () => {
           icon: <TeamOutlined />,
           label: 'ลงทะเบียนฝึกงาน',
           onClick: () => navigate('/internship-terms'),
-        },
-        {
-          key: 'internship-documents',
-          icon: <UploadOutlined />,
-          label: 'เอกสารฝึกงาน',
-          onClick: () => navigate('/internship-documents'),
-        },
+        }
       ],
     },
     userData.role === 'student' && userData.isEligibleForProject && {

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Form, Input, Button, Card, Typography, Space } from 'antd';
-import { useNavigate } from "react-router-dom";
+import { Form, Input, Button, Card, Typography, Space, message } from 'antd';
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from 'axios';
 import InternshipSteps from "./InternshipSteps";
 import "./InternshipStyles.css"; // Import shared CSS
 
@@ -9,11 +10,21 @@ const { Title } = Typography;
 const CompanyInfoForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { state } = useLocation();
 
   const onFinish = async (values) => {
-    localStorage.setItem("companyInfo", JSON.stringify(values));
-    console.log('Form values:', values);
-    navigate("/internship-documents");
+    if (!values.company_name || !values.contact_name || !values.contact_phone || !values.contact_email) {
+      message.error('กรุณากรอกข้อมูลสถานประกอบการให้ครบถ้วน');
+      return;
+    }
+
+    try {
+      localStorage.setItem("companyInfo", JSON.stringify(values));
+      navigate("/internship-documents", { state: { companyInfo: values } });
+    } catch (error) {
+      console.error("Error submitting company info:", error);
+      message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
+    }
   };
 
   return (
@@ -38,7 +49,7 @@ const CompanyInfoForm = () => {
             label="ชื่อผู้ควบคุมงาน"
             rules={[{ required: true, message: 'กรุณากรอกชื่อผู้ควบคุมงาน' }]}
           >
-            <Input placeholder="ชื่อชื่อผู้ควบคุมงาน" />
+            <Input placeholder="ชื่อผู้ควบคุมงาน" />
           </Form.Item>
           <Form.Item
             name="contact_phone"
@@ -65,7 +76,7 @@ const CompanyInfoForm = () => {
               <Button type="primary" size="large" onClick={() => navigate("/internship-terms")}>
                 ย้อนกลับ
               </Button>
-              <Button type="primary" size="large" onClick={() => navigate("/internship-documents")}>
+              <Button type="primary" size="large" onClick={() => navigate("/internship-documents", { state })}>
                 ต่อไป
               </Button>
             </Space>

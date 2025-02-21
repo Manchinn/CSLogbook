@@ -6,26 +6,6 @@ const jwt = require('jsonwebtoken'); // เพิ่มบรรทัดนี�
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/jwt');
 const { sendLoginNotification } = require('../utils/mailer');
 
-// Remove the /register endpoint
-// router.post('/register', async (req, res, next) => {
-//   try {
-//     const { username, password, firstName, lastName, email } = req.body;
-
-//     // Hash the password before storing it
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     await pool.execute(`
-//       INSERT INTO users (username, password, firstName, lastName, email, role)
-//       VALUES (?, ?, ?, ?, ?, 'student')
-//     `, [username, hashedPassword, firstName, lastName, email]);
-
-//     res.status(201).json({ success: true, message: 'User registered successfully' });
-//   } catch (error) {
-//     console.error('Registration error:', error);
-//     next(error);
-//   }
-// });
-
 router.post('/login', async (req, res, next) => {
   try {
     const { username, password } = req.body;

@@ -6,16 +6,41 @@ require('dotenv').config();
 const multer = require('multer');
 const path = require('path');
 const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
+const documentsRoutes = require('./routes/documents'); // นำเข้า route
+const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
 const { uploadCSV } = require('./routes/upload');
 
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
+
+// Swagger setup
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'CS Logbook API',
+      version: '1.0.0',
+      description: 'API documentation for CS Logbook',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+      },
+    ],
+  },
+  apis: ['./routes/*.js'], // Path to the API docs
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Error handling database
 app.use((err, req, res, next) => {
@@ -66,6 +91,8 @@ app.use('/auth', authRoutes);
 // Protected routes
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
+app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
+app.use('/api/internship-documents',authenticateToken, internshipDocumentsRoutes);
 
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.post('/upload-csv', 

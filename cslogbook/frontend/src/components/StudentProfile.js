@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Button, message, Spin } from 'antd';
+import { Card, Descriptions, message, Spin } from 'antd';
 import axios from 'axios';
 
 const StudentProfile = () => {

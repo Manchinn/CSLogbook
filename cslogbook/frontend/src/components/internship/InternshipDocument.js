@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Upload, Button, Card, Typography, List, Space, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -12,30 +12,40 @@ const InternshipDocuments = () => {
   const [fileList, setFileList] = useState(JSON.parse(localStorage.getItem("uploadedFiles")) || []);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { state } = useLocation();
 
-  const handleUpload = async (file) => {
+  const handleUpload = async ({ file, onSuccess, onError }) => {
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
-      setLoading(true);
       const response = await axios.post("http://localhost:5000/api/upload-internship-doc", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
-  
-      if (response.status === 200) {
-        message.success("อัปโหลดเอกสารสำเร็จ");
-        const updatedFiles = [...fileList, response.data.fileName];
-        setFileList(updatedFiles);
-        localStorage.setItem("uploadedFiles", JSON.stringify(updatedFiles));
-      }
+      onSuccess(response.data);
+      message.success(`${file.name} uploaded successfully`);
+      const updatedFiles = [...fileList, { name: response.data.fileName }];
+      setFileList(updatedFiles);
+      localStorage.setItem("uploadedFiles", JSON.stringify(updatedFiles));
     } catch (error) {
-      message.error("อัปโหลดเอกสารล้มเหลว");
-    } finally {
-      setLoading(false);
+      console.error("Error uploading file:", error);
+      onError(error);
+      if (error.response && error.response.status === 404) {
+        message.error("ไม่พบเส้นทางการอัปโหลดไฟล์");
+      } else {
+        message.error(`${file.name} upload failed`);
+      }
     }
   };
-  
+
+  const handleReview = () => {
+    navigate("/internship-review", { state: { companyInfo: state.companyInfo, uploadedFiles: fileList.map(file => ({ name: file.name })) } });
+  };
+
+  const handleChange = ({ fileList }) => setFileList(fileList);
+
   const uploadProps = {
     beforeUpload: (file) => {
       const isPDF = file.type === "application/pdf";
@@ -44,9 +54,9 @@ const InternshipDocuments = () => {
       }
       return isPDF || Upload.LIST_IGNORE;
     },
-    customRequest: async ({ file }) => {
-      handleUpload(file);
-    },
+    customRequest: handleUpload,
+    fileList: fileList,
+    onChange: handleChange,
     showUploadList: false,
   };
 
@@ -71,12 +81,12 @@ const InternshipDocuments = () => {
             header={<div>เอกสารที่อัปโหลดแล้ว</div>}
             bordered
             dataSource={fileList}
-            renderItem={file => <List.Item>{file}</List.Item>}
+            renderItem={file => <List.Item>{file.name}</List.Item>}
           />
         </Space>
         <Space style={{ display: 'flex', justifyContent: 'left' }}>
-          <Button onClick={() => navigate("/internship-company") }>ย้อนกลับ</Button>
-          <Button type="primary" onClick={() => navigate("/internship-review")}>ตรวจสอบข้อมูล</Button>
+          <Button onClick={() => navigate("/internship-company")}>ย้อนกลับ</Button>
+          <Button type="primary" onClick={handleReview}>ตรวจสอบข้อมูล</Button>
         </Space>
       </Card>
     </div>
