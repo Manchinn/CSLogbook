@@ -5,6 +5,28 @@ const bcrypt = require('bcrypt');
 const pool = require('../config/database');
 const { validateCSVRow } = require('../utils/csvParser');
 
+/**
+ * @swagger
+ * /upload-csv:
+ *   post:
+ *     summary: Upload a CSV file
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *       500:
+ *         description: Error uploading file
+ */
+
 const uploadCSV = async (req, res, next) => {
   try {
     if (!req.file) {

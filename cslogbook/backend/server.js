@@ -35,8 +35,22 @@ const swaggerOptions = {
         url: 'http://localhost:5000',
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  apis: ['./routes/*.js'], // Path to the API docs
+  apis: ['./routes/swagger/*.js','./server/*js'], // Path to the API docs
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
