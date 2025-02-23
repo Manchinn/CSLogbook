@@ -1,51 +1,66 @@
 import React from 'react';
-import { Modal, Button } from 'antd';
+import { Modal, Button, Typography, List, Card } from 'antd';
+import moment from 'moment-timezone';
+
+const { Title, Paragraph } = Typography;
 
 const DocumentDetails = ({ document, open, onClose }) => {
+  const formatDateTime = (date) => {
+    return moment(date).tz('Asia/Bangkok').format('YYYY-MM-DD');
+  };
+
+  const renderInternshipDetails = () => (
+    <Card style={{ marginBottom: '16px' }}>
+      <Paragraph><strong>ชื่อบริษัท:</strong> {document?.company_name}</Paragraph>
+      <Paragraph><strong>ชื่อผู้ควบคุมงาน:</strong> {document?.contact_name}</Paragraph>
+      <Paragraph><strong>เบอร์โทรศัพท์:</strong> {document?.contact_phone}</Paragraph>
+      <Paragraph><strong>อีเมล:</strong> {document?.contact_email}</Paragraph>
+      <Paragraph><strong>เอกสารที่อัปโหลด:</strong></Paragraph>
+      <List
+        bordered
+        dataSource={document?.uploaded_files && JSON.parse(document.uploaded_files)}
+        renderItem={(file) => <List.Item>{file.name}</List.Item>}
+      />
+    </Card>
+  );
+
+  const renderProjectDetails = () => (
+    <Card style={{ marginBottom: '16px' }}>
+      <Paragraph><strong>ชื่อโครงการ (ภาษาไทย):</strong> {document?.project_name_th}</Paragraph>
+      <Paragraph><strong>ชื่อโครงการ (ภาษาอังกฤษ):</strong> {document?.project_name_en}</Paragraph>
+      <Paragraph><strong>รหัสนักศึกษา 1:</strong> {document?.student_id1}</Paragraph>
+      <Paragraph><strong>ชื่อนักศึกษา 1:</strong> {document?.student_name1}</Paragraph>
+      <Paragraph><strong>ประเภทนักศึกษา 1:</strong> {document?.student_type1}</Paragraph>
+      <Paragraph><strong>รหัสนักศึกษา 2:</strong> {document?.student_id2}</Paragraph>
+      <Paragraph><strong>ชื่อนักศึกษา 2:</strong> {document?.student_name2}</Paragraph>
+      <Paragraph><strong>ประเภทนักศึกษา 2:</strong> {document?.student_type2}</Paragraph>
+      <Paragraph><strong>แทร็ก:</strong> {document?.track}</Paragraph>
+      <Paragraph><strong>หมวดหมู่โครงการ:</strong> {document?.project_category}</Paragraph>
+    </Card>
+  );
+
   return (
-    <Modal
-      title="รายละเอียดเอกสาร"
+    <Modal 
+      title={<div style={{ textAlign: 'center' }}>รายละเอียดเอกสาร</div>}
       open={open}
       onCancel={onClose}
       footer={null}
+      centered
+      width="80%"
+      style={{ }}
     >
-      <div>
-        <h3>{document?.document_name || document?.project_name_th}</h3>
-        <p>ชื่อนักศึกษา: {document?.student_name}</p>
-        <p>วันที่อัปโหลด: {document?.upload_date}</p>
-        <p>สถานะ: {document?.status}</p>
+      <div style={{ padding: '16px' }}>
+        <Card style={{ marginBottom: '16px' }}>
+          <Title level={4}>{document?.document_name || document?.project_name_th}</Title>
+          <Paragraph><strong>ชื่อนักศึกษา:</strong> {document?.student_name}</Paragraph>
+          <Paragraph><strong>วันที่และเวลาอัปโหลด:</strong> {formatDateTime(document?.upload_date)}</Paragraph>
+          <Paragraph><strong>สถานะ:</strong> {document?.status}</Paragraph>
+        </Card>
 
-        {document?.type === 'internship' && (
-          <>
-            <p>ชื่อบริษัท: {document?.company_name}</p>
-            <p>ชื่อผู้ควบคุมงาน: {document?.contact_name}</p>
-            <p>เบอร์โทรศัพท์: {document?.contact_phone}</p>
-            <p>อีเมล: {document?.contact_email}</p>
-            <p>เอกสารที่อัปโหลด:</p>
-            <ul>
-              {document?.uploaded_files && JSON.parse(document.uploaded_files).map((file, index) => (
-                <li key={index}>{file.name}</li>
-              ))}
-            </ul>
-          </>
-        )}
-
-        {document?.type === 'project' && (
-          <>
-            <p>ชื่อโครงการ (ภาษาไทย): {document?.project_name_th}</p>
-            <p>ชื่อโครงการ (ภาษาอังกฤษ): {document?.project_name_en}</p>
-            <p>รหัสนักศึกษา 1: {document?.student_id1}</p>
-            <p>ชื่อนักศึกษา 1: {document?.student_name1}</p>
-            <p>ประเภทนักศึกษา 1: {document?.student_type1}</p>
-            <p>รหัสนักศึกษา 2: {document?.student_id2}</p>
-            <p>ชื่อนักศึกษา 2: {document?.student_name2}</p>
-            <p>ประเภทนักศึกษา 2: {document?.student_type2}</p>
-            <p>แทร็ก: {document?.track}</p>
-            <p>หมวดหมู่โครงการ: {document?.project_category}</p>
-          </>
-        )}
+        {document?.type === 'internship' && renderInternshipDetails()}
+        {document?.type === 'project' && renderProjectDetails()}
         
-        <Button onClick={() => window.open(`/documents/${document?.fileName}`, "_blank")}>
+        <Button type="primary" onClick={() => window.open(`/documents/${document?.fileName}`, "_blank")} style={{ marginTop: '16px' }}>
           ดาวน์โหลดเอกสาร
         </Button>
       </div>

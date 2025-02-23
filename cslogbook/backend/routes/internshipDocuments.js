@@ -1,10 +1,12 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const internshipDocumentController = require('../controllers/internshipDocumentController');
+const internshipDocumentController = require('../controllers/internshipdocumentController');
 require('./swagger/internshipDocuments');
 
-router.post('/', internshipDocumentController.submitInternshipDocuments);
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/', upload.single('document'), internshipDocumentController.submitInternshipDocuments);
 
 router.get('/', internshipDocumentController.getInternshipDocuments);
 

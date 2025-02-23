@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Layout, Form, Input, Button, Upload, message, Card, Typography, Space } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import axios from 'axios';
+import moment from 'moment-timezone';
 import "./InternshipStyles.css";
 
 const { Title, Paragraph } = Typography;
@@ -30,6 +31,10 @@ const InternshipDocumentForm = () => {
     } catch (error) {
       message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
     }
+  };
+
+  const formatDate = (date) => {
+    return moment(date).tz('Asia/Bangkok').format('YYYY-MM-DD');
   };
 
   return (
