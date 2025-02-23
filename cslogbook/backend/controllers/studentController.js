@@ -1,5 +1,7 @@
 const pool = require('../config/database');
 const bcrypt = require('bcrypt');
+const { calculateStudentYear, isEligibleForInternship, isEligibleForProject } = require('../utils/studentUtils');
+
 
 exports.getAllStudents = async (req, res, next) => {
   try {
@@ -51,23 +53,35 @@ exports.getStudentById = async (req, res, next) => {
 exports.updateStudent = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, isEligibleForInternship, isEligibleForProject } = req.body;
+    const { totalCredits, majorCredits } = req.body;
 
-    const [result] = await pool.execute(`
-      UPDATE users 
-      SET firstName = ?, lastName = ?, email = ?
-      WHERE studentID = ?
-    `, [firstName, lastName, email, id]);
+    // ดึงข้อมูลปัจจุบันของนักศึกษาจากฐานข้อมูล
+    const [currentStudent] = await pool.execute(`
+    SELECT u.firstName, u.lastName, sd.totalCredits, sd.majorCredits
+    FROM users u
+    LEFT JOIN student_data sd ON u.studentID = sd.studentID
+    WHERE u.studentID = ?
+  `, [id]);
 
-    if (result.affectedRows === 0) {
+    if (currentStudent.length === 0) {
       return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
     }
 
+    const student = currentStudent[0];
+    const studentYear = calculateStudentYear(id);
+
+    const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits !== undefined ? totalCredits : student.totalCredits);
+    const eligibleForProject = isEligibleForProject(studentYear, totalCredits !== undefined ? totalCredits : student.totalCredits, majorCredits !== undefined ? majorCredits : student.majorCredits);
+
+    // ตรวจสอบและตั้งค่า default สำหรับค่าที่เป็น undefined
+    const safeTotalCredits = totalCredits !== undefined ? totalCredits : student.totalCredits;
+    const safeMajorCredits = majorCredits !== undefined ? majorCredits : student.majorCredits;
+
     await pool.execute(`
       UPDATE student_data 
-      SET isEligibleForInternship = ?, isEligibleForProject = ?
+      SET totalCredits = ?, majorCredits = ?, isEligibleForInternship = ?, isEligibleForProject = ?
       WHERE studentID = ?
-    `, [isEligibleForInternship, isEligibleForProject, id]);
+    `, [safeTotalCredits, safeMajorCredits, eligibleForInternship, eligibleForProject, id]);
 
     res.json({ success: true, message: 'แก้ไขข้อมูลนักศึกษาเรียบร้อย' });
   } catch (error) {
@@ -101,15 +115,14 @@ exports.deleteStudent = async (req, res, next) => {
 
 exports.addStudent = async (req, res, next) => {
   try {
-    const { studentID, firstName, lastName, email, isEligibleForInternship, isEligibleForProject } = req.body;
+    const { studentID, firstName, lastName, email, totalCredits, majorCredits } = req.body;
 
     const username = `s${studentID}`;
     const password = studentID;
 
-    if (!username || !password || !firstName || !lastName || !email) {
-      console.error('Missing required fields:', { username, password, firstName, lastName, email });
-      return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
-    }
+    const studentYear = calculateStudentYear(studentID);
+    const isEligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
+    const isEligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -119,11 +132,11 @@ exports.addStudent = async (req, res, next) => {
     `, [studentID, username, hashedPassword, firstName, lastName, email]);
 
     await pool.execute(`
-      INSERT INTO student_data (studentID, isEligibleForInternship, isEligibleForProject)
-      VALUES (?, ?, ?)
-    `, [studentID, isEligibleForInternship, isEligibleForProject]);
+      INSERT INTO student_data (studentID, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject)
+      VALUES (?, ?, ?, ?, ?)
+    `, [studentID, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject]);
 
-    res.status(201).json({ success: true, message: 'เพิ่มข้อมูลนักศึกษาเรียบร้อย' });
+    res.json({ success: true, message: 'เพิ่มนักศึกษาเรียบร้อย' });
   } catch (error) {
     console.error('Error adding student:', error);
     next(error);

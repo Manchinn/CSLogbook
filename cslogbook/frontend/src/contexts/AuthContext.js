@@ -93,8 +93,8 @@ export const AuthProvider = ({ children }) => {
         lastName: userData.lastName,
         email: userData.email,
         role: userData.role,
-        isEligibleForInternship: userData.isEligibleForInternship,
-        isEligibleForProject: userData.isEligibleForProject
+        isEligibleForInternship: (parseInt(userData.studentID.substring(0, 2)) <= 63) && (userData.totalCredits >= 81),
+        isEligibleForProject: (parseInt(userData.studentID.substring(0, 2)) <= 62) && (userData.totalCredits >= 95) && (userData.majorCredits >= 47)
       };
 
       // บันทึกลง localStorage

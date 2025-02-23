@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, message, Spin } from 'antd';
+import { Card, Descriptions, message, Spin, Form, Input, Button } from 'antd';
 import axios from 'axios';
 
 const StudentProfile = () => {
@@ -8,6 +8,8 @@ const StudentProfile = () => {
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -26,6 +28,7 @@ const StudentProfile = () => {
         });
 
         setStudent(response.data);
+        form.setFieldsValue(response.data);
       } catch (error) {
         console.error('Error fetching student data:', error);
         message.error('เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา');
@@ -35,7 +38,26 @@ const StudentProfile = () => {
     };
 
     fetchStudent();
-  }, [id, navigate]);
+  }, [id, navigate, form]);
+
+  const handleEdit = async (values) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/students/${id}`, {
+        totalCredits: values.totalCredits !== undefined ? values.totalCredits : null,
+        majorCredits: values.majorCredits !== undefined ? values.majorCredits : null
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      message.success('แก้ไขข้อมูลนักศึกษาเรียบร้อย');
+      setStudent({ ...student, ...values });
+    } catch (error) {
+      console.error('Error updating student data:', error);
+      message.error('เกิดข้อผิดพลาดในการแก้ไขข้อมูลนักศึกษา');
+    }
+  };
 
   if (loading) {
     return (
@@ -64,7 +86,31 @@ const StudentProfile = () => {
             {student.isEligibleForProject ? 'มีสิทธิ์' : 'ยังไม่มีสิทธิ์'}
           </Descriptions.Item>
         </Descriptions>
+        <Button type="primary" onClick={() => setEditing(true)} style={{ marginTop: '16px' }}>
+          แก้ไขข้อมูล
+        </Button>
       </Card>
+
+      {editing && (
+        <Card title="แก้ไขข้อมูลนักศึกษา" style={{ borderRadius: '8px', marginTop: '24px' }}>
+          <Form form={form} onFinish={handleEdit} layout="vertical">
+            <Form.Item name="totalCredits" label="หน่วยกิตรวมสะสม" rules={[{ required: true, message: 'กรุณากรอกหน่วยกิตรวมสะสม' }]}>
+              <Input type="number" />
+            </Form.Item>
+            <Form.Item name="majorCredits" label="หน่วยกิตภาควิชา" rules={[{ required: true, message: 'กรุณากรอกหน่วยกิตภาควิชา' }]}>
+              <Input type="number" />
+            </Form.Item>
+            <Form.Item>
+              <Button type="primary" htmlType="submit">
+                บันทึก
+              </Button>
+              <Button type="default" onClick={() => setEditing(false)} style={{ marginLeft: '8px' }}>
+                ยกเลิก
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      )}
     </div>
   );
 };

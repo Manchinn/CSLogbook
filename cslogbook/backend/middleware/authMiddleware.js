@@ -42,6 +42,18 @@ const authMiddleware = {
       next();
     };
   },
+  
+  checkSelfOrAdmin: (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบ' });
+    }
+
+    if (req.user.role === 'admin' || req.user.studentID === req.params.id) {
+      return next();
+    }
+
+    return res.status(403).json({ error: 'คุณไม่มีสิทธิ์แก้ไขข้อมูลนี้' });
+  },
 
   // ตรวจสอบสิทธิ์การฝึกงานและโปรเจค
   checkEligibility: (type) => {
@@ -53,7 +65,7 @@ const authMiddleware = {
       try {
         // ดึงข้อมูลสิทธิ์จากฐานข้อมูล
         const [students] = await pool.execute(`
-          SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject
+          SELECT u.*, sd.totalCredits, sd.majorCredits
           FROM users u
           LEFT JOIN student_data sd ON u.studentID = sd.studentID
           WHERE u.studentID = ?
@@ -64,12 +76,15 @@ const authMiddleware = {
         }
 
         const student = students[0];
+        const studentYear = parseInt(student.studentID.substring(0, 2));
+        const isEligibleForInternship = (studentYear <= 63) && (student.totalCredits >= 81);
+        const isEligibleForProject = (studentYear <= 62) && (student.totalCredits >= 95) && (student.majorCredits >= 47);
 
-        if (type === 'internship' && !student.isEligibleForInternship) {
+        if (type === 'internship' && !isEligibleForInternship) {
           return res.status(403).json({ error: 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน' });
         }
 
-        if (type === 'project' && !student.isEligibleForProject) {
+        if (type === 'project' && !isEligibleForProject) {
           return res.status(403).json({ error: 'คุณยังไม่มีสิทธิ์เข้าถึงระบบโปรเจค' });
         }
 

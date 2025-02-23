@@ -1,28 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Table, 
-    Input, 
-    Space, 
-    Typography, 
-    Button, 
-    Tag, 
-    Row, 
-    Col, 
-    message, 
-    Popconfirm, 
-    Modal, 
-    Form, 
-    Select} from 'antd';
-import { 
-     SearchOutlined,
-     ReloadOutlined, 
-     UserOutlined, 
-     PlusOutlined, 
-     EditOutlined, 
-     DeleteOutlined } from '@ant-design/icons';
+    Table,
+    Input,
+    Space,
+    Typography,
+    Button,
+    Tag,
+    Row,
+    Col,
+    message,
+    Popconfirm,
+    Modal,
+    Form,
+    Select
+} from 'antd';
+import {
+    SearchOutlined,
+    ReloadOutlined,
+    UserOutlined,
+    PlusOutlined,
+    EditOutlined,
+    DeleteOutlined
+} from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './StudentList.css';
+import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } from './utils/studentUtils';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -35,7 +38,7 @@ const StudentList = () => {
     const [visible, setVisible] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [form] = Form.useForm();
-    
+
     const navigate = useNavigate();
 
     const fetchStudents = useCallback(async () => {
@@ -55,15 +58,28 @@ const StudentList = () => {
                 message.error('กรุณาเข้าสู่ระบบใหม่');
                 navigate('/login');
             }
-        } finally { 
+        } finally {
             setLoading(false);
         }
     }, [navigate]);
 
     const handleAddOrEdit = async (values) => {
         try {
+            const studentYear = calculateStudentYear(values.studentID);
+
+            // ตรวจสอบสิทธิ์การฝึกงาน
+            const eligibleForInternship = isEligibleForInternship(studentYear, values.totalCredits);
+
+            // ตรวจสอบสิทธิ์การทำโปรเจค
+            const eligibleForProject = isEligibleForProject(studentYear, values.totalCredits, values.majorCredits);
+
             if (editingStudent) {
-                await axios.put(`http://localhost:5000/api/students/${editingStudent.studentID}`, values);
+                await axios.put(`http://localhost:5000/api/students/${editingStudent.studentID}`, {
+                    totalCredits: values.totalCredits,
+                    majorCredits: values.majorCredits,
+                    isEligibleForInternship: eligibleForInternship,
+                    isEligibleForProject: eligibleForProject
+                });
                 console.log('Edited student:', values);
                 message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
             } else {
@@ -71,7 +87,11 @@ const StudentList = () => {
                 values.username = `s${values.studentID}`;
                 values.password = values.studentID;
 
-                await axios.post("http://localhost:5000/api/students", values);
+                await axios.post("http://localhost:5000/api/students", {
+                    ...values,
+                    isEligibleForInternship: eligibleForInternship,
+                    isEligibleForProject: eligibleForProject
+                });
                 console.log('Added student:', values);
                 message.success("เพิ่มนักศึกษาเรียบร้อย!");
             }
@@ -87,7 +107,7 @@ const StudentList = () => {
             }
         }
     };
-    
+
     const handleDelete = async (studentID) => {
         try {
             await axios.delete(`http://localhost:5000/api/students/${studentID}`);
@@ -107,7 +127,7 @@ const StudentList = () => {
             ...student,
             isEligibleForInternship: student.isEligibleForInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์',
             isEligibleForProject: student.isEligibleForProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'
-        } : { studentID: '', firstName: '', lastName: '', email: '', internshipStatus: '', isEligibleForInternship: 'ไม่มีสิทธิ์', isEligibleForProject: 'ไม่มีสิทธิ์' });
+        } : { studentID: '', firstName: '', lastName: '', email: '', internshipStatus: '', isEligibleForInternship: 'ไม่มีสิทธิ์', isEligibleForProject: 'ไม่มีสิทธิ์', totalCredits: '', majorCredits: '' });
     };
 
     const updateSummary = useCallback((data) => {
@@ -190,13 +210,13 @@ const StudentList = () => {
             onCell: () => ({ style: tableCellStyle }),
             sorter: (a, b) => Number(a.isEligibleForInternship) - Number(b.isEligibleForInternship),
             sortOrder: sortedInfo.columnKey === 'internship' && sortedInfo.order,
-            render: isEligible => (
-                <Tag color={isEligible ? 'success' : 'error'} style={{ 
-                    minWidth: '80px', 
+            render: isEligibleForInternship => (
+                <Tag color={isEligibleForInternship ? 'success' : 'error'} style={{
+                    minWidth: '80px',
                     textAlign: 'center',
                     padding: '4px 8px'
                 }}>
-                    {isEligible ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
+                    {isEligibleForInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                 </Tag>
             )
         },
@@ -210,13 +230,13 @@ const StudentList = () => {
             onCell: () => ({ style: tableCellStyle }),
             sorter: (a, b) => Number(a.isEligibleForProject) - Number(b.isEligibleForProject),
             sortOrder: sortedInfo.columnKey === 'project' && sortedInfo.order,
-            render: isEligible => (
-                <Tag color={isEligible ? 'success' : 'error'} style={{ 
-                    minWidth: '80px', 
+            render: isEligibleForProject => (
+                <Tag color={isEligibleForProject ? 'success' : 'error'} style={{
+                    minWidth: '80px',
                     textAlign: 'center',
                     padding: '4px 8px'
                 }}>
-                    {isEligible ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
+                    {isEligibleForProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                 </Tag>
             )
         },
@@ -251,8 +271,6 @@ const StudentList = () => {
                 onOk={() => {
                     form.validateFields()
                         .then(values => {
-                            values.isEligibleForInternship = values.isEligibleForInternship === 'มีสิทธิ์';
-                            values.isEligibleForProject = values.isEligibleForProject === 'มีสิทธิ์';
                             handleAddOrEdit(values);
                             form.resetFields();
                         })
@@ -272,17 +290,11 @@ const StudentList = () => {
                     <Form.Item name="email" label="อีเมล" rules={[{ required: true, type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="isEligibleForInternship" label="สถานะฝึกงาน" rules={[{ required: true, message: "กรุณาเลือกสถานะฝึกงาน!" }]}>
-                        <Select>
-                            <Option value="มีสิทธิ์">มีสิทธิ์</Option>
-                            <Option value="ไม่มีสิทธิ์">ไม่มีสิทธิ์</Option>
-                        </Select>
+                    <Form.Item name="totalCredits" label="หน่วยกิตรวม" rules={[{ required: true, message: "กรุณากรอกหน่วยกิตรวม!" }]}>
+                        <Input type="number" />
                     </Form.Item>
-                    <Form.Item name="isEligibleForProject" label="สถานะโปรเจค" rules={[{ required: true, message: "กรุณาเลือกสถานะโปรเจค!" }]}>
-                        <Select>
-                            <Option value="มีสิทธิ์">มีสิทธิ์</Option>
-                            <Option value="ไม่มีสิทธิ์">ไม่มีสิทธิ์</Option>
-                        </Select>
+                    <Form.Item name="majorCredits" label="หน่วยกิตภาควิชา" rules={[{ required: true, message: "กรุณากรอกหน่วยกิตภาควิชา!" }]}>
+                        <Input type="number" />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -297,15 +309,15 @@ const StudentList = () => {
                             </Space>
                         </Col>
                         <Col>
-                            <Space style={{ 
+                            <Space style={{
                                 fontSize: '14px',
-                                color: '#52c41a' 
+                                color: '#52c41a'
                             }}>
                                 <span>มีสิทธิ์ฝึกงาน {currentSummary.internshipEligible} คน</span>
                             </Space>
                         </Col>
                         <Col>
-                            <Space style={{ 
+                            <Space style={{
                                 fontSize: '14px',
                                 color: '#1890ff'
                             }}>
@@ -321,7 +333,7 @@ const StudentList = () => {
                             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
                             value={searchText}
                             onChange={e => setSearchText(e.target.value)}
-                            style={{ 
+                            style={{
                                 width: 300,
                                 borderRadius: '6px'
                             }}
@@ -338,10 +350,10 @@ const StudentList = () => {
                         >
                             รีเฟรชข้อมูล
                         </Button>
-                        <Button 
-                            type="primary" 
-                            icon={<PlusOutlined />} 
-                            onClick={() => 
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={() =>
                                 openModal(null)
                             }
                         >
@@ -358,7 +370,7 @@ const StudentList = () => {
                 loading={loading}
                 size="middle"
                 onChange={handleTableChange}
-                scroll={{ 
+                scroll={{
                     x: 1000,
                     y: 'calc(100vh - 350px)'
                 }}
