@@ -1,31 +1,12 @@
 const fs = require('fs');
 const csv = require('csv-parser');
+const multer = require('multer');
 const iconv = require('iconv-lite');
 const bcrypt = require('bcrypt');
 const pool = require('../config/database');
 const { validateCSVRow } = require('../utils/csvParser');
 
-/**
- * @swagger
- * /upload-csv:
- *   post:
- *     summary: Upload a CSV file
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: File uploaded successfully
- *       500:
- *         description: Error uploading file
- */
+const upload = multer({ dest: 'uploads/' });
 
 const uploadCSV = async (req, res, next) => {
   try {
@@ -119,16 +100,6 @@ const uploadCSV = async (req, res, next) => {
                 status: 'Added'
               });
             }
-
-          } else {
-            results.push({
-              studentID: row['Student ID'] || '-',
-              firstName: row['Name'] || '-',
-              lastName: row['Surname'] || '-',
-              role: row['Role'] || '-',
-              status: 'Invalid',
-              errors: validation.errors
-            });
           }
         } catch (error) {
           console.error('Row processing error:', error);

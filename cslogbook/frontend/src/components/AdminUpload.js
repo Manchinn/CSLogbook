@@ -37,32 +37,6 @@ const AdminUpload = () => {
       sorter: (a, b) => (a.lastName || '').localeCompare(b.lastName || '')
     },
     {
-      title: 'สิทธิ์ฝึกงาน',
-      dataIndex: 'isEligibleForInternship',
-      key: 'internship',
-      width: 120,
-      align: 'center',
-      sorter: (a, b) => Number(a.isEligibleForInternship) - Number(b.isEligibleForInternship),
-      render: (value) => (
-        <Text style={{ color: value ? '#52c41a' : '#ff4d4f' }}>
-          {value ? '✅' : '❌'}
-        </Text>
-      )
-    },
-    {
-      title: 'สิทธิ์โปรเจค',
-      dataIndex: 'isEligibleForProject',
-      key: 'project',
-      width: 120,
-      align: 'center',
-      sorter: (a, b) => Number(a.isEligibleForProject) - Number(b.isEligibleForProject),
-      render: (value) => (
-        <Text style={{ color: value ? '#52c41a' : '#ff4d4f' }}>
-          {value ? '✅' : '❌'}
-        </Text>
-      )
-    },
-    {
       title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',

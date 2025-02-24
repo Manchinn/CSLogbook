@@ -73,12 +73,19 @@ const StudentList = () => {
             // ตรวจสอบสิทธิ์การทำโปรเจค
             const eligibleForProject = isEligibleForProject(studentYear, values.totalCredits, values.majorCredits);
 
+            if (eligibleForInternship.message) {
+                message.warning(eligibleForInternship.message);
+            }
+            if (eligibleForProject.message) {
+                message.warning(eligibleForProject.message);
+            }
+
             if (editingStudent) {
                 await axios.put(`http://localhost:5000/api/students/${editingStudent.studentID}`, {
                     totalCredits: values.totalCredits,
                     majorCredits: values.majorCredits,
-                    isEligibleForInternship: eligibleForInternship,
-                    isEligibleForProject: eligibleForProject
+                    isEligibleForInternship: eligibleForInternship.eligible,
+                    isEligibleForProject: eligibleForProject.eligible
                 });
                 console.log('Edited student:', values);
                 message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
@@ -89,8 +96,8 @@ const StudentList = () => {
 
                 await axios.post("http://localhost:5000/api/students", {
                     ...values,
-                    isEligibleForInternship: eligibleForInternship,
-                    isEligibleForProject: eligibleForProject
+                    isEligibleForInternship: eligibleForInternship.eligible,
+                    isEligibleForProject: eligibleForProject.eligible
                 });
                 console.log('Added student:', values);
                 message.success("เพิ่มนักศึกษาเรียบร้อย!");

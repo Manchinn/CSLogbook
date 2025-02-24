@@ -81,7 +81,7 @@ exports.updateStudent = async (req, res, next) => {
       UPDATE student_data 
       SET totalCredits = ?, majorCredits = ?, isEligibleForInternship = ?, isEligibleForProject = ?
       WHERE studentID = ?
-    `, [safeTotalCredits, safeMajorCredits, eligibleForInternship, eligibleForProject, id]);
+    `, [safeTotalCredits, safeMajorCredits, eligibleForInternship.eligible, eligibleForProject.eligible, id]);
 
     res.json({ success: true, message: 'แก้ไขข้อมูลนักศึกษาเรียบร้อย' });
   } catch (error) {
@@ -121,8 +121,8 @@ exports.addStudent = async (req, res, next) => {
     const password = studentID;
 
     const studentYear = calculateStudentYear(studentID);
-    const isEligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
-    const isEligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);
+    const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
+    const eligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -134,7 +134,7 @@ exports.addStudent = async (req, res, next) => {
     await pool.execute(`
       INSERT INTO student_data (studentID, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject)
       VALUES (?, ?, ?, ?, ?)
-    `, [studentID, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject]);
+    `, [studentID, totalCredits, majorCredits, eligibleForInternship.eligible, eligibleForProject.eligible]);
 
     res.json({ success: true, message: 'เพิ่มนักศึกษาเรียบร้อย' });
   } catch (error) {

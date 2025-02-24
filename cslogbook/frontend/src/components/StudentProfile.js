@@ -43,7 +43,7 @@ const StudentProfile = () => {
   const handleEdit = async (values) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/students/${id}`, {
+      const response = await axios.put(`http://localhost:5000/api/students/${id}`, {
         totalCredits: values.totalCredits !== undefined ? values.totalCredits : null,
         majorCredits: values.majorCredits !== undefined ? values.majorCredits : null
       }, {
@@ -51,8 +51,12 @@ const StudentProfile = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      message.success('แก้ไขข้อมูลนักศึกษาเรียบร้อย');
-      setStudent({ ...student, ...values });
+      if (response.data.message) {
+        message.warning(response.data.message);
+      } else {
+        message.success('แก้ไขข้อมูลนักศึกษาเรียบร้อย');
+        setStudent({ ...student, ...values });
+      }
     } catch (error) {
       console.error('Error updating student data:', error);
       message.error('เกิดข้อผิดพลาดในการแก้ไขข้อมูลนักศึกษา');
