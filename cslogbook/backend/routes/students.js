@@ -1,39 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/database');
+const studentController = require('../controllers/studentController');
+const { authenticateToken, checkRole,checkSelfOrAdmin } = require('../middleware/authMiddleware.js');
 
-// Get all students
-router.get('/', async (req, res, next) => {
-  try {
-    const [students] = await pool.execute(`
-      SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
-      FROM users u 
-      LEFT JOIN student_data sd ON u.studentID = sd.studentID 
-      WHERE u.role = 'student'
-    `);
-    res.json(students);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/', authenticateToken, checkRole(['admin', 'teacher']), studentController.getAllStudents);
 
-// Get student by ID
-router.get('/:id', async (req, res, next) => {
-  try {
-    const [student] = await pool.execute(`
-      SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
-      FROM users u 
-      LEFT JOIN student_data sd ON u.studentID = sd.studentID 
-      WHERE u.studentID = ?
-    `, [req.params.id]);
+router.get('/:id', authenticateToken, checkSelfOrAdmin, studentController.getStudentById);
+router.put('/:id', authenticateToken, checkSelfOrAdmin, studentController.updateStudent);
 
-    if (!student[0]) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-    res.json(student[0]);
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete('/:id', authenticateToken, checkRole(['admin']), studentController.deleteStudent);
+
+router.post('/', authenticateToken, checkRole(['admin']), studentController.addStudent);
 
 module.exports = router;

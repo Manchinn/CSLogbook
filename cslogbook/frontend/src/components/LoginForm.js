@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Typography, message, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
 const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [form] = Form.useForm();
+
+  // ดึง path ที่ user พยายามจะเข้าถึง
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const handleSubmit = async (values) => {
     setLoading(true);
@@ -23,28 +28,29 @@ const LoginForm = () => {
       });
   
       const data = await response.json();
-      console.log('Response data:', data); // Debug log
-  
-      // ตรวจสอบ response.ok แทน data.success
-      if (response.ok) {
-        // Store user data
-        localStorage.setItem('studentID', data.studentID);
-        localStorage.setItem('firstName', data.firstName);
-        localStorage.setItem('lastName', data.lastName);
-        localStorage.setItem('email', data.email);
-        localStorage.setItem('role', data.role);
-        if (data.isEligibleForInternship !== undefined) {
-          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
+      
+      if (data.success) {
+        // เรียกใช้ login function จาก AuthContext
+        const loginSuccess = await login({
+          token: data.token,
+          refreshToken: data.refreshToken,
+          userData: {
+            studentID: data.studentID,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            role: data.role,
+            isEligibleForInternship: data.isEligibleForInternship,
+            isEligibleForProject: data.isEligibleForProject
+          }
+        });
+
+        if (loginSuccess) {
+          message.success('เข้าสู่ระบบสำเร็จ');
+          navigate(from, { replace: true });
         }
-        if (data.isEligibleForProject !== undefined) {
-          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
-        }
-  
-        message.success('เข้าสู่ระบบสำเร็จ');
-        navigate('/dashboard');
       } else {
-        // แสดง error message จาก server
-        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
+        throw new Error(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       }
     } catch (error) {
       console.error('Login error:', error);

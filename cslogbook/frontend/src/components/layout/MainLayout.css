@@ -1,0 +1,18 @@
+.layout {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.content {
+  padding: 24px;
+  background-color: #fff;
+  margin: 0;
+  min-height: 280px;
+}
+
+.drawer-button {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+}

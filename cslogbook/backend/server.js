@@ -4,18 +4,59 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 require('dotenv').config();
 const multer = require('multer');
+const path = require('path');
+const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
+const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
+const documentsRoutes = require('./routes/documents'); // นำเข้า route
+const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
 const { uploadCSV } = require('./routes/upload');
 
 const app = express();
 const server = http.createServer(app);
-
 const pool = require('./config/database');
 
-// เพิ่มการจัดการ error database
+// Swagger setup
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'CS Logbook API',
+      version: '1.0.0',
+      description: 'API documentation for CS Logbook',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./routes/swagger/*.js','./server/*js'], // Path to the API docs
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Error handling database
 app.use((err, req, res, next) => {
   if (err.code === 'ECONNREFUSED') {
     return res.status(500).json({ error: 'Database connection failed' });
@@ -26,7 +67,7 @@ app.use((err, req, res, next) => {
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",  // เปลี่ยนเป็นใช้จาก env
     methods: ["GET", "POST"]
   }
 });
@@ -37,8 +78,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 app.use(cors({
-  origin: "http://localhost:3000",
-  methods: ['GET', 'POST'],
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // เพิ่ม methods ที่จำเป็น
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -58,12 +99,33 @@ const upload = multer({
   }
 });
 
-// Routes
-app.use('/auth', authRoutes); // Login จะอยู่ที่ /auth/login
-app.use('/api/students', studentRoutes);
+// Public routes
+app.use('/auth', authRoutes);
 
-// CSV upload route
-app.post('/upload-csv', upload.single('file'), uploadCSV);
+// Protected routes
+app.use('/api/students', authenticateToken, studentRoutes);
+app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
+app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
+app.use('/api/internship-documents',authenticateToken, internshipDocumentsRoutes);
+
+// Protected upload route - เฉพาะ admin เท่านั้น
+app.post('/upload-csv', 
+  authenticateToken, 
+  checkRole(['admin']), 
+  upload.single('file'), 
+  uploadCSV
+);
+
+// Route to download CSV template
+app.get('/template/download-template', (req, res) => {
+  const filePath = path.join(__dirname, 'templates/student_template.csv');
+  res.download(filePath, 'student_template.csv', (err) => {
+    if (err) {
+      console.error('Error downloading template:', err);
+      res.status(500).send('Error downloading template');
+    }
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

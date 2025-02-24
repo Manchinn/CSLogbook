@@ -1,0 +1,56 @@
+.header {
+  margin-top: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: auto;
+  min-height: 72px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 11;
+  border-radius: 16px;
+}
+
+.header-space {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.header-title {
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.header-text {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.5;
+  margin: 0;
+  display: block;
+}
+
+.header-avatar {
+  font-weight: bold;
+}
+
+.header-badge {
+  font-size: 12px;
+  padding: 0 8px;
+  border-radius: 6px;
+}
+
+.button-style {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
