@@ -46,11 +46,11 @@ const uploadCSV = async (req, res, next) => {
                 SET firstName = ?, lastName = ?, email = ?, role = ?
                 WHERE studentID = ?
               `, [
-                normalizedData.firstName,
-                normalizedData.lastName,
-                normalizedData.email,
-                normalizedData.role,
-                normalizedData.studentID
+                normalizedData.firstName || null,
+                normalizedData.lastName || null,
+                normalizedData.email || null,
+                normalizedData.role || null,
+                normalizedData.studentID || null
               ]);
 
               // Update student_data
@@ -59,9 +59,9 @@ const uploadCSV = async (req, res, next) => {
                 SET isEligibleForInternship = ?, isEligibleForProject = ?
                 WHERE studentID = ?
               `, [
-                normalizedData.isEligibleForInternship,
-                normalizedData.isEligibleForProject,
-                normalizedData.studentID
+                normalizedData.isEligibleForInternship || null,
+                normalizedData.isEligibleForProject || null,
+                normalizedData.studentID || null
               ]);
 
               results.push({
@@ -74,13 +74,13 @@ const uploadCSV = async (req, res, next) => {
                 INSERT INTO users (studentID, username, password, firstName, lastName, email, role)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
               `, [
-                normalizedData.studentID,
-                `s${normalizedData.studentID}`,
+                normalizedData.studentID || null,
+                `s${normalizedData.studentID}` || null,
                 await bcrypt.hash(normalizedData.studentID, 10), // Hash the password
-                normalizedData.firstName,
-                normalizedData.lastName,
-                normalizedData.email,
-                normalizedData.role
+                normalizedData.firstName || null,
+                normalizedData.lastName || null,
+                normalizedData.email || null,
+                normalizedData.role || null
               ]);
 
               // Insert student_data if role is student
@@ -89,9 +89,9 @@ const uploadCSV = async (req, res, next) => {
                   INSERT INTO student_data (studentID, isEligibleForInternship, isEligibleForProject)
                   VALUES (?, ?, ?)
                 `, [
-                  normalizedData.studentID,
-                  normalizedData.isEligibleForInternship,
-                  normalizedData.isEligibleForProject
+                  normalizedData.studentID || null,
+                  normalizedData.isEligibleForInternship || null,
+                  normalizedData.isEligibleForProject || null
                 ]);
               }
 

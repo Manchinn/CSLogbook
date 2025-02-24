@@ -8,12 +8,12 @@ const calculateStudentYear = (studentID) => {
   const currentYear = currentDate.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
   const currentMonth = currentDate.getMonth() + 1; // เดือนปัจจุบัน (1-12)
   const studentYear = parseInt(studentID.substring(0, 2)) + 2500; // สมมติว่ารหัสนักศึกษาเป็นปี พ.ศ.
-  let studentClassYear = currentYear - studentYear + 1;
+  let studentClassYear = currentYear - studentYear + 1; //2568 - 2564 = 4 + 1 = 5
 
   // หากเดือนปัจจุบันมากกว่าเดือนที่ 4 ให้เพิ่มชั้นปีขึ้น 1
   if (currentMonth > 4) {
     studentClassYear += 1;
-  }
+  } // 5 - 1 = 4 
 
   return studentClassYear;
 };
