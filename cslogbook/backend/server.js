@@ -15,7 +15,7 @@ const studentRoutes = require('./routes/students');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
 const documentsRoutes = require('./routes/documents'); // นำเข้า route
 const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
-const { uploadCSV } = require('./routes/upload');
+const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
 
 const app = express();
 const server = http.createServer(app);
@@ -109,12 +109,7 @@ app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ rout
 app.use('/api/internship-documents',authenticateToken, internshipDocumentsRoutes);
 
 // Protected upload route - เฉพาะ admin เท่านั้น
-app.post('/upload-csv', 
-  authenticateToken, 
-  checkRole(['admin']), 
-  upload.single('file'), 
-  uploadCSV
-);
+app.use('/api', uploadRoutes); // ใช้ route
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

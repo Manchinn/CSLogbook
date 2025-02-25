@@ -2,18 +2,19 @@ const express = require('express');
 const multer = require('multer');
 const router = express.Router();
 const internshipDocumentController = require('../controllers/internshipdocumentController');
+const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 require('./swagger/internshipDocuments');
 
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/', upload.single('document'), internshipDocumentController.submitInternshipDocuments);
+router.post('/', authenticateToken, upload.single('document'), internshipDocumentController.submitInternshipDocuments);
 
-router.get('/', internshipDocumentController.getInternshipDocuments);
+router.get('/', authenticateToken, checkRole(['admin']), internshipDocumentController.getInternshipDocuments);
 
-router.get('/:id', internshipDocumentController.getInternshipDocumentById);
+router.get('/:id', authenticateToken, checkRole(['admin']), internshipDocumentController.getInternshipDocumentById);
 
-router.post('/:id/approve', internshipDocumentController.approveInternshipDocument);
+router.post('/:id/approve', authenticateToken, checkRole(['admin']), internshipDocumentController.approveInternshipDocument);
 
-router.post('/:id/reject', internshipDocumentController.rejectInternshipDocument);
+router.post('/:id/reject', authenticateToken, checkRole(['admin']), internshipDocumentController.rejectInternshipDocument);
 
 module.exports = router;
