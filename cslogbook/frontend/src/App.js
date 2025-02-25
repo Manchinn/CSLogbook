@@ -18,7 +18,7 @@ import ProjectProposalForm from "./components/project/ProjectProposalForm";
 import LogbookForm from "./components/project/LogbookForm";
 import StatusCheck from "./components/project/StatusCheck";
 import InternshipDocumentForm from "./components/internship/InternshipDocumentForm"; // นำเข้า InternshipDocumentForm
-
+import InternshipStatusCheck from "./components/internship/InternshipStatusCheck"; // นำเข้า internshipStatusCheck
 const App = () => {
   return (
     <AuthProvider>
@@ -43,6 +43,7 @@ const App = () => {
             <Route path="/project-proposal" element={<ProjectProposalForm />} />
             <Route path="/project-logbook" element={<LogbookForm />} />
             <Route path="/status-check" element={<StatusCheck />} />
+            <Route path="/internship-status-check" element={<InternshipStatusCheck />} />
           </Route>
 
           {/* Redirect root to dashboard */}
