@@ -1,3 +1,5 @@
+const pool = require('../config/database');
+
 /**
  * คำนวณชั้นปีของนักศึกษา
  * @param {string} studentID - รหัสนักศึกษา
@@ -59,7 +61,45 @@ const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
   return { eligible: true, message: 'ผ่านเงื่อนไขการทำโปรเจค' };
 };
 
+const updateStudentData = async () => {
+  try {
+    // ดึงข้อมูลนักศึกษาจากตาราง users ที่ยังไม่มีในตาราง student_data
+    const [students] = await pool.execute(`
+      SELECT u.studentID, u.firstName, u.lastName, u.email
+      FROM users u
+      LEFT JOIN student_data sd ON u.studentID = sd.studentID
+      WHERE sd.studentID IS NULL AND u.role = 'student'
+    `);
+
+    if (students.length === 0) {
+      console.log('No new students to update.');
+      return;
+    }
+
+    for (const student of students) {
+      const studentYear = calculateStudentYear(student.studentID);
+      const totalCredits = 0; // ตั้งค่าเริ่มต้นเป็น 0 หรือดึงจากแหล่งข้อมูลอื่น
+      const majorCredits = 0; // ตั้งค่าเริ่มต้นเป็น 0 หรือดึงจากแหล่งข้อมูลอื่น
+
+      const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
+      const eligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);
+
+      await pool.execute(`
+        INSERT INTO student_data (studentID, firstName, lastName, email, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [student.studentID, student.firstName, student.lastName, student.email, totalCredits, majorCredits, eligibleForInternship.eligible, eligibleForProject.eligible]);
+
+      console.log(`Updated student data for ${student.studentID}`);
+    }
+
+    console.log('Student data update completed.');
+  } catch (error) {
+    console.error('Error updating student data:', error.message);
+  }
+};
+
 module.exports = {
+  updateStudentData,
   calculateStudentYear,
   isEligibleForInternship,
   isEligibleForProject

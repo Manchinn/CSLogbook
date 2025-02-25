@@ -132,9 +132,9 @@ exports.addStudent = async (req, res, next) => {
     `, [studentID, username, hashedPassword, firstName, lastName, email]);
 
     await pool.execute(`
-      INSERT INTO student_data (studentID, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject)
-      VALUES (?, ?, ?, ?, ?)
-    `, [studentID, totalCredits, majorCredits, eligibleForInternship.eligible, eligibleForProject.eligible]);
+      INSERT INTO student_data (studentID, firstName, lastName, email, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [studentID, firstName, lastName, email, totalCredits, majorCredits, eligibleForInternship.eligible, eligibleForProject.eligible]);
 
     res.json({ success: true, message: 'เพิ่มนักศึกษาเรียบร้อย' });
   } catch (error) {

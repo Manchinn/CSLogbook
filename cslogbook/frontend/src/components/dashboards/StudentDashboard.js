@@ -24,7 +24,7 @@ const StudentDashboard = ({ userData, navigate }) => {
             />
             {userData.isEligibleForInternship && (
               <Button type="primary" onClick={() => navigate('/internship-terms')} 
-                      style={{ marginTop: 16 }}>
+                      >
                 จัดการฝึกงาน
               </Button>
             )}
