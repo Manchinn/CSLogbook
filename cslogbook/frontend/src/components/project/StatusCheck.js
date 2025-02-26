@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Table, message } from "antd";
+import { Layout, Table, message } from "antd";
 import axios from "axios";
+import "./ProjectStyles.css"; // Import the combined CSS file
+
+const { Content } = Layout;
 
 const StatusCheck = () => {
   const [proposals, setProposals] = useState([]);
@@ -36,21 +39,25 @@ const StatusCheck = () => {
       render: (status) => {
         switch (status) {
           case "approved":
-            return "อนุมัติ";
+            return <span className="status-complete">อนุมัติ</span>;
           case "rejected":
-            return "ปฏิเสธ";
+            return <span className="status-pending">ปฏิเสธ</span>;
           default:
-            return "รอการตรวจสอบ";
+            return <span className="status-pending">รอการตรวจสอบ</span>;
         }
       },
     },
   ];
 
   return (
-    <div>
-      <h2>สถานะการยืนยันโครงงานพิเศษ</h2>
-      <Table columns={columns} dataSource={proposals} rowKey="id" />
-    </div>
+    <Layout className="layout">
+      <Content className="content">
+        <div className="card">
+          <h2 className="title">สถานะการยืนยันโครงงานพิเศษ</h2>
+          <Table columns={columns} dataSource={proposals} rowKey="id" />
+        </div>
+      </Content>
+    </Layout>
   );
 };
 
