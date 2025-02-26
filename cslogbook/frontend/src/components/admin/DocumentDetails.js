@@ -47,7 +47,6 @@ const DocumentDetails = ({ document, open, onClose }) => {
       footer={null}
       centered
       width="80%"
-      style={{ }}
     >
       <div style={{ padding: '16px' }}>
         <Card style={{ marginBottom: '16px' }}>

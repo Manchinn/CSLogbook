@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, message, Spin, Form, Input, Button } from 'antd';
 import axios from 'axios';
+import { calculateStudentYear } from './utils/studentUtils';
+
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -75,6 +77,8 @@ const StudentProfile = () => {
     return <div>ไม่พบนักศึกษา</div>;
   }
 
+  const studentYear = calculateStudentYear(student.studentID);
+
   return (
     <div style={{ padding: '24px', background: '#f5f5f5', borderRadius: '8px', maxWidth: 800, margin: '0 auto' }}>
       <Card title="ข้อมูลนักศึกษา" style={{ borderRadius: '8px' }}>
@@ -89,6 +93,7 @@ const StudentProfile = () => {
           <Descriptions.Item label="สถานะโปรเจค">
             {student.isEligibleForProject ? 'มีสิทธิ์' : 'ยังไม่มีสิทธิ์'}
           </Descriptions.Item>
+          <Descriptions.Item label="ปีชั้นเรียน">{studentYear}</Descriptions.Item> {/* เพิ่มปีชั้นเรียน */}
         </Descriptions>
         <Button type="primary" onClick={() => setEditing(true)} style={{ marginTop: '16px' }}>
           แก้ไขข้อมูล

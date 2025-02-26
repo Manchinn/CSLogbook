@@ -270,6 +270,7 @@ const StudentList = () => {
     return (
         <div className="container-studentlist">
             <Modal
+                style={{ top: 30 }}
                 open={visible}
                 title={editingStudent ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา"}
                 okText={editingStudent ? "บันทึก" : "เพิ่ม"}

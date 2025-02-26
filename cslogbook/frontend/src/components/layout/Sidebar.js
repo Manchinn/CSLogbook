@@ -46,6 +46,8 @@ const Sidebar = () => {
     isEligibleForInternship: false,
     isEligibleForProject: false
   });
+  
+  const [projectPairs, setProjectPairs] = useState([]);
 
   useEffect(() => {
     const storedStudentID = localStorage.getItem('studentID');
@@ -182,12 +184,27 @@ const Sidebar = () => {
     userData.role === 'admin' && {
       key: 'students-submenu',
       icon: <TeamOutlined />,
-      label: 'จัดการข้อมูลนักศึกษา',
+      label: 'จัดการข้อมูล',
       children: [
         {
           key: 'student-list',
-          label: 'รายชื่อนักศึกษา',
+          label: 'นักศึกษา',
           onClick: () => navigate('/students'),
+        },
+        {
+          key: 'teacher-list',
+          label: 'อาจารย์',
+          onClick: () => navigate('/teachers'),
+        },
+        {
+          key: 'project-pairs',
+          label: 'คู่โปรเจค',
+          /* children: projectPairs.map(pair => ({
+            key: pair.id,
+            label: `${pair.student1Name} & ${pair.student2Name}`,
+            onClick: () => navigate(`/project-pairs/${pair.id}`),
+          })), */
+          onClick: () => navigate('/project-pairs'),
         },
       ],
     },

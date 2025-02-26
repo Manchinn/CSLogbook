@@ -54,6 +54,21 @@ export const AuthProvider = ({ children }) => {
     };
   }, [refreshToken]);
 
+  // ลบ token เมื่อผู้ใช้ปิดแท็บ
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        localStorage.removeItem('refreshToken');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   // เช็คสถานะ token เมื่อ component โหลด
   useEffect(() => {
     const validateToken = async () => {
@@ -78,6 +93,29 @@ export const AuthProvider = ({ children }) => {
 
     validateToken();
   }, [token]);
+
+  // รีเฟรช token เมื่อผู้ใช้งาน login เกิน 30 นาที
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (refreshToken) {
+        try {
+          const response = await axios.post('http://localhost:5000/auth/refresh-token', {
+            refreshToken
+          });
+
+          const { token: newToken } = response.data;
+          setToken(newToken);
+          localStorage.setItem('token', newToken);
+          axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        } catch (error) {
+          console.error('Error refreshing token:', error);
+          handleLogout();
+        }
+      }
+    }, 5 * 60 * 1000); // 5 นาที
+
+    return () => clearInterval(interval);
+  }, [refreshToken]);
 
   const handleLogin = async ({ token, refreshToken, userData }) => {
     try {
