@@ -15,7 +15,7 @@ const DocumentManagement = ({ type }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Pending');
+  const [statusFilter, setStatusFilter] = useState('pending');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
 
@@ -116,7 +116,7 @@ const DocumentManagement = ({ type }) => {
       key: 'upload_date',
       render: (text) => moment(text).tz('Asia/Bangkok').format('YYYY-MM-DD'),
     },
-    ...(statusFilter === 'Pending' ? [{
+    ...(statusFilter === 'pending' ? [{
       title: 'การดำเนินการ',
       key: 'actions',
       render: (text, record) => (
@@ -140,7 +140,7 @@ const DocumentManagement = ({ type }) => {
           <Text className="filter-text">สถานะ:</Text>
           <Segmented
             options={[
-              { label: 'รอการตรวจสอบ', value: 'Pending' },
+              { label: 'รอการตรวจสอบ', value: 'pending' },
               { label: 'อนุมัติ', value: 'approved' },
               { label: 'ปฏิเสธ', value: 'rejected' },
               { label: 'ทั้งหมด', value: '' }
@@ -157,7 +157,7 @@ const DocumentManagement = ({ type }) => {
           style={{ width: '300px', marginRight: '180px' }}
         />
       </Space>
-      {statusFilter === 'Pending' && (
+      {statusFilter === 'pending' && (
         <Button
           type="primary"
           onClick={handleApproveSelectedDocuments}
@@ -168,7 +168,7 @@ const DocumentManagement = ({ type }) => {
         </Button>
       )}
       <Table
-        rowSelection={statusFilter === 'Pending' ? rowSelection : null}
+        rowSelection={statusFilter === 'pending' ? rowSelection : null}
         columns={columns}
         dataSource={filteredDocuments}
         rowKey="uniqueId"

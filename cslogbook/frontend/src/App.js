@@ -6,6 +6,7 @@ import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentList from './components/StudentList';
 import TeacherList from './components/TeacherList';
+import StudentPairsList from './components/StudentPairsList';
 import AdminUpload from './components/AdminUpload';
 import StudentProfile from './components/StudentProfile';
 import InternshipTerms from "./components/internship/InternshipTerms";
@@ -48,6 +49,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/students" element={<StudentList />} />
             <Route path="/teachers" element={<TeacherList />} />
+            <Route path="/project-pairs" element={<StudentPairsList />} />
             <Route path="/admin/upload" element={
               <ProtectedRoute roles={['admin']}>
                 <AdminUpload />

@@ -14,6 +14,7 @@ const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
 const teacherRoutes = require('./routes/teacherRoutes');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
+const studentPairsRoutes = require('./routes/studentpairsRoutes'); // นำเข้า route
 const documentsRoutes = require('./routes/documents'); // นำเข้า route
 const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
 const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
@@ -106,6 +107,7 @@ app.use('/auth', authRoutes);
 // Protected routes
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
+app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
 app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
 app.use('/api/internship-documents',authenticateToken, internshipDocumentsRoutes);
