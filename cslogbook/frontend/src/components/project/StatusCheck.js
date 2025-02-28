@@ -23,19 +23,28 @@ const StatusCheck = () => {
 
   const columns = [
     {
+      title: "วันที่",
+      dataIndex: "date",
+      key: "date",
+      width: 150,
+    },
+    {
       title: "ชื่อโครงงานภาษาไทย",
       dataIndex: "project_name_th",
       key: "project_name_th",
+      width: 200,
     },
     {
       title: "ชื่อโครงงานภาษาอังกฤษ",
       dataIndex: "project_name_en",
       key: "project_name_en",
+      width: 200,
     },
     {
       title: "สถานะ",
       dataIndex: "status",
       key: "status",
+      width: 150,
       render: (status) => {
         switch (status) {
           case "approved":
@@ -43,7 +52,7 @@ const StatusCheck = () => {
           case "rejected":
             return <span className="status-pending">ปฏิเสธ</span>;
           default:
-            return <span className="status-pending">รอการตรวจสอบ</span>;
+            return <span className="status-pending">กำลังตรวจสอบ</span>;
         }
       },
     },
