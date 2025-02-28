@@ -212,6 +212,12 @@ const Sidebar = () => {
       onClick: () => navigate('/admin/upload'),
     },
     {
+      key: '/pdf-viewer',
+      icon: <FileTextOutlined />,
+      label: 'PDF Viewer',
+      onClick: () => navigate('/pdf-viewer'),
+    },
+    {
       key: '/logout',
       icon: <LogoutOutlined />,
       label: 'ออกจากระบบ',

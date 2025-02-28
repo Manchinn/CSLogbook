@@ -3,6 +3,9 @@ import { Layout, Form, Input, Button, Upload, message, Card, Typography, Space }
 import { InboxOutlined } from "@ant-design/icons";
 import axios from 'axios';
 import moment from 'moment-timezone';
+import { useNavigate } from "react-router-dom";
+import InternshipSteps from "./InternshipSteps"; // Import InternshipSteps
+import PDFViewer from '../PDFViewer';
 import "./InternshipStyles.css";
 
 const { Title, Paragraph } = Typography;
@@ -10,6 +13,8 @@ const { Content } = Layout;
 
 const InternshipDocumentForm = () => {
   const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const [pdfUrl, setPdfUrl] = useState(null);
 
   const handleSubmit = async (values) => {
     try {
@@ -28,6 +33,12 @@ const InternshipDocumentForm = () => {
 
       message.success("เอกสารฝึกงานของคุณถูกส่งเรียบร้อยแล้ว!");
       form.resetFields();
+
+      // Set PDF URL to display
+      setPdfUrl(URL.createObjectURL(values.file[0].originFileObj));
+
+      // Navigate to InternshipReview page with state
+      navigate("/internship-review", { state: { documentData: values } });
     } catch (error) {
       message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
     }
@@ -40,6 +51,7 @@ const InternshipDocumentForm = () => {
   return (
     <Layout className="layout">
       <Content className="content">
+        <InternshipSteps /> {/* Add InternshipSteps here */}
         <Card className="card">
           <Title level={3} className="title">
             ฟอร์มส่งเอกสารฝึกงาน
@@ -67,13 +79,22 @@ const InternshipDocumentForm = () => {
               label="อัปโหลดเอกสารฝึกงาน"
               name="file"
               valuePropName="fileList"
-              getValueFromEvent={(e) => e && e.fileList}
+              getValueFromEvent={(e) => Array.isArray(e) ? e : e && e.fileList}
               rules={[{ required: true, message: "กรุณาอัปโหลดเอกสาร!" }]}
             >
               <Upload.Dragger
                 name="file"
-                beforeUpload={(file) => file.size / 1024 / 1024 <= 10}
-                action="/upload.do"
+                beforeUpload={(file) => {
+                  const isPDF = file.type === 'application/pdf';
+                  if (!isPDF) {
+                    message.error('สามารถอัปโหลดได้เฉพาะไฟล์ PDF เท่านั้น');
+                  }
+                  const isLt10M = file.size / 1024 / 1024 < 10;
+                  if (!isLt10M) {
+                    message.error('ไฟล์ต้องมีขนาดไม่เกิน 10MB');
+                  }
+                  return isPDF && isLt10M;
+                }}
                 showUploadList={false}
               >
                 <p className="ant-upload-drag-icon">
@@ -86,11 +107,17 @@ const InternshipDocumentForm = () => {
             <Form.Item>
               <Space style={{ display: "flex", justifyContent: "center" }}>
                 <Button type="primary" htmlType="submit" size="large">
-                  ส่งเอกสารฝึกงาน
+                  ตรวจสอบ
                 </Button>
               </Space>
             </Form.Item>
           </Form>
+
+          {pdfUrl && (
+            <Card title="แสดงผลเอกสาร PDF">
+              <PDFViewer pdfUrl={pdfUrl} />
+            </Card>
+          )}
         </Card>
       </Content>
     </Layout>

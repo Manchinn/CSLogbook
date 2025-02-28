@@ -10,43 +10,28 @@ const { Title, Paragraph } = Typography;
 const InternshipReview = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const [companyInfo, setCompanyInfo] = useState(state?.companyInfo || {});
-  const [uploadedFiles, setUploadedFiles] = useState(state?.uploadedFiles || []);
+  const [documentData, setDocumentData] = useState(state?.documentData || {});
 
   useEffect(() => {
     if (!state) {
-      const storedCompanyInfo = JSON.parse(localStorage.getItem("companyInfo")) || {};
-      const storedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
-      setCompanyInfo(storedCompanyInfo);
-      setUploadedFiles(storedFiles);
+      const storedDocumentData = JSON.parse(localStorage.getItem("documentData")) || {};
+      setDocumentData(storedDocumentData);
     } else {
-      setCompanyInfo(state.companyInfo || {});
-      setUploadedFiles(state.uploadedFiles || []);
+      setDocumentData(state.documentData || {});
     }
   }, [state]);
 
   const handleConfirm = async () => {
-    if (!companyInfo.company_name || !companyInfo.contact_name || !companyInfo.contact_phone || !companyInfo.contact_email) {
-      message.error("กรุณากรอกข้อมูลสถานประกอบการให้ครบถ้วน");
+    if (!documentData.documentName || !documentData.studentName || !documentData.file) {
+      message.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
-
-    if (uploadedFiles.length === 0) {
-      message.error("กรุณาอัปโหลดเอกสาร");
-      return;
-    }
-
-    console.log("Sending data to backend:", { companyInfo, uploadedFiles });
 
     try {
-      await axios.post('http://localhost:5000/api/internship-documents', {
-        companyInfo,
-        uploadedFiles
-      });
+      await axios.post('http://localhost:5000/api/internship-documents', documentData);
       message.success("ส่งข้อมูลเรียบร้อย!");
-      localStorage.removeItem("companyInfo");
-      localStorage.removeItem("uploadedFiles");
-      navigate("/internship-terms", { state: { companyInfo, uploadedFiles: uploadedFiles.map(file => ({ name: file.name })) } });
+      localStorage.removeItem("documentData");
+      navigate("/internship-terms", { state: { documentData } });
     } catch (error) {
       console.error("Error submitting data:", error);
       message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
@@ -59,18 +44,16 @@ const InternshipReview = () => {
       <Card className="internship-card">
         <Title level={3}>ตรวจสอบข้อมูลก่อนส่ง</Title>
         <Card className="internship-subcard">
-          <Title level={4}>ข้อมูลสถานประกอบการ</Title>
-          <Paragraph><strong>ชื่อบริษัท:</strong> {companyInfo.company_name || "N/A"}</Paragraph>
-          <Paragraph><strong>ชื่อผู้ควบคุมงาน:</strong> {companyInfo.contact_name || "N/A"}</Paragraph>
-          <Paragraph><strong>เบอร์โทรศัพท์:</strong> {companyInfo.contact_phone || "N/A"}</Paragraph>
-          <Paragraph><strong>อีเมล:</strong> {companyInfo.contact_email || "N/A"}</Paragraph>
+          <Title level={4}>ข้อมูลเอกสาร</Title>
+          <Paragraph><strong>ชื่อเอกสาร:</strong> {documentData.documentName || "N/A"}</Paragraph>
+          <Paragraph><strong>ชื่อ-สกุล นักศึกษา:</strong> {documentData.studentName || "N/A"}</Paragraph>
         </Card>
         <Card className="internship-subcard">
           <Title level={4}>เอกสารที่อัปโหลด</Title>
           <List
             bordered
-            dataSource={uploadedFiles}
-            renderItem={(file) => <List.Item>{file.name}</List.Item>}
+            dataSource={documentData.file ? [documentData.file.name] : []}
+            renderItem={(file) => <List.Item>{file}</List.Item>}
           />
         </Card>
         <Space>
