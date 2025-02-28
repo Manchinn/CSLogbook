@@ -5,6 +5,10 @@ exports.submitInternshipDocuments = async (req, res) => {
   const { companyInfo, uploadedFiles } = req.body;
 
   // ตรวจสอบว่าพารามิเตอร์ทั้งหมดถูกกำหนด
+  if (!companyInfo || !uploadedFiles) {
+    return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วน' });
+  }
+
   const companyName = companyInfo.company_name || null;
   const contactName = companyInfo.contact_name || null;
   const contactPhone = companyInfo.contact_phone || null;

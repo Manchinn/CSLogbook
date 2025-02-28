@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Layout, Form, Input, Button, Upload, message, Card, Typography, Space } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
+import { UploadOutlined } from "@ant-design/icons";
 import axios from 'axios';
 import moment from 'moment-timezone';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // นำเข้า useLocation
 import InternshipSteps from "./InternshipSteps"; // Import InternshipSteps
 import PDFViewer from '../PDFViewer';
 import "./InternshipStyles.css";
@@ -14,7 +14,23 @@ const { Content } = Layout;
 const InternshipDocumentForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const [pdfUrl, setPdfUrl] = useState(null);
+  const location = useLocation(); // ใช้ useLocation เพื่อดึง state
+  const [pdfFile, setPdfFile] = useState(null);
+  const [fileList, setFileList] = useState([]);
+
+  useEffect(() => {
+    // Load default file list from localStorage if available
+    const storedDocumentData = JSON.parse(localStorage.getItem("documentData"));
+    if (storedDocumentData && storedDocumentData.file) {
+      setFileList([{
+        uid: '-1',
+        name: storedDocumentData.file.name,
+        status: 'done',
+        originFileObj: storedDocumentData.file,
+      }]);
+      setPdfFile(storedDocumentData.file);
+    }
+  }, []);
 
   const handleSubmit = async (values) => {
     try {
@@ -23,10 +39,20 @@ const InternshipDocumentForm = () => {
       formData.append('documentName', values.documentName);
       formData.append('studentName', values.studentName);
 
+      // ตรวจสอบว่ามี companyInfo ใน state หรือไม่
+      const companyInfo = location.state?.companyInfo;
+      if (!companyInfo) {
+        message.error("ข้อมูลสถานประกอบการไม่ครบถ้วน");
+        return;
+      }
+
       // ส่งข้อมูลไปยัง backend
-      await axios.post('http://localhost:5000/api/upload-internship-doc', formData, {
+      await axios.post('http://localhost:5000/api/internship-documents', {
+        companyInfo: companyInfo,
+        uploadedFiles: [{ name: values.file[0].name }]
+      }, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`, // ส่งโทเค็นการตรวจสอบสิทธิ์
         },
       });
@@ -34,13 +60,21 @@ const InternshipDocumentForm = () => {
       message.success("เอกสารฝึกงานของคุณถูกส่งเรียบร้อยแล้ว!");
       form.resetFields();
 
-      // Set PDF URL to display
-      setPdfUrl(URL.createObjectURL(values.file[0].originFileObj));
-
+      // เก็บข้อมูลใน localStorage
+      localStorage.setItem("documentData", JSON.stringify({ ...values, file: values.file[0].originFileObj }));
+      
       // Navigate to InternshipReview page with state
-      navigate("/internship-review", { state: { documentData: values } });
+      navigate("/status-check");
     } catch (error) {
       message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
+    }
+  };
+
+  const handleFileChange = ({ fileList }) => {
+    setFileList(fileList);
+    const file = fileList[0]?.originFileObj;
+    if (file) {
+      setPdfFile(file);
     }
   };
 
@@ -82,7 +116,7 @@ const InternshipDocumentForm = () => {
               getValueFromEvent={(e) => Array.isArray(e) ? e : e && e.fileList}
               rules={[{ required: true, message: "กรุณาอัปโหลดเอกสาร!" }]}
             >
-              <Upload.Dragger
+              <Upload
                 name="file"
                 beforeUpload={(file) => {
                   const isPDF = file.type === 'application/pdf';
@@ -95,29 +129,35 @@ const InternshipDocumentForm = () => {
                   }
                   return isPDF && isLt10M;
                 }}
-                showUploadList={false}
+                onChange={handleFileChange}
+                defaultFileList={fileList}
+                showUploadList={{ showRemoveIcon: true }}
+                itemRender={(originNode, file) => (
+                  <div key={file.uid}>
+                    {originNode}
+                  </div>
+                )}
               >
-                <p className="ant-upload-drag-icon">
-                  <InboxOutlined />
-                </p>
-                <p className="ant-upload-text">คลิกหรือลากไฟล์ PDF เพื่ออัปโหลด</p>
-              </Upload.Dragger>
+                <Button icon={<UploadOutlined />}>Upload</Button>
+              </Upload>
             </Form.Item>
+          </Form>
 
+          {pdfFile && (
+            <Card title="แสดงผลเอกสาร PDF">
+              <PDFViewer pdfFile={pdfFile} />
+            </Card>
+          )}
+
+          <Form form={form} layout="vertical" onFinish={handleSubmit}>
             <Form.Item>
-              <Space style={{ display: "flex", justifyContent: "center" }}>
+              <Space style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
                 <Button type="primary" htmlType="submit" size="large">
-                  ตรวจสอบ
+                  ส่งเอกสาร
                 </Button>
               </Space>
             </Form.Item>
           </Form>
-
-          {pdfUrl && (
-            <Card title="แสดงผลเอกสาร PDF">
-              <PDFViewer pdfUrl={pdfUrl} />
-            </Card>
-          )}
         </Card>
       </Content>
     </Layout>

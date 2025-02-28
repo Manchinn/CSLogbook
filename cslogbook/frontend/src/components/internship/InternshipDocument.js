@@ -19,7 +19,7 @@ const InternshipDocuments = () => {
     formData.append("file", file);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/upload-internship-doc", formData, {
+      const response = await axios.post("http://localhost:5000/api/internship-documents", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

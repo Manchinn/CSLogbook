@@ -18,7 +18,6 @@ const DocumentManagement = ({ type }) => {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
-
   const fetchData = async (type) => {
     try {
       const documentsData = await fetchDocuments(type);
@@ -27,7 +26,8 @@ const DocumentManagement = ({ type }) => {
         // Filter out duplicate documents
         const uniqueDocuments = documentsData.filter((doc, index, self) =>
           index === self.findIndex((d) => d.id === doc.id)
-        ).map((doc, index) => ({ ...doc, uniqueId: `${doc.id}-${index}` })); setDocuments(uniqueDocuments);
+        ).map((doc, index) => ({ ...doc, uniqueId: `${doc.id}-${index}` }));
+        setDocuments(uniqueDocuments);
       } else {
         throw new Error('Data is not an array');
       }

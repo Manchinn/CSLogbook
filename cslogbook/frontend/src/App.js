@@ -22,9 +22,6 @@ import StatusCheck from "./components/project/StatusCheck";
 import InternshipDocumentForm from "./components/internship/InternshipDocumentForm"; // นำเข้า InternshipDocumentForm
 import InternshipStatusCheck from "./components/internship/InternshipStatusCheck"; // นำเข้า internshipStatusCheck
 
-import PDFViewer from './components/PDFViewer';
-
-
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, userData } = useAuth();
 
@@ -49,7 +46,6 @@ const App = () => {
           
           {/* Protected routes wrapped in MainLayout */}
           <Route element={<MainLayout />}>
-            <Route path="/pdf-viewer" element={<PDFViewer pdfUrl="/sample.pdf"/>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/students" element={<StudentList />} />
             <Route path="/teachers" element={<TeacherList />} />

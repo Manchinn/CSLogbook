@@ -1,6 +1,8 @@
 import React from 'react';
 import { Modal, Button, Typography, List, Card } from 'antd';
 import moment from 'moment-timezone';
+import PDFViewer from '../PDFViewer'; // นำเข้า PDFViewer
+
 
 const { Title, Paragraph } = Typography;
 
@@ -19,7 +21,11 @@ const DocumentDetails = ({ document, open, onClose }) => {
       <List
         bordered
         dataSource={document?.uploaded_files && JSON.parse(document.uploaded_files)}
-        renderItem={(file) => <List.Item>{file.name}</List.Item>}
+        renderItem={(file) => (
+          <List.Item>
+            <PDFViewer pdfUrl={`http://localhost:5000/uploads/${file.name}`} />
+          </List.Item>
+        )}
       />
     </Card>
   );
@@ -59,9 +65,6 @@ const DocumentDetails = ({ document, open, onClose }) => {
         {document?.type === 'internship' && renderInternshipDetails()}
         {document?.type === 'project' && renderProjectDetails()}
         
-        <Button type="primary" onClick={() => window.open(`/documents/${document?.fileName}`, "_blank")} style={{ marginTop: '16px' }}>
-          ดาวน์โหลดเอกสาร
-        </Button>
       </div>
     </Modal>
   );
