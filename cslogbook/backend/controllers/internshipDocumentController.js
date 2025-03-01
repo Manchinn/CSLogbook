@@ -29,7 +29,7 @@ exports.submitInternshipDocuments = async (req, res) => {
     // เพิ่มการบันทึกข้อมูลลงในตาราง documents
     await pool.execute(
       'INSERT INTO documents (document_name, student_name, upload_date, status, type) VALUES (?, ?, NOW(), ?, ?)',
-      [companyName, contactName, 'Pending', 'internship']
+      [companyName, contactName, 'pending', 'internship']
     );
 
     res.status(201).json({ message: 'Internship documents submitted successfully', documentId: result.insertId });

@@ -143,6 +143,12 @@ const Sidebar = () => {
       ],
     },
     userData.role === 'student' && {
+      key: '/status-check',
+      icon: <FileTextOutlined />,
+      label: 'ตรวจสอบสถานะ',
+      onClick: () => navigate('/status-check'),
+    },
+    userData.role === 'student' && {
       key: `/student-profile/${userData.studentID}`,
       icon: <TeamOutlined />,
       label: 'ประวัตินักศึกษา',

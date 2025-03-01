@@ -140,3 +140,12 @@
   padding: 2px 8px;
   border-radius: 4px;
 }
+
+.button-group .ant-btn {
+  width: 33%;
+}
+
+.button-group .ant-btn-primary {
+  border-color: var(--active-color);
+  color: white; /* เปลี่ยนสีตัวอักษรเป็นสีขาว */
+}
