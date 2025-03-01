@@ -23,6 +23,13 @@ exports.submitProjectProposal = async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [projectNameTH, projectNameEN, studentId1, firstName1, lastName1, studentType1, studentId2, firstName2, lastName2, studentType2, track, projectCategory]
     );
+    
+    // เพิ่มการอัปเดตข้อมูลลงในตาราง documents
+    await pool.execute(
+      `INSERT INTO documents (document_name, student_name, upload_date, status, type) 
+      VALUES (?, ?, NOW(), ?, ?)`,
+      [projectNameTH, `${firstName1} ${lastName1}`, 'pending', 'project']
+    );    
 
     res.json({ success: true, message: 'คำขอเสนอหัวข้อโครงงานของคุณถูกส่งเรียบร้อยแล้ว!' });
   } catch (error) {
