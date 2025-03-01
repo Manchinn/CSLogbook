@@ -8,34 +8,37 @@ import InternshipSteps from "./InternshipSteps"; // Import InternshipSteps
 import PDFViewer from '../PDFViewer';
 import "./InternshipStyles.css";
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 const { Content } = Layout;
 
 const InternshipDocumentForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation(); // ใช้ useLocation เพื่อดึง state
-  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfFiles, setPdfFiles] = useState([]);
   const [fileList, setFileList] = useState([]);
 
   useEffect(() => {
     // Load default file list from localStorage if available
     const storedDocumentData = JSON.parse(localStorage.getItem("documentData"));
-    if (storedDocumentData && storedDocumentData.file) {
-      setFileList([{
-        uid: '-1',
-        name: storedDocumentData.file.name,
+    if (storedDocumentData && storedDocumentData.files) {
+      const files = storedDocumentData.files.map((file, index) => ({
+        uid: `-${index}`,
+        name: file.name,
         status: 'done',
-        originFileObj: storedDocumentData.file,
-      }]);
-      setPdfFile(storedDocumentData.file);
+        originFileObj: file,
+      }));
+      setFileList(files);
+      setPdfFiles(files.map(file => file.originFileObj));
     }
   }, []);
 
   const handleSubmit = async (values) => {
     try {
       const formData = new FormData();
-      formData.append('file', values.file[0].originFileObj);
+      values.file.forEach(file => {
+        formData.append('files', file.originFileObj);
+      });
       formData.append('documentName', values.documentName);
       formData.append('studentName', values.studentName);
 
@@ -49,7 +52,7 @@ const InternshipDocumentForm = () => {
       // ส่งข้อมูลไปยัง backend
       await axios.post('http://localhost:5000/api/internship-documents', {
         companyInfo: companyInfo,
-        uploadedFiles: [{ name: values.file[0].name }]
+        uploadedFiles: values.file.map(file => ({ name: file.name }))
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +64,7 @@ const InternshipDocumentForm = () => {
       form.resetFields();
 
       // เก็บข้อมูลใน localStorage
-      localStorage.setItem("documentData", JSON.stringify({ ...values, file: values.file[0].originFileObj }));
+      localStorage.setItem("documentData", JSON.stringify({ ...values, files: values.file.map(file => file.originFileObj) }));
       
       // Navigate to InternshipReview page with state
       navigate("/status-check");
@@ -72,10 +75,8 @@ const InternshipDocumentForm = () => {
 
   const handleFileChange = ({ fileList }) => {
     setFileList(fileList);
-    const file = fileList[0]?.originFileObj;
-    if (file) {
-      setPdfFile(file);
-    }
+    const files = fileList.map(file => file.originFileObj);
+    setPdfFiles(files);
   };
 
   const formatDate = (date) => {
@@ -88,25 +89,19 @@ const InternshipDocumentForm = () => {
         <InternshipSteps /> {/* Add InternshipSteps here */}
         <Card className="card">
           <Title level={3} className="title">
-            ฟอร์มส่งเอกสารฝึกงาน
+            เอกสารฝึกงาน
           </Title>
 
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <Form.Item
-              label="ชื่อเอกสาร"
-              name="documentName"
-              rules={[{ required: true, message: "กรุณากรอกชื่อเอกสาร!" }]}
-            >
-              <Input placeholder="กรอกชื่อเอกสาร" />
-            </Form.Item>
+          <Text>กรุณาอัปโหลดไฟล์ PDF ต่อไปนี้:</Text>
+          <ul>
+            <li>คพ.05- หนังสือขอความอนุเคราะห์</li>
+            <a href="http://cs.kmutnb.ac.th/student_download.jsp" target="_blank" rel="noopener noreferrer">
+                คลิกที่นี่เพื่อดาวน์โหลด คพ.05
+            </a>
+            <li>ผลการเรียนของนักศึกษา</li>
+          </ul>
 
-            <Form.Item
-              label="ชื่อ-สกุล นักศึกษา"
-              name="studentName"
-              rules={[{ required: true, message: "กรุณากรอกชื่อ-สกุล!" }]}
-            >
-              <Input placeholder="กรอกชื่อ-สกุล นักศึกษา" />
-            </Form.Item>
+          <Form form={form} layout="vertical" onFinish={handleSubmit}>
 
             {/* อัปโหลดเอกสาร PDF */}
             <Form.Item
@@ -118,6 +113,7 @@ const InternshipDocumentForm = () => {
             >
               <Upload
                 name="file"
+                multiple
                 beforeUpload={(file) => {
                   const isPDF = file.type === 'application/pdf';
                   if (!isPDF) {
@@ -143,9 +139,11 @@ const InternshipDocumentForm = () => {
             </Form.Item>
           </Form>
 
-          {pdfFile && (
+          {pdfFiles.length > 0 && (
             <Card title="แสดงผลเอกสาร PDF">
-              <PDFViewer pdfFile={pdfFile} />
+              {pdfFiles.map((file, index) => (
+                <PDFViewer key={index} pdfFile={file} />
+              ))}
             </Card>
           )}
 

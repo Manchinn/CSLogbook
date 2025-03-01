@@ -69,15 +69,12 @@ const CompanyInfoForm = () => {
             <Input placeholder="อีเมล" />
           </Form.Item>
           <Form.Item>
-            <Space style={{ display: 'flex', justifyContent: 'center' }}>
-              <Button type="primary" htmlType="submit" size="large">
-                บันทึกข้อมูล
-              </Button>
+            <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Button type="primary" size="large" onClick={() => navigate("/internship-terms")}>
                 ย้อนกลับ
               </Button>
-              <Button type="primary" size="large" onClick={() => navigate("/internship-documents", { state })}>
-                ต่อไป
+              <Button type="primary" htmlType="submit" size="large">
+                บันทึกข้อมูล
               </Button>
             </Space>
           </Form.Item>

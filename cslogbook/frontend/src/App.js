@@ -12,7 +12,6 @@ import StudentProfile from './components/StudentProfile';
 import InternshipTerms from "./components/internship/InternshipTerms";
 import CompanyInfoForm from './components/internship/CompanyInfoForm';
 import InternshipDocuments from './components/internship/InternshipDocumentForm'; // แก้ไขเส้นทางให้ถูกต้อง
-import InternshipReview from "./components/internship/InternshipReview";
 import DocumentDetails from "./components/admin/DocumentDetails";
 import InternshipDocumentManagement from "./components/admin/InternshipDocumentManagement";
 import ProjectDocumentManagement from "./components/admin/ProjectDocumentManagement";
@@ -59,7 +58,6 @@ const App = () => {
             <Route path="/internship-terms" element={<InternshipTerms />} />
             <Route path="/internship-company" element={<CompanyInfoForm />} />
             <Route path="/internship-documents" element={<InternshipDocuments />} />
-            <Route path="/internship-review" element={<InternshipReview />} />
             <Route path="/document-management/internship" element={
               <ProtectedRoute roles={['admin']}>
                 <InternshipDocumentManagement />
