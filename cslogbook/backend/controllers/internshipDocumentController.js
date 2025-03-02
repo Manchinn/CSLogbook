@@ -2,7 +2,14 @@ const pool = require('../config/database');
 const path = require('path');
 
 exports.submitInternshipDocuments = async (req, res) => {
-  const { companyInfo, uploadedFiles } = req.body;
+  let companyInfo;
+  try {
+    companyInfo = JSON.parse(req.body.companyInfo);
+  } catch (error) {
+    return res.status(400).json({ error: 'Invalid companyInfo format' });
+  }
+
+  const uploadedFiles = req.files;
 
   // ตรวจสอบว่าพารามิเตอร์ทั้งหมดถูกกำหนด
   if (!companyInfo || !uploadedFiles) {
@@ -18,12 +25,18 @@ exports.submitInternshipDocuments = async (req, res) => {
     return res.status(400).json({ error: 'Company name is required' }); // ถ้าไม่มีชื่อบริษัท ส่งสถานะ 400
   }
 
-  console.log("Received data from frontend:", { companyInfo, uploadedFiles });
+  // แปลงชื่อไฟล์ให้เป็น Base64
+  const filesWithEncodedNames = uploadedFiles.map(file => ({
+    ...file,
+    filename: Buffer.from(file.originalname, 'utf8').toString('base64')
+  }));
+
+  console.log("Received data from frontend:", { companyInfo, filesWithEncodedNames });
 
   try {
     const [result] = await pool.execute(
-      'INSERT INTO internship_documents (company_name, contact_name, contact_phone, contact_email, uploaded_files) VALUES (?, ?, ?, ?, ?)',
-      [companyName, contactName, contactPhone, contactEmail, JSON.stringify(uploadedFiles)]
+      'INSERT INTO internship_documents (company_name, contact_name, contact_phone, contact_email, uploaded_files, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [companyName, contactName, contactPhone, contactEmail, JSON.stringify(filesWithEncodedNames), 'pending', new Date()]
     );
 
     // เพิ่มการบันทึกข้อมูลลงในตาราง documents
@@ -63,6 +76,15 @@ exports.getInternshipDocumentById = async (req, res) => {
     if (document.length === 0) {
       return res.status(404).json({ error: 'Document not found' }); // ถ้าไม่พบเอกสาร ส่งสถานะ 404
     }
+
+    // ถอดรหัสชื่อไฟล์จาก Base64
+    const decodedFiles = JSON.parse(document[0].uploaded_files).map(file => ({
+      ...file,
+      filename: Buffer.from(file.filename, 'base64').toString('utf8')
+    }));
+
+    document[0].uploaded_files = JSON.stringify(decodedFiles);
+
     res.json(document[0]); // ส่งข้อมูลเอกสารกลับไป
   } catch (error) {
     console.error('Error fetching internship document:', error);

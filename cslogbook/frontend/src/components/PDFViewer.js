@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getDocument, GlobalWorkerOptions, version } from 'pdfjs-dist';
-import { Spin, message, Empty } from 'antd';
+import { Spin, message, Empty, Button } from 'antd';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
 // ตั้งค่า workerSrc ให้ชี้ไปยัง worker ที่ถูกต้อง
@@ -11,6 +11,8 @@ const PDFViewer = ({ pdfFile }) => {
   const renderTaskRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [numPages, setNumPages] = useState(null);
 
   useEffect(() => {
     const loadPDF = async () => {
@@ -32,7 +34,8 @@ const PDFViewer = ({ pdfFile }) => {
           try {
             const loadingTask = getDocument({ data: fileReader.result });
             const pdf = await loadingTask.promise;
-            const page = await pdf.getPage(1);
+            setNumPages(pdf.numPages);
+            const page = await pdf.getPage(pageNumber);
 
             // ปรับขนาด viewport ให้ตรงกับขนาด A4
             const viewport = page.getViewport({ scale: 1 });
@@ -74,7 +77,15 @@ const PDFViewer = ({ pdfFile }) => {
         renderTaskRef.current.cancel();
       }
     };
-  }, [pdfFile]);
+  }, [pdfFile, pageNumber]);
+
+  const goToPrevPage = () => {
+    setPageNumber(prevPageNumber => Math.max(prevPageNumber - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setPageNumber(prevPageNumber => Math.min(prevPageNumber + 1, numPages));
+  };
 
   return (
     <div style={{ position: 'relative', textAlign: 'center' }}>
@@ -96,9 +107,22 @@ const PDFViewer = ({ pdfFile }) => {
         </div>
       )}
       {!pdfFile && !loading && (
-        <Empty description="กรุณาอัปโหลดเอกสาร PDF" />
+        <Empty description="ไม่มีเอกสาร PDF" />
       )}
       <canvas ref={canvasRef} style={{ display: loading ? 'none' : 'block' }}></canvas>
+      {numPages && (
+        <div style={{ marginTop: '20px' }}>
+          <Button onClick={goToPrevPage} disabled={pageNumber <= 1}>
+            หน้าก่อนหน้า
+          </Button>
+          <span style={{ margin: '0 10px' }}>
+            หน้า {pageNumber} จาก {numPages}
+          </span>
+          <Button onClick={goToNextPage} disabled={pageNumber >= numPages}>
+            หน้าถัดไป
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

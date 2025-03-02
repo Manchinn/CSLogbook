@@ -18,6 +18,7 @@ const studentPairsRoutes = require('./routes/studentpairsRoutes'); // นำเ�
 const documentsRoutes = require('./routes/documents'); // นำเข้า route
 const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
 const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
+const logbookRoutes = require('./routes/logbookRoutes'); // นำเข้า route
 
 const app = express();
 const server = http.createServer(app);
@@ -101,6 +102,9 @@ const upload = multer({
   }
 });
 
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Public routes
 app.use('/auth', authRoutes);
 
@@ -111,6 +115,7 @@ app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช�
 app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
 app.use('/api/internship-documents',authenticateToken, internshipDocumentsRoutes);
+app.use('/api/logbooks',authenticateToken, logbookRoutes); // ใช้ route
 
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.use('/api', uploadRoutes); // ใช้ route
@@ -124,6 +129,28 @@ app.get('/template/download-template', (req, res) => {
       res.status(500).send('Error downloading template');
     }
   });
+});
+
+// API สำหรับอัปโหลดไฟล์พร้อมข้อมูล companyInfo
+app.post('/upload-with-info', upload.single('file'), (req, res) => {
+  const { companyInfo } = req.body;
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
+
+  if (!companyInfo) {
+    return res.status(400).send('No company info provided');
+  }
+
+  const fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  res.json({ fileUrl, companyInfo: JSON.parse(companyInfo) });
+});
+
+// API สำหรับดึง URL ของไฟล์ PDF
+app.get('/get-pdf-url', (req, res) => {
+  // ตัวอย่างการดึง URL ของไฟล์ PDF จากฐานข้อมูล
+  const fileUrl = 'http://localhost:5000/uploads/11f0792f49b68ca6e50194c134637904';
+  res.json({ fileUrl });
 });
 
 // Error handling middleware

@@ -1,13 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const {submitInternshipDocuments,getInternshipDocuments,getInternshipDocumentById, approveInternshipDocument,rejectInternshipDocument,uploadInternshipDocument} = require('../controllers/internshipdocumentController');
+const { submitInternshipDocuments, getInternshipDocuments, getInternshipDocumentById, approveInternshipDocument, rejectInternshipDocument, uploadInternshipDocument } = require('../controllers/internshipDocumentController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 require('./swagger/internshipDocuments');
 
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/', authenticateToken, checkRole(['student']), submitInternshipDocuments);
+router.post('/submit', authenticateToken, checkRole(['student']), upload.array('file'), submitInternshipDocuments);
 
 router.post('/upload', authenticateToken, upload.single('file'), uploadInternshipDocument);
 
@@ -17,6 +17,6 @@ router.get('/:id', authenticateToken, checkRole(['admin']), getInternshipDocumen
 
 router.post('/:id/approve', authenticateToken, checkRole(['admin']), approveInternshipDocument);
 
-router.post('/:id/reject', authenticateToken, checkRole(['admin']),rejectInternshipDocument);
+router.post('/:id/reject', authenticateToken, checkRole(['admin']), rejectInternshipDocument);
 
 module.exports = router;

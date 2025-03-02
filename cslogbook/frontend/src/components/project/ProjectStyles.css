@@ -16,6 +16,13 @@
   background-color: rgb(255, 255, 255);
 }
 
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
 .layout {
   min-height: 100vh;
   background-color: #f5f5f5;
@@ -101,17 +108,13 @@
 }
 
 .edit-icon {
-  font-size: 20px;
+  font-size: 16px;
+  color: #1890ff;
   cursor: pointer;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  margin: 15px;
-  transition: color 0.3s;
 }
 
 .edit-icon:hover {
-  color: #1890ff;
+  color: #40a9ff;
 }
 
 .ellipsis {
@@ -130,15 +133,17 @@
 .status-complete {
   color: green;
   border: 1px solid green;
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: 4px;
+  font-size: 14px;
 }
 
 .status-pending {
   color: orange;
   border: 1px solid orange;
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: 4px;
+  font-size: 14px;
 }
 
 .button-group .ant-btn {
@@ -148,4 +153,43 @@
 .button-group .ant-btn-primary {
   border-color: var(--active-color);
   color: white; /* เปลี่ยนสีตัวอักษรเป็นสีขาว */
+}
+
+.delete-icon {
+  font-size: 16px;
+  color: #ff4d4f;
+  cursor: pointer;
+}
+
+.delete-icon:hover {
+  color: #ff7875;
+}
+
+.modal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* ปรับปรุง style สำหรับ Popconfirm */
+.ant-popover-buttons {
+  margin-top: 8px;
+}
+
+/* ปรับขนาดปุ่มลบให้เหมาะสม */
+.modal-footer .ant-btn-dangerous {
+  padding: 4px 15px;
+  height: 32px;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-complete, .status-pending {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
 }

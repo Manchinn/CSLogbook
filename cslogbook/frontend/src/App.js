@@ -57,7 +57,7 @@ const App = () => {
             <Route path="/student-profile/:id" element={<StudentProfile />} />
             <Route path="/internship-terms" element={<InternshipTerms />} />
             <Route path="/internship-company" element={<CompanyInfoForm />} />
-            <Route path="/internship-documents" element={<InternshipDocuments />} />
+            <Route path="/internship-documents" element={<InternshipDocumentForm />} />
             <Route path="/document-management/internship" element={
               <ProtectedRoute roles={['admin']}>
                 <InternshipDocumentManagement />

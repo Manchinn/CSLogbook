@@ -37,7 +37,7 @@ const InternshipDocumentForm = () => {
     try {
       const formData = new FormData();
       values.file.forEach(file => {
-        formData.append('files', file.originFileObj);
+        formData.append('file', file.originFileObj);
       });
       formData.append('documentName', values.documentName);
       formData.append('studentName', values.studentName);
@@ -49,13 +49,16 @@ const InternshipDocumentForm = () => {
         return;
       }
 
+      // เพิ่มข้อมูล companyInfo ลงใน formData
+      formData.append('companyInfo', JSON.stringify(companyInfo));
+
+      // ตรวจสอบ URL ที่ใช้ในการเรียกใช้งาน API
+      console.log("Sending data to backend:", formData);
+
       // ส่งข้อมูลไปยัง backend
-      await axios.post('http://localhost:5000/api/internship-documents', {
-        companyInfo: companyInfo,
-        uploadedFiles: values.file.map(file => ({ name: file.name }))
-      }, {
+      const response = await axios.post('http://localhost:5000/upload-with-info', formData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${localStorage.getItem('token')}`, // ส่งโทเค็นการตรวจสอบสิทธิ์
         },
       });
@@ -68,7 +71,11 @@ const InternshipDocumentForm = () => {
       
       // Navigate to InternshipReview page with state
       navigate("/status-check");
+
+      // แสดง URL ของไฟล์ที่อัปโหลด
+      console.log(response.data.fileUrl);
     } catch (error) {
+      console.error("Error submitting internship documents:", error);
       message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
     }
   };
