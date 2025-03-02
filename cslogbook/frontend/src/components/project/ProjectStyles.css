@@ -9,9 +9,9 @@
 .card {
   width: 100%;
   max-width: 90%;
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin: 20px auto;
   background-color: rgb(255, 255, 255);
 }
@@ -40,8 +40,9 @@
 }
 
 .title {
-  text-align: left;
-  margin-bottom: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #1890ff;
 }
 
 .header-2 {
@@ -139,19 +140,30 @@
 }
 
 .status-complete {
-  color: green;
+  color: #52c41a;
   border: 1px solid green;
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .status-pending {
-  color: orange;
+  color: #faad14;
   border: 1px solid orange;
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 14px;
+  font-weight: 500;
+}
+
+.status-rejected {
+  color: #ff4d4f; 
+  border: 1px solid #ff4d4f;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .button-group .ant-btn {
@@ -161,6 +173,11 @@
 .button-group .ant-btn-primary {
   border-color: var(--active-color);
   color: white; /* เปลี่ยนสีตัวอักษรเป็นสีขาว */
+}
+
+.button-group {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 4px;
 }
 
 .delete-icon {
@@ -196,8 +213,9 @@
   gap: 8px;
 }
 
-.status-complete, .status-pending {
+.status-complete, .status-pending, .status-rejected {
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 14px;
 }
+

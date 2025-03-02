@@ -1,14 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, Button, message, Input, Segmented, Space, Typography } from 'antd';
-import {
-  fetchDocuments,
-  handleApprove,
-  handleReject,
-} from './api';
+import { fetchDocuments, handleApprove, handleReject } from './api';
 import DocumentDetails from './DocumentDetails';
 import moment from 'moment-timezone';
 
 const { Text } = Typography;
+
+// Constants
+const FILTER_OPTIONS = [
+  { label: 'รอการตรวจสอบ', value: 'pending' },
+  { label: 'อนุมัติ', value: 'approved' },
+  { label: 'ปฏิเสธ', value: 'rejected' },
+  { label: 'ทั้งหมด', value: '' }
+];
+
+const TABLE_STYLE = {
+  width: '100%',
+  maxWidth: '90%',
+  marginLeft: '70px',
+  padding: '20px'
+};
+
+const FILTER_SECTION_STYLE = {
+  marginBottom: 16,
+  marginLeft: '80px',
+  marginTop: '20px',
+  width: '100%',
+  justifyContent: 'space-between'
+};
 
 const DocumentManagement = ({ type }) => {
   const [documents, setDocuments] = useState([]);
@@ -18,7 +37,8 @@ const DocumentManagement = ({ type }) => {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
-  const fetchData = async (type) => {
+  // Fetch data with useCallback
+  const fetchData = useCallback(async () => {
     try {
       const documentsData = await fetchDocuments(type);
       if (Array.isArray(documentsData)) {
@@ -28,7 +48,7 @@ const DocumentManagement = ({ type }) => {
           .map((doc, index) => ({ 
             ...doc, 
             uniqueId: `${doc.id}-${index}`,
-            key: `${doc.id}-${index}` // เพิ่ม key สำหรับ Table
+            key: `${doc.id}-${index}`
           }));
         setDocuments(uniqueDocuments);
       }
@@ -37,69 +57,78 @@ const DocumentManagement = ({ type }) => {
       message.error('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message);
       setDocuments([]);
     }
-  };
-
-  useEffect(() => {
-    fetchData(type);
   }, [type]);
 
-  const handleViewDetails = (document) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Document handlers
+  const handleViewDetails = useCallback((document) => {
     setSelectedDocument(document);
     setIsModalVisible(true);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
-  };
+  }, []);
 
-  const handleApproveDocument = async (documentId) => {
+  const handleApproveDocument = useCallback(async (documentId) => {
     try {
       await handleApprove(documentId);
       message.success('อนุมัติหัวข้อโครงงานพิเศษเรียบร้อยแล้ว');
-      setDocuments(documents.map(doc => doc.id === documentId ? { ...doc, status: 'approved' } : doc));
-      fetchData(type);
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId ? { ...doc, status: 'approved' } : doc
+      ));
+      fetchData();
     } catch (error) {
       message.error('เกิดข้อผิดพลาดในการอนุมัติหัวข้อโครงงานพิเศษ');
     }
-  };
+  }, [fetchData]);
 
-  const handleRejectDocument = async (documentId) => {
+  const handleRejectDocument = useCallback(async (documentId) => {
     try {
       await handleReject(documentId);
       message.success('ปฏิเสธหัวข้อโครงงานพิเศษเรียบร้อยแล้ว');
-      setDocuments(documents.map(doc => doc.id === documentId ? { ...doc, status: 'rejected' } : doc));
-      fetchData(type);
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId ? { ...doc, status: 'rejected' } : doc
+      ));
+      fetchData();
     } catch (error) {
       message.error('เกิดข้อผิดพลาดในการปฏิเสธหัวข้อโครงงานพิเศษ');
     }
-  };
+  }, [fetchData]);
 
-  const handleApproveSelectedDocuments = async () => {
+  const handleApproveSelectedDocuments = useCallback(async () => {
     try {
       await Promise.all(selectedRowKeys.map(documentId => handleApprove(documentId)));
       message.success('อนุมัติหัวข้อโครงงานพิเศษเรียบร้อยแล้ว');
-      setDocuments(documents.map(doc => selectedRowKeys.includes(doc.id) ? { ...doc, status: 'approved' } : doc));
       setSelectedRowKeys([]);
-      fetchData(type);
+      fetchData();
     } catch (error) {
       message.error('เกิดข้อผิดพลาดในการอนุมัติหัวข้อโครงงานพิเศษ');
     }
-  };
+  }, [selectedRowKeys, fetchData]);
 
-  const handleSearch = (e) => {
+  // Filter handlers
+  const handleSearch = useCallback((e) => {
     setSearchText(e.target.value);
-  };
+  }, []);
 
-  const handleStatusFilterChange = (value) => {
+  const handleStatusFilterChange = useCallback((value) => {
     setStatusFilter(value);
-  };
+  }, []);
 
-  const filteredDocuments = documents.filter(doc =>
-    (doc.document_name && doc.document_name.toLowerCase().includes(searchText.toLowerCase())) &&
-    (statusFilter ? doc.status === statusFilter : true)
+  // Memoized values
+  const filteredDocuments = useMemo(() => 
+    documents.filter(doc =>
+      (doc.document_name && doc.document_name.toLowerCase().includes(searchText.toLowerCase())) &&
+      (statusFilter ? doc.status === statusFilter : true)
+    ),
+    [documents, searchText, statusFilter]
   );
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       title: 'เอกสาร',
       dataIndex: 'document_name',
@@ -122,32 +151,28 @@ const DocumentManagement = ({ type }) => {
     ...(statusFilter === 'pending' ? [{
       title: 'การดำเนินการ',
       key: 'actions',
-      render: (text, record) => (
-        <div>
+      render: (_, record) => (
+        <Space>
           <Button onClick={() => handleApproveDocument(record.id)}>อนุมัติ</Button>
           <Button onClick={() => handleRejectDocument(record.id)}>ปฏิเสธ</Button>
-        </div>
+        </Space>
       ),
     }] : []),
-  ];
+  ], [statusFilter, handleViewDetails, handleApproveDocument, handleRejectDocument]);
 
-  const rowSelection = {
+  const rowSelection = useMemo(() => ({
     selectedRowKeys,
     onChange: setSelectedRowKeys,
-  };
+  }), [selectedRowKeys]);
 
+  // Render
   return (
     <div>
-      <Space style={{ marginBottom: 16, marginLeft: '80px', marginTop: '20px', width: '100%', justifyContent: 'space-between' }}>
+      <Space style={FILTER_SECTION_STYLE}>
         <div>
           <Text className="filter-text">สถานะ:</Text>
           <Segmented
-            options={[
-              { label: 'รอการตรวจสอบ', value: 'pending' },
-              { label: 'อนุมัติ', value: 'approved' },
-              { label: 'ปฏิเสธ', value: 'rejected' },
-              { label: 'ทั้งหมด', value: '' }
-            ]}
+            options={FILTER_OPTIONS}
             value={statusFilter}
             onChange={handleStatusFilterChange}
             style={{ width: 200 }}
@@ -160,6 +185,7 @@ const DocumentManagement = ({ type }) => {
           style={{ width: '300px', marginRight: '180px' }}
         />
       </Space>
+
       {statusFilter === 'pending' && (
         <Button
           type="primary"
@@ -170,14 +196,20 @@ const DocumentManagement = ({ type }) => {
           อนุมัติเอกสารที่เลือก
         </Button>
       )}
+
       <Table
         rowSelection={statusFilter === 'pending' ? rowSelection : null}
         columns={columns}
         dataSource={filteredDocuments}
         rowKey="uniqueId"
-        style={{ width: '100%', maxWidth: '90%', marginLeft: '70px', padding: '20px' }}
+        style={TABLE_STYLE}
       />
-      <DocumentDetails document={selectedDocument} open={isModalVisible} onClose={handleCloseModal} />
+
+      <DocumentDetails 
+        document={selectedDocument} 
+        open={isModalVisible} 
+        onClose={handleCloseModal} 
+      />
     </div>
   );
 };

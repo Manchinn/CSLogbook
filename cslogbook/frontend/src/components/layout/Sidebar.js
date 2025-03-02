@@ -29,70 +29,76 @@ const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const [userData, setUserData] = useState({
-    firstName: '',
-    lastName: '',
-    studentID: '',
-    role: '',
-    isEligibleForInternship: false,
-    isEligibleForProject: false
-  });
+  const [userData, setUserData] = useState(() => ({
+    firstName: localStorage.getItem('firstName') || '',
+    lastName: localStorage.getItem('lastName') || '',
+    studentID: localStorage.getItem('studentID') || '',
+    role: localStorage.getItem('role') || '',
+    isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
+    isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
+  }));
 
+  // Effect สำหรับ fetch permissions ครั้งเดียวตอน mount
   useEffect(() => {
-    const storedStudentID = localStorage.getItem('studentID');
-    const storedRole = localStorage.getItem('role');
     const token = localStorage.getItem('token');
-    
-    setUserData({
-      firstName: localStorage.getItem('firstName') || '',
-      lastName: localStorage.getItem('lastName') || '',
-      studentID: storedStudentID || '',
-      role: storedRole || '',
-      isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
-      isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
-    });
+    if (!token) return;
 
-    if (storedStudentID && storedRole === 'student' && token) {
-      axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-        .then(response => {
+    if (userData.studentID && userData.role === 'student') {
+      const controller = new AbortController();
+
+      const fetchPermissions = async () => {
+        try {
+          const response = await axios.get(
+            `http://localhost:5000/api/students/${userData.studentID}`,
+            {
+              headers: { 'Authorization': `Bearer ${token}` },
+              signal: controller.signal
+            }
+          );
+
           const data = response.data;
-          // คำนวณสิทธิ์ใหม่
           const studentYear = calculateStudentYear(data.studentID);
-          const projectEligibility = isEligibleForProject(studentYear, data.totalCredits, data.majorCredits);
-          console.log('Project Eligibility Check:', {
-            studentYear,
-            totalCredits: data.totalCredits,
-            majorCredits: data.majorCredits,
-            result: projectEligibility
-          });
-          const internshipEligibility = isEligibleForInternship(studentYear, data.totalCredits);
-          
+          const projectEligibility = isEligibleForProject(
+            studentYear, 
+            data.totalCredits, 
+            data.majorCredits
+          );
+          const internshipEligibility = isEligibleForInternship(
+            studentYear, 
+            data.totalCredits
+          );
+
+          // Update state และ localStorage พร้อมกัน
+          const newPermissions = {
+            isEligibleForInternship: internshipEligibility.eligible,
+            isEligibleForProject: projectEligibility.eligible
+          };
+
           setUserData(prev => ({
             ...prev,
-            isEligibleForInternship: internshipEligibility.eligible,
-            isEligibleForProject: Boolean(projectEligibility.eligible),
+            ...newPermissions
           }));
-          
-          localStorage.setItem('isEligibleForInternship', internshipEligibility.eligible);
-          localStorage.setItem('isEligibleForProject', projectEligibility.eligible);
-        })
-        .catch(error => {
-          console.error('Error fetching user permissions:', error);
-          if (error.response?.status === 401) {
+
+          // Update localStorage
+          Object.entries(newPermissions).forEach(([key, value]) => {
+            localStorage.setItem(key, String(value));
+          });
+
+        } catch (error) {
+          if (!axios.isCancel(error) && error.response?.status === 401) {
             message.error('กรุณาเข้าสู่ระบบใหม่');
             localStorage.clear();
             navigate('/login');
-          } else {
-            message.error('ไม่สามารถดึงข้อมูลสิทธิ์ได้');
           }
-        });
-    }
-  }, [navigate]);
+        }
+      };
 
+      fetchPermissions();
+      return () => controller.abort();
+    }
+  }, []); // Run only once on mount
+
+  // Effect สำหรับ window resize
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -115,30 +121,6 @@ const Sidebar = () => {
       navigate('/login');
     }
   }, [navigate, userData.studentID]);
-
-  // เพิ่ม effect เพื่อติดตามการเปลี่ยนแปลงของ localStorage
-  useEffect(() => {
-    const checkEligibility = () => {
-      const isEligibleForInternship = localStorage.getItem('isEligibleForInternship') === 'true';
-      const isEligibleForProject = localStorage.getItem('isEligibleForProject') === 'true';
-      
-      setUserData(prev => ({
-        ...prev,
-        isEligibleForInternship,
-        isEligibleForProject
-      }));
-    };
-
-    // เพิ่ม event listener สำหรับการเปลี่ยนแปลง localStorage
-    window.addEventListener('storage', checkEligibility);
-
-    // ตรวจสอบทุกครั้งที่ component mount
-    checkEligibility();
-
-    return () => {
-      window.removeEventListener('storage', checkEligibility);
-    };
-  }, []);
 
   const menuItems = useMemo(() => [
     {
@@ -261,7 +243,15 @@ const Sidebar = () => {
       onClick: handleLogout,
       className: 'logout',
     },
-  ].filter(Boolean), [navigate, userData, handleLogout, navigateToProfile]);
+  ], [
+    navigate,
+    userData.role,
+    userData.isEligibleForInternship,
+    userData.isEligibleForProject,
+    userData.studentID,
+    handleLogout,
+    navigateToProfile
+  ]); // ระบุ dependencies ที่จำเป็นจริงๆ เท่านั้น
 
   return (
     <Sider width={230} className={`sider ${themeClass}`}>

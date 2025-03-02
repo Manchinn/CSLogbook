@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import StudentDashboard from './StudentDashboard';
 import TeacherDashboard from './TeacherDashboard';
 import AdminDashboard from './AdminDashboard';
+
+const API_URL = 'http://localhost:5000/api';
 
 const Dashboard = () => {
   const [role, setRole] = useState('');
@@ -23,90 +25,110 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedRole = localStorage.getItem('role');
-    const storedStudentID = localStorage.getItem('studentID');
-
-    if (!token) {
-      message.error('กรุณาเข้าสู่ระบบ');
+  // Error handling utility
+  const handleError = useCallback((error) => {
+    if (error.response?.status === 403) {
+      message.error('ไม่มีสิทธิ์เข้าถึงข้อมูล กรุณาเข้าสู่ระบบใหม่');
       navigate('/login');
-      return;
+    } else {
+      message.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      console.error('Error:', error);
     }
+  }, [navigate]);
 
-    setRole(storedRole);
+  // API calls
+  const fetchStudentData = useCallback(async (studentId, token) => {
+    try {
+      const response = await axios.get(`${API_URL}/students/${studentId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+      throw error;
+    }
+  }, [handleError]);
 
-    if (storedStudentID) {
-      axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-        .then(response => {
-          const userData = response.data;
-          console.log('User Data:', userData);
-          setUserData({
+  const fetchStudentStats = useCallback(async (token) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/students`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const onlyStudents = response.data.filter(user => user.role === 'student');
+      return {
+        total: onlyStudents.length,
+        internshipEligible: onlyStudents.filter(student => student.isEligibleForInternship).length,
+        projectEligible: onlyStudents.filter(student => student.isEligibleForProject).length
+      };
+    } catch (error) {
+      handleError(error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [handleError]);
+
+  // Initialize dashboard data
+  useEffect(() => {
+    const initDashboard = async () => {
+      const token = localStorage.getItem('token');
+      const storedRole = localStorage.getItem('role');
+      const storedStudentID = localStorage.getItem('studentID');
+
+      if (!token) {
+        message.error('กรุณาเข้าสู่ระบบ');
+        navigate('/login');
+        return;
+      }
+
+      setRole(storedRole);
+
+      try {
+        if (storedStudentID) {
+          const userData = await fetchStudentData(storedStudentID, token);
+          const userDataToStore = {
             firstName: userData.firstName,
             lastName: userData.lastName,
             studentID: userData.studentID,
             isEligibleForInternship: userData.isEligibleForInternship || false,
             isEligibleForProject: userData.isEligibleForProject || false
+          };
+
+          setUserData(userDataToStore);
+
+          // Update localStorage
+          Object.entries(userDataToStore).forEach(([key, value]) => {
+            localStorage.setItem(key, value);
           });
-          
-          localStorage.setItem('firstName', userData.firstName);
-          localStorage.setItem('lastName', userData.lastName);
-          localStorage.setItem('isEligibleForInternship', userData.isEligibleForInternship);
-          localStorage.setItem('isEligibleForProject', userData.isEligibleForProject);
-        })
-        .catch(error => {
-        });
-    }
-
-    if (storedRole === 'admin') {
-      fetchStudentStats();
-    }
-  }, []);
-
-  const fetchStudentStats = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        message.error('กรุณาเข้าสู่ระบบใหม่');
-        navigate('/login');
-        return;
-      }
-
-      const response = await axios.get('http://localhost:5000/api/students', {
-        headers: {
-          'Authorization': `Bearer ${token}`
         }
-      });
-            
-      const students = response.data;
-      const onlyStudents = students.filter(user => user.role === 'student');
-      
-      setStudentStats({
-        total: onlyStudents.length,
-        internshipEligible: onlyStudents.filter(student => student.isEligibleForInternship).length,
-        projectEligible: onlyStudents.filter(student => student.isEligibleForProject).length
-      });
-    } catch (error) {
-      if (error.response?.status === 403) {
-        message.error('ไม่มีสิทธิ์เข้าถึงข้อมูล กรุณาเข้าสู่ระบบใหม่');
-        navigate('/login');
+
+        if (storedRole === 'admin') {
+          const stats = await fetchStudentStats(token);
+          setStudentStats(stats);
+        }
+      } catch (error) {
+        handleError(error);
       }
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    initDashboard();
+  }, [navigate, fetchStudentData, fetchStudentStats, handleError]);
+
+  // Memoized props for child components
+  const dashboardProps = {
+    userData,
+    navigate,
+    studentStats,
+    loading
   };
 
   return (
     <div style={{ padding: '24px', background: '#f5f5f5', borderRadius: '8px' }}>
-      {role === 'student' && <StudentDashboard userData={userData} navigate={navigate} />}
-      {role === 'teacher' && <TeacherDashboard userData={userData} navigate={navigate} />}
-      {role === 'admin' && <AdminDashboard userData={userData} studentStats={studentStats} loading={loading} navigate={navigate} />}
+      {role === 'student' && <StudentDashboard {...dashboardProps} />}
+      {role === 'teacher' && <TeacherDashboard {...dashboardProps} />}
+      {role === 'admin' && <AdminDashboard {...dashboardProps} />}
     </div>
   );
 };

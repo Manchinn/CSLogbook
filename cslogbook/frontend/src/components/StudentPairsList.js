@@ -1,24 +1,88 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Input, Space, Typography, Button, message, Row, Col } from 'antd';
-import { SearchOutlined, ReloadOutlined, ProjectOutlined, SyncOutlined } from '@ant-design/icons';
+import { Table, Input, Space, Button, message, Row, Col } from 'antd';
+import { SearchOutlined, ReloadOutlined, ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import './StudentList.css';
 
-const { Title } = Typography;
+// Constants
+const AUTO_REFRESH_INTERVAL = 300000; // 5 minutes
+const TABLE_SCROLL = { x: 1200, y: 'calc(100vh - 350px)' };
+const TABLE_PAGINATION = {
+  showSizeChanger: true,
+  defaultPageSize: 10,
+  pageSizeOptions: ['10', '20', '50']
+};
+
+// Table Columns Configuration
+const getColumns = (sortedInfo) => [
+  {
+    title: 'โครงงานพิเศษ',
+    dataIndex: 'project_name',
+    key: 'project_name',
+    sorter: (a, b) => (a.project_name || '').localeCompare(b.project_name || ''),
+    sortOrder: sortedInfo.columnKey === 'project_name' && sortedInfo.order,
+    render: (text) => text || '-',
+    width: '25%'
+  },
+  {
+    title: 'รหัสนักศึกษา',
+    dataIndex: 'student_id1',
+    key: 'student_id1',
+    sorter: (a, b) => a.student_id1.localeCompare(b.student_id1),
+    sortOrder: sortedInfo.columnKey === 'student_id1' && sortedInfo.order,
+  },
+  {
+    title: 'ชื่อ',
+    dataIndex: 'first_name1',
+    key: 'first_name1',
+    sorter: (a, b) => a.first_name1.localeCompare(b.first_name1),
+    sortOrder: sortedInfo.columnKey === 'first_name1' && sortedInfo.order,
+  },
+  {
+    title: 'นามสกุล',
+    dataIndex: 'last_name1',
+    key: 'last_name1',
+    sorter: (a, b) => a.last_name1.localeCompare(b.last_name1),
+    sortOrder: sortedInfo.columnKey === 'last_name1' && sortedInfo.order,
+  },
+  {
+    title: 'รหัสนักศึกษา',
+    dataIndex: 'student_id2',
+    key: 'student_id2',
+    sorter: (a, b) => a.student_id2.localeCompare(b.student_id2),
+    sortOrder: sortedInfo.columnKey === 'student_id2' && sortedInfo.order,
+  },
+  {
+    title: 'ชื่อ',
+    dataIndex: 'first_name2',
+    key: 'first_name2',
+    sorter: (a, b) => a.first_name2.localeCompare(b.first_name2),
+    sortOrder: sortedInfo.columnKey === 'first_name2' && sortedInfo.order,
+  },
+  {
+    title: 'นามสกุล',
+    dataIndex: 'last_name2',
+    key: 'last_name2',
+    sorter: (a, b) => a.last_name2.localeCompare(b.last_name2),
+    sortOrder: sortedInfo.columnKey === 'last_name2' && sortedInfo.order,
+  },
+  {
+    title: 'วันที่',
+    dataIndex: 'created_at',
+    key: 'created_at',
+    render: (text) => text || '-',
+    width: '200px',
+    sorter: (a, b) => (a.created_at || '').localeCompare(b.created_at || ''),
+    sortOrder: sortedInfo.columnKey === 'created_at' && sortedInfo.order,
+  }
+];
 
 const StudentPairsList = () => {
   const [projectPairs, setProjectPairs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [sortedInfo, setSortedInfo] = useState({
-    columnKey: null,
-    order: null
-  });
-  const [currentSummary, setCurrentSummary] = useState({
-    total: 0,
-    loading: false,
-    error: null
-  });
+  const [sortedInfo, setSortedInfo] = useState({ columnKey: null, order: null });
+  const [currentSummary, setCurrentSummary] = useState({ total: 0 });
 
   const fetchProjectPairs = useCallback(async () => {
     setLoading(true);
@@ -45,52 +109,19 @@ const StudentPairsList = () => {
     }
   }, []);
 
-  const handleSync = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put('/api/project-pairs/update', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      message.success('อัพเดทข้อมูลสำเร็จ');
-      fetchProjectPairs();
-    } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setLoading(true);
-    try {
-      await fetchProjectPairs();
-      message.success('รีเฟรชข้อมูลสำเร็จ');
-    } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Setup initial data fetch and auto-refresh
   useEffect(() => {
     fetchProjectPairs();
-  }, [fetchProjectPairs]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchProjectPairs();
-    }, 300000); // refresh ทุก 5 นาที
-
+    const interval = setInterval(fetchProjectPairs, AUTO_REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchProjectPairs]);
 
+  // Handle error logging
   useEffect(() => {
     const handleError = (error) => {
       console.error('Error in StudentPairsList:', error);
       message.error('เกิดข้อผิดพลาดในการแสดงผล');
     };
-
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, []);
@@ -99,91 +130,32 @@ const StudentPairsList = () => {
     setSortedInfo(sorter);
   };
 
-  const filteredProjectPairs = Array.isArray(projectPairs) ? projectPairs.filter(pair =>
-    pair.project_name?.toLowerCase().includes(searchText.toLowerCase()) ||
-    pair.student_id1?.toLowerCase().includes(searchText.toLowerCase()) ||
-    pair.first_name1?.toLowerCase().includes(searchText.toLowerCase()) ||
-    pair.last_name1?.toLowerCase().includes(searchText.toLowerCase()) ||
-    pair.student_id2?.toLowerCase().includes(searchText.toLowerCase()) ||
-    pair.first_name2?.toLowerCase().includes(searchText.toLowerCase()) ||
-    pair.last_name2?.toLowerCase().includes(searchText.toLowerCase())
-  ) : [];
+  // Memoized filtered data
+  const filteredProjectPairs = React.useMemo(() => {
+    return Array.isArray(projectPairs) ? projectPairs.filter(pair =>
+      [
+        pair.project_name,
+        pair.student_id1,
+        pair.first_name1,
+        pair.last_name1,
+        pair.student_id2,
+        pair.first_name2,
+        pair.last_name2
+      ].some(field => field?.toLowerCase().includes(searchText.toLowerCase()))
+    ) : [];
+  }, [projectPairs, searchText]);
 
-  const columns = [
-    {
-      title: 'โครงงานพิเศษ',
-      dataIndex: 'project_name',
-      key: 'project_name',
-      sorter: (a, b) => (a.project_name || '').localeCompare(b.project_name || ''),
-      sortOrder: sortedInfo.columnKey === 'project_name' && sortedInfo.order,
-      render: (text) => text || '-',
-      width: '25%'
-    },
-    {
-      title: 'รหัสนักศึกษา',
-      dataIndex: 'student_id1',
-      key: 'student_id1',
-      sorter: (a, b) => a.student_id1.localeCompare(b.student_id1),
-      sortOrder: sortedInfo.columnKey === 'student_id1' && sortedInfo.order,
-    },
-    {
-      title: 'ชื่อ',
-      dataIndex: 'first_name1',
-      key: 'first_name1',
-      sorter: (a, b) => a.first_name1.localeCompare(b.first_name1),
-      sortOrder: sortedInfo.columnKey === 'first_name1' && sortedInfo.order,
-    },
-    {
-      title: 'นามสกุล',
-      dataIndex: 'last_name1',
-      key: 'last_name1',
-      sorter: (a, b) => a.last_name1.localeCompare(b.last_name1),
-      sortOrder: sortedInfo.columnKey === 'last_name1' && sortedInfo.order,
-    },
-    {
-      title: 'รหัสนักศึกษา',
-      dataIndex: 'student_id2',
-      key: 'student_id2',
-      sorter: (a, b) => a.student_id2.localeCompare(b.student_id2),
-      sortOrder: sortedInfo.columnKey === 'student_id2' && sortedInfo.order,
-    },
-    {
-      title: 'ชื่อ',
-      dataIndex: 'first_name2',
-      key: 'first_name2',
-      sorter: (a, b) => a.first_name2.localeCompare(b.first_name2),
-      sortOrder: sortedInfo.columnKey === 'first_name2' && sortedInfo.order,
-    },
-    {
-      title: 'นามสกุล',
-      dataIndex: 'last_name2',
-      key: 'last_name2',
-      sorter: (a, b) => a.last_name2.localeCompare(b.last_name2),
-      sortOrder: sortedInfo.columnKey === 'last_name2' && sortedInfo.order,
-    },
-    {
-      title: 'วันที่',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (text) => text || '-',
-      width: '200px',
-      sorter: (a, b) => (a.created_at || '').localeCompare(b.created_at || ''),
-      sortOrder: sortedInfo.columnKey === 'created_at' && sortedInfo.order,
-    }
-  ];
+  // Memoized columns
+  const columns = React.useMemo(() => getColumns(sortedInfo), [sortedInfo]);
 
   return (
     <div className="container-studentlist">
       <Row justify="space-between" align="middle">
         <Col flex="auto">
-          <Row gutter={40} align="middle">
-            <Col>
-              <Space style={{ fontSize: '14px' }}>
-                <ProjectOutlined />
-                <span>{currentSummary.total} โครงงานพิเศษ</span>
-              </Space>
-            </Col>
-          </Row>
+          <Space style={{ fontSize: '14px' }}>
+            <ProjectOutlined />
+            <span>{currentSummary.total} โครงงานพิเศษ</span>
+          </Space>
         </Col>
         <Col flex="none">
           <Space size={16}>
@@ -192,15 +164,12 @@ const StudentPairsList = () => {
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
-              style={{
-                width: 300,
-                borderRadius: '6px'
-              }}
+              style={{ width: 300, borderRadius: '6px' }}
             />
             <Button
               type="primary"
               icon={<ReloadOutlined />}
-              onClick={fetchProjectPairs} // ใช้ fetchProjectPairs แทน
+              onClick={fetchProjectPairs}
               loading={loading}
               style={{ borderRadius: '6px' }}
             >
@@ -216,19 +185,12 @@ const StudentPairsList = () => {
         loading={loading}
         size="middle"
         onChange={handleTableChange}
-        scroll={{
-          x: 1200,
-          y: 'calc(100vh - 350px)'
-        }}
+        scroll={TABLE_SCROLL}
         pagination={{
-          showSizeChanger: true,
+          ...TABLE_PAGINATION,
           showTotal: (total, range) => `${range[0]}-${range[1]} จาก ${total} รายการ`,
-          defaultPageSize: 10,
-          pageSizeOptions: ['10', '20', '50']
         }}
-        locale={{
-          emptyText: 'ไม่พบข้อมูล'
-        }}
+        locale={{ emptyText: 'ไม่พบข้อมูล' }}
       />
     </div>
   );
