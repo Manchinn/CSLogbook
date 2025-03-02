@@ -28,14 +28,21 @@ const calculateStudentYear = (studentID) => {
  */
 const isEligibleForInternship = (studentYear, totalCredits) => {
   if (studentYear < 3) {
-    console.log('ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ 3 ขึ้นไป');
-    return { eligible: false, message: 'ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ 3 ขึ้นไป' };
+    return { 
+      eligible: false, 
+      message: 'ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ 3 ขึ้นไป' 
+    };
   }
   if (totalCredits < 81) {
-    console.log('ไม่ผ่านเงื่อนไขการฝึกงาน: หน่วยกิตสะสม < 81');
-    return { eligible: false, message: 'ไม่ผ่านเงื่อนไขการฝึกงาน: หน่วยกิตสะสม < 81' };
+    return { 
+      eligible: false, 
+      message: 'ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย 81 หน่วยกิต' 
+    };
   }
-  return { eligible: true, message: 'ผ่านเงื่อนไขการฝึกงาน' };
+  return { 
+    eligible: true, 
+    message: 'ผ่านเงื่อนไขการฝึกงาน' 
+  };
 };
 
 /**
@@ -46,19 +53,34 @@ const isEligibleForInternship = (studentYear, totalCredits) => {
  * @returns {object} - ผลการตรวจสอบและข้อความแจ้งเตือน
  */
 const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
+  // เช็คเงื่อนไขชั้นปี
   if (studentYear < 4) {
-    console.log('ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ 4 ขึ้นไป');
-    return { eligible: false, message: 'ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ 4 ขึ้นไป' };
+    return { 
+      eligible: false, 
+      message: 'ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ 4 ขึ้นไป' 
+    };
   }
+  
+  // เช็คเงื่อนไขหน่วยกิตรวม
   if (totalCredits < 95) {
-    console.log('ไม่ผ่านเงื่อนไขการทำโปรเจค: หน่วยกิตรวม < 95');
-    return { eligible: false, message: 'ไม่ผ่านเงื่อนไขการทำโปรเจค: หน่วยกิตรวม < 95' };
+    return { 
+      eligible: false, 
+      message: 'ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย 95 หน่วยกิต' 
+    };
   }
+  
+  // เช็คเงื่อนไขหน่วยกิตภาควิชา
   if (majorCredits < 57) {
-    console.log('ไม่ผ่านเงื่อนไขการทำโปรเจค: หน่วยกิตภาควิชา < 57');
-    return { eligible: false, message: 'ไม่ผ่านเงื่อนไขการทำโปรเจค: หน่วยกิตภาควิชา < 57' };
+    return { 
+      eligible: false, 
+      message: 'ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย 57 หน่วยกิต' 
+    };
   }
-  return { eligible: true, message: 'ผ่านเงื่อนไขการทำโปรเจค' };
+
+  return { 
+    eligible: true, 
+    message: 'ผ่านเงื่อนไขการทำโปรเจค' 
+  };
 };
 
 const updateStudentData = async () => {

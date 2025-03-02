@@ -12,6 +12,8 @@ import {
   ProjectOutlined,
 } from '@ant-design/icons';
 import './Sidebar.css';
+import { calculateStudentYear, isEligibleForProject, isEligibleForInternship } from '../utils/studentUtils';
+
 
 const { Sider } = Layout;
 const { Title } = Typography;
@@ -58,14 +60,25 @@ const Sidebar = () => {
       })
         .then(response => {
           const data = response.data;
+          // คำนวณสิทธิ์ใหม่
+          const studentYear = calculateStudentYear(data.studentID);
+          const projectEligibility = isEligibleForProject(studentYear, data.totalCredits, data.majorCredits);
+          console.log('Project Eligibility Check:', {
+            studentYear,
+            totalCredits: data.totalCredits,
+            majorCredits: data.majorCredits,
+            result: projectEligibility
+          });
+          const internshipEligibility = isEligibleForInternship(studentYear, data.totalCredits);
+          
           setUserData(prev => ({
             ...prev,
-            isEligibleForInternship: data.isEligibleForInternship || false,
-            isEligibleForProject: data.isEligibleForProject || false,
+            isEligibleForInternship: internshipEligibility.eligible,
+            isEligibleForProject: Boolean(projectEligibility.eligible),
           }));
           
-          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
-          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
+          localStorage.setItem('isEligibleForInternship', internshipEligibility.eligible);
+          localStorage.setItem('isEligibleForProject', projectEligibility.eligible);
         })
         .catch(error => {
           console.error('Error fetching user permissions:', error);
@@ -102,6 +115,30 @@ const Sidebar = () => {
       navigate('/login');
     }
   }, [navigate, userData.studentID]);
+
+  // เพิ่ม effect เพื่อติดตามการเปลี่ยนแปลงของ localStorage
+  useEffect(() => {
+    const checkEligibility = () => {
+      const isEligibleForInternship = localStorage.getItem('isEligibleForInternship') === 'true';
+      const isEligibleForProject = localStorage.getItem('isEligibleForProject') === 'true';
+      
+      setUserData(prev => ({
+        ...prev,
+        isEligibleForInternship,
+        isEligibleForProject
+      }));
+    };
+
+    // เพิ่ม event listener สำหรับการเปลี่ยนแปลง localStorage
+    window.addEventListener('storage', checkEligibility);
+
+    // ตรวจสอบทุกครั้งที่ component mount
+    checkEligibility();
+
+    return () => {
+      window.removeEventListener('storage', checkEligibility);
+    };
+  }, []);
 
   const menuItems = useMemo(() => [
     {

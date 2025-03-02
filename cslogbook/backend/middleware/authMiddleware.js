@@ -15,11 +15,11 @@ const authMiddleware = {
     try {
       // แก้ไขตรงนี้ เอา decoded ออกเพราะไม่ได้ประกาศ
       const user = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('Authenticated user:', {
+      /* console.log('Authenticated user:', {
         userId: user.userId,
         role: user.role,
         studentID: user.studentID
-      });
+      }); */
       req.user = user;
       // เพิ่ม log เพื่อดู user info
       next();

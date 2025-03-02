@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Input, Space, Typography, Button, message, Row, Col } from 'antd';
-import { SearchOutlined, ReloadOutlined, ProjectOutlined } from '@ant-design/icons';
+import { SearchOutlined, ReloadOutlined, ProjectOutlined, SyncOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import './StudentList.css';
 
@@ -8,37 +8,92 @@ const { Title } = Typography;
 
 const StudentPairsList = () => {
   const [projectPairs, setProjectPairs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [sortedInfo, setSortedInfo] = useState({});
-  const [currentSummary, setCurrentSummary] = useState({ total: 0 }); // กำหนดค่า currentSummary
+  const [sortedInfo, setSortedInfo] = useState({
+    columnKey: null,
+    order: null
+  });
+  const [currentSummary, setCurrentSummary] = useState({
+    total: 0,
+    loading: false,
+    error: null
+  });
 
   const fetchProjectPairs = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token'); // ดึงโทเค็นจาก localStorage
-      const response = await axios.get('http://localhost:5000/api/project-pairs', {
-        headers: {
-          Authorization: `Bearer ${token}` // ส่งโทเค็นใน header
-        }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        message.error('กรุณาเข้าสู่ระบบ');
+        return;
+      }
+
+      const response = await axios.get('/api/project-pairs', {
+        headers: { Authorization: `Bearer ${token}` }
       });
+
       if (Array.isArray(response.data)) {
         setProjectPairs(response.data);
-        setCurrentSummary({ total: response.data.length }); // อัปเดต currentSummary
-      } else {
-        throw new Error('Data is not an array');
+        setCurrentSummary({ total: response.data.length });
       }
     } catch (error) {
-      console.error('Error fetching project pairs:', error);
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูลคู่โปรเจค');
+      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const handleSync = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put('/api/project-pairs/update', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success('อัพเดทข้อมูลสำเร็จ');
+      fetchProjectPairs();
+    } catch (error) {
+      message.error('เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await fetchProjectPairs();
+      message.success('รีเฟรชข้อมูลสำเร็จ');
+    } catch (error) {
+      message.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchProjectPairs();
   }, [fetchProjectPairs]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchProjectPairs();
+    }, 300000); // refresh ทุก 5 นาที
+
+    return () => clearInterval(interval);
+  }, [fetchProjectPairs]);
+
+  useEffect(() => {
+    const handleError = (error) => {
+      console.error('Error in StudentPairsList:', error);
+      message.error('เกิดข้อผิดพลาดในการแสดงผล');
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   const handleTableChange = (pagination, filters, sorter) => {
     setSortedInfo(sorter);
@@ -59,8 +114,10 @@ const StudentPairsList = () => {
       title: 'โครงงานพิเศษ',
       dataIndex: 'project_name',
       key: 'project_name',
-      sorter: (a, b) => a.project_name.localeCompare(b.project_name),
+      sorter: (a, b) => (a.project_name || '').localeCompare(b.project_name || ''),
       sortOrder: sortedInfo.columnKey === 'project_name' && sortedInfo.order,
+      render: (text) => text || '-',
+      width: '25%'
     },
     {
       title: 'รหัสนักศึกษา',
@@ -104,6 +161,15 @@ const StudentPairsList = () => {
       sorter: (a, b) => a.last_name2.localeCompare(b.last_name2),
       sortOrder: sortedInfo.columnKey === 'last_name2' && sortedInfo.order,
     },
+    {
+      title: 'วันที่',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (text) => text || '-',
+      width: '200px',
+      sorter: (a, b) => (a.created_at || '').localeCompare(b.created_at || ''),
+      sortOrder: sortedInfo.columnKey === 'created_at' && sortedInfo.order,
+    }
   ];
 
   return (
@@ -143,19 +209,26 @@ const StudentPairsList = () => {
           </Space>
         </Col>
       </Row>
-
       <Table
         columns={columns}
         dataSource={filteredProjectPairs}
-        rowKey={(record, index) => `${record.student_id1}-${record.student_id2}-${index}`} // สร้าง key ที่ไม่ซ้ำกันสำหรับแต่ละรายการ
+        rowKey={(record, index) => `${record.student_id1}-${record.student_id2}-${index}`}
         loading={loading}
         size="middle"
         onChange={handleTableChange}
         scroll={{
-          x: 1000,
+          x: 1200,
           y: 'calc(100vh - 350px)'
         }}
-        sortDirections={['ascend', 'descend', 'ascend']}
+        pagination={{
+          showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} จาก ${total} รายการ`,
+          defaultPageSize: 10,
+          pageSizeOptions: ['10', '20', '50']
+        }}
+        locale={{
+          emptyText: 'ไม่พบข้อมูล'
+        }}
       />
     </div>
   );

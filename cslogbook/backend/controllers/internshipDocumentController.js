@@ -2,50 +2,67 @@ const pool = require('../config/database');
 const path = require('path');
 
 exports.submitInternshipDocuments = async (req, res) => {
-  let companyInfo;
   try {
-    companyInfo = JSON.parse(req.body.companyInfo);
-  } catch (error) {
-    return res.status(400).json({ error: 'Invalid companyInfo format' });
-  }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
 
-  const uploadedFiles = req.files;
+    const companyInfo = JSON.parse(req.body.companyInfo);
+    
+    // แปลงชื่อไฟล์เป็น Base64
+    const filesWithEncodedNames = req.files.map(file => ({
+      ...file,
+      filename: Buffer.from(file.originalname, 'utf8').toString('base64')
+    }));
 
-  // ตรวจสอบว่าพารามิเตอร์ทั้งหมดถูกกำหนด
-  if (!companyInfo || !uploadedFiles) {
-    return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วน' });
-  }
+    // เริ่ม transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-  const companyName = companyInfo.company_name || null;
-  const contactName = companyInfo.contact_name || null;
-  const contactPhone = companyInfo.contact_phone || null;
-  const contactEmail = companyInfo.contact_email || null;
+    try {
+      // บันทึกข้อมูลลงตาราง internship_documents
+      const [internshipResult] = await connection.execute(
+        `INSERT INTO internship_documents 
+         (company_name, contact_name, contact_phone, contact_email, uploaded_files, status, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          companyInfo.company_name,
+          companyInfo.contact_name, 
+          companyInfo.contact_phone,
+          companyInfo.contact_email,
+          JSON.stringify(filesWithEncodedNames),
+          'pending',
+          new Date()
+        ]
+      );
 
-  if (!companyName) {
-    return res.status(400).json({ error: 'Company name is required' }); // ถ้าไม่มีชื่อบริษัท ส่งสถานะ 400
-  }
+      // บันทึกข้อมูลลงตาราง documents สำหรับแสดงสถานะ
+      const [documentResult] = await connection.execute(
+        `INSERT INTO documents 
+         (document_name, student_name, upload_date, status, type) 
+         VALUES (?, ?, NOW(), ?, ?)`,
+        [
+          companyInfo.company_name,
+          `${req.user.firstName} ${req.user.lastName}`, // ใช้ข้อมูลผู้ใช้จาก middleware
+          'pending',
+          'internship'
+        ]
+      );
 
-  // แปลงชื่อไฟล์ให้เป็น Base64
-  const filesWithEncodedNames = uploadedFiles.map(file => ({
-    ...file,
-    filename: Buffer.from(file.originalname, 'utf8').toString('base64')
-  }));
+      await connection.commit();
 
-  console.log("Received data from frontend:", { companyInfo, filesWithEncodedNames });
+      res.status(201).json({
+        message: 'Internship documents submitted successfully',
+        documentId: internshipResult.insertId
+      });
 
-  try {
-    const [result] = await pool.execute(
-      'INSERT INTO internship_documents (company_name, contact_name, contact_phone, contact_email, uploaded_files, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [companyName, contactName, contactPhone, contactEmail, JSON.stringify(filesWithEncodedNames), 'pending', new Date()]
-    );
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
 
-    // เพิ่มการบันทึกข้อมูลลงในตาราง documents
-    await pool.execute(
-      'INSERT INTO documents (document_name, student_name, upload_date, status, type) VALUES (?, ?, NOW(), ?, ?)',
-      [companyName, contactName, 'pending', 'internship']
-    );
-
-    res.status(201).json({ message: 'Internship documents submitted successfully', documentId: result.insertId });
   } catch (error) {
     console.error('Error submitting internship documents:', error);
     res.status(500).json({ error: 'Error submitting internship documents' });

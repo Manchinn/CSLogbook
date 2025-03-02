@@ -5,17 +5,26 @@ const { calculateStudentYear, isEligibleForInternship, isEligibleForProject } = 
 
 exports.getAllStudents = async (req, res, next) => {
   try {
-    console.log('User accessing student list:', req.user);
-
     const [students] = await pool.execute(`
-      SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
+      SELECT u.*, 
+             sd.isEligibleForInternship, 
+             sd.isEligibleForProject,
+             sd.totalCredits,
+             sd.majorCredits     
       FROM users u 
       LEFT JOIN student_data sd ON u.studentID = sd.studentID 
       WHERE u.role = 'student'
     `);
 
-    console.log('Sending student data, count:', students.length);
-    res.json(students);
+    // แปลงข้อมูลให้เป็นตัวเลข
+    const formattedStudents = students.map(student => ({
+      ...student,
+      totalCredits: parseInt(student.totalCredits) || 0,
+      majorCredits: parseInt(student.majorCredits) || 0
+    }));
+
+    console.log('Sending student data, count:', formattedStudents.length);
+    res.json(formattedStudents);
   } catch (error) {
     console.error('Error in student list route:', error);
     next(error);
@@ -24,15 +33,14 @@ exports.getAllStudents = async (req, res, next) => {
 
 exports.getStudentById = async (req, res, next) => {
   try {
-    console.log('Requesting student data:', {
-      requestedId: req.params.id,
-      userId: req.user.studentID,
-      userRole: req.user.role
-    });
-
     if (req.user.role === 'admin' || req.user.studentID === req.params.id) {
       const [student] = await pool.execute(`
-        SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
+        SELECT 
+          u.*,
+          COALESCE(sd.totalCredits, 0) as totalCredits,
+          COALESCE(sd.majorCredits, 0) as majorCredits,
+          sd.isEligibleForInternship,
+          sd.isEligibleForProject
         FROM users u 
         LEFT JOIN student_data sd ON u.studentID = sd.studentID 
         WHERE u.studentID = ?
@@ -41,52 +49,96 @@ exports.getStudentById = async (req, res, next) => {
       if (!student[0]) {
         return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
       }
-      res.json(student[0]);
+
+      // แปลงค่าและตรวจสอบข้อมูล
+      const studentData = {
+        ...student[0],
+        totalCredits: parseInt(student[0].totalCredits) || 0,
+        majorCredits: parseInt(student[0].majorCredits) || 0,
+        isEligibleForInternship: Boolean(student[0].isEligibleForInternship),
+        isEligibleForProject: Boolean(student[0].isEligibleForProject)
+      };
+
+      // เพิ่ม logging เพื่อตรวจสอบข้อมูล
+      console.log('Sending student data:', studentData);
+
+      res.json(studentData);
     } else {
       res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึงข้อมูล' });
     }
   } catch (error) {
+    console.error('Error fetching student:', error);
     next(error);
   }
 };
 
-exports.updateStudent = async (req, res, next) => {
+exports.updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
     const { totalCredits, majorCredits } = req.body;
 
-    // ดึงข้อมูลปัจจุบันของนักศึกษาจากฐานข้อมูล
-    const [currentStudent] = await pool.execute(`
-    SELECT u.firstName, u.lastName, sd.totalCredits, sd.majorCredits
-    FROM users u
-    LEFT JOIN student_data sd ON u.studentID = sd.studentID
-    WHERE u.studentID = ?
-  `, [id]);
-
-    if (currentStudent.length === 0) {
-      return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
+    console.log('Received update request:', {
+      id,
+      totalCredits,
+      majorCredits,
+      body: req.body
+    });
+    
+    // ตรวจสอบค่าที่รับเข้ามา
+    if (totalCredits === undefined || majorCredits === undefined) {
+      return res.status(400).json({ 
+        message: 'กรุณาระบุหน่วยกิตรวมและหน่วยกิตภาควิชา',
+        received: { totalCredits, majorCredits }
+      });
     }
 
-    const student = currentStudent[0];
+    // แปลงค่าเป็นตัวเลข
+    const parsedTotalCredits = parseInt(totalCredits);
+    const parsedMajorCredits = parseInt(majorCredits);
+    
+    // คำนวณปีการศึกษาและตรวจสอบสิทธิ์ใหม่
     const studentYear = calculateStudentYear(id);
+    const projectEligibility = isEligibleForProject(studentYear, parsedTotalCredits, parsedMajorCredits);
+    const internshipEligibility = isEligibleForInternship(studentYear, parsedTotalCredits);
 
-    const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits !== undefined ? totalCredits : student.totalCredits);
-    const eligibleForProject = isEligibleForProject(studentYear, totalCredits !== undefined ? totalCredits : student.totalCredits, majorCredits !== undefined ? majorCredits : student.majorCredits);
+    // อัพเดทข้อมูลทั้งหมดในตาราง student_data
+    const result = await pool.execute(
+      `UPDATE student_data 
+       SET totalCredits = ?, 
+           majorCredits = ?,
+           isEligibleForInternship = ?,
+           isEligibleForProject = ?
+       WHERE studentID = ?`,
+      [
+        parsedTotalCredits, 
+        parsedMajorCredits, 
+        internshipEligibility.eligible,
+        projectEligibility.eligible,
+        id
+      ]
+    );
 
-    // ตรวจสอบและตั้งค่า default สำหรับค่าที่เป็น undefined
-    const safeTotalCredits = totalCredits !== undefined ? totalCredits : student.totalCredits;
-    const safeMajorCredits = majorCredits !== undefined ? majorCredits : student.majorCredits;
+    if (result[0].affectedRows === 0) {
+      return res.status(404).json({ message: 'ไม่พบข้อมูลนักศึกษา' });
+    }
 
-    await pool.execute(`
-      UPDATE student_data 
-      SET totalCredits = ?, majorCredits = ?, isEligibleForInternship = ?, isEligibleForProject = ?
-      WHERE studentID = ?
-    `, [safeTotalCredits, safeMajorCredits, eligibleForInternship.eligible, eligibleForProject.eligible, id]);
+    // ส่งข้อมูลที่อัพเดทกลับไป
+    res.json({
+      studentID: id,
+      totalCredits: parsedTotalCredits,
+      majorCredits: parsedMajorCredits,
+      isEligibleForProject: projectEligibility.eligible,
+      isEligibleForInternship: internshipEligibility.eligible,
+      projectMessage: projectEligibility.message,
+      internshipMessage: internshipEligibility.message
+    });
 
-    res.json({ success: true, message: 'แก้ไขข้อมูลนักศึกษาเรียบร้อย' });
   } catch (error) {
     console.error('Error updating student:', error);
-    next(error);
+    res.status(500).json({ 
+      message: 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล',
+      error: error.message 
+    });
   }
 };
 
@@ -140,5 +192,71 @@ exports.addStudent = async (req, res, next) => {
   } catch (error) {
     console.error('Error adding student:', error);
     next(error);
+  }
+};
+
+const updateStudentData = async () => {
+  try {
+    // ตรวจสอบนักศึกษาที่ยังไม่มีในตาราง student_data
+    const [students] = await pool.execute(`
+      SELECT u.studentID, u.firstName, u.lastName, u.email
+      FROM users u
+      LEFT JOIN student_data sd ON u.studentID = sd.studentID
+      WHERE sd.studentID IS NULL AND u.role = 'student'
+    `);
+
+    if (students.length === 0) {
+      console.log('No new students to update.');
+      return;
+    }
+
+    for (const student of students) {
+      try {
+        // ตรวจสอบว่ามีข้อมูลนักศึกษาในตาราง student_data หรือไม่
+        const [existingStudent] = await pool.execute(
+          'SELECT studentID FROM student_data WHERE studentID = ?',
+          [student.studentID]
+        );
+
+        if (existingStudent.length > 0) {
+          console.log(`Student ${student.studentID} already exists, skipping...`);
+          continue;
+        }
+
+        const studentYear = calculateStudentYear(student.studentID);
+        const totalCredits = 0; // ค่าเริ่มต้น
+        const majorCredits = 0; // ค่าเริ่มต้น
+
+        // คำนวณสิทธิ์
+        const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
+        const eligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);
+
+        // เพิ่มข้อมูลนักศึกษาใหม่
+        await pool.execute(`
+          INSERT INTO student_data 
+          (studentID, firstName, lastName, email, totalCredits, majorCredits, 
+           isEligibleForInternship, isEligibleForProject)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          student.studentID,
+          student.firstName,
+          student.lastName,
+          student.email,
+          totalCredits,
+          majorCredits,
+          eligibleForInternship.eligible,
+          eligibleForProject.eligible
+        ]);
+
+        console.log(`Added new student: ${student.studentID}`);
+      } catch (error) {
+        console.error(`Error processing student ${student.studentID}:`, error.message);
+      }
+    }
+
+    console.log('Student data update completed successfully.');
+  } catch (error) {
+    console.error('Error in updateStudentData:', error.message);
+    throw error;
   }
 };

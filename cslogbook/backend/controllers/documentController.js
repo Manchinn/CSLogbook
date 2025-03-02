@@ -11,16 +11,24 @@ exports.getDocuments = async (req, res) => {
       query = `
         SELECT d.*, i.company_name, i.contact_name, i.contact_phone, i.contact_email, i.uploaded_files
         FROM documents d
-        JOIN internship_documents i ON d.document_name = i.company_name
+        JOIN internship_documents i 
+        ON CONVERT(d.document_name USING utf8mb4) COLLATE utf8mb4_unicode_ci = 
+           CONVERT(i.company_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
         WHERE d.type = 'internship';
       `;
     } else if (type === 'project') {
       query = `
-        SELECT d.*, p.project_name_th, p.project_name_en, p.student_id1, p.first_name1, p.student_type1, p.student_id2, p.first_name2, p.student_type2, p.track, p.project_category
+        SELECT d.*, p.project_name_th, p.project_name_en, 
+               p.student_id1, p.first_name1, p.student_type1,
+               p.student_id2, p.first_name2, p.student_type2, 
+               p.track, p.project_category
         FROM documents d
-        JOIN project_proposals p ON d.document_name = p.project_name_th
-        WHERE d.type = 'project';
+        JOIN project_proposals p 
+        ON CONVERT(d.document_name USING utf8mb4) COLLATE utf8mb4_unicode_ci = 
+           CONVERT(p.project_name_th USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        WHERE d.type = ?
       `;
+      params = ['project'];
     } else if (type) {
       query = 'SELECT * FROM documents WHERE type = ?';
       params.push(type);

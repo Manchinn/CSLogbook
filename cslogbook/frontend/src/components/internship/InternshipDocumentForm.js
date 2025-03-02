@@ -56,7 +56,7 @@ const InternshipDocumentForm = () => {
       console.log("Sending data to backend:", formData);
 
       // ส่งข้อมูลไปยัง backend
-      const response = await axios.post('http://localhost:5000/upload-with-info', formData, {
+      const response = await axios.post('http://localhost:5000/api/internship-documents/submit', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${localStorage.getItem('token')}`, // ส่งโทเค็นการตรวจสอบสิทธิ์

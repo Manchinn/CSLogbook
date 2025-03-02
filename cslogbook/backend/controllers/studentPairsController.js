@@ -4,15 +4,11 @@ exports.getStudentPairs = async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT 
-        project_name, 
-        student_id1, 
-        first_name1, 
-        last_name1, 
-        student_id2, 
-        first_name2, 
-        last_name2,
-        created_at
-      FROM project_pairs 
+        pp.project_name_th as project_name, 
+        pp.student_id1, pp.first_name1, pp.last_name1,
+        pp.student_id2, pp.first_name2, pp.last_name2,
+        DATE_FORMAT(CONVERT_TZ(pp.upload_date, '+00:00', '+07:00'), '%Y-%m-%d %H:%i') as created_at
+      FROM project_proposals pp
     `);
     res.json(rows);
   } catch (error) {
@@ -22,34 +18,45 @@ exports.getStudentPairs = async (req, res) => {
 };
 
 exports.updateProjectPairs = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
-    // ดึงข้อมูลจาก project_proposals
-    const [proposals] = await pool.execute(`
-      SELECT 
-        project_name_th, 
-        student_id1, 
+    await connection.beginTransaction();
+
+    // ลบข้อมูลเก่าทั้งหมด
+    await connection.execute('TRUNCATE TABLE project_pairs');
+
+    // เพิ่มข้อมูลใหม่จาก project_proposals
+    await connection.execute(`
+      INSERT INTO project_pairs (
+        project_name,
+        student_id1,
         first_name1,
         last_name1,
         student_id2,
         first_name2,
-        last_name2
+        last_name2,
+        created_at
+      )
+      SELECT 
+        project_name_th,
+        student_id1,
+        first_name1,
+        last_name1,
+        student_id2,
+        first_name2,
+        last_name2,
+        NOW()
       FROM project_proposals
+      WHERE project_name_th IS NOT NULL
     `);
 
-    // ลบข้อมูลเก่าใน project_pairs
-    await pool.execute(`DELETE FROM project_pairs`);
-
-    // เพิ่มข้อมูลใหม่ใน project_pairs
-    for (const proposal of proposals) {
-      await pool.execute(`
-        INSERT INTO project_pairs (project_name, student_id1, first_name1, last_name1, student_id2, first_name2, last_name2, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-      `, [proposal.project_name_th, proposal.student_id1, proposal.first_name1, proposal.last_name1, proposal.student_id2, proposal.first_name2, proposal.last_name2]);
-    }
-
+    await connection.commit();
     res.status(200).json({ message: 'Project pairs updated successfully' });
   } catch (error) {
+    await connection.rollback();
     console.error('Error updating project pairs:', error);
     res.status(500).json({ error: 'Error updating project pairs' });
+  } finally {
+    connection.release();
   }
 };

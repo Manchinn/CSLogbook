@@ -22,17 +22,20 @@ const DocumentManagement = ({ type }) => {
     try {
       const documentsData = await fetchDocuments(type);
       if (Array.isArray(documentsData)) {
-        console.log('Fetched documents:', documentsData);
-        // Filter out duplicate documents
-        const uniqueDocuments = documentsData.filter((doc, index, self) =>
-          index === self.findIndex((d) => d.id === doc.id)
-        ).map((doc, index) => ({ ...doc, uniqueId: `${doc.id}-${index}` }));
+        const uniqueDocuments = documentsData
+          .filter((doc, index, self) => 
+            index === self.findIndex((d) => d.id === doc.id))
+          .map((doc, index) => ({ 
+            ...doc, 
+            uniqueId: `${doc.id}-${index}`,
+            key: `${doc.id}-${index}` // เพิ่ม key สำหรับ Table
+          }));
         setDocuments(uniqueDocuments);
-      } else {
-        throw new Error('Data is not an array');
       }
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      console.error('Error fetching documents:', error);
+      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message);
+      setDocuments([]);
     }
   };
 

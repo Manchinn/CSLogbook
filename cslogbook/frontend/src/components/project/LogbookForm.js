@@ -53,11 +53,10 @@ const LogbookForm = () => {
     try {
       const formData = {
         title: values.title,
-        // แปลงเวลาให้อยู่ในรูปแบบ ISO string และระบุ timezone
         meetingDate: moment(values.meetingDate).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
-        meetingDetails: values.meetingDetails,
-        progressUpdate: values.progressUpdate,
-        status: 'pending'  // แก้เป็นตัวพิมพ์เล็ก
+        meeting_details: values.meetingDetails,
+        progress_update: values.progressUpdate,
+        status: 'pending'
       };
 
       const response = await axios.post('http://localhost:5000/api/logbooks', formData, {
@@ -83,8 +82,8 @@ const LogbookForm = () => {
       const formData = {
         title: values.title,
         meetingDate: values.meetingDate.format('YYYY-MM-DD HH:mm:ss'),
-        meetingDetails: values.meetingDetails, 
-        progressUpdate: values.progressUpdate,
+        meeting_details: values.meetingDetails, 
+        progress_update: values.progressUpdate,
         status: currentLog.status
       };
 
@@ -189,8 +188,8 @@ const LogbookForm = () => {
                       <strong>วันที่และเวลา:</strong>{' '}
                       {moment(log.meeting_date).tz('Asia/Bangkok').format('DD/MM/YYYY HH:mm')}
                     </p>
-                    <p className="ellipsis"><strong>รายละเอียดการนัดพบ:</strong> {log.meetingDetails}</p>
-                    <p className="ellipsis"><strong>ความคืบหน้าโครงงาน:</strong> {log.progressUpdate}</p>
+                    <p className="ellipsis"><strong>รายละเอียดการนัดพบ:</strong> {log.meeting_details}</p>
+                    <p className="ellipsis"><strong>ความคืบหน้าโครงงาน:</strong> {log.progress_update}</p>
                     <div className="card-footer">
                       <Popconfirm
                         title="คุณแน่ใจหรือไม่ที่จะลบ Logbook นี้?"
@@ -383,8 +382,8 @@ const LogbookForm = () => {
                 <strong>วันที่และเวลา:</strong>{' '}
                 {moment(currentLog.meeting_date).tz('Asia/Bangkok').format('DD/MM/YYYY HH:mm')}
               </p>
-              <p><strong>รายละเอียดการนัดพบ:</strong> {currentLog.meetingDetails}</p>
-              <p><strong>ความคืบหน้าโครงงาน:</strong> {currentLog.progressUpdate}</p>
+              <p><strong>รายละเอียดการนัดพบ:</strong> {currentLog.meeting_details}</p>
+              <p><strong>ความคืบหน้าโครงงาน:</strong> {currentLog.progress_update}</p>
               <div style={{ textAlign: 'right', marginTop: '10px' }}>
                 <span style={{ 
                   color: currentLog.status === "complete" ? "green" : "orange",

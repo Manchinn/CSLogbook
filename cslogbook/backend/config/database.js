@@ -7,14 +7,20 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'cslogbook',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  // แก้ไขการกำหนด charset และ collation
+  charset: 'utf8mb4'
 });
 
-// เพิ่ม test connection
+// ตั้งค่า collation หลังจากเชื่อมต่อ
 pool.getConnection()
-  .then(connection => {
-    console.log('Database connected successfully');
-    connection.release();
+  .then(async connection => {
+    try {
+      await connection.execute('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
+      console.log('Database connected successfully');
+    } finally {
+      connection.release();
+    }
   })
   .catch(err => {
     console.error('Error connecting to the database:', err);
