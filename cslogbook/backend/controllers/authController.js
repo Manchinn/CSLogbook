@@ -2,11 +2,37 @@ const pool = require('../config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { sendLoginNotification } = require('../utils/mailer');
+const { body, validationResult } = require('express-validator');
+const logger = require('../utils/logger');
+const moment = require('moment-timezone');
 
+// เพิ่ม middleware validation
+exports.validateLogin = [
+    body('username')
+        .trim()
+        .notEmpty().withMessage('กรุณากรอกชื่อผู้ใช้')
+        .isLength({ min: 3 }).withMessage('ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร'),
+    body('password')
+        .notEmpty().withMessage('กรุณากรอกรหัสผ่าน')
+        .isLength({ min: 6 }).withMessage('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
+];
 
 exports.login = async (req, res, next) => {
+    // ตรวจสอบ validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            success: false, 
+            errors: errors.array() 
+        });
+    }
+
     const { username, password } = req.body;
-    console.log('Login attempt:', { username });
+    logger.info('Login attempt', { 
+        username,
+        timestamp: moment().tz('Asia/Bangkok').format(),
+        ip: req.ip
+    });
     try {
         const [users] = await pool.execute(`
 SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
@@ -81,7 +107,13 @@ WHERE u.username = ?
             isEligibleForProject: user.isEligibleForProject || false
         });
     } catch (error) {
-        console.error('Login error:', error);
+        logger.error('Login error', {
+            username,
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date(),
+            ip: req.ip
+        });
         next(error);
     }
 }
