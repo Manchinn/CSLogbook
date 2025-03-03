@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Layout, Menu, Avatar, Typography, Badge, message } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
   HomeOutlined,
@@ -12,85 +12,93 @@ import {
   ProjectOutlined,
 } from '@ant-design/icons';
 import './Sidebar.css';
+import { calculateStudentYear, isEligibleForProject, isEligibleForInternship } from '../utils/studentUtils';
+
 
 const { Sider } = Layout;
 const { Title } = Typography;
 
 // Theme configuration
 const themeConfig = {
-  student: {
-    primary: '#1890ff',
-    menuHover: '#e6f7ff',
-    activeColor: '#1890ff',
-  },
-  teacher: {
-    primary: '#faad14',
-    menuHover: '#fff7e6',
-    activeColor: '#faad14',
-  },
-  admin: {
-    primary: '#f5222d',
-    menuHover: '#fff1f0',
-    activeColor: '#f5222d',
-  },
+  student: 'student-theme',
+  teacher: 'teacher-theme',
+  admin: 'admin-theme',
 };
 
 const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
-  const [userData, setUserData] = useState({
-    firstName: '',
-    lastName: '',
-    studentID: '',
-    role: '',
-    isEligibleForInternship: false,
-    isEligibleForProject: false
-  });
+  const location = useLocation();
+  const [userData, setUserData] = useState(() => ({
+    firstName: localStorage.getItem('firstName') || '',
+    lastName: localStorage.getItem('lastName') || '',
+    studentID: localStorage.getItem('studentID') || '',
+    role: localStorage.getItem('role') || '',
+    isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
+    isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
+  }));
 
+  // Effect สำหรับ fetch permissions ครั้งเดียวตอน mount
   useEffect(() => {
-    const storedStudentID = localStorage.getItem('studentID');
-    const storedRole = localStorage.getItem('role');
     const token = localStorage.getItem('token');
-    
-    setUserData({
-      firstName: localStorage.getItem('firstName') || '',
-      lastName: localStorage.getItem('lastName') || '',
-      studentID: storedStudentID || '',
-      role: storedRole || '',
-      isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
-      isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
-    });
+    if (!token) return;
 
-    if (storedStudentID && storedRole === 'student' && token) {
-      axios.get(`http://localhost:5000/api/students/${storedStudentID}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-        .then(response => {
+    if (userData.studentID && userData.role === 'student') {
+      const controller = new AbortController();
+
+      const fetchPermissions = async () => {
+        try {
+          const response = await axios.get(
+            `http://localhost:5000/api/students/${userData.studentID}`,
+            {
+              headers: { 'Authorization': `Bearer ${token}` },
+              signal: controller.signal
+            }
+          );
+
           const data = response.data;
+          const studentYear = calculateStudentYear(data.studentID);
+          const projectEligibility = isEligibleForProject(
+            studentYear, 
+            data.totalCredits, 
+            data.majorCredits
+          );
+          const internshipEligibility = isEligibleForInternship(
+            studentYear, 
+            data.totalCredits
+          );
+
+          // Update state และ localStorage พร้อมกัน
+          const newPermissions = {
+            isEligibleForInternship: internshipEligibility.eligible,
+            isEligibleForProject: projectEligibility.eligible
+          };
+
           setUserData(prev => ({
             ...prev,
-            isEligibleForInternship: data.isEligibleForInternship || false,
-            isEligibleForProject: data.isEligibleForProject || false,
+            ...newPermissions
           }));
-          
-          localStorage.setItem('isEligibleForInternship', data.isEligibleForInternship);
-          localStorage.setItem('isEligibleForProject', data.isEligibleForProject);
-        })
-        .catch(error => {
-          console.error('Error fetching user permissions:', error);
-          if (error.response?.status === 401) {
+
+          // Update localStorage
+          Object.entries(newPermissions).forEach(([key, value]) => {
+            localStorage.setItem(key, String(value));
+          });
+
+        } catch (error) {
+          if (!axios.isCancel(error) && error.response?.status === 401) {
             message.error('กรุณาเข้าสู่ระบบใหม่');
             localStorage.clear();
             navigate('/login');
-          } else {
-            message.error('ไม่สามารถดึงข้อมูลสิทธิ์ได้');
           }
-        });
-    }
-  }, [navigate]);
+        }
+      };
 
+      fetchPermissions();
+      return () => controller.abort();
+    }
+  }, []); // Run only once on mount
+
+  // Effect สำหรับ window resize
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -98,38 +106,36 @@ const Sidebar = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.clear();
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const theme = themeConfig[userData.role] || themeConfig.student;
-  document.documentElement.style.setProperty('--menu-hover', theme.menuHover);
-  document.documentElement.style.setProperty('--active-color', theme.activeColor);
+  const themeClass = themeConfig[userData.role] || themeConfig.student;
 
-  const navigateToProfile = () => {
+  const navigateToProfile = useCallback(() => {
     if (userData.studentID) {
       navigate(`/student-profile/${userData.studentID}`);
     } else {
       message.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
       navigate('/login');
     }
-  };
+  }, [navigate, userData.studentID]);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     {
-      key: 'dashboard',
+      key: '/dashboard',
       icon: <HomeOutlined />,
       label: 'หน้าแรก',
       onClick: () => navigate('/dashboard'),
     },
     userData.role === 'student' && userData.isEligibleForInternship && {
-      key: 'internship',
+      key: '/internship',
       icon: <FileTextOutlined />,
       label: 'ระบบฝึกงาน',
       children: [
         {
-          key: 'company-info',
+          key: '/internship-terms',
           icon: <TeamOutlined />,
           label: 'ลงทะเบียนฝึกงาน',
           onClick: () => navigate('/internship-terms'),
@@ -137,18 +143,18 @@ const Sidebar = () => {
       ],
     },
     userData.role === 'student' && userData.isEligibleForProject && {
-      key: 'project',
+      key: '/project',
       icon: <ProjectOutlined />,
       label: 'โครงงานพิเศษ',
       children: [
         {
-          key: 'project-status',
+          key: '/project-proposal',
           icon: <TeamOutlined />,
           label: 'ฟอร์มเสนอหัวข้อ',
           onClick: () => navigate('/project-proposal'),
         },
         {
-          key: 'project-logbook',
+          key: '/project-logbook',
           icon: <FileTextOutlined />,
           label: 'บันทึก Logbook',
           onClick: () => navigate('/project-logbook'),
@@ -156,80 +162,104 @@ const Sidebar = () => {
       ],
     },
     userData.role === 'student' && {
-      key: 'student-profile',
+      key: '/status-check',
+      icon: <FileTextOutlined />,
+      label: 'ตรวจสอบสถานะ',
+      onClick: () => navigate('/status-check'),
+    },
+    userData.role === 'student' && {
+      key: `/student-profile/${userData.studentID}`,
       icon: <TeamOutlined />,
       label: 'ประวัตินักศึกษา',
       onClick: navigateToProfile,
     },
     userData.role === 'teacher' && {
-      key: 'review-documents',
+      key: '/review-documents',
       icon: <FileTextOutlined />,
       label: 'ตรวจสอบเอกสารโครงงาน',
       onClick: () => navigate('/review-documents'),
     },
     userData.role === 'teacher' && {
-      key: 'advise-project',
+      key: '/advise-project',
       icon: <ProjectOutlined />,
       label: 'ให้คำแนะนำโครงงาน',
       onClick: () => navigate('/advise-project'),
     },
     userData.role === 'teacher' && {
-      key: 'approve-documents',
+      key: '/approve-documents',
       icon: <CheckCircleOutlined />,
       label: 'อนุมัติเอกสาร',
       onClick: () => navigate('/approve-documents'),
     },
     userData.role === 'admin' && {
-      key: 'students-submenu',
+      key: '/students-submenu',
       icon: <TeamOutlined />,
-      label: 'จัดการข้อมูลนักศึกษา',
+      label: 'จัดการข้อมูล',
       children: [
         {
-          key: 'student-list',
-          label: 'รายชื่อนักศึกษา',
+          key: '/students',
+          label: 'นักศึกษา',
           onClick: () => navigate('/students'),
+        },
+        {
+          key: '/teachers',
+          label: 'อาจารย์',
+          onClick: () => navigate('/teachers'),
+        },
+        {
+          key: '/project-pairs',
+          label: 'คู่โปรเจค',
+          onClick: () => navigate('/project-pairs'),
         },
       ],
     },
     userData.role === 'admin' && {
-      key: 'document-management',
+      key: '/document-management',
       icon: <FileTextOutlined />,
       label: 'จัดการเอกสาร',
       children: [
         {
-          key: 'internship-documents',
+          key: '/document-management/internship',
           label: 'เอกสารฝึกงาน',
           onClick: () => navigate('/document-management/internship'),
         },
         {
-          key: 'project-documents',
+          key: '/document-management/project',
           label: 'เอกสารโครงงานพิเศษ',
           onClick: () => navigate('/document-management/project'),
         },
       ],
     },
     userData.role === 'admin' && {
-      key: 'upload-csv',
+      key: '/admin/upload',
       icon: <UploadOutlined />,
       label: 'อัปโหลดรายชื่อนักศึกษา',
       onClick: () => navigate('/admin/upload'),
     },
     {
-      key: 'logout',
+      key: '/logout',
       icon: <LogoutOutlined />,
       label: 'ออกจากระบบ',
       onClick: handleLogout,
       className: 'logout',
     },
-  ].filter(Boolean);
+  ], [
+    navigate,
+    userData.role,
+    userData.isEligibleForInternship,
+    userData.isEligibleForProject,
+    userData.studentID,
+    handleLogout,
+    navigateToProfile
+  ]); // ระบุ dependencies ที่จำเป็นจริงๆ เท่านั้น
 
   return (
-    <Sider width={230} className="sider">
+    <Sider width={230} className={`sider ${themeClass}`}>
       <div className="profile">
         <Avatar
           size={64}
           style={{
-            backgroundColor: theme.primary,
+            backgroundColor: `var(--active-color)`,
             marginBottom: 12,
             fontSize: '24px',
           }}
@@ -242,15 +272,21 @@ const Sidebar = () => {
         <Badge
           count={userData.role === 'admin' ? 'ผู้ดูแลระบบ' : userData.role === 'teacher' ? 'อาจารย์' : userData.role === 'student' ? 'นักศึกษา' : 'ผู้ใช้งาน'}
           style={{
-            backgroundColor: theme.primary,
+            backgroundColor: `var(--active-color)`,
             fontSize: '12px',
           }}
         />
       </div>
 
-      <Menu mode="inline" items={menuItems} defaultSelectedKeys={['dashboard']} className="menu" />
+      <Menu 
+        mode="inline" 
+        items={menuItems} 
+        selectedKeys={[location.pathname]}
+        defaultSelectedKeys={[location.pathname]}
+        className="menu" 
+      />
     </Sider>
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

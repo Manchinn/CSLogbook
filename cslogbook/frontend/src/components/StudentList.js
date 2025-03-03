@@ -12,7 +12,8 @@ import {
     Popconfirm,
     Modal,
     Form,
-    Select
+    Select,
+    InputNumber
 } from 'antd';
 import {
     SearchOutlined,
@@ -20,7 +21,7 @@ import {
     UserOutlined,
     PlusOutlined,
     EditOutlined,
-    DeleteOutlined
+    DeleteOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -63,55 +64,76 @@ const StudentList = () => {
         }
     }, [navigate]);
 
-    const handleAddOrEdit = async (values) => {
+    const handleAdd = async (values) => {
         try {
             const studentYear = calculateStudentYear(values.studentID);
+            const totalCredits = parseInt(values.totalCredits) || 0;
+            const majorCredits = parseInt(values.majorCredits) || 0;
 
-            // ตรวจสอบสิทธิ์การฝึกงาน
-            const eligibleForInternship = isEligibleForInternship(studentYear, values.totalCredits);
+            // คำนวณสิทธิ์
+            const projectEligibility = isEligibleForProject(studentYear, totalCredits, majorCredits);
+            const internshipEligibility = isEligibleForInternship(studentYear, totalCredits);
 
-            // ตรวจสอบสิทธิ์การทำโปรเจค
-            const eligibleForProject = isEligibleForProject(studentYear, values.totalCredits, values.majorCredits);
+            const response = await axios.post('http://localhost:5000/api/students', {
+                studentID: values.studentID,
+                firstName: values.firstName,
+                lastName: values.lastName,
+                email: values.email,
+                totalCredits,
+                majorCredits,
+                isEligibleForInternship: internshipEligibility.eligible,
+                isEligibleForProject: projectEligibility.eligible
+            });
 
-            if (eligibleForInternship.message) {
-                message.warning(eligibleForInternship.message);
-            }
-            if (eligibleForProject.message) {
-                message.warning(eligibleForProject.message);
-            }
-
-            if (editingStudent) {
-                await axios.put(`http://localhost:5000/api/students/${editingStudent.studentID}`, {
-                    totalCredits: values.totalCredits,
-                    majorCredits: values.majorCredits,
-                    isEligibleForInternship: eligibleForInternship.eligible,
-                    isEligibleForProject: eligibleForProject.eligible
-                });
-                console.log('Edited student:', values);
-                message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
-            } else {
-                // Generate username and password based on studentID
-                values.username = `s${values.studentID}`;
-                values.password = values.studentID;
-
-                await axios.post("http://localhost:5000/api/students", {
-                    ...values,
-                    isEligibleForInternship: eligibleForInternship.eligible,
-                    isEligibleForProject: eligibleForProject.eligible
-                });
-                console.log('Added student:', values);
+            if (response.status === 200) {
                 message.success("เพิ่มนักศึกษาเรียบร้อย!");
+                setVisible(false);
+                form.resetFields();
+                await fetchStudents();
             }
-            fetchStudents();
-            setVisible(false);
-            setEditingStudent(null);
         } catch (error) {
-            console.error('Error saving student data:', error);
-            if (error.response?.status === 404) {
-                message.error("ไม่พบข้อมูลนักศึกษา");
-            } else {
-                message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+            console.error('Error adding student:', error);
+            message.error(error.response?.data?.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
+        }
+    };
+
+    const handleEdit = async (values) => {
+        try {
+            const studentYear = calculateStudentYear(values.studentID);
+            const totalCredits = parseInt(values.totalCredits) || 0;
+            const majorCredits = parseInt(values.majorCredits) || 0;
+
+            // คำนวณสิทธิ์
+            const projectEligibility = isEligibleForProject(studentYear, totalCredits, majorCredits);
+            const internshipEligibility = isEligibleForInternship(studentYear, totalCredits);
+
+            const response = await axios.put(
+                `http://localhost:5000/api/students/${editingStudent.studentID}`,
+                {
+                    totalCredits,
+                    majorCredits,
+                    isEligibleForInternship: internshipEligibility.eligible,
+                    isEligibleForProject: projectEligibility.eligible
+                }
+            );
+
+            if (response.status === 200) {
+                message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อย!");
+                setVisible(false);
+                form.resetFields();
+                await fetchStudents();
             }
+        } catch (error) {
+            console.error('Error editing student:', error);
+            message.error(error.response?.data?.message || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+        }
+    };
+
+    const handleAddOrEdit = async (values) => {
+        if (editingStudent) {
+            await handleEdit(values);
+        } else {
+            await handleAdd(values);
         }
     };
 
@@ -130,11 +152,27 @@ const StudentList = () => {
     const openModal = (student = null) => {
         setEditingStudent(student);
         setVisible(true);
-        form.setFieldsValue(student ? {
-            ...student,
-            isEligibleForInternship: student.isEligibleForInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์',
-            isEligibleForProject: student.isEligibleForProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'
-        } : { studentID: '', firstName: '', lastName: '', email: '', internshipStatus: '', isEligibleForInternship: 'ไม่มีสิทธิ์', isEligibleForProject: 'ไม่มีสิทธิ์', totalCredits: '', majorCredits: '' });
+        if (student) {
+            console.log('Student data before form set:', student);
+            form.setFieldsValue({
+                studentID: student.studentID,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                email: student.email,
+                totalCredits: parseInt(student.totalCredits),
+                majorCredits: parseInt(student.majorCredits)
+            });
+        } else {
+            // กรณีเพิ่มใหม่
+            form.setFieldsValue({
+                studentID: '',
+                firstName: '',
+                lastName: '',
+                email: '',
+                totalCredits: 0,
+                majorCredits: 0
+            });
+        }
     };
 
     const updateSummary = useCallback((data) => {
@@ -153,6 +191,15 @@ const StudentList = () => {
     useEffect(() => {
         fetchStudents();
     }, [fetchStudents]);
+
+    useEffect(() => {
+        // เมื่อ totalCredits เปลี่ยน ให้ตรวจสอบ majorCredits
+        const majorCredits = form.getFieldValue('majorCredits');
+        const totalCredits = form.getFieldValue('totalCredits');
+        if (majorCredits > totalCredits) {
+            form.setFieldsValue({ majorCredits: totalCredits });
+        }
+    }, [form.getFieldValue('totalCredits')]);
 
     const handleTableChange = (pagination, filters, sorter) => {
         setSortedInfo(sorter);
@@ -270,16 +317,23 @@ const StudentList = () => {
     return (
         <div className="container-studentlist">
             <Modal
+                style={{ top: 30 }}
                 open={visible}
                 title={editingStudent ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา"}
                 okText={editingStudent ? "บันทึก" : "เพิ่ม"}
                 cancelText="ยกเลิก"
-                onCancel={() => setVisible(false)}
+                onCancel={() => {
+                    setVisible(false);
+                    form.resetFields();
+                }}
                 onOk={() => {
                     form.validateFields()
                         .then(values => {
-                            handleAddOrEdit(values);
-                            form.resetFields();
+                            if (editingStudent) {
+                                handleEdit(values);
+                            } else {
+                                handleAdd(values);
+                            }
                         })
                         .catch(info => console.log("Validation Failed:", info));
                 }}
@@ -297,11 +351,65 @@ const StudentList = () => {
                     <Form.Item name="email" label="อีเมล" rules={[{ required: true, type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="totalCredits" label="หน่วยกิตรวม" rules={[{ required: true, message: "กรุณากรอกหน่วยกิตรวม!" }]}>
-                        <Input type="number" />
+                    <Form.Item 
+                        name="totalCredits" 
+                        label="หน่วยกิตสะสม" 
+                        rules={[
+                            { required: true, message: "กรุณากรอกหน่วยกิตรวม!" },
+                            {
+                                validator: async (_, value) => {
+                                    const numValue = parseInt(value);
+                                    if (isNaN(numValue)) {
+                                        throw new Error('กรุณากรอกตัวเลข');
+                                    }
+                                    if (numValue < 0) {
+                                        throw new Error('หน่วยกิตต้องไม่ติดลบ');
+                                    }
+                                    if (numValue > 142) {
+                                        throw new Error('หน่วยกิตรวมต้องไม่เกิน 142 หน่วยกิต');
+                                    }
+                                }
+                            }
+                        ]}
+                    >
+                        <InputNumber 
+                            min={0} 
+                            max={142}
+                            style={{ width: '100%' }}
+                        />
                     </Form.Item>
-                    <Form.Item name="majorCredits" label="หน่วยกิตภาควิชา" rules={[{ required: true, message: "กรุณากรอกหน่วยกิตภาควิชา!" }]}>
-                        <Input type="number" />
+
+                    <Form.Item 
+                        name="majorCredits" 
+                        label="หน่วยกิตภาควิชา" 
+                        dependencies={['totalCredits']}
+                        rules={[
+                            { required: true, message: "กรุณากรอกหน่วยกิตภาควิชา!" },
+                            {
+                                validator: async (_, value) => {
+                                    const numValue = parseInt(value);
+                                    const totalCredits = form.getFieldValue('totalCredits');
+                                    
+                                    if (isNaN(numValue)) {
+                                        throw new Error('กรุณากรอกตัวเลข');
+                                    }
+                                    if (numValue < 0) {
+                                        throw new Error('หน่วยกิตต้องไม่ติดลบ');
+                                    }
+                                    if (numValue > totalCredits) {
+                                        throw new Error('หน่วยกิตภาควิชาต้องไม่เกินหน่วยกิตรวม');
+                                    }
+                                }
+                            }
+                        ]}
+                    >
+                        <InputNumber 
+                            min={0} 
+                            max={form.getFieldValue('totalCredits')}
+                            style={{ width: '100%' }}
+                            parser={value => parseInt(value) || 0}
+                            formatter={value => `${value}`}
+                        />
                     </Form.Item>
                 </Form>
             </Modal>

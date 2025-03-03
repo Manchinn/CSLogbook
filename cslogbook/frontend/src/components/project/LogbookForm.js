@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { Layout, Form, Input, Button, Space, message, Card, Modal, DatePicker, Typography, Row, Col, Segmented } from "antd";
-import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
+import React, { useState, useEffect } from "react";
+import { Layout, Form, Input, Button, Space, message, Card, Modal, DatePicker, Typography, Row, Col, Segmented, Popconfirm } from "antd";
+import { PlusCircleOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import axios from 'axios';
+import moment from 'moment-timezone';
 import "./ProjectStyles.css";
 
 const { Content } = Layout;
@@ -8,94 +10,14 @@ const { Text } = Typography;
 
 const LogbookForm = () => {
   const [form] = Form.useForm();
-  const [logbookHistory, setLogbookHistory] = useState([
-    {
-      key: "1",
-      title: "พบอาจารย์ที่ปรึกษา",
-      date: "2023-12-01 10:00",
-      meetingDetails: "พบอาจารย์ที่ปรึกษาเพื่อสอบถามความคืบหน้าโครงงาน",
-      progressUpdate: "พัฒนาโมเดล AI เสร็จสมบูรณ์",
-      status: "Pending"
-    },
-    {
-      key: "2",
-      title: "ปรับแก้ไขโปรแกรม",
-      date: "2023-12-05 14:30",
-      meetingDetails: "การปรับแก้ไขโปรแกรมและแก้บัคในระบบ",
-      progressUpdate: "แก้ไขข้อผิดพลาดในโค้ด และทดสอบระบบใหม่",
-      status: "Complete"
-    },
-    {
-      key: "3",
-      title: "ทดสอบระบบ",
-      date: "2023-12-10 09:00",
-      meetingDetails: "ทดสอบระบบทั้งหมดเพื่อหาข้อผิดพลาด",
-      progressUpdate: "พบข้อผิดพลาดเล็กน้อยและแก้ไขแล้ว",
-      status: "Pending"
-    },
-    {
-      key: "4",
-      title: "ปรับปรุง UI",
-      date: "2023-12-15 13:00",
-      meetingDetails: "ปรับปรุง UI ให้ใช้งานง่ายขึ้น",
-      progressUpdate: "ปรับปรุง UI เสร็จเรียบร้อย",
-      status: "Complete"
-    },
-    {
-      key: "5",
-      title: "เพิ่มฟีเจอร์ใหม่",
-      date: "2023-12-20 11:00",
-      meetingDetails: "เพิ่มฟีเจอร์ใหม่ตามคำแนะนำของอาจารย์",
-      progressUpdate: "เพิ่มฟีเจอร์ใหม่เสร็จเรียบร้อย",
-      status: "Pending"
-    },
-    {
-      key: "6",
-      title: "ตรวจสอบความปลอดภัย",
-      date: "2023-12-25 15:00",
-      meetingDetails: "ตรวจสอบความปลอดภัยของระบบ",
-      progressUpdate: "พบช่องโหว่และแก้ไขแล้ว",
-      status: "Complete"
-    },
-    {
-      key: "7",
-      title: "ปรับปรุงประสิทธิภาพ",
-      date: "2023-12-30 10:00",
-      meetingDetails: "ปรับปรุงประสิทธิภาพของระบบ",
-      progressUpdate: "ระบบทำงานได้เร็วขึ้น",
-      status: "Pending"
-    },
-    {
-      key: "8",
-      title: "ทดสอบการใช้งาน",
-      date: "2024-01-05 14:00",
-      meetingDetails: "ทดสอบการใช้งานระบบกับผู้ใช้จริง",
-      progressUpdate: "ผู้ใช้ให้คำแนะนำเพิ่มเติม",
-      status: "Complete"
-    },
-    {
-      key: "9",
-      title: "แก้ไขบัค",
-      date: "2024-01-10 09:30",
-      meetingDetails: "แก้ไขบัคที่พบจากการทดสอบ",
-      progressUpdate: "แก้ไขบัคเสร็จเรียบร้อย",
-      status: "Pending"
-    },
-    {
-      key: "10",
-      title: "เตรียมเอกสาร",
-      date: "2024-01-15 16:00",
-      meetingDetails: "เตรียมเอกสารสำหรับการนำเสนอ",
-      progressUpdate: "เอกสารพร้อมสำหรับการนำเสนอ",
-      status: "Complete"
-    },
-  ]);
+  const [logbookHistory, setLogbookHistory] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [status, setStatus] = useState('Pending');
   const [filterStatus, setFilterStatus] = useState('All');
   const [currentLog, setCurrentLog] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const showModal = () => {
     setIsModalVisible(true);
@@ -107,29 +29,101 @@ const LogbookForm = () => {
     setIsViewModalVisible(false);
   };
 
+  const fetchLogbooks = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:5000/api/logbooks', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setLogbookHistory(response.data);
+    } catch (error) {
+      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล Logbook');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogbooks();
+  }, []);
+
   const handleSubmit = async (values) => {
     try {
-      console.log("ข้อมูล Logbook ใหม่", values);
-      message.success("ข้อมูล Logbook ของคุณถูกส่งเรียบร้อยแล้ว!");
-      setLogbookHistory([...logbookHistory, { key: logbookHistory.length + 1, ...values, status }]);
-      setIsModalVisible(false);
-      form.resetFields();
+      const formData = {
+        title: values.title,
+        meetingDate: moment(values.meetingDate).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
+        meeting_details: values.meetingDetails,
+        progress_update: values.progressUpdate,
+        status: 'pending'
+      };
+
+      const response = await axios.post('http://localhost:5000/api/logbooks', formData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.data.success) {
+        message.success("บันทึก Logbook สำเร็จ!");
+        setIsModalVisible(false);
+        form.resetFields();
+        fetchLogbooks();
+      }
     } catch (error) {
-      message.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
+      console.error('Error submitting logbook:', error);
+      message.error(error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
   };
 
   const handleEditSubmit = async (values) => {
     try {
-      const updatedLogbookHistory = logbookHistory.map(log => 
-        log.key === currentLog.key ? { ...log, ...values } : log
+      const formData = {
+        title: values.title,
+        meetingDate: values.meetingDate.format('YYYY-MM-DD HH:mm:ss'),
+        meeting_details: values.meetingDetails, 
+        progress_update: values.progressUpdate,
+        status: currentLog.status
+      };
+
+      const response = await axios.put(
+        `http://localhost:5000/api/logbooks/${currentLog.id}`, 
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
       );
-      setLogbookHistory(updatedLogbookHistory);
-      message.success("ข้อมูล Logbook ของคุณถูกแก้ไขเรียบร้อยแล้ว!");
-      setIsEditModalVisible(false);
-      form.resetFields();
+
+      if (response.data.success) {
+        message.success("แก้ไข Logbook สำเร็จ!");
+        setIsEditModalVisible(false);
+        form.resetFields();
+        fetchLogbooks();
+      }
     } catch (error) {
-      message.error("เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+      console.error('Error updating logbook:', error);
+      message.error(error.response?.data?.error || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await axios.delete(`http://localhost:5000/api/logbooks/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.data.success) {
+        message.success("ลบ Logbook สำเร็จ!");
+        fetchLogbooks();
+      }
+    } catch (error) {
+      console.error('Error deleting logbook:', error);
+      message.error(error.response?.data?.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
     }
   };
 
@@ -157,7 +151,7 @@ const LogbookForm = () => {
           <div className="filter">
             <Text className="filter-text">สถานะ:</Text>
             <Segmented
-              options={['All', 'Pending', 'Complete']}
+              options={['All', 'pending', 'complete']}
               defaultValue="All"
               onChange={handleFilterChange}
               className="segmented"
@@ -174,20 +168,46 @@ const LogbookForm = () => {
             <Row gutter={[16, 16]}>
               {filteredLogbookHistory.map((log, index) => (
                 <Col xs={24} sm={12} md={8} key={index}>
-                  <Card className="log-card" title={log.title} onClick={() => showViewModal(log)}>
-                    <EditOutlined
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        showEditModal(log);
-                      }}
-                      className="edit-icon"
-                    />
-                    <p><strong>วันที่และเวลา:</strong> {log.date}</p>
-                    <p className="ellipsis"><strong>รายละเอียดการนัดพบ:</strong> {log.meetingDetails}</p>
-                    <p className="ellipsis"><strong>ความคืบหน้าโครงงาน:</strong> {log.progressUpdate}</p>
-                    <div className="status">
-                      <span className={log.status === "Complete" ? "status-complete" : "status-pending"}>
-                        {log.status === "Complete" ? "Complete" : "Pending"}
+                  <Card 
+                    className="log-card" 
+                    title={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{log.title}</span>
+                        <EditOutlined
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showEditModal(log);
+                          }}
+                          className="edit-icon"
+                        />
+                      </div>
+                    } 
+                    onClick={() => showViewModal(log)}
+                  >
+                    <p>
+                      <strong>วันที่และเวลา:</strong>{' '}
+                      {moment(log.meeting_date).tz('Asia/Bangkok').format('DD/MM/YYYY HH:mm')}
+                    </p>
+                    <p className="ellipsis"><strong>รายละเอียดการนัดพบ:</strong> {log.meeting_details}</p>
+                    <p className="ellipsis"><strong>ความคืบหน้าโครงงาน:</strong> {log.progress_update}</p>
+                    <div className="card-footer">
+                      <Popconfirm
+                        title="คุณแน่ใจหรือไม่ที่จะลบ Logbook นี้?"
+                        onConfirm={(e) => {
+                          e.stopPropagation();
+                          handleDelete(log.id);
+                        }}
+                        onCancel={(e) => e.stopPropagation()}
+                        okText="ใช่"
+                        cancelText="ไม่"
+                      >
+                        <DeleteOutlined
+                          onClick={(e) => e.stopPropagation()}
+                          className="delete-icon"
+                        />
+                      </Popconfirm>
+                      <span className={log.status === "complete" ? "status-complete" : "status-pending"}>
+                        {log.status === "complete" ? "Complete" : "Pending"}
                       </span>
                     </div>
                   </Card>
@@ -257,6 +277,7 @@ const LogbookForm = () => {
                   type="primary"
                   htmlType="submit"
                   size="large"
+                  loading={loading}
                   style={{
                     width: "100%",
                     backgroundColor: "#1890ff",
@@ -321,15 +342,14 @@ const LogbookForm = () => {
               <Input.TextArea rows={6} placeholder="กรอกอัปเดตความคืบหน้าของโครงงาน" />
             </Form.Item>
 
-            {/* ปุ่มบันทึกการแก้ไข */}
-            <Form.Item>
-              <Space style={{ display: "flex", justifyContent: "center" }}>
+            <div className="modal-footer">
+              <Space style={{ width: "100%", justifyContent: "center" }}>
+                
                 <Button
                   type="primary"
                   htmlType="submit"
                   size="large"
                   style={{
-                    width: "100%",
                     backgroundColor: "#1890ff",
                     borderColor: "#1890ff",
                   }}
@@ -337,7 +357,7 @@ const LogbookForm = () => {
                   บันทึกการแก้ไข
                 </Button>
               </Space>
-            </Form.Item>
+            </div>
           </Form>
         </Modal>
 
@@ -358,17 +378,20 @@ const LogbookForm = () => {
           {currentLog && (
             <div>
               <p><strong>ชื่อเรื่อง:</strong> {currentLog.title}</p>
-              <p><strong>วันที่และเวลา:</strong> {currentLog.date}</p>
-              <p><strong>รายละเอียดการนัดพบ:</strong> {currentLog.meetingDetails}</p>
-              <p><strong>ความคืบหน้าโครงงาน:</strong> {currentLog.progressUpdate}</p>
+              <p>
+                <strong>วันที่และเวลา:</strong>{' '}
+                {moment(currentLog.meeting_date).tz('Asia/Bangkok').format('DD/MM/YYYY HH:mm')}
+              </p>
+              <p><strong>รายละเอียดการนัดพบ:</strong> {currentLog.meeting_details}</p>
+              <p><strong>ความคืบหน้าโครงงาน:</strong> {currentLog.progress_update}</p>
               <div style={{ textAlign: 'right', marginTop: '10px' }}>
                 <span style={{ 
-                  color: currentLog.status === "Complete" ? "green" : "orange",
-                  border: `1px solid ${currentLog.status === "Complete" ? "green" : "orange"}`,
+                  color: currentLog.status === "complete" ? "green" : "orange",
+                  border: `1px solid ${currentLog.status === "complete" ? "green" : "orange"}`,
                   padding: '2px 8px',
                   borderRadius: '4px',
                 }}>
-                  {currentLog.status === "Complete" ? "Complete" : "Pending"}
+                  {currentLog.status === "complete" ? "Complete" : "Pending"}
                 </span>
               </div>
             </div>

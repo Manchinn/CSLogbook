@@ -9,10 +9,18 @@
 .card {
   width: 100%;
   max-width: 90%;
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin: 20px auto;
+  background-color: rgb(255, 255, 255);
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
 }
 
 .layout {
@@ -32,8 +40,9 @@
 }
 
 .title {
-  text-align: left;
-  margin-bottom: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #1890ff;
 }
 
 .header-2 {
@@ -100,17 +109,21 @@
 }
 
 .edit-icon {
-  font-size: 20px;
+  font-size: 16px;
+  color: #1890ff;
   cursor: pointer;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  margin: 15px;
-  transition: color 0.3s;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
 }
 
 .edit-icon:hover {
-  color: #1890ff;
+  color: #40a9ff;
+  background-color: rgba(24, 144, 255, 0.1);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+  border: 1px solid rgba(24, 144, 255, 0.2);
 }
 
 .ellipsis {
@@ -127,15 +140,89 @@
 }
 
 .status-complete {
-  color: green;
+  color: #52c41a;
   border: 1px solid green;
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .status-pending {
-  color: orange;
+  color: #faad14;
   border: 1px solid orange;
-  padding: 2px 8px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-rejected {
+  color: #ff4d4f; 
+  border: 1px solid #ff4d4f;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.button-group {
+  display: flex;
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border-radius: 4px;
 }
+
+.button-group .ant-space-compact {
+  width: 100%;
+}
+
+.button-group .ant-btn {
+  width: 33%;
+  text-align: center;
+}
+
+.button-group .ant-btn-primary {
+  border-color: var(--active-color);
+  color: white; /* เปลี่ยนสีตัวอักษรเป็นสีขาว */
+}
+
+.delete-icon {
+  font-size: 16px;
+  color: #ff4d4f;
+  cursor: pointer;
+}
+
+.delete-icon:hover {
+  color: #ff7875;
+}
+
+.modal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* ปรับปรุง style สำหรับ Popconfirm */
+.ant-popover-buttons {
+  margin-top: 8px;
+}
+
+/* ปรับขนาดปุ่มลบให้เหมาะสม */
+.modal-footer .ant-btn-dangerous {
+  padding: 4px 15px;
+  height: 32px;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-complete, .status-pending, .status-rejected {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+

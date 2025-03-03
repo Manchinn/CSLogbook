@@ -29,7 +29,7 @@
   }
   .ant-menu-item-selected {
     background-color: var(--menu-hover) !important;
-    color: var(--active-color) !important;
+    color: var(--active-color) !important; /* เปลี่ยนสีข้อความเป็นสีขาวเมื่อถูกเลือก */
     border-radius: 6px;
     &::after {
       display: none;
@@ -55,4 +55,33 @@
     color: #ff7875;
     background-color: #fff1f0;
   }
+}
+
+/* คลาส CSS สำหรับแต่ละ role */
+.student-theme {
+  --menu-hover: #e6f7ff;
+  --active-color: #1890ff;
+}
+
+.teacher-theme {
+  --menu-hover: #fff7e6;
+  --active-color: #faad14;
+}
+
+.admin-theme {
+  --menu-hover: #fff1f0;
+  --active-color: #f5222d;
+}
+
+.menu-label {
+  color: var(--active-color);
+}
+
+/* คลาส CSS สำหรับ icon และ label */
+.menu-icon {
+  color: var(--active-color) !important;
+}
+
+.menu .ant-menu-submenu-open > .ant-menu-submenu-title {
+  color: var(--active-color) !important;
 }

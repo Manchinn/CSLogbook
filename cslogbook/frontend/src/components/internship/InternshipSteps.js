@@ -1,7 +1,7 @@
 import React from "react";
 import { Steps } from "antd";
 import { useLocation } from "react-router-dom";
-import { CheckCircleOutlined, FormOutlined, UploadOutlined, EyeOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, FormOutlined, UploadOutlined } from "@ant-design/icons";
 import "./InternshipStyles.css"; // Import shared CSS
 
 const { Step } = Steps;
@@ -17,8 +17,6 @@ const InternshipSteps = () => {
         return 1;
       case "/internship-documents":
         return 2;
-      case "/internship-review":
-        return 3;
       default:
         return 0;
     }
@@ -46,11 +44,6 @@ const InternshipSteps = () => {
           title={<span className="internship-step-title">อัปโหลดเอกสาร</span>} 
           description="แนบไฟล์เอกสารที่จำเป็น" 
           icon={<UploadOutlined />} 
-        />
-        <Step 
-          title={<span className="internship-step-title">ตรวจสอบและยืนยัน</span>} 
-          description="ตรวจสอบและยืนยันข้อมูลก่อนส่ง" 
-          icon={<EyeOutlined />} 
         />
       </Steps>
     </div>

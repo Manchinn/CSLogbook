@@ -36,3 +36,7 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Ignore Webpack configuration files
+config/webpack.config.js
+config/webpackDevServer.config.js

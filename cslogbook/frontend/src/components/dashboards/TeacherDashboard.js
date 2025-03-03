@@ -1,9 +1,14 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Card, Row, Col, Statistic, Alert, Space } from 'antd';
 import { FileTextOutlined, ProjectOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import './Dashboard.css';
 
-const TeacherDashboard = ({ userData, navigate }) => {
+const TeacherDashboard = React.memo(({ userData, navigate }) => {
+  const handleCardClick = React.useCallback((route) => {
+    navigate(route);
+  }, [navigate]);
+
   return (
     <Space direction="vertical" size="large" className="common-space-style">
       <Alert
@@ -13,36 +18,44 @@ const TeacherDashboard = ({ userData, navigate }) => {
         className="common-alert-style"
       />
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/review-documents')} className="common-card-style">
-            <Statistic
-              title="เอกสารรอตรวจสอบ"
-              value={0}
-              prefix={<FileTextOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/advise-project')} className="common-card-style">
-            <Statistic
-              title="โปรเจคที่ปรึกษา"
-              value={0}
-              prefix={<ProjectOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => navigate('/approve-documents')} className="common-card-style">
-            <Statistic
-              title="รออนุมัติ"
-              value={0}
-              prefix={<CheckCircleOutlined />}
-            />
-          </Card>
-        </Col>
+        {[
+          {
+            title: "เอกสารรอตรวจสอบ",
+            route: "/review-documents",
+            icon: <FileTextOutlined />
+          },
+          {
+            title: "โปรเจคที่ปรึกษา",
+            route: "/advise-project",
+            icon: <ProjectOutlined />
+          },
+          {
+            title: "รออนุมัติ",
+            route: "/approve-documents",
+            icon: <CheckCircleOutlined />
+          }
+        ].map(item => (
+          <Col xs={24} sm={8} key={item.route}>
+            <Card 
+              hoverable 
+              onClick={() => handleCardClick(item.route)} 
+              className="common-card-style"
+            >
+              <Statistic title={item.title} value={0} prefix={item.icon} />
+            </Card>
+          </Col>
+        ))}
       </Row>
     </Space>
   );
+});
+
+TeacherDashboard.propTypes = {
+  userData: PropTypes.shape({
+    firstName: PropTypes.string.isRequired,
+    lastName: PropTypes.string.isRequired
+  }).isRequired,
+  navigate: PropTypes.func.isRequired
 };
 
 export default TeacherDashboard;

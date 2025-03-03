@@ -101,7 +101,7 @@ const AdminUpload = () => {
       }
 
       const response = await axios.post(
-        'http://localhost:5000/upload-csv', 
+        'http://localhost:5000/api/upload-csv', // เปลี่ยน URL ให้ตรงกับการตั้งค่าใน Backend
         formData,
         {
           headers: {
@@ -219,9 +219,10 @@ const AdminUpload = () => {
         columns={columns}
         rowKey={(record) => record.studentID || Math.random().toString()}
         loading={uploading}
+        pagination={{pageSize: 10}}
         scroll={{ 
           x: 880,
-          y: 'calc(100vh - 380px)'
+          y: 'calc(100vh - 420px)'
         }}
         style={{
           flex: 1,

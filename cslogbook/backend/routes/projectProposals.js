@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const projectProposalController = require('../controllers/projectproposalController');
+const { submitProjectProposal, getProposals, approveProposal, rejectProposal } = require('../controllers/projectproposalController');
+const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
-router.post('/', projectProposalController.submitProposal);
-router.get('/', projectProposalController.getProposals);
-router.post('/:id/approve', projectProposalController.approveProposal);
-router.post('/:id/reject', projectProposalController.rejectProposal);
+router.post('/', authenticateToken, checkRole(['student']), submitProjectProposal);
+router.get('/', authenticateToken, checkRole(['student']), getProposals);
+router.post('/:id/approve', authenticateToken, checkRole(['student']), approveProposal);
+router.post('/:id/reject', authenticateToken, checkRole(['student']), rejectProposal);
 
 module.exports = router;

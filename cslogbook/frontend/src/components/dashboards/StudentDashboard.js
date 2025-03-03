@@ -1,9 +1,22 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { Card, Row, Col, Statistic, Alert, Space, Button } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import './Dashboard.css';
 
-const StudentDashboard = ({ userData, navigate }) => {
+const StudentDashboard = React.memo(({ userData, navigate }) => {
+  // Memoize การคำนวณสถานะ
+  const { internshipStatus, projectStatus } = useMemo(() => ({
+    internshipStatus: {
+      value: userData.isEligibleForInternship ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์",
+      color: userData.isEligibleForInternship ? '#3f8600' : '#cf1322'
+    },
+    projectStatus: {
+      value: userData.isEligibleForProject ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์",
+      color: userData.isEligibleForProject ? '#3f8600' : '#cf1322'
+    }
+  }), [userData.isEligibleForInternship, userData.isEligibleForProject]);
+
   return (
     <Space direction="vertical" size="large" className="common-space-style">
       <Alert
@@ -18,13 +31,13 @@ const StudentDashboard = ({ userData, navigate }) => {
           <Card className="common-card-style">
             <Statistic
               title="สถานะการฝึกงาน"
-              value={userData.isEligibleForInternship ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
-              valueStyle={{ color: userData.isEligibleForInternship ? '#3f8600' : '#cf1322' }}
+              value={internshipStatus.value}
+              valueStyle={{ color: internshipStatus.color }}
               prefix={userData.isEligibleForInternship ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
             />
             {userData.isEligibleForInternship && (
               <Button type="primary" onClick={() => navigate('/internship-terms')} 
-                      style={{ marginTop: 16 }}>
+                      >
                 จัดการฝึกงาน
               </Button>
             )}
@@ -34,8 +47,8 @@ const StudentDashboard = ({ userData, navigate }) => {
           <Card className="common-card-style">
             <Statistic
               title="สถานะโปรเจค"
-              value={userData.isEligibleForProject ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
-              valueStyle={{ color: userData.isEligibleForProject ? '#3f8600' : '#cf1322' }}
+              value={projectStatus.value}
+              valueStyle={{ color: projectStatus.color }}
               prefix={userData.isEligibleForProject ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
             />
             {userData.isEligibleForProject && (
@@ -49,6 +62,17 @@ const StudentDashboard = ({ userData, navigate }) => {
       </Row>
     </Space>
   );
+});
+
+StudentDashboard.propTypes = {
+  userData: PropTypes.shape({
+    firstName: PropTypes.string.isRequired,
+    lastName: PropTypes.string.isRequired,
+    studentID: PropTypes.string.isRequired,
+    isEligibleForInternship: PropTypes.bool.isRequired,
+    isEligibleForProject: PropTypes.bool.isRequired
+  }).isRequired,
+  navigate: PropTypes.func.isRequired
 };
 
 export default StudentDashboard;
