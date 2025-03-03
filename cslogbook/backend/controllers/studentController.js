@@ -23,7 +23,6 @@ exports.getAllStudents = async (req, res, next) => {
       majorCredits: parseInt(student.majorCredits) || 0
     }));
 
-    console.log('Sending student data, count:', formattedStudents.length);
     res.json(formattedStudents);
   } catch (error) {
     console.error('Error in student list route:', error);
@@ -60,7 +59,7 @@ exports.getStudentById = async (req, res, next) => {
       };
 
       // เพิ่ม logging เพื่อตรวจสอบข้อมูล
-      console.log('Sending student data:', studentData);
+      console.log('Sending student data:', studentData.username);
 
       res.json(studentData);
     } else {

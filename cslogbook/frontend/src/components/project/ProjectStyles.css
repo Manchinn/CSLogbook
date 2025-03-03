@@ -166,18 +166,25 @@
   font-weight: 500;
 }
 
+.button-group {
+  display: flex;
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 4px;
+}
+
+.button-group .ant-space-compact {
+  width: 100%;
+}
+
 .button-group .ant-btn {
   width: 33%;
+  text-align: center;
 }
 
 .button-group .ant-btn-primary {
   border-color: var(--active-color);
   color: white; /* เปลี่ยนสีตัวอักษรเป็นสีขาว */
-}
-
-.button-group {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-radius: 4px;
 }
 
 .delete-icon {

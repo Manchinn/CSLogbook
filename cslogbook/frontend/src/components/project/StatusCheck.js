@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Layout, Table, message, Row, Col, Button } from "antd";
+import { Layout, Table, message, Row, Col, Button, Space } from "antd"; // เพิ่ม Space
 import axios from "axios";
 import moment from "moment";
+import { v4 as uuidv4 } from 'uuid';
 import "./ProjectStyles.css";
 
 const { Content } = Layout;
-const { Group: ButtonGroup } = Button;
 
 // แยก constant ออกมา
 const DOCUMENT_TYPES = {
@@ -40,21 +40,27 @@ const StatusCheck = () => {
       setLoading(true);
       const response = await axios.get("http://localhost:5000/api/documents", {
         headers: { 'Authorization': `Bearer ${token}` },
-        params: { type: selectedType === 'all' ? undefined : selectedType }
+        params: { 
+          type: selectedType === 'all' ? undefined : selectedType,
+          studentId: studentID 
+        }
       });
 
       const formattedData = response.data.map(doc => ({
         ...doc,
-        key: doc.id || `${doc.document_name}-${doc.upload_date}`,
+        // สร้าง unique key จากข้อมูลที่สำคัญและ UUID
+        key: `${doc.id || ''}-${doc.student_id || ''}-${uuidv4()}`,
         upload_date: moment(doc.upload_date).format("YYYY-MM-DD")
       }));
 
       setDocuments(formattedData);
     } catch (error) {
-      message.error(error.response?.status === 401 
-        ? "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้"
-        : "เกิดข้อผิดพลาดในการดึงข้อมูลสถานะ"
+      message.error(
+        error.response?.status === 401 
+          ? "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้"
+          : "เกิดข้อผิดพลาดในการดึงข้อมูลสถานะ"
       );
+      console.error('Error fetching documents:', error);
     } finally {
       setLoading(false);
     }
@@ -64,13 +70,39 @@ const StatusCheck = () => {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  // ย้าย filterDocuments ไปใช้ useMemo
+  // ปรับปรุง filteredData เพื่อป้องกันการซ้ำ
   const filteredData = useMemo(() => {
-    return documents.filter(document => 
-      selectedTab === "pending" 
+    // ใช้ Set เพื่อเก็บ unique keys
+    const uniqueKeys = new Set();
+    
+    console.log('Documents before filtering:', documents); // เพิ่ม log ก่อน filter
+
+    const filtered = documents.filter(document => {
+      const isValidStatus = selectedTab === "pending" 
         ? document.status === "pending"
-        : ["approved", "rejected"].includes(document.status)
-    );
+        : ["approved", "rejected"].includes(document.status);
+
+      if (!isValidStatus) {
+        console.log('Filtered out by status:', document); // log เมื่อถูก filter ด้วย status
+        return false;
+      }
+
+      // ตรวจสอบว่าเป็นข้อมูลซ้ำหรือไม่
+      const documentKey = `${document.id}-${document.upload_date}-${document.status}`;
+      if (uniqueKeys.has(documentKey)) {
+        console.log('Duplicate document found:', document); // log เมื่อพบข้อมูลซ้ำ
+        return false;
+      }
+      
+      uniqueKeys.add(documentKey);
+      return true;
+    });
+
+    console.log('Current tab:', selectedTab); // log selected tab
+    console.log('Filtered results:', filtered); // log ผลลัพธ์สุดท้าย
+    console.log('Unique keys:', Array.from(uniqueKeys)); // log unique keys ทั้งหมด
+
+    return filtered;
   }, [documents, selectedTab]);
 
   // ย้าย columns ไปใช้ useMemo
@@ -124,7 +156,7 @@ const StatusCheck = () => {
           
           <Row gutter={[16, 16]} justify="center">
             <Col span={24}>
-              <ButtonGroup className="button-group" style={{ width: "100%" }}>
+              <Space.Compact className="button-group" style={{ width: "100%" }}>
                 {[
                   { key: 'pending', text: 'คำร้องที่รอดำเนินการ' },
                   { key: 'completed', text: 'คำร้องที่ดำเนินการเสร็จแล้ว' }
@@ -138,21 +170,22 @@ const StatusCheck = () => {
                     {text}
                   </Button>
                 ))}
-              </ButtonGroup>
+              </Space.Compact>
             </Col>
             
             <Col span={24}>
-              <ButtonGroup className="button-group" style={{ width: "100%" }}>
+              <Space.Compact className="button-group" style={{ width: "100%" }}>
                 {Object.entries(DOCUMENT_TYPES).map(([type, text]) => (
                   <Button
                     key={type}
+                    style={{ width: `${100 / Object.keys(DOCUMENT_TYPES).length}%` }}
                     type={selectedType === type ? "primary" : "default"}
                     onClick={() => setSelectedType(type)}
                   >
                     {text}
                   </Button>
                 ))}
-              </ButtonGroup>
+              </Space.Compact>
             </Col>
           </Row>
 
@@ -164,7 +197,9 @@ const StatusCheck = () => {
             style={{ marginTop: 20 }}
             pagination={{ 
               pageSize: 10,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`
+              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50']
             }}
           />
         </div>
