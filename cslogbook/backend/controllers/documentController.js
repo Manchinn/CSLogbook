@@ -111,8 +111,15 @@ exports.getDocuments = async (req, res) => {
     const [rows] = await pool.execute(query, params);
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching documents:', error);
-    res.status(500).json({ error: 'Error fetching documents' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      query: error.sql
+    });
+    res.status(500).json({ 
+      error: 'Error fetching documents',
+      details: error.message 
+    });
   }
 };
 
@@ -120,14 +127,76 @@ exports.getDocumentById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [rows] = await pool.execute('SELECT * FROM documents WHERE id = ?', [parseInt(id, 10)]);
+    // ปรับปรุง query เพื่อดึงข้อมูลที่สมบูรณ์
+    let query = `
+      SELECT 
+        d.*,
+        CASE 
+          WHEN d.type = 'internship' THEN (
+            SELECT JSON_OBJECT(
+              'company_name', i.company_name,
+              'contact_name', i.contact_name,
+              'contact_phone', i.contact_phone,
+              'contact_email', i.contact_email,
+              'student_name', u.firstName,
+              'uploaded_files', i.uploaded_files
+            )
+            FROM internship_documents i
+            JOIN users u ON d.student_name LIKE CONCAT('%', u.firstName, '%')
+            WHERE i.company_name = d.document_name
+          )
+          WHEN d.type = 'project' THEN (
+            SELECT JSON_OBJECT(
+              'project_name_th', p.project_name_th,
+              'project_name_en', p.project_name_en,
+              'student_id1', p.student_id1,
+              'student_name1', CONCAT(u1.firstName, ' ', u1.lastName),
+              'student_type1', p.student_type1,
+              'student_id2', p.student_id2,
+              'student_name2', CASE 
+                WHEN p.student_id2 IS NOT NULL 
+                THEN CONCAT(u2.firstName, ' ', u2.lastName)
+                ELSE NULL
+              END,
+              'student_type2', p.student_type2,
+              'track', p.track,
+              'project_category', p.project_category
+            )
+            FROM project_proposals p
+            LEFT JOIN users u1 ON p.student_id1 = u1.studentID
+            LEFT JOIN users u2 ON p.student_id2 = u2.studentID
+            WHERE p.project_name_th = d.document_name
+          )
+        END as details
+      FROM documents d
+      WHERE d.id = ?`;
+
+    const [rows] = await pool.execute(query, [parseInt(id, 10)]);
+
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Document not found' });
     }
-    res.json(rows[0]);
+
+    // แปลง JSON string เป็น object และรวมข้อมูล
+    const document = rows[0];
+    const details = JSON.parse(document.details || '{}');
+    delete document.details;
+
+    res.json({
+      ...document,
+      ...details
+    });
+
   } catch (error) {
-    console.error('Error fetching document:', error);
-    res.status(500).json({ error: 'Error fetching document' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      query: error.sql
+    });
+    res.status(500).json({ 
+      error: 'Error fetching document',
+      details: error.message 
+    });
   }
 };
 
@@ -138,8 +207,15 @@ exports.approveDocument = async (req, res) => {
     await pool.execute('UPDATE documents SET status = ? WHERE id = ?', ['approved', parseInt(id, 10)]);
     res.status(200).json({ message: 'Document approved successfully' });
   } catch (error) {
-    console.error('Error approving document:', error);
-    res.status(500).json({ error: 'Error approving document' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      query: error.sql
+    });
+    res.status(500).json({ 
+      error: 'Error approving document',
+      details: error.message 
+    });
   }
 };
 
@@ -150,7 +226,14 @@ exports.rejectDocument = async (req, res) => {
     await pool.execute('UPDATE documents SET status = ? WHERE id = ?', ['rejected', id]);
     res.status(200).json({ message: 'Document rejected successfully' });
   } catch (error) {
-    console.error('Error rejecting document:', error);
-    res.status(500).json({ error: 'Error rejecting document' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      query: error.sql
+    });
+    res.status(500).json({ 
+      error: 'Error rejecting document',
+      details: error.message 
+    });
   }
 };

@@ -13,6 +13,9 @@ router.post('/', authenticateToken, logbookController.createLogbook);
 // Update logbook
 router.put('/:id', authenticateToken, logbookController.updateLogbook);
 
+// Update logbook status
+router.patch('/:id/status', authenticateToken, logbookController.updateLogbookStatus);
+
 // Delete logbook
 router.delete('/:id', authenticateToken, logbookController.deleteLogbook);
 

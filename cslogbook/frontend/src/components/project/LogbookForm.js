@@ -52,12 +52,18 @@ const LogbookForm = () => {
   const handleSubmit = async (values) => {
     try {
       const formData = {
-        title: values.title,
-        meetingDate: moment(values.meetingDate).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
-        meeting_details: values.meetingDetails,
-        progress_update: values.progressUpdate,
+        title: values.title.trim(),
+        meetingDate: moment(values.meetingDate).format('YYYY-MM-DD HH:mm:ss'),
+        meeting_details: values.meetingDetails.trim(),
+        progress_update: values.progressUpdate.trim(),
         status: 'pending'
       };
+
+      // ตรวจสอบค่าว่างก่อนส่ง
+      if (!formData.title || !formData.meetingDate || !formData.meeting_details || !formData.progress_update) {
+        message.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+        return;
+      }
 
       const response = await axios.post('http://localhost:5000/api/logbooks', formData, {
         headers: {

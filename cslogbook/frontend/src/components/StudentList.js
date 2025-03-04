@@ -39,6 +39,7 @@ const StudentList = () => {
     const [visible, setVisible] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [form] = Form.useForm();
+    const [yearFilter, setYearFilter] = useState('all');
 
     const navigate = useNavigate();
 
@@ -176,17 +177,20 @@ const StudentList = () => {
     };
 
     const updateSummary = useCallback((data) => {
-        const filteredData = data.filter(student =>
-            student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.lastName?.toLowerCase().includes(searchText.toLowerCase())
-        );
+        const filtered = data.filter(student => {
+            const matchesSearch = student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.lastName?.toLowerCase().includes(searchText.toLowerCase());
+            const matchesYear = yearFilter === 'all' || calculateStudentYear(student.studentID) === parseInt(yearFilter);
+            return matchesSearch && matchesYear;
+        });
+        
         return {
-            total: filteredData.length,
-            internshipEligible: filteredData.filter(s => s.isEligibleForInternship).length,
-            projectEligible: filteredData.filter(s => s.isEligibleForProject).length
+            total: filtered.length,
+            internshipEligible: filtered.filter(s => s.isEligibleForInternship).length,
+            projectEligible: filtered.filter(s => s.isEligibleForProject).length
         };
-    }, [searchText]);
+    }, [searchText, yearFilter]);
 
     useEffect(() => {
         fetchStudents();
@@ -205,11 +209,15 @@ const StudentList = () => {
         setSortedInfo(sorter);
     };
 
-    const filteredStudents = students.filter(student =>
-        student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
-        student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        student.lastName?.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const filteredStudents = students.filter(student => {
+        const matchesSearch = student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
+            student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
+            student.lastName?.toLowerCase().includes(searchText.toLowerCase());
+            
+        const matchesYear = yearFilter === 'all' || calculateStudentYear(student.studentID) === parseInt(yearFilter);
+        
+        return matchesSearch && matchesYear;
+    });
 
     const tableHeaderStyle = {
         className: 'table-header'
@@ -253,6 +261,20 @@ const StudentList = () => {
             onCell: () => ({ style: tableCellStyle }),
             sorter: (a, b) => a.lastName.localeCompare(b.lastName),
             sortOrder: sortedInfo.columnKey === 'lastName' && sortedInfo.order
+        },
+        {
+            title: 'ชั้นปี',
+            key: 'year',
+            width: 100,
+            align: 'center',
+            onHeaderCell: () => ({ style: tableHeaderStyle }),
+            onCell: () => ({ style: tableCellStyle }),
+            render: (_, record) => {
+                const year = calculateStudentYear(record.studentID);
+                return <span>ปี {year}</span>;
+            },
+            sorter: (a, b) => calculateStudentYear(a.studentID) - calculateStudentYear(b.studentID),
+            sortOrder: sortedInfo.columnKey === 'year' && sortedInfo.order,
         },
         {
             title: 'สถานะฝึกงาน',
@@ -453,6 +475,18 @@ const StudentList = () => {
                                 borderRadius: '6px'
                             }}
                         />
+                        <Select 
+                            defaultValue="all"
+                            style={{ width: 120 }}
+                            onChange={value => setYearFilter(value)}
+                        >
+                            <Option value="all">ทุกชั้นปี</Option>
+                            <Option value="1">ปี 1</Option>
+                            <Option value="2">ปี 2</Option>
+                            <Option value="3">ปี 3</Option>
+                            <Option value="4">ปี 4</Option>
+                            <Option value="5">ปี 5</Option>
+                        </Select>
                         <Button
                             type="primary"
                             icon={<ReloadOutlined />}

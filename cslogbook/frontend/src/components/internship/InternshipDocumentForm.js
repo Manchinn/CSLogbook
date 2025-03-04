@@ -81,8 +81,22 @@ const InternshipDocumentForm = () => {
   };
 
   const handleFileChange = ({ fileList }) => {
-    setFileList(fileList);
-    const files = fileList.map(file => file.originFileObj);
+    // กรองไฟล์ที่ไม่ใช่ PDF ออก
+    const validFiles = fileList.filter(file => {
+      const isPDF = file.type === 'application/pdf' || 
+                    file.name?.toLowerCase().endsWith('.pdf');
+      if (!isPDF) {
+        message.error(`${file.name} ไม่ใช่ไฟล์ PDF`);
+      }
+      return isPDF;
+    });
+
+    setFileList(validFiles);
+    
+    // อัปเดต pdfFiles เฉพาะไฟล์ที่มี originFileObj
+    const files = validFiles
+      .map(file => file.originFileObj)
+      .filter(Boolean);
     setPdfFiles(files);
   };
 
@@ -146,10 +160,25 @@ const InternshipDocumentForm = () => {
             </Form.Item>
           </Form>
 
+          {/* เปลี่ยนเงื่อนไขการแสดง PDF Viewer */}
           {pdfFiles.length > 0 && (
             <Card title="แสดงผลเอกสาร PDF">
               {pdfFiles.map((file, index) => (
-                <PDFViewer key={index} pdfFile={file} />
+                file && (
+                  <div key={index}>
+                    <Typography.Text strong>
+                      {file.name}
+                    </Typography.Text>
+                    <PDFViewer 
+                      key={index} 
+                      pdfFile={file}
+                      onError={(error) => {
+                        message.error(`ไม่สามารถโหลดไฟล์ ${file.name}: ${error.message}`);
+                      }}
+                      style={{ marginBottom: '20px' }}
+                    />
+                  </div>
+                )
               ))}
             </Card>
           )}
