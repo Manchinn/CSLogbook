@@ -164,7 +164,6 @@ const StudentList = () => {
                 majorCredits: parseInt(student.majorCredits)
             });
         } else {
-            // กรณีเพิ่มใหม่
             form.setFieldsValue({
                 studentID: '',
                 firstName: '',
@@ -521,7 +520,7 @@ const StudentList = () => {
                 onChange={handleTableChange}
                 scroll={{
                     x: 1000,
-                    y: 'calc(100vh - 350px)'
+                    y: 'calc(100vh - 340px)'
                 }}
                 sortDirections={['ascend', 'descend', 'ascend']}
             />

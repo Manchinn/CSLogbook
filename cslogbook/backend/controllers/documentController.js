@@ -138,11 +138,11 @@ exports.getDocumentById = async (req, res) => {
               'contact_name', i.contact_name,
               'contact_phone', i.contact_phone,
               'contact_email', i.contact_email,
-              'student_name', u.firstName,
-              'uploaded_files', i.uploaded_files
+              'uploaded_files', i.uploaded_files,
+              'student_name', CONCAT(u.firstName, ' ', u.lastName)
             )
             FROM internship_documents i
-            JOIN users u ON d.student_name LIKE CONCAT('%', u.firstName, '%')
+            LEFT JOIN users u ON d.student_name LIKE CONCAT('%', u.firstName, '%')
             WHERE i.company_name = d.document_name
           )
           WHEN d.type = 'project' THEN (
@@ -153,11 +153,9 @@ exports.getDocumentById = async (req, res) => {
               'student_name1', CONCAT(u1.firstName, ' ', u1.lastName),
               'student_type1', p.student_type1,
               'student_id2', p.student_id2,
-              'student_name2', CASE 
-                WHEN p.student_id2 IS NOT NULL 
-                THEN CONCAT(u2.firstName, ' ', u2.lastName)
-                ELSE NULL
-              END,
+              'student_name2', CASE WHEN p.student_id2 IS NOT NULL 
+                                  THEN CONCAT(u2.firstName, ' ', u2.lastName)
+                                  ELSE NULL END,
               'student_type2', p.student_type2,
               'track', p.track,
               'project_category', p.project_category
@@ -171,32 +169,22 @@ exports.getDocumentById = async (req, res) => {
       FROM documents d
       WHERE d.id = ?`;
 
-    const [rows] = await pool.execute(query, [parseInt(id, 10)]);
+    const [rows] = await pool.execute(query, [id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
     // แปลง JSON string เป็น object และรวมข้อมูล
-    const document = rows[0];
-    const details = JSON.parse(document.details || '{}');
-    delete document.details;
+    const documentData = {
+      ...rows[0],
+      ...(rows[0].details ? JSON.parse(rows[0].details) : {})
+    };
 
-    res.json({
-      ...document,
-      ...details
-    });
-
+    res.json(documentData);
   } catch (error) {
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      query: error.sql
-    });
-    res.status(500).json({ 
-      error: 'Error fetching document',
-      details: error.message 
-    });
+    console.error('Error fetching document:', error);
+    res.status(500).json({ error: 'Error fetching document details' });
   }
 };
 

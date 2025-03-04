@@ -156,10 +156,6 @@ const DocumentManagement = ({ type }) => {
         dataIndex: 'type',
         key: 'type',
         render: (type) => type === 'internship' ? 'เอกสารฝึกงาน' : 'เอกสารโครงงาน',
-        filters: [
-            { text: 'เอกสารฝึกงาน', value: 'internship' },
-            { text: 'เอกสารโครงงาน', value: 'project' }
-        ],
         onFilter: (value, record) => record.type === value,
     },
     {

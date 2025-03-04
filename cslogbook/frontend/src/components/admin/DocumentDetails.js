@@ -7,6 +7,9 @@ import moment from 'moment-timezone';
 
 const { Title, Paragraph } = Typography;
 
+// 1. เพิ่ม BASE_URL สำหรับ API
+const API_BASE_URL = 'http://localhost:5000';
+
 const DocumentDetails = ({ documentId, open, onClose }) => {
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,9 +24,24 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/documents/${documentId}`);
-        console.log('Document data:', response.data); // เพิ่ม log เพื่อตรวจสอบข้อมูล
-        setDocument(response.data);
+        const response = await axios.get(`${API_BASE_URL}/api/documents/${documentId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        // แปลงข้อมูล JSON string เป็น object ถ้าจำเป็น
+        const documentData = {
+          ...response.data,
+          uploaded_files: response.data.uploaded_files ? 
+            (typeof response.data.uploaded_files === 'string' ? 
+              JSON.parse(response.data.uploaded_files) : 
+              response.data.uploaded_files) : 
+            []
+        };
+
+        console.log('Processed document data:', documentData);
+        setDocument(documentData);
       } catch (error) {
         console.error('Error fetching document details:', error);
         message.error('เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร');
@@ -33,7 +51,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     };
 
     fetchDocumentDetails();
-  }, [documentId]);
+  }, [documentId, API_BASE_URL]);
 
   const formatDateTime = (date) => {
     return moment(date).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss');
@@ -48,39 +66,59 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     setSelectedFile(file);
   };
 
-  const renderFileList = (files) => (
-    <List
-      size="small"
-      bordered
-      dataSource={files}
-      renderItem={(file) => (
-        <List.Item 
-          actions={[
-            <Button
-              type="link"
-              onClick={() => handleFileSelect(file)}
+  // 2. แก้ไขฟังก์ชัน renderFileList
+  const renderFileList = (files) => {
+    try {
+      if (!files || files.length === 0) {
+        return <Paragraph>ไม่มีเอกสารที่อัปโหลด</Paragraph>;
+      }
+  
+      const fileArray = Array.isArray(files) ? 
+        files : 
+        (typeof files === 'string' ? JSON.parse(files) : []);
+    
+      return (
+        <List
+          size="small"
+          bordered
+          dataSource={fileArray}
+          renderItem={(file) => (
+            <List.Item 
+              key={file.filename}
+              actions={[
+                <Button
+                  key="view"
+                  type="link"
+                  onClick={() => handleFileSelect(file)}
+                >
+                  แสดง
+                </Button>,
+                <Button
+                  key="download"
+                  type="link"
+                  href={`${API_BASE_URL}/uploads/${file.filename}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<DownloadOutlined />}
+                >
+                  ดาวน์โหลด
+                </Button>
+              ]}
             >
-              แสดง
-            </Button>,
-            <Button
-              type="link"
-              href={`http://localhost:5000/uploads/${file.filename}`}
-              target="_blank"
-              icon={<DownloadOutlined />}
-            >
-              ดาวน์โหลด
-            </Button>
-          ]}
-        >
-          <List.Item.Meta
-            avatar={<FilePdfOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} />}
-            title={file.originalname}
-            description={`ขนาด: ${(file.size / 1024 / 1024).toFixed(2)} MB`}
-          />
-        </List.Item>
-      )}
-    />
-  );
+              <List.Item.Meta
+                avatar={<FilePdfOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} />}
+                title={file.originalname}
+                description={`ขนาด: ${(file.size / 1024 / 1024).toFixed(2)} MB`}
+              />
+            </List.Item>
+          )}
+        />
+      );
+    } catch (error) {
+      console.error('Error rendering file list:', error);
+      return <Paragraph>เกิดข้อผิดพลาดในการแสดงรายการไฟล์</Paragraph>;
+    }
+  };
 
   const renderInternshipDetails = () => (
     <Card style={{ marginBottom: '16px' }}>
@@ -136,13 +174,14 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     );
   };
 
+  // 3. แก้ไขฟังก์ชัน renderPDFViewer
   const renderPDFViewer = () => (
     <Card 
       title={selectedFile?.originalname}
       style={{ marginTop: '16px' }}
       extra={
         <a 
-          href={`http://localhost:5000/uploads/${selectedFile.filename}`}
+          href={`${API_BASE_URL}/uploads/${selectedFile.filename}`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -153,7 +192,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       }
     >
       <PDFViewer 
-        pdfFile={`http://localhost:5000/uploads/${selectedFile.filename}`}
+        pdfFile={`${API_BASE_URL}/uploads/${selectedFile.filename}`}
         width="100%"
         height={600}
         onError={(error) => handlePDFError(error, selectedFile.originalname)}
@@ -166,18 +205,23 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
   const renderStudentName = () => {
     if (!document) return '-';
 
-    if (document.type === 'internship') {
-      return document.student_name || `${document.firstName} ${document.lastName}` || '-';
+    try {
+      if (document.type === 'internship') {
+        return document.student_name || `${document.firstName} ${document.lastName}` || '-';
+      }
+  
+      // กรณีโครงงาน
+      const student1 = document.student_name1 || 
+                      `${document.firstName1} ${document.lastName1}` || '-';
+      const student2 = document.student_name2 || 
+                      (document.firstName2 && document.lastName2 ? 
+                        `${document.firstName2} ${document.lastName2}` : '');
+      
+      return student2 ? `${student1}, ${student2}` : student1;
+    } catch (error) {
+      console.error('Error rendering student name:', error);
+      return '-';
     }
-
-    // กรณีโครงงาน
-    const student1 = document.student_name1 || 
-                    `${document.firstName1} ${document.lastName1}` || '-';
-    const student2 = document.student_name2 || 
-                    (document.firstName2 && document.lastName2 ? 
-                      `${document.firstName2} ${document.lastName2}` : '');
-    
-    return student2 ? `${student1}, ${student2}` : student1;
   };
 
   // ปรับปรุงการแสดงข้อมูลในส่วนหลัก
