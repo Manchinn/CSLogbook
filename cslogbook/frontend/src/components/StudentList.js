@@ -31,6 +31,12 @@ import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } f
 const { Title } = Typography;
 const { Option } = Select;
 
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+    throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
+
 const StudentList = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -39,14 +45,24 @@ const StudentList = () => {
     const [visible, setVisible] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [form] = Form.useForm();
+    const [yearFilter, setYearFilter] = useState('all');
 
     const navigate = useNavigate();
+
+    const handleAPIError = useCallback((error, fallbackMessage) => {
+        console.error('API Error:', error);
+        const errorMessage = error.response?.data?.message || fallbackMessage;
+        message.error(errorMessage);
+        if (error.response?.status === 401) {
+            navigate('/login');
+        }
+    }, [navigate]);
 
     const fetchStudents = useCallback(async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/students', {
+            const response = await axios.get(`${API_URL}/students`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -54,15 +70,11 @@ const StudentList = () => {
             const studentOnly = response.data.filter(user => user.role === 'student');
             setStudents(studentOnly);
         } catch (error) {
-            console.error('Error fetching students:', error);
-            if (error.response?.status === 401) {
-                message.error('กรุณาเข้าสู่ระบบใหม่');
-                navigate('/login');
-            }
+            handleAPIError(error, 'ไม่สามารถดึงข้อมูลนักศึกษาได้');
         } finally {
             setLoading(false);
         }
-    }, [navigate]);
+    }, [navigate, handleAPIError]);
 
     const handleAdd = async (values) => {
         try {
@@ -74,7 +86,7 @@ const StudentList = () => {
             const projectEligibility = isEligibleForProject(studentYear, totalCredits, majorCredits);
             const internshipEligibility = isEligibleForInternship(studentYear, totalCredits);
 
-            const response = await axios.post('http://localhost:5000/api/students', {
+            const response = await axios.post(`${API_URL}/students`, {
                 studentID: values.studentID,
                 firstName: values.firstName,
                 lastName: values.lastName,
@@ -108,7 +120,7 @@ const StudentList = () => {
             const internshipEligibility = isEligibleForInternship(studentYear, totalCredits);
 
             const response = await axios.put(
-                `http://localhost:5000/api/students/${editingStudent.studentID}`,
+                `${API_URL}/students/${editingStudent.studentID}`,
                 {
                     totalCredits,
                     majorCredits,
@@ -139,7 +151,7 @@ const StudentList = () => {
 
     const handleDelete = async (studentID) => {
         try {
-            await axios.delete(`http://localhost:5000/api/students/${studentID}`);
+            await axios.delete(`${API_URL}/students/${studentID}`);
             console.log('Deleted student ID:', studentID);
             message.success("ลบนักศึกษาเรียบร้อย!");
             fetchStudents();
@@ -163,7 +175,6 @@ const StudentList = () => {
                 majorCredits: parseInt(student.majorCredits)
             });
         } else {
-            // กรณีเพิ่มใหม่
             form.setFieldsValue({
                 studentID: '',
                 firstName: '',
@@ -176,17 +187,20 @@ const StudentList = () => {
     };
 
     const updateSummary = useCallback((data) => {
-        const filteredData = data.filter(student =>
-            student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.lastName?.toLowerCase().includes(searchText.toLowerCase())
-        );
+        const filtered = data.filter(student => {
+            const matchesSearch = student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.lastName?.toLowerCase().includes(searchText.toLowerCase());
+            const matchesYear = yearFilter === 'all' || calculateStudentYear(student.studentID) === parseInt(yearFilter);
+            return matchesSearch && matchesYear;
+        });
+        
         return {
-            total: filteredData.length,
-            internshipEligible: filteredData.filter(s => s.isEligibleForInternship).length,
-            projectEligible: filteredData.filter(s => s.isEligibleForProject).length
+            total: filtered.length,
+            internshipEligible: filtered.filter(s => s.isEligibleForInternship).length,
+            projectEligible: filtered.filter(s => s.isEligibleForProject).length
         };
-    }, [searchText]);
+    }, [searchText, yearFilter]);
 
     useEffect(() => {
         fetchStudents();
@@ -205,11 +219,15 @@ const StudentList = () => {
         setSortedInfo(sorter);
     };
 
-    const filteredStudents = students.filter(student =>
-        student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
-        student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        student.lastName?.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const filteredStudents = students.filter(student => {
+        const matchesSearch = student.studentID?.toLowerCase().includes(searchText.toLowerCase()) ||
+            student.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
+            student.lastName?.toLowerCase().includes(searchText.toLowerCase());
+            
+        const matchesYear = yearFilter === 'all' || calculateStudentYear(student.studentID) === parseInt(yearFilter);
+        
+        return matchesSearch && matchesYear;
+    });
 
     const tableHeaderStyle = {
         className: 'table-header'
@@ -253,6 +271,20 @@ const StudentList = () => {
             onCell: () => ({ style: tableCellStyle }),
             sorter: (a, b) => a.lastName.localeCompare(b.lastName),
             sortOrder: sortedInfo.columnKey === 'lastName' && sortedInfo.order
+        },
+        {
+            title: 'ชั้นปี',
+            key: 'year',
+            width: 100,
+            align: 'center',
+            onHeaderCell: () => ({ style: tableHeaderStyle }),
+            onCell: () => ({ style: tableCellStyle }),
+            render: (_, record) => {
+                const year = calculateStudentYear(record.studentID);
+                return <span>ปี {year}</span>;
+            },
+            sorter: (a, b) => calculateStudentYear(a.studentID) - calculateStudentYear(b.studentID),
+            sortOrder: sortedInfo.columnKey === 'year' && sortedInfo.order,
         },
         {
             title: 'สถานะฝึกงาน',
@@ -453,6 +485,18 @@ const StudentList = () => {
                                 borderRadius: '6px'
                             }}
                         />
+                        <Select 
+                            defaultValue="all"
+                            style={{ width: 120 }}
+                            onChange={value => setYearFilter(value)}
+                        >
+                            <Option value="all">ทุกชั้นปี</Option>
+                            <Option value="1">ปี 1</Option>
+                            <Option value="2">ปี 2</Option>
+                            <Option value="3">ปี 3</Option>
+                            <Option value="4">ปี 4</Option>
+                            <Option value="5">ปี 5</Option>
+                        </Select>
                         <Button
                             type="primary"
                             icon={<ReloadOutlined />}
@@ -487,7 +531,7 @@ const StudentList = () => {
                 onChange={handleTableChange}
                 scroll={{
                     x: 1000,
-                    y: 'calc(100vh - 350px)'
+                    y: 'calc(100vh - 340px)'
                 }}
                 sortDirections={['ascend', 'descend', 'ascend']}
             />

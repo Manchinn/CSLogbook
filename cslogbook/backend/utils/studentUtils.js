@@ -3,21 +3,32 @@ const pool = require('../config/database');
 /**
  * คำนวณชั้นปีของนักศึกษา
  * @param {string} studentID - รหัสนักศึกษา
- * @returns {number} - ชั้นปีของนักศึกษา
+ * @returns {object} - ชั้นปีของนักศึกษา
  */
 const calculateStudentYear = (studentID) => {
   const currentDate = new Date();
-  const currentYear = currentDate.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
-  const currentMonth = currentDate.getMonth() + 1; // เดือนปัจจุบัน (1-12)
-  const studentYear = parseInt(studentID.substring(0, 2)) + 2500; // สมมติว่ารหัสนักศึกษาเป็นปี พ.ศ.
-  let studentClassYear = currentYear - studentYear; //2568 - 2564 = 4 + 1 = 5
+  const currentYear = currentDate.getFullYear() + 543; // แปลงเป็นปี พ.ศ. 2025+543=2568
+  const currentMonth = currentDate.getMonth() + 1; // เดือนปัจจุบัน (1-12) 
+  const studentYear = parseInt(studentID.substring(0, 2)) + 2500; // แปลงเป็นปี พ.ศ. 64+2500=2564
+  let studentClassYear = currentYear - studentYear;
+
+  // ตรวจสอบว่าชั้นปีไม่ติดลบหรือเป็น 0
+  if (studentClassYear <= 0) {
+    return { 
+      error: true,
+      message: 'ไม่สามารถเพิ่มรหัสนักศึกษานี้ได้: รหัสนักศึกษาไม่ถูกต้อง'
+    };
+  }
 
   // หากเดือนปัจจุบันมากกว่าเดือนที่ 4 ให้เพิ่มชั้นปีขึ้น 1
   if (currentMonth > 4) {
     studentClassYear += 1;
-  } // 5 - 1 = 4 
+  }
 
-  return studentClassYear;
+  return {
+    error: false,
+    year: studentClassYear
+  };
 };
 
 /**
@@ -99,9 +110,14 @@ const updateStudentData = async () => {
     }
 
     for (const student of students) {
-      const studentYear = calculateStudentYear(student.studentID);
-      const totalCredits = 0; // ตั้งค่าเริ่มต้นเป็น 0 หรือดึงจากแหล่งข้อมูลอื่น
-      const majorCredits = 0; // ตั้งค่าเริ่มต้นเป็น 0 หรือดึงจากแหล่งข้อมูลอื่น
+      const studentYearResult = calculateStudentYear(student.studentID);
+      if (studentYearResult.error) {
+        console.log(studentYearResult.message);
+        continue;
+      }
+      const studentYear = studentYearResult.year;
+      const totalCredits = 0; // 
+      const majorCredits = 0; // 
 
       const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
       const eligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);

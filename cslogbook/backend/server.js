@@ -1,10 +1,73 @@
+// Load environment variables first
+require('dotenv').config({ 
+  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development'
+});
+
+// ตรวจสอบ NODE_ENV ก่อน
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development'; // set default
+}
+
+// Validate JWT environment variables early
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required');
+}
+
+// Import dependencies
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-require('dotenv').config();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const validateEnv = require('./utils/validateEnv');
+
+// Validate server-specific environment variables
+const validateServerEnv = () => {
+  // Required server variables
+  const serverVars = {
+    NODE_ENV: (val) => ['development', 'production', 'test'].includes(val),
+    PORT: (val) => !isNaN(val) && val > 0,
+    FRONTEND_URL: (val) => {
+      try {
+        new URL(val);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    UPLOAD_DIR: (val) => typeof val === 'string' && val.length > 0,
+    MAX_FILE_SIZE: (val) => !isNaN(val) && val > 0
+  };
+
+  Object.entries(serverVars).forEach(([key, validator]) => {
+    const value = process.env[key];
+    if (!value || !validator(value)) {
+      throw new Error(`Invalid or missing ${key}`);
+    }
+  });
+};
+
+// Validate all configurations
+try {
+  validateServerEnv();
+  validateEnv('all');
+  console.log('Environment validation successful');
+} catch (error) {
+  console.error('Configuration error:', error.message);
+  process.exit(1);
+}
+
+// Initialize validated environment variables
+const ENV = {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: parseInt(process.env.PORT, 10),
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  UPLOAD_DIR: process.env.UPLOAD_DIR,
+  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE, 10)
+};
+
 const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -35,8 +98,9 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-      },
+        url: ENV.BASE_URL || `http://localhost:${ENV.PORT}`,
+        description: `${ENV.NODE_ENV} server`
+      }
     ],
     components: {
       securitySchemes: {
@@ -47,13 +111,13 @@ const swaggerOptions = {
         },
       },
     },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
+    security: [{ bearerAuth: [] }],
   },
-  apis: ['./routes/swagger/*.js','./server/*js'], // Path to the API docs
+  apis: [
+    path.join(__dirname, './routes/swagger/*.js'),
+    path.join(__dirname, './routes/**/*.js'),
+    path.join(__dirname, 'server.js')
+  ]
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
@@ -67,10 +131,10 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Socket.IO setup
+// Socket.IO setup with validated FRONTEND_URL
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",  // เปลี่ยนเป็นใช้จาก env
+    origin: ENV.FRONTEND_URL,
     methods: ["GET", "POST"]
   }
 });
@@ -79,9 +143,9 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS configuration
+// CORS configuration with validated FRONTEND_URL
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: ENV.FRONTEND_URL,
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // เพิ่ม methods ที่จำเป็น
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -93,14 +157,28 @@ app.use((req, res, next) => {
   next();
 });
 
-// Upload configuration
-const uploadDir = process.env.UPLOAD_DIR || 'uploads/';
-const upload = multer({ 
-  dest: uploadDir,
+// Upload configuration with validated values
+const upload = multer({
+  dest: ENV.UPLOAD_DIR,
   limits: {
-    fileSize: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024
+    fileSize: ENV.MAX_FILE_SIZE
+  },
+  fileFilter: (req, file, cb) => {
+    // Add file type validation if needed
+    const allowedTypes = ['application/pdf'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      cb(new Error('Invalid file type. Only PDF files are allowed.'), false);
+    } else {
+      cb(null, true);
+    }
   }
 });
+
+// Validate upload directory exists
+if (!fs.existsSync(ENV.UPLOAD_DIR)) {
+  console.log(`Creating upload directory: ${ENV.UPLOAD_DIR}`);
+  fs.mkdirSync(ENV.UPLOAD_DIR, { recursive: true });
+}
 
 // Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -114,8 +192,8 @@ app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
 app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
-app.use('/api/internship-documents',authenticateToken, internshipDocumentsRoutes);
-app.use('/api/logbooks',authenticateToken, logbookRoutes); // ใช้ route
+app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
+app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
 
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.use('/api', uploadRoutes); // ใช้ route
@@ -153,27 +231,45 @@ app.get('/get-pdf-url', (req, res) => {
   res.json({ fileUrl });
 });
 
-// Error handling middleware
+// Enhanced error handling
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
-  res.status(500).json({ 
+
+  // Handle specific errors
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      success: false,
+      error: 'File upload error',
+      details: ENV.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+
+  // Default error response
+  res.status(err.status || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+    error: ENV.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
+    details: ENV.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 
-// Server startup
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+// Server startup with validated PORT
+server.listen(ENV.PORT, () => {
+  console.log(`Server running in ${ENV.NODE_ENV} mode on port ${ENV.PORT}`);
+  console.log(`Frontend URL: ${ENV.FRONTEND_URL}`);
+  console.log(`Upload directory: ${ENV.UPLOAD_DIR}`);
+  console.log(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
 });
 
-// Graceful shutdown
+// Graceful shutdown handling
 process.on('SIGTERM', () => {
   console.info('SIGTERM signal received.');
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
   });
+});
+
+// Unhandled rejection handling
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });

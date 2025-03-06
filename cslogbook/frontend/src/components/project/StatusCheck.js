@@ -195,12 +195,6 @@ const StatusCheck = () => {
             rowKey={record => record.key}
             loading={loading}
             style={{ marginTop: 20 }}
-            pagination={{ 
-              pageSize: 10,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
-              showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50']
-            }}
           />
         </div>
       </Content>

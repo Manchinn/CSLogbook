@@ -9,10 +9,13 @@ exports.submitInternshipDocuments = async (req, res) => {
 
     const companyInfo = JSON.parse(req.body.companyInfo);
     
-    // แปลงชื่อไฟล์เป็น Base64
-    const filesWithEncodedNames = req.files.map(file => ({
-      ...file,
-      filename: Buffer.from(file.originalname, 'utf8').toString('base64')
+    // เก็บข้อมูลไฟล์แบบไม่ต้องเข้ารหัส Base64
+    const filesInfo = req.files.map(file => ({
+      originalname: file.originalname,
+      filename: file.filename,
+      path: file.path,
+      mimetype: file.mimetype,
+      size: file.size
     }));
 
     // เริ่ม transaction
@@ -30,7 +33,7 @@ exports.submitInternshipDocuments = async (req, res) => {
           companyInfo.contact_name, 
           companyInfo.contact_phone,
           companyInfo.contact_email,
-          JSON.stringify(filesWithEncodedNames),
+          JSON.stringify(filesInfo), // เก็บข้อมูลไฟล์แบบไม่เข้ารหัส
           'pending',
           new Date()
         ]
@@ -94,15 +97,8 @@ exports.getInternshipDocumentById = async (req, res) => {
       return res.status(404).json({ error: 'Document not found' }); // ถ้าไม่พบเอกสาร ส่งสถานะ 404
     }
 
-    // ถอดรหัสชื่อไฟล์จาก Base64
-    const decodedFiles = JSON.parse(document[0].uploaded_files).map(file => ({
-      ...file,
-      filename: Buffer.from(file.filename, 'base64').toString('utf8')
-    }));
-
-    document[0].uploaded_files = JSON.stringify(decodedFiles);
-
-    res.json(document[0]); // ส่งข้อมูลเอกสารกลับไป
+    // ส่งข้อมูลไฟล์กลับไปโดยตรง ไม่ต้องถอดรหัส
+    res.json(document[0]);
   } catch (error) {
     console.error('Error fetching internship document:', error);
     res.status(500).json({ error: 'Error fetching internship document' });
@@ -111,22 +107,62 @@ exports.getInternshipDocumentById = async (req, res) => {
 
 exports.approveInternshipDocument = async (req, res) => {
   const { id } = req.params;
+  const connection = await pool.getConnection();
+  
   try {
-    await pool.execute('UPDATE documents SET status = ? WHERE document_name = (SELECT company_name FROM internship_documents WHERE id = ?)', ['approved', id]);
-    res.json({ message: 'Internship document approved successfully' }); // ส่งข้อความยืนยันการอนุมัติเอกสาร
+    await connection.beginTransaction();
+    
+    // อัพเดทสถานะในตาราง internship_documents
+    await connection.execute(
+      'UPDATE internship_documents SET status = ? WHERE id = ?',
+      ['approved', id]
+    );
+    
+    // อัพเดทสถานะในตาราง documents
+    await connection.execute(
+      'UPDATE documents SET status = ? WHERE document_name = (SELECT company_name FROM internship_documents WHERE id = ?)',
+      ['approved', id]
+    );
+
+    await connection.commit();
+    res.json({ message: 'Internship document approved successfully' });
+    
   } catch (error) {
+    await connection.rollback();
     console.error('Error approving internship document:', error);
     res.status(500).json({ error: 'Error approving internship document' });
+  } finally {
+    connection.release();
   }
 };
 
 exports.rejectInternshipDocument = async (req, res) => {
   const { id } = req.params;
+  const connection = await pool.getConnection();
+  
   try {
-    await pool.execute('UPDATE documents SET status = ? WHERE document_name = (SELECT company_name FROM internship_documents WHERE id = ?)', ['rejected', id]);
-    res.json({ message: 'Internship document rejected successfully' }); // ส่งข้อความยืนยันการปฏิเสธเอกสาร
+    await connection.beginTransaction();
+    
+    // อัพเดทสถานะในตาราง internship_documents
+    await connection.execute(
+      'UPDATE internship_documents SET status = ? WHERE id = ?',
+      ['rejected', id]
+    );
+    
+    // อัพเดทสถานะในตาราง documents
+    await connection.execute(
+      'UPDATE documents SET status = ? WHERE document_name = (SELECT company_name FROM internship_documents WHERE id = ?)',
+      ['rejected', id]
+    );
+
+    await connection.commit();
+    res.json({ message: 'Internship document rejected successfully' });
+    
   } catch (error) {
+    await connection.rollback();
     console.error('Error rejecting internship document:', error);
     res.status(500).json({ error: 'Error rejecting internship document' });
+  } finally {
+    connection.release();
   }
 };

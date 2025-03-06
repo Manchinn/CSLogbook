@@ -56,6 +56,17 @@ SMTP_USER=apikey
 SMTP_PASS=your_sendgrid_api_key
 ```
 
+## Environment Setup
+1. Copy `.env.example` to `.env.development` 
+2. Update values in `.env.development`
+3. For production, create `.env.production`
+
+### Required Environment Variables
+- Database: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+- Server: PORT, BASE_URL, API_PREFIX 
+- JWT: JWT_SECRET, JWT_EXPIRES_IN
+- Email: SENDGRID_API_KEY, EMAIL_SENDER
+
 ### 4. เตรียมข้อมูลเริ่มต้น
 1. ตรวจสอบไฟล์ `mockStudentData.js` สำหรับข้อมูลนักศึกษาตัวอย่าง
 2. ตรวจสอบไฟล์ `universityAPI.js` สำหรับข้อมูล authentication

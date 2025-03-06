@@ -1,70 +1,114 @@
-# Getting Started with Create React App
+# CS Logbook Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+ระบบจัดการเอกสารฝึกงานและโครงงานสำหรับภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
 
-## Available Scripts
+## การติดตั้ง
 
-In the project directory, you can run:
+1. ติดตั้ง dependencies:
+```bash
+npm install
+```
 
-### `npm start`
+2. สร้างไฟล์ environment variables:
+- สร้างไฟล์ `.env.development` สำหรับ development
+- สร้างไฟล์ `.env.production` สำหรับ production
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+ตัวอย่างการตั้งค่า environment variables:
+```bash
+REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_UPLOAD_URL=http://localhost:5000/uploads
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## การพัฒนา
 
-### `npm test`
+รันโปรแกรมในโหมด development:
+```bash
+npm start
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+รันการทดสอบ:
+```bash
+npm test
+```
 
-### `npm run build`
+## การ Build สำหรับ Production
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. ตรวจสอบไฟล์ `.env.production`:
+```bash
+REACT_APP_API_URL=https://your-api-domain.com/api
+REACT_APP_UPLOAD_URL=https://your-api-domain.com/uploads
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. สร้าง production build:
+```bash
+npm run build
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## โครงสร้างโปรเจค
 
-### `npm run eject`
+```
+src/
+├── components/        # React components
+│   ├── admin/        # ส่วนผู้ดูแลระบบ
+│   ├── student/      # ส่วนนักศึกษา
+│   └── teacher/      # ส่วนอาจารย์
+├── contexts/         # React contexts
+├── hooks/           # Custom hooks
+├── services/        # API services
+└── utils/           # Utility functions
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Environment Variables ที่จำเป็น
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+| Variable | Description | Example |
+|----------|-------------|---------|
+| REACT_APP_API_URL | Base URL ของ API | http://localhost:5000/api |
+| REACT_APP_UPLOAD_URL | URL สำหรับไฟล์ที่อัปโหลด | http://localhost:5000/uploads |
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## การ Deploy
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. สร้าง production build:
+```bash
+npm run build
+```
 
-## Learn More
+2. ไฟล์ที่ได้จะอยู่ใน folder `build/`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+3. อัปโหลดไฟล์ใน `build/` ไปยัง web server
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+4. ตั้งค่า web server (Apache/Nginx) ให้ redirect ทุก route ไปที่ index.html
 
-### Code Splitting
+ตัวอย่าง Nginx configuration:
+```nginx
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## การแก้ไขปัญหาเบื้องต้น
 
-### Analyzing the Bundle Size
+1. ปัญหา CORS:
+- ตรวจสอบ API_URL ใน environment variables
+- ตรวจสอบการตั้งค่า CORS ในฝั่ง backend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+2. ปัญหาการอัปโหลดไฟล์:
+- ตรวจสอบ UPLOAD_URL
+- ตรวจสอบสิทธิ์การเขียนไฟล์ในฝั่ง server
 
-### Making a Progressive Web App
+## การพัฒนาเพิ่มเติม
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+1. การเพิ่ม route ใหม่:
+- เพิ่ม component ใน folder ที่เหมาะสม
+- เพิ่ม route ใน App.js
+- เพิ่ม navigation ใน Sidebar/Navbar
 
-### Advanced Configuration
+2. การเพิ่ม API endpoint ใหม่:
+- เพิ่ม service ใน services/
+- ใช้ API_URL จาก environment variables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## หมายเหตุสำคัญ
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- ห้าม commit ไฟล์ .env หรือ .env.local
+- ใช้ .env.example เป็น template
+- ตรวจสอบ console errors ก่อน deploy
+- ทดสอบการ build ก่อน deploy ทุกครั้ง

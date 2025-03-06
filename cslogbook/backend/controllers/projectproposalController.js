@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { baseUrl, apiPrefix } = require('../config/server');
 
 exports.submitProjectProposal = async (req, res) => {
   const {
@@ -21,6 +22,7 @@ exports.submitProjectProposal = async (req, res) => {
       `INSERT INTO project_proposals 
       (project_name_th, project_name_en, student_id1, first_name1, last_name1, student_type1, student_id2, first_name2, last_name2, student_type2, track, project_category) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+
       [projectNameTH, projectNameEN, studentId1, firstName1, lastName1, studentType1, studentId2, firstName2, lastName2, studentType2, track, projectCategory]
     );
     
@@ -28,10 +30,15 @@ exports.submitProjectProposal = async (req, res) => {
     await pool.execute(
       `INSERT INTO documents (document_name, student_name, upload_date, status, type) 
       VALUES (?, ?, NOW(), ?, ?)`,
+
       [projectNameTH, `${firstName1} ${lastName1}`, 'pending', 'project']
     );    
 
-    res.json({ success: true, message: 'คำขอเสนอหัวข้อโครงงานของคุณถูกส่งเรียบร้อยแล้ว!' });
+    res.json({ 
+      success: true, 
+      message: 'คำขอเสนอหัวข้อโครงงานของคุณถูกส่งเรียบร้อยแล้ว!',
+      apiUrl: `${baseUrl}${apiPrefix}`
+    });
   } catch (error) {
     console.error('Error submitting project proposal:', error);
     res.status(500).json({ error: 'เกิดข้อผิดพลาดในการส่งข้อมูล' });

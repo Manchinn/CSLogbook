@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js --watch"
+    "setup": "copy .env.example .env.development",  
+    "build": "set NODE_ENV=production&& node scripts/build.js", 
+    "dev": "set NODE_ENV=development&& nodemon server.js"
   },
   "keywords": [],
   "author": "",
