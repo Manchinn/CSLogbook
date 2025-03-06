@@ -3,11 +3,15 @@ require('dotenv').config();
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-async function sendLoginNotification(email, username) {
-  const isEmailEnabled = false; // เปลี่ยนเป็น false เพื่อปิดการใช้งาน
+// เพิ่มฟังก์ชันเช็คสถานะการเปิด/ปิดการแจ้งเตือน
+const isNotificationEnabled = (type) => {
+  const enabledSetting = process.env[`EMAIL_${type}_ENABLED`];
+  return enabledSetting === 'true';
+};
 
-  if (!isEmailEnabled) {
-    console.log('Email notification is currently disabled');
+async function sendLoginNotification(email, username) {
+  if (!isNotificationEnabled('LOGIN')) {
+    console.log('Login email notification is currently disabled');
     console.log(`Would send email to: ${email} for user: ${username}`);
     return Promise.resolve();
   }
@@ -54,4 +58,36 @@ async function sendLoginNotification(email, username) {
   }
 }
 
-module.exports = { sendLoginNotification };
+// สำหรับการแจ้งเตือนเมื่อเอกสารได้รับการอนุมัติ
+async function sendDocumentApprovalNotification(email, username, documentType, status) {
+  if (!isNotificationEnabled('DOCUMENT')) {
+    console.log('Document approval email notification is currently disabled');
+    return Promise.resolve();
+  }
+
+  const msg = {
+    to: email,
+    from: process.env.EMAIL_SENDER,
+    subject: `CS Logbook - แจ้งผลการพิจารณา${documentType}`,
+    html: `<div>เรียน ${username}, เอกสาร${documentType}ของคุณได้รับการ${status}</div>`
+  };
+  return await sgMail.send(msg);
+}
+
+// สำหรับการแจ้งเตือนเมื่อมีการส่ง Logbook
+async function sendLogbookSubmissionNotification(email, username, title) {
+  if (!isNotificationEnabled('LOGBOOK')) {
+    console.log('Logbook submission email notification is currently disabled');
+    return Promise.resolve();
+  }
+
+  const msg = {
+    to: email,
+    from: process.env.EMAIL_SENDER,
+    subject: 'CS Logbook - มีการส่ง Logbook ใหม่',
+    html: `<div>เรียน ${username}, มีการส่ง Logbook "${title}" ใหม่</div>`
+  };
+  return await sgMail.send(msg);
+}
+
+module.exports = { sendLoginNotification, sendDocumentApprovalNotification, sendLogbookSubmissionNotification };

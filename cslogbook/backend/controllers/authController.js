@@ -21,25 +21,25 @@ exports.login = async (req, res, next) => {
     // ตรวจสอบ validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ 
-            success: false, 
-            errors: errors.array() 
+        return res.status(400).json({
+            success: false,
+            errors: errors.array()
         });
     }
 
     const { username, password } = req.body;
-    logger.info('Login attempt', { 
+    logger.info('Login attempt', {
         username,
         timestamp: moment().tz('Asia/Bangkok').format(),
         ip: req.ip
     });
     try {
         const [users] = await pool.execute(`
-SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
-FROM users u 
-LEFT JOIN student_data sd ON u.studentID = sd.studentID 
-WHERE u.username = ?
-`, [username]);
+            SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
+            FROM users u 
+            LEFT JOIN student_data sd ON u.studentID = sd.studentID 
+            WHERE u.username = ?`
+            , [username]);
 
         if (users.length === 0) {
             return res.status(401).json({
