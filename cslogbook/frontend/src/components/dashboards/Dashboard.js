@@ -6,7 +6,7 @@ import StudentDashboard from './StudentDashboard';
 import TeacherDashboard from './TeacherDashboard';
 import AdminDashboard from './AdminDashboard';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL;
 
 const Dashboard = () => {
   const [role, setRole] = useState('');

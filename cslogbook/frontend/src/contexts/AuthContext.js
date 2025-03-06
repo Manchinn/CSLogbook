@@ -3,6 +3,11 @@ import axios from 'axios';
 import { message } from 'antd';
 
 const AuthContext = createContext(null);
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+  throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -30,7 +35,7 @@ export const AuthProvider = ({ children }) => {
           originalRequest._retry = true;
 
           try {
-            const response = await axios.post('http://localhost:5000/auth/refresh-token', {
+            const response = await axios.post(`${API_URL}/auth/refresh-token`, {
               refreshToken
             });
 
@@ -99,7 +104,7 @@ export const AuthProvider = ({ children }) => {
     const interval = setInterval(async () => {
       if (refreshToken) {
         try {
-          const response = await axios.post('http://localhost:5000/auth/refresh-token', {
+          const response = await axios.post(`${API_URL}/auth/refresh-token`, {
             refreshToken
           });
 
@@ -116,6 +121,15 @@ export const AuthProvider = ({ children }) => {
 
     return () => clearInterval(interval);
   }, [refreshToken]);
+
+  const handleAPIError = (error, fallbackMessage = 'เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์') => {
+    console.error('API Error:', error);
+    const errorMessage = error.response?.data?.message || fallbackMessage;
+    message.error(errorMessage);
+    if (error.response?.status === 401) {
+      handleLogout();
+    }
+  };
 
   const handleLogin = async ({ token, refreshToken, userData }) => {
     try {
@@ -152,8 +166,7 @@ export const AuthProvider = ({ children }) => {
 
       return true;
     } catch (error) {
-      console.error('Login error:', error);
-      message.error('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      handleAPIError(error, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
       return false;
     }
   };

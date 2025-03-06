@@ -15,8 +15,11 @@ REACT_APP_API_URL=http://localhost:5000
 # Environment files
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
 
 # Debug logs

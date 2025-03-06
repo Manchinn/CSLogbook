@@ -29,6 +29,12 @@ import './StudentList.css';
 const { Title } = Typography;
 const { Option } = Select;
 
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+  throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
+
 const TeacherList = () => {
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -44,7 +50,7 @@ const TeacherList = () => {
         setLoading(true);   
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/teachers', {
+            const response = await axios.get(`${API_URL}/teachers`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -65,13 +71,13 @@ const TeacherList = () => {
     const handleAddOrEdit = async (values) => {
         try {
             if (editingTeacher) {
-                await axios.put(`http://localhost:5000/api/teachers/${editingTeacher.sName}`, {
+                await axios.put(`${API_URL}/teachers/${editingTeacher.sName}`, {
                     ...values
                 });
                 console.log('Edited teacher:', values);
                 message.success("แก้ไขข้อมูลอาจารย์เรียบร้อย!");
             } else {
-                await axios.post("http://localhost:5000/api/teachers", {
+                await axios.post(`${API_URL}/teachers`, {
                     ...values
                 });
                 console.log('Added teacher:', values);
@@ -92,7 +98,7 @@ const TeacherList = () => {
 
     const handleDelete = async (sName) => {
         try {
-            await axios.delete(`http://localhost:5000/api/teachers/${sName}`);
+            await axios.delete(`${API_URL}/teachers/${sName}`);
             console.log('Deleted teacher shortname:', sName);
             message.success("ลบอาจารย์เรียบร้อย!");
             fetchTeachers();

@@ -5,6 +5,8 @@ import { UserOutlined, BookOutlined, ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { calculateStudentYear, isEligibleForProject, isEligibleForInternship } from './utils/studentUtils';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 // Memoized Sub-components
 const StudentAvatar = React.memo(({ student, studentYear }) => (
   <Row gutter={[0, 24]}>
@@ -136,7 +138,7 @@ const StudentProfile = () => {
         return;
       }
 
-      const { data } = await axios.get(`http://localhost:5000/api/students/${id}`, {
+      const { data } = await axios.get(`${API_URL}/students/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -176,7 +178,7 @@ const StudentProfile = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:5000/api/students/${id}`,
+        `${API_URL}/students/${id}`,
         values,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );

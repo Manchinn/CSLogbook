@@ -7,8 +7,11 @@ import moment from 'moment-timezone';
 
 const { Title, Paragraph } = Typography;
 
-// 1. เพิ่ม BASE_URL สำหรับ API
-const API_BASE_URL = 'http://localhost:5000';
+// แทนที่การ import config ด้วยการใช้ environment variable โดยตรง
+const API_URL = process.env.REACT_APP_API_URL;
+if (!API_URL) {
+  throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
 
 const DocumentDetails = ({ documentId, open, onClose }) => {
   const [document, setDocument] = useState(null);
@@ -24,7 +27,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/api/documents/${documentId}`, {
+        const response = await axios.get(`${API_URL}/api/documents/${documentId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -51,7 +54,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     };
 
     fetchDocumentDetails();
-  }, [documentId, API_BASE_URL]);
+  }, [documentId, API_URL]);
 
   const formatDateTime = (date) => {
     return moment(date).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss');
@@ -96,7 +99,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
                 <Button
                   key="download"
                   type="link"
-                  href={`${API_BASE_URL}/uploads/${file.filename}`}
+                  href={`${API_URL}/uploads/${file.filename}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   icon={<DownloadOutlined />}
@@ -181,7 +184,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       style={{ marginTop: '16px' }}
       extra={
         <a 
-          href={`${API_BASE_URL}/uploads/${selectedFile.filename}`}
+          href={`${API_URL}/uploads/${selectedFile.filename}`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -192,7 +195,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       }
     >
       <PDFViewer 
-        pdfFile={`${API_BASE_URL}/uploads/${selectedFile.filename}`}
+        pdfFile={`${API_URL}/uploads/${selectedFile.filename}`}
         width="100%"
         height={600}
         onError={(error) => handlePDFError(error, selectedFile.originalname)}

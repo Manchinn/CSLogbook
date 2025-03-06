@@ -31,6 +31,12 @@ import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } f
 const { Title } = Typography;
 const { Option } = Select;
 
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+    throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
+
 const StudentList = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -43,11 +49,20 @@ const StudentList = () => {
 
     const navigate = useNavigate();
 
+    const handleAPIError = useCallback((error, fallbackMessage) => {
+        console.error('API Error:', error);
+        const errorMessage = error.response?.data?.message || fallbackMessage;
+        message.error(errorMessage);
+        if (error.response?.status === 401) {
+            navigate('/login');
+        }
+    }, [navigate]);
+
     const fetchStudents = useCallback(async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/students', {
+            const response = await axios.get(`${API_URL}/students`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -55,15 +70,11 @@ const StudentList = () => {
             const studentOnly = response.data.filter(user => user.role === 'student');
             setStudents(studentOnly);
         } catch (error) {
-            console.error('Error fetching students:', error);
-            if (error.response?.status === 401) {
-                message.error('กรุณาเข้าสู่ระบบใหม่');
-                navigate('/login');
-            }
+            handleAPIError(error, 'ไม่สามารถดึงข้อมูลนักศึกษาได้');
         } finally {
             setLoading(false);
         }
-    }, [navigate]);
+    }, [navigate, handleAPIError]);
 
     const handleAdd = async (values) => {
         try {
@@ -75,7 +86,7 @@ const StudentList = () => {
             const projectEligibility = isEligibleForProject(studentYear, totalCredits, majorCredits);
             const internshipEligibility = isEligibleForInternship(studentYear, totalCredits);
 
-            const response = await axios.post('http://localhost:5000/api/students', {
+            const response = await axios.post(`${API_URL}/students`, {
                 studentID: values.studentID,
                 firstName: values.firstName,
                 lastName: values.lastName,
@@ -109,7 +120,7 @@ const StudentList = () => {
             const internshipEligibility = isEligibleForInternship(studentYear, totalCredits);
 
             const response = await axios.put(
-                `http://localhost:5000/api/students/${editingStudent.studentID}`,
+                `${API_URL}/students/${editingStudent.studentID}`,
                 {
                     totalCredits,
                     majorCredits,
@@ -140,7 +151,7 @@ const StudentList = () => {
 
     const handleDelete = async (studentID) => {
         try {
-            await axios.delete(`http://localhost:5000/api/students/${studentID}`);
+            await axios.delete(`${API_URL}/students/${studentID}`);
             console.log('Deleted student ID:', studentID);
             message.success("ลบนักศึกษาเรียบร้อย!");
             fetchStudents();

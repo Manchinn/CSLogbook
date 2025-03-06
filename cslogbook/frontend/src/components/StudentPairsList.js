@@ -13,6 +13,12 @@ const TABLE_PAGINATION = {
   pageSizeOptions: ['10', '20', '50']
 };
 
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+  throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
+
 // Table Columns Configuration
 const getColumns = (sortedInfo) => [
   {
@@ -93,7 +99,7 @@ const StudentPairsList = () => {
         return;
       }
 
-      const response = await axios.get('/api/project-pairs', {
+      const response = await axios.get(`${API_URL}/project-pairs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
