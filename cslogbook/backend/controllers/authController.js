@@ -34,12 +34,22 @@ exports.login = async (req, res, next) => {
         ip: req.ip
     });
     try {
+        // ปรับปรุง query ให้ดึงข้อมูลตาม schema ใหม่
         const [users] = await pool.execute(`
-            SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
-            FROM users u 
-            LEFT JOIN student_data sd ON u.studentID = sd.studentID 
-            WHERE u.username = ?`
-            , [username]);
+            SELECT u.*,
+                   CASE 
+                     WHEN u.role = 'student' THEN s.is_eligible_internship
+                     ELSE NULL 
+                   END as isEligibleForInternship,
+                   CASE 
+                     WHEN u.role = 'student' THEN s.is_eligible_project
+                     ELSE NULL 
+                   END as isEligibleForProject
+            FROM users u
+            LEFT JOIN students s ON u.user_id = s.user_id
+            WHERE u.username = ? AND u.active_status = 1`,
+            [username]
+        );
 
         if (users.length === 0) {
             return res.status(401).json({
@@ -93,14 +103,20 @@ exports.login = async (req, res, next) => {
             }
         }
 
+        // เพิ่มการอัพเดท last_login
+        await pool.execute(
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?',
+            [user.user_id]
+        );
+
         // ส่งข้อมูลกลับไปยัง client
         res.json({
             success: true,
             message: 'Login successful',
             token,
-            studentID: user.studentID,
-            firstName: user.firstName,
-            lastName: user.lastName,
+            studentID: user.role === 'student' ? user.username : null,
+            firstName: user.first_name,
+            lastName: user.last_name,
             email: user.email,
             role: user.role,
             isEligibleForInternship: user.isEligibleForInternship || false,

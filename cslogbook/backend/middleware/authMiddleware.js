@@ -6,7 +6,7 @@ const validateEnv = require('../utils/validateEnv');
 validateEnv('auth');
 
 const authMiddleware = {
-  authenticateToken: (req, res, next) => {
+  authenticateToken: async (req, res, next) => {
     try {
       const authHeader = req.headers['authorization'];
       const token = authHeader?.split(' ')[1];
@@ -19,19 +19,26 @@ const authMiddleware = {
         });
       }
 
-      const user = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = user;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // ตรวจสอบผู้ใช้ในฐานข้อมูล
+      const [users] = await pool.execute(
+          'SELECT active_status FROM users WHERE user_id = ?',
+          [decoded.userId]
+      );
+
+      if (users.length === 0 || !users[0].active_status) {
+          throw new Error('User not found or inactive');
+      }
+
+      req.user = decoded;
       next();
     } catch (err) {
-      console.error('Authentication error:', err.message);
-      return res.status(403).json({ 
+      return res.status(401).json({
         status: 'error',
         message: err.name === 'TokenExpiredError' ? 
-          'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่' : 
-          'Token ไม่ถูกต้อง',
-        code: err.name === 'TokenExpiredError' ? 
-          'TOKEN_EXPIRED' : 
-          'INVALID_TOKEN'
+            'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่' : 
+            'Token ไม่ถูกต้อง'
       });
     }
   },

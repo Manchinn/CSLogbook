@@ -73,7 +73,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 // Import routes
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/students');
 const teacherRoutes = require('./routes/teacherRoutes');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
