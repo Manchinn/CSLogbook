@@ -2,46 +2,48 @@ const pool = require('../config/database');
 const { baseUrl, apiPrefix } = require('../config/server');
 
 exports.submitProjectProposal = async (req, res) => {
-  const {
-    projectNameTH,
-    projectNameEN,
-    studentId1,
-    firstName1,
-    lastName1,
-    studentType1,
-    studentId2,
-    firstName2,
-    lastName2,
-    studentType2,
-    track,
-    projectCategory
-  } = req.body;
-
+  const connection = await pool.getConnection();
   try {
-    const [result] = await pool.execute(
-      `INSERT INTO project_proposals 
-      (project_name_th, project_name_en, student_id1, first_name1, last_name1, student_type1, student_id2, first_name2, last_name2, student_type2, track, project_category) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    await connection.beginTransaction();
 
-      [projectNameTH, projectNameEN, studentId1, firstName1, lastName1, studentType1, studentId2, firstName2, lastName2, studentType2, track, projectCategory]
+    // สร้างเอกสารหลัก
+    const [docResult] = await connection.execute(`
+      INSERT INTO documents (
+        user_id, 
+        document_type,
+        document_name,
+        status
+      ) VALUES (?, 'project', ?, 'pending')`,
+      [req.user.userId, req.body.projectNameTH]
     );
-    
-    // เพิ่มการอัปเดตข้อมูลลงในตาราง documents
-    await pool.execute(
-      `INSERT INTO documents (document_name, student_name, upload_date, status, type) 
-      VALUES (?, ?, NOW(), ?, ?)`,
 
-      [projectNameTH, `${firstName1} ${lastName1}`, 'pending', 'project']
-    );    
+    // สร้างข้อมูลโครงงาน
+    await connection.execute(`
+      INSERT INTO project_documents (
+        document_id,
+        project_name_th,
+        project_name_en,
+        project_type,
+        track,
+        advisor_id
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        docResult.insertId,
+        req.body.projectNameTH,
+        req.body.projectNameEN,
+        req.body.projectType,
+        req.body.track,
+        req.body.advisorId
+      ]
+    );
 
-    res.json({ 
-      success: true, 
-      message: 'คำขอเสนอหัวข้อโครงงานของคุณถูกส่งเรียบร้อยแล้ว!',
-      apiUrl: `${baseUrl}${apiPrefix}`
-    });
+    await connection.commit();
+    res.status(201).json({ message: 'บันทึกข้อมูลสำเร็จ' });
   } catch (error) {
-    console.error('Error submitting project proposal:', error);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการส่งข้อมูล' });
+    await connection.rollback();
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+  } finally {
+    connection.release();
   }
 };
 

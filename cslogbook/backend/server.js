@@ -83,7 +83,7 @@ const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // �
 const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
 const logbookRoutes = require('./routes/logbookRoutes'); // นำเข้า route
 const templateRoutes = require('./routes/template');
-
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -201,6 +201,7 @@ app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
 app.use('/api', uploadRoutes); // ใช้ route
 
 app.use('/api', templateRoutes);
+app.use('/api/admin', adminRoutes);
 
 // API สำหรับอัปโหลดไฟล์พร้อมข้อมูล companyInfo
 app.post('/upload-with-info', upload.single('file'), (req, res) => {
