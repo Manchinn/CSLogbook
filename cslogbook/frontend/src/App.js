@@ -6,12 +6,10 @@ import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentList from './components/StudentList';
 import TeacherList from './components/TeacherList';
-import StudentPairsList from './components/StudentPairsList';
-import AdminUpload from './components/AdminUpload';
+import ProjectMembersList from './components/ProjectMembersList';import AdminUpload from './components/AdminUpload';
 import StudentProfile from './components/StudentProfile';
 import InternshipTerms from "./components/internship/InternshipTerms";
 import CompanyInfoForm from './components/internship/CompanyInfoForm';
-import InternshipDocuments from './components/internship/InternshipDocumentForm'; // แก้ไขเส้นทางให้ถูกต้อง
 import DocumentDetails from "./components/admin/DocumentDetails";
 import InternshipDocumentManagement from "./components/admin/InternshipDocumentManagement";
 import ProjectDocumentManagement from "./components/admin/ProjectDocumentManagement";
@@ -48,7 +46,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/students" element={<StudentList />} />
             <Route path="/teachers" element={<TeacherList />} />
-            <Route path="/project-pairs" element={<StudentPairsList />} />
+            <Route path="/project-members" element={<ProjectMembersList />} />
             <Route path="/admin/upload" element={
               <ProtectedRoute roles={['admin']}>
                 <AdminUpload />

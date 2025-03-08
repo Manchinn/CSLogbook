@@ -15,13 +15,18 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
-    studentID: localStorage.getItem('studentID'),
-    firstName: localStorage.getItem('firstName'),
-    lastName: localStorage.getItem('lastName'),
+    userId: localStorage.getItem('user_id'),
+    username: localStorage.getItem('username'),
     email: localStorage.getItem('email'),
+    firstName: localStorage.getItem('first_name'),
+    lastName: localStorage.getItem('last_name'),
     role: localStorage.getItem('role'),
-    isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
-    isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
+    roleDetails: JSON.parse(localStorage.getItem('role_details') || '{}'),
+    studentCode: localStorage.getItem('student_code'),
+    totalCredits: Number(localStorage.getItem('total_credits')),
+    majorCredits: Number(localStorage.getItem('major_credits')),
+    isEligibleInternship: localStorage.getItem('is_eligible_internship') === 'true',
+    isEligibleProject: localStorage.getItem('is_eligible_project') === 'true'
   });
 
   // ตั้งค่า axios interceptor สำหรับจัดการ token
@@ -131,72 +136,61 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const handleLogin = async ({ token, refreshToken, userData }) => {
+  const handleLogin = async ({ token, userData }) => {
     try {
+      // เก็บข้อมูลใน localStorage แบบใหม่
       localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-
-      // เก็บ user data
-      const userDataToStore = {
-        studentID: userData.studentID,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        role: userData.role,
-        isEligibleForInternship: (parseInt(userData.studentID.substring(0, 2)) <= 63) && (userData.totalCredits >= 81),
-        isEligibleForProject: (parseInt(userData.studentID.substring(0, 2)) <= 62) && (userData.totalCredits >= 95) && (userData.majorCredits >= 47)
-      };
-
-      // บันทึกลง localStorage
-      Object.entries(userDataToStore).forEach(([key, value]) => {
-        if (value !== undefined) {
-          localStorage.setItem(key, String(value));
-        }
-      });
+      localStorage.setItem('user_id', userData.userId);
+      localStorage.setItem('username', userData.username);
+      localStorage.setItem('email', userData.email);
+      localStorage.setItem('first_name', userData.firstName);
+      localStorage.setItem('last_name', userData.lastName);
+      localStorage.setItem('role', userData.role);
+      localStorage.setItem('student_code', userData.studentCode);
+      localStorage.setItem('total_credits', userData.totalCredits);
+      localStorage.setItem('major_credits', userData.majorCredits);
+      localStorage.setItem('is_eligible_internship', userData.isEligibleForInternship);
+      localStorage.setItem('is_eligible_project', userData.isEligibleForProject);
 
       setToken(token);
-      setRefreshToken(refreshToken);
+      setUserData(userData);
       setIsAuthenticated(true);
-      setUserData(userDataToStore);
 
-      // Set axios default header
+      // ตั้งค่า axios header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
+      
       return true;
     } catch (error) {
-      handleAPIError(error, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      console.error('Login error:', error);
       return false;
     }
   };
 
   const handleLogout = async () => {
     try {
-      // ลบ axios default header
-      delete axios.defaults.headers.common['Authorization'];
-      
-      // Clear localStorage
-      const keysToRemove = [
-        'token', 'refreshToken', 'studentID', 'firstName', 
-        'lastName', 'email', 'role', 'isEligibleForInternship', 
-        'isEligibleForProject'
+        delete axios.defaults.headers.common['Authorization'];
+        
+        const keysToRemove = [
+          'token', 'refreshToken', 'user_id', 'username', 
+          'email', 'first_name', 'last_name', 'role',
+          'student_code', 'total_credits',
+          'major_credits', 'is_eligible_internship', 
+          'is_eligible_project'
       ];
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-
-      // Reset states
-      setToken(null);
-      setRefreshToken(null);
-      setIsAuthenticated(false);
-      setUserData(null);
-
-      // Redirect to login
-      window.location.href = '/login';
+        
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        setToken(null);
+        setRefreshToken(null);
+        setIsAuthenticated(false);
+        setUserData(null);
+        
+        window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error:', error);
-      message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
+        console.error('Logout error:', error);
+        message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
     }
-  };
+};
 
   const value = {
     isAuthenticated,

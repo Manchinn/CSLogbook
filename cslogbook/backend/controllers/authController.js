@@ -6,7 +6,7 @@ const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const moment = require('moment-timezone');
 
-// เพิ่ม middleware validation
+// Validation rules ยังคงเดิม
 exports.validateLogin = [
     body('username')
         .trim()
@@ -17,103 +17,65 @@ exports.validateLogin = [
         .isLength({ min: 6 }).withMessage('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
 ];
 
-exports.login = async (req, res, next) => {
-    // ตรวจสอบ validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            errors: errors.array()
-        });
-    }
-
-    const { username, password } = req.body;
-    logger.info('Login attempt', {
-        username,
-        timestamp: moment().tz('Asia/Bangkok').format(),
-        ip: req.ip
-    });
+exports.login = async (req, res) => {
     try {
-        const [users] = await pool.execute(`
-            SELECT u.*, sd.isEligibleForInternship, sd.isEligibleForProject 
-            FROM users u 
-            LEFT JOIN student_data sd ON u.studentID = sd.studentID 
-            WHERE u.username = ?`
-            , [username]);
+        const { username, password } = req.body;
 
-        if (users.length === 0) {
-            return res.status(401).json({
-                success: false,
-                error: "ชื่อผู้ใช้ไม่ถูกต้อง"
-            });
-        }
+        const [users] = await pool.execute(`
+            SELECT u.*, 
+                   s.student_code,
+                   s.total_credits,
+                   s.major_credits,
+                   s.is_eligible_internship,
+                   s.is_eligible_project,
+                   t.teacher_code,
+                   t.contact_extension,
+                   a.admin_code
+            FROM users u
+            LEFT JOIN students s ON u.user_id = s.user_id AND u.role = 'student'
+            LEFT JOIN teachers t ON u.user_id = t.user_id AND u.role = 'teacher'
+            LEFT JOIN admins a ON u.user_id = a.user_id AND u.role = 'admin'
+            WHERE u.username = ? AND u.active_status = true`,
+            [username]
+        );
 
         const user = users[0];
 
-        // เปรียบเทียบรหัสผ่านโดยใช้ bcrypt
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        console.log('Password match:', isPasswordValid);
-
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                error: "รหัสผ่านผู้ใช้ไม่ถูกต้อง"
-            });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
         }
 
-        // สร้าง JWT token
-        const token = jwt.sign({
-            userId: user.id,
-            role: user.role,
-            studentID: user.studentID,
-            firstName: user.firstName,
-            lastName: user.lastName,
-        }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN
-        });
+        // แก้ token payload
+        const token = jwt.sign(
+            { 
+                userId: user.user_id, 
+                role: user.role
+                // ลบ roleDetails ออก
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
 
-        // เพิ่ม log ก่อนส่ง response
-        console.log('Token created for user:', {
-            userId: user.id,
-            role: user.role,
-            studentID: user.studentID
-        });
-
-        // ส่งอีเมลแจ้งเตือนการล็อกอิน
-        const today = new Date().toDateString();
-        if (user.lastLoginNotification !== today) {
-            try {
-                await sendLoginNotification(user.email, user.username);
-                await pool.execute(
-                    'UPDATE users SET lastLoginNotification = CURRENT_TIMESTAMP WHERE username = ?',
-                    [user.username]
-                );
-            } catch (error) {
-                console.error('Email notification error:', error);
-            }
-        }
-
-        // ส่งข้อมูลกลับไปยัง client
+        // ส่งข้อมูลกลับ frontend
         res.json({
             success: true,
-            message: 'Login successful',
             token,
-            studentID: user.studentID,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role,
-            isEligibleForInternship: user.isEligibleForInternship || false,
-            isEligibleForProject: user.isEligibleForProject || false
+            userData: {
+                userId: user.user_id,
+                username: user.username,
+                email: user.email,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                role: user.role,
+                studentCode: user.student_code,
+                totalCredits: user.total_credits,
+                majorCredits: user.major_credits,
+                isEligibleForInternship: user.is_eligible_internship,
+                isEligibleForProject: user.is_eligible_project
+            }
         });
     } catch (error) {
-        logger.error('Login error', {
-            username,
-            error: error.message,
-            stack: error.stack,
-            timestamp: new Date(),
-            ip: req.ip
-        });
-        next(error);
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' });
     }
-}
+};

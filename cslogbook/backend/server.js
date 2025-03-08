@@ -77,11 +77,13 @@ const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
 const teacherRoutes = require('./routes/teacherRoutes');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
-const studentPairsRoutes = require('./routes/studentpairsRoutes'); // นำเข้า route
+const projectMembersRoutes = require('./routes/projectMembersRoutes'); // นำเข้า route
 const documentsRoutes = require('./routes/documents'); // นำเข้า route
 const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
 const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
 const logbookRoutes = require('./routes/logbookRoutes'); // นำเข้า route
+const templateRoutes = require('./routes/template');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -184,12 +186,12 @@ if (!fs.existsSync(ENV.UPLOAD_DIR)) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Protected routes
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
-app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
+app.use('/api/project-members', authenticateToken, projectMembersRoutes); // ใช้ route
 app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
 app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
@@ -198,16 +200,7 @@ app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.use('/api', uploadRoutes); // ใช้ route
 
-// Route to download CSV template
-app.get('/template/download-template', (req, res) => {
-  const filePath = path.join(__dirname, 'templates/student_template.csv');
-  res.download(filePath, 'student_template.csv', (err) => {
-    if (err) {
-      console.error('Error downloading template:', err);
-      res.status(500).send('Error downloading template');
-    }
-  });
-});
+app.use('/api', templateRoutes);
 
 // API สำหรับอัปโหลดไฟล์พร้อมข้อมูล companyInfo
 app.post('/upload-with-info', upload.single('file'), (req, res) => {
