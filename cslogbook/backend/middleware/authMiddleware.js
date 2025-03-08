@@ -5,54 +5,22 @@ const validateEnv = require('../utils/validateEnv');
 // Validate JWT environment variables
 validateEnv('auth');
 
-const handleDatabaseError = (error, res) => {
-  console.error('Database Error:', {
-    code: error.code,
-    errno: error.errno,
-    sql: error.sql,
-    sqlState: error.sqlState
-  });
-
-  // จัดการ error ตาม error code
-  switch (error.code) {
-    case 'PROTOCOL_CONNECTION_LOST':
-      return res.status(503).json({
-        status: 'error',
-        message: 'การเชื่อมต่อฐานข้อมูลถูกตัด กรุณาลองใหม่อีกครั้ง',
-        code: 'DB_CONNECTION_LOST'
-      });
-    
-    case 'ER_CON_COUNT_ERROR':
-      return res.status(503).json({
-        status: 'error',
-        message: 'ฐานข้อมูลมีการเชื่อมต่อมากเกินไป กรุณาลองใหม่ภายหลัง',
-        code: 'DB_TOO_MANY_CONNECTIONS'
-      });
-
-    default:
-      return res.status(500).json({
-        status: 'error',
-        message: 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล',
-        code: 'DB_ERROR'
-      });
-  }
-};
-
 const authMiddleware = {
   authenticateToken: (req, res, next) => {
     try {
-      // ตรวจสอบ token
-      const token = req.headers.authorization?.split(' ')[1];
+      const authHeader = req.headers['authorization'];
+      const token = authHeader?.split(' ')[1];
+
       if (!token) {
-        return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบ' });
+        return res.status(401).json({ 
+          status: 'error',
+          message: 'กรุณาเข้าสู่ระบบ',
+          code: 'NO_TOKEN_PROVIDED'
+        });
       }
 
-      // ตรวจสอบและถอดรหัส token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = {
-        user_id: decoded.user_id,
-        role: decoded.role,
-      };
+      const user = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = user;
       next();
     } catch (err) {
       console.error('Authentication error:', err.message);
@@ -109,11 +77,8 @@ const authMiddleware = {
         });
       }
 
-      let connection;
       try {
-        connection = await pool.getConnection();
-        
-        const [students] = await connection.execute(`
+        const [students] = await pool.execute(`
           SELECT 
             u.*, 
             sd.totalCredits, 
@@ -158,49 +123,15 @@ const authMiddleware = {
 
         next();
       } catch (error) {
-        return handleDatabaseError(error, res);
-      } finally {
-        if (connection) {
-          connection.release();
-        }
+        console.error('Eligibility check error:', error);
+        return res.status(500).json({
+          status: 'error',
+          message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์',
+          code: 'ELIGIBILITY_CHECK_ERROR'
+        });
       }
     };
-  },
-
-  checkEligibility: async (req, res, next) => {
-    try {
-      const [student] = await pool.execute(`
-        SELECT is_eligible_internship, is_eligible_project
-        FROM students 
-        WHERE user_id = ?`,
-        [req.user.userId]
-      );
-
-      if (!student[0]) {
-        return res.status(403).json({ message: 'ไม่พบข้อมูลนักศึกษา' });
-      }
-
-      req.eligibility = {
-        internship: student[0].is_eligible_internship,
-        project: student[0].is_eligible_project
-      };
-      
-      next();
-    } catch (error) {
-      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์' });
-    }
   }
-};
-
-exports.checkRole = (roles) => {
-    return async (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({
-                message: 'ไม่มีสิทธิ์เข้าถึงส่วนนี้'
-            });
-        }
-        next();
-    };
 };
 
 module.exports = authMiddleware;

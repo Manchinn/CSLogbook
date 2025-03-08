@@ -1,72 +1,21 @@
-// เพิ่ม constants สำหรับค่าคงที่
-const THAI_YEAR_OFFSET = 543;
-const MAX_STUDY_YEARS = 8;
-const MIN_STUDENT_CODE_LENGTH = 13;
-const ACADEMIC_MONTH_THRESHOLD = 4;
-
 /**
  * คำนวณชั้นปีของนักศึกษา
- * @param {string} studentCode - รหัสนักศึกษา
- * @returns {object} - ผลการคำนวณชั้นปี
+ * @param {string} studentID - รหัสนักศึกษา
+ * @returns {number} - ชั้นปีของนักศึกษา
  */
-export const calculateStudentYear = (studentCode) => {
-  // ตรวจสอบ input
-  if (!studentCode) {
-    return {
-      error: true,
-      message: 'รหัสนักศึกษาไม่ถูกต้อง'
-    };
-  }
+export const calculateStudentYear = (studentID) => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
+  const currentMonth = currentDate.getMonth() + 1; // เดือนปัจจุบัน (1-12)
+  const studentYear = parseInt(studentID.substring(0, 2)) + 2500; // สมมติว่ารหัสนักศึกษาเป็นปี พ.ศ.
+  let studentClassYear = currentYear - studentYear; //2568 - 2564 = 4 + 1
 
-  try {
-    const studentCodeStr = String(studentCode);
-    
-    // ตรวจสอบความยาวรหัสนักศึกษา
-    if (studentCodeStr.length !== MIN_STUDENT_CODE_LENGTH) {
-      return {
-        error: true,
-        message: `รหัสนักศึกษาต้องมี ${MIN_STUDENT_CODE_LENGTH} หลัก`
-      };
-    }
+  // หากเดือนปัจจุบันมากกว่าเดือนที่ 4 ให้เพิ่มชั้นปีขึ้น 1
+  if (currentMonth > 4) {
+    studentClassYear += 1;
+  } // 5 - 1 = 4 
 
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear() + THAI_YEAR_OFFSET;
-    const currentMonth = currentDate.getMonth() + 1;
-    const studentYear = parseInt(studentCodeStr.substring(0, 2)) + 2500;
-    let studentClassYear = currentYear - studentYear;
-
-    // ตรวจสอบความถูกต้องของปี
-    if (studentClassYear < 0) {
-      return {
-        error: true,
-        message: 'ปีการศึกษาไม่ถูกต้อง'
-      };
-    }
-
-    // เพิ่มชั้นปีถ้าผ่านเดือนเมษายน
-    if (currentMonth > ACADEMIC_MONTH_THRESHOLD) {
-      studentClassYear += 1;
-    }
-
-    // ตรวจสอบชั้นปีสูงสุด
-    if (studentClassYear > MAX_STUDY_YEARS) {
-      return {
-        error: true,
-        message: `เกินระยะเวลาการศึกษาสูงสุด ${MAX_STUDY_YEARS} ปี`
-      };
-    }
-
-    return {
-      error: false,
-      year: studentClassYear
-    };
-  } catch (error) {
-    console.error('Error calculating student year:', error);
-    return {
-      error: true,
-      message: 'เกิดข้อผิดพลาดในการคำนวณชั้นปี'
-    };
-  }
+  return studentClassYear;
 };
 
 /**
