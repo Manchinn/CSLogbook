@@ -8,11 +8,11 @@ module.exports = (sequelize) => {
                 as: 'user'
             });
             Student.belongsTo(models.Teacher, {
-                foreignKey: 'advisor_id',
+                foreignKey: 'advisorId',
                 as: 'advisor'
             });
             Student.hasMany(models.ProjectMember, {
-                foreignKey: 'student_id',
+                foreignKey: 'studentId',
                 as: 'projectMemberships'
             });
         }

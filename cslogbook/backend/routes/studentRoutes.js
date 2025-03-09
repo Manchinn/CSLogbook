@@ -1,53 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const studentController = require('../controllers/studentController.js');
-const { authenticateToken, checkRole } = require('../middleware/authMiddleware.js');
+const studentController = require('../controllers/studentController');
+const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
-/**
- * Student Routes Configuration
- * กำหนดเส้นทางสำหรับจัดการข้อมูลนักศึกษา
- * - ใช้ authenticateToken สำหรับตรวจสอบการเข้าสู่ระบบ
- * - ใช้ checkRole สำหรับตรวจสอบสิทธิ์การเข้าถึง
- */
+// Public routes
+router.get('/', studentController.getAllStudents);
+router.get('/:id', studentController.getStudentById);
 
-// [GET] /api/students/stats
-// ดึงข้อมูลสถิตินักศึกษาทั้งหมด (สำหรับ admin และ teacher)
-router.get('/stats', 
-  authenticateToken, 
-  checkRole(['admin', 'teacher']), 
-  studentController.getAllStudentStats
+// Protected routes (require authentication)
+router.use(authenticateToken);
+
+// ตรวจสอบสิทธิ์นักศึกษา
+router.get('/:id/eligibility', authenticateToken, studentController.getStudentById);
+
+// Admin routes
+router.post('/',
+  checkRole(['admin']),
+  studentController.addStudent
 );
 
-// [GET] /api/students/:id
-// ดึงข้อมูลนักศึกษารายบุคคล (ทุก role สามารถเข้าถึงได้)
-router.get('/:id', 
-  authenticateToken, 
-  checkRole(['admin', 'teacher', 'student']), 
-  studentController.getStudentById
-);
-
-// [PUT] /api/students/:id
-// อัพเดทข้อมูลนักศึกษา (admin และ teacher เท่านั้น)
-router.put('/:id', 
-  authenticateToken, 
-  checkRole(['admin', 'teacher']), 
+router.put('/:id',
+  checkRole(['admin', 'teacher']),
   studentController.updateStudent
 );
 
-// [DELETE] /api/students/:id
-// ลบข้อมูลนักศึกษา (admin เท่านั้น)
-router.delete('/:id', 
-  authenticateToken, 
-  checkRole(['admin']), 
+router.delete('/:id',
+  checkRole(['admin']),
   studentController.deleteStudent
 );
 
-// [POST] /api/students
-// เพิ่มข้อมูลนักศึกษา (admin เท่านั้น)
-router.post('/', 
-  authenticateToken, 
-  checkRole(['admin']), 
-  studentController.addStudent
+router.get('/stats/all',
+  checkRole(['admin']),
+  studentController.getAllStudentStats
 );
 
 module.exports = router;

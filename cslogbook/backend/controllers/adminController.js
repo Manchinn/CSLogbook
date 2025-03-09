@@ -5,7 +5,7 @@ const moment = require('moment');
 // ฟังก์ชันย่อยสำหรับดึงข้อมูลนักศึกษา
 const getStudentStats = async () => {
   try {
-    console.log('Fetching student stats...'); // Debug log
+    //console.log('Fetching student stats...');
 
     const stats = await Student.findOne({
       include: [{
@@ -35,7 +35,7 @@ const getStudentStats = async () => {
       raw: true
     });
 
-    console.log('Raw stats:', stats); // Debug log
+    //console.log('Raw stats:', stats); // Debug log
 
     return {
       total: parseInt(stats?.total) || 0,
@@ -90,10 +90,10 @@ module.exports = {
   // Main dashboard stats
   getStats: async (req, res) => {
     try {
-      console.log('Processing admin stats request...'); // Debug log
+      //console.log('Processing admin stats request...'); // Debug log
 
       const stats = await getStudentStats();
-      console.log('Student stats retrieved:', stats); // Debug log
+      //console.log('Student stats retrieved:', stats); // Debug log
 
       // Format response data
       const responseData = {

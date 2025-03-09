@@ -93,6 +93,23 @@ const pool = require('./config/database');
 // เพิ่มก่อน middleware อื่นๆ
 app.set('trust proxy', 1);
 
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
+}));
+
+// ย้าย cors middleware ขึ้นไปก่อน route handlers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Swagger setup
 const swaggerOptions = {
   swaggerDefinition: {
@@ -144,18 +161,6 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
-
-// Basic Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// CORS configuration with validated FRONTEND_URL
-app.use(cors({
-  origin: ENV.FRONTEND_URL,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // เพิ่ม methods ที่จำเป็น
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
 
 // Logging middleware
 app.use((req, res, next) => {

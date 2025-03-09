@@ -41,7 +41,7 @@ const calculateStudentYear = (studentCode) => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
     const currentMonth = currentDate.getMonth() + 1;
-    const studentYear = parseInt(studentIDStr.substring(0, 2)) + 2500;
+    const studentYear = parseInt(studentCodeStr.substring(0, 2)) + 2500;
     let studentClassYear = currentYear - studentYear;
 
     if (currentMonth > CONSTANTS.ACADEMIC_MONTH_THRESHOLD) {

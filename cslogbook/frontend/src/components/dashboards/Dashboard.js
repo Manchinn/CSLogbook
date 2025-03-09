@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Alert, Statistic, Space, Button, message, Tooltip } from 'antd';
-import { UserOutlined, ProjectOutlined, BookOutlined, CheckCircleOutlined, ClockCircleOutlined, UploadOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Alert, Statistic, Space, Button, message, Tooltip, Badge, Descriptions } from 'antd';
+import { UserOutlined, ProjectOutlined, BookOutlined, CheckCircleOutlined, ClockCircleOutlined, UploadOutlined, FileTextOutlined, FormOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './Dashboard.css';
-import { useStudentEligibility } from '../../hooks/useStudentEligibility';
+import { adminService } from '../../services/adminService';
+import { teacherService } from '../../services/teacherService';
+import { studentService } from '../../services/studentService';
+import moment from 'moment';
+
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+  throw new Error('REACT_APP_API_URL is not defined in environment variables');
+}
 
 function Dashboard() {
   const { userData } = useAuth();
@@ -14,17 +22,26 @@ function Dashboard() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
-      totalStudents: 0,
-      internshipEligible: 0,
-      projectEligible: 0
+      students: {
+        total: 0,
+        internshipEligible: 0, 
+        projectEligible: 0
+      },
+      documents: {
+        total: 0,
+        pending: 0
+      },
+      system: {
+        onlineUsers: 0,
+        lastUpdate: null
+      }
     });
 
-    // Fetch stats when component mounts
     useEffect(() => {
       const fetchStats = async () => {
         try {
-          const response = await axios.get('/api/admin/stats');
-          setStats(response.data);
+          const data = await adminService.getStats();
+          setStats(data);
         } catch (error) {
           console.error('Error fetching stats:', error);
           message.error('ไม่สามารถโหลดข้อมูลสถิติได้');
@@ -39,21 +56,21 @@ function Dashboard() {
     const statsCards = [
       {
         title: 'นักศึกษาทั้งหมด',
-        value: stats.totalStudents,
+        value: stats.students.total,
         icon: <UserOutlined />,
         color: '#1890ff',
         onClick: () => navigate('/students')
       },
       {
-        title: 'นักศึกษาที่มีสิทธิ์ฝึกงาน',
-        value: stats.internshipEligible,
+        title: 'มีสิทธิ์ฝึกงาน',
+        value: stats.students.internshipEligible,
         icon: <BookOutlined />,
         color: '#52c41a',
         onClick: () => navigate('/students?filter=internship')
       },
       {
-        title: 'นักศึกษาที่มีสิทธิ์ทำโครงงาน',
-        value: stats.projectEligible,
+        title: 'มีสิทธิ์ทำโครงงาน', 
+        value: stats.students.projectEligible,
         icon: <ProjectOutlined />,
         color: '#722ed1',
         onClick: () => navigate('/students?filter=project')
@@ -92,6 +109,32 @@ function Dashboard() {
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
+              <Card>
+                <Statistic
+                  title="เอกสารรอดำเนินการ"
+                  value={stats.documents.pending}
+                  suffix={`/ ${stats.documents.total}`}
+                  valueStyle={{ color: '#faad14' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card>
+                <Statistic
+                  title="ผู้ใช้งานออนไลน์"
+                  value={stats.system.onlineUsers}
+                  valueStyle={{ color: '#52c41a' }}
+                  prefix={<UserOutlined />}
+                />
+                <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.45)' }}>
+                  อัพเดทล่าสุด: {moment(stats.system.lastUpdate).format('HH:mm:ss')}
+                </div>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
               <Button 
                 type="primary" 
                 icon={<UploadOutlined />}
@@ -109,19 +152,43 @@ function Dashboard() {
                 block
               >
                 จัดการเอกสาร
+                {stats.documents.pending > 0 && (
+                  <Badge 
+                    count={stats.documents.pending} 
+                    style={{ marginLeft: 8 }}
+                  />
+                )}
               </Button>
             </Col>
           </Row>
-
-          <Card title="กิจกรรมล่าสุด" className="activity-card">
-            {/* Add recent activities here */}
-          </Card>
         </Space>
       </div>
     );
   }
 
   function TeacherView() {
+    const [loading, setLoading] = useState(true);
+    const [teacherStats, setTeacherStats] = useState({
+      totalStudents: 0,
+      pendingActions: 0
+    });
+
+    useEffect(() => {
+      const fetchTeacherStats = async () => {
+        try {
+          const data = await teacherService.getStats();
+          setTeacherStats(data);
+        } catch (error) {
+          console.error('Error fetching teacher stats:', error);
+          message.error('ไม่สามารถโหลดข้อมูลสถิติได้');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchTeacherStats();
+    }, []);
+
     return (
       <div className="teacher-dashboard">
         <Row gutter={[16, 16]} className="stats-row">
@@ -129,9 +196,10 @@ function Dashboard() {
             <Card hoverable className="stats-card">
               <Statistic
                 title="นักศึกษาในที่ปรึกษา"
-                value={0}
+                value={teacherStats.totalStudents}
                 prefix={<UserOutlined />}
                 valueStyle={{ color: '#1890ff' }}
+                loading={loading}
               />
               <p>จำนวนนักศึกษาที่ดูแล</p>
             </Card>
@@ -140,9 +208,10 @@ function Dashboard() {
             <Card hoverable className="stats-card">
               <Statistic
                 title="รายการที่ต้องดำเนินการ"
-                value={0}
+                value={teacherStats.pendingActions}
                 prefix={<BookOutlined />}
                 valueStyle={{ color: '#faad14' }}
+                loading={loading}
               />
               <p>รายการรอดำเนินการ</p>
             </Card>
@@ -155,72 +224,181 @@ function Dashboard() {
   function StudentView() {
     const { userData } = useAuth();
     const navigate = useNavigate();
-    const { internshipStatus, projectStatus } = useStudentEligibility(userData);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [eligibilityData, setEligibilityData] = useState(null);
+
+    useEffect(() => {
+      const fetchEligibility = async () => {
+        // ตรวจสอบว่ามี userData และ studentCode ก่อน
+        if (!userData || !userData.studentCode) {
+          setError(new Error('ไม่พบข้อมูลนักศึกษา'));
+          setLoading(false);
+          return;
+        }
+
+        try {
+          console.log('Fetching data for:', userData.studentCode);
+          const response = await studentService.getStudentInfo(userData.studentCode);
+          
+          console.log('Backend response:', response);
+          
+          // ตรวจสอบ success flag จาก backend
+          if (!response.success || !response.data) {
+            throw new Error(response.message || 'ไม่พบข้อมูลจากเซิร์ฟเวอร์');
+          }
+
+          const formattedData = {
+            studentCode: response.data.studentCode,
+            totalCredits: response.data.totalCredits,
+            majorCredits: response.data.majorCredits,
+            studentYear: response.data.eligibility.studentYear,
+            isEligibleInternship: response.data.eligibility.internship.eligible,
+            isEligibleProject: response.data.eligibility.project.eligible,
+            messages: {
+              internship: response.data.eligibility.internship.message,
+              project: response.data.eligibility.project.message
+            }
+          };
+          
+          setEligibilityData(formattedData);
+          
+        } catch (err) {
+          console.error('Error:', err);
+          setError(err);
+          message.error(err.message || 'ไม่สามารถโหลดข้อมูลได้');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchEligibility();
+    }, [userData]); // เปลี่ยน dependency เป็น userData
+
+    if (loading) {
+      return (
+        <div className="student-dashboard">
+          <Space direction="vertical" size="large">
+            <Alert message="กำลังโหลดข้อมูล..." type="info" showIcon />
+          </Space>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="student-dashboard">
+          <Space direction="vertical" size="large">
+            <Alert message="เกิดข้อผิดพลาด" description={error.message} type="error" showIcon />
+          </Space>
+        </div>
+      );
+    }
 
     return (
       <div className="student-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
           <Alert
-            message={`สวัสดี คุณ${userData.firstName} ${userData.lastName}`}
+            message={`สวัสดี ${userData.firstName} ${userData.lastName}`}
             description={`รหัสนักศึกษา: ${userData.studentCode}`}
             type="info"
             showIcon
-            className="common-alert-style"
           />
-          
+
           <Row gutter={[16, 16]}>
+            {/* สถานะการฝึกงาน */}
             <Col xs={24} sm={12}>
-              <Card className="common-card-style">
+              <Card hoverable className="eligibility-card">
                 <Statistic
                   title="สถานะการฝึกงาน"
-                  value={internshipStatus.value}
-                  valueStyle={{ color: internshipStatus.color }}
-                  prefix={internshipStatus.isEligible ? 
-                    <CheckCircleOutlined /> : <ClockCircleOutlined />}
+                  value={eligibilityData?.isEligibleInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
+                  valueStyle={{ 
+                    color: eligibilityData?.isEligibleInternship ? '#52c41a' : '#ff4d4f' 
+                  }}
+                  prefix={eligibilityData?.isEligibleInternship ? 
+                    <CheckCircleOutlined /> : 
+                    <ClockCircleOutlined />
+                  }
                 />
-                {internshipStatus.isEligible && (
+                <Descriptions column={1} size="small">
+                  <Descriptions.Item label="หน่วยกิตรวม">
+                    {eligibilityData?.totalCredits || 0} หน่วยกิต
+                  </Descriptions.Item>
+                  <Descriptions.Item label="สถานะ">
+                    {eligibilityData?.messages?.internship || 'ตรวจสอบหน่วยกิตและชั้นปี'}
+                  </Descriptions.Item>
+                </Descriptions>
+                {eligibilityData?.isEligibleInternship && (
                   <Button 
                     type="primary" 
-                    onClick={() => navigate('/internship-terms')}
+                    icon={<FormOutlined />}
+                    onClick={() => navigate('/internship')}
                     style={{ marginTop: '16px' }}
                   >
                     จัดการฝึกงาน
                   </Button>
                 )}
-                <Tooltip title={internshipStatus.message}>
-                  <div style={{ marginTop: '8px', fontSize: '14px', color: 'rgba(0,0,0,0.45)' }}>
-                    หน่วยกิตรวม: {userData.totalCredits || 0}
-                  </div>
-                </Tooltip>
               </Card>
             </Col>
 
+            {/* สถานะโครงงาน */}
             <Col xs={24} sm={12}>
-              <Card className="common-card-style">
+              <Card hoverable className="eligibility-card">
                 <Statistic
                   title="สถานะโครงงาน"
-                  value={projectStatus.value}
-                  valueStyle={{ color: projectStatus.color }}
-                  prefix={projectStatus.isEligible ? 
-                    <CheckCircleOutlined /> : <ClockCircleOutlined />}
+                  value={eligibilityData?.isEligibleProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
+                  valueStyle={{ 
+                    color: eligibilityData?.isEligibleProject ? '#52c41a' : '#ff4d4f' 
+                  }}
+                  prefix={eligibilityData?.isEligibleProject ? 
+                    <CheckCircleOutlined /> : 
+                    <ClockCircleOutlined />
+                  }
                 />
-                {projectStatus.isEligible && (
+                <Descriptions column={1} size="small">
+                  <Descriptions.Item label="ชั้นปี">
+                    {eligibilityData?.studentYear?.year || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="หน่วยกิตรวม">
+                    {eligibilityData?.totalCredits || 0} หน่วยกิต
+                  </Descriptions.Item>
+                  <Descriptions.Item label="หน่วยกิตเฉพาะ">
+                    {eligibilityData?.majorCredits || 0} หน่วยกิต
+                  </Descriptions.Item>
+                  <Descriptions.Item label="สถานะ">
+                    {eligibilityData?.messages?.project || 'ตรวจสอบหน่วยกิตและชั้นปี'}
+                  </Descriptions.Item>
+                </Descriptions>
+                {eligibilityData?.isEligibleProject && (
                   <Button 
                     type="primary" 
-                    onClick={() => navigate('/project-proposal')}
+                    icon={<ProjectOutlined />}
+                    onClick={() => navigate('/project')}
                     style={{ marginTop: '16px' }}
                   >
                     จัดการโครงงาน
                   </Button>
                 )}
-                <Tooltip title={projectStatus.message}>
-                  <div style={{ marginTop: '8px', fontSize: '14px', color: 'rgba(0,0,0,0.45)' }}>
-                    หน่วยกิตเฉพาะ: {userData.majorCredits || 0}
-                  </div>
-                </Tooltip>
               </Card>
             </Col>
           </Row>
+
+          <Card title="ข้อมูลการศึกษา">
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="หน่วยกิตรวม">
+                {eligibilityData?.totalCredits || 0}
+              </Descriptions.Item>
+              <Descriptions.Item label="หน่วยกิตเฉพาะ">
+                {eligibilityData?.majorCredits || 0}
+              </Descriptions.Item>
+              <Descriptions.Item label="ชั้นปี">
+                {eligibilityData?.studentYear?.year || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="ประเภทการศึกษา">
+                {userData.studyType === 'regular' ? 'ภาคปกติ' : 'ภาคพิเศษ'}
+              </Descriptions.Item>
+            </Descriptions>
+          </Card>
         </Space>
       </div>
     );

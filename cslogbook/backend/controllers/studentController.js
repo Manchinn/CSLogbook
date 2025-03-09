@@ -39,46 +39,62 @@ exports.getAllStudents = async (req, res, next) => {
 
 
 // ฟังก์ชันดึงข้อมูลนักศึกษาตาม ID
+const calculateEligibility = (studentCode, totalCredits, majorCredits) => {
+  const studentYear = calculateStudentYear(studentCode);
+  return {
+    studentYear,
+    internship: isEligibleForInternship(studentYear, totalCredits),
+    project: isEligibleForProject(studentYear, totalCredits, majorCredits)
+  };
+};
+
 exports.getStudentById = async (req, res) => {
   try {
     const student = await Student.findOne({
-      where: { studentId: req.params.id },
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['firstName', 'lastName', 'email']
-        },
-        {
-          model: Teacher,
-          as: 'advisor',
-          attributes: ['firstName', 'lastName']
-        }
-      ]
+      where: { studentCode: req.params.id }
     });
 
     if (!student) {
-      return res.status(404).json({ error: 'ไม่พบข้อมูลนักศึกษา' });
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา'
+      });
     }
 
-    const studentData = {
-      id: student.studentId,
+    // คำนวณสิทธิ์
+    const eligibility = calculateEligibility(
+      student.studentCode,
+      student.totalCredits || 0,
+      student.majorCredits || 0
+    );
+
+    // ส่ง response ในรูปแบบที่ frontend ต้องการ
+    res.json({
+      success: true,
+      data: {
+        studentCode: student.studentCode,
+        totalCredits: student.totalCredits || 0,
+        majorCredits: student.majorCredits || 0,
+        eligibility: {
+          studentYear: eligibility.studentYear,
+          internship: eligibility.internship,
+          project: eligibility.project
+        }
+      }
+    });
+    /* console.log('Eligibility calculation:', {
       studentCode: student.studentCode,
-      name: `${student.user.firstName} ${student.user.lastName}`,
-      email: student.user.email,
-      advisor: student.advisor ? `${student.advisor.firstName} ${student.advisor.lastName}` : null,
       totalCredits: student.totalCredits,
       majorCredits: student.majorCredits,
-      gpa: student.gpa?.toFixed(2) || '0.00',
-      studyType: student.studyType,
-      isEligibleInternship: student.isEligibleInternship,
-      isEligibleProject: student.isEligibleProject
-    };
+      eligibility
+    }); */
 
-    res.json(studentData);
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
   }
 };
 
@@ -103,7 +119,7 @@ exports.updateStudent = async (req, res) => {
     const parsedTotalCredits = parseInt(totalCredits);
     const parsedMajorCredits = parseInt(majorCredits);
     const parsedGpa = parseFloat(gpa || 0);
-    
+
     const studentYear = calculateStudentYear(id);
     const projectEligibility = isEligibleForProject(studentYear, parsedTotalCredits, parsedMajorCredits);
     const internshipEligibility = isEligibleForInternship(studentYear, parsedTotalCredits);
@@ -122,7 +138,7 @@ exports.updateStudent = async (req, res) => {
     });
 
     if (updatedRows === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'ไม่พบข้อมูลนักศึกษา',
         studentId: id
       });
@@ -156,7 +172,7 @@ exports.deleteStudent = async (req, res, next) => {
     const { id } = req.params;
 
     const result = await User.destroy({
-      where: { 
+      where: {
         studentID: id,
         role: 'student'
       }
@@ -191,7 +207,7 @@ exports.addStudent = async (req, res) => {
     // สร้าง user account
     const password = studentCode; // รหัสผ่านเริ่มต้นคือรหัสนักศึกษา
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const user = await User.create({
       username: `s${studentCode}`,
       password: hashedPassword,
