@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Row, Col, message, Spin, Form, InputNumber, Button, Avatar, Tag, Statistic, Tooltip } from 'antd';
 import { UserOutlined, BookOutlined, ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { calculateStudentYear, isEligibleForProject, isEligibleForInternship } from './utils/studentUtils';
+import { calculateStudentYear, isEligibleForProject, isEligibleForInternship } from '../utils/studentUtils';
 
 const API_URL = process.env.REACT_APP_API_URL;
 

@@ -74,7 +74,7 @@ const swaggerUi = require('swagger-ui-express');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
-const studentRoutes = require('./routes/students');
+const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
 const studentPairsRoutes = require('./routes/studentpairsRoutes'); // นำเข้า route
@@ -83,9 +83,15 @@ const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // �
 const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
 const logbookRoutes = require('./routes/logbookRoutes'); // นำเข้า route
 
+const adminRoutes = require('./routes/adminRoutes');
+
+
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
+
+// เพิ่มก่อน middleware อื่นๆ
+app.set('trust proxy', 1);
 
 // Swagger setup
 const swaggerOptions = {
@@ -184,9 +190,10 @@ if (!fs.existsSync(ENV.UPLOAD_DIR)) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Protected routes
+app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route

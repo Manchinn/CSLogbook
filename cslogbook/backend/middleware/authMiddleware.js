@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const pool = require('../config/database');
+const { User, Student } = require('../models');
 const validateEnv = require('../utils/validateEnv');
 
 // Validate JWT environment variables
@@ -8,9 +8,11 @@ validateEnv('auth');
 const authMiddleware = {
   authenticateToken: async (req, res, next) => {
     try {
+      // ดึง token จาก Authorization header
       const authHeader = req.headers['authorization'];
       const token = authHeader?.split(' ')[1];
 
+      // ตรวจสอบว่ามี token หรือไม่
       if (!token) {
         return res.status(401).json({ 
           status: 'error',
@@ -19,16 +21,19 @@ const authMiddleware = {
         });
       }
 
+      // ตรวจสอบความถูกต้องของ token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // ตรวจสอบผู้ใช้ในฐานข้อมูล
-      const [users] = await pool.execute(
-          'SELECT active_status FROM users WHERE user_id = ?',
-          [decoded.userId]
-      );
+      // ค้นหาผู้ใช้ในระบบ
+      const user = await User.findOne({
+        where: { 
+          userId: decoded.userId,
+          activeStatus: true 
+        }
+      });
 
-      if (users.length === 0 || !users[0].active_status) {
-          throw new Error('User not found or inactive');
+      if (!user) {
+        throw new Error('User not found or inactive');
       }
 
       req.user = decoded;
@@ -44,6 +49,7 @@ const authMiddleware = {
   },
 
   checkRole: (roles) => (req, res, next) => {
+    // ตรวจสอบว่ามีข้อมูลผู้ใช้หรือไม่
     if (!req.user) {
       return res.status(401).json({
         status: 'error',
@@ -52,6 +58,7 @@ const authMiddleware = {
       });
     }
 
+    // ตรวจสอบสิทธิ์การเข้าถึง
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         status: 'error',
@@ -62,21 +69,43 @@ const authMiddleware = {
     next();
   },
 
-  checkSelfOrAdmin: (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบ' });
-    }
+  checkSelfOrAdmin: async (req, res, next) => {
+    try {
+      // เพิ่ม debug logging
+      console.log('Auth Check:', {
+        user: req.user,
+        params: req.params,
+        headers: req.headers
+      });
 
-    if (req.user.role === 'admin' || req.user.studentID === req.params.id) {
-      return next();
-    }
+      // ตรวจสอบการ authenticate
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
 
-    return res.status(403).json({ error: 'คุณไม่มีสิทธิ์แก้ไขข้อมูลนี้' });
+      // ตรวจสอบสิทธิ์การเข้าถึงข้อมูลตนเองหรือ admin
+      const userRole = req.user.role;
+      const userStudentCode = req.user.studentCode;
+      const requestedId = req.params.id;
+
+      if (userRole === 'admin' || userStudentCode === requestedId) {
+        next();
+      } else {
+        return res.status(403).json({
+          message: 'Access denied',
+          details: { userRole, userStudentCode, requestedId }
+        });
+      }
+    } catch (error) {
+      console.error('Auth Middleware Error:', error);
+      return res.status(500).json({ message: 'Internal server error in auth check' });
+    }
   },
 
   async checkEligibility(type) {
     return async (req, res, next) => {
-      if (!req.user?.studentID) {
+      // ตรวจสอบรหัสนักศึกษา
+      if (!req.user?.studentCode) {
         return res.status(401).json({
           status: 'error',
           message: 'ไม่พบข้อมูลนักศึกษา',
@@ -85,40 +114,27 @@ const authMiddleware = {
       }
 
       try {
-        const [students] = await pool.execute(`
-          SELECT 
-            u.*, 
-            sd.totalCredits, 
-            sd.majorCredits,
-            SUBSTRING(u.studentID, 1, 2) as studentYear
-          FROM users u
-          LEFT JOIN student_data sd ON u.studentID = sd.studentID
-          WHERE u.studentID = ?
-        `, [req.user.studentID]);
+        // ดึงข้อมูลนักศึกษา
+        const student = await Student.findOne({
+          where: { studentCode: req.user.studentCode },
+          include: [{ model: User, required: true }]
+        });
 
-        if (students.length === 0) {
-          return res.status(404).json({
-            status: 'error',
-            message: 'ไม่พบข้อมูลนักศึกษา',
-            code: 'STUDENT_NOT_FOUND'
-          });
-        }
-
-        const student = students[0];
-        
+        // กำหนดเงื่อนไขการตรวจสอบสิทธิ์
         const eligibilityChecks = {
           internship: {
-            condition: +student.studentYear <= 63 && student.totalCredits >= 81,
+            condition: +studentYear >= 63 && student.totalCredits >= 81,
             message: 'ต้องมีหน่วยกิตรวมไม่น้อยกว่า 81 หน่วยกิต'
           },
           project: {
-            condition: +student.studentYear <= 62 && 
+            condition: +studentYear >= 62 && 
                       student.totalCredits >= 95 && 
                       student.majorCredits >= 47,
             message: 'ต้องมีหน่วยกิตรวมไม่น้อยกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า 47 หน่วยกิต'
           }
         };
 
+        // ตรวจสอบเงื่อนไข
         const check = eligibilityChecks[type];
         if (!check.condition) {
           return res.status(403).json({

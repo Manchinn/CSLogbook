@@ -26,7 +26,7 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './StudentList.css';
-import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } from './utils/studentUtils';
+import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } from '../utils/studentUtils';
 
 const { Title } = Typography;
 const { Option } = Select;

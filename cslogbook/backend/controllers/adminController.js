@@ -1,50 +1,170 @@
-const pool = require('../config/database');
+const { User, Student, Document } = require('../models');
+const { Op, Sequelize } = require('sequelize');
+const moment = require('moment');
 
-exports.getStats = async (req, res) => {
-  const connection = await pool.getConnection();
+// ฟังก์ชันย่อยสำหรับดึงข้อมูลนักศึกษา
+const getStudentStats = async () => {
   try {
-    // ดึงข้อมูลสถิติรวมของนักศึกษาที่เป็น active จากตาราง users
-    const [studentStats] = await connection.execute(`
-      SELECT 
-        COUNT(s.user_id) as total,
-        SUM(CASE WHEN s.is_eligible_internship = 1 THEN 1 ELSE 0 END) as internship_eligible,
-        SUM(CASE WHEN s.is_eligible_project = 1 THEN 1 ELSE 0 END) as project_eligible
-      FROM students s
-      JOIN users u ON s.user_id = u.user_id
-      WHERE u.active_status = true AND u.role = 'student'
-    `);
+    console.log('Fetching student stats...'); // Debug log
 
-    // ดึงข้อมูลคำร้องที่รอดำเนินการ
-    const [pendingDocs] = await connection.execute(`
-      SELECT COUNT(*) as pending
-      FROM documents
-      WHERE status = 'pending'
-    `);
-
-    // เพิ่ม logging เพื่อตรวจสอบข้อมูล
-    console.log('Student stats:', studentStats[0]);
-    console.log('Pending docs:', pendingDocs[0]);
-
-    // ส่งข้อมูลกลับ
-    res.json({
-      total: studentStats[0].total || 0,
-      internshipEligible: studentStats[0].internship_eligible || 0,
-      projectEligible: studentStats[0].project_eligible || 0,
-      pendingRequests: pendingDocs[0].pending || 0,
-      systemStats: {
-        usageRate: 0,
-        onlineUsers: 0,
-        todayDocuments: 0
-      }
+    const stats = await Student.findOne({
+      include: [{
+        model: User,
+        as: 'user',
+        where: { 
+          role: 'student',
+          activeStatus: true 
+        },
+        attributes: []
+      }],
+      attributes: [
+        [Sequelize.fn('COUNT', Sequelize.col('Student.student_id')), 'total'],
+        [
+          Sequelize.fn('SUM', 
+            Sequelize.literal('CASE WHEN Student.is_eligible_internship = 1 THEN 1 ELSE 0 END')
+          ),
+          'internshipEligible'
+        ],
+        [
+          Sequelize.fn('SUM', 
+            Sequelize.literal('CASE WHEN Student.is_eligible_project = 1 THEN 1 ELSE 0 END')
+          ),
+          'projectEligible'
+        ]
+      ],
+      raw: true
     });
 
+    console.log('Raw stats:', stats); // Debug log
+
+    return {
+      total: parseInt(stats?.total) || 0,
+      internshipEligible: parseInt(stats?.internshipEligible) || 0,
+      projectEligible: parseInt(stats?.projectEligible) || 0
+    };
   } catch (error) {
-    console.error('Error getting admin stats:', error);
-    res.status(500).json({ 
-      error: 'เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ',
-      details: error.message 
-    });
-  } finally {
-    connection.release();
+    console.error('Error in getStudentStats:', error);
+    throw error;
+  }
+};
+
+// ฟังก์ชันย่อยสำหรับดึงข้อมูลเอกสาร
+const getDocumentStats = async () => {
+  const docs = await Document.findAndCountAll({
+    attributes: [
+      [Sequelize.fn('COUNT', Sequelize.col('*')), 'total'],
+      [
+        Sequelize.fn('COUNT', 
+          Sequelize.literal('CASE WHEN status = \'pending\' THEN 1 END')
+        ),
+        'pending'
+      ]
+    ],
+    raw: true
+  });
+
+  return {
+    total: parseInt(docs.rows[0]?.total) || 0,
+    pending: parseInt(docs.rows[0]?.pending) || 0
+  };
+};
+
+// ฟังก์ชันย่อยสำหรับดึงข้อมูลระบบ
+const getSystemStats = async () => {
+  const onlineUsers = await User.count({
+    where: {
+      lastLogin: {
+        [Op.gte]: moment().subtract(15, 'minutes')
+      }
+    }
+  });
+
+  return {
+    onlineUsers,
+    lastUpdate: moment().format()
+  };
+};
+
+// Controller exports
+module.exports = {
+  // Main dashboard stats
+  getStats: async (req, res) => {
+    try {
+      console.log('Processing admin stats request...'); // Debug log
+
+      const stats = await getStudentStats();
+      console.log('Student stats retrieved:', stats); // Debug log
+
+      // Format response data
+      const responseData = {
+        students: {
+          total: stats.total,
+          internshipEligible: parseInt(stats.internshipEligible),
+          projectEligible: parseInt(stats.projectEligible)
+        },
+        documents: {
+          total: await Document.count(),
+          pending: await Document.count({ where: { status: 'pending' } })
+        },
+        system: {
+          onlineUsers: await User.count({
+            where: {
+              lastLogin: {
+                [Op.gte]: moment().subtract(15, 'minutes')
+              }
+            }
+          }),
+          lastUpdate: moment().format()
+        }
+      };
+
+      console.log('Sending response:', responseData); // Debug log
+      res.json(responseData);
+
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      res.status(500).json({
+        error: 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  },
+
+  // Individual stats endpoints
+  getStudentStats: async (req, res) => {
+    try {
+      const stats = await getStudentStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา' });
+    }
+  },
+
+  getDocumentStats: async (req, res) => {
+    try {
+      const total = await Document.count();
+      const pending = await Document.count({ where: { status: 'pending' } });
+      res.json({ total, pending });
+    } catch (error) {
+      res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร' });
+    }
+  },
+
+  getSystemStats: async (req, res) => {
+    try {
+      const onlineUsers = await User.count({
+        where: {
+          lastLogin: {
+            [Op.gte]: moment().subtract(15, 'minutes')
+          }
+        }
+      });
+      res.json({
+        onlineUsers,
+        lastUpdate: moment().format()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลระบบ' });
+    }
   }
 };

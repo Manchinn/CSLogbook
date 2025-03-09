@@ -5,6 +5,23 @@
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 20px auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.common-card-style .ant-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.common-card-style .ant-statistic {
+  margin-bottom: 16px;
+}
+
+.common-card-style .ant-btn {
+  align-self: flex-start;
 }
 
 .common-alert-style {
@@ -12,12 +29,38 @@
   max-width: 90%;
   margin-left: 30px;
   border-radius: 10px;
+  margin-bottom: 24px;
 }
 
 .common-space-style {
   width: 100%;
-  max-width: 90%;
-  margin-left: 30px;
+}
+
+.student-dashboard {
+  padding: 24px;
+}
+
+.admin-dashboard {
+  padding: 24px;
+}
+
+/* Responsive styles */
+@media (max-width: 576px) {
+  .student-dashboard {
+    padding: 16px;
+  }
+  
+  .common-card-style {
+    margin-bottom: 16px;
+  }
+
+  .admin-dashboard {
+    padding: 16px;
+  }
+
+  .stats-card {
+    margin-bottom: 16px;
+  }
 }
 
 /* Custom styles for Ant Design components */
@@ -26,11 +69,197 @@
   font-size: 16px;
 }
 
+.ant-btn {
+  height: 40px;
+  font-size: 16px;
+}
+
 .ant-statistic-title {
   font-weight: bold;
+  font-size: 16px;
+  color: rgba(0,0,0,0.85);
 }
 
 .ant-alert-info {
   background-color: #e6f7ff;
   border-color: #91d5ff;
+}
+
+.dashboard-container {
+  padding: 24px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.dashboard-card {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.3s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dashboard-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 24px;
+}
+
+.dashboard-error {
+  text-align: center;
+  padding: 24px;
+}
+
+.ant-statistic-content-value {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+/* Card Styles */
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.ant-card-head {
+  border-bottom: 2px solid #f0f0f0;
+  min-height: 48px;
+}
+
+.ant-card-head-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.stats-card {
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+}
+
+.stats-card .ant-statistic-title {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.stats-card .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.stats-card .ant-statistic-title {
+  font-size: 16px;
+  color: rgba(0,0,0,0.85);
+  margin-bottom: 16px;
+}
+
+.stats-card .ant-statistic-content {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.stats-card p {
+  margin-top: 8px;
+  color: rgba(0,0,0,0.45);
+}
+
+/* Stats Card */
+.stats-card h2 {
+  font-size: 28px;
+  margin: 0;
+  color: #262626;
+}
+
+.stats-card p {
+  margin: 8px 0 0;
+  color: #8c8c8c;
+}
+
+/* Row Styles */
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.detail-row .ant-card {
+  margin-bottom: 0;
+}
+
+/* Info Table */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-table td:first-child {
+  width: 35%;
+  font-weight: 500;
+  color: #595959;
+  background: #fafafa;
+}
+
+/* Status Indicators */
+.status-success {
+  color: #52c41a;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.status-warning {
+  color: #faad14;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+/* Responsive Layouts */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .ant-card {
+    margin-bottom: 16px;
+  }
+
+  .stats-card {
+    margin-bottom: 16px;
+  }
+
+  .info-table td {
+    padding: 12px;
+  }
+
+  .info-table td:first-child {
+    width: 40%;
+  }
+}
+
+.activity-card {
+  margin-top: 24px;
+}
+
+.ant-space {
+  width: 100%;
 }

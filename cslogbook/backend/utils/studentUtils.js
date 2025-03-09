@@ -1,30 +1,27 @@
-const pool = require('../config/database');
-
-// เพิ่ม constants สำหรับค่าคงที่
-const THAI_YEAR_OFFSET = 543;
-const MAX_STUDY_YEARS = 8;
-const MIN_STUDENT_CODE_LENGTH = 13;
-const ACADEMIC_MONTH_THRESHOLD = 4;
-
-// เกณฑ์การฝึกงานและโปรเจค
-const INTERNSHIP_REQUIREMENTS = {
-  MIN_YEAR: 3,
-  MIN_CREDITS: 81
-};
-
-const PROJECT_REQUIREMENTS = {
-  MIN_YEAR: 4,
-  MIN_TOTAL_CREDITS: 95,
-  MIN_MAJOR_CREDITS: 57
+// ค่าคงที่สำหรับการคำนวณ
+const CONSTANTS = {
+  THAI_YEAR_OFFSET: 543,
+  MAX_STUDY_YEARS: 8,
+  MIN_STUDENT_CODE_LENGTH: 13,
+  ACADEMIC_MONTH_THRESHOLD: 4,
+  INTERNSHIP: {
+    MIN_YEAR: 3,
+    MIN_CREDITS: 81
+  },
+  PROJECT: {
+    MIN_YEAR: 4,
+    MIN_TOTAL_CREDITS: 95,
+    MIN_MAJOR_CREDITS: 57
+  }
 };
 
 /**
  * คำนวณชั้นปีของนักศึกษา
- * @param {string} student_code - รหัสนักศึกษา
- * @returns {object} - ชั้นปีของนักศึกษา
+ * @param {string} studentID - รหัสนักศึกษา
+ * @returns {object} - ผลการคำนวณชั้นปี
  */
-const calculateStudentYear = (student_code) => {
-  if (!student_code) {
+const calculateStudentYear = (studentCode) => {
+  if (!studentCode) {
     return { 
       error: true,
       message: 'รหัสนักศึกษาไม่ถูกต้อง กรุณาตรวจสอบข้อมูล'
@@ -32,40 +29,29 @@ const calculateStudentYear = (student_code) => {
   }
 
   try {
-    const studentCodeStr = String(student_code);
+    const studentCodeStr = String(studentCode);
     
-    // ตรวจสอบความยาวรหัสนักศึกษา
-    if (studentCodeStr.length !== MIN_STUDENT_CODE_LENGTH) {
+    if (studentCode.length !== CONSTANTS.MIN_STUDENT_CODE_LENGTH) {
       return { 
         error: true,
-        message: `รหัสนักศึกษาต้องมี ${MIN_STUDENT_CODE_LENGTH} หลัก`
+        message: `รหัสนักศึกษาต้องมี ${CONSTANTS.MIN_STUDENT_CODE_LENGTH} หลัก`
       };
     }
 
     const currentDate = new Date();
-    const currentYear = currentDate.getFullYear() + THAI_YEAR_OFFSET;
+    const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
     const currentMonth = currentDate.getMonth() + 1;
-    const studentYear = parseInt(studentCodeStr.substring(0, 2)) + 2500;
+    const studentYear = parseInt(studentIDStr.substring(0, 2)) + 2500;
     let studentClassYear = currentYear - studentYear;
 
-    // ตรวจสอบความถูกต้องของปี
-    if (studentClassYear < 0) {
-      return {
-        error: true,
-        message: 'ปีการศึกษาไม่ถูกต้อง'
-      };
-    }
-
-    // เพิ่มชั้นปีถ้าผ่านเดือนเมษายน
-    if (currentMonth > ACADEMIC_MONTH_THRESHOLD) {
+    if (currentMonth > CONSTANTS.ACADEMIC_MONTH_THRESHOLD) {
       studentClassYear += 1;
     }
 
-    // ตรวจสอบชั้นปีสูงสุด
-    if (studentClassYear > MAX_STUDY_YEARS) {
+    if (studentClassYear > CONSTANTS.MAX_STUDY_YEARS) {
       return {
         error: true,
-        message: `เกินระยะเวลาการศึกษาสูงสุด ${MAX_STUDY_YEARS} ปี`
+        message: `เกินระยะเวลาการศึกษาสูงสุด ${CONSTANTS.MAX_STUDY_YEARS} ปี`
       };
     }
 
@@ -82,108 +68,72 @@ const calculateStudentYear = (student_code) => {
   }
 };
 
-// แก้ไขฟังก์ชันตรวจสอบสิทธิ์การฝึกงาน
+/**
+ * ตรวจสอบสิทธิ์การฝึกงาน
+ * @param {number} studentYear - ชั้นปีของนักศึกษา
+ * @param {number} totalCredits - หน่วยกิตรวม
+ * @returns {object} - ผลการตรวจสอบและข้อความแจ้งเตือน
+ */
 const isEligibleForInternship = (studentYear, totalCredits) => {
-  if (studentYear < INTERNSHIP_REQUIREMENTS.MIN_YEAR) {
+  if (studentYear < CONSTANTS.INTERNSHIP.MIN_YEAR) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ ${INTERNSHIP_REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
+      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.INTERNSHIP.MIN_YEAR} ขึ้นไป`
     };
   }
   
-  if (totalCredits < INTERNSHIP_REQUIREMENTS.MIN_CREDITS) {
+  if (totalCredits < CONSTANTS.INTERNSHIP.MIN_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${INTERNSHIP_REQUIREMENTS.MIN_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.INTERNSHIP.MIN_CREDITS} หน่วยกิต`
     };
   }
   
   return { 
     eligible: true, 
-    message: 'ผ่านเงื่อนไขการฝึกงาน' 
+    message: 'ผ่านเงื่อนไขการฝึกงาน'
   };
 };
 
-// แก้ไขฟังก์ชันตรวจสอบสิทธิ์การทำโปรเจค
+/**
+ * ตรวจสอบสิทธิ์การทำโปรเจค
+ * @param {number} studentYear - ชั้นปีของนักศึกษา
+ * @param {number} totalCredits - หน่วยกิตรวม
+ * @param {number} majorCredits - หน่วยกิตภาควิชา
+ * @returns {object} - ผลการตรวจสอบและข้อความแจ้งเตือน
+ */
 const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
-  if (studentYear < PROJECT_REQUIREMENTS.MIN_YEAR) {
+  if (studentYear < CONSTANTS.PROJECT.MIN_YEAR) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${PROJECT_REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
+      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`
     };
   }
   
-  if (totalCredits < PROJECT_REQUIREMENTS.MIN_TOTAL_CREDITS) {
+  if (totalCredits < CONSTANTS.PROJECT.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${PROJECT_REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`
     };
   }
   
-  if (majorCredits < PROJECT_REQUIREMENTS.MIN_MAJOR_CREDITS) {
+  if (majorCredits < CONSTANTS.PROJECT.MIN_MAJOR_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${PROJECT_REQUIREMENTS.MIN_MAJOR_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`
     };
   }
 
   return { 
     eligible: true, 
-    message: 'ผ่านเงื่อนไขการทำโปรเจค' 
+    message: 'ผ่านเงื่อนไขการทำโปรเจค'
   };
 };
 
-const updateStudentData = async () => {
-  try {
-    // ดึงข้อมูลนักศึกษาจากตาราง users ที่ยังไม่มีในตาราง student_data
-    const [students] = await pool.execute(`
-      SELECT u.studentID, u.firstName, u.lastName, u.email
-      FROM users u
-      LEFT JOIN student_data sd ON u.studentID = sd.studentID
-      WHERE sd.studentID IS NULL AND u.role = 'student'
-    `);
-
-    if (students.length === 0) {
-      console.log('No new students to update.');
-      return;
-    }
-
-    for (const student of students) {
-      const studentYearResult = calculateStudentYear(student.studentID);
-      if (studentYearResult.error) {
-        console.log(studentYearResult.message);
-        continue;
-      }
-      const studentYear = studentYearResult.year;
-      const totalCredits = 0; // 
-      const majorCredits = 0; // 
-
-      const eligibleForInternship = isEligibleForInternship(studentYear, totalCredits);
-      const eligibleForProject = isEligibleForProject(studentYear, totalCredits, majorCredits);
-
-      await pool.execute(`
-        INSERT INTO student_data (studentID, firstName, lastName, email, totalCredits, majorCredits, isEligibleForInternship, isEligibleForProject)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [student.studentID, student.firstName, student.lastName, student.email, totalCredits, majorCredits, eligibleForInternship.eligible, eligibleForProject.eligible]);
-
-      console.log(`Updated student data for ${student.studentID}`);
-    }
-
-    console.log('Student data update completed.');
-  } catch (error) {
-    console.error('Error updating student data:', error.message);
-  }
-};
-
+// ส่งออกฟังก์ชันและค่าคงที่แบบ CommonJS
 module.exports = {
-  updateStudentData,
+  CONSTANTS,
   calculateStudentYear,
   isEligibleForInternship,
-  isEligibleForProject,
-  THAI_YEAR_OFFSET,
-  MAX_STUDY_YEARS,
-  MIN_STUDENT_CODE_LENGTH,
-  ACADEMIC_MONTH_THRESHOLD,
-  INTERNSHIP_REQUIREMENTS,
-  PROJECT_REQUIREMENTS
+  isEligibleForProject
 };

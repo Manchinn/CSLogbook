@@ -1,14 +1,18 @@
 const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 15 นาที
+    windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // จำกัด 5 ครั้งต่อ IP
-    message: {
-        success: false,
-        error: 'มีการพยายามเข้าสู่ระบบมากเกินไป กรุณาลองใหม่ในอีก 15 นาที'
-    },
     standardHeaders: true,
     legacyHeaders: false,
+    // เพิ่ม handler สำหรับ error
+    handler: (req, res) => {
+        res.status(429).json({
+            status: 'error',
+            message: 'มีการล็อกอินผิดพลาดหลายครั้ง กรุณารอ 15 นาทีแล้วลองใหม่',
+            code: 'TOO_MANY_ATTEMPTS'
+        });
+    }
 });
 
 module.exports = loginLimiter;
