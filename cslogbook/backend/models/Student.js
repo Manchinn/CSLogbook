@@ -70,6 +70,26 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             allowNull: true,
             field: 'advisor_id'
+        },
+        semester: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 1,
+            validate: {
+                min: 1,
+                max: 3
+            }
+        },
+        academicYear: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            field: 'academic_year',
+            defaultValue: () => {
+                const currentDate = new Date();
+                const currentYear = currentDate.getFullYear() + 543;
+                const currentMonth = currentDate.getMonth() + 1;
+                return currentMonth > 4 ? currentYear : currentYear - 1;
+            }
         }
     }, {
         sequelize,
@@ -86,6 +106,10 @@ module.exports = (sequelize) => {
                 unique: true,
                 name: 'idx_student_code',
                 fields: ['student_code']
+            },
+            {
+                name: 'idx_academic_year',
+                fields: ['academic_year']
             }
         ]
     });

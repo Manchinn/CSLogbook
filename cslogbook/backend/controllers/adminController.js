@@ -118,7 +118,7 @@ module.exports = {
         }
       };
 
-      console.log('Sending response:', responseData); // Debug log
+      //console.log('Sending response:', responseData); // Debug log
       res.json(responseData);
 
     } catch (error) {

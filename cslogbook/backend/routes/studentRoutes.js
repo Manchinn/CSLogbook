@@ -4,11 +4,20 @@ const studentController = require('../controllers/studentController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 // Public routes
-router.get('/', studentController.getAllStudents);
 router.get('/:id', studentController.getStudentById);
 
 // Protected routes (require authentication)
 router.use(authenticateToken);
+
+router.get('/', 
+  authenticateToken,
+  checkRole(['admin']),
+  studentController.getAllStudents
+);
+
+// เพิ่ม route สำหรับดึงตัวเลือกการกรอง
+router.get('/filter-options', authenticateToken, studentController.getAcademicFilterOptions);
+
 
 // ตรวจสอบสิทธิ์นักศึกษา
 router.get('/:id/eligibility', authenticateToken, studentController.getStudentById);
@@ -27,11 +36,6 @@ router.put('/:id',
 router.delete('/:id',
   checkRole(['admin']),
   studentController.deleteStudent
-);
-
-router.get('/stats/all',
-  checkRole(['admin']),
-  studentController.getAllStudentStats
 );
 
 module.exports = router;

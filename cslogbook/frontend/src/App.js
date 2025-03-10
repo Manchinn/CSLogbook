@@ -39,13 +39,17 @@ const App = () => {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public route */}
           <Route path="/login" element={<LoginForm />} />
-          
-          {/* Protected routes wrapped in MainLayout */}
           <Route element={<MainLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/students" element={<StudentList />} />
+            <Route 
+              path="/students" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <StudentList />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/teachers" element={<TeacherList />} />
             <Route path="/project-pairs" element={<StudentPairsList />} />
             <Route path="/admin/upload" element={
@@ -74,7 +78,6 @@ const App = () => {
             <Route path="/internship-status-check" element={<InternshipStatusCheck />} />
           </Route>
 
-          {/* Redirect root to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>

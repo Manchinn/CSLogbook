@@ -12,6 +12,20 @@ const CONSTANTS = {
     MIN_YEAR: 4,
     MIN_TOTAL_CREDITS: 95,
     MIN_MAJOR_CREDITS: 57
+  },
+  ACADEMIC_TERMS: {
+    FIRST: {
+      START_MONTH: 7,  // กรกฎาคม
+      END_MONTH: 11    // พฤศจิกายน
+    },
+    SECOND: {
+      START_MONTH: 11, // พฤศจิกายน
+      END_MONTH: 3     // มีนาคม
+    },
+    SUMMER: {
+      START_MONTH: 4,  // เมษายน
+      END_MONTH: 6     // มิถุนายน
+    }
   }
 };
 
@@ -66,6 +80,48 @@ const calculateStudentYear = (studentCode) => {
       message: 'เกิดข้อผิดพลาดในการคำนวณชั้นปี'
     };
   }
+};
+
+/**
+ * คำนวณปีการศึกษาปัจจุบัน
+ * @returns {number} ปีการศึกษาในรูปแบบ พ.ศ.
+ */
+const getCurrentAcademicYear = () => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
+  const currentMonth = currentDate.getMonth() + 1;
+  
+  // หลัง มีนาคม ถึงก่อน กรกฎาคม = เตรียมขึ้นปีการศึกษาใหม่
+  if (currentMonth > CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH && 
+      currentMonth < CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH) {
+    return currentYear;
+  }
+  
+  return currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH ? 
+    currentYear : currentYear - 1;
+};
+
+/**
+ * คำนวณภาคเรียนปัจจุบัน
+ * @returns {number} ภาคเรียน (1, 2, หรือ 3)
+ */
+const getCurrentSemester = () => {
+  const currentMonth = new Date().getMonth() + 1;
+
+  // ภาคเรียนที่ 1: กรกฎาคม - พฤศจิกายน
+  if (currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH && 
+      currentMonth <= CONSTANTS.ACADEMIC_TERMS.FIRST.END_MONTH) {
+    return 1;
+  }
+  
+  // ภาคเรียนที่ 2: พฤศจิกายน - มีนาคม
+  if (currentMonth >= CONSTANTS.ACADEMIC_TERMS.SECOND.START_MONTH || 
+      currentMonth <= CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH) {
+    return 2;
+  }
+  
+  // ภาคฤดูร้อน: เมษายน - มิถุนายน
+  return 3;
 };
 
 /**
@@ -135,5 +191,7 @@ module.exports = {
   CONSTANTS,
   calculateStudentYear,
   isEligibleForInternship,
-  isEligibleForProject
+  isEligibleForProject,
+  getCurrentAcademicYear,
+  getCurrentSemester
 };

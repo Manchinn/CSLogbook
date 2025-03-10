@@ -1,42 +1,7 @@
-const { User, Student, Teacher } = require('../models');
+const { User, Student, Teacher, Sequelize } = require('../models');
 const bcrypt = require('bcrypt');
 const { calculateStudentYear, isEligibleForInternship, isEligibleForProject } = require('../utils/studentUtils');
 const { Op } = require('sequelize');
-
-// ฟังก์ชันดึงข้อมูลนักศึกษาทั้งหมด
-exports.getAllStudents = async (req, res, next) => {
-  try {
-    // ดึงข้อมูลผู้ใช้ที่มี role เป็น student พร้อมข้อมูลการศึกษา
-    const students = await User.findAll({
-      where: { role: 'student' },
-      include: [{
-        model: Student,
-        as: 'student',
-        attributes: [
-          'totalCredits',    // หน่วยกิตรวม
-          'majorCredits',    // หน่วยกิตเฉพาะสาขา
-          'isEligibleInternship',  // สิทธิ์ฝึกงาน
-          'isEligibleProject'      // สิทธิ์โครงงาน
-        ]
-      }]
-    });
-
-    // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
-    const formattedStudents = students.map(student => ({
-      ...student.toJSON(),
-      totalCredits: student.student?.totalCredits || 0,
-      majorCredits: student.student?.majorCredits || 0,
-      isEligibleForInternship: student.student?.isEligibleInternship || false,
-      isEligibleForProject: student.student?.isEligibleProject || false
-    }));
-
-    res.json(formattedStudents);
-  } catch (error) {
-    console.error('Error in student list route:', error);
-    next(error);
-  }
-};
-
 
 // ฟังก์ชันดึงข้อมูลนักศึกษาตาม ID
 const calculateEligibility = (studentCode, totalCredits, majorCredits) => {
@@ -46,6 +11,113 @@ const calculateEligibility = (studentCode, totalCredits, majorCredits) => {
     internship: isEligibleForInternship(studentYear, totalCredits),
     project: isEligibleForProject(studentYear, totalCredits, majorCredits)
   };
+};
+
+// เพิ่มฟังก์ชันใหม่สำหรับดึงตัวเลือก filter
+exports.getAcademicFilterOptions = async (req, res) => {
+  try {
+    // ดึงข้อมูล semester และ academic_year ที่มีในระบบ
+    const filterOptions = await Student.findAll({
+      attributes: [
+        [Sequelize.fn('DISTINCT', Sequelize.col('semester')), 'semester'],
+        [Sequelize.fn('DISTINCT', Sequelize.col('academic_year')), 'academicYear']
+      ],
+      raw: true
+    });
+
+    // จัดกลุ่มและเรียงลำดับข้อมูล
+    const semesters = [...new Set(filterOptions.map(opt => opt.semester))]
+      .filter(sem => sem) // กรองค่า null/undefined
+      .sort();
+
+    const academicYears = [...new Set(filterOptions.map(opt => opt.academicYear))]
+      .filter(year => year) // กรองค่า null/undefined
+      .sort((a, b) => b - a); // เรียงจากปีล่าสุด
+
+    res.json({
+      success: true,
+      data: {
+        semesters: semesters.map(sem => ({
+          value: sem,
+          label: sem === 3 ? 'ภาคฤดูร้อน' : `ภาคเรียนที่ ${sem}`
+        })),
+        academicYears: academicYears.map(year => ({
+          value: year,
+          label: `ปีการศึกษา ${year}`
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting filter options:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงตัวเลือกการกรอง'
+    });
+  }
+};
+
+// ฟังก์ชันดึงข้อมูลนักศึกษาทั้งหมด
+exports.getAllStudents = async (req, res, next) => {
+  try {
+    const { semester, academicYear } = req.query;
+    
+    // สร้างเงื่อนไขการค้นหา
+    const whereCondition = {
+      role: 'student'
+    };
+
+    // สร้างเงื่อนไขสำหรับ Student model
+    const studentWhereCondition = {};
+    if (semester) studentWhereCondition.semester = semester;
+    if (academicYear) studentWhereCondition.academicYear = academicYear;
+
+    const students = await User.findAll({
+      where: whereCondition,
+      attributes: ['userId', 'firstName', 'lastName', 'email'],
+      include: [{
+        model: Student,
+        as: 'student',
+        required: true,
+        where: studentWhereCondition,
+        attributes: [
+          'studentCode',
+          'totalCredits',
+          'majorCredits',
+          'isEligibleInternship',
+          'isEligibleProject',
+          'semester',
+          'academicYear'
+        ]
+      }]
+    });
+
+    const formattedStudents = students.map(user => ({
+      studentCode: user.student?.studentCode || '',
+      firstName: user.firstName,
+      lastName: user.lastName,
+      totalCredits: user.student?.totalCredits || 0,
+      majorCredits: user.student?.majorCredits || 0,
+      isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
+      isEligibleForProject: Boolean(user.student?.isEligibleProject),
+      semester: user.student?.semester,
+      academicYear: user.student?.academicYear
+    }));
+
+    res.json({
+      success: true,
+      data: formattedStudents,
+      filters: {
+        semester: semester || null,
+        academicYear: academicYear || null
+      },
+      message: 'ดึงข้อมูลนักศึกษาสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('Error in getAllStudents:', error);
+    next(error);
+  }
 };
 
 exports.getStudentById = async (req, res) => {
@@ -98,9 +170,7 @@ exports.getStudentById = async (req, res) => {
   }
 };
 
-/**
- * Update student academic information and recalculate eligibility
- */
+
 // ฟังก์ชันอัพเดทข้อมูลนักศึกษา
 exports.updateStudent = async (req, res) => {
   try {
@@ -133,7 +203,7 @@ exports.updateStudent = async (req, res) => {
       isEligibleProject: projectEligibility.eligible,
       lastUpdated: new Date()
     }, {
-      where: { studentID: id },
+      where: { studentCode: id },
       returning: true
     });
 
