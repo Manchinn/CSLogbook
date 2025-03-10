@@ -1,5 +1,7 @@
 const pool = require('../config/database');
 const bcrypt = require('bcrypt');
+const {User, Student, Teacher} = require("../models");
+const { Op } = require('sequelize');
 
 function generateRandomStudentID() {
     return Math.random().toString().slice(2, 15); // สุ่มเลข 13 ตัว
@@ -11,20 +13,51 @@ function generateUsernameFromEmail(email) {
     return `${firstName}.${lastNameInitial.charAt(0)}`.toLowerCase();
   }
 
-exports.getAllTeachers = async (req, res) => {
+exports.getAllTeachers = async (req, res, next) => {
   try {
-    const [teachers] = await pool.execute(`
-      SELECT t.id, t.sName, t.firstName, t.lastName, t.email, u.role
-      FROM teachers t
-      JOIN users u ON t.id = u.id
-      WHERE u.role = 'teacher'
-    `);
-    res.json(teachers);
+    // ดึงข้อมูลผู้ใช้ที่มี role เป็น teacher พร้อมข้อมูล
+    const teachers = await User.findAll({
+      where: { role: 'teacher' },
+      include: [{
+        model: Teacher,
+        as: 'teacher',
+        attributes: [
+          'teacherCode',    // รหัสอาจารย์
+          'first_name',    // ชื่อ
+          'lastName'  // นามสกุล
+        ]
+      }]
+    });
+
+    // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
+    const formattedTeachers = teachers.map(teacher => ({
+      ...teacher.toJSON(),
+      teacherCode: teacher.teacher?.teacherCode || '',
+      firstName: user.teacher?.firstName || '',
+      lastName: user.teacher?.lastName || ''
+    }));
+
+    res.json(formattedTeachers);
   } catch (error) {
-    console.error('Error fetching teachers:', error);
-    res.status(500).json({ error: 'Error fetching teachers' });
+    console.error('Error in student list route:', error);
+    next(error);
   }
 };
+
+// exports.getAllTeachers = async (req, res) => {
+//   try {
+//     const [teachers] = await pool.execute(`
+//       SELECT t.id, t.sName, t.firstName, t.lastName, t.email, u.role
+//       FROM teachers t
+//       JOIN users u ON t.id = u.id
+//       WHERE u.role = 'teacher'
+//     `);
+//     res.json(teachers);
+//   } catch (error) {
+//     console.error('Error fetching teachers:', error);
+//     res.status(500).json({ error: 'Error fetching teachers' });
+//   }
+// };
 
 exports.addTeacher = async (req, res) => {
   const { sName, firstName, lastName, email } = req.body;
