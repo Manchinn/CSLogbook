@@ -63,6 +63,8 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
 
   const headerStyles = {
     mainHeader: {
+      marginTop: isMobile ? '0' : '20px', // ไม่มีช่องว่างด้านบนเมื่อเป็นมือถือ
+      paddingTop: isMobile ? '0' : '20px', // ไม่มีช่องว่างด้านบนเมื่อเป็นมือถือ
       marginTop: '20px',
       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
       background: theme.gradient,
@@ -83,6 +85,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     },
     titleContainer: {
       maxWidth: isMobile ? '200px' : '600px',
+      
     },
     mainTitle: {
       margin: 0,
@@ -96,9 +99,10 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       color: 'rgba(0, 0, 0, 0.65)',
       lineHeight: 1.5,
       margin: 0,
-      display: 'block',
+      display: isMobile ? 'none' : 'block',
     },
     userAvatar: {
+      display: isMobile ? 'none' : 'block',
       backgroundColor: theme.badge,
       color: '#fff',
       fontWeight: 'bold',
@@ -121,6 +125,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       width: '100%',
       height: '115px',
       zIndex: 10,
+      
     },
     secondaryTitle: {
       textAlign: 'center',
@@ -132,7 +137,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
   };
 
   return (
-    <Layout>
+    <>
       <Header style={headerStyles.mainHeader}>
         {/* ส่วนซ้าย */}
         <div style={{ flex: 1 }}>
@@ -182,7 +187,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       </div>
 
       <div style={{ backgroundColor: '#f4f4f4', padding: '20px' }}></div>
-    </Layout>
+    </>
   );
 };
 
