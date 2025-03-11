@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Menu, Avatar, Typography, Badge, message } from 'antd';
+import { Layout, Menu, Avatar, Typography, Badge, message, Tooltip } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentPermissions } from '../../hooks/useStudentPermissions';
+import { studentService } from '../../services/studentService';
 import {
   HomeOutlined,
   FileTextOutlined,
@@ -23,12 +24,35 @@ const themeConfig = {
   admin: 'admin-theme',
 };
 
+const MenuItemWithTooltip = ({ item, disabled, title }) => {
+  // เพิ่มการตรวจสอบว่ามี title และ disabled หรือไม่
+  if (disabled && title) {
+    return (
+      <Tooltip 
+        title={title} 
+        placement="right"
+        color={disabled ? '#ff4d4f' : '#52c41a'}
+      >
+        <span style={{ 
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer'
+        }}>
+          {item.label}
+        </span>
+      </Tooltip>
+    );
+  }
+  return item.label;
+};
+
 const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
   const navigate = useNavigate();
   const location = useLocation();
   const { userData, logout } = useAuth();
-  const { canAccessInternship, canAccessProject, messages } = useStudentPermissions(userData);
+  const [studentData, setStudentData] = useState(null);
+  const { canAccessInternship, canAccessProject, messages, updatePermissions } = useStudentPermissions(userData);
 
   // Handle window resize
   useEffect(() => {
@@ -50,6 +74,58 @@ const Sidebar = () => {
       message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
     }
   };
+
+  useEffect(() => {
+    // ตรวจสอบเมื่อ path เปลี่ยน
+    const checkRouteAccess = () => {
+      const path = location.pathname;
+      
+      if (userData?.role === 'student') {
+        if (path.includes('/project') && !canAccessProject) {
+          message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ');
+          navigate('/dashboard');
+          return;
+        }
+        
+        if (path.includes('/internship') && !canAccessInternship) {
+          message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน');
+          navigate('/dashboard');
+          return;
+        }
+      }
+    };
+
+    checkRouteAccess();
+  }, [location.pathname, userData, canAccessProject, canAccessInternship, navigate]);
+
+  // เพิ่ม Effect เพื่อติดตามการเปลี่ยนแปลงข้อมูลนักศึกษา
+  useEffect(() => {
+    if (userData?.role === 'student' && userData?.studentCode) {
+      const fetchStudentData = async () => {
+        try {
+          const response = await studentService.getStudentInfo(userData.studentCode);
+          if (response.success) {
+            const newData = response.data;
+            
+            // เช็คว่าข้อมูลมีการเปลี่ยนแปลงหรือไม่
+            if (JSON.stringify(studentData) !== JSON.stringify(newData)) {
+              setStudentData(newData);
+              updatePermissions(newData);
+              setLastUpdate(new Date());
+              localStorage.setItem('studentData', JSON.stringify(newData));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching student data:', error);
+        }
+      };
+
+      fetchStudentData();
+      const interval = setInterval(fetchStudentData, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [userData?.studentCode, userData?.role, updatePermissions, studentData]); // เพิ่ม studentData
 
   const menuItems = useMemo(() => {
     // ถ้าไม่มี userData return เฉพาะ logout
@@ -80,9 +156,12 @@ const Sidebar = () => {
         {
           key: 'internship',
           icon: <FileTextOutlined />,
-          label: 'ระบบฝึกงาน',
+          label: <MenuItemWithTooltip 
+            item={{ label: 'ระบบฝึกงาน' }}
+            disabled={!canAccessInternship}
+            title={messages.internship}
+          />,
           disabled: !canAccessInternship,
-          title: messages.internship,
           children: canAccessInternship ? [
             {
               key: '/internship-terms',
@@ -101,9 +180,12 @@ const Sidebar = () => {
         {
           key: 'project',
           icon: <ProjectOutlined />,
-          label: 'โครงงานพิเศษ',
+          label: <MenuItemWithTooltip 
+            item={{ label: 'โครงงานพิเศษ' }}
+            disabled={!canAccessProject}
+            title={messages.project}
+          />,
           disabled: !canAccessProject,
-          title: messages.project,
           children: canAccessProject ? [
             {
               key: '/project-proposal',
@@ -202,6 +284,22 @@ const Sidebar = () => {
     }
   };
 
+  const renderLastUpdate = () => {
+    if (userData?.role === 'student') {
+      return (
+        <div style={{ 
+          padding: '8px', 
+          textAlign: 'center', 
+          fontSize: '12px',
+          color: 'rgba(0,0,0,0.45)'
+        }}>
+          อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Sider 
       width={230} 
@@ -245,6 +343,8 @@ const Sidebar = () => {
         className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
         onClick={handleMenuClick}
       />
+      
+      {renderLastUpdate()}
     </Sider>
   );
 };

@@ -20,7 +20,9 @@ import {
     UserOutlined,
     PlusOutlined,
     EditOutlined,
-    DeleteOutlined
+    DeleteOutlined,
+    BookOutlined,
+    ProjectOutlined
 } from '@ant-design/icons';
 import { studentService } from '../services/studentService';
 import './StudentList.css';
@@ -208,6 +210,15 @@ const StudentList = () => {
         );
     }, [students, searchText]);
 
+    // เพิ่ม statistics
+    const statistics = useMemo(() => {
+        return {
+            total: filteredStudents.length,
+            eligibleInternship: filteredStudents.filter(s => s.isEligibleForInternship).length,
+            eligibleProject: filteredStudents.filter(s => s.isEligibleForProject).length
+        };
+    }, [filteredStudents]);
+
     // แก้ไข columns definition ให้เรียบง่ายขึ้น
     const columns = useMemo(() => [
         {
@@ -318,20 +329,28 @@ const StudentList = () => {
             />
             <div className="container-studentlist">
                 <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                    <Col flex="auto" style={{ maxWidth: 500 }}>
-                        <Input.Search
-                            placeholder="ค้นหาด้วยรหัสนักศึกษา หรือ ชื่อ-นามสกุล"
-                            allowClear
-                            size="large"
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            onSearch={(value) => setSearchText(value)}
-                            enterButton={<SearchOutlined />}
-                            style={{ width: '100%' }}
-                        />
+                    <Col>
+                        <Space size="large">
+                            <Text>
+                                <UserOutlined /> {statistics.total}
+                            </Text>
+                            <Text>
+                                <BookOutlined /> {statistics.eligibleInternship}
+                            </Text>
+                            <Text>
+                                <ProjectOutlined /> {statistics.eligibleProject}
+                            </Text>
+                        </Space>
                     </Col>
                     <Col>
                         <Space>
+                            <Input
+                                placeholder="ค้นหาด้วยรหัส, ชื่อ หรือนามสกุล"
+                                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                                value={searchText}
+                                onChange={e => setSearchText(e.target.value)}
+                                style={{ width: 300 }}
+                            />
                             <FilterSection />
                             <Button
                                 icon={<ReloadOutlined />}

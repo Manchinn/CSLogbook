@@ -31,6 +31,14 @@ const sequelize = new Sequelize({
     }
 });
 
+sequelize.afterConnect((connection) => {
+  console.log('New connection established');
+});
+
+sequelize.beforeDisconnect((connection) => {
+  console.log('Connection terminated');
+});
+
 const initializeDatabase = async () => {
     // Validate database environment variables
     if (!validateEnv('database')) {

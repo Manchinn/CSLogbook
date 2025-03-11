@@ -31,10 +31,19 @@ export const studentService = {
   // อัพเดทข้อมูลนักศึกษา (สำหรับ admin/teacher)
   updateStudent: async (studentCode, data) => {
     try {
+      // Validate input data
+      const totalCredits = parseInt(data.totalCredits);
+      const majorCredits = parseInt(data.majorCredits);
+
+      // Check if majorCredits is not greater than totalCredits
+      if (majorCredits > totalCredits) {
+        throw new Error('หน่วยกิตภาควิชาต้องน้อยกว่าหรือเท่ากับหน่วยกิตรวม');
+      }
+
       const response = await apiClient.put(`/students/${studentCode}`, {
         ...data,
-        totalCredits: parseInt(data.totalCredits) || 0,
-        majorCredits: parseInt(data.majorCredits) || 0
+        totalCredits: totalCredits || 0,
+        majorCredits: majorCredits || 0
       });
 
       if (!response.data.success) {
