@@ -3,29 +3,25 @@ const router = express.Router();
 const studentController = require('../controllers/studentController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
-// Public routes
-router.get('/:id', studentController.getStudentById);
+// Public routes (ถ้ามี)
 
 // Protected routes (require authentication)
 router.use(authenticateToken);
 
+// Admin routes
+router.post('/', 
+  checkRole(['admin']), 
+  studentController.addStudent
+);
+
 router.get('/', 
-  authenticateToken,
-  checkRole(['admin']),
+  checkRole(['admin', 'teacher']),
   studentController.getAllStudents
 );
 
-// เพิ่ม route สำหรับดึงตัวเลือกการกรอง
-router.get('/filter-options', authenticateToken, studentController.getAcademicFilterOptions);
-
-
-// ตรวจสอบสิทธิ์นักศึกษา
-router.get('/:id/eligibility', authenticateToken, studentController.getStudentById);
-
-// Admin routes
-router.post('/',
-  checkRole(['admin']),
-  studentController.addStudent
+router.get('/:id', 
+  checkRole(['admin', 'teacher', 'student']),
+  studentController.getStudentById
 );
 
 router.put('/:id',

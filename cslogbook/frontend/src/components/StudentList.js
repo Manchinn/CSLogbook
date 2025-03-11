@@ -11,7 +11,8 @@ import {
     Modal,
     Form,
     Typography,
-    Select
+    Select,
+    InputNumber
 } from 'antd';
 import {
     SearchOutlined,
@@ -61,7 +62,6 @@ const StudentList = () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
-            if (semester) params.append('semester', semester);
             if (academicYear) params.append('academicYear', academicYear);
 
             const response = await studentService.getAllStudents(params);
@@ -95,7 +95,7 @@ const StudentList = () => {
         } finally {
             setLoading(false);
         }
-    }, [semester, academicYear]);
+    }, [academicYear]);
 
     // โหลดข้อมูลเมื่อ component mount
     useEffect(() => {
@@ -125,28 +125,46 @@ const StudentList = () => {
     };
 
     // จัดการการแก้ไขข้อมูล
-    const handleEdit = (student) => {
-        setEditingStudent(student);
-        form.setFieldsValue(student);
-        setModalVisible(true);
+    const handleEdit = async (student) => {
+        try {
+            setEditingStudent(student);
+            // Set form values
+            form.setFieldsValue({
+                studentCode: student.studentCode,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                totalCredits: student.totalCredits || 0,
+                majorCredits: student.majorCredits || 0
+            });
+            setModalVisible(true);
+        } catch (error) {
+            message.error('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
+        }
     };
 
-    // จัดการการบันทึกข้อมูล
+    // จัดการการบันทึกข้อมูล 
     const handleModalOk = async () => {
         try {
             const values = await form.validateFields();
+            
             if (editingStudent) {
-                // แก้ไขข้อมูล
-                await studentService.updateStudentAdmin(editingStudent.studentCode, values);
+                await studentService.updateStudent(editingStudent.studentCode, {
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    totalCredits: values.totalCredits,
+                    majorCredits: values.majorCredits
+                });
                 message.success('แก้ไขข้อมูลสำเร็จ');
             } else {
-                // เพิ่มข้อมูลใหม่
                 await studentService.addStudent(values);
                 message.success('เพิ่มข้อมูลสำเร็จ');
             }
+            
             setModalVisible(false);
             form.resetFields();
+            setEditingStudent(null);
             fetchStudents(); // รีเฟรชข้อมูล
+            
         } catch (error) {
             message.error('เกิดข้อผิดพลาด: ' + error.message);
         }
@@ -156,12 +174,13 @@ const StudentList = () => {
     const handleDelete = async (studentCode) => {
         Modal.confirm({
             title: 'ยืนยันการลบข้อมูล',
-            content: 'คุณแน่ใจหรือไม่ที่จะลบข้อมูลนักศึกษานี้?',
+            content: 'คุณแน่ใจหรือไม่ที่จะลบข้อมูลนักศึกษานี้? การดำเนินการนี้ไม่สามารถยกเลิกได้',
             okText: 'ลบ',
+            okType: 'danger',
             cancelText: 'ยกเลิก',
             onOk: async () => {
                 try {
-                    await studentService.deleteStudentAdmin(studentCode);
+                    await studentService.deleteStudent(studentCode);
                     message.success('ลบข้อมูลสำเร็จ');
                     fetchStudents(); // รีเฟรชข้อมูล
                 } catch (error) {
@@ -276,26 +295,13 @@ const StudentList = () => {
     const FilterSection = () => (
         <Space>
             <Select
-                placeholder="ภาคเรียน"
-                allowClear
-                style={{ width: 150 }}
-                onChange={setSemester}
-                value={semester}
-            >
-                {filterOptions.semesters?.map(sem => (
-                    <Select.Option key={sem.value} value={sem.value}>
-                        {sem.label}
-                    </Select.Option>
-                ))}
-            </Select>
-            <Select
                 placeholder="ปีการศึกษา"
                 allowClear
                 style={{ width: 150 }}
                 onChange={setAcademicYear}
                 value={academicYear}
             >
-                {filterOptions.academicYears?.map(year => (
+                {academicYearOptions.map(year => (
                     <Select.Option key={year.value} value={year.value}>
                         {year.label}
                     </Select.Option>
@@ -377,7 +383,7 @@ const StudentList = () => {
                             label="รหัสนักศึกษา"
                             rules={[{ required: true, message: 'กรุณากรอกรหัสนักศึกษา' }]}
                         >
-                            <Input />
+                            <Input disabled={!!editingStudent} />
                         </Form.Item>
                         <Form.Item
                             name="firstName"
@@ -392,6 +398,34 @@ const StudentList = () => {
                             rules={[{ required: true, message: 'กรุณากรอกนามสกุล' }]}
                         >
                             <Input />
+                        </Form.Item>
+                        <Form.Item
+                            name="totalCredits"
+                            label="หน่วยกิตรวม"
+                            rules={[
+                                { required: true, message: 'กรุณากรอกหน่วยกิตรวม' },
+                                { type: 'number', min: 0, max: 142, message: 'หน่วยกิตต้องอยู่ระหว่าง 0-142' }
+                            ]}
+                        >
+                            <InputNumber style={{ width: '100%' }} min={0} max={142} />
+                        </Form.Item>
+                        <Form.Item
+                            name="majorCredits"
+                            label="หน่วยกิตภาควิชา"
+                            rules={[
+                                { required: true, message: 'กรุณากรอกหน่วยกิตภาควิชา' },
+                                { type: 'number', min: 0, message: 'หน่วยกิตต้องมากกว่าหรือเท่ากับ 0' },
+                                ({ getFieldValue }) => ({
+                                    validator(_, value) {
+                                        if (!value || getFieldValue('totalCredits') >= value) {
+                                            return Promise.resolve();
+                                        }
+                                        return Promise.reject(new Error('หน่วยกิตภาควิชาต้องน้อยกว่าหรือเท่ากับหน่วยกิตรวม'));
+                                    }
+                                })
+                            ]}
+                        >
+                            <InputNumber style={{ width: '100%' }} min={0} />
                         </Form.Item>
                     </Form>
                 </Modal>

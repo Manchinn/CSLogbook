@@ -6,7 +6,7 @@ export const studentService = {
     try {
       console.log('Fetching student info for:', studentCode);
       const response = await apiClient.get(`/students/${studentCode}`);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่พบข้อมูลนักศึกษา');
       }
@@ -28,60 +28,72 @@ export const studentService = {
     const response = await apiClient.get('/students/stats');
     return response.data;
   },
-
   // อัพเดทข้อมูลนักศึกษา (สำหรับ admin/teacher)
   updateStudent: async (studentCode, data) => {
-    const response = await apiClient.put(`/students/${studentCode}`, data);
-    return response.data;
-  },
+    try {
+      const response = await apiClient.put(`/students/${studentCode}`, {
+        ...data,
+        totalCredits: parseInt(data.totalCredits) || 0,
+        majorCredits: parseInt(data.majorCredits) || 0
+      });
 
-  // เพิ่มข้อมูลนักศึกษา (สำหรับ admin)
-  addStudent: async (data) => {
-    const response = await apiClient.post('/students', data);
-    return response.data;
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถอัพเดทข้อมูลนักศึกษาได้');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error updating student:', error);
+      if (error.response?.status === 404) {
+        throw new Error('ไม่พบข้อมูลนักศึกษา');
+      }
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
+    }
   },
 
   // ลบข้อมูลนักศึกษา (สำหรับ admin)
   deleteStudent: async (studentCode) => {
-    const response = await apiClient.delete(`/students/${studentCode}`);
-    return response.data;
-  },
-
-  // ดึงรายการนักศึกษาทั้งหมด (สำหรับหน้า StudentList)
-  getAllStudents: async () => {
     try {
-      console.log('Fetching all students...');
-      const response = await apiClient.get('/students');
-      
+      const response = await apiClient.delete(`/students/${studentCode}`);
+
       if (!response.data.success) {
-        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลนักศึกษาได้');
+        throw new Error(response.data.message || 'ไม่สามารถลบข้อมูลนักศึกษาได้');
       }
 
-      return response.data.data;
-
+      return response.data;
     } catch (error) {
-      console.error('Error details:', {
-        error,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-      throw error;
+      console.error('Error deleting student:', error);
+      if (error.response?.status === 404) {
+        throw new Error('ไม่พบข้อมูลนักศึกษา');
+      }
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการลบข้อมูล');
     }
   },
 
   // เพิ่มนักศึกษาใหม่
   addStudent: async (studentData) => {
     try {
-      const response = await apiClient.post('/admin/students', studentData);
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'ไม่สามารถเพิ่มข้อมูลนักศึกษาได้');
-      }
+      const payload = {
+        studentCode: studentData.studentCode,
+        firstName: studentData.firstName,
+        lastName: studentData.lastName,
+        totalCredits: parseInt(studentData.totalCredits) || 0,
+        majorCredits: parseInt(studentData.majorCredits) || 0
+      };
 
-      return response.data.data;
+      const response = await apiClient.post('/students', payload);
+
+      return response.data; // ส่งค่า response.data ทั้งหมดกลับไป
+
     } catch (error) {
-      console.error('Error adding student:', error);
-      throw error;
+      // จัดการ error ตามประเภท
+      if (error.response?.status === 409) {
+        throw new Error('รหัสนักศึกษานี้มีในระบบแล้ว');
+      }
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('เกิดข้อผิดพลาดในการเพิ่มข้อมูล');
     }
   },
 
@@ -89,7 +101,7 @@ export const studentService = {
   updateStudentAdmin: async (studentId, studentData) => {
     try {
       const response = await apiClient.put(`/admin/students/${studentId}`, studentData);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถอัพเดทข้อมูลนักศึกษาได้');
       }
@@ -105,7 +117,7 @@ export const studentService = {
   deleteStudentAdmin: async (studentId) => {
     try {
       const response = await apiClient.delete(`/admin/students/${studentId}`);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถลบข้อมูลนักศึกษาได้');
       }
@@ -122,7 +134,7 @@ export const studentService = {
     try {
       console.log('Fetching students with filters:', filters);
       const params = new URLSearchParams();
-      
+
       // เพิ่ม parameters สำหรับ filter
       if (filters.semester) params.append('semester', filters.semester);
       if (filters.academicYear) params.append('academicYear', filters.academicYear);
@@ -130,9 +142,9 @@ export const studentService = {
 
       const queryString = params.toString();
       const url = queryString ? `/students?${queryString}` : '/students';
-      
+
       const response = await apiClient.get(url);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลนักศึกษาได้');
       }
@@ -178,7 +190,7 @@ export const studentService = {
         semester: academicInfo.semester,
         academicYear: academicInfo.academicYear
       });
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถอัพเดทข้อมูลการศึกษาได้');
       }
@@ -194,7 +206,7 @@ export const studentService = {
   getFilterOptions: async () => {
     try {
       const response = await apiClient.get('/students/filter-options');
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลตัวเลือกการกรอง');
       }
