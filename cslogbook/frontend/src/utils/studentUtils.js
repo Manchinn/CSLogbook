@@ -6,7 +6,7 @@ export const ACADEMIC_MONTH_THRESHOLD = 4;
 
 export const INTERNSHIP_REQUIREMENTS = {
   MIN_YEAR: 3,
-  MIN_CREDITS: 81
+  MIN_TOTAL_CREDITS: 81
 };
 
 export const PROJECT_REQUIREMENTS = {
@@ -86,10 +86,10 @@ export const isEligibleForInternship = (studentYear, totalCredits) => {
     };
   }
   
-  if (totalCredits < INTERNSHIP_REQUIREMENTS.MIN_CREDITS) {
+  if (totalCredits < INTERNSHIP_REQUIREMENTS.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${INTERNSHIP_REQUIREMENTS.MIN_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${INTERNSHIP_REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
     };
   }
   

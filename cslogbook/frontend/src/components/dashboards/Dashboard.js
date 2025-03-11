@@ -382,23 +382,6 @@ function Dashboard() {
               </Card>
             </Col>
           </Row>
-
-          <Card title="ข้อมูลการศึกษา">
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="หน่วยกิตรวม">
-                {eligibilityData?.totalCredits || 0}
-              </Descriptions.Item>
-              <Descriptions.Item label="หน่วยกิตเฉพาะ">
-                {eligibilityData?.majorCredits || 0}
-              </Descriptions.Item>
-              <Descriptions.Item label="ชั้นปี">
-                {eligibilityData?.studentYear?.year || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="ประเภทการศึกษา">
-                {userData.studyType === 'regular' ? 'ภาคปกติ' : 'ภาคพิเศษ'}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
         </Space>
       </div>
     );

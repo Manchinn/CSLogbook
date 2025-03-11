@@ -10,6 +10,7 @@ const uploadCSV = async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
+    // ตรวจสอบสิทธิ์
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
         error: 'ไม่มีสิทธิ์อัพโหลดรายชื่อนักศึกษา'
@@ -36,7 +37,7 @@ const uploadCSV = async (req, res) => {
         if (validation.isValid && validation.normalizedData) {
           const { normalizedData } = validation;
 
-          // Find or create user using Sequelize
+          // ใช้ Sequelize findOrCreate พร้อม transaction
           const [user, created] = await User.findOrCreate({
             where: { username: `s${normalizedData.studentID}` },
             defaults: {
@@ -44,13 +45,13 @@ const uploadCSV = async (req, res) => {
               email: normalizedData.email,
               role: 'student',
               firstName: normalizedData.firstName,
-              lastName: normalizedData.lastName
+              lastName: normalizedData.lastName,
+              activeStatus: true
             },
             transaction
           });
 
           if (!created) {
-            // Update existing user
             await user.update({
               email: normalizedData.email,
               firstName: normalizedData.firstName,
@@ -58,14 +59,16 @@ const uploadCSV = async (req, res) => {
             }, { transaction });
           }
 
-          // Find or create student record
+          // สร้างหรืออัพเดทข้อมูลนักศึกษา
           const [student, studentCreated] = await Student.findOrCreate({
             where: { userId: user.userId },
             defaults: {
               studentCode: normalizedData.studentID,
               totalCredits: 0,
               majorCredits: 0,
-              studyType: 'regular'
+              studyType: 'regular',
+              isEligibleInternship: false,
+              isEligibleProject: false
             },
             transaction
           });
@@ -75,6 +78,17 @@ const uploadCSV = async (req, res) => {
               studentCode: normalizedData.studentID
             }, { transaction });
           }
+
+          // บันทึกประวัติการอัพโหลด
+          await UploadHistory.create({
+            uploadedBy: req.user.userId,
+            fileName: req.file.originalname,
+            totalRecords: 1,
+            successfulUpdates: 1,
+            failedUpdates: 0,
+            uploadType: 'students',
+            details: JSON.stringify(normalizedData)
+          }, { transaction });
 
           results.push({
             ...normalizedData,
@@ -96,16 +110,6 @@ const uploadCSV = async (req, res) => {
       }
     }
 
-    // Create upload history
-    await UploadHistory.create({
-      uploadedBy: req.user.userId,
-      fileName: req.file.originalname,
-      totalRecords: results.length,
-      successfulUpdates: results.filter(r => ['Added', 'Updated'].includes(r.status)).length,
-      failedUpdates: results.filter(r => ['Invalid', 'Error'].includes(r.status)).length,
-      uploadType: 'students'
-    }, { transaction });
-
     await transaction.commit();
 
     const summary = {
@@ -123,29 +127,32 @@ const uploadCSV = async (req, res) => {
     console.error('Upload error:', error);
     res.status(500).json({
       error: 'Error uploading CSV file',
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: error.message
     });
-  } finally {
-    // Clean up uploaded file
-    await fs.promises.unlink(filePath);
+  }   finally {
+    try {
+      if (req.file && req.file.path) {
+        await fs.promises.unlink(req.file.path);
+      }
+    } catch (unlinkError) {
+      console.error('Error deleting temporary file:', unlinkError);
+      // ไม่ throw error เพราะเป็นเพียงการ cleanup
+    }
   }
 };
 
-// ตัวอย่างการดึงประวัติการอัพโหลด
+// ดึงประวัติการอัพโหลดโดยใช้ Sequelize
 const getUploadHistory = async (req, res) => {
   try {
-    const [history] = await pool.execute(`
-      SELECT 
-        h.*,
-        u.username as uploaded_by_username,
-        u.first_name,
-        u.last_name,
-        DATE_FORMAT(h.created_at, '%Y-%m-%d %H:%i:%s') as formatted_created_at
-      FROM upload_history h
-      JOIN users u ON h.uploaded_by = u.user_id
-      ORDER BY h.created_at DESC
-    `);
+    const history = await UploadHistory.findAll({
+      include: [{
+        model: User,
+        as: 'uploader',
+        attributes: ['username', 'firstName', 'lastName']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+
     res.json(history);
   } catch (error) {
     res.status(500).json({ error: error.message });

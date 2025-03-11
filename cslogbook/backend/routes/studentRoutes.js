@@ -25,7 +25,7 @@ router.get('/:id',
 );
 
 router.put('/:id',
-  checkRole(['admin', 'teacher']),
+  checkRole(['admin', 'student']),
   studentController.updateStudent
 );
 

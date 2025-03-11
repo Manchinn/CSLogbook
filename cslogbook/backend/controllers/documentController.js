@@ -1,90 +1,68 @@
-const pool = require('../config/database');
+const { Document, InternshipDocument, ProjectDocument, User } = require('../models');
 
 exports.getDocuments = async (req, res) => {
   try {
-    const query = `
-      SELECT 
-        d.*,
-        u.first_name,
-        u.last_name,
-        CASE 
-          WHEN d.type = 'internship' THEN (
-            SELECT JSON_OBJECT(
-              'company_name', i.company_name,
-              'supervisor_name', i.supervisor_name,
-              'supervisor_phone', i.supervisor_phone,
-              'supervisor_email', i.supervisor_email
-            )
-            FROM internship_documents i
-            WHERE i.document_id = d.document_id
-          )
-          WHEN d.type = 'project' THEN (
-            SELECT JSON_OBJECT(
-              'project_name_th', p.project_name_th,
-              'project_name_en', p.project_name_en, 
-              'project_type', p.project_type,
-              'track', p.track
-            )
-            FROM project_documents p
-            WHERE p.document_id = d.document_id
-          )
-        END as document_details
-      FROM documents d
-      JOIN users u ON d.user_id = u.user_id
-      WHERE d.status = ?`;
+    const documents = await Document.findAll({
+      where: { 
+        status: req.query.status || 'pending' 
+      },
+      include: [
+        {
+          model: User,
+          attributes: ['firstName', 'lastName']
+        },
+        {
+          model: InternshipDocument,
+          attributes: ['companyName', 'supervisorName', 'supervisorPhone', 'supervisorEmail'],
+          required: false
+        },
+        {
+          model: ProjectDocument,
+          attributes: ['projectNameTh', 'projectNameEn', 'projectType', 'track'],
+          required: false
+        }
+      ]
+    });
 
-    const [documents] = await pool.execute(query, [req.query.status || 'pending']);
     res.json(documents);
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    res.status(500).json({ error: 'Error fetching documents' });
   }
 };
 
 exports.getDocumentById = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    // ปรับ query เพื่อใช้ user_id แทน studentID
-    const query = `
-      SELECT d.*,
-      CASE 
-        WHEN d.type = 'internship' THEN json_object(
-          'company_name', i.company_name,
-          'contact_name', i.contact_name,
-          'contact_phone', i.contact_phone,
-          'contact_email', i.contact_email,
-          'uploaded_files', i.uploaded_files
-        )
-        WHEN d.type = 'project' THEN json_object(
-          'project_name_th', p.project_name_th,
-          'project_name_en', p.project_name_en,
-          'student_id1', p.student_id1,
-          'student_name1', CONCAT(u1.first_name, ' ', u1.last_name),
-          'student_id2', p.student_id2,
-          'student_name2', CONCAT(u2.first_name, ' ', u2.last_name)
-        )
-      END as details
-      FROM documents d
-      LEFT JOIN users u ON d.user_id = u.user_id
-      WHERE d.id = ?`;
+    const document = await Document.findByPk(req.params.id, {
+      include: [
+        { 
+          model: User,
+          attributes: ['firstName', 'lastName']
+        },
+        {
+          model: InternshipDocument,
+          required: false
+        },
+        {
+          model: ProjectDocument,
+          required: false,
+          include: [{
+            model: User,
+            as: 'students',
+            attributes: ['firstName', 'lastName']
+          }]
+        }
+      ]
+    });
 
-    const [rows] = await pool.execute(query, [id]);
-
-    if (rows.length === 0) {
+    if (!document) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    // แปลง JSON string เป็น object และรวมข้อมูล
-    const documentData = {
-      ...rows[0],
-      ...(rows[0].details ? JSON.parse(rows[0].details) : {})
-    };
-
-    res.json(documentData);
+    res.json(document);
   } catch (error) {
-    console.error('Error fetching document:', error);
-    res.status(500).json({ error: 'Error fetching document details' });
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error fetching document' });
   }
 };
 

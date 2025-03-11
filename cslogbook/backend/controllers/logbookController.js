@@ -1,68 +1,41 @@
 // backend/controllers/logbookController.js
-const pool = require('../config/database');
+const { Logbook } = require('../models');
 const moment = require('moment-timezone');
 
 // Get all logbooks for a student
 exports.getLogbooks = async (req, res) => {
-  const connection = await pool.getConnection();
   try {
-    const studentID = req.user.studentID;
-    
-    const [logbooks] = await connection.execute(
-      `SELECT 
-        id,
-        title, 
-        meeting_date,
-        meeting_details,
-        progress_update,
-        status,
-        created_at,
-        updated_at
-       FROM logbooks 
-       WHERE studentID = ?
-       ORDER BY meeting_date DESC`,
-      [studentID]
-    );
-
+    const logbooks = await Logbook.findAll({
+      where: { studentId: req.user.studentID },
+      order: [['meetingDate', 'DESC']]
+    });
     res.json(logbooks);
   } catch (error) {
-    console.error('Error fetching logbooks:', error);
+    console.error('Error:', error);
     res.status(500).json({ error: 'Error fetching logbooks' });
-  } finally {
-    connection.release();
   }
 };
 
 // Create new logbook
 exports.createLogbook = async (req, res) => {
-  const connection = await pool.getConnection();
-  
   try {
-    const { title, meetingDate, meeting_details, progress_update } = req.body;
-    const studentID = req.user.studentID; // จาก middleware authentication
-
-    const [result] = await connection.execute(
-      `INSERT INTO logbooks (
-        studentID,
-        title,
-        meeting_date,
-        meeting_details,
-        progress_update,
-        status
-      ) VALUES (?, ?, ?, ?, ?, 'pending')`,
-      [studentID, title, meetingDate, meeting_details, progress_update]
-    );
+    const logbook = await Logbook.create({
+      studentId: req.user.studentID,
+      title: req.body.title,
+      meetingDate: req.body.meetingDate,
+      meetingDetails: req.body.meeting_details,
+      progressUpdate: req.body.progress_update,
+      status: 'pending'
+    });
 
     res.status(201).json({
       success: true,
       message: 'Logbook created successfully',
-      id: result.insertId
+      id: logbook.id
     });
   } catch (error) {
-    console.error('Error creating logbook:', error);
+    console.error('Error:', error);
     res.status(500).json({ error: 'Error creating logbook' });
-  } finally {
-    connection.release();
   }
 };
 

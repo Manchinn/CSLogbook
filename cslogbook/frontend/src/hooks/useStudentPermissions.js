@@ -27,6 +27,10 @@ export const useStudentPermissions = (userData) => {
       userData.majorCredits >= 47
     );
 
+    // Update localStorage
+    localStorage.setItem('isEligibleForInternship', String(canAccessInternship));
+    localStorage.setItem('isEligibleForProject', String(canAccessProject));
+
     return {
       canAccessInternship,
       canAccessProject,
@@ -36,8 +40,7 @@ export const useStudentPermissions = (userData) => {
           : `ต้องการหน่วยกิตรวม >= 81 (ปัจจุบัน: ${userData.totalCredits})`,
         project: canAccessProject
           ? 'มีสิทธิ์เข้าถึงระบบโครงงาน'
-          : `ต้องการหน่วยกิตรวม >= 95 และหน่วยกิตเฉพาะ >= 47 
-             (ปัจจุบัน: ${userData.totalCredits}, ${userData.majorCredits})`
+          : `ต้องการหน่วยกิตรวม >= 95 และหน่วยกิตเฉพาะ >= 47 (ปัจจุบัน: ${userData.totalCredits}, ${userData.majorCredits})`
       }
     };
   }, [userData]);

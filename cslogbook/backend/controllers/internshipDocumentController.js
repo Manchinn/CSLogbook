@@ -1,15 +1,16 @@
+const { InternshipDocument, Document, User } = require('../models');
 const pool = require('../config/database');
 const path = require('path');
 
 exports.submitInternshipDocuments = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
-    if (!req.files || req.files.length === 0) {
+    if (!req.files?.length) {
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
     const companyInfo = JSON.parse(req.body.companyInfo);
-    
-    // เก็บข้อมูลไฟล์แบบไม่ต้องเข้ารหัส Base64
     const filesInfo = req.files.map(file => ({
       originalname: file.originalname,
       filename: file.filename,
@@ -18,57 +19,35 @@ exports.submitInternshipDocuments = async (req, res) => {
       size: file.size
     }));
 
-    // เริ่ม transaction
-    const connection = await pool.getConnection();
-    await connection.beginTransaction();
+    // สร้าง internship document
+    const internshipDoc = await InternshipDocument.create({
+      companyName: companyInfo.company_name,
+      contactName: companyInfo.contact_name,
+      contactPhone: companyInfo.contact_phone,
+      contactEmail: companyInfo.contact_email,
+      uploadedFiles: filesInfo,
+      status: 'pending'
+    }, { transaction });
 
-    try {
-      // บันทึกข้อมูลลงตาราง internship_documents
-      const [internshipResult] = await connection.execute(
-        `INSERT INTO internship_documents 
-         (company_name, contact_name, contact_phone, contact_email, uploaded_files, status, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          companyInfo.company_name,
-          companyInfo.contact_name, 
-          companyInfo.contact_phone,
-          companyInfo.contact_email,
-          JSON.stringify(filesInfo), // เก็บข้อมูลไฟล์แบบไม่เข้ารหัส
-          'pending',
-          new Date()
-        ]
-      );
+    // สร้าง document status
+    await Document.create({
+      documentName: companyInfo.company_name,
+      studentName: `${req.user.firstName} ${req.user.lastName}`,
+      status: 'pending',
+      type: 'internship',
+      userId: req.user.id
+    }, { transaction });
 
-      // บันทึกข้อมูลลงตาราง documents สำหรับแสดงสถานะ
-      const [documentResult] = await connection.execute(
-        `INSERT INTO documents 
-         (document_name, student_name, upload_date, status, type) 
-         VALUES (?, ?, NOW(), ?, ?)`,
-        [
-          companyInfo.company_name,
-          `${req.user.firstName} ${req.user.lastName}`, // ใช้ข้อมูลผู้ใช้จาก middleware
-          'pending',
-          'internship'
-        ]
-      );
-
-      await connection.commit();
-
-      res.status(201).json({
-        message: 'Internship documents submitted successfully',
-        documentId: internshipResult.insertId
-      });
-
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
+    await transaction.commit();
+    res.status(201).json({
+      message: 'Internship documents submitted successfully',
+      documentId: internshipDoc.id
+    });
 
   } catch (error) {
-    console.error('Error submitting internship documents:', error);
-    res.status(500).json({ error: 'Error submitting internship documents' });
+    await transaction.rollback();
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error submitting documents' });
   }
 };
 
@@ -81,11 +60,16 @@ exports.uploadInternshipDocument = (req, res) => {
 
 exports.getInternshipDocuments = async (req, res) => {
   try {
-    const [documents] = await pool.execute('SELECT * FROM internship_documents');
-    res.json(documents); // ส่งข้อมูลเอกสารทั้งหมดกลับไป
+    const documents = await InternshipDocument.findAll({
+      include: [{
+        model: Document,
+        include: [{ model: User, attributes: ['firstName', 'lastName'] }]
+      }]
+    });
+    res.json(documents);
   } catch (error) {
-    console.error('Error fetching internship documents:', error);
-    res.status(500).json({ error: 'Error fetching internship documents' });
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error fetching documents' });
   }
 };
 

@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { message } from 'antd';
-import { usePermissions } from './usePermissons';
 
 export const AuthContext = createContext({
   isAuthenticated: false,
