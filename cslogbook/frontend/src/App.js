@@ -11,7 +11,6 @@ import AdminUpload from './components/AdminUpload';
 import StudentProfile from './components/StudentProfile';
 import InternshipTerms from "./components/internship/InternshipTerms";
 import CompanyInfoForm from './components/internship/CompanyInfoForm';
-import InternshipDocuments from './components/internship/InternshipDocumentForm'; // แก้ไขเส้นทางให้ถูกต้อง
 import DocumentDetails from "./components/admin/DocumentDetails";
 import InternshipDocumentManagement from "./components/admin/InternshipDocumentManagement";
 import ProjectDocumentManagement from "./components/admin/ProjectDocumentManagement";
@@ -37,16 +36,20 @@ const ProtectedRoute = ({ children, roles }) => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
-          {/* Public route */}
           <Route path="/login" element={<LoginForm />} />
-          
-          {/* Protected routes wrapped in MainLayout */}
           <Route element={<MainLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/students" element={<StudentList />} />
+            <Route 
+              path="/students" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <StudentList />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/teachers" element={<TeacherList />} />
             <Route path="/project-pairs" element={<StudentPairsList />} />
             <Route path="/admin/upload" element={
@@ -75,11 +78,10 @@ const App = () => {
             <Route path="/internship-status-check" element={<InternshipStatusCheck />} />
           </Route>
 
-          {/* Redirect root to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 

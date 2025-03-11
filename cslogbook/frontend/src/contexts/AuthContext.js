@@ -1,8 +1,15 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { message } from 'antd';
+import { usePermissions } from './usePermissons';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext({
+  isAuthenticated: false,
+  userData: null,
+  login: () => {},
+  logout: () => {},
+});
+
 const API_URL = process.env.REACT_APP_API_URL;
 
 if (!API_URL) {
@@ -15,11 +22,13 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
-    studentID: localStorage.getItem('studentID'),
+    studentCode: localStorage.getItem('studentCode'),
     firstName: localStorage.getItem('firstName'),
     lastName: localStorage.getItem('lastName'),
     email: localStorage.getItem('email'),
     role: localStorage.getItem('role'),
+    totalCredits: parseInt(localStorage.getItem('totalCredits')) || 0,
+    majorCredits: parseInt(localStorage.getItem('majorCredits')) || 0,
     isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
     isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
   });
@@ -138,18 +147,17 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refreshToken', refreshToken);
       }
 
-      // เก็บ user data
       const userDataToStore = {
-        studentID: userData.studentID,
+        studentCode: userData.studentCode,
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
         role: userData.role,
-        isEligibleForInternship: (parseInt(userData.studentID.substring(0, 2)) <= 63) && (userData.totalCredits >= 81),
-        isEligibleForProject: (parseInt(userData.studentID.substring(0, 2)) <= 62) && (userData.totalCredits >= 95) && (userData.majorCredits >= 47)
+        totalCredits: userData.totalCredits || 0,
+        majorCredits: userData.majorCredits || 0
       };
 
-      // บันทึกลง localStorage
+      // Store data first
       Object.entries(userDataToStore).forEach(([key, value]) => {
         if (value !== undefined) {
           localStorage.setItem(key, String(value));
@@ -161,9 +169,8 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setUserData(userDataToStore);
 
-      // Set axios default header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       return true;
     } catch (error) {
       handleAPIError(error, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
@@ -171,32 +178,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      // ลบ axios default header
       delete axios.defaults.headers.common['Authorization'];
       
-      // Clear localStorage
       const keysToRemove = [
-        'token', 'refreshToken', 'studentID', 'firstName', 
+        'token', 'refreshToken', 'studentCode', 'firstName', 
         'lastName', 'email', 'role', 'isEligibleForInternship', 
-        'isEligibleForProject'
+        'isEligibleForProject', 'totalCredits', 'majorCredits'
       ];
       keysToRemove.forEach(key => localStorage.removeItem(key));
 
-      // Reset states
       setToken(null);
       setRefreshToken(null);
       setIsAuthenticated(false);
       setUserData(null);
 
-      // Redirect to login
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
     }
-  };
+  }, []);
 
   const value = {
     isAuthenticated,

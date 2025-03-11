@@ -4,9 +4,13 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "setup": "copy .env.example .env.development",  
-    "build": "set NODE_ENV=production&& node scripts/build.js", 
-    "dev": "set NODE_ENV=development&& nodemon server.js"
+    "setup": "copy .env.example .env.development",
+    "build": "set NODE_ENV=production&& node scripts/build.js",
+    "dev": "set NODE_ENV=development&& nodemon server.js",
+    "db:check:models": "node scripts/checkModels.js",
+    "db:check": "cross-env NODE_ENV=development node scripts/checkDb.js",
+    "db:check:all": "npm run db:check && npm run db:check:models",
+    "db:sync": "cross-env NODE_ENV=development node scripts/syncDb.js"
   },
   "keywords": [],
   "author": "",
@@ -26,14 +30,21 @@
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.5.47",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.11.4",
+    "mysql2": "^3.13.0",
     "nodemailer": "^6.9.16",
+    "pg": "^8.13.3",
+    "sequelize": "^6.37.6",
+    "sequelize-cli": "^6.6.2",
     "socket.io": "^4.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "@types/node": "^22.13.10",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
   }
 }

@@ -1,39 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Table,
-    Input,
-    Space,
-    Typography,
-    Button,
-    Tag,
-    Row,
-    Col,
-    message,
-    Popconfirm,
-    Modal,
-    Form,
-    Select
+    Table, Input, Space, Typography, Button, Row, Col, message, Popconfirm, Modal, Form
 } from 'antd';
 import {
-    SearchOutlined,
-    ReloadOutlined,
-    UserOutlined,
-    PlusOutlined,
-    EditOutlined,
-    DeleteOutlined
+    SearchOutlined, ReloadOutlined, UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { teacherService } from '../services/teacherService';
 import './StudentList.css';
 
 const { Title } = Typography;
-const { Option } = Select;
-
-const API_URL = process.env.REACT_APP_API_URL;
-
-if (!API_URL) {
-  throw new Error('REACT_APP_API_URL is not defined in environment variables');
-}
 
 const TeacherList = () => {
     const [teachers, setTeachers] = useState([]);
@@ -49,14 +25,8 @@ const TeacherList = () => {
     const fetchTeachers = useCallback(async () => {
         setLoading(true);   
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/teachers`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const teacherOnly = response.data.filter(user => user.role === 'teacher');
-            setTeachers(teacherOnly);
+            const response = await teacherService.getAllTeachers();
+            setTeachers(response);
         } catch (error) {
             console.error('Error fetching teachers:', error);
             if (error.response?.status === 401) {
@@ -71,16 +41,10 @@ const TeacherList = () => {
     const handleAddOrEdit = async (values) => {
         try {
             if (editingTeacher) {
-                await axios.put(`${API_URL}/teachers/${editingTeacher.sName}`, {
-                    ...values
-                });
-                console.log('Edited teacher:', values);
+                await teacherService.updateTeacher(editingTeacher.teacherCode, values);
                 message.success("แก้ไขข้อมูลอาจารย์เรียบร้อย!");
             } else {
-                await axios.post(`${API_URL}/teachers`, {
-                    ...values
-                });
-                console.log('Added teacher:', values);
+                await teacherService.addTeacher(values);
                 message.success("เพิ่มอาจารย์เรียบร้อย!");
             }
             fetchTeachers();
@@ -88,23 +52,18 @@ const TeacherList = () => {
             setEditingTeacher(null);
         } catch (error) {
             console.error('Error saving teacher data:', error);
-            if (error.response?.status === 404) {
-                message.error("ไม่พบข้อมูลอาจารย์");
-            } else {
-                message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-            }
+            message.error(error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         }
     };
 
-    const handleDelete = async (sName) => {
+    const handleDelete = async (teacherCode) => {
         try {
-            await axios.delete(`${API_URL}/teachers/${sName}`);
-            console.log('Deleted teacher shortname:', sName);
+            await teacherService.deleteTeacher(teacherCode);
             message.success("ลบอาจารย์เรียบร้อย!");
             fetchTeachers();
         } catch (error) {
             console.error('Error deleting teacher:', error);
-            message.error("เกิดข้อผิดพลาดในการลบข้อมูล");
+            message.error(error.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
         }
     };
 
@@ -112,20 +71,13 @@ const TeacherList = () => {
         setEditingTeacher(teacher);
         setVisible(true);
         form.setFieldsValue(teacher ? {
-            ...teacher
-        } : { sName: '', firstName: '', lastName: '', email: '' });
+            teacherCode: teacher.teacherCode,
+            firstName: teacher.firstName,
+            lastName: teacher.lastName,
+            email: teacher.email,
+            contactExtension: teacher.contactExtension
+        } : {});
     };
-
-    const updateSummary = useCallback((data) => {
-        const filteredData = data.filter(teacher =>
-            teacher.sName?.toLowerCase().includes(searchText.toLowerCase()) ||
-            teacher.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
-            teacher.lastName?.toLowerCase().includes(searchText.toLowerCase())
-        );
-        return {
-            total: filteredData.length
-        };
-    }, [searchText]);
 
     useEffect(() => {
         fetchTeachers();
@@ -136,32 +88,20 @@ const TeacherList = () => {
     };
 
     const filteredTeachers = teachers.filter(teacher =>
-        teacher.sName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        teacher.teacherCode?.toLowerCase().includes(searchText.toLowerCase()) ||
         teacher.firstName?.toLowerCase().includes(searchText.toLowerCase()) ||
         teacher.lastName?.toLowerCase().includes(searchText.toLowerCase())
     );
 
-    const tableHeaderStyle = {
-        className: 'table-header'
-    };
-
-    const tableCellStyle = {
-        className: 'table-cell'
-    };
-
-    const currentSummary = updateSummary(teachers);
-
     const columns = [
         {
-            title: 'ตัวย่อ',
-            dataIndex: 'sName',
-            key: 'sName',
+            title: 'รหัสอาจารย์',
+            dataIndex: 'teacherCode',
+            key: 'teacherCode',
             width: 140,
             fixed: 'left',
-            onHeaderCell: () => ({ style: tableHeaderStyle }),
-            onCell: () => ({ style: tableCellStyle }),
-            sorter: (a, b) => a.sName.localeCompare(b.sName),
-            sortOrder: sortedInfo.columnKey === 'sName' && sortedInfo.order,
+            sorter: (a, b) => a.teacherCode.localeCompare(b.teacherCode),
+            sortOrder: sortedInfo.columnKey === 'teacherCode' && sortedInfo.order,
             render: text => <span style={{ fontWeight: 500 }}>{text}</span>
         },
         {
@@ -169,8 +109,6 @@ const TeacherList = () => {
             dataIndex: 'firstName',
             key: 'firstName',
             width: 150,
-            onHeaderCell: () => ({ style: tableHeaderStyle }),
-            onCell: () => ({ style: tableCellStyle }),
             sorter: (a, b) => a.firstName.localeCompare(b.firstName),
             sortOrder: sortedInfo.columnKey === 'firstName' && sortedInfo.order
         },
@@ -179,29 +117,47 @@ const TeacherList = () => {
             dataIndex: 'lastName',
             key: 'lastName',
             width: 150,
-            onHeaderCell: () => ({ style: tableHeaderStyle }),
-            onCell: () => ({ style: tableCellStyle }),
             sorter: (a, b) => a.lastName.localeCompare(b.lastName),
             sortOrder: sortedInfo.columnKey === 'lastName' && sortedInfo.order
+        },
+        {
+            title: 'อีเมล',
+            dataIndex: 'email',
+            key: 'email',
+            width: 200
+        },
+        {
+            title: 'เบอร์ภายใน',
+            dataIndex: 'contactExtension',
+            key: 'contactExtension',
+            width: 120
         },
         {
             title: "จัดการ",
             key: "actions",
             width: 130,
+            fixed: 'right',
             align: 'center',
             render: (record) => (
                 <Space>
                     <Button icon={<EditOutlined />} onClick={() => openModal(record)}>
                         แก้ไข
                     </Button>
-                    <Popconfirm title="คุณแน่ใจหรือไม่ที่จะลบ?" onConfirm={() => handleDelete(record.sName)}>
+                    <Popconfirm 
+                        title="ยืนยันการลบข้อมูล"
+                        description="คุณแน่ใจหรือไม่ที่จะลบข้อมูลอาจารย์?"
+                        onConfirm={() => handleDelete(record.teacherCode)}
+                        okText="ลบ"
+                        cancelText="ยกเลิก"
+                        okButtonProps={{ danger: true }}
+                    >
                         <Button icon={<DeleteOutlined />} danger>
                             ลบ
                         </Button>
                     </Popconfirm>
                 </Space>
             ),
-        },
+        }
     ];
 
     return (
@@ -223,36 +179,57 @@ const TeacherList = () => {
                 }}
             >
                 <Form form={form} layout="vertical">
-                    <Form.Item name="sName" label="ตัวย่อ" rules={[{ required: true, message: "กรุณากรอกตัวย่อ!" }]}>
+                    <Form.Item 
+                        name="teacherCode" 
+                        label="รหัสอาจารย์" 
+                        rules={[{ required: true, message: "กรุณากรอกรหัสอาจารย์!" }]}
+                    >
+                        <Input disabled={!!editingTeacher} />
+                    </Form.Item>
+                    <Form.Item 
+                        name="firstName" 
+                        label="ชื่อ" 
+                        rules={[{ required: true, message: "กรุณากรอกชื่ออาจารย์!" }]}
+                    >
                         <Input />
                     </Form.Item>
-                    <Form.Item name="firstName" label="ชื่อ" rules={[{ required: true, message: "กรุณากรอกชื่ออาจารย์!" }]}>
+                    <Form.Item 
+                        name="lastName" 
+                        label="นามสกุล" 
+                        rules={[{ required: true, message: "กรุณากรอกนามสกุล!" }]}
+                    >
                         <Input />
                     </Form.Item>
-                    <Form.Item name="lastName" label="นามสกุล" rules={[{ required: true, message: "กรุณากรอกนามสกุล!" }]}>
+                    <Form.Item 
+                        name="email" 
+                        label="อีเมล" 
+                        rules={[
+                            { required: true, message: "กรุณากรอกอีเมล!" },
+                            { type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }
+                        ]}
+                    >
                         <Input />
                     </Form.Item>
-                    <Form.Item name="email" label="อีเมล" rules={[{ required: true, type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }]}>
+                    <Form.Item
+                        name="contactExtension"
+                        label="เบอร์ภายใน"
+                    >
                         <Input />
                     </Form.Item>
                 </Form>
             </Modal>
 
-            <Row justify="space-between" align="middle">
-                <Col flex="auto">
-                    <Row gutter={40} align="middle">
-                        <Col>
-                            <Space style={{ fontSize: '14px' }}>
-                                <UserOutlined />
-                                <span>{currentSummary.total} คน</span>
-                            </Space>
-                        </Col>
-                    </Row>
+            <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+                <Col>
+                    <Space>
+                        <UserOutlined />
+                        <span>{filteredTeachers.length} คน</span>
+                    </Space>
                 </Col>
-                <Col flex="none">
+                <Col>
                     <Space size={16}>
                         <Input
-                            placeholder="ค้นหาด้วยตัวย่อ, ชื่อ หรือนามสกุล"
+                            placeholder="ค้นหาด้วยรหัส, ชื่อ หรือนามสกุล"
                             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
                             value={searchText}
                             onChange={e => setSearchText(e.target.value)}
@@ -276,9 +253,7 @@ const TeacherList = () => {
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}
-                            onClick={() =>
-                                openModal(null)
-                            }
+                            onClick={() => openModal(null)}
                         >
                             เพิ่มอาจารย์
                         </Button>
@@ -289,7 +264,7 @@ const TeacherList = () => {
             <Table
                 columns={columns}
                 dataSource={filteredTeachers}
-                rowKey="sName"
+                rowKey="teacherCode"
                 loading={loading}
                 size="middle"
                 onChange={handleTableChange}

@@ -1,11 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const { getAllTeachers, addTeacher, updateTeacher, deleteTeacher } = require('../controllers/teacherController');
+const teacherController = require('../controllers/teacherController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
-router.get('/', authenticateToken, checkRole(['admin']), getAllTeachers);
-router.post('/', authenticateToken, checkRole(['admin']), addTeacher);
-router.put('/:sName', authenticateToken, checkRole(['admin']), updateTeacher);
-router.delete('/:sName', authenticateToken, checkRole(['admin']), deleteTeacher);
+// Protect all routes with authentication
+router.use(authenticateToken);
+
+// Admin routes
+router.post('/', 
+  checkRole(['admin']), 
+  teacherController.addTeacher
+);
+
+router.get('/', 
+  checkRole(['admin']), 
+  teacherController.getAllTeachers
+);
+
+router.get('/:id', 
+  checkRole(['admin', 'teacher']),
+  teacherController.getTeacherById
+);
+
+router.put('/:id',
+  checkRole(['admin', 'teacher']),
+  teacherController.updateTeacher
+);
+
+router.delete('/:id',
+  checkRole(['admin']),
+  teacherController.deleteTeacher
+);
+
+// Additional routes for teacher-specific functionality
+router.get('/:id/advisees',
+  checkRole(['admin', 'teacher']),
+  teacherController.getAdvisees
+);
 
 module.exports = router;
