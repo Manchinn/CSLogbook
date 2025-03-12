@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, DatePicker, Button, Typography, message, InputNumber, Space, Card, Row, Col } from 'antd';
+import { Form, Input, DatePicker, Button, Typography, message, InputNumber, Space, Card, Row, Col, TimePicker } from 'antd';
 import dayjs from 'dayjs';
 import { useInternship } from '../../../contexts/InternshipContext';
 import InternshipSteps from '../shared/InternshipSteps';
@@ -13,8 +13,8 @@ const CS05Form = () => {
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
+    setLoading(true);
     try {
-      setLoading(true);
       await setCS05Data(values);
       message.success('บันทึกข้อมูลเรียบร้อย');
     } catch (error) {

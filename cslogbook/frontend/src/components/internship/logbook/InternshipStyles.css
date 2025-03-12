@@ -43,7 +43,9 @@
 }
 
 .internship-step-title {
-  font-weight: bold;/* ปรับปรุง CSS ที่มีอยู่ */
+  font-weight: bold;
+}
+
 .internship-card {
   margin: 24px auto;
   max-width: 800px;
@@ -85,7 +87,6 @@
   gap: 8px;
   margin-top: 24px;
 }
-}
 
 .internship-subcard {
   text-align: left;
@@ -124,4 +125,104 @@
   display: flex;
   justify-content: space-between;
   margin-top: 24px;
+}
+
+.timesheet-overview {
+  margin-bottom: 24px;
+}
+
+.status-card {
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.status-card:hover {
+  transform: translateY(-3px);
+}
+
+.status-card.pending {
+  border-left: 3px solid #faad14;
+}
+
+.status-card.incomplete {
+  border-left: 3px solid #1890ff;
+}
+
+.status-card.submitted {
+  border-left: 3px solid #52c41a;
+}
+
+.status-card.approved {
+  border-left: 3px solid #52c41a;
+  background-color: #f6ffed;
+}
+
+.summary-card {
+  text-align: center;
+  background-color: #fafafa;
+}
+
+.ant-tabs-nav {
+  margin-bottom: 24px;
+}
+
+.view-details {
+  padding: 16px;
+}
+
+.view-details p {
+  margin-bottom: 8px;
+}
+
+.view-details strong {
+  color: #1890ff;
+}
+
+.status-overview {
+  margin-bottom: 24px;
+}
+
+.status-summary-card {
+  text-align: center;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.status-summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.status-summary-card.total {
+  background-color: #f5f5f5;
+}
+
+.status-summary-card.completed {
+  background-color: #f6ffed;
+  border-left: 4px solid #52c41a;
+}
+
+.status-summary-card.in-progress {
+  background-color: #e6f7ff;
+  border-left: 4px solid #1890ff;
+}
+
+.status-summary-card.pending {
+  background-color: #fff7e6;
+  border-left: 4px solid #faad14;
+}
+
+.ant-statistic-title {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.ant-statistic-content {
+  font-size: 24px;
+}
+
+.ant-statistic-prefix {
+  margin-right: 8px;
+  font-size: 20px;
 }

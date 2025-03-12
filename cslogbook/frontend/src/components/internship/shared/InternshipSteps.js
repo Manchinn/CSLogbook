@@ -13,12 +13,10 @@ const InternshipSteps = () => {
     switch (location.pathname) {
       case "/internship-registration/cs05":
         return 0;
-      case "/internship-registration/company-info":
-        return 1;
       case "/internship-logbook/timesheet":
-        return 2;
+        return 1;
       case "/internship-summary":
-        return 3;
+        return 2;
       default:
         return 0;
     }
@@ -30,10 +28,6 @@ const InternshipSteps = () => {
         <Step 
           title={<span className="internship-step-title">ลงทะเบียน</span>}
           description="กรอก คพ.05" 
-        />
-        <Step 
-          title={<span className="internship-step-title">ข้อมูลบริษัท</span>}
-          description="รายละเอียดสถานประกอบการ"
         />
         <Step 
           title={<span className="internship-step-title">บันทึกการฝึกงาน</span>}

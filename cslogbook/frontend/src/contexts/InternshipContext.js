@@ -92,6 +92,20 @@ const internshipReducer = (state, action) => {
         }
       };
 
+    case 'UPDATE_LOGBOOK_ENTRY':
+      const updatedEntries = state.logbook.entries.map(entry => 
+        entry.date === action.payload.date ? action.payload : entry
+      );
+      return {
+        ...state,
+        logbook: {
+          ...state.logbook,
+          entries: updatedEntries,
+          totalHours: calculateTotalHours(updatedEntries),
+          lastEntry: action.payload
+        }
+      };
+      
     default:
       return state;
   }
@@ -100,6 +114,11 @@ const internshipReducer = (state, action) => {
 // Helper functions
 const calculateHours = (timeIn, timeOut) => {
   // Logic to calculate hours between timeIn and timeOut
+  return 0; // Placeholder
+};
+
+const calculateTotalHours = (entries) => {
+  // Logic to calculate total hours from entries
   return 0; // Placeholder
 };
 
@@ -117,6 +136,9 @@ export const InternshipProvider = ({ children }) => {
     },
     updateApprovalStatus: (statusUpdate) => {
       dispatch({ type: 'UPDATE_APPROVAL_STATUS', payload: statusUpdate });
+    },
+    updateLogbookEntry: (entry) => {
+      dispatch({ type: 'UPDATE_LOGBOOK_ENTRY', payload: entry });
     }
   };
 
