@@ -32,6 +32,29 @@ export const AuthProvider = ({ children }) => {
     isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
   });
 
+  const handleLogout = useCallback(async () => {
+    try {
+      delete axios.defaults.headers.common['Authorization'];
+      
+      const keysToRemove = [
+        'token', 'refreshToken', 'studentCode', 'firstName', 
+        'lastName', 'email', 'role', 'isEligibleForInternship', 
+        'isEligibleForProject', 'totalCredits', 'majorCredits'
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      setToken(null);
+      setRefreshToken(null);
+      setIsAuthenticated(false);
+      setUserData(null);
+
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+      message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
+    }
+  }, []);
+
   // ตั้งค่า axios interceptor สำหรับจัดการ token
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
@@ -65,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, [refreshToken]);
+  }, [refreshToken, handleLogout]);
 
   // ลบ token เมื่อผู้ใช้ปิดแท็บ
   useEffect(() => {
@@ -105,7 +128,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     validateToken();
-  }, [token]);
+  }, [token, handleLogout]);
 
   // รีเฟรช token เมื่อผู้ใช้งาน login เกิน 30 นาที
   useEffect(() => {
@@ -128,7 +151,7 @@ export const AuthProvider = ({ children }) => {
     }, 5 * 60 * 1000); // 5 นาที
 
     return () => clearInterval(interval);
-  }, [refreshToken]);
+  }, [refreshToken, handleLogout]);
 
   const handleAPIError = (error, fallbackMessage = 'เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์') => {
     console.error('API Error:', error);
@@ -176,29 +199,6 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
   };
-
-  const handleLogout = useCallback(async () => {
-    try {
-      delete axios.defaults.headers.common['Authorization'];
-      
-      const keysToRemove = [
-        'token', 'refreshToken', 'studentCode', 'firstName', 
-        'lastName', 'email', 'role', 'isEligibleForInternship', 
-        'isEligibleForProject', 'totalCredits', 'majorCredits'
-      ];
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-
-      setToken(null);
-      setRefreshToken(null);
-      setIsAuthenticated(false);
-      setUserData(null);
-
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Logout error:', error);
-      message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
-    }
-  }, []);
 
   const value = {
     isAuthenticated,

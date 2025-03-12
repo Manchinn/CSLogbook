@@ -28,7 +28,7 @@ export const studentService = {
     const response = await apiClient.get('/students/stats');
     return response.data;
   },
-  // อัพเดทข้อมูลนักศึกษา (สำหรับ admin/teacher)
+  // อัพเดทข้อมูลนักศึกษา (สำหรับ admin/student)
   updateStudent: async (studentCode, data) => {
     try {
       // Validate input data
