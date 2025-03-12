@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Row, Col, message, Spin, Form, InputNumber, Button, Avatar, Tag, Statistic, Tooltip, Result } from 'antd';
+import { Card, Row, Col, message, Spin, Form, InputNumber, Button, Avatar, Tag, Statistic, Tooltip, Result, Modal } from 'antd';
 import { UserOutlined, BookOutlined, ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { calculateStudentYear, isEligibleForProject, isEligibleForInternship } from '../utils/studentUtils';
@@ -17,14 +17,21 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
       <Col span={24}>
         <Card style={{ textAlign: 'center' }}>
           <Avatar size={120} icon={<UserOutlined />} />
-          <h2 style={{ marginTop: 16 }}>{student.firstName} {student.lastName}</h2>
+          <h2 style={{ marginTop: 16 }}>
+            {student.firstName && student.lastName 
+              ? `${student.firstName} ${student.lastName}`
+              : 'ไม่ระบุชื่อ-นามสกุล'
+            }
+          </h2>
           <p>{student.studentCode}</p>
           <Tag color="blue">ชั้นปีที่ {displayYear}</Tag>
         </Card>
       </Col>
       <Col span={24}>
         <Card title="ข้อมูลติดต่อ">
-          <p><strong>อีเมล:</strong> {student.email}</p>
+          <p>
+            <strong>อีเมล:</strong> {student.email || 'ไม่ระบุอีเมล'}
+          </p>
         </Card>
       </Col>
     </Row>
@@ -151,6 +158,7 @@ const StudentProfile = () => {
   const [editing, setEditing] = useState(false);
   const [form] = Form.useForm();
   const { userData } = useContext(AuthContext);
+  const [pdpaModalVisible, setPdpaModalVisible] = useState(false);
 
   const fetchStudent = useCallback(async () => {
     setLoading(true);
@@ -232,6 +240,19 @@ const StudentProfile = () => {
     }
   }, [id, fetchStudent]);
 
+  const handleEditWithConsent = () => {
+    setPdpaModalVisible(true);
+  };
+
+  const handlePdpaConsent = () => {
+    setPdpaModalVisible(false);
+    setEditing(true);
+    form.setFieldsValue({
+      totalCredits: student.totalCredits,
+      majorCredits: student.majorCredits
+    });
+  };
+
   if (loading) {
     return (
       <div style={{ 
@@ -287,18 +308,38 @@ const StudentProfile = () => {
           ) : (
             <StudentInfo 
               student={student} 
-              onEdit={() => {
-                form.setFieldsValue({ // เซ็ตค่าเริ่มต้นก่อนเปิด form
-                  totalCredits: student.totalCredits,
-                  majorCredits: student.majorCredits
-                });
-                setEditing(true);
-              }}
+              onEdit={handleEditWithConsent}
               canEdit={canEdit}
             />
           )}
         </Col>
       </Row>
+      <Modal
+        title="ข้อตกลงการใช้ข้อมูลส่วนบุคคล"
+        open={pdpaModalVisible}
+        onOk={handlePdpaConsent}
+        onCancel={() => setPdpaModalVisible(false)}
+        okText="ยอมรับและดำเนินการต่อ"
+        cancelText="ยกเลิก"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <h4>การแก้ไขข้อมูลการศึกษา</h4>
+          <p>ข้อมูลที่ท่านกำลังจะแก้ไขเป็นข้อมูลสำคัญที่ใช้ในการประเมินสิทธิ์:</p>
+          <ul>
+            <li>การลงทะเบียนฝึกงาน</li>
+            <li>การลงทะเบียนโครงงาน</li>
+          </ul>
+          <p>โดยข้อมูลดังกล่าวจะถูกนำไปใช้เพื่อ:</p>
+          <ul>
+            <li>ตรวจสอบคุณสมบัติการลงทะเบียน</li>
+            <li>ประเมินความพร้อมในการฝึกงานและทำโครงงานพิเศษ</li>
+            <li>วิเคราะห์ข้อมูลทางการศึกษา</li>
+          </ul>
+          <p style={{ marginTop: 16, fontWeight: 'bold' }}>
+            กรุณาตรวจสอบความถูกต้องของข้อมูลก่อนทำการแก้ไข เนื่องจากจะมีผลต่อการประเมินสิทธิ์ของท่าน
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };
