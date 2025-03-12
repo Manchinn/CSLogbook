@@ -73,7 +73,7 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
         <Col span={12}>
           <Tooltip title={getMessageString(student.projectMessage)}>
             <Tag color={student.isEligibleForProject ? 'green' : 'red'}>
-              {student.isEligibleForProject ? 'มีสิทธิ์ทำโปรเจค' : 'ยังไม่มีสิทธิ์ทำโปรเจค'}
+              {student.isEligibleForProject ? 'มีสิทธิ์ทำโครงงานพิเศษ' : 'ยังไม่มีสิทธิ์ทำโครงงานพิเศษ'}
             </Tag>
           </Tooltip>
         </Col>

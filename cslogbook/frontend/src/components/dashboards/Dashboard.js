@@ -377,7 +377,7 @@ function Dashboard() {
                     onClick={() => navigate('/project')}
                     style={{ marginTop: '16px' }}
                   >
-                    จัดการโครงงาน
+                    จัดการโครงงานพิเศษ
                   </Button>
                 )}
               </Card>
