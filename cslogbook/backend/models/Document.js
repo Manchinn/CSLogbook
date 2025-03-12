@@ -23,10 +23,6 @@ module.exports = (sequelize) => {
                 foreignKey: 'document_id',
                 as: 'documentLogs'
             });
-            Document.hasMany(models.DocumentRevision, {
-                foreignKey: 'document_id',
-                as: 'documentRevisions'
-            });
         }
     }
 
@@ -75,6 +71,26 @@ module.exports = (sequelize) => {
             type: DataTypes.TEXT,
             allowNull: true,
             field: 'review_comment'
+        },
+        category: {
+            type: DataTypes.ENUM('proposal', 'progress', 'final'),
+            allowNull: false,
+            field: 'category'
+        },
+        dueDate: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'due_date'
+        },
+        fileSize: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            field: 'file_size'
+        },
+        mimeType: {
+            type: DataTypes.STRING(50),
+            allowNull: false,
+            field: 'mime_type'
         }
     }, {
         sequelize,
