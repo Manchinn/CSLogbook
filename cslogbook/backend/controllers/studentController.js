@@ -83,7 +83,12 @@ exports.getAllStudents = async (req, res, next) => {
 exports.getStudentById = async (req, res) => {
   try {
     const student = await Student.findOne({
-      where: { studentCode: req.params.id }
+      where: { studentCode: req.params.id },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName', 'email']
+      }]
     });
 
     if (!student) {
@@ -100,11 +105,14 @@ exports.getStudentById = async (req, res) => {
       student.majorCredits || 0
     );
 
-    // ส่ง response ในรูปแบบที่ frontend ต้องการ
+    // ส่ง response ในรูปแบบที่มีข้อมูลเพิ่มเติม
     res.json({
       success: true,
       data: {
         studentCode: student.studentCode,
+        firstName: student.user.firstName,
+        lastName: student.user.lastName,
+        email: student.user.email,
         totalCredits: student.totalCredits || 0,
         majorCredits: student.majorCredits || 0,
         eligibility: {
@@ -114,12 +122,6 @@ exports.getStudentById = async (req, res) => {
         }
       }
     });
-    /* console.log('Eligibility calculation:', {
-      studentCode: student.studentCode,
-      totalCredits: student.totalCredits,
-      majorCredits: student.majorCredits,
-      eligibility
-    }); */
 
   } catch (error) {
     console.error('Error:', error);

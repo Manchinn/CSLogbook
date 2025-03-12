@@ -24,7 +24,7 @@ export const useStudentPermissions = (userData) => {
     const canAccessProject = (
       studentYear >= 4 && 
       userData.totalCredits >= 95 && 
-      userData.majorCredits >= 47
+      userData.majorCredits >= 57
     );
 
     // Update localStorage

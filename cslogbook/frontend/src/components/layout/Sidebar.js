@@ -12,6 +12,11 @@ import {
   CheckCircleOutlined,
   UploadOutlined,
   ProjectOutlined,
+  FormOutlined,
+  BankOutlined,
+  BookOutlined,
+  CheckSquareOutlined,
+  FileDoneOutlined,
 } from '@ant-design/icons';
 import './Sidebar.css';
 
@@ -164,16 +169,31 @@ const Sidebar = () => {
           disabled: !canAccessInternship,
           children: canAccessInternship ? [
             {
-              key: '/internship-terms',
+              key: '/internship-registration',
               label: 'ลงทะเบียนฝึกงาน',
+              icon: <FormOutlined />,
+              children: [
+                {
+                  key: '/internship-registration/cs05',
+                  label: 'คพ.05 - คำร้องขอฝึกงาน',
+                }
+              ]
             },
             {
-              key: '/internship-company',
-              label: 'ข้อมูลบริษัท',
+              key: '/internship-logbook',
+              label: 'บันทึกการฝึกงาน',
+              icon: <BookOutlined />,
+              children: [
+                {
+                  key: '/internship-logbook/timesheet',
+                  label: 'ใบลงเวลาและบันทึกประจำวัน',
+                }
+              ]
             },
             {
-              key: '/internship-documents',
-              label: 'เอกสาร',
+              key: '/internship-summary',
+              label: 'สรุปผลการฝึกงาน',
+              icon: <FileDoneOutlined />,
             }
           ] : []
         },
