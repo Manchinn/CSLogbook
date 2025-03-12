@@ -1,57 +1,89 @@
-.header {
-  margin-top: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: auto;
-  min-height: 72px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 11;
-  border-radius: 16px;
-  
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+  }
+  .header-title {
+    font-size: 20px;
+  }
+  .header-text {
+    display: none;
+  }
+  .header-avatar {
+    margin: 10px 0;
+  }
+  .header-badge {
+    margin-left: 8px;
+  }
 }
 
-.header-space {
-  padding-top: 12px;
-  padding-bottom: 12px;
+@media (max-width: 576px) {
+  .header {
+    padding: 8px;
+  }
+  .header-title {
+    font-size: 18px;
+  }
+  .header-text {
+    font-size: 12px;
+  }
+  .header-avatar {
+    font-size: 12px;
+    width: 32px;
+    height: 32px;
+  }
+  .header-badge {
+    font-size: 10px;
+    padding: 0 6px;
+  }
+}
+/* สำหรับหน้าจอที่มีความกว้างมากกว่า 768px */
+@media (min-width: 768px) {
+  .header {
+    padding: 0 24px;
+    margin-left: 290px;
+    width: calc(100% - 375px);
+  }
+
+  .header-title {
+    font-size: 24px;
+  }
+
+  .header-avatar {
+    display: block;
+  }
 }
 
-.header-title {
-  margin: 0;
-  line-height: 1.4;
-  font-weight: 600;
+/* สำหรับหน้าจอที่มีความกว้างน้อยกว่า 768px */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .header-title {
+    font-size: 20px;
+  }
+
+  .header-avatar {
+    display: none;
+  }
 }
 
-.header-text {
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.65);
-  line-height: 1.5;
-  margin: 0;
-  display: block;
-}
+/* สำหรับหน้าจอที่มีความกว้างน้อยกว่า 480px */
+@media (max-width: 480px) {
+  .header {
+    padding: 0 8px;
+  }
 
-.header-avatar {
-  font-weight: bold;
-}
+  .header-title {
+    font-size: 18px;
+  }
 
-.header-badge {
-  font-size: 12px;
-  padding: 0 8px;
-  border-radius: 6px;
-}
-
-.button-style {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  border: none;
-  transition: all 0.3s ease;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  .header-avatar {
+    display: none;
+  }
 }

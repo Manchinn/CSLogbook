@@ -69,7 +69,7 @@ function Dashboard() {
         onClick: () => navigate('/students?filter=internship')
       },
       {
-        title: 'มีสิทธิ์ทำโครงงาน', 
+        title: 'มีสิทธิ์ทำโครงงานพิเศษ', 
         value: stats.students.projectEligible,
         icon: <ProjectOutlined />,
         color: '#722ed1',
@@ -109,17 +109,18 @@ function Dashboard() {
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
-              <Card>
+              <Card style={{ height: '100%' }}>
                 <Statistic
                   title="เอกสารรอดำเนินการ"
                   value={stats.documents.pending}
                   suffix={`/ ${stats.documents.total}`}
                   valueStyle={{ color: '#faad14' }}
+                  prefix={<FileTextOutlined />}
                 />
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card>
+              <Card style={{ height: '100%' }}>
                 <Statistic
                   title="ผู้ใช้งานออนไลน์"
                   value={stats.system.onlineUsers}
@@ -308,7 +309,7 @@ function Dashboard() {
           <Row gutter={[16, 16]}>
             {/* สถานะการฝึกงาน */}
             <Col xs={24} sm={12}>
-              <Card hoverable className="eligibility-card">
+            <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
                 <Statistic
                   title="สถานะการฝึกงาน"
                   value={eligibilityData?.isEligibleInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
@@ -343,9 +344,9 @@ function Dashboard() {
 
             {/* สถานะโครงงาน */}
             <Col xs={24} sm={12}>
-              <Card hoverable className="eligibility-card">
+            <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
                 <Statistic
-                  title="สถานะโครงงาน"
+                  title="สถานะโครงงานพิเศษ"
                   value={eligibilityData?.isEligibleProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                   valueStyle={{ 
                     color: eligibilityData?.isEligibleProject ? '#52c41a' : '#ff4d4f' 
@@ -362,7 +363,7 @@ function Dashboard() {
                   <Descriptions.Item label="หน่วยกิตรวม">
                     {eligibilityData?.totalCredits || 0} หน่วยกิต
                   </Descriptions.Item>
-                  <Descriptions.Item label="หน่วยกิตเฉพาะ">
+                  <Descriptions.Item label="หน่วยกิตภาควิชา">
                     {eligibilityData?.majorCredits || 0} หน่วยกิต
                   </Descriptions.Item>
                   <Descriptions.Item label="สถานะ">
