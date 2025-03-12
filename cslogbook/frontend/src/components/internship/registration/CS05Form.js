@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
-import { Form, Input, DatePicker, Button, Typography, message, InputNumber, Space, Card, Row, Col, TimePicker } from 'antd';
-import dayjs from 'dayjs';
-import { useInternship } from '../../../contexts/InternshipContext';
-import InternshipSteps from '../shared/InternshipSteps';
-import './InternshipStyles.css';
+import React, { useState } from "react";
+import {
+  Form,
+  Input,
+  DatePicker,
+  Button,
+  Typography,
+  message,
+  InputNumber,
+  Space,
+  Card,
+  Row,
+  Col,
+} from "antd";
+import dayjs from "dayjs";
+import { useInternship } from "../../../contexts/InternshipContext";
+import InternshipSteps from "../shared/InternshipSteps";
+import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -16,9 +28,9 @@ const CS05Form = () => {
     setLoading(true);
     try {
       await setCS05Data(values);
-      message.success('บันทึกข้อมูลเรียบร้อย');
+      message.success("บันทึกข้อมูลเรียบร้อย");
     } catch (error) {
-      message.error('เกิดข้อผิดพลาด');
+      message.error("เกิดข้อผิดพลาด");
     } finally {
       setLoading(false);
     }
@@ -29,7 +41,7 @@ const CS05Form = () => {
       <InternshipSteps />
       <Card className="internship-card">
         <div className="text-center">
-          <Title level={4} className="title-text">
+          <Title level={4} className="text-right">
             คพ.05
           </Title>
           <Title level={4} className="title-text">
@@ -39,100 +51,106 @@ const CS05Form = () => {
 
         <Row gutter={[16, 16]}>
           <Col span={24} className="text-right">
-            <Paragraph>
-              เขียนที่ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
+            <Paragraph
+            style={{ fontSize: "20px" }}
+            >
+              ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
             </Paragraph>
-            <Paragraph>
-              วันที่ {dayjs().format('D MMMM YYYY')}
-            </Paragraph>
+            <Paragraph
+            style={{ fontSize: "16px" }}
+            >วันที่ {dayjs().format("D MMMM YYYY")}</Paragraph>
           </Col>
-          
+
           <Col span={24}>
-            <Paragraph className="text-indent">
-              <Text className="bold-text">เรื่อง</Text> ขอให้ภาควิชาฯออกหนังสือราชการ
+            <Paragraph className="text-indent" style={{ fontSize: "16px" }} >
+              <Text className="bold-text" style={{ fontSize: "16px" }}>เรื่อง</Text>{" "}
+              ขอให้ภาควิชาฯออกหนังสือราชการ
             </Paragraph>
-            <Paragraph className="text-indent">
-              <Text className="bold-text">เรียน</Text> หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
+            <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
+              <Text className="bold-text" style={{ fontSize: "16px" }}>เรียน</Text>{" "}
+              หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
             </Paragraph>
           </Col>
 
           <Col span={24}>
-            <Paragraph className="text-indent">
-              ด้วยข้าพเจ้า มีความประสงค์ขอให้ภาควิชาฯ ออกหนังสือราชการเพื่อขอความอนุเคราะห์เข้ารับการฝึกงาน 
-              ตามรายละเอียดดังนี้ (โปรดเขียนด้วยตัวบรรจง)
+            <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
+              ด้วยข้าพเจ้า มีความประสงค์ขอให้ภาควิชาฯ
+              ออกหนังสือราชการเพื่อขอความอนุเคราะห์เข้ารับการฝึกงาน
+              ตามรายละเอียดดังนี้
             </Paragraph>
           </Col>
         </Row>
 
-        <Form 
-          form={form} 
-          onFinish={onFinish} 
+        <Form
+          form={form}
+          onFinish={onFinish}
           layout="vertical"
           initialValues={state.registration.cs05.data}
           className="internship-form"
         >
           <Space direction="vertical" size="large" className="form-content">
-            <div className="student-info-section">
-              <Paragraph>
-                ข้าพเจ้า{' '}
+            <div>
+              <Paragraph style={{ fontSize: "16px" }}>
+                ข้าพเจ้า{" "}
                 <Form.Item
                   name="fullName"
                   noStyle
-                  rules={[{ required: true, message: 'กรุณากรอกชื่อ-นามสกุล' }]}
+                  rules={[{ required: true, message: "กรุณากรอกชื่อ-นามสกุล" }]}
                 >
                   <Input className="inline-input" />
-                </Form.Item>
-                {' '}รหัสนักศึกษา{' '}
+                </Form.Item>{" "}
+                รหัสนักศึกษา{" "}
                 <Form.Item
                   name="studentId"
                   noStyle
                   rules={[{ required: true }]}
                 >
-                  <Input className="inline-input"  />
+                  <Input className="inline-input" />
                 </Form.Item>
               </Paragraph>
 
-              <Paragraph>
-                {' '}ชั้นปีที่{' '}
-                <Form.Item
-                  name="year"
-                  noStyle
-                  rules={[{ required: true }]}
-                >
+              <Paragraph style={{ fontSize: "16px" }}>
+                {" "}
+                ชั้นปีที่{" "}
+                <Form.Item name="year" noStyle rules={[{ required: true }]}>
                   <InputNumber min={1} max={4} className="inline-input-small" />
-                </Form.Item>
-                {' '}จำนวนหน่วยกิตทั้งหมดรวมทั้งสิ้น{' '}
+                </Form.Item>{" "}
+                จำนวนหน่วยกิตทั้งหมดรวมทั้งสิ้น{" "}
                 <Form.Item
                   name="totalCredits" // Changed from gpa
                   noStyle
                   rules={[{ required: true }]}
                 >
-                  <InputNumber min={0} max={150} className="inline-input-small" /> 
+                  <InputNumber
+                    min={0}
+                    max={150}
+                    className="inline-input-small"
+                  />
                 </Form.Item>
               </Paragraph>
             </div>
 
-              <Text>1.ขอความอนุเคราะห์ฝึกงาน ชื่อบริษัท/หน่วยงาน</Text>
-              <Form.Item
-                name="companyName"
-                noStyle
-                rules={[{ required: true, message: 'กรุณากรอกชื่อบริษัท' }]}
-              >
-                <Input className="dotted-underline" />
-              </Form.Item>
+            <Text style={{ fontSize: "16px" }}>1.ขอความอนุเคราะห์ฝึกงาน ชื่อบริษัท/หน่วยงาน</Text>
+            <Form.Item
+              name="companyName"
+              noStyle
+              rules={[{ required: true, message: "กรุณากรอกชื่อบริษัท" }]}
+            >
+              <Input className="dotted-underline" />
+            </Form.Item>
 
-              <Text>2.สถานที่ตั้ง</Text>
-              <Form.Item
-                name="companyAddress"
-                noStyle
-                rules={[{ required: true, message: 'กรุณากรอกที่อยู่' }]}
-              >
-                <Input.TextArea className="dotted-underline" rows={3} />
-              </Form.Item>
+            <Text style={{ fontSize: "16px" }}>2.สถานที่ตั้ง</Text>
+            <Form.Item
+              name="companyAddress"
+              noStyle
+              rules={[{ required: true, message: "กรุณากรอกที่อยู่" }]}
+            >
+              <Input.TextArea className="dotted-underline" rows={3} />
+            </Form.Item>
 
-            <div className="company-info-section">
-              <Paragraph>
-                แผนก/ฝ่าย{' '}
+            <div>
+              <Paragraph style={{ fontSize: "16px" }}>
+                ตำแหน่ง{" "}
                 <Form.Item
                   name="department"
                   noStyle
@@ -142,7 +160,7 @@ const CS05Form = () => {
                 </Form.Item>
               </Paragraph>
 
-              <Paragraph>
+              {/* <Paragraph>
                 ลักษณะงาน{' '}
                 <Form.Item
                   name="jobDescription"
@@ -151,10 +169,10 @@ const CS05Form = () => {
                 >
                   <Input.TextArea className="block-input" rows={3} />
                 </Form.Item>
-              </Paragraph>
+              </Paragraph> */}
             </div>
 
-            <div className="coordinator-info-section">
+            {/* <div className="coordinator-info-section">
               <Paragraph>
                 ผู้นิเทศงาน{' '}
                 <Form.Item
@@ -198,11 +216,11 @@ const CS05Form = () => {
                   <Input className="inline-input" />
                 </Form.Item>
               </Paragraph>
-            </div>
+            </div> */}
 
-            <div className="internship-period-section">
-              <Paragraph>
-                ระยะเวลาฝึกงาน{' '}
+            <div>
+              <Paragraph style={{ fontSize: "16px" }}>
+                ระยะเวลาฝึกงาน{" "}
                 <Form.Item
                   name="internshipPeriod"
                   noStyle
@@ -210,25 +228,29 @@ const CS05Form = () => {
                 >
                   <DatePicker.RangePicker
                     disabledDate={(current) => {
-                      return current && current < dayjs().startOf('day');
+                      return current && current < dayjs().startOf("day");
                     }}
                   />
                 </Form.Item>
               </Paragraph>
             </div>
 
-            <div className="note-section">
+            <div className="note-section" >
               <Title level={5}>หมายเหตุ</Title>
-              <Text>1. นักศึกษาจะต้องฝึกงานไม่ต่ำกว่า 240 ชั่วโมง</Text>
+              <Text>1. นักศึกษาจะต้องฝึกงานไม่ต่ำกว่า 240 ชั่วโมง (ไม่ต่ำว่า 40 วันทำการ ไม่นับ วันหยุดราชการ ขา สาย ลา)</Text>
               <br />
               <Text>
-                2. โดยนักศึกษาต้องแนบเอกสารใบแสดงผลการเรียน มาเพื่อยืนยันว่ามีจำนวนหน่วยกิตรวมทั้งหมด
-                ณ วันที่ยื่นเอกสารไม่ต่ำกว่า 81 หน่วยกิต (นักศึกษาสามารถพรินต์ผลการเรียนได้จากระบบ REG)
+                2. โดยนักศึกษาต้องแนบเอกสารใบแสดงผลการเรียน
+                มาเพื่อยืนยันว่ามีจำนวนหน่วยกิตรวมทั้งหมด ณ
+                วันที่ยื่นเอกสารไม่ต่ำกว่า 81 หน่วยกิต
+                (นักศึกษาสามารถพรินต์ผลการเรียนได้จากระบบ REG)
               </Text>
             </div>
 
             <div className="form-footer">
-              <Paragraph className="text-indent">จึงเรียนมาเพื่อโปรดพิจารณา</Paragraph>
+              <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
+                จึงเรียนมาเพื่อโปรดพิจารณา
+              </Paragraph>
             </div>
 
             <div className="submit-section">

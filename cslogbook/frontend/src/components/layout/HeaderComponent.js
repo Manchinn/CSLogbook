@@ -63,9 +63,8 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
 
   const headerStyles = {
     mainHeader: {
-      marginTop: isMobile ? '0' : '20px', // ไม่มีช่องว่างด้านบนเมื่อเป็นมือถือ
-      paddingTop: isMobile ? '0' : '20px', // ไม่มีช่องว่างด้านบนเมื่อเป็นมือถือ
-      marginTop: '20px',
+      marginTop: isMobile ? '0' : '20px',
+      paddingTop: isMobile ? '0' : '20px',
       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
       background: theme.gradient,
       backdropFilter: 'blur(10px)',
@@ -85,7 +84,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     },
     titleContainer: {
       maxWidth: isMobile ? '200px' : '600px',
-      
     },
     mainTitle: {
       margin: 0,
@@ -125,7 +123,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       width: '100%',
       height: '115px',
       zIndex: 10,
-      
     },
     secondaryTitle: {
       textAlign: 'center',
@@ -139,7 +136,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
   return (
     <>
       <Header style={headerStyles.mainHeader}>
-        {/* ส่วนซ้าย */}
+        {/* Left side */}
         <div style={{ flex: 1 }}>
           <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
             {isMobile && (
@@ -162,7 +159,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
           </Space>
         </div>
 
-        {/* ส่วนขวา */}
+        {/* Right side */}
         <div style={{ marginRight: 'auto', padding: '12px' }}>
           <Space size={16} align="center">
             <Avatar style={headerStyles.userAvatar}>
@@ -173,10 +170,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
               <Text strong style={headerStyles.userName}>
                 {firstName} {lastName}
               </Text>
-              <Badge
-                count={getRoleTitle(role)}
-                style={headerStyles.roleBadge}
-              />
+              <Badge count={getRoleTitle(role)} style={headerStyles.roleBadge} />
             </Space>
           </Space>
         </div>
