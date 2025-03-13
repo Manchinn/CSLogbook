@@ -122,7 +122,7 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
 const StudentEditForm = React.memo(({ form, onFinish, onCancel }) => (
   <Card style={{ marginTop: 24 }}>
     <Form
-      form={form} // ต้องแน่ใจว่า form prop ถูกส่งมาและใช้งานที่นี่
+       form={form} // ต้องแน่ใจว่า form prop ถูกส่งมาและใช้งานที่นี่
       onFinish={onFinish}
       layout="vertical"
       initialValues={{
@@ -203,11 +203,16 @@ const StudentProfile = () => {
   const { userData } = useContext(AuthContext);
   const [pdpaModalVisible, setPdpaModalVisible] = useState(false);
   const [secondModalVisible, setSecondModalVisible] = useState(false);
+
+  // เพิ่ม state เพื่อเก็บข้อมูลการยินยอม
+  const [consentData, setConsentData] = useState(null);
+
   const fetchStudent = useCallback(async () => {
     setLoading(true);
     try {
       const response = await studentService.getStudentInfo(id);
 
+      
       if (response.success) {
         const totalCredits = parseInt(response.data.totalCredits) || 0;
         const majorCredits = parseInt(response.data.majorCredits) || 0;
@@ -267,7 +272,7 @@ const StudentProfile = () => {
   const handleEdit = useCallback(
     async (values) => {
       try {
-        // Validate values before submission
+         // Validate values before submission
         const totalCredits = parseInt(values.totalCredits);
         const majorCredits = parseInt(values.majorCredits);
 
@@ -306,9 +311,25 @@ const StudentProfile = () => {
     setPdpaModalVisible(true);
   };
 
-  const handlePdpaConsent = () => {
-    setSecondModalVisible(true);
-    setPdpaModalVisible(false);
+  const handleSecondModalCancel = () => {
+    setSecondModalVisible(false);
+    setPdpaModalVisible(true);
+  };
+
+  // ฟังก์ชันเมื่อผู้ใช้กด "ตกลง" ใน Modal ที่ 2
+  const handleSecondModalOk = () => {
+    // เก็บข้อมูลการยินยอม
+    const consentData = {
+      studentId: id,
+      studentName: `${student.firstName} ${student.lastName}`, // เพิ่มชื่อนักศึกษา
+      consentDate: new Date().toISOString(),
+    };
+  
+    // แสดงข้อมูลการยินยอมใน console
+    console.log("ข้อมูลการยินยอม:", consentData);
+  
+    // ปิด Modal ที่ 2 และเปิดโหมดแก้ไข
+    setSecondModalVisible(false);
     setEditing(true);
     form.setFieldsValue({
       totalCredits: student.totalCredits,
@@ -316,18 +337,6 @@ const StudentProfile = () => {
     });
   };
 
-  const handleSecondModalCancel = () => {
-    setSecondModalVisible(false);
-    setPdpaModalVisible(true); // เปิด Modal แรก (PDPA Consent)
-  };
-  const handleSecondModalOk = () => {
-    setSecondModalVisible(false);
-    setEditing(true);
-    form.setFieldsValue({
-      totalCredits: student.totalCredits,
-      majorCredits: student.majorCredits,
-    });
-  };
   if (loading) {
     return (
       <div
@@ -401,7 +410,10 @@ const StudentProfile = () => {
       <Modal
         title="ข้อตกลงการใช้ข้อมูลส่วนบุคคล"
         open={pdpaModalVisible}
-        onOk={handlePdpaConsent}
+        onOk={() => {
+          setPdpaModalVisible(false);
+          setSecondModalVisible(true);
+        }}
         onCancel={() => setPdpaModalVisible(false)}
         okText="ยอมรับและดำเนินการต่อ"
         cancelText="ยกเลิก"
@@ -438,7 +450,6 @@ const StudentProfile = () => {
         <p>ขั้นตอนการตรวจสอบหน่วยกิตของท่าน</p>
 
         <Row gutter={16}>
-          {/* แถวที่ 1, คอลัมน์ที่ 1: หน่วยกิตที่สะสม */}
           <Col span={12}>
             <p>
               <strong>1. หน่วยกิตที่สะสม</strong>
@@ -459,7 +470,6 @@ const StudentProfile = () => {
             </ul>
           </Col>
 
-          {/* แถวที่ 1, คอลัมน์ที่ 2: รูปภาพ */}
           <Col span={12}>
             <strong>วิธีการตรวจสอบ : หน่วยกิตที่สะสม</strong>
             <img
@@ -474,9 +484,8 @@ const StudentProfile = () => {
             />
           </Col>
         </Row>
-        <br/>
+        <br />
         <Row gutter={16}>
-          {/* แถวที่ 2, คอลัมน์ที่ 1: หน่วยกิตภาควิชา */}
           <Col span={12}>
             <p>
               <strong>2. หน่วยกิตภาควิชา (รายวิชา 0406xxxxx)</strong>
@@ -497,7 +506,6 @@ const StudentProfile = () => {
             </ul>
           </Col>
 
-          {/* แถวที่ 2, คอลัมน์ที่ 2: รูปภาพ */}
           <Col span={12}>
             <strong>วิธีการตรวจสอบ : หน่วยกิตภาควิชา</strong>
             <img
