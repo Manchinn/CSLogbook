@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, Typography, Table, Tag, Space, Button } from 'antd';
-import InternshipSteps from '../shared/InternshipSteps';
 import './InternshipStyles.css';
 
 const { Title, Text } = Typography;
@@ -51,7 +50,7 @@ const InternshipSummary = () => {
 
   return (
     <div className="internship-container">
-      <InternshipSteps />
+      
       <div className="internship-card">
         <Title level={3}>สรุปผลการฝึกงาน</Title>
 

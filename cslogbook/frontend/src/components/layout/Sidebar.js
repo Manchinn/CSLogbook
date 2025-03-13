@@ -185,9 +185,14 @@ const Sidebar = () => {
               icon: <BookOutlined />,
               children: [
                 {
+                  key: '/internship-logbook/companyinfo',
+                  label: 'สถานประกอบการ',
+                },
+                {
                   key: '/internship-logbook/timesheet',
                   label: 'ใบลงเวลาและบันทึกประจำวัน',
                 }
+                
               ]
             },
             {
