@@ -4,14 +4,14 @@ import { EditOutlined, EyeOutlined, CheckCircleOutlined, ClockCircleOutlined, Ex
 import { useInternship } from '../../../contexts/InternshipContext';
 import "./InternshipStyles.css";
 import dayjs from 'dayjs';
-
+import "./InternshipStyles.css";
 const { Title } = Typography;
 
 const TimeSheet = () => {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm(); // +
   const { state, addLogbookEntry, updateLogbookEntry } = useInternship();
-  const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false); // +
+  const [isModalVisible, setIsModalVisible] = useState(false); // +
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [internshipDates, setInternshipDates] = useState([]);
@@ -302,7 +302,7 @@ const TimeSheet = () => {
 
   return (
     <div className="internship-container">
-      <Row gutter={[16, 16]} className="status-overview">
+      <Row gutter={[16, 16]} className="status-overview" >
         <Col xs={24} sm={12} md={6}>
           <Card className="status-summary-card total">
             <Statistic
@@ -348,7 +348,7 @@ const TimeSheet = () => {
         </Col>
       </Row>
 
-      <Card>
+      <Card >
         <Title level={3}>บันทึกการฝึกงาน</Title>
         <Table 
           columns={columns} 
