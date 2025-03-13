@@ -159,7 +159,7 @@ const StudentProfile = () => {
   const [form] = Form.useForm();
   const { userData } = useContext(AuthContext);
   const [pdpaModalVisible, setPdpaModalVisible] = useState(false);
-
+  const [secondModalVisible, setSecondModalVisible] = useState(false);
   const fetchStudent = useCallback(async () => {
     setLoading(true);
     try {
@@ -245,6 +245,7 @@ const StudentProfile = () => {
   };
 
   const handlePdpaConsent = () => {
+    setSecondModalVisible(true);
     setPdpaModalVisible(false);
     setEditing(true);
     form.setFieldsValue({
@@ -253,6 +254,18 @@ const StudentProfile = () => {
     });
   };
 
+  const handleSecondModalCancel = () => {
+    setSecondModalVisible(false); 
+    setPdpaModalVisible(true); // เปิด Modal แรก (PDPA Consent)
+  };
+  const handleSecondModalOk = () => {
+    setSecondModalVisible(false);
+    setEditing(true);
+    form.setFieldsValue({
+      totalCredits: student.totalCredits,
+      majorCredits: student.majorCredits
+    });
+  };
   if (loading) {
     return (
       <div style={{ 
@@ -324,12 +337,12 @@ const StudentProfile = () => {
       >
         <div style={{ marginBottom: 16 }}>
           <h4>การแก้ไขข้อมูลการศึกษา</h4>
-          <p>ข้อมูลที่ท่านกำลังจะแก้ไขเป็นข้อมูลสำคัญที่ใช้ในการประเมินสิทธิ์:</p>
+          <p>ข้อมูลที่ท่านกำลังกำลังกำลังแก้ไขเป็นข้อมูลสำคัญที่ใช้ในการประเมินสิทธิ์:</p>
           <ul>
             <li>การลงทะเบียนฝึกงาน</li>
             <li>การลงทะเบียนโครงงาน</li>
           </ul>
-          <p>โดยข้อมูลดังกล่าวจะถูกนำไปใช้เพื่อ:</p>
+          <p>ข้อมูลดังกล่าวจะถูกนำไปใช้เพื่อ:</p>
           <ul>
             <li>ตรวจสอบคุณสมบัติการลงทะเบียน</li>
             <li>ประเมินความพร้อมในการฝึกงานและทำโครงงานพิเศษ</li>
@@ -339,6 +352,18 @@ const StudentProfile = () => {
             กรุณาตรวจสอบความถูกต้องของข้อมูลก่อนทำการแก้ไข เนื่องจากจะมีผลต่อการประเมินสิทธิ์ของท่าน
           </p>
         </div>
+      </Modal>
+
+      
+      <Modal
+        title="การยืนยัน"
+        open={secondModalVisible}
+        onOk={handleSecondModalOk}
+        onCancel={handleSecondModalCancel}
+        okText="ตกลง"
+        cancelText="ย้อนกลับ"
+      >
+        <p>คุณยืนยันการแก้ไขข้อมูลการศึกษาของท่านหรือไม่?</p>
       </Modal>
     </div>
   );
