@@ -1,4 +1,5 @@
 const { Document, InternshipDocument, Student, User } = require('../../models');
+const { Sequelize, Op } = require('sequelize'); // แก้ไขการ import
 const { sequelize } = require('../../config/database');
 const { 
   calculateStudentYear,
@@ -283,6 +284,81 @@ exports.getCS05List = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
+  }
+};
+
+exports.submitCompanyInfo = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const {
+      supervisorName,
+      supervisorPhone,
+      supervisorEmail
+    } = req.body;
+    const documentId = req.query.documentId;
+
+    // Validation
+    if (!supervisorName?.trim() || !supervisorPhone?.trim() || !supervisorEmail?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน'
+      });
+    }
+
+    const findDocument = documentId 
+      ? { documentId, userId: req.user.userId }
+      : { 
+          userId: req.user.userId,
+          documentName: 'CS05',
+          status: { [Op.not]: 'rejected' }
+        };
+
+    const document = await Document.findOne({
+      where: findDocument,
+      include: [{
+        model: InternshipDocument,
+        as: 'internshipDocument',
+        required: true
+      }],
+      order: documentId ? undefined : [['created_at', 'DESC']]
+    });
+
+    if (!document) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'กรุณายื่นแบบฟอร์ม คพ.05 ก่อนบันทึกข้อมูลผู้ควบคุมงาน'
+      });
+    }
+
+    // อัพเดทเฉพาะข้อมูลผู้ควบคุมงาน
+    await document.internshipDocument.update({
+      supervisorName: supervisorName.trim(),
+      supervisorPhone: supervisorPhone.trim(),
+      supervisorEmail: supervisorEmail.trim()
+    }, { transaction });
+
+    await transaction.commit();
+
+    return res.json({
+      success: true,
+      message: documentId ? 'แก้ไขข้อมูลผู้ควบคุมงานสำเร็จ' : 'บันทึกข้อมูลผู้ควบคุมงานสำเร็จ',
+      data: {
+        documentId: document.documentId,
+        companyName: document.internshipDocument.companyName,
+        supervisorName: supervisorName.trim(),
+        supervisorPhone: supervisorPhone.trim(),
+        supervisorEmail: supervisorEmail.trim()
+      }
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Company Info Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลผู้ควบคุมงาน'
     });
   }
 };

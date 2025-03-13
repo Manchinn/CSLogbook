@@ -123,6 +123,75 @@ const internshipService = {
       throw new Error('ไม่สามารถดึงข้อมูลสรุปการฝึกงานได้');
     }
   },
+
+  // ดึงข้อมูลสถานประกอบการ
+  /* getCompanyInfo: async () => {
+    try {
+      const response = await apiClient.get('/internship/company-info');
+      
+      // ตรวจสอบ response format
+      if (!response.data) {
+        throw new Error('Invalid response format');
+      }
+
+      return {
+        success: true,
+        data: response.data.data || null
+      };
+    } catch (error) {
+      console.error('Company Info Error:', error);
+      if (error.response?.status === 404) {
+        // ถ้าไม่พบข้อมูล ให้ return success แต่ data เป็น null
+        return {
+          success: true,
+          data: null
+        };
+      }
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงข้อมูลสถานประกอบการได้');
+    }
+  }, */
+
+  // บันทึกข้อมูลสถานประกอบการ
+  submitCompanyInfo: async (companyInfo) => {
+    try {
+      const { documentId, ...data } = companyInfo;
+      
+      // ตรวจสอบเฉพาะข้อมูลผู้ควบคุมงาน
+      if (!data.supervisorName?.trim() || 
+          !data.supervisorPhone?.trim() || 
+          !data.supervisorEmail?.trim()) {
+        throw new Error('กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน');
+      }
+      
+      // Validate เบอร์โทรและอีเมล
+      const phoneRegex = /^[0-9]{9,10}$/;
+      if (!phoneRegex.test(data.supervisorPhone)) {
+        throw new Error('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.supervisorEmail)) {
+        throw new Error('รูปแบบอีเมลไม่ถูกต้อง');
+      }      
+
+      // ส่งเฉพาะข้อมูลผู้ควบคุมงาน
+      const supervisorData = {
+        supervisorName: data.supervisorName.trim(),
+        supervisorPhone: data.supervisorPhone.trim(),
+        supervisorEmail: data.supervisorEmail.trim()
+      };
+
+      const endpoint = documentId 
+        ? `/internship/company-info?documentId=${documentId}`
+        : '/internship/company-info';
+
+      const response = await apiClient.post(endpoint, supervisorData);
+      return response.data;
+    } catch (error) {
+      console.error('Company Info Error:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลผู้ควบคุมงาน');
+    }
+  },
 };
 
 export default internshipService;

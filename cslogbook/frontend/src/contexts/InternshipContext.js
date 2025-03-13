@@ -131,6 +131,10 @@ export const InternshipProvider = ({ children }) => {
     setCS05Data: (data) => {
       dispatch({ type: 'SET_CS05_DATA', payload: data });
     },
+    // เพิ่ม action creator สำหรับ setCompanyInfo
+    setCompanyInfo: (info) => {
+      dispatch({ type: 'SET_COMPANY_INFO', payload: info });
+    },
     addLogbookEntry: (entry) => {
       dispatch({ type: 'ADD_LOGBOOK_ENTRY', payload: entry });
     },

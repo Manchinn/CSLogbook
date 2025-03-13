@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Steps, Button, Modal, Typography, Divider } from "antd";
+import { Steps, Button, Modal, Typography, Divider, Checkbox } from "antd";
 import { useLocation } from "react-router-dom";
 import {
   CheckCircleOutlined,
@@ -14,18 +14,26 @@ const { Title, Paragraph } = Typography;
 
 const InternshipSteps = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // เพิ่ม useEffect เพื่อแสดง Modal เมื่อโหลดหน้า
   useEffect(() => {
-    setIsModalVisible(true);
-  }, []); // empty dependency array means this runs once when component mounts
+    const shouldShow = localStorage.getItem('showInternshipGuide') !== 'false';
+    setIsModalVisible(shouldShow);
+  }, []);
 
   const showModal = () => {
     setIsModalVisible(true);
   };
 
   const handleCancel = () => {
+    if (dontShowAgain) {
+      localStorage.setItem('showInternshipGuide', 'false');
+    }
     setIsModalVisible(false);
+  };
+
+  const onCheckboxChange = (e) => {
+    setDontShowAgain(e.target.checked);
   };
 
   return (
@@ -35,17 +43,42 @@ const InternshipSteps = () => {
         onClick={showModal}
         icon={<QuestionCircleOutlined />}
         style={{ margin: "auto" }}
-        
       >
         คำชี้แจงการฝึกงาน
       </Button>
 
       <Modal
         title="คำชี้แจงการฝึกงาน"
-        visible={isModalVisible}
+        open={isModalVisible}
         onCancel={handleCancel}
-        width={600}
-        footer={null}
+        width={1200}
+        centered
+        styles={{
+          body: {
+            maxHeight: 'calc(100vh - 250px)',
+            overflowY: 'auto',
+            paddingRight: 24,
+          },
+          mask: {
+            backgroundColor: 'rgba(0, 0, 0, 0.65)'
+          },
+          content: {
+            top: '5%',
+            padding: '20px 24px'
+          }
+        }}
+        footer={[
+          <Checkbox 
+            key="dont-show" 
+            onChange={onCheckboxChange}
+            checked={dontShowAgain}
+          >
+            ไม่ต้องแสดงหน้านี้อีก
+          </Checkbox>,
+          <Button key="ok" type="primary" onClick={handleCancel}>
+            ตกลง
+          </Button>
+        ]}
       >
         <Typography>
           
@@ -96,9 +129,6 @@ const InternshipSteps = () => {
               </li>
             </ul>
           </Paragraph>
-          <Button key="ok" type="primary" onClick={handleCancel} >
-            ตกลง
-          </Button>
         </Typography>
       </Modal>
     </div>

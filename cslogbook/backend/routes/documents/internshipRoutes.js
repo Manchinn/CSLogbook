@@ -23,6 +23,13 @@ router.get('/cs-05/:id',
     internshipController.getCS05ById
 );
 
+
+router.post('/company-info',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.submitCompanyInfo
+);
+
 // ดึงรายการ CS05 ทั้งหมดของนักศึกษา
 /* router.get('/cs-05/list',
     authenticateToken,

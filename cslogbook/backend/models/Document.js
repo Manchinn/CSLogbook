@@ -98,6 +98,8 @@ module.exports = (sequelize) => {
         tableName: 'documents',
         timestamps: true,
         underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
         indexes: [
             {
                 name: 'idx_document_user',
@@ -110,6 +112,14 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_document_status',
                 fields: ['status']
+            },
+            {
+                name: 'idx_document_type',
+                fields: ['document_type']
+            },
+            {
+                name: 'idx_document_created',
+                fields: ['created_at']
             }
         ]
     });
