@@ -408,9 +408,7 @@ const StudentProfile = () => {
       >
         <div style={{ marginBottom: 16 }}>
           <h4>การแก้ไขข้อมูลการศึกษา</h4>
-          <p>
-            ข้อมูลที่ท่านกำลังแก้ไขเป็นข้อมูลสำคัญที่ใช้ในการประเมินสิทธิ์:
-          </p>
+          <p>ข้อมูลที่ท่านกำลังแก้ไขเป็นข้อมูลสำคัญที่ใช้ในการประเมินสิทธิ์:</p>
           <ul>
             <li>การลงทะเบียนฝึกงาน</li>
             <li>การลงทะเบียนโครงงานพิเศษ</li>
@@ -429,58 +427,92 @@ const StudentProfile = () => {
       </Modal>
 
       <Modal
-      title="วิธีการตรวจสอบหน่วยกิตใน Reg KMUTNB"
-      open={secondModalVisible}
-      onOk={handleSecondModalOk}
-      onCancel={handleSecondModalCancel}
-      okText="ตกลง"
-      cancelText="ย้อนกลับ"
-    >
-      <p>ขั้นตอนการตรวจสอบหน่วยกิตของท่าน</p>
+        title="วิธีการตรวจสอบหน่วยกิตใน Reg KMUTNB"
+        open={secondModalVisible}
+        onOk={handleSecondModalOk}
+        onCancel={handleSecondModalCancel}
+        okText="ตกลง"
+        cancelText="ย้อนกลับ"
+        width={600}
+      >
+        <p>ขั้นตอนการตรวจสอบหน่วยกิตของท่าน</p>
 
-      {/* ข้อที่ 1: หน่วยกิตที่ผ่าน */}
-      <p><strong>1. หน่วยกิตที่สะสม</strong></p>
-      <ul>
-        <li><strong>เข้าสู่ระบบ</strong> Reg KMUTNB</li>
-        <li>ไปที่เมนู <strong>ข้อมูลผลการศึกษา</strong></li>
-        <li>เลือก <strong>ตรวจสอบจบ</strong></li>
-        <li><strong>ดูหน่วยกิตที่ผ่าน</strong></li>
-      </ul>
+        <Row gutter={16}>
+          {/* แถวที่ 1, คอลัมน์ที่ 1: หน่วยกิตที่สะสม */}
+          <Col span={12}>
+            <p>
+              <strong>1. หน่วยกิตที่สะสม</strong>
+            </p>
+            <ul>
+              <li>
+                <strong>เข้าสู่ระบบ</strong> Reg KMUTNB
+              </li>
+              <li>
+                ไปที่เมนู <strong>ข้อมูลผลการศึกษา</strong>
+              </li>
+              <li>
+                เลือก <strong>ตรวจสอบจบ</strong>
+              </li>
+              <li>
+                <strong>ดูหน่วยกิตที่ผ่าน</strong>
+              </li>
+            </ul>
+          </Col>
 
-      {/* ข้อที่ 2: หน่วยกิตที่ลงทะเบียน */}
-      <p><strong>2.หน่วยกิตภาควิชา (รายวิชา 0406xxxxx)</strong></p>
-      <ul>
-        <li><strong>เข้าสู่ระบบ</strong> Reg KMUTNB</li>
-        <li>ไปที่เมนู <strong>ข้อมูลผลการศึกษา</strong></li>
-        <li>เลือก <strong>ตรวจสอบจบ</strong></li>
-        <li><strong>แสดงรายวิชาทั้งหลักสูตร </strong></li>
-      </ul>
+          {/* แถวที่ 1, คอลัมน์ที่ 2: รูปภาพ */}
+          <Col span={12}>
+            <strong>วิธีการตรวจสอบ : หน่วยกิตที่สะสม</strong>
+            <img
+              src={CreditsImage}
+              alt="รูปภาพประกอบ"
+              style={{
+                width: "100%",
+                borderRadius: "8px",
+                display: "block",
+                margin: "auto",
+              }}
+            />
+          </Col>
+        </Row>
+        <br/>
+        <Row gutter={16}>
+          {/* แถวที่ 2, คอลัมน์ที่ 1: หน่วยกิตภาควิชา */}
+          <Col span={12}>
+            <p>
+              <strong>2. หน่วยกิตภาควิชา (รายวิชา 0406xxxxx)</strong>
+            </p>
+            <ul>
+              <li>
+                <strong>เข้าสู่ระบบ</strong> Reg KMUTNB
+              </li>
+              <li>
+                ไปที่เมนู <strong>ข้อมูลผลการศึกษา</strong>
+              </li>
+              <li>
+                เลือก <strong>ตรวจสอบจบ</strong>
+              </li>
+              <li>
+                <strong>แสดงรายวิชาทั้งหลักสูตร </strong>
+              </li>
+            </ul>
+          </Col>
 
-      {/* รูปภาพประกอบ */}
-      <strong>วิธีการตรวจสอบ : หน่วยกิตที่สะสม</strong>
-      <img
-        src={CreditsImage}
-        alt="รูปภาพประกอบ"
-        style={{
-          width: "80%",
-          borderRadius: "8px",
-          display: "block",
-          margin: "auto",
-        }}
-      />
-      <br/>
-      <strong>วิธีการตรวจสอบ : หน่วยกิตภาควิชา</strong>
-      <img
-        src={CreditsImage2}
-        alt="รูปภาพประกอบ"
-        style={{
-          width: "80%",
-          borderRadius: "8px",
-          display: "block",
-          margin: "auto",
-        }}
-      />
-    </Modal>
+          {/* แถวที่ 2, คอลัมน์ที่ 2: รูปภาพ */}
+          <Col span={12}>
+            <strong>วิธีการตรวจสอบ : หน่วยกิตภาควิชา</strong>
+            <img
+              src={CreditsImage2}
+              alt="รูปภาพประกอบ"
+              style={{
+                width: "100%",
+                borderRadius: "8px",
+                display: "block",
+                margin: "auto",
+              }}
+            />
+          </Col>
+        </Row>
+      </Modal>
     </div>
   );
 };
