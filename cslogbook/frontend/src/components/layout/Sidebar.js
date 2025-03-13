@@ -21,7 +21,7 @@ import {
 import './Sidebar.css';
 
 const { Sider } = Layout;
-const { Title } = Typography;
+const { Title } = Typography; 
 
 const themeConfig = {
   student: 'student-theme',
@@ -221,6 +221,20 @@ const Sidebar = () => {
           key: '/status-check',
           icon: <FileTextOutlined />,
           label: 'ตรวจสอบสถานะ',
+          children: [
+            {
+              key: '/status-check/internship',
+              icon: <BankOutlined />,
+              label: 'เอกสารฝึกงาน',
+              disabled: !canAccessInternship
+            },
+            {
+              key: '/status-check/project',
+              icon: <ProjectOutlined />,
+              label: 'เอกสารโครงงาน',
+              disabled: !canAccessProject
+            }
+          ]
         }
       ].filter(Boolean) : []),
 

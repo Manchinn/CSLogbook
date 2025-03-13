@@ -18,7 +18,7 @@ const calculateEligibility = (studentCode, totalCredits, majorCredits) => {
 exports.getAllStudents = async (req, res, next) => {
   try {
     const { semester, academicYear } = req.query;
-    
+
     // สร้างเงื่อนไขการค้นหา
     const whereCondition = {
       role: 'student'
@@ -140,6 +140,14 @@ exports.updateStudent = async (req, res) => {
     const { id } = req.params;
     const { totalCredits, majorCredits, firstName, lastName } = req.body;
 
+    // Add debug logging
+    console.log('Received update data:', {
+      totalCredits,
+      majorCredits,
+      firstName,
+      lastName
+    });
+
     // Start transaction
     transaction = await sequelize.transaction();
 
@@ -154,6 +162,13 @@ exports.updateStudent = async (req, res) => {
       transaction
     });
 
+    // Log current student data
+    console.log('Current student data:', {
+      studentCode: student?.studentCode,
+      currentTotalCredits: student?.totalCredits,
+      currentMajorCredits: student?.majorCredits
+    });
+
     if (!student) {
       await transaction.rollback();
       return res.status(404).json({
@@ -162,8 +177,8 @@ exports.updateStudent = async (req, res) => {
       });
     }
 
-    // Validate credits
-    if (!totalCredits || !majorCredits) {
+    // แก้ไขการ validate โดยอนุญาตให้ใส่ค่า 0 ได้
+    if (totalCredits === undefined || majorCredits === undefined) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -174,6 +189,22 @@ exports.updateStudent = async (req, res) => {
 
     const parsedTotalCredits = parseInt(totalCredits);
     const parsedMajorCredits = parseInt(majorCredits);
+
+    // Log parsed values
+    console.log('Parsed credits:', {
+      parsedTotalCredits,
+      parsedMajorCredits
+    });
+
+    // ตรวจสอบว่าค่าที่แปลงเป็นตัวเลขสำเร็จหรือไม่
+    if (isNaN(parsedTotalCredits) || isNaN(parsedMajorCredits)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'หน่วยกิตต้องเป็นตัวเลขเท่านั้น',
+        received: { totalCredits, majorCredits }
+      });
+    }
 
     // Validate credit values
     if (parsedMajorCredits > parsedTotalCredits) {
@@ -235,9 +266,9 @@ exports.updateStudent = async (req, res) => {
 
   } catch (error) {
     if (transaction) await transaction.rollback();
-    
+
     console.error('Error in updateStudent:', error);
-    
+
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
         success: false,
@@ -258,7 +289,7 @@ exports.deleteStudent = async (req, res, next) => {
   let transaction;
   try {
     const { id } = req.params;
-    
+
     transaction = await sequelize.transaction();
 
     // Find student first to get userId
@@ -299,7 +330,7 @@ exports.deleteStudent = async (req, res, next) => {
 
   } catch (error) {
     if (transaction) await transaction.rollback();
-    
+
     console.error('Error deleting student:', error);
     res.status(500).json({
       success: false,
@@ -311,14 +342,14 @@ exports.deleteStudent = async (req, res, next) => {
 
 exports.addStudent = async (req, res) => {
   let transaction;
-  
+
   try {
     const {
       studentCode,
       firstName,
       lastName,
       totalCredits = 0,
-      majorCredits = 0, 
+      majorCredits = 0,
       email
     } = req.body;
 
@@ -350,7 +381,7 @@ exports.addStudent = async (req, res) => {
       username: `s${studentCode}`,
       password: await bcrypt.hash(studentCode, 10),
       firstName,
-      lastName, 
+      lastName,
       email: email || `${studentCode}@email.kmutnb.ac.th`,
       role: 'student',
       activeStatus: true
@@ -390,7 +421,7 @@ exports.addStudent = async (req, res) => {
 
   } catch (error) {
     if (transaction) await transaction.rollback();
-    
+
     console.error('Error adding student:', error);
 
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -402,7 +433,7 @@ exports.addStudent = async (req, res) => {
 
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
-        success: false, 
+        success: false,
         message: 'ข้อมูลไม่ถูกต้อง',
         errors: error.errors.map(e => e.message)
       });

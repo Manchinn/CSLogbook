@@ -42,8 +42,8 @@ export const studentService = {
 
       const response = await apiClient.put(`/students/${studentCode}`, {
         ...data,
-        totalCredits: totalCredits || 0,
-        majorCredits: majorCredits || 0
+        totalCredits: totalCredits ,
+        majorCredits: majorCredits  
       });
 
       if (!response.data.success) {

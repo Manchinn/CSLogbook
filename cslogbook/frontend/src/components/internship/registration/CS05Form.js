@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -14,7 +14,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useInternship } from "../../../contexts/InternshipContext";
-import InternshipSteps from "../shared/InternshipSteps";
+import internshipService from '../../../services/internshipService';
 import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -23,14 +23,86 @@ const CS05Form = () => {
   const [form] = Form.useForm();
   const { state, setCS05Data } = useInternship();
   const [loading, setLoading] = useState(false);
+  const [studentData, setStudentData] = useState(null);
+  const [fetchLoading, setFetchLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      setFetchLoading(true);
+      try {
+        const data = await internshipService.getStudentInfo();
+        if (data.success) {
+          const { student } = data;
+          
+          // ตรวจสอบสิทธิ์การฝึกงาน
+          if (!student.isEligible) {
+            message.error('หน่วยกิตไม่เพียงพอสำหรับการฝึกงาน (ต้องไม่ต่ำกว่า 81 หน่วยกิต)');
+            return;
+          }
+
+          setStudentData(student);
+          form.setFieldsValue({
+            fullName: student.fullName, // ใช้ค่าที่คำนวณจาก backend
+            studentId: student.studentId,
+            totalCredits: student.totalCredits,
+            year: student.year, // ใช้ค่าที่คำนวณจาก backend
+            faculty: student.faculty,
+            major: student.major
+          });
+        }
+      } catch (error) {
+        message.error(error.message);
+      } finally {
+        setFetchLoading(false);
+      }
+    };
+
+    fetchStudentData();
+  }, [form]);
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      await setCS05Data(values);
-      message.success("บันทึกข้อมูลเรียบร้อย");
+      const formData = {
+        // ข้อมูลเอกสาร
+        documentType: 'internship',
+        documentName: 'CS05',
+        category: 'proposal',
+        
+        // ข้อมูลนักศึกษา
+        studentId: studentData.studentId,
+        fullName: studentData.fullName,
+        year: studentData.year,
+        totalCredits: studentData.totalCredits,
+        
+        // ข้อมูลบริษัท
+        companyName: values.companyName,
+        companyAddress: values.companyAddress,
+        
+        // ข้อมูลระยะเวลา
+        startDate: values.internshipPeriod[0].format('YYYY-MM-DD'),
+        endDate: values.internshipPeriod[1].format('YYYY-MM-DD'),
+
+        // ข้อมูลผู้นิเทศงาน (ส่งค่าว่างไว้ก่อน)
+        supervisorInfo: {
+          name: null,
+          position: null,
+          phone: null,
+          email: null
+        }
+      };
+
+      const response = await internshipService.submitCS05(formData);
+      
+      if (response.success) {
+        message.success('บันทึกคำร้องเรียบร้อย');
+        setCS05Data(formData);
+        form.resetFields();
+      } else {
+        throw new Error(response.message);
+      }
     } catch (error) {
-      message.error("เกิดข้อผิดพลาด");
+      message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     } finally {
       setLoading(false);
     }
@@ -38,7 +110,6 @@ const CS05Form = () => {
 
   return (
     <div className="internship-container">
-      <InternshipSteps />
       <Card className="internship-card">
         <div className="text-center">
           <Title level={4} className="text-right">
@@ -52,12 +123,12 @@ const CS05Form = () => {
         <Row gutter={[16, 16]}>
           <Col span={24} className="text-right">
             <Paragraph
-            style={{ fontSize: "20px" }}
+            style={{ fontSize: "16px" }}
             >
               ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
             </Paragraph>
             <Paragraph
-            style={{ fontSize: "16px" }}
+            style={{ fontSize: "14px" }}
             >วันที่ {dayjs().format("D MMMM YYYY")}</Paragraph>
           </Col>
 
@@ -95,17 +166,15 @@ const CS05Form = () => {
                 <Form.Item
                   name="fullName"
                   noStyle
-                  rules={[{ required: true, message: "กรุณากรอกชื่อ-นามสกุล" }]}
                 >
-                  <Input className="inline-input" />
+                  <Input className="inline-input" disabled />
                 </Form.Item>{" "}
                 รหัสนักศึกษา{" "}
                 <Form.Item
                   name="studentId"
                   noStyle
-                  rules={[{ required: true }]}
                 >
-                  <Input className="inline-input" />
+                  <Input className="inline-input" disabled />
                 </Form.Item>
               </Paragraph>
 
@@ -113,18 +182,18 @@ const CS05Form = () => {
                 {" "}
                 ชั้นปีที่{" "}
                 <Form.Item name="year" noStyle rules={[{ required: true }]}>
-                  <InputNumber min={1} max={4} className="inline-input-small" />
+                  <InputNumber min={1} max={4} className="inline-input-small" disabled/>
                 </Form.Item>{" "}
                 จำนวนหน่วยกิตทั้งหมดรวมทั้งสิ้น{" "}
                 <Form.Item
                   name="totalCredits" // Changed from gpa
                   noStyle
-                  rules={[{ required: true }]}
                 >
                   <InputNumber
                     min={0}
                     max={150}
                     className="inline-input-small"
+                    disabled
                   />
                 </Form.Item>
               </Paragraph>
@@ -149,16 +218,6 @@ const CS05Form = () => {
             </Form.Item>
 
             <div>
-              <Paragraph style={{ fontSize: "16px" }}>
-                ตำแหน่ง{" "}
-                <Form.Item
-                  name="department"
-                  noStyle
-                  rules={[{ required: true }]}
-                >
-                  <Input className="inline-input" />
-                </Form.Item>
-              </Paragraph>
 
               {/* <Paragraph>
                 ลักษณะงาน{' '}

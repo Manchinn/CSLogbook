@@ -13,6 +13,7 @@ import StudentProfile from './components/StudentProfile';
 import CS05Form from './components/internship/registration/CS05Form';
 import TimeSheet from './components/internship/logbook/TimeSheet';
 import InternshipSummary from './components/internship/summary/Summary';
+import StatusCheck from './components/internship/shared/StatusCheck';
 
 // Import Project Components
 import ProjectProposalForm from './components/project/ProjectProposalForm';
@@ -69,6 +70,30 @@ const App = () => {
                   <InternshipSummary />
                 </ProtectedRoute>
               } />
+              <Route path="/status-check" element={
+                <ProtectedRoute roles={['student']}>
+                  <StatusCheck />
+                </ProtectedRoute>
+              } />
+
+              {/* <Route path="/status-check">
+                <Route 
+                  path="internship" 
+                  element={
+                    <ProtectedRoute>
+                      <InternshipStatusCheck />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="project" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectStatusCheck />
+                    </ProtectedRoute>
+                  } 
+                />
+              </Route> */}
 
               {/* Project Routes */}
               <Route path="/project-proposal" element={
@@ -81,6 +106,7 @@ const App = () => {
                   <LogbookForm />
                 </ProtectedRoute>
               } />
+              
 
               {/* Admin Routes */}
               <Route path="/students" element={

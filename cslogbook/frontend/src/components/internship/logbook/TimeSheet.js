@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Modal, Form, TimePicker, Input, Button, Typography, message, Card, Badge, Space, Row, Col, Statistic, InputNumber } from 'antd';
 import { EditOutlined, EyeOutlined, CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useInternship } from '../../../contexts/InternshipContext';
+import "./InternshipStyles.css";
 import dayjs from 'dayjs';
 
 const { Title } = Typography;

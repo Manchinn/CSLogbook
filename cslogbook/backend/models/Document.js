@@ -54,8 +54,8 @@ module.exports = (sequelize) => {
             field: 'document_name'
         },
         filePath: {
-            type: DataTypes.STRING(255),
-            allowNull: false,
+            type: DataTypes.STRING(255), // Path to the file
+            allowNull: true,
             field: 'file_path'
         },
         status: {
@@ -83,13 +83,13 @@ module.exports = (sequelize) => {
             field: 'due_date'
         },
         fileSize: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
+            type: DataTypes.INTEGER, // File size in bytes
+            allowNull: true,
             field: 'file_size'
         },
         mimeType: {
-            type: DataTypes.STRING(50),
-            allowNull: false,
+            type: DataTypes.STRING(50), // MIME type of the file
+            allowNull: true,
             field: 'mime_type'
         }
     }, {

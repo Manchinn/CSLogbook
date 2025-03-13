@@ -37,7 +37,7 @@ module.exports = (sequelize) => {
         },
         supervisorName: {
             type: DataTypes.STRING(100),
-            allowNull: false,
+            allowNull: true,
             field: 'supervisor_name'
         },
         supervisorPosition: {
@@ -47,12 +47,12 @@ module.exports = (sequelize) => {
         },
         supervisorPhone: {
             type: DataTypes.STRING(20),
-            allowNull: false,
+            allowNull: true,
             field: 'supervisor_phone'
         },
         supervisorEmail: {
             type: DataTypes.STRING(100),
-            allowNull: false,
+            allowNull: true,
             field: 'supervisor_email'
         },
         startDate: {

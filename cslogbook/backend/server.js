@@ -77,6 +77,7 @@ const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
+const internshipRoutes = require('./routes/documents/internshipRoutes');
 
 const adminRoutes = require('./routes/adminRoutes');
 
@@ -198,6 +199,9 @@ app.use('/api/teachers', authenticateToken, teacherRoutes);
 
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.use('/api', uploadRoutes); // ใช้ route
+
+// Add routes
+app.use('/api/internship', internshipRoutes);
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

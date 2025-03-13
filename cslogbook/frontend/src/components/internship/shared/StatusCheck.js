@@ -1,129 +1,205 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Table, message } from "antd";
-import axios from "axios";
-import { FileTextOutlined } from "@ant-design/icons";
-import "../InternshipStyles.css"; 
-import { Modal, Tag } from 'antd';
-import { useInternshipStatus } from '../../../hooks/useInternshipStatus'; // Custom hook สำหรับดึงข้อมูล
+import { Layout, Table, message, Tag, Space, Button, Modal, Timeline, Card } from "antd";
+import { FileTextOutlined, EyeOutlined, ClockCircleOutlined, SyncOutlined, CloseCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import internshipService from '../../../services/internshipService';
+import dayjs from 'dayjs';
+import './InternshipStyles.css';
 
 const { Content } = Layout;
 
 const InternshipStatusCheck = () => {
-  const [data, setData] = useState([]);
+  const [statusData, setStatusData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   useEffect(() => {
-    axios.get("/api/internship-status")
-      .then(response => {
-        setData(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        message.error("Failed to fetch data");
-        setLoading(false);
-      });
+    fetchInternshipStatus();
   }, []);
+
+  const fetchInternshipStatus = async () => {
+    try {
+      const response = await internshipService.checkInternshipStatus();
+      if (response.success) {
+        setStatusData(response.data);
+      } else {
+        message.error('ไม่สามารถดึงข้อมูลสถานะได้');
+      }
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusTag = (status) => {
+    const statusConfig = {
+      pending: { color: 'gold', text: 'รอการพิจารณา' },
+      approved: { color: 'green', text: 'อนุมัติ' },
+      rejected: { color: 'red', text: 'ไม่อนุมัติ' },
+      in_progress: { color: 'blue', text: 'กำลังดำเนินการ' }
+    };
+    
+    const config = statusConfig[status] || { color: 'default', text: status };
+    return <Tag color={config.color}>{config.text}</Tag>;
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { color: 'gold', text: 'รอการพิจารณา', icon: <ClockCircleOutlined /> },
+      approved: { color: 'green', text: 'อนุมัติ', icon: <CheckCircleOutlined /> },
+      rejected: { color: 'red', text: 'ไม่อนุมัติ', icon: <CloseCircleOutlined /> },
+      in_progress: { color: 'blue', text: 'กำลังดำเนินการ', icon: <SyncOutlined spin /> }
+    };
+    
+    const config = statusConfig[status] || { color: 'default', text: status };
+    return (
+      <Tag icon={config.icon} color={config.color}>
+        {config.text}
+      </Tag>
+    );
+  };
+
+  const renderStatusTimeline = (history) => (
+    <Timeline>
+      {history.map((item, index) => (
+        <Timeline.Item 
+          key={index}
+          color={getStatusBadge(item.status).props.color}
+        >
+          <p>{getStatusBadge(item.status)} {dayjs(item.updatedAt).format('DD/MM/YYYY HH:mm')}</p>
+          {item.comment && <p className="status-comment">{item.comment}</p>}
+        </Timeline.Item>
+      ))}
+    </Timeline>
+  );
 
   const columns = [
     {
-        title: "วันที่ยื่นคำร้อง",
-        dataIndex: "date",
-        key: "date",
+      title: "วันที่ยื่นคำร้อง",
+      dataIndex: "submittedAt",
+      key: "submittedAt",
+      render: (date) => dayjs(date).format('DD/MM/YYYY')
     },
     {
-      title: "คำร้อง",
-      dataIndex: "request",
-      key: "request",
+      title: "เอกสาร",
+      dataIndex: "documentName",
+      key: "documentName",
+      render: () => 'แบบฟอร์ม คพ.05'
     },
     {
       title: "ชื่อบริษัท",
       dataIndex: "companyName",
-      key: "companyName",
+      key: "companyName"
     },
     {
-      title: "เอกสาร",
-      dataIndex: "document",
-      key: "document",
-      render: () => <FileTextOutlined style={{ fontSize: 20, color: "#007bff" }} />,
+      title: "ระยะเวลาฝึกงาน",
+      key: "internshipPeriod",
+      render: (_, record) => (
+        <>
+          {dayjs(record.startDate).format('DD/MM/YYYY')} - 
+          {dayjs(record.endDate).format('DD/MM/YYYY')}
+        </>
+      )
     },
     {
       title: "สถานะ",
       dataIndex: "status",
       key: "status",
+      render: (status) => getStatusTag(status)
     },
+    {
+      title: "การดำเนินการ",
+      key: "action",
+      render: (_, record) => (
+        <Space size="middle">
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setSelectedDocument(record);
+              setViewModalVisible(true);
+            }}
+          >
+            ดูรายละเอียด
+          </Button>
+        </Space>
+      )
+    }
   ];
 
   return (
     <Layout className="layout">
       <Content className="content">
-        <div className="card">
-          <h2 className="title">สถานะการยืนยันการยื่นฝึกงาน</h2>
-          <Table columns={columns} dataSource={data} loading={loading} rowKey="id" />
-        </div>
+        <Card 
+          title={<h2>สถานะการยื่นเอกสารฝึกงาน</h2>}
+          extra={statusData?.currentDocument && getStatusBadge(statusData.currentDocument.status)}
+        >
+          {statusData?.currentDocument ? (
+            <>
+              <Table
+                columns={columns}
+                dataSource={[statusData.currentDocument]}
+                loading={loading}
+                rowKey="documentId"
+                pagination={false}
+              />
+              <Modal
+                title={
+                  <Space>
+                    <FileTextOutlined />
+                    รายละเอียดเอกสารฝึกงาน
+                  </Space>
+                }
+                open={viewModalVisible}
+                onCancel={() => setViewModalVisible(false)}
+                footer={null}
+                width={800}
+              >
+                {selectedDocument && (
+                  <div className="document-detail">
+                    <Card title="ข้อมูลนักศึกษา" bordered={false}>
+                      <p><strong>รหัสนักศึกษา:</strong> {selectedDocument.studentCode}</p>
+                      <p><strong>ชื่อ-นามสกุล:</strong> {selectedDocument.studentName}</p>
+                    </Card>
+                    
+                    <Card title="ข้อมูลสถานที่ฝึกงาน" bordered={false}>
+                      <p><strong>บริษัท:</strong> {selectedDocument.companyName}</p>
+                      <p><strong>ที่อยู่:</strong> {selectedDocument.companyAddress}</p>
+                      <p><strong>ระยะเวลา:</strong> {dayjs(selectedDocument.startDate).format('DD/MM/YYYY')} - {dayjs(selectedDocument.endDate).format('DD/MM/YYYY')}</p>
+                    </Card>
+
+                    {selectedDocument.supervisor?.name && (
+                      <Card title="ข้อมูลผู้นิเทศงาน" bordered={false}>
+                        <p><strong>ชื่อ-นามสกุล:</strong> {selectedDocument.supervisor.name}</p>
+                        <p><strong>ตำแหน่ง:</strong> {selectedDocument.supervisor.position}</p>
+                        <p><strong>เบอร์โทร:</strong> {selectedDocument.supervisor.phone}</p>
+                        <p><strong>อีเมล:</strong> {selectedDocument.supervisor.email}</p>
+                      </Card>
+                    )}
+
+                    <Card title="ประวัติการดำเนินการ" bordered={false}>
+                      {renderStatusTimeline(statusData.statusHistory)}
+                    </Card>
+                  </div>
+                )}
+              </Modal>
+            </>
+          ) : (
+            <div className="empty-state">
+              <FileTextOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+              <p>ยังไม่มีการยื่นเอกสารฝึกงาน</p>
+              {statusData?.canSubmitNew && (
+                <Button type="primary" href="/internship/cs05">
+                  ยื่นแบบฟอร์ม คพ.05
+                </Button>
+              )}
+            </div>
+          )}
+        </Card>
       </Content>
     </Layout>
   );
 };
 
-const StatusCheckModal = ({ visible, onClose }) => {
-  const { status, loading } = useInternshipStatus();
-
-  const columns = [
-    {
-      title: 'ขั้นตอน',
-      dataIndex: 'step',
-      key: 'step',
-    },
-    {
-      title: 'สถานะ',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const colors = {
-          'pending': 'gold',
-          'approved': 'green',
-          'rejected': 'red',
-          'in_progress': 'blue'
-        };
-        return (
-          <Tag color={colors[status]}>
-            {status === 'pending' && 'รอดำเนินการ'}
-            {status === 'approved' && 'อนุมัติแล้ว'}
-            {status === 'rejected' && 'ไม่อนุมัติ'}
-            {status === 'in_progress' && 'กำลังดำเนินการ'}
-          </Tag>
-        );
-      }
-    },
-    {
-      title: 'วันที่อัพเดท',
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
-    },
-    {
-      title: 'หมายเหตุ',
-      dataIndex: 'remarks',
-      key: 'remarks',
-    }
-  ];
-
-  return (
-    <Modal
-      title="สถานะการดำเนินการ"
-      visible={visible}
-      onCancel={onClose}
-      width={800}
-      footer={null}
-    >
-      <Table
-        columns={columns}
-        dataSource={status}
-        loading={loading}
-        pagination={false}
-      />
-    </Modal>
-  );
-};
-
 export default InternshipStatusCheck;
-export { StatusCheckModal };
