@@ -1,7 +1,10 @@
 import apiClient from './apiClient';
 
 const internshipService = {
-  // ดึงข้อมูลนักศึกษา
+  // ============= ส่วนจัดการข้อมูลนักศึกษา =============
+  /**
+   * ดึงข้อมูลและสิทธิ์การฝึกงานของนักศึกษา
+   */
   getStudentInfo: async () => {
     try {
       const response = await apiClient.get('/internship/student/info');
@@ -20,7 +23,10 @@ const internshipService = {
     }
   },
 
-  // ปรับปรุง submitCS05
+  // ============= ส่วนจัดการแบบฟอร์ม คพ.05 =============
+  /**
+   * บันทึกคำร้องขอฝึกงาน (คพ.05)
+   */
   submitCS05: async (formData) => {
     try {
       // ตรวจสอบข้อมูลที่จำเป็น
@@ -47,23 +53,30 @@ const internshipService = {
     }
   },
 
-  // เพิ่ม method สำหรับอัพเดทข้อมูล supervisor
-  updateCS05Supervisor: async (documentId, supervisorInfo) => {
+  /**
+   * ดึงข้อมูล คพ.05 ปัจจุบัน
+   */
+  getCurrentCS05: async () => {
     try {
-      const response = await apiClient.patch(`/internship/cs-05/${documentId}/supervisor`, {
-        supervisorName: supervisorInfo.name,
-        supervisorPosition: supervisorInfo.position,
-        supervisorPhone: supervisorInfo.phone,
-        supervisorEmail: supervisorInfo.email
-      });
+      const response = await apiClient.get('/internship/current-cs05');
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
+      }
 
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลผู้นิเทศงาน');
+      console.error('Get Current CS05 Error:', error);
+      if (error.response?.status === 404) {
+        return { success: true, data: null }; // ส่งค่าว่างถ้าไม่พบข้อมูล
+      }
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05');
     }
   },
 
-  // แก้ไข getCS05ById ให้รวมข้อมูล supervisor
+  /**
+   * ดึงข้อมูล คพ.05 ตาม ID
+   */
   getCS05ById: async (id) => {
     try {
       const response = await apiClient.get(`/internship/cs-05/${id}`);
@@ -84,74 +97,9 @@ const internshipService = {
     }
   },
 
-  // ดึงรายการ CS05 ทั้งหมด
-  getCS05List: async () => {
-    try {
-      const response = await apiClient.get('/internship/cs-05/list');
-      return response.data;
-    } catch (error) {
-      throw new Error('ไม่สามารถดึงรายการแบบฟอร์ม คพ.05 ได้');
-    }
-  },
-
-  // บันทึก Logbook
-  submitDailyRecord: async (record) => {
-    try {
-      const response = await apiClient.post('/internship/logbook/entry', record);
-      return response.data;
-    } catch (error) {
-      throw new Error('ไม่สามารถบันทึกข้อมูลได้');
-    }
-  },
-
-  // ดึงข้อมูล Logbook
-  getLogbookEntries: async () => {
-    try {
-      const response = await apiClient.get('/internship/logbook');
-      return response.data;
-    } catch (error) {
-      throw new Error('ไม่สามารถดึงข้อมูลบันทึกประจำวันได้');
-    }
-  },
-
-  // Get summary
-  getInternshipSummary: async (studentId) => {
-    try {
-      const response = await apiClient.get(`/summary/${studentId}`);
-      return response.data;
-    } catch (error) {
-      throw new Error('ไม่สามารถดึงข้อมูลสรุปการฝึกงานได้');
-    }
-  },
-
-  // ดึงข้อมูลสถานประกอบการ
-  /* getCompanyInfo: async () => {
-    try {
-      const response = await apiClient.get('/internship/company-info');
-      
-      // ตรวจสอบ response format
-      if (!response.data) {
-        throw new Error('Invalid response format');
-      }
-
-      return {
-        success: true,
-        data: response.data.data || null
-      };
-    } catch (error) {
-      console.error('Company Info Error:', error);
-      if (error.response?.status === 404) {
-        // ถ้าไม่พบข้อมูล ให้ return success แต่ data เป็น null
-        return {
-          success: true,
-          data: null
-        };
-      }
-      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงข้อมูลสถานประกอบการได้');
-    }
-  }, */
-
-  // บันทึกข้อมูลสถานประกอบการ
+  /**
+   * บันทึกข้อมูลผู้ควบคุมงาน
+   */
   submitCompanyInfo: async (companyInfo) => {
     try {
       const { documentId, ...data } = companyInfo;
@@ -192,6 +140,56 @@ const internshipService = {
       throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลผู้ควบคุมงาน');
     }
   },
+
+  // ============= ส่วนที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============
+  /**
+   * ดึงรายการ คพ.05 ทั้งหมด
+   */
+  getCS05List: async () => {
+    try {
+      const response = await apiClient.get('/internship/cs-05/list');
+      return response.data;
+    } catch (error) {
+      throw new Error('ไม่สามารถดึงรายการแบบฟอร์ม คพ.05 ได้');
+    }
+  },
+
+  /**
+   * อัพเดทข้อมูลผู้ควบคุมงาน
+   */
+  updateCS05Supervisor: async (documentId, supervisorInfo) => {
+    try {
+      const response = await apiClient.patch(`/internship/cs-05/${documentId}/supervisor`, {
+        supervisorName: supervisorInfo.name,
+        supervisorPosition: supervisorInfo.position,
+        supervisorPhone: supervisorInfo.phone,
+        supervisorEmail: supervisorInfo.email
+      });
+
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลผู้นิเทศงาน');
+    }
+  },
+
+  /* // === ส่วนจัดการสมุดบันทึกการฝึกงาน ===
+  submitDailyRecord: async (record) => {
+    // TODO: Implement daily record submission
+  },
+
+  getLogbookEntries: async () => {
+    // TODO: Implement getting logbook entries
+  },
+
+  // === ส่วนจัดการข้อมูลสรุปการฝึกงาน ===
+  getInternshipSummary: async (studentId) => {
+    // TODO: Implement getting internship summary
+  },
+
+  // === ส่วนจัดการข้อมูลสถานประกอบการ ===
+  getCompanyInfo: async () => {
+    // TODO: Implement getting company info
+  } */
 };
 
 export default internshipService;

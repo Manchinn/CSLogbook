@@ -4,19 +4,19 @@ module.exports = (sequelize) => {
     class InternshipLogbook extends Model {
         static associate(models) {
             InternshipLogbook.belongsTo(models.InternshipDocument, {
-                foreignKey: 'internship_id',
+                foreignKey: 'internshipId',
                 as: 'internship'
             });
             InternshipLogbook.belongsTo(models.Student, {
-                foreignKey: 'student_id',
+                foreignKey: 'studentId',
                 as: 'student'
             });
             InternshipLogbook.hasMany(models.InternshipLogbookAttachment, {
-                foreignKey: 'log_id',
+                foreignKey: 'logId',
                 as: 'attachments'
             });
             InternshipLogbook.hasMany(models.InternshipLogbookRevision, {
-                foreignKey: 'log_id',
+                foreignKey: 'logId',
                 as: 'revisions'
             });
         }

@@ -5,9 +5,9 @@ const InternshipContext = createContext();
 const initialState = {
   registration: {
     cs05: {
-      status: 'pending',
       data: null,
-      errors: null
+      status: null,
+      isSubmitted: false
     },
     company: {
       status: 'pending',
@@ -39,9 +39,9 @@ const internshipReducer = (state, action) => {
         registration: {
           ...state.registration,
           cs05: {
-            ...state.registration.cs05,
             data: action.payload,
-            status: 'completed'
+            status: action.payload.status,
+            isSubmitted: true
           }
         }
       };

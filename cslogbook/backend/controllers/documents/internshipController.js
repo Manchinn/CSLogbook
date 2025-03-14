@@ -1,5 +1,5 @@
 const { Document, InternshipDocument, Student, User } = require('../../models');
-const { Sequelize, Op } = require('sequelize'); // แก้ไขการ import
+const { Sequelize, Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
 const { 
   calculateStudentYear,
@@ -7,6 +7,10 @@ const {
   getCurrentAcademicYear
 } = require('../../utils/studentUtils');
 
+// ============= Controller สำหรับข้อมูลนักศึกษา =============
+/**
+ * ดึงข้อมูลนักศึกษาและตรวจสอบสิทธิ์การฝึกงาน
+ */
 exports.getStudentInfo = async (req, res) => {
   try {
     const student = await Student.findOne({
@@ -67,6 +71,10 @@ exports.getStudentInfo = async (req, res) => {
   }
 };
 
+// ============= Controller สำหรับจัดการ คพ.05 =============
+/**
+ * ดึงข้อมูล คพ.05 ปัจจุบันของนักศึกษา
+ */
 exports.getCurrentCS05 = async (req, res) => {
   try {
     const document = await Document.findOne({
@@ -74,45 +82,48 @@ exports.getCurrentCS05 = async (req, res) => {
         userId: req.user.userId,
         documentName: 'CS05'
       },
-      include: [
-        {
-          model: InternshipDocument,
-          as: 'internshipDocument', // Add the alias here
-          required: true
-        },
-        {
-          model: Student,
-          as: 'student', // Add the alias here
-          include: [{
-            model: User,
-            as: 'user',
-            attributes: ['firstName', 'lastName']
-          }]
-        }
-      ],
-      order: [['createdAt', 'DESC']]
+      include: [{
+        model: InternshipDocument,
+        as: 'internshipDocument',
+        required: true,
+        attributes: [
+          'internshipId', 
+          'companyName',
+          'companyAddress',
+          'startDate',
+          'endDate',
+          'supervisorName',
+          'supervisorPosition',
+          'supervisorPhone',
+          'supervisorEmail'
+        ]
+      }],
+      order: [['created_at', 'DESC']]
     });
 
     if (!document) {
-      return res.json({
-        success: true,
-        isSubmitted: false,
-        data: null
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูล CS05'
       });
     }
 
+    // ดึงข้อมูลจาก internshipDocument association
+    const internshipData = document.internshipDocument;
+
     return res.json({
       success: true,
-      isSubmitted: true,
       data: {
         documentId: document.documentId,
         status: document.status,
-        studentCode: document.student.studentCode,
-        fullName: `${document.student.user.firstName} ${document.student.user.lastName}`,
-        companyName: document.internshipDocument.companyName,
-        companyAddress: document.internshipDocument.companyAddress,
-        startDate: document.internshipDocument.startDate,
-        endDate: document.internshipDocument.endDate,
+        companyName: internshipData.companyName,
+        companyAddress: internshipData.companyAddress,
+        startDate: internshipData.startDate,
+        endDate: internshipData.endDate,
+        supervisorName: internshipData.supervisorName,
+        supervisorPosition: internshipData.supervisorPosition,
+        supervisorPhone: internshipData.supervisorPhone,
+        supervisorEmail: internshipData.supervisorEmail,
         createdAt: document.createdAt
       }
     });
@@ -121,11 +132,15 @@ exports.getCurrentCS05 = async (req, res) => {
     console.error('Get Current CS05 Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05'
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05',
+      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
     });
   }
 };
 
+/**
+ * บันทึกคำร้องขอฝึกงาน (คพ.05)
+ */
 exports.submitCS05 = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
@@ -188,6 +203,9 @@ exports.submitCS05 = async (req, res) => {
   }
 };
 
+/**
+ * ดึงข้อมูล คพ.05 ตาม ID
+ */
 exports.getCS05ById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -253,41 +271,9 @@ exports.getCS05ById = async (req, res) => {
   }
 };
 
-exports.getCS05List = async (req, res) => {
-  try {
-    const documents = await Document.findAll({
-      where: { 
-        documentName: 'CS05',
-        userId: req.user.userId 
-      },
-      include: [{
-        model: InternshipDocument,
-        required: true
-      }],
-      order: [['createdAt', 'DESC']]
-    });
-
-    return res.json({
-      success: true,
-      data: documents.map(doc => ({
-        documentId: doc.documentId,
-        companyName: doc.InternshipDocument.companyName,
-        status: doc.status,
-        createdAt: doc.createdAt,
-        startDate: doc.InternshipDocument.startDate,
-        endDate: doc.InternshipDocument.endDate
-      }))
-    });
-
-  } catch (error) {
-    console.error('Get CS05 List Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
-    });
-  }
-};
-
+/**
+ * บันทึกข้อมูลผู้ควบคุมงาน
+ */
 exports.submitCompanyInfo = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
@@ -362,3 +348,76 @@ exports.submitCompanyInfo = async (req, res) => {
     });
   }
 };
+
+// ============= Controller ที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============
+
+/**
+ * ดึงรายการ คพ.05 ทั้งหมดของนักศึกษา
+ */
+exports.getCS05List = async (req, res) => {
+  try {
+    const documents = await Document.findAll({
+      where: { 
+        documentName: 'CS05',
+        userId: req.user.userId 
+      },
+      include: [{
+        model: InternshipDocument,
+        required: true
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.json({
+      success: true,
+      data: documents.map(doc => ({
+        documentId: doc.documentId,
+        companyName: doc.InternshipDocument.companyName,
+        status: doc.status,
+        createdAt: doc.createdAt,
+        startDate: doc.InternshipDocument.startDate,
+        endDate: doc.InternshipDocument.endDate
+      }))
+    });
+
+  } catch (error) {
+    console.error('Get CS05 List Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
+  }
+};
+
+/* 
+// === Controller สำหรับสมุดบันทึกการฝึกงาน ===
+exports.addLogbookEntry = async (req, res) => {
+  // TODO: Implement logbook entry creation
+};
+
+exports.getLogbookEntries = async (req, res) => {
+  // TODO: Implement getting logbook entries
+};
+
+// === Controller สำหรับจัดการไฟล์เอกสาร ===
+exports.uploadDocument = async (req, res) => {
+  // TODO: Implement document upload
+};
+
+exports.getDocuments = async (req, res) => {
+  // TODO: Implement getting all documents
+};
+
+exports.getDocumentById = async (req, res) => {
+  // TODO: Implement getting document by id
+};
+
+exports.downloadDocument = async (req, res) => {
+  // TODO: Implement document download
+};
+
+// === Controller สำหรับผู้ดูแลระบบ ===
+exports.updateStatus = async (req, res) => {
+  // TODO: Implement document status update
+};
+*/

@@ -4,23 +4,24 @@ module.exports = (sequelize) => {
     class Document extends Model {
         static associate(models) {
             Document.belongsTo(models.User, {
-                foreignKey: 'user_id',
+                foreignKey: 'userId',
                 as: 'owner'
             });
             Document.belongsTo(models.User, {
-                foreignKey: 'reviewer_id',
+                foreignKey: 'reviewerId',
                 as: 'reviewer'
             });
             Document.hasOne(models.ProjectDocument, {
-                foreignKey: 'document_id',
+                foreignKey: 'documentId',
                 as: 'projectDocument'
             });
             Document.hasOne(models.InternshipDocument, {
-                foreignKey: 'document_id',
+                foreignKey: 'documentId',
+                sourceKey: 'documentId',
                 as: 'internshipDocument'
             });
             Document.hasMany(models.DocumentLog, {
-                foreignKey: 'document_id',
+                foreignKey: 'documentId',
                 as: 'documentLogs'
             });
         }

@@ -4,11 +4,12 @@ module.exports = (sequelize) => {
     class InternshipDocument extends Model {
         static associate(models) {
             InternshipDocument.belongsTo(models.Document, {
-                foreignKey: 'document_id',
+                foreignKey: 'documentId',
+                targetKey: 'documentId',
                 as: 'document'
             });
             InternshipDocument.hasMany(models.InternshipLogbook, {
-                foreignKey: 'internship_id',
+                foreignKey: 'internshipId',
                 as: 'logbooks'
             });
         }
@@ -23,7 +24,12 @@ module.exports = (sequelize) => {
         },
         documentId: {
             type: DataTypes.INTEGER,
-            field: 'document_id'
+            allowNull: false,
+            field: 'document_id',
+            references: {
+                model: 'Document',
+                key: 'document_id'
+            }
         },
         companyName: {
             type: DataTypes.STRING(255),
