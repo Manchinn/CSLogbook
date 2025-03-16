@@ -37,7 +37,30 @@ router.get('/current-cs05',
 router.post('/company-info',
     authenticateToken,
     checkRole(['student']),
+    (req, res, next) => {
+        // Validate required fields
+        const { documentId, supervisorName, supervisorPhone, supervisorEmail } = req.body;
+        if (!documentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'กรุณาระบุ Document ID'
+            });
+        }
+        next();
+    },
     internshipController.submitCompanyInfo
+);
+
+// ดึงข้อมูลผู้ควบคุมงาน
+router.get('/company-info/:documentId',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getCompanyInfo
+);
+
+// บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
+router.post('/company-info',
+    // ...existing code...
 );
 
 // ============= เส้นทางที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============

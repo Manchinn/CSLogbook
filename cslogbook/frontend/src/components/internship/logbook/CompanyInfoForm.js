@@ -8,92 +8,122 @@ import "./InternshipStyles.css"; // Import shared CSS
 
 const { Title } = Typography;
 
+const validateCompanyData = (data) => {
+  return data?.supervisorName && data?.supervisorPhone && data?.supervisorEmail;
+};
+
 const CompanyInfoForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { state, setCompanyInfo } = useInternship(); // ดึง state มาด้วย
+  const { state, setCompanyInfo } = useInternship();
+  const cs05Data = state?.registration?.cs05?.data;
+  const documentId = cs05Data?.documentId;
+
   const [loading, setLoading] = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const documentId = state?.registration?.company?.data?.documentId;
 
-  // ดึงข้อมูล CS05 จาก state แทนการเรียก API
-  const cs05Data = state?.registration?.cs05?.data;
+  // ลบ hasFetched state
 
+  // แก้ไข useEffect สำหรับการดึงข้อมูล
   useEffect(() => {
-    if (cs05Data) {
-      form.setFieldsValue({
-        companyName: cs05Data.companyName
-      });
-    }
-  }, [form, cs05Data]);
+    const fetchCompanyInfo = async () => {
+      try {
+        if (!documentId) {
+          console.log('No document ID found');
+          return;
+        }
 
-  // เพิ่ม useEffect สำหรับการแสดงข้อมูลผู้ควบคุมงาน
-  useEffect(() => {
-    const companyData = state?.registration?.company?.data;
-    if (companyData) {
-      form.setFieldsValue({
-        supervisorName: companyData.supervisorName,
-        supervisorPhone: companyData.supervisorPhone,
-        supervisorEmail: companyData.supervisorEmail
-      });
-      setIsDisabled(true);
-    }
-  }, [form, state]);
+        setLoading(true);
+        console.log('Fetching company info for document:', documentId);
+        
+        const response = await internshipService.getCompanyInfo(documentId);
+        console.log('Company Info Response:', response);
+
+        if (response.success && response.data) {
+          const formData = {
+            companyName: cs05Data.companyName,
+            supervisorName: response.data.supervisorName,
+            supervisorPhone: response.data.supervisorPhone,
+            supervisorEmail: response.data.supervisorEmail
+          };
+
+          // อัพเดทข้อมูลพร้อมกัน
+          form.setFieldsValue(formData);
+          setCompanyInfo({
+            documentId,
+            ...formData
+          });
+          setIsDisabled(true);
+        } else {
+          // กรณีไม่มีข้อมูล
+          form.setFieldsValue({
+            companyName: cs05Data.companyName,
+            supervisorName: '',
+            supervisorPhone: '',
+            supervisorEmail: ''
+          });
+          setIsDisabled(false);
+        }
+      } catch (error) {
+        console.error('Fetch Company Info Error:', error);
+        message.error('ไม่สามารถดึงข้อมูลผู้ควบคุมงาน');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompanyInfo();
+  }, [documentId, cs05Data?.companyName]); // ลดจำนวน dependencies
 
   const handleEdit = () => {
+    // เก็บข้อมูลปัจจุบันไว้กรณียกเลิกการแก้ไข
+    const currentData = {
+      supervisorName: form.getFieldValue('supervisorName'),
+      supervisorPhone: form.getFieldValue('supervisorPhone'),
+      supervisorEmail: form.getFieldValue('supervisorEmail')
+    };
     setIsDisabled(false);
     setIsEditing(true);
+    localStorage.setItem('tempCompanyData', JSON.stringify(currentData));
   };
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
+      // Validate ข้อมูลก่อนส่ง
+      if (!documentId) {
+        throw new Error('ไม่พบข้อมูลเอกสาร CS05');
+      }
+
       const response = await internshipService.submitCompanyInfo({
-        supervisorName: values.supervisorName,
-        supervisorPhone: values.supervisorPhone,
-        supervisorEmail: values.supervisorEmail,
-        documentId: documentId
+        documentId,
+        supervisorName: values.supervisorName.trim(),
+        supervisorPhone: values.supervisorPhone.trim(),
+        supervisorEmail: values.supervisorEmail.trim()
       });
 
       if (response.success) {
         setCompanyInfo({
-          companyName: cs05Data?.companyName, // ใช้ค่าจาก CS05
+          documentId,
+          companyName: cs05Data.companyName,
           supervisorName: values.supervisorName,
           supervisorPhone: values.supervisorPhone,
           supervisorEmail: values.supervisorEmail
         });
-        message.success(isEditing ? 'แก้ไขข้อมูลผู้ควบคุมงานสำเร็จ' : 'บันทึกข้อมูลผู้ควบคุมงานสำเร็จ');
+        message.success(isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'บันทึกข้อมูลสำเร็จ');
         setIsDisabled(true);
         setIsEditing(false);
       } else {
-        throw new Error(response.message);
+        throw new Error(response.message || 'ไม่สามารถบันทึกข้อมูล');
       }
     } catch (error) {
+      console.error('Submit Error:', error);
       message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     } finally {
       setLoading(false);
     }
   };
-
-  // ถ้ายังไม่มีข้อมูล CS05 ให้แสดง message แจ้งเตือน
-  if (!cs05Data) {
-    return (
-      <div className="internship-container">
-        <Card className="internship-card">
-          <Result
-            status="warning"
-            title="กรุณายื่นแบบฟอร์ม คพ.05 ก่อนบันทึกข้อมูลผู้ควบคุมงาน"
-            extra={
-              <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
-                ไปยังหน้ายื่น คพ.05
-              </Button>
-            }
-          />
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="internship-container">
@@ -169,9 +199,12 @@ const CompanyInfoForm = () => {
                 type="default" 
                 onClick={() => {
                   if (isEditing) {
+                    // ดึงข้อมูลที่เก็บไว้มาใส่กลับในฟอร์ม
+                    const tempData = JSON.parse(localStorage.getItem('tempCompanyData'));
+                    form.setFieldsValue(tempData);
                     setIsDisabled(true);
                     setIsEditing(false);
-                    form.setFieldsValue(state?.registration?.company?.data);
+                    localStorage.removeItem('tempCompanyData');
                   } else {
                     navigate(-1);
                   }

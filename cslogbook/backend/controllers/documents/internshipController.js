@@ -108,9 +108,10 @@ exports.getCurrentCS05 = async (req, res) => {
       });
     }
 
-    // ดึงข้อมูลจาก internshipDocument association
+    // ดึงข้อมูลจาก internshipDocument
     const internshipData = document.internshipDocument;
 
+    // ส่งข้อมูลกลับในรูปแบบที่ frontend ต้องการ
     return res.json({
       success: true,
       data: {
@@ -120,10 +121,10 @@ exports.getCurrentCS05 = async (req, res) => {
         companyAddress: internshipData.companyAddress,
         startDate: internshipData.startDate,
         endDate: internshipData.endDate,
-        supervisorName: internshipData.supervisorName,
-        supervisorPosition: internshipData.supervisorPosition,
-        supervisorPhone: internshipData.supervisorPhone,
-        supervisorEmail: internshipData.supervisorEmail,
+        supervisorName: internshipData.supervisorName || '',
+        supervisorPosition: internshipData.supervisorPosition || '',
+        supervisorPhone: internshipData.supervisorPhone || '',
+        supervisorEmail: internshipData.supervisorEmail || '',
         createdAt: document.createdAt
       }
     });
@@ -132,8 +133,7 @@ exports.getCurrentCS05 = async (req, res) => {
     console.error('Get Current CS05 Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05',
-      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05'
     });
   }
 };
@@ -275,76 +275,111 @@ exports.getCS05ById = async (req, res) => {
  * บันทึกข้อมูลผู้ควบคุมงาน
  */
 exports.submitCompanyInfo = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  let transaction;
   try {
-    const {
-      supervisorName,
-      supervisorPhone,
-      supervisorEmail
-    } = req.body;
-    const documentId = req.query.documentId;
-
-    // Validation
-    if (!supervisorName?.trim() || !supervisorPhone?.trim() || !supervisorEmail?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน'
-      });
-    }
-
-    const findDocument = documentId 
-      ? { documentId, userId: req.user.userId }
-      : { 
-          userId: req.user.userId,
-          documentName: 'CS05',
-          status: { [Op.not]: 'rejected' }
-        };
+    transaction = await sequelize.transaction();
+    
+    const { documentId, supervisorName, supervisorPhone, supervisorEmail } = req.body;
 
     const document = await Document.findOne({
-      where: findDocument,
+      where: { 
+        documentId,
+        userId: req.user.userId 
+      },
       include: [{
         model: InternshipDocument,
         as: 'internshipDocument',
-        required: true
+        required: true,
+        attributes: ['internshipId', 'companyName'] // ระบุ attributes ที่ต้องการ
       }],
-      order: documentId ? undefined : [['created_at', 'DESC']]
+      transaction
     });
 
     if (!document) {
       await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'กรุณายื่นแบบฟอร์ม คพ.05 ก่อนบันทึกข้อมูลผู้ควบคุมงาน'
+        message: 'ไม่พบข้อมูลเอกสาร CS05'
       });
     }
 
-    // อัพเดทเฉพาะข้อมูลผู้ควบคุมงาน
+    // อัพเดทข้อมูลผู้ควบคุมงาน
     await document.internshipDocument.update({
-      supervisorName: supervisorName.trim(),
-      supervisorPhone: supervisorPhone.trim(),
-      supervisorEmail: supervisorEmail.trim()
+      supervisorName,
+      supervisorPhone,
+      supervisorEmail
     }, { transaction });
 
     await transaction.commit();
 
     return res.json({
       success: true,
-      message: documentId ? 'แก้ไขข้อมูลผู้ควบคุมงานสำเร็จ' : 'บันทึกข้อมูลผู้ควบคุมงานสำเร็จ',
+      message: 'บันทึกข้อมูลผู้ควบคุมงานสำเร็จ',
       data: {
         documentId: document.documentId,
         companyName: document.internshipDocument.companyName,
-        supervisorName: supervisorName.trim(),
-        supervisorPhone: supervisorPhone.trim(),
-        supervisorEmail: supervisorEmail.trim()
+        supervisorName,
+        supervisorPhone,
+        supervisorEmail
       }
     });
 
   } catch (error) {
-    await transaction.rollback();
-    console.error('Company Info Error:', error);
+    if (transaction) await transaction.rollback();
+    console.error('Submit Company Info Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลผู้ควบคุมงาน'
+      message: error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+    });
+  }
+};
+
+/**
+ * ดึงข้อมูลผู้ควบคุมงาน
+ */
+exports.getCompanyInfo = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const document = await Document.findOne({
+      where: { 
+        documentId,
+        userId: req.user.userId 
+      },
+      include: [{
+        model: InternshipDocument,
+        as: 'internshipDocument',
+        required: true,
+        attributes: [
+          'supervisorName',
+          'supervisorPhone',
+          'supervisorEmail'
+        ]
+      }]
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลเอกสาร'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        documentId: document.documentId,
+        supervisorName: document.internshipDocument.supervisorName,
+        supervisorPhone: document.internshipDocument.supervisorPhone,
+        supervisorEmail: document.internshipDocument.supervisorEmail
+      }
+    });
+
+  } catch (error) {
+    console.error('Get Company Info Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
     });
   }
 };

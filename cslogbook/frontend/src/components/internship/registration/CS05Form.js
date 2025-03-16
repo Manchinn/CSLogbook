@@ -35,6 +35,8 @@ const CS05Form = () => {
       setFetchLoading(true);
       try {
         const data = await internshipService.getStudentInfo();
+        // ตรวจสอบการได้รับข้อมูล
+        console.log('Student Data:', data);
         if (data.success) {
           const { student } = data;
 
@@ -55,6 +57,7 @@ const CS05Form = () => {
           });
         }
       } catch (error) {
+        console.error('Fetch Student Error:', error);
         message.error(error.message);
       } finally {
         setFetchLoading(false);
@@ -108,50 +111,30 @@ const CS05Form = () => {
 
     setLoading(true);
     try {
-      const formData = {
-        // ข้อมูลเอกสาร
+      // Log ข้อมูลก่อนส่ง
+      console.log('Form Data to submit:', {
         documentType: 'internship',
         documentName: 'CS05',
         category: 'proposal',
-
-        // ข้อมูลนักศึกษา
         studentId: studentData.studentId,
         fullName: studentData.fullName,
         year: studentData.year,
         totalCredits: studentData.totalCredits,
-
-        // ข้อมูลบริษัท
         companyName: values.companyName,
         companyAddress: values.companyAddress,
-
-        // ข้อมูลระยะเวลา
         startDate: values.internshipPeriod[0].format('YYYY-MM-DD'),
         endDate: values.internshipPeriod[1].format('YYYY-MM-DD'),
-
-        // ข้อมูลผู้นิเทศงาน (ส่งค่าว่างไว้ก่อน)
-        supervisorInfo: {
-          name: null,
-          position: null,
-          phone: null,
-          email: null
-        }
-      };
+      });
 
       const response = await internshipService.submitCS05(formData);
+      console.log('Submit Response:', response);
 
       if (response.success) {
-        setIsSubmitted(true);
-        setFormData(response.data);
-        message.success('บันทึกคำร้องเรียบร้อย');
-        setCS05Data(formData);
-        form.resetFields();
-      } else {
-        throw new Error(response.message);
+        setCS05Data(response.data); // ตรวจสอบว่าข้อมูลถูกเซ็ตใน context
+        console.log('CS05 Data after submit:', response.data);
       }
     } catch (error) {
-      message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-    } finally {
-      setLoading(false);
+      console.error('Submit CS05 Error:', error);
     }
   };
 

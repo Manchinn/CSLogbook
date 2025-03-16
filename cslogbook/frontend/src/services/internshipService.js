@@ -104,40 +104,66 @@ const internshipService = {
     try {
       const { documentId, ...data } = companyInfo;
       
-      // ตรวจสอบเฉพาะข้อมูลผู้ควบคุมงาน
-      if (!data.supervisorName?.trim() || 
-          !data.supervisorPhone?.trim() || 
-          !data.supervisorEmail?.trim()) {
-        throw new Error('กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน');
-      }
-      
-      // Validate เบอร์โทรและอีเมล
-      const phoneRegex = /^[0-9]{9,10}$/;
-      if (!phoneRegex.test(data.supervisorPhone)) {
-        throw new Error('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
+      // เพิ่ม debug log
+      console.log('Sending data:', {
+        documentId,
+        supervisorName: data.supervisorName?.trim(),
+        supervisorPhone: data.supervisorPhone?.trim(),
+        supervisorEmail: data.supervisorEmail?.trim()
+      });
+
+      if (!documentId) {
+        throw new Error('ไม่พบข้อมูลเอกสาร CS05');
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.supervisorEmail)) {
-        throw new Error('รูปแบบอีเมลไม่ถูกต้อง');
-      }      
-
-      // ส่งเฉพาะข้อมูลผู้ควบคุมงาน
-      const supervisorData = {
+      const response = await apiClient.post('/internship/company-info', {
+        documentId,
         supervisorName: data.supervisorName.trim(),
         supervisorPhone: data.supervisorPhone.trim(),
         supervisorEmail: data.supervisorEmail.trim()
-      };
+      });
 
-      const endpoint = documentId 
-        ? `/internship/company-info?documentId=${documentId}`
-        : '/internship/company-info';
+      // เพิ่ม debug log
+      console.log('Response:', response.data);
 
-      const response = await apiClient.post(endpoint, supervisorData);
       return response.data;
     } catch (error) {
-      console.error('Company Info Error:', error);
+      console.error('Request details:', {
+        url: '/internship/company-info',
+        data: companyInfo,
+        error: error.response?.data
+      });
       throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลผู้ควบคุมงาน');
+    }
+  },
+
+  /**
+   * ดึงข้อมูลผู้ควบคุมงาน
+   */
+  getCompanyInfo: async (documentId) => {
+    try {
+      console.log('Fetching company info with documentId:', documentId);
+      
+      const response = await apiClient.get(`/internship/company-info/${documentId}`);
+      console.log('Raw API Response:', response.data);
+
+      // เพิ่มการตรวจสอบข้อมูล
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลผู้ควบคุมงาน');
+      }
+
+      // ตรวจสอบว่ามีข้อมูลจริงหรือไม่
+      if (!response.data.data?.supervisorName) {
+        return {
+          success: true,
+          data: null
+        };
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Get Company Info Error:', error);
+      throw error;
     }
   },
 

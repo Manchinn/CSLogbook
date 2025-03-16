@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useState } from 'react';
 
 const InternshipContext = createContext();
 
@@ -6,15 +6,17 @@ const initialState = {
   registration: {
     cs05: {
       data: null,
+      loading: false,
+      error: null,
       status: null,
       isSubmitted: false
     },
     company: {
-      status: 'pending',
       data: null,
-      errors: null
-    },
-    documents: []
+      loading: false,
+      error: null,
+      status: 'pending'
+    }
   },
   logbook: {
     entries: [],
@@ -105,6 +107,48 @@ const internshipReducer = (state, action) => {
           lastEntry: action.payload
         }
       };
+
+    case 'SET_SUPERVISOR_INFO':
+      return {
+        ...state,
+        registration: {
+          ...state.registration,
+          company: {
+            ...state.registration.company,
+            data: {
+              ...state.registration.company.data,
+              supervisor: {
+                name: action.payload.supervisorName,
+                phone: action.payload.supervisorPhone,
+                email: action.payload.supervisorEmail
+              }
+            },
+            status: 'completed'
+          }
+        }
+      };
+
+    case 'RESET_COMPANY_INFO':
+      return {
+        ...state,
+        registration: {
+          ...state.registration,
+          company: {
+            status: 'pending',
+            data: {
+              companyName: null,
+              companyAddress: null,
+              supervisor: {
+                name: null,
+                position: null,
+                phone: null,
+                email: null
+              }
+            },
+            errors: null
+          }
+        }
+      };
       
     default:
       return state;
@@ -126,28 +170,39 @@ const calculateTotalHours = (entries) => {
 export const InternshipProvider = ({ children }) => {
   const [state, dispatch] = useReducer(internshipReducer, initialState);
 
-  // Actions creators
+  // กำหนด actions ที่จะส่งผ่าน context
   const actions = {
     setCS05Data: (data) => {
       dispatch({ type: 'SET_CS05_DATA', payload: data });
     },
-    // เพิ่ม action creator สำหรับ setCompanyInfo
     setCompanyInfo: (info) => {
       dispatch({ type: 'SET_COMPANY_INFO', payload: info });
+    },
+    setSupervisorInfo: (supervisorInfo) => {
+      dispatch({ type: 'SET_SUPERVISOR_INFO', payload: supervisorInfo });
     },
     addLogbookEntry: (entry) => {
       dispatch({ type: 'ADD_LOGBOOK_ENTRY', payload: entry });
     },
+    updateLogbookEntry: (entry) => {
+      dispatch({ type: 'UPDATE_LOGBOOK_ENTRY', payload: entry });
+    },
     updateApprovalStatus: (statusUpdate) => {
       dispatch({ type: 'UPDATE_APPROVAL_STATUS', payload: statusUpdate });
     },
-    updateLogbookEntry: (entry) => {
-      dispatch({ type: 'UPDATE_LOGBOOK_ENTRY', payload: entry });
+    resetCompanyInfo: () => {
+      dispatch({ type: 'RESET_COMPANY_INFO' });
     }
   };
 
+  // ส่งทั้ง state และ actions ผ่าน context
+  const contextValue = {
+    state,
+    ...actions
+  };
+
   return (
-    <InternshipContext.Provider value={{ state, ...actions }}>
+    <InternshipContext.Provider value={contextValue}>
       {children}
     </InternshipContext.Provider>
   );
