@@ -5,27 +5,12 @@ const fs = require('fs');
 // กำหนดค่าคงที่
 const UPLOAD_CONFIG = {
     BASE_PATH: path.join(__dirname, '..', 'uploads'),
-    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+    MAX_FILE_SIZE: 5 * 1024 * 1024,
     ALLOWED_TYPES: ['application/pdf'],
     DOCUMENT_TYPES: {
-        PROJECT: {
-            path: 'project',
-            allowedCategories: [
-                'CS-01',     // เอกสารเสนอหัวข้อ
-                'CS-02',     // เอกสารขอสอบ
-                'CS-04',     // เอกสารรับรองการทดสอบ
-                'logbook',   // สมุดบันทึกคำปรึกษา
-                'support'    // เอกสารประกอบอื่นๆ
-            ]
-        },
         INTERNSHIP: {
             path: 'internship',
-            allowedCategories: [
-                'CS-05',     // เอกสารขอฝึกงาน
-                'logbook',   // สมุดบันทึกฝึกงาน
-                'evaluation', // แบบประเมิน
-                'support'    // เอกสารประกอบอื่นๆ
-            ]
+            allowedCategories: ['transcript']
         }
     }
 };
@@ -40,69 +25,80 @@ const ensureDirectoryExists = (dirPath) => {
 // กำหนดการจัดเก็บไฟล์
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const { documentType, category } = req.body;
-        
-        // ตรวจสอบ document type
-        const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType.toUpperCase()];
-        if (!docTypeConfig) {
-            return cb(new Error('Invalid document type'));
+        try {
+            const documentType = req.body?.documentType || 'INTERNSHIP';
+            const category = req.body?.category || 'transcript';
+            
+            const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType];
+            if (!docTypeConfig) {
+                throw new Error('ประเภทเอกสารไม่ถูกต้อง');
+            }
+
+            const uploadPath = path.join(
+                UPLOAD_CONFIG.BASE_PATH,
+                docTypeConfig.path,
+                category
+            );
+            
+            ensureDirectoryExists(uploadPath);
+            cb(null, uploadPath);
+        } catch (error) {
+            cb(error);
         }
-
-        // สร้าง path
-        const uploadPath = path.join(
-            UPLOAD_CONFIG.BASE_PATH,
-            docTypeConfig.path,
-            category || 'other'
-        );
-
-        // สร้างโฟลเดอร์ถ้ายังไม่มี
-        ensureDirectoryExists(uploadPath);
-        
-        cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-        const studentId = req.user.studentId;
         const timestamp = Date.now();
         const fileExt = path.extname(file.originalname);
-        
-        // format: studentId-documentType-category-timestamp.pdf
-        const fileName = `${studentId}-${req.body.documentType}-${req.body.category}-${timestamp}${fileExt}`;
-        
+        const fileName = `transcript-${timestamp}${fileExt}`;
         cb(null, fileName);
     }
 });
 
-// ตรวจสอบไฟล์
-const fileFilter = (req, file, cb) => {
-    // ตรวจสอบประเภทไฟล์
-    if (!UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.mimetype)) {
-        return cb(new Error('รองรับเฉพาะไฟล์ PDF เท่านั้น'), false);
-    }
-
-    // ตรวจสอบ category
-    const { documentType, category } = req.body;
-    const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType.toUpperCase()];
-    
-    if (!docTypeConfig.allowedCategories.includes(category)) {
-        return cb(new Error('Invalid category for document type'), false);
-    }
-
-    cb(null, true);
-};
-
 // สร้าง multer instance
 const upload = multer({
     storage,
-    fileFilter,
     limits: {
-        fileSize: UPLOAD_CONFIG.MAX_FILE_SIZE,
-        files: 1
+        fileSize: UPLOAD_CONFIG.MAX_FILE_SIZE
+    },
+    fileFilter: (req, file, cb) => {
+        if (!UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.mimetype)) {
+            cb(new Error('รองรับเฉพาะไฟล์ PDF เท่านั้น'), false);
+            return;
+        }
+        cb(null, true);
     }
 });
+
+const deleteOldFile = async (filePath) => {
+    try {
+        if (fs.existsSync(filePath)) {
+            await fs.promises.unlink(filePath);
+        }
+    } catch (error) {
+        console.error('Error deleting old file:', error);
+    }
+};
+
+const customRequest = async ({ file, onSuccess, onError }) => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        // เพิ่ม documentType และ category
+        formData.append('documentType', 'internship'); 
+        formData.append('category', 'transcript');
+
+        const response = await internshipService.uploadTranscript(file);
+        // ...existing code...
+    } catch (error) {
+        onError(error);
+    }
+};
 
 // Export functions และค่าคงที่
 module.exports = {
     upload,
     UPLOAD_CONFIG,
-    ensureDirectoryExists
+    ensureDirectoryExists,
+    deleteOldFile,
+    customRequest
 };

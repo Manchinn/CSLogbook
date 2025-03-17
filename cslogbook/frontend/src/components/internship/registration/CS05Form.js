@@ -16,6 +16,7 @@ import {
 import dayjs from "dayjs";
 import { useInternship } from "../../../contexts/InternshipContext";
 import internshipService from '../../../services/internshipService';
+import TranscriptUpload from '../common/TranscriptUpload';
 import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -29,6 +30,7 @@ const CS05Form = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState(null);
   const [existingCS05, setExistingCS05] = useState(null);
+  const [transcriptFile, setTranscriptFile] = useState(null);
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -301,6 +303,20 @@ const CS05Form = () => {
               <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
                 จึงเรียนมาเพื่อโปรดพิจารณา
               </Paragraph>
+            </div>
+
+            <div className="upload-section">
+              <Form.Item
+                label="ใบแสดงผลการเรียน"
+                required
+                tooltip="กรุณาอัพโหลดใบแสดงผลการเรียนจากระบบ REG"
+              >
+                <TranscriptUpload
+                  value={transcriptFile}
+                  onChange={setTranscriptFile}
+                  disabled={isFieldsDisabled}
+                />
+              </Form.Item>
             </div>
 
             <div className="submit-section">

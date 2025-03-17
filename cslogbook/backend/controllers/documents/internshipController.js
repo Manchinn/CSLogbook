@@ -154,16 +154,33 @@ exports.submitCS05 = async (req, res) => {
       endDate
     } = req.body;
 
+    // ตรวจสอบว่ามี CS05 ที่ pending อยู่หรือไม่
+    const existingDocument = await Document.findOne({
+      where: {
+        userId: req.user.userId,
+        documentName: 'CS05',
+        status: 'pending'
+      }
+    });
+
+    if (existingDocument) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'คุณมีคำร้อง CS05 ที่รอการพิจารณาอยู่แล้ว'
+      });
+    }
+
     // 1. สร้าง Document
     const document = await Document.create({
       userId: req.user.userId,
-      documentType,
-      documentName,
+      documentType: 'INTERNSHIP',
+      documentName: 'CS05',
+      category: 'proposal',
       status: 'pending',
-      category,
-      filePath: null,      // เพิ่มเข้ามา
-      fileSize: null,      // เพิ่มเข้ามา
-      mimeType: null       // เพิ่มเข้ามา
+      filePath: null,
+      fileSize: null,
+      mimeType: null
     }, { transaction });
 
     // 2. สร้าง InternshipDocument
@@ -171,10 +188,9 @@ exports.submitCS05 = async (req, res) => {
       documentId: document.documentId,
       companyName,
       companyAddress,
-      startDate,
-      endDate,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
       status: 'pending',
-      // เพิ่มค่าว่างสำหรับฟิลด์ที่จะกรอกภายหลัง
       supervisorName: null,
       supervisorPosition: null,
       supervisorPhone: null,
@@ -185,11 +201,12 @@ exports.submitCS05 = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'บันทึกคำร้องเรียบร้อย',
+      message: 'บันทึกคำร้องเรียบร้อย กรุณาอัปโหลด Transcript',
       data: {
         documentId: document.documentId,
         internshipDocId: internshipDoc.id,
-        status: document.status
+        status: document.status,
+        requireTranscript: true
       }
     });
 
