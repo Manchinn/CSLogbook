@@ -611,7 +611,7 @@ const StudentProfile = () => {
         <Row gutter={16}>
           <Col span={12}>
             <p>
-              <strong>2. หน่วยกิตภาควิชา (รายวิชา 0406xxxxx)</strong>
+              <strong>2.หน่วยกิตรวมวิชาภาค (รายวิชา 0406xxxxx)</strong>
             </p>
             <ul>
               <li>
@@ -626,11 +626,17 @@ const StudentProfile = () => {
               <li>
                 <strong>แสดงรายวิชาทั้งหลักสูตร </strong>
               </li>
+              <li>
+                <strong>นำ </strong>หน่วยกิตวิชาบังคับและหน่วยกิตวิชาเลือกมารวมกัน
+              </li>
+              
+                
+              
             </ul>
           </Col>
 
           <Col span={12}>
-            <strong>วิธีการตรวจสอบ : หน่วยกิตภาควิชา</strong>
+            <strong>วิธีการตรวจสอบ : หน่วยกิตรวมวิชาภาค</strong>
             <img
               src={CreditsImage2}
               alt="รูปภาพประกอบ"
