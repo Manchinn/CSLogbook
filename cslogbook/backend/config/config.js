@@ -1,11 +1,31 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load env file
+const envFile = path.resolve(process.cwd(), `.env.${process.env.NODE_ENV}`);
+const result = dotenv.config({ path: envFile });
+
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+  process.exit(1);
+}
+
+console.log('Env File Path:', envFile);
+console.log('Current ENV:', process.env.NODE_ENV);
+console.log('Database Config:', {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT
+});
 
 module.exports = {
   development: {
     username: process.env.DB_USER ,
     password: process.env.DB_PASSWORD ,
     database: process.env.DB_NAME ,
-    host: process.env.DB_HOST,
+    host: process.env.DB_HOST ,
+    port: process.env.DB_PORT,
     dialect: "mysql",
     timezone: '+07:00',
     logging: console.log,

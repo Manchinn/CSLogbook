@@ -10,7 +10,11 @@
     "db:check:models": "node scripts/checkModels.js",
     "db:check": "cross-env NODE_ENV=development node scripts/checkDb.js",
     "db:check:all": "npm run db:check && npm run db:check:models",
-    "db:sync": "cross-env NODE_ENV=development node scripts/syncDb.js"
+    "db:sync": "cross-env NODE_ENV=development node scripts/syncDb.js",
+    "migrate": "cross-env NODE_ENV=development sequelize-cli db:migrate",
+    "migrate:undo": "cross-env NODE_ENV=development sequelize-cli db:migrate:undo",
+    "migrate:create": "cross-env NODE_ENV=development sequelize-cli migration:generate --name",
+    "migrate:status": "cross-env NODE_ENV=development sequelize-cli db:migrate:status"
   },
   "keywords": [],
   "author": "",

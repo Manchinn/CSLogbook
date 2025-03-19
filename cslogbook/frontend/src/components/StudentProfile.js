@@ -124,16 +124,15 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
   );
 });
 
-const StudentEditForm = React.memo(({ form, onFinish, onCancel }) => (
+const StudentEditForm = React.memo(({ form, onFinish, onCancel, initialValues }) => (
   <Card style={{ marginTop: 24 }}>
     <Form
       form={form} // ต้องแน่ใจว่า form prop ถูกส่งมาและใช้งานที่นี่
       onFinish={onFinish}
       layout="vertical"
-      initialValues={{
-        // เพิ่ม initialValues
+      initialValues={initialValues || {
         totalCredits: 0,
-        majorCredits: 0,
+        majorCredits: 0
       }}
     >
       <Row gutter={16}>
@@ -277,171 +276,159 @@ const StudentProfile = () => {
 
   const handleEdit = useCallback(
     async (values) => {
-        try {
-            const totalCredits = parseInt(values.totalCredits);
-            const majorCredits = parseInt(values.majorCredits);
-            
-            // Reset state ก่อนแสดง Modal
-            setIsConfirmed(false);
+      try {
+        const formValues = form.getFieldsValue();
+        console.log('Form values:', formValues);
 
-            let confirmed = false; // ตัวแปรภายในสำหรับเก็บสถานะการยืนยัน
+        const totalCredits = parseInt(formValues.totalCredits);
+        const majorCredits = parseInt(formValues.majorCredits);
 
-            Modal.confirm({
-                title: (
-                    <div style={{ textAlign: 'center', borderBottom: '2px solid #1890ff', paddingBottom: '10px' }}>
-                      <Text strong style={{ fontSize: '20px' }}>
-                        การยืนยันความถูกต้องของข้อมูลหน่วยกิต
-                      </Text>
-                    </div>
-                  ),
-                  width: 700,
-                  className: 'confirmation-modal',
-                  icon: null,
-                  content: (
-                      <Space direction="vertical" style={{ width: '100%', padding: '20px 0' }}>
-                          {/* ส่วนแสดงข้อมูล */}
-                          <Card
-                            style={{
-                              marginBottom: 20,
-                              backgroundColor: '#fafafa',
-                              borderRadius: '8px',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                            }}
-                          >
-                            <div style={{
-                              textAlign: 'center',
-                              marginBottom: 20,
-                              backgroundColor: '#e6f7ff',
-                              padding: '12px',
-                              borderRadius: '4px'
-                            }}>
-                              <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
-                                ข้อมูลที่ต้องการบันทึก
-                              </Text>
-                            </div>
-                            <Row gutter={[24, 24]} justify="space-around">
-                              <Col span={11}>
-                                <Statistic
-                                  title={<Text strong>หน่วยกิตรวมสะสม</Text>}
-                                  value={totalCredits}
-                                  suffix="หน่วยกิต"
-                                  valueStyle={{ color: '#1890ff', fontSize: '24px' }}
-                                  prefix={<BookOutlined style={{ fontSize: '24px' }} />}
-                                />
-                              </Col>
-                              <Col span={11}>
-                                <Statistic
-                                  title={<Text strong>หน่วยกิตภาควิชา</Text>}
-                                  value={majorCredits}
-                                  suffix="หน่วยกิต"
-                                  valueStyle={{ color: '#1890ff', fontSize: '24px' }}
-                                  prefix={<ProjectOutlined style={{ fontSize: '24px' }} />}
-                                />
-                              </Col>
-                            </Row>
-                          </Card>
-              
-                          {/* ส่วนการยืนยัน */}
-                          <div style={{
-                            padding: '20px',
-                            backgroundColor: '#f0f5ff',
-                            border: '1px solid #1890ff',
-                            borderRadius: '8px',
-                            marginBottom: 20
-                          }}>
-                            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                              <Checkbox
-                                checked={confirmed}
-                                onChange={(e) => {
-                                    confirmed = e.target.checked;
-                                    setIsConfirmed(e.target.checked);
-                                }}
-                              >
-                                <Text>
-                                  ข้าพเจ้าได้ตรวจสอบข้อมูลจากระบบ Reg KMUTNB แล้ว และขอรับรองว่าข้อมูลถูกต้องตรงตามความเป็นจริง
-                                  หากข้อมูลไม่ถูกต้องจะส่งผลต่อการประเมินสิทธิ์การฝึกงานและโครงงานพิเศษ
-                                </Text>
-                              </Checkbox>
-                            </Space>
-                            {!confirmed && (
-                              <Alert
-                                message="กรุณายืนยันการตรวจสอบข้อมูลก่อนดำเนินการต่อ"
-                                type="warning"
-                                showIcon
-                                style={{ marginTop: 10 }}
-                              />
-                            )}
-                          </div>
-              
-                          {/* ส่วนคำเตือน */}
-                          <Alert
-                            message={<Text strong style={{ color: '#d4380d' }}>ข้อควรระวัง</Text>}
-                            description={
-                              <ul style={{ paddingLeft: '20px', margin: '10px 0' }}>
-                                <li>การให้ข้อมูลอันเป็นเท็จอาจมีผลต่อสิทธิ์การลงทะเบียนของท่าน</li>
-                                <li>กรุณาตรวจสอบความถูกต้องของข้อมูลก่อนการยืนยัน</li>
-                              </ul>
-                            }
-                            type="error"
-                            showIcon
-                            style={{
-                              marginBottom: 20,
-                              border: '1px solid #ff4d4f',
-                              borderRadius: '8px'
-                            }}
-                          />
-              
-                          {/* ส่วนแสดงเวลา */}
-                          <div style={{
-                            padding: '12px',
-                            backgroundColor: '#f5f5f5',
-                            borderRadius: '8px',
-                            textAlign: 'center',
-                            border: '1px solid #d9d9d9'
-                          }}>
-                            <Space>
-                              <ClockCircleOutlined style={{ color: '#1890ff' }} />
-                              <Text type="secondary">
-                                บันทึกการยืนยัน: {new Date().toLocaleString('th-TH', {
-                                  timeZone: 'Asia/Bangkok',
-                                  dateStyle: 'full',
-                                  timeStyle: 'medium'
-                                })}
-                              </Text>
-                            </Space>
-                          </div>
-                        </Space>
-                      ),
-                onOk: async () => {
-                    if (!confirmed) {
-                        message.error('กรุณายืนยันการตรวจสอบข้อมูลก่อน');
-                        return;
-                    }
-
-                    try {
-                        const response = await studentService.updateStudent(id, {
-                            totalCredits,
-                            majorCredits,
-                        });
-
-                        if (response.success) {
-                            message.success("แก้ไขข้อมูลสำเร็จ");
-                            setEditing(false);
-                            await fetchStudent();
-                        }
-                    } catch (error) {
-                        message.error("ไม่สามารถแก้ไขข้อมูล: " + error.message);
-                    }
-                },
-                centered: true,
-                maskClosable: false
-            });
-        } catch (error) {
-            message.error("ไม่สามารถแก้ไขข้อมูล: " + error.message);
+        // ตรวจสอบค่าก่อนส่ง
+        if (isNaN(totalCredits) || isNaN(majorCredits)) {
+          throw new Error('หน่วยกิตต้องเป็นตัวเลขเท่านั้น');
         }
+
+
+        Modal.confirm({
+          title: (
+            <div style={{ textAlign: 'center', borderBottom: '2px solid #1890ff', paddingBottom: '10px' }}>
+              <Text strong style={{ fontSize: '20px' }}>
+                การยืนยันความถูกต้องของข้อมูลหน่วยกิต
+              </Text>
+            </div>
+          ),
+          okText: 'ยืนยันการบันทึก',
+          cancelText: 'ยกเลิก',
+          width: 700,
+          className: 'confirmation-modal',
+          icon: null,
+          style: { top: 20, maxHeight: '200vh' }, // เพิ่ม style เพื่อควบคุมความสูงสูงสุด
+          bodyStyle: { maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }, // เพิ่ม bodyStyle เพื่อให้มี scroll เมื่อเนื้อหาเกิน
+          content: (
+            <Space direction="vertical" style={{ width: '100%', padding: '10px 0' }}> {/* ลด padding */}
+              {/* ส่วนแสดงข้อมูล */}
+              <Card
+                style={{
+                  marginBottom: 10, // ลด margin
+                  backgroundColor: '#fafafa',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div style={{
+                  textAlign: 'center',
+                  marginBottom: 20,
+                  backgroundColor: '#e6f7ff',
+                  padding: '12px',
+                  borderRadius: '4px'
+                }}>
+                  <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+                    ข้อมูลที่ต้องการบันทึก
+                  </Text>
+                </div>
+                <Row gutter={[24, 24]} justify="space-around">
+                  <Col span={11}>
+                    <Statistic
+                      title={<Text strong>หน่วยกิตรวมสะสม</Text>}
+                      value={totalCredits}
+                      suffix="หน่วยกิต"
+                      valueStyle={{ color: '#1890ff', fontSize: '24px' }}
+                      prefix={<BookOutlined style={{ fontSize: '24px' }} />}
+                    />
+                  </Col>
+                  <Col span={11}>
+                    <Statistic
+                      title={<Text strong>หน่วยกิตภาควิชา</Text>}
+                      value={majorCredits}
+                      suffix="หน่วยกิต"
+                      valueStyle={{ color: '#1890ff', fontSize: '24px' }}
+                      prefix={<ProjectOutlined style={{ fontSize: '24px' }} />}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* ส่วนการยืนยัน */}
+              <div style={{
+                padding: '15px', // ลด padding
+                backgroundColor: '#f0f5ff',
+                border: '1px solid #1890ff',
+                borderRadius: '8px',
+                marginBottom: 10 // ลด margin
+              }}>
+                <Text strong>
+                  การยืนยันความถูกต้องของข้อมูล:
+                </Text>
+                <Text style={{ display: 'block', marginTop: '10px' }}>
+                  ข้าพเจ้าได้ตรวจสอบข้อมูลจากระบบ Reg KMUTNB แล้ว และขอรับรองว่าข้อมูลถูกต้องตรงตามความเป็นจริง
+                  หากข้อมูลไม่ถูกต้องจะส่งผลต่อการประเมินสิทธิ์การฝึกงานและโครงงานพิเศษ
+                </Text>
+              </div>
+
+              {/* ส่วนคำเตือน */}
+              <Alert
+                message={<Text strong style={{ color: '#d4380d' }}>ข้อควรระวัง</Text>}
+                description={
+                  <ul style={{ paddingLeft: '20px', margin: '10px 0' }}>
+                    <li>การให้ข้อมูลอันเป็นเท็จอาจมีผลต่อสิทธิ์การลงทะเบียนของท่าน</li>
+                    <li>กรุณาตรวจสอบความถูกต้องของข้อมูลก่อนการยืนยัน</li>
+                  </ul>
+                }
+                type="error"
+                showIcon
+                style={{
+                  marginBottom: 10, // ลด margin
+                  border: '1px solid #ff4d4f',
+                  borderRadius: '8px'
+                }}
+              />
+
+              {/* ส่วนแสดงเวลา */}
+              <div style={{
+                padding: '10px', // ลด padding
+                backgroundColor: '#f5f5f5',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: '1px solid #d9d9d9'
+              }}>
+                <Space>
+                  <ClockCircleOutlined style={{ color: '#1890ff' }} />
+                  <Text type="secondary">
+                    บันทึกการยืนยัน: {new Date().toLocaleString('th-TH', {
+                      timeZone: 'Asia/Bangkok',
+                      dateStyle: 'full',
+                      timeStyle: 'medium'
+                    })}
+                  </Text>
+                </Space>
+              </div>
+            </Space>
+          ),
+          onOk: async () => {
+            try {
+              const response = await studentService.updateStudent(id, {
+                totalCredits: totalCredits,
+                majorCredits: majorCredits,
+              });
+
+              if (response.success) {
+                message.success("แก้ไขข้อมูลสำเร็จ");
+                setEditing(false);
+                await fetchStudent();
+              }
+            } catch (error) {
+              message.error("ไม่สามารถแก้ไขข้อมูล: " + error.message);
+            }
+          },
+          centered: true,
+          maskClosable: false
+        });
+      } catch (error) {
+        message.error("ไม่สามารถแก้ไขข้อมูล: " + error.message);
+      }
     },
-    [id, fetchStudent, isConfirmed, setIsConfirmed]
-);
+    [id, fetchStudent, form]
+  );
 
   const handleEditWithConsent = () => {
     setPdpaModalVisible(true);
