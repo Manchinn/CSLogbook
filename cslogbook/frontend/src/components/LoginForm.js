@@ -3,8 +3,10 @@ import { Form, Input, Button, Typography, message, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 const { Title, Text } = Typography;
+const API_URL = process.env.REACT_APP_API_URL;
 
 const LoginForm = () => {
   const [loading, setLoading] = useState(false);
@@ -19,44 +21,48 @@ const LoginForm = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values)
-      });
-  
-      const data = await response.json();
-      
-      if (data.success) {
-        // เรียกใช้ login function จาก AuthContext
-        const loginSuccess = await login({
-          token: data.token,
-          refreshToken: data.refreshToken,
-          userData: {
-            studentID: data.studentID,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            role: data.role,
-            isEligibleForInternship: data.isEligibleForInternship,
-            isEligibleForProject: data.isEligibleForProject
-          }
+        const response = await axios.post(`${API_URL}/auth/login`, values, {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 5000  // Add timeout
         });
 
-        if (loginSuccess) {
-          message.success('เข้าสู่ระบบสำเร็จ');
-          navigate(from, { replace: true });
+        console.log('Login response:', response.data);  // Debug log
+
+        const { success, token, ...userData } = response.data;
+        
+        if (success) {
+            const loginSuccess = await login({
+                token,
+                userData: {
+                    studentID: userData.studentID || null,
+                    firstName: userData.firstName || '',
+                    lastName: userData.lastName || '',
+                    email: userData.email || '',
+                    role: userData.role || '',
+                    ...userData  // Include all role-specific data
+                }
+            });
+
+            if (loginSuccess) {
+                message.success('เข้าสู่ระบบสำเร็จ');
+                navigate(from);
+            }
         }
-      } else {
-        throw new Error(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-      }
     } catch (error) {
-      console.error('Login error:', error);
-      message.error(error.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        console.error('Login error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+
+        message.error(
+            error.response?.data?.message || 
+            'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง'
+        );
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 

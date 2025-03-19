@@ -73,8 +73,8 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const studentRoutes = require('./routes/students');
+const authRoutes = require('./routes/authRoutes');
+const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
 const studentPairsRoutes = require('./routes/studentpairsRoutes'); // นำเข้า route
@@ -83,9 +83,32 @@ const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // �
 const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
 const logbookRoutes = require('./routes/logbookRoutes'); // นำเข้า route
 
+const adminRoutes = require('./routes/adminRoutes');
+
+
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
+
+// เพิ่มก่อน middleware อื่นๆ
+app.set('trust proxy', 1);
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
+}));
+
+// ย้าย cors middleware ขึ้นไปก่อน route handlers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Swagger setup
 const swaggerOptions = {
@@ -139,18 +162,6 @@ const io = new Server(server, {
   }
 });
 
-// Basic Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// CORS configuration with validated FRONTEND_URL
-app.use(cors({
-  origin: ENV.FRONTEND_URL,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // เพิ่ม methods ที่จำเป็น
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
-
 // Logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`, req.body);
@@ -184,9 +195,10 @@ if (!fs.existsSync(ENV.UPLOAD_DIR)) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Protected routes
+app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
