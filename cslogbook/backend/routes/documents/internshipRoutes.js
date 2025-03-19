@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const { upload } = require('../../config/uploadConfig');
+const { Document } = require('../../models');
 const internshipController = require('../../controllers/documents/internshipController');
 const { authenticateToken, checkRole } = require('../../middleware/authMiddleware');
 
@@ -61,6 +63,55 @@ router.get('/company-info/:documentId',
 // บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
 router.post('/company-info',
     // ...existing code...
+);
+
+// ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
+// อัปโหลดใบแสดงผลการเรียน (Transcript)
+router.post('/upload-transcript',
+    authenticateToken,
+    checkRole(['student']),
+    upload.single('file'),
+    async (req, res) => {
+        try {
+            // หา CS05 ที่มีอยู่
+            const existingCS05 = await Document.findOne({
+                where: {
+                    userId: req.user.userId,
+                    documentName: 'CS05',
+                    category: 'proposal',
+                    status: 'pending'
+                }
+            });
+
+            if (!existingCS05) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'กรุณาสร้างแบบฟอร์ม CS05 ก่อนอัปโหลด Transcript'
+                });
+            }
+
+            // อัปเดท Document เดิม
+            await existingCS05.update({
+                filePath: req.file.path,
+                fileName: req.file.filename,
+                mimeType: req.file.mimetype,
+                fileSize: req.file.size
+            });
+
+            res.json({
+                success: true,
+                fileUrl: `/uploads/internship/transcript/${req.file.filename}`,
+                documentId: existingCS05.id
+            });
+
+        } catch (error) {
+            console.error('Upload Error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์'
+            });
+        }
+    }
 );
 
 // ============= เส้นทางที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============

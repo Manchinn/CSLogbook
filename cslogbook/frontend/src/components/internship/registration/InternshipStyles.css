@@ -305,3 +305,19 @@
 .internship-period-section {
   border-bottom: none;
 }
+
+/* Upload Section */
+.upload-section {
+  background-color: #fafafa;
+  padding: 16px;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.upload-section .ant-form-item {
+  margin-bottom: 0;
+}
+
+.upload-section .ant-upload-list {
+  margin-top: 8px;
+}

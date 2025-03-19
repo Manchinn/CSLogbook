@@ -16,6 +16,7 @@ import {
 import dayjs from "dayjs";
 import { useInternship } from "../../../contexts/InternshipContext";
 import internshipService from '../../../services/internshipService';
+import TranscriptUpload from '../common/TranscriptUpload';
 import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -29,6 +30,7 @@ const CS05Form = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState(null);
   const [existingCS05, setExistingCS05] = useState(null);
+  const [transcriptFile, setTranscriptFile] = useState(null);
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -81,7 +83,6 @@ const CS05Form = () => {
           const cs05Data = response.data;
           setFormData(cs05Data);
           setIsSubmitted(cs05Data.status !== 'rejected');
-          setExistingCS05(cs05Data);
           setCS05Data(cs05Data);
 
           // Set form values ด้วยข้อมูลที่ได้
@@ -94,6 +95,7 @@ const CS05Form = () => {
           });
         }
       } catch (error) {
+        // ถ้าเป็น 404 ถือว่าเป็นกรณีปกติ (ยังไม่เคยมีการบันทึก)
         console.error('Error fetching CS05:', error);
         message.error('ไม่สามารถดึงข้อมูล CS05: ' + error.message);
       }
@@ -102,6 +104,17 @@ const CS05Form = () => {
     checkExistingCS05();
   }, [form]);
 
+  const validateInternshipPeriod = (startDate, endDate) => {
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+    const workingDays = end.diff(start, 'days') + 1;
+    
+    if (workingDays < 40) {
+      message.error('ระยะเวลาฝึกงานต้องไม่ต่ำกว่า 40 วันทำการ');
+      return false;
+    }
+    return true;
+  };
 
   const onFinish = async (values) => {
     if (isSubmitted && formData?.status !== 'rejected') {
@@ -109,10 +122,13 @@ const CS05Form = () => {
       return;
     }
 
+    if (!validateInternshipPeriod(values.internshipPeriod[0], values.internshipPeriod[1])) {
+      return;
+    }
+
     setLoading(true);
     try {
-      // Log ข้อมูลก่อนส่ง
-      console.log('Form Data to submit:', {
+      const submitData = {
         documentType: 'internship',
         documentName: 'CS05',
         category: 'proposal',
@@ -124,17 +140,22 @@ const CS05Form = () => {
         companyAddress: values.companyAddress,
         startDate: values.internshipPeriod[0].format('YYYY-MM-DD'),
         endDate: values.internshipPeriod[1].format('YYYY-MM-DD'),
-      });
+      };
 
-      const response = await internshipService.submitCS05(formData);
-      console.log('Submit Response:', response);
-
+      const response = await internshipService.submitCS05(submitData);
+      
       if (response.success) {
-        setCS05Data(response.data); // ตรวจสอบว่าข้อมูลถูกเซ็ตใน context
-        console.log('CS05 Data after submit:', response.data);
+        message.success('บันทึกคำร้องสำเร็จ');
+        setCS05Data(response.data);
+        setIsSubmitted(true);
+        setFormData(response.data);
+      } else {
+        throw new Error(response.message || 'ไม่สามารถบันทึกข้อมูลได้');
       }
     } catch (error) {
-      console.error('Submit CS05 Error:', error);
+      message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -282,6 +303,20 @@ const CS05Form = () => {
               <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
                 จึงเรียนมาเพื่อโปรดพิจารณา
               </Paragraph>
+            </div>
+
+            <div className="upload-section">
+              <Form.Item
+                label="ใบแสดงผลการเรียน"
+                required
+                tooltip="กรุณาอัพโหลดใบแสดงผลการเรียนจากระบบ REG"
+              >
+                <TranscriptUpload
+                  value={transcriptFile}
+                  onChange={setTranscriptFile}
+                  disabled={isFieldsDisabled}
+                />
+              </Form.Item>
             </div>
 
             <div className="submit-section">

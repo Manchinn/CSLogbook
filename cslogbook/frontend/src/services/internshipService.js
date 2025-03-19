@@ -59,7 +59,7 @@ const internshipService = {
   getCurrentCS05: async () => {
     try {
       const response = await apiClient.get('/internship/current-cs05');
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
       }
@@ -98,12 +98,39 @@ const internshipService = {
   },
 
   /**
+ * อัปโหลดไฟล์ใบแสดงผลการเรียน (Transcript)
+ */
+  uploadTranscript: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('documentType', 'INTERNSHIP');
+      formData.append('category', 'transcript');
+
+      const response = await apiClient.post('/internship/upload-transcript', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถอัปโหลดไฟล์ได้');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Upload Transcript Error:', error);
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+    }
+  },
+
+  /**
    * บันทึกข้อมูลผู้ควบคุมงาน
    */
   submitCompanyInfo: async (companyInfo) => {
     try {
       const { documentId, ...data } = companyInfo;
-      
+
       // เพิ่ม debug log
       console.log('Sending data:', {
         documentId,
@@ -143,7 +170,7 @@ const internshipService = {
   getCompanyInfo: async (documentId) => {
     try {
       console.log('Fetching company info with documentId:', documentId);
-      
+
       const response = await apiClient.get(`/internship/company-info/${documentId}`);
       console.log('Raw API Response:', response.data);
 
