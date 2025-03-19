@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Alert, Statistic, Space, Button, message, Tooltip, Badge, Descriptions } from 'antd';
+import { Row, Col, Card, Alert, Statistic, Space, Button, message, Badge, Descriptions } from 'antd';
 import { UserOutlined, ProjectOutlined, BookOutlined, CheckCircleOutlined, ClockCircleOutlined, UploadOutlined, FileTextOutlined, FormOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,7 @@ function Dashboard() {
     const [stats, setStats] = useState({
       students: {
         total: 0,
-        internshipEligible: 0, 
+        internshipEligible: 0,
         projectEligible: 0
       },
       documents: {
@@ -69,7 +69,7 @@ function Dashboard() {
         onClick: () => navigate('/students?filter=internship')
       },
       {
-        title: 'มีสิทธิ์ทำโครงงานพิเศษ', 
+        title: 'มีสิทธิ์ทำโครงงานพิเศษ',
         value: stats.students.projectEligible,
         icon: <ProjectOutlined />,
         color: '#722ed1',
@@ -86,12 +86,12 @@ function Dashboard() {
             showIcon
             className="common-alert-style"
           />
-          
+
           <Row gutter={[16, 16]}>
             {statsCards.map((card, index) => (
               <Col xs={24} sm={8} key={index}>
-                <Card 
-                  hoverable 
+                <Card
+                  hoverable
                   onClick={card.onClick}
                   className="stats-card"
                 >
@@ -136,8 +136,8 @@ function Dashboard() {
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<UploadOutlined />}
                 onClick={() => navigate('/admin/upload')}
                 block
@@ -146,7 +146,7 @@ function Dashboard() {
               </Button>
             </Col>
             <Col xs={24} md={12}>
-              <Button 
+              <Button
                 type="default"
                 icon={<FileTextOutlined />}
                 onClick={() => navigate('/document-management/internship')}
@@ -154,8 +154,8 @@ function Dashboard() {
               >
                 จัดการเอกสาร
                 {stats.documents.pending > 0 && (
-                  <Badge 
-                    count={stats.documents.pending} 
+                  <Badge
+                    count={stats.documents.pending}
                     style={{ marginLeft: 8 }}
                   />
                 )}
@@ -231,7 +231,6 @@ function Dashboard() {
 
     useEffect(() => {
       const fetchEligibility = async () => {
-        // ตรวจสอบว่ามี userData และ studentCode ก่อน
         if (!userData || !userData.studentCode) {
           setError(new Error('ไม่พบข้อมูลนักศึกษา'));
           setLoading(false);
@@ -239,12 +238,8 @@ function Dashboard() {
         }
 
         try {
-          console.log('Fetching data for:', userData.studentCode);
           const response = await studentService.getStudentInfo(userData.studentCode);
-          
-          console.log('Backend response:', response);
-          
-          // ตรวจสอบ success flag จาก backend
+
           if (!response.success || !response.data) {
             throw new Error(response.message || 'ไม่พบข้อมูลจากเซิร์ฟเวอร์');
           }
@@ -261,9 +256,9 @@ function Dashboard() {
               project: response.data.eligibility.project.message
             }
           };
-          
+
           setEligibilityData(formattedData);
-          
+
         } catch (err) {
           console.error('Error:', err);
           setError(err);
@@ -274,7 +269,7 @@ function Dashboard() {
       };
 
       fetchEligibility();
-    }, [userData]); // เปลี่ยน dependency เป็น userData
+    }, [userData]);
 
     if (loading) {
       return (
@@ -309,15 +304,15 @@ function Dashboard() {
           <Row gutter={[16, 16]}>
             {/* สถานะการฝึกงาน */}
             <Col xs={24} sm={12}>
-            <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
+              <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
                 <Statistic
                   title="สถานะการฝึกงาน"
                   value={eligibilityData?.isEligibleInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
-                  valueStyle={{ 
-                    color: eligibilityData?.isEligibleInternship ? '#52c41a' : '#ff4d4f' 
+                  valueStyle={{
+                    color: eligibilityData?.isEligibleInternship ? '#52c41a' : '#ff4d4f'
                   }}
-                  prefix={eligibilityData?.isEligibleInternship ? 
-                    <CheckCircleOutlined /> : 
+                  prefix={eligibilityData?.isEligibleInternship ?
+                    <CheckCircleOutlined /> :
                     <ClockCircleOutlined />
                   }
                 />
@@ -330,8 +325,8 @@ function Dashboard() {
                   </Descriptions.Item>
                 </Descriptions>
                 {eligibilityData?.isEligibleInternship && (
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     icon={<FormOutlined />}
                     onClick={() => navigate('/internship')}
                     style={{ marginTop: '16px' }}
@@ -344,15 +339,15 @@ function Dashboard() {
 
             {/* สถานะโครงงาน */}
             <Col xs={24} sm={12}>
-            <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
+              <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
                 <Statistic
                   title="สถานะโครงงานพิเศษ"
                   value={eligibilityData?.isEligibleProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
-                  valueStyle={{ 
-                    color: eligibilityData?.isEligibleProject ? '#52c41a' : '#ff4d4f' 
+                  valueStyle={{
+                    color: eligibilityData?.isEligibleProject ? '#52c41a' : '#ff4d4f'
                   }}
-                  prefix={eligibilityData?.isEligibleProject ? 
-                    <CheckCircleOutlined /> : 
+                  prefix={eligibilityData?.isEligibleProject ?
+                    <CheckCircleOutlined /> :
                     <ClockCircleOutlined />
                   }
                 />
@@ -371,8 +366,8 @@ function Dashboard() {
                   </Descriptions.Item>
                 </Descriptions>
                 {eligibilityData?.isEligibleProject && (
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     icon={<ProjectOutlined />}
                     onClick={() => navigate('/project')}
                     style={{ marginTop: '16px' }}

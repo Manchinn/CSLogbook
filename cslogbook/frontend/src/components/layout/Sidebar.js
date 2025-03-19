@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Menu, Avatar, Typography, Badge, message, Tooltip } from 'antd';
+import { Layout, Menu, Avatar, Typography, Badge, message, Tooltip, Button, Drawer, Grid } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentPermissions } from '../../hooks/useStudentPermissions';
@@ -17,11 +17,13 @@ import {
   BookOutlined,
   CheckSquareOutlined,
   FileDoneOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import './Sidebar.css';
 
 const { Sider } = Layout;
-const { Title } = Typography; 
+const { Title } = Typography;
+const { useBreakpoint } = Grid;
 
 const themeConfig = {
   student: 'student-theme',
@@ -30,15 +32,14 @@ const themeConfig = {
 };
 
 const MenuItemWithTooltip = ({ item, disabled, title }) => {
-  // เพิ่มการตรวจสอบว่ามี title และ disabled หรือไม่
   if (disabled && title) {
     return (
-      <Tooltip 
-        title={title} 
+      <Tooltip
+        title={title}
         placement="right"
         color={disabled ? '#ff4d4f' : '#52c41a'}
       >
-        <span style={{ 
+        <span style={{
           opacity: disabled ? 0.5 : 1,
           cursor: disabled ? 'not-allowed' : 'pointer'
         }}>
@@ -50,29 +51,18 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
   return item.label;
 };
 
-const Sidebar = () => {
-  const [isMobile, setIsMobile] = useState(false);
+const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const navigate = useNavigate();
   const location = useLocation();
   const { userData, logout } = useAuth();
   const [studentData, setStudentData] = useState(null);
   const { canAccessInternship, canAccessProject, messages, updatePermissions } = useStudentPermissions(userData);
+  const screens = useBreakpoint();
 
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Handle logout
   const handleLogout = async () => {
     try {
-      // Set userData to null ก่อน navigate
       await logout();
-      // Navigate หลังจาก clear userData แล้ว
       navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
@@ -81,17 +71,16 @@ const Sidebar = () => {
   };
 
   useEffect(() => {
-    // ตรวจสอบเมื่อ path เปลี่ยน
     const checkRouteAccess = () => {
       const path = location.pathname;
-      
+
       if (userData?.role === 'student') {
         if (path.includes('/project') && !canAccessProject) {
           message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ');
           navigate('/dashboard');
           return;
         }
-        
+
         if (path.includes('/internship') && !canAccessInternship) {
           message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน');
           navigate('/dashboard');
@@ -103,7 +92,6 @@ const Sidebar = () => {
     checkRouteAccess();
   }, [location.pathname, userData, canAccessProject, canAccessInternship, navigate]);
 
-  // เพิ่ม Effect เพื่อติดตามการเปลี่ยนแปลงข้อมูลนักศึกษา
   useEffect(() => {
     if (userData?.role === 'student' && userData?.studentCode) {
       const fetchStudentData = async () => {
@@ -111,8 +99,7 @@ const Sidebar = () => {
           const response = await studentService.getStudentInfo(userData.studentCode);
           if (response.success) {
             const newData = response.data;
-            
-            // เช็คว่าข้อมูลมีการเปลี่ยนแปลงหรือไม่
+
             if (JSON.stringify(studentData) !== JSON.stringify(newData)) {
               setStudentData(newData);
               updatePermissions(newData);
@@ -127,13 +114,12 @@ const Sidebar = () => {
 
       fetchStudentData();
       const interval = setInterval(fetchStudentData, 30000);
-      
+
       return () => clearInterval(interval);
     }
-  }, [userData?.studentCode, userData?.role, updatePermissions, studentData]); // เพิ่ม studentData
+  }, [userData?.studentCode, userData?.role, updatePermissions, studentData]);
 
   const menuItems = useMemo(() => {
-    // ถ้าไม่มี userData return เฉพาะ logout
     if (!userData?.role) {
       return [{
         key: 'logout',
@@ -144,14 +130,11 @@ const Sidebar = () => {
     }
 
     return [
-      // Dashboard - Common for all roles
       {
         key: '/dashboard',
         icon: <HomeOutlined />,
         label: 'หน้าแรก',
       },
-
-      // Student Menu Items
       ...(userData?.role === 'student' ? [
         {
           key: `/student-profile/${userData.studentCode}`,
@@ -161,7 +144,7 @@ const Sidebar = () => {
         {
           key: 'internship',
           icon: <FileTextOutlined />,
-          label: <MenuItemWithTooltip 
+          label: <MenuItemWithTooltip
             item={{ label: 'ระบบฝึกงาน' }}
             disabled={!canAccessInternship}
             title={messages.internship}
@@ -192,7 +175,6 @@ const Sidebar = () => {
                   key: '/internship-logbook/timesheet',
                   label: 'ใบลงเวลาและบันทึกประจำวัน',
                 }
-                
               ]
             },
             {
@@ -205,7 +187,7 @@ const Sidebar = () => {
         {
           key: 'project',
           icon: <ProjectOutlined />,
-          label: <MenuItemWithTooltip 
+          label: <MenuItemWithTooltip
             item={{ label: 'โครงงานพิเศษ' }}
             disabled={!canAccessProject}
             title={messages.project}
@@ -241,9 +223,7 @@ const Sidebar = () => {
             }
           ]
         }
-      ].filter(Boolean) : []),
-
-      // Teacher Menu Items
+      ] : []),
       ...(userData?.role === 'teacher' ? [
         {
           key: '/review-documents',
@@ -261,8 +241,6 @@ const Sidebar = () => {
           label: 'อนุมัติเอกสาร',
         }
       ] : []),
-
-      // Admin Menu Items
       ...(userData?.role === 'admin' ? [
         {
           key: 'manage',
@@ -304,15 +282,13 @@ const Sidebar = () => {
           label: 'อัปโหลดรายชื่อนักศึกษา',
         }
       ] : []),
-
-      // Logout - Common for all roles
       {
         key: 'logout',
         icon: <LogoutOutlined />,
         label: 'ออกจากระบบ',
         className: 'logout',
       }
-    ].filter(Boolean);
+    ];
   }, [userData, canAccessInternship, canAccessProject, messages]);
 
   const handleMenuClick = ({ key }) => {
@@ -321,14 +297,17 @@ const Sidebar = () => {
     } else {
       navigate(key);
     }
+    if (isMobile) {
+      onClose(); // ปิด Drawer เมื่อคลิกเมนูในหน้าจอเล็ก
+    }
   };
 
   const renderLastUpdate = () => {
     if (userData?.role === 'student') {
       return (
-        <div style={{ 
-          padding: '8px', 
-          textAlign: 'center', 
+        <div style={{
+          padding: '8px',
+          textAlign: 'center',
           fontSize: '12px',
           color: 'rgba(0,0,0,0.45)'
         }}>
@@ -340,51 +319,76 @@ const Sidebar = () => {
   };
 
   return (
-    <Sider 
-      width={230} 
-      className={`sider ${userData?.role ? themeConfig[userData.role] : ''}`}
-      breakpoint="lg"
-      collapsedWidth={isMobile ? 0 : 80}
-    >
-      <div className="profile">
-        <Avatar
-          size={64}
-          style={{
-            backgroundColor: 'var(--active-color)',
-            marginBottom: 12,
-            fontSize: '24px',
-          }}
+    <>
+      {!isMobile && (
+        <Sider
+          width={230}
+          className={`sider ${userData?.role ? themeConfig[userData.role] : ''}`}
+          style={{ zIndex: 12 }}
         >
-          {userData?.firstName?.charAt(0)?.toUpperCase() || '?'}
-        </Avatar>
-        <Title level={5} style={{ margin: '8px 0 4px' }}>
-          {userData?.firstName} {userData?.lastName}
-        </Title>
-        <Badge
-          count={
-            !userData?.role ? '' :
-            userData.role === 'admin' ? 'ผู้ดูแลระบบ' : 
-            userData.role === 'teacher' ? 'อาจารย์' : 
-            'นักศึกษา'
-          }
-          style={{
-            backgroundColor: 'var(--active-color)',
-            fontSize: '12px',
-          }}
-        />
-      </div>
+          <div className="profile">
+            <Avatar
+              size={64}
+              style={{
+                backgroundColor: 'var(--active-color)',
+                marginBottom: 12,
+                fontSize: '24px',
+              }}
+            >
+              {userData?.firstName?.charAt(0)?.toUpperCase() || '?'}
+            </Avatar>
+            <Title level={5} style={{ margin: '8px 0 4px' }}>
+              {userData?.firstName} {userData?.lastName}
+            </Title>
+            <Badge
+              count={
+                !userData?.role ? '' :
+                  userData.role === 'admin' ? 'ผู้ดูแลระบบ' :
+                    userData.role === 'teacher' ? 'อาจารย์' :
+                      'นักศึกษา'
+              }
+              style={{
+                backgroundColor: 'var(--active-color)',
+                fontSize: '12px',
+              }}
+            />
+          </div>
 
-      <Menu 
-        mode="inline" 
-        items={menuItems} 
-        selectedKeys={[location.pathname]}
-        defaultSelectedKeys={[location.pathname]}
-        className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
-        onClick={handleMenuClick}
-      />
-      
-      {renderLastUpdate()}
-    </Sider>
+          <Menu
+            mode="inline"
+            items={menuItems}
+            selectedKeys={[location.pathname]}
+            defaultSelectedKeys={[location.pathname]}
+            className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
+            onClick={handleMenuClick}
+          />
+          {renderLastUpdate()}
+        </Sider>
+      )}
+
+      {isMobile && (
+        <Drawer
+          title="เมนู"
+          placement="left"
+          closable
+          onClose={onClose}
+          open={drawerVisible}
+          width={230}
+          bodyStyle={{ padding: 0 }}
+          
+        >
+          <Menu
+            mode="inline"
+            items={menuItems}
+            selectedKeys={[location.pathname]}
+            defaultSelectedKeys={[location.pathname]}
+            className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
+            onClick={handleMenuClick}
+          />
+          {renderLastUpdate()}
+        </Drawer>
+      )}
+    </>
   );
 };
 
