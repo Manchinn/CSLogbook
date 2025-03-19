@@ -1,0 +1,229 @@
+.internship-container {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  min-height: 55vh;
+  background-color: #f5f5f5;
+  padding: 20px;
+  
+}
+
+.internship-card {
+  width: 100%;
+  max-width: 90%;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 20px auto;
+}
+
+.internship-paragraph {
+  text-align: left;
+  font-size: 16px;
+}
+
+.internship-button {
+  margin-top: 10px;
+  font-size: 18px;
+  padding: 20px;
+}
+
+.internship-steps-container {
+  width: 100%;
+  padding: 15px 0;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.internship-steps {
+  width: 85%;
+  max-width: 1000px;
+}
+
+.internship-step-title {
+  font-weight: bold;
+}
+
+.internship-card {
+  margin: 24px auto;
+  max-width: 800px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.cs05-form,
+.timesheet-form {
+  padding: 20px;
+}
+
+.ant-form-item {
+  margin-bottom: 16px;
+}
+
+.ant-btn {
+  margin-top: 16px;
+}
+
+/* เพิ่ม styles ใหม่ */
+.form-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+}
+
+.time-input {
+  width: 200px;
+}
+
+.text-area {
+  min-height: 120px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.internship-subcard {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+/* เพิ่ม styles สำหรับฟอร์ม */
+.internship-form {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.internship-form .ant-form-item {
+  margin-bottom: 24px;
+}
+
+.internship-form .ant-input,
+.internship-form .ant-picker {
+  height: 40px;
+}
+
+/* สำหรับ TimePicker */
+.internship-form .ant-picker-time-panel {
+  width: 180px;
+}
+
+/* สำหรับ TextArea */
+.internship-form .ant-input-textarea {
+  min-height: 120px;
+}
+
+/* ปรับแต่ง Button */
+.internship-button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.timesheet-overview {
+  margin-bottom: 24px;
+}
+
+.status-card {
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.status-card:hover {
+  transform: translateY(-3px);
+}
+
+.status-card.pending {
+  border-left: 3px solid #faad14;
+}
+
+.status-card.incomplete {
+  border-left: 3px solid #1890ff;
+}
+
+.status-card.submitted {
+  border-left: 3px solid #52c41a;
+}
+
+.status-card.approved {
+  border-left: 3px solid #52c41a;
+  background-color: #f6ffed;
+}
+
+.summary-card {
+  text-align: center;
+  background-color: #fafafa;
+}
+
+.ant-tabs-nav {
+  margin-bottom: 24px;
+}
+
+.view-details {
+  padding: 16px;
+}
+
+.view-details p {
+  margin-bottom: 8px;
+}
+
+.view-details strong {
+  color: #1890ff;
+}
+
+.status-overview {
+  margin-bottom: 24px;
+}
+
+.status-summary-card {
+  text-align: center;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.status-summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.status-summary-card.total {
+  background-color: #f5f5f5;
+}
+
+.status-summary-card.completed {
+  background-color: #f6ffed;
+  border-left: 4px solid #52c41a;
+}
+
+.status-summary-card.in-progress {
+  background-color: #e6f7ff;
+  border-left: 4px solid #1890ff;
+}
+
+.status-summary-card.pending {
+  background-color: #fff7e6;
+  border-left: 4px solid #faad14;
+}
+
+.ant-statistic-title {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.ant-statistic-content {
+  font-size: 24px;
+}
+
+.ant-statistic-prefix {
+  margin-right: 8px;
+  font-size: 20px;
+}

@@ -1,5 +1,5 @@
 // Load environment variables first
-require('dotenv').config({ 
+require('dotenv').config({
   path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development'
 });
 
@@ -76,12 +76,8 @@ const swaggerUi = require('swagger-ui-express');
 const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
-const projectProposalsRoutes = require('./routes/projectProposals'); // นำเข้า route
-const studentPairsRoutes = require('./routes/studentpairsRoutes'); // นำเข้า route
-const documentsRoutes = require('./routes/documents'); // นำเข้า route
-const internshipDocumentsRoutes = require('./routes/internshipDocuments'); // นำเข้า route
-const uploadRoutes = require('./routes/upload'); // เพิ่มการนำเข้า route
-const logbookRoutes = require('./routes/logbookRoutes'); // นำเข้า route
+const uploadRoutes = require('./routes/upload'); // 
+const internshipRoutes = require('./routes/documents/internshipRoutes');
 
 const adminRoutes = require('./routes/adminRoutes');
 
@@ -94,16 +90,10 @@ const pool = require('./config/database');
 app.set('trust proxy', 1);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept'
-  ],
-  exposedHeaders: ['Content-Range', 'X-Content-Range']
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 // ย้าย cors middleware ขึ้นไปก่อน route handlers
@@ -201,14 +191,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
-app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
-app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
-app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
-app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
-app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
+//app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
+//app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
+//app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
+//app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
+//app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
 
 // Protected upload route - เฉพาะ admin เท่านั้น
 app.use('/api', uploadRoutes); // ใช้ route
+
+// Add routes
+app.use('/api/internship', internshipRoutes);
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

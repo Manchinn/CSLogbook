@@ -61,133 +61,127 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
   };
 
+  const headerStyles = {
+    mainHeader: {
+      marginTop: isMobile ? '0' : '20px',
+      paddingTop: isMobile ? '0' : '20px',
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+      background: theme.gradient,
+      backdropFilter: 'blur(10px)',
+      padding: '0 24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: 'auto',
+      minHeight: '72px',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      zIndex: 11,
+      borderRadius: '16px',
+      marginLeft: isMobile ? 0 : '290px',
+      width: isMobile ? '100%' : 'calc(100% - 375px)',
+    },
+    titleContainer: {
+      maxWidth: isMobile ? '200px' : '600px',
+    },
+    mainTitle: {
+      margin: 0,
+      fontSize: isMobile ? '20px' : '24px',
+      color: theme.text,
+      lineHeight: 1.4,
+      fontWeight: 600,
+    },
+    subtitle: {
+      fontSize: '14px',
+      color: 'rgba(0, 0, 0, 0.65)',
+      lineHeight: 1.5,
+      margin: 0,
+      display: isMobile ? 'none' : 'block',
+    },
+    userAvatar: {
+      display: isMobile ? 'none' : 'block',
+      backgroundColor: theme.badge,
+      color: '#fff',
+      fontWeight: 'bold',
+    },
+    userName: {
+      fontSize: '14px',
+      color: theme.text,
+    },
+    roleBadge: {
+      backgroundColor: theme.badge,
+      fontSize: '12px',
+      padding: '0 8px',
+      borderRadius: '6px',
+    },
+    secondaryHeader: {
+      backgroundColor: '#f5f5f5',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '115px',
+      zIndex: 10,
+    },
+    secondaryTitle: {
+      textAlign: 'center',
+      color: 'white',
+      paddingTop: '15px',
+      fontSize: '18px',
+      fontWeight: 'bold',
+    },
+  };
+
   return (
-    <Layout>
-      {/* First Header (Main Header) */}
-      <Header
-        style={{
-          marginTop: '20px',
-          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-          background: theme.gradient,
-          backdropFilter: 'blur(10px)',
-          padding: '0 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 'auto',
-          minHeight: '72px',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          zIndex: 11,
-          borderRadius: '16px',
-          marginLeft: isMobile ? 0 : '290px',
-          width: isMobile ? '100%' : 'calc(100% - 375px)',
-        }}
-      >
-        <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
-          {isMobile && (
-            <Button
-              type="text"
-              icon={<MenuOutlined style={{ fontSize: '20px', color: theme.primary }} />}
-              onClick={showDrawer}
-              style={{
-                ...buttonStyle,
-                padding: '8px',
-                width: '40px',
-                height: '40px',
-              }}
-            />
-          )}
+    <>
+      <Header style={headerStyles.mainHeader}>
+        {/* Left side */}
+        <div style={{ flex: 1 }}>
+          <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ fontSize: '20px', color: theme.primary }} />}
+                onClick={showDrawer}
+                style={buttonStyle}
+              />
+            )}
 
-          <Space direction="vertical" size={4} style={{ maxWidth: isMobile ? '200px' : '600px' }}>
-            <Title
-              level={4}
-              style={{
-                margin: 0,
-                fontSize: isMobile ? '20px' : '24px',
-                color: theme.text,
-                lineHeight: 1.4,
-                fontWeight: 600,
-              }}
-            >
-              CS Logbook
-            </Title>
-            <Text
-              style={{
-                fontSize: '14px',
-                color: 'rgba(0, 0, 0, 0.65)',
-                lineHeight: 1.5,
-                margin: 0,
-                display: 'block',
-              }}
-            >
-              ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
-            </Text>
+            <Space direction="vertical" size={4} style={headerStyles.titleContainer}>
+              <Title level={4} style={headerStyles.mainTitle}>
+                CS Logbook
+              </Title>
+              <Text style={headerStyles.subtitle}>
+                ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
+              </Text>
+            </Space>
           </Space>
-        </Space>
+        </div>
 
-        <Space size={16} align="center">
-          <Avatar
-            style={{
-              backgroundColor: theme.badge,
-              color: '#fff',
-              fontWeight: 'bold',
-            }}
-          >
-            {firstName?.charAt(0)?.toUpperCase()}
-          </Avatar>
+        {/* Right side */}
+        <div style={{ marginRight: 'auto', padding: '12px' }}>
+          <Space size={16} align="center">
+            <Avatar style={headerStyles.userAvatar}>
+              {firstName?.charAt(0)?.toUpperCase()}
+            </Avatar>
 
-          <Space direction="vertical" size={0}>
-            <Text strong style={{ fontSize: '14px', color: theme.text }}>
-              {firstName} {lastName}
-            </Text>
-            <Badge
-              count={getRoleTitle(role)}
-              style={{
-                backgroundColor: theme.badge,
-                fontSize: '12px',
-                padding: '0 8px',
-                borderRadius: '6px',
-              }}
-            />
+            <Space direction="vertical" size={0}>
+              <Text strong style={headerStyles.userName}>
+                {firstName} {lastName}
+              </Text>
+              <Badge count={getRoleTitle(role)} style={headerStyles.roleBadge} />
+            </Space>
           </Space>
-        </Space>
+        </div>
       </Header>
 
-      {/* New Block Header (Second Header) */}
-      <div
-        style={{
-          backgroundColor: '#f5f5f5',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '115px',
-          zIndex: 10,
-        }}
-      >
-        <h2
-          style={{
-            textAlign: 'center',
-            color: 'white',
-            paddingTop: '15px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-          }}
-        >
-        </h2>
+      <div style={headerStyles.secondaryHeader}>
+        <h2 style={headerStyles.secondaryTitle}></h2>
       </div>
 
-      {/* Main Content */}
-      <div
-        style={{
-          backgroundColor: '#f4f4f4',
-          padding: '20px',
-        }}
-      >
-      </div>
-    </Layout>
+      <div style={{ backgroundColor: '#f4f4f4', padding: '20px' }}></div>
+    </>
   );
 };
 

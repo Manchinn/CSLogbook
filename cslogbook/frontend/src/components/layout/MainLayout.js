@@ -55,11 +55,15 @@ const MainLayout = () => {
           style={{ 
             marginLeft: isMobile ? 0 : '200px',
             paddingTop: '80px', 
-            overflow: 'hidden',
-            backdropFilter: 'blur(10px)',
-            zIndex: 0,
-        }}> 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+            alignItems: 'center',
+            justifyContent: 'center',
+            // height: '100vh',
+            // overflow: 'hidden',
+            // backdropFilter: 'blur(10px)',
+            // zIndex: 0,
+        }}
+        > 
+          <div className="bg-white rounded-lg shadow-sm p-6 " style={{ margin:"1rem 4rem",}}>
             <Outlet />
           </div>
         </Content>

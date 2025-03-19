@@ -1,7 +1,6 @@
-const pool = require('../config/database');
+const { User, Teacher, Student, Sequelize } = require('../models');
 const bcrypt = require('bcrypt');
-const {User, Student, Teacher} = require("../models");
-const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
 
 function generateRandomStudentID() {
     return Math.random().toString().slice(2, 15); // สุ่มเลข 13 ตัว
@@ -11,163 +10,350 @@ function generateUsernameFromEmail(email) {
     const [name, domain] = email.split('@');
     const [firstName, lastNameInitial] = name.split('.');
     return `${firstName}.${lastNameInitial.charAt(0)}`.toLowerCase();
-  }
+}
 
 exports.getAllTeachers = async (req, res, next) => {
   try {
-    // ดึงข้อมูลผู้ใช้ที่มี role เป็น teacher พร้อมข้อมูล
     const teachers = await User.findAll({
       where: { role: 'teacher' },
+      attributes: ['userId', 'firstName', 'lastName', 'email'],
       include: [{
         model: Teacher,
         as: 'teacher',
-        attributes: [
-          'teacherCode',    // รหัสอาจารย์
-          'first_name',    // ชื่อ
-          'lastName'  // นามสกุล
-        ]
+        required: true,
+        attributes: ['teacherId', 'teacherCode', 'contactExtension']
       }]
     });
 
-    // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
-    const formattedTeachers = teachers.map(teacher => ({
-      ...teacher.toJSON(),
-      teacherCode: teacher.teacher?.teacherCode || '',
-      firstName: user.teacher?.firstName || '',
-      lastName: user.teacher?.lastName || ''
+    const formattedTeachers = teachers.map(user => ({
+      userId: user.userId,                    // hidden field
+      teacherId: user.teacher?.teacherId,     // hidden field
+      teacherCode: user.teacher?.teacherCode || '',
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      contactExtension: user.teacher?.contactExtension || ''
     }));
 
-    res.json(formattedTeachers);
+    res.json({
+      success: true,
+      data: formattedTeachers,
+      message: 'ดึงข้อมูลอาจารย์สำเร็จ'
+    });
+
   } catch (error) {
-    console.error('Error in student list route:', error);
+    console.error('Error in getAllTeachers:', error);
     next(error);
   }
 };
 
-// exports.getAllTeachers = async (req, res) => {
-//   try {
-//     const [teachers] = await pool.execute(`
-//       SELECT t.id, t.sName, t.firstName, t.lastName, t.email, u.role
-//       FROM teachers t
-//       JOIN users u ON t.id = u.id
-//       WHERE u.role = 'teacher'
-//     `);
-//     res.json(teachers);
-//   } catch (error) {
-//     console.error('Error fetching teachers:', error);
-//     res.status(500).json({ error: 'Error fetching teachers' });
-//   }
-// };
+exports.getTeacherById = async (req, res) => {
+  try {
+    const teacher = await Teacher.findOne({
+      where: { teacherCode: req.params.id },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName', 'email']
+      }]
+    });
+
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลอาจารย์'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        teacherCode: teacher.teacherCode,
+        firstName: teacher.user.firstName,
+        lastName: teacher.user.lastName,
+        email: teacher.user.email,
+        contactExtension: teacher.contactExtension
+      }
+    });
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
+  }
+};
 
 exports.addTeacher = async (req, res) => {
-  const { sName, firstName, lastName, email } = req.body;
-  const connection = await pool.getConnection();
+  let transaction;
   try {
-    await connection.beginTransaction();
+    const {
+      teacherCode,
+      firstName,
+      lastName,
+      email,
+      contactExtension
+    } = req.body;
 
-    const username = generateUsernameFromEmail(email);
-    const password = username;
-    const hashedPassword = await bcrypt.hash(password, 10); // เข้ารหัสรหัสผ่าน
+    if (!teacherCode || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+        required: ['teacherCode', 'firstName', 'lastName']
+      });
+    }
 
-    const studentID = generateRandomStudentID();
+    transaction = await sequelize.transaction();
 
-    const [result] = await connection.execute(
-      'INSERT INTO users (username, password, studentID,firstName, lastName, email, role) VALUES (?, ?, ?, ?, ?, ?, "teacher")',
-      [username, hashedPassword, studentID ,firstName, lastName, email]
-    );
+    const existingTeacher = await Teacher.findOne({
+      where: { teacherCode },
+      transaction
+    });
 
-    const userId = result.insertId;
+    if (existingTeacher) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: 'รหัสอาจารย์นี้มีในระบบแล้ว',
+        teacherCode
+      });
+    }
 
-    // เพิ่มข้อมูลในตาราง teachers
-    await connection.execute(
-      'INSERT INTO teachers (id, sName, firstName, lastName, email, role) VALUES (?, ?, ?, ?, ?, "teacher")',
-      [userId, sName, firstName, lastName, email]
-    );
+    const user = await User.create({
+      username: `t${teacherCode}`,
+      password: await bcrypt.hash(teacherCode, 10),
+      firstName,
+      lastName,
+      email: email || `${teacherCode}@email.kmutnb.ac.th`,
+      role: 'teacher',
+      activeStatus: true
+    }, { transaction });
 
-    await connection.commit();
-    res.json({ success: true, message: 'เพิ่มอาจารย์เรียบร้อย' });
+    const teacher = await Teacher.create({
+      teacherCode,
+      userId: user.userId,
+      contactExtension
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'เพิ่มข้อมูลอาจารย์สำเร็จ',
+      data: {
+        userId: user.userId,
+        teacherId: teacher.teacherId,
+        teacherCode: teacher.teacherCode,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        contactExtension: teacher.contactExtension
+      }
+    });
+
   } catch (error) {
-    await connection.rollback();
-    console.error('Error adding teacher:', error.message, error.stack);
-    res.status(500).json({ error: 'Error adding teacher' });
-  } finally {
-    connection.release();
+    if (transaction) await transaction.rollback();
+    
+    console.error('Error adding teacher:', error);
+
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        success: false,
+        message: 'ข้อมูลซ้ำในระบบ กรุณาตรวจสอบรหัสอาจารย์หรืออีเมล'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 exports.updateTeacher = async (req, res) => {
-  const { sName } = req.params;
-  const { firstName, lastName, email } = req.body;
-  const connection = await pool.getConnection();
+  let transaction;
   try {
-    await connection.beginTransaction();
+    const { id } = req.params;
+    const { firstName, lastName, email, contactExtension } = req.body;
 
-    // ดึง userId จากตาราง teachers
-    const [teacher] = await connection.execute(
-      'SELECT id FROM teachers WHERE sName = ?',
-      [sName]
-    );
+    transaction = await sequelize.transaction();
 
-    if (teacher.length === 0) {
-      return res.status(404).json({ error: 'ไม่พบข้อมูลอาจารย์' });
+    const teacher = await Teacher.findOne({
+      where: { teacherCode: id },
+      include: [{
+        model: User,
+        as: 'user'
+      }],
+      transaction
+    });
+
+    if (!teacher) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลอาจารย์'
+      });
     }
 
-    const userId = teacher[0].id;
+    // Update teacher record
+    await Teacher.update({
+      contactExtension: contactExtension || teacher.contactExtension
+    }, {
+      where: { teacherCode: id },
+      transaction
+    });
 
-    // อัพเดทข้อมูลในตาราง users โดยไม่ต้องใส่ studentID
-    await connection.execute(
-      'UPDATE users SET firstName = ?, lastName = ?, studentID, email = ? WHERE id = ? AND role = "teacher"',
-      [firstName, lastName, studentID, email, userId]
-    );
+    // Update user record
+    if (firstName || lastName || email) {
+      await User.update({
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(email && { email })
+      }, {
+        where: { userId: teacher.userId },
+        transaction
+      });
+    }
 
-    // อัพเดทข้อมูลในตาราง teachers
-    await connection.execute(
-      'UPDATE teachers SET firstName = ?, lastName = ?, email = ? WHERE id = ?',
-      [firstName, lastName, email, userId]
-    );
+    await transaction.commit();
 
-    await connection.commit();
-    res.json({ success: true, message: 'แก้ไขข้อมูลอาจารย์เรียบร้อย' });
+    res.json({
+      success: true,
+      message: 'อัพเดทข้อมูลสำเร็จ',
+      data: {
+        teacherCode: id,
+        firstName: firstName || teacher.user.firstName,
+        lastName: lastName || teacher.user.lastName,
+        email: email || teacher.user.email,
+        contactExtension: contactExtension || teacher.contactExtension
+      }
+    });
+
   } catch (error) {
-    await connection.rollback();
-    console.error('Error updating teacher:', error.message, error.stack);
-    res.status(500).json({ error: 'Error updating teacher' });
-  } finally {
-    connection.release();
+    if (transaction) await transaction.rollback();
+    
+    console.error('Error in updateTeacher:', error);
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'ข้อมูลไม่ถูกต้อง',
+        errors: error.errors.map(e => e.message)
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 exports.deleteTeacher = async (req, res) => {
-  const { sName } = req.params;
-  const connection = await pool.getConnection();
+  let transaction;
   try {
-    await connection.beginTransaction();
+    const { id } = req.params;
+    
+    transaction = await sequelize.transaction();
 
-    // ดึง userId จากตาราง teachers
-    const [teacher] = await connection.execute(
-      'SELECT id FROM teachers WHERE sName = ?',
-      [sName]
-    );
+    const teacher = await Teacher.findOne({
+      where: { teacherCode: id },
+      transaction
+    });
 
-    if (teacher.length === 0) {
-      return res.status(404).json({ error: 'ไม่พบข้อมูลอาจารย์' });
+    if (!teacher) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลอาจารย์'
+      });
     }
 
-    const userId = teacher[0].id;
+    // Delete teacher record
+    await Teacher.destroy({
+      where: { teacherCode: id },
+      transaction
+    });
 
-    // ลบข้อมูลในตาราง users
-    await connection.execute('DELETE FROM users WHERE id = ? AND role = "teacher"', [userId]);
+    // Delete user record
+    await User.destroy({
+      where: { userId: teacher.userId },
+      transaction
+    });
 
-    // ลบข้อมูลในตาราง teachers
-    await connection.execute('DELETE FROM teachers WHERE id = ?', [userId]);
+    await transaction.commit();
 
-    await connection.commit();
-    res.json({ success: true, message: 'ลบอาจารย์เรียบร้อย' });
+    res.json({
+      success: true,
+      message: 'ลบข้อมูลอาจารย์เรียบร้อย',
+      data: {
+        teacherCode: id
+      }
+    });
+
   } catch (error) {
-    await connection.rollback();
-    console.error('Error deleting teacher:', error.message, error.stack);
-    res.status(500).json({ error: 'Error deleting teacher' });
-  } finally {
-    connection.release();
+    if (transaction) await transaction.rollback();
+    
+    console.error('Error deleting teacher:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการลบข้อมูล',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+exports.getAdvisees = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ตรวจสอบว่ามีอาจารย์คนนี้หรือไม่
+    const teacher = await Teacher.findOne({
+      where: { teacherCode: id }
+    });
+
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลอาจารย์'
+      });
+    }
+
+    // ดึงข้อมูลนักศึกษาที่เป็นที่ปรึกษา
+    const advisees = await Student.findAll({
+      where: { advisorId: teacher.teacherId },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName', 'email']
+      }]
+    });
+
+    const formattedAdvisees = advisees.map(student => ({
+      studentCode: student.studentCode,
+      firstName: student.user.firstName,
+      lastName: student.user.lastName,
+      totalCredits: student.totalCredits,
+      majorCredits: student.majorCredits,
+      isEligibleInternship: student.isEligibleInternship,
+      isEligibleProject: student.isEligibleProject
+    }));
+
+    res.json({
+      success: true,
+      data: formattedAdvisees,
+      message: 'ดึงข้อมูลนักศึกษาในที่ปรึกษาสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('Error in getAdvisees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษาในที่ปรึกษา',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

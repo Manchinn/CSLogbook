@@ -1,8 +1,8 @@
 // backend/routes/logbookRoutes.js
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/authMiddleware');
-const logbookController = require('../controllers/logbookController');
+const { authenticateToken } = require('../../middleware/authMiddleware');
+const logbookController = require('../../controllers/logbookController');
 
 // Get user's logbooks
 router.get('/', authenticateToken, logbookController.getLogbooks);

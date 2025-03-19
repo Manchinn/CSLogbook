@@ -25,7 +25,7 @@ const LoginForm = () => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            timeout: 5000  // Add timeout
+            timeout: 15000  // Add timeout
         });
 
         console.log('Login response:', response.data);  // Debug log

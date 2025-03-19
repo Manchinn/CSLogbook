@@ -4,11 +4,12 @@ module.exports = (sequelize) => {
     class DocumentLog extends Model {
         static associate(models) {
             DocumentLog.belongsTo(models.Document, {
-                foreignKey: 'document_id',
+                foreignKey: 'documentId',
+                targetKey: 'documentId',
                 as: 'document'
             });
             DocumentLog.belongsTo(models.User, {
-                foreignKey: 'user_id',
+                foreignKey: 'userId',
                 as: 'user'
             });
         }

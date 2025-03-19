@@ -16,10 +16,11 @@ module.exports = {
       updatedAt: 'updated_at'
     },
     pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
+      max: 10,     // เพิ่มจาก 5 เป็น 10 เพื่อรองรับการทำงานพร้อมกัน
+      min: 2,      // เพิ่มจาก 0 เป็น 2 เพื่อให้มี connection พร้อมใช้
+      acquire: 60000, // เพิ่มจาก 30000 เป็น 60000 ms
+      idle: 15000,   // เพิ่มจาก 10000 เป็น 15000 ms
+      evict: 15000   // เพิ่ม eviction time
     }
   },
   test: {
@@ -38,10 +39,11 @@ module.exports = {
     dialect: "mysql",
     logging: false,
     pool: {
-      max: 10,
-      min: 2,
-      acquire: 30000,
-      idle: 10000
+      max: 25,     // เพิ่มตาม concurrent users
+      min: 5,      // รักษา connections ขั้นต่ำ
+      acquire: 60000,
+      idle: 20000,
+      evict: 20000
     }
   }
 };

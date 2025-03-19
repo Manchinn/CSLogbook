@@ -1,24 +1,29 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { InternshipProvider } from './contexts/InternshipContext';
 import MainLayout from './components/layout/MainLayout';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentList from './components/StudentList';
 import TeacherList from './components/TeacherList';
-import StudentPairsList from './components/StudentPairsList';
-import AdminUpload from './components/AdminUpload';
 import StudentProfile from './components/StudentProfile';
-import InternshipTerms from "./components/internship/InternshipTerms";
-import CompanyInfoForm from './components/internship/CompanyInfoForm';
-import DocumentDetails from "./components/admin/DocumentDetails";
-import InternshipDocumentManagement from "./components/admin/InternshipDocumentManagement";
-import ProjectDocumentManagement from "./components/admin/ProjectDocumentManagement";
-import ProjectProposalForm from "./components/project/ProjectProposalForm";
-import LogbookForm from "./components/project/LogbookForm";
-import StatusCheck from "./components/project/StatusCheck";
-import InternshipDocumentForm from "./components/internship/InternshipDocumentForm"; // นำเข้า InternshipDocumentForm
-import InternshipStatusCheck from "./components/internship/InternshipStatusCheck"; // นำเข้า internshipStatusCheck
+
+// Import Internship Components
+import CS05Form from './components/internship/registration/CS05Form';
+import TimeSheet from './components/internship/logbook/TimeSheet';
+import InternshipSummary from './components/internship/summary/Summary';
+import StatusCheck from './components/internship/shared/StatusCheck';
+import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
+// Import Project Components
+import ProjectProposalForm from './components/project/ProjectProposalForm';
+import LogbookForm from './components/project/LogbookForm';
+
+// Import Admin Components
+import AdminUpload from './components/AdminUpload';
+import DocumentDetails from './components/admin/DocumentDetails';
+import InternshipDocumentManagement from './components/admin/InternshipDocumentManagement';
+import ProjectDocumentManagement from './components/admin/ProjectDocumentManagement';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -38,45 +43,113 @@ const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public route */}
-          <Route path="/login" element={<LoginForm />} />
-          
-          {/* Protected routes wrapped in MainLayout */}
-          <Route element={<MainLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/students" element={<StudentList />} />
-            <Route path="/teachers" element={<TeacherList />} />
-            <Route path="/project-pairs" element={<StudentPairsList />} />
-            <Route path="/admin/upload" element={
-              <ProtectedRoute roles={['admin']}>
-                <AdminUpload />
-              </ProtectedRoute>
-            } />
-            <Route path="/student-profile/:id" element={<StudentProfile />} />
-            <Route path="/internship-terms" element={<InternshipTerms />} />
-            <Route path="/internship-company" element={<CompanyInfoForm />} />
-            <Route path="/internship-documents" element={<InternshipDocumentForm />} />
-            <Route path="/document-management/internship" element={
-              <ProtectedRoute roles={['admin']}>
-                <InternshipDocumentManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/document-management/project" element={
-              <ProtectedRoute roles={['admin']}>
-                <ProjectDocumentManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/document-details/:id" element={<DocumentDetails />} />
-            <Route path="/project-proposal" element={<ProjectProposalForm />} />
-            <Route path="/project-logbook" element={<LogbookForm />} />
-            <Route path="/status-check" element={<StatusCheck />} />
-            <Route path="/internship-status-check" element={<InternshipStatusCheck />} />
-          </Route>
+        <InternshipProvider>
+          <Routes>
+            <Route path="/login" element={<LoginForm />} />
+            <Route element={<MainLayout />}>
+              {/* Dashboard Route */}
+              <Route path="/dashboard" element={<Dashboard />} />
 
-          {/* Redirect root to dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+              {/* Student Routes */}
+              <Route path="/student-profile/:id" element={<StudentProfile />} />
+
+              {/* Internship Routes - Now wrapped with InternshipProvider */}
+              <Route path="/internship-registration/cs05" element={
+                <ProtectedRoute roles={['student']}>
+                  <CS05Form />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/internship-logbook/timesheet" element={
+                <ProtectedRoute roles={['student']}>
+                  <TimeSheet />
+                </ProtectedRoute>
+              } />
+              <Route path="/internship-logbook/companyinfo" element={
+                <ProtectedRoute roles={['student']}>
+                  <CompanyInfoForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/internship-summary" element={
+                <ProtectedRoute roles={['student']}>
+                  <InternshipSummary />
+                </ProtectedRoute>
+              } />
+              <Route path="/status-check" element={
+                <ProtectedRoute roles={['student']}>
+                  <StatusCheck />
+                </ProtectedRoute>
+              } />
+
+              {/* <Route path="/status-check">
+                <Route 
+                  path="internship" 
+                  element={
+                    <ProtectedRoute>
+                      <InternshipStatusCheck />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="project" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectStatusCheck />
+                    </ProtectedRoute>
+                  } 
+                />
+              </Route> */}
+
+              {/* Project Routes */}
+              <Route path="/project-proposal" element={
+                <ProtectedRoute roles={['student']}>
+                  <ProjectProposalForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/project-logbook" element={
+                <ProtectedRoute roles={['student']}>
+                  <LogbookForm />
+                </ProtectedRoute>
+              } />
+              
+
+              {/* Admin Routes */}
+              <Route path="/students" element={
+                <ProtectedRoute roles={['admin']}>
+                  <StudentList />
+                </ProtectedRoute>
+              } />
+              <Route path="/teachers" element={
+                <ProtectedRoute roles={['admin']}>
+                  <TeacherList />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/upload" element={
+                <ProtectedRoute roles={['admin']}>
+                  <AdminUpload />
+                </ProtectedRoute>
+              } />
+              <Route path="/document-management/internship" element={
+                <ProtectedRoute roles={['admin']}>
+                  <InternshipDocumentManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/document-management/project" element={
+                <ProtectedRoute roles={['admin']}>
+                  <ProjectDocumentManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/document-details/:id" element={
+                <ProtectedRoute roles={['admin']}>
+                  <DocumentDetails />
+                </ProtectedRoute>
+              } />
+            </Route>
+
+            {/* Default Route */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </InternshipProvider>
       </AuthProvider>
     </BrowserRouter>
   );

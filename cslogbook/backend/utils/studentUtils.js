@@ -12,6 +12,39 @@ const CONSTANTS = {
     MIN_YEAR: 4,
     MIN_TOTAL_CREDITS: 95,
     MIN_MAJOR_CREDITS: 57
+  },
+  ACADEMIC_TERMS: {
+    FIRST: {
+      START_MONTH: 7,  // กรกฎาคม
+      END_MONTH: 11    // พฤศจิกายน
+    },
+    SECOND: {
+      START_MONTH: 11, // พฤศจิกายน
+      END_MONTH: 3     // มีนาคม
+    },
+    SUMMER: {
+      START_MONTH: 4,  // เมษายน
+      END_MONTH: 6     // มิถุนายน
+    }
+  },
+  STUDENT_STATUS: {
+    NORMAL: {
+      code: 'NORMAL',
+      label: 'กำลังศึกษา',
+      maxYear: 4,
+      color: 'green'
+    },
+    EXTENDED: {
+      code: 'EXTENDED',
+      label: 'นักศึกษาตกค้าง',
+      maxYear: 8,
+      color: 'warning'
+    },
+    RETIRED: {
+      code: 'RETIRED',
+      label: 'พ้นสภาพ',
+      color: 'error'
+    }
   }
 };
 
@@ -55,9 +88,15 @@ const calculateStudentYear = (studentCode) => {
       };
     }
 
+    const status = calculateStudentStatus(studentClassYear);
+
     return {
       error: false,
-      year: studentClassYear
+      year: studentClassYear,
+      status: status.code,
+      statusLabel: status.label,
+      statusColor: status.color,
+      isExtended: studentClassYear > CONSTANTS.STUDENT_STATUS.NORMAL.maxYear
     };
   } catch (error) {
     console.error('Error calculating student year:', error);
@@ -66,6 +105,62 @@ const calculateStudentYear = (studentCode) => {
       message: 'เกิดข้อผิดพลาดในการคำนวณชั้นปี'
     };
   }
+};
+
+/**
+ * คำนวณสถานะนักศึกษา
+ * @param {number} yearLevel - ชั้นปีของนักศึกษา
+ * @returns {object} - สถานะนักศึกษา
+ */
+const calculateStudentStatus = (yearLevel) => {
+  if (yearLevel <= CONSTANTS.STUDENT_STATUS.NORMAL.maxYear) {
+    return CONSTANTS.STUDENT_STATUS.NORMAL;
+  } else if (yearLevel <= CONSTANTS.STUDENT_STATUS.EXTENDED.maxYear) {
+    return CONSTANTS.STUDENT_STATUS.EXTENDED;
+  }
+  return CONSTANTS.STUDENT_STATUS.RETIRED;
+};
+
+/**
+ * คำนวณปีการศึกษาปัจจุบัน
+ * @returns {number} ปีการศึกษาในรูปแบบ พ.ศ.
+ */
+const getCurrentAcademicYear = () => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
+  const currentMonth = currentDate.getMonth() + 1;
+  
+  // หลัง มีนาคม ถึงก่อน กรกฎาคม = เตรียมขึ้นปีการศึกษาใหม่
+  if (currentMonth > CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH && 
+      currentMonth < CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH) {
+    return currentYear;
+  }
+  
+  return currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH ? 
+    currentYear : currentYear - 1;
+};
+
+/**
+ * คำนวณภาคเรียนปัจจุบัน
+ * @returns {number} ภาคเรียน (1, 2, หรือ 3)
+ */
+const getCurrentSemester = () => {
+  const currentMonth = new Date().getMonth() + 1;
+
+  // ภาคเรียนที่ 1: กรกฎาคม - พฤศจิกายน
+  if (currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH && 
+      currentMonth <= CONSTANTS.ACADEMIC_TERMS.FIRST.END_MONTH) {
+    return 1;
+  }
+  
+  // ภาคเรียนที่ 2: พฤศจิกายน - มีนาคม
+  if (currentMonth >= CONSTANTS.ACADEMIC_TERMS.SECOND.START_MONTH || 
+      currentMonth <= CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH) {
+    return 2;
+  }
+  
+  // ภาคฤดูร้อน: เมษายน - มิถุนายน
+  return 3;
 };
 
 /**
@@ -130,10 +225,54 @@ const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
   };
 };
 
+/**
+ * คำนวณข้อมูลปีการศึกษาจากรหัสนักศึกษา
+ * @param {string} studentCode - รหัสนักศึกษา
+ * @param {number} currentAcademicYear - ปีการศึกษาปัจจุบัน
+ * @returns {object} - ข้อมูลปีการศึกษา
+ */
+const calculateAcademicInfo = (studentCode, currentAcademicYear) => {
+  const enrollYear = 2500 + parseInt(studentCode.substring(0, 2));
+  const yearLevel = currentAcademicYear - enrollYear + 1;
+  const semester = getCurrentSemester();
+  
+  return {
+    enrollmentYear: enrollYear,
+    currentAcademicYear,
+    yearLevel,
+    semester,
+    academicYearThai: `${currentAcademicYear}/${semester}`,
+    isCurrentStudent: yearLevel <= CONSTANTS.MAX_STUDY_YEARS
+  };
+};
+
+/**
+ * ตรวจสอบความถูกต้องของรหัสนักศึกษา
+ * @param {string} studentCode - รหัสนักศึกษา
+ * @returns {boolean} - ผลการตรวจสอบ
+ */
+const validateStudentCode = (studentCode) => {
+  if (!studentCode || typeof studentCode !== 'string') {
+    return false;
+  }
+
+  if (studentCode.length !== CONSTANTS.MIN_STUDENT_CODE_LENGTH) {
+    return false;
+  }
+
+  const yearPart = parseInt(studentCode.substring(0, 2));
+  return !isNaN(yearPart) && yearPart >= 0 && yearPart <= 99;
+};
+
 // ส่งออกฟังก์ชันและค่าคงที่แบบ CommonJS
 module.exports = {
   CONSTANTS,
   calculateStudentYear,
   isEligibleForInternship,
-  isEligibleForProject
+  isEligibleForProject,
+  getCurrentAcademicYear,
+  getCurrentSemester,
+  calculateStudentStatus,
+  calculateAcademicInfo,
+  validateStudentCode
 };

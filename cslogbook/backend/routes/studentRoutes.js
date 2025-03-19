@@ -3,35 +3,35 @@ const router = express.Router();
 const studentController = require('../controllers/studentController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
-// Public routes
-router.get('/', studentController.getAllStudents);
-router.get('/:id', studentController.getStudentById);
+// Public routes (ถ้ามี)
 
 // Protected routes (require authentication)
 router.use(authenticateToken);
 
-// ตรวจสอบสิทธิ์นักศึกษา
-router.get('/:id/eligibility', authenticateToken, studentController.getStudentById);
-
 // Admin routes
-router.post('/',
-  checkRole(['admin']),
+router.post('/', 
+  checkRole(['admin']), 
   studentController.addStudent
 );
 
-router.put('/:id',
+router.get('/', 
   checkRole(['admin', 'teacher']),
+  studentController.getAllStudents
+);
+
+router.get('/:id', 
+  checkRole(['admin', 'teacher', 'student']),
+  studentController.getStudentById
+);
+
+router.put('/:id',
+  checkRole(['admin', 'student']),
   studentController.updateStudent
 );
 
 router.delete('/:id',
   checkRole(['admin']),
   studentController.deleteStudent
-);
-
-router.get('/stats/all',
-  checkRole(['admin']),
-  studentController.getAllStudentStats
 );
 
 module.exports = router;

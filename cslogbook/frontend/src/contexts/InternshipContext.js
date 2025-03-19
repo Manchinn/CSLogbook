@@ -1,0 +1,218 @@
+import React, { createContext, useContext, useReducer, useState } from 'react';
+
+const InternshipContext = createContext();
+
+const initialState = {
+  registration: {
+    cs05: {
+      data: null,
+      loading: false,
+      error: null,
+      status: null,
+      isSubmitted: false
+    },
+    company: {
+      data: null,
+      loading: false,
+      error: null,
+      status: 'pending'
+    }
+  },
+  logbook: {
+    entries: [],
+    totalHours: 0,
+    totalDays: 0,
+    lastEntry: null
+  },
+  approval: {
+    status: 'pending',
+    step: 0,
+    history: [],
+    lastUpdate: null
+  }
+};
+
+// Actions
+const internshipReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_CS05_DATA':
+      return {
+        ...state,
+        registration: {
+          ...state.registration,
+          cs05: {
+            data: action.payload,
+            status: action.payload.status,
+            isSubmitted: true
+          }
+        }
+      };
+
+    case 'SET_COMPANY_INFO':
+      return {
+        ...state,
+        registration: {
+          ...state.registration,
+          company: {
+            ...state.registration.company,
+            data: action.payload,
+            status: 'completed'
+          }
+        }
+      };
+
+    case 'ADD_LOGBOOK_ENTRY':
+      const newEntry = action.payload;
+      const hours = calculateHours(newEntry.timeIn, newEntry.timeOut);
+      return {
+        ...state,
+        logbook: {
+          ...state.logbook,
+          entries: [...state.logbook.entries, newEntry],
+          totalHours: state.logbook.totalHours + hours,
+          totalDays: state.logbook.totalDays + 1,
+          lastEntry: newEntry
+        }
+      };
+
+    case 'UPDATE_APPROVAL_STATUS':
+      return {
+        ...state,
+        approval: {
+          ...state.approval,
+          status: action.payload.status,
+          step: action.payload.step,
+          lastUpdate: new Date().toISOString(),
+          history: [
+            ...state.approval.history,
+            {
+              status: action.payload.status,
+              timestamp: new Date().toISOString(),
+              message: action.payload.message
+            }
+          ]
+        }
+      };
+
+    case 'UPDATE_LOGBOOK_ENTRY':
+      const updatedEntries = state.logbook.entries.map(entry => 
+        entry.date === action.payload.date ? action.payload : entry
+      );
+      return {
+        ...state,
+        logbook: {
+          ...state.logbook,
+          entries: updatedEntries,
+          totalHours: calculateTotalHours(updatedEntries),
+          lastEntry: action.payload
+        }
+      };
+
+    case 'SET_SUPERVISOR_INFO':
+      return {
+        ...state,
+        registration: {
+          ...state.registration,
+          company: {
+            ...state.registration.company,
+            data: {
+              ...state.registration.company.data,
+              supervisor: {
+                name: action.payload.supervisorName,
+                phone: action.payload.supervisorPhone,
+                email: action.payload.supervisorEmail
+              }
+            },
+            status: 'completed'
+          }
+        }
+      };
+
+    case 'RESET_COMPANY_INFO':
+      return {
+        ...state,
+        registration: {
+          ...state.registration,
+          company: {
+            status: 'pending',
+            data: {
+              companyName: null,
+              companyAddress: null,
+              supervisor: {
+                name: null,
+                position: null,
+                phone: null,
+                email: null
+              }
+            },
+            errors: null
+          }
+        }
+      };
+      
+    default:
+      return state;
+  }
+};
+
+// Helper functions
+const calculateHours = (timeIn, timeOut) => {
+  // Logic to calculate hours between timeIn and timeOut
+  return 0; // Placeholder
+};
+
+const calculateTotalHours = (entries) => {
+  // Logic to calculate total hours from entries
+  return 0; // Placeholder
+};
+
+// Provider Component
+export const InternshipProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(internshipReducer, initialState);
+
+  // กำหนด actions ที่จะส่งผ่าน context
+  const actions = {
+    setCS05Data: (data) => {
+      dispatch({ type: 'SET_CS05_DATA', payload: data });
+    },
+    setCompanyInfo: (info) => {
+      dispatch({ type: 'SET_COMPANY_INFO', payload: info });
+    },
+    setSupervisorInfo: (supervisorInfo) => {
+      dispatch({ type: 'SET_SUPERVISOR_INFO', payload: supervisorInfo });
+    },
+    addLogbookEntry: (entry) => {
+      dispatch({ type: 'ADD_LOGBOOK_ENTRY', payload: entry });
+    },
+    updateLogbookEntry: (entry) => {
+      dispatch({ type: 'UPDATE_LOGBOOK_ENTRY', payload: entry });
+    },
+    updateApprovalStatus: (statusUpdate) => {
+      dispatch({ type: 'UPDATE_APPROVAL_STATUS', payload: statusUpdate });
+    },
+    resetCompanyInfo: () => {
+      dispatch({ type: 'RESET_COMPANY_INFO' });
+    }
+  };
+
+  // ส่งทั้ง state และ actions ผ่าน context
+  const contextValue = {
+    state,
+    ...actions
+  };
+
+  return (
+    <InternshipContext.Provider value={contextValue}>
+      {children}
+    </InternshipContext.Provider>
+  );
+};
+
+// Custom Hook
+export const useInternship = () => {
+  const context = useContext(InternshipContext);
+  if (!context) {
+    throw new Error('useInternship must be used within InternshipProvider');
+  }
+  return context;
+};
