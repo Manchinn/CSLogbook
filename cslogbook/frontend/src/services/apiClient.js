@@ -18,11 +18,16 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log('API Request:', {
+    
+    // ปรับปรุง log ให้แสดงเฉพาะข้อมูลที่มี
+    const logData = {
       method: config.method,
       url: config.url,
-      data: config.data
-    });
+      ...(config.data && { data: config.data }), // แสดง data เฉพาะเมื่อมีค่า
+      ...(config.params && { params: config.params }) // เพิ่มการแสดง query parameters
+    };
+    
+    console.log('API Request:', logData);
     return config;
   },
   (error) => Promise.reject(error)

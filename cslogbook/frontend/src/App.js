@@ -7,7 +7,7 @@ import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentList from './components/StudentList';
 import TeacherList from './components/TeacherList';
-import StudentProfile from './components/StudentProfile';
+import StudentProfile from './components/StudentProfile/index';
 
 // Import Internship Components
 import CS05Form from './components/internship/registration/CS05Form';
