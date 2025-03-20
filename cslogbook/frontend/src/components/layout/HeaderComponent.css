@@ -1,89 +1,40 @@
-@media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 0;
-  }
-  .header-title {
-    font-size: 20px;
-  }
-  .header-text {
-    display: none;
-  }
-  .header-avatar {
-    margin: 10px 0;
-  }
-  .header-badge {
-    margin-left: 8px;
-  }
+/* ปรับสไตล์ Header ให้อยู่กลาง */
+.ant-layout-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
-@media (max-width: 576px) {
-  .header {
-    padding: 8px;
-  }
-  .header-title {
-    font-size: 18px;
-  }
-  .header-text {
-    font-size: 12px;
-  }
-  .header-avatar {
-    font-size: 12px;
-    width: 32px;
-    height: 32px;
-  }
-  .header-badge {
-    font-size: 10px;
-    padding: 0 6px;
-  }
-}
-/* สำหรับหน้าจอที่มีความกว้างมากกว่า 768px */
-@media (min-width: 768px) {
-  .header {
-    padding: 0 24px;
-    margin-left: 290px;
-    width: calc(100% - 375px);
-  }
-
-  .header-title {
-    font-size: 24px;
-  }
-
-  .header-avatar {
-    display: block;
-  }
+/* ปรับสไตล์ปุ่มเมนู */
+.ant-btn {
+  transition: all 0.3s ease;
 }
 
-/* สำหรับหน้าจอที่มีความกว้างน้อยกว่า 768px */
-@media (max-width: 768px) {
-  .header {
-    padding: 0 16px;
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .header-title {
-    font-size: 20px;
-  }
-
-  .header-avatar {
-    display: none;
-  }
+.ant-btn:hover {
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
-/* สำหรับหน้าจอที่มีความกว้างน้อยกว่า 480px */
-@media (max-width: 480px) {
-  .header {
-    padding: 0 8px;
-  }
+/* ปรับสไตล์ Avatar */
+.ant-avatar {
+  cursor: pointer;
+}
 
-  .header-title {
-    font-size: 18px;
-  }
+/* ปรับสไตล์ Badge */
+.ant-badge-count {
+  font-weight: bold;
+}
+.ant-drawer-body {
+  padding: 0 !important;
+}
 
-  .header-avatar {
-    display: none;
-  }
+.ant-menu-inline {
+  border-right: none !important;
+}
+.ant-drawer-body {
+  padding: 0 !important;
+}
+
+.ant-menu-inline {
+  border-right: none !important;
 }

@@ -49,22 +49,10 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     }
   };
 
-  const buttonStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '12px',
-    border: 'none',
-    transition: 'all 0.3s ease',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    backdropFilter: 'blur(8px)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-  };
-
   const headerStyles = {
     mainHeader: {
-      marginTop: isMobile ? '0' : '20px',
-      paddingTop: isMobile ? '0' : '20px',
+      marginTop: isMobile ? '0' : '24px',
+      paddingTop: isMobile ? '0' : '24px',
       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
       background: theme.gradient,
       backdropFilter: 'blur(10px)',
@@ -73,14 +61,13 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       alignItems: 'center',
       justifyContent: 'space-between',
       height: 'auto',
-      minHeight: '72px',
+      minHeight: '64px',
       position: 'fixed',
       top: 0,
-      left: 0,
-      zIndex: 11,
+      left: isMobile ? '2.5%' : 'calc(2.5% + 230px)',
+      zIndex: 1002, // ต้องสูงกว่า z-index ของ Sidebar และปุ่มเปิด Drawer
       borderRadius: '16px',
-      marginLeft: isMobile ? 0 : '290px',
-      width: isMobile ? '100%' : 'calc(100% - 375px)',
+      width: isMobile ? '95%' : 'calc(95% - 230px)',
     },
     titleContainer: {
       maxWidth: isMobile ? '200px' : '600px',
@@ -115,73 +102,57 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       padding: '0 8px',
       borderRadius: '6px',
     },
-    secondaryHeader: {
-      backgroundColor: '#f5f5f5',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '115px',
-      zIndex: 10,
-    },
-    secondaryTitle: {
-      textAlign: 'center',
-      color: 'white',
-      paddingTop: '15px',
-      fontSize: '18px',
-      fontWeight: 'bold',
-    },
   };
 
   return (
-    <>
-      <Header style={headerStyles.mainHeader}>
-        {/* Left side */}
-        <div style={{ flex: 1 }}>
-          <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined style={{ fontSize: '20px', color: theme.primary }} />}
-                onClick={showDrawer}
-                style={buttonStyle}
-              />
-            )}
-
-            <Space direction="vertical" size={4} style={headerStyles.titleContainer}>
-              <Title level={4} style={headerStyles.mainTitle}>
-                CS Logbook
-              </Title>
-              <Text style={headerStyles.subtitle}>
-                ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
-              </Text>
-            </Space>
+    <Header style={headerStyles.mainHeader}>
+      {/* Left side */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+        <Space size={24} align="start" style={{ paddingTop: '12px', paddingBottom: '12px' }}>
+          {/* เพิ่มปุ่มเปิด Drawer สำหรับหน้าจอเล็ก */}
+          {isMobile && (
+  <Button
+    type="text"
+    icon={<MenuOutlined />}
+    onClick={showDrawer}
+    style={{ 
+      padding: '0',
+      fontSize: 24, 
+      margin: 0,
+      position: 'fixed', 
+      zIndex: 1001,
+      top: '50%', // จัดตำแหน่งจากด้านบน 50%
+      transform: 'translate(-50%, -50%)', // ย้ายกลับไปทางซ้ายและขึ้นบน 50% ของขนาดปุ่ม
+    }}
+  />
+)}
+          <Space direction="vertical" size={4} style={headerStyles.titleContainer}>
+            <Title level={4} style={headerStyles.mainTitle}>
+              CS Logbook
+            </Title>
+            <Text style={headerStyles.subtitle}>
+              ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
+            </Text>
           </Space>
-        </div>
-
-        {/* Right side */}
-        <div style={{ marginRight: 'auto', padding: '12px' }}>
-          <Space size={16} align="center">
-            <Avatar style={headerStyles.userAvatar}>
-              {firstName?.charAt(0)?.toUpperCase()}
-            </Avatar>
-
-            <Space direction="vertical" size={0}>
-              <Text strong style={headerStyles.userName}>
-                {firstName} {lastName}
-              </Text>
-              <Badge count={getRoleTitle(role)} style={headerStyles.roleBadge} />
-            </Space>
-          </Space>
-        </div>
-      </Header>
-
-      <div style={headerStyles.secondaryHeader}>
-        <h2 style={headerStyles.secondaryTitle}></h2>
+        </Space>
       </div>
 
-      <div style={{ backgroundColor: '#f4f4f4', padding: '20px' }}></div>
-    </>
+      {/* Right side */}
+      <div style={{ marginRight: 'auto', padding: '12px' }}>
+        <Space size={16} align="center">
+          <Avatar style={headerStyles.userAvatar}>
+            {firstName?.charAt(0)?.toUpperCase()}
+          </Avatar>
+
+          <Space direction="vertical" size={0}>
+            <Text strong style={headerStyles.userName}>
+              {firstName} {lastName}
+            </Text>
+            <Badge count={getRoleTitle(role)} style={headerStyles.roleBadge} />
+          </Space>
+        </Space>
+      </div>
+    </Header>
   );
 };
 

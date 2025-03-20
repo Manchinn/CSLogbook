@@ -11,7 +11,7 @@ import {
   Card,
   Row,
   Col,
-  Alert
+  Alert,
 } from "antd";
 import dayjs from "dayjs";
 import { useInternship } from "../../../contexts/InternshipContext";
@@ -37,25 +37,21 @@ const CS05Form = () => {
       setFetchLoading(true);
       try {
         const data = await internshipService.getStudentInfo();
-        // ตรวจสอบการได้รับข้อมูล
         console.log('Student Data:', data);
         if (data.success) {
           const { student } = data;
-
-          // ตรวจสอบสิทธิ์การฝึกงาน
           if (!student.isEligible) {
             message.error('หน่วยกิตไม่เพียงพอสำหรับการฝึกงาน (ต้องไม่ต่ำกว่า 81 หน่วยกิต)');
             return;
           }
-
           setStudentData(student);
           form.setFieldsValue({
-            fullName: student.fullName, // ใช้ค่าที่คำนวณจาก backend
+            fullName: student.fullName,
             studentId: student.studentId,
             totalCredits: student.totalCredits,
-            year: student.year, // ใช้ค่าที่คำนวณจาก backend
+            year: student.year,
             faculty: student.faculty,
-            major: student.major
+            major: student.major,
           });
         }
       } catch (error) {
@@ -84,18 +80,15 @@ const CS05Form = () => {
           setFormData(cs05Data);
           setIsSubmitted(cs05Data.status !== 'rejected');
           setCS05Data(cs05Data);
-
-          // Set form values ด้วยข้อมูลที่ได้
           form.setFieldsValue({
             companyName: cs05Data.companyName || '',
             companyAddress: cs05Data.companyAddress || '',
             internshipPeriod: cs05Data.startDate && cs05Data.endDate 
               ? [dayjs(cs05Data.startDate), dayjs(cs05Data.endDate)] 
-              : undefined
+              : undefined,
           });
         }
       } catch (error) {
-        // ถ้าเป็น 404 ถือว่าเป็นกรณีปกติ (ยังไม่เคยมีการบันทึก)
         console.error('Error fetching CS05:', error);
         message.error('ไม่สามารถดึงข้อมูล CS05: ' + error.message);
       }
@@ -108,7 +101,6 @@ const CS05Form = () => {
     const start = dayjs(startDate);
     const end = dayjs(endDate);
     const workingDays = end.diff(start, 'days') + 1;
-    
     if (workingDays < 40) {
       message.error('ระยะเวลาฝึกงานต้องไม่ต่ำกว่า 40 วันทำการ');
       return false;
@@ -143,7 +135,6 @@ const CS05Form = () => {
       };
 
       const response = await internshipService.submitCS05(submitData);
-      
       if (response.success) {
         message.success('บันทึกคำร้องสำเร็จ');
         setCS05Data(response.data);
@@ -159,7 +150,6 @@ const CS05Form = () => {
     }
   };
 
-  // เพิ่มการตรวจสอบสถานะ disabled
   const isFieldsDisabled = isSubmitted && existingCS05?.status !== 'rejected';
 
   return (
@@ -175,19 +165,17 @@ const CS05Form = () => {
         </div>
 
         <Row gutter={[16, 16]}>
-          <Col span={24} className="text-right">
-            <Paragraph
-              style={{ fontSize: "16px" }}
-            >
+          <Col xs={24} sm={24} md={24} lg={24} xl={24} className="text-right">
+            <Paragraph style={{ fontSize: "16px" }}>
               ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
             </Paragraph>
-            <Paragraph
-              style={{ fontSize: "14px" }}
-            >วันที่ {dayjs().locale('th').add(543, 'year').format("D MMMM YYYY")}</Paragraph>
+            <Paragraph style={{ fontSize: "14px" }}>
+              วันที่ {dayjs().locale('th').add(543, 'year').format("D MMMM YYYY")}
+            </Paragraph>
           </Col>
 
-          <Col span={24}>
-            <Paragraph className="text-indent" style={{ fontSize: "16px" }} >
+          <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+            <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
               <Text className="bold-text" style={{ fontSize: "16px" }}>เรื่อง</Text>{" "}
               ขอให้ภาควิชาฯออกหนังสือราชการ
             </Paragraph>
@@ -197,7 +185,7 @@ const CS05Form = () => {
             </Paragraph>
           </Col>
 
-          <Col span={24}>
+          <Col xs={24} sm={24} md={24} lg={24} xl={24}>
             <Paragraph className="text-indent" style={{ fontSize: "16px" }}>
               ด้วยข้าพเจ้า มีความประสงค์ขอให้ภาควิชาฯ
               ออกหนังสือราชการเพื่อขอความอนุเคราะห์เข้ารับการฝึกงาน
@@ -217,17 +205,11 @@ const CS05Form = () => {
             <div>
               <Paragraph style={{ fontSize: "16px" }}>
                 ข้าพเจ้า{" "}
-                <Form.Item
-                  name="fullName"
-                  noStyle
-                >
+                <Form.Item name="fullName" noStyle>
                   <Input className="inline-input" disabled />
                 </Form.Item>{" "}
                 รหัสนักศึกษา{" "}
-                <Form.Item
-                  name="studentId"
-                  noStyle
-                >
+                <Form.Item name="studentId" noStyle>
                   <Input className="inline-input" disabled />
                 </Form.Item>
               </Paragraph>
@@ -239,10 +221,7 @@ const CS05Form = () => {
                   <InputNumber min={1} max={4} className="inline-input-small" disabled />
                 </Form.Item>{" "}
                 หน่วยกิตสะสมทั้งหมด{" "}
-                <Form.Item
-                  name="totalCredits" // Changed from gpa
-                  noStyle
-                >
+                <Form.Item name="totalCredits" noStyle>
                   <InputNumber
                     min={0}
                     max={150}
@@ -273,11 +252,7 @@ const CS05Form = () => {
             <div>
               <Paragraph style={{ fontSize: "16px" }}>
                 ระยะเวลาฝึกงาน{" "}
-                <Form.Item
-                  name="internshipPeriod"
-                  noStyle
-                  rules={[{ required: true }]}
-                >
+                <Form.Item name="internshipPeriod" noStyle rules={[{ required: true }]}>
                   <DatePicker.RangePicker
                     disabled={isFieldsDisabled}
                     disabledDate={(current) => current && current < dayjs().startOf("day")}
@@ -287,7 +262,7 @@ const CS05Form = () => {
               </Paragraph>
             </div>
 
-            <div className="note-section" >
+            <div className="note-section">
               <Title level={5}>หมายเหตุ</Title>
               <Text>1. นักศึกษาจะต้องฝึกงานไม่ต่ำกว่า 240 ชั่วโมง (ไม่ต่ำว่า 40 วันทำการ ไม่นับ วันหยุดราชการ ขา สาย ลา)</Text>
               <br />

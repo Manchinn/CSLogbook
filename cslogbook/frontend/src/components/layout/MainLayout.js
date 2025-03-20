@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Button, Drawer } from 'antd';
+import { Layout, Button, Drawer, Grid } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 import Sidebar from './Sidebar';
 import HeaderComponent from './HeaderComponent';
@@ -7,65 +7,53 @@ import { Outlet } from 'react-router-dom';
 import './MainLayout.css';
 
 const { Content } = Layout;
+const { useBreakpoint } = Grid;
 
 const MainLayout = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [isMobile] = useState(window.innerWidth <= 768);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const showDrawer = () => {
     setDrawerVisible(true);
+    console.log("เปิด main");
   };
 
   const onClose = () => {
     setDrawerVisible(false);
+    console.log("ปิด main");
   };
 
   return (
-    <Layout className="min-h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
+    <Layout style={{ minHeight: '100vh' }}>
       {!isMobile && <Sidebar />}
 
-      {/* Mobile Drawer */}
-      <Drawer
-        placement="left"
-        onClose={onClose}
-        open={drawerVisible}
-        width={280}
-      >
-        <Sidebar />
-      </Drawer>
+      {isMobile && (
+        <Drawer
+          placement="left"
+          onClose={onClose}
+          open={drawerVisible}
+          width={0}
+          bodyStyle={{ padding: 0 }}
+          closable={false}
+          style={{ zIndex: 12 }} // เพิ่ม zIndex
+        >
+          {/* ส่ง onClose ไปยัง Sidebar */}
+          <Sidebar isMobile={isMobile} drawerVisible={drawerVisible} onClose={onClose} />
+        </Drawer>
+      )}
 
       <Layout>
-        {/* Header */}
         <HeaderComponent isMobile={isMobile} showDrawer={showDrawer} />
-
-        {/* Mobile Menu Button */}
-        {isMobile && (
-          <Button
-            type="text"
-            icon={<MenuOutlined />}
-            onClick={showDrawer}
-            className="fixed top-4 left-4 z-50"
-          />
-        )}
-
-        {/* Main Content */}
-        <Content 
-          className="p-6 bg-gray-50" 
-          style={{ 
-            marginLeft: isMobile ? 0 : '200px',
-            paddingTop: '80px', 
-            alignItems: 'center',
-            justifyContent: 'center',
-            // height: '100vh',
-            // overflow: 'hidden',
-            // backdropFilter: 'blur(10px)',
-            // zIndex: 0,
-        }}
-        > 
-          <div className="bg-white rounded-lg shadow-sm p-6 " style={{ margin:"1rem 4rem",}}>
-            <Outlet />
-          </div>
+        <Content
+          style={{
+            padding: '24px',
+            marginLeft: isMobile ? 0 : 230, // ในโหมดมือถือ marginLeft เป็น 0
+            marginTop: '100px',
+            transition: 'margin-left 0.2s',
+          }}
+        >
+          <Outlet />
         </Content>
       </Layout>
     </Layout>

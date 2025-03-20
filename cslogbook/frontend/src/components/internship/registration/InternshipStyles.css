@@ -1,5 +1,7 @@
+/* Base Styles */
 .internship-container {
   width: 100%;
+  display: flex;
   justify-content: center;
   align-items: center;
   min-height: 55vh;
@@ -320,4 +322,96 @@
 
 .upload-section .ant-upload-list {
   margin-top: 8px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  /* ซ่อนคลาสที่ไม่จำเป็นบนหน้าจอเล็ก */
+  .internship-container {
+    font-size: 40px; /* ปรับขนาดตัวหนังสือสำหรับหน้าจอขนาดเล็ก */
+    padding: 10px;
+  }
+
+  .internship-card {
+    padding: 20px;
+  }
+
+  .internship-paragraph {
+    font-size: 14px;
+  }
+
+  .form-header {
+    font-size: 16px;
+  }
+
+  .form-title {
+    font-size: 14px;
+  }
+
+  .form-description {
+    font-size: 14px;
+  }
+
+  .inline-input {
+    width: 100% !important;
+    margin: 8px 0;
+  }
+
+  .inline-input-small {
+    width: 100% !important;
+    margin: 8px 0;
+  }
+
+  .inline-input-large {
+    width: 100% !important;
+    margin: 8px 0;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .upload-section {
+    padding: 10px;
+  }
+
+  /* ซ่อนคลาสที่ไม่จำเป็น */
+  .internship-steps-container,
+  .internship-subcard,
+  .form-section,
+  .note-section h5,
+  .form-footer {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .internship-container {
+    font-size: 30px; /* ปรับขนาดตัวหนังสือสำหรับหน้าจอขนาดเล็กมาก */
+  }
+
+  .internship-card {
+    padding: 15px;
+  }
+
+  .internship-paragraph {
+    font-size: 12px;
+  }
+
+  .form-header {
+    font-size: 14px;
+  }
+
+  .form-title {
+    font-size: 12px;
+  }
+
+  .form-description {
+    font-size: 12px;
+  }
+
+  .form-footer {
+    font-size: 14px;
+  }
 }
