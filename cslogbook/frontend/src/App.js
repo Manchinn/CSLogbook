@@ -11,7 +11,7 @@ import StudentProfile from './components/StudentProfile/index';
 
 // Import Internship Components
 import CS05Form from './components/internship/registration/CS05Form';
-import TimeSheet from './components/internship/logbook/TimeSheet';
+import TimeSheet from './components/internship/logbook/TimeSheet/index';
 import InternshipSummary from './components/internship/summary/Summary';
 import StatusCheck from './components/internship/shared/StatusCheck';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
