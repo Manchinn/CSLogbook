@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Button } from 'antd';
 import dayjs from 'dayjs';
+import { DATE_FORMAT_MEDIUM, TIME_FORMAT } from '../../../../utils/constants';
 
 const ViewModal = ({ visible, entry, onClose }) => {
   return (
@@ -17,7 +18,15 @@ const ViewModal = ({ visible, entry, onClose }) => {
       <div className="view-details">
         <p>
           <strong>วันที่:</strong>{" "}
-          {entry && dayjs(entry.workDate).format("DD/MM/YYYY")}
+          {entry && dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM)}
+        </p>
+        <p>
+          <strong>เวลาเข้างาน:</strong>{" "}
+          {entry?.timeIn ? dayjs(entry.timeIn).format(TIME_FORMAT) : '-'}
+        </p>
+        <p>
+          <strong>เวลาออกงาน:</strong>{" "}
+          {entry?.timeOut ? dayjs(entry.timeOut).format(TIME_FORMAT) : '-'}
         </p>
         <p>
           <strong>หัวข้องาน:</strong> {entry?.logTitle}

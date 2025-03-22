@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Modal, Typography, Divider, Checkbox, Button, Space, Alert } from 'antd';
-import { PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Card, Form, Typography, Button, Space, Alert, Tooltip } from 'antd';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import TimeSheetTable from './TimeSheetTable';
 import TimeSheetStats from './TimeSheetStats';
 import EditModal from './EditModal';
 import ViewModal from './ViewModal';
-import QuickActions from './QuickActions';
 import InstructionModal from './InstructionModal';
 import { useTimeSheet } from '../../../../hooks/useTimeSheet';
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs';
+import { DATE_FORMAT_MEDIUM } from '../../../../utils/constants';
 import './styles.css';
 
 const { Title, Text } = Typography;
@@ -50,18 +50,7 @@ const TimeSheet = () => {
   };
 
   return (
-    <div className="internship-container">
-      <div className="internship-header">
-        <Space align="center" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'right' }}>
-          <Space>
-            <Button 
-              onClick={() => setIsInstructionVisible(true)}
-            >
-              คำชี้แจงการฝึกงาน
-            </Button>
-          </Space>
-        </Space>
-      </div>
+    <div className="internship-container" style={{ position: 'relative', paddingBottom: '50px' }}>
       
       {dateRange && (
         <>
@@ -69,7 +58,7 @@ const TimeSheet = () => {
             type="info"
             message={
               <Text>
-                กำหนดการฝึกงาน: {dayjs(dateRange.startDate).format('DD/MM/YYYY')} - {dayjs(dateRange.endDate).format('DD/MM/YYYY')}
+                กำหนดการฝึกงาน: {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} - {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
               </Text>
             }
             description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
@@ -104,6 +93,28 @@ const TimeSheet = () => {
           onClose={handleClose}
         />
       </Card>
+      
+      <Tooltip title="คำชี้แจงการฝึกงาน">
+        <Button
+          type="primary"
+          shape="circle"
+          icon={<QuestionCircleOutlined />}
+          size="large"
+          onClick={() => setIsInstructionVisible(true)}
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            zIndex: 1000,
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        />
+      </Tooltip>
       
       <InstructionModal
         visible={isInstructionVisible}

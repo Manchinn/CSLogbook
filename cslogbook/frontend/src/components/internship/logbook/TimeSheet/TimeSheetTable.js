@@ -1,7 +1,8 @@
 import React from 'react';
 import { Table, Space, Button, Badge, Tooltip } from 'antd';
 import { EditOutlined, EyeOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs';
+import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../../utils/constants';
 
 // เพิ่มฟังก์ชันเพื่อตรวจสอบว่าวันที่ยังไม่ถึงหรือไม่
 const isFutureDate = (date) => {
@@ -37,7 +38,7 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
       title: "วันที่",
       dataIndex: "workDate",
       key: "workDate",
-      render: (date) => dayjs(date).format("DD/MM/YYYY"),
+      render: (date) => dayjs(date).format(DATE_FORMAT_MEDIUM),
     },
     {
       title: "หัวข้องาน",
@@ -50,7 +51,7 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
       render: (_, record) => {
         const updateTime = record.updatedAt || record.updated_at;
         if (updateTime) {
-          return dayjs(updateTime).format("DD/MM/YYYY HH:mm");
+          return dayjs(updateTime).format(DATE_TIME_FORMAT);
         } 
         return "-";
       },

@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, TimePicker, Row, Col, InputNumber, DatePicker, Alert } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs';
 import { calculateWorkHours } from '../../../../utils/timeUtils';
+import { DATE_FORMAT_MEDIUM, TIME_FORMAT } from '../../../../utils/constants';
 
 const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
   const title = "บันทึกข้อมูลการฝึกงาน";
-  
+
   const handleSubmit = () => {
     const timeOut = form.getFieldValue('timeOut');
-    
+
     if (!timeOut) {
       form.validateFields(['workDate', 'timeIn'])
         .then(values => {
@@ -31,14 +32,14 @@ const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
       confirmLoading={loading}
       width={700}
     >
-      <Form 
-        form={form} 
+      <Form
+        form={form}
         layout="vertical"
         onValuesChange={(changedValues) => {
           if (changedValues.timeIn || changedValues.timeOut) {
             const values = form.getFieldsValue(['timeIn', 'timeOut']);
             const { timeIn, timeOut } = values;
-            
+
             if (timeIn && timeOut) {
               const hours = calculateWorkHours(
                 timeIn.format("HH:mm"),
@@ -62,68 +63,75 @@ const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
           style={{ marginBottom: 16 }}
         />
 
-        <Form.Item 
-          name="workDate" 
-          label="วันที่" 
+        <Form.Item
+          name="workDate"
+          label="วันที่"
         >
-          <DatePicker disabled format="DD/MM/YYYY" style={{ width: '100%' }} />
+          <div style={{ position: 'relative' }}>
+            <DatePicker disabled style={{ width: '100%', opacity: 0, position: 'absolute' }} />
+            <Input
+              disabled
+              value={entry?.workDate ? dayjs(entry.workDate).format("D MMMM BBBB") : '-'}
+              style={{ width: '100%' }}
+            />
+          </div>
         </Form.Item>
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item 
-              name="timeIn" 
-              label="เวลาเข้างาน" 
+            <Form.Item
+              name="timeIn"
+              label="เวลาเข้างาน"
               rules={[{ required: true, message: 'กรุณาเลือกเวลาเข้างาน' }]}
             >
-              <TimePicker format="HH:mm" style={{ width: '100%' }} />
+              <TimePicker format={TIME_FORMAT} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item 
-              name="timeOut" 
-              label="เวลาออกงาน (ถ้ามี)" 
+            <Form.Item
+              name="timeOut"
+              label="เวลาออกงาน (ถ้ามี)"
               tooltip="หากต้องการบันทึกครบถ้วน ต้องระบุเวลาออกงาน"
             >
-              <TimePicker format="HH:mm" style={{ width: '100%' }} />
+              <TimePicker format={TIME_FORMAT} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item 
-          name="workHours" 
-          label="จำนวนชั่วโมง" 
+        <Form.Item
+          name="workHours"
+          label="จำนวนชั่วโมง"
           dependencies={["timeIn", "timeOut"]}
         >
           <InputNumber disabled min={0} max={24} step={0.5} style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item 
-          name="logTitle" 
-          label="หัวข้องาน" 
+        <Form.Item
+          name="logTitle"
+          label="หัวข้องาน"
           tooltip="จำเป็นต้องกรอกเมื่อบันทึกข้อมูลครบถ้วน"
         >
           <Input placeholder="กรอกเมื่อต้องการบันทึกข้อมูลครบถ้วน" />
         </Form.Item>
 
-        <Form.Item 
-          name="workDescription" 
+        <Form.Item
+          name="workDescription"
           label="รายละเอียดงาน"
           tooltip="จำเป็นต้องกรอกเมื่อบันทึกข้อมูลครบถ้วน"
         >
-          <Input.TextArea 
-            rows={4} 
+          <Input.TextArea
+            rows={4}
             placeholder="กรอกเมื่อต้องการบันทึกข้อมูลครบถ้วน"
           />
         </Form.Item>
 
-        <Form.Item 
-          name="learningOutcome" 
+        <Form.Item
+          name="learningOutcome"
           label="สิ่งที่ได้เรียนรู้"
           tooltip="จำเป็นต้องกรอกเมื่อบันทึกข้อมูลครบถ้วน"
         >
-          <Input.TextArea 
-            rows={4} 
+          <Input.TextArea
+            rows={4}
             placeholder="กรอกเมื่อต้องการบันทึกข้อมูลครบถ้วน"
           />
         </Form.Item>
