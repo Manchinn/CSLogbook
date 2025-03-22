@@ -48,7 +48,6 @@ const TimeSheetStats = ({ stats }) => {
             prefix={<CheckCircleOutlined />}
           />
           <Tooltip title="จำนวนวันที่มีการบันทึกข้อมูลครบถ้วน">
-            <small className="help-text">วันที่บันทึกข้อมูลเรียบร้อยแล้ว</small>
           </Tooltip>
         </Card>
       </Col>

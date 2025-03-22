@@ -43,7 +43,9 @@
 }
 
 .internship-step-title {
-  font-weight: bold;/* ปรับปรุง CSS ที่มีอยู่ */
+  font-weight: bold;
+}
+
 .internship-card {
   margin: 24px auto;
   max-width: 800px;
@@ -85,7 +87,6 @@
   gap: 8px;
   margin-top: 24px;
 }
-}
 
 .internship-subcard {
   text-align: left;
@@ -124,4 +125,101 @@
   display: flex;
   justify-content: space-between;
   margin-top: 24px;
+}
+
+/* เพิ่มเติม CSS เฉพาะสำหรับหน้า Summary */
+
+.page-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.status-summary-card {
+  text-align: center;
+  border-radius: 8px;
+  transition: all 0.3s;
+  height: 100%;
+}
+
+.status-summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.status-summary-card.total {
+  background-color: #f5f5f5;
+  border-left: 4px solid #1890ff;
+}
+
+.status-summary-card.completed {
+  background-color: #f6ffed;
+  border-left: 4px solid #52c41a;
+}
+
+.status-summary-card.approved {
+  background-color: #e6f7ff;
+  border-left: 4px solid #1890ff;
+}
+
+.summary-section, .skills-section, .logbook-table {
+  margin-bottom: 24px;
+}
+
+.info-item {
+  margin-bottom: 12px;
+}
+
+.approved-row {
+  background-color: #f6ffed;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+.button-group {
+  display: flex;
+  gap: 16px;
+}
+
+/* สไตล์สำหรับการพิมพ์ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-container {
+    background-color: white !important;
+    padding: 0 !important;
+  }
+  
+  .internship-card {
+    box-shadow: none !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .no-print-break {
+    page-break-inside: avoid;
+  }
+  
+  .ant-card {
+    border: none !important;
+  }
+  
+  .ant-card-head {
+    border-bottom: 1px solid #000 !important;
+  }
+  
+  .ant-table-pagination {
+    display: none !important;
+  }
 }

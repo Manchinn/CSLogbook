@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import { useInternship } from "../../../contexts/InternshipContext";
 import internshipService from '../../../services/internshipService';
 import TranscriptUpload from '../common/TranscriptUpload';
+import { UploadOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -76,39 +77,64 @@ const CS05Form = () => {
   }, [formData]);
 
   useEffect(() => {
+    // สร้างตัวแปรเพื่อป้องกันการเรียก API หลังจาก component unmount
+    let isMounted = true;
+
     const checkExistingCS05 = async () => {
       try {
+        console.log('Fetching CS05 data...');
         const response = await internshipService.getCurrentCS05();
+
+        // ตรวจสอบว่า component ยังคงอยู่หรือไม่
+        if (!isMounted) return;
+
         if (response.success && response.data) {
           const cs05Data = response.data;
           setFormData(cs05Data);
+          setExistingCS05(cs05Data);
           setIsSubmitted(cs05Data.status !== 'rejected');
           setCS05Data(cs05Data);
 
-          // Set form values ด้วยข้อมูลที่ได้
+          // Set form values
           form.setFieldsValue({
             companyName: cs05Data.companyName || '',
             companyAddress: cs05Data.companyAddress || '',
-            internshipPeriod: cs05Data.startDate && cs05Data.endDate 
-              ? [dayjs(cs05Data.startDate), dayjs(cs05Data.endDate)] 
+            internshipPeriod: cs05Data.startDate && cs05Data.endDate
+              ? [dayjs(cs05Data.startDate), dayjs(cs05Data.endDate)]
               : undefined
           });
+
+          if (cs05Data.transcriptFilename) {
+            setTranscriptFile({
+              name: cs05Data.transcriptFilename,
+              status: 'done',
+              uid: '-1'
+            });
+          }
         }
       } catch (error) {
-        // ถ้าเป็น 404 ถือว่าเป็นกรณีปกติ (ยังไม่เคยมีการบันทึก)
+        if (!isMounted) return;
         console.error('Error fetching CS05:', error);
-        message.error('ไม่สามารถดึงข้อมูล CS05: ' + error.message);
+
+        if (error.response?.status !== 404) {
+          message.error('ไม่สามารถโหลดข้อมูล CS05 กรุณาลองใหม่ภายหลัง');
+        }
       }
     };
 
     checkExistingCS05();
-  }, [form]);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const validateInternshipPeriod = (startDate, endDate) => {
     const start = dayjs(startDate);
     const end = dayjs(endDate);
     const workingDays = end.diff(start, 'days') + 1;
-    
+
     if (workingDays < 40) {
       message.error('ระยะเวลาฝึกงานต้องไม่ต่ำกว่า 40 วันทำการ');
       return false;
@@ -126,8 +152,17 @@ const CS05Form = () => {
       return;
     }
 
+    // ตรวจสอบว่ามีไฟล์ transcript หรือไม่ (ปรับปรุงการตรวจสอบให้ละเอียดขึ้น)
+    if (!transcriptFile) {
+      message.error('กรุณาอัปโหลดใบแสดงผลการเรียน (Transcript)');
+      return;
+    }
+
     setLoading(true);
     try {
+      const formData = new FormData();
+
+      // เพิ่มข้อมูลฟอร์ม
       const submitData = {
         documentType: 'internship',
         documentName: 'CS05',
@@ -142,11 +177,28 @@ const CS05Form = () => {
         endDate: values.internshipPeriod[1].format('YYYY-MM-DD'),
       };
 
-      const response = await internshipService.submitCS05(submitData);
-      
+      // เพิ่มข้อมูลฟอร์มเป็น JSON
+      formData.append('formData', JSON.stringify(submitData));
+
+      // เพิ่มไฟล์ transcript (ตรวจสอบว่าเป็น File object หรือไม่)
+      if (transcriptFile instanceof File) {
+        formData.append('transcript', transcriptFile);
+      } else if (transcriptFile.originFileObj) {
+        // กรณีที่ได้จาก Upload component ของ Ant Design
+        formData.append('transcript', transcriptFile.originFileObj);
+      } else {
+        // เมื่อมีเฉพาะข้อมูลเก่า แต่ไม่มีไฟล์ใหม่
+        message.error('ไม่พบไฟล์ที่อัปโหลด กรุณาอัปโหลดไฟล์ใหม่');
+        setLoading(false);
+        return;
+      }
+
+      const response = await internshipService.submitCS05WithTranscript(formData);
+
       if (response.success) {
-        message.success('บันทึกคำร้องสำเร็จ');
+        message.success('บันทึกคำร้องและอัปโหลด Transcript สำเร็จ');
         setCS05Data(response.data);
+        setExistingCS05(response.data);
         setIsSubmitted(true);
         setFormData(response.data);
       } else {
@@ -307,9 +359,11 @@ const CS05Form = () => {
 
             <div className="upload-section">
               <Form.Item
+                name="transcript"
                 label="ใบแสดงผลการเรียน"
                 required
-                tooltip="กรุณาอัพโหลดใบแสดงผลการเรียนจากระบบ REG"
+                tooltip="กรุณาอัพโหลดใบแสดงผลการเรียนจากระบบ REG เพื่อยืนยันว่ามีหน่วยกิตเพียงพอ"
+                rules={[{ required: true, message: 'กรุณาอัพโหลดใบแสดงผลการเรียนจากระบบ REG' }]}
               >
                 <TranscriptUpload
                   value={transcriptFile}
@@ -317,6 +371,32 @@ const CS05Form = () => {
                   disabled={isFieldsDisabled}
                 />
               </Form.Item>
+
+              {/* เพิ่มส่วนแสดงลิงก์ดาวน์โหลด transcript ที่อัปโหลดไว้แล้ว */}
+              {isSubmitted && formData?.transcriptFilename && (
+                <Alert
+                  message="ไฟล์ Transcript ที่อัปโหลดแล้ว"
+                  description={
+                    <Button
+                      type="link"
+                      onClick={() => window.open(`${process.env.REACT_APP_API_URL}/files/${formData.transcriptFilename}`, '_blank')}
+                    >
+                      คลิกที่นี่เพื่อดูไฟล์ ({formData.transcriptFilename})
+                    </Button>
+                  }
+                  type="success"
+                  showIcon
+                  style={{ marginTop: '8px', marginBottom: '16px' }}
+                />
+              )}
+
+              <Alert
+                message="ข้อควรทราบ"
+                description="การส่งคำร้องและอัปโหลด Transcript จะดำเนินการพร้อมกันเมื่อคุณกดปุ่ม 'บันทึกคำร้อง' ด้านล่าง"
+                type="info"
+                showIcon
+                style={{ marginBottom: '16px' }}
+              />
             </div>
 
             <div className="submit-section">
@@ -327,8 +407,14 @@ const CS05Form = () => {
                   showIcon
                 />
               ) : (
-                <Button type="primary" htmlType="submit" loading={loading}>
-                  บันทึกคำร้อง
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  size="large"
+                  icon={<UploadOutlined />}
+                >
+                  บันทึกคำร้องและอัปโหลด Transcript
                 </Button>
               )}
             </div>

@@ -63,6 +63,8 @@ const internshipService = {
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
       }
+      
+      console.log('CS05 Data received:', response.data);
 
       return response.data;
     } catch (error) {
@@ -70,6 +72,10 @@ const internshipService = {
       if (error.response?.status === 404) {
         return { success: true, data: null }; // ส่งค่าว่างถ้าไม่พบข้อมูล
       }
+
+      // เพิ่มการ log ข้อมูล error ที่ได้รับอย่างละเอียด
+      console.error('Error details:', error.response?.data || error.message);
+
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05');
     }
   },
@@ -121,6 +127,29 @@ const internshipService = {
     } catch (error) {
       console.error('Upload Transcript Error:', error);
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+    }
+  },
+
+  /**
+ * บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript
+ */
+  submitCS05WithTranscript: async (formData) => {
+    try {
+      const response = await apiClient.post('/internship/cs-05/submit-with-transcript', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('ไม่มีสิทธิ์ในการสร้างคำร้อง');
+      } else if (error.response?.status === 400) {
+        throw new Error(error.response.data.message || 'ข้อมูลไม่ถูกต้อง');
+      } else {
+        throw new Error('เกิดข้อผิดพลาดในการส่งข้อมูล');
+      }
     }
   },
 
@@ -281,9 +310,9 @@ const internshipService = {
     }
   },
 
-    /**
-   * บันทึกเวลาเข้างาน
-   */
+  /**
+ * บันทึกเวลาเข้างาน
+ */
   checkIn: async (workDate, timeIn) => {
     try {
       const response = await apiClient.post('/internship/logbook/check-in', {

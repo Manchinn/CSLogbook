@@ -77,30 +77,29 @@ exports.getStudentInfo = async (req, res) => {
  */
 exports.getCurrentCS05 = async (req, res) => {
   try {
+    // ตรวจสอบว่ามีข้อมูลผู้ใช้หรือไม่
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'ไม่มีข้อมูลผู้ใช้งาน'
+      });
+    }
+    // แยกการดึงข้อมูลเป็น 2 ส่วนเพื่อหลีกเลี่ยงปัญหาการ join
     const document = await Document.findOne({
       where: { 
         userId: req.user.userId,
         documentName: 'CS05'
       },
-      include: [{
-        model: InternshipDocument,
-        as: 'internshipDocument',
-        required: true,
-        attributes: [
-          'internshipId', 
-          'companyName',
-          'companyAddress',
-          'startDate',
-          'endDate',
-          'supervisorName',
-          'supervisorPosition',
-          'supervisorPhone',
-          'supervisorEmail'
-        ]
-      }],
-      order: [['created_at', 'DESC']]
+      attributes: [
+        'documentId', 
+        'status', 
+        'filePath', 
+        'fileSize', 
+        'mimeType',
+      ],
     });
 
+    // ตรวจสอบว่าพบข้อมูลหรือไม่
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -108,10 +107,30 @@ exports.getCurrentCS05 = async (req, res) => {
       });
     }
 
-    // ดึงข้อมูลจาก internshipDocument
-    const internshipData = document.internshipDocument;
+    // ดึงข้อมูล InternshipDocument แยกต่างหาก
+    const internshipData = await InternshipDocument.findOne({
+      where: { documentId: document.documentId },
+      attributes: [
+        'internshipId', 
+        'companyName',
+        'companyAddress',
+        'startDate',
+        'endDate',
+        'supervisorName',
+        'supervisorPosition',
+        'supervisorPhone',
+        'supervisorEmail'
+      ]
+    });
 
-    // ส่งข้อมูลกลับในรูปแบบที่ frontend ต้องการ
+    if (!internshipData) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลการฝึกงาน'
+      });
+    }
+
+    // ส่งข้อมูลกลับไปยัง frontend
     return res.json({
       success: true,
       data: {
@@ -125,15 +144,23 @@ exports.getCurrentCS05 = async (req, res) => {
         supervisorPosition: internshipData.supervisorPosition || '',
         supervisorPhone: internshipData.supervisorPhone || '',
         supervisorEmail: internshipData.supervisorEmail || '',
-        createdAt: document.createdAt
+        createdAt: document.createdAt,
+        filePath: document.filePath || '',
+        fileName: document.fileName || '',
+        fileSize: document.fileSize || 0,
+        mimeType: document.mimeType || '',
+        transcriptFilename: document.fileName || ''
       }
     });
 
   } catch (error) {
     console.error('Get Current CS05 Error:', error);
+    console.error('Error details:', error.stack);
+    
     return res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05'
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05',
+      debug: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -216,6 +243,120 @@ exports.submitCS05 = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+    });
+  }
+};
+
+/**
+ * บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript
+ */
+exports.submitCS05WithTranscript = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    // ตรวจสอบว่ามีไฟล์ transcript หรือไม่
+    if (!req.file) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาแนบไฟล์ Transcript'
+      });
+    }
+
+    // ตรวจสอบประเภทไฟล์
+    if (req.file.mimetype !== 'application/pdf') {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น'
+      });
+    }
+
+    // แปลงข้อมูลที่ส่งมาจาก formData.append('formData', JSON.stringify(submitData));
+    const formData = JSON.parse(req.body.formData);
+
+    // ดึงข้อมูลจาก formData
+    const {
+      documentType,
+      documentName,
+      category,
+      companyName,
+      companyAddress,
+      startDate,
+      endDate,
+      studentId,
+      fullName,
+      year,
+      totalCredits
+    } = formData;
+
+    // ตรวจสอบว่ามี CS05 ที่ pending อยู่หรือไม่
+    const existingDocument = await Document.findOne({
+      where: {
+        userId: req.user.userId,
+        documentName: 'CS05',
+        status: 'pending'
+      }
+    });
+
+    if (existingDocument) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'คุณมีคำร้อง CS05 ที่รอการพิจารณาอยู่แล้ว'
+      });
+    }
+
+    // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript ด้วย
+    const document = await Document.create({
+      userId: req.user.userId,
+      documentType: 'INTERNSHIP',
+      documentName: 'CS05',
+      category: 'proposal',
+      status: 'pending',
+      filePath: req.file.path,
+      fileName: req.file.filename,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype
+    }, { transaction });
+
+    // 2. สร้าง InternshipDocument
+    const internshipDoc = await InternshipDocument.create({
+      documentId: document.documentId,
+      companyName,
+      companyAddress,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      status: 'pending',
+      supervisorName: null,
+      supervisorPosition: null,
+      supervisorPhone: null,
+      supervisorEmail: null
+    }, { transaction });
+
+    await transaction.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: 'บันทึกคำร้องและอัปโหลด Transcript สำเร็จ',
+      data: {
+        documentId: document.documentId,
+        internshipDocId: internshipDoc.id,
+        status: document.status,
+        companyName,
+        companyAddress,
+        startDate,
+        endDate,
+        transcriptFilename: req.file.filename
+      }
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Submit CS05 with Transcript Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

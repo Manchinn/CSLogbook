@@ -2,10 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import { calculateWorkHours } from '../utils/timeUtils';
 import internshipService from '../services/internshipService';
+import { useInternship } from '../contexts/InternshipContext';
 import dayjs from 'dayjs';
 
 export const useTimeSheet = (form) => {
+  const { state } = useInternship();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [internshipDates, setInternshipDates] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -19,34 +22,126 @@ export const useTimeSheet = (form) => {
     remainingDays: 0
   });
   const [dateRange, setDateRange] = useState(null);
+  const [hasCS05, setHasCS05] = useState(false);
+  const [cs05Status, setCS05Status] = useState(null);
+  // เพิ่ม state ใหม่เพื่อระบุว่าอยู่ในโหมดทดสอบหรือไม่
+  const [isTestMode, setIsTestMode] = useState(true);
+
+  // ตรวจสอบสถานะ CS05 ก่อนดำเนินการอื่นๆ
+  const checkCS05Status = useCallback(async () => {
+    try {
+      // 1. ตรวจสอบจาก state ก่อน (หากมีข้อมูลอยู่แล้ว)
+      const cs05Data = state?.registration?.cs05?.data;
+      
+      if (cs05Data && cs05Data.documentId) {
+        setHasCS05(true);
+        setCS05Status(cs05Data.status);
+        
+        // เพิ่มการตรวจสอบเงื่อนไขสำหรับโหมดทดสอบ
+        // โหมดทดสอบ - ยอมรับสถานะ 'pending'
+        // โหมด production - ยอมรับเฉพาะสถานะ 'approved'
+        const isValidStatus = isTestMode 
+          ? (cs05Data.status === 'pending' || cs05Data.status === 'approved')
+          : (cs05Data.status === 'approved');
+          
+        return {
+          hasCS05: true,
+          status: cs05Data.status,
+          documentId: cs05Data.documentId,
+          isValidStatus
+        };
+      }
+      
+      // 2. ถ้าไม่มีใน state ให้ดึงจาก API
+      const response = await internshipService.getCurrentCS05();
+      
+      if (response.success && response.data) {
+        setHasCS05(true);
+        setCS05Status(response.data.status);
+        
+        // เพิ่มการตรวจสอบเงื่อนไขเช่นเดียวกับด้านบน
+        const isValidStatus = isTestMode 
+          ? (response.data.status === 'pending' || response.data.status === 'approved')
+          : (response.data.status === 'approved');
+        
+        return {
+          hasCS05: true,
+          status: response.data.status,
+          documentId: response.data.documentId,
+          isValidStatus
+        };
+      }
+      
+      // ไม่พบข้อมูล CS05
+      setHasCS05(false);
+      setCS05Status(null);
+      return {
+        hasCS05: false,
+        status: null,
+        documentId: null,
+        isValidStatus: false
+      };
+    } catch (error) {
+      console.error('Error checking CS05 status:', error);
+      setHasCS05(false);
+      setCS05Status(null);
+      return {
+        hasCS05: false,
+        status: null,
+        documentId: null,
+        isValidStatus: false,
+        error: error.message
+      };
+    }
+  }, [state, isTestMode]);
 
   // สร้างรายการวันที่ฝึกงานทั้งหมดตามวันที่ใน CS05
   const generateWorkdayEntries = useCallback(async () => {
+    setLoading(true);
+    setInitialLoading(true);
+    
     try {
+      // 0. ตรวจสอบว่ามี CS05 ก่อน
+      const cs05Result = await checkCS05Status();
+      
+      if (!cs05Result.hasCS05) {
+        console.log('ไม่พบข้อมูล CS05');
+        setLoading(false);
+        setInitialLoading(false);
+        return [];
+      }
+      
+      // เพิ่มการตรวจสอบสถานะตามเงื่อนไข isValidStatus
+      // ในโหมดทดสอบจะข้ามการตรวจสอบนี้ไป
+      if (!isTestMode && !cs05Result.isValidStatus) {
+        console.log('CS05 ไม่อยู่ในสถานะที่ถูกต้อง');
+        setLoading(false);
+        setInitialLoading(false);
+        return [];
+      }
+      
       // 1. ดึงข้อมูลวันที่ฝึกงานจาก CS05
       const range = await internshipService.getInternshipDateRange();
-      setDateRange(range);
+      setDateRange(range.data);
       
-      // 2. ดึงรายการวันทำงานทั้งหมด (ไม่รวมวันหยุด)
-      const workdays = await internshipService.generateInternshipDates();
+      // ส่วนที่เหลือของโค้ดเดิม
+      const workdaysResponse = await internshipService.generateInternshipDates();
+      const workdays = workdaysResponse.data || [];
       
-      // 3. ดึงข้อมูลการบันทึกการฝึกงานที่มีอยู่แล้ว
-      const existingEntries = await internshipService.getTimeSheetEntries();
+      const entriesResponse = await internshipService.getTimeSheetEntries();
+      const existingEntries = entriesResponse.data || [];
       console.log('ข้อมูลจาก API:', existingEntries);
       
-      // 4. แปลงเป็น Map เพื่อง่ายต่อการเข้าถึง
       const existingEntriesMap = new Map();
       existingEntries.forEach(entry => {
         existingEntriesMap.set(entry.workDate, entry);
       });
       
-      // 5. สร้างรายการวันทำงานทั้งหมด โดยใช้ข้อมูลที่มีอยู่แล้ว (ถ้ามี)
       const allEntries = workdays.map(date => {
         const formattedDate = dayjs(date).format('YYYY-MM-DD');
         const existingEntry = existingEntriesMap.get(formattedDate);
         
         if (existingEntry) {
-          // มีข้อมูลอยู่แล้ว
           return {
             ...existingEntry,
             key: existingEntry.id || formattedDate,
@@ -55,7 +150,6 @@ export const useTimeSheet = (form) => {
             timeOut: existingEntry.timeOut && dayjs(existingEntry.timeOut, 'HH:mm')
           };
         } else {
-          // ยังไม่มีข้อมูล
           return {
             key: formattedDate,
             workDate: dayjs(formattedDate),
@@ -73,38 +167,29 @@ export const useTimeSheet = (form) => {
         }
       });
       
-      // เรียงตามวันที่
       allEntries.sort((a, b) => a.workDate.diff(b.workDate));
-      
       setInternshipDates(allEntries);
       
-      // ดึงข้อมูลสถิติ
-      const statsData = await internshipService.getTimeSheetStats();
-      setStats(statsData);
+      const statsResponse = await internshipService.getTimeSheetStats();
+      setStats(statsResponse.data || {});
       
       return allEntries;
     } catch (error) {
+      console.error('Error generating workday entries:', error);
       message.error(error.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงาน');
       return [];
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
     }
-  }, []);
+  }, [checkCS05Status, isTestMode]);
 
   // ดึงข้อมูลเมื่อเปิดหน้าแรก
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        await generateWorkdayEntries();
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
+    generateWorkdayEntries();
   }, [generateWorkdayEntries]);
 
+  // ส่วนที่เหลือของโค้ดคงเดิม...
   const handleEdit = (entry) => {
     setSelectedEntry(entry);
     form.setFieldsValue({
@@ -185,9 +270,9 @@ export const useTimeSheet = (form) => {
     } catch (error) {
       console.error('Error saving timesheet entry:', error);
       // แสดงข้อความที่เฉพาะเจาะจงมากขึ้น
-      if (error.message.includes('เวลาออกงานต้องมากกว่า')) {
+      if (error.message?.includes('เวลาออกงานต้องมากกว่า')) {
         message.error('เวลาออกงานต้องมากกว่าเวลาเข้างาน');
-      } else if (error.message.includes('ไม่พบข้อมูลการบันทึกเวลาเข้างาน')) {
+      } else if (error.message?.includes('ไม่พบข้อมูลการบันทึกเวลาเข้างาน')) {
         message.error('คุณต้องบันทึกเวลาเข้างานก่อน');
       } else {
         message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
@@ -197,8 +282,14 @@ export const useTimeSheet = (form) => {
     }
   };
 
+  // เพิ่มฟังก์ชันสำหรับเปลี่ยนโหมดการทำงาน (สำหรับทดสอบหรือใช้งานจริง)
+  const toggleTestMode = () => {
+    setIsTestMode(prev => !prev);
+  };
+
   return {
     loading,
+    initialLoading,
     internshipDates,
     selectedEntry,
     isModalVisible,
@@ -209,6 +300,10 @@ export const useTimeSheet = (form) => {
     handleClose,
     stats,
     dateRange,
-    refreshData: generateWorkdayEntries
+    refreshData: generateWorkdayEntries,
+    hasCS05,
+    cs05Status,
+    isTestMode,
+    toggleTestMode // ส่งฟังก์ชันนี้ไปใช้ในกรณีที่ต้องการเปลี่ยนโหมดการทำงาน
   };
 };

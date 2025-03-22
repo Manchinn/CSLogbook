@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, Typography, Space, message, Result } from 'antd';
+import React, { useState, useEffect, Suspense } from 'react';
+import { Form, Input, Button, Card, Typography, Space, message, Result, Spin, Skeleton } from 'antd';
 import { useNavigate } from "react-router-dom";
 import { useInternship } from '../../../contexts/InternshipContext';
 import internshipService from '../../../services/internshipService';
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, WarningOutlined, LoadingOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css"; // Import shared CSS
 
-const { Title } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const validateCompanyData = (data) => {
   return data?.supervisorName && data?.supervisorPhone && data?.supervisorEmail;
 };
 
-const CompanyInfoForm = () => {
+const CompanyForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { state, setCompanyInfo } = useInternship();
@@ -20,17 +20,53 @@ const CompanyInfoForm = () => {
   const documentId = cs05Data?.documentId;
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [isDisabled, setIsDisabled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [hasCS05, setHasCS05] = useState(false);
+  const [isCS05Approved, setIsCS05Approved] = useState(false);
 
-  // ลบ hasFetched state
+  // ตรวจสอบสถานะ CS05 เมื่อเข้าหน้านี้
+  useEffect(() => {
+    const checkCS05Status = async () => {
+      setInitialLoading(true);
+      try {
+        // ถ้ามีข้อมูล CS05 จาก state แล้ว
+        if (cs05Data && documentId) {
+          setHasCS05(true);
+          setIsCS05Approved(cs05Data.status === 'pending'); /* ค่อยแก้ไขเป็น approve */
+          setInitialLoading(false);
+          return;
+        }
 
-  // แก้ไข useEffect สำหรับการดึงข้อมูล
+        // ถ้ายังไม่มีข้อมูลใน state ให้เรียก API เพื่อตรวจสอบ
+        const response = await internshipService.getCurrentCS05();
+        
+        if (response.success && response.data) {
+          setHasCS05(true);
+          setIsCS05Approved(response.data.status === 'approved');
+        } else {
+          setHasCS05(false);
+          setIsCS05Approved(false);
+        }
+      } catch (error) {
+        console.error('Check CS05 Error:', error);
+        setHasCS05(false);
+        setIsCS05Approved(false);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    checkCS05Status();
+  }, [cs05Data, documentId]);
+
+  // ดึงข้อมูลบริษัทเมื่อมี documentId (เฉพาะเมื่อมี CS05 และได้รับการอนุมัติแล้ว)
   useEffect(() => {
     const fetchCompanyInfo = async () => {
       try {
-        if (!documentId) {
-          console.log('No document ID found');
+        if (!documentId || !hasCS05 || !isCS05Approved) {
+          console.log('Cannot fetch company info: prerequisites not met');
           return;
         }
 
@@ -74,11 +110,12 @@ const CompanyInfoForm = () => {
     };
 
     fetchCompanyInfo();
-  }, [documentId, cs05Data?.companyName]); // ลดจำนวน dependencies
+  }, [documentId, hasCS05, isCS05Approved, cs05Data?.companyName, form, setCompanyInfo]); 
 
   const handleEdit = () => {
     // เก็บข้อมูลปัจจุบันไว้กรณียกเลิกการแก้ไข
     const currentData = {
+      companyName: form.getFieldValue('companyName'),
       supervisorName: form.getFieldValue('supervisorName'),
       supervisorPhone: form.getFieldValue('supervisorPhone'),
       supervisorEmail: form.getFieldValue('supervisorEmail')
@@ -91,9 +128,13 @@ const CompanyInfoForm = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Validate ข้อมูลก่อนส่ง
+      // ตรวจสอบว่ามี documentId และได้รับอนุมัติแล้ว
       if (!documentId) {
         throw new Error('ไม่พบข้อมูลเอกสาร CS05');
+      }
+
+      if (!isCS05Approved) {
+        throw new Error('คำร้อง CS05 ยังไม่ได้รับการอนุมัติ');
       }
 
       const response = await internshipService.submitCompanyInfo({
@@ -107,13 +148,16 @@ const CompanyInfoForm = () => {
         setCompanyInfo({
           documentId,
           companyName: cs05Data.companyName,
-          supervisorName: values.supervisorName,
-          supervisorPhone: values.supervisorPhone,
-          supervisorEmail: values.supervisorEmail
+          supervisorName: values.supervisorName.trim(),
+          supervisorPhone: values.supervisorPhone.trim(),
+          supervisorEmail: values.supervisorEmail.trim()
         });
         message.success(isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'บันทึกข้อมูลสำเร็จ');
         setIsDisabled(true);
         setIsEditing(false);
+        
+        // ลบข้อมูลชั่วคราวหลังจากบันทึกเสร็จ
+        localStorage.removeItem('tempCompanyData');
       } else {
         throw new Error(response.message || 'ไม่สามารถบันทึกข้อมูล');
       }
@@ -125,6 +169,56 @@ const CompanyInfoForm = () => {
     }
   };
 
+  // Replace the current loading state with Skeleton
+  if (initialLoading) {
+    return (
+      <div className="internship-container">
+        <Card className="internship-card">
+          <Skeleton active avatar paragraph={{ rows: 4 }} />
+        </Card>
+      </div>
+    );
+  }
+
+  // กรณียังไม่มีการส่ง CS05
+  if (!hasCS05) {
+    return (
+      <Result
+        status="warning"
+        icon={<WarningOutlined />}
+        title="ยังไม่มีข้อมูลคำร้อง คพ.05"
+        subTitle="คุณจำเป็นต้องส่งคำร้อง คพ.05 ก่อนจึงจะสามารถกรอกข้อมูลสถานประกอบการได้"
+        extra={
+          <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
+            ไปที่หน้าส่งคำร้อง คพ.05
+          </Button>
+        }
+      />
+    );
+  }
+
+  // กรณี CS05 ยังไม่ได้รับการอนุมัติ
+  if (!isCS05Approved) {
+    return (
+      <Result
+        status="info"
+        title="คำร้อง คพ.05 ยังไม่ได้รับการอนุมัติ"
+        subTitle={`สถานะปัจจุบัน: ${cs05Data?.status === 'pending' ? 'รอการพิจารณา' : cs05Data?.status === 'rejected' ? 'ไม่อนุมัติ' : cs05Data?.status}`}
+        extra={
+          <Space direction="vertical" align="center">
+            <Paragraph>
+              คุณจำเป็นต้องรอให้คำร้อง คพ.05 ได้รับการอนุมัติก่อนจึงจะสามารถกรอกข้อมูลสถานประกอบการได้
+            </Paragraph>
+            <Button type="primary" onClick={() => navigate('/internship/status')}> {/* รอแก้ไขให้ไปดูหน้า ตรวจสอบสถานะ */}
+              ดูสถานะคำร้อง
+            </Button>
+          </Space>
+        }
+      />
+    );
+  }
+
+  // แสดงฟอร์มเมื่อผ่านการตรวจสอบทุกอย่างแล้ว
   return (
     <div className="internship-container">
       <Card className="internship-card">
@@ -200,8 +294,10 @@ const CompanyInfoForm = () => {
                 onClick={() => {
                   if (isEditing) {
                     // ดึงข้อมูลที่เก็บไว้มาใส่กลับในฟอร์ม
-                    const tempData = JSON.parse(localStorage.getItem('tempCompanyData'));
-                    form.setFieldsValue(tempData);
+                    const tempData = JSON.parse(localStorage.getItem('tempCompanyData') || '{}');
+                    if (tempData) {
+                      form.setFieldsValue(tempData);
+                    }
                     setIsDisabled(true);
                     setIsEditing(false);
                     localStorage.removeItem('tempCompanyData');
@@ -225,6 +321,16 @@ const CompanyInfoForm = () => {
           </Form.Item>
         </Form>
       </Card>
+    </div>
+  );
+};
+
+const CompanyInfoForm = () => {
+  return (
+    <div className="internship-container">
+      <Suspense fallback={<Spin tip="กำลังโหลดข้อมูล..." />}>
+        <CompanyForm />
+      </Suspense>
     </div>
   );
 };
