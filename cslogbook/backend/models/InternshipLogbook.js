@@ -29,6 +29,16 @@ module.exports = (sequelize) => {
             autoIncrement: true,
             field: 'log_id'
         },
+        internshipId: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            field: 'internship_id'
+        },
+        studentId: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            field: 'student_id'
+        },
         workDate: {
             type: DataTypes.DATEONLY,
             allowNull: false,
@@ -61,6 +71,16 @@ module.exports = (sequelize) => {
             type: DataTypes.DECIMAL(4, 2),
             allowNull: false,
             field: 'work_hours'
+        },
+        timeIn: {
+            type: DataTypes.STRING(5), // format: "HH:MM"
+            allowNull: true,
+            field: 'time_in'
+        },
+        timeOut: {
+            type: DataTypes.STRING(5), // format: "HH:MM" 
+            allowNull: true,
+            field: 'time_out'
         },
         supervisorComment: {
             type: DataTypes.TEXT,

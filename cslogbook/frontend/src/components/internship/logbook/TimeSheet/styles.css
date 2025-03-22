@@ -10,6 +10,11 @@
   border-radius: 8px;
 }
 
+.status-summary-card.total { border-top: 3px solid #1890ff; }
+.status-summary-card.completed { border-top: 3px solid #52c41a; }
+.status-summary-card.pending { border-top: 3px solid #faad14; }
+.status-summary-card.progress { border-top: 3px solid #722ed1; }
+
 .view-details {
   padding: 16px;
 }
@@ -33,4 +38,10 @@
   padding: 16px;
   border-radius: 4px;
   margin-top: 24px;
+}
+
+.help-text {
+  color: #888;
+  display: block;
+  margin-top: 8px;
 }

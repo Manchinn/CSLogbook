@@ -78,6 +78,8 @@ const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
 const internshipRoutes = require('./routes/documents/internshipRoutes');
+const logbookRoutes = require('./routes/documents/logbookRoutes');
+
 
 const adminRoutes = require('./routes/adminRoutes');
 
@@ -202,6 +204,7 @@ app.use('/api', uploadRoutes); // ใช้ route
 
 // Add routes
 app.use('/api/internship', internshipRoutes);
+app.use('/api/internship/logbook', logbookRoutes);
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

@@ -225,24 +225,141 @@ const internshipService = {
     }
   },
 
-  /* // === ส่วนจัดการสมุดบันทึกการฝึกงาน ===
-  submitDailyRecord: async (record) => {
-    // TODO: Implement daily record submission
+  // === ส่วนจัดการสมุดบันทึกการฝึกงาน ===
+
+  /**
+   * ดึงข้อมูลบันทึกการฝึกงานทั้งหมด
+   */
+  getTimeSheetEntries: async () => {
+    try {
+      const response = await apiClient.get('/internship/logbook/timesheet');
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลบันทึกการฝึกงานได้');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching timesheet entries:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลการฝึกงาน');
+    }
   },
 
-  getLogbookEntries: async () => {
-    // TODO: Implement getting logbook entries
+  /**
+   * บันทึกข้อมูลการฝึกงานประจำวัน
+   */
+  saveTimeSheetEntry: async (entryData) => {
+    try {
+      const response = await apiClient.post('/internship/logbook/timesheet', entryData);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถบันทึกข้อมูลการฝึกงานได้');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error saving timesheet entry:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลการฝึกงาน');
+    }
   },
 
-  // === ส่วนจัดการข้อมูลสรุปการฝึกงาน ===
-  getInternshipSummary: async (studentId) => {
-    // TODO: Implement getting internship summary
+  /**
+   * อัพเดทข้อมูลการฝึกงานประจำวัน
+   */
+  updateTimeSheetEntry: async (entryId, entryData) => {
+    try {
+      const response = await apiClient.put(`/internship/logbook/timesheet/${entryId}`, entryData);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถอัพเดทข้อมูลการฝึกงานได้');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating timesheet entry:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลการฝึกงาน');
+    }
   },
 
-  // === ส่วนจัดการข้อมูลสถานประกอบการ ===
-  getCompanyInfo: async () => {
-    // TODO: Implement getting company info
-  } */
+    /**
+   * บันทึกเวลาเข้างาน
+   */
+  checkIn: async (workDate, timeIn) => {
+    try {
+      const response = await apiClient.post('/internship/logbook/check-in', {
+        workDate,
+        timeIn
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error checking in:', error);
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึกเวลาเข้างาน');
+    }
+  },
+
+  /**
+   * บันทึกเวลาออกงานและรายละเอียด
+   */
+  checkOut: async (logData) => {
+    try {
+      const response = await apiClient.post('/internship/logbook/check-out', logData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error checking out:', error);
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึกเวลาออกงาน');
+    }
+  },
+
+  /**
+   * ดึงข้อมูลสถิติการฝึกงาน
+   */
+  getTimeSheetStats: async () => {
+    try {
+      const response = await apiClient.get('/internship/logbook/timesheet/stats');
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลสถิติการฝึกงานได้');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching timesheet stats:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลสถิติการฝึกงาน');
+    }
+  },
+
+  // เพิ่มฟังก์ชันใหม่ ดึงวันที่ฝึกงานจาก CS05
+  getInternshipDateRange: async () => {
+    try {
+      const response = await apiClient.get('/internship/logbook/cs05/date-range');
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลวันที่ฝึกงานได้');
+      }
+
+      return response.data.data; // จะได้ { startDate: '2025-XX-XX', endDate: '2025-XX-XX' }
+    } catch (error) {
+      console.error('Error fetching internship date range:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลวันที่ฝึกงาน');
+    }
+  },
+
+  // ฟังก์ชันสร้างรายการวันที่ฝึกงานทั้งหมด (ไม่รวมวันหยุด)
+  generateInternshipDates: async () => {
+    try {
+      const response = await apiClient.get('/internship/logbook/workdays');
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงานได้');
+      }
+
+      return response.data.data; // จะได้รายการวันที่ทั้งหมดที่ต้องฝึกงาน
+    } catch (error) {
+      console.error('Error generating internship dates:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงาน');
+    }
+  },
+
 };
 
 export default internshipService;
