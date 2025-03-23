@@ -25,6 +25,9 @@ import DocumentDetails from './components/admin/DocumentDetails';
 import InternshipDocumentManagement from './components/admin/InternshipDocumentManagement';
 import ProjectDocumentManagement from './components/admin/ProjectDocumentManagement';
 
+// Import Admin2 Components - New Structure
+import AdminRoutes from './components/admin2/AdminRoutes';
+
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, userData } = useAuth();
 
@@ -144,7 +147,15 @@ const App = () => {
                   <DocumentDetails />
                 </ProtectedRoute>
               } />
+
+              <Route path="/admin2/*" element={
+                <ProtectedRoute roles={['admin']}>
+                  <AdminRoutes />
+                </ProtectedRoute>
+              } />
+            
             </Route>
+            
 
             {/* Default Route */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

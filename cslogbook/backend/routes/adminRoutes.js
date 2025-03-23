@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const studentController = require('../controllers/studentController');
+const teacherController = require('../controllers/teacherController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 // Middleware for admin routes
@@ -21,5 +23,20 @@ router.get('/stats', adminAuth, async (req, res, next) => {
 router.get('/stats/students', adminAuth, adminController.getStudentStats);
 router.get('/stats/documents', adminAuth, adminController.getDocumentStats);
 router.get('/stats/system', adminAuth, adminController.getSystemStats);
+
+// === เพิ่ม Admin Student Routes ===
+router.get('/students', adminAuth, studentController.getAllStudents);
+/* router.get('/students/filter-options', adminAuth, studentController.getFilterOptions); */ // More specific route first
+router.get('/students/:id', adminAuth, studentController.getStudentById); // Parameter route after
+router.post('/students', adminAuth, studentController.addStudent);
+router.put('/students/:id', adminAuth, studentController.updateStudent);
+router.delete('/students/:id', adminAuth, studentController.deleteStudent);
+
+// === เพิ่ม Admin Teacher Routes ===
+router.get('/teachers', adminAuth, teacherController.getAllTeachers);
+router.post('/teachers', adminAuth, teacherController.addTeacher);
+router.get('/teachers/:id', adminAuth, teacherController.getTeacherById);
+router.put('/teachers/:id', adminAuth, teacherController.updateTeacher);
+router.delete('/teachers/:id', adminAuth, teacherController.deleteTeacher);
 
 module.exports = router;

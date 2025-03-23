@@ -1,0 +1,61 @@
+.constants-settings-container {
+  padding: 20px;
+}
+
+.settings-description {
+  margin-bottom: 24px;
+  color: #5a5a5a;
+}
+
+.settings-tabs {
+  margin-top: 16px;
+}
+
+.setting-section {
+  margin-bottom: 24px;
+}
+
+.setting-section-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.setting-card {
+  background-color: #f9f9f9;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.setting-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.setting-form-item {
+  margin-bottom: 16px;
+}
+
+.draggable-item {
+  cursor: grab;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background-color: white;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.draggable-item:hover {
+  background-color: #f6f6f6;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #999;
+  margin-right: 8px;
+}

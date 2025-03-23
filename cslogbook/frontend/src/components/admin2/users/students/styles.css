@@ -1,0 +1,537 @@
+/* Base Container */
+.container-studentlist {
+    width: 100%;
+    max-width: 97%;
+    padding: 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: #fff;
+    margin: 24px auto;
+    min-height: calc(100vh - 100px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 100vh;
+    padding-top: 24px;
+}
+
+/* Base Container */
+.admin-student-container {
+    width: 100%;
+    max-width: 97%;
+    padding: 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: #fff;
+    margin: 24px auto;
+    min-height: calc(100vh - 100px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 100vh;
+    padding-top: 24px;
+}
+
+/* Typography */
+.title {
+    margin: 0 0 16px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1f1f1f;
+}
+
+/* Layout Components */
+.filter-section,
+.search-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* Filter Section */
+.filter-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* Table Styling */
+.ant-table {
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.table-header,
+.ant-table-thead > tr > th {
+    background: #fafafa !important;
+    font-weight: 600;
+    padding: 16px !important;
+    border-bottom: 2px solid #f0f0f0;
+    color: #1f1f1f;
+}
+
+.table-cell,
+.ant-table-tbody > tr > td {
+    padding: 16px !important;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ant-table-row:hover,
+.ant-table-tbody > tr:hover > td {
+    cursor: pointer;
+    background-color: #f5f5f5 !important;
+    transition: background-color 0.3s ease;
+}
+
+/* Table Styling */
+.admin-student-container .ant-table {
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.admin-student-container .ant-table-thead > tr > th {
+    background: #fafafa !important;
+    font-weight: 600;
+    padding: 16px !important;
+    border-bottom: 2px solid #f0f0f0;
+    color: #1f1f1f;
+}
+
+.admin-student-container .ant-table-tbody > tr > td {
+    padding: 16px !important;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.admin-student-container .ant-table-row:hover,
+.admin-student-container .ant-table-tbody > tr:hover > td {
+    cursor: pointer;
+    background-color: #f5f5f5 !important;
+    transition: background-color 0.3s ease;
+}
+
+/* Form Elements */
+.ant-input-search {
+    max-width: 500px !important;
+    width: 100%;
+
+    .ant-input {
+        border-radius: 8px;
+        height: 30px !important;
+        font-size: 15px;
+
+        &:hover,
+        &:focus {
+            border-color: #40a9ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+        }
+    }
+
+    .ant-input-search-button {
+        height: 42px !important;
+        border-radius: 0 8px 8px 0 !important;
+    }
+}
+
+/* Form Elements */
+.admin-student-container .ant-input-search {
+    max-width: 500px !important;
+    width: 100%;
+}
+
+.admin-student-container .ant-input-search .ant-input {
+    border-radius: 8px;
+    height: 40px;
+    font-size: 15px;
+}
+
+.admin-student-container .ant-input-search .ant-input:hover,
+.admin-student-container .ant-input-search .ant-input:focus {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.admin-student-container .ant-input-search .ant-input-search-button {
+    height: 42px !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+/* Status and Tags */
+.status-tag,
+.ant-tag {
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+}
+
+.ant-tag-success {
+    background-color: #f6ffed;
+    color: #52c41a;
+}
+
+.ant-tag-error {
+    background-color: #fff2f0;
+    color: #ff4d4f;
+}
+
+/* Status Tags */
+.admin-student-container .ant-tag {
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+}
+
+.admin-student-container .ant-tag-success {
+    background-color: #f6ffed;
+    color: #52c41a;
+}
+
+.admin-student-container .ant-tag-blue {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+
+.admin-student-container .ant-tag-processing {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+
+/* แท็กที่แสดงสถานะที่ไม่มีสิทธิ์ */
+.admin-student-container .ant-tag-error {
+    background-color: #fff1f0;
+    color: #ff4d4f;
+    font-weight: 500;
+}
+
+/* จัดการ Space ที่มีหลายแท็ก */
+.status-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.student-detail .ant-space {
+    flex-wrap: wrap;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+
+    .ant-btn {
+        border-radius: 6px;
+        padding: 4px 12px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+}
+
+/* Modal Styling */
+.student-modal {
+    .ant-modal-header {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 16px 24px;
+    }
+
+    .ant-modal-body {
+        padding: 24px;
+    }
+
+    .ant-form-item {
+        margin-bottom: 24px;
+    }
+}
+
+/* Modal Styling */
+.admin-student-container .ant-modal-header {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+}
+
+.admin-student-container .ant-modal-body {
+    padding: 24px;
+}
+
+.admin-student-container .ant-form-item {
+    margin-bottom: 24px;
+}
+
+/* States */
+.search-highlight {
+    background-color: #ffe58f;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.ant-empty {
+    margin: 48px 0;
+
+    &-image {
+        height: 80px;
+    }
+}
+
+.ant-spin-container {
+    min-height: 300px;
+}
+
+/* States */
+.search-highlight {
+    background-color: #ffe58f;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.admin-student-container .ant-empty {
+    margin: 48px 0;
+}
+
+.admin-student-container .ant-empty-image {
+    height: 80px;
+}
+
+.admin-student-container .ant-spin-container {
+    min-height: 300px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container-studentlist {
+        max-width: 100%;
+        padding: 16px;
+        margin: 0;
+        border-radius: 0;
+        margin-left: 0;
+    }
+
+    .filter-section,
+    .search-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .table-cell {
+        padding: 12px !important;
+        font-size: 13px;
+    }
+
+    .ant-input-search {
+        max-width: 100% !important;
+    }
+
+    .action-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .ant-table {
+        font-size: 13px;
+    }
+
+    .ant-layout-sider {
+        position: fixed !important;
+        height: 100vh;
+        left: 0;
+        z-index: 999;
+    }
+
+    .ant-layout-sider-collapsed {
+        transform: translateX(-100%);
+    }
+
+    .ant-layout-sider-children {
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .ant-menu {
+        border-right: none;
+    }
+
+    .sidebar-overlay.visible {
+        display: block;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .admin-student-container {
+        max-width: 100%;
+        padding: 16px;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-student-container .ant-table-cell {
+        padding: 12px !important;
+        font-size: 13px;
+    }
+
+    .admin-student-container .ant-input-search {
+        max-width: 100% !important;
+    }
+
+    .action-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .admin-student-container .ant-table {
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 769px) {
+    .container-studentlist {
+        /* margin-left: 85px; */ /* ปรับตามความกว้างของ sidebar */
+        transition: margin-left 0.3s ease;
+    }
+
+    .ant-layout-sider-collapsed + .container-studentlist {
+        margin-left: 80px; /* ปรับตามความกว้างของ collapsed sidebar */
+    }
+}
+
+/* Overlay when mobile sidebar is open */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 998;
+}
+
+/* Statistics Chips */
+.statistics-chips {
+    display: flex;
+    gap: 16px;
+}
+
+.statistics-chips .statistic-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+}
+
+.statistics-chips .anticon {
+    font-size: 16px;
+    color: #666;
+}
+
+.student-drawer .ant-drawer-body p {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #f0f0f0;
+}
+
+.student-drawer .ant-drawer-body p:last-child {
+    border-bottom: none;
+}
+
+/* Student Form Styling */
+.student-form .ant-form-item-label > label {
+    font-weight: 500;
+    color: #333;
+}
+
+.student-form .ant-input:focus,
+.student-form .ant-input-number-focused,
+.student-form .ant-select-focused .ant-select-selector {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.student-form .ant-input,
+.student-form .ant-input-number,
+.student-form .ant-select .ant-select-selector {
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+}
+
+.student-detail p {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #f0f0f0;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.student-detail p:last-child {
+    border-bottom: none;
+}
+
+.student-detail p strong {
+    display: inline-block;
+    width: 140px;
+    font-weight: 600;
+    color: #333;
+}
+
+.student-drawer .ant-drawer-header {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+}
+
+.student-drawer .ant-drawer-header-title {
+    flex: auto;
+}
+
+.student-drawer .ant-drawer-title {
+    font-weight: 600;
+    color: #1f1f1f;
+    font-size: 16px;
+}
+
+.student-drawer .ant-drawer-body {
+    padding: 24px;
+}
+
+/* Custom transition for edit mode */
+.student-form,
+.student-detail {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

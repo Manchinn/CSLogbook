@@ -50,19 +50,43 @@ exports.getAllStudents = async (req, res, next) => {
       }]
     });
 
-    const formattedStudents = students.map(user => ({
-      userId: user.userId,                    // hidden field
-      studentId: user.student?.studentId,   // hidden field
-      studentCode: user.student?.studentCode || '',
-      firstName: user.firstName,
-      lastName: user.lastName,
-      totalCredits: user.student?.totalCredits || 0,
-      majorCredits: user.student?.majorCredits || 0,
-      isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
-      isEligibleForProject: Boolean(user.student?.isEligibleProject),
-      semester: user.student?.semester,
-      academicYear: user.student?.academicYear
-    }));
+    const formattedStudents = students.map(user => {
+      // กำหนดค่า status ตามค่า boolean ในฐานข้อมูล
+      let status = null;
+      
+      // ตรวจสอบสถานะตามลำดับความสำคัญ
+      // หากมีสิทธิ์ทั้ง internship และ project ให้ใช้ project เป็นหลัก (เพราะมีความสำคัญกว่า)
+      if (user.student?.isEligibleProject) {
+        status = 'eligible_project';
+      } else if (user.student?.isEligibleInternship) {
+        status = 'eligible_internship';
+      }
+      
+      // หมายเหตุ: หากต้องการเพิ่มสถานะ in_progress และ completed
+      // จำเป็นต้องดึงข้อมูลเพิ่มเติมจากตาราง internships และ projects
+      // ตัวอย่าง (ที่ยังไม่ถูกใช้งานเนื่องจากไม่มีการดึงข้อมูลลงทะเบียนเพิ่มเติม):
+      // if (hasCompletedProject) status = 'completed_project';
+      // else if (hasCompletedInternship) status = 'completed_internship';
+      // else if (hasActiveProject) status = 'in_progress_project';
+      // else if (hasActiveInternship) status = 'in_progress_internship';
+      
+      return {
+        userId: user.userId,                    // hidden field
+        studentId: user.student?.studentId,   // hidden field
+        studentCode: user.student?.studentCode || '',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        totalCredits: user.student?.totalCredits || 0,
+        majorCredits: user.student?.majorCredits || 0,
+        isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
+        isEligibleForProject: Boolean(user.student?.isEligibleProject),
+        semester: user.student?.semester,
+        academicYear: user.student?.academicYear,
+        // เพิ่มฟิลด์ status สำหรับใช้ใน frontend
+        status: status
+      };
+    });
 
     res.json({
       success: true,

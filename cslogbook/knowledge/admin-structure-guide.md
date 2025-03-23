@@ -34,7 +34,7 @@ src/
 │   │   │   └── ProjectReport.js    # รายงานโครงงาน
 │   │   └── evaluation/             # จัดการแบบประเมิน (เผื่อในอนาคต)
 │   │       ├── index.js            # หน้าจัดการแบบประเมินหลัก
-│   │       ├── EvaluationFormModal.js # Modal สำหรับสร้าง/แก้ไขแบบประเมิน
+│   │       ├── EvaluationFormModal.js # Modal สำหรับสร้างแก้ไขแบบประเมิน
 │   │       └── EvaluationResults.js # แสดงผลการประเมิน
 ├── services/
 │   ├── adminService.js             # API รวมของ Admin
