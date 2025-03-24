@@ -5,10 +5,9 @@
   justify-content: center;
   align-items: center;
   min-height: 55vh;
-  background-color: #f5f5f5;
-  padding: 20px;
+  background-color: #db0101;
+  padding: 24px;
   font-size: 80px; /* ขนาดตัวหนังสือใน container */
-  margin-top: 40px;
 }
 
 .internship-card {
@@ -326,12 +325,10 @@
 }
 
 /* Responsive Styles */
-@media (max-width: 768px) {
+@media   (max-width: 768px) {
   /* ซ่อนคลาสที่ไม่จำเป็นบนหน้าจอเล็ก */
   .internship-container {
     font-size: 40px; /* ปรับขนาดตัวหนังสือสำหรับหน้าจอขนาดเล็ก */
-    padding: 10px;
-    margin-top: 0px;
   }
 
   .internship-card {

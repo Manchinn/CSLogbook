@@ -49,7 +49,7 @@ const MainLayout = () => {
             marginLeft: isMobile ? 0 : 230, // ในโหมดมือถือ marginLeft เป็น 0
             transition: 'margin-left 0.2s',
             // backgroundColor: '#A7A7A7A7',
-            marginTop: '64px', // ปรับให้ตรงกับความสูงของส่วนหัวที่คงที่
+            marginTop: '60px', // ปรับให้ตรงกับความสูงของส่วนหัวที่คงที่
             padding: '24px',
             overflowY: 'auto', // ทำให้เนื้อหาสามารถเลื่อนขึ้นลงได้
             height: 'calc(100vh - 64px)', // ปรับความสูงให้ตรงกับส่วนหัวที่คงที่

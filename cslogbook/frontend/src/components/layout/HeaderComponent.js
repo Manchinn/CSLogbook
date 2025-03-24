@@ -1,7 +1,7 @@
 import React from "react";
 import { Layout, Button, Typography, Space, Avatar, Badge } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-// import "./HeaderComponent.css";
+import "./HeaderComponent.css";
 
 const { Header } = Layout;
 const { Title, Text } = Typography;
@@ -49,63 +49,11 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     }
   };
 
-  const headerStyles = {
-    mainHeader: {
-      marginTop: isMobile ? "0" : "10px",
-      paddingTop: isMobile ? "0" : "10px",
-      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-      background: theme.gradient,
-      backdropFilter: "blur(10px)",
-      padding: "0 24px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      height: "auto",
-      minHeight: "64px",
-      position: "fixed",
-      top: 0,
-      left: isMobile ? "2.5%" : "calc(2.5% + 230px)",
-      zIndex: 10,
-      borderRadius: "16px",
-      width: isMobile ? "95%" : "calc(95% - 230px)",
-    },
-    titleContainer: {
-      maxWidth: isMobile ? "200px" : "600px",
-    },
-    mainTitle: {
-      margin: 0,
-      fontSize: isMobile ? "20px" : "24px",
-      color: theme.text,
-      lineHeight: 1.4,
-      fontWeight: 600,
-    },
-    subtitle: {
-      fontSize: "14px",
-      color: "rgba(0, 0, 0, 0.65)",
-      lineHeight: 1.5,
-      margin: 0,
-      display: isMobile ? "none" : "block",
-    },
-    userAvatar: {
-      display: isMobile ? "none" : "block",
-      backgroundColor: theme.badge,
-      color: "#fff",
-      fontWeight: "bold",
-    },
-    userName: {
-      fontSize: "14px",
-      color: theme.text,
-    },
-    roleBadge: {
-      backgroundColor: theme.badge,
-      fontSize: "12px",
-      padding: "0 8px",
-      borderRadius: "6px",
-    },
-  };
-
   return (
-    <Header style={headerStyles.mainHeader}>
+    <Header
+      className={`main-header ${isMobile ? "mobile" : ""}`}
+      style={{ background: theme.gradient }}
+    >
       {/* Left side */}
       <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
         <Space
@@ -133,12 +81,12 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
           <Space
             direction="vertical"
             size={4}
-            style={headerStyles.titleContainer}
+            className={`title-container ${isMobile ? "mobile" : ""}`}
           >
-            <Title level={4} style={headerStyles.mainTitle}>
+            <Title level={4} className={`main-title ${isMobile ? "mobile" : ""}`} style={{ color: theme.text }}>
               CS Logbook
             </Title>
-            <Text style={headerStyles.subtitle}>
+            <Text className={`subtitle ${isMobile ? "mobile" : ""}`}>
               ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
             </Text>
           </Space>
@@ -148,15 +96,15 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       {/* Right side */}
       <div style={{ marginRight: "auto", padding: "12px" }}>
         <Space size={16} align="center">
-          <Avatar style={headerStyles.userAvatar}>
+          <Avatar className={`user-avatar ${isMobile ? "mobile" : ""}`} style={{ backgroundColor: theme.badge }}>
             {firstName?.charAt(0)?.toUpperCase()}
           </Avatar>
 
           <Space direction="vertical" size={0}>
-            <Text strong style={headerStyles.userName}>
+            <Text strong className="user-name" style={{ color: theme.text }}>
               {firstName} {lastName}
             </Text>
-            <Badge count={getRoleTitle(role)} style={headerStyles.roleBadge} />
+            <Badge count={getRoleTitle(role)} className="role-badge" style={{ backgroundColor: theme.badge }} />
           </Space>
         </Space>
       </div>

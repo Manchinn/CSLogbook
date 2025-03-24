@@ -2,11 +2,11 @@
   padding: 24px;
   overflow: hidden; /* ปิดการเลื่อน */
   font-size: 1rem; /* เพิ่มขนาดตัวอักษร */
+  margin-top: 70px;
 }
 
 .avatarCard {
   text-align: center;
-  margin-top: 50px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -14,7 +14,6 @@
 }
 
 .infoCard {
-  margin-top: 50px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -57,7 +56,7 @@
 @media (max-width: 768px) {
   .container{
     padding: 16px;
-    margin-top: 0;
+    margin-top: 20px;
   }
   .container, .modalContent, .alert {
     font-size: 0.8rem;
