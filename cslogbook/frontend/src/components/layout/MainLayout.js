@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Button, Drawer, Grid } from 'antd';
-import { MenuOutlined } from '@ant-design/icons';
+import { Layout, Drawer, Grid } from 'antd';
 import Sidebar from './Sidebar';
 import HeaderComponent from './HeaderComponent';
 import { Outlet } from 'react-router-dom';
@@ -25,7 +24,7 @@ const MainLayout = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', overflow: 'hidden' }}>
       {!isMobile && <Sidebar />}
 
       {isMobile && (
@@ -47,10 +46,13 @@ const MainLayout = () => {
         <HeaderComponent isMobile={isMobile} showDrawer={showDrawer} />
         <Content
           style={{
-            padding: '24px',
             marginLeft: isMobile ? 0 : 230, // ในโหมดมือถือ marginLeft เป็น 0
-            marginTop: '100px',
             transition: 'margin-left 0.2s',
+            // backgroundColor: '#A7A7A7A7',
+            marginTop: '64px', // ปรับให้ตรงกับความสูงของส่วนหัวที่คงที่
+            padding: '24px',
+            overflowY: 'auto', // ทำให้เนื้อหาสามารถเลื่อนขึ้นลงได้
+            height: 'calc(100vh - 64px)', // ปรับความสูงให้ตรงกับส่วนหัวที่คงที่
           }}
         >
           <Outlet />

@@ -8,9 +8,9 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
     typeof studentYear === "object" ? studentYear.year : studentYear;
 
   return (
-    <Row gutter={[0, 24]}>
+    <Row gutter={[16, 24]}>
       <Col span={24}>
-        <Card className="avatarCard" style={{ textAlign: "center" }}>
+        <Card className="avatarCard">
           <Avatar size={120} icon={<UserOutlined />} />
           <h2 style={{ marginTop: 16 }}>
             {student.firstName && student.lastName

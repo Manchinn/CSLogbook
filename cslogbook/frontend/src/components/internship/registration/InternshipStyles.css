@@ -8,6 +8,7 @@
   background-color: #f5f5f5;
   padding: 20px;
   font-size: 80px; /* ขนาดตัวหนังสือใน container */
+  margin-top: 40px;
 }
 
 .internship-card {
@@ -330,6 +331,7 @@
   .internship-container {
     font-size: 40px; /* ปรับขนาดตัวหนังสือสำหรับหน้าจอขนาดเล็ก */
     padding: 10px;
+    margin-top: 0px;
   }
 
   .internship-card {
