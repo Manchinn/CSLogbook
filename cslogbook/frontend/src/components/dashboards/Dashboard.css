@@ -37,10 +37,16 @@
 
 .student-dashboard {
   padding: 24px;
+  margin-top: 40px;
 }
 
 .admin-dashboard {
   padding: 24px;
+  margin-top: 40px;
+}
+.teacher-dashboard{
+  padding: 24px;
+  margin-top: 40px;
 }
 
 /* Responsive styles */

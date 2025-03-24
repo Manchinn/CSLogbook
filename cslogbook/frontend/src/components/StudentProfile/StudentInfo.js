@@ -5,13 +5,11 @@ import { isEligibleForInternship, isEligibleForProject } from "../../utils/stude
 import './styles.css';
 
 const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
-  // เพิ่ม state สำหรับเก็บสถานะสิทธิ์
   const [eligibility, setEligibility] = React.useState({
     internship: false,
     project: false
   });
 
-  // ตรวจสอบสิทธิ์เมื่อ student หรือหน่วยกิตเปลี่ยน
   useEffect(() => {
     if (student) {
       const internshipEligible = isEligibleForInternship(student.totalCredits, student.majorCredits);
@@ -22,7 +20,6 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
         project: projectEligible
       });
 
-      // Debug log
       console.log('Credits:', {
         total: student.totalCredits,
         major: student.majorCredits,
@@ -42,7 +39,6 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
   };
 
   const getEligibilityMessage = (isEligible, type) => {
-    // ใช้ค่าจาก state eligibility แทน
     const eligible = type === 'internship' ? eligibility.internship : eligibility.project;
     
     if (eligible) {
@@ -56,7 +52,7 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
   };
 
   return (
-    <Card
+    <Card className='infoCard'
       title="ข้อมูลการศึกษา"
       extra={canEdit && <Button type="primary" onClick={onEdit}>แก้ไขข้อมูล</Button>}
     >
