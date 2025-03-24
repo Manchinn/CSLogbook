@@ -58,7 +58,6 @@
   /* Ensure that elements behind this container are visible */
 }
 
-/* Card Styles */
 .ant-card {
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
@@ -128,7 +127,7 @@
   color: var(--text-secondary);
 }
 
-/* Info Table */
+
 .info-table {
   width: 100%;
   border-collapse: collapse;
@@ -148,7 +147,7 @@
   background: var(--background-light);
 }
 
-/* Status Indicators */
+
 .status-success {
   color: var(--secondary-color);
   background: rgba(82, 196, 26, 0.1);
