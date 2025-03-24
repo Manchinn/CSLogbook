@@ -6,10 +6,9 @@
   left: 0;
   top: 0;
   z-index: 1000;
-  overflow: visible; /* เปลี่ยนจาก auto เป็น visible */
+  overflow: auto; /* เปลี่ยนจาก auto เป็น visible */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border-right: 1px solid #f0f0f0;
-  /* width: 230px; */
 }
 
 
