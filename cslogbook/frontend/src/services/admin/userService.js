@@ -20,11 +20,7 @@ export const studentService = {
   // ดึงข้อมูลนักศึกษาจาก ID
   getStudentInfo: async (studentId) => {
     try {
-      const response = await apiClient.get(`/students/${studentId}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
-      });
+      const response = await apiClient.get(`/students/${studentId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching student info:', error);
@@ -33,14 +29,9 @@ export const studentService = {
   },
 
   // อัปเดตข้อมูลนักศึกษา
-  updateStudent: async (studentId, data) => {
+  updateStudent: async (studentCode, data) => {
     try {
-      const response = await apiClient.put(`/students/${studentId}`, data, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiClient.put(`/admin/students/${studentCode}`, data);
       return response.data;
     } catch (error) {
       console.error('Error updating student:', error);
@@ -65,9 +56,9 @@ export const studentService = {
   },
 
   // ลบนักศึกษา
-  deleteStudent: async (studentId) => {
+  deleteStudent: async (studentCode) => {
     try {
-      const response = await apiClient.delete(`/admin/students/${studentId}`, {
+      const response = await apiClient.delete(`/admin/students/${studentCode}`, {
         headers: {
           'Authorization': `Bearer ${getToken()}`
         }

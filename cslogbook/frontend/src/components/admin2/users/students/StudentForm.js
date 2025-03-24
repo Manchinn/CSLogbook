@@ -56,7 +56,7 @@ const StudentForm = ({ visible, student, onCancel, onSubmit }) => {
           label="รหัสนักศึกษา"
           rules={[
             { required: true, message: 'กรุณากรอกรหัสนักศึกษา' },
-            { pattern: /^\d{8}$/, message: 'รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก' }
+            { pattern: /^\d{13}$/, message: 'รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก' }
           ]}
         >
           <Input disabled={!!student} placeholder="รหัสนักศึกษา 13 หลัก" />

@@ -1,6 +1,6 @@
 const { User, Student, Teacher, Sequelize } = require('../models');
 const bcrypt = require('bcrypt');
-const { calculateStudentYear, isEligibleForInternship, isEligibleForProject, getCurrentAcademicYear, getCurrentSemester } = require('../utils/studentUtils');
+const { calculateStudentYear, isEligibleForInternship, isEligibleForProject, getCurrentAcademicYear, getCurrentSemester, CONSTANTS } = require('../utils/studentUtils');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -241,8 +241,15 @@ exports.updateStudent = async (req, res) => {
 
     // Calculate eligibility
     const studentYear = calculateStudentYear(id);
-    const projectEligibility = isEligibleForProject(studentYear, parsedTotalCredits, parsedMajorCredits);
-    const internshipEligibility = isEligibleForInternship(studentYear, parsedTotalCredits);
+
+    const projectEligibility = isEligibleForProject(studentYear.year, parsedTotalCredits, parsedMajorCredits);
+    const internshipEligibility = isEligibleForInternship(studentYear.year, parsedTotalCredits);
+
+    // ตรวจสอบว่าค่าที่จะบันทึกถูกต้องหรือไม่
+    console.log('Values to be saved:', {
+      isEligibleInternship: internshipEligibility.eligible, 
+      isEligibleProject: projectEligibility.eligible
+    });
 
     // Update student record
     await Student.update({
@@ -283,8 +290,9 @@ exports.updateStudent = async (req, res) => {
         isEligibleProject: projectEligibility.eligible,
         eligibilityDetails: {
           project: projectEligibility.message,
-          internship: internshipEligibility.message
-        }
+          internship: internshipEligibility.message        
+        },
+        lastUpdated: student.lastUpdated || new Date()
       }
     });
 

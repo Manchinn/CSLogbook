@@ -481,11 +481,13 @@
 }
 
 .student-detail p {
-    margin-bottom: 12px;
-    padding-bottom: 12px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
     border-bottom: 1px dashed #f0f0f0;
     line-height: 1.6;
     font-size: 14px;
+    display: flex;
+    align-items: flex-start;
 }
 
 .student-detail p:last-child {
@@ -494,9 +496,15 @@
 
 .student-detail p strong {
     display: inline-block;
-    width: 140px;
+    min-width: 140px;
     font-weight: 600;
     color: #333;
+    flex-shrink: 0;
+}
+
+/* กำหนดพื้นที่สำหรับค่าข้อมูล */
+.student-detail p span {
+    flex: 1;
 }
 
 .student-drawer .ant-drawer-header {
@@ -516,6 +524,7 @@
 
 .student-drawer .ant-drawer-body {
     padding: 24px;
+    overflow-y: auto;
 }
 
 /* Custom transition for edit mode */
@@ -534,4 +543,173 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* ปรับปรุง Student Detail Drawer */
+
+/* ปรับแต่ง Divider ให้มีความโดดเด่น */
+.student-drawer .ant-divider {
+    margin: 16px 0;
+    color: #1890ff;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.student-drawer .ant-divider-inner-text {
+    color: #333;
+}
+
+/* ปรับแต่งการแสดงผลข้อมูลในส่วน student-detail */
+.student-detail p {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #f0f0f0;
+    line-height: 1.6;
+    font-size: 14px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.student-detail p strong {
+    display: inline-block;
+    min-width: 140px;
+    font-weight: 600;
+    color: #333;
+    flex-shrink: 0;
+}
+
+/* กำหนดพื้นที่สำหรับค่าข้อมูล */
+.student-detail p span {
+    flex: 1;
+}
+
+/* ปรับแต่ง Tabs ในส่วนข้อมูลกิจกรรม */
+.student-drawer .ant-tabs-nav {
+    margin-bottom: 16px;
+}
+
+.student-drawer .ant-tabs-tab {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.student-drawer .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: #1890ff;
+    font-weight: 500;
+}
+
+.student-drawer .ant-tabs-ink-bar {
+    background-color: #1890ff;
+    height: 3px;
+}
+
+/* ปรับแต่ง Tags ให้มีขนาดใหญ่ขึ้นและชัดเจนขึ้น */
+.student-drawer .ant-tag {
+    margin: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+/* เพิ่มพื้นที่สำหรับ activity section */
+.activity-status {
+    padding: 8px;
+    border-radius: 6px;
+    background-color: #fafafa;
+    min-height: 120px;
+}
+
+.activity-status p {
+    border-bottom: 1px dashed #f0f0f0;
+    padding-bottom: 8px;
+}
+
+.activity-status p:last-child {
+    border-bottom: none;
+}
+
+/* ปรับแต่ง Empty state */
+.student-drawer .ant-empty {
+    margin: 24px 0;
+}
+
+.student-drawer .ant-empty-description {
+    color: #888;
+    font-size: 14px;
+}
+
+/* เพิ่ม Animation เมื่อเปิด drawer */
+.student-drawer .ant-drawer-content {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(20px);
+        opacity: 0.8;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ปรับแต่ง Layout ใน Drawer */
+.student-drawer .ant-drawer-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+/* ปรับแต่งการแสดงข้อมูลกิจกรรม */
+.student-drawer .ant-tabs-content {
+    padding-top: 8px;
+}
+
+/* เพิ่มสีสันให้กับ status tags */
+.student-drawer .ant-tag-green {
+    background-color: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+}
+
+.student-drawer .ant-tag-blue {
+    background-color: #e6f7ff;
+    border-color: #91d5ff;
+    color: #1890ff;
+}
+
+.student-drawer .ant-tag-processing {
+    background-color: #e6f7ff;
+    border-color: #91d5ff;
+    color: #1890ff;
+}
+
+.student-drawer .ant-tag-success {
+    background-color: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+}
+
+.student-drawer .ant-tag-error {
+    background-color: #fff1f0;
+    border-color: #ffa39e;
+    color: #f5222d;
+}
+
+/* ปรับแต่งการแสดงข้อมูลในแบบกริด */
+.student-detail .ant-row {
+    margin-bottom: 8px;
+}
+/* เพิ่มสไตล์สำหรับส่วนแสดงข้อมูลการอัปเดต */
+.student-drawer .update-info {
+    margin-top: 16px;
+    color: #888;
+    font-size: 13px;
+    font-style: italic;
+    text-align: right;
+}
+
+.student-drawer .update-info p {
+    margin-bottom: 4px;
 }
