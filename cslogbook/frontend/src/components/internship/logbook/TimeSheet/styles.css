@@ -1,13 +1,91 @@
+/* Container หลัก */
 .internship-container {
-  padding: 24px;
+  width: 100%;
+  max-width: 97%;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #fff;
+  margin: 24px auto;
+  min-height: calc(100vh - 100px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
+/* Responsive container */
+@media (max-width: 992px) {
+  .internship-container {
+    padding: 20px 24px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .internship-container {
+    max-width: 100%;
+    padding: 16px;
+    margin: 0;
+    border-radius: 0;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .internship-container {
+    padding: 12px;
+    gap: 12px;
+  }
+}
+
+/* Section wrappers */
+.alert-wrapper {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.stats-wrapper {
+  margin-bottom: 8px;
+}
+
+.table-card-wrapper {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Layout adjustments for cards grid */
 .status-overview {
   margin-bottom: 24px;
 }
 
+.status-overview .ant-row {
+  margin: 0 -8px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.status-overview .ant-col {
+  padding: 0 8px;
+  margin-bottom: 16px;
+}
+
+/* Cards styling */
 .status-summary-card {
   border-radius: 8px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.status-summary-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .status-summary-card.total { border-top: 3px solid #1890ff; }
@@ -19,11 +97,24 @@
   padding: 16px;
 }
 
+/* Header spacing */
 .timesheet-header {
   margin-bottom: 24px;
 }
 
+@media (max-width: 768px) {
+  .timesheet-header {
+    margin-bottom: 16px;
+  }
+}
+
+/* Typography ที่ responsive */
+.timesheet-header h1 {
+  font-size: clamp(24px, 5vw, 32px);
+}
+
 .timesheet-header .sub-title {
+  font-size: clamp(14px, 3vw, 16px);
   color: rgba(0, 0, 0, 0.45);
   margin-top: -12px;
 }
@@ -44,4 +135,10 @@
   color: #888;
   display: block;
   margin-top: 8px;
+}
+
+/* เพิ่มแค่ส่วนของ table wrapper ให้เลื่อนได้ */
+.timesheet-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
 }
