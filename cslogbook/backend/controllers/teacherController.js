@@ -142,9 +142,9 @@ exports.addTeacher = async (req, res) => {
       success: true,
       message: 'เพิ่มข้อมูลอาจารย์สำเร็จ',
       data: {
-        userId: user.userId,
         teacherId: teacher.teacherId,
         teacherCode: teacher.teacherCode,
+        userId: user.userId,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -175,13 +175,14 @@ exports.addTeacher = async (req, res) => {
 exports.updateTeacher = async (req, res) => {
   let transaction;
   try {
-    const { id } = req.params;
+    const { id } = req.params; // เปลี่ยนชื่อให้สอดคล้องกับการใช้งาน
     const { firstName, lastName, email, contactExtension } = req.body;
 
     transaction = await sequelize.transaction();
 
+    // เปลี่ยนจากการค้นหาด้วย teacherCode เป็น teacherId
     const teacher = await Teacher.findOne({
-      where: { teacherCode: id },
+      where: { teacherId: id }, // เปลี่ยนจาก teacherCode เป็น teacherId
       include: [{
         model: User,
         as: 'user'
@@ -197,11 +198,11 @@ exports.updateTeacher = async (req, res) => {
       });
     }
 
-    // Update teacher record
+    // Update teacher record - แก้ไขตรงนี้ด้วย
     await Teacher.update({
       contactExtension: contactExtension || teacher.contactExtension
     }, {
-      where: { teacherCode: id },
+      where: { teacherId: id }, // เปลี่ยนจาก teacherCode เป็น teacherId
       transaction
     });
 
@@ -223,7 +224,8 @@ exports.updateTeacher = async (req, res) => {
       success: true,
       message: 'อัพเดทข้อมูลสำเร็จ',
       data: {
-        teacherCode: id,
+        teacherId: id, // ส่งกลับ teacherId
+        teacherCode: teacher.teacherCode, // ยังคงส่ง teacherCode กลับไปด้วย
         firstName: firstName || teacher.user.firstName,
         lastName: lastName || teacher.user.lastName,
         email: email || teacher.user.email,
@@ -255,12 +257,13 @@ exports.updateTeacher = async (req, res) => {
 exports.deleteTeacher = async (req, res) => {
   let transaction;
   try {
-    const { id } = req.params;
+    const { id } = req.params; // เก็บชื่อเป็น id แต่จะใช้เป็น teacherId แทน
     
     transaction = await sequelize.transaction();
 
+    // เปลี่ยนการค้นหาจาก teacherCode เป็น teacherId
     const teacher = await Teacher.findOne({
-      where: { teacherCode: id },
+      where: { teacherId: id },
       transaction
     });
 
@@ -272,13 +275,13 @@ exports.deleteTeacher = async (req, res) => {
       });
     }
 
-    // Delete teacher record
+    // เปลี่ยนเงื่อนไขการลบจาก teacherCode เป็น teacherId
     await Teacher.destroy({
-      where: { teacherCode: id },
+      where: { teacherId: id },
       transaction
     });
 
-    // Delete user record
+    // คงเดิม
     await User.destroy({
       where: { userId: teacher.userId },
       transaction
@@ -290,7 +293,8 @@ exports.deleteTeacher = async (req, res) => {
       success: true,
       message: 'ลบข้อมูลอาจารย์เรียบร้อย',
       data: {
-        teacherCode: id
+        teacherId: id, // เปลี่ยนจาก teacherCode เป็น teacherId
+        teacherCode: teacher.teacherCode // ยังคงส่ง teacherCode กลับไปเพื่อความสะดวกในการใช้งาน
       }
     });
 

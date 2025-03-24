@@ -10,7 +10,6 @@ import {
 } from '@ant-design/icons';
 import { userService } from '../../../../services/admin/userService';
 import { STUDENT_STATUS } from '../../../../utils/adminConstants';
-import BulkUpload from './BulkUpload';
 import './styles.css';
 import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } from '../../../../utils/studentUtils';
 
@@ -311,13 +310,6 @@ const StudentList = () => {
                     setDrawerVisible(true);
                 }}
                 onDelete={handleDeleteStudent}
-            />
-
-            {/* Bulk Upload Modal */}
-            <BulkUpload
-                visible={uploadModalVisible}
-                onCancel={() => setUploadModalVisible(false)}
-                onSuccess={handleUploadSuccess}
             />
 
             {/* Drawer สำหรับดูและแก้ไขข้อมูลนักศึกษา */}

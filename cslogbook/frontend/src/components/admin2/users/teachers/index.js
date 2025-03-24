@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-    Table, Input, Space, Button, Row, Col, message, Modal, Drawer, Typography, Tooltip
-} from 'antd';
-import {
-    SearchOutlined, ReloadOutlined, UserOutlined, PlusOutlined, 
-    EditOutlined, DeleteOutlined, EyeOutlined
-} from '@ant-design/icons';
+import { Row, Col, Form, message, Modal, Typography } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { userService } from '../../../../services/admin/userService';
-import TeacherForm from './TeacherForm';
+import './style.css';
+
+// นำเข้าคอมโพเนนต์
+import TeacherFilters from './components/TeacherFilters';
+import TeacherTable from './components/TeacherTable';
+import TeacherDrawer from './components/TeacherDrawer';
 
 const { Text } = Typography;
 
@@ -15,9 +15,10 @@ const TeacherList = () => {
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [modalVisible, setModalVisible] = useState(false);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [drawerVisible, setDrawerVisible] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [form] = Form.useForm();
 
     // Fetch teachers
     const fetchTeachers = useCallback(async () => {
@@ -46,31 +47,50 @@ const TeacherList = () => {
         fetchTeachers();
     }, [fetchTeachers]);
 
-    // Handle adding a new teacher
+    // Event handlers
     const handleAddTeacher = () => {
         setSelectedTeacher(null);
-        setModalVisible(true);
+        setEditMode(true);
+        form.resetFields();
+        setDrawerVisible(true);
     };
 
-    // Handle viewing/editing a teacher
-    const handleEditTeacher = (teacher) => {
+    const handleViewTeacher = (teacher) => {
         setSelectedTeacher(teacher);
-        setModalVisible(true);
+        setEditMode(false);
+        setDrawerVisible(true);
     };
 
-    // Handle teacher form submission
-    const handleFormSubmit = async (values) => {
+    const handleEditTeacher = () => {
+        setEditMode(true);
+    };
+
+    const handleCancelEdit = () => {
+        setEditMode(false);
+    };
+
+    const handleSaveTeacher = async () => {
         try {
+            const values = await form.validateFields();
+            
             if (selectedTeacher) {
                 // Update existing teacher
-                await userService.updateTeacher(selectedTeacher.id, values);
+                await userService.updateTeacher(selectedTeacher.teacherId, values);
                 message.success('อัปเดตข้อมูลอาจารย์สำเร็จ');
+                
+                // Update selected teacher with new values
+                setSelectedTeacher({
+                    ...selectedTeacher,
+                    ...values
+                });
             } else {
                 // Add new teacher
                 await userService.createTeacher(values);
                 message.success('เพิ่มอาจารย์สำเร็จ');
+                setDrawerVisible(false);
             }
-            setModalVisible(false);
+            
+            setEditMode(false);
             fetchTeachers();
         } catch (error) {
             console.error('Error saving teacher:', error);
@@ -78,7 +98,6 @@ const TeacherList = () => {
         }
     };
 
-    // Handle teacher deletion
     const handleDeleteTeacher = async (teacherId) => {
         try {
             Modal.confirm({
@@ -99,74 +118,10 @@ const TeacherList = () => {
         }
     };
 
-    // Table columns
-    const columns = useMemo(() => [
-        {
-            title: 'รหัสอาจารย์',
-            dataIndex: 'teacherCode',
-            key: 'teacherCode',
-            sorter: (a, b) => a.teacherCode.localeCompare(b.teacherCode),
-            width: 130,
-        },
-        {
-            title: 'ชื่อ-นามสกุล',
-            dataIndex: 'fullName',
-            key: 'fullName',
-            render: (_, record) => `${record.firstName || ''} ${record.lastName || ''}`,
-            sorter: (a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
-            width: 180,
-        },
-        {
-            title: 'อีเมล',
-            dataIndex: 'email',
-            key: 'email',
-            width: 200,
-        },
-        {
-            title: 'เบอร์ภายใน',
-            dataIndex: 'extension',
-            key: 'extension',
-            width: 120,
-        },
-        {
-            title: 'ภาควิชา',
-            dataIndex: 'department',
-            key: 'department',
-            width: 150,
-        },
-        {
-            title: 'จัดการ',
-            key: 'actions',
-            width: 180,
-            render: (_, record) => (
-                <Space>
-                    <Tooltip title="ดูข้อมูล">
-                        <Button 
-                            icon={<EyeOutlined />} 
-                            onClick={() => {
-                                setSelectedTeacher(record);
-                                setDrawerVisible(true);
-                            }} 
-                        />
-                    </Tooltip>
-                    <Tooltip title="แก้ไข">
-                        <Button 
-                            icon={<EditOutlined />} 
-                            type="primary"
-                            onClick={() => handleEditTeacher(record)} 
-                        />
-                    </Tooltip>
-                    <Tooltip title="ลบ">
-                        <Button 
-                            icon={<DeleteOutlined />} 
-                            danger
-                            onClick={() => handleDeleteTeacher(record.id)} 
-                        />
-                    </Tooltip>
-                </Space>
-            ),
-        },
-    ], []);
+    const handleCloseDrawer = () => {
+        setDrawerVisible(false);
+        setEditMode(false);
+    };
 
     return (
         <div className="admin-teacher-container">
@@ -177,82 +132,38 @@ const TeacherList = () => {
                     </Text>
                 </Col>
                 <Col>
-                    <Space size="small">
-                        <Input
-                            placeholder="ค้นหาด้วยรหัส, ชื่อ หรือนามสกุล"
-                            prefix={<SearchOutlined />}
-                            value={searchText}
-                            onChange={e => setSearchText(e.target.value)}
-                            style={{ width: 250 }}
-                            allowClear
-                        />
-                        <Button 
-                            icon={<ReloadOutlined />} 
-                            onClick={() => fetchTeachers()}
-                            loading={loading}
-                        >
-                            รีเฟรช
-                        </Button>
-                        <Button 
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleAddTeacher}
-                        >
-                            เพิ่มอาจารย์
-                        </Button>
-                    </Space>
+                    <TeacherFilters
+                        searchText={searchText}
+                        setSearchText={setSearchText}
+                        onRefresh={fetchTeachers}
+                        onAddTeacher={handleAddTeacher}
+                        loading={loading}
+                    />
                 </Col>
             </Row>
 
-            <Table
-                columns={columns}
-                dataSource={teachers}
-                rowKey="id"
+            <TeacherTable
+                teachers={teachers}
                 loading={loading}
-                pagination={{ 
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: total => `ทั้งหมด ${total} รายการ` 
+                onView={handleViewTeacher}
+                onEdit={(teacher) => {
+                    setSelectedTeacher(teacher);
+                    setEditMode(true);
+                    setDrawerVisible(true);
                 }}
-                scroll={{ x: 'max-content' }}
+                onDelete={handleDeleteTeacher}
             />
 
-            {/* Teacher Form Modal */}
-            <TeacherForm
-                visible={modalVisible}
+            <TeacherDrawer
+                visible={drawerVisible}
                 teacher={selectedTeacher}
-                onCancel={() => setModalVisible(false)}
-                onSubmit={handleFormSubmit}
+                editMode={editMode}
+                form={form}
+                onClose={handleCloseDrawer}
+                onEdit={handleEditTeacher}
+                onCancelEdit={handleCancelEdit}
+                onSave={handleSaveTeacher}
             />
-
-            {/* Teacher Detail Drawer */}
-            <Drawer
-                title="ข้อมูลอาจารย์"
-                placement="right"
-                width={520}
-                onClose={() => setDrawerVisible(false)}
-                open={drawerVisible}
-                extra={
-                    <Button 
-                        type="primary" 
-                        onClick={() => {
-                            setDrawerVisible(false);
-                            handleEditTeacher(selectedTeacher);
-                        }}
-                    >
-                        แก้ไขข้อมูล
-                    </Button>
-                }
-            >
-                {selectedTeacher && (
-                    <div>
-                        <p><strong>รหัสอาจารย์:</strong> {selectedTeacher.teacherCode}</p>
-                        <p><strong>ชื่อ-นามสกุล:</strong> {selectedTeacher.firstName} {selectedTeacher.lastName}</p>
-                        <p><strong>อีเมล:</strong> {selectedTeacher.email || '-'}</p>
-                        <p><strong>เบอร์ภายใน:</strong> {selectedTeacher.extension || '-'}</p>
-                    </div>
-                )}
-            </Drawer>
         </div>
     );
 };

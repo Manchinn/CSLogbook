@@ -67,6 +67,8 @@ export const getStatusTags = (student) => {
       case STUDENT_STATUS.COMPLETED_PROJECT:
         tags.push({ color: 'success', text: 'โครงงานเสร็จสิ้น' });
         break;
+      default:
+        break;
     }
   }
 

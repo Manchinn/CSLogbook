@@ -117,12 +117,8 @@ export const userService = {
   // อัปเดตข้อมูลอาจารย์
   updateTeacher: async (teacherId, data) => {
     try {
-      const response = await apiClient.put(`/admin/teachers/${teacherId}`, data, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // เปลี่ยนจาก teacherCode เป็น teacherId
+      const response = await apiClient.put(`/admin/teachers/${teacherId}`, data);
       return response.data;
     } catch (error) {
       console.error('Error updating teacher:', error);

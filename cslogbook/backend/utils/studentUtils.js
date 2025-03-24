@@ -6,7 +6,7 @@ const CONSTANTS = {
   ACADEMIC_MONTH_THRESHOLD: 4,
   INTERNSHIP: {
     MIN_YEAR: 3,
-    MIN_CREDITS: 81
+    MIN_TOTAL_CREDITS: 81
   },
   PROJECT: {
     MIN_YEAR: 4,
@@ -177,7 +177,7 @@ const isEligibleForInternship = (studentYear, totalCredits) => {
     };
   }
   
-  if (totalCredits < CONSTANTS.INTERNSHIP.MIN_CREDITS) {
+  if (totalCredits < CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
       message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.INTERNSHIP.MIN_CREDITS} หน่วยกิต`
