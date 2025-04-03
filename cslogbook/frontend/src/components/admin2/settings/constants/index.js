@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Tabs, Card, Typography, message } from 'antd';
 import AcademicSettings from './AcademicSettings';
-import EligibilityRules from './EligibilityRules';
-import DocumentTypes from './DocumentTypes';
+//import EligibilityRules from './EligibilityRules';
+//import DocumentTypes from './DocumentTypes';
 import StatusSettings from './StatusSettings';
 import './styles.css';
 
@@ -29,12 +29,12 @@ const ConstantsSettings = () => {
           <TabPane tab="การศึกษา" key="1">
             <AcademicSettings />
           </TabPane>
-          <TabPane tab="เกณฑ์การมีสิทธิ์" key="2">
+          {/* <TabPane tab="เกณฑ์การมีสิทธิ์" key="2">
             <EligibilityRules />
-          </TabPane>
-          <TabPane tab="ประเภทเอกสาร" key="3">
+          </TabPane> */}
+          {/* <TabPane tab="ประเภทเอกสาร" key="3">
             <DocumentTypes />
-          </TabPane>
+          </TabPane> */}
           <TabPane tab="สถานะในระบบ" key="4">
             <StatusSettings />
           </TabPane>
