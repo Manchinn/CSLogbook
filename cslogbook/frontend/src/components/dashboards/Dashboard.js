@@ -59,7 +59,7 @@ function Dashboard() {
         value: stats.students.total,
         icon: <UserOutlined />,
         color: '#1890ff',
-        onClick: () => navigate('/students')
+        onClick: () => navigate('/admin2/users/students')
       },
       {
         title: 'มีสิทธิ์ฝึกงาน',
@@ -149,7 +149,7 @@ function Dashboard() {
               <Button 
                 type="default"
                 icon={<FileTextOutlined />}
-                onClick={() => navigate('/document-management/internship')}
+                onClick={() => navigate('/admin2/documents/internship')}
                 block
               >
                 จัดการเอกสาร

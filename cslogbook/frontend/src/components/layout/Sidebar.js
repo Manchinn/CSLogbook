@@ -17,6 +17,7 @@ import {
   BookOutlined,
   CheckSquareOutlined,
   FileDoneOutlined,
+  SettingOutlined
 } from '@ant-design/icons';
 import './Sidebar.css';
 
@@ -270,11 +271,11 @@ const Sidebar = () => {
           label: 'จัดการข้อมูล',
           children: [
             {
-              key: '/students',
+              key: '/admin2/users/students',
               label: 'นักศึกษา',
             },
             {
-              key: '/teachers',
+              key: '/admin2/users/teachers',
               label: 'อาจารย์',
             },
             {
@@ -289,11 +290,11 @@ const Sidebar = () => {
           label: 'จัดการเอกสาร',
           children: [
             {
-              key: '/document-management/internship',
+              key: '/document-management/internship', // /admin2/documents/internship
               label: 'เอกสารฝึกงาน',
             },
             {
-              key: '/document-management/project',
+              key: '/document-management/project', // /admin2/documents/project
               label: 'เอกสารโครงงานพิเศษ',
             }
           ]
@@ -302,6 +303,11 @@ const Sidebar = () => {
           key: '/admin/upload',
           icon: <UploadOutlined />,
           label: 'อัปโหลดรายชื่อนักศึกษา',
+        },
+        {
+          key: '/admin2/settings/constants', // เพิ่มเมนูการตั้งค่าระบบ
+          icon: <SettingOutlined />,
+          label: 'ตั้งค่าระบบ',
         }
       ] : []),
 

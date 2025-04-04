@@ -12,28 +12,28 @@ const StatCards = ({ stats, loading }) => {
       value: stats?.students?.total || 0,
       icon: <UserOutlined />,
       color: '#1890ff',
-      onClick: () => navigate('/admin/users/students')
+      onClick: () => navigate('/admin2/users/students')
     },
     {
       title: 'มีสิทธิ์ฝึกงาน',
       value: stats?.students?.internshipEligible || 0,
       icon: <BookOutlined />,
       color: '#52c41a',
-      onClick: () => navigate('/admin/users/students?filter=eligible_internship')
+      onClick: () => navigate('/admin2/users/students?filter=eligible_internship')
     },
     {
       title: 'มีสิทธิ์ทำโครงงานพิเศษ', 
       value: stats?.students?.projectEligible || 0,
       icon: <ProjectOutlined />,
       color: '#722ed1',
-      onClick: () => navigate('/admin/users/students?filter=eligible_project')
+      onClick: () => navigate('/admin2/users/students?filter=eligible_project')
     },
     {
       title: 'เอกสารรอดำเนินการ',
       value: stats?.documents?.pending || 0,
       icon: <FileTextOutlined />,
       color: '#faad14',
-      onClick: () => navigate('/admin/documents/pending')
+      onClick: () => navigate('/admin2/documents/pending')
     }
   ];
 

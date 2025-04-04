@@ -1,16 +1,32 @@
 import React, { useState } from 'react';
 import { Tabs, Card, Typography, message } from 'antd';
 import AcademicSettings from './AcademicSettings';
-//import EligibilityRules from './EligibilityRules';
-//import DocumentTypes from './DocumentTypes';
+import EligibilityRules from './EligibilityRules';
 import StatusSettings from './StatusSettings';
 import './styles.css';
 
 const { Title } = Typography;
-const { TabPane } = Tabs;
 
 const ConstantsSettings = () => {
   const [activeKey, setActiveKey] = useState('1');
+  
+  const items = [
+    {
+      key: '1',
+      label: 'ปีการศึกษา/ภาคเรียน',
+      children: <AcademicSettings />
+    },
+    {
+      key: '2',
+      label: 'เกณฑ์การฝึกงาน/โครงงาน',
+      children: <EligibilityRules />
+    },
+    {
+      key: '3',
+      label: 'สถานะนักศึกษา',
+      children: <StatusSettings />
+    }
+  ];
   
   return (
     <div className="constants-settings-container">
@@ -21,24 +37,12 @@ const ConstantsSettings = () => {
         </p>
         
         <Tabs 
+          items={items}
           activeKey={activeKey} 
           onChange={setActiveKey}
           type="card"
           className="settings-tabs"
-        >
-          <TabPane tab="การศึกษา" key="1">
-            <AcademicSettings />
-          </TabPane>
-          {/* <TabPane tab="เกณฑ์การมีสิทธิ์" key="2">
-            <EligibilityRules />
-          </TabPane> */}
-          {/* <TabPane tab="ประเภทเอกสาร" key="3">
-            <DocumentTypes />
-          </TabPane> */}
-          <TabPane tab="สถานะในระบบ" key="4">
-            <StatusSettings />
-          </TabPane>
-        </Tabs>
+        />
       </Card>
     </div>
   );

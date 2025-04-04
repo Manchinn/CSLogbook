@@ -1,18 +1,14 @@
-import apiClient from '../apiClient';
-
-const getToken = () => {
-  return localStorage.getItem('token');
-};
+import apiClient from "../apiClient";
 
 // ออบเจกต์สำหรับการจัดการข้อมูลนักศึกษา
 export const studentService = {
   // ดึงข้อมูลนักศึกษาทั้งหมด
   getAllStudents: async (params = {}) => {
     try {
-      const response = await apiClient.get('/admin/students', { params });
+      const response = await apiClient.get("/admin/students", { params });
       return response.data;
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error("Error fetching students:", error);
       throw error;
     }
   },
@@ -23,7 +19,7 @@ export const studentService = {
       const response = await apiClient.get(`/students/${studentId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching student info:', error);
+      console.error("Error fetching student info:", error);
       throw error;
     }
   },
@@ -31,10 +27,13 @@ export const studentService = {
   // อัปเดตข้อมูลนักศึกษา
   updateStudent: async (studentCode, data) => {
     try {
-      const response = await apiClient.put(`/admin/students/${studentCode}`, data);
+      const response = await apiClient.put(
+        `/admin/students/${studentCode}`,
+        data
+      );
       return response.data;
     } catch (error) {
-      console.error('Error updating student:', error);
+      console.error("Error updating student:", error);
       throw error;
     }
   },
@@ -42,15 +41,10 @@ export const studentService = {
   // เพิ่มนักศึกษา
   addStudent: async (data) => {
     try {
-      const response = await apiClient.post(`/admin/students`, data, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiClient.post(`/admin/students`, data);
       return response.data;
     } catch (error) {
-      console.error('Error adding student:', error);
+      console.error("Error adding student:", error);
       throw error;
     }
   },
@@ -58,14 +52,10 @@ export const studentService = {
   // ลบนักศึกษา
   deleteStudent: async (studentCode) => {
     try {
-      const response = await apiClient.delete(`/admin/students/${studentCode}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
-      });
+      const response = await apiClient.delete(`/admin/students/${studentCode}`);
       return response.data;
     } catch (error) {
-      console.error('Error deleting student:', error);
+      console.error("Error adding student:", error);
       throw error;
     }
   },
@@ -73,28 +63,24 @@ export const studentService = {
   // ดึงตัวเลือกสำหรับการกรอง
   getFilterOptions: async () => {
     try {
-      const response = await apiClient.get(`/admin/students/filter-options`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
-      });
+      const response = await apiClient.get(`/admin/students/filter-options`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching filter options:', error);
+      console.error("Error fetching filter options:", error);
       throw error;
     }
-  }
+  },
 };
 
 // ออบเจกต์สำหรับการจัดการข้อมูลอาจารย์
-export const userService = {
+export const teacherService = {
   // ดึงข้อมูลอาจารย์ทั้งหมด
   getTeachers: async (params = {}) => {
     try {
-      const response = await apiClient.get('/admin/teachers', { params });
+      const response = await apiClient.get("/admin/teachers", { params });
       return response.data;
     } catch (error) {
-      console.error('Error fetching teachers:', error);
+      console.error("Error fetching teachers:", error);
       throw error;
     }
   },
@@ -102,14 +88,11 @@ export const userService = {
   // ดึงข้อมูลอาจารย์จาก ID
   getTeacherById: async (teacherId) => {
     try {
-      const response = await apiClient.get(`/admin/teachers/${teacherId}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
-      });
+      // ลบการกำหนด headers เพราะ apiClient จะจัดการให้
+      const response = await apiClient.get(`/admin2/teachers/${teacherId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching teacher:', error);
+      console.error("Error fetching teacher:", error);
       throw error;
     }
   },
@@ -118,10 +101,13 @@ export const userService = {
   updateTeacher: async (teacherId, data) => {
     try {
       // เปลี่ยนจาก teacherCode เป็น teacherId
-      const response = await apiClient.put(`/admin/teachers/${teacherId}`, data);
+      const response = await apiClient.put(
+        `/admin/teachers/${teacherId}`,
+        data
+      );
       return response.data;
     } catch (error) {
-      console.error('Error updating teacher:', error);
+      console.error("Error updating teacher:", error);
       throw error;
     }
   },
@@ -129,10 +115,10 @@ export const userService = {
   // เพิ่มอาจารย์
   createTeacher: async (data) => {
     try {
-      const response = await apiClient.post('/admin/teachers', data);
+      const response = await apiClient.post("/admin/teachers", data);
       return response.data;
     } catch (error) {
-      console.error('Error creating teacher:', error);
+      console.error("Error creating teacher:", error);
       throw error;
     }
   },
@@ -140,20 +126,20 @@ export const userService = {
   // ลบอาจารย์
   deleteTeacher: async (teacherId) => {
     try {
-      const response = await apiClient.delete(`/admin/teachers/${teacherId}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
-      });
+      // ลบการกำหนด headers เพราะ apiClient จะจัดการให้
+      const response = await apiClient.delete(`/admin2/teachers/${teacherId}`);
       return response.data;
     } catch (error) {
-      console.error('Error deleting teacher:', error);
+      console.error("Error deleting teacher:", error);
       throw error;
     }
   },
+};
 
-  // Export ฟังก์ชันหลักสำหรับนักศึกษาด้วย
-  ...studentService
+// รวม services
+export const userService = {
+  ...studentService,
+  ...teacherService
 };
 
 export default userService;

@@ -107,14 +107,14 @@ export const getMenuConfig = (userData, navigate, handleLogout) => [
         label: 'จัดการผู้ใช้',
         children: [
           {
-            key: '/admin/users/students',
+            key: '/admin2/users/students',
             label: 'นักศึกษา',
-            onClick: () => navigate('/admin/users/students'),
+            onClick: () => navigate('/admin2/users/students'),
           },
           {
             key: '/admin/users/teachers',
             label: 'อาจารย์',
-            onClick: () => navigate('/admin/users/teachers'),
+            onClick: () => navigate('/admin2/users/teachers'),
           }
         ]
       },
