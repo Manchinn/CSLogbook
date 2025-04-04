@@ -1,4 +1,3 @@
-// คอมโพเนนต์ย่อยสำหรับการตั้งค่าปีการศึกษา/ภาคเรียน
 import React, { useState, useEffect } from "react";
 import {
   Form,
@@ -18,11 +17,12 @@ import {
   Tag,
   Alert,
 } from "antd";
-import { SaveOutlined, ReloadOutlined, PlusOutlined } from "@ant-design/icons";
+import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../services/admin/settingsService";
 import { studentService } from "../../../../services/admin/userService";
 import moment from "moment-timezone";
-import { getActiveCurriculum } from "./CurriculumSettings";
+import { formatThaiDate } from "../../../../utils/timeUtils";
+import { DATE_FORMAT_SHORT } from "../../../../utils/constants";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -147,7 +147,8 @@ const getInternshipRegistrationStatus = (formInstance) => {
     if (today.isBefore(regStart)) {
       return (
         <Tag color="orange">
-          ยังไม่เปิดให้ลงทะเบียนฝึกงาน (เริ่ม {regStart.format("DD/MM/YYYY")})
+          ยังไม่เปิดให้ลงทะเบียนฝึกงาน (เริ่ม{" "}
+          {formatThaiDate(regStart, DATE_FORMAT_SHORT)})
         </Tag>
       );
     } else if (today.isAfter(regEnd)) {
@@ -623,7 +624,7 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY"
+                  format={DATE_FORMAT_SHORT}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
               </Form.Item>
@@ -642,7 +643,7 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY"
+                  format={DATE_FORMAT_SHORT}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
               </Form.Item>
@@ -658,7 +659,7 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY"
+                  format={DATE_FORMAT_SHORT}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
               </Form.Item>
@@ -688,7 +689,11 @@ const AcademicSettings = () => {
                   },
                 ]}
               >
-                <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format={DATE_FORMAT_SHORT}
+                  placeholder="เลือกวันที่"
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -702,7 +707,11 @@ const AcademicSettings = () => {
                   },
                 ]}
               >
-                <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format={DATE_FORMAT_SHORT}
+                  placeholder="เลือกวันที่"
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -736,7 +745,11 @@ const AcademicSettings = () => {
                   },
                 ]}
               >
-                <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format={DATE_FORMAT_SHORT}
+                  placeholder="เลือกวันที่"
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -750,7 +763,11 @@ const AcademicSettings = () => {
                   },
                 ]}
               >
-                <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format={DATE_FORMAT_SHORT}
+                  placeholder="เลือกวันที่"
+                />
               </Form.Item>
             </Col>
           </Row>

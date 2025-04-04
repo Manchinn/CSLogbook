@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Form, Card, Button, Table, Space, Switch, Typography, Modal, Input, 
-  InputNumber, message, DatePicker, Tabs, Divider, Collapse, Select, Tag
+  InputNumber, message, DatePicker, Tabs, Collapse, Select, Tag
 } from 'antd';
 import { 
-  PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, 
-  CheckCircleOutlined, BookOutlined, UnorderedListOutlined
+  PlusOutlined, EditOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 import { settingsService } from '../../../../services/admin/settingsService';
-import moment from 'moment-timezone';
+import dayjs from '../../../../utils/dayjs';
+import { DATE_FORMAT_SHORT, DATE_FORMAT_MEDIUM } from '../../../../utils/constants';
+import { getCurrentThaiYear, formatThaiDate } from '../../../../utils/timeUtils';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -274,12 +275,13 @@ const CurriculumSettings = () => {
 
   // จัดการการเพิ่มหลักสูตรใหม่
   const handleAdd = () => {
+    const currentThaiYear = getCurrentThaiYear();
     const newCurriculum = {
       id: Math.max(...curriculums.map(c => c.id), 0) + 1,
-      code: `CS${new Date().getFullYear() + 543}`,
+      code: `CS${currentThaiYear}`,
       name: '',
       shortName: '',
-      startYear: new Date().getFullYear() + 543,
+      startYear: currentThaiYear,
       endYear: null,
       active: true,
       requirements: {

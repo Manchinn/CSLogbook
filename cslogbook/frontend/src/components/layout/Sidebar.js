@@ -167,7 +167,7 @@ const Sidebar = () => {
     return [
       // Dashboard - Common for all roles
       {
-        key: "/dashboard",
+        key: "/admin2/dashboard",
         icon: <HomeOutlined />,
         label: "หน้าแรก",
       },

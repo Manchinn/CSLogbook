@@ -16,7 +16,7 @@ const LoginForm = () => {
   const [form] = Form.useForm();
 
   // ดึง path ที่ user พยายามจะเข้าถึง
-  const from = location.state?.from?.pathname || "/dashboard";
+  const from = location.state?.from?.pathname || "/admin2/";
 
   const handleSubmit = async (values) => {
     setLoading(true);

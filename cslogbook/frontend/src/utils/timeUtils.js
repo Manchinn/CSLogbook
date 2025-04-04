@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { DATE_FORMAT_SHORT } from './constants';
 
 export const calculateWorkHours = (timeIn, timeOut) => {
   if (!timeIn || !timeOut) return 0;
@@ -20,4 +21,13 @@ export const getEntryStatus = (entry) => {
   if (!entry.workDescription || !entry.logTitle) return "incomplete"; // ข้อมูลไม่ครบ
   if (!entry.supervisorApproved || !entry.advisorApproved) return "submitted"; // รอการอนุมัติ
   return "approved"; // อนุมัติแล้ว
+};
+
+// เพิ่มฟังก์ชันใหม่
+export const getCurrentThaiYear = () => {
+  return dayjs().year() + 543;
+};
+
+export const formatThaiDate = (date, format = DATE_FORMAT_SHORT) => {
+  return dayjs(date).format(format);
 };
