@@ -11,10 +11,14 @@ const InternshipDocs = lazy(() => import('./documents/InternshipDocs'));
 const ProjectDocs = lazy(() => import('./documents/ProjectDocs'));
 const StudentList = lazy(() => import('./users/students'));
 const TeacherList = lazy(() => import('./users/teachers'));
-const AdminUpload = lazy(() => import('../AdminUpload')); //
-const ConstantsSettings = lazy(() => import('./settings/constants')); // ใช้ lazy loading
+const AdminUpload = lazy(() => import('../AdminUpload'));
+const ConstantsSettings = lazy(() => import('./settings/constants'));
 
-// ใช้คอมโพเนนต์เดิมก่อน
+// เพิ่ม imports สำหรับหน้าตั้งค่าใหม่
+const Settings = lazy(() => import('./settings')); // หน้าหลักการตั้งค่า
+const AcademicSettingsPage = lazy(() => import('./settings/AcademicSettingsPage'));
+const StatusSettingsPage = lazy(() => import('./settings/StatusSettingsPage'));
+const CurriculumSettingsPage = lazy(() => import('./settings/CurriculumSettingsPage')); // เพิ่ม import
 
 // Loading component
 const LoadingComponent = () => (
@@ -59,7 +63,11 @@ const AdminRoutes = () => {
               </Route>
               <Route path="/upload" element={<AdminUpload />} />
               <Route path="/settings">
-                <Route path="constants" element={<ConstantsSettings />} />
+                <Route index element={<Settings />} /> {/* หน้าหลักการตั้งค่า */}
+                <Route path="constants" element={<ConstantsSettings />} /> {/* เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม */}
+                <Route path="academic" element={<AcademicSettingsPage />} /> {/* หน้าตั้งค่าปีการศึกษา */}
+                <Route path="status" element={<StatusSettingsPage />} /> {/* หน้าตั้งค่าสถานะ */}
+                <Route path="curriculum" element={<CurriculumSettingsPage />} /> {/* เพิ่มใน Route ของ settings */}
               </Route>
             </Routes>
           </Suspense>

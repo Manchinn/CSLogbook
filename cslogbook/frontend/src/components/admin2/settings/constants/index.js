@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Tabs, Card, Typography, message } from 'antd';
 import AcademicSettings from './AcademicSettings';
-import EligibilityRules from './EligibilityRules';
 import StatusSettings from './StatusSettings';
+import CurriculumSettings from './CurriculumSettings';
 import './styles.css';
 
 const { Title } = Typography;
@@ -13,13 +13,13 @@ const ConstantsSettings = () => {
   const items = [
     {
       key: '1',
-      label: 'ปีการศึกษา/ภาคเรียน',
-      children: <AcademicSettings />
+      label: 'หลักสูตรการศึกษา',
+      children: <CurriculumSettings />
     },
     {
       key: '2',
-      label: 'เกณฑ์การฝึกงาน/โครงงาน',
-      children: <EligibilityRules />
+      label: 'ปีการศึกษา/ภาคเรียน',
+      children: <AcademicSettings />
     },
     {
       key: '3',
