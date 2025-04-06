@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Typography, List, Card, Spin, message, Space, Button, Tag, Row, Col, Tooltip } from 'antd';
-import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Modal, Typography, List, Card, Spin, message, Space, Button, Tag, Row, Col, Tooltip, Divider } from 'antd';
+import { DownloadOutlined, FilePdfOutlined, FileOutlined } from '@ant-design/icons';
 import PDFViewer from '../../PDFViewer';
 import moment from 'moment-timezone';
 import { documentService } from '../../../services/admin/documentService';
@@ -21,10 +21,8 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
 
       try {
         setLoading(true);
-        // ใช้ documentService แทนการเรียก API โดยตรง
         const data = await documentService.getDocumentDetails(documentId);
 
-        // แปลงข้อมูล JSON string เป็น object ถ้าจำเป็น
         const documentData = {
           ...data,
           uploaded_files: data.uploaded_files ? 
@@ -45,6 +43,8 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
 
     if (open) {
       fetchData();
+    } else {
+      setSelectedFile(null); // รีเซ็ตไฟล์ที่เลือกเมื่อปิด modal
     }
   }, [documentId, open]);
 
@@ -55,9 +55,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
         return;
       }
 
-      // ตัดส่วนของ path ถ้าจำเป็น
       const fileId = fileUrl.split('/').pop();
-      // ใช้ documentService แทนการเรียก API โดยตรง
       await documentService.downloadDocument(fileId, fileName);
       message.success('ดาวน์โหลดไฟล์สำเร็จ');
     } catch (error) {
@@ -73,10 +71,9 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     });
   };
 
-  // ส่วนอื่นๆ ยังคงเหมือนเดิม...
   const renderFileList = () => {
     if (!document?.uploaded_files || document.uploaded_files.length === 0) {
-      return <Paragraph>ไม่มีไฟล์แนบ</Paragraph>;
+      return <Text type="secondary">ไม่มีไฟล์แนบ</Text>;
     }
 
     return (
@@ -89,20 +86,23 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
               <Tooltip title="ดูไฟล์">
                 <Button 
                   type="primary" 
-                  icon={<FilePdfOutlined />} 
+                  icon={<FilePdfOutlined />}
+                  size="middle"
                   onClick={() => handleViewPDF(file.url, file.name)}
                 />
               </Tooltip>,
               <Tooltip title="ดาวน์โหลด">
                 <Button 
-                  icon={<DownloadOutlined />} 
+                  icon={<DownloadOutlined />}
+                  size="middle"
                   onClick={() => handleDownload(file.url, file.name)}
                 />
               </Tooltip>
             ]}
           >
             <List.Item.Meta
-              title={file.name}
+              avatar={<FileOutlined style={{ fontSize: '24px', color: '#1890ff' }} />}
+              title={<Text strong>{file.name}</Text>}
               description={
                 <Space direction="vertical" size={0}>
                   <Text type="secondary">ขนาด: {(file.size / 1024).toFixed(2)} KB</Text>
@@ -120,14 +120,18 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     if (!document) return null;
     
     return (
-      <Card title="รายละเอียดเอกสาร" style={{ marginBottom: '16px' }}>
-        <Row gutter={[16, 16]}>
-          <Col span={12}>
+      <Card 
+        title={<Title level={4}>รายละเอียดเอกสาร</Title>} 
+        bordered={false}
+        className="detail-card"
+      >
+        <Row gutter={[24, 16]}>
+          <Col xs={24} md={12}>
             <Paragraph><strong>ชื่อเอกสาร:</strong> {document.document_name}</Paragraph>
             <Paragraph><strong>ประเภท:</strong> {document.type === 'internship' ? 'เอกสารฝึกงาน' : 'เอกสารโครงงาน'}</Paragraph>
             <Paragraph><strong>ผู้อัปโหลด:</strong> {document.student_name}</Paragraph>
           </Col>
-          <Col span={12}>
+          <Col xs={24} md={12}>
             <Paragraph><strong>รหัสนักศึกษา:</strong> {document.student_code}</Paragraph>
             <Paragraph><strong>วันที่อัปโหลด:</strong> {moment(document.upload_date).format('DD/MM/YYYY HH:mm')}</Paragraph>
             <Paragraph>
@@ -136,19 +140,27 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
           </Col>
         </Row>
         
+        <Divider style={{ margin: '12px 0' }} />
+        
         {document.title && (
           <>
             <Paragraph><strong>หัวข้อโครงงาน:</strong> {document.title}</Paragraph>
             <Paragraph><strong>คำอธิบาย:</strong> {document.description}</Paragraph>
+            <Divider style={{ margin: '12px 0' }} />
           </>
         )}
-        <Paragraph><strong>แทร็ก:</strong> {document?.track}</Paragraph>
-        <Paragraph><strong>หมวดหมู่โครงการ:</strong> {document?.project_category}</Paragraph>
+        <Row gutter={[24, 16]}>
+          <Col xs={24} md={12}>
+            <Paragraph><strong>แทร็ก:</strong> {document?.track || 'ไม่ระบุ'}</Paragraph>
+          </Col>
+          <Col xs={24} md={12}>
+            <Paragraph><strong>หมวดหมู่โครงการ:</strong> {document?.project_category || 'ไม่ระบุ'}</Paragraph>
+          </Col>
+        </Row>
       </Card>
     );
   };
 
-  // เพิ่มฟังก์ชัน render สถานะ
   const renderStatus = (status) => {
     if (!status) return <Tag color="default">ไม่ระบุ</Tag>;
     
@@ -167,32 +179,45 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     );
   };
 
-  // ปรับปรุงการแสดงข้อมูลในส่วนหลัก
   return (
     <Modal 
-      title={<div style={{ textAlign: 'center' }}>รายละเอียดเอกสาร</div>}
+      title={<Title level={3} style={{ textAlign: 'center', margin: 0 }}>รายละเอียดเอกสาร</Title>}
       open={open}
       onCancel={onClose}
       footer={null}
       centered
       width="90%"
-      bodyStyle={{ maxHeight: '80vh', overflow: 'auto' }}
+      bodyStyle={{ maxHeight: '80vh', overflow: 'auto', padding: '20px' }}
+      destroyOnClose={true}
+      className="document-detail-modal"
     >
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
           <Spin size="large" tip="กำลังโหลดข้อมูล..." />
         </div>
       ) : (
-        <div style={{ padding: '16px' }}>
+        <div className="document-detail-container">
           {renderDetailSection()}
           
-          <Card title="ไฟล์แนบ" style={{ marginBottom: '16px' }}>
+          <Card 
+            title={<Title level={4}>ไฟล์แนบ</Title>}
+            className="files-card"
+            style={{ marginTop: '20px', marginBottom: selectedFile ? '20px' : '0' }}
+            bordered={false}
+          >
             {renderFileList()}
           </Card>
           
           {selectedFile && (
-            <Card title={`ดูไฟล์: ${selectedFile.name}`}>
-              <PDFViewer url={selectedFile.url} />
+            <Card 
+              title={<Title level={4}>ดูไฟล์: {selectedFile.name}</Title>}
+              bordered={false}
+              className="pdf-viewer-card"
+              style={{ marginTop: '20px' }}
+            >
+              <div style={{ height: '600px', width: '100%' }}>
+                <PDFViewer url={selectedFile.url} />
+              </div>
             </Card>
           )}
         </div>

@@ -322,11 +322,11 @@ const Sidebar = () => {
               label: "จัดการเอกสาร",
               children: [
                 {
-                  key: "/document-management/internship", // /admin2/documents/internship
+                  key: "/admin2/documents/internship", // /admin2/documents/internship
                   label: "เอกสารฝึกงาน",
                 },
                 {
-                  key: "/document-management/project", // /admin2/documents/project
+                  key: "/admin2/documents/project", // /admin2/documents/project
                   label: "เอกสารโครงงานพิเศษ",
                 },
               ],

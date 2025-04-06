@@ -1,218 +1,259 @@
-import React, { useCallback, useMemo } from 'react';
-import { Table, Button, message, Input, Segmented, Space, Typography, Tag } from 'antd';
-import DocumentDetails from './DocumentDetails';
-import DocumentFilters from './DocumentFilters';
-import moment from 'moment-timezone';
-import { useDocumentContext } from '../../../contexts/adminContext/DocumentContext';
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Table,
+  Button,
+  Input,
+  Space,
+  Typography,
+  Tag,
+  Row,
+  Col,
+  Card,
+  Segmented,
+  message,
+} from "antd";
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined,
+  FileExclamationOutlined,
+  FileDoneOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
+import DocumentDetails from "./DocumentDetails";
+import { useDocumentContext } from "../../../contexts/adminContext/DocumentContext";
+import moment from "moment-timezone";
 
-const { Text } = Typography;
-
-// Constants
-const FILTER_OPTIONS = [
-  { label: 'รอการตรวจสอบ', value: 'pending' },
-  { label: 'อนุมัติ', value: 'approved' },
-  { label: 'ปฏิเสธ', value: 'rejected' },
-  { label: 'ทั้งหมด', value: '' }
-];
-
-const TABLE_STYLE = {
-  width: '100%',
-  maxWidth: '90%',
-  marginLeft: '70px',
-  padding: '20px'
-};
-
-const FILTER_SECTION_STYLE = {
-  marginBottom: 16,
-  marginLeft: '80px',
-  marginTop: '20px',
-};
+const { Text, Title } = Typography;
 
 const DocumentManagement = () => {
-  // ใช้ context แทนการใช้ state เฉพาะที่
   const {
     documents,
     loading,
     filters,
     isModalVisible,
     selectedDocumentId,
-    loadDocuments,
     approveDocument,
-    rejectDocument,
     setSearchText,
     setStatusFilter,
     showDocumentDetails,
-    closeDocumentDetails
+    closeDocumentDetails,
   } = useDocumentContext();
 
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+
+  // คำนวณสถิติเอกสาร
+  const statistics = useMemo(() => {
+    const total = documents.length;
+    const pending = documents.filter((doc) => doc.status === "pending").length;
+    const approved = documents.filter(
+      (doc) => doc.status === "approved"
+    ).length;
+    const rejected = documents.filter(
+      (doc) => doc.status === "rejected"
+    ).length;
+
+    return { total, pending, approved, rejected };
+  }, [documents]);
+
   // ฟิลเตอร์ข้อมูลตามตัวกรอง
-  const filteredDocuments = useMemo(() => 
-    documents.filter(doc =>
-        (doc.document_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-         doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())) &&
+  const filteredDocuments = useMemo(() => {
+    return documents.filter(
+      (doc) =>
+        (doc.document_name
+          ?.toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+          doc.student_name
+            ?.toLowerCase()
+            .includes(filters.search.toLowerCase())) &&
         (filters.status ? doc.status === filters.status : true)
-    ),
-    [documents, filters.search, filters.status]
+    );
+  }, [documents, filters.search, filters.status]);
+
+  // คอลัมน์ตาราง
+  const columns = useMemo(
+    () => [
+      {
+        title: "เอกสาร",
+        dataIndex: "document_name",
+        key: "document_name",
+        render: (text, record) => (
+          <Button type="link" onClick={() => showDocumentDetails(record.id)}>
+            {text}
+          </Button>
+        ),
+      },
+      {
+        title: "ชื่อนักศึกษา",
+        dataIndex: "student_name",
+        key: "student_name",
+        sorter: (a, b) => a.student_name.localeCompare(b.student_name),
+      },
+      {
+        title: "ประเภทเอกสาร",
+        dataIndex: "type",
+        key: "type",
+        render: (type) =>
+          type === "internship" ? "เอกสารฝึกงาน" : "เอกสารโครงงาน",
+      },
+      {
+        title: "วันที่อัปโหลด",
+        dataIndex: "upload_date",
+        key: "upload_date",
+        render: (text) =>
+          moment(text).tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm"),
+        sorter: (a, b) => new Date(a.upload_date) - new Date(b.upload_date),
+      },
+      {
+        title: "สถานะ",
+        dataIndex: "status",
+        key: "status",
+        render: (status) => {
+          const statusColors = {
+            pending: "orange",
+            approved: "green",
+            rejected: "red",
+          };
+          const statusText = {
+            pending: "รอตรวจสอบ",
+            approved: "อนุมัติ",
+            rejected: "ปฏิเสธ",
+          };
+          return <Tag color={statusColors[status]}>{statusText[status]}</Tag>;
+        },
+      },
+    ],
+    [showDocumentDetails]
   );
 
-  // จัดการการเลือกแถวในตาราง
-  const [selectedRowKeys, setSelectedRowKeys] = React.useState([]);
-
-  // การจัดการเหตุการณ์ต่างๆ
-  const handleViewDetails = useCallback((document) => {
-    showDocumentDetails(document.id);
-  }, [showDocumentDetails]);
-
-  const handleCloseModal = useCallback(() => {
-    closeDocumentDetails();
-  }, [closeDocumentDetails]);
-
-  const handleApproveDocument = useCallback(async (documentId) => {
-    try {
-      const success = await approveDocument(documentId);
-      if (success) {
-        message.success('อนุมัติเอกสารเรียบร้อยแล้ว');
-      }
-    } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการอนุมัติเอกสาร');
-    }
-  }, [approveDocument]);
-
-  const handleRejectDocument = useCallback(async (documentId) => {
-    try {
-      const success = await rejectDocument(documentId);
-      if (success) {
-        message.success('ปฏิเสธเอกสารเรียบร้อยแล้ว');
-      }
-    } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการปฏิเสธเอกสาร');
-    }
-  }, [rejectDocument]);
-
+  // การจัดการเหตุการณ์
   const handleApproveSelectedDocuments = useCallback(async () => {
     try {
-      const promises = selectedRowKeys.map(documentId => approveDocument(documentId));
+      const promises = selectedRowKeys.map((documentId) =>
+        approveDocument(documentId)
+      );
       await Promise.all(promises);
-      message.success('อนุมัติเอกสารที่เลือกเรียบร้อยแล้ว');
+      message.success("อนุมัติเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการอนุมัติเอกสาร');
+      message.error("เกิดข้อผิดพลาดในการอนุมัติเอกสาร");
     }
   }, [selectedRowKeys, approveDocument]);
 
-  // รีเซ็ตตัวกรอง
   const handleResetFilters = useCallback(() => {
-    setSearchText('');
-    setStatusFilter('');
+    setSearchText("");
+    setStatusFilter("");
   }, [setSearchText, setStatusFilter]);
 
-  // คอลัมน์ตาราง
-  const columns = useMemo(() => [
-    {
-        title: 'เอกสาร',
-        dataIndex: 'document_name',
-        key: 'document_name',
-        render: (text, record) => (
-            <Button type="link" onClick={() => handleViewDetails(record)}>
-                {text}
-            </Button>
-        ),
-    },
-    {
-        title: 'ชื่อนักศึกษา',
-        dataIndex: 'student_name',
-        key: 'student_name',
-        sorter: (a, b) => a.student_name.localeCompare(b.student_name),
-    },
-    {
-        title: 'ประเภทเอกสาร',
-        dataIndex: 'type',
-        key: 'type',
-        render: (type) => type === 'internship' ? 'เอกสารฝึกงาน' : 'เอกสารโครงงาน',
-        onFilter: (value, record) => record.type === value,
-    },
-    {
-        title: 'วันที่อัปโหลด',
-        dataIndex: 'upload_date',
-        key: 'upload_date',
-        render: (text) => moment(text).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm'),
-        sorter: (a, b) => new Date(a.upload_date) - new Date(b.upload_date),
-    },
-    {
-        title: 'สถานะ',
-        dataIndex: 'status',
-        key: 'status',
-        render: (status) => {
-            const statusColors = {
-                pending: 'orange',
-                approved: 'green',
-                rejected: 'red'
-            };
-            return <Tag color={statusColors[status]}>{status.toUpperCase()}</Tag>;
-        },
-    },
-    ...(filters.status === 'pending' ? [{
-        title: 'การดำเนินการ',
-        key: 'actions',
-        render: (_, record) => (
-            <Space>
-                <Button type="primary" onClick={() => handleApproveDocument(record.id)}>
-                    อนุมัติ
-                </Button>
-                <Button danger onClick={() => handleRejectDocument(record.id)}>
-                    ปฏิเสธ
-                </Button>
-            </Space>
-        ),
-    }] : []),
-  ], [filters.status, handleViewDetails, handleApproveDocument, handleRejectDocument]);
+  const rowSelection = useMemo(
+    () => ({
+      selectedRowKeys,
+      onChange: setSelectedRowKeys,
+    }),
+    [selectedRowKeys]
+  );
 
-  const rowSelection = useMemo(() => ({
-    selectedRowKeys,
-    onChange: setSelectedRowKeys,
-  }), [selectedRowKeys]);
-
-  // Render
   return (
-    <div>
-      {/* ใช้ DocumentFilters component แทนการใช้ Space โดยตรง */}
-      <DocumentFilters 
-        searchText={filters.search}
-        statusFilter={filters.status}
-        onSearchChange={setSearchText}
-        onStatusChange={setStatusFilter}
-        onReset={handleResetFilters}
-      />
+    <div className="admin-document-container" style={{ padding: "24px" }}>
+      <Card>
+        {/* ส่วนแสดงสถิติ */}
+        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+          <Col>
+            <Space size="large">
+              <Space>
+                <FileTextOutlined
+                  style={{ fontSize: "24px", color: "#1890ff" }}
+                />
+                <Text>เอกสารทั้งหมด: {statistics.total}</Text>
+              </Space>
+              <Space>
+                <FileExclamationOutlined
+                  style={{ fontSize: "24px", color: "#fa8c16" }}
+                />
+                <Text>รอตรวจสอบ: {statistics.pending}</Text>
+              </Space>
+              <Space>
+                <FileDoneOutlined
+                  style={{ fontSize: "24px", color: "#52c41a" }}
+                />
+                <Text>อนุมัติแล้ว: {statistics.approved}</Text>
+              </Space>
+              <Space>
+                <CloseCircleOutlined
+                  style={{ fontSize: "24px", color: "#f5222d" }}
+                />
+                <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
+              </Space>
+            </Space>
+          </Col>
+        </Row>
 
-      {filters.status === 'pending' && (
-        <Button
-          type="primary"
-          onClick={handleApproveSelectedDocuments}
-          disabled={selectedRowKeys.length === 0}
-          style={{ marginBottom: 16, marginLeft: '100px' }}
-        >
-          อนุมัติเอกสารที่เลือก
-        </Button>
-      )}
+        {/* ส่วนตัวกรอง */}
+        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+          <Col xs={24} sm={12} md={8}>
+            <Input
+              placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
+              value={filters.search}
+              onChange={(e) => setSearchText(e.target.value)}
+              prefix={<SearchOutlined />}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Segmented
+              options={[
+                { label: "ทั้งหมด", value: "" },
+                { label: "รอตรวจสอบ", value: "pending" },
+                { label: "อนุมัติแล้ว", value: "approved" },
+                { label: "ปฏิเสธแล้ว", value: "rejected" },
+              ]}
+              value={filters.status}
+              onChange={setStatusFilter}
+            />
+          </Col>
+          <Col xs={24} sm={24} md={8}>
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={handleResetFilters}>
+                รีเซ็ต
+              </Button>
+              {filters.status === "pending" && (
+                <Button
+                  type="primary"
+                  onClick={handleApproveSelectedDocuments}
+                  disabled={selectedRowKeys.length === 0}
+                  icon={<CheckCircleOutlined />}
+                >
+                  อนุมัติที่เลือก ({selectedRowKeys.length})
+                </Button>
+              )}
+            </Space>
+          </Col>
+        </Row>
 
-      <Table
-        loading={loading}
-        rowSelection={filters.status === 'pending' ? rowSelection : null}
-        columns={columns}
-        dataSource={filteredDocuments}
-        rowKey="id"
-        style={TABLE_STYLE}
-        pagination={{ 
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `ทั้งหมด ${total} รายการ`
-        }}
-      />
+        {/* ส่วนตาราง */}
+        <Table
+          loading={loading}
+          rowSelection={filters.status === "pending" ? rowSelection : null}
+          columns={columns}
+          dataSource={filteredDocuments}
+          rowKey="id"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+            showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+          }}
+          bordered
+          title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
+        />
+      </Card>
 
-      <DocumentDetails 
-        documentId={selectedDocumentId} 
-        open={isModalVisible} 
-        onClose={handleCloseModal} 
+      {/* Modal แสดงรายละเอียดเอกสาร */}
+      <DocumentDetails
+        documentId={selectedDocumentId}
+        open={isModalVisible}
+        onClose={closeDocumentDetails}
       />
     </div>
   );
