@@ -119,13 +119,14 @@ exports.addTeacher = async (req, res) => {
         teacherCode
       });
     }
+    const username = email ? email.split('@')[0] : `t${teacherCode}`;
 
     const user = await User.create({
-      username: `t${teacherCode}`,
-      password: await bcrypt.hash(teacherCode, 10),
+      username,
+      password: await bcrypt.hash(username, 10),
       firstName,
       lastName,
-      email: email || `${teacherCode}@email.kmutnb.ac.th`,
+      email: email || `${teacherCode}@sci.kmtunb.ac.th`, //หรือ MBK@sci.kmutnb.ac.th
       role: 'teacher',
       activeStatus: true
     }, { transaction });

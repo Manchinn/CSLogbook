@@ -118,8 +118,11 @@ export const teacherService = {
       const response = await apiClient.post("/admin/teachers", data);
       return response.data;
     } catch (error) {
-      console.error("Error creating teacher:", error);
-      throw error;
+      // ส่งต่อ error response จาก backend
+      if (error.response) {
+        throw error; // ส่ง error พร้อม response กลับไป
+      }
+      throw new Error(error.message || "ไม่สามารถเพิ่มข้อมูลอาจารย์ได้");
     }
   },
 
@@ -127,7 +130,7 @@ export const teacherService = {
   deleteTeacher: async (teacherId) => {
     try {
       // ลบการกำหนด headers เพราะ apiClient จะจัดการให้
-      const response = await apiClient.delete(`/admin2/teachers/${teacherId}`);
+      const response = await apiClient.delete(`/admin/teachers/${teacherId}`);
       return response.data;
     } catch (error) {
       console.error("Error deleting teacher:", error);
@@ -139,7 +142,7 @@ export const teacherService = {
 // รวม services
 export const userService = {
   ...studentService,
-  ...teacherService
+  ...teacherService,
 };
 
 export default userService;
