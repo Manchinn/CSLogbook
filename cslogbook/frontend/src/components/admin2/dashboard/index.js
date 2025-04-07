@@ -74,7 +74,7 @@ const Dashboard = () => {
           <Button 
             type="default"
             icon={<FileTextOutlined />}
-            onClick={() => navigate('/admin/documents/internship')}
+            onClick={() => navigate('/admin2/documents/internship')}
             block
           >
             จัดการเอกสาร

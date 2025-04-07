@@ -1,24 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Table, Input, Space, Button, Tag, Row, Col, message,
-    Typography, Tooltip, Modal, Drawer, Segmented, Select, Form, InputNumber, Divider, notification
+    Input, Space, Button, Row, Col, message,
+    Typography, Modal, Select, Form, InputNumber, notification
 } from 'antd';
-import {
-    SearchOutlined, ReloadOutlined, UserAddOutlined,
-    UploadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, BookOutlined, 
-    ProjectOutlined, SaveOutlined, CloseOutlined, CloseCircleOutlined
-} from '@ant-design/icons';
 import { userService } from '../../../../services/admin/userService';
 import { STUDENT_STATUS } from '../../../../utils/adminConstants';
 import './styles.css';
 import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } from '../../../../utils/studentUtils';
 
 // นำเข้าคอมโพเนนต์และ utils ที่มีอยู่แล้ว
-import StudentDetail from './components/StudentDetail';
 import StudentStatistics from './components/StudentStatistics';
 import StudentFilters from './components/StudentFilters';
 import StudentTable from './components/StudentTable';
-import { getStatusTags } from './utils/statusHelpers';
+import StudentDrawer from './components/StudentDrawer';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -28,7 +22,6 @@ const StudentList = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [uploadModalVisible, setUploadModalVisible] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
@@ -243,46 +236,18 @@ const StudentList = () => {
         }
     };
 
-    const handleUploadSuccess = () => {
-        setUploadModalVisible(false);
-        fetchStudents();
-        message.success('อัปโหลดข้อมูลนักศึกษาสำเร็จ');
-    };
-
     const handleCloseDrawer = () => {
         setDrawerVisible(false);
         setEditMode(false);
     };
 
-    // เตรียมปุ่มสำหรับ drawer header
-    const drawerExtra = editMode ? (
-        <Space>
-            <Button onClick={handleCancelEdit} icon={<CloseOutlined />}>
-                ยกเลิก
-            </Button>
-            <Button type="primary" onClick={handleSaveStudent} icon={<SaveOutlined />}>
-                บันทึก
-            </Button>
-        </Space>
-    ) : (
-        <Button
-            type="primary"
-            onClick={handleEditStudent}
-            icon={<EditOutlined />}
-        >
-            แก้ไขข้อมูล
-        </Button>
-    );
-
     return (
         <div className="admin-student-container">
             <Row justify="space-between" align="middle" className="filter-section">
                 <Col>
-                    {/* ใช้ StudentStatistics Component */}
                     <StudentStatistics statistics={statistics} />
                 </Col>
                 <Col>
-                    {/* ใช้ StudentFilters Component */}
                     <StudentFilters
                         searchText={searchText}
                         setSearchText={setSearchText}
@@ -293,13 +258,11 @@ const StudentList = () => {
                         academicYearOptions={academicYearOptions}
                         onRefresh={fetchStudents}
                         onAddStudent={handleAddStudent}
-                        onUpload={() => setUploadModalVisible(true)}
                         loading={loading}
                     />
                 </Col>
             </Row>
 
-            {/* ใช้ StudentTable Component */}
             <StudentTable
                 students={filteredStudents}
                 loading={loading}
@@ -312,96 +275,17 @@ const StudentList = () => {
                 onDelete={handleDeleteStudent}
             />
 
-            {/* Drawer สำหรับดูและแก้ไขข้อมูลนักศึกษา */}
-            <Drawer
-                title={editMode ? (selectedStudent ? 'แก้ไขข้อมูลนักศึกษา' : 'เพิ่มนักศึกษา') : 'ข้อมูลนักศึกษา'}
-                placement="right"
-                width={520}
+            {/* ใช้ StudentDrawer Component แทนที่โค้ด Drawer เดิม */}
+            <StudentDrawer 
+                visible={drawerVisible}
+                student={selectedStudent}
+                editMode={editMode}
+                form={form}
                 onClose={handleCloseDrawer}
-                open={drawerVisible}
-                className="student-drawer"
-                extra={drawerExtra}
-            >
-                {editMode ? (
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        initialValues={{ totalCredits: 0, majorCredits: 0 }}
-                        className="student-form"
-                    >
-                        <Form.Item
-                            name="studentCode"
-                            label="รหัสนักศึกษา"
-                            rules={[
-                                { required: true, message: 'กรุณากรอกรหัสนักศึกษา' },
-                                { pattern: /^\d{13}$/, message: 'รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก' }
-                            ]}
-                        >
-                            <Input disabled={!!selectedStudent} placeholder="รหัสนักศึกษา 13 หลัก" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="firstName"
-                            label="ชื่อ"
-                            rules={[{ required: true, message: 'กรุณากรอกชื่อ' }]}
-                        >
-                            <Input placeholder="ชื่อ" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="lastName"
-                            label="นามสกุล"
-                            rules={[{ required: true, message: 'กรุณากรอกนามสกุล' }]}
-                        >
-                            <Input placeholder="นามสกุล" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="email"
-                            label="อีเมล"
-                            rules={[
-                                { required: true, message: 'กรุณากรอกอีเมล' },
-                                { type: 'email', message: 'อีเมลไม่ถูกต้อง' }
-                            ]}
-                        >
-                            <Input placeholder="อีเมล" />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="totalCredits"
-                            label="หน่วยกิตรวม"
-                            rules={[
-                                { required: true, message: 'กรุณากรอกหน่วยกิตรวม' },
-                                { type: 'number', min: 0, max: 200, message: 'หน่วยกิตต้องอยู่ระหว่าง 0-200' }
-                            ]}
-                        >
-                            <InputNumber min={0} max={200} style={{ width: '100%' }} />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="majorCredits"
-                            label="หน่วยกิตภาควิชา"
-                            rules={[
-                                { required: true, message: 'กรุณากรอกหน่วยกิตภาควิชา' },
-                                { type: 'number', min: 0, max: 200 },
-                                ({ getFieldValue }) => ({
-                                    validator(_, value) {
-                                        if (!value || getFieldValue('totalCredits') >= value) {
-                                            return Promise.resolve();
-                                        }
-                                        return Promise.reject(new Error('หน่วยกิตภาควิชาต้องน้อยกว่าหรือเท่ากับหน่วยกิตรวม'));
-                                    }
-                                })
-                            ]}
-                            dependencies={['totalCredits']}
-                        >
-                            <InputNumber min={0} max={200} style={{ width: '100%' }} />
-                        </Form.Item>
-                    </Form>
-                ) : (
-                    selectedStudent && <StudentDetail student={selectedStudent} />
-                )}
-            </Drawer>
+                onEdit={handleEditStudent}
+                onCancelEdit={handleCancelEdit}
+                onSave={handleSaveStudent}
+            />
         </div>
     );
 };

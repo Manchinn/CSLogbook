@@ -1,7 +1,8 @@
 import React from 'react';
-import { Drawer, Button, Space, Form } from 'antd';
+import { Drawer, Button, Space } from 'antd';
 import { SaveOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import StudentDetail from './StudentDetail';
+import StudentForm from './StudentForm';
 
 const StudentDrawer = ({
   visible,
@@ -13,6 +14,7 @@ const StudentDrawer = ({
   onCancelEdit,
   onSave
 }) => {
+  
   const drawerExtra = editMode ? (
     <Space>
       <Button onClick={onCancelEdit} icon={<CloseOutlined />}>
@@ -38,22 +40,14 @@ const StudentDrawer = ({
       placement="right"
       width={520}
       onClose={onClose}
-      open={visible}
+      open={visible} // แก้จาก visible เป็น open (ถ้าใช้ Ant Design V5)
       className="student-drawer"
       extra={drawerExtra}
     >
       {editMode ? (
-        // ใส่ StudentForm แบบ inline หรือแยกเป็นอีกคอมโพเนนต์
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ totalCredits: 0, majorCredits: 0 }}
-          className="student-form"
-        >
-          {/* form fields จากไฟล์เดิม */}
-        </Form>
+        <StudentForm form={form} student={student} />
       ) : (
-        <StudentDetail student={student} />
+        student && <StudentDetail student={student} />
       )}
     </Drawer>
   );
