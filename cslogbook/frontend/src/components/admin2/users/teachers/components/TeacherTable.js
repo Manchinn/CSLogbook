@@ -1,85 +1,84 @@
-import React from 'react';
-import { Table, Space, Button, Tooltip, Typography } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import React from "react";
+import { Table, Space, Button, Tooltip, Typography } from "antd";
+import { EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
-const TeacherTable = ({ 
-  teachers, 
-  loading, 
-  onView, 
-  onEdit, 
-  onDelete 
-}) => {
+const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
   const columns = [
     {
-      title: 'รหัสอาจารย์',
-      dataIndex: 'teacherCode',
-      key: 'teacherCode',
+      title: "รหัสอาจารย์",
+      dataIndex: "teacherCode",
+      key: "teacherCode",
       sorter: (a, b) => a.teacherCode.localeCompare(b.teacherCode),
       width: 130,
     },
     {
-      title: 'ชื่อ-นามสกุล',
-      dataIndex: 'fullName',
-      key: 'fullName',
+      title: "ชื่อ-นามสกุล",
+      dataIndex: "fullName",
+      key: "fullName",
       render: (_, record) => (
-        <Text strong>{`${record.firstName || ''} ${record.lastName || ''}`}</Text>
+        <Text strong>{`${record.firstName || ""} ${
+          record.lastName || ""
+        }`}</Text>
       ),
-      sorter: (a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
+      sorter: (a, b) =>
+        `${a.firstName} ${a.lastName}`.localeCompare(
+          `${b.firstName} ${b.lastName}`
+        ),
       width: 180,
     },
     {
-      title: 'อีเมล',
-      dataIndex: 'email',
-      key: 'email',
+      title: "อีเมล",
+      dataIndex: "email",
+      key: "email",
       width: 200,
     },
     {
-      title: 'เบอร์ภายใน',
-      dataIndex: 'contactExtension',
-      key: 'contactExtension',
+      title: "เบอร์ภายใน",
+      dataIndex: "contactExtension",
+      key: "contactExtension",
       width: 120,
     },
     {
-      title: 'ภาควิชา',
-      dataIndex: 'department',
-      key: 'department',
+      title: "ภาควิชา",
+      dataIndex: "department",
+      key: "department",
       width: 150,
     },
     {
-      title: 'จัดการ',
-      key: 'actions',
+      title: "จัดการ",
+      key: "actions",
       width: 180,
       render: (_, record) => (
         <Space>
           <Tooltip title="ดูข้อมูล">
-            <Button 
-              icon={<EyeOutlined />} 
+            <Button
+              icon={<EyeOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 onView(record);
-              }} 
+              }}
             />
           </Tooltip>
           <Tooltip title="แก้ไข">
-            <Button 
-              icon={<EditOutlined />} 
+            <Button
+              icon={<EditOutlined />}
               type="primary"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(record);
-              }} 
+              }}
             />
           </Tooltip>
           <Tooltip title="ลบ">
-            <Button 
-              icon={<DeleteOutlined />} 
+            <Button
+              icon={<DeleteOutlined />}
               danger
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(record.teacherId);
-              }} 
+              }}
             />
           </Tooltip>
         </Space>
@@ -93,14 +92,14 @@ const TeacherTable = ({
       dataSource={teachers}
       rowKey="id"
       loading={loading}
-      pagination={{ 
+      pagination={{
         pageSize: 10,
         showSizeChanger: true,
-        showTotal: total => `ทั้งหมด ${total} รายการ` 
+        showTotal: (total) => `ทั้งหมด ${total} รายการ`,
       }}
-      scroll={{ x: 'max-content' }}
+      scroll={{ x: "max-content" }}
       onRow={(record) => ({
-        onClick: () => onView(record)
+        onClick: () => onView(record),
       })}
     />
   );

@@ -40,7 +40,7 @@ const StudentDrawer = ({
       placement="right"
       width={520}
       onClose={onClose}
-      open={visible} // แก้จาก visible เป็น open (ถ้าใช้ Ant Design V5)
+      open={visible} 
       className="student-drawer"
       extra={drawerExtra}
     >
