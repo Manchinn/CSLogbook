@@ -1,80 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Alert, Statistic, Space, Button, message, Tooltip, Badge, Descriptions } from 'antd';
-import { UserOutlined, ProjectOutlined, BookOutlined, CheckCircleOutlined, ClockCircleOutlined, UploadOutlined, FileTextOutlined, FormOutlined } from '@ant-design/icons';
-import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import './Dashboard.css';
-import { adminService } from '../../services/adminService';
-import { teacherService } from '../../services/teacherService';
-import { studentService } from '../../services/studentService';
-import moment from 'moment';
-
-const API_URL = process.env.REACT_APP_API_URL;
-
-if (!API_URL) {
-  throw new Error('REACT_APP_API_URL is not defined in environment variables');
-}
+import React from "react";
+import {
+  Row,
+  Col,
+  Card,
+  Alert,
+  Statistic,
+  Space,
+  Button,
+  message,
+  Badge,
+  Descriptions,
+} from "antd";
+import {
+  UserOutlined,
+  ProjectOutlined,
+  BookOutlined,
+  FormOutlined,
+  ClockCircleOutlined,
+  UploadOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import "./Dashboard.css";
+import { adminService } from "../../services/adminService";
+import { teacherService } from "../../services/teacherService";
+import { studentService } from "../../services/studentService";
+import moment from "moment";
+import { useQuery } from "@tanstack/react-query";
 
 function Dashboard() {
   const { userData } = useAuth();
 
   function AdminView() {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-      students: {
-        total: 0,
-        internshipEligible: 0, 
-        projectEligible: 0
+
+    const { data: stats, isLoading } = useQuery({
+      queryKey: ["adminStats"],
+      queryFn: adminService.getStats,
+      onError: (error) => {
+        console.error("Error fetching stats:", error);
+        message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
       },
-      documents: {
-        total: 0,
-        pending: 0
-      },
-      system: {
-        onlineUsers: 0,
-        lastUpdate: null
-      }
     });
 
-    useEffect(() => {
-      const fetchStats = async () => {
-        try {
-          const data = await adminService.getStats();
-          setStats(data);
-        } catch (error) {
-          console.error('Error fetching stats:', error);
-          message.error('ไม่สามารถโหลดข้อมูลสถิติได้');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchStats();
-    }, []);
+    const dashboardStats = stats || {
+      students: { total: 0, internshipEligible: 0, projectEligible: 0 },
+      documents: { total: 0, pending: 0 },
+      system: { onlineUsers: 0, lastUpdate: null },
+    };
 
     const statsCards = [
       {
-        title: 'นักศึกษาทั้งหมด',
-        value: stats.students.total,
+        title: "นักศึกษาทั้งหมด",
+        value: dashboardStats.students.total,
         icon: <UserOutlined />,
-        color: '#1890ff',
-        onClick: () => navigate('/admin2/users/students')
+        color: "#1890ff",
+        onClick: () => navigate("/admin2/users/students"),
       },
       {
-        title: 'มีสิทธิ์ฝึกงาน',
-        value: stats.students.internshipEligible,
+        title: "มีสิทธิ์ฝึกงาน",
+        value: dashboardStats.students.internshipEligible,
         icon: <BookOutlined />,
-        color: '#52c41a',
-        onClick: () => navigate('/students?filter=internship')
+        color: "#52c41a",
+        onClick: () => navigate("/students?filter=internship"),
       },
       {
-        title: 'มีสิทธิ์ทำโครงงานพิเศษ', 
-        value: stats.students.projectEligible,
+        title: "มีสิทธิ์ทำโครงงานพิเศษ",
+        value: dashboardStats.students.projectEligible,
         icon: <ProjectOutlined />,
-        color: '#722ed1',
-        onClick: () => navigate('/students?filter=project')
-      }
+        color: "#722ed1",
+        onClick: () => navigate("/students?filter=project"),
+      },
     ];
 
     return (
@@ -86,21 +84,17 @@ function Dashboard() {
             showIcon
             className="common-alert-style"
           />
-          
+
           <Row gutter={[16, 16]}>
             {statsCards.map((card, index) => (
               <Col xs={24} sm={8} key={index}>
-                <Card 
-                  hoverable 
-                  onClick={card.onClick}
-                  className="stats-card"
-                >
+                <Card hoverable onClick={card.onClick} className="stats-card">
                   <Statistic
                     title={card.title}
                     value={card.value}
                     prefix={card.icon}
                     valueStyle={{ color: card.color }}
-                    loading={loading}
+                    loading={isLoading}
                   />
                 </Card>
               </Col>
@@ -109,56 +103,49 @@ function Dashboard() {
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
-              <Card style={{ height: '100%' }}>
+              <Card style={{ height: "100%" }}>
                 <Statistic
                   title="เอกสารรอดำเนินการ"
-                  value={stats.documents.pending}
-                  suffix={`/ ${stats.documents.total}`}
-                  valueStyle={{ color: '#faad14' }}
+                  value={dashboardStats.documents.pending}
+                  suffix={`/ ${dashboardStats.documents.total}`}
+                  valueStyle={{ color: "#faad14" }}
                   prefix={<FileTextOutlined />}
                 />
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card style={{ height: '100%' }}>
+              <Card style={{ height: "100%" }}>
                 <Statistic
                   title="ผู้ใช้งานออนไลน์"
-                  value={stats.system.onlineUsers}
-                  valueStyle={{ color: '#52c41a' }}
+                  value={dashboardStats.system.onlineUsers}
+                  valueStyle={{ color: "#52c41a" }}
                   prefix={<UserOutlined />}
                 />
-                <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.45)' }}>
-                  อัพเดทล่าสุด: {moment(stats.system.lastUpdate).format('HH:mm:ss')}
-                </div>
               </Card>
             </Col>
           </Row>
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<UploadOutlined />}
-                onClick={() => navigate('/admin/upload')}
+                onClick={() => navigate("/admin/upload")}
                 block
+                size="large"
               >
-                อัปโหลดข้อมูลนักศึกษา (CSV)
+                อัพโหลดข้อมูลรายชื่อนักศึกษา
               </Button>
             </Col>
             <Col xs={24} md={12}>
-              <Button 
+              <Button
                 type="default"
                 icon={<FileTextOutlined />}
-                onClick={() => navigate('/admin2/documents/internship')}
+                onClick={() => navigate("/document-management/internship")}
                 block
+                size="large"
               >
-                จัดการเอกสาร
-                {stats.documents.pending > 0 && (
-                  <Badge 
-                    count={stats.documents.pending} 
-                    style={{ marginLeft: 8 }}
-                  />
-                )}
+                จัดการเอกสารฝึกงาน
               </Button>
             </Col>
           </Row>
@@ -168,27 +155,19 @@ function Dashboard() {
   }
 
   function TeacherView() {
-    const [loading, setLoading] = useState(true);
-    const [teacherStats, setTeacherStats] = useState({
-      totalStudents: 0,
-      pendingActions: 0
+    const { data: teacherStats, isLoading } = useQuery({
+      queryKey: ["teacherStats"],
+      queryFn: teacherService.getStats,
+      onError: (error) => {
+        console.error("Error fetching teacher stats:", error);
+        message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
+      },
     });
 
-    useEffect(() => {
-      const fetchTeacherStats = async () => {
-        try {
-          const data = await teacherService.getStats();
-          setTeacherStats(data);
-        } catch (error) {
-          console.error('Error fetching teacher stats:', error);
-          message.error('ไม่สามารถโหลดข้อมูลสถิติได้');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchTeacherStats();
-    }, []);
+    const stats = teacherStats || {
+      totalStudents: 0,
+      pendingActions: 0,
+    };
 
     return (
       <div className="teacher-dashboard">
@@ -196,25 +175,23 @@ function Dashboard() {
           <Col xs={24} sm={12}>
             <Card hoverable className="stats-card">
               <Statistic
-                title="นักศึกษาในที่ปรึกษา"
-                value={teacherStats.totalStudents}
+                title="นักศึกษาที่ปรึกษา"
+                value={stats.totalStudents}
                 prefix={<UserOutlined />}
-                valueStyle={{ color: '#1890ff' }}
-                loading={loading}
+                loading={isLoading}
               />
-              <p>จำนวนนักศึกษาที่ดูแล</p>
             </Card>
           </Col>
           <Col xs={24} sm={12}>
             <Card hoverable className="stats-card">
-              <Statistic
-                title="รายการที่ต้องดำเนินการ"
-                value={teacherStats.pendingActions}
-                prefix={<BookOutlined />}
-                valueStyle={{ color: '#faad14' }}
-                loading={loading}
-              />
-              <p>รายการรอดำเนินการ</p>
+              <Badge count={stats.pendingActions} overflowCount={99}>
+                <Statistic
+                  title="รายการที่ต้องดำเนินการ"
+                  value="รออนุมัติ"
+                  prefix={<ClockCircleOutlined />}
+                  loading={isLoading}
+                />
+              </Badge>
             </Card>
           </Col>
         </Row>
@@ -225,76 +202,20 @@ function Dashboard() {
   function StudentView() {
     const { userData } = useAuth();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [eligibilityData, setEligibilityData] = useState(null);
-
-    useEffect(() => {
-      const fetchEligibility = async () => {
-        // ตรวจสอบว่ามี userData และ studentCode ก่อน
-        if (!userData || !userData.studentCode) {
-          setError(new Error('ไม่พบข้อมูลนักศึกษา'));
-          setLoading(false);
-          return;
-        }
-
-        try {
-          console.log('Fetching data for:', userData.studentCode);
-          const response = await studentService.getStudentInfo(userData.studentCode);
-          
-          console.log('Backend response:', response);
-          
-          // ตรวจสอบ success flag จาก backend
-          if (!response.success || !response.data) {
-            throw new Error(response.message || 'ไม่พบข้อมูลจากเซิร์ฟเวอร์');
-          }
-
-          const formattedData = {
-            studentCode: response.data.studentCode,
-            totalCredits: response.data.totalCredits,
-            majorCredits: response.data.majorCredits,
-            studentYear: response.data.eligibility.studentYear,
-            isEligibleInternship: response.data.eligibility.internship.eligible,
-            isEligibleProject: response.data.eligibility.project.eligible,
-            messages: {
-              internship: response.data.eligibility.internship.message,
-              project: response.data.eligibility.project.message
-            }
-          };
-          
-          setEligibilityData(formattedData);
-          
-        } catch (err) {
-          console.error('Error:', err);
-          setError(err);
-          message.error(err.message || 'ไม่สามารถโหลดข้อมูลได้');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchEligibility();
-    }, [userData]); // เปลี่ยน dependency เป็น userData
-
-    if (loading) {
-      return (
-        <div className="student-dashboard">
-          <Space direction="vertical" size="large">
-            <Alert message="กำลังโหลดข้อมูล..." type="info" showIcon />
-          </Space>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="student-dashboard">
-          <Space direction="vertical" size="large">
-            <Alert message="เกิดข้อผิดพลาด" description={error.message} type="error" showIcon />
-          </Space>
-        </div>
-      );
-    }
+    
+    const { data, isLoading, error } = useQuery({
+      queryKey: ['studentInfo', userData?.studentCode],
+      queryFn: () => userData?.studentCode ? studentService.getStudentInfo(userData.studentCode) : null,
+      enabled: !!userData?.studentCode,
+      onError: (error) => {
+        console.error('Error fetching student info:', error);
+        message.error('ไม่สามารถโหลดข้อมูลนักศึกษาได้');
+      }
+    });
+    
+    const studentData = data?.data;
+    const isEligibleForInternship = studentData?.eligibility?.internship?.eligible || false;
+    const isEligibleForProject = studentData?.eligibility?.project?.eligible || false;
 
     return (
       <div className="student-dashboard">
@@ -309,31 +230,31 @@ function Dashboard() {
           <Row gutter={[16, 16]}>
             {/* สถานะการฝึกงาน */}
             <Col xs={24} sm={12}>
-            <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
+              <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
                 <Statistic
                   title="สถานะการฝึกงาน"
-                  value={eligibilityData?.isEligibleInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
+                  value={isEligibleForInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                   valueStyle={{ 
-                    color: eligibilityData?.isEligibleInternship ? '#52c41a' : '#ff4d4f' 
+                    color: isEligibleForInternship ? '#52c41a' : '#ff4d4f' 
                   }}
-                  prefix={eligibilityData?.isEligibleInternship ? 
+                  prefix={isEligibleForInternship ? 
                     <CheckCircleOutlined /> : 
                     <ClockCircleOutlined />
                   }
                 />
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="หน่วยกิตรวม">
-                    {eligibilityData?.totalCredits || 0} หน่วยกิต
+                    {studentData?.totalCredits || 0} หน่วยกิต
                   </Descriptions.Item>
                   <Descriptions.Item label="สถานะ">
-                    {eligibilityData?.messages?.internship || 'ตรวจสอบหน่วยกิตและชั้นปี'}
+                    {studentData?.eligibility?.internship?.message || 'ตรวจสอบหน่วยกิตและชั้นปี'}
                   </Descriptions.Item>
                 </Descriptions>
-                {eligibilityData?.isEligibleInternship && (
+                {isEligibleForInternship && (
                   <Button 
                     type="primary" 
                     icon={<FormOutlined />}
-                    onClick={() => navigate('/internship')}
+                    onClick={() => navigate('/internship-registration/cs05')}
                     style={{ marginTop: '16px' }}
                   >
                     จัดการฝึกงาน
@@ -344,33 +265,33 @@ function Dashboard() {
 
             {/* สถานะโครงงาน */}
             <Col xs={24} sm={12}>
-            <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
+              <Card hoverable className="eligibility-card" style={{ height: '100%' }}>
                 <Statistic
                   title="สถานะโครงงานพิเศษ"
-                  value={eligibilityData?.isEligibleProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
+                  value={isEligibleForProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
                   valueStyle={{ 
-                    color: eligibilityData?.isEligibleProject ? '#52c41a' : '#ff4d4f' 
+                    color: isEligibleForProject ? '#52c41a' : '#ff4d4f' 
                   }}
-                  prefix={eligibilityData?.isEligibleProject ? 
+                  prefix={isEligibleForProject ? 
                     <CheckCircleOutlined /> : 
                     <ClockCircleOutlined />
                   }
                 />
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="ชั้นปี">
-                    {eligibilityData?.studentYear?.year || '-'}
+                    {studentData?.studentYear?.year || '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="หน่วยกิตรวม">
-                    {eligibilityData?.totalCredits || 0} หน่วยกิต
+                    {studentData?.totalCredits || 0} หน่วยกิต
                   </Descriptions.Item>
                   <Descriptions.Item label="หน่วยกิตภาควิชา">
-                    {eligibilityData?.majorCredits || 0} หน่วยกิต
+                    {studentData?.majorCredits || 0} หน่วยกิต
                   </Descriptions.Item>
                   <Descriptions.Item label="สถานะ">
-                    {eligibilityData?.messages?.project || 'ตรวจสอบหน่วยกิตและชั้นปี'}
+                    {studentData?.eligibility?.project?.message || 'ตรวจสอบหน่วยกิตและชั้นปี'}
                   </Descriptions.Item>
                 </Descriptions>
-                {eligibilityData?.isEligibleProject && (
+                {isEligibleForProject && (
                   <Button 
                     type="primary" 
                     icon={<ProjectOutlined />}
@@ -390,11 +311,11 @@ function Dashboard() {
 
   function renderDashboard() {
     switch (userData?.role) {
-      case 'admin':
+      case "admin":
         return <AdminView />;
-      case 'teacher':
+      case "teacher":
         return <TeacherView />;
-      case 'student':
+      case "student":
         return <StudentView />;
       default:
         return (
@@ -408,11 +329,7 @@ function Dashboard() {
     }
   }
 
-  return (
-    <div className="dashboard-container">
-      {renderDashboard()}
-    </div>
-  );
+  return <div className="dashboard-container">{renderDashboard()}</div>;
 }
 
 export default Dashboard;
