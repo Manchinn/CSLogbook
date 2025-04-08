@@ -18,7 +18,7 @@ const StudentDrawer = ({
   
   // ตรวจสอบและเซ็ตค่าฟอร์มเมื่อมีการเปิด drawer หรือเปลี่ยน student
   useEffect(() => {
-    if (visible && student && form) {
+    if (student && form) {
       form.setFieldsValue({
         studentCode: student.studentCode || '',
         firstName: student.firstName || '',
@@ -28,14 +28,29 @@ const StudentDrawer = ({
         majorCredits: student.majorCredits || 0
       });
     }
-  }, [visible, student, form]);
+  }, [student, form]);
 
   const drawerExtra = editMode ? (
     <Space>
       <Button onClick={onCancelEdit} icon={<CloseOutlined />}>
         ยกเลิก
       </Button>
-      <Button type="primary" onClick={onSave} icon={<SaveOutlined />} loading={confirmLoading}>
+      <Button
+        type="primary"
+        onClick={() => {
+          const sanitizedData = form.getFieldsValue();
+          onSave({
+            studentCode: sanitizedData.studentCode,
+            firstName: sanitizedData.firstName,
+            lastName: sanitizedData.lastName,
+            email: sanitizedData.email,
+            totalCredits: parseInt(sanitizedData.totalCredits, 10) || 0,
+            majorCredits: parseInt(sanitizedData.majorCredits, 10) || 0,
+          });
+        }}
+        icon={<SaveOutlined />}
+        loading={confirmLoading}
+      >
         บันทึก
       </Button>
     </Space>

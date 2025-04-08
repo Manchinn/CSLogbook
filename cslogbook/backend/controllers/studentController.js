@@ -533,7 +533,6 @@ exports.getAllStudentStats = async (req, res) => {
       ],
     });
 
-    // จัดรูปแบบข้อมูลสำหรับการแสดงผล
     const stats = {
       total: students.length,
       internshipEligible: students.filter((s) => s.isEligibleInternship).length,

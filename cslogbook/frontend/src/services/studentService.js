@@ -4,7 +4,6 @@ export const studentService = {
   // ดึงข้อมูลสิทธิ์และข้อมูลนักศึกษา
   getStudentInfo: async (studentCode) => {
     try {
-      console.log("Fetching student info for:", studentCode);
       const response = await apiClient.get(`/students/${studentCode}`);
 
       if (!response.data.success) {
@@ -68,42 +67,43 @@ export const studentService = {
 
   // ดึงข้อมูลสถิติ (สำหรับ admin/teacher)
   getStats: async () => {
-    const response = await apiClient.get("/students/stats");
-    return response.data;
+    try {
+      const response = await apiClient.get("/students/stats");
+      console.log("Response from /students/stats:", response.data);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "ไม่สามารถดึงข้อมูลสถิติได้");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      throw error;
+    }
   },
+
   // อัพเดทข้อมูลนักศึกษา (สำหรับ admin/student)
   updateStudent: async (studentCode, data) => {
     try {
-      // Validate input data
-      const totalCredits = parseInt(data.totalCredits, 10);
-      const majorCredits = parseInt(data.majorCredits, 10);
+      // กรองข้อมูลเฉพาะฟิลด์ที่จำเป็น
+      const sanitizedData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        totalCredits: parseInt(data.totalCredits, 10) || 0,
+        majorCredits: parseInt(data.majorCredits, 10) || 0,
+      };
 
-      // Check if majorCredits is not greater than totalCredits
-      if (majorCredits > totalCredits) {
-        throw new Error("หน่วยกิตภาควิชาต้องน้อยกว่าหรือเท่ากับหน่วยกิตรวม");
-      }
-
-      const response = await apiClient.put(`/students/${studentCode}`, {
-        ...data,
-        totalCredits: totalCredits,
-        majorCredits: majorCredits,
-      });
+      const response = await apiClient.put(`/students/${studentCode}`, sanitizedData);
 
       if (!response.data.success) {
-        throw new Error(
-          response.data.message || "ไม่สามารถอัพเดทข้อมูลนักศึกษาได้"
-        );
+        throw new Error(response.data.message || "ไม่สามารถอัพเดทข้อมูลนักศึกษาได้");
       }
 
       return response.data;
     } catch (error) {
       console.error("Error updating student:", error);
-      if (error.response?.status === 404) {
-        throw new Error("ไม่พบข้อมูลนักศึกษา");
-      }
-      throw new Error(
-        error.response?.data?.message || "เกิดข้อผิดพลาดในการอัพเดทข้อมูล"
-      );
+      throw error;
     }
   },
 
@@ -198,19 +198,24 @@ export const studentService = {
   // ดึงรายการนักศึกษาทั้งหมดพร้อม filter
   getAllStudents: async (filters = {}) => {
     try {
-      console.log("Fetching students with filters:", filters);
+      console.log("Filters sent to getAllStudents:", filters);
+
       const params = new URLSearchParams();
 
-      // เพิ่ม parameters สำหรับ filter
       if (filters.semester) params.append("semester", filters.semester);
-      if (filters.academicYear)
-        params.append("academicYear", filters.academicYear);
+      if (filters.academicYear) params.append("academicYear", filters.academicYear);
       if (filters.search) params.append("search", filters.search);
+      // เพิ่มการส่งค่า status
+      if (filters.status) params.append("status", filters.status);
 
       const queryString = params.toString();
       const url = queryString ? `/students?${queryString}` : "/students";
 
+      console.log("Generated URL:", url);
+
       const response = await apiClient.get(url);
+
+      console.log("Response from API:", response.data);
 
       if (!response.data.success) {
         throw new Error(
