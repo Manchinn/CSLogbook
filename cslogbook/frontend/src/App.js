@@ -21,10 +21,6 @@ import LogbookForm from './components/project/LogbookForm';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
-import DocumentDetails from './components/admin/DocumentDetails';
-import InternshipDocumentManagement from './components/admin/InternshipDocumentManagement';
-import ProjectDocumentManagement from './components/admin/ProjectDocumentManagement';
-
 // Import Admin2 Components - New Structure
 import AdminRoutes from './components/admin2/AdminRoutes';
 
@@ -143,21 +139,6 @@ const App = () => {
                     <AdminUpload />
                   </ProtectedRoute>
                 } />
-                <Route path="/document-management/internship" element={
-                  <ProtectedRoute roles={['admin']}>
-                    <InternshipDocumentManagement />
-                  </ProtectedRoute>
-                } />
-                <Route path="/document-management/project" element={
-                  <ProtectedRoute roles={['admin']}>
-                    <ProjectDocumentManagement />
-                  </ProtectedRoute>
-                } />
-                <Route path="/document-details/:id" element={
-                  <ProtectedRoute roles={['admin']}>
-                    <DocumentDetails />
-                  </ProtectedRoute>
-                } />
 
                 <Route path="/admin2/*" element={
                   <ProtectedRoute roles={['admin']}>
@@ -174,7 +155,7 @@ const App = () => {
           </InternshipProvider>
         </AuthProvider>
       </BrowserRouter>
-      <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
+      <ReactQueryDevtools initialIsOpen={true} position="bottom-right" />
     </QueryClientProvider>
   );
 };

@@ -22,55 +22,71 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import DocumentDetails from "./DocumentDetails";
-import { useDocumentContext } from "../../../contexts/adminContext/DocumentContext";
+import { useDocuments } from "../../../hooks/admin/useDocuments";
 import moment from "moment-timezone";
 
 const { Text, Title } = Typography;
 
 const DocumentManagement = () => {
+  // State สำหรับการกรอง
+  const [filters, setFilters] = useState({
+    type: 'all',
+    status: '',
+    search: ''
+  });
+  
+  // State สำหรับการแสดง Modal
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  
+  // ใช้ custom hook
   const {
     documents,
-    loading,
-    filters,
-    isModalVisible,
-    selectedDocumentId,
+    statistics,
+    isLoading,
     approveDocument,
-    setSearchText,
-    setStatusFilter,
-    showDocumentDetails,
-    closeDocumentDetails,
-  } = useDocumentContext();
-
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-
-  // คำนวณสถิติเอกสาร
-  const statistics = useMemo(() => {
-    const total = documents.length;
-    const pending = documents.filter((doc) => doc.status === "pending").length;
-    const approved = documents.filter(
-      (doc) => doc.status === "approved"
-    ).length;
-    const rejected = documents.filter(
-      (doc) => doc.status === "rejected"
-    ).length;
-
-    return { total, pending, approved, rejected };
-  }, [documents]);
-
-  // ฟิลเตอร์ข้อมูลตามตัวกรอง
+    rejectDocument,
+    refetch
+  } = useDocuments({
+    type: filters.type,
+    status: filters.status,
+    search: filters.search
+  });
+  
+  // ฟังก์ชัน set filters
+  const setSearchText = useCallback((text) => {
+    setFilters(prev => ({ ...prev, search: text }));
+  }, []);
+  
+  const setStatusFilter = useCallback((status) => {
+    setFilters(prev => ({ ...prev, status: status }));
+    setSelectedRowKeys([]);
+  }, []);
+  
+  const setTypeFilter = useCallback((type) => {
+    setFilters(prev => ({ ...prev, type: type }));
+  }, []);
+  
+  // ฟังก์ชันจัดการ Modal
+  const showDocumentDetails = useCallback((documentId) => {
+    setSelectedDocumentId(documentId);
+    setIsModalVisible(true);
+  }, []);
+  
+  const closeDocumentDetails = useCallback(() => {
+    setIsModalVisible(false);
+    setSelectedDocumentId(null);
+  }, []);
+  
+  // กรองเอกสารตามเงื่อนไข
   const filteredDocuments = useMemo(() => {
-    return documents.filter(
-      (doc) =>
-        (doc.document_name
-          ?.toLowerCase()
-          .includes(filters.search.toLowerCase()) ||
-          doc.student_name
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase())) &&
-        (filters.status ? doc.status === filters.status : true)
+    return documents.filter((doc) => 
+      (doc.document_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+       doc.student_name?.toLowerCase().includes(filters.search.toLowerCase()))
     );
-  }, [documents, filters.search, filters.status]);
-
+  }, [documents, filters.search]);
+  
   // คอลัมน์ตาราง
   const columns = useMemo(
     () => [
@@ -101,8 +117,7 @@ const DocumentManagement = () => {
         title: "วันที่อัปโหลด",
         dataIndex: "upload_date",
         key: "upload_date",
-        render: (text) =>
-          moment(text).tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm"),
+        render: (text) => moment(text).tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm"),
         sorter: (a, b) => new Date(a.upload_date) - new Date(b.upload_date),
       },
       {
@@ -126,13 +141,11 @@ const DocumentManagement = () => {
     ],
     [showDocumentDetails]
   );
-
+  
   // การจัดการเหตุการณ์
   const handleApproveSelectedDocuments = useCallback(async () => {
     try {
-      const promises = selectedRowKeys.map((documentId) =>
-        approveDocument(documentId)
-      );
+      const promises = selectedRowKeys.map((documentId) => approveDocument(documentId));
       await Promise.all(promises);
       message.success("อนุมัติเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
@@ -140,12 +153,12 @@ const DocumentManagement = () => {
       message.error("เกิดข้อผิดพลาดในการอนุมัติเอกสาร");
     }
   }, [selectedRowKeys, approveDocument]);
-
+  
   const handleResetFilters = useCallback(() => {
-    setSearchText("");
-    setStatusFilter("");
-  }, [setSearchText, setStatusFilter]);
-
+    setFilters({ type: 'all', status: '', search: '' });
+    setSelectedRowKeys([]);
+  }, []);
+  
   const rowSelection = useMemo(
     () => ({
       selectedRowKeys,
@@ -153,7 +166,8 @@ const DocumentManagement = () => {
     }),
     [selectedRowKeys]
   );
-
+  
+  // JSX
   return (
     <div className="admin-document-container" style={{ padding: "24px" }}>
       <Card>
@@ -214,8 +228,11 @@ const DocumentManagement = () => {
           </Col>
           <Col xs={24} sm={24} md={8}>
             <Space>
-              <Button icon={<ReloadOutlined />} onClick={handleResetFilters}>
-                รีเซ็ต
+              <Button icon={<ReloadOutlined />} onClick={refetch}>
+                รีเฟรช
+              </Button>
+              <Button onClick={handleResetFilters}>
+                รีเซ็ตตัวกรอง
               </Button>
               {filters.status === "pending" && (
                 <Button
@@ -233,7 +250,7 @@ const DocumentManagement = () => {
 
         {/* ส่วนตาราง */}
         <Table
-          loading={loading}
+          loading={isLoading}
           rowSelection={filters.status === "pending" ? rowSelection : null}
           columns={columns}
           dataSource={filteredDocuments}

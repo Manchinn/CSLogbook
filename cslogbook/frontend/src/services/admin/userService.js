@@ -27,13 +27,47 @@ export const studentService = {
   // อัปเดตข้อมูลนักศึกษา
   updateStudent: async (studentCode, data) => {
     try {
+      // กรอง studentCode ออกจาก payload ถ้ามี
+      const { studentCode: omitted, ...rest } = data;
+
+      // กรอง payload เฉพาะฟิลด์ที่อนุญาตให้แก้ไข
+      const updatePayload = {
+        firstName: rest.firstName,
+        lastName: rest.lastName,
+        email: rest.email,
+        totalCredits: parseInt(rest.totalCredits, 10) || 0,
+        majorCredits: parseInt(rest.majorCredits, 10) || 0,
+      };
+
+      // ตรวจสอบเงื่อนไขหน่วยกิต
+      if (updatePayload.majorCredits > updatePayload.totalCredits) {
+        throw new Error("หน่วยกิตภาควิชาต้องน้อยกว่าหรือเท่ากับหน่วยกิตรวม");
+      }
+
       const response = await apiClient.put(
         `/admin/students/${studentCode}`,
-        data
+        updatePayload
       );
-      return response.data;
+
+      // ตรวจสอบ response จาก API
+      if (!response.data.success) {
+        throw new Error(
+          response.data.message || "ไม่สามารถอัปเดทข้อมูลนักศึกษาได้"
+        );
+      }
+
+      return {
+        success: true,
+        data: response.data.data || updatePayload, // ใช้ข้อมูลที่ส่งไปถ้าไม่มี data กลับมา
+        message: "อัปเดตข้อมูลสำเร็จ",
+      };
     } catch (error) {
-      console.error("Error updating student:", error);
+      if (error.response?.status === 400) {
+        throw new Error(
+          error.response.data.message || "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง"
+        );
+      }
+
       throw error;
     }
   },
@@ -44,6 +78,21 @@ export const studentService = {
       const response = await apiClient.post(`/admin/students`, data);
       return response.data;
     } catch (error) {
+      // จัดการข้อความ error แบบละเอียด
+      if (error.response?.status === 409) {
+        const errorMsg =
+          error.response.data?.message || "มีข้อมูลนักศึกษานี้ในระบบแล้ว";
+        // เพิ่มข้อความรายละเอียด
+        const detail = error.response.data?.studentCode
+          ? `รหัสนักศึกษา ${
+              error.response.data.studentCode || data.studentCode
+            } มีอยู่แล้วในระบบ`
+          : errorMsg;
+
+        const conflictError = new Error(detail);
+        conflictError.isConflict = true;
+        throw conflictError;
+      }
       console.error("Error adding student:", error);
       throw error;
     }
@@ -53,9 +102,20 @@ export const studentService = {
   deleteStudent: async (studentCode) => {
     try {
       const response = await apiClient.delete(`/admin/students/${studentCode}`);
-      return response.data;
+
+      // ⚠️ เพิ่มการตรวจสอบ response
+      if (!response.data.success && response.status !== 200) {
+        throw new Error(
+          response.data.message || "ไม่สามารถลบข้อมูลนักศึกษาได้"
+        );
+      }
+
+      return {
+        success: true,
+        data: response.data.data,
+      };
     } catch (error) {
-      console.error("Error adding student:", error);
+      console.error("Error deleting student:", error);
       throw error;
     }
   },

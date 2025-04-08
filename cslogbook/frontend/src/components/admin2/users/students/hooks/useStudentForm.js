@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Form, message, notification } from 'antd';
+import { Form, message, notification, Modal } from 'antd';
 import { calculateStudentYear, isEligibleForInternship, isEligibleForProject } from '../../../../../utils/studentUtils';
+import { useQueryClient } from '@tanstack/react-query';
 
-export const useStudentForm = (onSuccess, fetchStudentsWithParams) => {
+export const useStudentForm = (addStudent, updateStudent) => {
   const [form] = Form.useForm();
   const [editMode, setEditMode] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const queryClient = useQueryClient();
 
   const handleAddStudent = () => {
     setSelectedStudent(null);
@@ -16,7 +18,23 @@ export const useStudentForm = (onSuccess, fetchStudentsWithParams) => {
   };
   
   const handleViewStudent = (student) => {
-    setSelectedStudent(student);
+    if (!student) return;
+    
+    // สร้างสำเนาข้อมูล
+    const studentCopy = JSON.parse(JSON.stringify(student));
+    setSelectedStudent(studentCopy);
+    
+    // เซ็ตค่าฟอร์ม
+    form.setFieldsValue({
+      studentCode: studentCopy.studentCode || '',
+      firstName: studentCopy.firstName || '',
+      lastName: studentCopy.lastName || '',
+      email: studentCopy.email || '',
+      totalCredits: studentCopy.totalCredits || 0,
+      majorCredits: studentCopy.majorCredits || 0,
+    });
+    
+    // เปิด drawer ในโหมดดูข้อมูล
     setEditMode(false);
     setDrawerVisible(true);
   };
@@ -32,9 +50,10 @@ export const useStudentForm = (onSuccess, fetchStudentsWithParams) => {
   const handleCloseDrawer = () => {
     setDrawerVisible(false);
     setEditMode(false);
+    // ไม่ต้องรีเซ็ต selectedStudent เพราะจะทำให้ข้อมูลหายก่อนที่ drawer จะปิดสนิท
   };
   
-  const handleSaveStudent = async (addStudent, updateStudent, filterParams) => {
+  const handleSaveStudent = async () => {
     try {
       const values = await form.validateFields();
       
@@ -44,49 +63,60 @@ export const useStudentForm = (onSuccess, fetchStudentsWithParams) => {
         return;
       }
       
-      // คำนวณสิทธิ์เบื้องต้น
-      if (values.studentCode) {
-        const studentYear = calculateStudentYear(values.studentCode);
-        if (!studentYear.error) {
-          const internshipStatus = isEligibleForInternship(studentYear.year, values.totalCredits);
-          const projectStatus = isEligibleForProject(studentYear.year, values.totalCredits, values.majorCredits);
+      try {
+        // กรณีแก้ไขข้อมูลนักศึกษา
+        if (selectedStudent) {
+          const updateValues = {
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            totalCredits: parseInt(values.totalCredits, 10) || 0,
+            majorCredits: parseInt(values.majorCredits, 10) || 0
+          };
           
-          // แสดงผลลัพธ์เบื้องต้น
-          notification.info({
-            message: 'ข้อมูลสิทธิ์หลังปรับปรุง',
-            description: 
-              `การเปลี่ยนแปลงนี้จะส่งผลให้นักศึกษา${internshipStatus.eligible ? ' "มีสิทธิ์ฝึกงาน"' : ' "ไม่มีสิทธิ์ฝึกงาน"'} 
-               และ${projectStatus.eligible ? ' "มีสิทธิ์ทำโครงงาน"' : ' "ไม่มีสิทธิ์ทำโครงงาน"'}`,
-            duration: 4
+          const result = await updateStudent(selectedStudent.studentCode, updateValues);
+          
+          if (result.success) {
+            message.success('อัปเดตข้อมูลนักศึกษาสำเร็จ');
+            
+            // อัพเดท selectedStudent ด้วยข้อมูลใหม่
+            setSelectedStudent({
+              ...selectedStudent,
+              ...updateValues
+            });
+            
+            setEditMode(false);
+            // Refresh data
+            queryClient.invalidateQueries({ queryKey: ['adminStudents'] });
+          }
+        } else {
+          // กรณีเพิ่มนักศึกษาใหม่
+          const newStudentData = { ...values };
+          const result = await addStudent(newStudentData);
+          
+          if (result && result.success) {
+            message.success('เพิ่มนักศึกษาสำเร็จ');
+            setDrawerVisible(false);
+            form.resetFields();
+            // Refresh data
+            queryClient.invalidateQueries({ queryKey: ['adminStudents'] });
+          }
+        }
+      } catch (error) {
+        if (error.isConflict || 
+            error.message?.toLowerCase().includes('มีอยู่แล้ว') || 
+            error.message?.toLowerCase().includes('ซ้ำ') || 
+            error.response?.status === 409) {
+          Modal.error({
+            title: 'ไม่สามารถเพิ่มข้อมูลได้',
+            content: error.message || 'รหัสนักศึกษานี้มีอยู่แล้วในระบบ'
           });
-        }
-      }
-      
-      let success = false;
-      
-      if (selectedStudent) {
-        const result = await updateStudent(selectedStudent.studentCode, values);
-        if (result.success) {
-          setSelectedStudent({...selectedStudent, ...result.data});
-          success = true;
-        }
-      } else {
-        success = await addStudent(values);
-        if (success) {
-          setDrawerVisible(false);
-        }
-      }
-      
-      if (success) {
-        setEditMode(false);
-        fetchStudentsWithParams(filterParams);
-        if (onSuccess) {
-          onSuccess();
+        } else {
+          message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         }
       }
     } catch (error) {
-      console.error('Error saving student:', error);
-      message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      message.error('กรุณากรอกข้อมูลให้ถูกต้องและครบถ้วน');
     }
   };
   

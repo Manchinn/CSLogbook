@@ -2,6 +2,9 @@ import React from 'react';
 import { Form, Input, InputNumber } from 'antd';
 
 const StudentForm = ({ form, student }) => {
+  // ตรวจสอบว่าเป็นการแก้ไข (มีข้อมูล student) หรือเป็นการเพิ่มใหม่
+  const isEditing = !!student;
+
   return (
     <Form
       form={form}
@@ -13,11 +16,11 @@ const StudentForm = ({ form, student }) => {
         name="studentCode"
         label="รหัสนักศึกษา"
         rules={[
-          { required: true, message: 'กรุณากรอกรหัสนักศึกษา' },
+          { required: !isEditing, message: 'กรุณากรอกรหัสนักศึกษา' },
           { pattern: /^\d{13}$/, message: 'รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก' }
         ]}
       >
-        <Input disabled={!!student} placeholder="รหัสนักศึกษา 13 หลัก" />
+        <Input disabled={isEditing} placeholder="รหัสนักศึกษา 13 หลัก" />
       </Form.Item>
 
       <Form.Item

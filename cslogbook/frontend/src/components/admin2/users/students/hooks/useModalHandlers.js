@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { Modal, message } from 'antd';
+import { useQueryClient } from '@tanstack/react-query';
 
-export const useModalHandlers = (deleteStudentAction, fetchStudentsWithParams) => {
+export const useModalHandlers = (deleteStudentAction) => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const queryClient = useQueryClient();
 
-  const handleUploadSuccess = (filterParams) => {
+  const handleUploadSuccess = () => {
     setUploadModalVisible(false);
-    fetchStudentsWithParams(filterParams);
+    // ใช้ invalidateQueries แทนการเรียก API โดยตรง
+    queryClient.invalidateQueries({ queryKey: ['students'] });
     message.success('อัปโหลดข้อมูลนักศึกษาสำเร็จ');
   };
 
-  const handleDeleteStudent = (studentCode, selectedStudent, setDrawerVisible, filterParams) => {
+  const handleDeleteStudent = (studentCode, selectedStudent, setDrawerVisible) => {
     Modal.confirm({
       title: 'ยืนยันการลบข้อมูล',
       content: 'คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนักศึกษานี้? การดำเนินการนี้ไม่สามารถเรียกคืนได้',
@@ -23,7 +26,7 @@ export const useModalHandlers = (deleteStudentAction, fetchStudentsWithParams) =
           if (selectedStudent && selectedStudent.studentCode === studentCode) {
             setDrawerVisible(false);
           }
-          fetchStudentsWithParams(filterParams);
+          // ไม่ต้องเรียก API ซ้ำเพราะ mutation จะทำให้อัตโนมัติแล้ว
         }
       }
     });

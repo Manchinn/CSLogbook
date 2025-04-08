@@ -1,111 +1,113 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Typography, List, Card, Spin, message, Space, Button, Tag, Row, Col, Tooltip, Divider } from 'antd';
-import { DownloadOutlined, FilePdfOutlined, FileOutlined } from '@ant-design/icons';
-import PDFViewer from '../../PDFViewer';
-import moment from 'moment-timezone';
+import React, { useState } from 'react';
+import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar } from 'antd';
+import { FileOutlined, FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import moment from 'moment';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentService } from '../../../services/admin/documentService';
+//import PDFViewer from './PDFViewer';
 
 const { Title, Paragraph, Text } = Typography;
 
 const DocumentDetails = ({ documentId, open, onClose }) => {
-  const [document, setDocument] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!documentId || !open) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const data = await documentService.getDocumentDetails(documentId);
-
-        const documentData = {
-          ...data,
-          uploaded_files: data.uploaded_files ? 
-            (typeof data.uploaded_files === 'string' ? 
-              JSON.parse(data.uploaded_files) : 
-              data.uploaded_files) : 
-            []
-        };
-
-        setDocument(documentData);
-      } catch (error) {
-        console.error('Error fetching document details:', error);
-        message.error('เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (open) {
-      fetchData();
-    } else {
-      setSelectedFile(null); // รีเซ็ตไฟล์ที่เลือกเมื่อปิด modal
+  const queryClient = useQueryClient();
+  
+  // ดึงข้อมูลรายละเอียดเอกสาร
+  const { data: document, isLoading } = useQuery({
+    queryKey: ['admin', 'documentDetails', documentId],
+    queryFn: () => documentId ? documentService.getDocumentById(documentId) : null,
+    enabled: !!documentId && open,
+    onError: (error) => {
+      message.error('เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร');
+      console.error('Error fetching document details:', error);
     }
-  }, [documentId, open]);
-
+  });
+  
+  // Mutations สำหรับการอนุมัติ/ปฏิเสธเอกสาร
+  const approveMutation = useMutation({
+    mutationFn: documentService.approveDocument,
+    onSuccess: () => {
+      message.success('อนุมัติเอกสารเรียบร้อย');
+      // Invalidate queries to refresh the document list and stats
+      queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+      onClose();
+    },
+    onError: (error) => {
+      message.error('เกิดข้อผิดพลาดในการอนุมัติเอกสาร');
+      console.error('Error approving document:', error);
+    }
+  });
+  
+  const rejectMutation = useMutation({
+    mutationFn: documentService.rejectDocument,
+    onSuccess: () => {
+      message.success('ปฏิเสธเอกสารเรียบร้อย');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+      onClose();
+    },
+    onError: (error) => {
+      message.error('เกิดข้อผิดพลาดในการปฏิเสธเอกสาร');
+      console.error('Error rejecting document:', error);
+    }
+  });
+  
   const handleDownload = async (fileUrl, fileName) => {
     try {
-      if (!fileUrl) {
-        message.error('ไม่พบลิงก์ไฟล์');
-        return;
-      }
-
-      const fileId = fileUrl.split('/').pop();
-      await documentService.downloadDocument(fileId, fileName);
-      message.success('ดาวน์โหลดไฟล์สำเร็จ');
+      await documentService.downloadFile(fileUrl, fileName);
+      message.success('กำลังดาวน์โหลดไฟล์');
     } catch (error) {
-      console.error('Error downloading file:', error);
       message.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
+      console.error('Error downloading file:', error);
     }
   };
-
-  const handleViewPDF = (fileUrl, fileName) => {
-    setSelectedFile({
-      url: fileUrl,
-      name: fileName
-    });
+  
+  const handleApprove = () => {
+    if (documentId) {
+      approveMutation.mutate(documentId);
+    }
   };
-
+  
+  const handleReject = () => {
+    if (documentId) {
+      rejectMutation.mutate(documentId);
+    }
+  };
+  
+  // Render file list
   const renderFileList = () => {
-    if (!document?.uploaded_files || document.uploaded_files.length === 0) {
-      return <Text type="secondary">ไม่มีไฟล์แนบ</Text>;
+    if (!document || !document.files || document.files.length === 0) {
+      return <Text type="secondary">ไม่พบไฟล์แนบ</Text>;
     }
-
+    
     return (
       <List
         itemLayout="horizontal"
-        dataSource={document.uploaded_files}
-        renderItem={file => (
+        dataSource={document.files}
+        renderItem={(file) => (
           <List.Item
             actions={[
-              <Tooltip title="ดูไฟล์">
-                <Button 
-                  type="primary" 
-                  icon={<FilePdfOutlined />}
-                  size="middle"
-                  onClick={() => handleViewPDF(file.url, file.name)}
-                />
-              </Tooltip>,
-              <Tooltip title="ดาวน์โหลด">
-                <Button 
-                  icon={<DownloadOutlined />}
-                  size="middle"
-                  onClick={() => handleDownload(file.url, file.name)}
-                />
-              </Tooltip>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownload(file.url, file.name)}
+              >
+                ดาวน์โหลด
+              </Button>,
+              <Button
+                type="primary"
+                onClick={() => setSelectedFile(file)}
+              >
+                ดูเอกสาร
+              </Button>
             ]}
           >
             <List.Item.Meta
-              avatar={<FileOutlined style={{ fontSize: '24px', color: '#1890ff' }} />}
-              title={<Text strong>{file.name}</Text>}
+              avatar={<Avatar icon={<FilePdfOutlined />} />}
+              title={file.name}
               description={
                 <Space direction="vertical" size={0}>
-                  <Text type="secondary">ขนาด: {(file.size / 1024).toFixed(2)} KB</Text>
+                  <Text type="secondary">ประเภท: {file.type || 'ไม่ระบุ'}</Text>
                   <Text type="secondary">อัปโหลดเมื่อ: {moment(file.upload_date).format('DD/MM/YYYY HH:mm')}</Text>
                 </Space>
               }
@@ -115,7 +117,8 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       />
     );
   };
-
+  
+  // Render detail section
   const renderDetailSection = () => {
     if (!document) return null;
     
@@ -160,38 +163,54 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       </Card>
     );
   };
-
+  
   const renderStatus = (status) => {
     if (!status) return <Tag color="default">ไม่ระบุ</Tag>;
     
     const statusConfig = {
-      pending: { color: 'orange', text: 'รอตรวจสอบ' },
-      approved: { color: 'green', text: 'อนุมัติ' },
-      rejected: { color: 'red', text: 'ปฏิเสธ' }
+      pending: { color: 'orange', text: 'รอตรวจสอบ', icon: <ClockCircleOutlined /> },
+      approved: { color: 'green', text: 'อนุมัติ', icon: <CheckCircleOutlined /> },
+      rejected: { color: 'red', text: 'ปฏิเสธ', icon: <CloseCircleOutlined /> }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
     
     return (
-      <Tag color={config.color}>
+      <Tag color={config.color} icon={config.icon}>
         {config.text}
       </Tag>
     );
   };
-
+  
+  const renderFooter = () => {
+    if (!document || document.status !== 'pending') return null;
+    
+    return (
+      <Space>
+        <Button onClick={onClose}>ปิด</Button>
+        <Button type="danger" onClick={handleReject} loading={rejectMutation.isLoading}>
+          ปฏิเสธ
+        </Button>
+        <Button type="primary" onClick={handleApprove} loading={approveMutation.isLoading}>
+          อนุมัติ
+        </Button>
+      </Space>
+    );
+  };
+  
   return (
     <Modal 
       title={<Title level={3} style={{ textAlign: 'center', margin: 0 }}>รายละเอียดเอกสาร</Title>}
       open={open}
       onCancel={onClose}
-      footer={null}
+      footer={renderFooter()}
       centered
       width="90%"
       bodyStyle={{ maxHeight: '80vh', overflow: 'auto', padding: '20px' }}
       destroyOnClose={true}
       className="document-detail-modal"
     >
-      {loading ? (
+      {isLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
           <Spin size="large" tip="กำลังโหลดข้อมูล..." />
         </div>
@@ -216,7 +235,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
               style={{ marginTop: '20px' }}
             >
               <div style={{ height: '600px', width: '100%' }}>
-                <PDFViewer url={selectedFile.url} />
+                {/* <PDFViewer url={selectedFile.url} /> */}
               </div>
             </Card>
           )}
