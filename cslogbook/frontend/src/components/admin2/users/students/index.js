@@ -47,11 +47,39 @@ const StudentList = () => {
   // ดึงข้อมูลสถิติ
   const fetchStatistics = async () => {
     try {
-      const stats = await studentService.getStats();
-      console.log("Statistics from API:", stats);
-      setStatistics(stats);
+      // แทนที่จะดึงจาก API โดยตรง ให้คำนวณจากข้อมูลนักศึกษาที่มีอยู่แล้ว
+      const studentData = await studentService.getAllStudents({
+        search: searchText,
+        status: statusFilter,
+        academicYear,
+      });
+
+      // คำนวณสถิติจากข้อมูลนักศึกษา
+      const total = studentData.length;
+      const eligibleInternship = studentData.filter(
+        (s) => s.isEligibleForInternship
+      ).length;
+      const eligibleProject = studentData.filter(
+        (s) => s.isEligibleForProject
+      ).length;
+
+      console.log("Calculated statistics:", {
+        total,
+        eligibleInternship,
+        eligibleProject,
+      });
+
+      // จัดรูปแบบข้อมูลให้ตรงกับที่ StudentStatistics คาดหวัง
+      const formattedStats = {
+        total: total,
+        internshipEligible: eligibleInternship,
+        projectEligible: eligibleProject,
+      };
+
+      setStatistics(formattedStats);
     } catch (error) {
-      message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
+      console.error("Error calculating statistics:", error);
+      message.error("ไม่สามารถคำนวณข้อมูลสถิติได้");
     }
   };
 
@@ -85,24 +113,28 @@ const StudentList = () => {
   };
 
   // บันทึกข้อมูลนักศึกษา
-  const handleSaveStudent = async (updatedStudent) => {
+  const handleSaveStudent = async (studentData) => {
     try {
-      const updatedData = await studentService.updateStudent(
-        updatedStudent.studentCode,
-        updatedStudent
-      );
-      message.success("อัปเดตข้อมูลสำเร็จ");
-
-      // อัปเดต selectedStudent ด้วยข้อมูลใหม่
-      setSelectedStudent((prev) => ({
-        ...prev,
-        ...updatedData,
-      }));
-
-      fetchStudents(); // รีเฟรชข้อมูล
+      let result;
+      
+      if (selectedStudent) {
+        // กรณีแก้ไขนักศึกษาที่มีอยู่แล้ว (ใช้ selectedStudent แทน studentData.id)
+        result = await studentService.updateStudent(
+          studentData.studentCode || selectedStudent.studentCode,
+          studentData
+        );
+        message.success("อัปเดตข้อมูลสำเร็จ");
+      } else {
+        // กรณีเพิ่มนักศึกษาใหม่
+        result = await studentService.addStudent(studentData);
+        message.success("เพิ่มนักศึกษาสำเร็จ");
+      }
+  
+      fetchStudents();
+      fetchStatistics();
       handleCloseDrawer();
     } catch (error) {
-      message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (error.message || "ไม่ทราบสาเหตุ"));
     }
   };
 
@@ -120,7 +152,8 @@ const StudentList = () => {
           await studentService.deleteStudent(studentCode);
           message.success("ลบข้อมูลสำเร็จ");
           fetchStudents(); // รีเฟรชข้อมูล
-          handleCloseDrawer(); // เพิ่มบรรทัดนี้เพื่อปิด drawer
+          fetchStatistics(); // เพิ่มการอัปเดตสถิติหลังลบข้อมูล
+          handleCloseDrawer(); // ปิด drawer
         } catch (error) {
           message.error(
             "เกิดข้อผิดพลาดในการลบข้อมูล: " + (error.message || "ไม่ทราบสาเหตุ")
@@ -132,16 +165,24 @@ const StudentList = () => {
 
   // โหลดข้อมูลเมื่อ component ถูก mount
   useEffect(() => {
-    console.log("Fetching statistics...");
+    console.log("Fetching data...");
+    // ดึงข้อมูลนักศึกษาแล้วคำนวณสถิติ
     fetchStudents();
     fetchStatistics();
     fetchAcademicYearOptions();
   }, []);
 
-  // โหลดข้อมูลใหม่เมื่อมีการเปลี่ยนแปลงตัวกรอง
+  // ปรับปรุงข้อมูลเมื่อมีการเปลี่ยนแปลงตัวกรอง
   useEffect(() => {
     fetchStudents();
+    // ถ้าต้องการให้สถิติเปลี่ยนตามตัวกรอง ให้เรียก fetchStatistics ด้วย
+    fetchStatistics();
   }, [searchText, statusFilter, academicYear]);
+
+  // เพิ่ม debugging สำหรับสถิติ
+  useEffect(() => {
+    console.log("Statistics state updated:", statistics);
+  }, [statistics]);
 
   return (
     <div className="admin-student-container">
@@ -158,7 +199,10 @@ const StudentList = () => {
             academicYear={academicYear}
             setAcademicYear={setAcademicYear}
             academicYearOptions={academicYearOptions}
-            onRefresh={fetchStudents}
+            onRefresh={() => {
+              fetchStudents();
+              fetchStatistics(); // เพิ่มการอัปเดตสถิติเมื่อกดรีเฟรช
+            }}
             onAddStudent={() => {
               setSelectedStudent(null);
               setDrawerVisible(true);

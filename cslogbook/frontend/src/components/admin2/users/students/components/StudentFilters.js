@@ -57,13 +57,6 @@ const StudentFilters = ({
           >
             รีเฟรช
           </Button>
-          {/*<Button
-            type="primary" 
-            icon={<UploadOutlined />}
-            onClick={onUpload}
-          >
-            อัปโหลด CSV
-          </Button>*/}
           <Button
             type="primary"
             icon={<UserAddOutlined />}

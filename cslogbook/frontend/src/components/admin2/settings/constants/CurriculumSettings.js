@@ -1,26 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Form, Button, Card, Typography, Divider, 
-  Row, Col, InputNumber, Input, Select, Table, Tag, message
+  Form, Button, Card, Typography, Switch, Tabs, Collapse,
+  Row, Col, InputNumber, Input, Space, Table, Tag, message, Modal
 } from 'antd';
-import { SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { 
+  PlusOutlined, DeleteOutlined, EditOutlined 
+} from '@ant-design/icons';
 import { settingsService } from '../../../../services/admin/settingsService';
-import SettingsLayout from './SettingsLayout';
 
-const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
+const { Title, Text } = Typography;
+const { TabPane } = Tabs;
+const { Panel } = Collapse;
 
 const CurriculumSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState([]);
-  const [newCourse, setNewCourse] = useState({
-    id: '',
-    code: '',
-    name: '',
-    credits: 3,
-    type: 'major'
-  });
+  const [curriculums, setCurriculums] = useState([]);
+  const [editingCurriculum, setEditingCurriculum] = useState(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editForm] = Form.useForm();
 
   useEffect(() => {
     fetchSettings();
@@ -57,14 +56,28 @@ const CurriculumSettings = () => {
     fetchCurriculums();
   }, []);
 
-  // เพิ่ม effect เพื่อส่งข้อมูลหลักสูตรที่ active ไปให้ส่วนอื่นใช้งาน
-  useEffect(() => {
-    // เมื่อมีการเปลี่ยนแปลงข้อมูลหลักสูตร ให้ update global state
-    if (curriculums.length > 0) {
-      const activeCurriculums = curriculums.filter(c => c.active);
-      // อาจใช้ context หรือ redux store เพื่อเก็บข้อมูลนี้
+  // ฟังก์ชันดึงข้อมูลหลักสูตร
+  const fetchCurriculums = async () => {
+    setLoading(true);
+    try {
+      const response = await settingsService.getCurriculums();
+      if (response.success) {
+        setCurriculums(response.data);
+      } else {
+        message.error('ไม่สามารถดึงข้อมูลหลักสูตรได้');
+      }
+    } catch (error) {
+      console.error('Error fetching curriculums:', error);
+      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
+    } finally {
+      setLoading(false);
     }
-  }, [curriculums]);
+  };
+
+  // ฟังก์ชันรับปีในรูปแบบพุทธศักราช
+  const getCurrentThaiYear = () => {
+    return new Date().getFullYear() + 543;
+  };
 
   // จัดการการแก้ไขหลักสูตร
   const handleEdit = (curriculum) => {
@@ -194,7 +207,7 @@ const CurriculumSettings = () => {
       internshipMinYear: 3,
       internshipMinCredits: 75,
       internshipMinMajorCredits: 27,
-      internshipMinHours: 240,
+      internshipMinHours: 240,  
       // เกณฑ์โครงงาน
       projectMinYear: 4,
       projectMinCredits: 90,
