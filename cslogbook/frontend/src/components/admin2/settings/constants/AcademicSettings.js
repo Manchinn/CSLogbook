@@ -1,15 +1,18 @@
 // คอมโพเนนต์ย่อยสำหรับการตั้งค่าปีการศึกษา/ภาคเรียน
 import React, { useState, useEffect } from 'react';
 import { 
-  Form, Input, Button, Select, Card, Divider, 
-  Typography, Row, Col, InputNumber, DatePicker, message 
+  Form, Input, Button, Select, Card, Divider, Tabs,
+  Typography, Row, Col, InputNumber, DatePicker, TimePicker, message 
 } from 'antd';
-import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { 
+  SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined 
+} from '@ant-design/icons';
 import { settingsService } from '../../../../services/admin/settingsService';
 import moment from 'moment-timezone';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { TabPane } = Tabs;
 
 const AcademicSettings = () => {
   const [form] = Form.useForm();
@@ -24,14 +27,26 @@ const AcademicSettings = () => {
     try {
       const response = await settingsService.getAcademicSettings();
       if (response.success) {
-        form.setFieldsValue({
-          currentSemester: response.data.currentSemester,
-          currentAcademicYear: response.data.currentAcademicYear,
+        // จัดการกับวันที่ และแปลงเป็น moment object
+        const formattedData = {
+          ...response.data,
           registrationStartDate: response.data.registrationStartDate ? 
             moment(response.data.registrationStartDate) : null,
           registrationEndDate: response.data.registrationEndDate ? 
             moment(response.data.registrationEndDate) : null,
-        });
+          semesterOneSchedule: response.data.semesterOneSchedule?.map(item => ({
+            ...item,
+            date: item.date ? moment(item.date) : null,
+            time: item.time ? moment(item.time, 'HH:mm') : null
+          })) || [],
+          semesterTwoSchedule: response.data.semesterTwoSchedule?.map(item => ({
+            ...item,
+            date: item.date ? moment(item.date) : null,
+            time: item.time ? moment(item.time, 'HH:mm') : null
+          })) || []
+        };
+        
+        form.setFieldsValue(formattedData);
       } else {
         message.error('ไม่สามารถดึงข้อมูลการตั้งค่าได้');
       }
@@ -48,7 +63,26 @@ const AcademicSettings = () => {
       const values = await form.validateFields();
       setLoading(true);
       
-      const response = await settingsService.updateAcademicSettings(values);
+      // แปลง moment object เป็น string ก่อนส่งไปยัง API
+      const formattedValues = {
+        ...values,
+        registrationStartDate: values.registrationStartDate ? 
+          values.registrationStartDate.format('YYYY-MM-DD') : null,
+        registrationEndDate: values.registrationEndDate ? 
+          values.registrationEndDate.format('YYYY-MM-DD') : null,
+        semesterOneSchedule: values.semesterOneSchedule?.map(item => ({
+          ...item,
+          date: item.date ? item.date.format('YYYY-MM-DD') : null,
+          time: item.time ? item.time.format('HH:mm') : null
+        })) || [],
+        semesterTwoSchedule: values.semesterTwoSchedule?.map(item => ({
+          ...item,
+          date: item.date ? item.date.format('YYYY-MM-DD') : null,
+          time: item.time ? item.time.format('HH:mm') : null
+        })) || []
+      };
+      
+      const response = await settingsService.updateAcademicSettings(formattedValues);
       if (response.success) {
         message.success('บันทึกการตั้งค่าสำเร็จ');
       } else {
@@ -110,31 +144,151 @@ const AcademicSettings = () => {
         </Card>
 
         <Card className="setting-card" style={{ marginTop: 16 }}>
-          <Title level={5}>ช่วงเวลาลงทะเบียน</Title>
+          <Title level={5}>ช่วงเวลาลงทะเบียนและกำหนดการสำคัญ</Title>
           <Text type="secondary">
-            กำหนดช่วงเวลาที่นักศึกษาสามารถลงทะเบียนฝึกงานและโครงงานได้
+            กำหนดช่วงเวลาและวันที่สำคัญต่างๆ ในปีการศึกษา
           </Text>
           
-          <Row gutter={16} style={{ marginTop: 16 }}>
-            <Col span={12}>
-              <Form.Item
-                name="registrationStartDate"
-                label="วันที่เริ่มลงทะเบียน"
-                rules={[{ required: true, message: 'กรุณาเลือกวันที่เริ่มลงทะเบียน' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="registrationEndDate"
-                label="วันที่สิ้นสุดลงทะเบียน"
-                rules={[{ required: true, message: 'กรุณาเลือกวันที่สิ้นสุดลงทะเบียน' }]}
-              >
-                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Tabs defaultActiveKey="1" style={{ marginTop: 16 }}>
+            <TabPane tab="ช่วงเวลาลงทะเบียน" key="1">
+              <Row gutter={16} style={{ marginTop: 16 }}>
+                <Col span={12}>
+                  <Form.Item
+                    name="registrationStartDate"
+                    label="วันที่เริ่มลงทะเบียน"
+                    rules={[{ required: true, message: 'กรุณาเลือกวันที่เริ่มลงทะเบียน' }]}
+                  >
+                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="registrationEndDate"
+                    label="วันที่สิ้นสุดลงทะเบียน"
+                    rules={[{ required: true, message: 'กรุณาเลือกวันที่สิ้นสุดลงทะเบียน' }]}
+                  >
+                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </TabPane>
+            
+            <TabPane tab="กำหนดการสำคัญ" key="2">
+              <Divider>ภาคเรียนที่ 1</Divider>
+              <Form.List name="semesterOneSchedule">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <Row gutter={16} key={key} style={{ marginBottom: 16 }}>
+                        <Col span={8}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'activity']}
+                            rules={[{ required: true, message: 'กรุณากรอกชื่อกิจกรรม' }]}
+                          >
+                            <Input placeholder="ชื่อกิจกรรม" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'date']}
+                            rules={[{ required: true, message: 'กรุณาเลือกวันที่' }]}
+                          >
+                            <DatePicker placeholder="วันที่" style={{ width: '100%' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'time']}
+                          >
+                            <TimePicker format="HH:mm" placeholder="เวลา" style={{ width: '100%' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'note']}
+                          >
+                            <Input placeholder="หมายเหตุ" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={1}>
+                          <Button 
+                            type="link" 
+                            danger 
+                            icon={<DeleteOutlined />} 
+                            onClick={() => remove(name)} 
+                          />
+                        </Col>
+                      </Row>
+                    ))}
+                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                      เพิ่มกิจกรรม
+                    </Button>
+                  </>
+                )}
+              </Form.List>
+              
+              <Divider>ภาคเรียนที่ 2</Divider>
+              <Form.List name="semesterTwoSchedule">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <Row gutter={16} key={key} style={{ marginBottom: 16 }}>
+                        <Col span={8}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'activity']}
+                            rules={[{ required: true, message: 'กรุณากรอกชื่อกิจกรรม' }]}
+                          >
+                            <Input placeholder="ชื่อกิจกรรม" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'date']}
+                            rules={[{ required: true, message: 'กรุณาเลือกวันที่' }]}
+                          >
+                            <DatePicker placeholder="วันที่" style={{ width: '100%' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'time']}
+                          >
+                            <TimePicker format="HH:mm" placeholder="เวลา" style={{ width: '100%' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'note']}
+                          >
+                            <Input placeholder="หมายเหตุ" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={1}>
+                          <Button 
+                            type="link" 
+                            danger 
+                            icon={<DeleteOutlined />} 
+                            onClick={() => remove(name)} 
+                          />
+                        </Col>
+                      </Row>
+                    ))}
+                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                      เพิ่มกิจกรรม
+                    </Button>
+                  </>
+                )}
+              </Form.List>
+            </TabPane>
+          </Tabs>
         </Card>
 
         <div className="setting-actions">

@@ -14,6 +14,17 @@ const TeacherList = lazy(() => import('./users/teachers'));
 const AdminUpload = lazy(() => import('../AdminUpload')); //
 const ConstantsSettings = lazy(() => import('./settings/constants')); // ใช้ lazy loading
 
+// นำเข้าคอมโพเนนต์ settings แบบ lazy loading
+const ConstantsOverview = lazy(() => import('./settings/constants'));
+const CurriculumSettings = lazy(() => import('./settings/constants/CurriculumSettings'));
+const DocumentSettings = lazy(() => import('./settings/constants/DocumentSettings'));
+const InternshipProjectSettings = lazy(() => import('./settings/constants/InternshipProjectSettings'));
+const AcademicSettings = lazy(() => import('./settings/constants/AcademicSettings'));
+const StatusSettings = lazy(() => import('./settings/constants/StatusSettings'));
+const NotificationSettings = lazy(() => import('./settings/constants/NotificationSettings'));
+const TimelineAdmin = lazy(() => import('./settings/constants/TimelineSettings'));
+const TimelineStudent = lazy(() => import('./settings/constants/StudentTimeline'));
+
 // ใช้คอมโพเนนต์เดิมก่อน
 
 // Loading component
@@ -59,7 +70,15 @@ const AdminRoutes = () => {
               </Route>
               <Route path="/upload" element={<AdminUpload />} />
               <Route path="/settings">
-                <Route path="constants" element={<ConstantsSettings />} />
+                <Route path="constants" element={<ConstantsOverview />} />
+                <Route path="constants/curriculum" element={<CurriculumSettings />} />
+                <Route path="constants/documents" element={<DocumentSettings />} />
+                <Route path="constants/eligibility" element={<InternshipProjectSettings />} />
+                <Route path="constants/academic" element={<AcademicSettings />} />
+                <Route path="constants/status" element={<StatusSettings />} />
+                <Route path="constants/notifications" element={<NotificationSettings />} />
+                <Route path="constants/timeline-admin" element={<TimelineAdmin />} />
+                <Route path="constants/timeline-student" element={<TimelineStudent />} />
               </Route>
             </Routes>
           </Suspense>

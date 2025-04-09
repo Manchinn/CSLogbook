@@ -21,7 +21,7 @@ import {
 import './Sidebar.css';
 
 const { Sider } = Layout;
-const { Title } = Typography; 
+const { Title } = Typography;
 
 const themeConfig = {
   student: 'student-theme',
@@ -33,12 +33,12 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
   // เพิ่มการตรวจสอบว่ามี title และ disabled หรือไม่
   if (disabled && title) {
     return (
-      <Tooltip 
-        title={title} 
+      <Tooltip
+        title={title}
         placement="right"
         color={disabled ? '#ff4d4f' : '#52c41a'}
       >
-        <span style={{ 
+        <span style={{
           opacity: disabled ? 0.5 : 1,
           cursor: disabled ? 'not-allowed' : 'pointer'
         }}>
@@ -84,14 +84,14 @@ const Sidebar = () => {
     // ตรวจสอบเมื่อ path เปลี่ยน
     const checkRouteAccess = () => {
       const path = location.pathname;
-      
+
       if (userData?.role === 'student') {
         if (path.includes('/project') && !canAccessProject) {
           message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ');
           navigate('/dashboard');
           return;
         }
-        
+
         if (path.includes('/internship') && !canAccessInternship) {
           message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน');
           navigate('/dashboard');
@@ -111,7 +111,7 @@ const Sidebar = () => {
           const response = await studentService.getStudentInfo(userData.studentCode);
           if (response.success) {
             const newData = response.data;
-            
+
             // เช็คว่าข้อมูลมีการเปลี่ยนแปลงหรือไม่
             if (JSON.stringify(studentData) !== JSON.stringify(newData)) {
               setStudentData(newData);
@@ -127,7 +127,7 @@ const Sidebar = () => {
 
       fetchStudentData();
       const interval = setInterval(fetchStudentData, 30000);
-      
+
       return () => clearInterval(interval);
     }
   }, [userData?.studentCode, userData?.role, updatePermissions, studentData]); // เพิ่ม studentData
@@ -146,7 +146,7 @@ const Sidebar = () => {
     return [
       // Dashboard - Common for all roles
       {
-        key: '/dashboard',
+        key: userData?.role === 'admin' ? '/admin2/dashboard' : '/dashboard',
         icon: <HomeOutlined />,
         label: 'หน้าแรก',
       },
@@ -161,7 +161,7 @@ const Sidebar = () => {
         {
           key: 'internship',
           icon: <FileTextOutlined />,
-          label: <MenuItemWithTooltip 
+          label: <MenuItemWithTooltip
             item={{ label: 'ระบบฝึกงาน' }}
             disabled={!canAccessInternship}
             title={messages.internship}
@@ -192,7 +192,7 @@ const Sidebar = () => {
                   key: '/internship-logbook/timesheet',
                   label: 'ใบลงเวลาและบันทึกประจำวัน',
                 }
-                
+
               ]
             },
             {
@@ -205,7 +205,7 @@ const Sidebar = () => {
         {
           key: 'project',
           icon: <ProjectOutlined />,
-          label: <MenuItemWithTooltip 
+          label: <MenuItemWithTooltip
             item={{ label: 'โครงงานพิเศษ' }}
             disabled={!canAccessProject}
             title={messages.project}
@@ -270,15 +270,15 @@ const Sidebar = () => {
           label: 'จัดการข้อมูล',
           children: [
             {
-              key: '/students',
+              key: '/admin2/users/students',
               label: 'นักศึกษา',
             },
             {
-              key: '/teachers',
+              key: '/admin2/users/teachers',
               label: 'อาจารย์',
             },
             {
-              key: '/project-pairs',
+              key: '/admin2/project-pairs',
               label: 'คู่โปรเจค',
             }
           ]
@@ -289,23 +289,79 @@ const Sidebar = () => {
           label: 'จัดการเอกสาร',
           children: [
             {
-              key: '/document-management/internship',
+              key: '/document-management/internship', // /admin2/documents/internship
               label: 'เอกสารฝึกงาน',
             },
             {
-              key: '/document-management/project',
+              key: '/document-management/project', // /admin2/documents/project
               label: 'เอกสารโครงงานพิเศษ',
             }
           ]
         },
         {
-          key: '/admin/upload',
+          key: 'upload-management',
           icon: <UploadOutlined />,
-          label: 'อัปโหลดรายชื่อนักศึกษา',
+          label: 'จัดการข้อมูล',
+          children: [
+            {
+              key: '/admin2/upload',
+              label: 'นำเข้ารายชื่อนักศึกษา',
+            },
+          ]
+        },
+        {
+          key: 'settings',
+          icon: <CheckSquareOutlined />,
+          label: 'ตั้งค่าระบบ',
+          children: [
+            {
+              key: '/admin2/settings/constants',
+              label: 'ภาพรวมการตั้งค่า',
+            },
+            {
+              key: '/admin2/settings/constants/curriculum',
+              label: 'ค่าคงที่หลักสูตร',
+            },
+            {
+              key: '/admin2/settings/constants/documents',
+              label: 'ประเภทเอกสาร',
+            },
+            {
+              key: '/admin2/settings/constants/eligibility',
+              label: 'เกณฑ์ฝึกงาน/โครงงาน',
+            },
+            {
+              key: '/admin2/settings/constants/academic',
+              label: 'การศึกษา',
+              disabled: false,
+            },
+            {
+              key: '/admin2/settings/constants/status',
+              label: 'สถานะในระบบ',
+              disabled: false,
+            },
+            {
+              key: '/admin2/settings/constants/notifications',
+              label: 'การแจ้งเตือน',
+            },
+            {
+              key: '/admin2/settings/constants/timeline-admin',
+              label: 'Timeline (ผู้ดูแลระบบ)',
+            },
+            {
+              key: '/admin2/settings/constants/timeline-student',
+              label: 'Timeline (นักศึกษา)',
+            }
+          ]
         }
+
       ] : []),
 
       // Logout - Common for all roles
+      {
+        type: 'divider',
+        className: 'menu-divider'
+      },
       {
         key: 'logout',
         icon: <LogoutOutlined />,
@@ -326,9 +382,9 @@ const Sidebar = () => {
   const renderLastUpdate = () => {
     if (userData?.role === 'student') {
       return (
-        <div style={{ 
-          padding: '8px', 
-          textAlign: 'center', 
+        <div style={{
+          padding: '8px',
+          textAlign: 'center',
           fontSize: '12px',
           color: 'rgba(0,0,0,0.45)'
         }}>
@@ -340,8 +396,8 @@ const Sidebar = () => {
   };
 
   return (
-    <Sider 
-      width={230} 
+    <Sider
+      width={230}
       className={`sider ${userData?.role ? themeConfig[userData.role] : ''}`}
       breakpoint="lg"
       collapsedWidth={isMobile ? 0 : 80}
@@ -363,9 +419,9 @@ const Sidebar = () => {
         <Badge
           count={
             !userData?.role ? '' :
-            userData.role === 'admin' ? 'ผู้ดูแลระบบ' : 
-            userData.role === 'teacher' ? 'อาจารย์' : 
-            'นักศึกษา'
+              userData.role === 'admin' ? 'ผู้ดูแลระบบ' :
+                userData.role === 'teacher' ? 'อาจารย์' :
+                  'นักศึกษา'
           }
           style={{
             backgroundColor: 'var(--active-color)',
@@ -374,15 +430,15 @@ const Sidebar = () => {
         />
       </div>
 
-      <Menu 
-        mode="inline" 
-        items={menuItems} 
+      <Menu
+        mode="inline"
+        items={menuItems}
         selectedKeys={[location.pathname]}
         defaultSelectedKeys={[location.pathname]}
         className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
         onClick={handleMenuClick}
       />
-      
+
       {renderLastUpdate()}
     </Sider>
   );

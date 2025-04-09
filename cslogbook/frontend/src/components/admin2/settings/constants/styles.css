@@ -59,3 +59,86 @@
   color: #999;
   margin-right: 8px;
 }
+
+/* เพิ่ม CSS สำหรับคอมโพเนนต์ใหม่ */
+.page-sizes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.page-size-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+}
+
+.table-small-text {
+  font-size: 12px;
+}
+
+.notification-type-icon {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.internship-settings .setting-item-label {
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.project-types-container,
+.track-types-container {
+  margin-top: 16px;
+}
+
+.table-action-btn {
+  padding: 0 4px;
+}
+
+/* เพิ่มสไตล์สำหรับหน้า Overview */
+.settings-card {
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.settings-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-card:hover:not(.disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.settings-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  padding: 8px 0;
+}
+
+.settings-card-icon {
+  margin-bottom: 16px;
+}
+
+.settings-card-action {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.settings-card .ant-card-body {
+  height: 100%;
+  padding: 16px;
+}
+
+.coming-soon {
+  color: #999;
+  font-style: italic;
+}
