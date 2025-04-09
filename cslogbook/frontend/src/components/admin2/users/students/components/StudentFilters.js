@@ -32,12 +32,10 @@ const StudentFilters = ({
           />
           <Select
             placeholder="ปีการศึกษา"
-            style={{ width: 150 }}
             onChange={setAcademicYear}
             value={academicYear}
-            allowClear
           >
-            {academicYearOptions.map(year => (
+            {academicYearOptions.map((year) => (
               <Option key={year.value} value={year.value}>
                 {year.label}
               </Option>

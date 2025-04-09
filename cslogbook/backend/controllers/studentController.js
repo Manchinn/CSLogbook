@@ -1,8 +1,15 @@
-const { User, Student, Teacher, Sequelize } = require('../models');
-const bcrypt = require('bcrypt');
-const { calculateStudentYear, isEligibleForInternship, isEligibleForProject, getCurrentAcademicYear, getCurrentSemester, CONSTANTS } = require('../utils/studentUtils');
-const { Op } = require('sequelize');
-const { sequelize } = require('../config/database');
+const { User, Student, Teacher, Sequelize } = require("../models");
+const bcrypt = require("bcrypt");
+const {
+  calculateStudentYear,
+  isEligibleForInternship,
+  isEligibleForProject,
+  getCurrentAcademicYear,
+  getCurrentSemester,
+  CONSTANTS,
+} = require("../utils/studentUtils");
+const { Op } = require("sequelize");
+const { sequelize } = require("../config/database");
 
 // ฟังก์ชันดึงข้อมูลนักศึกษาตาม ID
 const calculateEligibility = (studentCode, totalCredits, majorCredits) => {
@@ -10,7 +17,7 @@ const calculateEligibility = (studentCode, totalCredits, majorCredits) => {
   return {
     studentYear,
     internship: isEligibleForInternship(studentYear, totalCredits),
-    project: isEligibleForProject(studentYear, totalCredits, majorCredits)
+    project: isEligibleForProject(studentYear, totalCredits, majorCredits),
   };
 };
 
@@ -21,7 +28,7 @@ exports.getAllStudents = async (req, res, next) => {
 
     // สร้างเงื่อนไขการค้นหา
     const whereCondition = {
-      role: 'student'
+      role: "student",
     };
 
     // สร้างเงื่อนไขสำหรับ Student model
@@ -31,37 +38,39 @@ exports.getAllStudents = async (req, res, next) => {
 
     const students = await User.findAll({
       where: whereCondition,
-      attributes: ['userId', 'firstName', 'lastName', 'email'],
-      include: [{
-        model: Student,
-        as: 'student',
-        required: true,
-        where: studentWhereCondition,
-        attributes: [
-          'studentId',
-          'studentCode',
-          'totalCredits',
-          'majorCredits',
-          'isEligibleInternship',
-          'isEligibleProject',
-          'semester',
-          'academicYear'
-        ]
-      }]
+      attributes: ["userId", "firstName", "lastName", "email"],
+      include: [
+        {
+          model: Student,
+          as: "student",
+          required: true,
+          where: studentWhereCondition,
+          attributes: [
+            "studentId",
+            "studentCode",
+            "totalCredits",
+            "majorCredits",
+            "isEligibleInternship",
+            "isEligibleProject",
+            "semester",
+            "academicYear",
+          ],
+        },
+      ],
     });
 
-    const formattedStudents = students.map(user => {
+    const formattedStudents = students.map((user) => {
       // กำหนดค่า status ตามค่า boolean ในฐานข้อมูล
       let status = null;
-      
+
       // ตรวจสอบสถานะตามลำดับความสำคัญ
       // หากมีสิทธิ์ทั้ง internship และ project ให้ใช้ project เป็นหลัก (เพราะมีความสำคัญกว่า)
       if (user.student?.isEligibleProject) {
-        status = 'eligible_project';
+        status = "eligible_project";
       } else if (user.student?.isEligibleInternship) {
-        status = 'eligible_internship';
+        status = "eligible_internship";
       }
-      
+
       // หมายเหตุ: หากต้องการเพิ่มสถานะ in_progress และ completed
       // จำเป็นต้องดึงข้อมูลเพิ่มเติมจากตาราง internships และ projects
       // ตัวอย่าง (ที่ยังไม่ถูกใช้งานเนื่องจากไม่มีการดึงข้อมูลลงทะเบียนเพิ่มเติม):
@@ -69,11 +78,11 @@ exports.getAllStudents = async (req, res, next) => {
       // else if (hasCompletedInternship) status = 'completed_internship';
       // else if (hasActiveProject) status = 'in_progress_project';
       // else if (hasActiveInternship) status = 'in_progress_internship';
-      
+
       return {
-        userId: user.userId,                    // hidden field
-        studentId: user.student?.studentId,   // hidden field
-        studentCode: user.student?.studentCode || '',
+        userId: user.userId, // hidden field
+        studentId: user.student?.studentId, // hidden field
+        studentCode: user.student?.studentCode || "",
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -84,7 +93,7 @@ exports.getAllStudents = async (req, res, next) => {
         semester: user.student?.semester,
         academicYear: user.student?.academicYear,
         // เพิ่มฟิลด์ status สำหรับใช้ใน frontend
-        status: status
+        status: status,
       };
     });
 
@@ -93,13 +102,12 @@ exports.getAllStudents = async (req, res, next) => {
       data: formattedStudents,
       filters: {
         semester: semester || null,
-        academicYear: academicYear || null
+        academicYear: academicYear || null,
       },
-      message: 'ดึงข้อมูลนักศึกษาสำเร็จ'
+      message: "ดึงข้อมูลนักศึกษาสำเร็จ",
     });
-
   } catch (error) {
-    console.error('Error in getAllStudents:', error);
+    console.error("Error in getAllStudents:", error);
     next(error);
   }
 };
@@ -108,17 +116,19 @@ exports.getStudentById = async (req, res) => {
   try {
     const student = await Student.findOne({
       where: { studentCode: req.params.id },
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['firstName', 'lastName', 'email']
-      }]
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["firstName", "lastName", "email"],
+        },
+      ],
     });
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลนักศึกษา'
+        message: "ไม่พบข้อมูลนักศึกษา",
       });
     }
 
@@ -142,20 +152,18 @@ exports.getStudentById = async (req, res) => {
         eligibility: {
           studentYear: eligibility.studentYear,
           internship: eligibility.internship,
-          project: eligibility.project
-        }
-      }
+          project: eligibility.project,
+        },
+      },
     });
-
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูล",
     });
   }
 };
-
 
 // ฟังก์ชันอัพเดทข้อมูลนักศึกษา
 exports.updateStudent = async (req, res) => {
@@ -165,11 +173,11 @@ exports.updateStudent = async (req, res) => {
     const { totalCredits, majorCredits, firstName, lastName } = req.body;
 
     // Add debug logging
-    console.log('Received update data:', {
+    console.log("Received update data:", {
       totalCredits,
       majorCredits,
       firstName,
-      lastName
+      lastName,
     });
 
     // Start transaction
@@ -178,26 +186,28 @@ exports.updateStudent = async (req, res) => {
     // Find student with associated user data
     const student = await Student.findOne({
       where: { studentCode: id },
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['userId', 'firstName', 'lastName']
-      }],
-      transaction
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["userId", "firstName", "lastName"],
+        },
+      ],
+      transaction,
     });
 
     // Log current student data
-    console.log('Current student data:', {
+    console.log("Current student data:", {
       studentCode: student?.studentCode,
       currentTotalCredits: student?.totalCredits,
-      currentMajorCredits: student?.majorCredits
+      currentMajorCredits: student?.majorCredits,
     });
 
     if (!student) {
       await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลนักศึกษา'
+        message: "ไม่พบข้อมูลนักศึกษา",
       });
     }
 
@@ -206,8 +216,8 @@ exports.updateStudent = async (req, res) => {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'กรุณาระบุหน่วยกิตรวมและหน่วยกิตภาควิชา',
-        received: { totalCredits, majorCredits }
+        message: "กรุณาระบุหน่วยกิตรวมและหน่วยกิตภาควิชา",
+        received: { totalCredits, majorCredits },
       });
     }
 
@@ -215,9 +225,9 @@ exports.updateStudent = async (req, res) => {
     const parsedMajorCredits = parseInt(majorCredits);
 
     // Log parsed values
-    console.log('Parsed credits:', {
+    console.log("Parsed credits:", {
       parsedTotalCredits,
-      parsedMajorCredits
+      parsedMajorCredits,
     });
 
     // ตรวจสอบว่าค่าที่แปลงเป็นตัวเลขสำเร็จหรือไม่
@@ -225,8 +235,8 @@ exports.updateStudent = async (req, res) => {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'หน่วยกิตต้องเป็นตัวเลขเท่านั้น',
-        received: { totalCredits, majorCredits }
+        message: "หน่วยกิตต้องเป็นตัวเลขเท่านั้น",
+        received: { totalCredits, majorCredits },
       });
     }
 
@@ -235,43 +245,56 @@ exports.updateStudent = async (req, res) => {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'หน่วยกิตภาควิชาต้องไม่มากกว่าหน่วยกิตรวม'
+        message: "หน่วยกิตภาควิชาต้องไม่มากกว่าหน่วยกิตรวม",
       });
     }
 
     // Calculate eligibility
     const studentYear = calculateStudentYear(id);
 
-    const projectEligibility = isEligibleForProject(studentYear.year, parsedTotalCredits, parsedMajorCredits);
-    const internshipEligibility = isEligibleForInternship(studentYear.year, parsedTotalCredits);
+    const projectEligibility = isEligibleForProject(
+      studentYear.year,
+      parsedTotalCredits,
+      parsedMajorCredits
+    );
+    const internshipEligibility = isEligibleForInternship(
+      studentYear.year,
+      parsedTotalCredits
+    );
 
     // ตรวจสอบว่าค่าที่จะบันทึกถูกต้องหรือไม่
-    console.log('Values to be saved:', {
-      isEligibleInternship: internshipEligibility.eligible, 
-      isEligibleProject: projectEligibility.eligible
+    console.log("Values to be saved:", {
+      isEligibleInternship: internshipEligibility.eligible,
+      isEligibleProject: projectEligibility.eligible,
     });
 
     // Update student record
-    await Student.update({
-      totalCredits: parsedTotalCredits,
-      majorCredits: parsedMajorCredits,
-      isEligibleInternship: internshipEligibility.eligible,
-      isEligibleProject: projectEligibility.eligible,
-      lastUpdated: new Date()
-    }, {
-      where: { studentCode: id },
-      transaction
-    });
+    await Student.update(
+      {
+        totalCredits: parsedTotalCredits,
+        majorCredits: parsedMajorCredits,
+        isEligibleInternship: internshipEligibility.eligible,
+        isEligibleProject: projectEligibility.eligible,
+        lastUpdated: new Date(),
+      },
+      {
+        where: { studentCode: id },
+        transaction,
+      }
+    );
 
     // Update user record if name is provided
     if (firstName || lastName) {
-      await User.update({
-        ...(firstName && { firstName }),
-        ...(lastName && { lastName })
-      }, {
-        where: { userId: student.userId },
-        transaction
-      });
+      await User.update(
+        {
+          ...(firstName && { firstName }),
+          ...(lastName && { lastName }),
+        },
+        {
+          where: { userId: student.userId },
+          transaction,
+        }
+      );
     }
 
     await transaction.commit();
@@ -279,7 +302,7 @@ exports.updateStudent = async (req, res) => {
     // Send response with updated data
     res.json({
       success: true,
-      message: 'อัพเดทข้อมูลสำเร็จ',
+      message: "อัพเดทข้อมูลสำเร็จ",
       data: {
         studentCode: id,
         totalCredits: parsedTotalCredits,
@@ -290,29 +313,28 @@ exports.updateStudent = async (req, res) => {
         isEligibleProject: projectEligibility.eligible,
         eligibilityDetails: {
           project: projectEligibility.message,
-          internship: internshipEligibility.message        
+          internship: internshipEligibility.message,
         },
-        lastUpdated: student.lastUpdated || new Date()
-      }
+        lastUpdated: student.lastUpdated || new Date(),
+      },
     });
-
   } catch (error) {
     if (transaction) await transaction.rollback();
 
-    console.error('Error in updateStudent:', error);
+    console.error("Error in updateStudent:", error);
 
-    if (error.name === 'SequelizeValidationError') {
+    if (error.name === "SequelizeValidationError") {
       return res.status(400).json({
         success: false,
-        message: 'ข้อมูลไม่ถูกต้อง',
-        errors: error.errors.map(e => e.message)
+        message: "ข้อมูลไม่ถูกต้อง",
+        errors: error.errors.map((e) => e.message),
       });
     }
 
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "เกิดข้อผิดพลาดในการอัพเดทข้อมูล",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -327,47 +349,46 @@ exports.deleteStudent = async (req, res, next) => {
     // Find student first to get userId
     const student = await Student.findOne({
       where: { studentCode: id },
-      transaction
+      transaction,
     });
 
     if (!student) {
       await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลนักศึกษา'
+        message: "ไม่พบข้อมูลนักศึกษา",
       });
     }
 
     // Delete student record first (due to foreign key constraint)
     await Student.destroy({
       where: { studentCode: id },
-      transaction
+      transaction,
     });
 
     // Then delete user record
     await User.destroy({
       where: { userId: student.userId },
-      transaction
+      transaction,
     });
 
     await transaction.commit();
 
     res.json({
       success: true,
-      message: 'ลบข้อมูลนักศึกษาเรียบร้อย',
+      message: "ลบข้อมูลนักศึกษาเรียบร้อย",
       data: {
-        studentCode: id
-      }
+        studentCode: id,
+      },
     });
-
   } catch (error) {
     if (transaction) await transaction.rollback();
 
-    console.error('Error deleting student:', error);
+    console.error("Error deleting student:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการลบข้อมูล',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "เกิดข้อผิดพลาดในการลบข้อมูล",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -382,14 +403,14 @@ exports.addStudent = async (req, res) => {
       lastName,
       totalCredits = 0,
       majorCredits = 0,
-      email
+      email,
     } = req.body;
 
     if (!studentCode || !firstName || !lastName) {
       return res.status(400).json({
         success: false,
-        message: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-        required: ['studentCode', 'firstName', 'lastName']
+        message: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        required: ["studentCode", "firstName", "lastName"],
       });
     }
 
@@ -397,47 +418,53 @@ exports.addStudent = async (req, res) => {
 
     const existingStudent = await Student.findOne({
       where: { studentCode },
-      transaction
+      transaction,
     });
 
     if (existingStudent) {
       await transaction.rollback();
       return res.status(409).json({
         success: false,
-        message: 'รหัสนักศึกษานี้มีในระบบแล้ว',
-        studentCode
+        message: "รหัสนักศึกษานี้มีในระบบแล้ว",
+        studentCode,
       });
     }
 
-    const user = await User.create({
-      username: `s${studentCode}`,
-      password: await bcrypt.hash(studentCode, 10),
-      firstName,
-      lastName,
-      email: email || `${studentCode}@email.kmutnb.ac.th`,
-      role: 'student',
-      activeStatus: true
-    }, { transaction });
+    const user = await User.create(
+      {
+        username: `s${studentCode}`,
+        password: await bcrypt.hash(studentCode, 10),
+        firstName,
+        lastName,
+        email: email || `${studentCode}@email.kmutnb.ac.th`,
+        role: "student",
+        activeStatus: true,
+      },
+      { transaction }
+    );
 
-    const student = await Student.create({
-      studentCode,
-      userId: user.userId,
-      totalCredits: parseInt(totalCredits),
-      majorCredits: parseInt(majorCredits),
-      gpa: 0.00,
-      studyType: 'regular',
-      isEligibleInternship: false,
-      isEligibleProject: false,
-      semester: getCurrentSemester(),
-      academicYear: getCurrentAcademicYear(),
-      advisorId: null
-    }, { transaction });
+    const student = await Student.create(
+      {
+        studentCode,
+        userId: user.userId,
+        totalCredits: parseInt(totalCredits),
+        majorCredits: parseInt(majorCredits),
+        gpa: 0.0,
+        studyType: "regular",
+        isEligibleInternship: false,
+        isEligibleProject: false,
+        semester: getCurrentSemester(),
+        academicYear: getCurrentAcademicYear(),
+        advisorId: null,
+      },
+      { transaction }
+    );
 
     await transaction.commit();
 
     res.status(201).json({
       success: true,
-      message: 'เพิ่มข้อมูลนักศึกษาสำเร็จ',
+      message: "เพิ่มข้อมูลนักศึกษาสำเร็จ",
       data: {
         userId: user.userId,
         studentId: student.studentId,
@@ -447,34 +474,33 @@ exports.addStudent = async (req, res) => {
         email: user.email,
         username: user.username,
         totalCredits: student.totalCredits,
-        majorCredits: student.majorCredits
-      }
+        majorCredits: student.majorCredits,
+      },
     });
-
   } catch (error) {
     if (transaction) await transaction.rollback();
 
-    console.error('Error adding student:', error);
+    console.error("Error adding student:", error);
 
-    if (error.name === 'SequelizeUniqueConstraintError') {
+    if (error.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({
         success: false,
-        message: 'ข้อมูลซ้ำในระบบ กรุณาตรวจสอบรหัสนักศึกษาหรืออีเมล'
+        message: "ข้อมูลซ้ำในระบบ กรุณาตรวจสอบรหัสนักศึกษาหรืออีเมล",
       });
     }
 
-    if (error.name === 'SequelizeValidationError') {
+    if (error.name === "SequelizeValidationError") {
       return res.status(400).json({
         success: false,
-        message: 'ข้อมูลไม่ถูกต้อง',
-        errors: error.errors.map(e => e.message)
+        message: "ข้อมูลไม่ถูกต้อง",
+        errors: error.errors.map((e) => e.message),
       });
     }
 
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "เกิดข้อผิดพลาดในการเพิ่มข้อมูล",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -484,51 +510,52 @@ exports.getAllStudentStats = async (req, res) => {
   try {
     const students = await Student.findAll({
       attributes: [
-        'studentId',
-        'studentCode',
-        'totalCredits',
-        'majorCredits',
-        'isEligibleInternship',
-        'isEligibleProject',
-        'gpa',
-        'studyType'
+        "studentId",
+        "studentCode",
+        "totalCredits",
+        "majorCredits",
+        "isEligibleInternship",
+        "isEligibleProject",
+        "gpa",
+        "studyType",
       ],
       include: [
         {
           model: User,
-          as: 'user',
-          attributes: ['firstName', 'lastName']
+          as: "user",
+          attributes: ["firstName", "lastName"],
         },
         {
           model: Teacher,
-          as: 'advisor',
-          attributes: ['firstName', 'lastName']
-        }
-      ]
+          as: "advisor",
+          attributes: ["firstName", "lastName"],
+        },
+      ],
     });
 
-    // จัดรูปแบบข้อมูลสำหรับการแสดงผล
     const stats = {
       total: students.length,
-      internshipEligible: students.filter(s => s.isEligibleInternship).length,
-      projectEligible: students.filter(s => s.isEligibleProject).length,
-      students: students.map(s => ({
+      internshipEligible: students.filter((s) => s.isEligibleInternship).length,
+      projectEligible: students.filter((s) => s.isEligibleProject).length,
+      students: students.map((s) => ({
         id: s.studentId,
         studentCode: s.studentCode,
         name: `${s.user.firstName} ${s.user.lastName}`,
-        advisor: s.advisor ? `${s.advisor.firstName} ${s.advisor.lastName}` : 'ยังไม่มีที่ปรึกษา',
+        advisor: s.advisor
+          ? `${s.advisor.firstName} ${s.advisor.lastName}`
+          : "ยังไม่มีที่ปรึกษา",
         totalCredits: s.totalCredits,
         majorCredits: s.majorCredits,
-        gpa: s.gpa?.toFixed(2) || '0.00',
-        studyType: s.studyType === 'regular' ? 'ภาคปกติ' : 'ภาคพิเศษ',
+        gpa: s.gpa?.toFixed(2) || "0.00",
+        studyType: s.studyType === "regular" ? "ภาคปกติ" : "ภาคพิเศษ",
         isEligibleInternship: s.isEligibleInternship,
-        isEligibleProject: s.isEligibleProject
-      }))
+        isEligibleProject: s.isEligibleProject,
+      })),
     };
 
     res.json(stats);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    console.error("Error:", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
   }
 };

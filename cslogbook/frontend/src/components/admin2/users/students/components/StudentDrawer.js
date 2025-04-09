@@ -1,7 +1,8 @@
-import React from 'react';
-import { Drawer, Button, Space, Form } from 'antd';
+import React, { useEffect } from 'react';
+import { Drawer, Button, Space, Empty } from 'antd';
 import { SaveOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import StudentDetail from './StudentDetail';
+import StudentForm from './StudentForm';
 
 const StudentDrawer = ({
   visible,
@@ -11,25 +12,58 @@ const StudentDrawer = ({
   onClose,
   onEdit,
   onCancelEdit,
-  onSave
+  onSave,
+  confirmLoading
 }) => {
+  
+  // ตรวจสอบและเซ็ตค่าฟอร์มเมื่อมีการเปิด drawer หรือเปลี่ยน student
+  useEffect(() => {
+    if (student && form) {
+      form.setFieldsValue({
+        studentCode: student.studentCode || '',
+        firstName: student.firstName || '',
+        lastName: student.lastName || '',
+        email: student.email || '',
+        totalCredits: student.totalCredits || 0,
+        majorCredits: student.majorCredits || 0
+      });
+    }
+  }, [student, form]);
+
   const drawerExtra = editMode ? (
     <Space>
       <Button onClick={onCancelEdit} icon={<CloseOutlined />}>
         ยกเลิก
       </Button>
-      <Button type="primary" onClick={onSave} icon={<SaveOutlined />}>
+      <Button
+        type="primary"
+        onClick={() => {
+          const sanitizedData = form.getFieldsValue();
+          onSave({
+            studentCode: sanitizedData.studentCode,
+            firstName: sanitizedData.firstName,
+            lastName: sanitizedData.lastName,
+            email: sanitizedData.email,
+            totalCredits: parseInt(sanitizedData.totalCredits, 10) || 0,
+            majorCredits: parseInt(sanitizedData.majorCredits, 10) || 0,
+          });
+        }}
+        icon={<SaveOutlined />}
+        loading={confirmLoading}
+      >
         บันทึก
       </Button>
     </Space>
   ) : (
-    <Button
-      type="primary"
-      onClick={onEdit}
-      icon={<EditOutlined />}
-    >
-      แก้ไขข้อมูล
-    </Button>
+    student && (
+      <Button
+        type="primary"
+        onClick={onEdit}
+        icon={<EditOutlined />}
+      >
+        แก้ไขข้อมูล
+      </Button>
+    )
   );
 
   return (
@@ -43,17 +77,9 @@ const StudentDrawer = ({
       extra={drawerExtra}
     >
       {editMode ? (
-        // ใส่ StudentForm แบบ inline หรือแยกเป็นอีกคอมโพเนนต์
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ totalCredits: 0, majorCredits: 0 }}
-          className="student-form"
-        >
-          {/* form fields จากไฟล์เดิม */}
-        </Form>
+        <StudentForm form={form} student={student} />
       ) : (
-        <StudentDetail student={student} />
+        student ? <StudentDetail student={student} /> : <Empty description="ไม่มีข้อมูลนักศึกษา" />
       )}
     </Drawer>
   );

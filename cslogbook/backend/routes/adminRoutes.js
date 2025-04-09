@@ -26,7 +26,7 @@ router.get('/stats/system', adminAuth, adminController.getSystemStats);
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
-/* router.get('/students/filter-options', adminAuth, studentController.getFilterOptions); */ // More specific route first
+router.get('/students/stats', adminAuth, studentController.getAllStudentStats);
 router.get('/students/:id', adminAuth, studentController.getStudentById); // Parameter route after
 router.post('/students', adminAuth, studentController.addStudent);
 router.put('/students/:id', adminAuth, studentController.updateStudent);

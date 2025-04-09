@@ -101,12 +101,14 @@ exports.login = async (req, res) => {
             case 'teacher':
                 const teacherData = await Teacher.findOne({
                     where: { userId: user.userId },
-                    attributes: ['department', 'position']
-                });
+                    attributes: [
+                        'teacherId',
+                        'teacherCode',
+                    ]});
                 roleData = {
-                    department: teacherData?.department,
-                    position: teacherData?.position,
-                    isAdvisor: true
+                    teacherId: teacherData?.teacherId,
+                    teacherCode: teacherData?.teacherCode,
+                    isSystemAdmin: false
                 };
                 break;
         }

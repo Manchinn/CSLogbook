@@ -1,11 +1,4 @@
-import axios from 'axios';
 import apiClient from '../apiClient';
-
-const API_URL = process.env.REACT_APP_API_URL ;
-
-const getToken = () => {
-  return localStorage.getItem('token');
-};
 
 // รวมฟังก์ชันเกี่ยวกับเอกสารทั้งหมดเป็น Object เดียว
 export const documentService = {

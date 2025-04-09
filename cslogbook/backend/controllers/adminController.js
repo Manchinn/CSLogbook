@@ -87,15 +87,11 @@ const getSystemStats = async () => {
 
 // Controller exports
 module.exports = {
-  // Main dashboard stats
   getStats: async (req, res) => {
     try {
-      //console.log('Processing admin stats request...'); // Debug log
 
       const stats = await getStudentStats();
-      //console.log('Student stats retrieved:', stats); // Debug log
 
-      // Format response data
       const responseData = {
         students: {
           total: stats.total,
@@ -118,7 +114,6 @@ module.exports = {
         }
       };
 
-      //console.log('Sending response:', responseData); // Debug log
       res.json(responseData);
 
     } catch (error) {

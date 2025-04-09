@@ -9,8 +9,6 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
         firstName: teacher.firstName,
         lastName: teacher.lastName,
         email: teacher.email,
-        extension: teacher.contactExtension,
-        department: teacher.department,
         ...initialValues
       });
     } else {
@@ -55,18 +53,6 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
           { required: true, message: "กรุณากรอกอีเมล!" },
           { type: "email", message: "กรุณากรอกอีเมลที่ถูกต้อง!" }
         ]}
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item
-        name="contactExtension"
-        label="เบอร์ภายใน"
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item
-        name="department"
-        label="ภาควิชา"
       >
         <Input />
       </Form.Item>

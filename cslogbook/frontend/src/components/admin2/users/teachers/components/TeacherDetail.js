@@ -10,8 +10,6 @@ const TeacherDetail = ({ teacher }) => {
       <p><strong>รหัสอาจารย์:</strong> {teacher.teacherCode}</p>
       <p><strong>ชื่อ-นามสกุล:</strong> {teacher.firstName} {teacher.lastName}</p>
       <p><strong>อีเมล:</strong> {teacher.email || '-'}</p>
-      <p><strong>เบอร์ภายใน:</strong> {teacher.contactExtension || '-'}</p>
-      <p><strong>ภาควิชา:</strong> {teacher.department || '-'}</p>
     </div>
   );
 };

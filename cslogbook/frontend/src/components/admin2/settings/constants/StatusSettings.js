@@ -1,799 +1,540 @@
-// คอมโพเนนต์ย่อยสำหรับสถานะในระบบ
 import React, { useState, useEffect } from 'react';
-import {
-    Form, Button, Card, Typography, Table, Input, Space,
-    Row, Col, Select, Popconfirm, message, Tag, Tabs, InputNumber, Divider
+import { 
+  Form, Card, Button, Table, Space, Switch, Typography, Modal, Input, 
+  InputNumber, message, Select, Tag, Spin, Popconfirm
 } from 'antd';
-import {
-    SaveOutlined, ReloadOutlined, PlusOutlined,
-    EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined,
-    ArrowUpOutlined, ArrowDownOutlined
+import { 
+  PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, 
+  ReloadOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { settingsService } from '../../../../services/admin/settingsService';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const StatusSettings = () => {
-    const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
-    const [studentStatuses, setStudentStatuses] = useState([]);
-    const [documentStatuses, setDocumentStatuses] = useState([]);
-    const [editingStatus, setEditingStatus] = useState(null);
-    const [newStatus, setNewStatus] = useState({
-        id: '',
-        name: '',
-        color: 'default',
-        category: 'student',
-        description: ''
+  const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [statuses, setStatuses] = useState([]);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [curriculumMappings, setCurriculumMappings] = useState([]);
+  const [curriculums, setCurriculums] = useState([]);
+
+  // ดึงข้อมูลสถานะนักศึกษาจาก API
+  const fetchStatuses = async () => {
+    setLoading(true);
+    try {
+      // ดึงข้อมูลหลักสูตร
+      const curriculumResponse = await settingsService.getCurriculums();
+      if (curriculumResponse.success) {
+        setCurriculums(curriculumResponse.data);
+        
+        // ดึงข้อมูลการกำหนดหลักสูตรตามปีที่เข้าศึกษา
+        const mappings = [
+          { enrollYear: 2565, curriculumId: 2 }, // CS2565
+          { enrollYear: 2564, curriculumId: 2 }, // CS2565
+          { enrollYear: 2563, curriculumId: 2 }, // CS2565
+          { enrollYear: 2562, curriculumId: 1 }, // CS2560
+          { enrollYear: 2561, curriculumId: 1 }  // CS2560
+        ];
+        
+        setCurriculumMappings(mappings);
+      }
+      
+      // ตัวอย่างข้อมูลเพื่อการแสดงผล
+      const mockData = [
+        {
+          id: 1,
+          code: 'NORMAL',
+          name: 'ปกติ', 
+          description: 'นักศึกษาที่มีผลการเรียนและการลงทะเบียนเป็นไปตามข้อกำหนด',
+          color: 'green',
+          active: true,
+          conditions: {
+            maxStudyYears: null
+          }
+        },
+        {
+          id: 2,
+          code: 'PROBATION',
+          name: 'รอพินิจ', 
+          description: 'นักศึกษาที่มีผลการเรียนต่ำกว่าเกณฑ์ที่กำหนด',
+          color: 'orange',
+          active: true,
+          conditions: {
+            maxStudyYears: null
+          }
+        },
+        {
+          id: 3,
+          code: 'EXTENDED',
+          name: 'นักศึกษาตกค้าง', 
+          description: 'นักศึกษาที่ศึกษาเกิน 4 ปีแต่ไม่เกิน 8 ปี',
+          color: 'blue',
+          active: true,
+          conditions: {
+            maxStudyYears: 8
+          }
+        },
+        {
+          id: 4,
+          code: 'DISMISSED',
+          name: 'พ้นสภาพ', 
+          description: 'นักศึกษาที่ศึกษาเกิน 8 ปี หรือมีผลการเรียนต่ำกว่าเกณฑ์ติดต่อกัน 2 ภาคการศึกษา',
+          color: 'red',
+          active: true,
+          conditions: {
+            maxStudyYears: 8
+          }
+        },
+        {
+          id: 5,
+          code: 'INTERNSHIP',
+          name: 'ฝึกงาน', 
+          description: 'นักศึกษาที่กำลังฝึกงาน',
+          color: 'cyan',
+          active: true,
+          conditions: {
+            maxStudyYears: null
+          }
+        },
+        {
+          id: 6,
+          code: 'PROJECT',
+          name: 'ทำโครงงาน', 
+          description: 'นักศึกษาที่กำลังทำโครงงานพิเศษ',
+          color: 'purple',
+          active: true,
+          conditions: {
+            maxStudyYears: null
+          }
+        }
+      ];
+      
+      setStatuses(mockData);
+      
+      // ตั้งค่าค่าเริ่มต้นของฟอร์มการตั้งค่าระบบ
+      form.setFieldsValue({
+        maxStudyYears: 8,
+        maxProbationTimes: 2,
+        statusForInternship: ['NORMAL', 'EXTENDED'],
+        statusForProject: ['NORMAL', 'EXTENDED']
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      message.error('ไม่สามารถดึงข้อมูลได้');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatuses();
+  }, []);
+
+  // จัดการการแก้ไขสถานะ
+  const handleEdit = (status) => {
+    setEditingStatus(status);
+    editForm.setFieldsValue({
+      code: status.code,
+      name: status.name,
+      description: status.description,
+      color: status.color,
+      active: status.active,
+      maxStudyYears: status.conditions.maxStudyYears
     });
-    const [yearClassification, setYearClassification] = useState({
-        normalYearsRange: 4,
-        extendedYearsRange: 8,
-        retiredStatus: 8
-    });
-    const [internshipSteps, setInternshipSteps] = useState([]);
-    const [projectSteps, setProjectSteps] = useState([]);
+    setEditModalVisible(true);
+  };
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
+  // จัดการการลบสถานะ
+  const handleDelete = async (statusId) => {
+    try {
+      setLoading(true);
+      // เมื่อมี API จริง ให้ใช้ settingsService เพื่อลบข้อมูล
+      // await settingsService.deleteStudentStatus(statusId);
+      
+      // อัปเดตข้อมูลในหน้าจอ
+      setStatuses(statuses.filter(status => status.id !== statusId));
+      message.success('ลบสถานะนักศึกษาสำเร็จ');
+    } catch (error) {
+      console.error('Error deleting student status:', error);
+      message.error('ไม่สามารถลบสถานะนักศึกษาได้');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const fetchSettings = async () => {
-        setLoading(true);
-        try {
-            const response = await settingsService.getStatusSettings();
-            if (response.success) {
-                const studentStatusList = response.data.statuses.filter(s => s.category === 'student');
-                const documentStatusList = response.data.statuses.filter(s => s.category === 'document');
+  // จัดการการบันทึกการแก้ไขสถานะ
+  const handleSaveEdit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      setLoading(true);
+      
+      const updatedStatus = {
+        ...editingStatus,
+        code: values.code,
+        name: values.name,
+        description: values.description,
+        color: values.color,
+        active: values.active,
+        conditions: {
+          maxStudyYears: values.maxStudyYears
+        }
+      };
+      
+      // เมื่อมี API จริง ให้ใช้ settingsService เพื่ออัปเดตข้อมูล
+      // await settingsService.updateStudentStatus(updatedStatus);
+      
+      // อัปเดตข้อมูลในหน้าจอ
+      setStatuses(statuses.map(status => 
+        status.id === editingStatus.id ? updatedStatus : status
+      ));
+      
+      message.success('อัปเดตสถานะนักศึกษาสำเร็จ');
+      setEditModalVisible(false);
+    } catch (error) {
+      console.error('Error updating student status:', error);
+      message.error('ไม่สามารถอัปเดตสถานะนักศึกษาได้');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                setStudentStatuses(studentStatusList);
-                setDocumentStatuses(documentStatusList);
+  // จัดการการเพิ่มสถานะใหม่
+  const handleAdd = () => {
+    const newStatus = {
+      id: Math.max(...statuses.map(s => s.id), 0) + 1,
+      code: '',
+      name: '',
+      description: '',
+      color: 'blue',
+      active: true,
+      conditions: {
+        maxStudyYears: null
+      }
+    };
+    
+    setEditingStatus(newStatus);
+    editForm.resetFields();
+    setEditModalVisible(true);
+  };
 
-                // เพิ่มการโหลดข้อมูลสถานะตามชั้นปี
-                if (response.data.yearClassification) {
-                    setYearClassification(response.data.yearClassification);
-                    
-                    // ตั้งค่าในฟอร์ม
-                    form.setFieldsValue({
-                        normalYearsRange: response.data.yearClassification.normalYearsRange,
-                        extendedYearsRange: response.data.yearClassification.extendedYearsRange,
-                        retiredStatus: response.data.yearClassification.retiredStatus
-                    });
+  // จัดการการบันทึกการตั้งค่าทั่วไป
+  const handleSaveSettings = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+      
+      // เมื่อมี API จริง ให้ใช้ settingsService เพื่อบันทึกการตั้งค่า
+      // await settingsService.updateStatusSettings(values);
+      
+      message.success('บันทึกการตั้งค่าสำเร็จ');
+    } catch (error) {
+      console.error('Error saving status settings:', error);
+      message.error('ไม่สามารถบันทึกการตั้งค่าได้');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // จัดการการแก้ไขการกำหนดหลักสูตร
+  const handleEditMapping = (record, index) => {
+    console.log('Edit mapping:', record, index);
+  };
+
+  // จัดการการเพิ่มการกำหนดหลักสูตร
+  const handleAddMapping = () => {
+    const currentYear = new Date().getFullYear() + 543;
+    const newMapping = {
+      enrollYear: currentYear,
+      curriculumId: curriculums.find(c => c.active)?.id || null
+    };
+    
+    setCurriculumMappings([...curriculumMappings, newMapping]);
+  };
+
+  // กำหนดคอลัมน์ของตาราง
+  const columns = [
+    {
+      title: 'รหัส',
+      dataIndex: 'code',
+      key: 'code',
+      width: 120
+    },
+    {
+      title: 'สถานะ',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <Tag color={record.color}>{text}</Tag>
+      )
+    },
+    {
+      title: 'คำอธิบาย',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true
+    },
+    {
+      title: 'เงื่อนไขปีการศึกษา',
+      dataIndex: ['conditions', 'maxStudyYears'],
+      key: 'maxStudyYears',
+      render: (text) => text ? `<= ${text} ปี` : '-'
+    },
+    {
+      title: 'ใช้งาน',
+      dataIndex: 'active',
+      key: 'active',
+      width: 100,
+      render: (active) => <Switch checked={active} disabled />
+    },
+    {
+      title: 'จัดการ',
+      key: 'action',
+      width: 120,
+      render: (_, record) => (
+        <Space size="small">
+          <Button 
+            icon={<EditOutlined />} 
+            size="small" 
+            onClick={() => handleEdit(record)}
+          />
+          <Popconfirm
+            title="คุณต้องการลบสถานะนี้ใช่หรือไม่?"
+            description="การลบสถานะอาจส่งผลต่อข้อมูลนักศึกษาที่มีสถานะนี้"
+            onConfirm={() => handleDelete(record.id)}
+            okText="ใช่"
+            cancelText="ไม่"
+            icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+          >
+            <Button 
+              icon={<DeleteOutlined />} 
+              size="small" 
+              danger
+              disabled={['NORMAL', 'PROBATION', 'DISMISSED'].includes(record.code)}
+            />
+          </Popconfirm>
+        </Space>
+      )
+    }
+  ];
+
+  return (
+    <div className="status-settings">
+      {/* การตั้งค่าทั่วไป */}
+      <Card className="settings-card">
+        <Title level={5}>ตั้งค่าทั่วไปสำหรับสถานะนักศึกษา</Title>
+        <Text type="secondary">
+          กำหนดค่าพื้นฐานสำหรับสถานะของนักศึกษาในระบบ
+        </Text>
+        
+        <Form
+          form={form}
+          layout="vertical"
+          className="settings-form"
+          style={{ marginTop: 16 }}
+        >
+          <div className="form-row">
+            <Form.Item
+              name="maxStudyYears"
+              label="จำนวนปีการศึกษาสูงสุด"
+              rules={[{ required: true, message: 'กรุณากรอกจำนวนปีการศึกษาสูงสุด' }]}
+            >
+              <InputNumber min={4} max={12} style={{ width: '100%' }} />
+            </Form.Item>
+          </div>
+          
+          <div className="form-actions">
+            <Button 
+              type="primary" 
+              icon={<SaveOutlined />} 
+              onClick={handleSaveSettings}
+              loading={loading}
+            >
+              บันทึกการตั้งค่า
+            </Button>
+          </div>
+        </Form>
+      </Card>
+      
+      {/* การเชื่อมโยงสถานะกับหลักสูตร */}
+      <Card className="settings-card" style={{ marginTop: 16 }}>
+        <Title level={5}>การเชื่อมโยงสถานะกับหลักสูตร</Title>
+        <Text type="secondary">
+          กำหนดค่าเริ่มต้นของสถานะสำหรับนักศึกษาในแต่ละหลักสูตร
+        </Text>
+        
+        <Form.Item
+          name="defaultCurriculumMappings"
+          label="การกำหนดหลักสูตรตามปีที่เข้าศึกษา"
+        >
+          <Table
+            size="small"
+            pagination={false}
+            columns={[
+              {
+                title: 'ปีที่เข้าศึกษา',
+                dataIndex: 'enrollYear',
+                key: 'enrollYear',
+                width: 120
+              },
+              {
+                title: 'หลักสูตรที่ใช้',
+                dataIndex: 'curriculumId',
+                key: 'curriculumId',
+                render: (curriculumId) => {
+                  const curriculum = curriculums.find(c => c.id === curriculumId);
+                  return curriculum ? curriculum.shortName : '-';
                 }
-
-                // เพิ่มการโหลดข้อมูลขั้นตอนการทำงาน
-                if (response.data.internshipSteps) {
-                    setInternshipSteps(response.data.internshipSteps);
-                    form.setFieldsValue({ internshipSteps: response.data.internshipSteps });
-                }
-
-                if (response.data.projectSteps) {
-                    setProjectSteps(response.data.projectSteps);
-                    form.setFieldsValue({ projectSteps: response.data.projectSteps });
-                }
-            } else {
-                message.error('ไม่สามารถดึงข้อมูลการตั้งค่าได้');
-            }
-        } catch (error) {
-            console.error('Error fetching status settings:', error);
-            message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSave = async () => {
-        try {
-            // ตรวจสอบข้อมูลในฟอร์ม
-            const values = await form.validateFields();
-            setLoading(true);
-    
-            // รวมรายการสถานะทั้งหมด
-            const allStatuses = [...studentStatuses, ...documentStatuses];
-    
-            // ข้อมูลสถานะตามชั้นปี
-            const yearClassificationData = {
-                normalYearsRange: values.normalYearsRange,
-                extendedYearsRange: values.extendedYearsRange,
-                retiredStatus: values.retiredStatus
-            };
-    
-            const response = await settingsService.updateStatusSettings({
-                statuses: allStatuses,
-                yearClassification: yearClassificationData,
-                internshipSteps: values.internshipSteps,
-                projectSteps: values.projectSteps
-            });
-    
-            if (response.success) {
-                message.success('บันทึกการตั้งค่าสำเร็จ');
-                // อัปเดต state
-                setYearClassification(yearClassificationData);
-                setInternshipSteps(values.internshipSteps);
-                setProjectSteps(values.projectSteps);
-            } else {
-                message.error('ไม่สามารถบันทึกการตั้งค่าได้');
-            }
-        } catch (error) {
-            console.error('Error saving status settings:', error);
-            message.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // การจัดการกับสถานะนักศึกษา
-    const handleAddStudentStatus = () => {
-        if (!newStatus.id || !newStatus.name) {
-            message.error('กรุณากรอกรหัสและชื่อสถานะ');
-            return;
-        }
-
-        if (studentStatuses.some(status => status.id === newStatus.id) ||
-            documentStatuses.some(status => status.id === newStatus.id)) {
-            message.error('รหัสสถานะซ้ำกับที่มีอยู่แล้ว');
-            return;
-        }
-
-        const statusToAdd = {
-            ...newStatus,
-            category: 'student'
-        };
-
-        setStudentStatuses([...studentStatuses, statusToAdd]);
-        setNewStatus({ id: '', name: '', color: 'default', category: 'student', description: '' });
-    };
-
-    const handleEditStatus = (record, category) => {
-        setEditingStatus(record.id);
-    };
-
-    const handleSaveEditStatus = (record, category) => {
-        if (category === 'student') {
-            const newStatuses = studentStatuses.map(status =>
-                status.id === record.id ? record : status
-            );
-            setStudentStatuses(newStatuses);
-        } else {
-            const newStatuses = documentStatuses.map(status =>
-                status.id === record.id ? record : status
-            );
-            setDocumentStatuses(newStatuses);
-        }
-        setEditingStatus(null);
-    };
-
-    const handleDeleteStatus = (id, category) => {
-        if (category === 'student') {
-            setStudentStatuses(studentStatuses.filter(status => status.id !== id));
-        } else {
-            setDocumentStatuses(documentStatuses.filter(status => status.id !== id));
-        }
-    };
-
-    // การจัดการกับสถานะเอกสาร
-    const handleAddDocumentStatus = () => {
-        if (!newStatus.id || !newStatus.name) {
-            message.error('กรุณากรอกรหัสและชื่อสถานะ');
-            return;
-        }
-
-        if (studentStatuses.some(status => status.id === newStatus.id) ||
-            documentStatuses.some(status => status.id === newStatus.id)) {
-            message.error('รหัสสถานะซ้ำกับที่มีอยู่แล้ว');
-            return;
-        }
-
-        const statusToAdd = {
-            ...newStatus,
-            category: 'document'
-        };
-
-        setDocumentStatuses([...documentStatuses, statusToAdd]);
-        setNewStatus({ id: '', name: '', color: 'default', category: 'document', description: '' });
-    };
-
-    const colorOptions = [
-        { label: 'ปกติ', value: 'default' },
-        { label: 'น้ำเงิน', value: 'blue' },
-        { label: 'เขียว', value: 'green' },
-        { label: 'แดง', value: 'error' },
-        { label: 'ส้ม', value: 'warning' },
-        { label: 'เทา', value: 'processing' },
-        { label: 'ม่วง', value: 'purple' },
-        { label: 'เขียวอ่อน', value: 'success' },
-        { label: 'ชมพู', value: 'pink' },
-        { label: 'ฟ้า', value: 'cyan' }
-    ];
-
-    // คอลัมน์สำหรับตารางสถานะนักศึกษา
-    const studentStatusColumns = [
-        {
-            title: 'รหัส',
-            dataIndex: 'id',
-            key: 'id',
-            width: '20%',
-            render: (text, record) =>
-                editingStatus === record.id ? (
-                    <Input
-                        value={record.id}
-                        onChange={e => {
-                            const updated = [...studentStatuses];
-                            const index = updated.findIndex(item => item.id === record.id);
-                            updated[index] = { ...updated[index], id: e.target.value };
-                            setStudentStatuses(updated);
-                        }}
-                    />
-                ) : (
-                    <Text code>{text}</Text>
+              },
+              {
+                title: 'จัดการ',
+                key: 'action',
+                width: 80,
+                render: (_, record, index) => (
+                  <Button 
+                    icon={<EditOutlined />} 
+                    size="small" 
+                    onClick={() => handleEditMapping(record, index)}
+                  />
                 )
-        },
-        {
-            title: 'ชื่อสถานะ',
-            dataIndex: 'name',
-            key: 'name',
-            width: '25%',
-            render: (text, record) =>
-                editingStatus === record.id ? (
-                    <Input
-                        value={record.name}
-                        onChange={e => {
-                            const updated = [...studentStatuses];
-                            const index = updated.findIndex(item => item.id === record.id);
-                            updated[index] = { ...updated[index], name: e.target.value };
-                            setStudentStatuses(updated);
-                        }}
-                    />
-                ) : (
-                    text
-                )
-        },
-        {
-            title: 'สี',
-            dataIndex: 'color',
-            key: 'color',
-            width: '15%',
-            render: (color, record) =>
-                editingStatus === record.id ? (
-                    <Select
-                        value={color}
-                        onChange={value => {
-                            const updated = [...studentStatuses];
-                            const index = updated.findIndex(item => item.id === record.id);
-                            updated[index] = { ...updated[index], color: value };
-                            setStudentStatuses(updated);
-                        }}
-                        style={{ width: '100%' }}
-                    >
-                        {colorOptions.map(option => (
-                            <Option key={option.value} value={option.value}>
-                                {option.label}
-                            </Option>
-                        ))}
-                    </Select>
-                ) : (
-                    <Tag color={color}>{record.name}</Tag>
-                )
-        },
-        {
-            title: 'คำอธิบาย',
-            dataIndex: 'description',
-            key: 'description',
-            width: '25%',
-            render: (text, record) =>
-                editingStatus === record.id ? (
-                    <Input
-                        value={text}
-                        onChange={e => {
-                            const updated = [...studentStatuses];
-                            const index = updated.findIndex(item => item.id === record.id);
-                            updated[index] = { ...updated[index], description: e.target.value };
-                            setStudentStatuses(updated);
-                        }}
-                    />
-                ) : (
-                    text
-                )
-        },
-        {
-            title: 'จัดการ',
-            key: 'action',
-            width: '15%',
-            render: (_, record) =>
-                editingStatus === record.id ? (
-                    <div>
-                        <Button
-                            icon={<CheckOutlined />}
-                            type="link"
-                            style={{ color: 'green' }}
-                            onClick={() => handleSaveEditStatus(record, 'student')}
-                        />
-                        <Button
-                            icon={<CloseOutlined />}
-                            type="link"
-                            style={{ color: 'red' }}
-                            onClick={() => setEditingStatus(null)}
-                        />
-                    </div>
-                ) : (
-                    <div>
-                        <Button
-                            icon={<EditOutlined />}
-                            type="link"
-                            onClick={() => handleEditStatus(record, 'student')}
-                        />
-                        <Popconfirm
-                            title="ต้องการลบสถานะนี้ใช่หรือไม่?"
-                            onConfirm={() => handleDeleteStatus(record.id, 'student')}
-                            okText="ใช่"
-                            cancelText="ไม่"
-                        >
-                            <Button
-                                icon={<DeleteOutlined />}
-                                type="link"
-                                danger
-                            />
-                        </Popconfirm>
-                    </div>
-                )
+              }
+            ]}
+            dataSource={curriculumMappings}
+          />
+          <Button 
+            icon={<PlusOutlined />} 
+            onClick={handleAddMapping}
+            style={{ marginTop: 8 }}
+          >
+            เพิ่มการกำหนดหลักสูตร
+          </Button>
+        </Form.Item>
+      </Card>
+      
+      {/* รายการสถานะนักศึกษา */}
+      <Card 
+        className="settings-card" 
+        style={{ marginTop: 16 }} 
+        title="สถานะนักศึกษาในระบบ"
+        extra={
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={handleAdd}
+          >
+            เพิ่มสถานะใหม่
+          </Button>
         }
-    ];
-
-    // คอลัมน์สำหรับตารางสถานะเอกสาร (ใช้โครงสร้างเดียวกับสถานะนักศึกษา)
-    const documentStatusColumns = studentStatusColumns.map(column => {
-        if (column.key === 'action') {
-            return {
-                ...column,
-                render: (_, record) =>
-                    editingStatus === record.id ? (
-                        <div>
-                            <Button
-                                icon={<CheckOutlined />}
-                                type="link"
-                                style={{ color: 'green' }}
-                                onClick={() => handleSaveEditStatus(record, 'document')}
-                            />
-                            <Button
-                                icon={<CloseOutlined />}
-                                type="link"
-                                style={{ color: 'red' }}
-                                onClick={() => setEditingStatus(null)}
-                            />
-                        </div>
-                    ) : (
-                        <div>
-                            <Button
-                                icon={<EditOutlined />}
-                                type="link"
-                                onClick={() => handleEditStatus(record, 'document')}
-                            />
-                            <Popconfirm
-                                title="ต้องการลบสถานะนี้ใช่หรือไม่?"
-                                onConfirm={() => handleDeleteStatus(record.id, 'document')}
-                                okText="ใช่"
-                                cancelText="ไม่"
-                            >
-                                <Button
-                                    icon={<DeleteOutlined />}
-                                    type="link"
-                                    danger
-                                />
-                            </Popconfirm>
-                        </div>
-                    )
-            };
+      >
+        <Table
+          columns={columns}
+          dataSource={statuses}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+          size="middle"
+        />
+      </Card>
+      
+      {/* Modal สำหรับแก้ไขสถานะ */}
+      <Modal
+        title={editingStatus?.id ? "แก้ไขสถานะนักศึกษา" : "เพิ่มสถานะนักศึกษา"}
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setEditModalVisible(false)}>
+            ยกเลิก
+          </Button>,
+          <Button 
+            key="save" 
+            type="primary" 
+            onClick={handleSaveEdit}
+            loading={loading}
+          >
+            บันทึก
+          </Button>
+        ]}
+        width={600}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+        >
+          <Form.Item
+            name="code"
+            label="รหัสสถานะ"
+            rules={[{ required: true, message: 'กรุณากรอกรหัสสถานะ' }]}
+          >
+            <Input placeholder="เช่น GRADUATED, LEAVE_OF_ABSENCE" />
+          </Form.Item>
+          
+          <Form.Item
+            name="name"
+            label="ชื่อสถานะ"
+            rules={[{ required: true, message: 'กรุณากรอกชื่อสถานะ' }]}
+          >
+            <Input placeholder="เช่น สำเร็จการศึกษา, ลาพักการศึกษา" />
+          </Form.Item>
+          
+          <Form.Item
+            name="description"
+            label="คำอธิบาย"
+          >
+            <Input.TextArea rows={3} placeholder="อธิบายรายละเอียดของสถานะนี้" />
+          </Form.Item>
+          
+          <Form.Item
+            name="color"
+            label="สี"
+          >
+            <Select>
+              <Option value="green">เขียว</Option>
+              <Option value="red">แดง</Option>
+              <Option value="blue">น้ำเงิน</Option>
+              <Option value="orange">ส้ม</Option>
+              <Option value="purple">ม่วง</Option>
+              <Option value="cyan">ฟ้า</Option>
+              <Option value="gray">เทา</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="active"
+            label="ใช้งาน"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          
+          <Form.Item
+            name="maxStudyYears"
+            label="จำนวนปีการศึกษาสูงสุด (ถ้ามี)"
+          >
+            <InputNumber min={1} max={12} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+      
+      <style jsx>{`
+        .settings-form {
+          margin-top: 16px;
         }
-        if (column.dataIndex === 'id' || column.dataIndex === 'name' || column.dataIndex === 'description') {
-            return {
-                ...column,
-                render: (text, record) =>
-                    editingStatus === record.id ? (
-                        <Input
-                            value={text}
-                            onChange={e => {
-                                const updated = [...documentStatuses];
-                                const index = updated.findIndex(item => item.id === record.id);
-                                updated[index] = { ...updated[index], [column.dataIndex]: e.target.value };
-                                setDocumentStatuses(updated);
-                            }}
-                        />
-                    ) : (
-                        column.dataIndex === 'id' ? <Text code>{text}</Text> : text
-                    )
-            };
+        .form-row {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          gap: 16px;
         }
-        if (column.dataIndex === 'color') {
-            return {
-                ...column,
-                render: (color, record) =>
-                    editingStatus === record.id ? (
-                        <Select
-                            value={color}
-                            onChange={value => {
-                                const updated = [...documentStatuses];
-                                const index = updated.findIndex(item => item.id === record.id);
-                                updated[index] = { ...updated[index], color: value };
-                                setDocumentStatuses(updated);
-                            }}
-                            style={{ width: '100%' }}
-                        >
-                            {colorOptions.map(option => (
-                                <Option key={option.value} value={option.value}>
-                                    {option.label}
-                                </Option>
-                            ))}
-                        </Select>
-                    ) : (
-                        <Tag color={color}>{record.name}</Tag>
-                    )
-            };
+        .form-actions {
+          margin-top: 16px;
+          display: flex;
+          justify-content: flex-end;
         }
-        return column;
-    });
-
-    return (
-        <div className="status-settings">
-            <Form form={form} layout="vertical">
-                <Tabs defaultActiveKey="1">
-                    <TabPane tab="สถานะในระบบ" key="1">
-                        <Card className="setting-card">
-                            <Title level={5}>สถานะนักศึกษา</Title>
-                            <Text type="secondary">
-                                กำหนดสถานะต่างๆ ของนักศึกษาที่ใช้ในระบบ
-                            </Text>
-
-                            <div className="add-status-section" style={{ marginTop: 16, marginBottom: 16 }}>
-                                <Row gutter={8}>
-                                    <Col span={5}>
-                                        <Input
-                                            placeholder="รหัสสถานะ"
-                                            value={newStatus.id}
-                                            onChange={e => setNewStatus({ ...newStatus, id: e.target.value })}
-                                        />
-                                    </Col>
-                                    <Col span={7}>
-                                        <Input
-                                            placeholder="ชื่อสถานะ"
-                                            value={newStatus.name}
-                                            onChange={e => setNewStatus({ ...newStatus, name: e.target.value })}
-                                        />
-                                    </Col>
-                                    <Col span={5}>
-                                        <Select
-                                            placeholder="เลือกสี"
-                                            value={newStatus.color}
-                                            onChange={value => setNewStatus({ ...newStatus, color: value })}
-                                            style={{ width: '100%' }}
-                                        >
-                                            {colorOptions.map(option => (
-                                                <Option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </Option>
-                                            ))}
-                                        </Select>
-                                    </Col>
-                                    <Col span={5}>
-                                        <Input
-                                            placeholder="คำอธิบาย"
-                                            value={newStatus.description}
-                                            onChange={e => setNewStatus({ ...newStatus, description: e.target.value })}
-                                        />
-                                    </Col>
-                                    <Col span={2}>
-                                        <Button
-                                            type="primary"
-                                            onClick={handleAddStudentStatus}
-                                            icon={<PlusOutlined />}
-                                            style={{ width: '100%' }}
-                                        />
-                                    </Col>
-                                </Row>
-                            </div>
-
-                            <Table
-                                columns={studentStatusColumns}
-                                dataSource={studentStatuses}
-                                rowKey="id"
-                                pagination={false}
-                                size="small"
-                            />
-                        </Card>
-
-                        <Card className="setting-card" style={{ marginTop: 16 }}>
-                            <Title level={5}>สถานะเอกสาร</Title>
-                            <Text type="secondary">
-                                กำหนดสถานะต่างๆ ของเอกสารที่ใช้ในระบบ
-                            </Text>
-
-                            <div className="add-status-section" style={{ marginTop: 16, marginBottom: 16 }}>
-                                <Row gutter={8}>
-                                    <Col span={5}>
-                                        <Input
-                                            placeholder="รหัสสถานะ"
-                                            value={newStatus.id}
-                                            onChange={e => setNewStatus({ ...newStatus, id: e.target.value })}
-                                        />
-                                    </Col>
-                                    <Col span={7}>
-                                        <Input
-                                            placeholder="ชื่อสถานะ"
-                                            value={newStatus.name}
-                                            onChange={e => setNewStatus({ ...newStatus, name: e.target.value })}
-                                        />
-                                    </Col>
-                                    <Col span={5}>
-                                        <Select
-                                            placeholder="เลือกสี"
-                                            value={newStatus.color}
-                                            onChange={value => setNewStatus({ ...newStatus, color: value })}
-                                            style={{ width: '100%' }}
-                                        >
-                                            {colorOptions.map(option => (
-                                                <Option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </Option>
-                                            ))}
-                                        </Select>
-                                    </Col>
-                                    <Col span={5}>
-                                        <Input
-                                            placeholder="คำอธิบาย"
-                                            value={newStatus.description}
-                                            onChange={e => setNewStatus({ ...newStatus, description: e.target.value })}
-                                        />
-                                    </Col>
-                                    <Col span={2}>
-                                        <Button
-                                            type="primary"
-                                            onClick={handleAddDocumentStatus}
-                                            icon={<PlusOutlined />}
-                                            style={{ width: '100%' }}
-                                        />
-                                    </Col>
-                                </Row>
-                            </div>
-
-                            <Table
-                                columns={documentStatusColumns}
-                                dataSource={documentStatuses}
-                                rowKey="id"
-                                pagination={false}
-                                size="small"
-                            />
-                        </Card>
-                    </TabPane>
-
-                    <TabPane tab="สถานะตามชั้นปี" key="2">
-                        <Card className="setting-card">
-                            <Title level={5}>สถานะตามชั้นปี</Title>
-                            <Text type="secondary">
-                                กำหนดสถานะของนักศึกษาตามชั้นปี
-                            </Text>
-
-                            <Row gutter={16} style={{ marginTop: 16 }}>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="normalYearsRange"
-                                        label="ชั้นปีปกติ"
-                                        rules={[{ required: true, message: 'กรุณากรอกข้อมูล' }]}
-                                    >
-                                        <InputNumber min={1} max={4} style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="extendedYearsRange"
-                                        label="ชั้นปีตกค้าง (สูงสุด)"
-                                        rules={[{ required: true, message: 'กรุณากรอกข้อมูล' }]}
-                                    >
-                                        <InputNumber min={5} max={10} style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="retiredStatus"
-                                        label="สถานะพ้นสภาพเมื่อเกินกี่ปี"
-                                        rules={[{ required: true, message: 'กรุณากรอกข้อมูล' }]}
-                                    >
-                                        <InputNumber min={6} max={12} style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Card>
-                    </TabPane>
-
-                    <TabPane tab="ขั้นตอนการทำงาน" key="3">
-                        <Card className="setting-card">
-                            <Title level={5}>ขั้นตอนการฝึกงาน</Title>
-                            <Text type="secondary">
-                                กำหนดขั้นตอนการทำงานสำหรับการฝึกงาน
-                            </Text>
-
-                            <Form.List name="internshipSteps">
-                                {(fields, { add, remove, move }) => (
-                                    <>
-                                        {fields.map(({ key, name, ...restField }, index) => (
-                                            <Row gutter={16} key={key} style={{ marginBottom: 16 }}>
-                                                <Col span={1} style={{ textAlign: 'center' }}>
-                                                    <Text strong>{index + 1}</Text>
-                                                </Col>
-                                                <Col span={5}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'stepId']}
-                                                        rules={[{ required: true, message: 'กรุณากรอกรหัสขั้นตอน' }]}
-                                                    >
-                                                        <Input placeholder="รหัสขั้นตอน" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={10}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'name']}
-                                                        rules={[{ required: true, message: 'กรุณากรอกชื่อขั้นตอน' }]}
-                                                    >
-                                                        <Input placeholder="ชื่อขั้นตอน" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={6}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'status']}
-                                                        rules={[{ required: true, message: 'กรุณากรอกสถานะ' }]}
-                                                    >
-                                                        <Select
-                                                            placeholder="เลือกสถานะ"
-                                                            showSearch
-                                                            optionFilterProp="children"
-                                                        >
-                                                            {studentStatuses.map(status => (
-                                                                <Option key={status.id} value={status.name}>
-                                                                    {status.name}
-                                                                </Option>
-                                                            ))}
-                                                        </Select>
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={2}>
-                                                    <Space>
-                                                        <Button
-                                                            type="text"
-                                                            icon={<ArrowUpOutlined />}
-                                                            disabled={index === 0}
-                                                            onClick={() => move(index, index - 1)}
-                                                        />
-                                                        <Button
-                                                            type="text"
-                                                            icon={<ArrowDownOutlined />}
-                                                            disabled={index === fields.length - 1}
-                                                            onClick={() => move(index, index + 1)}
-                                                        />
-                                                        <Button
-                                                            type="text"
-                                                            danger
-                                                            icon={<DeleteOutlined />}
-                                                            onClick={() => remove(name)}
-                                                        />
-                                                    </Space>
-                                                </Col>
-                                            </Row>
-                                        ))}
-                                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                                            เพิ่มขั้นตอน
-                                        </Button>
-                                    </>
-                                )}
-                            </Form.List>
-                        </Card>
-
-                        <Card className="setting-card" style={{ marginTop: 16 }}>
-                            <Title level={5}>ขั้นตอนการทำโครงงาน</Title>
-                            <Text type="secondary">
-                                กำหนดขั้นตอนการทำงานสำหรับการทำโครงงาน
-                            </Text>
-
-                            <Form.List name="projectSteps">
-                                {(fields, { add, remove, move }) => (
-                                    <>
-                                        {fields.map(({ key, name, ...restField }, index) => (
-                                            <Row gutter={16} key={key} style={{ marginBottom: 16 }}>
-                                                <Col span={1} style={{ textAlign: 'center' }}>
-                                                    <Text strong>{index + 1}</Text>
-                                                </Col>
-                                                <Col span={5}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'stepId']}
-                                                        rules={[{ required: true, message: 'กรุณากรอกรหัสขั้นตอน' }]}
-                                                    >
-                                                        <Input placeholder="รหัสขั้นตอน" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={10}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'name']}
-                                                        rules={[{ required: true, message: 'กรุณากรอกชื่อขั้นตอน' }]}
-                                                    >
-                                                        <Input placeholder="ชื่อขั้นตอน" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={6}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'status']}
-                                                        rules={[{ required: true, message: 'กรุณากรอกสถานะ' }]}
-                                                    >
-                                                        <Select
-                                                            placeholder="เลือกสถานะ"
-                                                            showSearch
-                                                            optionFilterProp="children"
-                                                        >
-                                                            {studentStatuses.map(status => (
-                                                                <Option key={status.id} value={status.name}>
-                                                                    {status.name}
-                                                                </Option>
-                                                            ))}
-                                                        </Select>
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={2}>
-                                                    <Space>
-                                                        <Button
-                                                            type="text"
-                                                            icon={<ArrowUpOutlined />}
-                                                            disabled={index === 0}
-                                                            onClick={() => move(index, index - 1)}
-                                                        />
-                                                        <Button
-                                                            type="text"
-                                                            icon={<ArrowDownOutlined />}
-                                                            disabled={index === fields.length - 1}
-                                                            onClick={() => move(index, index + 1)}
-                                                        />
-                                                        <Button
-                                                            type="text"
-                                                            danger
-                                                            icon={<DeleteOutlined />}
-                                                            onClick={() => remove(name)}
-                                                        />
-                                                    </Space>
-                                                </Col>
-                                            </Row>
-                                        ))}
-                                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                                            เพิ่มขั้นตอน
-                                        </Button>
-                                    </>
-                                )}
-                            </Form.List>
-                        </Card>
-                    </TabPane>
-                </Tabs>
-
-                <div className="setting-actions">
-                    <Button
-                        icon={<ReloadOutlined />}
-                        onClick={fetchSettings}
-                        disabled={loading}
-                        style={{ marginRight: 8 }}
-                    >
-                        รีเซ็ต
-                    </Button>
-                    <Button
-                        type="primary"
-                        icon={<SaveOutlined />}
-                        onClick={handleSave}
-                        loading={loading}
-                    >
-                        บันทึกการตั้งค่า
-                    </Button>
-                </div>
-            </Form>
-        </div>
-    );
+      `}</style>
+    </div>
+  );
 };
 
 export default StatusSettings;
