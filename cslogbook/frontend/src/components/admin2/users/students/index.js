@@ -48,16 +48,20 @@ const StudentList = () => {
 
     let eligibleInternship = 0;
     let eligibleProject = 0;
+    let noEligibility = 0;
 
     filtered.forEach((student) => {
       if (student.isEligibleForInternship) eligibleInternship++;
       if (student.isEligibleForProject) eligibleProject++;
+      if (!student.isEligibleForInternship && !student.isEligibleForProject)
+        noEligibility++;
     });
 
     setStatistics({
       total: filtered.length,
       internshipEligible: eligibleInternship,
       projectEligible: eligibleProject,
+      noEligibility: noEligibility,
     });
   };
 
@@ -81,14 +85,18 @@ const StudentList = () => {
       // 3. กรองตาม searchText
       if (searchText && searchText.trim() !== "") {
         const searchLower = searchText.toLowerCase();
-        return (
+        // แก้ไขตรงนี้ เปลี่ยนจาก return เป็นถ้าไม่ตรงเงื่อนไขให้ return false
+        const matchesSearch =
           (student.studentCode &&
             student.studentCode.toLowerCase().includes(searchLower)) ||
           (student.firstName &&
             student.firstName.toLowerCase().includes(searchLower)) ||
           (student.lastName &&
-            student.lastName.toLowerCase().includes(searchLower))
-        );
+            student.lastName.toLowerCase().includes(searchLower));
+
+        if (!matchesSearch) {
+          return false;
+        }
       }
 
       return true;
@@ -216,7 +224,7 @@ const StudentList = () => {
               // จากนั้นกำหนดค่าเริ่มต้น
               form.setFieldsValue({
                 totalCredits: 0,
-                majorCredits: 0
+                majorCredits: 0,
               });
               // รีเซ็ตสถานะการเลือกนักศึกษา
               setSelectedStudent(null);
