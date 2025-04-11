@@ -13,17 +13,6 @@ export const adminService = {
     }
   },
 
-  // ดึงข้อมูลกิจกรรมล่าสุด
-  getRecentActivities: async (limit = 10) => {
-    try {
-      const response = await apiClient.get(`/admin/activities?limit=${limit}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      throw error;
-    }
-  },
-
   // อัปโหลดข้อมูลนักศึกษาจากไฟล์ CSV
   uploadStudentCSV: async (formData) => {
     try {

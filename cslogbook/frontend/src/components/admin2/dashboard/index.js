@@ -88,20 +88,6 @@ const Dashboard = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} md={12}>
-          <Card>
-            <Statistic
-              title="ผู้ใช้งานออนไลน์"
-              value={stats.system.onlineUsers}
-              valueStyle={{ color: "#52c41a" }}
-              prefix={<UserOutlined />}
-              loading={isLoading}
-            />
-            <div style={{ fontSize: "12px", color: "rgba(0,0,0,0.45)" }}>
-              อัพเดทล่าสุด: {moment(stats.system.lastUpdate).format("HH:mm:ss")}
-            </div>
-          </Card>
-        </Col>
       </Row>
 
       <Row gutter={[16, 16]}>

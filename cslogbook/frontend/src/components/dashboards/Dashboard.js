@@ -113,16 +113,6 @@ function Dashboard() {
                 />
               </Card>
             </Col>
-            <Col xs={24} md={12}>
-              <Card style={{ height: "100%" }}>
-                <Statistic
-                  title="ผู้ใช้งานออนไลน์"
-                  value={dashboardStats.system.onlineUsers}
-                  valueStyle={{ color: "#52c41a" }}
-                  prefix={<UserOutlined />}
-                />
-              </Card>
-            </Col>
           </Row>
 
           <Row gutter={[16, 16]}>
