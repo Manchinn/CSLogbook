@@ -44,8 +44,8 @@ const StudentFilters = ({
           <Segmented
             options={[
               { label: 'ทั้งหมด', value: '' },
-              { label: 'มีสิทธิ์ฝึกงาน', value: STUDENT_STATUS.ELIGIBLE_INTERNSHIP },
-              { label: 'มีสิทธิ์โครงงาน', value: STUDENT_STATUS.ELIGIBLE_PROJECT }
+              { label: 'มีสิทธิ์ฝึกงาน', value: 'internship' },
+              { label: 'มีสิทธิ์โครงงาน', value: 'project' }
             ]}
             value={statusFilter}
             onChange={setStatusFilter}

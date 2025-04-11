@@ -27,60 +27,72 @@ const StudentList = () => {
   const [academicYear, setAcademicYear] = useState(null);
   const [academicYearOptions, setAcademicYearOptions] = useState([]);
 
-  // ดึงข้อมูลนักศึกษา
-  const fetchStudents = async () => {
+  // ดึงข้อมูลนักศึกษาทั้งหมดโดยไม่ส่งพารามิเตอร์สำหรับการกรอง
+  const fetchStudents = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await studentService.getAllStudents({
-        search: searchText,
-        status: statusFilter,
-        academicYear,
-      });
+      // ดึงข้อมูลทั้งหมดโดยไม่มีการกรอง
+      const response = await studentService.getAllStudents({});
       setStudents(response);
     } catch (error) {
       message.error("ไม่สามารถโหลดข้อมูลนักศึกษาได้");
+      console.error("Error fetching students:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // ดึงข้อมูลสถิติ
-  const fetchStatistics = async () => {
-    try {
-      // แทนที่จะดึงจาก API โดยตรง ให้คำนวณจากข้อมูลนักศึกษาที่มีอยู่แล้ว
-      const studentData = await studentService.getAllStudents({
-        search: searchText,
-        status: statusFilter,
-        academicYear,
-      });
+  const calculateStatistics = () => {
+    const filtered = filteredStudents();
 
-      // คำนวณสถิติจากข้อมูลนักศึกษา
-      const total = studentData.length;
-      const eligibleInternship = studentData.filter(
-        (s) => s.isEligibleForInternship
-      ).length;
-      const eligibleProject = studentData.filter(
-        (s) => s.isEligibleForProject
-      ).length;
+    let eligibleInternship = 0;
+    let eligibleProject = 0;
 
-      console.log("Calculated statistics:", {
-        total,
-        eligibleInternship,
-        eligibleProject,
-      });
+    filtered.forEach((student) => {
+      if (student.isEligibleForInternship) eligibleInternship++;
+      if (student.isEligibleForProject) eligibleProject++;
+    });
 
-      // จัดรูปแบบข้อมูลให้ตรงกับที่ StudentStatistics คาดหวัง
-      const formattedStats = {
-        total: total,
-        internshipEligible: eligibleInternship,
-        projectEligible: eligibleProject,
-      };
+    setStatistics({
+      total: filtered.length,
+      internshipEligible: eligibleInternship,
+      projectEligible: eligibleProject,
+    });
+  };
 
-      setStatistics(formattedStats);
-    } catch (error) {
-      console.error("Error calculating statistics:", error);
-      message.error("ไม่สามารถคำนวณข้อมูลสถิติได้");
-    }
+  const filteredStudents = () => {
+    if (!Array.isArray(students)) return [];
+
+    return students.filter((student) => {
+      // 1. กรองตาม statusFilter
+      if (statusFilter === "internship" && !student.isEligibleForInternship) {
+        return false;
+      }
+      if (statusFilter === "project" && !student.isEligibleForProject) {
+        return false;
+      }
+
+      // 2. กรองตาม academicYear
+      if (academicYear && student.academicYear !== academicYear) {
+        return false;
+      }
+
+      // 3. กรองตาม searchText
+      if (searchText && searchText.trim() !== "") {
+        const searchLower = searchText.toLowerCase();
+        return (
+          (student.studentCode &&
+            student.studentCode.toLowerCase().includes(searchLower)) ||
+          (student.firstName &&
+            student.firstName.toLowerCase().includes(searchLower)) ||
+          (student.lastName &&
+            student.lastName.toLowerCase().includes(searchLower))
+        );
+      }
+
+      return true;
+    });
   };
 
   // ดึงข้อมูลปีการศึกษา
@@ -116,7 +128,7 @@ const StudentList = () => {
   const handleSaveStudent = async (studentData) => {
     try {
       let result;
-      
+
       if (selectedStudent) {
         // กรณีแก้ไขนักศึกษาที่มีอยู่แล้ว (ใช้ selectedStudent แทน studentData.id)
         result = await studentService.updateStudent(
@@ -129,12 +141,14 @@ const StudentList = () => {
         result = await studentService.addStudent(studentData);
         message.success("เพิ่มนักศึกษาสำเร็จ");
       }
-  
+
       fetchStudents();
-      fetchStatistics();
+      calculateStatistics();
       handleCloseDrawer();
     } catch (error) {
-      message.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (error.message || "ไม่ทราบสาเหตุ"));
+      message.error(
+        "เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (error.message || "ไม่ทราบสาเหตุ")
+      );
     }
   };
 
@@ -152,7 +166,6 @@ const StudentList = () => {
           await studentService.deleteStudent(studentCode);
           message.success("ลบข้อมูลสำเร็จ");
           fetchStudents(); // รีเฟรชข้อมูล
-          fetchStatistics(); // เพิ่มการอัปเดตสถิติหลังลบข้อมูล
           handleCloseDrawer(); // ปิด drawer
         } catch (error) {
           message.error(
@@ -165,24 +178,13 @@ const StudentList = () => {
 
   // โหลดข้อมูลเมื่อ component ถูก mount
   useEffect(() => {
-    console.log("Fetching data...");
-    // ดึงข้อมูลนักศึกษาแล้วคำนวณสถิติ
     fetchStudents();
-    fetchStatistics();
     fetchAcademicYearOptions();
   }, []);
 
-  // ปรับปรุงข้อมูลเมื่อมีการเปลี่ยนแปลงตัวกรอง
   useEffect(() => {
-    fetchStudents();
-    // ถ้าต้องการให้สถิติเปลี่ยนตามตัวกรอง ให้เรียก fetchStatistics ด้วย
-    fetchStatistics();
-  }, [searchText, statusFilter, academicYear]);
-
-  // เพิ่ม debugging สำหรับสถิติ
-  useEffect(() => {
-    console.log("Statistics state updated:", statistics);
-  }, [statistics]);
+    calculateStatistics();
+  }, [students, searchText, statusFilter, academicYear]);
 
   return (
     <div className="admin-student-container">
@@ -200,18 +202,28 @@ const StudentList = () => {
             setAcademicYear={setAcademicYear}
             academicYearOptions={academicYearOptions}
             onRefresh={() => {
-              fetchStudents();
-              fetchStatistics(); // เพิ่มการอัปเดตสถิติเมื่อกดรีเฟรช
-            }}
-            onAddStudent={() => {
-              setSelectedStudent(null);
-              setDrawerVisible(true);
-              setEditMode(true);
-            }}
-            onResetFilters={() => {
+              // รีเซ็ตตัวกรองทั้งหมด
               setSearchText("");
               setStatusFilter("");
               setAcademicYear(null);
+
+              // จากนั้นดึงข้อมูลใหม่
+              fetchStudents();
+            }}
+            onAddStudent={() => {
+              // รีเซ็ต form ให้ว่างก่อน
+              form.resetFields();
+              // จากนั้นกำหนดค่าเริ่มต้น
+              form.setFieldsValue({
+                totalCredits: 0,
+                majorCredits: 0
+              });
+              // รีเซ็ตสถานะการเลือกนักศึกษา
+              setSelectedStudent(null);
+              // เปิด drawer
+              setDrawerVisible(true);
+              // เปิดโหมดแก้ไข
+              setEditMode(true);
             }}
             loading={loading}
           />
@@ -219,7 +231,7 @@ const StudentList = () => {
       </Row>
 
       <StudentTable
-        students={students}
+        students={filteredStudents()}
         loading={loading}
         onView={handleViewStudent}
         onEdit={(student) => {
@@ -229,6 +241,17 @@ const StudentList = () => {
           }, 100);
         }}
         onDelete={handleDeleteStudent}
+        emptyText={
+          statusFilter
+            ? `ไม่พบนักศึกษาที่มีสถานะ "${
+                statusFilter === "internship"
+                  ? "มีสิทธิ์ฝึกงาน"
+                  : "มีสิทธิ์โครงงาน"
+              }"`
+            : searchText
+            ? `ไม่พบนักศึกษาที่ตรงกับคำค้นหา "${searchText}"`
+            : "ไม่พบข้อมูลนักศึกษา"
+        }
       />
 
       <StudentDrawer

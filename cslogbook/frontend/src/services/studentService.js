@@ -94,10 +94,15 @@ export const studentService = {
         majorCredits: parseInt(data.majorCredits, 10) || 0,
       };
 
-      const response = await apiClient.put(`/students/${studentCode}`, sanitizedData);
+      const response = await apiClient.put(
+        `/students/${studentCode}`,
+        sanitizedData
+      );
 
       if (!response.data.success) {
-        throw new Error(response.data.message || "ไม่สามารถอัพเดทข้อมูลนักศึกษาได้");
+        throw new Error(
+          response.data.message || "ไม่สามารถอัพเดทข้อมูลนักศึกษาได้"
+        );
       }
 
       return response.data;
@@ -205,8 +210,8 @@ export const studentService = {
       if (filters.semester) params.append("semester", filters.semester);
       if (filters.academicYear) params.append("academicYear", filters.academicYear);
       if (filters.search) params.append("search", filters.search);
-      // เพิ่มการส่งค่า status
       if (filters.status) params.append("status", filters.status);
+
 
       const queryString = params.toString();
       const url = queryString ? `/students?${queryString}` : "/students";
@@ -215,7 +220,8 @@ export const studentService = {
 
       const response = await apiClient.get(url);
 
-      console.log("Response from API:", response.data);
+      // เพิ่มการ log ข้อมูลที่ได้รับกลับมา
+      console.log("Response data length:", response.data.data?.length || 0);
 
       if (!response.data.success) {
         throw new Error(
@@ -225,11 +231,7 @@ export const studentService = {
 
       return response.data.data;
     } catch (error) {
-      console.error("Error fetching students:", {
-        error,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
+      console.error("Error fetching students:", error);
       throw error;
     }
   },
