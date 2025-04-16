@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, List, Avatar, Spin, Empty } from 'antd';
 import { UserOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import { adminService } from '../../../services/adminService';
 import moment from 'moment';
 
@@ -21,11 +20,26 @@ const getActivityIcon = (type) => {
 };
 
 const ActivityLog = () => {
-  const { data: activities = [], isLoading } = useQuery({
-    queryKey: ['adminActivities'],
-    queryFn: adminService.getRecentActivities,
-    refetchInterval: 60000, // รีเฟรชทุก 1 นาที
-  });
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchActivities = async () => {
+    setIsLoading(true);
+    try {
+      const data = await adminService.getRecentActivities();
+      setActivities(data);
+    } catch (error) {
+      setActivities([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActivities();
+    const interval = setInterval(fetchActivities, 60000); // รีเฟรชทุก 1 นาที
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Card title="กิจกรรมล่าสุด">
