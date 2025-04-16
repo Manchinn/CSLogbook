@@ -27,6 +27,17 @@ export const adminService = {
       console.error('Error uploading CSV:', error);
       throw error;
     }
+  },
+
+  // ดึงข้อมูลกิจกรรมล่าสุด
+  getRecentActivities: async () => {
+    try {
+      const response = await apiClient.get('/admin/activities');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+      throw error;
+    }
   }
 };
 

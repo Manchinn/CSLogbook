@@ -67,7 +67,7 @@ const Sidebar = () => {
   const location = useLocation();
   const { userData, logout } = useAuth();
   const [studentData, setStudentData] = useState(null);
-  const { canAccessInternship, canAccessProject, messages, updatePermissions } =
+  const { canAccessInternship, canAccessProject, messages } =
     useStudentPermissions(userData);
 
   // Handle window resize
@@ -134,7 +134,6 @@ const Sidebar = () => {
             // เช็คว่าข้อมูลมีการเปลี่ยนแปลงหรือไม่
             if (JSON.stringify(studentData) !== JSON.stringify(newData)) {
               setStudentData(newData);
-              updatePermissions(newData);
               setLastUpdate(new Date());
               localStorage.setItem("studentData", JSON.stringify(newData));
             }
@@ -149,7 +148,7 @@ const Sidebar = () => {
 
       return () => clearInterval(interval);
     }
-  }, [userData?.studentCode, userData?.role, updatePermissions, studentData]); // เพิ่ม studentData
+  }, [userData?.studentCode, userData?.role, studentData]); // เพิ่ม studentData
 
   const menuItems = useMemo(() => {
     // ถ้าไม่มี userData return เฉพาะ logout

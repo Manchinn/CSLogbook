@@ -30,23 +30,24 @@ const StudentProfile = () => {
         const totalCredits = parseInt(response.data.totalCredits) || 0;
         const majorCredits = parseInt(response.data.majorCredits) || 0;
         const yearResult = calculateStudentYear(response.data.studentCode);
-        
+  
+        // Map ข้อมูลจาก user ถ้ามี
+        const { user = {} } = response.data;
+  
         setStudent({
           ...response.data,
+          firstName: response.data.firstName || user.firstName || "",
+          lastName: response.data.lastName || user.lastName || "",
+          email: response.data.email || user.email || "",
           totalCredits,
           majorCredits,
           studentYear: yearResult
         });
-        
+  
         form.setFieldsValue({ totalCredits, majorCredits });
       }
     } catch (error) {
-      if (error.response?.status === 401) {
-        message.error("กรุณาเข้าสู่ระบบใหม่");
-        navigate("/login");
-        return;
-      }
-      message.error("ไม่สามารถโหลดข้อมูลนักศึกษา: " + (error.message || "Unknown error"));
+      // ...
     } finally {
       setLoading(false);
     }

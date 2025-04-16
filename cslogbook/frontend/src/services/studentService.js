@@ -30,6 +30,9 @@ export const studentService = {
         message: apiData.message,
         data: {
           studentCode: apiData.data.studentCode,
+          firstName: apiData.data.firstName || "",
+          lastName: apiData.data.lastName || "",
+          email: apiData.data.email || "",
           totalCredits: apiData.data.totalCredits || 0,
           majorCredits: apiData.data.majorCredits || 0,
           studentYear: apiData.data.eligibility?.studentYear || {

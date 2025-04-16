@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Row,
   Col,
@@ -28,22 +28,31 @@ import { adminService } from "../../services/adminService";
 import { teacherService } from "../../services/teacherService";
 import { studentService } from "../../services/studentService";
 import moment from "moment";
-import { useQuery } from "@tanstack/react-query";
 
 function Dashboard() {
   const { userData } = useAuth();
 
   function AdminView() {
     const navigate = useNavigate();
+    const [stats, setStats] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const { data: stats, isLoading } = useQuery({
-      queryKey: ["adminStats"],
-      queryFn: adminService.getStats,
-      onError: (error) => {
-        console.error("Error fetching stats:", error);
-        message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
-      },
-    });
+    useEffect(() => {
+      let isMounted = true;
+      adminService.getStats()
+        .then((data) => {
+          if (isMounted) {
+            setStats(data);
+            setIsLoading(false);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching stats:", error);
+          message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
+          setIsLoading(false);
+        });
+      return () => { isMounted = false; };
+    }, []);
 
     const dashboardStats = stats || {
       students: { total: 0, internshipEligible: 0, projectEligible: 0 },
@@ -64,14 +73,14 @@ function Dashboard() {
         value: dashboardStats.students.internshipEligible,
         icon: <BookOutlined />,
         color: "#52c41a",
-        onClick: () => navigate("/students?filter=internship"),
+        onClick: () => navigate("/admin2/users/students?filter=internship"),
       },
       {
         title: "มีสิทธิ์ทำโครงงานพิเศษ",
         value: dashboardStats.students.projectEligible,
         icon: <ProjectOutlined />,
         color: "#722ed1",
-        onClick: () => navigate("/students?filter=project"),
+        onClick: () => navigate("/admin2/users/students?filter=project"),
       },
     ];
 
@@ -145,14 +154,25 @@ function Dashboard() {
   }
 
   function TeacherView() {
-    const { data: teacherStats, isLoading } = useQuery({
-      queryKey: ["teacherStats"],
-      queryFn: teacherService.getStats,
-      onError: (error) => {
-        console.error("Error fetching teacher stats:", error);
-        message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
-      },
-    });
+    const [teacherStats, setTeacherStats] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      let isMounted = true;
+      teacherService.getStats()
+        .then((data) => {
+          if (isMounted) {
+            setTeacherStats(data);
+            setIsLoading(false);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching teacher stats:", error);
+          message.error("ไม่สามารถโหลดข้อมูลสถิติได้");
+          setIsLoading(false);
+        });
+      return () => { isMounted = false; };
+    }, []);
 
     const stats = teacherStats || {
       totalStudents: 0,
@@ -190,20 +210,29 @@ function Dashboard() {
   }
 
   function StudentView() {
-    const { userData } = useAuth();
     const navigate = useNavigate();
-    
-    const { data, isLoading, error } = useQuery({
-      queryKey: ['studentInfo', userData?.studentCode],
-      queryFn: () => userData?.studentCode ? studentService.getStudentInfo(userData.studentCode) : null,
-      enabled: !!userData?.studentCode,
-      onError: (error) => {
-        console.error('Error fetching student info:', error);
-        message.error('ไม่สามารถโหลดข้อมูลนักศึกษาได้');
+    const [studentData, setStudentData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      let isMounted = true;
+      if (userData?.studentCode) {
+        studentService.getStudentInfo(userData.studentCode)
+          .then((response) => {
+            if (isMounted) {
+              setStudentData(response.data);
+              setIsLoading(false);
+            }
+          })
+          .catch((error) => {
+            console.error('Error fetching student info:', error);
+            message.error('ไม่สามารถโหลดข้อมูลนักศึกษาได้');
+            setIsLoading(false);
+          });
       }
-    });
-    
-    const studentData = data?.data;
+      return () => { isMounted = false; };
+    }, [userData?.studentCode]);
+
     const isEligibleForInternship = studentData?.eligibility?.internship?.eligible || false;
     const isEligibleForProject = studentData?.eligibility?.project?.eligible || false;
 
@@ -224,13 +253,14 @@ function Dashboard() {
                 <Statistic
                   title="สถานะการฝึกงาน"
                   value={isEligibleForInternship ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
-                  valueStyle={{ 
-                    color: isEligibleForInternship ? '#52c41a' : '#ff4d4f' 
+                  valueStyle={{
+                    color: isEligibleForInternship ? '#52c41a' : '#ff4d4f'
                   }}
-                  prefix={isEligibleForInternship ? 
-                    <CheckCircleOutlined /> : 
+                  prefix={isEligibleForInternship ?
+                    <CheckCircleOutlined /> :
                     <ClockCircleOutlined />
                   }
+                  loading={isLoading}
                 />
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="หน่วยกิตรวม">
@@ -241,8 +271,8 @@ function Dashboard() {
                   </Descriptions.Item>
                 </Descriptions>
                 {isEligibleForInternship && (
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     icon={<FormOutlined />}
                     onClick={() => navigate('/internship-registration/cs05')}
                     style={{ marginTop: '16px' }}
@@ -259,13 +289,14 @@ function Dashboard() {
                 <Statistic
                   title="สถานะโครงงานพิเศษ"
                   value={isEligibleForProject ? 'มีสิทธิ์' : 'ไม่มีสิทธิ์'}
-                  valueStyle={{ 
-                    color: isEligibleForProject ? '#52c41a' : '#ff4d4f' 
+                  valueStyle={{
+                    color: isEligibleForProject ? '#52c41a' : '#ff4d4f'
                   }}
-                  prefix={isEligibleForProject ? 
-                    <CheckCircleOutlined /> : 
+                  prefix={isEligibleForProject ?
+                    <CheckCircleOutlined /> :
                     <ClockCircleOutlined />
                   }
+                  loading={isLoading}
                 />
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="ชั้นปี">
@@ -282,8 +313,8 @@ function Dashboard() {
                   </Descriptions.Item>
                 </Descriptions>
                 {isEligibleForProject && (
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     icon={<ProjectOutlined />}
                     onClick={() => navigate('/project')}
                     style={{ marginTop: '16px' }}
