@@ -1,69 +1,100 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { documentService } from '../../services/admin/documentService';
 import { message } from 'antd';
 
 /**
- * Hook สำหรับการจัดการเอกสารในส่วน Admin
+ * Hook สำหรับการจัดการเอกสารในส่วน Admin (useState/useEffect)
  * @param {Object} options - ตัวเลือกสำหรับการดึงข้อมูล
  * @param {string} options.type - ประเภทเอกสาร ('all', 'internship', 'project')
  * @param {string} options.status - สถานะเอกสาร ('all', 'pending', 'approved', 'rejected')
  * @param {string} options.search - คำค้นหา
  */
 export function useDocuments(options = {}) {
-  const queryClient = useQueryClient();
   const { type = 'all', status = 'all', search = '' } = options;
-  
-  // ดึงรายการเอกสาร
-  const documentsQuery = useQuery({
-    queryKey: ['admin', 'documents', { type, status, search }],
-    queryFn: () => documentService.getDocuments({ type, status, search }),
-    staleTime: 1000 * 60 * 5, // 5 นาที
-  });
-  
+
+  const [documents, setDocuments] = useState([]);
+  const [statistics, setStatistics] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchDocuments = useCallback(async () => {
+    setIsLoading(true);
+    setIsError(false);
+    setError(null);
+    try {
+      const data = await documentService.getDocuments({ type, status, search });
+      setDocuments(data.documents || []);
+      setStatistics(data.statistics || { total: 0, pending: 0, approved: 0, rejected: 0 });
+    } catch (err) {
+      setIsError(true);
+      setError(err);
+      setDocuments([]);
+      setStatistics({ total: 0, pending: 0, approved: 0, rejected: 0 });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [type, status, search]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+
   // อนุมัติเอกสาร
-  const approveMutation = useMutation({
-    mutationFn: documentService.approveDocument,
-    onSuccess: (data, documentId) => {
+  const approveDocument = async (documentId) => {
+    try {
+      await documentService.approveDocument(documentId);
       message.success('อนุมัติเอกสารเรียบร้อยแล้ว');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
-      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
-    },
-    onError: (error) => {
-      message.error('เกิดข้อผิดพลาดในการอนุมัติเอกสาร: ' + (error.message || 'กรุณาลองใหม่อีกครั้ง'));
+      fetchDocuments();
+    } catch (err) {
+      message.error('เกิดข้อผิดพลาดในการอนุมัติเอกสาร: ' + (err.message || 'กรุณาลองใหม่อีกครั้ง'));
     }
-  });
-  
+  };
+
   // ปฏิเสธเอกสาร
-  const rejectMutation = useMutation({
-    mutationFn: documentService.rejectDocument,
-    onSuccess: (data, documentId) => {
+  const rejectDocument = async (documentId) => {
+    try {
+      await documentService.rejectDocument(documentId);
       message.success('ปฏิเสธเอกสารเรียบร้อยแล้ว');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
-      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
-    },
-    onError: (error) => {
-      message.error('เกิดข้อผิดพลาดในการปฏิเสธเอกสาร: ' + (error.message || 'กรุณาลองใหม่อีกครั้ง'));
+      fetchDocuments();
+    } catch (err) {
+      message.error('เกิดข้อผิดพลาดในการปฏิเสธเอกสาร: ' + (err.message || 'กรุณาลองใหม่อีกครั้ง'));
     }
-  });
-  
+  };
+
   // ดึงรายละเอียดเอกสาร
   const useDocumentDetails = (documentId) => {
-    return useQuery({
-      queryKey: ['admin', 'documentDetails', documentId],
-      queryFn: () => documentId ? documentService.getDocumentById(documentId) : null,
-      enabled: !!documentId,
-    });
+    const [details, setDetails] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+      if (!documentId) {
+        setDetails(null);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      documentService.getDocumentById(documentId)
+        .then(setDetails)
+        .catch(setError)
+        .finally(() => setLoading(false));
+    }, [documentId]);
+
+    return { data: details, isLoading: loading, error };
   };
-  
+
+  const refetch = fetchDocuments;
+
   return {
-    documents: documentsQuery.data?.documents || [],
-    statistics: documentsQuery.data?.statistics || { total: 0, pending: 0, approved: 0, rejected: 0 },
-    isLoading: documentsQuery.isLoading,
-    isError: documentsQuery.isError,
-    error: documentsQuery.error,
-    refetch: documentsQuery.refetch,
-    approveDocument: approveMutation.mutate,
-    rejectDocument: rejectMutation.mutate,
+    documents,
+    statistics,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    approveDocument,
+    rejectDocument,
     useDocumentDetails,
   };
 }

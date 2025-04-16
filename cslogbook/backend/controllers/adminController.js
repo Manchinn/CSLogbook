@@ -1,4 +1,4 @@
-const { User, Student, Document } = require('../models');
+const { User, Student, Document, ActivityLog } = require('../models');
 const { Op, Sequelize } = require('sequelize');
 const moment = require('moment');
 
@@ -85,6 +85,21 @@ const getSystemStats = async () => {
   };
 };
 
+// เพิ่มฟังก์ชันสำหรับดึงกิจกรรมล่าสุด
+const getRecentActivities = async (req, res) => {
+  try {
+    // ดึง 20 กิจกรรมล่าสุด (แก้ไขตามชื่อ model และ field ที่ใช้จริง)
+    const activities = await ActivityLog.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 20
+    });
+    res.json(activities);
+  } catch (error) {
+    console.error('Error fetching recent activities:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงกิจกรรมล่าสุด' });
+  }
+};
+
 // Controller exports
 module.exports = {
   getStats: async (req, res) => {
@@ -161,5 +176,8 @@ module.exports = {
     } catch (error) {
       res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลระบบ' });
     }
-  }
+  },
+
+  // เพิ่ม export ฟังก์ชันนี้
+  getRecentActivities
 };

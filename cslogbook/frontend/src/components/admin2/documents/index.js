@@ -30,16 +30,16 @@ const { Text, Title } = Typography;
 const DocumentManagement = () => {
   // State สำหรับการกรอง
   const [filters, setFilters] = useState({
-    type: 'all',
-    status: '',
-    search: ''
+    type: "all",
+    status: "",
+    search: "",
   });
-  
+
   // State สำหรับการแสดง Modal
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  
+
   // ใช้ custom hook
   const {
     documents,
@@ -47,46 +47,49 @@ const DocumentManagement = () => {
     isLoading,
     approveDocument,
     rejectDocument,
-    refetch
+    refetch,
   } = useDocuments({
     type: filters.type,
     status: filters.status,
-    search: filters.search
+    search: filters.search,
   });
-  
+
   // ฟังก์ชัน set filters
   const setSearchText = useCallback((text) => {
-    setFilters(prev => ({ ...prev, search: text }));
+    setFilters((prev) => ({ ...prev, search: text }));
   }, []);
-  
+
   const setStatusFilter = useCallback((status) => {
-    setFilters(prev => ({ ...prev, status: status }));
+    setFilters((prev) => ({ ...prev, status: status }));
     setSelectedRowKeys([]);
   }, []);
-  
+
   const setTypeFilter = useCallback((type) => {
-    setFilters(prev => ({ ...prev, type: type }));
+    setFilters((prev) => ({ ...prev, type: type }));
   }, []);
-  
+
   // ฟังก์ชันจัดการ Modal
   const showDocumentDetails = useCallback((documentId) => {
     setSelectedDocumentId(documentId);
     setIsModalVisible(true);
   }, []);
-  
+
   const closeDocumentDetails = useCallback(() => {
     setIsModalVisible(false);
     setSelectedDocumentId(null);
   }, []);
-  
+
   // กรองเอกสารตามเงื่อนไข
   const filteredDocuments = useMemo(() => {
-    return documents.filter((doc) => 
-      (doc.document_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-       doc.student_name?.toLowerCase().includes(filters.search.toLowerCase()))
+    return documents.filter(
+      (doc) =>
+        doc.document_name
+          ?.toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+        doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())
     );
   }, [documents, filters.search]);
-  
+
   // คอลัมน์ตาราง
   const columns = useMemo(
     () => [
@@ -117,7 +120,8 @@ const DocumentManagement = () => {
         title: "วันที่อัปโหลด",
         dataIndex: "upload_date",
         key: "upload_date",
-        render: (text) => moment(text).tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm"),
+        render: (text) =>
+          moment(text).tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm"),
         sorter: (a, b) => new Date(a.upload_date) - new Date(b.upload_date),
       },
       {
@@ -141,11 +145,13 @@ const DocumentManagement = () => {
     ],
     [showDocumentDetails]
   );
-  
+
   // การจัดการเหตุการณ์
   const handleApproveSelectedDocuments = useCallback(async () => {
     try {
-      const promises = selectedRowKeys.map((documentId) => approveDocument(documentId));
+      const promises = selectedRowKeys.map((documentId) =>
+        approveDocument(documentId)
+      );
       await Promise.all(promises);
       message.success("อนุมัติเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
@@ -153,12 +159,12 @@ const DocumentManagement = () => {
       message.error("เกิดข้อผิดพลาดในการอนุมัติเอกสาร");
     }
   }, [selectedRowKeys, approveDocument]);
-  
+
   const handleResetFilters = useCallback(() => {
-    setFilters({ type: 'all', status: '', search: '' });
+    setFilters({ type: "all", status: "", search: "" });
     setSelectedRowKeys([]);
   }, []);
-  
+
   const rowSelection = useMemo(
     () => ({
       selectedRowKeys,
@@ -166,7 +172,7 @@ const DocumentManagement = () => {
     }),
     [selectedRowKeys]
   );
-  
+
   // JSX
   return (
     <div className="admin-document-container" style={{ padding: "24px" }}>
@@ -228,10 +234,10 @@ const DocumentManagement = () => {
           </Col>
           <Col xs={24} sm={24} md={8}>
             <Space>
-              <Button icon={<ReloadOutlined />} onClick={refetch}>
+              <Button icon={<ReloadOutlined />} onClick={refetch} size="small">
                 รีเฟรช
               </Button>
-              <Button onClick={handleResetFilters}>
+              <Button onClick={handleResetFilters} size="small">
                 รีเซ็ตตัวกรอง
               </Button>
               {filters.status === "pending" && (
@@ -240,6 +246,7 @@ const DocumentManagement = () => {
                   onClick={handleApproveSelectedDocuments}
                   disabled={selectedRowKeys.length === 0}
                   icon={<CheckCircleOutlined />}
+                  size="small"
                 >
                   อนุมัติที่เลือก ({selectedRowKeys.length})
                 </Button>

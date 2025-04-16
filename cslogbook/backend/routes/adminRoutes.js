@@ -24,6 +24,9 @@ router.get('/stats/students', adminAuth, adminController.getStudentStats);
 router.get('/stats/documents', adminAuth, adminController.getDocumentStats);
 router.get('/stats/system', adminAuth, adminController.getSystemStats);
 
+// เพิ่ม route สำหรับกิจกรรมล่าสุด
+router.get('/activities', adminAuth, adminController.getRecentActivities);
+
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
 router.get('/students/stats', adminAuth, studentController.getAllStudentStats);

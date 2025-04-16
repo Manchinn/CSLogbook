@@ -1,58 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar } from 'antd';
-import { FileOutlined, FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import {  FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentService } from '../../../services/admin/documentService';
-//import PDFViewer from './PDFViewer';
 
 const { Title, Paragraph, Text } = Typography;
 
 const DocumentDetails = ({ documentId, open, onClose }) => {
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const queryClient = useQueryClient();
-  
-  // ดึงข้อมูลรายละเอียดเอกสาร
-  const { data: document, isLoading } = useQuery({
-    queryKey: ['admin', 'documentDetails', documentId],
-    queryFn: () => documentId ? documentService.getDocumentById(documentId) : null,
-    enabled: !!documentId && open,
-    onError: (error) => {
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร');
-      console.error('Error fetching document details:', error);
-    }
-  });
-  
-  // Mutations สำหรับการอนุมัติ/ปฏิเสธเอกสาร
-  const approveMutation = useMutation({
-    mutationFn: documentService.approveDocument,
-    onSuccess: () => {
-      message.success('อนุมัติเอกสารเรียบร้อย');
-      // Invalidate queries to refresh the document list and stats
-      queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
-      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
-      onClose();
-    },
-    onError: (error) => {
-      message.error('เกิดข้อผิดพลาดในการอนุมัติเอกสาร');
-      console.error('Error approving document:', error);
-    }
-  });
-  
-  const rejectMutation = useMutation({
-    mutationFn: documentService.rejectDocument,
-    onSuccess: () => {
-      message.success('ปฏิเสธเอกสารเรียบร้อย');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
-      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
-      onClose();
-    },
-    onError: (error) => {
-      message.error('เกิดข้อผิดพลาดในการปฏิเสธเอกสาร');
-      console.error('Error rejecting document:', error);
-    }
-  });
-  
+
+  useEffect(() => {
+    if (!documentId) return;
+    setLoading(true);
+    setError(null);
+    documentService.getDocumentById(documentId)
+      .then(setDetails)
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, [documentId]);
+
   const handleDownload = async (fileUrl, fileName) => {
     try {
       await documentService.downloadFile(fileUrl, fileName);
@@ -62,29 +31,16 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       console.error('Error downloading file:', error);
     }
   };
-  
-  const handleApprove = () => {
-    if (documentId) {
-      approveMutation.mutate(documentId);
-    }
-  };
-  
-  const handleReject = () => {
-    if (documentId) {
-      rejectMutation.mutate(documentId);
-    }
-  };
-  
-  // Render file list
+
   const renderFileList = () => {
-    if (!document || !document.files || document.files.length === 0) {
+    if (!details || !details.files || details.files.length === 0) {
       return <Text type="secondary">ไม่พบไฟล์แนบ</Text>;
     }
-    
+
     return (
       <List
         itemLayout="horizontal"
-        dataSource={document.files}
+        dataSource={details.files}
         renderItem={(file) => (
           <List.Item
             actions={[
@@ -117,11 +73,10 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       />
     );
   };
-  
-  // Render detail section
+
   const renderDetailSection = () => {
-    if (!document) return null;
-    
+    if (!details) return null;
+
     return (
       <Card 
         title={<Title level={4}>รายละเอียดเอกสาร</Title>} 
@@ -130,40 +85,40 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       >
         <Row gutter={[24, 16]}>
           <Col xs={24} md={12}>
-            <Paragraph><strong>ชื่อเอกสาร:</strong> {document.document_name}</Paragraph>
-            <Paragraph><strong>ประเภท:</strong> {document.type === 'internship' ? 'เอกสารฝึกงาน' : 'เอกสารโครงงาน'}</Paragraph>
-            <Paragraph><strong>ผู้อัปโหลด:</strong> {document.student_name}</Paragraph>
+            <Paragraph><strong>ชื่อเอกสาร:</strong> {details.document_name}</Paragraph>
+            <Paragraph><strong>ประเภท:</strong> {details.type === 'internship' ? 'เอกสารฝึกงาน' : 'เอกสารโครงงาน'}</Paragraph>
+            <Paragraph><strong>ผู้อัปโหลด:</strong> {details.student_name}</Paragraph>
           </Col>
           <Col xs={24} md={12}>
-            <Paragraph><strong>รหัสนักศึกษา:</strong> {document.student_code}</Paragraph>
-            <Paragraph><strong>วันที่อัปโหลด:</strong> {moment(document.upload_date).format('DD/MM/YYYY HH:mm')}</Paragraph>
+            <Paragraph><strong>รหัสนักศึกษา:</strong> {details.student_code}</Paragraph>
+            <Paragraph><strong>วันที่อัปโหลด:</strong> {moment(details.upload_date).format('DD/MM/YYYY HH:mm')}</Paragraph>
             <Paragraph>
-              <strong>สถานะ:</strong> {renderStatus(document.status)}
+              <strong>สถานะ:</strong> {renderStatus(details.status)}
             </Paragraph>
           </Col>
         </Row>
         
         <Divider style={{ margin: '12px 0' }} />
         
-        {document.title && (
+        {details.title && (
           <>
-            <Paragraph><strong>หัวข้อโครงงาน:</strong> {document.title}</Paragraph>
-            <Paragraph><strong>คำอธิบาย:</strong> {document.description}</Paragraph>
+            <Paragraph><strong>หัวข้อโครงงาน:</strong> {details.title}</Paragraph>
+            <Paragraph><strong>คำอธิบาย:</strong> {details.description}</Paragraph>
             <Divider style={{ margin: '12px 0' }} />
           </>
         )}
         <Row gutter={[24, 16]}>
           <Col xs={24} md={12}>
-            <Paragraph><strong>แทร็ก:</strong> {document?.track || 'ไม่ระบุ'}</Paragraph>
+            <Paragraph><strong>แทร็ก:</strong> {details?.track || 'ไม่ระบุ'}</Paragraph>
           </Col>
           <Col xs={24} md={12}>
-            <Paragraph><strong>หมวดหมู่โครงการ:</strong> {document?.project_category || 'ไม่ระบุ'}</Paragraph>
+            <Paragraph><strong>หมวดหมู่โครงการ:</strong> {details?.project_category || 'ไม่ระบุ'}</Paragraph>
           </Col>
         </Row>
       </Card>
     );
   };
-  
+
   const renderStatus = (status) => {
     if (!status) return <Tag color="default">ไม่ระบุ</Tag>;
     
@@ -181,36 +136,20 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       </Tag>
     );
   };
-  
-  const renderFooter = () => {
-    if (!document || document.status !== 'pending') return null;
-    
-    return (
-      <Space>
-        <Button onClick={onClose}>ปิด</Button>
-        <Button type="danger" onClick={handleReject} loading={rejectMutation.isLoading}>
-          ปฏิเสธ
-        </Button>
-        <Button type="primary" onClick={handleApprove} loading={approveMutation.isLoading}>
-          อนุมัติ
-        </Button>
-      </Space>
-    );
-  };
-  
+
   return (
     <Modal 
       title={<Title level={3} style={{ textAlign: 'center', margin: 0 }}>รายละเอียดเอกสาร</Title>}
       open={open}
       onCancel={onClose}
-      footer={renderFooter()}
+      footer={<Button onClick={onClose}>ปิด</Button>}
       centered
       width="90%"
       bodyStyle={{ maxHeight: '80vh', overflow: 'auto', padding: '20px' }}
       destroyOnClose={true}
       className="document-detail-modal"
     >
-      {isLoading ? (
+      {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
           <Spin size="large" tip="กำลังโหลดข้อมูล..." />
         </div>
