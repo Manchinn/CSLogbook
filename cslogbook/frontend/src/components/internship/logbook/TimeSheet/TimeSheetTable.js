@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
-import { Table, Space, Button, Badge, Tooltip } from 'antd';
-import { EditOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Space, Button, Badge, Tooltip, Tag, Typography } from 'antd';
+import { EditOutlined, EyeOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
-import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../../utils/constants';
+import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT, TIME_FORMAT } from '../../../../utils/constants';
+
+const { Text } = Typography;
 
 // เพิ่มฟังก์ชันเพื่อตรวจสอบว่าวันที่ยังไม่ถึงหรือไม่
 const isFutureDate = (date) => {
@@ -66,25 +68,62 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
       },
     },
     {
-      title: "หัวข้องาน",
-      dataIndex: "logTitle",
-      key: "logTitle",
-      render: (text) => text || '-',
+      title: "เวลาทำงาน",
+      key: "workTime",
+      width: 160,
+      render: (_, record) => {
+        if (!record.timeIn) return '-';
+        
+        return (
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Text><ClockCircleOutlined /> เข้า: {record.timeIn ? dayjs(record.timeIn).format(TIME_FORMAT) : '-'}</Text>
+            <Text>{record.timeOut ? `ออก: ${dayjs(record.timeOut).format(TIME_FORMAT)}` : 'ยังไม่บันทึกเวลาออก'}</Text>
+          </Space>
+        );
+      },
     },
     {
-      title: "วันที่ส่ง",
-      key: "updatedAt",
-      render: (_, record) => {
-        const updateTime = record.updatedAt || record.updated_at;
-        if (updateTime) {
-          return dayjs(updateTime).format(DATE_TIME_FORMAT);
-        } 
-        return "-";
-      },
+      title: "หัวข้อและรายละเอียด",
+      key: "details",
+      render: (_, record) => (
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Text strong>{record.logTitle || '-'}</Text>
+          {record.workHours > 0 && <Text type="secondary">{record.workHours} ชั่วโมง</Text>}
+          {record.workDescription && (
+            <Text type="secondary" ellipsis={{ tooltip: record.workDescription }}>
+              {record.workDescription.length > 50 
+                ? `${record.workDescription.substring(0, 50)}...` 
+                : record.workDescription}
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: "การอนุมัติ",
+      key: "approvals",
+      width: 130,
+      render: (_, record) => (
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Tag color={record.supervisorApproved ? "success" : "default"} style={{ margin: '2px 0' }}>
+            {record.supervisorApproved 
+              ? <><CheckCircleOutlined /> หัวหน้างาน</>
+              : <><CloseCircleOutlined /> รออนุมัติ</>
+            }
+          </Tag>
+          <Tag color={record.advisorApproved ? "success" : "default"} style={{ margin: '2px 0' }}>
+            {record.advisorApproved 
+              ? <><CheckCircleOutlined /> อาจารย์</>
+              : <><CloseCircleOutlined /> รออนุมัติ</>
+            }
+          </Tag>
+        </Space>
+      ),
     },
     {
       title: "สถานะ",
       key: "status",
+      width: 120,
       render: (_, record) => {
         const status = getEntryStatus(record);
         return renderStatusBadge(status);
@@ -93,6 +132,7 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
     {
       title: "Actions",
       key: "actions",
+      width: 100,
       render: (_, record) => {
         const isDateInFuture = isFutureDate(record.workDate);
         
@@ -133,7 +173,7 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
         dataSource={dataWithKeys}
         loading={loading}
         rowKey={record => record.key}
-        style={{ minWidth: '800px' }} // กำหนด min-width เพื่อป้องกันตารางหด
+        style={{ minWidth: '800px' }} 
         pagination={{
           pageSize: 10,
           showSizeChanger: false,
