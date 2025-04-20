@@ -1,28 +1,31 @@
-import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { Spin, Layout } from 'antd';
-import { SystemProvider } from '../../contexts/adminContext/SystemContext';
-import { UserManagementProvider } from '../../contexts/adminContext/UserManagementContext';
-import { DocumentProvider } from '../../contexts/adminContext/DocumentContext';
+import React, { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+import { Spin, Layout } from "antd";
+import { SystemProvider } from "../../contexts/adminContext/SystemContext";
+import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
+import { DocumentProvider } from "../../contexts/adminContext/DocumentContext";
+import DocumentManagement from "./documents";
 
 // Lazy loading components
-const Dashboard = lazy(() => import('./dashboard'));
-const InternshipDocs = lazy(() => import('./documents/InternshipDocs'));
-const ProjectDocs = lazy(() => import('./documents/ProjectDocs'));
-const StudentList = lazy(() => import('./users/students'));
-const TeacherList = lazy(() => import('./users/teachers'));
-const AdminUpload = lazy(() => import('../AdminUpload'));
-const ConstantsSettings = lazy(() => import('./settings/constants'));
+const Dashboard = lazy(() => import("./dashboard"));
+const StudentList = lazy(() => import("./users/students"));
+const TeacherList = lazy(() => import("./users/teachers"));
+const AdminUpload = lazy(() => import("../AdminUpload"));
+const ConstantsSettings = lazy(() => import("./settings/constants"));
 
 // เพิ่ม imports สำหรับหน้าตั้งค่าใหม่
-const Settings = lazy(() => import('./settings')); // หน้าหลักการตั้งค่า
-const AcademicSettingsPage = lazy(() => import('./settings/AcademicSettingsPage'));
-const StatusSettingsPage = lazy(() => import('./settings/StatusSettingsPage'));
-const CurriculumSettingsPage = lazy(() => import('./settings/CurriculumSettingsPage')); // เพิ่ม import
+const Settings = lazy(() => import("./settings")); // หน้าหลักการตั้งค่า
+const AcademicSettingsPage = lazy(() =>
+  import("./settings/AcademicSettingsPage")
+);
+const StatusSettingsPage = lazy(() => import("./settings/StatusSettingsPage"));
+const CurriculumSettingsPage = lazy(() =>
+  import("./settings/CurriculumSettingsPage")
+); // เพิ่ม import
 
 // Loading component
 const LoadingComponent = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', padding: '50px' }}>
+  <div style={{ display: "flex", justifyContent: "center", padding: "50px" }}>
     <Spin size="large" tip="กำลังโหลด..." />
   </div>
 );
@@ -31,31 +34,31 @@ const AdminRoutes = () => {
   return (
     <SystemProvider>
       <UserManagementProvider>
-        <Layout.Content style={{ padding: '20px', minHeight: 'calc(100vh - 64px)' }}>
+        <Layout.Content
+          style={{ padding: "20px", minHeight: "calc(100vh - 64px)" }}
+        >
           <Suspense fallback={<LoadingComponent />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              
-              {/* ใช้ DocumentProvider สำหรับจัดการเอกสาร */}
-              <Route path="/documents">
-                <Route 
-                  path="internship" 
-                  element={
-                    <DocumentProvider type="internship">
-                      <InternshipDocs />
-                    </DocumentProvider>
-                  } 
-                />
-                <Route 
-                  path="project" 
-                  element={
-                    <DocumentProvider type="project">
-                      <ProjectDocs />
-                    </DocumentProvider>
-                  } 
-                />
-              </Route>
+
+              {/* ใช้ DocumentManagement สำหรับจัดการเอกสาร */}
+              <Route
+                path="documents/internship"
+                element={
+                  <DocumentProvider type="internship">
+                    <DocumentManagement type="internship" />
+                  </DocumentProvider>
+                }
+              />
+              <Route
+                path="documents/project"
+                element={
+                  <DocumentProvider type="project">
+                    <DocumentManagement type="project" />
+                  </DocumentProvider>
+                }
+              />
 
               <Route path="/users">
                 <Route path="students" element={<StudentList />} />
@@ -63,11 +66,22 @@ const AdminRoutes = () => {
               </Route>
               <Route path="/upload" element={<AdminUpload />} />
               <Route path="/settings">
-                <Route index element={<Settings />} /> {/* หน้าหลักการตั้งค่า */}
-                <Route path="constants" element={<ConstantsSettings />} /> {/* เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม */}
-                <Route path="academic" element={<AcademicSettingsPage />} /> {/* หน้าตั้งค่าปีการศึกษา */}
-                <Route path="status" element={<StatusSettingsPage />} /> {/* หน้าตั้งค่าสถานะ */}
-                <Route path="curriculum" element={<CurriculumSettingsPage />} /> {/* เพิ่มใน Route ของ settings */}
+                <Route index element={<Settings />} />{" "}
+                {/* หน้าหลักการตั้งค่า */}
+                <Route path="constants" element={<ConstantsSettings />} />{" "}
+                {/* เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม */}
+                <Route
+                  path="academic"
+                  element={<AcademicSettingsPage />}
+                />{" "}
+                {/* หน้าตั้งค่าปีการศึกษา */}
+                <Route path="status" element={<StatusSettingsPage />} />{" "}
+                {/* หน้าตั้งค่าสถานะ */}
+                <Route
+                  path="curriculum"
+                  element={<CurriculumSettingsPage />}
+                />{" "}
+                {/* เพิ่มใน Route ของ settings */}
               </Route>
             </Routes>
           </Suspense>

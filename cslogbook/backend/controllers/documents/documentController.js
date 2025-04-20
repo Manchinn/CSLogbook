@@ -123,7 +123,7 @@ const getDocuments = async (req, res) => {
         let whereCondition = {};
         
         if (type && type !== 'all') {
-            whereCondition.documentType = type;
+            whereCondition.documentType = type.toLowerCase(); // ตรวจสอบว่า type ตรงกับฐานข้อมูล
         }
         
         if (status && status !== 'all') {

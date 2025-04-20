@@ -11,6 +11,7 @@ import {
   Card,
   Segmented,
   message,
+  Tooltip,
 } from "antd";
 import {
   SearchOutlined,
@@ -25,12 +26,11 @@ import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
 import moment from "moment-timezone";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-const DocumentManagement = () => {
+const DocumentManagement = ({ type }) => {
   // State สำหรับการกรอง
   const [filters, setFilters] = useState({
-    type: "all",
     status: "",
     search: "",
   });
@@ -49,7 +49,7 @@ const DocumentManagement = () => {
     rejectDocument,
     refetch,
   } = useDocuments({
-    type: filters.type,
+    type, // ใช้ type จาก props
     status: filters.status,
     search: filters.search,
   });
@@ -60,12 +60,13 @@ const DocumentManagement = () => {
   }, []);
 
   const setStatusFilter = useCallback((status) => {
-    setFilters((prev) => ({ ...prev, status: status }));
+    setFilters((prev) => ({ ...prev, status }));
     setSelectedRowKeys([]);
   }, []);
 
-  const setTypeFilter = useCallback((type) => {
-    setFilters((prev) => ({ ...prev, type: type }));
+  const handleResetFilters = useCallback(() => {
+    setFilters({ status: "", search: "" });
+    setSelectedRowKeys([]);
   }, []);
 
   // ฟังก์ชันจัดการ Modal
@@ -83,12 +84,15 @@ const DocumentManagement = () => {
   const filteredDocuments = useMemo(() => {
     return documents.filter(
       (doc) =>
-        doc.document_name
+        (filters.status === "" || doc.status === filters.status) &&
+        (doc.document_name
           ?.toLowerCase()
           .includes(filters.search.toLowerCase()) ||
-        doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())
+          doc.student_name
+            ?.toLowerCase()
+            .includes(filters.search.toLowerCase()))
     );
-  }, [documents, filters.search]);
+  }, [documents, filters]);
 
   // คอลัมน์ตาราง
   const columns = useMemo(
@@ -160,10 +164,18 @@ const DocumentManagement = () => {
     }
   }, [selectedRowKeys, approveDocument]);
 
-  const handleResetFilters = useCallback(() => {
-    setFilters({ type: "all", status: "", search: "" });
-    setSelectedRowKeys([]);
-  }, []);
+  const handleRejectSelectedDocuments = useCallback(async () => {
+    try {
+      const promises = selectedRowKeys.map((documentId) =>
+        rejectDocument(documentId)
+      );
+      await Promise.all(promises);
+      message.success("ปฏิเสธเอกสารที่เลือกเรียบร้อยแล้ว");
+      setSelectedRowKeys([]);
+    } catch (error) {
+      message.error("เกิดข้อผิดพลาดในการปฏิเสธเอกสาร");
+    }
+  }, [selectedRowKeys, rejectDocument]);
 
   const rowSelection = useMemo(
     () => ({
@@ -221,19 +233,7 @@ const DocumentManagement = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={8}>
-            {/* เพิ่ม Segmented Control สำหรับประเภทเอกสาร */}
-            <Segmented
-              options={[
-                { label: "ทั้งหมด", value: "all" },
-                { label: "เอกสารฝึกงาน", value: "internship" },
-                { label: "เอกสารโครงงานพิเศษ", value: "project" },
-              ]}
-              value={filters.type}
-              onChange={setTypeFilter}
-              style={{ marginBottom: '8px', width: '100%' }}
-            />
-            
-            {/* Status filter ที่มีอยู่แล้ว */}
+            {/* Status filter */}
             <Segmented
               options={[
                 { label: "ทั้งหมด", value: "" },
@@ -246,23 +246,40 @@ const DocumentManagement = () => {
             />
           </Col>
           <Col xs={24} sm={24} md={8}>
-            <Space>
-              <Button icon={<ReloadOutlined />} onClick={refetch} size="small">
-                รีเฟรช
-              </Button>
-              <Button onClick={handleResetFilters} size="small">
-                รีเซ็ตตัวกรอง
-              </Button>
-              {filters.status === "pending" && (
+            <Space wrap>
+              <Tooltip title="รีเฟรช">
                 <Button
-                  type="primary"
-                  onClick={handleApproveSelectedDocuments}
-                  disabled={selectedRowKeys.length === 0}
-                  icon={<CheckCircleOutlined />}
-                  size="small"
-                >
-                  อนุมัติที่เลือก ({selectedRowKeys.length})
-                </Button>
+                  icon={<ReloadOutlined />}
+                  onClick={refetch}
+                  size="large"
+                  shape="square"
+                />
+              </Tooltip>
+              {filters.status === "pending" && (
+                <>
+                  <Tooltip
+                    title={`อนุมัติที่เลือก (${selectedRowKeys.length})`}
+                  >
+                    <Button
+                      type="primary"
+                      onClick={handleApproveSelectedDocuments}
+                      disabled={selectedRowKeys.length === 0}
+                      icon={<CheckCircleOutlined />}
+                      size="large"
+                      shape="square"
+                    />
+                  </Tooltip>
+                  <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
+                    <Button
+                      type="danger"
+                      onClick={handleRejectSelectedDocuments}
+                      disabled={selectedRowKeys.length === 0}
+                      icon={<CloseCircleOutlined />}
+                      size="large"
+                      shape="square"
+                    />
+                  </Tooltip>
+                </>
               )}
             </Space>
           </Col>
