@@ -24,22 +24,17 @@ export const useTimeSheet = (form) => {
   const [dateRange, setDateRange] = useState(null);
   const [hasCS05, setHasCS05] = useState(false);
   const [cs05Status, setCS05Status] = useState(null);
-  // เพิ่ม state ใหม่เพื่อระบุว่าอยู่ในโหมดทดสอบหรือไม่
   const [isTestMode, setIsTestMode] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
-  // ตรวจสอบสถานะ CS05 ก่อนดำเนินการอื่นๆ
   const checkCS05Status = useCallback(async () => {
     try {
-      // 1. ตรวจสอบจาก state ก่อน (หากมีข้อมูลอยู่แล้ว)
       const cs05Data = state?.registration?.cs05?.data;
       
       if (cs05Data && cs05Data.documentId) {
         setHasCS05(true);
         setCS05Status(cs05Data.status);
         
-        // เพิ่มการตรวจสอบเงื่อนไขสำหรับโหมดทดสอบ
-        // โหมดทดสอบ - ยอมรับสถานะ 'pending'
-        // โหมด production - ยอมรับเฉพาะสถานะ 'approved'
         const isValidStatus = isTestMode 
           ? (cs05Data.status === 'pending' || cs05Data.status === 'approved')
           : (cs05Data.status === 'approved');
@@ -52,14 +47,12 @@ export const useTimeSheet = (form) => {
         };
       }
       
-      // 2. ถ้าไม่มีใน state ให้ดึงจาก API
       const response = await internshipService.getCurrentCS05();
       
       if (response.success && response.data) {
         setHasCS05(true);
         setCS05Status(response.data.status);
         
-        // เพิ่มการตรวจสอบเงื่อนไขเช่นเดียวกับด้านบน
         const isValidStatus = isTestMode 
           ? (response.data.status === 'pending' || response.data.status === 'approved')
           : (response.data.status === 'approved');
@@ -72,7 +65,6 @@ export const useTimeSheet = (form) => {
         };
       }
       
-      // ไม่พบข้อมูล CS05
       setHasCS05(false);
       setCS05Status(null);
       return {
@@ -95,101 +87,223 @@ export const useTimeSheet = (form) => {
     }
   }, [state, isTestMode]);
 
-  // สร้างรายการวันที่ฝึกงานทั้งหมดตามวันที่ใน CS05
   const generateWorkdayEntries = useCallback(async () => {
-    setLoading(true);
-    setInitialLoading(true);
-    
     try {
-      // 0. ตรวจสอบว่ามี CS05 ก่อน
+      console.log('เริ่มดึงข้อมูล TimeSheet');
+      
       const cs05Result = await checkCS05Status();
+      console.log('ผลการตรวจสอบ CS05:', cs05Result);
       
       if (!cs05Result.hasCS05) {
         console.log('ไม่พบข้อมูล CS05');
-        setLoading(false);
         setInitialLoading(false);
         return [];
       }
       
-      // เพิ่มการตรวจสอบสถานะตามเงื่อนไข isValidStatus
-      // ในโหมดทดสอบจะข้ามการตรวจสอบนี้ไป
       if (!isTestMode && !cs05Result.isValidStatus) {
         console.log('CS05 ไม่อยู่ในสถานะที่ถูกต้อง');
-        setLoading(false);
         setInitialLoading(false);
         return [];
       }
       
-      // 1. ดึงข้อมูลวันที่ฝึกงานจาก CS05
+      console.log('กำลังดึงข้อมูลช่วงวันที่ฝึกงาน...');
       const range = await internshipService.getInternshipDateRange();
-      setDateRange(range.data);
+      console.log('ข้อมูลช่วงวันที่ฝึกงาน:', range);
       
-      // ส่วนที่เหลือของโค้ดเดิม
+      let dateRangeData = range.data;
+      if (!dateRangeData && range.startDate && range.endDate) {
+        dateRangeData = range;
+      }
+      
+      if (!dateRangeData || !dateRangeData.startDate || !dateRangeData.endDate) {
+        console.error('ไม่พบข้อมูลวันที่ฝึกงาน:', dateRangeData);
+        setLoadError('ไม่สามารถโหลดข้อมูลวันที่ฝึกงาน กรุณาตรวจสอบข้อมูล คพ.05');
+        setInitialLoading(false);
+        return;
+      }
+      
+      setDateRange(dateRangeData);
+      
+      console.log('กำลังสร้างรายการวันทำงานโดยใช้วันที่:', dateRangeData);
       const workdaysResponse = await internshipService.generateInternshipDates();
-      const workdays = workdaysResponse.data || [];
-      
-      const entriesResponse = await internshipService.getTimeSheetEntries();
-      const existingEntries = entriesResponse.data || [];
-      console.log('ข้อมูลจาก API:', existingEntries);
-      
-      const existingEntriesMap = new Map();
-      existingEntries.forEach(entry => {
-        existingEntriesMap.set(entry.workDate, entry);
-      });
-      
-      const allEntries = workdays.map(date => {
-        const formattedDate = dayjs(date).format('YYYY-MM-DD');
-        const existingEntry = existingEntriesMap.get(formattedDate);
-        
-        if (existingEntry) {
-          return {
-            ...existingEntry,
-            key: existingEntry.id || formattedDate,
-            workDate: dayjs(existingEntry.workDate),
-            timeIn: existingEntry.timeIn && dayjs(existingEntry.timeIn, 'HH:mm'),
-            timeOut: existingEntry.timeOut && dayjs(existingEntry.timeOut, 'HH:mm')
-          };
-        } else {
-          return {
-            key: formattedDate,
-            workDate: dayjs(formattedDate),
-            timeIn: null,
-            timeOut: null,
-            workHours: null,
-            logTitle: '',
-            workDescription: '',
-            learningOutcome: '',
-            problems: '',
-            solutions: '',
-            supervisorApproved: false,
-            advisorApproved: false
-          };
+      console.log('ผลการสร้างรายการวันทำงาน (raw):', workdaysResponse);
+
+      // ตรวจสอบว่า response มีโครงสร้างอย่างไร
+      let workdays = [];
+      if (Array.isArray(workdaysResponse)) {
+        // กรณีที่ response เป็น array โดยตรง
+        workdays = workdaysResponse;
+        console.log('พบข้อมูลวันทำงานเป็น array โดยตรง:', workdays.length, 'วัน');
+      } else if (workdaysResponse && typeof workdaysResponse === 'object') {
+        // กรณีที่เป็น object
+        if (Array.isArray(workdaysResponse.data)) {
+          workdays = workdaysResponse.data;
+          console.log('พบข้อมูลวันทำงานใน .data:', workdays.length, 'วัน');
+        } else if (workdaysResponse.data && Array.isArray(workdaysResponse.data.data)) {
+          workdays = workdaysResponse.data.data;
+          console.log('พบข้อมูลวันทำงานใน .data.data:', workdays.length, 'วัน');
         }
-      });
+      }
+
+      // ตรวจสอบว่ามีข้อมูลวันทำงานหรือไม่
+      if (!workdays || workdays.length === 0) {
+        console.warn('ไม่พบข้อมูลวันทำงานในรูปแบบที่ต้องการ จำเป็นต้องสร้างข้อมูลเอง');
+        const tempWorkdays = [];
+        const start = dayjs(dateRangeData.startDate);
+        const end = dayjs(dateRangeData.endDate);
+        let current = start;
+        
+        while (current.isBefore(end) || current.isSame(end, 'day')) {
+          if (current.day() !== 0 && current.day() !== 6) {
+            tempWorkdays.push(current.format('YYYY-MM-DD'));
+          }
+          current = current.add(1, 'day');
+        }
+        
+        console.log('สร้างวันทำงานเองแล้ว:', tempWorkdays.length, 'วัน');
+        
+        const entries = tempWorkdays.map(date => ({
+          key: date,
+          workDate: dayjs(date),
+          timeIn: null,
+          timeOut: null,
+          logTitle: '',
+          workDescription: '',
+          status: 'pending'
+        }));
+        
+        setInternshipDates(entries);
+      } else {
+        const existingEntriesResponse = await internshipService.getTimeSheetEntries();
+        console.log('ข้อมูลบันทึกที่มีอยู่:', existingEntriesResponse);
+        const existingEntries = existingEntriesResponse.data || [];
+        
+        console.log('workdays จาก API:', workdays.length, 'วัน'); 
+
+        const existingEntriesMap = new Map();
+        existingEntries.forEach(entry => {
+          const dateKey = dayjs(entry.workDate).format('YYYY-MM-DD');
+          existingEntriesMap.set(dateKey, entry);
+          console.log(`เพิ่มข้อมูลวันที่ ${dateKey} เข้า Map`);
+        });
+
+        const allEntries = workdays.map((date, index) => {
+          const formattedDate = dayjs(date).format('YYYY-MM-DD');
+          const existingEntry = existingEntriesMap.get(formattedDate);
+          
+          if (existingEntry) {
+            return {
+              ...existingEntry,
+              key: existingEntry.id || `timesheet-${formattedDate}`,
+              workDate: dayjs(existingEntry.workDate),
+              timeIn: existingEntry.timeIn ? dayjs(existingEntry.timeIn, 'HH:mm') : null,
+              timeOut: existingEntry.timeOut ? dayjs(existingEntry.timeOut, 'HH:mm') : null
+            };
+          } else {
+            return {
+              key: `timesheet-${index}-${formattedDate}`,
+              id: null,
+              workDate: dayjs(formattedDate),
+              timeIn: null,
+              timeOut: null,
+              workHours: null,
+              logTitle: '',
+              workDescription: '',
+              learningOutcome: '',
+              problems: '',
+              solutions: '',
+              supervisorApproved: false,
+              advisorApproved: false
+            };
+          }
+        });
+
+        console.log('สร้าง internshipDates แล้ว:', allEntries.length, 'รายการ');
+        setInternshipDates([...allEntries]);
+        
+        try {
+          sessionStorage.setItem('internship_dates', JSON.stringify(
+            allEntries.map(entry => ({
+              ...entry,
+              workDate: entry.workDate.format('YYYY-MM-DD'),
+              timeIn: entry.timeIn ? entry.timeIn.format('HH:mm') : null,
+              timeOut: entry.timeOut ? entry.timeOut.format('HH:mm') : null
+            }))
+          ));
+        } catch (e) {
+          console.error('ไม่สามารถบันทึก internship_dates ลง sessionStorage:', e);
+        }
+      }
       
-      allEntries.sort((a, b) => a.workDate.diff(b.workDate));
-      setInternshipDates(allEntries);
-      
+      console.log('กำลังดึงข้อมูลสถิติ...');
       const statsResponse = await internshipService.getTimeSheetStats();
-      setStats(statsResponse.data || {});
+      console.log('ข้อมูลสถิติจาก API (raw response):', statsResponse);
+
+      if (statsResponse) {
+        let statsData = statsResponse;
+        
+        if (statsResponse.data && typeof statsResponse.data === 'object') {
+          statsData = statsResponse.data;
+        }
+        
+        if (statsData.data && typeof statsData.data === 'object') {
+          statsData = statsData.data;
+        }
+        
+        console.log('สกัดข้อมูลสถิติได้:', statsData);
+        
+        const newStats = {
+          total: statsData.total || 0,
+          completed: statsData.completed || 0,
+          pending: statsData.pending || 0,
+          totalHours: statsData.totalHours || 0,
+          averageHoursPerDay: statsData.averageHoursPerDay || 0,
+          remainingDays: statsData.remainingDays || 0,
+          approvedBySupervisor: statsData.approvedBySupervisor || 0
+        };
+        
+        console.log('กำลังอัปเดต state stats เป็น:', newStats);
+        setStats(() => newStats);
+        
+        try {
+          localStorage.setItem('timesheet_stats', JSON.stringify(newStats));
+        } catch (e) {
+          console.error('ไม่สามารถบันทึกข้อมูลลง localStorage:', e);
+        }
+      } else {
+        const cachedStats = localStorage.getItem('timesheet_stats');
+        if (cachedStats) {
+          try {
+            const parsedStats = JSON.parse(cachedStats);
+            console.log('ใช้ข้อมูลสถิติจาก localStorage:', parsedStats);
+            setStats(parsedStats);
+          } catch (e) {
+            console.error('เกิดข้อผิดพลาดในการอ่าน localStorage:', e);
+          }
+        }
+      }
       
-      return allEntries;
+      setInitialLoading(false);
     } catch (error) {
-      console.error('Error generating workday entries:', error);
-      message.error(error.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงาน');
-      return [];
-    } finally {
-      setLoading(false);
+      console.error('Error in generateWorkdayEntries:', error);
+      setLoadError(`เกิดข้อผิดพลาด: ${error.message}`);
       setInitialLoading(false);
     }
   }, [checkCS05Status, isTestMode]);
 
-  // ดึงข้อมูลเมื่อเปิดหน้าแรก
   useEffect(() => {
     generateWorkdayEntries();
+
+    const loadingTimeout = setTimeout(() => {
+      if (initialLoading) {
+        console.warn('Loading timeout - forcing loading state to complete');
+        setInitialLoading(false);
+      }
+    }, 15000);
+
+    return () => clearTimeout(loadingTimeout);
   }, [generateWorkdayEntries]);
 
-  // ส่วนที่เหลือของโค้ดคงเดิม...
   const handleEdit = (entry) => {
     setSelectedEntry(entry);
     form.setFieldsValue({
@@ -222,7 +336,6 @@ export const useTimeSheet = (form) => {
     try {
       setLoading(true);
       
-      // ตรวจสอบโหมดการบันทึกโดยดูจาก timeOut
       const isCompleteMode = !!values.timeOut;
       const mode = isCompleteMode ? 'complete' : 'checkin';
       
@@ -232,9 +345,7 @@ export const useTimeSheet = (form) => {
         timeIn: values.timeIn.format('HH:mm'),
       };
       
-      // ถ้าเป็นการบันทึกแบบครบถ้วน ทำการตรวจสอบข้อมูลเพิ่มเติม
       if (isCompleteMode) {
-        // 1. ตรวจสอบว่ามีข้อมูลจำเป็นครบถ้วนหรือไม่
         if (!values.timeOut || !values.logTitle || !values.workDescription || !values.learningOutcome) {
           message.error('กรุณากรอกข้อมูลให้ครบถ้วนสำหรับการบันทึกแบบสมบูรณ์');
           setLoading(false);
@@ -263,13 +374,12 @@ export const useTimeSheet = (form) => {
         }
       }
       
-      // รีเฟรชข้อมูล
       await generateWorkdayEntries();
+      await refreshTable();
       setIsModalVisible(false);
       form.resetFields();
     } catch (error) {
       console.error('Error saving timesheet entry:', error);
-      // แสดงข้อความที่เฉพาะเจาะจงมากขึ้น
       if (error.message?.includes('เวลาออกงานต้องมากกว่า')) {
         message.error('เวลาออกงานต้องมากกว่าเวลาเข้างาน');
       } else if (error.message?.includes('ไม่พบข้อมูลการบันทึกเวลาเข้างาน')) {
@@ -282,9 +392,91 @@ export const useTimeSheet = (form) => {
     }
   };
 
-  // เพิ่มฟังก์ชันสำหรับเปลี่ยนโหมดการทำงาน (สำหรับทดสอบหรือใช้งานจริง)
+  const refreshTable = async () => {
+    try {
+      setLoading(true);
+      message.loading({ content: 'กำลังอัปเดตตาราง...', key: 'refreshTable' });
+      
+      const existingEntriesResponse = await internshipService.getTimeSheetEntries();
+      const existingEntries = existingEntriesResponse.data || [];
+      
+      if (existingEntries.length > 0) {
+        const existingEntriesMap = new Map();
+        existingEntries.forEach(entry => {
+          const dateKey = dayjs(entry.workDate).format('YYYY-MM-DD');
+          existingEntriesMap.set(dateKey, entry);
+        });
+        
+        const updatedEntries = internshipDates.map((entry, index) => {
+          const formattedDate = dayjs(entry.workDate).format('YYYY-MM-DD');
+          const existingEntry = existingEntriesMap.get(formattedDate);
+          
+          if (existingEntry) {
+            return {
+              ...existingEntry,
+              key: existingEntry.id || `timesheet-${formattedDate}`,
+              workDate: dayjs(existingEntry.workDate),
+              timeIn: existingEntry.timeIn ? dayjs(existingEntry.timeIn, 'HH:mm') : null,
+              timeOut: existingEntry.timeOut ? dayjs(existingEntry.timeOut, 'HH:mm') : null
+            };
+          }
+          
+          return entry;
+        });
+        
+        setInternshipDates([...updatedEntries]);
+        message.success({ content: 'อัปเดตตารางเสร็จสิ้น', key: 'refreshTable' });
+      }
+    } catch (error) {
+      console.error('Error refreshing table:', error);
+      message.error({ content: 'เกิดข้อผิดพลาดในการอัปเดตตาราง', key: 'refreshTable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleTestMode = () => {
     setIsTestMode(prev => !prev);
+  };
+
+  const refreshStats = async () => {
+    try {
+      const statsResponse = await internshipService.getTimeSheetStats();
+      console.log('refreshStats - ข้อมูลจาก API:', statsResponse);
+      
+      if (statsResponse) {
+        let statsData = statsResponse;
+        
+        if (statsResponse.data && typeof statsResponse.data === 'object') {
+          statsData = statsResponse.data;
+        }
+        
+        if (statsData.data && typeof statsData.data === 'object') {
+          statsData = statsData.data;
+        }
+        
+        const newStats = {
+          total: statsData.total || 0,
+          completed: statsData.completed || 0,
+          pending: statsData.pending || 0,
+          totalHours: statsData.totalHours || 0,
+          averageHoursPerDay: statsData.averageHoursPerDay || 0,
+          remainingDays: statsData.remainingDays || 0,
+          approvedBySupervisor: statsData.approvedBySupervisor || 0
+        };
+        
+        console.log('refreshStats - อัปเดตข้อมูลเป็น:', newStats);
+        setStats(() => newStats);
+        localStorage.setItem('timesheet_stats', JSON.stringify(newStats));
+        message.success('อัปเดตข้อมูลสถิติสำเร็จ');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:', error);
+      message.error('ไม่สามารถดึงข้อมูลสถิติได้');
+      return false;
+    }
   };
 
   return {
@@ -304,6 +496,9 @@ export const useTimeSheet = (form) => {
     hasCS05,
     cs05Status,
     isTestMode,
-    toggleTestMode // ส่งฟังก์ชันนี้ไปใช้ในกรณีที่ต้องการเปลี่ยนโหมดการทำงาน
+    toggleTestMode,
+    loadError,
+    refreshStats,
+    refreshTable
   };
 };

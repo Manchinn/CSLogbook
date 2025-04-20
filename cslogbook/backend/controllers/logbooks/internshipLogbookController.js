@@ -51,7 +51,7 @@ exports.getTimeSheetEntries = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: 'pending'  // ค่อยไล่แก้ไขเป็น approved
+                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -291,7 +291,7 @@ exports.updateTimeSheetEntry = async (req, res) => {
  */
 exports.getTimeSheetStats = async (req, res) => {
     try {
-        // เพิ่มการดึง studentId ที่ถูกต้อง (เหมือนฟังก์ชันอื่นๆ)
+        // เพิ่มการดึง studentId ที่ถูกต้อง
         const student = await Student.findOne({
             where: { userId: req.user.userId }
         });
@@ -304,37 +304,41 @@ exports.getTimeSheetStats = async (req, res) => {
         }
         
         const studentId = student.studentId;
+        console.log('StudentID:', studentId);
         
-        // ดึงข้อมูล CS05 เพื่อดูวันที่ฝึกงาน
+        // ดึงข้อมูล CS05 - แก้ไขให้รองรับทั้ง pending และ approved
         const document = await Document.findOne({
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: 'pending'  // แก้เป็น 'approved' ในอนาคต
+                status: ['pending', 'approved']  // รองรับทั้งสองสถานะ
             },
             include: [{
                 model: InternshipDocument,
                 as: 'internshipDocument',
                 required: true,
-                attributes: ['internshipId', 'startDate', 'endDate'] // ระบุเฉพาะ attributes ที่ต้องการ
+                attributes: ['internshipId', 'startDate', 'endDate']
             }],
             order: [['created_at', 'DESC']]
         });
 
+        console.log('Document found:', !!document);
         if (!document) {
             return res.status(404).json({
                 success: false,
-                message: 'ไม่พบข้อมูล CS05 ที่ได้รับการอนุมัติ'
+                message: 'ไม่พบข้อมูล CS05 ที่รออนุมัติหรือได้รับการอนุมัติแล้ว'
             });
         }
 
         const internshipId = document.internshipDocument.internshipId;
         const startDate = document.internshipDocument.startDate;
         const endDate = document.internshipDocument.endDate;
+        console.log('Internship dates:', { startDate, endDate });
 
         // คำนวณวันทำงานทั้งหมด
         const workdays = await calculateWorkdays(startDate, endDate);
         const totalDays = workdays.length;
+        console.log('Total workdays:', totalDays);
 
         // ดึงข้อมูลบันทึกที่บันทึกแล้ว
         const entries = await InternshipLogbook.findAll({
@@ -351,10 +355,12 @@ exports.getTimeSheetStats = async (req, res) => {
             ],
             raw: true
         });
+        console.log('Entries found:', entries);
 
-        // ข้อมูลสถิติ
-        const completedCount = entries[0].count || 0;
-        const totalHours = parseFloat(entries[0].totalHours) || 0;
+        // แก้ไขการตรวจสอบข้อมูล
+        const hasEntries = entries && entries.length > 0;
+        const completedCount = hasEntries ? (parseInt(entries[0].count) || 0) : 0;
+        const totalHours = hasEntries ? (parseFloat(entries[0].totalHours) || 0) : 0;
         const pendingCount = totalDays - completedCount;
         const averageHoursPerDay = completedCount > 0 ? totalHours / completedCount : 0;
 
@@ -362,6 +368,14 @@ exports.getTimeSheetStats = async (req, res) => {
         const today = new Date();
         const endDateObj = new Date(endDate);
         const remainingDays = Math.max(0, Math.ceil((endDateObj - today) / (24 * 60 * 60 * 1000)));
+
+        console.log('Stats calculation:', {
+            completedCount,
+            totalHours,
+            pendingCount,
+            averageHoursPerDay,
+            remainingDays
+        });
 
         return res.json({
             success: true,
@@ -372,7 +386,8 @@ exports.getTimeSheetStats = async (req, res) => {
                 pending: pendingCount,
                 totalHours: parseFloat(totalHours.toFixed(1)),
                 averageHoursPerDay: parseFloat(averageHoursPerDay.toFixed(1)),
-                remainingDays: remainingDays
+                remainingDays: remainingDays,
+                approvedBySupervisor: 0  // เพิ่มค่าเริ่มต้น
             }
         });
 

@@ -377,15 +377,28 @@ const internshipService = {
   generateInternshipDates: async () => {
     try {
       const response = await apiClient.get('/internship/logbook/workdays');
+      console.log('API Response from workdays (raw):', response);
 
+      // ตรวจสอบการตอบกลับ
       if (!response.data.success) {
+        console.warn('API แจ้งว่าไม่สำเร็จ:', response.data.message);
         throw new Error(response.data.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงานได้');
       }
 
-      return response.data.data; // จะได้รายการวันที่ทั้งหมดที่ต้องฝึกงาน
+      // ตรวจสอบโครงสร้างข้อมูล
+      const workdays = response.data.data;
+      
+      // ตรวจสอบความถูกต้องของข้อมูล
+      if (!workdays || !Array.isArray(workdays)) {
+        console.warn('API ส่งข้อมูลในรูปแบบที่ไม่ใช่ array:', workdays);
+        return []; // ส่งคืน array ว่าง
+      }
+
+      console.log('พบข้อมูลวันทำงาน:', workdays.length, 'วัน');
+      return workdays; // ส่งคืน array ของวันที่
     } catch (error) {
       console.error('Error generating internship dates:', error);
-      throw new Error(error.response?.data?.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงาน');
+      throw error;
     }
   },
 

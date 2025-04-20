@@ -38,7 +38,7 @@ export function useDocuments(options = {}) {
 
   useEffect(() => {
     fetchDocuments();
-  }, [fetchDocuments]);
+  }, []);
 
   // อนุมัติเอกสาร
   const approveDocument = async (documentId) => {

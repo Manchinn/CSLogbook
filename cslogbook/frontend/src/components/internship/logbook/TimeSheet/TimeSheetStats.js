@@ -1,5 +1,5 @@
-import React from 'react';
-import { Row, Col, Card, Statistic, Progress, Tooltip } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Card, Statistic, Progress, Tooltip, message } from 'antd';
 import {
   ClockCircleOutlined,
   CheckCircleOutlined,
@@ -7,21 +7,58 @@ import {
   CalendarOutlined,
   CheckSquareOutlined,
   PercentageOutlined,
-  FieldTimeOutlined,
-  HourglassOutlined
 } from '@ant-design/icons';
 
-const TimeSheetStats = ({ stats }) => {
-  // คำนวณเปอร์เซ็นต์ความคืบหน้า
-  const progressPercentage = Math.min(Math.round((stats.totalHours / 240) * 100), 100);
-  
+const TimeSheetStats = ({ stats = {} }) => {
+  console.log("Stats received in component:", stats);
+  const [effectiveStats, setEffectiveStats] = useState(stats);
+
+  useEffect(() => {
+    console.log('TimeSheetStats ได้รับข้อมูลใหม่:', stats);
+    
+    // ตรวจสอบว่าข้อมูลที่ได้รับมีค่าที่มีความหมายหรือไม่
+    const hasRealData = stats && 
+      (stats.total > 0 || stats.completed > 0 || stats.pending > 0 || stats.totalHours > 0);
+    
+    if (hasRealData) {
+      setEffectiveStats(stats);
+    } else {
+      // ถ้าไม่มีข้อมูลที่มีความหมาย ลองใช้ข้อมูลจาก localStorage
+      const cachedStats = localStorage.getItem('timesheet_stats');
+      if (cachedStats) {
+        try {
+          const parsedStats = JSON.parse(cachedStats);
+          console.log('ใช้ข้อมูลจาก localStorage แทน:', parsedStats);
+          
+          // ตรวจสอบว่าข้อมูลจาก localStorage มีค่าที่มีความหมายหรือไม่
+          if (parsedStats.total > 0 || parsedStats.totalHours > 0) {
+            setEffectiveStats(parsedStats);
+            message.info('ใช้ข้อมูลสถิติจากแคช', 2);
+          }
+        } catch (e) {
+          console.error('Error parsing localStorage data:', e);
+        }
+      }
+    }
+  }, [stats]);
+
+  const {
+    total = 0,
+    totalHours = 0,
+    completed = 0,
+    pending = 0,
+    approvedBySupervisor = 0
+  } = effectiveStats || stats || {};
+
+  const progressPercentage = Math.min(Math.round((totalHours / 240) * 100), 100);
+
   return (
     <Row gutter={[16, 16]} className="status-overview">
       <Col xs={24} sm={12} md={6}>
         <Card className="status-summary-card total">
           <Statistic
             title="วันฝึกงานทั้งหมด"
-            value={stats.total}
+            value={total}
             suffix="วัน"
             prefix={<CalendarOutlined />}
           />
@@ -32,7 +69,7 @@ const TimeSheetStats = ({ stats }) => {
         <Card className="status-summary-card completed">
           <Statistic
             title="ชั่วโมงฝึกงานทั้งหมด"
-            value={stats.totalHours}
+            value={totalHours}
             suffix="ชม."
             prefix={<ClockCircleOutlined />}
           />
@@ -43,12 +80,10 @@ const TimeSheetStats = ({ stats }) => {
         <Card className="status-summary-card completed">
           <Statistic
             title="บันทึกแล้ว"
-            value={stats.completed}
+            value={completed}
             suffix="วัน"
             prefix={<CheckCircleOutlined />}
           />
-          <Tooltip title="จำนวนวันที่มีการบันทึกข้อมูลครบถ้วน">
-          </Tooltip>
         </Card>
       </Col>
       
@@ -56,19 +91,18 @@ const TimeSheetStats = ({ stats }) => {
         <Card className="status-summary-card pending">
           <Statistic
             title="รอบันทึก"
-            value={stats.pending}
+            value={pending}
             suffix="วัน"
             prefix={<ExclamationCircleOutlined />}
           />
         </Card>
       </Col>
       
-      {/* เพิ่มการ์ดประเมินเรียบร้อยแล้ว */}
       <Col xs={24} sm={12} md={12}>
         <Card className="status-summary-card approved">
           <Statistic
             title="ประเมินเรียบร้อยแล้ว"
-            value={stats.approvedBySupervisor || 0}
+            value={approvedBySupervisor}
             suffix="วัน"
             prefix={<CheckSquareOutlined />}
           />
@@ -78,7 +112,6 @@ const TimeSheetStats = ({ stats }) => {
         </Card>
       </Col>
       
-      {/* ปรับขนาดการ์ดความคืบหน้าให้เหมาะสม */}
       <Col xs={24} sm={24} md={12}>
         <Card className="status-summary-card progress">
           <Statistic
