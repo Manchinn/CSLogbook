@@ -169,7 +169,7 @@ export const useTimeSheet = (form) => {
           timeOut: null,
           logTitle: '',
           workDescription: '',
-          status: 'pending'
+          status: 'pending' || 'approved',
         }));
         
         setInternshipDates(entries);

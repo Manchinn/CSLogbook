@@ -34,7 +34,7 @@ const CompanyForm = () => {
         // ถ้ามีข้อมูล CS05 จาก state แล้ว
         if (cs05Data && documentId) {
           setHasCS05(true);
-          setIsCS05Approved(cs05Data.status === 'pending'); /* ค่อยแก้ไขเป็น approve */
+          setIsCS05Approved(cs05Data.status === 'pending'|| 'approved'); /* ค่อยแก้ไขเป็น approve */
           setInitialLoading(false);
           return;
         }

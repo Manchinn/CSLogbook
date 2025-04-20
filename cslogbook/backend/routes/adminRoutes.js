@@ -3,6 +3,8 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const studentController = require('../controllers/studentController');
 const teacherController = require('../controllers/teacherController');
+// เพิ่ม import documentController
+const documentController = require('../controllers/documents/documentController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 // Middleware for admin routes
@@ -26,6 +28,13 @@ router.get('/stats/system', adminAuth, adminController.getSystemStats);
 
 // เพิ่ม route สำหรับกิจกรรมล่าสุด
 router.get('/activities', adminAuth, adminController.getRecentActivities);
+
+// === เพิ่ม Admin Document Routes ===
+router.get('/documents', adminAuth, documentController.getDocuments);
+router.get('/documents/:id', adminAuth, documentController.getDocumentById);
+router.post('/documents/:id/approve', adminAuth, documentController.approveDocument);
+router.post('/documents/:id/reject', adminAuth, documentController.rejectDocument);
+router.patch('/documents/:id/status', adminAuth, documentController.updateDocumentStatus);
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);

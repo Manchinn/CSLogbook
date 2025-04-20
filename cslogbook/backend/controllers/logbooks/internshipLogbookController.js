@@ -123,7 +123,7 @@ exports.saveTimeSheetEntry = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: 'pending'
+                status: ['pending', 'approved'] // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -419,7 +419,7 @@ exports.getInternshipDateRange = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: 'pending'
+                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -474,7 +474,7 @@ exports.generateInternshipDates = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: 'pending'
+                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -581,7 +581,7 @@ exports.checkIn = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: 'pending'
+                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,

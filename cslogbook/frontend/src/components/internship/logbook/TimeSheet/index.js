@@ -186,17 +186,6 @@ const TimeSheet = () => {
       className="internship-container"
       style={{ position: "relative", paddingBottom: "50px" }}
     >
-      {cs05Status === "approved" && (
-        <Alert
-          type="success"
-          message="ระบบพร้อมใช้งานจริง"
-          description="คุณสามารถบันทึกเวลาฝึกงานได้ เนื่องจากคำร้อง คพ.05 ได้รับการอนุมัติแล้ว"
-          showIcon
-          style={{ marginBottom: 16 }}
-          banner
-        />
-      )}
-
       {dateRange && (
         <Alert
           type="info"

@@ -5,40 +5,29 @@ export const documentService = {
   // ดึงข้อมูลเอกสารทั้งหมด
   getAllDocuments: async (type = 'project') => {
     try {
-      const response = await apiClient.get(`/documents?type=${type}`);
+      const response = await apiClient.get(`/admin/documents?type=${type}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching documents:', error);
       throw error;
     }
   },
-
-  // อนุมัติเอกสาร
-  approveDocument: async (documentId) => {
+  
+  // ดึงรายการเอกสารทั้งหมดพร้อมตัวกรอง
+  getDocuments: async (params) => {
     try {
-      const response = await apiClient.post(`/documents/${documentId}/approve`);
+      const response = await apiClient.get('/admin/documents', { params });
       return response.data;
     } catch (error) {
-      console.error('Error approving document:', error);
-      throw error;
+      console.error('Error fetching filtered documents:', error);
+      throw error; // ต้องมี throw error ด้วย
     }
   },
 
-  // ปฏิเสธเอกสาร
-  rejectDocument: async (documentId) => {
+  // เพิ่มฟังก์ชันสำหรับดึงข้อมูลเอกสารตาม ID
+  getDocumentById: async (documentId) => {
     try {
-      const response = await apiClient.post(`/documents/${documentId}/reject`);
-      return response.data;
-    } catch (error) {
-      console.error('Error rejecting document:', error);
-      throw error;
-    }
-  },
-
-  // ดึงรายละเอียดเอกสาร
-  getDocumentDetails: async (documentId) => {
-    try {
-      const response = await apiClient.get(`/documents/${documentId}`);
+      const response = await apiClient.get(`/admin/documents/${documentId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching document details:', error);
@@ -46,48 +35,24 @@ export const documentService = {
     }
   },
 
-  // ดาวน์โหลดเอกสาร
-  downloadDocument: async (documentId, fileName) => {
+  // เพิ่มฟังก์ชันสำหรับอนุมัติเอกสาร
+  approveDocument: async (documentId) => {
     try {
-      const response = await apiClient.get(`/documents/${documentId}/download`, {
-        responseType: 'blob'
-      });
-      
-      // สร้าง URL จาก blob และดาวน์โหลด
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName || `document-${documentId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      return true;
+      const response = await apiClient.post(`/admin/documents/${documentId}/approve`);
+      return response.data;
     } catch (error) {
-      console.error('Error downloading document:', error);
+      console.error('Error approving document:', error);
       throw error;
     }
   },
-  
-  // สร้างเอกสารใหม่
-  createDocument: async (data) => {
+
+  // เพิ่มฟังก์ชันสำหรับปฏิเสธเอกสาร
+  rejectDocument: async (documentId) => {
     try {
-      const response = await apiClient.post('/documents', data);
+      const response = await apiClient.post(`/admin/documents/${documentId}/reject`);
       return response.data;
     } catch (error) {
-      console.error('Error creating document:', error);
-      throw error;
-    }
-  },
-  
-  // ลบเอกสาร
-  deleteDocument: async (documentId) => {
-    try {
-      const response = await apiClient.delete(`/documents/${documentId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error deleting document:', error);
+      console.error('Error rejecting document:', error);
       throw error;
     }
   }

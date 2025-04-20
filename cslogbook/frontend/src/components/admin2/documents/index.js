@@ -221,6 +221,19 @@ const DocumentManagement = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={8}>
+            {/* เพิ่ม Segmented Control สำหรับประเภทเอกสาร */}
+            <Segmented
+              options={[
+                { label: "ทั้งหมด", value: "all" },
+                { label: "เอกสารฝึกงาน", value: "internship" },
+                { label: "เอกสารโครงงานพิเศษ", value: "project" },
+              ]}
+              value={filters.type}
+              onChange={setTypeFilter}
+              style={{ marginBottom: '8px', width: '100%' }}
+            />
+            
+            {/* Status filter ที่มีอยู่แล้ว */}
             <Segmented
               options={[
                 { label: "ทั้งหมด", value: "" },

@@ -10,7 +10,7 @@ import { message } from 'antd';
  * @param {string} options.search - คำค้นหา
  */
 export function useDocuments(options = {}) {
-  const { type = 'all', status = 'all', search = '' } = options;
+  const { type = 'all', status = 'all', search = ''} = options;
 
   const [documents, setDocuments] = useState([]);
   const [statistics, setStatistics] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
@@ -38,7 +38,7 @@ export function useDocuments(options = {}) {
 
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [fetchDocuments]);
 
   // อนุมัติเอกสาร
   const approveDocument = async (documentId) => {
