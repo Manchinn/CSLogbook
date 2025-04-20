@@ -111,12 +111,20 @@ const CS05Form = () => {
               uid: '-1'
             });
           }
+        } else {
+          // กรณีไม่มีข้อมูล CS05 แต่ API ตอบกลับปกติ (success: true, data: null)
+          message.info(response.message || 'กรุณากรอกข้อมูลคำร้องขอฝึกงาน (คพ.05)');
         }
       } catch (error) {
         if (!isMounted) return;
-        console.error('Error fetching CS05:', error);
-
-        if (error.response?.status !== 404) {
+        
+        // กรณี 404 - ยังไม่มีข้อมูล CS05
+        if (error.response?.status === 404) {
+          console.log('ไม่พบข้อมูล CS05: นักศึกษายังไม่ได้กรอกข้อมูล');
+          message.info('กรุณากรอกข้อมูลคำร้องขอฝึกงาน (คพ.05) เพื่อดำเนินการต่อไป');
+        } else {
+          // กรณีเกิดข้อผิดพลาดอื่นๆ
+          console.error('Error fetching CS05:', error);
           message.error('ไม่สามารถโหลดข้อมูล CS05 กรุณาลองใหม่ภายหลัง');
         }
       }

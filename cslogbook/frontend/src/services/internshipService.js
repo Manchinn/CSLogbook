@@ -64,16 +64,20 @@ const internshipService = {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
       }
       
-      console.log('CS05 Data received:', response.data);
-
       return response.data;
     } catch (error) {
-      console.error('Get Current CS05 Error:', error);
+      // กรณียังไม่มีข้อมูล คพ.05 (404 Not Found) - ไม่ถือเป็น error
       if (error.response?.status === 404) {
-        return { success: true, data: null }; // ส่งค่าว่างถ้าไม่พบข้อมูล
+        console.info('ไม่พบข้อมูล CS05 (นักศึกษายังไม่ได้กรอกข้อมูล)');
+        return { 
+          success: true, 
+          data: null,
+          message: 'กรุณากรอกข้อมูลฝึกงาน'
+        };
       }
 
-      // เพิ่มการ log ข้อมูล error ที่ได้รับอย่างละเอียด
+      // บันทึก error จริงๆ สำหรับกรณีอื่นๆ
+      console.error('Get Current CS05 Error:', error);
       console.error('Error details:', error.response?.data || error.message);
 
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05');
