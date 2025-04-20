@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import {
   Table,
   Button,
@@ -24,7 +24,8 @@ import {
 } from "@ant-design/icons";
 import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
-import moment from "moment-timezone";
+import dayjs from "../../../utils/dayjs";
+import { DATE_TIME_FORMAT } from "../../../utils/constants";
 
 const { Text } = Typography;
 
@@ -34,6 +35,7 @@ const DocumentManagement = ({ type }) => {
     status: "",
     search: "",
   });
+  
 
   // State สำหรับการแสดง Modal
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
@@ -54,6 +56,10 @@ const DocumentManagement = ({ type }) => {
     search: filters.search,
   });
 
+  useEffect(() => {
+    console.log("Documents fetched:", documents);
+  }, [documents]);
+
   // ฟังก์ชัน set filters
   const setSearchText = useCallback((text) => {
     setFilters((prev) => ({ ...prev, search: text }));
@@ -61,11 +67,6 @@ const DocumentManagement = ({ type }) => {
 
   const setStatusFilter = useCallback((status) => {
     setFilters((prev) => ({ ...prev, status }));
-    setSelectedRowKeys([]);
-  }, []);
-
-  const handleResetFilters = useCallback(() => {
-    setFilters({ status: "", search: "" });
     setSelectedRowKeys([]);
   }, []);
 
@@ -93,6 +94,7 @@ const DocumentManagement = ({ type }) => {
             .includes(filters.search.toLowerCase()))
     );
   }, [documents, filters]);
+  
 
   // คอลัมน์ตาราง
   const columns = useMemo(
@@ -114,19 +116,12 @@ const DocumentManagement = ({ type }) => {
         sorter: (a, b) => a.student_name.localeCompare(b.student_name),
       },
       {
-        title: "ประเภทเอกสาร",
-        dataIndex: "type",
-        key: "type",
-        render: (type) =>
-          type === "internship" ? "เอกสารฝึกงาน" : "เอกสารโครงงาน",
-      },
-      {
         title: "วันที่อัปโหลด",
-        dataIndex: "upload_date",
-        key: "upload_date",
-        render: (text) =>
-          moment(text).tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm"),
-        sorter: (a, b) => new Date(a.upload_date) - new Date(b.upload_date),
+        dataIndex: "created_at", // หรือ updated_at หากต้องการใช้ updated_at
+        key: "created_at",
+        render: (text) => 
+          dayjs(text).format(DATE_TIME_FORMAT),
+        sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
         title: "สถานะ",

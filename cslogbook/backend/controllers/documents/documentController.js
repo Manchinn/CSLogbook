@@ -144,6 +144,14 @@ const getDocuments = async (req, res) => {
         // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
         const documents = await Document.findAll({
             where: whereCondition,
+            attributes: [
+                "documentId",
+                "documentName",
+                "documentType",
+                "status",
+                "created_at", // ฟิลด์วันที่สร้าง
+                "updated_at", // เพิ่มฟิลด์ updatedAt
+            ],
             include: [
                 {
                     model: User,
@@ -172,7 +180,8 @@ const getDocuments = async (req, res) => {
             student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
             student_code: doc.owner.student ? doc.owner.student.studentCode : '',
             type: doc.documentType.toLowerCase(),
-            upload_date: doc.createdAt,
+            created_at: doc.created_at,
+            updated_at: doc.updated_at,
             status: doc.status,
         }));
         
