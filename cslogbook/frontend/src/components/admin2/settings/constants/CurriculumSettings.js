@@ -1,293 +1,260 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Form, Button, Card, Typography, Switch, Tabs, Collapse,
-  Row, Col, InputNumber, Input, Space, Table, Tag, message, Modal
-} from 'antd';
-import { 
-  PlusOutlined, DeleteOutlined, EditOutlined 
-} from '@ant-design/icons';
-import { settingsService } from '../../../../services/admin/settingsService';
+import React, { useState, useEffect } from "react";
+import {
+  Form,
+  Button,
+  Card,
+  Typography,
+  Input,
+  InputNumber,
+  Space,
+  Table,
+  Tag,
+  message,
+  Modal,
+  Switch,
+} from "antd";
+import { PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { settingsService } from "../../../../services/admin/settingsService";
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
-const { Panel } = Collapse;
 
 const CurriculumSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [courses, setCourses] = useState([]);
   const [curriculums, setCurriculums] = useState([]);
-  const [editingCurriculum, setEditingCurriculum] = useState(null);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editForm] = Form.useForm();
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-      const response = await settingsService.getCurriculumSettings();
-      if (response.success) {
-        form.setFieldsValue({
-          // ข้อมูลหลักสูตร
-          curriculumName: response.data.curriculumName || 'หลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์',
-          curriculumYear: response.data.curriculumYear || 2563,
-          curriculumTotalCredits: response.data.curriculumTotalCredits || 127,
-          departmentPrefix: response.data.departmentPrefix || '0406'
-        });
-        
-        if (response.data.courses) {
-          setCourses(response.data.courses);
-        }
-      } else {
-        message.error('ไม่สามารถดึงข้อมูลค่าคงที่ได้');
-      }
-    } catch (error) {
-      console.error('Error fetching curriculum settings:', error);
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [formMode, setFormMode] = useState("add"); // "add" หรือ "edit"
 
   useEffect(() => {
     fetchCurriculums();
   }, []);
 
-  // ฟังก์ชันดึงข้อมูลหลักสูตร
   const fetchCurriculums = async () => {
     setLoading(true);
     try {
       const response = await settingsService.getCurriculums();
+      console.log("API Response:", response); // ตรวจสอบข้อมูลที่ได้จาก API
       if (response.success) {
-        setCurriculums(response.data);
+        const mappedCurriculums = response.data.map((curriculum) => ({
+          id: curriculum.curriculumId,
+          code: curriculum.code,
+          name: curriculum.name,
+          shortName: curriculum.shortName,
+          startYear: curriculum.startYear,
+          endYear: curriculum.end_year,
+          active: curriculum.active,
+        }));
+        console.log("Mapped Curriculums:", mappedCurriculums); // ตรวจสอบข้อมูลที่แมปแล้ว
+        setCurriculums(mappedCurriculums);
       } else {
-        message.error('ไม่สามารถดึงข้อมูลหลักสูตรได้');
+        message.error("ไม่สามารถดึงข้อมูลหลักสูตรได้");
+        console.log("Fetched curriculums (error):", response.data);
       }
     } catch (error) {
-      console.error('Error fetching curriculums:', error);
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      console.error("Error fetching curriculums:", error);
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setLoading(false);
     }
   };
 
-  // ฟังก์ชันรับปีในรูปแบบพุทธศักราช
-  const getCurrentThaiYear = () => {
-    return new Date().getFullYear() + 543;
-  };
-
-  // จัดการการแก้ไขหลักสูตร
-  const handleEdit = (curriculum) => {
-    setEditingCurriculum(curriculum);
-    editForm.setFieldsValue({
-      code: curriculum.code,
-      name: curriculum.name,
-      shortName: curriculum.shortName,
-      startYear: curriculum.startYear,
-      endYear: curriculum.endYear,
-      active: curriculum.active,
-      // เกณฑ์ฝึกงาน
-      internshipMinYear: curriculum.requirements.internship.minYear,
-      internshipMinCredits: curriculum.requirements.internship.minCredits,
-      internshipMinMajorCredits: curriculum.requirements.internship.minMajorCredits,
-      internshipMinHours: curriculum.requirements.internship.minHours,
-      // เกณฑ์โครงงาน
-      projectMinYear: curriculum.requirements.project.minYear,
-      projectMinCredits: curriculum.requirements.project.minCredits,
-      projectMinMajorCredits: curriculum.requirements.project.minMajorCredits
-    });
-    setEditModalVisible(true);
-  };
-
-  // จัดการการลบหลักสูตร
-  const handleDelete = async (curriculumId) => {
+  const handleAdd = async (values) => {
     try {
       setLoading(true);
-      // เมื่อมี API จริง ให้ใช้ settingsService เพื่อลบข้อมูล
-      // await settingsService.deleteCurriculum(curriculumId);
-      
-      // อัปเดตข้อมูลในหน้าจอ
-      setCurriculums(curriculums.filter(curriculum => curriculum.id !== curriculumId));
-      message.success('ลบหลักสูตรสำเร็จ');
-    } catch (error) {
-      console.error('Error deleting curriculum:', error);
-      message.error('ไม่สามารถลบหลักสูตรได้');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // จัดการการบันทึกการแก้ไขหลักสูตร
-  const handleSaveEdit = async () => {
-    try {
-      const values = await editForm.validateFields();
-      setLoading(true);
-      
-      const updatedCurriculum = {
-        ...editingCurriculum,
+      console.log("Adding curriculum with values:", values); // ตรวจสอบค่าที่ส่งจากฟอร์ม
+      const payload = {
         code: values.code,
         name: values.name,
-        shortName: values.shortName,
-        startYear: values.startYear,
-        endYear: values.endYear,
-        active: values.active,
-        requirements: {
-          internship: {
-            minYear: values.internshipMinYear,
-            minCredits: values.internshipMinCredits,
-            minMajorCredits: values.internshipMinMajorCredits,
-            minHours: values.internshipMinHours
-          },
-          project: {
-            minYear: values.projectMinYear,
-            minCredits: values.projectMinCredits,
-            minMajorCredits: values.projectMinMajorCredits,
-            minHours: null
-          }
-        }
+        short_name: values.shortName,
+        start_year: values.startYear,
+        end_year: values.endYear,
+        active: values.active || false,
       };
-      
-      // เมื่อมี API จริง ให้ใช้ settingsService เพื่ออัปเดตข้อมูล
-      // await settingsService.updateCurriculum(updatedCurriculum);
-      
-      // อัปเดตข้อมูลในหน้าจอ
-      setCurriculums(curriculums.map(curriculum => 
-        curriculum.id === editingCurriculum.id ? updatedCurriculum : curriculum
-      ));
-      
-      message.success('อัปเดตหลักสูตรสำเร็จ');
-      setEditModalVisible(false);
+      console.log("Payload for adding:", payload); // ตรวจสอบ payload ที่จะส่งไปยัง API
+      const response = await settingsService.createCurriculum(payload);
+      console.log("API Response (Add):", response); // ตรวจสอบผลลัพธ์จาก API
+      if (response.success) {
+        message.success("เพิ่มหลักสูตรสำเร็จ");
+        setAddModalVisible(false);
+        form.resetFields();
+        fetchCurriculums();
+      } else {
+        message.error("ไม่สามารถเพิ่มหลักสูตรได้");
+      }
     } catch (error) {
-      console.error('Error updating curriculum:', error);
-      message.error('ไม่สามารถอัปเดตหลักสูตรได้');
+      console.error("Error creating curriculum:", error);
+      message.error("เกิดข้อผิดพลาดในการเพิ่มหลักสูตร");
     } finally {
       setLoading(false);
     }
   };
 
-  // จัดการการเพิ่มหลักสูตรใหม่
-  const handleAdd = () => {
-    const currentThaiYear = getCurrentThaiYear();
-    const newCurriculum = {
-      id: Math.max(...curriculums.map(c => c.id), 0) + 1,
-      code: `CS${currentThaiYear}`,
-      name: '',
-      shortName: '',
-      startYear: currentThaiYear,
-      endYear: null,
-      active: true,
-      requirements: {
-        internship: {
-          minYear: 3,
-          minCredits: 75,
-          minMajorCredits: 27,
-          minHours: 240
-        },
-        project: {
-          minYear: 4,
-          minCredits: 90,
-          minMajorCredits: 54,
-          minHours: null
+  const handleEdit = async (values) => {
+    try {
+      setLoading(true);
+      console.log("Editing curriculum with values:", values); // ตรวจสอบค่าที่ส่งจากฟอร์ม
+
+      // ตรวจสอบว่ามีหลักสูตรที่เปิดใช้งานอย่างน้อย 1 อัน
+      if (!values.active) {
+        const activeCurriculums = curriculums.filter(
+          (curriculum) => curriculum.active && curriculum.id !== values.id
+        );
+        if (activeCurriculums.length === 0) {
+          message.error("ต้องมีหลักสูตรที่เปิดใช้งานอย่างน้อย 1 อัน");
+          setLoading(false);
+          return;
         }
       }
-    };
-    
-    setEditingCurriculum(newCurriculum);
-    editForm.resetFields();
-    
-    // ตั้งค่าเริ่มต้นสำหรับหลักสูตรใหม่
-    editForm.setFieldsValue({
-      code: newCurriculum.code,
-      startYear: newCurriculum.startYear,
-      active: true,
-      // เกณฑ์ฝึกงาน
-      internshipMinYear: 3,
-      internshipMinCredits: 75,
-      internshipMinMajorCredits: 27,
-      internshipMinHours: 240,  
-      // เกณฑ์โครงงาน
-      projectMinYear: 4,
-      projectMinCredits: 90,
-      projectMinMajorCredits: 54
-    });
-    
-    setEditModalVisible(true);
+
+      const payload = {
+        id: values.id,
+        code: values.code,
+        name: values.name,
+        short_name: values.shortName,
+        start_year: values.startYear,
+        end_year: values.endYear,
+        active: values.active || false,
+      };
+      console.log("Payload for editing:", payload); // ตรวจสอบ payload ที่จะส่งไปยัง API
+      const response = await settingsService.updateCurriculum(
+        values.id,
+        payload
+      );
+      console.log("API Response (Edit):", response); // ตรวจสอบผลลัพธ์จาก API
+      if (response.success) {
+        message.success("แก้ไขหลักสูตรสำเร็จ");
+        setAddModalVisible(false);
+        form.resetFields();
+        fetchCurriculums();
+      } else {
+        message.error("ไม่สามารถแก้ไขหลักสูตรได้");
+      }
+    } catch (error) {
+      console.error("Error editing curriculum:", error);
+      message.error("เกิดข้อผิดพลาดในการแก้ไขหลักสูตร");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // กำหนดคอลัมน์ของตาราง
+  const handleDelete = async (id) => {
+    if (!id) {
+      message.error("ไม่สามารถลบหลักสูตรได้: ID ไม่ถูกต้อง");
+      return;
+    }
+
+    // ตรวจสอบว่าหลักสูตรที่ลบเป็นหลักสูตรที่เปิดใช้งาน และมีหลักสูตรที่เปิดใช้งานเหลืออยู่หรือไม่
+    const deletingCurriculum = curriculums.find(
+      (curriculum) => curriculum.id === id
+    );
+    if (deletingCurriculum?.active) {
+      const activeCurriculums = curriculums.filter(
+        (curriculum) => curriculum.active && curriculum.id !== id
+      );
+      if (activeCurriculums.length === 0) {
+        message.error("ต้องมีหลักสูตรที่เปิดใช้งานอย่างน้อย 1 อัน");
+        return;
+      }
+    }
+    console.log("Deleting curriculum with ID:", id); // ตรวจสอบค่า id
+    try {
+      setLoading(true);
+      const response = await settingsService.deleteCurriculum(id);
+      console.log("API Response (Delete):", response); // ตรวจสอบผลลัพธ์จาก API
+      if (response.success) {
+        message.success("ลบหลักสูตรสำเร็จ");
+        fetchCurriculums();
+      } else {
+        message.error("ไม่สามารถลบหลักสูตรได้");
+      }
+    } catch (error) {
+      console.error("Error deleting curriculum:", error);
+      message.error("เกิดข้อผิดพลาดในการลบหลักสูตร");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const columns = [
     {
-      title: 'รหัสหลักสูตร',
-      dataIndex: 'code',
-      key: 'code',
-      width: 120
+      title: "รหัสหลักสูตร",
+      dataIndex: "code",
+      key: "code",
+      width: 120,
     },
     {
-      title: 'ชื่อย่อหลักสูตร',
-      dataIndex: 'shortName',
-      key: 'shortName',
-      width: 180
+      title: "ชื่อย่อหลักสูตร",
+      dataIndex: "shortName",
+      key: "shortName",
+      width: 180,
     },
     {
-      title: 'ปีที่เริ่มใช้',
-      dataIndex: 'startYear',
-      key: 'startYear',
-      width: 100
-    },
-    {
-      title: 'ปีที่สิ้นสุด',
-      dataIndex: 'endYear',
-      key: 'endYear',
+      title: "ปีที่เริ่มใช้",
+      dataIndex: "startYear",
+      key: "startYear",
       width: 100,
-      render: (text) => text ? text : 'ปัจจุบัน'
     },
     {
-      title: 'สถานะ',
-      dataIndex: 'active',
-      key: 'active',
+      title: "ปีที่สิ้นสุด",
+      dataIndex: "endYear",
+      key: "endYear",
+      width: 100,
+      render: (text) => text || "ปัจจุบัน",
+    },
+    {
+      title: "สถานะ",
+      dataIndex: "active",
+      key: "active",
       width: 100,
       render: (active) => (
-        <Tag color={active ? 'green' : 'gray'}>
-          {active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+        <Tag color={active ? "green" : "gray"}>
+          {active ? "ใช้งาน" : "ไม่ใช้งาน"}
         </Tag>
-      )
+      ),
     },
     {
-      title: 'เกณฑ์ฝึกงาน (หน่วยกิต)',
-      dataIndex: ['requirements', 'internship', 'minCredits'],
-      key: 'internshipCredits',
-      width: 150
-    },
-    {
-      title: 'เกณฑ์โครงงาน (หน่วยกิต)',
-      dataIndex: ['requirements', 'project', 'minCredits'],
-      key: 'projectCredits',
-      width: 150
-    },
-    {
-      title: 'จัดการ',
-      key: 'action',
+      title: "จัดการ",
+      key: "action",
       width: 120,
       render: (_, record) => (
         <Space size="small">
-          <Button 
-            icon={<EditOutlined />} 
-            size="small" 
-            onClick={() => handleEdit(record)}
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => {
+              console.log("Editing record:", record); // ตรวจสอบข้อมูล record
+              setFormMode("edit");
+              setAddModalVisible(true);
+              form.setFieldsValue({
+                id: record.id,
+                code: record.code,
+                name: record.name,
+                shortName: record.shortName,
+                startYear: record.startYear,
+                endYear: record.endYear,
+                active: record.active,
+              });
+            }}
           />
-          <Button 
-            icon={<DeleteOutlined />} 
-            size="small" 
+          <Button
+            icon={<DeleteOutlined />}
+            size="small"
             danger
-            onClick={() => handleDelete(record.id)}
-            disabled={record.active}
+            onClick={() => {
+              console.log("Deleting record ID:", record.id); // ตรวจสอบค่า id
+              Modal.confirm({
+                title: "ยืนยันการลบ",
+                content: `คุณต้องการลบหลักสูตร "${record.code}" หรือไม่?`,
+                okText: "ลบ",
+                okType: "danger",
+                cancelText: "ยกเลิก",
+                onOk: () => handleDelete(record.id),
+              });
+            }}
           />
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -295,10 +262,15 @@ const CurriculumSettings = () => {
       <Card className="settings-card">
         <div className="card-title-with-button">
           <Title level={5}>หลักสูตรของสาขาวิชา</Title>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={handleAdd}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              console.log("Opening Add Modal"); // ตรวจสอบการเปิด Modal
+              setFormMode("add");
+              setAddModalVisible(true);
+              form.resetFields();
+            }}
           >
             เพิ่มหลักสูตรใหม่
           </Button>
@@ -306,7 +278,7 @@ const CurriculumSettings = () => {
         <Text type="secondary">
           กำหนดหลักสูตรที่ใช้ในสาขาวิชาและเกณฑ์ต่างๆ สำหรับแต่ละหลักสูตร
         </Text>
-        
+
         <Table
           columns={columns}
           dataSource={curriculums}
@@ -314,189 +286,74 @@ const CurriculumSettings = () => {
           loading={loading}
           pagination={false}
           style={{ marginTop: 16 }}
-          expandable={{
-            expandedRowRender: record => (
-              <div style={{ padding: '10px' }}>
-                <h4 style={{ marginBottom: '10px' }}>{record.name}</h4>
-                <Collapse>
-                  <Panel header="เกณฑ์การฝึกงาน" key="1">
-                    <ul>
-                      <li>ชั้นปีขั้นต่ำ: ปี {record.requirements.internship.minYear}</li>
-                      <li>หน่วยกิตรวมขั้นต่ำ: {record.requirements.internship.minCredits} หน่วยกิต</li>
-                      <li>หน่วยกิตสาขาขั้นต่ำ: {record.requirements.internship.minMajorCredits} หน่วยกิต</li>
-                      <li>ชั่วโมงฝึกงานขั้นต่ำ: {record.requirements.internship.minHours} ชั่วโมง</li>
-                    </ul>
-                  </Panel>
-                  <Panel header="เกณฑ์โครงงานพิเศษ" key="2">
-                    <ul>
-                      <li>ชั้นปีขั้นต่ำ: ปี {record.requirements.project.minYear}</li>
-                      <li>หน่วยกิตรวมขั้นต่ำ: {record.requirements.project.minCredits} หน่วยกิต</li>
-                      <li>หน่วยกิตสาขาขั้นต่ำ: {record.requirements.project.minMajorCredits} หน่วยกิต</li>
-                    </ul>
-                  </Panel>
-                </Collapse>
-              </div>
-            ),
-          }}
         />
       </Card>
 
-      {/* Modal สำหรับแก้ไขหลักสูตร */}
       <Modal
-        title={editingCurriculum?.id ? "แก้ไขหลักสูตร" : "เพิ่มหลักสูตรใหม่"}
-        open={editModalVisible}
-        onCancel={() => setEditModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setEditModalVisible(false)}>
-            ยกเลิก
-          </Button>,
-          <Button 
-            key="save" 
-            type="primary" 
-            onClick={handleSaveEdit}
-            loading={loading}
-          >
-            บันทึก
-          </Button>
-        ]}
-        width={900}
+        title={formMode === "add" ? "เพิ่มหลักสูตรใหม่" : "แก้ไขหลักสูตร"}
+        open={addModalVisible}
+        onCancel={() => {
+          console.log("Closing Modal"); // ตรวจสอบการปิด Modal
+          setAddModalVisible(false);
+        }}
+        footer={null}
       >
         <Form
-          form={editForm}
+          form={form}
           layout="vertical"
+          onFinish={(values) => {
+            console.log("Form submitted with values:", values); // ตรวจสอบค่าที่ส่งจากฟอร์ม
+            if (formMode === "add") {
+              handleAdd(values);
+            } else if (formMode === "edit") {
+              handleEdit(values);
+            }
+          }}
         >
-          <Tabs defaultActiveKey="1">
-            <TabPane tab="ข้อมูลหลักสูตร" key="1">
-              <div className="form-row-2">
-                <Form.Item
-                  name="code"
-                  label="รหัสหลักสูตร"
-                  rules={[{ required: true, message: 'กรุณากรอกรหัสหลักสูตร' }]}
-                >
-                  <Input placeholder="เช่น CS2565" />
-                </Form.Item>
-                
-                <Form.Item
-                  name="startYear"
-                  label="ปีที่เริ่มใช้"
-                  rules={[{ required: true, message: 'กรุณากรอกปีที่เริ่มใช้' }]}
-                >
-                  <InputNumber style={{ width: '100%' }} min={2500} max={2600} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="endYear"
-                  label="ปีที่สิ้นสุด (ไม่ต้องระบุหากยังใช้อยู่)"
-                >
-                  <InputNumber style={{ width: '100%' }} min={2500} max={2600} />
-                </Form.Item>
-              </div>
-              
-              <Form.Item
-                name="name"
-                label="ชื่อหลักสูตร"
-                rules={[{ required: true, message: 'กรุณากรอกชื่อหลักสูตร' }]}
-              >
-                <Input placeholder="เช่น หลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์ ฉบับปรับปรุง พ.ศ. 2565" />
-              </Form.Item>
-              
-              <Form.Item
-                name="shortName"
-                label="ชื่อย่อหลักสูตร"
-                rules={[{ required: true, message: 'กรุณากรอกชื่อย่อหลักสูตร' }]}
-              >
-                <Input placeholder="เช่น วท.บ. (วิทยาการคอมพิวเตอร์) 2565" />
-              </Form.Item>
-              
-              <Form.Item
-                name="active"
-                label="สถานะการใช้งาน"
-                valuePropName="checked"
-              >
-                <Switch checkedChildren="ใช้งาน" unCheckedChildren="ไม่ใช้งาน" />
-              </Form.Item>
-            </TabPane>
-            
-            <TabPane tab="เกณฑ์การฝึกงาน" key="2">
-              <div className="form-row-2">
-                <Form.Item
-                  name="internshipMinYear"
-                  label="ชั้นปีขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกชั้นปีขั้นต่ำ' }]}
-                >
-                  <InputNumber min={1} max={8} style={{ width: '100%' }} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="internshipMinCredits"
-                  label="หน่วยกิตรวมขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกหน่วยกิตรวมขั้นต่ำ' }]}
-                >
-                  <InputNumber min={0} max={150} style={{ width: '100%' }} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="internshipMinMajorCredits"
-                  label="หน่วยกิตสาขาขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกหน่วยกิตสาขาขั้นต่ำ' }]}
-                >
-                  <InputNumber min={0} max={150} style={{ width: '100%' }} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="internshipMinHours"
-                  label="จำนวนชั่วโมงฝึกงานขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกจำนวนชั่วโมง' }]}
-                >
-                  <InputNumber min={0} max={1000} style={{ width: '100%' }} />
-                </Form.Item>
-              </div>
-            </TabPane>
-            
-            <TabPane tab="เกณฑ์โครงงานพิเศษ" key="3">
-              <div className="form-row-2">
-                <Form.Item
-                  name="projectMinYear"
-                  label="ชั้นปีขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกชั้นปีขั้นต่ำ' }]}
-                >
-                  <InputNumber min={1} max={8} style={{ width: '100%' }} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="projectMinCredits"
-                  label="หน่วยกิตรวมขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกหน่วยกิตรวมขั้นต่ำ' }]}
-                >
-                  <InputNumber min={0} max={150} style={{ width: '100%' }} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="projectMinMajorCredits"
-                  label="หน่วยกิตสาขาขั้นต่ำ"
-                  rules={[{ required: true, message: 'กรุณากรอกหน่วยกิตสาขาขั้นต่ำ' }]}
-                >
-                  <InputNumber min={0} max={150} style={{ width: '100%' }} />
-                </Form.Item>
-              </div>
-            </TabPane>
-          </Tabs>
+          <Form.Item name="id" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="รหัสหลักสูตร"
+            name="code"
+            rules={[{ required: true, message: "กรุณากรอกรหัสหลักสูตร" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="ชื่อหลักสูตร"
+            name="name"
+            rules={[{ required: true, message: "กรุณากรอกชื่อหลักสูตร" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="ชื่อย่อหลักสูตร"
+            name="shortName"
+            rules={[{ required: true, message: "กรุณากรอกชื่อย่อหลักสูตร" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="ปีที่เริ่มใช้"
+            name="startYear"
+            rules={[{ required: true, message: "กรุณากรอกปีที่เริ่มใช้" }]}
+          >
+            <InputNumber min={1900} max={2100} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="ปีที่สิ้นสุด" name="endYear">
+            <InputNumber min={1900} max={2100} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="สถานะ" name="active" valuePropName="checked">
+            <Switch checkedChildren="ใช้งาน" unCheckedChildren="ไม่ใช้งาน" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block>
+              บันทึก
+            </Button>
+          </Form.Item>
         </Form>
       </Modal>
-      
-      <style jsx>{`
-        .card-title-with-button {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-        .form-row-2 {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 16px;
-        }
-      `}</style>
     </div>
   );
 };

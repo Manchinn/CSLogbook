@@ -91,45 +91,44 @@ export const settingsService = {
 
   // ดึงข้อมูลหลักสูตรทั้งหมด
   getCurriculums: async () => {
-    try {
-      const response = await apiClient.get('/admin2/settings/curriculums');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching curriculums:', error);
-      throw error;
-    }
+    const response = await apiClient.get('/admin/curriculums'); // เปลี่ยน Path
+    return response.data;
   },
 
-  // อัปเดตข้อมูลหลักสูตร
-  updateCurriculum: async (curriculumData) => {
-    try {
-      const response = await apiClient.put(`/admin2/settings/curriculums/${curriculumData.id}`, curriculumData);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating curriculum:', error);
-      throw error;
-    }
+  // ดึงข้อมูลหลักสูตรตาม ID
+  getCurriculumById: async (id) => {
+    const response = await apiClient.get(`/admin/curriculums/${id}`); // เปลี่ยน Path
+    return response.data;
   },
 
   // สร้างหลักสูตรใหม่
   createCurriculum: async (curriculumData) => {
-    try {
-      const response = await apiClient.post('/admin2/settings/curriculums', curriculumData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating curriculum:', error);
-      throw error;
-    }
+    const response = await apiClient.post('/admin/curriculums', curriculumData); // เปลี่ยน Path
+    return response.data;
+  },
+
+  // อัปเดตข้อมูลหลักสูตร
+  updateCurriculum: async (id, curriculumData) => {
+    console.log("Updating curriculum with ID:", id); // ตรวจสอบค่า id
+    console.log("Updating curriculum with data:", curriculumData); // ตรวจสอบ payload
+    const response = await apiClient.put(`/admin/curriculums/${id}`, curriculumData);
+    return response.data;
   },
 
   // ลบหลักสูตร
-  deleteCurriculum: async (curriculumId) => {
+  deleteCurriculum: async (id) => {
+    const response = await apiClient.delete(`/admin/curriculums/${id}`); // เปลี่ยน Path
+    return response.data;
+  },
+
+  // ดึงข้อมูลการตั้งค่าหลักสูตร
+  getCurriculumSettings: async () => {
     try {
-      const response = await apiClient.delete(`/admin2/settings/curriculums/${curriculumId}`);
+      const response = await apiClient.get('/admin/curriculums/settings'); // ตรวจสอบว่า backend รองรับ path นี้หรือไม่
       return response.data;
     } catch (error) {
-      console.error('Error deleting curriculum:', error);
+      console.error('Error fetching curriculum settings:', error);
       throw error;
     }
-  }
+  },
 };

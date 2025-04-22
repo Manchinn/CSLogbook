@@ -5,6 +5,7 @@ const studentController = require('../controllers/studentController');
 const teacherController = require('../controllers/teacherController');
 // เพิ่ม import documentController
 const documentController = require('../controllers/documents/documentController');
+const curriculumController = require('../controllers/curriculumController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 // Middleware for admin routes
@@ -50,5 +51,12 @@ router.post('/teachers', adminAuth, teacherController.addTeacher);
 router.get('/teachers/:id', adminAuth, teacherController.getTeacherById);
 router.put('/teachers/:id', adminAuth, teacherController.updateTeacher);
 router.delete('/teachers/:id', adminAuth, teacherController.deleteTeacher);
+
+// === เพิ่ม Admin Curriculum Routes ===
+router.get('/curriculums', adminAuth, curriculumController.getCurriculums);
+router.get('/curriculums/:id', adminAuth, curriculumController.getCurriculumById);
+router.post('/curriculums', adminAuth, curriculumController.createCurriculum);
+router.put('/curriculums/:id', adminAuth, curriculumController.updateCurriculum);
+router.delete('/curriculums/:id', adminAuth, curriculumController.deleteCurriculum);
 
 module.exports = router;
