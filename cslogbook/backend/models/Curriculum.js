@@ -4,10 +4,7 @@ module.exports = (sequelize) => {
     class Curriculum extends Model {
         static associate(models) {
             // หากมีความสัมพันธ์กับโมเดลอื่น เช่น Student หรือ Course
-            Curriculum.hasMany(models.Student, {
-                foreignKey: 'curriculum_id',
-                as: 'students'
-            });
+
         }
     }
 
@@ -46,6 +43,36 @@ module.exports = (sequelize) => {
         active: {
             type: DataTypes.BOOLEAN,
             defaultValue: true
+        },
+        maxCredits: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'max_credits'
+        },
+        totalCredits: {
+            type: DataTypes.INTEGER, // ฟิลด์สำหรับหน่วยกิตสะสม
+            allowNull: true,
+            field: 'total_credits'
+        },
+        majorCredits: {
+            type: DataTypes.INTEGER, // ฟิลด์สำหรับหน่วยกิตแต่ละวิชาภาค
+            allowNull: true,
+            field: 'major_credits'
+        },
+        internshipBaseCredits: {
+            type: DataTypes.INTEGER, // ฟิลด์สำหรับหน่วยกิตฝึกงาน
+            allowNull: true,
+            field: 'internship_base_credits'
+        },
+        projectBaseCredits: {
+            type: DataTypes.INTEGER, // ฟิลด์สำหรับหน่วยกิตโครงงาน
+            allowNull: true,
+            field: 'project_base_credits'
+        },
+        projectMajorBaseCredits: {
+            type: DataTypes.INTEGER, // ฟิลด์สำหรับหน่วยกิตโครงงานภาค
+            allowNull: true,
+            field: 'project_major_base_credits'
         },
         requirements: {
             type: DataTypes.JSON, // เก็บข้อมูลเกณฑ์ในรูปแบบ JSON

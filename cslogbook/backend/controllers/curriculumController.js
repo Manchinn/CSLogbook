@@ -14,7 +14,20 @@ exports.getCurriculums = async (req, res) => {
 
 exports.createCurriculum = async (req, res) => {
   try {
-    const { code, name, short_name, start_year, end_year, active } = req.body;
+    const {
+      code,
+      name,
+      short_name,
+      start_year,
+      end_year,
+      active,
+      max_credits,
+      total_credits,
+      major_credits,
+      internship_base_credits,
+      project_base_credits,
+      project_major_base_credits,
+    } = req.body;
 
     // แปลงข้อมูลจาก snake_case เป็น camelCase
     const newCurriculum = await Curriculum.create({
@@ -24,6 +37,12 @@ exports.createCurriculum = async (req, res) => {
       startYear: start_year,
       endYear: end_year,
       active,
+      maxCredits: max_credits,
+      totalCredits: total_credits,
+      majorCredits: major_credits,
+      internship_base_credits,
+      project_base_credits,
+      project_major_base_credits,
     });
 
     res.json({ success: true, data: newCurriculum });
@@ -38,7 +57,20 @@ exports.createCurriculum = async (req, res) => {
 exports.updateCurriculum = async (req, res) => {
   try {
     const { id } = req.params;
-    const { code, name, short_name, start_year, end_year, active } = req.body;
+    const {
+      code,
+      name,
+      short_name,
+      start_year,
+      end_year,
+      active,
+      max_credits,
+      total_credits,
+      major_credits,
+      internship_base_credits,
+      project_base_credits,
+      project_major_base_credits,
+    } = req.body;
 
     // แปลงข้อมูลจาก snake_case เป็น camelCase
     const updatedCurriculum = await Curriculum.update(
@@ -49,6 +81,12 @@ exports.updateCurriculum = async (req, res) => {
         startYear: start_year,
         endYear: end_year,
         active,
+        maxCredits: max_credits,
+        totalCredits: total_credits,
+        majorCredits: major_credits,
+        internshipBaseCredits: internship_base_credits,
+        projectBaseCredits: project_base_credits,
+        projectMajorBaseCredits: project_major_base_credits,
       },
       { where: { curriculumId: id } }
     );

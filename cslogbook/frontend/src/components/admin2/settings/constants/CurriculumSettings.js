@@ -43,6 +43,12 @@ const CurriculumSettings = () => {
           startYear: curriculum.startYear,
           endYear: curriculum.end_year,
           active: curriculum.active,
+          maxCredits: curriculum.maxCredits ?? curriculum.max_credits,
+          totalCredits: curriculum.totalCredits,
+          majorCredits: curriculum.majorCredits,
+          internshipBaseCredits: curriculum.internshipBaseCredits,
+          projectBaseCredits: curriculum.projectBaseCredits,
+          projectMajorBaseCredits: curriculum.projectMajorBaseCredits,
         }));
         console.log("Mapped Curriculums:", mappedCurriculums); // ตรวจสอบข้อมูลที่แมปแล้ว
         setCurriculums(mappedCurriculums);
@@ -69,6 +75,12 @@ const CurriculumSettings = () => {
         start_year: values.startYear,
         end_year: values.endYear,
         active: values.active || false,
+        max_credits: values.maxCredits,
+        total_credits: values.totalCredits,
+        major_credits: values.majorCredits,
+        internship_base_credits: values.internshipBaseCredits,
+        project_base_credits: values.projectBaseCredits,
+        project_major_base_credits: values.projectMajorBaseCredits,
       };
       console.log("Payload for adding:", payload); // ตรวจสอบ payload ที่จะส่งไปยัง API
       const response = await settingsService.createCurriculum(payload);
@@ -114,6 +126,12 @@ const CurriculumSettings = () => {
         start_year: values.startYear,
         end_year: values.endYear,
         active: values.active || false,
+        max_credits: values.maxCredits,
+        total_credits: values.totalCredits,
+        major_credits: values.majorCredits,
+        internship_base_credits: values.internshipBaseCredits,
+        project_base_credits: values.projectBaseCredits,
+        project_major_base_credits: values.projectMajorBaseCredits,
       };
       console.log("Payload for editing:", payload); // ตรวจสอบ payload ที่จะส่งไปยัง API
       const response = await settingsService.updateCurriculum(
@@ -213,6 +231,42 @@ const CurriculumSettings = () => {
       ),
     },
     {
+      title: "หน่วยกิตสูงสุด",
+      dataIndex: "maxCredits",
+      key: "maxCredits",
+      width: 120,
+    } /* 
+    {
+      title: "หน่วยกิตสะสม",
+      dataIndex: "totalCredits",
+      key: "totalCredits",
+      width: 120,
+    },
+    {
+      title: "หน่วยกิตแต่ละวิชาภาค",
+      dataIndex: "majorCredits",
+      key: "majorCredits",
+      width: 150,
+    }, */,
+    {
+      title: "หน่วยกิตสะสมขั้นต่ำ (ฝึกงาน)",
+      dataIndex: "internshipBaseCredits",
+      key: "internshipBaseCredits",
+      width: 120,
+    },
+    {
+      title: "หน่วยกิตสะสมขั้นต่ำ (โครงงานพิเศษ)",
+      dataIndex: "projectBaseCredits",
+      key: "projectBaseCredits",
+      width: 120,
+    },
+    {
+      title: "หน่วยกิตวิชาภาคขั้นต่ำ (โครงงานพิเศษ)",
+      dataIndex: "projectMajorBaseCredits",
+      key: "projectMajorBaseCredits",
+      width: 120,
+    },
+    {
       title: "จัดการ",
       key: "action",
       width: 120,
@@ -233,6 +287,12 @@ const CurriculumSettings = () => {
                 startYear: record.startYear,
                 endYear: record.endYear,
                 active: record.active,
+                maxCredits: record.maxCredits,/* 
+                totalCredits: record.totalCredits,
+                majorCredits: record.majorCredits, */
+                internshipBaseCredits: record.internshipBaseCredits,
+                projectBaseCredits: record.projectBaseCredits,
+                projectMajorBaseCredits: record.projectMajorBaseCredits,
               });
             }}
           />
@@ -297,10 +357,13 @@ const CurriculumSettings = () => {
           setAddModalVisible(false);
         }}
         footer={null}
+        width={1000}
+        style={{ top: 20 }}
       >
         <Form
           form={form}
           layout="vertical"
+          style={{ maxHeight: 650, overflowY: "auto" }}
           onFinish={(values) => {
             console.log("Form submitted with values:", values); // ตรวจสอบค่าที่ส่งจากฟอร์ม
             if (formMode === "add") {
@@ -339,10 +402,53 @@ const CurriculumSettings = () => {
             name="startYear"
             rules={[{ required: true, message: "กรุณากรอกปีที่เริ่มใช้" }]}
           >
-            <InputNumber min={1900} max={2100} style={{ width: "100%" }} />
+            <InputNumber min={2500} max={3000} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item label="ปีที่สิ้นสุด" name="endYear">
-            <InputNumber min={1900} max={2100} style={{ width: "100%" }} />
+            <InputNumber min={2500} max={3000} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            label="จำนวนหน่วยกิตที่เรียนตลอดหลักสูตร"
+            name="maxCredits"
+            rules={[{ required: true, message: "กรุณากรอกหน่วยกิตสูงสุด" }]}
+          >
+            <InputNumber min={0} max={500} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            label="หน่วยกิตสะสมขั้นต่ำ (ระบบฝึกงาน)"
+            name="internshipBaseCredits"
+            rules={[
+              {
+                required: true,
+                message: "กรุณากรอกหน่วยกิตสะสมขั้นต่ำ (ฝึกงาน)",
+              },
+            ]}
+          >
+            <InputNumber min={0} max={500} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            label="หน่วยกิตสะสมขั้นต่ำ (โครงงานพิเศษ)"
+            name="projectBaseCredits"
+            rules={[
+              {
+                required: true,
+                message: "กรุณากรอกหน่วยกิตสะสมขั้นต่ำ (โครงงานพิเศษ)",
+              },
+            ]}
+          >
+            <InputNumber min={0} max={500} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            label="หน่วยกิตแต่ละวิชาภาคขั้นต่ำ (โครงงานพิเศษ)"
+            name="projectMajorBaseCredits"
+            rules={[
+              {
+                required: true,
+                message: "กรุณากรอกหน่วยกิตแต่ละวิชาภาคขั้นต่ำ (โครงงานพิเศษ)",
+              },
+            ]}
+          >
+            <InputNumber min={0} max={500} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item label="สถานะ" name="active" valuePropName="checked">
             <Switch checkedChildren="ใช้งาน" unCheckedChildren="ไม่ใช้งาน" />

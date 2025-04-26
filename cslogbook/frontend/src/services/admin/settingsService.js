@@ -1,13 +1,13 @@
-import apiClient from '../apiClient';
+import apiClient from "../apiClient";
 
 export const settingsService = {
   // ดึงข้อมูลการตั้งค่าปีการศึกษา
   getAcademicSettings: async () => {
     try {
-      const response = await apiClient.get('/admin/settings/academic');
+      const response = await apiClient.get("/admin/academic");
       return response.data;
     } catch (error) {
-      console.error('Error fetching academic settings:', error);
+      console.error("Error fetching academic settings:", error);
       throw error;
     }
   },
@@ -15,10 +15,20 @@ export const settingsService = {
   // อัปเดตข้อมูลการตั้งค่าปีการศึกษา
   updateAcademicSettings: async (data) => {
     try {
-      const response = await apiClient.put('/admin/settings/academic', data);
+      const response = await apiClient.put("/admin/academic", data);
       return response.data;
     } catch (error) {
-      console.error('Error updating academic settings:', error);
+      console.error("Error updating academic settings:", error);
+      throw error;
+    }
+  },
+
+  getCurriculumMappings: async () => {
+    try {
+      const response = await apiClient.get("/admin/curriculums/mappings");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching curriculum mappings:", error);
       throw error;
     }
   },
@@ -26,10 +36,10 @@ export const settingsService = {
   // ดึงข้อมูลเกณฑ์คุณสมบัติ
   getEligibilitySettings: async () => {
     try {
-      const response = await apiClient.get('/admin/settings/eligibility');
+      const response = await apiClient.get("/admin/settings/eligibility");
       return response.data;
     } catch (error) {
-      console.error('Error fetching eligibility settings:', error);
+      console.error("Error fetching eligibility settings:", error);
       throw error;
     }
   },
@@ -37,10 +47,10 @@ export const settingsService = {
   // อัปเดตข้อมูลเกณฑ์คุณสมบัติ
   updateEligibilitySettings: async (data) => {
     try {
-      const response = await apiClient.put('/admin/settings/eligibility', data);
+      const response = await apiClient.put("/admin/settings/eligibility", data);
       return response.data;
     } catch (error) {
-      console.error('Error updating eligibility settings:', error);
+      console.error("Error updating eligibility settings:", error);
       throw error;
     }
   },
@@ -48,10 +58,10 @@ export const settingsService = {
   // ดึงข้อมูลสถานะนักเรียน
   getStudentStatuses: async () => {
     try {
-      const response = await apiClient.get('/admin2/settings/student-statuses');
+      const response = await apiClient.get("/admin2/settings/student-statuses");
       return response.data;
     } catch (error) {
-      console.error('Error fetching student statuses:', error);
+      console.error("Error fetching student statuses:", error);
       throw error;
     }
   },
@@ -59,10 +69,13 @@ export const settingsService = {
   // อัปเดตข้อมูลสถานะนักเรียน
   updateStudentStatus: async (statusData) => {
     try {
-      const response = await apiClient.put(`/admin2/settings/student-statuses/${statusData.id}`, statusData);
+      const response = await apiClient.put(
+        `/admin2/settings/student-statuses/${statusData.id}`,
+        statusData
+      );
       return response.data;
     } catch (error) {
-      console.error('Error updating student status:', error);
+      console.error("Error updating student status:", error);
       throw error;
     }
   },
@@ -70,10 +83,13 @@ export const settingsService = {
   // สร้างข้อมูลสถานะนักเรียน
   createStudentStatus: async (statusData) => {
     try {
-      const response = await apiClient.post('/admin2/settings/student-statuses', statusData);
+      const response = await apiClient.post(
+        "/admin2/settings/student-statuses",
+        statusData
+      );
       return response.data;
     } catch (error) {
-      console.error('Error creating student status:', error);
+      console.error("Error creating student status:", error);
       throw error;
     }
   },
@@ -81,17 +97,19 @@ export const settingsService = {
   // ลบข้อมูลสถานะนักเรียน
   deleteStudentStatus: async (statusId) => {
     try {
-      const response = await apiClient.delete(`/admin2/settings/student-statuses/${statusId}`);
+      const response = await apiClient.delete(
+        `/admin2/settings/student-statuses/${statusId}`
+      );
       return response.data;
     } catch (error) {
-      console.error('Error deleting student status:', error);
+      console.error("Error deleting student status:", error);
       throw error;
     }
   },
 
   // ดึงข้อมูลหลักสูตรทั้งหมด
   getCurriculums: async () => {
-    const response = await apiClient.get('/admin/curriculums'); // เปลี่ยน Path
+    const response = await apiClient.get("/admin/curriculums"); // เปลี่ยน Path
     return response.data;
   },
 
@@ -103,7 +121,7 @@ export const settingsService = {
 
   // สร้างหลักสูตรใหม่
   createCurriculum: async (curriculumData) => {
-    const response = await apiClient.post('/admin/curriculums', curriculumData); // เปลี่ยน Path
+    const response = await apiClient.post("/admin/curriculums", curriculumData); // เปลี่ยน Path
     return response.data;
   },
 
@@ -111,7 +129,10 @@ export const settingsService = {
   updateCurriculum: async (id, curriculumData) => {
     console.log("Updating curriculum with ID:", id); // ตรวจสอบค่า id
     console.log("Updating curriculum with data:", curriculumData); // ตรวจสอบ payload
-    const response = await apiClient.put(`/admin/curriculums/${id}`, curriculumData);
+    const response = await apiClient.put(
+      `/admin/curriculums/${id}`,
+      curriculumData
+    );
     return response.data;
   },
 
@@ -124,10 +145,10 @@ export const settingsService = {
   // ดึงข้อมูลการตั้งค่าหลักสูตร
   getCurriculumSettings: async () => {
     try {
-      const response = await apiClient.get('/admin/curriculums/settings'); // ตรวจสอบว่า backend รองรับ path นี้หรือไม่
+      const response = await apiClient.get("/admin/curriculums/settings"); // ตรวจสอบว่า backend รองรับ path นี้หรือไม่
       return response.data;
     } catch (error) {
-      console.error('Error fetching curriculum settings:', error);
+      console.error("Error fetching curriculum settings:", error);
       throw error;
     }
   },

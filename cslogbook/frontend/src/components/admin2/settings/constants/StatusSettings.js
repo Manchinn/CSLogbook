@@ -4,8 +4,7 @@ import {
   InputNumber, message, Select, Tag, Spin, Popconfirm
 } from 'antd';
 import { 
-  PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, 
-  ReloadOutlined, ExclamationCircleOutlined
+  PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { settingsService } from '../../../../services/admin/settingsService';
 
@@ -19,30 +18,11 @@ const StatusSettings = () => {
   const [statuses, setStatuses] = useState([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingStatus, setEditingStatus] = useState(null);
-  const [curriculumMappings, setCurriculumMappings] = useState([]);
-  const [curriculums, setCurriculums] = useState([]);
 
   // ดึงข้อมูลสถานะนักศึกษาจาก API
   const fetchStatuses = async () => {
     setLoading(true);
     try {
-      // ดึงข้อมูลหลักสูตร
-      const curriculumResponse = await settingsService.getCurriculums();
-      if (curriculumResponse.success) {
-        setCurriculums(curriculumResponse.data);
-        
-        // ดึงข้อมูลการกำหนดหลักสูตรตามปีที่เข้าศึกษา
-        const mappings = [
-          { enrollYear: 2565, curriculumId: 2 }, // CS2565
-          { enrollYear: 2564, curriculumId: 2 }, // CS2565
-          { enrollYear: 2563, curriculumId: 2 }, // CS2565
-          { enrollYear: 2562, curriculumId: 1 }, // CS2560
-          { enrollYear: 2561, curriculumId: 1 }  // CS2560
-        ];
-        
-        setCurriculumMappings(mappings);
-      }
-      
       // ตัวอย่างข้อมูลเพื่อการแสดงผล
       const mockData = [
         {
@@ -115,13 +95,6 @@ const StatusSettings = () => {
       
       setStatuses(mockData);
       
-      // ตั้งค่าค่าเริ่มต้นของฟอร์มการตั้งค่าระบบ
-      form.setFieldsValue({
-        maxStudyYears: 8,
-        maxProbationTimes: 2,
-        statusForInternship: ['NORMAL', 'EXTENDED'],
-        statusForProject: ['NORMAL', 'EXTENDED']
-      });
     } catch (error) {
       console.error('Error fetching data:', error);
       message.error('ไม่สามารถดึงข้อมูลได้');
@@ -221,40 +194,6 @@ const StatusSettings = () => {
     setEditModalVisible(true);
   };
 
-  // จัดการการบันทึกการตั้งค่าทั่วไป
-  const handleSaveSettings = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
-      
-      // เมื่อมี API จริง ให้ใช้ settingsService เพื่อบันทึกการตั้งค่า
-      // await settingsService.updateStatusSettings(values);
-      
-      message.success('บันทึกการตั้งค่าสำเร็จ');
-    } catch (error) {
-      console.error('Error saving status settings:', error);
-      message.error('ไม่สามารถบันทึกการตั้งค่าได้');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // จัดการการแก้ไขการกำหนดหลักสูตร
-  const handleEditMapping = (record, index) => {
-    console.log('Edit mapping:', record, index);
-  };
-
-  // จัดการการเพิ่มการกำหนดหลักสูตร
-  const handleAddMapping = () => {
-    const currentYear = new Date().getFullYear() + 543;
-    const newMapping = {
-      enrollYear: currentYear,
-      curriculumId: curriculums.find(c => c.active)?.id || null
-    };
-    
-    setCurriculumMappings([...curriculumMappings, newMapping]);
-  };
-
   // กำหนดคอลัมน์ของตาราง
   const columns = [
     {
@@ -323,101 +262,9 @@ const StatusSettings = () => {
 
   return (
     <div className="status-settings">
-      {/* การตั้งค่าทั่วไป */}
-      <Card className="settings-card">
-        <Title level={5}>ตั้งค่าทั่วไปสำหรับสถานะนักศึกษา</Title>
-        <Text type="secondary">
-          กำหนดค่าพื้นฐานสำหรับสถานะของนักศึกษาในระบบ
-        </Text>
-        
-        <Form
-          form={form}
-          layout="vertical"
-          className="settings-form"
-          style={{ marginTop: 16 }}
-        >
-          <div className="form-row">
-            <Form.Item
-              name="maxStudyYears"
-              label="จำนวนปีการศึกษาสูงสุด"
-              rules={[{ required: true, message: 'กรุณากรอกจำนวนปีการศึกษาสูงสุด' }]}
-            >
-              <InputNumber min={4} max={12} style={{ width: '100%' }} />
-            </Form.Item>
-          </div>
-          
-          <div className="form-actions">
-            <Button 
-              type="primary" 
-              icon={<SaveOutlined />} 
-              onClick={handleSaveSettings}
-              loading={loading}
-            >
-              บันทึกการตั้งค่า
-            </Button>
-          </div>
-        </Form>
-      </Card>
-      
-      {/* การเชื่อมโยงสถานะกับหลักสูตร */}
-      <Card className="settings-card" style={{ marginTop: 16 }}>
-        <Title level={5}>การเชื่อมโยงสถานะกับหลักสูตร</Title>
-        <Text type="secondary">
-          กำหนดค่าเริ่มต้นของสถานะสำหรับนักศึกษาในแต่ละหลักสูตร
-        </Text>
-        
-        <Form.Item
-          name="defaultCurriculumMappings"
-          label="การกำหนดหลักสูตรตามปีที่เข้าศึกษา"
-        >
-          <Table
-            size="small"
-            pagination={false}
-            columns={[
-              {
-                title: 'ปีที่เข้าศึกษา',
-                dataIndex: 'enrollYear',
-                key: 'enrollYear',
-                width: 120
-              },
-              {
-                title: 'หลักสูตรที่ใช้',
-                dataIndex: 'curriculumId',
-                key: 'curriculumId',
-                render: (curriculumId) => {
-                  const curriculum = curriculums.find(c => c.id === curriculumId);
-                  return curriculum ? curriculum.shortName : '-';
-                }
-              },
-              {
-                title: 'จัดการ',
-                key: 'action',
-                width: 80,
-                render: (_, record, index) => (
-                  <Button 
-                    icon={<EditOutlined />} 
-                    size="small" 
-                    onClick={() => handleEditMapping(record, index)}
-                  />
-                )
-              }
-            ]}
-            dataSource={curriculumMappings}
-          />
-          <Button 
-            icon={<PlusOutlined />} 
-            onClick={handleAddMapping}
-            style={{ marginTop: 8 }}
-          >
-            เพิ่มการกำหนดหลักสูตร
-          </Button>
-        </Form.Item>
-      </Card>
-      
-      {/* รายการสถานะนักศึกษา */}
+      {/* รายการสถานะนักศึกษา */} 
       <Card 
         className="settings-card" 
-        style={{ marginTop: 16 }} 
         title="สถานะนักศึกษาในระบบ"
         extra={
           <Button 

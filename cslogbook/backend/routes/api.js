@@ -4,6 +4,7 @@ const documentsRoutes = require('./documents');
 const authRoutes = require('./auth/authRoutes');
 const userRoutes = require('./users/userRoutes');
 const curriculumRoutes = require('./curriculumRoutes');
+const academicRoutes = require("./routes/academicRoutes");
 const { authenticateToken } = require('../middleware/authMiddleware');
 
 // Public routes
@@ -15,6 +16,7 @@ router.use('/users', authenticateToken, userRoutes);
 
 // เชื่อมต่อ routes สำหรับหลักสูตร
 router.use('/curriculums', authenticateToken, curriculumRoutes);
+router.use('/academic', authenticateToken, academicRoutes);
 
 
 module.exports = router;

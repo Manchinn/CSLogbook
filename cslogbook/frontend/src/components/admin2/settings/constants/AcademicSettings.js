@@ -19,10 +19,14 @@ import {
 } from "antd";
 import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../services/admin/settingsService";
-import { studentService } from "../../../../services/admin/userService";
-import moment from "moment-timezone";
-import { formatThaiDate } from "../../../../utils/timeUtils";
-import { DATE_FORMAT_SHORT } from "../../../../utils/constants";
+import th_TH from "antd/lib/locale/th_TH"; // เพิ่ม locale ภาษาไทย
+import moment from "moment";
+import "moment/locale/th"; // เพิ่ม locale ภาษาไทยสำหรับ moment
+import {
+  DATE_FORMAT_SHORT,
+  DATE_FORMAT_MEDIUM,
+  DATE_FORMAT_LONG,
+} from "../../../../utils/constants";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -30,7 +34,7 @@ const { RangePicker } = DatePicker;
 
 // แก้ไขฟังก์ชัน checkDateOverlap เพื่อให้ตรวจสอบทั้งสองช่วงเวลา
 const checkDateOverlap = (values) => {
-  // ตรวจสอบว่าภาคเรียนต่างๆ ไม่ทับซ้อนกัน
+  // ตรวจสอบช่วงเวลาภาคเรียน
   const sem1Start = values.semester1Range?.[0];
   const sem1End = values.semester1Range?.[1];
   const sem2Start = values.semester2Range?.[0];
@@ -49,60 +53,52 @@ const checkDateOverlap = (values) => {
   }
 
   // ตรวจสอบช่วงวันลงทะเบียนฝึกงาน
-  const internRegStart = values.internshipRegistrationStartDate;
-  const internRegEnd = values.internshipRegistrationEndDate;
+  const internRegStart = values.internshipRegistrationStartDate
+    ? moment(values.internshipRegistrationStartDate)
+    : null;
+  const internRegEnd = values.internshipRegistrationEndDate
+    ? moment(values.internshipRegistrationEndDate)
+    : null;
 
   if (internRegStart && internRegEnd) {
-    // ตรวจสอบว่าวันลงทะเบียนฝึกงานอยู่ในช่วงเปิดภาคเรียนหรือไม่
-    const isInternSemester1 =
-      sem1Start &&
-      sem1End &&
-      (internRegStart.isBetween(sem1Start, sem1End, null, "[]") ||
-        internRegEnd.isBetween(sem1Start, sem1End, null, "[]"));
+    const isInternValid =
+      (sem1Start &&
+        sem1End &&
+        internRegStart.isBetween(sem1Start, sem1End, null, "[]")) ||
+      (sem2Start &&
+        sem2End &&
+        internRegStart.isBetween(sem2Start, sem2End, null, "[]")) ||
+      (sem3Start &&
+        sem3End &&
+        internRegStart.isBetween(sem3Start, sem3End, null, "[]"));
 
-    const isInternSemester2 =
-      sem2Start &&
-      sem2End &&
-      (internRegStart.isBetween(sem2Start, sem2End, null, "[]") ||
-        internRegEnd.isBetween(sem2Start, sem2End, null, "[]"));
-
-    const isInternSemester3 =
-      sem3Start &&
-      sem3End &&
-      (internRegStart.isBetween(sem3Start, sem3End, null, "[]") ||
-        internRegEnd.isBetween(sem3Start, sem3End, null, "[]"));
-
-    if (!isInternSemester1 && !isInternSemester2 && !isInternSemester3) {
+    if (!isInternValid) {
       message.warning("ช่วงวันลงทะเบียนฝึกงานไม่อยู่ในช่วงเปิดภาคเรียนใดเลย");
       return false;
     }
   }
 
   // ตรวจสอบช่วงวันลงทะเบียนโครงงาน
-  const projectRegStart = values.projectRegistrationStartDate;
-  const projectRegEnd = values.projectRegistrationEndDate;
+  const projectRegStart = values.projectRegistrationStartDate
+    ? moment(values.projectRegistrationStartDate)
+    : null;
+  const projectRegEnd = values.projectRegistrationEndDate
+    ? moment(values.projectRegistrationEndDate)
+    : null;
 
   if (projectRegStart && projectRegEnd) {
-    // ตรวจสอบว่าวันลงทะเบียนโครงงานอยู่ในช่วงเปิดภาคเรียนหรือไม่
-    const isProjectSemester1 =
-      sem1Start &&
-      sem1End &&
-      (projectRegStart.isBetween(sem1Start, sem1End, null, "[]") ||
-        projectRegEnd.isBetween(sem1Start, sem1End, null, "[]"));
+    const isProjectValid =
+      (sem1Start &&
+        sem1End &&
+        projectRegStart.isBetween(sem1Start, sem1End, null, "[]")) ||
+      (sem2Start &&
+        sem2End &&
+        projectRegStart.isBetween(sem2Start, sem2End, null, "[]")) ||
+      (sem3Start &&
+        sem3End &&
+        projectRegStart.isBetween(sem3Start, sem3End, null, "[]"));
 
-    const isProjectSemester2 =
-      sem2Start &&
-      sem2End &&
-      (projectRegStart.isBetween(sem2Start, sem2End, null, "[]") ||
-        projectRegEnd.isBetween(sem2Start, sem2End, null, "[]"));
-
-    const isProjectSemester3 =
-      sem3Start &&
-      sem3End &&
-      (projectRegStart.isBetween(sem3Start, sem3End, null, "[]") ||
-        projectRegEnd.isBetween(sem3Start, sem3End, null, "[]"));
-
-    if (!isProjectSemester1 && !isProjectSemester2 && !isProjectSemester3) {
+    if (!isProjectValid) {
       message.warning("ช่วงวันลงทะเบียนโครงงานไม่อยู่ในช่วงเปิดภาคเรียนใดเลย");
       return false;
     }
@@ -118,7 +114,12 @@ const getCurrentSemesterStatus = (formInstance) => {
   const sem2Range = formInstance.getFieldValue("semester2Range");
   const sem3Range = formInstance.getFieldValue("semester3Range");
 
-  if (sem1Range && today.isBetween(sem1Range[0], sem1Range[1], null, "[]")) {
+  if (
+    sem1Range &&
+    sem1Range[0] &&
+    sem1Range[1] &&
+    today.isBetween(sem1Range[0], sem1Range[1], null, "[]")
+  ) {
     return <Tag color="green">ขณะนี้อยู่ในภาคเรียนที่ 1</Tag>;
   } else if (
     sem2Range &&
@@ -143,24 +144,31 @@ const getInternshipRegistrationStatus = (formInstance) => {
   );
   const regEnd = formInstance.getFieldValue("internshipRegistrationEndDate");
 
-  if (regStart && regEnd) {
+  if (
+    regStart &&
+    regEnd &&
+    moment.isMoment(regStart) &&
+    moment.isMoment(regEnd)
+  ) {
     if (today.isBefore(regStart)) {
       return (
         <Tag color="orange">
           ยังไม่เปิดให้ลงทะเบียนฝึกงาน (เริ่ม{" "}
-          {formatThaiDate(regStart, DATE_FORMAT_SHORT)})
+          {moment(regStart).add(543, "year").format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else if (today.isAfter(regEnd)) {
       return (
         <Tag color="red">
-          ปิดการลงทะเบียนฝึกงานแล้ว (สิ้นสุด {regEnd.format("DD/MM/YYYY")})
+          ปิดการลงทะเบียนฝึกงานแล้ว (สิ้นสุด{" "}
+          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else {
       return (
         <Tag color="green">
-          เปิดให้ลงทะเบียนฝึกงาน (ถึง {regEnd.format("DD/MM/YYYY")})
+          เปิดให้ลงทะเบียนฝึกงาน (ถึง{" "}
+          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     }
@@ -174,23 +182,31 @@ const getProjectRegistrationStatus = (formInstance) => {
   const regStart = formInstance.getFieldValue("projectRegistrationStartDate");
   const regEnd = formInstance.getFieldValue("projectRegistrationEndDate");
 
-  if (regStart && regEnd) {
+  if (
+    regStart &&
+    regEnd &&
+    moment.isMoment(regStart) &&
+    moment.isMoment(regEnd)
+  ) {
     if (today.isBefore(regStart)) {
       return (
         <Tag color="orange">
-          ยังไม่เปิดให้ลงทะเบียนโครงงาน (เริ่ม {regStart.format("DD/MM/YYYY")})
+          ยังไม่เปิดให้ลงทะเบียนโครงงานพิเศษ (เริ่ม{" "}
+          {moment(regStart).add(543, "year").format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else if (today.isAfter(regEnd)) {
       return (
         <Tag color="red">
-          ปิดการลงทะเบียนโครงงานแล้ว (สิ้นสุด {regEnd.format("DD/MM/YYYY")})
+          ปิดการลงทะเบียนโครงงานแล้ว (สิ้นสุด{" "}
+          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else {
       return (
         <Tag color="green">
-          เปิดให้ลงทะเบียนโครงงาน (ถึง {regEnd.format("DD/MM/YYYY")})
+          เปิดให้ลงทะเบียนโครงงาน (ถึง{" "}
+          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     }
@@ -209,18 +225,23 @@ const isRegistrationOpenForSemester = (formInstance) => {
     1, 2,
   ];
 
+  const today = moment();
+  const projectRegEnd = formInstance.getFieldValue("projectRegistrationEndDate");
+
   return {
     internship: internshipSemesters.includes(currentSemester),
-    project: projectSemesters.includes(currentSemester),
+    project:
+      projectSemesters.includes(currentSemester) &&
+      (!projectRegEnd || today.isSameOrBefore(projectRegEnd)), // ตรวจสอบวันที่สิ้นสุด
   };
 };
+
 
 const AcademicSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
-  const [initialAcademicYear, setInitialAcademicYear] = useState(null);
-  const [unmappedYears, setUnmappedYears] = useState([]);
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
 
   useEffect(() => {
     fetchSettings();
@@ -239,6 +260,9 @@ const AcademicSettings = () => {
             message.warning(
               "ไม่พบหลักสูตรที่เปิดใช้งาน กรุณาตั้งค่าในหน้าจัดการหลักสูตร"
             );
+          } else {
+            // ตั้งค่าหลักสูตรเริ่มต้นเป็นหลักสูตรแรกที่ active
+            setSelectedCurriculumId(activeCurriculums[0].curriculumId);
           }
         }
       } catch (error) {
@@ -250,73 +274,45 @@ const AcademicSettings = () => {
     fetchCurriculums();
   }, []);
 
-  // เพิ่มการตรวจสอบความครบถ้วนของการกำหนดหลักสูตรสำหรับนักศึกษา
-  useEffect(() => {
-    const validateStudentCurriculumMapping = async () => {
-      try {
-        // ดึงข้อมูลการกำหนดหลักสูตรของนักศึกษา
-        const mappingsResponse = await settingsService.getCurriculumMappings();
-
-        // ตรวจสอบว่ามีการกำหนดหลักสูตรครบทุกปีการศึกษาที่มีนักศึกษาหรือไม่
-        const studentsResponse = await studentService.getFilterOptions();
-        const enrollYears = studentsResponse.enrollYears || [];
-
-        // ตรวจสอบปีที่ไม่มีการกำหนดหลักสูตร
-        const mappedYears =
-          mappingsResponse.data?.map((m) => m.enrollYear) || [];
-        const unmappedYearsList = enrollYears.filter(
-          (year) => !mappedYears.includes(year)
-        );
-
-        setUnmappedYears(unmappedYearsList);
-
-        if (unmappedYearsList.length > 0) {
-          message.warning(
-            `พบนักศึกษาที่ยังไม่ได้กำหนดหลักสูตร ปีที่เข้าศึกษา: ${unmappedYearsList.join(
-              ", "
-            )}`
-          );
-        }
-      } catch (error) {
-        console.error("Error validating curriculum mappings:", error);
-      }
-    };
-
-    validateStudentCurriculumMapping();
-  }, []);
+  const handleCurriculumChange = (value) => {
+    setSelectedCurriculumId(value);
+    // สามารถเพิ่มโลจิกเพิ่มเติมในการเปลี่ยนหลักสูตรที่ใช้งานได้ที่นี่
+    // เช่น ดึงข้อมูลหน่วยกิตหรือข้อกำหนดของหลักสูตรที่เลือก
+    const selectedCurriculum = curriculums.find(c => c.curriculumId === value);
+    if (selectedCurriculum) {
+      message.success(`เลือกหลักสูตร ${selectedCurriculum.shortName || selectedCurriculum.name} เป็นหลักสูตรหลัก`);
+    }
+  };
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
       const response = await settingsService.getAcademicSettings();
-      if (response.success) {
+      if (response.success && response.data) {
         const data = response.data;
 
         form.setFieldsValue({
-          currentAcademicYear: data.currentAcademicYear,
+          id: data.id, // ตั้งค่า id ในฟอร์ม
+          currentAcademicYear: data.academicYear,
           currentSemester: data.currentSemester,
-
-          // ข้อมูลภาคเรียน (คงเดิม)
-          semester1Range: data.semesters?.["1"]?.range
+          semester1Range: data.semester1Range
             ? [
-                moment(data.semesters["1"].range.start),
-                moment(data.semesters["1"].range.end),
+                moment(data.semester1Range.start, "YYYY-MM-DD"),
+                moment(data.semester1Range.end, "YYYY-MM-DD"),
               ]
             : null,
-          semester2Range: data.semesters?.["2"]?.range
+          semester2Range: data.semester2Range
             ? [
-                moment(data.semesters["2"].range.start),
-                moment(data.semesters["2"].range.end),
+                moment(data.semester2Range.start, "YYYY-MM-DD"),
+                moment(data.semester2Range.end, "YYYY-MM-DD"),
               ]
             : null,
-          semester3Range: data.semesters?.["3"]?.range
+          semester3Range: data.semester3Range
             ? [
-                moment(data.semesters["3"].range.start),
-                moment(data.semesters["3"].range.end),
+                moment(data.semester3Range.start, "YYYY-MM-DD"),
+                moment(data.semester3Range.end, "YYYY-MM-DD"),
               ]
             : null,
-
-          // ข้อมูลลงทะเบียนฝึกงาน
           internshipRegistrationStartDate: data.internshipRegistration
             ?.startDate
             ? moment(data.internshipRegistration.startDate)
@@ -324,21 +320,16 @@ const AcademicSettings = () => {
           internshipRegistrationEndDate: data.internshipRegistration?.endDate
             ? moment(data.internshipRegistration.endDate)
             : null,
-
-          // ข้อมูลลงทะเบียนโครงงาน
           projectRegistrationStartDate: data.projectRegistration?.startDate
             ? moment(data.projectRegistration.startDate)
             : null,
           projectRegistrationEndDate: data.projectRegistration?.endDate
             ? moment(data.projectRegistration.endDate)
             : null,
-
-          // ภาคเรียนที่เปิดให้ลงทะเบียน
           internshipSemesters: data.internshipSemesters || [3],
           projectSemesters: data.projectSemesters || [1, 2],
         });
 
-        setInitialAcademicYear(data.currentAcademicYear);
       } else {
         message.error("ไม่สามารถดึงข้อมูลการตั้งค่าได้");
       }
@@ -354,29 +345,15 @@ const AcademicSettings = () => {
     try {
       const values = await form.validateFields();
 
-      // ตรวจสอบก่อนบันทึก
+      // ตรวจสอบความถูกต้องของช่วงเวลา
       if (!checkDateOverlap(values)) {
         return;
       }
 
-      // ยืนยันการเปลี่ยนแปลงปีการศึกษา (คงเดิม)
-      if (
-        initialAcademicYear &&
-        values.currentAcademicYear !== initialAcademicYear
-      ) {
-        if (
-          !window.confirm(
-            `คุณกำลังเปลี่ยนปีการศึกษาจาก ${initialAcademicYear} เป็น ${values.currentAcademicYear} ซึ่งจะมีผลต่อการแสดงข้อมูลนักศึกษา คุณต้องการดำเนินการต่อหรือไม่?`
-          )
-        ) {
-          return;
-        }
-      }
-
       setLoading(true);
 
-      // แปลงรูปแบบข้อมูลสำหรับส่งไปยัง backend
       const formattedData = {
+        id: form.getFieldValue("id"),
         currentAcademicYear: values.currentAcademicYear,
         currentSemester: values.currentSemester,
         semesters: {
@@ -405,7 +382,6 @@ const AcademicSettings = () => {
               : null,
           },
         },
-        // แยกช่วงลงทะเบียนเป็นสองส่วน
         internshipRegistration: {
           startDate: values.internshipRegistrationStartDate
             ? values.internshipRegistrationStartDate.format("YYYY-MM-DD")
@@ -422,7 +398,6 @@ const AcademicSettings = () => {
             ? values.projectRegistrationEndDate.format("YYYY-MM-DD")
             : null,
         },
-        // ภาคเรียนที่เปิดให้ลงทะเบียน
         internshipSemesters: values.internshipSemesters || [3],
         projectSemesters: values.projectSemesters || [1, 2],
       };
@@ -484,6 +459,11 @@ const AcademicSettings = () => {
 
           <Row gutter={16} style={{ marginTop: 16 }}>
             <Col span={12}>
+              <Form form={form} layout="vertical">
+                <Form.Item name="id" hidden>
+                  <Input />
+                </Form.Item>
+              </Form>
               <Form.Item
                 name="currentSemester"
                 label="ภาคเรียนปัจจุบัน"
@@ -514,49 +494,77 @@ const AcademicSettings = () => {
 
           <Divider orientation="left">หลักสูตรที่ใช้งานในปีการศึกษานี้</Divider>
 
-          {unmappedYears.length > 0 && (
-            <Alert
-              message="พบนักศึกษาที่ยังไม่ได้กำหนดหลักสูตร"
-              description={
-                <div>
-                  ต้องกำหนดหลักสูตรสำหรับนักศึกษาที่เข้าปีการศึกษา:{" "}
-                  {unmappedYears.join(", ")}
-                  <br />
-                  กรุณากำหนดในหน้า "หลักสูตรการศึกษา"
-                </div>
-              }
-              type="error"
-              showIcon
-              style={{ marginBottom: "16px" }}
-            />
-          )}
+          {/* เพิ่มการเลือกหลักสูตร */}
+          <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
+            <Col span={24}>
+              <Form.Item
+                name="selectedCurriculum"
+                label="เลือกหลักสูตรหลักที่ใช้ในปีการศึกษานี้"
+                rules={[{ required: true, message: "กรุณาเลือกหลักสูตร" }]}
+              >
+                <Select 
+                  placeholder="เลือกหลักสูตร" 
+                  onChange={handleCurriculumChange}
+                  value={selectedCurriculumId}
+                  loading={loading}
+                >
+                  {curriculums.map(curriculum => (
+                    <Option key={curriculum.curriculumId} value={curriculum.curriculumId}>
+                      {curriculum.code} - {curriculum.shortName || curriculum.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Alert 
+                message="หลักสูตรที่เลือกจะถูกใช้เป็นพื้นฐานในการตรวจสอบคุณสมบัติการฝึกงานและโครงงาน" 
+                type="info" 
+                showIcon 
+              />
+            </Col>
+          </Row>
 
-          <Table
-            size="small"
-            pagination={false}
-            columns={[
-              {
-                title: "รหัสหลักสูตร",
-                dataIndex: "code",
-                key: "code",
-              },
-              {
-                title: "ชื่อหลักสูตร",
-                dataIndex: "shortName",
-                key: "shortName",
-              },
-              {
-                title: "ปีที่เริ่มใช้",
-                dataIndex: "startYear",
-                key: "startYear",
-              },
-            ]}
-            dataSource={curriculums}
-            locale={{
-              emptyText:
-                "ไม่พบหลักสูตรที่เปิดใช้งาน กรุณาตั้งค่าในหน้าจัดการหลักสูตร",
-            }}
-          />
+          {selectedCurriculumId && (
+            <div className="selected-curriculum-details">
+              <Table
+                size="small"
+                pagination={false}
+                columns={[
+                  {
+                    title: "รหัสหลักสูตร",
+                    dataIndex: "code",
+                    key: "code",
+                  },
+                  {
+                    title: "ชื่อหลักสูตร",
+                    dataIndex: "shortName",
+                    key: "shortName",
+                    render: (text, record) => record.shortName || record.name,
+                  },
+                  {
+                    title: "ปีที่เริ่มใช้",
+                    dataIndex: "startYear",
+                    key: "startYear",
+                  },
+                  {
+                    title: "หน่วยกิตสะสมขั้นต่ำ (ฝึกงาน)",
+                    dataIndex: "internshipBaseCredits",
+                    key: "internshipBaseCredits",
+                  },
+                  {
+                    title: "หน่วยกิตสะสมขั้นต่ำ (โครงงาน)",
+                    dataIndex: "projectBaseCredits",
+                    key: "projectBaseCredits",
+                  }
+                ]}
+                dataSource={curriculums.filter(c => c.curriculumId === selectedCurriculumId)}
+                locale={{
+                  emptyText: "ไม่พบข้อมูลหลักสูตรที่เลือก",
+                }}
+              />
+            </div>
+          )}
 
           <Divider orientation="left">สถานะภาคเรียน</Divider>
           {/* แก้ไขการเรียกใช้ getCurrentSemesterStatus */}
@@ -624,7 +632,8 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  locale={th_TH}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
               </Form.Item>
@@ -643,7 +652,8 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  locale={th_TH}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
               </Form.Item>
@@ -659,7 +669,8 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  locale={th_TH}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
               </Form.Item>
@@ -691,7 +702,8 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")} // แสดงวันที่ในรูปแบบไทย
+                  locale={th_TH} // ใช้ locale ภาษาไทย
                   placeholder="เลือกวันที่"
                 />
               </Form.Item>
@@ -709,7 +721,8 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")} // แสดงวันที่ในรูปแบบไทย
+                  locale={th_TH} // ใช้ locale ภาษาไทย
                   placeholder="เลือกวันที่"
                 />
               </Form.Item>
@@ -747,7 +760,8 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")} // แสดงวันที่ในรูปแบบไทย
+                  locale={th_TH} // ใช้ locale ภาษาไทย
                   placeholder="เลือกวันที่"
                 />
               </Form.Item>
@@ -765,7 +779,8 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={DATE_FORMAT_SHORT}
+                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")} // แสดงวันที่ในรูปแบบไทย
+                  locale={th_TH} // ใช้ locale ภาษาไทย
                   placeholder="เลือกวันที่"
                 />
               </Form.Item>
