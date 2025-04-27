@@ -38,6 +38,8 @@ router.get('/documents/:id', adminAuth, documentController.getDocumentById);
 router.post('/documents/:id/approve', adminAuth, documentController.approveDocument);
 router.post('/documents/:id/reject', adminAuth, documentController.rejectDocument);
 router.patch('/documents/:id/status', adminAuth, documentController.updateDocumentStatus);
+router.get('/documents/:id/view', adminAuth, documentController.viewDocument); // เพิ่ม route สำหรับดู PDF
+router.get('/documents/:id/download', adminAuth, documentController.downloadDocument); // เพิ่ม route สำหรับดาวน์โหลด PDF
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);

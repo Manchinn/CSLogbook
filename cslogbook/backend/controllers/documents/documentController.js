@@ -1,9 +1,9 @@
-const { Document } = require('../../models');
 const { UPLOAD_CONFIG } = require('../../config/uploadConfig');
-const fs = require('fs').promises;
+// เพิ่ม fs และ path สำหรับอ่านไฟล์
+const fs = require('fs');
 const path = require('path');
 const { Op } = require('sequelize');
-const { User, Student } = require('../../models'); // Assuming User and Student models are defined
+const { User, Student, Document } = require('../../models'); // แก้ไขการ import เพื่อให้มี Document
 
 // อัพโหลดเอกสาร
 const uploadDocument = async (req, res) => {
@@ -330,6 +330,81 @@ const getRecentDocuments = async (req, res) => {
     }
 };
 
+// แสดงไฟล์เอกสาร PDF โดยตรงในเบราว์เซอร์
+const viewDocument = async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const document = await Document.findByPk(documentId);
+        
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบเอกสาร'
+            });
+        }
+
+        if (!document.filePath || !fs.existsSync(document.filePath)) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบไฟล์เอกสาร'
+            });
+        }
+
+        // ตั้งค่า header สำหรับการแสดงไฟล์ PDF โดยตรงใน browser
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${document.fileName || path.basename(document.filePath)}"`);
+        
+        // อ่านและส่งไฟล์
+        const fileStream = fs.createReadStream(document.filePath);
+        fileStream.pipe(res);
+        
+    } catch (error) {
+        console.error('View Document Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการแสดงเอกสาร'
+        });
+    }
+};
+
+// ดาวน์โหลดไฟล์เอกสาร
+const downloadDocument = async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const document = await Document.findByPk(documentId);
+        
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบเอกสาร'
+            });
+        }
+
+        if (!document.filePath || !fs.existsSync(document.filePath)) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบไฟล์เอกสาร'
+            });
+        }
+
+        // ตั้งค่าการดาวน์โหลดไฟล์
+        const fileName = document.fileName || path.basename(document.filePath);
+        res.setHeader('Content-Type', document.mimeType || 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        
+        // ส่งไฟล์
+        const fileStream = fs.createReadStream(document.filePath);
+        fileStream.pipe(res);
+        
+    } catch (error) {
+        console.error('Download Document Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการดาวน์โหลดเอกสาร'
+        });
+    }
+};
+
 module.exports = {
     uploadDocument,
     getDocumentById,
@@ -338,5 +413,7 @@ module.exports = {
     approveDocument,
     rejectDocument,
     searchDocuments,
-    getRecentDocuments
+    getRecentDocuments,
+    viewDocument, // เพิ่มฟังก์ชัน viewDocument ที่นี่
+    downloadDocument // เพิ่มฟังก์ชัน downloadDocument ที่นี่
 };

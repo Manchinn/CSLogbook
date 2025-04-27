@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { getDocument, GlobalWorkerOptions, version } from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/build/pdf';
 import { Spin, message, Empty, Button } from 'antd';
-import 'pdfjs-dist/web/pdf_viewer.css';
 
-// ตั้งค่า workerSrc ให้ชี้ไปยัง worker ที่ถูกต้อง
-GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
+// กำหนด worker path ด้วยเวอร์ชัน pdf.js ที่ตรงกัน
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 const PDFViewer = ({ 
   pdfFile, 
@@ -69,9 +68,9 @@ const PDFViewer = ({
         // แก้ไขการส่ง parameter ให้ getDocument
         if (pdfFile instanceof File || pdfFile instanceof Blob) {
           const arrayBuffer = await pdfFile.arrayBuffer();
-          loadingTask = getDocument({ data: arrayBuffer });
+          loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         } else if (typeof pdfFile === 'string' && pdfFile.trim()) {
-          loadingTask = getDocument({ url: pdfFile });
+          loadingTask = pdfjsLib.getDocument({ url: pdfFile });
         } else {
           throw new Error('รูปแบบไฟล์ PDF ไม่ถูกต้อง');
         }
