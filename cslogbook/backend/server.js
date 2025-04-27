@@ -23,6 +23,9 @@ const path = require('path');
 const fs = require('fs');
 const validateEnv = require('./utils/validateEnv');
 
+// นำเข้า Agent Manager
+const agentManager = require('./agents');
+
 // Validate server-specific environment variables
 const validateServerEnv = () => {
   // Required server variables
@@ -266,11 +269,50 @@ server.listen(ENV.PORT, () => {
   console.log(`Frontend URL: ${ENV.FRONTEND_URL}`);
   console.log(`Upload directory: ${ENV.UPLOAD_DIR}`);
   console.log(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
+  
+  // เริ่มการทำงานของ Agent หลังจาก server เริ่มทำงาน
+  if (process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production') {
+    console.log('Starting CSLogbook Agents...');
+    // เริ่ม Agent ทุกตัวพร้อมกัน
+    agentManager.startAllAgents();
+    
+    // หรือจะเริ่มทีละ Agent ก็ได้
+    // agentManager.startAgent('deadlineReminder');
+    // agentManager.startAgent('documentMonitor');
+    // agentManager.startAgent('securityMonitor');
+    // agentManager.startAgent('logbookQualityMonitor');
+    // agentManager.startAgent('eligibilityChecker');
+    
+    console.log('CSLogbook Agents started successfully');
+  }
 });
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   console.info('SIGTERM signal received.');
+  
+  // หยุดการทำงานของ Agent ก่อนปิด server
+  if (agentManager.isRunning) {
+    console.log('Stopping CSLogbook Agents...');
+    agentManager.stopAllAgents();
+  }
+  
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+// SIGINT handler (Ctrl+C)
+process.on('SIGINT', () => {
+  console.info('SIGINT signal received.');
+  
+  // หยุดการทำงานของ Agent ก่อนปิด server
+  if (agentManager.isRunning) {
+    console.log('Stopping CSLogbook Agents...');
+    agentManager.stopAllAgents();
+  }
+  
   server.close(() => {
     console.log('Server closed');
     process.exit(0);

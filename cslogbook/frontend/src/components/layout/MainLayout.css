@@ -1,13 +1,16 @@
 .layout {
   min-height: 100vh;
-  background-color: #f0f2f5;
+  background: transparent;
 }
 
 .content {
   padding: 24px;
-  background-color: #fff;
-  margin: 0;
+  background-color: var(--background-card);
+  margin: 24px;
   min-height: 280px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: all var(--transition-speed);
 }
 
 .drawer-button {
@@ -15,4 +18,25 @@
   top: 16px;
   left: 16px;
   z-index: 1000;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-card);
+  box-shadow: var(--box-shadow);
+}
+
+/* เพิ่ม Animation และ hover effects */
+.content:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Responsive layout adjustments */
+@media (max-width: 768px) {
+  .content {
+    margin: 16px;
+    padding: 16px;
+  }
 }
