@@ -558,7 +558,10 @@ const AcademicSettings = () => {
                     key: "projectBaseCredits",
                   }
                 ]}
-                dataSource={curriculums.filter(c => c.curriculumId === selectedCurriculumId)}
+                dataSource={curriculums.filter(c => c.curriculumId === selectedCurriculumId).map(curriculum => ({
+                  ...curriculum,
+                  key: curriculum.curriculumId // Add a unique key for each row
+                }))}
                 locale={{
                   emptyText: "ไม่พบข้อมูลหลักสูตรที่เลือก",
                 }}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar } from 'antd';
+import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Tabs } from 'antd';
 import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import { documentService } from '../../../services/admin/documentService';
-import PDFViewerModal from '../../PDFViewerModal'; // เปลี่ยนเป็นนำเข้า PDFViewerModal แทน PDFViewer
+import PDFViewerModal from '../../PDFViewerModal';
+import CS05Preview from './CS05Preview';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -14,7 +15,8 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false); // เพิ่ม state สำหรับควบคุมการแสดง PDF
   const [pdfUrl, setPdfUrl] = useState(null); // เพิ่ม state สำหรับเก็บ URL ของ PDF
-
+  const [activeTab, setActiveTab] = useState('details');
+  
   useEffect(() => {
     if (!documentId) return;
     setLoading(true);
@@ -147,8 +149,40 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     // แก้ไขการอ่านข้อมูลให้รองรับทั้งโครงสร้างข้อมูลแบบเดิมและแบบใหม่
     // ตรวจสอบว่าข้อมูลอยู่ใน details หรือ details.data
     const data = details.data || details;
+    
+    // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่
+    const isCS05 = data.documentName === 'CS05' && data.documentType === 'INTERNSHIP';
 
-    // ปรับปรุงให้แสดงข้อมูลเท่าที่มีจริงๆ จาก response
+    // ถ้าเป็นเอกสาร CS05 ให้แสดงในรูปแบบ Tabs
+    if (isCS05) {
+      return (
+        <Card className="detail-card">
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              {
+                key: 'details',
+                label: 'รายละเอียดเอกสาร',
+                children: renderBasicDetails(data)
+              },
+              {
+                key: 'preview',
+                label: 'แสดงตามแบบฟอร์ม คพ.05',
+                children: <CS05Preview data={data} />
+              }
+            ]}
+          />
+        </Card>
+      );
+    }
+    
+    // ถ้าไม่ใช่ CS05 แสดงแบบปกติ
+    return renderBasicDetails(data);
+  };
+  
+  // ย้ายส่วนแสดงรายละเอียดทั่วไปไปยังฟังก์ชันใหม่
+  const renderBasicDetails = (data) => {
     return (
       <Card 
         title={<Title level={4}>รายละเอียดเอกสาร {data.documentName}</Title>} 
@@ -193,7 +227,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
                     icon={<EyeOutlined />}
                     onClick={handleViewPDF}
                   >
-                    ดูเอกสาร
+                    ดูเอกสาร PDF
                   </Button>
                 </Space>
               </Col>
