@@ -3,6 +3,12 @@ const { Model, DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
     class Curriculum extends Model {
         static associate(models) {
+            // เพิ่มความสัมพันธ์กับโมเดล Academic
+            Curriculum.hasMany(models.Academic, {
+                foreignKey: 'active_curriculum_id',
+                as: 'usingInAcademics'
+            });
+            
             // หากมีความสัมพันธ์กับโมเดลอื่น เช่น Student หรือ Course
 
         }

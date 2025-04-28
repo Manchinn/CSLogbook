@@ -67,7 +67,15 @@ const Sidebar = () => {
   const location = useLocation();
   const { userData, logout } = useAuth();
   const [studentData, setStudentData] = useState(null);
-  const { canAccessInternship, canAccessProject, messages } =
+  
+  // กำหนดค่าเริ่มต้นของ messages เพื่อป้องกัน undefined
+  const defaultMessages = {
+    internship: "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน",
+    project: "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ"
+  };
+  
+  // ดึงข้อมูลจาก useStudentPermissions hook และกำหนดค่า default สำหรับ messages
+  const { canAccessInternship, canAccessProject, messages = defaultMessages } =
     useStudentPermissions(userData);
 
   // Handle window resize
@@ -163,6 +171,10 @@ const Sidebar = () => {
       ];
     }
 
+    // สร้างข้อความ tooltip สำหรับแสดงเหตุผลที่ไม่สามารถเข้าถึงได้
+    const internshipTooltip = messages?.internship || defaultMessages.internship;
+    const projectTooltip = messages?.project || defaultMessages.project;
+
     return [
       // Dashboard - Common for all roles
       {
@@ -186,7 +198,7 @@ const Sidebar = () => {
                 <MenuItemWithTooltip
                   item={{ label: "ระบบฝึกงาน" }}
                   disabled={!canAccessInternship}
-                  title={messages.internship}
+                  title={internshipTooltip}
                 />
               ),
               disabled: !canAccessInternship,
@@ -233,7 +245,7 @@ const Sidebar = () => {
                 <MenuItemWithTooltip
                   item={{ label: "โครงงานพิเศษ" }}
                   disabled={!canAccessProject}
-                  title={messages.project}
+                  title={projectTooltip}
                 />
               ),
               disabled: !canAccessProject,

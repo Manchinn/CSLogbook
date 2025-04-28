@@ -8,6 +8,12 @@ const { authenticateToken, checkRole } = require('../middleware/authMiddleware')
 // Protected routes (require authentication)
 router.use(authenticateToken);
 
+// Student eligibility check route (สำหรับนักศึกษาตรวจสอบสิทธิ์ของตนเอง)
+router.get('/check-eligibility', 
+  checkRole(['student']), 
+  studentController.checkStudentEligibility
+);
+
 // Admin routes
 router.post('/', 
   checkRole(['admin']), 

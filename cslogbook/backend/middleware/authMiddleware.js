@@ -36,9 +36,29 @@ const authMiddleware = {
         throw new Error('User not found or inactive');
       }
 
+      // เพิ่มข้อมูล studentId หากเป็น role: student
+      if (user.role === 'student') {
+        const student = await Student.findOne({
+          where: { userId: user.userId }
+        });
+        
+        if (student) {
+          // เพิ่มข้อมูล studentId เข้าไปใน token payload
+          decoded.studentId = student.studentId;
+        }
+      }
+
+      // เพิ่ม console.log เพื่อตรวจสอบข้อมูล
+      console.log('Auth Token data:', { 
+        userId: decoded.userId,
+        role: decoded.role,
+        studentId: decoded.studentId || 'N/A'
+      });
+
       req.user = decoded;
       next();
     } catch (err) {
+      console.error('Authentication error:', err);
       return res.status(401).json({
         status: 'error',
         message: err.name === 'TokenExpiredError' ? 

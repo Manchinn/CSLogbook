@@ -1,7 +1,15 @@
 const { Model, DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
-  class Academic extends Model {}
+  class Academic extends Model {
+    static associate(models) {
+      // เพิ่มความสัมพันธ์กับโมเดล Curriculum
+      Academic.belongsTo(models.Curriculum, {
+        foreignKey: 'active_curriculum_id',
+        as: 'activeCurriculum'
+      });
+    }
+  }
 
   Academic.init(
     {
@@ -14,6 +22,15 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true,
         field: "current_semester", // ภาคเรียนปัจจุบัน
+      },
+      activeCurriculumId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: "active_curriculum_id", // รหัสหลักสูตรที่ใช้งานอยู่
+        references: {
+          model: 'curriculums',
+          key: 'curriculum_id'
+        }
       },
       semester1Range: {
         type: DataTypes.JSON,

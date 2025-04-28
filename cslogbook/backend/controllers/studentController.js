@@ -559,3 +559,259 @@ exports.getAllStudentStats = async (req, res) => {
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
   }
 };
+
+// เพิ่มฟังก์ชันสำหรับตรวจสอบสิทธิ์นักศึกษาโดยละเอียด
+exports.checkStudentEligibility = async (req, res) => {
+  try {
+    console.log('Request user info:', req.user); // เพิ่ม debugging
+    
+    const studentId = req.user?.studentId;
+    if (!studentId) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา (Missing studentId)',
+        debug: { user: req.user }
+      });
+    }
+    
+    console.log(`Looking for student ID: ${studentId}`);
+    
+    const student = await Student.findByPk(studentId);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา (Student not found)',
+        studentId
+      });
+    }
+    
+    // ตรวจสอบรายละเอียดสิทธิ์โดยใช้ instance method ที่เพิ่มใน model Student
+    const [internshipCheck, projectCheck] = await Promise.all([
+      student.checkInternshipEligibility(),
+      student.checkProjectEligibility()
+    ]);
+    
+    // ดึงข้อมูลการตั้งค่าปีการศึกษาล่าสุด
+    const academicSettings = await sequelize.models.Academic.findOne({
+      order: [['created_at', 'DESC']] // ใช้รายการล่าสุดแทน isActive
+    });
+    
+    // หาหลักสูตรที่ใช้งานอยู่
+    let curriculum = null;
+    if (academicSettings?.activeCurriculumId) {
+      curriculum = await sequelize.models.Curriculum.findOne({
+        where: { 
+          curriculumId: academicSettings.activeCurriculumId,
+          active: true
+        }
+      });
+    }
+    
+    // กำหนดค่า default ที่จะใช้ในกรณีไม่พบข้อมูลหลักสูตร
+    const defaultCurriculumValues = {
+      internshipBaseCredits: 81,
+      internshipMajorBaseCredits: 0,
+      projectBaseCredits: 95,
+      projectMajorBaseCredits: 47,
+      requireInternshipBeforeProject: false,
+      name: 'หลักสูตรค่าเริ่มต้น',
+      shortName: 'CS Default'
+    };
+    
+    // แปลงข้อมูล JSON สำหรับ internshipSemesters และ projectSemesters
+    let internshipSemesters = academicSettings?.internshipSemesters;
+    let projectSemesters = academicSettings?.projectSemesters;
+    
+    // แปลง JSON string เป็น array (ถ้าจำเป็น)
+    if (typeof internshipSemesters === 'string') {
+      try {
+        internshipSemesters = JSON.parse(internshipSemesters);
+      } catch (e) {
+        internshipSemesters = [3]; // ค่า default
+      }
+    }
+    
+    if (typeof projectSemesters === 'string') {
+      try {
+        projectSemesters = JSON.parse(projectSemesters);
+      } catch (e) {
+        projectSemesters = [1, 2]; // ค่า default
+      }
+    }
+    
+    // กำหนดค่า default ถ้าไม่มีข้อมูล
+    internshipSemesters = internshipSemesters || [3];
+    projectSemesters = projectSemesters || [1, 2];
+    
+    // เพิ่มข้อมูลสรุปสถานะว่านักศึกษาสามารถเข้าระบบได้หรือไม่ และเพราะเหตุใด
+    const internshipRegistration = safeParseJSON(academicSettings?.internshipRegistration);
+    const projectRegistration = safeParseJSON(academicSettings?.projectRegistration);
+
+    // สร้างข้อมูลที่เข้าใจง่ายเกี่ยวกับสถานะการลงทะเบียนฝึกงาน
+    const internshipStatus = {
+      canAccess: internshipCheck.canAccessFeature || false,
+      canRegister: internshipCheck.canRegister || false,
+      reason: internshipCheck.reason || (internshipCheck.canAccessFeature ? "มีสิทธิ์เข้าถึงระบบฝึกงาน" : "ไม่มีสิทธิ์เข้าถึงระบบฝึกงาน"),
+      registrationOpen: false,
+      registrationReason: "",
+      requiredCredits: curriculum?.internshipBaseCredits || defaultCurriculumValues.internshipBaseCredits,
+      requiredMajorCredits: curriculum?.internshipMajorBaseCredits || defaultCurriculumValues.internshipMajorBaseCredits,
+      currentCredits: student.totalCredits,
+      currentMajorCredits: student.majorCredits
+    };
+    
+    // สร้างข้อมูลที่เข้าใจง่ายเกี่ยวกับสถานะการลงทะเบียนโครงงาน
+    const projectStatus = {
+      canAccess: projectCheck.canAccessFeature || false,
+      canRegister: projectCheck.canRegister || false,
+      reason: projectCheck.reason || (projectCheck.canAccessFeature ? "มีสิทธิ์เข้าถึงระบบโครงงาน" : "ไม่มีสิทธิ์เข้าถึงระบบโครงงาน"),
+      registrationOpen: false,
+      registrationReason: "",
+      requiredCredits: curriculum?.projectBaseCredits || defaultCurriculumValues.projectBaseCredits,
+      requiredMajorCredits: curriculum?.projectMajorBaseCredits || defaultCurriculumValues.projectMajorBaseCredits,
+      currentCredits: student.totalCredits,
+      currentMajorCredits: student.majorCredits,
+      requiresInternshipCompletion: curriculum?.requireInternshipBeforeProject || defaultCurriculumValues.requireInternshipBeforeProject
+    };
+    
+    // เพิ่มข้อมูลเกี่ยวกับช่วงเวลาลงทะเบียน
+    const now = new Date();
+    
+    if (internshipRegistration?.startDate && internshipRegistration?.endDate) {
+      const start = new Date(internshipRegistration.startDate);
+      const end = new Date(internshipRegistration.endDate);
+      
+      internshipStatus.registrationOpen = now >= start && now <= end;
+      if (!internshipStatus.registrationOpen) {
+        if (now < start) {
+          internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานยังไม่เปิด (เปิดวันที่ ${formatDate(start)})`;
+        } else {
+          internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานปิดไปแล้ว (ปิดวันที่ ${formatDate(end)})`;
+        }
+      } else {
+        internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานเปิดอยู่ (ถึงวันที่ ${formatDate(end)})`;
+      }
+    } else {
+      internshipStatus.registrationReason = "ไม่มีข้อมูลช่วงลงทะเบียนฝึกงาน";
+    }
+    
+    if (projectRegistration?.startDate && projectRegistration?.endDate) {
+      const start = new Date(projectRegistration.startDate);
+      const end = new Date(projectRegistration.endDate);
+      
+      projectStatus.registrationOpen = now >= start && now <= end;
+      if (!projectStatus.registrationOpen) {
+        if (now < start) {
+          projectStatus.registrationReason = `ช่วงลงทะเบียนโครงงานยังไม่เปิด (เปิดวันที่ ${formatDate(start)})`;
+        } else {
+          projectStatus.registrationReason = `ช่วงลงทะเบียนโครงงานปิดไปแล้ว (ปิดวันที่ ${formatDate(end)})`;
+        }
+      } else {
+        projectStatus.registrationReason = `ช่วงลงทะเบียนโครงงานเปิดอยู่ (ถึงวันที่ ${formatDate(end)})`;
+      }
+    } else {
+      projectStatus.registrationReason = "ไม่มีข้อมูลช่วงลงทะเบียนโครงงาน";
+    }
+    
+    // สร้าง eligibility object ที่มีข้อมูลแยกระหว่างการเข้าถึง feature และการลงทะเบียน
+    const eligibility = {
+      internship: {
+        isEligible: internshipCheck.eligible,
+        canAccessFeature: internshipCheck.canAccessFeature || false,
+        canRegister: internshipCheck.canRegister || false,
+        reason: internshipCheck.reason || null
+      },
+      project: {
+        isEligible: projectCheck.eligible,
+        canAccessFeature: projectCheck.canAccessFeature || false,
+        canRegister: projectCheck.canRegister || false,
+        reason: projectCheck.reason || null
+      }
+    };
+    
+    // สร้าง curriculumData object เพื่อแสดงข้อมูลหลักสูตร (ทั้งจากฐานข้อมูลหรือค่า default)
+    const curriculumData = curriculum ? {
+      id: curriculum.curriculumId,
+      name: curriculum.name,
+      shortName: curriculum.shortName,
+      isActive: true
+    } : {
+      id: null,
+      name: defaultCurriculumValues.name,
+      shortName: defaultCurriculumValues.shortName,
+      isActive: true, // ใช้เป็น true เพื่อให้ถูกใช้เป็นค่า default
+      isDefault: true // เพิ่มฟิลด์ isDefault เพื่อระบุว่านี่คือค่า default
+    };
+    
+    // ส่งข้อมูลที่มีรายละเอียดครบถ้วนกลับไปให้ client
+    res.status(200).json({
+      success: true,
+      student: {
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        totalCredits: student.totalCredits,
+        majorCredits: student.majorCredits,
+      },
+      eligibility: eligibility,
+      status: {
+        internship: internshipStatus,
+        project: projectStatus
+      },
+      requirements: {
+        internship: {
+          totalCredits: curriculum?.internshipBaseCredits || defaultCurriculumValues.internshipBaseCredits,
+          majorCredits: curriculum?.internshipMajorBaseCredits || defaultCurriculumValues.internshipMajorBaseCredits,
+          allowedSemesters: internshipSemesters
+        },
+        project: {
+          totalCredits: curriculum?.projectBaseCredits || defaultCurriculumValues.projectBaseCredits,
+          majorCredits: curriculum?.projectMajorBaseCredits || defaultCurriculumValues.projectMajorBaseCredits,
+          requireInternship: curriculum?.requireInternshipBeforeProject || defaultCurriculumValues.requireInternshipBeforeProject,
+          allowedSemesters: projectSemesters
+        },
+      },
+      academicSettings: academicSettings ? {
+        currentAcademicYear: academicSettings.academicYear,
+        currentSemester: academicSettings.currentSemester,
+        internshipRegistrationPeriod: internshipRegistration,
+        projectRegistrationPeriod: projectRegistration,
+      } : {
+        currentAcademicYear: new Date().getFullYear() + 543,
+        currentSemester: ((new Date().getMonth() + 1) <= 4 ? 2 : ((new Date().getMonth() + 1) <= 8 ? 3 : 1)),
+        internshipRegistrationPeriod: null,
+        projectRegistrationPeriod: null,
+      },
+      curriculum: curriculumData
+    });
+    
+  } catch (error) {
+    console.error('Error checking eligibility:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์',
+      error: error.message
+    });
+  }
+};
+
+// ฟังก์ชันช่วย parse JSON string หรือ return null ถ้า parse ไม่ได้
+const safeParseJSON = (jsonString) => {
+  if (!jsonString) return null;
+  
+  if (typeof jsonString === 'object') return jsonString;
+  
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    return null;
+  }
+};
+
+// ฟังก์ชันช่วยในการฟอร์แมตวันที่
+const formatDate = (date) => {
+  if (!date) return '';
+  
+  const d = new Date(date);
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
+};

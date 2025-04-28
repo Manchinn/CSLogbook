@@ -8,6 +8,8 @@ const documentStatusMonitor = require('./monitors/documentStatusMonitor');
 const securityMonitor = require('./monitors/securityMonitor');
 const logbookQualityMonitor = require('./monitors/logbookQualityMonitor');
 const eligibilityChecker = require('./schedulers/eligibilityChecker');
+// เพิ่ม eligibilityScheduler
+const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -22,6 +24,20 @@ class AgentManager {
       securityMonitor: securityMonitor,           // เพิ่ม Security Monitor Agent
       logbookQualityMonitor: logbookQualityMonitor, // เพิ่ม Logbook Quality Monitor
       eligibilityChecker: eligibilityChecker,      // เพิ่ม Eligibility Checker Agent
+      // เพิ่ม eligibilityScheduler
+      eligibilityScheduler: {
+        start: () => {
+          logger.info('Starting eligibility scheduler for automatic student eligibility updates');
+          eligibilityScheduler.scheduleEligibilityUpdate();
+          return true;
+        },
+        stop: () => {
+          logger.info('Stopping eligibility scheduler');
+          // ไม่จำเป็นต้องหยุดเนื่องจากเป็น cron job
+          return true;
+        },
+        isRunning: true
+      },
       // เพิ่ม agent อื่นๆ ที่นี่
     };
     
