@@ -5,15 +5,16 @@ const CONSTANTS = {
   MIN_STUDENT_CODE_LENGTH: 13,
   ACADEMIC_MONTH_THRESHOLD: 4,
   INTERNSHIP: {
-    MIN_YEAR: 3,
-    MIN_TOTAL_CREDITS: 81
+    MIN_YEAR: 3, // ค่า fixed เดิม เนื่องจากเป็นกฎระเบียบทั่วไป
+    // MIN_TOTAL_CREDITS จะถูกดึงจาก Curriculum.internshipBaseCredits
   },
   PROJECT: {
-    MIN_YEAR: 4,
-    MIN_TOTAL_CREDITS: 95,
-    MIN_MAJOR_CREDITS: 57
+    MIN_YEAR: 4, // ค่า fixed เดิม เนื่องจากเป็นกฎระเบียบทั่วไป
+    // MIN_TOTAL_CREDITS จะถูกดึงจาก Curriculum.projectBaseCredits
+    // MIN_MAJOR_CREDITS จะถูกดึงจาก Curriculum.projectMajorBaseCredits
   },
   ACADEMIC_TERMS: {
+    // ค่าเริ่มต้นที่จะถูกโหลดทับจาก Academic model
     FIRST: {
       START_MONTH: 7,  // กรกฎาคม
       END_MONTH: 11    // พฤศจิกายน
@@ -47,6 +48,206 @@ const CONSTANTS = {
     }
   }
 };
+
+// ตรวจสอบว่าได้มีการตั้งค่า environment variables สำหรับฐานข้อมูลหรือไม่
+function checkDatabaseEnv() {
+  // ตรวจสอบค่า env ที่จำเป็น
+  if (!process.env.DB_HOST) {
+    console.warn('DB_HOST environment variable not set. Using localhost as default.');
+    process.env.DB_HOST = 'localhost';
+  }
+  if (!process.env.DB_USER) {
+    console.warn('DB_USER environment variable not set. Using root as default.');
+    process.env.DB_USER = 'root';
+  }
+  if (!process.env.DB_PASSWORD) {
+    console.warn('DB_PASSWORD environment variable not set. Using empty password as default.');
+    process.env.DB_PASSWORD = 'root';
+  }
+  if (!process.env.DB_NAME) {
+    console.warn('DB_NAME environment variable not set. Using cslogbook as default.');
+    process.env.DB_NAME = 'cslogbook_dev';
+  }
+  if (!process.env.DB_PORT) {
+    console.warn('DB_PORT environment variable not set. Using 3306 as default.');
+    process.env.DB_PORT = '3306';
+  }
+}
+
+// เรียกใช้ฟังก์ชันตรวจสอบ environment variables
+checkDatabaseEnv();
+
+// โหลดโมเดล Curriculum และ Academic โดยใช้วิธีที่แนะนำ
+const db = require('../models');
+const Curriculum = db.Curriculum;
+const Academic = db.Academic;
+
+/**
+ * โหลดค่า constants จาก database
+ * @returns {Promise<void>} - ทำงานเสร็จสิ้น
+ */
+const loadDynamicConstants = async () => {
+  try {
+    console.log('กำลังโหลดค่า constants จากฐานข้อมูล...');
+    
+    // โหลดข้อมูล Academic
+    const academicData = await Academic.findOne({
+      order: [['created_at', 'DESC']] // ใช้ snake_case ตามชื่อคอลัมน์ในฐานข้อมูล
+    });
+
+    console.log('ข้อมูล Academic ที่โหลดได้:', academicData ? JSON.stringify(academicData.toJSON()) : 'ไม่พบข้อมูล');
+
+    // โหลดหลักสูตรที่ใช้งานอยู่
+    let activeCurriculum;
+    let activeCurriculumId = null;
+    
+    if (academicData?.activeCurriculumId) {
+      activeCurriculumId = academicData.activeCurriculumId;
+    } else if (academicData?.active_curriculum_id) {
+      activeCurriculumId = academicData.active_curriculum_id;
+    }
+    
+    console.log(`active_curriculum_id ที่โหลดได้: ${activeCurriculumId}`);
+    
+    // ถ้ามี curriculum_id ในข้อมูล Academic ให้ใช้ curriculum นั้น
+    if (activeCurriculumId) {
+      try {
+        // ลองค้นหาด้วย curriculum_id โดยตรง
+        activeCurriculum = await Curriculum.findOne({
+          where: { curriculum_id: activeCurriculumId }
+        });
+        
+        if (!activeCurriculum) {
+          // ถ้าไม่พบให้ลองค้นหาด้วย curriculumId (camelCase)
+          activeCurriculum = await Curriculum.findOne({
+            where: { curriculumId: activeCurriculumId }
+          });
+        }
+        
+        if (activeCurriculum) {
+          console.log(`โหลดหลักสูตรจาก activeCurriculumId = ${activeCurriculumId} สำเร็จ`);
+        }
+      } catch (error) {
+        console.error(`เกิดข้อผิดพลาดในการโหลดหลักสูตร ID ${activeCurriculumId}:`, error.message);
+      }
+    }
+    
+    // ถ้าไม่พบจาก academic ให้หาหลักสูตรที่ active = true
+    if (!activeCurriculum) {
+      try {
+        activeCurriculum = await Curriculum.findOne({ 
+          where: { active: true },
+          order: [['created_at', 'DESC']] // ใช้ snake_case
+        });
+        
+        if (activeCurriculum) {
+          console.log('โหลดหลักสูตรที่มี active = true สำเร็จ');
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการโหลดหลักสูตรที่ active:', error.message);
+      }
+    }
+    
+    // ถ้ายังไม่พบ ให้โหลดหลักสูตรล่าสุด
+    if (!activeCurriculum) {
+      try {
+        activeCurriculum = await Curriculum.findOne({
+          order: [['created_at', 'DESC']]
+        });
+        
+        if (activeCurriculum) {
+          console.log('โหลดหลักสูตรล่าสุดสำเร็จ');
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการโหลดหลักสูตรล่าสุด:', error.message);
+      }
+    }
+
+    // พิมพ์รายละเอียดของหลักสูตร
+    if (activeCurriculum) {
+      console.log('ข้อมูลหลักสูตรที่โหลดได้:');
+      console.log('- ID:', activeCurriculum.curriculum_id || activeCurriculum.curriculumId);
+      console.log('- Name:', activeCurriculum.name);
+      console.log('- Internship Base Credits:', activeCurriculum.internship_base_credits || activeCurriculum.internshipBaseCredits);
+      console.log('- Project Base Credits:', activeCurriculum.project_base_credits || activeCurriculum.projectBaseCredits);
+      console.log('- Project Major Base Credits:', activeCurriculum.project_major_base_credits || activeCurriculum.projectMajorBaseCredits);
+      
+      // ดูทุกคุณสมบัติของโมเดล
+      console.log('รายละเอียดทั้งหมดของหลักสูตร:', JSON.stringify(activeCurriculum.toJSON()));
+    } else {
+      console.log('ไม่พบข้อมูลหลักสูตร');
+    }
+
+    // อัปเดตค่า constants จาก Academic
+    if (academicData) {
+      if (academicData.semester1Range) {
+        const { start, end } = academicData.semester1Range;
+        if (start && end) {
+          CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH = new Date(start).getMonth() + 1;
+          CONSTANTS.ACADEMIC_TERMS.FIRST.END_MONTH = new Date(end).getMonth() + 1;
+        }
+      }
+
+      if (academicData.semester2Range) {
+        const { start, end } = academicData.semester2Range;
+        if (start && end) {
+          CONSTANTS.ACADEMIC_TERMS.SECOND.START_MONTH = new Date(start).getMonth() + 1;
+          CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH = new Date(end).getMonth() + 1;
+        }
+      }
+
+      if (academicData.semester3Range) {
+        const { start, end } = academicData.semester3Range;
+        if (start && end) {
+          CONSTANTS.ACADEMIC_TERMS.SUMMER.START_MONTH = new Date(start).getMonth() + 1;
+          CONSTANTS.ACADEMIC_TERMS.SUMMER.END_MONTH = new Date(end).getMonth() + 1;
+        }
+      }
+    }
+
+    // อัปเดตค่า constants จาก Curriculum
+    if (activeCurriculum) {
+      // ตรวจสอบทั้ง snake_case และ camelCase
+      const internshipCredits = 
+        activeCurriculum.internship_base_credits !== undefined ? activeCurriculum.internship_base_credits :
+        activeCurriculum.internshipBaseCredits !== undefined ? activeCurriculum.internshipBaseCredits : 
+        81; // ค่า default
+
+      const projectCredits = 
+        activeCurriculum.project_base_credits !== undefined ? activeCurriculum.project_base_credits :
+        activeCurriculum.projectBaseCredits !== undefined ? activeCurriculum.projectBaseCredits : 
+        95; // ค่า default
+
+      const projectMajorCredits = 
+        activeCurriculum.project_major_base_credits !== undefined ? activeCurriculum.project_major_base_credits :
+        activeCurriculum.projectMajorBaseCredits !== undefined ? activeCurriculum.projectMajorBaseCredits : 
+        57; // ค่า default
+
+      CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS = internshipCredits;
+      CONSTANTS.PROJECT.MIN_TOTAL_CREDITS = projectCredits;
+      CONSTANTS.PROJECT.MIN_MAJOR_CREDITS = projectMajorCredits;
+    } else {
+      // ถ้าไม่มีหลักสูตรที่เลือก ใช้ค่า default
+      CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS = 81;
+      CONSTANTS.PROJECT.MIN_TOTAL_CREDITS = 95;
+      CONSTANTS.PROJECT.MIN_MAJOR_CREDITS = 57;
+    }
+
+    console.log('โหลดค่า constants จาก database สำเร็จ:');
+    console.log('INTERNSHIP.MIN_TOTAL_CREDITS:', CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS);
+    console.log('PROJECT.MIN_TOTAL_CREDITS:', CONSTANTS.PROJECT.MIN_TOTAL_CREDITS);
+    console.log('PROJECT.MIN_MAJOR_CREDITS:', CONSTANTS.PROJECT.MIN_MAJOR_CREDITS);
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการโหลดค่า constants:', error);
+    // ใช้ค่า default ที่กำหนดไว้แล้ว
+    CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS = 81;
+    CONSTANTS.PROJECT.MIN_TOTAL_CREDITS = 95;
+    CONSTANTS.PROJECT.MIN_MAJOR_CREDITS = 57;
+  }
+};
+
+// โหลดค่า constants เมื่อมีการ import ไฟล์นี้
+loadDynamicConstants().catch(err => console.error('ไม่สามารถโหลดค่า constants ได้:', err));
 
 /**
  * คำนวณชั้นปีของนักศึกษา
@@ -180,7 +381,7 @@ const isEligibleForInternship = (studentYear, totalCredits) => {
   if (totalCredits < CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.INTERNSHIP.MIN_CREDITS} หน่วยกิต`
+      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS} หน่วยกิต`
     };
   }
   
