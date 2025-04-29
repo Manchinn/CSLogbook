@@ -10,7 +10,7 @@ import {
 } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useStudentPermissions } from "../../hooks/useStudentPermissions";
+import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
 import { studentService } from "../../services/studentService";
 import {
   HomeOutlined,
@@ -68,15 +68,13 @@ const Sidebar = () => {
   const { userData, logout } = useAuth();
   const [studentData, setStudentData] = useState(null);
   
-  // กำหนดค่าเริ่มต้นของ messages เพื่อป้องกัน undefined
-  const defaultMessages = {
-    internship: "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน",
-    project: "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ"
-  };
-  
-  // ดึงข้อมูลจาก useStudentPermissions hook และกำหนดค่า default สำหรับ messages
-  const { canAccessInternship, canAccessProject, messages = defaultMessages } =
-    useStudentPermissions(userData);
+  // ใช้ StudentEligibilityContext แทน useStudentPermissions
+  const { 
+    canAccessInternship, 
+    canAccessProject, 
+    messages,
+    lastUpdated 
+  } = useStudentEligibility();
 
   // Handle window resize
   useEffect(() => {
@@ -142,7 +140,7 @@ const Sidebar = () => {
             // เช็คว่าข้อมูลมีการเปลี่ยนแปลงหรือไม่
             if (JSON.stringify(studentData) !== JSON.stringify(newData)) {
               setStudentData(newData);
-              setLastUpdate(new Date());
+              setLastUpdate(lastUpdated || new Date());  // ใช้ค่า lastUpdated จาก context
               localStorage.setItem("studentData", JSON.stringify(newData));
             }
           }
@@ -156,7 +154,7 @@ const Sidebar = () => {
 
       return () => clearInterval(interval);
     }
-  }, [userData?.studentCode, userData?.role, studentData]); // เพิ่ม studentData
+  }, [userData?.studentCode, userData?.role, studentData, lastUpdated]); // เพิ่ม lastUpdated
 
   const menuItems = useMemo(() => {
     // ถ้าไม่มี userData return เฉพาะ logout
@@ -172,8 +170,8 @@ const Sidebar = () => {
     }
 
     // สร้างข้อความ tooltip สำหรับแสดงเหตุผลที่ไม่สามารถเข้าถึงได้
-    const internshipTooltip = messages?.internship || defaultMessages.internship;
-    const projectTooltip = messages?.project || defaultMessages.project;
+    const internshipTooltip = messages?.internship || "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน";
+    const projectTooltip = messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
 
     return [
       // Dashboard - Common for all roles

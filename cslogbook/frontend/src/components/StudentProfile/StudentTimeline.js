@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Typography, Steps, Timeline, Row, Col, Tag, Badge, Button, 
-  Divider, Space, Tooltip, message, Statistic, Alert, Progress, Empty
+  Divider, Space, Tooltip, message, Statistic, Alert, Progress, Empty,
+  Spin
 } from 'antd';
 import {
   ClockCircleOutlined, CheckCircleOutlined, WarningOutlined,
@@ -11,98 +12,324 @@ import {
   RightCircleOutlined, SearchOutlined, StarOutlined, SolutionOutlined,
   FileDoneOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
+import { useParams } from 'react-router-dom';
+import { timelineService } from '../../services/timelineService';
 
 const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
 
-// ข้อมูลตัวอย่างสำหรับการแสดงผล (ในงานจริงจะดึงจาก API)
-const STUDENT_DATA = {
-  id: "64xxxxxxx",
-  name: "นายทดสอบ นักศึกษา",
-  year: 3,
-  totalCredits: 85,
-  majorCredits: 45,
-  status: "normal", // normal, extended, retired
-  internshipEligible: true,
+// ข้อมูลตัวอย่างเริ่มต้น (จะถูกแทนที่ด้วยข้อมูลจริงจาก API)
+const DEFAULT_STUDENT_DATA = {
+  id: "",
+  name: "",
+  year: 0,
+  totalCredits: 0,
+  majorCredits: 0,
+  status: "normal",
+  internshipEligible: false,
   projectEligible: false,
-  isEnrolledInternship: true, // ลงทะเบียนฝึกงานแล้วหรือไม่
-  isEnrolledProject: false,   // ลงทะเบียนโครงงานแล้วหรือไม่
-  nextAction: "upload_internship_report", // การกระทำถัดไปที่ต้องทำ
-  internshipStatus: "in_progress", // not_started, in_progress, completed
-  projectStatus: "not_started" // not_started, in_progress, completed
+  isEnrolledInternship: false,
+  isEnrolledProject: false,
+  nextAction: "none",
+  internshipStatus: "not_started",
+  projectStatus: "not_started"
 };
 
-// ข้อมูลขั้นตอนและสถานะปัจจุบัน
-const PROGRESS_DATA = {
+const DEFAULT_PROGRESS_DATA = {
   internship: {
-    currentStep: 6,
-    totalSteps: 8,
-    progress: 75, // เปอร์เซ็นต์ความคืบหน้า
-    steps: [
-      { id: 1, name: "ตรวจสอบสิทธิ์ฝึกงาน", status: "completed", date: "01/06/2024", 
-        desc: "คุณมีสิทธิ์ทำการฝึกงาน เนื่องจากมีหน่วยกิตสะสมมากกว่า 81 หน่วยกิต" },
-      { id: 2, name: "กรอกแบบฟอร์มขอฝึกงาน", status: "completed", date: "05/06/2024", 
-        document: "คพ.05", actionText: "ดูเอกสาร", actionLink: "/documents/internship/5" },
-      { id: 3, name: "การอนุมัติจากภาควิชา", status: "completed", date: "10/06/2024",
-        desc: "เจ้าหน้าที่ภาควิชาได้อนุมัติการขอฝึกงานของคุณแล้ว" },
-      { id: 4, name: "รับหนังสือส่งตัว", status: "completed", date: "15/06/2024",
-        actionText: "ดาวน์โหลดหนังสือ", actionLink: "/documents/internship/letter/3" },
-      { id: 5, name: "ส่งหนังสือตอบรับจากบริษัท", status: "completed", date: "20/06/2024",
-        desc: "บริษัท ABC จำกัด ได้ตอบรับการฝึกงานของคุณเรียบร้อยแล้ว" },
-      { id: 6, name: "อยู่ระหว่างการฝึกงาน", status: "in_progress", startDate: "01/07/2024", endDate: "31/07/2024",
-        desc: "คุณอยู่ระหว่างการฝึกงานที่บริษัท ABC จำกัด",
-        actionText: "บันทึกการฝึกงาน", actionLink: "/internship/log" },
-      { id: 7, name: "ส่งรายงานและแบบประเมิน", status: "waiting",
-        desc: "ต้องส่งภายใน 7 วันหลังจากฝึกงานเสร็จสิ้น",
-        actionText: "อัปโหลดรายงาน", actionLink: "/internship/report/upload" },
-      { id: 8, name: "เสร็จสิ้นการฝึกงาน", status: "waiting" }
-    ]
+    currentStep: 0,
+    totalSteps: 0,
+    progress: 0,
+    steps: [],
+    blocked: true,
+    blockReason: ""
   },
   project: {
     currentStep: 0,
-    totalSteps: 10,
+    totalSteps: 0,
     progress: 0,
+    steps: [],
     blocked: true,
-    blockReason: "ยังไม่ผ่านการฝึกงาน",
-    steps: [
-      { id: 1, name: "เตรียมหัวข้อโครงงาน", status: "waiting" },
-      { id: 2, name: "ยื่นเสนอหัวข้อโครงงาน", status: "waiting", document: "คพ.01", deadline: "19/07/2567" },
-      { id: 3, name: "สอบหัวข้อโครงงาน", status: "waiting", deadline: "25/07/2567" },
-      { id: 4, name: "จัดทำเอกสารบทที่ 1", status: "waiting", deadline: "30/08/2567" },
-      { id: 5, name: "พัฒนาโครงงาน", status: "waiting" },
-      { id: 6, name: "ขอทดสอบโครงงาน", status: "waiting", document: "คพ.04", deadline: "18/10/2567" },
-      { id: 7, name: "ยื่นขอสอบโครงงาน", status: "waiting", document: "คพ.02", deadline: "15/11/2567" },
-      { id: 8, name: "สอบโครงงาน", status: "waiting", deadline: "18/11/2567 - 20/11/2567" },
-      { id: 9, name: "แก้ไขเอกสาร", status: "waiting", deadline: "27/11/2567" },
-      { id: 10, name: "ส่งรูปเล่มสมบูรณ์", status: "waiting", deadline: "13/12/2567" }
-    ]
+    blockReason: ""
   }
 };
 
-// การแจ้งเตือนและกำหนดการ
-const NOTIFICATIONS = [
-  { id: 1, type: "warning", message: "คุณต้องบันทึกการฝึกงานทุกวันเพื่อให้การฝึกงานถูกนับชั่วโมงอย่างถูกต้อง", date: "03/07/2567" },
-  { id: 2, type: "info", message: "กำหนดส่งรายงานฝึกงานคือ 7 วันหลังจากฝึกงานเสร็จสิ้น (7 สิงหาคม 2567)", date: "01/07/2567" },
-  { id: 3, type: "success", message: "การฝึกงานของคุณได้รับการอนุมัติแล้ว สามารถดาวน์โหลดหนังสือส่งตัวได้", date: "15/06/2567" }
-];
-
-const UPCOMING_DEADLINES = [
-  { id: 1, name: "สิ้นสุดการฝึกงาน", date: "31/07/2567", daysLeft: 28, related: "internship" },
-  { id: 2, name: "วันสุดท้ายของการส่งรายงานฝึกงาน", date: "07/08/2567", daysLeft: 35, related: "internship" },
-  { id: 3, name: "วันสุดท้ายของยื่นสอบหัวข้อโครงงานพิเศษ", date: "19/07/2567", daysLeft: 16, related: "project" }
-];
-
 const StudentTimeline = () => {
-  const [student, setStudent] = useState(STUDENT_DATA);
-  const [progress, setProgress] = useState(PROGRESS_DATA);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
-  const [deadlines, setDeadlines] = useState(UPCOMING_DEADLINES);
-  const [showWarning, setShowWarning] = useState(true);
+  const { id } = useParams(); // ใช้ useParams เพื่อดึง ID จาก URL
+  const studentId = id || localStorage.getItem('studentId'); // ถ้าไม่มี id ใน URL ให้ใช้จาก localStorage
+
+  const [student, setStudent] = useState(DEFAULT_STUDENT_DATA);
+  const [progress, setProgress] = useState(DEFAULT_PROGRESS_DATA);
+  const [notifications, setNotifications] = useState([]);
+  const [deadlines, setDeadlines] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [useMockData, setUseMockData] = useState(false); // เพิ่มสถานะสำหรับการใช้ข้อมูลตัวอย่าง
+  
+  // เพิ่มข้อมูลตัวอย่างสำหรับการแสดงผลเมื่อไม่มีข้อมูลจาก API
+  const mockTimelineData = {
+    student: {
+      id: studentId || "6411111111111",
+      name: "นักศึกษาตัวอย่าง",
+      year: 3,
+      totalCredits: 90,
+      majorCredits: 45,
+      status: "normal",
+      internshipEligible: true,
+      projectEligible: false,
+      isEnrolledInternship: true,
+      isEnrolledProject: false,
+      nextAction: "daily_log",
+      internshipStatus: "in_progress",
+      projectStatus: "not_started"
+    },
+    progress: {
+      internship: {
+        currentStep: 4,
+        totalSteps: 7,
+        progress: 57,
+        steps: [
+          {
+            id: 1,
+            name: "ลงทะเบียนฝึกงาน",
+            description: "ลงทะเบียนฝึกงานในระบบและเลือกสถานประกอบการ",
+            status: "completed",
+            date: "2025-02-15"
+          },
+          {
+            id: 2,
+            name: "ส่งเอกสารขอฝึกงาน",
+            description: "ส่งเอกสารขอฝึกงานให้อาจารย์ตรวจสอบและอนุมัติ",
+            status: "completed",
+            document: "แบบคำร้องขอฝึกงาน",
+            date: "2025-02-20"
+          },
+          {
+            id: 3,
+            name: "รอการตอบรับจากสถานประกอบการ",
+            description: "รอการยืนยันจากสถานประกอบการหลังจากส่งเอกสารขอฝึกงาน",
+            status: "completed",
+            date: "2025-03-01"
+          },
+          {
+            id: 4,
+            name: "เริ่มฝึกงาน",
+            description: "เริ่มการฝึกงานที่สถานประกอบการ",
+            status: "in_progress",
+            startDate: "2025-03-10",
+            endDate: "2025-06-10"
+          },
+          {
+            id: 5,
+            name: "บันทึกการฝึกงานประจำวัน",
+            description: "บันทึกการฝึกงานในแต่ละวันตลอดระยะเวลาการฝึกงาน",
+            status: "waiting",
+            actionText: "บันทึกการฝึกงาน",
+            actionLink: "/internship/logbook"
+          },
+          {
+            id: 6,
+            name: "ส่งรายงานฝึกงาน",
+            description: "ส่งรายงานฝึกงานและแบบประเมินหลังจากฝึกงานเสร็จสิ้น",
+            status: "waiting",
+            document: "รายงานฝึกงาน",
+            deadline: "2025-06-20",
+            actionText: "ส่งรายงานฝึกงาน",
+            actionLink: "/internship/report/upload"
+          },
+          {
+            id: 7,
+            name: "อาจารย์ตรวจรายงานและประเมินผล",
+            description: "อาจารย์ตรวจสอบรายงานและประเมินผลการฝึกงาน",
+            status: "waiting",
+            deadline: "2025-07-10"
+          }
+        ],
+        blocked: false,
+        blockReason: ""
+      },
+      project: {
+        currentStep: 0,
+        totalSteps: 8,
+        progress: 0,
+        steps: [
+          {
+            id: 8,
+            name: "ลงทะเบียนโครงงานพิเศษ",
+            description: "ลงทะเบียนโครงงานพิเศษในระบบและเลือกอาจารย์ที่ปรึกษา",
+            status: "waiting",
+            actionText: "ลงทะเบียนโครงงาน",
+            actionLink: "/project/register"
+          },
+          {
+            id: 9,
+            name: "ส่งเอกสารหัวข้อโครงงาน",
+            description: "ส่งเอกสารหัวข้อโครงงานให้อาจารย์ตรวจสอบและอนุมัติ",
+            status: "waiting",
+            actionText: "อัปโหลดเอกสาร",
+            actionLink: "/project/documents/upload"
+          },
+          {
+            id: 10,
+            name: "สอบหัวข้อโครงงาน",
+            description: "นำเสนอหัวข้อโครงงานต่อคณะกรรมการ",
+            status: "waiting"
+          },
+          {
+            id: 11,
+            name: "พัฒนาโครงงาน",
+            description: "ดำเนินการพัฒนาโครงงานตามแผนที่วางไว้",
+            status: "waiting"
+          },
+          {
+            id: 12,
+            name: "ส่งรายงานความก้าวหน้า",
+            description: "ส่งรายงานความก้าวหน้าของโครงงานเป็นระยะ",
+            status: "waiting",
+            actionText: "ส่งรายงานความก้าวหน้า",
+            actionLink: "/project/progress/upload"
+          },
+          {
+            id: 13,
+            name: "สอบโครงงาน",
+            description: "นำเสนอผลงานโครงงานต่อคณะกรรมการสอบ",
+            status: "waiting"
+          },
+          {
+            id: 14,
+            name: "แก้ไขโครงงานตามข้อเสนอแนะ",
+            description: "ปรับปรุงโครงงานตามข้อเสนอแนะของคณะกรรมการสอบ",
+            status: "waiting"
+          },
+          {
+            id: 15,
+            name: "ส่งเล่มรายงานฉบับสมบูรณ์",
+            description: "ส่งรายงานโครงงานฉบับสมบูรณ์และไฟล์ผลงาน",
+            status: "waiting",
+            actionText: "ส่งรายงานฉบับสมบูรณ์",
+            actionLink: "/project/final/upload"
+          }
+        ],
+        blocked: true,
+        blockReason: "ต้องมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต และผ่านการฝึกงาน"
+      }
+    },
+    notifications: [
+      {
+        id: 1,
+        message: "กำลังจะถึงกำหนดส่งบันทึกประจำวันฝึกงาน",
+        type: "warning",
+        date: "2025-04-30"
+      },
+      {
+        id: 2,
+        message: "อาจารย์ได้อนุมัติเอกสารฝึกงานของคุณแล้ว",
+        type: "success",
+        date: "2025-02-18"
+      }
+    ],
+    deadlines: [
+      {
+        id: 1,
+        name: "กำหนดส่งรายงานฝึกงาน",
+        date: "2025-06-20",
+        daysLeft: 52,
+        related: "internship"
+      },
+      {
+        id: 2,
+        name: "การประเมินผลการฝึกงาน",
+        date: "2025-07-10",
+        daysLeft: 72,
+        related: "internship"
+      },
+      {
+        id: 3,
+        name: "วันสุดท้ายของการลงทะเบียนโครงงานพิเศษ",
+        date: "2025-07-20",
+        daysLeft: 82,
+        related: "project"
+      }
+    ]
+  };
   
   useEffect(() => {
-    // ในระบบจริงจะเรียกข้อมูลจาก API ที่นี่
-    // fetchStudentTimelineData(studentId)
-  }, []);
+    // เรียกข้อมูลไทม์ไลน์จาก API
+    const fetchTimelineData = async () => {
+      try {
+        setLoading(true);
+        
+        // ตรวจสอบว่า studentId มีค่าหรือไม่ ถ้าไม่มีให้กำหนดค่าเริ่มต้น
+        if (!studentId) {
+          setError('ไม่พบรหัสนักศึกษา กรุณาเข้าสู่ระบบใหม่');
+          setLoading(false);
+          return;
+        }
+        
+        const response = await timelineService.getStudentTimeline(studentId);
+        
+        if (response.success) {
+          // ข้อมูลจาก API สำเร็จ
+          setStudent(response.data.student);
+          setProgress(response.data.progress);
+          setNotifications(response.data.notifications || []);
+          setDeadlines(response.data.deadlines || []);
+          setError(null);
+        } else {
+          // มีข้อผิดพลาดจาก API
+          console.log("API response error, using mock data");
+          setUseMockData(true); // ใช้ข้อมูลตัวอย่างเมื่อ API ไม่สำเร็จ
+          setStudent(mockTimelineData.student);
+          setProgress(mockTimelineData.progress);
+          setNotifications(mockTimelineData.notifications);
+          setDeadlines(mockTimelineData.deadlines);
+          setError(null);
+          
+          // ลองสร้างไทม์ไลน์เริ่มต้นในกรณีที่ไม่พบข้อมูลไทม์ไลน์
+          if (response.message && response.message.includes('ไม่พบข้อมูลไทม์ไลน์')) {
+            try {
+              const initResponse = await timelineService.initializeStudentTimeline(studentId);
+              if (initResponse.success) {
+                message.success('สร้างไทม์ไลน์เริ่มต้นสำเร็จ กำลังโหลดข้อมูล...');
+                // โหลดข้อมูลใหม่หลังจากสร้างไทม์ไลน์
+                const newResponse = await timelineService.getStudentTimeline(studentId);
+                if (newResponse.success) {
+                  setUseMockData(false); // ใช้ข้อมูลจริงเมื่อโหลดสำเร็จ
+                  setStudent(newResponse.data.student);
+                  setProgress(newResponse.data.progress);
+                  setNotifications(newResponse.data.notifications || []);
+                  setDeadlines(newResponse.data.deadlines || []);
+                  setError(null);
+                }
+              } else {
+                message.info('กำลังแสดงข้อมูลตัวอย่าง');
+              }
+            } catch (initError) {
+              console.error('Error initializing timeline:', initError);
+              message.info('กำลังแสดงข้อมูลตัวอย่าง');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching timeline data:', err);
+        
+        // ถ้าพบข้อผิดพลาด ให้ใช้ข้อมูลตัวอย่าง
+        console.log("API error, using mock data");
+        setUseMockData(true);
+        setStudent(mockTimelineData.student);
+        setProgress(mockTimelineData.progress);
+        setNotifications(mockTimelineData.notifications);
+        setDeadlines(mockTimelineData.deadlines);
+        setError(null);
+        
+        message.info('กำลังแสดงข้อมูลตัวอย่าง เนื่องจากไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTimelineData();
+  }, [studentId]);
   
   // คำนวณสถานะหลักของการศึกษา
   const calculateMainProgress = () => {
@@ -241,6 +468,30 @@ const StudentTimeline = () => {
           </Space>
         );
         break;
+      case 'register_internship':
+        actionContent = (
+          <Space direction="vertical">
+            <Text>ลงทะเบียนฝึกงาน</Text>
+            <Button type="primary" icon={<FormOutlined />} href="/internship/register">ลงทะเบียนฝึกงาน</Button>
+          </Space>
+        );
+        break;
+      case 'register_project':
+        actionContent = (
+          <Space direction="vertical">
+            <Text>ลงทะเบียนโครงงานพิเศษ</Text>
+            <Button type="primary" icon={<ExperimentOutlined />} href="/project/register">ลงทะเบียนโครงงานพิเศษ</Button>
+          </Space>
+        );
+        break;
+      case 'continue_project':
+        actionContent = (
+          <Space direction="vertical">
+            <Text>ดำเนินการโครงงานพิเศษต่อ</Text>
+            <Button type="primary" icon={<ExperimentOutlined />} href="/project/dashboard">ดำเนินการต่อ</Button>
+          </Space>
+        );
+        break;
       default:
         actionContent = (
           <Text>ไม่มีการดำเนินการที่ต้องทำในขณะนี้</Text>
@@ -259,6 +510,32 @@ const StudentTimeline = () => {
       </Card>
     );
   };
+  
+  // ถ้ากำลังโหลดข้อมูล ให้แสดง Loading
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <Spin size="large" tip="กำลังโหลดข้อมูล..." />
+      </div>
+    );
+  }
+  
+  // ถ้ามีข้อผิดพลาด ให้แสดงข้อความแจ้งเตือน
+  if (error) {
+    return (
+      <Alert
+        message="ไม่สามารถโหลดข้อมูลไทม์ไลน์ได้"
+        description={error}
+        type="error"
+        showIcon
+        action={
+          <Button type="primary" onClick={() => window.location.reload()}>
+            ลองใหม่
+          </Button>
+        }
+      />
+    );
+  }
   
   return (
     <div className="student-timeline">
@@ -378,13 +655,28 @@ const StudentTimeline = () => {
           >
             {student.isEnrolledInternship ? (
               <Timeline mode="left">
-                {progress.internship.steps.map(renderTimelineItem)}
+                {progress.internship.steps.length > 0 ? (
+                  progress.internship.steps.map(renderTimelineItem)
+                ) : (
+                  <Empty description="ยังไม่มีข้อมูลขั้นตอนการฝึกงาน" />
+                )}
               </Timeline>
             ) : (
               <div style={{ padding: '32px 0', textAlign: 'center' }}>
                 <FileDoneOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
                 <Paragraph>คุณยังไม่ได้ลงทะเบียนฝึกงาน</Paragraph>
-                <Button type="primary" href="/internship/register">ลงทะเบียนฝึกงาน</Button>
+                <Button 
+                  type="primary" 
+                  href="/internship/register" 
+                  disabled={!student.internshipEligible}
+                >
+                  ลงทะเบียนฝึกงาน
+                </Button>
+                {!student.internshipEligible && (
+                  <Paragraph style={{ marginTop: 16 }} type="danger">
+                    <InfoCircleOutlined /> {progress.internship.blockReason}
+                  </Paragraph>
+                )}
               </div>
             )}
           </Card>
@@ -397,6 +689,8 @@ const StudentTimeline = () => {
                 <ExperimentOutlined />
                 <span>โครงงานพิเศษ</span>
                 {progress.project.blocked && <Tag color="error">ไม่สามารถดำเนินการได้</Tag>}
+                {student.projectStatus === 'in_progress' && <Tag color="processing">กำลังดำเนินการ</Tag>}
+                {student.projectStatus === 'completed' && <Tag color="success">เสร็จสิ้น</Tag>}
               </Space>
             }
             extra={
@@ -410,7 +704,7 @@ const StudentTimeline = () => {
                 {student.projectEligible ? (
                   <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
                 ) : (
-                  <Tooltip title={`ต้องมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต และผ่านการฝึกงาน`}>
+                  <Tooltip title="ต้องมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต และผ่านการฝึกงาน">
                     <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
                   </Tooltip>
                 )}
@@ -424,14 +718,15 @@ const StudentTimeline = () => {
                   <Text type="danger">ยังไม่สามารถเริ่มโครงงานได้</Text>
                 </Paragraph>
                 <Paragraph type="secondary">{progress.project.blockReason}</Paragraph>
-                <Paragraph type="secondary">
-                  <InfoCircleOutlined /> คุณต้องผ่านการฝึกงานและมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต
-                </Paragraph>
               </div>
             ) : (
               student.isEnrolledProject ? (
                 <Timeline mode="left">
-                  {progress.project.steps.map(renderTimelineItem)}
+                  {progress.project.steps.length > 0 ? (
+                    progress.project.steps.map(renderTimelineItem)
+                  ) : (
+                    <Empty description="ยังไม่มีข้อมูลขั้นตอนโครงงาน" />
+                  )}
                 </Timeline>
               ) : (
                 <div style={{ padding: '32px 0', textAlign: 'center' }}>

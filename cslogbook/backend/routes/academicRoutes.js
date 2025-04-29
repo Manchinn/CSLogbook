@@ -4,7 +4,7 @@ const academicController = require("../controllers/academicController");
 const {
   authenticateToken,
   checkRole,
-} = require("../../middleware/authMiddleware");
+} = require("../middleware/authMiddleware");
 
 // ดึงข้อมูลการตั้งค่าปีการศึกษา
 router.get(

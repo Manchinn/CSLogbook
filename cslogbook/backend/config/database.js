@@ -74,6 +74,7 @@ const testConnection = async () => {
 
 module.exports = {
     sequelize,
+    Sequelize,
     initializeDatabase,
     testConnection
 };

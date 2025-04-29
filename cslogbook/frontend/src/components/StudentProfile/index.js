@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams, useNavigate } from "react-router-dom";
-import { Row, Col, message, Spin, Form, Result, Button } from "antd";
+import { Row, Col, message, Spin, Form, Result, Button, Tabs } from "antd";
 import { calculateStudentYear } from "../../utils/studentUtils";
 import { studentService } from "../../services/studentService";
 import { AuthContext } from "../../contexts/AuthContext";
+import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
 import StudentAvatar from './StudentAvatar';
 import StudentInfo from './StudentInfo';
+import StudentTimeline from './StudentTimeline';
 import StudentEditForm from './StudentEditForm';
 import PDPAModal from './PDPAModal';
 import CreditsGuideModal from './CreditsGuideModal';
+import { BookOutlined, ScheduleOutlined, FileDoneOutlined } from '@ant-design/icons';
 import './styles.css';
+
+const { TabPane } = Tabs;
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -19,8 +24,10 @@ const StudentProfile = () => {
   const [editing, setEditing] = useState(false);
   const [form] = Form.useForm();
   const { userData } = useContext(AuthContext);
+  const { refreshEligibility } = useStudentEligibility();
   const [pdpaModalVisible, setPdpaModalVisible] = useState(false);
   const [secondModalVisible, setSecondModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
 
   const fetchStudent = useCallback(async () => {
     setLoading(true);
@@ -34,6 +41,15 @@ const StudentProfile = () => {
         // Map ข้อมูลจาก user ถ้ามี
         const { user = {} } = response.data;
   
+        // เพิ่มการดึงข้อกำหนดสำหรับการตรวจสอบสิทธิ์
+        const requirements = response.data.requirements || {};
+        
+        // ข้อมูลสิทธิ์จาก backend (ถ้ามี)
+        const eligibility = response.data.eligibility || {
+          internship: { eligible: false, message: "ไม่มีข้อมูลสิทธิ์" },
+          project: { eligible: false, message: "ไม่มีข้อมูลสิทธิ์" }
+        };
+        
         setStudent({
           ...response.data,
           firstName: response.data.firstName || user.firstName || "",
@@ -41,13 +57,21 @@ const StudentProfile = () => {
           email: response.data.email || user.email || "",
           totalCredits,
           majorCredits,
-          studentYear: yearResult
+          studentYear: yearResult,
+          
+          // เพิ่มข้อมูลเกี่ยวกับสิทธิ์และข้อกำหนด
+          requirements,
+          isEligibleForInternship: eligibility.internship?.eligible || false,
+          isEligibleForProject: eligibility.project?.eligible || false,
+          internshipMessage: eligibility.internship?.message,
+          projectMessage: eligibility.project?.message,
         });
   
         form.setFieldsValue({ totalCredits, majorCredits });
       }
     } catch (error) {
-      // ...
+      console.error("Error fetching student data:", error);
+      message.error("ไม่สามารถโหลดข้อมูลนักศึกษา: " + (error.message || "กรุณาลองใหม่อีกครั้ง"));
     } finally {
       setLoading(false);
     }
@@ -64,11 +88,17 @@ const StudentProfile = () => {
         message.success("แก้ไขข้อมูลสำเร็จ");
         setEditing(false);
         await fetchStudent();
+        
+        // เพิ่ม: อัพเดตข้อมูลสิทธิ์ทันทีหลังจากบันทึกข้อมูลสำเร็จ
+        if (userData?.role === 'student') {
+          // ถ้าผู้แก้ไขเป็นนักศึกษา ให้รีเฟรชสิทธิ์
+          refreshEligibility(true);  // true = แสดงข้อความแจ้งเตือน
+        }
       }
     } catch (error) {
       message.error("ไม่สามารถแก้ไขข้อมูล: " + error.message);
     }
-  }, [id, fetchStudent]);
+  }, [id, fetchStudent, userData, refreshEligibility]);
 
   const handleEditWithConsent = () => {
     setPdpaModalVisible(true);
@@ -130,21 +160,42 @@ const StudentProfile = () => {
             studentYear={student.studentYear} 
           />
         </Col>
-        <Col xs={24} lg={12}>
-          {editing ? (
-            <StudentEditForm
-              form={form}
-              onFinish={handleEdit}
-              onCancel={() => setEditing(false)}
-              initialValues={student}
-            />
-          ) : (
-            <StudentInfo
-              student={student}
-              onEdit={handleEditWithConsent}
-              canEdit={canEdit}
-            />
-          )}
+        <Col xs={24} lg={18}>
+          <Tabs activeKey={activeTab} onChange={setActiveTab} className="profile-tabs">
+            <TabPane 
+              tab={<span><BookOutlined /> ข้อมูลการศึกษา</span>}
+              key="info"
+            >
+              {editing ? (
+                <StudentEditForm
+                  form={form}
+                  onFinish={handleEdit}
+                  onCancel={() => setEditing(false)}
+                  initialValues={student}
+                />
+              ) : (
+                <StudentInfo
+                  student={student}
+                  onEdit={handleEditWithConsent}
+                  canEdit={canEdit}
+                />
+              )}
+            </TabPane>
+            <TabPane 
+              tab={<span><ScheduleOutlined /> ไทม์ไลน์การศึกษา</span>}
+              key="timeline"
+            >
+              <StudentTimeline />
+            </TabPane>
+            <TabPane 
+              tab={<span><FileDoneOutlined /> เอกสาร</span>}
+              key="documents"
+            >
+              <div className="documents-section">
+                <p>เอกสารของนักศึกษาจะแสดงในส่วนนี้</p>
+              </div>
+            </TabPane>
+          </Tabs>
         </Col>
       </Row>
 

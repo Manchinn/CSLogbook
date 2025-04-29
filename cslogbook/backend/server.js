@@ -82,8 +82,7 @@ const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
 const internshipRoutes = require('./routes/documents/internshipRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
-
-
+const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มการนำเข้า timelineRoutes
 const adminRoutes = require('./routes/adminRoutes');
 
 
@@ -191,6 +190,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/timeline/public', timelineRoutes); // เพิ่ม public timeline routes ก่อน authenticateToken
 
 // Protected routes
 app.use('/api/admin', authenticateToken, adminRoutes);
@@ -208,6 +208,7 @@ app.use('/api', uploadRoutes); // ใช้ route
 // Add routes
 app.use('/api/internship', internshipRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
+app.use('/api/timeline', authenticateToken, timelineRoutes); // Protected timeline routes
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

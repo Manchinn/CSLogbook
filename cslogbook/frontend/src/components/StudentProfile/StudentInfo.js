@@ -14,20 +14,39 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
   // ตรวจสอบสิทธิ์เมื่อ student หรือหน่วยกิตเปลี่ยน
   useEffect(() => {
     if (student) {
-      const internshipEligible = isEligibleForInternship(student.totalCredits, student.majorCredits);
-      const projectEligible = isEligibleForProject(student.totalCredits, student.majorCredits);
+      // รับค่าข้อกำหนดจาก backend ถ้ามี
+      const internshipRequirements = student.requirements?.internship || null;
+      const projectRequirements = student.requirements?.project || null;
+
+      // ส่งพารามิเตอร์ครบถ้วนและถูกต้อง
+      const internshipEligible = isEligibleForInternship(
+        student.studentYear,
+        student.totalCredits || 0,
+        student.majorCredits || 0,
+        internshipRequirements
+      );
+      
+      const projectEligible = isEligibleForProject(
+        student.studentYear,
+        student.totalCredits || 0,
+        student.majorCredits || 0,
+        projectRequirements
+      );
       
       setEligibility({
-        internship: internshipEligible,
-        project: projectEligible
+        internship: internshipEligible.eligible,
+        project: projectEligible.eligible,
+        internshipMessage: internshipEligible.message,
+        projectMessage: projectEligible.message
       });
 
       // Debug log
-      console.log('Credits:', {
-        total: student.totalCredits,
-        major: student.majorCredits,
-        isEligibleInternship: internshipEligible,
-        isEligibleProject: projectEligible
+      console.log('Credits and Eligibility:', {
+        totalCredits: student.totalCredits,
+        majorCredits: student.majorCredits,
+        studentYear: student.studentYear,
+        internshipEligible,
+        projectEligible
       });
     }
   }, [student]);
@@ -42,17 +61,14 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
   };
 
   const getEligibilityMessage = (isEligible, type) => {
-    // ใช้ค่าจาก state eligibility แทน
-    const eligible = type === 'internship' ? eligibility.internship : eligibility.project;
-    
-    if (eligible) {
-      return type === 'internship' 
-        ? getMessageString(student.internshipMessage) || "คุณมีสิทธิ์ฝึกงาน"
-        : getMessageString(student.projectMessage) || "คุณมีสิทธิ์ทำโครงงานพิเศษ";
+    // ใช้ข้อความจาก state หากมี
+    if (type === 'internship') {
+      return eligibility.internshipMessage || 
+        (eligibility.internship ? "คุณมีสิทธิ์ฝึกงาน" : "คุณยังไม่มีสิทธิ์ฝึกงาน");
+    } else {
+      return eligibility.projectMessage || 
+        (eligibility.project ? "คุณมีสิทธิ์ทำโครงงานพิเศษ" : "คุณยังไม่มีสิทธิ์ทำโครงงานพิเศษ");
     }
-    return type === 'internship'
-      ? getMessageString(student.internshipMessage) || "คุณยังไม่มีสิทธิ์ฝึกงาน"
-      : getMessageString(student.projectMessage) || "คุณยังไม่มีสิทธิ์ทำโครงงานพิเศษ";
   };
 
   return (

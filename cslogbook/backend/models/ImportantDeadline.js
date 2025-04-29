@@ -8,11 +8,10 @@ module.exports = (sequelize) => {
     }
 
     ImportantDeadline.init({
-        importantdeadlineId: {
+        id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true,
-            field: 'important_deadline_id'
+            autoIncrement: true
         },
         name: {
             type: DataTypes.STRING(255),

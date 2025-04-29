@@ -17,15 +17,21 @@ const CONSTANTS = {
     // ค่าเริ่มต้นที่จะถูกโหลดทับจาก Academic model
     FIRST: {
       START_MONTH: 7,  // กรกฎาคม
-      END_MONTH: 11    // พฤศจิกายน
+      END_MONTH: 11,   // พฤศจิกายน
+      START_DATE: null, // จะถูกแทนที่ด้วยวันที่จริงจากฐานข้อมูล
+      END_DATE: null    // จะถูกแทนที่ด้วยวันที่จริงจากฐานข้อมูล
     },
     SECOND: {
       START_MONTH: 11, // พฤศจิกายน
-      END_MONTH: 3     // มีนาคม
+      END_MONTH: 3,    // มีนาคม
+      START_DATE: null, // จะถูกแทนที่ด้วยวันที่จริงจากฐานข้อมูล
+      END_DATE: null    // จะถูกแทนที่ด้วยวันที่จริงจากฐานข้อมูล
     },
     SUMMER: {
       START_MONTH: 4,  // เมษายน
-      END_MONTH: 6     // มิถุนายน
+      END_MONTH: 6,    // มิถุนายน
+      START_DATE: null, // จะถูกแทนที่ด้วยวันที่จริงจากฐานข้อมูล
+      END_DATE: null    // จะถูกแทนที่ด้วยวันที่จริงจากฐานข้อมูล
     }
   },
   STUDENT_STATUS: {
@@ -48,34 +54,6 @@ const CONSTANTS = {
     }
   }
 };
-
-// ตรวจสอบว่าได้มีการตั้งค่า environment variables สำหรับฐานข้อมูลหรือไม่
-function checkDatabaseEnv() {
-  // ตรวจสอบค่า env ที่จำเป็น
-  if (!process.env.DB_HOST) {
-    console.warn('DB_HOST environment variable not set. Using localhost as default.');
-    process.env.DB_HOST = 'localhost';
-  }
-  if (!process.env.DB_USER) {
-    console.warn('DB_USER environment variable not set. Using root as default.');
-    process.env.DB_USER = 'root';
-  }
-  if (!process.env.DB_PASSWORD) {
-    console.warn('DB_PASSWORD environment variable not set. Using empty password as default.');
-    process.env.DB_PASSWORD = 'root';
-  }
-  if (!process.env.DB_NAME) {
-    console.warn('DB_NAME environment variable not set. Using cslogbook as default.');
-    process.env.DB_NAME = 'cslogbook_dev';
-  }
-  if (!process.env.DB_PORT) {
-    console.warn('DB_PORT environment variable not set. Using 3306 as default.');
-    process.env.DB_PORT = '3306';
-  }
-}
-
-// เรียกใช้ฟังก์ชันตรวจสอบ environment variables
-checkDatabaseEnv();
 
 // โหลดโมเดล Curriculum และ Academic โดยใช้วิธีที่แนะนำ
 const db = require('../models');
@@ -180,27 +158,60 @@ const loadDynamicConstants = async () => {
 
     // อัปเดตค่า constants จาก Academic
     if (academicData) {
+      // ภาคเรียนที่ 1
       if (academicData.semester1Range) {
         const { start, end } = academicData.semester1Range;
         if (start && end) {
-          CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH = new Date(start).getMonth() + 1;
-          CONSTANTS.ACADEMIC_TERMS.FIRST.END_MONTH = new Date(end).getMonth() + 1;
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          
+          // เก็บค่าเดือนสำหรับการคำนวณตามดั้งเดิม
+          CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH = startDate.getMonth() + 1;
+          CONSTANTS.ACADEMIC_TERMS.FIRST.END_MONTH = endDate.getMonth() + 1;
+          
+          // เก็บค่าวันที่จริงจากฐานข้อมูลเพื่อความแม่นยำ
+          CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE = startDate;
+          CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE = endDate;
+          
+          console.log(`อัปเดตช่วงเวลาภาคเรียนที่ 1: ${startDate.toLocaleDateString('th-TH')} - ${endDate.toLocaleDateString('th-TH')}`);
         }
       }
 
+      // ภาคเรียนที่ 2
       if (academicData.semester2Range) {
         const { start, end } = academicData.semester2Range;
         if (start && end) {
-          CONSTANTS.ACADEMIC_TERMS.SECOND.START_MONTH = new Date(start).getMonth() + 1;
-          CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH = new Date(end).getMonth() + 1;
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          
+          // เก็บค่าเดือนสำหรับการคำนวณตามดั้งเดิม
+          CONSTANTS.ACADEMIC_TERMS.SECOND.START_MONTH = startDate.getMonth() + 1;
+          CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH = endDate.getMonth() + 1;
+          
+          // เก็บค่าวันที่จริงจากฐานข้อมูลเพื่อความแม่นยำ
+          CONSTANTS.ACADEMIC_TERMS.SECOND.START_DATE = startDate;
+          CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE = endDate;
+          
+          console.log(`อัปเดตช่วงเวลาภาคเรียนที่ 2: ${startDate.toLocaleDateString('th-TH')} - ${endDate.toLocaleDateString('th-TH')}`);
         }
       }
 
+      // ภาคเรียนฤดูร้อน
       if (academicData.semester3Range) {
         const { start, end } = academicData.semester3Range;
         if (start && end) {
-          CONSTANTS.ACADEMIC_TERMS.SUMMER.START_MONTH = new Date(start).getMonth() + 1;
-          CONSTANTS.ACADEMIC_TERMS.SUMMER.END_MONTH = new Date(end).getMonth() + 1;
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          
+          // เก็บค่าเดือนสำหรับการคำนวณตามดั้งเดิม
+          CONSTANTS.ACADEMIC_TERMS.SUMMER.START_MONTH = startDate.getMonth() + 1;
+          CONSTANTS.ACADEMIC_TERMS.SUMMER.END_MONTH = endDate.getMonth() + 1;
+          
+          // เก็บค่าวันที่จริงจากฐานข้อมูลเพื่อความแม่นยำ
+          CONSTANTS.ACADEMIC_TERMS.SUMMER.START_DATE = startDate;
+          CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE = endDate;
+          
+          console.log(`อัปเดตช่วงเวลาภาคเรียนฤดูร้อน: ${startDate.toLocaleDateString('th-TH')} - ${endDate.toLocaleDateString('th-TH')}`);
         }
       }
     }
@@ -342,12 +353,38 @@ const getCurrentAcademicYear = () => {
 };
 
 /**
- * คำนวณภาคเรียนปัจจุบัน
+ * คำนวณภาคเรียนปัจจุบัน (ใช้ค่าวันที่จริงจากฐานข้อมูลถ้ามี)
  * @returns {number} ภาคเรียน (1, 2, หรือ 3)
  */
 const getCurrentSemester = () => {
-  const currentMonth = new Date().getMonth() + 1;
-
+  const currentDate = new Date();
+  
+  // ถ้ามีการตั้งค่าวันที่จริงจากฐานข้อมูล ให้ใช้ค่านั้นเพื่อความแม่นยำ
+  if (CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE && CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE) {
+    if (currentDate >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE && 
+        currentDate <= CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE) {
+      return 1;
+    }
+  }
+  
+  if (CONSTANTS.ACADEMIC_TERMS.SECOND.START_DATE && CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE) {
+    if (currentDate >= CONSTANTS.ACADEMIC_TERMS.SECOND.START_DATE && 
+        currentDate <= CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE) {
+      return 2;
+    }
+  }
+  
+  if (CONSTANTS.ACADEMIC_TERMS.SUMMER.START_DATE && CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE) {
+    if (currentDate >= CONSTANTS.ACADEMIC_TERMS.SUMMER.START_DATE && 
+        currentDate <= CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE) {
+      return 3;
+    }
+  }
+  
+  // ถ้าไม่มีการตั้งค่าวันที่จากฐานข้อมูลหรือวันที่ปัจจุบันไม่อยู่ในช่วงที่กำหนด
+  // ให้ใช้การคำนวณจากเดือนแบบเดิม
+  const currentMonth = currentDate.getMonth() + 1;
+  
   // ภาคเรียนที่ 1: กรกฎาคม - พฤศจิกายน
   if (currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH && 
       currentMonth <= CONSTANTS.ACADEMIC_TERMS.FIRST.END_MONTH) {

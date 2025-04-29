@@ -28,14 +28,14 @@ module.exports = (sequelize) => {
                 sourceKey: 'userId',
                 as: 'documents'
             });
-            /* Student.hasMany(models.TimelineStep, {
+            Student.hasMany(models.TimelineStep, {
                 foreignKey: 'student_id',
                 as: 'timelineSteps'
             });
             Student.hasMany(models.StudentProgress, {
                 foreignKey: 'student_id',
                 as: 'progressData'
-            }); */
+            });
         }
         
         // เพิ่ม method สำหรับตรวจสอบสิทธิ์ฝึกงาน

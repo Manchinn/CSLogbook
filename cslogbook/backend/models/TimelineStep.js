@@ -20,7 +20,11 @@ module.exports = (sequelize) => {
         studentId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            field: 'student_id'
+            field: 'student_id',
+            references: {
+                model: 'students',
+                key: 'student_id'
+            }
         },
         type: {
             type: DataTypes.ENUM('internship', 'project'),
@@ -32,40 +36,40 @@ module.exports = (sequelize) => {
             field: 'step_order'
         },
         name: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING,
             allowNull: false
+        },
+        description: {
+            type: DataTypes.TEXT
         },
         status: {
             type: DataTypes.ENUM('waiting', 'in_progress', 'completed', 'blocked'),
             defaultValue: 'waiting'
         },
         date: {
-            type: DataTypes.DATEONLY
+            type: DataTypes.DATE
         },
         startDate: {
-            type: DataTypes.DATEONLY,
+            type: DataTypes.DATE,
             field: 'start_date'
         },
         endDate: {
-            type: DataTypes.DATEONLY,
+            type: DataTypes.DATE,
             field: 'end_date'
         },
         deadline: {
-            type: DataTypes.DATEONLY
-        },
-        description: {
-            type: DataTypes.TEXT
+            type: DataTypes.DATE
         },
         documentType: {
-            type: DataTypes.STRING(50),
+            type: DataTypes.STRING,
             field: 'document_type'
         },
         actionText: {
-            type: DataTypes.STRING(100),
+            type: DataTypes.STRING,
             field: 'action_text'
         },
         actionLink: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING,
             field: 'action_link'
         }
     }, {
