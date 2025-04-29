@@ -1,0 +1,149 @@
+.eligibility-container,
+.requirements-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: #f5f5f5;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ant-card-head-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ant-statistic-title {
+  font-size: 14px;
+}
+
+.ant-statistic-content-value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.ant-timeline-item-content {
+  padding-bottom: 20px;
+}
+
+.ant-steps-item-description {
+  font-size: 14px;
+}
+
+.ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.ant-list-bordered .ant-list-item {
+  padding: 12px 16px;
+}
+
+.ant-divider-inner-text {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+/* สีสถานะต่างๆ */
+.status-success {
+  color: #52c41a;
+}
+
+.status-warning {
+  color: #faad14;
+}
+
+.status-error {
+  color: #f5222d;
+}
+
+.status-info {
+  color: #1890ff;
+}
+
+/* สไตล์สำหรับการตรวจสอบคุณสมบัติ */
+.eligibility-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.eligibility-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.eligibility-title .anticon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+/* สไตล์สำหรับข้อกำหนดโครงงาน */
+.requirement-item {
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.requirement-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.requirement-title {
+  font-weight: 500;
+}
+
+.step-description {
+  margin-left: 24px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+/* ปรับแต่ง Timeline */
+.ant-timeline-item-tail {
+  border-left: 2px solid #1890ff;
+}
+
+.ant-timeline-item-head-blue {
+  color: #1890ff;
+  border-color: #1890ff;
+}
+
+/* ปรับแต่ง Alert */
+.ant-alert {
+  margin-bottom: 16px;
+}
+
+.ant-alert-message {
+  font-weight: 500;
+}
+
+/* ปรับแต่ง Table */
+.ant-table-thead > tr > th {
+  background-color: #f5f5f5;
+  font-weight: 500;
+}
+
+/* สไตล์สำหรับอุปกรณ์มือถือ */
+@media (max-width: 768px) {
+  .eligibility-container,
+  .requirements-container {
+    padding: 12px;
+  }
+  
+  .ant-statistic-title {
+    font-size: 12px;
+  }
+  
+  .ant-statistic-content-value {
+    font-size: 18px;
+  }
+}

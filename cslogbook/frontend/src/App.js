@@ -14,9 +14,12 @@ import TimeSheet from './components/internship/logbook/TimeSheet/index';
 import InternshipSummary from './components/internship/summary/Summary';
 import StatusCheck from './components/internship/shared/StatusCheck';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
+import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
+
 // Import Project Components
 import ProjectProposalForm from './components/project/ProjectProposalForm';
 import LogbookForm from './components/project/LogbookForm';
+import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -59,6 +62,18 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
+                {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดฝึกงาน */}
+                <Route path="/internship-eligibility" element={
+                  <ProtectedRoute roles={['student']}>
+                    <EligibilityCheck />
+                  </ProtectedRoute>
+                } />
+                <Route path="/internship-requirements" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipRequirements />
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="/internship-logbook/timesheet" element={
                   <ProtectedRoute roles={['student']}>
                     <TimeSheet />
@@ -92,6 +107,18 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
+                {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดโครงงานพิเศษ */}
+                <Route path="/project-eligibility" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectEligibilityCheck />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project-requirements" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectRequirements />
+                  </ProtectedRoute>
+                } />
+
                 {/* Admin Routes */}
                 <Route path="/students" element={
                   <ProtectedRoute roles={['admin']}>

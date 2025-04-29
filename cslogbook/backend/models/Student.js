@@ -375,6 +375,16 @@ module.exports = (sequelize) => {
                 const currentMonth = currentDate.getMonth() + 1;
                 return currentMonth > 4 ? currentYear : currentYear - 1;
             }
+        },
+        studentYear: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 1,
+            field: 'student_year',
+            validate: {
+                min: 1,
+                max: 8
+            }
         }
     }, {
         sequelize,

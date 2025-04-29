@@ -73,7 +73,8 @@ const Sidebar = () => {
     canAccessInternship, 
     canAccessProject, 
     messages,
-    lastUpdated 
+    lastUpdated,
+    refreshEligibility 
   } = useStudentEligibility();
 
   // Handle window resize
@@ -101,18 +102,41 @@ const Sidebar = () => {
     // ตรวจสอบเมื่อ path เปลี่ยน
     const checkRouteAccess = () => {
       const path = location.pathname;
+      const showNotificationKey = 'access_notification'; // สร้าง key เพื่อป้องกันการแสดงซ้ำ
 
-      if (userData?.role === "student") {
-        if (path.includes("/project") && !canAccessProject) {
-          message.error("คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ");
-          navigate("/dashboard");
-          return;
-        }
+      // ตรวจสอบว่าเคยแสดง notification แล้วหรือไม่ในวันนี้
+      const todayDate = new Date().toDateString();
+      const lastShown = localStorage.getItem('lastNotificationShown');
+      const alreadyShownToday = lastShown === todayDate;
 
-        if (path.includes("/internship") && !canAccessInternship) {
-          message.error("คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน");
-          navigate("/dashboard");
-          return;
+      // ถ้ายังไม่เคยแสดงในวันนี้ ให้แสดงและบันทึกวันที่
+      if (!alreadyShownToday) {
+        // แสดงเพียงข้อความแนะนำและแสดงเพียงครั้งเดียวต่อวัน
+        if (userData?.role === "student") {
+          if (path.includes("/project-proposal") && !canAccessProject) {
+            // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
+            message.info({
+              content: "คุณสามารถดูข้อมูลหน้าเสนอหัวข้อโครงงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              key: showNotificationKey,
+              duration: 5
+            });
+            localStorage.setItem('lastNotificationShown', todayDate);
+          }
+
+          if (path.includes("/internship-registration/cs05") && !canAccessInternship) {
+            // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
+            message.info({
+              content: "คุณสามารถดูข้อมูลหน้าลงทะเบียนฝึกงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              key: showNotificationKey,
+              duration: 5
+            });
+            localStorage.setItem('lastNotificationShown', todayDate);
+            
+            // ทำการรีเฟรชข้อมูลสิทธิ์เมื่อเข้าถึงหน้าลงทะเบียนฝึกงาน
+            if (typeof refreshEligibility === 'function') {
+              setTimeout(() => refreshEligibility(false), 1000); // รอ 1 วินาทีก่อนรีเฟรช
+            }
+          }
         }
       }
     };
@@ -124,6 +148,7 @@ const Sidebar = () => {
     canAccessProject,
     canAccessInternship,
     navigate,
+    refreshEligibility
   ]);
 
   // เพิ่ม Effect เพื่อติดตามการเปลี่ยนแปลงข้อมูลนักศึกษา
@@ -195,11 +220,11 @@ const Sidebar = () => {
               label: (
                 <MenuItemWithTooltip
                   item={{ label: "ระบบฝึกงาน" }}
-                  disabled={!canAccessInternship}
-                  title={internshipTooltip}
+                  disabled={false} // เปลี่ยนจาก !canAccessInternship เป็น false เพื่อให้คลิกได้เสมอ
+                  title={!canAccessInternship ? internshipTooltip : ""} // แสดง tooltip เฉพาะเมื่อไม่มีสิทธิ์
                 />
               ),
-              disabled: !canAccessInternship,
+              disabled: false, // เปลี่ยนจาก !canAccessInternship เป็น false
               children: canAccessInternship
                 ? [
                     {
@@ -234,7 +259,18 @@ const Sidebar = () => {
                       icon: <FileDoneOutlined />,
                     },
                   ]
-                : [],
+                : [
+                    {
+                      key: "/internship-eligibility",
+                      label: "ตรวจสอบคุณสมบัติ",
+                      icon: <FormOutlined />,
+                    },
+                    {
+                      key: "/internship-requirements",  
+                      label: "ข้อกำหนดฝึกงาน",
+                      icon: <FileTextOutlined />,
+                    },
+                  ],
             },
             {
               key: "project",
@@ -242,11 +278,11 @@ const Sidebar = () => {
               label: (
                 <MenuItemWithTooltip
                   item={{ label: "โครงงานพิเศษ" }}
-                  disabled={!canAccessProject}
-                  title={projectTooltip}
+                  disabled={false} // เปลี่ยนจาก !canAccessProject เป็น false เพื่อให้คลิกได้เสมอ
+                  title={!canAccessProject ? projectTooltip : ""} // แสดง tooltip เฉพาะเมื่อไม่มีสิทธิ์
                 />
               ),
-              disabled: !canAccessProject,
+              disabled: false, // เปลี่ยนจาก !canAccessProject เป็น false
               children: canAccessProject
                 ? [
                     {
@@ -258,7 +294,18 @@ const Sidebar = () => {
                       label: "บันทึก Logbook",
                     },
                   ]
-                : [],
+                : [
+                    {
+                      key: "/project-eligibility",
+                      label: "ตรวจสอบคุณสมบัติ", 
+                      icon: <FormOutlined />,
+                    },
+                    {
+                      key: "/project-requirements",
+                      label: "ข้อกำหนดโครงงาน",
+                      icon: <FileTextOutlined />,
+                    },
+                  ],
             },
             {
               key: "/status-check",
@@ -269,13 +316,13 @@ const Sidebar = () => {
                   key: "/status-check/internship",
                   icon: <BankOutlined />,
                   label: "เอกสารฝึกงาน",
-                  disabled: !canAccessInternship,
+                  disabled: false, // เปลี่ยนจาก !canAccessInternship เป็น false
                 },
                 {
                   key: "/status-check/project",
                   icon: <ProjectOutlined />,
                   label: "เอกสารโครงงาน",
-                  disabled: !canAccessProject,
+                  disabled: false, // เปลี่ยนจาก !canAccessProject เป็น false
                 },
               ],
             },
@@ -392,15 +439,39 @@ const Sidebar = () => {
   const renderLastUpdate = () => {
     if (userData?.role === "student") {
       return (
-        <div
-          style={{
-            padding: "8px",
-            textAlign: "center",
-            fontSize: "12px",
-            color: "rgba(0,0,0,0.45)",
-          }}
-        >
-          อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+        <div>
+          <div
+            style={{
+              padding: "8px",
+              textAlign: "center",
+              fontSize: "12px",
+              color: "rgba(0,0,0,0.45)",
+            }}
+          >
+            อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+          </div>
+          <div 
+            style={{
+              padding: "4px 8px 12px",
+              textAlign: "center",
+            }}
+          >
+            <a 
+              onClick={() => {
+                // เรียกใช้งานฟังก์ชัน refreshEligibility จาก context
+                if (typeof refreshEligibility === 'function') {
+                  refreshEligibility(true);
+                }
+              }}
+              style={{
+                fontSize: "12px", 
+                cursor: "pointer",
+                color: "var(--active-color)"
+              }}
+            >
+              รีเฟรชข้อมูลสิทธิ์
+            </a>
+          </div>
         </div>
       );
     }

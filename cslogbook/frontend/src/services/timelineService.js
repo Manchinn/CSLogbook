@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import apiClient from './apiClient';
 
 // ตั้งค่าสำหรับ Development mode เพื่อให้สามารถทดสอบได้ง่ายขึ้น
 const IS_DEV = process.env.NODE_ENV === 'development';
@@ -18,20 +16,10 @@ export const timelineService = {
     try {
       // ในโหมดพัฒนา ใช้ public endpoint ที่ไม่ต้องการ token
       if (IS_DEV) {
-        const response = await axios.get(
-          `${API_URL}/timeline/public/student/${studentId}`
-        );
+        const response = await apiClient.get(`/timeline/public/student/${studentId}`);
         return response.data;
       } else {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          `${API_URL}/timeline/student/${studentId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const response = await apiClient.get(`/timeline/student/${studentId}`);
         return response.data;
       }
     } catch (error) {
@@ -49,22 +37,10 @@ export const timelineService = {
     try {
       // ในโหมดพัฒนา ใช้ public endpoint ที่ไม่ต้องการ token
       if (IS_DEV) {
-        const response = await axios.post(
-          `${API_URL}/timeline/public/student/${studentId}/init`,
-          {}
-        );
+        const response = await apiClient.post(`/timeline/public/student/${studentId}/init`, {});
         return response.data;
       } else {
-        const token = localStorage.getItem('token');
-        const response = await axios.post(
-          `${API_URL}/timeline/student/${studentId}/init`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const response = await apiClient.post(`/timeline/student/${studentId}/init`, {});
         return response.data;
       }
     } catch (error) {
@@ -81,16 +57,7 @@ export const timelineService = {
    */
   updateTimelineStep: async (stepId, updateData) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${API_URL}/timeline/step/${stepId}`,
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      const response = await apiClient.put(`/timeline/step/${stepId}`, updateData);
       return response.data;
     } catch (error) {
       console.error('Error updating timeline step:', error);

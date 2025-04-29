@@ -7,17 +7,20 @@ const logger = require('../utils/logger');
 exports.getStudentTimeline = async (req, res) => {
   try {
     const { studentId } = req.params;
-    
-    if (!studentId) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'รหัสนักศึกษาไม่ถูกต้อง'
-      });
+
+    // ตรวจสอบว่าเป็นการเรียก API จากเส้นทางเก่าหรือไม่
+    if (req.isDeprecatedRoute) {
+      logger.warn(`DEPRECATED: Timeline API called via deprecated route for student ${studentId}. Please update your frontend code.`);
     }
     
-    // แก้ไข: ค้นหานักศึกษาจาก studentCode แทน studentId
+    // ค้นหาข้อมูลนักศึกษา
     const student = await Student.findOne({
-      where: { studentCode: studentId }
+      where: {
+        [Op.or]: [
+          { studentId: studentId },
+          { studentCode: studentId }
+        ]
+      }
     });
 
     if (!student) {
@@ -26,204 +29,164 @@ exports.getStudentTimeline = async (req, res) => {
         message: 'ไม่พบข้อมูลนักศึกษา'
       });
     }
-
-    // ค้นหาหรือสร้างข้อมูล StudentProgress
-    let [internshipProgress] = await StudentProgress.findOrCreate({
-      where: { 
-        studentId: student.studentId, // ใช้ primary key ของนักศึกษา
-        progressType: 'internship'
-      },
-      defaults: {
-        currentStep: 0,
-        totalSteps: 7,
-        progressPercent: 0,
-        isBlocked: student.totalCredits < 81,
-        blockReason: student.totalCredits < 81 ? 'ต้องมีหน่วยกิตไม่น้อยกว่า 81 หน่วยกิต' : ''
-      }
-    });
-
-    let [projectProgress] = await StudentProgress.findOrCreate({
-      where: { 
-        studentId: student.studentId, // ใช้ primary key ของนักศึกษา
-        progressType: 'project'
-      },
-      defaults: {
-        currentStep: 0,
-        totalSteps: 8, 
-        progressPercent: 0,
-        isBlocked: (student.totalCredits < 95 || student.majorCredits < 47),
-        blockReason: (student.totalCredits < 95 || student.majorCredits < 47) ? 
-          'ต้องมีหน่วยกิตไม่น้อยกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า 47 หน่วยกิต' : ''
-      }
-    });
-
+    
+    logger.info(`Looking for timeline for student ID: ${student.studentId}`);
+    
     // ค้นหาขั้นตอนใน timeline ของนักศึกษา
     const internshipSteps = await TimelineStep.findAll({
       where: { 
-        studentId: student.studentId, // ใช้ primary key ของนักศึกษา
+        student_id: student.studentId,
         type: 'internship'
       },
-      order: [['stepOrder', 'ASC']]
+      order: [['step_order', 'ASC']]
     });
     
     const projectSteps = await TimelineStep.findAll({
       where: { 
-        studentId: student.studentId, // ใช้ primary key ของนักศึกษา
+        student_id: student.studentId,
         type: 'project'
       },
-      order: [['stepOrder', 'ASC']]
+      order: [['step_order', 'ASC']]
     });
 
     // ค้นหากำหนดการสำคัญ
-    const currentDate = new Date();
-    const today = moment(currentDate);
-    const currentAcademicYear = today.month() >= 7 ? today.year() + 543 : today.year() + 543 - 1;
-
-    const deadlines = await ImportantDeadline.findAll({
+    const academicYear = new Date().getFullYear() + 543; // แปลงเป็นปี พ.ศ.
+    const today = moment().format('YYYY-MM-DD');
+    
+    const upcomingDeadlines = await ImportantDeadline.findAll({
       where: {
-        academicYear: currentAcademicYear.toString(),
-        date: {
-          [Op.gte]: currentDate
-        }
+        date: { [Op.gte]: today },
+        academicYear: academicYear.toString(),
       },
       order: [['date', 'ASC']],
       limit: 5
     });
 
-    // แปลงข้อมูล deadline ให้อยู่ในรูปแบบที่ต้องการ
-    const formattedDeadlines = deadlines.map(deadline => {
-      const deadlineDate = moment(deadline.date);
-      const daysLeft = deadlineDate.diff(today, 'days');
+    // ดึงข้อมูล StudentProgress
+    const internshipProgress = await StudentProgress.findOne({
+      where: { 
+        studentId: student.studentId,
+        progressType: 'internship'
+      }
+    });
+    
+    const projectProgress = await StudentProgress.findOne({
+      where: { 
+        studentId: student.studentId,
+        progressType: 'project'
+      }
+    });
+    
+    // แปลงขั้นตอนให้เป็นรูปแบบที่ frontend ต้องการ
+    const transformedInternshipSteps = internshipSteps.map(step => ({
+      id: step.id,
+      name: step.name,
+      description: step.description,
+      status: step.status,
+      date: step.date,
+      startDate: step.start_date,
+      endDate: step.end_date,
+      deadline: step.deadline,
+      document: step.document_type,
+      actionText: step.action_text,
+      actionLink: step.action_link
+    }));
+    
+    const transformedProjectSteps = projectSteps.map(step => ({
+      id: step.id,
+      name: step.name,
+      description: step.description,
+      status: step.status,
+      date: step.date,
+      startDate: step.start_date,
+      endDate: step.end_date,
+      deadline: step.deadline,
+      document: step.document_type,
+      actionText: step.action_text,
+      actionLink: step.action_link
+    }));
+    
+    // แปลงกำหนดการให้เป็นรูปแบบที่ frontend ต้องการ
+    const formattedDeadlines = upcomingDeadlines.map(deadline => {
+      const dueDate = moment(deadline.date);
+      const today = moment();
+      const daysLeft = dueDate.diff(today, 'days');
       
       return {
-        id: deadline.importantDeadlineId,
-        name: deadline.name,
-        date: deadlineDate.format('YYYY-MM-DD'),
+        id: deadline.id,
+        name: deadline.title,
+        date: deadline.date,
         daysLeft: daysLeft,
-        related: deadline.relatedTo
+        related: deadline.category
       };
     });
-
-    // คำนวณสถานะการมีสิทธิ์
-    const internshipEligible = student.totalCredits >= 81;
-    const projectEligible = student.totalCredits >= 95 && student.majorCredits >= 47;
-
-    // ตรวจสอบว่ามีการลงทะเบียนหรือไม่
-    const isEnrolledInternship = internshipSteps.length > 0;
-    const isEnrolledProject = projectSteps.length > 0;
-
-    // กำหนดสถานะ
-    let internshipStatus = 'not_started';
-    if (isEnrolledInternship) {
-      if (internshipSteps.every(step => step.status === 'completed')) {
-        internshipStatus = 'completed';
-      } else {
-        internshipStatus = 'in_progress';
-      }
-    }
-
-    let projectStatus = 'not_started';
-    if (isEnrolledProject) {
-      if (projectSteps.every(step => step.status === 'completed')) {
-        projectStatus = 'completed';
-      } else {
-        projectStatus = 'in_progress';
-      }
-    }
-
-    // กำหนด nextAction ตามสถานะปัจจุบัน
-    let nextAction = 'none';
-    if (internshipStatus === 'in_progress') {
-      const currentStep = internshipSteps.find(step => step.status === 'in_progress');
-      if (currentStep) {
-        if (currentStep.name.includes('รายงาน')) {
-          nextAction = 'upload_internship_report';
-        } else if (currentStep.name.includes('บันทึก')) {
-          nextAction = 'daily_log';
-        } else {
-          nextAction = 'continue_internship';
-        }
-      }
-    } else if (internshipStatus === 'not_started' && internshipEligible) {
-      nextAction = 'register_internship';
-    } else if (projectStatus === 'not_started' && projectEligible) {
-      nextAction = 'register_project';
-    } else if (projectStatus === 'in_progress') {
-      nextAction = 'continue_project';
-    }
-
-    // คำนวณความคืบหน้า
-    let internshipProgressPercent = 0;
-    if (internshipSteps.length > 0) {
-      const completedSteps = internshipSteps.filter(step => step.status === 'completed').length;
-      internshipProgressPercent = Math.round((completedSteps / internshipSteps.length) * 100);
-      
-      // อัปเดตค่าใน StudentProgress
-      await internshipProgress.update({
-        currentStep: internshipSteps.findIndex(step => step.status === 'in_progress') + 1,
-        totalSteps: internshipSteps.length,
-        progressPercent: internshipProgressPercent
-      });
-    }
-
-    let projectProgressPercent = 0;
-    if (projectSteps.length > 0) {
-      const completedSteps = projectSteps.filter(step => step.status === 'completed').length;
-      projectProgressPercent = Math.round((completedSteps / projectSteps.length) * 100);
-      
-      // อัปเดตค่าใน StudentProgress
-      await projectProgress.update({
-        currentStep: projectSteps.findIndex(step => step.status === 'in_progress') + 1,
-        totalSteps: projectSteps.length,
-        progressPercent: projectProgressPercent
-      });
-    }
-
-    // สร้างข้อมูลส่งกลับ
-    const data = {
-      success: true,
-      data: {
-        student: {
-          id: student.studentCode, // ใช้ studentCode แทน studentId
-          name: `${student.firstName || ''} ${student.lastName || ''}`,
-          year: student.currentYear || calculateStudentYear(student.studentCode),
-          totalCredits: student.totalCredits || 0,
-          majorCredits: student.majorCredits || 0,
-          status: student.status || 'normal',
-          internshipEligible,
-          projectEligible,
-          isEnrolledInternship,
-          isEnrolledProject,
-          nextAction,
-          internshipStatus,
-          projectStatus
-        },
-        progress: {
-          internship: {
-            currentStep: internshipProgress.currentStep,
-            totalSteps: internshipProgress.totalSteps,
-            progress: internshipProgress.progressPercent,
-            steps: internshipSteps,
-            blocked: internshipProgress.isBlocked,
-            blockReason: internshipProgress.blockReason
-          },
-          project: {
-            currentStep: projectProgress.currentStep,
-            totalSteps: projectProgress.totalSteps,
-            progress: projectProgress.progressPercent,
-            steps: projectSteps,
-            blocked: projectProgress.isBlocked,
-            blockReason: projectProgress.blockReason
-          }
-        },
-        notifications: [], // จะเพิ่มข้อมูลการแจ้งเตือนภายหลัง
-        deadlines: formattedDeadlines
-      }
+    
+    // สร้างข้อมูลนักศึกษาในรูปแบบที่ frontend ต้องการ
+    const studentData = {
+      id: student.studentId,
+      code: student.studentCode,
+      name: `${student.firstName} ${student.lastName}`,
+      year: calculateStudentYear(student.studentId),
+      totalCredits: student.totalCredits || 0,
+      majorCredits: student.majorCredits || 0,
+      status: student.status || "normal",
+      internshipEligible: student.totalCredits >= 81,
+      projectEligible: student.totalCredits >= 95 && student.majorCredits >= 47,
+      isEnrolledInternship: internshipSteps.length > 0,
+      isEnrolledProject: projectSteps.length > 0,
+      nextAction: determineNextAction(transformedInternshipSteps, transformedProjectSteps),
+      internshipStatus: determineProgressStatus(transformedInternshipSteps),
+      projectStatus: determineProgressStatus(transformedProjectSteps)
     };
     
-    return res.status(200).json(data);
+    // สร้างข้อมูล progress ในรูปแบบที่ frontend ต้องการ
+    const progressData = {
+      internship: {
+        steps: transformedInternshipSteps,
+        currentStep: internshipProgress?.currentStep || 0,
+        totalSteps: internshipProgress?.totalSteps || transformedInternshipSteps.length,
+        progress: internshipProgress?.progressPercent || calculateProgressPercent(transformedInternshipSteps),
+        blocked: internshipProgress?.isBlocked || student.totalCredits < 81,
+        blockReason: internshipProgress?.blockReason || (student.totalCredits < 81 ? "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 81 หน่วยกิต" : "")
+      },
+      project: {
+        steps: transformedProjectSteps,
+        currentStep: projectProgress?.currentStep || 0,
+        totalSteps: projectProgress?.totalSteps || transformedProjectSteps.length,
+        progress: projectProgress?.progressPercent || calculateProgressPercent(transformedProjectSteps),
+        blocked: projectProgress?.isBlocked || (student.totalCredits < 95 || student.majorCredits < 47),
+        blockReason: projectProgress?.blockReason || 
+          ((student.totalCredits < 95 || student.majorCredits < 47) ? 
+          "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า 47 หน่วยกิต" : "")
+      }
+    };
+
+    // สร้างข้อมูลการแจ้งเตือนตัวอย่าง (ในระบบจริงควรดึงจากตาราง Notifications)
+    const notificationsData = [
+      {
+        id: 1,
+        message: "บันทึกการทำงานวันนี้เพื่อติดตามความก้าวหน้าฝึกงาน",
+        type: "info",
+        date: moment().format('YYYY-MM-DD')
+      }
+    ];
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        student: studentData,
+        progress: progressData,
+        timeline: { // ส่งในรูปแบบเดิม เพื่อความเข้ากันได้กับ API เก่า
+          internship: transformedInternshipSteps,
+          project: transformedProjectSteps
+        },
+        notifications: notificationsData,
+        deadlines: formattedDeadlines,
+        upcomingDeadlines: formattedDeadlines // เพิ่มเพื่อความเข้ากันได้กับโค้ดเดิม
+      }
+    });
   } catch (error) {
-    console.error('Error fetching timeline steps:', error);
+    logger.error('Error fetching timeline steps:', error);
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูล Timeline',
@@ -237,16 +200,19 @@ exports.initializeStudentTimeline = async (req, res) => {
   try {
     const { studentId } = req.params;
     
-    if (!studentId) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'รหัสนักศึกษาไม่ถูกต้อง'
-      });
+    // ตรวจสอบว่าเป็นการเรียก API จากเส้นทางเก่าหรือไม่
+    if (req.isDeprecatedRoute) {
+      logger.warn(`DEPRECATED: Timeline Init API called via deprecated route for student ${studentId}. Please update your frontend code.`);
     }
-    
-    // แก้ไข: ค้นหานักศึกษาจาก studentCode แทน studentId
+
+    // ค้นหาข้อมูลนักศึกษา
     const student = await Student.findOne({
-      where: { studentCode: studentId }
+      where: {
+        [Op.or]: [
+          { studentId: studentId },
+          { studentCode: studentId }
+        ]
+      }
     });
 
     if (!student) {
@@ -255,26 +221,25 @@ exports.initializeStudentTimeline = async (req, res) => {
         message: 'ไม่พบข้อมูลนักศึกษา'
       });
     }
-    
-    // ตรวจสอบว่านักศึกษามี timeline steps อยู่แล้วหรือไม่
-    const existingSteps = await TimelineStep.findAll({ 
-      where: { studentId: student.studentId } // ใช้ primary key ของนักศึกษา
+
+    // ตรวจสอบว่ามีไทม์ไลน์อยู่แล้วหรือไม่
+    const existingSteps = await TimelineStep.findAll({
+      where: {
+        student_id: student.studentId
+      }
     });
-    
+
     if (existingSteps.length > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'นักศึกษามี Timeline อยู่แล้ว',
-        data: {
-          steps: existingSteps
-        }
+        message: 'นักศึกษามีไทม์ไลน์อยู่แล้ว'
       });
     }
 
     // ค้นหาหรือสร้างข้อมูล StudentProgress
     await StudentProgress.findOrCreate({
       where: { 
-        studentId: student.id,
+        studentId: student.studentId,
         progressType: 'internship'
       },
       defaults: {
@@ -288,7 +253,7 @@ exports.initializeStudentTimeline = async (req, res) => {
 
     await StudentProgress.findOrCreate({
       where: { 
-        studentId: student.id,
+        studentId: student.studentId,
         progressType: 'project'
       },
       defaults: {
@@ -304,68 +269,68 @@ exports.initializeStudentTimeline = async (req, res) => {
     // สร้าง timeline steps สำหรับการฝึกงาน
     const internshipSteps = [
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 1,
+        step_order: 1,
         name: 'ลงทะเบียนฝึกงาน',
         description: 'ลงทะเบียนฝึกงานในระบบและเลือกสถานประกอบการ',
         status: 'waiting',
-        documentType: 'registration',
-        actionText: 'ลงทะเบียนฝึกงาน',
-        actionLink: '/internship/register'
+        document_type: 'registration',
+        action_text: 'ลงทะเบียนฝึกงาน',
+        action_link: '/internship/register'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 2,
+        step_order: 2,
         name: 'ส่งเอกสารขอฝึกงาน',
         description: 'ส่งเอกสารขอฝึกงานให้อาจารย์ตรวจสอบและอนุมัติ',
         status: 'waiting',
-        documentType: 'request',
-        actionText: 'อัปโหลดเอกสาร',
-        actionLink: '/internship/documents/upload'
+        document_type: 'request',
+        action_text: 'อัปโหลดเอกสาร',
+        action_link: '/internship/documents/upload'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 3,
+        step_order: 3,
         name: 'รอการตอบรับจากสถานประกอบการ',
         description: 'รอการยืนยันจากสถานประกอบการหลังจากส่งเอกสารขอฝึกงาน',
         status: 'waiting'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 4,
+        step_order: 4,
         name: 'เริ่มฝึกงาน',
         description: 'เริ่มการฝึกงานที่สถานประกอบการ',
         status: 'waiting'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 5,
+        step_order: 5,
         name: 'บันทึกการฝึกงานประจำวัน',
         description: 'บันทึกการฝึกงานในแต่ละวันตลอดระยะเวลาการฝึกงาน',
         status: 'waiting',
-        actionText: 'บันทึกการฝึกงาน',
-        actionLink: '/internship/logbook'
+        action_text: 'บันทึกการฝึกงาน',
+        action_link: '/internship/logbook'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 6,
+        step_order: 6,
         name: 'ส่งรายงานฝึกงาน',
         description: 'ส่งรายงานฝึกงานและแบบประเมินหลังจากฝึกงานเสร็จสิ้น',
         status: 'waiting',
-        documentType: 'report',
-        actionText: 'ส่งรายงานฝึกงาน',
-        actionLink: '/internship/report/upload'
+        document_type: 'report',
+        action_text: 'ส่งรายงานฝึกงาน',
+        action_link: '/internship/report/upload'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'internship',
-        stepOrder: 7,
+        step_order: 7,
         name: 'อาจารย์ตรวจรายงานและประเมินผล',
         description: 'อาจารย์ตรวจสอบรายงานและประเมินผลการฝึกงาน',
         status: 'waiting'
@@ -375,80 +340,80 @@ exports.initializeStudentTimeline = async (req, res) => {
     // สร้าง timeline steps สำหรับโครงงานพิเศษ
     const projectSteps = [
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 1,
+        step_order: 1,
         name: 'ลงทะเบียนโครงงานพิเศษ',
         description: 'ลงทะเบียนโครงงานพิเศษในระบบและเลือกอาจารย์ที่ปรึกษา',
         status: 'waiting',
-        documentType: 'registration',
-        actionText: 'ลงทะเบียนโครงงาน',
-        actionLink: '/project/register'
+        document_type: 'registration',
+        action_text: 'ลงทะเบียนโครงงาน',
+        action_link: '/project/register'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 2,
+        step_order: 2,
         name: 'ส่งเอกสารหัวข้อโครงงาน',
         description: 'ส่งเอกสารหัวข้อโครงงานให้อาจารย์ตรวจสอบและอนุมัติ',
         status: 'waiting',
-        documentType: 'proposal',
-        actionText: 'อัปโหลดเอกสาร',
-        actionLink: '/project/documents/upload'
+        document_type: 'proposal',
+        action_text: 'อัปโหลดเอกสาร',
+        action_link: '/project/documents/upload'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 3,
+        step_order: 3,
         name: 'สอบหัวข้อโครงงาน',
         description: 'นำเสนอหัวข้อโครงงานต่อคณะกรรมการ',
         status: 'waiting'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 4,
+        step_order: 4,
         name: 'พัฒนาโครงงาน',
         description: 'ดำเนินการพัฒนาโครงงานตามแผนที่วางไว้',
         status: 'waiting'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 5,
+        step_order: 5,
         name: 'ส่งรายงานความก้าวหน้า',
         description: 'ส่งรายงานความก้าวหน้าของโครงงานเป็นระยะ',
         status: 'waiting',
-        documentType: 'progress',
-        actionText: 'ส่งรายงานความก้าวหน้า',
-        actionLink: '/project/progress/upload'
+        document_type: 'progress',
+        action_text: 'ส่งรายงานความก้าวหน้า',
+        action_link: '/project/progress/upload'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 6,
+        step_order: 6,
         name: 'สอบโครงงาน',
         description: 'นำเสนอผลงานโครงงานต่อคณะกรรมการสอบ',
         status: 'waiting'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 7,
+        step_order: 7,
         name: 'แก้ไขโครงงานตามข้อเสนอแนะ',
         description: 'ปรับปรุงโครงงานตามข้อเสนอแนะของคณะกรรมการสอบ',
         status: 'waiting'
       },
       {
-        studentId: student.id,
+        student_id: student.studentId,
         type: 'project',
-        stepOrder: 8,
+        step_order: 8,
         name: 'ส่งเล่มรายงานฉบับสมบูรณ์',
         description: 'ส่งรายงานโครงงานฉบับสมบูรณ์และไฟล์ผลงาน',
         status: 'waiting',
-        documentType: 'final',
-        actionText: 'ส่งรายงานฉบับสมบูรณ์',
-        actionLink: '/project/final/upload'
+        document_type: 'final',
+        action_text: 'ส่งรายงานฉบับสมบูรณ์',
+        action_link: '/project/final/upload'
       }
     ];
     
@@ -457,17 +422,69 @@ exports.initializeStudentTimeline = async (req, res) => {
     
     // บันทึก steps ลงฐานข้อมูล
     const createdSteps = await TimelineStep.bulkCreate(allSteps);
+
+    // แปลง steps ให้เป็นรูปแบบที่ frontend ต้องการ
+    const transformedInternshipSteps = internshipSteps.map((step, index) => ({
+      id: index + 1, // จำลอง ID ชั่วคราว (จะถูกแทนที่ด้วย ID จริงเมื่อบันทึกลงฐานข้อมูล)
+      name: step.name,
+      description: step.description,
+      status: step.status,
+      document: step.document_type,
+      actionText: step.action_text,
+      actionLink: step.action_link
+    }));
+
+    const transformedProjectSteps = projectSteps.map((step, index) => ({
+      id: internshipSteps.length + index + 1, // จำลอง ID ชั่วคราว
+      name: step.name,
+      description: step.description,
+      status: step.status,
+      document: step.document_type,
+      actionText: step.action_text,
+      actionLink: step.action_link
+    }));
     
     return res.status(201).json({
       success: true,
       message: 'สร้าง Timeline เริ่มต้นสำเร็จ',
       data: {
+        student: {
+          id: student.studentId,
+          code: student.studentCode,
+          name: `${student.firstName} ${student.lastName}`,
+          year: calculateStudentYear(student.studentId),
+          totalCredits: student.totalCredits || 0,
+          majorCredits: student.majorCredits || 0,
+          internshipEligible: student.totalCredits >= 81,
+          projectEligible: student.totalCredits >= 95 && student.majorCredits >= 47,
+          isEnrolledInternship: true,
+          isEnrolledProject: true
+        },
+        progress: {
+          internship: {
+            steps: transformedInternshipSteps,
+            currentStep: 0,
+            totalSteps: transformedInternshipSteps.length,
+            progress: 0,
+            blocked: student.totalCredits < 81,
+            blockReason: student.totalCredits < 81 ? 'ต้องมีหน่วยกิตไม่น้อยกว่า 81 หน่วยกิต' : ''
+          },
+          project: {
+            steps: transformedProjectSteps,
+            currentStep: 0,
+            totalSteps: transformedProjectSteps.length,
+            progress: 0,
+            blocked: (student.totalCredits < 95 || student.majorCredits < 47),
+            blockReason: (student.totalCredits < 95 || student.majorCredits < 47) ? 
+              'ต้องมีหน่วยกิตไม่น้อยกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า 47 หน่วยกิต' : ''
+          }
+        },
         internshipSteps: createdSteps.filter(step => step.type === 'internship'),
         projectSteps: createdSteps.filter(step => step.type === 'project')
       }
     });
   } catch (error) {
-    console.error('Error initializing timeline:', error);
+    logger.error('Error initializing timeline:', error);
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการสร้าง Timeline',
@@ -505,9 +522,9 @@ exports.updateTimelineStep = async (req, res) => {
     if (updates.status === 'completed') {
       const nextStep = await TimelineStep.findOne({
         where: {
-          studentId: step.studentId,
+          student_id: step.student_id,
           type: step.type,
-          stepOrder: step.stepOrder + 1
+          step_order: step.step_order + 1
         }
       });
       
@@ -516,7 +533,7 @@ exports.updateTimelineStep = async (req, res) => {
       }
       
       // อัปเดตความคืบหน้า
-      await updateProgressInfo(step.studentId, step.type);
+      await updateProgressInfo(step.student_id, step.type);
     }
     
     return res.status(200).json({
@@ -525,7 +542,7 @@ exports.updateTimelineStep = async (req, res) => {
       data: { step }
     });
   } catch (error) {
-    console.error('Error updating timeline step:', error);
+    logger.error('Error updating timeline step:', error);
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการอัปเดตขั้นตอน',
@@ -538,11 +555,11 @@ exports.updateTimelineStep = async (req, res) => {
 exports.getAllTimelines = async (req, res) => {
   try {
     const timelines = await TimelineStep.findAll({
-      include: [{
+      include: [ {
         model: Student,
         as: 'student',
         attributes: ['studentId', 'firstName', 'lastName']
-      }],
+      } ],
       order: [['studentId', 'ASC'], ['type', 'ASC'], ['stepOrder', 'ASC']]
     });
     
@@ -551,7 +568,7 @@ exports.getAllTimelines = async (req, res) => {
       data: { timelines }
     });
   } catch (error) {
-    console.error('Error fetching all timelines:', error);
+    logger.error('Error fetching all timelines:', error);
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูล Timeline ทั้งหมด',
@@ -562,14 +579,34 @@ exports.getAllTimelines = async (req, res) => {
 
 // ฟังก์ชันช่วยในการคำนวณปีการศึกษา
 function calculateStudentYear(studentId) {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  
-  // สมมติว่ารหัสนักศึกษาขึ้นต้นด้วยปี เช่น 64xxxxx
-  const enrollmentYear = parseInt(studentId.substring(0, 2)) + 2500;
-  const yearsStudying = currentYear - enrollmentYear;
-  
-  return Math.min(Math.max(yearsStudying + 1, 1), 4);
+  try {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    
+    // ตรวจสอบค่า studentId
+    if (!studentId) {
+      logger.warn('calculateStudentYear called with undefined or null studentId');
+      return 1; // ค่าเริ่มต้น
+    }
+    
+    // แปลงค่า studentId เป็น string ก่อนใช้ substring
+    const studentIdStr = String(studentId);
+    
+    // ตรวจสอบรูปแบบรหัสนักศึกษา
+    if (studentIdStr.length < 2) {
+      logger.warn(`Invalid studentId format: ${studentIdStr}`);
+      return 1; // ค่าเริ่มต้น
+    }
+    
+    // สมมติว่ารหัสนักศึกษาขึ้นต้นด้วยปี เช่น 64xxxxx
+    const enrollmentYear = parseInt(studentIdStr.substring(0, 2)) + 2500;
+    const yearsStudying = currentYear - enrollmentYear;
+    
+    return Math.min(Math.max(yearsStudying + 1, 1), 4);
+  } catch (error) {
+    logger.error(`Error calculating student year: ${error.message}`);
+    return 1; // ค่าเริ่มต้น
+  }
 }
 
 // ฟังก์ชันอัปเดตข้อมูลความคืบหน้า
@@ -578,10 +615,10 @@ async function updateProgressInfo(studentId, progressType) {
     // ดึงข้อมูลขั้นตอนทั้งหมด
     const steps = await TimelineStep.findAll({
       where: {
-        studentId,
+        student_id: studentId,
         type: progressType
       },
-      order: [['stepOrder', 'ASC']]
+      order: [['step_order', 'ASC']]
     });
     
     if (steps.length === 0) {
@@ -607,4 +644,60 @@ async function updateProgressInfo(studentId, progressType) {
   } catch (error) {
     logger.error('Error updating progress info:', error);
   }
+}
+
+// ฟังก์ชันใหม่สำหรับคำนวณเปอร์เซ็นต์ความคืบหน้า
+function calculateProgressPercent(steps) {
+  if (!steps || steps.length === 0) return 0;
+  const completedSteps = steps.filter(step => step.status === 'completed').length;
+  return Math.round((completedSteps / steps.length) * 100);
+}
+
+// ฟังก์ชันใหม่สำหรับกำหนดสถานะความคืบหน้า
+function determineProgressStatus(steps) {
+  if (!steps || steps.length === 0) return 'not_started';
+  
+  const hasInProgress = steps.some(step => step.status === 'in_progress');
+  const allCompleted = steps.every(step => step.status === 'completed');
+  
+  if (allCompleted) return 'completed';
+  if (hasInProgress) return 'in_progress';
+  return 'not_started';
+}
+
+// ฟังก์ชันใหม่สำหรับกำหนด action ถัดไป
+function determineNextAction(internshipSteps, projectSteps) {
+  // ตรวจสอบสถานะของการฝึกงาน
+  if (internshipSteps && internshipSteps.length > 0) {
+    const inProgressStep = internshipSteps.find(step => step.status === 'in_progress');
+    
+    if (inProgressStep) {
+      if (inProgressStep.name.includes('ฝึกงาน')) {
+        return 'daily_log';
+      } else if (inProgressStep.name.includes('รายงาน')) {
+        return 'upload_internship_report';
+      }
+    }
+    
+    // หากยังไม่ได้ลงทะเบียนฝึกงาน
+    if (internshipSteps[0].status === 'waiting') {
+      return 'register_internship';
+    }
+  }
+  
+  // ตรวจสอบสถานะของโครงงานพิเศษ
+  if (projectSteps && projectSteps.length > 0) {
+    const inProgressStep = projectSteps.find(step => step.status === 'in_progress');
+    
+    if (inProgressStep) {
+      return 'continue_project';
+    }
+    
+    // หากยังไม่ได้ลงทะเบียนโครงงาน
+    if (projectSteps[0].status === 'waiting') {
+      return 'register_project';
+    }
+  }
+  
+  return 'none'; // ไม่มีการดำเนินการที่ต้องทำในขณะนี้
 }
