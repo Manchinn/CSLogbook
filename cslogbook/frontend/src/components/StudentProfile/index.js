@@ -7,7 +7,7 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
 import StudentAvatar from './StudentAvatar';
 import StudentInfo from './StudentInfo';
-import StudentTimeline from './StudentTimeline';
+import StudentTimeline from './StudentTimeline/index';
 import StudentEditForm from './StudentEditForm';
 import PDPAModal from './PDPAModal';
 import CreditsGuideModal from './CreditsGuideModal';
