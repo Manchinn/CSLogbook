@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Typography, Breadcrumb } from 'antd';
 import { Link } from 'react-router-dom';
 import { CalendarOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons';
-import AcademicSettings from './constants/AcademicSettings';
+import AcademicSettings from './constants/academic/AcademicSettings';
 import './constants/styles.css';
 
 const { Title } = Typography;

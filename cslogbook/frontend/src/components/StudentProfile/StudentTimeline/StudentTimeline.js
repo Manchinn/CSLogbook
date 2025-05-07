@@ -105,12 +105,31 @@ const StudentTimeline = () => {
             // คำนวณความคืบหน้าสำหรับแต่ละประเภท
             ['internship', 'project'].forEach(type => {
               if (progressData[type].steps.length > 0) {
+                // นับจำนวนขั้นตอนที่เสร็จสิ้น
                 const completedSteps = progressData[type].steps.filter(step => step.status === 'completed').length;
-                progressData[type].progress = Math.round((completedSteps / progressData[type].totalSteps) * 100);
-                progressData[type].currentStep = progressData[type].steps.findIndex(step => step.status === 'in_progress');
-                if (progressData[type].currentStep === -1) {
-                  progressData[type].currentStep = completedSteps;
+                // นับขั้นตอนที่กำลังดำเนินการ
+                const inProgressSteps = progressData[type].steps.filter(step => step.status === 'in_progress').length;
+                // คำนวณเปอร์เซ็นต์ความคืบหน้า
+                const totalSteps = progressData[type].totalSteps;
+                // คำนวณความคืบหน้าแบบใหม่: ขั้นตอนที่เสร็จสิ้น + (ขั้นตอนที่กำลังดำเนินการ/2)
+                progressData[type].progress = Math.round(((completedSteps + (inProgressSteps * 0.5)) / totalSteps) * 100);
+                
+                // หาขั้นตอนปัจจุบันที่กำลังดำเนินการ
+                const currentStepIndex = progressData[type].steps.findIndex(step => step.status === 'in_progress');
+                // ถ้าไม่มีขั้นตอนที่กำลังดำเนินการ ให้ใช้จำนวนขั้นตอนที่เสร็จสิ้น
+                progressData[type].currentStep = currentStepIndex !== -1 ? currentStepIndex : completedSteps;
+                
+                // ตรวจสอบว่าสถานะของนักศึกษา (ผ่านการฝึกงาน/โครงงานหรือไม่) และปรับค่าความคืบหน้า
+                if (type === 'internship' && student.internshipStatus === 'completed') {
+                  progressData[type].progress = 100;
+                  progressData[type].currentStep = totalSteps;
+                } else if (type === 'project' && student.projectStatus === 'completed') {
+                  progressData[type].progress = 100;
+                  progressData[type].currentStep = totalSteps;
                 }
+
+                // ให้แน่ใจว่าความคืบหน้าไม่เกิน 100%
+                progressData[type].progress = Math.min(progressData[type].progress, 100);
               }
             });
             
@@ -316,21 +335,26 @@ const StudentTimeline = () => {
                       const currentDate = new Date();
                       const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
                       
-                      // รูปแบบไทยของภาคการศึกษา
+                      // รูปแบบไทยของภาคการศึกษา - แก้ไขตามปฏิทินการศึกษาไทย
                       let semester = '';
+                      // ภาคเรียนที่ 2: มกราคม (1) - พฤษภาคม (5)
+                      // ภาคฤดูร้อน: มิถุนายน (6) - กรกฎาคม (7)
+                      // ภาคเรียนที่ 1: สิงหาคม (8) - ธันวาคม (12)
                       if (currentMonth >= 1 && currentMonth <= 5) {
-                        semester = 'ภาคเรียน 2';
+                        semester = 'ภาคเรียนที่ 2';
                       } else if (currentMonth >= 6 && currentMonth <= 7) {
                         semester = 'ภาคฤดูร้อน';
                       } else {
-                        semester = 'ภาคเรียน 1';
+                        semester = 'ภาคเรียนที่ 1';
                       }
                       
-                      // คำนวณปีการศึกษาไทย (พ.ศ.)
+                      // คำนวณปีการศึกษาไทย (พ.ศ.) - แก้ไขให้ถูกต้อง
                       const thaiYear = currentDate.getFullYear() + 543;
-                      const academicYear = currentMonth >= 8 || currentMonth <= 5 ? thaiYear : thaiYear - 1;
+                      // ถ้าอยู่ภาคเรียนที่ 1 (เดือน 8-12) ให้ใช้ปีปัจจุบัน
+                      // ถ้าอยู่ภาคเรียนที่ 2 หรือ ฤดูร้อน (เดือน 1-7) ให้ลบ 1 จากปีปัจจุบัน
+                      const academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
                       
-                      return `ชั้นปีที่ ${studentYear} (${semester} ${academicYear})`;;
+                      return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
                     })()}
                   </Text>
                   <Badge status={student.status === 'normal' ? 'success' : 'warning'} 

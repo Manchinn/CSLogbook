@@ -34,32 +34,35 @@ exports.getAcademicSettings = async (req, res) => {
 exports.updateAcademicSettings = async (req, res) => {
   try {
     const { id, semesters, ...rest } = req.body;
-
     if (!id) {
       return res.status(400).json({ success: false, message: "ID ไม่ถูกต้อง" });
     }
-
-    // แปลงข้อมูล semesters เป็นฟิลด์ที่ตรงกับ Model
-    const updatedData = {
-      ...rest,
-      semester1Range: semesters?.["1"]?.range || null,
-      semester2Range: semesters?.["2"]?.range || null,
-      semester3Range: semesters?.["3"]?.range || null,
-    };
-
-    const updated = await Academic.update(updatedData, { where: { id } });
-    if (updated[0] === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "ไม่พบข้อมูลการตั้งค่า" });
+    // Fetch existing settings to preserve ranges if not provided
+    const existing = await Academic.findByPk(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "ไม่พบข้อมูลการตั้งค่า" });
     }
 
+    // Prepare update data
+    const updatedData = { ...rest };
+    if (semesters && semesters["1"] && semesters["1"].range != null) {
+      updatedData.semester1Range = semesters["1"].range;
+    }
+    if (semesters && semesters["2"] && semesters["2"].range != null) {
+      updatedData.semester2Range = semesters["2"].range;
+    }
+    if (semesters && semesters["3"] && semesters["3"].range != null) {
+      updatedData.semester3Range = semesters["3"].range;
+    }
+
+    const [updatedCount] = await Academic.update(updatedData, { where: { id } });
+    if (updatedCount === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบข้อมูลการตั้งค่า" });
+    }
     res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ" });
   } catch (error) {
     console.error("Error updating academic settings:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" });
+    res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" });
   }
 };
 

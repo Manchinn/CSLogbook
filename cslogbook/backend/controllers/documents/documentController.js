@@ -57,7 +57,20 @@ const uploadDocument = async (req, res) => {
 // ดึงข้อมูลเอกสาร
 const getDocumentById = async (req, res) => {
     try {
-        const document = await Document.findByPk(req.params.id);
+        // ตรวจสอบค่า ID ที่ส่งเข้ามา
+        const documentId = req.params.id;
+        
+        if (!documentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'ต้องระบุ ID ของเอกสาร'
+            });
+        }
+        
+        // ขั้นที่ 1: ดึงเฉพาะข้อมูล Document ก่อน
+        const document = await Document.findOne({
+            where: { documentId: documentId }
+        });
         
         if (!document) {
             return res.status(404).json({
@@ -66,16 +79,56 @@ const getDocumentById = async (req, res) => {
             });
         }
 
+        // ขั้นที่ 2: แปลงเป็น JSON เพื่อจัดการข้อมูลและเตรียมส่งกลับ
+        const documentData = document.toJSON();
+        
+        // ขั้นที่ 3: ดึงข้อมูลผู้ใช้ที่เกี่ยวข้องกับเอกสาร
+        if (document.userId) {
+            const user = await User.findOne({
+                where: { userId: document.userId },
+                include: [{
+                    model: Student,
+                    as: 'student',
+                    attributes: ['studentId', 'studentCode', 'studentYear', 'totalCredits', 'majorCredits']
+                }]
+            });
+            
+            if (user) {
+                // เพิ่มข้อมูลผู้ใช้เข้าไปในข้อมูลเอกสาร
+                documentData.owner = user.toJSON();
+            }
+        }
+        
+        // ขั้นที่ 4: ดึงข้อมูล InternshipDocument ที่เกี่ยวข้อง
+        if (documentId) {
+            const InternshipDocument = require('../../models').InternshipDocument;
+            const internshipDocument = await InternshipDocument.findOne({
+                where: { documentId: documentId },
+                attributes: [
+                    'internshipId', 'documentId', 'companyName', 
+                    'companyAddress', 'supervisorName', 'supervisorPosition', 
+                    'supervisorPhone', 'supervisorEmail', 'startDate', 'endDate',
+                    'created_at', 'updated_at', /* 'studentCode', 'studentName' */
+                ]
+            });
+            
+            if (internshipDocument) {
+                documentData.internshipDocument = internshipDocument.toJSON();
+            }
+        }
+        
+        // ส่งข้อมูลกลับ
         res.json({
             success: true,
-            data: document
+            data: documentData
         });
 
     } catch (error) {
         console.error('Get Document Error:', error);
         res.status(500).json({
             success: false,
-            message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร'
+            message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร',
+            error: error.message
         });
     }
 };
