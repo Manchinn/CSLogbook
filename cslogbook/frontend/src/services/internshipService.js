@@ -271,7 +271,24 @@ const internshipService = {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลบันทึกการฝึกงานได้');
       }
 
-      return response.data.data;
+      // ตรวจสอบและจัดการรูปแบบข้อมูลที่หลากหลาย
+      let entries = [];
+      
+      if (Array.isArray(response.data)) {
+        entries = response.data;
+      } else if (response.data && response.data.data) {
+        if (Array.isArray(response.data.data)) {
+          entries = response.data.data;
+        } else if (typeof response.data.data === 'object') {
+          // กรณีข้อมูลเป็น object แต่ไม่ใช่ array
+          entries = [response.data.data];
+        }
+      }
+      
+      return {
+        success: true,
+        data: entries
+      };
     } catch (error) {
       console.error('Error fetching timesheet entries:', error);
       throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลการฝึกงาน');

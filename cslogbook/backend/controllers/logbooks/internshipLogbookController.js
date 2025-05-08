@@ -574,7 +574,16 @@ exports.checkIn = async (req, res) => {
         }
         
         const studentId = student.studentId;
-        const { workDate, timeIn } = req.body;
+        const { 
+            workDate, 
+            timeIn,
+            // เพิ่มการรองรับข้อมูลเพิ่มเติมตอนบันทึกเวลาเข้างาน
+            logTitle, 
+            workDescription, 
+            learningOutcome, 
+            problems, 
+            solutions
+        } = req.body;
 
         // ตรวจสอบว่ามี CS05 ที่รออนุมัติหรือไม่
         const document = await Document.findOne({
@@ -613,12 +622,19 @@ exports.checkIn = async (req, res) => {
         });
 
         if (entry) {
-            // ถ้ามีบันทึกแล้ว ให้อัพเดทเฉพาะเวลาเข้างาน
-            entry = await entry.update({
-                timeIn
-            }, { transaction });
+            // ถ้ามีบันทึกแล้ว ให้อัพเดทเวลาเข้างาน และข้อมูลเพิ่มเติมหากมี
+            const updateData = { timeIn };
+            
+            // เพิ่มข้อมูลอื่นๆ ถ้ามีการส่งมา
+            if (logTitle !== undefined) updateData.logTitle = logTitle;
+            if (workDescription !== undefined) updateData.workDescription = workDescription;
+            if (learningOutcome !== undefined) updateData.learningOutcome = learningOutcome;
+            if (problems !== undefined) updateData.problems = problems || '';
+            if (solutions !== undefined) updateData.solutions = solutions || '';
+            
+            entry = await entry.update(updateData, { transaction });
         } else {
-            // ถ้ายังไม่มีบันทึก ให้สร้างบันทึกใหม่
+            // ถ้ายังไม่มีบันทึก ให้สร้างบันทึกใหม่ รวมถึงข้อมูลเพิ่มเติมที่อาจมี
             entry = await InternshipLogbook.create({
                 internshipId,
                 studentId,
@@ -626,11 +642,11 @@ exports.checkIn = async (req, res) => {
                 timeIn,
                 timeOut: null,
                 workHours: 0,
-                logTitle: '',
-                workDescription: '',
-                learningOutcome: '',
-                problems: '',
-                solutions: '',
+                logTitle: logTitle || '',
+                workDescription: workDescription || '',
+                learningOutcome: learningOutcome || '',
+                problems: problems || '',
+                solutions: solutions || '',
                 supervisorApproved: false,
                 advisorApproved: false
             }, { transaction });
@@ -640,7 +656,7 @@ exports.checkIn = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'บันทึกเวลาเข้างานเรียบร้อย',
+            message: 'บันทึกเวลาเข้างานเรียบร้อย' + (logTitle ? ' พร้อมข้อมูลเพิ่มเติม' : ''),
             data: entry
         });
 

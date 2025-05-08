@@ -9,7 +9,8 @@ import {
   Skeleton,
   Result,
   message,
-  Empty
+  Empty,
+  Space
 } from "antd";
 import {
   QuestionCircleOutlined,
@@ -51,22 +52,9 @@ const TimeSheet = () => {
     hasCS05,
     cs05Status,
     refreshData,
-    loadError
+    loadError,
+    refreshTable
   } = useTimeSheet(form);
-
-  // เพิ่ม logging เพื่อดีบัก
-  useEffect(() => {
-    console.log("TimeSheet Data:", { 
-      internshipDates, 
-      stats, 
-      hasCS05, 
-      cs05Status,
-      dateRange,
-      initialLoading,
-      "internshipDates length": internshipDates?.length || 0,
-      "stats keys": stats ? Object.keys(stats) : []
-    });
-  }, [internshipDates, stats, hasCS05, cs05Status, dateRange, initialLoading]);
 
   useEffect(() => {
     const shouldShow = localStorage.getItem("showTimeSheetGuide") !== "false";
@@ -86,6 +74,12 @@ const TimeSheet = () => {
 
       // ล้าง timer เมื่อ component unmount
       return () => clearTimeout(redirectTimer);
+    } 
+    
+    // เพิ่มบรรทัดนี้
+    if (!initialLoading && hasCS05) {
+      // รีเฟรชข้อมูลจากฐานข้อมูลทันทีเมื่อโหลดหน้าเสร็จ
+      setTimeout(() => refreshTable(), 500);
     }
   }, [initialLoading, hasCS05, navigate]);
 
@@ -186,25 +180,35 @@ const TimeSheet = () => {
       className="internship-container"
       style={{ position: "relative", paddingBottom: "50px" }}
     >
-      {dateRange && (
-        <Alert
-          type="info"
-          message={
-            <Text>
-              กำหนดการฝึกงาน:{" "}
-              {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} -{" "}
-              {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
-            </Text>
-          }
-          description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <Card>
+        {dateRange && (
+          <Alert
+            type="info"
+            message={
+              <Space size="middle" align="center">
+                <Text>
+                  กำหนดการฝึกงาน:{" "}
+                  {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} -{" "}
+                  {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
+                </Text>
+                <Button 
+                  onClick={refreshData} 
+                  icon={<ReloadOutlined />} 
+                  loading={loading}
+                >
+                  รีเฟรชข้อมูล
+                </Button>
+              </Space>
+            }
+            description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+      </Card>
 
       {stats && Object.keys(stats).length > 0 ? (
         <>
-          {console.log('กำลังส่งข้อมูล stats ไปยัง TimeSheetStats:', JSON.stringify(stats))}
           <TimeSheetStats stats={stats} />
         </>
       ) : (
@@ -229,7 +233,6 @@ const TimeSheet = () => {
       <Card>
         {!initialLoading && internshipDates && internshipDates.length > 0 ? (
           <>
-            {console.log('กำลังแสดงตาราง TimeSheetTable:', internshipDates.length, 'รายการ')}
             <div className="timesheet-table-container">
               <TimeSheetTable
                 data={internshipDates}
@@ -252,11 +255,6 @@ const TimeSheet = () => {
               <p>cs05Status: {cs05Status || 'ไม่พบข้อมูล'}</p>
               <p>hasCS05: {hasCS05 ? 'true' : 'false'}</p>
               <p>internshipDates: {internshipDates ? internshipDates.length : 0} รายการ</p>
-              <Button type="primary" onClick={() => {
-                console.log('InternshipDates:', internshipDates);
-              }}>
-                แสดงรายละเอียดใน Console
-              </Button>
             </div>
           </div>
         )}

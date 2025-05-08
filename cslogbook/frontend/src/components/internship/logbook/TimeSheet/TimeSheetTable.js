@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Table, Space, Button, Badge, Tooltip, Tag, Typography } from 'antd';
 import { EditOutlined, EyeOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
@@ -17,8 +17,9 @@ const getEntryStatus = (entry) => {
   if (!entry.timeIn) return "pending";
   if (entry.timeIn && !entry.timeOut) return "incomplete"; // เข้างานแล้วแต่ยังไม่ออก
   if (!entry.workDescription || !entry.logTitle) return "incomplete"; // ข้อมูลไม่ครบ
-  if (!entry.supervisorApproved && !entry.advisorApproved) return "submitted";
-  return "approved";
+  if (entry.logId && !entry.supervisorApproved) return "submitted";
+  if (entry.logId && entry.supervisorApproved) return "approved";
+  return "incomplete"; // ถ้ามีข้อมูลแต่ไม่เข้าเงื่อนไขข้างบน
 };
 
 const renderStatusBadge = (status) => {
@@ -35,24 +36,18 @@ const renderStatusBadge = (status) => {
 };
 
 const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
-  console.log('TimeSheetTable ได้รับข้อมูล:', data ? data.length : 0, 'รายการ');
-  
-  // เพิ่มโค้ดตรวจสอบข้อมูลแบบละเอียด
-  useEffect(() => {
-    if (!data || data.length === 0) {
-      console.warn('TimeSheetTable: ไม่พบข้อมูลวันฝึกงาน');
-    } else {
-      console.log('TimeSheetTable: มีข้อมูลวันฝึกงาน', data.length, 'รายการ');
-      console.log('ตัวอย่างข้อมูลรายการแรก:', data[0]);
-      
-      // ตรวจสอบว่าทุกรายการมี key หรือไม่
-      const itemsWithoutKey = data.filter(item => !item.key);
-      if (itemsWithoutKey.length > 0) {
-        console.warn('พบรายการที่ไม่มี key จำนวน', itemsWithoutKey.length, 'รายการ');
-      }
-    }
+  // เตรียมข้อมูลสำหรับแสดงในตาราง
+  const prepareTableData = useCallback(() => {
+    if (!data) return [];
+    
+    return data.map(entry => ({
+      ...entry,
+      key: entry.key || entry.logId || `timesheet-${entry.workDate.format('YYYY-MM-DD')}`
+    }));
   }, [data]);
   
+  const tableData = prepareTableData();
+
   const columns = [
     {
       title: "วันที่",
@@ -62,7 +57,6 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
         try {
           return dayjs(date).format(DATE_FORMAT_MEDIUM);
         } catch (e) {
-          console.error('Error formatting date:', date, e);
           return String(date);
         }
       },
@@ -111,12 +105,6 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
               : <><CloseCircleOutlined /> รออนุมัติ</>
             }
           </Tag>
-          <Tag color={record.advisorApproved ? "success" : "default"} style={{ margin: '2px 0' }}>
-            {record.advisorApproved 
-              ? <><CheckCircleOutlined /> อาจารย์</>
-              : <><CloseCircleOutlined /> รออนุมัติ</>
-            }
-          </Tag>
         </Space>
       ),
     },
@@ -160,17 +148,11 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
     },
   ];
 
-  // กำหนด key สำหรับแต่ละรายการเพื่อหลีกเลี่ยงปัญหา key ซ้ำหรือไม่มี key
-  const dataWithKeys = data?.map((item, index) => ({
-    ...item,
-    key: item.key || item.id || `timesheet-entry-${index}`
-  })) || [];
-
   return (
     <div style={{ width: '100%', overflow: 'auto' }}>
       <Table 
         columns={columns} 
-        dataSource={dataWithKeys}
+        dataSource={tableData}
         loading={loading}
         rowKey={record => record.key}
         style={{ minWidth: '800px' }} 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+  import React, { useEffect, useState, useRef } from 'react';
 import { Row, Col, Card, Statistic, Progress, Tooltip, message } from 'antd';
 import {
   ClockCircleOutlined,
@@ -10,28 +10,24 @@ import {
 } from '@ant-design/icons';
 
 const TimeSheetStats = ({ stats = {} }) => {
-  console.log("Stats received in component:", stats);
   const [effectiveStats, setEffectiveStats] = useState(stats);
+  const localStorageUsed = useRef(false);
 
-  useEffect(() => {
-    console.log('TimeSheetStats ได้รับข้อมูลใหม่:', stats);
-    
-    // ตรวจสอบว่าข้อมูลที่ได้รับมีค่าที่มีความหมายหรือไม่
+  useEffect(() => {    
     const hasRealData = stats && 
       (stats.total > 0 || stats.completed > 0 || stats.pending > 0 || stats.totalHours > 0);
     
     if (hasRealData) {
       setEffectiveStats(stats);
-    } else {
-      // ถ้าไม่มีข้อมูลที่มีความหมาย ลองใช้ข้อมูลจาก localStorage
+      localStorageUsed.current = false;
+    } else if (!localStorageUsed.current) { 
+      localStorageUsed.current = true;
       const cachedStats = localStorage.getItem('timesheet_stats');
       if (cachedStats) {
         try {
           const parsedStats = JSON.parse(cachedStats);
-          console.log('ใช้ข้อมูลจาก localStorage แทน:', parsedStats);
-          
-          // ตรวจสอบว่าข้อมูลจาก localStorage มีค่าที่มีความหมายหรือไม่
           if (parsedStats.total > 0 || parsedStats.totalHours > 0) {
+            console.log('ใช้ข้อมูลสถิติจาก localStorage:', parsedStats);
             setEffectiveStats(parsedStats);
             message.info('ใช้ข้อมูลสถิติจากแคช', 2);
           }

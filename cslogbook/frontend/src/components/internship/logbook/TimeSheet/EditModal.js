@@ -11,8 +11,10 @@ const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
     const timeOut = form.getFieldValue('timeOut');
 
     if (!timeOut) {
-      form.validateFields(['workDate', 'timeIn'])
+      // แก้ไขให้ validateFields ครอบคลุมทุกฟิลด์ แต่เป็น optional ยกเว้น workDate และ timeIn
+      form.validateFields()
         .then(values => {
+          // ยังคง mode เป็น checkin แต่รับข้อมูลอื่นๆ ที่ผู้ใช้อาจกรอกด้วย
           onOk({ ...values, mode: 'checkin' });
         });
     } else {
@@ -54,8 +56,8 @@ const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
           message="การบันทึกข้อมูลฝึกงาน"
           description={
             <>
-              <p>- หากต้องการเพียงบันทึกเวลาเข้างาน ให้กรอกเฉพาะ "เวลาเข้างาน" และกด OK</p>
-              <p>- หากต้องการบันทึกข้อมูลครบถ้วน ให้กรอกข้อมูลทั้งหมดรวมถึง "เวลาออกงาน" และรายละเอียดงาน</p>
+              <p>- หากต้องการเพียงบันทึกเวลาเข้างาน สามารถกรอกเฉพาะ "เวลาเข้างาน" หรือกรอกรายละเอียดเพิ่มเติมด้วยก็ได้</p>
+              <p>- หากต้องการบันทึกข้อมูลเป็นวันที่สมบูรณ์ จำเป็นต้องกรอก "เวลาออกงาน" และรายละเอียดให้ครบถ้วน</p>
             </>
           }
           type="info"
@@ -109,30 +111,30 @@ const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
         <Form.Item
           name="logTitle"
           label="หัวข้องาน"
-          tooltip="จำเป็นต้องกรอกเมื่อบันทึกข้อมูลครบถ้วน"
+          tooltip="สามารถกรอกได้ทั้งกรณีบันทึกเวลาเข้างานอย่างเดียว หรือบันทึกครบถ้วน"
         >
-          <Input placeholder="กรอกเมื่อต้องการบันทึกข้อมูลครบถ้วน" />
+          <Input placeholder="กรอกหัวข้อการปฏิบัติงานในวันนี้" />
         </Form.Item>
 
         <Form.Item
           name="workDescription"
           label="รายละเอียดงาน"
-          tooltip="จำเป็นต้องกรอกเมื่อบันทึกข้อมูลครบถ้วน"
+          tooltip="สามารถกรอกได้ทั้งกรณีบันทึกเวลาเข้างานอย่างเดียว หรือบันทึกครบถ้วน"
         >
           <Input.TextArea
             rows={4}
-            placeholder="กรอกเมื่อต้องการบันทึกข้อมูลครบถ้วน"
+            placeholder="กรอกรายละเอียดการปฏิบัติงานในวันนี้"
           />
         </Form.Item>
 
         <Form.Item
           name="learningOutcome"
           label="สิ่งที่ได้เรียนรู้"
-          tooltip="จำเป็นต้องกรอกเมื่อบันทึกข้อมูลครบถ้วน"
+          tooltip="สามารถกรอกได้ทั้งกรณีบันทึกเวลาเข้างานอย่างเดียว หรือบันทึกครบถ้วน"
         >
           <Input.TextArea
             rows={4}
-            placeholder="กรอกเมื่อต้องการบันทึกข้อมูลครบถ้วน"
+            placeholder="กรอกสิ่งที่ได้เรียนรู้จากการปฏิบัติงาน"
           />
         </Form.Item>
 
