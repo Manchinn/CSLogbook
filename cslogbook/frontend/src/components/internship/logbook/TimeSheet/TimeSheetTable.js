@@ -1,10 +1,14 @@
-import React, { useCallback } from 'react';
-import { Table, Space, Button, Badge, Tooltip, Tag, Typography } from 'antd';
-import { EditOutlined, EyeOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import React, { useCallback, useState } from 'react';
+import { Table, Space, Button, Badge, Tooltip, Tag, Typography, Modal, Select, DatePicker, Form, message, Popover, Alert } from 'antd';
+import { EditOutlined, EyeOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, SendOutlined } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT, TIME_FORMAT } from '../../../../utils/constants';
+import emailApprovalService from '../../../../services/emailApprovalService';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const { Text } = Typography;
+const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 // เพิ่มฟังก์ชันเพื่อตรวจสอบว่าวันที่ยังไม่ถึงหรือไม่
 const isFutureDate = (date) => {
@@ -35,7 +39,19 @@ const renderStatusBadge = (status) => {
   return <Badge status={config.color} text={config.text} />;
 };
 
-const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
+const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
+  // เพิ่ม studentId เป็น prop
+  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+  const [requestType, setRequestType] = useState('full');
+  const [selectedLogIds, setSelectedLogIds] = useState([]);
+  const [dateRange, setDateRange] = useState(null);
+  const [loadingApproval, setLoadingApproval] = useState(false);
+  const [form] = Form.useForm();
+  const { user } = useAuth();
+  
+  // ตรวจสอบ studentId - ใช้จาก props ก่อน ถ้าไม่มีจึงใช้จาก user context
+  const currentStudentId = studentId || (user && user.studentId) || (data && data[0] && data[0].studentId);
+
   // เตรียมข้อมูลสำหรับแสดงในตาราง
   const prepareTableData = useCallback(() => {
     if (!data) return [];
@@ -47,6 +63,69 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
   }, [data]);
   
   const tableData = prepareTableData();
+
+  // กรองเฉพาะบันทึกที่ยังไม่ได้อนุมัติและมีข้อมูลครบถ้วน
+  const pendingLogbooks = tableData.filter(log => 
+    !log.supervisorApproved && 
+    log.logId && 
+    log.timeIn && 
+    log.timeOut && 
+    log.workDescription && 
+    log.logTitle
+  );
+  
+  // เช็คว่ามีรายการที่รอการอนุมัติหรือไม่
+  const hasUnapprovedLogs = pendingLogbooks.length > 0;
+
+  // ฟังก์ชันสำหรับเปิด modal ส่งคำขออนุมัติ
+  const showApprovalModal = () => {
+    setApprovalModalVisible(true);
+    form.resetFields();
+  };
+
+  // ฟังก์ชันสำหรับปิด modal
+  const handleCancel = () => {
+    setApprovalModalVisible(false);
+    form.resetFields();
+  };
+
+  // ฟังก์ชันสำหรับส่งคำขออนุมัติไปยังหัวหน้างาน
+  const handleSubmitApproval = async () => {
+    try {
+      if (!currentStudentId) {
+        message.error('ไม่พบรหัสนักศึกษา กรุณาลองเข้าสู่ระบบใหม่');
+        return;
+      }
+      
+      const values = await form.validateFields();
+      setLoadingApproval(true);
+      
+      let data = { type: requestType };
+      
+      if (requestType === 'selected' && selectedLogIds && selectedLogIds.length > 0) {
+        data.logIds = selectedLogIds;
+      } else if ((requestType === 'weekly' || requestType === 'monthly') && values.dateRange) {
+        data.startDate = values.dateRange[0].format('YYYY-MM-DD');
+        data.endDate = values.dateRange[1].format('YYYY-MM-DD');
+      }
+      
+      // ส่ง API request
+      const response = await emailApprovalService.sendApprovalRequest(currentStudentId, data);
+      
+      if (response.success) {
+        message.success('ส่งคำขออนุมัติผ่านอีเมลไปยังหัวหน้างานเรียบร้อยแล้ว');
+        setApprovalModalVisible(false);
+        form.resetFields();
+      } else {
+        message.error(response.message || 'เกิดข้อผิดพลาดในการส่งคำขออนุมัติ');
+      }
+    } catch (error) {
+      console.error('Error sending approval request:', error);
+      message.error('ไม่สามารถส่งคำขออนุมัติได้ โปรดลองอีกครั้งในภายหลัง');
+    } finally {
+      setLoadingApproval(false);
+    }
+  };
 
   const columns = [
     {
@@ -150,6 +229,19 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
 
   return (
     <div style={{ width: '100%', overflow: 'auto' }}>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+        <Tooltip title={!hasUnapprovedLogs ? "ไม่มีรายการที่รอการอนุมัติ หรือข้อมูลไม่ครบถ้วน" : ""}>
+          <Button
+            type="primary"
+            icon={<SendOutlined />}
+            onClick={showApprovalModal}
+            disabled={!hasUnapprovedLogs}
+          >
+            ส่งคำขออนุมัติผ่านอีเมล
+          </Button>
+        </Tooltip>
+      </div>
+      
       <Table 
         columns={columns} 
         dataSource={tableData}
@@ -169,6 +261,85 @@ const TimeSheetTable = ({ data, loading, onEdit, onView }) => {
           }
         }} 
       />
+      
+      <Modal
+        title="ส่งคำขออนุมัติผ่านอีเมล"
+        open={approvalModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="back" onClick={handleCancel}>
+            ยกเลิก
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            loading={loadingApproval} 
+            onClick={handleSubmitApproval}
+            icon={<SendOutlined />}
+          >
+            ส่งคำขออนุมัติ
+          </Button>,
+        ]}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="ประเภทการขออนุมัติ" name="requestType">
+            <Select 
+              defaultValue={requestType} 
+              onChange={setRequestType}
+            >
+              <Option value="full">ทั้งหมด (ที่ยังไม่ได้รับการอนุมัติ)</Option>
+              <Option value="weekly">รายสัปดาห์</Option>
+              <Option value="monthly">รายเดือน</Option>
+              <Option value="selected">เลือกเฉพาะรายการ</Option>
+            </Select>
+          </Form.Item>
+          
+          {requestType === 'selected' && (
+            <Form.Item label="เลือกรายการที่ต้องการขออนุมัติ" name="logIds" rules={[{ required: true, message: 'กรุณาเลือกอย่างน้อย 1 รายการ' }]}>
+              <Select
+                mode="multiple"
+                placeholder="เลือกรายการที่ต้องการขออนุมัติ"
+                onChange={setSelectedLogIds}
+                style={{ width: '100%' }}
+              >
+                {pendingLogbooks.map(log => (
+                  <Option 
+                    key={log.logId} 
+                    value={log.logId}
+                  >
+                    {dayjs(log.workDate).format(DATE_FORMAT_MEDIUM)} - {log.logTitle}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+          
+          {(requestType === 'weekly' || requestType === 'monthly') && (
+            <Form.Item 
+              label={`เลือกช่วงวันที่ (${requestType === 'weekly' ? 'สัปดาห์' : 'เดือน'})`} 
+              name="dateRange"
+              rules={[{ required: true, message: 'กรุณาเลือกช่วงวันที่' }]}
+            >
+              <RangePicker style={{ width: '100%' }} />
+            </Form.Item>
+          )}
+        </Form>
+
+        <div style={{ marginTop: 16 }}>
+          <Alert
+            message="หมายเหตุ"
+            description={
+              <ul style={{ paddingLeft: 20, margin: 0 }}>
+                <li>ระบบจะส่งอีเมลไปยังหัวหน้างานที่ระบุไว้ในแบบฟอร์ม คพ.05</li>
+                <li>หัวหน้างานสามารถอนุมัติหรือปฏิเสธคำขอผ่านลิงก์ในอีเมลโดยตรง</li>
+                <li>คำขออนุมัติจะหมดอายุหลังจาก 7 วัน</li>
+              </ul>
+            }
+            type="info"
+            showIcon
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

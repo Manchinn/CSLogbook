@@ -84,7 +84,7 @@ const internshipRoutes = require('./routes/documents/internshipRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
 const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มการนำเข้า timelineRoutes
 const adminRoutes = require('./routes/adminRoutes');
-
+const emailApprovalRoutes = require('./routes/emailApprovalRoutes'); // เพิ่ม route สำหรับการอนุมัติผ่านอีเมล
 
 const app = express();
 const server = http.createServer(app);
@@ -210,6 +210,7 @@ app.use('/api', uploadRoutes); // ใช้ route
 app.use('/api/internship', internshipRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes); // Protected timeline routes ทั้งหมด
+app.use('/api/email-approval', emailApprovalRoutes); // เพิ่ม route สำหรับการอนุมัติผ่านอีเมล
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

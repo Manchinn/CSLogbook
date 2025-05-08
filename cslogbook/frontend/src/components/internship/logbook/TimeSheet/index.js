@@ -53,7 +53,8 @@ const TimeSheet = () => {
     cs05Status,
     refreshData,
     loadError,
-    refreshTable
+    refreshTable,
+    studentId,
   } = useTimeSheet(form);
 
   useEffect(() => {
@@ -239,6 +240,7 @@ const TimeSheet = () => {
                 loading={loading}
                 onEdit={handleEdit}
                 onView={handleView}
+                studentId={studentId}
               />
             </div>
           </>
