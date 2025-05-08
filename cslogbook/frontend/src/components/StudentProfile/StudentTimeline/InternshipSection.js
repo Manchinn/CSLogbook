@@ -10,6 +10,52 @@ const { Text, Paragraph } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงส่วนการฝึกงาน
 const InternshipSection = ({ student, progress }) => {
+  // ตรวจสอบสิทธิ์การฝึกงานจากหลายแหล่งข้อมูล
+  const hasInternshipEligibility = () => {
+    // กรณีมีข้อมูลจาก eligibility object ซึ่งเป็นรูปแบบใหม่
+    if (student.eligibility && student.eligibility.internship && 
+        typeof student.eligibility.internship.eligible === 'boolean') {
+      return student.eligibility.internship.eligible;
+    }
+    
+    // กรณีมี internshipEligible โดยตรง (รูปแบบเดิม)
+    if (typeof student.internshipEligible === 'boolean') {
+      return student.internshipEligible;
+    }
+    
+    // กรณีคำนวณจากหน่วยกิต (ถ้าไม่มีข้อมูลอื่น)
+    if (student.totalCredits && typeof student.totalCredits === 'number') {
+      return student.totalCredits >= 81;
+    }
+    
+    // ค่าเริ่มต้น
+    return false;
+  };
+  
+  // ดึงข้อความเหตุผลที่ไม่มีสิทธิ์ (ถ้ามี)
+  const getEligibilityMessage = () => {
+    if (student.eligibility && student.eligibility.internship && 
+        student.eligibility.internship.message) {
+      return student.eligibility.internship.message;
+    }
+    
+    if (progress && progress.internship && progress.internship.blockReason) {
+      return progress.internship.blockReason;
+    }
+    
+    if (student.internshipEligibleMessage) {
+      return student.internshipEligibleMessage;
+    }
+    
+    return "ต้องมีหน่วยกิตสะสมมากกว่า 81 หน่วยกิต";
+  };
+  
+  // สถานะสิทธิ์การฝึกงาน
+  const isEligible = hasInternshipEligibility();
+  
+  // ข้อความเหตุผล
+  const eligibilityMessage = getEligibilityMessage();
+
   return (
     <Card 
       title={
@@ -28,10 +74,10 @@ const InternshipSection = ({ student, progress }) => {
             width={40} 
             format={percent => `${percent}%`}
           />
-          {student.internshipEligible ? (
+          {isEligible ? (
             <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
           ) : (
-            <Tooltip title="ต้องมีหน่วยกิตสะสมมากกว่า 81 หน่วยกิต">
+            <Tooltip title={eligibilityMessage}>
               <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
             </Tooltip>
           )}
@@ -51,13 +97,13 @@ const InternshipSection = ({ student, progress }) => {
           <Button 
             type="primary" 
             href="/internship-registration/cs05" 
-            disabled={!student.internshipEligible}
+            disabled={!isEligible}
           >
             ลงทะเบียนฝึกงาน
           </Button>
-          {!student.internshipEligible && (
+          {!isEligible && (
             <Paragraph style={{ marginTop: 16 }} type="danger">
-              <InfoCircleOutlined /> {progress.internship.blockReason}
+              <InfoCircleOutlined /> {eligibilityMessage}
             </Paragraph>
           )}
         </div>

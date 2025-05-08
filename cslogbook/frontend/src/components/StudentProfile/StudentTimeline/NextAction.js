@@ -56,7 +56,7 @@ const NextAction = ({ student }) => {
       actionContent = (
         <Space direction="vertical">
           <Text>บันทึกการฝึกงานประจำวัน</Text>
-          <Button type="primary" icon={<FormOutlined />} href="/internship/log">บันทึกการฝึกงาน</Button>
+          <Button type="primary" icon={<FormOutlined />} href="/internship-logbook/timesheet">บันทึกการฝึกงาน</Button>
         </Space>
       );
       break;
@@ -89,7 +89,7 @@ const NextAction = ({ student }) => {
         <Space direction="vertical">
           <Text>เตรียมตัวสำหรับการฝึกงาน</Text>
           <Text type="secondary">คุณมีหน่วยกิตสะสม {totalCredits} หน่วยกิต ใกล้ถึงเกณฑ์การฝึกงาน (81 หน่วยกิต) แล้ว</Text>
-          <Button type="primary" icon={<SearchOutlined />} href="/internship/info">ดูข้อมูลการฝึกงาน</Button>
+          <Button type="primary" icon={<SearchOutlined />} href="/internship-registration/cs05">ดูข้อมูลการฝึกงาน</Button>
         </Space>
       );
       break;

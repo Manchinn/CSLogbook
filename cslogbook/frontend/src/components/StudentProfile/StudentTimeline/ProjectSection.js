@@ -10,6 +10,53 @@ const { Text, Paragraph } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงส่วนโครงงานพิเศษ
 const ProjectSection = ({ student, progress }) => {
+  // ตรวจสอบสิทธิ์การทำโครงงานจากหลายแหล่งข้อมูล
+  const hasProjectEligibility = () => {
+    // กรณีมีข้อมูลจาก eligibility object ซึ่งเป็นรูปแบบใหม่
+    if (student.eligibility && student.eligibility.project && 
+        typeof student.eligibility.project.eligible === 'boolean') {
+      return student.eligibility.project.eligible;
+    }
+    
+    // กรณีมี projectEligible โดยตรง (รูปแบบเดิม)
+    if (typeof student.projectEligible === 'boolean') {
+      return student.projectEligible;
+    }
+    
+    // กรณีคำนวณจากหน่วยกิต (ถ้าไม่มีข้อมูลอื่น)
+    if (student.totalCredits && typeof student.totalCredits === 'number' &&
+        student.majorCredits && typeof student.majorCredits === 'number') {
+      return student.totalCredits >= 95 && student.majorCredits >= 47;
+    }
+    
+    // ค่าเริ่มต้น
+    return false;
+  };
+  
+  // ดึงข้อความเหตุผลที่ไม่มีสิทธิ์ (ถ้ามี)
+  const getEligibilityMessage = () => {
+    if (student.eligibility && student.eligibility.project && 
+        student.eligibility.project.message) {
+      return student.eligibility.project.message;
+    }
+    
+    if (progress && progress.project && progress.project.blockReason) {
+      return progress.project.blockReason;
+    }
+    
+    if (student.projectEligibleMessage) {
+      return student.projectEligibleMessage;
+    }
+    
+    return "ต้องมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกมากกว่า 47 หน่วยกิต";
+  };
+  
+  // สถานะสิทธิ์การทำโครงงาน
+  const isEligible = hasProjectEligibility();
+  
+  // ข้อความเหตุผล
+  const eligibilityMessage = getEligibilityMessage();
+
   return (
     <Card 
       title={
@@ -17,8 +64,6 @@ const ProjectSection = ({ student, progress }) => {
           <ExperimentOutlined />
           <span>โครงงานพิเศษ</span>
           {progress.project.blocked && <Tag color="error">ไม่สามารถดำเนินการได้</Tag>}
-          {student.projectStatus === 'in_progress' && <Tag color="processing">กำลังดำเนินการ</Tag>}
-          {student.projectStatus === 'completed' && <Tag color="success">เสร็จสิ้น</Tag>}
         </Space>
       }
       extra={
@@ -27,12 +72,14 @@ const ProjectSection = ({ student, progress }) => {
             type="circle" 
             percent={progress.project.progress} 
             width={40} 
-            status={progress.project.blocked ? 'exception' : 'normal'}
+            format={percent => `${percent}%`}
           />
-          {student.projectEligible ? (
-            <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
+          {isEligible ? (
+            <Tooltip title="มีสิทธิ์ทำโครงงานพิเศษ">
+              <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
+            </Tooltip>
           ) : (
-            <Tooltip title="ต้องมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต และผ่านการฝึกงาน">
+            <Tooltip title={eligibilityMessage}>
               <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
             </Tooltip>
           )}
@@ -45,7 +92,7 @@ const ProjectSection = ({ student, progress }) => {
           <Paragraph>
             <Text type="danger">ยังไม่สามารถเริ่มโครงงานได้</Text>
           </Paragraph>
-          <Paragraph type="secondary">{progress.project.blockReason}</Paragraph>
+          <Paragraph type="secondary">{eligibilityMessage}</Paragraph>
         </div>
       ) : (
         student.isEnrolledProject ? (
@@ -58,7 +105,13 @@ const ProjectSection = ({ student, progress }) => {
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
             <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
             <Paragraph>คุณยังไม่ได้ลงทะเบียนโครงงานพิเศษ</Paragraph>
-            <Button type="primary" href="/project/register">ลงทะเบียนโครงงาน</Button>
+            <Button 
+              type="primary" 
+              href="/project-registration" 
+              disabled={!isEligible}
+            >
+              ลงทะเบียนโครงงาน
+            </Button>
           </div>
         )
       )}
