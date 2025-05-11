@@ -8,7 +8,6 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
-const { Title, Text } = Typography;
 
 const EmailApprovalRequest = ({ studentId, logbooks }) => {
   const [form] = Form.useForm();
@@ -17,7 +16,6 @@ const EmailApprovalRequest = ({ studentId, logbooks }) => {
   const [approvalHistory, setApprovalHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const { user } = useAuth();
 
   // โหลดประวัติการส่งคำขออนุมัติเมื่อเปิด component
   useEffect(() => {

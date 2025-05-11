@@ -14,11 +14,17 @@ import {
   Alert
 } from "antd";
 import dayjs from "dayjs";
+import 'dayjs/locale/th'; // Import Thai locale for dayjs
+import buddhistEra from 'dayjs/plugin/buddhistEra'; // Import Buddhist Era plugin
+import locale from 'antd/es/date-picker/locale/th_TH'; // Import Ant Design's DatePicker locale for Thai
 import { useInternship } from "../../../contexts/InternshipContext";
 import internshipService from '../../../services/internshipService';
 import TranscriptUpload from '../common/TranscriptUpload';
 import { UploadOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css";
+
+dayjs.locale('th'); // Set Thai locale globally for dayjs instances
+dayjs.extend(buddhistEra); // Extend dayjs with Buddhist era plugin
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -82,8 +88,10 @@ const CS05Form = () => {
 
     const checkExistingCS05 = async () => {
       try {
-        console.log('Fetching CS05 data...');
         const response = await internshipService.getCurrentCS05();
+
+        // Log the fetched data
+        console.log('Fetched CS05 Data:', response);
 
         // ตรวจสอบว่า component ยังคงอยู่หรือไม่
         if (!isMounted) return;
@@ -243,7 +251,7 @@ const CS05Form = () => {
             </Paragraph>
             <Paragraph
               style={{ fontSize: "14px" }}
-            >วันที่ {dayjs().locale('th').add(543, 'year').format("D MMMM YYYY")}</Paragraph>
+            >วันที่ {formData?.createdAt ? dayjs(formData.createdAt).format("D MMMM BBBB") : dayjs().format("D MMMM BBBB")}</Paragraph>
           </Col>
 
           <Col span={24}>
@@ -339,9 +347,10 @@ const CS05Form = () => {
                   rules={[{ required: true }]}
                 >
                   <DatePicker.RangePicker
+                    locale={locale} // Add locale prop for Ant Design DatePicker
                     disabled={isFieldsDisabled}
-                    disabledDate={(current) => current && current < dayjs().startOf("day")}
-                    format="D MMMM YYYY"
+                    //disabledDate={(current) => current && current < dayjs().startOf("day")} //หากต้องการให้เลือกวันในอนาคตเท่านั้น
+                    format="D MMMM BBBB" 
                   />
                 </Form.Item>
               </Paragraph>

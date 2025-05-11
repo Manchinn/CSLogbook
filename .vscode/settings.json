@@ -11,7 +11,7 @@
             "port": 3306,
             "driver": "MySQL",
             "name": "heroic-bliss-452023-n8:us-central1:cslogbookdatabase",
-            "database": "cslogbook_dev",
+            "database": "cslogbook_local_dev",
             "username": "root",
             "askForPassword": true
         }

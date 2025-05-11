@@ -240,18 +240,10 @@ const StudentTimeline = () => {
               internship: {
                 ...(response.data.progress.internship ||
                   DEFAULT_PROGRESS_DATA.internship),
-                blocked: !internshipEligible.eligible,
-                blockReason: internshipEligible.eligible
-                  ? ""
-                  : internshipEligible.message,
               },
               project: {
                 ...(response.data.progress.project ||
                   DEFAULT_PROGRESS_DATA.project),
-                blocked: !projectEligible.eligible,
-                blockReason: projectEligible.eligible
-                  ? ""
-                  : projectEligible.message,
               },
             };
           }
@@ -262,97 +254,107 @@ const StudentTimeline = () => {
 
             progressData = {
               internship: {
+                ...DEFAULT_PROGRESS_DATA.internship, // Start with default structure
                 steps: internshipSteps,
-                currentStep: 0,
-                totalSteps: internshipSteps.length || 0,
-                progress: 0,
-                blocked: !internshipEligible.eligible,
-                blockReason: internshipEligible.eligible
-                  ? ""
-                  : internshipEligible.message,
               },
               project: {
+                ...DEFAULT_PROGRESS_DATA.project, // Start with default structure
                 steps: projectSteps,
-                currentStep: 0,
-                totalSteps: projectSteps.length || 0,
-                progress: 0,
-                blocked: !projectEligible.eligible,
-                blockReason: projectEligible.eligible
-                  ? ""
-                  : projectEligible.message,
               },
             };
-
-            // คำนวณความคืบหน้าสำหรับแต่ละประเภท
-            ["internship", "project"].forEach((type) => {
-              if (progressData[type].steps.length > 0) {
-                // นับจำนวนขั้นตอนที่เสร็จสิ้น
-                const completedSteps = progressData[type].steps.filter(
-                  (step) => step.status === "completed"
-                ).length;
-                // นับขั้นตอนที่กำลังดำเนินการ
-                const inProgressSteps = progressData[type].steps.filter(
-                  (step) => step.status === "in_progress"
-                ).length;
-                // คำนวณเปอร์เซ็นต์ความคืบหน้าแบบใหม่: ขั้นตอนที่เสร็จสิ้น + (ขั้นตอนที่กำลังดำเนินการ/2)
-                const totalSteps = progressData[type].steps.length;
-                progressData[type].totalSteps = totalSteps;
-
-                if (totalSteps > 0) {
-                  progressData[type].progress = Math.round(
-                    ((completedSteps + inProgressSteps * 0.5) / totalSteps) *
-                      100
-                  );
-                }
-
-                // หาขั้นตอนปัจจุบันที่กำลังดำเนินการ
-                const currentStepIndex = progressData[type].steps.findIndex(
-                  (step) => step.status === "in_progress"
-                );
-                // ถ้าไม่มีขั้นตอนที่กำลังดำเนินการ ให้ใช้จำนวนขั้นตอนที่เสร็จสิ้น
-                progressData[type].currentStep =
-                  currentStepIndex !== -1 ? currentStepIndex : completedSteps;
-              }
-            });
           }
           // ถ้าไม่มีทั้ง progress และ timeline ให้ใช้ค่าเริ่มต้น
           else {
             progressData = {
               internship: {
                 ...DEFAULT_PROGRESS_DATA.internship,
-                blocked: !internshipEligible.eligible,
-                blockReason: internshipEligible.eligible
-                  ? ""
-                  : internshipEligible.message,
               },
               project: {
                 ...DEFAULT_PROGRESS_DATA.project,
-                blocked: !projectEligible.eligible,
-                blockReason: projectEligible.eligible
-                  ? ""
-                  : projectEligible.message,
               },
             };
           }
 
+          // ===== START: NEW COMMON PROGRESS CALCULATION LOGIC =====
+          ["internship", "project"].forEach((type) => {
+            const currentTypeProgress = progressData[type] || DEFAULT_PROGRESS_DATA[type];
+            const stepsArray = currentTypeProgress.steps || [];
+            const eligibility = type === "internship" ? internshipEligible : projectEligible;
+
+            // Initialize or update the structure for finalProgressData[type]
+            progressData[type] = {
+              ...DEFAULT_PROGRESS_DATA[type], // Ensure all default fields are present
+              ...currentTypeProgress,         // Overlay with existing data
+              steps: stepsArray,
+              blocked: !eligibility.eligible,
+              blockReason: eligibility.eligible ? "" : eligibility.message,
+              currentStepDisplay: 0,
+              totalStepsDisplay: 0,
+              progress: 0,
+            };
+
+            if (stepsArray.length > 0) {
+              const totalSteps = stepsArray.length;
+              const completedStepsCount = stepsArray.filter(s => s.status === "completed").length;
+              const inProgressStepIndex = stepsArray.findIndex(s => s.status === "in_progress");
+
+              let currentStepNum = 0;
+              if (inProgressStepIndex !== -1) {
+                currentStepNum = inProgressStepIndex + 1; // 1-based
+              } else if (completedStepsCount < totalSteps) {
+                currentStepNum = completedStepsCount + 1; // Next step is 1-based
+              } else if (completedStepsCount === totalSteps) {
+                currentStepNum = totalSteps; // All done, current is the last one (1-based)
+              }
+
+              progressData[type].currentStepDisplay = currentStepNum;
+              progressData[type].totalStepsDisplay = totalSteps;
+              progressData[type].progress = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
+              progressData[type].totalSteps = totalSteps;
+
+              // Update 'currentStep' (0-based index or completed count for compatibility if needed)
+              if (inProgressStepIndex !== -1) {
+                progressData[type].currentStep = inProgressStepIndex;
+              } else {
+                progressData[type].currentStep = completedStepsCount;
+              }
+            } else { // No steps for this type
+              progressData[type].currentStepDisplay = 0;
+              progressData[type].totalStepsDisplay = 0;
+              progressData[type].progress = 0;
+              progressData[type].currentStep = 0;
+              progressData[type].totalSteps = 0;
+            }
+          });
+          // ===== END: NEW COMMON PROGRESS CALCULATION LOGIC =====
+
           // ตรวจสอบว่าสถานะของนักศึกษา (ผ่านการฝึกงาน/โครงงานหรือไม่) และปรับค่าความคืบหน้า
           if (enhancedStudentData.internshipStatus === "completed") {
             progressData.internship.progress = 100;
-            progressData.internship.currentStep =
-              progressData.internship.totalSteps;
+            if (progressData.internship.totalStepsDisplay > 0) {
+                 progressData.internship.currentStepDisplay = progressData.internship.totalStepsDisplay;
+            }
+            // Ensure currentStep (original) is also updated
+            progressData.internship.currentStep = progressData.internship.totalSteps || 0;
           }
 
           if (enhancedStudentData.projectStatus === "completed") {
             progressData.project.progress = 100;
-            progressData.project.currentStep = progressData.project.totalSteps;
+            if (progressData.project.totalStepsDisplay > 0) {
+                progressData.project.currentStepDisplay = progressData.project.totalStepsDisplay;
+            }
+            // Ensure currentStep (original) is also updated
+            progressData.project.currentStep = progressData.project.totalSteps || 0;
           }
 
           // ให้แน่ใจว่าความคืบหน้าไม่เกิน 100% และไม่ต่ำกว่า 0%
           ["internship", "project"].forEach((type) => {
-            progressData[type].progress = Math.min(
-              Math.max(progressData[type].progress, 0),
-              100
-            );
+            if (progressData[type]) {
+                 progressData[type].progress = Math.min(
+                    Math.max(progressData[type].progress || 0, 0),
+                    100
+                );
+            }
           });
 
           setProgress(progressData);

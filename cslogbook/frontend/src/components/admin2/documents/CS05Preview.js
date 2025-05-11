@@ -143,7 +143,7 @@ const CS05Preview = ({ data }) => {
     internshipDocument?.endDate || 
     '-';
   
-  const createdAt = documentData?.createdAt || documentData?.created_at || new Date();
+  const createdAt = documentData?.createdAt || documentData?.created_at; // Use only database value
   
   const transcriptUrl = documentData?.transcriptFilename || documentData?.fileName;
 

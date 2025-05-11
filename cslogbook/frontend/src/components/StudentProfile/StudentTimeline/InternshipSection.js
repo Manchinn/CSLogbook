@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography, Timeline } from 'antd';
+import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography } from 'antd';
 import { 
   LaptopOutlined, UnlockOutlined, LockOutlined, 
   FileDoneOutlined, InfoCircleOutlined 
@@ -56,24 +56,40 @@ const InternshipSection = ({ student, progress }) => {
   // ข้อความเหตุผล
   const eligibilityMessage = getEligibilityMessage();
 
+  // ตรวจสอบว่า progress.internship และ progress.internship.steps มีค่าหรือไม่
+  const internshipSteps = progress?.internship?.steps || [];
+  const currentStepDisplay = progress?.internship?.currentStepDisplay || 0;
+  const totalStepsDisplay = progress?.internship?.totalStepsDisplay || 0;
+  const overallProgress = progress?.internship?.progress || 0;
+
   return (
     <Card 
       title={
         <Space>
           <LaptopOutlined />
           <span>การฝึกงาน</span>
-          {student.internshipStatus === 'completed' && <Tag color="success">เสร็จสิ้น</Tag>}
-          {student.internshipStatus === 'in_progress' && <Tag color="processing">กำลังดำเนินการ</Tag>}
+          {progress?.internship?.blocked ? (
+            <Tag color="error">ไม่มีสิทธิ์</Tag>
+          ) : (
+            <Tag color={overallProgress === 100 ? "success" : "processing"}>
+              {overallProgress === 100 ? "เสร็จสิ้น" : "กำลังดำเนินการ"}
+            </Tag>
+          )}
         </Space>
       }
       extra={
         <Space>
           <Progress 
             type="circle" 
-            percent={progress.internship.progress} 
+            percent={overallProgress} 
             width={40} 
             format={percent => `${percent}%`}
           />
+          {totalStepsDisplay > 0 && (
+            <Text type="secondary">
+              ขั้นตอนที่ {currentStepDisplay}/{totalStepsDisplay}
+            </Text>
+          )}
           {isEligible ? (
             <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
           ) : (
@@ -85,8 +101,8 @@ const InternshipSection = ({ student, progress }) => {
       }
     >
       {student.isEnrolledInternship ? (
-        progress.internship.steps.length > 0 ? (
-          <TimelineItems items={progress.internship.steps} />
+        internshipSteps.length > 0 ? (
+          <TimelineItems items={internshipSteps} />
         ) : (
           <Empty description="ยังไม่มีข้อมูลขั้นตอนการฝึกงาน" />
         )

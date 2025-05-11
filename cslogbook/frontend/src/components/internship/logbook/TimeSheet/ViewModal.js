@@ -15,7 +15,16 @@ import {
 import dayjs from '../../../../utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT, TIME_FORMAT } from '../../../../utils/constants';
 
+// นำเข้า locale ภาษาไทยสำหรับ dayjs
+import 'dayjs/locale/th';
+
 const { Title, Paragraph, Text } = Typography;
+
+// สร้างฟังก์ชันสำหรับแปลงวันที่เป็นชื่อวันภาษาไทย
+const getThaiDayName = (date) => {
+  const thaiDays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+  return thaiDays[date.day()];
+};
 
 const ViewModal = ({ visible, entry, onClose }) => {
   if (!entry) {
@@ -73,7 +82,9 @@ const ViewModal = ({ visible, entry, onClose }) => {
       <Card bordered={false} style={{ marginBottom: 16 }}>
         <Descriptions title="ข้อมูลทั่วไป" layout="vertical" bordered column={{ xs: 1, sm: 2, md: 3 }}>
           <Descriptions.Item label={<><CalendarOutlined /> วันที่</>} span={1}>
-            <Text strong>{entry && dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM)}</Text>
+            <Text strong>
+              {entry && `${getThaiDayName(dayjs(entry.workDate))}, ${dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM)}`}
+            </Text>
           </Descriptions.Item>
           
           <Descriptions.Item label={<><ClockCircleOutlined /> เวลาเข้างาน</>} span={1}>
