@@ -4,16 +4,16 @@
   align-items: center;
   min-height: 55vh;
   background-color: #f5f5f5;
-  padding: 20px;
+  padding: 24px;
 }
 
 .internship-card {
   width: 100%;
-  max-width: 90%;
+  max-width: 1200px;
   padding: 10px;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin: 20px auto;
+  margin: 0 auto;
 }
 
 .internship-paragraph {
@@ -165,6 +165,16 @@
   border-left: 4px solid #1890ff;
 }
 
+.status-summary-card.progress {
+  background-color: #f9f9f9;
+  border-left: 4px solid #1890ff;
+}
+
+.status-summary-card.success {
+  background-color: #f6ffed;
+  border-left: 4px solid #52c41a;
+}
+
 .summary-section, .skills-section, .logbook-table {
   margin-bottom: 24px;
 }
@@ -177,16 +187,130 @@
   background-color: #f6ffed;
 }
 
+.progress-section {
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.progress-data {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.progress-bar-container {
+  margin: 16px 0;
+}
+
+.progress-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.progress-value.success {
+  color: #52c41a;
+}
+
+.summary-chart {
+  height: 250px;
+  margin-top: 16px;
+}
+
 .button-container {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: 24px;
   margin-bottom: 16px;
 }
 
 .button-group {
   display: flex;
   gap: 16px;
+}
+
+/* Internship Styles CSS */
+
+.summary-header-card {
+  border-radius: 8px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #f6f8fc 0%, #e9f1fd 100%);
+}
+
+.company-name {
+  font-size: 16px;
+  margin-bottom: 12px !important;
+  color: #1890ff;
+}
+
+.stats-row .ant-card {
+  height: 100%;
+}
+
+.status-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.status-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.detail-icon {
+  margin-right: 16px;
+  font-size: 20px;
+  color: #1890ff;
+  padding-top: 5px;
+}
+
+.detail-label {
+  color: #8c8c8c;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-weight: 500;
+}
+
+.skill-card {
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.skill-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.skill-summary-card {
+  border-radius: 6px;
+  text-align: center;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.approved-row {
+  background-color: rgba(82, 196, 26, 0.05);
+}
+
+.tab-container {
+  margin-bottom: 24px;
+}
+
+.company-detail-section {
+  margin-bottom: 24px;
+}
+
+.learning-outcome {
+  margin-top: 16px;
 }
 
 /* สไตล์สำหรับการพิมพ์ */
@@ -198,6 +322,7 @@
   .print-container {
     background-color: white !important;
     padding: 0 !important;
+    margin: 0;
   }
   
   .internship-card {
@@ -213,13 +338,43 @@
   
   .ant-card {
     border: none !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
   }
   
   .ant-card-head {
     border-bottom: 1px solid #000 !important;
   }
   
+  .ant-tabs-nav {
+    display: none !important;
+  }
+  
+  .ant-tabs-content {
+    margin-top: 0 !important;
+  }
+  
   .ant-table-pagination {
     display: none !important;
+  }
+  
+  body {
+    font-size: 12px;
+  }
+  
+  .ant-card-head-title {
+    font-size: 14px !important;
+  }
+  
+  h1 {
+    font-size: 18px !important;
+  }
+  
+  h2 {
+    font-size: 16px !important;
+  }
+  
+  h3, h4 {
+    font-size: 14px !important;
   }
 }

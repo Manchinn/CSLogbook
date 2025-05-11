@@ -74,6 +74,22 @@ router.post('/company-info',
     // ...existing code...
 );
 
+// ============= เส้นทางสำหรับเอกสารสรุปการฝึกงาน =============
+
+// ดึงข้อมูลสรุปการฝึกงาน
+router.get('/summary',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getInternshipSummary
+);
+
+// ดาวน์โหลดเอกสารสรุปการฝึกงาน
+router.get('/summary/download',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.downloadInternshipSummary
+);
+
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
 // อัปโหลดใบแสดงผลการเรียน (Transcript)
 router.post('/upload-transcript',

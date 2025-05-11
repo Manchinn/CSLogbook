@@ -423,6 +423,47 @@ const internshipService = {
     }
   },
 
+  // === ส่วนสรุปข้อมูลการฝึกงาน ===
+  /**
+   * ดึงข้อมูลสรุปการฝึกงาน
+   */
+  getInternshipSummary: async () => {
+    try {
+      const response = await apiClient.get('/internship/summary');
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลสรุปการฝึกงานได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } catch (error) {
+      console.error('Error fetching internship summary:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลสรุปการฝึกงาน');
+    }
+  },
+
+  /**
+   * ดาวน์โหลดเอกสารสรุปการฝึกงาน PDF
+   */
+  downloadInternshipSummary: async () => {
+    try {
+      const response = await apiClient.get('/internship/summary/download', {
+        responseType: 'blob'
+      });
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error downloading internship summary PDF:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดาวน์โหลดเอกสารสรุปการฝึกงาน');
+    }
+  },
+
 };
 
 export default internshipService;

@@ -1,4 +1,4 @@
-const { Document, InternshipDocument, Student, User } = require('../../models');
+const { Document, InternshipDocument, Student, User, InternshipLogbook } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
 const { 
@@ -543,7 +543,228 @@ exports.getCompanyInfo = async (req, res) => {
   }
 };
 
-// ============= Controller ที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============
+/**
+ * ดึงข้อมูลสรุปการฝึกงาน
+ */
+exports.getInternshipSummary = async (req, res) => {
+  try {
+    // ค้นหาข้อมูลนักศึกษาจาก userId ก่อน
+    const student = await Student.findOne({
+      where: { userId: req.user.userId },
+      attributes: ['studentId', 'studentCode']
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา'
+      });
+    }
+
+    const studentId = student.studentId;
+    
+    // ดึงข้อมูล internship document ล่าสุด โดยระบุ attributes ที่ต้องการอย่างชัดเจน
+    const internshipDoc = await InternshipDocument.findOne({
+      attributes: [
+        'internshipId',
+        'documentId',
+        'companyName',
+        'companyAddress',
+        'supervisorName',
+        'supervisorPosition',
+        'supervisorPhone',
+        'supervisorEmail',
+        'startDate',
+        'endDate'
+      ],
+      include: [
+        {
+          model: Document,
+          as: 'document',
+          attributes: ['documentId', 'status'],
+          where: {
+            userId: req.user.userId,
+            documentName: 'CS05',
+            status: 'approved'
+          }
+        }
+      ],
+      order: [[sequelize.literal('`InternshipDocument`.`created_at`'), 'DESC']]
+    });
+
+    if (!internshipDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ'
+      });
+    }
+
+    // ดึงข้อมูลบันทึกฝึกงาน (logbooks) โดยใช้ internshipId จาก internshipDoc ที่ได้
+    const logbooks = await InternshipLogbook.findAll({
+      where: {
+        internshipId: internshipDoc.internshipId,
+        studentId: studentId  // ใช้ studentId จากการค้นหาด้านบน
+      },
+      order: [['workDate', 'ASC']]
+    });
+
+    // คำนวณสถิติต่างๆ
+    const totalDays = logbooks.length;
+    const totalHours = logbooks.reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+    const approvedDays = logbooks.filter(log => log.supervisorApproved).length;
+    const approvedHours = logbooks.filter(log => log.supervisorApproved)
+      .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+
+    // รวบรวมทักษะที่ได้เรียนรู้จาก learning outcomes
+    const learningOutcomes = logbooks
+      .filter(log => log.learningOutcome && log.supervisorApproved)
+      .map(log => log.learningOutcome)
+      .join('\n');
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        documentId: internshipDoc.document.documentId,
+        status: internshipDoc.document.status,
+        companyName: internshipDoc.companyName,
+        companyAddress: internshipDoc.companyAddress,
+        startDate: internshipDoc.startDate,
+        endDate: internshipDoc.endDate,
+        supervisorName: internshipDoc.supervisorName,
+        supervisorPosition: internshipDoc.supervisorPosition,
+        supervisorPhone: internshipDoc.supervisorPhone,
+        supervisorEmail: internshipDoc.supervisorEmail,
+        totalDays: totalDays,
+        totalHours: totalHours,
+        approvedDays: approvedDays,
+        approvedHours: approvedHours,
+        learningOutcome: learningOutcomes
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching internship summary:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสรุปการฝึกงาน'
+    });
+  }
+};
+
+/**
+ * ดาวน์โหลดเอกสารสรุปการฝึกงาน
+ */
+exports.downloadInternshipSummary = async (req, res) => {
+  try {
+    // ค้นหาข้อมูลนักศึกษาก่อน
+    const student = await Student.findOne({
+      where: { userId: req.user.userId },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName']
+      }],
+      attributes: ['studentId', 'studentCode']
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา'
+      });
+    }
+
+    const studentId = student.studentId;
+    const studentName = `${student.user.firstName} ${student.user.lastName}`;
+    const studentCode = student.studentCode;
+
+    // ดึงข้อมูล internship document ล่าสุด
+    const internshipDoc = await InternshipDocument.findOne({
+      include: [
+        {
+          model: Document,
+          as: 'document',
+          where: {
+            userId: req.user.userId,
+            documentName: 'CS05',
+            category: 'internship',
+            status: 'approved'
+          }
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!internshipDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ'
+      });
+    }
+
+    // ดึงข้อมูลบันทึกฝึกงาน (logbooks)
+    const logbooks = await InternshipLogbook.findAll({
+      where: {
+        internshipId: internshipDoc.internshipId,
+        studentId: studentId,
+        supervisorApproved: true
+      },
+      order: [['workDate', 'ASC']]
+    });
+
+    // สร้างไฟล์ PDF สรุปการฝึกงาน (เป็นตัวอย่างโครงสร้างฟังก์ชัน)
+    // โค้ดสร้าง PDF จะต้องเพิ่มเติมตามต้องการ
+    // ตัวอย่างเช่น ใช้ puppeteer, PDFKit, หรือห้องสมุด PDF อื่นๆ
+
+    // ตัวอย่าง (คอมเมนต์ไว้เพื่อให้สมบูรณ์ในอนาคต)
+    /*
+    const pdfKit = require('pdfkit');
+    const pdf = new pdfKit({ margin: 30, size: 'A4' });
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=internship-summary-${studentCode}.pdf`);
+    
+    pdf.pipe(res);
+    
+    pdf.fontSize(18).text('สรุปผลการฝึกงาน', { align: 'center' });
+    pdf.moveDown();
+    
+    // เพิ่มข้อมูลนักศึกษา
+    pdf.fontSize(12).text(`ชื่อ-นามสกุล: ${studentName}`);
+    pdf.text(`รหัสนักศึกษา: ${studentCode}`);
+    pdf.moveDown();
+    
+    // เพิ่มข้อมูลบริษัท
+    pdf.fontSize(14).text('ข้อมูลสถานประกอบการ');
+    pdf.fontSize(12).text(`บริษัท: ${internshipDoc.companyName}`);
+    pdf.text(`ที่อยู่: ${internshipDoc.companyAddress}`);
+    pdf.moveDown();
+    
+    // ข้อมูลสถิติ
+    pdf.fontSize(14).text('สรุปชั่วโมงการฝึกงาน');
+    pdf.fontSize(12).text(`จำนวนวันทั้งหมด: ${logbooks.length} วัน`);
+    pdf.text(`จำนวนชั่วโมงทั้งหมด: ${logbooks.reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0)} ชั่วโมง`);
+    
+    // สร้างตาราง logbook entries
+    // ...
+    
+    // ปิด PDF
+    pdf.end();
+    */
+    
+    // ส่งข้อความแจ้งว่าฟีเจอร์อยู่ระหว่างการพัฒนา
+    return res.status(200).json({
+      success: false,
+      message: 'ฟีเจอร์นี้อยู่ระหว่างการพัฒนา'
+    });
+    
+  } catch (error) {
+    console.error('Error generating internship summary PDF:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการสร้างเอกสารสรุปการฝึกงาน'
+    });
+  }
+};
 
 /**
  * ดึงรายการ คพ.05 ทั้งหมดของนักศึกษา
@@ -610,8 +831,7 @@ exports.downloadDocument = async (req, res) => {
   // TODO: Implement document download
 };
 
-// === Controller สำหรับผู้ดูแลระบบ ===
+/* // === Controller สำหรับผู้ดูแลระบบ ===
 exports.updateStatus = async (req, res) => {
   // TODO: Implement document status update
-};
-*/
+}; */
