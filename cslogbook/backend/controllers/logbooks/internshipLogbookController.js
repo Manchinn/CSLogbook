@@ -1,6 +1,7 @@
 const {
     InternshipLogbook,
     InternshipDocument,
+    InternshipLogbookReflection,
     Document,
     Student,
     User,
@@ -12,9 +13,6 @@ const { calculateWorkdays } = require('../../utils/dateUtils');
 
 // ============= Controller สำหรับสมุดบันทึกประจำวัน =============
 
-/**
- * ดึงข้อมูลบันทึกการฝึกงานทั้งหมดของนักศึกษา
- */
 /**
  * ดึงข้อมูลบันทึกการฝึกงานทั้งหมดของนักศึกษา
  */
@@ -826,6 +824,223 @@ exports.approveTimeSheetEntry = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการอนุมัติบันทึกการฝึกงาน',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+// ============= Controller สำหรับบทสรุปการฝึกงาน =============
+
+/**
+ * บันทึกบทสรุปการฝึกงาน
+ */
+exports.saveReflection = async (req, res) => {
+    const transaction = await sequelize.transaction();
+    try {
+        // ตรวจสอบว่ามี request.user หรือไม่
+        if (!req.user || !req.user.userId) {
+            await transaction.rollback();
+            return res.status(401).json({
+                success: false,
+                message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
+            });
+        }
+
+        // ดึงข้อมูลนักศึกษา
+        const student = await Student.findOne({
+            where: { userId: req.user.userId }
+        });
+
+        if (!student) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบข้อมูลนักศึกษา'
+            });
+        }
+
+        const studentId = student.studentId;
+
+        // ดึงข้อมูล CS05 ที่อนุมัติแล้วหรืออยู่ระหว่างรออนุมัติ
+        const document = await Document.findOne({
+            where: {
+                userId: req.user.userId,
+                documentName: 'CS05',
+                status: ['pending', 'approved']
+            },
+            include: [{
+                model: InternshipDocument,
+                as: 'internshipDocument',
+                required: true,
+                attributes: ['internshipId']
+            }],
+            order: [['created_at', 'DESC']],
+            transaction
+        });
+
+        if (!document) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบข้อมูล CS05 ที่รออนุมัติหรือได้รับการอนุมัติแล้ว'
+            });
+        }
+
+        const internshipId = document.internshipDocument.internshipId;
+        
+        // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบหรือไม่
+        const { learningOutcome, keyLearnings, futureApplication, improvements } = req.body;
+
+        if (!learningOutcome || !keyLearnings || !futureApplication) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'กรุณากรอกข้อมูลให้ครบถ้วน'
+            });
+        }
+
+        // ตรวจสอบว่ามีบทสรุปอยู่แล้วหรือไม่
+        const existingReflection = await InternshipLogbookReflection.findOne({
+            where: {
+                internship_id: internshipId,
+                student_id: studentId
+            },
+            transaction
+        });
+
+        let reflection;
+        if (existingReflection) {
+            // อัพเดทบทสรุปที่มีอยู่แล้ว
+            reflection = await existingReflection.update({
+                learning_outcome: learningOutcome,
+                key_learnings: keyLearnings,
+                future_application: futureApplication,
+                improvements: improvements || ''
+            }, { transaction });
+        } else {
+            // สร้างบทสรุปใหม่
+            reflection = await InternshipLogbookReflection.create({
+                internship_id: internshipId,
+                student_id: studentId,
+                learning_outcome: learningOutcome,
+                key_learnings: keyLearnings,
+                future_application: futureApplication,
+                improvements: improvements || ''
+            }, { transaction });
+        }
+
+        await transaction.commit();
+
+        return res.status(200).json({
+            success: true,
+            message: 'บันทึกบทสรุปการฝึกงานเรียบร้อย',
+            data: {
+                id: reflection.id,
+                learningOutcome: reflection.learning_outcome,
+                keyLearnings: reflection.key_learnings,
+                futureApplication: reflection.future_application,
+                improvements: reflection.improvements
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Save Reflection Error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการบันทึกบทสรุปการฝึกงาน',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * ดึงบทสรุปการฝึกงาน
+ */
+exports.getReflection = async (req, res) => {
+    try {
+        // ตรวจสอบว่ามี request.user หรือไม่
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
+            });
+        }
+
+        // ดึงข้อมูลนักศึกษา
+        const student = await Student.findOne({
+            where: { userId: req.user.userId }
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบข้อมูลนักศึกษา'
+            });
+        }
+
+        const studentId = student.studentId;
+
+        // ดึงข้อมูล CS05 
+        const document = await Document.findOne({
+            where: {
+                userId: req.user.userId,
+                documentName: 'CS05',
+                status: ['pending', 'approved']
+            },
+            include: [{
+                model: InternshipDocument,
+                as: 'internshipDocument',
+                required: true,
+                attributes: ['internshipId']
+            }],
+            order: [['created_at', 'DESC']]
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบข้อมูล CS05 ที่รออนุมัติหรือได้รับการอนุมัติแล้ว'
+            });
+        }
+
+        const internshipId = document.internshipDocument.internshipId;
+
+        // ดึงบทสรุปการฝึกงาน
+        const reflection = await InternshipLogbookReflection.findOne({
+            where: {
+                internship_id: internshipId,
+                student_id: studentId
+            }
+        });
+
+        if (!reflection) {
+            return res.status(200).json({
+                success: true,
+                message: 'ยังไม่มีบทสรุปการฝึกงาน',
+                data: null
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'ดึงบทสรุปการฝึกงานสำเร็จ',
+            data: {
+                id: reflection.id,
+                learningOutcome: reflection.learning_outcome,
+                keyLearnings: reflection.key_learnings,
+                futureApplication: reflection.future_application,
+                improvements: reflection.improvements,
+                createdAt: reflection.created_at,
+                updatedAt: reflection.updated_at
+            }
+        });
+
+    } catch (error) {
+        console.error('Get Reflection Error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการดึงบทสรุปการฝึกงาน',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

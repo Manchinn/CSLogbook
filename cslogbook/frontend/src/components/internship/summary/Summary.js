@@ -25,10 +25,12 @@ import {
   TrophyOutlined,
   RiseOutlined,
   DotChartOutlined,
-  AppstoreOutlined,
-  FileProtectOutlined,
+  AppstoreOutlined,  FileProtectOutlined,
   SafetyCertificateOutlined,
   AuditOutlined,
+  FormOutlined,
+  SendOutlined,
+  ProfileOutlined,
   CarryOutOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +39,7 @@ import internshipService from '../../../services/internshipService';
 import { useInternship } from '../../../contexts/InternshipContext';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../utils/constants';
 import './InternshipStyles.css';
+import ReflectionForm from './ReflectionForm';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -59,7 +62,10 @@ const InternshipSummary = () => {
   const [completionStatus, setCompletionStatus] = useState({
     percentage: 0,
     status: 'normal'
-  });
+  });  const [reflection, setReflection] = useState(null);
+  const [editingReflection, setEditingReflection] = useState(false);
+  const [evaluationFormSent, setEvaluationFormSent] = useState(false);
+  const [evaluationSentDate, setEvaluationSentDate] = useState(null);
 
   useEffect(() => {
     fetchSummaryData();
@@ -85,9 +91,28 @@ const InternshipSummary = () => {
         setLoading(false);
         return;
       }
-      
-      // ดึงข้อมูลสรุปการฝึกงาน
+        // ดึงข้อมูลสรุปการฝึกงาน
       const summaryResponse = await internshipService.getInternshipSummary();
+        // ดึงข้อมูลบทสรุปการฝึกงาน
+      try {
+        const reflectionResponse = await internshipService.getReflection();
+        if (reflectionResponse.success) {
+          setReflection(reflectionResponse.data);
+        }
+      } catch (reflectionError) {
+        console.error('Error fetching reflection:', reflectionError);
+      }
+      
+      // ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+      try {
+        const evaluationStatusResponse = await internshipService.getEvaluationFormStatus();
+        if (evaluationStatusResponse.success && evaluationStatusResponse.data) {
+          setEvaluationFormSent(true);
+          setEvaluationSentDate(evaluationStatusResponse.data.sentDate);
+        }
+      } catch (evaluationStatusError) {
+        console.error('Error fetching evaluation status:', evaluationStatusError);
+      }
       
       if (summaryResponse.success) {
         setSummaryData(summaryResponse.data);
@@ -218,7 +243,7 @@ const InternshipSummary = () => {
       const weekNumber = entry.weekNumber || dayjs(entry.date, DATE_FORMAT_MEDIUM).week();
       if (!weeklyStats[weekNumber]) {
         weeklyStats[weekNumber] = {
-          week: `สัปดาห์ที่ ${weekNumber} `,
+          week: `สัปดาห์ที่ ${weekNumber}`, // ลบเว้นวรรคท้ายข้อความ
           totalHours: 0,
           approvedHours: 0,
           days: 0,
@@ -371,37 +396,97 @@ const InternshipSummary = () => {
   };
 
   const handleDownloadSummary = () => {
-    message.loading('กำลังดาวน์โหลดเอกสาร...');
-    
     internshipService.downloadInternshipSummary()
       .then(response => {
-        if (!response.success) {
-          notification.info({
-            message: 'คุณลักษณะนี้อยู่ระหว่างการพัฒนา',
-            description: 'ขออภัย ฟังก์ชันการดาวน์โหลดเอกสารสรุปยังไม่พร้อมใช้งานในขณะนี้',
-            duration: 4
-          });
-          return;
+        if (response.success) {
+          const blob = new Blob([response.data], { type: 'application/pdf' });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'internship-summary.pdf';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         }
-        
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'สรุปผลการฝึกงาน.pdf');
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        
-        message.success('ดาวน์โหลดเอกสารสำเร็จ');
       })
       .catch(error => {
-        console.error('Error downloading summary:', error);
-        message.error('ไม่สามารถดาวน์โหลดเอกสารได้');
+        console.error('Error downloading summary PDF:', error);
+        message.error('ไม่สามารถดาวน์โหลดรายงานได้');
       });
   };
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleReflectionSave = async (reflectionData) => {
+    try {
+      const response = await internshipService.saveReflection(reflectionData);
+      if (response.success) {
+        message.success('บันทึกบทสรุปเรียบร้อยแล้ว');
+        setReflection(reflectionData);
+        setEditingReflection(false);
+      } else {
+        message.error('ไม่สามารถบันทึกบทสรุปได้');
+      }
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+      message.error('เกิดข้อผิดพลาดในการบันทึกบทสรุป');
+    }
+  };
+  const toggleEditReflection = () => {
+    setEditingReflection(prevState => !prevState);
+  };
+  
+  const handleSendEvaluationForm = async () => {
+    try {
+      // Check if the supervisor email is available
+      if (!summaryData?.supervisorEmail) {
+        message.error('ไม่พบอีเมลของพี่เลี้ยง กรุณาตรวจสอบข้อมูลเอกสาร คพ.05');
+        return;
+      }
+      
+      const confirmSend = await new Promise((resolve) => {
+        notification.info({
+          message: 'ยืนยันการส่งแบบประเมิน',
+          description: `แบบประเมินจะถูกส่งไปยัง ${summaryData.supervisorEmail} คุณต้องการดำเนินการต่อหรือไม่?`,
+          btn: (
+            <Space>
+              <Button type="primary" size="small" onClick={() => resolve(true)}>
+                ยืนยัน
+              </Button>
+              <Button size="small" onClick={() => resolve(false)}>
+                ยกเลิก
+              </Button>
+            </Space>
+          ),
+          duration: 0,
+        });
+      });
+      
+      if (!confirmSend) return;
+      
+      message.loading({ content: 'กำลังส่งแบบประเมิน...', key: 'sendEvaluation' });
+      
+      // Call API to send evaluation form
+      const response = await internshipService.sendEvaluationForm({
+        studentId: summaryData.studentId,
+        supervisorName: summaryData.supervisorName,
+        supervisorEmail: summaryData.supervisorEmail,
+        companyName: summaryData.companyName,
+      });
+      
+      if (response.success) {
+        message.success({ content: 'ส่งแบบประเมินเรียบร้อยแล้ว', key: 'sendEvaluation' });
+        setEvaluationFormSent(true);
+        setEvaluationSentDate(new Date());
+      } else {
+        message.error({ content: 'ไม่สามารถส่งแบบประเมินได้: ' + response.message, key: 'sendEvaluation' });
+      }
+    } catch (error) {
+      console.error('Error sending evaluation form:', error);
+      message.error({ content: 'เกิดข้อผิดพลาดในการส่งแบบประเมิน', key: 'sendEvaluation' });
+    }
   };
 
   if (loading) {
@@ -522,7 +607,10 @@ const InternshipSummary = () => {
                 format={() => (
                   <div className="dashboard-inner">
                     <div className="dashboard-title">ความคืบหน้า</div>
-                    <div className="dashboard-value">{totalApprovedHours}<span className="dashboard-unit">ชม.</span></div>
+                    <div className="dashboard-value">
+                      {totalApprovedHours}
+                      <span className="dashboard-unit">ชม.</span>
+                    </div>
                     <div className="dashboard-subtitle">จาก 240 ชั่วโมง</div>
                   </div>
                 )}
@@ -672,7 +760,7 @@ const InternshipSummary = () => {
               className="weekly-card"
             >
               {weeklyData.length > 0 ? (
-                <Timeline>
+                <Timeline mode="left">
                   {weeklyData.map((week, index) => (
                     <Timeline.Item 
                       key={index}
@@ -691,7 +779,7 @@ const InternshipSummary = () => {
                           </div>
                         }
                         extra={
-                          <Space>
+                          <Space size="small">
                             <Tag color="blue">{week.days} วันทำงาน</Tag>
                             <Tag color={week.approvedHours >= 40 ? 'green' : 'gold'}>
                               {week.approvedHours}/{week.totalHours} ชั่วโมง
@@ -715,7 +803,7 @@ const InternshipSummary = () => {
                           )}
                         />
                         {week.entries.length > 3 && (
-                          <div className="more-entries">
+                          <div className="more-entries" style={{ paddingLeft: 8, paddingTop: 4 }}>
                             <Text type="secondary">
                               + อีก {week.entries.length - 3} รายการ
                             </Text>
@@ -773,27 +861,59 @@ const InternshipSummary = () => {
           <TabPane 
             tab={<span><RiseOutlined />ทักษะและการพัฒนา</span>}
             key="3"
-          >
-            <Card bordered={false} className="skills-analysis-card">
-              <Title level={4}>สรุปทักษะและความรู้ที่ได้รับจากการฝึกงาน</Title>
+          >            <Card bordered={false} className="skills-analysis-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Title level={4}>สรุปทักษะและความรู้ที่ได้รับจากการฝึกงาน</Title>
+                
+                {reflection && (
+                  <Button 
+                    type="primary" 
+                    onClick={toggleEditReflection}
+                    icon={editingReflection ? <FileTextOutlined /> : <FormOutlined />}
+                  >
+                    {editingReflection ? 'ดูบทสรุป' : 'แก้ไขบทสรุป'}
+                  </Button>
+                )}
+                
+                {!reflection && !editingReflection && (
+                  <Button 
+                    type="primary" 
+                    onClick={() => setEditingReflection(true)}
+                    icon={<FormOutlined />}
+                  >
+                    เพิ่มบทสรุปการฝึกงาน
+                  </Button>
+                )}
+              </div>
+              
+              {editingReflection ? (
+                <ReflectionForm 
+                  onSave={handleReflectionSave} 
+                  initialData={reflection} 
+                />
+              ) : reflection ? (
+                <ReflectionForm 
+                  initialData={reflection} 
+                  readOnly={true} 
+                />
+              ) : (
+                <Alert
+                  message="ยังไม่มีบทสรุปการฝึกงาน"
+                  description="กรุณาคลิกที่ปุ่ม 'เพิ่มบทสรุปการฝึกงาน' เพื่อเพิ่มบทสรุปประสบการณ์การฝึกงานของคุณ"
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 24 }}
+                />
+              )}
+              
+              <Divider>
+                <span className="divider-title">
+                  <TrophyOutlined /> ทักษะที่ได้พัฒนา
+                </span>
+              </Divider>
               
               {summaryData?.learningOutcome ? (
                 <>
-                  <Card 
-                    type="inner" 
-                    className="learning-outcome-card" 
-                    bordered={false}
-                  >
-                    <Paragraph>
-                      {summaryData.learningOutcome}
-                    </Paragraph>
-                  </Card>
-                  
-                  <Divider>
-                    <span className="divider-title">
-                      <TrophyOutlined /> ทักษะที่ได้พัฒนา
-                    </span>
-                  </Divider>
                   
                   <Row gutter={[24, 24]}>
                     {skillCategories.map((skill, index) => (
@@ -941,6 +1061,74 @@ const InternshipSummary = () => {
                   </Card>
                 </Col>
               </Row>
+            </Card>          </TabPane>
+          
+          {/* แท็บการประเมินจากพี่เลี้ยง */}
+          <TabPane 
+            tab={<span><ProfileOutlined />การประเมินจากพี่เลี้ยง</span>}
+            key="5"
+          >
+            <Card bordered={false} className="evaluation-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Title level={4}>การประเมินผลการฝึกงานโดยพี่เลี้ยง</Title>
+              </div>
+                {/* ส่วนกรณีที่มีการส่งแบบประเมินไปแล้ว */}
+              {evaluationFormSent ? (
+                <Alert
+                  message="ส่งแบบประเมินไปยังพี่เลี้ยงแล้ว"
+                  description={`ส่งไปยัง ${summaryData?.supervisorEmail || 'อีเมลพี่เลี้ยง'} เมื่อ ${evaluationSentDate ? dayjs(evaluationSentDate).format(DATE_FORMAT_MEDIUM) : '-'}`}
+                  type="success"
+                  showIcon
+                  style={{ marginBottom: 24 }}
+                />
+              ) : (
+                /* ส่วนกรณีที่ยังไม่มีการส่งแบบประเมิน */
+                <Alert
+                  message="ส่งแบบประเมินให้พี่เลี้ยงของคุณ"
+                  description="เมื่อคุณใกล้จะสิ้นสุดการฝึกงาน คุณสามารถส่งแบบประเมินไปยังพี่เลี้ยงผ่านอีเมลได้ที่นี่"
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 24 }}
+                />
+              )}
+              
+              <Card
+                title="ข้อมูลพี่เลี้ยง"
+                type="inner"
+                style={{ marginBottom: 24 }}
+              >
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} md={12}>
+                    <div className="info-item">
+                      <div className="info-label"><UserOutlined /> ชื่อ-นามสกุล:</div>
+                      <div className="info-value">{summaryData?.supervisorName || '-'}</div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-label"><TeamOutlined /> ตำแหน่ง:</div>
+                      <div className="info-value">{summaryData?.supervisorPosition || '-'}</div>
+                    </div>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <div className="info-item">
+                      <div className="info-label"><MailOutlined /> อีเมล:</div>
+                      <div className="info-value">{summaryData?.supervisorEmail || '-'}</div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-label"><PhoneOutlined /> เบอร์โทรศัพท์:</div>
+                      <div className="info-value">{summaryData?.supervisorPhone || '-'}</div>
+                    </div>
+                  </Col>
+                </Row>
+              </Card>
+                <Button
+                type="primary"
+                icon={<SendOutlined />}
+                size="large"
+                onClick={handleSendEvaluationForm}
+                disabled={evaluationFormSent || !summaryData?.supervisorEmail}
+              >
+                {evaluationFormSent ? 'ส่งแบบประเมินแล้ว' : 'ส่งแบบประเมินให้พี่เลี้ยง'}
+              </Button>
             </Card>
           </TabPane>
         </Tabs>

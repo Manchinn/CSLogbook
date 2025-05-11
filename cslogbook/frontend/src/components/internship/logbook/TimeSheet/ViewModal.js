@@ -62,7 +62,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
               <CheckCircleOutlined />
               <Text strong>มีการบันทึกข้อมูลแล้ว</Text>
               {isUpdated && 
-                <Tag color="green">อัปเดตล่าสุด: {updatedDate.format(DATE_TIME_FORMAT)}</Tag>
+                <Tag color="green">อัปเดตล่าสุด: {updatedDate.format(DATE_TIME_FORMAT.replace('YYYY','BBBB'))}</Tag>
               }
             </Space>
           }
@@ -83,7 +83,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
         <Descriptions title="ข้อมูลทั่วไป" layout="vertical" bordered column={{ xs: 1, sm: 2, md: 3 }}>
           <Descriptions.Item label={<><CalendarOutlined /> วันที่</>} span={1}>
             <Text strong>
-              {entry && `${getThaiDayName(dayjs(entry.workDate))}, ${dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM)}`}
+              {entry && `${getThaiDayName(dayjs(entry.workDate))}, ${dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM.replace('YYYY','BBBB'))}`}
             </Text>
           </Descriptions.Item>
           
@@ -127,10 +127,10 @@ const ViewModal = ({ visible, entry, onClose }) => {
           
           {createdDate && (
             <Descriptions.Item label={<><InfoCircleOutlined /> บันทึกเมื่อ</>} span={3}>
-              {createdDate.format(DATE_TIME_FORMAT)} 
+              {createdDate.format(DATE_TIME_FORMAT.replace('YYYY','BBBB'))} 
               {isUpdated && (
                 <Text type="secondary" style={{ marginLeft: 8 }}>
-                  (อัปเดตล่าสุด: {updatedDate.format(DATE_TIME_FORMAT)})
+                  (อัปเดตล่าสุด: {updatedDate.format(DATE_TIME_FORMAT.replace('YYYY','BBBB'))})
                 </Text>
               )}
             </Descriptions.Item>

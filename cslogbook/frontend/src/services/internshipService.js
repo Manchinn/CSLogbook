@@ -444,7 +444,6 @@ const internshipService = {
       throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลสรุปการฝึกงาน');
     }
   },
-
   /**
    * ดาวน์โหลดเอกสารสรุปการฝึกงาน PDF
    */
@@ -461,6 +460,94 @@ const internshipService = {
     } catch (error) {
       console.error('Error downloading internship summary PDF:', error);
       throw new Error(error.response?.data?.message || 'ไม่สามารถดาวน์โหลดเอกสารสรุปการฝึกงาน');
+    }
+  },
+  
+  /**
+   * บันทึกบทสรุปการฝึกงาน
+   */
+  saveReflection: async (data) => {
+    try {
+      const response = await apiClient.post('/internship/logbook/reflection', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกบทสรุปการฝึกงาน');
+    }
+  },
+  
+  /**
+   * ดึงบทสรุปการฝึกงาน
+   */  getReflection: async () => {
+    try {
+      const response = await apiClient.get('/internship/logbook/reflection');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting reflection:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงบทสรุปการฝึกงาน');
+    }
+  },
+  
+  /**
+   * ส่งแบบประเมินให้พี่เลี้ยง
+   */
+  sendEvaluationForm: async (data) => {
+    try {
+      if (!data.supervisorEmail) {
+        throw new Error('กรุณาระบุอีเมลของพี่เลี้ยง');
+      }
+      
+      const response = await apiClient.post('/internship/evaluation/send', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error sending evaluation form:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถส่งแบบประเมินไปยังพี่เลี้ยง');
+    }
+  },
+  
+  /**
+   * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+   */  getEvaluationFormStatus: async () => {
+    try {
+      const response = await apiClient.get('/internship/evaluation/status');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting evaluation form status:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถตรวจสอบสถานะการส่งแบบประเมิน');
+    }
+  },
+  
+  /**
+   * ดึงข้อมูลแบบประเมินโดยใช้โทเค็น
+   */
+  getEvaluationFormByToken: async (token) => {
+    try {
+      if (!token) {
+        throw new Error('ไม่พบโทเค็นสำหรับการประเมิน');
+      }
+      
+      const response = await apiClient.get(`/internship/evaluation/form/${token}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting evaluation form by token:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงข้อมูลแบบประเมิน');
+    }
+  },
+  
+  /**
+   * บันทึกผลการประเมินจากพี่เลี้ยง
+   */
+  submitSupervisorEvaluation: async (data) => {
+    try {
+      if (!data.token) {
+        throw new Error('ไม่พบโทเค็นสำหรับการประเมิน');
+      }
+      
+      const response = await apiClient.post('/internship/evaluation/submit', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting supervisor evaluation:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกผลการประเมิน');
     }
   },
 

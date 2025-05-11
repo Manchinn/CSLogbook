@@ -134,7 +134,7 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
       key: "workDate",
       render: (date) => {
         try {
-          return dayjs(date).format(DATE_FORMAT_MEDIUM);
+          return dayjs(date).format(DATE_FORMAT_MEDIUM.replace('YYYY','BBBB'));
         } catch (e) {
           return String(date);
         }

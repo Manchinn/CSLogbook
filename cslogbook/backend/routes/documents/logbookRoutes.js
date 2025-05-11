@@ -120,6 +120,30 @@ router.put('/timesheet/:id/approve',
     internshipLogbookController.approveTimeSheetEntry
 );
 
+// ============= เส้นทางสำหรับบทสรุปการฝึกงาน =============
+
+/**
+ * @route POST /api/logbooks/internship/reflection
+ * @desc บันทึกบทสรุปการฝึกงาน
+ * @access Private (Student)
+ */
+router.post('/reflection',
+    authenticateToken,
+    checkRole(['student']),
+    internshipLogbookController.saveReflection
+);
+
+/**
+ * @route GET /api/logbooks/internship/reflection
+ * @desc ดึงบทสรุปการฝึกงานของนักศึกษา
+ * @access Private (Student)
+ */
+router.get('/reflection',
+    authenticateToken,
+    checkRole(['student']),
+    internshipLogbookController.getReflection
+);
+
 /**
  * @route GET /api/logbooks/internship/student/:studentId/timesheet
  * @desc ดึงข้อมูลบันทึกการฝึกงานของนักศึกษา (สำหรับอาจารย์ที่ปรึกษา)
