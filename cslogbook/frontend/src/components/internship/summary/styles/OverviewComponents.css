@@ -1,0 +1,187 @@
+/* OverviewComponents.css */
+.overview-section {
+  margin-bottom: 24px;
+}
+
+/* Stats Overview Styles */
+.stats-overview .stat-card {
+  height: 100%;
+  transition: all 0.3s;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.stats-overview .stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.stat-card .ant-statistic-title {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.stat-card .ant-statistic-content {
+  color: #1d3557;
+  font-size: 24px;
+}
+
+.stat-card-days {
+  background: linear-gradient(135deg, #ebf5ff 0%, #dbeafe 100%);
+}
+
+.stat-card-hours {
+  background: linear-gradient(135deg, #e8f4ff 0%, #d8eafe 100%);
+}
+
+.stat-card-approved {
+  background: linear-gradient(135deg, #e7f7ef 0%, #d8f3e9 100%);
+}
+
+.stat-card-pending {
+  background: linear-gradient(135deg, #fff9e8 0%, #fff3d0 100%);
+}
+
+/* Weekly Overview Styles */
+.weekly-overview {
+  margin-top: 24px;
+}
+
+.weekly-overview-card {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* รายละเอียดรายการใน Timeline */
+.weekly-log-item {
+  width: 100%;
+}
+
+.weekly-log-item .description {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.weekly-overview-card .ant-card-head {
+  background: rgba(240, 242, 245, 0.5);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.weekly-overview-card .ant-card-head-title {
+  color: #1d3557;
+  font-weight: 600;
+}
+
+.weekly-item {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.3s;
+}
+
+.weekly-item:last-child {
+  border-bottom: none;
+}
+
+.weekly-item:hover {
+  background: rgba(240, 247, 255, 0.5);
+}
+
+.weekly-item .week-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.weekly-item .week-name {
+  font-weight: 600;
+  color: #1d3557;
+  font-size: 16px;
+}
+
+.weekly-item .week-date {
+  color: #666;
+  font-size: 14px;
+}
+
+.weekly-item .week-stats {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.weekly-item .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+}
+
+.weekly-item .stat-icon {
+  color: #1890ff;
+}
+
+.weekly-item .progress-wrapper {
+  margin-top: 12px;
+}
+
+/* Skills Overview Styles */
+.skills-overview-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.skills-chart {
+  flex: 1;
+}
+
+.skill-category {
+  margin-bottom: 16px;
+}
+
+.skill-category-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.skill-category-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.skill-category-percentage {
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.skills-overview .ant-tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 0;
+}
+
+.skills-overview .ant-progress-text {
+  color: #333;
+  font-weight: 500;
+}

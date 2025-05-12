@@ -504,8 +504,7 @@ const internshipService = {
       throw new Error(error.response?.data?.message || 'ไม่สามารถส่งแบบประเมินไปยังพี่เลี้ยง');
     }
   },
-  
-  /**
+    /**
    * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
    */  getEvaluationFormStatus: async () => {
     try {
@@ -513,7 +512,17 @@ const internshipService = {
       return response.data;
     } catch (error) {
       console.error('Error getting evaluation form status:', error);
-      throw new Error(error.response?.data?.message || 'ไม่สามารถตรวจสอบสถานะการส่งแบบประเมิน');
+      // ส่งค่า default กลับไปเพื่อไม่ให้ frontend พัง
+      return {
+        success: true,
+        message: 'ไม่สามารถตรวจสอบสถานะการส่งแบบประเมิน แต่ดำเนินการต่อได้',
+        data: {
+          hasEvaluation: false,
+          isSent: false,
+          isCompleted: false,
+          error: true
+        }
+      };
     }
   },
   

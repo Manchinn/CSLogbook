@@ -1,0 +1,104 @@
+/* ReflectionForm.css */
+.reflection-form {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.reflection-form .ant-form-item-label > label {
+  font-weight: 500;
+  color: #1d3557;
+}
+
+.reflection-form .ant-form-item-extra {
+  color: #666;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.reflection-form .ant-input-textarea {
+  min-height: 80px;
+}
+
+.reflection-form .ant-form-item-control-input-content .ant-input,
+.reflection-form .ant-form-item-control-input-content .ant-input-affix-wrapper,
+.reflection-form .ant-form-item-control-input-content .ant-input-textarea-show-count::after {
+  transition: all 0.3s;
+  border-color: #d9d9d9;
+}
+
+.reflection-form .ant-form-item-control-input-content .ant-input:hover,
+.reflection-form .ant-form-item-control-input-content .ant-input-affix-wrapper:hover,
+.reflection-form .ant-form-item-control-input-content .ant-input-affix-wrapper-focused,
+.reflection-form .ant-form-item-control-input-content .ant-input:focus {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Read-only styles */
+.reflection-readonly {
+  background: #f9f9f9;
+}
+
+.reflection-readonly .reflection-section {
+  margin-bottom: 24px;
+}
+
+.reflection-readonly .section-title {
+  font-weight: 600;
+  color: #1d3557;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.reflection-readonly .section-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+  white-space: pre-wrap;
+}
+
+.reflection-form-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Form item styling */
+.form-row-item {
+  margin-bottom: 24px;
+}
+
+.form-row-item .label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reflection-form .ant-form-item {
+  animation: fadeIn 0.5s ease;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .reflection-form {
+    padding: 16px;
+  }
+  
+  .reflection-form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .reflection-form-actions button {
+    width: 100%;
+  }
+}

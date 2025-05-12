@@ -90,6 +90,31 @@ router.get('/summary/download',
     internshipController.downloadInternshipSummary
 );
 
+// ============= เส้นทางสำหรับการรายงานผล =============
+
+// ตรวจสอบสถานะของสรุปการฝึกงาน
+router.get('/summary',
+    authenticateToken,
+    checkRole(['student', 'teacher']),
+    internshipController.getInternshipSummary
+);
+
+// ============= เส้นทางสำหรับการประเมินผลการฝึกงาน =============
+
+// ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+router.get('/evaluation/status',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getEvaluationStatus
+);
+
+// ส่งแบบประเมินให้พี่เลี้ยง
+router.post('/evaluation/send',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.sendEvaluationForm
+);
+
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
 // อัปโหลดใบแสดงผลการเรียน (Transcript)
 router.post('/upload-transcript',

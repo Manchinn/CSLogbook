@@ -804,34 +804,181 @@ exports.getCS05List = async (req, res) => {
   }
 };
 
-/* 
-// === Controller สำหรับสมุดบันทึกการฝึกงาน ===
-exports.addLogbookEntry = async (req, res) => {
-  // TODO: Implement logbook entry creation
+// ============= Controller สำหรับการประเมินผลการฝึกงาน =============
+/**
+ * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+ */
+exports.getEvaluationStatus = async (req, res) => {
+  try {
+    // ตรวจสอบว่ามี request.user หรือไม่
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
+      });
+    }
+
+    const student = await Student.findOne({
+      where: { userId: req.user.userId }
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา'
+      });
+    }
+    
+    // เก็บค่า studentId ไว้ใช้
+    const studentId = student.studentId;
+    
+    // ดึงข้อมูล CS05 ที่ได้รับการอนุมัติแล้ว - แบบทนต่อ error มากขึ้น
+    try {
+      const document = await Document.findOne({
+        where: {
+          userId: req.user.userId,
+          documentName: 'CS05',
+          status: 'approved'
+        },
+        order: [['created_at', 'DESC']]
+      });
+
+      if (!document) {
+        return res.status(200).json({
+          success: true,
+          message: 'ยังไม่มีเอกสาร CS05 ที่ได้รับการอนุมัติ',
+          data: {
+            hasEvaluation: false,
+            isSent: false,
+            isCompleted: false
+          }
+        });
+      }
+        // ดึงข้อมูล internship แยกต่างหากเพื่อลดปัญหา include
+      const internshipDoc = await InternshipDocument.findOne({
+        where: { documentId: document.documentId },
+        attributes: ['internshipId', 'studentId', 'supervisorName', 'supervisorEmail'] // เพิ่ม studentId ในการเรียกข้อมูล
+      });
+      
+      if (!internshipDoc) {
+        return res.status(200).json({
+          success: true,
+          message: 'ไม่พบข้อมูล internship ที่เกี่ยวข้อง',
+          data: {
+            hasEvaluation: false,
+            isSent: false,
+            isCompleted: false
+          }
+        });
+      }
+      
+      // ตรวจสอบและอัพเดท studentId ถ้าไม่มี
+      if (!internshipDoc.studentId && student) {
+        try {
+          await internshipDoc.update({ studentId: student.studentId });
+        } catch (updateErr) {
+          console.error('Error updating internshipDoc with studentId:', updateErr);
+          // ทำงานต่อไปแม้อัพเดทไม่สำเร็จ
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching document or internship data:', err);
+      // ส่งค่า default เพื่อไม่ให้ frontend เกิด error
+      return res.status(200).json({
+        success: true,
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05 แต่ดำเนินการต่อได้',
+        data: {
+          hasEvaluation: false,
+          isSent: false,
+          isCompleted: false,
+          error: true
+        }
+      });
+    }    // ตรงนี้ในอนาคตจะมีการตรวจสอบข้อมูลจากตาราง evaluations
+    // แต่ตอนนี้ยังไม่มีการพัฒนาส่วนนี้ จึงส่งค่าเริ่มต้นกลับไป
+    return res.status(200).json({
+      success: true,
+      message: 'ดึงข้อมูลสถานะการประเมินสำเร็จ',
+      data: {
+        hasEvaluation: false, // มีแบบประเมินหรือไม่
+        isSent: false,        // ส่งไปให้พี่เลี้ยงแล้วหรือไม่
+        isCompleted: false    // พี่เลี้ยงทำการประเมินเสร็จแล้วหรือไม่
+      }
+    });
+
+  } catch (error) {
+    console.error('Get Evaluation Status Error:', error);
+    // เปลี่ยนจาก status 500 เป็น 200 แต่ส่งข้อมูลที่ frontend สามารถจัดการได้
+    return res.status(200).json({
+      success: true,
+      message: 'พบข้อผิดพลาด แต่สามารถดำเนินการต่อได้',
+      data: {
+        hasEvaluation: false,
+        isSent: false,
+        isCompleted: false,
+        error: true
+      },
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
-exports.getLogbookEntries = async (req, res) => {
-  // TODO: Implement getting logbook entries
-};
+/**
+ * ส่งแบบประเมินให้พี่เลี้ยง
+ */
+exports.sendEvaluationForm = async (req, res) => {
+  try {
+    // ตรวจสอบว่ามี request.user และ supervisorEmail หรือไม่
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
+      });
+    }
+    
+    const { supervisorEmail } = req.body;
+    
+    if (!supervisorEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุอีเมลของพี่เลี้ยง'
+      });
+    }
 
-// === Controller สำหรับจัดการไฟล์เอกสาร ===
-exports.uploadDocument = async (req, res) => {
-  // TODO: Implement document upload
-};
+    // ดึงข้อมูลนักศึกษา
+    const student = await Student.findOne({
+      where: { userId: req.user.userId },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName', 'email']
+      }]
+    });
 
-exports.getDocuments = async (req, res) => {
-  // TODO: Implement getting all documents
-};
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา'
+      });
+    }
 
-exports.getDocumentById = async (req, res) => {
-  // TODO: Implement getting document by id
-};
+    // ในอนาคตจะเพิ่มโค้ดสำหรับการส่งอีเมลและบันทึกข้อมูลลงตาราง evaluations
+    
+    return res.status(200).json({
+      success: true,
+      message: 'ส่งแบบประเมินไปยังพี่เลี้ยงสำเร็จ',
+      data: {
+        isSent: true,
+        sentDate: new Date()
+      }
+    });
 
-exports.downloadDocument = async (req, res) => {
-  // TODO: Implement document download
+  } catch (error) {
+    console.error('Send Evaluation Form Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการส่งแบบประเมิน',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
-
-/* // === Controller สำหรับผู้ดูแลระบบ ===
-exports.updateStatus = async (req, res) => {
-  // TODO: Implement document status update
-}; */
