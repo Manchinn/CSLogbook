@@ -335,3 +335,11 @@
     margin-bottom: 4px;
   }
 }
+
+/* ปิด hover effect สำหรับ card หลักในหน้า summary */
+.summary-card:hover,
+.summary-header-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
+}

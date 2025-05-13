@@ -146,8 +146,9 @@
 }
 
 .status-summary-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
 }
 
 .status-summary-card.total {
@@ -254,8 +255,9 @@
 }
 
 .status-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transform: none !important;
+  cursor: default;
 }
 
 .detail-item {
@@ -287,7 +289,8 @@
 }
 
 .skill-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transform: none !important;
 }
 
 .skill-summary-card {
@@ -452,4 +455,12 @@
   h3, h4 {
     font-size: 14px !important;
   }
+}
+
+/* ปิด hover effect สำหรับ logbook table card */
+.logbook-section .ant-card:hover,
+.logbook-table-container .ant-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
 }

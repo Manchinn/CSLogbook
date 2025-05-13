@@ -28,6 +28,14 @@
   background-color: rgba(250, 250, 252, 0.7);
 }
 
+/* ปิด hover effect สำหรับ card หลักของ logbook */
+.logbook-card:hover,
+.logbook-table-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
+}
+
 /* Status styles */
 .status-tag {
   border-radius: 4px;

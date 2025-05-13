@@ -26,11 +26,21 @@
   border-radius: 8px;
   transition: all 0.3s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.5s ease;
 }
 
+/* ปิด hover effect สำหรับ skill card */
 .skill-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important; /* คงค่าเดิม */
+}
+
+/* ปิด hover effect สำหรับ card หลักในส่วนทักษะ */
+.skills-card:hover,
+.skills-analysis-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
 }
 
 .skill-card .ant-statistic-title {
@@ -61,6 +71,7 @@
   border-radius: 8px;
 }
 
+/* ปิด hover effect สำหรับ skill tags */
 .skill-tags-cloud .ant-tag {
   margin-right: 0;
   transition: all 0.2s;
@@ -68,17 +79,13 @@
 }
 
 .skill-tags-cloud .ant-tag:hover {
-  transform: scale(1.05);
+  transform: none !important;
 }
 
 /* Animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.skill-card {
-  animation: fadeIn 0.5s ease;
 }
 
 /* Mobile styles */

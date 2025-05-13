@@ -92,8 +92,28 @@
   border-bottom: none;
 }
 
+/* ปิด hover effect สำหรับ weekly items */
+
+/* แก้ไข weekly-item hover เป็นไม่มี effect */
 .weekly-item:hover {
-  background: rgba(240, 247, 255, 0.5);
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* แก้ไข weekly-item-card hover เป็นไม่มี effect */
+.weekly-item-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  cursor: default;
+}
+
+/* ปิด hover effect สำหรับ weekly-overview-card */
+.weekly-overview-card:hover,
+.weekly-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important; /* คงค่าเดิม */
+  cursor: default;
 }
 
 .weekly-item .week-title {

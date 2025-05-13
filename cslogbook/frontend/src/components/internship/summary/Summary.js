@@ -300,7 +300,7 @@ const InternshipSummary = () => {
                     <div className="dashboard-subtitle">จาก 240 ชั่วโมง</div>
                   </div>
                 )}
-                width={180}
+                size={180}
               />
             </div>
           </Col>

@@ -36,6 +36,12 @@
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
+/* ปิด hover effect สำหรับ reflection form card */
+.reflection-form-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Read-only styles */
 .reflection-readonly {
   background: #f9f9f9;
