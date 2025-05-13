@@ -36,6 +36,10 @@ module.exports = (sequelize) => {
                 foreignKey: 'student_id',
                 as: 'progressData'
             });
+              Student.hasMany(models.StudentWorkflowActivity, {
+                foreignKey: 'student_id',
+                as: 'workflowActivities'
+            });
         }
         
         // เพิ่ม method สำหรับตรวจสอบสิทธิ์ฝึกงาน
@@ -383,8 +387,29 @@ module.exports = (sequelize) => {
             field: 'student_year',
             validate: {
                 min: 1,
-                max: 8
+                max: 8 // Adjusted max based on typical university years
             }
+        },
+        // Added fields to match database schema
+        internshipStatus: {
+            type: DataTypes.ENUM('not_started', 'in_progress', 'completed'),
+            defaultValue: 'not_started',
+            field: 'internship_status'
+        },
+        projectStatus: {
+            type: DataTypes.ENUM('not_started', 'in_progress', 'completed'),
+            defaultValue: 'not_started',
+            field: 'project_status'
+        },
+        isEnrolledInternship: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            field: 'is_enrolled_internship'
+        },
+        isEnrolledProject: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            field: 'is_enrolled_project'
         }
     }, {
         sequelize,

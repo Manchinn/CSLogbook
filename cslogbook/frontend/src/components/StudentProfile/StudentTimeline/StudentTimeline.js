@@ -10,10 +10,13 @@ import {
   Button,
   Spin,
   message,
+  Input,
+  Form,
+  Modal,
 } from "antd";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { timelineService } from "../../../services/timelineService";
-import { studentService } from "../../../services/studentService"; // เพิ่ม import studentService
+import { studentService } from "../../../services/studentService";
 import {
   isEligibleForInternship,
   isEligibleForProject,
@@ -26,12 +29,19 @@ import InternshipSection from "./InternshipSection";
 import ProjectSection from "./ProjectSection";
 import StudyStatistics from "./StudyStatistics";
 import ImportantDeadlines from "./ImportantDeadlines";
+import { SearchOutlined } from '@ant-design/icons';
 
 const { Title, Text, Paragraph } = Typography;
 
 const StudentTimeline = () => {
-  const { id } = useParams(); // ใช้ useParams เพื่อดึง ID จาก URL
-  const studentId = id || localStorage.getItem("studentId"); // ถ้าไม่มี id ใน URL ให้ใช้จาก localStorage
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  let studentIdToUse = id || localStorage.getItem("studentId");
+
+  if (studentIdToUse && studentIdToUse.length <= 4) {
+    studentIdToUse = parseInt(studentIdToUse);
+  }
 
   const [student, setStudent] = useState(DEFAULT_STUDENT_DATA);
   const [progress, setProgress] = useState(DEFAULT_PROGRESS_DATA);
@@ -39,497 +49,135 @@ const StudentTimeline = () => {
   const [deadlines, setDeadlines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showStudentSearchModal, setShowStudentSearchModal] = useState(false);
+  const [searchStudentId, setSearchStudentId] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // ฟังก์ชั่นค้นหานักศึกษาด้วยรหัสใหม่
+  const searchStudent = async () => {
+    if (!searchStudentId || searchStudentId.trim() === "") {
+      message.warning("กรุณากรอกรหัสนักศึกษา");
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      // อาจเรียกใช้ API สำหรับตรวจสอบนักศึกษาก่อน
+      const studentExists = await timelineService.checkStudentExists(searchStudentId);
+      
+      if (studentExists && studentExists.success) {
+        // ถ้าพบนักศึกษา บันทึกรหัสลงใน localStorage และเปลี่ยนหน้า
+        localStorage.setItem("studentId", searchStudentId);
+        navigate(`/student/timeline/${searchStudentId}`);
+        window.location.reload(); // รีโหลดเพื่อใช้รหัสนักศึกษาใหม่
+      } else {
+        message.error("ไม่พบข้อมูลนักศึกษาในระบบ");
+      }
+    } catch (error) {
+      message.error("เกิดข้อผิดพลาดในการค้นหา: " + error.message);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // เรียกข้อมูลไทม์ไลน์จาก API
     const fetchTimelineData = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        // ตรวจสอบว่า studentId มีค่าหรือไม่ ถ้าไม่มีให้กำหนดค่าเริ่มต้น
-        if (!studentId) {
-          setError("ไม่พบรหัสนักศึกษา กรุณาเข้าสู่ระบบใหม่");
-          setLoading(false);
-          return;
-        }
+        console.log("=== TIMELINE DATA ===");
+        console.log("Fetching timeline for student:", studentIdToUse);
 
-        // ดึงข้อมูลนักศึกษาจาก studentService เพื่อให้ได้ข้อมูลที่ถูกต้อง
-        let studentData = {};
-        let studentResponse;
-
-        try {
-          console.log("Fetching student data from studentService...");
-          studentResponse = await studentService.getStudentInfo(studentId);
-
-          if (studentResponse && studentResponse.success) {
-            console.log(
-              "Student data from studentService:",
-              studentResponse.data
-            );
-            studentData = studentResponse.data || {};
-          } else {
-            console.warn(
-              "Failed to fetch student data from studentService:",
-              studentResponse?.message
-            );
-          }
-        } catch (studentError) {
-          console.error("Error fetching student data:", studentError);
-        }
-
-        // ดึงข้อมูลไทม์ไลน์
-        const response = await timelineService.getStudentTimeline(studentId);
-
-        // เพิ่ม console.log เพื่อตรวจสอบข้อมูลที่ได้จาก API
-        console.log("===== TIMELINE DATA =====");
+        const response = await timelineService.getStudentTimeline(studentIdToUse);
         console.log("API Response:", response);
 
-        if (response.success) {
-          // ข้อมูลจาก API สำเร็จ
-          const timelineStudentData = response.data.student || {};
-
-          // แสดงข้อมูลนักศึกษาที่ได้รับจาก API
-          console.log("Student Data from timeline API:", timelineStudentData);
-
-          // รวมข้อมูลนักศึกษาจากทั้งสอง API โดยให้ความสำคัญกับข้อมูลจาก studentService ก่อน
-          const mergedStudentData = {
-            ...timelineStudentData,
-            ...(studentData || {}),
-            // รักษาข้อมูลบางส่วนจาก timelineStudentData เฉพาะส่วนที่อาจไม่มีใน studentData
-            isEnrolledInternship:
-              studentData.isEnrolledInternship ||
-              timelineStudentData.isEnrolledInternship ||
-              false,
-            isEnrolledProject:
-              timelineStudentData.isEnrolledProject !== undefined
-                ? timelineStudentData.isEnrolledProject
-                : false,
-            internshipStatus:
-              studentData.internshipStatus ||
-              timelineStudentData.internshipStatus ||
-              "not_started",
-            projectStatus:
-              timelineStudentData.projectStatus ||
-              studentData.projectStatus ||
-              "not_started",
-            nextAction: timelineStudentData.nextAction || "none",
-          };
-
-          console.log("Merged Student Data:", mergedStudentData);
-
-          // ใช้ข้อมูล eligibility โดยตรงจาก studentData ถ้ามี
-          let internshipEligible = {
-            eligible: false,
-            message: "ไม่มีข้อมูลสิทธิ์",
-          };
-          let projectEligible = {
-            eligible: false,
-            message: "ไม่มีข้อมูลสิทธิ์",
-          };
-
-          // ตรวจสอบข้อมูลสิทธิ์จาก studentData ก่อน (ข้อมูลที่น่าจะถูกต้องกว่า)
-          if (studentData && studentData.eligibility) {
-            console.log(
-              "Using eligibility from studentService:",
-              studentData.eligibility
-            );
-
-            if (studentData.eligibility.internship) {
-              internshipEligible = studentData.eligibility.internship;
+        if (response && response.success) {
+          if (response.data && response.data.student) {
+            // บันทึก studentId จริงลงใน localStorage เพื่อใช้ต่อไป
+            if (response.data.student.studentId) {
+              localStorage.setItem("studentId", response.data.student.studentId);
+            } else if (response.data.student.id) {
+              localStorage.setItem("studentId", response.data.student.id);
             }
-
-            if (studentData.eligibility.project) {
-              projectEligible = studentData.eligibility.project;
-            }
-          }
-          // ถ้าไม่มี eligibility จาก studentData ตรวจสอบจาก timelineStudentData
-          else if (mergedStudentData.eligibility) {
-            console.log(
-              "Using eligibility from timeline API:",
-              mergedStudentData.eligibility
-            );
-
-            if (mergedStudentData.eligibility.internship) {
-              internshipEligible = mergedStudentData.eligibility.internship;
-            }
-
-            if (mergedStudentData.eligibility.project) {
-              projectEligible = mergedStudentData.eligibility.project;
-            }
-          }
-          // ถ้าไม่มี eligibility ทั้งสอง API ให้คำนวณจากหน่วยกิตตามปกติ
-          else {
-            console.log("No eligibility data found, calculating from credits");
-
-            const internshipRequirements = mergedStudentData.requirements
-              ?.internship || { minCredits: 81 };
-            const projectRequirements = mergedStudentData.requirements
-              ?.project || { minCredits: 95, minMajorCredits: 47 };
-
-            // ดึงปีการศึกษาจาก studentYear ที่ถูกต้อง
-            const studentYear =
-              mergedStudentData.studentYear &&
-              typeof mergedStudentData.studentYear === "object"
-                ? mergedStudentData.studentYear.year
-                : typeof mergedStudentData.studentYear === "number"
-                ? mergedStudentData.studentYear
-                : typeof mergedStudentData.year === "number"
-                ? mergedStudentData.year
-                : 1;
-
-            internshipEligible = isEligibleForInternship(
-              studentYear,
-              mergedStudentData.totalCredits || 0,
-              mergedStudentData.majorCredits || 0,
-              internshipRequirements
-            );
-
-            projectEligible = isEligibleForProject(
-              studentYear,
-              mergedStudentData.totalCredits || 0,
-              mergedStudentData.majorCredits || 0,
-              projectRequirements
-            );
+            
+            setStudent((prev) => ({
+              ...prev,
+              ...response.data.student,
+            }));
           }
 
-          // แสดงผลลัพธ์การตรวจสอบสิทธิ์
-          console.log("Internship Eligibility:", internshipEligible);
-          console.log("Project Eligibility:", projectEligible);
-
-          // ตรวจสอบและกำหนดค่าชั้นปีที่ถูกต้อง
-          let studentYear = null;
-
-          // ใช้ค่าจาก studentData.studentYear โดยตรง
-          if (studentData && studentData.studentYear) {
-            studentYear =
-              studentData.studentYear.year || studentData.studentYear;
-          }
-          // ถ้าไม่มี ให้ใช้ค่าจาก mergedStudentData.studentYear
-          else if (mergedStudentData && mergedStudentData.studentYear) {
-            studentYear =
-              mergedStudentData.studentYear.year ||
-              mergedStudentData.studentYear;
-          }
-          // ถ้าไม่มีข้อมูล ให้ใช้ค่าเริ่มต้น
-          else {
-            studentYear = 1; // ค่าเริ่มต้น
+          if (response.data && response.data.progress) {
+            setProgress(response.data.progress);
           }
 
-          console.log("Final student year:", studentYear);
-
-          // อัพเดทข้อมูลนักศึกษาพร้อมสถานะสิทธิ์
-          const enhancedStudentData = {
-            ...mergedStudentData,
-            internshipEligible: internshipEligible.eligible,
-            projectEligible: projectEligible.eligible,
-            internshipEligibleMessage: internshipEligible.message,
-            projectEligibleMessage: projectEligible.message,
-            year: studentYear,
-          };
-
-          setStudent(enhancedStudentData);
-          console.log("Enhanced Student Data:", enhancedStudentData);
-
-          // ตรวจสอบและแปลงรูปแบบข้อมูล
-          let progressData;
-
-          // ตรวจสอบว่ามีข้อมูล progress ใน response หรือไม่
-          if (response.data.progress) {
-            // ใช้ข้อมูล progress ที่มีอยู่แล้ว
-            progressData = {
-              internship: {
-                ...(response.data.progress.internship ||
-                  DEFAULT_PROGRESS_DATA.internship),
-              },
-              project: {
-                ...(response.data.progress.project ||
-                  DEFAULT_PROGRESS_DATA.project),
-              },
-            };
-          }
-          // ถ้าไม่มี progress แต่มีข้อมูล timeline ให้แปลงเป็น progress
-          else if (response.data.timeline) {
-            const internshipSteps = response.data.timeline.internship || [];
-            const projectSteps = response.data.timeline.project || [];
-
-            progressData = {
-              internship: {
-                ...DEFAULT_PROGRESS_DATA.internship, // Start with default structure
-                steps: internshipSteps,
-              },
-              project: {
-                ...DEFAULT_PROGRESS_DATA.project, // Start with default structure
-                steps: projectSteps,
-              },
-            };
-          }
-          // ถ้าไม่มีทั้ง progress และ timeline ให้ใช้ค่าเริ่มต้น
-          else {
-            progressData = {
-              internship: {
-                ...DEFAULT_PROGRESS_DATA.internship,
-              },
-              project: {
-                ...DEFAULT_PROGRESS_DATA.project,
-              },
-            };
+          if (response.data && response.data.upcomingDeadlines) {
+            setDeadlines(response.data.upcomingDeadlines);
           }
 
-          // ===== START: NEW COMMON PROGRESS CALCULATION LOGIC =====
-          ["internship", "project"].forEach((type) => {
-            const currentTypeProgress = progressData[type] || DEFAULT_PROGRESS_DATA[type];
-            const stepsArray = currentTypeProgress.steps || [];
-            const eligibility = type === "internship" ? internshipEligible : projectEligible;
-
-            // Initialize or update the structure for finalProgressData[type]
-            progressData[type] = {
-              ...DEFAULT_PROGRESS_DATA[type], // Ensure all default fields are present
-              ...currentTypeProgress,         // Overlay with existing data
-              steps: stepsArray,
-              blocked: !eligibility.eligible,
-              blockReason: eligibility.eligible ? "" : eligibility.message,
-              currentStepDisplay: 0,
-              totalStepsDisplay: 0,
-              progress: 0,
-            };
-
-            if (stepsArray.length > 0) {
-              const totalSteps = stepsArray.length;
-              const completedStepsCount = stepsArray.filter(s => s.status === "completed").length;
-              const inProgressStepIndex = stepsArray.findIndex(s => s.status === "in_progress");
-
-              let currentStepNum = 0;
-              if (inProgressStepIndex !== -1) {
-                currentStepNum = inProgressStepIndex + 1; // 1-based
-              } else if (completedStepsCount < totalSteps) {
-                currentStepNum = completedStepsCount + 1; // Next step is 1-based
-              } else if (completedStepsCount === totalSteps) {
-                currentStepNum = totalSteps; // All done, current is the last one (1-based)
-              }
-
-              progressData[type].currentStepDisplay = currentStepNum;
-              progressData[type].totalStepsDisplay = totalSteps;
-              progressData[type].progress = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
-              progressData[type].totalSteps = totalSteps;
-
-              // Update 'currentStep' (0-based index or completed count for compatibility if needed)
-              if (inProgressStepIndex !== -1) {
-                progressData[type].currentStep = inProgressStepIndex;
-              } else {
-                progressData[type].currentStep = completedStepsCount;
-              }
-            } else { // No steps for this type
-              progressData[type].currentStepDisplay = 0;
-              progressData[type].totalStepsDisplay = 0;
-              progressData[type].progress = 0;
-              progressData[type].currentStep = 0;
-              progressData[type].totalSteps = 0;
-            }
-          });
-          // ===== END: NEW COMMON PROGRESS CALCULATION LOGIC =====
-
-          // ตรวจสอบว่าสถานะของนักศึกษา (ผ่านการฝึกงาน/โครงงานหรือไม่) และปรับค่าความคืบหน้า
-          if (enhancedStudentData.internshipStatus === "completed") {
-            progressData.internship.progress = 100;
-            if (progressData.internship.totalStepsDisplay > 0) {
-                 progressData.internship.currentStepDisplay = progressData.internship.totalStepsDisplay;
-            }
-            // Ensure currentStep (original) is also updated
-            progressData.internship.currentStep = progressData.internship.totalSteps || 0;
+          if (response.data && response.data.notifications) {
+            setNotifications(response.data.notifications);
           }
-
-          if (enhancedStudentData.projectStatus === "completed") {
-            progressData.project.progress = 100;
-            if (progressData.project.totalStepsDisplay > 0) {
-                progressData.project.currentStepDisplay = progressData.project.totalStepsDisplay;
-            }
-            // Ensure currentStep (original) is also updated
-            progressData.project.currentStep = progressData.project.totalSteps || 0;
-          }
-
-          // ให้แน่ใจว่าความคืบหน้าไม่เกิน 100% และไม่ต่ำกว่า 0%
-          ["internship", "project"].forEach((type) => {
-            if (progressData[type]) {
-                 progressData[type].progress = Math.min(
-                    Math.max(progressData[type].progress || 0, 0),
-                    100
-                );
-            }
-          });
-
-          setProgress(progressData);
-          setNotifications(response.data.notifications || []);
-          setDeadlines(
-            response.data.upcomingDeadlines || response.data.deadlines || []
-          );
-          setError(null);
         } else {
-          // มีข้อผิดพลาดจาก API
-          console.log("API response error:", response.message);
-          setError(response.message || "ไม่สามารถดึงข้อมูลไทม์ไลน์ได้");
-
-          // ลองสร้างไทม์ไลน์เริ่มต้นในกรณีที่ไม่พบข้อมูลไทม์ไลน์
-          if (
-            response.message &&
-            (response.message.includes("ไม่พบข้อมูลไทม์ไลน์") ||
-              response.message.includes("ไม่พบขั้นตอนใน Timeline"))
-          ) {
-            try {
-              message.info("กำลังสร้างไทม์ไลน์เริ่มต้นให้กับนักศึกษา...");
-              const initResponse =
-                await timelineService.initializeStudentTimeline(studentId);
-              if (initResponse.success) {
-                message.success(
-                  "สร้างไทม์ไลน์เริ่มต้นสำเร็จ กำลังโหลดข้อมูล..."
-                );
-                // โหลดข้อมูลใหม่หลังจากสร้างไทม์ไลน์
-                const newResponse = await timelineService.getStudentTimeline(
-                  studentId
-                );
-                if (newResponse.success) {
-                  // ทำตามขั้นตอนเดิมอีกครั้ง เมื่อมีข้อมูลใหม่
-                  const studentData = newResponse.data.student || {};
-
-                  // ใช้ข้อมูล eligibility จาก response โดยตรง
-                  let internshipEligible = {
-                    eligible: false,
-                    message: "ไม่มีข้อมูลสิทธิ์",
-                  };
-                  let projectEligible = {
-                    eligible: false,
-                    message: "ไม่มีข้อมูลสิทธิ์",
-                  };
-
-                  // ถ้ามีข้อมูล eligibility จาก API ให้ใช้ค่าจาก API
-                  if (studentData.eligibility) {
-                    if (studentData.eligibility.internship) {
-                      internshipEligible = studentData.eligibility.internship;
-                    }
-                    if (studentData.eligibility.project) {
-                      projectEligible = studentData.eligibility.project;
-                    }
-                  }
-                  // ถ้าไม่มี ให้คำนวณจากหน่วยกิตตามปกติ
-                  else {
-                    const internshipRequirements =
-                      studentData.requirements?.internship || null;
-                    const projectRequirements =
-                      studentData.requirements?.project || null;
-
-                    internshipEligible = isEligibleForInternship(
-                      studentData.studentYear?.year ||
-                        studentData.studentYear ||
-                        0,
-                      studentData.totalCredits || 0,
-                      studentData.majorCredits || 0,
-                      internshipRequirements
-                    );
-
-                    projectEligible = isEligibleForProject(
-                      studentData.studentYear?.year ||
-                        studentData.studentYear ||
-                        0,
-                      studentData.totalCredits || 0,
-                      studentData.majorCredits || 0,
-                      projectRequirements
-                    );
-                  }
-
-                  setStudent({
-                    ...studentData,
-                    internshipEligible: internshipEligible.eligible,
-                    projectEligible: projectEligible.eligible,
-                    internshipEligibleMessage: internshipEligible.message,
-                    projectEligibleMessage: projectEligible.message,
-                    internshipStatus:
-                      studentData.internshipStatus || "not_started",
-                    projectStatus: studentData.projectStatus || "not_started",
-                    // ใช้ข้อมูล studentYear แบบตรง หรือจาก object
-                    year:
-                      studentData.studentYear?.year ||
-                      studentData.studentYear ||
-                      1,
-                    status: studentData.status || "normal",
-                  });
-
-                  // ใช้ข้อมูล progress ที่สร้างใหม่จากการ init
-                  if (newResponse.data.progress) {
-                    const updatedProgress = {
-                      ...newResponse.data.progress,
-                      internship: {
-                        ...newResponse.data.progress.internship,
-                        blocked: !internshipEligible.eligible,
-                        blockReason: internshipEligible.eligible
-                          ? ""
-                          : internshipEligible.message,
-                      },
-                      project: {
-                        ...newResponse.data.progress.project,
-                        blocked: !projectEligible.eligible,
-                        blockReason: projectEligible.eligible
-                          ? ""
-                          : projectEligible.message,
-                      },
-                    };
-                    setProgress(updatedProgress);
-                  } else if (newResponse.data.timeline) {
-                    // ถ้าไม่มี progress แต่มี timeline ให้แปลงเป็น progress
-                    const internshipSteps =
-                      newResponse.data.timeline.internship || [];
-                    const projectSteps =
-                      newResponse.data.timeline.project || [];
-
-                    const processedProgress = {
-                      internship: {
-                        steps: internshipSteps,
-                        currentStep: 0,
-                        totalSteps: internshipSteps.length,
-                        progress: 0,
-                        blocked: !internshipEligible.eligible,
-                        blockReason: internshipEligible.eligible
-                          ? ""
-                          : internshipEligible.message,
-                      },
-                      project: {
-                        steps: projectSteps,
-                        currentStep: 0,
-                        totalSteps: projectSteps.length,
-                        progress: 0,
-                        blocked: !projectEligible.eligible,
-                        blockReason: projectEligible.eligible
-                          ? ""
-                          : projectEligible.message,
-                      },
-                    };
-                    setProgress(processedProgress);
-                  }
-
-                  setNotifications(newResponse.data.notifications || []);
-                  setDeadlines(newResponse.data.deadlines || []);
-                  setError(null);
-                }
-              } else {
-                message.error("ไม่สามารถสร้างไทม์ไลน์เริ่มต้นได้");
-              }
-            } catch (initError) {
-              console.error("Error initializing timeline:", initError);
-              message.error("เกิดข้อผิดพลาดในการสร้างไทม์ไลน์เริ่มต้น");
-            }
+          setError(response?.message || "ไม่สามารถโหลดข้อมูล timeline ได้");
+          console.log("API response error:", response?.message);
+          
+          // เมื่อไม่พบข้อมูลนักศึกษา แสดง modal ค้นหา
+          if (response?.message?.includes("ไม่พบนักศึกษา") || 
+              response?.message?.includes("Student not found")) {
+            setShowStudentSearchModal(true);
           }
         }
-      } catch (err) {
-        console.error("Error fetching timeline data:", err);
-        setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่ภายหลัง");
-        message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+      } catch (error) {
+        console.error("Error fetching timeline data:", error);
+        setError(error.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTimelineData();
-  }, [studentId]);
+    if (studentIdToUse) {
+      fetchTimelineData();
+    } else {
+      setError("ไม่พบรหัสนักศึกษา");
+      setLoading(false);
+      setShowStudentSearchModal(true);
+    }
+  }, [studentIdToUse, navigate]);
 
-  // ถ้ากำลังโหลดข้อมูล ให้แสดง Loading
+  // Modal ค้นหานักศึกษา
+  const studentSearchModal = (
+    <Modal
+      title="ค้นหาข้อมูลนักศึกษา"
+      open={showStudentSearchModal}
+      onCancel={() => setShowStudentSearchModal(false)}
+      footer={[
+        <Button 
+          key="search" 
+          type="primary" 
+          icon={<SearchOutlined />}
+          loading={searchLoading}
+          onClick={searchStudent}
+        >
+          ค้นหา
+        </Button>,
+      ]}
+    >
+      <p>ระบบไม่พบข้อมูลนักศึกษารหัส {studentIdToUse}</p>
+      <p>คุณสามารถค้นหาข้อมูลด้วยรหัสนักศึกษาอื่น</p>
+      <Form layout="vertical">
+        <Form.Item label="รหัสนักศึกษา">
+          <Input 
+            placeholder="กรอกรหัสนักศึกษา" 
+            value={searchStudentId} 
+            onChange={(e) => setSearchStudentId(e.target.value)}
+            onPressEnter={searchStudent}
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+
   if (loading) {
     return (
       <div
@@ -545,202 +193,199 @@ const StudentTimeline = () => {
     );
   }
 
-  // ถ้ามีข้อผิดพลาด ให้แสดงข้อความแจ้งเตือน
   if (error) {
     return (
-      <Alert
-        message="ไม่สามารถโหลดข้อมูลไทม์ไลน์ได้"
-        description={error}
-        type="error"
-        showIcon
-        action={
-          <Button type="primary" onClick={() => window.location.reload()}>
-            ลองใหม่
-          </Button>
-        }
-      />
+      <>
+        <Alert
+          message="ไม่สามารถโหลดข้อมูลไทม์ไลน์ได้"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Space>
+              <Button type="primary" onClick={() => window.location.reload()}>
+                ลองใหม่
+              </Button>
+              <Button onClick={() => setShowStudentSearchModal(true)}>
+                ค้นหานักศึกษาอื่น
+              </Button>
+              <Button
+                onClick={() =>
+                  navigate("/login", { state: { returnUrl: window.location.pathname } })
+                }
+              >
+                เข้าสู่ระบบใหม่
+              </Button>
+            </Space>
+          }
+        />
+        {studentSearchModal}
+      </>
     );
   }
 
   return (
-    <div className="student-timeline">
-      {/* ส่วนหัวและแสดงภาพรวม */}
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <Card className="dashboard-card">
-            <Row gutter={16} align="middle">
-              <Col span={16}>
-                <Title level={4}>แนวทางการศึกษาของคุณ</Title>
-                <Paragraph>
-                  ติดตามขั้นตอนและความคืบหน้าตลอดการศึกษาในระบบฝึกงานและโครงงานพิเศษ
-                </Paragraph>
-              </Col>
-              <Col span={8} style={{ textAlign: "right" }}>
-                <Space direction="vertical" align="end">
-                  <Text strong>
-                    {(() => {
-                      // ใช้ข้อมูลชั้นปีจากหลายแหล่ง
-                      let studentYear = null;
+    <>
+      <div className="student-timeline">
+        <Row gutter={[16, 16]}>
+          <Col span={24}>
+            <Card className="dashboard-card">
+              <Row gutter={16} align="middle">
+                <Col span={16}>
+                  <Title level={4}>แนวทางการศึกษาของคุณ</Title>
+                  <Paragraph>
+                    ติดตามขั้นตอนและความคืบหน้าตลอดการศึกษาในระบบฝึกงานและโครงงานพิเศษ
+                  </Paragraph>
+                </Col>
+                <Col span={8} style={{ textAlign: "right" }}>
+                  <Space direction="vertical" align="end">
+                    <Text strong>
+                      {(() => {
+                        let studentYear = null;
 
-                      // 1. พยายามใช้จาก studentYear.year ก่อน (กรณีที่ API ส่งมาเป็น object)
-                      if (
-                        student &&
-                        student.studentYear &&
-                        typeof student.studentYear === "object" &&
-                        student.studentYear.year
-                      ) {
-                        studentYear = student.studentYear.year;
-                      }
-                      // 2. ถ้าไม่มี ลองดูจาก student.studentYear (กรณี API ส่งมาเป็นตัวเลข)
-                      else if (
-                        student &&
-                        typeof student.studentYear === "number" &&
-                        student.studentYear > 0
-                      ) {
-                        studentYear = student.studentYear;
-                      }
-                      // 3. ถ้าไม่มี ลองดูจาก student.year
-                      else if (
-                        student &&
-                        typeof student.year === "number" &&
-                        student.year > 0
-                      ) {
-                        studentYear = student.year;
-                      }
-                      // 4. ถ้ายังไม่มี และมีรหัสนักศึกษา ลองคำนวณจาก studentCode
-                      else if (student && student.studentCode) {
-                        try {
-                          const currentDate = new Date();
-                          const currentYear = currentDate.getFullYear() + 543; // พ.ศ.
-                          const studentCodePrefix =
-                            student.studentCode.substring(0, 2);
-                          const enrollmentYear =
-                            parseInt(studentCodePrefix) + 2500; // พ.ศ. ที่เข้าเรียน
-                          studentYear = currentYear - enrollmentYear + 1;
+                        if (
+                          student &&
+                          student.studentYear &&
+                          typeof student.studentYear === "object" &&
+                          student.studentYear.year
+                        ) {
+                          studentYear = student.studentYear.year;
+                        } else if (
+                          student &&
+                          typeof student.studentYear === "number" &&
+                          student.studentYear > 0
+                        ) {
+                          studentYear = student.studentYear;
+                        } else if (
+                          student &&
+                          typeof student.year === "number" &&
+                          student.year > 0
+                        ) {
+                          studentYear = student.year;
+                        } else if (student && student.studentCode) {
+                          try {
+                            const currentDate = new Date();
+                            const currentYear = currentDate.getFullYear() + 543;
+                            const studentCodePrefix =
+                              student.studentCode.substring(0, 2);
+                            const enrollmentYear =
+                              parseInt(studentCodePrefix) + 2500;
+                            studentYear = currentYear - enrollmentYear + 1;
 
-                          // ตรวจสอบว่าชั้นปีอยู่ในช่วงที่เป็นไปได้
-                          if (studentYear < 1) studentYear = 1;
-                          if (studentYear > 8) studentYear = 8;
-                        } catch (e) {
-                          console.error("Error calculating student year:", e);
-                          studentYear = null;
+                            if (studentYear < 1) studentYear = 1;
+                            if (studentYear > 8) studentYear = 8;
+                          } catch (e) {
+                            console.error("Error calculating student year:", e);
+                            studentYear = null;
+                          }
                         }
+
+                        if (!studentYear) {
+                          return "ชั้นปีที่ไม่ระบุ";
+                        }
+
+                        const currentDate = new Date();
+                        const currentMonth = currentDate.getMonth() + 1;
+
+                        let semester = "";
+                        if (currentMonth >= 1 && currentMonth <= 5) {
+                          semester = "ภาคเรียนที่ 2";
+                        } else if (currentMonth >= 6 && currentMonth <= 7) {
+                          semester = "ภาคฤดูร้อน";
+                        } else {
+                          semester = "ภาคเรียนที่ 1";
+                        }
+
+                        const thaiYear = currentDate.getFullYear() + 543;
+                        const academicYear =
+                          currentMonth >= 8 ? thaiYear : thaiYear - 1;
+
+                        return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
+                      })()}
+                    </Text>
+                    <Badge
+                      status={
+                        student.status === "normal"
+                          ? "success"
+                          : student.status === "EXTENDED" ||
+                            student.status === "extended"
+                          ? "warning"
+                          : student.status === "probation"
+                          ? "warning"
+                          : student.status === "retired"
+                          ? "error"
+                          : "warning"
                       }
-
-                      if (!studentYear) {
-                        return "ชั้นปีที่ไม่ระบุ";
+                      text={
+                        student.status === "normal"
+                          ? "นักศึกษาปกติ"
+                          : student.status === "EXTENDED" ||
+                            student.status === "extended"
+                          ? "นักศึกษาตกค้าง"
+                          : student.status === "probation"
+                          ? "นักศึกษาวิทยทัณฑ์"
+                          : student.status === "retired"
+                          ? "พ้นสภาพนักศึกษา"
+                          : "นักศึกษาตกค้าง"
                       }
+                    />
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
 
-                      // กำหนดภาคการศึกษาปัจจุบัน (ตรวจสอบตามเดือนปัจจุบัน)
-                      const currentDate = new Date();
-                      const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+        <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+          <Col span={24}>
+            <NextAction student={student} progress={progress} />
+          </Col>
+        </Row>
 
-                      // รูปแบบไทยของภาคการศึกษา - แก้ไขตามปฏิทินการศึกษาไทย
-                      let semester = "";
-                      // ภาคเรียนที่ 2: มกราคม (1) - พฤษภาคม (5)
-                      // ภาคฤดูร้อน: มิถุนายน (6) - กรกฎาคม (7)
-                      // ภาคเรียนที่ 1: สิงหาคม (8) - ธันวาคม (12)
-                      if (currentMonth >= 1 && currentMonth <= 5) {
-                        semester = "ภาคเรียนที่ 2";
-                      } else if (currentMonth >= 6 && currentMonth <= 7) {
-                        semester = "ภาคฤดูร้อน";
-                      } else {
-                        semester = "ภาคเรียนที่ 1";
-                      }
+        {notifications && notifications.length > 0 && (
+          <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+            <Col span={24}>
+              <Card>
+                <Notifications notifications={notifications} />
+              </Card>
+            </Col>
+          </Row>
+        )}
 
-                      // คำนวณปีการศึกษาไทย (พ.ศ.)
-                      const thaiYear = currentDate.getFullYear() + 543;
-                      // ถ้าอยู่ภาคเรียนที่ 1 (เดือน 8-12) ให้ใช้ปีปัจจุบัน
-                      // ถ้าอยู่ภาคเรียนที่ 2 หรือ ฤดูร้อน (เดือน 1-7) ให้ลบ 1 จากปีปัจจุบัน
-                      const academicYear =
-                        currentMonth >= 8 ? thaiYear : thaiYear - 1;
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <EducationPath student={student} progress={progress} />
+          </Col>
+        </Row>
 
-                      return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
-                    })()}
-                  </Text>
-                  <Badge
-                    status={
-                      student.status === "normal"
-                        ? "success"
-                        : student.status === "EXTENDED" ||
-                          student.status === "extended"
-                        ? "warning"
-                        : student.status === "probation"
-                        ? "warning"
-                        : student.status === "retired"
-                        ? "error"
-                        : "warning"
-                    }
-                    text={
-                      student.status === "normal"
-                        ? "นักศึกษาปกติ"
-                        : student.status === "EXTENDED" ||
-                          student.status === "extended"
-                        ? "นักศึกษาตกค้าง"
-                        : student.status === "probation"
-                        ? "นักศึกษาวิทยทัณฑ์"
-                        : student.status === "retired"
-                        ? "พ้นสภาพนักศึกษา"
-                        : "นักศึกษาตกค้าง"
-                    }
-                  />
-                </Space>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} lg={12}>
+            <InternshipSection student={student} progress={progress} />
+          </Col>
 
-      {/* ส่วนการดำเนินการถัดไป */}
-      <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-        <Col span={24}>
-          <NextAction student={student} />
-        </Col>
-      </Row>
+          <Col xs={24} lg={12}>
+            <ProjectSection student={student} progress={progress} />
+          </Col>
+        </Row>
 
-      {/* ส่วนแสดงการแจ้งเตือน */}
-      <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-        <Col span={24}>
-          <Card>
-            <Notifications notifications={notifications} />
-          </Card>
-        </Col>
-      </Row>
+        {deadlines && deadlines.length > 0 && (
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={24}>
+              <Card>
+                <ImportantDeadlines deadlines={deadlines} />
+              </Card>
+            </Col>
+          </Row>
+        )}
 
-      {/* ส่วนแสดงความก้าวหน้าหลัก */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col span={24}>
-          <EducationPath student={student} />
-        </Col>
-      </Row>
-
-      {/* ส่วนแสดงรายละเอียดขั้นตอน */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12}>
-          <InternshipSection student={student} progress={progress} />
-        </Col>
-
-        <Col xs={24} lg={12}>
-          <ProjectSection student={student} progress={progress} />
-        </Col>
-      </Row>
-
-      {/* ส่วนแสดงกำหนดการสำคัญ */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col span={24}>
-          <Card>
-            <ImportantDeadlines deadlines={deadlines} />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* ส่วนสถิติการเรียน */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col span={24}>
-          <StudyStatistics student={student} />
-        </Col>
-      </Row>
-    </div>
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <StudyStatistics student={student} />
+          </Col>
+        </Row>
+      </div>
+      {studentSearchModal}
+    </>
   );
 };
 

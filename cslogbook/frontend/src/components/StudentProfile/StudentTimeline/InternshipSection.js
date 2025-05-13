@@ -61,6 +61,18 @@ const InternshipSection = ({ student, progress }) => {
   const currentStepDisplay = progress?.internship?.currentStepDisplay || 0;
   const totalStepsDisplay = progress?.internship?.totalStepsDisplay || 0;
   const overallProgress = progress?.internship?.progress || 0;
+  
+  // ตรวจสอบการแสดง blocked status
+  const isBlocked = progress?.internship?.blocked || !isEligible;
+
+  // Handler สำหรับการคลิกปุ่มดำเนินการ
+  const handleAction = (item) => {
+    // นำไปสู่หน้าที่เกี่ยวข้องหรือแสดง modal สำหรับการดำเนินการ
+    if (item.actionLink) {
+      window.location.href = item.actionLink;
+    }
+    // ถ้ามีฟังก์ชันเพิ่มเติมสำหรับการจัดการ action สามารถเพิ่มได้ที่นี่
+  };
 
   return (
     <Card 
@@ -68,7 +80,7 @@ const InternshipSection = ({ student, progress }) => {
         <Space>
           <LaptopOutlined />
           <span>การฝึกงาน</span>
-          {progress?.internship?.blocked ? (
+          {isBlocked ? (
             <Tag color="error">ไม่มีสิทธิ์</Tag>
           ) : (
             <Tag color={overallProgress === 100 ? "success" : "processing"}>
@@ -102,7 +114,7 @@ const InternshipSection = ({ student, progress }) => {
     >
       {student.isEnrolledInternship ? (
         internshipSteps.length > 0 ? (
-          <TimelineItems items={internshipSteps} />
+          <TimelineItems items={internshipSteps} onAction={handleAction} />
         ) : (
           <Empty description="ยังไม่มีข้อมูลขั้นตอนการฝึกงาน" />
         )

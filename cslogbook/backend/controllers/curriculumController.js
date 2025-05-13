@@ -67,9 +67,9 @@ exports.updateCurriculum = async (req, res) => {
       max_credits,
       total_credits,
       major_credits,
-      internship_base_credits,
-      project_base_credits,
-      project_major_base_credits,
+      internship_base_credits, // รับมาเป็น snake_case
+      project_base_credits, // รับมาเป็น snake_case
+      project_major_base_credits, // รับมาเป็น snake_case
     } = req.body;
 
     // แปลงข้อมูลจาก snake_case เป็น camelCase
@@ -84,9 +84,9 @@ exports.updateCurriculum = async (req, res) => {
         maxCredits: max_credits,
         totalCredits: total_credits,
         majorCredits: major_credits,
-        internshipBaseCredits: internship_base_credits,
-        projectBaseCredits: project_base_credits,
-        projectMajorBaseCredits: project_major_base_credits,
+        internshipBaseCredits: internship_base_credits, // บันทึกเป็น camelCase
+        projectBaseCredits: project_base_credits, // บันทึกเป็น camelCase
+        projectMajorBaseCredits: project_major_base_credits, // บันทึกเป็น camelCase
       },
       { where: { curriculumId: id } }
     );
@@ -134,5 +134,45 @@ exports.getCurriculumById = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Error fetching curriculum by ID" });
+  }
+};
+
+// เพิ่มฟังก์ชันเพื่อดึงหลักสูตรที่ใช้งานอยู่
+
+/**
+ * ดึงหลักสูตรที่ใช้งานอยู่ในปัจจุบัน
+ */
+exports.getActiveCurriculum = async (req, res) => {
+  try {
+    // ดึงหลักสูตรที่ active = true ล่าสุด
+    const activeCurriculum = await Curriculum.findOne({
+      where: { active: true },
+      order: [['startYear', 'DESC']]
+    });
+
+    if (!activeCurriculum) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบหลักสูตรที่ใช้งานอยู่',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        id: activeCurriculum.curriculumId,
+        code: activeCurriculum.code,
+        name: activeCurriculum.name,
+        internshipBaseCredits: activeCurriculum.internshipBaseCredits || 81,
+        projectBaseCredits: activeCurriculum.projectBaseCredits || 95,
+        projectMajorBaseCredits: activeCurriculum.projectMajorBaseCredits || 47,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching active curriculum:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลหลักสูตร',
+    });
   }
 };

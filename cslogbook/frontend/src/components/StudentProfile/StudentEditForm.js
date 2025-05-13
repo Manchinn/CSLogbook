@@ -1,11 +1,75 @@
 // StudentEditForm.js
-import React, { useState } from 'react';
-import { Card, Form, InputNumber, Button, Row, Col, Modal, Space, Alert,Statistic  } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Form, InputNumber, Button, Row, Col, Modal, Space, Alert, Statistic, message } from 'antd';
 import { BookOutlined, ProjectOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { Typography } from 'antd';
 const { Text } = Typography;
 
-const StudentEditForm = ({ form, onFinish, onCancel, initialValues }) => {
+const StudentEditForm = ({ form, onFinish, onCancel, initialValues, eligibilityCriteria }) => {
+  // ใช้ค่าจาก props แทนการ fetch
+  const [creditRequirements, setCreditRequirements] = useState({
+    internshipBaseCredits: eligibilityCriteria?.internshipBaseCredits || 86,
+    projectBaseCredits: eligibilityCriteria?.projectBaseCredits || 97,
+    projectMajorBaseCredits: eligibilityCriteria?.projectMajorBaseCredits || 59
+  });
+
+  // ลบ useEffect ที่เรียกใช้ curriculumService และเปลี่ยนเป็นใช้ค่าจาก props แทน
+  useEffect(() => {
+    // ถ้ามีการเปลี่ยนแปลงค่า eligibilityCriteria ให้อัพเดท state
+    if (eligibilityCriteria) {
+      setCreditRequirements({
+        internshipBaseCredits: eligibilityCriteria.internshipBaseCredits || 86,
+        projectBaseCredits: eligibilityCriteria.projectBaseCredits || 97,
+        projectMajorBaseCredits: eligibilityCriteria.projectMajorBaseCredits || 59
+      });
+    }
+  }, [eligibilityCriteria]);
+
+  const calculateEligibility = (totalCredits, majorCredits) => {
+    // ใช้ค่าที่อยู่ใน state แล้ว
+    const INTERNSHIP_MIN_CREDITS = creditRequirements.internshipBaseCredits;
+    const PROJECT_MIN_TOTAL_CREDITS = creditRequirements.projectBaseCredits;
+    const PROJECT_MIN_MAJOR_CREDITS = creditRequirements.projectMajorBaseCredits;
+
+    console.log("เกณฑ์ที่ใช้ในการคำนวณ:", {
+      INTERNSHIP_MIN_CREDITS,
+      PROJECT_MIN_TOTAL_CREDITS,
+      PROJECT_MIN_MAJOR_CREDITS
+    });
+
+    const isEligibleInternship = totalCredits >= INTERNSHIP_MIN_CREDITS;
+
+    const isEligibleProject = 
+      totalCredits >= PROJECT_MIN_TOTAL_CREDITS && 
+      majorCredits >= PROJECT_MIN_MAJOR_CREDITS;
+
+    return {
+      isEligibleInternship,
+      isEligibleProject,
+      internship: {
+        eligible: isEligibleInternship,
+        message: isEligibleInternship 
+          ? "มีสิทธิ์ลงทะเบียนฝึกงาน" 
+          : `ไม่มีสิทธิ์ลงทะเบียนฝึกงาน (ต้องการ ${INTERNSHIP_MIN_CREDITS} หน่วยกิต)`
+      },
+      project: {
+        eligible: isEligibleProject,
+        message: isEligibleProject
+          ? "มีสิทธิ์ลงทะเบียนโครงงาน"
+          : `ไม่มีสิทธิ์ลงทะเบียนโครงงาน (ต้องการ ${PROJECT_MIN_TOTAL_CREDITS} หน่วยกิตรวม และ ${PROJECT_MIN_MAJOR_CREDITS} หน่วยกิตภาควิชา)`
+      },
+      criteria: {
+        internship: {
+          totalCredits: INTERNSHIP_MIN_CREDITS
+        },
+        project: {
+          totalCredits: PROJECT_MIN_TOTAL_CREDITS,
+          majorCredits: PROJECT_MIN_MAJOR_CREDITS
+        }
+      }
+    };
+  };
+
   const handleSubmit = (values) => {
     const totalCredits = parseInt(values.totalCredits);
     const majorCredits = parseInt(values.majorCredits);

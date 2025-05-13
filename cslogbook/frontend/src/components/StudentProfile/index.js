@@ -29,6 +29,13 @@ const StudentProfile = () => {
   const [secondModalVisible, setSecondModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
 
+  // สร้าง state สำหรับเก็บเกณฑ์
+  const [eligibilityCriteria, setEligibilityCriteria] = useState({
+    internshipBaseCredits: 86,
+    projectBaseCredits: 97,
+    projectMajorBaseCredits: 59
+  });
+
   const fetchStudent = useCallback(async () => {
     setLoading(true);
     try {
@@ -68,6 +75,13 @@ const StudentProfile = () => {
         });
   
         form.setFieldsValue({ totalCredits, majorCredits });
+
+        // อัพเดตค่าเกณฑ์จาก response
+        setEligibilityCriteria({
+          internshipBaseCredits: response.data.requirements?.internshipBaseCredits || 86,
+          projectBaseCredits: response.data.requirements?.projectBaseCredits || 97,
+          projectMajorBaseCredits: response.data.requirements?.projectMajorBaseCredits || 59
+        });
       }
     } catch (error) {
       console.error("Error fetching student data:", error);
@@ -83,7 +97,14 @@ const StudentProfile = () => {
 
   const handleEdit = useCallback(async (values) => {
     try {
-      const response = await studentService.updateStudent(id, values);
+      // ส่งค่า isEligibleInternship และ isEligibleProject ไปยัง backend
+      const response = await studentService.updateStudent(id, {
+        ...values,
+        // ถ้า backend ต้องการคำนวณเอง ก็ไม่จำเป็นต้องส่งค่าเหล่านี้ไป
+        // isEligibleInternship: values.isEligibleInternship,
+        // isEligibleProject: values.isEligibleProject
+      });
+
       if (response.success) {
         message.success("แก้ไขข้อมูลสำเร็จ");
         setEditing(false);
@@ -172,6 +193,8 @@ const StudentProfile = () => {
                   onFinish={handleEdit}
                   onCancel={() => setEditing(false)}
                   initialValues={student}
+                  requirements={student.requirements}
+                  eligibilityCriteria={eligibilityCriteria} 
                 />
               ) : (
                 <StudentInfo

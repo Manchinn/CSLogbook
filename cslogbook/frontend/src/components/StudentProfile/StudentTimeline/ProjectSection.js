@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography } from 'antd';
 import { 
   ExperimentOutlined, UnlockOutlined, LockOutlined, 
-  SolutionOutlined 
+  SolutionOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
 import TimelineItems from './TimelineItems';
 
@@ -57,27 +57,53 @@ const ProjectSection = ({ student, progress }) => {
   // ข้อความเหตุผล
   const eligibilityMessage = getEligibilityMessage();
 
+  // ตรวจสอบว่า progress.project และ progress.project.steps มีค่าหรือไม่
+  const projectSteps = progress?.project?.steps || [];
+  const currentStepDisplay = progress?.project?.currentStepDisplay || 0;
+  const totalStepsDisplay = progress?.project?.totalStepsDisplay || 0;
+  const overallProgress = progress?.project?.progress || 0;
+  
+  // ตรวจสอบการแสดง blocked status
+  const isBlocked = progress?.project?.blocked || !isEligible;
+
+  // Handler สำหรับการคลิกปุ่มดำเนินการ
+  const handleAction = (item) => {
+    if (item.actionLink) {
+      window.location.href = item.actionLink;
+    }
+    // ถ้ามีฟังก์ชันเพิ่มเติมสำหรับการจัดการ action สามารถเพิ่มได้ที่นี่
+  };
+
   return (
     <Card 
       title={
         <Space>
           <ExperimentOutlined />
           <span>โครงงานพิเศษ</span>
-          {progress.project.blocked && <Tag color="error">ไม่สามารถดำเนินการได้</Tag>}
+          {isBlocked ? (
+            <Tag color="error">ไม่มีสิทธิ์</Tag>
+          ) : (
+            <Tag color={overallProgress === 100 ? "success" : "processing"}>
+              {overallProgress === 100 ? "เสร็จสิ้น" : "กำลังดำเนินการ"}
+            </Tag>
+          )}
         </Space>
       }
       extra={
         <Space>
           <Progress 
             type="circle" 
-            percent={progress.project.progress} 
+            percent={overallProgress} 
             width={40} 
             format={percent => `${percent}%`}
           />
+          {totalStepsDisplay > 0 && (
+            <Text type="secondary">
+              ขั้นตอนที่ {currentStepDisplay}/{totalStepsDisplay}
+            </Text>
+          )}
           {isEligible ? (
-            <Tooltip title="มีสิทธิ์ทำโครงงานพิเศษ">
-              <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
-            </Tooltip>
+            <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
           ) : (
             <Tooltip title={eligibilityMessage}>
               <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
@@ -86,34 +112,29 @@ const ProjectSection = ({ student, progress }) => {
         </Space>
       }
     >
-      {progress.project.blocked ? (
-        <div style={{ padding: '32px 0', textAlign: 'center' }}>
-          <LockOutlined style={{ fontSize: 32, color: '#ff4d4f', marginBottom: 16 }} />
-          <Paragraph>
-            <Text type="danger">ยังไม่สามารถเริ่มโครงงานได้</Text>
-          </Paragraph>
-          <Paragraph type="secondary">{eligibilityMessage}</Paragraph>
-        </div>
-      ) : (
-        student.isEnrolledProject ? (
-          progress.project.steps.length > 0 ? (
-            <TimelineItems items={progress.project.steps} />
-          ) : (
-            <Empty description="ยังไม่มีข้อมูลขั้นตอนโครงงาน" />
-          )
+      {student.isEnrolledProject ? (
+        projectSteps.length > 0 ? (
+          <TimelineItems items={projectSteps} onAction={handleAction} />
         ) : (
-          <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
-            <Paragraph>คุณยังไม่ได้ลงทะเบียนโครงงานพิเศษ</Paragraph>
-            <Button 
-              type="primary" 
-              href="/project-registration" 
-              disabled={!isEligible}
-            >
-              ลงทะเบียนโครงงาน
-            </Button>
-          </div>
+          <Empty description="ยังไม่มีข้อมูลขั้นตอนโครงงาน" />
         )
+      ) : (
+        <div style={{ padding: '32px 0', textAlign: 'center' }}>
+          <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
+          <Paragraph>คุณยังไม่ได้ลงทะเบียนโครงงานพิเศษ</Paragraph>
+          <Button 
+            type="primary" 
+            href="/project-registration" 
+            disabled={!isEligible}
+          >
+            ลงทะเบียนโครงงาน
+          </Button>
+          {!isEligible && (
+            <Paragraph style={{ marginTop: 16 }} type="danger">
+              <InfoCircleOutlined /> {eligibilityMessage}
+            </Paragraph>
+          )}
+        </div>
       )}
     </Card>
   );

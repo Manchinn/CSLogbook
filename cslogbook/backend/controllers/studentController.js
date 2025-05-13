@@ -1,5 +1,4 @@
-const { User, Student, Teacher, Sequelize } = require("../models");
-const bcrypt = require("bcrypt");
+const { User, Student, Teacher, Curriculum, Sequelize } = require("../models");const bcrypt = require("bcrypt");
 const {
   calculateStudentYear,
   isEligibleForInternship,
@@ -139,6 +138,12 @@ exports.getStudentById = async (req, res) => {
       student.majorCredits || 0
     );
 
+    // อ่านค่าจากหลักสูตรปัจจุบัน
+    const activeCurriculum = await Curriculum.findOne({
+      where: { active: true },
+      order: [["startYear", "DESC"]],
+    });
+
     // ส่ง response ในรูปแบบที่มีข้อมูลเพิ่มเติม
     res.json({
       success: true,
@@ -153,6 +158,13 @@ exports.getStudentById = async (req, res) => {
           studentYear: eligibility.studentYear,
           internship: eligibility.internship,
           project: eligibility.project,
+        },
+        // เพิ่มข้อมูลเกณฑ์
+        requirements: {
+          internshipBaseCredits: activeCurriculum?.internshipBaseCredits || 86,
+          projectBaseCredits: activeCurriculum?.projectBaseCredits || 97,
+          projectMajorBaseCredits:
+            activeCurriculum?.projectMajorBaseCredits || 59,
         },
       },
     });

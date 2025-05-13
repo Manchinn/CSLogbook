@@ -6,37 +6,6 @@ const {
   checkRole,
 } = require("../middleware/authMiddleware");
 
-// เส้นทางชั่วคราวสำหรับช่วงเปลี่ยนผ่าน - จะส่งคำเตือนว่าเส้นทางนี้จะถูกยกเลิกในอนาคต
-/**
- * @route   GET /api/timeline/public/student/:studentId
- * @desc    เส้นทางชั่วคราวที่จะเปลี่ยนเส้นทางไปยังเส้นทางที่มีการป้องกัน
- * @access  Transitional (จะถูกยกเลิกในอนาคต)
- */
-router.get(
-  "/public/student/:studentId",
-  (req, res, next) => {
-    console.warn('DEPRECATED: /api/timeline/public/student/:studentId is deprecated. Please use /api/timeline/student/:studentId instead.');
-    req.isDeprecatedRoute = true;
-    next();
-  },
-  timelineController.getStudentTimeline
-);
-
-/**
- * @route   POST /api/timeline/public/student/:studentId/init
- * @desc    เส้นทางชั่วคราวที่จะเปลี่ยนเส้นทางไปยังเส้นทางที่มีการป้องกัน
- * @access  Transitional (จะถูกยกเลิกในอนาคต)
- */
-router.post(
-  "/public/student/:studentId/init",
-  (req, res, next) => {
-    console.warn('DEPRECATED: /api/timeline/public/student/:studentId/init is deprecated. Please use /api/timeline/student/:studentId/init instead.');
-    req.isDeprecatedRoute = true;
-    next();
-  },
-  timelineController.initializeStudentTimeline
-);
-
 /**
  * @route   GET /api/timeline/student/:studentId
  * @desc    ดึงข้อมูล Timeline ของนักศึกษา
