@@ -61,7 +61,7 @@ const PDFViewerModal = ({ visible, pdfUrl, onClose, style }) => {
         {visible && pdfUrl && (
           <PDFViewer
             pdfFile={pdfUrl}
-            width={baseWidth * scale}
+            size={baseWidth * scale}
             height={baseHeight * scale}
             style={{ width: '100%', height: '100%' }}
           />

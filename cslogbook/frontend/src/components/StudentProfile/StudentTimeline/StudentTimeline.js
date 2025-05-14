@@ -229,7 +229,7 @@ const StudentTimeline = () => {
       <div className="student-timeline">
         <Row gutter={[16, 16]}>
           <Col span={24}>
-            <Card className="dashboard-card">
+            <Card className="dashboard-card" variant="outlined">
               <Row gutter={16} align="middle">
                 <Col span={16}>
                   <Title level={4}>แนวทางการศึกษาของคุณ</Title>

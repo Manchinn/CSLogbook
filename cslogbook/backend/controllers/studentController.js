@@ -161,10 +161,10 @@ exports.getStudentById = async (req, res) => {
         },
         // เพิ่มข้อมูลเกณฑ์
         requirements: {
-          internshipBaseCredits: activeCurriculum?.internshipBaseCredits || 86,
-          projectBaseCredits: activeCurriculum?.projectBaseCredits || 97,
+          internshipBaseCredits: activeCurriculum?.internshipBaseCredits,
+          projectBaseCredits: activeCurriculum?.projectBaseCredits,
           projectMajorBaseCredits:
-            activeCurriculum?.projectMajorBaseCredits || 59,
+            activeCurriculum?.projectMajorBaseCredits,
         },
       },
     });
@@ -620,17 +620,6 @@ exports.checkStudentEligibility = async (req, res) => {
       });
     }
     
-    // กำหนดค่า default ที่จะใช้ในกรณีไม่พบข้อมูลหลักสูตร
-    const defaultCurriculumValues = {
-      internshipBaseCredits: 81,
-      internshipMajorBaseCredits: 0,
-      projectBaseCredits: 95,
-      projectMajorBaseCredits: 47,
-      requireInternshipBeforeProject: false,
-      name: 'หลักสูตรค่าเริ่มต้น',
-      shortName: 'CS Default'
-    };
-    
     // แปลงข้อมูล JSON สำหรับ internshipSemesters และ projectSemesters
     let internshipSemesters = academicSettings?.internshipSemesters;
     let projectSemesters = academicSettings?.projectSemesters;
@@ -656,58 +645,71 @@ exports.checkStudentEligibility = async (req, res) => {
     internshipSemesters = internshipSemesters || [3];
     projectSemesters = projectSemesters || [1, 2];
     
-    // เพิ่มข้อมูลสรุปสถานะว่านักศึกษาสามารถเข้าระบบได้หรือไม่ และเพราะเหตุใด
     const internshipRegistration = safeParseJSON(academicSettings?.internshipRegistration);
     const projectRegistration = safeParseJSON(academicSettings?.projectRegistration);
 
-    // สร้างข้อมูลที่เข้าใจง่ายเกี่ยวกับสถานะการลงทะเบียนฝึกงาน
+    // --- START: DEVELOPMENT MODIFICATION FOR INTERNSHIP ELIGIBILITY ---
+    // สำหรับการพัฒนา: ให้สิทธิ์การเข้าถึงและการลงทะเบียนฝึกงานขึ้นอยู่กับเกณฑ์หน่วยกิต (internshipCheck.eligible) เป็นหลัก
+    // และยังไม่พิจารณาเรื่องช่วงเวลา
+    const isCreditEligibleForInternship = internshipCheck.eligible;
+
     const internshipStatus = {
-      canAccess: internshipCheck.canAccessFeature || false,
-      canRegister: internshipCheck.canRegister || false,
-      reason: internshipCheck.reason || (internshipCheck.canAccessFeature ? "มีสิทธิ์เข้าถึงระบบฝึกงาน" : "ไม่มีสิทธิ์เข้าถึงระบบฝึกงาน"),
-      registrationOpen: false,
-      registrationReason: "",
-      requiredCredits: curriculum?.internshipBaseCredits || defaultCurriculumValues.internshipBaseCredits,
-      requiredMajorCredits: curriculum?.internshipMajorBaseCredits || defaultCurriculumValues.internshipMajorBaseCredits,
+      canAccess: isCreditEligibleForInternship, // เข้าถึงได้ถ้าผ่านเกณฑ์หน่วยกิต
+      canRegister: isCreditEligibleForInternship, // ลงทะเบียนได้ถ้าผ่านเกณฑ์หน่วยกิต
+      reason: isCreditEligibleForInternship 
+                ? "ผ่านเกณฑ์หน่วยกิต (สำหรับการพัฒนา)" 
+                : internshipCheck.reason || "ไม่ผ่านเกณฑ์หน่วยกิต (สำหรับการพัฒนา)",
+      registrationOpen: isCreditEligibleForInternship, // สำหรับการพัฒนา: ถ้าผ่านหน่วยกิต ให้ถือว่าช่วงเวลาเปิด
+      registrationReason: isCreditEligibleForInternship 
+                          ? "ช่วงลงทะเบียนเปิด (สำหรับการพัฒนา)" 
+                          : "เงื่อนไขหน่วยกิตไม่ผ่าน หรือช่วงเวลาลงทะเบียนยังไม่ถูกพิจารณา (สำหรับการพัฒนา)",
+      requiredCredits: curriculum?.internshipBaseCredits,
+      requiredMajorCredits: curriculum?.internshipMajorBaseCredits,
       currentCredits: student.totalCredits,
       currentMajorCredits: student.majorCredits
     };
+    // --- END: DEVELOPMENT MODIFICATION FOR INTERNSHIP ELIGIBILITY ---
     
-    // สร้างข้อมูลที่เข้าใจง่ายเกี่ยวกับสถานะการลงทะเบียนโครงงาน
+    // สร้างข้อมูลที่เข้าใจง่ายเกี่ยวกับสถานะการลงทะเบียนโครงงาน (ยังคงตรรกะเดิม)
     const projectStatus = {
       canAccess: projectCheck.canAccessFeature || false,
       canRegister: projectCheck.canRegister || false,
       reason: projectCheck.reason || (projectCheck.canAccessFeature ? "มีสิทธิ์เข้าถึงระบบโครงงาน" : "ไม่มีสิทธิ์เข้าถึงระบบโครงงาน"),
       registrationOpen: false,
       registrationReason: "",
-      requiredCredits: curriculum?.projectBaseCredits || defaultCurriculumValues.projectBaseCredits,
-      requiredMajorCredits: curriculum?.projectMajorBaseCredits || defaultCurriculumValues.projectMajorBaseCredits,
+      requiredCredits: curriculum?.projectBaseCredits,
+      requiredMajorCredits: curriculum?.projectMajorBaseCredits,
       currentCredits: student.totalCredits,
       currentMajorCredits: student.majorCredits,
-      requiresInternshipCompletion: curriculum?.requireInternshipBeforeProject || defaultCurriculumValues.requireInternshipBeforeProject
+      requiresInternshipCompletion: curriculum?.requireInternshipBeforeProject
     };
     
-    // เพิ่มข้อมูลเกี่ยวกับช่วงเวลาลงทะเบียน
     const now = new Date();
-    
+
+    // --- START: COMMENT OUT INTERNSHIP TIME-BASED CHECK FOR DEVELOPMENT ---
+    /*
     if (internshipRegistration?.startDate && internshipRegistration?.endDate) {
       const start = new Date(internshipRegistration.startDate);
       const end = new Date(internshipRegistration.endDate);
       
-      internshipStatus.registrationOpen = now >= start && now <= end;
-      if (!internshipStatus.registrationOpen) {
+      // ตรรกะเดิม: internshipStatus.registrationOpen = now >= start && now <= end;
+      // เราได้ตั้งค่า internshipStatus.registrationOpen ด้านบนตาม isCreditEligibleForInternship แล้วสำหรับการพัฒนา
+      if (!(now >= start && now <= end)) { // ถ้าช่วงเวลาจริงปิด
         if (now < start) {
-          internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานยังไม่เปิด (เปิดวันที่ ${formatDate(start)})`;
+          // internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานยังไม่เปิด (เปิดวันที่ ${formatDate(start)})`;
         } else {
-          internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานปิดไปแล้ว (ปิดวันที่ ${formatDate(end)})`;
+          // internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานปิดไปแล้ว (ปิดวันที่ ${formatDate(end)})`;
         }
-      } else {
-        internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานเปิดอยู่ (ถึงวันที่ ${formatDate(end)})`;
+      } else { // ถ้าช่วงเวลาจริงเปิด
+        // internshipStatus.registrationReason = `ช่วงลงทะเบียนฝึกงานเปิดอยู่ (ถึงวันที่ ${formatDate(end)})`;
       }
     } else {
-      internshipStatus.registrationReason = "ไม่มีข้อมูลช่วงลงทะเบียนฝึกงาน";
+      // internshipStatus.registrationReason = "ไม่มีข้อมูลช่วงลงทะเบียนฝึกงาน";
     }
+    */
+    // --- END: COMMENT OUT INTERNSHIP TIME-BASED CHECK FOR DEVELOPMENT ---
     
+    // ตรวจสอบช่วงเวลาสำหรับโครงงาน (ยังคงตรรกะเดิม)
     if (projectRegistration?.startDate && projectRegistration?.endDate) {
       const start = new Date(projectRegistration.startDate);
       const end = new Date(projectRegistration.endDate);
@@ -726,15 +728,17 @@ exports.checkStudentEligibility = async (req, res) => {
       projectStatus.registrationReason = "ไม่มีข้อมูลช่วงลงทะเบียนโครงงาน";
     }
     
-    // สร้าง eligibility object ที่มีข้อมูลแยกระหว่างการเข้าถึง feature และการลงทะเบียน
+    // สร้าง eligibility object
     const eligibility = {
       internship: {
-        isEligible: internshipCheck.eligible,
-        canAccessFeature: internshipCheck.canAccessFeature || false,
-        canRegister: internshipCheck.canRegister || false,
-        reason: internshipCheck.reason || null
+        isEligible: isCreditEligibleForInternship, // ผลการตรวจสอบหน่วยกิต
+        canAccessFeature: isCreditEligibleForInternship, // สำหรับการพัฒนา: เข้าถึงได้ถ้าผ่านหน่วยกิต
+        canRegister: isCreditEligibleForInternship,    // สำหรับการพัฒนา: ลงทะเบียนได้ถ้าผ่านหน่วยกิต
+        reason: isCreditEligibleForInternship 
+                  ? "ผ่านเกณฑ์หน่วยกิต (สำหรับการพัฒนา)" 
+                  : internshipCheck.reason || "ไม่ผ่านเกณฑ์หน่วยกิต (สำหรับการพัฒนา)"
       },
-      project: {
+      project: { // โครงงานยังคงตรรกะเดิม
         isEligible: projectCheck.eligible,
         canAccessFeature: projectCheck.canAccessFeature || false,
         canRegister: projectCheck.canRegister || false,
@@ -742,7 +746,6 @@ exports.checkStudentEligibility = async (req, res) => {
       }
     };
     
-    // สร้าง curriculumData object เพื่อแสดงข้อมูลหลักสูตร (ทั้งจากฐานข้อมูลหรือค่า default)
     const curriculumData = curriculum ? {
       id: curriculum.curriculumId,
       name: curriculum.name,
@@ -750,13 +753,11 @@ exports.checkStudentEligibility = async (req, res) => {
       isActive: true
     } : {
       id: null,
-      name: defaultCurriculumValues.name,
-      shortName: defaultCurriculumValues.shortName,
-      isActive: true, // ใช้เป็น true เพื่อให้ถูกใช้เป็นค่า default
-      isDefault: true // เพิ่มฟิลด์ isDefault เพื่อระบุว่านี่คือค่า default
+      name: null,
+      shortName: null,
+      isActive: false
     };
     
-    // ส่งข้อมูลที่มีรายละเอียดครบถ้วนกลับไปให้ client
     res.status(200).json({
       success: true,
       student: {
@@ -767,19 +768,19 @@ exports.checkStudentEligibility = async (req, res) => {
       },
       eligibility: eligibility,
       status: {
-        internship: internshipStatus,
+        internship: internshipStatus, // ใช้ internshipStatus ที่ปรับปรุงแล้ว
         project: projectStatus
       },
       requirements: {
         internship: {
-          totalCredits: curriculum?.internshipBaseCredits || defaultCurriculumValues.internshipBaseCredits,
-          majorCredits: curriculum?.internshipMajorBaseCredits || defaultCurriculumValues.internshipMajorBaseCredits,
+          totalCredits: curriculum?.internshipBaseCredits,
+          majorCredits: curriculum?.internshipMajorBaseCredits,
           allowedSemesters: internshipSemesters
         },
         project: {
-          totalCredits: curriculum?.projectBaseCredits || defaultCurriculumValues.projectBaseCredits,
-          majorCredits: curriculum?.projectMajorBaseCredits || defaultCurriculumValues.projectMajorBaseCredits,
-          requireInternship: curriculum?.requireInternshipBeforeProject || defaultCurriculumValues.requireInternshipBeforeProject,
+          totalCredits: curriculum?.projectBaseCredits,
+          majorCredits: curriculum?.projectMajorBaseCredits,
+          requireInternship: curriculum?.requireInternshipBeforeProject,
           allowedSemesters: projectSemesters
         },
       },

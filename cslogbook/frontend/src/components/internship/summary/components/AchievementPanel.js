@@ -30,7 +30,7 @@ const AchievementPanel = ({
   summaryData 
 }) => {
   return (
-    <Card bordered={false} className="achievement-card">
+    <Card variant="borderless" className="achievement-card">
       <div className="achievement-header">
         <div className="achievement-icon">
           {completionStatus.percentage >= 100 ? (

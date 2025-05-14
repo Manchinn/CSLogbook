@@ -79,7 +79,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
         />
       )}
 
-      <Card bordered={false} style={{ marginBottom: 16 }}>
+      <Card variant="borderless" style={{ marginBottom: 16 }}>
         <Descriptions title="ข้อมูลทั่วไป" layout="vertical" bordered column={{ xs: 1, sm: 2, md: 3 }}>
           <Descriptions.Item label={<><CalendarOutlined /> วันที่</>} span={1}>
             <Text strong>
@@ -140,7 +140,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
       
       <Card 
         title={<Space><SolutionOutlined /> รายละเอียดการปฏิบัติงาน</Space>} 
-        bordered={false} 
+        variant="borderless"
         style={{ marginBottom: 16 }}
       >
         {entry?.workDescription ? (
@@ -156,7 +156,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
         <Col xs={24} md={12}>
           <Card 
             title={<Space><BookOutlined /> สิ่งที่ได้เรียนรู้</Space>} 
-            bordered={false} 
+            variant="borderless"
             style={{ height: '100%' }}
           >
             {entry?.learningOutcome ? (
@@ -172,7 +172,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
         <Col xs={24} md={12}>
           <Card 
             title={<Space><ToolOutlined /> ปัญหาและการแก้ไข</Space>} 
-            bordered={false}
+            variant="borderless"
             style={{ height: '100%' }}
           >
             <Paragraph>
@@ -198,7 +198,7 @@ const ViewModal = ({ visible, entry, onClose }) => {
         </Col>
       </Row>
       
-      <Card title={<Space><CheckCircleOutlined /> สถานะการอนุมัติ</Space>} bordered={false}>
+      <Card title={<Space><CheckCircleOutlined /> สถานะการอนุมัติ</Space>} variant="borderless">
         <Space size="large" wrap>
           <Tag color={entry.supervisorApproved ? "success" : "default"} style={{ padding: '4px 8px', fontSize: '14px' }}>
             {entry.supervisorApproved 

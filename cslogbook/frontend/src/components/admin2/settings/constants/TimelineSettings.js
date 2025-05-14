@@ -207,7 +207,7 @@ const TimelineSettings = () => {
         
         <Row gutter={[16, 16]}>
           <Col span={24}>
-            <Card size="small" bordered={false} style={{ background: '#f5f5f5' }}>
+            <Card size="small" variant="borderless" style={{ background: '#f5f5f5' }}>
               <Row gutter={16}>
                 <Col span={6}>
                   <Text strong>รหัสนักศึกษา:</Text> <Text>{student.id}</Text>

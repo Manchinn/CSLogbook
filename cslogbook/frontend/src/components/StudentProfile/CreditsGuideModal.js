@@ -14,7 +14,7 @@ const CreditsGuideModal = ({ visible, onOk, onCancel }) => {
       onCancel={onCancel}
       okText="ตกลง"
       cancelText="ย้อนกลับ"
-      width={600}
+      size={600}
       style={{ top: 20 }}
     >
       <p>ขั้นตอนการตรวจสอบหน่วยกิตของท่าน</p>

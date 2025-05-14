@@ -1,28 +1,21 @@
 import apiClient from './apiClient';
 
-// ค่า fallback ที่ใช้เฉพาะเมื่อเกิดข้อผิดพลาด
-const FALLBACK_CRITERIA = {
-  internshipBaseCredits: 81,
-  projectBaseCredits: 95,
-  projectMajorBaseCredits: 59
-};
-
 export const curriculumService = {
   /**
    * ดึงข้อมูลหลักสูตรที่ใช้งานอยู่จากฐานข้อมูล
    */
   getActiveCurriculum: async () => {
     try {
-      // ดึง token จาก localStorage หรือ sessionStorage
+/*       // ดึง token จาก localStorage หรือ sessionStorage
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
       // สร้าง headers พร้อม token สำหรับการ authenticate
       const config = token ? {
         headers: { 'Authorization': `Bearer ${token}` }
-      } : {};
+      } : {}; */
       
       console.log('Fetching curriculum data from API...');
-      const response = await apiClient.get('/curriculums/active', config);
+      const response = await apiClient.get('/curriculums/active');
       console.log('Curriculum data received:', response.data);
       
       return response.data;

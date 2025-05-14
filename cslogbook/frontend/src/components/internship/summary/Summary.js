@@ -50,7 +50,6 @@ import { useReflectionForm, useEvaluationForm } from "./hooks/useFormActions";
 // นำเข้า component ย่อย
 import {
   WeeklyOverview,
-  SkillsOverview,
   StatsOverview,
 } from "./components/OverviewComponents";
 import LogbookTable from "./components/LogbookTable";
@@ -63,7 +62,6 @@ import { formatDateRange } from "./utils/dateUtils";
 
 // ค่าคงที่
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 const DATE_FORMAT_MEDIUM = "D MMM YYYY";
 
 /**
@@ -229,9 +227,189 @@ const InternshipSummary = () => {
       </div>
     );
   }
+
+  const tabItems = [
+    {
+      key: "1",
+      label: (
+        <span>
+          <BarChartOutlined />
+          ภาพรวม
+        </span>
+      ),
+      children: (
+        <>
+          {/* ส่วนสถิติ */}
+          <StatsOverview
+            logEntries={logEntries}
+            totalApprovedHours={totalApprovedHours}
+          />
+          {/* ส่วนข้อมูลรายสัปดาห์ */}
+          <WeeklyOverview weeklyData={weeklyData} />
+        </>
+      ),
+    },
+    {
+      key: "2",
+      label: (
+        <span>
+          <FileTextOutlined />
+          บันทึกประจำวัน
+        </span>
+      ),
+      children: (
+        <LogbookTable
+          logEntries={logEntries}
+          totalApprovedHours={totalApprovedHours}
+        />
+      ),
+    },
+    {
+      key: "3",
+      label: (
+        <span>
+          <RiseOutlined />
+          ทักษะและการพัฒนา
+        </span>
+      ),
+      children: (
+        <SkillsPanel
+          reflection={reflection}
+          editingReflection={editingReflection}
+          toggleEditReflection={toggleEditReflection}
+          handleReflectionSave={handleReflectionSave}
+          skillCategories={skillCategories}
+          skillTags={skillTags}
+          summaryData={summaryData}
+        />
+      ),
+    },
+    {
+      key: "4",
+      label: (
+        <span>
+          <AuditOutlined />
+          ความสำเร็จ
+        </span>
+      ),
+      children: (
+        <AchievementPanel
+          completionStatus={completionStatus}
+          totalApprovedHours={totalApprovedHours}
+          logEntries={logEntries}
+          weeklyData={weeklyData}
+          summaryData={summaryData}
+        />
+      ),
+    },
+    {
+      key: "5",
+      label: (
+        <span>
+          <ProfileOutlined />
+          การประเมินจากพี่เลี้ยง
+        </span>
+      ),
+      children: (
+        <Card variant="borderless" className="evaluation-card">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Title level={4}>การประเมินผลการฝึกงานโดยพี่เลี้ยง</Title>
+          </div>
+
+          {evaluationFormSent ? (
+            <Alert
+              message="ส่งแบบประเมินไปยังพี่เลี้ยงแล้ว"
+              description={`ส่งไปยัง ${
+                summaryData?.supervisorEmail || "อีเมลพี่เลี้ยง"
+              } เมื่อ ${
+                evaluationSentDate
+                  ? dayjs(evaluationSentDate).format(DATE_FORMAT_MEDIUM)
+                  : "-"
+              }`}
+              type="success"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+          ) : (
+            <Alert
+              message="ส่งแบบประเมินให้พี่เลี้ยงของคุณ"
+              description="เมื่อคุณใกล้จะสิ้นสุดการฝึกงาน คุณสามารถส่งแบบประเมินไปยังพี่เลี้ยงผ่านอีเมลได้ที่นี่"
+              type="info"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+          )}
+
+          <Card
+            title="ข้อมูลพี่เลี้ยง"
+            type="inner"
+            style={{ marginBottom: 24 }}
+          >
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <div className="info-item">
+                  <div className="info-label">
+                    <UserOutlined /> ชื่อ-นามสกุล:
+                  </div>
+                  <div className="info-value">
+                    {summaryData?.supervisorName || "-"}
+                  </div>
+                </div>
+                <div className="info-item">
+                  <div className="info-label">
+                    <TeamOutlined /> ตำแหน่ง:
+                  </div>
+                  <div className="info-value">
+                    {summaryData?.supervisorPosition || "-"}
+                  </div>
+                </div>
+              </Col>
+              <Col xs={24} md={12}>
+                <div className="info-item">
+                  <div className="info-label">
+                    <MailOutlined /> อีเมล:
+                  </div>
+                  <div className="info-value">
+                    {summaryData?.supervisorEmail || "-"}
+                  </div>
+                </div>
+                <div className="info-item">
+                  <div className="info-label">
+                    <PhoneOutlined /> เบอร์โทรศัพท์:
+                  </div>
+                  <div className="info-value">
+                    {summaryData?.supervisorPhone || "-"}
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          <Button
+            type="primary"
+            icon={<SendOutlined />}
+            size="large"
+            onClick={handleSendEvaluationForm}
+            disabled={evaluationFormSent || !summaryData?.supervisorEmail}
+          >
+            {evaluationFormSent
+              ? "ส่งแบบประเมินแล้ว"
+              : "ส่งแบบประเมินให้พี่เลี้ยง"}
+          </Button>
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <div className="internship-summary-container internship-summary-page print-container">
-      <Card className="summary-header-card" bordered={false}>
+      <Card className="summary-header-card" variant="borderless">
         <Row gutter={[24, 24]} align="middle">
           <Col xs={24} lg={16}>
             <div className="summary-header">
@@ -315,182 +493,8 @@ const InternshipSummary = () => {
           size="large"
           tabBarStyle={{ marginBottom: 24 }}
           tabBarGutter={12}
-        >
-          <TabPane
-            tab={
-              <span>
-                <BarChartOutlined />
-                ภาพรวม
-              </span>
-            }
-            key="1"
-          >
-            {/* ส่วนสถิติ */}
-            <StatsOverview
-              logEntries={logEntries}
-              totalApprovedHours={totalApprovedHours}
-            />
-
-            {/* ส่วนข้อมูลรายสัปดาห์ */}
-            <WeeklyOverview weeklyData={weeklyData} />
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <FileTextOutlined />
-                บันทึกประจำวัน
-              </span>
-            }
-            key="2"
-          >
-            <LogbookTable
-              logEntries={logEntries}
-              totalApprovedHours={totalApprovedHours}
-            />
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <RiseOutlined />
-                ทักษะและการพัฒนา
-              </span>
-            }
-            key="3"
-          >
-            <SkillsPanel
-              reflection={reflection}
-              editingReflection={editingReflection}
-              toggleEditReflection={toggleEditReflection}
-              handleReflectionSave={handleReflectionSave}
-              skillCategories={skillCategories}
-              skillTags={skillTags}
-              summaryData={summaryData}
-            />
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <AuditOutlined />
-                ความสำเร็จ
-              </span>
-            }
-            key="4"
-          >
-            <AchievementPanel
-              completionStatus={completionStatus}
-              totalApprovedHours={totalApprovedHours}
-              logEntries={logEntries}
-              weeklyData={weeklyData}
-              summaryData={summaryData}
-            />
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <ProfileOutlined />
-                การประเมินจากพี่เลี้ยง
-              </span>
-            }
-            key="5"
-          >
-            <Card bordered={false} className="evaluation-card">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 16,
-                }}
-              >
-                <Title level={4}>การประเมินผลการฝึกงานโดยพี่เลี้ยง</Title>
-              </div>
-
-              {evaluationFormSent ? (
-                <Alert
-                  message="ส่งแบบประเมินไปยังพี่เลี้ยงแล้ว"
-                  description={`ส่งไปยัง ${
-                    summaryData?.supervisorEmail || "อีเมลพี่เลี้ยง"
-                  } เมื่อ ${
-                    evaluationSentDate
-                      ? dayjs(evaluationSentDate).format(DATE_FORMAT_MEDIUM)
-                      : "-"
-                  }`}
-                  type="success"
-                  showIcon
-                  style={{ marginBottom: 24 }}
-                />
-              ) : (
-                <Alert
-                  message="ส่งแบบประเมินให้พี่เลี้ยงของคุณ"
-                  description="เมื่อคุณใกล้จะสิ้นสุดการฝึกงาน คุณสามารถส่งแบบประเมินไปยังพี่เลี้ยงผ่านอีเมลได้ที่นี่"
-                  type="info"
-                  showIcon
-                  style={{ marginBottom: 24 }}
-                />
-              )}
-
-              <Card
-                title="ข้อมูลพี่เลี้ยง"
-                type="inner"
-                style={{ marginBottom: 24 }}
-              >
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={12}>
-                    <div className="info-item">
-                      <div className="info-label">
-                        <UserOutlined /> ชื่อ-นามสกุล:
-                      </div>
-                      <div className="info-value">
-                        {summaryData?.supervisorName || "-"}
-                      </div>
-                    </div>
-                    <div className="info-item">
-                      <div className="info-label">
-                        <TeamOutlined /> ตำแหน่ง:
-                      </div>
-                      <div className="info-value">
-                        {summaryData?.supervisorPosition || "-"}
-                      </div>
-                    </div>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <div className="info-item">
-                      <div className="info-label">
-                        <MailOutlined /> อีเมล:
-                      </div>
-                      <div className="info-value">
-                        {summaryData?.supervisorEmail || "-"}
-                      </div>
-                    </div>
-                    <div className="info-item">
-                      <div className="info-label">
-                        <PhoneOutlined /> เบอร์โทรศัพท์:
-                      </div>
-                      <div className="info-value">
-                        {summaryData?.supervisorPhone || "-"}
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              </Card>
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                size="large"
-                onClick={handleSendEvaluationForm}
-                disabled={evaluationFormSent || !summaryData?.supervisorEmail}
-              >
-                {evaluationFormSent
-                  ? "ส่งแบบประเมินแล้ว"
-                  : "ส่งแบบประเมินให้พี่เลี้ยง"}
-              </Button>
-            </Card>
-          </TabPane>
-        </Tabs>
+          items={tabItems}
+        />
       </div>
 
       <div className="summary-actions no-print">

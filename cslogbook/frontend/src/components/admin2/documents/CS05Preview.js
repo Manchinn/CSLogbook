@@ -150,7 +150,7 @@ const CS05Preview = ({ data }) => {
   return (
     <div className="cs05-preview-container" style={{ padding: '20px', backgroundColor: 'white' }}>
       <Card 
-        bordered={false} 
+        variant="borderless" 
         style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}
       >
         <div style={{ textAlign: 'right', marginBottom: '16px' }}>

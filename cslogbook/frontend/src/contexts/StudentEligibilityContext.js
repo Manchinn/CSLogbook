@@ -24,27 +24,35 @@ export const StudentEligibilityProvider = ({ children }) => {
     lastUpdated: null
   });
 
-  // ดึงข้อมูลสิทธิ์จาก API
   const fetchEligibility = useCallback(async (showMessage = false) => {
     if (!userData || userData.role !== 'student') {
+      console.log('StudentEligibilityContext: fetchEligibility skipped - no userData or not a student', { userData }); // <--- LOG HERE
+      setEligibility(prev => ({
+        ...prev,
+        isLoading: false, // Ensure loading is set to false if skipped
+        canAccessInternship: false, // Reset to default if skipped
+        canAccessProject: false,
+        // ... reset other relevant fields if necessary
+      }));
       return;
     }
 
+    console.log('StudentEligibilityContext: Starting fetchEligibility...'); // <--- LOG HERE
+    setEligibility(prev => ({ ...prev, isLoading: true }));
+
     try {
-      setEligibility(prev => ({ ...prev, isLoading: true }));
-      
       const token = localStorage.getItem('token');
-      // เรียกไปที่ endpoint ที่ถูกต้องตามที่กำหนดใน server.js
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/students/check-eligibility`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('StudentEligibilityContext: Raw API Response:', response); // <--- LOG HERE (ดู response ทั้งหมด)
+
       if (response.data.success) {
+        console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS):', response.data); // <--- LOG HERE
         setEligibility({
-          // ใช้ค่า canAccessFeature สำหรับการแสดงเมนู
           canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
           canAccessProject: response.data.eligibility.project.canAccessFeature || false,
-          // เก็บค่า canRegister สำหรับการแสดงปุ่มลงทะเบียน
           canRegisterInternship: response.data.eligibility.internship.canRegister || false,
           canRegisterProject: response.data.eligibility.project.canRegister || false,
           internshipReason: response.data.eligibility.internship.reason,
@@ -54,68 +62,52 @@ export const StudentEligibilityProvider = ({ children }) => {
           isLoading: false,
           lastUpdated: new Date()
         });
-        
+        console.log('StudentEligibilityContext: State AFTER successful setEligibility:', { // <--- LOG HERE
+          canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
+          // ... (log other relevant parts of the new state)
+        });
         if (showMessage) {
           message.success('อัพเดตข้อมูลสิทธิ์การเข้าถึงระบบเรียบร้อยแล้ว');
         }
       } else {
-        setEligibility(prev => ({ ...prev, isLoading: false }));
-        
+        console.warn('StudentEligibilityContext: Eligibility API call NOT successful:', response.data); // <--- LOG HERE
+        setEligibility(prev => ({
+          ...prev,
+          isLoading: false,
+          internshipReason: response.data.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้',
+          // Reset access flags if API call was not successful but didn't throw an error
+          canAccessInternship: false,
+          canAccessProject: false,
+        }));
         if (showMessage) {
           message.error(response.data.message || 'ไม่สามารถอัพเดตข้อมูลสิทธิ์ได้');
         }
       }
     } catch (error) {
-      console.error('Error fetching eligibility:', error);
-      setEligibility(prev => ({ 
-        ...prev, 
+      console.error('StudentEligibilityContext: Error fetching eligibility:', error.response ? error.response.data : error.message); // <--- LOG HERE (ดู error.response.data ด้วย)
+      setEligibility(prev => ({
+        ...prev,
         isLoading: false,
-        // ตั้งค่าข้อความสำหรับใช้ใน tooltip เมื่อเกิดข้อผิดพลาด
-        internshipReason: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาติดต่อผู้ดูแลระบบ",
-        projectReason: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาติดต่อผู้ดูแลระบบ"
+        internshipReason: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
+        projectReason: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
+        canAccessInternship: false, // Reset on error
+        canAccessProject: false,
       }));
-      
       if (showMessage) {
-        message.error('ไม่สามารถตรวจสอบสิทธิ์ได้');
+        message.error('เกิดข้อผิดพลาดในการเชื่อมต่อเพื่ออัพเดตข้อมูลสิทธิ์');
       }
     }
-  }, [userData]);
+  }, [userData]); // Removed setEligibility from dependencies as it's a setter from useState
 
-  // ดึงข้อมูลสิทธิ์เมื่อมีการเปลี่ยนแปลง userData
   useEffect(() => {
+    console.log('StudentEligibilityContext: useEffect triggered, calling fetchEligibility. userData:', userData); // <--- LOG HERE
     fetchEligibility();
-    
-    // ตั้งค่าให้อัปเดตทุก 6 ชั่วโมง
     const intervalId = setInterval(() => fetchEligibility(), 6 * 60 * 60 * 1000);
-    
     return () => clearInterval(intervalId);
-  }, [userData, fetchEligibility]);
-
-  const value = {
-    // สถานะการเข้าถึงระบบต่างๆ
-    canAccessInternship: eligibility.canAccessInternship,
-    canAccessProject: eligibility.canAccessProject,
-    canRegisterInternship: eligibility.canRegisterInternship,
-    canRegisterProject: eligibility.canRegisterProject,
-    
-    // ข้อความสำหรับแสดงเหตุผล
-    messages: {
-      internship: eligibility.internshipReason,
-      project: eligibility.projectReason
-    },
-    
-    // ข้อมูลเพิ่มเติม
-    requirements: eligibility.requirements,
-    academicSettings: eligibility.academicSettings,
-    isLoading: eligibility.isLoading,
-    lastUpdated: eligibility.lastUpdated,
-    
-    // ฟังก์ชันสำหรับอัพเดตข้อมูลสิทธิ์
-    refreshEligibility: (showMessage = false) => fetchEligibility(showMessage)
-  };
+  }, [userData, fetchEligibility]); // fetchEligibility is stable due to useCallback
 
   return (
-    <StudentEligibilityContext.Provider value={value}>
+    <StudentEligibilityContext.Provider value={{ ...eligibility, refreshEligibility: (showMessage = false) => fetchEligibility(showMessage) }}>
       {children}
     </StudentEligibilityContext.Provider>
   );

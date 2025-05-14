@@ -167,7 +167,7 @@ const AdminUpload = () => {
       gap: '24px',
       marginLeft: '75px',
     }}>
-      <Card bodyStyle={{ padding: '16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
+      <Card styles={{ padding: '16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
         <Space style={{ width: '100%' }} direction="horizontal" align="center">
           <Upload
             accept=".csv"

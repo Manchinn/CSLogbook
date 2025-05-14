@@ -158,19 +158,19 @@ const InternshipStatusCheck = () => {
               >
                 {selectedDocument && (
                   <div className="document-detail">
-                    <Card title="ข้อมูลนักศึกษา" bordered={false}>
+                    <Card title="ข้อมูลนักศึกษา" variant="borderless">
                       <p><strong>รหัสนักศึกษา:</strong> {selectedDocument.studentCode}</p>
                       <p><strong>ชื่อ-นามสกุล:</strong> {selectedDocument.studentName}</p>
                     </Card>
                     
-                    <Card title="ข้อมูลสถานที่ฝึกงาน" bordered={false}>
+                    <Card title="ข้อมูลสถานที่ฝึกงาน" variant="borderless">
                       <p><strong>บริษัท:</strong> {selectedDocument.companyName}</p>
                       <p><strong>ที่อยู่:</strong> {selectedDocument.companyAddress}</p>
                       <p><strong>ระยะเวลา:</strong> {dayjs(selectedDocument.startDate).format('DD/MM/YYYY')} - {dayjs(selectedDocument.endDate).format('DD/MM/YYYY')}</p>
                     </Card>
 
                     {selectedDocument.supervisor?.name && (
-                      <Card title="ข้อมูลผู้นิเทศงาน" bordered={false}>
+                      <Card title="ข้อมูลผู้นิเทศงาน" variant="borderless">
                         <p><strong>ชื่อ-นามสกุล:</strong> {selectedDocument.supervisor.name}</p>
                         <p><strong>ตำแหน่ง:</strong> {selectedDocument.supervisor.position}</p>
                         <p><strong>เบอร์โทร:</strong> {selectedDocument.supervisor.phone}</p>
@@ -178,7 +178,7 @@ const InternshipStatusCheck = () => {
                       </Card>
                     )}
 
-                    <Card title="ประวัติการดำเนินการ" bordered={false}>
+                    <Card title="ประวัติการดำเนินการ" variant="borderless">
                       {renderStatusTimeline(statusData.statusHistory)}
                     </Card>
                   </div>

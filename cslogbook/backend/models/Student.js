@@ -11,6 +11,10 @@ module.exports = (sequelize) => {
                 foreignKey: 'advisorId',
                 as: 'advisor'
             });
+            Student.belongsTo(models.Curriculum, {
+                foreignKey: 'curriculumId',
+                as: 'studentCurriculum'
+            });
             Student.hasMany(models.ProjectMember, {
                 foreignKey: 'studentId',
                 as: 'projectMemberships'
@@ -36,201 +40,156 @@ module.exports = (sequelize) => {
                 foreignKey: 'student_id',
                 as: 'progressData'
             });
-              Student.hasMany(models.StudentWorkflowActivity, {
+            Student.hasMany(models.StudentWorkflowActivity, {
                 foreignKey: 'student_id',
                 as: 'workflowActivities'
             });
         }
-        
-        // เพิ่ม method สำหรับตรวจสอบสิทธิ์ฝึกงาน
+
         async checkInternshipEligibility() {
             try {
                 const Academic = sequelize.models.Academic;
-                const Curriculum = sequelize.models.Curriculum;
-                
-                // ดึงการตั้งค่าปีการศึกษาล่าสุด
-                const academicSettings = await Academic.findOne({
-                    order: [['created_at', 'DESC']] // ดึงรายการล่าสุดแทนการใช้ isActive
-                });
-                
-                // กำหนดค่า default หากไม่พบการตั้งค่าปีการศึกษา
-                const currentSemester = academicSettings?.currentSemester || 1;
-                let allowedSemesters = [3]; // ค่า default สำหรับฝึกงาน
-                
-                // หากมี academicSettings ให้อ่านค่า internshipSemesters
-                if (academicSettings?.internshipSemesters) {
-                    // หากข้อมูลเป็น JSON string ให้แปลงเป็น array
-                    if (typeof academicSettings.internshipSemesters === 'string') {
-                        try {
-                            allowedSemesters = JSON.parse(academicSettings.internshipSemesters);
-                        } catch (e) {
-                            // ใช้ค่า default หากแปลงไม่ได้
+
+                const studentSpecificCurriculum = await this.getStudentCurriculum();
+
+                let requiredTotalCredits;
+                let requiredMajorCreditsForInternship;
+                let curriculumName = "ไม่พบข้อมูลหลักสูตร";
+
+                if (studentSpecificCurriculum) {
+                    requiredTotalCredits = studentSpecificCurriculum.internshipBaseCredits;
+                    requiredMajorCreditsForInternship = studentSpecificCurriculum.internshipMajorBaseCredits;
+                    curriculumName = studentSpecificCurriculum.name;
+                    console.log(`Student.js: Internship eligibility for student ${this.studentCode}, Curriculum: ${curriculumName} (ID: ${studentSpecificCurriculum.curriculumId})`);
+                } else {
+                    console.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode}. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
+                    const academicSettingsFallback = await Academic.findOne({ order: [['created_at', 'DESC']] });
+                    if (academicSettingsFallback?.activeCurriculumId) {
+                        const activeSystemCurriculum = await sequelize.models.Curriculum.findOne({
+                            where: { curriculumId: academicSettingsFallback.activeCurriculumId, active: true }
+                        });
+                        if (activeSystemCurriculum) {
+                            requiredTotalCredits = activeSystemCurriculum.internshipBaseCredits;
+                            requiredMajorCreditsForInternship = activeSystemCurriculum.internshipMajorBaseCredits;
+                            curriculumName = `(Fallback) ${activeSystemCurriculum.name}`;
+                            console.log(`Student.js: Fallback to Active System Curriculum: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
                         }
-                    } else if (Array.isArray(academicSettings.internshipSemesters)) {
-                        allowedSemesters = academicSettings.internshipSemesters;
                     }
                 }
-                
-                // ดึงข้อมูลหลักสูตรที่ใช้งาน
-                let curriculum = null;
-                if (academicSettings?.activeCurriculumId) {
-                    curriculum = await Curriculum.findOne({
-                        where: { 
-                            curriculumId: academicSettings.activeCurriculumId,
-                            active: true 
-                        }
-                    });
+
+                if (requiredTotalCredits === undefined || requiredTotalCredits === null) {
+                    console.error('Student.js: ไม่สามารถกำหนดเกณฑ์หน่วยกิตรวมสำหรับการฝึกงานได้');
+                    return { eligible: false, reason: 'ระบบไม่สามารถกำหนดเกณฑ์หน่วยกิตฝึกงานได้', canAccessFeature: false, canRegister: false };
                 }
-                
-                // หากไม่พบหลักสูตร ให้ใช้ค่า default
-                const defaultCredits = {
-                    internshipBaseCredits: 81,
-                    internshipMajorBaseCredits: 0,
-                    projectBaseCredits: 95,
-                    projectMajorBaseCredits: 47,
-                    requireInternshipBeforeProject: false
-                };
-                
-                // ตรวจสอบเงื่อนไขหน่วยกิต โดยใช้ค่า default หากไม่พบหลักสูตร
-                const hasEnoughCredits = 
-                    this.totalCredits >= (curriculum?.internshipBaseCredits || defaultCredits.internshipBaseCredits) && 
-                    this.majorCredits >= (curriculum?.internshipMajorBaseCredits || defaultCredits.internshipMajorBaseCredits);
-                
-                // ถ้าหน่วยกิตไม่พอ ไม่มีสิทธิ์ทั้งเข้าถึง feature และลงทะเบียน
-                if (!hasEnoughCredits) {
+
+                console.log('Student.js - checkInternshipEligibility (using specific/fallback curriculum):', {
+                    studentTotalCredits: this.totalCredits,
+                    requiredTotalCredits: requiredTotalCredits,
+                    studentMajorCredits: this.majorCredits,
+                    requiredMajorCreditsForInternship: requiredMajorCreditsForInternship,
+                });
+
+                if (this.totalCredits < requiredTotalCredits) {
                     return {
                         eligible: false,
-                        reason: `หน่วยกิตไม่เพียงพอ (${this.totalCredits}/${this.majorCredits} จากเกณฑ์ ${curriculum?.internshipBaseCredits || defaultCredits.internshipBaseCredits}/${curriculum?.internshipMajorBaseCredits || defaultCredits.internshipMajorBaseCredits})`,
+                        reason: `หน่วยกิตรวมไม่เพียงพอ (มี ${this.totalCredits} จากเกณฑ์ ${requiredTotalCredits} ของหลักสูตร: ${curriculumName})`,
                         canAccessFeature: false,
                         canRegister: false
                     };
                 }
-                
-                // ถ้าหน่วยกิตพอ สามารถเข้าถึง feature ได้
-                // แต่ต้องตรวจสอบเงื่อนไขอื่นก่อนลงทะเบียน
-                
-                // ตรวจสอบภาคเรียนที่เปิดให้ลงทะเบียน
-                if (!allowedSemesters.includes(currentSemester)) {
-                    return {
-                        eligible: false,
-                        reason: 'ไม่อยู่ในภาคเรียนที่อนุญาตให้ลงทะเบียนฝึกงาน',
-                        canAccessFeature: true,  // สามารถเข้า feature ได้เพราะมีหน่วยกิตถึง
-                        canRegister: false       // แต่ลงทะเบียนไม่ได้เพราะไม่ใช่ภาคเรียนที่เปิดให้ลงทะเบียน
-                    };
-                }
-                
-                // ตรวจสอบช่วงเวลาลงทะเบียน
-                const now = new Date();
-                let regPeriod = academicSettings?.internshipRegistration;
-                
-                // หากข้อมูลเป็น JSON string ให้แปลงเป็น object
-                if (typeof regPeriod === 'string') {
-                    try {
-                        regPeriod = JSON.parse(regPeriod);
-                    } catch (e) {
-                        regPeriod = null;
+
+                if (requiredMajorCreditsForInternship !== undefined && requiredMajorCreditsForInternship !== null) {
+                    if (this.majorCredits < requiredMajorCreditsForInternship) {
+                        return {
+                            eligible: false,
+                            reason: `หน่วยกิตวิชาเอกไม่เพียงพอ (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCreditsForInternship} ของหลักสูตร: ${curriculumName})`,
+                            canAccessFeature: false,
+                            canRegister: false
+                        };
                     }
                 }
-                
-                const regStart = regPeriod?.startDate ? new Date(regPeriod.startDate) : null;
-                const regEnd = regPeriod?.endDate ? new Date(regPeriod.endDate) : null;
-                
-                // ถ้ามีการกำหนดช่วงเวลาลงทะเบียน ให้ตรวจสอบด้วย
-                if (regStart && regEnd && (now < regStart || now > regEnd)) {
-                    return {
-                        eligible: false,
-                        reason: 'ไม่อยู่ในช่วงเวลาลงทะเบียนฝึกงาน',
-                        canAccessFeature: true,  // สามารถเข้า feature ได้
-                        canRegister: false       // แต่ลงทะเบียนไม่ได้เพราะไม่อยู่ในช่วงเวลาลงทะเบียน
-                    };
-                }
-                
-                // ผ่านเงื่อนไขทั้งหมด
-                return { 
+
+                console.log('Student.js - Passed INTERNSHIP credit checks.');
+                return {
                     eligible: true,
-                    canAccessFeature: true,
-                    canRegister: true 
+                    reason: `ผ่านเกณฑ์หน่วยกิต (หลักสูตร: ${curriculumName})`,
                 };
-                
+
             } catch (error) {
-                console.error('Error checking internship eligibility:', error);
-                return { 
-                    eligible: false, 
-                    reason: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์',
-                    canAccessFeature: true, // แก้ไขให้เข้าถึง feature ได้แม้มีข้อผิดพลาด
-                    canRegister: false
+                console.error('Error in Student.checkInternshipEligibility:', error);
+                return {
+                    eligible: false,
+                    reason: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ฝึกงาน (Student.js)',
                 };
             }
         }
-        
-        // เพิ่ม method สำหรับตรวจสอบสิทธิ์โครงงานพิเศษ
+
         async checkProjectEligibility() {
             try {
                 const Academic = sequelize.models.Academic;
-                const Curriculum = sequelize.models.Curriculum;
-                
-                // ดึงการตั้งค่าปีการศึกษาล่าสุด
-                const academicSettings = await Academic.findOne({
-                    order: [['created_at', 'DESC']] // ดึงรายการล่าสุดแทนการใช้ isActive
-                });
-                
-                // กำหนดค่า default หากไม่พบการตั้งค่าปีการศึกษา
-                const currentSemester = academicSettings?.currentSemester || 1;
-                let allowedSemesters = [1, 2]; // ค่า default สำหรับโครงงาน
-                
-                // หากมี academicSettings ให้อ่านค่า projectSemesters
-                if (academicSettings?.projectSemesters) {
-                    // หากข้อมูลเป็น JSON string ให้แปลงเป็น array
-                    if (typeof academicSettings.projectSemesters === 'string') {
-                        try {
-                            allowedSemesters = JSON.parse(academicSettings.projectSemesters);
-                        } catch (e) {
-                            // ใช้ค่า default หากแปลงไม่ได้
+
+                const studentSpecificCurriculum = await this.getStudentCurriculum();
+
+                let requiredTotalCredits;
+                let requiredMajorCredits;
+                let curriculumName = "ไม่พบข้อมูลหลักสูตร";
+                let requiresInternshipCompletion = false;
+
+                if (studentSpecificCurriculum) {
+                    requiredTotalCredits = studentSpecificCurriculum.projectBaseCredits;
+                    requiredMajorCredits = studentSpecificCurriculum.projectMajorBaseCredits;
+                    requiresInternshipCompletion = studentSpecificCurriculum.requireInternshipBeforeProject;
+                    curriculumName = studentSpecificCurriculum.name;
+                    console.log(`Student.js: Project eligibility for student ${this.studentCode}, Curriculum: ${curriculumName} (ID: ${studentSpecificCurriculum.curriculumId})`);
+                } else {
+                    console.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode} สำหรับโครงงาน. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
+                    const academicSettingsFallback = await Academic.findOne({ order: [['created_at', 'DESC']] });
+                    if (academicSettingsFallback?.activeCurriculumId) {
+                        const activeSystemCurriculum = await sequelize.models.Curriculum.findOne({
+                            where: { curriculumId: academicSettingsFallback.activeCurriculumId, active: true }
+                        });
+                        if (activeSystemCurriculum) {
+                            requiredTotalCredits = activeSystemCurriculum.projectBaseCredits;
+                            requiredMajorCredits = activeSystemCurriculum.projectMajorBaseCredits;
+                            requiresInternshipCompletion = activeSystemCurriculum.requireInternshipBeforeProject;
+                            curriculumName = `(Fallback) ${activeSystemCurriculum.name}`;
+                            console.log(`Student.js: Fallback to Active System Curriculum for Project: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
                         }
-                    } else if (Array.isArray(academicSettings.projectSemesters)) {
-                        allowedSemesters = academicSettings.projectSemesters;
                     }
                 }
-                
-                // ดึงข้อมูลหลักสูตรที่ใช้งาน
-                let curriculum = null;
-                if (academicSettings?.activeCurriculumId) {
-                    curriculum = await Curriculum.findOne({
-                        where: { 
-                            curriculumId: academicSettings.activeCurriculumId,
-                            active: true 
-                        }
-                    });
+
+                if (requiredTotalCredits === undefined || requiredTotalCredits === null) {
+                    console.error('Student.js: ไม่สามารถกำหนดเกณฑ์หน่วยกิตรวมสำหรับโครงงานได้');
+                    return { eligible: false, reason: 'ระบบไม่สามารถกำหนดเกณฑ์หน่วยกิตโครงงานได้' };
                 }
-                
-                // หากไม่พบหลักสูตร ให้ใช้ค่า default
-                const defaultCredits = {
-                    internshipBaseCredits: 81,
-                    internshipMajorBaseCredits: 0,
-                    projectBaseCredits: 95,
-                    projectMajorBaseCredits: 47,
-                    requireInternshipBeforeProject: false
-                };
-                
-                // ตรวจสอบเงื่อนไขหน่วยกิต โดยใช้ค่า default หากไม่พบหลักสูตร
-                const hasEnoughCredits = 
-                    this.totalCredits >= (curriculum?.projectBaseCredits || defaultCredits.projectBaseCredits) && 
-                    this.majorCredits >= (curriculum?.projectMajorBaseCredits || defaultCredits.projectMajorBaseCredits);
-                
-                // ถ้าหน่วยกิตไม่พอ ไม่มีสิทธิ์ทั้งเข้าถึง feature และลงทะเบียน
-                if (!hasEnoughCredits) {
+                if (requiredMajorCredits === undefined || requiredMajorCredits === null) {
+                    console.warn('Student.js: ไม่ได้กำหนดเกณฑ์หน่วยกิตวิชาเอกสำหรับโครงงานในหลักสูตรนี้ จะไม่นำมาพิจารณา');
+                }
+
+                console.log('Student.js - checkProjectEligibility (using specific/fallback curriculum):', {
+                    studentTotalCredits: this.totalCredits,
+                    requiredTotalCredits: requiredTotalCredits,
+                    studentMajorCredits: this.majorCredits,
+                    requiredMajorCredits: requiredMajorCredits,
+                });
+
+                if (this.totalCredits < requiredTotalCredits) {
                     return {
                         eligible: false,
-                        reason: `หน่วยกิตไม่เพียงพอ (${this.totalCredits}/${this.majorCredits} จากเกณฑ์ ${curriculum?.projectBaseCredits || defaultCredits.projectBaseCredits}/${curriculum?.projectMajorBaseCredits || defaultCredits.projectMajorBaseCredits})`,
-                        canAccessFeature: false,
-                        canRegister: false
+                        reason: `หน่วยกิตรวมไม่เพียงพอสำหรับโครงงาน (มี ${this.totalCredits} จากเกณฑ์ ${requiredTotalCredits} ของหลักสูตร: ${curriculumName})`,
                     };
                 }
-                
-                // ตรวจสอบเงื่อนไขว่าต้องผ่านฝึกงานหรือไม่
-                const requireInternship = curriculum?.requireInternshipBeforeProject || defaultCredits.requireInternshipBeforeProject;
-                if (requireInternship) {
-                    // ตรวจสอบประวัติการฝึกงาน
+
+                if (requiredMajorCredits !== undefined && requiredMajorCredits !== null) {
+                    if (this.majorCredits < requiredMajorCredits) {
+                        return {
+                            eligible: false,
+                            reason: `หน่วยกิตวิชาเอกไม่เพียงพอสำหรับโครงงาน (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCredits} ของหลักสูตร: ${curriculumName})`,
+                        };
+                    }
+                }
+
+                if (requiresInternshipCompletion) {
                     const InternshipDocument = sequelize.models.InternshipDocument;
                     const completedInternship = await InternshipDocument.findOne({
                         where: {
@@ -238,70 +197,26 @@ module.exports = (sequelize) => {
                             status: 'completed'
                         }
                     });
-                    
+
                     if (!completedInternship) {
                         return {
                             eligible: false,
                             reason: 'ต้องผ่านการฝึกงานก่อนจึงจะสามารถลงทะเบียนโครงงานพิเศษได้',
-                            canAccessFeature: false,  // ไม่สามารถเข้าถึง feature ได้เพราะยังไม่ผ่านฝึกงาน
-                            canRegister: false
                         };
                     }
                 }
-                
-                // ถ้าหน่วยกิตพอและผ่านเงื่อนไขฝึกงาน (ถ้ามี) สามารถเข้าถึง feature ได้
-                // แต่ต้องตรวจสอบเงื่อนไขอื่นก่อนลงทะเบียน
-                
-                // ตรวจสอบภาคเรียนที่เปิดให้ลงทะเบียน
-                if (!allowedSemesters.includes(currentSemester)) {
-                    return {
-                        eligible: false,
-                        reason: 'ไม่อยู่ในภาคเรียนที่อนุญาตให้ลงทะเบียนโครงงานพิเศษ',
-                        canAccessFeature: true,  // สามารถเข้า feature ได้เพราะมีหน่วยกิตถึง
-                        canRegister: false       // แต่ลงทะเบียนไม่ได้เพราะไม่ใช่ภาคเรียนที่เปิดให้ลงทะเบียน
-                    };
-                }
-                
-                // ตรวจสอบช่วงเวลาลงทะเบียน
-                const now = new Date();
-                let regPeriod = academicSettings?.projectRegistration;
-                
-                // หากข้อมูลเป็น JSON string ให้แปลงเป็น object
-                if (typeof regPeriod === 'string') {
-                    try {
-                        regPeriod = JSON.parse(regPeriod);
-                    } catch (e) {
-                        regPeriod = null;
-                    }
-                }
-                
-                const regStart = regPeriod?.startDate ? new Date(regPeriod.startDate) : null;
-                const regEnd = regPeriod?.endDate ? new Date(regPeriod.endDate) : null;
-                
-                // ถ้ามีการกำหนดช่วงเวลาลงทะเบียน ให้ตรวจสอบด้วย
-                if (regStart && regEnd && (now < regStart || now > regEnd)) {
-                    return {
-                        eligible: false,
-                        reason: 'ไม่อยู่ในช่วงเวลาลงทะเบียนโครงงานพิเศษ',
-                        canAccessFeature: true,  // สามารถเข้า feature ได้
-                        canRegister: false       // แต่ลงทะเบียนไม่ได้เพราะไม่อยู่ในช่วงเวลาลงทะเบียน
-                    };
-                }
-                
-                // ผ่านเงื่อนไขทั้งหมด
-                return { 
+
+                console.log('Student.js - Passed PROJECT credit checks.');
+                return {
                     eligible: true,
-                    canAccessFeature: true,
-                    canRegister: true
+                    reason: `ผ่านเกณฑ์หน่วยกิตโครงงาน (หลักสูตร: ${curriculumName})`,
                 };
-                
+
             } catch (error) {
-                console.error('Error checking project eligibility:', error);
-                return { 
-                    eligible: false, 
-                    reason: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์',
-                    canAccessFeature: true, // แก้ไขให้เข้าถึง feature ได้แม้มีข้อผิดพลาด
-                    canRegister: false  
+                console.error('Error in Student.checkProjectEligibility:', error);
+                return {
+                    eligible: false,
+                    reason: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์โครงงาน (Student.js)',
                 };
             }
         }
@@ -318,6 +233,15 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             field: 'user_id'
+        },
+        curriculumId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'curriculum_id',
+            references: {
+                model: 'curriculums',
+                key: 'curriculum_id'
+            }
         },
         studentCode: {
             type: DataTypes.STRING(13),
@@ -387,10 +311,9 @@ module.exports = (sequelize) => {
             field: 'student_year',
             validate: {
                 min: 1,
-                max: 8 // Adjusted max based on typical university years
+                max: 8
             }
         },
-        // Added fields to match database schema
         internshipStatus: {
             type: DataTypes.ENUM('not_started', 'in_progress', 'completed'),
             defaultValue: 'not_started',
@@ -430,6 +353,10 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_academic_year',
                 fields: ['academic_year']
+            },
+            {
+                name: 'idx_student_curriculum',
+                fields: ['curriculum_id']
             }
         ]
     });

@@ -456,7 +456,7 @@ const Sidebar = () => {
               textAlign: "center",
             }}
           >
-            <a 
+            <button
               onClick={() => {
                 // เรียกใช้งานฟังก์ชัน refreshEligibility จาก context
                 if (typeof refreshEligibility === 'function') {
@@ -466,11 +466,15 @@ const Sidebar = () => {
               style={{
                 fontSize: "12px", 
                 cursor: "pointer",
-                color: "var(--active-color)"
+                color: "var(--active-color)",
+                background: "none",
+                border: "none",
+                padding: 0,
+                textDecoration: "underline"
               }}
             >
               รีเฟรชข้อมูลสิทธิ์
-            </a>
+            </button>
           </div>
         </div>
       );

@@ -11,7 +11,7 @@ import StudentTimeline from './StudentTimeline/index';
 import StudentEditForm from './StudentEditForm';
 import PDPAModal from './PDPAModal';
 import CreditsGuideModal from './CreditsGuideModal';
-import { BookOutlined, ScheduleOutlined, FileDoneOutlined } from '@ant-design/icons';
+import { ScheduleOutlined, FileDoneOutlined, UserOutlined } from '@ant-design/icons';
 import './styles.css';
 
 const { TabPane } = Tabs;
@@ -184,7 +184,7 @@ const StudentProfile = () => {
         <Col xs={24} lg={18}>
           <Tabs activeKey={activeTab} onChange={setActiveTab} className="profile-tabs">
             <TabPane 
-              tab={<span><BookOutlined /> ข้อมูลการศึกษา</span>}
+              tab={<span><UserOutlined /> ข้อมูลนักศึกษา</span>}
               key="info"
             >
               {editing ? (

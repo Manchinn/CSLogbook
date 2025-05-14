@@ -81,7 +81,7 @@ const InternshipRequirements = () => {
 
   return (
     <div className="requirements-container">
-      <Card title="ข้อกำหนดการฝึกงาน" bordered={false}>
+      <Card title="ข้อกำหนดการฝึกงาน" variant="borderless">
         <Alert
           message="สำคัญ: ข้อกำหนดการฝึกงานนี้ใช้สำหรับนักศึกษาภาควิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ เท่านั้น"
           description="ข้อมูลอาจมีการเปลี่ยนแปลงได้ โปรดตรวจสอบกับฝ่ายวิชาการเพื่อให้ได้ข้อมูลล่าสุด"

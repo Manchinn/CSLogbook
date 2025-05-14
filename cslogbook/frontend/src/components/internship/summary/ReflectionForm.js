@@ -54,7 +54,7 @@ const ReflectionForm = ({ onSave, initialData, readOnly = false }) => {
 
   if (readOnly) {
     return (
-      <Card className="reflection-card" bordered={false}>
+      <Card className="reflection-card" variant="borderless">
         <div className="reflection-section">
           <Title level={5}><StarOutlined /> สรุปสิ่งที่ได้เรียนรู้จากการฝึกงาน</Title>
           <Paragraph style={{ whiteSpace: 'pre-line' }}>
@@ -95,7 +95,7 @@ const ReflectionForm = ({ onSave, initialData, readOnly = false }) => {
   return (
     <Card 
       className="reflection-form-card" 
-      bordered={false} 
+      variant="borderless"
       title={
         <Space>
           <FormOutlined />

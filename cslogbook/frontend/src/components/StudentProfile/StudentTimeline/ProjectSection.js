@@ -94,7 +94,7 @@ const ProjectSection = ({ student, progress }) => {
           <Progress 
             type="circle" 
             percent={overallProgress} 
-            width={40} 
+            size={40} 
             format={percent => `${percent}%`}
           />
           {totalStepsDisplay > 0 && (

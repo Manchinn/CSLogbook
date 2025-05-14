@@ -106,7 +106,7 @@ const ProjectEligibilityCheck = () => {
 
   return (
     <div className="eligibility-container">
-      <Card title="ตรวจสอบคุณสมบัติสำหรับโครงงานพิเศษ" bordered={false}>
+      <Card title="ตรวจสอบคุณสมบัติสำหรับโครงงานพิเศษ" variant="borderless">
         {isLoading || refreshing ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />

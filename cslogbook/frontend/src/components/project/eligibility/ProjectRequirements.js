@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Typography, Divider, Collapse, Timeline, List, Space, Alert } from 'antd';
 import {
   CalendarOutlined,
@@ -22,6 +22,19 @@ const { Title, Paragraph, Text } = Typography;
 const { Panel } = Collapse;
 
 const ProjectRequirements = () => {
+  const [eligibilityCriteria, setEligibilityCriteria] = useState(null);
+
+  // Simulate fetching data or setting it after component mounts
+  useEffect(() => {
+    // In a real application, you would fetch this data from an API
+    // For demonstration, we'll set it after a short delay
+    const timer = setTimeout(() => {
+      setEligibilityCriteria({ minTotalCredits: 95, minMajorCredits: 47 });
+    }, 1000); // Simulate 1 second delay
+
+    return () => clearTimeout(timer); // Cleanup timer on unmount
+  }, []); // Empty dependency array ensures this effect runs only once on mount
+
   // ข้อมูลขั้นตอนการทำโครงงานพิเศษ
   const projectSteps = [
     {
@@ -62,14 +75,27 @@ const ProjectRequirements = () => {
   ];
 
   // ข้อกำหนดคุณสมบัติ
-  const qualificationRequirements = [
-    'ต้องผ่านการเรียนมาแล้วอย่างน้อย 95 หน่วยกิต',
-    'ต้องมีหน่วยกิตสะสมในสาขาอย่างน้อย 47 หน่วยกิต',
-    'ต้องเป็นนักศึกษาชั้นปีที่ 4 หรือเทียบเท่า',
-    'ต้องลงทะเบียนเรียนวิชาโครงงานพิเศษ 1 และ 2 ตามลำดับ',
-    'ต้องมีอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน',
-    'กรณีที่หลักสูตรกำหนด ต้องผ่านการฝึกงานภาคอุตสาหกรรมก่อน'
-  ];
+  const qualificationRequirements = useMemo(() => {
+    if (!eligibilityCriteria) {
+      // Return placeholder text or an empty array while data is loading
+      return [
+        'กำลังโหลดข้อกำหนดหน่วยกิตรวม...',
+        'กำลังโหลดข้อกำหนดหน่วยกิตในสาขา...',
+        'ต้องเป็นนักศึกษาชั้นปีที่ 4 หรือเทียบเท่า',
+        'ต้องลงทะเบียนเรียนวิชาโครงงานพิเศษ 1 และ 2 ตามลำดับ',
+        'ต้องมีอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน',
+        'กรณีที่หลักสูตรกำหนด ต้องผ่านการฝึกงานภาคอุตสาหกรรมก่อน'
+      ];
+    }
+    return [
+      `ต้องผ่านการเรียนมาแล้วอย่างน้อย ${eligibilityCriteria.minTotalCredits} หน่วยกิต`,
+      `ต้องมีหน่วยกิตสะสมในสาขาอย่างน้อย ${eligibilityCriteria.minMajorCredits} หน่วยกิต`,
+      'ต้องเป็นนักศึกษาชั้นปีที่ 4 หรือเทียบเท่า',
+      'ต้องลงทะเบียนเรียนวิชาโครงงานพิเศษ 1 และ 2 ตามลำดับ',
+      'ต้องมีอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน',
+      'กรณีที่หลักสูตรกำหนด ต้องผ่านการฝึกงานภาคอุตสาหกรรมก่อน'
+    ];
+  }, [eligibilityCriteria]); // Recalculate when eligibilityCriteria changes
 
   // ข้อกำหนดเอกสารที่ต้องส่งในระบบ
   const documentRequirements = [
@@ -113,7 +139,7 @@ const ProjectRequirements = () => {
 
   return (
     <div className="requirements-container">
-      <Card title="ข้อกำหนดโครงงานพิเศษ" bordered={false}>
+      <Card title="ข้อกำหนดโครงงานพิเศษ" variant="borderless">
         <Alert
           message="สำคัญ: ข้อกำหนดโครงงานพิเศษนี้ใช้สำหรับนักศึกษาภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ เท่านั้น"
           description="ข้อมูลอาจมีการเปลี่ยนแปลงได้ โปรดตรวจสอบกับอาจารย์ที่ปรึกษาหรือฝ่ายวิชาการเพื่อให้ได้ข้อมูลล่าสุด"

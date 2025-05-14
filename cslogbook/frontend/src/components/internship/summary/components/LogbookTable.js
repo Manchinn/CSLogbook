@@ -80,7 +80,7 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
   return (
     <Card 
       className="logbook-card"
-      bordered={false}
+      variant="borderless"
       title={<>
         <FileProtectOutlined /> บันทึกการทำงาน
         <div className="card-subtitle">

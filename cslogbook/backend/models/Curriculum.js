@@ -80,10 +80,6 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'project_major_base_credits'
         },
-        requirements: {
-            type: DataTypes.JSON, // เก็บข้อมูลเกณฑ์ในรูปแบบ JSON
-            allowNull: true
-        }
     }, {
         sequelize,
         modelName: 'Curriculum',

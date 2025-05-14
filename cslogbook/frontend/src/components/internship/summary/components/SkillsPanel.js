@@ -34,7 +34,7 @@ const SkillsPanel = ({
   summaryData
 }) => {
   return (
-    <Card bordered={false} className="skills-analysis-card">
+    <Card variant="borderless" className="skills-analysis-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4}>สรุปทักษะและความรู้ที่ได้รับจากการฝึกงาน</Title>
         
