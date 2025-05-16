@@ -20,24 +20,25 @@ const ImportantDeadlines = ({ deadlines = [] }) => {
       </div>
       <div className="ant-card-body">
         {deadlines.length > 0 ? (
-          <Timeline>
-            {deadlines.map(deadline => (
-              <Timeline.Item 
-                key={deadline.id}
-                color={deadline.daysLeft <= 7 ? 'red' : (deadline.daysLeft <= 14 ? 'orange' : 'blue')}
-              >
-                <Space>
-                  <Text strong>{deadline.name}</Text>
-                  <Tag color={deadline.daysLeft <= 7 ? 'error' : (deadline.daysLeft <= 14 ? 'warning' : 'blue')}>
-                    {deadline.daysLeft} วัน
-                  </Tag>
-                  {deadline.related === 'internship' && <Tag color="cyan">ฝึกงาน</Tag>}
-                  {deadline.related === 'project' && <Tag color="purple">โครงงาน</Tag>}
-                </Space>
-                <div><Text type="secondary">วันที่: {deadline.date}</Text></div>
-              </Timeline.Item>
-            ))}
-          </Timeline>
+          <Timeline
+            items={deadlines.map(deadline => ({
+              key: deadline.id,
+              color: deadline.daysLeft <= 7 ? 'red' : (deadline.daysLeft <= 14 ? 'orange' : 'blue'),
+              children: (
+                <>
+                  <Space>
+                    <Text strong>{deadline.name}</Text>
+                    <Tag color={deadline.daysLeft <= 7 ? 'error' : (deadline.daysLeft <= 14 ? 'warning' : 'blue')}>
+                      {deadline.daysLeft} วัน
+                    </Tag>
+                    {deadline.related === 'internship' && <Tag color="cyan">ฝึกงาน</Tag>}
+                    {deadline.related === 'project' && <Tag color="purple">โครงงาน</Tag>}
+                  </Space>
+                  <div><Text type="secondary">วันที่: {deadline.date}</Text></div>
+                </>
+              ),
+            }))}
+          />
         ) : (
           <Empty description="ไม่มีกำหนดการสำคัญในช่วงเวลานี้" />
         )}

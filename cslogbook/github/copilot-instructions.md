@@ -1,0 +1,68 @@
+# CSLogbook - GitHub Copilot Instructions
+
+## Project Overview
+This is a React JavaScript application called "CSLogbook" (ระบบติดตามความก้าวหน้าของนักศึกษา) - a system for tracking and monitoring student progress.
+
+## When suggesting code, remember:
+- This is a student progress tracking system written in React JavaScript
+- Follow modern React practices with functional components and hooks
+- The primary users are students and educators tracking academic progress
+- The UI should be responsive and accessible
+- The system manages student activities, milestones, and feedback
+
+## Preferred patterns:
+- Use modular component architecture
+- Implement clean state management with React hooks
+- Follow accessibility best practices
+- Write reusable utility functions
+- Include appropriate error handling
+- Design for both mobile and desktop experiences
+
+## Application features:
+
+### 1. User Authentication and Role Management
+- **Login/Registration System**: Secure authentication for students and educators
+- **Role-Based Access Control**: Different permissions and views based on user role (student, advisor, admin)
+- **Profile Management**: Allow users to update their information and preferences
+- **Account Recovery**: Password reset and account recovery workflows
+
+### 2. Student Progress Tracking and Logging
+- **Activity Logging**: Students can create entries about completed work, challenges, and achievements
+- **Milestone Management**: Define, track, and update key academic milestones
+- **Task Management**: Create and manage academic tasks with deadlines and priorities
+- **Progress Indicators**: Visual representation of completion status and advancement
+- **Journal Entries**: Reflective logs where students can document their learning journey
+
+### 3. Timeline Visualization of Activities
+- **Chronological View**: Display activities and milestones in a timeline format
+- **Filtering Options**: Filter timeline by date range, activity type, or status
+- **Interactive Timeline**: Click to expand entries and see details
+- **Calendar Integration**: View deadlines and milestones in calendar format
+- **Historical Analysis**: Track progress patterns over academic terms
+
+### 4. Feedback and Assessment Tools
+- **Advisor Comments**: Allow advisors to provide feedback on student entries
+- **Rating System**: Evaluate progress using defined metrics or rubrics
+- **Discussion Threads**: Enable conversations around specific activities or milestones
+- **Approval Workflows**: Teachers can review and approve submitted work
+- **Improvement Suggestions**: System for providing constructive feedback
+
+### 5. Reporting and Data Visualization
+- **Progress Dashboards**: Visual summaries of student advancement
+- **Comparative Analysis**: Compare current progress against goals or past performance
+- **Exportable Reports**: Generate PDF or spreadsheet reports of student activities
+- **Analytics**: Identify patterns, strengths, and areas needing improvement
+- **Achievement Tracking**: Highlight completed milestones and accomplishments
+
+## Technical Requirements:
+- RESTful API integration for data persistence
+- Responsive design for all screen sizes
+- Form validation and error handling
+- State management using React Context and hooks
+- Secure data handling and privacy controls
+
+## Please avoid:
+- Class components (use functional components instead)
+- Outdated React patterns
+- Overly complex solutions when simple ones will work
+- Assuming specific external libraries unless mentioned

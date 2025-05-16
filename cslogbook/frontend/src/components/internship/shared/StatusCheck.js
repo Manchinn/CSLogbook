@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Table, message, Tag, Space, Button, Modal, Timeline, Card } from "antd";
-import { FileTextOutlined, EyeOutlined, ClockCircleOutlined, SyncOutlined, CloseCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import internshipService from '../../../services/internshipService';
-import dayjs from 'dayjs';
-import './InternshipStyles.css';
+import {
+  Layout,
+  Table,
+  message,
+  Tag,
+  Space,
+  Button,
+  Modal,
+  Timeline,
+  Card,
+} from "antd";
+import {
+  FileTextOutlined,
+  EyeOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+  CloseCircleOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
+import internshipService from "../../../services/internshipService";
+import dayjs from "dayjs";
+import "./InternshipStyles.css";
 
 const { Content } = Layout;
 
@@ -23,7 +40,7 @@ const InternshipStatusCheck = () => {
       if (response.success) {
         setStatusData(response.data);
       } else {
-        message.error('ไม่สามารถดึงข้อมูลสถานะได้');
+        message.error("ไม่สามารถดึงข้อมูลสถานะได้");
       }
     } catch (error) {
       message.error(error.message);
@@ -34,25 +51,41 @@ const InternshipStatusCheck = () => {
 
   const getStatusTag = (status) => {
     const statusConfig = {
-      pending: { color: 'gold', text: 'รอการพิจารณา' },
-      approved: { color: 'green', text: 'อนุมัติ' },
-      rejected: { color: 'red', text: 'ไม่อนุมัติ' },
-      in_progress: { color: 'blue', text: 'กำลังดำเนินการ' }
+      pending: { color: "gold", text: "รอการพิจารณา" },
+      approved: { color: "green", text: "อนุมัติ" },
+      rejected: { color: "red", text: "ไม่อนุมัติ" },
+      in_progress: { color: "blue", text: "กำลังดำเนินการ" },
     };
-    
-    const config = statusConfig[status] || { color: 'default', text: status };
+
+    const config = statusConfig[status] || { color: "default", text: status };
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { color: 'gold', text: 'รอการพิจารณา', icon: <ClockCircleOutlined /> },
-      approved: { color: 'green', text: 'อนุมัติ', icon: <CheckCircleOutlined /> },
-      rejected: { color: 'red', text: 'ไม่อนุมัติ', icon: <CloseCircleOutlined /> },
-      in_progress: { color: 'blue', text: 'กำลังดำเนินการ', icon: <SyncOutlined spin /> }
+      pending: {
+        color: "gold",
+        text: "รอการพิจารณา",
+        icon: <ClockCircleOutlined />,
+      },
+      approved: {
+        color: "green",
+        text: "อนุมัติ",
+        icon: <CheckCircleOutlined />,
+      },
+      rejected: {
+        color: "red",
+        text: "ไม่อนุมัติ",
+        icon: <CloseCircleOutlined />,
+      },
+      in_progress: {
+        color: "blue",
+        text: "กำลังดำเนินการ",
+        icon: <SyncOutlined spin />,
+      },
     };
-    
-    const config = statusConfig[status] || { color: 'default', text: status };
+
+    const config = statusConfig[status] || { color: "default", text: status };
     return (
       <Tag icon={config.icon} color={config.color}>
         {config.text}
@@ -60,53 +93,57 @@ const InternshipStatusCheck = () => {
     );
   };
 
-  const renderStatusTimeline = (history) => (
-    <Timeline>
-      {history.map((item, index) => (
-        <Timeline.Item 
-          key={index}
-          color={getStatusBadge(item.status).props.color}
-        >
-          <p>{getStatusBadge(item.status)} {dayjs(item.updatedAt).format('DD/MM/YYYY HH:mm')}</p>
+  const renderStatusTimeline = (history) => {
+    const timelineItems = history.map((item, index) => ({
+      key: index,
+      color: getStatusBadge(item.status).props.color,
+      children: (
+        <>
+          <p>
+            {getStatusBadge(item.status)}{" "}
+            {dayjs(item.updatedAt).format("DD/MM/YYYY HH:mm")}
+          </p>
           {item.comment && <p className="status-comment">{item.comment}</p>}
-        </Timeline.Item>
-      ))}
-    </Timeline>
-  );
+        </>
+      ),
+    }));
+
+    return <Timeline items={timelineItems} />;
+  };
 
   const columns = [
     {
       title: "วันที่ยื่นคำร้อง",
       dataIndex: "submittedAt",
       key: "submittedAt",
-      render: (date) => dayjs(date).format('DD/MM/YYYY')
+      render: (date) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
       title: "เอกสาร",
       dataIndex: "documentName",
       key: "documentName",
-      render: () => 'แบบฟอร์ม คพ.05'
+      render: () => "แบบฟอร์ม คพ.05",
     },
     {
       title: "ชื่อบริษัท",
       dataIndex: "companyName",
-      key: "companyName"
+      key: "companyName",
     },
     {
       title: "ระยะเวลาฝึกงาน",
       key: "internshipPeriod",
       render: (_, record) => (
         <>
-          {dayjs(record.startDate).format('DD/MM/YYYY')} - 
-          {dayjs(record.endDate).format('DD/MM/YYYY')}
+          {dayjs(record.startDate).format("DD/MM/YYYY")} -
+          {dayjs(record.endDate).format("DD/MM/YYYY")}
         </>
-      )
+      ),
     },
     {
       title: "สถานะ",
       dataIndex: "status",
       key: "status",
-      render: (status) => getStatusTag(status)
+      render: (status) => getStatusTag(status),
     },
     {
       title: "การดำเนินการ",
@@ -124,16 +161,19 @@ const InternshipStatusCheck = () => {
             ดูรายละเอียด
           </Button>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
     <Layout className="layout">
       <Content className="content">
-        <Card 
+        <Card
           title={<h2>สถานะการยื่นเอกสารฝึกงาน</h2>}
-          extra={statusData?.currentDocument && getStatusBadge(statusData.currentDocument.status)}
+          extra={
+            statusData?.currentDocument &&
+            getStatusBadge(statusData.currentDocument.status)
+          }
         >
           {statusData?.currentDocument ? (
             <>
@@ -159,22 +199,49 @@ const InternshipStatusCheck = () => {
                 {selectedDocument && (
                   <div className="document-detail">
                     <Card title="ข้อมูลนักศึกษา" variant="borderless">
-                      <p><strong>รหัสนักศึกษา:</strong> {selectedDocument.studentCode}</p>
-                      <p><strong>ชื่อ-นามสกุล:</strong> {selectedDocument.studentName}</p>
+                      <p>
+                        <strong>รหัสนักศึกษา:</strong>{" "}
+                        {selectedDocument.studentCode}
+                      </p>
+                      <p>
+                        <strong>ชื่อ-นามสกุล:</strong>{" "}
+                        {selectedDocument.studentName}
+                      </p>
                     </Card>
-                    
+
                     <Card title="ข้อมูลสถานที่ฝึกงาน" variant="borderless">
-                      <p><strong>บริษัท:</strong> {selectedDocument.companyName}</p>
-                      <p><strong>ที่อยู่:</strong> {selectedDocument.companyAddress}</p>
-                      <p><strong>ระยะเวลา:</strong> {dayjs(selectedDocument.startDate).format('DD/MM/YYYY')} - {dayjs(selectedDocument.endDate).format('DD/MM/YYYY')}</p>
+                      <p>
+                        <strong>บริษัท:</strong> {selectedDocument.companyName}
+                      </p>
+                      <p>
+                        <strong>ที่อยู่:</strong>{" "}
+                        {selectedDocument.companyAddress}
+                      </p>
+                      <p>
+                        <strong>ระยะเวลา:</strong>{" "}
+                        {dayjs(selectedDocument.startDate).format("DD/MM/YYYY")}{" "}
+                        - {dayjs(selectedDocument.endDate).format("DD/MM/YYYY")}
+                      </p>
                     </Card>
 
                     {selectedDocument.supervisor?.name && (
                       <Card title="ข้อมูลผู้นิเทศงาน" variant="borderless">
-                        <p><strong>ชื่อ-นามสกุล:</strong> {selectedDocument.supervisor.name}</p>
-                        <p><strong>ตำแหน่ง:</strong> {selectedDocument.supervisor.position}</p>
-                        <p><strong>เบอร์โทร:</strong> {selectedDocument.supervisor.phone}</p>
-                        <p><strong>อีเมล:</strong> {selectedDocument.supervisor.email}</p>
+                        <p>
+                          <strong>ชื่อ-นามสกุล:</strong>{" "}
+                          {selectedDocument.supervisor.name}
+                        </p>
+                        <p>
+                          <strong>ตำแหน่ง:</strong>{" "}
+                          {selectedDocument.supervisor.position}
+                        </p>
+                        <p>
+                          <strong>เบอร์โทร:</strong>{" "}
+                          {selectedDocument.supervisor.phone}
+                        </p>
+                        <p>
+                          <strong>อีเมล:</strong>{" "}
+                          {selectedDocument.supervisor.email}
+                        </p>
                       </Card>
                     )}
 
@@ -187,7 +254,9 @@ const InternshipStatusCheck = () => {
             </>
           ) : (
             <div className="empty-state">
-              <FileTextOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+              <FileTextOutlined
+                style={{ fontSize: "48px", color: "#1890ff" }}
+              />
               <p>ยังไม่มีการยื่นเอกสารฝึกงาน</p>
               {statusData?.canSubmitNew && (
                 <Button type="primary" href="/internship/cs05">

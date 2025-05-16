@@ -18,7 +18,7 @@ const TimelineItems = ({ items = [], onAction }) => {
   }
   
   // สร้างรายการ Timeline
-  const renderTimelineItem = (item) => {
+  const processedItems = items.map((item) => {
     // รองรับทั้ง item.status (รูปแบบเดิม) และ status จากระบบ workflow ใหม่
     let status = item.status;
     if (status === 'awaiting_student_action') status = 'in_progress'; 
@@ -52,89 +52,88 @@ const TimelineItems = ({ items = [], onAction }) => {
       statusTagText = 'รอการอนุมัติ';
     }
     
-    return (
-      <Timeline.Item 
-        key={item.id || item.key}
-        color={color}
-        dot={icon}
-      >
-        <div style={{ marginBottom: 8 }}>
-          <Space align="start">
-            <Text strong>{title}</Text>
-            <Tag color={color}>{statusTagText}</Tag>
-            {item.document && <Tag color="purple">{item.document}</Tag>}
-          </Space>
-        </div>
-        
-        {description && <div><Text>{description}</Text></div>}
-        
-        {item.date && (
-          <div style={{ marginTop: 4 }}>
-            <Text type="secondary">วันที่: {item.date}</Text>
+    return {
+      key: item.id || item.key,
+      color: color,
+      dot: icon,
+      children: (
+        <>
+          <div style={{ marginBottom: 8 }}>
+            <Space align="start">
+              <Text strong>{title}</Text>
+              <Tag color={color}>{statusTagText}</Tag>
+              {item.document && <Tag color="purple">{item.document}</Tag>}
+            </Space>
           </div>
-        )}
-        
-        {item.timestamp && (
-          <div style={{ marginTop: 4 }}>
-            <Text type="secondary">
-              {moment(item.timestamp).fromNow()}
-            </Text>
-          </div>
-        )}
-        
-        {item.startDate && (
-          <div style={{ marginTop: 4 }}>
-            <Text type="secondary">เริ่ม: {item.startDate} {item.endDate && `- สิ้นสุด: ${item.endDate}`}</Text>
-          </div>
-        )}
-        
-        {item.deadline && (
-          <div style={{ marginTop: 4 }}>
-            <Text type="secondary">กำหนดการ: {item.deadline}</Text>
-          </div>
-        )}
-        
-        {/* แสดงปุ่มดำเนินการ ถ้าเป็นขั้นตอนที่ต้องการการดำเนินการ (ระบบเก่า) */}
-        {item.actionText && item.actionLink && (
-          <div style={{ marginTop: 8 }}>
-            <Button 
-              type={item.status === 'in_progress' ? 'primary' : 'default'} 
-              size="small" 
-              icon={
-                item.actionText.includes('ดาวน์โหลด') ? <CloudDownloadOutlined /> :
-                item.actionText.includes('อัปโหลด') ? <FormOutlined /> :
-                item.actionText.includes('บันทึก') ? <FormOutlined /> :
-                <RightCircleOutlined />
-              }
-              href={item.actionLink}
-              onClick={() => onAction && onAction(item)}
-            >
-              {item.actionText}
-            </Button>
-          </div>
-        )}
-        
-        {/* แสดงปุ่มดำเนินการสำหรับระบบ workflow ใหม่ */}
-        {!item.actionText && item.status === 'awaiting_student_action' && (
-          <div style={{ marginTop: 8 }}>
-            <Button 
-              type="primary" 
-              size="small" 
-              icon={<RightCircleOutlined />}
-              onClick={() => onAction && onAction(item)}
-            >
-              ดำเนินการ
-            </Button>
-          </div>
-        )}
-      </Timeline.Item>
-    );
-  };
+          
+          {description && <div><Text>{description}</Text></div>}
+          
+          {item.date && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary">วันที่: {item.date}</Text>
+            </div>
+          )}
+          
+          {item.timestamp && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary">
+                {moment(item.timestamp).fromNow()}
+              </Text>
+            </div>
+          )}
+          
+          {item.startDate && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary">เริ่ม: {item.startDate} {item.endDate && `- สิ้นสุด: ${item.endDate}`}</Text>
+            </div>
+          )}
+          
+          {item.deadline && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary">กำหนดการ: {item.deadline}</Text>
+            </div>
+          )}
+          
+          {/* แสดงปุ่มดำเนินการ ถ้าเป็นขั้นตอนที่ต้องการการดำเนินการ (ระบบเก่า) */}
+          {item.actionText && item.actionLink && (
+            <div style={{ marginTop: 8 }}>
+              <Button 
+                type={item.status === 'in_progress' ? 'primary' : 'default'} 
+                size="small" 
+                icon={
+                  item.actionText.includes('ดาวน์โหลด') ? <CloudDownloadOutlined /> :
+                  item.actionText.includes('อัปโหลด') ? <FormOutlined /> :
+                  item.actionText.includes('บันทึก') ? <FormOutlined /> :
+                  <RightCircleOutlined />
+                }
+                href={item.actionLink}
+                onClick={() => onAction && onAction(item)}
+              >
+                {item.actionText}
+              </Button>
+            </div>
+          )}
+          
+          {/* แสดงปุ่มดำเนินการสำหรับระบบ workflow ใหม่ */}
+          {!item.actionText && item.status === 'awaiting_student_action' && (
+            <div style={{ marginTop: 8 }}>
+              <Button 
+                type="primary" 
+                size="small" 
+                icon={<RightCircleOutlined />}
+                onClick={() => onAction && onAction(item)}
+              >
+                ดำเนินการ
+              </Button>
+            </div>
+          )}
+        </>
+      ),
+    };
+  });
 
   return (
-    <Timeline mode="left">
-      {items.map(renderTimelineItem)}
-    </Timeline>
+    <Timeline mode="left" items={processedItems} />
   );
 };
 

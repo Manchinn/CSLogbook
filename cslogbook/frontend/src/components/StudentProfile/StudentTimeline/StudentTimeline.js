@@ -192,38 +192,7 @@ const StudentTimeline = () => {
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <>
-        <Alert
-          message="ไม่สามารถโหลดข้อมูลไทม์ไลน์ได้"
-          description={error}
-          type="error"
-          showIcon
-          action={
-            <Space>
-              <Button type="primary" onClick={() => window.location.reload()}>
-                ลองใหม่
-              </Button>
-              <Button onClick={() => setShowStudentSearchModal(true)}>
-                ค้นหานักศึกษาอื่น
-              </Button>
-              <Button
-                onClick={() =>
-                  navigate("/login", { state: { returnUrl: window.location.pathname } })
-                }
-              >
-                เข้าสู่ระบบใหม่
-              </Button>
-            </Space>
-          }
-        />
-        {studentSearchModal}
-      </>
-    );
-  }
-
+  
   return (
     <>
       <div className="student-timeline">

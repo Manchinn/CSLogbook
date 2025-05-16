@@ -119,7 +119,7 @@ const NextAction = ({ student }) => {
   }
   
   return (
-    <Card size="small" bordered style={{ backgroundColor: '#f9f0ff', marginBottom: 16 }}>
+    <Card size="small" variant='borderless' style={{ backgroundColor: '#f9f0ff', marginBottom: 16 }}>
       <Space align="start">
         <StarOutlined style={{ fontSize: '20px', color: '#722ed1' }} />
         <div>
