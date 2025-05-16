@@ -39,7 +39,6 @@ export function useSummaryData() {
 
     // เตรียมวันเริ่มต้นฝึกงานจาก CS05
     const internshipStart = dayjs(summary.startDate);
-    console.log("วันเริ่มฝึกงาน:", internshipStart.format("DD/MM/YYYY"));
 
     // เหลือโค้ดเดิมตามนี้...
 
@@ -58,10 +57,6 @@ export function useSummaryData() {
       nextMonday = internshipStart.clone().add(8 - dayOfWeek, "day");
     }
 
-    console.log(
-      "วันจันทร์ถัดไป (เริ่มสัปดาห์ที่ 2):",
-      nextMonday.format("DD/MM/YYYY")
-    );
 
     // จัดกลุ่มข้อมูลตามสัปดาห์
     const weeks = {};
@@ -155,7 +150,6 @@ export function useSummaryData() {
         approvedHours: Math.round(week.approvedHours * 10) / 10,
       }));
 
-    console.log(`สร้างข้อมูลรายสัปดาห์เสร็จสิ้น: ${result.length} สัปดาห์`);
     return result;
   };
 
@@ -178,9 +172,6 @@ export function useSummaryData() {
       } // ดึงข้อมูลบันทึกการฝึกงาน
       const entriesResponse = await internshipService.getTimeSheetEntries();
       if (entriesResponse.success && entriesResponse.data) {
-        console.log(
-          `จำนวนข้อมูลรายการทั้งหมดจาก API: ${entriesResponse.data.length}`
-        );
 
         // แปลงข้อมูลและเรียงลำดับตามวันที่ (จากเก่าไปใหม่)
         const formattedEntries = entriesResponse.data

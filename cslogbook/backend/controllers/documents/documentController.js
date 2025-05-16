@@ -257,7 +257,16 @@ const getDocuments = async (req, res) => {
 const approveDocument = async (req, res) => {
     try {
         const documentId = req.params.id;
-        const document = await Document.findByPk(documentId);
+        const document = await Document.findByPk(documentId, {
+            include: [{
+                model: User,
+                as: 'owner',
+                include: [{
+                    model: Student,
+                    as: 'student'
+                }]
+            }]
+        });
         
         if (!document) {
             return res.status(404).json({
@@ -266,11 +275,41 @@ const approveDocument = async (req, res) => {
             });
         }
 
+        // อัปเดตสถานะเอกสาร
         await document.update({
             status: 'approved',
             reviewedBy: req.user.id,
             reviewedAt: new Date()
         });
+        
+        // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่
+        if (document.documentType === 'CS05') {
+            console.log('Found CS05 document, processing workflow:', document.id);
+            
+            // อัปเดตสถานะนักศึกษาเป็น approved
+            try {
+                const student = await Student.findOne({
+                    include: [{
+                        model: User,
+                        as: 'user',
+                        where: { id: document.userId }
+                    }]
+                });
+                
+                if (student) {
+                    await student.update({
+                        internshipStatus: 'completed'
+                    });
+                    console.log(`Updated student ${student.studentId} internship status to approved`);
+                }
+            } catch (updateError) {
+                console.error('Error updating student internship status:', updateError);
+                // ยังทำงานต่อได้แม้อัปเดตไม่สำเร็จ
+            }
+            
+            // สร้าง/อัปเดตกิจกรรม workflow ของนักศึกษา
+            await updateInternshipWorkflowForCS05(document, req.user.id);
+        }
 
         res.json({
             success: true,
@@ -284,6 +323,81 @@ const approveDocument = async (req, res) => {
         });
     }
 };
+
+// ฟังก์ชันช่วยอัปเดตกิจกรรม workflow สำหรับ CS05
+async function updateInternshipWorkflowForCS05(document, adminId) {
+    try {
+        const { StudentWorkflowActivity } = require('../../models');
+        
+        const studentId = document.owner?.student?.studentId;
+        if (!studentId) {
+            console.error('Cannot find studentId for document:', document.id);
+            return;
+        }
+        
+        console.log(`Updating workflow for student ${studentId}, document CS05`);
+        
+        // ค้นหากิจกรรม workflow ที่มีอยู่หรือสร้างใหม่
+        let workflowActivity = await StudentWorkflowActivity.findOne({
+            where: {
+                studentId,
+                workflowType: 'internship'
+            }
+        });
+        
+        if (!workflowActivity) {
+            console.log('Creating new workflow activity for student:', studentId);
+            workflowActivity = await StudentWorkflowActivity.create({
+                studentId,
+                workflowType: 'internship',
+                currentStepKey: 'INTERNSHIP_CS05_APPROVAL_PENDING',
+                currentStepStatus: 'pending',
+                overallWorkflowStatus: 'enrolled',
+                dataPayload: {},
+                startedAt: new Date()
+            });
+        }
+        
+        // อัปเดตสถานะเป็น "อนุมัติแล้ว"
+        await workflowActivity.update({
+            currentStepKey: 'INTERNSHIP_CS05_APPROVED',
+            currentStepStatus: 'completed',
+            overallWorkflowStatus: 'in_progress',
+            dataPayload: {
+                ...workflowActivity.dataPayload,
+                cs05ApprovedAt: new Date().toISOString(),
+                cs05ApprovedBy: adminId,
+                documentId: document.id
+            }
+        });
+        
+        console.log('CS05 workflow updated successfully');
+        
+        // สร้างการแจ้งเตือนให้นักศึกษา (ถ้ามีโมเดล Notification)
+        try {
+            const { Notification } = require('../../models');
+            if (Notification) {
+                await Notification.create({
+                    userId: document.userId || document.owner?.id,
+                    title: 'เอกสาร คพ.05 ได้รับการอนุมัติแล้ว',
+                    message: 'คำร้องขอฝึกงานของคุณได้รับการอนุมัติแล้ว โปรดดำเนินการขั้นตอนถัดไป',
+                    type: 'document_approved',
+                    referenceId: document.id,
+                    isRead: false
+                });
+                console.log('Notification created for student');
+            }
+        } catch (notifyError) {
+            console.error('Error creating notification:', notifyError);
+            // ไม่ทำให้กระบวนการล้มเหลวหากแจ้งเตือนไม่สำเร็จ
+        }
+        
+        return workflowActivity;
+    } catch (error) {
+        console.error('Error updating internship workflow for CS05:', error);
+        throw error;
+    }
+}
 
 // ปฏิเสธเอกสาร
 const rejectDocument = async (req, res) => {

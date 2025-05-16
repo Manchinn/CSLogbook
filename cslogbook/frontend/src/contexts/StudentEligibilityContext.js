@@ -46,8 +46,6 @@ export const StudentEligibilityProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      console.log('StudentEligibilityContext: Raw API Response:', response); // <--- LOG HERE (ดู response ทั้งหมด)
-
       if (response.data.success) {
         console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS):', response.data); // <--- LOG HERE
         setEligibility({

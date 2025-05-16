@@ -398,8 +398,6 @@ const internshipService = {
   generateInternshipDates: async () => {
     try {
       const response = await apiClient.get('/internship/logbook/workdays');
-      console.log('API Response from workdays (raw):', response);
-
       // ตรวจสอบการตอบกลับ
       if (!response.data.success) {
         console.warn('API แจ้งว่าไม่สำเร็จ:', response.data.message);

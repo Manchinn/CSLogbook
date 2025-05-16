@@ -60,7 +60,11 @@ module.exports = (sequelize) => {
                     requiredTotalCredits = studentSpecificCurriculum.internshipBaseCredits;
                     requiredMajorCreditsForInternship = studentSpecificCurriculum.internshipMajorBaseCredits;
                     curriculumName = studentSpecificCurriculum.name;
-                    console.log(`Student.js: Internship eligibility for student ${this.studentCode}, Curriculum: ${curriculumName} (ID: ${studentSpecificCurriculum.curriculumId})`);
+                    console.log(`Student.js: Internship Eligibility - Using student's assigned curriculum`, {
+                        studentCode: this.studentCode,
+                        curriculumName: curriculumName,
+                        curriculumId: studentSpecificCurriculum.curriculumId
+                    });
                 } else {
                     console.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode}. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
                     const academicSettingsFallback = await Academic.findOne({ order: [['created_at', 'DESC']] });

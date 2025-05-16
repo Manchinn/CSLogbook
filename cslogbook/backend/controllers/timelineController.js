@@ -56,41 +56,84 @@ exports.getStudentTimeline = async (req, res) => {
     
     console.log(`พบนักศึกษา: ${student.studentId} (รหัสนักศึกษา: ${student.studentCode})`);
     
+    // เพิ่มการ log สถานะนักศึกษาเพื่อตรวจสอบ
+    console.log("Student status for timeline:", {
+      studentId: student.studentId,
+      internshipStatus: student.internshipStatus,
+      isEnrolledInternship: student.isEnrolledInternship
+    });
+
+    // สร้าง timeline สำหรับการฝึกงานและโครงงาน
+    let internshipTimeline = {};
+    let projectTimeline = {};
+
     try {
-      // ใช้ WorkflowService เพื่อดึงข้อมูล timeline
-      const internshipTimeline = await workflowService.generateStudentTimeline(student.studentId, 'internship');
-      const projectTimeline = await workflowService.generateStudentTimeline(student.studentId, 'project1');
-      
-      // สร้างข้อมูล response
-      const response = {
-        success: true,
-        data: {
-          student: {
-            id: student.studentId,
-            studentCode: student.studentCode,
-            isEligibleInternship: student.isEligibleInternship,
-            isEligibleProject: student.isEligibleProject,
-            isEnrolledInternship: student.isEnrolledInternship,
-            isEnrolledProject: student.isEnrolledProject,
-            internshipStatus: student.internshipStatus,
-            projectStatus: student.projectStatus,
-          },
-          progress: {
-            internship: internshipTimeline,
-            project: projectTimeline
-          },
-        }
-      };
-      
-      res.json(response);
+      // ดึงข้อมูล timeline จาก workflowService
+      internshipTimeline = await workflowService.generateStudentTimeline(
+        student.studentId, 
+        'internship'
+      );
     } catch (workflowError) {
-      console.error("Error generating student timeline:", workflowError);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'เกิดข้อผิดพลาดในการสร้าง Timeline',
-        error: workflowError.message
-      });
+      console.error("Error generating internship timeline:", workflowError);
+      // กำหนดค่าเริ่มต้นแทนในกรณีเกิดข้อผิดพลาด
+      internshipTimeline = {
+        steps: [],
+        progress: 0,
+        status: student.internshipStatus || 'not_started',
+        currentStepDisplay: 0,
+        totalStepsDisplay: 0
+      };
     }
+
+    try {
+      projectTimeline = await workflowService.generateStudentTimeline(
+        student.studentId, 
+        'project'
+      );
+    } catch (workflowError) {
+      console.error("Error generating project timeline:", workflowError);
+      // กำหนดค่าเริ่มต้นแทนในกรณีเกิดข้อผิดพลาด
+      projectTimeline = {
+        steps: [],
+        progress: 0,
+        status: student.projectStatus || 'not_started',
+        currentStepDisplay: 0,
+        totalStepsDisplay: 0
+      };
+    }
+
+    // ถ้าสถานะใน student ไม่ตรงกับ timeline ให้ใช้ค่าจาก student แทน
+    if (student.isEnrolledInternship && internshipTimeline.status === 'not_started') {
+      internshipTimeline.status = student.internshipStatus || 'in_progress';
+      internshipTimeline.progress = student.internshipStatus === 'completed' ? 100 : 30;
+    }
+
+    // สร้างข้อมูล response
+    const response = {
+      success: true,
+      data: {
+        student: {
+          // ข้อมูลทั่วไป
+          id: student.studentId,
+          studentId: student.studentId,
+          studentCode: student.studentCode,
+          // ข้อมูลสถานะ
+          internshipStatus: student.internshipStatus,
+          isEnrolledInternship: !!student.isEnrolledInternship,
+          isEligibleInternship: student.isEligibleInternship,
+          isEligibleProject: student.isEligibleProject,
+          isEnrolledProject: student.isEnrolledProject,
+          internshipStatus: student.internshipStatus,
+          projectStatus: student.projectStatus,
+        },
+        progress: {
+          internship: internshipTimeline,
+          project: projectTimeline
+        },
+      }
+    };
+    
+    res.json(response);
   } catch (error) {
     console.error('Error in getStudentTimeline:', error);
     res.status(500).json({ 

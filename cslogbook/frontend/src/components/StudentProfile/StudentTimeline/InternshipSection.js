@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography } from 'antd';
+import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography, Alert } from 'antd';
 import { 
   LaptopOutlined, UnlockOutlined, LockOutlined, 
   FileDoneOutlined, InfoCircleOutlined 
@@ -10,6 +10,17 @@ const { Text, Paragraph } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงส่วนการฝึกงาน
 const InternshipSection = ({ student, progress }) => {
+
+  // ตรวจสอบการลงทะเบียนฝึกงาน โดยใช้หลายวิธี
+  const isRegistered = React.useMemo(() => {
+    return Boolean(
+      student?.isEnrolledInternship === true ||
+      student?.isEnrolledInternship === 1 ||
+      student?.internshipStatus === 'in_progress' ||
+      student?.internshipStatus === 'completed'
+    );
+  }, [student]);
+
   // ตรวจสอบสิทธิ์การฝึกงานจากหลายแหล่งข้อมูล
   const hasInternshipEligibility = () => {
     // กรณีมีข้อมูลจาก eligibility object ซึ่งเป็นรูปแบบใหม่
@@ -112,7 +123,18 @@ const InternshipSection = ({ student, progress }) => {
         </Space>
       }
     >
-      {student.isEnrolledInternship ? (
+      {/* แสดงสถานะการลงทะเบียน */}
+      {isRegistered ? (
+        <Alert 
+          message={`สถานะ: ${student?.internshipStatus === 'completed' ? 'เสร็จสิ้น' : 'กำลังดำเนินการ'}`} 
+          type={student?.internshipStatus === 'completed' ? 'success' : 'info'} 
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
+      
+      {/* แก้ไขส่วนแสดงผลแบบมีเงื่อนไข */}
+      {isRegistered || student.isEnrolledInternship ? (
         internshipSteps.length > 0 ? (
           <TimelineItems items={internshipSteps} onAction={handleAction} />
         ) : (

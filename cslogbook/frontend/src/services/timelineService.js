@@ -46,6 +46,22 @@ export const timelineService = {
           
           // แปลงโครงสร้างข้อมูลให้ง่ายต่อการใช้งานใน component
           if (apiData.data.student && typeof apiData.data.student === 'object') {
+            // นำเข้าข้อมูลจากฐานข้อมูลโดยตรง
+            if (apiData.data.student.hasOwnProperty('internshipStatus')) {
+              console.log("Student internship status from API:", apiData.data.student.internshipStatus);
+            }
+            
+            if (apiData.data.student.hasOwnProperty('isEnrolledInternship')) {
+              // แปลงค่าจาก 0/1 หรือ string เป็น boolean
+              apiData.data.student.isEnrolledInternship = 
+                apiData.data.student.isEnrolledInternship === true || 
+                apiData.data.student.isEnrolledInternship === 1 || 
+                apiData.data.student.isEnrolledInternship === '1' || 
+                false;
+              
+              console.log("Student isEnrolledInternship converted to:", apiData.data.student.isEnrolledInternship);
+            }
+            
             // สร้าง alias ของ studentId เพื่อให้เข้าถึงได้หลายวิธี
             if (apiData.data.student.id && !apiData.data.student.studentId) {
               apiData.data.student.studentId = apiData.data.student.id;

@@ -225,6 +225,20 @@ exports.submitCS05 = async (req, res) => {
       supervisorEmail: null
     }, { transaction });
 
+    // 3. อัปเดตสถานะการฝึกงานในตาราง students
+    const student = await Student.findOne({
+      where: { userId: req.user.userId }
+    }, { transaction });
+
+    if (student) {
+      await student.update({
+        internshipStatus: 'in_progress',  // อัปเดตสถานะเป็น in_progress
+        isEnrollInternship: 1            // ตั้งค่าเป็น enrolled (1)
+      }, { transaction });
+      
+      console.log(`Updated student ${student.studentId} internship status to in_progress`);
+    }
+
     await transaction.commit();
 
     return res.status(201).json({
@@ -334,7 +348,39 @@ exports.submitCS05WithTranscript = async (req, res) => {
       supervisorEmail: null
     }, { transaction });
 
+    // 3. อัปเดตสถานะการฝึกงานในตาราง students
+    const student = await Student.findOne({
+      where: { userId: req.user.userId }
+    }, { transaction });
+
+    console.log('Found student:', student ? student.studentId : 'Not found');
+    
+    if (student) {
+      console.log('About to update student status for ID:', student.studentId);
+      console.log('Current status:', student.internshipStatus, student.isEnrolledInternship);
+      
+      try {
+        await student.update({
+          internshipStatus: 'in_progress',
+          isEnrolledInternship: 1
+        }, { transaction });
+        
+        // Verify the update worked
+        const updatedStudent = await Student.findOne({
+          where: { studentId: student.studentId }
+        }, { transaction });
+        
+        console.log('Updated status:', updatedStudent.isEnrolledInternship, updatedStudent.isEnrolledInternship);
+      } catch (updateError) {
+        console.error('Error updating student status:', updateError);
+        throw updateError; // Re-throw to trigger transaction rollback
+      }
+    }
+
+    // Make sure transaction is committed
+    console.log('Committing transaction...');
     await transaction.commit();
+    console.log('Transaction committed successfully');
 
     return res.status(201).json({
       success: true,
@@ -353,7 +399,8 @@ exports.submitCS05WithTranscript = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Submit CS05 with Transcript Error:', error);
+    console.error('Error in submitCS05WithTranscript:', error);
+    console.log('Transaction rolled back due to error');
     return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
