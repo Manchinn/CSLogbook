@@ -123,15 +123,6 @@ const InternshipSection = ({ student, progress }) => {
         </Space>
       }
     >
-      {/* แสดงสถานะการลงทะเบียน */}
-      {isRegistered ? (
-        <Alert 
-          message={`สถานะ: ${student?.internshipStatus === 'completed' ? 'เสร็จสิ้น' : 'กำลังดำเนินการ'}`} 
-          type={student?.internshipStatus === 'completed' ? 'success' : 'info'} 
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      ) : null}
       
       {/* แก้ไขส่วนแสดงผลแบบมีเงื่อนไข */}
       {isRegistered || student.isEnrolledInternship ? (

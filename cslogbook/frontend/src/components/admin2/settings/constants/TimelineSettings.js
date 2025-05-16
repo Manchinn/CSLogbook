@@ -252,8 +252,6 @@ const TimelineSettings = () => {
         return "กำลังดำเนินการ";
       case "waiting":
         return "รอดำเนินการ";
-      case "blocked":
-        return "ไม่สามารถดำเนินการได้";
       default:
         return "ไม่ทราบสถานะ";
     }

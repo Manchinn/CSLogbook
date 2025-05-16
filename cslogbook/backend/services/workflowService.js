@@ -73,172 +73,181 @@ class WorkflowService {
     try {
       console.log(`Generating ${workflowType} timeline for student ${studentId}`);
 
-      // แก้ไขจากการใช้ sequelize.models.Student เป็น Student โดยตรง
       const student = await Student.findByPk(studentId);
       
-      // เพิ่มการ log เพื่อตรวจสอบค่า
-      console.log("Student internship info:", {
+      console.log("Student workflow info:", { // เปลี่ยนชื่อ log เล็กน้อย
         studentId,
         internshipStatus: student?.internshipStatus,
-        isEnrolledInternship: student?.isEnrolledInternship
+        projectStatus: student?.projectStatus, // เพิ่ม projectStatus ด้วยถ้ามี
+        isEnrolledInternship: student?.isEnrolledInternship,
+        isEnrolledProject: student?.isEnrolledProject // เพิ่ม isEnrolledProject ด้วยถ้ามี
       });
 
-      // ดึงข้อมูลขั้นตอนทั้งหมดของ workflow ประเภทนี้
       const stepDefinitions = await this.getWorkflowStepDefinitions(workflowType);
-      
-      // ดึงข้อมูลกิจกรรมปัจจุบันของนักศึกษา (ถ้ามี)
       let workflowActivity = await StudentWorkflowActivity.findOne({
         where: { studentId, workflowType }
       });
 
-      console.log(`Found ${stepDefinitions.length} step definitions, activity exists: ${!!workflowActivity}`);
+      console.log(`Found ${stepDefinitions.length} step definitions for ${workflowType}, activity exists: ${!!workflowActivity}`);
 
-      // สำคัญ: ถ้าไม่มีข้อมูล workflow activity แต่นักศึกษาได้ลงทะเบียนแล้ว
-      // ให้สร้าง activity ใหม่ตามสถานะในตาราง students
-      if (!workflowActivity && workflowType === 'internship' && 
-          student && student.isEnrolledInternship) {
-        
-        console.log("Creating new workflow activity based on student status");
-        
-        // สร้างค่าเริ่มต้นตามสถานะในตาราง students
-        let stepKey = 'INTERNSHIP_ELIGIBILITY_CHECK';
-        let status = 'completed';
-        let overallStatus = 'in_progress';
-        
-        // ถ้ามีสถานะเป็น completed ให้ตั้งขั้นตอนเป็นขั้นสุดท้าย
-        if (student.internshipStatus === 'completed') {
-          stepKey = 'INTERNSHIP_COMPLETE';
-          overallStatus = 'completed';
+      // สร้าง activity ถ้ายังไม่มีและนักศึกษามีสถานะ enrolled (ปรับปรุงให้รองรับ project ด้วยถ้าต้องการ)
+      if (!workflowActivity && student) {
+        let shouldCreateActivity = false;
+        let initialStepKey = '';
+        let initialStepStatus = 'completed'; // สมมติว่า eligibility check เสร็จแล้ว
+        let initialOverallStatus = 'in_progress';
+
+        if (workflowType === 'internship' && student.isEnrolledInternship) {
+          shouldCreateActivity = true;
+          initialStepKey = 'INTERNSHIP_ELIGIBILITY_CHECK'; // Key แรกสุด
+          if (student.internshipStatus === 'completed') {
+            initialStepKey = 'INTERNSHIP_COMPLETED'; // Key สุดท้ายถ้า completed แล้ว
+            initialOverallStatus = 'completed';
+          } else if (!student.internshipStatus || student.internshipStatus === 'not_started') {
+            // ถ้า isEnrolled แต่ยังไม่มีสถานะชัดเจน หรือเป็น not_started
+            // อาจจะต้องพิจารณาว่าควรสร้าง activity หรือไม่ หรือสร้างด้วยสถานะอะไร
+            // ในที่นี้ยังคง flow เดิมคือถ้า enrolled และไม่ completed จะเริ่มจาก eligibility check
+             initialOverallStatus = student.internshipStatus || 'in_progress';
+          } else {
+            initialOverallStatus = student.internshipStatus;
+          }
         }
-        
-        // สร้างข้อมูล workflow ใหม่
-        workflowActivity = await this.updateStudentWorkflowActivity(
-          studentId,
-          workflowType,
-          stepKey,
-          status,
-          overallStatus,
-          { createdFromStudentStatus: true }
-        );
+        // TODO: เพิ่มเงื่อนไขสำหรับ project workflow ถ้าต้องการ
+        // else if (workflowType === 'project' && student.isEnrolledProject) { ... }
+
+        if (shouldCreateActivity) {
+          console.log(`Creating new ${workflowType} activity for student ${studentId} based on student status.`);
+          workflowActivity = await this.updateStudentWorkflowActivity(
+            studentId,
+            workflowType,
+            initialStepKey,
+            initialStepStatus, // สถานะของ step แรก
+            initialOverallStatus, // สถานะโดยรวม
+            { createdFromStudentStatus: true }
+          );
+        }
       }
       
-      // สร้าง response ตามรูปแบบเดิม
       const steps = [];
       let currentStepIndex = -1;
       let progress = 0;
-      let status = 'not_started';
+      // กำหนด overall status เริ่มต้นให้ถูกต้องตาม workflowType
+      let overallTimelineStatus = 'not_started'; 
+      if (workflowType === 'internship' && student) {
+        overallTimelineStatus = student.internshipStatus || 'not_started';
+      } else if (workflowType === 'project' && student) {
+        overallTimelineStatus = student.projectStatus || 'not_started';
+      }
+      // ถ้ามี activity, overallWorkflowStatus จาก activity อาจจะแม่นยำกว่า
+      if (workflowActivity) {
+        overallTimelineStatus = workflowActivity.overallWorkflowStatus;
+      }
 
-      // ถ้ามีขั้นตอนให้แสดง
+
       if (stepDefinitions.length > 0) {
-        // หาตำแหน่งของขั้นตอนปัจจุบัน (ถ้ามี workflow activity)
         if (workflowActivity) {
           currentStepIndex = stepDefinitions.findIndex(
             step => step.stepKey === workflowActivity.currentStepKey
           );
+          
+          console.log(`WorkflowActivity currentStepKey for ${workflowType}:`, workflowActivity.currentStepKey);
+          console.log(`Available step keys from ${workflowType} definitions:`, stepDefinitions.map(step => step.stepKey));
+          console.log(`Current step index found for ${workflowType}:`, currentStepIndex); 
+        } else {
+            // กรณีไม่มี workflowActivity แต่มี stepDefinitions (อาจจะไม่ควรเกิดขึ้นถ้า logic การสร้าง activity ถูกต้อง)
+            console.log(`No workflowActivity found for ${workflowType}, student ${studentId}, but stepDefinitions exist. Timeline might be incomplete.`);
         }
         
-        // แปลงขั้นตอนทั้งหมดเป็นรูปแบบที่ frontend คาดหวัง
         stepDefinitions.forEach((def, index) => {
-          // กำหนดสถานะของขั้นตอนนี้
-          let stepStatus = 'NOT_STARTED';
-          let completed = false;
-          let completedDate = null;
+          let stepUiStatus = 'waiting'; // สถานะที่จะส่งให้ UI (เช่น 'completed', 'pending', 'in_progress', 'waiting')
+          let isStepCompleted = false;
+          let stepCompletedDate = null;
           
-          if (workflowActivity) {
+          if (workflowActivity && currentStepIndex !== -1) { // ตรวจสอบว่า currentStepIndex ถูกต้อง
             if (index < currentStepIndex) {
-              // ขั้นตอนก่อนหน้าให้ถือว่าเสร็จสิ้นแล้ว
-              stepStatus = 'COMPLETED';
-              completed = true;
+              stepUiStatus = 'completed'; // ใช้ตัวพิมพ์ใหญ่ให้สอดคล้องกับ frontend helper
+              isStepCompleted = true;
+              // หากต้องการวันที่เสร็จของแต่ละ step ที่ผ่านมา อาจจะต้อง query จากตาราง history
             } else if (index === currentStepIndex) {
-              // ขั้นตอนปัจจุบัน ใช้สถานะจาก workflow activity
+              // ขั้นตอนปัจจุบัน ใช้สถานะจาก workflowActivity.currentStepStatus
+              // แปลง currentStepStatus จาก activity ไปเป็น UI status ที่ frontend helper รู้จัก
               switch (workflowActivity.currentStepStatus) {
-                case 'completed':
-                  stepStatus = 'COMPLETED';
-                  completed = true;
-                  completedDate = workflowActivity.updatedAt;
+                case 'completed': // step ปัจจุบันเพิ่งเสร็จ
+                  stepUiStatus = 'completed';
+                  isStepCompleted = true;
+                  stepCompletedDate = workflowActivity.updatedAt;
                   break;
-                case 'pending':
-                  stepStatus = 'PENDING';
+                case 'pending': // เช่น รอการอนุมัติเอกสาร
+                case 'awaiting_approval': // ชื่อเดิมที่อาจจะใช้
+                  stepUiStatus = 'pending';
                   break;
-                case 'awaiting_student_action':
-                  stepStatus = 'AWAITING_ACTION';
+                case 'awaiting_student_action': // รอนักศึกษาดำเนินการ
+                case 'awaiting_action': // ชื่อเดิมที่อาจจะใช้
+                  stepUiStatus = 'awaiting_action';
                   break;
-                case 'awaiting_admin_action':
-                  stepStatus = 'AWAITING_APPROVAL';
+                case 'in_progress': // กำลังดำเนินการใน step นั้นๆ
+                  stepUiStatus = 'in_progress';
                   break;
-                case 'in_progress':
-                  stepStatus = 'IN_PROGRESS';
-                  break;
-                default:
-                  stepStatus = 'NOT_STARTED';
+                default: // 'not_started', 'waiting', หรืออื่นๆ ที่ไม่รู้จัก
+                  stepUiStatus = 'waiting'; // ให้เป็น waiting ถ้าไม่เข้าเงื่อนไขอื่น
               }
-              
-              // ถ้าเป็น CS05_APPROVED และสถานะเป็น completed ให้แสดงผู้อนุมัติ
-              if (def.stepKey === 'INTERNSHIP_CS05_APPROVED' && workflowActivity.currentStepStatus === 'completed') {
-                completedDate = workflowActivity.updatedAt;
-                
-                // ตรวจสอบว่ามีข้อมูล dataPayload หรือไม่
-                try {
-                  const payload = typeof workflowActivity.dataPayload === 'string' ? 
-                    JSON.parse(workflowActivity.dataPayload) : workflowActivity.dataPayload;
-                  
-                  // ดึงข้อมูลเพิ่มเติม เช่น ผู้อนุมัติ
-                  if (payload && payload.approvedBy) {
-                    // เพิ่มข้อมูลผู้อนุมัติ (ถ้ามี)
-                  }
-                } catch (e) {
-                  console.error('Error parsing dataPayload:', e);
-                }
-              }
+            }
+            // ขั้นตอนที่ index > currentStepIndex จะยังคงเป็น 'waiting' (ค่าเริ่มต้น)
+          } else if (!workflowActivity && student && overallTimelineStatus !== 'not_started' && overallTimelineStatus !== 'completed') {
+            // กรณีพิเศษ: ไม่มี activity แต่สถานะนักศึกษาคือ in_progress (อาจจะเพิ่งเริ่ม)
+            // ให้ขั้นตอนแรก (index 0) เป็น in_progress หรือ awaiting_action
+            if (index === 0) {
+                stepUiStatus = 'awaiting_action'; // หรือ 'in_progress' ขึ้นอยู่กับว่า step แรกคืออะไร
             }
           }
           
-          // เพิ่มขั้นตอนเข้าไปใน steps array
           steps.push({
             id: def.stepKey,
-            title: def.title,
-            description: def.descriptionTemplate,
-            status: stepStatus,
-            completed: completed,
-            completedDate: completedDate,
+            title: def.title, // มาจากฐานข้อมูล
+            description: def.descriptionTemplate, // มาจากฐานข้อมูล
+            status: stepUiStatus, // สถานะที่แปลงแล้วสำหรับ UI
+            completed: isStepCompleted,
+            completedDate: stepCompletedDate,
             order: def.stepOrder
           });
         });
         
         // คำนวณความคืบหน้าโดยรวม
-        if (currentStepIndex >= 0) {
-          progress = Math.round(((currentStepIndex + (workflowActivity?.currentStepStatus === 'completed' ? 1 : 0.5)) / stepDefinitions.length) * 100);
+        if (currentStepIndex >= 0 && workflowActivity && stepDefinitions.length > 0) {
+          // ถ้า step ปัจจุบัน completed, นับเต็ม step นั้น + index
+          // ถ้า step ปัจจุบันยังไม่ completed (เช่น in_progress, pending), นับครึ่ง step นั้น + index
+          const stepProgressFactor = workflowActivity.currentStepStatus === 'completed' ? 1 : 0.5;
+          progress = Math.round(((currentStepIndex + stepProgressFactor) / stepDefinitions.length) * 100);
+        } else if (!workflowActivity && student && overallTimelineStatus === 'in_progress' && stepDefinitions.length > 0) {
+          // กรณีไม่มี activity แต่สถานะ in_progress (อาจจะเพิ่งเริ่ม) ให้ progress เล็กน้อยสำหรับ step แรก
+          progress = Math.round(((0 + 0.5) / stepDefinitions.length) * 100);
+        } else if (overallTimelineStatus === 'completed') {
+          progress = 100;
         }
       }
       
-      // อัปเดตสถานะโดยรวม
-      if (student && student.internshipStatus === 'in_progress') {
-        status = 'in_progress';
-      } else if (student && student.internshipStatus === 'completed') {
-        status = 'completed';
-      } else if (workflowActivity) {
-        status = workflowActivity.overallWorkflowStatus;
-      }
+      // ตรวจสอบว่า progress ไม่เกิน 100 และไม่ต่ำกว่า 0
+      if (progress > 100) progress = 100;
+      if (progress < 0) progress = 0;
+
+      console.log(`Generated timeline for ${workflowType} - Student: ${studentId}, Steps: ${steps.length}, Progress: ${progress}%, OverallStatus: ${overallTimelineStatus}, CurrentStepIndex: ${currentStepIndex}`);
       
-      console.log(`Generated timeline with ${steps.length} steps, progress: ${progress}%`);
-      
-      // ส่งข้อมูลกลับ
       return {
-        steps: steps || [],
-        progress: progress || 0,
-        status: student ? student.internshipStatus || 'not_started' : 'not_started',
-        currentStepDisplay: currentStepIndex + 1,
+        steps: steps, // ไม่ต้อง steps || [] เพราะถ้า stepDefinitions.length > 0 จะมี steps เสมอ
+        progress: progress,
+        status: overallTimelineStatus, // สถานะโดยรวมของ workflow
+        currentStepDisplay: currentStepIndex >= 0 ? currentStepIndex + 1 : (overallTimelineStatus === 'in_progress' && steps.length > 0 ? 1 : 0), // ถ้า in_progress แต่ไม่มี currentStepIndex ให้แสดง step 1
         totalStepsDisplay: stepDefinitions.length
       };
     } catch (error) {
-      console.error('Error generating student timeline:', error);
-      // ถึงแม้มี error ก็ส่งข้อมูลกลับ
-      return {
+      logger.error(`Error generating student timeline for ${workflowType}, student ${studentId}:`, error);
+      return { 
         steps: [],
         progress: 0,
         status: 'not_started',
         currentStepDisplay: 0,
-        totalStepsDisplay: 0
+        totalStepsDisplay: 0,
+        error: error.message
       };
     }
   }
