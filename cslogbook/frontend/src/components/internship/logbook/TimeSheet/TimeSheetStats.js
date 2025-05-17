@@ -47,11 +47,10 @@ const TimeSheetStats = ({ stats = {} }) => {
   } = effectiveStats || stats || {};
 
   const progressPercentage = Math.min(Math.round((totalHours / 240) * 100), 100);
-
   return (
-    <Row gutter={[16, 16]} className="status-overview">
+    <Row gutter={[16, 16]} className="status-overview timesheet-status-cards">
       <Col xs={24} sm={12} md={6}>
-        <Card className="status-summary-card total">
+        <Card className="status-summary-card timesheet-status-card total">
           <Statistic
             title="วันฝึกงานทั้งหมด"
             value={total}

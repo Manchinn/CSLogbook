@@ -1,6 +1,23 @@
 .layout {
   min-height: 100vh;
-  background: transparent;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Role-specific background themes */
+.layout.student-theme {
+  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%);
+}
+
+.layout.teacher-theme {
+  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #fff7e6 0%, #ffd591 100%);
+}
+
+.layout.admin-theme {
+  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%);
 }
 
 .content {
@@ -10,7 +27,7 @@
   min-height: 280px;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  transition: all var(--transition-speed);
+  /* Removed transition effect */
 }
 
 .drawer-button {
@@ -28,10 +45,7 @@
   box-shadow: var(--box-shadow);
 }
 
-/* เพิ่ม Animation และ hover effects */
-.content:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
+/* ลบ Animation และ hover effects */
 
 /* Responsive layout adjustments */
 @media (max-width: 768px) {

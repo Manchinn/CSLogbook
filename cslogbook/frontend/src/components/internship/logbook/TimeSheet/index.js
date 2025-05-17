@@ -174,14 +174,12 @@ const TimeSheet = () => {
       </div>
     );
   }
-
   // เพิ่มการแสดง Banner เตือนว่าอยู่ในโหมดทดสอบ
   return (
     <div
-      className="internship-container"
+      className="internship-container timesheet-container"
       style={{ position: "relative", paddingBottom: "50px" }}
-    >
-      <Card>
+    >      <Card className="timesheet-card">
         {dateRange && (
           <Alert
             type="info"
@@ -211,9 +209,8 @@ const TimeSheet = () => {
       {stats && Object.keys(stats).length > 0 ? (
         <>
           <TimeSheetStats stats={stats} />
-        </>
-      ) : (
-        <Card style={{ marginBottom: 16 }}>
+        </>      ) : (
+        <Card className="timesheet-card timesheet-summary" style={{ marginBottom: 16 }}>
           <Alert
             type="info"
             message="กำลังโหลดข้อมูลสถิติ..."
@@ -229,9 +226,7 @@ const TimeSheet = () => {
             </Button>
           </div>
         </Card>
-      )}
-
-      <Card>
+      )}      <Card className="timesheet-card">
         {!initialLoading && internshipDates && internshipDates.length > 0 ? (
           <>
             <div className="timesheet-table-container">

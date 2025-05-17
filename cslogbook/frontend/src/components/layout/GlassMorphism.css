@@ -1,0 +1,98 @@
+/* Additional styling for glass morphism effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Apply glass effect to specific components */
+.ant-drawer-content {
+  background: rgba(255, 255, 255, 0.85) !important; /* ลดความทึบลง */
+  backdrop-filter: blur(10px) !important; /* ลดความเบลอลง */
+}
+
+/* Enhance header for the new background */
+.header-container {
+  background: rgba(255, 255, 255, 0.7) !important; /* ลดความทึบลงให้เห็น particles */
+  backdrop-filter: blur(5px) !important; /* ลดความเบลอลง */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Card style enhancements for the themed background */
+.ant-card {
+  background: rgba(255, 255, 255, 0.75) !important; /* ลดความทึบลง */
+  backdrop-filter: blur(4px) !important; /* ลดความเบลอลง */
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  position: relative;
+  z-index: 2; /* ให้แน่ใจว่าการ์ดอยู่ด้านหน้า particles */
+}
+
+/* ลบ hover transform effect */
+.ant-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ลบ shine animation effect */
+
+/* Enhanced form controls */
+.ant-input, .ant-select-selector, .ant-input-affix-wrapper {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  /* ลบ transition effect */
+}
+
+.ant-input:focus, .ant-input:hover,
+.ant-select-selector:focus, .ant-select-selector:hover,
+.ant-input-affix-wrapper:focus, .ant-input-affix-wrapper:hover {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Button enhancements */
+.ant-btn-primary {
+  background: linear-gradient(90deg, #1890ff 0%, #096dd9 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+  /* ลบ transition effect */
+}
+
+/* ลบ hover transform effect */
+.ant-btn-primary:hover {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+}
+
+/* For modal backdrops */
+.ant-modal-mask {
+  backdrop-filter: blur(5px);
+}
+
+/* Table enhancements */
+.ant-table {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Fix for any text over the gradient background */
+.text-on-gradient {
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* ลบ animations for menu items */
+/* ลบ hover transform effect */
+
+/* ลบ text glow effect for active items */
+
+/* ลบ animations for form elements */
+
+/* ลบ transform effects */
+.ant-input:focus,
+.ant-select-focused .ant-select-selector,
+.ant-input-focused {
+  box-shadow: 0 3px 10px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* ลบ hover animation to buttons */
+
+/* ลบ ripple animation */

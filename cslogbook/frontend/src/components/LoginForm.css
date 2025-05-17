@@ -21,13 +21,10 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
   background-color: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  /* transition removed */
 }
 
-.login-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15) !important;
-}
+/* hover effect removed */
 
 .login-header {
   text-align: center;
@@ -77,14 +74,10 @@
   background: linear-gradient(90deg, #1890ff 0%, #096dd9 100%) !important;
   border: none !important;
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4) !important;
-  transition: all 0.3s !important;
+  /* transition removed */
 }
 
-.login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.5) !important;
-  background: linear-gradient(90deg, #40a9ff 0%, #1890ff 100%) !important;
-}
+/* hover transform effect removed */
 
 .login-footer {
   text-align: center;
@@ -141,13 +134,8 @@
   }
 }
 
-/* Animation for error shake */
-@keyframes shake {
-  0%, 100% {transform: translateX(0);}
-  10%, 30%, 50%, 70%, 90% {transform: translateX(-5px);}
-  20%, 40%, 60%, 80% {transform: translateX(5px);}
-}
-
+/* Animation for error removed */
 .shake {
-  animation: shake 0.6s;
+  /* animation removed to prevent dizziness */
+  border: 1px solid #ff4d4f; /* static error indicator instead */
 }

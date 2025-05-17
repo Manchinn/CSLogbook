@@ -53,8 +53,9 @@
 /* Dashboard Container */
 .dashboard-container {
   padding: 0;
-  background: transparent;
-  min-height: calc(100vh - 64px);
+  background: transparent; /* This makes the background transparent */
+  /* min-height: calc(100vh - 64px); */ /* Adjust as needed, 64px is a common header height */
+  /* Ensure that elements behind this container are visible */
 }
 
 /* Card Styles */

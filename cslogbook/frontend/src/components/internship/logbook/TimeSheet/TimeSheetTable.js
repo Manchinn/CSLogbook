@@ -226,10 +226,9 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
       },
     },
   ];
-
   return (
-    <div style={{ width: '100%', overflow: 'auto' }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+    <div className="timesheet-table-wrapper" style={{ width: '100%', overflow: 'auto' }}>
+      <div className="timesheet-actions" style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
         <Tooltip title={!hasUnapprovedLogs ? "ไม่มีรายการที่รอการอนุมัติ หรือข้อมูลไม่ครบถ้วน" : ""}>
           <Button
             type="primary"
