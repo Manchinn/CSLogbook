@@ -319,7 +319,7 @@ module.exports = (sequelize) => {
             }
         },
         internshipStatus: {
-            type: DataTypes.ENUM('not_started', 'in_progress', 'completed'),
+            type: DataTypes.ENUM('not_started', 'pending_approval', 'in_progress', 'completed'),
             defaultValue: 'not_started',
             field: 'internship_status'
         },

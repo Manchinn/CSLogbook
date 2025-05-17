@@ -282,25 +282,26 @@ const approveDocument = async (req, res) => {
             reviewedAt: new Date()
         });
         
-        // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่
-        if (document.documentType === 'CS05') {
+        // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่ - แก้ไขให้ตรวจสอบทั้ง documentType และ documentName
+        if (document.documentType === 'INTERNSHIP' && document.documentName === 'CS05') {
             console.log('Found CS05 document, processing workflow:', document.id);
             
-            // อัปเดตสถานะนักศึกษาเป็น approved
+            // แก้ไขการอัปเดตสถานะนักศึกษาเป็น in_progress แทน completed
             try {
                 const student = await Student.findOne({
                     include: [{
                         model: User,
                         as: 'user',
-                        where: { id: document.userId }
+                        where: { userId: document.userId }
                     }]
                 });
                 
                 if (student) {
                     await student.update({
-                        internshipStatus: 'completed'
+                        internshipStatus: 'in_progress', // แก้ไขจาก 'completed' เป็น 'in_progress'
+                        isEnrolledInternship: 1 // เพิ่มการตั้งค่า isEnrolledInternship เป็น true
                     });
-                    console.log(`Updated student ${student.studentId} internship status to approved`);
+                    console.log(`Updated student ${student.studentId} internship status to in_progress`);
                 }
             } catch (updateError) {
                 console.error('Error updating student internship status:', updateError);
@@ -358,9 +359,10 @@ async function updateInternshipWorkflowForCS05(document, adminId) {
             });
         }
         
-        // อัปเดตสถานะเป็น "อนุมัติแล้ว"
+        // อัปเดตสถานะเป็น "อนุมัติแล้ว" และเปลี่ยน step ให้ถูกต้อง
         await workflowActivity.update({
             currentStepKey: 'INTERNSHIP_CS05_APPROVED',
+            previousStepKey: workflowActivity.currentStepKey, // เก็บขั้นตอนก่อนหน้า
             currentStepStatus: 'completed',
             overallWorkflowStatus: 'in_progress',
             dataPayload: {
@@ -373,12 +375,12 @@ async function updateInternshipWorkflowForCS05(document, adminId) {
         
         console.log('CS05 workflow updated successfully');
         
-        // สร้างการแจ้งเตือนให้นักศึกษา (ถ้ามีโมเดล Notification)
+        // สร้างการแจ้งเตือนให้นักศึกษา
         try {
             const { Notification } = require('../../models');
             if (Notification) {
                 await Notification.create({
-                    userId: document.userId || document.owner?.id,
+                    userId: document.userId || document.owner?.userId,
                     title: 'เอกสาร คพ.05 ได้รับการอนุมัติแล้ว',
                     message: 'คำร้องขอฝึกงานของคุณได้รับการอนุมัติแล้ว โปรดดำเนินการขั้นตอนถัดไป',
                     type: 'document_approved',
@@ -389,7 +391,6 @@ async function updateInternshipWorkflowForCS05(document, adminId) {
             }
         } catch (notifyError) {
             console.error('Error creating notification:', notifyError);
-            // ไม่ทำให้กระบวนการล้มเหลวหากแจ้งเตือนไม่สำเร็จ
         }
         
         return workflowActivity;

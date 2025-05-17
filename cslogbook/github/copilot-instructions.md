@@ -1,7 +1,47 @@
 # CSLogbook - GitHub Copilot Instructions
 
 ## Project Overview
-This is a React JavaScript application called "CSLogbook" (ระบบติดตามความก้าวหน้าของนักศึกษา) - a system for tracking and monitoring student progress.
+This is a React JavaScript application called "CSLogbook" (ระบบติดตามความก้าวหน้าของนักศึกษา) - a system for tracking and monitoring student progress. The system is built with a React frontend and Node.js backend with Express framework, using MySQL as the database.
+
+## Technologies Used
+### Frontend
+- **React**: Using functional components and hooks for UI development
+- **React Router**: For application routing and navigation
+- **Axios**: For API requests to the backend
+- **React Context API**: For global state management
+- **CSS/SCSS**: For styling components with responsive design
+
+### Backend
+- **Node.js**: JavaScript runtime for server-side code
+- **Express**: Web framework for building the API
+- **Sequelize ORM**: For database operations and migrations
+- **MySQL**: Relational database for data storage
+- **JWT**: For authentication and authorization
+- **Multer**: For file uploads handling
+
+## Project Structure
+The application follows a clear separation between frontend and backend:
+
+### Backend Structure
+- **controllers/**: API endpoint handlers organized by domain
+- **models/**: Sequelize database models
+- **routes/**: API route definitions
+- **middleware/**: Custom middleware for auth, rate limiting, etc.
+- **config/**: Configuration files for database, server, etc.
+- **services/**: Business logic and external service integrations
+- **utils/**: Utility functions and helpers
+- **migrations/**: Database schema changes
+- **seeders/**: Initial data for the database
+- **agents/**: Background processes and scheduled tasks
+
+### Frontend Structure
+- **src/components/**: Reusable UI components
+- **src/pages/**: Page-level components with routing
+- **src/context/**: React context definitions for state management
+- **src/hooks/**: Custom React hooks
+- **src/utils/**: Utility functions for the frontend
+- **src/services/**: API service integrations
+- **src/assets/**: Static assets like images and icons
 
 ## When suggesting code, remember:
 - This is a student progress tracking system written in React JavaScript
@@ -10,13 +50,19 @@ This is a React JavaScript application called "CSLogbook" (ระบบติด
 - The UI should be responsive and accessible
 - The system manages student activities, milestones, and feedback
 
-## Preferred patterns:
-- Use modular component architecture
-- Implement clean state management with React hooks
-- Follow accessibility best practices
-- Write reusable utility functions
-- Include appropriate error handling
-- Design for both mobile and desktop experiences
+## React Component Best Practices
+- Use modular component architecture with single responsibility principle
+- Keep components small and focused on specific UI elements or functionality
+- Implement clean state management with React hooks (useState, useEffect, useContext, useReducer)
+- Separate business logic from presentational components
+- Implement proper error boundaries and fallback UIs
+- Use React.memo() for performance optimization where appropriate
+- Follow accessibility best practices (proper ARIA attributes, semantic HTML, keyboard navigation)
+- Write reusable utility functions and custom hooks
+- Include appropriate error handling and loading states
+- Design for both mobile and desktop experiences with responsive design
+- Use props destructuring and default props for cleaner code
+- Implement proper form validation using custom hooks or libraries
 
 ## Application features:
 

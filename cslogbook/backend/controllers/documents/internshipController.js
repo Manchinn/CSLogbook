@@ -205,7 +205,7 @@ exports.submitCS05 = async (req, res) => {
       documentType: 'INTERNSHIP',
       documentName: 'CS05',
       category: 'proposal',
-      status: 'pending',
+      status: 'pending', // สถานะเอกสารคือ pending
       filePath: null,
       fileSize: null,
       mimeType: null
@@ -218,7 +218,7 @@ exports.submitCS05 = async (req, res) => {
       companyAddress,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      status: 'pending',
+      status: 'pending', // สถานะใน InternshipDocument ก็เป็น pending
       supervisorName: null,
       supervisorPosition: null,
       supervisorPhone: null,
@@ -232,11 +232,11 @@ exports.submitCS05 = async (req, res) => {
 
     if (student) {
       await student.update({
-        internshipStatus: 'in_progress',  // อัปเดตสถานะเป็น in_progress
-        isEnrollInternship: 1            // ตั้งค่าเป็น enrolled (1)
+        internshipStatus: 'pending_approval',  // อัปเดตสถานะนักศึกษาเป็น "รออนุมัติ"
+        isEnrolledInternship: true            // ตั้งค่าเป็น enrolled (อาจใช้ boolean true หรือ 1)
       }, { transaction });
       
-      console.log(`Updated student ${student.studentId} internship status to in_progress`);
+      console.log(`Updated student ${student.studentId} internship status to pending_approval`);
     }
 
     await transaction.commit();
@@ -247,7 +247,7 @@ exports.submitCS05 = async (req, res) => {
       data: {
         documentId: document.documentId,
         internshipDocId: internshipDoc.id,
-        status: document.status,
+        status: document.status, // สถานะของเอกสาร CS05
         requireTranscript: true
       }
     });
@@ -327,7 +327,7 @@ exports.submitCS05WithTranscript = async (req, res) => {
       documentType: 'INTERNSHIP',
       documentName: 'CS05',
       category: 'proposal',
-      status: 'pending',
+      status: 'pending', // สถานะเอกสารคือ pending
       filePath: req.file.path,
       fileName: req.file.filename,
       fileSize: req.file.size,
@@ -341,7 +341,7 @@ exports.submitCS05WithTranscript = async (req, res) => {
       companyAddress,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      status: 'pending',
+      status: 'pending', // สถานะใน InternshipDocument ก็เป็น pending
       supervisorName: null,
       supervisorPosition: null,
       supervisorPhone: null,
@@ -357,23 +357,22 @@ exports.submitCS05WithTranscript = async (req, res) => {
     
     if (student) {
       console.log('About to update student status for ID:', student.studentId);
-      console.log('Current status:', student.internshipStatus, student.isEnrolledInternship);
+      console.log('Current student internship status:', student.internshipStatus, 'isEnrolledInternship:', student.isEnrolledInternship);
       
       try {
         await student.update({
-          internshipStatus: 'in_progress',
-          isEnrolledInternship: 1
+          internshipStatus: 'pending_approval', // อัปเดตสถานะนักศึกษาเป็น "รออนุมัติ"
+          isEnrolledInternship: true
         }, { transaction });
         
-        // Verify the update worked
         const updatedStudent = await Student.findOne({
-          where: { studentId: student.studentId }
-        }, { transaction });
+          where: { studentId: student.studentId } // ใช้ studentId ที่เป็น primary key โดยตรง
+        }, { transaction }); // ดึงข้อมูลนักศึกษาที่อัปเดตแล้วเพื่อตรวจสอบ
         
-        console.log('Updated status:', updatedStudent.isEnrolledInternship, updatedStudent.isEnrolledInternship);
+        console.log('Updated student internship status:', updatedStudent.internshipStatus, 'isEnrolledInternship:', updatedStudent.isEnrolledInternship);
       } catch (updateError) {
         console.error('Error updating student status:', updateError);
-        throw updateError; // Re-throw to trigger transaction rollback
+        throw updateError; 
       }
     }
 
@@ -388,7 +387,7 @@ exports.submitCS05WithTranscript = async (req, res) => {
       data: {
         documentId: document.documentId,
         internshipDocId: internshipDoc.id,
-        status: document.status,
+        status: document.status, // สถานะของเอกสาร CS05
         companyName,
         companyAddress,
         startDate,
@@ -856,115 +855,89 @@ exports.getCS05List = async (req, res) => {
  * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
  */
 exports.getEvaluationStatus = async (req, res) => {
+  const defaultResponseData = {
+    hasEvaluation: false, // มีแบบประเมินที่ต้องทำหรือไม่ (เช่น ระบบสร้างฟอร์มไว้แล้ว)
+    isSent: false,        // นักศึกษาส่งลิงก์ให้พี่เลี้ยงแล้วหรือยัง
+    isCompleted: false    // พี่เลี้ยงทำการประเมินเสร็จสิ้นแล้วหรือไม่
+  };
+
   try {
-    // ตรวจสอบว่ามี request.user หรือไม่
     if (!req.user || !req.user.userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
-      });
+      return res.status(401).json({ success: false, message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่' });
     }
 
-    const student = await Student.findOne({
-      where: { userId: req.user.userId }
+    const student = await Student.findOne({ where: { userId: req.user.userId } });
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลนักศึกษา' });
+    }
+    
+    const studentId = student.studentId; // เก็บ studentId ไว้ใช้งาน
+
+    // ดึงข้อมูล CS05 ที่ได้รับการอนุมัติแล้ว
+    const approvedCS05Document = await Document.findOne({
+      where: {
+        userId: req.user.userId,
+        documentName: 'CS05',
+        status: 'approved'
+      },
+      order: [['created_at', 'DESC']] // เอาเอกสารล่าสุดที่อนุมัติ
     });
 
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'ไม่พบข้อมูลนักศึกษา'
-      });
-    }
-    
-    // เก็บค่า studentId ไว้ใช้
-    const studentId = student.studentId;
-    
-    // ดึงข้อมูล CS05 ที่ได้รับการอนุมัติแล้ว - แบบทนต่อ error มากขึ้น
-    try {
-      const document = await Document.findOne({
-        where: {
-          userId: req.user.userId,
-          documentName: 'CS05',
-          status: 'approved'
-        },
-        order: [['created_at', 'DESC']]
-      });
-
-      if (!document) {
-        return res.status(200).json({
-          success: true,
-          message: 'ยังไม่มีเอกสาร CS05 ที่ได้รับการอนุมัติ',
-          data: {
-            hasEvaluation: false,
-            isSent: false,
-            isCompleted: false
-          }
-        });
-      }
-        // ดึงข้อมูล internship แยกต่างหากเพื่อลดปัญหา include
-      const internshipDoc = await InternshipDocument.findOne({
-        where: { documentId: document.documentId },
-        attributes: ['internshipId', 'studentId', 'supervisorName', 'supervisorEmail'] // เพิ่ม studentId ในการเรียกข้อมูล
-      });
-      
-      if (!internshipDoc) {
-        return res.status(200).json({
-          success: true,
-          message: 'ไม่พบข้อมูล internship ที่เกี่ยวข้อง',
-          data: {
-            hasEvaluation: false,
-            isSent: false,
-            isCompleted: false
-          }
-        });
-      }
-      
-      // ตรวจสอบและอัพเดท studentId ถ้าไม่มี
-      if (!internshipDoc.studentId && student) {
-        try {
-          await internshipDoc.update({ studentId: student.studentId });
-        } catch (updateErr) {
-          console.error('Error updating internshipDoc with studentId:', updateErr);
-          // ทำงานต่อไปแม้อัพเดทไม่สำเร็จ
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching document or internship data:', err);
-      // ส่งค่า default เพื่อไม่ให้ frontend เกิด error
+    if (!approvedCS05Document) {
       return res.status(200).json({
         success: true,
-        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05 แต่ดำเนินการต่อได้',
-        data: {
-          hasEvaluation: false,
-          isSent: false,
-          isCompleted: false,
-          error: true
-        }
+        message: 'ยังไม่มีเอกสาร คพ.05 ที่ได้รับการอนุมัติ จึงยังไม่สามารถดำเนินการประเมินได้',
+        data: defaultResponseData
       });
-    }    // ตรงนี้ในอนาคตจะมีการตรวจสอบข้อมูลจากตาราง evaluations
-    // แต่ตอนนี้ยังไม่มีการพัฒนาส่วนนี้ จึงส่งค่าเริ่มต้นกลับไป
+    }
+
+    // ดึงข้อมูล InternshipDocument ที่เกี่ยวข้องกับ CS05 ที่อนุมัติ
+    const internshipDoc = await InternshipDocument.findOne({
+      where: { documentId: approvedCS05Document.documentId },
+      attributes: ['internshipId', 'studentId', 'supervisorName', 'supervisorEmail']
+    });
+      
+    if (!internshipDoc) {
+      // กรณีนี้ไม่ควรเกิดขึ้นถ้า CS05 อนุมัติแล้ว แต่ป้องกันไว้
+      return res.status(200).json({
+        success: true,
+        message: 'ไม่พบข้อมูลการฝึกงานที่เกี่ยวข้องกับเอกสาร คพ.05 ที่อนุมัติ',
+        data: defaultResponseData
+      });
+    }
+      
+    // ตรวจสอบและอัปเดต studentId ใน InternshipDocument หากยังไม่มี (เป็นการบำรุงรักษาข้อมูล)
+    if (!internshipDoc.studentId && studentId) {
+      try {
+        await internshipDoc.update({ studentId: studentId });
+        console.log(`Updated InternshipDocument ${internshipDoc.internshipId} with studentId ${studentId}`);
+      } catch (updateErr) {
+        console.warn(`Warning: Could not update InternshipDocument ${internshipDoc.internshipId} with studentId: ${updateErr.message}`);
+        // ดำเนินการต่อได้ แม้การอัปเดตนี้จะไม่สำเร็จ
+      }
+    }
+    
+    // ส่วนนี้จะมีการตรวจสอบข้อมูลจากตาราง evaluations ในอนาคต
+    // ขณะนี้เป็นการคืนค่าเบื้องต้นว่ามี CS05 ที่อนุมัติแล้ว ซึ่งเป็นเงื่อนไขแรกของการประเมิน
     return res.status(200).json({
       success: true,
-      message: 'ดึงข้อมูลสถานะการประเมินสำเร็จ',
+      message: 'ดึงข้อมูลสถานะการประเมินสำเร็จ (ตรวจสอบเบื้องต้นจาก คพ.05)',
       data: {
-        hasEvaluation: false, // มีแบบประเมินหรือไม่
-        isSent: false,        // ส่งไปให้พี่เลี้ยงแล้วหรือไม่
-        isCompleted: false    // พี่เลี้ยงทำการประเมินเสร็จแล้วหรือไม่
+        ...defaultResponseData,
+        // หากมี CS05 ที่อนุมัติแล้ว อาจหมายความว่า "มีแบบประเมินที่ต้องจัดการ"
+        // ตรรกะนี้อาจต้องปรับตามการออกแบบระบบประเมินผล
+        hasEvaluation: true, 
+        supervisorEmail: internshipDoc.supervisorEmail // ส่งอีเมลพี่เลี้ยงไปด้วยเผื่อ UI ต้องใช้
       }
     });
 
   } catch (error) {
     console.error('Get Evaluation Status Error:', error);
-    // เปลี่ยนจาก status 500 เป็น 200 แต่ส่งข้อมูลที่ frontend สามารถจัดการได้
-    return res.status(200).json({
-      success: true,
-      message: 'พบข้อผิดพลาด แต่สามารถดำเนินการต่อได้',
-      data: {
-        hasEvaluation: false,
-        isSent: false,
-        isCompleted: false,
-        error: true
-      },
+    // สำหรับข้อผิดพลาดของเซิร์ฟเวอร์จริงๆ ควรใช้ 500
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงสถานะการประเมิน',
+      data: { ...defaultResponseData, error: true }, // ส่ง error flag ไปด้วย
       debug: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
