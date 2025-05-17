@@ -10,6 +10,7 @@ This is a React JavaScript application called "CSLogbook" (ระบบติด
 - **Axios**: For API requests to the backend
 - **React Context API**: For global state management
 - **CSS/SCSS**: For styling components with responsive design
+- **Ant Design version ^5.25.1**: For pre-built UI components and styling
 
 ### Backend
 - **Node.js**: JavaScript runtime for server-side code

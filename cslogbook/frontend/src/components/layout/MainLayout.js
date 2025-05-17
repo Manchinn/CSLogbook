@@ -23,16 +23,14 @@ const MainLayout = () => {
   return (
     <Layout className="min-h-screen bg-gray-50">
       {/* Desktop Sidebar */}
-      {!isMobile && <Sidebar />}
-
-      {/* Mobile Drawer */}
+      {!isMobile && <Sidebar />}      {/* Mobile Drawer */}
       <Drawer
         placement="left"
         onClose={onClose}
         open={drawerVisible}
         width={280}
       >
-        <Sidebar />
+        <Sidebar inDrawer={true} />
       </Drawer>
 
       <Layout>

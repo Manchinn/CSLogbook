@@ -429,36 +429,22 @@ const Sidebar = ({ inDrawer }) => {
   const renderLastUpdate = () => {
     if (userData?.role === "student") {
       return (
-        <div
-          className="last-update"
-          style={{
-        textAlign: 'center', // Corrected to 'center' to align inline content (like the <small> tag)
-        padding: '8px 16px' // Added padding for better spacing
-          }}
-        >
+        <div className="last-update">
           <small style={{ fontSize: "10px", opacity: 0.7 }}>
-        อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+            อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
           </small>
-          <button
-        onClick={() => {
-          if (typeof refreshEligibility === 'function') {
-            refreshEligibility();
-          }
-        }}
-        style={{
-          fontSize: "10px",
-          display: "block", // Makes the button a block-level element
-          margin: "4px auto 0 auto", // Centers the block-level button horizontally (top, right/left, bottom)
-          background: "none",
-          border: "none",
-          padding: 0,
-          color: "var(--link-color, #1890ff)", // Use a CSS variable or a default link color
-          cursor: "pointer", // Add cursor pointer for better UX
-          textAlign: 'center', // Corrected to 'center' to align text inside the button
-        }}
+          <a
+            href="#"
+            style={{ fontSize: "10px", display: "block" }}
+            onClick={(e) => {
+              e.preventDefault();
+              if (typeof refreshEligibility === "function") {
+                refreshEligibility();
+              }
+            }}
           >
-        รีเฟรชข้อมูลสิทธิ์
-          </button>
+            รีเฟรชข้อมูลสิทธิ์
+          </a>
         </div>
       );
     }
