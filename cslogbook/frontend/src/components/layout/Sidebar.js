@@ -65,8 +65,10 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
 };
 
 // เพิ่ม prop inDrawer เพื่อบอกว่า Sidebar นี้อยู่ใน Drawer หรือไม่
-const Sidebar = ({ inDrawer }) => {
-  const [collapsed, setCollapsed] = useState(false);
+// เพิ่ม prop onMenuClick สำหรับปิด drawer เมื่อคลิกเมนู
+const Sidebar = ({ inDrawer, onMenuClick }) => {
+  // In drawer mode, we don't need collapsed state
+  const [collapsed] = useState(inDrawer ? false : false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const navigate = useNavigate();
   const location = useLocation();
@@ -417,12 +419,16 @@ const Sidebar = ({ inDrawer }) => {
       },
     ].filter(Boolean);
   }, [userData, canAccessInternship, canAccessProject, messages]);
-
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
       handleLogout();
     } else {
       navigate(key);
+    }
+    
+    // If in drawer mode and onMenuClick prop exists, call it to close the drawer
+    if (inDrawer && typeof onMenuClick === 'function') {
+      onMenuClick();
     }
   };
 
@@ -469,8 +475,15 @@ const Sidebar = ({ inDrawer }) => {
   return (
     <Sider
       width={230}
-      className={`sider ${userData?.role ? themeConfig[userData.role] : ""}`}
+      className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${inDrawer ? 'in-drawer' : ''}`}
       collapsed={collapsed}
+      // Add CSS for proper display when in mobile drawer
+      style={inDrawer ? { 
+        position: 'static',
+        height: 'auto',
+        boxShadow: 'none',
+        border: 'none'
+      } : undefined}
     >
       <div className="profile">
         <Avatar

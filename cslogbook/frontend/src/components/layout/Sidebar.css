@@ -13,6 +13,21 @@
   transition: all var(--transition-speed);
 }
 
+/* Special style for sidebar when in drawer */
+.sider.in-drawer {
+  position: static;
+  height: auto; 
+  box-shadow: none;
+  border-right: none;
+  width: 100% !important;
+}
+
+/* Make menu items clickable in drawer */
+.sider.in-drawer .menu .ant-menu-item,
+.sider.in-drawer .menu .ant-menu-submenu-title {
+  padding-left: 10px !important;
+}
+
 .profile {
   padding: 24px;
   text-align: center;

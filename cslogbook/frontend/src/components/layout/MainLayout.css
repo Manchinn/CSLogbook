@@ -39,4 +39,20 @@
     margin: 16px;
     padding: 16px;
   }
+  
+  /* Improve mobile drawer appearance */
+  .ant-drawer-body {
+    padding: 0 !important;
+  }
+  
+  /* Adjust margins for content on smaller screens */
+  .content > div {
+    margin: 0.5rem !important;
+    padding: 12px !important;
+  }
+  
+  /* Better spacing for header elements on mobile */
+  .header {
+    padding: 0 16px !important;
+  }
 }
