@@ -32,6 +32,12 @@ module.exports = (sequelize) => {
           key: 'curriculum_id'
         }
       },
+      isCurrent: { // New field
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: "is_current",
+      },
       semester1Range: {
         type: DataTypes.JSON,
         allowNull: true,

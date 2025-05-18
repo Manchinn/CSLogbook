@@ -1,4 +1,4 @@
-const { Curriculum } = require("../models");
+const { Curriculum, Academic, sequelize } = require("../models"); // Added Academic and sequelize
 
 exports.getCurriculums = async (req, res) => {
   try {
@@ -13,6 +13,7 @@ exports.getCurriculums = async (req, res) => {
 };
 
 exports.createCurriculum = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const {
       code,
@@ -20,7 +21,7 @@ exports.createCurriculum = async (req, res) => {
       short_name,
       start_year,
       end_year,
-      active,
+      active, // active status from request
       max_credits,
       total_credits,
       major_credits,
@@ -29,24 +30,44 @@ exports.createCurriculum = async (req, res) => {
       project_major_base_credits,
     } = req.body;
 
-    // แปลงข้อมูลจาก snake_case เป็น camelCase
-    const newCurriculum = await Curriculum.create({
-      code,
-      name,
-      shortName: short_name,
-      startYear: start_year,
-      endYear: end_year,
-      active,
-      maxCredits: max_credits,
-      totalCredits: total_credits,
-      majorCredits: major_credits,
-      internship_base_credits,
-      project_base_credits,
-      project_major_base_credits,
-    });
+    // If this new curriculum is set to active, deactivate others
+    if (active === true) {
+      await Curriculum.update(
+        { active: false },
+        { where: { active: true }, transaction: t }
+      );
+    }
 
-    res.json({ success: true, data: newCurriculum });
+    const newCurriculum = await Curriculum.create(
+      {
+        code,
+        name,
+        shortName: short_name,
+        startYear: start_year,
+        endYear: end_year,
+        active: active === undefined ? false : active, // Default to false if not provided
+        maxCredits: max_credits,
+        totalCredits: total_credits,
+        majorCredits: major_credits,
+        internshipBaseCredits: internship_base_credits, // Corrected to camelCase
+        projectBaseCredits: project_base_credits, // Corrected to camelCase
+        projectMajorBaseCredits: project_major_base_credits, // Corrected to camelCase
+      },
+      { transaction: t }
+    );
+
+    // If this new curriculum is active, update current academic settings
+    if (newCurriculum.active) {
+      await Academic.update(
+        { activeCurriculumId: newCurriculum.curriculumId },
+        { where: { isCurrent: true }, transaction: t }
+      );
+    }
+
+    await t.commit();
+    res.status(201).json({ success: true, data: newCurriculum });
   } catch (error) {
+    await t.rollback();
     console.error("Error creating curriculum:", error);
     res
       .status(500)
@@ -55,6 +76,7 @@ exports.createCurriculum = async (req, res) => {
 };
 
 exports.updateCurriculum = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
     const {
@@ -63,36 +85,72 @@ exports.updateCurriculum = async (req, res) => {
       short_name,
       start_year,
       end_year,
-      active,
+      active, // active status from request
       max_credits,
       total_credits,
       major_credits,
-      internship_base_credits, // รับมาเป็น snake_case
-      project_base_credits, // รับมาเป็น snake_case
-      project_major_base_credits, // รับมาเป็น snake_case
+      internship_base_credits,
+      project_base_credits,
+      project_major_base_credits,
     } = req.body;
 
-    // แปลงข้อมูลจาก snake_case เป็น camelCase
-    const updatedCurriculum = await Curriculum.update(
-      {
-        code,
-        name,
-        shortName: short_name,
-        startYear: start_year,
-        endYear: end_year,
-        active,
-        maxCredits: max_credits,
-        totalCredits: total_credits,
-        majorCredits: major_credits,
-        internshipBaseCredits: internship_base_credits, // บันทึกเป็น camelCase
-        projectBaseCredits: project_base_credits, // บันทึกเป็น camelCase
-        projectMajorBaseCredits: project_major_base_credits, // บันทึกเป็น camelCase
-      },
-      { where: { curriculumId: id } }
-    );
+    const curriculumToUpdate = await Curriculum.findByPk(id, { transaction: t });
+    if (!curriculumToUpdate) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Curriculum not found" });
+    }
 
-    res.json({ success: true, data: updatedCurriculum });
+    // If this curriculum is being set to active, deactivate others
+    if (active === true && curriculumToUpdate.active === false) {
+      await Curriculum.update(
+        { active: false },
+        { where: { curriculumId: { [sequelize.Op.ne]: id }, active: true }, transaction: t } // Op.ne for not equal
+      );
+    }
+
+    const updatedCurriculumData = {
+      code,
+      name,
+      shortName: short_name,
+      startYear: start_year,
+      endYear: end_year,
+      active: active === undefined ? curriculumToUpdate.active : active, // Preserve original if not provided
+      maxCredits: max_credits,
+      totalCredits: total_credits,
+      majorCredits: major_credits,
+      internshipBaseCredits: internship_base_credits, // Corrected to camelCase
+      projectBaseCredits: project_base_credits, // Corrected to camelCase
+      projectMajorBaseCredits: project_major_base_credits, // Corrected to camelCase
+    };
+
+    await curriculumToUpdate.update(updatedCurriculumData, { transaction: t });
+
+    // If this curriculum is now active, update current academic settings
+    if (curriculumToUpdate.active) {
+      await Academic.update(
+        { activeCurriculumId: curriculumToUpdate.curriculumId },
+        { where: { isCurrent: true }, transaction: t }
+      );
+    } else {
+      // If this curriculum was deactivated and was the active one in academic settings
+      const currentAcademicSettings = await Academic.findOne({ where: { isCurrent: true } });
+      if (currentAcademicSettings && currentAcademicSettings.activeCurriculumId === curriculumToUpdate.curriculumId) {
+        // Set activeCurriculumId to null if the deactivated curriculum was the active one
+        // Or, ideally, find another active curriculum. For now, setting to null.
+        await Academic.update(
+            { activeCurriculumId: null },
+            { where: { isCurrent: true }, transaction: t }
+        );
+      }
+    }
+
+    await t.commit();
+    // Fetch the updated record to return the latest state including associations if any
+    const result = await Curriculum.findByPk(id);
+    res.json({ success: true, data: result });
+
   } catch (error) {
+    await t.rollback();
     console.error("Error updating curriculum:", error);
     res
       .status(500)
@@ -103,7 +161,7 @@ exports.updateCurriculum = async (req, res) => {
 exports.deleteCurriculum = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await Curriculum.destroy({ where: { curriculum_id: id } });
+    const deleted = await Curriculum.destroy({ where: { curriculumId: id } });
     if (deleted) {
       res.json({ success: true, message: "ลบหลักสูตรสำเร็จ" });
     } else {
@@ -147,13 +205,13 @@ exports.getActiveCurriculum = async (req, res) => {
     // ดึงหลักสูตรที่ active = true ล่าสุด
     const activeCurriculum = await Curriculum.findOne({
       where: { active: true },
-      order: [['startYear', 'DESC']]
+      order: [["startYear", "DESC"]],
     });
 
     if (!activeCurriculum) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบหลักสูตรที่ใช้งานอยู่',
+        message: "ไม่พบหลักสูตรที่ใช้งานอยู่",
       });
     }
 
@@ -163,16 +221,16 @@ exports.getActiveCurriculum = async (req, res) => {
         id: activeCurriculum.curriculumId,
         code: activeCurriculum.code,
         name: activeCurriculum.name,
-        internshipBaseCredits: activeCurriculum.internshipBaseCredits || 81,
-        projectBaseCredits: activeCurriculum.projectBaseCredits || 95,
-        projectMajorBaseCredits: activeCurriculum.projectMajorBaseCredits || 47,
+        internshipBaseCredits: activeCurriculum.internshipBaseCredits,
+        projectBaseCredits: activeCurriculum.projectBaseCredits,
+        projectMajorBaseCredits: activeCurriculum.projectMajorBaseCredits,
       },
     });
   } catch (error) {
-    console.error('Error fetching active curriculum:', error);
+    console.error("Error fetching active curriculum:", error);
     return res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลหลักสูตร',
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูลหลักสูตร",
     });
   }
 };
