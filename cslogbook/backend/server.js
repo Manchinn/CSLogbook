@@ -84,8 +84,7 @@ const internshipRoutes = require('./routes/documents/internshipRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
 const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มการนำเข้า timelineRoutes
 const adminRoutes = require('./routes/adminRoutes');
-const emailApprovalRoutes = require('./routes/emailApprovalRoutes'); // เพิ่ม route สำหรับการอนุมัติผ่านอีเมล
-
+const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
@@ -103,6 +102,12 @@ app.use(cors({
 // ย้าย cors middleware ขึ้นไปก่อน route handlers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Mount email approval routes early to ensure they are not overridden by broader /api routes
+app.use('/api/email-approval', emailApprovalRoutes);
+
+// Mount API routes
+// Example: app.use('/api/auth', authRoutes); // Assuming other routes are mounted similarly
 
 // Swagger setup
 const swaggerOptions = {
@@ -210,8 +215,7 @@ app.use('/api', uploadRoutes); // ใช้ route
 app.use('/api/internship', internshipRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes); // Protected timeline routes ทั้งหมด
-app.use('/api/email-approval', emailApprovalRoutes); // เพิ่ม route สำหรับการอนุมัติผ่านอีเมล
-
+// app.use('/api/email-approval', emailApprovalRoutes); // REMOVED OLD POSITION
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {
   const filePath = path.join(__dirname, 'templates/student_template.csv');

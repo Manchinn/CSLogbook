@@ -21,8 +21,11 @@ const getEntryStatus = (entry) => {
   if (!entry.timeIn) return "pending";
   if (entry.timeIn && !entry.timeOut) return "incomplete"; // เข้างานแล้วแต่ยังไม่ออก
   if (!entry.workDescription || !entry.logTitle) return "incomplete"; // ข้อมูลไม่ครบ
-  if (entry.logId && !entry.supervisorApproved) return "submitted";
-  if (entry.logId && entry.supervisorApproved) return "approved";
+  if (entry.logId) {
+    if (entry.supervisorApproved === -1) return "rejected"; //  Handle rejected state
+    if (entry.supervisorApproved === 1) return "approved";   // Handle approved state (e.g., value is 1)
+    if (entry.supervisorApproved === 0 || entry.supervisorApproved === null || typeof entry.supervisorApproved === 'undefined') return "submitted"; // Handle pending/submitted state (e.g., value is 0)
+  }
   return "incomplete"; // ถ้ามีข้อมูลแต่ไม่เข้าเงื่อนไขข้างบน
 };
 
@@ -32,7 +35,8 @@ const renderStatusBadge = (status) => {
     pending: { color: 'default', text: 'รอดำเนินการ' },
     incomplete: { color: 'warning', text: 'ไม่สมบูรณ์' },
     submitted: { color: 'processing', text: 'รอตรวจสอบ' },
-    approved: { color: 'success', text: 'อนุมัติแล้ว' }
+    approved: { color: 'success', text: 'อนุมัติแล้ว' },
+    rejected: { color: 'error', text: 'ปฏิเสธแล้ว' } // Added rejected status
   };
 
   const config = statusConfig[status] || statusConfig.pending;
@@ -175,17 +179,46 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
     {
       title: "การอนุมัติ",
       key: "approvals",
-      width: 130,
-      render: (_, record) => (
-        <Space direction="vertical" size="small" style={{ width: '100%' }}>
-          <Tag color={record.supervisorApproved ? "success" : "default"} style={{ margin: '2px 0' }}>
-            {record.supervisorApproved 
-              ? <><CheckCircleOutlined /> หัวหน้างาน</>
-              : <><CloseCircleOutlined /> รออนุมัติ</>
-            }
-          </Tag>
-        </Space>
-      ),
+      width: 180, // Adjusted width for potentially longer text or popover
+      render: (_, record) => {
+        let tagContent;
+        // Assuming the rejection comment is stored in 'record.supervisorComment'
+        const comment = record.supervisorComment;
+
+        if (record.supervisorApproved === 1) {
+          tagContent = (
+            <Tag color="success" style={{ margin: '2px 0' }}>
+              <CheckCircleOutlined /> หัวหน้างานอนุมัติ
+            </Tag>
+          );
+        } else if (record.supervisorApproved === -1) {
+          const rejectedTag = (
+            <Tag color="error" style={{ margin: '2px 0' }}>
+              <CloseCircleOutlined /> ปฏิเสธโดยหัวหน้างาน
+            </Tag>
+          );
+          if (comment) {
+            tagContent = (
+              <Popover 
+                content={<Text>{comment}</Text>} 
+                title="เหตุผลการปฏิเสธ" 
+                trigger="hover"
+              >
+                {rejectedTag}
+              </Popover>
+            );
+          } else {
+            tagContent = rejectedTag;
+          }
+        } else { // Handles 0, null, undefined (Pending approval)
+          tagContent = (
+            <Tag color="processing" style={{ margin: '2px 0' }}>
+              <ClockCircleOutlined /> รออนุมัติ
+            </Tag>
+          );
+        }
+        return <Space direction="vertical" size="small" style={{ width: '100%' }}>{tagContent}</Space>;
+      },
     },
     {
       title: "สถานะ",
@@ -288,18 +321,18 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
             >
               <Option value="full">ทั้งหมด (ที่ยังไม่ได้รับการอนุมัติ)</Option>
               <Option value="weekly">รายสัปดาห์</Option>
-              <Option value="monthly">รายเดือน</Option>
-              <Option value="selected">เลือกเฉพาะรายการ</Option>
+              {/* <Option value="monthly">รายเดือน</Option> */}
+              {/* <Option value="selected">เลือกเฉพาะรายการ</Option> */}
             </Select>
           </Form.Item>
           
-          {requestType === 'selected' && (
-            <Form.Item label="เลือกรายการที่ต้องการขออนุมัติ" name="logIds" rules={[{ required: true, message: 'กรุณาเลือกอย่างน้อย 1 รายการ' }]}>
+          {/* {requestType === \'selected\' && (
+            <Form.Item label="เลือกรายการที่ต้องการขออนุมัติ" name="logIds" rules={[{ required: true, message: \'กรุณาเลือกอย่างน้อย 1 รายการ\' }]}>
               <Select
                 mode="multiple"
                 placeholder="เลือกรายการที่ต้องการขออนุมัติ"
                 onChange={setSelectedLogIds}
-                style={{ width: '100%' }}
+                style={{ width: \'100%\' }}
               >
                 {pendingLogbooks.map(log => (
                   <Option 
@@ -311,11 +344,13 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
                 ))}
               </Select>
             </Form.Item>
-          )}
+          )} */}
           
-          {(requestType === 'weekly' || requestType === 'monthly') && (
+          {/* {(requestType === \'weekly\' || requestType === \'monthly\') && ( */}
+          {requestType === 'weekly' && (
             <Form.Item 
-              label={`เลือกช่วงวันที่ (${requestType === 'weekly' ? 'สัปดาห์' : 'เดือน'})`} 
+              // label={`เลือกช่วงวันที่ (${requestType === \'weekly\' ? \'สัปดาห์\' : \'เดือน\'})`} 
+              label="เลือกช่วงวันที่ (สัปดาห์)"
               name="dateRange"
               rules={[{ required: true, message: 'กรุณาเลือกช่วงวันที่' }]}
             >

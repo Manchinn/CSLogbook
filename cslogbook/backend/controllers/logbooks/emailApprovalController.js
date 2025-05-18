@@ -7,6 +7,7 @@ const {
   Student, 
   User, 
   InternshipDocument, 
+  Document,
   sequelize 
 } = require('../../models');
 const { sendTimeSheetApprovalRequest, sendTimeSheetApprovalResultNotification } = require('../../utils/mailer');
@@ -38,7 +39,7 @@ exports.sendApprovalRequest = async (req, res) => {
       include: [{
         model: User,
         as: 'user',
-        attributes: ['email', 'firstName', 'lastName']
+        attributes: ['userId', 'email', 'firstName', 'lastName'] // เพิ่ม 'userId' เข้าไปใน attributes
       }]
     });
 
@@ -51,33 +52,62 @@ exports.sendApprovalRequest = async (req, res) => {
     }
 
     // ดึงข้อมูลหัวหน้างานจากการฝึกงานของนักศึกษา
+    // 1. ค้นหา Document ประเภท 'internship' ที่เป็นของนักศึกษาคนนี้ (ผ่าน student.user.userId)
+    const  document = await Document.findOne({
+      where: {
+        userId: student.user.userId, // userId จาก User model ที่ผูกกับ Student
+        documentType: 'internship'    // ประเภทเอกสารเป็น 'internship'
+      },
+      order: [['created_at', 'DESC']] // สมมติว่าเอาอันล่าสุดถ้ามีหลายอัน
+    });
+
+    if (!document) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบเอกสารการฝึกงาน (ประเภท internship) ของนักศึกษานี้ในระบบ'
+      });
+    }
+
+    // 2. ค้นหา InternshipDocument ที่เชื่อมโยงกับ Document ที่พบ
     const internshipDoc = await InternshipDocument.findOne({
-      include: [{
-        model: Document,
-        as: 'document',
-        where: {
-          userId: student.userId // หรือ studentId ตามที่กำหนดใน Document model
-        }
-      }]
+      where: {
+        documentId: document.documentId
+      }
     });
 
     if (!internshipDoc) {
       await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลการฝึกงานสำหรับนักศึกษานี้'
+        message: 'ไม่พบข้อมูลรายละเอียดการฝึกงาน (InternshipDocument) ที่เชื่อมกับเอกสารของนักศึกษานี้'
       });
     }
 
-    const supervisor = await User.findByPk(internshipDoc.supervisorId);
-
-    if (!supervisor) {
+    // Supervisor ID จะใช้ supervisor_email จาก InternshipDocument
+    if (!internshipDoc.supervisorEmail) {
       await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลหัวหน้างานสำหรับนักศึกษานี้'
+        message: 'ไม่พบข้อมูลอีเมลหัวหน้างาน (supervisor_email) ในรายละเอียดการฝึกงาน'
       });
-    }    
+    }
+
+    // const supervisor = await User.findOne({ 
+    //   where: { email: internshipDoc.supervisorEmail } 
+    // });
+
+    // if (!supervisor) {
+    //   await transaction.rollback();
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: `ไม่พบข้อมูลผู้ใช้หัวหน้างานสำหรับอีเมล ${internshipDoc.supervisorEmail} ในระบบ Users`
+    //   });
+    // }    
+
+    // ตรวจสอบว่ามี supervisorName หรือไม่ ถ้าไม่มีอาจจะใช้ค่า default หรือ email แทน
+    const supervisorDisplayName = internshipDoc.supervisorName || internshipDoc.supervisorEmail;
+
     // ดึงข้อมูลบันทึกการฝึกงานตามเงื่อนไข
     let timeSheetEntries;
     
@@ -149,7 +179,8 @@ exports.sendApprovalRequest = async (req, res) => {
     const approvalToken = await ApprovalToken.create({
       token: approveToken,
       logId: logIdsString,
-      supervisorId: supervisor.userId,
+      // supervisorId: supervisor.userId, // << **หมายเหตุ:** supervisor.userId จะไม่มีแล้ว ต้องพิจารณาว่าจะใส่อะไรแทน
+      supervisorId: internshipDoc.supervisorEmail, // หรือ internshipDoc.supervisorEmail หากต้องการเก็บ email ไว้ที่นี่ (ต้องดู schema ของ ApprovalToken)
       studentId: student.studentId,
       type: type || 'single',
       status: 'pending',
@@ -159,7 +190,8 @@ exports.sendApprovalRequest = async (req, res) => {
     const rejectionToken = await ApprovalToken.create({
       token: rejectToken,
       logId: logIdsString,
-      supervisorId: supervisor.userId,
+      // supervisorId: supervisor.userId, // << **หมายเหตุ:** supervisor.userId จะไม่มีแล้ว
+      supervisorId: internshipDoc.supervisorEmail, // หรือ internshipDoc.supervisorEmail
       studentId: student.studentId,
       type: type || 'single',
       status: 'pending',
@@ -167,17 +199,18 @@ exports.sendApprovalRequest = async (req, res) => {
     }, { transaction });
 
     // สร้าง URL สำหรับปุ่มอนุมัติและปฏิเสธ
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.BASE_URL;
     const approveUrl = `${baseUrl}/api/email-approval/approve/${approveToken}`;
     const rejectUrl = `${baseUrl}/api/email-approval/reject/${rejectToken}`;
 
     // สร้างชื่อนักศึกษาและหัวหน้างานแบบเต็ม
     const studentFullName = `${student.user.firstName} ${student.user.lastName}`;
-    const supervisorFullName = `${supervisor.firstName} ${supervisor.lastName}`;
+    // const supervisorFullName = `${supervisor.firstName} ${supervisor.lastName}`;
+    const supervisorFullName = supervisorDisplayName; // ใช้ชื่อจาก internshipDoc หรือ email
     
     // ส่งอีเมลไปยังหัวหน้างาน
     await sendTimeSheetApprovalRequest(
-      supervisor.email,
+      internshipDoc.supervisorEmail, // ใช้ supervisorEmail จาก internshipDoc โดยตรง
       supervisorFullName,
       studentFullName,
       approveUrl,
@@ -285,8 +318,8 @@ exports.approveTimeSheetViaEmail = async (req, res) => {
 
     // ส่งอีเมลแจ้งเตือนนักศึกษา
     await sendTimeSheetApprovalResultNotification(
-      student.User.email,
-      `${student.User.firstName} ${student.User.lastName}`,
+      student.user.email, // Corrected: student.user
+      `${student.user.firstName} ${student.user.lastName}`, // Corrected: student.user
       'approved',
       comment,
       firstEntry
@@ -344,7 +377,7 @@ exports.approveTimeSheetViaEmail = async (req, res) => {
           <img src="https://www.sci.kmutnb.ac.th/wp-content/uploads/2020/08/cropped-sci-logo-1.png" alt="KMUTNB Logo" class="logo">
           <div class="icon">✅</div>
           <h1>อนุมัติบันทึกการฝึกงานเรียบร้อย</h1>
-          <p>คุณได้ทำการอนุมัติบันทึกการฝึกงานของ ${student.User.firstName} ${student.User.lastName} เรียบร้อยแล้ว</p>
+          <p>คุณได้ทำการอนุมัติบันทึกการฝึกงานของ ${student.user.firstName} ${student.user.lastName} เรียบร้อยแล้ว</p>
           <p>ระบบได้ส่งอีเมลแจ้งผลการอนุมัติให้กับนักศึกษาเรียบร้อยแล้ว</p>
           <p style="margin-top: 30px; color: #666;">CS Logbook System</p>
         </div>
@@ -374,89 +407,56 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
     const { comment } = req.body || {};
 
     // ตรวจสอบว่าต้องระบุเหตุผลในการปฏิเสธ
-    if (!comment) {
+    if (req.method === 'GET' || !comment) { // ถ้าเป็น GET request หรือไม่มี comment ใน POST
+      // ดึงข้อมูล token เพื่อแสดงชื่อนักศึกษาในหน้าฟอร์ม (ถ้าต้องการ)
+      const tokenInfoForForm = await ApprovalToken.findOne({
+        where: { token, status: 'pending' },
+        attributes: ['studentId'],
+        raw: true,
+      });
+      let studentNameForForm = 'นักศึกษา';
+      if (tokenInfoForForm) {
+        const studentForForm = await Student.findByPk(tokenInfoForForm.studentId, {
+          include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName']}]
+        });
+        if (studentForForm && studentForForm.user) {
+          studentNameForForm = `${studentForForm.user.firstName} ${studentForForm.user.lastName}`;
+        }
+      }
+
       return res.send(`
         <!DOCTYPE html>
         <html lang="th">
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>กรุณาระบุเหตุผลในการปฏิเสธ</title>
+          <title>ปฏิเสธบันทึกการฝึกงาน</title>
           <style>
-            body {
-              font-family: 'Sarabun', sans-serif;
-              margin: 0;
-              padding: 20px;
-              background-color: #f0f2f5;
-              color: #333;
-            }
-            .container {
-              max-width: 600px;
-              margin: 40px auto;
-              background: white;
-              padding: 30px;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            h1 {
-              color: #ff4d4f;
-              margin-bottom: 20px;
-              text-align: center;
-            }
-            p {
-              font-size: 16px;
-              line-height: 1.6;
-              margin-bottom: 20px;
-            }
-            .logo {
-              display: block;
-              max-width: 150px;
-              margin: 0 auto 20px;
-            }
-            form {
-              margin-top: 20px;
-            }
-            textarea {
-              width: 100%;
-              padding: 10px;
-              border: 1px solid #d9d9d9;
-              border-radius: 4px;
-              resize: vertical;
-              min-height: 100px;
-              font-family: inherit;
-              margin-bottom: 20px;
-            }
-            button {
-              background-color: #ff4d4f;
-              color: white;
-              border: none;
-              padding: 10px 20px;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 16px;
-              font-family: inherit;
-            }
-            button:hover {
-              background-color: #ff7875;
-            }
-            .text-center {
-              text-align: center;
-            }
+            body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; color: #333; }
+            .container { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #ff4d4f; margin-bottom: 10px; text-align: center; }
+            p { font-size: 16px; line-height: 1.6; margin-bottom: 15px; }
+            .logo { display: block; max-width: 150px; margin: 0 auto 20px; }
+            form { margin-top: 20px; }
+            textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #d9d9d9; border-radius: 4px; resize: vertical; min-height: 100px; font-family: inherit; margin-bottom: 20px; }
+            button { background-color: #ff4d4f; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; font-family: inherit; }
+            button:hover { background-color: #ff7875; }
+            .text-center { text-align: center; }
+            .student-info { text-align: center; margin-bottom:20px; font-weight: bold; }
           </style>
         </head>
         <body>
           <div class="container">
             <img src="https://www.sci.kmutnb.ac.th/wp-content/uploads/2020/08/cropped-sci-logo-1.png" alt="KMUTNB Logo" class="logo">
-            <h1>กรุณาระบุเหตุผลในการปฏิเสธ</h1>
-            <p>เพื่อให้นักศึกษาได้นำไปปรับปรุงบันทึกการฝึกงาน โปรดระบุเหตุผลในการปฏิเสธด้วย:</p>
-            
+            <h1>ปฏิเสธบันทึกการฝึกงาน</h1>
+            <p class="student-info">สำหรับ: ${studentNameForForm}</p>
+            <p>โปรดระบุเหตุผลในการปฏิเสธบันทึกการฝึกงาน เพื่อให้นักศึกษาทราบและนำไปปรับปรุง:</p>
             <form method="POST" action="/api/email-approval/reject/${token}">
               <textarea name="comment" placeholder="ระบุเหตุผลในการปฏิเสธ..." required></textarea>
               <div class="text-center">
                 <button type="submit">ยืนยันการปฏิเสธ</button>
               </div>
             </form>
-            
             <p style="margin-top: 30px; text-align: center; color: #666;">CS Logbook System</p>
           </div>
         </body>
@@ -464,7 +464,7 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
       `);
     }
 
-    // ดึงข้อมูล token จากฐานข้อมูล
+    // ดึงข้อมูล token จากฐานข้อมูล (สำหรับ POST request ที่มี comment)
     const rejectionToken = await ApprovalToken.findOne({
       where: {
         token,
@@ -472,14 +472,16 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
         expiresAt: {
           [Op.gt]: new Date()
         }
-      }
+      },
+      transaction
     });
 
     if (!rejectionToken) {
-      return res.status(400).json({
-        success: false,
-        message: 'Token ไม่ถูกต้องหรือหมดอายุแล้ว'
-      });
+      await transaction.rollback();
+      return res.status(400).send(`
+        <!DOCTYPE html><html><head><title>Error</title></head>
+        <body>Token ไม่ถูกต้อง หมดอายุ หรือถูกใช้งานไปแล้ว</body></html>
+      `);
     }
 
     // ดึงข้อมูลนักศึกษา
@@ -488,30 +490,28 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
         model: User,
         as: 'user',
         attributes: ['email', 'firstName', 'lastName']
-      }]
+      }],
+      transaction
     });
 
-    if (!student) {
+    if (!student || !student.user) { // เพิ่มการตรวจสอบ student.user
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'ไม่พบข้อมูลนักศึกษา'
-      });
+      console.error(`Reject Error: Student or student.user not found for studentId ${rejectionToken.studentId} with token ${token}`);
+      return res.status(404).send(`
+        <!DOCTYPE html><html><head><title>Error</title></head>
+        <body>ไม่พบข้อมูลนักศึกษาหรือข้อมูลผู้ใช้ที่เกี่ยวข้องกับ Token นี้</body></html>
+      `);
     }
 
-    // ดึง logIds จาก string
+    // ดึง logIds จาก string คั่นด้วย comma
     const logIds = rejectionToken.logId.split(',').map(id => parseInt(id.trim(), 10));
-    
-    // อัพเดทสถานะ token เป็น rejected
-    await rejectionToken.update({
-      status: 'rejected',
-      comment
-    }, { transaction });
 
-    // อัพเดต InternshipLogbook เพื่อเพิ่มเหตุผลในการปฏิเสธ
+    // อัพเดทสถานะการอนุมัติในตาราง InternshipLogbook
     await InternshipLogbook.update({
-      supervisorComment: comment,
-      needsRevision: true
+      supervisorApproved: -1, // Changed from false to -1
+      supervisorComment: comment || null,
+      supervisorApprovedAt: null,
+      supervisorRejectedAt: new Date()
     }, {
       where: {
         logId: {
@@ -521,17 +521,24 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
       transaction
     });
 
+    // อัพเดทสถานะ token เป็น rejected
+    await rejectionToken.update({
+      status: 'rejected',
+      comment: comment
+    }, { transaction });
+
     // เลือกบันทึกแรกเพื่อแจ้งเตือนผ่านอีเมล (กรณีมีหลายรายการ)
     const firstEntry = await InternshipLogbook.findOne({
       where: {
         logId: logIds[0]
-      }
+      },
+      transaction
     });
 
     // ส่งอีเมลแจ้งเตือนนักศึกษา
     await sendTimeSheetApprovalResultNotification(
-      student.User.email,
-      `${student.User.firstName} ${student.User.lastName}`,
+      student.user.email,
+      `${student.user.firstName} ${student.user.lastName}`,
       'rejected',
       comment,
       firstEntry
@@ -548,48 +555,12 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>ปฏิเสธบันทึกการฝึกงานเรียบร้อย</title>
         <style>
-          body {
-            font-family: 'Sarabun', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f2f5;
-            color: #333;
-          }
-          .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-          }
-          h1 {
-            color: #ff4d4f;
-            margin-bottom: 20px;
-          }
-          p {
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 15px;
-          }
-          .logo {
-            max-width: 150px;
-            margin-bottom: 20px;
-          }
-          .icon {
-            font-size: 60px;
-            color: #ff4d4f;
-            margin-bottom: 20px;
-          }
-          .reason {
-            background-color: #fff1f0;
-            border: 1px solid #ffccc7;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px 0;
-            text-align: left;
-          }
+          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; color: #333; }
+          .container { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+          h1 { color: #ff4d4f; margin-bottom: 20px; }
+          p { font-size: 16px; line-height: 1.6; margin-bottom: 15px; }
+          .logo { max-width: 150px; margin-bottom: 20px; }
+          .icon { font-size: 60px; color: #ff4d4f; margin-bottom: 20px; }
         </style>
       </head>
       <body>
@@ -597,14 +568,9 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
           <img src="https://www.sci.kmutnb.ac.th/wp-content/uploads/2020/08/cropped-sci-logo-1.png" alt="KMUTNB Logo" class="logo">
           <div class="icon">❌</div>
           <h1>ปฏิเสธบันทึกการฝึกงานเรียบร้อย</h1>
-          <p>คุณได้ทำการปฏิเสธบันทึกการฝึกงานของ ${student.User.firstName} ${student.User.lastName} เรียบร้อยแล้ว</p>
-          
-          <div class="reason">
-            <h3>เหตุผลในการปฏิเสธ:</h3>
-            <p>${comment}</p>
-          </div>
-          
-          <p>ระบบได้ส่งอีเมลแจ้งผลการปฏิเสธให้กับนักศึกษาเรียบร้อยแล้ว</p>
+          <p>คุณได้ทำการปฏิเสธบันทึกการฝึกงานของ ${student.user.firstName} ${student.user.lastName} เรียบร้อยแล้ว</p>
+          <p>เหตุผล: ${comment}</p>
+          <p>ระบบได้ส่งอีเมลแจ้งผลการปฏิเสธ (พร้อมเหตุผล) ให้กับนักศึกษาเรียบร้อยแล้ว</p>
           <p style="margin-top: 30px; color: #666;">CS Logbook System</p>
         </div>
       </body>
@@ -612,13 +578,19 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
     `);
 
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) { // Ensure rollback only if not already finished
+        await transaction.rollback();
+    }
     console.error('Reject TimeSheet Via Email Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการปฏิเสธบันทึกการฝึกงาน',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    // ส่งหน้า error HTML กลับไปแทน JSON เพื่อประสบการณ์ผู้ใช้ที่ดีขึ้นเมื่อคลิกจากอีเมล
+    return res.status(500).send(`
+      <!DOCTYPE html><html><head><title>เกิดข้อผิดพลาด</title></head>
+      <body>
+        <h1>เกิดข้อผิดพลาดในการดำเนินการ</h1>
+        <p>ขออภัย เกิดข้อผิดพลาดในการปฏิเสธบันทึกการฝึกงาน กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ</p>
+        ${process.env.NODE_ENV === 'development' ? '<pre>' + error.stack + '</pre>' : ''}
+      </body></html>
+    `);
   }
 };
 

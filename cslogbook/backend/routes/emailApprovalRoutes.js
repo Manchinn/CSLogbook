@@ -10,8 +10,8 @@ const {
   } = require("../middleware/authMiddleware");
 
 // Routes สำหรับนักศึกษาส่งคำขออนุมัติ (ต้องล็อกอินเป็นนักศึกษา)
-router.post('/request/:studentId', authenticateToken, emailApprovalController.sendApprovalRequest);
-router.get('/history/:studentId', authenticateToken, emailApprovalController.getApprovalHistory);
+router.post('/request/:studentId', authenticateToken,checkRole(['student']), emailApprovalController.sendApprovalRequest);
+router.get('/history/:studentId', authenticateToken,checkRole(['student']), emailApprovalController.getApprovalHistory);
 
 // Routes สำหรับการอนุมัติ/ปฏิเสธผ่านอีเมล (ไม่ต้อง auth เพราะใช้ token แทน)
 router.get('/approve/:token', emailApprovalController.approveTimeSheetViaEmail);

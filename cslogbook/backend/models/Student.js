@@ -19,10 +19,10 @@ module.exports = (sequelize) => {
                 foreignKey: 'studentId',
                 as: 'projectMemberships'
             });
-            Student.hasMany(models.InternshipDocument, {
-                foreignKey: 'studentId',
-                as: 'internshipDocuments'
-            });
+            // Student.hasMany(models.InternshipDocument, {
+            //     foreignKey: \'studentId\',
+            //     as: \'internshipDocuments\'
+            // });
             Student.hasMany(models.ProjectDocument, {
                 foreignKey: 'studentId',
                 as: 'projectDocuments'

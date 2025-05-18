@@ -12,11 +12,6 @@ module.exports = (sequelize) => {
         foreignKey: "internshipId",
         as: "logbooks",
       });
-      // เพิ่มความสัมพันธ์กับ Student (ถ้าจำเป็น)
-      InternshipDocument.belongsTo(models.Student, {
-        foreignKey: "studentId", // หรือฟิลด์ที่ถูกต้อง
-        as: "student",
-      });
     }
   }
 

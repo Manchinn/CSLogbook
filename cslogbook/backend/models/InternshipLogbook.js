@@ -88,9 +88,19 @@ module.exports = (sequelize) => {
             field: 'supervisor_comment'
         },
         supervisorApproved: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
+            type: DataTypes.INTEGER, // Changed from DataTypes.BOOLEAN
+            defaultValue: 0, // Changed from false, 0 for pending
             field: 'supervisor_approved'
+        },
+        supervisorApprovedAt: { // Added field definition
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'supervisor_approved_at' // Snake case for DB
+        },
+        supervisorRejectedAt: { // Added field definition
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'supervisor_rejected_at' // Snake case for DB
         },
         advisorComment: {
             type: DataTypes.TEXT,
