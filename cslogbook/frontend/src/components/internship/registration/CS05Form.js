@@ -22,6 +22,7 @@ import internshipService from '../../../services/internshipService';
 import TranscriptUpload from '../common/TranscriptUpload';
 import { UploadOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css";
+import "./InputCustomStyles.css";
 
 dayjs.locale('th'); // Set Thai locale globally for dayjs instances
 dayjs.extend(buddhistEra); // Extend dayjs with Buddhist era plugin

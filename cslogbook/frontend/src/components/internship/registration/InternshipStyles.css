@@ -68,6 +68,11 @@
 .internship-form .ant-input,
 .internship-form .ant-picker {
   height: 40px;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #333 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* สำหรับ TimePicker */
@@ -75,9 +80,28 @@
   width: 180px;
 }
 
+.internship-form .ant-picker-input > input {
+  color: #333 !important;
+  font-weight: 500 !important;
+}
+
+.internship-form .ant-picker-range {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* สำหรับ TextArea */
 .internship-form .ant-input-textarea {
   min-height: 120px;
+}
+
+.internship-form .ant-input-textarea textarea {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #333 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ปรับแต่ง Button */
@@ -141,6 +165,11 @@
   display: inline-flex !important;
   margin: 0 8px;
   height: 32px;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #333 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .inline-input-small {
@@ -148,6 +177,11 @@
   display: inline-flex !important; 
   margin: 0 8px;
   height: 32px;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #333 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .inline-input-large {
@@ -155,6 +189,11 @@
   display: inline-flex !important;
   margin: 0 8px;
   height: 32px;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #333 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Text Area */

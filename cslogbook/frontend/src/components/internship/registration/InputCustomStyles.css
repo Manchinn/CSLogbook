@@ -1,0 +1,52 @@
+/* Custom styles for inputs in the internship form, especially for disabled inputs */
+/* These styles have high specificity to ensure they override default Ant Design styles */
+
+/* Make disabled inputs more readable */
+.ant-input[disabled],
+.ant-input-number-input[disabled],
+.ant-picker-input > input[disabled] {
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-weight: 500 !important;
+  background-color: rgba(245, 245, 245, 0.8) !important;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Add visible borders to disabled inputs */
+.ant-input[disabled],
+.ant-input-number-disabled,
+.ant-picker-disabled {
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
+}
+
+/* Styling for inline inputs when disabled */
+.inline-input[disabled],
+.inline-input-small[disabled],
+.inline-input-large[disabled] {
+  background-color: rgba(245, 245, 245, 0.8) !important;
+  color: rgba(0, 0, 0, 0.7) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Better focus styles for inputs */
+.ant-input:focus,
+.ant-input-number-focused,
+.ant-picker-focused,
+.inline-input:focus,
+.inline-input-small:focus,
+.inline-input-large:focus {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+  outline: 0;
+}
+
+/* Hover effect for inputs */
+.ant-input:hover,
+.ant-input-number:hover,
+.ant-picker:hover,
+.inline-input:hover,
+.inline-input-small:hover,
+.inline-input-large:hover {
+  border-color: #40a9ff !important;
+}
