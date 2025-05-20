@@ -1,4 +1,5 @@
 // filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src.new\components\internship\summary\Summary.js
+// filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src.new\components\internship\summary\Summary.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -35,30 +36,30 @@ import {
 import dayjs from "dayjs";
 
 // Import styles
-import "./styles/variables.css";
-import "./styles/index.css";
-import "./styles/Summary.css";
-import "./styles/InternshipStyles.css"; // Added import for general internship styles
+import "../../../../src.new/components/internship/summary/styles/variables.css";
+import "../../../../src.new/components/internship/summary/styles/index.css";
+import "../../../../src.new/components/internship/summary/styles/Summary.css";
+import "../../../../src.new/components/internship/summary/styles/InternshipStyles.css"; // Added import for general internship styles
 
 // นำเข้า services
 import internshipService from "../../../../../services/internshipService";
 
 // นำเข้า custom hooks
-import { useSummaryData } from "./hooks/useSummaryData";
-import { useReflectionForm, useEvaluationForm } from "./hooks/useFormActions";
+import { useSummaryData } from "../../../../src.new/components/internship/summary/hooks/useSummaryData";
+import { useReflectionForm, useEvaluationForm } from "../../../../src.new/components/internship/summary/hooks/useFormActions";
 
 // นำเข้า component ย่อย
 import {
   WeeklyOverview,
   StatsOverview,
-} from "./components/OverviewComponents";
-import LogbookTable from "./components/LogbookTable";
-import AchievementPanel from "./components/AchievementPanel";
-import SkillsPanel from "./components/SkillsPanel";
+} from "../../../../src.new/components/internship/summary/components/OverviewComponents";
+import LogbookTable from "../../../../src.new/components/internship/summary/components/LogbookTable";
+import AchievementPanel from "../../../../src.new/components/internship/summary/components/AchievementPanel";
+import SkillsPanel from "../../../../src.new/components/internship/summary/components/SkillsPanel";
 
 // นำเข้า utility functions
-import { calculateCompletionStatus } from "./utils/skillUtils";
-import { formatDateRange } from "./utils/dateUtils";
+import { calculateCompletionStatus } from "../../../../src.new/components/internship/summary/utils/skillUtils";
+import { formatDateRange } from "../../../../src.new/components/internship/summary/utils/dateUtils";
 
 // ค่าคงที่
 const { Title, Text } = Typography;
