@@ -1,0 +1,52 @@
+/* Custom styles for inputs in the internship form, especially for disabled inputs */
+/* These styles have high specificity to ensure they override default Ant Design styles */
+
+/* Make disabled inputs more readable */
+.ant-input[disabled],
+.ant-input-number-input[disabled],
+.ant-picker-input > input[disabled] {
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-weight: 500 !important;
+  background-color: rgba(245, 245, 245, 0.8) !important;
+  cursor: not-allowed;
+  border: 1px solid #d9d9d9 !important; /* Ensure border is visible */
+}
+
+/* Style for inline inputs to blend with text */
+.inline-input {
+  width: auto !important;
+  min-width: 150px !important; /* Adjust as needed */
+  border: none !important;
+  border-bottom: 1px dashed #ccc !important;
+  padding: 0 4px !important;
+  margin: 0 4px !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  font-size: inherit !important;
+  font-weight: bold !important;
+  color: #333 !important;
+  text-align: center;
+}
+
+.inline-input-small {
+  width: auto !important;
+  min-width: 60px !important; /* Adjust as needed */
+  border: none !important;
+  border-bottom: 1px dashed #ccc !important;
+  padding: 0 4px !important;
+  margin: 0 4px !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  font-size: inherit !important;
+  font-weight: bold !important;
+  color: #333 !important;
+  text-align: center;
+}
+
+/* Ensure disabled inline inputs are also styled correctly */
+.inline-input[disabled],
+.inline-input-small[disabled] {
+  border-bottom: 1px solid #eee !important;
+  color: rgba(0, 0, 0, 0.5) !important; /* Slightly lighter for disabled */
+  cursor: default;
+}
