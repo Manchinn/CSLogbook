@@ -200,12 +200,25 @@ const ViewModal = ({ visible, entry, onClose }) => {
       
       <Card title={<Space><CheckCircleOutlined /> สถานะการอนุมัติ</Space>} variant="borderless">
         <Space size="large" wrap>
-          <Tag color={entry.supervisorApproved ? "success" : "default"} style={{ padding: '4px 8px', fontSize: '14px' }}>
-            {entry.supervisorApproved 
-              ? <><CheckCircleOutlined /> หัวหน้างาน: อนุมัติแล้ว</>
-              : <><CloseCircleOutlined /> หัวหน้างาน: รออนุมัติ</>
+          {(() => {
+            let statusText = <><ClockCircleOutlined /> หัวหน้างาน: รออนุมัติ</>;
+            let statusColor = "default"; // Or "warning" for gold
+
+            if (entry.supervisorApproved === 1) {
+              statusText = <><CheckCircleOutlined /> หัวหน้างาน: อนุมัติแล้ว</>;
+              statusColor = "success";
+            } else if (entry.supervisorApproved === -1) {
+              statusText = <><CloseCircleOutlined /> หัวหน้างาน: ปฏิเสธ</>;
+              statusColor = "error"; // Ant Design's red color for errors
             }
-          </Tag>
+            // else it remains pending as initialized
+
+            return (
+              <Tag color={statusColor} style={{ padding: '4px 8px', fontSize: '14px' }}>
+                {statusText}
+              </Tag>
+            );
+          })()}
         </Space>
         
         {entry?.supervisorComment && (

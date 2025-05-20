@@ -172,34 +172,51 @@ export function useSummaryData() {
       } // ดึงข้อมูลบันทึกการฝึกงาน
       const entriesResponse = await internshipService.getTimeSheetEntries();
       if (entriesResponse.success && entriesResponse.data) {
-
+        // ตรวจสอบว่า data มี property ชื่อ logEntries หรือไม่
+        // หากไม่มี ให้ใช้ data โดยตรง
+        const entriesData = entriesResponse.data.logEntries || entriesResponse.data;
+        
         // แปลงข้อมูลและเรียงลำดับตามวันที่ (จากเก่าไปใหม่)
-        const formattedEntries = entriesResponse.data
-          .map((entry, index) => ({
+        // comment เดิมตามนี้...
+
+        const transformedEntries = entriesData.map((entry, index) => {
+          let status;
+          if (entry.supervisorApproved === 1) {
+            status = "approved";
+          } else if (entry.supervisorApproved === -1) {
+            status = "rejected";
+          } else {
+            status = "pending";
+          }
+
+          return {
             ...entry,
-            key: entry.id || entry.logId || `entry-${index}-${entry.workDate}`,
+            key: entry.logbookId || entry.id || entry.logId || `entry-${index}-${entry.workDate}`,
+            id: entry.logbookId || entry.id || entry.logId,
             date: dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM),
             dayName: getThaiDayName(entry.workDate),
-            status: entry.supervisorApproved ? "approved" : "pending",
+            status: status,
             hours: parseFloat(entry.workHours || 0),
-            title: entry.logTitle || entry.title || "-",
-            description:
-              entry.description || entry.taskDesc || entry.taskDetails || "",
-          }))
-          .sort((a, b) => dayjs(a.workDate).diff(dayjs(b.workDate)));
+            title: entry.logTitle || entry.tasksCompleted || entry.title || 'ไม่มีหัวข้อบันทึก',
+            description: entry.workDescription || entry.problemsAndSolutions || entry.description || entry.taskDesc || entry.taskDetails || '',
+          };
+        })
+        .sort((a, b) => dayjs(a.workDate).diff(dayjs(b.workDate))); // เรียงตามวันที่
 
-        setLogEntries(formattedEntries);
+        console.log("Transformed entries:", transformedEntries); // เพิ่ม log เพื่อดีบั๊ก
 
-        // คำนวณชั่วโมงที่ได้รับการอนุมัติทั้งหมด
-        const approvedHours = formattedEntries
+        setLogEntries(transformedEntries); // อัปเดต state ด้วย transformedEntries
+
+        // คำนวณชั่วโมงที่ได้รับการอนุมัติทั้งหมดจาก transformedEntries
+        const approvedHours = transformedEntries
           .filter((entry) => entry.status === "approved")
           .reduce((sum, entry) => sum + (parseFloat(entry.hours) || 0), 0);
 
         setTotalApprovedHours(Math.round(approvedHours * 10) / 10);
 
-        // สร้างข้อมูลรายสัปดาห์
+        // สร้างข้อมูลรายสัปดาห์จาก transformedEntries
         const weekly = prepareWeeklyData(
-          formattedEntries,
+          transformedEntries, // <--- แก้ไขตรงนี้
           summaryResponse.data
         );
         setWeeklyData(weekly);

@@ -362,6 +362,14 @@ exports.getTimeSheetStats = async (req, res) => {
         const pendingCount = totalDays - completedCount;
         const averageHoursPerDay = completedCount > 0 ? totalHours / completedCount : 0;
 
+        // เพิ่มการ query จำนวนวันที่อนุมัติโดย Supervisor
+        const approvedBySupervisorCount = await InternshipLogbook.count({
+            where: {
+                studentId: studentId, 
+                supervisor_approved: 1 // แก้ไขชื่อคอลัมน์และค่าที่ใช้ query
+            }
+        });
+
         // เพิ่มการคำนวณวันที่เหลือจริงๆ
         const today = new Date();
         const endDateObj = new Date(endDate);
@@ -372,7 +380,8 @@ exports.getTimeSheetStats = async (req, res) => {
             totalHours,
             pendingCount,
             averageHoursPerDay,
-            remainingDays
+            remainingDays,
+            approvedBySupervisorCount
         });
 
         return res.json({
@@ -385,7 +394,7 @@ exports.getTimeSheetStats = async (req, res) => {
                 totalHours: parseFloat(totalHours.toFixed(1)),
                 averageHoursPerDay: parseFloat(averageHoursPerDay.toFixed(1)),
                 remainingDays: remainingDays,
-                approvedBySupervisor: 0  // เพิ่มค่าเริ่มต้น
+                approvedBySupervisor: parseInt(approvedBySupervisorCount) || 0
             }
         });
 

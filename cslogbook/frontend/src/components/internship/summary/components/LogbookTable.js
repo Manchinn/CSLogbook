@@ -15,6 +15,9 @@ import '../styles/LogbookTable.css';
 const LogbookTable = ({ logEntries, totalApprovedHours }) => {
   const navigate = useNavigate();
   
+  const approvedLogEntries = logEntries.filter(entry => entry.status === 'approved');
+  const countOfApprovedDays = approvedLogEntries.length;
+
   const columns = [
     {
       title: 'วันที่',
@@ -35,7 +38,13 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
         <span>
           <div>{record.timeIn} - {record.timeOut}</div>
           <div>
-            <Tag color={record.status === 'approved' ? 'green' : 'blue'}>
+            {/* Adjust tag color based on status: green for approved, red for rejected, blue for pending */}
+            <Tag 
+              color={
+                record.status === 'approved' ? 'green' : 
+                record.status === 'rejected' ? 'red' : 'blue'
+              }
+            >
               {record.hours} ชม.
             </Tag>
           </div>
@@ -69,11 +78,30 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
       dataIndex: 'status',
       key: 'status',
       width: 120,
-      render: (status) => (
-        <Tag color={status === 'approved' ? 'green' : 'gold'} icon={status === 'approved' ? <CheckCircleOutlined /> : <ClockCircleOutlined />}>
-          {status === 'approved' ? 'อนุมัติแล้ว' : 'รอการอนุมัติ'}
-        </Tag>
-      ),
+      render: (status) => {
+        let color = 'gold'; // Default for pending (0)
+        let text = 'รอการอนุมัติ';
+        let icon = <ClockCircleOutlined />;
+
+        if (status === 'approved') { // Status for 1
+          color = 'green';
+          text = 'อนุมัติแล้ว';
+          icon = <CheckCircleOutlined />;
+        } else if (status === 'rejected') { // Status for -1
+          color = 'red';
+          text = 'ปฏิเสธ';
+          // Assuming CloseCircleOutlined is available or will be added
+          // import { CloseCircleOutlined } from '@ant-design/icons'; 
+          // icon = <CloseCircleOutlined />;
+          // If not, ClockCircleOutlined or another icon can be used, or no icon for rejected
+        }
+
+        return (
+          <Tag color={color} icon={icon}>
+            {text}
+          </Tag>
+        );
+      },
     }
   ];
   
@@ -84,7 +112,7 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
       title={<>
         <FileProtectOutlined /> บันทึกการทำงาน
         <div className="card-subtitle">
-          บันทึกการทำงานทั้งหมด {logEntries.length} วัน / {totalApprovedHours} ชั่วโมง
+          บันทึกการทำงานทั้งหมด {logEntries.length} วัน / {countOfApprovedDays} วันที่อนุมัติ / {totalApprovedHours} ชั่วโมงที่อนุมัติ
         </div>
       </>}
       extra={
@@ -105,7 +133,11 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
           showTotal: (total) => `ทั้งหมด ${total} รายการ` 
         }}
         rowKey={(record) => record.key || record.id || record.logId || record.workDate}
-        rowClassName={(record) => record.status === 'approved' ? 'approved-row' : ''}
+        rowClassName={(record) => {
+          if (record.status === 'approved') return 'approved-row';
+          if (record.status === 'rejected') return 'rejected-row';
+          return '';
+        }}
         locale={{ emptyText: 'ยังไม่มีข้อมูลการบันทึกเวลา' }}
       />
     </Card>

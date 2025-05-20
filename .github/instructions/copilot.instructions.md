@@ -64,6 +64,7 @@ The application follows a clear separation between frontend and backend:
 - Design for both mobile and desktop experiences with responsive design
 - Use props destructuring and default props for cleaner code
 - Implement proper form validation using custom hooks or libraries
+- Using Thai explanations if you can 
 
 ## Application features:
 
@@ -113,3 +114,5 @@ The application follows a clear separation between frontend and backend:
 - Outdated React patterns
 - Overly complex solutions when simple ones will work
 - Assuming specific external libraries unless mentioned
+- Using simeple English words
+- Writing code without comments or explanations
