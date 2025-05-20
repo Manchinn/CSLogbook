@@ -1,0 +1,73 @@
+/* filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src\components\internship\summary\styles\ReflectionForm.css */
+/* ReflectionForm.css */
+.reflection-form-container {
+  padding: 24px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.reflection-form-container .ant-form-item-label > label {
+  font-weight: 600;
+  color: #333;
+}
+
+.reflection-form-container .ant-input,
+.reflection-form-container .ant-select-selector,
+.reflection-form-container .ant-picker {
+  border-radius: 4px;
+}
+
+.reflection-form-container .ant-btn-primary {
+  background-color: #1d3557; /* Primary blue from variables */
+  border-color: #1d3557;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.reflection-form-container .ant-btn-primary:hover {
+  background-color: #162a42; /* Darker shade for hover */
+  border-color: #162a42;
+}
+
+.reflection-form-container .ant-btn-default {
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.reflection-form-container .ant-btn-default:hover {
+  color: #1d3557;
+  border-color: #1d3557;
+}
+
+.reflection-form-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d3557;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.reflection-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .reflection-form-container {
+    padding: 16px;
+  }
+
+  .reflection-form-title {
+    font-size: 18px;
+  }
+
+  .reflection-form-actions {
+    flex-direction: column;
+  }
+
+  .reflection-form-actions .ant-btn {
+    width: 100%;
+  }
+}
