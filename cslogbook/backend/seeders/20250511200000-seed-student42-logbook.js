@@ -53,14 +53,6 @@ module.exports = {
 
           // สร้างรายการงานตามวัน
           const daysSinceStart = currentDate.diff(startDate, 'day');
-          let taskIndex = daysSinceStart % 5;
-          let tasks = [
-            'พัฒนาระบบฐานข้อมูล',
-            'ทดสอบการทำงานของระบบ',
-            'ออกแบบ UI/UX',
-            'แก้ไขข้อผิดพลาดของระบบ',
-            'ประชุมและนำเสนองาน'
-          ];
 
           // สร้างคำอธิบายที่แตกต่างกันตามวัน
           let taskName = tasks[taskIndex];
