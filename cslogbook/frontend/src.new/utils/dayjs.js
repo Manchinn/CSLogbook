@@ -1,2 +1,17 @@
-// Placeholder for dayjs.js
-// รอย้ายโค้ด หรือสร้างใหม่ตามโครงสร้างที่แนะนำ
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+
+// เพิ่ม plugins ที่จำเป็น
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(buddhistEra); // เพิ่ม plugin สำหรับพุทธศักราช
+
+// ตั้งค่าให้ใช้ timezone ของประเทศไทย
+dayjs.tz.setDefault('Asia/Bangkok');
+
+// เปิดใช้งานภาษาไทย
+dayjs.locale('th');
+
+export default dayjs;
