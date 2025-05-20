@@ -1,0 +1,99 @@
+/* รอย้ายโค้ด CSS จาก src/components/LoginForm.css */
+
+.login-form-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Use min-height to ensure it covers the viewport */
+    background-color: #f4f7f6; /* A light grey background */
+    padding: 20px; /* Add some padding around the container */
+}
+
+.login-form {
+    background: #ffffff; /* White background for the form */
+    padding: 40px;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    width: 100%;
+    max-width: 400px; /* Max width for the form */
+    text-align: center; /* Center align the text and elements like h2 */
+}
+
+.login-form h2 {
+    color: #333; /* Darker grey for the heading */
+    margin-bottom: 30px; /* More space below the heading */
+    font-size: 24px; /* Larger font size for the heading */
+}
+
+.form-group {
+    margin-bottom: 20px; /* Space between form groups */
+    text-align: left; /* Align labels and inputs to the left */
+}
+
+.form-group label {
+    display: block; /* Make label take full width */
+    margin-bottom: 8px; /* Space between label and input */
+    color: #555; /* Slightly lighter grey for labels */
+    font-weight: bold; /* Make labels bold */
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"] {
+    width: 100%;
+    padding: 12px 15px; /* More padding for a better feel */
+    border: 1px solid #ccc; /* Lighter border */
+    border-radius: 4px; /* Rounded corners for inputs */
+    box-sizing: border-box; /* Ensure padding doesn't affect width */
+    font-size: 16px; /* Larger font size for inputs */
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="password"]:focus {
+    border-color: #007bff; /* Highlight focus with a blue border */
+    outline: none; /* Remove default outline */
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Subtle glow on focus */
+}
+
+.login-button {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: #007bff; /* Blue primary color */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.login-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+.error-message {
+    color: #dc3545; /* Red color for error messages */
+    background-color: #f8d7da; /* Light red background for errors */
+    border: 1px solid #f5c6cb; /* Red border for errors */
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px; /* Space below the error message */
+    text-align: center; /* Center align error message text */
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .login-form {
+        padding: 20px; /* Reduce padding on smaller screens */
+    }
+
+    .login-form h2 {
+        font-size: 20px; /* Adjust heading font size */
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="password"],
+    .login-button {
+        font-size: 14px; /* Adjust input and button font size */
+    }
+}
