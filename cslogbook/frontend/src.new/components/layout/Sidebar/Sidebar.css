@@ -1,1 +1,134 @@
-/* รอย้ายโค้ด CSS */
+/* filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src.new\components\layout\Sidebar\Sidebar.css */
+.sider {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  overflow: auto;
+  box-shadow: var(--box-shadow);
+  border-right: 1px solid var(--border-color);
+  width: 230px;
+  transition: all var(--transition-speed);
+}
+
+/* Special style for sidebar when in drawer */
+.sider.in-drawer {
+  position: static;
+  height: auto; 
+  box-shadow: none;
+  border-right: none;
+  width: 100% !important;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Make menu items clickable in drawer */
+.sider.in-drawer .menu .ant-menu-item,
+.sider.in-drawer .menu .ant-menu-submenu-title {
+  padding-left: 10px !important;
+}
+
+.profile {
+  padding: 24px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(240,242,245,0.8) 100%);
+  transition: all var(--transition-speed);
+}
+
+.menu {
+  .ant-menu-item {
+    margin: 6px 10px !important;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed);
+    &:hover {
+      background-color: var(--menu-hover) !important;
+      color: var(--active-color) !important;
+      transform: translateX(4px);
+    }
+  }
+  .ant-menu-item-selected {
+    background-color: var(--menu-hover) !important;
+    color: var(--active-color) !important;
+    border-radius: var(--border-radius);
+    &::after {
+      display: none;
+    }
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  .ant-menu-submenu-title {
+    margin: 6px 10px !important;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed);
+    &:hover {
+      background-color: var(--menu-hover) !important;
+      color: var(--active-color) !important;
+      transform: translateX(4px);
+    }
+  }
+  .ant-menu-sub {
+    background-color: transparent !important;
+  }
+}
+
+.logout {
+  margin-top: 20px;
+  color: var(--error-color);
+  border-top: 1px dashed var(--border-color);
+  margin: 16px 10px 0;
+  padding-top: 16px;
+  &:hover {
+    color: #ff7875;
+    background-color: #fff1f0;
+  }
+}
+
+/* คลาส CSS สำหรับแต่ละ role */
+.student-theme {
+  --menu-hover: rgba(24, 144, 255, 0.1);
+  --active-color: var(--primary-color);
+}
+
+.teacher-theme {
+  --menu-hover: rgba(250, 173, 20, 0.1);
+  --active-color: var(--warning-color);
+}
+
+.admin-theme {
+  --menu-hover: rgba(255, 77, 79, 0.1);
+  --active-color: var(--error-color);
+}
+
+.menu-label {
+  color: var(--active-color);
+  font-weight: 500;
+}
+
+/* คลาส CSS สำหรับ icon และ label */
+.menu-icon {
+  color: var(--active-color) !important;
+}
+
+.menu .ant-menu-submenu-open > .ant-menu-submenu-title {
+  color: var(--active-color) !important;
+}
+
+/* เพิ่ม animation และปรับปรุงธีม */
+.profile .ant-avatar {
+  transition: all var(--transition-speed);
+  border: 2px solid transparent;
+}
+
+.profile .ant-avatar:hover {
+  transform: scale(1.05);
+  border-color: var(--active-color);
+}
+
+/* ปรับขนาดสำหรับหน้าจอเล็ก */
+@media (max-width: 768px) {
+  .sider {
+    width: 100%;
+  }
+}
