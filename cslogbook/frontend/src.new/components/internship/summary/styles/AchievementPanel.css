@@ -1,0 +1,136 @@
+/* filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src\components\internship\summary\styles\AchievementPanel.css */
+/* AchievementPanel.css */
+.achievement-panel {
+  margin-bottom: 24px;
+}
+
+.achievement-row {
+  margin-bottom: 24px;
+}
+
+.achievement-card {
+  height: 100%;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f8fa 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  animation: fadeIn 0.5s ease;
+}
+
+/* ปิด hover effect สำหรับ card หลักในส่วนผลสำเร็จ */
+.achievement-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
+}
+
+/* ปิด hover effect สำหรับ achievement cards */
+.achievement-card:hover,
+.achievement-metric:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.achievement-metric {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.achievement-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.achievement-icon.hours {
+  color: #1890ff;
+}
+
+.achievement-icon.days {
+  color: #52c41a;
+}
+
+.achievement-icon.skills {
+  color: #722ed1;
+}
+
+.achievement-icon.progress {
+  color: #fa8c16;
+}
+
+.achievement-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1d3557;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.achievement-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.achievements-chart-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.achievements-chart-title {
+  color: #1d3557;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.timeline-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+}
+
+.timeline-card-title {
+  color: #1d3557;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.certificate-section {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.certificate-title {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: #1d3557;
+  font-weight: 600;
+}
+
+.certificate-description {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .achievement-metric {
+    padding: 16px;
+  }
+  
+  .achievement-value {
+    font-size: 28px;
+  }
+}
