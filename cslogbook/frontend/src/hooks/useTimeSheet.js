@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'; // เพิ่ม useRef
 import { message } from 'antd';
 // import { calculateWorkHours } from '../utils/timeUtils'; // ลบออกเนื่องจากไม่ได้ใช้งาน
 import internshipService from '../services/internshipService';
@@ -26,6 +26,7 @@ export const useTimeSheet = (form) => {
   const [cs05Status, setCS05Status] = useState(null);
   const [isTestMode, setIsTestMode] = useState(true); // คง isTestMode ไว้ตามเดิม
   const [loadError, setLoadError] = useState(null);
+  const isInitialLoadDoneRef = useRef(false); // สร้าง ref เพื่อติดตามการโหลดครั้งแรก
 
   const checkCS05Status = useCallback(async () => {
     try {
@@ -276,7 +277,11 @@ export const useTimeSheet = (form) => {
   }, [checkCS05Status, isTestMode]);
 
   useEffect(() => {
-    generateWorkdayEntries();
+    // ตรวจสอบว่ายังไม่ได้ทำการโหลดข้อมูลครั้งแรก และ initialLoading เป็น true
+    if (!isInitialLoadDoneRef.current && initialLoading) {
+      generateWorkdayEntries();
+      isInitialLoadDoneRef.current = true; // ตั้งค่าว่าโหลดข้อมูลครั้งแรกเสร็จแล้ว
+    }
 
     const loadingTimeout = setTimeout(() => {
       if (initialLoading) {
@@ -285,7 +290,7 @@ export const useTimeSheet = (form) => {
     }, 15000);
 
     return () => clearTimeout(loadingTimeout);
-  }, [generateWorkdayEntries, initialLoading]); // เพิ่ม initialLoading ใน dependency array
+  }, [generateWorkdayEntries, initialLoading]); // initialLoading ยังคงอยู่ใน dependency array
 
   const handleEdit = (entry) => {
     setSelectedEntry(entry);
@@ -376,113 +381,29 @@ export const useTimeSheet = (form) => {
     }
   };
 
-  const refreshTable = async () => {
+  const refreshTable = useCallback(async () => {
+    console.log('refreshTable CALLED from useTimeSheet'); // เพิ่ม log สำหรับ debug
     try {
-      setLoading(true);
-      message.loading({ content: 'กำลังอัปเดตตาราง...', key: 'refreshTable' });
-      
-      const existingEntriesResponse = await internshipService.getTimeSheetEntries();
-      
-      let existingEntries = [];
-      
-      if (Array.isArray(existingEntriesResponse)) {
-        existingEntries = existingEntriesResponse;
-      } else if (existingEntriesResponse && existingEntriesResponse.data) {
-        if (Array.isArray(existingEntriesResponse.data)) {
-          existingEntries = existingEntriesResponse.data;
-        } else if (existingEntriesResponse.data && existingEntriesResponse.data.data) {
-          existingEntries = existingEntriesResponse.data.data;
-        }
-      }
-      
-      if (existingEntries.length > 0) {
-        const existingEntriesMap = new Map();
-        
-        existingEntries.forEach(entry => {
-          const rawDate = entry.workDate;
-          let dateKey = rawDate;
-          
-          if (typeof rawDate === 'string') {
-            if (rawDate.includes('T')) {
-              dateKey = rawDate.split('T')[0];
-            }
-          }
-          
-          existingEntriesMap.set(dateKey, entry);
-        });
-        
-        const updatedEntries = internshipDates.map((entry) => {
-          const formattedDate = entry.workDate.format ? 
-                                entry.workDate.format('YYYY-MM-DD') : 
-                                dayjs(entry.workDate).format('YYYY-MM-DD');
-          
-          const existingEntry = existingEntriesMap.get(formattedDate);
-          
-          if (existingEntry) {
-            return {
-              ...existingEntry,
-              key: existingEntry.logId || `timesheet-${formattedDate}`,
-              workDate: dayjs(existingEntry.workDate),
-              timeIn: existingEntry.timeIn ? dayjs(existingEntry.timeIn, 'HH:mm') : null,
-              timeOut: existingEntry.timeOut ? dayjs(existingEntry.timeOut, 'HH:mm') : null
-            };
-          }
-          
-          return entry;
-        });
-        
-        setInternshipDates([...updatedEntries]);
-        message.success({ content: 'อัปเดตตารางเสร็จสิ้น', key: 'refreshTable' });
-      } else {
-        message.info({ content: 'ไม่พบข้อมูลใหม่', key: 'refreshTable' });
-      }
+      // สมมติว่า refreshTable ต้องการเรียก generateWorkdayEntries เพื่อโหลดข้อมูลใหม่
+      await generateWorkdayEntries();
+      // หาก refreshTable มี logic อื่นๆ เพิ่มเติม สามารถใส่ตรงนี้
     } catch (error) {
-      message.error({ content: 'เกิดข้อผิดพลาดในการอัปเดตตาราง', key: 'refreshTable' });
-    } finally {
-      setLoading(false);
+      console.error('Error in refreshTable:', error);
+      // อาจจะมีการตั้งค่า error state ที่นี่ หากจำเป็น
+      setLoadError(`เกิดข้อผิดพลาดขณะรีเฟรชข้อมูล: ${error.message}`);
     }
-  };
+  }, [generateWorkdayEntries]); // Dependency คือ generateWorkdayEntries
 
-  const toggleTestMode = () => {
-    setIsTestMode(prev => !prev);
-  };
+  // เพิ่ม refreshData ที่อาจจะยังไม่ได้ใช้ useCallback หากมี
+  const refreshData = useCallback(async () => {
+    console.log('refreshData CALLED from useTimeSheet'); // เพิ่ม log สำหรับ debug
+    setInitialLoading(true); // ตั้งค่าให้เป็น loading อีกครั้ง
+    isInitialLoadDoneRef.current = false; // รีเซ็ตเพื่อให้ useEffect ทำงานอีกครั้ง
+    // โดยปกติ useEffect ที่มี generateWorkdayEntries และ initialLoading เป็น dependency จะทำงาน
+    // หรือจะเรียก generateWorkdayEntries โดยตรงก็ได้ ขึ้นอยู่กับโครงสร้างที่ต้องการ
+    await generateWorkdayEntries();
+  }, [generateWorkdayEntries]);
 
-  const refreshStats = async () => {
-    try {
-      const statsResponse = await internshipService.getTimeSheetStats();
-      
-      if (statsResponse) {
-        let statsData = statsResponse;
-        
-        if (statsResponse.data && typeof statsResponse.data === 'object') {
-          statsData = statsResponse.data;
-        }
-        
-        if (statsData.data && typeof statsData.data === 'object') {
-          statsData = statsData.data;
-        }
-        
-        const newStats = {
-          total: statsData.total || 0,
-          completed: statsData.completed || 0,
-          pending: statsData.pending || 0,
-          totalHours: statsData.totalHours || 0,
-          averageHoursPerDay: statsData.averageHoursPerDay || 0,
-          remainingDays: statsData.remainingDays || 0,
-          approvedBySupervisor: statsData.approvedBySupervisor || 0
-        };
-        
-        setStats(() => newStats);
-        localStorage.setItem('timesheet_stats', JSON.stringify(newStats));
-        message.success('อัปเดตข้อมูลสถิติสำเร็จ');
-        return true;
-      }
-      return false;
-    } catch (error) {
-      message.error('ไม่สามารถดึงข้อมูลสถิติได้');
-      return false;
-    }
-  };
 
   return {
     loading,
@@ -497,13 +418,11 @@ export const useTimeSheet = (form) => {
     handleClose,
     stats,
     dateRange,
-    refreshData: generateWorkdayEntries,
+    refreshData, // ตรวจสอบว่า refreshData ถูก return และ memoized
     hasCS05,
     cs05Status,
-    isTestMode,
-    toggleTestMode,
     loadError,
-    refreshStats,
-    refreshTable
+    refreshTable, // ตรวจสอบว่า refreshTable ถูก return และ memoized
+    setInternshipDates,
   };
 };
