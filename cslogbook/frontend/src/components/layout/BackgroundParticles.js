@@ -10,7 +10,7 @@ const ROLE_COLORS = {
 
 // Particle configuration
 const PARTICLE_CONFIG = {
-  count: 45, // เพิ่มจำนวน particles
+  count: 25, // ลดจำนวน particles จาก 45 เหลือ 25
   maxSize: 8, // เพิ่มขนาดสูงสุด
   minSize: 3, // เพิ่มขนาดต่ำสุด
   maxSpeed: 0.3, // เพิ่มความเร็วสูงสุด
@@ -20,7 +20,7 @@ const PARTICLE_CONFIG = {
   // Configuration for connections between particles
   connections: {
     enabled: true,               // เปิดใช้งานการเชื่อมต่อระหว่าง particles
-    maxDistance: 150,            // ระยะห่างสูงสุดที่จะวาดเส้นเชื่อม
+    maxDistance: 100,            // ลดระยะห่างสูงสุดที่จะวาดเส้นเชื่อม จาก 150 เหลือ 100
     lineWidth: 0.5,              // ความหนาของเส้น
     opacity: 0.1,                // ความทึบของเส้น
     showForPercentage: 0.4       // แสดงเส้นเชื่อมเฉพาะ % ของ particles (ลดการคำนวณ)
@@ -37,6 +37,17 @@ const BackgroundParticles = () => {
   const canvasRef = useRef(null);
   const particles = useRef([]);
   const animationFrameId = useRef(null);
+  const isTabActive = useRef(true); // เพิ่ม state สำหรับติดตามสถานะ tab
+
+  // Debounce utility function
+  const debounce = (func, delay) => {
+    let timeout;
+    return function(...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+  };
 
   // Initialize particles
   const initParticles = () => {
@@ -115,7 +126,12 @@ const BackgroundParticles = () => {
 
   const animate = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isTabActive.current) { // หยุด animate ถ้า tab ไม่ active
+      if (isTabActive.current) { // ขอ frame ต่อไปถ้า tab active แต่ canvas ไม่มี
+        animationFrameId.current = requestAnimationFrame(animate);
+      }
+      return;
+    }
     
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -160,15 +176,37 @@ const BackgroundParticles = () => {
     
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    initParticles();
+    // Re-initialize particles only if the tab is active, otherwise they'll init when tab becomes active
+    if (isTabActive.current) {
+      initParticles();
+    }
   };
+
+  // Handle Page Visibility
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      isTabActive.current = false;
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current); // หยุด animation
+      }
+    } else {
+      isTabActive.current = true;
+      initParticles(); // Re-initialize particles if needed (e.g., if resize happened while tab was hidden)
+      animate(); // เริ่ม animation ใหม่
+    }
+  };
+
   useEffect(() => {
+    const debouncedHandleResize = debounce(handleResize, 250);
+    
     initParticles();
     animate();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', debouncedHandleResize);
+    document.addEventListener('visibilitychange', handleVisibilityChange); // เพิ่ม event listener
     
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', debouncedHandleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange); // ลบ event listener
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }

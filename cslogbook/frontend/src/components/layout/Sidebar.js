@@ -156,19 +156,23 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
           );
           if (response.success) {
             setStudentData(response.student);
-            setLastUpdate(new Date());
+            // setLastUpdate(new Date()); // อาจจะไม่จำเป็นแล้วถ้าใช้ lastUpdated จาก context
           }
         } catch (error) {
           console.error("Error fetching student data:", error);
         }
       };
 
-      fetchStudentData();
-      const interval = setInterval(fetchStudentData, 30000);
+      fetchStudentData(); // เรียกข้อมูลครั้งแรกเมื่อ component โหลด หรือเมื่อ studentCode/role เปลี่ยน
+      // เพิ่ม interval ที่นานขึ้น และพิจารณาเงื่อนไขอื่นๆ ในการเรียก
+      // const interval = setInterval(fetchStudentData, 300000); // เปลี่ยนจาก 30 วินาที เป็น 5 นาที (300000 ms)
 
-      return () => clearInterval(interval);
+      // return () => clearInterval(interval); // เอา interval ออกก่อน เพื่อพิจารณา event-driven หรือ context-based updates
     }
-  }, [userData?.studentCode, userData?.role, studentData, lastUpdated]);
+    // studentData ไม่ควรอยู่ใน dependency array นี้ เพราะจะทำให้เกิด loop
+    // ถ้า lastUpdated จาก StudentEligibilityContext เพียงพอ ก็ไม่จำเป็นต้องมี interval ที่นี่
+    // การเปลี่ยนแปลงของ lastUpdated จะ trigger useEffect นี้ให้ทำงาน (ถ้า userData.studentCode และ role ยังคงเดิม)
+  }, [userData?.studentCode, userData?.role, lastUpdated]); // ใช้ lastUpdated จาก context เป็นตัวกระตุ้นหลัก
 
   const menuItems = useMemo(() => {
     // ถ้าไม่มี userData return เฉพาะ logout
