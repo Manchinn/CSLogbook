@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // เพิ่ม useCallback
 import dayjs from "dayjs";
 import internshipService from "../../../../services/internshipService";
 import { getThaiDayName } from "../utils/dateUtils";
@@ -156,29 +156,44 @@ export function useSummaryData() {
   /**
    * ดึงข้อมูลสรุปการฝึกงาน
    */
-  const fetchSummaryData = async () => {
+  const fetchSummaryData = useCallback(async () => { // เพิ่ม useCallback
     setLoading(true);
+    setError(null); 
+    setSummaryData(null);
+    setLogEntries([]);
+    setReflection(null);
+    setWeeklyData([]); // Reset weeklyData
+    setTotalApprovedHours(0); // Reset totalApprovedHours
+    setHasCS05(false); // Reset hasCS05
+    setIsCS05Approved(false); // Reset isCS05Approved
+    setEvaluationFormSent(false); // Reset evaluationFormSent
+    setEvaluationSentDate(null); // Reset evaluationSentDate
+
+
     try {
       // ดึงข้อมูลสรุปการฝึกงาน
       const summaryResponse = await internshipService.getInternshipSummary();
-      if (summaryResponse.success && summaryResponse.data) {
-        setSummaryData(summaryResponse.data);
-        setHasCS05(true);
-        setIsCS05Approved(summaryResponse.data.status === "approved");
-      } else {
+      
+      if (!summaryResponse.success || !summaryResponse.data) {
         setHasCS05(false);
+        // setError(new Error("Failed to fetch internship summary.")); // Optional: set user-facing error
+        console.log("Failed to fetch internship summary or no data returned.");
         setLoading(false);
         return;
-      } // ดึงข้อมูลบันทึกการฝึกงาน
+      }
+
+      const currentSummaryData = summaryResponse.data;
+      setSummaryData(currentSummaryData);
+      setHasCS05(true);
+      setIsCS05Approved(
+        currentSummaryData.status === "approved" ||
+        currentSummaryData.status === "supervisor_evaluated"
+      );
+
+      // ดึงข้อมูลบันทึกการฝึกงาน
       const entriesResponse = await internshipService.getTimeSheetEntries();
       if (entriesResponse.success && entriesResponse.data) {
-        // ตรวจสอบว่า data มี property ชื่อ logEntries หรือไม่
-        // หากไม่มี ให้ใช้ data โดยตรง
         const entriesData = entriesResponse.data.logEntries || entriesResponse.data;
-        
-        // แปลงข้อมูลและเรียงลำดับตามวันที่ (จากเก่าไปใหม่)
-        // comment เดิมตามนี้...
-
         const transformedEntries = entriesData.map((entry, index) => {
           let status;
           if (entry.supervisorApproved === 1) {
@@ -188,7 +203,6 @@ export function useSummaryData() {
           } else {
             status = "pending";
           }
-
           return {
             ...entry,
             key: entry.logbookId || entry.id || entry.logId || `entry-${index}-${entry.workDate}`,
@@ -201,48 +215,66 @@ export function useSummaryData() {
             description: entry.workDescription || entry.problemsAndSolutions || entry.description || entry.taskDesc || entry.taskDetails || '',
           };
         })
-        .sort((a, b) => dayjs(a.workDate).diff(dayjs(b.workDate))); // เรียงตามวันที่
+        .sort((a, b) => dayjs(a.workDate).diff(dayjs(b.workDate)));
 
-        console.log("Transformed entries:", transformedEntries); // เพิ่ม log เพื่อดีบั๊ก
+        setLogEntries(transformedEntries);
 
-        setLogEntries(transformedEntries); // อัปเดต state ด้วย transformedEntries
-
-        // คำนวณชั่วโมงที่ได้รับการอนุมัติทั้งหมดจาก transformedEntries
         const approvedHours = transformedEntries
           .filter((entry) => entry.status === "approved")
           .reduce((sum, entry) => sum + (parseFloat(entry.hours) || 0), 0);
-
         setTotalApprovedHours(Math.round(approvedHours * 10) / 10);
 
-        // สร้างข้อมูลรายสัปดาห์จาก transformedEntries
-        const weekly = prepareWeeklyData(
-          transformedEntries, // <--- แก้ไขตรงนี้
-          summaryResponse.data
-        );
+        const weekly = prepareWeeklyData(transformedEntries, currentSummaryData);
         setWeeklyData(weekly);
+      } else {
+        console.log("No timesheet entries or error fetching them.");
+        setLogEntries([]);
+        setTotalApprovedHours(0);
+        // Ensure prepareWeeklyData is robust enough for empty entries if currentSummaryData is available
+        setWeeklyData(prepareWeeklyData([], currentSummaryData)); 
       }
 
-      // ดึงข้อมูลบทสรุป
+      // ดึงข้อมูลบทสรุปและตั้งค่า state ของ reflection
+      let newReflectionState = null;
       try {
-        const reflectionResponse = await internshipService.getReflection();
-        if (reflectionResponse.success && reflectionResponse.data) {
-          setReflection({
-            learningOutcome: reflectionResponse.data.learningOutcome,
-            keyLearnings: reflectionResponse.data.keyLearnings,
-            futureApplication: reflectionResponse.data.futureApplication,
-            improvements: reflectionResponse.data.improvements || "",
-          });
+        const reflectionServiceResponse = await internshipService.getReflection();
+        const reflectionServiceData = (reflectionServiceResponse.success && reflectionServiceResponse.data)
+            ? reflectionServiceResponse.data
+            : null;
+
+        if (currentSummaryData.status === "supervisor_evaluated") {
+          newReflectionState = {
+            learningOutcome: reflectionServiceData.learningOutcome || "", // From summaryData
+            keyLearnings: reflectionServiceData?.keyLearnings || "",
+            futureApplication: reflectionServiceData?.futureApplication || "",
+            improvements: reflectionServiceData?.improvements || "",
+          };
+        } else if (reflectionServiceData) {
+          // Not supervisor_evaluated, use data from getReflection service
+          newReflectionState = {
+            learningOutcome: reflectionServiceData.learningOutcome || "",
+            keyLearnings: reflectionServiceData.keyLearnings || "",
+            futureApplication: reflectionServiceData.futureApplication || "",
+            improvements: reflectionServiceData.improvements || "",
+          };
         }
+        // If newReflectionState is still null here, it means no reflection data was found/applicable
       } catch (reflectionError) {
-        console.log("Error fetching reflection:", reflectionError);
+        console.log("Error fetching reflection from service:", reflectionError);
+        // newReflectionState remains null
       }
+      setReflection(newReflectionState);
 
       // ดึงข้อมูลสถานะการประเมิน
       try {
         const evaluationStatusResponse =
           await internshipService.getEvaluationFormStatus();
         if (evaluationStatusResponse.success && evaluationStatusResponse.data) {
-          setEvaluationFormSent(evaluationStatusResponse.data.isSent);
+          // Updated logic for evaluationFormSent
+          setEvaluationFormSent(
+            evaluationStatusResponse.data.isSent ||
+            (summaryResponse.data && summaryResponse.data.status === "supervisor_evaluated")
+          );
           if (evaluationStatusResponse.data.sentDate) {
             setEvaluationSentDate(evaluationStatusResponse.data.sentDate);
           }
@@ -251,18 +283,15 @@ export function useSummaryData() {
         console.log("Error fetching evaluation status:", evalError);
       }
     } catch (err) {
-      console.error("Error loading summary data:", err);
-      setError(err.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      setError(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // เพิ่ม dependency array ว่างเปล่าสำหรับ useCallback เนื่องจาก fetchSummaryData ไม่ได้ขึ้นกับ props หรือ state ภายนอกที่เปลี่ยนบ่อย
 
-  // โหลดข้อมูลเมื่อ component ถูกสร้าง
   useEffect(() => {
     fetchSummaryData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchSummaryData]); // ตอนนี้ fetchSummaryData จะเสถียรแล้ว
 
   return {
     loading,
@@ -278,7 +307,5 @@ export function useSummaryData() {
     reflection,
     evaluationFormSent,
     evaluationSentDate,
-    setReflection,
-    fetchSummaryData,
   };
 }

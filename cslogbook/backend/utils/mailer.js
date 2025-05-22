@@ -1,5 +1,7 @@
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -249,10 +251,111 @@ async function sendTimeSheetApprovalResultNotification(email, studentName, statu
   }
 }
 
+// สำหรับการส่งคำขอประเมินผลการฝึกงานไปยังผู้ควบคุมงาน
+async function sendInternshipEvaluationRequestEmail(supervisorEmail, supervisorName, studentFullName, studentCode, companyName, evaluationLink, expiresAt) {
+  if (!isNotificationEnabled('DOCUMENT')) {
+    console.log('Email notifications for DOCUMENT (Internship Evaluation Request) are disabled.');
+    return Promise.resolve(); // Resolve immediately if notifications are off
+  }
+
+  const msg = {
+    to: supervisorEmail,
+    from: process.env.EMAIL_SENDER,
+    subject: `คำขอประเมินผลการฝึกงานของนักศึกษา: ${studentFullName} (${studentCode})`,
+    html: `
+      <p>เรียน คุณ ${supervisorName},</p>
+      <p>นักศึกษา ${studentFullName} (รหัสนักศึกษา: ${studentCode}) จากบริษัท ${companyName} ได้ดำเนินการฝึกงานเสร็จสิ้นแล้ว และใคร่ขอให้ท่านดำเนินการประเมินผลการฝึกงานของนักศึกษาผ่านระบบ CSLogbook</p>
+      <p>กรุณาคลิกที่ลิงก์ด้านล่างเพื่อไปยังหน้าแบบประเมิน:</p>
+      <p><a href="${evaluationLink}">ไปยังหน้าแบบประเมินผลการฝึกงาน</a></p>
+      <p>ลิงก์นี้จะหมดอายุในวันที่ ${new Date(expiresAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.</p>
+      <p>ขอขอบคุณสำหรับความร่วมมือในการประเมินผลการฝึกงานของนักศึกษา</p>
+      <p>ขอแสดงความนับถือ,<br>ระบบ CSLogbook</p>
+    `,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Internship evaluation request email sent to ${supervisorEmail} for student ${studentFullName}`);
+  } catch (error) {
+    console.error('Error sending internship evaluation request email:', error.response ? error.response.body : error);
+    // Do not throw error to prevent interruption of the main flow, but log it.
+  }
+}
+
+// สำหรับการแจ้งเตือนนักศึกษาเมื่อผู้ควบคุมงานส่งแบบประเมินแล้ว
+async function sendEvaluationSubmittedNotificationToStudent(studentEmail, studentFirstName, companyName, evaluatorName) {
+  if (!isNotificationEnabled('EVALUATION_SUBMITTED_STUDENT')) { // Using a new specific type
+    console.log('Email notifications for EVALUATION_SUBMITTED_STUDENT are disabled.');
+    return Promise.resolve();
+  }
+
+  try {
+    const templatePath = path.join(__dirname, '..', 'templates', 'studentEvaluationSubmitted.html');
+    let htmlBody = fs.readFileSync(templatePath, 'utf-8');
+
+    htmlBody = htmlBody.replace(/{{studentFirstName}}/g, studentFirstName);
+    htmlBody = htmlBody.replace(/{{evaluatorName}}/g, evaluatorName);
+    htmlBody = htmlBody.replace(/{{companyName}}/g, companyName);
+    htmlBody = htmlBody.replace(/{{currentYear}}/g, new Date().getFullYear());
+
+    const subject = `CS Logbook - ผลการประเมินการฝึกงานของคุณที่ ${companyName} ได้รับการส่งแล้ว`;
+
+    const msg = {
+      to: studentEmail,
+      from: process.env.EMAIL_SENDER,
+      subject: subject,
+      html: htmlBody,
+    };
+
+    await sgMail.send(msg);
+    console.log(`Evaluation submission notification sent to student ${studentEmail}`);
+  } catch (error) {
+    console.error('Error sending evaluation submission notification to student:', error.response ? error.response.body : error);
+  }
+}
+
+// Placeholder: สำหรับการแจ้งเตือนอาจารย์ที่ปรึกษาเมื่อผู้ควบคุมงานส่งแบบประเมินแล้ว
+async function sendEvaluationSubmittedNotificationToAdvisor(advisorEmail, studentFullName, studentCode, companyName, evaluatorName) {
+  if (!isNotificationEnabled('EVALUATION_SUBMITTED_ADVISOR')) { // Using a new specific type
+    console.log('Email notifications for EVALUATION_SUBMITTED_ADVISOR are disabled.');
+    return Promise.resolve();
+  }
+
+  try {
+    const templatePath = path.join(__dirname, '..', 'templates', 'advisorEvaluationSubmitted.html');
+    let htmlBody = fs.readFileSync(templatePath, 'utf-8');
+
+    htmlBody = htmlBody.replace(/{{studentFullName}}/g, studentFullName);
+    htmlBody = htmlBody.replace(/{{studentCode}}/g, studentCode);
+    htmlBody = htmlBody.replace(/{{companyName}}/g, companyName);
+    htmlBody = htmlBody.replace(/{{evaluatorName}}/g, evaluatorName);
+    htmlBody = htmlBody.replace(/{{currentYear}}/g, new Date().getFullYear());
+    // TODO: Replace placeholder [ใส่ Link ไปยังหน้า Login ของระบบ หรือหน้าที่เกี่ยวข้อง] with actual link
+
+    const subject = `CS Logbook - นักศึกษา (${studentFullName}) ได้รับการประเมินผลการฝึกงานแล้ว`;
+
+    const msg = {
+      to: advisorEmail,
+      from: process.env.EMAIL_SENDER,
+      subject: subject,
+      html: htmlBody,
+    };
+
+    await sgMail.send(msg);
+    console.log(`Evaluation submission notification sent to advisor ${advisorEmail} for student ${studentFullName}`);
+  } catch (error) {
+    console.error('Error sending evaluation submission notification to advisor:', error.response ? error.response.body : error);
+  }
+}
+
+
 module.exports = { 
   sendLoginNotification, 
   sendDocumentApprovalNotification, 
   sendLogbookSubmissionNotification,
   sendTimeSheetApprovalRequest,
-  sendTimeSheetApprovalResultNotification
+  sendTimeSheetApprovalResultNotification,
+  sendInternshipEvaluationRequestEmail,
+  sendEvaluationSubmittedNotificationToStudent, // Added
+  sendEvaluationSubmittedNotificationToAdvisor  // Added
 };

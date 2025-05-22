@@ -60,7 +60,7 @@ module.exports = (sequelize) => {
             field: 'file_path'
         },
         status: {
-            type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected'),
+            type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected', 'supervisor_evaluated'),
             defaultValue: 'draft'
         },
         reviewDate: {

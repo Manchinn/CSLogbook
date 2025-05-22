@@ -1,8 +1,6 @@
 import React from 'react';
-import { Card, Row, Col, Alert, Divider, Tag, Typography, Empty, Button, Progress, Statistic } from 'antd';
+import { Card, Alert, Typography, Button } from 'antd';
 import { 
-  TrophyOutlined, 
-  AppstoreOutlined,
   FileTextOutlined,
   FormOutlined
 } from '@ant-design/icons';
@@ -20,8 +18,8 @@ const { Title } = Typography;
  * @param {boolean} props.editingReflection สถานะการแก้ไขบทสรุป
  * @param {Function} props.toggleEditReflection ฟังก์ชันสลับสถานะการแก้ไข
  * @param {Function} props.handleReflectionSave ฟังก์ชันบันทึกบทสรุป
- * @param {Array} props.skillCategories หมวดหมู่ทักษะ
- * @param {Array} props.skillTags แท็กทักษะ
+ * @param {Array} props.skillCategories หมวดหมู่ทักษะ (ยังไม่ได้ใช้งานในปัจจุบัน)
+ * @param {Array} props.skillTags แท็กทักษะ (ยังไม่ได้ใช้งานในปัจจุบัน)
  * @param {Object} props.summaryData ข้อมูลสรุปการฝึกงาน
  */
 const SkillsPanel = ({ 
@@ -29,29 +27,57 @@ const SkillsPanel = ({
   editingReflection, 
   toggleEditReflection, 
   handleReflectionSave,
-  skillCategories,
-  skillTags,
+  // skillCategories, // ยังไม่ได้ใช้งานในปัจจุบัน
+  // skillTags, // ยังไม่ได้ใช้งานในปัจจุบัน
   summaryData
 }) => {
+  // ตรวจสอบว่าพี่เลี้ยงได้ประเมินผลการฝึกงานแล้วหรือยัง
+  const isSupervisorEvaluated = summaryData?.status === 'supervisor_evaluated';
+
+  // กำหนดว่าฟอร์มควรจะอยู่ในโหมดอ่านอย่างเดียวหรือไม่
+  // จะเป็น read-only ถ้าพี่เลี้ยงประเมินแล้ว หรือ ถ้าไม่ได้อยู่ในโหมดแก้ไขและมีข้อมูล reflection อยู่แล้ว
+  // const isFormReadOnly = isSupervisorEvaluated || (!editingReflection && reflection); // ตัวแปรนี้ถูกคำนวณแต่ไม่ได้ใช้โดยตรง จะใช้ isSupervisorEvaluated ในการตัดสินใจแทน
+
+  // กำหนดว่าจะแสดงปุ่ม "แก้ไขบทสรุป" หรือไม่
+  // แสดงเมื่อมีข้อมูล reflection, ไม่ได้ถูกประเมินโดยพี่เลี้ยง, และไม่ได้อยู่ในโหมดแก้ไข
+  const showEditButton = reflection && !isSupervisorEvaluated && !editingReflection;
+  
+  // กำหนดว่าจะแสดงปุ่ม "ยกเลิกการแก้ไข" หรือไม่
+  // แสดงเมื่อมีข้อมูล reflection, ไม่ได้ถูกประเมินโดยพี่เลี้ยง, และอยู่ในโหมดแก้ไข
+  const showCancelEditButton = reflection && !isSupervisorEvaluated && editingReflection;
+
+  // กำหนดว่าจะแสดงปุ่ม "เพิ่มบทสรุปการฝึกงาน" หรือไม่
+  // แสดงเมื่อยังไม่มีข้อมูล reflection, ไม่ได้อยู่ในโหมดแก้ไข, และยังไม่ได้ถูกประเมินโดยพี่เลี้ยง
+  const showAddButton = !reflection && !editingReflection && !isSupervisorEvaluated;
+
   return (
     <Card variant="borderless" className="skills-analysis-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4}>สรุปทักษะและความรู้ที่ได้รับจากการฝึกงาน</Title>
         
-        {reflection && (
+        {showEditButton && (
           <Button 
             type="primary" 
             onClick={toggleEditReflection}
-            icon={editingReflection ? <FileTextOutlined /> : <FormOutlined />}
+            icon={<FormOutlined />}
           >
-            {editingReflection ? 'ดูบทสรุป' : 'แก้ไขบทสรุป'}
+            แก้ไขบทสรุป
+          </Button>
+        )}
+
+        {showCancelEditButton && (
+          <Button 
+            onClick={toggleEditReflection} // ใช้ toggleEditReflection เพื่อยกเลิก
+            icon={<FileTextOutlined />}
+          >
+            ยกเลิกการแก้ไข
           </Button>
         )}
         
-        {!reflection && !editingReflection && (
+        {showAddButton && (
           <Button 
             type="primary" 
-            onClick={() => toggleEditReflection()}
+            onClick={toggleEditReflection} 
             icon={<FormOutlined />}
           >
             เพิ่มบทสรุปการฝึกงาน
@@ -59,7 +85,7 @@ const SkillsPanel = ({
         )}
       </div>
       
-      {editingReflection ? (
+      { (editingReflection && !isSupervisorEvaluated) ? (
         <ReflectionForm 
           onSave={handleReflectionSave} 
           initialData={reflection} 
@@ -72,7 +98,11 @@ const SkillsPanel = ({
       ) : (
         <Alert
           message="ยังไม่มีบทสรุปการฝึกงาน"
-          description="กรุณาคลิกที่ปุ่ม 'เพิ่มบทสรุปการฝึกงาน' เพื่อเพิ่มบทสรุปประสบการณ์การฝึกงานของคุณ"
+          description={
+            isSupervisorEvaluated 
+              ? "นักศึกษายังไม่ได้บันทึกบทสรุปการฝึกงานไว้ก่อนการประเมินผล" 
+              : "กรุณาคลิกที่ปุ่ม 'เพิ่มบทสรุปการฝึกงาน' เพื่อเพิ่มบทสรุปประสบการณ์การฝึกงานของคุณ"
+          }
           type="info"
           showIcon
           style={{ marginBottom: 24 }}

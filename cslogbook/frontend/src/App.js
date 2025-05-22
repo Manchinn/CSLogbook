@@ -25,6 +25,7 @@ import { ProjectEligibilityCheck, ProjectRequirements } from './components/proje
 import AdminUpload from './components/AdminUpload';
 // Import Admin2 Components - New Structure
 import AdminRoutes from './components/admin2/AdminRoutes';
+import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -48,6 +49,9 @@ const App = () => {
           <InternshipProvider>
             <Routes>
               <Route path="/login" element={<LoginForm />} />
+              {/* Add the new public route for supervisor evaluation */}
+              <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
+
               <Route element={<MainLayout />}>
                 {/* Dashboard Route */}
                 <Route path="/dashboard" element={<Dashboard />} />

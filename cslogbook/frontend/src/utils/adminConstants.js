@@ -2,7 +2,8 @@
 export const DOCUMENT_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
-  REJECTED: 'rejected'
+  REJECTED: 'rejected',
+  SUPERVISOR_EVALUATED: 'supervisor_evaluated' // เพิ่มสถานะใหม่
 };
 
 // สถานะการฝึกงานและโครงงาน

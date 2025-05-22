@@ -60,7 +60,7 @@ const AchievementPanel = ({
           <Progress
             percent={completionStatus.percentage}
             status={completionStatus.status}
-            strokeWidth={20}
+            size={[undefined, 20]} // เปลี่ยนจาก strokeWidth เป็น size และกำหนดความสูง
             format={percent => `${percent}%`}
           />
           <div className="hours-labels">

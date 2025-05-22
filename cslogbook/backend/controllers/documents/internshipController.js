@@ -1,4 +1,4 @@
-const { Document, InternshipDocument, Student, User, InternshipLogbook, Academic, Curriculum } = require('../../models');
+const { Document, InternshipDocument, Student, User, InternshipLogbook, InternshipLogbookReflection, Academic, Curriculum, ApprovalToken, InternshipEvaluation } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
 const { 
@@ -6,6 +6,8 @@ const {
   isEligibleForInternship,
   getCurrentAcademicYear
 } = require('../../utils/studentUtils');
+const emailService = require('../../utils/mailer.js'); // Using mailer.js directly for email functions
+const crypto = require('crypto');
 
 // ============= Controller สำหรับข้อมูลนักศึกษา =============
 /**
@@ -631,7 +633,7 @@ exports.getInternshipSummary = async (req, res) => {
           where: {
             userId: req.user.userId,
             documentName: 'CS05',
-            status: 'approved'
+            status: ['approved', 'supervisor_approved', 'supervisor_evaluated'], // เพิ่มสถานะที่ต้องการ
           }
         }
       ],
@@ -661,11 +663,26 @@ exports.getInternshipSummary = async (req, res) => {
     const approvedHours = logbooks.filter(log => log.supervisorApproved)
       .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
-    // รวบรวมทักษะที่ได้เรียนรู้จาก learning outcomes
-    const learningOutcomes = logbooks
-      .filter(log => log.learningOutcome && log.supervisorApproved)
-      .map(log => log.learningOutcome)
-      .join('\n');
+    // ดึงข้อมูลสรุปทักษะและความรู้ (Reflection)
+    let learningOutcomes = '';
+    if (internshipDoc && internshipDoc.internshipId && studentId) {
+      try {
+        const reflectionEntry = await InternshipLogbookReflection.findOne({
+          where: {
+            studentId: studentId,
+            internshipId: internshipDoc.internshipId,
+          },
+          order: [['created_at', 'DESC']] // Get the latest reflection
+        });
+
+        if (reflectionEntry && reflectionEntry.reflection_text) {
+          learningOutcomes = reflectionEntry.reflection_text;
+        }
+      } catch (reflectionError) {
+        console.error(`Error fetching internship reflection for studentId ${studentId}, internshipId ${internshipDoc.internshipId}:`, reflectionError);
+        // learningOutcomes will remain empty, or you could set a default error message if needed
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -684,7 +701,7 @@ exports.getInternshipSummary = async (req, res) => {
         totalHours: totalHours,
         approvedDays: approvedDays,
         approvedHours: approvedHours,
-        learningOutcome: learningOutcomes
+        learningOutcome: learningOutcomes // Updated to use reflection_text
       }
     });
   } catch (error) {
@@ -733,7 +750,7 @@ exports.downloadInternshipSummary = async (req, res) => {
             userId: req.user.userId,
             documentName: 'CS05',
             category: 'internship',
-            status: 'approved'
+            status: ['approved', 'supervisor_approved'],
           }
         }
       ],
@@ -924,7 +941,7 @@ exports.getEvaluationStatus = async (req, res) => {
     let evaluationDetails = null;
 
     // Check if CS05 is approved
-    const cs05Approved = internshipDocument.document && internshipDocument.document.documentName === 'CS05' && internshipDocument.document.status === 'approved';
+    const cs05Approved = internshipDocument.document && internshipDocument.document.documentName === 'CS05' && internshipDocument.document.status.includes('approved', 'supervisor_approved');
 
     if (cs05Approved) {
       const today = new Date();
@@ -976,7 +993,6 @@ exports.getEvaluationStatus = async (req, res) => {
             supervisorName: internshipDocument.supervisorName,
         };
     }
-    // ...existing code...
     return res.json({
       success: true,
       evaluationStatus: evaluationStatus,
@@ -1012,61 +1028,395 @@ exports.getEvaluationStatus = async (req, res) => {
 };
 
 /**
- * ส่งแบบประเมินให้พี่เลี้ยง
+ * ส่งแบบประเมินให้พี่เลี้ยง (ปรับปรุงใหม่)
+ * Handles the request from a student to send an evaluation form link to their supervisor.
  */
 exports.sendEvaluationForm = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    // ตรวจสอบว่ามี request.user และ supervisorEmail หรือไม่
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
-      });
-    }
-    
-    const { supervisorEmail } = req.body;
-    
-    if (!supervisorEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'กรุณาระบุอีเมลของพี่เลี้ยง'
-      });
-    }
+    const { internshipId } = req.params; // This is documentId from the route
+    const studentUserId = req.user.userId;
 
-    // ดึงข้อมูลนักศึกษา
-    const student = await Student.findOne({
-      where: { userId: req.user.userId },
+    console.log(`[sendEvaluationForm] Received internshipId: ${internshipId}, studentUserId: ${studentUserId}`);
+
+    // Fetch student details for the email
+    const studentInfo = await Student.findOne({
+      where: { userId: studentUserId },
       include: [{
         model: User,
-        as: 'user',
-        attributes: ['firstName', 'lastName', 'email']
-      }]
+        as: 'user', // Ensure 'user' is the correct alias in Student model for User
+        attributes: ['firstName', 'lastName']
+      }],
+      attributes: ['studentId'], // studentId is often used as studentCode
+      transaction
     });
 
-    if (!student) {
+    if (!studentInfo || !studentInfo.user) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลนักศึกษา'
+        message: 'ไม่พบข้อมูลนักศึกษา' // "Student information not found"
       });
     }
 
-    // ในอนาคตจะเพิ่มโค้ดสำหรับการส่งอีเมลและบันทึกข้อมูลลงตาราง evaluations
-    
-    return res.status(200).json({
+    // 1. Find the CS05 document
+    const document = await Document.findOne({
+      where: {
+        documentId: internshipId, // Corrected: Use internshipId from params
+        userId: studentUserId,
+        documentName: 'CS05',
+        status: ['approved', 'supervisor_approved'] // Must be approved to send for evaluation
+      },
+      attributes: ['documentId', 'status'],
+      include: [{
+        model: InternshipDocument,
+        as: 'internshipDocument', // Correct alias
+        required: true,
+        attributes: ['internshipId', 'companyName', 'supervisorName', 'supervisorEmail', 'endDate']
+      }],
+      transaction
+    });
+
+    if (!document || !document.internshipDocument) { // Check internshipDocument as well due to required:true
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบเอกสารการฝึกงานที่ได้รับการอนุมัติ (CS05) หรือข้อมูลการฝึกงานที่เกี่ยวข้อง'
+      });
+    }
+
+    // 2. Check if the internship is still ongoing or has ended
+    const today = new Date();
+    const internshipEndDate = new Date(document.internshipDocument.endDate); // Corrected alias
+
+    if (internshipEndDate < today) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่สามารถส่งคำขอประเมินได้ เนื่องจากการฝึกงานสิ้นสุดแล้ว'
+      });
+    }
+
+    // 3. Check for an existing active (non-expired, non-used) ApprovalToken
+    const existingToken = await ApprovalToken.findOne({
+      where: {
+        documentId: document.documentId,
+        email: document.internshipDocument.supervisorEmail, // Corrected alias
+        type: 'supervisor_evaluation',
+        status: 'pending',
+        expiresAt: { [Op.gt]: new Date() },
+      },
+      transaction
+    });
+
+    if (existingToken) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `คำขอประเมินผลถูกส่งไปยัง ${document.internshipDocument.supervisorEmail} แล้ว และยังไม่หมดอายุ (หมดอายุ ${existingToken.expiresAt.toLocaleDateString('th-TH')})`
+      });
+    }
+
+    // 4. Generate and store a new token
+    const tokenValue = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiration
+
+    await ApprovalToken.create({
+      token: tokenValue,
+      documentId: document.documentId,
+      email: document.internshipDocument.supervisorEmail, 
+      type: 'supervisor_evaluation',
+      status: 'pending',
+      expiresAt: expiresAt,
+      // Add missing mandatory fields
+      studentId: studentInfo.studentId, // Student's code/ID
+      supervisorId: document.internshipDocument.supervisorName, // Using supervisor's name as supervisorId (string)
+      logId: document.documentId.toString(), // Using documentId as logId for this type of token
+    }, { transaction });
+
+    // 5. Compose and send email to the supervisor
+    const evaluationLink = `${process.env.FRONTEND_URL}/evaluate/supervisor/${tokenValue}`;
+    const studentFullName = `${studentInfo.user.firstName} ${studentInfo.user.lastName}`; // Corrected: Use studentInfo
+    const supervisorName = document.internshipDocument.supervisorName || 'ผู้ควบคุมการฝึกงาน'; // Corrected alias
+
+    await emailService.sendInternshipEvaluationRequestEmail(
+      document.internshipDocument.supervisorEmail, // Corrected alias
+      supervisorName,
+      studentFullName,
+      studentInfo.studentId, // Corrected: Use studentInfo for student code
+      document.internshipDocument.companyName, // Corrected alias
+      evaluationLink,
+      expiresAt
+    );
+
+    await transaction.commit();
+
+    res.status(200).json({
       success: true,
-      message: 'ส่งแบบประเมินไปยังพี่เลี้ยงสำเร็จ',
-      data: {
-        isSent: true,
-        sentDate: new Date()
-      }
+      message: `คำขอประเมินผลถูกส่งไปยัง ${document.internshipDocument.supervisorEmail} เรียบร้อยแล้ว`, // Corrected alias
+      // token: tokenValue, // Optionally return token for testing/dev; consider removing for production
     });
 
   } catch (error) {
-    console.error('Send Evaluation Form Error:', error);
+    await transaction.rollback();
+    console.error('Error sending evaluation form:', error); // Log the detailed error
+    
+    // You can add more specific error handling here if needed
+    // For example, checking error.name for Sequelize validation errors, etc.
+
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการส่งคำขอประเมินผล', // "Error sending evaluation request"
+      error: process.env.NODE_ENV === 'development' ? { name: error.name, message: error.message, stack: error.stack } : undefined
+    });
+  }
+};
+
+// ============= Controller สำหรับการประเมินผลการฝึกงาน โดย Supervisor =============
+
+/**
+ * ดึงข้อมูลสำหรับหน้าแบบฟอร์มการประเมินผลโดย Supervisor
+ */
+exports.getSupervisorEvaluationFormDetails = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { Document, InternshipDocument, Student, User, ApprovalToken, sequelize } = require('../../models'); // นำ Op ออก
+    const { Op } = require('sequelize'); // เพิ่มการ import Op โดยตรงจาก sequelize
+
+    // 1. Validate token and fetch associated data
+    const approvalTokenInstance = await ApprovalToken.findOne({
+      where: {
+        token: token,
+        type: 'supervisor_evaluation',
+        status: 'pending',
+        expiresAt: {
+          [Op.gt]: new Date() // Check if token is not expired
+        }
+      },
+      include: [
+        {
+          model: Document, // ApprovalToken belongsTo Document (e.g., CS05)
+          as: 'document',
+          required: true,
+          include: [
+            {
+              model: InternshipDocument, // Document hasOne InternshipDocument
+              as: 'internshipDocument',
+              required: true,
+            },
+            {
+              model: User, // Document belongsTo User (as owner)
+              as: 'owner',
+              required: true,
+              attributes: ['firstName', 'lastName', 'email'], // Specify needed User attributes
+              include: [
+                {
+                  model: Student, // User hasOne Student
+                  as: 'student', // This alias must be defined in User.associate
+                  required: true,
+                  attributes: ['studentId', 'studentCode'] // Specify needed Student attributes
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!approvalTokenInstance) {
+      return res.status(404).json({
+        success: false,
+        message: 'โทเค็นไม่ถูกต้อง หมดอายุ หรือแบบประเมินถูกส่งไปแล้ว'
+      });
+    }
+
+    // Extract necessary data from the new structure
+    const mainDocument = approvalTokenInstance.document;
+    if (!mainDocument) {
+        // This case should ideally be caught by required: true, but as a safeguard:
+        return res.status(404).json({
+            success: false,
+            message: 'ไม่พบเอกสารที่เกี่ยวข้องกับโทเค็นนี้'
+        });
+    }
+
+    const internshipDetails = mainDocument.internshipDocument;
+    const studentUser = mainDocument.owner;
+    const studentRecord = studentUser ? studentUser.student : null;
+
+    if (!internshipDetails || !studentUser || !studentRecord) {
+        return res.status(404).json({
+            success: false,
+            message: 'ไม่พบข้อมูลการฝึกงานหรือข้อมูลนักศึกษาที่เกี่ยวข้องอย่างสมบูรณ์'
+        });
+    }
+
+    // Prepare data for the frontend
+    const evaluationDetails = {
+      studentInfo: {
+        fullName: `${studentUser.firstName} ${studentUser.lastName}`,
+        studentCode: studentRecord.studentCode,
+        // Add any other student details needed for the form
+      },
+      companyInfo: {
+        companyName: internshipDetails.companyName,
+        // Add any other company details needed
+      },
+      internshipPeriod: {
+        startDate: internshipDetails.startDate, // Assuming these fields exist on InternshipDocument
+        endDate: internshipDetails.endDate,
+      },
+      supervisorInfo: { // This would be the supervisor who is filling the form
+        name: internshipDetails.supervisorName, 
+        email: approvalTokenInstance.email, // Email to which the link was sent (from ApprovalToken itself)
+        position: internshipDetails.supervisorPosition, // Assuming this field exists
+      }
+      // Add any other details needed for the form structure if predefined
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: evaluationDetails,
+      message: 'ดึงข้อมูลสำหรับแบบประเมินผลสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('Error fetching supervisor evaluation form details:', error);
     return res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการส่งแบบประเมิน',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลแบบประเมินผล',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * บันทึกข้อมูลการประเมินผลโดย Supervisor
+ */
+exports.submitSupervisorEvaluation = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { token } = req.params;
+    const evaluationData = req.body;
+
+    const approvalToken = await ApprovalToken.findOne({
+      where: {
+        token: token,
+        type: 'supervisor_evaluation', // Standardized token type
+        status: 'pending',
+        expiresAt: { [Op.gt]: new Date() }
+      },
+      include: [{ // Include document to get internshipId and studentId indirectly
+        model: Document,
+        as: 'document',
+        required: true,
+        include: [
+          {
+            model: InternshipDocument,
+            as: 'internshipDocument',
+            required: true,
+          },
+          {
+            model: User, // Student's User record
+            as: 'owner',
+            required: true,
+            include: [{
+              model: Student, // Student record
+              as: 'student',
+              required: true,
+            }]
+          }
+        ]
+      }],
+      transaction
+    });
+
+    if (!approvalToken) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'แบบฟอร์มการประเมินไม่ถูกต้อง, หมดอายุ หรือถูกใช้งานไปแล้ว'
+      });
+    }
+
+    const internshipDocument = approvalToken.document.internshipDocument;
+    const studentRecord = approvalToken.document.owner.student;
+    const studentUser = approvalToken.document.owner;
+
+    // Create InternshipEvaluation record
+    const evaluation = await InternshipEvaluation.create({
+      internshipId: internshipDocument.internshipId,
+      studentId: studentRecord.studentId, // This is the PK of Students table
+      evaluatorType: 'supervisor',
+      // evaluatorId: null, // Supervisor might not be a User in the system
+      evaluatorName: evaluationData.supervisorName || internshipDocument.supervisorName, // Use form data or fallback
+      evaluatorEmail: evaluationData.supervisorEmail || approvalToken.email, // Use form data or fallback to token email
+      evaluationDate: new Date(),
+      // Assuming evaluationData contains fields matching InternshipEvaluation model
+      // e.g., overallPerformance, punctuality, responsibility, technicalSkills, communicationSkills, teamwork, comments
+      ...evaluationData, // Spread the rest of the form data
+      documentId: approvalToken.documentId, // Link evaluation to the specific document (e.g., CS05)
+    }, { transaction });
+
+    // Update ApprovalToken status
+    await approvalToken.update({ status: 'used' }, { transaction });
+
+    // Optionally, update InternshipDocument status (e.g., to 'supervisor_evaluated')
+    // await internshipDocument.update({ status: 'supervisor_evaluated' }, { transaction });
+    // Or update Document status
+    await approvalToken.document.update({ status: 'supervisor_evaluated' }, { transaction });
+
+
+    // Send email notification to Academic Advisor
+    const academicAdvisorUser = studentRecord.academicAdvisor?.user;
+    if (academicAdvisorUser && academicAdvisorUser.email) {
+      const mailOptions = {
+        to: academicAdvisorUser.email,
+        subject: `การประเมินผลการฝึกงานของนักศึกษา ${studentUser.firstName} ${studentUser.lastName} เสร็จสิ้น`,
+        template: 'advisorEvaluationSubmitted', // Use the correct template name
+        context: {
+          advisorName: `${academicAdvisorUser.firstName} ${academicAdvisorUser.lastName}`,
+          studentName: `${studentUser.firstName} ${studentUser.lastName}`,
+          studentCode: studentRecord.studentCode,
+          companyName: internshipDocument.companyName,
+          supervisorName: evaluation.evaluatorName,
+          evaluationDate: evaluation.evaluationDate.toLocaleDateString('th-TH'),
+          // evaluationLink: `[Link to view evaluation - to be implemented]` // Placeholder
+        }
+      };
+      try {
+        await emailService.sendMail(mailOptions);
+        console.log(`Email sent to academic advisor ${academicAdvisorUser.email}`);
+      } catch (emailError) {
+        console.error('Failed to send email to academic advisor:', emailError);
+        // Decide if this should cause transaction rollback or just log the error
+      }
+    } else {
+      console.warn(`Academic advisor email not found for student ${studentRecord.studentCode}`);
+    }
+
+    await transaction.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: 'บันทึกผลการประเมินเรียบร้อยแล้ว',
+      evaluationId: evaluation.evaluationId
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Submit Supervisor Evaluation Error:', error);
+    // Check for specific errors if needed, e.g., validation errors
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'ข้อมูลการประเมินไม่ถูกต้อง',
+        errors: error.errors.map(e => e.message)
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการบันทึกผลการประเมิน'
     });
   }
 };

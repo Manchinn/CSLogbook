@@ -49,7 +49,7 @@ exports.getTimeSheetEntries = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
+                status: ['pending', 'approved', 'supervisor_evaluated']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -121,7 +121,7 @@ exports.saveTimeSheetEntry = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: ['pending', 'approved'] // ค่อยไล่แก้ไขเป็น approved
+                status: ['pending', 'approved', 'supervisor_evaluated'] // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -309,7 +309,7 @@ exports.getTimeSheetStats = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: ['pending', 'approved']  // รองรับทั้งสองสถานะ
+                status: ['pending', 'approved', 'supervisor_evaluated']  // รองรับทั้งสามสถานะ
             },
             include: [{
                 model: InternshipDocument,
@@ -426,7 +426,7 @@ exports.getInternshipDateRange = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
+                status: ['pending', 'approved', 'supervisor_evaluated']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -481,7 +481,7 @@ exports.generateInternshipDates = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: ['pending', 'approved']  // ค่อยไล่แก้ไขเป็น approved
+                status: ['pending', 'approved', 'supervisor_evaluated']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -995,7 +995,7 @@ exports.getReflection = async (req, res) => {
             where: {
                 userId: req.user.userId,
                 documentName: 'CS05',
-                status: ['pending', 'approved']
+                status: ['pending', 'approved', 'supervisor_evaluated']  // ค่อยไล่แก้ไขเป็น approved
             },
             include: [{
                 model: InternshipDocument,
@@ -1018,8 +1018,7 @@ exports.getReflection = async (req, res) => {
         // ดึงบทสรุปการฝึกงาน
         const reflection = await InternshipLogbookReflection.findOne({
             where: {
-                internship_id: internshipId,
-                student_id: studentId
+                internship_id: internshipId
             }
         });
 

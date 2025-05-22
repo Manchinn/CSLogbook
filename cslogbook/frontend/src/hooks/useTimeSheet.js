@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
-import { calculateWorkHours } from '../utils/timeUtils';
+// import { calculateWorkHours } from '../utils/timeUtils'; // ลบออกเนื่องจากไม่ได้ใช้งาน
 import internshipService from '../services/internshipService';
 import { useInternship } from '../contexts/InternshipContext';
 import dayjs from 'dayjs';
@@ -24,7 +24,7 @@ export const useTimeSheet = (form) => {
   const [dateRange, setDateRange] = useState(null);
   const [hasCS05, setHasCS05] = useState(false);
   const [cs05Status, setCS05Status] = useState(null);
-  const [isTestMode, setIsTestMode] = useState(true);
+  const [isTestMode, setIsTestMode] = useState(true); // คง isTestMode ไว้ตามเดิม
   const [loadError, setLoadError] = useState(null);
 
   const checkCS05Status = useCallback(async () => {
@@ -35,9 +35,10 @@ export const useTimeSheet = (form) => {
         setHasCS05(true);
         setCS05Status(cs05Data.status);
         
+        // แก้ไขเงื่อนไขการตรวจสอบสถานะให้รองรับ supervisor_evaluated
         const isValidStatus = isTestMode 
-          ? (cs05Data.status === 'pending' || cs05Data.status === 'approved')
-          : (cs05Data.status === 'approved');
+          ? (cs05Data.status === 'pending' || cs05Data.status === 'approved' || cs05Data.status === 'supervisor_evaluated')
+          : (cs05Data.status === 'approved' || cs05Data.status === 'supervisor_evaluated');
           
         return {
           hasCS05: true,
@@ -53,9 +54,10 @@ export const useTimeSheet = (form) => {
         setHasCS05(true);
         setCS05Status(response.data.status);
         
+        // แก้ไขเงื่อนไขการตรวจสอบสถานะให้รองรับ supervisor_evaluated
         const isValidStatus = isTestMode 
-          ? (response.data.status === 'pending' || response.data.status === 'approved')
-          : (response.data.status === 'approved');
+          ? (response.data.status === 'pending' || response.data.status === 'approved' || response.data.status === 'supervisor_evaluated')
+          : (response.data.status === 'approved' || response.data.status === 'supervisor_evaluated');
         
         return {
           hasCS05: true,
@@ -283,7 +285,7 @@ export const useTimeSheet = (form) => {
     }, 15000);
 
     return () => clearTimeout(loadingTimeout);
-  }, [generateWorkdayEntries]);
+  }, [generateWorkdayEntries, initialLoading]); // เพิ่ม initialLoading ใน dependency array
 
   const handleEdit = (entry) => {
     setSelectedEntry(entry);
@@ -321,7 +323,6 @@ export const useTimeSheet = (form) => {
       setLoading(true);
       
       const isCompleteMode = !!values.timeOut;
-      const mode = isCompleteMode ? 'complete' : 'checkin';
       
       const formData = {
         ...values,

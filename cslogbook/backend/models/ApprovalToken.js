@@ -15,6 +15,12 @@ module.exports = (sequelize, DataTypes) => {
                 foreignKey: 'studentId',
                 as: 'student'
             });
+
+            // Add association to Document model
+            this.belongsTo(models.Document, {
+                foreignKey: 'documentId',
+                as: 'document'
+            });
         }
     }
 
@@ -29,6 +35,23 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(255),
             allowNull: false,
             unique: true
+        },
+        email: { // Add this email field
+            type: DataTypes.STRING,
+            allowNull: true, // Or false if email is always required for a token
+            validate: {
+                isEmail: true
+            }
+        },
+        // Link to the Document table
+        documentId: { 
+            type: DataTypes.INTEGER,
+            allowNull: true, // Or false if a token MUST be linked to a document
+            field: 'document_id',
+            references: {
+                model: 'documents', // Name of the target table
+                key: 'document_id',   // Name of the target column
+            }
         },
         logId: {
             type: DataTypes.STRING(255), // เก็บเป็น string เพราะอาจมีหลาย logId คั่นด้วย comma
@@ -46,12 +69,12 @@ module.exports = (sequelize, DataTypes) => {
             field: 'student_id'
         },
         type: {
-            type: DataTypes.ENUM('single', 'weekly', 'monthly', 'full'),
+            type: DataTypes.ENUM('single', 'weekly', 'monthly', 'full', 'supervisor_evaluation'), // Added 'supervisor_evaluation'
             defaultValue: 'single',
             allowNull: false
         },
         status: {
-            type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+            type: DataTypes.ENUM('pending', 'approved', 'rejected', 'used'), // Added 'used'
             defaultValue: 'pending',
             allowNull: false
         },

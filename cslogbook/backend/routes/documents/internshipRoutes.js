@@ -69,11 +69,6 @@ router.get('/company-info/:documentId',
     internshipController.getCompanyInfo
 );
 
-// บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
-router.post('/company-info',
-    // ...existing code...
-);
-
 // ============= เส้นทางสำหรับเอกสารสรุปการฝึกงาน =============
 
 // ดึงข้อมูลสรุปการฝึกงาน
@@ -108,12 +103,25 @@ router.get('/evaluation/status',
     internshipController.getEvaluationStatus
 );
 
-// ส่งแบบประเมินให้พี่เลี้ยง
-router.post('/evaluation/send',
+// ส่งคำขอประเมินผลไปยัง Supervisor
+router.post('/:internshipId/request-evaluation',
     authenticateToken,
     checkRole(['student']),
     internshipController.sendEvaluationForm
 );
+
+// ดึงข้อมูลสำหรับหน้าแบบฟอร์มการประเมินผลโดย Supervisor (ใหม่)
+router.get('/supervisor/evaluation/:token/details',
+    // No authentication needed here as the token itself is the authorization
+    internshipController.getSupervisorEvaluationFormDetails
+);
+
+// บันทึกข้อมูลการประเมินผลโดย Supervisor (ใหม่)
+router.post('/supervisor/evaluation/:token',
+    // No authentication needed here
+    internshipController.submitSupervisorEvaluation
+);
+
 
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
 // อัปโหลดใบแสดงผลการเรียน (Transcript)

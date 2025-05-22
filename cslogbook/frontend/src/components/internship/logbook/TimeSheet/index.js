@@ -5,15 +5,12 @@ import {
   Typography,
   Button,
   Alert,
-  Tooltip,
   Skeleton,
   Result,
   message,
-  Empty,
   Space
 } from "antd";
 import {
-  QuestionCircleOutlined,
   WarningOutlined,
   ReloadOutlined
 } from "@ant-design/icons";
@@ -54,7 +51,6 @@ const TimeSheet = () => {
     refreshData,
     loadError,
     refreshTable,
-    studentId,
   } = useTimeSheet(form);
 
   useEffect(() => {
@@ -82,7 +78,7 @@ const TimeSheet = () => {
       // รีเฟรชข้อมูลจากฐานข้อมูลทันทีเมื่อโหลดหน้าเสร็จ
       setTimeout(() => refreshTable(), 500);
     }
-  }, [initialLoading, hasCS05, navigate]);
+  }, [initialLoading, hasCS05, navigate, refreshTable]); // เพิ่ม refreshTable ที่นี่
 
   const handleInstructionClose = () => {
     if (dontShowAgain) {
@@ -235,7 +231,6 @@ const TimeSheet = () => {
                 loading={loading}
                 onEdit={handleEdit}
                 onView={handleView}
-                studentId={studentId}
               />
             </div>
           </>
@@ -243,8 +238,12 @@ const TimeSheet = () => {
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
           <div>
-            <Empty 
-              description="ไม่พบข้อมูลวันฝึกงาน กรุณาตรวจสอบข้อมูลคำร้อง คพ.05 ว่าได้ระบุวันที่ฝึกงานถูกต้องหรือไม่" 
+            <Alert
+              type="info"
+              message="ไม่พบข้อมูลวันฝึกงาน"
+              description="กรุณาตรวจสอบข้อมูลคำร้อง คพ.05 ว่าได้ระบุวันที่ฝึกงานถูกต้องหรือไม่"
+              showIcon
+              style={{ marginBottom: 16 }}
             />
             <div style={{padding: '16px', background: '#f5f5f5', margin: '16px 0'}}>
               <strong>ข้อมูล Debugging:</strong>
@@ -271,28 +270,6 @@ const TimeSheet = () => {
           onClose={handleClose}
         />
       </Card>
-
-      <Tooltip title="คำชี้แจงการฝึกงาน">
-        <Button
-          type="primary"
-          shape="circle"
-          icon={<QuestionCircleOutlined />}
-          size="large"
-          onClick={() => setIsInstructionVisible(true)}
-          style={{
-            position: "fixed",
-            bottom: "30px",
-            right: "30px",
-            zIndex: 1000,
-            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-            width: "60px",
-            height: "60px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        />
-      </Tooltip>
 
       <InstructionModal
         visible={isInstructionVisible}

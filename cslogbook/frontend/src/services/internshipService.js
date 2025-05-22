@@ -489,13 +489,11 @@ const internshipService = {
   /**
    * ส่งแบบประเมินให้พี่เลี้ยง
    */
-  sendEvaluationForm: async (data) => {
+  sendEvaluationForm: async (internshipId) => { // Changed to accept internshipId
     try {
-      if (!data.supervisorEmail) {
-        throw new Error('กรุณาระบุอีเมลของพี่เลี้ยง');
-      }
-      
-      const response = await apiClient.post('/internship/evaluation/send', data);
+      // Removed supervisorEmail check as it's handled by the backend
+      // const response = await apiClient.post('/internship/evaluation/send', data); // Old endpoint
+      const response = await apiClient.post(`/internship/${internshipId}/request-evaluation`); // New endpoint
       return response.data;
     } catch (error) {
       console.error('Error sending evaluation form:', error);

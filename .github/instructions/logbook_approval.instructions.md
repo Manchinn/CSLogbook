@@ -1,6 +1,3 @@
----
-applyTo: '**'
----
 Coding standards, domain knowledge, and preferences that AI should follow.
 
 # ระบบการส่งบันทึกการฝึกงานเพื่อขออนุมัติผ่านอีเมล

@@ -1,4 +1,13 @@
+---
+applyTo: '**'
+---
 # CSLogbook - GitHub Copilot Instructions
+
+## General Interaction Guidelines
+- **Primary Language**: Please consistently use Thai for all explanations, suggestions, and direct responses to queries.
+- **Code Comments**: When generating code, include comments in Thai to aid understanding for Thai-speaking developers, especially for complex logic.
+- **Technical Terms**: Use common Thai technical terms where available. If an English term is more standard or precise, use the English term and provide a brief explanation in Thai.
+- **Clarity over Brevity**: Prioritize clear and comprehensive explanations in Thai, even if it means being more verbose. Avoid overly simplistic English phrasing.
 
 ## Project Overview
 This is a React JavaScript application called "CSLogbook" (ระบบติดตามความก้าวหน้าของนักศึกษา) - a system for tracking and monitoring student progress. The system is built with a React frontend and Node.js backend with Express framework, using MySQL as the database.
@@ -114,5 +123,5 @@ The application follows a clear separation between frontend and backend:
 - Outdated React patterns
 - Overly complex solutions when simple ones will work
 - Assuming specific external libraries unless mentioned
-- Using simeple English words
+- Using simple English words
 - Writing code without comments or explanations
