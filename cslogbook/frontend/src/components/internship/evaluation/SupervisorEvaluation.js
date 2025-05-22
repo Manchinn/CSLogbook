@@ -283,7 +283,7 @@ const SupervisorEvaluation = () => {
             level={2}
             style={{ textAlign: "center", marginBottom: "24px" }}
           >
-            แบบประเมินผลการฝึกงาน/สหกิจศึกษา
+            แบบประเมินผลการฝึกงาน
           </Title>
 
           {error &&
