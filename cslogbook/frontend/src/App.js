@@ -24,7 +24,7 @@ import { ProjectEligibilityCheck, ProjectRequirements } from './components/proje
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
 // Import Admin2 Components - New Structure
-import AdminRoutes from './components/admin2/AdminRoutes';
+import AdminRoutes from './components/admin/AdminRoutes';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 
 const ProtectedRoute = ({ children, roles }) => {
@@ -138,7 +138,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/admin2/*" element={
+                <Route path="/admin/*" element={
                   <ProtectedRoute roles={['admin']}>
                     <AdminRoutes />
                   </ProtectedRoute>

@@ -58,7 +58,7 @@ export const settingsService = {
   // ดึงข้อมูลสถานะนักเรียน
   getStudentStatuses: async () => {
     try {
-      const response = await apiClient.get("/admin2/settings/student-statuses");
+      const response = await apiClient.get("/admin/settings/student-statuses");
       return response.data;
     } catch (error) {
       console.error("Error fetching student statuses:", error);
@@ -70,7 +70,7 @@ export const settingsService = {
   updateStudentStatus: async (statusData) => {
     try {
       const response = await apiClient.put(
-        `/admin2/settings/student-statuses/${statusData.id}`,
+        `/admin/settings/student-statuses/${statusData.id}`,
         statusData
       );
       return response.data;
@@ -84,7 +84,7 @@ export const settingsService = {
   createStudentStatus: async (statusData) => {
     try {
       const response = await apiClient.post(
-        "/admin2/settings/student-statuses",
+        "/admin/settings/student-statuses",
         statusData
       );
       return response.data;
@@ -98,7 +98,7 @@ export const settingsService = {
   deleteStudentStatus: async (statusId) => {
     try {
       const response = await apiClient.delete(
-        `/admin2/settings/student-statuses/${statusId}`
+        `/admin/settings/student-statuses/${statusId}`
       );
       return response.data;
     } catch (error) {

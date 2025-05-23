@@ -20,19 +20,19 @@ const SettingsIndex = () => {
       title: 'หลักสูตรการศึกษา',
       icon: <BookOutlined />,
       description: 'กำหนดและจัดการหลักสูตรการศึกษา เกณฑ์ฝึกงานและโครงงานของแต่ละหลักสูตร',
-      path: '/admin2/settings/curriculum'
+      path: '/admin/settings/curriculum'
     },
     {
       title: 'ปีการศึกษา/ภาคเรียน',
       icon: <CalendarOutlined />,
       description: 'กำหนดปีการศึกษา ภาคเรียน และช่วงเวลาการลงทะเบียน',
-      path: '/admin2/settings/academic'
+      path: '/admin/settings/academic'
     },
     {
       title: 'สถานะนักศึกษา',
       icon: <TeamOutlined />,
       description: 'กำหนดสถานะและเงื่อนไขต่างๆ ของนักศึกษา',
-      path: '/admin2/settings/status'
+      path: '/admin/settings/status'
     }
   ];
   

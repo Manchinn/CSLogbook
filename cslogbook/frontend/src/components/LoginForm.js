@@ -18,7 +18,7 @@ const LoginForm = () => {
   const [form] = Form.useForm();
 
   // ดึง path ที่ user พยายามจะเข้าถึง
-  const from = location.state?.from?.pathname || "/admin2/";
+  const from = location.state?.from?.pathname || "/admin/";
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
@@ -51,7 +51,7 @@ const LoginForm = () => {
                 
                 // เพิ่มเงื่อนไขเฉพาะ admin
                 if (userData.role === 'admin') {
-                    navigate('/admin2/dashboard');
+                    navigate('/admin/dashboard');
                 } else {
                     // ถ้าเป็น roles อื่น (teacher, student) ใช้ path เดิม
                     navigate(from);

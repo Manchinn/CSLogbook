@@ -149,7 +149,7 @@ export const teacherService = {
   getTeacherById: async (teacherId) => {
     try {
       // ลบการกำหนด headers เพราะ apiClient จะจัดการให้
-      const response = await apiClient.get(`/admin2/teachers/${teacherId}`);
+      const response = await apiClient.get(`/admin/teachers/${teacherId}`);
       return response.data;
     } catch (error) {
       console.error("Error fetching teacher:", error);

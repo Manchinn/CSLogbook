@@ -33,21 +33,21 @@ const Dashboard = () => {
       value: stats.students.total,
       icon: <UserOutlined />,
       color: "#1890ff",
-      onClick: () => navigate("/admin2/users/students"),
+      onClick: () => navigate("/admin/users/students"),
     },
     {
       title: "มีสิทธิ์ฝึกงาน",
       value: stats.students.internshipEligible,
       icon: <BookOutlined />,
       color: "#52c41a",
-      onClick: () => navigate("/admin2/users/students?filter=internship"),
+      onClick: () => navigate("/admin/users/students?filter=internship"),
     },
     {
       title: "มีสิทธิ์ทำโครงงานพิเศษ",
       value: stats.students.projectEligible,
       icon: <ProjectOutlined />,
       color: "#722ed1",
-      onClick: () => navigate("/admin2/users/students?filter=project"),
+      onClick: () => navigate("/admin/users/students?filter=project"),
     },
   ];
 
@@ -105,7 +105,7 @@ const Dashboard = () => {
           <Button
             type="default"
             icon={<FileTextOutlined />}
-            onClick={() => navigate("/admin2/documents/internship")}
+            onClick={() => navigate("/admin/documents/internship")}
             block
           >
             จัดการเอกสาร

@@ -123,5 +123,3 @@ The application follows a clear separation between frontend and backend:
 - Outdated React patterns
 - Overly complex solutions when simple ones will work
 - Assuming specific external libraries unless mentioned
-- Using simple English words
-- Writing code without comments or explanations

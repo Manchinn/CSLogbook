@@ -194,7 +194,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     return [
       // Dashboard - Common for all roles
       {
-        key: "/admin2/dashboard",
+        key: "/admin/dashboard",
         icon: <HomeOutlined />,
         label: "หน้าแรก",
       },
@@ -352,11 +352,11 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: "จัดการข้อมูล",
               children: [
                 {
-                  key: "/admin2/users/students",
+                  key: "/admin/users/students",
                   label: "นักศึกษา",
                 },
                 {
-                  key: "/admin2/users/teachers",
+                  key: "/admin/users/teachers",
                   label: "อาจารย์",
                 },
                 {
@@ -371,11 +371,11 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: "จัดการเอกสาร",
               children: [
                 {
-                  key: "/admin2/documents/internship",
+                  key: "/admin/documents/internship",
                   label: "เอกสารฝึกงาน",
                 },
                 {
-                  key: "/admin2/documents/project",
+                  key: "/admin/documents/project",
                   label: "เอกสารโครงงานพิเศษ",
                 },
               ],
@@ -391,19 +391,19 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: "ตั้งค่าระบบ",
               children: [
                 {
-                  key: "/admin2/settings",
+                  key: "/admin/settings",
                   label: "ภาพรวมการตั้งค่า",
                 },
                 {
-                  key: "/admin2/settings/curriculum",
+                  key: "/admin/settings/curriculum",
                   label: "หลักสูตรการศึกษา",
                 },
                 {
-                  key: "/admin2/settings/academic",
+                  key: "/admin/settings/academic",
                   label: "ปีการศึกษา/ภาคเรียน",
                 },
                 {
-                  key: "/admin2/settings/status",
+                  key: "/admin/settings/status",
                   label: "สถานะนักศึกษา",
                 }
               ],

@@ -12,10 +12,10 @@ const StatusSettingsPage = () => {
     <div className="settings-page">
       <Breadcrumb className="settings-breadcrumb">
         <Breadcrumb.Item>
-          <Link to="/admin2/dashboard"><HomeOutlined /> หน้าหลัก</Link>
+          <Link to="/admin/dashboard"><HomeOutlined /> หน้าหลัก</Link>
         </Breadcrumb.Item>
         <Breadcrumb.Item>
-          <Link to="/admin2/settings"><SettingOutlined /> ตั้งค่าระบบ</Link>
+          <Link to="/admin/settings"><SettingOutlined /> ตั้งค่าระบบ</Link>
         </Breadcrumb.Item>
         <Breadcrumb.Item>
           <TeamOutlined /> สถานะนักศึกษา
