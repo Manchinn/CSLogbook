@@ -1,0 +1,174 @@
+/* Mobile Drawer Optimizations - แก้ไขปัญหาการซ้อนกันของ Sidebar */
+
+/* ปรับปรุง Mobile Drawer */
+.mobile-sidebar-drawer {
+  z-index: 1100 !important;
+}
+
+.mobile-sidebar-drawer .ant-drawer-body {
+  padding: 0 !important;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mobile-sidebar-drawer .ant-drawer-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+/* ปรับปรุง Sidebar ใน Drawer mode */
+.mobile-sidebar-drawer .sider {
+  position: static !important;
+  height: 100vh !important;
+  width: 100% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-right: none !important;
+}
+
+/* ปรับปรุงเมนูใน Drawer */
+.mobile-sidebar-drawer .menu {
+  background: transparent !important;
+}
+
+.mobile-sidebar-drawer .menu .ant-menu-item {
+  margin: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.mobile-sidebar-drawer .menu .ant-menu-submenu-title {
+  margin: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+}
+
+/* ปรับปรุง Profile section ใน Drawer */
+.mobile-sidebar-drawer .profile {
+  padding: 16px !important;
+  background: rgba(240, 242, 245, 0.5) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.mobile-sidebar-drawer .profile .ant-avatar {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.mobile-sidebar-drawer .profile .ant-typography {
+  font-size: 14px !important;
+  margin-top: 8px !important;
+}
+
+/* Mobile Menu Button Improvements */
+.mobile-menu-button {
+  position: fixed !important;
+  top: 16px !important;
+  left: 16px !important;
+  z-index: 1050 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+.mobile-menu-button:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Mobile Menu Button Improvements */
+.mobile-menu-button {
+  position: fixed !important;
+  top: 16px !important;
+  left: 16px !important;
+  z-index: 1050 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+.mobile-menu-button:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Drawer Mask Improvements */
+.mobile-sidebar-drawer .ant-drawer-mask {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+/* เพิ่มความสูงให้ content area เมื่อเปิด drawer บน mobile */
+@media (max-width: 768px) {
+  .mobile-sidebar-drawer .sider {
+    min-height: 100vh !important;
+  }
+  
+  /* ปรับปรุงการแสดงผลของ logout button ใน drawer */
+  .mobile-sidebar-drawer .logout {
+    margin: 16px 12px 20px !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  /* ป้องกันการ scroll ของ body เมื่อเปิด drawer */
+  body.drawer-open {
+    overflow: hidden !important;
+  }
+}
+
+/* Fix สำหรับ iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .mobile-sidebar-drawer .ant-drawer-body {
+    height: 100vh !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* แก้ไข z-index hierarchy สำหรับ mobile */
+@media (max-width: 768px) {
+  /* Header */
+  .header-container {
+    z-index: 1000 !important;
+  }
+  
+  /* Mobile menu button */
+  .mobile-menu-button {
+    z-index: 1050 !important;
+  }
+  
+  /* Drawer และ content */
+  .mobile-sidebar-drawer {
+    z-index: 1100 !important;
+  }
+  
+  /* Background particles */
+  .background-particles {
+    z-index: 0 !important;
+  }
+  
+  /* Content area */
+  .content-area {
+    z-index: 1 !important;
+    position: relative;
+  }
+}
