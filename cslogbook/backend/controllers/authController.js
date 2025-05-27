@@ -1,12 +1,8 @@
-const { User, Student, Admin, Teacher } = require('../models');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { sendLoginNotification } = require('../utils/mailer');
+const authService = require('../services/authService');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const moment = require('moment-timezone');
 const axios = require('axios');
-const crypto = require('crypto');
 
 // Login validation middleware
 exports.validateLogin = [
@@ -38,129 +34,33 @@ exports.login = async (req, res) => {
 
         const { username, password } = req.body;
 
-        // Find user with better error handling
-        const user = await User.findOne({
-            where: { username, activeStatus: true }
-        }).catch(err => {
-            console.error('Database query error:', err);
-            throw new Error('Database connection error');
-        });
+        // Use authService for complete authentication
+        const result = await authService.authenticateUser(username, password);
 
-        if (!user) {
-            logger.warn(`Failed login attempt for username: ${username}`);
-            return res.status(401).json({
+        if (!result.success) {
+            return res.status(result.statusCode || 500).json({
                 success: false,
-                message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
-            });
-        }
-
-        // Verify password
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) {
-            logger.warn(`Invalid password for user: ${username}`);
-            return res.status(401).json({
-                success: false,
-                message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
-            });
-        }
-
-        // Get role-specific data
-        let roleData = {};
-        switch (user.role) {
-            case 'student':
-                const studentData = await Student.findOne({
-                    where: { userId: user.userId },
-                    attributes: ['studentCode','totalCredits', 'majorCredits', 'isEligibleInternship', 'isEligibleProject']
-                });
-                roleData = {
-                    studentCode: studentData.studentCode,
-                    totalCredits: studentData?.totalCredits || 0,
-                    majorCredits: studentData?.majorCredits || 0,
-                    isEligibleForInternship: studentData?.isEligibleInternship || false,
-                    isEligibleForProject: studentData?.isEligibleProject || false
-                };
-                break;
-
-            case 'admin':
-                const adminData = await Admin.findOne({
-                    where: { userId: user.userId },
-                    attributes: [
-                        'adminId',
-                        'adminCode',
-                        'responsibilities',
-                        'contactExtension'
-                    ]
-                });
-                roleData = {
-                    adminId: adminData?.adminId,
-                    adminCode: adminData?.adminCode,
-                    responsibilities: adminData?.responsibilities || 'System Administrator',
-                    contactExtension: adminData?.contactExtension,
-                    isSystemAdmin: true
-                };
-                break;
-
-            case 'teacher':
-                const teacherData = await Teacher.findOne({
-                    where: { userId: user.userId },
-                    attributes: [
-                        'teacherId',
-                        'teacherCode',
-                    ]});
-                roleData = {
-                    teacherId: teacherData?.teacherId,
-                    teacherCode: teacherData?.teacherCode,
-                    isSystemAdmin: false
-                };
-                break;
-        }
-
-        // Generate token with role-specific claims
-        const token = jwt.sign(
-            { 
-                userId: user.userId, 
-                role: user.role,
-                studentID: user.studentID,
-                isSystemAdmin: user.role === 'admin',
-                department: roleData.department
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN }
-        );
-
-        // Update last login
-        await User.update(
-            { lastLogin: moment().tz('Asia/Bangkok').format() },
-            { where: { userId: user.userId } }
-        );
-
-        // Send login notification if enabled
-        if (process.env.EMAIL_LOGIN_ENABLED === 'true') {
-            await sendLoginNotification(user.email, {
-                firstName: user.firstName,
-                time: moment().tz('Asia/Bangkok').format('LLLL')
-            }).catch(error => {
-                logger.error('Failed to send login notification:', error);
+                message: result.message
             });
         }
 
         // Log successful login
         logger.info('User logged in successfully', {
-            userId: user.userId,
-            role: user.role,
+            userId: result.data.userId,
+            role: result.data.role,
             timestamp: moment().tz('Asia/Bangkok').format()
         });
 
         // Send response
         res.json({
             success: true,
-            token,
-            userId: user.userId,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role,
-            ...roleData
+            token: result.data.token,
+            userId: result.data.userId,
+            firstName: result.data.firstName,
+            lastName: result.data.lastName,
+            email: result.data.email,
+            role: result.data.role,
+            ...result.data
         });
 
     } catch (error) {
@@ -183,29 +83,21 @@ exports.login = async (req, res) => {
 // Refresh token handler
 exports.refreshToken = async (req, res) => {
     try {
-        const user = await User.findOne({
-            where: { userId: req.user.userId }
-        });
+        const result = await authService.refreshUserToken(req.user.userId);
 
-        if (!user) {
-            return res.status(404).json({
+        if (!result.success) {
+            return res.status(result.statusCode || 500).json({
                 success: false,
-                message: 'User not found'
+                message: result.message
             });
         }
 
-        const token = jwt.sign({
-            userId: user.userId,
-            role: user.role
-        }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN
-        });
-
         res.json({
             success: true,
-            token
+            token: result.data.token
         });
     } catch (error) {
+        logger.error('Refresh token error:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -237,7 +129,8 @@ exports.redirectToKmutnbSso = (req, res) => {
         console.error('KMUTNB SSO Client ID or Redirect URI is not configured.');
         return res.status(500).json({ message: 'SSO configuration error.' });
     }
-    const state = crypto.randomBytes(16).toString('hex');
+    
+    const state = authService.generateSsoState();
     if (req.session) {
         req.session.ssoState = state;
     } else {
@@ -255,28 +148,6 @@ exports.redirectToKmutnbSso = (req, res) => {
     });
     res.redirect(`${KMUTNB_SSO_AUTHORIZE_URL}?${params.toString()}`);
 };
-
-function mapSsoAccountTypeToRole(ssoAccountType, ssoProfile) {
-    // KMUTNB account_type: personnel, student, templecturer, retirement, exchange_student, alumni, guest
-    // This mapping is crucial and might need adjustment based on how KMUTNB distinguishes admins/teachers within "personnel"
-    switch (ssoAccountType) {
-        case 'student':
-        case 'exchange_student':
-            return 'student';
-        case 'personnel': // This could be teacher or admin. Further checks might be needed.
-            // Example: if (ssoProfile.some_admin_indicator_field === 'admin_value') return 'admin';
-            return 'teacher'; // Defaulting personnel to teacher for now
-        case 'templecturer':
-            return 'teacher';
-        // case 'alumni':
-        // case 'retirement':
-        // case 'guest':
-        //     return 'guest'; // If you have a guest role
-        default:
-            console.warn(`Unknown SSO account type: ${ssoAccountType}. Defaulting to student.`);
-            return 'student'; // Fallback role
-    }
-}
 
 exports.handleKmutnbSsoCallback = async (req, res) => {
     const { code, state } = req.query;
@@ -309,87 +180,37 @@ exports.handleKmutnbSsoCallback = async (req, res) => {
         });
 
         const { access_token, user_info: ssoUserFromTokenResponse } = tokenResponse.data;
-
-        // According to KMUTNB docs, user_info is part of the token response.
-        // If not, or if more details are needed, fetch from KMUTNB_SSO_USERINFO_URL
-        // For example:
-        // const userInfoDetailed = await axios.get(KMUTNB_SSO_USERINFO_URL, {
-        //     headers: { 'Authorization': `Bearer ${access_token}` }
-        // });
-        // const ssoProfile = userInfoDetailed.data.profile;
-        // const ssoStudentData = userInfoDetailed.data.student_info;
-        // const ssoPersonnelData = userInfoDetailed.data.personnel_info;
-        // For now, we assume ssoUserFromTokenResponse contains what we need as per docs (username, display_name, account_type, email)
-
+        
         const ssoUniqueId = ssoUserFromTokenResponse.username;
-        const ssoEmail = ssoUserFromTokenResponse.email; // Check if this path is correct from actual SSO response
+        const ssoEmail = ssoUserFromTokenResponse.email;
         const ssoDisplayName = ssoUserFromTokenResponse.display_name;
-        const ssoAccountType = ssoUserFromTokenResponse.account_type;
+        const ssoAccountType = ssoUserFromTokenResponse.account_type;        // Map SSO account type to local role using authService
+        const localRole = authService.mapSsoAccountTypeToRole(ssoAccountType, ssoUserFromTokenResponse);
 
-
-        let user = await User.findOne({ where: { ssoProvider: 'kmutnb', ssoId: ssoUniqueId } });
-        let localRole = mapSsoAccountTypeToRole(ssoAccountType, ssoUserFromTokenResponse);
-
+        // Find user using authService
+        let user = await authService.findUserByUsernameAndProvider(ssoUniqueId, 'kmutnb');
 
         if (!user) {
-            const names = ssoDisplayName.split(' ');
-            const firstName = names[0];
-            const lastName = names.slice(1).join(' ');
-
-            const newUserDetails = {
-                username: ssoUniqueId, // Using SSO username as local username
+            // Create new user using authService
+            user = await authService.createUserFromSso({
+                username: ssoUniqueId,
                 email: ssoEmail,
-                firstName: firstName,
-                lastName: lastName,
+                displayName: ssoDisplayName,
                 role: localRole,
-                ssoProvider: 'kmutnb',
-                ssoId: ssoUniqueId,
-                activeStatus: true, // Default to active
-                // Password is not set for SSO users, ensure your model allows null password or set a random one
-                // password: null, // if User model allows password to be null
-            };
-            user = await User.create(newUserDetails);
-
-            // Create corresponding student/teacher/admin entry
-            if (localRole === 'student') {
-                // Potentially fetch student_code from ssoStudentData if available and needed
-                await Student.create({ userId: user.userId /*, studentCode: ssoStudentData.รหัสประจําตัวนักศึกษา */ });
-            } else if (localRole === 'teacher') {
-                await Teacher.create({ userId: user.userId /*, teacherCode: ... */ });
-            } else if (localRole === 'admin') {
-                await Admin.create({ userId: user.userId /*, adminCode: ... */ });
-            }
-
+                provider: 'kmutnb'
+            });
         } else {
-            // User exists, update info if necessary
-            const names = ssoDisplayName.split(' ');
-            user.email = ssoEmail || user.email;
-            user.firstName = names[0] || user.firstName;
-            user.lastName = names.slice(1).join(' ') || user.lastName;
-            user.role = localRole; // Update role if it can change
-            user.lastLogin = new Date();
-            await user.save();
+            // Update existing user using authService
+            user = await authService.updateUserFromSso(user, {
+                email: ssoEmail,
+                displayName: ssoDisplayName,
+                role: localRole
+            });
         }
 
-        const payload = {
-            userId: user.userId,
-            username: user.username,
-            role: user.role,
-        };
-        // Add studentId, teacherId, adminId to payload if needed by your frontend/authMiddleware
-        if (user.role === 'student') {
-            const student = await Student.findOne({ where: { userId: user.userId } });
-            if (student) payload.studentId = student.studentId;
-        } else if (user.role === 'teacher') {
-            const teacher = await Teacher.findOne({ where: { userId: user.userId } });
-            if (teacher) payload.teacherId = teacher.teacherId;
-        } else if (user.role === 'admin') {
-            const admin = await Admin.findOne({ where: { userId: user.userId } });
-            if (admin) payload.adminId = admin.adminId;
-        }
-
-
-        const localToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+        // Generate token using authService
+        const roleData = await authService.getRoleSpecificData(user);
+        const localToken = authService.generateToken(user, roleData);
 
         res.cookie('authToken', localToken, {
             httpOnly: true,
@@ -397,7 +218,7 @@ exports.handleKmutnbSsoCallback = async (req, res) => {
             sameSite: 'Lax',
             maxAge: parseInt(process.env.JWT_EXPIRES_IN_SECONDS || '3600') * 1000,
         });
-        res.redirect(`${FRONTEND_URL}/dashboard`); // Or a specific SSO success page
+        res.redirect(`${FRONTEND_URL}/dashboard`);
 
     } catch (error) {
         console.error('SSO Callback Error:', error.response ? error.response.data : error.message, error.stack);
