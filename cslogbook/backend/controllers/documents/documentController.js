@@ -1,9 +1,7 @@
-const { UPLOAD_CONFIG } = require('../../config/uploadConfig');
-// เพิ่ม fs และ path สำหรับอ่านไฟล์
 const fs = require('fs');
 const path = require('path');
-const { Op } = require('sequelize');
-const { User, Student, Document } = require('../../models'); // แก้ไขการ import เพื่อให้มี Document
+const documentService = require('../../services/documentService');
+const logger = require('../../config/logger');
 
 // อัพโหลดเอกสาร
 const uploadDocument = async (req, res) => {
@@ -15,41 +13,22 @@ const uploadDocument = async (req, res) => {
             });
         }
 
-        const { documentType, category } = req.body;
-
-        // ตรวจสอบประเภทเอกสาร
-        const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType?.toUpperCase()];
-        if (!docTypeConfig) {
-            return res.status(400).json({
-                success: false,
-                message: 'ประเภทเอกสารไม่ถูกต้อง'
-            });
-        }
-
-        // บันทึกข้อมูลลงฐานข้อมูล
-        const document = await Document.create({
-            userId: req.user.id,
-            documentType,
-            category,
-            filePath: req.file.path,
-            fileName: req.file.filename,
-            mimeType: req.file.mimetype,
-            fileSize: req.file.size,
-            status: 'pending'
-        });
+        const result = await documentService.uploadDocument(
+            req.user.id, 
+            req.file, 
+            req.body
+        );
 
         res.json({
             success: true,
-            documentId: document.id,
-            fileUrl: `/uploads/${req.file.filename}`,
-            message: 'อัปโหลดไฟล์สำเร็จ'
+            ...result
         });
 
     } catch (error) {
-        console.error('Upload Error:', error);
+        logger.error('Upload Error:', error);
         res.status(500).json({
             success: false,
-            message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์'
+            message: error.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์'
         });
     }
 };
@@ -57,74 +36,30 @@ const uploadDocument = async (req, res) => {
 // ดึงข้อมูลเอกสาร
 const getDocumentById = async (req, res) => {
     try {
-        // ตรวจสอบค่า ID ที่ส่งเข้ามา
-        const documentId = req.params.id;
+        const documentData = await documentService.getDocumentById(req.params.id);
         
-        if (!documentId) {
-            return res.status(400).json({
-                success: false,
-                message: 'ต้องระบุ ID ของเอกสาร'
-            });
-        }
-        
-        // ขั้นที่ 1: ดึงเฉพาะข้อมูล Document ก่อน
-        const document = await Document.findOne({
-            where: { documentId: documentId }
-        });
-        
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบเอกสาร'
-            });
-        }
-
-        // ขั้นที่ 2: แปลงเป็น JSON เพื่อจัดการข้อมูลและเตรียมส่งกลับ
-        const documentData = document.toJSON();
-        
-        // ขั้นที่ 3: ดึงข้อมูลผู้ใช้ที่เกี่ยวข้องกับเอกสาร
-        if (document.userId) {
-            const user = await User.findOne({
-                where: { userId: document.userId },
-                include: [{
-                    model: Student,
-                    as: 'student',
-                    attributes: ['studentId', 'studentCode', 'studentYear', 'totalCredits', 'majorCredits']
-                }]
-            });
-            
-            if (user) {
-                // เพิ่มข้อมูลผู้ใช้เข้าไปในข้อมูลเอกสาร
-                documentData.owner = user.toJSON();
-            }
-        }
-        
-        // ขั้นที่ 4: ดึงข้อมูล InternshipDocument ที่เกี่ยวข้อง
-        if (documentId) {
-            const InternshipDocument = require('../../models').InternshipDocument;
-            const internshipDocument = await InternshipDocument.findOne({
-                where: { documentId: documentId },
-                attributes: [
-                    'internshipId', 'documentId', 'companyName', 
-                    'companyAddress', 'supervisorName', 'supervisorPosition', 
-                    'supervisorPhone', 'supervisorEmail', 'startDate', 'endDate',
-                    'created_at', 'updated_at', /* 'studentCode', 'studentName' */
-                ]
-            });
-            
-            if (internshipDocument) {
-                documentData.internshipDocument = internshipDocument.toJSON();
-            }
-        }
-        
-        // ส่งข้อมูลกลับ
         res.json({
             success: true,
             data: documentData
         });
 
     } catch (error) {
-        console.error('Get Document Error:', error);
+        logger.error('Get Document Error:', error);
+        
+        if (error.message === 'ต้องระบุ ID ของเอกสาร') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
+        if (error.message === 'ไม่พบเอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร',
@@ -137,29 +72,29 @@ const getDocumentById = async (req, res) => {
 const updateDocumentStatus = async (req, res) => {
     try {
         const { status, comment } = req.body;
-        const document = await Document.findByPk(req.params.id);
-
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบเอกสาร'
-            });
-        }
-
-        await document.update({
+        
+        const result = await documentService.updateDocumentStatus(
+            req.params.id,
             status,
-            comment,
-            reviewedBy: req.user.id,
-            reviewedAt: new Date()
-        });
+            req.user.id,
+            comment
+        );
 
         res.json({
             success: true,
-            message: 'อัพเดทสถานะเอกสารสำเร็จ'
+            ...result
         });
 
     } catch (error) {
-        console.error('Update Status Error:', error);
+        logger.error('Update Status Error:', error);
+        
+        if (error.message === 'ไม่พบเอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการอัพเดทสถานะเอกสาร'
@@ -170,81 +105,20 @@ const updateDocumentStatus = async (req, res) => {
 // ดึงข้อมูลเอกสารทั้งหมด
 const getDocuments = async (req, res) => {
     try {
-        const { type, status, search } = req.query;
+        const { type, status, search, limit, offset } = req.query;
         
-        // สร้าง query condition
-        let whereCondition = {};
+        const filters = { type, status, search };
+        const pagination = { 
+            limit: limit ? parseInt(limit) : 50, 
+            offset: offset ? parseInt(offset) : 0 
+        };
         
-        if (type && type !== 'all') {
-            whereCondition.documentType = type.toLowerCase(); // ตรวจสอบว่า type ตรงกับฐานข้อมูล
-        }
+        const result = await documentService.getDocuments(filters, pagination);
         
-        if (status && status !== 'all') {
-            whereCondition.status = status;
-        }
-        
-        // ถ้ามี search ให้ค้นหาในชื่อเอกสารหรือชื่อนักศึกษา
-        if (search) {
-            whereCondition = {
-                ...whereCondition,
-                [Op.or]: [
-                    { documentName: { [Op.like]: `%${search}%` } },
-                    // เพิ่มการค้นหาในชื่อนักศึกษาตามต้องการ
-                ]
-            };
-        }
-        
-        // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-        const documents = await Document.findAll({
-            where: whereCondition,
-            attributes: [
-                "documentId",
-                "documentName",
-                "documentType",
-                "status",
-                "created_at", // ฟิลด์วันที่สร้าง
-                "updated_at", // เพิ่มฟิลด์ updatedAt
-            ],
-            include: [
-                {
-                    model: User,
-                    as: 'owner',
-                    attributes: ['firstName', 'lastName'],
-                    include: [{
-                        model: Student,
-                        as: 'student', // แก้ตรงนี้ - เพิ่ม as: 'student'
-                        attributes: ['studentCode']
-                    }]
-                }
-            ],
-            order: [['created_at', 'DESC']]
-        });
-        
-        // นับสถิติ
-        const total = await Document.count();
-        const pending = await Document.count({ where: { status: 'pending' } });
-        const approved = await Document.count({ where: { status: 'approved' } });
-        const rejected = await Document.count({ where: { status: 'rejected' } });
-        
-        // จัดรูปแบบข้อมูลก่อนส่งกลับ
-        const formattedDocuments = documents.map(doc => ({
-            id: doc.id || doc.documentId,
-            document_name: doc.documentName,
-            student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
-            student_code: doc.owner.student ? doc.owner.student.studentCode : '',
-            type: doc.documentType.toLowerCase(),
-            created_at: doc.created_at,
-            updated_at: doc.updated_at,
-            status: doc.status,
-        }));
-        
-        res.json({
-            documents: formattedDocuments,
-            statistics: { total, pending, approved, rejected }
-        });
+        res.json(result);
         
     } catch (error) {
-        console.error('Error fetching documents:', error);
+        logger.error('Error fetching documents:', error);
         res.status(500).json({
             success: false, 
             message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร',
@@ -256,178 +130,53 @@ const getDocuments = async (req, res) => {
 // อนุมัติเอกสาร
 const approveDocument = async (req, res) => {
     try {
-        const documentId = req.params.id;
-        const document = await Document.findByPk(documentId, {
-            include: [{
-                model: User,
-                as: 'owner',
-                include: [{
-                    model: Student,
-                    as: 'student'
-                }]
-            }]
-        });
-        
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบเอกสาร'
-            });
-        }
-
-        // อัปเดตสถานะเอกสาร
-        await document.update({
-            status: 'approved',
-            reviewedBy: req.user.id,
-            reviewedAt: new Date()
-        });
-        
-        // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่ - แก้ไขให้ตรวจสอบทั้ง documentType และ documentName
-        if (document.documentType === 'INTERNSHIP' && document.documentName === 'CS05') {
-            console.log('Found CS05 document, processing workflow:', document.id);
-            
-            // แก้ไขการอัปเดตสถานะนักศึกษาเป็น in_progress แทน completed
-            try {
-                const student = await Student.findOne({
-                    include: [{
-                        model: User,
-                        as: 'user',
-                        where: { userId: document.userId }
-                    }]
-                });
-                
-                if (student) {
-                    await student.update({
-                        internshipStatus: 'in_progress', // แก้ไขจาก 'completed' เป็น 'in_progress'
-                        isEnrolledInternship: 1 // เพิ่มการตั้งค่า isEnrolledInternship เป็น true
-                    });
-                    console.log(`Updated student ${student.studentId} internship status to in_progress`);
-                }
-            } catch (updateError) {
-                console.error('Error updating student internship status:', updateError);
-                // ยังทำงานต่อได้แม้อัปเดตไม่สำเร็จ
-            }
-            
-            // สร้าง/อัปเดตกิจกรรม workflow ของนักศึกษา
-            await updateInternshipWorkflowForCS05(document, req.user.id);
-        }
+        const result = await documentService.approveDocument(req.params.id, req.user.id);
 
         res.json({
             success: true,
-            message: 'อนุมัติเอกสารเรียบร้อยแล้ว'
+            ...result
         });
     } catch (error) {
-        console.error('Error approving document:', error);
-        res.status(500).json({
-            success: false,
-            message: 'เกิดข้อผิดพลาดในการอนุมัติเอกสาร'
-        });
-    }
-};
-
-// ฟังก์ชันช่วยอัปเดตกิจกรรม workflow สำหรับ CS05
-async function updateInternshipWorkflowForCS05(document, adminId) {
-    try {
-        const { StudentWorkflowActivity } = require('../../models');
+        logger.error('Error approving document:', error);
         
-        const studentId = document.owner?.student?.studentId;
-        if (!studentId) {
-            console.error('Cannot find studentId for document:', document.id);
-            return;
-        }
-        
-        console.log(`Updating workflow for student ${studentId}, document CS05`);
-        
-        // ค้นหากิจกรรม workflow ที่มีอยู่หรือสร้างใหม่
-        let workflowActivity = await StudentWorkflowActivity.findOne({
-            where: {
-                studentId,
-                workflowType: 'internship'
-            }
-        });
-        
-        if (!workflowActivity) {
-            console.log('Creating new workflow activity for student:', studentId);
-            workflowActivity = await StudentWorkflowActivity.create({
-                studentId,
-                workflowType: 'internship',
-                currentStepKey: 'INTERNSHIP_CS05_APPROVAL_PENDING',
-                currentStepStatus: 'pending',
-                overallWorkflowStatus: 'enrolled',
-                dataPayload: {},
-                startedAt: new Date()
+        if (error.message === 'ไม่พบเอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
             });
         }
         
-        // อัปเดตสถานะเป็น "อนุมัติแล้ว" และเปลี่ยน step ให้ถูกต้อง
-        await workflowActivity.update({
-            currentStepKey: 'INTERNSHIP_CS05_APPROVED',
-            previousStepKey: workflowActivity.currentStepKey, // เก็บขั้นตอนก่อนหน้า
-            currentStepStatus: 'completed',
-            overallWorkflowStatus: 'in_progress',
-            dataPayload: {
-                ...workflowActivity.dataPayload,
-                cs05ApprovedAt: new Date().toISOString(),
-                cs05ApprovedBy: adminId,
-                documentId: document.id
-            }
-        });
-        
-        console.log('CS05 workflow updated successfully');
-        
-        // สร้างการแจ้งเตือนให้นักศึกษา
-        try {
-            const { Notification } = require('../../models');
-            if (Notification) {
-                await Notification.create({
-                    userId: document.userId || document.owner?.userId,
-                    title: 'เอกสาร คพ.05 ได้รับการอนุมัติแล้ว',
-                    message: 'คำร้องขอฝึกงานของคุณได้รับการอนุมัติแล้ว โปรดดำเนินการขั้นตอนถัดไป',
-                    type: 'document_approved',
-                    referenceId: document.id,
-                    isRead: false
-                });
-                console.log('Notification created for student');
-            }
-        } catch (notifyError) {
-            console.error('Error creating notification:', notifyError);
-        }
-        
-        return workflowActivity;
-    } catch (error) {
-        console.error('Error updating internship workflow for CS05:', error);
-        throw error;
-    }
-}
+        res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการอนุมัติเอกสาร'
+        });    }
+};
 
 // ปฏิเสธเอกสาร
 const rejectDocument = async (req, res) => {
     try {
-        const documentId = req.params.id;
         const { reason } = req.body;
         
-        const document = await Document.findByPk(documentId);
-        
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบเอกสาร'
-            });
-        }
-
-        await document.update({
-            status: 'rejected',
-            comment: reason || 'ไม่ได้ระบุเหตุผล',
-            reviewedBy: req.user.id,
-            reviewedAt: new Date()
-        });
+        const result = await documentService.rejectDocument(
+            req.params.id,
+            req.user.id,
+            reason
+        );
 
         res.json({
             success: true,
-            message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว'
+            ...result
         });
     } catch (error) {
-        console.error('Error rejecting document:', error);
+        logger.error('Error rejecting document:', error);
+        
+        if (error.message === 'ไม่พบเอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการปฏิเสธเอกสาร'
@@ -440,36 +189,14 @@ const searchDocuments = async (req, res) => {
     try {
         const { query, type } = req.query;
         
-        if (!query) {
-            return res.json({
-                success: true,
-                documents: []
-            });
-        }
-        
-        const whereCondition = {
-            [Op.or]: [
-                { fileName: { [Op.like]: `%${query}%` } },
-                // สามารถเพิ่มเงื่อนไขอื่นๆ ได้ตามต้องการ
-            ]
-        };
-        
-        if (type && type !== 'all') {
-            whereCondition.documentType = type;
-        }
-        
-        const documents = await Document.findAll({
-            where: whereCondition,
-            limit: 20,
-            order: [['createdAt', 'DESC']]
-        });
+        const result = await documentService.searchDocuments(query, { type });
         
         res.json({
             success: true,
-            documents
+            ...result
         });
     } catch (error) {
-        console.error('Error searching documents:', error);
+        logger.error('Error searching documents:', error);
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการค้นหาเอกสาร'
@@ -480,17 +207,18 @@ const searchDocuments = async (req, res) => {
 // ดึงเอกสารล่าสุด
 const getRecentDocuments = async (req, res) => {
     try {
-        const documents = await Document.findAll({
-            limit: 10,
-            order: [['createdAt', 'DESC']]
-        });
+        const { limit } = req.query;
+        
+        const result = await documentService.getRecentDocuments(
+            limit ? parseInt(limit) : 10
+        );
         
         res.json({
             success: true,
-            documents
+            ...result
         });
     } catch (error) {
-        console.error('Error fetching recent documents:', error);
+        logger.error('Error fetching recent documents:', error);
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสารล่าสุด'
@@ -501,22 +229,7 @@ const getRecentDocuments = async (req, res) => {
 // แสดงไฟล์เอกสาร PDF โดยตรงในเบราว์เซอร์
 const viewDocument = async (req, res) => {
     try {
-        const documentId = req.params.id;
-        const document = await Document.findByPk(documentId);
-        
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบเอกสาร'
-            });
-        }
-
-        if (!document.filePath || !fs.existsSync(document.filePath)) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบไฟล์เอกสาร'
-            });
-        }
+        const document = await documentService.validateDocumentFile(req.params.id);
 
         // ตั้งค่า header สำหรับการแสดงไฟล์ PDF โดยตรงใน browser
         res.setHeader('Content-Type', 'application/pdf');
@@ -527,7 +240,22 @@ const viewDocument = async (req, res) => {
         fileStream.pipe(res);
         
     } catch (error) {
-        console.error('View Document Error:', error);
+        logger.error('View Document Error:', error);
+        
+        if (error.message === 'ไม่พบเอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
+        if (error.message === 'ไม่พบไฟล์เอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการแสดงเอกสาร'
@@ -538,22 +266,7 @@ const viewDocument = async (req, res) => {
 // ดาวน์โหลดไฟล์เอกสาร
 const downloadDocument = async (req, res) => {
     try {
-        const documentId = req.params.id;
-        const document = await Document.findByPk(documentId);
-        
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบเอกสาร'
-            });
-        }
-
-        if (!document.filePath || !fs.existsSync(document.filePath)) {
-            return res.status(404).json({
-                success: false,
-                message: 'ไม่พบไฟล์เอกสาร'
-            });
-        }
+        const document = await documentService.validateDocumentFile(req.params.id);
 
         // ตั้งค่าการดาวน์โหลดไฟล์
         const fileName = document.fileName || path.basename(document.filePath);
@@ -565,7 +278,22 @@ const downloadDocument = async (req, res) => {
         fileStream.pipe(res);
         
     } catch (error) {
-        console.error('Download Document Error:', error);
+        logger.error('Download Document Error:', error);
+        
+        if (error.message === 'ไม่พบเอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
+        if (error.message === 'ไม่พบไฟล์เอกสาร') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการดาวน์โหลดเอกสาร'

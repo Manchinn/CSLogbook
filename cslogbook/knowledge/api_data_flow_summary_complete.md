@@ -8,6 +8,7 @@
   - [Progress Tracking API](#progress-tracking-api)
   - [Timeline Visualization API](#timeline-visualization-api)
   - [Feedback Tools API](#feedback-tools-api)
+  - [Email Approval API](#email-approval-api)
   - [Reporting API](#reporting-api)
   - [Data Management API](#data-management-api)
   - [Backend Components](#backend-components)
@@ -17,6 +18,8 @@
   - [Key Backend Service Functions](#key-backend-service-functions)
     - [WorkflowService Functions:](#workflowservice-functions)
     - [InternshipService Functions:](#internshipservice-functions)
+    - [DocumentService Functions:](#documentservice-functions)
+    - [EmailApprovalService Functions:](#emailapprovalservice-functions)
 
 ---
 
@@ -74,11 +77,34 @@ API สำหรับเครื่องมือการให้คำต�
 
 | Endpoint | Method | Controller Function | Backend Service | Frontend Service | Data Type | Description |
 |----------|---------|---------------------|-----------------|------------------|-----------|-------------|
-| `/api/documents` | GET | `documentController.getAllDocuments` | - | `adminService.js` | Document list | ดึงรายการเอกสารทั้งหมด |
-| `/api/documents/:id/approve` | PUT | `documentController.approveDocument` | `internshipService.approveCS05()` | `adminService.js` | Approval status | อนุมัติเอกสาร (เช่น คพ.05) |
-| `/api/documents/:id/reject` | PUT | `documentController.rejectDocument` | - | `adminService.js` | Rejection reason | ปฏิเสธเอกสาร |
+| `/api/documents` | GET | `documentController.getDocuments` | `documentService.getDocuments()` | `adminService.js` | Document list | ดึงรายการเอกสารทั้งหมด |
+| `/api/documents/:id` | GET | `documentController.getDocumentById` | `documentService.getDocumentById()` | `adminService.js` | Document details | ดึงข้อมูลเอกสารรายการ |
+| `/api/documents/upload` | POST | `documentController.uploadDocument` | `documentService.uploadDocument()` | `adminService.js` | Document data | อัพโหลดเอกสาร |
+| `/api/documents/:id/approve` | PUT | `documentController.approveDocument` | `documentService.approveDocument()` | `adminService.js` | Approval status | อนุมัติเอกสาร (รวม CS05 workflow) |
+| `/api/documents/:id/reject` | PUT | `documentController.rejectDocument` | `documentService.rejectDocument()` | `adminService.js` | Rejection reason | ปฏิเสธเอกสาร |
+| `/api/documents/:id/status` | PUT | `documentController.updateDocumentStatus` | `documentService.updateDocumentStatus()` | `adminService.js` | Status update | อัปเดตสถานะเอกสาร |
+| `/api/documents/search` | GET | `documentController.searchDocuments` | `documentService.searchDocuments()` | `adminService.js` | Search results | ค้นหาเอกสาร |
+| `/api/documents/recent` | GET | `documentController.getRecentDocuments` | `documentService.getRecentDocuments()` | `adminService.js` | Recent documents | ดึงเอกสารล่าสุด |
+| `/api/documents/:id/view` | GET | `documentController.viewDocument` | `documentService.validateDocumentFile()` | `adminService.js` | File stream | แสดงไฟล์เอกสาร |
+| `/api/documents/:id/download` | GET | `documentController.downloadDocument` | `documentService.validateDocumentFile()` | `adminService.js` | File stream | ดาวน์โหลดไฟล์เอกสาร |
 | `/api/evaluations` | GET | `evaluationController.getEvaluations` | - | `evaluationService.js` | Evaluation list | ดึงข้อมูลการประเมิน |
 | `/api/evaluations/:id/feedback` | POST | `evaluationController.submitFeedback` | - | `evaluationService.js` | Feedback data | ส่งคำติชมการประเมิน |
+
+---
+
+## Email Approval API
+
+API สำหรับการอนุมัติผ่านอีเมล
+
+| Endpoint | Method | Controller Function | Backend Service | Frontend Service | Data Type | Description |
+|----------|---------|---------------------|-----------------|------------------|-----------|-------------|
+| `/api/email-approval/approve/:token` | GET | `emailApprovalController.approveByEmail` | `emailApprovalService.processApproval()` | - | Approval response | อนุมัติผ่านลิงก์อีเมล |
+| `/api/email-approval/reject/:token` | GET | `emailApprovalController.rejectByEmail` | `emailApprovalService.processRejection()` | - | Rejection response | ปฏิเสธผ่านลิงก์อีเมล |
+| `/api/email-approval/status/:token` | GET | `emailApprovalController.getApprovalStatus` | `emailApprovalService.getTokenStatus()` | - | Token status | ตรวจสอบสถานะ token |
+| `/api/email-approval/send` | POST | `emailApprovalController.sendApprovalEmail` | `emailApprovalService.createApprovalRequest()` | `adminService.js` | Email sent status | ส่งอีเมลขออนุมัติ |
+| `/api/email-approval/resend/:token` | POST | `emailApprovalController.resendApprovalEmail` | `emailApprovalService.resendApprovalEmail()` | `adminService.js` | Resend status | ส่งอีเมลซ้ำ |
+| `/api/email-approval/cancel/:token` | POST | `emailApprovalController.cancelApprovalRequest` | `emailApprovalService.cancelApprovalRequest()` | `adminService.js` | Cancel status | ยกเลิกการขออนุมัติ |
+| `/api/email-approval/cleanup-expired` | POST | `emailApprovalController.cleanupExpiredTokens` | `emailApprovalService.cleanupExpiredTokens()` | - | Cleanup result | ล้าง token ที่หมดอายุ |
 
 ---
 
@@ -135,12 +161,30 @@ API สำหรับจัดการข้อมูลหลักของ�
   - `approveCS05()` - อนุมัติเอกสาร คพ.05 พร้อมจัดการ workflow
   - `handleCS05Approval()` - จัดการขั้นตอน workflow หลังอนุมัติ คพ.05
   - `updateWorkflowActivity()` - อัปเดต workflow activity สำหรับนักศึกษา
+- **`documentService.js`** - จัดการเอกสารและไฟล์
+  - `uploadDocument()` - อัพโหลดเอกสารและบันทึกลงฐานข้อมูล
+  - `getDocumentById()` - ดึงข้อมูลเอกสารพร้อม relations
+  - `getDocuments()` - ดึงรายการเอกสารพร้อม filter/pagination
+  - `approveDocument()` - อนุมัติเอกสารและจัดการ CS05 workflow
+  - `rejectDocument()` - ปฏิเสธเอกสาร
+  - `updateDocumentStatus()` - อัปเดตสถานะเอกสาร
+  - `searchDocuments()` - ค้นหาเอกสาร
+  - `validateDocumentFile()` - ตรวจสอบไฟล์เอกสาร
+  - `processCS05Approval()` - จัดการ workflow สำหรับ CS05
+- **`emailApprovalService.js`** - จัดการการอนุมัติผ่านอีเมล
+  - `createApprovalRequest()` - สร้างคำขออนุมัติและส่งอีเมล
+  - `processApproval()` - ประมวลผลการอนุมัติผ่าน token
+  - `processRejection()` - ประมวลผลการปฏิเสธผ่าน token
+  - `getTokenStatus()` - ตรวจสอบสถานะ approval token
+  - `resendApprovalEmail()` - ส่งอีเมลขออนุมัติซ้ำ
+  - `cancelApprovalRequest()` - ยกเลิกการขออนุมัติ
+  - `cleanupExpiredTokens()` - ล้าง token ที่หมดอายุ
 
 ### Frontend Services ที่มีอยู่จริง:
 - `authService.js`, `adminService.js`, `timelineService.js`
 - `studentService.js`, `teacherService.js`, `internshipService.js`
 - `evaluationService.js`, `curriculumService.js`
-- `emailApprovalService.js`, `apiClient.js`
+- `documentService.js`, `emailApprovalService.js`, `apiClient.js`
 
 ---
 
@@ -174,6 +218,65 @@ API สำหรับจัดการข้อมูลหลักของ�
    - อัปเดตหรือสร้าง WorkflowActivity
    - จัดการ metadata ในรูปแบบ JSON
 
+### DocumentService Functions:
+1. **`uploadDocument(userId, fileData, documentData)`**
+   - ตรวจสอบประเภทเอกสารตาม UPLOAD_CONFIG
+   - บันทึกข้อมูลเอกสารลงฐานข้อมูล
+   - จัดการ file validation และ metadata
+
+2. **`getDocumentById(documentId, includeRelations)`**
+   - ดึงข้อมูลเอกสารพร้อม User และ Student relations
+   - รวม InternshipDocument data ถ้ามี
+   - Support optional relation loading
+
+3. **`approveDocument(documentId, reviewerId)`**
+   - อนุมัติเอกสารและอัปเดตสถานะ
+   - จัดการ CS05 workflow automation
+   - อัปเดตสถานะนักศึกษาและสร้างการแจ้งเตือน
+
+4. **`getDocuments(filters, pagination)`**
+   - ดึงรายการเอกสารพร้อม advanced filtering
+   - Support search, type filter, status filter
+   - รวมสถิติเอกสาร (pending, approved, rejected)
+
+5. **`processCS05Approval(document, adminId)`**
+   - จัดการ workflow สำหรับ CS05 เฉพาะ
+   - อัปเดตสถานะนักศึกษาเป็น 'in_progress'
+   - สร้าง/อัปเดต StudentWorkflowActivity
+   - ส่งการแจ้งเตือนให้นักศึกษา
+
+### EmailApprovalService Functions:
+1. **`createApprovalRequest(requestType, requestData, approverEmail, metadata)`**
+   - สร้าง ApprovalToken พร้อม expiration
+   - ส่งอีเมลขออนุมัติพร้อมลิงก์ action
+   - จัดการ email template และ security token
+
+2. **`processApproval(token)`**
+   - ตรวจสอบ token validity และ expiration
+   - ประมวลผลการอนุมัติตาม requestType
+   - อัปเดตสถานะ token และสร้าง audit log
+
+3. **`processRejection(token, reason)`**
+   - ประมวลผลการปฏิเสธพร้อมเหตุผล
+   - อัปเดตสถานะและสร้าง notification
+   - จัดการ workflow rollback ถ้าจำเป็น
+
+4. **`getTokenStatus(token)`**
+   - ตรวจสอบสถานะปัจจุบันของ approval token
+   - ส่งข้อมูลสถานะและ metadata
+   - รองรับการแสดงผล UI สำหรับสถานะต่างๆ
+
+5. **`cleanupExpiredTokens()`**
+   - ล้าง approval tokens ที่หมดอายุ
+   - จัดการ database maintenance
+   - ส่งรายงานการล้างข้อมูล
+
 ---
 
-**หมายเหตุ:** เอกสารนี้อิงตามโครงสร้างโค้ดเบสจริงที่มีอยู่ใน `cslogbook/backend/controllers/`, `cslogbook/backend/services/` และ `cslogbook/frontend/src/services/` ณ วันที่จัดทำเอกสาร
+**หมายเหตุ:** เอกสารนี้อิงตามโครงสร้างโค้ดเบสจริงที่มีอยู่ใน `cslogbook/backend/controllers/`, `cslogbook/backend/services/` และ `cslogbook/frontend/src/services/` ณ วันที่ 27 พฤษภาคม 2025
+
+**การอัปเดตล่าสุด:**
+- เพิ่ม DocumentService สำหรับการจัดการเอกสารแบบ service layer architecture
+- เพิ่ม EmailApprovalService สำหรับการอนุมัติผ่านอีเมล
+- ปรับปรุง API endpoints ให้สอดคล้องกับ service layer pattern
+- เพิ่มรายละเอียด backend service functions ที่สำคัญ
