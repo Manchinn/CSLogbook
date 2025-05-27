@@ -2,17 +2,16 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class ApprovalToken extends Model {
-        static associate(models) {
+    class ApprovalToken extends Model {        static associate(models) {
             // สร้างความสัมพันธ์กับโมเดล InternshipLogbook
             this.belongsTo(models.InternshipLogbook, {
                 foreignKey: 'logId',
                 as: 'logbook'
             });
-            
-            // สร้างความสัมพันธ์กับโมเดล Student
+              // สร้างความสัมพันธ์กับโมเดล Student
             this.belongsTo(models.Student, {
-                foreignKey: 'studentId',
+                foreignKey: 'studentId', // ใช้ property name ในโมเดล ApprovalToken
+                targetKey: 'studentCode', // target ที่ field studentCode ในตาราง students 
                 as: 'student'
             });
 
