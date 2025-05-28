@@ -1,8 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const documentService = require('../../services/documentService');
-const logger = require('../../config/logger');
-
+const logger = require('../../utils/logger');
 // อัพโหลดเอกสาร
 const uploadDocument = async (req, res) => {
     try {

@@ -2,8 +2,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const { User, Student, Document, InternshipDocument, StudentWorkflowActivity, Notification } = require('../models');
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
-const logger = require('../config/logger');
-
+const logger = require('../utils/logger');
 class DocumentService {
     /**
      * อัพโหลดเอกสารและบันทึกข้อมูลลงฐานข้อมูล

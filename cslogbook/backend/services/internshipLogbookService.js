@@ -6,12 +6,11 @@ const {
     Student,
     User,
     sequelize
-} = require('../../models');
+} = require('../models');
 const { Op } = require('sequelize');
 const dayjs = require('dayjs');
-const { calculateWorkdays } = require('../../utils/dateUtils');
-const logger = require('../../utils/logger');
-
+const { calculateWorkdays } = require('../utils/dateUtils');
+const logger = require('../utils/logger');
 class InternshipLogbookService {
   /**
    * ดึงข้อมูลบันทึกการฝึกงานทั้งหมดของนักศึกษา

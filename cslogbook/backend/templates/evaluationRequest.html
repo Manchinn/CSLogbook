@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำขอประเมินผลการฝึกงาน</title>
+    <style>
+        body {
+            font-family: 'Sarabun', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1890ff;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 0 10px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .approve-btn {
+            background-color: #52c41a;
+        }
+        .reject-btn {
+            background-color: #f5222d;
+        }
+        .note {
+            font-size: 14px;
+            color: #777;
+            margin-top: 20px;
+        }
+        .footer {
+            background-color: #f0f0f0;
+            color: #666666;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            border-top: 1px solid #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>คำขอประเมินผลการฝึกงาน</h1>
+        </div>
+        <div class="content">
+            <p>เรียน คุณ {{supervisorName}},</p>
+            <div class="info-box">
+                <p>นักศึกษา <strong>{{studentFullName}}</strong> (รหัสนักศึกษา: {{studentCode}}) จากบริษัท <strong>{{companyName}}</strong> ได้ดำเนินการฝึกงานเสร็จสิ้นแล้ว และใคร่ขอให้ท่านดำเนินการประเมินผลการฝึกงานของนักศึกษาผ่านระบบ CSLogbook</p>
+            </div>
+            
+            <p>กรุณาคลิกที่ลิงก์ด้านล่างเพื่อไปยังหน้าแบบประเมิน:</p>
+            
+            <div class="button-container">
+                <a href="{{evaluationLink}}" class="button approve-btn">ไปยังหน้าแบบประเมินผลการฝึกงาน</a>
+            </div>
+            
+            <p>ลิงก์นี้จะหมดอายุในวันที่ <strong>{{expiresAt}}</strong></p>
+            
+            <p>ขอขอบคุณสำหรับความร่วมมือในการประเมินผลการฝึกงานของนักศึกษา</p>
+            
+            <div class="note">
+                <p>* ลิงก์นี้จะมีอายุการใช้งาน 7 วัน หากไม่ได้ดำเนินการภายในเวลาดังกล่าว กรุณาติดต่อนักศึกษาเพื่อส่งคำขอใหม่</p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>ขอแสดงความนับถือ,<br>ระบบ CSLogbook</p>
+            <p>คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
+        </div>
+    </div>
+</body>
+</html>

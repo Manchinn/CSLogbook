@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำขออนุมัติบันทึกการฝึกงาน</title>
+    <style>
+        body {
+            font-family: 'Sarabun', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1890ff;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        .header img {
+            max-width: 200px;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .timesheet-entry {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .timesheet-entry h3 {
+            margin-top: 0;
+            color: #1890ff;
+        }
+        .timesheet-entry p {
+            margin-bottom: 8px;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 0 5px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .approve-btn {
+            background-color: #52c41a;
+        }
+        .reject-btn {
+            background-color: #f5222d;
+        }
+        .note {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #777;
+        }
+        .footer {
+            background-color: #f0f0f0;
+            color: #666666;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            border-top: 1px solid #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.sci.kmutnb.ac.th/wp-content/uploads/2020/08/cropped-sci-logo-1.png" alt="KMUTNB Logo">
+            <h1>คำขออนุมัติบันทึกการฝึกงาน</h1>
+        </div>
+        <div class="content">
+            <div class="info-box">
+                <p>เรียน คุณ {{supervisorName}},</p>
+                <p>{{introText}}</p>
+            </div>
+
+            {{timeSheetHtml}}
+            
+            <div class="button-container">
+                <a href="{{approveLink}}" class="button approve-btn">อนุมัติ</a>
+                <a href="{{rejectLink}}" class="button reject-btn">ปฏิเสธ</a>
+            </div>
+            
+            <div class="note">
+                <p>* ลิงก์นี้จะมีอายุการใช้งาน 7 วัน หากไม่ได้ดำเนินการภายในเวลาดังกล่าว กรุณาติดต่อนักศึกษาเพื่อส่งคำขอใหม่</p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>CS Logbook System</p>
+            <p>คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
+        </div>
+    </div>
+</body>
+</html>

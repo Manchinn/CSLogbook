@@ -201,21 +201,18 @@ class AuthService {
   async sendLoginNotification(email, user) {
     try {
       if (process.env.EMAIL_LOGIN_ENABLED !== 'true') {
-        logger.info('AuthService: Login notification disabled');
+        logger.info(`AuthService: Login email notification is disabled (EMAIL_LOGIN_ENABLED is not 'true'). Skipping for user: ${email}`); // เพิ่มบรรทัดนี้
         return;
       }
 
       logger.info(`AuthService: Sending login notification to: ${email}`);
       
-      await sendLoginNotification(email, {
-        firstName: user.firstName,
-        time: moment().tz('Asia/Bangkok').format('LLLL')
-      });
+      await sendLoginNotification(email, user.firstName);
 
       logger.info(`AuthService: Login notification sent to: ${email}`);
 
     } catch (error) {
-      logger.warn('AuthService: Failed to send login notification', error);
+      logger.warn('AuthService: Failed to send login notification', { error: error.message, email: email }); // ปรับปรุงการแสดง error เล็กน้อย
       // ไม่ throw error เพราะการส่งอีเมลเป็น optional
     }
   }
