@@ -90,11 +90,12 @@ class InternshipManagementService {
       where: {
         userId,
         documentName: 'CS05',
-        status: ['pending', 'approved', 'supervisor_approved']
+        status: ['pending', 'approved', 'supervisor_approved', 'supervisor_evaluated']
       },
       include: [{
         model: InternshipDocument,
-        required: true
+        required: true,
+        as: 'internshipDocument',
       }],
       order: [['created_at', 'DESC']]
     });
@@ -106,13 +107,13 @@ class InternshipManagementService {
     return {
       documentId: document.documentId,
       status: document.status,
-      companyName: document.InternshipDocument.companyName,
-      companyAddress: document.InternshipDocument.companyAddress,
-      startDate: document.InternshipDocument.startDate,
-      endDate: document.InternshipDocument.endDate,
-      supervisorName: document.InternshipDocument.supervisorName,
-      supervisorPhone: document.InternshipDocument.supervisorPhone,
-      supervisorEmail: document.InternshipDocument.supervisorEmail,
+      companyName: document.internshipDocument.companyName,
+      companyAddress: document.internshipDocument.companyAddress,
+      startDate: document.internshipDocument.startDate,
+      endDate: document.internshipDocument.endDate,
+      supervisorName: document.internshipDocument.supervisorName,
+      supervisorPhone: document.internshipDocument.supervisorPhone,
+      supervisorEmail: document.internshipDocument.supervisorEmail,
       createdAt: document.created_at
     };
   }
