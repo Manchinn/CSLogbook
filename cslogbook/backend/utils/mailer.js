@@ -283,6 +283,9 @@ async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, 
 
         const htmlContent = loadTemplate('timesheetApprovalRequest', {
             supervisorName: supervisorName,
+            studentName: studentName,
+            studentCode: timeSheetData?.studentCode || (Array.isArray(timeSheetData) && timeSheetData[0]?.studentCode) || 'ไม่ระบุ',
+            companyName: timeSheetData?.companyName || (Array.isArray(timeSheetData) && timeSheetData[0]?.companyName) || 'ไม่ระบุ',
             introText: introText,
             timeSheetHtml: timeSheetHtml,
             approveLink: approveLink,
