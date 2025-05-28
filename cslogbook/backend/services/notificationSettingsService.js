@@ -1,4 +1,4 @@
-const { NotificationSetting } = require('../models');
+const { NotificationSetting, User, sequelize } = require('../models');
 const logger = require('../utils/logger');
 const NodeCache = require('node-cache');
 
@@ -8,169 +8,530 @@ const CACHE_KEY = 'notification_settings';
 
 class NotificationSettingsService {
     /**
+     * ตรวจสอบว่าตารางและโมเดลพร้อมใช้งานหรือไม่
+     */
+    async validateDatabase() {
+        try {
+            // ตรวจสอบการเชื่อมต่อ
+            await sequelize.authenticate();
+            
+            // ตรวจสอบ Model พร้อมใช้งานหรือไม่
+            if (!NotificationSetting) {
+                throw new Error('NotificationSetting Model ไม่พร้อมใช้งาน');
+            }
+            
+            if (!User) {
+                throw new Error('User Model ไม่พร้อมใช้งาน');
+            }
+            
+            logger.info('ตรวจสอบฐานข้อมูลและ Models สำเร็จ');
+            return true;
+        } catch (error) {
+            logger.error('Database validation failed', { error: error.message });
+            throw new Error(`ปัญหาการเชื่อมต่อฐานข้อมูล: ${error.message}`);
+        }
+    }
+
+    /**
+     * สร้างข้อมูลเริ่มต้นในตาราง notification_settings โดยใช้ Sequelize Model
+     */
+    async initializeDefaultSettings() {
+        try {
+            const defaultSettings = [
+                { 
+                    notificationType: 'LOGIN', 
+                    description: 'การแจ้งเตือนเมื่อมีการเข้าสู่ระบบ',
+                    isEnabled: false
+                },
+                { 
+                    notificationType: 'DOCUMENT', 
+                    description: 'การแจ้งเตือนเมื่อมีการอัปโหลดหรืออัปเดตเอกสาร',
+                    isEnabled: false
+                },
+                { 
+                    notificationType: 'LOGBOOK', 
+                    description: 'การแจ้งเตือนเมื่อมีการส่ง logbook ใหม่',
+                    isEnabled: false
+                },
+                { 
+                    notificationType: 'EVALUATION', 
+                    description: 'การแจ้งเตือนเมื่อมีการประเมินผล',
+                    isEnabled: false
+                },
+                { 
+                    notificationType: 'APPROVAL', 
+                    description: 'การแจ้งเตือนเมื่อมีการอนุมัติเอกสาร',
+                    isEnabled: false
+                }
+            ];
+
+            // ใช้ bulkCreate พร้อม ignoreDuplicates สำหรับสร้างข้อมูลเริ่มต้น
+            await NotificationSetting.bulkCreate(defaultSettings, {
+                ignoreDuplicates: true // ข้ามการสร้างหากมีข้อมูลซ้ำ
+            });
+
+            logger.info('ข้อมูลเริ่มต้นสำหรับ notification settings ถูกสร้างแล้ว');
+            return true;
+        } catch (error) {
+            logger.error('Error initializing default settings', { error: error.message });
+            throw new Error(`ไม่สามารถสร้างข้อมูลเริ่มต้นได้: ${error.message}`);
+        }
+    }
+
+    /**
+     * ดึงการตั้งค่าการแจ้งเตือนทั้งหมดโดยใช้ Sequelize Model
+     */
+    async getAllSettingsWithModel() {
+        try {
+            logger.info('ดึงการตั้งค่าการแจ้งเตือนด้วย Sequelize Model');
+
+            // ใช้ Sequelize Model พร้อม include สำหรับ JOIN กับ User
+            const settings = await NotificationSetting.findAll({
+                include: [{
+                    model: User,
+                    as: 'updatedByUser', // ใช้ alias จาก association
+                    attributes: ['user_id', 'username', 'first_name', 'last_name'],
+                    required: false, // LEFT JOIN
+                    where: {
+                        role: 'admin',
+                        active_status: true
+                    }
+                }],
+                order: [['notificationType', 'ASC']],
+                attributes: [
+                    'settingId',
+                    'notificationType', 
+                    'isEnabled', 
+                    'description', 
+                    'updatedByAdminId',
+                    'created_at',
+                    'updated_at'
+                ]
+            });
+
+            // แปลงข้อมูลเป็น object แบบ key-value
+            const settingsObject = {};
+            
+            settings.forEach(setting => {
+                const key = setting.notificationType;
+                const updatedByUser = setting.updatedByUser;
+
+                settingsObject[key] = {
+                    id: setting.settingId,
+                    enabled: Boolean(setting.isEnabled),
+                    description: setting.description,
+                    lastUpdated: setting.updated_at,
+                    createdAt: setting.created_at,
+                    updatedByAdminId: setting.updatedByAdminId,
+                    updatedBy: updatedByUser ? 
+                        `${updatedByUser.first_name || ''} ${updatedByUser.last_name || ''}`.trim() || updatedByUser.username :
+                        null,
+                    updatedByUsername: updatedByUser ? updatedByUser.username : null
+                };
+            });
+
+            logger.info('ดึงการตั้งค่าการแจ้งเตือนด้วย Sequelize Model สำเร็จ', { 
+                count: Object.keys(settingsObject).length 
+            });
+
+            return settingsObject;
+        } catch (error) {
+            logger.error('Error getting notification settings with Sequelize Model', { 
+                error: error.message,
+                stack: error.stack
+            });
+
+            // หาก JOIN ไม่สำเร็จ ให้ลองดึงข้อมูลแบบไม่ JOIN
+            logger.warn('ลองดึงข้อมูลแบบไม่ JOIN กับ User table');
+            
+            try {
+                const simpleSettings = await NotificationSetting.findAll({
+                    order: [['notificationType', 'ASC']],
+                    attributes: [
+                        'settingId',
+                        'notificationType', 
+                        'isEnabled', 
+                        'description', 
+                        'updatedByAdminId',
+                        'created_at',
+                        'updated_at'
+                    ]
+                });
+
+                const settingsObject = {};
+                
+                for (const setting of simpleSettings) {
+                    const key = setting.notificationType;
+                    
+                    // ดึงข้อมูล admin แยกต่างหาก หากมี
+                    let updatedByUser = null;
+                    if (setting.updatedByAdminId) {
+                        try {
+                            updatedByUser = await User.findOne({
+                                where: { 
+                                    user_id: setting.updatedByAdminId,
+                                    role: 'admin',
+                                    active_status: true
+                                },
+                                attributes: ['user_id', 'username', 'first_name', 'last_name']
+                            });
+                        } catch (userError) {
+                            logger.warn(`ไม่สามารถดึงข้อมูล admin ${setting.updatedByAdminId}:`, userError.message);
+                        }
+                    }
+
+                    settingsObject[key] = {
+                        id: setting.settingId,
+                        enabled: Boolean(setting.isEnabled),
+                        description: setting.description,
+                        lastUpdated: setting.updated_at,
+                        createdAt: setting.created_at,
+                        updatedByAdminId: setting.updatedByAdminId,
+                        updatedBy: updatedByUser ? 
+                            `${updatedByUser.first_name || ''} ${updatedByUser.last_name || ''}`.trim() || updatedByUser.username :
+                            null,
+                        updatedByUsername: updatedByUser ? updatedByUser.username : null
+                    };
+                }
+
+                logger.info('ดึงข้อมูลแบบไม่ JOIN สำเร็จ', { count: Object.keys(settingsObject).length });
+                return settingsObject;
+            } catch (fallbackError) {
+                logger.error('Error in fallback query', { error: fallbackError.message });
+                throw new Error(`ไม่สามารถดึงการตั้งค่าการแจ้งเตือนได้: ${error.message}`);
+            }
+        }
+    }
+
+    /**
      * ดึงการตั้งค่าการแจ้งเตือนทั้งหมด
      * @param {boolean} useCache - ใช้ cache หรือไม่
      * @returns {Object} - การตั้งค่าการแจ้งเตือนในรูปแบบ object
      */
     async getAllSettings(useCache = true) {
         try {
+            // ตรวจสอบ cache ก่อน
             if (useCache) {
                 const cachedSettings = notificationCache.get(CACHE_KEY);
                 if (cachedSettings) {
+                    logger.info('ใช้ข้อมูลจาก cache สำหรับการตั้งค่าการแจ้งเตือน');
                     return cachedSettings;
                 }
             }
 
-            const settings = await NotificationSetting.findAll({
-                include: [{
-                    association: 'adminUpdater',
-                    attributes: ['admin_id', 'first_name', 'last_name']
-                }]
-            });
-            
-            // แปลงเป็น object ที่เข้าถึงง่าย
-            const settingsObject = {};
-            settings.forEach(setting => {
-                settingsObject[setting.notification_type] = {
-                    enabled: setting.is_enabled,
-                    description: setting.description,
-                    lastUpdated: setting.updated_at,
-                    updatedBy: setting.adminUpdater ? 
-                        `${setting.adminUpdater.first_name} ${setting.adminUpdater.last_name}` : null
-                };
-            });
+            // ตรวจสอบฐานข้อมูลและ Models
+            await this.validateDatabase();
 
-            // เก็บใน cache
-            notificationCache.set(CACHE_KEY, settingsObject);
-            
+            // สร้างข้อมูลเริ่มต้นหากจำเป็น
+            await this.initializeDefaultSettings();
+
+            // ดึงข้อมูลด้วย Sequelize Model
+            const settingsObject = await this.getAllSettingsWithModel();
+
+            // เก็บไว้ใน cache
+            if (useCache) {
+                notificationCache.set(CACHE_KEY, settingsObject);
+                logger.info('บันทึกการตั้งค่าการแจ้งเตือนลง cache');
+            }
+
             return settingsObject;
         } catch (error) {
-            logger.error('Error getting notification settings', { error });
-            throw new Error('ไม่สามารถดึงการตั้งค่าการแจ้งเตือนได้');
+            logger.error('Error in getAllSettings', { 
+                error: error.message,
+                stack: error.stack
+            });
+            throw error; // ส่งต่อ error เพื่อให้ controller จัดการ
         }
     }
 
     /**
      * ตรวจสอบว่าการแจ้งเตือนประเภทนั้นเปิดใช้งานหรือไม่
-     * @param {string} type - ประเภทการแจ้งเตือน (LOGIN, DOCUMENT, LOGBOOK, etc.)
+     * @param {string} type - ประเภทการแจ้งเตือน
      * @returns {boolean} - true ถ้าเปิดใช้งาน
      */
     async isNotificationEnabled(type) {
         try {
-            // ลองดึงค่าจากฐานข้อมูลก่อน
+            // ใช้ Sequelize Model สำหรับการค้นหา
             const setting = await NotificationSetting.findOne({
-                where: { notification_type: type.toUpperCase() }
+                where: { 
+                    notificationType: type.toUpperCase() 
+                },
+                attributes: ['isEnabled']
             });
             
-            // ถ้ามีการตั้งค่าในฐานข้อมูล ใช้ค่านั้น
             if (setting) {
-                return setting.is_enabled;
+                return Boolean(setting.isEnabled);
             }
             
-            // ถ้าไม่มีในฐานข้อมูล ใช้ค่าจาก environment variable เป็น fallback
+            // ใช้ environment variable เป็น fallback
             const envValue = process.env[`EMAIL_${type.toUpperCase()}_ENABLED`];
             return envValue === 'true';
         } catch (error) {
-            logger.error(`Error checking notification status: ${type}`, { error });
-            // กรณีเกิด error ให้เช็คจาก environment variable เป็น fallback
-            return process.env[`EMAIL_${type.toUpperCase()}_ENABLED`] === 'true';
+            logger.error(`Error checking notification enabled status for ${type}`, { error: error.message });
+            
+            // fallback ไป environment variable
+            const envValue = process.env[`EMAIL_${type.toUpperCase()}_ENABLED`];
+            return envValue === 'true';
         }
     }
 
     /**
-     * อัปเดตการตั้งค่าการแจ้งเตือน
+     * เปิด/ปิดการแจ้งเตือนประเภทใดประเภทหนึ่ง
      * @param {string} type - ประเภทการแจ้งเตือน
      * @param {boolean} enabled - เปิดใช้งานหรือไม่
-     * @param {number} adminId - ID ของ admin ที่อัปเดต
-     * @returns {NotificationSetting} - การตั้งค่าที่อัปเดตแล้ว
+     * @param {number} adminUserId - user_id ของ admin ที่ทำการอัปเดต
+     * @returns {Object} - ผลลัพธ์การอัปเดต
      */
-    async updateNotificationSetting(type, enabled, adminId) {
+    async toggleNotification(type, enabled, adminUserId = null) {
         try {
-            const [setting, created] = await NotificationSetting.findOrCreate({
-                where: { notification_type: type.toUpperCase() },
-                defaults: {
-                    notification_type: type.toUpperCase(),
-                    is_enabled: enabled,
-                    updated_by_admin: adminId,
-                    description: this.getDefaultDescription(type.toUpperCase())
+            const notificationType = type.toUpperCase();
+            
+            // เพิ่ม debug log เพื่อตรวจสอบ adminUserId
+            logger.info('toggleNotification called with:', {
+                type: notificationType,
+                enabled,
+                adminUserId,
+                adminUserIdType: typeof adminUserId
+            });
+            
+            // ตรวจสอบว่า adminUserId เป็น admin จริงหรือไม่ (เฉพาะเมื่อมีค่า)
+            if (adminUserId) {
+                const adminUser = await User.findOne({
+                    where: { 
+                        user_id: adminUserId,
+                        role: 'admin',
+                        active_status: true
+                    },
+                    attributes: ['user_id', 'username', 'first_name', 'last_name']
+                });
+                
+                if (!adminUser) {
+                    logger.warn(`Admin user not found or inactive: ${adminUserId}`);
+                    throw new Error('ผู้ใช้ไม่มีสิทธิ์ admin หรือไม่พบผู้ใช้');
+                } else {
+                    logger.info('Admin user validated:', {
+                        adminUserId,
+                        username: adminUser.username
+                    });
                 }
+            } else {
+                logger.warn('adminUserId is null or undefined - proceeding without admin tracking');
+            }
+            
+            // ใช้ upsert สำหรับการสร้างหรืออัปเดตข้อมูล
+            const [setting, created] = await NotificationSetting.upsert({
+                notificationType: notificationType,
+                isEnabled: enabled,
+                description: `การแจ้งเตือน${notificationType}`,
+                updatedByAdminId: adminUserId
+            }, {
+                where: { notificationType: notificationType },
+                returning: true // ส่งคืนข้อมูลที่สร้างหรืออัปเดต
             });
 
-            if (!created) {
-                await setting.update({
-                    is_enabled: enabled,
-                    updated_by_admin: adminId,
-                    updated_at: new Date()
+            // ล้าง cache
+            this.clearCache();
+
+            const actionText = created ? 'สร้าง' : 'อัปเดต';
+            logger.info(`${actionText}และ${enabled ? 'เปิด' : 'ปิด'}การแจ้งเตือน ${notificationType} สำเร็จ`, {
+                type: notificationType,
+                enabled,
+                adminUserId: adminUserId || 'system',
+                created,
+                settingId: setting.settingId
+            });
+
+            return {
+                success: true,
+                type: notificationType,
+                enabled,
+                created,
+                settingId: setting.settingId,
+                message: `${enabled ? 'เปิด' : 'ปิด'}การแจ้งเตือน ${notificationType} เรียบร้อยแล้ว`
+            };
+        } catch (error) {
+            logger.error(`Error toggling notification for ${type}`, { 
+                error: error.message,
+                adminUserId,
+                type,
+                enabled
+            });
+            throw new Error(`ไม่สามารถ${enabled ? 'เปิด' : 'ปิด'}การแจ้งเตือน ${type} ได้: ${error.message}`);
+        }
+    }
+
+    /**
+     * อัปเดตการตั้งค่าการแจ้งเตือนหลายรายการพร้อมกัน
+     * @param {Array} settings - อาร์เรย์ของการตั้งค่า [{ type, enabled }, ...]
+     * @param {number} adminUserId - user_id ของ admin ที่ทำการอัปเดต
+     * @returns {Object} - ผลลัพธ์การอัปเดต
+     */
+    async bulkUpdateNotifications(settings, adminUserId = null) {
+        // สร้าง transaction เพื่อให้แน่ใจว่าการอัปเดตทั้งหมดสำเร็จ
+        const transaction = await sequelize.transaction();
+        
+        try {
+            const results = [];
+            
+            for (const { type, enabled } of settings) {
+                const notificationType = type.toUpperCase();
+                
+                const [setting, created] = await NotificationSetting.upsert({
+                    notificationType: notificationType,
+                    isEnabled: enabled,
+                    description: `การแจ้งเตือน${notificationType}`,
+                    updatedByAdminId: adminUserId
+                }, {
+                    where: { notificationType: notificationType },
+                    transaction
+                });
+
+                results.push({
+                    type: notificationType,
+                    enabled,
+                    created,
+                    settingId: setting.settingId
                 });
             }
 
-            // ล้าง cache
-            notificationCache.del(CACHE_KEY);
+            // Commit transaction
+            await transaction.commit();
 
-            logger.info(`Notification setting updated: ${type.toUpperCase()} = ${enabled}`, {
-                adminId,
-                type: type.toUpperCase(),
-                enabled
+            // ล้าง cache
+            this.clearCache();
+
+            logger.info('Bulk update notifications สำเร็จ', {
+                count: results.length,
+                adminUserId,
+                results
             });
 
-            return setting;
+            return {
+                success: true,
+                results,
+                message: `อัปเดตการตั้งค่าการแจ้งเตือน ${results.length} รายการเรียบร้อยแล้ว`
+            };
         } catch (error) {
-            logger.error(`Error updating notification setting: ${type}`, { error });
-            throw new Error('ไม่สามารถอัปเดตการตั้งค่าการแจ้งเตือนได้');
+            // Rollback transaction
+            await transaction.rollback();
+            
+            logger.error('Error in bulk update notifications', { 
+                error: error.message,
+                adminUserId,
+                settings
+            });
+            throw new Error(`ไม่สามารถอัปเดตการตั้งค่าการแจ้งเตือนแบบหลายรายการได้: ${error.message}`);
         }
     }
 
     /**
-     * ดึงคำอธิบายเริ่มต้นตามประเภทการแจ้งเตือน
-     * @param {string} type - ประเภทการแจ้งเตือน
-     * @returns {string} - คำอธิบาย
+     * ล้าง cache การตั้งค่าการแจ้งเตือน
      */
-    getDefaultDescription(type) {
-        const descriptions = {
-            'LOGIN': 'แจ้งเตือนเมื่อมีการเข้าสู่ระบบ',
-            'DOCUMENT': 'แจ้งเตือนเมื่อมีการอัปเดตเอกสาร',
-            'LOGBOOK': 'แจ้งเตือนเมื่อมีการอัปเดต logbook',
-            'EVALUATION': 'แจ้งเตือนเมื่อมีการประเมิน',
-            'APPROVAL': 'แจ้งเตือนเมื่อมีการอนุมัติ'
-        };
-        return descriptions[type] || 'การแจ้งเตือนทั่วไป';
+    clearCache() {
+        notificationCache.del(CACHE_KEY);
+        logger.info('ล้าง cache การตั้งค่าการแจ้งเตือนแล้ว');
     }
 
     /**
-     * เปิดใช้งานการแจ้งเตือนทั้งหมด
-     * @param {number} adminId - ID ของ admin
+     * เปิดการแจ้งเตือนทั้งหมด
+     * @param {number} adminUserId - user_id ของ admin ที่ทำการอัปเดต
+     * @returns {Object} - ผลลัพธ์การอัปเดต
      */
-    async enableAllNotifications(adminId) {
+    async enableAllNotifications(adminUserId = null) {
         try {
-            const types = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
+            const notificationTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
             
-            for (const type of types) {
-                await this.updateNotificationSetting(type, true, adminId);
-            }
+            // ใช้ bulkUpdateNotifications สำหรับประสิทธิภาพที่ดีขึ้น
+            const settings = notificationTypes.map(type => ({ type, enabled: true }));
+            const result = await this.bulkUpdateNotifications(settings, adminUserId);
 
-            logger.info('All notifications enabled', { adminId });
+            logger.info('เปิดการแจ้งเตือนทั้งหมดสำเร็จ', { 
+                adminUserId, 
+                count: result.results.length 
+            });
+
+            return {
+                success: true,
+                results: result.results,
+                message: 'เปิดการแจ้งเตือนทั้งหมดเรียบร้อยแล้ว'
+            };
         } catch (error) {
-            logger.error('Error enabling all notifications', { error });
-            throw new Error('ไม่สามารถเปิดการแจ้งเตือนทั้งหมดได้');
+            logger.error('Error enabling all notifications', { error: error.message });
+            throw new Error(`ไม่สามารถเปิดการแจ้งเตือนทั้งหมดได้: ${error.message}`);
         }
     }
 
     /**
-     * ปิดการใช้งานการแจ้งเตือนทั้งหมด
-     * @param {number} adminId - ID ของ admin
+     * ปิดการแจ้งเตือนทั้งหมด
+     * @param {number} adminUserId - user_id ของ admin ที่ทำการอัปเดต
+     * @returns {Object} - ผลลัพธ์การอัปเดต
      */
-    async disableAllNotifications(adminId) {
+    async disableAllNotifications(adminUserId = null) {
         try {
-            const types = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
+            const notificationTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
             
-            for (const type of types) {
-                await this.updateNotificationSetting(type, false, adminId);
-            }
+            // ใช้ bulkUpdateNotifications สำหรับประสิทธิภาพที่ดีขึ้น
+            const settings = notificationTypes.map(type => ({ type, enabled: false }));
+            const result = await this.bulkUpdateNotifications(settings, adminUserId);
 
-            logger.info('All notifications disabled', { adminId });
+            logger.info('ปิดการแจ้งเตือนทั้งหมดสำเร็จ', { 
+                adminUserId, 
+                count: result.results.length 
+            });
+
+            return {
+                success: true,
+                results: result.results,
+                message: 'ปิดการแจ้งเตือนทั้งหมดเรียบร้อยแล้ว'
+            };
         } catch (error) {
-            logger.error('Error disabling all notifications', { error });
-            throw new Error('ไม่สามารถปิดการแจ้งเตือนทั้งหมดได้');
+            logger.error('Error disabling all notifications', { error: error.message });
+            throw new Error(`ไม่สามารถปิดการแจ้งเตือนทั้งหมดได้: ${error.message}`);
+        }
+    }
+
+    /**
+     * ดึงสถิติการใช้งานการแจ้งเตือน
+     * @returns {Object} - สถิติการใช้งาน
+     */
+    async getNotificationStatistics() {
+        try {
+            // นับจำนวนการตั้งค่าที่เปิดใช้งาน
+            const enabledCount = await NotificationSetting.count({
+                where: { isEnabled: true }
+            });
+
+            // นับจำนวนการตั้งค่าทั้งหมด
+            const totalCount = await NotificationSetting.count();
+
+            // ดึงการตั้งค่าล่าสุด
+            const latestUpdate = await NotificationSetting.findOne({
+                order: [['updatedAt', 'DESC']],
+                include: [{
+                    model: User,
+                    as: 'updatedByUser',
+                    attributes: ['username', 'first_name', 'last_name'],
+                    required: false
+                }],
+                attributes: ['notificationType', 'isEnabled', 'updatedAt']
+            });
+
+            return {
+                enabledCount,
+                disabledCount: totalCount - enabledCount,
+                totalCount,
+                latestUpdate: latestUpdate ? {
+                    type: latestUpdate.notificationType,
+                    enabled: latestUpdate.isEnabled,
+                    updatedAt: latestUpdate.updatedAt,
+                    updatedBy: latestUpdate.updatedByUser ? 
+                        `${latestUpdate.updatedByUser.first_name || ''} ${latestUpdate.updatedByUser.last_name || ''}`.trim() || latestUpdate.updatedByUser.username :
+                        null
+                } : null
+            };
+        } catch (error) {
+            logger.error('Error getting notification statistics', { error: error.message });
+            throw new Error(`ไม่สามารถดึงสถิติการใช้งานการแจ้งเตือนได้: ${error.message}`);
         }
     }
 }

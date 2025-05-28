@@ -405,7 +405,11 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                 {
                   key: "/admin/settings/status",
                   label: "สถานะนักศึกษา",
-                }
+                },
+                {
+                  key: "/admin/settings/notification-settings",
+                  label: "การแจ้งเตือน",
+                },
               ],
             },
           ]

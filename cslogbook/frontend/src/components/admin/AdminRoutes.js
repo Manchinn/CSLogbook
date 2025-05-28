@@ -21,7 +21,11 @@ const AcademicSettingsPage = lazy(() =>
 const StatusSettingsPage = lazy(() => import("./settings/StatusSettingsPage"));
 const CurriculumSettingsPage = lazy(() =>
   import("./settings/CurriculumSettingsPage")
-); // เพิ่ม import
+);
+// เพิ่ม import สำหรับ Notification Settings
+const NotificationSettingsPage = lazy(() =>
+  import("./settings/NotificationSettingsPage")
+);
 
 // Loading component
 const LoadingComponent = () => (
@@ -66,22 +70,12 @@ const AdminRoutes = () => {
               </Route>
               <Route path="/upload" element={<AdminUpload />} />
               <Route path="/settings">
-                <Route index element={<Settings />} />{" "}
-                {/* หน้าหลักการตั้งค่า */}
-                <Route path="constants" element={<ConstantsSettings />} />{" "}
-                {/* เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม */}
-                <Route
-                  path="academic"
-                  element={<AcademicSettingsPage />}
-                />{" "}
-                {/* หน้าตั้งค่าปีการศึกษา */}
-                <Route path="status" element={<StatusSettingsPage />} />{" "}
-                {/* หน้าตั้งค่าสถานะ */}
-                <Route
-                  path="curriculum"
-                  element={<CurriculumSettingsPage />}
-                />{" "}
-                {/* เพิ่มใน Route ของ settings */}
+                <Route index element={<Settings />} />
+                <Route path="constants" element={<ConstantsSettings />} />
+                <Route path="academic" element={<AcademicSettingsPage />} />
+                <Route path="status" element={<StatusSettingsPage />} />
+                <Route path="curriculum" element={<CurriculumSettingsPage />} />
+                <Route path="notification-settings" element={<NotificationSettingsPage />} />
               </Route>
             </Routes>
           </Suspense>

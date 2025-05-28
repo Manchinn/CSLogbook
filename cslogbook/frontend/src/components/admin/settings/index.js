@@ -33,6 +33,12 @@ const SettingsIndex = () => {
       icon: <TeamOutlined />,
       description: 'กำหนดสถานะและเงื่อนไขต่างๆ ของนักศึกษา',
       path: '/admin/settings/status'
+    },
+    {
+      title: 'การแจ้งเตือน',
+      icon: <SettingOutlined />,
+      description: 'จัดการการตั้งค่าการแจ้งเตือนต่างๆ ของระบบ',
+      path: '/admin/settings/notification-settings'
     }
   ];
   

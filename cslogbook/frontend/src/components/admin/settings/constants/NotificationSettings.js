@@ -1,272 +1,347 @@
-// คอมโพเนนต์ย่อยสำหรับการตั้งค่าการแจ้งเตือน
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
-  Form, Button, Card, Typography, 
-  Row, Col, Switch, InputNumber, Table, message 
+    Card, 
+    Switch, 
+    Button, 
+    Typography, 
+    Space, 
+    Divider, 
+    Row, 
+    Col, 
+    Spin, 
+    Alert,
+    Statistic,
+    Tooltip,
+    Badge,
+    Progress,
+    Tag
 } from 'antd';
-import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
-import { settingsService } from '../../../../services/admin/settingsService';
+import { 
+    BellOutlined, 
+    BellFilled,
+    CheckCircleOutlined,
+    StopOutlined,
+    InfoCircleOutlined,
+    ReloadOutlined,
+    SettingOutlined,
+    SoundOutlined,
+    NotificationOutlined
+} from '@ant-design/icons';
+import { useNotificationSettings } from '../../../../hooks/admin/useNotificationSettings';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
+/**
+ * Component สำหรับจัดการการตั้งค่าการแจ้งเตือนในส่วน Admin
+ * ใช้สำหรับเปิด/ปิดการแจ้งเตือนประเภทต่างๆ ในระบบ
+ * อยู่ใน constants folder สำหรับใช้ในแท็บของหน้า ConstantsSettings
+ */
 const NotificationSettings = () => {
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [notificationTypes, setNotificationTypes] = useState([
-    {
-      key: 'document_status_change',
-      name: 'การเปลี่ยนแปลงสถานะเอกสาร',
-      active: true,
-      email: true,
-      system: true,
-      sms: false,
-      documentSpecificTime: 24 // เพิ่ม field นี้
-    },
-    {
-      key: 'deadline_reminder',
-      name: 'การแจ้งเตือนกำหนดส่ง',
-      active: true,
-      email: true,
-      system: true,
-      sms: false
-    },
-    {
-      key: 'admin_action_required',
-      name: 'การแจ้งเตือนเพื่อให้ผู้ดูแลระบบดำเนินการ',
-      active: true,
-      email: true,
-      system: true,
-      sms: false
-    }
-  ]);
+    const {
+        settings,
+        loading,
+        updating,
+        error,
+        notificationTypes,
+        toggleNotification,
+        enableAllNotifications,
+        disableAllNotifications,
+        fetchSettings,
+        isNotificationEnabled,
+        getNotificationSetting,
+        enabledCount,
+        totalCount,
+        hasEnabled,
+        allEnabled,
+        allDisabled,
+        percentage,
+        clearError
+    } = useNotificationSettings();
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-      const response = await settingsService.getNotificationSettings();
-      if (response.success) {
-        form.setFieldsValue({
-          enableEmail: response.data.enableEmail,
-          enableSystemNotification: response.data.enableSystemNotification,
-          documentReminderDays: response.data.documentReminderDays,
-          reviewDueDays: response.data.reviewDueDays
-        });
-        
-        if (response.data.notificationTypes) {
-          setNotificationTypes(Object.entries(response.data.notificationTypes).map(([key, value]) => ({
-            key,
-            name: getNotificationTypeName(key),
-            ...value
-          })));
-        }
-      } else {
-        message.error('ไม่สามารถดึงข้อมูลการตั้งค่าได้');
-      }
-    } catch (error) {
-      console.error('Error fetching notification settings:', error);
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getNotificationTypeName = (key) => {
-    const names = {
-      document_status_change: 'การเปลี่ยนแปลงสถานะเอกสาร',
-      deadline_reminder: 'การแจ้งเตือนกำหนดส่ง',
-      admin_action_required: 'การแจ้งเตือนเพื่อให้ผู้ดูแลระบบดำเนินการ'
+    /**
+     * จัดการการเปลี่ยนแปลงสถานะการแจ้งเตือน
+     */
+    const handleToggle = async (type, checked) => {
+        await toggleNotification(type, checked);
     };
-    return names[key] || key;
-  };
 
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
-      
-      // Transform notificationTypes back to object
-      const notificationTypesObj = {};
-      notificationTypes.forEach(type => {
-        const { key, name, ...rest } = type;
-        notificationTypesObj[key] = rest;
-      });
-      
-      values.notificationTypes = notificationTypesObj;
-      
-      const response = await settingsService.updateNotificationSettings(values);
-      if (response.success) {
-        message.success('บันทึกการตั้งค่าสำเร็จ');
-      } else {
-        message.error('ไม่สามารถบันทึกการตั้งค่าได้');
-      }
-    } catch (error) {
-      console.error('Error saving notification settings:', error);
-      message.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-    } finally {
-      setLoading(false);
+    /**
+     * จัดการการเปิดการแจ้งเตือนทั้งหมด
+     */
+    const handleEnableAll = async () => {
+        await enableAllNotifications();
+    };
+
+    /**
+     * จัดการการปิดการแจ้งเตือนทั้งหมด
+     */
+    const handleDisableAll = async () => {
+        await disableAllNotifications();
+    };
+
+    /**
+     * Render แต่ละรายการการแจ้งเตือน
+     */
+    const renderNotificationItem = (notificationType) => {
+        const { key, label, description, icon, color } = notificationType;
+        const enabled = isNotificationEnabled(key);
+        const settingInfo = getNotificationSetting(key);
+
+        return (
+            <Card 
+                key={key}
+                className={`notification-item ${enabled ? 'enabled' : 'disabled'}`}
+                size="small"
+                hoverable
+                style={{
+                    marginBottom: 16,
+                    borderColor: enabled ? color : '#d9d9d9',
+                    backgroundColor: enabled ? `${color}08` : '#fafafa'
+                }}
+            >
+                <Row align="middle" justify="space-between">
+                    <Col flex="auto">
+                        <Space size="middle">
+                            {/* ไอคอนการแจ้งเตือน */}
+                            <div 
+                                className="notification-icon"
+                                style={{
+                                    fontSize: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#fff',
+                                    border: `2px solid ${enabled ? color : '#f0f0f0'}`,
+                                    filter: enabled ? 'none' : 'grayscale(70%)',
+                                    opacity: enabled ? 1 : 0.6,
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                {icon}
+                            </div>
+                            
+                            {/* ข้อมูลการแจ้งเตือน */}
+                            <div className="notification-info">
+                                <Space direction="vertical" size="small">
+                                    <Space align="center">
+                                        <Text strong className="notification-label" style={{ fontSize: '16px' }}>
+                                            {label}
+                                        </Text>
+                                        <Badge 
+                                            status={enabled ? "success" : "default"} 
+                                            text={
+                                                <Text type={enabled ? "success" : "secondary"}>
+                                                    {enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                                                </Text>
+                                            }
+                                        />
+                                    </Space>
+                                    <Text type="secondary" style={{ fontSize: '14px', lineHeight: 1.4 }}>
+                                        {description}
+                                    </Text>
+                                    {settingInfo.lastUpdated && (
+                                        <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                                            อัปเดตล่าสุด: {new Date(settingInfo.lastUpdated).toLocaleString('th-TH')}
+                                            {settingInfo.updatedBy && ` โดย ${settingInfo.updatedBy}`}
+                                        </Text>
+                                    )}
+                                </Space>
+                            </div>
+                        </Space>
+                    </Col>
+                    
+                    {/* Switch สำหรับเปิด/ปิด */}
+                    <Col>
+                        <Switch
+                            checked={enabled}
+                            onChange={(checked) => handleToggle(key, checked)}
+                            loading={updating}
+                            checkedChildren={<CheckCircleOutlined />}
+                            unCheckedChildren={<StopOutlined />}
+                            style={{
+                                backgroundColor: enabled ? color : undefined
+                            }}
+                        />
+                    </Col>
+                </Row>
+            </Card>
+        );
+    };
+
+    // แสดง Loading หากกำลังโหลดข้อมูลครั้งแรก
+    if (loading) {
+        return (
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                minHeight: '300px' 
+            }}>
+                <Spin size="large" />
+                <Text style={{ marginTop: 16 }}>กำลังโหลดการตั้งค่าการแจ้งเตือน...</Text>
+            </div>
+        );
     }
-  };
 
-  const handleUpdateNotificationType = (key, field, value) => {
-    setNotificationTypes(prevTypes => 
-      prevTypes.map(type => 
-        type.key === key ? { ...type, [field]: value } : type
-      )
-    );
-  };
+    return (
+        <div className="notification-settings">
+            {/* ส่วน Header สำหรับการแสดงแบบ Tab */}
+            <div style={{ marginBottom: 24 }}>
+                <Row align="middle" justify="space-between">
+                    <Col>
+                        <Title level={5} style={{ marginBottom: 8 }}>
+                            <BellFilled style={{ marginRight: 8, color: '#1890ff' }} />
+                            การจัดการการแจ้งเตือน
+                        </Title>
+                        <Text type="secondary" style={{ fontSize: '14px' }}>
+                            ควบคุมการส่งอีเมลแจ้งเตือนสำหรับกิจกรรมต่างๆ ในระบบ
+                        </Text>
+                    </Col>
+                    <Col>
+                        <Tooltip title="รีเฟรชข้อมูล">
+                            <Button 
+                                icon={<ReloadOutlined />}
+                                onClick={fetchSettings}
+                                loading={loading}
+                                size="small"
+                            >
+                                รีเฟรช
+                            </Button>
+                        </Tooltip>
+                    </Col>
+                </Row>
+            </div>
 
-  const columns = [
-    {
-      title: 'ประเภทการแจ้งเตือน',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'เปิดใช้งาน',
-      dataIndex: 'active',
-      key: 'active',
-      width: 100,
-      render: (active, record) => (
-        <Switch 
-          checked={active} 
-          onChange={checked => handleUpdateNotificationType(record.key, 'active', checked)}
-        />
-      )
-    },
-    {
-      title: 'อีเมล',
-      dataIndex: 'email',
-      key: 'email',
-      width: 100,
-      render: (email, record) => (
-        <Switch 
-          checked={email} 
-          disabled={!record.active}
-          onChange={checked => handleUpdateNotificationType(record.key, 'email', checked)}
-        />
-      )
-    },
-    {
-      title: 'ระบบ',
-      dataIndex: 'system',
-      key: 'system',
-      width: 100,
-      render: (system, record) => (
-        <Switch 
-          checked={system} 
-          disabled={!record.active}
-          onChange={checked => handleUpdateNotificationType(record.key, 'system', checked)}
-        />
-      )
-    },
-  ];
+            {/* Error Alert */}
+            {error && (
+                <Alert
+                    message="เกิดข้อผิดพลาด"
+                    description={error}
+                    type="error"
+                    showIcon
+                    closable
+                    onClose={clearError}
+                    style={{ marginBottom: 16 }}
+                />
+            )}
 
-  return (
-    <div className="notification-settings">
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          enableEmail: true,
-          enableSystemNotification: true,
-          documentReminderDays: 7,
-          reviewDueDays: 3
-        }}
-      >
-        <Card className="setting-card">
-          <Title level={5}>การตั้งค่าการแจ้งเตือนทั่วไป</Title>
-          <Text type="secondary">
-            กำหนดการตั้งค่าการแจ้งเตือนทั่วไปของระบบ
-          </Text>
-          
-          <Row gutter={16} style={{ marginTop: 16 }}>
-            <Col span={12}>
-              <Form.Item
-                name="enableEmail"
-                valuePropName="checked"
-              >
-                <Switch /> <span style={{ marginLeft: 8 }}>เปิดใช้งานการแจ้งเตือนทางอีเมล</span>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="enableSystemNotification"
-                valuePropName="checked"
-              >
-                <Switch /> <span style={{ marginLeft: 8 }}>เปิดใช้งานการแจ้งเตือนในระบบ</span>
-              </Form.Item>
-            </Col>
-          </Row>
-        </Card>
+            {/* Statistics */}
+            <Row gutter={16} style={{ marginBottom: 20 }}>
+                <Col xs={24} sm={8}>
+                    <Card size="small">
+                        <Statistic
+                            title="การแจ้งเตือนที่เปิดใช้งาน"
+                            value={enabledCount}
+                            suffix={`/ ${totalCount}`}
+                            prefix={<NotificationOutlined />}
+                            valueStyle={{ 
+                                color: hasEnabled ? '#52c41a' : '#8c8c8c',
+                                fontSize: '20px'
+                            }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={8}>
+                    <Card size="small">
+                        <Statistic
+                            title="สถานะระบบ"
+                            value={hasEnabled ? "ใช้งาน" : "ไม่ใช้งาน"}
+                            prefix={hasEnabled ? <CheckCircleOutlined /> : <StopOutlined />}
+                            valueStyle={{ 
+                                color: hasEnabled ? '#52c41a' : '#ff4d4f',
+                                fontSize: '16px'
+                            }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={8}>
+                    <Card size="small">
+                        <div>
+                            <Text type="secondary" style={{ fontSize: '14px' }}>ความสมบูรณ์</Text>
+                            <div style={{ marginTop: 8 }}>
+                                <Progress 
+                                    percent={percentage} 
+                                    size="small" 
+                                    strokeColor={{
+                                        '0%': '#108ee9',
+                                        '100%': '#87d068',
+                                    }}
+                                    format={(percent) => `${percent}%`}
+                                />
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+            </Row>
 
-        <Card className="setting-card" style={{ marginTop: 16 }}>
-          <Title level={5}>กำหนดเวลาการแจ้งเตือน</Title>
-          <Text type="secondary">
-            กำหนดเวลาสำหรับการส่งการแจ้งเตือนต่างๆ
-          </Text>
-          
-          <Row gutter={16} style={{ marginTop: 16 }}>
-            <Col span={12}>
-              <Form.Item
-                name="documentReminderDays"
-                label="จำนวนวันก่อนถึงกำหนดส่งเอกสารที่จะส่งการแจ้งเตือน"
-                rules={[{ required: true, message: 'กรุณากรอกจำนวนวัน' }]}
-              >
-                <InputNumber min={1} max={30} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="reviewDueDays"
-                label="จำนวนวันที่ควรตรวจเอกสารให้เสร็จ"
-                rules={[{ required: true, message: 'กรุณากรอกจำนวนวัน' }]}
-              >
-                <InputNumber min={1} max={15} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Card>
+            {/* Bulk Actions */}
+            <Card size="small" style={{ marginBottom: 20, backgroundColor: '#fafafa' }}>
+                <Row justify="space-between" align="middle">
+                    <Col>
+                        <Space>
+                            <SoundOutlined style={{ color: '#1890ff' }} />
+                            <Text strong>การจัดการทั้งหมด</Text>
+                        </Space>
+                    </Col>
+                    <Col>
+                        <Space size="middle">
+                            <Button
+                                type="primary"
+                                icon={<BellOutlined />}
+                                onClick={handleEnableAll}
+                                loading={updating}
+                                disabled={allEnabled}
+                                size="small"
+                            >
+                                เปิดทั้งหมด
+                            </Button>
+                            <Button
+                                danger
+                                icon={<StopOutlined />}
+                                onClick={handleDisableAll}
+                                loading={updating}
+                                disabled={allDisabled}
+                                size="small"
+                            >
+                                ปิดทั้งหมด
+                            </Button>
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
 
-        <Card className="setting-card" style={{ marginTop: 16 }}>
-          <Title level={5}>ประเภทการแจ้งเตือน</Title>
-          <Text type="secondary">
-            กำหนดประเภทการแจ้งเตือนและช่องทางการแจ้งเตือนที่ต้องการใช้งาน
-          </Text>
-          
-          <Table 
-            columns={columns} 
-            dataSource={notificationTypes} 
-            rowKey="key" 
-            pagination={false}
-            style={{ marginTop: 16 }}
-          />
-        </Card>
+            {/* Notification Items */}
+            <div className="notification-items">
+                <Title level={5} style={{ marginBottom: 16 }}>
+                    <SettingOutlined style={{ marginRight: 8 }} />
+                    ประเภทการแจ้งเตือน
+                </Title>
+                
+                {notificationTypes.map(renderNotificationItem)}
+            </div>
 
-        <div className="setting-actions">
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={fetchSettings} 
-            disabled={loading}
-            style={{ marginRight: 8 }}
-          >
-            รีเซ็ต
-          </Button>
-          <Button 
-            type="primary" 
-            icon={<SaveOutlined />} 
-            onClick={handleSave} 
-            loading={loading}
-          >
-            บันทึกการตั้งค่า
-          </Button>
+            {/* Info Section */}
+            <Divider />
+            <Alert
+                message="ข้อมูลเพิ่มเติม"
+                description={
+                    <div>
+                        <p>• การแจ้งเตือนจะถูกส่งไปยังอีเมลของผู้ใช้เมื่อเกิดเหตุการณ์ที่เกี่ยวข้อง</p>
+                        <p>• การเปลี่ยนแปลงการตั้งค่าจะมีผลทันทีและบันทึกประวัติการแก้ไข</p>
+                        <p>• หากระบบอีเมลไม่ทำงาน การแจ้งเตือนจะใช้การตั้งค่าจากไฟล์ environment แทน</p>
+                        <p>• สามารถดูประวัติการแจ้งเตือนและสถิติการส่งในหน้า "รายงานระบบ"</p>
+                    </div>
+                }
+                type="info"
+                showIcon
+                icon={<InfoCircleOutlined />}
+            />
         </div>
-      </Form>
-    </div>
-  );
+    );
 };
 
 export default NotificationSettings;

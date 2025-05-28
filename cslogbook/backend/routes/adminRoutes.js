@@ -7,6 +7,7 @@ const teacherController = require('../controllers/teacherController');
 const documentController = require('../controllers/documents/documentController');
 const curriculumController = require('../controllers/curriculumController');
 const academacController = require('../controllers/academicController');
+const notificationSettingsController = require('../controllers/notificationSettingsController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 
@@ -68,5 +69,48 @@ router.get('/academic', adminAuth, academacController.getAcademicSettings);
 router.post('/academic', adminAuth, academacController.createAcademicSettings);
 router.put('/academic', adminAuth, academacController.updateAcademicSettings);  
 router.delete('/academic/:id', adminAuth, academacController.deleteAcademicSettings);
+
+// === เพิ่ม Admin Notification Settings Routes ===
+// ดึงการตั้งค่าการแจ้งเตือนทั้งหมด
+router.get('/notification-settings', adminAuth, notificationSettingsController.getAllNotificationSettings);
+// เปิด/ปิดการแจ้งเตือนประเภทใดประเภทหนึ่ง
+router.put('/notification-settings/toggle', adminAuth, notificationSettingsController.toggleNotification);
+// เปิดการแจ้งเตือนทั้งหมด
+router.put('/notification-settings/enable-all', adminAuth, notificationSettingsController.enableAllNotifications);
+// ปิดการแจ้งเตือนทั้งหมด
+router.put('/notification-settings/disable-all', adminAuth, notificationSettingsController.disableAllNotifications);
+// ดึงสถิติการแจ้งเตือน (optional - สำหรับ dashboard)
+router.get('/notification-settings/stats', adminAuth, async (req, res) => {
+    try {
+        // เรียกใช้ service เพื่อดึงสถิติ
+        const notificationSettingsService = require('../services/notificationSettingsService');
+        const settings = await notificationSettingsService.getAllSettings(false);
+        
+        // คำนวณสถิติ
+        const settingsArray = Object.values(settings);
+        const enabledCount = settingsArray.filter(setting => setting.enabled).length;
+        const totalCount = settingsArray.length;
+        const percentage = totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
+        
+        res.json({
+            success: true,
+            data: {
+                total: totalCount,
+                enabled: enabledCount,
+                disabled: totalCount - enabledCount,
+                percentage,
+                hasEnabled: enabledCount > 0,
+                allEnabled: enabledCount === totalCount,
+                lastUpdated: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการดึงสถิติการแจ้งเตือน:', error);
+        res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการดึงสถิติการแจ้งเตือน'
+        });
+    }
+});
 
 module.exports = router;

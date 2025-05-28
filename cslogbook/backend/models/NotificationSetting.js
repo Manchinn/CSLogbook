@@ -3,11 +3,12 @@ const { Model, DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
     class NotificationSetting extends Model {
         static associate(models) {
-            // สร้างความสัมพันธ์กับ Admin สำหรับการติดตามผู้แก้ไข
-            NotificationSetting.belongsTo(models.Admin, {
-                foreignKey: 'updated_by_admin',
-                as: 'adminUpdater',
-                allowNull: true
+            // สร้างความสัมพันธ์กับ User สำหรับการติดตามผู้แก้ไข
+            NotificationSetting.belongsTo(models.User, {
+                foreignKey: 'updatedByAdminId', // ชื่อ field ในฐานข้อมูล
+                targetKey: 'userId',
+                as: 'updatedByUser', // alias สำหรับการ JOIN
+                constraints: false, // ไม่บังคับ foreign key constraint
             });
         }
 
@@ -27,7 +28,12 @@ module.exports = (sequelize) => {
                 enabled: this.is_enabled,
                 description: this.description,
                 lastUpdated: this.updated_at,
-                updatedBy: this.updated_by_admin
+                updatedBy: this.updated_by_admin,
+                updatedByUser: this.updatedByUser ? {
+                    id: this.updatedByUser.user_id,
+                    username: this.updatedByUser.username,
+                    fullName: `${this.updatedByUser.first_name} ${this.updatedByUser.last_name}`.trim()
+                } : null
             };
         }
     }
@@ -67,17 +73,15 @@ module.exports = (sequelize) => {
         updatedByAdminId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            field: 'updated_by_admin',
-            references: {
-                model: 'admins',
-                key: 'admin_id'
-            }
+            field: 'updated_by_admin'
         }
     }, {
         sequelize,
         modelName: 'NotificationSetting',
         tableName: 'notification_settings',
         timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
         underscored: true,
         indexes: [
             {
@@ -88,6 +92,10 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_notification_enabled',
                 fields: ['is_enabled']
+            },
+            {
+                name: 'idx_updated_by_admin',
+                fields: ['updated_by_admin']
             }
         ],
         hooks: {

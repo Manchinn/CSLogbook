@@ -3,6 +3,7 @@ import { Tabs, Card, Typography, message } from 'antd';
 import AcademicSettings from './academic/AcademicSettings';
 import StatusSettings from './StatusSettings';
 import CurriculumSettings from './CurriculumSettings';
+import NotificationSettings from './NotificationSettings'; // เพิ่ม import
 import './styles.css';
 
 const { Title } = Typography;
@@ -25,6 +26,11 @@ const ConstantsSettings = () => {
       key: '3',
       label: 'สถานะนักศึกษา',
       children: <StatusSettings />
+    },
+    {
+      key: '4',
+      label: 'การแจ้งเตือน',
+      children: <NotificationSettings /> // เพิ่มแท็บการแจ้งเตือน
     }
   ];
   
