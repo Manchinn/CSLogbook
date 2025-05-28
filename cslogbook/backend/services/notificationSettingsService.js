@@ -247,11 +247,22 @@ class NotificationSettingsService {
     /**
      * ตรวจสอบว่าการแจ้งเตือนประเภทนั้นเปิดใช้งานหรือไม่
      * @param {string} type - ประเภทการแจ้งเตือน
+     * @param {boolean} useCache - ใช้ cache หรือไม่ (default: true)
      * @returns {boolean} - true ถ้าเปิดใช้งาน
      */
-    async isNotificationEnabled(type) {
+    async isNotificationEnabled(type, useCache = true) {
         try {
-            // ใช้ Sequelize Model สำหรับการค้นหา
+            // ตรวจสอบจาก cache ก่อน (หากต้องการ)
+            if (useCache) {
+                const cachedSettings = notificationCache.get(CACHE_KEY);
+                if (cachedSettings && cachedSettings[type.toUpperCase()]) {
+                    const setting = cachedSettings[type.toUpperCase()];
+                    logger.debug(`ใช้ค่าจาก cache สำหรับ ${type}:`, { enabled: setting.enabled });
+                    return Boolean(setting.enabled);
+                }
+            }
+
+            // ดึงข้อมูลจากฐานข้อมูลโดยตรง
             const setting = await NotificationSetting.findOne({
                 where: { 
                     notificationType: type.toUpperCase() 
@@ -260,18 +271,46 @@ class NotificationSettingsService {
             });
             
             if (setting) {
-                return Boolean(setting.isEnabled);
+                const isEnabled = Boolean(setting.isEnabled);
+                logger.debug(`ตรวจสอบการแจ้งเตือน ${type} จากฐานข้อมูล:`, { 
+                    enabled: isEnabled 
+                });
+                return isEnabled;
             }
             
-            // ใช้ environment variable เป็น fallback
-            const envValue = process.env[`EMAIL_${type.toUpperCase()}_ENABLED`];
-            return envValue === 'true';
-        } catch (error) {
-            logger.error(`Error checking notification enabled status for ${type}`, { error: error.message });
+            // หากไม่พบในฐานข้อมูล ให้สร้างข้อมูลเริ่มต้นและคืนค่า false
+            logger.warn(`ไม่พบการตั้งค่าการแจ้งเตือน ${type} ในฐานข้อมูล - กำลังสร้างข้อมูลเริ่มต้น`);
             
-            // fallback ไป environment variable
-            const envValue = process.env[`EMAIL_${type.toUpperCase()}_ENABLED`];
-            return envValue === 'true';
+            try {
+                // สร้างข้อมูลเริ่มต้นสำหรับประเภทที่ไม่มี
+                await NotificationSetting.create({
+                    notificationType: type.toUpperCase(),
+                    isEnabled: false, // ค่าเริ่มต้นเป็น false เพื่อความปลอดภัย
+                    description: `การแจ้งเตือน${type.toUpperCase()}`
+                });
+                
+                // ล้าง cache เพื่อให้ข้อมูลใหม่ถูกโหลด
+                this.clearCache();
+                
+                logger.info(`สร้างการตั้งค่าการแจ้งเตือน ${type} เริ่มต้นแล้ว (disabled)`);
+                return false; // คืนค่า false สำหรับการตั้งค่าใหม่
+                
+            } catch (createError) {
+                logger.error(`ไม่สามารถสร้างการตั้งค่าการแจ้งเตือน ${type}:`, createError.message);
+                // คืนค่า false หากไม่สามารถสร้างได้
+                return false;
+            }
+            
+        } catch (error) {
+            logger.error(`Error checking notification enabled status for ${type}`, { 
+                error: error.message,
+                stack: error.stack
+            });
+            
+            // ในกรณีเกิดข้อผิดพลาด ให้คืนค่า false เพื่อความปลอดภัย
+            // ไม่ส่งการแจ้งเตือนดีกว่าส่งผิด
+            logger.warn(`คืนค่า false สำหรับ ${type} เนื่องจากเกิดข้อผิดพลาด`);
+            return false;
         }
     }
 

@@ -194,26 +194,39 @@ class AuthService {
   }
 
   /**
-   * ส่งการแจ้งเตือนการเข้าสู่ระบบ
+   * ส่งการแจ้งเตือนการเข้าสู่ระบบ (อัปเดตให้ใช้ฐานข้อมูลแทน .env)
    * @param {string} email - อีเมลผู้ใช้
    * @param {Object} user - ข้อมูลผู้ใช้
    */
   async sendLoginNotification(email, user) {
     try {
-      if (process.env.EMAIL_LOGIN_ENABLED !== 'true') {
-        logger.info(`AuthService: Login email notification is disabled (EMAIL_LOGIN_ENABLED is not 'true'). Skipping for user: ${email}`); // เพิ่มบรรทัดนี้
-        return;
-      }
-
-      logger.info(`AuthService: Sending login notification to: ${email}`);
-      
-      await sendLoginNotification(email, user.firstName);
-
-      logger.info(`AuthService: Login notification sent to: ${email}`);
+        logger.info(`AuthService: เริ่มกระบวนการส่งการแจ้งเตือนการเข้าสู่ระบบไปยัง: ${email}`);
+        
+        // เรียกใช้ mailer โดยตรง - ให้ mailer ตรวจสอบการตั้งค่าจากฐานข้อมูลเอง
+        const result = await sendLoginNotification(email, user.firstName);
+        
+        if (result && result.sent) {
+            logger.info(`AuthService: ส่งการแจ้งเตือนการเข้าสู่ระบบสำเร็จ`, {
+                email,
+                username: user.username,
+                messageId: result.messageId
+            });
+        } else if (result && !result.sent) {
+            logger.info(`AuthService: ไม่ส่งการแจ้งเตือนการเข้าสู่ระบบ`, {
+                email,
+                username: user.username,
+                reason: result.reason || 'unknown'
+            });
+        }
 
     } catch (error) {
-      logger.warn('AuthService: Failed to send login notification', { error: error.message, email: email }); // ปรับปรุงการแสดง error เล็กน้อย
-      // ไม่ throw error เพราะการส่งอีเมลเป็น optional
+        // ไม่ throw error เพราะการส่งอีเมลเป็น optional และไม่ควรขัดจังหวะกระบวนการ login
+        logger.warn('AuthService: เกิดข้อผิดพลาดในการส่งการแจ้งเตือนการเข้าสู่ระบบ', { 
+            error: error.message, 
+            email: email,
+            username: user.username,
+            stack: error.stack
+        });
     }
   }
 
