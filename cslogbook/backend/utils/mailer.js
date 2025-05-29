@@ -211,7 +211,7 @@ async function sendLogbookSubmissionNotification(email, username, title) {
 }
 
 // สำหรับการส่งคำขออนุมัติบันทึกการฝึกงานไปยังหัวหน้างาน
-async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, approveLink, rejectLink, timeSheetData, type = 'single') {
+async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, webApprovalLink, rejectLink, timeSheetData, type = 'single') {
     try {
         // ใช้ APPROVAL แทน DOCUMENT เพื่อความชัดเจนมากขึ้น
         const isEnabled = await isNotificationEnabled('APPROVAL');
@@ -288,8 +288,7 @@ async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, 
             companyName: timeSheetData?.companyName || (Array.isArray(timeSheetData) && timeSheetData[0]?.companyName) || 'ไม่ระบุ',
             introText: introText,
             timeSheetHtml: timeSheetHtml,
-            approveLink: approveLink,
-            rejectLink: rejectLink,
+            webApprovalLink: webApprovalLink, // ใช้ลิงก์เว็บแทน
             currentYear: new Date().getFullYear()
         });
 

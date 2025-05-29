@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>หนังสือขออนุมัติบันทึกการฝึกงาน - CS Logbook System</title>
+    <title>แจ้งเตือน: มีรายการรออนุมัติ - CS Logbook System</title>
     <style>
         body {
             font-family: 'Sarabun', 'TH SarabunPSK', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -15,7 +15,7 @@
         }
         .container {
             width: 100%;
-            max-width: 650px;
+            max-width: 600px; /* ปรับขนาดให้เหมาะสมกับการแจ้งเตือน */
             margin: 20px auto;
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
@@ -40,193 +40,79 @@
             background: linear-gradient(90deg, #f39c12, #e74c3c, #9b59b6, #3498db);
         }
         .header img {
-            max-width: 180px;
+            max-width: 150px; /* ลดขนาดโลโก้ในอีเมลเล็กน้อย */
             margin-bottom: 12px;
-            filter: brightness(1.1);
         }
         .header h1 {
             margin: 0;
-            font-size: 22px;
+            font-size: 20px; /* ปรับขนาดหัวเรื่อง */
             font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
         .header .subtitle {
-            font-size: 14px;
+            font-size: 13px; /* ปรับขนาดรองหัวเรื่อง */
             margin-top: 8px;
             opacity: 0.9;
-            font-weight: 300;
         }
         .content {
-            padding: 30px 25px;
+            padding: 25px 20px; /* ปรับ padding */
         }
-        .official-header {
+        .notification-title {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #3498db;
-        }
-        .official-header h2 {
+            margin-bottom: 20px;
             color: #2c3e50;
-            font-size: 20px;
-            margin: 0 0 8px 0;
+            font-size: 18px;
             font-weight: 600;
         }
-        .official-header .ref-number {
-            color: #7f8c8d;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .greeting-box {
+        .message-box {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             padding: 20px;
             border-radius: 8px;
             margin: 20px 0;
             border-left: 4px solid #3498db;
+            text-align: center; /* จัดข้อความให้อยู่กึ่งกลาง */
         }
-        .greeting-box .salutation {
+        .message-box .salutation {
             font-weight: 600;
             color: #2c3e50;
             margin-bottom: 10px;
+            font-size: 16px;
         }
-        .greeting-box .content-text {
+        .message-box .content-text {
             color: #34495e;
             line-height: 1.7;
-        }
-        .student-info {
-            background-color: #f8f9fa;
-            padding: 15px 20px;
-            border-radius: 6px;
-            margin: 20px 0;
-            border: 1px solid #dee2e6;
-        }
-        .student-info h4 {
-            color: #2c3e50;
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .student-info p {
-            margin: 5px 0;
-            color: #495057;
-        }
-        .timesheet-section {
-            margin: 25px 0;
-        }
-        .timesheet-section h3 {
-            color: #2c3e50;
-            font-size: 18px;
+            font-size: 14px;
             margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: 600;
-        }
-        .timesheet-entry {
-            margin-bottom: 20px;
-            padding: 18px;
-            border: 1px solid #e3e6ea;
-            border-radius: 8px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .timesheet-entry h4 {
-            margin: 0 0 12px 0;
-            color: #2980b9;
-            font-size: 16px;
-            font-weight: 600;
-            padding: 8px 12px;
-            background-color: #ebf3fd;
-            border-radius: 4px;
-            border-left: 3px solid #2980b9;
-        }
-        .timesheet-entry .entry-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-        .timesheet-entry .entry-label {
-            font-weight: 600;
-            color: #2c3e50;
-            min-width: 120px;
-            margin-right: 10px;
-        }
-        .timesheet-entry .entry-value {
-            color: #495057;
-            flex: 1;
-        }
-        .timesheet-entry .description-section {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #f1f3f4;
-        }
-        .timesheet-entry .description-content {
-            background-color: #f8f9fa;
-            padding: 12px;
-            border-radius: 4px;
-            border-left: 3px solid #17a2b8;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .action-section {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 25px;
-            margin: 30px 0;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #dee2e6;
-        }
-        .action-section h3 {
-            color: #2c3e50;
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .action-section p {
-            color: #6c757d;
-            margin-bottom: 20px;
-            font-size: 14px;
         }
         .button-container {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
+            margin-top: 20px;
         }
         .button {
             display: inline-block;
-            padding: 12px 25px;
+            padding: 12px 30px; /* ปรับ padding ปุ่ม */
             text-decoration: none;
             border-radius: 6px;
             font-weight: 600;
-            color: #ffffff;
-            font-size: 14px;
+            color: #ffffff !important; /* ทำให้สีตัวอักษรเป็นสีขาวเสมอ */
+            font-size: 15px; /* ปรับขนาด font ปุ่ม */
             text-align: center;
-            min-width: 100px;
             transition: all 0.3s ease;
             border: none;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .approve-btn {
             background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
         }
-        .approve-btn:hover {
+        .button:hover {
             background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
-        }
-        .reject-btn {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        }
-        .reject-btn:hover {
-            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
         }
         .important-notice {
             background-color: #fff3cd;
             border: 1px solid #ffeaa7;
             border-radius: 6px;
             padding: 15px;
-            margin: 20px 0;
+            margin: 25px 0; /* เพิ่ม margin ด้านบน */
             border-left: 4px solid #f39c12;
         }
         .important-notice h4 {
@@ -241,53 +127,34 @@
             font-size: 13px;
             line-height: 1.5;
         }
-        .contact-info {
-            background-color: #e8f4fd;
-            border: 1px solid #b8daff;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 20px 0;
-            border-left: 4px solid #007bff;
-        }
-        .contact-info h4 {
-            color: #004085;
-            margin: 0 0 8px 0;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .contact-info p {
-            color: #004085;
-            margin: 3px 0;
-            font-size: 13px;
-        }
         .footer {
             background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
             color: #ecf0f1;
             text-align: center;
-            padding: 25px 20px;
-            font-size: 13px;
+            padding: 20px; /* ปรับ padding footer */
+            font-size: 12px; /* ปรับขนาด font footer */
             border-top: 4px solid #3498db;
         }
         .footer .institution {
             font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
         }
         .footer .department {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             opacity: 0.9;
         }
         .footer .system-info {
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: 12px;
+            padding-top: 12px;
             border-top: 1px solid #455a64;
             opacity: 0.8;
-            font-size: 12px;
+            font-size: 11px;
         }
         .footer .generated-time {
-            font-size: 11px;
+            font-size: 10px;
             opacity: 0.7;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         
         /* Responsive Design */
@@ -299,20 +166,9 @@
             .content {
                 padding: 20px 15px;
             }
-            .timesheet-entry .entry-row {
-                flex-direction: column;
-            }
-            .timesheet-entry .entry-label {
-                min-width: auto;
-                margin-bottom: 5px;
-            }
-            .button-container {
-                flex-direction: column;
-                align-items: center;
-            }
             .button {
-                width: 80%;
-                margin: 5px 0;
+                width: 90%; /* ปรับความกว้างปุ่มใน mobile */
+                padding: 12px 20px;
             }
         }
     </style>
@@ -328,72 +184,38 @@
         </div>
 
         <div class="content">
-            <!-- Official Document Header -->
-            <div class="official-header">
-                <h2>คำขออนุมัติบันทึกการฝึกงาน</h2>
+            <div class="notification-title">
+                แจ้งเตือนรายการรอการอนุมัติ
             </div>
 
-            <!-- Greeting and Purpose -->
-            <div class="greeting-box">
-                <div class="salutation">เรียน คุณ{{supervisorName}}</div>
+            <div class="message-box">
+                <div class="salutation">เรียน คุณ{{supervisorName}},</div>
                 <div class="content-text">
-                    ด้วยความเคารพ {{introText}} ตามรายละเอียดด้านล่างนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+                    มีรายการบันทึกการฝึกงานของนักศึกษา <strong>{{studentName}}</strong> รอการพิจารณาจากท่านในระบบ CS Logbook
+                    <br>
+                    กรุณาคลิกปุ่มด้านล่างเพื่อตรวจสอบรายละเอียดและดำเนินการอนุมัติ
                 </div>
-            </div>
-
-            <!-- Student Information -->
-            <!-- <div class="student-info">
-                <h4>📋 ข้อมูลนักศึกษา</h4>
-                <p><strong>ชื่อ-นามสกุล:</strong> {{studentName}}</p>
-                <p><strong>รหัสนักศึกษา:</strong> {{studentCode}}</p>
-                <p><strong>สาขาวิชา:</strong> วิทยาการคอมพิวเตอร์และสารสนเทศ</p>
-                <p><strong>หน่วยงานที่ฝึกงาน:</strong> {{companyName}}</p>
-            </div> -->
-
-            <!-- Timesheet Details -->
-            <div class="timesheet-section">
-                <h3>📝 รายละเอียดบันทึกการฝึกงาน</h3>
-                {{timeSheetHtml}}
-            </div>
-
-            <!-- Action Section -->
-            <div class="action-section">
-                <h3>การดำเนินการ</h3>
-                <p>กรุณาพิจารณาและแจ้งผลการอนุมัติโดยคลิกปุ่มด้านล่าง</p>
                 <div class="button-container">
-                    <a href="{{approveLink}}" class="button approve-btn">✅ อนุมัติ</a>
-                    <a href="{{rejectLink}}" class="button reject-btn">❌ ไม่อนุมัติ</a>
+                    <a href="{{webApprovalLink}}" class="button">🔗 ไปยังหน้ารายการอนุมัติ</a>
                 </div>
             </div>
 
-            <!-- Important Notice -->
             <div class="important-notice">
                 <h4>⚠️ ข้อปฏิบัติสำคัญ</h4>
-                <p>• ลิงก์การอนุมัตินี้จะมีอายุการใช้งาน 7 วัน นับจากวันที่ได้รับอีเมลนี้</p>
-                <p>• หากไม่ได้ดำเนินการภายในเวลาดังกล่าว กรุณาติดต่อนักศึกษาเพื่อส่งคำขอใหม่</p>
-                <p>• การอนุมัติจะมีผลทันทีและไม่สามารถยกเลิกได้</p>
-            </div>
-
-            <!-- Contact Information -->
-            <div class="contact-info">
-                <h4>📞 ข้อมูลการติดต่อ</h4>
-                <p><strong>ฝ่ายประสานงานการฝึกงาน:</strong> อ.ดร.จิรายุ ศรีสุข</p>
-                <p><strong>โทรศัพท์:</strong> 02-555-2000 ต่อ 1234</p>
-                <p><strong>อีเมล:</strong> internship@sci.kmutnb.ac.th</p>
-                <p><strong>เว็บไซต์:</strong> https://cs.kmutnb.ac.th/index.jsp</p>
+                <p>• ลิงก์การอนุมัตินี้จะนำท่านไปยังหน้ารายละเอียดเพื่อดำเนินการบนเว็บไซต์</p>
+                <p>• ลิงก์จะมีอายุการใช้งาน 7 วัน นับจากวันที่ได้รับอีเมลนี้</p>
+                <p>• หากมีข้อสงสัยหรือปัญหาในการใช้งาน กรุณาติดต่อผู้ดูแลระบบ</p>
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <div class="institution">มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</div>
             <div class="department">คณะวิทยาศาสตร์ประยุกต์ สาขาวิชาวิทยาการคอมพิวเตอร์</div>
             <div class="system-info">
-                CS Logbook System - ระบบติดตามและประเมินผลการฝึกงาน<br>
-                พัฒนาโดยคณะวิทยาศาสตร์ประยุกต์ มจพ.
+                CS Logbook System - ระบบติดตามและประเมินผลการฝึกงาน
             </div>
             <div class="generated-time">
-                สร้างเมื่อ: {{generatedDateTime}} | ปีการศึกษา {{currentYear}}
+                อีเมลนี้สร้างเมื่อ: {{generatedDateTime}}
             </div>
         </div>
     </div>

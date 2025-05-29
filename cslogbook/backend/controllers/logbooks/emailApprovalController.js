@@ -1,7 +1,17 @@
-'use strict';
+"use strict";
 
-const emailApprovalService = require('../../services/emailApprovalService');
-const logger = require('../../utils/logger');
+const emailApprovalService = require("../../services/emailApprovalService");
+const logger = require("../../utils/logger");
+const {
+  ApprovalToken,
+  Student,
+  User,
+  Internship,
+  InternshipDocument,
+  InternshipLogbook,
+  Document,
+} = require("../../models");
+const { Op } = require("sequelize");
 
 /**
  * สร้างและส่งคำขออนุมัติผ่านอีเมลไปยังหัวหน้างาน
@@ -11,28 +21,30 @@ exports.sendApprovalRequest = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { type, startDate, endDate, logIds } = req.body;
-    
+
     const approvalData = {
       type,
       startDate,
       endDate,
-      logIds
+      logIds,
     };
 
-    const result = await emailApprovalService.sendApprovalRequest(studentId, approvalData);
+    const result = await emailApprovalService.sendApprovalRequest(
+      studentId,
+      approvalData
+    );
 
     return res.status(200).json({
       success: true,
-      message: 'ส่งคำขออนุมัติผ่านอีเมลไปยังหัวหน้างานเรียบร้อยแล้ว',
-      data: result
+      message: "ส่งคำขออนุมัติผ่านอีเมลไปยังหัวหน้างานเรียบร้อยแล้ว",
+      data: result,
     });
-
   } catch (error) {
-    logger.error('Send Email Approval Request Error:', error);
+    logger.error("Send Email Approval Request Error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการส่งคำขออนุมัติผ่านอีเมล',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || "เกิดข้อผิดพลาดในการส่งคำขออนุมัติผ่านอีเมล",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -45,7 +57,10 @@ exports.approveTimeSheetViaEmail = async (req, res) => {
     const { token } = req.params;
     const { comment } = req.body || {};
 
-    const result = await emailApprovalService.approveTimesheetEntries(token, comment);
+    const result = await emailApprovalService.approveTimesheetEntries(
+      token,
+      comment
+    );
 
     // ส่งหน้าแจ้งผลการอนุมัติกลับไป
     return res.send(`
@@ -104,13 +119,12 @@ exports.approveTimeSheetViaEmail = async (req, res) => {
       </body>
       </html>
     `);
-
   } catch (error) {
-    logger.error('Approve TimeSheet Via Email Error:', error);
+    logger.error("Approve TimeSheet Via Email Error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการอนุมัติบันทึกการฝึกงาน',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || "เกิดข้อผิดพลาดในการอนุมัติบันทึกการฝึกงาน",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -124,17 +138,17 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
     const { comment } = req.body || {};
 
     // ตรวจสอบว่าต้องระบุเหตุผลในการปฏิเสธ
-    if (req.method === 'GET' || !comment) { 
+    if (req.method === "GET" || !comment) {
       // ดึงข้อมูล token เพื่อแสดงชื่อนักศึกษาในหน้าฟอร์ม
-      let studentNameForForm = 'นักศึกษา';
-      
+      let studentNameForForm = "นักศึกษา";
+
       try {
         const tokenInfo = await emailApprovalService.getTokenInfo(token);
         if (tokenInfo && tokenInfo.studentName) {
           studentNameForForm = tokenInfo.studentName;
         }
       } catch (error) {
-        logger.warn('Could not fetch student name for form:', error.message);
+        logger.warn("Could not fetch student name for form:", error.message);
       }
 
       return res.send(`
@@ -178,7 +192,10 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
     }
 
     // ดำเนินการปฏิเสธผ่าน service
-    const result = await emailApprovalService.rejectTimesheetEntries(token, comment);
+    const result = await emailApprovalService.rejectTimesheetEntries(
+      token,
+      comment
+    );
 
     // ส่งหน้าแจ้งผลการปฏิเสธกลับไป
     return res.send(`
@@ -210,16 +227,19 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
       </body>
       </html>
     `);
-
   } catch (error) {
-    logger.error('Reject TimeSheet Via Email Error:', error);
+    logger.error("Reject TimeSheet Via Email Error:", error);
     // ส่งหน้า error HTML กลับไปแทน JSON เพื่อประสบการณ์ผู้ใช้ที่ดีขึ้นเมื่อคลิกจากอีเมล
     return res.status(500).send(`
       <!DOCTYPE html><html><head><title>เกิดข้อผิดพลาด</title></head>
       <body>
         <h1>เกิดข้อผิดพลาดในการดำเนินการ</h1>
         <p>ขออภัย เกิดข้อผิดพลาดในการปฏิเสธบันทึกการฝึกงาน กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ</p>
-        ${process.env.NODE_ENV === 'development' ? '<pre>' + error.stack + '</pre>' : ''}
+        ${
+          process.env.NODE_ENV === "development"
+            ? "<pre>" + error.stack + "</pre>"
+            : ""
+        }
       </body></html>
     `);
   }
@@ -231,21 +251,120 @@ exports.rejectTimeSheetViaEmail = async (req, res) => {
 exports.getApprovalHistory = async (req, res) => {
   try {
     const { studentId } = req.params;
-    
-    const approvalHistory = await emailApprovalService.getApprovalHistory(studentId);
-    
+
+    const approvalHistory = await emailApprovalService.getApprovalHistory(
+      studentId
+    );
+
     return res.status(200).json({
       success: true,
-      message: 'ดึงข้อมูลประวัติการส่งคำขออนุมัติสำเร็จ',
-      data: approvalHistory
+      message: "ดึงข้อมูลประวัติการส่งคำขออนุมัติสำเร็จ",
+      data: approvalHistory,
     });
-    
   } catch (error) {
-    logger.error('Get Approval History Error:', error);
+    logger.error("Get Approval History Error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลประวัติการส่งคำขออนุมัติ',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message:
+        error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลประวัติการส่งคำขออนุมัติ",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * ฟังก์ชันสำหรับดึงข้อมูลรายละเอียดการอนุมัติ
+ */
+exports.getApprovalDetails = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const approvalToken = await ApprovalToken.findOne({
+      where: {
+        token,
+        status: "pending",
+        expiresAt: { [Op.gt]: new Date() },
+      },
+      include: [
+        {
+          model: Student,
+          as: "student",
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["firstName", "lastName", "email"],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!approvalToken) {
+      return res.status(404).json({
+        success: false,
+        message: "Token ไม่ถูกต้อง หมดอายุ หรือถูกใช้งานไปแล้ว",
+      });
+    }
+
+    // ดึงข้อมูลบันทึกการฝึกงาน
+    const logIds = approvalToken.logId
+      .split(",")
+      .map((id) => parseInt(id.trim(), 10));
+    const timesheetEntries = await InternshipLogbook.findAll({
+      where: {
+        logId: { [Op.in]: logIds },
+      },
+      order: [["workDate", "ASC"]],
+    });
+
+    // ดึงข้อมูลการฝึกงานและบริษัท
+    const student = await Student.findByPk(approvalToken.studentId, {
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["firstName", "lastName", "email"],
+        },
+        {
+          model: Document, // สมมติว่า InternshipDocument เชื่อมผ่าน Document
+          as: "documents", // หรือชื่อ association ที่ถูกต้อง
+          where: { documentType: "internship" },
+          required: false, // อาจจะไม่จำเป็นต้องมีเอกสารเสมอไป
+          include: [
+            {
+              model: InternshipDocument,
+              as: "internshipDocument", // หรือชื่อ association ที่ถูกต้อง
+              attributes: ["companyName", "supervisorEmail", "supervisorName"],
+            },
+          ],
+        },
+      ],
+    });
+
+    const internshipDoc = student?.documents?.[0]?.internshipDocument;
+
+    return res.json({
+      success: true,
+      data: {
+        token: approvalToken.token,
+        type: approvalToken.type,
+        status: approvalToken.status,
+        studentId: approvalToken.studentId,
+        studentName: `${student.user.firstName} ${student.user.lastName}` || "N/A",
+        studentCode: student?.studentCode || "N/A",
+        companyName: internshipDoc?.companyName || "N/A",
+        supervisorName: internshipDoc?.supervisorName || "N/A",
+        supervisorEmail: internshipDoc?.supervisorEmail || "N/A",
+        timesheetEntries: timesheetEntries,
+        expiresAt: approvalToken.expiresAt,
+      },
+    });
+  } catch (error) {
+    logger.error("Get Approval Details Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลการอนุมัติ",
     });
   }
 };

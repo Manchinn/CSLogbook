@@ -26,6 +26,7 @@ import AdminUpload from './components/AdminUpload';
 // Import Admin2 Components - New Structure
 import AdminRoutes from './components/admin/AdminRoutes';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
+import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -51,6 +52,7 @@ const App = () => {
               <Route path="/login" element={<LoginForm />} />
               {/* Add the new public route for supervisor evaluation */}
               <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
+              <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
 
               <Route element={<MainLayout />}>
                 {/* Dashboard Route */}

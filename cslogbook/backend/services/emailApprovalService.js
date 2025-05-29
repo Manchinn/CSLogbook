@@ -234,10 +234,9 @@ class EmailApprovalService {
         transaction
       );
 
-      // สร้าง URL สำหรับปุ่มอนุมัติและปฏิเสธ
-      const baseUrl = process.env.BASE_URL;
-      const approveUrl = `${baseUrl}/api/email-approval/approve/${tokens.approveToken}`;
-      const rejectUrl = `${baseUrl}/api/email-approval/reject/${tokens.rejectToken}`;
+      // สร้าง URL สำหรับหน้าเว็บการอนุมัติ
+      const baseUrl = process.env.FRONTEND_URL;
+      const webApprovalLink = `${baseUrl}/approval/timesheet/${tokens.approveToken}`;
 
       // สร้างชื่อนักศึกษาและหัวหน้างานแบบเต็ม
       const studentFullName = `${student.user.firstName} ${student.user.lastName}`;
@@ -248,8 +247,8 @@ class EmailApprovalService {
         internshipDoc.supervisorEmail,
         supervisorDisplayName,
         studentFullName,
-        approveUrl,
-        rejectUrl,
+        webApprovalLink, // ใช้ลิงก์เว็บแทน
+        null, // ไม่ต้องใช้ reject link แยก
         timeSheetEntries,
         type
       );
