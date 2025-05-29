@@ -40,8 +40,8 @@ const StudentProfile = () => {
     try {
       const response = await studentService.getStudentInfo(id);
       if (response.success) {
-        const totalCredits = parseInt(response.data.totalCredits) || 0;
-        const majorCredits = parseInt(response.data.majorCredits) || 0;
+        const totalCredits = parseInt(response.data.totalCredits);
+        const majorCredits = parseInt(response.data.majorCredits);
         const yearResult = calculateStudentYear(response.data.studentCode);
   
         // Map ข้อมูลจาก user ถ้ามี
@@ -67,8 +67,8 @@ const StudentProfile = () => {
           
           // เพิ่มข้อมูลเกี่ยวกับสิทธิ์และข้อกำหนด
           requirements,
-          isEligibleForInternship: eligibility.internship?.eligible || false,
-          isEligibleForProject: eligibility.project?.eligible || false,
+          isEligibleForInternship: eligibility.internship?.eligible,
+          isEligibleForProject: eligibility.project?.eligible,
           internshipMessage: eligibility.internship?.message,
           projectMessage: eligibility.project?.message,
         });
@@ -77,9 +77,9 @@ const StudentProfile = () => {
 
         // อัพเดตค่าเกณฑ์จาก response
         setEligibilityCriteria({
-          internshipBaseCredits: response.data.requirements?.internshipBaseCredits || 86,
-          projectBaseCredits: response.data.requirements?.projectBaseCredits || 97,
-          projectMajorBaseCredits: response.data.requirements?.projectMajorBaseCredits || 59
+          internshipBaseCredits: response.data.requirements?.internshipBaseCredits,
+          projectBaseCredits: response.data.requirements?.projectBaseCredits,
+          projectMajorBaseCredits: response.data.requirements?.projectMajorBaseCredits
         });
       }
     } catch (error) {

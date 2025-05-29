@@ -8,11 +8,13 @@ import {
   Skeleton,
   Result,
   message,
-  Space
+  Space,
+  FloatButton,
 } from "antd";
 import {
   WarningOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import TimeSheetTable from "./TimeSheetTable";
@@ -71,8 +73,8 @@ const TimeSheet = () => {
 
       // ล้าง timer เมื่อ component unmount
       return () => clearTimeout(redirectTimer);
-    } 
-    
+    }
+
     // เพิ่มบรรทัดนี้
     if (!initialLoading && hasCS05) {
       // รีเฟรชข้อมูลจากฐานข้อมูลทันทีเมื่อโหลดหน้าเสร็จ
@@ -91,6 +93,11 @@ const TimeSheet = () => {
     setDontShowAgain(e.target.checked);
   };
 
+  // ฟังก์ชันสำหรับเปิด InstructionModal จาก FloatButton
+  const handleShowInstructions = () => {
+    setIsInstructionVisible(true);
+  };
+
   // แสดง Skeleton ขณะโหลดข้อมูลเริ่มต้น
   if (initialLoading) {
     return (
@@ -104,9 +111,9 @@ const TimeSheet = () => {
             style={{ marginBottom: 16 }}
           />
           <Skeleton active paragraph={{ rows: 4 }} />
-          <div style={{ textAlign: 'center', marginTop: 20 }}>
-            <Button 
-              type="primary" 
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <Button
+              type="primary"
               icon={<ReloadOutlined />}
               onClick={() => window.location.reload()}
             >
@@ -160,11 +167,7 @@ const TimeSheet = () => {
           showIcon
           style={{ marginBottom: 16 }}
         />
-        <Button 
-          type="primary" 
-          icon={<ReloadOutlined />}
-          onClick={refreshData}
-        >
+        <Button type="primary" icon={<ReloadOutlined />} onClick={refreshData}>
           ลองใหม่อีกครั้ง
         </Button>
       </div>
@@ -175,7 +178,9 @@ const TimeSheet = () => {
     <div
       className="internship-container timesheet-container"
       style={{ position: "relative", paddingBottom: "50px" }}
-    >      <Card className="timesheet-card">
+    >
+      {" "}
+      <Card className="timesheet-card">
         {dateRange && (
           <Alert
             type="info"
@@ -186,9 +191,9 @@ const TimeSheet = () => {
                   {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} -{" "}
                   {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
                 </Text>
-                <Button 
-                  onClick={refreshData} 
-                  icon={<ReloadOutlined />} 
+                <Button
+                  onClick={refreshData}
+                  icon={<ReloadOutlined />}
                   loading={loading}
                 >
                   รีเฟรชข้อมูล
@@ -201,28 +206,29 @@ const TimeSheet = () => {
           />
         )}
       </Card>
-
       {stats && Object.keys(stats).length > 0 ? (
         <>
           <TimeSheetStats stats={stats} />
-        </>      ) : (
-        <Card className="timesheet-card timesheet-summary" style={{ marginBottom: 16 }}>
+        </>
+      ) : (
+        <Card
+          className="timesheet-card timesheet-summary"
+          style={{ marginBottom: 16 }}
+        >
           <Alert
             type="info"
             message="กำลังโหลดข้อมูลสถิติ..."
             description={`ระบบกำลังพยายามดึงข้อมูลสถิติการฝึกงาน (hasCS05: ${hasCS05}, status: ${cs05Status})`}
             showIcon
           />
-          <div style={{ textAlign: 'center', marginTop: 10 }}>
-            <Button 
-              onClick={refreshData}
-              icon={<ReloadOutlined />}
-            >
+          <div style={{ textAlign: "center", marginTop: 10 }}>
+            <Button onClick={refreshData} icon={<ReloadOutlined />}>
               โหลดข้อมูลใหม่
             </Button>
           </div>
         </Card>
-      )}      <Card className="timesheet-card">
+      )}{" "}
+      <Card className="timesheet-card">
         {!initialLoading && internshipDates && internshipDates.length > 0 ? (
           <>
             <div className="timesheet-table-container">
@@ -245,12 +251,24 @@ const TimeSheet = () => {
               showIcon
               style={{ marginBottom: 16 }}
             />
-            <div style={{padding: '16px', background: '#f5f5f5', margin: '16px 0'}}>
+            <div
+              style={{
+                padding: "16px",
+                background: "#f5f5f5",
+                margin: "16px 0",
+              }}
+            >
               <strong>ข้อมูล Debugging:</strong>
-              <p>dateRange: {dateRange ? JSON.stringify(dateRange) : 'ไม่พบข้อมูล'}</p>
-              <p>cs05Status: {cs05Status || 'ไม่พบข้อมูล'}</p>
-              <p>hasCS05: {hasCS05 ? 'true' : 'false'}</p>
-              <p>internshipDates: {internshipDates ? internshipDates.length : 0} รายการ</p>
+              <p>
+                dateRange:{" "}
+                {dateRange ? JSON.stringify(dateRange) : "ไม่พบข้อมูล"}
+              </p>
+              <p>cs05Status: {cs05Status || "ไม่พบข้อมูล"}</p>
+              <p>hasCS05: {hasCS05 ? "true" : "false"}</p>
+              <p>
+                internshipDates: {internshipDates ? internshipDates.length : 0}{" "}
+                รายการ
+              </p>
             </div>
           </div>
         )}
@@ -270,7 +288,24 @@ const TimeSheet = () => {
           onClose={handleClose}
         />
       </Card>
-
+      {/* เพิ่ม FloatButton สำหรับแสดงคำแนะนำ */}
+      <FloatButton
+        icon={<QuestionCircleOutlined />}
+        tooltip="คำแนะนำการใช้งาน"
+        onClick={handleShowInstructions}
+        type="primary"
+        style={{
+          position: "fixed",
+          bottom: 32,
+          right: 48,
+          width: 56,
+          height: 56,
+          zIndex: 1000,
+          boxShadow: "0 6px 16px rgba(24, 144, 255, 0.3)",
+          background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
+          border: "none"
+        }}
+      />
       <InstructionModal
         visible={isInstructionVisible}
         onClose={handleInstructionClose}
