@@ -489,17 +489,29 @@ const internshipService = {
   /**
    * ส่งแบบประเมินให้พี่เลี้ยง
    */
-  sendEvaluationForm: async (internshipId) => { // Changed to accept internshipId
+  sendEvaluationForm: async (documentId) => { // Changed to accept internshipId
     try {
-      // Removed supervisorEmail check as it's handled by the backend
-      // const response = await apiClient.post('/internship/evaluation/send', data); // Old endpoint
-      const response = await apiClient.post(`/internship/${internshipId}/request-evaluation`); // New endpoint
+      const response = await apiClient.post(`/internship/request-evaluation/send/${documentId}`); // New endpoint
       return response.data;
     } catch (error) {
-      console.error('Error sending evaluation form:', error);
-      throw new Error(error.response?.data?.message || 'ไม่สามารถส่งแบบประเมินไปยังพี่เลี้ยง');
+      console.error('❌ Error sending evaluation form:', {
+        documentId,
+        error: error.response?.data || error.message,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      
+      // ส่งต่อข้อมูล error ที่มีรายละเอียดมากขึ้น
+      const errorData = error.response?.data;
+      const customError = new Error(errorData?.message || 'ไม่สามารถส่งแบบประเมินไปยังพี่เลี้ยงได้');
+      customError.type = errorData?.errorType || 'UNKNOWN_ERROR';
+      customError.status = error.response?.status;
+      customError.originalError = errorData;
+      
+      throw customError;
     }
   },
+
     /**
    * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
    */  getEvaluationFormStatus: async () => {
@@ -516,6 +528,8 @@ const internshipService = {
           hasEvaluation: false,
           isSent: false,
           isCompleted: false,
+          notificationEnabled: false, // เพิ่มค่าเริ่มต้น
+          canSendEvaluation: false,   // เพิ่มค่าเริ่มต้น
           error: true
         }
       };

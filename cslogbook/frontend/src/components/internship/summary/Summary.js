@@ -45,7 +45,7 @@ import internshipService from "../../../services/internshipService";
 
 // นำเข้า custom hooks
 import { useSummaryData } from "./hooks/useSummaryData";
-import { useReflectionForm, useEvaluationForm } from "./hooks/useFormActions";
+import { useReflectionForm } from "./hooks/useFormActions";
 
 // นำเข้า component ย่อย
 import {
@@ -55,6 +55,9 @@ import {
 import LogbookTable from "./components/LogbookTable";
 import AchievementPanel from "./components/AchievementPanel";
 import SkillsPanel from "./components/SkillsPanel";
+
+// เพิ่ม import EvaluationRequestButton
+import EvaluationRequestButton from "../../EvaluationRequestButton";
 
 // นำเข้า utility functions
 import { calculateCompletionStatus } from "./utils/skillUtils";
@@ -88,17 +91,12 @@ const InternshipSummary = () => {
     evaluationFormSent,
     evaluationSentDate,
     setReflection,
-    fetchSummaryData,
+    fetchSummaryData: refreshData,
   } = useSummaryData();
 
   const { saveReflection } = useReflectionForm(() => {
     setEditingReflection(false);
-    fetchSummaryData();
-  });
-
-  const { sendEvaluationForm } = useEvaluationForm(() => {
-    message.success("ส่งแบบประเมินให้พี่เลี้ยงเรียบร้อยแล้ว");
-    fetchSummaryData();
+    refreshData();
   });
 
   // สถานะความคืบหน้า
@@ -121,33 +119,6 @@ const InternshipSummary = () => {
   // สลับสถานะการแก้ไขบทสรุป
   const toggleEditReflection = () => {
     setEditingReflection(!editingReflection);
-  };
-
-  // ส่งแบบประเมินให้พี่เลี้ยง
-  const handleSendEvaluationForm = async () => {
-    if (!summaryData?.documentId) {
-      message.error("ไม่พบรหัสการฝึกงาน");
-      return;
-    }
-    if (!summaryData?.supervisorEmail) {
-      message.error("ไม่พบอีเมลพี่เลี้ยง กรุณากรอกข้อมูลพี่เลี้ยงให้ครบถ้วน");
-      return;
-    }
-
-    try {
-      await sendEvaluationForm(summaryData.documentId);
-      // The success message is now handled by the useEvaluationForm hook's callback
-    } catch (error) {
-      // Check if the error is the specific 400 error indicating a duplicate request
-      if (error.response && error.response.status === 400 && error.response.data && error.response.data.message) {
-        // Display the specific message from the backend
-        message.warning(error.response.data.message);
-      } else {
-        // Fallback to a generic error message
-        message.error("เกิดข้อผิดพลาดในการส่งคำขอประเมินผล กรุณาลองใหม่อีกครั้ง");
-      }
-      console.error("Error in handleSendEvaluationForm:", error);
-    }
   };
 
   // ดาวน์โหลดเอกสารสรุป
@@ -207,7 +178,6 @@ const InternshipSummary = () => {
   }
 
   // แสดงกรณี CS05 ยังไม่ได้รับการอนุมัติ
-  // Updated condition to allow access if document is supervisor_evaluated
   if (!isCS05Approved && summaryData?.status !== 'supervisor_evaluated') {
     return (
       <div className="no-data-container">
@@ -234,7 +204,7 @@ const InternshipSummary = () => {
           title="เกิดข้อผิดพลาดในการโหลดข้อมูล"
           subTitle={error}
           extra={
-            <Button type="primary" onClick={fetchSummaryData}>
+            <Button type="primary" onClick={refreshData}>
               ลองอีกครั้ง
             </Button>
           }
@@ -340,57 +310,16 @@ const InternshipSummary = () => {
             <Title level={4}>การประเมินผลการฝึกงานโดยพี่เลี้ยง</Title>
           </div>
 
-          {summaryData?.status === 'supervisor_evaluated' ? (
-            <Alert
-              message="ประเมินผลการฝึกงานเรียบร้อยแล้ว"
-              description="พี่เลี้ยงได้ทำการประเมินผลการฝึกงานของคุณแล้ว"
-              type="success"
-              showIcon
-              style={{ marginBottom: 24 }}
-            />
-          ) : evaluationFormSent ? (
-            <Alert
-              message="ส่งแบบประเมินไปยังพี่เลี้ยงแล้ว"
-              description={`ส่งไปยัง ${
-                summaryData?.supervisorEmail || "อีเมลพี่เลี้ยง"
-              } เมื่อ ${
-                evaluationSentDate
-                  ? dayjs(evaluationSentDate).format(DATE_FORMAT_MEDIUM)
-                  : "-"
-              }`}
-              type="success"
-              showIcon
-              style={{ marginBottom: 24 }}
-            />
-          ) : (
-            <Alert
-              message="ส่งแบบประเมินให้พี่เลี้ยงของคุณ"
-              description="เมื่อคุณใกล้จะสิ้นสุดการฝึกงาน คุณสามารถส่งแบบประเมินไปยังพี่เลี้ยงผ่านอีเมลได้ที่นี่"
-              type="info"
-              showIcon
-              style={{ marginBottom: 24 }}
-            />
-          )}
+          {/* ใช้ EvaluationRequestButton component แทน logic เดิม */}
+          <EvaluationRequestButton 
+            documentId={summaryData?.documentId}
+            onEvaluationSent={() => {
+              // รีเฟรชข้อมูลหลังจากส่งสำเร็จ
+              refreshData();
+            }}
+          />
 
-          {/* Hide button if evaluation is completed */}
-          {summaryData?.status !== 'supervisor_evaluated' && !evaluationFormSent && (
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={handleSendEvaluationForm}
-              disabled={evaluationFormSent}
-              style={{ marginTop: 16 }}
-              block
-            >
-              ส่งคำขอประเมินผลไปยังพี่เลี้ยง
-            </Button>
-          )}
-
-          {/* Display supervisor details only if not yet evaluated or form not sent, 
-              or if it's evaluated (to show who evaluated) 
-              Adjust this logic if supervisor details should always be visible 
-              or hidden under different conditions after evaluation.
-          */}
+          {/* แสดงข้อมูลพี่เลี้ยงเมื่อมีการประเมินแล้วหรือยังไม่ได้ส่งแบบประเมิน */}
           {(summaryData?.status === 'supervisor_evaluated' || !evaluationFormSent) && (
             <Card
               title="ข้อมูลพี่เลี้ยง"
@@ -492,7 +421,6 @@ const InternshipSummary = () => {
                       : "-"}
                   </Text>
                 </Space>
-
               </div>
             </div>
           </Col>

@@ -307,5 +307,6 @@ export function useSummaryData() {
     reflection,
     evaluationFormSent,
     evaluationSentDate,
+    fetchSummaryData, // ให้ฟังก์ชันนี้เพื่อให้สามารถรีเฟรชข้อมูลได้
   };
 }

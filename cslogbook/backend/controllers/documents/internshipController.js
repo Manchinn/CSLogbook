@@ -348,27 +348,66 @@ exports.getEvaluationStatus = async (req, res) => {
 };
 
 /**
- * ส่งแบบประเมินให้พี่เลี้ยง (ปรับปรุงใหม่)
- * Handles the request from a student to send an evaluation form link to their supervisor.
+ * ส่งแบบประเมินให้พี่เลี้ยง - เพิ่มการจัดการ error เฉพาะ
  */
 exports.sendEvaluationForm = async (req, res) => {
   try {
-    const { internshipId } = req.params;
-    const result = await internshipManagementService.sendEvaluationForm(req.user.userId, internshipId);
-    
-    return res.status(200).json({
-      success: true,
-      ...result
-    });
+    const { documentId } = req.params;
+    const userId = req.user.userId;
 
+    // ตรวจสอบ input
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่พบรหัสเอกสาร'
+      });
+    }
+
+    console.log(`Sending evaluation form for documentId: ${documentId}, userId: ${userId}`);
+
+    const result = await internshipManagementService.sendEvaluationForm(documentId, userId);
+    
+    res.json({
+      success: true,
+      message: result.message,
+      data: {
+        supervisorEmail: result.supervisorEmail,
+        expiresAt: result.expiresAt
+      }
+    });
   } catch (error) {
     console.error('Error sending evaluation form:', error);
-    const statusCode = error.message.includes('ไม่พบ') ? 404 : 
-                      error.message.includes('ไม่สามารถส่ง') ? 400 :
-                      error.message.includes('คำขอประเมิน') ? 400 : 500;
-    return res.status(statusCode).json({
+    
+    // จัดการ error เฉพาะสำหรับการปิดการแจ้งเตือน
+    if (error.message.includes('ระบบปิดการแจ้งเตือนการประเมินผล')) {
+      return res.status(423).json({ // 423 Locked - เหมาะสำหรับฟีเจอร์ที่ถูกปิดชั่วคราว
+        success: false,
+        message: error.message,
+        errorType: 'NOTIFICATION_DISABLED'
+      });
+    }
+    
+    // จัดการ error อื่นๆ ตามเดิม
+    if (error.message.includes('ไม่พบเอกสาร')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+        errorType: 'DOCUMENT_NOT_FOUND'
+      });
+    }
+    
+    if (error.message.includes('คำขอประเมินผลถูกส่งไปยัง')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+        errorType: 'ALREADY_SENT'
+      });
+    }
+
+    res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการส่งคำขอประเมินผล'
+      message: error.message || 'เกิดข้อผิดพลาดในการส่งแบบประเมิน',
+      errorType: 'SERVER_ERROR'
     });
   }
 };

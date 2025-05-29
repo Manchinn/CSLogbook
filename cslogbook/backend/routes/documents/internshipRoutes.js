@@ -104,7 +104,7 @@ router.get('/evaluation/status',
 );
 
 // ส่งคำขอประเมินผลไปยัง Supervisor
-router.post('/:internshipId/request-evaluation',
+router.post('/request-evaluation/send/:documentId',
     authenticateToken,
     checkRole(['student']),
     internshipController.sendEvaluationForm
