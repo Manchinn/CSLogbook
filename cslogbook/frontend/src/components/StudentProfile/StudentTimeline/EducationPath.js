@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Steps, Tooltip, Typography } from "antd";
 import {
   LaptopOutlined,
@@ -9,15 +9,35 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { calculateMainProgress } from "./helpers";
+import {
+  getInternshipRequirements,
+  getProjectRequirements,
+} from "../../../utils/studentUtils";
 
 const { Step } = Steps;
 const { Text } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงเส้นทางการศึกษาหลัก
 const EducationPath = ({ student }) => {
+  const [requirements, setRequirements] = useState({
+    internship: null,
+    project: null,
+  });
+
+  // ดึงข้อกำหนดจาก student object หรือ API
+  useEffect(() => {
+    if (student?.requirements) {
+      setRequirements(student.requirements);
+    }
+  }, [student]);
+
+  // ใช้ utils function แทนการ hardcode
+  const internshipReqs = getInternshipRequirements(requirements.internship);
+  const projectReqs = getProjectRequirements(requirements.project);
+
   // คำนวณความพร้อมในการจบการศึกษา
-  const totalCreditsRequired = student.totalCreditsRequired;
-  const majorCreditsRequired = student.majorCreditsRequired;
+  const totalCreditsRequired = student.totalCreditsRequired || 127;
+  const majorCreditsRequired = student.majorCreditsRequired || 57;
 
   const isReadyToGraduate =
     student.totalCredits >= totalCreditsRequired &&
@@ -101,7 +121,7 @@ const EducationPath = ({ student }) => {
       if (!student.internshipEligible) {
         return (
           student.internshipEligibleMessage ||
-          "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 81 หน่วยกิต"
+          `ต้องมีหน่วยกิตสะสมไม่น้อยกว่า ${internshipReqs.MIN_TOTAL_CREDITS} หน่วยกิต`
         );
       }
       if (student.internshipStatus === "completed")
@@ -115,7 +135,7 @@ const EducationPath = ({ student }) => {
       if (!student.projectEligible) {
         return (
           student.projectEligibleMessage ||
-          "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า 47 หน่วยกิต"
+          `ต้องมีหน่วยกิตสะสมไม่น้อยกว่า ${projectReqs.MIN_TOTAL_CREDITS} หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า ${projectReqs.MIN_MAJOR_CREDITS} หน่วยกิต`
         );
       }
       return "โครงงานพิเศษ 1 - การพัฒนาและนำเสนอโครงงาน";

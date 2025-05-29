@@ -16,11 +16,6 @@ import {
 } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
 import { timelineService } from "../../../services/timelineService";
-import { studentService } from "../../../services/studentService";
-import {
-  isEligibleForInternship,
-  isEligibleForProject,
-} from "../../../utils/studentUtils";
 import { DEFAULT_STUDENT_DATA, DEFAULT_PROGRESS_DATA } from "./helpers";
 import NextAction from "./NextAction";
 import Notifications from "./Notifications";
@@ -363,7 +358,7 @@ const StudentTimeline = () => {
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col span={24}>
-            <StudyStatistics student={student} />
+            <StudyStatistics student={student} progress={progress} />
           </Col>
         </Row>
       </div>

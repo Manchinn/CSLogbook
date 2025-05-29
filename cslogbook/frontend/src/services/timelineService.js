@@ -1,8 +1,5 @@
 import apiClient from './apiClient';
 
-// ตั้งค่าสำหรับ Development mode เพื่อให้สามารถทดสอบได้ง่ายขึ้น
-const IS_DEV = process.env.NODE_ENV === 'development';
-
 /**
  * TimelineService สำหรับจัดการการเรียกใช้ API ที่เกี่ยวข้องกับไทม์ไลน์
  */

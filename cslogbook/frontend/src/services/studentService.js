@@ -33,8 +33,8 @@ export const studentService = {
           firstName: apiData.data.firstName || "",
           lastName: apiData.data.lastName || "",
           email: apiData.data.email || "",
-          totalCredits: apiData.data.totalCredits || 0,
-          majorCredits: apiData.data.majorCredits || 0,
+          totalCredits: apiData.data.totalCredits ,
+          majorCredits: apiData.data.majorCredits ,
           studentYear: apiData.data.eligibility?.studentYear || {
             year: 0,
             semester: 0,

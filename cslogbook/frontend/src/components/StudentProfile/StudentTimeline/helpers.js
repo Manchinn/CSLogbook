@@ -27,15 +27,15 @@ export const getStatusText = (status) => {
     case "in_progress":
       return "กำลังดำเนินการ";
     case "pending":
-      return "รอการอนุมัติ"; // เช่น รออนุมัติ คพ.05
+      return "รอการอนุมัติ";
     case "awaiting_action":
-      return "รอการดำเนินการ"; // เช่น รอนักศึกษาอัปโหลดเอกสาร
+      return "รอการดำเนินการ";
     case "waiting":
-      return "รอดำเนินการ"; // ขั้นตอนที่ยังไม่ถึงคิว
+      return "รอดำเนินการ";
     case "blocked":
       return "ไม่สามารถดำเนินการได้";
     default:
-      return `ไม่ทราบสถานะ (${status})`; // แสดง status ที่ไม่รู้จักเพื่อช่วย debug
+      return `ไม่ทราบสถานะ (${status})`;
   }
 };
 
@@ -43,25 +43,23 @@ export const getStatusText = (status) => {
 export const getStatusColor = (status) => {
   switch (status) {
     case "completed":
-      return "success"; // เขียว: เสร็จสิ้น
+      return "success";
     case "in_progress":
-      return "processing"; // ฟ้า: กำลังดำเนินการ
+      return "processing";
     case "pending":
-      return "warning"; // ส้ม/เหลือง: รอการอนุมัติ
+      return "warning";
     case "awaiting_action":
-      return "processing"; // ฟ้า: รอนักศึกษาดำเนินการ (อาจจะใช้สีเดียวกับ in_progress หรือสีอื่นที่สื่อว่าต้องทำอะไรบางอย่าง)
-    // หรือ 'warning' ถ้าต้องการให้เด่นชัดว่ามี action ค้างอยู่
+      return "warning";
     case "waiting":
-      return "default"; // เทา/default: รอดำเนินการ/ยังไม่ถึง
+      return "default";
     case "blocked":
-      return "error"; // แดง: ไม่สามารถดำเนินการได้
+      return "error";
     case "rejected":
-      return "error"; // แดง: ถูกปฏิเสธ
+      return "error";
     case "overdue":
-      return "error"; // แดง: เลยกำหนด
-    // เพิ่ม case อื่นๆ ตามที่ backend อาจจะส่งมา หรือตามต้องการ
+      return "error";
     default:
-      return "default"; // สีเริ่มต้นสำหรับสถานะที่ไม่รู้จัก
+      return "default";
   }
 };
 
@@ -69,30 +67,28 @@ export const getStatusColor = (status) => {
 export const getStatusIcon = (status) => {
   switch (status) {
     case "completed":
-      return <CheckCircleOutlined />; // ไอคอนถูก: เสร็จสิ้น
+      return <CheckCircleOutlined />;
     case "in_progress":
-      return <ClockCircleFilled />; // ไอคอนนาฬิกา (เต็ม): กำลังดำเนินการ
+      return <ClockCircleOutlined />;
     case "pending":
-      return <WarningOutlined />; // ไอคอนเตือน: รอการอนุมัติ
+      return <ClockCircleFilled />;
     case "awaiting_action":
-      return <ClockCircleOutlined />; // ไอคอนนาฬิกา (ว่าง): รอนักศึกษาดำเนินการ
-    // หรือ <EditOutlined /> ถ้าเป็นการรอแก้ไข/กรอกข้อมูล
+      return <WarningOutlined />;
     case "waiting":
-      return <ClockCircleOutlined />; // ไอคอนนาฬิกา (ว่าง): รอดำเนินการ/ยังไม่ถึง
+      return <InfoCircleOutlined />;
     case "blocked":
-      return <LockOutlined />; // ไอคอนล็อค: ไม่สามารถดำเนินการได้
+      return <LockOutlined />;
     case "rejected":
-      return <WarningOutlined />; // ไอคอนเตือน: ถูกปฏิเสธ (อาจจะใช้ CloseCircleOutlined)
+      return <WarningOutlined />;
     case "overdue":
-      return <WarningOutlined />; // ไอคอนเตือน: เลยกำหนด
-    // เพิ่ม case อื่นๆ ตามที่ backend อาจจะส่งมา หรือตามต้องการ
+      return <WarningOutlined />;
     default:
-      return <InfoCircleOutlined />; // ไอคอนข้อมูล: สถานะที่ไม่รู้จัก
+      return <InfoCircleOutlined />;
   }
 };
 
-// ค่าเริ่มต้นสำหรับข้อมูลนักศึกษา
-export const DEFAULT_STUDENT_DATA = {
+// ฟังก์ชันสำหรับสร้างค่าเริ่มต้นที่ยืดหยุ่น
+export const createDefaultStudentData = (requirements = null) => ({
   id: "",
   name: "",
   year: 0,
@@ -106,7 +102,14 @@ export const DEFAULT_STUDENT_DATA = {
   nextAction: "none",
   internshipStatus: "not_started",
   projectStatus: "not_started",
-};
+  requirements: requirements || {
+    internship: null,
+    project: null,
+  },
+});
+
+// ค่าเริ่มต้นสำหรับข้อมูลนักศึกษา (ใช้ function แทน const)
+export const DEFAULT_STUDENT_DATA = createDefaultStudentData();
 
 // ค่าเริ่มต้นสำหรับข้อมูลความก้าวหน้า
 export const DEFAULT_PROGRESS_DATA = {

@@ -4,6 +4,127 @@ const workflowService = require('./workflowService');
 
 class TimelineService {
   /**
+   * ดึงข้อมูล timeline รวมของนักศึกษา (internship + project)
+   * @param {string|number} studentId - รหัสนักศึกษาหรือ studentId
+   * @returns {Object} ข้อมูล timeline รวมของนักศึกษา
+   */
+  async getStudentCompleteTimeline(studentId) {
+    try {
+      logger.info(`TimelineService: กำลังค้นหานักศึกษาด้วย ID/รหัสนักศึกษา: ${studentId}`);
+      
+      // ค้นหานักศึกษา
+      const student = await this.findStudent(studentId);
+      
+      if (!student) {
+        throw new Error(`ไม่พบนักศึกษาที่มีรหัส ${studentId}`);
+      }
+      
+      logger.info(`TimelineService: พบนักศึกษา: ${student.studentId} (รหัสนักศึกษา: ${student.studentCode})`);
+      
+      // สร้าง timeline สำหรับการฝึกงานและโครงงานแยกกัน
+      const [internshipTimeline, projectTimeline] = await Promise.all([
+        workflowService.generateStudentTimeline(student.studentId, 'internship'),
+        workflowService.generateStudentTimeline(student.studentId, 'project')
+      ]);
+      
+      // เพิ่มการปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
+      this.adjustTimelineStatus(internshipTimeline, student, 'internship');
+      this.adjustTimelineStatus(projectTimeline, student, 'project');
+      
+      return {
+        student: this.formatStudentData(student),
+        progress: {
+          internship: internshipTimeline,
+          project: projectTimeline
+        },
+        summary: this.createTimelineSummary(internshipTimeline, projectTimeline)
+      };
+      
+    } catch (error) {
+      logger.error('TimelineService: Error in getStudentCompleteTimeline', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ค้นหานักศึกษาทั้งจาก studentId และ studentCode
+   * @param {string|number} studentId - รหัสนักศึกษา
+   * @returns {Object|null} ข้อมูลนักศึกษา
+   */
+  async findStudent(studentId) {
+    let student = null;
+    
+    const numericId = parseInt(studentId);
+    if (!isNaN(numericId)) {
+      student = await Student.findByPk(numericId, {
+        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
+                  'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
+      });
+    }
+    
+    if (!student) {
+      student = await Student.findOne({
+        where: { studentCode: studentId.toString() },
+        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
+                  'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
+      });
+    }
+    
+    return student;
+  }
+
+  /**
+   * ปรับแต่งสถานะ timeline ตามข้อมูลในฐานข้อมูล
+   * @param {Object} timeline - ข้อมูล timeline
+   * @param {Object} student - ข้อมูลนักศึกษา
+   * @param {string} type - ประเภท timeline
+   */
+  adjustTimelineStatus(timeline, student, type) {
+    if (type === 'internship' && student.isEnrolledInternship && timeline.status === 'not_started') {
+      timeline.status = student.internshipStatus || 'in_progress';
+      timeline.progress = student.internshipStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
+    } else if (type === 'project' && student.isEnrolledProject && timeline.status === 'not_started') {
+      timeline.status = student.projectStatus || 'in_progress';
+      timeline.progress = student.projectStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
+    }
+  }
+
+  /**
+   * จัดรูปแบบข้อมูลนักศึกษาสำหรับการส่งกลับ
+   * @param {Object} student - ข้อมูลนักศึกษา
+   * @returns {Object} ข้อมูลนักศึกษาที่จัดรูปแบบแล้ว
+   */
+  formatStudentData(student) {
+    return {
+      id: student.studentId,
+      studentId: student.studentId,
+      studentCode: student.studentCode,
+      internshipStatus: student.internshipStatus,
+      isEnrolledInternship: !!student.isEnrolledInternship,
+      isEligibleInternship: student.isEligibleInternship,
+      isEligibleProject: student.isEligibleProject,
+      isEnrolledProject: !!student.isEnrolledProject,
+      projectStatus: student.projectStatus,
+    };
+  }
+
+  /**
+   * สร้างสรุป timeline
+   * @param {Object} internshipTimeline - timeline การฝึกงาน
+   * @param {Object} projectTimeline - timeline โครงงาน
+   * @returns {Object} สรุป timeline
+   */
+  createTimelineSummary(internshipTimeline, projectTimeline) {
+    return {
+      overallProgress: Math.round((internshipTimeline.progress + projectTimeline.progress) / 2),
+      nextAction: this.determineNextAction(internshipTimeline.steps, projectTimeline.steps),
+      completedSteps: (internshipTimeline.steps?.filter(s => s.status === 'completed')?.length || 0) +
+                     (projectTimeline.steps?.filter(s => s.status === 'completed')?.length || 0),
+      totalSteps: (internshipTimeline.totalStepsDisplay || 0) + (projectTimeline.totalStepsDisplay || 0)
+    };
+  }
+
+  /**
    * ดึงข้อมูล timeline ของนักศึกษา
    * @param {string|number} studentId - รหัสนักศึกษาหรือ studentId
    * @returns {Object} ข้อมูล timeline ของนักศึกษา

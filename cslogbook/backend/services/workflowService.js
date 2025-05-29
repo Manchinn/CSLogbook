@@ -251,6 +251,97 @@ class WorkflowService {
       };
     }
   }
+
+  /**
+   * ดึงข้อมูลขั้นตอนการทำงานตาม workflow type (สำหรับ Controller)
+   * @param {string} workflowType - ประเภท workflow
+   * @returns {Promise<Array>} - ข้อมูลขั้นตอนจาก database
+   */
+  async getWorkflowSteps(workflowType) {
+    try {
+      return await this.getWorkflowStepDefinitions(workflowType);
+    } catch (error) {
+      logger.error(`Error getting workflow steps for ${workflowType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึง timeline ของนักศึกษาตาม workflow type (สำหรับ Controller)
+   * @param {string|number} studentId - รหัสนักศึกษา
+   * @param {string} workflowType - ประเภท workflow
+   * @returns {Promise<Object>} - ข้อมูล timeline
+   */
+  async getStudentTimelineData(studentId, workflowType) {
+    try {
+      return await this.generateStudentTimeline(studentId, workflowType);
+    } catch (error) {
+      logger.error(`Error getting student timeline data for ${workflowType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดตสถานะขั้นตอนของนักศึกษา (สำหรับ Controller)
+   * @param {Object} params - พารามิเตอร์การอัปเดต
+   * @returns {Promise<Object>} - ผลการอัปเดต
+   */
+  async updateWorkflowStepStatus({ studentId, workflowType, stepKey, status, dataPayload }) {
+    try {
+      // อัปเดตสถานะ
+      const activity = await this.updateStudentWorkflowActivity(
+        studentId,
+        workflowType,
+        stepKey,
+        status,
+        status, // overallStatus
+        dataPayload
+      );
+
+      // ส่งคืนข้อมูล timeline ใหม่
+      const updatedTimeline = await this.generateStudentTimeline(studentId, workflowType);
+      
+      return {
+        activity,
+        timeline: updatedTimeline
+      };
+    } catch (error) {
+      logger.error('Error updating workflow step status:', error);
+      throw error;
+    }
+  }
+
+  // ฟังก์ชันช่วยสำหรับการกำหนด action text
+  getActionTextForStep(stepKey, status) {
+    const actionMapping = {
+      'INTERNSHIP_ELIGIBILITY_CHECK': 'ตรวจสอบคุณสมบัติ',
+      'INTERNSHIP_CS05_SUBMITTED': 'ยื่นคำร้อง คพ.05',
+      'INTERNSHIP_CS05_APPROVED': 'ดาวน์โหลดเอกสาร',
+      'INTERNSHIP_COMPANY_RESPONSE_PENDING': 'อัปโหลดหนังสือตอบรับ',
+      'INTERNSHIP_AWAITING_START': 'เตรียมตัวฝึกงาน',
+      'INTERNSHIP_IN_PROGRESS': 'บันทึกรายงานประจำวัน',
+      'INTERNSHIP_SUMMARY_PENDING': 'ส่งเอกสารสรุปผล',
+      'INTERNSHIP_COMPLETED': 'เสร็จสิ้น'
+    };
+
+    return actionMapping[stepKey] || 'ดำเนินการ';
+  }
+
+  // ฟังก์ชันช่วยสำหรับการกำหนด action link
+  getActionLinkForStep(stepKey, status, studentId) {
+    if (status !== 'awaiting_student_action' && status !== 'in_progress') {
+      return null;
+    }
+
+    const linkMapping = {
+      'INTERNSHIP_CS05_SUBMITTED': '/internship-registration',
+      'INTERNSHIP_COMPANY_RESPONSE_PENDING': '/internship/upload-response',
+      'INTERNSHIP_IN_PROGRESS': '/internship/daily-log',
+      'INTERNSHIP_SUMMARY_PENDING': '/internship/summary'
+    };
+
+    return linkMapping[stepKey] || null;
+  }
 }
 
 module.exports = new WorkflowService();
