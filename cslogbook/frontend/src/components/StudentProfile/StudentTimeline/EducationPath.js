@@ -16,8 +16,8 @@ const { Text } = Typography;
 // คอมโพเนนต์สำหรับแสดงเส้นทางการศึกษาหลัก
 const EducationPath = ({ student }) => {
   // คำนวณความพร้อมในการจบการศึกษา
-  const totalCreditsRequired = student.totalCreditsRequired || 127;
-  const majorCreditsRequired = student.majorCreditsRequired || 57;
+  const totalCreditsRequired = student.totalCreditsRequired;
+  const majorCreditsRequired = student.majorCreditsRequired;
 
   const isReadyToGraduate =
     student.totalCredits >= totalCreditsRequired &&

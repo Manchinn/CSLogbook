@@ -323,23 +323,6 @@ const NotificationSettings = () => {
                 
                 {notificationTypes.map(renderNotificationItem)}
             </div>
-
-            {/* Info Section */}
-            <Divider />
-            <Alert
-                message="ข้อมูลเพิ่มเติม"
-                description={
-                    <div>
-                        <p>• การแจ้งเตือนจะถูกส่งไปยังอีเมลของผู้ใช้เมื่อเกิดเหตุการณ์ที่เกี่ยวข้อง</p>
-                        <p>• การเปลี่ยนแปลงการตั้งค่าจะมีผลทันทีและบันทึกประวัติการแก้ไข</p>
-                        <p>• หากระบบอีเมลไม่ทำงาน การแจ้งเตือนจะใช้การตั้งค่าจากไฟล์ environment แทน</p>
-                        <p>• สามารถดูประวัติการแจ้งเตือนและสถิติการส่งในหน้า "รายงานระบบ"</p>
-                    </div>
-                }
-                type="info"
-                showIcon
-                icon={<InfoCircleOutlined />}
-            />
         </div>
     );
 };

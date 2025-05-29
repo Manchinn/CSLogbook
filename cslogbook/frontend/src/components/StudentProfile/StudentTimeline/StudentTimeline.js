@@ -52,6 +52,7 @@ const StudentTimeline = () => {
   const [showStudentSearchModal, setShowStudentSearchModal] = useState(false);
   const [searchStudentId, setSearchStudentId] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchForm] = Form.useForm(); // เพิ่ม useForm hook
 
   // ฟังก์ชั่นค้นหานักศึกษาด้วยรหัสใหม่
   const searchStudent = async () => {
@@ -69,7 +70,6 @@ const StudentTimeline = () => {
         // ถ้าพบนักศึกษา บันทึกรหัสลงใน localStorage และเปลี่ยนหน้า
         localStorage.setItem("studentId", searchStudentId);
         navigate(`/student/timeline/${searchStudentId}`);
-        window.location.reload(); // รีโหลดเพื่อใช้รหัสนักศึกษาใหม่
       } else {
         message.error("ไม่พบข้อมูลนักศึกษาในระบบ");
       }
@@ -150,7 +150,10 @@ const StudentTimeline = () => {
     <Modal
       title="ค้นหาข้อมูลนักศึกษา"
       open={showStudentSearchModal}
-      onCancel={() => setShowStudentSearchModal(false)}
+      onCancel={() => {
+        setShowStudentSearchModal(false);
+        searchForm.resetFields(); // รีเซ็ต form เมื่อปิด modal
+      }}
       footer={[
         <Button 
           key="search" 
@@ -165,13 +168,24 @@ const StudentTimeline = () => {
     >
       <p>ระบบไม่พบข้อมูลนักศึกษารหัส {studentIdToUse}</p>
       <p>คุณสามารถค้นหาข้อมูลด้วยรหัสนักศึกษาอื่น</p>
-      <Form layout="vertical">
-        <Form.Item label="รหัสนักศึกษา">
+      <Form 
+        form={searchForm} // เชื่อมต่อ form กับ useForm
+        layout="vertical"
+        onFinish={searchStudent} // ใช้ onFinish แทน onClick
+      >
+        <Form.Item 
+          label="รหัสนักศึกษา"
+          name="studentId"
+          rules={[
+            { required: true, message: 'กรุณากรอกรหัสนักศึกษา' },
+            { pattern: /^\d+$/, message: 'รหัสนักศึกษาต้องเป็นตัวเลขเท่านั้น' }
+          ]}
+        >
           <Input 
             placeholder="กรอกรหัสนักศึกษา" 
             value={searchStudentId} 
             onChange={(e) => setSearchStudentId(e.target.value)}
-            onPressEnter={searchStudent}
+            onPressEnter={() => searchForm.submit()} // ใช้ form.submit()
           />
         </Form.Item>
       </Form>

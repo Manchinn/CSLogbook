@@ -14,7 +14,6 @@ import CreditsGuideModal from './CreditsGuideModal';
 import { ScheduleOutlined, FileDoneOutlined, UserOutlined } from '@ant-design/icons';
 import './styles.css';
 
-const { TabPane } = Tabs;
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -143,7 +142,7 @@ const StudentProfile = () => {
         alignItems: "center",
         minHeight: "calc(100vh - 64px)",
       }}>
-        <Spin>
+        <Spin size="large">
           <div style={{ padding: "50px", textAlign: "center" }}>
             กำลังโหลดข้อมูล...
           </div>
@@ -172,6 +171,56 @@ const StudentProfile = () => {
     userData?.role === "teacher" || 
     (userData?.role === "student" && userData?.studentCode === id);
 
+  // สร้าง tabItems สำหรับใช้กับ items prop
+  const tabItems = [
+    {
+      key: 'info',
+      label: (
+        <span>
+          <UserOutlined /> ข้อมูลนักศึกษา
+        </span>
+      ),
+      children: editing ? (
+        <StudentEditForm
+          form={form}
+          onFinish={handleEdit}
+          onCancel={() => setEditing(false)}
+          initialValues={student}
+          requirements={student.requirements}
+          eligibilityCriteria={eligibilityCriteria} 
+        />
+      ) : (
+        <StudentInfo
+          student={student}
+          onEdit={handleEditWithConsent}
+          canEdit={canEdit}
+        />
+      ),
+    },
+    {
+      key: 'timeline',
+      label: (
+        <span>
+          <ScheduleOutlined /> ไทม์ไลน์การศึกษา
+        </span>
+      ),
+      children: <StudentTimeline />,
+    },
+    {
+      key: 'documents',
+      label: (
+        <span>
+          <FileDoneOutlined /> เอกสาร
+        </span>
+      ),
+      children: (
+        <div className="documents-section">
+          <p>เอกสารของนักศึกษาจะแสดงในส่วนนี้</p>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="container">
       <Row gutter={[24, 24]} justify="center">
@@ -182,43 +231,12 @@ const StudentProfile = () => {
           />
         </Col>
         <Col xs={24} lg={18}>
-          <Tabs activeKey={activeTab} onChange={setActiveTab} className="profile-tabs">
-            <TabPane 
-              tab={<span><UserOutlined /> ข้อมูลนักศึกษา</span>}
-              key="info"
-            >
-              {editing ? (
-                <StudentEditForm
-                  form={form}
-                  onFinish={handleEdit}
-                  onCancel={() => setEditing(false)}
-                  initialValues={student}
-                  requirements={student.requirements}
-                  eligibilityCriteria={eligibilityCriteria} 
-                />
-              ) : (
-                <StudentInfo
-                  student={student}
-                  onEdit={handleEditWithConsent}
-                  canEdit={canEdit}
-                />
-              )}
-            </TabPane>
-            <TabPane 
-              tab={<span><ScheduleOutlined /> ไทม์ไลน์การศึกษา</span>}
-              key="timeline"
-            >
-              <StudentTimeline />
-            </TabPane>
-            <TabPane 
-              tab={<span><FileDoneOutlined /> เอกสาร</span>}
-              key="documents"
-            >
-              <div className="documents-section">
-                <p>เอกสารของนักศึกษาจะแสดงในส่วนนี้</p>
-              </div>
-            </TabPane>
-          </Tabs>
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            className="profile-tabs"
+            items={tabItems}
+          />
         </Col>
       </Row>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 // Role-specific particle colors
 const ROLE_COLORS = {
@@ -10,23 +10,21 @@ const ROLE_COLORS = {
 
 // Particle configuration
 const PARTICLE_CONFIG = {
-  count: 25, // ลดจำนวน particles จาก 45 เหลือ 25
-  maxSize: 8, // เพิ่มขนาดสูงสุด
-  minSize: 3, // เพิ่มขนาดต่ำสุด
-  maxSpeed: 0.3, // เพิ่มความเร็วสูงสุด
-  minSpeed: 0.1, // เพิ่มความเร็วต่ำสุด
-  opacity: 0.3, // เพิ่มความทึบเล็กน้อย
+  count: 25,
+  maxSize: 8,
+  minSize: 3,
+  maxSpeed: 0.3,
+  minSpeed: 0.1,
+  opacity: 0.3,
   
-  // Configuration for connections between particles
   connections: {
-    enabled: true,               // เปิดใช้งานการเชื่อมต่อระหว่าง particles
-    maxDistance: 100,            // ลดระยะห่างสูงสุดที่จะวาดเส้นเชื่อม จาก 150 เหลือ 100
-    lineWidth: 0.5,              // ความหนาของเส้น
-    opacity: 0.1,                // ความทึบของเส้น
-    showForPercentage: 0.4       // แสดงเส้นเชื่อมเฉพาะ % ของ particles (ลดการคำนวณ)
+    enabled: true,
+    maxDistance: 100,
+    lineWidth: 0.5,
+    opacity: 0.1,
+    showForPercentage: 0.4
   },
   
-  // Get colors based on user role
   getColors: () => {
     const role = localStorage.getItem('role') || 'default';
     return ROLE_COLORS[role] || ROLE_COLORS.default;
@@ -34,23 +32,26 @@ const PARTICLE_CONFIG = {
 };
 
 const BackgroundParticles = () => {
+  // ใช้ useRef สำหรับ canvas element โดยตรง
   const canvasRef = useRef(null);
-  const particles = useRef([]);
-  const animationFrameId = useRef(null);
-  const isTabActive = useRef(true); // เพิ่ม state สำหรับติดตามสถานะ tab
+  
+  // ใช้ useRef สำหรับเก็บข้อมูลที่ไม่ต้อง re-render
+  const particlesRef = useRef([]);
+  const animationFrameRef = useRef(null);
+  const isTabActiveRef = useRef(true);
 
-  // Debounce utility function
-  const debounce = (func, delay) => {
+  // ใช้ useCallback เพื่อป้องกันการสร้างฟังก์ชันใหม่ทุกครั้ง
+  const debounce = useCallback((func, delay) => {
     let timeout;
     return function(...args) {
       const context = this;
       clearTimeout(timeout);
       timeout = setTimeout(() => func.apply(context, args), delay);
     };
-  };
+  }, []);
 
-  // Initialize particles
-  const initParticles = () => {
+  // ฟังก์ชันสำหรับสร้าง particles เริ่มต้น
+  const initParticles = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -58,41 +59,37 @@ const BackgroundParticles = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    particles.current = [];
-      for (let i = 0; i < PARTICLE_CONFIG.count; i++) {      const colors = PARTICLE_CONFIG.getColors();
-      // สร้างขนาดแบบไม่เป็นเส้นตรง (non-linear) เพื่อให้มีความหลากหลายมากขึ้น
-      const sizeVariation = Math.pow(Math.random(), 2); // Non-linear distribution
+    particlesRef.current = [];
+    
+    for (let i = 0; i < PARTICLE_CONFIG.count; i++) {
+      const colors = PARTICLE_CONFIG.getColors();
+      const sizeVariation = Math.pow(Math.random(), 2);
       const size = PARTICLE_CONFIG.minSize + sizeVariation * (PARTICLE_CONFIG.maxSize - PARTICLE_CONFIG.minSize);
-      
-      // กำหนดความเร็วที่แตกต่างกัน และบางอันอาจเคลื่อนที่เร็วกว่า
-      const speedFactor = Math.random() > 0.8 ? 1.5 : 1; // 20% ของ particles จะเร็วกว่า
+      const speedFactor = Math.random() > 0.8 ? 1.5 : 1;
       const baseSpeed = PARTICLE_CONFIG.minSpeed + Math.random() * (PARTICLE_CONFIG.maxSpeed - PARTICLE_CONFIG.minSpeed);
       
-      particles.current.push({
+      particlesRef.current.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         size: size,
         speedX: (Math.random() - 0.5) * 2 * baseSpeed * speedFactor,
         speedY: (Math.random() - 0.5) * 2 * baseSpeed * speedFactor,
         color: colors[Math.floor(Math.random() * colors.length)],
-        opacity: PARTICLE_CONFIG.opacity * (0.7 + Math.random() * 0.5), // ความทึบที่แตกต่างกัน
-        initialSize: size, // เก็บขนาดเริ่มต้นไว้สำหรับการ pulse
-        pulseDirection: Math.random() > 0.5 ? 1 : -1, // ทิศทางของการ pulse
-        pulseSpeed: 0.01 + Math.random() * 0.02, // ความเร็วในการ pulse
+        opacity: PARTICLE_CONFIG.opacity * (0.7 + Math.random() * 0.5),
+        initialSize: size,
+        pulseDirection: Math.random() > 0.5 ? 1 : -1,
+        pulseSpeed: 0.01 + Math.random() * 0.02,
       });
     }
-  };
+  }, []);
 
-  // Animation loop  // Draw connections between particles
-  const drawConnections = (ctx, allParticles) => {
-    if (!PARTICLE_CONFIG.connections || !PARTICLE_CONFIG.connections.enabled) return;
+  // ฟังก์ชันสำหรับวาดเส้นเชื่อมระหว่าง particles
+  const drawConnections = useCallback((ctx, allParticles) => {
+    if (!PARTICLE_CONFIG.connections?.enabled) return;
     
-    // Limit connections to reduce CPU usage
     const connectionThreshold = PARTICLE_CONFIG.connections.showForPercentage || 0.4;
     
-    // วนลูปเพื่อหาเส้นเชื่อมระหว่าง particles
     for (let i = 0; i < allParticles.length; i++) {
-      // สุ่มว่าจะแสดงเส้นเชื่อมสำหรับ particle นี้หรือไม่
       if (Math.random() > connectionThreshold) continue;
       
       const p1 = allParticles[i];
@@ -100,35 +97,35 @@ const BackgroundParticles = () => {
       for (let j = i + 1; j < allParticles.length; j++) {
         const p2 = allParticles[j];
         
-        // คำนวณระยะห่าง
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // วาดเส้นถ้าอยู่ในระยะที่กำหนด
-        if (distance < (PARTICLE_CONFIG.connections.maxDistance || 150)) {
-          // ความทึบจะลดลงตามระยะทาง
+        if (distance < PARTICLE_CONFIG.connections.maxDistance) {
           const opacity = 
-            (PARTICLE_CONFIG.connections.opacity || 0.1) * 
-            (1 - distance / (PARTICLE_CONFIG.connections.maxDistance || 150));
+            PARTICLE_CONFIG.connections.opacity * 
+            (1 - distance / PARTICLE_CONFIG.connections.maxDistance);
           
           ctx.beginPath();
           ctx.moveTo(p1.x, p1.y);
           ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = p1.color; // ใช้สีของ particle
-          ctx.lineWidth = PARTICLE_CONFIG.connections.lineWidth || 0.5;
+          ctx.strokeStyle = p1.color;
+          ctx.lineWidth = PARTICLE_CONFIG.connections.lineWidth;
           ctx.globalAlpha = opacity;
           ctx.stroke();
         }
       }
     }
-  };
+  }, []);
 
-  const animate = () => {
+  // ฟังก์ชัน animation loop
+  const animate = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !isTabActive.current) { // หยุด animate ถ้า tab ไม่ active
-      if (isTabActive.current) { // ขอ frame ต่อไปถ้า tab active แต่ canvas ไม่มี
-        animationFrameId.current = requestAnimationFrame(animate);
+    
+    // ตรวจสอบว่า canvas มีอยู่และ tab เป็น active
+    if (!canvas || !isTabActiveRef.current) {
+      if (isTabActiveRef.current) {
+        animationFrameRef.current = requestAnimationFrame(animate);
       }
       return;
     }
@@ -136,20 +133,18 @@ const BackgroundParticles = () => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw connections first (so they appear behind particles)
-    if (PARTICLE_CONFIG.connections && PARTICLE_CONFIG.connections.enabled) {
-      drawConnections(ctx, particles.current);
+    // วาดเส้นเชื่อมก่อน (เพื่อให้อยู่ด้านหลัง particles)
+    if (PARTICLE_CONFIG.connections?.enabled) {
+      drawConnections(ctx, particlesRef.current);
     }
     
-    particles.current.forEach(particle => {
-      // ทำการ pulse size (เปลี่ยนขนาดเป็นจังหวะ)
+    // วาดและอัพเดต particles
+    particlesRef.current.forEach(particle => {
       const pulseFactor = Math.sin(Date.now() * 0.001 * particle.pulseSpeed) * 0.2;
       const currentSize = particle.initialSize * (1 + pulseFactor * particle.pulseDirection);
       
-      // ใช้ค่าความทึบแบบแต่ละ particle
       ctx.globalAlpha = particle.opacity;
       
-      // วาด particle
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2);
       ctx.fillStyle = particle.color;
@@ -159,60 +154,67 @@ const BackgroundParticles = () => {
       particle.x += particle.speedX;
       particle.y += particle.speedY;
       
-      // Wrap around edges (ห่อรอบขอบจอ)
+      // ห่อรอบขอบจอ
       if (particle.x < 0) particle.x = canvas.width;
       if (particle.x > canvas.width) particle.x = 0;
       if (particle.y < 0) particle.y = canvas.height;
       if (particle.y > canvas.height) particle.y = 0;
     });
     
-    animationFrameId.current = requestAnimationFrame(animate);
-  };
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [drawConnections]);
 
-  // Handle window resize
-  const handleResize = () => {
+  // ฟังก์ชันจัดการ window resize
+  const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    // Re-initialize particles only if the tab is active, otherwise they'll init when tab becomes active
-    if (isTabActive.current) {
+    
+    if (isTabActiveRef.current) {
       initParticles();
     }
-  };
+  }, [initParticles]);
 
-  // Handle Page Visibility
-  const handleVisibilityChange = () => {
+  // ฟังก์ชันจัดการ Page Visibility
+  const handleVisibilityChange = useCallback(() => {
     if (document.hidden) {
-      isTabActive.current = false;
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current); // หยุด animation
+      isTabActiveRef.current = false;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     } else {
-      isTabActive.current = true;
-      initParticles(); // Re-initialize particles if needed (e.g., if resize happened while tab was hidden)
-      animate(); // เริ่ม animation ใหม่
+      isTabActiveRef.current = true;
+      initParticles();
+      animate();
     }
-  };
+  }, [initParticles, animate]);
 
   useEffect(() => {
+    // สร้าง debounced version ของ handleResize
     const debouncedHandleResize = debounce(handleResize, 250);
     
+    // เริ่มต้น particles และ animation
     initParticles();
     animate();
-    window.addEventListener('resize', debouncedHandleResize);
-    document.addEventListener('visibilitychange', handleVisibilityChange); // เพิ่ม event listener
     
+    // เพิ่ม event listeners
+    window.addEventListener('resize', debouncedHandleResize);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup function
     return () => {
       window.removeEventListener('resize', debouncedHandleResize);
-      document.removeEventListener('visibilitychange', handleVisibilityChange); // ลบ event listener
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [debounce, handleResize, handleVisibilityChange, initParticles, animate]);
 
   return (
     <canvas
