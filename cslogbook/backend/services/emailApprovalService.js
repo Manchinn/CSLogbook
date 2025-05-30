@@ -243,7 +243,7 @@ class EmailApprovalService {
       const supervisorDisplayName = internshipDoc.supervisorName || internshipDoc.supervisorEmail;
       
       // ส่งอีเมลไปยังหัวหน้างาน
-      await sendTimeSheetApprovalRequest(
+      const emailResult = await sendTimeSheetApprovalRequest(
         internshipDoc.supervisorEmail,
         supervisorDisplayName,
         studentFullName,
@@ -252,6 +252,27 @@ class EmailApprovalService {
         timeSheetEntries,
         type
       );
+
+      // เพิ่มการจัดการผลลัพธ์จากการส่งอีเมล
+      if (emailResult.sent) {
+          logger.info(`ส่งอีเมลคำขออนุมัติสำเร็จ - นักศึกษา: ${studentFullName}, ประเภท: ${type}`, {
+              supervisorEmail: internshipDoc.supervisorEmail,
+              supervisorName: supervisorDisplayName,
+              studentName: studentFullName,
+              type,
+              messageId: emailResult.messageId,
+              service: 'EmailApprovalService'
+          });
+      } else {
+          logger.warn(`ไม่สามารถส่งอีเมลคำขออนุมัติได้ - นักศึกษา: ${studentFullName}, ประเภท: ${type}`, {
+              supervisorEmail: internshipDoc.supervisorEmail,
+              supervisorName: supervisorDisplayName,
+              studentName: studentFullName,
+              type,
+              reason: emailResult.reason,
+              service: 'EmailApprovalService'
+          });
+      }
 
       await transaction.commit();
 

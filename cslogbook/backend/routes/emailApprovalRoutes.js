@@ -20,6 +20,5 @@ router.post('/approve/:token', emailApprovalController.approveTimeSheetViaEmail)
 router.get('/reject/:token', emailApprovalController.rejectTimeSheetViaEmail);
 router.post('/reject/:token', emailApprovalController.rejectTimeSheetViaEmail);
 
-// เพิ่ม route สำหรับดึงข้อมูลรายละเอียดการอนุมัติ
-router.get('/details/:token', emailApprovalController.getApprovalDetails);
+
 module.exports = router;

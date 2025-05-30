@@ -117,7 +117,17 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
       const response = await emailApprovalService.sendApprovalRequest(currentStudentId, data);
       
       if (response.success) {
-        message.success('ส่งคำขออนุมัติผ่านอีเมลไปยังหัวหน้างานเรียบร้อยแล้ว');
+        // ✅ มีการตรวจสอบแล้ว แต่อาจจะต้องปรับปรุงการแสดงผล
+        if (response.emailSent === false) {
+          if (response.reason === 'notification_disabled') {
+            message.warning('คำขออนุมัติได้รับการบันทึกแล้ว แต่ไม่ส่งอีเมลเนื่องจากการแจ้งเตือนถูกปิดใช้งาน');
+          } else {
+            message.warning(`คำขออนุมัติได้รับการบันทึกแล้ว แต่ไม่สามารถส่งอีเมลได้: ${response.reason || 'ไม่ทราบสาเหตุ'}`);
+          }
+        } else {
+          message.success('ส่งคำขออนุมัติผ่านอีเมลไปยังหัวหน้างานเรียบร้อยแล้ว');
+        }
+        
         setApprovalModalVisible(false);
         form.resetFields();
       } else {
