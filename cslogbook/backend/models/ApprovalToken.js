@@ -5,19 +5,20 @@ module.exports = (sequelize, DataTypes) => {
     class ApprovalToken extends Model {        static associate(models) {
             // สร้างความสัมพันธ์กับโมเดล InternshipLogbook
             this.belongsTo(models.InternshipLogbook, {
-                foreignKey: 'logId',
+                foreignKey: 'log_id', // ใช้ property name ในโมเดล ApprovalToken
                 as: 'logbook'
             });
               // สร้างความสัมพันธ์กับโมเดล Student
             this.belongsTo(models.Student, {
-                foreignKey: 'studentId', // ใช้ property name ในโมเดล ApprovalToken
+                foreignKey: 'student_id', // ใช้ property name ในโมเดล ApprovalToken
                 targetKey: 'studentCode', // target ที่ field studentCode ในตาราง students 
                 as: 'student'
             });
 
             // Add association to Document model
             this.belongsTo(models.Document, {
-                foreignKey: 'documentId',
+                foreignKey: 'document_id',
+                targetKey: 'documentId', // Assuming Document model has documentId as primary key
                 as: 'document'
             });
         }
@@ -54,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         logId: {
             type: DataTypes.STRING(255), // เก็บเป็น string เพราะอาจมีหลาย logId คั่นด้วย comma
-            allowNull: false,
+            allowNull: true,
             field: 'log_id'
         },
         supervisorId: {

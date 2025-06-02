@@ -4,12 +4,12 @@ module.exports = (sequelize) => {
   class InternshipDocument extends Model {
     static associate(models) {
       InternshipDocument.belongsTo(models.Document, {
-        foreignKey: "documentId",
+        foreignKey: "document_id",
         targetKey: "documentId",
         as: "document",
       });
       InternshipDocument.hasMany(models.InternshipLogbook, {
-        foreignKey: "internshipId",
+        foreignKey: "internship_id",
         as: "logbooks",
       });
     }

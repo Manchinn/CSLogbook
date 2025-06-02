@@ -4,16 +4,23 @@ module.exports = (sequelize) => {
     class User extends Model {
         static associate(models) {
             User.hasOne(models.Student, {
-                foreignKey: 'userId',
+                foreignKey: 'user_id',
+                sourceKey: 'userId',
                 as: 'student'
             });
             User.hasOne(models.Teacher, {
-                foreignKey: 'userId',
+                foreignKey: 'user_id',
                 as: 'teacher'
             });
             User.hasOne(models.Admin, {
-                foreignKey: 'userId',
+                foreignKey: 'user_id',
+                sourceKey: 'userId',
                 as: 'admin'
+            });
+            User.hasMany(models.Document, {
+                foreignKey: 'user_id',
+                sourceKey: 'userId',
+                as: 'documents'
             });
             User.hasMany(models.NotificationSetting, {
                 foreignKey: 'updatedByAdminId',

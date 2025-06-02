@@ -51,13 +51,38 @@ const TimesheetApproval = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log(`🔍 กำลังเรียก API: /api/email-approval/details/${token.substring(0, 16)}...`);
+      
       const response = await fetch(`/api/email-approval/details/${token}`);
+      
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+      console.log(`📡 Response headers:`, Object.fromEntries(response.headers.entries()));
+      
+      // ตรวจสอบ content type ก่อน parse JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textResponse = await response.text();
+        console.error(`❌ Server ตอบกลับด้วย ${contentType}:`, textResponse);
+        throw new Error(`Server ตอบกลับด้วย ${contentType} แทนที่จะเป็น JSON. Response: ${textResponse.substring(0, 200)}...`);
+      }
+      
+      // อ่าน response body
       const data = await response.json();
+      console.log(`📄 Response data:`, data);
+      
+      // ตรวจสอบ HTTP status หลังจากได้ข้อมูลแล้ว
+      if (!response.ok) {
+        const errorMessage = data.message || `HTTP Error: ${response.status} - ${response.statusText}`;
+        console.error(`❌ API Error (${response.status}):`, errorMessage);
+        throw new Error(errorMessage);
+      }
+      
       if (data.success && data.data) {
+        console.log(`✅ ได้รับข้อมูลการอนุมัติสำเร็จ:`, data.data);
         setApprovalDetails(data.data);
         if (data.data.status !== "pending") {
           setSubmitted(true);
-          // เพิ่ม message แจ้งเตือนว่า token ถูกใช้งานแล้ว
           if (data.data.status === 'approved') {
             message.info('การอนุมัตินี้ได้รับการอนุมัติไปแล้ว');
           } else if (data.data.status === 'rejected') {
@@ -65,11 +90,30 @@ const TimesheetApproval = () => {
           }
         }
       } else {
-        setError(data.message || "ไม่สามารถดึงข้อมูลการอนุมัติได้");
+        const errorMsg = data.message || "ไม่สามารถดึงข้อมูลการอนุมัติได้";
+        console.error(`❌ API returned unsuccessful:`, data);
+        setError(errorMsg);
       }
     } catch (err) {
-      console.error("Error fetching approval data:", err);
-      setError("เกิดข้อผิดพลาดในการดึงข้อมูล");
+      console.error("❌ Error fetching approval data:", err);
+      
+      // ปรับปรุงข้อความ error ให้ชัดเจนขึ้น
+      let errorMessage = "เกิดข้อผิดพลาดในการดึงข้อมูล";
+      if (err.message.includes("Failed to fetch")) {
+        errorMessage = "ไม่สามารถเชื่อมต่อกับ Server ได้ กรุณาตรวจสอบว่า Backend Server ทำงานอยู่หรือไม่";
+      } else if (err.message.includes("content-type")) {
+        errorMessage = err.message;
+      } else if (err.message.includes("HTTP Error: 400")) {
+        errorMessage = `ข้อมูล Token ไม่ถูกต้อง: ${err.message}`;
+      } else if (err.message.includes("HTTP Error: 404")) {
+        errorMessage = "ไม่พบข้อมูลการอนุมัติสำหรับ Token นี้";
+      } else if (err.message.includes("HTTP Error: 500")) {
+        errorMessage = "เกิดข้อผิดพลาดในระบบ Backend กรุณาลองใหม่อีกครั้ง";
+      } else {
+        errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -84,18 +128,40 @@ const TimesheetApproval = () => {
       message.error("กรุณาเลือกการดำเนินการ (อนุมัติ หรือ ไม่อนุมัติ)");
       return;
     }
+
+    // ตรวจสอบการปฏิเสธต้องมี comment
+    if (decision === "reject" && (!values.comment || values.comment.trim() === '')) {
+      message.error("กรุณาระบุเหตุผลในการปฏิเสธ");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
+      // ✅ แก้ไข endpoints ให้ตรงกับ backend routes
       const endpoint =
         decision === "approve"
-          ? `/api/email-approval/approve/${token}`
-          : `/api/email-approval/reject/${token}`;
+          ? `/api/email-approval/web/approve/${token}`    // แก้ไขเป็น email-approval
+          : `/api/email-approval/web/reject/${token}`;    // แก้ไขเป็น email-approval
+
+      console.log(`Submitting ${decision} to:`, endpoint);
+        
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comment: values.comment || "" }),
       });
+      
+      // เพิ่มการตรวจสอบ content type
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(`Server ตอบกลับด้วย ${contentType} แทนที่จะเป็น JSON. คาดว่าจะได้รับ JSON response`);
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+      }
+      
       const result = await response.json();
       if (result.success) {
         message.success(
@@ -104,7 +170,7 @@ const TimesheetApproval = () => {
             : "ปฏิเสธบันทึกการฝึกงานเรียบร้อยแล้ว"
         );
         setSubmitted(true);
-        setApprovalDetails(prev => ({...prev, status: decision === 'approve' ? 'approved' : 'rejected'})); // อัปเดต status ใน state
+        setApprovalDetails(prev => ({...prev, status: decision === 'approve' ? 'approved' : 'rejected'}));
         form.resetFields();
       } else {
         setError(result.message || "เกิดข้อผิดพลาดในการดำเนินการ");
@@ -112,7 +178,16 @@ const TimesheetApproval = () => {
       }
     } catch (err) {
       console.error("Error submitting approval:", err);
-      const errorMessage = "เกิดข้อผิดพลาดในการส่งข้อมูล";
+      
+      let errorMessage = "เกิดข้อผิดพลาดในการส่งข้อมูล";
+      if (err.message.includes("content-type")) {
+        errorMessage = "Server ส่ง HTML response แทน JSON กรุณาตรวจสอบ API endpoint";
+      } else if (err.message.includes("Failed to fetch")) {
+        errorMessage = "ไม่สามารถเชื่อมต่อกับ Server ได้";
+      } else {
+        errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
+      }
+      
       setError(errorMessage);
       message.error(errorMessage);
     } finally {
@@ -238,11 +313,11 @@ const TimesheetApproval = () => {
     <div className={styles.pageContainer}>
       <Row justify="center">
         <Col xs={24} sm={22} md={20} lg={18} xl={16}>
-          <Card className={styles.approvalCard} bordered={false}>
+          <Card className={styles.approvalCard} variant="bordered">
             <div className={styles.pageHeaderContainer}>
               {/* เปลี่ยน src ให้เป็น URL โดยตรง */}
               <img 
-                src="https://scontent.fbkk8-2.fna.fbcdn.net/v/t39.30808-6/301788674_572678294646260_6080834268011590388_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHwaSCEIyciHQ9-Z6wGmIws4i0v0ruBTi_iLS_Su4FOL5CK_IbRyxDjD9zstvQr1H7IXx4bGPeYg3Z3B84p5BUW&_nc_ohc=YigkqPcMQVIQ7kNvwGtl1In&_nc_oc=Adm8fsT8FsGImJebnMJkyz4vaxyNqWwJVVVywIwbVS3kjM7e--1Rr7gNkijfj4HSvl4&_nc_zt=23&_nc_ht=scontent.fbkk8-2.fna&_nc_gid=na_Qm_pyW_emT-h2pY4Biw&oh=00_AfKQrvC3Ho39f5kM8ftfeQhDh9H89xk0DQVu2mkvCAd4tw&oe=683D1584" 
+                src="https://scontent.fbkk8-2.fna.fbcdn.net/v/t39.30808-6/301788674_572678294646260_6080834268011590388_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=Qcv_M3Wwaz0Q7kNvwHJQhnG&_nc_oc=Adl3O_3Ti2z62Fb17uIqmxJWV00NajBteIXiY4J9ichzEc5nNDAo-UsSwvA3CEefY8A&_nc_zt=23&_nc_ht=scontent.fbkk8-2.fna&_nc_gid=du5bv_VAyvZFljN579mBzg&oh=00_AfJ32GqhuWgxl3oREYYIE3XUIhjbiaoI1Lq5YwRXSAsHRw&oe=68433C84" 
                 alt="โลโก้คณะวิทยาศาสตร์ประยุกต์ มจพ." 
                 className={styles.logoImage} 
               />

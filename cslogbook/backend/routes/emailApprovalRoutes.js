@@ -9,16 +9,24 @@ const {
     checkRole,
   } = require("../middleware/authMiddleware");
 
+// Routes สำหรับดึงข้อมูลการอนุมัติ
+router.get('/details/:token', emailApprovalController.getApprovalDetails);
+
 // Routes สำหรับนักศึกษาส่งคำขออนุมัติ (ต้องล็อกอินเป็นนักศึกษา)
-router.post('/request/:studentId', authenticateToken,checkRole(['student']), emailApprovalController.sendApprovalRequest);
-router.get('/history/:studentId', authenticateToken,checkRole(['student']), emailApprovalController.getApprovalHistory);
+router.post('/request/:studentId', authenticateToken, checkRole(['student']), emailApprovalController.sendApprovalRequest);
 
-// Routes สำหรับการอนุมัติ/ปฏิเสธผ่านอีเมล (ไม่ต้อง auth เพราะใช้ token แทน)
-router.get('/approve/:token', emailApprovalController.approveTimeSheetViaEmail);
-router.post('/approve/:token', emailApprovalController.approveTimeSheetViaEmail);
+// ===============================
+// Routes สำหรับ Email Links (HTML responses) - สำหรับคลิกจากอีเมล
+// ===============================
+router.get('/email/approve/:token', emailApprovalController.approveTimeSheetViaEmail);
+router.post('/email/approve/:token', emailApprovalController.approveTimeSheetViaEmail);
+router.get('/email/reject/:token', emailApprovalController.rejectTimeSheetViaEmail);
+router.post('/email/reject/:token', emailApprovalController.rejectTimeSheetViaEmail);
 
-router.get('/reject/:token', emailApprovalController.rejectTimeSheetViaEmail);
-router.post('/reject/:token', emailApprovalController.rejectTimeSheetViaEmail);
-
+// ===============================
+// Routes สำหรับ Web Component (JSON responses) - สำหรับ TimesheetApproval component
+// ===============================
+router.post('/web/approve/:token', emailApprovalController.approveTimesheetViaWeb);
+router.post('/web/reject/:token', emailApprovalController.rejectTimesheetViaWeb);
 
 module.exports = router;

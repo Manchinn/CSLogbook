@@ -2,8 +2,7 @@ import React from 'react';
 import { Timeline, Space, Tag, Button, Typography } from 'antd';
 import { 
   CloudDownloadOutlined, FormOutlined, RightCircleOutlined, 
-  ClockCircleFilled, CheckCircleOutlined, ExclamationCircleOutlined,
-  CloseCircleOutlined, SyncOutlined, LoadingOutlined
+  ClockCircleFilled, ExclamationCircleOutlined, SyncOutlined,
 } from '@ant-design/icons';
 import { getStatusColor, getStatusIcon, getStatusText } from './helpers';
 import moment from 'moment';

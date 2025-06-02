@@ -3,7 +3,7 @@ import { Upload, Button, Table, message, Space, Typography, Card } from 'antd';
 import { UploadOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const AdminUpload = () => {
   const [fileList, setFileList] = useState([]);

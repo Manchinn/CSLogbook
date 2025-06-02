@@ -4,19 +4,22 @@ module.exports = (sequelize) => {
     class Student extends Model {
         static associate(models) {
             Student.belongsTo(models.User, {
-                foreignKey: 'userId',
+                foreignKey: 'user_id',
+                targetKey: 'userId',
                 as: 'user'
             });
             Student.belongsTo(models.Teacher, {
-                foreignKey: 'advisorId',
+                foreignKey: 'advisor_id',
+                targetKey: 'teacherId',
                 as: 'advisor'
             });
             Student.belongsTo(models.Curriculum, {
-                foreignKey: 'curriculumId',
+                foreignKey: 'curriculum_id',
+                targetKey: 'curriculumId',
                 as: 'studentCurriculum'
             });
             Student.hasMany(models.ProjectMember, {
-                foreignKey: 'studentId',
+                foreignKey: 'student_id',
                 as: 'projectMemberships'
             });
             // Student.hasMany(models.InternshipDocument, {
@@ -24,12 +27,12 @@ module.exports = (sequelize) => {
             //     as: \'internshipDocuments\'
             // });
             Student.hasMany(models.ProjectDocument, {
-                foreignKey: 'studentId',
+                foreignKey: 'student_id',
                 as: 'projectDocuments'
             });
             Student.hasMany(models.Document, {
-                foreignKey: 'userId',
-                sourceKey: 'userId',
+                foreignKey: 'user_id',
+                sourceKey: 'user_id',
                 as: 'documents'
             });
             Student.hasMany(models.TimelineStep, {
