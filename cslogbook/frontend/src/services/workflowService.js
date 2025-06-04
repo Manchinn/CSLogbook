@@ -46,7 +46,7 @@ export const workflowService = {
   },
 
   /**
-   * ดึง timeline ของนักศึกษาตาม workflow type
+   * ดึง timeline ของนักศึกษาตาม workflow type (รวม step definitions)
    * @param {string|number} studentId - รหัสนักศึกษา
    * @param {string} workflowType - ประเภท workflow (internship, project)
    * @returns {Promise} - ข้อมูล timeline พร้อมขั้นตอนและความคืบหน้า
@@ -59,13 +59,22 @@ export const workflowService = {
         throw new Error(response.data.message || `ไม่สามารถดึงข้อมูล timeline ${workflowType} ได้`);
       }
 
-      // แปลงข้อมูลให้เหมาะสมกับการแสดงผลใน frontend
       const timelineData = response.data.data || {};
       
+      // เพิ่มการประมวลผล step definitions ถ้ามี
+      const processedSteps = (timelineData.steps || []).map(step => ({
+        ...step,
+        displayInfo: workflowService.getStepDisplayInfo(
+          step.stepKey, 
+          step.status, 
+          step.stepDefinition // ข้อมูล definition จาก database
+        )
+      }));
+
       return {
         success: true,
         data: {
-          steps: timelineData.steps || [],
+          steps: processedSteps,
           progress: timelineData.progress || 0,
           status: timelineData.status || 'not_started',
           currentStepDisplay: timelineData.currentStepDisplay || 0,
@@ -149,12 +158,25 @@ export const workflowService = {
   },
 
   /**
-   * แปลง step_key เป็นข้อมูลสำหรับการแสดงผล (icon, สี, ข้อความ)
+   * แปลง step_key เป็นข้อมูลสำหรับการแสดงผล (รองรับการดึงจาก database)
    * @param {string} stepKey - key ของขั้นตอน
    * @param {string} status - สถานะปัจจุบัน
+   * @param {object} stepDefinition - ข้อมูล step definition จาก database (optional)
    * @returns {object} - ข้อมูลสำหรับการแสดงผล
    */
-  getStepDisplayInfo: (stepKey, status = 'waiting') => {
+  getStepDisplayInfo: (stepKey, status = 'waiting', stepDefinition = null) => {
+    // ถ้ามี stepDefinition จาก database ให้ใช้ข้อมูลจากนั้น
+    if (stepDefinition) {
+      return {
+        icon: workflowService.getIconByStepKey(stepKey),
+        color: workflowService.getColorByStatus(status),
+        actionText: workflowService.getActionTextByStatus(status),
+        title: stepDefinition.title,
+        description: stepDefinition.descriptionTemplate
+      };
+    }
+
+    // fallback ไปใช้ mapping เดิมถ้าไม่มีข้อมูลจาก database
     const stepMapping = {
       // ขั้นตอนการฝึกงาน
       'INTERNSHIP_ELIGIBILITY_CHECK': {
@@ -239,41 +261,61 @@ export const workflowService = {
       description: 'รอการดำเนินการ'
     };
 
-    // แก้ไขสีตามสถานะปัจจุบัน
     const stepInfo = stepMapping[stepKey] || defaultInfo;
-    let finalColor = stepInfo.color;
-
-    // ปรับสีตามสถานะ
-    switch (status) {
-      case 'completed':
-        finalColor = 'success';
-        break;
-      case 'in_progress':
-        finalColor = 'processing';
-        break;
-      case 'pending':
-      case 'awaiting_approval':
-        finalColor = 'warning';
-        break;
-      case 'awaiting_student_action':
-      case 'awaiting_action':
-        finalColor = 'warning';
-        break;
-      case 'blocked':
-      case 'rejected':
-        finalColor = 'error';
-        break;
-      case 'waiting':
-      case 'not_started':
-      default:
-        finalColor = 'default';
-        break;
-    }
-
+    
     return {
       ...stepInfo,
-      color: finalColor
+      color: workflowService.getColorByStatus(status)
     };
+  },
+
+  /**
+   * กำหนดไอคอนตาม step key pattern
+   * @param {string} stepKey - key ของขั้นตอน
+   * @returns {string} - ชื่อไอคอน
+   */
+  getIconByStepKey: (stepKey) => {
+    if (stepKey.includes('ELIGIBILITY')) return 'CheckCircleOutlined';
+    if (stepKey.includes('SUBMITTED')) return 'FormOutlined';
+    if (stepKey.includes('APPROVED')) return 'CheckCircleOutlined';
+    if (stepKey.includes('PENDING')) return 'ClockCircleOutlined';
+    if (stepKey.includes('IN_PROGRESS')) return 'SyncOutlined';
+    if (stepKey.includes('COMPLETED')) return 'CheckCircleOutlined';
+    return 'InfoCircleOutlined';
+  },
+
+  /**
+   * กำหนดสีตามสถานะ
+   * @param {string} status - สถานะ
+   * @returns {string} - สี
+   */
+  getColorByStatus: (status) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'in_progress': return 'processing';
+      case 'pending':
+      case 'awaiting_approval':
+      case 'awaiting_student_action':
+      case 'awaiting_action': return 'warning';
+      case 'blocked':
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
+  },
+
+  /**
+   * กำหนดข้อความปุ่มตามสถานะ
+   * @param {string} status - สถานะ
+   * @returns {string} - ข้อความปุ่ม
+   */
+  getActionTextByStatus: (status) => {
+    switch (status) {
+      case 'awaiting_student_action': return 'ดำเนินการ';
+      case 'completed': return 'ดูรายละเอียด';
+      case 'in_progress': return 'อัปเดตสถานะ';
+      case 'pending': return 'ตรวจสอบสถานะ';
+      default: return 'ดำเนินการ';
+    }
   },
 
   /**

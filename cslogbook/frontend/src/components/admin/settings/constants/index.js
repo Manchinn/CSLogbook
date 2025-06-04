@@ -4,6 +4,7 @@ import AcademicSettings from './academic/AcademicSettings';
 import StatusSettings from './StatusSettings';
 import CurriculumSettings from './CurriculumSettings';
 import NotificationSettings from './NotificationSettings'; // เพิ่ม import
+import WorkflowStepManagement from '../WorkflowSteps/WorkflowStepManagement';
 import './styles.css';
 
 const { Title } = Typography;
@@ -31,6 +32,11 @@ const ConstantsSettings = () => {
       key: '4',
       label: 'การแจ้งเตือน',
       children: <NotificationSettings /> // เพิ่มแท็บการแจ้งเตือน
+    },
+    {
+      key: '5',
+      label: 'ขั้นตอน Workflow',
+      children: <WorkflowStepManagement />
     }
   ];
   

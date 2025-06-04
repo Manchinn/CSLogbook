@@ -26,6 +26,9 @@ const CurriculumSettingsPage = lazy(() =>
 const NotificationSettingsPage = lazy(() =>
   import("./settings/NotificationSettingsPage")
 );
+const WorkflowStepManagementPage = lazy(() =>
+  import("./settings/WorkflowStepsSettingsPage")
+);
 
 // Loading component
 const LoadingComponent = () => (
@@ -76,6 +79,8 @@ const AdminRoutes = () => {
                 <Route path="status" element={<StatusSettingsPage />} />
                 <Route path="curriculum" element={<CurriculumSettingsPage />} />
                 <Route path="notification-settings" element={<NotificationSettingsPage />} />
+                <Route path="workflow-steps" element={<WorkflowStepManagementPage />} />
+
               </Route>
             </Routes>
           </Suspense>

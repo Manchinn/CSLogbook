@@ -6,6 +6,19 @@ const {
 const logger = require('../utils/logger');
 
 class WorkflowService {
+  // เพิ่มฟังก์ชันสำหรับ refresh cache หลังจากแก้ไข step definitions
+  async refreshStepDefinitionsCache(workflowType) {
+    try {
+      // ถ้ามีระบบ cache ให้ clear cache ของ workflowType นี้
+      // เช่น Redis cache invalidation
+      logger.info(`Refreshing step definitions cache for ${workflowType}`);
+      
+      // สามารถเพิ่มโค้ดสำหรับ cache invalidation ได้ที่นี่
+    } catch (error) {
+      logger.error('Error refreshing step definitions cache:', error);
+    }
+  }
+
   // ฟังก์ชันดึงข้อมูล WorkflowStepDefinitions ตาม workflowType
   async getWorkflowStepDefinitions(workflowType) {
     try {

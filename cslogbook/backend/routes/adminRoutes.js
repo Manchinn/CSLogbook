@@ -8,6 +8,8 @@ const documentController = require('../controllers/documents/documentController'
 const curriculumController = require('../controllers/curriculumController');
 const academacController = require('../controllers/academicController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
+// เพิ่ม import controller ใหม่สำหรับ workflow step definitions
+const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 
@@ -69,6 +71,22 @@ router.get('/academic', adminAuth, academacController.getAcademicSettings);
 router.post('/academic', adminAuth, academacController.createAcademicSettings);
 router.put('/academic', adminAuth, academacController.updateAcademicSettings);  
 router.delete('/academic/:id', adminAuth, academacController.deleteAcademicSettings);
+
+// === เพิ่ม Admin Workflow Step Definition Routes ===
+// ดึงรายการขั้นตอน workflow ทั้งหมด (สำหรับจัดการ)
+router.get('/workflow-steps', adminAuth, workflowStepDefinitionController.getAllSteps);
+// ดึงข้อมูลขั้นตอนเฉพาะรายการ
+router.get('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionController.getStepById);
+// ดูสถิติการใช้งานขั้นตอน
+router.get('/workflow-steps/:stepId/stats', adminAuth, workflowStepDefinitionController.getStepUsageStats);
+// สร้างขั้นตอนใหม่
+router.post('/workflow-steps', adminAuth, workflowStepDefinitionController.createStep);
+// จัดเรียงลำดับขั้นตอนใหม่
+router.post('/workflow-steps/reorder', adminAuth, workflowStepDefinitionController.reorderSteps);
+// อัปเดตขั้นตอน
+router.put('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionController.updateStep);
+// ลบขั้นตอน
+router.delete('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionController.deleteStep);
 
 // === เพิ่ม Admin Notification Settings Routes ===
 // ดึงการตั้งค่าการแจ้งเตือนทั้งหมด

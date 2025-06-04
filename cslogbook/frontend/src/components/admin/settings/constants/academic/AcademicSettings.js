@@ -132,23 +132,6 @@ const AcademicSettings = () => {
             ปีการศึกษาและภาคเรียนปัจจุบันจะใช้เป็นค่าตั้งต้นสำหรับการสมัครฝึกงานและโครงงาน
           </Text>
 
-          <Alert
-            message="การเตือน"
-            description={
-              <div>
-                การเปลี่ยนแปลงปีการศึกษาจะส่งผลต่อ:
-                <ul>
-                  <li>การคำนวณชั้นปีของนักศึกษาโดยอัตโนมัติ</li>
-                  <li>การกำหนดหลักสูตรที่นักศึกษาใช้</li>
-                  <li>การตรวจสอบคุณสมบัติการฝึกงานและโครงงาน</li>
-                </ul>
-              </div>
-            }
-            type="warning"
-            showIcon
-            style={{ marginTop: "16px", marginBottom: "16px" }}
-          />
-
           <Row gutter={16} style={{ marginTop: 16 }}>
             <Col span={12}>
               <Form form={form} layout="vertical">

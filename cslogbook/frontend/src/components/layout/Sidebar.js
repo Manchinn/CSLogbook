@@ -410,6 +410,10 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                   key: "/admin/settings/notification-settings",
                   label: "การแจ้งเตือน",
                 },
+                {
+                  key: "/admin/settings/workflow-steps",
+                  label: "ขั้นตอนการทำงาน",
+                },
               ],
             },
           ]

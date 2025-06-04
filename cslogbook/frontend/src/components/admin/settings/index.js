@@ -29,6 +29,12 @@ const SettingsIndex = () => {
       path: '/admin/settings/academic'
     },
     {
+      title: 'ขั้นตอนการทำงาน',
+      icon: <TeamOutlined />,
+      description: 'กำหนดขั้นตอนการทำงานสำหรับการฝึกงานและโครงงานพิเศษ',
+      path: '/admin/settings/workflow-steps'
+    },
+    {
       title: 'สถานะนักศึกษา',
       icon: <TeamOutlined />,
       description: 'กำหนดสถานะและเงื่อนไขต่างๆ ของนักศึกษา',

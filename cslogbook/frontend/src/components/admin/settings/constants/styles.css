@@ -105,3 +105,70 @@
   color: #5a5a5a;
   font-size: 13px;
 }
+
+/* เพิ่ม styles สำหรับ Workflow Steps */
+.workflow-steps-container {
+  .workflow-step-card {
+    margin-bottom: 16px;
+    border-radius: 8px;
+
+    &.required {
+      border-left: 4px solid #52c41a;
+    }
+
+    &.optional {
+      border-left: 4px solid #faad14;
+    }
+  }
+
+  .step-order-tag {
+    min-width: 40px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .step-reorder-item {
+    cursor: move;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    &.dragging {
+      opacity: 0.5;
+      transform: rotate(5deg);
+    }
+  }
+}
+
+/* เพิ่ม responsive styles */
+@media (max-width: 768px) {
+  .workflow-steps-container {
+    .ant-table {
+      font-size: 12px;
+    }
+
+    .step-actions {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+}
+
+/* เพิ่ม animation สำหรับ drag & drop */
+@keyframes dragHighlight {
+  0% {
+    background-color: #f0f0f0;
+  }
+  50% {
+    background-color: #e6f7ff;
+  }
+  100% {
+    background-color: #f0f0f0;
+  }
+}
+
+.step-drag-over {
+  animation: dragHighlight 0.5s ease-in-out;
+}
