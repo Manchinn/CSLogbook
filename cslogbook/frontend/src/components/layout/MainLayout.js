@@ -87,10 +87,11 @@ const MainLayout = () => {
         }}
         className="mobile-sidebar-drawer"
         maskClosable={true}
-        destroyOnClose={false}
+        destroyOnHidden={false}
       >
         <Sidebar inDrawer={true} onMenuClick={onClose} />
-      </Drawer>      <Layout>
+      </Drawer>
+      <Layout>
         {/* Header */}
         <HeaderComponent isMobile={isMobile} showDrawer={showDrawer} />
         {/* Main Content */}

@@ -193,7 +193,7 @@ const WorkflowStepManagement = () => {
       title: 'รหัสขั้นตอน',
       dataIndex: 'stepKey',
       key: 'stepKey',
-      width: 220,
+      width: 180,
       ellipsis: true,
       render: (text) => (
         <Tooltip title={text}>
@@ -206,6 +206,7 @@ const WorkflowStepManagement = () => {
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
+      width: 180,
       render: (text) => (
         <Tooltip title={text}>
           <Text strong>{text}</Text>
@@ -217,28 +218,11 @@ const WorkflowStepManagement = () => {
       dataIndex: 'descriptionTemplate',
       key: 'descriptionTemplate',
       ellipsis: true,
-      width: 300,
+      width: 220,
       render: (text) => (
         <Tooltip title={text}>
           <Text type="secondary">{text}</Text>
         </Tooltip>
-      )
-    },
-    {
-      title: 'จำเป็น',
-      dataIndex: 'isRequired',
-      key: 'isRequired',
-      width: 80,
-      align: 'center',
-      filters: [
-        { text: 'จำเป็น', value: true },
-        { text: 'ไม่จำเป็น', value: false }
-      ],
-      onFilter: (value, record) => record.isRequired === value,
-      render: (isRequired) => (
-        <Tag color={isRequired ? 'green' : 'orange'}>
-          {isRequired ? 'ใช่' : 'ไม่'}
-        </Tag>
       )
     },
     {
@@ -286,7 +270,6 @@ const WorkflowStepManagement = () => {
 
   return (
     <div>
-      {/* ลบ Breadcrumb ออกแล้ว */}
       <Card>
         {/* Header Section */}
         <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
@@ -400,7 +383,7 @@ const WorkflowStepManagement = () => {
                 fetchSteps({ page, limit: pageSize });
               }
             }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: 1000 }}
             size="middle"
           />
         )}

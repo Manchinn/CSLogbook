@@ -5,7 +5,8 @@ import {
   SettingOutlined, 
   CalendarOutlined, 
   TeamOutlined, 
-  BookOutlined 
+  BookOutlined,
+  ToolOutlined
 } from '@ant-design/icons';
 import './constants/styles.css';
 
@@ -30,7 +31,7 @@ const SettingsIndex = () => {
     },
     {
       title: 'ขั้นตอนการทำงาน',
-      icon: <TeamOutlined />,
+      icon: <ToolOutlined />,
       description: 'กำหนดขั้นตอนการทำงานสำหรับการฝึกงานและโครงงานพิเศษ',
       path: '/admin/settings/workflow-steps'
     },

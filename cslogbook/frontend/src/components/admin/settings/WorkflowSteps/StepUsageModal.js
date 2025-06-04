@@ -103,7 +103,7 @@ const StepUsageModal = ({ visible, step, onCancel }) => {
       onCancel={onCancel}
       footer={null}
       width={700}
-      destroyOnClose
+      destroyOnHidden={true}
     >
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -149,11 +149,6 @@ const StepUsageModal = ({ visible, step, onCancel }) => {
               </Descriptions.Item>
               <Descriptions.Item label="ลำดับขั้นตอน">
                 <Tag color="blue">{step.stepOrder}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="ความจำเป็น">
-                <Tag color={step.isRequired ? 'green' : 'orange'}>
-                  {step.isRequired ? 'จำเป็น' : 'ไม่จำเป็น'}
-                </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="คำอธิบาย">
                 <Text>{step.descriptionTemplate}</Text>

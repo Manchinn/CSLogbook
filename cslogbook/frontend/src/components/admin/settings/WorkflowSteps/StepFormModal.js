@@ -70,7 +70,13 @@ const StepFormModal = ({
       setValidationErrors({});
 
       // เตรียมข้อมูลก่อนส่ง
-      const stepData = workflowStepService.prepareStepData(values);
+      const stepData = {
+        ...values,
+        // แปลง dependencies จาก string เป็น array ถ้ามี
+        dependencies: values.dependencies ? 
+          JSON.parse(values.dependencies) : 
+          null
+      };
 
       // ตรวจสอบความถูกต้องของข้อมูล
       const validation = workflowStepService.validateStepData(stepData);
@@ -132,6 +138,11 @@ const StepFormModal = ({
     }
   };
 
+  // ป้องกัน warning โดยไม่ render Form เมื่อ modal ยังไม่เปิด
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       title={
@@ -143,8 +154,9 @@ const StepFormModal = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      width={800}
-      destroyOnClose
+      style={{ top: 30 }}
+      width={1000}
+      destroyOnHidden={true}
     >
       {/* แสดง error ทั่วไป */}
       {validationErrors.general && (
@@ -163,6 +175,7 @@ const StepFormModal = ({
         onFinish={handleSubmit}
         disabled={loading}
         scrollToFirstError
+        preserve={false} // ป้องกันการเก็บค่าในฟอร์มเมื่อปิด modal
       >
         {/* ข้อมูลพื้นฐาน */}
         <Card size="small" title="ข้อมูลพื้นฐาน" style={{ marginBottom: 16 }}>
@@ -258,22 +271,6 @@ const StepFormModal = ({
               placeholder="คำอธิบายที่จะแสดงในระบบ สามารถใช้ตัวแปรได้ เช่น [สถานะ], [วันที่]"
             />
           </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="isRequired"
-                label="ขั้นตอนจำเป็น"
-                valuePropName="checked"
-                tooltip="กำหนดว่าขั้นตอนนี้จำเป็นต้องทำหรือไม่"
-              >
-                <Switch 
-                  checkedChildren="จำเป็น" 
-                  unCheckedChildren="ไม่จำเป็น" 
-                />
-              </Form.Item>
-            </Col>
-          </Row>
         </Card>
 
         {/* ขั้นตอนที่ต้องทำก่อน */}

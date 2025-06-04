@@ -78,12 +78,6 @@ const SortableStepItem = ({ step, index, onOrderChange }) => {
           <Col span={10}>
             <Text strong>{step.title}</Text>
           </Col>
-          
-          <Col span={2}>
-            <Tag color={step.isRequired ? 'green' : 'orange'} size="small">
-              {step.isRequired ? 'จำเป็น' : 'ไม่จำเป็น'}
-            </Tag>
-          </Col>
         </Row>
       </Card>
     </div>
@@ -284,7 +278,8 @@ const StepReorderModal = ({
       }
       open={visible}
       onCancel={onCancel}
-      width={800}
+      width={1000}
+      style={{ top: 30 }}
       footer={
         <Space>
           <Button onClick={onCancel} disabled={loading}>
@@ -308,7 +303,7 @@ const StepReorderModal = ({
           </Button>
         </Space>
       }
-      destroyOnClose
+      destroyOnHidden={true}
     >
       {reorderedSteps.length === 0 ? (
         <Alert
@@ -348,9 +343,6 @@ const StepReorderModal = ({
               </Col>
               <Col span={10}>
                 <Text strong>ชื่อขั้นตอน</Text>
-              </Col>
-              <Col span={2}>
-                <Text strong>สถานะ</Text>
               </Col>
             </Row>
           </Card>

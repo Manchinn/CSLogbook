@@ -305,7 +305,7 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       styles={{ 
         body: { maxHeight: '80vh', overflow: 'auto', padding: '20px' } 
       }}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       className="document-detail-modal"
     >
       {loading ? (

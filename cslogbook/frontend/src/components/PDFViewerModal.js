@@ -257,7 +257,7 @@ const PDFViewerModal = ({ visible, pdfUrl, onClose, title = "เอกสาร 
         ...style 
       }}
       styles={{ body: modalBodyStyle }}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       footer={[
         <div key="controls" style={{ 
           display: 'flex', 
