@@ -27,7 +27,71 @@
   min-height: 280px;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  /* Removed transition effect */
+  /* เพิ่ม border ที่ชัดเจน */
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+/* เพิ่ม styling สำหรับ content container */
+.content-container {
+  background: rgba(255, 255, 255, 0.95) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  position: relative;
+  z-index: 2;
+}
+
+/* Input และ Form Elements Border Styling */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-cascader-selector,
+.ant-picker,
+.ant-input-number {
+  border: 2px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Focus State สำหรับ Input Elements */
+.ant-input:focus,
+.ant-input:hover,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper:hover,
+.ant-select-focused .ant-select-selector,
+.ant-select-selector:hover,
+.ant-cascader-focused .ant-cascader-selector,
+.ant-picker:hover,
+.ant-picker:focus,
+.ant-input-number:focus,
+.ant-input-number:hover {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 1) !important;
+}
+
+/* Error State สำหรับ Input Elements */
+.ant-input.ant-input-status-error,
+.ant-input-affix-wrapper.ant-input-affix-wrapper-status-error,
+.ant-select.ant-select-status-error .ant-select-selector,
+.ant-picker.ant-picker-status-error,
+.ant-input-number.ant-input-number-status-error {
+  border-color: #ff4d4f !important;
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.15) !important;
+}
+
+/* Success State สำหรับ Input Elements */
+.ant-input.ant-input-status-success,
+.ant-input-affix-wrapper.ant-input-affix-wrapper-status-success,
+.ant-select.ant-select-status-success .ant-select-selector,
+.ant-picker.ant-picker-status-success,
+.ant-input-number.ant-input-number-status-success {
+  border-color: #52c41a !important;
+  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.15) !important;
 }
 
 .drawer-button {
@@ -43,26 +107,30 @@
   justify-content: center;
   background-color: var(--background-card);
   box-shadow: var(--box-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
-
-/* ลบ Animation และ hover effects */
 
 /* Responsive layout adjustments */
 @media (max-width: 768px) {
   .content {
     margin: 16px;
     padding: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
   
-  /* Improve mobile drawer appearance */
-  .ant-drawer-body {
-    padding: 0 !important;
-  }
-  
-  /* Adjust margins for content on smaller screens */
-  .content > div {
+  .content-container {
     margin: 0.5rem !important;
     padding: 12px !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  }
+  
+  /* ปรับ input size สำหรับ mobile */
+  .ant-input, 
+  .ant-input-affix-wrapper, 
+  .ant-select-selector,
+  .ant-picker {
+    font-size: 16px !important; /* ป้องกันการ zoom ใน iOS */
+    min-height: 44px !important; /* ขนาดที่เหมาะสำหรับการแตะบน mobile */
   }
   
   /* Better spacing for header elements on mobile */
