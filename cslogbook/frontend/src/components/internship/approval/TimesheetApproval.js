@@ -437,7 +437,7 @@ const TimesheetApproval = () => {
                       icon={<SendOutlined />}
                       className={styles.submitButton}
                     >
-                      ส่งการตัดสินใจ
+                      ส่งการตรวจบันทึกการฝึกงาน
                     </Button>
                   </Form.Item>
                 </Form>

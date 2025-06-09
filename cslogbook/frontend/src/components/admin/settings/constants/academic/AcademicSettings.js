@@ -16,8 +16,12 @@ import {
   Table,
   Tag,
   Alert,
+  TimePicker,
+  Space,
+  Collapse,
+  Tooltip,
 } from "antd";
-import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
+import { SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined, CalendarOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../../services/admin/settingsService";
 import th_TH from "antd/lib/locale/th_TH";
 import moment from "moment";
@@ -36,12 +40,19 @@ import {
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Panel } = Collapse;
+const { TextArea } = Input;
 
 const AcademicSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
+  const [deadlines, setDeadlines] = useState({
+    semester1: [],
+    semester2: [],
+    semester3: []
+  });
 
   // Function to fetch and set curriculums
   const fetchAndSetCurriculums = async () => {
@@ -110,6 +121,38 @@ const AcademicSettings = () => {
     } else {
       message.error(statusMessage);
     }
+  };
+
+  const addDeadline = (semester) => {
+    const newDeadline = {
+      id: Date.now(),
+      activity: '',
+      date: null,
+      time: null,
+      note: '',
+      type: 'project' // project, internship, general
+    };
+    
+    setDeadlines(prev => ({
+      ...prev,
+      [semester]: [...prev[semester], newDeadline]
+    }));
+  };
+
+  const removeDeadline = (semesterKey, deadlineId) => {
+    setDeadlines(prev => ({
+      ...prev,
+      [semesterKey]: prev[semesterKey].filter(d => d.id !== deadlineId)
+    }));
+  };
+
+  const updateDeadline = (semesterKey, deadlineId, field, value) => {
+    setDeadlines(prev => ({
+      ...prev,
+      [semesterKey]: prev[semesterKey].map(d => 
+        d.id === deadlineId ? { ...d, [field]: value } : d
+      )
+    }));
   };
 
   if (loading && !form.getFieldsValue().currentAcademicYear) {
@@ -477,6 +520,345 @@ const AcademicSettings = () => {
           </Row>
         </Card>
 
+        <Divider />
+
+        {/* เพิ่มส่วนกำหนดการสำคัญ */}
+        <Card className="settings-card">
+          <Title level={5}>กำหนดการสำคัญในปีการศึกษา</Title>
+          <Text type="secondary">
+            จัดการวันที่สำคัญและ deadline ต่างๆ สำหรับการยื่นเอกสาร สอบ และกิจกรรมสำคัญในแต่ละภาคเรียน
+          </Text>
+
+          <Collapse 
+            defaultActiveKey={['semester1']} 
+            style={{ marginTop: 16 }}
+            items={[
+              {
+                key: 'semester1',
+                label: (
+                  <span>
+                    <CalendarOutlined style={{ marginRight: 8 }} />
+                    กำหนดการภาคเรียนที่ 1
+                  </span>
+                ),
+                children: (
+                  <div>
+                    <div style={{ marginBottom: 16 }}>
+                      <Button 
+                        type="dashed" 
+                        icon={<PlusOutlined />}
+                        onClick={() => addDeadline('semester1')}
+                        block
+                      >
+                        เพิ่มกำหนดการใหม่
+                      </Button>
+                    </div>
+                    
+                    {deadlines.semester1.map((deadline, index) => (
+                      <Card 
+                        key={deadline.id}
+                        size="small"
+                        style={{ marginBottom: 12 }}
+                        title={`กำหนดการที่ ${index + 1}`}
+                        extra={
+                          <Button 
+                            type="text" 
+                            danger 
+                            icon={<DeleteOutlined />}
+                            onClick={() => removeDeadline('semester1', deadline.id)}
+                          />
+                        }
+                      >
+                        <Row gutter={16}>
+                          <Col span={24}>
+                            <Form.Item label="ประเภทกิจกรรม">
+                              <Select
+                                value={deadline.type}
+                                onChange={(value) => updateDeadline('semester1', deadline.id, 'type', value)}
+                                placeholder="เลือกประเภท"
+                              >
+                                <Option value="project">โครงงาน/ปริญญานิพนธ์</Option>
+                                <Option value="internship">ฝึกงาน/สหกิจศึกษา</Option>
+                                <Option value="general">ทั่วไป</Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          
+                          <Col span={24}>
+                            <Form.Item label="รายละเอียดกิจกรรม">
+                              <Input
+                                value={deadline.activity}
+                                onChange={(e) => updateDeadline('semester1', deadline.id, 'activity', e.target.value)}
+                                placeholder="เช่น วันสุดท้ายของยื่นสอบหัวข้อโครงงานพิเศษ"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={12}>
+                            <Form.Item label="วันที่">
+                              <DatePicker
+                                style={{ width: '100%' }}
+                                value={deadline.date}
+                                onChange={(date) => updateDeadline('semester1', deadline.id, 'date', date)}
+                                format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                                locale={th_TH}
+                                placeholder="เลือกวันที่"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={12}>
+                            <Form.Item label="เวลา (ถ้ามี)">
+                              <TimePicker
+                                style={{ width: '100%' }}
+                                value={deadline.time}
+                                onChange={(time) => updateDeadline('semester1', deadline.id, 'time', time)}
+                                format="HH:mm น."
+                                placeholder="เลือกเวลา"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={24}>
+                            <Form.Item label="หมายเหตุ">
+                              <TextArea
+                                value={deadline.note}
+                                onChange={(e) => updateDeadline('semester1', deadline.id, 'note', e.target.value)}
+                                placeholder="เช่น กรอก Google Form, ณ ภาควิชา ชั้น 6"
+                                rows={2}
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </Card>
+                    ))}
+                  </div>
+                )
+              },
+              {
+                key: 'semester2',
+                label: (
+                  <span>
+                    <CalendarOutlined style={{ marginRight: 8 }} />
+                    กำหนดการภาคเรียนที่ 2
+                  </span>
+                ),
+                children: (
+                  <div>
+                    <div style={{ marginBottom: 16 }}>
+                      <Button 
+                        type="dashed" 
+                        icon={<PlusOutlined />}
+                        onClick={() => addDeadline('semester2')}
+                        block
+                      >
+                        เพิ่มกำหนดการใหม่
+                      </Button>
+                    </div>
+                    
+                    {deadlines.semester2.map((deadline, index) => (
+                      <Card 
+                        key={deadline.id}
+                        size="small"
+                        style={{ marginBottom: 12 }}
+                        title={`กำหนดการที่ ${index + 1}`}
+                        extra={
+                          <Button 
+                            type="text" 
+                            danger 
+                            icon={<DeleteOutlined />}
+                            onClick={() => removeDeadline('semester2', deadline.id)}
+                          />
+                        }
+                      >
+                        <Row gutter={16}>
+                          <Col span={24}>
+                            <Form.Item label="ประเภทกิจกรรม">
+                              <Select
+                                value={deadline.type}
+                                onChange={(value) => updateDeadline('semester2', deadline.id, 'type', value)}
+                                placeholder="เลือกประเภท"
+                              >
+                                <Option value="project">โครงงาน/ปริญญานิพนธ์</Option>
+                                <Option value="internship">ฝึกงาน/สหกิจศึกษา</Option>
+                                <Option value="general">ทั่วไป</Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          
+                          <Col span={24}>
+                            <Form.Item label="รายละเอียดกิจกรรม">
+                              <Input
+                                value={deadline.activity}
+                                onChange={(e) => updateDeadline('semester2', deadline.id, 'activity', e.target.value)}
+                                placeholder="เช่น วันสุดท้ายของยื่นสอบหัวข้อโครงงานพิเศษ"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={12}>
+                            <Form.Item label="วันที่">
+                              <DatePicker
+                                style={{ width: '100%' }}
+                                value={deadline.date}
+                                onChange={(date) => updateDeadline('semester2', deadline.id, 'date', date)}
+                                format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                                locale={th_TH}
+                                placeholder="เลือกวันที่"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={12}>
+                            <Form.Item label="เวลา (ถ้ามี)">
+                              <TimePicker
+                                style={{ width: '100%' }}
+                                value={deadline.time}
+                                onChange={(time) => updateDeadline('semester2', deadline.id, 'time', time)}
+                                format="HH:mm น."
+                                placeholder="เลือกเวลา"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={24}>
+                            <Form.Item label="หมายเหตุ">
+                              <TextArea
+                                value={deadline.note}
+                                onChange={(e) => updateDeadline('semester2', deadline.id, 'note', e.target.value)}
+                                placeholder="เช่น กรอก Google Form, ณ ภาควิชา ชั้น 6"
+                                rows={2}
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </Card>
+                    ))}
+                  </div>
+                )
+              },
+              {
+                key: 'semester3',
+                label: (
+                  <span>
+                    <CalendarOutlined style={{ marginRight: 8 }} />
+                    กำหนดการภาคฤดูร้อน
+                  </span>
+                ),
+                children: (
+                  <div>
+                    <div style={{ marginBottom: 16 }}>
+                      <Button 
+                        type="dashed" 
+                        icon={<PlusOutlined />}
+                        onClick={() => addDeadline('semester3')}
+                        block
+                      >
+                        เพิ่มกำหนดการใหม่
+                      </Button>
+                    </div>
+                    
+                    {deadlines.semester3.map((deadline, index) => (
+                      <Card 
+                        key={deadline.id}
+                        size="small"
+                        style={{ marginBottom: 12 }}
+                        title={`กำหนดการที่ ${index + 1}`}
+                        extra={
+                          <Button 
+                            type="text" 
+                            danger 
+                            icon={<DeleteOutlined />}
+                            onClick={() => removeDeadline('semester3', deadline.id)}
+                          />
+                        }
+                      >
+                        <Row gutter={16}>
+                          <Col span={24}>
+                            <Form.Item label="ประเภทกิจกรรม">
+                              <Select
+                                value={deadline.type}
+                                onChange={(value) => updateDeadline('semester3', deadline.id, 'type', value)}
+                                placeholder="เลือกประเภท"
+                              >
+                                <Option value="project">โครงงาน/ปริญญานิพนธ์</Option>
+                                <Option value="internship">ฝึกงาน/สหกิจศึกษา</Option>
+                                <Option value="general">ทั่วไป</Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          
+                          <Col span={24}>
+                            <Form.Item label="รายละเอียดกิจกรรม">
+                              <Input
+                                value={deadline.activity}
+                                onChange={(e) => updateDeadline('semester3', deadline.id, 'activity', e.target.value)}
+                                placeholder="เช่น วันสุดท้ายของยื่นสอบหัวข้อโครงงานพิเศษ"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={12}>
+                            <Form.Item label="วันที่">
+                              <DatePicker
+                                style={{ width: '100%' }}
+                                value={deadline.date}
+                                onChange={(date) => updateDeadline('semester3', deadline.id, 'date', date)}
+                                format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                                locale={th_TH}
+                                placeholder="เลือกวันที่"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={12}>
+                            <Form.Item label="เวลา (ถ้ามี)">
+                              <TimePicker
+                                style={{ width: '100%' }}
+                                value={deadline.time}
+                                onChange={(time) => updateDeadline('semester3', deadline.id, 'time', time)}
+                                format="HH:mm น."
+                                placeholder="เลือกเวลา"
+                              />
+                            </Form.Item>
+                          </Col>
+
+                          <Col span={24}>
+                            <Form.Item label="หมายเหตุ">
+                              <TextArea
+                                value={deadline.note}
+                                onChange={(e) => updateDeadline('semester3', deadline.id, 'note', e.target.value)}
+                                placeholder="เช่น กรอก Google Form, ณ ภาควิชา ชั้น 6"
+                                rows={2}
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </Card>
+                    ))}
+                  </div>
+                )
+              }
+            ]}
+          />
+
+          {/* แสดงตัวอย่างกำหนดการที่กำลังจะมีผล */}
+          <Alert
+            message="กำหนดการที่ใกล้จะถึง"
+            description={
+              <div>
+                <Text>ระบบจะแจ้งเตือนนักศึกษาเกี่ยวกับกำหนดการที่สำคัญล่วงหน้า 7 วัน</Text>
+                <br />
+                <Text type="secondary">สามารถดูกำหนดการทั้งหมดได้ในหน้าแดชบอร์ด</Text>
+              </div>
+            }
+            type="info"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        </Card>
+
+        {/* ส่วนบันทึก */}
         <div className="setting-actions">
           <Button
             icon={<ReloadOutlined />}
