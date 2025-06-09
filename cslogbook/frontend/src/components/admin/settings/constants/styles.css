@@ -1,0 +1,174 @@
+.constants-settings-container {
+  padding: 20px;
+}
+
+.settings-description {
+  margin-bottom: 24px;
+  color: #5a5a5a;
+}
+
+.settings-tabs {
+  margin-top: 16px;
+}
+
+.setting-section {
+  margin-bottom: 24px;
+}
+
+.setting-section-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.setting-card {
+  background-color: #f9f9f9;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.setting-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.setting-form-item {
+  margin-bottom: 16px;
+}
+
+.draggable-item {
+  cursor: grab;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background-color: white;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.draggable-item:hover {
+  background-color: #f6f6f6;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #999;
+  margin-right: 8px;
+}
+
+.settings-container {
+  padding: 20px;
+}
+
+.settings-page {
+  padding: 0 20px;
+}
+
+.settings-breadcrumb {
+  margin-bottom: 16px;
+}
+
+.settings-content-card {
+  margin-bottom: 24px;
+}
+
+.settings-menu {
+  margin-top: 20px;
+}
+
+.settings-card-menu {
+  display: flex;
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.settings-card-icon {
+  font-size: 24px;
+  margin-right: 16px;
+  color: #1890ff;
+}
+
+.settings-card-content {
+  flex: 1;
+}
+
+.settings-card-title {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.settings-card-desc {
+  color: #5a5a5a;
+  font-size: 13px;
+}
+
+/* เพิ่ม styles สำหรับ Workflow Steps */
+.workflow-steps-container {
+  .workflow-step-card {
+    margin-bottom: 16px;
+    border-radius: 8px;
+
+    &.required {
+      border-left: 4px solid #52c41a;
+    }
+
+    &.optional {
+      border-left: 4px solid #faad14;
+    }
+  }
+
+  .step-order-tag {
+    min-width: 40px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .step-reorder-item {
+    cursor: move;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    &.dragging {
+      opacity: 0.5;
+      transform: rotate(5deg);
+    }
+  }
+}
+
+/* เพิ่ม responsive styles */
+@media (max-width: 768px) {
+  .workflow-steps-container {
+    .ant-table {
+      font-size: 12px;
+    }
+
+    .step-actions {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+}
+
+/* เพิ่ม animation สำหรับ drag & drop */
+@keyframes dragHighlight {
+  0% {
+    background-color: #f0f0f0;
+  }
+  50% {
+    background-color: #e6f7ff;
+  }
+  100% {
+    background-color: #f0f0f0;
+  }
+}
+
+.step-drag-over {
+  animation: dragHighlight 0.5s ease-in-out;
+}

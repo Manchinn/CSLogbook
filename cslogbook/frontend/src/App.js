@@ -2,11 +2,10 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
+import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
 import MainLayout from './components/layout/MainLayout';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
-import StudentList from './components/StudentList';
-import TeacherList from './components/TeacherList';
 import StudentProfile from './components/StudentProfile/index';
 
 // Import Internship Components
@@ -15,15 +14,19 @@ import TimeSheet from './components/internship/logbook/TimeSheet/index';
 import InternshipSummary from './components/internship/summary/Summary';
 import StatusCheck from './components/internship/shared/StatusCheck';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
+import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
+
 // Import Project Components
 import ProjectProposalForm from './components/project/ProjectProposalForm';
 import LogbookForm from './components/project/LogbookForm';
+import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
-import DocumentDetails from './components/admin/DocumentDetails';
-import InternshipDocumentManagement from './components/admin/InternshipDocumentManagement';
-import ProjectDocumentManagement from './components/admin/ProjectDocumentManagement';
+// Import Admin2 Components - New Structure
+import AdminRoutes from './components/admin/AdminRoutes';
+import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
+import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -43,113 +46,114 @@ const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <InternshipProvider>
-          <Routes>
-            <Route path="/login" element={<LoginForm />} />
-            <Route element={<MainLayout />}>
-              {/* Dashboard Route */}
-              <Route path="/dashboard" element={<Dashboard />} />
+        <StudentEligibilityProvider>
+          <InternshipProvider>
+            <Routes>
+              <Route path="/login" element={<LoginForm />} />
+              {/* Add the new public route for supervisor evaluation */}
+              <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
+              <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
 
-              {/* Student Routes */}
-              <Route path="/student-profile/:id" element={<StudentProfile />} />
+              <Route element={<MainLayout />}>
+                {/* Dashboard Route */}
+                <Route path="/dashboard" element={<Dashboard />} />
 
-              {/* Internship Routes - Now wrapped with InternshipProvider */}
-              <Route path="/internship-registration/cs05" element={
-                <ProtectedRoute roles={['student']}>
-                  <CS05Form />
-                </ProtectedRoute>
-              } />
+                {/* Student Routes */}
+                <Route path="/student-profile/:id" element={<StudentProfile />} />
+
+                {/* Internship Routes */}
+                <Route path="/internship-registration/cs05" element={
+                  <ProtectedRoute roles={['student']}>
+                    <CS05Form />
+                  </ProtectedRoute>
+                } />
+                
+                {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดฝึกงาน */}
+                <Route path="/internship-eligibility" element={
+                  <ProtectedRoute roles={['student']}>
+                    <EligibilityCheck />
+                  </ProtectedRoute>
+                } />
+                <Route path="/internship-requirements" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipRequirements />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/internship-logbook/timesheet" element={
+                  <ProtectedRoute roles={['student']}>
+                    <TimeSheet />
+                  </ProtectedRoute>
+                } />
+                <Route path="/internship-logbook/companyinfo" element={
+                  <ProtectedRoute roles={['student']}>
+                    <CompanyInfoForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/internship-summary" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipSummary />
+                  </ProtectedRoute>
+                } />
+                <Route path="/status-check" element={
+                  <ProtectedRoute roles={['student']}>
+                    <StatusCheck />
+                  </ProtectedRoute>
+                } />
+
+                {/* Project Routes */}
+                <Route path="/project-proposal" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectProposalForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project-logbook" element={
+                  <ProtectedRoute roles={['student']}>
+                    <LogbookForm />
+                  </ProtectedRoute>
+                } />
+                
+                {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดโครงงานพิเศษ */}
+                <Route path="/project-eligibility" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectEligibilityCheck />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project-requirements" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectRequirements />
+                  </ProtectedRoute>
+                } />
+
+                {/* Admin Routes */}
+                <Route path="/students" element={
+                  <ProtectedRoute roles={['admin']}>
+                  </ProtectedRoute>
+                } />
+                <Route path="/teachers" element={
+                  <ProtectedRoute roles={['admin']}>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/upload" element={
+                  <ProtectedRoute roles={['admin']}>
+                    <AdminUpload />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/admin/*" element={
+                  <ProtectedRoute roles={['admin']}>
+                    <AdminRoutes />
+                  </ProtectedRoute>
+                } />
               
-              <Route path="/internship-logbook/timesheet" element={
-                <ProtectedRoute roles={['student']}>
-                  <TimeSheet />
-                </ProtectedRoute>
-              } />
-              <Route path="/internship-logbook/companyinfo" element={
-                <ProtectedRoute roles={['student']}>
-                  <CompanyInfoForm />
-                </ProtectedRoute>
-              } />
-              <Route path="/internship-summary" element={
-                <ProtectedRoute roles={['student']}>
-                  <InternshipSummary />
-                </ProtectedRoute>
-              } />
-              <Route path="/status-check" element={
-                <ProtectedRoute roles={['student']}>
-                  <StatusCheck />
-                </ProtectedRoute>
-              } />
-
-              {/* <Route path="/status-check">
-                <Route 
-                  path="internship" 
-                  element={
-                    <ProtectedRoute>
-                      <InternshipStatusCheck />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="project" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectStatusCheck />
-                    </ProtectedRoute>
-                  } 
-                />
-              </Route> */}
-
-              {/* Project Routes */}
-              <Route path="/project-proposal" element={
-                <ProtectedRoute roles={['student']}>
-                  <ProjectProposalForm />
-                </ProtectedRoute>
-              } />
-              <Route path="/project-logbook" element={
-                <ProtectedRoute roles={['student']}>
-                  <LogbookForm />
-                </ProtectedRoute>
-              } />
+              </Route>
               
 
-              {/* Admin Routes */}
-              <Route path="/students" element={
-                <ProtectedRoute roles={['admin']}>
-                  <StudentList />
-                </ProtectedRoute>
-              } />
-              <Route path="/teachers" element={
-                <ProtectedRoute roles={['admin']}>
-                  <TeacherList />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/upload" element={
-                <ProtectedRoute roles={['admin']}>
-                  <AdminUpload />
-                </ProtectedRoute>
-              } />
-              <Route path="/document-management/internship" element={
-                <ProtectedRoute roles={['admin']}>
-                  <InternshipDocumentManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/document-management/project" element={
-                <ProtectedRoute roles={['admin']}>
-                  <ProjectDocumentManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/document-details/:id" element={
-                <ProtectedRoute roles={['admin']}>
-                  <DocumentDetails />
-                </ProtectedRoute>
-              } />
-            </Route>
-
-            {/* Default Route */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </InternshipProvider>
+              {/* Default Route */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </InternshipProvider>
+        </StudentEligibilityProvider>
       </AuthProvider>
     </BrowserRouter>
   );

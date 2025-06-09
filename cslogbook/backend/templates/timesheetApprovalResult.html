@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผลการพิจารณาบันทึกการฝึกงาน</title>
+    <style>
+        :root {
+            --status-color: {{statusColor}};
+        }
+        body {
+            font-family: 'Sarabun', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1890ff;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        .header img {
+            max-width: 200px;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+        .comment-box {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid var(--status-color);
+            border-radius: 3px;
+        }
+        .comment-box h4 {
+            margin-top: 0;
+            color: var(--status-color);
+        }
+            margin-top: 0;
+            color: var(--status-color);
+        }
+        .comment-box p {
+            margin-bottom: 0;
+        }
+        .status-approved {
+            color: #52c41a;
+        }
+        .status-rejected {
+            color: #f5222d;
+        }
+        .footer {
+            background-color: #f0f0f0;
+            color: #666666;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            border-top: 1px solid #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.sci.kmutnb.ac.th/wp-content/uploads/2020/08/cropped-sci-logo-1.png" alt="KMUTNB Logo">
+            <h1 style="color: solid var(--status-color);">บันทึกการฝึกงานได้รับการ{{statusText}}แล้ว</h1>
+        </div>
+        <div class="content">
+            <div class="info-box">
+                <p>เรียน คุณ {{studentName}},</p>
+                <p>บันทึกการฝึกงานของคุณวันที่ {{workDate}} ได้รับการ<strong style="color: var(--status-color);">{{statusText}}</strong>จากหัวหน้างานแล้ว</p>
+            </div>
+            
+            {{commentSection}}
+        </div>
+        <div class="footer">
+            <p>CS Logbook System</p>
+            <p>คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
+        </div>
+    </div>
+</body>
+</html>

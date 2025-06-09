@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useState } from 'react';
+import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
 
 const InternshipContext = createContext();
 
@@ -170,36 +170,55 @@ const calculateTotalHours = (entries) => {
 export const InternshipProvider = ({ children }) => {
   const [state, dispatch] = useReducer(internshipReducer, initialState);
 
-  // กำหนด actions ที่จะส่งผ่าน context
-  const actions = {
-    setCS05Data: (data) => {
-      dispatch({ type: 'SET_CS05_DATA', payload: data });
-    },
-    setCompanyInfo: (info) => {
-      dispatch({ type: 'SET_COMPANY_INFO', payload: info });
-    },
-    setSupervisorInfo: (supervisorInfo) => {
-      dispatch({ type: 'SET_SUPERVISOR_INFO', payload: supervisorInfo });
-    },
-    addLogbookEntry: (entry) => {
-      dispatch({ type: 'ADD_LOGBOOK_ENTRY', payload: entry });
-    },
-    updateLogbookEntry: (entry) => {
-      dispatch({ type: 'UPDATE_LOGBOOK_ENTRY', payload: entry });
-    },
-    updateApprovalStatus: (statusUpdate) => {
-      dispatch({ type: 'UPDATE_APPROVAL_STATUS', payload: statusUpdate });
-    },
-    resetCompanyInfo: () => {
-      dispatch({ type: 'RESET_COMPANY_INFO' });
-    }
-  };
+  // ใช้ useCallback เพื่อ memoize ฟังก์ชัน actions
+  const setCS05Data = useCallback((data) => {
+    dispatch({ type: 'SET_CS05_DATA', payload: data });
+  }, []);
 
-  // ส่งทั้ง state และ actions ผ่าน context
-  const contextValue = {
+  const setCompanyInfo = useCallback((info) => {
+    dispatch({ type: 'SET_COMPANY_INFO', payload: info });
+  }, []);
+
+  const setSupervisorInfo = useCallback((supervisorInfo) => {
+    dispatch({ type: 'SET_SUPERVISOR_INFO', payload: supervisorInfo });
+  }, []);
+
+  const addLogbookEntry = useCallback((entry) => {
+    dispatch({ type: 'ADD_LOGBOOK_ENTRY', payload: entry });
+  }, []);
+
+  const updateLogbookEntry = useCallback((entry) => {
+    dispatch({ type: 'UPDATE_LOGBOOK_ENTRY', payload: entry });
+  }, []);
+
+  const updateApprovalStatus = useCallback((statusUpdate) => {
+    dispatch({ type: 'UPDATE_APPROVAL_STATUS', payload: statusUpdate });
+  }, []);
+
+  const resetCompanyInfo = useCallback(() => {
+    dispatch({ type: 'RESET_COMPANY_INFO' });
+  }, []);
+
+  // ใช้ useMemo เพื่อป้องกันการสร้าง object ใหม่ทุกครั้งที่ render
+  const contextValue = useMemo(() => ({
     state,
-    ...actions
-  };
+    setCS05Data,
+    setCompanyInfo,
+    setSupervisorInfo,
+    addLogbookEntry,
+    updateLogbookEntry,
+    updateApprovalStatus,
+    resetCompanyInfo
+  }), [
+    state,
+    setCS05Data,
+    setCompanyInfo,
+    setSupervisorInfo,
+    addLogbookEntry,
+    updateLogbookEntry,
+    updateApprovalStatus,
+    resetCompanyInfo
+  ]);
 
   return (
     <InternshipContext.Provider value={contextValue}>

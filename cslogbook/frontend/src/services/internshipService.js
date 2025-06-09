@@ -63,13 +63,23 @@ const internshipService = {
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
       }
-
+      
       return response.data;
     } catch (error) {
-      console.error('Get Current CS05 Error:', error);
+      // กรณียังไม่มีข้อมูล คพ.05 (404 Not Found) - ไม่ถือเป็น error
       if (error.response?.status === 404) {
-        return { success: true, data: null }; // ส่งค่าว่างถ้าไม่พบข้อมูล
+        console.info('ไม่พบข้อมูล CS05 (นักศึกษายังไม่ได้กรอกข้อมูล)');
+        return { 
+          success: true, 
+          data: null,
+          message: 'กรุณากรอกข้อมูลฝึกงาน'
+        };
       }
+
+      // บันทึก error จริงๆ สำหรับกรณีอื่นๆ
+      console.error('Get Current CS05 Error:', error);
+      console.error('Error details:', error.response?.data || error.message);
+
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล CS05');
     }
   },
@@ -121,6 +131,29 @@ const internshipService = {
     } catch (error) {
       console.error('Upload Transcript Error:', error);
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+    }
+  },
+
+  /**
+ * บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript
+ */
+  submitCS05WithTranscript: async (formData) => {
+    try {
+      const response = await apiClient.post('/internship/cs-05/submit-with-transcript', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('ไม่มีสิทธิ์ในการสร้างคำร้อง');
+      } else if (error.response?.status === 400) {
+        throw new Error(error.response.data.message || 'ข้อมูลไม่ถูกต้อง');
+      } else {
+        throw new Error('เกิดข้อผิดพลาดในการส่งข้อมูล');
+      }
     }
   },
 
@@ -238,7 +271,24 @@ const internshipService = {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลบันทึกการฝึกงานได้');
       }
 
-      return response.data.data;
+      // ตรวจสอบและจัดการรูปแบบข้อมูลที่หลากหลาย
+      let entries = [];
+      
+      if (Array.isArray(response.data)) {
+        entries = response.data;
+      } else if (response.data && response.data.data) {
+        if (Array.isArray(response.data.data)) {
+          entries = response.data.data;
+        } else if (typeof response.data.data === 'object') {
+          // กรณีข้อมูลเป็น object แต่ไม่ใช่ array
+          entries = [response.data.data];
+        }
+      }
+      
+      return {
+        success: true,
+        data: entries
+      };
     } catch (error) {
       console.error('Error fetching timesheet entries:', error);
       throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลการฝึกงาน');
@@ -281,9 +331,9 @@ const internshipService = {
     }
   },
 
-    /**
-   * บันทึกเวลาเข้างาน
-   */
+  /**
+ * บันทึกเวลาเข้างาน
+ */
   checkIn: async (workDate, timeIn) => {
     try {
       const response = await apiClient.post('/internship/logbook/check-in', {
@@ -348,15 +398,175 @@ const internshipService = {
   generateInternshipDates: async () => {
     try {
       const response = await apiClient.get('/internship/logbook/workdays');
-
+      // ตรวจสอบการตอบกลับ
       if (!response.data.success) {
+        console.warn('API แจ้งว่าไม่สำเร็จ:', response.data.message);
         throw new Error(response.data.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงานได้');
       }
 
-      return response.data.data; // จะได้รายการวันที่ทั้งหมดที่ต้องฝึกงาน
+      // ตรวจสอบโครงสร้างข้อมูล
+      const workdays = response.data.data;
+      
+      // ตรวจสอบความถูกต้องของข้อมูล
+      if (!workdays || !Array.isArray(workdays)) {
+        console.warn('API ส่งข้อมูลในรูปแบบที่ไม่ใช่ array:', workdays);
+        return []; // ส่งคืน array ว่าง
+      }
+
+      console.log('พบข้อมูลวันทำงาน:', workdays.length, 'วัน');
+      return workdays; // ส่งคืน array ของวันที่
     } catch (error) {
       console.error('Error generating internship dates:', error);
-      throw new Error(error.response?.data?.message || 'ไม่สามารถสร้างรายการวันที่ฝึกงาน');
+      throw error;
+    }
+  },
+
+  // === ส่วนสรุปข้อมูลการฝึกงาน ===
+  /**
+   * ดึงข้อมูลสรุปการฝึกงาน
+   */
+  getInternshipSummary: async () => {
+    try {
+      const response = await apiClient.get('/internship/summary');
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลสรุปการฝึกงานได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } catch (error) {
+      console.error('Error fetching internship summary:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลสรุปการฝึกงาน');
+    }
+  },
+  /**
+   * ดาวน์โหลดเอกสารสรุปการฝึกงาน PDF
+   */
+  downloadInternshipSummary: async () => {
+    try {
+      const response = await apiClient.get('/internship/summary/download', {
+        responseType: 'blob'
+      });
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error downloading internship summary PDF:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดาวน์โหลดเอกสารสรุปการฝึกงาน');
+    }
+  },
+  
+  /**
+   * บันทึกบทสรุปการฝึกงาน
+   */
+  saveReflection: async (data) => {
+    try {
+      const response = await apiClient.post('/internship/logbook/reflection', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error saving reflection:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกบทสรุปการฝึกงาน');
+    }
+  },
+  
+  /**
+   * ดึงบทสรุปการฝึกงาน
+   */  getReflection: async () => {
+    try {
+      const response = await apiClient.get('/internship/logbook/reflection');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting reflection:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงบทสรุปการฝึกงาน');
+    }
+  },
+  
+  /**
+   * ส่งแบบประเมินให้พี่เลี้ยง
+   */
+  sendEvaluationForm: async (documentId) => { // Changed to accept internshipId
+    try {
+      const response = await apiClient.post(`/internship/request-evaluation/send/${documentId}`); // New endpoint
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error sending evaluation form:', {
+        documentId,
+        error: error.response?.data || error.message,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      
+      // ส่งต่อข้อมูล error ที่มีรายละเอียดมากขึ้น
+      const errorData = error.response?.data;
+      const customError = new Error(errorData?.message || 'ไม่สามารถส่งแบบประเมินไปยังพี่เลี้ยงได้');
+      customError.type = errorData?.errorType || 'UNKNOWN_ERROR';
+      customError.status = error.response?.status;
+      customError.originalError = errorData;
+      
+      throw customError;
+    }
+  },
+
+    /**
+   * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+   */  getEvaluationFormStatus: async () => {
+    try {
+      const response = await apiClient.get('/internship/evaluation/status');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting evaluation form status:', error);
+      // ส่งค่า default กลับไปเพื่อไม่ให้ frontend พัง
+      return {
+        success: true,
+        message: 'ไม่สามารถตรวจสอบสถานะการส่งแบบประเมิน แต่ดำเนินการต่อได้',
+        data: {
+          hasEvaluation: false,
+          isSent: false,
+          isCompleted: false,
+          notificationEnabled: false, // เพิ่มค่าเริ่มต้น
+          canSendEvaluation: false,   // เพิ่มค่าเริ่มต้น
+          error: true
+        }
+      };
+    }
+  },
+  
+  /**
+   * ดึงข้อมูลแบบประเมินโดยใช้โทเค็น
+   */
+  getEvaluationFormByToken: async (token) => {
+    try {
+      if (!token) {
+        throw new Error('ไม่พบโทเค็นสำหรับการประเมิน');
+      }
+      
+      const response = await apiClient.get(`/internship/evaluation/form/${token}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting evaluation form by token:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงข้อมูลแบบประเมิน');
+    }
+  },
+  
+  /**
+   * บันทึกผลการประเมินจากพี่เลี้ยง
+   */
+  submitSupervisorEvaluation: async (data) => {
+    try {
+      if (!data.token) {
+        throw new Error('ไม่พบโทเค็นสำหรับการประเมิน');
+      }
+      
+      const response = await apiClient.post('/internship/evaluation/submit', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting supervisor evaluation:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกผลการประเมิน');
     }
   },
 

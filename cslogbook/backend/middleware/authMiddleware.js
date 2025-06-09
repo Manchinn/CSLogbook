@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { User, Student } = require('../models');
 const validateEnv = require('../utils/validateEnv');
+const { CONSTANTS } = require('../utils/studentUtils');
 
 // Validate JWT environment variables
 validateEnv('auth');
@@ -36,9 +37,29 @@ const authMiddleware = {
         throw new Error('User not found or inactive');
       }
 
+      // เพิ่มข้อมูล studentId หากเป็น role: student
+      if (user.role === 'student') {
+        const student = await Student.findOne({
+          where: { userId: user.userId }
+        });
+        
+        if (student) {
+          // เพิ่มข้อมูล studentId เข้าไปใน token payload
+          decoded.studentId = student.studentId;
+        }
+      }
+
+      // เพิ่ม console.log เพื่อตรวจสอบข้อมูล
+      console.log('Auth Token data:', { 
+        userId: decoded.userId,
+        role: decoded.role,
+        studentId: decoded.studentId || 'N/A'
+      });
+
       req.user = decoded;
       next();
     } catch (err) {
+      console.error('Authentication error:', err);
       return res.status(401).json({
         status: 'error',
         message: err.name === 'TokenExpiredError' ? 
@@ -120,22 +141,32 @@ const authMiddleware = {
           include: [{ model: User, required: true }]
         });
 
+        // Import CONSTANTS
+
         // กำหนดเงื่อนไขการตรวจสอบสิทธิ์
         const eligibilityChecks = {
           internship: {
-            condition: +studentYear >= 63 && student.totalCredits >= 81,
-            message: 'ต้องมีหน่วยกิตรวมไม่น้อยกว่า 81 หน่วยกิต'
+            condition: +student.User.studentId.substring(0, 2) >= 63 && student.totalCredits >= CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS,
+            message: `ต้องมีหน่วยกิตรวมไม่น้อยกว่า ${CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS} หน่วยกิต`
           },
           project: {
-            condition: +studentYear >= 62 && 
-                      student.totalCredits >= 95 && 
-                      student.majorCredits >= 47,
-            message: 'ต้องมีหน่วยกิตรวมไม่น้อยกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า 47 หน่วยกิต'
+            condition: +student.User.studentId.substring(0, 2) >= 62 &&
+                      student.totalCredits >= CONSTANTS.PROJECT.MIN_TOTAL_CREDITS &&
+                      student.majorCredits >= CONSTANTS.PROJECT.MIN_MAJOR_CREDITS,
+            message: `ต้องมีหน่วยกิตรวมไม่น้อยกว่า ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`
           }
         };
 
         // ตรวจสอบเงื่อนไข
         const check = eligibilityChecks[type];
+        if (!check || !check.condition) { // Added a check for `check` itself to prevent errors if `type` is invalid
+          return res.status(400).json({ // Changed to 400 for invalid type
+            status: 'error',
+            message: 'ประเภทการตรวจสอบสิทธิ์ไม่ถูกต้อง',
+            code: 'INVALID_ELIGIBILITY_TYPE'
+          });
+        }
+
         if (!check.condition) {
           return res.status(403).json({
             status: 'error',

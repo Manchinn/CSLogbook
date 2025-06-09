@@ -4,31 +4,47 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentPermissions } from '../../hooks/useStudentPermissions';
 import { studentService } from '../../services/studentService';
+// filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src\components\layout\Sidebar.js
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Layout,
+  Menu,
+  Avatar,
+  Typography,
+  Badge,
+  message,
+  Tooltip,
+} from "antd";
 import {
   HomeOutlined,
-  FileTextOutlined,
   TeamOutlined,
+  FileTextOutlined,
+  ProjectOutlined,
+  FormOutlined,
+  BookOutlined,
+  FileDoneOutlined,
+  MenuOutlined,
+  BankOutlined,
   LogoutOutlined,
   CheckCircleOutlined,
   UploadOutlined,
-  ProjectOutlined,
-  FormOutlined,
-  BankOutlined,
-  BookOutlined,
-  CheckSquareOutlined,
-  FileDoneOutlined,
-  MenuOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
-import './Sidebar.css';
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
+import { studentService } from "../../services/studentService";
+import "./Sidebar.css";
 
 const { Sider } = Layout;
 const { Title } = Typography;
 const { useBreakpoint } = Grid;
+const { Title } = Typography;
 
 const themeConfig = {
-  student: 'student-theme',
-  teacher: 'teacher-theme',
-  admin: 'admin-theme',
+  student: "student-theme",
+  teacher: "teacher-theme",
+  admin: "admin-theme",
 };
 
 const MenuItemWithTooltip = ({ item, disabled, title }) => {
@@ -37,12 +53,18 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
       <Tooltip
         title={title}
         placement="right"
-        color={disabled ? '#ff4d4f' : '#52c41a'}
+        color={disabled ? "#ff4d4f" : "#52c41a"}
       >
         <span style={{
           opacity: disabled ? 0.5 : 1,
           cursor: disabled ? 'not-allowed' : 'pointer'
         }}>
+        <span
+          style={{
+            opacity: disabled ? 0.5 : 1,
+            cursor: disabled ? "not-allowed" : "pointer",
+          }}
+        >
           {item.label}
         </span>
       </Tooltip>
@@ -52,6 +74,11 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
 };
 
 const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
+// เพิ่ม prop inDrawer เพื่อบอกว่า Sidebar นี้อยู่ใน Drawer หรือไม่
+// เพิ่ม prop onMenuClick สำหรับปิด drawer เมื่อคลิกเมนู
+const Sidebar = ({ inDrawer, onMenuClick }) => {
+  // In drawer mode, we don't need collapsed state
+  const [collapsed] = useState(inDrawer ? false : false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,13 +87,26 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
   const { canAccessInternship, canAccessProject, messages, updatePermissions } = useStudentPermissions(userData);
   const screens = useBreakpoint();
 
+  
+  // ใช้ StudentEligibilityContext แทน useStudentPermissions
+  const { 
+    canAccessInternship, 
+    canAccessProject, 
+    messages,
+    lastUpdated,
+    refreshEligibility 
+  } = useStudentEligibility();
+
+  // Handle logout
   const handleLogout = async () => {
     try {
       await logout();
       navigate('/login', { replace: true });
+      // Navigate หลังจาก clear userData แล้ว
+      navigate("/login", { replace: true });
     } catch (error) {
-      console.error('Logout error:', error);
-      message.error('เกิดข้อผิดพลาดในการออกจากระบบ');
+      console.error("Logout error:", error);
+      message.error("เกิดข้อผิดพลาดในการออกจากระบบ");
     }
   };
 
@@ -85,18 +125,61 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
           message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน');
           navigate('/dashboard');
           return;
+      const showNotificationKey = 'access_notification';
+      // ตรวจสอบว่าเคยแสดง notification แล้วหรือไม่ในวันนี้
+      const todayDate = new Date().toDateString();
+      const lastShown = localStorage.getItem('lastNotificationShown');
+      const alreadyShownToday = lastShown === todayDate;
+
+      // ถ้ายังไม่เคยแสดงในวันนี้ ให้แสดงและบันทึกวันที่
+      if (!alreadyShownToday) {
+        // แสดงเพียงข้อความแนะนำและแสดงเพียงครั้งเดียวต่อวัน
+        if (userData?.role === "student") {
+          if (path.includes("/project-proposal") && !canAccessProject) {
+            // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
+            message.info({
+              content: "คุณสามารถดูข้อมูลหน้าเสนอหัวข้อโครงงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              key: showNotificationKey,
+              duration: 5
+            });
+            localStorage.setItem('lastNotificationShown', todayDate);
+          }
+
+          if (path.includes("/internship-registration/cs05") && !canAccessInternship) {
+            // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
+            message.info({
+              content: "คุณสามารถดูข้อมูลหน้าลงทะเบียนฝึกงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              key: showNotificationKey,
+              duration: 5
+            });
+            localStorage.setItem('lastNotificationShown', todayDate);
+            
+            // ทำการรีเฟรชข้อมูลสิทธิ์เมื่อเข้าถึงหน้าลงทะเบียนฝึกงาน
+            if (typeof refreshEligibility === 'function') {
+              refreshEligibility();
+            }
+          }
         }
       }
     };
 
     checkRouteAccess();
-  }, [location.pathname, userData, canAccessProject, canAccessInternship, navigate]);
+  }, [
+    location.pathname,
+    userData,
+    canAccessProject,
+    canAccessInternship,
+    navigate,
+    refreshEligibility
+  ]);
 
   useEffect(() => {
-    if (userData?.role === 'student' && userData?.studentCode) {
+    if (userData?.role === "student" && userData?.studentCode) {
       const fetchStudentData = async () => {
         try {
-          const response = await studentService.getStudentInfo(userData.studentCode);
+          const response = await studentService.getStudentInfo(
+            userData.studentCode
+          );
           if (response.success) {
             const newData = response.data;
 
@@ -106,9 +189,11 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
               setLastUpdate(new Date());
               localStorage.setItem('studentData', JSON.stringify(newData));
             }
+            setStudentData(response.student);
+            // setLastUpdate(new Date()); // อาจจะไม่จำเป็นแล้วถ้าใช้ lastUpdated จาก context
           }
         } catch (error) {
-          console.error('Error fetching student data:', error);
+          console.error("Error fetching student data:", error);
         }
       };
 
@@ -116,183 +201,276 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
       const interval = setInterval(fetchStudentData, 30000);
 
       return () => clearInterval(interval);
+      fetchStudentData(); // เรียกข้อมูลครั้งแรกเมื่อ component โหลด หรือเมื่อ studentCode/role เปลี่ยน
+      // เพิ่ม interval ที่นานขึ้น และพิจารณาเงื่อนไขอื่นๆ ในการเรียก
+      // const interval = setInterval(fetchStudentData, 300000); // เปลี่ยนจาก 30 วินาที เป็น 5 นาที (300000 ms)
+
+      // return () => clearInterval(interval); // เอา interval ออกก่อน เพื่อพิจารณา event-driven หรือ context-based updates
     }
   }, [userData?.studentCode, userData?.role, updatePermissions, studentData]);
+    // studentData ไม่ควรอยู่ใน dependency array นี้ เพราะจะทำให้เกิด loop
+    // ถ้า lastUpdated จาก StudentEligibilityContext เพียงพอ ก็ไม่จำเป็นต้องมี interval ที่นี่
+    // การเปลี่ยนแปลงของ lastUpdated จะ trigger useEffect นี้ให้ทำงาน (ถ้า userData.studentCode และ role ยังคงเดิม)
+  }, [userData?.studentCode, userData?.role, lastUpdated]); // ใช้ lastUpdated จาก context เป็นตัวกระตุ้นหลัก
 
   const menuItems = useMemo(() => {
     if (!userData?.role) {
-      return [{
-        key: 'logout',
-        icon: <LogoutOutlined />,
-        label: 'ออกจากระบบ',
-        className: 'logout',
-      }];
+      return [
+        {
+          key: "logout",
+          icon: <LogoutOutlined />,
+          label: "ออกจากระบบ",
+          className: "logout",
+        },
+      ];
     }
+
+    // สร้างข้อความ tooltip สำหรับแสดงเหตุผลที่ไม่สามารถเข้าถึงได้
+    const internshipTooltip = messages?.internship || "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน";
+    const projectTooltip = messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
 
     return [
       {
-        key: '/dashboard',
+        key: "/admin/dashboard",
         icon: <HomeOutlined />,
-        label: 'หน้าแรก',
+        label: "หน้าแรก",
       },
-      ...(userData?.role === 'student' ? [
-        {
-          key: `/student-profile/${userData.studentCode}`,
-          icon: <TeamOutlined />,
-          label: 'ประวัตินักศึกษา',
-        },
-        {
-          key: 'internship',
-          icon: <FileTextOutlined />,
-          label: <MenuItemWithTooltip
-            item={{ label: 'ระบบฝึกงาน' }}
-            disabled={!canAccessInternship}
-            title={messages.internship}
-          />,
-          disabled: !canAccessInternship,
-          children: canAccessInternship ? [
+
+      // Student Menu Items
+      ...(userData?.role === "student"
+        ? [
             {
-              key: '/internship-registration',
-              label: 'ลงทะเบียนฝึกงาน',
-              icon: <FormOutlined />,
-              children: [
-                {
-                  key: '/internship-registration/cs05',
-                  label: 'คพ.05 - คำร้องขอฝึกงาน',
-                }
-              ]
+              key: `/student-profile/${userData.studentCode}`,
+              icon: <TeamOutlined />,
+              label: "ประวัตินักศึกษา",
             },
             {
-              key: '/internship-logbook',
-              label: 'บันทึกการฝึกงาน',
-              icon: <BookOutlined />,
+              key: "internship",
+              icon: <FileTextOutlined />,
+              label: (
+                <MenuItemWithTooltip
+                  item={{ label: "ระบบฝึกงาน" }}
+                  disabled={false} 
+                  title={!canAccessInternship ? internshipTooltip : ""} 
+                />
+              ),
+              disabled: false,
+              children: canAccessInternship
+                ? [
+                    {
+                      key: "/internship-registration",
+                      label: "ลงทะเบียนฝึกงาน",
+                      icon: <FormOutlined />,
+                      children: [
+                        {
+                          key: "/internship-registration/cs05",
+                          label: "คพ.05 - คำร้องขอฝึกงาน",
+                        },
+                      ],
+                    },
+                    {
+                      key: "/internship-logbook",
+                      label: "บันทึกการฝึกงาน",
+                      icon: <BookOutlined />,
+                      children: [
+                        {
+                          key: "/internship-logbook/companyinfo",
+                          label: "สถานประกอบการ",
+                        },
+                        {
+                          key: "/internship-logbook/timesheet",
+                          label: "ใบลงเวลาและบันทึกประจำวัน",
+                        },
+                      ],
+                    },
+                    {
+                      key: "/internship-summary",
+                      label: "สรุปผลการฝึกงาน",
+                      icon: <FileDoneOutlined />,
+                    },
+                  ]
+                : [
+                    {
+                      key: "/internship-eligibility",
+                      label: "ตรวจสอบคุณสมบัติ",
+                      icon: <FormOutlined />,
+                    },
+                    {
+                      key: "/internship-requirements",  
+                      label: "ข้อกำหนดฝึกงาน",
+                      icon: <FileTextOutlined />,
+                    },
+                  ],
+            },
+            {
+              key: "project",
+              icon: <ProjectOutlined />,
+              label: (
+                <MenuItemWithTooltip
+                  item={{ label: "โครงงานพิเศษ" }}
+                  disabled={false}
+                  title={!canAccessProject ? projectTooltip : ""}
+                />
+              ),
+              disabled: false,
+              children: canAccessProject
+                ? [
+                    {
+                      key: "/project-proposal",
+                      label: "ฟอร์มเสนอหัวข้อ",
+                    },
+                    {
+                      key: "/project-logbook",
+                      label: "บันทึก Logbook",
+                    },
+                  ]
+                : [
+                    {
+                      key: "/project-eligibility",
+                      label: "ตรวจสอบคุณสมบัติ", 
+                      icon: <FormOutlined />,
+                    },
+                    {
+                      key: "/project-requirements",
+                      label: "ข้อกำหนดโครงงาน",
+                      icon: <FileTextOutlined />,
+                    },
+                  ],
+            },
+            {
+              key: "/status-check",
+              icon: <FileTextOutlined />,
+              label: "ตรวจสอบสถานะ",
               children: [
                 {
-                  key: '/internship-logbook/companyinfo',
-                  label: 'สถานประกอบการ',
+                  key: "/status-check/internship",
+                  icon: <BankOutlined />,
+                  label: "เอกสารฝึกงาน",
+                  disabled: false,
                 },
                 {
-                  key: '/internship-logbook/timesheet',
-                  label: 'ใบลงเวลาและบันทึกประจำวัน',
-                }
-              ]
+                  key: "/status-check/project",
+                  icon: <ProjectOutlined />,
+                  label: "เอกสารโครงงาน",
+                  disabled: false,
+                },
+              ],
+            },
+          ].filter(Boolean)
+        : []),
+
+      // Teacher Menu Items
+      ...(userData?.role === "teacher"
+        ? [
+            {
+              key: "/review-documents",
+              icon: <FileTextOutlined />,
+              label: "ตรวจสอบเอกสารโครงงาน",
             },
             {
-              key: '/internship-summary',
-              label: 'สรุปผลการฝึกงาน',
-              icon: <FileDoneOutlined />,
-            }
-          ] : []
-        },
-        {
-          key: 'project',
-          icon: <ProjectOutlined />,
-          label: <MenuItemWithTooltip
-            item={{ label: 'โครงงานพิเศษ' }}
-            disabled={!canAccessProject}
-            title={messages.project}
-          />,
-          disabled: !canAccessProject,
-          children: canAccessProject ? [
-            {
-              key: '/project-proposal',
-              label: 'ฟอร์มเสนอหัวข้อ',
-            },
-            {
-              key: '/project-logbook',
-              label: 'บันทึก Logbook',
-            }
-          ] : []
-        },
-        {
-          key: '/status-check',
-          icon: <FileTextOutlined />,
-          label: 'ตรวจสอบสถานะ',
-          children: [
-            {
-              key: '/status-check/internship',
-              icon: <BankOutlined />,
-              label: 'เอกสารฝึกงาน',
-              disabled: !canAccessInternship
-            },
-            {
-              key: '/status-check/project',
+              key: "/advise-project",
               icon: <ProjectOutlined />,
-              label: 'เอกสารโครงงาน',
-              disabled: !canAccessProject
-            }
-          ]
-        }
-      ] : []),
-      ...(userData?.role === 'teacher' ? [
-        {
-          key: '/review-documents',
-          icon: <FileTextOutlined />,
-          label: 'ตรวจสอบเอกสารโครงงาน',
-        },
-        {
-          key: '/advise-project',
-          icon: <ProjectOutlined />,
-          label: 'ให้คำแนะนำโครงงาน',
-        },
-        {
-          key: '/approve-documents',
-          icon: <CheckCircleOutlined />,
-          label: 'อนุมัติเอกสาร',
-        }
-      ] : []),
-      ...(userData?.role === 'admin' ? [
-        {
-          key: 'manage',
-          icon: <TeamOutlined />,
-          label: 'จัดการข้อมูล',
-          children: [
-            {
-              key: '/students',
-              label: 'นักศึกษา',
+              label: "ให้คำแนะนำโครงงาน",
             },
             {
-              key: '/teachers',
-              label: 'อาจารย์',
+              key: "/approve-documents",
+              icon: <CheckCircleOutlined />,
+              label: "อนุมัติเอกสาร",
+            },
+          ]
+        : []),
+
+      // Admin Menu Items
+      ...(userData?.role === "admin"
+        ? [
+            {
+              key: "manage",
+              icon: <TeamOutlined />,
+              label: "จัดการข้อมูล",
+              children: [
+                {
+                  key: "/admin/users/students",
+                  label: "นักศึกษา",
+                },
+                {
+                  key: "/admin/users/teachers",
+                  label: "อาจารย์",
+                },
+                {
+                  key: "/project-pairs",
+                  label: "คู่โปรเจค",
+                },
+              ],
             },
             {
-              key: '/project-pairs',
-              label: 'คู่โปรเจค',
-            }
-          ]
-        },
-        {
-          key: 'documents',
-          icon: <FileTextOutlined />,
-          label: 'จัดการเอกสาร',
-          children: [
-            {
-              key: '/document-management/internship',
-              label: 'เอกสารฝึกงาน',
+              key: "documents",
+              icon: <FileTextOutlined />,
+              label: "จัดการเอกสาร",
+              children: [
+                {
+                  key: "/admin/documents/internship",
+                  label: "เอกสารฝึกงาน",
+                },
+                {
+                  key: "/admin/documents/project",
+                  label: "เอกสารโครงงานพิเศษ",
+                },
+              ],
             },
             {
-              key: '/document-management/project',
-              label: 'เอกสารโครงงานพิเศษ',
-            }
+              key: "/admin/upload",
+              icon: <UploadOutlined />,
+              label: "อัปโหลดรายชื่อนักศึกษา",
+            },
+            {
+              key: "settings",
+              icon: <SettingOutlined />,
+              label: "ตั้งค่าระบบ",
+              children: [
+                {
+                  key: "/admin/settings",
+                  label: "ภาพรวมการตั้งค่า",
+                },
+                {
+                  key: "/admin/settings/curriculum",
+                  label: "หลักสูตรการศึกษา",
+                },
+                {
+                  key: "/admin/settings/academic",
+                  label: "ปีการศึกษา/ภาคเรียน",
+                },
+                {
+                  key: "/admin/settings/status",
+                  label: "สถานะนักศึกษา",
+                },
+                {
+                  key: "/admin/settings/notification-settings",
+                  label: "การแจ้งเตือน",
+                },
+                {
+                  key: "/admin/settings/workflow-steps",
+                  label: "ขั้นตอนการทำงาน",
+                },
+              ],
+            },
           ]
-        },
-        {
-          key: '/admin/upload',
-          icon: <UploadOutlined />,
-          label: 'อัปโหลดรายชื่อนักศึกษา',
-        }
-      ] : []),
+        : []),
+
+      // Logout - Common for all roles
       {
-        key: 'logout',
+        key: "logout",
         icon: <LogoutOutlined />,
         label: 'ออกจากระบบ',
         className: 'logout',
       }
     ];
+        label: "ออกจากระบบ",
+        className: "logout",
+      },
+    ].filter(Boolean);
   }, [userData, canAccessInternship, canAccessProject, messages]);
-
   const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
+    if (key === "logout") {
       handleLogout();
     } else {
       navigate(key);
@@ -300,10 +478,15 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
     if (isMobile) {
       onClose(); // ปิด Drawer เมื่อคลิกเมนูในหน้าจอเล็ก
     }
+    
+    // If in drawer mode and onMenuClick prop exists, call it to close the drawer
+    if (inDrawer && typeof onMenuClick === 'function') {
+      onMenuClick();
+    }
   };
 
   const renderLastUpdate = () => {
-    if (userData?.role === 'student') {
+    if (userData?.role === "student") {
       return (
         <div style={{
           padding: '8px',
@@ -312,12 +495,43 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
           color: 'rgba(0,0,0,0.45)'
         }}>
           อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+        <div
+          className="last-update"
+          style={{
+        textAlign: 'center', // Corrected to 'center' to align inline content (like the <small> tag)
+        padding: '8px 16px' // Added padding for better spacing
+          }}
+        >
+          <small style={{ fontSize: "10px", opacity: 0.7 }}>
+        อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+          </small>
+          <button
+        onClick={() => {
+          if (typeof refreshEligibility === 'function') {
+            refreshEligibility();
+          }
+        }}
+        style={{
+          fontSize: "10px",
+          display: "block", // Makes the button a block-level element
+          margin: "4px auto 0 auto", // Centers the block-level button horizontally (top, right/left, bottom)
+          background: "none",
+          border: "none",
+          padding: 0,
+          color: "var(--link-color, #1890ff)", // Use a CSS variable or a default link color
+          cursor: "pointer", // Add cursor pointer for better UX
+          textAlign: 'center', // Corrected to 'center' to align text inside the button
+        }}
+          >
+        รีเฟรชข้อมูลสิทธิ์
+          </button>
         </div>
       );
     }
     return null;
   };
 
+  // ใน Drawer mode ไม่จำเป็นต้องมี controls สำหรับ collapse
   return (
     <>
       {!isMobile && (
@@ -353,6 +567,52 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
               }}
             />
           </div>
+    <Sider
+      width={230}
+      className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${inDrawer ? 'in-drawer' : ''}`}
+      collapsed={collapsed}
+      // Add CSS for proper display when in mobile drawer
+      style={inDrawer ? { 
+        position: 'static',
+        height: 'auto',
+        boxShadow: 'none',
+        border: 'none'
+      } : undefined}
+    >
+      <div className="profile">
+        <Avatar
+          size={64}
+          style={{
+            backgroundColor: "var(--active-color)",
+            marginBottom: 12,
+            fontSize: "24px",
+          }}
+        >
+          {userData?.firstName?.charAt(0)?.toUpperCase() || "?"}
+        </Avatar>
+        {!collapsed && (
+          <>
+            <Title level={5} style={{ margin: "8px 0 4px" }}>
+              {userData?.firstName} {userData?.lastName}
+            </Title>
+            <Badge
+              count={
+                !userData?.role
+                  ? ""
+                  : userData.role === "admin"
+                  ? "ผู้ดูแลระบบ"
+                  : userData.role === "teacher"
+                  ? "อาจารย์"
+                  : "นักศึกษา"
+              }
+              style={{
+                backgroundColor: "var(--active-color)",
+                fontSize: "12px",
+              }}
+            />
+          </>
+        )}
+      </div>
 
           <Menu
             mode="inline"
@@ -389,6 +649,17 @@ const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
         </Drawer>
       )}
     </>
+      <Menu
+        mode="inline"
+        items={menuItems}
+        selectedKeys={[location.pathname]}
+        defaultSelectedKeys={[location.pathname]}
+        className={`menu ${userData?.role ? themeConfig[userData.role] : ""}`}
+        onClick={handleMenuClick}
+      />
+
+      {!collapsed && renderLastUpdate()}
+    </Sider>
   );
 };
 

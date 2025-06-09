@@ -4,15 +4,41 @@ export const MAX_STUDY_YEARS = 8;
 export const MIN_STUDENT_CODE_LENGTH = 13;
 export const ACADEMIC_MONTH_THRESHOLD = 4;
 
-export const INTERNSHIP_REQUIREMENTS = {
-  MIN_YEAR: 3,
-  MIN_TOTAL_CREDITS: 81
+/**
+ * เปลี่ยนจาก INTERNSHIP_REQUIREMENTS และ PROJECT_REQUIREMENTS เป็น function ที่สามารถรับค่าจาก API ได้
+ */
+export const getInternshipRequirements = (requirements) => {
+  // ถ้ามีค่าจาก backend ให้ใช้ค่าจาก backend
+  if (requirements) {
+    return {
+      MIN_YEAR: requirements.minYear || 3,
+      MIN_TOTAL_CREDITS: requirements.totalCredits || 81
+    };
+  }
+  
+  // ถ้าไม่มีค่าจาก backend ให้ใช้ค่า default
+  return {
+    MIN_YEAR: 3,
+    MIN_TOTAL_CREDITS: 81
+  };
 };
 
-export const PROJECT_REQUIREMENTS = {
-  MIN_YEAR: 4,
-  MIN_TOTAL_CREDITS: 95,
-  MIN_MAJOR_CREDITS: 57
+export const getProjectRequirements = (requirements) => {
+  // ถ้ามีค่าจาก backend ให้ใช้ค่าจาก backend
+  if (requirements) {
+    return {
+      MIN_YEAR: requirements.minYear ,
+      MIN_TOTAL_CREDITS: requirements.totalCredits,
+      MIN_MAJOR_CREDITS: requirements.majorCredits 
+    };
+  }
+  
+  // ถ้าไม่มีค่าจาก backend ให้ใช้ค่า default
+  return {
+    MIN_YEAR: 4,
+    MIN_TOTAL_CREDITS: 95,
+    MIN_MAJOR_CREDITS: 59
+  };
 };
 
 /**
@@ -77,19 +103,30 @@ export const calculateStudentYear = (studentCode) => {
 
 /**
  * ตรวจสอบสิทธิ์การฝึกงาน
+ * @param {number|object} studentYear - ชั้นปีของนักศึกษา (อาจเป็นตัวเลขหรือออบเจ็คที่มี year)
+ * @param {number} totalCredits - หน่วยกิตรวม
+ * @param {number} majorCredits - หน่วยกิตวิชาเอก (ไม่จำเป็นสำหรับการฝึกงาน)
+ * @param {object} requirements - เงื่อนไขการฝึกงานจาก backend
+ * @returns {object} - ผลการตรวจสอบสิทธิ์
  */
-export const isEligibleForInternship = (studentYear, totalCredits) => {
-  if (studentYear < INTERNSHIP_REQUIREMENTS.MIN_YEAR) {
+export const isEligibleForInternship = (studentYear, totalCredits, majorCredits, requirements = null) => {
+  // รับค่าชั้นปีทั้งจากตัวเลขหรือจากออบเจ็ค
+  const year = typeof studentYear === 'object' ? studentYear.year : studentYear;
+  
+  // ใช้ function getInternshipRequirements ที่สร้างขึ้น
+  const REQUIREMENTS = getInternshipRequirements(requirements);
+  
+  if (year < REQUIREMENTS.MIN_YEAR) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ ${INTERNSHIP_REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
+      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องเป็นนักศึกษาชั้นปีที่ ${REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
     };
   }
   
-  if (totalCredits < INTERNSHIP_REQUIREMENTS.MIN_TOTAL_CREDITS) {
+  if (totalCredits < REQUIREMENTS.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${INTERNSHIP_REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการฝึกงาน: ต้องมีหน่วยกิตรวมอย่างน้อย ${REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
     };
   }
   
@@ -101,26 +138,37 @@ export const isEligibleForInternship = (studentYear, totalCredits) => {
 
 /**
  * ตรวจสอบสิทธิ์การทำโปรเจค
+ * @param {number|object} studentYear - ชั้นปีของนักศึกษา (อาจเป็นตัวเลขหรือออบเจ็คที่มี year)
+ * @param {number} totalCredits - หน่วยกิตรวม
+ * @param {number} majorCredits - หน่วยกิตวิชาเอก
+ * @param {object} requirements - เงื่อนไขการทำโปรเจคจาก backend
+ * @returns {object} - ผลการตรวจสอบสิทธิ์
  */
-export const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
-  if (studentYear < PROJECT_REQUIREMENTS.MIN_YEAR) {
+export const isEligibleForProject = (studentYear, totalCredits, majorCredits, requirements = null) => {
+  // รับค่าชั้นปีทั้งจากตัวเลขหรือจากออบเจ็ค
+  const year = typeof studentYear === 'object' ? studentYear.year : studentYear;
+  
+  // ใช้ function getProjectRequirements ที่สร้างขึ้น
+  const REQUIREMENTS = getProjectRequirements(requirements);
+  
+  if (year < REQUIREMENTS.MIN_YEAR) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${PROJECT_REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
+      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
     };
   }
   
-  if (totalCredits < PROJECT_REQUIREMENTS.MIN_TOTAL_CREDITS) {
+  if (totalCredits < REQUIREMENTS.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${PROJECT_REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
     };
   }
   
-  if (majorCredits < PROJECT_REQUIREMENTS.MIN_MAJOR_CREDITS) {
+  if (majorCredits < REQUIREMENTS.MIN_MAJOR_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${PROJECT_REQUIREMENTS.MIN_MAJOR_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${REQUIREMENTS.MIN_MAJOR_CREDITS} หน่วยกิต` 
     };
   }
 

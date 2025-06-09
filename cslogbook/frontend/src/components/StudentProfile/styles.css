@@ -1,7 +1,7 @@
 .container {
   padding: 24px;
-  overflow: hidden; /* ปิดการเลื่อน */
-  font-size: 1rem; /* เพิ่มขนาดตัวอักษร */
+  /* background-color: #f0f2f5; */
+  min-height: calc(100vh - 64px);
 }
 
 .avatarCard {

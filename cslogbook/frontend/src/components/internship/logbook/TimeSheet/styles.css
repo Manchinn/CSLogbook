@@ -75,17 +75,14 @@
 /* Cards styling */
 .status-summary-card {
   border-radius: 8px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: all 0.3s;
 }
 
+/* ปิดการใช้งาน hover effect ที่ทำให้การ์ดเคลื่อนไหว */
 .status-summary-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
 }
 
 .status-summary-card.total { border-top: 3px solid #1890ff; }

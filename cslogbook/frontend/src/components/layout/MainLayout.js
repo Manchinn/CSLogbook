@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
-import { Layout, Drawer, Grid } from 'antd';
-import Sidebar from './Sidebar';
-import HeaderComponent from './HeaderComponent';
-import { Outlet } from 'react-router-dom';
-import './MainLayout.css';
+import React, { useState, useEffect } from "react";
+import { Layout, Drawer } from "antd";
+import Sidebar from "./Sidebar";
+import HeaderComponent from "./HeaderComponent";
+import BackgroundParticles from "./BackgroundParticles";
+import { Outlet } from "react-router-dom";
+import "./MainLayout.css";
+import "./ResponsiveAdjustments.css";
+import "./MobileOptimizations.css";
+import "./GlassMorphism.css";
+import "./LayoutFixes.css"; // Import the new layout fixes
+import "./MobileDrawer.css"; // Import mobile drawer optimizations
 
 const { Content } = Layout;
 const { useBreakpoint } = Grid;
 
 const MainLayout = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [userRole, setUserRole] = useState("");
+
+  // Get user role from localStorage for theme
+  useEffect(() => {
+    const role = localStorage.getItem("role") || "";
+    setUserRole(role);
+  }, []);
+
+  // Add resize event listener to update isMobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   const showDrawer = () => {
     setDrawerVisible(true);
@@ -22,40 +46,85 @@ const MainLayout = () => {
     setDrawerVisible(false);
     console.log("ปิด main");
   };
-
   return (
-    <Layout style={{ minHeight: '100vh', overflow: 'hidden' }}>
+    <Layout
+      className={`min-h-screen layout ${userRole ? `${userRole}-theme` : ""}`}
+      style={{
+        background: "transparent", // เปลี่ยนเป็น transparent เพื่อให้เห็น BackgroundParticles
+        position: "relative",
+      }}
+    >
+      {/* Add BackgroundParticles component */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          pointerEvents: "none", // ให้คลิกผ่านทะลุไปยังองค์ประกอบด้านหลังได้
+          overflow: "hidden",
+          width: "100vw",
+          height: "100vh",
+        }}
+      >
+        <BackgroundParticles />
+      </div>
+
+      {/* Desktop Sidebar */}
       {!isMobile && <Sidebar />}
-
-      {isMobile && (
-        <Drawer
-          placement="left"
-          onClose={onClose}
-          open={drawerVisible}
-          width={0}
-          bodyStyle={{ padding: 0 }}
-          closable={false}
-          style={{ zIndex: 12 }} // เพิ่ม zIndex
-        >
-          {/* ส่ง onClose ไปยัง Sidebar */}
-          <Sidebar isMobile={isMobile} drawerVisible={drawerVisible} onClose={onClose} />
-        </Drawer>
-      )}
-
+      {/* Mobile Drawer */}      <Drawer
+        placement="left"
+        onClose={onClose}
+        open={drawerVisible}
+        width={280}
+        styles={{ 
+          body: { padding: 0 },
+          header: { display: 'none' }
+        }}
+        closeIcon={null}
+        style={{ 
+          zIndex: 1100,
+          position: 'fixed'
+        }}
+        className="mobile-sidebar-drawer"
+        maskClosable={true}
+        destroyOnHidden={false}
+      >
+        <Sidebar inDrawer={true} onMenuClick={onClose} />
+      </Drawer>
       <Layout>
         <HeaderComponent isMobile={isMobile} showDrawer={showDrawer} />
+        {/* Main Content */}
         <Content
+          className="p-6 responsive-content content-area"
           style={{
-            marginLeft: isMobile ? 0 : 230, // ในโหมดมือถือ marginLeft เป็น 0
-            transition: 'margin-left 0.2s',
-            // backgroundColor: '#A7A7A7A7',
-            marginTop: '64px', // ปรับให้ตรงกับความสูงของส่วนหัวที่คงที่
-            padding: '24px',
-            overflowY: 'auto', // ทำให้เนื้อหาสามารถเลื่อนขึ้นลงได้
-            height: 'calc(100vh - 64px)', // ปรับความสูงให้ตรงกับส่วนหัวที่คงที่
+            marginLeft: isMobile ? 0 : "200px",
+            paddingTop: "80px",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "transparent",
+            position: "relative",
+            zIndex: 1,
+            // height: '100vh',
+            // overflow: 'hidden',
+            // backdropFilter: 'blur(10px)',
           }}
         >
-          <Outlet />
+          {" "}
+          <div
+            className="rounded-lg shadow-sm p-6"
+            style={{
+              margin: isMobile ? "0.5rem" : "1rem 4rem",
+              transition: "all 0.3s ease",
+              /*                  backgroundColor: "rgba(255, 255, 255, 0.98)", // เพิ่มความทึบให้เหมือนใน #usages มากขึ้น
+                 backdropFilter: "blur(10px)",
+                 border: "1px solid rgba(0, 0, 0, 0.05)" */ // เส้นขอบบางๆ เทาอ่อนตามภาพ #usages
+            }}
+          >
+            <Outlet />
+          </div>
         </Content>
       </Layout>
     </Layout>
