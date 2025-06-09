@@ -1,9 +1,3 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Menu, Avatar, Typography, Badge, message, Tooltip, Button, Drawer, Grid } from 'antd';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useStudentPermissions } from '../../hooks/useStudentPermissions';
-import { studentService } from '../../services/studentService';
 // filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src\components\layout\Sidebar.js
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -23,7 +17,6 @@ import {
   FormOutlined,
   BookOutlined,
   FileDoneOutlined,
-  MenuOutlined,
   BankOutlined,
   LogoutOutlined,
   CheckCircleOutlined,
@@ -38,8 +31,6 @@ import "./Sidebar.css";
 
 const { Sider } = Layout;
 const { Title } = Typography;
-const { useBreakpoint } = Grid;
-const { Title } = Typography;
 
 const themeConfig = {
   student: "student-theme",
@@ -48,6 +39,7 @@ const themeConfig = {
 };
 
 const MenuItemWithTooltip = ({ item, disabled, title }) => {
+  // เพิ่มการตรวจสอบว่ามี title และ disabled หรือไม่
   if (disabled && title) {
     return (
       <Tooltip
@@ -55,10 +47,6 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
         placement="right"
         color={disabled ? "#ff4d4f" : "#52c41a"}
       >
-        <span style={{
-          opacity: disabled ? 0.5 : 1,
-          cursor: disabled ? 'not-allowed' : 'pointer'
-        }}>
         <span
           style={{
             opacity: disabled ? 0.5 : 1,
@@ -73,7 +61,6 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
   return item.label;
 };
 
-const Sidebar = ({ isMobile, drawerVisible, onClose }) => {
 // เพิ่ม prop inDrawer เพื่อบอกว่า Sidebar นี้อยู่ใน Drawer หรือไม่
 // เพิ่ม prop onMenuClick สำหรับปิด drawer เมื่อคลิกเมนู
 const Sidebar = ({ inDrawer, onMenuClick }) => {
@@ -84,9 +71,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   const location = useLocation();
   const { userData, logout } = useAuth();
   const [studentData, setStudentData] = useState(null);
-  const { canAccessInternship, canAccessProject, messages, updatePermissions } = useStudentPermissions(userData);
-  const screens = useBreakpoint();
-
   
   // ใช้ StudentEligibilityContext แทน useStudentPermissions
   const { 
@@ -100,8 +84,8 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   // Handle logout
   const handleLogout = async () => {
     try {
+      // Set userData to null ก่อน navigate
       await logout();
-      navigate('/login', { replace: true });
       // Navigate หลังจาก clear userData แล้ว
       navigate("/login", { replace: true });
     } catch (error) {
@@ -111,20 +95,9 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   };
 
   useEffect(() => {
+    // ตรวจสอบเมื่อ path เปลี่ยน
     const checkRouteAccess = () => {
       const path = location.pathname;
-
-      if (userData?.role === 'student') {
-        if (path.includes('/project') && !canAccessProject) {
-          message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ');
-          navigate('/dashboard');
-          return;
-        }
-
-        if (path.includes('/internship') && !canAccessInternship) {
-          message.error('คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน');
-          navigate('/dashboard');
-          return;
       const showNotificationKey = 'access_notification';
       // ตรวจสอบว่าเคยแสดง notification แล้วหรือไม่ในวันนี้
       const todayDate = new Date().toDateString();
@@ -173,6 +146,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     refreshEligibility
   ]);
 
+  // เพิ่ม Effect เพื่อติดตามการเปลี่ยนแปลงข้อมูลนักศึกษา
   useEffect(() => {
     if (userData?.role === "student" && userData?.studentCode) {
       const fetchStudentData = async () => {
@@ -181,14 +155,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             userData.studentCode
           );
           if (response.success) {
-            const newData = response.data;
-
-            if (JSON.stringify(studentData) !== JSON.stringify(newData)) {
-              setStudentData(newData);
-              updatePermissions(newData);
-              setLastUpdate(new Date());
-              localStorage.setItem('studentData', JSON.stringify(newData));
-            }
             setStudentData(response.student);
             // setLastUpdate(new Date()); // อาจจะไม่จำเป็นแล้วถ้าใช้ lastUpdated จาก context
           }
@@ -197,23 +163,19 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         }
       };
 
-      fetchStudentData();
-      const interval = setInterval(fetchStudentData, 30000);
-
-      return () => clearInterval(interval);
       fetchStudentData(); // เรียกข้อมูลครั้งแรกเมื่อ component โหลด หรือเมื่อ studentCode/role เปลี่ยน
       // เพิ่ม interval ที่นานขึ้น และพิจารณาเงื่อนไขอื่นๆ ในการเรียก
       // const interval = setInterval(fetchStudentData, 300000); // เปลี่ยนจาก 30 วินาที เป็น 5 นาที (300000 ms)
 
       // return () => clearInterval(interval); // เอา interval ออกก่อน เพื่อพิจารณา event-driven หรือ context-based updates
     }
-  }, [userData?.studentCode, userData?.role, updatePermissions, studentData]);
     // studentData ไม่ควรอยู่ใน dependency array นี้ เพราะจะทำให้เกิด loop
     // ถ้า lastUpdated จาก StudentEligibilityContext เพียงพอ ก็ไม่จำเป็นต้องมี interval ที่นี่
     // การเปลี่ยนแปลงของ lastUpdated จะ trigger useEffect นี้ให้ทำงาน (ถ้า userData.studentCode และ role ยังคงเดิม)
   }, [userData?.studentCode, userData?.role, lastUpdated]); // ใช้ lastUpdated จาก context เป็นตัวกระตุ้นหลัก
 
   const menuItems = useMemo(() => {
+    // ถ้าไม่มี userData return เฉพาะ logout
     if (!userData?.role) {
       return [
         {
@@ -230,6 +192,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     const projectTooltip = messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
 
     return [
+      // Dashboard - Common for all roles
       {
         key: "/admin/dashboard",
         icon: <HomeOutlined />,
@@ -460,10 +423,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
       {
         key: "logout",
         icon: <LogoutOutlined />,
-        label: 'ออกจากระบบ',
-        className: 'logout',
-      }
-    ];
         label: "ออกจากระบบ",
         className: "logout",
       },
@@ -475,9 +434,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     } else {
       navigate(key);
     }
-    if (isMobile) {
-      onClose(); // ปิด Drawer เมื่อคลิกเมนูในหน้าจอเล็ก
-    }
     
     // If in drawer mode and onMenuClick prop exists, call it to close the drawer
     if (inDrawer && typeof onMenuClick === 'function') {
@@ -488,13 +444,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   const renderLastUpdate = () => {
     if (userData?.role === "student") {
       return (
-        <div style={{
-          padding: '8px',
-          textAlign: 'center',
-          fontSize: '12px',
-          color: 'rgba(0,0,0,0.45)'
-        }}>
-          อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
         <div
           className="last-update"
           style={{
@@ -533,40 +482,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
 
   // ใน Drawer mode ไม่จำเป็นต้องมี controls สำหรับ collapse
   return (
-    <>
-      {!isMobile && (
-        <Sider
-          width={230}
-          className={`sider ${userData?.role ? themeConfig[userData.role] : ''}`}
-          style={{ zIndex: 12 }}
-        >
-          <div className="profile">
-            <Avatar
-              size={64}
-              style={{
-                backgroundColor: 'var(--active-color)',
-                marginBottom: 12,
-                fontSize: '24px',
-              }}
-            >
-              {userData?.firstName?.charAt(0)?.toUpperCase() || '?'}
-            </Avatar>
-            <Title level={5} style={{ margin: '8px 0 4px' }}>
-              {userData?.firstName} {userData?.lastName}
-            </Title>
-            <Badge
-              count={
-                !userData?.role ? '' :
-                  userData.role === 'admin' ? 'ผู้ดูแลระบบ' :
-                    userData.role === 'teacher' ? 'อาจารย์' :
-                      'นักศึกษา'
-              }
-              style={{
-                backgroundColor: 'var(--active-color)',
-                fontSize: '12px',
-              }}
-            />
-          </div>
     <Sider
       width={230}
       className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${inDrawer ? 'in-drawer' : ''}`}
@@ -614,41 +529,6 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         )}
       </div>
 
-          <Menu
-            mode="inline"
-            items={menuItems}
-            selectedKeys={[location.pathname]}
-            defaultSelectedKeys={[location.pathname]}
-            className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
-            onClick={handleMenuClick}
-          />
-          {renderLastUpdate()}
-        </Sider>
-      )}
-
-      {isMobile && (
-        <Drawer
-          title="เมนู"
-          placement="left"
-          closable
-          onClose={onClose}
-          open={drawerVisible}
-          width={230}
-          bodyStyle={{ padding: 0 }}
-          
-        >
-          <Menu
-            mode="inline"
-            items={menuItems}
-            selectedKeys={[location.pathname]}
-            defaultSelectedKeys={[location.pathname]}
-            className={`menu ${userData?.role ? themeConfig[userData.role] : ''}`}
-            onClick={handleMenuClick}
-          />
-          {renderLastUpdate()}
-        </Drawer>
-      )}
-    </>
       <Menu
         mode="inline"
         items={menuItems}
