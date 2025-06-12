@@ -229,6 +229,10 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                           key: "/internship-registration/cs05",
                           label: "คพ.05 - คำร้องขอฝึกงาน",
                         },
+                                              {
+                        key: "/internship-registration/flow", // ใช้ InternshipRegistrationFlow ใหม่
+                        label: "คพ.05 - 1คำร้องขอฝึกงาน (แบบใหม่)",
+                        },
                       ],
                     },
                     {

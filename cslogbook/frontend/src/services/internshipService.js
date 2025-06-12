@@ -570,6 +570,65 @@ const internshipService = {
     }
   },
 
+  // โหลดเอกสารการฝึกงาน
+  getInternshipDocuments: async (cs05Id) => {
+    try {
+      const response = await apiClient.get(`/internship/documents/${cs05Id}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถโหลดเอกสารได้'
+      };
+    }
+  },
+
+  // ดาวน์โหลดเอกสาร
+  downloadDocument: async (cs05Id, documentType) => {
+    try {
+      const response = await apiClient.get(`/internship/documents/${cs05Id}/download/${documentType}`, {
+        responseType: 'blob'
+      });
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถดาวน์โหลดเอกสารได้'
+      };
+    }
+  },
+
+  // อัปโหลดเอกสาร
+  uploadDocument: async (cs05Id, documentType, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('documentType', documentType);
+
+      const response = await apiClient.post(`/internship/documents/${cs05Id}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถอัปโหลดเอกสารได้'
+      };
+    }
+  }
+
 };
 
 export default internshipService;

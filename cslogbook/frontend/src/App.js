@@ -16,6 +16,8 @@ import StatusCheck from './components/internship/shared/StatusCheck';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
 import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
 
+import { InternshipRegistrationFlow } from './components/internship/register';
+
 // Import Project Components
 import ProjectProposalForm from './components/project/ProjectProposalForm';
 import LogbookForm from './components/project/LogbookForm';
@@ -67,6 +69,22 @@ const App = () => {
                     <CS05Form />
                   </ProtectedRoute>
                 } />
+
+                                {/* Internship Routes */}
+                {/* เปลี่ยนจาก CS05Form เดิม เป็น InternshipRegistrationFlow ใหม่ */}
+                {/* <Route path="/internship-registration/cs05new" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipRegistrationFlow />
+                  </ProtectedRoute>
+                } /> */}
+                
+                {/* หรือถ้าต้องการใช้ทั้งสองแบบ สามารถเพิ่ม route ใหม่ */}
+                <Route path="/internship-registration/flow" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipRegistrationFlow />
+                  </ProtectedRoute>
+                } />
+                
                 
                 {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดฝึกงาน */}
                 <Route path="/internship-eligibility" element={
