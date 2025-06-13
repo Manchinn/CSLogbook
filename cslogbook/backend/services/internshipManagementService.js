@@ -130,6 +130,9 @@ class InternshipManagementService {
       supervisorName: document.internshipDocument.supervisorName,
       supervisorPhone: document.internshipDocument.supervisorPhone,
       supervisorEmail: document.internshipDocument.supervisorEmail,
+      internshipPosition: document.internshipDocument.internshipPosition,   // เพิ่มฟิลด์ใหม่
+      contactPersonName: document.internshipDocument.contactPersonName,     // เพิ่มฟิลด์ใหม่
+      contactPersonPosition: document.internshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
       createdAt: document.created_at,
     };
   }
@@ -139,7 +142,7 @@ class InternshipManagementService {
    */
   async submitCS05(
     userId,
-    { companyName, companyAddress, startDate, endDate }
+    { companyName, companyAddress, startDate, endDate, internshipPosition, contactPersonName, contactPersonPosition }
   ) {
     const transaction = await sequelize.transaction();
     try {
@@ -176,6 +179,9 @@ class InternshipManagementService {
           documentId: document.documentId,
           companyName,
           companyAddress,
+          internshipPosition,    // เพิ่มฟิลด์ใหม่
+          contactPersonName,     // เพิ่มฟิลด์ใหม่
+          contactPersonPosition, // เพิ่มฟิลด์ใหม่
           startDate: new Date(startDate),
           endDate: new Date(endDate),
           status: "pending",
@@ -235,7 +241,15 @@ class InternshipManagementService {
         throw new Error("กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น");
       }
 
-      const { companyName, companyAddress, startDate, endDate } = formData;
+      const { 
+        companyName, 
+        companyAddress, 
+        startDate, 
+        endDate, 
+        internshipPosition,   // เพิ่มฟิลด์ใหม่
+        contactPersonName,   // เพิ่มฟิลด์ใหม่
+        contactPersonPosition // เพิ่มฟิลด์ใหม่
+      } = formData;
 
       // ตรวจสอบว่ามี CS05 ที่ pending อยู่หรือไม่
       const existingDocument = await Document.findOne({
@@ -275,6 +289,9 @@ class InternshipManagementService {
           startDate: new Date(startDate),
           endDate: new Date(endDate),
           status: "pending",
+          internshipPosition,   // เพิ่มฟิลด์ใหม่
+          contactPersonName,    // เพิ่มฟิลด์ใหม่
+          contactPersonPosition, // เพิ่มฟิลด์ใหม่
           supervisorName: null,
           supervisorPosition: null,
           supervisorPhone: null,
@@ -311,6 +328,9 @@ class InternshipManagementService {
         companyAddress,
         startDate,
         endDate,
+        internshipPosition,   // เพิ่มฟิลด์ใหม่
+        contactPersonName,    // เพิ่มฟิลด์ใหม่
+        contactPersonPosition,// เพิ่มฟิลด์ใหม่
         transcriptFilename: fileData.filename,
       };
     } catch (error) {
@@ -360,6 +380,9 @@ class InternshipManagementService {
       studentCode: document.Student.studentCode,
       companyName: document.InternshipDocument.companyName,
       companyAddress: document.InternshipDocument.companyAddress,
+      internshipPosition: document.InternshipDocument.internshipPosition,   // เพิ่มฟิลด์ใหม่
+      contactPersonName: document.InternshipDocument.contactPersonName,     // เพิ่มฟิลด์ใหม่
+      contactPersonPosition: document.InternshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
       startDate: document.InternshipDocument.startDate,
       endDate: document.InternshipDocument.endDate,
       status: document.status,

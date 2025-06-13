@@ -42,6 +42,21 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: "company_address",
       },
+      internshipPosition: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        field: "internship_position",
+      },
+      contactPersonName: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        field: "contact_person_name",
+      },
+      contactPersonPosition: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        field: "contact_person_position",
+      },
       supervisorName: {
         type: DataTypes.STRING(100),
         allowNull: true,

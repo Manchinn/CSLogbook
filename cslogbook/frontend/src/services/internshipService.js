@@ -81,6 +81,9 @@ const internshipService = {
         startDate: formData.startDate,
         endDate: formData.endDate,
         // เพิ่มฟิลด์ใหม่
+        internshipPosition: formData.internshipPosition || '',
+        contactPersonName: formData.contactPersonName || '',
+        contactPersonPosition: formData.contactPersonPosition || '',
         classroom: formData.classroom || null,
         phoneNumber: formData.phoneNumber || null,
         // ข้อมูลนักศึกษาเพิ่มเติม
@@ -105,6 +108,12 @@ const internshipService = {
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
+      }
+
+      if (response.data.data) {
+        response.data.data.internshipPosition = response.data.data.internshipPosition || '';
+        response.data.data.contactPersonName = response.data.data.contactPersonName || '';
+        response.data.data.contactPersonPosition = response.data.data.contactPersonPosition || '';
       }
       
       return response.data;
@@ -194,6 +203,10 @@ const internshipService = {
             formDataObj.classroom = formDataObj.studentData[0].classroom || null;
             formDataObj.phoneNumber = formDataObj.studentData[0].phoneNumber || null;
           }
+          // เพิ่มการจัดการฟิลด์ใหม่ทั้ง 3 ฟิลด์
+          formDataObj.internshipPosition = formDataObj.internshipPosition || '';
+          formDataObj.contactPersonName = formDataObj.contactPersonName || '';
+          formDataObj.contactPersonPosition = formDataObj.contactPersonPosition || '';
           
           // อัปเดต formData กลับไป
           formData.set('formData', JSON.stringify(formDataObj));

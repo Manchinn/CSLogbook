@@ -59,7 +59,25 @@ exports.getCurrentCS05 = async (req, res) => {
  */
 exports.submitCS05 = async (req, res) => {
   try {
-    const result = await internshipManagementService.submitCS05(req.user.userId, req.body);
+    const { 
+      companyName, 
+      companyAddress, 
+      startDate, 
+      endDate,
+      internshipPosition,    // เพิ่มฟิลด์ใหม่
+      contactPersonName,     // เพิ่มฟิลด์ใหม่
+      contactPersonPosition  // เพิ่มฟิลด์ใหม่
+    } = req.body;
+    
+    const result = await internshipManagementService.submitCS05(req.user.userId, {
+      companyName,
+      companyAddress,
+      startDate,
+      endDate,
+      internshipPosition,    // เพิ่มฟิลด์ใหม่
+      contactPersonName,     // เพิ่มฟิลด์ใหม่
+      contactPersonPosition  // เพิ่มฟิลด์ใหม่
+    });
     
     return res.status(201).json({
       success: true,

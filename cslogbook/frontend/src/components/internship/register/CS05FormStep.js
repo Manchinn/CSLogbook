@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { 
   Form, Input, Button, DatePicker, Space, Typography, Divider,
   Row, Col, Radio, InputNumber, Alert, Card, Select, Checkbox,
@@ -36,15 +36,16 @@ const CS05FormStep = ({
   existingCS05,
   transcriptFile,
   setTranscriptFile,
-  isSubmitted
+  isSubmitted,
+  initialData // เพิ่ม prop สำหรับข้อมูลเริ่มต้น
 }) => {
   const [form] = Form.useForm();
-  const [hasTwoStudents, setHasTwoStudents] = useState(formData?.hasTwoStudents || false);
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false);
+  const [startDate, setStartDate] = React.useState(null);
+  const [endDate, setEndDate] = React.useState(null);
 
   // กำหนดค่าเริ่มต้นเมื่อมีข้อมูล
-  useEffect(() => {
+  React.useEffect(() => {
     if (studentData) {
       // กำหนดค่าข้อมูลนักศึกษา
       form.setFieldsValue({
@@ -85,8 +86,8 @@ const CS05FormStep = ({
       form.setFieldsValue({
         companyName: existingCS05.companyName,
         companyAddress: existingCS05.companyAddress,
-        contactPerson: existingCS05.contactPerson,
-        contactPosition: existingCS05.contactPosition,
+        contactPersonName: existingCS05.contactPersonName,
+        contactPersonPosition: existingCS05.contactPersonPosition,
         internshipDateRange: dateRange,
         hasTwoStudents: existingCS05.hasTwoStudents || false,
         internshipPosition: existingCS05.internshipPosition,
@@ -128,6 +129,20 @@ const CS05FormStep = ({
     }
   }, [form, studentData, formData, existingCS05]);
 
+  // เพิ่ม useEffect เพื่อตั้งค่าฟอร์มเมื่อมีข้อมูลเริ่มต้น
+  React.useEffect(() => {
+    if (initialData) {
+      form.setFieldsValue({
+        companyName: initialData.companyName,
+        companyAddress: initialData.companyAddress,
+        // เพิ่มฟิลด์ใหม่ และรองรับทั้งชื่อเก่าและชื่อใหม่
+        internshipPosition: initialData.internshipPosition || '',
+        contactPersonName: initialData.contactPersonName  || '',
+        contactPersonPosition: initialData.contactPersonPosition || ''
+      });
+    }
+  }, [initialData, form]);
+  
   // คำนวณจำนวนวันฝึกงาน
   const calculateInternshipDays = (dates) => {
     if (!dates || dates.length !== 2) return 0;
@@ -226,11 +241,20 @@ const CS05FormStep = ({
             />
           </Form.Item>
 
+          {/* เพิ่มฟิลด์ใหม่ - ตำแหน่งฝึกงาน */}
+          <Form.Item
+            label="ตำแหน่งที่ขอฝึกงาน"
+            name="internshipPosition"
+            rules={[{ required: false }]}
+          >
+            <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน" />
+          </Form.Item>      
+
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
-                name="contactPerson"
-                label="เรียนถึง (ชื่อผู้ติดต่อ/HR)"
+                name="contactPersonName"
+                label="เรียนถึง (ชื่อผู้ติดต่อ)"
                 rules={[
                   { required: true, message: 'กรุณากรอกชื่อผู้ติดต่อหรือ HR' }
                 ]}
@@ -243,7 +267,7 @@ const CS05FormStep = ({
             </Col>
             <Col xs={24} md={12}>
               <Form.Item
-                name="contactPosition"
+                name="contactPersonPosition"
                 label="ตำแหน่ง"
                 rules={[
                   { required: true, message: 'กรุณากรอกตำแหน่ง' }

@@ -240,6 +240,26 @@ const SubmissionResultStep = ({ navigate, formData, existingCS05, studentData, t
             </div>
           </Col>
         </Row>
+        {/* แสดงข้อมูลผู้ติดต่อ/HR */}
+        {(displayData.contactPersonName || displayData.contactPerson || displayData.contactPersonPosition || displayData.contactPosition) && (
+          <>
+            <Divider style={{ margin: "12px 0" }} />
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <div>
+                  <Text strong>ผู้ติดต่อ/HR: </Text>
+                  <Text>{displayData.contactPersonName || displayData.contactPerson || '-'}</Text>
+                </div>
+              </Col>
+              <Col xs={24} md={12}>
+                <div>
+                  <Text strong>ตำแหน่งของผู้ติดต่อ: </Text>
+                  <Text>{displayData.contactPersonPosition || displayData.contactPosition || '-'}</Text>
+                </div>
+              </Col>
+            </Row>
+          </>
+        )}        
 
         {/* เพิ่มส่วนแสดงข้อมูลห้องและเบอร์โทรศัพท์ */}
         {(displayData.studentData?.[0]?.classroom || displayData.classroom || displayData.studentData?.[0]?.phoneNumber || displayData.phoneNumber) && (

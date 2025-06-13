@@ -56,8 +56,8 @@ const ReviewDataStep = ({
       companyAddress: formData.companyAddress,
       startDate: formData.startDate,
       endDate: formData.endDate,
-      contactPerson: formData.contactPerson,
-      contactPosition: formData.contactPosition,
+      contactPersonName: formData.contactPersonName,
+      contactPersonPosition: formData.contactPersonPosition,
       internshipPosition: formData.internshipPosition,
       jobDescription: formData.jobDescription,
       additionalRequirements: formData.additionalRequirements,
@@ -90,6 +90,12 @@ const ReviewDataStep = ({
             <Text strong>ชื่อบริษัท:</Text>
             <div>{formData.companyName}</div>
           </Col>
+          {formData.internshipPosition && (
+            <Col span={12}>
+              <Text strong>ตำแหน่งที่ขอฝึกงาน:</Text>
+              <div>{formData.internshipPosition}</div>
+            </Col>
+          )}          
         </Row>
         <Divider />
         <Text strong>ที่อยู่บริษัท:</Text>
@@ -99,11 +105,11 @@ const ReviewDataStep = ({
         <Row gutter={16}>
           <Col span={12}>
             <Text strong>เรียนถึง (ผู้ติดต่อ):</Text>
-            <div>{formData.contactPerson}</div>
+            <div>{formData.contactPersonName || 'ไม่ระบุ'}</div>
           </Col>
           <Col span={12}>
             <Text strong>ตำแหน่ง:</Text>
-            <div>{formData.contactPosition}</div>
+            <div>{formData.contactPersonPosition || 'ไม่ระบุ'}</div>
           </Col>
         </Row>
       </Card>

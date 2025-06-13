@@ -64,6 +64,7 @@ const InternshipRegistrationFlow = () => {
         
         // 1. ดึงข้อมูลนักศึกษา
         const studentResponse = await internshipService.getStudentInfo();
+        console.log('[DEBUG] ข้อมูลนักศึกษา:', studentResponse);
         
         if (studentResponse.success) {
           const student = studentResponse.student;
@@ -81,11 +82,34 @@ const InternshipRegistrationFlow = () => {
         
         // 2. ตรวจสอบ CS05 ที่มีอยู่แล้ว
         const cs05Response = await internshipService.getCurrentCS05();
+        console.log('[DEBUG] ข้อมูลดิบที่ได้จาก API:', cs05Response);
         
         if (cs05Response.success && cs05Response.data) {
           const cs05Data = cs05Response.data;
-          setFormData(cs05Data);
-          setExistingCS05(cs05Data);
+          console.log('[DEBUG] ข้อมูล CS05 ก่อนเพิ่มฟิลด์ใหม่:', JSON.stringify(cs05Data));
+          
+          // รับค่าฟิลด์ใหม่จาก backend
+          const formDataWithNewFields = {
+            ...cs05Data,
+            // รองรับทั้งชื่อฟิลด์เก่าและใหม่
+            contactPersonName: cs05Data.contactPersonName || cs05Data.contactPerson,
+            contactPersonPosition: cs05Data.contactPersonPosition || cs05Data.contactPosition,
+            // ถ้ามี internshipPosition ก็ใช้ ถ้าไม่มีก็เป็น undefined
+            internshipPosition: cs05Data.internshipPosition
+          };
+          
+          console.log('[DEBUG] ฟิลด์ใหม่ที่เพิ่มเข้าไป:', {
+            contactPersonName: formDataWithNewFields.contactPersonName,
+            contactPersonPosition: formDataWithNewFields.contactPersonPosition,
+            internshipPosition: formDataWithNewFields.internshipPosition
+          });
+          
+          setFormData(formDataWithNewFields);
+          setExistingCS05(formDataWithNewFields);
+          
+          console.log('[DEBUG] formData หลังจาก setFormData:', formDataWithNewFields);
+          console.log('[DEBUG] existingCS05 หลังจาก setExistingCS05:', formDataWithNewFields);
+          
           setIsSubmitted(cs05Data.status !== 'rejected');
           
           // ถ้ามีไฟล์ transcript
@@ -112,8 +136,16 @@ const InternshipRegistrationFlow = () => {
 
   // ฟังก์ชันสำหรับไปขั้นตอนถัดไป
   const handleNextStep = (data) => {
-    console.log('Next step data:', data); // สำหรับ debug
+    console.log('[DEBUG] ข้อมูลที่ได้จากขั้นตอนก่อนหน้า:', data);
+    console.log('[DEBUG] ฟิลด์ใหม่ที่ได้จากขั้นตอนก่อนหน้า:', {
+      contactPersonName: data.contactPersonName,
+      contactPersonPosition: data.contactPersonPosition,
+      internshipPosition: data.internshipPosition
+    });
+    
     setFormData({ ...formData, ...data });
+    console.log('[DEBUG] formData หลังจาก update:', { ...formData, ...data });
+    
     setCurrentStep(currentStep + 1);
     
     // หากมีการอัปเดต transcript file
@@ -166,8 +198,12 @@ const InternshipRegistrationFlow = () => {
         companyAddress: finalData.companyAddress,
         startDate: finalData.startDate,
         endDate: finalData.endDate,
-        contactPerson: finalData.contactPerson,
-        contactPosition: finalData.contactPosition,
+        
+        // เปลี่ยนชื่อฟิลด์ให้ตรงกับ backend
+        internshipPosition: finalData.internshipPosition || '',
+        contactPersonName: finalData.contactPersonName || finalData.contactPerson || '',
+        contactPersonPosition: finalData.contactPersonPosition || finalData.contactPosition || '',
+        
         hasTwoStudents: finalData.hasTwoStudents || false,
         studentData: finalData.studentData || [],
         // เพิ่มข้อมูลห้องเรียนและเบอร์โทรศัพท์
@@ -175,7 +211,9 @@ const InternshipRegistrationFlow = () => {
         phoneNumber: finalData.phoneNumber || finalData.studentData?.[0]?.phoneNumber || ''
       };
       
-      // แนบข้อมูล JSON
+      console.log('ข้อมูลที่จะส่งไป backend:', submitData);
+      
+      // แนบข้อมูล JSON สำหรับส่งไปยัง API
       formData.append('formData', JSON.stringify(submitData));
       
       // แนบไฟล์ transcript โดยตรวจสอบให้ละเอียดกว่าเดิม
@@ -238,6 +276,17 @@ const InternshipRegistrationFlow = () => {
       onPrev: handlePrevStep,
       onSubmit: handleSubmit
     };
+
+    console.log('[DEBUG] stepProps ที่ส่งให้ step ที่', currentStep, ':', {
+      formDataFields: stepProps.formData ? Object.keys(stepProps.formData) : [],
+      formDataInternshipPosition: stepProps.formData?.internshipPosition,
+      formDataContactPersonName: stepProps.formData?.contactPersonName,
+      formDataContactPersonPosition: stepProps.formData?.contactPersonPosition,
+      existingCS05Fields: stepProps.existingCS05 ? Object.keys(stepProps.existingCS05) : [],
+      existingCS05InternshipPosition: stepProps.existingCS05?.internshipPosition,
+      existingCS05ContactPersonName: stepProps.existingCS05?.contactPersonName,
+      existingCS05ContactPersonPosition: stepProps.existingCS05?.contactPersonPosition
+    });
 
     switch (currentStep) {
       case 0:
