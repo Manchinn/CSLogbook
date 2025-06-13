@@ -4,5 +4,3 @@ export { default as ReviewDataStep } from './ReviewDataStep';
 export { default as SubmissionResultStep } from './SubmissionResultStep';
 export { default as StudentInfoSection } from './StudentInfoSection';
 export { default as InternshipDocumentsPage } from './InternshipDocumentsPage';
-
-export { default as DemoControls } from './DemoControls';

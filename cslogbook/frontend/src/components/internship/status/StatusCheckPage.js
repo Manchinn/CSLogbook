@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Timeline, Tag, Alert, Button, Space, Row, Col, 
-  Typography, Spin, message, Descriptions, Switch
+  Typography, Spin, message, Descriptions
 } from 'antd';
 import { 
   CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
   PrinterOutlined, UploadOutlined, DownloadOutlined,
-  AuditOutlined, FileDoneOutlined, ExclamationCircleOutlined,
-  BugOutlined
+  AuditOutlined, FileDoneOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import internshipService from '../../../services/internshipService';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 
-// นำเข้า Demo Controls
-import DemoControls from '../register/DemoControls';
+// ลบการนำเข้า DemoControls
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -28,9 +26,6 @@ const StatusCheckPage = () => {
   const [studentData, setStudentData] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   
-  // สำหรับ Demo Mode
-  const [demoMode, setDemoMode] = useState(false);
-
   // กำหนดขั้นตอนทั้งหมดของการฝึกงาน
   const internshipSteps = [
     {
@@ -97,39 +92,8 @@ const StatusCheckPage = () => {
       try {
         setLoading(true);
         
-        if (demoMode) {
-          // ใช้ข้อมูลจำลองสำหรับ Demo
-          const mockStudent = {
-            fullName: 'นางสาวสมใจ รักเรียน',
-            studentId: '65160123',
-            year: '3',
-            faculty: 'คณะเทคโนโลยีสารสนเทศ',
-            major: 'วิทยาการคอมพิวเตอร์',
-            totalCredits: 95,
-            advisorEmail: 'advisor@university.ac.th',
-            advisorPhone: '02-987-6543'
-          };
-
-          const mockCS05 = {
-            id: 'demo-cs05-001',
-            companyName: 'บริษัท เทคโนโลยีสารสนเทศ จำกัด',
-            companyAddress: '123 ถนนเทคโนโลยี แขวงนวัตกรรม เขตดิจิทัล กรุงเทพฯ 10110',
-            internshipPosition: 'Frontend Developer',
-            contactEmail: 'hr@techinfo.co.th',
-            contactPhone: '02-123-4567',
-            startDate: '2024-06-01',
-            endDate: '2024-08-30',
-            submittedAt: '2024-05-15T10:30:00Z',
-            status: 'submitted'
-          };
-
-          setStudentData(mockStudent);
-          setCs05Data(mockCS05);
-          setCurrentStep(0);
-          
-          return;
-        }
-
+        // ลบเงื่อนไข demoMode และข้อมูลจำลอง
+        
         // โหลดข้อมูลจริงจาก API
         const studentResponse = await internshipService.getStudentProfile();
         if (studentResponse.success) {
@@ -147,32 +111,16 @@ const StatusCheckPage = () => {
         }
       } catch (error) {
         console.error('Error fetching internship status:', error);
-        if (!demoMode) {
-          message.error('ไม่สามารถโหลดข้อมูลสถานะได้');
-        }
+        message.error('ไม่สามารถโหลดข้อมูลสถานะได้');
       } finally {
         setLoading(false);
       }
     };
 
     fetchInternshipStatus();
-  }, [demoMode]);
+  }, []);
 
-  // ฟังก์ชันจัดการเปลี่ยนสถานะจาก Demo Controls
-  const handleDemoStatusChange = (newStatus) => {
-    if (cs05Data) {
-      const updatedCS05 = { ...cs05Data, status: newStatus };
-      setCs05Data(updatedCS05);
-      setCurrentStep(getStepIndexByStatus(newStatus));
-    }
-  };
-
-  // ฟังก์ชันจัดการเปลี่ยนข้อมูลจาก Demo Controls
-  const handleDemoDataChange = (newCS05Data, newStudentData) => {
-    setCs05Data(newCS05Data);
-    setStudentData(newStudentData);
-    setCurrentStep(getStepIndexByStatus(newCS05Data.status));
-  };
+  // ลบฟังก์ชัน handleDemoStatusChange และ handleDemoDataChange
 
   // หาขั้นตอนปัจจุบันจากสถานะ
   const getStepIndexByStatus = (status) => {
@@ -268,29 +216,6 @@ const StatusCheckPage = () => {
         🔍 ติดตามสถานะการฝึกงาน
       </Title>
 
-      {/* สวิตช์เปิด/ปิด Demo Mode */}
-      <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <Space>
-          <BugOutlined style={{ color: demoMode ? '#ff7a00' : '#d9d9d9' }} />
-          <Text>โหมดทดสอบ:</Text>
-          <Switch
-            checked={demoMode}
-            onChange={setDemoMode}
-            checkedChildren="เปิด"
-            unCheckedChildren="ปิด"
-          />
-        </Space>
-      </div>
-
-      {/* Demo Controls - แสดงเฉพาะในโหมดทดสอบ */}
-      {demoMode && (
-        <DemoControls
-          currentStatus={cs05Data?.status || 'draft'}
-          onStatusChange={handleDemoStatusChange}
-          onDataChange={handleDemoDataChange}
-        />
-      )}
-
       {/* แสดงสถานะปัจจุบัน */}
       <Card style={{ marginBottom: 24 }}>
         <Alert
@@ -325,11 +250,7 @@ const StatusCheckPage = () => {
               <Tag color={getStepColor(currentStep)}>
                 {internshipSteps[Math.max(0, currentStep)]?.title || 'ไม่ระบุ'}
               </Tag>
-              {demoMode && (
-                <Tag color="orange" style={{ marginLeft: 8 }}>
-                  โหมดทดสอบ
-                </Tag>
-              )}
+              {/* ลบ Tag โหมดทดสอบ */}
             </Descriptions.Item>
           </Descriptions>
         )}
@@ -444,7 +365,7 @@ const StatusCheckPage = () => {
       {/* ปุ่มดำเนินการ */}
       <div style={{ textAlign: 'center', marginTop: 32 }}>
         <Space size="large">
-          {!cs05Data && !demoMode && (
+          {!cs05Data && (
             <Button 
               type="primary" 
               size="large"

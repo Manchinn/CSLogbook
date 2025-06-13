@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Button, Space, Alert, Typography, Row, Col, 
-  Tag, Descriptions, message, Spin, Timeline, Switch
+  Tag, Descriptions, message, Spin, Timeline
 } from 'antd';
 import { 
   DownloadOutlined, UploadOutlined, FileTextOutlined,
   PrinterOutlined, CheckCircleOutlined, ClockCircleOutlined,
-  ExclamationCircleOutlined, BugOutlined, HomeOutlined
+  HomeOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 
 // นำเข้า Demo Controls
-import DemoControls from './DemoControls';
 import internshipService from '../../../services/internshipService';
 
 const { Title, Text, Paragraph } = Typography;
@@ -27,9 +26,6 @@ const InternshipDocumentsPage = () => {
   const [studentData, setStudentData] = useState(null);
   const [documents, setDocuments] = useState({});
   
-  // สำหรับ Demo Mode
-  const [demoMode, setDemoMode] = useState(false);
-
   // ประเภทเอกสารทั้งหมด
   const documentTypes = [
     {
@@ -90,57 +86,6 @@ const InternshipDocumentsPage = () => {
       try {
         setLoading(true);
         
-        if (demoMode) {
-          // ใช้ข้อมูลจำลองสำหรับ Demo
-          const mockStudent = {
-            fullName: 'นางสาวสมใจ รักเรียน',
-            studentId: '65160123',
-            year: '3',
-            faculty: 'คณะเทคโนโลยีสารสนเทศ',
-            major: 'วิทยาการคอมพิวเตอร์',
-            totalCredits: 95,
-            advisorEmail: 'advisor@university.ac.th',
-            advisorPhone: '02-987-6543'
-          };
-
-          const mockCS05 = {
-            id: 'demo-cs05-001',
-            companyName: 'บริษัท เทคโนโลยีสารสนเทศ จำกัด',
-            companyAddress: '123 ถนนเทคโนโลยี แขวงนวัตกรรม เขตดิจิทัล กรุงเทพฯ 10110',
-            internshipPosition: 'Frontend Developer',
-            contactEmail: 'hr@techinfo.co.th',
-            contactPhone: '02-123-4567',
-            startDate: '2024-06-01',
-            endDate: '2024-08-30',
-            submittedAt: '2024-05-15T10:30:00Z',
-            status: 'approved'
-          };
-
-          const mockDocuments = {
-            cs05_form: {
-              available: true,
-              downloadUrl: '/demo/cs05-form.pdf',
-              createdAt: '2024-05-15T10:30:00Z'
-            },
-            cooperation_letter: {
-              available: true,
-              downloadUrl: '/demo/cooperation-letter.pdf',
-              createdAt: '2024-05-20T14:15:00Z'
-            },
-            acceptance_form: {
-              available: true,
-              downloadUrl: '/demo/acceptance-form.pdf',
-              createdAt: '2024-05-20T14:15:00Z'
-            }
-          };
-
-          setStudentData(mockStudent);
-          setCs05Data(mockCS05);
-          setDocuments(mockDocuments);
-          
-          return;
-        }
-
         // โหลดข้อมูลจริงจาก API
         const studentResponse = await internshipService.getStudentProfile();
         if (studentResponse.success) {
@@ -159,58 +104,14 @@ const InternshipDocumentsPage = () => {
         }
       } catch (error) {
         console.error('Error fetching documents:', error);
-        if (!demoMode) {
-          message.error('ไม่สามารถโหลดข้อมูลเอกสารได้');
-        }
+        message.error('ไม่สามารถโหลดข้อมูลเอกสารได้');
       } finally {
         setLoading(false);
       }
     };
 
     fetchDocuments();
-  }, [demoMode]);
-
-  // ฟังก์ชันจัดการเปลี่ยนสถานะจาก Demo Controls
-  const handleDemoStatusChange = (newStatus) => {
-    if (cs05Data) {
-      const updatedCS05 = { ...cs05Data, status: newStatus };
-      setCs05Data(updatedCS05);
-      
-      // อัปเดตเอกสารตามสถานะใหม่
-      const updatedDocuments = { ...documents };
-      
-      // เพิ่มเอกสารใหม่ตามสถานะ
-      if (['approved', 'letter_downloaded', 'acceptance_uploaded', 'completed'].includes(newStatus)) {
-        updatedDocuments.cooperation_letter = {
-          available: true,
-          downloadUrl: '/demo/cooperation-letter.pdf',
-          createdAt: '2024-05-20T14:15:00Z'
-        };
-        updatedDocuments.acceptance_form = {
-          available: true,
-          downloadUrl: '/demo/acceptance-form.pdf',
-          createdAt: '2024-05-20T14:15:00Z'
-        };
-      }
-      
-      if (['referral_ready', 'completed'].includes(newStatus)) {
-        updatedDocuments.referral_letter = {
-          available: true,
-          downloadUrl: '/demo/referral-letter.pdf',
-          createdAt: '2024-05-30T11:00:00Z'
-        };
-      }
-      
-      setDocuments(updatedDocuments);
-    }
-  };
-
-  // ฟังก์ชันจัดการเปลี่ยนข้อมูลจาก Demo Controls
-  const handleDemoDataChange = (newCS05Data, newStudentData) => {
-    setCs05Data(newCS05Data);
-    setStudentData(newStudentData);
-    handleDemoStatusChange(newCS05Data.status);
-  };
+  }, []);
 
   // ตรวจสอบว่าเอกสารสามารถเข้าถึงได้หรือไม่
   const canAccessDocument = (docType) => {
@@ -221,11 +122,6 @@ const InternshipDocumentsPage = () => {
   // ฟังก์ชันดาวน์โหลดเอกสาร
   const handleDownload = async (docKey, docTitle) => {
     try {
-      if (demoMode) {
-        message.success(`จำลองการดาวน์โหลด: ${docTitle}`);
-        return;
-      }
-
       const response = await internshipService.downloadDocument(cs05Data.id, docKey);
       
       if (response.success) {
@@ -294,29 +190,6 @@ const InternshipDocumentsPage = () => {
         📄 จัดการเอกสารการฝึกงาน
       </Title>
 
-      {/* สวิตช์เปิด/ปิด Demo Mode */}
-      <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <Space>
-          <BugOutlined style={{ color: demoMode ? '#ff7a00' : '#d9d9d9' }} />
-          <Text>โหมดทดสอบ:</Text>
-          <Switch
-            checked={demoMode}
-            onChange={setDemoMode}
-            checkedChildren="เปิด"
-            unCheckedChildren="ปิด"
-          />
-        </Space>
-      </div>
-
-      {/* Demo Controls - แสดงเฉพาะในโหมดทดสอบ */}
-      {demoMode && (
-        <DemoControls
-          currentStatus={cs05Data?.status || 'approved'}
-          onStatusChange={handleDemoStatusChange}
-          onDataChange={handleDemoDataChange}
-        />
-      )}
-
       {/* แสดงข้อมูลสถานะปัจจุบัน */}
       {cs05Data ? (
         <Card style={{ marginBottom: 24 }}>
@@ -339,9 +212,6 @@ const InternshipDocumentsPage = () => {
             </Descriptions.Item>
             <Descriptions.Item label="สถานะปัจจุบัน">
               <Tag color="processing">{cs05Data.status}</Tag>
-              {demoMode && (
-                <Tag color="orange" style={{ marginLeft: 8 }}>โหมดทดสอบ</Tag>
-              )}
             </Descriptions.Item>
             <Descriptions.Item label="นักศึกษา">
               {studentData?.fullName} ({studentData?.studentId})
