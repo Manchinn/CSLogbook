@@ -13,13 +13,51 @@ const internshipService = {
         throw new Error(response.data.message);
       }
 
+      // เพิ่มการตรวจสอบและมีค่าเริ่มต้นสำหรับฟิลด์ classroom และ phoneNumber
+      const studentData = response.data.student;
+      if (studentData) {
+        // กำหนดค่าเริ่มต้นถ้าไม่มีข้อมูล
+        studentData.classroom = studentData.classroom || '';
+        studentData.phoneNumber = studentData.phoneNumber || '';
+      }
+
       return {
         success: true,
-        student: response.data.student
+        student: studentData
       };
 
     } catch (error) {
+      console.error('Error fetching student info:', error);
       throw new Error('ไม่สามารถดึงข้อมูลนักศึกษาได้');
+    }
+  },
+
+  /**
+   * อัพเดทข้อมูลติดต่อของนักศึกษา (เพิ่มฟังก์ชันใหม่)
+   */
+  updateStudentContactInfo: async (contactInfo) => {
+    try {
+      const { classroom, phoneNumber } = contactInfo;
+      
+      const response = await apiClient.patch('/students/contact-info', {
+        classroom,
+        phoneNumber
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถอัปเดตข้อมูลติดต่อได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } catch (error) {
+      console.error('Error updating contact info:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถอัปเดตข้อมูลติดต่อได้'
+      };
     }
   },
 
@@ -41,7 +79,15 @@ const internshipService = {
         companyName: formData.companyName,
         companyAddress: formData.companyAddress,
         startDate: formData.startDate,
-        endDate: formData.endDate
+        endDate: formData.endDate,
+        // เพิ่มฟิลด์ใหม่
+        internshipPosition: formData.internshipPosition || '',
+        contactPersonName: formData.contactPersonName || '',
+        contactPersonPosition: formData.contactPersonPosition || '',
+        classroom: formData.classroom || null,
+        phoneNumber: formData.phoneNumber || null,
+        // ข้อมูลนักศึกษาเพิ่มเติม
+        studentData: formData.studentData || []
       });
 
       return response.data;
@@ -62,6 +108,12 @@ const internshipService = {
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูล CS05');
+      }
+
+      if (response.data.data) {
+        response.data.data.internshipPosition = response.data.data.internshipPosition || '';
+        response.data.data.contactPersonName = response.data.data.contactPersonName || '';
+        response.data.data.contactPersonPosition = response.data.data.contactPersonPosition || '';
       }
       
       return response.data;
@@ -139,11 +191,54 @@ const internshipService = {
  */
   submitCS05WithTranscript: async (formData) => {
     try {
+      // ถ้า formData เป็น FormData object
+      if (formData instanceof FormData) {
+        // ดึง JSON string จาก formData
+        const formDataJson = formData.get('formData');
+        if (formDataJson) {
+          const formDataObj = JSON.parse(formDataJson);
+          
+          // เพิ่มข้อมูล classroom และ phoneNumber ถ้ามีในข้อมูลนักศึกษา
+          if (formDataObj.studentData && formDataObj.studentData[0]) {
+            formDataObj.classroom = formDataObj.studentData[0].classroom || null;
+            formDataObj.phoneNumber = formDataObj.studentData[0].phoneNumber || null;
+          }
+          // เพิ่มการจัดการฟิลด์ใหม่ทั้ง 3 ฟิลด์
+          formDataObj.internshipPosition = formDataObj.internshipPosition || '';
+          formDataObj.contactPersonName = formDataObj.contactPersonName || '';
+          formDataObj.contactPersonPosition = formDataObj.contactPersonPosition || '';
+          
+          // อัปเดต formData กลับไป
+          formData.set('formData', JSON.stringify(formDataObj));
+        }
+      }
+
       const response = await apiClient.post('/internship/cs-05/submit-with-transcript', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+
+      // อัพเดทข้อมูลติดต่อหลังส่งคำร้องสำเร็จ
+      if (response.data.success && response.data.data) {
+        try {
+          const formDataObj = formData instanceof FormData 
+            ? JSON.parse(formData.get('formData')) 
+            : formData;
+          
+          if (formDataObj.studentData && formDataObj.studentData[0]) {
+            const { classroom, phoneNumber } = formDataObj.studentData[0];
+            if (classroom || phoneNumber) {
+              await internshipService.updateStudentContactInfo({
+                classroom,
+                phoneNumber
+              });
+            }
+          }
+        } catch (contactError) {
+          console.warn('Failed to update contact info, but CS05 was submitted:', contactError);
+        }
+      }
 
       return response.data;
     } catch (error) {
@@ -158,77 +253,6 @@ const internshipService = {
   },
 
   /**
-   * บันทึกข้อมูลผู้ควบคุมงาน
-   */
-  submitCompanyInfo: async (companyInfo) => {
-    try {
-      const { documentId, ...data } = companyInfo;
-
-      // เพิ่ม debug log
-      console.log('Sending data:', {
-        documentId,
-        supervisorName: data.supervisorName?.trim(),
-        supervisorPhone: data.supervisorPhone?.trim(),
-        supervisorEmail: data.supervisorEmail?.trim()
-      });
-
-      if (!documentId) {
-        throw new Error('ไม่พบข้อมูลเอกสาร CS05');
-      }
-
-      const response = await apiClient.post('/internship/company-info', {
-        documentId,
-        supervisorName: data.supervisorName.trim(),
-        supervisorPhone: data.supervisorPhone.trim(),
-        supervisorEmail: data.supervisorEmail.trim()
-      });
-
-      // เพิ่ม debug log
-      console.log('Response:', response.data);
-
-      return response.data;
-    } catch (error) {
-      console.error('Request details:', {
-        url: '/internship/company-info',
-        data: companyInfo,
-        error: error.response?.data
-      });
-      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลผู้ควบคุมงาน');
-    }
-  },
-
-  /**
-   * ดึงข้อมูลผู้ควบคุมงาน
-   */
-  getCompanyInfo: async (documentId) => {
-    try {
-      console.log('Fetching company info with documentId:', documentId);
-
-      const response = await apiClient.get(`/internship/company-info/${documentId}`);
-      console.log('Raw API Response:', response.data);
-
-      // เพิ่มการตรวจสอบข้อมูล
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลผู้ควบคุมงาน');
-      }
-
-      // ตรวจสอบว่ามีข้อมูลจริงหรือไม่
-      if (!response.data.data?.supervisorName) {
-        return {
-          success: true,
-          data: null
-        };
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error('Get Company Info Error:', error);
-      throw error;
-    }
-  },
-
-  // ============= ส่วนที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============
-  /**
    * ดึงรายการ คพ.05 ทั้งหมด
    */
   getCS05List: async () => {
@@ -240,21 +264,110 @@ const internshipService = {
     }
   },
 
+  // === ส่วนจัดการข้อมูลสถานประกอบการและผู้ควบคุมงาน ===
+
   /**
-   * อัพเดทข้อมูลผู้ควบคุมงาน
+   * ดึงข้อมูลสถานประกอบการและผู้ควบคุมงาน
+   */
+  getCompanyInfo: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error('ไม่พบรหัสเอกสาร CS05');
+      }
+
+      const response = await apiClient.get(`/internship/company-info/${documentId}`);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลสถานประกอบการได้');
+      }
+
+      // จัดการข้อมูลให้มีค่าเริ่มต้นที่เหมาะสม
+      const companyData = response.data.data || {};
+      
+      return {
+        success: true,
+        data: {
+          companyName: companyData.companyName || '',
+          companyAddress: companyData.companyAddress || '',
+          supervisorName: companyData.supervisorName || '',
+          supervisorPosition: companyData.supervisorPosition || '', // เพิ่มฟิลด์ตำแหน่ง
+          supervisorPhone: companyData.supervisorPhone || '',
+          supervisorEmail: companyData.supervisorEmail || '',
+          internshipPosition: companyData.internshipPosition || '',
+          contactPersonName: companyData.contactPersonName || '',
+          contactPersonPosition: companyData.contactPersonPosition || ''
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      
+      // กรณียังไม่มีข้อมูล - ไม่ถือเป็น error
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: null,
+          message: 'ยังไม่มีข้อมูลสถานประกอบการ'
+        };
+      }
+
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงข้อมูลสถานประกอบการได้');
+    }
+  },
+
+  /**
+   * บันทึกข้อมูลสถานประกอบการและผู้ควบคุมงาน
+   */
+  submitCompanyInfo: async (companyData) => {
+    try {
+      if (!companyData.documentId) {
+        throw new Error('ไม่พบรหัสเอกสาร CS05');
+      }
+
+      // ตรวจสอบข้อมูลที่จำเป็น
+      if (!companyData.supervisorName || !companyData.supervisorPhone || !companyData.supervisorEmail) {
+        throw new Error('กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน');
+      }
+
+      const submitData = {
+        documentId: companyData.documentId,
+        supervisorName: companyData.supervisorName.trim(),
+        supervisorPosition: companyData.supervisorPosition?.trim() || '', // เพิ่มฟิลด์ตำแหน่ง
+        supervisorPhone: companyData.supervisorPhone.trim(),
+        supervisorEmail: companyData.supervisorEmail.trim()
+      };
+
+      const response = await apiClient.post('/internship/company-info/submit', submitData);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถบันทึกข้อมูลสถานประกอบการได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: 'บันทึกข้อมูลสถานประกอบการเรียบร้อยแล้ว'
+      };
+    } catch (error) {
+      console.error('Error submitting company info:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลสถานประกอบการได้');
+    }
+  },
+
+  /**
+   * อัพเดทข้อมูลผู้ควบคุมงาน (แก้ไขจากฟังก์ชันเดิม)
    */
   updateCS05Supervisor: async (documentId, supervisorInfo) => {
     try {
       const response = await apiClient.patch(`/internship/cs-05/${documentId}/supervisor`, {
         supervisorName: supervisorInfo.name,
-        supervisorPosition: supervisorInfo.position,
+        supervisorPosition: supervisorInfo.position || '', // เพิ่มฟิลด์ตำแหน่ง
         supervisorPhone: supervisorInfo.phone,
         supervisorEmail: supervisorInfo.email
       });
 
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลผู้นิเทศงาน');
+      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลผู้ควบคุมงาน');
     }
   },
 
@@ -569,6 +682,65 @@ const internshipService = {
       throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกผลการประเมิน');
     }
   },
+
+  // โหลดเอกสารการฝึกงาน
+  getInternshipDocuments: async (cs05Id) => {
+    try {
+      const response = await apiClient.get(`/internship/documents/${cs05Id}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถโหลดเอกสารได้'
+      };
+    }
+  },
+
+  // ดาวน์โหลดเอกสาร
+  downloadDocument: async (cs05Id, documentType) => {
+    try {
+      const response = await apiClient.get(`/internship/documents/${cs05Id}/download/${documentType}`, {
+        responseType: 'blob'
+      });
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถดาวน์โหลดเอกสารได้'
+      };
+    }
+  },
+
+  // อัปโหลดเอกสาร
+  uploadDocument: async (cs05Id, documentType, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('documentType', documentType);
+
+      const response = await apiClient.post(`/internship/documents/${cs05Id}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'ไม่สามารถอัปโหลดเอกสารได้'
+      };
+    }
+  }
 
 };
 

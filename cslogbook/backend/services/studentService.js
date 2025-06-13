@@ -59,6 +59,8 @@ class StudentService {
               "isEligibleProject",
               "semester",
               "academicYear",
+              "classroom",
+              "phoneNumber",
             ],
           },
         ],
@@ -78,7 +80,7 @@ class StudentService {
         return {
           userId: user.userId,
           studentId: user.student?.studentId,
-          studentCode: user.student?.studentCode || "",
+          studentCode: user.student?.studentCode,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -89,6 +91,8 @@ class StudentService {
           semester: user.student?.semester,
           academicYear: user.student?.academicYear,
           status: status,
+          classroom: user.student?.classroom ,
+          phoneNumber: user.student?.phoneNumber ,
         };
       });
     } catch (error) {
@@ -479,7 +483,7 @@ class StudentService {
         order: [["created_at", "DESC"]],
       });
 
-      // หาหลักสูตรที่ใช้งานอยู่
+      // หาบลักสูตรที่ใช้งานอยู่
       let curriculum = null;
       if (academicSettings?.activeCurriculumId) {
         curriculum = await sequelize.models.Curriculum.findOne({
@@ -676,6 +680,87 @@ class StudentService {
 
     const d = new Date(date);
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
+  }
+
+  /**
+   * อัพเดทข้อมูลติดต่อของนักศึกษา (classroom และ phoneNumber)
+   */
+  async updateContactInfo(studentId, contactData) {
+    try {
+      const { classroom, phoneNumber } = contactData;
+      
+      // ตรวจสอบว่ามีนักศึกษาคนนี้หรือไม่
+      const student = await Student.findOne({
+        where: { student_id: studentId },
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['userId', 'firstName', 'lastName']
+          }
+        ]
+      });
+      
+      if (!student) {
+        throw new Error('ไม่พบข้อมูลนักศึกษา');
+      }
+      
+      // อัพเดทข้อมูลติดต่อ
+      await Student.update(
+        {
+          classroom: classroom || null,
+          phone_number: phoneNumber || null,
+          lastUpdated: new Date()
+        },
+        {
+          where: { student_id: studentId }
+        }
+      );
+      
+      // ดึงข้อมูลหลังการอัพเดท
+      const updatedStudent = await Student.findOne({
+        where: { student_id: studentId },
+        attributes: ['student_id', 'student_code', 'classroom', 'phone_number', 'last_updated']
+      });
+      
+      return {
+        studentId: updatedStudent.student_id,
+        studentCode: updatedStudent.student_code,
+        classroom: updatedStudent.classroom,
+        phoneNumber: updatedStudent.phone_number,
+        lastUpdated: updatedStudent.last_updated
+      };
+    } catch (error) {
+      logger.error('Error in updateContactInfo service:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึงข้อมูลนักศึกษาพร้อมข้อมูล userId
+   */
+  async getStudentByIdWithUserId(studentId) {
+    try {
+      const student = await Student.findOne({
+        where: { student_id: studentId },
+        attributes: ['student_id', 'student_code', 'user_id', 'classroom', 'phone_number'],
+      });
+      
+      if (!student) {
+        return null;
+      }
+      
+      return {
+        studentId: student.student_id,
+        studentCode: student.student_code,
+        userId: student.user_id,
+        classroom: student.classroom,
+        phoneNumber: student.phone_number
+      };
+    } catch (error) {
+      logger.error('Error in getStudentByIdWithUserId service:', error);
+      throw new Error('ไม่สามารถดึงข้อมูลนักศึกษาได้');
+    }
   }
 }
 

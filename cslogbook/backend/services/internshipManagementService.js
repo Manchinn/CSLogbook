@@ -69,6 +69,8 @@ class InternshipManagementService {
         totalCredits: student.totalCredits,
         year: yearInfo.year,
         status: yearInfo.status,
+        classroom: student.classroom,
+        phoneNumber: student.phoneNumber,
         statusLabel: yearInfo.statusLabel,
         isEligible: eligibilityCheck.eligible,
         academicYear: getCurrentAcademicYear(),
@@ -128,6 +130,9 @@ class InternshipManagementService {
       supervisorName: document.internshipDocument.supervisorName,
       supervisorPhone: document.internshipDocument.supervisorPhone,
       supervisorEmail: document.internshipDocument.supervisorEmail,
+      internshipPosition: document.internshipDocument.internshipPosition,   // เพิ่มฟิลด์ใหม่
+      contactPersonName: document.internshipDocument.contactPersonName,     // เพิ่มฟิลด์ใหม่
+      contactPersonPosition: document.internshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
       createdAt: document.created_at,
     };
   }
@@ -137,7 +142,7 @@ class InternshipManagementService {
    */
   async submitCS05(
     userId,
-    { companyName, companyAddress, startDate, endDate }
+    { companyName, companyAddress, startDate, endDate, internshipPosition, contactPersonName, contactPersonPosition }
   ) {
     const transaction = await sequelize.transaction();
     try {
@@ -174,13 +179,16 @@ class InternshipManagementService {
           documentId: document.documentId,
           companyName,
           companyAddress,
+          internshipPosition,    // เพิ่มฟิลด์ใหม่
+          contactPersonName,     // เพิ่มฟิลด์ใหม่
+          contactPersonPosition, // เพิ่มฟิลด์ใหม่
           startDate: new Date(startDate),
           endDate: new Date(endDate),
           status: "pending",
-          supervisorName: null,
-          supervisorPosition: null,
-          supervisorPhone: null,
-          supervisorEmail: null,
+          supervisorName,
+          supervisorPosition,
+          supervisorPhone,
+          supervisorEmail,
         },
         { transaction }
       );
@@ -233,7 +241,15 @@ class InternshipManagementService {
         throw new Error("กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น");
       }
 
-      const { companyName, companyAddress, startDate, endDate } = formData;
+      const { 
+        companyName, 
+        companyAddress, 
+        startDate, 
+        endDate, 
+        internshipPosition,   // เพิ่มฟิลด์ใหม่
+        contactPersonName,   // เพิ่มฟิลด์ใหม่
+        contactPersonPosition // เพิ่มฟิลด์ใหม่
+      } = formData;
 
       // ตรวจสอบว่ามี CS05 ที่ pending อยู่หรือไม่
       const existingDocument = await Document.findOne({
@@ -273,6 +289,9 @@ class InternshipManagementService {
           startDate: new Date(startDate),
           endDate: new Date(endDate),
           status: "pending",
+          internshipPosition,   // เพิ่มฟิลด์ใหม่
+          contactPersonName,    // เพิ่มฟิลด์ใหม่
+          contactPersonPosition, // เพิ่มฟิลด์ใหม่
           supervisorName: null,
           supervisorPosition: null,
           supervisorPhone: null,
@@ -309,6 +328,9 @@ class InternshipManagementService {
         companyAddress,
         startDate,
         endDate,
+        internshipPosition,   // เพิ่มฟิลด์ใหม่
+        contactPersonName,    // เพิ่มฟิลด์ใหม่
+        contactPersonPosition,// เพิ่มฟิลด์ใหม่
         transcriptFilename: fileData.filename,
       };
     } catch (error) {
@@ -358,6 +380,9 @@ class InternshipManagementService {
       studentCode: document.Student.studentCode,
       companyName: document.InternshipDocument.companyName,
       companyAddress: document.InternshipDocument.companyAddress,
+      internshipPosition: document.InternshipDocument.internshipPosition,   // เพิ่มฟิลด์ใหม่
+      contactPersonName: document.InternshipDocument.contactPersonName,     // เพิ่มฟิลด์ใหม่
+      contactPersonPosition: document.InternshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
       startDate: document.InternshipDocument.startDate,
       endDate: document.InternshipDocument.endDate,
       status: document.status,
@@ -371,7 +396,7 @@ class InternshipManagementService {
   async submitCompanyInfo(
     documentId,
     userId,
-    { supervisorName, supervisorPhone, supervisorEmail }
+    { supervisorName, supervisorPhone, supervisorEmail, supervisorPosition }
   ) {
     const transaction = await sequelize.transaction();
     try {
@@ -395,12 +420,18 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
+      // ตรวจสอบสถานะ CS05 ว่าสามารถแก้ไขข้อมูลได้หรือไม่
+      if (document.status === 'rejected') {
+        throw new Error('ไม่สามารถกรอกข้อมูลได้เนื่องจากคำร้อง CS05 ไม่ได้รับการอนุมัติ');
+      }
+
       // อัพเดทข้อมูลผู้ควบคุมงาน
       await document.internshipDocument.update(
         {
-          supervisorName,
-          supervisorPhone,
-          supervisorEmail,
+          supervisorName: supervisorName.trim(),
+          supervisorPosition: supervisorPosition ? supervisorPosition.trim() : '',
+          supervisorPhone: supervisorPhone.trim(),
+          supervisorEmail: supervisorEmail.trim(),
         },
         { transaction }
       );
@@ -410,9 +441,10 @@ class InternshipManagementService {
       return {
         documentId: document.documentId,
         companyName: document.internshipDocument.companyName,
-        supervisorName,
-        supervisorPhone,
-        supervisorEmail,
+        supervisorName: supervisorName.trim(),
+        supervisorPosition: supervisorPosition ? supervisorPosition.trim() : '',
+        supervisorPhone: supervisorPhone.trim(),
+        supervisorEmail: supervisorEmail.trim(),
       };
     } catch (error) {
       await transaction.rollback();
@@ -434,7 +466,7 @@ class InternshipManagementService {
           model: InternshipDocument,
           as: "internshipDocument",
           required: true,
-          attributes: ["supervisorName", "supervisorPhone", "supervisorEmail"],
+          attributes: ["supervisorName", "supervisorPhone", "supervisorEmail", "supervisorPosition"],
         },
       ],
     });
@@ -448,6 +480,7 @@ class InternshipManagementService {
       supervisorName: document.internshipDocument.supervisorName,
       supervisorPhone: document.internshipDocument.supervisorPhone,
       supervisorEmail: document.internshipDocument.supervisorEmail,
+      supervisorPosition: document.internshipDocument.supervisorPosition,
     };
   }
 

@@ -35,6 +35,8 @@ export const studentService = {
           email: apiData.data.email || "",
           totalCredits: apiData.data.totalCredits ,
           majorCredits: apiData.data.majorCredits ,
+          classroom: apiData.data.classroom || "",
+          phoneNumber: apiData.data.phoneNumber || "",
           studentYear: apiData.data.eligibility?.studentYear || {
             year: 0,
             semester: 0,
@@ -313,6 +315,35 @@ export const studentService = {
           },
         ],
       };
+    }
+  },
+
+  // เพิ่มฟังก์ชันใหม่สำหรับอัพเดทข้อมูลติดต่อเฉพาะ
+
+  // อัพเดทข้อมูลติดต่อของนักศึกษา
+  updateContactInfo: async (studentCode, contactData) => {
+    try {
+      // แยกเฉพาะข้อมูลติดต่อ
+      const sanitizedData = {
+        classroom: contactData.classroom || null,
+        phoneNumber: contactData.phoneNumber || null
+      };
+
+      const response = await apiClient.patch(
+        `/students/${studentCode}/contact-info`,
+        sanitizedData
+      );
+
+      if (!response.data.success) {
+        throw new Error(
+          response.data.message || "ไม่สามารถอัพเดทข้อมูลติดต่อได้"
+        );
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating contact info:", error);
+      throw error;
     }
   },
 };

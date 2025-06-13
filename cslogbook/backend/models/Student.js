@@ -256,6 +256,17 @@ module.exports = (sequelize) => {
             unique: true,
             field: 'student_code'
         },
+        classroom: {
+            type: DataTypes.STRING(10),
+            allowNull: true,
+            comment: 'ห้องเรียน (RA, RB, RC, DA, DB, CSB)'
+        },
+        phoneNumber: {
+            type: DataTypes.STRING(15),
+            allowNull: true,
+            field: 'phone_number',
+            comment: 'เบอร์โทรศัพท์นักศึกษา'
+        },
         totalCredits: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
@@ -364,6 +375,10 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_student_curriculum',
                 fields: ['curriculum_id']
+            },
+            {
+                name: 'idx_student_classroom',
+                fields: ['classroom']
             }
         ]
     });
