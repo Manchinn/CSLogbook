@@ -264,21 +264,110 @@ const internshipService = {
     }
   },
 
+  // === ส่วนจัดการข้อมูลสถานประกอบการและผู้ควบคุมงาน ===
+
   /**
-   * อัพเดทข้อมูลผู้ควบคุมงาน
+   * ดึงข้อมูลสถานประกอบการและผู้ควบคุมงาน
+   */
+  getCompanyInfo: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error('ไม่พบรหัสเอกสาร CS05');
+      }
+
+      const response = await apiClient.get(`/internship/company-info/${documentId}`);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลสถานประกอบการได้');
+      }
+
+      // จัดการข้อมูลให้มีค่าเริ่มต้นที่เหมาะสม
+      const companyData = response.data.data || {};
+      
+      return {
+        success: true,
+        data: {
+          companyName: companyData.companyName || '',
+          companyAddress: companyData.companyAddress || '',
+          supervisorName: companyData.supervisorName || '',
+          supervisorPosition: companyData.supervisorPosition || '', // เพิ่มฟิลด์ตำแหน่ง
+          supervisorPhone: companyData.supervisorPhone || '',
+          supervisorEmail: companyData.supervisorEmail || '',
+          internshipPosition: companyData.internshipPosition || '',
+          contactPersonName: companyData.contactPersonName || '',
+          contactPersonPosition: companyData.contactPersonPosition || ''
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      
+      // กรณียังไม่มีข้อมูล - ไม่ถือเป็น error
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: null,
+          message: 'ยังไม่มีข้อมูลสถานประกอบการ'
+        };
+      }
+
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดึงข้อมูลสถานประกอบการได้');
+    }
+  },
+
+  /**
+   * บันทึกข้อมูลสถานประกอบการและผู้ควบคุมงาน
+   */
+  submitCompanyInfo: async (companyData) => {
+    try {
+      if (!companyData.documentId) {
+        throw new Error('ไม่พบรหัสเอกสาร CS05');
+      }
+
+      // ตรวจสอบข้อมูลที่จำเป็น
+      if (!companyData.supervisorName || !companyData.supervisorPhone || !companyData.supervisorEmail) {
+        throw new Error('กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน');
+      }
+
+      const submitData = {
+        documentId: companyData.documentId,
+        supervisorName: companyData.supervisorName.trim(),
+        supervisorPosition: companyData.supervisorPosition?.trim() || '', // เพิ่มฟิลด์ตำแหน่ง
+        supervisorPhone: companyData.supervisorPhone.trim(),
+        supervisorEmail: companyData.supervisorEmail.trim()
+      };
+
+      const response = await apiClient.post('/internship/company-info/submit', submitData);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถบันทึกข้อมูลสถานประกอบการได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: 'บันทึกข้อมูลสถานประกอบการเรียบร้อยแล้ว'
+      };
+    } catch (error) {
+      console.error('Error submitting company info:', error);
+      throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลสถานประกอบการได้');
+    }
+  },
+
+  /**
+   * อัพเดทข้อมูลผู้ควบคุมงาน (แก้ไขจากฟังก์ชันเดิม)
    */
   updateCS05Supervisor: async (documentId, supervisorInfo) => {
     try {
       const response = await apiClient.patch(`/internship/cs-05/${documentId}/supervisor`, {
         supervisorName: supervisorInfo.name,
-        supervisorPosition: supervisorInfo.position,
+        supervisorPosition: supervisorInfo.position || '', // เพิ่มฟิลด์ตำแหน่ง
         supervisorPhone: supervisorInfo.phone,
         supervisorEmail: supervisorInfo.email
       });
 
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลผู้นิเทศงาน');
+      throw new Error(error.response?.data?.message || 'ไม่สามารถอัพเดทข้อมูลผู้ควบคุมงาน');
     }
   },
 

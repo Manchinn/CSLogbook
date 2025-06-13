@@ -148,11 +148,40 @@ exports.getCS05ById = async (req, res) => {
  */
 exports.submitCompanyInfo = async (req, res) => {
   try {
-    const result = await internshipManagementService.submitCompanyInfo(req.user.userId, req.body);
+    const { documentId, supervisorName, supervisorPosition, supervisorPhone, supervisorEmail } = req.body;
+    const userId = req.user.userId;
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่พบรหัสเอกสาร CS05'
+      });
+    }
+
+    if (!supervisorName || !supervisorPhone || !supervisorEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน'
+      });
+    }
+
+    // แก้ไข: ส่งพารามิเตอร์ในลำดับที่ถูกต้อง
+    const result = await internshipManagementService.submitCompanyInfo(
+      documentId,  // พารามิเตอร์แรก
+      userId,      // พารามิเตอร์ที่สอง
+      {            // พารามิเตอร์ที่สาม
+        supervisorName,
+        supervisorPosition,
+        supervisorPhone,
+        supervisorEmail
+      }
+    );
     
     return res.json({
       success: true,
-      ...result
+      message: 'บันทึกข้อมูลสถานประกอบการเรียบร้อยแล้ว',
+      data: result
     });
 
   } catch (error) {

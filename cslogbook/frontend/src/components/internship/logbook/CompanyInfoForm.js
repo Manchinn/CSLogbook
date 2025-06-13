@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useInternship } from '../../../contexts/InternshipContext';
 import internshipService from '../../../services/internshipService';
 import { EditOutlined, WarningOutlined, LoadingOutlined } from '@ant-design/icons';
-import "./InternshipStyles.css"; // Import shared CSS
+import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -24,7 +24,8 @@ const CompanyForm = () => {
   const [isDisabled, setIsDisabled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [hasCS05, setHasCS05] = useState(false);
-  const [isCS05Approved, setIsCS05Approved] = useState(false);
+  const [cs05Status, setCS05Status] = useState(null); // เปลี่ยนจาก isCS05Approved
+  const [canEditCompanyInfo, setCanEditCompanyInfo] = useState(false); // เพิ่ม state ใหม่
 
   // ตรวจสอบสถานะ CS05 เมื่อเข้าหน้านี้
   useEffect(() => {
@@ -34,7 +35,9 @@ const CompanyForm = () => {
         // ถ้ามีข้อมูล CS05 จาก state แล้ว
         if (cs05Data && documentId) {
           setHasCS05(true);
-          setIsCS05Approved(cs05Data.status === 'pending'|| 'approved'); /* ค่อยแก้ไขเป็น approve */
+          setCS05Status(cs05Data.status);
+          // แก้ไข: อนุญาตให้กรอกข้อมูลได้เมื่อมี CS05 (pending หรือ approved)
+          setCanEditCompanyInfo(cs05Data.status === 'pending' || cs05Data.status === 'approved');
           setInitialLoading(false);
           return;
         }
@@ -44,15 +47,18 @@ const CompanyForm = () => {
         
         if (response.success && response.data) {
           setHasCS05(true);
-          setIsCS05Approved(response.data.status === 'approved');
+          setCS05Status(response.data.status);
+          setCanEditCompanyInfo(response.data.status === 'pending' || response.data.status === 'approved');
         } else {
           setHasCS05(false);
-          setIsCS05Approved(false);
+          setCS05Status(null);
+          setCanEditCompanyInfo(false);
         }
       } catch (error) {
         console.error('Check CS05 Error:', error);
         setHasCS05(false);
-        setIsCS05Approved(false);
+        setCS05Status(null);
+        setCanEditCompanyInfo(false);
       } finally {
         setInitialLoading(false);
       }
@@ -61,11 +67,12 @@ const CompanyForm = () => {
     checkCS05Status();
   }, [cs05Data, documentId]);
 
-  // ดึงข้อมูลบริษัทเมื่อมี documentId (เฉพาะเมื่อมี CS05 และได้รับการอนุมัติแล้ว)
+  // ดึงข้อมูลบริษัทเมื่อสามารถแก้ไขได้
   useEffect(() => {
     const fetchCompanyInfo = async () => {
       try {
-        if (!documentId || !hasCS05 || !isCS05Approved) {
+        // แก้ไข: ใช้ canEditCompanyInfo แทน isCS05Approved
+        if (!documentId || !hasCS05 || !canEditCompanyInfo) {
           console.log('Cannot fetch company info: prerequisites not met');
           return;
         }
@@ -78,10 +85,11 @@ const CompanyForm = () => {
 
         if (response.success && response.data) {
           const formData = {
-            companyName: cs05Data.companyName,
-            supervisorName: response.data.supervisorName,
-            supervisorPhone: response.data.supervisorPhone,
-            supervisorEmail: response.data.supervisorEmail
+            companyName: cs05Data?.companyName || '',
+            supervisorName: response.data.supervisorName || '',
+            supervisorPosition: response.data.supervisorPosition || '',
+            supervisorPhone: response.data.supervisorPhone || '',
+            supervisorEmail: response.data.supervisorEmail || ''
           };
 
           // อัพเดทข้อมูลพร้อมกัน
@@ -90,33 +98,49 @@ const CompanyForm = () => {
             documentId,
             ...formData
           });
-          setIsDisabled(true);
+          setIsDisabled(true); // ตั้งเป็นโหมดแสดงผล
         } else {
-          // กรณีไม่มีข้อมูล
-          form.setFieldsValue({
-            companyName: cs05Data.companyName,
+          // กรณีไม่มีข้อมูล - ให้แก้ไขได้เลย
+          const initialFormData = {
+            companyName: cs05Data?.companyName || '',
             supervisorName: '',
+            supervisorPosition: '',
             supervisorPhone: '',
             supervisorEmail: ''
-          });
-          setIsDisabled(false);
+          };
+          
+          form.setFieldsValue(initialFormData);
+          setIsDisabled(false); // ให้แก้ไขได้
         }
       } catch (error) {
         console.error('Fetch Company Info Error:', error);
         message.error('ไม่สามารถดึงข้อมูลผู้ควบคุมงาน');
+        
+        // ตั้งค่าเริ่มต้นเมื่อเกิดข้อผิดพลาด
+        const fallbackFormData = {
+          companyName: cs05Data?.companyName || '',
+          supervisorName: '',
+          supervisorPosition: '',
+          supervisorPhone: '',
+          supervisorEmail: ''
+        };
+        
+        form.setFieldsValue(fallbackFormData);
+        setIsDisabled(false);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCompanyInfo();
-  }, [documentId, hasCS05, isCS05Approved, cs05Data?.companyName, form, setCompanyInfo]); 
+  }, [documentId, hasCS05, canEditCompanyInfo, cs05Data?.companyName, form, setCompanyInfo]); 
 
   const handleEdit = () => {
-    // เก็บข้อมูลปัจจุบันไว้กรณียกเลิกการแก้ไข
+    
     const currentData = {
       companyName: form.getFieldValue('companyName'),
       supervisorName: form.getFieldValue('supervisorName'),
+      supervisorPosition: form.getFieldValue('supervisorPosition') , // ใช้ค่าเริ่มต้นเป็น string ว่าง
       supervisorPhone: form.getFieldValue('supervisorPhone'),
       supervisorEmail: form.getFieldValue('supervisorEmail')
     };
@@ -128,35 +152,54 @@ const CompanyForm = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // ตรวจสอบว่ามี documentId และได้รับอนุมัติแล้ว
+      console.log('Form values received:', values); // เพิ่มบรรทัดนี้เพื่อ debug
+      
       if (!documentId) {
         throw new Error('ไม่พบข้อมูลเอกสาร CS05');
       }
 
-      if (!isCS05Approved) {
-        throw new Error('คำร้อง CS05 ยังไม่ได้รับการอนุมัติ');
+      // แก้ไข: ใช้ canEditCompanyInfo แทน isCS05Approved
+      if (!canEditCompanyInfo) {
+        throw new Error('ไม่สามารถกรอกข้อมูลได้ กรุณาตรวจสอบสถานะคำร้อง CS05');
+      }
+
+      // แก้ไข: ตรวจสอบและจัดการค่าทุกฟิลด์อย่างปลอดภัย
+      const supervisorName = values.supervisorName ? values.supervisorName.trim() : '';
+      const supervisorPosition = values.supervisorPosition ? values.supervisorPosition.trim() : '';
+      const supervisorPhone = values.supervisorPhone ? values.supervisorPhone.trim() : '';
+      const supervisorEmail = values.supervisorEmail ? values.supervisorEmail.trim() : '';
+
+      // ตรวจสอบข้อมูลที่จำเป็น
+      if (!supervisorName) {
+        throw new Error('กรุณากรอกชื่อผู้ควบคุมงาน');
+      }
+      if (!supervisorPhone) {
+        throw new Error('กรุณากรอกเบอร์โทรศัพท์');
+      }
+      if (!supervisorEmail) {
+        throw new Error('กรุณากรอกอีเมลผู้ควบคุมงาน');
       }
 
       const response = await internshipService.submitCompanyInfo({
         documentId,
-        supervisorName: values.supervisorName.trim(),
-        supervisorPhone: values.supervisorPhone.trim(),
-        supervisorEmail: values.supervisorEmail.trim()
+        supervisorName,
+        supervisorPosition,
+        supervisorPhone,
+        supervisorEmail
       });
 
       if (response.success) {
         setCompanyInfo({
           documentId,
           companyName: cs05Data.companyName,
-          supervisorName: values.supervisorName.trim(),
-          supervisorPhone: values.supervisorPhone.trim(),
-          supervisorEmail: values.supervisorEmail.trim()
+          supervisorName,
+          supervisorPosition,
+          supervisorPhone,
+          supervisorEmail
         });
         message.success(isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'บันทึกข้อมูลสำเร็จ');
         setIsDisabled(true);
         setIsEditing(false);
-        
-        // ลบข้อมูลชั่วคราวหลังจากบันทึกเสร็จ
         localStorage.removeItem('tempCompanyData');
       } else {
         throw new Error(response.message || 'ไม่สามารถบันทึกข้อมูล');
@@ -169,7 +212,7 @@ const CompanyForm = () => {
     }
   };
 
-  // Replace the current loading state with Skeleton
+  // แสดง Skeleton ขณะโหลด
   if (initialLoading) {
     return (
       <div className="internship-container">
@@ -197,22 +240,39 @@ const CompanyForm = () => {
     );
   }
 
-  // กรณี CS05 ยังไม่ได้รับการอนุมัติ
-  if (!isCS05Approved) {
+  // กรณี CS05 ถูกปฏิเสธ
+  if (cs05Status === 'rejected') {
+    return (
+      <Result
+        status="error"
+        title="คำร้อง คพ.05 ไม่ได้รับการอนุมัติ"
+        subTitle="คำร้องของคุณไม่ได้รับการอนุมัติ กรุณาติดต่ออาจารย์ที่ปรึกษาหรือแก้ไขคำร้องใหม่"
+        extra={
+          <Space>
+            <Button onClick={() => navigate('/internship/status')}>
+              ดูสถานะคำร้อง
+            </Button>
+            <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
+              ส่งคำร้องใหม่
+            </Button>
+          </Space>
+        }
+      />
+    );
+  }
+
+  // แก้ไข: ไม่ต้องบล็อกเมื่อ status เป็น pending แล้ว
+  // กรณีสถานะอื่นๆ ที่ไม่รองรับ
+  if (!canEditCompanyInfo) {
     return (
       <Result
         status="info"
-        title="คำร้อง คพ.05 ยังไม่ได้รับการอนุมัติ"
-        subTitle={`สถานะปัจจุบัน: ${cs05Data?.status === 'pending' ? 'รอการพิจารณา' : cs05Data?.status === 'rejected' ? 'ไม่อนุมัติ' : cs05Data?.status}`}
+        title="ไม่สามารถกรอกข้อมูลได้ในขณะนี้"
+        subTitle={`สถานะปัจจุบันของคำร้อง CS05: ${cs05Status || 'ไม่ทราบสถานะ'}`}
         extra={
-          <Space direction="vertical" align="center">
-            <Paragraph>
-              คุณจำเป็นต้องรอให้คำร้อง คพ.05 ได้รับการอนุมัติก่อนจึงจะสามารถกรอกข้อมูลสถานประกอบการได้
-            </Paragraph>
-            <Button type="primary" onClick={() => navigate('/internship/status')}> {/* รอแก้ไขให้ไปดูหน้า ตรวจสอบสถานะ */}
-              ดูสถานะคำร้อง
-            </Button>
-          </Space>
+          <Button type="primary" onClick={() => navigate('/internship/status')}>
+            ดูสถานะคำร้อง
+          </Button>
         }
       />
     );
@@ -223,7 +283,18 @@ const CompanyForm = () => {
     <div className="internship-container">
       <Card className="internship-card">
         <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 20 }}>
-          <Title level={3}>ข้อมูลสถานประกอบการ</Title>
+          <div>
+            <Title level={3}>ข้อมูลสถานประกอบการ</Title>
+            {/* แสดงสถานะ CS05 */}
+            <Text type="secondary">
+              สถานะคำร้อง CS05: {
+                cs05Status === 'pending' ? '🟡 รอการพิจารณา' :
+                cs05Status === 'approved' ? '🟢 อนุมัติแล้ว' :
+                cs05Status === 'rejected' ? '🔴 ไม่อนุมัติ' :
+                '⚪ ไม่ทราบสถานะ'
+              }
+            </Text>
+          </div>
           {isDisabled && (
             <Button 
               type="primary" 
@@ -234,6 +305,7 @@ const CompanyForm = () => {
             </Button>
           )}
         </Space>
+        
         <Form
           form={form}
           layout="vertical"
@@ -249,7 +321,6 @@ const CompanyForm = () => {
             />
           </Form.Item>
 
-          {/* แยกส่วนข้อมูลผู้ควบคุมงาน */}
           <div style={{ marginTop: 24 }}>
             <Title level={5}>ข้อมูลผู้ควบคุมงาน</Title>
           </div>
@@ -264,6 +335,19 @@ const CompanyForm = () => {
               disabled={isDisabled}
             />
           </Form.Item>
+
+          <Form.Item
+            name="supervisorPosition"
+            label="ตำแหน่งผู้ควบคุมงาน"
+            rules={[{ required: false }]}
+            initialValue="" // เพิ่มค่าเริ่มต้น
+          >
+            <Input 
+              placeholder="ตำแหน่งผู้ควบคุมงาน" 
+              disabled={isDisabled}
+            />
+          </Form.Item>
+          
           <Form.Item
             name="supervisorPhone"
             label="เบอร์โทรศัพท์"
@@ -274,6 +358,7 @@ const CompanyForm = () => {
               disabled={isDisabled}
             />
           </Form.Item>
+          
           <Form.Item
             name="supervisorEmail"
             label="อีเมลผู้ควบคุมงาน"
@@ -287,6 +372,7 @@ const CompanyForm = () => {
               disabled={isDisabled}
             />
           </Form.Item>
+          
           <Form.Item>
             <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Button 

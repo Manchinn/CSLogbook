@@ -45,7 +45,7 @@ router.get('/cs-05/:id',
 );
 
 // บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
-router.post('/company-info',
+router.post('/company-info/submit',
     authenticateToken,
     checkRole(['student']),
     (req, res, next) => {

@@ -14,46 +14,120 @@ applyTo: 'cslogbook/frontend/src/components/internship/**'
 cslogbook/frontend/src/components/internship/register/
 ├── index.js                         # Export ทุกคอมโพเนนต์
 ├── InternshipRegistrationFlow.js    # หน้าหลักควบคุมทั้งระบบ
-├── CS05FormStep.js                  # ขั้นตอนกรอกฟอร์ม คพ.05
-├── ReviewDataStep.js                # ขั้นตอนตรวจสอบข้อมูล
-├── SubmissionResultStep.js          # ขั้นตอนผลการส่งคำร้อง
-└── StudentInfoSection.js            # แสดงข้อมูลนักศึกษา
+├── CS05FormStep.js                  # ขั้นตอนที่ 1: กรอกข้อมูล คพ.05
+├── ReviewDataStep.js                # ขั้นตอนที่ 2: ตรวจสอบข้อมูล
+├── SubmissionResultStep.js          # ขั้นตอนที่ 3: แสดงผลการส่งคำร้อง
+└── components/                     # คอมโพเนนต์ย่อยต่างๆ
+    ├── TranscriptUpload.js         # ส่วนอัปโหลด Transcript
+    └── InternshipStatusTimeline.js # แสดงไทม์ไลน์สถานะฝึกงาน
 ```
 
-### โครงสร้างเพิ่มเติม
-```
-cslogbook/frontend/src/components/internship/common/
-├── TranscriptUpload.js              # คอมโพเนนต์สำหรับอัปโหลดไฟล์ transcript
-└── StatusBadge.js                   # แสดงสถานะคำร้อง
+## ข้อมูลแบบฟอร์ม คพ.05
+
+แบบฟอร์ม คพ.05 ประกอบด้วยข้อมูลหลักดังนี้:
+
+### ข้อมูลนักศึกษา
+- รหัสนักศึกษา
+- ชื่อ-นามสกุล
+- ชั้นปี
+- หน่วยกิตสะสม
+- ห้องเรียน
+- เบอร์โทรศัพท์
+
+### ข้อมูลบริษัท/หน่วยงาน
+- ชื่อบริษัท/หน่วยงาน
+- สถานที่ตั้ง
+- **ตำแหน่งที่ขอฝึกงาน** (internshipPosition) - ตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน
+- **เรียนถึง (ผู้ติดต่อ/HR)** (contactPersonName) - ชื่อบุคคลที่เป็นผู้ติดต่อหรือ HR ของบริษัท
+- **ตำแหน่งของผู้ติดต่อ** (contactPersonPosition) - ตำแหน่งของผู้ติดต่อหรือ HR
+
+### ข้อมูลระยะเวลาฝึกงาน
+- วันเริ่มต้นฝึกงาน
+- วันสิ้นสุดฝึกงาน
+- จำนวนวันฝึกงาน (คำนวณอัตโนมัติ)
+
+### ข้อมูลอาจารย์ที่ปรึกษา
+- ชื่อ-นามสกุล
+- อีเมล
+- เบอร์โทรศัพท์
+
+### ข้อมูลเพิ่มเติม
+- ลักษณะงานที่ทำ
+- ความต้องการพิเศษ (ถ้ามี)
+- ไฟล์ Transcript
+
+## การใช้งานฟิลด์ใหม่
+
+### 1. ตำแหน่งที่ขอฝึกงาน (internshipPosition)
+ฟิลด์นี้ใช้สำหรับระบุตำแหน่งที่นักศึกษาต้องการเข้าฝึกงานกับบริษัท ช่วยให้บริษัทเข้าใจความต้องการของนักศึกษา และสามารถจัดสรรงานที่เหมาะสมได้
+
+```jsx
+<Form.Item
+  label="ตำแหน่งที่ขอฝึกงาน"
+  name="internshipPosition"
+  rules={[{ required: false }]
+}>
+  <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน" />
+</Form.Item>
 ```
 
-## โครงสร้างแบบฟอร์ม คพ.05 (อัปเดต)
+### 2. ชื่อผู้ติดต่อ/HR (contactPersonName)
+ฟิลด์นี้ใช้สำหรับระบุชื่อบุคคลที่เป็นผู้ติดต่อหรือ HR ของบริษัท ซึ่งจะใช้ในการติดต่อประสานงานและระบุในเอกสาร
 
-### ลำดับการกรอกข้อมูล
+```jsx
+<Form.Item
+  label="เรียนถึง (ผู้ติดต่อ/HR)"
+  name="contactPersonName"
+  rules={[{ required: false }]
+}>
+  <Input placeholder="กรอกชื่อผู้ติดต่อหรือ HR" />
+</Form.Item>
+```
+
+### 3. ตำแหน่งของผู้ติดต่อ (contactPersonPosition)
+ฟิลด์นี้ใช้สำหรับระบุตำแหน่งของผู้ติดต่อหรือ HR เพื่อใช้ในการอ้างอิงในเอกสาร
+
+```jsx
+<Form.Item
+  label="ตำแหน่งของผู้ติดต่อ"
+  name="contactPersonPosition"
+  rules={[{ required: false }]
+}>
+  <Input placeholder="กรอกตำแหน่งของผู้ติดต่อหรือ HR" />
+</Form.Item>
+```
+
+## การแสดงผลข้อมูล
+
+ข้อมูลทั้ง 3 ฟิลด์จะถูกแสดงในส่วนต่างๆ ของระบบ:
+1. หน้าตรวจสอบข้อมูล (ReviewDataStep) - แสดงข้อมูลก่อนยืนยันการส่งคำร้อง
+2. หน้าผลการส่งคำร้อง (SubmissionResultStep) - แสดงข้อมูลหลังส่งคำร้องเรียบร้อย
+3. หน้าแสดงรายละเอียด CS05 - แสดงข้อมูลเมื่อดูรายละเอียดคำร้องที่ส่งไปแล้ว
+
+## ลำดับการกรอกข้อมูล
 แบบฟอร์ม คพ.05 ได้รับการออกแบบให้กรอกข้อมูลตามลำดับดังนี้:
 
 1. **ส่วนข้อมูลบริษัท/หน่วยงาน**
    - ชื่อบริษัท/หน่วยงาน
    - สถานที่ตั้ง
-   - เรียนถึง (ชื่อผู้ติดต่อ/HR)
-   - ตำแหน่ง (ของผู้ติดต่อ)
+   - **ตำแหน่งที่ขอฝึกงาน** (เพิ่มใหม่)
+   - **เรียนถึง (ผู้ติดต่อ/HR)** (เพิ่มใหม่)
+   - **ตำแหน่งของผู้ติดต่อ** (เพิ่มใหม่)
 
 2. **ส่วนข้อมูลนักศึกษา**
    - ตัวเลือกฝึกงาน 1 คนหรือ 2 คน
-   - ข้อมูลนักศึกษาคนที่ 1
+   - ข้อมูลนักศึกษา
      - ชื่อ-นามสกุล
      - ชั้นปี
      - ห้อง (RA, RB, RC, DA, DB, CSB)
      - รหัสประจำตัวนักศึกษา
      - เบอร์โทรศัพท์
      - หน่วยกิตสะสมทั้งหมด
-   - (ถ้าเลือก 2 คน) ข้อมูลนักศึกษาคนที่ 2
 
 3. **ส่วนช่วงเวลาฝึกงาน**
    - วันที่เริ่มต้นและสิ้นสุดการฝึกงาน (ไม่น้อยกว่า 60 วัน)
 
 4. **ส่วนรายละเอียดตำแหน่งงาน**
-   - ตำแหน่งฝึกงาน
    - ลักษณะงานที่จะได้รับมอบหมาย (ถ้ามี)
    - ข้อกำหนดอื่นๆ จากบริษัท (ถ้ามี)
 
@@ -61,72 +135,15 @@ cslogbook/frontend/src/components/internship/common/
    - ใบแสดงผลการเรียน (เฉพาะไฟล์ PDF)
    - ต้องแสดงหน่วยกิตสะสมไม่น้อยกว่า 81 หน่วยกิต
 
-## คอมโพเนนต์ TranscriptUpload (เพิ่มใหม่)
+## หมายเหตุสำคัญ
 
-คอมโพเนนต์สำหรับจัดการการอัปโหลดไฟล์ transcript ที่ถูกต้อง:
+1. ฟิลด์ใหม่ทั้ง 3 ฟิลด์เป็นฟิลด์ที่ไม่บังคับกรอก (optional fields)
+2. เมื่อไม่มีข้อมูลในฟิลด์เหล่านี้ ควรใช้ค่าว่าง ('') แทนค่า undefined หรือ null เพื่อป้องกันปัญหาการแสดงผล
+3. การส่งข้อมูลไปยัง backend ต้องแน่ใจว่าใช้ชื่อฟิลด์ที่ถูกต้อง: internshipPosition, contactPersonName และ contactPersonPosition
 
-```javascript
-// filepath: cslogbook/frontend/src/components/internship/common/TranscriptUpload.js
-import React from 'react';
-import { Upload, Button, message } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+## การส่งข้อมูลฟอร์มพร้อมฟิลด์ใหม่
 
-const TranscriptUpload = ({ value, onChange, disabled }) => {
-  const beforeUpload = (file) => {
-    const isPDF = file.type === 'application/pdf';
-    if (!isPDF) {
-      message.error('สามารถอัปโหลดไฟล์ PDF เท่านั้น');
-    }
-    
-    const isLt10M = file.size / 1024 / 1024 < 10;
-    if (!isLt10M) {
-      message.error('ไฟล์ต้องมีขนาดไม่เกิน 10MB');
-    }
-    
-    return isPDF && isLt10M;
-  };
-
-  const handleChange = (info) => {
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} อัปโหลดสำเร็จ`);
-      onChange(info.file.originFileObj);
-    } else if (info.file.status === 'error') {
-      message.error(`${info.file.name} อัปโหลดไม่สำเร็จ`);
-    } else if (info.file.status === 'removed') {
-      onChange(null);
-    }
-  };
-
-  const uploadProps = {
-    name: 'transcript',
-    maxCount: 1,
-    accept: '.pdf',
-    showUploadList: true,
-    beforeUpload,
-    onChange: handleChange,
-    customRequest: ({ onSuccess }) => setTimeout(() => onSuccess('ok'), 0),
-    fileList: value ? [{ 
-      uid: '-1', 
-      name: value.name || 'transcript.pdf', 
-      status: 'done' 
-    }] : []
-  };
-
-  return (
-    <Upload {...uploadProps} disabled={disabled}>
-      <Button icon={<UploadOutlined />} disabled={disabled || value}>
-        อัปโหลด Transcript (PDF)
-      </Button>
-    </Upload>
-  );
-};
-
-export default TranscriptUpload;
-```
-
-## การแก้ไข InternshipRegistrationFlow.js
-
-อัปเดตในส่วน `handleSubmit` และการจัดเก็บข้อมูลใน localStorage:
+เมื่อส่งข้อมูลฟอร์ม คพ.05 พร้อมฟิลด์ใหม่ทั้ง 3 ฟิลด์ ให้ใช้โค้ดตัวอย่างดังนี้:
 
 ```javascript
 // ฟังก์ชันส่งข้อมูล
@@ -168,13 +185,11 @@ const handleSubmit = async (finalData) => {
       companyAddress: finalData.companyAddress,
       startDate: finalData.startDate,
       endDate: finalData.endDate,
-      contactPerson: finalData.contactPerson,
-      contactPosition: finalData.contactPosition,
-      hasTwoStudents: finalData.hasTwoStudents || false,
-      studentData: finalData.studentData || [],
-      // เพิ่มข้อมูลห้องเรียนและเบอร์โทรศัพท์
-      classroom: finalData.classroom || finalData.studentData?.[0]?.classroom || '',
-      phoneNumber: finalData.phoneNumber || finalData.studentData?.[0]?.phoneNumber || ''
+      // เพิ่มฟิลด์ใหม่
+      internshipPosition: finalData.internshipPosition || '',
+      contactPersonName: finalData.contactPersonName || '',
+      contactPersonPosition: finalData.contactPersonPosition || '',
+      // ...existing code...
     };
     
     // แนบข้อมูล JSON
@@ -441,8 +456,5 @@ values.internshipDuration = calculateInternshipDays(values.internshipDateRange);
 - ดูแลประสบการณ์ผู้ใช้หลังจากส่งฟอร์มเรียบร้อยแล้ว
 - ตรวจสอบการแสดงผลระยะเวลาฝึกงานในทุกหน้า
 - ทดสอบการแสดงผลข้อมูลห้องเรียนและเบอร์โทรศัพท์
-```
-
----
 
 **หมายเหตุ**: คำแนะนำนี้ได้รับการอัปเดตเพื่อรวมการแก้ไขและฟีเจอร์ใหม่ทั้งหมดที่เราได้พัฒนาในระบบลงทะเบียนฝึกงาน
