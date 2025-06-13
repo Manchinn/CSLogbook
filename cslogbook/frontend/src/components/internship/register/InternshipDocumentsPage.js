@@ -15,7 +15,7 @@ import 'dayjs/locale/th';
 // นำเข้า Demo Controls
 import internshipService from '../../../services/internshipService';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 dayjs.locale('th');
 

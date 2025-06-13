@@ -80,7 +80,12 @@ exports.submitCS05 = async (req, res) => {
  */
 exports.submitCS05WithTranscript = async (req, res) => {
   try {
-    const result = await internshipManagementService.submitCS05WithTranscript(req.user.userId, req.body, req.file);
+    // แก้ไขลำดับพารามิเตอร์ส่ง `req.file` ก่อน `req.body`
+    const result = await internshipManagementService.submitCS05WithTranscript(
+      req.user.userId,
+      req.file,   // ส่ง fileData เป็น req.file
+      req.body.formData ? JSON.parse(req.body.formData) : req.body // ส่ง formData
+    );
     
     return res.status(201).json({
       success: true,

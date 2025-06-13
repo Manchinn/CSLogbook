@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Typography, Alert, Space, Button, Steps, Card, Tag, Timeline, Row, Col
+  Typography, Alert, Space, Button, Steps, Card, Tag, Timeline, Row, Col,Divider,message
 } from 'antd';
 import { 
   CheckCircleOutlined, EyeOutlined, HomeOutlined, 
   FileTextOutlined, PrinterOutlined, UploadOutlined,
   UserOutlined, DownloadOutlined, ClockCircleOutlined,
-  AuditOutlined, FileDoneOutlined
+  AuditOutlined, FileDoneOutlined, CopyOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs'; // เพิ่ม import dayjs
 
 const { Title, Paragraph, Text } = Typography;
 
-const SubmissionResultStep = ({ navigate, formData, studentData }) => {
+const SubmissionResultStep = ({ navigate, formData, existingCS05, studentData, transcriptFile }) => {
   const [currentInternshipStep, setCurrentInternshipStep] = useState(1); // เริ่มที่ขั้นตอนที่ 1 (หลังจากส่งแบบฟอร์มแล้ว)
+
+  // แสดงข้อมูลตามโครงสร้างที่มาจาก existingCS05 หรือ formData
+  const displayData = existingCS05 || formData || {};
 
   // ขั้นตอนทั้งหมดของการฝึกงาน (7 ขั้นตอน)
   const internshipProcessSteps = [
@@ -144,6 +148,18 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
     }
   };
 
+  // คำนวณระยะเวลาฝึกงาน
+  const calculateInternshipDuration = (startDate, endDate) => {
+    if (!startDate || !endDate) return '';
+    
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+    const diffInDays = end.diff(start, 'day') + 1;
+    const diffInMonths = Math.round(diffInDays / 30);
+
+    return `${diffInMonths} เดือน (${diffInDays} วัน)`;
+  };
+
   const stepDetails = getCurrentStepDetails();
 
   return (
@@ -160,7 +176,7 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
         </Paragraph>
       </div>
 
-      {/* แสดงข้อมูลสรุปคำร้อง */}
+      {/* แสดงข้อมูลสรุปคำร้อง - แก้ไขตามโครงสร้างข้อมูลใหม่ */}
       <Card 
         title="รายละเอียดคำร้องที่ส่ง" 
         size="small" 
@@ -170,16 +186,34 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
           <Col xs={24} md={12}>
             <div style={{ marginBottom: 8 }}>
               <Text strong>บริษัท / หน่วยงาน: </Text><br />
-              <Text>{formData?.companyName || 'ไม่ระบุ'}</Text>
+              <Text>{displayData.companyName || 'ไม่ระบุ'}</Text>
             </div>
-            <div style={{ marginBottom: 8 }}>
-              <Text strong>ตำแหน่งที่ขอฝึกงาน: </Text><br />
-              <Text>{formData?.internshipPosition || 'ไม่ระบุ'}</Text>
-            </div>
+            {displayData.internshipPosition && (
+              <div style={{ marginBottom: 8 }}>
+                <Text strong>ตำแหน่งที่ขอฝึกงาน: </Text><br />
+                <Text>{displayData.internshipPosition}</Text>
+              </div>
+            )}
             <div>
               <Text strong>ระยะเวลาฝึกงาน: </Text><br />
               <Text>
-                {formData?.internshipPeriod?.[0]?.format('DD/MM/YYYY')} ถึง {formData?.internshipPeriod?.[1]?.format('DD/MM/YYYY')}
+                {displayData.startDate && displayData.endDate ? (
+                  <>
+                    {dayjs(displayData.startDate).format('DD/MM/YYYY')} ถึง {dayjs(displayData.endDate).format('DD/MM/YYYY')}
+                    {' '}
+                    <span style={{ color: '#1890ff' }}>
+                      ({calculateInternshipDuration(displayData.startDate, displayData.endDate)})
+                    </span>
+                  </>
+                ) : displayData.internshipDateRange && displayData.internshipDateRange.length === 2 ? (
+                  <>
+                    {dayjs(displayData.internshipDateRange[0]).format('DD/MM/YYYY')} ถึง {dayjs(displayData.internshipDateRange[1]).format('DD/MM/YYYY')}
+                    {' '}
+                    <span style={{ color: '#1890ff' }}>
+                      ({calculateInternshipDuration(displayData.internshipDateRange[0], displayData.internshipDateRange[1])})
+                    </span>
+                  </>
+                ) : 'ไม่ระบุ'}
               </Text>
             </div>
           </Col>
@@ -187,12 +221,16 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
             <div style={{ marginBottom: 8 }}>
               <Text strong>จำนวนนักศึกษา: </Text><br />
               <Text>
-                {formData?.hasTwoStudents ? '2 คน (ฝึกงานร่วมกัน)' : '1 คน'}
+                {displayData.hasTwoStudents ? '2 คน (ฝึกงานร่วมกัน)' : '1 คน'}
               </Text>
             </div>
             <div style={{ marginBottom: 8 }}>
               <Text strong>นักศึกษาผู้ยื่นคำขอ: </Text><br />
-              <Text>{studentData?.fullName} ({studentData?.studentId})</Text>
+              <Text>
+                {displayData.studentData?.[0]?.fullName || displayData.fullName || studentData?.fullName} 
+                {' '}
+                ({displayData.studentData?.[0]?.studentId || displayData.studentId || studentData?.studentId})
+              </Text>
             </div>
             <div>
               <Text strong>สถานะปัจจุบัน: </Text><br />
@@ -202,6 +240,38 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
             </div>
           </Col>
         </Row>
+
+        {/* เพิ่มส่วนแสดงข้อมูลห้องและเบอร์โทรศัพท์ */}
+        {(displayData.studentData?.[0]?.classroom || displayData.classroom || displayData.studentData?.[0]?.phoneNumber || displayData.phoneNumber) && (
+          <>
+            <Divider style={{ margin: "12px 0" }} />
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <div>
+                  <Text strong>ห้อง: </Text>
+                  <Text>{displayData.studentData?.[0]?.classroom || displayData.classroom || '-'}</Text>
+                </div>
+              </Col>
+              <Col xs={24} md={12}>
+                <div>
+                  <Text strong>เบอร์โทรศัพท์: </Text>
+                  <Text>{displayData.studentData?.[0]?.phoneNumber || displayData.phoneNumber || '-'}</Text>
+                </div>
+              </Col>
+            </Row>
+          </>
+        )}
+        
+        {/* เพิ่มส่วนแสดงข้อมูลไฟล์ Transcript */}
+        {(transcriptFile || displayData.transcriptFilename) && (
+          <>
+            <Divider style={{ margin: "12px 0" }} />
+            <div>
+              <Text strong>เอกสาร Transcript: </Text>
+              <Text>{transcriptFile?.name || displayData.transcriptFilename || 'ไม่ระบุ'}</Text>
+            </div>
+          </>
+        )}
       </Card>
 
       {/* Timeline แสดงขั้นตอนทั้งหมด */}
@@ -316,36 +386,6 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
         style={{ marginBottom: 24 }}
       />
 
-      {/* ปุ่มดำเนินการ */}
-      <div style={{ textAlign: 'center' }}>
-        <Space size="large">
-          <Button 
-            type="primary" 
-            size="large"
-            icon={<EyeOutlined />}
-            onClick={() => navigate('/internship/status')}
-          >
-            ติดตามสถานะคำร้อง
-          </Button>
-          
-          <Button 
-            size="large"
-            icon={<FileTextOutlined />}
-            onClick={() => navigate('/internship/documents')}
-          >
-            จัดการเอกสาร
-          </Button>
-          
-          <Button 
-            size="large"
-            icon={<HomeOutlined />}
-            onClick={() => navigate('/internship')}
-          >
-            กลับหน้าหลักฝึกงาน
-          </Button>
-        </Space>
-      </div>
-
       {/* ข้อมูลการติดต่อ */}
       <Card 
         title="ข้อมูลการติดต่อสำคัญ" 
@@ -359,16 +399,6 @@ const SubmissionResultStep = ({ navigate, formData, studentData }) => {
               <Text>📞 โทรศัพท์: 02-XXX-XXXX ต่อ XXXX</Text><br />
               <Text>📧 อีเมล: cs.internship@university.ac.th</Text><br />
               <Text>🕒 เวลาทำการ: จันทร์-ศุกร์ 08:30-16:30 น.</Text>
-            </div>
-          </Col>
-          <Col xs={24} md={12}>
-            <div>
-              <Text strong style={{ color: '#1890ff' }}>อาจารย์ที่ปรึกษา:</Text><br />
-              <Text>📧 อีเมล: {studentData?.advisorEmail || 'ไม่ระบุ'}</Text><br />
-              <Text>📞 โทรศัพท์: {studentData?.advisorPhone || 'ไม่ระบุ'}</Text><br />
-              <Text style={{ color: '#666', fontSize: 12 }}>
-                * หากไม่ทราบข้อมูลอาจารย์ที่ปรึกษา กรุณาติดต่อเจ้าหน้าที่ภาควิชา
-              </Text>
             </div>
           </Col>
         </Row>

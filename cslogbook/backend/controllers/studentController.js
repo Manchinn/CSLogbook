@@ -97,6 +97,58 @@ exports.updateStudent = async (req, res) => {
   }
 };
 
+exports.updateContactInfo = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { classroom, phoneNumber } = req.body;
+    
+    // ตรวจสอบสิทธิ์การเข้าถึง (ต้องเป็นเจ้าของข้อมูลหรือแอดมิน)
+    const userId = req.user.id;
+    const student = await studentService.getStudentByIdWithUserId(studentId);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบข้อมูลนักศึกษา'
+      });
+    }
+    
+    if (student.userId !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'ไม่มีสิทธิ์อัพเดทข้อมูลนี้'
+      });
+    }
+    
+    // เรียกใช้ service แทนการเข้าถึงโมเดลโดยตรง
+    const updatedData = await studentService.updateContactInfo(studentId, {
+      classroom,
+      phoneNumber
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'อัพเดทข้อมูลติดต่อเรียบร้อยแล้ว',
+      data: updatedData
+    });
+  } catch (error) {
+    console.error('Error updating contact info:', error);
+    
+    if (error.message === 'ไม่พบข้อมูลนักศึกษา') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัพเดทข้อมูลติดต่อ',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 exports.deleteStudent = async (req, res, next) => {
   try {
     const { id } = req.params;

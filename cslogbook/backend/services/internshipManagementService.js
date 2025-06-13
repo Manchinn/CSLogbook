@@ -69,6 +69,8 @@ class InternshipManagementService {
         totalCredits: student.totalCredits,
         year: yearInfo.year,
         status: yearInfo.status,
+        classroom: student.classroom,
+        phoneNumber: student.phoneNumber,
         statusLabel: yearInfo.statusLabel,
         isEligible: eligibilityCheck.eligible,
         academicYear: getCurrentAcademicYear(),

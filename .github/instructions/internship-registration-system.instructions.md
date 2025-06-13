@@ -17,640 +17,432 @@ cslogbook/frontend/src/components/internship/register/
 ├── CS05FormStep.js                  # ขั้นตอนกรอกฟอร์ม คพ.05
 ├── ReviewDataStep.js                # ขั้นตอนตรวจสอบข้อมูล
 ├── SubmissionResultStep.js          # ขั้นตอนผลการส่งคำร้อง
-├── StudentInfoSection.js            # แสดงข้อมูลนักศึกษา
-└── InternshipDocumentsPage.js       # หน้าเอกสารฝึกงาน
+└── StudentInfoSection.js            # แสดงข้อมูลนักศึกษา
 ```
 
-## ขั้นตอนการลงทะเบียนฝึกงาน (Registration Steps)
-
-### 3 ขั้นตอนหลัก
-```javascript
-const registrationSteps = [
-  {
-    title: 'กรอกข้อมูล คพ.05',
-    description: 'กรอกข้อมูลบริษัทและนักศึกษา',
-    icon: <FormOutlined />,
-    key: 'form'
-  },
-  {
-    title: 'ตรวจสอบข้อมูล',
-    description: 'ตรวจสอบความถูกต้องของข้อมูล',
-    icon: <CheckCircleOutlined />,
-    key: 'review'
-  },
-  {
-    title: 'ส่งคำร้อง',
-    description: 'ยืนยันและส่งคำร้องเข้าระบบ',
-    icon: <SendOutlined />,
-    key: 'result'
-  }
-];
+### โครงสร้างเพิ่มเติม
+```
+cslogbook/frontend/src/components/internship/common/
+├── TranscriptUpload.js              # คอมโพเนนต์สำหรับอัปโหลดไฟล์ transcript
+└── StatusBadge.js                   # แสดงสถานะคำร้อง
 ```
 
-## สถานะหลังส่งคำร้อง คพ.05 (Post-Submission Statuses)
+## โครงสร้างแบบฟอร์ม คพ.05 (อัปเดต)
 
-### 12 สถานะตามลำดับ
+### ลำดับการกรอกข้อมูล
+แบบฟอร์ม คพ.05 ได้รับการออกแบบให้กรอกข้อมูลตามลำดับดังนี้:
+
+1. **ส่วนข้อมูลบริษัท/หน่วยงาน**
+   - ชื่อบริษัท/หน่วยงาน
+   - สถานที่ตั้ง
+   - เรียนถึง (ชื่อผู้ติดต่อ/HR)
+   - ตำแหน่ง (ของผู้ติดต่อ)
+
+2. **ส่วนข้อมูลนักศึกษา**
+   - ตัวเลือกฝึกงาน 1 คนหรือ 2 คน
+   - ข้อมูลนักศึกษาคนที่ 1
+     - ชื่อ-นามสกุล
+     - ชั้นปี
+     - ห้อง (RA, RB, RC, DA, DB, CSB)
+     - รหัสประจำตัวนักศึกษา
+     - เบอร์โทรศัพท์
+     - หน่วยกิตสะสมทั้งหมด
+   - (ถ้าเลือก 2 คน) ข้อมูลนักศึกษาคนที่ 2
+
+3. **ส่วนช่วงเวลาฝึกงาน**
+   - วันที่เริ่มต้นและสิ้นสุดการฝึกงาน (ไม่น้อยกว่า 60 วัน)
+
+4. **ส่วนรายละเอียดตำแหน่งงาน**
+   - ตำแหน่งฝึกงาน
+   - ลักษณะงานที่จะได้รับมอบหมาย (ถ้ามี)
+   - ข้อกำหนดอื่นๆ จากบริษัท (ถ้ามี)
+
+5. **อัปโหลด Transcript**
+   - ใบแสดงผลการเรียน (เฉพาะไฟล์ PDF)
+   - ต้องแสดงหน่วยกิตสะสมไม่น้อยกว่า 81 หน่วยกิต
+
+## คอมโพเนนต์ TranscriptUpload (เพิ่มใหม่)
+
+คอมโพเนนต์สำหรับจัดการการอัปโหลดไฟล์ transcript ที่ถูกต้อง:
+
 ```javascript
-const internshipStatuses = [
-  {
-    value: 'draft',
-    label: 'ร่าง (ยังไม่ส่ง)',
-    description: 'ยังไม่ได้ส่งคำร้อง คพ.05',
-    color: 'default',
-    icon: <FileTextOutlined />,
-    nextSteps: ['ตรวจสอบข้อมูลก่อนส่ง', 'แก้ไขข้อมูลหากจำเป็น']
-  },
-  {
-    value: 'submitted',
-    label: 'ส่งคำร้องแล้ว',
-    description: 'ส่งคำร้อง คพ.05 เรียบร้อยแล้ว',
-    color: 'processing',
-    icon: <CheckCircleOutlined />,
-    nextSteps: ['รอการตรวจสอบจากเจ้าหน้าที่', 'ประมาณ 3-5 วันทำการ']
-  },
-  {
-    value: 'under_review',
-    label: 'อยู่ระหว่างการตรวจสอบ',
-    description: 'เจ้าหน้าที่ภาควิชากำลังตรวจสอบเอกสาร',
-    color: 'warning',
-    icon: <ClockCircleOutlined />,
-    nextSteps: ['รอผลการพิจารณา', 'อาจต้องแก้ไขเอกสารเพิ่มเติม']
-  },
-  {
-    value: 'revision_required',
-    label: 'ต้องแก้ไขเอกสาร',
-    description: 'มีข้อมูลที่ต้องปรับปรุงหรือแก้ไข',
-    color: 'error',
-    icon: <ExclamationCircleOutlined />,
-    nextSteps: ['แก้ไขตามคำแนะนำ', 'ส่งเอกสารใหม่อีกครั้ง']
-  },
-  {
-    value: 'approved',
-    label: 'อนุมัติแล้ว',
-    description: 'หนังสือขอความอนุเคราะห์พร้อมดาวน์โหลด',
-    color: 'success',
-    icon: <CheckCircleOutlined />,
-    nextSteps: ['ดาวน์โหลดหนังสือขอความอนุเคราะห์', 'ติดต่อบริษัทเพื่อขอฝึกงาน']
-  },
-  {
-    value: 'letter_downloaded',
-    label: 'ดาวน์โหลดหนังสือแล้ว',
-    description: 'ได้รับหนังสือขอความอนุเคราะห์แล้ว',
-    color: 'cyan',
-    icon: <DownloadOutlined />,
-    nextSteps: ['นำหนังสือไปติดต่อบริษัท', 'รอหนังสือตอบรับจากบริษัท']
-  },
-  {
-    value: 'company_contacted',
-    label: 'ติดต่อบริษัทแล้ว',
-    description: 'ได้นำหนังสือไปติดต่อบริษัทแล้ว',
-    color: 'purple',
-    icon: <SendOutlined />,
-    nextSteps: ['รอการพิจารณาจากบริษัท', 'ติดตามผลการสมัคร']
-  },
-  {
-    value: 'acceptance_received',
-    label: 'ได้รับหนังสือตอบรับ',
-    description: 'บริษัทตอบรับให้เข้าฝึกงาน',
-    color: 'green',
-    icon: <CheckCircleOutlined />,
-    nextSteps: ['อัปโหลดหนังสือตอบรับ', 'รอหนังสือส่งตัว']
-  },
-  {
-    value: 'acceptance_uploaded',
-    label: 'อัปโหลดหนังสือตอบรับแล้ว',
-    description: 'ส่งหนังสือตอบรับจากบริษัทแล้ว',
-    color: 'lime',
-    icon: <UploadOutlined />,
-    nextSteps: ['รอการจัดทำหนังสือส่งตัว', 'ประมาณ 2-3 วันทำการ']
-  },
-  {
-    value: 'referral_ready',
-    label: 'หนังสือส่งตัวพร้อม',
-    description: 'หนังสือส่งตัวพร้อมดาวน์โหลด',
-    color: 'gold',
-    icon: <FileTextOutlined />,
-    nextSteps: ['ดาวน์โหลดหนังสือส่งตัว', 'เตรียมตัวเริ่มฝึกงาน']
-  },
-  {
-    value: 'internship_started',
-    label: 'เริ่มฝึกงานแล้ว',
-    description: 'รายงานตัวและเริ่มฝึกงานแล้ว',
-    color: 'volcano',
-    icon: <PlayCircleOutlined />,
-    nextSteps: ['ทำงานตามแผนฝึกงาน', 'บันทึกผลการฝึกงาน']
-  },
-  {
-    value: 'completed',
-    label: 'ฝึกงานเสร็จสิ้น',
-    description: 'ฝึกงานเสร็จสิ้นเรียบร้อย',
-    color: 'magenta',
-    icon: <TrophyOutlined />,
-    nextSteps: ['ส่งรายงานการฝึกงาน', 'ประเมินผลการฝึกงาน']
-  }
-];
-```
+// filepath: cslogbook/frontend/src/components/internship/common/TranscriptUpload.js
+import React from 'react';
+import { Upload, Button, message } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 
-## คอมโพเนนต์หลัก (Main Components)
+const TranscriptUpload = ({ value, onChange, disabled }) => {
+  const beforeUpload = (file) => {
+    const isPDF = file.type === 'application/pdf';
+    if (!isPDF) {
+      message.error('สามารถอัปโหลดไฟล์ PDF เท่านั้น');
+    }
+    
+    const isLt10M = file.size / 1024 / 1024 < 10;
+    if (!isLt10M) {
+      message.error('ไฟล์ต้องมีขนาดไม่เกิน 10MB');
+    }
+    
+    return isPDF && isLt10M;
+  };
 
-### 1. InternshipRegistrationFlow.js
-**หน้าที่**: คอมโพเนนต์หลักที่ควบคุมทั้งขั้นตอนการลงทะเบียนฝึกงาน
+  const handleChange = (info) => {
+    if (info.file.status === 'done') {
+      message.success(`${info.file.name} อัปโหลดสำเร็จ`);
+      onChange(info.file.originFileObj);
+    } else if (info.file.status === 'error') {
+      message.error(`${info.file.name} อัปโหลดไม่สำเร็จ`);
+    } else if (info.file.status === 'removed') {
+      onChange(null);
+    }
+  };
 
-#### State Management
-```javascript
-// State สำคัญที่ต้องมี
-const [currentStep, setCurrentStep] = useState(0);      // ขั้นตอนปัจจุบัน (0-2)
-const [loading, setLoading] = useState(false);          // สถานะโหลด
-const [studentData, setStudentData] = useState(null);   // ข้อมูลนักศึกษา
-const [formData, setFormData] = useState({});           // ข้อมูลฟอร์ม คพ.05
-```
+  const uploadProps = {
+    name: 'transcript',
+    maxCount: 1,
+    accept: '.pdf',
+    showUploadList: true,
+    beforeUpload,
+    onChange: handleChange,
+    customRequest: ({ onSuccess }) => setTimeout(() => onSuccess('ok'), 0),
+    fileList: value ? [{ 
+      uid: '-1', 
+      name: value.name || 'transcript.pdf', 
+      status: 'done' 
+    }] : []
+  };
 
-#### ฟังก์ชันสำคัญ
-```javascript
-// ฟังก์ชันควบคุมขั้นตอน
-const handleNextStep = () => {
-  if (currentStep < registrationSteps.length - 1) {
-    setCurrentStep(currentStep + 1);
-  }
+  return (
+    <Upload {...uploadProps} disabled={disabled}>
+      <Button icon={<UploadOutlined />} disabled={disabled || value}>
+        อัปโหลด Transcript (PDF)
+      </Button>
+    </Upload>
+  );
 };
 
-const handlePrevStep = () => {
-  if (currentStep > 0) {
-    setCurrentStep(currentStep - 1);
-  }
-};
+export default TranscriptUpload;
+```
 
-// ฟังก์ชันส่งคำร้อง
+## การแก้ไข InternshipRegistrationFlow.js
+
+อัปเดตในส่วน `handleSubmit` และการจัดเก็บข้อมูลใน localStorage:
+
+```javascript
+// ฟังก์ชันส่งข้อมูล
 const handleSubmit = async (finalData) => {
   try {
     setLoading(true);
     
-    // ส่งข้อมูล
-    const response = await internshipService.submitCS05WithTranscript(finalData);
-    if (response.success) {
-      setCurrentStep(2);
-      message.success('ส่งคำร้อง คพ.05 เรียบร้อยแล้ว');
-    }
-  } catch (error) {
-    message.error('เกิดข้อผิดพลาดในการส่งคำร้อง');
-  } finally {
-    setLoading(false);
-  }
-};
-```
-
-#### Layout Structure
-```javascript
-const InternshipRegistrationFlow = () => {
-  return (
-    <div style={{ padding: '24px', backgroundColor: '#f0f2f5' }}>
-      {/* หัวข้อหลัก */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <Title level={1}>🎓 ระบบฝึกงานนักศึกษา</Title>
-        <Title level={4} type="secondary">
-          {studentData?.fullName || 'ข้อมูลนักศึกษา'} - รหัส: {studentData?.studentCode || 'N/A'}
-        </Title>
-      </div>
-
-      {/* Progress Steps */}
-      <Card style={{ marginBottom: 24 }}>
-        <Steps 
-          current={currentStep} 
-          items={registrationSteps}
-        />
-      </Card>
-
-      {/* Layout หลัก */}
-      <Row gutter={24}>
-        <Col xs={24} lg={16}>
-          <Card className="internship-form">
-            {getStepContent()}
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          {/* Sidebar ข้อมูลเพิ่มเติม */}
-          <Card title="ข้อมูลการฝึกงาน" size="small">
-            {renderSidebarInfo()}
-          </Card>
-        </Col>
-      </Row>
-    </div>
-  );
-};
-```
-
-## การจัดการ API และ Services
-
-### Service Layer
-```javascript
-const internshipService = {
-  // โหลดข้อมูลนักศึกษา
-  getStudentProfile: async () => {
-    try {
-      const response = await apiClient.get('/api/students/profile');
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลนักศึกษาได้'
-      };
-    }
-  },
-
-  // ส่งคำร้อง CS05
-  submitCS05WithTranscript: async (formData) => {
-    try {
-      const response = await apiClient.post('/api/internship/cs05/submit', formData);
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'ไม่สามารถส่งคำร้องได้'
-      };
-    }
-  },
-
-  // โหลด CS05 ปัจจุบัน
-  getCurrentCS05: async () => {
-    try {
-      const response = await apiClient.get('/api/internship/cs05/current');
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'ไม่พบข้อมูล CS05'
-      };
-    }
-  },
-
-  // อัปเดตสถานะ
-  updateCS05Status: async (cs05Id, status) => {
-    try {
-      const response = await apiClient.patch(`/api/internship/cs05/${cs05Id}/status`, { status });
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'ไม่สามารถอัปเดตสถานะได้'
-      };
-    }
-  }
-};
-```
-
-## การใช้ Ant Design Components
-
-### Components ที่ใช้บ่อย
-```javascript
-import { 
-  Steps, Card, Typography, Alert, Space, message,
-  Row, Col, Progress, Divider, Tag, Button, Select, Form,
-  Input, DatePicker, Upload, Modal, Spin, Empty, Result,
-  Timeline, Descriptions, Drawer, Popconfirm
-} from 'antd';
-
-import { 
-  FormOutlined, CheckCircleOutlined, SendOutlined,
-  PhoneOutlined, PlayCircleOutlined, SettingOutlined,
-  FileTextOutlined, UploadOutlined, DownloadOutlined,
-  ClockCircleOutlined, ExclamationCircleOutlined, TrophyOutlined
-} from '@ant-design/icons';
-```
-
-### Form Validation Rules
-```javascript
-const formValidationRules = {
-  companyName: [
-    { required: true, message: 'กรุณากรอกชื่อบริษัท' },
-    { min: 2, message: 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร' }
-  ],
-  companyAddress: [
-    { required: true, message: 'กรุณากรอกที่อยู่บริษัท' },
-    { min: 10, message: 'ที่อยู่ต้องมีรายละเอียดครบถ้วน' }
-  ],
-  internshipPosition: [
-    { required: true, message: 'กรุณากรอกตำแหน่งฝึกงาน' }
-  ],
-  contactEmail: [
-    { required: true, message: 'กรุณากรอกอีเมลติดต่อ' },
-    { type: 'email', message: 'รูปแบบอีเมลไม่ถูกต้อง' }
-  ],
-  contactPhone: [
-    { required: true, message: 'กรุณากรอกเบอร์โทรศัพท์' },
-    { pattern: /^[0-9-]{8,12}$/, message: 'รูปแบบเบอร์โทรไม่ถูกต้อง' }
-  ],
-  internshipDuration: [
-    { required: true, message: 'กรุณาระบุระยะเวลาฝึกงาน' }
-  ]
-};
-```
-
-## State Management Patterns
-
-### Local State (แนะนำสำหรับโปรเจคเล็ก)
-```javascript
-const InternshipRegistrationFlow = () => {
-  // จัดการ state ภายใน component
-  const [state, setState] = useState({
-    currentStep: 0,
-    loading: false,
-    studentData: null,
-    formData: {}
-  });
-
-  const updateState = (updates) => {
-    setState(prev => ({ ...prev, ...updates }));
-  };
-};
-```
-
-### Context API (สำหรับโปรเจคใหญ่)
-```javascript
-// สร้าง Context
-const InternshipContext = createContext();
-
-// Provider
-export const InternshipProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(internshipReducer, initialState);
-  
-  const value = {
-    state,
-    dispatch,
-    // Helper functions
-    setCurrentStep: (step) => dispatch({ type: 'SET_CURRENT_STEP', payload: step }),
-    setFormData: (data) => dispatch({ type: 'SET_FORM_DATA', payload: data }),
-    setStudentData: (data) => dispatch({ type: 'SET_STUDENT_DATA', payload: data })
-  };
-
-  return (
-    <InternshipContext.Provider value={value}>
-      {children}
-    </InternshipContext.Provider>
-  );
-};
-
-// Custom Hook
-export const useInternship = () => {
-  const context = useContext(InternshipContext);
-  if (!context) {
-    throw new Error('useInternship ต้องใช้ภายใน InternshipProvider');
-  }
-  return context;
-};
-```
-
-## การจัดการ Error และ Loading States
-
-### Error Handling
-```javascript
-const handleAPICall = async (apiFunction, errorMessage = 'เกิดข้อผิดพลาด') => {
-  try {
-    setLoading(true);
-    const result = await apiFunction();
+    // เช็คว่า finalData.transcriptFile เป็นไฟล์ PDF จริงๆ หรือไม่
+    let pdfFileToUpload = null;
+    let isPDF = false;
     
-    if (result.success) {
-      return result.data;
+    if (finalData.transcriptFile instanceof File) {
+      pdfFileToUpload = finalData.transcriptFile;
+      isPDF = pdfFileToUpload.type === 'application/pdf';
+    } else if (finalData.transcriptFile?.originFileObj) {
+      pdfFileToUpload = finalData.transcriptFile.originFileObj;
+      isPDF = pdfFileToUpload.type === 'application/pdf';
+    }
+    
+    if (!pdfFileToUpload || !isPDF) {
+      message.error('กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น');
+      setLoading(false);
+      return;
+    }
+    
+    // สร้าง FormData สำหรับส่งข้อมูลพร้อมไฟล์
+    const formData = new FormData();
+    
+    // สร้างข้อมูล JSON สำหรับส่งไปยัง API
+    const submitData = {
+      documentType: 'internship',
+      documentName: 'CS05',
+      category: 'proposal',
+      studentId: studentData.studentId,
+      fullName: studentData.fullName,
+      year: studentData.year,
+      totalCredits: studentData.totalCredits,
+      companyName: finalData.companyName,
+      companyAddress: finalData.companyAddress,
+      startDate: finalData.startDate,
+      endDate: finalData.endDate,
+      contactPerson: finalData.contactPerson,
+      contactPosition: finalData.contactPosition,
+      hasTwoStudents: finalData.hasTwoStudents || false,
+      studentData: finalData.studentData || [],
+      // เพิ่มข้อมูลห้องเรียนและเบอร์โทรศัพท์
+      classroom: finalData.classroom || finalData.studentData?.[0]?.classroom || '',
+      phoneNumber: finalData.phoneNumber || finalData.studentData?.[0]?.phoneNumber || ''
+    };
+    
+    // แนบข้อมูล JSON
+    formData.append('formData', JSON.stringify(submitData));
+    
+    // แนบไฟล์ transcript
+    formData.append('transcript', pdfFileToUpload);
+
+    // ส่งข้อมูลไปยัง backend
+    const response = await internshipService.submitCS05WithTranscript(formData);
+
+    if (response.success) {
+      message.success('ส่งคำร้อง คพ.05 เรียบร้อยแล้ว');
+      setExistingCS05(response.data);
+      setIsSubmitted(true);
+      setFormSubmitted(true); // เพิ่มบรรทัดนี้
+      setCurrentStep(2); // ไปยังหน้า SubmissionResultStep
+      
+      // บันทึกข้อมูลลงใน localStorage เพื่อให้กลับมาดูได้ในภายหลัง
+      localStorage.setItem('cs05_submitted', 'true');
+      localStorage.setItem('cs05_data', JSON.stringify(response.data));
+      localStorage.setItem('cs05_submission_date', new Date().toISOString());
     } else {
-      throw new Error(result.message);
+      throw new Error(response.message || 'ไม่สามารถส่งคำร้องได้');
     }
   } catch (error) {
-    console.error('API Error:', error);
-    message.error(error.message || errorMessage);
-    return null;
+    console.error('Submit error:', error);
+    message.error(error.message || 'เกิดข้อผิดพลาดในการส่งคำร้อง');
   } finally {
     setLoading(false);
   }
 };
 ```
 
-### Loading States
+## ปรับปรุงหน้า SubmissionResultStep
+
+เพิ่มการแสดงผลข้อมูลห้องเรียนและเบอร์โทรศัพท์:
+
 ```javascript
-const LoadingWrapper = ({ loading, children }) => {
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <Spin size="large" />
-        <div style={{ marginTop: 16 }}>กำลังโหลด...</div>
-      </div>
-    );
-  }
-  return children;
-};
+// แสดงข้อมูลห้องและเบอร์โทรศัพท์
+{(displayData.studentData?.[0]?.classroom || displayData.classroom || displayData.studentData?.[0]?.phoneNumber || displayData.phoneNumber) && (
+  <>
+    <Divider style={{ margin: "12px 0" }} />
+    <Row gutter={16}>
+      <Col xs={24} md={12}>
+        <div>
+          <Text strong>ห้อง: </Text>
+          <Text>{displayData.studentData?.[0]?.classroom || displayData.classroom || '-'}</Text>
+        </div>
+      </Col>
+      <Col xs={24} md={12}>
+        <div>
+          <Text strong>เบอร์โทรศัพท์: </Text>
+          <Text>{displayData.studentData?.[0]?.phoneNumber || displayData.phoneNumber || '-'}</Text>
+        </div>
+      </Col>
+    </Row>
+  </>
+)}
 ```
 
-## Responsive Design และ Styling
+## เพิ่มการเก็บและโหลดข้อมูลจาก localStorage
 
-### Responsive Breakpoints
+สำหรับการกลับมาดูข้อมูลภายหลัง:
+
 ```javascript
-const responsiveProps = {
-  xs: 24,    // <576px
-  sm: 24,    // ≥576px
-  md: 12,    // ≥768px
-  lg: 8,     // ≥992px
-  xl: 6,     // ≥1200px
-  xxl: 4     // ≥1600px
-};
-
-// Usage
-<Col {...responsiveProps}>
-  <Card>Content</Card>
-</Col>
-```
-
-### Theme Colors
-```javascript
-const themeColors = {
-  primary: '#1890ff',
-  success: '#52c41a',
-  warning: '#faad14',
-  error: '#ff4d4f',
-  info: '#13c2c2',
-  processing: '#1890ff',
-  default: '#d9d9d9'
-};
-```
-
-## Best Practices และ Code Standards
-
-### Component Structure
-```javascript
-// 1. Imports
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Form, message } from 'antd';
-
-// 2. Constants และ Config
-const COMPONENT_NAME = 'InternshipComponent';
-const DEFAULT_STATE = { loading: false };
-
-// 3. Main Component
-const InternshipComponent = ({ 
-  // Props with TypeScript-style comments
-  studentId,    // string: รหัสนักศึกษา
-  onSubmit,     // function: ฟังก์ชันเมื่อส่งฟอร์ม
-  ...props 
-}) => {
-  // 4. Hooks
-  const [state, setState] = useState(DEFAULT_STATE);
-  const [form] = Form.useForm();
-
-  // 5. Event Handlers
-  const handleSubmit = useCallback(async (values) => {
-    // Implementation
-  }, [onSubmit]);
-
-  // 6. Effects
-  useEffect(() => {
-    // Side effects
-  }, [studentId]);
-
-  // 7. Render
-  return (
-    <Card>
-      {/* JSX */}
-    </Card>
-  );
-};
-
-// 8. Export
-export default InternshipComponent;
-```
-
-### Error Boundary
-```javascript
-class InternshipErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('Internship Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <Result
-          status="error"
-          title="เกิดข้อผิดพลาดในระบบฝึกงาน"
-          subTitle="กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่"
-          extra={
-            <Button type="primary" onClick={() => window.location.reload()}>
-              รีโหลดหน้า
-            </Button>
-          }
-        />
-      );
+// ใน InternshipRegistrationFlow.js
+useEffect(() => {
+  // ตรวจสอบว่าเคยส่งฟอร์มแล้วหรือไม่
+  const isSubmitted = localStorage.getItem('cs05_submitted') === 'true';
+  const savedCS05Data = localStorage.getItem('cs05_data');
+  
+  if (isSubmitted && savedCS05Data) {
+    try {
+      const parsedData = JSON.parse(savedCS05Data);
+      setExistingCS05(parsedData);
+      setIsSubmitted(true);
+      setFormSubmitted(true);
+      
+      // ถ้ามีการระบุใน URL ว่าต้องการดูผลการส่ง
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === 'result') {
+        setCurrentStep(2); // ไปที่หน้า SubmissionResultStep
+      }
+    } catch (error) {
+      console.error('Error parsing saved CS05 data:', error);
     }
-
-    return this.props.children;
   }
+}, []);
+```
+
+## คำนวณระยะเวลาฝึกงาน
+
+ฟังก์ชันสำหรับคำนวณระยะเวลาฝึกงานในรูปแบบวันและเดือน:
+
+```javascript
+const calculateInternshipDuration = (startDate, endDate) => {
+  if (!startDate || !endDate) return '';
+  
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+  const diffInDays = end.diff(start, 'day') + 1;
+  const diffInMonths = Math.round(diffInDays / 30);
+  
+  return `${diffInMonths} เดือน (${diffInDays} วัน)`;
+};
+```
+
+## โครงสร้างข้อมูล Student ที่อัปเดต
+
+รองรับข้อมูลห้องเรียนและเบอร์โทรศัพท์:
+
+```javascript
+// โครงสร้างข้อมูล Student
+{
+  fullName: 'ชื่อ นามสกุล', // ชื่อ-นามสกุลนักศึกษา
+  studentId: '64xxxxxxxx', // รหัสนักศึกษา
+  yearLevel: 3,            // ชั้นปี
+  classroom: 'RC',         // ห้อง (RA, RB, RC, DA, DB, CSB)
+  phoneNumber: '09xxxxxxxx', // เบอร์โทรศัพท์
+  totalCredits: 100        // หน่วยกิตสะสม
 }
 ```
 
-## Development Guidelines
-- เน้นการพัฒนาที่รองรับการใช้งานจริงและมีประสิทธิภาพ
-- ตรวจสอบ responsive design ในทุกขนาดหน้าจอ
-- ทดสอบการจัดการ error ในสถานการณ์ต่างๆ
-- เขียนโค้ดให้มีความยืดหยุ่นและรองรับการขยายฟีเจอร์ในอนาคต
+## การแสดงผลใน ReviewDataStep
 
-### Performance Optimization
+เพิ่มการแสดงผลห้องเรียนและเบอร์โทรศัพท์:
+
 ```javascript
-// 1. Memoization
-const ExpensiveComponent = React.memo(({ data }) => {
-  return <div>{/* Complex rendering */}</div>;
-});
-
-// 2. Lazy Loading
-const LazyInternshipPage = React.lazy(() => 
-  import('./InternshipDocumentsPage')
-);
-
-// 3. useCallback สำหรับ event handlers
-const handleSubmit = useCallback((values) => {
-  // Handler logic
-}, [dependencies]);
-
-// 4. useMemo สำหรับ computed values
-const computedData = useMemo(() => {
-  return expensiveCalculation(rawData);
-}, [rawData]);
+<Row gutter={16}>
+  <Col span={12}>
+    <div><Text>ชื่อ-นามสกุล:</Text> {formData.studentData?.[0]?.fullName || studentData?.fullName}</div>
+    <div><Text>รหัสนักศึกษา:</Text> {formData.studentData?.[0]?.studentId || studentData?.studentId}</div>
+    <div><Text>ชั้นปี:</Text> {formData.studentData?.[0]?.yearLevel || studentData?.year}</div>
+  </Col>
+  <Col span={12}>
+    <div><Text>ห้อง:</Text> {formData.studentData?.[0]?.classroom || '-'}</div>
+    <div><Text>เบอร์โทรศัพท์:</Text> {formData.studentData?.[0]?.phoneNumber || '-'}</div>
+    <div><Text>หน่วยกิตสะสม:</Text> {formData.studentData?.[0]?.totalCredits || studentData?.totalCredits} หน่วยกิต</div>
+  </Col>
+</Row>
 ```
 
-## Integration Guidelines
+## โค้ดการแก้ไขปัญหาใน Backend
 
-### Router Integration
+การตรวจสอบไฟล์ PDF ในฝั่ง Backend:
+
 ```javascript
-import { Routes, Route, Navigate } from 'react-router-dom';
+// filepath: cslogbook/backend/controllers/documents/internshipController.js
+exports.submitCS05WithTranscript = async (req, res) => {
+  try {
+    // แก้ไขลำดับพารามิเตอร์
+    const result = await internshipManagementService.submitCS05WithTranscript(
+      req.user.userId,
+      req.file,   // ส่ง fileData เป็น req.file
+      req.body.formData ? JSON.parse(req.body.formData) : req.body // ส่ง formData
+    );
+    
+    return res.status(201).json({
+      success: true,
+      ...result
+    });
 
-const InternshipRoutes = () => (
-  <Routes>
-    <Route path="/" element={<Navigate to="/register" replace />} />
-    <Route path="/register" element={<InternshipRegistrationFlow />} />
-    <Route path="/documents" element={<InternshipDocumentsPage />} />
-    <Route path="/status/:cs05Id" element={<StatusTrackingPage />} />
-  </Routes>
-);
-```
-
-### Authentication Integration
-```javascript
-const ProtectedInternshipRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  
-  if (loading) return <Spin />;
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  } catch (error) {
+    console.error('Error in submitCS05WithTranscript:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+    });
   }
-  
-  if (user.role !== 'student') {
-    return <Result status="403" title="ไม่มีสิทธิ์เข้าถึง" />;
-  }
-  
-  return children;
 };
 ```
 
-## คำแนะนำการใช้งาน
+## การดาวน์โหลดหนังสือขอความอนุเคราะห์
 
-### สำหรับ Developer
-1. ศึกษาโครงสร้างและการทำงานของระบบให้เข้าใจ
-2. สร้าง Error Boundary สำหรับจัดการข้อผิดพลาด
-3. ทดสอบ responsive design ในทุกขนาดหน้าจอ
-4. ใช้ TypeScript comments สำหรับ prop types
-5. เขียนโค้ดให้มีการจัดการ edge case ต่างๆ
+เพิ่มฟังก์ชันดาวน์โหลดหนังสือขอความอนุเคราะห์ในหน้า SubmissionResultStep (เมื่อคำร้องได้รับการอนุมัติ):
 
-### สำหรับ QA และ Testing
-1. ทดสอบทุก status ของระบบ
-2. ทดสอบการจัดการ error cases
-3. ตรวจสอบ user experience ในแต่ละขั้นตอน
-4. ทดสอบฟังก์ชันการทำงานในทุกขั้นตอน
-5. ทดสอบการทำงานร่วมกับ API
+```javascript
+const handleDownloadLetter = () => {
+  if (!existingCS05 || existingCS05.status !== 'approved') {
+    message.info('หนังสือขอความอนุเคราะห์ยังไม่พร้อมให้ดาวน์โหลด');
+    return;
+  }
+  
+  // ดาวน์โหลดหนังสือ
+  window.open(`${process.env.REACT_APP_API_URL}/api/internship/letters/${existingCS05.letterId}`, '_blank');
+};
 
-### สำหรับ Product Owner
-1. ตรวจสอบ user flow และ business logic
-2. ทดสอบ edge cases ต่างๆ
-3. รับฟีดแบ็กจาก stakeholders
-4. วางแผน roadmap สำหรับฟีเจอร์เพิ่มเติม
-5. ประเมินประสิทธิภาพการใช้งานจากมุมมองของผู้ใช้
+// ใช้งานปุ่ม
+<Button 
+  type="primary" 
+  icon={<DownloadOutlined />}
+  onClick={handleDownloadLetter}
+  disabled={!existingCS05 || existingCS05.status !== 'approved'}
+>
+  ดาวน์โหลดหนังสือขอความอนุเคราะห์
+</Button>
+```
+
+## Best Practices ในการส่งข้อมูล (อัปเดต)
+
+```javascript
+// วิธีที่แนะนำในการส่งข้อมูลพร้อมไฟล์
+const handleFormSubmit = (values) => {
+  // 1. ตรวจสอบไฟล์ transcript ก่อนส่ง
+  if (!transcriptFile) {
+    message.error('กรุณาอัปโหลดใบแสดงผลการเรียน (Transcript)');
+    return;
+  }
+  
+  if (transcriptFile instanceof File && transcriptFile.type !== 'application/pdf') {
+    message.error('กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น');
+    return;
+  }
+  
+  // 2. เตรียมข้อมูล
+  const submitData = {
+    ...values,
+    transcriptFile: transcriptFile
+  };
+  
+  // 3. ส่งข้อมูลไปยัง parent component
+  onSubmit(submitData);
+};
+```
+
+## การประมวลผลข้อมูลฟอร์มก่อนส่ง
+
+```javascript
+// แปลงค่าวันที่จาก DatePicker เป็นรูปแบบที่ต้องการ
+if (values.internshipDateRange && values.internshipDateRange.length === 2) {
+  values.startDate = values.internshipDateRange[0].format('YYYY-MM-DD');
+  values.endDate = values.internshipDateRange[1].format('YYYY-MM-DD');
+}
+
+// คำนวณระยะเวลาฝึกงาน
+values.internshipDuration = calculateInternshipDays(values.internshipDateRange);
+```
+
+## ปุ่มกลับไปดูหน้าผลการส่งคำร้อง
+
+```javascript
+// เพิ่มในส่วน sidebar
+{isSubmitted && currentStep !== 2 && (
+  <Button 
+    type="primary" 
+    block 
+    onClick={() => setCurrentStep(2)}
+    style={{ marginTop: 16 }}
+  >
+    ดูผลการส่งคำร้องล่าสุด
+  </Button>
+)}
+```
+
 
 ---
 
-**หมายเหตุ**: Instructions นี้ครอบคลุมการพัฒนาระบบลงทะเบียนฝึกงานที่สมบูรณ์ รวมถึงการจัดการ state, API integration และ error handling สามารถนำไปใช้เป็นแนวทางในการพัฒนาโปรเจคที่คล้ายกันได้
+## Development Guidelines (อัปเดต)
+
+- ตรวจสอบให้แน่ใจว่าการอัปโหลดไฟล์ทำงานถูกต้องในทุกสถานการณ์
+- ทดสอบการทำงานของ localStorage สำหรับการบันทึกและโหลดข้อมูลคำร้อง
+- ตรวจสอบการส่งข้อมูลฟอร์มพร้อมไฟล์ PDF ไปยัง backend
+- ดูแลประสบการณ์ผู้ใช้หลังจากส่งฟอร์มเรียบร้อยแล้ว
+- ตรวจสอบการแสดงผลระยะเวลาฝึกงานในทุกหน้า
+- ทดสอบการแสดงผลข้อมูลห้องเรียนและเบอร์โทรศัพท์
+```
+
+---
+
+**หมายเหตุ**: คำแนะนำนี้ได้รับการอัปเดตเพื่อรวมการแก้ไขและฟีเจอร์ใหม่ทั้งหมดที่เราได้พัฒนาในระบบลงทะเบียนฝึกงาน

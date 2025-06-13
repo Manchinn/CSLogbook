@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Card, Timeline, Tag, Alert, Button, Space, Row, Col, 
+  Card, Timeline, Tag, Alert, Button, Space,
   Typography, Spin, message, Descriptions
 } from 'antd';
 import { 
-  CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
+  ClockCircleOutlined, FileTextOutlined,
   PrinterOutlined, UploadOutlined, DownloadOutlined,
-  AuditOutlined, FileDoneOutlined, ExclamationCircleOutlined
+  AuditOutlined, FileDoneOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import internshipService from '../../../services/internshipService';
