@@ -1,155 +1,344 @@
 # คู่มือการติดตั้ง CSLogbook
 
+## ภาพรวมโปรเจค
+CSLogbook เป็นระบบติดตามความก้าวหน้าของนักศึกษา สำหรับการจัดการเอกสารฝึกงานและโครงงาน ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ พัฒนาด้วย React + Node.js และใช้ MySQL เป็นฐานข้อมูล
+
 ## ความต้องการของระบบ
-- Node.js เวอร์ชัน 14.0 ขึ้นไป
-- npm เวอร์ชัน 6.0 ขึ้นไป
-- เว็บเบราว์เซอร์ที่รองรับ JavaScript ทันสมัย
+- Node.js เวอร์ชัน 16.0 ขึ้นไป
+- npm เวอร์ชัน 8.0 ขึ้นไป  
+- MySQL เวอร์ชัน 8.0 ขึ้นไป
+- เว็บเบราว์เซอร์ที่รองรับ JavaScript ES6+
+
+## เทคโนโลยีที่ใช้
+
+### Frontend
+- **React 18+**: UI framework พร้อม functional components และ hooks
+- **React Router**: สำหรับการจัดการ routing และ navigation
+- **Ant Design v5.25.1**: UI component library 
+- **Axios**: สำหรับการเรียก API
+- **React Context API**: สำหรับจัดการ global state
+
+### Backend  
+- **Node.js + Express**: Web server framework
+- **Sequelize ORM**: สำหรับจัดการฐานข้อมูล MySQL
+- **JWT**: สำหรับ authentication และ authorization
+- **Multer**: สำหรับจัดการการอัพโหลดไฟล์
+- **SendGrid**: สำหรับการส่งอีเมล
+- **Background Agents**: สำหรับงานแบ่งเวลา
 
 ## ขั้นตอนการติดตั้ง
 
 ### 1. Clone Repository
 ```bash
 git clone [repository-url]
-cd cslogbook
+cd CSLog
 ```
 
-### 2. ติดตั้ง Dependencies
-
-#### Frontend
+### 2. ติดตั้งฐานข้อมูล MySQL
 ```bash
-cd frontend
-npm install
-
-# รายการ dependencies หลักที่จะถูกติดตั้ง:
-# - react
-# - react-router-dom
-# - antd (Ant Design)
-# - axios
-# - lucide-react
-# - recharts
-# - lodash
-# - papaparse
+# สร้างฐานข้อมูล
+mysql -u root -p
+CREATE DATABASE cslogbook CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cslogbook'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL PRIVILEGES ON cslogbook.* TO 'cslogbook'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
 ```
+
+### 3. ติดตั้ง Dependencies
 
 #### Backend
 ```bash
-cd backend
+cd cslogbook/backend
 npm install
 
-# รายการ dependencies หลักที่จะถูกติดตั้ง:
-# - express
-# - cors
-# - nodemailer
-# - socket.io
-# - multer
-# - csv-parser
+# Dependencies หลักที่จะถูกติดตั้ง:
+# - express, cors, helmet
+# - sequelize, mysql2  
+# - jsonwebtoken
+# - multer, sendgrid/mail
+# - winston (logging)
 ```
 
-### 3. ตั้งค่าไฟล์ Environment
-
-#### Backend (.env)
-```env
-PORT=5000
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USER=apikey
-SMTP_PASS=your_sendgrid_api_key
-```
-
-## Environment Setup
-1. Copy `.env.example` to `.env.development` 
-2. Update values in `.env.development`
-3. For production, create `.env.production`
-
-### Required Environment Variables
-- Database: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
-- Server: PORT, BASE_URL, API_PREFIX 
-- JWT: JWT_SECRET, JWT_EXPIRES_IN
-- Email: SENDGRID_API_KEY, EMAIL_SENDER
-
-### 4. เตรียมข้อมูลเริ่มต้น
-1. ตรวจสอบไฟล์ `mockStudentData.js` สำหรับข้อมูลนักศึกษาตัวอย่าง
-2. ตรวจสอบไฟล์ `universityAPI.js` สำหรับข้อมูล authentication
-3. สร้างโฟลเดอร์ `uploads` ในโฟลเดอร์ backend สำหรับการอัพโหลดไฟล์ CSV
+#### Frontend
 ```bash
-mkdir backend/uploads
+cd cslogbook/frontend  
+npm install
+
+# Dependencies หลักที่จะถูกติดตั้ง:
+# - react, react-dom, react-router-dom
+# - antd, @ant-design/icons
+# - axios, lodash
+# - recharts (สำหรับกราฟ)
 ```
 
-### 5. เริ่มต้นใช้งานระบบ
+### 4. ตั้งค่า Environment Variables
+
+#### Backend (.env.development)
+```bash
+# สำเนาไฟล์ template
+cp .env.example .env.development
+```
+
+```env
+# Server Configuration  
+NODE_ENV=development
+PORT=5000
+BASE_URL=http://localhost:5000
+API_PREFIX=/api
+FRONTEND_URL=http://localhost:3000
+
+# Database Configuration
+DB_HOST=localhost
+DB_USER=cslogbook
+DB_PASSWORD=your_password
+DB_NAME=cslogbook
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-key-at-least-32-characters-long
+JWT_EXPIRES_IN=1d
+
+# Email Configuration (SendGrid)
+SENDGRID_API_KEY=your_sendgrid_api_key
+EMAIL_SENDER=noreply@yoursite.com
+
+# Email Feature Flags  
+EMAIL_LOGIN_ENABLED=false
+EMAIL_DOCUMENT_ENABLED=false
+EMAIL_LOGBOOK_ENABLED=false
+
+# File Upload Configuration
+UPLOAD_DIR=uploads/
+MAX_FILE_SIZE=5242880
+
+# Background Agents
+ENABLE_AGENTS=false
+```
+
+#### Frontend (.env.development)
+```bash
+# สำเนาไฟล์ template
+cp .env.example .env.development
+```
+
+```env
+# API Configuration
+REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_UPLOAD_URL=http://localhost:5000/uploads
+```
+
+### 5. เตรียมฐานข้อมูล
+
+```bash
+cd cslogbook/backend
+
+# รัน migrations เพื่อสร้างตาราง
+npx sequelize-cli db:migrate
+
+# รัน seeders เพื่อใส่ข้อมูลเริ่มต้น
+npx sequelize-cli db:seed:all
+```
+
+### 6. เริ่มต้นใช้งานระบบ
 
 #### เริ่ม Backend Server
 ```bash
-cd backend
-npm start
+cd cslogbook/backend
+npm run dev
 # Server จะทำงานที่ http://localhost:5000
+# API docs จะอยู่ที่ http://localhost:5000/api-docs
 ```
 
-#### เริ่ม Frontend Development Server
+#### เริ่ม Frontend Development Server  
 ```bash
-cd frontend
-npm start
+cd cslogbook/frontend
+npm start  
 # Frontend จะทำงานที่ http://localhost:3000
 ```
 
-### 6. การทดสอบระบบ
+### 7. การทดสอบระบบ
 1. เปิดเบราว์เซอร์และไปที่ `http://localhost:3000`
-2. ทดลองเข้าสู่ระบบด้วยบัญชีตัวอย่าง:
-   - นักศึกษา: username: student1, password: student1
-   - อาจารย์: username: teacher1, password: teacher1
-   - ผู้ดูแลระบบ: username: admin1, password: admin1
+2. ทดลองเข้าสู่ระบบด้วยบัญชีตัวอย่าง (จาก seeders):
+   - **นักศึกษา**: username: `student1`, password: `student1`
+   - **อาจารย์**: username: `teacher1`, password: `teacher1`  
+   - **ผู้ดูแลระบบ**: username: `admin1`, password: `admin1`
 
-## โครงสร้างโฟลเดอร์หลัก
+## โครงสร้างโปรเจค
+
 ```
-cslogbook/
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── AdminUpload.js     # หน้าอัพโหลด CSV สำหรับผู้ดูแลระบบ
-│   │   │   ├── Dashboard.js       # หน้าแดชบอร์ดหลัก
-│   │   │   ├── HeaderComponent.js # ส่วนหัวของเว็บไซต์
-│   │   │   ├── LoginForm.js      # หน้าเข้าสู่ระบบ
-│   │   │   ├── MainLayout.js     # เลย์เอาต์หลักของแอป
-│   │   │   ├── Sidebar.js        # เมนูด้านข้าง
-│   │   │   └── StudentList.js    # หน้าแสดงรายชื่อนักศึกษา
-│   │   └── App.js                # ไฟล์หลักของ React App
-│   └── public/
-├── backend/
-│   ├── server.js                # เซิร์ฟเวอร์หลัก
-│   ├── authSystem.js           # ระบบยืนยันตัวตน
-│   ├── mailer.js              # ระบบส่งอีเมล
-│   ├── mockStudentData.js     # ข้อมูลนักศึกษาจำลอง
-│   ├── universityAPI.js       # API จำลองของมหาวิทยาลัย
-│   └── utils/
-│       └── csvParser.js       # ตัวประมวลผลไฟล์ CSV
-└── README.md
+CSLog/
+├── .github/
+│   └── instructions/          # คู่มือและเอกสารสำหรับ development
+├── cslogbook/
+│   ├── backend/              # ระบบ Backend (Node.js + Express)
+│   │   ├── agents/           # Background processes และ scheduled tasks
+│   │   ├── config/           # การตั้งค่าฐานข้อมูลและ server
+│   │   ├── controllers/      # API endpoint handlers
+│   │   ├── middleware/       # Custom middleware (auth, rate limiting)
+│   │   ├── models/           # Sequelize database models
+│   │   ├── routes/           # API route definitions
+│   │   ├── services/         # Business logic และ external integrations
+│   │   ├── utils/            # Utility functions และ helpers
+│   │   ├── migrations/       # Database schema changes
+│   │   ├── seeders/          # ข้อมูลเริ่มต้นสำหรับฐานข้อมูล
+│   │   ├── templates/        # เทมเพลตสำหรับสร้างเอกสาร
+│   │   ├── uploads/          # ไฟล์ที่อัพโหลด
+│   │   └── server.js         # Entry point ของ server
+│   │
+│   ├── frontend/             # ระบบ Frontend (React)
+│   │   ├── public/           # Static assets
+│   │   └── src/
+│   │       ├── components/   # React components
+│   │       │   ├── admin/    # ส่วนผู้ดูแลระบบ
+│   │       │   ├── student/  # ส่วนนักศึกษา
+│   │       │   ├── teacher/  # ส่วนอาจารย์
+│   │       │   └── common/   # Components ที่ใช้ร่วมกัน
+│   │       ├── contexts/     # React contexts สำหรับ state management
+│   │       ├── hooks/        # Custom React hooks
+│   │       ├── services/     # API service integrations
+│   │       ├── utils/        # Utility functions
+│   │       └── assets/       # รูปภาพ, ไอคอน, styles
+│   │
+│   ├── docs/                 # เอกสารโปรเจค
+│   └── knowledge/            # ฐานความรู้และเอกสารอ้างอิง
+│
+├── package.json              # Root package.json
+└── README.md                # ไฟล์นี้
 ```
 
-## ข้อควรระวังและปัญหาที่พบบ่อย
+## ฟีเจอร์หลักของระบบ
 
-### การอัพโหลดไฟล์ CSV
-- ไฟล์ CSV ต้องมีคอลัมน์ที่จำเป็นครบถ้วน: Student ID, Name, Surname, Role, Internship, Project
-- รหัสนักศึกษาต้องมีความยาว 10-13 หลัก
-- Role ต้องเป็น "student", "teacher" หรือ "admin" เท่านั้น
+### 1. ระบบจัดการผู้ใช้และสิทธิ์
+- **ระบบเข้าสู่ระบบ**: Authentication ที่ปลอดภัยสำหรับนักศึกษาและอาจารย์
+- **การควบคุมสิทธิ์**: สิทธิ์และมุมมองที่แตกต่างตามบทบาท (student, teacher, admin)
+- **จัดการโปรไฟล์**: อนุญาตให้ผู้ใช้อัพเดตข้อมูลและค่าตั้งค่า
 
-### การส่งอีเมล
-- ต้องตั้งค่า SendGrid API Key ใน .env ให้ถูกต้อง
-- ตรวจสอบการตั้งค่า SMTP ในไฟล์ mailer.js
+### 2. ระบบติดตามความก้าวหน้าของนักศึกษา
+- **บันทึกกิจกรรม**: นักศึกษาสามารถสร้างรายการเกี่ยวกับงานที่เสร็จสิ้น
+- **จัดการ Milestone**: กำหนด ติดตาม และอัพเดต milestone ทางการศึกษา
+- **จัดการงาน**: สร้างและจัดการงานทางการศึกษาพร้อมกำหนดเวลา
 
-### ปัญหาที่พบบ่อย
-1. หากพบปัญหา CORS ให้ตรวจสอบการตั้งค่า cors ใน server.js
-2. หากการอัพโหลด CSV ไม่ทำงาน ให้ตรวจสอบว่าได้สร้างโฟลเดอร์ uploads แล้ว
-3. หากการเข้าสู่ระบบไม่ทำงาน ให้ตรวจสอบข้อมูลใน universityAPI.js
+### 3. ระบบลงทะเบียนฝึกงาน  
+- **แบบฟอร์ม คพ.05**: กรอกข้อมูลฝึกงานและสถานประกอบการ
+- **ระบบ Workflow**: ติดตามสถานะการอนุมัติเอกสาร
+- **จัดการเอกสาร**: อัพโหลด ดาวน์โหลด และจัดการเอกสารฝึกงาน
 
-## การอัพเดทและการบำรุงรักษา
+### 4. ระบบ Feedback และการประเมิน
+- **ความคิดเห็นอาจารย์**: อาจารย์สามารถให้ feedback กับรายการของนักศึกษา
+- **ระบบการให้คะแนน**: ประเมินความก้าวหน้าด้วย metrics ที่กำหนด
+- **Workflow การอนุมัติ**: อาจารย์สามารถตรวจสอบและอนุมัติงานที่ส่ง
 
-### การอัพเดทข้อมูลนักศึกษา
-1. เตรียมไฟล์ CSV ตามรูปแบบที่กำหนด
-2. เข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ
-3. ไปที่เมนู "Upload Student CSV"
-4. อัพโหลดไฟล์และตรวจสอบผลลัพธ์
+### 5. ระบบรายงานและการแสดงผลข้อมูล
+- **Dashboard ความก้าวหน้า**: สรุปภาพรวมความก้าวหน้าของนักศึกษา
+- **การวิเคราะห์เปรียบเทียบ**: เปรียบเทียบความก้าวหน้าปัจจุบันกับเป้าหมาย
+- **รายงานที่ส่งออกได้**: สร้างรายงาน PDF หรือ spreadsheet
 
-### การแก้ไขสิทธิ์นักศึกษา
-1. เข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ
-2. ไปที่เมนู "รายชื่อนักศึกษา"
-3. ค้นหานักศึกษาที่ต้องการแก้ไขสิทธิ์
-4. อัพเดทสถานะผ่านการอัพโหลด CSV ใหม่
+## การ Deploy สำหรับ Production
+
+### 1. Backend Production Setup
+```bash
+cd cslogbook/backend
+
+# สร้างไฟล์ .env.production
+cp .env.example .env.production
+
+# แก้ไขค่าใน .env.production
+NODE_ENV=production
+BASE_URL=https://your-domain.com
+FRONTEND_URL=https://your-frontend-domain.com
+# ... อื่นๆ
+
+# Build และรัน  
+npm run build
+npm start
+```
+
+### 2. Frontend Production Build
+```bash
+cd cslogbook/frontend
+
+# สร้างไฟล์ .env.production
+cp .env.example .env.production
+
+# แก้ไขค่าใน .env.production
+REACT_APP_API_URL=https://your-api-domain.com/api
+REACT_APP_UPLOAD_URL=https://your-api-domain.com/uploads
+
+# สร้าง production build
+npm run build
+
+# ไฟล์ build จะอยู่ในโฟลเดอร์ build/
+```
+
+## การแก้ไขปัญหาที่พบบ่อย
+
+### ปัญหาการเชื่อมต่อฐานข้อมูล
+```bash
+# ตรวจสอบการเชื่อมต่อ MySQL
+mysql -u cslogbook -p cslogbook
+
+# ตรวจสอบการตั้งค่าใน .env.development
+DB_HOST=localhost
+DB_USER=cslogbook  
+DB_PASSWORD=your_password
+DB_NAME=cslogbook
+```
+
+### ปัญหา CORS
+- ตรวจสอบ `FRONTEND_URL` ใน backend environment variables
+- ตรวจสอบการตั้งค่า CORS ใน [server.js](cslogbook/backend/server.js)
+
+### ปัญหาการอัพโหลดไฟล์
+- ตรวจสอบว่าโฟลเดอร์ `uploads/` มีอยู่และมีสิทธิ์เขียน
+- ตรวจสอบ `MAX_FILE_SIZE` ใน environment variables
+
+### ปัญหาการส่งอีเมล
+- ตรวจสอบ `SENDGRID_API_KEY`
+- ตรวจสอบการตั้งค่า feature flags: `EMAIL_*_ENABLED`
+
+## การอัพเดทและบำรุงรักษา
+
+### การอัพเดทโครงสร้างฐานข้อมูล
+```bash
+cd cslogbook/backend
+
+# สร้าง migration ใหม่
+npx sequelize-cli migration:generate --name add-new-feature
+
+# รัน migrations
+npx sequelize-cli db:migrate
+
+# Rollback (หากจำเป็น)
+npx sequelize-cli db:migrate:undo
+```
+
+### การ Backup ฐานข้อมูล
+```bash
+# Backup
+mysqldump -u cslogbook -p cslogbook > backup_$(date +%Y%m%d).sql
+
+# Restore  
+mysql -u cslogbook -p cslogbook < backup_20240101.sql
+```
+
+## การพัฒนาเพิ่มเติม
+
+### การเพิ่ม API Endpoint ใหม่
+1. สร้าง model ใน `backend/models/`
+2. สร้าง controller ใน `backend/controllers/`  
+3. สร้าง route ใน `backend/routes/`
+4. เพิ่ม service ใน `backend/services/` (หากจำเป็น)
+
+### การเพิ่ม React Component ใหม่
+1. สร้าง component ใน `frontend/src/components/`
+2. เพิ่ม API service ใน `frontend/src/services/`
+3. อัพเดต routing ใน `frontend/src/App.js`
+
+## การสนับสนุนและเอกสาร
+
+- **API Documentation**: `http://localhost:5000/api-docs` (เมื่อรัน development server)
+- **โครงสร้างฐานข้อมูล**: ดูที่ `backend/models/`
+- **เอกสารเพิ่มเติม**: ดูใน `docs/` และ `.github/instructions/`
+
+## License
+โปรเจคนี้พัฒนาสำหรับใช้ภายในภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
