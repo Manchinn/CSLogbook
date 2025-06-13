@@ -86,7 +86,6 @@ const InternshipRegistrationFlow = () => {
         
         if (cs05Response.success && cs05Response.data) {
           const cs05Data = cs05Response.data;
-          console.log('[DEBUG] ข้อมูล CS05 ก่อนเพิ่มฟิลด์ใหม่:', JSON.stringify(cs05Data));
           
           // รับค่าฟิลด์ใหม่จาก backend
           const formDataWithNewFields = {
@@ -98,17 +97,9 @@ const InternshipRegistrationFlow = () => {
             internshipPosition: cs05Data.internshipPosition
           };
           
-          console.log('[DEBUG] ฟิลด์ใหม่ที่เพิ่มเข้าไป:', {
-            contactPersonName: formDataWithNewFields.contactPersonName,
-            contactPersonPosition: formDataWithNewFields.contactPersonPosition,
-            internshipPosition: formDataWithNewFields.internshipPosition
-          });
           
           setFormData(formDataWithNewFields);
           setExistingCS05(formDataWithNewFields);
-          
-          console.log('[DEBUG] formData หลังจาก setFormData:', formDataWithNewFields);
-          console.log('[DEBUG] existingCS05 หลังจาก setExistingCS05:', formDataWithNewFields);
           
           setIsSubmitted(cs05Data.status !== 'rejected');
           
@@ -136,12 +127,6 @@ const InternshipRegistrationFlow = () => {
 
   // ฟังก์ชันสำหรับไปขั้นตอนถัดไป
   const handleNextStep = (data) => {
-    console.log('[DEBUG] ข้อมูลที่ได้จากขั้นตอนก่อนหน้า:', data);
-    console.log('[DEBUG] ฟิลด์ใหม่ที่ได้จากขั้นตอนก่อนหน้า:', {
-      contactPersonName: data.contactPersonName,
-      contactPersonPosition: data.contactPersonPosition,
-      internshipPosition: data.internshipPosition
-    });
     
     setFormData({ ...formData, ...data });
     console.log('[DEBUG] formData หลังจาก update:', { ...formData, ...data });
@@ -278,14 +263,7 @@ const InternshipRegistrationFlow = () => {
     };
 
     console.log('[DEBUG] stepProps ที่ส่งให้ step ที่', currentStep, ':', {
-      formDataFields: stepProps.formData ? Object.keys(stepProps.formData) : [],
-      formDataInternshipPosition: stepProps.formData?.internshipPosition,
-      formDataContactPersonName: stepProps.formData?.contactPersonName,
-      formDataContactPersonPosition: stepProps.formData?.contactPersonPosition,
       existingCS05Fields: stepProps.existingCS05 ? Object.keys(stepProps.existingCS05) : [],
-      existingCS05InternshipPosition: stepProps.existingCS05?.internshipPosition,
-      existingCS05ContactPersonName: stepProps.existingCS05?.contactPersonName,
-      existingCS05ContactPersonPosition: stepProps.existingCS05?.contactPersonPosition
     });
 
     switch (currentStep) {
