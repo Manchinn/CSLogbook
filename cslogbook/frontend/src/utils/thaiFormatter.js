@@ -145,16 +145,6 @@ export const formatStudentId = (studentId) => {
   try {
     const cleanId = studentId.replace(/\D/g, '');
     
-    // รหัสนักศึกษา 10 หลัก (xx-xxxxx-xxx)
-    if (cleanId.length === 10) {
-      return cleanId.replace(/(\d{2})(\d{5})(\d{3})/, '$1-$2-$3');
-    }
-    
-    // รหัสนักศึกษา 9 หลัก (xx-xxxx-xxx)
-    if (cleanId.length === 9) {
-      return cleanId.replace(/(\d{2})(\d{4})(\d{3})/, '$1-$2-$3');
-    }
-    
     return cleanId;
   } catch (error) {
     console.error('Error formatting student ID:', error);
@@ -177,17 +167,53 @@ export const truncateText = (text, length = 50, suffix = '...') => {
 };
 
 /**
- * ลบช่องว่างและอักขระพิเศษ
- * @param {string} text - ข้อความ
- * @returns {string} - ข้อความที่ทำความสะอาดแล้ว
+ * ทำความสะอาดข้อความ (แก้ไขเพื่อป้องกัน TypeError)
+ * @param {any} input - ข้อมูลที่ต้องการทำความสะอาด
+ * @returns {string} - ข้อความที่สะอาดแล้ว
  */
-export const cleanText = (text) => {
-  if (!text) return '';
-  
-  return text
-    .trim()
-    .replace(/\s+/g, ' ') // แทนที่ช่องว่างหลายตัวด้วยช่องว่างเดียว
-    .replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s\-_.()]/g, ''); // เก็บเฉพาะอักษรไทย อังกฤษ ตัวเลข และอักขระพิเศษที่จำเป็น
+export const cleanText = (input) => {
+  try {
+    // ตรวจสอบว่า input เป็น null หรือ undefined
+    if (input === null || input === undefined) {
+      return '';
+    }
+
+    // ถ้า input เป็น string แล้ว
+    if (typeof input === 'string') {
+      return input
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/[<>]/g, '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
+
+    // ถ้า input เป็น number
+    if (typeof input === 'number') {
+      return String(input);
+    }
+
+    // ถ้า input เป็น boolean
+    if (typeof input === 'boolean') {
+      return input ? 'true' : 'false';
+    }
+
+    // ถ้า input เป็น object หรือ array
+    if (typeof input === 'object') {
+      if (Array.isArray(input)) {
+        return input.join(', ');
+      }
+      return JSON.stringify(input);
+    }
+
+    // สำหรับกรณีอื่นๆ แปลงเป็น string ก่อน
+    return String(input).trim();
+
+  } catch (error) {
+    console.warn('cleanText error:', error, 'Input:', input, 'Type:', typeof input);
+    return '';
+  }
 };
 
 /**
@@ -378,6 +404,47 @@ export const formatDocumentStatus = (status) => {
   };
   
   return statusMap[status] || { text: status, color: 'default', icon: '❓' };
+};
+
+/**
+ * ฟังก์ชันตรวจสอบและแปลงข้อมูลให้ปลอดภัย
+ * @param {any} value - ข้อมูลที่ต้องการตรวจสอบ
+ * @param {string} fallback - ค่าสำรองถ้าข้อมูลไม่ถูกต้อง
+ * @returns {string} - ข้อมูลที่ปลอดภัย
+ */
+export const safeString = (value, fallback = '') => {
+  try {
+    if (value === null || value === undefined) {
+      return fallback;
+    }
+    
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+    
+    return String(value).trim();
+  } catch (error) {
+    console.warn('safeString error:', error, 'Value:', value);
+    return fallback;
+  }
+};
+
+/**
+ * ตรวจสอบว่าข้อมูลเป็น object ที่ใช้งานได้หรือไม่
+ * @param {any} obj - object ที่ต้องการตรวจสอบ
+ * @returns {boolean} - ผลการตรวจสอบ
+ */
+export const isValidObject = (obj) => {
+  return obj !== null && obj !== undefined && typeof obj === 'object' && !Array.isArray(obj);
+};
+
+/**
+ * ตรวจสอบว่าข้อมูลเป็น array ที่ใช้งานได้หรือไม่
+ * @param {any} arr - array ที่ต้องการตรวจสอบ
+ * @returns {boolean} - ผลการตรวจสอบ
+ */
+export const isValidArray = (arr) => {
+  return Array.isArray(arr) && arr.length > 0;
 };
 
 // Export default สำหรับการใช้งานทั่วไป

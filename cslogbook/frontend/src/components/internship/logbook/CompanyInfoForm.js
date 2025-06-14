@@ -1,9 +1,9 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Form, Input, Button, Card, Typography, Space, message, Result, Spin, Skeleton } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, message, Result, Spin } from 'antd';
 import { useNavigate } from "react-router-dom";
 import { useInternship } from '../../../contexts/InternshipContext';
 import internshipService from '../../../services/internshipService';
-import { EditOutlined, WarningOutlined, LoadingOutlined } from '@ant-design/icons';
+import { EditOutlined, WarningOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;

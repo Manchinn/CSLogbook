@@ -1,415 +1,204 @@
 import { StyleSheet } from '@react-pdf/renderer';
-import { themeColors, fontSizes, spacing } from './themeStyles';
 
-export const letterStyles = StyleSheet.create({
-  // เค้าโครงหนังสือ
-  letterPage: {
-    flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
-    padding: 40,
+// สไตล์สำหรับหนังสือราชการ/หนังสือขอความอนุเคราะห์
+const letterStyles = StyleSheet.create({
+  page: {
+    padding: 42, // ปรับระยะขอบเพื่อให้จัดวางได้ถูกต้อง
+    paddingLeft: 75,
+    paddingRight: 75,
+    paddingTop: 35, 
+    paddingBottom: 45,
     fontFamily: 'THSarabunNew',
-    fontSize: fontSizes.thai.normal,
-    lineHeight: 1.8,
-    color: '#000000'
+    fontSize: 14,
+    lineHeight: 1.3,
+    backgroundColor: '#FFFFFF',
   },
-
+  
   // ส่วนหัวหนังสือ
-  letterhead: {
-    textAlign: 'center',
-    marginBottom: 30,
-    paddingBottom: 20,
-    borderBottom: '2 solid #000000'
+  header: {
+    position: 'relative',
+    marginBottom: 25, // เพิ่มระยะห่างระหว่างส่วนหัวกับเนื้อความ
   },
-
-  // โลโก้และตราสัญลักษณ์
-  logo: {
-    width: 60,
-    height: 60,
-    marginBottom: 10,
-    alignSelf: 'center'
-  },
-
+  
   emblem: {
-    width: 50,
-    height: 50,
+    width: 60, // ปรับขนาดครุฑให้ใหญ่ขึ้นเล็กน้อยตามรูป
+    height: 60,
+    marginBottom: 10, // เพิ่มระยะห่างระหว่างครุฑกับเลขที่หนังสือ
+    alignSelf: 'center',
+  },
+  
+  documentNumberContainer: {
     position: 'absolute',
     top: 20,
-    left: 20
+    left: 0,
   },
-
-  // ชื่อหน่วยงาน
-  organizationName: {
-    fontSize: fontSizes.thai.large,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: themeColors.university.primary
-  },
-
-  departmentName: {
-    fontSize: fontSizes.thai.medium,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: themeColors.gray700
-  },
-
-  facultyName: {
-    fontSize: fontSizes.thai.medium,
-    marginBottom: 8,
-    color: themeColors.gray600
-  },
-
-  // ที่อยู่และการติดต่อ
-  addressLine: {
-    fontSize: fontSizes.thai.small,
-    marginBottom: 3,
-    color: themeColors.gray600
-  },
-
-  contactInfo: {
-    fontSize: fontSizes.thai.small,
-    color: themeColors.gray600
-  },
-
-  // หมายเลขหนังสือและวันที่
-  documentReference: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
-    paddingHorizontal: 20
-  },
-
+  
   documentNumber: {
-    fontSize: fontSizes.thai.normal,
-    fontWeight: 'bold'
+    fontSize: 14,
+    fontWeight: 'normal',
   },
-
-  documentDate: {
-    fontSize: fontSizes.thai.normal,
-    textAlign: 'right'
+  
+  organizationContainer: {
+    position: 'absolute',
+    top: 20,
+    right: 0,
+    alignItems: 'flex-start', // จัดชิดซ้าย (สำหรับองค์ประกอบที่อยู่ด้านขวา)
   },
-
-  // ส่วนเรื่องและเรียน
-  subjectSection: {
-    marginBottom: 20
+  
+  organizationText: {
+    fontSize: 14,
+    lineHeight: 1.3,
   },
-
-  subjectLine: {
-    fontSize: fontSizes.thai.medium,
-    marginBottom: 15
+  
+  dateContainer: {
+    position: 'absolute',
+    top: 115, // ปรับตำแหน่งให้ตรงกับในรูป
+    right: 0,
   },
-
-  subjectLabel: {
-    fontWeight: 'bold',
-    marginRight: 10
+  
+  dateText: {
+    fontSize: 14,
   },
-
-  salutationSection: {
-    marginBottom: 20
-  },
-
-  salutationLine: {
-    fontSize: fontSizes.thai.medium,
-    marginBottom: 8
-  },
-
-  salutationLabel: {
-    fontWeight: 'bold',
-    marginRight: 10
-  },
-
-  recipientTitle: {
-    marginLeft: 60,
-    fontSize: fontSizes.thai.normal,
-    color: themeColors.gray700
-  },
-
-  // เนื้อหาหนังสือ
-  bodySection: {
-    marginBottom: 30
-  },
-
-  paragraph: {
-    fontSize: fontSizes.thai.medium,
-    lineHeight: 2,
-    textAlign: 'justify',
-    marginBottom: 16,
-    textIndent: 60, // เยื้องย่อหน้า
-    wordSpacing: 2
-  },
-
-  paragraphNoIndent: {
-    fontSize: fontSizes.thai.medium,
-    lineHeight: 2,
-    textAlign: 'justify',
-    marginBottom: 16,
-    wordSpacing: 2
-  },
-
-  // รายการ
-  listContainer: {
-    marginLeft: 60,
-    marginBottom: 16
-  },
-
-  listItem: {
-    fontSize: fontSizes.thai.medium,
-    lineHeight: 1.8,
-    marginBottom: 8,
-    flexDirection: 'row'
-  },
-
-  listNumber: {
-    minWidth: 30,
-    fontWeight: 'bold'
-  },
-
-  listContent: {
-    flex: 1
-  },
-
-  // ข้อมูลนักศึกษา
-  studentInfo: {
-    marginLeft: 80,
-    marginBottom: 16
-  },
-
-  studentItem: {
-    fontSize: fontSizes.thai.medium,
-    lineHeight: 1.8,
-    marginBottom: 6,
-    flexDirection: 'row'
-  },
-
-  studentNumber: {
-    minWidth: 25,
-    fontWeight: 'bold'
-  },
-
-  studentDetails: {
-    flex: 1
-  },
-
-  // ตาราง
-  table: {
-    width: '100%',
-    marginVertical: 15
-  },
-
-  tableRow: {
+  
+  // หัวเรื่อง
+  subjectContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.gray300,
-    paddingVertical: 8
+    marginTop: 0, // ปรับให้เรื่องอยู่ห่างจากวันที่พอเหมาะ
+    marginBottom: 5,
   },
-
-  tableCell: {
+  
+  subjectLabel: {
+    width: 40,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  
+  subjectText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  
+  // ผู้รับ
+  recipientContainer: {
+    flexDirection: 'row',
+    marginBottom: 0, // ลดระยะห่าง
+    marginTop: 8, // เพิ่มระยะห่างจากหัวเรื่อง
+  },
+  
+  recipientLabel: {
+    width: 40,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  
+  recipientTextContainer: {
     flex: 1,
-    fontSize: fontSizes.thai.normal,
-    paddingHorizontal: 8
   },
-
-  tableHeader: {
-    backgroundColor: themeColors.gray100,
-    fontWeight: 'bold',
-    borderBottomWidth: 2,
-    borderBottomColor: themeColors.gray400
+  
+  recipientText: {
+    fontSize: 14,
+    lineHeight: 1.5, // เพิ่มระยะห่างระหว่างบรรทัด
   },
-
-  // ส่วนลายเซ็น
-  signatureSection: {
-    marginTop: 40,
-    alignItems: 'flex-end',
-    paddingRight: 60
+  
+  // สิ่งที่ส่งมาด้วย
+  attachmentContainer: {
+    flexDirection: 'row',
+    marginTop: 8, // เพิ่มระยะห่างจากส่วนผู้รับ
+    marginBottom: 15, // เพิ่มระยะห่างก่อนถึงเนื้อหา
   },
-
-  closingPhrase: {
-    fontSize: fontSizes.thai.medium,
-    marginBottom: 60,
-    textAlign: 'center'
+  
+  attachmentLabel: {
+    width: 85, // ปรับให้กว้างขึ้นเล็กน้อยตามรูป
+    fontSize: 14,
+    fontWeight: 'normal', // เปลี่ยนเป็นตัวปกติตามรูป
   },
-
-  signatureBlock: {
+  
+  attachmentTextContainer: {
+    flex: 1,
+  },
+  
+  attachmentText: {
+    fontSize: 14,
+  },
+  
+  // เนื้อหา
+  contentContainer: {
+    flex: 1,
+  },
+  
+  paragraph: {
+    marginBottom: 7, // เพิ่มระยะห่างระหว่างย่อหน้า
+    textAlign: 'left',
+    fontSize: 14,
+    lineHeight: 1.5, // เพิ่มระยะห่างระหว่างบรรทัด
+    textIndent: 42, // ย่อหน้า 8 ช่วงตัวอักษร
+  },
+  
+  // รายชื่อนักศึกษา
+  studentListContainer: {
+    marginBottom: 7,
+    marginLeft: 85, // ย้ายรายชื่อไปทางขวาเพื่อให้อยู่ในแนวเดียวกับการย่อหน้า
+    marginTop: 2,
+  },
+  
+  studentRow: {
+    flexDirection: 'row',
+    marginBottom: 5,
+  },
+  
+  studentNumber: {
+    width: 30,
+    fontSize: 14,
+  },
+  
+  studentName: {
+    width: 200, // กว้างขึ้นเพื่อรองรับชื่อยาวๆ
+    fontSize: 14,
+  },
+  
+  studentId: {
+    fontSize: 14,
+  },
+  
+  // ลงท้าย
+  closingContainer: {
+    marginTop: 10, // เพิ่มระยะห่างจากเนื้อหา
     alignItems: 'center',
-    minWidth: 200
   },
-
-  signatureLine: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    width: 250,
-    marginBottom: 8,
-    minHeight: 60
+  
+  closingText: {
+    fontSize: 14,
+    marginBottom: 20, // เพิ่มระยะห่างจากลายเซ็น
   },
-
-  signerName: {
-    fontSize: fontSizes.thai.medium,
-    fontWeight: 'bold',
+  
+  signatureContainer: {
+    alignItems: 'center',
+  },
+  
+  signatureImage: {
+    width: 90, // ปรับขนาดลายเซ็นให้ใกล้เคียงกับรูป
+    height: 45,
     marginBottom: 3,
-    textAlign: 'center'
   },
-
-  signerTitle: {
-    fontSize: fontSizes.thai.normal,
-    textAlign: 'center',
-    marginBottom: 3
+  
+  signerName: {
+    fontSize: 14,
+    marginBottom: 3, // เพิ่มระยะห่างระหว่างชื่อและตำแหน่ง
   },
-
+  
   signerPosition: {
-    fontSize: fontSizes.thai.normal,
-    textAlign: 'center'
+    fontSize: 14,
   },
-
-  signatureDate: {
-    fontSize: fontSizes.thai.normal,
-    marginTop: 15,
-    textAlign: 'center'
-  },
-
+  
   // ส่วนท้าย
   footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    borderTop: '1 solid #CCCCCC',
-    paddingTop: 15
+    marginTop: 30, // เพิ่มระยะห่างจากส่วนลงนาม
   },
-
+  
   footerText: {
-    fontSize: fontSizes.thai.small,
-    color: themeColors.gray500,
-    lineHeight: 1.5
+    fontSize: 12,
+    marginBottom: 3, // เพิ่มระยะห่างระหว่างบรรทัด
   },
-
-  contactFooter: {
-    fontSize: fontSizes.thai.small,
-    color: themeColors.gray600,
-    marginTop: 5
-  },
-
-  // สำเนาถึง
-  copyToSection: {
-    marginTop: 30,
-    marginLeft: 60
-  },
-
-  copyToLabel: {
-    fontSize: fontSizes.thai.normal,
-    fontWeight: 'bold',
-    marginBottom: 8
-  },
-
-  copyToItem: {
-    fontSize: fontSizes.thai.normal,
-    marginBottom: 5
-  },
-
-  // หมายเหตุ
-  noteSection: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: themeColors.gray100,
-    borderLeft: `3 solid ${themeColors.warning}`
-  },
-
-  noteLabel: {
-    fontSize: fontSizes.thai.normal,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: themeColors.warning
-  },
-
-  noteText: {
-    fontSize: fontSizes.thai.small,
-    lineHeight: 1.6,
-    color: themeColors.gray700
-  },
-
-  // ส่วนประกาศ
-  announcementBox: {
-    border: `2 solid ${themeColors.university.primary}`,
-    borderRadius: 8,
-    padding: 20,
-    marginVertical: 20,
-    backgroundColor: themeColors.university.light
-  },
-
-  announcementTitle: {
-    fontSize: fontSizes.thai.medium,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 15,
-    color: themeColors.university.primary
-  },
-
-  // Highlight box
-  highlightBox: {
-    backgroundColor: themeColors.warning + '20',
-    borderLeft: `4 solid ${themeColors.warning}`,
-    padding: 12,
-    marginVertical: 10
-  },
-
-  highlightText: {
-    fontSize: fontSizes.thai.normal,
-    fontWeight: 'bold',
-    color: themeColors.gray700
-  },
-
-  // สำหรับหนังสือเร่งด่วน
-  urgentMarker: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    backgroundColor: themeColors.error,
-    color: themeColors.white,
-    fontSize: fontSizes.thai.small,
-    fontWeight: 'bold',
-    padding: 8,
-    borderRadius: 4,
-    transform: 'rotate(15deg)'
-  },
-
-  // สำหรับหนังสือลับ
-  confidentialMarker: {
-    position: 'absolute',
-    top: 15,
-    left: 15,
-    backgroundColor: themeColors.gray700,
-    color: themeColors.white,
-    fontSize: fontSizes.thai.small,
-    fontWeight: 'bold',
-    padding: 8,
-    borderRadius: 4
-  }
 });
-
-// ฟังก์ชันช่วยสำหรับจัดรูปแบบหนังสือ
-export const letterHelpers = {
-  // จัดรูปแบบหมายเลขหนังสือ
-  formatDocumentNumber: (type, number, year) => {
-    const thaiYear = year + 543;
-    const typeMap = {
-      official: 'ศธ',
-      urgent: 'ด่วน',
-      confidential: 'ลับ'
-    };
-    return `${typeMap[type] || 'ศธ'} ๐๕๒๑.๒(๓)/${number}/${thaiYear}`;
-  },
-
-  // จัดรูปแบบที่อยู่
-  formatAddress: (address) => {
-    return address.split(',').map(line => line.trim());
-  },
-
-  // สร้างรายการนักศึกษา
-  formatStudentList: (students) => {
-    return students.map((student, index) => ({
-      number: index + 1,
-      text: `${student.fullName} รหัสนักศึกษา ${student.studentCode} ชั้นปีที่ ${student.yearLevel} ห้อง ${student.classroom}`
-    }));
-  }
-};
 
 export default letterStyles;

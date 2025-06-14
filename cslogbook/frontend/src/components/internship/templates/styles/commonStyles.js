@@ -1,6 +1,7 @@
 import { StyleSheet } from '@react-pdf/renderer';
-import { formatThaiDate } from '../../../utils/dateUtils';
-import { cleanText } from '../../../utils/thaiFormatter';
+import { formatThaiDate } from '../../../../utils/dateUtils';
+import { cleanText } from '../../../../utils/thaiFormatter';
+
 
 export { formatThaiDate, cleanText };
 export const safeText = cleanText; // alias สำหรับ backward compatibility
@@ -11,7 +12,7 @@ export const commonStyles = StyleSheet.create({
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
     padding: 40,
-    fontFamily: 'THSarabunNew',
+    fontFamily: 'Sarabun',
     fontSize: 14,
     lineHeight: 1.6,
     color: '#000000'

@@ -1,7 +1,7 @@
 // Re-export เป็น object เพื่อใช้งานแบบ namespace
 import { commonStyles, safeText, formatThaiDate } from './commonStyles';
 import { officialStyles } from './officialStyles';
-import { letterStyles, letterHelpers } from './letterStyles';
+import letterStyles from './letterStyles';
 import { 
   themeColors, 
   fontSizes, 
@@ -27,7 +27,6 @@ export const PDFStyles = {
   helpers: {
     safeText,
     formatThaiDate,
-    letterHelpers,
     getThemeStyle
   }
 };
@@ -35,7 +34,8 @@ export const PDFStyles = {
 // Export ทุก styles เพื่อใช้งานง่าย
 export { commonStyles, safeText, formatThaiDate } from './commonStyles';
 export { officialStyles } from './officialStyles';
-export { letterStyles, letterHelpers } from './letterStyles';
+// แก้ไข: export default จาก letterStyles เป็น named export ชื่อ letterStyles
+export { default as letterStyles } from './letterStyles';
 export { 
   themeColors, 
   fontSizes, 

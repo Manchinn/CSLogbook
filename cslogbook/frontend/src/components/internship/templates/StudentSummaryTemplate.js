@@ -1,6 +1,9 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { commonStyles, safeText, formatThaiDate } from './styles/commonStyles';
+import { commonStyles, safeText } from './styles/commonStyles';
+import { 
+  formatThaiDate as formatThaiDateUtil
+} from '../../../utils/dateUtils';
 
 const summaryStyles = StyleSheet.create({
   ...commonStyles,
@@ -109,7 +112,7 @@ const StudentSummaryTemplate = ({ data }) => {
             ประจำปีการศึกษา {safeText(data.academicYear, '2567')}
           </Text>
           <Text style={summaryStyles.textSmall}>
-            สร้างรายงานเมื่อ: {formatThaiDate(new Date())}
+            สร้างรายงานเมื่อ: {formatThaiDateUtil(new Date())}
           </Text>
         </View>
 
@@ -170,7 +173,7 @@ const StudentSummaryTemplate = ({ data }) => {
                 </Text>
                 
                 <Text style={summaryStyles.studentDetail}>
-                  <Text style={summaryStyles.textBold}>ระยะเวลา:</Text> {formatThaiDate(student.startDate)} - {formatThaiDate(student.endDate)}
+                  <Text style={summaryStyles.textBold}>ระยะเวลา:</Text> {formatThaiDateUtil(student.startDate)} - {formatThaiDateUtil(student.endDate)}
                 </Text>
                 
                 <Text style={summaryStyles.studentDetail}>
@@ -191,7 +194,7 @@ const StudentSummaryTemplate = ({ data }) => {
             รายงานสรุปนักศึกษาฝึกงาน - คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
           </Text>
           <Text style={summaryStyles.textSmall}>
-            สร้างโดยระบบ CSLogbook | {formatThaiDate(new Date())}
+            สร้างโดยระบบ CSLogbook | {formatThaiDateUtil(new Date())}
           </Text>
         </View>
       </Page>

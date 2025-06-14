@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { commonStyles, safeText, formatThaiDate } from './styles/commonStyles';
+import { commonStyles, safeText } from './styles/commonStyles';
 import { 
   formatThaiDate as formatThaiDateUtil, 
   calculateInternshipDays, 
@@ -162,7 +162,7 @@ const CS05PDFTemplate = ({ data, showWatermark = false }) => {
             เลขที่เอกสาร: คพ.05-{safeText(data.documentId, 'XXXX')}/2567
           </Text>
           <Text>
-            วันที่: {formatThaiDate(data.createdDate || new Date())}
+            วันที่: {formatThaiDateUtil(data.createdDate || new Date())}
           </Text>
         </View>
 
