@@ -302,7 +302,7 @@ const TimeSheet = () => {
           zIndex: 1000,
           boxShadow: "0 6px 16px rgba(24, 144, 255, 0.3)",
           background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-          border: "none"
+          border: "none",
         }}
       />
       <InstructionModal
