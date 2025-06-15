@@ -518,3 +518,170 @@ exports.submitSupervisorEvaluation = async (req, res) => {
     });
   }
 };
+
+/**
+ * อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน
+ */
+exports.uploadAcceptanceLetter = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { documentId } = req.body; // CS05 document ID
+    const uploadedFile = req.file;
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่พบรหัสเอกสาร CS05'
+      });
+    }
+
+    if (!uploadedFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่พบไฟล์ที่อัปโหลด'
+      });
+    }
+
+    // ตรวจสอบประเภทไฟล์
+    if (uploadedFile.mimetype !== 'application/pdf') {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น'
+      });
+    }
+
+    // ตรวจสอบขนาดไฟล์ (สูงสุด 10MB)
+    if (uploadedFile.size > 10 * 1024 * 1024) {
+      return res.status(413).json({
+        success: false,
+        message: 'ขนาดไฟล์ต้องไม่เกิน 10MB'
+      });
+    }
+
+    // เรียก Service
+    const result = await internshipManagementService.uploadAcceptanceLetter(
+      userId,
+      documentId,
+      uploadedFile
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'อัปโหลดหนังสือตอบรับเรียบร้อยแล้ว',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Upload Acceptance Letter Error:', error);
+    
+    // ลบไฟล์ที่อัปโหลดถ้าเกิดข้อผิดพลาด
+    if (req.file && req.file.path) {
+      const fs = require('fs');
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('Error deleting uploaded file:', unlinkError);
+      }
+    }
+
+    const statusCode = error.message.includes('ไม่พบ') ? 404 :
+                      error.message.includes('ไม่ได้รับการอนุมัติ') ? 403 : 500;
+
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || 'เกิดข้อผิดพลาดในการอัปโหลดหนังสือตอบรับ'
+    });
+  }
+};
+
+/**
+ * ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+ */
+exports.getAcceptanceLetterStatus = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { documentId } = req.params;
+
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่พบรหัสเอกสาร CS05'
+      });
+    }
+
+    const status = await internshipManagementService.getAcceptanceLetterStatus(
+      userId,
+      documentId
+    );
+
+    return res.json({
+      success: true,
+      data: status
+    });
+
+  } catch (error) {
+    console.error('Get Acceptance Letter Status Error:', error);
+    
+    const statusCode = error.message.includes('ไม่พบ') ? 404 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || 'ไม่สามารถตรวจสอบสถานะได้'
+    });
+  }
+};
+
+/**
+ * ดาวน์โหลดหนังสือตอบรับที่อัปโหลดแล้ว
+ */
+exports.downloadAcceptanceLetter = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { documentId } = req.params;
+
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่พบรหัสเอกสาร CS05'
+      });
+    }
+
+    const fileInfo = await internshipManagementService.getAcceptanceLetterFile(
+      userId,
+      documentId
+    );
+
+    if (!fileInfo || !fileInfo.filePath) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบหนังสือตอบรับที่อัปโหลด'
+      });
+    }
+
+    // ตรวจสอบว่าไฟล์มีอยู่จริง
+    const fs = require('fs');
+    const path = require('path');
+    
+    if (!fs.existsSync(fileInfo.filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไฟล์หนังสือตอบรับไม่พบในระบบ'
+      });
+    }
+
+    // ส่งไฟล์
+    const fileName = fileInfo.originalName || `หนังสือตอบรับ-${documentId}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    
+    return res.sendFile(path.resolve(fileInfo.filePath));
+
+  } catch (error) {
+    console.error('Download Acceptance Letter Error:', error);
+    const statusCode = error.message.includes('ไม่พบ') ? 404 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || 'ไม่สามารถดาวน์โหลดหนังสือตอบรับได้'
+    });
+  }
+};

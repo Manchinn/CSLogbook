@@ -74,7 +74,7 @@ module.exports = (sequelize) => {
             field: 'review_comment'
         },
         category: {
-            type: DataTypes.ENUM('proposal', 'progress', 'final'),
+            type: DataTypes.ENUM('proposal', 'progress', 'final', 'acceptance'),
             allowNull: false,
             field: 'category'
         },

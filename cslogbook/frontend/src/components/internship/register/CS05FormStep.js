@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { 
   Form, Input, Button, DatePicker, Space, Typography, Divider,
-  Row, Col, Radio, InputNumber, Alert, Card, Select, Checkbox,
-  Upload, message, Tooltip
+  Row, Col, InputNumber, Alert, Card, Select, Checkbox,
+  message,
 } from 'antd';
 import { 
-  UserOutlined, BankOutlined, PhoneOutlined, HomeOutlined, 
-  CalendarOutlined, UploadOutlined, FileTextOutlined
+  UserOutlined, BankOutlined, PhoneOutlined,
+   HomeOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
@@ -539,7 +539,7 @@ const CS05FormStep = ({
         <Card title="ใบแสดงผลการเรียน (Transcript)" className="form-card" style={{ marginTop: 24 }}>
           <Alert
             message="ข้อมูลสำคัญ"
-            description="นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิตสะสม โดยต้องมีหน่วยกิตไม่น้อยกว่า 81 หน่วยกิต"
+            description="นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิตสะสม "
             type="info"
             showIcon
             style={{ marginBottom: 16 }}

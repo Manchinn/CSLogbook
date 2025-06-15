@@ -172,4 +172,28 @@ router.post('/upload-transcript',
     }
 );
 
+// ============= เส้นทางสำหรับอัปโหลดหนังสือตอบรับ =============
+
+// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน
+router.post('/upload-acceptance-letter',
+    authenticateToken,
+    checkRole(['student']),
+    upload.single('acceptanceLetter'), // ใช้ field name เดียวกับ frontend
+    internshipController.uploadAcceptanceLetter
+);
+
+// ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+router.get('/acceptance-letter-status/:documentId',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getAcceptanceLetterStatus
+);
+
+// ดาวน์โหลดหนังสือตอบรับที่อัปโหลดแล้ว
+router.get('/download-acceptance-letter/:documentId',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.downloadAcceptanceLetter
+);
+
 module.exports = router;

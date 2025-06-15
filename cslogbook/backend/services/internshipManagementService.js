@@ -1175,6 +1175,215 @@ class InternshipManagementService {
       throw error;
     }
   }
+
+  // ============= Acceptance Letter Management =============
+
+  /**
+   * อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน
+   */
+  async uploadAcceptanceLetter(userId, cs05DocumentId, fileData) {
+    const transaction = await sequelize.transaction();
+    
+    try {
+      // 1. ตรวจสอบเอกสาร CS05 ต้องเป็น approved
+      const cs05Document = await Document.findOne({
+        where: { 
+          documentId: parseInt(cs05DocumentId), 
+          userId: userId,
+          documentName: 'CS05',
+          status: 'approved' // ต้องได้รับการอนุมัติแล้ว
+        },
+        include: [{ 
+          model: InternshipDocument, 
+          as: "internshipDocument" 
+        }],
+        transaction,
+      });
+
+      if (!cs05Document) {
+        throw new Error('ไม่พบข้อมูลเอกสาร CS05 ที่ได้รับการอนุมัติ หรือไม่มีสิทธิ์เข้าถึง');
+      }
+
+      // 2. ตรวจสอบว่ามีการอัปโหลดหนังสือตอบรับแล้วหรือไม่
+      const existingAcceptance = await Document.findOne({
+        where: { 
+          userId: userId,
+          documentType: 'INTERNSHIP',
+          documentName: 'ACCEPTANCE_LETTER',
+          category: 'acceptance' // ใช้ category ใหม่สำหรับหนังสือตอบรับ
+        },
+        transaction
+      });
+
+      if (existingAcceptance) {
+        // ลบไฟล์เก่าก่อน (ถ้ามี)
+        const fs = require('fs');
+        if (existingAcceptance.filePath && fs.existsSync(existingAcceptance.filePath)) {
+          try {
+            fs.unlinkSync(existingAcceptance.filePath);
+          } catch (unlinkError) {
+            console.warn('Warning: ไม่สามารถลบไฟล์เก่าได้:', unlinkError);
+          }
+        }
+
+        // อัปเดตข้อมูลใหม่
+        await existingAcceptance.update({
+          filePath: fileData.path,
+          fileName: fileData.filename,
+          fileSize: fileData.size,
+          mimeType: fileData.mimetype,
+          status: 'pending' // รอการตรวจสอบจากเจ้าหน้าที่
+        }, { transaction });
+
+        await transaction.commit();
+        
+        return {
+          documentId: existingAcceptance.documentId,
+          cs05DocumentId: parseInt(cs05DocumentId),
+          fileName: fileData.filename,
+          originalName: fileData.originalname,
+          fileSize: fileData.size,
+          uploadDate: new Date(),
+          status: 'pending',
+          message: 'อัปเดตหนังสือตอบรับเรียบร้อยแล้ว'
+        };
+      }
+
+      // 3. สร้างข้อมูลใหม่
+      const acceptanceDocument = await Document.create({
+        userId: userId,
+        documentType: 'INTERNSHIP',
+        documentName: 'ACCEPTANCE_LETTER',
+        category: 'acceptance', // ใช้ category ใหม่
+        status: 'pending', // รอการตรวจสอบ
+        filePath: fileData.path,
+        fileName: fileData.filename,
+        fileSize: fileData.size,
+        mimeType: fileData.mimetype,
+        // เก็บ reference ไปยัง CS05 document
+        reviewComment: `CS05_REF:${cs05DocumentId}` // ใช้ reviewComment เก็บ reference
+      }, { transaction });
+
+      await transaction.commit();
+      
+      return {
+        documentId: acceptanceDocument.documentId,
+        cs05DocumentId: parseInt(cs05DocumentId),
+        fileName: fileData.filename,
+        originalName: fileData.originalname,
+        fileSize: fileData.size,
+        uploadDate: acceptanceDocument.created_at,
+        status: 'pending'
+      };
+
+    } catch (error) {
+      await transaction.rollback();
+      console.error('Upload Acceptance Letter Service Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+   */
+  async getAcceptanceLetterStatus(userId, cs05DocumentId) {
+    try {
+      // 1. ตรวจสอบเอกสาร CS05
+      const cs05Document = await Document.findOne({
+        where: { 
+          documentId: parseInt(cs05DocumentId), 
+          userId: userId,
+          documentName: 'CS05'
+        }
+      });
+
+      if (!cs05Document) {
+        throw new Error('ไม่พบข้อมูลเอกสาร CS05');
+      }
+
+      // 2. ค้นหาหนังสือตอบรับ
+      const acceptanceLetter = await Document.findOne({
+        where: { 
+          userId: userId,
+          documentType: 'INTERNSHIP',
+          documentName: 'ACCEPTANCE_LETTER',
+          category: 'acceptance',
+          reviewComment: `CS05_REF:${cs05DocumentId}` // ค้นหาจาก reference
+        }
+      });
+
+      if (!acceptanceLetter) {
+        return {
+          hasAcceptanceLetter: false,
+          status: 'not_uploaded',
+          uploadDate: null,
+          fileName: null,
+          fileSize: null,
+          cs05Status: cs05Document.status
+        };
+      }
+
+      return {
+        hasAcceptanceLetter: true,
+        status: acceptanceLetter.status,
+        uploadDate: acceptanceLetter.created_at,
+        fileName: acceptanceLetter.fileName,
+        originalName: acceptanceLetter.fileName,
+        fileSize: acceptanceLetter.fileSize,
+        cs05Status: cs05Document.status,
+        documentId: acceptanceLetter.documentId
+      };
+
+    } catch (error) {
+      console.error('Get Acceptance Letter Status Service Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึงข้อมูลไฟล์หนังสือตอบรับสำหรับดาวน์โหลด
+   */
+  async getAcceptanceLetterFile(userId, cs05DocumentId) {
+    try {
+      // ตรวจสอบสิทธิ์
+      const cs05Document = await Document.findOne({
+        where: { 
+          documentId: parseInt(cs05DocumentId), 
+          userId: userId,
+          documentName: 'CS05'
+        }
+      });
+
+      if (!cs05Document) {
+        throw new Error('ไม่พบข้อมูลเอกสาร CS05 หรือไม่มีสิทธิ์เข้าถึง');
+      }
+
+      // ค้นหาหนังสือตอบรับ
+      const acceptanceLetter = await Document.findOne({
+        where: { 
+          userId: userId,
+          documentType: 'INTERNSHIP',
+          documentName: 'ACCEPTANCE_LETTER',
+          category: 'acceptance',
+          reviewComment: `CS05_REF:${cs05DocumentId}`
+        }
+      });
+
+      if (!acceptanceLetter) {
+        throw new Error('ไม่พบหนังสือตอบรับที่อัปโหลด');
+      }
+
+      return {
+        filePath: acceptanceLetter.filePath,
+        originalName: acceptanceLetter.fileName
+      };
+
+    } catch (error) {
+      console.error('Get Acceptance Letter File Service Error:', error);
+      throw error;
+    }
+  }
+
 }
 
 module.exports = new InternshipManagementService();
