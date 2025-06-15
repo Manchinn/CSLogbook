@@ -6,8 +6,7 @@ import {
 } from 'antd';
 import { 
   UserOutlined, BankOutlined, PhoneOutlined, HomeOutlined, 
-  CalendarOutlined, UploadOutlined, FileTextOutlined, 
-  FilePdfOutlined, EyeOutlined, DownloadOutlined
+  CalendarOutlined, UploadOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
@@ -16,10 +15,7 @@ import locale from 'antd/es/date-picker/locale/th_TH';
 import TranscriptUpload from '../common/TranscriptUpload';
 
 // 🔧 แก้ไข import paths ให้ถูกต้อง
-import officialDocumentService from '../../../services/PDFServices/OfficialDocumentService';
-import templateDataService from '../../../services/PDFServices/TemplateDataService';
 import { formatThaiDate, calculateInternshipDays } from '../../../utils/dateUtils';
-import { formatThaiPhoneNumber, formatFullName, cleanText } from '../../../utils/thaiFormatter';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -51,24 +47,6 @@ const CS05FormStep = ({
   const [startDate, setStartDate] = React.useState(null);
   const [endDate, setEndDate] = React.useState(null);
   
-  // 🆕 State สำหรับ PDF Generation
-  const [pdfLoading, setPdfLoading] = React.useState(false);
-  const [previewLoading, setPreviewLoading] = React.useState(false);
-
-  // 🔧 เพิ่มการตรวจสอบสถานะ PDF Service
-  React.useEffect(() => {
-    const checkPDFService = () => {
-      const status = officialDocumentService.getStatus();
-      console.log('PDF Service Status:', status);
-      
-      if (!status.isInitialized) {
-        console.warn('PDF Service ยังไม่ได้เริ่มต้น');
-      }
-    };
-    
-    checkPDFService();
-  }, []);
-
   // กำหนดค่าเริ่มต้นเมื่อมีข้อมูล
   React.useEffect(() => {
     if (studentData) {
@@ -192,218 +170,6 @@ const CS05FormStep = ({
     }
   };
 
-  // 🆕 ฟังก์ชันเตรียมข้อมูลสำหรับ PDF
-  const prepareFormDataForPDF = () => {
-    try {
-      const currentValues = form.getFieldsValue();
-      
-      // ตรวจสอบข้อมูลพื้นฐาน
-      if (!currentValues.companyName || !currentValues.companyAddress) {
-        message.warning('กรุณากรอกข้อมูลบริษัทให้ครบถ้วนก่อนสร้าง PDF');
-        return null;
-      }
-
-      if (!startDate || !endDate) {
-        message.warning('กรุณาเลือกช่วงเวลาฝึกงานก่อนสร้าง PDF');
-        return null;
-      }
-
-      // เตรียมข้อมูลนักศึกษา
-      const studentData = currentValues.studentData || [];
-      const processedStudentData = studentData.map((student, index) => ({
-        fullName: cleanText(student.fullName || ''),
-        studentId: cleanText(student.studentId || ''),
-        yearLevel: student.yearLevel || 3,
-        classroom: cleanText(student.classroom || ''),
-        phoneNumber: formatThaiPhoneNumber(student.phoneNumber || ''),
-        totalCredits: student.totalCredits || 0
-      }));
-
-      // เตรียมข้อมูลหลักสำหรับ PDF
-      const pdfData = {
-        // ข้อมูลเอกสาร
-        documentId: existingCS05?.documentId || 'DRAFT',
-        status: 'draft',
-        createdDate: new Date().toISOString(),
-        
-        // ข้อมูลนักศึกษา
-        studentData: processedStudentData,
-        hasTwoStudents: currentValues.hasTwoStudents || false,
-        
-        // ข้อมูลบริษัท
-        companyName: cleanText(currentValues.companyName || ''),
-        companyAddress: cleanText(currentValues.companyAddress || ''),
-        internshipPosition: cleanText(currentValues.internshipPosition || ''),
-        contactPersonName: cleanText(currentValues.contactPersonName || ''),
-        contactPersonPosition: cleanText(currentValues.contactPersonPosition || ''),
-        
-        // ข้อมูลระยะเวลา
-        startDate: startDate.format('YYYY-MM-DD'),
-        endDate: endDate.format('YYYY-MM-DD'),
-        startDateThai: formatThaiDate(startDate.format('YYYY-MM-DD'), 'DD MMMM BBBB'),
-        endDateThai: formatThaiDate(endDate.format('YYYY-MM-DD'), 'DD MMMM BBBB'),
-        internshipDays: calculateInternshipDays(
-          startDate.format('YYYY-MM-DD'), 
-          endDate.format('YYYY-MM-DD')
-        ),
-        
-        // ข้อมูลเพิ่มเติม
-        jobDescription: cleanText(currentValues.jobDescription || ''),
-        additionalRequirements: cleanText(currentValues.additionalRequirements || ''),
-        advisorName: 'อาจารย์ที่ปรึกษาโครงการ', // ค่าเริ่มต้น
-        
-        // ตัวเลือก
-        showWatermark: true
-      };
-
-      return pdfData;
-    } catch (error) {
-      console.error('Error preparing PDF data:', error);
-      message.error('เกิดข้อผิดพลาดในการเตรียมข้อมูล PDF');
-      return null;
-    }
-  };
-
-  // 🆕 ฟังก์ชันสร้าง PDF ร่าง
-  const handleGenerateDraftPDF = async () => {
-    setPdfLoading(true);
-    try {
-      const pdfData = prepareFormDataForPDF();
-      if (!pdfData) {
-        return;
-      }
-
-      // สร้าง PDF ร่าง
-      await officialDocumentService.generateCS05PDF(pdfData, true, {
-        saveToServer: false // ไม่บันทึกไปยัง server สำหรับร่าง
-      });
-      
-      message.success('สร้าง PDF ร่างสำเร็จ! ไฟล์ได้รับการดาวน์โหลดแล้ว');
-      
-    } catch (error) {
-      console.error('Error generating draft PDF:', error);
-      message.error(`ไม่สามารถสร้าง PDF ร่างได้: ${error.message}`);
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
-  // 🆕 ฟังก์ชัน Preview PDF (แก้ไขส่วนสร้างหมายเลขเอกสาร)
-  const handlePreviewPDF = async () => {
-    setPreviewLoading(true);
-    try {
-      const pdfData = prepareFormDataForPDF();
-      if (!pdfData) {
-        return;
-      }
-
-      // เตรียมข้อมูลสำหรับหนังสือขอความอนุเคราะห์
-      const letterData = {
-        ...pdfData,
-        // ใช้หมายเลขเอกสารตามรูปแบบใหม่
-        documentNumber: existingCS05?.documentNumber || templateDataService.generateNewDocumentNumber(),
-        documentDate: new Date().toISOString(),
-        
-        // ข้อมูลอื่นๆ ยังคงเหมือนเดิม...
-        companyName: pdfData.companyName || existingCS05?.companyName || '',
-        companyAddress: pdfData.companyAddress || existingCS05?.companyAddress || '',
-        contactPersonName: pdfData.contactPersonName || existingCS05?.contactPersonName || '',
-        contactPersonPosition: pdfData.contactPersonPosition || existingCS05?.contactPersonPosition || '',
-        
-        // ตรวจสอบข้อมูลนักศึกษา
-        studentData: pdfData.studentData && pdfData.studentData.length > 0 
-          ? pdfData.studentData 
-          : [
-              {
-                fullName: studentData?.fullName || '',
-                studentId: studentData?.studentId || '',
-                yearLevel: studentData?.year || '',
-                classroom: studentData?.classroom || '',
-                phoneNumber: studentData?.phoneNumber || '',
-                totalCredits: studentData?.totalCredits || ''
-              }
-            ]
-      };
-
-      // แสดง PDF Preview หนังสือขอความอนุเคราะห์
-      await officialDocumentService.previewPDF('official_letter', letterData);
-      
-      message.success('เปิด PDF Preview หนังสือขอความอนุเคราะห์ในหน้าต่างใหม่แล้ว');
-      
-    } catch (error) {
-      console.error('Error previewing letter PDF:', error);
-      message.error(`ไม่สามารถแสดงตัวอย่างหนังสือขอความอนุเคราะห์ได้: ${error.message}`);
-    } finally {
-      setPreviewLoading(false);
-    }
-  };
-
-  // 🆕 ฟังก์ชันสร้างหนังสือขอความอนุเคราะห์ (แก้ไขส่วนสร้างหมายเลขเอกสาร)
-  const handleGenerateOfficialLetter = async () => {
-    if (!existingCS05 || existingCS05.status !== 'approved') {
-      message.info('หนังสือขอความอนุเคราะห์จะสามารถสร้างได้เมื่อคำร้อง CS05 ได้รับการอนุมัติแล้ว');
-      return;
-    }
-
-    setPdfLoading(true);
-    try {
-      const pdfData = prepareFormDataForPDF();
-      if (!pdfData) {
-        return;
-      }
-
-      // ✅ เพิ่มการตรวจสอบข้อมูลที่ครบถ้วนสำหรับหนังสือ
-      const letterData = {
-        ...pdfData,
-        // ใช้หมายเลขเอกสารตามรูปแบบใหม่
-        documentNumber: existingCS05.documentNumber || templateDataService.generateNewDocumentNumber(),
-        documentDate: new Date().toISOString(),
-        
-        // ข้อมูลอื่นๆ ยังคงเหมือนเดิม...
-        companyName: pdfData.companyName || existingCS05.companyName || '',
-        companyAddress: pdfData.companyAddress || existingCS05.companyAddress || '',
-        contactPersonName: pdfData.contactPersonName || existingCS05.contactPersonName || '',
-        contactPersonPosition: pdfData.contactPersonPosition || existingCS05.contactPersonPosition || '',
-        
-        // ตรวจสอบข้อมูลนักศึกษา
-        studentData: pdfData.studentData && pdfData.studentData.length > 0 
-          ? pdfData.studentData 
-          : [
-              {
-                fullName: studentData?.fullName || '',
-                studentId: studentData?.studentId || '',
-                yearLevel: studentData?.year || '',
-                classroom: studentData?.classroom || '',
-                phoneNumber: studentData?.phoneNumber || '',
-                totalCredits: studentData?.totalCredits || ''
-              }
-            ]
-      };
-
-      console.log('=== DEBUG: Letter Data Before Generation ===');
-      console.log('letterData:', letterData);
-      console.log('letterData.documentNumber:', letterData.documentNumber); // ตรวจสอบหมายเลขเอกสาร
-      console.log('==========================================');
-
-      // สร้างหนังสือขอความอนุเคราะห์
-      await officialDocumentService.generateOfficialLetterPDF(letterData);
-      
-      message.success('สร้างหนังสือขอความอนุเคราะห์สำเร็จ!');
-      
-    } catch (error) {
-      console.error('Error generating official letter:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        existingCS05,
-        studentData
-      });
-      message.error(`ไม่สามารถสร้างหนังสือขอความอนุเคราะห์ได้: ${error.message}`);
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
   // ตรวจสอบสถานะการส่งเอกสาร
   const isFieldsDisabled = isSubmitted && existingCS05?.status !== 'rejected';
 
@@ -438,71 +204,6 @@ const CS05FormStep = ({
       <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
         กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
       </Text>
-
-      {/* 🆕 ส่วน PDF Actions */}
-      <Card 
-        title={
-          <Space>
-            <FilePdfOutlined />
-            <span>เครื่องมือสร้าง PDF</span>
-          </Space>
-        } 
-        className="form-card" 
-        style={{ marginBottom: 24 }}
-      >
-        <Alert
-          message="ฟีเจอร์ใหม่: สร้าง PDF อัตโนมัติ"
-          description="คุณสามารถสร้าง PDF ร่างเพื่อตรวจสอบข้อมูลก่อนส่งคำร้องได้แล้ว และสามารถดู Preview ในหน้าต่างใหม่ได้"
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-        
-        <Space wrap>
-          <Tooltip title="สร้าง PDF ร่างเพื่อตรวจสอบข้อมูล (มี Watermark)">
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={handleGenerateDraftPDF}
-              loading={pdfLoading}
-            >
-              สร้าง PDF ร่าง
-            </Button>
-          </Tooltip>
-          
-          <Tooltip title="ดูตัวอย่างหนังสือขอความอนุเคราะห์ในหน้าต่างใหม่">
-            <Button
-              icon={<EyeOutlined />}
-              onClick={handlePreviewPDF}
-              loading={previewLoading}
-            >
-              Preview หนังสือขอความอนุเคราะห์
-            </Button>
-          </Tooltip>
-          
-          {existingCS05?.status === 'approved' && (
-            <Tooltip title="สร้างหนังสือขอความอนุเคราะห์ (เฉพาะคำร้องที่อนุมัติแล้ว)">
-              <Button
-                type="default"
-                icon={<FileTextOutlined />}
-                onClick={handleGenerateOfficialLetter}
-                loading={pdfLoading}
-              >
-                หนังสือขอความอนุเคราะห์
-              </Button>
-            </Tooltip>
-          )}
-        </Space>
-        
-        {existingCS05?.status === 'pending' && (
-          <Alert
-            message="หนังสือขอความอนุเคราะห์จะสามารถสร้างได้เมื่อคำร้อง CS05 ได้รับการอนุมัติแล้ว"
-            type="warning"
-            showIcon
-            style={{ marginTop: 12 }}
-          />
-        )}
-      </Card>
 
       <Form
         form={form}

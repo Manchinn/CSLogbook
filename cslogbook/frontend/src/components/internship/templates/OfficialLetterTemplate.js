@@ -8,7 +8,6 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import letterStyles from "./styles/letterStyles";
-import officialStyles from "./styles/officialStyles";
 import { formatThaiDate } from "../../../utils/dateUtils";
 import {
   cleanText,

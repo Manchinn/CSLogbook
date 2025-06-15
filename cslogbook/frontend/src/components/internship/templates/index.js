@@ -3,6 +3,7 @@
 // Import templates
 import CS05PDFTemplate from './CS05PDFTemplate';
 import OfficialLetterTemplate from './OfficialLetterTemplate';
+import AcceptanceLetterTemplate from './AcceptanceLetterTemplate'; // 🆕 เพิ่มใหม่
 import StudentSummaryTemplate from './StudentSummaryTemplate';
 import CompanyInfoTemplate from './CompanyInfoTemplate';
 
@@ -12,6 +13,7 @@ import { PDFStyles } from './styles';
 // Export แบบ named exports สำหรับแต่ละ template
 export { CS05PDFTemplate };
 export { OfficialLetterTemplate };
+export { AcceptanceLetterTemplate }; // 🆕 เพิ่มใหม่
 export { StudentSummaryTemplate };
 export { CompanyInfoTemplate };
 
@@ -23,6 +25,7 @@ export { PDFStyles };
 export const PDFTemplates = {
   CS05: CS05PDFTemplate,
   OfficialLetter: OfficialLetterTemplate,
+  AcceptanceLetter: AcceptanceLetterTemplate, // 🆕 เพิ่มใหม่
   StudentSummary: StudentSummaryTemplate,
   CompanyInfo: CompanyInfoTemplate
 };
@@ -32,6 +35,7 @@ export default {
   // Templates แบบ named
   CS05PDFTemplate,
   OfficialLetterTemplate,
+  AcceptanceLetterTemplate, // 🆕 เพิ่มใหม่
   StudentSummaryTemplate,
   CompanyInfoTemplate,
   

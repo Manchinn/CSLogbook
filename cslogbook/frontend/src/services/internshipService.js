@@ -740,8 +740,170 @@ const internshipService = {
         message: error.response?.data?.message || 'ไม่สามารถอัปโหลดเอกสารได้'
       };
     }
-  }
+  },
 
+  // === ส่วนจัดการข้อมูลสถานประกอบการและผู้ควบคุมงาน ===
+
+  /**
+   * อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน
+   * @param {FormData} formData - FormData ที่มี file และ documentId
+   * @returns {Promise<Object>} ผลลัพธ์การอัปโหลด
+   */
+  uploadAcceptanceLetter: async (formData) => {
+    try {
+      // ตรวจสอบว่า formData มีข้อมูลที่จำเป็น
+      if (!formData || !(formData instanceof FormData)) {
+        throw new Error('ข้อมูลไฟล์ไม่ถูกต้อง');
+      }
+
+      // ตรวจสอบว่ามีไฟล์ที่ส่งมา
+      const file = formData.get('acceptanceLetter');
+      if (!file) {
+        throw new Error('กรุณาเลือกไฟล์หนังสือตอบรับ');
+      }
+
+      // ตรวจสอบประเภทไฟล์
+      if (file.type !== 'application/pdf') {
+        throw new Error('กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น');
+      }
+
+      // ตรวจสอบขนาดไฟล์ (สูงสุด 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error('ขนาดไฟล์ต้องไม่เกิน 10MB');
+      }
+
+      // ส่งข้อมูลไปยัง API
+      const response = await apiClient.post('/internship/upload-acceptance-letter', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        // เพิ่ม progress callback สำหรับ UI
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          console.log(`Upload progress: ${percentCompleted}%`);
+        }
+      });
+
+      // ตรวจสอบผลลัพธ์จาก API
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถอัปโหลดหนังสือตอบรับได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message || 'อัปโหลดหนังสือตอบรับเรียบร้อยแล้ว'
+      };
+
+    } catch (error) {
+      console.error('Error uploading acceptance letter:', error);
+      
+      // จัดการข้อผิดพลาดตามประเภท
+      if (error.response) {
+        // Error จาก API response
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        switch (status) {
+          case 400:
+            throw new Error(message || 'ข้อมูลที่ส่งไม่ถูกต้อง');
+          case 403:
+            throw new Error('ไม่มีสิทธิ์ในการอัปโหลดไฟล์');
+          case 404:
+            throw new Error('ไม่พบข้อมูลเอกสาร CS05');
+          case 413:
+            throw new Error('ขนาดไฟล์ใหญ่เกินไป');
+          case 422:
+            throw new Error(message || 'ไฟล์ไม่ถูกต้องหรือเสียหาย');
+          case 500:
+            throw new Error('เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง');
+          default:
+            throw new Error(message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+        }
+      } else if (error.request) {
+        // Error จาก network
+        throw new Error('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+      } else {
+        // Error อื่นๆ
+        throw new Error(error.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ');
+      }
+    }
+  },
+
+  /**
+   * ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+   * @param {number} documentId - ID ของเอกสาร CS05
+   * @returns {Promise<Object>} สถานะการอัปโหลด
+   */
+  checkAcceptanceLetterStatus: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error('ไม่พบรหัสเอกสาร CS05');
+      }
+
+      const response = await apiClient.get(`/internship/acceptance-letter-status/${documentId}`);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถตรวจสอบสถานะได้');
+      }
+
+      return {
+        success: true,
+        data: response.data.data
+      };
+
+    } catch (error) {
+      console.error('Error checking acceptance letter status:', error);
+      
+      // กรณี 404 ไม่ถือเป็น error
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: {
+            hasAcceptanceLetter: false,
+            status: 'not_uploaded',
+            uploadDate: null
+          }
+        };
+      }
+
+      throw new Error(error.response?.data?.message || 'ไม่สามารถตรวจสอบสถานะการอัปโหลดได้');
+    }
+  },
+
+  /**
+   * ดาวน์โหลดหนังสือตอบรับที่อัปโหลดแล้ว
+   * @param {number} documentId - ID ของเอกสาร CS05
+   * @returns {Promise<Object>} ไฟล์ PDF
+   */
+  downloadAcceptanceLetter: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error('ไม่พบรหัสเอกสาร CS05');
+      }
+
+      const response = await apiClient.get(`/internship/download-acceptance-letter/${documentId}`, {
+        responseType: 'blob'
+      });
+
+      return {
+        success: true,
+        data: response.data
+      };
+
+    } catch (error) {
+      console.error('Error downloading acceptance letter:', error);
+      
+      if (error.response?.status === 404) {
+        throw new Error('ไม่พบหนังสือตอบรับที่อัปโหลด');
+      }
+
+      throw new Error(error.response?.data?.message || 'ไม่สามารถดาวน์โหลดหนังสือตอบรับได้');
+    }
+  },
 };
 
 export default internshipService;

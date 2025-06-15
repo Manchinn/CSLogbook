@@ -260,6 +260,49 @@ class TemplateDataService {
   }
 
   /**
+   * เตรียมข้อมูลสำหรับแบบฟอร์มหนังสือตอบรับ
+   * @param {Object} letterData - ข้อมูลหนังสือ
+   */
+  prepareAcceptanceFormData(letterData) {
+    try {
+      if (!letterData) {
+        return {
+          documentDate: new Date(),
+          studentData: []
+        };
+      }
+
+      return {
+        // ข้อมูลเอกสาร
+        documentNumber: letterData.documentNumber || '',
+        documentDate: letterData.documentDate || new Date(),
+        letterDate: letterData.documentDate || new Date(),
+
+        // ข้อมูลบริษัท
+        companyName: letterData.companyName || '',
+        companyAddress: letterData.companyAddress || '',
+        contactPhone: letterData.contactPhone || '',
+        contactPersonPosition: letterData.contactPersonPosition || '',
+        internshipPosition: letterData.internshipPosition || '',
+
+        // ข้อมูลนักศึกษา
+        studentData: letterData.studentData || [],
+
+        // ข้อมูลระยะเวลา
+        startDate: letterData.startDate || '',
+        endDate: letterData.endDate || '',
+        internshipDays: letterData.internshipDays || 0
+      };
+    } catch (error) {
+      console.error('Error preparing acceptance form data:', error);
+      return {
+        documentDate: new Date(),
+        studentData: []
+      };
+    }
+  }
+
+  /**
    * เตรียมข้อมูลนักศึกษา (แก้ไขเพื่อป้องกัน TypeError)
    * @param {Array} studentData - ข้อมูลนักศึกษา
    */
