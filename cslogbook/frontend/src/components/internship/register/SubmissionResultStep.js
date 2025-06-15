@@ -53,6 +53,10 @@ const SubmissionResultStep = ({
   const [acceptanceFile, setAcceptanceFile] = useState(null);
   const [uploadLoading, setUploadLoading] = useState(false);
 
+  // 🆕 เพิ่ม state สำหรับตรวจสอบสถานะการอัปโหลด
+  const [acceptanceLetterStatus, setAcceptanceLetterStatus] = useState(null);
+  const [acceptanceLetterInfo, setAcceptanceLetterInfo] = useState(null);
+
   // 🆕 เพิ่มการตรวจสอบสถานะ PDF Service
   useEffect(() => {
     const checkPDFService = () => {
@@ -234,11 +238,16 @@ const SubmissionResultStep = ({
       return;
     }
 
+    if (!existingCS05?.documentId) {
+      message.error("ไม่พบข้อมูลเอกสาร CS05");
+      return;
+    }
+
     setUploadLoading(true);
     try {
       const formData = new FormData();
       formData.append("acceptanceLetter", acceptanceFile);
-      formData.append("documentId", existingCS05?.documentId || "");
+      formData.append("documentId", existingCS05.documentId);
 
       // เรียก API อัปโหลดหนังสือตอบรับ
       const response = await internshipService.uploadAcceptanceLetter(formData);
@@ -246,14 +255,30 @@ const SubmissionResultStep = ({
       if (response.success) {
         message.success("อัปโหลดหนังสือตอบรับเรียบร้อยแล้ว!");
         setAcceptanceFile(null);
+
+        // 🆕 อัปเดตข้อมูลสถานะการอัปโหลด
+        setAcceptanceLetterStatus("uploaded"); // แปลงจาก pending เป็น uploaded
+        setAcceptanceLetterInfo({
+          ...response.data,
+          originalStatus: "pending", // เก็บสถานะเดิมไว้
+        });
+
         // อัปเดตสถานะไปขั้นตอนถัดไป
         updateStepFromStatus("acceptance_uploaded");
+
+        // 🆕 ตรวจสอบสถานะใหม่หลังจากอัปโหลด 3 วินาที
+        setTimeout(() => {
+          checkAcceptanceLetterStatus();
+        }, 3000);
       } else {
         message.error(response.message || "ไม่สามารถอัปโหลดหนังสือตอบรับได้");
       }
     } catch (error) {
       console.error("Error uploading acceptance letter:", error);
-      message.error("เกิดข้อผิดพลาดในการอัปโหลดหนังสือตอบรับ");
+      message.error(
+        error.response?.data?.message ||
+          "เกิดข้อผิดพลาดในการอัปโหลดหนังสือตอบรับ"
+      );
     } finally {
       setUploadLoading(false);
     }
@@ -347,7 +372,6 @@ const SubmissionResultStep = ({
   // อัปเดตสถานะขั้นตอนตามสถานะ CS05
   const updateStepFromStatus = (status) => {
     const newStep = getStepFromStatus(status);
-    console.log(`[DEBUG] อัปเดตจากสถานะ ${status} เป็นขั้นตอนที่ ${newStep}`);
     setCurrentInternshipStep(newStep);
     setCs05Status(status);
   };
@@ -360,7 +384,6 @@ const SubmissionResultStep = ({
 
       if (response.success && response.data) {
         const latestStatus = response.data.status;
-        console.log("[DEBUG] สถานะ CS05 ล่าสุด:", latestStatus);
 
         // อัปเดตขั้นตอนตามสถานะใหม่
         updateStepFromStatus(latestStatus);
@@ -372,6 +395,63 @@ const SubmissionResultStep = ({
     }
   };
 
+  // 🆕 ฟังก์ชันตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+  const checkAcceptanceLetterStatus = async () => {
+    if (!existingCS05?.documentId) {
+      console.log("[DEBUG] ไม่มี documentId, ตั้งค่าสถานะเป็น not_uploaded");
+      setAcceptanceLetterStatus("not_uploaded");
+      setAcceptanceLetterInfo(null);
+      return;
+    }
+
+    try {
+      const response = await internshipService.checkAcceptanceLetterStatus(
+        existingCS05.documentId
+      );
+
+      console.log("[DEBUG] ผลตรวจสอบสถานะ:", response);
+
+      if (response.success) {
+        if (response.data.hasAcceptanceLetter) {
+          // 🔧 ใช้ mappedStatus จาก service
+          setAcceptanceLetterStatus(response.data.status); // 'uploaded' หรือ 'approved'
+          setAcceptanceLetterInfo(response.data);
+
+          // ถ้ามีการอัปโหลดแล้ว ให้อัปเดตขั้นตอน
+          if (response.data.status === "uploaded") {
+            console.log(
+              "[DEBUG] พบหนังสือตอบรับที่อัปโหลดแล้ว (pending ใน database)"
+            );
+            updateStepFromStatus("acceptance_uploaded");
+          } else if (response.data.status === "approved") {
+            updateStepFromStatus("acceptance_approved");
+          }
+        } else {
+          // ไม่มีการอัปโหลด
+          console.log("[DEBUG] ยังไม่มีการอัปโหลดหนังสือตอบรับ");
+          setAcceptanceLetterStatus("not_uploaded");
+          setAcceptanceLetterInfo(null);
+        }
+      } else {
+        console.log("[DEBUG] API response ไม่สำเร็จ");
+        setAcceptanceLetterStatus("not_uploaded");
+        setAcceptanceLetterInfo(null);
+      }
+    } catch (error) {
+      console.error("Error checking acceptance letter status:", error);
+
+      // กรณี API ยังไม่มีหรือมีปัญหา ให้ถือว่ายังไม่มีการอัปโหลด
+      if (error.response?.status === 404) {
+        console.log("[DEBUG] API 404 - ยังไม่มีหนังสือตอบรับ");
+        setAcceptanceLetterStatus("not_uploaded");
+        setAcceptanceLetterInfo(null);
+      } else {
+        setAcceptanceLetterStatus("error");
+        setAcceptanceLetterInfo(null);
+      }
+    }
+  };
+
   // เรียกใช้เมื่อ component โหลด
   useEffect(() => {
     // ตั้งค่าขั้นตอนเริ่มต้นจากข้อมูลที่มีอยู่
@@ -379,14 +459,23 @@ const SubmissionResultStep = ({
       updateStepFromStatus(existingCS05.status);
     }
 
-    // โหลดสถานะล่าสุดจาก API
-    fetchLatestCS05Status();
+    // ฟังก์ชันตรวจสอบสถานะทั้งหมด
+    const checkAllStatus = async () => {
+      // ตรวจสอบสถานะ CS05
+      await fetchLatestCS05Status();
+
+      // ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+      await checkAcceptanceLetterStatus();
+    };
+
+    // เรียกใช้ทันทีเมื่อ component โหลด
+    checkAllStatus();
 
     // ตั้งค่า polling เพื่อตรวจสอบสถานะทุก 30 วินาที
-    const pollInterval = setInterval(fetchLatestCS05Status, 30000);
+    const pollInterval = setInterval(checkAllStatus, 20000);
 
     return () => clearInterval(pollInterval);
-  }, [existingCS05?.status]);
+  }, [existingCS05?.status, existingCS05?.documentId]);
 
   // แสดงข้อมูลตามโครงสร้างที่มาจาก existingCS05 หรือ formData
   const displayData = existingCS05 || formData || {};
@@ -570,33 +659,48 @@ const SubmissionResultStep = ({
       // ✅ ย้ายส่วนอัปโหลดมาที่นี่
       actions: isStepEnabled(4, currentInternshipStep, cs05Status) ? (
         <Card size="small" style={{ marginTop: 12 }}>
-          <div style={{ marginBottom: 8 }}>
-            <Upload {...uploadProps}>
+          {/* ส่วนอัปโหลด - แสดงเฉพาะเมื่อยังไม่มีการอัปโหลด */}
+          {(!acceptanceLetterStatus ||
+            acceptanceLetterStatus === "not_uploaded") && (
+            <>
+              <Alert
+                message="ยังไม่มีการอัปโหลดหนังสือตอบรับ"
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+              <div style={{ marginBottom: 16 }}>
+                <Text strong style={{ display: "block", marginBottom: 8 }}>
+                  📤 อัปโหลดหนังสือตอบรับ:
+                </Text>
+
+                <Upload {...uploadProps}>
+                  <Button
+                    icon={<PaperClipOutlined />}
+                    size="small"
+                    style={{ marginBottom: 8 }}
+                  >
+                    เลือกไฟล์ PDF
+                  </Button>
+                </Upload>
+
+                <div style={{ fontSize: "12px", color: "#666", marginTop: 4 }}>
+                  รองรับไฟล์ PDF เท่านั้น (ขนาดไม่เกิน 5MB)
+                </div>
+              </div>
+
               <Button
-                icon={<PaperClipOutlined />}
+                type="primary"
+                icon={<UploadOutlined />}
+                onClick={handleUploadAcceptanceLetter}
+                loading={uploadLoading}
+                disabled={!acceptanceFile}
                 size="small"
-                style={{ marginBottom: 8 }}
               >
-                เลือกไฟล์ PDF
+                อัปโหลดหนังสือตอบรับ
               </Button>
-            </Upload>
-
-            <div style={{ fontSize: "12px", color: "#666", marginTop: 4 }}>
-              รองรับไฟล์ PDF เท่านั้น (ขนาดไม่เกิน 5MB)
-            </div>
-          </div>
-
-          {/* ✅ ปุ่มอัปโหลดขนาดเล็ก */}
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            onClick={handleUploadAcceptanceLetter}
-            loading={uploadLoading}
-            disabled={!acceptanceFile}
-            size="small"
-          >
-            อัปโหลดหนังสือตอบรับ
-          </Button>
+            </>
+          )}
         </Card>
       ) : null,
     },
@@ -604,12 +708,8 @@ const SubmissionResultStep = ({
       title: "รอหนังสือส่งตัว",
       description: "เจ้าหน้าที่ภาควิชาออกหนังสือส่งตัว",
       icon: <FileDoneOutlined />,
-      status:
-        currentInternshipStep > 5
-          ? "finish"
-          : currentInternshipStep === 5
-          ? "process"
-          : "wait",
+      status: getStepStatus(6, currentInternshipStep, acceptanceLetterStatus),
+
       color:
         currentInternshipStep > 5
           ? "#52c41a"
@@ -627,12 +727,8 @@ const SubmissionResultStep = ({
       title: "นักศึกษาพิมพ์หนังสือส่งตัว",
       description: "ดาวน์โหลดและพิมพ์หนังสือส่งตัวเพื่อไปแจ้งให้กับบริษัท",
       icon: <DownloadOutlined />,
-      status:
-        currentInternshipStep > 6
-          ? "finish"
-          : currentInternshipStep === 6
-          ? "process"
-          : "wait",
+      status: getStepStatus(7, currentInternshipStep, acceptanceLetterStatus/* referralLetterStatus */),
+
       color:
         currentInternshipStep > 6
           ? "#52c41a"
