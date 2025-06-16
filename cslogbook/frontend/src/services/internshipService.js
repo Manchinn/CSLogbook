@@ -907,13 +907,6 @@ const internshipService = {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-          // เพิ่ม progress callback สำหรับ UI
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            console.log(`Upload progress: ${percentCompleted}%`);
-          },
         }
       );
 
@@ -991,7 +984,10 @@ const internshipService = {
 
       if (data.hasAcceptanceLetter) {
         // มีการอัปโหลดแล้ว
-        if (data.status === "pending") {
+        if (
+          data.status ===
+          ["pending", "referral_downloaded"].includes(data.status)
+        ) {
           mappedStatus = "uploaded"; // แปลง pending เป็น uploaded สำหรับ UI
         } else if (data.status === "approved") {
           mappedStatus = "approved"; // คงเดิม
@@ -1066,7 +1062,7 @@ const internshipService = {
   // ...existing code...
 
   /**
-   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา
+   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (ปรับปรุงใหม่)
    * @param {number} documentId - ID ของเอกสาร CS05
    * @returns {Promise<Object>} สถานะหนังสือส่งตัว
    */
@@ -1086,35 +1082,37 @@ const internshipService = {
         );
       }
 
-      // 🔧 ปรับการแปลงสถานะจาก database
       const data = response.data.data;
-      let mappedStatus;
 
-      if (data.hasReferralLetter) {
-        // มีหนังสือส่งตัวแล้ว
-        if (data.status === "ready") {
-          mappedStatus = "ready"; // พร้อมให้ดาวน์โหลด
-        } else if (data.status === "downloaded") {
-          mappedStatus = "downloaded"; // ได้ดาวน์โหลดแล้ว
-        } else {
-          mappedStatus = "ready"; // fallback
-        }
-      } else {
-        mappedStatus = "not_ready"; // ยังไม่พร้อม (อาจรอการอนุมัติหนังสือตอบรับ)
-      }
+      // ✅ ใช้ข้อมูล mappingInfo จาก backend
+      const frontendStatus =
+        data.mappingInfo?.shouldMapTo ||
+        (() => {
+          // fallback mapping
+          switch (data.status) {
+            case "referral_ready":
+              return "ready";
+            case "referral_downloaded":
+              return "downloaded";
+            case "supervisor_evaluated":
+              return "downloaded";
+            default:
+              return "not_ready";
+          }
+        })();
 
       return {
         success: true,
         data: {
           ...data,
-          status: mappedStatus, // ใช้ status ที่แปลงแล้ว
-          originalStatus: data.status, // เก็บสถานะเดิมไว้สำหรับ debug
+          status: frontendStatus, // สถานะสำหรับ UI
+          originalStatus: data.status, // สถานะจาก database
+          backendStatus: data.status, // alias สำหรับความชัดเจน
         },
       };
     } catch (error) {
       console.error("Error checking referral letter status:", error);
 
-      // กรณี 404 ไม่ถือเป็น error (ยังไม่มีหนังสือส่งตัว)
       if (error.response?.status === 404) {
         return {
           success: true,
@@ -1122,8 +1120,7 @@ const internshipService = {
             hasReferralLetter: false,
             status: "not_ready",
             originalStatus: null,
-            createdDate: null,
-            readyDate: null,
+            backendStatus: null,
           },
         };
       }
@@ -1216,7 +1213,7 @@ const internshipService = {
       }
     }
   },
-  
+
   /**
    * แจ้ง Backend ว่าได้ดาวน์โหลดหนังสือส่งตัวแล้ว
    * @param {number} documentId - ID ของเอกสาร CS05

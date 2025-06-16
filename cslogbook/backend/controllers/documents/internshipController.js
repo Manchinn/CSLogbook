@@ -735,52 +735,106 @@ exports.downloadAcceptanceLetter = async (req, res) => {
 };
 
 /**
- * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา
+ * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (ปรับปรุงใหม่)
  */
 exports.getReferralLetterStatus = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { documentId } = req.params;
 
-    console.log("[DEBUG] Get Referral Letter Status Request:", {
+    console.log("[DEBUG] Controller getReferralLetterStatus:", {
       userId,
       documentId,
       params: req.params,
     });
 
+    // ตรวจสอบข้อมูลที่จำเป็น
     if (!documentId) {
       return res.status(400).json({
         success: false,
         message: "ไม่พบรหัสเอกสาร CS05",
+        errorType: "MISSING_DOCUMENT_ID",
+      });
+    }
+
+    // ตรวจสอบว่า documentId เป็นตัวเลข
+    const documentIdInt = parseInt(documentId);
+    if (isNaN(documentIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: "รหัสเอกสาร CS05 ไม่ถูกต้อง",
+        errorType: "INVALID_DOCUMENT_ID",
       });
     }
 
     // เรียก Service เพื่อตรวจสอบสถานะ
     const result = await internshipManagementService.getReferralLetterStatus(
       userId,
-      parseInt(documentId)
+      documentIdInt
     );
 
-    console.log("[DEBUG] Get Referral Letter Status Result:", result);
+    console.log("[DEBUG] Controller getReferralLetterStatus Result:", result);
+
+    // ✅ เพิ่มข้อมูล mapping info สำหรับ Frontend
+    const responseData = {
+      ...result,
+      // เพิ่มข้อมูลสำหรับ mapping ใน frontend (ถ้ายังไม่มี)
+      mappingInfo: result.mappingInfo || {
+        backendStatus: result.status,
+        shouldMapTo: result.isDownloaded
+          ? "downloaded"
+          : result.isReady
+          ? "ready"
+          : "not_ready",
+        confidence: "high",
+      },
+      // เพิ่มข้อมูล debug สำหรับ development
+      debug: {
+        timestamp: new Date().toISOString(),
+        userId: userId,
+        documentId: documentIdInt,
+        backendStatus: result.status,
+        frontendStatus: result.mappingInfo?.shouldMapTo || "unknown",
+      },
+    };
 
     return res.json({
       success: true,
-      data: result,
+      data: responseData,
       message: "ตรวจสอบสถานะหนังสือส่งตัวสำเร็จ",
     });
   } catch (error) {
-    console.error("Get Referral Letter Status Error:", error);
+    console.error("[DEBUG] Controller getReferralLetterStatus Error:", error);
 
-    // จัดการ error ตาม status code
-    const statusCode = error.message.includes("ไม่พบ")
-      ? 404
-      : error.message.includes("ไม่มีสิทธิ์")
-      ? 403
-      : 500;
+    // จัดการ error แบบละเอียด
+    let statusCode = 500;
+    let errorType = "SERVER_ERROR";
+    let message = "เกิดข้อผิดพลาดในการตรวจสอบสถานะหนังสือส่งตัว";
+
+    if (error.message.includes("ไม่พบ")) {
+      statusCode = 404;
+      errorType = "NOT_FOUND";
+      message = error.message;
+    } else if (error.message.includes("ไม่มีสิทธิ์")) {
+      statusCode = 403;
+      errorType = "FORBIDDEN";
+      message = error.message;
+    } else if (error.message.includes("ไม่ได้รับการอนุมัติ")) {
+      statusCode = 409;
+      errorType = "NOT_APPROVED";
+      message = error.message;
+    }
 
     return res.status(statusCode).json({
       success: false,
-      message: error.message || "เกิดข้อผิดพลาดในการตรวจสอบสถานะหนังสือส่งตัว",
+      message: message,
+      errorType: errorType,
+      debug: {
+        timestamp: new Date().toISOString(),
+        userId: req.user.userId,
+        documentId: req.params.documentId,
+        originalError: error.message,
+      },
     });
   }
 };

@@ -1868,7 +1868,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (แก้ไข include issue)
+   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (ปรับปรุงใหม่)
    */
   async getReferralLetterStatus(userId, cs05DocumentId) {
     try {
@@ -1877,7 +1877,7 @@ class InternshipManagementService {
         cs05DocumentId,
       });
 
-      // ✅ แก้ไข include ให้ถูกต้อง
+      // ✅ ค้นหาเอกสาร CS05 พร้อมข้อมูลที่เกี่ยวข้อง
       const cs05Document = await Document.findOne({
         where: {
           documentId: parseInt(cs05DocumentId),
@@ -1888,7 +1888,7 @@ class InternshipManagementService {
           {
             model: InternshipDocument,
             as: "internshipDocument",
-            required: false, // ไม่บังคับ แต่ต้องมีเพื่อตรวจสอบ
+            required: false,
           },
         ],
       });
@@ -1897,16 +1897,7 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      console.log("[DEBUG] CS05 Document found:", {
-        documentId: cs05Document.documentId,
-        status: cs05Document.status,
-        downloadStatus: cs05Document.downloadStatus,
-        downloadedAt: cs05Document.downloadedAt,
-        downloadCount: cs05Document.downloadCount,
-        hasInternshipDocument: !!cs05Document.internshipDocument,
-      });
-
-      // ✅ ตรวจสอบหนังสือตอบรับ
+      // ✅ ตรวจสอบหนังสือตอบรับที่ได้รับการอนุมัติ
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
@@ -1917,56 +1908,75 @@ class InternshipManagementService {
         },
       });
 
-      // ✅ ตรวจสอบข้อมูลผู้ควบคุมงานอย่างปลอดภัย
+      // ✅ ตรวจสอบข้อมูลผู้ควบคุมงาน
       const hasCompleteSupervisorInfo =
         cs05Document.internshipDocument &&
         cs05Document.internshipDocument.supervisorName &&
         cs05Document.internshipDocument.supervisorEmail;
 
-      console.log("[DEBUG] Supervisor info check:", {
-        hasInternshipDocument: !!cs05Document.internshipDocument,
-        supervisorName: cs05Document.internshipDocument?.supervisorName,
-        supervisorEmail: cs05Document.internshipDocument?.supervisorEmail,
-        hasCompleteSupervisorInfo,
-      });
+      // ✅ กำหนดสถานะตามเงื่อนไขที่ชัดเจน
+      let status = cs05Document.status; // ใช้สถานะจาก database ตรงๆ
+      let isReady = false;
+      let isDownloaded = false;
 
-      // ✅ กำหนดเงื่อนไขการพร้อมใช้งาน
-      const isReferralLetterReady =
+      // ตรวจสอบเงื่อนไขการพร้อมใช้งาน
+      if (
         cs05Document.status === "approved" &&
         acceptanceLetter &&
         acceptanceLetter.status === "approved" &&
-        hasCompleteSupervisorInfo;
-
-      // ✅ ตรวจสอบสถานะการดาวน์โหลด
-      let downloadStatus = "not_downloaded";
-      if (cs05Document.downloadStatus === "downloaded") {
-        downloadStatus = "downloaded";
-      } else if (isReferralLetterReady) {
-        downloadStatus = "ready";
+        hasCompleteSupervisorInfo
+      ) {
+        // อัปเดตสถานะเป็น referral_ready ถ้ายังไม่ได้อัปเดต
+        if (
+          cs05Document.status !== "referral_ready" &&
+          cs05Document.status !== "referral_downloaded"
+        ) {
+          await cs05Document.update({ status: "referral_ready" });
+          status = "referral_ready";
+        }
+        isReady = true;
       }
 
-      console.log("[DEBUG] Status calculation:", {
-        cs05Status: cs05Document.status,
+      // ตรวจสอบการดาวน์โหลด
+      if (
+        cs05Document.downloadStatus === "downloaded" ||
+        status === "referral_downloaded"
+      ) {
+        isDownloaded = true;
+      }
+
+      console.log("[DEBUG] Status calculation result:", {
+        cs05Status: status,
         hasAcceptanceLetter: !!acceptanceLetter,
         hasCompleteSupervisorInfo,
-        isReferralLetterReady,
-        downloadStatus,
+        isReady,
+        isDownloaded,
         downloadedAt: cs05Document.downloadedAt,
         downloadCount: cs05Document.downloadCount,
       });
 
       return {
-        hasReferralLetter: isReferralLetterReady,
-        status: downloadStatus,
-        cs05Status: cs05Document.status,
+        hasReferralLetter: isReady || isDownloaded,
+        status: status, // ✅ ส่งสถานะจาก database ตรงๆ
+        cs05Status: status,
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceLetterStatus: acceptanceLetter?.status || "not_uploaded",
         hasSupervisorInfo: hasCompleteSupervisorInfo,
-        createdDate: isReferralLetterReady ? cs05Document.created_at : null,
+        isReady: isReady,
+        isDownloaded: isDownloaded,
+        createdDate: cs05Document.created_at,
         readyDate: acceptanceLetter?.updated_at || null,
         downloadedAt: cs05Document.downloadedAt,
         downloadCount: cs05Document.downloadCount || 0,
-        originalStatus: downloadStatus,
+        // ✅ เพิ่มข้อมูลสำหรับ mapping ใน frontend
+        mappingInfo: {
+          backendStatus: status,
+          shouldMapTo: isDownloaded
+            ? "downloaded"
+            : isReady
+            ? "ready"
+            : "not_ready",
+        },
       };
     } catch (error) {
       console.error("Get Referral Letter Status Service Error:", error);
@@ -2858,7 +2868,7 @@ class InternshipManagementService {
           documentType: "INTERNSHIP",
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
-          status: "approved", // หาเฉพาะที่ได้รับการอนุมัติ
+          status: ["approved"], // หาเฉพาะที่ได้รับการอนุมัติ
           // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05 โดยตรง
         },
         order: [["created_at", "DESC"]], // เอาล่าสุด
@@ -3003,12 +3013,12 @@ class InternshipManagementService {
           downloadedAt: downloadTimestamp,
           downloadCount: currentDownloadCount + 1,
           // ✅ ใช้ status ที่มีอยู่ใน ENUM - หรือไม่อัปเดต status เลย
-          status: "supervisor_evaluated", // ใช้ status ที่มีอยู่แล้ว
+          status: "referral_downloaded", // ใช้ status ที่มีอยู่แล้ว
           updated_at: downloadTimestamp,
         },
         { transaction }
       );
-      
+
       /* await cs05Document.update(
         {
           status: "supervisor_evaluated", // ใช้ status ที่มีอยู่ใน ENUM
