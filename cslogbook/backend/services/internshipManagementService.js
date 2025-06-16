@@ -1868,7 +1868,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (แก้ไขใหม่)
+   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (แก้ไข include issue)
    */
   async getReferralLetterStatus(userId, cs05DocumentId) {
     try {
@@ -1877,7 +1877,7 @@ class InternshipManagementService {
         cs05DocumentId,
       });
 
-      // 1. ตรวจสอบเอกสาร CS05
+      // ✅ แก้ไข include ให้ถูกต้อง
       const cs05Document = await Document.findOne({
         where: {
           documentId: parseInt(cs05DocumentId),
@@ -1888,6 +1888,7 @@ class InternshipManagementService {
           {
             model: InternshipDocument,
             as: "internshipDocument",
+            required: false, // ไม่บังคับ แต่ต้องมีเพื่อตรวจสอบ
           },
         ],
       });
@@ -1899,13 +1900,13 @@ class InternshipManagementService {
       console.log("[DEBUG] CS05 Document found:", {
         documentId: cs05Document.documentId,
         status: cs05Document.status,
-        // ✅ ใช้ชื่อ attribute ที่ถูกต้อง
         downloadStatus: cs05Document.downloadStatus,
         downloadedAt: cs05Document.downloadedAt,
         downloadCount: cs05Document.downloadCount,
+        hasInternshipDocument: !!cs05Document.internshipDocument,
       });
 
-      // 2. ตรวจสอบว่ามีหนังสือตอบรับที่ได้รับการอนุมัติแล้วหรือไม่
+      // ✅ ตรวจสอบหนังสือตอบรับ
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
@@ -1916,47 +1917,55 @@ class InternshipManagementService {
         },
       });
 
-      // 3. ตรวจสอบสถานะข้อมูลผู้ควบคุมงาน
+      // ✅ ตรวจสอบข้อมูลผู้ควบคุมงานอย่างปลอดภัย
       const hasCompleteSupervisorInfo =
         cs05Document.internshipDocument &&
         cs05Document.internshipDocument.supervisorName &&
         cs05Document.internshipDocument.supervisorEmail;
 
-      // 4. กำหนดเงื่อนไขการพร้อมใช้งาน
-      const isReady =
+      console.log("[DEBUG] Supervisor info check:", {
+        hasInternshipDocument: !!cs05Document.internshipDocument,
+        supervisorName: cs05Document.internshipDocument?.supervisorName,
+        supervisorEmail: cs05Document.internshipDocument?.supervisorEmail,
+        hasCompleteSupervisorInfo,
+      });
+
+      // ✅ กำหนดเงื่อนไขการพร้อมใช้งาน
+      const isReferralLetterReady =
         cs05Document.status === "approved" &&
         acceptanceLetter &&
+        acceptanceLetter.status === "approved" &&
         hasCompleteSupervisorInfo;
 
-      // 5. ✅ ตรวจสอบสถานะการดาวน์โหลดจาก field ใหม่
+      // ✅ ตรวจสอบสถานะการดาวน์โหลด
       let downloadStatus = "not_downloaded";
-
-      // ✅ ใช้ชื่อ attribute ที่ถูกต้อง
       if (cs05Document.downloadStatus === "downloaded") {
         downloadStatus = "downloaded";
+      } else if (isReferralLetterReady) {
+        downloadStatus = "ready";
       }
 
       console.log("[DEBUG] Status calculation:", {
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
         hasCompleteSupervisorInfo,
-        isReady,
+        isReferralLetterReady,
         downloadStatus,
-        downloadedAt: cs05Document.downloadedAt, // ✅ ใช้ชื่อ attribute
-        downloadCount: cs05Document.downloadCount, // ✅ ใช้ชื่อ attribute
+        downloadedAt: cs05Document.downloadedAt,
+        downloadCount: cs05Document.downloadCount,
       });
 
       return {
-        hasReferralLetter: isReady,
-        status: isReady ? downloadStatus : "not_ready",
+        hasReferralLetter: isReferralLetterReady,
+        status: downloadStatus,
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceLetterStatus: acceptanceLetter?.status || "not_uploaded",
         hasSupervisorInfo: hasCompleteSupervisorInfo,
-        createdDate: isReady ? cs05Document.created_at : null,
+        createdDate: isReferralLetterReady ? cs05Document.created_at : null,
         readyDate: acceptanceLetter?.updated_at || null,
-        downloadedAt: cs05Document.downloadedAt, // ✅ ใช้ชื่อ attribute
-        downloadCount: cs05Document.downloadCount || 0, // ✅ ใช้ชื่อ attribute
+        downloadedAt: cs05Document.downloadedAt,
+        downloadCount: cs05Document.downloadCount || 0,
         originalStatus: downloadStatus,
       };
     } catch (error) {
@@ -2290,6 +2299,7 @@ class InternshipManagementService {
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
           status: ["pending", "approved"], // หาเฉพาะที่ยังไม่ถูกปฏิเสธ
+          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05
         },
         transaction,
       });
@@ -2352,7 +2362,7 @@ class InternshipManagementService {
           fileName: fileData.filename,
           fileSize: fileData.size,
           mimeType: fileData.mimetype,
-          parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05
+          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05
         },
         { transaction }
       );
@@ -2360,7 +2370,7 @@ class InternshipManagementService {
       console.log("[DEBUG] Created new acceptance letter document:", {
         documentId: acceptanceDocument.documentId,
         fileName: fileData.filename,
-        parentDocumentId: cs05Document.documentId,
+        // parentDocumentId: cs05Document.documentId,
       });
 
       console.log("[DEBUG] Updated CS05 status to acceptance_uploaded");
@@ -2400,6 +2410,7 @@ class InternshipManagementService {
           documentId: parseInt(cs05DocumentId),
           userId: userId,
           documentName: "CS05",
+          documentType: "INTERNSHIP",
         },
         include: [
           {
@@ -2425,7 +2436,7 @@ class InternshipManagementService {
           documentType: "INTERNSHIP",
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
-          parentDocumentId: cs05Document.documentId, // ✅ เชื่อมโยงกับ CS05 โดยตรง
+          // parentDocumentId: cs05Document.documentId, // ✅ เชื่อมโยงกับ CS05 โดยตรง
         },
         order: [["created_at", "DESC"]], // เอาล่าสุด
       });
@@ -2514,6 +2525,7 @@ class InternshipManagementService {
         // ข้อมูลเอกสาร CS05
         cs05DocumentId: cs05Document.documentId,
         cs05Status: cs05Document.status, // อาจจะเป็น "acceptance_approved" หลังการอัปเดต
+        cs05DocumentType: cs05Document.documentType,
 
         // ข้อมูลหนังสือตอบรับ
         hasAcceptanceLetter: !!acceptanceLetter,
@@ -2590,7 +2602,7 @@ class InternshipManagementService {
       }
 
       const fileName = acceptanceDocument.fileName;
-      const parentDocumentId = acceptanceDocument.parentDocumentId;
+      // const parentDocumentId = acceptanceDocument.parentDocumentId;
 
       // 2. ลบไฟล์จากระบบ (ถ้ามี)
       if (acceptanceDocument.filePath) {
@@ -2613,7 +2625,7 @@ class InternshipManagementService {
       await acceptanceDocument.destroy({ transaction });
 
       // 4. อัปเดตสถานะ CS05 กลับเป็น approved (ถ้ามี parent document)
-      if (parentDocumentId) {
+      /* if (parentDocumentId) {
         const cs05Document = await Document.findOne({
           where: {
             documentId: parentDocumentId,
@@ -2633,14 +2645,14 @@ class InternshipManagementService {
           );
           console.log("[DEBUG] CS05 status reverted to approved");
         }
-      }
+      } */
 
       await transaction.commit();
 
       return {
         message: `ลบหนังสือตอบรับ "${fileName}" เรียบร้อยแล้ว`,
         deletedDocumentId: acceptanceDocument.documentId,
-        cs05DocumentId: parentDocumentId,
+        // cs05DocumentId: parentDocumentId,
       };
     } catch (error) {
       await transaction.rollback();
@@ -2826,6 +2838,7 @@ class InternshipManagementService {
           documentId: parseInt(cs05DocumentId),
           userId: userId,
           documentName: "CS05",
+          documentType: "INTERNSHIP",
         },
       });
 
@@ -2845,6 +2858,8 @@ class InternshipManagementService {
           documentType: "INTERNSHIP",
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
+          status: "approved", // หาเฉพาะที่ได้รับการอนุมัติ
+          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05 โดยตรง
         },
         order: [["created_at", "DESC"]], // เอาล่าสุด
       });
@@ -2915,7 +2930,7 @@ class InternshipManagementService {
   }
 
   /**
-   * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว (แก้ไขใหม่)
+   * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว (แก้ไข Database Schema Error)
    */
   async markReferralLetterDownloaded(userId, cs05DocumentId) {
     const transaction = await sequelize.transaction();
@@ -2932,7 +2947,15 @@ class InternshipManagementService {
           documentId: parseInt(cs05DocumentId),
           userId: userId,
           documentName: "CS05",
+          documentType: "INTERNSHIP", // ✅ ระบุประเภทเอกสาร
         },
+        include: [
+          {
+            model: InternshipDocument,
+            as: "internshipDocument",
+            required: true, // ✅ บังคับให้มี InternshipDocument
+          },
+        ],
         transaction,
       });
 
@@ -2940,56 +2963,89 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05 หรือไม่มีสิทธิ์เข้าถึง");
       }
 
+      // ✅ ตรวจสอบหนังสือตอบรับ (ACCEPTANCE_LETTER) ที่ได้รับการอนุมัติ
+      const acceptanceLetter = await Document.findOne({
+        where: {
+          userId: userId,
+          documentType: "INTERNSHIP",
+          documentName: "ACCEPTANCE_LETTER",
+          category: "acceptance",
+          status: "approved",
+          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05
+        },
+        transaction,
+      });
+
+      if (!acceptanceLetter) {
+        throw new Error(
+          "ไม่พบหนังสือตอบรับที่ได้รับการอนุมัติ กรุณาอัปโหลดและรอการอนุมัติหนังสือตอบรับก่อน"
+        );
+      }
+
       console.log("[DEBUG] Found CS05 Document BEFORE update:", {
         documentId: cs05Document.documentId,
         currentStatus: cs05Document.status,
-        // ✅ ใช้ชื่อ attribute ที่ถูกต้อง
         currentDownloadStatus: cs05Document.downloadStatus,
         currentDownloadCount: cs05Document.downloadCount,
         currentDownloadedAt: cs05Document.downloadedAt,
+        hasAcceptanceLetter: true,
+        acceptanceLetterStatus: acceptanceLetter.status,
       });
 
-      // ✅ อัปเดตข้อมูลการดาวน์โหลดใน field ใหม่
+      // ✅ อัปเดตข้อมูลการดาวน์โหลด (ไม่เปลี่ยน main status ก่อน)
       const downloadTimestamp = new Date();
       const currentDownloadCount = cs05Document.downloadCount || 0;
 
-      // ✅ ใช้ update() ของ Sequelize แทน raw SQL
-      const [affectedRows] = await cs05Document.update(
+      // ✅ อัปเดตเฉพาะ download fields และใช้ status ที่มีอยู่ใน ENUM
+      await acceptanceLetter.update(
         {
-          downloadStatus: "downloaded", // ✅ ใช้ชื่อ attribute
-          downloadedAt: downloadTimestamp, // ✅ ใช้ชื่อ attribute
-          downloadCount: currentDownloadCount + 1, // ✅ ใช้ชื่อ attribute
+          downloadStatus: "downloaded",
+          downloadedAt: downloadTimestamp,
+          downloadCount: currentDownloadCount + 1,
+          // ✅ ใช้ status ที่มีอยู่ใน ENUM - หรือไม่อัปเดต status เลย
+          status: "supervisor_evaluated", // ใช้ status ที่มีอยู่แล้ว
+          updated_at: downloadTimestamp,
         },
         { transaction }
       );
+      
+      /* await cs05Document.update(
+        {
+          status: "supervisor_evaluated", // ใช้ status ที่มีอยู่ใน ENUM
+          updated_at: downloadTimestamp,
+        },
+        { transaction }
+      ); */
 
-      console.log("[DEBUG] Update result:", {
-        affectedRows: affectedRows,
-        documentId: cs05Document.documentId,
-      });
+      console.log("[DEBUG] Update completed successfully");
 
+      await acceptanceLetter.reload({ transaction });
+      await cs05Document.reload({ transaction });
       // ตรวจสอบผลลัพธ์หลัง update
       await cs05Document.reload({ transaction });
 
       console.log("[DEBUG] Document AFTER update:", {
-        documentId: cs05Document.documentId,
-        status: cs05Document.status,
-        downloadStatus: cs05Document.downloadStatus, // ✅ ใช้ชื่อ attribute
-        downloadedAt: cs05Document.downloadedAt, // ✅ ใช้ชื่อ attribute
-        downloadCount: cs05Document.downloadCount, // ✅ ใช้ชื่อ attribute
+        cs05DocumentId: cs05Document.documentId,
+        cs05Status: cs05Document.status,
+        acceptanceDocumentId: acceptanceLetter.documentId,
+        acceptanceDownloadStatus: acceptanceLetter.downloadStatus, // ✅ ควรเป็น "downloaded"
+        acceptanceDownloadedAt: acceptanceLetter.downloadedAt,
+        acceptanceDownloadCount: acceptanceLetter.downloadCount,
       });
 
       await transaction.commit();
 
       return {
-        documentId: cs05Document.documentId,
+        documentId: acceptanceLetter.documentId, // ✅ ID ของ ACCEPTANCE_LETTER
+        cs05DocumentId: cs05Document.documentId,
         status: "downloaded",
         downloadDate: downloadTimestamp,
         downloadCount: currentDownloadCount + 1,
         completedProcess: true,
-        previousStatus: cs05Document.status,
-        mainDocumentStatus: cs05Document.status,
-        affectedRows: 1, // Sequelize update จะคืนค่า array ของ affected rows
+        documentType: "INTERNSHIP", // ✅ ระบุประเภทเอกสารที่ถูกอัปเดต
+        cs05Status: cs05Document.status,
+        referralLetterReady: true,
+        acceptanceLetterDownloaded: true,
       };
     } catch (error) {
       await transaction.rollback();
