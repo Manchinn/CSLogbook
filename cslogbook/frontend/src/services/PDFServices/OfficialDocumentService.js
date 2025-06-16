@@ -6,7 +6,8 @@ import {
   OfficialLetterTemplate, 
   StudentSummaryTemplate, 
   CompanyInfoTemplate,
-  AcceptanceLetterTemplate 
+  AcceptanceLetterTemplate,
+  ReferralLetterTemplate // 🆕 เพิ่ม import
 } from '../../components/internship/templates';
 
 class OfficialDocumentService {
@@ -218,7 +219,89 @@ class OfficialDocumentService {
   }
 
   /**
-   * แสดง PDF Preview
+   * 🆕 สร้าง PDF หนังสือส่งตัวนักศึกษา
+   * @param {Object} referralData - ข้อมูลหนังสือส่งตัว
+   * @param {Object} options - ตัวเลือกเพิ่มเติม
+   */
+  async generateReferralLetterPDF(referralData, options = {}) {
+    try {
+      await this.pdfService.initialize();
+      
+      // ตรวจสอบข้อมูลพื้นฐานก่อนเตรียมข้อมูล
+      if (!referralData) {
+        throw new Error('ไม่มีข้อมูลสำหรับสร้างหนังสือส่งตัว');
+      }
+
+      // 🔧 ใช้ method ใหม่สำหรับเตรียมข้อมูลหนังสือส่งตัว
+      const preparedData = this.templateDataService.prepareReferralLetterData(referralData);
+      
+      // ตรวจสอบ preparedData
+      if (!preparedData) {
+        throw new Error('ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้');
+      }
+
+      // สร้างชื่อไฟล์ - ใช้ชื่อนักศึกษา
+      const studentName = preparedData.studentData?.[0]?.fullName || 'นักศึกษา';
+      const filename = this.pdfService.generateFileName('referral_letter', studentName, 'หนังสือส่งตัว');
+
+      // สร้าง template
+      const template = ReferralLetterTemplate({ data: preparedData });
+      await this.pdfService.generateAndDownload(template, filename);
+
+      // 🔒 บันทึกข้อมูลไปยัง Server (ปิดชั่วคราว)
+      if (options.saveToServer !== false && this.enableServerRecording) {
+        try {
+          await this.savePDFRecord('REFERRAL_LETTER', preparedData, filename);
+        } catch (recordError) {
+          console.warn('📝 PDF record save failed (but PDF generation succeeded):', recordError.message);
+        }
+      } else if (!this.enableServerRecording) {
+        console.info('ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true');
+      }
+
+      console.log(`✅ Referral Letter PDF generated: ${filename}`);
+      return { success: true, filename, data: preparedData };
+    } catch (error) {
+      console.error('Error generating Referral Letter PDF:', error);
+      console.error('Error stack:', error.stack);
+      throw new Error(`ไม่สามารถสร้างหนังสือส่งตัวได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🆕 แสดง Preview หนังสือส่งตัวนักศึกษา
+   * @param {Object} referralData - ข้อมูลหนังสือส่งตัว
+   */
+  async previewReferralLetterPDF(referralData) {
+    try {
+      await this.pdfService.initialize();
+      
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!referralData) {
+        throw new Error('ไม่มีข้อมูลสำหรับแสดงตัวอย่างหนังสือส่งตัว');
+      }
+
+      // เตรียมข้อมูล
+      const preparedData = this.templateDataService.prepareReferralLetterData(referralData);
+      
+      if (!preparedData) {
+        throw new Error('ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้');
+      }
+
+      // สร้าง template และแสดง preview
+      const template = ReferralLetterTemplate({ data: preparedData });
+      await this.pdfService.previewPDF(template);
+      
+      console.log(`👁️ Referral Letter preview opened`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error previewing Referral Letter:', error);
+      throw new Error(`ไม่สามารถแสดงตัวอย่างหนังสือส่งตัวได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * แสดง PDF Preview (อัปเดตเพื่อรองรับ referral_letter)
    * @param {string} templateType - ประเภท template
    * @param {Object} data - ข้อมูล
    */
@@ -245,6 +328,12 @@ class OfficialDocumentService {
             isBlank: data?.isBlank || false
           });
           break;
+        // 🆕 เพิ่ม case สำหรับ referral_letter
+        case 'referral_letter':
+        case 'referral':
+          preparedData = this.templateDataService.prepareReferralLetterData(data);
+          template = ReferralLetterTemplate({ data: preparedData });
+          break;
         case 'student_summary':
         case 'summary':
           preparedData = this.templateDataService.prepareStudentSummaryData(data);
@@ -269,7 +358,7 @@ class OfficialDocumentService {
   }
 
   /**
-   * สร้าง PDF หลายไฟล์พร้อมกัน (Batch)
+   * สร้าง PDF หลายไฟล์พร้อมกัน (Batch) - อัปเดตเพื่อรองรับ REFERRAL_LETTER
    * @param {Array} documents - รายการเอกสาร
    * @param {Object} options - ตัวเลือกเพิ่มเติม
    */
@@ -288,6 +377,13 @@ class OfficialDocumentService {
               break;
             case 'OFFICIAL_LETTER':
               result = await this.generateOfficialLetterPDF(doc.data, options);
+              break;
+            case 'ACCEPTANCE_LETTER':
+              result = await this.generateAcceptanceFormPDF(doc.data, doc.isBlank, options);
+              break;
+            // 🆕 เพิ่ม case สำหรับ REFERRAL_LETTER
+            case 'REFERRAL_LETTER':
+              result = await this.generateReferralLetterPDF(doc.data, options);
               break;
             case 'STUDENT_SUMMARY':
               result = await this.generateStudentSummaryPDF(doc.data, options);
@@ -431,11 +527,12 @@ class OfficialDocumentService {
       availableTemplates: [
         'CS05', 
         'OFFICIAL_LETTER', 
-        'ACCEPTANCE_LETTER',  // 🆕 เพิ่มใหม่
+        'ACCEPTANCE_LETTER',
+        'REFERRAL_LETTER', // 🆕 เพิ่มใหม่
         'STUDENT_SUMMARY', 
         'COMPANY_INFO'
       ],
-      serviceVersion: '1.5.0', // อัปเดตเวอร์ชัน
+      serviceVersion: '1.6.0', // อัปเดตเวอร์ชัน
       recordingStatus: this.getRecordingStatus()
     };
   }

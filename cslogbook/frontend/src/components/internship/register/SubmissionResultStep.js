@@ -29,6 +29,9 @@ import "dayjs/locale/th";
 import internshipService from "../../../services/internshipService";
 // เพิ่ม import สำหรับ PDF Service
 import officialDocumentService from "../../../services/PDFServices/OfficialDocumentService";
+import pdfService from "../../../services/PDFServices/PDFService";
+import templateDataService from "../../../services/PDFServices/TemplateDataService";
+import { ReferralLetterTemplate } from "../templates";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -56,6 +59,10 @@ const SubmissionResultStep = ({
   // 🆕 เพิ่ม state สำหรับตรวจสอบสถานะการอัปโหลด
   const [acceptanceLetterStatus, setAcceptanceLetterStatus] = useState(null);
   const [acceptanceLetterInfo, setAcceptanceLetterInfo] = useState(null);
+
+  // 🆕 เพิ่ม state สำหรับหนังสือส่งตัวนักศึกษา
+  const [referralLetterStatus, setReferralLetterStatus] = useState(null);
+  const [referralLetterInfo, setReferralLetterInfo] = useState(null);
 
   // 🆕 เพิ่มการตรวจสอบสถานะ PDF Service
   useEffect(() => {
@@ -267,9 +274,9 @@ const SubmissionResultStep = ({
         updateStepFromStatus("acceptance_uploaded");
 
         // 🆕 ตรวจสอบสถานะใหม่หลังจากอัปโหลด 3 วินาที
-        setTimeout(() => {
+        /* setTimeout(() => {
           checkAcceptanceLetterStatus();
-        }, 3000);
+        }, 3000); */
       } else {
         message.error(response.message || "ไม่สามารถอัปโหลดหนังสือตอบรับได้");
       }
@@ -305,6 +312,129 @@ const SubmissionResultStep = ({
     }
   };
 
+  // ✅ ปรับปรุงฟังก์ชันสร้างหนังสือส่งตัว
+  const handleGenerateReferralLetter = async () => {
+    setPdfLoading(true);
+    try {
+      const pdfData = prepareFormDataForPDF();
+      if (!pdfData) return;
+
+      // เพิ่มข้อมูลเฉพาะสำหรับหนังสือส่งตัว
+      const referralData = {
+        ...pdfData,
+        supervisorName: existingCS05?.supervisorName || "",
+        supervisorPosition: existingCS05?.supervisorPosition || "",
+        supervisorPhone: existingCS05?.supervisorPhone || "",
+        supervisorEmail: existingCS05?.supervisorEmail || "",
+      };
+
+      // สร้าง PDF
+      await pdfService.initialize();
+      const preparedData =
+        templateDataService.prepareReferralLetterData(referralData);
+      const template = <ReferralLetterTemplate data={preparedData} />;
+      const filename = pdfService.generateFileName(
+        "referral_letter",
+        preparedData.studentData?.[0]?.fullName || "นักศึกษา",
+        "หนังสือส่งตัวฝึกงาน"
+      );
+
+      await pdfService.generateAndDownload(template, filename);
+      message.success("สร้างหนังสือส่งตัวสำเร็จ!");
+
+      // ✅ อัปเดต Frontend State แบบสมบูรณ์
+      setReferralLetterStatus("downloaded");
+      setCurrentInternshipStep(7);
+      setCs05Status("referral_downloaded"); // ✅ อัปเดต CS05 status
+
+      console.log("✅ อัปเดต Frontend state เรียบร้อย:");
+      console.log("  - referralLetterStatus: downloaded");
+      console.log("  - currentInternshipStep: 7");
+      console.log("  - cs05Status: referral_downloaded");
+
+      // ✅ เรียก Backend API เพื่อซิงค์ข้อมูล
+      if (existingCS05?.documentId) {
+        try {
+          const response = await internshipService.markReferralLetterDownloaded(
+            existingCS05.documentId
+          );
+
+          console.log("✅ อัปเดตสถานะใน Backend สำเร็จ:", response);
+
+          // ✅ ตรวจสอบว่า Backend ต้องการอัปเดต CS05 status หรือไม่
+          if (response.data?.shouldUpdateCS05Status) {
+            await internshipService.updateCS05Status(
+              existingCS05.documentId,
+              "referral_downloaded"
+            );
+            console.log(
+              "✅ อัปเดต CS05 status ใน Backend เป็น referral_downloaded"
+            );
+          }
+        } catch (apiError) {
+          console.warn(
+            "⚠️ Backend API Error (ไม่กระทบการทำงาน):",
+            apiError.message
+          );
+
+          // Fallback: เก็บใน localStorage
+          localStorage.setItem(
+            `referral_downloaded_${existingCS05.documentId}`,
+            "true"
+          );
+          localStorage.setItem(
+            `cs05_status_${existingCS05.documentId}`,
+            "referral_downloaded"
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error generating referral letter:", error);
+      message.error(
+        "ไม่สามารถสร้างหนังสือส่งตัวได้: " +
+          (error.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ")
+      );
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  // ฟังก์ชัน Preview หนังสือส่งตัว (อัปเดตใหม่)
+  const handlePreviewReferralLetter = async () => {
+    setPreviewLoading(true);
+    try {
+      const pdfData = prepareFormDataForPDF();
+      if (!pdfData) return;
+
+      const referralData = {
+        ...pdfData,
+        supervisorName: existingCS05?.supervisorName || "",
+        supervisorPosition: existingCS05?.supervisorPosition || "",
+        supervisorPhone: existingCS05?.supervisorPhone || "",
+        supervisorEmail: existingCS05?.supervisorEmail || "",
+      };
+
+      // ใช้ services ที่มีอยู่แล้ว
+      await pdfService.initialize();
+
+      const preparedData =
+        templateDataService.prepareReferralLetterData(referralData);
+
+      const template = <ReferralLetterTemplate data={preparedData} />;
+
+      await pdfService.previewPDF(template);
+      message.info("เปิดตัวอย่างหนังสือส่งตัวในแท็บใหม่");
+    } catch (error) {
+      console.error("Error previewing referral letter:", error);
+      message.error(
+        "ไม่สามารถแสดงตัวอย่างหนังสือส่งตัวได้: " +
+          (error.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ")
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   // 🔧 ปรับปรุงฟังก์ชันการแปลงสถานะ
   const getStepFromStatus = (status) => {
     switch (status) {
@@ -319,13 +449,73 @@ const SubmissionResultStep = ({
       case "acceptance_uploaded":
         return 4; // อัปโหลดหนังสือตอบรับ
       case "acceptance_approved":
-        return 5; // รอหนังสือส่งตัว
+        return 6; // รอหนังสือส่งตัว
       case "referral_ready":
         return 6; // นักศึกษาพิมพ์หนังสือส่งตัว
+      case "referral_downloaded": // ✅ เพิ่ม case ใหม่
       case "completed":
-        return 7; // เสร็จสิ้นทุกขั้นตอน
+        return 7; // เสร็จสิ้นขั้นตอนทั้งหมด
       default:
         return 1;
+    }
+  };
+
+  // ✅ เพิ่ม useEffect สำหรับ sync CS05 status เมื่อถึงขั้นตอนที่ 7
+  useEffect(() => {
+    // เมื่อถึงขั้นตอนที่ 7 ให้อัปเดต CS05 status
+    if (
+      currentInternshipStep === 7 &&
+      cs05Status !== "referral_downloaded" &&
+      cs05Status !== "completed"
+    ) {
+      console.log(
+        "[DEBUG] 🔄 ถึงขั้นตอนที่ 7 - อัปเดต CS05 status เป็น referral_downloaded"
+      );
+      setCs05Status("referral_downloaded");
+    }
+  }, [currentInternshipStep]);
+
+  // ✅ เพิ่มฟังก์ชันแยกสำหรับจัดการ Referral Letter Status
+  const updateStepFromReferralStatus = (referralStatus, acceptanceStatus) => {
+    console.log("[DEBUG] updateStepFromReferralStatus:", {
+      referralStatus,
+      acceptanceStatus,
+    });
+
+    if (acceptanceStatus === "approved" && referralStatus === "ready") {
+      console.log("✅ หนังสือส่งตัวพร้อม - ไปขั้นตอนที่ 6");
+      setCurrentInternshipStep(6);
+      setCs05Status("referral_ready"); // อัปเดต cs05Status ด้วย
+    } else if (referralStatus === "downloaded") {
+      console.log("✅ ดาวน์โหลดหนังสือส่งตัวแล้ว - ไปขั้นตอนที่ 7");
+      setCurrentInternshipStep(7);
+    }
+  };
+
+  // ✅ ปรับปรุง updateStepFromStatus ให้จัดการ acceptance_approved ถูกต้อง
+  const updateStepFromStatus = (status) => {
+    const newStep = getStepFromStatus(status);
+    setCurrentInternshipStep(newStep);
+
+    // ✅ แปลง acceptance_approved เป็น referral_ready
+    if (status === "acceptance_approved") {
+      setCs05Status("referral_ready"); // อัปเดต cs05Status ให้ถูกต้อง
+      console.log(
+        `📍 อัปเดตขั้นตอนเป็น ${newStep} จาก CS05 status: ${status} → referral_ready`
+      );
+    } else {
+      setCs05Status(status);
+      console.log(`📍 อัปเดตขั้นตอนเป็น ${newStep} จาก CS05 status: ${status}`);
+    }
+  };
+
+  // 🆕 เพิ่มฟังก์ชันแยกสำหรับจัดการสถานะการดาวน์โหลด
+  const updateStepFromDownloadStatus = (downloadStatus) => {
+    if (downloadStatus === "downloaded") {
+      setCurrentInternshipStep(7); // ขั้นตอนสุดท้าย
+      setCs05Status("referral_downloaded"); // ✅ อัปเดต CS05 status ด้วย
+      console.log("✅ อัปเดตขั้นตอนเป็น 7 (เสร็จสิ้น) จากสถานะการดาวน์โหลด");
+      console.log("✅ อัปเดต CS05 Status เป็น 'referral_downloaded'");
     }
   };
 
@@ -369,13 +559,6 @@ const SubmissionResultStep = ({
     return "wait";
   };
 
-  // อัปเดตสถานะขั้นตอนตามสถานะ CS05
-  const updateStepFromStatus = (status) => {
-    const newStep = getStepFromStatus(status);
-    setCurrentInternshipStep(newStep);
-    setCs05Status(status);
-  };
-
   // โหลดสถานะ CS05 ล่าสุดจาก API
   const fetchLatestCS05Status = async () => {
     try {
@@ -398,7 +581,6 @@ const SubmissionResultStep = ({
   // 🆕 ฟังก์ชันตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
   const checkAcceptanceLetterStatus = async () => {
     if (!existingCS05?.documentId) {
-      console.log("[DEBUG] ไม่มี documentId, ตั้งค่าสถานะเป็น not_uploaded");
       setAcceptanceLetterStatus("not_uploaded");
       setAcceptanceLetterInfo(null);
       return;
@@ -409,8 +591,6 @@ const SubmissionResultStep = ({
         existingCS05.documentId
       );
 
-      console.log("[DEBUG] ผลตรวจสอบสถานะ:", response);
-
       if (response.success) {
         if (response.data.hasAcceptanceLetter) {
           // 🔧 ใช้ mappedStatus จาก service
@@ -419,21 +599,16 @@ const SubmissionResultStep = ({
 
           // ถ้ามีการอัปโหลดแล้ว ให้อัปเดตขั้นตอน
           if (response.data.status === "uploaded") {
-            console.log(
-              "[DEBUG] พบหนังสือตอบรับที่อัปโหลดแล้ว (pending ใน database)"
-            );
             updateStepFromStatus("acceptance_uploaded");
           } else if (response.data.status === "approved") {
             updateStepFromStatus("acceptance_approved");
           }
         } else {
           // ไม่มีการอัปโหลด
-          console.log("[DEBUG] ยังไม่มีการอัปโหลดหนังสือตอบรับ");
           setAcceptanceLetterStatus("not_uploaded");
           setAcceptanceLetterInfo(null);
         }
       } else {
-        console.log("[DEBUG] API response ไม่สำเร็จ");
         setAcceptanceLetterStatus("not_uploaded");
         setAcceptanceLetterInfo(null);
       }
@@ -442,7 +617,6 @@ const SubmissionResultStep = ({
 
       // กรณี API ยังไม่มีหรือมีปัญหา ให้ถือว่ายังไม่มีการอัปโหลด
       if (error.response?.status === 404) {
-        console.log("[DEBUG] API 404 - ยังไม่มีหนังสือตอบรับ");
         setAcceptanceLetterStatus("not_uploaded");
         setAcceptanceLetterInfo(null);
       } else {
@@ -452,7 +626,67 @@ const SubmissionResultStep = ({
     }
   };
 
-  // เรียกใช้เมื่อ component โหลด
+  // ฟังก์ชันตรวจสอบสถานะหนังสือส่งตัว (แยกการจัดการสถานะ)
+  const checkReferralLetterStatus = async () => {
+    if (!existingCS05?.documentId) {
+      setReferralLetterStatus("not_ready");
+      setReferralLetterInfo(null);
+      return;
+    }
+
+    // ป้องกันการ override เมื่อผู้ใช้เพิ่งดาวน์โหลด
+    if (referralLetterStatus === "downloaded" && currentInternshipStep === 7) {
+      console.log("[DEBUG] 🛡️ ป้องกันการ override - ผู้ใช้เพิ่งดาวน์โหลด");
+      return;
+    }
+
+    try {
+      console.log("[DEBUG] 🔍 ตรวจสอบสถานะหนังสือส่งตัวจาก Backend...");
+
+      const response = await internshipService.checkReferralLetterStatus(
+        existingCS05.documentId
+      );
+
+      console.log("[DEBUG] ✅ ผลตรวจสอบสถานะ:", response);
+
+      if (response.success && response.data.hasReferralLetter) {
+        const apiStatus = response.data.status; // 'ready' หรือ 'downloaded'
+
+        console.log("[DEBUG] 📊 สถานะจาก API:", apiStatus);
+
+        setReferralLetterStatus(apiStatus);
+        setReferralLetterInfo(response.data);
+
+        // ✅ ไม่อัปเดต currentInternshipStep ที่นี่
+        // ให้ useEffect อื่นจัดการ
+      } else {
+        setReferralLetterStatus("not_ready");
+      }
+    } catch (error) {
+      console.error("[DEBUG] ❌ Error checking referral letter status:", error);
+
+      // ตรวจสอบ localStorage fallback เมื่อมี error
+      const fallbackStatus = localStorage.getItem(
+        `referral_downloaded_${existingCS05.documentId}`
+      );
+
+      if (fallbackStatus === "true") {
+        console.log("[DEBUG] 🔄 API Error - ใช้สถานะจาก localStorage fallback");
+        setReferralLetterStatus("downloaded");
+        updateStepFromDownloadStatus("downloaded");
+      } else {
+        if (error.response?.status === 404) {
+          setReferralLetterStatus("not_ready");
+          setReferralLetterInfo(null);
+        } else {
+          setReferralLetterStatus("error");
+          setReferralLetterInfo(null);
+        }
+      }
+    }
+  };
+
+  // เรียกใช้เมื่อ component โหลด (ปรับปรุงให้เรียบง่าย)
   useEffect(() => {
     // ตั้งค่าขั้นตอนเริ่มต้นจากข้อมูลที่มีอยู่
     if (existingCS05?.status) {
@@ -461,24 +695,49 @@ const SubmissionResultStep = ({
 
     // ฟังก์ชันตรวจสอบสถานะทั้งหมด
     const checkAllStatus = async () => {
-      // ตรวจสอบสถานะ CS05
-      await fetchLatestCS05Status();
+      console.log("[DEBUG] 🔄 เริ่มตรวจสอบสถานะทั้งหมด...");
 
-      // ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
-      await checkAcceptanceLetterStatus();
+      try {
+        // 1. ตรวจสอบสถานะ CS05
+        await fetchLatestCS05Status();
+
+        // 2. ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+        await checkAcceptanceLetterStatus();
+
+        // 3. ✅ ตรวจสอบสถานะหนังสือส่งตัว (ใหม่)
+        const currentAcceptanceStatus = acceptanceLetterStatus;
+
+        // ถ้าหนังสือตอบรับได้รับการอนุมัติแล้ว ให้ตรวจสอบหนังสือส่งตัว
+        if (
+          currentAcceptanceStatus === "approved" ||
+          cs05Status === "acceptance_approved"
+        ) {
+          console.log(
+            "[DEBUG] 🔍 หนังสือตอบรับอนุมัติแล้ว - ตรวจสอบหนังสือส่งตัว"
+          );
+
+          await checkReferralLetterStatus();
+        }
+
+        console.log("[DEBUG] ✅ ตรวจสอบสถานะทั้งหมดเสร็จสิ้น");
+      } catch (error) {
+        console.error("[DEBUG] ❌ Error in checkAllStatus:", error);
+      }
     };
 
-    // เรียกใช้ทันทีเมื่อ component โหลด
     checkAllStatus();
-
-    // ตั้งค่า polling เพื่อตรวจสอบสถานะทุก 30 วินาที
-    const pollInterval = setInterval(checkAllStatus, 20000);
-
-    return () => clearInterval(pollInterval);
   }, [existingCS05?.status, existingCS05?.documentId]);
 
-  // แสดงข้อมูลตามโครงสร้างที่มาจาก existingCS05 หรือ formData
-  const displayData = existingCS05 || formData || {};
+  // ✅ เพิ่ม useEffect แยกสำหรับ watch การเปลี่ยนแปลง referralLetterStatus
+  useEffect(() => {
+    if (referralLetterStatus && acceptanceLetterStatus === "approved") {
+      console.log(
+        "[DEBUG] 👀 referralLetterStatus เปลี่ยนแปลง:",
+        referralLetterStatus
+      );
+      updateStepFromReferralStatus(referralLetterStatus, "approved");
+    }
+  }, [referralLetterStatus, acceptanceLetterStatus]);
 
   // ขั้นตอนทั้งหมดของการฝึกงาน (7 ขั้นตอน) - อัปเดตให้สะท้อนสถานะปัจจุบัน
   const internshipProcessSteps = [
@@ -708,14 +967,29 @@ const SubmissionResultStep = ({
       title: "รอหนังสือส่งตัว",
       description: "เจ้าหน้าที่ภาควิชาออกหนังสือส่งตัว",
       icon: <FileDoneOutlined />,
-      status: getStepStatus(6, currentInternshipStep, acceptanceLetterStatus),
-
-      color:
-        currentInternshipStep > 5
-          ? "#52c41a"
-          : currentInternshipStep === 5
-          ? "#1890ff"
-          : "#d9d9d9",
+      // ✅ ปรับ logic ให้ข้าม step 5 เมื่อ acceptance_approved
+      status: (() => {
+        if (
+          cs05Status === "acceptance_approved" ||
+          cs05Status === "referral_ready"
+        ) {
+          return "finish"; // ข้ามขั้นตอนนี้
+        }
+        if (currentInternshipStep > 5) return "finish";
+        if (currentInternshipStep === 5) return "process";
+        return "wait";
+      })(),
+      color: (() => {
+        if (
+          cs05Status === "acceptance_approved" ||
+          cs05Status === "referral_ready"
+        ) {
+          return "#52c41a"; // เสร็จแล้ว (ข้าม)
+        }
+        if (currentInternshipStep > 5) return "#52c41a";
+        if (currentInternshipStep === 5) return "#1890ff";
+        return "#d9d9d9";
+      })(),
       details: [
         "เจ้าหน้าที่ภาควิชาจัดทำหนังสือส่งตัวนักศึกษา",
         "ตรวจสอบรายละเอียดก่อนออกเอกสาร",
@@ -727,20 +1001,147 @@ const SubmissionResultStep = ({
       title: "นักศึกษาพิมพ์หนังสือส่งตัว",
       description: "ดาวน์โหลดและพิมพ์หนังสือส่งตัวเพื่อไปแจ้งให้กับบริษัท",
       icon: <DownloadOutlined />,
-      status: getStepStatus(7, currentInternshipStep, acceptanceLetterStatus/* referralLetterStatus */),
 
-      color:
-        currentInternshipStep > 6
-          ? "#52c41a"
-          : currentInternshipStep === 6
-          ? "#1890ff"
-          : "#d9d9d9",
+      // ✅ Logic ใหม่ที่เรียบง่าย
+      status: (() => {
+        if (referralLetterStatus === "downloaded") {
+          return "finish";
+        }
+        if (
+          cs05Status === "acceptance_approved" ||
+          cs05Status === "referral_ready" ||
+          (currentInternshipStep === 6 && referralLetterStatus === "ready")
+        ) {
+          return "process";
+        }
+        return "wait";
+      })(),
+
+      color: (() => {
+        if (
+          referralLetterStatus === "downloaded" ||
+          currentInternshipStep > 6
+        ) {
+          return "#52c41a";
+        }
+        if (currentInternshipStep === 6) {
+          return "#1890ff";
+        }
+        return "#d9d9d9";
+      })(),
+
+      // actions จะแสดงเมื่อ status = "process"
+      actions:
+        cs05Status === "acceptance_approved" ||
+        cs05Status === "referral_ready" ||
+        (currentInternshipStep === 6 && referralLetterStatus === "ready") ? (
+          <Card size="small" style={{ marginTop: 12 }}>
+            <Alert
+              message="หนังสือส่งตัวพร้อมแล้ว"
+              description="ขณะนี้คุณสามารถดาวน์โหลดหนังสือส่งตัวเพื่อนำไปรายงานตัวกับบริษัทได้แล้ว"
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <div>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                📋 หนังสือส่งตัวนักศึกษา:
+              </Text>
+              <Space wrap>
+                <Tooltip title="ดูตัวอย่างหนังสือส่งตัว">
+                  <Button
+                    icon={<EyeOutlined />}
+                    onClick={handlePreviewReferralLetter}
+                    loading={previewLoading}
+                    size="small"
+                  >
+                    Preview
+                  </Button>
+                </Tooltip>
+
+                <Tooltip title="ดาวน์โหลดหนังสือส่งตัว">
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    onClick={handleGenerateReferralLetter}
+                    loading={pdfLoading}
+                    size="small"
+                  >
+                    ดาวน์โหลดหนังสือส่งตัว
+                  </Button>
+                </Tooltip>
+              </Space>
+            </div>
+
+            <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
+              💡 หลังจากดาวน์โหลดแล้ว
+              กรุณาพิมพ์และนำไปรายงานตัวกับบริษัทตามวันที่กำหนด
+            </div>
+          </Card>
+        ) : null,
+    },
+    {
+      title: "เสร็จสิ้นขั้นตอนการเตรียมตัวฝึกงาน",
+      description: "ขั้นตอนการเตรียมความพร้อมสำหรับการฝึกงานเสร็จสมบูรณ์",
+      icon: <CheckCircleOutlined />,
+      status: (() => {
+        if (
+          currentInternshipStep >= 7 ||
+          cs05Status === "referral_downloaded" ||
+          cs05Status === "completed" ||
+          referralLetterStatus === "downloaded"
+        ) {
+          return "finish";
+        }
+        return "wait";
+      })(),
+      color: (() => {
+        if (
+          currentInternshipStep >= 7 ||
+          cs05Status === "referral_downloaded" ||
+          cs05Status === "completed" ||
+          referralLetterStatus === "downloaded"
+        ) {
+          return "#52c41a";
+        }
+        return "#d9d9d9";
+      })(),
       details: [
-        "ดาวน์โหลดหนังสือส่งตัวจากระบบ",
-        "พิมพ์เอกสารเพื่อนำไปรายงานตัว",
-        "นำหนังสือไปแจ้งให้กับบริษัท/หน่วยงาน",
-        "เริ่มต้นการฝึกงานตามกำหนดการ",
+        "✅ คำร้อง CS05 ได้รับการอนุมัติแล้ว",
+        "✅ หนังสือขอความอนุเคราะห์ได้รับการจัดทำและดาวน์โหลดแล้ว",
+        "✅ หนังสือตอบรับจากบริษัทได้รับการอัปโหลดและอนุมัติแล้ว",
+        "✅ หนังสือส่งตัวได้รับการดาวน์โหลดแล้ว",
+        "🎉 พร้อมเริ่มต้นการฝึกงานตามกำหนดการ",
       ],
+
+      // 🆕 แสดง actions เมื่อเสร็จสิ้น
+      actions:
+        currentInternshipStep >= 7 ||
+        cs05Status === "referral_downloaded" ||
+        cs05Status === "completed" ? (
+          <Card size="small" style={{ marginTop: 12 }}>
+            <Alert
+              message="🎉 ขั้นตอนการเตรียมตัวเสร็จสมบูรณ์!"
+              description="คุณได้ดำเนินการขั้นตอนการเตรียมตัวสำหรับการฝึกงานครบถ้วนแล้ว ขณะนี้พร้อมเริ่มต้นการฝึกงานตามกำหนดการ"
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <div>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                📋 ขั้นตอนต่อไป:
+              </Text>
+              <ul style={{ marginBottom: 12, paddingLeft: 20 }}>
+                <li>นำหนังสือส่งตัวไปรายงานตัวกับบริษัท/หน่วยงาน</li>
+                <li>เริ่มต้นการฝึกงานตามวันที่กำหนด</li>
+                <li>บันทึกการฝึกงานในระบบ CSLogbook</li>
+                <li>ติดต่อผู้ควบคุมงานและอาจารย์ที่ปรึกษาเป็นระยะ</li>
+              </ul>
+            </div>
+          </Card>
+        ) : null,
     },
   ];
 
@@ -760,7 +1161,7 @@ const SubmissionResultStep = ({
     return {
       title: currentStep?.title || "",
       description: currentStep?.description || "",
-      nextAction: getNextActionText(currentInternshipStep - 1),
+      nextAction: getNextActionText(currentInternshipStep),
     };
   };
 
@@ -811,81 +1212,90 @@ const SubmissionResultStep = ({
         style={{ marginBottom: 24 }}
       >
         <Timeline>
-          {internshipProcessSteps.map((step, index) => (
-            <Timeline.Item
-              key={index}
-              dot={
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    backgroundColor: step.color,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
-                  {index + 1}
-                </div>
-              }
-              color={step.color}
-            >
-              <div style={{ paddingLeft: 16 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <Text strong style={{ fontSize: "16px" }}>
-                    {step.title}
-                  </Text>
-                  <Tag
-                    color={
-                      step.status === "finish"
-                        ? "success"
-                        : step.status === "process"
-                        ? "processing"
-                        : "default"
-                    }
+          {/* 🔧 เพิ่มการตรวจสอบ array ก่อน map */}
+          {Array.isArray(internshipProcessSteps) &&
+          internshipProcessSteps.length > 0 ? (
+            internshipProcessSteps.map((step, index) => (
+              <Timeline.Item
+                key={index}
+                dot={
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      backgroundColor: step.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                    }}
                   >
-                    {step.status === "finish"
-                      ? "เสร็จสิ้น"
-                      : step.status === "process"
-                      ? "กำลังดำเนินการ"
-                      : "รอดำเนินการ"}
-                  </Tag>
+                    {index + 1}
+                  </div>
+                }
+                color={step.color}
+              >
+                {/* step content */}
+                <div style={{ paddingLeft: 16 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text strong style={{ fontSize: "16px" }}>
+                      {step.title}
+                    </Text>
+                    <Tag
+                      color={
+                        step.status === "finish"
+                          ? "success"
+                          : step.status === "process"
+                          ? "processing"
+                          : "default"
+                      }
+                    >
+                      {step.status === "finish"
+                        ? "เสร็จสิ้น"
+                        : step.status === "process"
+                        ? "กำลังดำเนินการ"
+                        : "รอดำเนินการ"}
+                    </Tag>
+                  </div>
+                  <Text type="secondary">{step.description}</Text>
+
+                  {/* แสดงรายละเอียดเพิ่มเติม */}
+                  {step.status === "process" && (
+                    <Alert
+                      message="รายละเอียดขั้นตอนนี้"
+                      description={
+                        <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                          {step.details?.map((detail, detailIndex) => (
+                            <li key={detailIndex}>{detail}</li>
+                          )) || []}
+                        </ul>
+                      }
+                      type="info"
+                      showIcon
+                      style={{ marginTop: 12 }}
+                    />
+                  )}
+
+                  {/* แสดงปุ่ม actions ถ้ามี */}
+                  {step.actions && step.actions}
                 </div>
-                <Text type="secondary">{step.description}</Text>
-
-                {/* แสดงรายละเอียดเพิ่มเติมสำหรับขั้นตอนที่กำลังดำเนินการ */}
-                {step.status === "process" && (
-                  <Alert
-                    message="รายละเอียดขั้นตอนนี้"
-                    description={
-                      <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-                        {step.details.map((detail, detailIndex) => (
-                          <li key={detailIndex}>{detail}</li>
-                        ))}
-                      </ul>
-                    }
-                    type="info"
-                    showIcon
-                    style={{ marginTop: 12 }}
-                  />
-                )}
-
-                {/* 🆕 แสดงปุ่ม actions ถ้ามี */}
-                {step.actions && step.actions}
-              </div>
+              </Timeline.Item>
+            ))
+          ) : (
+            <Timeline.Item>
+              <Alert message="กำลังโหลดข้อมูลขั้นตอน..." type="info" showIcon />
             </Timeline.Item>
-          ))}
+          )}
         </Timeline>
       </Card>
     </div>

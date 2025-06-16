@@ -196,4 +196,27 @@ router.get('/download-acceptance-letter/:documentId',
     internshipController.downloadAcceptanceLetter
 );
 
+// ============= เส้นทางสำหรับหนังสือส่งตัวนักศึกษา =============
+
+// ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา
+router.get('/referral-letter-status/:documentId',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getReferralLetterStatus
+);
+
+// ดาวน์โหลดหนังสือส่งตัวนักศึกษา
+router.get('/download-referral-letter/:documentId',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.downloadReferralLetter
+);
+
+// อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว
+router.patch('/referral-letter/:documentId/mark-downloaded',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.markReferralLetterDownloaded
+);
+
 module.exports = router;

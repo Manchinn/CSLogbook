@@ -6,6 +6,7 @@ import OfficialLetterTemplate from './OfficialLetterTemplate';
 import AcceptanceLetterTemplate from './AcceptanceLetterTemplate'; // 🆕 เพิ่มใหม่
 import StudentSummaryTemplate from './StudentSummaryTemplate';
 import CompanyInfoTemplate from './CompanyInfoTemplate';
+import ReferralLetterTemplate from './ReferralLetterTemplate'; // 🆕
 
 // Import styles
 import { PDFStyles } from './styles';
@@ -16,6 +17,7 @@ export { OfficialLetterTemplate };
 export { AcceptanceLetterTemplate }; // 🆕 เพิ่มใหม่
 export { StudentSummaryTemplate };
 export { CompanyInfoTemplate };
+export { ReferralLetterTemplate }; // 🆕
 
 // Export styles
 export * from './styles';
@@ -25,7 +27,8 @@ export { PDFStyles };
 export const PDFTemplates = {
   CS05: CS05PDFTemplate,
   OfficialLetter: OfficialLetterTemplate,
-  AcceptanceLetter: AcceptanceLetterTemplate, // 🆕 เพิ่มใหม่
+  AcceptanceLetter: AcceptanceLetterTemplate,
+  ReferralLetter: ReferralLetterTemplate, // 🆕
   StudentSummary: StudentSummaryTemplate,
   CompanyInfo: CompanyInfoTemplate
 };
@@ -36,6 +39,7 @@ export default {
   CS05PDFTemplate,
   OfficialLetterTemplate,
   AcceptanceLetterTemplate, // 🆕 เพิ่มใหม่
+  ReferralLetterTemplate, // 🆕
   StudentSummaryTemplate,
   CompanyInfoTemplate,
   

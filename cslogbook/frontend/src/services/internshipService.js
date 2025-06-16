@@ -1062,6 +1062,222 @@ const internshipService = {
       throw error;
     }
   },
+
+  // ...existing code...
+
+  /**
+   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา
+   * @param {number} documentId - ID ของเอกสาร CS05
+   * @returns {Promise<Object>} สถานะหนังสือส่งตัว
+   */
+  checkReferralLetterStatus: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error("ไม่พบรหัสเอกสาร CS05");
+      }
+
+      const response = await apiClient.get(
+        `/internship/referral-letter-status/${documentId}`
+      );
+
+      if (!response.data.success) {
+        throw new Error(
+          response.data.message || "ไม่สามารถตรวจสอบสถานะหนังสือส่งตัวได้"
+        );
+      }
+
+      // 🔧 ปรับการแปลงสถานะจาก database
+      const data = response.data.data;
+      let mappedStatus;
+
+      if (data.hasReferralLetter) {
+        // มีหนังสือส่งตัวแล้ว
+        if (data.status === "ready") {
+          mappedStatus = "ready"; // พร้อมให้ดาวน์โหลด
+        } else if (data.status === "downloaded") {
+          mappedStatus = "downloaded"; // ได้ดาวน์โหลดแล้ว
+        } else {
+          mappedStatus = "ready"; // fallback
+        }
+      } else {
+        mappedStatus = "not_ready"; // ยังไม่พร้อม (อาจรอการอนุมัติหนังสือตอบรับ)
+      }
+
+      return {
+        success: true,
+        data: {
+          ...data,
+          status: mappedStatus, // ใช้ status ที่แปลงแล้ว
+          originalStatus: data.status, // เก็บสถานะเดิมไว้สำหรับ debug
+        },
+      };
+    } catch (error) {
+      console.error("Error checking referral letter status:", error);
+
+      // กรณี 404 ไม่ถือเป็น error (ยังไม่มีหนังสือส่งตัว)
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: {
+            hasReferralLetter: false,
+            status: "not_ready",
+            originalStatus: null,
+            createdDate: null,
+            readyDate: null,
+          },
+        };
+      }
+
+      throw new Error(
+        error.response?.data?.message || "ไม่สามารถตรวจสอบสถานะหนังสือส่งตัวได้"
+      );
+    }
+  },
+
+  /**
+   * ดาวน์โหลดหนังสือส่งตัวนักศึกษา
+   * @param {number} documentId - ID ของเอกสาร CS05
+   * @returns {Promise<Object>} ไฟล์ PDF หนังสือส่งตัว
+   */
+  downloadReferralLetter: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error("ไม่พบรหัสเอกสาร CS05");
+      }
+
+      const response = await apiClient.get(
+        `/internship/download-referral-letter/${documentId}`,
+        {
+          responseType: "blob",
+          timeout: 30000, // 30 วินาที สำหรับการสร้าง PDF ที่อาจใช้เวลานาน
+        }
+      );
+
+      // ตรวจสอบว่าได้ไฟล์ PDF กลับมา
+      if (!response.data || response.data.size === 0) {
+        throw new Error("ไฟล์หนังสือส่งตัวไม่ถูกต้องหรือเสียหาย");
+      }
+
+      // สร้างชื่อไฟล์แบบไดนามิก
+      const currentDate = new Date().toISOString().split("T")[0];
+      const filename = `หนังสือส่งตัวนักศึกษา-${documentId}-${currentDate}.pdf`;
+
+      // สร้าง URL สำหรับดาวน์โหลด
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      // 🚫 ลบการเรียก mark downloaded ออก - Backend จะทำเองในขั้นตอน download
+      // ใน Backend API `/download-referral-letter` จะอัปเดตสถานะเองอัตโนมัติ
+
+      return {
+        success: true,
+        message: `ดาวน์โหลดหนังสือส่งตัวเรียบร้อยแล้ว: ${filename}`,
+      };
+    } catch (error) {
+      console.error("Error downloading referral letter:", error);
+
+      // จัดการข้อผิดพลาดตามประเภท
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message;
+
+        switch (status) {
+          case 400:
+            throw new Error(message || "ข้อมูลคำร้องไม่ถูกต้อง");
+          case 403:
+            throw new Error("ไม่มีสิทธิ์ในการดาวน์โหลดหนังสือส่งตัว");
+          case 404:
+            throw new Error("ไม่พบหนังสือส่งตัว อาจยังไม่ได้รับการอนุมัติ");
+          case 409:
+            throw new Error(
+              "หนังสือส่งตัวยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่"
+            );
+          case 500:
+            throw new Error("เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง");
+          default:
+            throw new Error(
+              message || "เกิดข้อผิดพลาดในการดาวน์โหลดหนังสือส่งตัว"
+            );
+        }
+      } else if (error.request) {
+        throw new Error(
+          "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"
+        );
+      } else {
+        throw new Error(error.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ");
+      }
+    }
+  },
+  
+  /**
+   * แจ้ง Backend ว่าได้ดาวน์โหลดหนังสือส่งตัวแล้ว
+   * @param {number} documentId - ID ของเอกสาร CS05
+   * @returns {Promise<Object>} ผลการอัปเดตสถานะ
+   */
+  markReferralLetterDownloaded: async (documentId) => {
+    try {
+      if (!documentId) {
+        throw new Error("ไม่พบรหัสเอกสาร CS05");
+      }
+
+      const response = await apiClient.patch(
+        `/internship/referral-letter/${documentId}/mark-downloaded`,
+        {},
+        {
+          timeout: 10000, // 10 วินาที
+        }
+      );
+
+      if (!response.data.success) {
+        throw new Error(
+          response.data.message || "ไม่สามารถอัปเดตสถานะการดาวน์โหลดได้"
+        );
+      }
+
+      return {
+        success: true,
+        message: "อัปเดตสถานะการดาวน์โหลดเรียบร้อยแล้ว",
+        data: response.data.data,
+      };
+    } catch (error) {
+      console.error("Error marking referral letter as downloaded:", error);
+
+      // จัดการข้อผิดพลาดตามประเภท
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message;
+
+        switch (status) {
+          case 400:
+            throw new Error(message || "ข้อมูลคำร้องไม่ถูกต้อง");
+          case 403:
+            throw new Error("ไม่มีสิทธิ์ในการอัปเดตสถานะ");
+          case 404:
+            throw new Error("ไม่พบหนังสือส่งตัว");
+          case 409:
+            throw new Error("สถานะไม่สามารถเปลี่ยนแปลงได้");
+          case 500:
+            throw new Error("เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง");
+          default:
+            throw new Error(message || "เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+        }
+      } else if (error.request) {
+        throw new Error(
+          "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"
+        );
+      } else {
+        throw new Error(error.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ");
+      }
+    }
+  },
 };
 
 export default internshipService;

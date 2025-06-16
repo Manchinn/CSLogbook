@@ -303,6 +303,72 @@ class TemplateDataService {
   }
 
   /**
+   * 🆕 เตรียมข้อมูลสำหรับ Referral Letter Template
+   * @param {Object} referralData - ข้อมูลหนังสือส่งตัว
+   */
+  prepareReferralLetterData(referralData) {
+    try {
+      if (!referralData) {
+        throw new Error('ไม่มีข้อมูลสำหรับสร้างหนังสือส่งตัว');
+      }
+
+      // เตรียมข้อมูลนักศึกษา
+      const studentData = this._prepareStudentData(referralData.studentData);
+      
+      // คำนวณระยะเวลาฝึกงาน
+      const internshipDays = this._calculateDurationDays(referralData.startDate, referralData.endDate);
+
+      return {
+        // ข้อมูลเอกสาร
+        documentNumber: this._generateDocumentNumber(referralData.documentNumber),
+        documentDate: referralData.documentDate || new Date().toISOString(),
+        documentDateThai: formatThaiDate(referralData.documentDate || new Date().toISOString(), 'DD MMMM BBBB'),
+        
+        // ข้อมูลบริษัท
+        companyName: cleanText(referralData.companyName || ''),
+        companyAddress: cleanText(referralData.companyAddress || ''),
+        contactPersonName: cleanText(referralData.contactPersonName || ''),
+        contactPersonPosition: cleanText(referralData.contactPersonPosition || ''),
+        
+        // ข้อมูลผู้ควบคุมงาน - สำหรับหนังสือส่งตัว
+        supervisorName: cleanText(referralData.supervisorName || ''),
+        supervisorPosition: cleanText(referralData.supervisorPosition || ''),
+        supervisorPhone: formatThaiPhoneNumber(referralData.supervisorPhone || ''),
+        supervisorEmail: cleanText(referralData.supervisorEmail || ''),
+        
+        // ข้อมูลนักศึกษา
+        studentData: studentData,
+        hasTwoStudents: Array.isArray(studentData) && studentData.length === 2,
+        
+        // ข้อมูลระยะเวลา
+        startDate: referralData.startDate,
+        endDate: referralData.endDate,
+        startDateThai: formatThaiDate(referralData.startDate, 'DD MMMM BBBB'),
+        endDateThai: formatThaiDate(referralData.endDate, 'DD MMMM BBBB'),
+        internshipDays: internshipDays,
+        durationText: formatDurationText(referralData.startDate, referralData.endDate),
+        
+        // ข้อมูลตำแหน่งฝึกงาน
+        internshipPosition: cleanText(referralData.internshipPosition || ''),
+        
+        // ข้อมูลอาจารย์
+        advisorTitle: 'หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
+        advisorName: 'รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล',
+        
+        // ข้อมูลมหาวิทยาลัย
+        universityName: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ',
+        facultyName: 'คณะวิทยาศาสตร์ประยุกต์',
+        departmentName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
+        address: '1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800',
+        phone: '02-555-2000',
+      };
+    } catch (error) {
+      console.error('Error preparing Referral Letter data:', error);
+      throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้: ${error.message}`);
+    }
+  }
+
+  /**
    * เตรียมข้อมูลนักศึกษา (แก้ไขเพื่อป้องกัน TypeError)
    * @param {Array} studentData - ข้อมูลนักศึกษา
    */

@@ -82,7 +82,6 @@ const InternshipRegistrationFlow = () => {
         
         // 2. ตรวจสอบ CS05 ที่มีอยู่แล้ว
         const cs05Response = await internshipService.getCurrentCS05();
-        console.log('[DEBUG] ข้อมูลดิบที่ได้จาก API:', cs05Response);
         
         if (cs05Response.success && cs05Response.data) {
           const cs05Data = cs05Response.data;
@@ -261,10 +260,6 @@ const InternshipRegistrationFlow = () => {
       onPrev: handlePrevStep,
       onSubmit: handleSubmit
     };
-
-    console.log('[DEBUG] stepProps ที่ส่งให้ step ที่', currentStep, ':', {
-      existingCS05Fields: stepProps.existingCS05 ? Object.keys(stepProps.existingCS05) : [],
-    });
 
     switch (currentStep) {
       case 0:
