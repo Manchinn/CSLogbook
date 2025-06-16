@@ -578,7 +578,7 @@ const SubmissionResultStep = ({
     }
   };
 
-  // 🆕 ฟังก์ชันตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+  // ✅ ปรับปรุงฟังก์ชันตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
   const checkAcceptanceLetterStatus = async () => {
     if (!existingCS05?.documentId) {
       setAcceptanceLetterStatus("not_uploaded");
@@ -587,41 +587,102 @@ const SubmissionResultStep = ({
     }
 
     try {
+      console.log("[DEBUG] 🔍 ตรวจสอบสถานะหนังสือตอบรับ...", {
+        documentId: existingCS05.documentId,
+      });
+
+      // ✅ ใช้ checkAcceptanceLetterStatus แทน (ตามที่ตกลงไว้)
       const response = await internshipService.checkAcceptanceLetterStatus(
         existingCS05.documentId
       );
 
-      if (response.success) {
-        if (response.data.hasAcceptanceLetter) {
-          // 🔧 ใช้ mappedStatus จาก service
-          setAcceptanceLetterStatus(response.data.status); // 'uploaded' หรือ 'approved'
-          setAcceptanceLetterInfo(response.data);
+      console.log("[DEBUG] 📊 ผลตรวจสอบสถานะหนังสือตอบรับ:", response);
 
-          // ถ้ามีการอัปโหลดแล้ว ให้อัปเดตขั้นตอน
-          if (response.data.status === "uploaded") {
-            updateStepFromStatus("acceptance_uploaded");
-          } else if (response.data.status === "approved") {
-            updateStepFromStatus("acceptance_approved");
+      if (response.success && response.data) {
+        const {
+          hasAcceptanceLetter,
+          acceptanceStatus,
+          canUpload,
+          requiresApproval,
+          statusMessage,
+          cs05Status,
+        } = response.data;
+
+        // อัปเดต state ตามสถานะที่ได้รับ
+        if (hasAcceptanceLetter) {
+          // แปลงสถานะสำหรับการแสดงผลใน Frontend
+          let frontendStatus = acceptanceStatus;
+
+          if (acceptanceStatus === "pending") {
+            frontendStatus = "uploaded"; // แปลง pending เป็น uploaded
           }
+
+          setAcceptanceLetterStatus(frontendStatus);
+          setAcceptanceLetterInfo({
+            ...response.data,
+            status: frontendStatus,
+            originalBackendStatus: acceptanceStatus, // เก็บสถานะเดิมไว้ด้วย
+          });
+
+          // อัปเดตขั้นตอนตามสถานะ
+          if (acceptanceStatus === "pending") {
+            updateStepFromStatus("acceptance_uploaded");
+          } else if (acceptanceStatus === "approved") {
+            updateStepFromStatus("acceptance_approved");
+
+            // ✅ เมื่อหนังสือตอบรับได้รับการอนุมัติ ให้ตรวจสอบหนังสือส่งตัว
+            console.log(
+              "[DEBUG] 🔄 หนังสือตอบรับอนุมัติแล้ว - ตรวจสอบหนังสือส่งตัว"
+            );
+            setTimeout(() => {
+              checkReferralLetterStatus();
+            }, 1000);
+          }
+
+          console.log("[DEBUG] ✅ อัปเดตสถานะหนังสือตอบรับ:", {
+            frontendStatus,
+            backendStatus: acceptanceStatus,
+            canUpload,
+            requiresApproval,
+          });
         } else {
           // ไม่มีการอัปโหลด
-          setAcceptanceLetterStatus("not_uploaded");
-          setAcceptanceLetterInfo(null);
-        }
-      } else {
-        setAcceptanceLetterStatus("not_uploaded");
-        setAcceptanceLetterInfo(null);
-      }
-    } catch (error) {
-      console.error("Error checking acceptance letter status:", error);
+          setAcceptanceLetterStatus(
+            canUpload ? "not_uploaded" : "cannot_upload"
+          );
+          setAcceptanceLetterInfo({
+            canUpload,
+            statusMessage,
+            cs05Status,
+          });
 
-      // กรณี API ยังไม่มีหรือมีปัญหา ให้ถือว่ายังไม่มีการอัปโหลด
-      if (error.response?.status === 404) {
-        setAcceptanceLetterStatus("not_uploaded");
-        setAcceptanceLetterInfo(null);
+          console.log("[DEBUG] ⚪ ไม่มีการอัปโหลดหนังสือตอบรับ:", {
+            canUpload,
+            statusMessage,
+          });
+        }
       } else {
         setAcceptanceLetterStatus("error");
         setAcceptanceLetterInfo(null);
+      }
+    } catch (error) {
+      console.error(
+        "[DEBUG] ❌ Error checking acceptance letter status:",
+        error
+      );
+
+      // จัดการ error cases
+      if (error.response?.status === 404) {
+        setAcceptanceLetterStatus("not_uploaded");
+        setAcceptanceLetterInfo({
+          canUpload: cs05Status === "approved",
+          statusMessage: "ยังไม่มีการอัปโหลดหนังสือตอบรับ",
+        });
+      } else {
+        setAcceptanceLetterStatus("error");
+        setAcceptanceLetterInfo({
+          errorMessage: error.message || "เกิดข้อผิดพลาดในการตรวจสอบสถานะ",
+        });
       }
     }
   };

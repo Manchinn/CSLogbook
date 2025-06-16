@@ -2385,6 +2385,176 @@ class InternshipManagementService {
   }
 
   /**
+   * ตรวจสอบสถานะหนังสือตอบรับการฝึกงาน (ปรับปรุงใหม่ - คล้ายกับ getReferralLetterStatus)
+   */
+  async checkAcceptanceLetterStatus(userId, cs05DocumentId) {
+    try {
+      console.log("[DEBUG] checkAcceptanceLetterStatus:", {
+        userId,
+        cs05DocumentId,
+      });
+
+      // 1. ตรวจสอบเอกสาร CS05 ก่อน
+      const cs05Document = await Document.findOne({
+        where: {
+          documentId: parseInt(cs05DocumentId),
+          userId: userId,
+          documentName: "CS05",
+        },
+        include: [
+          {
+            model: InternshipDocument,
+            as: "internshipDocument",
+          },
+        ],
+      });
+
+      if (!cs05Document) {
+        throw new Error("ไม่พบข้อมูลเอกสาร CS05");
+      }
+
+      console.log("[DEBUG] CS05 Document found:", {
+        documentId: cs05Document.documentId,
+        status: cs05Document.status,
+      });
+
+      // 2. ค้นหาหนังสือตอบรับที่เกี่ยวข้องกับ CS05 นี้โดยตรง
+      const acceptanceLetter = await Document.findOne({
+        where: {
+          userId: userId,
+          documentType: "INTERNSHIP",
+          documentName: "ACCEPTANCE_LETTER",
+          category: "acceptance",
+          parentDocumentId: cs05Document.documentId, // ✅ เชื่อมโยงกับ CS05 โดยตรง
+        },
+        order: [["created_at", "DESC"]], // เอาล่าสุด
+      });
+
+      console.log("[DEBUG] Acceptance letter found:", {
+        hasAcceptanceLetter: !!acceptanceLetter,
+        acceptanceStatus: acceptanceLetter?.status,
+        fileName: acceptanceLetter?.fileName,
+        uploadedAt: acceptanceLetter?.created_at,
+      });
+
+      // 3. ตรวจสอบข้อมูลผู้ควบคุมงาน
+      const hasCompleteSupervisorInfo =
+        cs05Document.internshipDocument &&
+        cs05Document.internshipDocument.supervisorName &&
+        cs05Document.internshipDocument.supervisorEmail;
+
+      // 4. คำนวณสถานะการอัปโหลด
+      let acceptanceStatus = "not_uploaded";
+      let canUpload = false;
+      let requiresApproval = false;
+      let statusMessage = "";
+
+      // ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน)
+      if (cs05Document.status === "approved") {
+        canUpload = true;
+      }
+
+      if (acceptanceLetter) {
+        acceptanceStatus = acceptanceLetter.status;
+
+        switch (acceptanceLetter.status) {
+          case "pending":
+            requiresApproval = true;
+            statusMessage = "หนังสือตอบรับอยู่ระหว่างการพิจารณา";
+            break;
+          case "approved":
+            statusMessage = "หนังสือตอบรับได้รับการอนุมัติแล้ว";
+
+            // ✅ อัปเดต CS05 status เป็น acceptance_approved ถ้าจำเป็น
+            if (cs05Document.status !== "acceptance_approved") {
+              console.log(
+                "[DEBUG] 🔄 อัปเดต CS05 status เป็น acceptance_approved"
+              );
+
+              await cs05Document.update({
+                status: "acceptance_approved",
+                updated_at: new Date(),
+              });
+
+              console.log("[DEBUG] ✅ อัปเดต CS05 status เรียบร้อย");
+            }
+            break;
+          case "rejected":
+            statusMessage = "หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่";
+            canUpload = true; // อนุญาตให้อัปโหลดใหม่
+            break;
+          default:
+            statusMessage = "สถานะไม่ทราบ";
+        }
+      } else {
+        // ไม่มีการอัปโหลด
+        if (canUpload) {
+          statusMessage = "กรุณาอัปโหลดหนังสือตอบรับจากบริษัท";
+        } else {
+          statusMessage = "รอการอนุมัติ CS05 ก่อนอัปโหลดหนังสือตอบรับ";
+        }
+      }
+
+      // 5. ตรวจสอบความพร้อมสำหรับขั้นตอนถัดไป
+      const isReadyForNextStep =
+        acceptanceStatus === "approved" && hasCompleteSupervisorInfo;
+
+      console.log("[DEBUG] Final status calculation:", {
+        cs05Status: cs05Document.status,
+        hasAcceptanceLetter: !!acceptanceLetter,
+        acceptanceStatus,
+        canUpload,
+        requiresApproval,
+        statusMessage,
+        hasCompleteSupervisorInfo,
+        isReadyForNextStep,
+      });
+
+      return {
+        // ข้อมูลเอกสาร CS05
+        cs05DocumentId: cs05Document.documentId,
+        cs05Status: cs05Document.status, // อาจจะเป็น "acceptance_approved" หลังการอัปเดต
+
+        // ข้อมูลหนังสือตอบรับ
+        hasAcceptanceLetter: !!acceptanceLetter,
+        acceptanceStatus,
+        acceptanceLetterStatus: acceptanceStatus, // alias เพื่อ backward compatibility
+
+        // สิทธิ์และการอนุมัติ
+        canUpload,
+        requiresApproval,
+        statusMessage,
+
+        // ข้อมูลผู้ควบคุมงาน
+        hasSupervisorInfo: hasCompleteSupervisorInfo,
+        supervisorName: cs05Document.internshipDocument?.supervisorName,
+        supervisorEmail: cs05Document.internshipDocument?.supervisorEmail,
+
+        // วันที่สำคัญ
+        uploadedAt: acceptanceLetter?.created_at || null,
+        updatedAt: acceptanceLetter?.updated_at || null,
+        approvedAt:
+          acceptanceStatus === "approved" ? acceptanceLetter?.updated_at : null,
+
+        // ข้อมูลไฟล์
+        fileName: acceptanceLetter?.fileName || null,
+        fileSize: acceptanceLetter?.fileSize || null,
+        documentId: acceptanceLetter?.documentId || null, // ID ของ acceptance letter
+
+        // สถานะขั้นตอนถัดไป
+        isReadyForNextStep,
+        canProceedToReferralLetter: isReadyForNextStep,
+
+        // ข้อมูลเพิ่มเติม
+        originalStatus: acceptanceStatus, // เก็บสถานะดั้งเดิมไว้สำหรับ debug
+      };
+    } catch (error) {
+      console.error("Check Acceptance Letter Status Service Error:", error);
+      throw error;
+    }
+  }
+
+  /**
    * ลบหนังสือตอบรับ (กรณีต้องการอัปโหลดใหม่)
    */
   async deleteAcceptanceLetter(userId, acceptanceDocumentId) {
