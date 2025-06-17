@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แจ้งเตือน: มีรายการรออนุมัติ - CS Logbook System</title>
+    <style>
+        body {
+            font-family: 'Sarabun', 'TH SarabunPSK', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px; /* ปรับขนาดให้เหมาะสมกับการแจ้งเตือน */
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f39c12, #e74c3c, #9b59b6, #3498db);
+        }
+        .header img {
+            max-width: 150px; /* ลดขนาดโลโก้ในอีเมลเล็กน้อย */
+            margin-bottom: 12px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px; /* ปรับขนาดหัวเรื่อง */
+            font-weight: 600;
+        }
+        .header .subtitle {
+            font-size: 13px; /* ปรับขนาดรองหัวเรื่อง */
+            margin-top: 8px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 25px 20px; /* ปรับ padding */
+        }
+        .notification-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .message-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+            text-align: center; /* จัดข้อความให้อยู่กึ่งกลาง */
+        }
+        .message-box .salutation {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .message-box .content-text {
+            color: #34495e;
+            line-height: 1.7;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px; /* ปรับ padding ปุ่ม */
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #ffffff !important; /* ทำให้สีตัวอักษรเป็นสีขาวเสมอ */
+            font-size: 15px; /* ปรับขนาด font ปุ่ม */
+            text-align: center;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+        .button:hover {
+            background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+        .important-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 25px 0; /* เพิ่ม margin ด้านบน */
+            border-left: 4px solid #f39c12;
+        }
+        .important-notice h4 {
+            color: #856404;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .important-notice p {
+            color: #856404;
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .footer {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: #ecf0f1;
+            text-align: center;
+            padding: 20px; /* ปรับ padding footer */
+            font-size: 12px; /* ปรับขนาด font footer */
+            border-top: 4px solid #3498db;
+        }
+        .footer .institution {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .footer .department {
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        .footer .system-info {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #455a64;
+            opacity: 0.8;
+            font-size: 11px;
+        }
+        .footer .generated-time {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 6px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            .content {
+                padding: 20px 15px;
+            }
+            .button {
+                width: 90%; /* ปรับความกว้างปุ่มใน mobile */
+                padding: 12px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <img src="https://scontent.fbkk8-2.fna.fbcdn.net/v/t39.30808-6/301788674_572678294646260_6080834268011590388_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHwaSCEIyciHQ9-Z6wGmIws4i0v0ruBTi_iLS_Su4FOL5CK_IbRyxDjD9zstvQr1H7IXx4bGPeYg3Z3B84p5BUW&_nc_ohc=YigkqPcMQVIQ7kNvwGtl1In&_nc_oc=Adm8fsT8FsGImJebnMJkyz4vaxyNqWwJVVVywIwbVS3kjM7e--1Rr7gNkijfj4HSvl4&_nc_zt=23&_nc_ht=scontent.fbkk8-2.fna&_nc_gid=na_Qm_pyW_emT-h2pY4Biw&oh=00_AfKQrvC3Ho39f5kM8ftfeQhDh9H89xk0DQVu2mkvCAd4tw&oe=683D1584" alt="คณะวิทยาศาสตร์ประยุกต์ มจพ.">
+            <h1>ระบบ CS Logbook</h1>
+            <div class="subtitle">ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์</div>
+            <div class="subtitle">มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</div>
+        </div>
+
+        <div class="content">
+            <div class="notification-title">
+                แจ้งเตือนรายการรอการอนุมัติ
+            </div>
+
+            <div class="message-box">
+                <div class="salutation">เรียน คุณ{{supervisorName}},</div>
+                <div class="content-text">
+                    มีรายการบันทึกการฝึกงานของนักศึกษา <strong>{{studentName}}</strong> รอการพิจารณาจากท่านในระบบ CS Logbook
+                    <br>
+                    กรุณาคลิกปุ่มด้านล่างเพื่อตรวจสอบรายละเอียดและดำเนินการอนุมัติ
+                </div>
+                <div class="button-container">
+                    <a href="{{webApprovalLink}}" class="button">🔗 ไปยังหน้ารายการอนุมัติ</a>
+                </div>
+            </div>
+
+            <div class="important-notice">
+                <h4>⚠️ ข้อปฏิบัติสำคัญ</h4>
+                <p>• ลิงก์การอนุมัตินี้จะนำท่านไปยังหน้ารายละเอียดเพื่อดำเนินการบนเว็บไซต์</p>
+                <p>• ลิงก์จะมีอายุการใช้งาน 7 วัน นับจากวันที่ได้รับอีเมลนี้</p>
+                <p>• หากมีข้อสงสัยหรือปัญหาในการใช้งาน กรุณาติดต่อผู้ดูแลระบบ</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="institution">มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</div>
+            <div class="department">คณะวิทยาศาสตร์ประยุกต์ สาขาวิชาวิทยาการคอมพิวเตอร์</div>
+            <div class="system-info">
+                CS Logbook System - ระบบติดตามและประเมินผลการฝึกงาน
+            </div>
+            <div class="generated-time">
+                อีเมลนี้สร้างเมื่อ: {{generatedDateTime}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

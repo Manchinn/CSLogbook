@@ -1,0 +1,141 @@
+/* Login page specific styles */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-image: url('C:\Users\chinn\CSLog\cslogbook\frontend\public\login-bg.svg'), linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-size: cover;
+  background-position: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 30px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px);
+  /* transition removed */
+}
+
+/* hover effect removed */
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-title {
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  color: #1890ff !important;
+  margin-bottom: 10px !important;
+}
+
+.login-subtitle {
+  font-size: 14px !important;
+  color: #8c8c8c !important;
+}
+
+.login-form-item {
+  margin-bottom: 24px !important;
+}
+
+.login-input {
+  height: 50px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e8e8e8 !important;
+  transition: all 0.3s !important;
+}
+
+.login-input:hover, .login-input:focus {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+.login-input .ant-input-prefix {
+  color: #bfbfbf;
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.login-button {
+  height: 50px !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #1890ff 0%, #096dd9 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4) !important;
+  /* transition removed */
+}
+
+/* hover transform effect removed */
+
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.login-footer a {
+  color: #1890ff;
+  transition: all 0.3s;
+}
+
+.login-footer a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* School logo styling */
+.school-logo {
+  max-width: 100px;
+  margin-bottom: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .login-card {
+    padding: 20px !important;
+    margin: 0 15px;
+  }
+  
+  .login-title {
+    font-size: 24px !important;
+  }
+  
+  .login-input {
+    height: 45px !important;
+  }
+  
+  .login-button {
+    height: 45px !important;
+  }
+
+  /* Adjust background for mobile */
+  .login-container {
+    background-size: 200% auto;
+    background-position: left center;
+  }
+}
+
+/* iPhone-specific adjustments */
+@media screen and (device-width: 390px) and (device-height: 844px),
+       screen and (width: 390px) and (height: 844px) {
+  .login-card {
+    max-width: 90%;
+  }
+}
+
+/* Animation for error removed */
+.shake {
+  /* animation removed to prevent dizziness */
+  border: 1px solid #ff4d4f; /* static error indicator instead */
+}

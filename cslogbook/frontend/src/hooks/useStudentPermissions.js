@@ -1,47 +1,83 @@
-import { useMemo } from 'react';
-import { calculateStudentYear } from '../utils/studentUtils';
+import { useState, useEffect } from 'react';
+import { message } from 'antd';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
-export const useStudentPermissions = (userData) => {
-  return useMemo(() => {
+export const useStudentPermissions = () => {
+  const { userData } = useAuth();
+  const [permissions, setPermissions] = useState({
+    canAccessInternship: false,
+    canAccessProject: false,
+    canRegisterInternship: false,
+    canRegisterProject: false,
+    internshipReason: null,
+    projectReason: null,
+    requirements: null,
+    academicSettings: null,
+    isLoading: true,
+    lastUpdated: null
+  });
+
+  const fetchEligibility = async () => {
     if (!userData || userData.role !== 'student') {
-      return {
-        canAccessInternship: false,
-        canAccessProject: false,
-        messages: {
-          internship: 'ไม่มีสิทธิ์เข้าถึงระบบฝึกงาน',
-          project: 'ไม่มีสิทธิ์เข้าถึงระบบโครงงาน'
-        }
-      };
+      return;
     }
 
-    const yearResult = calculateStudentYear(userData.studentCode);
-    const studentYear = yearResult.year;
+    try {
+      setPermissions(prev => ({ ...prev, isLoading: true }));
+      
+      const token = localStorage.getItem('token');
+      // เรียกไปที่ endpoint ที่ถูกต้องตามที่กำหนดใน server.js
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/students/check-eligibility`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    // เงื่อนไขฝึกงาน: ปี 3 ขึ้นไป และหน่วยกิตรวม >= 81
-    const canAccessInternship = studentYear >= 3 && userData.totalCredits >= 81;
-
-    // เงื่อนไขโครงงาน: ปี 4 ขึ้นไป, หน่วยกิตรวม >= 95, หน่วยกิตเฉพาะ >= 47
-    const canAccessProject = (
-      studentYear >= 4 && 
-      userData.totalCredits >= 95 && 
-      userData.majorCredits >= 57
-    );
-
-    // Update localStorage
-    localStorage.setItem('isEligibleForInternship', String(canAccessInternship));
-    localStorage.setItem('isEligibleForProject', String(canAccessProject));
-
-    return {
-      canAccessInternship,
-      canAccessProject,
-      messages: {
-        internship: canAccessInternship 
-          ? 'มีสิทธิ์เข้าถึงระบบฝึกงาน'
-          : `ต้องการหน่วยกิตรวม >= 81 (ปัจจุบัน: ${userData.totalCredits})`,
-        project: canAccessProject
-          ? 'มีสิทธิ์เข้าถึงระบบโครงงาน'
-          : `ต้องการหน่วยกิตรวม >= 95 และหน่วยกิตเฉพาะ >= 47 (ปัจจุบัน: ${userData.totalCredits}, ${userData.majorCredits})`
+      if (response.data.success) {
+        setPermissions({
+          // ใช้ค่า canAccessFeature สำหรับการแสดงเมนู
+          canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
+          canAccessProject: response.data.eligibility.project.canAccessFeature || false,
+          // เก็บค่า canRegister สำหรับการแสดงปุ่มลงทะเบียน
+          canRegisterInternship: response.data.eligibility.internship.canRegister || false,
+          canRegisterProject: response.data.eligibility.project.canRegister || false,
+          internshipReason: response.data.eligibility.internship.reason,
+          projectReason: response.data.eligibility.project.reason,
+          requirements: response.data.requirements,
+          academicSettings: response.data.academicSettings,
+          isLoading: false,
+          lastUpdated: new Date()
+        });
+      } else {
+        setPermissions(prev => ({ ...prev, isLoading: false }));
       }
-    };
+    } catch (error) {
+      console.error('Error fetching eligibility:', error);
+      setPermissions(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        // ตั้งค่าข้อความสำหรับใช้ใน tooltip เมื่อเกิดข้อผิดพลาด
+        internshipReason: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาติดต่อผู้ดูแลระบบ",
+        projectReason: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาติดต่อผู้ดูแลระบบ"
+      }));
+      message.error('ไม่สามารถตรวจสอบสิทธิ์ได้');
+    }
+  };
+
+  useEffect(() => {
+    fetchEligibility();
+    
+    // ตั้งค่าให้อัปเดตทุก 6 ชั่วโมง
+    const intervalId = setInterval(fetchEligibility, 6 * 60 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
   }, [userData]);
+
+  return {
+    ...permissions,
+    messages: {
+      internship: permissions.internshipReason,
+      project: permissions.projectReason
+    },
+    refreshPermissions: fetchEligibility
+  };
 };

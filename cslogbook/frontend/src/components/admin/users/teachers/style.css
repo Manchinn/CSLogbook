@@ -1,0 +1,56 @@
+/* Teacher container styling */
+.admin-teacher-container {
+    width: 100%;
+    max-width: 97%;
+    padding: 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: #fff;
+    margin: 24px auto;
+    min-height: calc(100vh - 100px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 100vh;
+    padding-top: 24px;
+}
+
+/* Teacher detail styling */
+.teacher-detail p {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #f0f0f0;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.teacher-detail p strong {
+    display: inline-block;
+    min-width: 140px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Drawer styling */
+.teacher-drawer .ant-drawer-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.teacher-drawer .ant-drawer-header-title {
+    flex: auto;
+}
+
+.teacher-drawer .ant-drawer-title {
+    font-weight: 600;
+    color: #1f1f1f;
+    font-size: 16px;
+}
+
+/* Form styling */
+.teacher-form .ant-form-item-label > label {
+    font-weight: 500;
+    color: #333;
+}

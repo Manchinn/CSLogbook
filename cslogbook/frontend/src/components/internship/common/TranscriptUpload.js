@@ -1,38 +1,13 @@
 import React from 'react';
 import { Upload, Button, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import internshipService from '../../../services/internshipService';
 
 const TranscriptUpload = ({ value, onChange, disabled }) => {
-  const customRequest = async ({ file, onSuccess, onError }) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('documentType', 'INTERNSHIP');
-      formData.append('category', 'transcript');
-      formData.append('documentName', 'transcript');
-
-      // ส่ง file object โดยตรง ไม่ใช่ formData
-      const response = await internshipService.uploadTranscript(file);
-      if (response.success) {
-        onSuccess(response);
-        onChange?.(response.fileUrl);
-      } else {
-        onError(new Error(response.message));
-      }
-    } catch (error) {
-      console.error('Upload Error:', error);
-      onError(error);
-      message.error('อัพโหลดไฟล์ไม่สำเร็จ');
-    }
-  };
-
   const props = {
     name: 'file',
     accept: '.pdf',
     maxCount: 1,
     showUploadList: true,
-    customRequest,
     beforeUpload: (file) => {
       const isPDF = file.type === 'application/pdf';
       if (!isPDF) {
@@ -44,8 +19,15 @@ const TranscriptUpload = ({ value, onChange, disabled }) => {
         message.error('ไฟล์ต้องมีขนาดไม่เกิน 2MB');
         return false;
       }
-      return true;
-    }
+      
+      // เก็บไฟล์ใน state แทนที่จะอัปโหลดทันที
+      onChange?.(file);
+      return false; // จะไม่อัปโหลดอัตโนมัติ
+    },
+    onRemove: () => {
+      onChange?.(null);
+    },
+    fileList: value ? [{ uid: '-1', name: value.name || 'transcript.pdf', status: 'done' }] : []
   };
 
   return (

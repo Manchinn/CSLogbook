@@ -15,18 +15,6 @@ router.get('/student/info',
 );
 
 // ============= เส้นทางสำหรับแบบฟอร์ม คพ.05 =============
-// ส่งคำร้องขอฝึกงาน (คพ.05)
-router.post('/cs-05/submit',
-    authenticateToken, 
-    checkRole(['student']),
-    internshipController.submitCS05
-);
-
-// ดึงข้อมูล คพ.05 ตาม ID
-router.get('/cs-05/:id',
-    authenticateToken,
-    internshipController.getCS05ById
-);
 
 // ดึงข้อมูล คพ.05 ปัจจุบันของนักศึกษา
 router.get('/current-cs05',
@@ -35,8 +23,29 @@ router.get('/current-cs05',
     internshipController.getCurrentCS05
 );
 
+// ส่งคำร้องขอฝึกงาน (คพ.05)
+router.post('/cs-05/submit',
+    authenticateToken, 
+    checkRole(['student']),
+    internshipController.submitCS05
+);
+
+// บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript
+router.post('/cs-05/submit-with-transcript',
+    authenticateToken, 
+    checkRole(['student']),
+    upload.single('transcript'),
+    internshipController.submitCS05WithTranscript
+);
+
+// ดึงข้อมูล คพ.05 ตาม ID
+router.get('/cs-05/:id',
+    authenticateToken,
+    internshipController.getCS05ById
+);
+
 // บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
-router.post('/company-info',
+router.post('/company-info/submit',
     authenticateToken,
     checkRole(['student']),
     (req, res, next) => {
@@ -60,10 +69,59 @@ router.get('/company-info/:documentId',
     internshipController.getCompanyInfo
 );
 
-// บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
-router.post('/company-info',
-    // ...existing code...
+// ============= เส้นทางสำหรับเอกสารสรุปการฝึกงาน =============
+
+// ดึงข้อมูลสรุปการฝึกงาน
+router.get('/summary',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getInternshipSummary
 );
+
+// ดาวน์โหลดเอกสารสรุปการฝึกงาน
+router.get('/summary/download',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.downloadInternshipSummary
+);
+
+// ============= เส้นทางสำหรับการรายงานผล =============
+
+// ตรวจสอบสถานะของสรุปการฝึกงาน
+router.get('/summary',
+    authenticateToken,
+    checkRole(['student', 'teacher']),
+    internshipController.getInternshipSummary
+);
+
+// ============= เส้นทางสำหรับการประเมินผลการฝึกงาน =============
+
+// ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+router.get('/evaluation/status',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.getEvaluationStatus
+);
+
+// ส่งคำขอประเมินผลไปยัง Supervisor
+router.post('/request-evaluation/send/:documentId',
+    authenticateToken,
+    checkRole(['student']),
+    internshipController.sendEvaluationForm
+);
+
+// ดึงข้อมูลสำหรับหน้าแบบฟอร์มการประเมินผลโดย Supervisor (ใหม่)
+router.get('/supervisor/evaluation/:token/details',
+    // No authentication needed here as the token itself is the authorization
+    internshipController.getSupervisorEvaluationFormDetails
+);
+
+// บันทึกข้อมูลการประเมินผลโดย Supervisor (ใหม่)
+router.post('/supervisor/evaluation/:token',
+    // No authentication needed here
+    internshipController.submitSupervisorEvaluation
+);
+
 
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
 // อัปโหลดใบแสดงผลการเรียน (Transcript)
@@ -113,61 +171,5 @@ router.post('/upload-transcript',
         }
     }
 );
-
-// ============= เส้นทางที่ยังไม่ได้ใช้งาน (รอการพัฒนา) =============
-
-/* // ดึงรายการ คพ.05 ทั้งหมดของนักศึกษา
-router.get('/cs-05/list',
-    authenticateToken,
-    internshipController.getCS05List
-); */
-
-/* // === เส้นทางสำหรับสมุดบันทึกการฝึกงาน ===
-// เพิ่มบันทึกประจำวัน
-router.post('/logbook/entry',
-    authenticateToken,
-    checkRole(['student']),
-    internshipController.addLogbookEntry
-);
-
-// ดึงรายการบันทึกการฝึกงาน
-router.get('/logbook',
-    authenticateToken,
-    internshipController.getLogbookEntries
-); */
-
-/* // === เส้นทางสำหรับจัดการไฟล์เอกสาร ===
-// อัปโหลดไฟล์เอกสาร
-router.post('/upload',
-    authenticateToken,
-    upload.single('file'),
-    internshipController.uploadDocument
-);
-
-// ดึงรายการเอกสารทั้งหมด
-router.get('/',
-    authenticateToken,
-    internshipController.getDocuments
-);
-
-// ดึงข้อมูลเอกสารตาม ID
-router.get('/:id',
-    authenticateToken,
-    internshipController.getDocumentById
-);
-
-// ดาวน์โหลดเอกสาร
-router.get('/:id/download',
-    authenticateToken,
-    internshipController.downloadDocument
-); */
-
-/* // === เส้นทางสำหรับผู้ดูแลระบบ ===
-// อัพเดทสถานะเอกสาร
-router.patch('/:id/status',
-    authenticateToken,
-    checkRole(['admin', 'teacher']),
-    internshipController.updateStatus
-); */
 
 module.exports = router;

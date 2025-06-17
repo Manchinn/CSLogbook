@@ -13,8 +13,8 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
         <Card className="avatarCard">
           <Avatar size={120} icon={<UserOutlined />} />
           <h2 style={{ marginTop: 16 }}>
-            {student.firstName && student.lastName
-              ? `${student.firstName} ${student.lastName}`
+            {(student.firstName || student.lastName)
+              ? `${student.firstName || ""} ${student.lastName || ""}`.trim()
               : "ไม่ระบุชื่อ-นามสกุล"}
           </h2>
           <p>{student.studentCode}</p>
@@ -24,7 +24,7 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
       <Col span={24}>
         <Card title="ข้อมูลติดต่อ">
           <p>
-            <strong>อีเมล:</strong> {student.email || "ไม่ระบุอีเมล"}
+            <strong>อีเมล:</strong> {(student.email && student.email.trim()) ? student.email : "ไม่ระบุอีเมล"}
           </p>
         </Card>
       </Col>

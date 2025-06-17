@@ -1,0 +1,124 @@
+.pageContainer {
+  padding: 20px;
+  background-color: #f0f2f5; /* สีพื้นหลังอ่อนๆ */
+  min-height: 100vh;
+}
+
+.approvalCard {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09); /* เงาที่ดูนุ่มนวลขึ้น */
+  padding: 24px;
+}
+
+.pageHeaderContainer { /* เพิ่ม container สำหรับ header ของหน้า */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.logoImage {
+  max-width: 180px; /* หรือขนาดที่เหมาะสม */
+  height: auto;
+  margin-bottom: 16px;
+}
+
+.pageTitle {
+  text-align: center;
+  color: #1a2740; 
+}
+
+.sectionTitle {
+  margin-bottom: 16px;
+  color: #30405f;
+  border-bottom: 1px solid #e8e8e8; /* เส้นคั่นบางๆ ใต้หัวข้อ */
+  padding-bottom: 8px;
+}
+
+.infoGroup {
+  margin-bottom: 20px;
+}
+
+.infoRow {
+  margin-bottom: 8px;
+}
+
+.infoLabel {
+  font-weight: 500; /* น้ำหนักตัวอักษรสำหรับ label */
+  color: #595959;
+}
+
+.infoValue {
+  color: #262626;
+}
+
+.statusTag {
+  margin-bottom: 16px;
+  font-size: 0.9em;
+}
+
+.timesheetTable {
+  margin-bottom: 24px;
+}
+
+.decisionForm {
+  margin-top: 24px;
+}
+
+.decisionTitle {
+  margin-bottom: 16px;
+  color: #30405f;
+}
+
+.radioGroup label {
+  display: flex; /* จัดไอคอนกับข้อความให้อยู่ในแนวเดียวกัน */
+  align-items: center;
+}
+
+.radioIcon {
+  margin-right: 8px; /* ระยะห่างระหว่างไอคอนกับข้อความ */
+}
+
+.commentLabel {
+  font-weight: 500;
+  color: #595959;
+}
+
+.submitButtonContainer {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.submitButton {
+  min-width: 220px;
+  font-weight: 500;
+}
+
+/* Styles for loading, error, and submitted states */
+.stateContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  padding: 20px;
+  text-align: center;
+}
+
+.stateCard {
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
+.successIcon {
+  color: #52c41a;
+  font-size: 24px; /* ปรับขนาดไอคอน */
+  margin-right: 8px;
+}
+
+.errorIcon {
+  color: #ff4d4f;
+  font-size: 24px;
+  margin-right: 8px;
+}

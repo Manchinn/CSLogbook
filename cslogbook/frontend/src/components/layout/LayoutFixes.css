@@ -1,0 +1,280 @@
+/* Layout fixes for CSLogbook - prevents overlapping elements */
+
+/* Fix for card overlapping issues */
+.ant-card {
+  z-index: 1;
+  margin-bottom: 16px;
+  position: relative; /* Ensure proper stacking */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important; /* Consistent shadow */
+  border: 1px solid rgba(0, 0, 0, 0.06) !important; /* Subtle border */
+}
+
+/* ปิดการใช้งาน hover effect สำหรับทุก card ในแอพพลิเคชัน */
+.ant-card:hover,
+.status-summary-card:hover,
+.achievement-card:hover,
+.skill-card:hover,
+.logbook-card:hover,
+.weekly-item-card:hover,
+.weekly-card:hover,
+.status-card:hover,
+.summary-card:hover,
+.status-card:hover,
+.reflection-form-card:hover,
+.timesheet-status-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default !important;
+  transition: box-shadow 0.3s ease !important;
+}
+
+/* Ensure proper spacing between cards in timesheet */
+.timesheet-card {
+  margin-bottom: 24px !important;
+  clear: both; /* Prevent floating issues */
+}
+
+/* ปิดการใช้งาน hover effect ที่ทำให้การ์ดเคลื่อนไหว */
+.timesheet-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: default;
+}
+
+/* Dashboard specific card layout improvements */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* Fix for overlapping cards in dashboard */
+.dashboard-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix for content area to prevent overlapping with sidebar */
+.content-area {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+/* Fix for the div.dashboard-container layout */
+div.dashboard-container {
+    width: 100% !important;
+    display: block !important; /* Changed from grid to block */
+    /* grid-template-columns and gap are removed as they are grid-specific */
+    position: relative !important;
+    margin: 0 !important;
+    padding: 16px !important;
+}
+
+/* Improve mobile layout with better spacing */
+@media (max-width: 768px) {
+  /* Add more space between stacked elements */
+  .ant-row {
+    margin-bottom: 16px !important;
+  }
+  
+  /* Fix potential overlapping issues in grid layouts */
+  .ant-col {
+    margin-bottom: 16px;
+  }
+  
+  /* Ensure cards don't overlap in mobile view */
+  .ant-card {
+    margin-bottom: 24px !important;
+    clear: both;
+  }
+  
+  /* Fix for container spacing */
+  .container-fluid {
+    padding: 0 12px !important;
+  }
+}
+
+/* Header layout improvements */
+.header-container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 16px !important;
+    height: 64px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important; /* Ensures the header spans full width correctly */
+    z-index: 1000 !important;
+    /* width: 100% !important; was removed as left and right define the width */
+}
+
+/* Fix for header elements alignment */
+.header-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-grow: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* iPhone-specific fixes */
+@media screen and (device-width: 390px), 
+       screen and (width: 390px) {
+  /* Ensure proper spacing on iPhone screens */
+  .ant-card {
+    margin-bottom: 20px !important;
+  }
+  
+  /* Fix potential content overflow */
+  .content {
+    overflow-x: hidden;
+  }
+  
+  /* Header improvements for iPhone */
+  .header-container {
+    padding: 0 8px !important;
+  }
+  
+  .header-title {
+    font-size: 18px !important;
+    max-width: 200px !important;
+  }
+}
+
+/* Mobile Drawer Optimizations - แก้ไขปัญหาการซ้อนกันของ Sidebar */
+
+/* ปรับปรุง Mobile Drawer */
+.mobile-sidebar-drawer {
+  z-index: 1100 !important;
+}
+
+.mobile-sidebar-drawer .ant-drawer-body {
+  padding: 0 !important;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mobile-sidebar-drawer .ant-drawer-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+/* ปรับปรุง Sidebar ใน Drawer mode */
+.mobile-sidebar-drawer .sider {
+  position: static !important;
+  height: 100vh !important;
+  width: 100% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-right: none !important;
+}
+
+/* ปรับปรุงเมนูใน Drawer */
+.mobile-sidebar-drawer .menu {
+  background: transparent !important;
+}
+
+.mobile-sidebar-drawer .menu .ant-menu-item {
+  margin: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.mobile-sidebar-drawer .menu .ant-menu-submenu-title {
+  margin: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+}
+
+/* ปรับปรุง Profile section ใน Drawer */
+.mobile-sidebar-drawer .profile {
+  padding: 16px !important;
+  background: rgba(240, 242, 245, 0.5) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.mobile-sidebar-drawer .profile .ant-avatar {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.mobile-sidebar-drawer .profile .ant-typography {
+  font-size: 14px !important;
+  margin-top: 8px !important;
+}
+
+/* Mobile Menu Button Improvements */
+.mobile-menu-button {
+  position: fixed !important;
+  top: 16px !important;
+  left: 16px !important;
+  z-index: 1050 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+.mobile-menu-button:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Drawer Mask Improvements */
+.mobile-sidebar-drawer .ant-drawer-mask {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+/* เพิ่มความสูงให้ content area เมื่อเปิด drawer บน mobile */
+@media (max-width: 768px) {
+  .mobile-sidebar-drawer .sider {
+    min-height: 100vh !important;
+  }
+  
+  /* ปรับปรุงการแสดงผลของ logout button ใน drawer */
+  .mobile-sidebar-drawer .logout {
+    margin: 16px 12px 20px !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  /* ป้องกันการ scroll ของ body เมื่อเปิด drawer */
+  body.drawer-open {
+    overflow: hidden !important;
+  }
+}
+
+/* Fix สำหรับ iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .mobile-sidebar-drawer .ant-drawer-body {
+    height: 100vh !important;
+    overflow-y: auto !important; /* หรือ scroll, ขึ้นอยู่กับพฤติกรรมที่ต้องการ */
+    -webkit-overflow-scrolling: touch !important;
+  }
+}

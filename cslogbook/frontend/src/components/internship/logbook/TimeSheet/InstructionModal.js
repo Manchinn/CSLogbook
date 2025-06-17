@@ -13,6 +13,7 @@ const InstructionModal = ({ visible, onClose, dontShowAgain, onCheckboxChange })
           คำชี้แจงการบันทึกการฝึกงาน
         </span>
       }
+      style={{ top: 20 }}
       open={visible}
       onCancel={onClose}
       width={1000}
@@ -48,7 +49,7 @@ const InstructionModal = ({ visible, onClose, dontShowAgain, onCheckboxChange })
               การลงเวลาปฏิบัติงาน ให้เรียงตามลำดับวันที่
               ถ้าวันใดหยุดให้เขียนว่าหยุดและวันสำคัญต่างๆ เขียนให้ชัดเจน
             </li>
-            <li>นักศึกษาจะต้องปฏิบัติงานรวมทั้งสิ้น 240 ชั่วโมง ขึ้นไป</li>
+            <li>นักศึกษาจะต้องปฏิบัติงานรวมทั้งสิ้น 240 ชั่วโมง ขึ้นไป (สามารถบันทึกเกิน 240 ชั่วโมงได้)</li>
           </ol>
         </Paragraph>
 
@@ -64,7 +65,7 @@ const InstructionModal = ({ visible, onClose, dontShowAgain, onCheckboxChange })
         <Title level={4}>ข้อปฏิบัติของนักศึกษา</Title>
         <Paragraph>
           <ul>
-            <li>ต้องปฏิบัติงาน 240 ชั่วโมงขึ้นไป ถึงจะถือว่าผ่านการฝึกงาน</li>
+            <li>ต้องปฏิบัติงานอย่างน้อย 240 ชั่วโมงขึ้นไป ถึงจะถือว่าผ่านการฝึกงาน (สามารถฝึกงานและบันทึกชั่วโมงเกินจากนี้ได้)</li>
             <li>
               ต้องแต่งกายด้วยเครื่องแบบนักศึกษาของสถานศึกษาหรือเครื่องแบบที่สถานประกอบการกำหนด
             </li>

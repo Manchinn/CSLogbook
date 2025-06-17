@@ -4,24 +4,24 @@ module.exports = (sequelize) => {
     class Document extends Model {
         static associate(models) {
             Document.belongsTo(models.User, {
-                foreignKey: 'userId',
+                foreignKey: 'user_id',
                 as: 'owner'
             });
             Document.belongsTo(models.User, {
-                foreignKey: 'reviewerId',
+                foreignKey: 'reviewer_id',
                 as: 'reviewer'
             });
             Document.hasOne(models.ProjectDocument, {
-                foreignKey: 'documentId',
+                foreignKey: 'document_id',
                 as: 'projectDocument'
             });
             Document.hasOne(models.InternshipDocument, {
-                foreignKey: 'documentId',
+                foreignKey: 'document_id',
                 sourceKey: 'documentId',
                 as: 'internshipDocument'
             });
             Document.hasMany(models.DocumentLog, {
-                foreignKey: 'documentId',
+                foreignKey: 'document_id',
                 as: 'documentLogs'
             });
         }
@@ -60,7 +60,7 @@ module.exports = (sequelize) => {
             field: 'file_path'
         },
         status: {
-            type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected'),
+            type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected', 'supervisor_evaluated'),
             defaultValue: 'draft'
         },
         reviewDate: {

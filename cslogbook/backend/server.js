@@ -23,6 +23,9 @@ const path = require('path');
 const fs = require('fs');
 const validateEnv = require('./utils/validateEnv');
 
+// นำเข้า Agent Manager
+const agentManager = require('./agents');
+
 // Validate server-specific environment variables
 const validateServerEnv = () => {
   // Required server variables
@@ -79,11 +82,10 @@ const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
 const internshipRoutes = require('./routes/documents/internshipRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
-
-
+const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มการนำเข้า timelineRoutes
+const workflowRoutes = require('./routes/workflowRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-
-
+const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
@@ -101,6 +103,12 @@ app.use(cors({
 // ย้าย cors middleware ขึ้นไปก่อน route handlers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Mount email approval routes early to ensure they are not overridden by broader /api routes
+app.use('/api/email-approval', emailApprovalRoutes);
+
+// Mount API routes
+// Example: app.use('/api/auth', authRoutes); // Assuming other routes are mounted similarly
 
 // Swagger setup
 const swaggerOptions = {
@@ -188,6 +196,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
 app.use('/api/auth', authRoutes);
+// เพิ่มเส้นทางสำหรับช่วงเปลี่ยนผ่านชั่วคราว - จะถูกลบออกในอนาคต
+app.use('/api/timeline/public', timelineRoutes);
 
 // Protected routes
 app.use('/api/admin', authenticateToken, adminRoutes);
@@ -205,6 +215,8 @@ app.use('/api', uploadRoutes); // ใช้ route
 // Add routes
 app.use('/api/internship', internshipRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
+app.use('/api/timeline', authenticateToken, timelineRoutes);
+app.use('/api/workflow', authenticateToken, workflowRoutes); 
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {
@@ -266,11 +278,50 @@ server.listen(ENV.PORT, () => {
   console.log(`Frontend URL: ${ENV.FRONTEND_URL}`);
   console.log(`Upload directory: ${ENV.UPLOAD_DIR}`);
   console.log(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
+  
+  // เริ่มการทำงานของ Agent หลังจาก server เริ่มทำงาน
+  if (process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production') {
+    console.log('Starting CSLogbook Agents...');
+    // เริ่ม Agent ทุกตัวพร้อมกัน
+    agentManager.startAllAgents();
+    
+    // หรือจะเริ่มทีละ Agent ก็ได้
+    // agentManager.startAgent('deadlineReminder');
+    // agentManager.startAgent('documentMonitor');
+    // agentManager.startAgent('securityMonitor');
+    // agentManager.startAgent('logbookQualityMonitor');
+    // agentManager.startAgent('eligibilityChecker');
+    
+    console.log('CSLogbook Agents started successfully');
+  }
 });
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   console.info('SIGTERM signal received.');
+  
+  // หยุดการทำงานของ Agent ก่อนปิด server
+  if (agentManager.isRunning) {
+    console.log('Stopping CSLogbook Agents...');
+    agentManager.stopAllAgents();
+  }
+  
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+// SIGINT handler (Ctrl+C)
+process.on('SIGINT', () => {
+  console.info('SIGINT signal received.');
+  
+  // หยุดการทำงานของ Agent ก่อนปิด server
+  if (agentManager.isRunning) {
+    console.log('Stopping CSLogbook Agents...');
+    agentManager.stopAllAgents();
+  }
+  
   server.close(() => {
     console.log('Server closed');
     process.exit(0);

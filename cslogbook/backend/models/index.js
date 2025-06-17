@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { sequelize } = require('../config/database');
+const { sequelize, Sequelize } = require('../config/database');
 
 const models = {};
 
@@ -16,7 +16,7 @@ fs.readdirSync(__dirname)
         );
     })
     .forEach(file => {
-        const model = require(path.join(__dirname, file))(sequelize);
+        const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
         models[model.name] = model;
     });
 

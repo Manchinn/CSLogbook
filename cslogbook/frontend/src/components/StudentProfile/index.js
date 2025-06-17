@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams, useNavigate } from "react-router-dom";
-import { Row, Col, message, Spin, Form, Result, Button } from "antd";
+import { Row, Col, message, Spin, Form, Result, Button, Tabs } from "antd";
 import { calculateStudentYear } from "../../utils/studentUtils";
 import { studentService } from "../../services/studentService";
 import { AuthContext } from "../../contexts/AuthContext";
+import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
 import StudentAvatar from './StudentAvatar';
 import StudentInfo from './StudentInfo';
+import StudentTimeline from './StudentTimeline/index';
 import StudentEditForm from './StudentEditForm';
 import PDPAModal from './PDPAModal';
 import CreditsGuideModal from './CreditsGuideModal';
+import { ScheduleOutlined, FileDoneOutlined, UserOutlined } from '@ant-design/icons';
 import './styles.css';
+
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -19,34 +23,68 @@ const StudentProfile = () => {
   const [editing, setEditing] = useState(false);
   const [form] = Form.useForm();
   const { userData } = useContext(AuthContext);
+  const { refreshEligibility } = useStudentEligibility();
   const [pdpaModalVisible, setPdpaModalVisible] = useState(false);
   const [secondModalVisible, setSecondModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
+
+  // สร้าง state สำหรับเก็บเกณฑ์
+  const [eligibilityCriteria, setEligibilityCriteria] = useState({
+    internshipBaseCredits: 86,
+    projectBaseCredits: 97,
+    projectMajorBaseCredits: 59
+  });
 
   const fetchStudent = useCallback(async () => {
     setLoading(true);
     try {
       const response = await studentService.getStudentInfo(id);
       if (response.success) {
-        const totalCredits = parseInt(response.data.totalCredits) || 0;
-        const majorCredits = parseInt(response.data.majorCredits) || 0;
+        const totalCredits = parseInt(response.data.totalCredits);
+        const majorCredits = parseInt(response.data.majorCredits);
         const yearResult = calculateStudentYear(response.data.studentCode);
+  
+        // Map ข้อมูลจาก user ถ้ามี
+        const { user = {} } = response.data;
+  
+        // เพิ่มการดึงข้อกำหนดสำหรับการตรวจสอบสิทธิ์
+        const requirements = response.data.requirements || {};
+        
+        // ข้อมูลสิทธิ์จาก backend (ถ้ามี)
+        const eligibility = response.data.eligibility || {
+          internship: { eligible: false, message: "ไม่มีข้อมูลสิทธิ์" },
+          project: { eligible: false, message: "ไม่มีข้อมูลสิทธิ์" }
+        };
         
         setStudent({
           ...response.data,
+          firstName: response.data.firstName || user.firstName || "",
+          lastName: response.data.lastName || user.lastName || "",
+          email: response.data.email || user.email || "",
           totalCredits,
           majorCredits,
-          studentYear: yearResult
+          studentYear: yearResult,
+          
+          // เพิ่มข้อมูลเกี่ยวกับสิทธิ์และข้อกำหนด
+          requirements,
+          isEligibleForInternship: eligibility.internship?.eligible,
+          isEligibleForProject: eligibility.project?.eligible,
+          internshipMessage: eligibility.internship?.message,
+          projectMessage: eligibility.project?.message,
         });
-        
+  
         form.setFieldsValue({ totalCredits, majorCredits });
+
+        // อัพเดตค่าเกณฑ์จาก response
+        setEligibilityCriteria({
+          internshipBaseCredits: response.data.requirements?.internshipBaseCredits,
+          projectBaseCredits: response.data.requirements?.projectBaseCredits,
+          projectMajorBaseCredits: response.data.requirements?.projectMajorBaseCredits
+        });
       }
     } catch (error) {
-      if (error.response?.status === 401) {
-        message.error("กรุณาเข้าสู่ระบบใหม่");
-        navigate("/login");
-        return;
-      }
-      message.error("ไม่สามารถโหลดข้อมูลนักศึกษา: " + (error.message || "Unknown error"));
+      console.error("Error fetching student data:", error);
+      message.error("ไม่สามารถโหลดข้อมูลนักศึกษา: " + (error.message || "กรุณาลองใหม่อีกครั้ง"));
     } finally {
       setLoading(false);
     }
@@ -58,16 +96,29 @@ const StudentProfile = () => {
 
   const handleEdit = useCallback(async (values) => {
     try {
-      const response = await studentService.updateStudent(id, values);
+      // ส่งค่า isEligibleInternship และ isEligibleProject ไปยัง backend
+      const response = await studentService.updateStudent(id, {
+        ...values,
+        // ถ้า backend ต้องการคำนวณเอง ก็ไม่จำเป็นต้องส่งค่าเหล่านี้ไป
+        // isEligibleInternship: values.isEligibleInternship,
+        // isEligibleProject: values.isEligibleProject
+      });
+
       if (response.success) {
         message.success("แก้ไขข้อมูลสำเร็จ");
         setEditing(false);
         await fetchStudent();
+        
+        // เพิ่ม: อัพเดตข้อมูลสิทธิ์ทันทีหลังจากบันทึกข้อมูลสำเร็จ
+        if (userData?.role === 'student') {
+          // ถ้าผู้แก้ไขเป็นนักศึกษา ให้รีเฟรชสิทธิ์
+          refreshEligibility(true);  // true = แสดงข้อความแจ้งเตือน
+        }
       }
     } catch (error) {
       message.error("ไม่สามารถแก้ไขข้อมูล: " + error.message);
     }
-  }, [id, fetchStudent]);
+  }, [id, fetchStudent, userData, refreshEligibility]);
 
   const handleEditWithConsent = () => {
     setPdpaModalVisible(true);
@@ -91,7 +142,7 @@ const StudentProfile = () => {
         alignItems: "center",
         minHeight: "calc(100vh - 64px)",
       }}>
-        <Spin>
+        <Spin size="large">
           <div style={{ padding: "50px", textAlign: "center" }}>
             กำลังโหลดข้อมูล...
           </div>
@@ -120,6 +171,56 @@ const StudentProfile = () => {
     userData?.role === "teacher" || 
     (userData?.role === "student" && userData?.studentCode === id);
 
+  // สร้าง tabItems สำหรับใช้กับ items prop
+  const tabItems = [
+    {
+      key: 'info',
+      label: (
+        <span>
+          <UserOutlined /> ข้อมูลนักศึกษา
+        </span>
+      ),
+      children: editing ? (
+        <StudentEditForm
+          form={form}
+          onFinish={handleEdit}
+          onCancel={() => setEditing(false)}
+          initialValues={student}
+          requirements={student.requirements}
+          eligibilityCriteria={eligibilityCriteria} 
+        />
+      ) : (
+        <StudentInfo
+          student={student}
+          onEdit={handleEditWithConsent}
+          canEdit={canEdit}
+        />
+      ),
+    },
+    {
+      key: 'timeline',
+      label: (
+        <span>
+          <ScheduleOutlined /> ไทม์ไลน์การศึกษา
+        </span>
+      ),
+      children: <StudentTimeline />,
+    },
+    {
+      key: 'documents',
+      label: (
+        <span>
+          <FileDoneOutlined /> เอกสาร
+        </span>
+      ),
+      children: (
+        <div className="documents-section">
+          <p>เอกสารของนักศึกษาจะแสดงในส่วนนี้</p>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="container">
       <Row gutter={[24, 24]} justify="center">
@@ -129,21 +230,13 @@ const StudentProfile = () => {
             studentYear={student.studentYear} 
           />
         </Col>
-        <Col xs={24} lg={12}>
-          {editing ? (
-            <StudentEditForm
-              form={form}
-              onFinish={handleEdit}
-              onCancel={() => setEditing(false)}
-              initialValues={student}
-            />
-          ) : (
-            <StudentInfo
-              student={student}
-              onEdit={handleEditWithConsent}
-              canEdit={canEdit}
-            />
-          )}
+        <Col xs={24} lg={18}>
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            className="profile-tabs"
+            items={tabItems}
+          />
         </Col>
       </Row>
 

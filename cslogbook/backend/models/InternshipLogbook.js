@@ -4,19 +4,22 @@ module.exports = (sequelize) => {
     class InternshipLogbook extends Model {
         static associate(models) {
             InternshipLogbook.belongsTo(models.InternshipDocument, {
-                foreignKey: 'internshipId',
+                foreignKey: 'internship_id',
+                targetKey: 'internshipId',
                 as: 'internship'
             });
             InternshipLogbook.belongsTo(models.Student, {
-                foreignKey: 'studentId',
+                foreignKey: 'student_id',
+                targetKey: 'studentId',
                 as: 'student'
             });
             InternshipLogbook.hasMany(models.InternshipLogbookAttachment, {
-                foreignKey: 'logId',
+                foreignKey: 'log_id',
+                sourceKey: 'logId',
                 as: 'attachments'
             });
             InternshipLogbook.hasMany(models.InternshipLogbookRevision, {
-                foreignKey: 'logId',
+                foreignKey: 'log_id',
                 as: 'revisions'
             });
         }
@@ -88,9 +91,19 @@ module.exports = (sequelize) => {
             field: 'supervisor_comment'
         },
         supervisorApproved: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
+            type: DataTypes.INTEGER, // Changed from DataTypes.BOOLEAN
+            defaultValue: 0, // Changed from false, 0 for pending
             field: 'supervisor_approved'
+        },
+        supervisorApprovedAt: { // Added field definition
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'supervisor_approved_at' // Snake case for DB
+        },
+        supervisorRejectedAt: { // Added field definition
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'supervisor_rejected_at' // Snake case for DB
         },
         advisorComment: {
             type: DataTypes.TEXT,
