@@ -50,10 +50,10 @@ const TimeSheet = () => {
   };
 
   return (
-    <div className="internship-container" style={{ position: 'relative', paddingBottom: '50px' }}>
+    <div className="internship-container">
       
       {dateRange && (
-        <>
+        <div className="alert-wrapper">
           <Alert
             type="info"
             message={
@@ -63,36 +63,24 @@ const TimeSheet = () => {
             }
             description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
             showIcon
-            style={{ marginBottom: 16 }}
           />
-        </>
+        </div>
       )}
       
-      <TimeSheetStats stats={stats} />
+      <div className="stats-wrapper">
+        <TimeSheetStats stats={stats} />
+      </div>
       
-      <Card>
-        <TimeSheetTable 
-          data={internshipDates}
-          loading={loading}
-          onEdit={handleEdit}
-          onView={handleView}
-        />
-        
-        <EditModal
-          visible={isModalVisible}
-          loading={loading}
-          entry={selectedEntry}
-          form={form}
-          onOk={handleSave}
-          onCancel={handleClose}
-        />
-        
-        <ViewModal
-          visible={isViewModalVisible}
-          entry={selectedEntry}
-          onClose={handleClose}
-        />
-      </Card>
+      <div className="table-card-wrapper">
+        <Card>
+          <TimeSheetTable 
+            data={internshipDates}
+            loading={loading}
+            onEdit={handleEdit}
+            onView={handleView}
+          />
+        </Card>
+      </div>
       
       <Tooltip title="คำชี้แจงการฝึกงาน">
         <Button
@@ -112,9 +100,24 @@ const TimeSheet = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-          }}
-        />
+          }}        />
       </Tooltip>
+      
+      {/* Modals */}
+      <EditModal
+        visible={isModalVisible}
+        loading={loading}
+        entry={selectedEntry}
+        form={form}
+        onOk={handleSave}
+        onCancel={handleClose}
+      />
+      
+      <ViewModal
+        visible={isViewModalVisible}
+        entry={selectedEntry}
+        onClose={handleClose}
+      />
       
       <InstructionModal
         visible={isInstructionVisible}

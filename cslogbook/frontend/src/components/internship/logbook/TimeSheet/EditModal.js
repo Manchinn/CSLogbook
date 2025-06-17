@@ -31,6 +31,7 @@ const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
       onCancel={onCancel}
       confirmLoading={loading}
       width={700}
+      style={{ top: 20 }}
     >
       <Form
         form={form}

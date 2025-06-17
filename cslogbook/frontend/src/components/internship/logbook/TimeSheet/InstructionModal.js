@@ -12,7 +12,7 @@ const InstructionModal = ({ visible, onClose, dontShowAgain, onCheckboxChange })
           <InfoCircleOutlined style={{ marginRight: 8 }} />
           คำชี้แจงการบันทึกการฝึกงาน
         </span>
-      }
+      }style={{ top: 20 }}
       open={visible}
       onCancel={onClose}
       width={1000}
