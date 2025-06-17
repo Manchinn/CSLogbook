@@ -117,7 +117,11 @@ export const handleGenerateOfficialLetter = async (prepareData, setLoading) => {
  * @param {Function} setLoading - Function สำหรับจัดการ loading state
  * @param {boolean} isBlank - เป็นแบบฟอร์มว่างหรือไม่
  */
-export const handleGenerateAcceptanceForm = async (prepareData, setLoading, isBlank = true) => {
+export const handleGenerateAcceptanceForm = async (
+  prepareData,
+  setLoading,
+  isBlank = true
+) => {
   setLoading(true);
   try {
     const pdfData = isBlank ? null : prepareData();
@@ -143,7 +147,11 @@ export const handleGenerateAcceptanceForm = async (prepareData, setLoading, isBl
  * @param {Function} setLoading - Function สำหรับจัดการ loading state
  * @param {boolean} isBlank - เป็นแบบฟอร์มว่างหรือไม่
  */
-export const handlePreviewAcceptanceForm = async (prepareData, setLoading, isBlank = true) => {
+export const handlePreviewAcceptanceForm = async (
+  prepareData,
+  setLoading,
+  isBlank = true
+) => {
   setLoading(true);
   try {
     const pdfData = isBlank ? null : prepareData();
@@ -196,7 +204,8 @@ export const handleGenerateReferralLetter = async (
 
     // สร้าง PDF
     await pdfService.initialize();
-    const preparedData = templateDataService.prepareReferralLetterData(referralData);
+    const preparedData =
+      templateDataService.prepareReferralLetterData(referralData);
     const template = <ReferralLetterTemplate data={preparedData} />;
     const filename = pdfService.generateFileName(
       "referral_letter",
@@ -207,13 +216,37 @@ export const handleGenerateReferralLetter = async (
     await pdfService.generateAndDownload(template, filename);
     message.success("สร้างหนังสือส่งตัวสำเร็จ!");
 
+    // ✅ บันทึกลง localStorage ทันทีหลังดาวน์โหลดสำเร็จ
+    const downloadTimestamp = new Date().toISOString();
+
+    if (existingCS05?.documentId) {
+      localStorage.setItem(
+        `referral_downloaded_${existingCS05.documentId}`,
+        "true"
+      );
+      localStorage.setItem(
+        `referral_downloaded_timestamp_${existingCS05.documentId}`,
+        downloadTimestamp
+      );
+      localStorage.setItem(
+        `cs05_status_${existingCS05.documentId}`,
+        "referral_downloaded"
+      );
+
+      console.log("[DEBUG] 💾 บันทึกสถานะลง localStorage:", {
+        documentId: existingCS05.documentId,
+        status: "downloaded",
+        timestamp: downloadTimestamp,
+      });
+    }
+
     // อัปเดต Frontend State
     setReferralLetterStatus("downloaded");
     setCurrentStep(7);
 
     console.log("✅ อัปเดต Frontend state เรียบร้อย");
 
-    // เรียก Backend API เพื่อซิงค์ข้อมูล
+    // เรียก Backend API เพื่อซิงค์ข้อมูล (ไม่บล็อกการทำงาน)
     if (existingCS05?.documentId) {
       try {
         const response = await internshipService.markReferralLetterDownloaded(
@@ -226,14 +259,24 @@ export const handleGenerateReferralLetter = async (
             existingCS05.documentId,
             "referral_downloaded"
           );
-          console.log("✅ อัปเดต CS05 status ใน Backend เป็น referral_downloaded");
+          console.log(
+            "✅ อัปเดต CS05 status ใน Backend เป็น referral_downloaded"
+          );
+
+          // ✅ อัปเดต localStorage อีกครั้งหลัง API สำเร็จ
+          localStorage.setItem(
+            `backend_synced_${existingCS05.documentId}`,
+            "true"
+          );
         }
       } catch (apiError) {
-        console.warn("⚠️ Backend API Error (ไม่กระทบการทำงาน):", apiError.message);
+        console.warn(
+          "⚠️ Backend API Error (ไม่กระทบการทำงาน):",
+          apiError.message
+        );
 
-        // Fallback: เก็บใน localStorage
-        localStorage.setItem(`referral_downloaded_${existingCS05.documentId}`, "true");
-        localStorage.setItem(`cs05_status_${existingCS05.documentId}`, "referral_downloaded");
+        // ✅ แม้ API error แต่เรามี localStorage แล้ว
+        console.log("📱 การทำงานยังคงปกติด้วย localStorage cache");
       }
     }
   } catch (error) {
@@ -253,7 +296,11 @@ export const handleGenerateReferralLetter = async (
  * @param {Object} existingCS05 - ข้อมูล CS05 ที่มีอยู่
  * @param {Function} setLoading - Function สำหรับจัดการ loading state
  */
-export const handlePreviewReferralLetter = async (prepareData, existingCS05, setLoading) => {
+export const handlePreviewReferralLetter = async (
+  prepareData,
+  existingCS05,
+  setLoading
+) => {
   setLoading(true);
   try {
     const pdfData = prepareData();
@@ -268,7 +315,8 @@ export const handlePreviewReferralLetter = async (prepareData, existingCS05, set
     };
 
     await pdfService.initialize();
-    const preparedData = templateDataService.prepareReferralLetterData(referralData);
+    const preparedData =
+      templateDataService.prepareReferralLetterData(referralData);
     const template = <ReferralLetterTemplate data={preparedData} />;
 
     await pdfService.previewPDF(template);
@@ -282,6 +330,4 @@ export const handlePreviewReferralLetter = async (prepareData, existingCS05, set
   } finally {
     setLoading(false);
   }
-
-
 };

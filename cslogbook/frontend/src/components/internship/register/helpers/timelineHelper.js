@@ -300,15 +300,20 @@ const createStep4Actions = (currentInternshipStep, cs05Status, referralLetterSta
     icon: <UploadOutlined />,
     status: getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus),
     color: (() => {
+      // ✅ ปรับปรุงการคำนวณสี
+      if (acceptanceLetterStatus === "approved" || cs05Status === "acceptance_approved") {
+        return "#52c41a"; // เขียว - อนุมัติแล้ว
+      }
+      
       const stepStatus = getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus);
       switch (stepStatus) {
         case "finish":
-          return "#52c41a"; // เขียว - เสร็จแล้ว
+          return "#52c41a";
         case "process":
-          return "#1890ff"; // น้ำเงิน - กำลังดำเนินการ
+          return "#1890ff";
         case "wait":
         default:
-          return "#d9d9d9"; // เทา - รอดำเนินการ
+          return "#d9d9d9";
       }
     })(),
     details: [
@@ -318,63 +323,68 @@ const createStep4Actions = (currentInternshipStep, cs05Status, referralLetterSta
       "รอการอนุมัติเพื่อดำเนินการขั้นตอนถัดไป",
     ],
     actions: (() => {
-      const stepStatus = getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus);
-
-      if (stepStatus !== "process") {
-        return null;
-      }
-
-      // กรณี step 4 เสร็จแล้ว - แสดงสถานะการอัปโหลด
-      if (
-        acceptanceLetterStatus === "uploaded" ||
-        acceptanceLetterStatus === "approved"
-      ) {
+      // ✅ ปรับปรุง logic การแสดง actions
+      
+      // กรณีอนุมัติแล้ว - แสดงสถานะสำเร็จ
+      if (acceptanceLetterStatus === "approved" || cs05Status === "acceptance_approved") {
         return (
           <Card size="small" style={{ marginTop: 12 }}>
             <Alert
-              message={
-                acceptanceLetterStatus === "approved"
-                  ? "✅ หนังสือตอบรับได้รับการอนุมัติแล้ว"
-                  : "📝 หนังสือตอบรับอยู่ระหว่างการตรวจสอบ"
-              }
-              description={
-                acceptanceLetterStatus === "approved"
-                  ? "หนังสือตอบรับจากบริษัทได้รับการตรวจสอบและอนุมัติเรียบร้อยแล้ว"
-                  : acceptanceLetterInfo?.statusMessage ||
-                    "หนังสือตอบรับได้รับการอัปโหลดแล้ว กรุณารอเจ้าหน้าที่ภาควิชาตรวจสอบและอนุมัติ"
-              }
-              type={
-                acceptanceLetterStatus === "approved" ? "success" : "info"
-              }
+              message="✅ หนังสือตอบรับได้รับการอนุมัติแล้ว"
+              description="หนังสือตอบรับจากบริษัทได้รับการตรวจสอบและอนุมัติเรียบร้อยแล้ว ขณะนี้เจ้าหน้าที่ภาควิชากำลังจัดทำหนังสือส่งตัว"
+              type="success"
               showIcon
             />
-
-            {/* แสดงข้อมูลไฟล์ที่อัปโหลด */}
+            
             {acceptanceLetterInfo?.fileName && (
               <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
                 📎 ไฟล์ที่อัปโหลด: {acceptanceLetterInfo.fileName}
                 <br />
-                📅 อัปโหลดเมื่อ:{" "}
-                {acceptanceLetterInfo.uploadedAt
-                  ? new Date(
-                      acceptanceLetterInfo.uploadedAt
-                    ).toLocaleDateString("th-TH")
-                  : "ไม่ระบุ"}
+                📅 อนุมัติเมื่อ: {acceptanceLetterInfo.approvedAt ? 
+                  new Date(acceptanceLetterInfo.approvedAt).toLocaleDateString("th-TH") : 
+                  "เพิ่งอนุมัติ"}
               </div>
             )}
           </Card>
         );
       }
 
-      // กรณียังไม่ได้อัปโหลด - แสดงฟอร์มอัปโหลด
+      // กรณีอัปโหลดแล้ว รอการอนุมัติ
+      if (acceptanceLetterStatus === "uploaded") {
+        return (
+          <Card size="small" style={{ marginTop: 12 }}>
+            <Alert
+              message="📝 หนังสือตอบรับอยู่ระหว่างการตรวจสอบ"
+              description="หนังสือตอบรับได้รับการอัปโหลดแล้ว กรุณารอเจ้าหน้าที่ภาควิชาตรวจสอบและอนุมัติ"
+              type="info"
+              showIcon
+            />
+            
+            {acceptanceLetterInfo?.fileName && (
+              <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
+                📎 ไฟล์ที่อัปโหลด: {acceptanceLetterInfo.fileName}
+                <br />
+                📅 อัปโหลดเมื่อ: {acceptanceLetterInfo.uploadedAt ? 
+                  new Date(acceptanceLetterInfo.uploadedAt).toLocaleDateString("th-TH") : 
+                  "ไม่ระบุ"}
+              </div>
+            )}
+          </Card>
+        );
+      }
+
+      // กรณียังไม่ได้อัปโหลด - ตรวจสอบว่าสามารถอัปโหลดได้หรือไม่
+      const stepStatus = getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus);
+      if (stepStatus !== "process") {
+        return null;
+      }
+
+      // แสดงฟอร์มอัปโหลด
       return (
         <Card size="small" style={{ marginTop: 12 }}>
           <Alert
             message="ยังไม่มีการอัปโหลดหนังสือตอบรับ"
-            description={
-              acceptanceLetterInfo?.statusMessage ||
-              "กรุณาอัปโหลดหนังสือตอบรับจากบริษัทเพื่อดำเนินการขั้นตอนถัดไป"
-            }
+            description="กรุณาอัปโหลดหนังสือตอบรับจากบริษัทเพื่อดำเนินการขั้นตอนถัดไป"
             type="warning"
             showIcon
             style={{ marginBottom: 16 }}
@@ -394,10 +404,6 @@ const createStep4Actions = (currentInternshipStep, cs05Status, referralLetterSta
                 เลือกไฟล์ PDF
               </Button>
             </Upload>
-
-            <div style={{ fontSize: "12px", color: "#666", marginTop: 4 }}>
-              รองรับไฟล์ PDF เท่านั้น (ขนาดไม่เกิน 5MB)
-            </div>
           </div>
 
           <Button

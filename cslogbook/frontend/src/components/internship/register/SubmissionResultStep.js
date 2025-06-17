@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Typography, Card, Timeline, Alert, message } from "antd";
-import { CheckCircleOutlined } from "@ant-design/icons";
+import {
+  Typography,
+  Card,
+  Timeline,
+  Alert,
+  message,
+  Button,
+  Space,
+} from "antd";
+import { CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import internshipService from "../../../services/internshipService";
@@ -205,7 +213,7 @@ const SubmissionResultStep = ({
         console.log("[DEBUG] 🛡️ ข้ามการตรวจสอบ - ขั้นตอนเสร็จสมบูรณ์แล้ว");
         return;
       }
-      
+
       await fetchLatestCS05StatusWrapper();
       await checkAcceptanceLetterStatusWrapper();
 
@@ -225,24 +233,112 @@ const SubmissionResultStep = ({
     }
   };
 
-  // ✅ แก้ไข useEffect เพื่อรอการโหลดข้อมูลเสร็จก่อน
-useEffect(() => {
-  const initializeStatus = async () => {
-    if (existingCS05?.status) {
-      console.log("[DEBUG] 🔄 เริ่มต้นการตั้งค่าสถานะ:", existingCS05.status);
-      
-      // อัปเดตขั้นตอนจากสถานะ CS05
-      handleUpdateStepFromStatus(existingCS05.status);
-      
-      // รอการอัปเดตเสร็จแล้วค่อยตรวจสอบสถานะ
-      setTimeout(async () => {
-        await checkAllStatus();
-      }, 100); // รอ state update
+  // ✅ เพิ่ม useEffect สำหรับตรวจสอบ localStorage ตอนเริ่ม
+  useEffect(() => {
+    const initializeFromCache = () => {
+      if (!existingCS05?.documentId) return;
+
+      // ตรวจสอบสถานะดาวน์โหลดจาก localStorage
+      const cachedDownloadStatus = localStorage.getItem(
+        `referral_downloaded_${existingCS05.documentId}`
+      );
+      const cachedTimestamp = localStorage.getItem(
+        `referral_downloaded_timestamp_${existingCS05.documentId}`
+      );
+      const backendSynced = localStorage.getItem(
+        `backend_synced_${existingCS05.documentId}`
+      );
+
+      if (cachedDownloadStatus === "true") {
+        console.log("[DEBUG] 🎯 พบสถานะดาวน์โหลดใน localStorage:", {
+          documentId: existingCS05.documentId,
+          downloadedAt: cachedTimestamp,
+          backendSynced: backendSynced === "true",
+        });
+
+        // อัปเดต state ให้ตรงกับ cache
+        setReferralLetterStatus("downloaded");
+        setCurrentInternshipStep(7);
+        setCs05Status("referral_downloaded");
+
+        setReferralLetterInfo({
+          status: "downloaded",
+          downloadedAt: cachedTimestamp,
+          statusMessage: `ดาวน์โหลดแล้วเมื่อ ${
+            cachedTimestamp
+              ? new Date(cachedTimestamp).toLocaleString("th-TH")
+              : "ไม่ทราบเวลา"
+          }`,
+          source: "localStorage_cache",
+          backendSynced: backendSynced === "true",
+        });
+
+        console.log("[DEBUG] ✅ คืนสถานะจาก localStorage สำเร็จ");
+        return true; // แสดงว่าพบ cache
+      }
+
+      return false; // ไม่พบ cache
+    };
+
+    // เรียกตรวจสอบ cache ก่อนเรียก API
+    const hasCachedStatus = initializeFromCache();
+
+    // ถ้าไม่มี cache ใหม่เรียก checkAllStatus
+    if (!hasCachedStatus) {
+      console.log("[DEBUG] 🔄 ไม่พบ cache - ตรวจสอบสถานะจาก API");
+      const initializeStatus = async () => {
+        if (existingCS05?.status) {
+          console.log(
+            "[DEBUG] 🔄 เริ่มต้นการตั้งค่าสถานะ:",
+            existingCS05.status
+          );
+
+          handleUpdateStepFromStatus(existingCS05.status);
+
+          setTimeout(async () => {
+            await checkAllStatus();
+          }, 100);
+        }
+      };
+      initializeStatus();
+    }
+  }, [existingCS05?.status, existingCS05?.documentId]);
+
+  // ✅ เพิ่มฟังก์ชันสำหรับล้าง cache (สำหรับ debug)
+  const clearLocalStorageCache = () => {
+    if (!existingCS05?.documentId) return;
+
+    const keys = [
+      `referral_downloaded_${existingCS05.documentId}`,
+      `referral_downloaded_timestamp_${existingCS05.documentId}`,
+      `cs05_status_${existingCS05.documentId}`,
+      `backend_synced_${existingCS05.documentId}`,
+    ];
+
+    keys.forEach((key) => localStorage.removeItem(key));
+    console.log("[DEBUG] 🗑️ ล้าง localStorage cache แล้ว");
+
+    // Refresh สถานะ
+    window.location.reload();
+  };
+  
+  // ✅ เวอร์ชันง่ายของ handleRefreshStatus
+  const handleRefreshStatus = async () => {
+    setLoading(true);
+    try {
+      console.log("[DEBUG] 🔄 รีเฟรชสถานะ...");
+
+      // เรียกตรวจสอบสถานะทั้งหมดใหม่
+      await checkAllStatus();
+
+      message.success("อัปเดตสถานะเรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("[DEBUG] ❌ เกิดข้อผิดพลาดในการรีเฟรช:", error);
+      message.error("ไม่สามารถอัปเดตสถานะได้");
+    } finally {
+      setLoading(false);
     }
   };
-
-  initializeStatus();
-}, [existingCS05?.status, existingCS05?.documentId]);
 
   // ดักจับการเปลี่ยนแปลง referralLetterStatus
   useEffect(() => {
@@ -321,6 +417,30 @@ useEffect(() => {
       {/* Timeline แสดงขั้นตอนทั้งหมด */}
       <Card
         title="ขั้นตอนการดำเนินการฝึกงาน (ทั้งหมด 7 ขั้นตอน)"
+        extra={
+          <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefreshStatus}
+              loading={loading}
+              size="small"
+            >
+              อัปเดตสถานะ
+            </Button>
+
+            {/* 🔧 Debug button - ลบออกได้เมื่อแก้ไขเสร็จ */}
+            {process.env.NODE_ENV === "development" && (
+              <Button
+                danger
+                size="small"
+                onClick={clearLocalStorageCache}
+                title="ล้าง Cache และ Refresh"
+              >
+                🗑️ Reset Cache
+              </Button>
+            )}
+          </Space>
+        }
         style={{ marginBottom: 24 }}
       >
         <Timeline>

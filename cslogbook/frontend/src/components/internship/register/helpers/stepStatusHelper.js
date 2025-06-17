@@ -184,12 +184,10 @@ export const updateStepFromStatus = (status, setCurrentStep, setCs05Status) => {
   const newStep = getStepFromStatus(status);
   setCurrentStep(newStep);
 
-  // แปลง acceptance_approved เป็น referral_ready
+  // ✅ เพิ่มการ handle acceptance_approved
   if (status === "acceptance_approved") {
-    setCs05Status("referral_ready");
-    console.log(
-      `📍 อัปเดตขั้นตอนเป็น ${newStep} จาก CS05 status: ${status} → referral_ready`
-    );
+    setCs05Status("acceptance_approved");
+    console.log(`📍 อัปเดตขั้นตอนเป็น ${newStep} จาก CS05 status: ${status}`);
   } else {
     setCs05Status(status);
     console.log(`📍 อัปเดตขั้นตอนเป็น ${newStep} จาก CS05 status: ${status}`);
