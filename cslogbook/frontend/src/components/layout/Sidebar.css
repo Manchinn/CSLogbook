@@ -8,12 +8,6 @@
   left: 0;
   top: 0;
   z-index: 1000;
-<<<<<<< HEAD
-  overflow: auto; 
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border-right: 1px solid #f0f0f0;
-  width: 230px;
-=======
   overflow: auto;
   box-shadow: var(--box-shadow);
   border-right: 1px solid var(--border-color);
@@ -35,7 +29,6 @@
 .sider.in-drawer .menu .ant-menu-item,
 .sider.in-drawer .menu .ant-menu-submenu-title {
   padding-left: 10px !important;
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
 }
 
 

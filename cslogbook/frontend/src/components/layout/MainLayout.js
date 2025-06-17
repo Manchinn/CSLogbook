@@ -100,15 +100,6 @@ const MainLayout = () => {
         <Content
           className="p-6 responsive-content content-area"
           style={{
-<<<<<<< HEAD
-            marginLeft: isMobile ? 0 : 230, // ในโหมดมือถือ marginLeft เป็น 0
-            transition: 'margin-left 0.2s',
-            // backgroundColor: '#A7A7A7A7',
-            marginTop: '60px', // ปรับให้ตรงกับความสูงของส่วนหัวที่คงที่
-            padding: '24px',
-            overflowY: 'auto', // ทำให้เนื้อหาสามารถเลื่อนขึ้นลงได้
-            height: 'calc(100vh - 64px)', // ปรับความสูงให้ตรงกับส่วนหัวที่คงที่
-=======
             marginLeft: isMobile ? 0 : "200px",
             paddingTop: "80px",
             alignItems: "center",
@@ -119,7 +110,6 @@ const MainLayout = () => {
             // height: '100vh',
             // overflow: 'hidden',
             // backdropFilter: 'blur(10px)',
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
           }}
         >
           {" "}

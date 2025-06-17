@@ -48,49 +48,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
         return "ผู้ใช้งาน";
     }
   };
-<<<<<<< HEAD
-
-  return (
-    <Header
-      className={`main-header ${isMobile ? "mobile" : ""}`}
-      style={{ background: theme.gradient }}
-    >
-      {/* Left side */}
-      <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
-        <Space
-          size={24}
-          align="start"
-          style={{ paddingTop: "12px", paddingBottom: "12px" }}
-        >
-          {/* เพิ่มปุ่มเปิด Drawer สำหรับหน้าจอเล็ก */}
-          {isMobile && (
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={showDrawer}
-              style={{
-                padding: "0",
-                fontSize: 24,
-                margin: 0,
-                position: "fixed",
-                zIndex: 1001,
-                top: "50%", // จัดตำแหน่งจากด้านบน 50%
-                transform: "translate(-50%, -50%)", // ย้ายกลับไปทางซ้ายและขึ้นบน 50% ของขนาดปุ่ม
-              }}
-            />
-          )}
-          <Space
-            direction="vertical"
-            size={4}
-            className={`title-container ${isMobile ? "mobile" : ""}`}
-          >
-            <Title level={4} className={`main-title ${isMobile ? "mobile" : ""}`} style={{ color: theme.text }}>
-              CS Logbook
-            </Title>
-            <Text className={`subtitle ${isMobile ? "mobile" : ""}`}>
-              ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
-            </Text>
-=======
   const buttonStyle = {
     display: "flex",
     alignItems: "center",
@@ -213,7 +170,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                 ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
               </Text>
             </Space>
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
           </Space>
         </div>{" "}
         {/* Right side */}
@@ -223,20 +179,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
               {firstName?.charAt(0)?.toUpperCase()}
             </Avatar>
 
-<<<<<<< HEAD
-      {/* Right side */}
-      <div style={{ marginRight: "auto", padding: "12px" }}>
-        <Space size={16} align="center">
-          <Avatar className={`user-avatar ${isMobile ? "mobile" : ""}`} style={{ backgroundColor: theme.badge }}>
-            {firstName?.charAt(0)?.toUpperCase()}
-          </Avatar>
-
-          <Space direction="vertical" size={0}>
-            <Text strong className="user-name" style={{ color: theme.text }}>
-              {firstName} {lastName}
-            </Text>
-            <Badge count={getRoleTitle(role)} className="role-badge" style={{ backgroundColor: theme.badge }} />
-=======
             <Space direction="vertical" size={0}>
               <Text
                 strong
@@ -251,7 +193,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                 className="header-role-badge"
               />
             </Space>
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
           </Space>
         </div>
       </Header>{" "}

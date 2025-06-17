@@ -5,13 +5,8 @@
   justify-content: center;
   align-items: center;
   min-height: 55vh;
-<<<<<<< HEAD
-  background-color: #db0101;
-  padding: 24px;
-=======
   background-color: transparent;
   padding: 20px;
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
   font-size: 80px; /* ขนาดตัวหนังสือใน container */
 }
 

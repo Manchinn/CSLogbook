@@ -44,108 +44,18 @@
   width: 100%;
 }
 
-<<<<<<< HEAD
-.student-dashboard {
-  padding: 24px;
-  margin-top: 5%; 
-}
-.admin-dashboard {
-  padding: 24px;
-  margin-top: 5%;
-}
-.teacher-dashboard{
-  padding: 24px;
-  margin-top: 5%;
-}
-
-
-@media screen and (max-width: 576px) {
-  .student-dashboard { 
-    padding: 0px;
-    margin-top: 10%;
-  }
-  
-  .common-card-style {
-    margin-bottom: 16px;
-  }
-
-  .admin-dashboard {
-    padding: 6px;
-  }
-
-  .stats-card {
-    margin-bottom: 16px;
-  }
-}
-
-
-.ant-btn-primary {
-  height: 40px;
-  font-size: 16px;
-}
-
-.ant-btn {
-  height: 40px;
-  font-size: 16px;
-}
-
-.ant-statistic-title {
-  font-weight: bold;
-  font-size: 16px;
-  color: rgba(0,0,0,0.85);
-}
-
-.ant-alert-info {
-  background-color: #e6f7ff;
-  border-color: #91d5ff;
-=======
 .student-dashboard, .admin-dashboard, .teacher-dashboard {
   padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
 }
 
 /* Dashboard Container */
 .dashboard-container {
-<<<<<<< HEAD
-  padding: 24px;
-  background: #f0f2f5;
-  /* min-height: calc(100vh - 64px); */
-}
-
-.dashboard-card {
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  transition: all 0.3s;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.dashboard-loader {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  padding: 24px;
-}
-
-.dashboard-error {
-  text-align: center;
-  padding: 24px;
-}
-
-.ant-statistic-content-value {
-  color: #1890ff;
-  font-weight: 500;
-=======
   padding: 0;
   background: transparent; /* This makes the background transparent */
   /* min-height: calc(100vh - 64px); */ /* Adjust as needed, 64px is a common header height */
   /* Ensure that elements behind this container are visible */
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
 }
 
 .ant-card {
@@ -214,32 +124,7 @@
 
 .stats-card p {
   margin-top: 8px;
-<<<<<<< HEAD
-  color: rgba(0,0,0,0.45);
-}
-
-
-.stats-card h2 {
-  font-size: 28px;
-  margin: 0;
-  color: #262626;
-}
-
-.stats-card p {
-  margin: 8px 0 0;
-  color: #8c8c8c;
-}
-
-
-.stats-row {
-  margin-bottom: 24px;
-}
-
-.detail-row .ant-card {
-  margin-bottom: 0;
-=======
   color: var(--text-secondary);
->>>>>>> f08164adc08a6a8f8c5294b7b6026b25f6ff984b
 }
 
 
