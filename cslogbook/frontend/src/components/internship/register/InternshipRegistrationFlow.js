@@ -383,9 +383,9 @@ const InternshipRegistrationFlow = () => {
 
   useEffect(() => {
     // ตรวจสอบว่าเคยส่งฟอร์มแล้วหรือไม่
-    const isSubmitted = localStorage.getItem('cs05_submitted') === 'true';
-    const savedCS05Data = localStorage.getItem('cs05_data');
-    
+    const isSubmitted = localStorage.getItem('pending') === 'true'; //cs05_submitted
+    const savedCS05Data = localStorage.getItem('approved'); //cs05_data
+
     if (isSubmitted && savedCS05Data) {
       try {
         const parsedData = JSON.parse(savedCS05Data);
