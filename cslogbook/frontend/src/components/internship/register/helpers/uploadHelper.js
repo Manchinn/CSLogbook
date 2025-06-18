@@ -68,6 +68,14 @@ export const handleUploadAcceptanceLetter = async (
   setAcceptanceLetterInfo,
   updateStepFromStatus
 ) => {
+  // ✅ เพิ่มการ debug ข้อมูลที่รับเข้ามา
+  console.log("[DEBUG] handleUploadAcceptanceLetter - Parameters:", {
+    acceptanceFile: acceptanceFile ? acceptanceFile.name : "No file",
+    existingCS05: existingCS05,
+    hasDocumentId: existingCS05?.documentId,
+    documentId: existingCS05?.documentId,
+  });
+  
   if (!acceptanceFile) {
     message.error("กรุณาเลือกไฟล์หนังสือตอบรับก่อนอัปโหลด");
     return;
@@ -105,8 +113,7 @@ export const handleUploadAcceptanceLetter = async (
   } catch (error) {
     console.error("Error uploading acceptance letter:", error);
     message.error(
-      error.response?.data?.message ||
-        "เกิดข้อผิดพลาดในการอัปโหลดหนังสือตอบรับ"
+      error.response?.data?.message || "เกิดข้อผิดพลาดในการอัปโหลดหนังสือตอบรับ"
     );
   } finally {
     setLoading(false);

@@ -150,10 +150,33 @@ const SubmissionResultStep = ({
     );
   };
 
+  useEffect(() => {
+    console.log("🔍 SubmissionResultStep - existingCS05:", existingCS05);
+    console.log("🔍 Props received:", {
+      existingCS05,
+      hasData: !!existingCS05,
+      documentId: existingCS05?.documentId,
+    });
+  }, [existingCS05]);
+
   // ฟังก์ชันสำหรับอัปโหลด
   const uploadProps = getUploadProps(acceptanceFile, setAcceptanceFile);
 
   const handleUploadAcceptanceLetterWrapper = async () => {
+    // เพิ่มการ debug เพื่อตรวจสอบข้อมูล
+    console.log("[DEBUG] Upload Wrapper - existingCS05:", existingCS05);
+    console.log("[DEBUG] Upload Wrapper - acceptanceFile:", acceptanceFile);
+
+    if (!existingCS05) {
+      message.error("ไม่พบข้อมูลเอกสาร CS05 กรุณารีเฟรชหน้าเว็บ");
+      return;
+    }
+
+    if (!existingCS05.documentId) {
+      message.error("ไม่พบ ID เอกสาร CS05");
+      return;
+    }
+
     await handleUploadAcceptanceLetter(
       acceptanceFile,
       existingCS05,
@@ -176,15 +199,26 @@ const SubmissionResultStep = ({
   };
 
   const checkAcceptanceLetterStatusWrapper = async () => {
-    await checkAcceptanceLetterStatus(
-      existingCS05,
-      cs05Status,
-      internshipService,
-      setAcceptanceLetterStatus,
-      setAcceptanceLetterInfo,
-      handleUpdateStepFromStatus,
-      checkReferralLetterStatusWrapper
-    );
+    try {
+      console.log("[DEBUG] 🔍 เริ่มตรวจสอบสถานะ acceptance letter...");
+
+      await checkAcceptanceLetterStatus(
+        existingCS05,
+        cs05Status,
+        internshipService,
+        setAcceptanceLetterStatus,
+        setAcceptanceLetterInfo,
+        handleUpdateStepFromStatus,
+        checkReferralLetterStatusWrapper
+      );
+
+      console.log("[DEBUG] ✅ ตรวจสอบ acceptance letter เสร็จสิ้น");
+    } catch (error) {
+      console.error(
+        "[DEBUG] ❌ Error in checkAcceptanceLetterStatusWrapper:",
+        error
+      );
+    }
   };
 
   const checkReferralLetterStatusWrapper = async () => {
@@ -199,7 +233,7 @@ const SubmissionResultStep = ({
     );
   };
 
-  // ฟังก์ชันตรวจสอบสถานะทั้งหมด
+  // ✅ ปรับปรุงฟังก์ชันตรวจสอบสถานะทั้งหมด
   const checkAllStatus = async () => {
     console.log("[DEBUG] 🔄 เริ่มตรวจสอบสถานะทั้งหมด...");
 
@@ -214,16 +248,20 @@ const SubmissionResultStep = ({
         return;
       }
 
+      // ✅ 1. ตรวจสอบ CS05 status ล่าสุด
+      console.log("[DEBUG] 📋 ตรวจสอบสถานะ CS05...");
       await fetchLatestCS05StatusWrapper();
+
+      // ✅ 2. ตรวจสอบ acceptance letter status
+      console.log("[DEBUG] 📄 ตรวจสอบสถานะหนังสือตอบรับ...");
       await checkAcceptanceLetterStatusWrapper();
 
+      // ✅ 3. ตรวจสอบ referral letter status (ถ้า acceptance letter อนุมัติแล้ว)
       if (
         acceptanceLetterStatus === "approved" ||
         cs05Status === "acceptance_approved"
       ) {
-        console.log(
-          "[DEBUG] 🔍 หนังสือตอบรับอนุมัติแล้ว - ตรวจสอบหนังสือส่งตัว"
-        );
+        console.log("[DEBUG] 📋 ตรวจสอบสถานะหนังสือส่งตัว...");
         await checkReferralLetterStatusWrapper();
       }
 
@@ -233,7 +271,7 @@ const SubmissionResultStep = ({
     }
   };
 
-  // ✅ เพิ่ม useEffect สำหรับตรวจสอบ localStorage ตอนเริ่ม
+  // ✅ แก้ไข useEffect สำหรับตรวจสอบ localStorage ตอนเริ่ม
   useEffect(() => {
     const initializeFromCache = () => {
       if (!existingCS05?.documentId) return;
@@ -283,24 +321,35 @@ const SubmissionResultStep = ({
     // เรียกตรวจสอบ cache ก่อนเรียก API
     const hasCachedStatus = initializeFromCache();
 
-    // ถ้าไม่มี cache ใหม่เรียก checkAllStatus
+    // ✅ ถ้าไม่มี cache ให้เรียก checkAllStatus แทน handleUpdateStepFromStatus
     if (!hasCachedStatus) {
       console.log("[DEBUG] 🔄 ไม่พบ cache - ตรวจสอบสถานะจาก API");
-      const initializeStatus = async () => {
-        if (existingCS05?.status) {
-          console.log(
-            "[DEBUG] 🔄 เริ่มต้นการตั้งค่าสถานะ:",
-            existingCS05.status
-          );
 
-          handleUpdateStepFromStatus(existingCS05.status);
+      // ✅ แก้ไขตรงนี้: เรียก checkAllStatus แทน handleUpdateStepFromStatus
+      const initializeStatusFromAPI = async () => {
+        try {
+          if (existingCS05?.status) {
+            console.log(
+              "[DEBUG] 🔄 เริ่มต้นการตรวจสอบสถานะทั้งหมด:",
+              existingCS05.status
+            );
 
-          setTimeout(async () => {
-            await checkAllStatus();
-          }, 100);
+            // ✅ ตั้งสถานะเริ่มต้นจาก CS05 ก่อน
+            handleUpdateStepFromStatus(existingCS05.status);
+
+            // ✅ จากนั้นตรวจสอบสถานะทั้งหมดจาก API (หลังจาก 500ms)
+            setTimeout(async () => {
+              console.log("[DEBUG] 🔍 เริ่มตรวจสอบสถานะทั้งหมดจาก API...");
+              await checkAllStatus();
+              console.log("[DEBUG] ✅ ตรวจสอบสถานะทั้งหมดเสร็จสิ้น");
+            }, 500);
+          }
+        } catch (error) {
+          console.error("[DEBUG] ❌ Error in initializeStatusFromAPI:", error);
         }
       };
-      initializeStatus();
+
+      initializeStatusFromAPI();
     }
   }, [existingCS05?.status, existingCS05?.documentId]);
 
@@ -321,7 +370,7 @@ const SubmissionResultStep = ({
     // Refresh สถานะ
     window.location.reload();
   };
-  
+
   // ✅ เวอร์ชันง่ายของ handleRefreshStatus
   const handleRefreshStatus = async () => {
     setLoading(true);

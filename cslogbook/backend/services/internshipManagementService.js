@@ -1868,7 +1868,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (ปรับปรุงใหม่)
+   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (แก้ไขให้ CS05 เป็น approved ตลอด)
    */
   async getReferralLetterStatus(userId, cs05DocumentId) {
     try {
@@ -1877,7 +1877,7 @@ class InternshipManagementService {
         cs05DocumentId,
       });
 
-      // ✅ ค้นหาเอกสาร CS05 พร้อมข้อมูลที่เกี่ยวข้อง
+      // 1. ค้นหาเอกสาร CS05
       const cs05Document = await Document.findOne({
         where: {
           documentId: parseInt(cs05DocumentId),
@@ -1897,7 +1897,7 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      // ✅ ตรวจสอบหนังสือตอบรับที่ได้รับการอนุมัติ
+      // 2. ค้นหาหนังสือตอบรับที่ได้รับการอนุมัติ
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
@@ -1908,74 +1908,83 @@ class InternshipManagementService {
         },
       });
 
-      // ✅ ตรวจสอบข้อมูลผู้ควบคุมงาน
-      const hasCompleteSupervisorInfo =
-        cs05Document.internshipDocument &&
-        cs05Document.internshipDocument.supervisorName &&
-        cs05Document.internshipDocument.supervisorEmail;
-
-      // ✅ กำหนดสถานะตามเงื่อนไขที่ชัดเจน
-      let status = cs05Document.status; // ใช้สถานะจาก database ตรงๆ
+      // 3. ✅ กำหนดสถานะ (ไม่เปลี่ยน CS05 status)
+      let status = cs05Document.status; // ✅ ใช้สถานะเดิมของ CS05
       let isReady = false;
       let isDownloaded = false;
 
-      // ตรวจสอบเงื่อนไขการพร้อมใช้งาน
+      // 4. ✅ ตรวจสอบเงื่อนไขการพร้อมใช้งาน
       if (
         cs05Document.status === "approved" &&
         acceptanceLetter &&
-        acceptanceLetter.status === "approved" &&
-        hasCompleteSupervisorInfo
+        acceptanceLetter.status === "approved"
       ) {
-        // อัปเดตสถานะเป็น referral_ready ถ้ายังไม่ได้อัปเดต
-        if (
-          cs05Document.status !== "referral_ready" &&
-          cs05Document.status !== "referral_downloaded"
-        ) {
-          await cs05Document.update({ status: "referral_ready" });
-          status = "referral_ready";
-        }
+        // ✅ ไม่อัปเดต CS05 status เป็น referral_ready
+        // แค่ set flag ว่าพร้อมใช้งาน
         isReady = true;
       }
 
-      // ตรวจสอบการดาวน์โหลด
+      // 5. ✅ ตรวจสอบการดาวน์โหลดจาก acceptanceLetter
       if (
-        cs05Document.downloadStatus === "downloaded" ||
-        status === "referral_downloaded"
+        acceptanceLetter?.downloadStatus === "downloaded" ||
+        acceptanceLetter?.downloadedAt
       ) {
         isDownloaded = true;
       }
 
       console.log("[DEBUG] Status calculation result:", {
-        cs05Status: status,
+        cs05Status: status, // ✅ ควรเป็น "approved" ตลอด
         hasAcceptanceLetter: !!acceptanceLetter,
-        hasCompleteSupervisorInfo,
+        acceptanceDownloaded: isDownloaded,
         isReady,
         isDownloaded,
-        downloadedAt: cs05Document.downloadedAt,
-        downloadCount: cs05Document.downloadCount,
+        downloadedAt: acceptanceLetter?.downloadedAt,
+        downloadCount: acceptanceLetter?.downloadCount,
       });
 
       return {
         hasReferralLetter: isReady || isDownloaded,
-        status: status, // ✅ ส่งสถานะจาก database ตรงๆ
-        cs05Status: status,
+        status: status, // ✅ ส่งสถานะ CS05 ตรงๆ (approved)
+        cs05Status: status, // ✅ CS05 ยังคงเป็น "approved"
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceLetterStatus: acceptanceLetter?.status || "not_uploaded",
-        hasSupervisorInfo: hasCompleteSupervisorInfo,
+
+        // ข้อมูลผู้ควบคุมงาน
+        hasSupervisorInfo: !!(
+          cs05Document.internshipDocument?.supervisorName &&
+          cs05Document.internshipDocument?.supervisorEmail
+        ),
+        supervisorInfo: {
+          supervisorName:
+            cs05Document.internshipDocument?.supervisorName || null,
+          supervisorEmail:
+            cs05Document.internshipDocument?.supervisorEmail || null,
+          supervisorPhone:
+            cs05Document.internshipDocument?.supervisorPhone || null,
+          supervisorPosition:
+            cs05Document.internshipDocument?.supervisorPosition || null,
+        },
+
         isReady: isReady,
         isDownloaded: isDownloaded,
         createdDate: cs05Document.created_at,
         readyDate: acceptanceLetter?.updated_at || null,
-        downloadedAt: cs05Document.downloadedAt,
-        downloadCount: cs05Document.downloadCount || 0,
-        // ✅ เพิ่มข้อมูลสำหรับ mapping ใน frontend
+
+        // ✅ ข้อมูลการดาวน์โหลดจาก acceptanceLetter
+        downloadedAt: acceptanceLetter?.downloadedAt,
+        downloadCount: acceptanceLetter?.downloadCount || 0,
+
+        // ✅ mapping info
         mappingInfo: {
-          backendStatus: status,
+          backendStatus: status, // "approved"
           shouldMapTo: isDownloaded
             ? "downloaded"
             : isReady
             ? "ready"
             : "not_ready",
+          requiresSupervisorInfo: false,
+          supervisorInfoOptional: true,
+          cs05AlwaysApproved: true, // ✅ CS05 เป็น approved ตลอด
         },
       };
     } catch (error) {
@@ -2372,7 +2381,6 @@ class InternshipManagementService {
           fileName: fileData.filename,
           fileSize: fileData.size,
           mimeType: fileData.mimetype,
-          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05
         },
         { transaction }
       );
@@ -2380,7 +2388,6 @@ class InternshipManagementService {
       console.log("[DEBUG] Created new acceptance letter document:", {
         documentId: acceptanceDocument.documentId,
         fileName: fileData.filename,
-        // parentDocumentId: cs05Document.documentId,
       });
 
       console.log("[DEBUG] Updated CS05 status to acceptance_uploaded");
@@ -2396,6 +2403,8 @@ class InternshipManagementService {
         message: "อัปโหลดหนังสือตอบรับเรียบร้อยแล้ว รอการพิจารณาจากเจ้าหน้าที่",
         isUpdate: false,
         uploadedAt: acceptanceDocument.created_at,
+        cs05Status: "acceptance_uploaded",
+        cs05Updated: true,
       };
     } catch (error) {
       await transaction.rollback();
@@ -2405,7 +2414,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ตรวจสอบสถานะหนังสือตอบรับการฝึกงาน (ปรับปรุงใหม่ - คล้ายกับ getReferralLetterStatus)
+   * ตรวจสอบสถานะหนังสือตอบรับการฝึกงาน (แก้ไขให้ตรวจสอบจากฐานข้อมูลจริง)
    */
   async checkAcceptanceLetterStatus(userId, cs05DocumentId) {
     try {
@@ -2439,14 +2448,14 @@ class InternshipManagementService {
         status: cs05Document.status,
       });
 
-      // 2. ค้นหาหนังสือตอบรับที่เกี่ยวข้องกับ CS05 นี้โดยตรง
+      // 2. ✅ ค้นหาหนังสือตอบรับจากฐานข้อมูลจริง (ไม่จำกัด status)
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
           documentType: "INTERNSHIP",
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
-          // parentDocumentId: cs05Document.documentId, // ✅ เชื่อมโยงกับ CS05 โดยตรง
+          // ✅ ไม่จำกัด status เพื่อให้หาเจอทุกสถานะ
         },
         order: [["created_at", "DESC"]], // เอาล่าสุด
       });
@@ -2464,18 +2473,20 @@ class InternshipManagementService {
         cs05Document.internshipDocument.supervisorName &&
         cs05Document.internshipDocument.supervisorEmail;
 
-      // 4. คำนวณสถานะการอัปโหลด
-      let acceptanceStatus = "not_uploaded";
+      // 4. ✅ คำนวณสถานะตามข้อมูลจริงในฐานข้อมูล
+      let acceptanceStatus = "not_uploaded"; // ค่าเริ่มต้น
       let canUpload = false;
       let requiresApproval = false;
       let statusMessage = "";
 
-      // ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน)
+      // ✅ ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน)
       if (cs05Document.status === "approved") {
         canUpload = true;
       }
 
+      // ✅ ตรวจสอบจากข้อมูลจริงในฐานข้อมูล
       if (acceptanceLetter) {
+        // ✅ มีการอัปโหลดแล้ว - ใช้สถานะจากฐานข้อมูล
         acceptanceStatus = acceptanceLetter.status;
 
         switch (acceptanceLetter.status) {
@@ -2505,10 +2516,12 @@ class InternshipManagementService {
             canUpload = true; // อนุญาตให้อัปโหลดใหม่
             break;
           default:
-            statusMessage = "สถานะไม่ทราบ";
+            statusMessage = `สถานะ: ${acceptanceLetter.status}`;
         }
       } else {
-        // ไม่มีการอัปโหลด
+        // ✅ ไม่มีการอัปโหลด - เก็บสถานะเป็น not_uploaded
+        acceptanceStatus = "not_uploaded";
+
         if (canUpload) {
           statusMessage = "กรุณาอัปโหลดหนังสือตอบรับจากบริษัท";
         } else {
@@ -2523,7 +2536,7 @@ class InternshipManagementService {
       console.log("[DEBUG] Final status calculation:", {
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
-        acceptanceStatus,
+        acceptanceStatus, // ✅ สถานะจริงจากฐานข้อมูล
         canUpload,
         requiresApproval,
         statusMessage,
@@ -2534,12 +2547,12 @@ class InternshipManagementService {
       return {
         // ข้อมูลเอกสาร CS05
         cs05DocumentId: cs05Document.documentId,
-        cs05Status: cs05Document.status, // อาจจะเป็น "acceptance_approved" หลังการอัปเดต
+        cs05Status: cs05Document.status,
         cs05DocumentType: cs05Document.documentType,
 
-        // ข้อมูลหนังสือตอบรับ
+        // ✅ ข้อมูลหนังสือตอบรับ (สถานะจริงจากฐานข้อมูล)
         hasAcceptanceLetter: !!acceptanceLetter,
-        acceptanceStatus,
+        acceptanceStatus, // ✅ จะเป็น pending/approved/rejected หรือ not_uploaded
         acceptanceLetterStatus: acceptanceStatus, // alias เพื่อ backward compatibility
 
         // สิทธิ์และการอนุมัติ
@@ -2561,14 +2574,18 @@ class InternshipManagementService {
         // ข้อมูลไฟล์
         fileName: acceptanceLetter?.fileName || null,
         fileSize: acceptanceLetter?.fileSize || null,
-        documentId: acceptanceLetter?.documentId || null, // ID ของ acceptance letter
+        documentId: acceptanceLetter?.documentId || null,
 
         // สถานะขั้นตอนถัดไป
         isReadyForNextStep,
         canProceedToReferralLetter: isReadyForNextStep,
 
-        // ข้อมูลเพิ่มเติม
-        originalStatus: acceptanceStatus, // เก็บสถานะดั้งเดิมไว้สำหรับ debug
+        // ✅ ข้อมูลเพิ่มเติมสำหรับ debug
+        debugInfo: {
+          foundAcceptanceDocument: !!acceptanceLetter,
+          originalStatus: acceptanceLetter?.status || "not_found",
+          cs05OriginalStatus: cs05Document.status,
+        },
       };
     } catch (error) {
       console.error("Check Acceptance Letter Status Service Error:", error);
@@ -2833,7 +2850,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ตรวจสอบสถานะหนังสือตอบรับการฝึกงาน
+   * ตรวจสอบสถานะหนังสือตอบรับการฝึกงาน (ฟังก์ชันอื่นที่ใช้งานคล้ายกัน)
    */
   async getAcceptanceLetterStatus(userId, cs05DocumentId) {
     try {
@@ -2861,31 +2878,31 @@ class InternshipManagementService {
         status: cs05Document.status,
       });
 
-      // 2. ค้นหาหนังสือตอบรับที่เกี่ยวข้องกับ CS05 นี้
+      // 2. ✅ ค้นหาหนังสือตอบรับจากฐานข้อมูลจริง
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
           documentType: "INTERNSHIP",
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
-          status: ["approved"], // หาเฉพาะที่ได้รับการอนุมัติ
-          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05 โดยตรง
+          // ✅ ไม่จำกัด status
         },
-        order: [["created_at", "DESC"]], // เอาล่าสุด
+        order: [["created_at", "DESC"]],
       });
 
-      // 3. คำนวณสถานะ
+      // 3. ✅ คำนวณสถานะตามข้อมูลจริง
       let acceptanceStatus = "not_uploaded";
       let canUpload = false;
       let requiresApproval = false;
       let statusMessage = "";
 
-      // ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน)
+      // ตรวจสอบสิทธิ์ในการอัปโหลด
       if (cs05Document.status === "approved") {
         canUpload = true;
       }
 
       if (acceptanceLetter) {
+        // ✅ มีการอัปโหลดแล้ว
         acceptanceStatus = acceptanceLetter.status;
 
         switch (acceptanceLetter.status) {
@@ -2898,12 +2915,13 @@ class InternshipManagementService {
             break;
           case "rejected":
             statusMessage = "หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่";
-            canUpload = true; // อนุญาตให้อัปโหลดใหม่
+            canUpload = true;
             break;
           default:
-            statusMessage = "สถานะไม่ทราบ";
+            statusMessage = `สถานะ: ${acceptanceLetter.status}`;
         }
       } else {
+        // ✅ ไม่มีการอัปโหลด
         if (canUpload) {
           statusMessage = "กรุณาอัปโหลดหนังสือตอบรับจากบริษัท";
         } else {
@@ -2914,7 +2932,7 @@ class InternshipManagementService {
       console.log("[DEBUG] Acceptance letter status calculation:", {
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
-        acceptanceStatus,
+        acceptanceStatus, // ✅ สถานะจริง
         canUpload,
         requiresApproval,
         statusMessage,
@@ -2924,7 +2942,7 @@ class InternshipManagementService {
         cs05DocumentId: cs05Document.documentId,
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
-        acceptanceStatus,
+        acceptanceStatus, // ✅ สถานะจริงจากฐานข้อมูล
         canUpload,
         requiresApproval,
         statusMessage,
@@ -2940,7 +2958,7 @@ class InternshipManagementService {
   }
 
   /**
-   * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว (แก้ไข Database Schema Error)
+   * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว (แก้ไขให้อัปเดต acceptanceLetter แทน)
    */
   async markReferralLetterDownloaded(userId, cs05DocumentId) {
     const transaction = await sequelize.transaction();
@@ -2951,19 +2969,19 @@ class InternshipManagementService {
         cs05DocumentId,
       });
 
-      // ตรวจสอบเอกสาร CS05
+      // 1. ค้นหาเอกสาร CS05 (เพื่อตรวจสอบสิทธิ์เท่านั้น)
       const cs05Document = await Document.findOne({
         where: {
           documentId: parseInt(cs05DocumentId),
           userId: userId,
           documentName: "CS05",
-          documentType: "INTERNSHIP", // ✅ ระบุประเภทเอกสาร
+          documentType: "INTERNSHIP",
         },
         include: [
           {
             model: InternshipDocument,
             as: "internshipDocument",
-            required: true, // ✅ บังคับให้มี InternshipDocument
+            required: true,
           },
         ],
         transaction,
@@ -2973,7 +2991,7 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05 หรือไม่มีสิทธิ์เข้าถึง");
       }
 
-      // ✅ ตรวจสอบหนังสือตอบรับ (ACCEPTANCE_LETTER) ที่ได้รับการอนุมัติ
+      // 2. ✅ ค้นหาหนังสือตอบรับที่ได้รับการอนุมัติ
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
@@ -2981,7 +2999,6 @@ class InternshipManagementService {
           documentName: "ACCEPTANCE_LETTER",
           category: "acceptance",
           status: "approved",
-          // parentDocumentId: cs05Document.documentId, // เชื่อมโยงกับ CS05
         },
         transaction,
       });
@@ -2992,53 +3009,51 @@ class InternshipManagementService {
         );
       }
 
-      console.log("[DEBUG] Found CS05 Document BEFORE update:", {
-        documentId: cs05Document.documentId,
-        currentStatus: cs05Document.status,
-        currentDownloadStatus: cs05Document.downloadStatus,
-        currentDownloadCount: cs05Document.downloadCount,
-        currentDownloadedAt: cs05Document.downloadedAt,
-        hasAcceptanceLetter: true,
-        acceptanceLetterStatus: acceptanceLetter.status,
+      // 3. ตรวจสอบสถานะ CS05 (ต้องเป็น approved)
+      if (cs05Document.status !== "approved") {
+        throw new Error(
+          "เอกสาร CS05 ต้องได้รับการอนุมัติก่อนจึงจะดาวน์โหลดหนังสือส่งตัวได้"
+        );
+      }
+
+      console.log("[DEBUG] Found documents BEFORE update:", {
+        cs05DocumentId: cs05Document.documentId,
+        cs05Status: cs05Document.status, // ควรเป็น "approved"
+        acceptanceDocumentId: acceptanceLetter.documentId,
+        acceptanceStatus: acceptanceLetter.status, // ควรเป็น "approved"
+        acceptanceDownloadedAt: acceptanceLetter.downloadedAt,
+        acceptanceDownloadCount: acceptanceLetter.downloadCount,
       });
 
-      // ✅ อัปเดตข้อมูลการดาวน์โหลด (ไม่เปลี่ยน main status ก่อน)
+      // 4. ✅ อัปเดตสถานะการดาวน์โหลดใน acceptanceLetter (ไม่ใช่ cs05Document)
       const downloadTimestamp = new Date();
-      const currentDownloadCount = cs05Document.downloadCount || 0;
+      const currentDownloadCount = acceptanceLetter.downloadCount || 0;
 
-      // ✅ อัปเดตเฉพาะ download fields และใช้ status ที่มีอยู่ใน ENUM
       await acceptanceLetter.update(
         {
-          downloadStatus: "downloaded",
-          downloadedAt: downloadTimestamp,
-          downloadCount: currentDownloadCount + 1,
-          // ✅ ใช้ status ที่มีอยู่ใน ENUM - หรือไม่อัปเดต status เลย
-          status: "referral_downloaded", // ใช้ status ที่มีอยู่แล้ว
+          // ✅ เพิ่ม field สำหรับเก็บสถานะการดาวน์โหลด
+          status: "approved", // ✅ คงสถานะเป็น approved
+          downloadedAt: downloadTimestamp, // ✅ วันที่ดาวน์โหลด
+          downloadCount: currentDownloadCount + 1, // ✅ จำนวนครั้งที่ดาวน์โหลด
+          downloadStatus: "downloaded", // ✅ เพิ่ม field ใหม่ (ถ้ามี)
           updated_at: downloadTimestamp,
         },
         { transaction }
       );
 
-      /* await cs05Document.update(
-        {
-          status: "supervisor_evaluated", // ใช้ status ที่มีอยู่ใน ENUM
-          updated_at: downloadTimestamp,
-        },
-        { transaction }
-      ); */
+      // 5. ✅ CS05 ยังคงเป็น "approved" (ไม่เปลี่ยนแปลง)
+      console.log("[DEBUG] CS05 status remains:", cs05Document.status);
 
       console.log("[DEBUG] Update completed successfully");
 
+      // 6. ตรวจสอบผลลัพธ์หลัง update
       await acceptanceLetter.reload({ transaction });
-      await cs05Document.reload({ transaction });
-      // ตรวจสอบผลลัพธ์หลัง update
-      await cs05Document.reload({ transaction });
 
-      console.log("[DEBUG] Document AFTER update:", {
+      console.log("[DEBUG] Documents AFTER update:", {
         cs05DocumentId: cs05Document.documentId,
-        cs05Status: cs05Document.status,
+        cs05Status: cs05Document.status, // ยังคงเป็น "approved"
         acceptanceDocumentId: acceptanceLetter.documentId,
-        acceptanceDownloadStatus: acceptanceLetter.downloadStatus, // ✅ ควรเป็น "downloaded"
+        acceptanceStatus: acceptanceLetter.status, // ยังคงเป็น "approved"
         acceptanceDownloadedAt: acceptanceLetter.downloadedAt,
         acceptanceDownloadCount: acceptanceLetter.downloadCount,
       });
@@ -3046,16 +3061,23 @@ class InternshipManagementService {
       await transaction.commit();
 
       return {
-        documentId: acceptanceLetter.documentId, // ✅ ID ของ ACCEPTANCE_LETTER
+        // ✅ ข้อมูลที่ส่งกลับ
+        documentId: cs05Document.documentId,
         cs05DocumentId: cs05Document.documentId,
-        status: "downloaded",
+        cs05Status: cs05Document.status, // "approved"
+
+        acceptanceDocumentId: acceptanceLetter.documentId,
+        acceptanceStatus: acceptanceLetter.status, // "approved"
+
+        status: "referral_downloaded", // สถานะสำหรับ frontend
         downloadDate: downloadTimestamp,
         downloadCount: currentDownloadCount + 1,
         completedProcess: true,
-        documentType: "INTERNSHIP", // ✅ ระบุประเภทเอกสารที่ถูกอัปเดต
-        cs05Status: cs05Document.status,
-        referralLetterReady: true,
-        acceptanceLetterDownloaded: true,
+
+        // ✅ ข้อมูลเพิ่มเติม
+        referralLetterDownloaded: true,
+        shouldUpdateCS05Status: false, // ✅ ไม่ต้องอัปเดต CS05
+        finalStatus: "referral_downloaded",
       };
     } catch (error) {
       await transaction.rollback();
