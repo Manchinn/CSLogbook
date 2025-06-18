@@ -1919,8 +1919,6 @@ class InternshipManagementService {
         acceptanceLetter &&
         acceptanceLetter.status === "approved"
       ) {
-        // ✅ ไม่อัปเดต CS05 status เป็น referral_ready
-        // แค่ set flag ว่าพร้อมใช้งาน
         isReady = true;
       }
 
@@ -1947,7 +1945,7 @@ class InternshipManagementService {
         status: status, // ✅ ส่งสถานะ CS05 ตรงๆ (approved)
         cs05Status: status, // ✅ CS05 ยังคงเป็น "approved"
         hasAcceptanceLetter: !!acceptanceLetter,
-        acceptanceLetterStatus: acceptanceLetter?.status || "not_uploaded",
+        acceptanceLetterStatus: acceptanceLetter?.status ,
 
         // ข้อมูลผู้ควบคุมงาน
         hasSupervisorInfo: !!(

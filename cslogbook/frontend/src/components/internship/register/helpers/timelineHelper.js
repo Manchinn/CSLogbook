@@ -11,15 +11,7 @@ import {
   EyeOutlined,
   PaperClipOutlined,
 } from "@ant-design/icons";
-import {
-  Button,
-  Space,
-  Alert,
-  Card,
-  Typography,
-  Tooltip,
-  Upload,
-} from "antd";
+import { Button, Space, Alert, Card, Typography, Tooltip, Upload } from "antd";
 import { getStepStatus } from "./stepStatusHelper";
 
 const { Text } = Typography;
@@ -42,7 +34,6 @@ export const createInternshipProcessSteps = (
   acceptanceLetterInfo,
   actionHandlers
 ) => {
-
   return [
     // ขั้นตอนที่ 1: กรอกข้อมูล คพ.05
     {
@@ -103,10 +94,22 @@ export const createInternshipProcessSteps = (
     },
 
     // ขั้นตอนที่ 4: พิมพ์หนังสือขอความอนุเคราะห์
-    createStep3Actions(currentInternshipStep, cs05Status, referralLetterStatus, actionHandlers),
+    createStep3Actions(
+      currentInternshipStep,
+      cs05Status,
+      referralLetterStatus,
+      actionHandlers
+    ),
 
     // ขั้นตอนที่ 5: อัปโหลดหนังสือตอบรับ
-    createStep4Actions(currentInternshipStep, cs05Status, referralLetterStatus, acceptanceLetterStatus, acceptanceLetterInfo, actionHandlers),
+    createStep4Actions(
+      currentInternshipStep,
+      cs05Status,
+      referralLetterStatus,
+      acceptanceLetterStatus,
+      acceptanceLetterInfo,
+      actionHandlers
+    ),
 
     // ขั้นตอนที่ 6: รอหนังสือส่งตัว
     {
@@ -114,7 +117,12 @@ export const createInternshipProcessSteps = (
       description: "เจ้าหน้าที่ภาควิชาออกหนังสือส่งตัว",
       icon: <FileDoneOutlined />,
       status: (() => {
-        const stepStatus = getStepStatus(5, currentInternshipStep, cs05Status, referralLetterStatus);
+        const stepStatus = getStepStatus(
+          5,
+          currentInternshipStep,
+          cs05Status,
+          referralLetterStatus
+        );
         console.log("[DEBUG] Step 5 Status Calculation:", {
           stepIndex: 5,
           currentInternshipStep,
@@ -144,7 +152,12 @@ export const createInternshipProcessSteps = (
     },
 
     // ขั้นตอนที่ 7: นักศึกษาพิมพ์หนังสือส่งตัว
-    createStep6Actions(currentInternshipStep, cs05Status, referralLetterStatus, actionHandlers),
+    createStep6Actions(
+      currentInternshipStep,
+      cs05Status,
+      referralLetterStatus,
+      actionHandlers
+    ),
 
     // ขั้นตอนที่ 8: เสร็จสิ้นขั้นตอนการเตรียมตัวฝึกงาน
     createStep7Actions(currentInternshipStep, cs05Status, referralLetterStatus),
@@ -152,7 +165,12 @@ export const createInternshipProcessSteps = (
 };
 
 // Helper functions สำหรับสร้าง actions ของแต่ละขั้นตอน
-const createStep3Actions = (currentInternshipStep, cs05Status, referralLetterStatus, handlers) => {
+const createStep3Actions = (
+  currentInternshipStep,
+  cs05Status,
+  referralLetterStatus,
+  handlers
+) => {
   const {
     handlePreviewPDF,
     handleGenerateOfficialLetter,
@@ -167,7 +185,12 @@ const createStep3Actions = (currentInternshipStep, cs05Status, referralLetterSta
     description: "นักศึกษาดาวน์โหลดและพิมพ์เอกสาร",
     icon: <PrinterOutlined />,
     status: (() => {
-      const stepStatus = getStepStatus(3, currentInternshipStep, cs05Status, referralLetterStatus);
+      const stepStatus = getStepStatus(
+        3,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       console.log("[DEBUG] Step 3 Status:", {
         stepIndex: 3,
         currentInternshipStep,
@@ -177,7 +200,12 @@ const createStep3Actions = (currentInternshipStep, cs05Status, referralLetterSta
       return stepStatus;
     })(),
     color: (() => {
-      const stepStatus = getStepStatus(3, currentInternshipStep, cs05Status, referralLetterStatus);
+      const stepStatus = getStepStatus(
+        3,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       switch (stepStatus) {
         case "finish":
           return "#52c41a"; // เขียว - เสร็จแล้ว
@@ -195,7 +223,12 @@ const createStep3Actions = (currentInternshipStep, cs05Status, referralLetterSta
       "นำเอกสารไปติดต่อบริษัท/หน่วยงาน",
     ],
     actions: (() => {
-      const stepStatus = getStepStatus(3, currentInternshipStep, cs05Status, referralLetterStatus);
+      const stepStatus = getStepStatus(
+        3,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       const isEnabled = stepStatus === "process";
 
       console.log("[DEBUG] Step 3 Actions Check:", {
@@ -286,7 +319,14 @@ const createStep3Actions = (currentInternshipStep, cs05Status, referralLetterSta
   };
 };
 
-const createStep4Actions = (currentInternshipStep, cs05Status, referralLetterStatus, acceptanceLetterStatus, acceptanceLetterInfo, handlers) => {
+const createStep4Actions = (
+  currentInternshipStep,
+  cs05Status,
+  referralLetterStatus,
+  acceptanceLetterStatus,
+  acceptanceLetterInfo,
+  handlers
+) => {
   const {
     handleUploadAcceptanceLetter,
     uploadProps,
@@ -298,14 +338,27 @@ const createStep4Actions = (currentInternshipStep, cs05Status, referralLetterSta
     title: "อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน",
     description: "อัปโหลดหนังสือตอบรับจากบริษัท",
     icon: <UploadOutlined />,
-    status: getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus),
+    status: getStepStatus(
+      4,
+      currentInternshipStep,
+      cs05Status,
+      referralLetterStatus
+    ),
     color: (() => {
       // ✅ ปรับปรุงการคำนวณสี
-      if (acceptanceLetterStatus === "approved" || cs05Status === "acceptance_approved") {
+      if (
+        acceptanceLetterStatus === "approved" ||
+        cs05Status === "acceptance_approved"
+      ) {
         return "#52c41a"; // เขียว - อนุมัติแล้ว
       }
-      
-      const stepStatus = getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus);
+
+      const stepStatus = getStepStatus(
+        4,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       switch (stepStatus) {
         case "finish":
           return "#52c41a";
@@ -323,106 +376,191 @@ const createStep4Actions = (currentInternshipStep, cs05Status, referralLetterSta
       "รอการอนุมัติเพื่อดำเนินการขั้นตอนถัดไป",
     ],
     actions: (() => {
-      // ✅ ปรับปรุง logic การแสดง actions
-      
-      // กรณีอนุมัติแล้ว - แสดงสถานะสำเร็จ
-      if (acceptanceLetterStatus === "approved" || cs05Status === "acceptance_approved") {
+      console.log("[DEBUG] Step 4 Actions - Current Status:", {
+        acceptanceLetterStatus,
+        acceptanceLetterInfo,
+        cs05Status,
+      });
+
+      // ✅ กรณีอนุมัติแล้ว - แสดงสถานะสำเร็จ
+      /* if (
+        acceptanceLetterStatus === "approved" ||
+        cs05Status === "acceptance_approved"
+      ) {
         return (
           <Card size="small" style={{ marginTop: 12 }}>
-            <Alert
-              message="✅ หนังสือตอบรับได้รับการอนุมัติแล้ว"
-              description="หนังสือตอบรับจากบริษัทได้รับการตรวจสอบและอนุมัติเรียบร้อยแล้ว ขณะนี้เจ้าหน้าที่ภาควิชากำลังจัดทำหนังสือส่งตัว"
-              type="success"
-              showIcon
-            />
-            
             {acceptanceLetterInfo?.fileName && (
               <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
                 📎 ไฟล์ที่อัปโหลด: {acceptanceLetterInfo.fileName}
                 <br />
-                📅 อนุมัติเมื่อ: {acceptanceLetterInfo.approvedAt ? 
-                  new Date(acceptanceLetterInfo.approvedAt).toLocaleDateString("th-TH") : 
-                  "เพิ่งอนุมัติ"}
+                📅 อนุมัติเมื่อ:{" "}
+                {acceptanceLetterInfo.approvedAt
+                  ? new Date(
+                      acceptanceLetterInfo.approvedAt
+                    ).toLocaleDateString("th-TH")
+                  : "เพิ่งอนุมัติ"}
+              </div>
+            )}
+          </Card>
+        );
+      } */
+
+      // ✅ กรณีอัปโหลดแล้ว รอการอนุมัติ (เพิ่ม 'pending' และ 'uploaded')
+      if (
+        acceptanceLetterStatus === "uploaded" ||
+        acceptanceLetterStatus === "pending" ||
+        acceptanceLetterStatus === "submitted"
+      ) {
+        const statusConfig = {
+          pending: {
+            message: "📝 หนังสือตอบรับอยู่ระหว่างการพิจารณา",
+            description:
+              "หนังสือตอบรับได้รับการอัปโหลดแล้ว กรุณารอเจ้าหน้าที่ภาควิชาตรวจสอบและอนุมัติ",
+            type: "info",
+          },
+          uploaded: {
+            message: "📝 หนังสือตอบรับอยู่ระหว่างการตรวจสอบ",
+            description:
+              "หนังสือตอบรับได้รับการอัปโหลดแล้ว กรุณารอเจ้าหน้าที่ภาควิชาตรวจสอบและอนุมัติ",
+            type: "info",
+          },
+          submitted: {
+            message: "📝 หนังสือตอบรับได้รับการส่งแล้ว",
+            description:
+              "หนังสือตอบรับอยู่ระหว่างการประมวลผล กรุณารอการตรวจสอบ",
+            type: "info",
+          },
+        };
+
+        const config =
+          statusConfig[acceptanceLetterStatus] || statusConfig.pending;
+
+        return (
+          <Card size="small" style={{ marginTop: 12 }}>
+            <Alert
+              message={config.message}
+              description={config.description}
+              type={config.type}
+              showIcon
+            />
+
+            {/* ✅ แสดงข้อมูลไฟล์จาก acceptanceLetterInfo */}
+            {acceptanceLetterInfo && (
+              <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
+                {acceptanceLetterInfo.fileName && (
+                  <>
+                    📎 ไฟล์ที่อัปโหลด: {acceptanceLetterInfo.fileName}
+                    <br />
+                  </>
+                )}
+                {acceptanceLetterInfo.uploadedAt && (
+                  <>
+                    📅 อัปโหลดเมื่อ:{" "}
+                    {new Date(
+                      acceptanceLetterInfo.uploadedAt
+                    ).toLocaleDateString("th-TH")}
+                    <br />
+                  </>
+                )}
+                {acceptanceLetterInfo.statusMessage && (
+                  <>📋 สถานะ: {acceptanceLetterInfo.statusMessage}</>
+                )}
               </div>
             )}
           </Card>
         );
       }
 
-      // กรณีอัปโหลดแล้ว รอการอนุมัติ
-      if (acceptanceLetterStatus === "uploaded") {
-        return (
-          <Card size="small" style={{ marginTop: 12 }}>
-            <Alert
-              message="📝 หนังสือตอบรับอยู่ระหว่างการตรวจสอบ"
-              description="หนังสือตอบรับได้รับการอัปโหลดแล้ว กรุณารอเจ้าหน้าที่ภาควิชาตรวจสอบและอนุมัติ"
-              type="info"
-              showIcon
-            />
-            
-            {acceptanceLetterInfo?.fileName && (
-              <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
-                📎 ไฟล์ที่อัปโหลด: {acceptanceLetterInfo.fileName}
-                <br />
-                📅 อัปโหลดเมื่อ: {acceptanceLetterInfo.uploadedAt ? 
-                  new Date(acceptanceLetterInfo.uploadedAt).toLocaleDateString("th-TH") : 
-                  "ไม่ระบุ"}
-              </div>
-            )}
-          </Card>
-        );
-      }
-
-      // กรณียังไม่ได้อัปโหลด - ตรวจสอบว่าสามารถอัปโหลดได้หรือไม่
-      const stepStatus = getStepStatus(4, currentInternshipStep, cs05Status, referralLetterStatus);
+      // ✅ กรณียังไม่ได้อัปโหลด - ตรวจสอบว่าสามารถอัปโหลดได้หรือไม่
+      const stepStatus = getStepStatus(
+        4,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       if (stepStatus !== "process") {
         return null;
       }
 
-      // แสดงฟอร์มอัปโหลด
+      // ✅ กรณีที่ยังไม่มีการอัปโหลดเลย
+      if (
+        !acceptanceLetterStatus ||
+        acceptanceLetterStatus === "not_uploaded" ||
+        acceptanceLetterStatus === "none"
+      ) {
+        return (
+          <Card size="small" style={{ marginTop: 12 }}>
+            <Alert
+              message="ยังไม่มีการอัปโหลดหนังสือตอบรับ"
+              description="กรุณาอัปโหลดหนังสือตอบรับจากบริษัทเพื่อดำเนินการขั้นตอนถัดไป"
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                📤 อัปโหลดหนังสือตอบรับ:
+              </Text>
+
+              <Upload {...uploadProps}>
+                <Button
+                  icon={<PaperClipOutlined />}
+                  size="small"
+                  style={{ marginBottom: 8 }}
+                >
+                  เลือกไฟล์ PDF
+                </Button>
+              </Upload>
+            </div>
+
+            <Button
+              type="primary"
+              icon={<UploadOutlined />}
+              onClick={handleUploadAcceptanceLetter}
+              loading={uploadLoading}
+              disabled={!acceptanceFile}
+              size="small"
+            >
+              อัปโหลดหนังสือตอบรับ
+            </Button>
+          </Card>
+        );
+      }
+
+      // ✅ สำหรับสถานะอื่นๆ ที่ไม่ได้คาดการณ์ไว้
       return (
         <Card size="small" style={{ marginTop: 12 }}>
           <Alert
-            message="ยังไม่มีการอัปโหลดหนังสือตอบรับ"
-            description="กรุณาอัปโหลดหนังสือตอบรับจากบริษัทเพื่อดำเนินการขั้นตอนถัดไป"
+            message="สถานะไม่ทราบ"
+            description={`สถานะปัจจุบัน: ${
+              acceptanceLetterStatus || "ไม่ระบุ"
+            }`}
             type="warning"
             showIcon
-            style={{ marginBottom: 16 }}
           />
 
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ display: "block", marginBottom: 8 }}>
-              📤 อัปโหลดหนังสือตอบรับ:
-            </Text>
-
-            <Upload {...uploadProps}>
-              <Button
-                icon={<PaperClipOutlined />}
-                size="small"
-                style={{ marginBottom: 8 }}
-              >
-                เลือกไฟล์ PDF
-              </Button>
-            </Upload>
+          <div style={{ marginTop: 12, fontSize: "12px", color: "#666" }}>
+            🔧 Debug Info:
+            <br />
+            acceptanceLetterStatus: {acceptanceLetterStatus || "undefined"}
+            <br />
+            cs05Status: {cs05Status}
+            <br />
+            hasInfo: {!!acceptanceLetterInfo}
           </div>
-
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            onClick={handleUploadAcceptanceLetter}
-            loading={uploadLoading}
-            disabled={!acceptanceFile}
-            size="small"
-          >
-            อัปโหลดหนังสือตอบรับ
-          </Button>
         </Card>
       );
     })(),
   };
 };
 
-const createStep6Actions = (currentInternshipStep, cs05Status, referralLetterStatus, handlers) => {
+const createStep6Actions = (
+  currentInternshipStep,
+  cs05Status,
+  referralLetterStatus,
+  handlers
+) => {
   const {
     handlePreviewReferralLetter,
     handleGenerateReferralLetter,
@@ -434,9 +572,19 @@ const createStep6Actions = (currentInternshipStep, cs05Status, referralLetterSta
     title: "นักศึกษาพิมพ์หนังสือส่งตัว",
     description: "ดาวน์โหลดและพิมพ์หนังสือส่งตัวเพื่อไปแจ้งให้กับบริษัท",
     icon: <DownloadOutlined />,
-    status: getStepStatus(6, currentInternshipStep, cs05Status, referralLetterStatus),
+    status: getStepStatus(
+      6,
+      currentInternshipStep,
+      cs05Status,
+      referralLetterStatus
+    ),
     color: (() => {
-      const stepStatus = getStepStatus(6, currentInternshipStep, cs05Status, referralLetterStatus);
+      const stepStatus = getStepStatus(
+        6,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       switch (stepStatus) {
         case "finish":
           return "#52c41a"; // เขียว - เสร็จแล้ว
@@ -454,7 +602,12 @@ const createStep6Actions = (currentInternshipStep, cs05Status, referralLetterSta
       "รายงานตัวกับผู้ควบคุมงานในบริษัท",
     ],
     actions: (() => {
-      const stepStatus = getStepStatus(6, currentInternshipStep, cs05Status, referralLetterStatus);
+      const stepStatus = getStepStatus(
+        6,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       const isEnabled = stepStatus === "process";
 
       // ซ่อน actions เมื่อดาวน์โหลดหนังสือส่งตัวแล้ว
@@ -524,14 +677,28 @@ const createStep6Actions = (currentInternshipStep, cs05Status, referralLetterSta
   };
 };
 
-const createStep7Actions = (currentInternshipStep, cs05Status, referralLetterStatus) => {
+const createStep7Actions = (
+  currentInternshipStep,
+  cs05Status,
+  referralLetterStatus
+) => {
   return {
     title: "เสร็จสิ้นขั้นตอนการเตรียมตัวฝึกงาน",
     description: "ขั้นตอนการเตรียมความพร้อมสำหรับการฝึกงานเสร็จสมบูรณ์",
     icon: <CheckCircleOutlined />,
-    status: getStepStatus(7, currentInternshipStep, cs05Status, referralLetterStatus),
+    status: getStepStatus(
+      7,
+      currentInternshipStep,
+      cs05Status,
+      referralLetterStatus
+    ),
     color: (() => {
-      const stepStatus = getStepStatus(7, currentInternshipStep, cs05Status, referralLetterStatus);
+      const stepStatus = getStepStatus(
+        7,
+        currentInternshipStep,
+        cs05Status,
+        referralLetterStatus
+      );
       return stepStatus === "finish" ? "#52c41a" : "#d9d9d9";
     })(),
     details: [
