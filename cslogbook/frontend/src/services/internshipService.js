@@ -737,23 +737,64 @@ const internshipService = {
 
   /**
    * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
-   */ getEvaluationFormStatus: async () => {
+   */
+  getEvaluationFormStatus: async () => {
     try {
       const response = await apiClient.get("/internship/evaluation/status");
+
+      // ✅ เพิ่มการตรวจสอบและกำหนดค่าเริ่มต้นที่ถูกต้อง
+      if (response.data.success) {
+        return {
+          ...response.data,
+          data: {
+            ...response.data.data,
+            // ✅ ตั้งค่าเริ่มต้นที่เหมาะสม
+            notificationEnabled:
+              response.data.data.notificationEnabled !== false, // เปิดเป็นค่าเริ่มต้น
+            canSendEvaluation: response.data.data.canSendEvaluation !== false,
+          },
+        };
+      }
+
       return response.data;
     } catch (error) {
       console.error("Error getting evaluation form status:", error);
-      // ส่งค่า default กลับไปเพื่อไม่ให้ frontend พัง
+
+      // ✅ ปรับปรุงการจัดการ error - อย่าปิดการแจ้งเตือนทันที
+      if (error.response?.status === 404) {
+        // กรณีไม่พบข้อมูล - ให้สามารถส่งได้
+        return {
+          success: true,
+          message: "ยังไม่มีการส่งแบบประเมิน",
+          data: {
+            hasEvaluation: false,
+            evaluationStatus: "not_sent",
+            isSent: false,
+            isCompleted: false,
+            notificationEnabled: true, // ✅ เปิดให้ส่งได้
+            canSendEvaluation: true, // ✅ เปิดให้ส่งได้
+            supervisorEmail: null,
+            lastSentDate: null,
+            error: false,
+          },
+        };
+      }
+
+      // กรณี error อื่นๆ ให้ลองส่งได้ แต่แสดงคำเตือน
       return {
         success: true,
-        message: "ไม่สามารถตรวจสอบสถานะการส่งแบบประเมิน แต่ดำเนินการต่อได้",
+        message: "ไม่สามารถตรวจสอบสถานะได้ชัดเจน",
         data: {
           hasEvaluation: false,
+          evaluationStatus: "unknown",
           isSent: false,
           isCompleted: false,
-          notificationEnabled: false, // เพิ่มค่าเริ่มต้น
-          canSendEvaluation: false, // เพิ่มค่าเริ่มต้น
+          notificationEnabled: true, // ✅ เปิดให้ลองส่งได้
+          canSendEvaluation: true, // ✅ เปิดให้ลองส่งได้
+          supervisorEmail: null,
+          lastSentDate: null,
           error: true,
+          errorMessage: error.response?.data?.message || error.message,
         },
       };
     }

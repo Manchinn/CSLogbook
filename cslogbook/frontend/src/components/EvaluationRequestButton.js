@@ -42,6 +42,20 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent }) => {
   if (!evaluationData.notificationEnabled) {
     return (
       <Space direction="vertical" style={{ width: '100%' }}>
+        {/* ✅ เพิ่มการแสดงข้อมูล debug */}
+        {process.env.NODE_ENV === 'development' && (
+          <Alert
+            type="info"
+            message="Debug Information"
+            description={
+              <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '8px' }}>
+                {JSON.stringify(evaluationData, null, 2)}
+              </pre>
+            }
+            closable
+          />
+        )}
+        
         <Alert
           type="warning"
           message="การส่งคำขอประเมินผลถูกปิดชั่วคราว"
@@ -55,6 +69,14 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent }) => {
                 <InfoCircleOutlined style={{ marginRight: 4 }} />
                 กรุณาติดต่อเจ้าหน้าที่หรือลองใหม่ในภายหลัง
               </Text>
+              {/* ✅ เพิ่มปุ่มสำหรับรีเฟรชข้อมูล */}
+              <Button 
+                size="small" 
+                onClick={() => window.location.reload()}
+                style={{ marginTop: 8 }}
+              >
+                รีเฟรชหน้าเว็บ
+              </Button>
             </Space>
           }
           showIcon

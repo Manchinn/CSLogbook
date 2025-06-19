@@ -719,4 +719,3 @@ module.exports = {
   emailApprovalService,
 };
 
-// ❌ ลบส่วน exports.getApprovalDetails ออกทั้งหมด - ควรอยู่ใน Controller เท่านั้น

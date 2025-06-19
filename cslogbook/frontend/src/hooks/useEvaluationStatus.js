@@ -14,6 +14,15 @@ const useEvaluationStatus = () => {
       const response = await internshipService.getEvaluationFormStatus();
       
       if (response.success) {
+        // ✅ เพิ่มการ log เพื่อ debug
+        console.log('🔍 Evaluation Status Response:', response.data);
+        
+        // ✅ ตรวจสอบค่า notificationEnabled
+        if (response.data.notificationEnabled === undefined) {
+          console.warn('⚠️ notificationEnabled is undefined, setting to true');
+          response.data.notificationEnabled = true;
+        }
+        
         setEvaluationData(response.data);
       } else {
         console.warn('Failed to get evaluation status:', response.message);
