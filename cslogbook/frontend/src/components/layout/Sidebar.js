@@ -231,7 +231,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                         }, */
                         {
                         key: "/internship-registration/flow", // ใช้ InternshipRegistrationFlow ใหม่
-                        label: "คพ.05 - คำร้องขอฝึกงาน",
+                        label: "คำร้องขอฝึกงาน",
                         },
                       ],
                     },

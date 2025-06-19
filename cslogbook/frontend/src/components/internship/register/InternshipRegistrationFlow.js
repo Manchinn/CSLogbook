@@ -7,8 +7,7 @@ import {
   FormOutlined, CheckCircleOutlined, SendOutlined,
   PhoneOutlined 
 } from '@ant-design/icons';
-// เพิ่ม import สำหรับ TranscriptUpload component
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom'; // เพิ่ม useSearchParams
 import internshipService from '../../../services/internshipService';
 
 // นำเข้า Components ย่อยที่สร้างไว้แล้ว
@@ -23,6 +22,7 @@ const { Title, Text } = Typography;
 
 const InternshipRegistrationFlow = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // เพิ่มสำหรับอ่าน query parameters
   
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ const InternshipRegistrationFlow = () => {
   const [existingCS05, setExistingCS05] = useState(null);
   const [transcriptFile, setTranscriptFile] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false); // 1. เพิ่มตัวแปร state เพื่อเก็บสถานะว่าส่งฟอร์มแล้วหรือยัง
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   // ขั้นตอนการลงทะเบียนฝึกงาน
   const registrationSteps = [
@@ -55,6 +55,20 @@ const InternshipRegistrationFlow = () => {
       content: 'result'
     }
   ];
+
+  // ✅ เพิ่ม useEffect สำหรับตรวจสอบ query parameter ตอนเริ่มต้น
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    
+    if (viewParam === 'result') {
+      console.log('[DEBUG] ตรวจพบ view=result parameter, ไปยังขั้นตอน result');
+      setCurrentStep(2); // ไปยัง SubmissionResultStep ทันที
+      return; // หยุดการทำงานของ useEffect นี้
+    }
+    
+    // ถ้าไม่มี view=result ให้ทำงานปกติ
+    console.log('[DEBUG] ไม่พบ view=result parameter, เริ่มต้นปกติ');
+  }, [searchParams]);
 
   // โหลดข้อมูลนักศึกษาเมื่อเริ่มต้น
   useEffect(() => {
@@ -96,11 +110,19 @@ const InternshipRegistrationFlow = () => {
             internshipPosition: cs05Data.internshipPosition
           };
           
-          
           setFormData(formDataWithNewFields);
           setExistingCS05(formDataWithNewFields);
           
-          setIsSubmitted(cs05Data.status !== 'rejected');
+          const submittedStatus = cs05Data.status !== 'rejected';
+          setIsSubmitted(submittedStatus);
+          setFormSubmitted(submittedStatus);
+          
+          // ✅ สำคัญ: ถ้ามีการส่งคำร้องแล้ว และไม่ได้มาจาก query parameter ให้ไปที่ step 2
+          const viewParam = searchParams.get('view');
+          if (submittedStatus && !viewParam) {
+            console.log('[DEBUG] พบ CS05 ที่ส่งแล้ว, ไปยังขั้นตอน result');
+            setCurrentStep(2); // ไปยัง SubmissionResultStep
+          }
           
           // ถ้ามีไฟล์ transcript
           if (cs05Data.transcriptFilename) {
@@ -122,11 +144,56 @@ const InternshipRegistrationFlow = () => {
     };
 
     fetchData();
-  }, []);
+  }, [searchParams]); // เพิ่ม searchParams ใน dependency array
+
+  // ✅ ปรับปรุง getStepContent เพื่อจัดการกรณี view=result
+  const getStepContent = () => {
+    const stepProps = {
+      studentData,
+      formData,
+      loading,
+      existingCS05,
+      transcriptFile,
+      setTranscriptFile,
+      isSubmitted,
+      onNext: handleNextStep,
+      onPrev: handlePrevStep,
+      onSubmit: handleSubmit
+    };
+
+    // เพิ่มการตรวจสอบ view parameter
+    const viewParam = searchParams.get('view');
+    
+    // ถ้า view=result ให้แสดง SubmissionResultStep ทันที (แม้ currentStep จะยังไม่ใช่ 2)
+    if (viewParam === 'result' || currentStep === 2) {
+      return (
+        <SubmissionResultStep
+          {...stepProps}
+          navigate={navigate}
+        />
+      );
+    }
+
+    switch (currentStep) {
+      case 0:
+        return (
+          <CS05FormStep 
+            {...stepProps}
+          />
+        );
+      case 1:
+        return (
+          <ReviewDataStep 
+            {...stepProps}
+          />
+        );
+      default:
+        return <CS05FormStep {...stepProps} />;
+    }
+  };
 
   // ฟังก์ชันสำหรับไปขั้นตอนถัดไป
   const handleNextStep = (data) => {
-    
     setFormData({ ...formData, ...data });
     console.log('[DEBUG] formData หลังจาก update:', { ...formData, ...data });
     
@@ -228,7 +295,7 @@ const InternshipRegistrationFlow = () => {
         message.success('ส่งคำร้อง คพ.05 เรียบร้อยแล้ว');
         setExistingCS05(response.data);
         setIsSubmitted(true);
-        setFormSubmitted(true); // เพิ่มบรรทัดนี้
+        setFormSubmitted(true);
         setCurrentStep(2); // ไปยังหน้า SubmissionResultStep
         
         // บันทึกข้อมูลลงใน localStorage เพื่อให้กลับมาดูได้ในภายหลัง
@@ -243,46 +310,6 @@ const InternshipRegistrationFlow = () => {
       message.error(error.message || 'เกิดข้อผิดพลาดในการส่งคำร้อง');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // เนื้อหาตามขั้นตอน
-  const getStepContent = () => {
-    const stepProps = {
-      studentData,
-      formData,
-      loading,
-      existingCS05,
-      transcriptFile,
-      setTranscriptFile,
-      isSubmitted,
-      onNext: handleNextStep,
-      onPrev: handlePrevStep,
-      onSubmit: handleSubmit
-    };
-
-    switch (currentStep) {
-      case 0:
-        return (
-          <CS05FormStep 
-            {...stepProps}
-          />
-        );
-      case 1:
-        return (
-          <ReviewDataStep 
-            {...stepProps}
-          />
-        );
-      case 2:
-        return (
-          <SubmissionResultStep 
-            {...stepProps}
-            navigate={navigate}
-          />
-        );
-      default:
-        return <CS05FormStep {...stepProps} />;
     }
   };
 
@@ -380,29 +407,6 @@ const InternshipRegistrationFlow = () => {
       </div>
     );
   };
-
-  useEffect(() => {
-    // ตรวจสอบว่าเคยส่งฟอร์มแล้วหรือไม่
-    const isSubmitted = localStorage.getItem('pending') === 'true'; //cs05_submitted
-    const savedCS05Data = localStorage.getItem('approved'); //cs05_data
-
-    if (isSubmitted && savedCS05Data) {
-      try {
-        const parsedData = JSON.parse(savedCS05Data);
-        setExistingCS05(parsedData);
-        setIsSubmitted(true);
-        setFormSubmitted(true);
-        
-        // ถ้ามีการระบุใน URL ว่าต้องการดูผลการส่ง
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('view') === 'result') {
-          setCurrentStep(2); // ไปที่หน้า SubmissionResultStep
-        }
-      } catch (error) {
-        console.error('Error parsing saved CS05 data:', error);
-      }
-    }
-  }, []);
 
   if (fetchLoading) {
     return (
