@@ -652,23 +652,89 @@ const internshipService = {
     }
   },
   /**
-   * ดาวน์โหลดเอกสารสรุปการฝึกงาน PDF
+   * ดาวน์โหลดเอกสารสรุปการฝึกงาน PDF (เวอร์ชัน Backend)
    */
   downloadInternshipSummary: async () => {
     try {
+      // เรียก API backend เพื่อสร้างและดาวน์โหลด PDF
       const response = await apiClient.get("/internship/summary/download", {
-        responseType: "blob",
+        responseType: "blob", // สำคัญ: ต้องเป็น blob เพื่อรับ PDF
+        timeout: 30000, // 30 วินาที เพื่อให้เวลาสร้าง PDF
       });
+
+      // สร้างชื่อไฟล์แบบไดนามิก
+      const currentDate = new Date().toISOString().split("T")[0];
+      const filename = `บันทึกฝึกงาน-${currentDate}.pdf`;
+
+      // สร้าง URL สำหรับดาวน์โหลด
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       return {
         success: true,
-        data: response.data,
+        message: `ดาวน์โหลดบันทึกฝึกงานเรียบร้อยแล้ว: ${filename}`,
+        filename,
       };
     } catch (error) {
       console.error("Error downloading internship summary PDF:", error);
-      throw new Error(
-        error.response?.data?.message || "ไม่สามารถดาวน์โหลดเอกสารสรุปการฝึกงาน"
-      );
+
+      // จัดการข้อผิดพลาดที่เฉพาะเจาะจง
+      if (error.response?.status === 404) {
+        throw new Error(
+          "ไม่พบข้อมูลการฝึกงาน กรุณาตรวจสอบว่าได้บันทึกข้อมูลแล้ว"
+        );
+      } else if (error.response?.status === 400) {
+        throw new Error("ยังไม่มีบันทึกการฝึกงาน กรุณาบันทึกข้อมูลก่อน");
+      } else if (error.response?.status === 403) {
+        throw new Error("ไม่มีสิทธิ์ในการดาวน์โหลดเอกสาร");
+      } else if (error.name === "NetworkError") {
+        throw new Error("ปัญหาการเชื่อมต่อเครือข่าย กรุณาลองใหม่อีกครั้ง");
+      } else {
+        throw new Error(
+          error.response?.data?.message ||
+            error.message ||
+            "ไม่สามารถสร้างเอกสารบันทึกฝึกงานได้"
+        );
+      }
+    }
+  },
+
+  /**
+   * แสดงตัวอย่าง PDF ก่อนดาวน์โหลด (เวอร์ชัน Backend)
+   */
+  previewInternshipSummary: async () => {
+    try {
+      // เรียก API backend เพื่อแสดงตัวอย่าง PDF
+      const response = await apiClient.get("/internship/summary/preview", {
+        responseType: "blob",
+        timeout: 30000,
+      });
+
+      // สร้าง blob URL สำหรับ preview
+      const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+      // เปิดในแท็บใหม่
+      window.open(pdfUrl, "_blank");
+
+      // ทำความสะอาด URL หลังจาก 1 นาที
+      setTimeout(() => {
+        window.URL.revokeObjectURL(pdfUrl);
+      }, 60000);
+
+      return {
+        success: true,
+        message: "เปิดตัวอย่างบันทึกฝึกงานในแท็บใหม่แล้ว",
+      };
+    } catch (error) {
+      console.error("Error previewing internship summary:", error);
+      throw new Error("ไม่สามารถแสดงตัวอย่างเอกสารได้");
     }
   },
 

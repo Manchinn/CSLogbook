@@ -1478,11 +1478,7 @@ class InternshipManagementService {
         advisorTitle: "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
       };
 
-      // 6. สร้าง PDF (ใช้ library ที่เหมาะสม เช่น puppeteer, PDFKit, หรือ jsPDF)
-      // ตัวอย่างการใช้ PDFKit (ต้อง npm install pdfkit)
       const PDFDocument = require("pdfkit");
-      const fs = require("fs");
-      const path = require("path");
 
       const pdf = new PDFDocument({
         margin: 50,
@@ -2019,28 +2015,6 @@ class InternshipManagementService {
       // 3. ลบข้อมูลจากฐานข้อมูล
       await acceptanceDocument.destroy({ transaction });
 
-      // 4. อัปเดตสถานะ CS05 กลับเป็น approved (ถ้ามี parent document)
-      /* if (parentDocumentId) {
-        const cs05Document = await Document.findOne({
-          where: {
-            documentId: parentDocumentId,
-            userId: userId,
-            documentName: "CS05",
-          },
-          transaction,
-        });
-
-        if (cs05Document && cs05Document.status === "acceptance_uploaded") {
-          await cs05Document.update(
-            {
-              status: "approved", // เปลี่ยนกลับเป็น approved
-              updated_at: new Date(),
-            },
-            { transaction }
-          );
-          console.log("[DEBUG] CS05 status reverted to approved");
-        }
-      } */
 
       await transaction.commit();
 

@@ -1,20 +1,21 @@
-import pdfService from './PDFService';
-import templateDataService from './TemplateDataService';
-import apiClient from '../apiClient';
-import { 
-  CS05PDFTemplate, 
-  OfficialLetterTemplate, 
-  StudentSummaryTemplate, 
+import pdfService from "./PDFService";
+import templateDataService from "./TemplateDataService";
+import apiClient from "../apiClient";
+import {
+  CS05PDFTemplate,
+  OfficialLetterTemplate,
+  StudentSummaryTemplate,
   CompanyInfoTemplate,
   AcceptanceLetterTemplate,
-  ReferralLetterTemplate // 🆕 เพิ่ม import
-} from '../../components/internship/templates';
+  ReferralLetterTemplate, // 🆕 เพิ่ม import
+  InternshipLogbookTemplate, // 🆕 เพิ่ม import
+} from "../../components/internship/templates";
 
 class OfficialDocumentService {
   constructor() {
     this.pdfService = pdfService;
     this.templateDataService = templateDataService;
-    
+
     // 🔧 การตั้งค่าสำหรับการบันทึก PDF Records
     // เปิด/ปิดการบันทึกข้อมูล PDF ไปยัง Backend
     this.enableServerRecording = false; // ปิดชั่วคราว เนื่องจากยังไม่มี Backend API
@@ -31,34 +32,47 @@ class OfficialDocumentService {
       // เตรียมข้อมูลด้วย TemplateDataService
       const preparedData = this.templateDataService.prepareCS05Data(formData, {
         showWatermark: isDraft,
-        status: isDraft ? 'draft' : 'final',
-        ...options
+        status: isDraft ? "draft" : "final",
+        ...options,
       });
 
       // สร้างชื่อไฟล์ - ใช้ชื่อนักศึกษาแทนรหัส
-      const studentName = preparedData.studentData?.[0]?.fullName || 'นักศึกษา';
-      const suffix = isDraft ? 'ร่าง' : '';
-      const filename = this.pdfService.generateFileName('cs05', studentName, suffix);
+      const studentName = preparedData.studentData?.[0]?.fullName || "นักศึกษา";
+      const suffix = isDraft ? "ร่าง" : "";
+      const filename = this.pdfService.generateFileName(
+        "cs05",
+        studentName,
+        suffix
+      );
 
       // สร้างและดาวน์โหลด PDF
       const template = CS05PDFTemplate({ data: preparedData });
       await this.pdfService.generateAndDownload(template, filename);
 
       // 🔒 บันทึกข้อมูลไปยัง Server (ปิดชั่วคราว)
-      if (!isDraft && options.saveToServer !== false && this.enableServerRecording) {
+      if (
+        !isDraft &&
+        options.saveToServer !== false &&
+        this.enableServerRecording
+      ) {
         try {
-          await this.savePDFRecord('CS05', preparedData, filename);
+          await this.savePDFRecord("CS05", preparedData, filename);
         } catch (recordError) {
-          console.warn('📝 PDF record save failed (but PDF generation succeeded):', recordError.message);
+          console.warn(
+            "📝 PDF record save failed (but PDF generation succeeded):",
+            recordError.message
+          );
         }
       } else if (!this.enableServerRecording) {
-        console.info('ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true');
+        console.info(
+          "ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true"
+        );
       }
 
       console.log(`✅ CS05 PDF generated: ${filename}`);
       return { success: true, filename, data: preparedData };
     } catch (error) {
-      console.error('Error generating CS05 PDF:', error);
+      console.error("Error generating CS05 PDF:", error);
       throw error;
     }
   }
@@ -72,19 +86,23 @@ class OfficialDocumentService {
     try {
       // ตรวจสอบข้อมูลพื้นฐานก่อนเตรียมข้อมูล
       if (!letterData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้างหนังสือ');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างหนังสือ");
       }
 
-      const preparedData = this.templateDataService.prepareOfficialLetterData(letterData);
-      
+      const preparedData =
+        this.templateDataService.prepareOfficialLetterData(letterData);
+
       // ตรวจสอบ preparedData
       if (!preparedData) {
-        throw new Error('ไม่สามารถเตรียมข้อมูลหนังสือได้');
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือได้");
       }
 
       // สร้างชื่อไฟล์ - ใช้ชื่อนักศึกษาแทนรหัส
-      const studentName = preparedData.studentData?.[0]?.fullName || 'นักศึกษา';
-      const filename = this.pdfService.generateFileName('official_letter', studentName);
+      const studentName = preparedData.studentData?.[0]?.fullName || "นักศึกษา";
+      const filename = this.pdfService.generateFileName(
+        "official_letter",
+        studentName
+      );
 
       const template = OfficialLetterTemplate({ data: preparedData });
       await this.pdfService.generateAndDownload(template, filename);
@@ -92,19 +110,24 @@ class OfficialDocumentService {
       // 🔒 บันทึกข้อมูลไปยัง Server (ปิดชั่วคราว)
       if (options.saveToServer !== false && this.enableServerRecording) {
         try {
-          await this.savePDFRecord('OFFICIAL_LETTER', preparedData, filename);
+          await this.savePDFRecord("OFFICIAL_LETTER", preparedData, filename);
         } catch (recordError) {
-          console.warn('📝 PDF record save failed (but PDF generation succeeded):', recordError.message);
+          console.warn(
+            "📝 PDF record save failed (but PDF generation succeeded):",
+            recordError.message
+          );
         }
       } else if (!this.enableServerRecording) {
-        console.info('ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true');
+        console.info(
+          "ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true"
+        );
       }
 
       console.log(`✅ Official Letter PDF generated: ${filename}`);
       return { success: true, filename, data: preparedData };
     } catch (error) {
-      console.error('Error generating Official Letter PDF:', error);
-      console.error('Error stack:', error.stack);
+      console.error("Error generating Official Letter PDF:", error);
+      console.error("Error stack:", error.stack);
       throw error;
     }
   }
@@ -116,11 +139,15 @@ class OfficialDocumentService {
    */
   async generateStudentSummaryPDF(studentData, options = {}) {
     try {
-      const preparedData = this.templateDataService.prepareStudentSummaryData(studentData);
-      
+      const preparedData =
+        this.templateDataService.prepareStudentSummaryData(studentData);
+
       // สร้างชื่อไฟล์ - ใช้ชื่อนักศึกษา
-      const studentName = preparedData.fullName || 'นักศึกษา';
-      const filename = this.pdfService.generateFileName('student_summary', studentName);
+      const studentName = preparedData.fullName || "นักศึกษา";
+      const filename = this.pdfService.generateFileName(
+        "student_summary",
+        studentName
+      );
 
       const template = StudentSummaryTemplate({ data: preparedData });
       await this.pdfService.generateAndDownload(template, filename);
@@ -128,7 +155,7 @@ class OfficialDocumentService {
       console.log(`✅ Student Summary PDF generated: ${filename}`);
       return { success: true, filename, data: preparedData };
     } catch (error) {
-      console.error('Error generating Student Summary PDF:', error);
+      console.error("Error generating Student Summary PDF:", error);
       throw error;
     }
   }
@@ -140,12 +167,18 @@ class OfficialDocumentService {
    */
   async generateCompanyInfoPDF(companyData, options = {}) {
     try {
-      const preparedData = this.templateDataService.prepareCompanyInfoData(companyData);
-      
+      const preparedData =
+        this.templateDataService.prepareCompanyInfoData(companyData);
+
       // สร้างชื่อไฟล์ - ใช้ชื่อนักศึกษา (ถ้ามี) หรือชื่อบริษัท
-      const studentName = preparedData.studentData?.[0]?.fullName || 
-                          preparedData.companyName || 'ข้อมูลบริษัท';
-      const filename = this.pdfService.generateFileName('company_info', studentName);
+      const studentName =
+        preparedData.studentData?.[0]?.fullName ||
+        preparedData.companyName ||
+        "ข้อมูลบริษัท";
+      const filename = this.pdfService.generateFileName(
+        "company_info",
+        studentName
+      );
 
       const template = CompanyInfoTemplate({ data: preparedData });
       await this.pdfService.generateAndDownload(template, filename);
@@ -153,7 +186,7 @@ class OfficialDocumentService {
       console.log(`✅ Company Info PDF generated: ${filename}`);
       return { success: true, filename, data: preparedData };
     } catch (error) {
-      console.error('Error generating Company Info PDF:', error);
+      console.error("Error generating Company Info PDF:", error);
       throw error;
     }
   }
@@ -164,30 +197,40 @@ class OfficialDocumentService {
    * @param {boolean} isBlank - สร้างแบบฟอร์มว่างหรือไม่
    * @param {Object} options - ตัวเลือกเพิ่มเติม
    */
-  async generateAcceptanceFormPDF(letterData = null, isBlank = true, options = {}) {
+  async generateAcceptanceFormPDF(
+    letterData = null,
+    isBlank = true,
+    options = {}
+  ) {
     try {
       // 🔧 ใช้ method ใหม่สำหรับเตรียมข้อมูลแบบฟอร์ม
-      const preparedData = letterData && !isBlank ? 
-        this.templateDataService.prepareAcceptanceFormData(letterData) :
-        { documentDate: new Date(), studentData: [] };
-      
+      const preparedData =
+        letterData && !isBlank
+          ? this.templateDataService.prepareAcceptanceFormData(letterData)
+          : { documentDate: new Date(), studentData: [] };
+
       // สร้างชื่อไฟล์
-      const studentName = preparedData?.studentData?.[0]?.fullName || 'แบบฟอร์ม';
-      const suffix = isBlank ? 'แบบฟอร์มว่าง' : 'แบบฟอร์มมีข้อมูล';
-      const filename = this.pdfService.generateFileName('acceptance_letter', studentName, suffix);
+      const studentName =
+        preparedData?.studentData?.[0]?.fullName || "แบบฟอร์ม";
+      const suffix = isBlank ? "แบบฟอร์มว่าง" : "แบบฟอร์มมีข้อมูล";
+      const filename = this.pdfService.generateFileName(
+        "acceptance_letter",
+        studentName,
+        suffix
+      );
 
       // สร้าง template
-      const template = AcceptanceLetterTemplate({ 
+      const template = AcceptanceLetterTemplate({
         data: preparedData,
-        isBlank: isBlank
+        isBlank: isBlank,
       });
-      
+
       await this.pdfService.generateAndDownload(template, filename);
 
       console.log(`✅ Acceptance Form PDF generated: ${filename}`);
       return { success: true, filename, data: preparedData };
     } catch (error) {
-      console.error('Error generating Acceptance Form PDF:', error);
+      console.error("Error generating Acceptance Form PDF:", error);
       throw error;
     }
   }
@@ -200,20 +243,21 @@ class OfficialDocumentService {
   async previewAcceptanceForm(letterData = null, isBlank = true) {
     try {
       // 🔧 ใช้ method ใหม่สำหรับเตรียมข้อมูลแบบฟอร์ม
-      const preparedData = letterData && !isBlank ? 
-        this.templateDataService.prepareAcceptanceFormData(letterData) :
-        { documentDate: new Date(), studentData: [] };
+      const preparedData =
+        letterData && !isBlank
+          ? this.templateDataService.prepareAcceptanceFormData(letterData)
+          : { documentDate: new Date(), studentData: [] };
 
-      const template = AcceptanceLetterTemplate({ 
+      const template = AcceptanceLetterTemplate({
         data: preparedData,
-        isBlank: isBlank
+        isBlank: isBlank,
       });
-      
+
       await this.pdfService.previewPDF(template);
       console.log(`👁️ Acceptance Form preview opened`);
       return { success: true };
     } catch (error) {
-      console.error('Error previewing Acceptance Form:', error);
+      console.error("Error previewing Acceptance Form:", error);
       throw error;
     }
   }
@@ -226,23 +270,28 @@ class OfficialDocumentService {
   async generateReferralLetterPDF(referralData, options = {}) {
     try {
       await this.pdfService.initialize();
-      
+
       // ตรวจสอบข้อมูลพื้นฐานก่อนเตรียมข้อมูล
       if (!referralData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้างหนังสือส่งตัว');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างหนังสือส่งตัว");
       }
 
       // 🔧 ใช้ method ใหม่สำหรับเตรียมข้อมูลหนังสือส่งตัว
-      const preparedData = this.templateDataService.prepareReferralLetterData(referralData);
-      
+      const preparedData =
+        this.templateDataService.prepareReferralLetterData(referralData);
+
       // ตรวจสอบ preparedData
       if (!preparedData) {
-        throw new Error('ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้');
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้");
       }
 
       // สร้างชื่อไฟล์ - ใช้ชื่อนักศึกษา
-      const studentName = preparedData.studentData?.[0]?.fullName || 'นักศึกษา';
-      const filename = this.pdfService.generateFileName('referral_letter', studentName, 'หนังสือส่งตัว');
+      const studentName = preparedData.studentData?.[0]?.fullName || "นักศึกษา";
+      const filename = this.pdfService.generateFileName(
+        "referral_letter",
+        studentName,
+        "หนังสือส่งตัว"
+      );
 
       // สร้าง template
       const template = ReferralLetterTemplate({ data: preparedData });
@@ -251,19 +300,24 @@ class OfficialDocumentService {
       // 🔒 บันทึกข้อมูลไปยัง Server (ปิดชั่วคราว)
       if (options.saveToServer !== false && this.enableServerRecording) {
         try {
-          await this.savePDFRecord('REFERRAL_LETTER', preparedData, filename);
+          await this.savePDFRecord("REFERRAL_LETTER", preparedData, filename);
         } catch (recordError) {
-          console.warn('📝 PDF record save failed (but PDF generation succeeded):', recordError.message);
+          console.warn(
+            "📝 PDF record save failed (but PDF generation succeeded):",
+            recordError.message
+          );
         }
       } else if (!this.enableServerRecording) {
-        console.info('ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true');
+        console.info(
+          "ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true"
+        );
       }
 
       console.log(`✅ Referral Letter PDF generated: ${filename}`);
       return { success: true, filename, data: preparedData };
     } catch (error) {
-      console.error('Error generating Referral Letter PDF:', error);
-      console.error('Error stack:', error.stack);
+      console.error("Error generating Referral Letter PDF:", error);
+      console.error("Error stack:", error.stack);
       throw new Error(`ไม่สามารถสร้างหนังสือส่งตัวได้: ${error.message}`);
     }
   }
@@ -275,72 +329,180 @@ class OfficialDocumentService {
   async previewReferralLetterPDF(referralData) {
     try {
       await this.pdfService.initialize();
-      
+
       // ตรวจสอบข้อมูลพื้นฐาน
       if (!referralData) {
-        throw new Error('ไม่มีข้อมูลสำหรับแสดงตัวอย่างหนังสือส่งตัว');
+        throw new Error("ไม่มีข้อมูลสำหรับแสดงตัวอย่างหนังสือส่งตัว");
       }
 
       // เตรียมข้อมูล
-      const preparedData = this.templateDataService.prepareReferralLetterData(referralData);
-      
+      const preparedData =
+        this.templateDataService.prepareReferralLetterData(referralData);
+
       if (!preparedData) {
-        throw new Error('ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้');
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้");
       }
 
       // สร้าง template และแสดง preview
       const template = ReferralLetterTemplate({ data: preparedData });
       await this.pdfService.previewPDF(template);
-      
+
       console.log(`👁️ Referral Letter preview opened`);
       return { success: true };
     } catch (error) {
-      console.error('Error previewing Referral Letter:', error);
-      throw new Error(`ไม่สามารถแสดงตัวอย่างหนังสือส่งตัวได้: ${error.message}`);
+      console.error("Error previewing Referral Letter:", error);
+      throw new Error(
+        `ไม่สามารถแสดงตัวอย่างหนังสือส่งตัวได้: ${error.message}`
+      );
     }
   }
 
   /**
-   * แสดง PDF Preview (อัปเดตเพื่อรองรับ referral_letter)
-   * @param {string} templateType - ประเภท template
-   * @param {Object} data - ข้อมูล
+   * 🆕 สร้าง PDF บันทึกการฝึกงาน
+   * @param {Object} logbookData - ข้อมูลบันทึกฝึกงาน
+   * @param {Object} options - ตัวเลือกเพิ่มเติม
+   */
+  async generateInternshipLogbookPDF(logbookData, options = {}) {
+    try {
+      await this.pdfService.initialize();
+
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!logbookData) {
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างบันทึกฝึกงาน");
+      }
+
+      // เตรียมข้อมูลสำหรับ template
+      const preparedData =
+        this.templateDataService.prepareInternshipLogbookData(logbookData);
+
+      if (!preparedData) {
+        throw new Error("ไม่สามารถเตรียมข้อมูลสำหรับบันทึกฝึกงานได้");
+      }
+
+      // สร้างชื่อไฟล์
+      const studentName = preparedData.studentData?.[0]?.fullName || "นักศึกษา";
+      const filename = this.pdfService.generateFileName(
+        "internship_logbook",
+        studentName
+      );
+
+      // สร้าง template
+      const template = InternshipLogbookTemplate({
+        logbookData: preparedData.logEntries,
+        summaryData: preparedData,
+        userInfo: preparedData.studentData?.[0],
+      });
+
+      // สร้างและดาวน์โหลด PDF
+      await this.pdfService.generateAndDownload(template, filename);
+
+      // 🔒 บันทึกข้อมูลไปยัง Server (ปิดชั่วคราว)
+      if (options.saveToServer !== false && this.enableServerRecording) {
+        try {
+          await this.savePDFRecord(
+            "INTERNSHIP_LOGBOOK",
+            preparedData,
+            filename
+          );
+        } catch (recordError) {
+          console.warn(
+            "📝 PDF record save failed (but PDF generation succeeded):",
+            recordError.message
+          );
+        }
+      } else if (!this.enableServerRecording) {
+        console.info(
+          "ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true"
+        );
+      }
+
+      console.log(`✅ Internship Logbook PDF generated: ${filename}`);
+      return { success: true, filename, data: preparedData };
+    } catch (error) {
+      console.error("Error generating Internship Logbook PDF:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🆕 แสดง Preview บันทึกการฝึกงาน
+   * @param {Object} logbookData - ข้อมูลบันทึกฝึกงาน
+   */
+  async previewInternshipLogbookPDF(logbookData) {
+    try {
+      await this.pdfService.initialize();
+
+      const preparedData =
+        this.templateDataService.prepareInternshipLogbookData(logbookData);
+
+      const template = InternshipLogbookTemplate({
+        logbookData: preparedData.logEntries,
+        summaryData: preparedData,
+        userInfo: preparedData.studentData?.[0],
+      });
+
+      await this.pdfService.previewPDF(template);
+      console.log("👁️ Internship Logbook PDF preview opened");
+      return { success: true };
+    } catch (error) {
+      console.error("Error previewing Internship Logbook PDF:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดต previewPDF ให้รองรับ internship_logbook
    */
   async previewPDF(templateType, data) {
     try {
+      await this.pdfService.initialize();
+
       let template;
       let preparedData;
 
-      switch (templateType.toLowerCase()) {
-        case 'cs05':
-          preparedData = this.templateDataService.prepareCS05Data(data, { showWatermark: true });
+      switch (templateType) {
+        case "cs05":
+          preparedData = this.templateDataService.prepareCS05Data(data);
           template = CS05PDFTemplate({ data: preparedData });
           break;
-        case 'official_letter':
-        case 'letter':
-          preparedData = this.templateDataService.prepareOfficialLetterData(data);
+        case "official_letter":
+          preparedData =
+            this.templateDataService.prepareOfficialLetterData(data);
           template = OfficialLetterTemplate({ data: preparedData });
           break;
-        case 'acceptance_letter':
-        case 'acceptance_form':
-          preparedData = this.templateDataService.prepareOfficialLetterData(data);
-          template = AcceptanceLetterTemplate({ 
+        case "acceptance_letter":
+          preparedData =
+            this.templateDataService.prepareAcceptanceFormData(data);
+          template = AcceptanceLetterTemplate({
             data: preparedData,
-            isBlank: data?.isBlank || false
+            isBlank: data?.isBlank || false,
           });
           break;
-        // 🆕 เพิ่ม case สำหรับ referral_letter
-        case 'referral_letter':
-        case 'referral':
-          preparedData = this.templateDataService.prepareReferralLetterData(data);
+        case "referral_letter":
+        case "referral":
+          preparedData =
+            this.templateDataService.prepareReferralLetterData(data);
           template = ReferralLetterTemplate({ data: preparedData });
           break;
-        case 'student_summary':
-        case 'summary':
-          preparedData = this.templateDataService.prepareStudentSummaryData(data);
+        // 🆕 เพิ่ม case สำหรับ internship_logbook
+        case "internship_logbook":
+        case "logbook":
+          preparedData =
+            this.templateDataService.prepareInternshipLogbookData(data);
+          template = InternshipLogbookTemplate({
+            logbookData: preparedData.logEntries,
+            summaryData: preparedData,
+            userInfo: preparedData.studentData?.[0],
+          });
+          break;
+        case "student_summary":
+        case "summary":
+          preparedData =
+            this.templateDataService.prepareStudentSummaryData(data);
           template = StudentSummaryTemplate({ data: preparedData });
           break;
-        case 'company_info':
-        case 'company':
+        case "company_info":
+        case "company":
           preparedData = this.templateDataService.prepareCompanyInfoData(data);
           template = CompanyInfoTemplate({ data: preparedData });
           break;
@@ -352,15 +514,13 @@ class OfficialDocumentService {
       console.log(`👁️ PDF preview opened: ${templateType}`);
       return { success: true };
     } catch (error) {
-      console.error('Error previewing PDF:', error);
+      console.error(`Error previewing PDF ${templateType}:`, error);
       throw error;
     }
   }
 
   /**
-   * สร้าง PDF หลายไฟล์พร้อมกัน (Batch) - อัปเดตเพื่อรองรับ REFERRAL_LETTER
-   * @param {Array} documents - รายการเอกสาร
-   * @param {Object} options - ตัวเลือกเพิ่มเติม
+   * อัปเดต generateBatchPDFs ให้รองรับ INTERNSHIP_LOGBOOK
    */
   async generateBatchPDFs(documents, options = {}) {
     try {
@@ -372,23 +532,37 @@ class OfficialDocumentService {
         try {
           let result;
           switch (doc.type) {
-            case 'CS05':
-              result = await this.generateCS05PDF(doc.data, doc.isDraft, options);
+            case "CS05":
+              result = await this.generateCS05PDF(
+                doc.data,
+                doc.isDraft,
+                options
+              );
               break;
-            case 'OFFICIAL_LETTER':
+            case "OFFICIAL_LETTER":
               result = await this.generateOfficialLetterPDF(doc.data, options);
               break;
-            case 'ACCEPTANCE_LETTER':
-              result = await this.generateAcceptanceFormPDF(doc.data, doc.isBlank, options);
+            case "ACCEPTANCE_LETTER":
+              result = await this.generateAcceptanceFormPDF(
+                doc.data,
+                doc.isBlank,
+                options
+              );
               break;
-            // 🆕 เพิ่ม case สำหรับ REFERRAL_LETTER
-            case 'REFERRAL_LETTER':
+            case "REFERRAL_LETTER":
               result = await this.generateReferralLetterPDF(doc.data, options);
               break;
-            case 'STUDENT_SUMMARY':
+            // 🆕 เพิ่ม case สำหรับ INTERNSHIP_LOGBOOK
+            case "INTERNSHIP_LOGBOOK":
+              result = await this.generateInternshipLogbookPDF(
+                doc.data,
+                options
+              );
+              break;
+            case "STUDENT_SUMMARY":
               result = await this.generateStudentSummaryPDF(doc.data, options);
               break;
-            case 'COMPANY_INFO':
+            case "COMPANY_INFO":
               result = await this.generateCompanyInfoPDF(doc.data, options);
               break;
             default:
@@ -398,23 +572,25 @@ class OfficialDocumentService {
           successCount++;
         } catch (error) {
           console.error(`Error generating PDF for document ${doc.id}:`, error);
-          results.push({ 
-            success: false, 
-            error: error.message, 
-            documentId: doc.id 
+          results.push({
+            success: false,
+            error: error.message,
+            documentId: doc.id,
           });
           errorCount++;
         }
       }
 
-      console.log(`📊 Batch PDF generation completed: ${successCount} success, ${errorCount} errors`);
-      return { 
-        success: errorCount === 0, 
-        results, 
-        summary: { successCount, errorCount, total: documents.length }
+      console.log(
+        `📊 Batch PDF generation completed: ${successCount} success, ${errorCount} errors`
+      );
+      return {
+        success: errorCount === 0,
+        results,
+        summary: { successCount, errorCount, total: documents.length },
       };
     } catch (error) {
-      console.error('Error in batch PDF generation:', error);
+      console.error("Error in batch PDF generation:", error);
       throw error;
     }
   }
@@ -436,29 +612,31 @@ class OfficialDocumentService {
         studentName: data.studentData?.[0]?.fullName, // เพิ่มชื่อนักศึกษา
         companyName: data.companyName,
         createdDate: new Date().toISOString(),
-        status: 'generated'
+        status: "generated",
       };
 
-      console.log('📋 API Request:', {
-        method: 'post',
-        url: '/documents/pdf-records',
-        data: metadata
+      console.log("📋 API Request:", {
+        method: "post",
+        url: "/documents/pdf-records",
+        data: metadata,
       });
 
       // 🚫 ปิดการเรียก API ชั่วคราว - จะเปิดเมื่อมี Backend API พร้อม
-      const response = await apiClient.post('/documents/pdf-records', metadata);
-      
+      const response = await apiClient.post("/documents/pdf-records", metadata);
+
       if (response.data.success) {
-        console.log('✅ PDF record saved:', response.data.data);
+        console.log("✅ PDF record saved:", response.data.data);
         return response.data.data;
       } else {
-        throw new Error(response.data.message || 'ไม่สามารถบันทึกข้อมูล PDF ได้');
+        throw new Error(
+          response.data.message || "ไม่สามารถบันทึกข้อมูล PDF ได้"
+        );
       }
     } catch (error) {
-      console.error('❌ Error saving PDF record:', error.message);
-      
+      console.error("❌ Error saving PDF record:", error.message);
+
       // ไม่ throw error เพื่อไม่ให้ส่งผลต่อการสร้าง PDF
-      console.warn('⚠️ PDF record not saved, but PDF generation continues');
+      console.warn("⚠️ PDF record not saved, but PDF generation continues");
     }
   }
 
@@ -469,20 +647,22 @@ class OfficialDocumentService {
   async getPDFHistory(filters = {}) {
     try {
       // 🚫 ปิดการเรียก API ชั่วคราว
-      console.warn('⚠️ getPDFHistory: Using mock data - Backend API not available yet');
+      console.warn(
+        "⚠️ getPDFHistory: Using mock data - Backend API not available yet"
+      );
       return {
         success: true,
         data: [], // Mock empty history
-        message: 'Backend API ยังไม่พร้อม - แสดงข้อมูลจำลอง'
+        message: "Backend API ยังไม่พร้อม - แสดงข้อมูลจำลอง",
       };
     } catch (error) {
-      console.error('Error fetching PDF history:', error);
-      
+      console.error("Error fetching PDF history:", error);
+
       // Return fallback data แทนการ throw error
       return {
         success: false,
         data: [],
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -492,12 +672,12 @@ class OfficialDocumentService {
    */
   setServerRecording(enabled) {
     this.enableServerRecording = enabled;
-    console.log(`🔧 PDF Server Recording ${enabled ? 'ENABLED' : 'DISABLED'}`);
-    
+    console.log(`🔧 PDF Server Recording ${enabled ? "ENABLED" : "DISABLED"}`);
+
     if (enabled) {
-      console.info('✅ PDF records will be saved to backend when available');
+      console.info("✅ PDF records will be saved to backend when available");
     } else {
-      console.info('❌ PDF records will NOT be saved to backend');
+      console.info("❌ PDF records will NOT be saved to backend");
     }
   }
 
@@ -507,14 +687,14 @@ class OfficialDocumentService {
   getRecordingStatus() {
     return {
       enabled: this.enableServerRecording,
-      reason: this.enableServerRecording 
-        ? 'Backend recording is enabled' 
-        : 'Backend API not available - recording disabled',
+      reason: this.enableServerRecording
+        ? "Backend recording is enabled"
+        : "Backend API not available - recording disabled",
       requiredEndpoints: [
-        'POST /api/documents/pdf-records',
-        'GET /api/documents/pdf-records',
-        'DELETE /api/documents/pdf-records/:id'
-      ]
+        "POST /api/documents/pdf-records",
+        "GET /api/documents/pdf-records",
+        "DELETE /api/documents/pdf-records/:id",
+      ],
     };
   }
 
@@ -525,15 +705,16 @@ class OfficialDocumentService {
     return {
       ...this.pdfService.getStatus(),
       availableTemplates: [
-        'CS05', 
-        'OFFICIAL_LETTER', 
-        'ACCEPTANCE_LETTER',
-        'REFERRAL_LETTER', // 🆕 เพิ่มใหม่
-        'STUDENT_SUMMARY', 
-        'COMPANY_INFO'
+        "CS05",
+        "OFFICIAL_LETTER",
+        "ACCEPTANCE_LETTER",
+        "REFERRAL_LETTER", // 🆕 เพิ่มใหม่
+        "INTERNSHIP_LOGBOOK",
+        "STUDENT_SUMMARY",
+        "COMPANY_INFO",
       ],
-      serviceVersion: '1.6.0', // อัปเดตเวอร์ชัน
-      recordingStatus: this.getRecordingStatus()
+      serviceVersion: "1.6.0", // อัปเดตเวอร์ชัน
+      recordingStatus: this.getRecordingStatus(),
     };
   }
 }

@@ -20,6 +20,7 @@ const {
 const emailService = require("../../utils/mailer.js"); // Using mailer.js directly for email functions
 const crypto = require("crypto");
 const internshipManagementService = require("../../services/internshipManagementService");
+const internshipLogbookService = require("../../services/internshipLogbookService");
 
 // ============= Controller สำหรับข้อมูลนักศึกษา =============
 /**
@@ -269,118 +270,95 @@ exports.getInternshipSummary = async (req, res) => {
 };
 
 /**
- * ดาวน์โหลดเอกสารสรุปการฝึกงาน
+ * ดาวน์โหลดเอกสารสรุปการฝึกงาน PDF
  */
 exports.downloadInternshipSummary = async (req, res) => {
   try {
-    // ค้นหาข้อมูลนักศึกษาก่อน
-    const student = await Student.findOne({
-      where: { userId: req.user.userId },
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["firstName", "lastName"],
-        },
-      ],
-      attributes: ["studentId", "studentCode"],
-    });
+    const userId = req.user.userId;
 
-    if (!student) {
+    // ดึงข้อมูลสรุปการฝึกงานครบถ้วน
+    const summaryData =
+      await internshipLogbookService.getInternshipSummaryForPDF(userId);
+
+    if (!summaryData) {
       return res.status(404).json({
         success: false,
-        message: "ไม่พบข้อมูลนักศึกษา",
+        message: "ไม่พบข้อมูลการฝึกงาน",
       });
     }
 
-    const studentId = student.studentId;
-    const studentName = `${student.user.firstName} ${student.user.lastName}`;
-    const studentCode = student.studentCode;
-
-    // ดึงข้อมูล internship document ล่าสุด
-    const internshipDoc = await InternshipDocument.findOne({
-      include: [
-        {
-          model: Document,
-          as: "document",
-          where: {
-            userId: req.user.userId,
-            documentName: "CS05",
-            category: "internship",
-            status: ["approved", "supervisor_approved"],
-          },
-        },
-      ],
-      order: [["created_at", "DESC"]],
-    });
-
-    if (!internshipDoc) {
-      return res.status(404).json({
+    // ตรวจสอบความครบถ้วนของข้อมูล
+    if (!summaryData.logEntries || summaryData.logEntries.length === 0) {
+      return res.status(400).json({
         success: false,
-        message: "ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ",
+        message: "ยังไม่มีบันทึกการฝึกงาน กรุณาบันทึกข้อมูลก่อน",
       });
     }
 
-    // ดึงข้อมูลบันทึกฝึกงาน (logbooks)
-    const logbooks = await InternshipLogbook.findAll({
-      where: {
-        internshipId: internshipDoc.internshipId,
-        studentId: studentId,
-        supervisorApproved: true,
-      },
-      order: [["workDate", "ASC"]],
-    });
+    // สร้าง PDF
+    const pdfBuffer =
+      await internshipLogbookService.generateInternshipSummaryPDF(summaryData);
 
-    // สร้างไฟล์ PDF สรุปการฝึกงาน (เป็นตัวอย่างโครงสร้างฟังก์ชัน)
-    // โค้ดสร้าง PDF จะต้องเพิ่มเติมตามต้องการ
-    // ตัวอย่างเช่น ใช้ puppeteer, PDFKit, หรือห้องสมุด PDF อื่นๆ
+    // สร้างชื่อไฟล์
+    const currentDate = new Date().toISOString().split("T")[0];
+    const filename = `บันทึกฝึกงาน-${summaryData.studentInfo.studentId}-${currentDate}.pdf`;
 
-    // ตัวอย่าง (คอมเมนต์ไว้เพื่อให้สมบูรณ์ในอนาคต)
-    /*
-    const pdfKit = require('pdfkit');
-    const pdf = new pdfKit({ margin: 30, size: 'A4' });
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=internship-summary-${studentCode}.pdf`);
-    
-    pdf.pipe(res);
-    
-    pdf.fontSize(18).text('สรุปผลการฝึกงาน', { align: 'center' });
-    pdf.moveDown();
-    
-    // เพิ่มข้อมูลนักศึกษา
-    pdf.fontSize(12).text(`ชื่อ-นามสกุล: ${studentName}`);
-    pdf.text(`รหัสนักศึกษา: ${studentCode}`);
-    pdf.moveDown();
-    
-    // เพิ่มข้อมูลบริษัท
-    pdf.fontSize(14).text('ข้อมูลสถานประกอบการ');
-    pdf.fontSize(12).text(`บริษัท: ${internshipDoc.companyName}`);
-    pdf.text(`ที่อยู่: ${internshipDoc.companyAddress}`);
-    pdf.moveDown();
-    
-    // ข้อมูลสถิติ
-    pdf.fontSize(14).text('สรุปชั่วโมงการฝึกงาน');
-    pdf.fontSize(12).text(`จำนวนวันทั้งหมด: ${logbooks.length} วัน`);
-    pdf.text(`จำนวนชั่วโมงทั้งหมด: ${logbooks.reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0)} ชั่วโมง`);
-    
-    // สร้างตาราง logbook entries
-    // ...
-    
-    // ปิด PDF
-    pdf.end();
-    */
+    // ส่ง PDF กลับ
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(filename)}"`
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
 
-    // ส่งข้อความแจ้งว่าฟีเจอร์อยู่ระหว่างการพัฒนา
-    return res.status(200).json({
-      success: false,
-      message: "ฟีเจอร์นี้อยู่ระหว่างการพัฒนา",
-    });
+    res.send(pdfBuffer);
   } catch (error) {
-    console.error("Error generating internship summary PDF:", error);
-    return res.status(500).json({
+    console.error("Error downloading internship summary:", error);
+
+    if (error.message.includes("ไม่พบข้อมูล")) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
       success: false,
-      message: "เกิดข้อผิดพลาดในการสร้างเอกสารสรุปการฝึกงาน",
+      message: "ไม่สามารถสร้างเอกสารบันทึกฝึกงานได้",
+    });
+  }
+};
+
+/**
+ * แสดงตัวอย่างเอกสารสรุปการฝึกงาน PDF
+ */
+exports.previewInternshipSummary = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // ดึงข้อมูลสรุปการฝึกงาน
+    const summaryData = await internshipLogbookService.getInternshipSummaryForPDF(userId);
+
+    if (!summaryData) {
+      return res.status(404).json({
+        success: false,
+        message: "ไม่พบข้อมูลการฝึกงาน",
+      });
+    }
+
+    // สร้าง PDF
+    const pdfBuffer = await internshipLogbookService.generateInternshipSummaryPDF(summaryData);
+
+    // ส่ง PDF สำหรับแสดงผลในเบราว์เซอร์
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline"); // แสดงในเบราว์เซอร์แทนการดาวน์โหลด
+
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error previewing internship summary:", error);
+    res.status(500).json({
+      success: false,
+      message: "ไม่สามารถแสดงตัวอย่างเอกสารได้",
     });
   }
 };

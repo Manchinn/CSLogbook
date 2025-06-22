@@ -1,5 +1,14 @@
-import { formatThaiDate, calculateInternshipDays, formatDurationText } from '../../utils/dateUtils';
-import { formatThaiPhoneNumber, formatFullName, cleanText, formatStudentId } from '../../utils/thaiFormatter';
+import {
+  formatThaiDate,
+  calculateInternshipDays,
+  formatDurationText,
+} from "../../utils/dateUtils";
+import {
+  formatThaiPhoneNumber,
+  formatFullName,
+  cleanText,
+  formatStudentId,
+} from "../../utils/thaiFormatter";
 
 class TemplateDataService {
   /**
@@ -11,64 +20,75 @@ class TemplateDataService {
     try {
       const defaultOptions = {
         showWatermark: true,
-        status: 'draft',
-        ...options
+        status: "draft",
+        ...options,
       };
 
       // ตรวจสอบข้อมูลพื้นฐาน
       if (!formData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้าง PDF');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้าง PDF");
       }
 
       // เตรียมข้อมูลนักศึกษา
       const studentData = this._prepareStudentData(formData.studentData);
-      
+
       // คำนวณระยะเวลาฝึกงาน
-      const internshipDays = this._calculateDurationDays(formData.startDate, formData.endDate);
-      const durationText = formatDurationText(formData.startDate, formData.endDate);
+      const internshipDays = this._calculateDurationDays(
+        formData.startDate,
+        formData.endDate
+      );
+      const durationText = formatDurationText(
+        formData.startDate,
+        formData.endDate
+      );
 
       return {
         // ข้อมูลเอกสาร
-        documentId: formData.documentId || 'DRAFT',
+        documentId: formData.documentId || "DRAFT",
         status: defaultOptions.status,
         createdDate: formData.createdDate || new Date().toISOString(),
-        documentDate: formatThaiDate(new Date().toISOString(), 'DD MMMM BBBB'),
-        
+        documentDate: formatThaiDate(new Date().toISOString(), "DD MMMM BBBB"),
+
         // ข้อมูลนักศึกษา
         studentData: studentData,
-        hasTwoStudents: Array.isArray(formData.studentData) && formData.studentData.length === 2,
-        
+        hasTwoStudents:
+          Array.isArray(formData.studentData) &&
+          formData.studentData.length === 2,
+
         // ข้อมูลบริษัท
-        companyName: cleanText(formData.companyName || ''),
-        companyAddress: cleanText(formData.companyAddress || ''),
-        internshipPosition: cleanText(formData.internshipPosition || ''),
-        contactPersonName: cleanText(formData.contactPersonName || ''),
-        contactPersonPosition: cleanText(formData.contactPersonPosition || ''),
-        
+        companyName: cleanText(formData.companyName || ""),
+        companyAddress: cleanText(formData.companyAddress || ""),
+        internshipPosition: cleanText(formData.internshipPosition || ""),
+        contactPersonName: cleanText(formData.contactPersonName || ""),
+        contactPersonPosition: cleanText(formData.contactPersonPosition || ""),
+
         // ข้อมูลระยะเวลา (ใช้ utils ใหม่)
         startDate: formData.startDate,
         endDate: formData.endDate,
-        startDateThai: formatThaiDate(formData.startDate, 'DD MMMM BBBB'),
-        endDateThai: formatThaiDate(formData.endDate, 'DD MMMM BBBB'),
+        startDateThai: formatThaiDate(formData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(formData.endDate, "DD MMMM BBBB"),
         internshipDays: internshipDays,
         internshipDuration: durationText,
         durationDisplay: `${internshipDays} วัน`,
-        
+
         // ข้อมูลเพิ่มเติม
-        jobDescription: cleanText(formData.jobDescription || ''),
-        additionalRequirements: cleanText(formData.additionalRequirements || ''),
-        
+        jobDescription: cleanText(formData.jobDescription || ""),
+        additionalRequirements: cleanText(
+          formData.additionalRequirements || ""
+        ),
+
         // ข้อมูลมหาวิทยาลัย
-        universityName: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ',
-        facultyName: 'คณะวิทยาศาสตร์ประยุกต์',
-        departmentName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
-        
+        universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+        departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+
         // ตัวเลือก
         showWatermark: defaultOptions.showWatermark,
-        watermarkText: defaultOptions.status === 'draft' ? 'ร่าง' : 'อนุมัติแล้ว'
+        watermarkText:
+          defaultOptions.status === "draft" ? "ร่าง" : "อนุมัติแล้ว",
       };
     } catch (error) {
-      console.error('Error preparing CS05 data:', error);
+      console.error("Error preparing CS05 data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูล CS05 ได้: ${error.message}`);
     }
   }
@@ -80,56 +100,67 @@ class TemplateDataService {
   prepareOfficialLetterData(letterData) {
     try {
       if (!letterData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้างหนังสือ');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างหนังสือ");
       }
 
       // เตรียมข้อมูลนักศึกษา
       const studentData = this._prepareStudentData(letterData.studentData);
-      
+
       // คำนวณระยะเวลาฝึกงาน
-      const internshipDays = this._calculateDurationDays(letterData.startDate, letterData.endDate);
+      const internshipDays = this._calculateDurationDays(
+        letterData.startDate,
+        letterData.endDate
+      );
 
       return {
         // ข้อมูลเอกสาร
         documentNumber: this._generateDocumentNumber(letterData.documentNumber),
         documentDate: letterData.documentDate || new Date().toISOString(),
-        documentDateThai: formatThaiDate(letterData.documentDate || new Date().toISOString(), 'DD MMMM BBBB'),
-        
+        documentDateThai: formatThaiDate(
+          letterData.documentDate || new Date().toISOString(),
+          "DD MMMM BBBB"
+        ),
+
         // ข้อมูลผู้รับ - เพิ่มการตรวจสอบ defensive
-        companyName: cleanText(letterData.companyName || ''),
-        companyAddress: cleanText(letterData.companyAddress || ''),
-        contactPersonName: cleanText(letterData.contactPersonName || ''),
-        contactPersonPosition: cleanText(letterData.contactPersonPosition || ''),
-        
+        companyName: cleanText(letterData.companyName || ""),
+        companyAddress: cleanText(letterData.companyAddress || ""),
+        contactPersonName: cleanText(letterData.contactPersonName || ""),
+        contactPersonPosition: cleanText(
+          letterData.contactPersonPosition || ""
+        ),
+
         // ข้อมูลนักศึกษา
         studentData: studentData,
         hasTwoStudents: Array.isArray(studentData) && studentData.length === 2,
-        
+
         // ข้อมูลระยะเวลา
         startDate: letterData.startDate,
         endDate: letterData.endDate,
-        startDateThai: formatThaiDate(letterData.startDate, 'DD MMMM BBBB'),
-        endDateThai: formatThaiDate(letterData.endDate, 'DD MMMM BBBB'),
+        startDateThai: formatThaiDate(letterData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(letterData.endDate, "DD MMMM BBBB"),
         internshipDays: internshipDays,
-        durationText: formatDurationText(letterData.startDate, letterData.endDate),
-        
+        durationText: formatDurationText(
+          letterData.startDate,
+          letterData.endDate
+        ),
+
         // ข้อมูลอาจารย์
-        advisorTitle: 'หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
-        advisorName: 'รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล',
-        
+        advisorTitle: "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        advisorName: "รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล",
+
         // ข้อมูลเพิ่มเติม
-        internshipPosition: cleanText(letterData.internshipPosition || ''),
-        
+        internshipPosition: cleanText(letterData.internshipPosition || ""),
+
         // ข้อมูลมหาวิทยาลัย
-        universityName: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ',
-        facultyName: 'คณะวิทยาศาสตร์ประยุกต์',
-        departmentName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
-        address: '1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800',
-        phone: '02-555-2000',
-        website: 'http://www.cs.kmutnb.ac.th/'
+        universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+        departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        address: "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
+        phone: "02-555-2000",
+        website: "http://www.cs.kmutnb.ac.th/",
       };
     } catch (error) {
-      console.error('Error preparing Official Letter data:', error);
+      console.error("Error preparing Official Letter data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือได้: ${error.message}`);
     }
   }
@@ -141,7 +172,7 @@ class TemplateDataService {
   prepareStudentSummaryData(summaryData) {
     try {
       if (!summaryData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้างสรุปนักศึกษา');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างสรุปนักศึกษา");
       }
 
       const studentData = this._prepareStudentData(summaryData.studentData);
@@ -149,40 +180,55 @@ class TemplateDataService {
 
       return {
         // ข้อมูลเอกสาร
-        documentId: summaryData.documentId || 'SUMMARY',
+        documentId: summaryData.documentId || "SUMMARY",
         createdDate: summaryData.createdDate || new Date().toISOString(),
-        createdDateThai: formatThaiDate(summaryData.createdDate || new Date().toISOString(), 'DD MMMM BBBB'),
-        
+        createdDateThai: formatThaiDate(
+          summaryData.createdDate || new Date().toISOString(),
+          "DD MMMM BBBB"
+        ),
+
         // ข้อมูลนักศึกษา
         studentData: studentData,
         hasTwoStudents: Array.isArray(studentData) && studentData.length === 2,
-        
+
         // ข้อมูลบริษัท
-        companyName: cleanText(summaryData.companyName || ''),
-        companyAddress: cleanText(summaryData.companyAddress || ''),
-        internshipPosition: cleanText(summaryData.internshipPosition || ''),
-        
+        companyName: cleanText(summaryData.companyName || ""),
+        companyAddress: cleanText(summaryData.companyAddress || ""),
+        internshipPosition: cleanText(summaryData.internshipPosition || ""),
+
         // ข้อมูลระยะเวลา
         startDate: summaryData.startDate,
         endDate: summaryData.endDate,
-        startDateThai: formatThaiDate(summaryData.startDate, 'DD MMMM BBBB'),
-        endDateThai: formatThaiDate(summaryData.endDate, 'DD MMMM BBBB'),
-        internshipDays: this._calculateDurationDays(summaryData.startDate, summaryData.endDate),
-        durationText: formatDurationText(summaryData.startDate, summaryData.endDate),
-        
+        startDateThai: formatThaiDate(summaryData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(summaryData.endDate, "DD MMMM BBBB"),
+        internshipDays: this._calculateDurationDays(
+          summaryData.startDate,
+          summaryData.endDate
+        ),
+        durationText: formatDurationText(
+          summaryData.startDate,
+          summaryData.endDate
+        ),
+
         // ข้อมูล Timeline
         timeline: timelineData,
-        completedSteps: timelineData.filter(step => step.status === 'completed').length,
+        completedSteps: timelineData.filter(
+          (step) => step.status === "completed"
+        ).length,
         totalSteps: timelineData.length,
-        progressPercentage: Math.round((timelineData.filter(step => step.status === 'completed').length / timelineData.length) * 100),
-        
+        progressPercentage: Math.round(
+          (timelineData.filter((step) => step.status === "completed").length /
+            timelineData.length) *
+            100
+        ),
+
         // ข้อมูลมหาวิทยาลัย
-        universityName: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ',
-        facultyName: 'คณะวิทยาศาสตร์ประยุกต์',
-        departmentName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ'
+        universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+        departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
       };
     } catch (error) {
-      console.error('Error preparing Student Summary data:', error);
+      console.error("Error preparing Student Summary data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลสรุปนักศึกษาได้: ${error.message}`);
     }
   }
@@ -194,67 +240,95 @@ class TemplateDataService {
   prepareCompanyInfoData(companyData) {
     try {
       if (!companyData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้างข้อมูลบริษัท');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างข้อมูลบริษัท");
       }
 
       const timelineData = this.createTimelineData(companyData);
 
       return {
         // ข้อมูลเอกสาร
-        documentId: companyData.documentId || 'COMPANY_INFO',
+        documentId: companyData.documentId || "COMPANY_INFO",
         createdDate: companyData.createdDate || new Date().toISOString(),
-        createdDateThai: formatThaiDate(companyData.createdDate || new Date().toISOString(), 'DD MMMM BBBB'),
-        
+        createdDateThai: formatThaiDate(
+          companyData.createdDate || new Date().toISOString(),
+          "DD MMMM BBBB"
+        ),
+
         // สถานะ CS05
-        cs05Status: companyData.cs05Status || 'unknown',
+        cs05Status: companyData.cs05Status || "unknown",
         cs05StatusText: this._getStatusText(companyData.cs05Status),
-        
+
         // ข้อมูลบริษัท
-        companyName: cleanText(companyData.companyName || ''),
-        companyAddress: cleanText(companyData.companyAddress || ''),
-        internshipPosition: cleanText(companyData.internshipPosition || ''),
-        contactPersonName: cleanText(companyData.contactPersonName || ''),
-        contactPersonPosition: cleanText(companyData.contactPersonPosition || ''),
-        
+        companyName: cleanText(companyData.companyName || ""),
+        companyAddress: cleanText(companyData.companyAddress || ""),
+        internshipPosition: cleanText(companyData.internshipPosition || ""),
+        contactPersonName: cleanText(companyData.contactPersonName || ""),
+        contactPersonPosition: cleanText(
+          companyData.contactPersonPosition || ""
+        ),
+
         // ข้อมูลผู้ควบคุมงาน (ใช้ utils ใหม่)
-        supervisorName: cleanText(companyData.supervisorName || ''),
-        supervisorPosition: cleanText(companyData.supervisorPosition || ''),
-        supervisorPhone: formatThaiPhoneNumber(companyData.supervisorPhone || ''),
-        supervisorEmail: cleanText(companyData.supervisorEmail || ''),
-        
+        supervisorName: cleanText(companyData.supervisorName || ""),
+        supervisorPosition: cleanText(companyData.supervisorPosition || ""),
+        supervisorPhone: formatThaiPhoneNumber(
+          companyData.supervisorPhone || ""
+        ),
+        supervisorEmail: cleanText(companyData.supervisorEmail || ""),
+
         // ข้อมูลระยะเวลา
         startDate: companyData.startDate,
         endDate: companyData.endDate,
-        startDateThai: formatThaiDate(companyData.startDate, 'DD MMMM BBBB'),
-        endDateThai: formatThaiDate(companyData.endDate, 'DD MMMM BBBB'),
-        internshipDays: this._calculateDurationDays(companyData.startDate, companyData.endDate),
-        durationText: formatDurationText(companyData.startDate, companyData.endDate),
-        
+        startDateThai: formatThaiDate(companyData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(companyData.endDate, "DD MMMM BBBB"),
+        internshipDays: this._calculateDurationDays(
+          companyData.startDate,
+          companyData.endDate
+        ),
+        durationText: formatDurationText(
+          companyData.startDate,
+          companyData.endDate
+        ),
+
         // ข้อมูลการดำเนินงาน
         cs05SubmissionDate: companyData.cs05SubmissionDate,
-        cs05SubmissionDateThai: formatThaiDate(companyData.cs05SubmissionDate, 'DD MMMM BBBB'),
+        cs05SubmissionDateThai: formatThaiDate(
+          companyData.cs05SubmissionDate,
+          "DD MMMM BBBB"
+        ),
         cs05ApprovalDate: companyData.cs05ApprovalDate,
-        cs05ApprovalDateThai: formatThaiDate(companyData.cs05ApprovalDate, 'DD MMMM BBBB'),
+        cs05ApprovalDateThai: formatThaiDate(
+          companyData.cs05ApprovalDate,
+          "DD MMMM BBBB"
+        ),
         companyInfoSubmissionDate: companyData.companyInfoSubmissionDate,
-        companyInfoSubmissionDateThai: formatThaiDate(companyData.companyInfoSubmissionDate, 'DD MMMM BBBB'),
+        companyInfoSubmissionDateThai: formatThaiDate(
+          companyData.companyInfoSubmissionDate,
+          "DD MMMM BBBB"
+        ),
         internshipStarted: companyData.internshipStarted || false,
-        
+
         // ข้อมูลนักศึกษา
-        studentId: formatStudentId(companyData.studentId || ''),
-        
+        studentId: formatStudentId(companyData.studentId || ""),
+
         // ข้อมูล Timeline
         timeline: timelineData,
-        completedSteps: timelineData.filter(step => step.status === 'completed').length,
+        completedSteps: timelineData.filter(
+          (step) => step.status === "completed"
+        ).length,
         totalSteps: timelineData.length,
-        progressPercentage: Math.round((timelineData.filter(step => step.status === 'completed').length / timelineData.length) * 100),
-        
+        progressPercentage: Math.round(
+          (timelineData.filter((step) => step.status === "completed").length /
+            timelineData.length) *
+            100
+        ),
+
         // ข้อมูลมหาวิทยาลัย
-        universityName: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ',
-        facultyName: 'คณะวิทยาศาสตร์ประยุกต์',
-        departmentName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ'
+        universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+        departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
       };
     } catch (error) {
-      console.error('Error preparing Company Info data:', error);
+      console.error("Error preparing Company Info data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลบริษัทได้: ${error.message}`);
     }
   }
@@ -268,36 +342,36 @@ class TemplateDataService {
       if (!letterData) {
         return {
           documentDate: new Date(),
-          studentData: []
+          studentData: [],
         };
       }
 
       return {
         // ข้อมูลเอกสาร
-        documentNumber: letterData.documentNumber || '',
+        documentNumber: letterData.documentNumber || "",
         documentDate: letterData.documentDate || new Date(),
         letterDate: letterData.documentDate || new Date(),
 
         // ข้อมูลบริษัท
-        companyName: letterData.companyName || '',
-        companyAddress: letterData.companyAddress || '',
-        contactPhone: letterData.contactPhone || '',
-        contactPersonPosition: letterData.contactPersonPosition || '',
-        internshipPosition: letterData.internshipPosition || '',
+        companyName: letterData.companyName || "",
+        companyAddress: letterData.companyAddress || "",
+        contactPhone: letterData.contactPhone || "",
+        contactPersonPosition: letterData.contactPersonPosition || "",
+        internshipPosition: letterData.internshipPosition || "",
 
         // ข้อมูลนักศึกษา
         studentData: letterData.studentData || [],
 
         // ข้อมูลระยะเวลา
-        startDate: letterData.startDate || '',
-        endDate: letterData.endDate || '',
-        internshipDays: letterData.internshipDays || 0
+        startDate: letterData.startDate || "",
+        endDate: letterData.endDate || "",
+        internshipDays: letterData.internshipDays || 0,
       };
     } catch (error) {
-      console.error('Error preparing acceptance form data:', error);
+      console.error("Error preparing acceptance form data:", error);
       return {
         documentDate: new Date(),
-        studentData: []
+        studentData: [],
       };
     }
   }
@@ -309,63 +383,188 @@ class TemplateDataService {
   prepareReferralLetterData(referralData) {
     try {
       if (!referralData) {
-        throw new Error('ไม่มีข้อมูลสำหรับสร้างหนังสือส่งตัว');
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างหนังสือส่งตัว");
       }
 
       // เตรียมข้อมูลนักศึกษา
       const studentData = this._prepareStudentData(referralData.studentData);
-      
+
       // คำนวณระยะเวลาฝึกงาน
-      const internshipDays = this._calculateDurationDays(referralData.startDate, referralData.endDate);
+      const internshipDays = this._calculateDurationDays(
+        referralData.startDate,
+        referralData.endDate
+      );
 
       return {
         // ข้อมูลเอกสาร
-        documentNumber: this._generateDocumentNumber(referralData.documentNumber),
+        documentNumber: this._generateDocumentNumber(
+          referralData.documentNumber
+        ),
         documentDate: referralData.documentDate || new Date().toISOString(),
-        documentDateThai: formatThaiDate(referralData.documentDate || new Date().toISOString(), 'DD MMMM BBBB'),
-        
+        documentDateThai: formatThaiDate(
+          referralData.documentDate || new Date().toISOString(),
+          "DD MMMM BBBB"
+        ),
+
         // ข้อมูลบริษัท
-        companyName: cleanText(referralData.companyName || ''),
-        companyAddress: cleanText(referralData.companyAddress || ''),
-        contactPersonName: cleanText(referralData.contactPersonName || ''),
-        contactPersonPosition: cleanText(referralData.contactPersonPosition || ''),
-        
+        companyName: cleanText(referralData.companyName || ""),
+        companyAddress: cleanText(referralData.companyAddress || ""),
+        contactPersonName: cleanText(referralData.contactPersonName || ""),
+        contactPersonPosition: cleanText(
+          referralData.contactPersonPosition || ""
+        ),
+
         // ข้อมูลผู้ควบคุมงาน - สำหรับหนังสือส่งตัว
-        supervisorName: cleanText(referralData.supervisorName || ''),
-        supervisorPosition: cleanText(referralData.supervisorPosition || ''),
-        supervisorPhone: formatThaiPhoneNumber(referralData.supervisorPhone || ''),
-        supervisorEmail: cleanText(referralData.supervisorEmail || ''),
-        
+        supervisorName: cleanText(referralData.supervisorName || ""),
+        supervisorPosition: cleanText(referralData.supervisorPosition || ""),
+        supervisorPhone: formatThaiPhoneNumber(
+          referralData.supervisorPhone || ""
+        ),
+        supervisorEmail: cleanText(referralData.supervisorEmail || ""),
+
         // ข้อมูลนักศึกษา
         studentData: studentData,
         hasTwoStudents: Array.isArray(studentData) && studentData.length === 2,
-        
+
         // ข้อมูลระยะเวลา
         startDate: referralData.startDate,
         endDate: referralData.endDate,
-        startDateThai: formatThaiDate(referralData.startDate, 'DD MMMM BBBB'),
-        endDateThai: formatThaiDate(referralData.endDate, 'DD MMMM BBBB'),
+        startDateThai: formatThaiDate(referralData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(referralData.endDate, "DD MMMM BBBB"),
         internshipDays: internshipDays,
-        durationText: formatDurationText(referralData.startDate, referralData.endDate),
-        
+        durationText: formatDurationText(
+          referralData.startDate,
+          referralData.endDate
+        ),
+
         // ข้อมูลตำแหน่งฝึกงาน
-        internshipPosition: cleanText(referralData.internshipPosition || ''),
-        
+        internshipPosition: cleanText(referralData.internshipPosition || ""),
+
         // ข้อมูลอาจารย์
-        advisorTitle: 'หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
-        advisorName: 'รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล',
-        
+        advisorTitle: "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        advisorName: "รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล",
+
         // ข้อมูลมหาวิทยาลัย
-        universityName: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ',
-        facultyName: 'คณะวิทยาศาสตร์ประยุกต์',
-        departmentName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
-        address: '1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800',
-        phone: '02-555-2000',
+        universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+        departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        address: "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
+        phone: "02-555-2000",
       };
     } catch (error) {
-      console.error('Error preparing Referral Letter data:', error);
-      throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้: ${error.message}`);
+      console.error("Error preparing Referral Letter data:", error);
+      throw new Error(
+        `ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้: ${error.message}`
+      );
     }
+  }
+
+  /**
+   * 🆕 เตรียมข้อมูลสำหรับ Internship Logbook Template
+   * @param {Object} logbookData - ข้อมูลบันทึกฝึกงาน
+   */
+  prepareInternshipLogbookData(logbookData) {
+    try {
+      if (!logbookData) {
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างบันทึกฝึกงาน");
+      }
+
+      // เตรียมข้อมูลนักศึกษา
+      const studentData = this._prepareStudentInfo(logbookData.studentInfo);
+
+      return {
+        // ข้อมูลเอกสาร
+        documentId: logbookData.documentId || `LOGBOOK-${Date.now()}`,
+        documentDate: new Date(),
+        documentDateThai: formatThaiDate(new Date(), "DD MMMM BBBB"),
+
+        // ข้อมูลนักศึกษา (แปลงให้เป็น array format)
+        studentData: studentData ? [studentData] : [],
+
+        // ข้อมูลบริษัท
+        companyName: cleanText(logbookData.companyName || ""),
+        companyAddress: cleanText(logbookData.companyAddress || ""),
+
+        // ข้อมูลผู้ควบคุมงาน
+        supervisorName: cleanText(logbookData.supervisorName || ""),
+        supervisorPosition: cleanText(logbookData.supervisorPosition || ""),
+        supervisorPhone: formatThaiPhoneNumber(
+          logbookData.supervisorPhone || ""
+        ),
+        supervisorEmail: cleanText(logbookData.supervisorEmail || ""),
+
+        // ข้อมูลระยะเวลา
+        startDate: logbookData.startDate,
+        endDate: logbookData.endDate,
+        startDateThai: formatThaiDate(logbookData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(logbookData.endDate, "DD MMMM BBBB"),
+        internshipDays: this._calculateDurationDays(
+          logbookData.startDate,
+          logbookData.endDate
+        ),
+        durationText: formatDurationText(
+          logbookData.startDate,
+          logbookData.endDate
+        ),
+
+        // บันทึกรายวัน - เตรียมในรูปแบบที่ template ต้องการ
+        logEntries: {
+          entries: logbookData.logEntries || [],
+        },
+
+        // บทสรุปประสบการณ์
+        reflection: logbookData.reflection || null,
+
+        // สถิติ
+        statistics: {
+          totalDays: logbookData.logEntries?.length || 0,
+          totalHours: logbookData.statistics?.totalHours || 0,
+          averageHours: logbookData.statistics?.averageHours || 0,
+        },
+
+        // ข้อมูลมหาวิทยาลัย
+        universityName: "มหาวิทยาลัยพะเยา",
+        facultyName: "คณะเทคโนโลยีสารสนเทศและการสื่อสาร",
+        departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+
+        // การจัดรูปแบบ
+        generatedDate: new Date(),
+        generatedDateThai: formatThaiDate(new Date(), "DD MMMM BBBB HH:mm"),
+      };
+    } catch (error) {
+      console.error("Error preparing internship logbook data:", error);
+      throw new Error(`ไม่สามารถเตรียมข้อมูลบันทึกฝึกงานได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🆕 Helper method สำหรับเตรียมข้อมูลนักศึกษาเดี่ยว
+   * @param {Object} studentInfo - ข้อมูลนักศึกษา
+   */
+  _prepareStudentInfo(studentInfo) {
+    if (!studentInfo) {
+      return null;
+    }
+
+    return {
+      fullName: cleanText(
+        studentInfo.fullName ||
+          `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim()
+      ),
+      firstName: cleanText(studentInfo.firstName || ""),
+      lastName: cleanText(studentInfo.lastName || ""),
+      studentId: formatStudentId(studentInfo.studentId || ""),
+      yearLevel: studentInfo.yearLevel || "",
+      yearLevelText: studentInfo.yearLevel
+        ? `ชั้นปีที่ ${studentInfo.yearLevel}`
+        : "",
+      classroom: cleanText(studentInfo.classroom || ""),
+      phoneNumber: formatThaiPhoneNumber(studentInfo.phoneNumber || ""),
+      email: cleanText(studentInfo.email || ""),
+      title: cleanText(studentInfo.title || ""),
+      totalCredits: studentInfo.totalCredits || 0,
+      totalCreditsText: `${studentInfo.totalCredits || 0} หน่วยกิต`,
+    };
   }
 
   /**
@@ -377,24 +576,28 @@ class TemplateDataService {
       return [];
     }
 
-    return studentData.map((student, index) => {
-      if (!student) {
-        console.warn(`Student data at index ${index} is null or undefined`);
-        return null;
-      }
+    return studentData
+      .map((student, index) => {
+        if (!student) {
+          console.warn(`Student data at index ${index} is null or undefined`);
+          return null;
+        }
 
-      return {
-        // ใช้ || operator และ fallback values เพื่อป้องกัน undefined/null
-        fullName: cleanText(student.fullName ?? ''),
-        studentId: formatStudentId(student.studentId ?? ''),
-        yearLevel: student.yearLevel ?? '',
-        yearLevelText: student.yearLevel ? `ชั้นปีที่ ${student.yearLevel}` : '',
-        classroom: cleanText(student.classroom ?? ''),
-        phoneNumber: formatThaiPhoneNumber(student.phoneNumber ?? ''),
-        totalCredits: student.totalCredits ?? 0,
-        totalCreditsText: `${student.totalCredits ?? 0} หน่วยกิต`
-      };
-    }).filter(student => student !== null); // กรองข้อมูลที่ null ออก
+        return {
+          // ใช้ || operator และ fallback values เพื่อป้องกัน undefined/null
+          fullName: cleanText(student.fullName ?? ""),
+          studentId: formatStudentId(student.studentId ?? ""),
+          yearLevel: student.yearLevel ?? "",
+          yearLevelText: student.yearLevel
+            ? `ชั้นปีที่ ${student.yearLevel}`
+            : "",
+          classroom: cleanText(student.classroom ?? ""),
+          phoneNumber: formatThaiPhoneNumber(student.phoneNumber ?? ""),
+          totalCredits: student.totalCredits ?? 0,
+          totalCreditsText: `${student.totalCredits ?? 0} หน่วยกิต`,
+        };
+      })
+      .filter((student) => student !== null); // กรองข้อมูลที่ null ออก
   }
 
   /**
@@ -410,7 +613,7 @@ class TemplateDataService {
     try {
       return calculateInternshipDays(startDate, endDate);
     } catch (error) {
-      console.error('Error calculating duration days:', error);
+      console.error("Error calculating duration days:", error);
       return 0;
     }
   }
@@ -425,8 +628,8 @@ class TemplateDataService {
     }
 
     // สร้างเลข 3 หลักจากเวลาปัจจุบัน (ม็อด 1000 = 0-999)
-    const threedigits = String(Date.now() % 1000).padStart(3, '0');
-    
+    const threedigits = String(Date.now() % 1000).padStart(3, "0");
+
     // รูปแบบใหม่: อว 7105(05)/XXX
     return `อว 7105(05)/${threedigits}`;
   }
@@ -445,13 +648,13 @@ class TemplateDataService {
    */
   _getStatusText(status) {
     const statusMap = {
-      'pending': 'รอการพิจารณา',
-      'approved': 'อนุมัติแล้ว',
-      'rejected': 'ไม่อนุมัติ',
-      'draft': 'ร่าง'
+      pending: "รอการพิจารณา",
+      approved: "อนุมัติแล้ว",
+      rejected: "ไม่อนุมัติ",
+      draft: "ร่าง",
     };
-    
-    return statusMap[status] || 'ไม่ทราบสถานะ';
+
+    return statusMap[status] || "ไม่ทราบสถานะ";
   }
 
   /**
@@ -462,15 +665,15 @@ class TemplateDataService {
   validateRequiredFields(data, requiredFields) {
     const missing = [];
 
-    requiredFields.forEach(field => {
+    requiredFields.forEach((field) => {
       const value = this._getNestedValue(data, field);
-      if (!value || (typeof value === 'string' && value.trim() === '')) {
+      if (!value || (typeof value === "string" && value.trim() === "")) {
         missing.push(field);
       }
     });
 
     if (missing.length > 0) {
-      throw new Error(`ข้อมูลไม่ครบถ้วน: ${missing.join(', ')}`);
+      throw new Error(`ข้อมูลไม่ครบถ้วน: ${missing.join(", ")}`);
     }
 
     return true;
@@ -482,7 +685,7 @@ class TemplateDataService {
    * @param {string} path - path ของข้อมูล (เช่น 'studentData.0.fullName')
    */
   _getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => {
+    return path.split(".").reduce((current, key) => {
       return current && current[key] !== undefined ? current[key] : null;
     }, obj);
   }
@@ -492,7 +695,7 @@ class TemplateDataService {
    * @param {string} dateString - วันที่ในรูปแบบ string
    * @param {string} format - รูปแบบที่ต้องการ
    */
-  formatDate(dateString, format = 'DD MMMM BBBB') {
+  formatDate(dateString, format = "DD MMMM BBBB") {
     return formatThaiDate(dateString, format);
   }
 
@@ -503,50 +706,72 @@ class TemplateDataService {
   createTimelineData(data) {
     const steps = [
       {
-        title: 'ส่งแบบฟอร์ม CS05',
-        desc: 'นักศึกษาส่งคำร้องขอฝึกงาน',
-        status: data.cs05SubmissionDate ? 'completed' : 'waiting',
+        title: "ส่งแบบฟอร์ม CS05",
+        desc: "นักศึกษาส่งคำร้องขอฝึกงาน",
+        status: data.cs05SubmissionDate ? "completed" : "waiting",
         date: data.cs05SubmissionDate,
-        dateThai: formatThaiDate(data.cs05SubmissionDate, 'DD MMMM BBBB'),
-        icon: '📝'
+        dateThai: formatThaiDate(data.cs05SubmissionDate, "DD MMMM BBBB"),
+        icon: "📝",
       },
       {
-        title: 'การอนุมัติ CS05',
-        desc: 'อาจารย์พิจารณาและอนุมัติคำร้อง',
-        status: data.cs05Status === 'approved' ? 'completed' : 
-                data.cs05Status === 'pending' ? 'pending' : 
-                data.cs05Status === 'rejected' ? 'error' : 'waiting',
+        title: "การอนุมัติ CS05",
+        desc: "อาจารย์พิจารณาและอนุมัติคำร้อง",
+        status:
+          data.cs05Status === "approved"
+            ? "completed"
+            : data.cs05Status === "pending"
+            ? "pending"
+            : data.cs05Status === "rejected"
+            ? "error"
+            : "waiting",
         date: data.cs05ApprovalDate,
-        dateThai: formatThaiDate(data.cs05ApprovalDate, 'DD MMMM BBBB'),
-        icon: data.cs05Status === 'approved' ? '✅' : 
-              data.cs05Status === 'pending' ? '⏳' : 
-              data.cs05Status === 'rejected' ? '❌' : '⚪'
+        dateThai: formatThaiDate(data.cs05ApprovalDate, "DD MMMM BBBB"),
+        icon:
+          data.cs05Status === "approved"
+            ? "✅"
+            : data.cs05Status === "pending"
+            ? "⏳"
+            : data.cs05Status === "rejected"
+            ? "❌"
+            : "⚪",
       },
       {
-        title: 'กรอกข้อมูลสถานประกอบการ',
-        desc: 'กรอกข้อมูลผู้ควบคุมงานและรายละเอียดเพิ่มเติม',
-        status: data.supervisorName && data.supervisorPhone && data.supervisorEmail ? 'completed' : 'waiting',
+        title: "กรอกข้อมูลสถานประกอบการ",
+        desc: "กรอกข้อมูลผู้ควบคุมงานและรายละเอียดเพิ่มเติม",
+        status:
+          data.supervisorName && data.supervisorPhone && data.supervisorEmail
+            ? "completed"
+            : "waiting",
         date: data.companyInfoSubmissionDate,
-        dateThai: formatThaiDate(data.companyInfoSubmissionDate, 'DD MMMM BBBB'),
-        icon: data.supervisorName ? '🏢' : '⚪'
+        dateThai: formatThaiDate(
+          data.companyInfoSubmissionDate,
+          "DD MMMM BBBB"
+        ),
+        icon: data.supervisorName ? "🏢" : "⚪",
       },
       {
-        title: 'เริ่มฝึกงาน',
-        desc: 'เริ่มการฝึกงานตามระยะเวลาที่กำหนด',
-        status: data.internshipStarted ? 'completed' : 
-                (data.startDate && new Date(data.startDate) <= new Date()) ? 'pending' : 'waiting',
+        title: "เริ่มฝึกงาน",
+        desc: "เริ่มการฝึกงานตามระยะเวลาที่กำหนด",
+        status: data.internshipStarted
+          ? "completed"
+          : data.startDate && new Date(data.startDate) <= new Date()
+          ? "pending"
+          : "waiting",
         date: data.startDate,
-        dateThai: formatThaiDate(data.startDate, 'DD MMMM BBBB'),
-        icon: data.internshipStarted ? '🎯' : '⚪'
+        dateThai: formatThaiDate(data.startDate, "DD MMMM BBBB"),
+        icon: data.internshipStarted ? "🎯" : "⚪",
       },
       {
-        title: 'สิ้นสุดการฝึกงาน',
-        desc: 'เสร็จสิ้นการฝึกงานตามระยะเวลาที่กำหนด',
-        status: (data.endDate && new Date(data.endDate) < new Date()) ? 'completed' : 'waiting',
+        title: "สิ้นสุดการฝึกงาน",
+        desc: "เสร็จสิ้นการฝึกงานตามระยะเวลาที่กำหนด",
+        status:
+          data.endDate && new Date(data.endDate) < new Date()
+            ? "completed"
+            : "waiting",
         date: data.endDate,
-        dateThai: formatThaiDate(data.endDate, 'DD MMMM BBBB'),
-        icon: (data.endDate && new Date(data.endDate) < new Date()) ? '🎉' : '⚪'
-      }
+        dateThai: formatThaiDate(data.endDate, "DD MMMM BBBB"),
+        icon: data.endDate && new Date(data.endDate) < new Date() ? "🎉" : "⚪",
+      },
     ];
 
     return steps;
@@ -558,10 +783,16 @@ class TemplateDataService {
    */
   createStatisticsData(data) {
     const timeline = this.createTimelineData(data);
-    const completedSteps = timeline.filter(step => step.status === 'completed').length;
+    const completedSteps = timeline.filter(
+      (step) => step.status === "completed"
+    ).length;
     const totalSteps = timeline.length;
-    const pendingSteps = timeline.filter(step => step.status === 'pending').length;
-    const errorSteps = timeline.filter(step => step.status === 'error').length;
+    const pendingSteps = timeline.filter(
+      (step) => step.status === "pending"
+    ).length;
+    const errorSteps = timeline.filter(
+      (step) => step.status === "error"
+    ).length;
 
     return {
       completedSteps,
@@ -570,7 +801,7 @@ class TemplateDataService {
       errorSteps,
       progressPercentage: Math.round((completedSteps / totalSteps) * 100),
       nextAction: this._getNextAction(timeline),
-      estimatedCompletion: this._estimateCompletion(data, timeline)
+      estimatedCompletion: this._estimateCompletion(data, timeline),
     };
   }
 
@@ -579,25 +810,27 @@ class TemplateDataService {
    * @param {Array} timeline - ข้อมูล timeline
    */
   _getNextAction(timeline) {
-    const nextStep = timeline.find(step => step.status === 'waiting' || step.status === 'pending');
-    
+    const nextStep = timeline.find(
+      (step) => step.status === "waiting" || step.status === "pending"
+    );
+
     if (!nextStep) {
       return {
-        title: 'เสร็จสิ้นทุกขั้นตอน',
-        desc: 'การดำเนินการเสร็จสิ้นแล้ว',
-        priority: 'low'
+        title: "เสร็จสิ้นทุกขั้นตอน",
+        desc: "การดำเนินการเสร็จสิ้นแล้ว",
+        priority: "low",
       };
     }
 
     const priorityMap = {
-      'pending': 'high',
-      'waiting': 'medium'
+      pending: "high",
+      waiting: "medium",
     };
 
     return {
       title: nextStep.title,
       desc: nextStep.desc,
-      priority: priorityMap[nextStep.status] || 'low'
+      priority: priorityMap[nextStep.status] || "low",
     };
   }
 
@@ -610,15 +843,20 @@ class TemplateDataService {
     if (data.endDate) {
       return {
         date: data.endDate,
-        dateThai: formatThaiDate(data.endDate, 'DD MMMM BBBB'),
-        daysRemaining: Math.max(0, Math.ceil((new Date(data.endDate) - new Date()) / (1000 * 60 * 60 * 24)))
+        dateThai: formatThaiDate(data.endDate, "DD MMMM BBBB"),
+        daysRemaining: Math.max(
+          0,
+          Math.ceil(
+            (new Date(data.endDate) - new Date()) / (1000 * 60 * 60 * 24)
+          )
+        ),
       };
     }
 
     return {
       date: null,
-      dateThai: 'ยังไม่กำหนด',
-      daysRemaining: null
+      dateThai: "ยังไม่กำหนด",
+      daysRemaining: null,
     };
   }
 
@@ -629,10 +867,27 @@ class TemplateDataService {
    */
   validateDataForTemplate(templateType, data) {
     const requiredFieldsMap = {
-      'cs05': ['companyName', 'companyAddress', 'startDate', 'endDate', 'studentData.0.fullName'],
-      'official_letter': ['companyName', 'contactPersonName', 'startDate', 'endDate', 'studentData.0.fullName'],
-      'student_summary': ['studentData.0.fullName', 'companyName'],
-      'company_info': ['companyName', 'supervisorName', 'supervisorPhone', 'supervisorEmail']
+      cs05: [
+        "companyName",
+        "companyAddress",
+        "startDate",
+        "endDate",
+        "studentData.0.fullName",
+      ],
+      official_letter: [
+        "companyName",
+        "contactPersonName",
+        "startDate",
+        "endDate",
+        "studentData.0.fullName",
+      ],
+      student_summary: ["studentData.0.fullName", "companyName"],
+      company_info: [
+        "companyName",
+        "supervisorName",
+        "supervisorPhone",
+        "supervisorEmail",
+      ],
     };
 
     const requiredFields = requiredFieldsMap[templateType];
@@ -648,19 +903,27 @@ class TemplateDataService {
    */
   clearCache() {
     // สำหรับการใช้งานในอนาคต
-    console.log('Template data cache cleared');
+    console.log("Template data cache cleared");
   }
 
   /**
-   * ตรวจสอบสถานะ service
+   * ตรวจสอบสถานะ service (อัปเดตใหม่)
    */
   getStatus() {
     return {
       isReady: true,
-      version: '1.3.0',
-      supportedTemplates: ['cs05', 'official_letter', 'student_summary', 'company_info'],
+      version: "1.4.0", // เพิ่มเวอร์ชัน
+      supportedTemplates: [
+        "cs05",
+        "official_letter",
+        "acceptance_letter",
+        "referral_letter",
+        "internship_logbook", // 🆕 เพิ่มใหม่
+        "student_summary",
+        "company_info",
+      ],
       utilsIntegrated: true,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
   }
 }

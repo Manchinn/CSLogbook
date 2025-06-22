@@ -7,6 +7,7 @@ import AcceptanceLetterTemplate from './AcceptanceLetterTemplate'; // 🆕 เ�
 import StudentSummaryTemplate from './StudentSummaryTemplate';
 import CompanyInfoTemplate from './CompanyInfoTemplate';
 import ReferralLetterTemplate from './ReferralLetterTemplate'; // 🆕
+import InternshipLogbookTemplate from './InternshipLogbookTemplate'; // 🆕
 
 // Import styles
 import { PDFStyles } from './styles';
@@ -18,6 +19,7 @@ export { AcceptanceLetterTemplate }; // 🆕 เพิ่มใหม่
 export { StudentSummaryTemplate };
 export { CompanyInfoTemplate };
 export { ReferralLetterTemplate }; // 🆕
+export { InternshipLogbookTemplate }; // 🆕
 
 // Export styles
 export * from './styles';
@@ -29,6 +31,7 @@ export const PDFTemplates = {
   OfficialLetter: OfficialLetterTemplate,
   AcceptanceLetter: AcceptanceLetterTemplate,
   ReferralLetter: ReferralLetterTemplate, // 🆕
+  InternshipLogbook: InternshipLogbookTemplate, // 🆕
   StudentSummary: StudentSummaryTemplate,
   CompanyInfo: CompanyInfoTemplate
 };
@@ -40,6 +43,7 @@ export default {
   OfficialLetterTemplate,
   AcceptanceLetterTemplate, // 🆕 เพิ่มใหม่
   ReferralLetterTemplate, // 🆕
+  InternshipLogbookTemplate, // 🆕
   StudentSummaryTemplate,
   CompanyInfoTemplate,
   

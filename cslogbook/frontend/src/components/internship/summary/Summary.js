@@ -32,6 +32,7 @@ import {
   TeamOutlined,
   PhoneOutlined,
   SendOutlined,
+  EyeOutlined, // 🆕 เพิ่ม icon สำหรับ Preview
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -62,6 +63,11 @@ import EvaluationRequestButton from "../../EvaluationRequestButton";
 // นำเข้า utility functions
 import { calculateCompletionStatus } from "./utils/skillUtils";
 import { formatDateRange } from "./utils/dateUtils";
+import { 
+  handlePreviewInternshipLogbook, 
+  handleDownloadInternshipLogbook,
+  validateDataForPDF 
+} from "./helpers/summaryPdfHelper";
 
 // ค่าคงที่
 const { Title, Text } = Typography;
@@ -74,6 +80,8 @@ const InternshipSummary = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("1");
   const [editingReflection, setEditingReflection] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false); // 🆕 เพิ่ม state สำหรับ preview loading
+  const [downloadLoading, setDownloadLoading] = useState(false); // 🆕 เพิ่ม state สำหรับ download loading
 
   // ใช้ custom hooks
   const {
@@ -121,28 +129,29 @@ const InternshipSummary = () => {
     setEditingReflection(!editingReflection);
   };
 
+  // ตรวจสอบว่ามีข้อมูลเพียงพอสำหรับสร้าง PDF หรือไม่
+  const hasMinimumData = validateDataForPDF(summaryData, logEntries);
+
+  // แสดงตัวอย่าง PDF บันทึกฝึกงาน
+  const handlePreviewSummary = async () => {
+    await handlePreviewInternshipLogbook(
+      summaryData,
+      logEntries,
+      reflection,
+      totalApprovedHours,
+      setPreviewLoading
+    );
+  };
+
   // ดาวน์โหลดเอกสารสรุป
-  const handleDownloadSummary = () => {
-    message.info("กำลังเตรียมเอกสารสรุป...");
-    internshipService
-      .downloadInternshipSummary()
-      .then((response) => {
-        if (response.success && response.data) {
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const link = document.createElement("a");
-          link.href = url;
-          link.setAttribute(
-            "download",
-            `internship_summary_${dayjs().format("YYYYMMDD")}.pdf`
-          );
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-        }
-      })
-      .catch((err) => {
-        message.error("ไม่สามารถดาวน์โหลดเอกสารสรุปได้");
-      });
+  const handleDownloadSummary = async () => {
+    await handleDownloadInternshipLogbook(
+      summaryData,
+      logEntries,
+      reflection,
+      totalApprovedHours,
+      setDownloadLoading
+    );
   };
 
   // พิมพ์เอกสาร
@@ -446,6 +455,17 @@ const InternshipSummary = () => {
             </div>
           </Col>
         </Row>
+
+        {/* 🆕 เพิ่ม Alert แสดงสถานะการสร้าง PDF */}
+        {!hasMinimumData && (
+          <Alert
+            message="ข้อมูลไม่เพียงพอสำหรับสร้างเอกสาร PDF"
+            description="กรุณาเพิ่มบันทึกการฝึกงานอย่างน้อย 1 รายการ เพื่อให้สามารถสร้างเอกสารสรุปได้"
+            type="warning"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        )}
       </Card>
 
       <div className="summary-tabs" style={{ marginTop: 24 }}>
@@ -460,24 +480,51 @@ const InternshipSummary = () => {
         />
       </div>
 
+      {/* 🆕 ปรับปรุงส่วน Actions - เพิ่มปุ่ม Preview */}
       <div className="summary-actions no-print">
-        <Space>
+        <Space size="middle">
+          {/* ปุ่ม Preview - วางไว้ก่อนปุ่ม Download */}
+          <Button
+            type="default"
+            icon={<EyeOutlined />}
+            onClick={handlePreviewSummary}
+            loading={previewLoading}
+            disabled={!hasMinimumData}
+            size="middle"
+          >
+            {previewLoading ? "กำลังเตรียม..." : "แสดงตัวอย่าง"}
+          </Button>
+
+          {/* ปุ่ม Download */}
           <Button
             type="primary"
             icon={<FilePdfOutlined />}
             onClick={handleDownloadSummary}
-            disabled={!summaryData || logEntries.length === 0}
+            disabled={!hasMinimumData}
+            size="middle"
           >
             ดาวน์โหลดสรุปการฝึกงาน
           </Button>
+
+          {/* ปุ่ม Print */}
           <Button
             icon={<PrinterOutlined />}
             onClick={handlePrint}
-            disabled={!summaryData || logEntries.length === 0}
+            disabled={!hasMinimumData}
+            size="middle"
           >
             พิมพ์เอกสาร
           </Button>
         </Space>
+
+        {/* ข้อความแนะนำเมื่อข้อมูลไม่เพียงพอ */}
+        {!hasMinimumData && (
+          <div style={{ marginTop: 12, fontSize: "14px", color: "#8c8c8c" }}>
+            <Text type="secondary">
+              💡 เพิ่มบันทึกการฝึกงานเพิ่มเติมเพื่อให้สามารถสร้างเอกสาร PDF ได้
+            </Text>
+          </div>
+        )}
       </div>
     </div>
   );
