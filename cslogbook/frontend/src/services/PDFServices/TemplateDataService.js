@@ -462,74 +462,117 @@ class TemplateDataService {
   /**
    * 🆕 เตรียมข้อมูลสำหรับ Internship Logbook Template
    * @param {Object} logbookData - ข้อมูลบันทึกฝึกงาน
+   * @param {Object} summaryData - ข้อมูลสรุปการฝึกงาน (optional)
+   * @param {Object} userInfo - ข้อมูลผู้ใช้ (optional)
    */
-  prepareInternshipLogbookData(logbookData) {
+  prepareInternshipLogbookData(logbookData, summaryData = null, userInfo = null) {
     try {
-      if (!logbookData) {
+      console.log('🔍 Preparing internship logbook data:', { logbookData, summaryData, userInfo });
+
+      if (!logbookData && !summaryData) {
         throw new Error("ไม่มีข้อมูลสำหรับสร้างบันทึกฝึกงาน");
       }
 
-      // เตรียมข้อมูลนักศึกษา
-      const studentData = this._prepareStudentInfo(logbookData.studentInfo);
+      // 🔧 รวมข้อมูลจากแหล่งต่างๆ โดยให้ logbookData เป็นหลัก
+      const combinedData = {
+        ...summaryData,
+        ...logbookData,
+      };
+
+      // ✅ เตรียมข้อมูลนักศึกษาจากหลายแหล่ง
+      const studentData = this._prepareLogbookStudentInfo(combinedData, userInfo);
+      console.log('📊 Final student data prepared:', studentData);
+
+      // ✅ คำนวณสถิติการฝึกงาน
+      const statistics = this._calculateLogbookStatistics(combinedData);
+
+      // ✅ จัดรูปแบบบันทึกรายวัน
+      const formattedEntries = this._formatLogbookEntries(combinedData.entries || combinedData.logEntries || []);
 
       return {
         // ข้อมูลเอกสาร
-        documentId: logbookData.documentId || `LOGBOOK-${Date.now()}`,
+        documentId: combinedData.documentId || `LOGBOOK-${Date.now()}`,
         documentDate: new Date(),
         documentDateThai: formatThaiDate(new Date(), "DD MMMM BBBB"),
 
-        // ข้อมูลนักศึกษา (แปลงให้เป็น array format)
+        // ข้อมูลนักศึกษา (รองรับหลายรูปแบบ)
         studentData: studentData ? [studentData] : [],
 
         // ข้อมูลบริษัท
-        companyName: cleanText(logbookData.companyName || ""),
-        companyAddress: cleanText(logbookData.companyAddress || ""),
+        companyName: cleanText(
+          combinedData.companyName || 
+          combinedData.company?.name || 
+          ""
+        ),
+        companyAddress: cleanText(
+          combinedData.companyAddress || 
+          combinedData.company?.address || 
+          ""
+        ),
 
         // ข้อมูลผู้ควบคุมงาน
-        supervisorName: cleanText(logbookData.supervisorName || ""),
-        supervisorPosition: cleanText(logbookData.supervisorPosition || ""),
-        supervisorPhone: formatThaiPhoneNumber(
-          logbookData.supervisorPhone || ""
+        supervisorName: cleanText(
+          combinedData.supervisorName || 
+          combinedData.supervisor?.name || 
+          ""
         ),
-        supervisorEmail: cleanText(logbookData.supervisorEmail || ""),
+        supervisorPosition: cleanText(
+          combinedData.supervisorPosition || 
+          combinedData.supervisor?.position || 
+          ""
+        ),
+        supervisorPhone: formatThaiPhoneNumber(
+          combinedData.supervisorPhone || 
+          combinedData.supervisor?.phone || 
+          ""
+        ),
+        supervisorEmail: cleanText(
+          combinedData.supervisorEmail || 
+          combinedData.supervisor?.email || 
+          ""
+        ),
 
         // ข้อมูลระยะเวลา
-        startDate: logbookData.startDate,
-        endDate: logbookData.endDate,
-        startDateThai: formatThaiDate(logbookData.startDate, "DD MMMM BBBB"),
-        endDateThai: formatThaiDate(logbookData.endDate, "DD MMMM BBBB"),
+        startDate: combinedData.startDate,
+        endDate: combinedData.endDate,
+        startDateThai: formatThaiDate(combinedData.startDate, "DD MMMM BBBB"),
+        endDateThai: formatThaiDate(combinedData.endDate, "DD MMMM BBBB"),
         internshipDays: this._calculateDurationDays(
-          logbookData.startDate,
-          logbookData.endDate
+          combinedData.startDate,
+          combinedData.endDate
         ),
         durationText: formatDurationText(
-          logbookData.startDate,
-          logbookData.endDate
+          combinedData.startDate,
+          combinedData.endDate
         ),
 
-        // บันทึกรายวัน - เตรียมในรูปแบบที่ template ต้องการ
+        // บันทึกรายวัน - ในรูปแบบที่ template ต้องการ
         logEntries: {
-          entries: logbookData.logEntries || [],
+          entries: formattedEntries,
         },
 
         // บทสรุปประสบการณ์
-        reflection: logbookData.reflection || null,
+        reflection: this._prepareReflectionData(combinedData.reflection),
 
-        // สถิติ
-        statistics: {
-          totalDays: logbookData.logEntries?.length || 0,
-          totalHours: logbookData.statistics?.totalHours || 0,
-          averageHours: logbookData.statistics?.averageHours || 0,
-        },
+        // สถิติการฝึกงาน
+        statistics: statistics,
 
         // ข้อมูลมหาวิทยาลัย
-        universityName: "มหาวิทยาลัยพะเยา",
-        facultyName: "คณะเทคโนโลยีสารสนเทศและการสื่อสาร",
+        universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        facultyName: "คณะวิทยาศาสตร์ประยุกต์",
         departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
 
         // การจัดรูปแบบ
         generatedDate: new Date(),
         generatedDateThai: formatThaiDate(new Date(), "DD MMMM BBBB HH:mm"),
+
+        // เพิ่มข้อมูลเพื่อ debugging
+        sourceDataTypes: {
+          hasLogbookData: !!logbookData,
+          hasSummaryData: !!summaryData,
+          hasUserInfo: !!userInfo,
+          entriesCount: formattedEntries.length,
+        }
       };
     } catch (error) {
       console.error("Error preparing internship logbook data:", error);
@@ -538,32 +581,258 @@ class TemplateDataService {
   }
 
   /**
-   * 🆕 Helper method สำหรับเตรียมข้อมูลนักศึกษาเดี่ยว
-   * @param {Object} studentInfo - ข้อมูลนักศึกษา
+   * 🆕 Helper method สำหรับเตรียมข้อมูลนักศึกษาสำหรับ logbook
+   * @param {Object} combinedData - ข้อมูลที่รวมแล้ว
+   * @param {Object} userInfo - ข้อมูลผู้ใช้
    */
-  _prepareStudentInfo(studentInfo) {
-    if (!studentInfo) {
-      return null;
+  _prepareLogbookStudentInfo(combinedData, userInfo) {
+    console.log('🔍 _prepareLogbookStudentInfo inputs:', { 
+      combinedData: {
+        studentInfo: combinedData?.studentInfo,
+        student: combinedData?.student,
+        studentData: combinedData?.studentData,
+        firstName: combinedData?.firstName,
+        lastName: combinedData?.lastName,
+        fullName: combinedData?.fullName,
+        studentId: combinedData?.studentId
+      }, 
+      userInfo 
+    });
+
+    // ลำดับความสำคัญในการหาข้อมูลนักศึกษา
+    let studentInfo = null;
+    let dataSource = "none";
+
+    // 1. จาก userInfo (ความสำคัญสูงสุด)
+    if (userInfo && (userInfo.firstName || userInfo.lastName || userInfo.fullName)) {
+      studentInfo = userInfo;
+      dataSource = "userInfo";
     }
+    // 2. จาก combinedData.studentInfo
+    else if (combinedData.studentInfo && (combinedData.studentInfo.firstName || combinedData.studentInfo.lastName || combinedData.studentInfo.fullName)) {
+      studentInfo = combinedData.studentInfo;
+      dataSource = "combinedData.studentInfo";
+    }
+    // 3. จาก combinedData.student
+    else if (combinedData.student && (combinedData.student.firstName || combinedData.student.lastName || combinedData.student.fullName)) {
+      studentInfo = combinedData.student;
+      dataSource = "combinedData.student";
+    }
+    // 4. จาก combinedData.studentData[0] (ตรวจสอบว่าไม่ใช่ข้อมูลว่าง)
+    else if (combinedData.studentData && Array.isArray(combinedData.studentData) && combinedData.studentData[0]) {
+      const candidate = combinedData.studentData[0];
+      if (candidate.firstName || candidate.lastName || candidate.fullName || candidate.studentId) {
+        studentInfo = candidate;
+        dataSource = "combinedData.studentData[0]";
+      }
+    }
+    // 5. จาก combined data โดยตรง
+    else if (combinedData.firstName || combinedData.lastName || combinedData.fullName || combinedData.studentId) {
+      studentInfo = combinedData;
+      dataSource = "combinedData direct";
+    }
+    // 6. 🆕 พยายามหาจาก localStorage หรือ context (fallback)
+    else {
+      try {
+        const cachedUserInfo = localStorage.getItem('userInfo');
+        if (cachedUserInfo) {
+          const parsed = JSON.parse(cachedUserInfo);
+          if (parsed && (parsed.firstName || parsed.lastName || parsed.fullName)) {
+            studentInfo = parsed;
+            dataSource = "localStorage.userInfo";
+            console.log('📦 Found student info in localStorage:', parsed);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Error reading from localStorage:', error);
+      }
+    }
+
+    if (!studentInfo) {
+      console.warn('⚠️ No student information found in any data source, creating default info');
+      // สร้างข้อมูลพื้นฐานเพื่อป้องกันการ crash
+      return {
+        fullName: "นักศึกษาฝึกงาน",
+        firstName: "",
+        lastName: "",
+        studentId: "",
+        yearLevel: "",
+        yearLevelText: "",
+        classroom: "",
+        phoneNumber: "",
+        email: "",
+        title: "",
+        totalCredits: 0,
+        totalCreditsText: "0 หน่วยกิต",
+      };
+    }
+
+    console.log(`✅ Student info found from: ${dataSource}`, studentInfo);
 
     return {
       fullName: cleanText(
         studentInfo.fullName ||
-          `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim()
+        formatFullName(studentInfo.firstName, studentInfo.lastName, studentInfo.title) ||
+        `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim() ||
+        "นักศึกษาฝึกงาน"
       ),
       firstName: cleanText(studentInfo.firstName || ""),
       lastName: cleanText(studentInfo.lastName || ""),
-      studentId: formatStudentId(studentInfo.studentId || ""),
-      yearLevel: studentInfo.yearLevel || "",
-      yearLevelText: studentInfo.yearLevel
-        ? `ชั้นปีที่ ${studentInfo.yearLevel}`
+      studentId: formatStudentId(studentInfo.studentId || studentInfo.student_id || ""),
+      yearLevel: studentInfo.yearLevel || studentInfo.year_level || "",
+      yearLevelText: studentInfo.yearLevel || studentInfo.year_level
+        ? `ชั้นปีที่ ${studentInfo.yearLevel || studentInfo.year_level}`
         : "",
-      classroom: cleanText(studentInfo.classroom || ""),
-      phoneNumber: formatThaiPhoneNumber(studentInfo.phoneNumber || ""),
+      classroom: cleanText(studentInfo.classroom || studentInfo.class || ""),
+      phoneNumber: formatThaiPhoneNumber(studentInfo.phoneNumber || studentInfo.phone || ""),
       email: cleanText(studentInfo.email || ""),
       title: cleanText(studentInfo.title || ""),
-      totalCredits: studentInfo.totalCredits || 0,
-      totalCreditsText: `${studentInfo.totalCredits || 0} หน่วยกิต`,
+      totalCredits: studentInfo.totalCredits || studentInfo.total_credits || 0,
+      totalCreditsText: `${studentInfo.totalCredits || studentInfo.total_credits || 0} หน่วยกิต`,
+    };
+  }
+
+  /**
+   * 🆕 Helper method สำหรับคำนวณสถิติการฝึกงาน
+   * @param {Object} combinedData - ข้อมูลที่รวมแล้ว
+   */
+  _calculateLogbookStatistics(combinedData) {
+    const entries = combinedData.entries || combinedData.logEntries || [];
+    
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return {
+        totalDays: 0,
+        totalHours: 0,
+        averageHours: 0,
+      };
+    }
+
+    const totalDays = entries.length;
+    
+    // คำนวณชั่วโมงรวม
+    const totalHours = entries.reduce((sum, entry) => {
+      const hours = parseFloat(
+        entry.approvedHours || 
+        entry.totalHours || 
+        entry.workHours || 
+        entry.hours || 
+        0
+      );
+      return sum + (isNaN(hours) ? 0 : hours);
+    }, 0);
+
+    const averageHours = totalDays > 0 ? (totalHours / totalDays) : 0;
+
+    return {
+      totalDays,
+      totalHours: Math.round(totalHours * 100) / 100, // ปัดทศนิยม 2 ตำแหน่ง
+      averageHours: Math.round(averageHours * 100) / 100,
+    };
+  }
+
+  /**
+   * 🆕 Helper method สำหรับจัดรูปแบบบันทึกรายวัน
+   * @param {Array} entries - รายการบันทึก
+   */
+  _formatLogbookEntries(entries) {
+    if (!Array.isArray(entries)) {
+      return [];
+    }
+
+    return entries.map((entry, index) => {
+      if (!entry) {
+        console.warn(`⚠️ Log entry at index ${index} is null or undefined`);
+        return null;
+      }
+
+      return {
+        // ข้อมูลวันที่
+        workDate: entry.workDate || entry.date,
+        workDateThai: formatThaiDate(entry.workDate || entry.date, "DD MMMM BBBB"),
+        
+        // ข้อมูลเวลา
+        timeIn: entry.timeIn || entry.startTime || "",
+        timeOut: entry.timeOut || entry.endTime || "",
+        
+        // กิจกรรมและผลงาน
+        activities: cleanText(
+          entry.activities || 
+          entry.workDescription || 
+          entry.description || 
+          entry.activity || 
+          ""
+        ),
+        
+        // ความรู้ที่ได้รับ
+        learnings: cleanText(
+          entry.learnings || 
+          entry.knowledgeGained || 
+          entry.learningOutcome || 
+          entry.knowledge || 
+          ""
+        ),
+        
+        // ชั่วโมงทำงาน
+        workHours: parseFloat(
+          entry.approvedHours || 
+          entry.totalHours || 
+          entry.workHours || 
+          entry.hours || 
+          0
+        ),
+        approvedHours: parseFloat(
+          entry.approvedHours || 
+          entry.totalHours || 
+          entry.workHours || 
+          entry.hours || 
+          0
+        ),
+        
+        // สถานะ
+        status: entry.status || "completed",
+        
+        // ข้อมูลเพิ่มเติม
+        notes: cleanText(entry.notes || entry.remarks || ""),
+      };
+    }).filter(entry => entry !== null); // กรองข้อมูลที่ null ออก
+  }
+
+  /**
+   * 🆕 Helper method สำหรับเตรียมข้อมูลบทสรุป - ปรับปรุงการ mapping
+   * @param {Object} reflectionData - ข้อมูลบทสรุป
+   */
+  _prepareReflectionData(reflectionData) {
+    if (!reflectionData) {
+      return null;
+    }
+
+    return {
+      // รองรับหลายรูปแบบของ reflection data
+      experience: cleanText(
+        reflectionData.experience || 
+        reflectionData.learningOutcome || 
+        ""
+      ),
+      skillsLearned: cleanText(
+        reflectionData.skillsLearned || 
+        reflectionData.skills || 
+        reflectionData.keyLearnings || 
+        ""
+      ),
+      challenges: cleanText(
+        reflectionData.challenges || 
+        reflectionData.problems || 
+        reflectionData.improvements || 
+        ""
+      ),
+      suggestions: cleanText(
+        reflectionData.suggestions || 
+        reflectionData.recommendations || 
+        reflectionData.futureApplication || 
+        ""
+      ),
+      overallRating: reflectionData.overallRating || reflectionData.rating || 0,
+      wouldRecommend: reflectionData.wouldRecommend || false,
     };
   }
 

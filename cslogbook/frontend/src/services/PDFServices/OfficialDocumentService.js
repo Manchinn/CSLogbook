@@ -371,9 +371,24 @@ class OfficialDocumentService {
         throw new Error("ไม่มีข้อมูลสำหรับสร้างบันทึกฝึกงาน");
       }
 
+      // 🆕 พยายามหา userInfo จาก localStorage หรือแหล่งอื่น
+      let userInfo = null;
+      try {
+        const cachedUserInfo = localStorage.getItem('userInfo');
+        if (cachedUserInfo) {
+          userInfo = JSON.parse(cachedUserInfo);
+          console.log('📦 Found userInfo for logbook:', userInfo);
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not load userInfo from localStorage:', error);
+      }
+
       // เตรียมข้อมูลสำหรับ template
-      const preparedData =
-        this.templateDataService.prepareInternshipLogbookData(logbookData);
+      const preparedData = this.templateDataService.prepareInternshipLogbookData(
+        logbookData, 
+        null, // summaryData
+        userInfo // userInfo จาก localStorage
+      );
 
       if (!preparedData) {
         throw new Error("ไม่สามารถเตรียมข้อมูลสำหรับบันทึกฝึกงานได้");
@@ -432,8 +447,22 @@ class OfficialDocumentService {
     try {
       await this.pdfService.initialize();
 
-      const preparedData =
-        this.templateDataService.prepareInternshipLogbookData(logbookData);
+      // 🆕 พยายามหา userInfo จาก localStorage
+      let userInfo = null;
+      try {
+        const cachedUserInfo = localStorage.getItem('userInfo');
+        if (cachedUserInfo) {
+          userInfo = JSON.parse(cachedUserInfo);
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not load userInfo for preview:', error);
+      }
+
+      const preparedData = this.templateDataService.prepareInternshipLogbookData(
+        logbookData,
+        null, // summaryData
+        userInfo // userInfo จาก localStorage
+      );
 
       const template = InternshipLogbookTemplate({
         logbookData: preparedData.logEntries,
@@ -487,8 +516,22 @@ class OfficialDocumentService {
         // 🆕 เพิ่ม case สำหรับ internship_logbook
         case "internship_logbook":
         case "logbook":
-          preparedData =
-            this.templateDataService.prepareInternshipLogbookData(data);
+          // พยายามหา userInfo จาก localStorage
+          let userInfoForLogbook = null;
+          try {
+            const cachedUserInfo = localStorage.getItem('userInfo');
+            if (cachedUserInfo) {
+              userInfoForLogbook = JSON.parse(cachedUserInfo);
+            }
+          } catch (error) {
+            console.warn('⚠️ Could not load userInfo for logbook case:', error);
+          }
+          
+          preparedData = this.templateDataService.prepareInternshipLogbookData(
+            data,
+            null, // summaryData
+            userInfoForLogbook // userInfo จาก localStorage
+          );
           template = InternshipLogbookTemplate({
             logbookData: preparedData.logEntries,
             summaryData: preparedData,

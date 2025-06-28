@@ -1,445 +1,750 @@
-import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { formatThaiDate, calculateInternshipDays, formatDurationText } from '../../../utils/dateUtils';
-import { formatFullName, formatThaiPhoneNumber, toThaiDigits } from '../../../utils/thaiFormatter';
+import React from "react";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { formatThaiDate, formatDurationText } from "../../../utils/dateUtils";
+import { formatFullName, formatThaiPhoneNumber } from "../../../utils/thaiFormatter";
 
 const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
+  // 🔧 ฟังก์ชันจัดการข้อมูลนักศึกษา (ปรับปรุงให้ใช้ข้อมูลที่ประมวลผลแล้ว)
+  const getStudentInfo = () => {
+    let studentData = null;
+    
+    // 🆕 ให้ความสำคัญกับข้อมูลที่ประมวลผลแล้วจาก summaryData.studentData ก่อน
+    if (summaryData?.studentData && Array.isArray(summaryData.studentData) && summaryData.studentData.length > 0) {
+      const processedData = summaryData.studentData[0];
+      if (processedData && (processedData.firstName || processedData.lastName || processedData.fullName)) {
+        studentData = {
+          firstName: processedData.firstName || "",
+          lastName: processedData.lastName || "",
+          fullName: processedData.fullName || "",
+          studentId: processedData.studentId || "",
+          yearLevel: processedData.yearLevel || "",
+          classroom: processedData.classroom || "",
+          phoneNumber: processedData.phoneNumber || "",
+          title: processedData.title || "",
+        };
+      }
+    }
+    
+    // Fallback 1: ใช้ userInfo ถ้าไม่มีข้อมูลจาก studentData
+    if (!studentData && userInfo && (userInfo.firstName || userInfo.lastName || userInfo.fullName)) {
+      studentData = {
+        firstName: userInfo.firstName || "",
+        lastName: userInfo.lastName || "",
+        fullName: userInfo.fullName || "",
+        studentId: userInfo.studentId || userInfo.student_id || "",
+        yearLevel: userInfo.yearLevel || userInfo.year_level || "",
+        classroom: userInfo.classroom || userInfo.class || "",
+        phoneNumber: userInfo.phoneNumber || userInfo.phone || "",
+        title: userInfo.title || "",
+      };
+    }
+    
+    // Fallback 2: ใช้ summaryData.studentInfo (สำหรับข้อมูลเก่า)
+    if (!studentData && summaryData?.studentInfo) {
+      const info = summaryData.studentInfo;
+      studentData = {
+        firstName: info.firstName || info.first_name || "",
+        lastName: info.lastName || info.last_name || "",
+        fullName: info.fullName || info.full_name || "",
+        studentId: info.studentId || info.student_id || "",
+        yearLevel: info.yearLevel || info.year_level || "",
+        classroom: info.classroom || info.class || "",
+        phoneNumber: info.phoneNumber || info.phone || "",
+        title: info.title || "",
+      };
+    }
+    
+    // ตรวจสอบว่ามีข้อมูลที่จำเป็นหรือไม่
+    if (!studentData || (!studentData.firstName && !studentData.lastName && !studentData.fullName)) {
+      return null;
+    }
+    
+    return studentData;
+  };
+
+  const studentInfo = getStudentInfo();
+
+  const getStudentName = () => {
+    if (!studentInfo) return "ไม่ระบุ";
+    if (studentInfo.fullName) {
+      return studentInfo.fullName.trim();
+    }
+    return formatFullName(studentInfo.firstName, studentInfo.lastName, studentInfo.title) || "ไม่ระบุ";
+  };
+
+  // 🎨 Styles ที่ปรับปรุงให้ตรงตามแบบฟอร์ม PDF
   const styles = StyleSheet.create({
+    // 📄 หน้าเอกสารแบบฟอร์มจริง
     page: {
-      fontFamily: 'THSarabunNew',
-      fontSize: 16,
-      padding: 40,
-      lineHeight: 1.6,
+      fontFamily: "THSarabunNew",
+      fontSize: 12,
+      padding: 30,
+      lineHeight: 1.4,
+      color: "#000000",
+      backgroundColor: "#ffffff",
+    },
+
+    // 🏛️ ส่วนหัวแบบฟอร์มจริง - มีกรอบ
+    headerBox: {
+      border: "2 solid #000000",
+      padding: 15,
+      marginBottom: 20,
+      textAlign: "center",
     },
     
-    // ส่วนหัวเอกสาร
-    header: {
-      textAlign: 'center',
-      marginBottom: 30,
+    universityHeader: {
+      fontSize: 16,
+      fontWeight: "bold",
+      marginBottom: 3,
     },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#1890ff',
-      marginBottom: 8,
+    
+    facultyHeader: {
+      fontSize: 14,
+      fontWeight: "bold", 
+      marginBottom: 3,
     },
-    subtitle: {
+    
+    departmentHeader: {
+      fontSize: 12,
+      marginBottom: 10,
+    },
+
+    documentTitle: {
       fontSize: 18,
-      color: '#595959',
+      fontWeight: "bold",
+      textDecoration: "underline",
+      marginBottom: 5,
+    },
+
+    // 📋 ส่วนข้อมูลแบบฟอร์ม - มีช่องให้กรอก
+    infoSection: {
+      border: "1 solid #000000",
+      padding: 15,
+      marginBottom: 15,
+    },
+
+    sectionHeader: {
+      fontSize: 14,
+      fontWeight: "bold",
+      textAlign: "center",
+      marginBottom: 12,
+      textDecoration: "underline",
+    },
+
+    // 📝 ฟิลด์ข้อมูลแบบมีเส้นให้กรอก
+    fieldRow: {
+      flexDirection: "row",
+      marginBottom: 8,
+      alignItems: "center",
+    },
+
+    fieldLabel: {
+      fontSize: 12,
+      fontWeight: "bold",
+      width: "25%",
+    },
+
+    fieldValue: {
+      fontSize: 12,
+      width: "70%",
+      borderBottom: "1 dotted #000000",
+      paddingBottom: 2,
+      minHeight: 15,
+    },
+
+    fieldValueBox: {
+      border: "1 solid #000000",
+      padding: 4,
+      minHeight: 20,
+      fontSize: 12,
+    },
+
+    // 📊 ตารางแบบฟอร์มจริง - เส้นชัดเจน
+    logTable: {
+      border: "2 solid #000000",
+      marginTop: 20,
       marginBottom: 20,
     },
-    
-    // ข้อมูลพื้นฐาน
-    infoSection: {
-      marginBottom: 25,
-      padding: 15,
-      backgroundColor: '#f8f9fa',
-      borderRadius: 6,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#1890ff',
-      marginBottom: 12,
-      borderBottom: '2 solid #1890ff',
-      paddingBottom: 4,
-    },
-    infoRow: {
-      flexDirection: 'row',
-      marginBottom: 6,
-    },
-    infoLabel: {
-      width: 120,
-      fontWeight: 'bold',
-      color: '#595959',
-    },
-    infoValue: {
-      flex: 1,
-      color: '#262626',
-    },
-    
-    // สถิติสรุป
-    statsContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 25,
-    },
-    statBox: {
-      width: '30%',
-      padding: 12,
-      backgroundColor: '#e6f7ff',
-      borderRadius: 6,
-      textAlign: 'center',
-    },
-    statNumber: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#1890ff',
-      marginBottom: 4,
-    },
-    statLabel: {
-      fontSize: 12,
-      color: '#595959',
-    },
-    
-    // ตารางบันทึกรายวัน
-    table: {
-      display: 'table',
-      width: 'auto',
-      marginBottom: 25,
-      borderStyle: 'solid',
-      borderWidth: 1,
-      borderColor: '#d9d9d9',
-    },
-    tableRow: {
-      flexDirection: 'row',
-    },
-    tableHeader: {
-      backgroundColor: '#1890ff',
-    },
-    tableHeaderCell: {
+
+    tableTitle: {
+      fontSize: 14,
+      fontWeight: "bold",
+      textAlign: "center",
+      backgroundColor: "#e8e8e8",
       padding: 8,
-      borderStyle: 'solid',
-      borderWidth: 0.5,
-      borderColor: '#ffffff',
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#ffffff',
-      textAlign: 'center',
+      borderBottom: "1 solid #000000",
     },
-    tableCell: {
-      padding: 6,
-      borderStyle: 'solid',
-      borderWidth: 0.5,
-      borderColor: '#d9d9d9',
-      fontSize: 12,
-      lineHeight: 1.4,
+
+    // 🎯 หัวตารางแบบฟอร์ม
+    tableHeaderRow: {
+      flexDirection: "row",
+      backgroundColor: "#f0f0f0",
+      borderBottom: "2 solid #000000",
     },
-    
-    // คอลัมน์ตาราง
-    dateCol: { width: '12%' },
-    timeCol: { width: '15%' },
-    activityCol: { width: '40%' },
-    knowledgeCol: { width: '25%' },
-    statusCol: { width: '8%' },
-    
-    // ส่วนสรุปประสบการณ์
-    reflectionSection: {
+
+    tableDataRow: {
+      flexDirection: "row",
+      borderBottom: "1 solid #000000",
+      minHeight: 35,
+    },
+
+    // 📅 คอลัมน์ตารางตามแบบฟอร์มจริง
+    colNo: {
+      width: "6%",
+      borderRight: "1 solid #000000",
+      padding: 4,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+
+    colDate: {
+      width: "12%",
+      borderRight: "1 solid #000000",
+      padding: 4,
+      justifyContent: "center",
+    },
+
+    colTime: {
+      width: "12%",
+      borderRight: "1 solid #000000",
+      padding: 4,
+      justifyContent: "center",
+    },
+
+    colWork: {
+      width: "35%",
+      borderRight: "1 solid #000000",
+      padding: 4,
+      justifyContent: "flex-start",
+    },
+
+    colKnowledge: {
+      width: "25%",
+      borderRight: "1 solid #000000",
+      padding: 4,
+      justifyContent: "flex-start",
+    },
+
+    colHours: {
+      width: "10%",
+      padding: 4,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+
+    // 📝 ข้อความในตาราง
+    tableHeaderText: {
+      fontSize: 11,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+
+    tableCellText: {
+      fontSize: 10,
+      textAlign: "left",
+      lineHeight: 1.2,
+    },
+
+    tableCellTextCenter: {
+      fontSize: 10,
+      textAlign: "center",
+    },
+
+    // 🎯 แถวสรุปแบบฟอร์ม
+    summaryRow: {
+      backgroundColor: "#e8e8e8",
+      borderTop: "2 solid #000000",
+    },
+
+    summaryText: {
+      fontSize: 11,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+
+    // ✏️ ส่วนลายเซ็นแบบฟอร์มจริง
+    signatureSection: {
       marginTop: 30,
-      padding: 20,
-      backgroundColor: '#f0f9ff',
-      borderRadius: 8,
+      border: "1 solid #000000",
+      padding: 15,
     },
-    reflectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#1890ff',
-      marginBottom: 15,
-      textAlign: 'center',
+
+    signatureTitle: {
+      fontSize: 12,
+      fontWeight: "bold",
+      textAlign: "center",
+      marginBottom: 20,
     },
-    reflectionText: {
-      fontSize: 14,
-      lineHeight: 1.6,
-      textAlign: 'justify',
-      marginBottom: 12,
+
+    signatureGrid: {
+      flexDirection: "row",
+      justifyContent: "space-between",
     },
-    
-    // ส่วนท้าย
-    footer: {
-      marginTop: 40,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
+
     signatureBox: {
-      width: '45%',
-      textAlign: 'center',
+      width: "48%",
+      textAlign: "center",
     },
+
     signatureLine: {
-      borderBottom: '1 solid #000000',
-      height: 50,
-      marginBottom: 8,
+      fontSize: 12,
+      marginBottom: 30,
+      textAlign: "center",
     },
+
     signatureLabel: {
-      fontSize: 14,
-      color: '#595959',
+      fontSize: 11,
+      textAlign: "center",
+      marginBottom: 5,
     },
-    
-    // Utility classes
-    textCenter: { textAlign: 'center' },
-    textRight: { textAlign: 'right' },
-    bold: { fontWeight: 'bold' },
-    small: { fontSize: 12 },
-    primary: { color: '#1890ff' },
-    success: { color: '#52c41a' },
-    warning: { color: '#faad14' },
+
+    dateSignature: {
+      fontSize: 11,
+      textAlign: "center",
+      marginTop: 10,
+    },
+
+    // 💡 ส่วนสรุปแบบฟอร์ม
+    summarySection: {
+      border: "1 solid #000000",
+      padding: 15,
+      marginTop: 20,
+    },
+
+    summaryTitle: {
+      fontSize: 14,
+      fontWeight: "bold",
+      textAlign: "center",
+      marginBottom: 15,
+      textDecoration: "underline",
+    },
+
+    reflectionText: {
+      fontSize: 12,
+      lineHeight: 1.5,
+      textAlign: "justify",
+      marginBottom: 10,
+    },
+
+    // 🔢 หมายเลขหน้า
+    pageNumber: {
+      position: "absolute",
+      bottom: 20,
+      right: 30,
+      fontSize: 10,
+    },
+
+    // 🎨 Utility classes
+    textCenter: { textAlign: "center" },
+    textLeft: { textAlign: "left" },
+    textRight: { textAlign: "right" },
+    bold: { fontWeight: "bold" },
+    underline: { textDecoration: "underline" },
   });
 
-  // คำนวณสถิติ
-  const totalDays = logbookData?.entries?.length || 0;
-  const totalHours = logbookData?.entries?.reduce((sum, entry) => {
-    const hours = entry.approvedHours || entry.totalHours || 0;
-    return sum + hours;
-  }, 0) || 0;
-  const averageHours = totalDays > 0 ? (totalHours / totalDays).toFixed(1) : 0;
+  // 📊 คำนวณสถิติ - ปรับปรุงให้ใช้ summaryData
+  const totalDays = summaryData?.statistics?.totalDays || logbookData?.entries?.length || 0;
+  const totalHours = summaryData?.statistics?.totalHours || 
+                    logbookData?.entries?.reduce((sum, entry) => {
+                      const hours = entry.approvedHours || entry.totalHours || entry.workHours || 0;
+                      return sum + parseFloat(hours);
+                    }, 0) || 0;
+
+  // 🔧 ฟังก์ชันช่วย
+  const truncateText = (text, maxLength = 80) => {
+    if (!text) return "";
+    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+  };
+
+  const chunkArray = (array, size) => {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  };
+
+  // ✅ แบ่งข้อมูลตารางเป็นหน้าๆ (15 รายการต่อหน้าตามแบบฟอร์ม)
+  const logEntries = logbookData?.entries || [];
+  const entriesPerPage = 15;
+  const entryChunks = chunkArray(logEntries, entriesPerPage);
 
   return (
     <Document>
-      {/* หน้าแรก: ข้อมูลทั่วไปและสถิติ */}
+      {/* 📄 หน้าแรก: ข้อมูลทั่วไปแบบฟอร์มจริง */}
       <Page size="A4" style={styles.page}>
-        {/* หัวเรื่อง */}
-        <View style={styles.header}>
-          <Text style={styles.title}>บันทึกการฝึกงาน</Text>
-          <Text style={styles.subtitle}>
-            {summaryData?.companyName || 'สถานประกอบการ'}
+        {/* 🏛️ ส่วนหัวในกรอบ */}
+        <View style={styles.headerBox}>
+          <Text style={styles.universityHeader}>
+            มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
           </Text>
-          <Text style={styles.small}>
-            ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ มหาวิทยาลัยพะเยา
+          <Text style={styles.facultyHeader}>
+            คณะวิทยาศาสตร์ประยุกต์
+          </Text>
+          <Text style={styles.departmentHeader}>
+            ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
+          </Text>
+          <Text style={styles.documentTitle}>
+            สมุดบันทึกการฝึกงาน
           </Text>
         </View>
 
-        {/* ข้อมูลนักศึกษา */}
+        {/* 📝 ข้อมูลนักศึกษาแบบฟอร์ม */}
         <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>📋 ข้อมูลนักศึกษา</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ชื่อ-นามสกุล:</Text>
-            <Text style={styles.infoValue}>
-              {formatFullName(userInfo?.firstName, userInfo?.lastName, userInfo?.title)}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>รหัสนักศึกษา:</Text>
-            <Text style={styles.infoValue}>{userInfo?.studentId}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ชั้นปี:</Text>
-            <Text style={styles.infoValue}>ปี {userInfo?.yearLevel}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ห้อง:</Text>
-            <Text style={styles.infoValue}>{userInfo?.classroom || '-'}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>เบอร์โทรศัพท์:</Text>
-            <Text style={styles.infoValue}>
-              {formatThaiPhoneNumber(userInfo?.phoneNumber)}
-            </Text>
-          </View>
-        </View>
-
-        {/* ข้อมูลสถานประกอบการ */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>🏢 ข้อมูลสถานประกอบการ</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ชื่อบริษัท:</Text>
-            <Text style={styles.infoValue}>{summaryData?.companyName}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ที่อยู่:</Text>
-            <Text style={styles.infoValue}>{summaryData?.companyAddress}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ผู้ควบคุมงาน:</Text>
-            <Text style={styles.infoValue}>{summaryData?.supervisorName}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ตำแหน่ง:</Text>
-            <Text style={styles.infoValue}>{summaryData?.supervisorPosition}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>เบอร์โทรศัพท์:</Text>
-            <Text style={styles.infoValue}>
-              {formatThaiPhoneNumber(summaryData?.supervisorPhone)}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>อีเมล:</Text>
-            <Text style={styles.infoValue}>{summaryData?.supervisorEmail}</Text>
-          </View>
-        </View>
-
-        {/* ระยะเวลาฝึกงาน */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>📅 ระยะเวลาฝึกงาน</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>วันเริ่มฝึกงาน:</Text>
-            <Text style={styles.infoValue}>
-              {formatThaiDate(summaryData?.startDate)}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>วันสิ้นสุด:</Text>
-            <Text style={styles.infoValue}>
-              {formatThaiDate(summaryData?.endDate)}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ระยะเวลา:</Text>
-            <Text style={styles.infoValue}>
-              {formatDurationText(summaryData?.startDate, summaryData?.endDate)}
-            </Text>
-          </View>
-        </View>
-
-        {/* สถิติสรุป */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{toThaiDigits(totalDays.toString())}</Text>
-            <Text style={styles.statLabel}>วันที่ฝึกงาน</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{toThaiDigits(totalHours.toString())}</Text>
-            <Text style={styles.statLabel}>ชั่วโมงรวม</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{toThaiDigits(averageHours)}</Text>
-            <Text style={styles.statLabel}>ชั่วโมงเฉลี่ย/วัน</Text>
-          </View>
-        </View>
-      </Page>
-
-      {/* หน้าถัดไป: ตารางบันทึกรายวัน */}
-      <Page size="A4" style={styles.page}>
-        <Text style={[styles.sectionTitle, styles.textCenter, { marginBottom: 20 }]}>
-          📊 บันทึกการฝึกงานรายวัน
-        </Text>
-
-        <View style={styles.table}>
-          {/* Header */}
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={[styles.tableHeaderCell, styles.dateCol]}>วันที่</Text>
-            <Text style={[styles.tableHeaderCell, styles.timeCol]}>เวลา</Text>
-            <Text style={[styles.tableHeaderCell, styles.activityCol]}>กิจกรรมที่ทำ</Text>
-            <Text style={[styles.tableHeaderCell, styles.knowledgeCol]}>ความรู้ที่ได้รับ</Text>
-            <Text style={[styles.tableHeaderCell, styles.statusCol]}>ชั่วโมง</Text>
-          </View>
-
-          {/* Data Rows */}
-          {logbookData?.entries?.map((entry, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.dateCol, styles.textCenter]}>
-                {formatThaiDate(entry.workDate, 'DD/MM')}
-              </Text>
-              <Text style={[styles.tableCell, styles.timeCol, styles.textCenter]}>
-                {entry.timeIn} - {entry.timeOut}
-              </Text>
-              <Text style={[styles.tableCell, styles.activityCol]}>
-                {entry.activities || entry.workDescription || '-'}
-              </Text>
-              <Text style={[styles.tableCell, styles.knowledgeCol]}>
-                {entry.learnings || entry.knowledgeGained || '-'}
-              </Text>
-              <Text style={[styles.tableCell, styles.statusCol, styles.textCenter, styles.primary]}>
-                {toThaiDigits((entry.approvedHours || entry.totalHours || 0).toString())}
-              </Text>
+          <Text style={styles.sectionHeader}>ข้อมูลนักศึกษา</Text>
+          
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ชื่อ-นามสกุล</Text>
+            <View style={styles.fieldValue}>
+              <Text>{getStudentName()}</Text>
             </View>
-          ))}
+          </View>
 
-          {/* Summary Row */}
-          <View style={[styles.tableRow, { backgroundColor: '#f0f9ff' }]}>
-            <Text style={[styles.tableCell, styles.dateCol, styles.bold, styles.textCenter]}>
-              รวม
-            </Text>
-            <Text style={[styles.tableCell, styles.timeCol]}></Text>
-            <Text style={[styles.tableCell, styles.activityCol, styles.bold]}>
-              บันทึกการฝึกงานทั้งหมด {toThaiDigits(totalDays.toString())} วัน
-            </Text>
-            <Text style={[styles.tableCell, styles.knowledgeCol]}></Text>
-            <Text style={[styles.tableCell, styles.statusCol, styles.bold, styles.textCenter, styles.success]}>
-              {toThaiDigits(totalHours.toString())}
-            </Text>
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>รหัสนักศึกษา</Text>
+            <View style={styles.fieldValue}>
+              <Text>{studentInfo?.studentId || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ชั้นปี</Text>
+            <View style={styles.fieldValue}>
+              <Text>ปีที่ {studentInfo?.yearLevel || ""}</Text>
+            </View>
+            <Text style={[styles.fieldLabel, { marginLeft: 20 }]}>ห้อง</Text>
+            <View style={styles.fieldValue}>
+              <Text>{studentInfo?.classroom || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>เบอร์โทรศัพท์</Text>
+            <View style={styles.fieldValue}>
+              <Text>{formatThaiPhoneNumber(studentInfo?.phoneNumber) || ""}</Text>
+            </View>
           </View>
         </View>
 
-        {/* ข้อมูลเพิ่มเติม */}
-        <View style={[styles.infoSection, { marginTop: 20 }]}>
-          <Text style={styles.small}>
-            💡 <Text style={styles.bold}>หมายเหตุ:</Text> บันทึกนี้สร้างจากระบบ CSLogbook 
-            เมื่อวันที่ {formatThaiDate(new Date())} 
-            โดยมีข้อมูลการฝึกงานทั้งหมด {toThaiDigits(totalDays.toString())} วัน 
-            รวม {toThaiDigits(totalHours.toString())} ชั่วโมง
-          </Text>
+        {/* 🏢 ข้อมูลสถานประกอบการแบบฟอร์ม */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionHeader}>ข้อมูลสถานประกอบการ</Text>
+          
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ชื่อบริษัท/หน่วยงาน</Text>
+            <View style={styles.fieldValue}>
+              <Text>{summaryData?.companyName || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ที่อยู่</Text>
+            <View style={[styles.fieldValue, { minHeight: 25 }]}>
+              <Text>{summaryData?.companyAddress || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ชื่อผู้ควบคุมงาน</Text>
+            <View style={styles.fieldValue}>
+              <Text>{summaryData?.supervisorName || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ตำแหน่ง</Text>
+            <View style={styles.fieldValue}>
+              <Text>{summaryData?.supervisorPosition || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>เบอร์โทรศัพท์</Text>
+            <View style={styles.fieldValue}>
+              <Text>{formatThaiPhoneNumber(summaryData?.supervisorPhone) || ""}</Text>
+            </View>
+            <Text style={[styles.fieldLabel, { marginLeft: 20 }]}>อีเมล</Text>
+            <View style={styles.fieldValue}>
+              <Text>{summaryData?.supervisorEmail || ""}</Text>
+            </View>
+          </View>
         </View>
+
+        {/* 📅 ข้อมูลระยะเวลาฝึกงานแบบฟอร์ม */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionHeader}>ระยะเวลาการฝึกงาน</Text>
+          
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>วันเริ่มฝึกงาน</Text>
+            <View style={styles.fieldValue}>
+              <Text>{formatThaiDate(summaryData?.startDate, "DD MMMM BBBB") || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>วันสิ้นสุดการฝึกงาน</Text>
+            <View style={styles.fieldValue}>
+              <Text>{formatThaiDate(summaryData?.endDate, "DD MMMM BBBB") || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>ระยะเวลาทั้งหมด</Text>
+            <View style={styles.fieldValue}>
+              <Text>{formatDurationText(summaryData?.startDate, summaryData?.endDate) || ""}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>จำนวนชั่วโมงรวม</Text>
+            <View style={styles.fieldValue}>
+              <Text>{totalHours} ชั่วโมง</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 🔢 หมายเลขหน้า */}
+        <Text style={styles.pageNumber}>หน้า 1</Text>
       </Page>
 
-      {/* หน้าสุดท้าย: สรุปประสบการณ์และลายเซ็น */}
-      {logbookData?.reflection && (
+      {/* 📋 หน้าตารางบันทึกรายวันแบบฟอร์มจริง */}
+      {entryChunks.length > 0 ? (
+        entryChunks.map((chunk, chunkIndex) => (
+          <Page key={chunkIndex} size="A4" style={styles.page}>
+            <View style={styles.logTable}>
+              {/* 🎯 หัวข้อตาราง */}
+              <View style={styles.tableTitle}>
+                <Text>บันทึกการปฏิบัติงานรายวัน</Text>
+              </View>
+
+              {/* 📊 หัวตาราง */}
+              <View style={styles.tableHeaderRow}>
+                <View style={styles.colNo}>
+                  <Text style={styles.tableHeaderText}>ลำดับ</Text>
+                </View>
+                <View style={styles.colDate}>
+                  <Text style={styles.tableHeaderText}>วัน/เดือน/ปี</Text>
+                </View>
+                <View style={styles.colTime}>
+                  <Text style={styles.tableHeaderText}>เวลา</Text>
+                </View>
+                <View style={styles.colWork}>
+                  <Text style={styles.tableHeaderText}>ลักษณะงานที่ปฏิบัติ</Text>
+                </View>
+                <View style={styles.colKnowledge}>
+                  <Text style={styles.tableHeaderText}>ความรู้ที่ได้รับ</Text>
+                </View>
+                <View style={styles.colHours}>
+                  <Text style={styles.tableHeaderText}>จำนวนชั่วโมง</Text>
+                </View>
+              </View>
+
+              {/* 📝 แถวข้อมูล */}
+              {chunk.map((entry, index) => {
+                const globalIndex = chunkIndex * entriesPerPage + index + 1;
+                return (
+                  <View key={index} style={styles.tableDataRow}>
+                    <View style={styles.colNo}>
+                      <Text style={styles.tableCellTextCenter}>{globalIndex}</Text>
+                    </View>
+                    <View style={styles.colDate}>
+                      <Text style={styles.tableCellTextCenter}>
+                        {formatThaiDate(entry.workDate, "DD/MM/BBBB") || ""}
+                      </Text>
+                    </View>
+                    <View style={styles.colTime}>
+                      <Text style={styles.tableCellTextCenter}>
+                        {entry.timeIn && entry.timeOut 
+                          ? `${entry.timeIn}-${entry.timeOut}` 
+                          : ""}
+                      </Text>
+                    </View>
+                    <View style={styles.colWork}>
+                      <Text style={styles.tableCellText}>
+                        {truncateText(
+                          entry.activities || 
+                          entry.workDescription || 
+                          entry.description || 
+                          "", 120
+                        )}
+                      </Text>
+                    </View>
+                    <View style={styles.colKnowledge}>
+                      <Text style={styles.tableCellText}>
+                        {truncateText(
+                          entry.learnings || 
+                          entry.knowledgeGained || 
+                          entry.learningOutcome || 
+                          "", 100
+                        )}
+                      </Text>
+                    </View>
+                    <View style={styles.colHours}>
+                      <Text style={styles.tableCellTextCenter}>
+                        {entry.approvedHours || entry.totalHours || entry.workHours || 0}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* 🎯 เติมแถวว่างให้ครบ 15 แถว (ตามแบบฟอร์ม) */}
+              {Array.from({ length: Math.max(0, entriesPerPage - chunk.length) }, (_, i) => (
+                <View key={`empty-${i}`} style={styles.tableDataRow}>
+                  <View style={styles.colNo}>
+                    <Text style={styles.tableCellTextCenter}>
+                      {chunkIndex * entriesPerPage + chunk.length + i + 1}
+                    </Text>
+                  </View>
+                  <View style={styles.colDate}><Text> </Text></View>
+                  <View style={styles.colTime}><Text> </Text></View>
+                  <View style={styles.colWork}><Text> </Text></View>
+                  <View style={styles.colKnowledge}><Text> </Text></View>
+                  <View style={styles.colHours}><Text> </Text></View>
+                </View>
+              ))}
+
+              {/* 🎯 แถวสรุปหน้า */}
+              <View style={[styles.tableDataRow, styles.summaryRow]}>
+                <View style={[styles.colNo, styles.colDate, styles.colTime, styles.colWork, { flexDirection: 'row' }]}>
+                  <Text style={styles.summaryText}>รวมชั่วโมงหน้านี้</Text>
+                </View>
+                <View style={styles.colKnowledge}>
+                  <Text style={styles.summaryText}>
+                    {chunk.reduce((sum, entry) => 
+                      sum + parseFloat(entry.approvedHours || entry.totalHours || entry.workHours || 0), 0
+                    )} ชั่วโมง
+                  </Text>
+                </View>
+                <View style={styles.colHours}>
+                  <Text style={styles.summaryText}>
+                    {chunk.reduce((sum, entry) => 
+                      sum + parseFloat(entry.approvedHours || entry.totalHours || entry.workHours || 0), 0
+                    )}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 🔢 หมายเลขหน้า */}
+            <Text style={styles.pageNumber}>หน้า {chunkIndex + 2}</Text>
+          </Page>
+        ))
+      ) : (
+        // 📝 หน้าตารางว่างเมื่อไม่มีข้อมูล
         <Page size="A4" style={styles.page}>
-          <View style={styles.reflectionSection}>
-            <Text style={styles.reflectionTitle}>✨ สรุปประสบการณ์การฝึกงาน</Text>
-            
-            {logbookData.reflection.experience && (
-              <View style={{ marginBottom: 15 }}>
-                <Text style={[styles.bold, { marginBottom: 8 }]}>🎯 ประสบการณ์ที่ได้รับ:</Text>
-                <Text style={styles.reflectionText}>
-                  {logbookData.reflection.experience}
-                </Text>
-              </View>
-            )}
-
-            {logbookData.reflection.skillsLearned && (
-              <View style={{ marginBottom: 15 }}>
-                <Text style={[styles.bold, { marginBottom: 8 }]}>🚀 ทักษะที่ได้รับ:</Text>
-                <Text style={styles.reflectionText}>
-                  {logbookData.reflection.skillsLearned}
-                </Text>
-              </View>
-            )}
-
-            {logbookData.reflection.challenges && (
-              <View style={{ marginBottom: 15 }}>
-                <Text style={[styles.bold, { marginBottom: 8 }]}>⚡ ปัญหาและการแก้ไข:</Text>
-                <Text style={styles.reflectionText}>
-                  {logbookData.reflection.challenges}
-                </Text>
-              </View>
-            )}
-
-            {logbookData.reflection.suggestions && (
-              <View style={{ marginBottom: 15 }}>
-                <Text style={[styles.bold, { marginBottom: 8 }]}>💡 ข้อเสนอแนะ:</Text>
-                <Text style={styles.reflectionText}>
-                  {logbookData.reflection.suggestions}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* ส่วนลายเซ็น */}
-          <View style={styles.footer}>
-            <View style={styles.signatureBox}>
-              <View style={styles.signatureLine}></View>
-              <Text style={styles.signatureLabel}>ลงชื่อ ........................... นักศึกษา</Text>
-              <Text style={[styles.signatureLabel, { marginTop: 8 }]}>
-                ({formatFullName(userInfo?.firstName, userInfo?.lastName)})
-              </Text>
-              <Text style={[styles.signatureLabel, { marginTop: 8 }]}>
-                วันที่ {formatThaiDate(new Date())}
-              </Text>
+          <View style={styles.logTable}>
+            <View style={styles.tableTitle}>
+              <Text>บันทึกการปฏิบัติงานรายวัน</Text>
             </View>
 
-            <View style={styles.signatureBox}>
-              <View style={styles.signatureLine}></View>
-              <Text style={styles.signatureLabel}>ลงชื่อ ........................... ผู้ควบคุมงาน</Text>
-              <Text style={[styles.signatureLabel, { marginTop: 8 }]}>
-                ({summaryData?.supervisorName || '..............................'})
-              </Text>
-              <Text style={[styles.signatureLabel, { marginTop: 8 }]}>
-                วันที่ ...............................
-              </Text>
+            <View style={styles.tableHeaderRow}>
+              <View style={styles.colNo}>
+                <Text style={styles.tableHeaderText}>ลำดับ</Text>
+              </View>
+              <View style={styles.colDate}>
+                <Text style={styles.tableHeaderText}>วัน/เดือน/ปี</Text>
+              </View>
+              <View style={styles.colTime}>
+                <Text style={styles.tableHeaderText}>เวลา</Text>
+              </View>
+              <View style={styles.colWork}>
+                <Text style={styles.tableHeaderText}>ลักษณะงานที่ปฏิบัติ</Text>
+              </View>
+              <View style={styles.colKnowledge}>
+                <Text style={styles.tableHeaderText}>ความรู้ที่ได้รับ</Text>
+              </View>
+              <View style={styles.colHours}>
+                <Text style={styles.tableHeaderText}>จำนวนชั่วโมง</Text>
+              </View>
+            </View>
+
+            {/* แถวว่าง 15 แถว */}
+            {Array.from({ length: 15 }, (_, i) => (
+              <View key={i} style={styles.tableDataRow}>
+                <View style={styles.colNo}>
+                  <Text style={styles.tableCellTextCenter}>{i + 1}</Text>
+                </View>
+                <View style={styles.colDate}><Text> </Text></View>
+                <View style={styles.colTime}><Text> </Text></View>
+                <View style={styles.colWork}><Text> </Text></View>
+                <View style={styles.colKnowledge}><Text> </Text></View>
+                <View style={styles.colHours}><Text> </Text></View>
+              </View>
+            ))}
+
+            <View style={[styles.tableDataRow, styles.summaryRow]}>
+              <View style={[styles.colNo, styles.colDate, styles.colTime, styles.colWork, { flexDirection: 'row' }]}>
+                <Text style={styles.summaryText}>รวมชั่วโมงหน้านี้</Text>
+              </View>
+              <View style={styles.colKnowledge}>
+                <Text style={styles.summaryText}>0 ชั่วโมง</Text>
+              </View>
+              <View style={styles.colHours}>
+                <Text style={styles.summaryText}>0</Text>
+              </View>
             </View>
           </View>
 
-          {/* ส่วนท้ายสุด */}
-          <View style={[styles.textCenter, { marginTop: 30, paddingTop: 20, borderTop: '1 solid #d9d9d9' }]}>
-            <Text style={[styles.small, { color: '#8c8c8c' }]}>
-              เอกสารนี้สร้างจากระบบ CSLogbook - ระบบติดตามความก้าวหน้าของนักศึกษา
-            </Text>
-            <Text style={[styles.small, { color: '#8c8c8c', marginTop: 4 }]}>
-              ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ มหาวิทยาลัยพะเยา
-            </Text>
-          </View>
+          <Text style={styles.pageNumber}>หน้า 2</Text>
         </Page>
       )}
+
+      {/* 💭 หน้าสรุปประสบการณ์แบบฟอร์ม */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryTitle}>สรุปประสบการณ์ที่ได้รับจากการฝึกงาน</Text>
+          
+          <Text style={styles.reflectionText}>
+            {summaryData?.reflection?.experience || 
+             "ประสบการณ์ที่ได้รับจากการฝึกงานในครั้งนี้ ทำให้ผมได้เรียนรู้และเข้าใจการทำงานจริงในสภาพแวดล้อมของบริษัท ได้ฝึกทักษะการทำงานเป็นทีม การแก้ไขปัญหา และการประยุกต์ใช้ความรู้ทางทฤษฎีมาใช้ในการปฏิบัติงานจริง"}
+          </Text>
+
+          <Text style={[styles.reflectionText, { marginTop: 20 }]}>
+            <Text style={styles.bold}>ความรู้และทักษะที่ได้รับ:</Text>
+          </Text>
+          <Text style={styles.reflectionText}>
+            {summaryData?.reflection?.skillsLearned || 
+             "- ทักษะด้านการเขียนโปรแกรม\n- การใช้เครื่องมือพัฒนาซอฟต์แวร์\n- การทำงานร่วมกับทีม\n- การจัดการเวลาและการแก้ไขปัญหา"}
+          </Text>
+
+          <Text style={[styles.reflectionText, { marginTop: 20 }]}>
+            <Text style={styles.bold}>ปัญหาและอุปสรรค:</Text>
+          </Text>
+          <Text style={styles.reflectionText}>
+            {summaryData?.reflection?.challenges || 
+             "ในช่วงแรกของการฝึกงาน ผมประสบปัญหาในการปรับตัวเข้ากับสภาพแวดล้อมการทำงานและการเข้าใจระบบงานของบริษัท แต่ด้วยความช่วยเหลือจากพี่ๆ ในทีมและการศึกษาหาความรู้เพิ่มเติม ทำให้สามารถแก้ไขปัญหาและปรับตัวได้ดีขึ้น"}
+          </Text>
+
+          <Text style={[styles.reflectionText, { marginTop: 20 }]}>
+            <Text style={styles.bold}>ข้อเสนอแนะ:</Text>
+          </Text>
+          <Text style={styles.reflectionText}>
+            {summaryData?.reflection?.suggestions || 
+             "ขอขอบคุณบริษัทที่ให้โอกาสในการฝึกงาน และหวังว่าจะได้นำความรู้และประสบการณ์ที่ได้รับไปประยุกต์ใช้ในการศึกษาและการทำงานในอนาคต"}
+          </Text>
+        </View>
+
+        {/* 🎯 สถิติสรุป */}
+        <View style={[styles.infoSection, { marginTop: 20 }]}>
+          <Text style={styles.sectionHeader}>สรุปสถิติการฝึกงาน</Text>
+          
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>จำนวนวันที่ฝึกงาน</Text>
+            <View style={styles.fieldValue}>
+              <Text>{totalDays} วัน</Text>
+            </View>
+            <Text style={[styles.fieldLabel, { marginLeft: 20 }]}>จำนวนชั่วโมงรวม</Text>
+            <View style={styles.fieldValue}>
+              <Text>{totalHours} ชั่วโมง</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.pageNumber}>
+          หน้า {entryChunks.length > 0 ? entryChunks.length + 2 : 3}
+        </Text>
+      </Page>
     </Document>
   );
 };

@@ -32,7 +32,7 @@ import {
   TeamOutlined,
   PhoneOutlined,
   SendOutlined,
-  EyeOutlined, // 🆕 เพิ่ม icon สำหรับ Preview
+  EyeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -41,12 +41,11 @@ import "./styles/variables.css";
 import "./styles/index.css";
 import "./styles/Summary.css";
 
-// นำเข้า services
-import internshipService from "../../../services/internshipService";
-
 // นำเข้า custom hooks
 import { useSummaryData } from "./hooks/useSummaryData";
 import { useReflectionForm } from "./hooks/useFormActions";
+// ✅ เพิ่ม import useAuth
+import { useAuth } from "../../../contexts/AuthContext";
 
 // นำเข้า component ย่อย
 import {
@@ -80,8 +79,11 @@ const InternshipSummary = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("1");
   const [editingReflection, setEditingReflection] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false); // 🆕 เพิ่ม state สำหรับ preview loading
-  const [downloadLoading, setDownloadLoading] = useState(false); // 🆕 เพิ่ม state สำหรับ download loading
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+
+  // ✅ เพิ่มการใช้ useAuth hook
+  const { user } = useAuth();
 
   // ใช้ custom hooks
   const {
@@ -129,28 +131,64 @@ const InternshipSummary = () => {
     setEditingReflection(!editingReflection);
   };
 
+  // ✅ เพิ่มฟังก์ชัน prepareUserInfoForPDF
+  const prepareUserInfoForPDF = () => {
+    if (!user) {
+      console.warn('⚠️ No user data available for PDF generation');
+      return null;
+    }
+
+    const userInfo = {
+      firstName: user.firstName || user.first_name || "",
+      lastName: user.lastName || user.last_name || "",
+      fullName: user.fullName || user.full_name || 
+                `${user.firstName || user.first_name || ""} ${user.lastName || user.last_name || ""}`.trim(),
+      studentId: user.studentId || user.student_id || user.username || "",
+      yearLevel: user.yearLevel || user.year_level || "",
+      classroom: user.classroom || user.class || "",
+      phoneNumber: user.phoneNumber || user.phone || "",
+      email: user.email || "",
+      title: user.title || "",
+    };
+
+    console.log('🔍 Prepared user info for PDF:', userInfo);
+    return userInfo;
+  };
+
   // ตรวจสอบว่ามีข้อมูลเพียงพอสำหรับสร้าง PDF หรือไม่
   const hasMinimumData = validateDataForPDF(summaryData, logEntries);
 
-  // แสดงตัวอย่าง PDF บันทึกฝึกงาน
+  // ✅ แก้ไขฟังก์ชัน handlePreviewSummary
   const handlePreviewSummary = async () => {
+    const userInfo = prepareUserInfoForPDF();
+    
+    console.log('🔍 Preview - User Info:', userInfo);
+    console.log('🔍 Preview - Summary Data:', summaryData);
+    
     await handlePreviewInternshipLogbook(
       summaryData,
       logEntries,
       reflection,
       totalApprovedHours,
-      setPreviewLoading
+      setPreviewLoading,
+      userInfo // ✅ ส่ง userInfo ที่เตรียมไว้
     );
   };
 
-  // ดาวน์โหลดเอกสารสรุป
+  // ✅ แก้ไขฟังก์ชัน handleDownloadSummary
   const handleDownloadSummary = async () => {
+    const userInfo = prepareUserInfoForPDF();
+    
+    console.log('🔍 Download - User Info:', userInfo);
+    console.log('🔍 Download - Summary Data:', summaryData);
+    
     await handleDownloadInternshipLogbook(
       summaryData,
       logEntries,
       reflection,
       totalApprovedHours,
-      setDownloadLoading
+      setDownloadLoading, // ✅ ใช้ downloadLoading state ที่ถูกต้อง
+      userInfo // ✅ ส่ง userInfo ที่เตรียมไว้
     );
   };
 
@@ -430,6 +468,16 @@ const InternshipSummary = () => {
                       : "-"}
                   </Text>
                 </Space>
+
+                {/* ✅ เพิ่มการแสดงข้อมูลนักศึกษาเพื่อ debug */}
+                {user && (
+                  <div style={{ fontSize: "14px", color: "#666", marginTop: 8 }}>
+                    <Text type="secondary">
+                      นักศึกษา: {user.firstName || user.first_name} {user.lastName || user.last_name} 
+                      ({user.studentId || user.student_id || user.username})
+                    </Text>
+                  </div>
+                )}
               </div>
             </div>
           </Col>
@@ -456,7 +504,7 @@ const InternshipSummary = () => {
           </Col>
         </Row>
 
-        {/* 🆕 เพิ่ม Alert แสดงสถานะการสร้าง PDF */}
+        {/* เพิ่ม Alert แสดงสถานะการสร้าง PDF */}
         {!hasMinimumData && (
           <Alert
             message="ข้อมูลไม่เพียงพอสำหรับสร้างเอกสาร PDF"
@@ -480,10 +528,10 @@ const InternshipSummary = () => {
         />
       </div>
 
-      {/* 🆕 ปรับปรุงส่วน Actions - เพิ่มปุ่ม Preview */}
+      {/* ปรับปรุงส่วน Actions */}
       <div className="summary-actions no-print">
         <Space size="middle">
-          {/* ปุ่ม Preview - วางไว้ก่อนปุ่ม Download */}
+          {/* ปุ่ม Preview */}
           <Button
             type="default"
             icon={<EyeOutlined />}
@@ -500,10 +548,11 @@ const InternshipSummary = () => {
             type="primary"
             icon={<FilePdfOutlined />}
             onClick={handleDownloadSummary}
+            loading={downloadLoading} // ✅ ใช้ downloadLoading state ที่ถูกต้อง
             disabled={!hasMinimumData}
             size="middle"
           >
-            ดาวน์โหลดสรุปการฝึกงาน
+            {downloadLoading ? "กำลังสร้าง..." : "ดาวน์โหลดสรุปการฝึกงาน"}
           </Button>
 
           {/* ปุ่ม Print */}
