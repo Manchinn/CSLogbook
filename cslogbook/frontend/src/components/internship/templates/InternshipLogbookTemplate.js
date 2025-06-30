@@ -422,7 +422,7 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
     reflectionText: {
       fontSize: 14,
       lineHeight: 1.5,
-      textAlign: "justify",
+      textAlign: "left",
       marginBottom: 10,
     },
 
