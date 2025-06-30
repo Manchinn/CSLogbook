@@ -186,7 +186,7 @@ const InternshipSummary = () => {
 
     // ลำดับที่ 4: สร้างข้อมูลพื้นฐานจาก localStorage หรือ default
     if (!userInfo) {
-      console.warn('⚠️ No user data available, trying localStorage fallback');
+      //console.warn('⚠️ No user data available, trying localStorage fallback');
       
       // ลองดึงจาก localStorage
       const cachedUser = localStorage.getItem('user');
@@ -205,7 +205,7 @@ const InternshipSummary = () => {
             title: parsedUser.title || "",
           };
         } catch (error) {
-          console.error('Error parsing cached user data:', error);
+          //console.error('Error parsing cached user data:', error);
         }
       }
     }
@@ -226,7 +226,7 @@ const InternshipSummary = () => {
       };
     }
 
-    console.log('🔍 Prepared user info for PDF:', userInfo);
+    //console.log('🔍 Prepared user info for PDF:', userInfo);
     return userInfo;
   };
 
@@ -237,8 +237,8 @@ const InternshipSummary = () => {
   const handlePreviewSummary = async () => {
     const userInfo = prepareUserInfoForPDF();
     
-    console.log('🔍 Preview - User Info:', userInfo);
-    console.log('🔍 Preview - Summary Data:', summaryData);
+    /* console.log('🔍 Preview - User Info:', userInfo);
+    console.log('🔍 Preview - Summary Data:', summaryData); */
     
     await handlePreviewInternshipLogbook(
       summaryData,
@@ -254,8 +254,8 @@ const InternshipSummary = () => {
   const handleDownloadSummary = async () => {
     const userInfo = prepareUserInfoForPDF();
     
-    console.log('🔍 Download - User Info:', userInfo);
-    console.log('🔍 Download - Summary Data:', summaryData);
+    /* console.log('🔍 Download - User Info:', userInfo);
+    console.log('🔍 Download - Summary Data:', summaryData); */
     
     await handleDownloadInternshipLogbook(
       summaryData,
@@ -265,11 +265,6 @@ const InternshipSummary = () => {
       setDownloadLoading, // ✅ ใช้ downloadLoading state ที่ถูกต้อง
       userInfo // ✅ ส่ง userInfo ที่เตรียมไว้
     );
-  };
-
-  // พิมพ์เอกสาร
-  const handlePrint = () => {
-    window.print();
   };
 
   // แสดงหน้า loading
@@ -308,7 +303,7 @@ const InternshipSummary = () => {
           title="แบบฟอร์ม คพ.05 อยู่ระหว่างการพิจารณา"
           subTitle="กรุณารอการอนุมัติจากอาจารย์ที่ปรึกษาเพื่อเริ่มบันทึกการฝึกงาน"
           extra={
-            <Button type="primary" onClick={() => navigate("/internship/cs05")}>
+            <Button type="primary" onClick={() => navigate("/internship-registration/flow")}>
               ดูสถานะล่าสุด
             </Button>
           }
@@ -628,16 +623,6 @@ const InternshipSummary = () => {
             size="middle"
           >
             {downloadLoading ? "กำลังสร้าง..." : "ดาวน์โหลดสรุปการฝึกงาน"}
-          </Button>
-
-          {/* ปุ่ม Print */}
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={handlePrint}
-            disabled={!hasMinimumData}
-            size="middle"
-          >
-            พิมพ์เอกสาร
           </Button>
         </Space>
 

@@ -280,39 +280,3 @@ export const validateDataForPDF = (summaryData, logEntries) => {
   result.isValid = result.missingData.length === 0;
   return result;
 };
-
-/**
- * ✅ สร้างชื่อไฟล์สำหรับ PDF (ปรับปรุงใหม่)
- * @param {Object} studentInfo - ข้อมูลนักศึกษา
- * @param {string} prefix - คำนำหน้าชื่อไฟล์
- * @returns {string} - ชื่อไฟล์ที่สร้างขึ้น
- */
-export const generatePDFFilename = (studentInfo, prefix = "บันทึกฝึกงาน") => {
-  const currentDate = dayjs().format("YYYYMMDD");
-  
-  let studentName = "student";
-  if (studentInfo?.fullName) {
-    studentName = studentInfo.fullName.replace(/\s+/g, "_");
-  } else if (studentInfo?.firstName && studentInfo?.lastName) {
-    studentName = `${studentInfo.firstName}_${studentInfo.lastName}`;
-  } else if (studentInfo?.studentId) {
-    studentName = studentInfo.studentId;
-  }
-  
-  return `${prefix}_${studentName}_${currentDate}.pdf`;
-};
-
-/**
- * ✅ ฟังก์ชันช่วยสำหรับ debug ข้อมูล
- * @param {Object} summaryData - ข้อมูลสรุปการฝึกงาน
- * @param {Array} logEntries - รายการบันทึกการฝึกงาน
- * @param {Object} reflection - บทสรุปประสบการณ์
- */
-export const debugPDFData = (summaryData, logEntries, reflection) => {
-  console.group("🔍 PDF Data Debug Information");
-  console.log("Summary Data:", summaryData);
-  console.log("Log Entries:", logEntries);
-  console.log("Reflection:", reflection);
-  console.log("Validation Result:", validateDataForPDF(summaryData, logEntries));
-  console.groupEnd();
-};
