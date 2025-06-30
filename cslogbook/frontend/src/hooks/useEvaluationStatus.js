@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import internshipService from '../services/internshipService';
 
-const useEvaluationStatus = () => {
+// ✅ แก้ไข hook ให้รับ totalApprovedHours เป็น parameter
+const useEvaluationStatus = (totalApprovedHours = 0) => {
   const [loading, setLoading] = useState(true);
   const [evaluationData, setEvaluationData] = useState(null);
   const [sending, setSending] = useState(false);
-  // ✅ เพิ่ม state สำหรับตรวจสอบเกณฑ์การฝึกงาน
   const [internshipCriteria, setInternshipCriteria] = useState({
     totalApprovedHours: 0,
     isCompleted: false,
@@ -33,10 +33,8 @@ const useEvaluationStatus = () => {
       if (evaluationResponse.success) {
         console.log('✅ Evaluation Status Response:', evaluationResponse.data);
         
-        // ✅ ตรวจสอบค่าที่สำคัญ
         const evaluationData = {
           ...evaluationResponse.data,
-          // ตั้งค่าเริ่มต้นถ้าไม่มีข้อมูล
           canSendEvaluation: evaluationResponse.data.canSendEvaluation ?? true,
           notificationEnabled: evaluationResponse.data.notificationEnabled ?? true
         };
@@ -47,28 +45,30 @@ const useEvaluationStatus = () => {
         console.warn('⚠️ Evaluation response not successful:', evaluationResponse);
       }
 
-      if (summaryResponse.success && summaryResponse.data) {
-        // ✅ ใช้ totalApprovedHours จาก summaryResponse แทน totalHours
-        const totalHours = summaryResponse.data.totalApprovedHours || 0;
-        const isCompleted = totalHours >= 240;
-        
-        const criteria = {
-          totalApprovedHours: totalHours,
-          isCompleted: isCompleted,
-          hasMinimumHours: totalHours >= 240
-        };
-        
-        console.log('✅ Internship Criteria calculated:', criteria);
-        setInternshipCriteria(criteria);
-      } else {
-        console.warn('⚠️ Summary response not successful:', summaryResponse);
-        // ✅ เพิ่ม fallback กรณีไม่มีข้อมูล
-        setInternshipCriteria({
-          totalApprovedHours: 0,
-          isCompleted: false,
-          hasMinimumHours: false
-        });
+      // ✅ ใช้ totalApprovedHours จาก props เป็นหลัก
+      let finalHours = totalApprovedHours;
+      
+      // ถ้าไม่มีใน props ให้ดึงจาก summaryResponse
+      if (!finalHours && summaryResponse.success && summaryResponse.data) {
+        finalHours = summaryResponse.data.totalApprovedHours || 0;
       }
+      
+      const isCompleted = finalHours >= 240;
+      
+      const criteria = {
+        totalApprovedHours: finalHours,
+        isCompleted: isCompleted,
+        hasMinimumHours: finalHours >= 240
+      };
+      
+      console.log('✅ Internship Criteria calculated with props:', {
+        totalApprovedHours,
+        summaryHours: summaryResponse.data?.totalApprovedHours,
+        finalHours,
+        criteria
+      });
+      
+      setInternshipCriteria(criteria);
       
     } catch (error) {
       console.error('❌ Error fetching evaluation status:', error);
@@ -77,15 +77,25 @@ const useEvaluationStatus = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [totalApprovedHours]); // ✅ เพิ่ม dependency
 
   // ส่งคำขอประเมิน
   const sendEvaluationRequest = useCallback(async (documentId) => {
     try {
-      // ✅ ตรวจสอบเงื่อนไขก่อนส่ง
-      if (!internshipCriteria.isCompleted) {
+      // ✅ ใช้ totalApprovedHours จาก props เป็นหลัก
+      const currentHours = totalApprovedHours || internshipCriteria.totalApprovedHours || 0;
+      const isCompleted = currentHours >= 240;
+      
+      console.log('🔍 Checking hours before sending:', {
+        totalApprovedHours,
+        internshipCriteriaHours: internshipCriteria.totalApprovedHours,
+        currentHours,
+        isCompleted
+      });
+      
+      if (!isCompleted) {
         message.warning({
-          content: `ยังไม่สามารถส่งแบบประเมินได้ กรุณาบันทึกการฝึกงานให้ครบ 240 ชั่วโมง (ปัจจุบัน: ${internshipCriteria.totalApprovedHours} ชั่วโมง)`,
+          content: `ยังไม่สามารถส่งแบบประเมินได้ กรุณาบันทึกการฝึกงานให้ครบ 240 ชั่วโมง (ปัจจุบัน: ${currentHours} ชั่วโมง)`,
           duration: 6,
           style: { marginTop: '20vh' }
         });
@@ -130,7 +140,7 @@ const useEvaluationStatus = () => {
     } finally {
       setSending(false);
     }
-  }, [fetchEvaluationStatus, internshipCriteria]);
+  }, [fetchEvaluationStatus, internshipCriteria, totalApprovedHours]); // ✅ เพิ่ม dependency
 
   useEffect(() => {
     fetchEvaluationStatus();
@@ -140,7 +150,7 @@ const useEvaluationStatus = () => {
     loading,
     sending,
     evaluationData,
-    internshipCriteria, // ✅ เพิ่ม return criteria
+    internshipCriteria,
     sendEvaluationRequest,
     refreshStatus: fetchEvaluationStatus
   };

@@ -12,35 +12,42 @@ import useEvaluationStatus from '../hooks/useEvaluationStatus';
 const { Text } = Typography;
 
 const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHours }) => {
+  // ✅ ส่ง totalApprovedHours ไปที่ hook
   const { 
     loading, 
     sending, 
     evaluationData, 
     internshipCriteria, 
     sendEvaluationRequest 
-  } = useEvaluationStatus();
+  } = useEvaluationStatus(totalApprovedHours); // ✅ เพิ่ม parameter
 
-  // ✅ ย้าย useMemo ไปไว้ด้านบนสุด เพื่อหลีกเลี่ยง conditional hook calls
+  // ✅ ปรับปรุงการคำนวณเงื่อนไข
   const canSendEvaluation = useMemo(() => {
-    // ตรวจสอบข้อมูลพื้นฐานก่อน
     if (!evaluationData) {
       return false;
     }
+
+    // ✅ ใช้ totalApprovedHours จาก props เป็นหลัก
+    const currentHours = totalApprovedHours || internshipCriteria?.totalApprovedHours || 0;
 
     const conditions = {
       hasEvaluationData: !!evaluationData,
       canSendFromData: evaluationData?.canSendEvaluation === true,
       notificationEnabled: evaluationData?.notificationEnabled === true,
       criteriaCompleted: internshipCriteria?.isCompleted === true,
-      // ✅ ใช้ totalApprovedHours จาก props เป็นหลัก หรือจาก internshipCriteria
-      hoursSufficient: (totalApprovedHours || internshipCriteria?.totalApprovedHours || 0) >= 240
+      hoursSufficient: currentHours >= 240 // ✅ ใช้ currentHours ที่คำนวณใหม่
     };
 
-    console.log('🔍 Send Evaluation Conditions:', conditions);
+    console.log('🔍 Send Evaluation Conditions Updated:', {
+      ...conditions,
+      currentHours,
+      totalApprovedHours,
+      internshipCriteriaHours: internshipCriteria?.totalApprovedHours
+    });
 
     return conditions.hasEvaluationData && 
            conditions.notificationEnabled && 
-           conditions.hoursSufficient;
+           conditions.hoursSufficient; // ✅ ใช้ hoursSufficient แทน criteriaCompleted
   }, [evaluationData, internshipCriteria, totalApprovedHours]);
 
   // ✅ คำนวณชั่วโมงปัจจุบันด้วย useMemo
