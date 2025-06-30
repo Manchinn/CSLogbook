@@ -47,7 +47,7 @@ const NextAction = ({ student, progress }) => {
       'internship-eligibility': '/internship-eligibility',
       'internship-requirements': '/internship-requirements',
       'internship-registration': '/internship-registration',
-      'internship-cs05': '/internship-registration/cs05',
+      'internship-flow': '/internship-registration/flow',
       'internship-logbook': '/internship-logbook',
       'internship-companyinfo': '/internship-logbook/companyinfo',
       'internship-timesheet': '/internship-logbook/timesheet',

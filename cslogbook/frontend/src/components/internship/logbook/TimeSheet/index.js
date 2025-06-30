@@ -69,7 +69,7 @@ const TimeSheet = () => {
       );
 
       const redirectTimer = setTimeout(() => {
-        navigate("/internship-registration/cs05");
+        navigate("/internship-registration/flow");
       }, 3000);
 
       // ล้าง timer เมื่อ component unmount
@@ -147,7 +147,7 @@ const TimeSheet = () => {
             <Button
               type="primary"
               key="cs05-form"
-              onClick={() => navigate("/internship-registration/cs05")}
+              onClick={() => navigate("/internship-registration/flow")}
             >
               ไปที่หน้าส่งคำร้อง คพ.05 ทันที
             </Button>,

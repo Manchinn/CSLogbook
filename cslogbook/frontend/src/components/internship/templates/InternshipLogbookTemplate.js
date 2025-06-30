@@ -461,7 +461,7 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
           <View style={styles.fieldRow}>
             <Text style={styles.fieldLabel}>ชั้นปี</Text>
             <View style={styles.fieldValue}>
-              <Text>ปีที่ {studentInfo?.yearLevel || ""}</Text>
+              <Text> {studentInfo?.yearLevel || ""}</Text>
             </View>
             <Text style={[styles.fieldLabel, { marginLeft: 20 }]}>ห้อง</Text>
             <View style={styles.fieldValue}>

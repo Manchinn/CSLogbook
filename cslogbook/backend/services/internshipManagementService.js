@@ -675,7 +675,11 @@ class InternshipManagementService {
       );
     }
 
-    // สร้างข้อมูลนักศึกษาสำหรับ PDF
+    // คำนวณข้อมูลชั้นปีโดยใช้ utility function
+    const yearInfo = calculateStudentYear(userWithInternship.student.studentCode);
+    console.log(`[getInternshipSummary] Calculated year info for ${userWithInternship.student.studentCode}:`, yearInfo);
+
+    // สร้างข้อมูลนักศึกษาสำหรับ PDF รวมข้อมูลชั้นปี
     const studentInfo = {
       studentId: userWithInternship.student.studentCode,
       fullName: `${userWithInternship.firstName} ${userWithInternship.lastName}`,
@@ -687,6 +691,12 @@ class InternshipManagementService {
       classroom: userWithInternship.student.classroom,
       department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
       university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+      // เพิ่มข้อมูลชั้นปีที่คำนวณได้
+      year: yearInfo.error ? 0 : yearInfo.year,
+      yearLevel: yearInfo.error ? "ไม่ระบุ" : `${yearInfo.year}`,
+      status: yearInfo.error ? "unknown" : yearInfo.status,
+      statusLabel: yearInfo.error ? "ไม่ระบุสถานะ" : yearInfo.statusLabel,
+      academicYear: getCurrentAcademicYear(),
     };
 
     console.log(`[getInternshipSummary] Returning summary data with ${totalDays} days, ${totalHours} hours`);

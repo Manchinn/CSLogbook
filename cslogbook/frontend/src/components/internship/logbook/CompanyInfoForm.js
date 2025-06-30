@@ -277,7 +277,7 @@ const CompanyForm = () => {
         subTitle="คุณจำเป็นต้องส่งคำร้อง คพ.05 ก่อนจึงจะสามารถกรอกข้อมูลสถานประกอบการได้"
         extra={
           <Space>
-            <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
+            <Button type="primary" onClick={() => navigate('/internship-registration/flow')}>
               ไปที่หน้าส่งคำร้อง คพ.05
             </Button>
             <Button onClick={() => navigate('/internship')}>
@@ -301,7 +301,7 @@ const CompanyForm = () => {
             <Button onClick={() => navigate('/internship/status')}>
               ดูสถานะคำร้อง
             </Button>
-            <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
+            <Button type="primary" onClick={() => navigate('/internship-registration/flow')}>
               ส่งคำร้องใหม่
             </Button>
             <Button onClick={() => navigate('/internship')}>
