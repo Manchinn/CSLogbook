@@ -4,11 +4,11 @@ import { formatThaiDate, formatDurationText } from "../../../utils/dateUtils";
 import { formatFullName, formatThaiPhoneNumber } from "../../../utils/thaiFormatter";
 
 const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
-  // 🔧 ฟังก์ชันจัดการข้อมูลนักศึกษา (ปรับปรุงให้ใช้ข้อมูลที่ประมวลผลแล้ว)
+  // 🔧 ฟังก์ชันจัดการข้อมูลนักศึกษา (ปรับปรุงให้แข็งแกร่งและรองรับกรณีต่างๆ)
   const getStudentInfo = () => {
     let studentData = null;
     
-    // 🆕 ให้ความสำคัญกับข้อมูลที่ประมวลผลแล้วจาก summaryData.studentData ก่อน
+    // 🆕 ลำดับที่ 1: ให้ความสำคัญกับข้อมูลที่ประมวลผลแล้วจาก summaryData.studentData ก่อน
     if (summaryData?.studentData && Array.isArray(summaryData.studentData) && summaryData.studentData.length > 0) {
       const processedData = summaryData.studentData[0];
       if (processedData && (processedData.firstName || processedData.lastName || processedData.fullName)) {
@@ -22,10 +22,11 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
           phoneNumber: processedData.phoneNumber || "",
           title: processedData.title || "",
         };
+        console.log('✅ Using student data from summaryData.studentData:', studentData);
       }
     }
     
-    // Fallback 1: ใช้ userInfo ถ้าไม่มีข้อมูลจาก studentData
+    // ลำดับที่ 2: ใช้ userInfo ถ้าไม่มีข้อมูลจาก studentData
     if (!studentData && userInfo && (userInfo.firstName || userInfo.lastName || userInfo.fullName)) {
       studentData = {
         firstName: userInfo.firstName || "",
@@ -37,9 +38,10 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
         phoneNumber: userInfo.phoneNumber || userInfo.phone || "",
         title: userInfo.title || "",
       };
+      //console.log('✅ Using student data from userInfo:', studentData);
     }
     
-    // Fallback 2: ใช้ summaryData.studentInfo (สำหรับข้อมูลเก่า)
+    // ลำดับที่ 3: ใช้ summaryData.studentInfo (สำหรับข้อมูลเก่า)
     if (!studentData && summaryData?.studentInfo) {
       const info = summaryData.studentInfo;
       studentData = {
@@ -52,24 +54,73 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
         phoneNumber: info.phoneNumber || info.phone || "",
         title: info.title || "",
       };
+      //console.log('✅ Using student data from summaryData.studentInfo:', studentData);
     }
     
-    // ตรวจสอบว่ามีข้อมูลที่จำเป็นหรือไม่
-    if (!studentData || (!studentData.firstName && !studentData.lastName && !studentData.fullName)) {
-      return null;
+    // ลำดับที่ 4: ลองดึงข้อมูลจาก logbookData ถ้ามี
+    if (!studentData && logbookData?.studentData && Array.isArray(logbookData.studentData) && logbookData.studentData.length > 0) {
+      const logStudentData = logbookData.studentData[0];
+      if (logStudentData && (logStudentData.firstName || logStudentData.lastName || logStudentData.fullName)) {
+        studentData = {
+          firstName: logStudentData.firstName || "",
+          lastName: logStudentData.lastName || "",
+          fullName: logStudentData.fullName || "",
+          studentId: logStudentData.studentId || "",
+          yearLevel: logStudentData.yearLevel || "",
+          classroom: logStudentData.classroom || "",
+          phoneNumber: logStudentData.phoneNumber || "",
+          title: logStudentData.title || "",
+        };
+        //console.log('✅ Using student data from logbookData.studentData:', studentData);
+      }
     }
     
+    // ✅ ลำดับที่ 5: สร้างข้อมูลเริ่มต้นถ้าไม่มีข้อมูลใดๆ
+    if (!studentData) {
+      //console.warn('⚠️ No student data found in any source, using default values');
+      studentData = {
+        firstName: "",
+        lastName: "",
+        fullName: "นักศึกษา",
+        studentId: "ไม่ระบุ",
+        yearLevel: "",
+        classroom: "",
+        phoneNumber: "",
+        title: "",
+      };
+    }
+    
+    // ✅ ตรวจสอบและปรับปรุงข้อมูลที่ขาดหาย
+    if (!studentData.fullName || studentData.fullName.trim() === "") {
+      if (studentData.firstName || studentData.lastName) {
+        studentData.fullName = formatFullName(studentData.firstName, studentData.lastName, studentData.title) || "นักศึกษา";
+      } else {
+        studentData.fullName = "นักศึกษา";
+      }
+    }
+    
+    if (!studentData.studentId || studentData.studentId.trim() === "") {
+      studentData.studentId = "ไม่ระบุ";
+    }
+    
+    //console.log('🎯 Final processed student data:', studentData);
     return studentData;
   };
 
   const studentInfo = getStudentInfo();
 
   const getStudentName = () => {
-    if (!studentInfo) return "ไม่ระบุ";
-    if (studentInfo.fullName) {
-      return studentInfo.fullName.trim();
+    const student = getStudentInfo();
+    if (!student) return "นักศึกษา";
+    
+    // ตรวจสอบ fullName ก่อน
+    if (student.fullName && student.fullName.trim() !== "" && student.fullName !== "นักศึกษา") {
+      return student.fullName.trim();
     }
-    return formatFullName(studentInfo.firstName, studentInfo.lastName, studentInfo.title) || "ไม่ระบุ";
+    
+    // ถ้าไม่มี fullName ให้ใช้ formatFullName
+    const formattedName = formatFullName(student.firstName, student.lastName, student.title);
+    return formattedName && formattedName.trim() !== "" ? formattedName : "นักศึกษา";
   };
 
   // 🎨 Styles ที่ปรับปรุงให้ตรงตามแบบฟอร์ม PDF

@@ -64,8 +64,6 @@ class InternshipManagementService {
         studentId: student.studentCode,
         fullName: `${student.user.firstName} ${student.user.lastName}`,
         email: student.user.email,
-        faculty: student.faculty,
-        major: student.major,
         totalCredits: student.totalCredits,
         year: yearInfo.year,
         status: yearInfo.status,
@@ -535,59 +533,79 @@ class InternshipManagementService {
    * ดึงข้อมูลสรุปการฝึกงาน
    */
   async getInternshipSummary(userId) {
-    // ค้นหาข้อมูลนักศึกษาจาก userId ก่อน
-    const student = await Student.findOne({
-      where: { userId },
-      attributes: ["studentId", "studentCode"],
-    });
-
-    if (!student) {
-      throw new Error("ไม่พบข้อมูลนักศึกษา");
-    }
-
-    const studentId = student.studentId;
-
-    // ดึงข้อมูล internship document ล่าสุด
-    const internshipDoc = await InternshipDocument.findOne({
-      attributes: [
-        "internshipId",
-        "documentId",
-        "companyName",
-        "companyAddress",
-        "supervisorName",
-        "supervisorPosition",
-        "supervisorPhone",
-        "supervisorEmail",
-        "startDate",
-        "endDate",
-      ],
+    console.log(`[getInternshipSummary] Starting for userId: ${userId}`);
+    
+    // ดึงข้อมูลครบถ้วนในครั้งเดียวด้วย Sequelize associations
+    // เริ่มจาก User เพราะ Document associate กับ User โดยตรง
+    const userWithInternship = await User.findOne({
+      where: { 
+        userId // ใช้ userId ตรงๆ 
+      },
       include: [
         {
+          model: Student,
+          as: "student",
+          required: true,
+          attributes: ["studentId", "studentCode", "totalCredits", "classroom", "phoneNumber"],
+        },
+        {
           model: Document,
-          as: "document",
-          attributes: ["documentId", "status"],
+          as: "documents",
           where: {
-            userId,
             documentName: "CS05",
             status: ["approved", "supervisor_approved", "supervisor_evaluated"],
           },
+          required: true,
+          include: [
+            {
+              model: InternshipDocument,
+              as: "internshipDocument",
+              required: true,
+              include: [
+                {
+                  model: InternshipLogbook,
+                  as: "logbooks",
+                  required: false,
+                  where: {
+                    student_id: sequelize.col("Student.student_id") // ใช้ column reference
+                  },
+                  order: [["work_date", "ASC"]],
+                },
+              ],
+            },
+          ],
         },
       ],
-      order: [[sequelize.literal("`InternshipDocument`.`created_at`"), "DESC"]],
+      order: [[{ model: Document, as: "documents" }, "created_at", "DESC"]],
     });
 
+    if (!userWithInternship) {
+      console.log(`[getInternshipSummary] No user found for userId: ${userId}`);
+      throw new Error("ไม่พบข้อมูลผู้ใช้หรือข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
+    }
+
+    console.log(`[getInternshipSummary] Found user with student: ${userWithInternship.student?.studentCode}`);
+
+    // ตรวจสอบว่ามีข้อมูลนักศึกษาหรือไม่
+    if (!userWithInternship.student) {
+      console.log(`[getInternshipSummary] No student data found for userId: ${userId}`);
+      throw new Error("ไม่พบข้อมูลนักศึกษา");
+    }
+
+    // ดึงข้อมูล internship document ล่าสุด
+    const latestDocument = userWithInternship.documents[0];
+    const internshipDoc = latestDocument.internshipDocument;
+    
     if (!internshipDoc) {
+      console.log(`[getInternshipSummary] No internship document found`);
       throw new Error("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
     }
 
-    // ดึงข้อมูลบันทึกฝึกงาน (logbooks)
-    const logbooks = await InternshipLogbook.findAll({
-      where: {
-        internshipId: internshipDoc.internshipId,
-        studentId: studentId,
-      },
-      order: [["workDate", "ASC"]],
-    });
+    console.log(`[getInternshipSummary] Found internship document ID: ${internshipDoc.internshipId}`);
+
+    // ดึงข้อมูลบันทึกฝึกงาน (logbooks) ที่ได้จาก include
+    const logbooks = internshipDoc.logbooks || [];
+    console.log(`[getInternshipSummary] Found ${logbooks.length} logbook entries`);
 
     // คำนวณสถิติต่างๆ
     const totalDays = logbooks.length;
@@ -602,32 +620,80 @@ class InternshipManagementService {
       .filter((log) => log.supervisorApproved)
       .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
-    // ดึงข้อมูลสรุปทักษะและความรู้ (Reflection)
+    // ดึงข้อมูลสรุปทักษะและความรู้ (Reflection) ด้วย field name ที่ถูกต้อง
     let learningOutcomes = "";
-    if (internshipDoc && internshipDoc.internshipId && studentId) {
-      try {
-        const reflectionEntry = await InternshipLogbookReflection.findOne({
-          where: {
-            studentId: studentId,
-            internshipId: internshipDoc.internshipId,
-          },
-          order: [["created_at", "DESC"]],
-        });
+    let reflectionData = null;
+    
+    try {
+      console.log(`[getInternshipSummary] Fetching reflection for student_id: ${userWithInternship.student.studentId}, internship_id: ${internshipDoc.internshipId}`);
+      
+      const reflectionEntry = await InternshipLogbookReflection.findOne({
+        where: {
+          student_id: userWithInternship.student.studentId, // ใช้ snake_case
+          internship_id: internshipDoc.internshipId,   // ใช้ snake_case
+        },
+        order: [["created_at", "DESC"]],
+      });
 
-        if (reflectionEntry && reflectionEntry.reflection_text) {
-          learningOutcomes = reflectionEntry.reflection_text;
+      if (reflectionEntry) {
+        console.log(`[getInternshipSummary] Found reflection entry`);
+        
+        // รวมข้อมูล reflection หลายฟิลด์เป็น learning outcome
+        const reflectionParts = [];
+        
+        if (reflectionEntry.learning_outcome) {
+          reflectionParts.push(`ผลการเรียนรู้: ${reflectionEntry.learning_outcome}`);
         }
-      } catch (reflectionError) {
-        console.error(
-          `Error fetching internship reflection for studentId ${studentId}, internshipId ${internshipDoc.internshipId}:`,
-          reflectionError
-        );
+        
+        if (reflectionEntry.key_learnings) {
+          reflectionParts.push(`สิ่งที่ได้เรียนรู้: ${reflectionEntry.key_learnings}`);
+        }
+        
+        if (reflectionEntry.future_application) {
+          reflectionParts.push(`การนำไปใช้ในอนาคต: ${reflectionEntry.future_application}`);
+        }
+        
+        if (reflectionEntry.improvements) {
+          reflectionParts.push(`ข้อเสนอแนะ: ${reflectionEntry.improvements}`);
+        }
+        
+        learningOutcomes = reflectionParts.join('\n\n');
+        
+        reflectionData = {
+          learningOutcome: reflectionEntry.learning_outcome || "",
+          keyLearnings: reflectionEntry.key_learnings || "",
+          futureApplication: reflectionEntry.future_application || "",
+          improvements: reflectionEntry.improvements || "",
+        };
+      } else {
+        console.log(`[getInternshipSummary] No reflection entry found`);
       }
+    } catch (reflectionError) {
+      console.error(
+        `[getInternshipSummary] Error fetching reflection for student_id ${userWithInternship.student.studentId}, internship_id ${internshipDoc.internshipId}:`,
+        reflectionError
+      );
     }
 
+    // สร้างข้อมูลนักศึกษาสำหรับ PDF
+    const studentInfo = {
+      studentId: userWithInternship.student.studentCode,
+      fullName: `${userWithInternship.firstName} ${userWithInternship.lastName}`,
+      firstName: userWithInternship.firstName,
+      lastName: userWithInternship.lastName,
+      email: userWithInternship.email,
+      phoneNumber: userWithInternship.phoneNumber || userWithInternship.student.phoneNumber,
+      totalCredits: userWithInternship.student.totalCredits,
+      classroom: userWithInternship.student.classroom,
+      department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+      university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+    };
+
+    console.log(`[getInternshipSummary] Returning summary data with ${totalDays} days, ${totalHours} hours`);
+
     return {
-      documentId: internshipDoc.document.documentId,
-      status: internshipDoc.document.status,
+      documentId: latestDocument.documentId,
+      status: latestDocument.status,
       companyName: internshipDoc.companyName,
       companyAddress: internshipDoc.companyAddress,
       startDate: internshipDoc.startDate,
@@ -641,6 +707,8 @@ class InternshipManagementService {
       approvedDays: approvedDays,
       approvedHours: approvedHours,
       learningOutcome: learningOutcomes,
+      reflectionData: reflectionData,
+      studentInfo: studentInfo, // เพิ่มข้อมูลนักศึกษาสำหรับ PDF
     };
   }
 

@@ -131,25 +131,100 @@ const InternshipSummary = () => {
     setEditingReflection(!editingReflection);
   };
 
-  // ✅ เพิ่มฟังก์ชัน prepareUserInfoForPDF
+  // ✅ ปรับปรุงฟังก์ชัน prepareUserInfoForPDF ให้มี fallback หลายระดับ
   const prepareUserInfoForPDF = () => {
-    if (!user) {
-      console.warn('⚠️ No user data available for PDF generation');
-      return null;
+    // 🔄 ลำดับความสำคัญการหาข้อมูลนักศึกษา
+    let userInfo = null;
+
+    // ลำดับที่ 1: ใช้ข้อมูลจาก useAuth hook
+    if (user && (user.firstName || user.first_name || user.fullName || user.full_name)) {
+      userInfo = {
+        firstName: user.firstName || user.first_name || "",
+        lastName: user.lastName || user.last_name || "",
+        fullName: user.fullName || user.full_name || 
+                  `${user.firstName || user.first_name || ""} ${user.lastName || user.last_name || ""}`.trim(),
+        studentId: user.studentId || user.student_id || user.username || "",
+        yearLevel: user.yearLevel || user.year_level || "",
+        classroom: user.classroom || user.class || "",
+        phoneNumber: user.phoneNumber || user.phone || "",
+        email: user.email || "",
+        title: user.title || "",
+      };
     }
 
-    const userInfo = {
-      firstName: user.firstName || user.first_name || "",
-      lastName: user.lastName || user.last_name || "",
-      fullName: user.fullName || user.full_name || 
-                `${user.firstName || user.first_name || ""} ${user.lastName || user.last_name || ""}`.trim(),
-      studentId: user.studentId || user.student_id || user.username || "",
-      yearLevel: user.yearLevel || user.year_level || "",
-      classroom: user.classroom || user.class || "",
-      phoneNumber: user.phoneNumber || user.phone || "",
-      email: user.email || "",
-      title: user.title || "",
-    };
+    // ลำดับที่ 2: ใช้ข้อมูลจาก summaryData.studentData (ถ้ามี)
+    if (!userInfo && summaryData?.studentData && Array.isArray(summaryData.studentData) && summaryData.studentData.length > 0) {
+      const studentData = summaryData.studentData[0];
+      userInfo = {
+        firstName: studentData.firstName || "",
+        lastName: studentData.lastName || "",
+        fullName: studentData.fullName || "",
+        studentId: studentData.studentId || "",
+        yearLevel: studentData.yearLevel || "",
+        classroom: studentData.classroom || "",
+        phoneNumber: studentData.phoneNumber || "",
+        email: studentData.email || "",
+        title: studentData.title || "",
+      };
+    }
+
+    // ลำดับที่ 3: ใช้ข้อมูลจาก summaryData.studentInfo (fallback เก่า)
+    if (!userInfo && summaryData?.studentInfo) {
+      const info = summaryData.studentInfo;
+      userInfo = {
+        firstName: info.firstName || info.first_name || "",
+        lastName: info.lastName || info.last_name || "",
+        fullName: info.fullName || info.full_name || "",
+        studentId: info.studentId || info.student_id || "",
+        yearLevel: info.yearLevel || info.year_level || "",
+        classroom: info.classroom || info.class || "",
+        phoneNumber: info.phoneNumber || info.phone || "",
+        email: info.email || "",
+        title: info.title || "",
+      };
+    }
+
+    // ลำดับที่ 4: สร้างข้อมูลพื้นฐานจาก localStorage หรือ default
+    if (!userInfo) {
+      console.warn('⚠️ No user data available, trying localStorage fallback');
+      
+      // ลองดึงจาก localStorage
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          userInfo = {
+            firstName: parsedUser.firstName || parsedUser.first_name || "",
+            lastName: parsedUser.lastName || parsedUser.last_name || "",
+            fullName: parsedUser.fullName || parsedUser.full_name || "นักศึกษา",
+            studentId: parsedUser.studentId || parsedUser.student_id || parsedUser.username || "ไม่ระบุ",
+            yearLevel: parsedUser.yearLevel || parsedUser.year_level || "",
+            classroom: parsedUser.classroom || parsedUser.class || "",
+            phoneNumber: parsedUser.phoneNumber || parsedUser.phone || "",
+            email: parsedUser.email || "",
+            title: parsedUser.title || "",
+          };
+        } catch (error) {
+          console.error('Error parsing cached user data:', error);
+        }
+      }
+    }
+
+    // ลำดับสุดท้าย: ใช้ข้อมูล default
+    if (!userInfo) {
+      console.warn('⚠️ Creating default user info for PDF generation');
+      userInfo = {
+        firstName: "",
+        lastName: "",
+        fullName: "นักศึกษา",
+        studentId: "ไม่ระบุ",
+        yearLevel: "",
+        classroom: "",
+        phoneNumber: "",
+        email: "",
+        title: "",
+      };
+    }
 
     console.log('🔍 Prepared user info for PDF:', userInfo);
     return userInfo;
