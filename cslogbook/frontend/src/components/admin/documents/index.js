@@ -138,7 +138,7 @@ const OriginalDocumentManagement = ({ type }) => {
     setSelectedDocumentId(null);
   }, []);
 
-  // กรองเอกสารตามเงื่อนไข
+  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร
   const filteredDocuments = useMemo(() => {
     // helper แปลชื่อไฟล์เพื่อใช้ในการค้นหาด้วย (ไทย + เดิม)
     const searchLower = filters.search.toLowerCase();
