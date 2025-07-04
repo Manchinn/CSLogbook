@@ -21,6 +21,8 @@ import {
   FileExclamationOutlined,
   FileDoneOutlined,
   CloseCircleOutlined,
+  FileProtectOutlined,
+  FileAddOutlined,
 } from "@ant-design/icons";
 import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
@@ -35,7 +37,7 @@ const DocumentManagement = ({ type }) => {
     status: "",
     search: "",
   });
-  
+  const [documentType, setDocumentType] = useState(""); // เพิ่ม state สำหรับประเภทเอกสาร
 
   // State สำหรับการแสดง Modal
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
@@ -81,20 +83,23 @@ const DocumentManagement = ({ type }) => {
     setSelectedDocumentId(null);
   }, []);
 
-  // กรองเอกสารตามเงื่อนไข
+  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร
   const filteredDocuments = useMemo(() => {
     return documents.filter(
       (doc) =>
+        // เงื่อนไขกรองตามสถานะ (ถ้าเลือก "ทั้งหมด" จะผ่านทุกสถานะ)
         (filters.status === "" || doc.status === filters.status) &&
-        (doc.document_name
-          ?.toLowerCase()
-          .includes(filters.search.toLowerCase()) ||
+        // เงื่อนไขกรองตามคำค้นหา (ค้นหาทั้งชื่อเอกสารและชื่อนักศึกษา)
+        (filters.search === "" ||
+          doc.document_name
+            ?.toLowerCase()
+            .includes(filters.search.toLowerCase()) ||
           doc.student_name
             ?.toLowerCase()
-            .includes(filters.search.toLowerCase()))
+            .includes(filters.search.toLowerCase())) &&
+        (documentType === "" || doc.document_name?.toLowerCase().includes(documentType.toLowerCase()))
     );
-  }, [documents, filters]);
-  
+  }, [documents, filters, documentType]);
 
   // คอลัมน์ตาราง
   const columns = useMemo(
@@ -119,8 +124,7 @@ const DocumentManagement = ({ type }) => {
         title: "วันที่อัปโหลด",
         dataIndex: "created_at", // หรือ updated_at หากต้องการใช้ updated_at
         key: "created_at",
-        render: (text) => 
-          dayjs(text).format(DATE_TIME_FORMAT),
+        render: (text) => dayjs(text).format(DATE_TIME_FORMAT),
         sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
@@ -188,24 +192,42 @@ const DocumentManagement = ({ type }) => {
         <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
           <Col>
             <Space size="large">
+              {/* เอกสารทั้งหมด */}
               <Space>
                 <FileTextOutlined
                   style={{ fontSize: "24px", color: "#1890ff" }}
                 />
                 <Text>เอกสารทั้งหมด: {statistics.total}</Text>
               </Space>
+              {/* เพิ่มประเภทเอกสาร CS05 */}
+              <Space>
+                <FileTextOutlined
+                  style={{ fontSize: "24px", color: "#722ed1" }}
+                />
+                <Text>CS05 {statistics.cs05}</Text>
+              </Space>
+              {/* เพิ่มประเภทเอกสาร ACCEPTANCE_LETTER */}
+              <Space>
+                <FileTextOutlined
+                  style={{ fontSize: "24px", color: "#13c2c2" }}
+                />
+                <Text>Acceptance Letter: {statistics.acceptanceLetter}</Text>
+              </Space>
+              {/* เอกสารรอตรวจสอบ */}
               <Space>
                 <FileExclamationOutlined
                   style={{ fontSize: "24px", color: "#fa8c16" }}
                 />
                 <Text>รอตรวจสอบ: {statistics.pending}</Text>
               </Space>
+              {/* เอกสารอนุมัติแล้ว */}
               <Space>
                 <FileDoneOutlined
                   style={{ fontSize: "24px", color: "#52c41a" }}
                 />
                 <Text>อนุมัติแล้ว: {statistics.approved}</Text>
               </Space>
+              {/* เอกสารปฏิเสธแล้ว */}
               <Space>
                 <CloseCircleOutlined
                   style={{ fontSize: "24px", color: "#f5222d" }}
@@ -227,7 +249,7 @@ const DocumentManagement = ({ type }) => {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={12} md={8}>
+          <Col>
             {/* Status filter */}
             <Segmented
               options={[
@@ -238,6 +260,14 @@ const DocumentManagement = ({ type }) => {
               ]}
               value={filters.status}
               onChange={setStatusFilter}
+            />
+            <Segmented
+              options={[
+                { label: "CS05", value: "cs05" },
+                { label: "Acceptance Letter", value: "ACCEPTANCE_LETTER" },
+              ]}
+              value={documentType}
+              onChange={setDocumentType}
             />
           </Col>
           <Col xs={24} sm={24} md={8}>
