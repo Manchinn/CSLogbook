@@ -89,6 +89,7 @@ const OriginalDocumentManagement = ({ type }) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  //const [documentType, setDocumentType] = useState("");
 
   // ใช้ custom hook
   const {
@@ -134,12 +135,18 @@ const OriginalDocumentManagement = ({ type }) => {
     return documents.filter(
       (doc) =>
         (filters.status === "" || doc.status === filters.status) &&
-        (doc.document_name
-          ?.toLowerCase()
-          .includes(filters.search.toLowerCase()) ||
-          doc.student_name
+        (
+          doc.document_name
             ?.toLowerCase()
-            .includes(filters.search.toLowerCase()))
+            .includes(filters.search.toLowerCase()) ||
+          doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())
+        ) /* &&
+        (
+          documentType === "" ||
+          doc.document_type
+            ?.toLowerCase()
+            .includes(documentType.toLowerCase())
+        ) */
     );
   }, [documents, filters]);
 
@@ -166,8 +173,7 @@ const OriginalDocumentManagement = ({ type }) => {
         title: "วันที่อัปโหลด",
         dataIndex: "created_at", // หรือ updated_at หากต้องการใช้ updated_at
         key: "created_at",
-        render: (text) =>
-          dayjs(text).format(DATE_TIME_FORMAT),
+        render: (text) => dayjs(text).format(DATE_TIME_FORMAT),
         sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
@@ -286,6 +292,14 @@ const OriginalDocumentManagement = ({ type }) => {
               value={filters.status}
               onChange={setStatusFilter}
             />
+            {/* <Segmented
+              options={[
+                { label: "CS05", value: "cs05" },
+                { label: "Acceptance Letter", value: "ACCEPTANCE_LETTER" },
+              ]}
+              value={documentType}
+              onChange={setDocumentType}
+            /> */}
           </Col>
           <Col xs={24} sm={24} md={8}>
             <Space wrap>
