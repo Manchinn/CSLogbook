@@ -66,10 +66,6 @@ const DocumentManagement = ({ type }) => {
   return (
     <div style={{ padding: 24 }}>
       <Card>
-        <Title level={3} style={{ marginBottom: 24 }}>
-          จัดการเอกสารฝึกงาน
-        </Title>
-
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
