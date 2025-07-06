@@ -128,6 +128,39 @@ router.post(
   internshipController.submitSupervisorEvaluation
 );
 
+// ============= Certificate Management Routes =============
+// ตรวจสอบสถานะหนังสือรับรอง
+router.get(
+  "/certificate-status",
+  authenticateToken,
+  checkRole(["student"]),
+  internshipController.getCertificateStatus
+);
+
+// ส่งคำขอหนังสือรับรอง
+router.post(
+  "/certificate-request",
+  authenticateToken,
+  checkRole(["student"]),
+  internshipController.submitCertificateRequest
+);
+
+// ดาวน์โหลดหนังสือรับรอง
+router.get(
+  "/download-certificate",
+  authenticateToken,
+  checkRole(["student"]),
+  internshipController.downloadCertificate
+);
+
+// แสดงตัวอย่างหนังสือรับรอง
+router.get(
+  "/preview-certificate",
+  authenticateToken,
+  checkRole(["student"]),
+  internshipController.previewCertificate
+);
+
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
 // อัปโหลดใบแสดงผลการเรียน (Transcript)
 router.post(

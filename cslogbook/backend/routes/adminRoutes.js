@@ -44,6 +44,14 @@ router.patch('/documents/:id/status', adminAuth, documentController.updateDocume
 router.get('/documents/:id/view', adminAuth, documentController.viewDocument); // เพิ่ม route สำหรับดู PDF
 router.get('/documents/:id/download', adminAuth, documentController.downloadDocument); // เพิ่ม route สำหรับดาวน์โหลด PDF
 
+// ✅ เพิ่ม Certificate Management Routes ใหม่
+// === เพิ่ม Certificate Management Routes ===
+router.get('/certificate-requests', adminAuth, documentController.getCertificateRequests);
+router.post('/certificate-requests/:requestId/approve', adminAuth, documentController.approveCertificateRequest);
+router.post('/certificate-requests/:requestId/reject', adminAuth, documentController.rejectCertificateRequest);
+router.get('/certificate-requests/:requestId/download', adminAuth, documentController.downloadCertificateForAdmin);
+router.post('/notify-student', adminAuth, documentController.notifyStudent);
+
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
 router.get('/students/stats', adminAuth, studentController.getAllStudentStats);

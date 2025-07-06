@@ -17,6 +17,9 @@ import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
 import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
 
 import { InternshipRegistrationFlow } from './components/internship/register';
+// 🆕 เพิ่ม import สำหรับ InternshipCertificateRequest
+import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
+
 
 // Import Project Components
 import ProjectProposalForm from './components/project/ProjectProposalForm';
@@ -113,6 +116,14 @@ const App = () => {
                     <InternshipSummary />
                   </ProtectedRoute>
                 } />
+
+                {/* 🆕 เพิ่ม route สำหรับขอหนังสือรับรองการฝึกงาน */}
+                <Route path="/internship-certificate" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipCertificateRequest />
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="/status-check" element={
                   <ProtectedRoute roles={['student']}>
                     <StatusCheck />

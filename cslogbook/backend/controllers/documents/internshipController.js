@@ -337,7 +337,8 @@ exports.previewInternshipSummary = async (req, res) => {
     const userId = req.user.userId;
 
     // ดึงข้อมูลสรุปการฝึกงาน
-    const summaryData = await internshipLogbookService.getInternshipSummaryForPDF(userId);
+    const summaryData =
+      await internshipLogbookService.getInternshipSummaryForPDF(userId);
 
     if (!summaryData) {
       return res.status(404).json({
@@ -347,7 +348,8 @@ exports.previewInternshipSummary = async (req, res) => {
     }
 
     // สร้าง PDF
-    const pdfBuffer = await internshipLogbookService.generateInternshipSummaryPDF(summaryData);
+    const pdfBuffer =
+      await internshipLogbookService.generateInternshipSummaryPDF(summaryData);
 
     // ส่ง PDF สำหรับแสดงผลในเบราว์เซอร์
     res.setHeader("Content-Type", "application/pdf");
@@ -813,6 +815,165 @@ exports.getReferralLetterStatus = async (req, res) => {
         documentId: req.params.documentId,
         originalError: error.message,
       },
+    });
+  }
+};
+
+/**
+ * ตรวจสอบสถานะหนังสือรับรองการฝึกงาน
+ */
+exports.getCertificateStatus = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log(
+      `[getCertificateStatus] Checking certificate status for userId: ${userId}`
+    );
+
+    const result = await internshipManagementService.getCertificateStatus(
+      userId
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "ตรวจสอบสถานะหนังสือรับรองเรียบร้อยแล้ว",
+    });
+  } catch (error) {
+    console.error("Get Certificate Status Error:", error);
+    const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการตรวจสอบสถานะหนังสือรับรอง",
+    });
+  }
+};
+
+/**
+ * ส่งคำขอหนังสือรับรองการฝึกงาน
+ */
+exports.submitCertificateRequest = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const requestData = req.body;
+
+    console.log(
+      `[submitCertificateRequest] Processing certificate request for userId: ${userId}`
+    );
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!requestData.studentId || !requestData.requestDate) {
+      return res.status(400).json({
+        success: false,
+        message: "ข้อมูลคำขอไม่ครบถ้วน",
+      });
+    }
+
+    const result = await internshipManagementService.submitCertificateRequest(
+      userId,
+      requestData
+    );
+
+    return res.status(201).json({
+      success: true,
+      data: result,
+      message: "ส่งคำขอหนังสือรับรองการฝึกงานเรียบร้อยแล้ว",
+    });
+  } catch (error) {
+    console.error("Submit Certificate Request Error:", error);
+    const statusCode = error.message.includes("ไม่ผ่านเงื่อนไข")
+      ? 400
+      : error.message.includes("ไม่พบ")
+      ? 404
+      : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการส่งคำขอหนังสือรับรอง",
+    });
+  }
+};
+
+/**
+ * ดาวน์โหลดหนังสือรับรองการฝึกงาน
+ */
+exports.downloadCertificate = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log(
+      `[downloadCertificate] Downloading certificate for userId: ${userId}`
+    );
+
+    const result = await internshipManagementService.downloadCertificate(
+      userId
+    );
+
+    if (!result.pdfBuffer || !result.filename) {
+      return res.status(404).json({
+        success: false,
+        message: "ไม่พบหนังสือรับรองการฝึกงาน",
+      });
+    }
+
+    // ส่ง PDF กลับ
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(result.filename)}"`
+    );
+    res.setHeader("Cache-Control", "no-cache");
+
+    res.send(result.pdfBuffer);
+  } catch (error) {
+    console.error("Download Certificate Error:", error);
+    const statusCode = error.message.includes("ยังไม่พร้อม")
+      ? 409
+      : error.message.includes("ไม่พบ")
+      ? 404
+      : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการดาวน์โหลดหนังสือรับรอง",
+    });
+  }
+};
+
+/**
+ * แสดงตัวอย่างหนังสือรับรองการฝึกงาน
+ */
+exports.previewCertificate = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log(
+      `[previewCertificate] Previewing certificate for userId: ${userId}`
+    );
+
+    const result = await internshipManagementService.previewCertificate(userId);
+
+    if (!result.pdfBuffer || !result.filename) {
+      return res.status(404).json({
+        success: false,
+        message: "ไม่พบหนังสือรับรองการฝึกงาน",
+      });
+    }
+
+    // ส่ง PDF สำหรับแสดงผลในเบราว์เซอร์
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline"); // แสดงในเบราว์เซอร์แทนการดาวน์โหลด
+    res.setHeader("Cache-Control", "no-cache");
+
+    res.send(result.pdfBuffer);
+  } catch (error) {
+    console.error("Preview Certificate Error:", error);
+    const statusCode = error.message.includes("ยังไม่พร้อม")
+      ? 409
+      : error.message.includes("ไม่พบ")
+      ? 404
+      : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการแสดงตัวอย่างหนังสือรับรอง",
     });
   }
 };

@@ -9,6 +9,7 @@ const {
   Curriculum,
   ApprovalToken,
   InternshipEvaluation,
+  InternshipCertificateRequest,
 } = require("../models");
 const { Sequelize, Op } = require("sequelize");
 const { sequelize } = require("../config/database");
@@ -534,19 +535,25 @@ class InternshipManagementService {
    */
   async getInternshipSummary(userId) {
     console.log(`[getInternshipSummary] Starting for userId: ${userId}`);
-    
+
     // ดึงข้อมูลครบถ้วนในครั้งเดียวด้วย Sequelize associations
     // เริ่มจาก User เพราะ Document associate กับ User โดยตรง
     const userWithInternship = await User.findOne({
-      where: { 
-        userId // ใช้ userId ตรงๆ 
+      where: {
+        userId, // ใช้ userId ตรงๆ
       },
       include: [
         {
           model: Student,
           as: "student",
           required: true,
-          attributes: ["studentId", "studentCode", "totalCredits", "classroom", "phoneNumber"],
+          attributes: [
+            "studentId",
+            "studentCode",
+            "totalCredits",
+            "classroom",
+            "phoneNumber",
+          ],
         },
         {
           model: Document,
@@ -567,7 +574,7 @@ class InternshipManagementService {
                   as: "logbooks",
                   required: false,
                   where: {
-                    student_id: sequelize.col("Student.student_id") // ใช้ column reference
+                    student_id: sequelize.col("Student.student_id"), // ใช้ column reference
                   },
                   order: [["work_date", "ASC"]],
                 },
@@ -581,31 +588,34 @@ class InternshipManagementService {
 
     if (!userWithInternship) {
       console.log(`[getInternshipSummary] No user found for userId: ${userId}`);
-      throw new Error("ไม่พบข้อมูลผู้ใช้หรือข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
+      throw new Error(
+        "ไม่พบข้อมูลผู้ใช้หรือข้อมูลการฝึกงานที่ได้รับการอนุมัติ"
+      );
     }
 
-    console.log(`[getInternshipSummary] Found user with student: ${userWithInternship.student?.studentCode}`);
 
     // ตรวจสอบว่ามีข้อมูลนักศึกษาหรือไม่
     if (!userWithInternship.student) {
-      console.log(`[getInternshipSummary] No student data found for userId: ${userId}`);
+      console.log(
+        `[getInternshipSummary] No student data found for userId: ${userId}`
+      );
       throw new Error("ไม่พบข้อมูลนักศึกษา");
     }
 
     // ดึงข้อมูล internship document ล่าสุด
     const latestDocument = userWithInternship.documents[0];
     const internshipDoc = latestDocument.internshipDocument;
-    
+
     if (!internshipDoc) {
       console.log(`[getInternshipSummary] No internship document found`);
       throw new Error("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
     }
 
-    console.log(`[getInternshipSummary] Found internship document ID: ${internshipDoc.internshipId}`);
-
     // ดึงข้อมูลบันทึกฝึกงาน (logbooks) ที่ได้จาก include
     const logbooks = internshipDoc.logbooks || [];
-    console.log(`[getInternshipSummary] Found ${logbooks.length} logbook entries`);
+    console.log(
+      `[getInternshipSummary] Found ${logbooks.length} logbook entries`
+    );
 
     // คำนวณสถิติต่างๆ
     const totalDays = logbooks.length;
@@ -623,42 +633,50 @@ class InternshipManagementService {
     // ดึงข้อมูลสรุปทักษะและความรู้ (Reflection) ด้วย field name ที่ถูกต้อง
     let learningOutcomes = "";
     let reflectionData = null;
-    
+
     try {
-      console.log(`[getInternshipSummary] Fetching reflection for student_id: ${userWithInternship.student.studentId}, internship_id: ${internshipDoc.internshipId}`);
-      
+      console.log(
+        `[getInternshipSummary] Fetching reflection for student_id: ${userWithInternship.student.studentId}, internship_id: ${internshipDoc.internshipId}`
+      );
+
       const reflectionEntry = await InternshipLogbookReflection.findOne({
         where: {
           student_id: userWithInternship.student.studentId, // ใช้ snake_case
-          internship_id: internshipDoc.internshipId,   // ใช้ snake_case
+          internship_id: internshipDoc.internshipId, // ใช้ snake_case
         },
         order: [["created_at", "DESC"]],
       });
 
       if (reflectionEntry) {
         console.log(`[getInternshipSummary] Found reflection entry`);
-        
+
         // รวมข้อมูล reflection หลายฟิลด์เป็น learning outcome
         const reflectionParts = [];
-        
+
         if (reflectionEntry.learning_outcome) {
-          reflectionParts.push(`ผลการเรียนรู้: ${reflectionEntry.learning_outcome}`);
+          reflectionParts.push(
+            `ผลการเรียนรู้: ${reflectionEntry.learning_outcome}`
+          );
         }
-        
+
         if (reflectionEntry.key_learnings) {
-          reflectionParts.push(`สิ่งที่ได้เรียนรู้: ${reflectionEntry.key_learnings}`);
+          reflectionParts.push(
+            `สิ่งที่ได้เรียนรู้: ${reflectionEntry.key_learnings}`
+          );
         }
-        
+
         if (reflectionEntry.future_application) {
-          reflectionParts.push(`การนำไปใช้ในอนาคต: ${reflectionEntry.future_application}`);
+          reflectionParts.push(
+            `การนำไปใช้ในอนาคต: ${reflectionEntry.future_application}`
+          );
         }
-        
+
         if (reflectionEntry.improvements) {
           reflectionParts.push(`ข้อเสนอแนะ: ${reflectionEntry.improvements}`);
         }
-        
-        learningOutcomes = reflectionParts.join('\n\n');
-        
+
+        learningOutcomes = reflectionParts.join("\n\n");
+
         reflectionData = {
           learningOutcome: reflectionEntry.learning_outcome || "",
           keyLearnings: reflectionEntry.key_learnings || "",
@@ -676,8 +694,9 @@ class InternshipManagementService {
     }
 
     // คำนวณข้อมูลชั้นปีโดยใช้ utility function
-    const yearInfo = calculateStudentYear(userWithInternship.student.studentCode);
-    console.log(`[getInternshipSummary] Calculated year info for ${userWithInternship.student.studentCode}:`, yearInfo);
+    const yearInfo = calculateStudentYear(
+      userWithInternship.student.studentCode
+    );
 
     // สร้างข้อมูลนักศึกษาสำหรับ PDF รวมข้อมูลชั้นปี
     const studentInfo = {
@@ -686,7 +705,9 @@ class InternshipManagementService {
       firstName: userWithInternship.firstName,
       lastName: userWithInternship.lastName,
       email: userWithInternship.email,
-      phoneNumber: userWithInternship.phoneNumber || userWithInternship.student.phoneNumber,
+      phoneNumber:
+        userWithInternship.phoneNumber ||
+        userWithInternship.student.phoneNumber,
       totalCredits: userWithInternship.student.totalCredits,
       classroom: userWithInternship.student.classroom,
       department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
@@ -698,8 +719,6 @@ class InternshipManagementService {
       statusLabel: yearInfo.error ? "ไม่ระบุสถานะ" : yearInfo.statusLabel,
       academicYear: getCurrentAcademicYear(),
     };
-
-    console.log(`[getInternshipSummary] Returning summary data with ${totalDays} days, ${totalHours} hours`);
 
     return {
       documentId: latestDocument.documentId,
@@ -2093,7 +2112,6 @@ class InternshipManagementService {
       // 3. ลบข้อมูลจากฐานข้อมูล
       await acceptanceDocument.destroy({ transaction });
 
-
       await transaction.commit();
 
       return {
@@ -2504,6 +2522,544 @@ class InternshipManagementService {
       console.error("Mark Referral Letter Downloaded Service Error:", error);
       throw error;
     }
+  }
+
+  // ============= Certificate Management =============
+
+  /**
+   * ตรวจสอบสถานะหนังสือรับรองการฝึกงาน
+   */
+  async getCertificateStatus(userId) {
+    try {
+      console.log(
+        `[getCertificateStatus] Checking certificate status for userId: ${userId}`
+      );
+
+      // ดึงข้อมูลนักศึกษา
+      const student = await Student.findOne({
+        where: { userId },
+        attributes: ["studentId", "studentCode"],
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["firstName", "lastName", "email"],
+          },
+        ],
+      });
+
+      if (!student) {
+        throw new Error("ไม่พบข้อมูลนักศึกษา");
+      }
+
+      // ตรวจสอบเอกสาร CS05 ที่ได้รับการอนุมัติ
+      const cs05Document = await Document.findOne({
+        where: {
+          userId,
+          documentName: "CS05",
+          status: ["approved", "supervisor_evaluated"],
+        },
+        include: [
+          {
+            model: InternshipDocument,
+            as: "internshipDocument",
+            required: true,
+          },
+        ],
+        order: [["created_at", "DESC"]],
+      });
+
+      if (!cs05Document) {
+        throw new Error("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
+      }
+
+      // ตรวจสอบชั่วโมงฝึกงาน
+      const logbooks = await InternshipLogbook.findAll({
+        where: {
+          studentId: student.studentId,
+          internshipId: cs05Document.internshipDocument.internshipId,
+        },
+      });
+
+      const totalHours = logbooks.reduce(
+        (sum, log) => sum + parseFloat(log.workHours || 0),
+        0
+      );
+
+      // ตรวจสอบการประเมินจากพี่เลี้ยง
+      const supervisorEvaluation = await InternshipEvaluation.findOne({
+        where: {
+          studentId: student.studentId,
+          internshipId: cs05Document.internshipDocument.internshipId,
+        },
+      });
+
+      // ตรวจสอบรายงานสรุปผล
+      const reflection = await InternshipLogbookReflection.findOne({
+        where: {
+          student_id: student.studentId,
+          internship_id: cs05Document.internshipDocument.internshipId,
+        },
+      });
+
+      // ตรวจสอบคำขอหนังสือรับรอง
+      const certificateRequest = await InternshipCertificateRequest.findOne({
+        where: {
+          studentId: student.studentId,
+          internshipId: cs05Document.internshipDocument.internshipId,
+        },
+        order: [["created_at", "DESC"]],
+      });
+
+      // คำนวณสถานะ
+      const isHoursComplete = totalHours >= 240;
+      const isEvaluationComplete = !!supervisorEvaluation;
+      const isSummarySubmitted = !!reflection;
+      const canRequestCertificate =
+        isHoursComplete && isEvaluationComplete && isSummarySubmitted;
+
+      let certificateStatus = "not_requested";
+      if (certificateRequest) {
+        if (certificateRequest.status === "approved") {
+          certificateStatus = "ready";
+        } else if (certificateRequest.status === "pending") {
+          certificateStatus = "pending";
+        }
+      }
+
+      const result = {
+        // สถานะโดยรวม
+        status: certificateStatus,
+        canRequestCertificate:
+          canRequestCertificate && certificateStatus === "not_requested",
+
+        // ข้อมูลการตรวจสอบเงื่อนไข
+        requirements: {
+          totalHours: {
+            current: totalHours,
+            required: 240,
+            completed: isHoursComplete,
+          },
+          supervisorEvaluation: {
+            completed: isEvaluationComplete,
+            evaluationDate: supervisorEvaluation?.created_at || null,
+          },
+          summarySubmission: {
+            completed: isSummarySubmitted,
+            submissionDate: reflection?.created_at || null,
+          },
+        },
+
+        // ข้อมูลคำขอ
+        certificateRequest: certificateRequest
+          ? {
+              requestId: certificateRequest.id,
+              requestDate: certificateRequest.created_at,
+              status: certificateRequest.status,
+              processedDate: certificateRequest.processed_at,
+              processedBy: certificateRequest.processed_by,
+            }
+          : null,
+
+        // ข้อมูลนักศึกษา
+        studentInfo: {
+          studentId: student.studentCode,
+          fullName: `${student.user.firstName} ${student.user.lastName}`,
+          email: student.user.email,
+        },
+      };
+
+      console.log(`[getCertificateStatus] Status check completed:`, {
+        status: certificateStatus,
+        canRequest: canRequestCertificate,
+        totalHours,
+        hasEvaluation: isEvaluationComplete,
+        hasSummary: isSummarySubmitted,
+      });
+
+      return result;
+    } catch (error) {
+      console.error(`[getCertificateStatus] Error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * ส่งคำขอหนังสือรับรองการฝึกงาน
+   */
+  async submitCertificateRequest(userId, requestData) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      console.log(
+        `[submitCertificateRequest] Processing request for userId: ${userId}`
+      );
+
+      // ตรวจสอบสถานะปัจจุบัน
+      const currentStatus = await this.getCertificateStatus(userId);
+
+      if (!currentStatus.canRequestCertificate) {
+        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน");
+      }
+
+      // ดึงข้อมูลนักศึกษาและเอกสาร CS05
+      const student = await Student.findOne({
+        where: { userId },
+        attributes: ["studentId", "studentCode"],
+        transaction,
+      });
+
+      const cs05Document = await Document.findOne({
+        where: {
+          userId,
+          documentName: "CS05",
+          status: ["approved", "supervisor_evaluated"],
+        },
+        include: [
+          {
+            model: InternshipDocument,
+            as: "internshipDocument",
+            required: true,
+          },
+        ],
+        order: [["created_at", "DESC"]],
+        transaction,
+      });
+
+      // สร้างคำขอหนังสือรับรอง
+      const certificateRequest = await InternshipCertificateRequest.create(
+        {
+          studentId: student.studentId,
+          internshipId: cs05Document.internshipDocument.internshipId,
+          documentId: cs05Document.documentId,
+          requestDate: new Date(requestData.requestDate),
+          status: "pending",
+          totalHours:
+            requestData.totalHours ||
+            currentStatus.requirements.totalHours.current,
+          evaluationStatus: requestData.evaluationStatus || "completed",
+          summaryStatus: requestData.summaryStatus || "submitted",
+          requestedBy: userId,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      console.log(
+        `[submitCertificateRequest] Certificate request created successfully:`,
+        {
+          requestId: certificateRequest.id,
+          studentId: student.studentCode,
+          status: "pending",
+        }
+      );
+
+      return {
+        requestId: certificateRequest.id,
+        status: "pending",
+        requestDate: certificateRequest.requestDate,
+        message: "ส่งคำขอหนังสือรับรองการฝึกงานเรียบร้อยแล้ว",
+        estimatedProcessingDays: "3-5 วันทำการ",
+      };
+    } catch (error) {
+      await transaction.rollback();
+      console.error(`[submitCertificateRequest] Error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดาวน์โหลดหนังสือรับรองการฝึกงาน
+   */
+  async downloadCertificate(userId) {
+    try {
+      console.log(
+        `[downloadCertificate] Generating certificate for userId: ${userId}`
+      );
+
+      // ตรวจสอบสถานะหนังสือรับรอง
+      const status = await this.getCertificateStatus(userId);
+
+      if (status.status !== "ready") {
+        throw new Error(
+          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
+        );
+      }
+
+      // ดึงข้อมูลสำหรับสร้างหนังสือรับรอง
+      const certificateData = await this.getCertificateData(userId);
+
+      // สร้าง PDF โดยใช้ service ที่มีอยู่
+      const pdfBuffer = await this.generateCertificatePDF(certificateData);
+
+      const filename = `หนังสือรับรองการฝึกงาน-${
+        certificateData.studentInfo.studentId
+      }-${new Date().toISOString().split("T")[0]}.pdf`;
+
+      // อัปเดตสถานะการดาวน์โหลด
+      await this.markCertificateDownloaded(userId);
+
+      console.log(
+        `[downloadCertificate] Certificate generated successfully for ${certificateData.studentInfo.studentId}`
+      );
+
+      return {
+        pdfBuffer,
+        filename,
+        downloadDate: new Date(),
+      };
+    } catch (error) {
+      console.error(`[downloadCertificate] Error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * แสดงตัวอย่างหนังสือรับรองการฝึกงาน
+   */
+  async previewCertificate(userId) {
+    try {
+      console.log(
+        `[previewCertificate] Generating preview for userId: ${userId}`
+      );
+
+      // ตรวจสอบสถานะหนังสือรับรอง
+      const status = await this.getCertificateStatus(userId);
+
+      if (status.status !== "ready") {
+        throw new Error(
+          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
+        );
+      }
+
+      // ดึงข้อมูลสำหรับสร้างหนังสือรับรอง
+      const certificateData = await this.getCertificateData(userId);
+
+      // สร้าง PDF โดยใช้ service ที่มีอยู่
+      const pdfBuffer = await this.generateCertificatePDF(certificateData);
+
+      const filename = `ตัวอย่าง-หนังสือรับรองการฝึกงาน-${certificateData.studentInfo.studentId}.pdf`;
+
+      console.log(
+        `[previewCertificate] Preview generated successfully for ${certificateData.studentInfo.studentId}`
+      );
+
+      return {
+        pdfBuffer,
+        filename,
+        isPreview: true,
+      };
+    } catch (error) {
+      console.error(`[previewCertificate] Error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึงข้อมูลสำหรับสร้างหนังสือรับรอง
+   */
+  async getCertificateData(userId) {
+    try {
+      // ดึงข้อมูลแบบเดียวกับ getInternshipSummary แต่เพิ่มข้อมูลสำหรับหนังสือรับรอง
+      const summaryData = await this.getInternshipSummary(userId);
+
+      // ดึงข้อมูลการประเมินจากพี่เลี้ยง
+      const student = await Student.findOne({
+        where: { userId },
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["firstName", "lastName", "email"],
+          },
+        ],
+      });
+
+      const evaluation = await InternshipEvaluation.findOne({
+        where: {
+          studentId: student.studentId,
+        },
+        order: [["created_at", "DESC"]],
+      });
+
+      // รวมข้อมูลสำหรับหนังสือรับรอง
+      const certificateData = {
+        ...summaryData,
+        evaluationData: evaluation
+          ? {
+              overallRating: evaluation.overall_rating,
+              workQuality: evaluation.work_quality_rating,
+              workAttitude: evaluation.work_attitude_rating,
+              punctuality: evaluation.punctuality_rating,
+              responsibility: evaluation.responsibility_rating,
+              teamwork: evaluation.teamwork_rating,
+              learningAbility: evaluation.learning_ability_rating,
+              comments: evaluation.supervisor_comments,
+              evaluationDate: evaluation.created_at,
+            }
+          : null,
+        certificateInfo: {
+          issueDate: new Date(),
+          certificateNumber: this.generateCertificateNumber(
+            student.studentCode
+          ),
+          validityPeriod: "ไม่มีกำหนดหมดอายุ",
+          purpose:
+            "เพื่อใช้เป็นหลักฐานการฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        },
+      };
+
+      return certificateData;
+    } catch (error) {
+      console.error(`[getCertificateData] Error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * สร้างหมายเลขหนังสือรับรอง
+   */
+  generateCertificateNumber(studentCode) {
+    const year = new Date().getFullYear() + 543; // พ.ศ.
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    const studentYear = studentCode.substring(0, 2);
+
+    return `อว 7105(16)/${studentYear}${month}${year.toString().slice(-2)}`;
+  }
+
+  /**
+   * สร้าง PDF หนังสือรับรอง
+   */
+  async generateCertificatePDF(certificateData) {
+    try {
+      // ใช้ PDF generation service แบบเดียวกับระบบที่มีอยู่
+      const PDFDocument = require("pdfkit");
+      const doc = new PDFDocument();
+
+      // เพิ่ม content ของหนังสือรับรอง
+      doc
+        .fontSize(18)
+        .text("หนังสือรับรองการฝึกงาน", 50, 100, { align: "center" });
+
+      doc
+        .fontSize(14)
+        .text(
+          `เลขที่ ${certificateData.certificateInfo.certificateNumber}`,
+          50,
+          150
+        )
+        .text(
+          `วันที่ ${this.formatThaiDate(
+            certificateData.certificateInfo.issueDate
+          )}`,
+          50,
+          180
+        );
+
+      doc
+        .text(`มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ ขอรับรองว่า`, 50, 220)
+        .text(
+          `${certificateData.studentInfo.fullName} รหัสนักศึกษา ${certificateData.studentInfo.studentId}`,
+          50,
+          250
+        )
+        .text(
+          `ได้เข้าฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ`,
+          50,
+          280
+        )
+        .text(`ณ ${certificateData.companyName}`, 50, 310)
+        .text(
+          `ระหว่างวันที่ ${this.formatThaiDate(
+            certificateData.startDate
+          )} ถึง ${this.formatThaiDate(certificateData.endDate)}`,
+          50,
+          340
+        )
+        .text(
+          `รวม ${certificateData.totalHours} ชั่วโมง (${certificateData.totalDays} วัน)`,
+          50,
+          370
+        );
+
+      doc
+        .text(`ออกให้ ณ วันที่ ${this.formatThaiDate(new Date())}`, 50, 450)
+        .text("ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา", 350, 500)
+        .text("หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", 300, 520);
+
+      doc.end();
+
+      // แปลง stream เป็น buffer
+      const chunks = [];
+      return new Promise((resolve, reject) => {
+        doc.on("data", (chunk) => chunks.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(chunks)));
+        doc.on("error", reject);
+      });
+    } catch (error) {
+      console.error(`[generateCertificatePDF] Error:`, error);
+      throw new Error("ไม่สามารถสร้างหนังสือรับรองได้");
+    }
+  }
+
+  /**
+   * อัปเดตสถานะการดาวน์โหลดหนังสือรับรอง
+   */
+  async markCertificateDownloaded(userId) {
+    try {
+      const student = await Student.findOne({
+        where: { userId },
+        attributes: ["studentId"],
+      });
+
+      await InternshipCertificateRequest.update(
+        {
+          downloadedAt: new Date(),
+          downloadCount: sequelize.literal("download_count + 1"),
+        },
+        {
+          where: {
+            studentId: student.studentId,
+            status: "approved",
+          },
+        }
+      );
+
+      console.log(
+        `[markCertificateDownloaded] Download status updated for studentId: ${student.studentId}`
+      );
+    } catch (error) {
+      console.error(`[markCertificateDownloaded] Error:`, error);
+      // ไม่ throw error เพราะไม่ใช่ขั้นตอนที่สำคัญมาก
+    }
+  }
+
+  /**
+   * จัดรูปแบบวันที่แบบไทย
+   */
+  formatThaiDate(date) {
+    const thaiMonths = [
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
+    ];
+
+    const d = new Date(date);
+    const day = d.getDate();
+    const month = thaiMonths[d.getMonth()];
+    const year = d.getFullYear() + 543;
+
+    return `${day} ${month} พ.ศ. ${year}`;
   }
 }
 

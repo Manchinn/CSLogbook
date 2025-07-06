@@ -300,6 +300,148 @@ const downloadDocument = async (req, res) => {
     }
 };
 
+// ============= Certificate Management for Admin =============
+
+/**
+ * ดึงรายการคำขอหนังสือรับรองทั้งหมด (สำหรับ Admin)
+ */
+const getCertificateRequests = async (req, res) => {
+    try {
+        const { page, limit, status, studentId } = req.query;
+        
+        const filters = { status, studentId };
+        const pagination = { page, limit };
+        
+        const result = await documentService.getCertificateRequests(filters, pagination);
+        
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        logger.error('Error fetching certificate requests:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'ไม่สามารถดึงข้อมูลคำขอได้',
+        });
+    }
+};
+
+/**
+ * อนุมัติคำขอหนังสือรับรอง (สำหรับ Admin)
+ */
+const approveCertificateRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { certificateNumber } = req.body;
+        const processorId = req.user.userId;
+
+        const result = await documentService.approveCertificateRequest(
+            requestId, 
+            processorId, 
+            certificateNumber
+        );
+
+        res.json({
+            success: true,
+            message: 'อนุมัติคำขอหนังสือรับรองเรียบร้อยแล้ว',
+            data: result,
+        });
+    } catch (error) {
+        logger.error('Error approving certificate request:', error);
+        
+        const statusCode = error.message.includes('ไม่พบ') ? 404 :
+                          error.message.includes('ได้รับการดำเนินการแล้ว') ? 400 : 500;
+        
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || 'ไม่สามารถอนุมัติคำขอได้',
+        });
+    }
+};
+
+/**
+ * ปฏิเสธคำขอหนังสือรับรอง (สำหรับ Admin)
+ */
+const rejectCertificateRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { remarks } = req.body;
+        const processorId = req.user.userId;
+
+        const result = await documentService.rejectCertificateRequest(
+            requestId, 
+            processorId, 
+            remarks
+        );
+
+        res.json({
+            success: true,
+            message: 'ปฏิเสธคำขอเรียบร้อยแล้ว',
+            data: result,
+        });
+    } catch (error) {
+        logger.error('Error rejecting certificate request:', error);
+        
+        const statusCode = error.message.includes('ไม่พบ') ? 404 :
+                          error.message.includes('ได้รับการดำเนินการแล้ว') ? 400 : 500;
+        
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || 'ไม่สามารถปฏิเสธคำขอได้',
+        });
+    }
+};
+
+/**
+ * ดาวน์โหลดหนังสือรับรองสำหรับ Admin
+ */
+const downloadCertificateForAdmin = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+
+        const pdfBuffer = await documentService.generateCertificatePDF(requestId);
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="certificate-${requestId}.pdf"`);
+        res.send(pdfBuffer);
+
+    } catch (error) {
+        logger.error('Error downloading certificate:', error);
+        
+        const statusCode = error.message.includes('ไม่พบ') ? 404 :
+                          error.message.includes('ยังไม่ได้รับการอนุมัติ') ? 400 : 500;
+        
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || 'ไม่สามารถดาวน์โหลดหนังสือรับรองได้',
+        });
+    }
+};
+
+/**
+ * ส่งการแจ้งเตือนให้นักศึกษา
+ */
+const notifyStudent = async (req, res) => {
+    try {
+        const { studentId, type, status, certificateNumber, remarks } = req.body;
+
+        // TODO: ส่งการแจ้งเตือนผ่านระบบ notification
+        // สามารถใช้ email service หรือ in-app notification
+        
+        res.json({
+            success: true,
+            message: 'ส่งการแจ้งเตือนเรียบร้อยแล้ว',
+        });
+    } catch (error) {
+        logger.error('Error sending notification:', error);
+        res.status(500).json({
+            success: false,
+            message: 'ไม่สามารถส่งการแจ้งเตือนได้',
+        });
+    }
+};
+
 module.exports = {
     uploadDocument,
     getDocumentById,
@@ -310,5 +452,12 @@ module.exports = {
     searchDocuments,
     getRecentDocuments,
     viewDocument, // เพิ่มฟังก์ชัน viewDocument ที่นี่
-    downloadDocument // เพิ่มฟังก์ชัน downloadDocument ที่นี่
+    downloadDocument, // เพิ่มฟังก์ชัน downloadDocument ที่นี่
+
+    // ✅ เพิ่มฟังก์ชันใหม่สำหรับ Certificate Management
+    getCertificateRequests,
+    approveCertificateRequest,
+    rejectCertificateRequest,
+    downloadCertificateForAdmin,
+    notifyStudent,
 };
