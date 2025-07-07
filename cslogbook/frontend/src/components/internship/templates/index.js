@@ -8,32 +8,34 @@ import StudentSummaryTemplate from './StudentSummaryTemplate';
 import CompanyInfoTemplate from './CompanyInfoTemplate';
 import ReferralLetterTemplate from './ReferralLetterTemplate'; // 🆕
 import InternshipLogbookTemplate from './InternshipLogbookTemplate'; // 🆕
+import CertificateTemplate from './CertificateTemplate'; // ✅ เพิ่มใหม่
 
 // Import styles
 import { PDFStyles } from './styles';
 
 // Export แบบ named exports สำหรับแต่ละ template
-export { CS05PDFTemplate };
-export { OfficialLetterTemplate };
-export { AcceptanceLetterTemplate }; // 🆕 เพิ่มใหม่
-export { StudentSummaryTemplate };
-export { CompanyInfoTemplate };
-export { ReferralLetterTemplate }; // 🆕
-export { InternshipLogbookTemplate }; // 🆕
+export { default as CS05PDFTemplate } from './CS05PDFTemplate';
+export { default as OfficialLetterTemplate } from './OfficialLetterTemplate';
+export { default as AcceptanceLetterTemplate } from './AcceptanceLetterTemplate';
+export { default as ReferralLetterTemplate } from './ReferralLetterTemplate';
+export { default as InternshipLogbookTemplate } from './InternshipLogbookTemplate';
+export { default as StudentSummaryTemplate } from './StudentSummaryTemplate';
+export { default as CompanyInfoTemplate } from './CompanyInfoTemplate';
+export { default as CertificateTemplate } from './CertificateTemplate'; // ✅ เพิ่มใหม่
 
 // Export styles
 export * from './styles';
-export { PDFStyles };
 
 // Export แบบ grouped object
 export const PDFTemplates = {
   CS05: CS05PDFTemplate,
   OfficialLetter: OfficialLetterTemplate,
   AcceptanceLetter: AcceptanceLetterTemplate,
-  ReferralLetter: ReferralLetterTemplate, // 🆕
-  InternshipLogbook: InternshipLogbookTemplate, // 🆕
+  ReferralLetter: ReferralLetterTemplate,
+  InternshipLogbook: InternshipLogbookTemplate,
   StudentSummary: StudentSummaryTemplate,
-  CompanyInfo: CompanyInfoTemplate
+  CompanyInfo: CompanyInfoTemplate,
+  Certificate: CertificateTemplate, // ✅ เพิ่มใหม่
 };
 
 // Export default สำหรับการใช้งานทั่วไป
@@ -46,10 +48,11 @@ export default {
   InternshipLogbookTemplate, // 🆕
   StudentSummaryTemplate,
   CompanyInfoTemplate,
-  
+  CertificateTemplate, // ✅ เพิ่มใหม่
+
   // Templates แบบ grouped
   Templates: PDFTemplates,
-  
+
   // Styles
   Styles: PDFStyles
 };

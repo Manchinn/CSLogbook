@@ -9,6 +9,7 @@ import {
   AcceptanceLetterTemplate,
   ReferralLetterTemplate, // 🆕 เพิ่ม import
   InternshipLogbookTemplate, // 🆕 เพิ่ม import
+  CertificateTemplate,
 } from "../../components/internship/templates";
 
 class OfficialDocumentService {
@@ -374,21 +375,22 @@ class OfficialDocumentService {
       // 🆕 พยายามหา userInfo จาก localStorage หรือแหล่งอื่น
       let userInfo = null;
       try {
-        const cachedUserInfo = localStorage.getItem('userInfo');
+        const cachedUserInfo = localStorage.getItem("userInfo");
         if (cachedUserInfo) {
           userInfo = JSON.parse(cachedUserInfo);
-          console.log('📦 Found userInfo for logbook:', userInfo);
+          console.log("📦 Found userInfo for logbook:", userInfo);
         }
       } catch (error) {
-        console.warn('⚠️ Could not load userInfo from localStorage:', error);
+        console.warn("⚠️ Could not load userInfo from localStorage:", error);
       }
 
       // เตรียมข้อมูลสำหรับ template
-      const preparedData = this.templateDataService.prepareInternshipLogbookData(
-        logbookData, 
-        null, // summaryData
-        userInfo // userInfo จาก localStorage
-      );
+      const preparedData =
+        this.templateDataService.prepareInternshipLogbookData(
+          logbookData,
+          null, // summaryData
+          userInfo // userInfo จาก localStorage
+        );
 
       if (!preparedData) {
         throw new Error("ไม่สามารถเตรียมข้อมูลสำหรับบันทึกฝึกงานได้");
@@ -450,19 +452,20 @@ class OfficialDocumentService {
       // 🆕 พยายามหา userInfo จาก localStorage
       let userInfo = null;
       try {
-        const cachedUserInfo = localStorage.getItem('userInfo');
+        const cachedUserInfo = localStorage.getItem("userInfo");
         if (cachedUserInfo) {
           userInfo = JSON.parse(cachedUserInfo);
         }
       } catch (error) {
-        console.warn('⚠️ Could not load userInfo for preview:', error);
+        console.warn("⚠️ Could not load userInfo for preview:", error);
       }
 
-      const preparedData = this.templateDataService.prepareInternshipLogbookData(
-        logbookData,
-        null, // summaryData
-        userInfo // userInfo จาก localStorage
-      );
+      const preparedData =
+        this.templateDataService.prepareInternshipLogbookData(
+          logbookData,
+          null, // summaryData
+          userInfo // userInfo จาก localStorage
+        );
 
       const template = InternshipLogbookTemplate({
         logbookData: preparedData.logEntries,
@@ -519,14 +522,14 @@ class OfficialDocumentService {
           // พยายามหา userInfo จาก localStorage
           let userInfoForLogbook = null;
           try {
-            const cachedUserInfo = localStorage.getItem('userInfo');
+            const cachedUserInfo = localStorage.getItem("userInfo");
             if (cachedUserInfo) {
               userInfoForLogbook = JSON.parse(cachedUserInfo);
             }
           } catch (error) {
-            console.warn('⚠️ Could not load userInfo for logbook case:', error);
+            console.warn("⚠️ Could not load userInfo for logbook case:", error);
           }
-          
+
           preparedData = this.templateDataService.prepareInternshipLogbookData(
             data,
             null, // summaryData
@@ -560,6 +563,248 @@ class OfficialDocumentService {
       console.error(`Error previewing PDF ${templateType}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * ✅ สร้าง PDF หนังสือรับรองการฝึกงาน (แก้ไขแล้ว)
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
+   * @param {Object} options - ตัวเลือกเพิ่มเติม
+   */
+  async generateCertificatePDF(certificateData, options = {}) {
+    try {
+      // ตรวจสอบว่า pdfService พร้อมใช้งาน
+      if (!this.pdfService) {
+        throw new Error("PDF Service ไม่พร้อมใช้งาน");
+      }
+
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างหนังสือรับรอง");
+      }
+
+      console.log("🎓 สร้างหนังสือรับรองการฝึกงาน:", certificateData);
+
+      // เตรียมข้อมูลสำหรับ template
+      const preparedData = this.prepareCertificateData(certificateData);
+
+      if (!preparedData) {
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้");
+      }
+
+      // ✅ แก้ไข: ใช้ this.pdfService.generateFileName แทน this.pdf.generateFileName
+      const studentName = preparedData.studentInfo?.fullName || "นักศึกษา";
+      const filename = this.pdfService.generateFileName(
+        "certificate",
+        studentName
+      );
+
+      // ✅ แก้ไข: ใช้ CertificateTemplate แทน this.createCertificateTemplate
+      const template = CertificateTemplate({
+        data: preparedData,
+        isPreview: false,
+      });
+
+      // ✅ แก้ไข: ใช้ this.pdfService.generateAndDownload แทน this.downloadPDF
+      await this.pdfService.generateAndDownload(template, filename);
+
+      // 🔒 บันทึกข้อมูลไปยัง Server (ปิดชั่วคราว)
+      if (options.saveToServer !== false && this.enableServerRecording) {
+        try {
+          await this.savePDFRecord("CERTIFICATE", preparedData, filename);
+        } catch (recordError) {
+          console.warn(
+            "📝 PDF record save failed (but PDF generation succeeded):",
+            recordError.message
+          );
+        }
+      } else if (!this.enableServerRecording) {
+        console.info(
+          "ℹ️ PDF record saving is disabled. Enable by setting enableServerRecording = true"
+        );
+      }
+
+      console.log(`✅ Certificate PDF generated: ${filename}`);
+      return { success: true, filename, data: preparedData };
+    } catch (error) {
+      console.error("Error generating Certificate PDF:", error);
+      throw new Error(`ไม่สามารถสร้างหนังสือรับรองได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * ✅ แสดง Preview หนังสือรับรองการฝึกงาน (แก้ไขแล้ว)
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
+   */
+  async previewCertificatePDF(certificateData) {
+    try {
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลสำหรับแสดงตัวอย่างหนังสือรับรอง");
+      }
+
+      console.log("👀 สร้างตัวอย่างหนังสือรับรอง:", certificateData);
+
+      // เตรียมข้อมูล
+      const preparedData = this.prepareCertificateData(certificateData);
+
+      if (!preparedData) {
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้");
+      }
+
+      // ✅ แก้ไข: ใช้ CertificateTemplate พร้อม watermark
+      const template = CertificateTemplate({
+        data: preparedData,
+        isPreview: true,
+      });
+
+      // ✅ แก้ไข: ใช้ this.pdfService.previewPDF แทน this.previewPDF
+      await this.pdfService.previewPDF(template);
+
+      console.log(`👁️ Certificate preview opened`);
+      return { success: true };
+    } catch (error) {
+      console.error("Error previewing Certificate:", error);
+      throw new Error(
+        `ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * 🆕 เตรียมข้อมูลสำหรับหนังสือรับรองการฝึกงาน
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
+   * @returns {Object} ข้อมูลที่เตรียมแล้วสำหรับ CertificateTemplate
+   */
+  prepareCertificateData(certificateData) {
+    try {
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลหนังสือรับรอง");
+      }
+
+      // เตรียมข้อมูลตามโครงสร้างที่ CertificateTemplate ต้องการ
+      const preparedData = {
+        // ข้อมูลเอกสาร
+        documentInfo: {
+          certificateNumber:
+            certificateData.certificateNumber ||
+            this.generateCertificateNumber(),
+          issueDate: certificateData.issueDate || new Date(),
+          documentDate: certificateData.documentDate || new Date(),
+          validityPeriod: "ไม่มีกำหนดหมดอายุ",
+          purpose:
+            certificateData.purpose ||
+            "เพื่อใช้เป็นหลักฐานการฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        },
+
+        // ข้อมูลนักศึกษา
+        studentInfo: {
+          studentId:
+            certificateData.studentInfo?.studentId || certificateData.studentId,
+          firstName:
+            certificateData.studentInfo?.firstName || certificateData.firstName,
+          lastName:
+            certificateData.studentInfo?.lastName || certificateData.lastName,
+          fullName:
+            certificateData.studentInfo?.fullName ||
+            `${certificateData.firstName || ""} ${
+              certificateData.lastName || ""
+            }`.trim(),
+          yearLevel:
+            certificateData.studentInfo?.yearLevel || certificateData.yearLevel,
+          classroom:
+            certificateData.studentInfo?.classroom || certificateData.classroom,
+          department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          faculty: "คณะวิทยาศาสตร์ประยุกต์",
+          university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        },
+
+        // ข้อมูลบริษัทและการฝึกงาน
+        internshipInfo: {
+          companyName:
+            certificateData.companyName ||
+            certificateData.internshipInfo?.companyName,
+          companyAddress:
+            certificateData.companyAddress ||
+            certificateData.internshipInfo?.companyAddress,
+          startDate:
+            certificateData.startDate ||
+            certificateData.internshipInfo?.startDate,
+          endDate:
+            certificateData.endDate || certificateData.internshipInfo?.endDate,
+          totalDays:
+            certificateData.totalDays ||
+            certificateData.internshipInfo?.totalDays,
+          totalHours:
+            certificateData.totalHours ||
+            certificateData.internshipInfo?.totalHours,
+          supervisorName:
+            certificateData.supervisorName ||
+            certificateData.internshipInfo?.supervisorName,
+          supervisorPosition:
+            certificateData.supervisorPosition ||
+            certificateData.internshipInfo?.supervisorPosition,
+          supervisorPhone:
+            certificateData.supervisorPhone ||
+            certificateData.internshipInfo?.supervisorPhone,
+          supervisorEmail:
+            certificateData.supervisorEmail ||
+            certificateData.internshipInfo?.supervisorEmail,
+        },
+
+        // ข้อมูลการประเมิน (ถ้ามี)
+        evaluationInfo: certificateData.evaluationInfo || null,
+
+        // ข้อมูลผู้อนุมัติ
+        approvalInfo: {
+          approvedBy:
+            certificateData.approvedBy || "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
+          approverTitle:
+            certificateData.approverTitle ||
+            "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          approvedDate: certificateData.approvedDate || new Date(),
+          departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+          universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        },
+
+        // Metadata สำหรับ PDF
+        metadata: {
+          templateType: "certificate",
+          fileName: `หนังสือรับรองการฝึกงาน-${
+            certificateData.studentInfo?.studentId || certificateData.studentId
+          }`,
+          title: "หนังสือรับรองการฝึกงาน",
+          subject: `หนังสือรับรองการฝึกงาน - ${
+            certificateData.studentInfo?.fullName || certificateData.fullName
+          }`,
+          author: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          keywords: ["หนังสือรับรอง", "การฝึกงาน", "วิทยาการคอมพิวเตอร์"],
+        },
+      };
+
+      console.log("✅ Certificate data prepared successfully");
+      return preparedData;
+    } catch (error) {
+      console.error("❌ Error preparing certificate data:", error);
+      throw new Error(
+        `ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * 🆕 สร้างหมายเลขหนังสือรับรอง
+   * @returns {string} หมายเลขหนังสือรับรอง
+   */
+  generateCertificateNumber() {
+    const year = new Date().getFullYear() + 543; // พ.ศ.
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    const random = Math.floor(Math.random() * 999)
+      .toString()
+      .padStart(3, "0");
+
+    return `อว 7105(16)/${month}${year.toString().slice(-2)}-${random}`;
   }
 
   /**
@@ -601,6 +846,10 @@ class OfficialDocumentService {
                 doc.data,
                 options
               );
+              break;
+            // 🆕 เพิ่ม case สำหรับ CERTIFICATE
+            case "CERTIFICATE":
+              result = await this.generateCertificatePDF(doc.data, options);
               break;
             case "STUDENT_SUMMARY":
               result = await this.generateStudentSummaryPDF(doc.data, options);
@@ -751,12 +1000,13 @@ class OfficialDocumentService {
         "CS05",
         "OFFICIAL_LETTER",
         "ACCEPTANCE_LETTER",
-        "REFERRAL_LETTER", // 🆕 เพิ่มใหม่
+        "REFERRAL_LETTER",
+        "CERTIFICATE", // 🆕 เพิ่มใหม่
         "INTERNSHIP_LOGBOOK",
         "STUDENT_SUMMARY",
         "COMPANY_INFO",
       ],
-      serviceVersion: "1.6.0", // อัปเดตเวอร์ชัน
+      serviceVersion: "1.7.0", // อัปเดตเวอร์ชัน
       recordingStatus: this.getRecordingStatus(),
     };
   }

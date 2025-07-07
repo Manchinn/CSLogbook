@@ -593,7 +593,6 @@ class InternshipManagementService {
       );
     }
 
-
     // ตรวจสอบว่ามีข้อมูลนักศึกษาหรือไม่
     if (!userWithInternship.student) {
       console.log(
@@ -2524,11 +2523,473 @@ class InternshipManagementService {
     }
   }
 
-  // ============= Certificate Management =============
+  // ============= Certificate Management (ปรับปรุงใหม่) =============
 
   /**
-   * ตรวจสอบสถานะหนังสือรับรองการฝึกงาน
+   * ✅ ปรับปรุง previewCertificatePDF ให้ดีขึ้น
    */
+  async previewCertificatePDF(userId) {
+    try {
+      console.log(`[previewCertificatePDF] Starting for userId: ${userId}`);
+
+      // 1. ตรวจสอบสถานะหนังสือรับรอง
+      const certificateStatus = await this.getCertificateStatus(userId);
+
+      if (certificateStatus.status !== "ready") {
+        const error = new Error(
+          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
+        );
+        error.statusCode = 409; // Conflict
+        throw error;
+      }
+
+      // 2. ดึงข้อมูลสำหรับสร้าง PDF
+      const certificateData = await this.getCertificateData(userId);
+
+      // 3. สร้าง PDF โดยใช้ PDFKit
+      const pdfBuffer = await this.createCertificatePDF(certificateData);
+
+      console.log(
+        `[previewCertificatePDF] PDF generated successfully for userId: ${userId}`
+      );
+
+      return {
+        pdfBuffer,
+        fileName: `ตัวอย่างหนังสือรับรอง-${certificateData.studentInfo.studentId}.pdf`,
+        contentType: "application/pdf",
+        metadata: {
+          userId,
+          studentName: certificateData.studentInfo.fullName,
+          generateDate: new Date(),
+          type: "preview",
+        },
+      };
+    } catch (error) {
+      console.error(`[previewCertificatePDF] Error:`, error);
+      // เพิ่ม statusCode ถ้ายังไม่มี
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * ✅ ปรับปรุง downloadCertificatePDF ให้ดีขึ้น
+   */
+  async downloadCertificatePDF(userId) {
+    try {
+      console.log(`[downloadCertificatePDF] Starting for userId: ${userId}`);
+
+      // 1. ตรวจสอบสถานะหนังสือรับรอง
+      const certificateStatus = await this.getCertificateStatus(userId);
+
+      if (certificateStatus.status !== "ready") {
+        const error = new Error(
+          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
+        );
+        error.statusCode = 409; // Conflict
+        throw error;
+      }
+
+      // 2. ดึงข้อมูลสำหรับสร้าง PDF
+      const certificateData = await this.getCertificateData(userId);
+
+      // 3. สร้าง PDF
+      const pdfBuffer = await this.createCertificatePDF(certificateData);
+
+      // 4. บันทึกการดาวน์โหลด
+      try {
+        await this.markCertificateDownloaded(userId);
+        console.log(
+          `[downloadCertificatePDF] Download status recorded for userId: ${userId}`
+        );
+      } catch (markError) {
+        console.warn(
+          `[downloadCertificatePDF] Failed to mark download:`,
+          markError.message
+        );
+        // ไม่ throw error เพราะ PDF สร้างสำเร็จแล้ว
+      }
+
+      console.log(
+        `[downloadCertificatePDF] PDF generated successfully for userId: ${userId}`
+      );
+
+      return {
+        pdfBuffer,
+        fileName: `หนังสือรับรองการฝึกงาน-${certificateData.studentInfo.studentId}.pdf`,
+        contentType: "application/pdf",
+        metadata: {
+          userId,
+          studentName: certificateData.studentInfo.fullName,
+          generateDate: new Date(),
+          type: "download",
+        },
+      };
+    } catch (error) {
+      console.error(`[downloadCertificatePDF] Error:`, error);
+      // เพิ่ม statusCode ถ้ายังไม่มี
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * ✅ ปรับปรุง createCertificatePDF ให้มีเนื้อหาครบถ้วน
+   */
+  async createCertificatePDF(certificateData) {
+    const PDFDocument = require("pdfkit");
+
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: "A4",
+          margins: { top: 50, bottom: 50, left: 50, right: 50 },
+          info: {
+            Title: "หนังสือรับรองการฝึกงาน",
+            Subject: `หนังสือรับรองการฝึกงาน - ${certificateData.studentInfo.fullName}`,
+            Author: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          },
+        });
+
+        const buffers = [];
+        doc.on("data", buffers.push.bind(buffers));
+        doc.on("end", () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          resolve(pdfBuffer);
+        });
+
+        // ✅ เขียนเนื้อหาหนังสือรับรอง
+        doc.font("Helvetica");
+
+        // หัวข้อเอกสาร
+        doc.fontSize(20).text("หนังสือรับรองการฝึกงาน", {
+          align: "center",
+        });
+
+        doc.moveDown();
+
+        // เลขที่เอกสารและวันที่
+        doc.fontSize(12);
+        doc.text(
+          `เลขที่: ${
+            certificateData.documentInfo?.certificateNumber ||
+            "CS-CERT-" + Date.now()
+          }`,
+          {
+            align: "left",
+          }
+        );
+        doc.text(
+          `วันที่: ${this.formatThaiDate(
+            certificateData.documentInfo?.issueDate || new Date()
+          )}`,
+          {
+            align: "right",
+          }
+        );
+
+        doc.moveDown();
+
+        // เนื้อหาหนังสือรับรอง
+        doc.fontSize(14);
+        doc.text("ข้าพเจ้าขอรับรองว่า", { align: "left" });
+
+        doc.moveDown(0.5);
+
+        doc.text(`นาย/นาง/นางสาว ${certificateData.studentInfo.fullName}`, {
+          align: "left",
+          underline: true,
+        });
+
+        doc.text(`รหัสนักศึกษา ${certificateData.studentInfo.studentId}`, {
+          align: "left",
+          underline: true,
+        });
+
+        doc.moveDown(0.5);
+
+        doc.text("นักศึกษาสาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", {
+          align: "left",
+        });
+
+        doc.text(`${certificateData.studentInfo.faculty}`, {
+          align: "left",
+        });
+
+        doc.text(`${certificateData.studentInfo.university}`, {
+          align: "left",
+        });
+
+        doc.moveDown();
+
+        doc.text(
+          `ได้เข้าฝึกงาน ณ ${certificateData.internshipInfo.companyName}`,
+          {
+            align: "left",
+            underline: true,
+          }
+        );
+
+        doc.moveDown(0.5);
+
+        doc.text(
+          `ตั้งแต่วันที่ ${this.formatThaiDate(
+            certificateData.internshipInfo.startDate
+          )} ` +
+            `ถึงวันที่ ${this.formatThaiDate(
+              certificateData.internshipInfo.endDate
+            )}`,
+          { align: "left" }
+        );
+
+        doc.text(
+          `รวม ${certificateData.internshipInfo.totalDays || 0} วัน ` +
+            `เป็นเวลา ${
+              certificateData.internshipInfo.totalHours || 0
+            } ชั่วโมง`,
+          { align: "left" }
+        );
+
+        doc.moveDown();
+
+        doc.text("โดยมีผลการปฏิบัติงานในระดับที่น่าพอใจ", {
+          align: "left",
+        });
+
+        doc.moveDown();
+
+        doc.text("จึงออกหนังสือรับรองนี้ให้ไว้เป็นหลักฐาน", {
+          align: "left",
+        });
+
+        doc.moveDown(3);
+
+        // ลายเซ็นและตรายาง
+        doc.text("ออกให้ ณ วันที่ " + this.formatThaiDate(new Date()), {
+          align: "center",
+        });
+
+        doc.moveDown(2);
+
+        doc.text(
+          certificateData.approvalInfo?.approvedBy ||
+            "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
+          {
+            align: "center",
+          }
+        );
+
+        doc.text(
+          certificateData.approvalInfo?.approverTitle ||
+            "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          {
+            align: "center",
+          }
+        );
+
+        // ปิด PDF
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * ดึงข้อมูลสำหรับสร้างหนังสือรับรอง (ปรับปรุงให้เหมาะกับ Frontend PDF Generation)
+   */
+  async getCertificateData(userId) {
+    try {
+      console.log(`[getCertificateData] Fetching data for userId: ${userId}`);
+
+      // ตรวจสอบสถานะหนังสือรับรอง
+      const status = await this.getCertificateStatus(userId);
+
+      if (status.status !== "ready") {
+        throw new Error(
+          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
+        );
+      }
+
+      // ดึงข้อมูลแบบเดียวกับ getInternshipSummary แต่เพิ่มข้อมูลสำหรับหนังสือรับรอง
+      const summaryData = await this.getInternshipSummary(userId);
+
+      // ดึงข้อมูลการประเมินจากพี่เลี้ยง
+      const student = await Student.findOne({
+        where: { userId },
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["firstName", "lastName", "email"],
+          },
+        ],
+      });
+
+      const evaluation = await InternshipEvaluation.findOne({
+        where: {
+          studentId: student.studentId,
+        },
+        order: [["created_at", "DESC"]],
+      });
+
+      // ดึงข้อมูลคำขอหนังสือรับรอง
+      const certificateRequest = await InternshipCertificateRequest.findOne({
+        where: {
+          studentId: student.studentId,
+          status: "approved",
+        },
+        order: [["created_at", "DESC"]],
+      });
+
+      if (!certificateRequest) {
+        throw new Error("ไม่พบคำขอหนังสือรับรองที่ได้รับการอนุมัติ");
+      }
+
+      // รวมข้อมูลสำหรับหนังสือรับรอง (ตรงตาม Template Format)
+      const certificateData = {
+        // ข้อมูลเอกสาร
+        documentInfo: {
+          certificateNumber:
+            certificateRequest.certificateNumber ||
+            this.generateCertificateNumber(student.studentCode),
+          issueDate: certificateRequest.processedAt || new Date(),
+          documentDate: certificateRequest.processedAt || new Date(),
+          validityPeriod: "ไม่มีกำหนดหมดอายุ",
+          purpose:
+            "เพื่อใช้เป็นหลักฐานการฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        },
+
+        // ข้อมูลนักศึกษา (ตรงตาม Template)
+        studentInfo: {
+          ...summaryData.studentInfo,
+          studentId: summaryData.studentInfo.studentId,
+          studentCode: summaryData.studentInfo.studentId, // alias
+          fullName: summaryData.studentInfo.fullName,
+          firstName: summaryData.studentInfo.firstName,
+          lastName: summaryData.studentInfo.lastName,
+          yearLevel: summaryData.studentInfo.yearLevel,
+          department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          faculty: "คณะวิทยาศาสตร์ประยุกต์",
+          university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        },
+
+        // ข้อมูลบริษัทและการฝึกงาน
+        internshipInfo: {
+          companyName: summaryData.companyName,
+          companyAddress: summaryData.companyAddress,
+          startDate: summaryData.startDate,
+          endDate: summaryData.endDate,
+          totalDays: summaryData.totalDays,
+          totalHours: summaryData.totalHours,
+          approvedDays: summaryData.approvedDays,
+          approvedHours: summaryData.approvedHours,
+          supervisorName: summaryData.supervisorName,
+          supervisorPosition: summaryData.supervisorPosition,
+          supervisorPhone: summaryData.supervisorPhone,
+          supervisorEmail: summaryData.supervisorEmail,
+        },
+
+        // ข้อมูลการประเมิน (ถ้ามี)
+        evaluationInfo: evaluation
+          ? {
+              overallRating: evaluation.overallRating,
+              workQuality: evaluation.workQuality,
+              workAttitude: evaluation.workAttitude,
+              punctuality: evaluation.punctuality,
+              responsibility: evaluation.responsibility,
+              teamwork: evaluation.teamwork,
+              learningAbility: evaluation.learningAbility,
+              strengths: evaluation.strengths,
+              improvements: evaluation.improvements,
+              additionalComments: evaluation.additionalComments,
+              evaluationDate: evaluation.completedDate,
+              supervisorName: evaluation.supervisorName,
+              supervisorPosition: evaluation.supervisorPosition,
+            }
+          : null,
+
+        // ข้อมูลผู้อนุมัติ
+        approvalInfo: {
+          approvedBy: "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
+          approverTitle: "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          approvedDate: certificateRequest.processedAt,
+          departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+          universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        },
+
+        // Metadata สำหรับ PDF Generation
+        metadata: {
+          templateType: "certificate",
+          fileName: `หนังสือรับรองการฝึกงาน-${summaryData.studentInfo.studentId}`,
+          title: "หนังสือรับรองการฝึกงาน",
+          subject: `หนังสือรับรองการฝึกงาน - ${summaryData.studentInfo.fullName}`,
+          author: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          keywords: ["หนังสือรับรอง", "การฝึกงาน", "วิทยาการคอมพิวเตอร์"],
+        },
+      };
+
+      console.log(
+        `[getCertificateData] Data prepared successfully for ${summaryData.studentInfo.studentId}`
+      );
+
+      return certificateData;
+    } catch (error) {
+      console.error(`[getCertificateData] Error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * บันทึกการดาวน์โหลดหนังสือรับรอง (เรียกจาก Frontend หลังดาวน์โหลดสำเร็จ)
+   */
+  async markCertificateDownloaded(userId) {
+    try {
+      const student = await Student.findOne({
+        where: { userId },
+        attributes: ["studentId"],
+      });
+
+      if (!student) {
+        throw new Error("ไม่พบข้อมูลนักศึกษา");
+      }
+
+      // อัปเดตสถานะการดาวน์โหลด
+      const updateResult = await InternshipCertificateRequest.update(
+        {
+          downloadedAt: new Date(),
+          downloadCount: sequelize.literal("COALESCE(download_count, 0) + 1"),
+          lastDownloadedAt: new Date(),
+        },
+        {
+          where: {
+            studentId: student.studentId,
+            status: "approved",
+          },
+        }
+      );
+
+      console.log(
+        `[markCertificateDownloaded] Download status updated for studentId: ${student.studentId}`
+      );
+
+      return {
+        success: true,
+        message: "บันทึกการดาวน์โหลดเรียบร้อยแล้ว",
+        downloadedAt: new Date(),
+        studentId: student.studentId,
+      };
+    } catch (error) {
+      console.error(`[markCertificateDownloaded] Error:`, error);
+      throw error;
+    }
+  }
+
   async getCertificateStatus(userId) {
     try {
       console.log(
@@ -2684,9 +3145,7 @@ class InternshipManagementService {
     }
   }
 
-  /**
-   * ส่งคำขอหนังสือรับรองการฝึกงาน
-   */
+  // คงเดิม - ไม่เปลี่ยนแปลง
   async submitCertificateRequest(userId, requestData) {
     const transaction = await sequelize.transaction();
 
@@ -2769,157 +3228,7 @@ class InternshipManagementService {
     }
   }
 
-  /**
-   * ดาวน์โหลดหนังสือรับรองการฝึกงาน
-   */
-  async downloadCertificate(userId) {
-    try {
-      console.log(
-        `[downloadCertificate] Generating certificate for userId: ${userId}`
-      );
-
-      // ตรวจสอบสถานะหนังสือรับรอง
-      const status = await this.getCertificateStatus(userId);
-
-      if (status.status !== "ready") {
-        throw new Error(
-          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
-        );
-      }
-
-      // ดึงข้อมูลสำหรับสร้างหนังสือรับรอง
-      const certificateData = await this.getCertificateData(userId);
-
-      // สร้าง PDF โดยใช้ service ที่มีอยู่
-      const pdfBuffer = await this.generateCertificatePDF(certificateData);
-
-      const filename = `หนังสือรับรองการฝึกงาน-${
-        certificateData.studentInfo.studentId
-      }-${new Date().toISOString().split("T")[0]}.pdf`;
-
-      // อัปเดตสถานะการดาวน์โหลด
-      await this.markCertificateDownloaded(userId);
-
-      console.log(
-        `[downloadCertificate] Certificate generated successfully for ${certificateData.studentInfo.studentId}`
-      );
-
-      return {
-        pdfBuffer,
-        filename,
-        downloadDate: new Date(),
-      };
-    } catch (error) {
-      console.error(`[downloadCertificate] Error:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * แสดงตัวอย่างหนังสือรับรองการฝึกงาน
-   */
-  async previewCertificate(userId) {
-    try {
-      console.log(
-        `[previewCertificate] Generating preview for userId: ${userId}`
-      );
-
-      // ตรวจสอบสถานะหนังสือรับรอง
-      const status = await this.getCertificateStatus(userId);
-
-      if (status.status !== "ready") {
-        throw new Error(
-          "หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่ภาควิชา"
-        );
-      }
-
-      // ดึงข้อมูลสำหรับสร้างหนังสือรับรอง
-      const certificateData = await this.getCertificateData(userId);
-
-      // สร้าง PDF โดยใช้ service ที่มีอยู่
-      const pdfBuffer = await this.generateCertificatePDF(certificateData);
-
-      const filename = `ตัวอย่าง-หนังสือรับรองการฝึกงาน-${certificateData.studentInfo.studentId}.pdf`;
-
-      console.log(
-        `[previewCertificate] Preview generated successfully for ${certificateData.studentInfo.studentId}`
-      );
-
-      return {
-        pdfBuffer,
-        filename,
-        isPreview: true,
-      };
-    } catch (error) {
-      console.error(`[previewCertificate] Error:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * ดึงข้อมูลสำหรับสร้างหนังสือรับรอง
-   */
-  async getCertificateData(userId) {
-    try {
-      // ดึงข้อมูลแบบเดียวกับ getInternshipSummary แต่เพิ่มข้อมูลสำหรับหนังสือรับรอง
-      const summaryData = await this.getInternshipSummary(userId);
-
-      // ดึงข้อมูลการประเมินจากพี่เลี้ยง
-      const student = await Student.findOne({
-        where: { userId },
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["firstName", "lastName", "email"],
-          },
-        ],
-      });
-
-      const evaluation = await InternshipEvaluation.findOne({
-        where: {
-          studentId: student.studentId,
-        },
-        order: [["created_at", "DESC"]],
-      });
-
-      // รวมข้อมูลสำหรับหนังสือรับรอง
-      const certificateData = {
-        ...summaryData,
-        evaluationData: evaluation
-          ? {
-              overallRating: evaluation.overall_rating,
-              workQuality: evaluation.work_quality_rating,
-              workAttitude: evaluation.work_attitude_rating,
-              punctuality: evaluation.punctuality_rating,
-              responsibility: evaluation.responsibility_rating,
-              teamwork: evaluation.teamwork_rating,
-              learningAbility: evaluation.learning_ability_rating,
-              comments: evaluation.supervisor_comments,
-              evaluationDate: evaluation.created_at,
-            }
-          : null,
-        certificateInfo: {
-          issueDate: new Date(),
-          certificateNumber: this.generateCertificateNumber(
-            student.studentCode
-          ),
-          validityPeriod: "ไม่มีกำหนดหมดอายุ",
-          purpose:
-            "เพื่อใช้เป็นหลักฐานการฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
-        },
-      };
-
-      return certificateData;
-    } catch (error) {
-      console.error(`[getCertificateData] Error:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * สร้างหมายเลขหนังสือรับรอง
-   */
+  // คงเดิม - สำหรับการสร้างหมายเลขหนังสือรับรอง
   generateCertificateNumber(studentCode) {
     const year = new Date().getFullYear() + 543; // พ.ศ.
     const month = String(new Date().getMonth() + 1).padStart(2, "0");
@@ -2928,116 +3237,7 @@ class InternshipManagementService {
     return `อว 7105(16)/${studentYear}${month}${year.toString().slice(-2)}`;
   }
 
-  /**
-   * สร้าง PDF หนังสือรับรอง
-   */
-  async generateCertificatePDF(certificateData) {
-    try {
-      // ใช้ PDF generation service แบบเดียวกับระบบที่มีอยู่
-      const PDFDocument = require("pdfkit");
-      const doc = new PDFDocument();
-
-      // เพิ่ม content ของหนังสือรับรอง
-      doc
-        .fontSize(18)
-        .text("หนังสือรับรองการฝึกงาน", 50, 100, { align: "center" });
-
-      doc
-        .fontSize(14)
-        .text(
-          `เลขที่ ${certificateData.certificateInfo.certificateNumber}`,
-          50,
-          150
-        )
-        .text(
-          `วันที่ ${this.formatThaiDate(
-            certificateData.certificateInfo.issueDate
-          )}`,
-          50,
-          180
-        );
-
-      doc
-        .text(`มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ ขอรับรองว่า`, 50, 220)
-        .text(
-          `${certificateData.studentInfo.fullName} รหัสนักศึกษา ${certificateData.studentInfo.studentId}`,
-          50,
-          250
-        )
-        .text(
-          `ได้เข้าฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ`,
-          50,
-          280
-        )
-        .text(`ณ ${certificateData.companyName}`, 50, 310)
-        .text(
-          `ระหว่างวันที่ ${this.formatThaiDate(
-            certificateData.startDate
-          )} ถึง ${this.formatThaiDate(certificateData.endDate)}`,
-          50,
-          340
-        )
-        .text(
-          `รวม ${certificateData.totalHours} ชั่วโมง (${certificateData.totalDays} วัน)`,
-          50,
-          370
-        );
-
-      doc
-        .text(`ออกให้ ณ วันที่ ${this.formatThaiDate(new Date())}`, 50, 450)
-        .text("ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา", 350, 500)
-        .text("หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", 300, 520);
-
-      doc.end();
-
-      // แปลง stream เป็น buffer
-      const chunks = [];
-      return new Promise((resolve, reject) => {
-        doc.on("data", (chunk) => chunks.push(chunk));
-        doc.on("end", () => resolve(Buffer.concat(chunks)));
-        doc.on("error", reject);
-      });
-    } catch (error) {
-      console.error(`[generateCertificatePDF] Error:`, error);
-      throw new Error("ไม่สามารถสร้างหนังสือรับรองได้");
-    }
-  }
-
-  /**
-   * อัปเดตสถานะการดาวน์โหลดหนังสือรับรอง
-   */
-  async markCertificateDownloaded(userId) {
-    try {
-      const student = await Student.findOne({
-        where: { userId },
-        attributes: ["studentId"],
-      });
-
-      await InternshipCertificateRequest.update(
-        {
-          downloadedAt: new Date(),
-          downloadCount: sequelize.literal("download_count + 1"),
-        },
-        {
-          where: {
-            studentId: student.studentId,
-            status: "approved",
-          },
-        }
-      );
-
-      console.log(
-        `[markCertificateDownloaded] Download status updated for studentId: ${student.studentId}`
-      );
-    } catch (error) {
-      console.error(`[markCertificateDownloaded] Error:`, error);
-      // ไม่ throw error เพราะไม่ใช่ขั้นตอนที่สำคัญมาก
-    }
-  }
-
-  /**
-   * จัดรูปแบบวันที่แบบไทย
-   */
+  // คงเดิม - สำหรับการจัดรูปแบบวันที่ไทย
   formatThaiDate(date) {
     const thaiMonths = [
       "มกราคม",
