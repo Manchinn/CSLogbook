@@ -25,7 +25,9 @@ import useCertificateStatus from "../../../hooks/useCertificateStatus";
 // ใช้ components ที่มีอยู่แล้ว
 import CertificateStatusCard from "./components/CertificateStatusCard";
 import SupervisorEvaluationStatus from "./components/SupervisorEvaluationStatus";
-import internshipService from "../../../services/internshipService";
+
+// ✅ เพิ่ม PDF Helper
+import CertificatePDFHelper from "./helpers/certificatePDFHelper";
 
 const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
@@ -35,6 +37,9 @@ const InternshipCertificateRequest = () => {
   const [requestLoading, setRequestLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  // ✅ สร้าง instance ของ PDF Helper
+  const [pdfHelper] = useState(() => new CertificatePDFHelper());
 
   // ใช้ custom hook สำหรับจัดการสถานะ
   const {
@@ -47,9 +52,8 @@ const InternshipCertificateRequest = () => {
     canRequestCertificate,
     refreshStatus,
     submitCertificateRequest,
-    downloadCertificate,
-    previewCertificate,
     certificateData,
+    //markCertificateDownloaded, // ✅ เพิ่มฟังก์ชันนี้
   } = useCertificateStatus();
 
   useEffect(() => {
@@ -84,31 +88,41 @@ const InternshipCertificateRequest = () => {
     }
   };
 
-  // ✅ ปรับปรุง handlePreviewCertificate ให้ใช้ระบบที่มีอยู่
+  // ✅ ปรับปรุง handlePreviewCertificate ให้ใช้ PDF Helper
   const handlePreviewCertificate = async () => {
     try {
       setPreviewLoading(true);
       
-      // 🎯 วิธีที่ 1: ใช้ Frontend PDF Generation ผ่าน useCertificateStatus hook
-      if (certificateData && previewCertificate) {
-        console.log('🔄 Using Frontend PDF Generation for preview...');
+      // ตรวจสอบสถานะหนังสือรับรอง
+      if (certificateStatus !== "ready") {
+        message.warning("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
+        return;
+      }
+      
+      // 🎯 วิธีที่ 1: ใช้ PDF Helper สำหรับ Frontend PDF Generation
+      if (certificateData && pdfHelper.validateCertificateData(certificateData)) {
+        console.log('🔄 Using PDF Helper for preview...');
         
-        const result = await previewCertificate(certificateData);
-        
-        if (result.success) {
-          message.info("เปิดตัวอย่างหนังสือรับรองในแท็บใหม่");
-          return;
+        try {
+          const result = await pdfHelper.previewCertificate(certificateData);
+          
+          if (result.success) {
+            message.info(result.message);
+            return;
+          }
+        } catch (pdfError) {
+          console.warn('⚠️ PDF Helper preview failed, trying fallback...', pdfError);
         }
       }
       
       // 🔄 วิธีที่ 2: Fallback ใช้ Backend API
-      console.log('🔄 Fallback to Backend API for preview...');
-      const result = await internshipService.previewCertificate();
+      console.log('🔄 Using Backend API fallback for preview...');
+      const result = await pdfHelper.previewCertificateFromBackend();
       
       if (result.success) {
-        message.info("เปิดตัวอย่างหนังสือรับรองในแท็บใหม่");
+        message.info(result.message);
       } else {
-        throw new Error(result.message || "ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้");
+        throw new Error("ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้");
       }
       
     } catch (error) {
@@ -129,37 +143,47 @@ const InternshipCertificateRequest = () => {
     }
   };
 
-  // ✅ ปรับปรุง handleDownloadCertificate ให้ใช้ระบบที่มีอยู่
+  // ✅ ปรับปรุง handleDownloadCertificate
   const handleDownloadCertificate = async () => {
     try {
       setDownloadLoading(true);
       
-      // 🎯 วิธีที่ 1: ใช้ Frontend PDF Generation ผ่าน useCertificateStatus hook
-      if (certificateData && downloadCertificate) {
-        console.log('🔄 Using Frontend PDF Generation for download...');
+      // ตรวจสอบสถานะหนังสือรับรอง
+      if (certificateStatus !== "ready") {
+        message.warning("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
+        return;
+      }
+      
+      // 🎯 วิธีที่ 1: ใช้ PDF Helper สำหรับ Frontend PDF Generation
+      if (certificateData && pdfHelper.validateCertificateData(certificateData)) {
+        console.log('🔄 Using PDF Helper for download...');
         
-        const result = await downloadCertificate(certificateData);
-        
-        if (result.success) {
-          message.success("ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว");
+        try {
+          const result = await pdfHelper.downloadCertificate(certificateData);
           
-          // รีเฟรชสถานะหลังดาวน์โหลดสำเร็จ
-          await refreshStatus();
-          return;
+          if (result.success) {
+            message.success(result.message);
+            
+            // ✅ แจ้งระบบว่าได้ดาวน์โหลดแล้ว
+            //await markCertificateDownloaded();
+            return;
+          }
+        } catch (pdfError) {
+          console.warn('⚠️ PDF Helper download failed, trying fallback...', pdfError);
         }
       }
       
       // 🔄 วิธีที่ 2: Fallback ใช้ Backend API
-      console.log('🔄 Fallback to Backend API for download...');
-      const result = await internshipService.downloadCertificate();
+      console.log('🔄 Using Backend API fallback for download...');
+      const result = await pdfHelper.downloadCertificateFromBackend();
       
       if (result.success) {
-        message.success("ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว");
+        message.success(result.message);
         
-        // รีเฟรชสถานะหลังดาวน์โหลดสำเร็จ
-        await refreshStatus();
+        // ✅ แจ้งระบบว่าได้ดาวน์โหลดแล้ว
+        //await markCertificateDownloaded();
       } else {
-        throw new Error(result.message || "ไม่สามารถดาวน์โหลดหนังสือรับรองได้");
+        throw new Error("ไม่สามารถดาวน์โหลดหนังสือรับรองได้");
       }
       
     } catch (error) {
@@ -241,7 +265,8 @@ const InternshipCertificateRequest = () => {
             Status: {certificateStatus} | Hours: {totalHours} | Evaluation:{" "}
             {supervisorEvaluationStatus} | Summary: {internshipSummaryStatus} |
             Can Request: {canRequestCertificate ? "Yes" : "No"} |
-            Has Certificate Data: {certificateData ? "Yes" : "No"}
+            Has Certificate Data: {certificateData ? "Yes" : "No"} |
+            Data Valid: {certificateData ? pdfHelper.validateCertificateData(certificateData) ? "Yes" : "No" : "N/A"}
           </Text>
         </Card>
       )}

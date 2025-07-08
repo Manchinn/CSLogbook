@@ -1092,10 +1092,7 @@ exports.downloadCertificate = async (req, res) => {
     );
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.fileName}"`
-    );
+    
     res.send(result.pdfBuffer);
   } catch (error) {
     console.error("Download Certificate Controller Error:", error);

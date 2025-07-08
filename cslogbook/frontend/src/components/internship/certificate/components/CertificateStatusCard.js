@@ -12,7 +12,10 @@ const CertificateStatusCard = ({
   canRequest, 
   onSubmitRequest, 
   onDownload, 
-  loading 
+  onPreview,           // ✅ เพิ่ม props ใหม่
+  loading,
+  downloadLoading,     // ✅ เพิ่ม props ใหม่
+  previewLoading       // ✅ เพิ่ม props ใหม่
 }) => {
   const renderContent = () => {
     switch (status) {
@@ -100,7 +103,7 @@ const CertificateStatusCard = ({
             </Title>
             <Text style={{ fontSize: '16px', color: '#666' }}>
               เจ้าหน้าที่ภาควิชาได้ออกหนังสือรับรองการฝึกงานเรียบร้อยแล้ว
-              คุณสามารถดาวน์โหลดได้ทันที
+              คุณสามารถดาวน์โหลดหรือดูตัวอย่างได้ทันที
             </Text>
 
             <Space direction="vertical" size="large" style={{ marginTop: 32 }}>
@@ -109,6 +112,7 @@ const CertificateStatusCard = ({
                 size="large"
                 icon={<DownloadOutlined />}
                 onClick={onDownload}
+                loading={downloadLoading}  // ✅ ใช้ downloadLoading แทน loading
               >
                 ดาวน์โหลดหนังสือรับรองการฝึกงาน
               </Button>
@@ -116,7 +120,8 @@ const CertificateStatusCard = ({
               <Button
                 type="default"
                 icon={<FileProtectOutlined />}
-                onClick={() => window.open('/preview-certificate', '_blank')}
+                onClick={onPreview}        // ✅ ใช้ onPreview แทน window.open
+                loading={previewLoading}   // ✅ เพิ่ม previewLoading
               >
                 แสดงตัวอย่างหนังสือรับรอง
               </Button>

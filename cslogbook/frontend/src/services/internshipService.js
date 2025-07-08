@@ -1559,6 +1559,33 @@ const internshipService = {
       };
     }
   },
+
+  /**
+   * แจ้งระบบว่าได้ดาวน์โหลดหนังสือรับรองแล้ว
+   */
+  /* markCertificateDownloaded: async () => {
+    try {
+      const response = await apiClient.patch('/internship/certificate/mark-downloaded');
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          message: 'อัปเดตสถานะการดาวน์โหลดสำเร็จ'
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'ไม่สามารถอัปเดตสถานะได้'
+        };
+      }
+    } catch (error) {
+      console.error('Error marking certificate downloaded:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ'
+      };
+    }
+  }, */
 };
 
 export default internshipService;

@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import internshipService from '../services/internshipService';
-// ✅ เพิ่ม import OfficialDocumentService สำหรับ Frontend PDF Generation
-import OfficialDocumentService from '../services/PDFServices/OfficialDocumentService';
 
 /**
  * Custom hook สำหรับจัดการสถานะการขอหนังสือรับรองการฝึกงาน
@@ -129,79 +127,29 @@ const useCertificateStatus = () => {
   }, [canRequestCertificate, userData, totalHours, supervisorEvaluationStatus, internshipSummaryStatus]);
 
   /**
-   * ✅ ดาวน์โหลดหนังสือรับรอง (ใช้ Frontend PDF Generation เหมือน Summary)
+   * ✅ แจ้งระบบว่าได้ดาวน์โหลดหนังสือรับรองแล้ว (สำหรับการอัปเดตสถานะ)
    */
-  const downloadCertificate = useCallback(async (certificateData) => {
+  /* const markCertificateDownloaded = useCallback(async () => {
     try {
-      if (certificateStatus !== 'ready') {
-        throw new Error('หนังสือรับรองยังไม่พร้อม');
-      }
-
-      console.log('[useCertificateStatus] กำลังดาวน์โหลดหนังสือรับรอง...', certificateData);
+      console.log('[useCertificateStatus] กำลังอัปเดตสถานะการดาวน์โหลด...');
       
-      // ✅ ใช้ Frontend PDF Generation เหมือน Summary.js
-      const result = await OfficialDocumentService.generateCertificatePDF(certificateData);
+      // เรียก API แจ้งการดาวน์โหลด (ถ้ามี)
+      const response = await internshipService.markCertificateDownloaded();
       
-      if (result.success) {
-        console.log('[useCertificateStatus] ดาวน์โหลดสำเร็จ:', result.filename);
-        
-        // อัปเดตสถานะหลังดาวน์โหลดสำเร็จ
+      if (response.success) {
+        console.log('[useCertificateStatus] อัปเดตสถานะการดาวน์โหลดสำเร็จ');
+        // รีเฟรชสถานะเพื่อดึงข้อมูลใหม่
         await refreshStatus();
-        
-        return { 
-          success: true, 
-          message: `ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว: ${result.filename}`,
-          filename: result.filename
-        };
+        return { success: true };
       } else {
-        throw new Error('ไม่สามารถสร้างหนังสือรับรองได้');
+        console.log('[useCertificateStatus] ไม่สามารถอัปเดตสถานะการดาวน์โหลดได้');
+        return { success: false };
       }
     } catch (error) {
-      console.error('[useCertificateStatus] Error downloading certificate:', error);
-      
-      // จัดการ error ตามประเภท
-      if (error.message.includes('ไม่มีข้อมูลสำหรับสร้าง')) {
-        throw new Error('ข้อมูลไม่ครบถ้วนสำหรับสร้างหนังสือรับรอง กรุณาตรวจสอบข้อมูลการฝึกงาน');
-      } else if (error.message.includes('PDF Service ไม่พร้อมใช้งาน')) {
-        throw new Error('ระบบสร้าง PDF ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
-      } else {
-        throw new Error(error.message || 'ไม่สามารถดาวน์โหลดหนังสือรับรองได้');
-      }
+      console.error('[useCertificateStatus] Error marking certificate downloaded:', error);
+      return { success: false };
     }
-  }, [certificateStatus, refreshStatus]);
-
-  /**
-   * ✅ แสดงตัวอย่างหนังสือรับรอง (ใช้ Frontend PDF Generation เหมือน Summary)
-   */
-  const previewCertificate = useCallback(async (certificateData) => {
-    try {
-      console.log('[useCertificateStatus] กำลังแสดงตัวอย่างหนังสือรับรอง...', certificateData);
-      
-      // ✅ ใช้ Frontend PDF Generation เหมือน Summary.js
-      const result = await OfficialDocumentService.previewCertificatePDF(certificateData);
-      
-      if (result.success) {
-        console.log('[useCertificateStatus] แสดงตัวอย่างสำเร็จ');
-        return { 
-          success: true, 
-          message: 'เปิดตัวอย่างหนังสือรับรองในแท็บใหม่แล้ว'
-        };
-      } else {
-        throw new Error('ไม่สามารถสร้างตัวอย่างหนังสือรับรองได้');
-      }
-    } catch (error) {
-      console.error('[useCertificateStatus] Error previewing certificate:', error);
-      
-      // จัดการ error ตามประเภท
-      if (error.message.includes('ไม่มีข้อมูลสำหรับสร้าง')) {
-        throw new Error('ข้อมูลไม่ครบถ้วนสำหรับสร้างหนังสือรับรอง กรุณาตรวจสอบข้อมูลการฝึกงาน');
-      } else if (error.message.includes('PDF Service ไม่พร้อมใช้งาน')) {
-        throw new Error('ระบบสร้าง PDF ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
-      } else {
-        throw new Error(error.message || 'ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้');
-      }
-    }
-  }, []);
+  }, [refreshStatus]); */
 
   // ดึงข้อมูลเมื่อ component โหลดครั้งแรก
   useEffect(() => {
@@ -226,8 +174,7 @@ const useCertificateStatus = () => {
     // ฟังก์ชันต่างๆ
     refreshStatus,
     submitCertificateRequest,
-    downloadCertificate,
-    previewCertificate
+    //markCertificateDownloaded,
   };
 };
 
