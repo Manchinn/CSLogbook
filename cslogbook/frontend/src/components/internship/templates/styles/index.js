@@ -2,6 +2,7 @@
 import { commonStyles, safeText, formatThaiDate } from './commonStyles';
 import { officialStyles } from './officialStyles';
 import letterStyles from './letterStyles';
+import  certificateStyles from './certificateStyles'; // ✅ เพิ่มใหม่
 import { 
   themeColors, 
   fontSizes, 
@@ -16,6 +17,7 @@ export const PDFStyles = {
   common: commonStyles,
   official: officialStyles,
   letter: letterStyles,
+  certificate: certificateStyles, // ✅ เพิ่มใหม่
   theme: {
     colors: themeColors,
     fonts: fontSizes,
@@ -34,8 +36,8 @@ export const PDFStyles = {
 // Export ทุก styles เพื่อใช้งานง่าย
 export { commonStyles, safeText, formatThaiDate } from './commonStyles';
 export { officialStyles } from './officialStyles';
-// แก้ไข: export default จาก letterStyles เป็น named export ชื่อ letterStyles
 export { default as letterStyles } from './letterStyles';
+export { default as certificateStyles } from './certificateStyles'; // ✅ เพิ่มใหม่
 export { 
   themeColors, 
   fontSizes, 
