@@ -10,7 +10,7 @@ class CertificatePDFHelper {
 
   /**
    * เตรียมข้อมูลหนังสือรับรองสำหรับ PDF Generation
-   * @param {Object} certificateData - ข้อมูลหนังสือรับรองจาก API
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรองจาก API (โครงสร้างใหม่)
    * @returns {Object} ข้อมูลที่เตรียมแล้วสำหรับ PDF
    */
   prepareCertificateDataForPDF(certificateData) {
@@ -20,7 +20,7 @@ class CertificatePDFHelper {
       }
 
       console.log('📋 Preparing certificate data for PDF generation...');
-      console.log('🔍 Raw certificate data:', certificateData); // เพิ่ม debug
+      console.log('🔍 Raw certificate data:', certificateData);
 
       // ✅ ฟังก์ชันทำความสะอาดข้อความภาษาไทย
       const cleanThaiText = (text) => {
@@ -34,76 +34,156 @@ class CertificatePDFHelper {
           .replace(/\s+/g, ' '); // แทนที่ช่องว่างซ้ำ
       };
 
+      // ✅ ดึงข้อมูลจากโครงสร้างใหม่
+      const studentInfo = certificateData.studentInfo || {};
+      const certificateRequest = certificateData.certificateRequest || {};
+      const requirements = certificateData.requirements || {};
+
+      // ✅ ดึงข้อมูลสถานที่ฝึกงานจาก internshipInfo (ถ้ามี)
+      const internshipInfo = certificateData.internshipInfo || {};
+
       // จัดรูปแบบข้อมูลให้ตรงกับ CertificateTemplate
       const preparedData = {
-        // ข้อมูลนักศึกษา
-        studentInfo: {
-          studentId: cleanThaiText(certificateData.studentInfo?.studentId || certificateData.studentId || ''),
-          firstName: cleanThaiText(certificateData.studentInfo?.firstName || certificateData.firstName || ''),
-          lastName: cleanThaiText(certificateData.studentInfo?.lastName || certificateData.lastName || ''),
-          fullName: cleanThaiText(
-            certificateData.studentInfo?.fullName || 
-            `${certificateData.firstName || ''} ${certificateData.lastName || ''}`.trim() ||
-            'ไม่ระบุชื่อ'
-          ),
-          yearLevel: parseInt(certificateData.studentInfo?.yearLevel || certificateData.yearLevel || 4),
-          classroom: cleanThaiText(certificateData.studentInfo?.classroom || certificateData.classroom || ''),
-          department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
-          faculty: "คณะวิทยาศาสตร์ประยุกต์",
-          university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
-        },
+        // ✅ ข้อมูลนักศึกษาจาก certificateData.studentInfo
+        studentName: cleanThaiText(studentInfo.fullName || studentInfo.firstName || ''),
+        studentId: cleanThaiText(studentInfo.studentId || ''),
+        fullName: cleanThaiText(studentInfo.fullName || ''),
+        firstName: cleanThaiText(studentInfo.firstName || ''),
+        lastName: cleanThaiText(studentInfo.lastName || ''),
+        email: cleanThaiText(studentInfo.email || ''),
+        
+        // ข้อมูลระดับการศึกษาและสาขา (ค่าเริ่มต้น)
+        yearLevel: parseInt(studentInfo.yearLevel || studentInfo.year || 4),
+        classroom: cleanThaiText(studentInfo.classroom || studentInfo.class || ''),
+        department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        faculty: "คณะวิทยาศาสตร์ประยุกต์",
+        university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
 
-        // ข้อมูลการฝึกงาน
-        internshipInfo: {
-          companyName: cleanThaiText(
-            certificateData.companyName || 
-            certificateData.internshipInfo?.companyName || 
-            'บริษัท [ชื่อบริษัท]' // ค่า default
-          ),
-          companyAddress: cleanThaiText(
-            certificateData.companyAddress || 
-            certificateData.internshipInfo?.companyAddress || 
-            'ที่อยู่บริษัท'
-          ),
-          startDate: certificateData.startDate || certificateData.internshipInfo?.startDate || '2025-01-01',
-          endDate: certificateData.endDate || certificateData.internshipInfo?.endDate || '2025-03-01',
-          totalDays: parseInt(certificateData.totalDays || certificateData.internshipInfo?.totalDays || 60),
-          totalHours: parseInt(certificateData.totalHours || certificateData.internshipInfo?.totalHours || 240),
-          supervisorName: cleanThaiText(
-            certificateData.supervisorName || 
-            certificateData.internshipInfo?.supervisorName || 
-            '[ชื่อผู้ควบคุมงาน]'
-          ),
-          supervisorPosition: cleanThaiText(
-            certificateData.supervisorPosition || 
-            certificateData.internshipInfo?.supervisorPosition || 
-            '[ตำแหน่งผู้ควบคุมงาน]'
-          ),
-        },
+        // ✅ ข้อมูลการฝึกงาน (จาก internshipInfo หรือ requirements)
+        companyName: cleanThaiText(
+          internshipInfo.companyName || 
+          certificateData.companyName || 
+          'สถานประกอบการที่ฝึกงาน' // ค่า default ถ้าไม่มีข้อมูล
+        ),
+        companyAddress: cleanThaiText(
+          internshipInfo.companyAddress || 
+          certificateData.companyAddress || 
+          'ที่อยู่สถานประกอบการ'
+        ),
+        
+        // ข้อมูลระยะเวลาฝึกงาน
+        internshipStartDate: internshipInfo.startDate || certificateData.startDate || '2025-01-01',
+        internshipEndDate: internshipInfo.endDate || certificateData.endDate || '2025-03-01',
+        totalHours: parseInt(requirements.totalHours?.current || 240),
+        totalDays: this.calculateDaysFromHours(requirements.totalHours?.current || 240),
+        
+        // ✅ ข้อมูลผู้ควบคุมงาน
+        supervisorName: cleanThaiText(
+          internshipInfo.supervisorName || 
+          certificateData.supervisorName || 
+          'ผู้ควบคุมงาน'
+        ),
+        supervisorPosition: cleanThaiText(
+          internshipInfo.supervisorPosition || 
+          certificateData.supervisorPosition || 
+          'ตำแหน่งผู้ควบคุมงาน'
+        ),
 
-        // ข้อมูลเอกสาร
-        documentInfo: {
-          certificateNumber: certificateData.certificateNumber || this.generateCertificateNumber(),
-          issueDate: certificateData.issueDate || new Date(),
-          documentDate: certificateData.documentDate || new Date(),
-          purpose: cleanThaiText(certificateData.purpose || "เพื่อใช้เป็นหลักฐานการฝึกงานตามหลักสูตร"),
-        },
+        // ✅ ข้อมูลเอกสาร
+        certificateDate: certificateRequest.requestDate ? new Date(certificateRequest.requestDate) : new Date(),
+        certificateNumber: this.generateCertificateNumber(),
+        isCompleted: certificateRequest.status === 'approved' || certificateData.status === 'ready',
+        
+        // ข้อมูลการอนุมัติ
+        approvedBy: cleanThaiText("นางสาวจันทิมา อรรฆจิตต์"),
+        approverTitle: cleanThaiText("นักวิชาการศึกษา"),
+        approvedDate: certificateRequest.requestDate ? new Date(certificateRequest.requestDate) : new Date(),
 
-        // ข้อมูลผู้อนุมัติ
-        approvalInfo: {
-          approvedBy: cleanThaiText(certificateData.approvedBy || "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา"),
-          approverTitle: cleanThaiText(certificateData.approverTitle || "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ"),
-          approvedDate: certificateData.approvedDate || new Date(),
+        // ✅ ข้อมูลเพิ่มเติมเพื่อ debug
+        debug: {
+          originalData: certificateData,
+          studentInfoFound: !!studentInfo.fullName,
+          studentIdFound: !!studentInfo.studentId,
+          companyNameFound: !!(internshipInfo.companyName || certificateData.companyName),
+          certificateStatus: certificateData.status,
+          requestStatus: certificateRequest.status
         }
       };
 
       console.log('✅ Certificate data prepared for PDF:', preparedData);
+      console.log('🎯 Key data for display:', {
+        studentName: preparedData.studentName,
+        studentId: preparedData.studentId,
+        companyName: preparedData.companyName,
+        isCompleted: preparedData.isCompleted
+      });
+      
       return preparedData;
 
     } catch (error) {
       console.error('❌ Error preparing certificate data:', error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้: ${error.message}`);
     }
+  }
+
+  /**
+   * คำนวณจำนวนวันจากชั่วโมง
+   * @param {number} hours - จำนวนชั่วโมง
+   * @returns {number} จำนวนวัน (ประมาณการ)
+   */
+  calculateDaysFromHours(hours) {
+    if (!hours || hours <= 0) return 60; // ค่าเริ่มต้น
+    
+    // คำนวณจากชั่วโมงต่อวัน (เฉลี่ย 8 ชั่วโมงต่อวัน)
+    const daysCalculated = Math.ceil(hours / 8);
+    
+    // ตรวจสอบให้อยู่ในช่วงที่สมเหตุสมผล (60-120 วัน)
+    if (daysCalculated < 60) return 60;
+    if (daysCalculated > 120) return 120;
+    
+    return daysCalculated;
+  }
+
+  /**
+   * ✅ ตรวจสอบข้อมูลพื้นฐาน (อัปเดตให้รองรับโครงสร้างใหม่)
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
+   * @returns {boolean} true ถ้ามีข้อมูลพื้นฐาน
+   */
+  hasBasicCertificateData(certificateData) {
+    if (!certificateData) {
+      console.warn('⚠️ Certificate data is null or undefined');
+      return false;
+    }
+
+    // ✅ ตรวจสอบโครงสร้างข้อมูลใหม่
+    const studentInfo = certificateData.studentInfo;
+    
+    if (!studentInfo) {
+      console.warn('⚠️ No studentInfo found in certificate data');
+      return false;
+    }
+
+    // ตรวจสอบข้อมูลพื้นฐานที่สำคัญ
+    const hasStudentName = !!(studentInfo.fullName || studentInfo.firstName);
+    const hasStudentId = !!studentInfo.studentId;
+    
+    if (!hasStudentName) {
+      console.warn('⚠️ Student name not found');
+      return false;
+    }
+    
+    if (!hasStudentId) {
+      console.warn('⚠️ Student ID not found');
+      return false;
+    }
+
+    console.log('✅ Basic certificate data validation passed:', {
+      studentName: studentInfo.fullName || studentInfo.firstName,
+      studentId: studentInfo.studentId,
+      status: certificateData.status
+    });
+    
+    return true;
   }
 
   /**
@@ -179,7 +259,7 @@ class CertificatePDFHelper {
   async previewCertificate(certificateData) {
     try {
       console.log('🔄 Starting certificate preview process...');
-      console.log('🔍 Certificate data for preview:', certificateData); // เพิ่ม debug
+      console.log('🔍 Certificate data for preview:', certificateData);
       
       // ✅ ตรวจสอบว่า OfficialDocumentService พร้อมใช้งาน
       if (!this.isOfficialDocumentServiceAvailable()) {
@@ -228,82 +308,6 @@ class CertificatePDFHelper {
   }
 
   /**
-   * ✅ ตรวจสอบข้อมูลพื้นฐาน (แบบยืดหยุ่น)
-   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
-   * @returns {boolean} true ถ้ามีข้อมูลพื้นฐาน
-   */
-  hasBasicCertificateData(certificateData) {
-    if (!certificateData) {
-      console.warn('⚠️ Certificate data is null or undefined');
-      return false;
-    }
-
-    // ตรวจสอบข้อมูลพื้นฐานที่สำคัญที่สุด (อย่างน้อยต้องมี object)
-    const hasStudentInfo = certificateData.studentInfo || 
-                          (certificateData.studentId || certificateData.firstName || certificateData.lastName);
-    
-    if (!hasStudentInfo) {
-      console.warn('⚠️ No student information found');
-      return false;
-    }
-
-    console.log('✅ Basic certificate data found');
-    return true;
-  }
-
-  /**
-   * ตรวจสอบว่า certificateData พร้อมใช้งานหรือไม่ (แบบเข้มงวด - ไม่ใช้แล้ว)
-   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
-   * @returns {boolean} true ถ้าข้อมูลพร้อมใช้งาน
-   */
-  validateCertificateData(certificateData) {
-    if (!certificateData) {
-      console.warn('⚠️ Certificate data is null or undefined');
-      return false;
-    }
-
-    // ตรวจสอบข้อมูลพื้นฐานที่จำเป็น
-    const requiredFields = [
-      { field: 'studentId', sources: ['studentId', 'studentInfo.studentId'] },
-      { field: 'firstName', sources: ['firstName', 'studentInfo.firstName'] },
-      { field: 'lastName', sources: ['lastName', 'studentInfo.lastName'] },
-      { field: 'companyName', sources: ['companyName', 'internshipInfo.companyName'] },
-      { field: 'startDate', sources: ['startDate', 'internshipInfo.startDate'] },
-      { field: 'endDate', sources: ['endDate', 'internshipInfo.endDate'] }
-    ];
-
-    for (const { field, sources } of requiredFields) {
-      let hasValue = false;
-      
-      for (const source of sources) {
-        const value = this.getNestedValue(certificateData, source);
-        if (value && value.toString().trim()) {
-          hasValue = true;
-          break;
-        }
-      }
-      
-      if (!hasValue) {
-        console.warn(`⚠️ Missing required field: ${field}`);
-        return false;
-      }
-    }
-
-    console.log('✅ Certificate data validation passed');
-    return true;
-  }
-
-  /**
-   * ดึงค่าจาก nested object
-   * @param {Object} obj - Object ที่ต้องการดึงค่า
-   * @param {string} path - Path ของ field (เช่น 'studentInfo.studentId')
-   * @returns {any} ค่าที่ดึงได้
-   */
-  getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  }
-
-  /**
    * สร้างหมายเลขหนังสือรับรอง
    * @returns {string} หมายเลขหนังสือรับรอง
    */
@@ -323,11 +327,12 @@ class CertificatePDFHelper {
     return {
       serviceAvailable: this.isOfficialDocumentServiceAvailable(),
       serviceType: 'Frontend PDF Generation Only',
-      version: '2.0.0',
+      version: '2.1.0', // อัปเดตเวอร์ชัน
       features: [
         'Frontend PDF Generation',
         'Certificate Preview',
-        'Basic Data Validation',
+        'Enhanced Data Validation',
+        'New Certificate Data Structure Support', // ใหม่!
         'Thai Text Cleaning',
         'Error Handling',
         'Flexible Data Processing'
