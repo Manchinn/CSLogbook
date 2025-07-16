@@ -32,6 +32,7 @@ import {
   TeamOutlined,
   PhoneOutlined,
   SendOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -40,18 +41,14 @@ import "./styles/variables.css";
 import "./styles/index.css";
 import "./styles/Summary.css";
 
-// นำเข้า services
-import internshipService from "../../../services/internshipService";
-
 // นำเข้า custom hooks
 import { useSummaryData } from "./hooks/useSummaryData";
 import { useReflectionForm } from "./hooks/useFormActions";
+// ✅ เพิ่ม import useAuth
+import { useAuth } from "../../../contexts/AuthContext";
 
 // นำเข้า component ย่อย
-import {
-  WeeklyOverview,
-  StatsOverview,
-} from "./components/OverviewComponents";
+import { WeeklyOverview, StatsOverview } from "./components/OverviewComponents";
 import LogbookTable from "./components/LogbookTable";
 import AchievementPanel from "./components/AchievementPanel";
 import SkillsPanel from "./components/SkillsPanel";
@@ -62,6 +59,11 @@ import EvaluationRequestButton from "../../EvaluationRequestButton";
 // นำเข้า utility functions
 import { calculateCompletionStatus } from "./utils/skillUtils";
 import { formatDateRange } from "./utils/dateUtils";
+import {
+  handlePreviewInternshipLogbook,
+  handleDownloadInternshipLogbook,
+  validateDataForPDF,
+} from "./helpers/summaryPdfHelper";
 
 // ค่าคงที่
 const { Title, Text } = Typography;
@@ -74,6 +76,11 @@ const InternshipSummary = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("1");
   const [editingReflection, setEditingReflection] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+
+  // ✅ เพิ่มการใช้ useAuth hook
+  const { user } = useAuth();
 
   // ใช้ custom hooks
   const {
@@ -121,33 +128,180 @@ const InternshipSummary = () => {
     setEditingReflection(!editingReflection);
   };
 
-  // ดาวน์โหลดเอกสารสรุป
-  const handleDownloadSummary = () => {
-    message.info("กำลังเตรียมเอกสารสรุป...");
-    internshipService
-      .downloadInternshipSummary()
-      .then((response) => {
-        if (response.success && response.data) {
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const link = document.createElement("a");
-          link.href = url;
-          link.setAttribute(
-            "download",
-            `internship_summary_${dayjs().format("YYYYMMDD")}.pdf`
-          );
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
+  // ✅ ปรับปรุงฟังก์ชัน prepareUserInfoForPDF ให้มี fallback หลายระดับ
+  const prepareUserInfoForPDF = () => {
+    // 🔄 ลำดับความสำคัญการหาข้อมูลนักศึกษา
+    let userInfo = null;
+
+    // ลำดับที่ 1: ใช้ข้อมูลจาก useAuth hook
+    if (
+      user &&
+      (user.firstName || user.first_name || user.fullName || user.full_name)
+    ) {
+      userInfo = {
+        firstName: user.firstName || user.first_name || "",
+        lastName: user.lastName || user.last_name || "",
+        fullName:
+          user.fullName ||
+          user.full_name ||
+          `${user.firstName || user.first_name || ""} ${
+            user.lastName || user.last_name || ""
+          }`.trim(),
+        studentId: user.studentId || user.student_id || user.username || "",
+        yearLevel: user.yearLevel || user.year_level || "",
+        classroom: user.classroom || user.class || "",
+        phoneNumber: user.phoneNumber || user.phone || "",
+        email: user.email || "",
+        title: user.title || "",
+      };
+    }
+
+    // ลำดับที่ 2: ใช้ข้อมูลจาก summaryData.studentData (ถ้ามี)
+    if (
+      !userInfo &&
+      summaryData?.studentData &&
+      Array.isArray(summaryData.studentData) &&
+      summaryData.studentData.length > 0
+    ) {
+      const studentData = summaryData.studentData[0];
+      userInfo = {
+        firstName: studentData.firstName || "",
+        lastName: studentData.lastName || "",
+        fullName: studentData.fullName || "",
+        studentId: studentData.studentId || "",
+        yearLevel: studentData.yearLevel || "",
+        classroom: studentData.classroom || "",
+        phoneNumber: studentData.phoneNumber || "",
+        email: studentData.email || "",
+        title: studentData.title || "",
+      };
+    }
+
+    // ลำดับที่ 3: ใช้ข้อมูลจาก summaryData.studentInfo (fallback เก่า)
+    if (!userInfo && summaryData?.studentInfo) {
+      const info = summaryData.studentInfo;
+      userInfo = {
+        firstName: info.firstName || info.first_name || "",
+        lastName: info.lastName || info.last_name || "",
+        fullName: info.fullName || info.full_name || "",
+        studentId: info.studentId || info.student_id || "",
+        yearLevel: info.yearLevel || info.year_level || "",
+        classroom: info.classroom || info.class || "",
+        phoneNumber: info.phoneNumber || info.phone || "",
+        email: info.email || "",
+        title: info.title || "",
+      };
+    }
+
+    // ลำดับที่ 4: สร้างข้อมูลพื้นฐานจาก localStorage หรือ default
+    if (!userInfo) {
+      //console.warn('⚠️ No user data available, trying localStorage fallback');
+
+      // ลองดึงจาก localStorage
+      const cachedUser = localStorage.getItem("user");
+      if (cachedUser) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          userInfo = {
+            firstName: parsedUser.firstName || parsedUser.first_name || "",
+            lastName: parsedUser.lastName || parsedUser.last_name || "",
+            fullName: parsedUser.fullName || parsedUser.full_name || "นักศึกษา",
+            studentId:
+              parsedUser.studentId ||
+              parsedUser.student_id ||
+              parsedUser.username ||
+              "ไม่ระบุ",
+            yearLevel: parsedUser.yearLevel || parsedUser.year_level || "",
+            classroom: parsedUser.classroom || parsedUser.class || "",
+            phoneNumber: parsedUser.phoneNumber || parsedUser.phone || "",
+            email: parsedUser.email || "",
+            title: parsedUser.title || "",
+          };
+        } catch (error) {
+          //console.error('Error parsing cached user data:', error);
         }
-      })
-      .catch((err) => {
-        message.error("ไม่สามารถดาวน์โหลดเอกสารสรุปได้");
-      });
+      }
+    }
+
+    // ลำดับสุดท้าย: ใช้ข้อมูล default
+    if (!userInfo) {
+      console.warn("⚠️ Creating default user info for PDF generation");
+      userInfo = {
+        firstName: "",
+        lastName: "",
+        fullName: "นักศึกษา",
+        studentId: "ไม่ระบุ",
+        yearLevel: "",
+        classroom: "",
+        phoneNumber: "",
+        email: "",
+        title: "",
+      };
+    }
+
+    //console.log('🔍 Prepared user info for PDF:', userInfo);
+    return userInfo;
   };
 
-  // พิมพ์เอกสาร
-  const handlePrint = () => {
-    window.print();
+  // ตรวจสอบว่ามีข้อมูลเพียงพอสำหรับสร้าง PDF หรือไม่
+  const hasMinimumData = validateDataForPDF(summaryData, logEntries);
+
+  // ✅ ตรวจสอบเงื่อนไขการสร้าง PDF
+  const canGeneratePDF = () => {
+    return isCS05Approved && totalApprovedHours >= 240 && hasMinimumData;
+  };
+
+  // ✅ สร้างข้อความ tooltip
+  const getPDFTooltip = () => {
+    if (!isCS05Approved) {
+      return "รอการอนุมัติแบบฟอร์ม คพ.05";
+    }
+
+    if (totalApprovedHours < 240) {
+      return `บันทึกการฝึกงานยังไม่ครบ 240 ชั่วโมง (ปัจจุบัน: ${totalApprovedHours} ชั่วโมง)`;
+    }
+
+    if (!hasMinimumData) {
+      return "ข้อมูลไม่เพียงพอสำหรับสร้างเอกสาร PDF";
+    }
+
+    return "";
+  };
+
+  // ปรับปรุงฟังก์ชัน handlePreviewSummary
+  const handlePreviewSummary = async () => {
+    if (!canGeneratePDF()) {
+      message.warning(getPDFTooltip());
+      return;
+    }
+
+    const userInfo = prepareUserInfoForPDF();
+    await handlePreviewInternshipLogbook(
+      summaryData,
+      logEntries,
+      reflection,
+      totalApprovedHours,
+      setPreviewLoading,
+      userInfo
+    );
+  };
+
+  // ปรับปรุงฟังก์ชัน handleDownloadSummary
+  const handleDownloadSummary = async () => {
+    if (!canGeneratePDF()) {
+      message.warning(getPDFTooltip());
+      return;
+    }
+
+    const userInfo = prepareUserInfoForPDF();
+    await handleDownloadInternshipLogbook(
+      summaryData,
+      logEntries,
+      reflection,
+      totalApprovedHours,
+      setDownloadLoading,
+      userInfo
+    );
   };
 
   // แสดงหน้า loading
@@ -178,7 +332,7 @@ const InternshipSummary = () => {
   }
 
   // แสดงกรณี CS05 ยังไม่ได้รับการอนุมัติ
-  if (!isCS05Approved && summaryData?.status !== 'supervisor_evaluated') {
+  if (!isCS05Approved && summaryData?.status !== "supervisor_evaluated") {
     return (
       <div className="no-data-container">
         <Result
@@ -186,7 +340,10 @@ const InternshipSummary = () => {
           title="แบบฟอร์ม คพ.05 อยู่ระหว่างการพิจารณา"
           subTitle="กรุณารอการอนุมัติจากอาจารย์ที่ปรึกษาเพื่อเริ่มบันทึกการฝึกงาน"
           extra={
-            <Button type="primary" onClick={() => navigate("/internship/cs05")}>
+            <Button
+              type="primary"
+              onClick={() => navigate("/internship-registration/flow")}
+            >
               ดูสถานะล่าสุด
             </Button>
           }
@@ -292,8 +449,8 @@ const InternshipSummary = () => {
       label: (
         <span>
           <ProfileOutlined />
-          {summaryData?.status === 'supervisor_evaluated' 
-            ? "ได้รับการประเมินแล้ว" 
+          {summaryData?.status === "supervisor_evaluated"
+            ? "ได้รับการประเมินแล้ว"
             : "การประเมินจากพี่เลี้ยง"}
         </span>
       ),
@@ -310,9 +467,10 @@ const InternshipSummary = () => {
             <Title level={4}>การประเมินผลการฝึกงานโดยพี่เลี้ยง</Title>
           </div>
 
-          {/* ใช้ EvaluationRequestButton component แทน logic เดิม */}
-          <EvaluationRequestButton 
+          {/* ✅ ส่ง totalApprovedHours ไปด้วย */}
+          <EvaluationRequestButton
             documentId={summaryData?.documentId}
+            totalApprovedHours={totalApprovedHours} // ✅ เพิ่ม prop นี้
             onEvaluationSent={() => {
               // รีเฟรชข้อมูลหลังจากส่งสำเร็จ
               refreshData();
@@ -320,7 +478,8 @@ const InternshipSummary = () => {
           />
 
           {/* แสดงข้อมูลพี่เลี้ยงเมื่อมีการประเมินแล้วหรือยังไม่ได้ส่งแบบประเมิน */}
-          {(summaryData?.status === 'supervisor_evaluated' || !evaluationFormSent) && (
+          {(summaryData?.status === "supervisor_evaluated" ||
+            !evaluationFormSent) && (
             <Card
               title="ข้อมูลพี่เลี้ยง"
               type="inner"
@@ -421,6 +580,19 @@ const InternshipSummary = () => {
                       : "-"}
                   </Text>
                 </Space>
+
+                {/* ✅ เพิ่มการแสดงข้อมูลนักศึกษาเพื่อ debug */}
+                {user && (
+                  <div
+                    style={{ fontSize: "14px", color: "#666", marginTop: 8 }}
+                  >
+                    <Text type="secondary">
+                      นักศึกษา: {user.firstName || user.first_name}{" "}
+                      {user.lastName || user.last_name}(
+                      {user.studentId || user.student_id || user.username})
+                    </Text>
+                  </div>
+                )}
               </div>
             </div>
           </Col>
@@ -446,6 +618,17 @@ const InternshipSummary = () => {
             </div>
           </Col>
         </Row>
+
+        {/* เพิ่ม Alert แสดงสถานะการสร้าง PDF */}
+        {!hasMinimumData && (
+          <Alert
+            message="ข้อมูลไม่เพียงพอสำหรับสร้างเอกสาร PDF"
+            description="กรุณาเพิ่มบันทึกการฝึกงานอย่างน้อย 1 รายการ เพื่อให้สามารถสร้างเอกสารสรุปได้"
+            type="warning"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        )}
       </Card>
 
       <div className="summary-tabs" style={{ marginTop: 24 }}>
@@ -460,22 +643,33 @@ const InternshipSummary = () => {
         />
       </div>
 
+      {/* ปรับปรุงส่วน Actions */}
       <div className="summary-actions no-print">
-        <Space>
+        <Space size="middle">
+          {/* ปุ่ม Preview */}
+          <Button
+            type="default"
+            icon={<EyeOutlined />}
+            onClick={handlePreviewSummary}
+            loading={previewLoading}
+            disabled={!canGeneratePDF()}
+            size="middle"
+            title={!canGeneratePDF() ? getPDFTooltip() : "แสดงตัวอย่างเอกสาร PDF"}
+          >
+            {previewLoading ? "กำลังเตรียม..." : "แสดงตัวอย่าง"}
+          </Button>
+
+          {/* ปุ่ม Download */}
           <Button
             type="primary"
             icon={<FilePdfOutlined />}
             onClick={handleDownloadSummary}
-            disabled={!summaryData || logEntries.length === 0}
+            loading={downloadLoading}
+            disabled={!canGeneratePDF()}
+            size="middle"
+            title={!canGeneratePDF() ? getPDFTooltip() : "ดาวน์โหลดเอกสาร PDF"}
           >
-            ดาวน์โหลดสรุปการฝึกงาน
-          </Button>
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={handlePrint}
-            disabled={!summaryData || logEntries.length === 0}
-          >
-            พิมพ์เอกสาร
+            {downloadLoading ? "กำลังสร้าง..." : "ดาวน์โหลดสรุปการฝึกงาน"}
           </Button>
         </Space>
       </div>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Form, Input, Button, Card, Typography, Space, message, Result, Spin, Skeleton } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, message, Result, Spin } from 'antd';
 import { useNavigate } from "react-router-dom";
 import { useInternship } from '../../../contexts/InternshipContext';
 import internshipService from '../../../services/internshipService';
-import { EditOutlined, WarningOutlined, LoadingOutlined } from '@ant-design/icons';
+import { EditOutlined, WarningOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -277,7 +277,7 @@ const CompanyForm = () => {
         subTitle="คุณจำเป็นต้องส่งคำร้อง คพ.05 ก่อนจึงจะสามารถกรอกข้อมูลสถานประกอบการได้"
         extra={
           <Space>
-            <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
+            <Button type="primary" onClick={() => navigate('/internship-registration/flow')}>
               ไปที่หน้าส่งคำร้อง คพ.05
             </Button>
             <Button onClick={() => navigate('/internship')}>
@@ -301,7 +301,7 @@ const CompanyForm = () => {
             <Button onClick={() => navigate('/internship/status')}>
               ดูสถานะคำร้อง
             </Button>
-            <Button type="primary" onClick={() => navigate('/internship-registration/cs05')}>
+            <Button type="primary" onClick={() => navigate('/internship-registration/flow')}>
               ส่งคำร้องใหม่
             </Button>
             <Button onClick={() => navigate('/internship')}>

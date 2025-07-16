@@ -1,236 +1,447 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
 import {
-  Typography, Card, Timeline, Button, Space, Tag, Alert, Row, Col,
-  Descriptions, Divider, Steps, Statistic
-} from 'antd';
+  Typography,
+  Card,
+  Timeline,
+  Alert,
+  message,
+  Button,
+  Space,
+} from "antd";
+import { CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import "dayjs/locale/th";
+import internshipService from "../../../services/internshipService";
+import officialDocumentService from "../../../services/PDFServices/OfficialDocumentService";
+
+// นำเข้า helper functions จาก helpers directory
 import {
-  CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
-  AuditOutlined, PrinterOutlined, UploadOutlined, FileDoneOutlined,
-  DownloadOutlined, HomeOutlined, ReloadOutlined
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import 'dayjs/locale/th';
-import internshipService from '../../../services/internshipService';
+  // Step Status Helpers
+  updateStepFromStatus,
+  updateStepFromDownloadStatus,
+  updateStepFromReferralStatus,
+  getNextActionText,
+
+  // PDF Helpers
+  prepareFormDataForPDF,
+  handlePreviewPDF,
+  handleGenerateOfficialLetter,
+  handlePreviewAcceptanceForm,
+  handleGenerateAcceptanceForm,
+  handleGenerateReferralLetter,
+  handlePreviewReferralLetter,
+
+  // Upload Helpers
+  getUploadProps,
+  handleUploadAcceptanceLetter,
+
+  // Status Check Helpers
+  fetchLatestCS05Status,
+  checkAcceptanceLetterStatus,
+  checkReferralLetterStatus,
+
+  // Timeline Helpers
+  createInternshipProcessSteps,
+} from "./helpers";
 
 const { Title, Paragraph, Text } = Typography;
 
-const SubmissionResultStep = ({ navigate, formData, existingCS05, studentData, transcriptFile }) => {
+const SubmissionResultStep = ({
+  navigate,
+  formData,
+  existingCS05,
+  studentData,
+  transcriptFile,
+}) => {
+  // State management
   const [currentInternshipStep, setCurrentInternshipStep] = useState(1);
-  const [cs05Status, setCs05Status] = useState(existingCS05?.status || 'submitted');
+  const [cs05Status, setCs05Status] = useState(
+    existingCS05?.status || "submitted"
+  );
   const [loading, setLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [acceptanceFile, setAcceptanceFile] = useState(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [acceptanceLetterStatus, setAcceptanceLetterStatus] = useState(null);
+  const [acceptanceLetterInfo, setAcceptanceLetterInfo] = useState(null);
+  const [referralLetterStatus, setReferralLetterStatus] = useState(null);
+  const [referralLetterInfo, setReferralLetterInfo] = useState(null);
 
-  // ฟังก์ชันแปลงสถานะ CS05 เป็นขั้นตอนฝึกงาน
-  const getStepFromStatus = (status) => {
-    switch (status) {
-      case 'submitted':
-      case 'under_review':
-        return 1; // การอนุมัติจากเจ้าหน้าที่ภาควิชา
-      case 'approved':
-      case 'letter_ready':
-        return 2; // รอหนังสือขอความอนุเคราะห์
-      case 'letter_downloaded':
-        return 3; // พิมพ์หนังสือขอความอนุเคราะห์
-      case 'acceptance_uploaded':
-        return 4; // อัปโหลดหนังสือตอบรับ
-      case 'acceptance_approved':
-        return 5; // รอหนังสือส่งตัว
-      case 'referral_ready':
-        return 6; // นักศึกษาพิมพ์หนังสือส่งตัว
-      case 'completed':
-        return 7; // เสร็จสิ้นทุกขั้นตอน
-      default:
-        return 1;
+  // ตรวจสอบสถานะ PDF Service
+  useEffect(() => {
+    const checkPDFService = () => {
+      const status = officialDocumentService.getStatus();
+      console.log("PDF Service Status:", status);
+
+      if (!status.isInitialized) {
+        console.warn(
+          "PDF Service ยังไม่ได้รับการตั้งค่า กรุณาตรวจสอบการเชื่อมต่อ"
+        );
+      }
+    };
+
+    checkPDFService();
+  }, []);
+
+  // ฟังก์ชันที่เกี่ยวข้องกับ helpers แต่ต้องส่ง state เข้าไป
+  const handleUpdateStepFromStatus = (status) => {
+    updateStepFromStatus(status, setCurrentInternshipStep, setCs05Status);
+  };
+
+  const handleUpdateStepFromDownloadStatus = (downloadStatus) => {
+    updateStepFromDownloadStatus(
+      downloadStatus,
+      setCurrentInternshipStep,
+      setCs05Status
+    );
+  };
+
+  const handleUpdateStepFromReferralStatus = (
+    referralStatus,
+    acceptanceStatus
+  ) => {
+    updateStepFromReferralStatus(
+      referralStatus,
+      acceptanceStatus,
+      setCurrentInternshipStep,
+      setCs05Status
+    );
+  };
+
+  // ฟังก์ชันเตรียม data สำหรับ PDF functions
+  const prepareData = () => {
+    return prepareFormDataForPDF(existingCS05, formData, studentData);
+  };
+
+  // ฟังก์ชันสำหรับ PDF
+  const handlePreviewPDFWrapper = async () => {
+    await handlePreviewPDF(prepareData, setPreviewLoading);
+  };
+
+  const handleGenerateOfficialLetterWrapper = async () => {
+    await handleGenerateOfficialLetter(prepareData, setPdfLoading);
+  };
+
+  const handleGenerateAcceptanceFormWrapper = async (isBlank = true) => {
+    await handleGenerateAcceptanceForm(prepareData, setPdfLoading, isBlank);
+  };
+
+  const handlePreviewAcceptanceFormWrapper = async (isBlank = true) => {
+    await handlePreviewAcceptanceForm(prepareData, setPreviewLoading, isBlank);
+  };
+
+  const handleGenerateReferralLetterWrapper = async () => {
+    await handleGenerateReferralLetter(
+      prepareData,
+      existingCS05,
+      setPdfLoading,
+      setReferralLetterStatus,
+      setCurrentInternshipStep,
+      internshipService
+    );
+  };
+
+  const handlePreviewReferralLetterWrapper = async () => {
+    await handlePreviewReferralLetter(
+      prepareData,
+      existingCS05,
+      setPreviewLoading
+    );
+  };
+
+  useEffect(() => {
+    console.log("🔍 SubmissionResultStep - existingCS05:", existingCS05);
+    console.log("🔍 Props received:", {
+      existingCS05,
+      hasData: !!existingCS05,
+      documentId: existingCS05?.documentId,
+    });
+  }, [existingCS05]);
+
+  // ฟังก์ชันสำหรับอัปโหลด
+  const uploadProps = getUploadProps(acceptanceFile, setAcceptanceFile);
+
+  const handleUploadAcceptanceLetterWrapper = async () => {
+    // เพิ่มการ debug เพื่อตรวจสอบข้อมูล
+    console.log("[DEBUG] Upload Wrapper - existingCS05:", existingCS05);
+    console.log("[DEBUG] Upload Wrapper - acceptanceFile:", acceptanceFile);
+
+    if (!existingCS05) {
+      message.error("ไม่พบข้อมูลเอกสาร CS05 กรุณารีเฟรชหน้าเว็บ");
+      return;
+    }
+
+    if (!existingCS05.documentId) {
+      message.error("ไม่พบ ID เอกสาร CS05");
+      return;
+    }
+
+    await handleUploadAcceptanceLetter(
+      acceptanceFile,
+      existingCS05,
+      internshipService,
+      setUploadLoading,
+      setAcceptanceFile,
+      setAcceptanceLetterStatus,
+      setAcceptanceLetterInfo,
+      handleUpdateStepFromStatus
+    );
+  };
+
+  // ฟังก์ชันสำหรับตรวจสอบสถานะ
+  const fetchLatestCS05StatusWrapper = async () => {
+    await fetchLatestCS05Status(
+      internshipService,
+      setLoading,
+      handleUpdateStepFromStatus
+    );
+  };
+
+  const checkAcceptanceLetterStatusWrapper = async () => {
+    try {
+      console.log("[DEBUG] 🔍 เริ่มตรวจสอบสถานะ acceptance letter...");
+
+      await checkAcceptanceLetterStatus(
+        existingCS05,
+        cs05Status,
+        internshipService,
+        setAcceptanceLetterStatus,
+        setAcceptanceLetterInfo,
+        handleUpdateStepFromStatus,
+        checkReferralLetterStatusWrapper
+      );
+
+      console.log("[DEBUG] ✅ ตรวจสอบ acceptance letter เสร็จสิ้น");
+    } catch (error) {
+      console.error(
+        "[DEBUG] ❌ Error in checkAcceptanceLetterStatusWrapper:",
+        error
+      );
     }
   };
 
-  // อัปเดตสถานะขั้นตอนตามสถานะ CS05
-  const updateStepFromStatus = (status) => {
-    const newStep = getStepFromStatus(status);
-    console.log(`[DEBUG] อัปเดตจากสถานะ ${status} เป็นขั้นตอนที่ ${newStep}`);
-    setCurrentInternshipStep(newStep);
-    setCs05Status(status);
+  const checkReferralLetterStatusWrapper = async () => {
+    await checkReferralLetterStatus(
+      existingCS05,
+      referralLetterStatus,
+      currentInternshipStep,
+      internshipService,
+      setReferralLetterStatus,
+      setReferralLetterInfo,
+      handleUpdateStepFromDownloadStatus
+    );
   };
 
-  // โหลดสถานะ CS05 ล่าสุดจาก API
-  const fetchLatestCS05Status = async () => {
+  // ✅ ปรับปรุงฟังก์ชันตรวจสอบสถานะทั้งหมด
+  const checkAllStatus = async () => {
+    console.log("[DEBUG] 🔄 เริ่มตรวจสอบสถานะทั้งหมด...");
+
     try {
-      setLoading(true);
-      const response = await internshipService.getCurrentCS05();
-      
-      if (response.success && response.data) {
-        const latestStatus = response.data.status;
-        console.log('[DEBUG] สถานะ CS05 ล่าสุด:', latestStatus);
-        
-        // อัปเดตขั้นตอนตามสถานะใหม่
-        updateStepFromStatus(latestStatus);
+      // ✅ ตรวจสอบว่าเสร็จสิ้นแล้วหรือไม่ก่อน
+      if (
+        cs05Status === "referral_downloaded" ||
+        cs05Status === "completed" ||
+        referralLetterStatus === "downloaded"
+      ) {
+        console.log("[DEBUG] 🛡️ ข้ามการตรวจสอบ - ขั้นตอนเสร็จสมบูรณ์แล้ว");
+        return;
       }
+
+      // ✅ 1. ตรวจสอบ CS05 status ล่าสุด
+      console.log("[DEBUG] 📋 ตรวจสอบสถานะ CS05...");
+      await fetchLatestCS05StatusWrapper();
+
+      // ✅ 2. ตรวจสอบ acceptance letter status
+      console.log("[DEBUG] 📄 ตรวจสอบสถานะหนังสือตอบรับ...");
+      await checkAcceptanceLetterStatusWrapper();
+
+      // ✅ 3. ตรวจสอบ referral letter status (ถ้า acceptance letter อนุมัติแล้ว)
+      if (
+        acceptanceLetterStatus === "approved" ||
+        cs05Status === "acceptance_approved"
+      ) {
+        console.log("[DEBUG] 📋 ตรวจสอบสถานะหนังสือส่งตัว...");
+        await checkReferralLetterStatusWrapper();
+      }
+
+      console.log("[DEBUG] ✅ ตรวจสอบสถานะทั้งหมดเสร็จสิ้น");
     } catch (error) {
-      console.error('Error fetching CS05 status:', error);
+      console.error("[DEBUG] ❌ Error in checkAllStatus:", error);
+    }
+  };
+
+  // ✅ แก้ไข useEffect สำหรับตรวจสอบ localStorage ตอนเริ่ม
+  useEffect(() => {
+    const initializeFromCache = () => {
+      if (!existingCS05?.documentId) return;
+
+      // ตรวจสอบสถานะดาวน์โหลดจาก localStorage
+      const cachedDownloadStatus = localStorage.getItem(
+        `referral_downloaded_${existingCS05.documentId}`
+      );
+      const cachedTimestamp = localStorage.getItem(
+        `referral_downloaded_timestamp_${existingCS05.documentId}`
+      );
+      const backendSynced = localStorage.getItem(
+        `backend_synced_${existingCS05.documentId}`
+      );
+
+      if (cachedDownloadStatus === "true") {
+        console.log("[DEBUG] 🎯 พบสถานะดาวน์โหลดใน localStorage:", {
+          documentId: existingCS05.documentId,
+          downloadedAt: cachedTimestamp,
+          backendSynced: backendSynced === "true",
+        });
+
+        // อัปเดต state ให้ตรงกับ cache
+        setReferralLetterStatus("downloaded");
+        setCurrentInternshipStep(7);
+        setCs05Status("referral_downloaded");
+
+        setReferralLetterInfo({
+          status: "downloaded",
+          downloadedAt: cachedTimestamp,
+          statusMessage: `ดาวน์โหลดแล้วเมื่อ ${
+            cachedTimestamp
+              ? new Date(cachedTimestamp).toLocaleString("th-TH")
+              : "ไม่ทราบเวลา"
+          }`,
+          source: "localStorage_cache",
+          backendSynced: backendSynced === "true",
+        });
+
+        console.log("[DEBUG] ✅ คืนสถานะจาก localStorage สำเร็จ");
+        return true; // แสดงว่าพบ cache
+      }
+
+      return false; // ไม่พบ cache
+    };
+
+    // เรียกตรวจสอบ cache ก่อนเรียก API
+    const hasCachedStatus = initializeFromCache();
+
+    // ✅ ถ้าไม่มี cache ให้เรียก checkAllStatus แทน handleUpdateStepFromStatus
+    if (!hasCachedStatus) {
+      console.log("[DEBUG] 🔄 ไม่พบ cache - ตรวจสอบสถานะจาก API");
+
+      // ✅ แก้ไขตรงนี้: เรียก checkAllStatus แทน handleUpdateStepFromStatus
+      const initializeStatusFromAPI = async () => {
+        try {
+          if (existingCS05?.status) {
+            console.log(
+              "[DEBUG] 🔄 เริ่มต้นการตรวจสอบสถานะทั้งหมด:",
+              existingCS05.status
+            );
+
+            // ✅ ตั้งสถานะเริ่มต้นจาก CS05 ก่อน
+            handleUpdateStepFromStatus(existingCS05.status);
+
+            // ✅ จากนั้นตรวจสอบสถานะทั้งหมดจาก API (หลังจาก 500ms)
+            setTimeout(async () => {
+              console.log("[DEBUG] 🔍 เริ่มตรวจสอบสถานะทั้งหมดจาก API...");
+              await checkAllStatus();
+              console.log("[DEBUG] ✅ ตรวจสอบสถานะทั้งหมดเสร็จสิ้น");
+            }, 500);
+          }
+        } catch (error) {
+          console.error("[DEBUG] ❌ Error in initializeStatusFromAPI:", error);
+        }
+      };
+
+      initializeStatusFromAPI();
+    }
+  }, [existingCS05?.status, existingCS05?.documentId]);
+
+  // ✅ เพิ่มฟังก์ชันสำหรับล้าง cache (สำหรับ debug)
+  const clearLocalStorageCache = () => {
+    if (!existingCS05?.documentId) return;
+
+    const keys = [
+      `referral_downloaded_${existingCS05.documentId}`,
+      `referral_downloaded_timestamp_${existingCS05.documentId}`,
+      `cs05_status_${existingCS05.documentId}`,
+      `backend_synced_${existingCS05.documentId}`,
+    ];
+
+    keys.forEach((key) => localStorage.removeItem(key));
+    console.log("[DEBUG] 🗑️ ล้าง localStorage cache แล้ว");
+
+    // Refresh สถานะ
+    window.location.reload();
+  };
+
+  // ✅ เวอร์ชันง่ายของ handleRefreshStatus
+  const handleRefreshStatus = async () => {
+    setLoading(true);
+    try {
+      console.log("[DEBUG] 🔄 รีเฟรชสถานะ...");
+
+      // เรียกตรวจสอบสถานะทั้งหมดใหม่
+      await checkAllStatus();
+
+      message.success("อัปเดตสถานะเรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("[DEBUG] ❌ เกิดข้อผิดพลาดในการรีเฟรช:", error);
+      message.error("ไม่สามารถอัปเดตสถานะได้");
     } finally {
       setLoading(false);
     }
   };
 
-  // เรียกใช้เมื่อ component โหลด
+  // ดักจับการเปลี่ยนแปลง referralLetterStatus
   useEffect(() => {
-    // ตั้งค่าขั้นตอนเริ่มต้นจากข้อมูลที่มีอยู่
-    if (existingCS05?.status) {
-      updateStepFromStatus(existingCS05.status);
+    if (referralLetterStatus && acceptanceLetterStatus === "approved") {
+      console.log(
+        "[DEBUG] 👀 referralLetterStatus เปลี่ยนแปลง:",
+        referralLetterStatus
+      );
+      handleUpdateStepFromReferralStatus(referralLetterStatus, "approved");
     }
+  }, [referralLetterStatus, acceptanceLetterStatus]);
 
-    // โหลดสถานะล่าสุดจาก API
-    fetchLatestCS05Status();
+  // การสร้าง action handlers สำหรับ timeline
+  const actionHandlers = {
+    handlePreviewPDF: handlePreviewPDFWrapper,
+    handleGenerateOfficialLetter: handleGenerateOfficialLetterWrapper,
+    handlePreviewAcceptanceForm: handlePreviewAcceptanceFormWrapper,
+    handleGenerateAcceptanceForm: handleGenerateAcceptanceFormWrapper,
+    handleUploadAcceptanceLetter: handleUploadAcceptanceLetterWrapper,
+    handlePreviewReferralLetter: handlePreviewReferralLetterWrapper,
+    handleGenerateReferralLetter: handleGenerateReferralLetterWrapper,
+    uploadProps,
+    acceptanceFile,
+    pdfLoading,
+    previewLoading,
+    uploadLoading,
+  };
 
-    // ตั้งค่า polling เพื่อตรวจสอบสถานะทุก 30 วินาที
-    const pollInterval = setInterval(fetchLatestCS05Status, 30000);
-
-    return () => clearInterval(pollInterval);
-  }, [existingCS05?.status]);
-
-  // แสดงข้อมูลตามโครงสร้างที่มาจาก existingCS05 หรือ formData
-  const displayData = existingCS05 || formData || {};
-
-  // ขั้นตอนทั้งหมดของการฝึกงาน (7 ขั้นตอน) - อัปเดตให้สะท้อนสถานะปัจจุบัน
-  const internshipProcessSteps = [
-    {
-      title: 'กรอกข้อมูล คพ.05',
-      description: 'ส่งคำร้องขอฝึกงาน พร้อมข้อมูลบริษัทและนักศึกษา',
-      icon: <FileTextOutlined />,
-      status: 'finish', // เสร็จแล้วเสมอ
-      color: '#52c41a',
-      details: [
-        'ข้อมูลบริษัท / หน่วยงาน และสถานที่ตั้ง',
-        'ข้อมูลผู้ติดต่อ (HR หรือผู้รับผิดชอบ)',
-        'ตำแหน่งที่ขอฝึกงาน',
-        'รายชื่อนักศึกษา (ไม่เกิน 2 คน)',
-        'ข้อมูลส่วนตัว: ชื่อ-สกุล, ชั้นปี, ห้อง, รหัสนักศึกษา',
-        'เบอร์โทรศัพท์และหน่วยกิตสะสม',
-        'วันที่เริ่มต้นและสิ้นสุดการฝึกงาน'
-      ]
-    },
-    {
-      title: 'การอนุมัติจากเจ้าหน้าที่ภาควิชา',
-      description: 'เจ้าหน้าที่ภาควิชาตรวจสอบและส่งให้หัวหน้าภาควิชาเซ็น',
-      icon: <AuditOutlined />,
-      status: currentInternshipStep > 1 ? 'finish' : 'process',
-      color: currentInternshipStep > 1 ? '#52c41a' : '#1890ff',
-      details: [
-        'เจ้าหน้าที่ภาควิชาตรวจสอบความถูกต้องของข้อมูล',
-        'ตรวจสอบคุณสมบัติของนักศึกษา (หน่วยกิต, ชั้นปี)',
-        'ส่งเอกสารให้หัวหน้าภาควิชาเพื่อพิจารณาอนุมัติ',
-        'ระยะเวลาดำเนินการ: 2-3 วันทำการ'
-      ]
-    },
-    {
-      title: 'รอหนังสือขอความอนุเคราะห์',
-      description: 'รอการอนุมัติจากหัวหน้าภาควิชา',
-      icon: <ClockCircleOutlined />,
-      status: currentInternshipStep > 2 ? 'finish' : currentInternshipStep === 2 ? 'process' : 'wait',
-      color: currentInternshipStep > 2 ? '#52c41a' : currentInternshipStep === 2 ? '#1890ff' : '#d9d9d9',
-      details: [
-        'หัวหน้าภาควิชาพิจารณาและลงนามอนุมัติ',
-        'จัดทำหนังสือขอความอนุเคราะห์ฝึกงาน',
-        'เตรียมเอกสารสำหรับนักศึกษาดาวน์โหลด',
-        'ระยะเวลาดำเนินการ: 3-5 วันทำการ'
-      ]
-    },
-    {
-      title: 'พิมพ์หนังสือขอความอนุเคราะห์',
-      description: 'นักศึกษาดาวน์โหลดและพิมพ์เอกสาร',
-      icon: <PrinterOutlined />,
-      status: currentInternshipStep > 3 ? 'finish' : currentInternshipStep === 3 ? 'process' : 'wait',
-      color: currentInternshipStep > 3 ? '#52c41a' : currentInternshipStep === 3 ? '#1890ff' : '#d9d9d9',
-      details: [
-        'ดาวน์โหลดหนังสือขอความอนุเคราะห์ฝึกงาน',
-        'ดาวน์โหลดแบบฟอร์มหนังสือตอบรับนักศึกษาเข้าฝึกงาน',
-        'พิมพ์เอกสารทั้งสองฉบับ',
-        'นำเอกสารไปติดต่อบริษัท/หน่วยงาน'
-      ]
-    },
-    {
-      title: 'อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน',
-      description: 'อัปโหลดหนังสือตอบรับจากบริษัท',
-      icon: <UploadOutlined />,
-      status: currentInternshipStep > 4 ? 'finish' : currentInternshipStep === 4 ? 'process' : 'wait',
-      color: currentInternshipStep > 4 ? '#52c41a' : currentInternshipStep === 4 ? '#1890ff' : '#d9d9d9',
-      details: [
-        'รับหนังสือตอบรับจากบริษัท/หน่วยงาน',
-        'อัปโหลดหนังสือตอบรับเข้าสู่ระบบ',
-        'เจ้าหน้าที่ภาควิชาตรวจสอบเอกสาร',
-        'รอการอนุมัติเพื่อดำเนินการขั้นตอนถัดไป'
-      ]
-    },
-    {
-      title: 'รอหนังสือส่งตัว',
-      description: 'เจ้าหน้าที่ภาควิชาออกหนังสือส่งตัว',
-      icon: <FileDoneOutlined />,
-      status: currentInternshipStep > 5 ? 'finish' : currentInternshipStep === 5 ? 'process' : 'wait',
-      color: currentInternshipStep > 5 ? '#52c41a' : currentInternshipStep === 5 ? '#1890ff' : '#d9d9d9',
-      details: [
-        'เจ้าหน้าที่ภาควิชาจัดทำหนังสือส่งตัวนักศึกษา',
-        'ตรวจสอบรายละเอียดก่อนออกเอกสาร',
-        'เตรียมเอกสารสำหรับนักศึกษาดาวน์โหลด',
-        'ระยะเวลาดำเนินการ: 2-3 วันทำการ'
-      ]
-    },
-    {
-      title: 'นักศึกษาพิมพ์หนังสือส่งตัว',
-      description: 'ดาวน์โหลดและพิมพ์หนังสือส่งตัวเพื่อไปแจ้งให้กับบริษัท',
-      icon: <DownloadOutlined />,
-      status: currentInternshipStep > 6 ? 'finish' : currentInternshipStep === 6 ? 'process' : 'wait',
-      color: currentInternshipStep > 6 ? '#52c41a' : currentInternshipStep === 6 ? '#1890ff' : '#d9d9d9',
-      details: [
-        'ดาวน์โหลดหนังสือส่งตัวจากระบบ',
-        'พิมพ์เอกสารเพื่อนำไปรายงานตัว',
-        'นำหนังสือไปแจ้งให้กับบริษัท/หน่วยงาน',
-        'เริ่มต้นการฝึกงานตามกำหนดการ'
-      ]
-    }
-  ];
+  // ใช้ฟังก์ชัน createInternshipProcessSteps จาก timelineHelper
+  const internshipProcessSteps = createInternshipProcessSteps(
+    currentInternshipStep,
+    cs05Status,
+    referralLetterStatus,
+    acceptanceLetterStatus,
+    acceptanceLetterInfo,
+    actionHandlers
+  );
 
   // รายละเอียดขั้นตอนปัจจุบัน
   const getCurrentStepDetails = () => {
-    const currentStep = internshipProcessSteps[currentInternshipStep - 1]; // ลบ 1 เพราะ array เริ่มที่ 0
-    return {
-      title: currentStep?.title || '',
-      description: currentStep?.description || '',
-      nextAction: getNextActionText(currentInternshipStep - 1)
-    };
-  };
+    const currentStep = internshipProcessSteps[currentInternshipStep - 1];
 
-  // ข้อความแสดงการกระทำถัดไป
-  const getNextActionText = (stepIndex) => {
-    switch (stepIndex) {
-      case 0:
-        return 'คำร้อง คพ.05 ได้รับการบันทึกในระบบเรียบร้อยแล้ว รอเจ้าหน้าที่ภาควิชาตรวจสอบ';
-      case 1:
-        return 'เจ้าหน้าที่ภาควิชากำลังตรวจสอบข้อมูลและจะส่งให้หัวหน้าภาควิชาพิจารณาอนุมัติ';
-      case 2:
-        return 'กรุณารอการอนุมัติจากหัวหน้าภาควิชาเพื่อออกหนังสือขอความอนุเคราะห์';
-      case 3:
-        return 'หนังสือขอความอนุเคราะห์พร้อมแล้ว กรุณาดาวน์โหลดและพิมพ์เพื่อนำไปติดต่อบริษัท';
-      case 4:
-        return 'กรุณาอัปโหลดหนังสือตอบรับจากบริษัทเพื่อดำเนินการขั้นตอนถัดไป';
-      case 5:
-        return 'กรุณารอเจ้าหน้าที่ภาควิชาจัดทำหนังสือส่งตัว';
-      case 6:
-        return 'หนังสือส่งตัวพร้อมแล้ว กรุณาดาวน์โหลดและพิมพ์เพื่อนำไปรายงานตัว';
-      default:
-        return 'ขั้นตอนการฝึกงานเสร็จสมบูรณ์แล้ว';
+    if (currentInternshipStep === 3 && cs05Status === "approved") {
+      return {
+        title: currentStep?.title || "",
+        description: "ขณะนี้คุณสามารถดาวน์โหลดเอกสารและอัปโหลดหนังสือตอบรับได้",
+        nextAction: getNextActionText(currentInternshipStep - 1),
+      };
     }
-  };
-
-  // คำนวณระยะเวลาฝึกงาน
-  const calculateInternshipDuration = (startDate, endDate) => {
-    if (!startDate || !endDate) return '';
-    
-    const start = dayjs(startDate);
-    const end = dayjs(endDate);
-    const diffInDays = end.diff(start, 'day') + 1;
-    const diffInMonths = Math.round(diffInDays / 30);
-    
-    return `${diffInMonths} เดือน (${diffInDays} วัน)`;
+    return {
+      title: currentStep?.title || "",
+      description: currentStep?.description || "",
+      nextAction: getNextActionText(currentInternshipStep),
+    };
   };
 
   const stepDetails = getCurrentStepDetails();
@@ -238,149 +449,149 @@ const SubmissionResultStep = ({ navigate, formData, existingCS05, studentData, t
   return (
     <div>
       {/* หัวข้อหลักพร้อมแสดงสถานะปัจจุบัน */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <CheckCircleOutlined 
-          style={{ fontSize: '64px', color: '#52c41a', marginBottom: 16 }} 
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <CheckCircleOutlined
+          style={{ fontSize: "64px", color: "#52c41a", marginBottom: 16 }}
         />
         <Title level={3}>ส่งคำร้องเรียบร้อยแล้ว!</Title>
         <Paragraph>
-          คำร้อง คพ.05 ของคุณได้รับการบันทึกในระบบเรียบร้อยแล้ว<br/>
-          
-          {/* แสดงสถานะปัจจุบัน */}
-          {/* <Space style={{ marginTop: 8 }}>
-            <Text strong>สถานะปัจจุบัน:</Text>
-            <Tag color={cs05Status === 'approved' ? 'success' : 'processing'} style={{ fontSize: '14px' }}>
-              {cs05Status === 'submitted' ? '📝 รอตรวจสอบ' :
-               cs05Status === 'under_review' ? '🔍 กำลังตรวจสอบ' :
-               cs05Status === 'approved' ? '✅ อนุมัติแล้ว' :
-               cs05Status === 'rejected' ? '❌ ไม่อนุมัติ' :
-               cs05Status}
-            </Tag>
-          </Space>
-          
-          <br/> */}
-          <Text strong style={{ color: '#1890ff' }}>
+          คำร้อง คพ.05 ของคุณได้รับการบันทึกในระบบเรียบร้อยแล้ว
+          <br />
+          <Text strong style={{ color: "#1890ff" }}>
             {stepDetails.nextAction}
           </Text>
         </Paragraph>
-
-        {/* เพิ่มปุ่มรีเฟรชสถานะ */}
-        {/* <Button 
-          type="primary" 
-          ghost 
-          loading={loading}
-          icon={<ReloadOutlined />}
-          onClick={fetchLatestCS05Status}
-          style={{ marginTop: 16 }}
-        >
-          ตรวจสอบสถานะล่าสุด
-        </Button> */}
       </div>
 
-      {/* ข้อมูลการส่งคำร้อง */}
-      {/* <Card 
-        title="รายละเอียดการส่งคำร้อง" 
-        style={{ marginBottom: 24 }}
-        extra={
-          <Tag color="success">
-            ส่งเมื่อ: {dayjs().format('DD/MM/YYYY HH:mm')}
-          </Tag>
-        }
-      > */}
-        {/* แสดงรายละเอียดขั้นตอนปัจจุบัน */}
-        {/* <Alert
-          message={`ขั้นตอนปัจจุบัน: ${stepDetails.title}`}
-          description={stepDetails.nextAction}
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        /> */}
-        
-        {/* แสดงข้อมูลโดยสรุป */}
-        {/* <Descriptions bordered column={{ xs: 1, sm: 2, md: 3 }} size="small">
-          <Descriptions.Item label="บริษัท/หน่วยงาน">
-            {displayData.companyName || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="ตำแหน่งฝึกงาน">
-            {displayData.internshipPosition || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="ระยะเวลาฝึกงาน">
-            {calculateInternshipDuration(displayData.startDate, displayData.endDate)}
-          </Descriptions.Item>
-          <Descriptions.Item label="วันที่เริ่มต้น">
-            {displayData.startDate ? dayjs(displayData.startDate).format('DD/MM/YYYY') : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="วันที่สิ้นสุด">
-            {displayData.endDate ? dayjs(displayData.endDate).format('DD/MM/YYYY') : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="สถานะ">
-            <Tag color={cs05Status === 'approved' ? 'success' : 'processing'}>
-              {cs05Status === 'submitted' ? 'รอตรวจสอบ' :
-               cs05Status === 'under_review' ? 'กำลังตรวจสอบ' :
-               cs05Status === 'approved' ? 'อนุมัติแล้ว' :
-               cs05Status === 'rejected' ? 'ไม่อนุมัติ' :
-               cs05Status}
-            </Tag>
-          </Descriptions.Item>
-        </Descriptions>
-      </Card> */}
-
       {/* Timeline แสดงขั้นตอนทั้งหมด */}
-      <Card title="ขั้นตอนการดำเนินการฝึกงาน (ทั้งหมด 7 ขั้นตอน)" style={{ marginBottom: 24 }}>
-        <Timeline>
-          {internshipProcessSteps.map((step, index) => (
-            <Timeline.Item
-              key={index}
-              dot={
-                <div style={{ 
-                  width: 32, 
-                  height: 32, 
-                  borderRadius: '50%', 
-                  backgroundColor: step.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '14px'
-                }}>
-                  {index + 1}
-                </div>
-              }
-              color={step.color}
+      <Card
+        title="ขั้นตอนการดำเนินการฝึกงาน (ทั้งหมด 7 ขั้นตอน)"
+        extra={
+          <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefreshStatus}
+              loading={loading}
+              size="small"
             >
-              <div style={{ paddingLeft: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <Text strong style={{ fontSize: '16px' }}>{step.title}</Text>
-                  <Tag color={
-                    step.status === 'finish' ? 'success' : 
-                    step.status === 'process' ? 'processing' : 'default'
-                  }>
-                    {step.status === 'finish' ? 'เสร็จสิ้น' : 
-                     step.status === 'process' ? 'กำลังดำเนินการ' : 'รอดำเนินการ'}
-                  </Tag>
+              อัปเดตสถานะ
+            </Button>
+
+            {/* 🔧 Debug button - ลบออกได้เมื่อแก้ไขเสร็จ */}
+            {process.env.NODE_ENV === "development" && (
+              <Button
+                danger
+                size="small"
+                onClick={clearLocalStorageCache}
+                title="ล้าง Cache และ Refresh"
+              >
+                🗑️ Reset Cache
+              </Button>
+            )}
+          </Space>
+        }
+        style={{ marginBottom: 24 }}
+      >
+        <Timeline>
+          {Array.isArray(internshipProcessSteps) &&
+          internshipProcessSteps.length > 0 ? (
+            internshipProcessSteps.map((step, index) => (
+              <Timeline.Item
+                key={index}
+                dot={
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      backgroundColor: step.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                }
+                color={step.color}
+              >
+                <div style={{ paddingLeft: 16 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text strong style={{ fontSize: "16px" }}>
+                      {step.title}
+                    </Text>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        backgroundColor:
+                          step.status === "finish"
+                            ? "#f6ffed"
+                            : step.status === "process"
+                            ? "#e6f7ff"
+                            : "#fafafa",
+                        color:
+                          step.status === "finish"
+                            ? "#52c41a"
+                            : step.status === "process"
+                            ? "#1890ff"
+                            : "#8c8c8c",
+                        border: `1px solid ${
+                          step.status === "finish"
+                            ? "#b7eb8f"
+                            : step.status === "process"
+                            ? "#91d5ff"
+                            : "#d9d9d9"
+                        }`,
+                      }}
+                    >
+                      {step.status === "finish"
+                        ? "เสร็จสิ้น"
+                        : step.status === "process"
+                        ? "กำลังดำเนินการ"
+                        : "รอดำเนินการ"}
+                    </span>
+                  </div>
+                  <Text type="secondary">{step.description}</Text>
+
+                  {/* แสดงรายละเอียดเพิ่มเติม */}
+                  {step.status === "process" && (
+                    <Alert
+                      message="รายละเอียดขั้นตอนนี้"
+                      description={
+                        <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                          {step.details?.map((detail, detailIndex) => (
+                            <li key={detailIndex}>{detail}</li>
+                          )) || []}
+                        </ul>
+                      }
+                      type="info"
+                      showIcon
+                      style={{ marginTop: 12 }}
+                    />
+                  )}
+
+                  {/* แสดงปุ่ม actions ถ้ามี */}
+                  {step.actions && step.actions}
                 </div>
-                <Text type="secondary">{step.description}</Text>
-                
-                {/* แสดงรายละเอียดเพิ่มเติมสำหรับขั้นตอนปัจจุบัน */}
-                {index === (currentInternshipStep - 1) && (
-                  <Alert
-                    message="รายละเอียดขั้นตอนนี้"
-                    description={
-                      <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-                        {step.details.map((detail, detailIndex) => (
-                          <li key={detailIndex}>{detail}</li>
-                        ))}
-                      </ul>
-                    }
-                    type="info"
-                    showIcon
-                    style={{ marginTop: 12 }}
-                  />
-                )}
-              </div>
+              </Timeline.Item>
+            ))
+          ) : (
+            <Timeline.Item>
+              <Alert message="กำลังโหลดข้อมูลขั้นตอน..." type="info" showIcon />
             </Timeline.Item>
-          ))}
+          )}
         </Timeline>
       </Card>
     </div>

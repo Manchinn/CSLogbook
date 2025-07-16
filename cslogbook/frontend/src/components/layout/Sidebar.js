@@ -22,7 +22,8 @@ import {
   CheckCircleOutlined,
   UploadOutlined,
   SettingOutlined,
-} from '@ant-design/icons';
+  FileProtectOutlined,
+} from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
@@ -71,14 +72,14 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   const location = useLocation();
   const { userData, logout } = useAuth();
   const [studentData, setStudentData] = useState(null);
-  
+
   // ใช้ StudentEligibilityContext แทน useStudentPermissions
-  const { 
-    canAccessInternship, 
-    canAccessProject, 
+  const {
+    canAccessInternship,
+    canAccessProject,
     messages,
     lastUpdated,
-    refreshEligibility 
+    refreshEligibility,
   } = useStudentEligibility();
 
   // Handle logout
@@ -98,10 +99,10 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     // ตรวจสอบเมื่อ path เปลี่ยน
     const checkRouteAccess = () => {
       const path = location.pathname;
-      const showNotificationKey = 'access_notification';
+      const showNotificationKey = "access_notification";
       // ตรวจสอบว่าเคยแสดง notification แล้วหรือไม่ในวันนี้
       const todayDate = new Date().toDateString();
-      const lastShown = localStorage.getItem('lastNotificationShown');
+      const lastShown = localStorage.getItem("lastNotificationShown");
       const alreadyShownToday = lastShown === todayDate;
 
       // ถ้ายังไม่เคยแสดงในวันนี้ ให้แสดงและบันทึกวันที่
@@ -111,24 +112,29 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
           if (path.includes("/project-proposal") && !canAccessProject) {
             // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
             message.info({
-              content: "คุณสามารถดูข้อมูลหน้าเสนอหัวข้อโครงงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              content:
+                "คุณสามารถดูข้อมูลหน้าเสนอหัวข้อโครงงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
               key: showNotificationKey,
-              duration: 5
+              duration: 5,
             });
-            localStorage.setItem('lastNotificationShown', todayDate);
+            localStorage.setItem("lastNotificationShown", todayDate);
           }
 
-          if (path.includes("/internship-registration/cs05") && !canAccessInternship) {
+          if (
+            path.includes("/internship-registration/cs05") &&
+            !canAccessInternship
+          ) {
             // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
             message.info({
-              content: "คุณสามารถดูข้อมูลหน้าลงทะเบียนฝึกงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              content:
+                "คุณสามารถดูข้อมูลหน้าลงทะเบียนฝึกงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
               key: showNotificationKey,
-              duration: 5
+              duration: 5,
             });
-            localStorage.setItem('lastNotificationShown', todayDate);
-            
+            localStorage.setItem("lastNotificationShown", todayDate);
+
             // ทำการรีเฟรชข้อมูลสิทธิ์เมื่อเข้าถึงหน้าลงทะเบียนฝึกงาน
-            if (typeof refreshEligibility === 'function') {
+            if (typeof refreshEligibility === "function") {
               refreshEligibility();
             }
           }
@@ -143,7 +149,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     canAccessProject,
     canAccessInternship,
     navigate,
-    refreshEligibility
+    refreshEligibility,
   ]);
 
   // เพิ่ม Effect เพื่อติดตามการเปลี่ยนแปลงข้อมูลนักศึกษา
@@ -188,8 +194,10 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     }
 
     // สร้างข้อความ tooltip สำหรับแสดงเหตุผลที่ไม่สามารถเข้าถึงได้
-    const internshipTooltip = messages?.internship || "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน";
-    const projectTooltip = messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
+    const internshipTooltip =
+      messages?.internship || "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน";
+    const projectTooltip =
+      messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
 
     return [
       // Dashboard - Common for all roles
@@ -213,8 +221,8 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: (
                 <MenuItemWithTooltip
                   item={{ label: "ระบบฝึกงาน" }}
-                  disabled={false} 
-                  title={!canAccessInternship ? internshipTooltip : ""} 
+                  disabled={false}
+                  title={!canAccessInternship ? internshipTooltip : ""}
                 />
               ),
               disabled: false,
@@ -230,8 +238,8 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                           label: "คพ.05 - คำร้องขอฝึกงาน",
                         }, */
                         {
-                        key: "/internship-registration/flow", // ใช้ InternshipRegistrationFlow ใหม่
-                        label: "คพ.05 - คำร้องขอฝึกงาน",
+                          key: "/internship-registration/flow", // ใช้ InternshipRegistrationFlow ใหม่
+                          label: "คำร้องขอฝึกงาน",
                         },
                       ],
                     },
@@ -255,6 +263,12 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                       label: "สรุปผลการฝึกงาน",
                       icon: <FileDoneOutlined />,
                     },
+                    {
+                      key: "/internship-certificate",
+                      label: "ขอหนังสือรับรองการฝึกงาน",
+                      icon: <FileProtectOutlined />,
+                      disabled: !canAccessInternship, // ตรวจสอบสิทธิ์เข้าถึง
+                    },
                   ]
                 : [
                     {
@@ -263,7 +277,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                       icon: <FormOutlined />,
                     },
                     {
-                      key: "/internship-requirements",  
+                      key: "/internship-requirements",
                       label: "ข้อกำหนดฝึกงาน",
                       icon: <FileTextOutlined />,
                     },
@@ -294,7 +308,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                 : [
                     {
                       key: "/project-eligibility",
-                      label: "ตรวจสอบคุณสมบัติ", 
+                      label: "ตรวจสอบคุณสมบัติ",
                       icon: <FormOutlined />,
                     },
                     {
@@ -438,9 +452,9 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     } else {
       navigate(key);
     }
-    
+
     // If in drawer mode and onMenuClick prop exists, call it to close the drawer
-    if (inDrawer && typeof onMenuClick === 'function') {
+    if (inDrawer && typeof onMenuClick === "function") {
       onMenuClick();
     }
   };
@@ -451,32 +465,32 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         <div
           className="last-update"
           style={{
-        textAlign: 'center', // Corrected to 'center' to align inline content (like the <small> tag)
-        padding: '8px 16px' // Added padding for better spacing
+            textAlign: "center", // Corrected to 'center' to align inline content (like the <small> tag)
+            padding: "8px 16px", // Added padding for better spacing
           }}
         >
           <small style={{ fontSize: "10px", opacity: 0.7 }}>
-        อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+            อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
           </small>
           <button
-        onClick={() => {
-          if (typeof refreshEligibility === 'function') {
-            refreshEligibility();
-          }
-        }}
-        style={{
-          fontSize: "10px",
-          display: "block", // Makes the button a block-level element
-          margin: "4px auto 0 auto", // Centers the block-level button horizontally (top, right/left, bottom)
-          background: "none",
-          border: "none",
-          padding: 0,
-          color: "var(--link-color, #1890ff)", // Use a CSS variable or a default link color
-          cursor: "pointer", // Add cursor pointer for better UX
-          textAlign: 'center', // Corrected to 'center' to align text inside the button
-        }}
+            onClick={() => {
+              if (typeof refreshEligibility === "function") {
+                refreshEligibility();
+              }
+            }}
+            style={{
+              fontSize: "10px",
+              display: "block", // Makes the button a block-level element
+              margin: "4px auto 0 auto", // Centers the block-level button horizontally (top, right/left, bottom)
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "var(--link-color, #1890ff)", // Use a CSS variable or a default link color
+              cursor: "pointer", // Add cursor pointer for better UX
+              textAlign: "center", // Corrected to 'center' to align text inside the button
+            }}
           >
-        รีเฟรชข้อมูลสิทธิ์
+            รีเฟรชข้อมูลสิทธิ์
           </button>
         </div>
       );
@@ -488,15 +502,21 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   return (
     <Sider
       width={230}
-      className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${inDrawer ? 'in-drawer' : ''}`}
+      className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${
+        inDrawer ? "in-drawer" : ""
+      }`}
       collapsed={collapsed}
       // Add CSS for proper display when in mobile drawer
-      style={inDrawer ? { 
-        position: 'static',
-        height: 'auto',
-        boxShadow: 'none',
-        border: 'none'
-      } : undefined}
+      style={
+        inDrawer
+          ? {
+              position: "static",
+              height: "auto",
+              boxShadow: "none",
+              border: "none",
+            }
+          : undefined
+      }
     >
       <div className="profile">
         <Avatar

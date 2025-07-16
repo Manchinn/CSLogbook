@@ -482,6 +482,274 @@ class DocumentService {
             // ไม่ throw error เนื่องจากเป็น optional feature
         }
     }
+
+    // ============= Certificate Management Services =============
+
+    /**
+     * ดึงรายการคำขอหนังสือรับรองทั้งหมด
+     */
+    async getCertificateRequests(filters = {}, pagination = {}) {
+        try {
+            const { status, studentId } = filters;
+            const { page = 1, limit = 10 } = pagination;
+            
+            const whereClause = {};
+            if (status) whereClause.status = status;
+            if (studentId) whereClause.studentId = { [Op.like]: `%${studentId}%` };
+
+            const { InternshipCertificateRequest } = require('../models');
+
+            const requests = await InternshipCertificateRequest.findAndCountAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: Student,
+                        as: 'student',
+                        attributes: ['studentId', 'studentCode'],
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['firstName', 'lastName'],
+                            },
+                        ],
+                    },
+                ],
+                order: [['requestDate', 'DESC']],
+                limit: parseInt(limit),
+                offset: (parseInt(page) - 1) * parseInt(limit),
+            });
+
+            // เพิ่มข้อมูล fullName
+            const formattedData = requests.rows.map(request => ({
+                ...request.toJSON(),
+                student: request.student ? {
+                    ...request.student.toJSON(),
+                    fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
+                } : null,
+            }));
+
+            logger.info(`Retrieved ${requests.count} certificate requests`);
+
+            return {
+                data: formattedData,
+                pagination: {
+                    total: requests.count,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    totalPages: Math.ceil(requests.count / parseInt(limit)),
+                },
+            };
+        } catch (error) {
+            logger.error('Error in getCertificateRequests service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * อนุมัติคำขอหนังสือรับรอง
+     */
+    async approveCertificateRequest(requestId, processorId, certificateNumber = null) {
+        try {
+            const { InternshipCertificateRequest } = require('../models');
+
+            const request = await InternshipCertificateRequest.findByPk(requestId);
+            if (!request) {
+                throw new Error('ไม่พบคำขอหนังสือรับรอง');
+            }
+
+            if (request.status !== 'pending') {
+                throw new Error('คำขอนี้ได้รับการดำเนินการแล้ว');
+            }
+
+            // สร้างหมายเลขหนังสือรับรองอัตโนมัติ
+            const generateCertificateNumber = () => {
+                const year = new Date().getFullYear() + 543; // พ.ศ.
+                const month = String(new Date().getMonth() + 1).padStart(2, '0');
+                const random = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+                return `ว ${year}/${month}/${random}`;
+            };
+
+            // อัปเดตสถานะ
+            await request.update({
+                status: 'approved',
+                certificateNumber: certificateNumber || generateCertificateNumber(),
+                processedAt: new Date(),
+                processedBy: processorId,
+            });
+
+            // สร้างการแจ้งเตือน
+            await this.createCertificateApprovalNotification(request);
+
+            logger.info(`Certificate request approved: ${requestId} by ${processorId}`);
+            return request;
+        } catch (error) {
+            logger.error('Error in approveCertificateRequest service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ปฏิเสธคำขอหนังสือรับรอง
+     */
+    async rejectCertificateRequest(requestId, processorId, remarks = null) {
+        try {
+            const { InternshipCertificateRequest } = require('../models');
+
+            const request = await InternshipCertificateRequest.findByPk(requestId);
+            if (!request) {
+                throw new Error('ไม่พบคำขอหนังสือรับรอง');
+            }
+
+            if (request.status !== 'pending') {
+                throw new Error('คำขอนี้ได้รับการดำเนินการแล้ว');
+            }
+
+            // อัปเดตสถานะ
+            await request.update({
+                status: 'rejected',
+                remarks: remarks || 'ไม่ผ่านเงื่อนไขการขอหนังสือรับรอง',
+                processedAt: new Date(),
+                processedBy: processorId,
+            });
+
+            // สร้างการแจ้งเตือน
+            await this.createCertificateRejectionNotification(request, remarks);
+
+            logger.info(`Certificate request rejected: ${requestId} by ${processorId}`);
+            return request;
+        } catch (error) {
+            logger.error('Error in rejectCertificateRequest service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * สร้าง PDF หนังสือรับรอง
+     */
+    async generateCertificatePDF(requestId) {
+        try {
+            const { InternshipCertificateRequest } = require('../models');
+
+            const request = await InternshipCertificateRequest.findByPk(requestId, {
+                include: [
+                    { 
+                        model: Student, 
+                        as: 'student',
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['firstName', 'lastName'],
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            if (!request) {
+                throw new Error('ไม่พบคำขอหนังสือรับรอง');
+            }
+
+            if (request.status !== 'approved') {
+                throw new Error('คำขอยังไม่ได้รับการอนุมัติ');
+            }
+
+            // เตรียมข้อมูลสำหรับสร้าง PDF
+            const certificateData = {
+                certificateNumber: request.certificateNumber,
+                studentName: `${request.student.user.firstName} ${request.student.user.lastName}`,
+                studentId: request.student.studentCode,
+                totalHours: request.totalHours,
+                startDate: request.startDate,
+                endDate: request.endDate,
+                issueDate: request.processedAt,
+            };
+
+            // ใช้ PDF service ที่มีอยู่แล้ว
+            const pdfBuffer = await this.generatePDFFromTemplate('certificate', certificateData);
+            
+            logger.info(`Certificate PDF generated for request: ${requestId}`);
+            return pdfBuffer;
+        } catch (error) {
+            logger.error('Error in generateCertificatePDF service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ส่งการแจ้งเตือนการอนุมัติ
+     */
+    async createCertificateApprovalNotification(request) {
+        try {
+            await Notification.create({
+                userId: request.requestedBy,
+                title: 'หนังสือรับรองการฝึกงานได้รับการอนุมัติแล้ว',
+                message: `หนังสือรับรองการฝึกงานหมายเลข ${request.certificateNumber} ได้รับการอนุมัติแล้ว สามารถดาวน์โหลดได้ที่หน้าสถานะการฝึกงาน`,
+                type: 'certificate_approved',
+                referenceId: request.id,
+                isRead: false
+            });
+            logger.info('Certificate approval notification created');
+        } catch (error) {
+            logger.error('Error creating certificate approval notification:', error);
+            // ไม่ throw error เนื่องจากเป็น optional feature
+        }
+    }
+
+    /**
+     * ส่งการแจ้งเตือนการปฏิเสธ
+     */
+    async createCertificateRejectionNotification(request, remarks) {
+        try {
+            await Notification.create({
+                userId: request.requestedBy,
+                title: 'หนังสือรับรองการฝึกงานถูกปฏิเสธ',
+                message: `คำขอหนังสือรับรองการฝึกงานของคุณถูกปฏิเสธ เหตุผล: ${remarks || 'ไม่ระบุเหตุผล'}`,
+                type: 'certificate_rejected',
+                referenceId: request.id,
+                isRead: false
+            });
+            logger.info('Certificate rejection notification created');
+        } catch (error) {
+            logger.error('Error creating certificate rejection notification:', error);
+            // ไม่ throw error เนื่องจากเป็น optional feature
+        }
+    }
+
+    /**
+     * Helper function สำหรับสร้าง PDF จาก template
+     */
+    async generatePDFFromTemplate(templateType, data) {
+        try {
+            // TODO: ใช้ระบบ PDF generation ที่มีอยู่แล้ว
+            // เรียกใช้ PDF service จาก templates folder
+            
+            // Placeholder สำหรับตอนนี้
+            const pdfContent = this.createCertificatePDFContent(data);
+            return Buffer.from(pdfContent);
+        } catch (error) {
+            logger.error('Error generating PDF from template:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * สร้างเนื้อหา PDF หนังสือรับรอง (placeholder)
+     */
+    createCertificatePDFContent(data) {
+        // TODO: ใช้ PDF template system ที่มีอยู่
+        return `
+        หนังสือรับรองการฝึกงาน
+        หมายเลข: ${data.certificateNumber}
+        
+        ขอรับรองว่า ${data.studentName} รหัสนักศึกษา ${data.studentId}
+        ได้เข้าร่วมการฝึกงานครบ ${data.totalHours} ชั่วโมง
+        ตั้งแต่วันที่ ${data.startDate} ถึง ${data.endDate}
+        
+        ออกให้ ณ วันที่ ${data.issueDate}
+        `;
+    }
 }
 
 module.exports = new DocumentService();

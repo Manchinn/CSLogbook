@@ -274,7 +274,7 @@ function Dashboard() {
                   <Button
                     type="primary"
                     icon={<FormOutlined />}
-                    onClick={() => navigate('/internship-registration/cs05')}
+                    onClick={() => navigate('/internship-registration/flow')}
                     style={{ marginTop: '16px' }}
                   >
                     จัดการฝึกงาน

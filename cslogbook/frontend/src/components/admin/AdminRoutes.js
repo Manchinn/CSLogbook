@@ -5,6 +5,7 @@ import { SystemProvider } from "../../contexts/adminContext/SystemContext";
 import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
 import { DocumentProvider } from "../../contexts/adminContext/DocumentContext";
 import DocumentManagement from "./documents";
+import CertificateManagement from "./documents/CertificateManagement";
 
 // Lazy loading components
 const Dashboard = lazy(() => import("./dashboard"));
@@ -58,6 +59,15 @@ const AdminRoutes = () => {
                   </DocumentProvider>
                 }
               />
+
+              <Route
+                path="documents/certificates"
+                element={
+                  <DocumentProvider type="certificate">
+                    <CertificateManagement />
+                  </DocumentProvider>
+                }
+              />
               <Route
                 path="documents/project"
                 element={
@@ -78,9 +88,14 @@ const AdminRoutes = () => {
                 <Route path="academic" element={<AcademicSettingsPage />} />
                 <Route path="status" element={<StatusSettingsPage />} />
                 <Route path="curriculum" element={<CurriculumSettingsPage />} />
-                <Route path="notification-settings" element={<NotificationSettingsPage />} />
-                <Route path="workflow-steps" element={<WorkflowStepManagementPage />} />
-
+                <Route
+                  path="notification-settings"
+                  element={<NotificationSettingsPage />}
+                />
+                <Route
+                  path="workflow-steps"
+                  element={<WorkflowStepManagementPage />}
+                />
               </Route>
             </Routes>
           </Suspense>

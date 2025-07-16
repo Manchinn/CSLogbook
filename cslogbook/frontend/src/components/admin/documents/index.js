@@ -12,6 +12,7 @@ import {
   Segmented,
   message,
   Tooltip,
+  Tabs,
 } from "antd";
 import {
   SearchOutlined,
@@ -22,22 +23,67 @@ import {
   FileDoneOutlined,
   CloseCircleOutlined,
   FileProtectOutlined,
-  FileAddOutlined,
 } from "@ant-design/icons";
 import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
 import dayjs from "../../../utils/dayjs";
 import { DATE_TIME_FORMAT } from "../../../utils/constants";
+import CertificateManagement from "./CertificateManagement";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 const DocumentManagement = ({ type }) => {
+  const [activeTab, setActiveTab] = useState("documents");
+
+  // หาก type ไม่ใช่ internship ให้แสดงแค่เอกสารปกติ
+  if (type !== "internship") {
+    return <OriginalDocumentManagement type={type} />;
+  }
+
+  const tabItems = [
+    {
+      key: "documents",
+      label: (
+        <span>
+          <FileTextOutlined />
+          เอกสารฝึกงาน
+        </span>
+      ),
+      children: <OriginalDocumentManagement type={type} />,
+    },
+    {
+      key: "certificates",
+      label: (
+        <span>
+          <FileProtectOutlined />
+          หนังสือรับรอง
+        </span>
+      ),
+      children: <CertificateManagement />,
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <Card>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          size="large"
+        />
+      </Card>
+    </div>
+  );
+};
+
+// แยก component เดิมออกมา
+const OriginalDocumentManagement = ({ type }) => {
   // State สำหรับการกรอง
   const [filters, setFilters] = useState({
     status: "",
     search: "",
   });
-  const [documentType, setDocumentType] = useState(""); // เพิ่ม state สำหรับประเภทเอกสาร
 
   // State สำหรับการแสดง Modal
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
@@ -99,7 +145,7 @@ const DocumentManagement = ({ type }) => {
             .includes(filters.search.toLowerCase())) &&
         (documentType === "" || doc.document_name?.toLowerCase().includes(documentType.toLowerCase()))
     );
-  }, [documents, filters, documentType]);
+  }, [documents, filters]);
 
   // คอลัมน์ตาราง
   const columns = useMemo(
@@ -124,7 +170,8 @@ const DocumentManagement = ({ type }) => {
         title: "วันที่อัปโหลด",
         dataIndex: "created_at", // หรือ updated_at หากต้องการใช้ updated_at
         key: "created_at",
-        render: (text) => dayjs(text).format(DATE_TIME_FORMAT),
+        render: (text) =>
+          dayjs(text).format(DATE_TIME_FORMAT),
         sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
