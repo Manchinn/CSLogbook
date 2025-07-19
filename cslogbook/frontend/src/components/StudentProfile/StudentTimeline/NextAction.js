@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, Typography, Button, Space } from 'antd';
 import { 
   StarOutlined, FormOutlined, ExperimentOutlined, 
@@ -8,34 +8,46 @@ import {
 import { 
   getInternshipRequirements, 
   getProjectRequirements,
-  isEligibleForInternship,
-  isEligibleForProject 
 } from '../../../utils/studentUtils';
+import { useInternshipStatus } from '../../../contexts/InternshipStatusContext';
 
 const { Text } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงคำแนะนำการดำเนินการถัดไป
-const NextAction = ({ student, progress }) => {
-  const [requirements, setRequirements] = useState({
-    internship: null,
-    project: null
-  });
+const NextAction = () => {
+  // ดึงข้อมูลจาก context
+  const {
+    cs05Status,
+    internshipStatus,
+    summaryCompleted,
+    certificateStatus,
+    student,
+    logbookStats,
+    loading,
+    error,
+  } = useInternshipStatus();
 
-  // ดึงข้อกำหนดจาก student object หรือ API
-  useEffect(() => {
-    if (student?.requirements) {
-      setRequirements(student.requirements);
-    }
-  }, [student]);
+  // ถ้ายังโหลดข้อมูลอยู่
+  if (loading) return null;
 
-  const { nextAction, internshipEligible, projectEligible, 
-          internshipStatus, projectStatus, isEnrolledInternship, 
-          isEnrolledProject, totalCredits, studentId, studentCode } = student;
-
-  // ใช้ utils function แทนการ hardcode
+  // ใช้ student object จาก context (ถ้ามี)
+  const requirements = student?.requirements || {};
   const internshipReqs = getInternshipRequirements(requirements.internship);
   const projectReqs = getProjectRequirements(requirements.project);
-  
+
+  // ดึงค่าที่จำเป็นจาก student object
+  const {
+    nextAction,
+    internshipEligible,
+    projectEligible,
+    projectStatus,
+    isEnrolledInternship,
+    isEnrolledProject,
+    totalCredits,
+    studentId,
+    studentCode,
+  } = student || {};
+
   // ตัวแปรเพื่อคำนวณว่าควรแนะนำให้ทำอะไรต่อไป
   let recommendedAction = nextAction;
   let actionContent = null;
@@ -103,11 +115,11 @@ const NextAction = ({ student, progress }) => {
       recommendedAction = 'almost_ready_internship';
     }
     // ถ้ามีขั้นตอนที่ต้องดำเนินการจาก progress
-    else if (progress?.internship?.steps?.some(step => 
+    else if (internshipStatus?.steps?.some(step => 
       step.status === 'awaiting_student_action' || step.status === 'in_progress')) {
       recommendedAction = 'continue_internship_step';
     }
-    else if (progress?.project?.steps?.some(step => 
+    else if (projectStatus?.steps?.some(step => 
       step.status === 'awaiting_student_action' || step.status === 'in_progress')) {
       recommendedAction = 'continue_project_step';
     }
@@ -213,7 +225,7 @@ const NextAction = ({ student, progress }) => {
 
     case 'continue_internship_step':
       // หาขั้นตอนที่ต้องดำเนินการจาก progress
-      const pendingInternshipStep = progress?.internship?.steps?.find(step => 
+      const pendingInternshipStep = internshipStatus?.steps?.find(step => 
         step.status === 'awaiting_student_action' || step.status === 'in_progress'
       );
       
@@ -236,7 +248,7 @@ const NextAction = ({ student, progress }) => {
 
     case 'continue_project_step':
       // หาขั้นตอนที่ต้องดำเนินการจาก progress
-      const pendingProjectStep = progress?.project?.steps?.find(step => 
+      const pendingProjectStep = projectStatus?.steps?.find(step => 
         step.status === 'awaiting_student_action' || step.status === 'in_progress'
       );
       

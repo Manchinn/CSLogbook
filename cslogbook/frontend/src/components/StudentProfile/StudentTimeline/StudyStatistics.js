@@ -13,6 +13,7 @@ import {
   getInternshipRequirements, 
   getProjectRequirements 
 } from '../../../utils/studentUtils';
+import { useInternshipStatus } from '../../../contexts/InternshipStatusContext'; // เพิ่มบรรทัดนี้
 
 const { Text } = Typography;
 
@@ -79,8 +80,6 @@ const StudyStatistics = ({ student, progress }) => {
   const internshipRequirements = getInternshipRequirements(requirements.internship);
   const projectRequirements = getProjectRequirements(requirements.project);
 
-  // หาค่าเกรดเฉลี่ยสะสม
-  const gpa = mergedStudentData.gpa;
   
   // จำนวนหน่วยกิตตามหลักสูตร (ใช้ค่าจาก database หรือ default)
   const totalCreditsRequired = mergedStudentData.totalCreditsRequired || 127;
@@ -134,25 +133,31 @@ const StudyStatistics = ({ student, progress }) => {
                         mergedStudentData.recentCourses || 
                         [];
   
-  // ตรวจสอบสถานะการฝึกงานและโครงงานจาก progress object หรือ student object
-  const internshipStatus = progress?.internship?.status || 
-                          mergedStudentData.internshipStatus || 
-                          (progress?.internship?.progress >= 100 ? 'completed' : 
-                           progress?.internship?.progress > 0 ? 'in_progress' : 'not_started');
-    
-  const projectStatus = progress?.project?.status || 
-                       mergedStudentData.projectStatus || 
-                       (progress?.project?.progress >= 100 ? 'completed' : 
-                        progress?.project?.progress > 0 ? 'in_progress' : 'not_started');
+  // ใช้ context สำหรับสถานะฝึกงาน/โครงงานพิเศษ
+  const {
+    internshipStatus: contextInternshipStatus,
+    loading: contextLoading,
+    error: contextError,
+    // ถ้ามี projectStatus ใน context ให้ดึงมาด้วย (ถ้ายังไม่มีจะ fallback)
+    projectStatus: contextProjectStatus,
+  } = useInternshipStatus();
 
-  // ตรวจสอบความพร้อมในการจบการศึกษา
-  const isReadyToGraduate = 
-    mergedStudentData.totalCredits >= totalCreditsRequired && 
-    mergedStudentData.majorCredits >= majorCreditsRequired && 
-    internshipStatus === 'completed' && 
-    projectStatus === 'completed';
+  // ส่วนนี้ยังใช้ props เหมือนเดิม
+  const internshipStatusFromProps = progress?.internship?.status ||
+    mergedStudentData.internshipStatus ||
+    (progress?.internship?.progress >= 100 ? 'completed' :
+      progress?.internship?.progress > 0 ? 'in_progress' : 'not_started');
 
-  // สถานะผ่าน/ไม่ผ่านสำหรับการฝึกงานและโครงงาน
+  const projectStatusFromProps = progress?.project?.status ||
+    mergedStudentData.projectStatus ||
+    (progress?.project?.progress >= 100 ? 'completed' :
+      progress?.project?.progress > 0 ? 'in_progress' : 'not_started');
+
+  // ใช้ค่าจาก context ถ้ามี ไม่งั้น fallback เป็น props
+  const internshipStatus = contextInternshipStatus || internshipStatusFromProps;
+  const projectStatus = contextProjectStatus || projectStatusFromProps;
+
+  // ตรวจสอบสถานะผ่าน/ไม่ผ่าน
   const hasPassedInternship = internshipStatus === 'completed';
   const hasPassedProject = projectStatus === 'completed';
 
@@ -169,6 +174,16 @@ const StudyStatistics = ({ student, progress }) => {
   // ฟังก์ชันสำหรับสีของสถานะสิทธิ์
   const getEligibilityColor = (isEligible) => isEligible ? '#52c41a' : '#faad14';
   const getEligibilityIcon = (isEligible) => isEligible ? <CheckCircleOutlined /> : <WarningOutlined />;
+
+  // loading เฉพาะส่วนสถานะ (context)
+  const showStatusLoading = contextLoading && !contextError;
+
+  // ตรวจสอบความพร้อมในการจบการศึกษา
+  const isReadyToGraduate = 
+    mergedStudentData.totalCredits >= totalCreditsRequired && 
+    mergedStudentData.majorCredits >= majorCreditsRequired && 
+    internshipStatus === 'completed' && 
+    projectStatus === 'completed';
 
   // แสดง loading เฉพาะเมื่อกำลังดึงข้อมูลเสริม
   if (loading && (!student?.totalCredits && !student?.majorCredits)) {
@@ -196,7 +211,7 @@ const StudyStatistics = ({ student, progress }) => {
       }
     >
       <Row gutter={[16, 16]}>
-        {/* หน่วยกิตสะสม - เกี่ยวข้องกับการฝึกงาน */}
+        {/* หน่วยกิตสะสม - ใช้ props เหมือนเดิม */}
         <Col xs={24} md={12}>
           <Tooltip title={
             `หน่วยกิตสะสมทั้งหมด ${mergedStudentData.totalCredits} จากที่ต้องการ ${totalCreditsRequired}\n` +
@@ -258,25 +273,31 @@ const StudyStatistics = ({ student, progress }) => {
       <Row gutter={[16, 16]}>
         <Col xs={12} md={6}>
           <Tooltip title={
-            hasPassedInternship ? 'นักศึกษาผ่านการฝึกงานแล้ว' : 
-            internshipStatus === 'in_progress' ? 'นักศึกษากำลังฝึกงาน' : 
-            internshipEligibility.message
+            hasPassedInternship ? 'นักศึกษาผ่านการฝึกงานแล้ว' :
+              internshipStatus === 'in_progress' ? 'นักศึกษากำลังฝึกงาน' :
+                internshipEligibility.message
           }>
-            <Statistic 
-              title="การฝึกงาน" 
-              value={getStatusText(internshipStatus)}
-              valueStyle={{ 
-                color: hasPassedInternship ? '#52c41a' : 
-                       internshipStatus === 'in_progress' ? '#1890ff' : '#faad14' 
+            <Statistic
+              title="การฝึกงาน"
+              value={
+                showStatusLoading
+                  ? <Spin size="small" />
+                  : getStatusText(internshipStatus)
+              }
+              valueStyle={{
+                color: hasPassedInternship ? '#52c41a' :
+                  internshipStatus === 'in_progress' ? '#1890ff' : '#faad14'
               }}
               prefix={
-                hasPassedInternship ? <CheckCircleOutlined /> : 
-                internshipStatus === 'in_progress' ? <InfoCircleOutlined /> : 
-                getEligibilityIcon(isEligibleForInternshipStatus)
+                showStatusLoading
+                  ? null
+                  : hasPassedInternship ? <CheckCircleOutlined /> :
+                    internshipStatus === 'in_progress' ? <InfoCircleOutlined /> :
+                      getEligibilityIcon(isEligibleForInternshipStatus)
               }
             />
           </Tooltip>
-          {!isEligibleForInternshipStatus && (
+          {!isEligibleForInternshipStatus && !showStatusLoading && (
             <Text type="secondary" style={{ fontSize: '12px' }}>
               {internshipEligibility.message}
             </Text>
@@ -285,40 +306,35 @@ const StudyStatistics = ({ student, progress }) => {
         
         <Col xs={12} md={6}>
           <Tooltip title={
-            hasPassedProject ? 'นักศึกษาผ่านโครงงานพิเศษแล้ว' : 
-            projectStatus === 'in_progress' ? 'นักศึกษากำลังทำโครงงานพิเศษ' : 
-            projectEligibility.message
+            hasPassedProject ? 'นักศึกษาผ่านโครงงานพิเศษแล้ว' :
+              projectStatus === 'in_progress' ? 'นักศึกษากำลังทำโครงงานพิเศษ' :
+                projectEligibility.message
           }>
-            <Statistic 
-              title="โครงงานพิเศษ" 
-              value={getStatusText(projectStatus)}
-              valueStyle={{ 
-                color: hasPassedProject ? '#52c41a' : 
-                       projectStatus === 'in_progress' ? '#1890ff' : '#faad14' 
+            <Statistic
+              title="โครงงานพิเศษ"
+              value={
+                showStatusLoading
+                  ? <Spin size="small" />
+                  : getStatusText(projectStatus)
+              }
+              valueStyle={{
+                color: hasPassedProject ? '#52c41a' :
+                  projectStatus === 'in_progress' ? '#1890ff' : '#faad14'
               }}
               prefix={
-                hasPassedProject ? <CheckCircleOutlined /> : 
-                projectStatus === 'in_progress' ? <InfoCircleOutlined /> : 
-                getEligibilityIcon(isEligibleForProjectStatus)
+                showStatusLoading
+                  ? null
+                  : hasPassedProject ? <CheckCircleOutlined /> :
+                    projectStatus === 'in_progress' ? <InfoCircleOutlined /> :
+                      getEligibilityIcon(isEligibleForProjectStatus)
               }
             />
           </Tooltip>
-          {!isEligibleForProjectStatus && (
+          {!isEligibleForProjectStatus && !showStatusLoading && (
             <Text type="secondary" style={{ fontSize: '12px' }}>
               {projectEligibility.message}
             </Text>
           )}
-        </Col>
-        
-        <Col xs={12} md={6}>
-          <Tooltip title={isReadyToGraduate ? 'พร้อมสำหรับการจบการศึกษา' : 'ยังไม่พร้อมสำหรับการจบการศึกษา'}>
-            <Statistic 
-              title="ความพร้อมในการจบการศึกษา" 
-              value={isReadyToGraduate ? 'พร้อม' : 'ยังไม่พร้อม'} 
-              valueStyle={{ color: isReadyToGraduate ? '#52c41a' : '#faad14' }}
-              prefix={isReadyToGraduate ? <CheckCircleOutlined /> : <InfoCircleOutlined />}
-            />
-          </Tooltip>
         </Col>
       </Row>
 

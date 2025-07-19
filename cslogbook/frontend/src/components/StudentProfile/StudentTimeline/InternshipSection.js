@@ -5,8 +5,6 @@ import {
   Tag,
   Button,
   Typography,
-  Row,
-  Col,
   Spin,
   Alert,
 } from "antd";
@@ -25,6 +23,7 @@ const InternshipSection = () => {
     error,
   } = useInternshipStatus();
 
+  // ฟังก์ชันแปลงสถานะเป็นสีของ Tag
   const getColor = (status) => {
     switch (status) {
       case "finish":
@@ -36,6 +35,7 @@ const InternshipSection = () => {
     }
   };
 
+  // ฟังก์ชันแปลงสถานะเป็นข้อความ
   const getStatusText = (status) => {
     switch (status) {
       case "finish":
@@ -47,12 +47,11 @@ const InternshipSection = () => {
     }
   };
 
+  // ฟังก์ชันแปลงสถานะสำหรับแต่ละ step
   const getStepStatus = (stepKey) => {
     switch (stepKey) {
       case "eligibility":
-        return student?.eligibility?.internship?.eligible
-          ? "finish"
-          : "process";
+        return student?.eligibility?.internship?.eligible ? "finish" : "process";
       case "cs05":
         if (!cs05Status) return "wait";
         if (
@@ -92,6 +91,7 @@ const InternshipSection = () => {
     }
   };
 
+  // กำหนดขั้นตอนหลักของ timeline
   const steps = [
     {
       key: "cs05",
@@ -139,7 +139,7 @@ const InternshipSection = () => {
       action: !summaryCompleted && (
         <Button
           type="primary"
-          href="/internship/summary"
+          href="/internship-summary"
           style={{ marginTop: 8 }}
         >
           ส่งเอกสารสรุปผล
@@ -196,35 +196,24 @@ const InternshipSection = () => {
 
   return (
     <Card
-      title={
-        <Title level={4} style={{ margin: 0 }}>
-          Timeline การฝึกงาน
-        </Title>
-      }
+      title={<Title level={4} style={{ margin: 0 }}>Timeline การฝึกงาน</Title>}
       style={{ marginBottom: 24 }}
     >
       <Timeline>
-        {steps.map((step, idx) => {
+        {steps.map((step) => {
           const status = getStepStatus(step.key);
           return (
             <Timeline.Item
               key={step.key}
               color={getColor(status)}
               dot={
-                <Tag
-                  color={getColor(status)}
-                  style={{ fontWeight: "bold", fontSize: 14 }}
-                >
+                <Tag color={getColor(status)} style={{ fontWeight: "bold", fontSize: 14 }}>
                   {getStatusText(status)}
                 </Tag>
               }
             >
-              <Text strong style={{ fontSize: 16 }}>
-                {step.title}
-              </Text>
-              <div
-                style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}
-              >
+              <Text strong style={{ fontSize: 16 }}>{step.title}</Text>
+              <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
                 {step.description}
               </div>
               {step.action}

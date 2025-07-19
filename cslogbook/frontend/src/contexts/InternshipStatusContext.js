@@ -1,6 +1,11 @@
 // src/contexts/InternshipStatusContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import internshipService from '../services/internshipService';
+import { 
+  getInternshipRequirements, 
+  isEligibleForInternship,
+  calculateStudentYear
+} from '../utils/studentUtils';
 
 const InternshipStatusContext = createContext();
 
@@ -18,6 +23,9 @@ export const InternshipStatusProvider = ({ children }) => {
     reflectionData: null,
     loading: true,
     error: null,
+    eligibility: {
+      internship: null,
+    },
   });
 
   const fetchStatus = async () => {
@@ -26,14 +34,21 @@ export const InternshipStatusProvider = ({ children }) => {
       // 1. ข้อมูล CS05 + student
       const cs05Res = await internshipService.getCurrentCS05();
       let cs05Status = null, internshipDate = { startDate: null, endDate: null }, student = null;
+      let totalCredits = null, majorCredits = null, gpa = null, recentSubjects = null;
+
       if (cs05Res.success && cs05Res.data) {
         cs05Status = cs05Res.data.status;
         internshipDate = {
           startDate: cs05Res.data.startDate,
           endDate: cs05Res.data.endDate,
         };
-        // สมมติว่ามีข้อมูล student ใน cs05Res.data หรือดึงจาก API อื่น
         student = cs05Res.data.student || null;
+
+        // สมมติว่ามีข้อมูลเหล่านี้ใน student object
+        totalCredits = student?.totalCredits ?? null;
+        majorCredits = student?.majorCredits ?? null;
+        gpa = student?.gpa ?? null;
+        recentSubjects = student?.recentSubjects ?? null;
       }
 
       // 2. ข้อมูล certificate (รวม summary)
@@ -60,8 +75,46 @@ export const InternshipStatusProvider = ({ children }) => {
         }
       } catch {}
 
-      // 5. ข้อมูล notifications (ถ้ามี)
-      // let notifications = []; // ดึงจาก service ถ้ามี
+      // 5. Eligibility (ตรวจสอบสิทธิ์การฝึกงาน)
+      let internshipEligibility = null;
+      if (student) {
+        // ใช้ข้อมูลจาก API ถ้ามี
+        if (student.isEligibleInternship !== undefined) {
+          internshipEligibility = {
+            eligible: !!student.isEligibleInternship,
+            message: student.isEligibleInternship 
+              ? "ผ่านเงื่อนไขการฝึกงาน" 
+              : "ไม่ผ่านเงื่อนไขการฝึกงาน"
+          };
+        } else {
+          // คำนวณด้วย studentUtils ถ้า API ไม่มีข้อมูล
+          const studentCode = student.studentCode || student.studentId;
+          const studentYearResult = calculateStudentYear(studentCode);
+          const studentYear = studentYearResult.error ? 0 : studentYearResult.year;
+
+          const totalCreditsVal = student.totalCredits ?? 0;
+          const majorCreditsVal = student.majorCredits ?? 0;
+          const requirements = student.requirements?.internship ?? null;
+
+          internshipEligibility = isEligibleForInternship(
+            studentYear,
+            totalCreditsVal,
+            majorCreditsVal,
+            requirements
+          );
+        }
+
+        console.log('Context eligibility result:', {
+          fromAPI: student.isEligibleInternship,
+          calculated: internshipEligibility
+        });
+      }
+
+      // 6. สถานะฝึกงาน (เช่น completed/in_progress)
+      let internshipStatus = "in_progress";
+      if (summaryCompleted && certificateStatus === "ready") {
+        internshipStatus = "completed";
+      }
 
       setStatus({
         cs05Status,
@@ -71,9 +124,17 @@ export const InternshipStatusProvider = ({ children }) => {
         student,
         logbookStats,
         reflectionData,
-        notifications: [], // เพิ่ม logic ดึงถ้ามี
+        notifications: [],
         loading: false,
         error: null,
+        internshipStatus,
+        totalCredits,
+        majorCredits,
+        gpa,
+        recentSubjects,
+        eligibility: {
+          internship: internshipEligibility,
+        },
       });
     } catch (e) {
       setStatus(s => ({ ...s, loading: false, error: e.message }));
