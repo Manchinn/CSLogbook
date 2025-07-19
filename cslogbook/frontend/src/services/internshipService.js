@@ -1586,6 +1586,13 @@ const internshipService = {
       };
     }
   }, */
+
+  /**
+   * ดึงข้อมูลโปรไฟล์นักศึกษาสำหรับการฝึกงาน (alias ของ getStudentInfo)
+   */
+  getStudentProfile: async () => {
+    return await internshipService.getStudentInfo();
+  },
 };
 
 export default internshipService;
