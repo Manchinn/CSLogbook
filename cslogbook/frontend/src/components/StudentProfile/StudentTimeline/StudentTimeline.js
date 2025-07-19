@@ -25,6 +25,7 @@ import ProjectSection from "./ProjectSection";
 import StudyStatistics from "./StudyStatistics";
 import ImportantDeadlines from "./ImportantDeadlines";
 import { SearchOutlined } from '@ant-design/icons';
+import { InternshipStatusProvider } from '../../../contexts/InternshipStatusContext';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -203,7 +204,7 @@ const StudentTimeline = () => {
   }
   
   return (
-    <>
+    <InternshipStatusProvider>
       <div className="student-timeline">
         <Row gutter={[16, 16]}>
           <Col span={24}>
@@ -363,7 +364,7 @@ const StudentTimeline = () => {
         </Row>
       </div>
       {studentSearchModal}
-    </>
+    </InternshipStatusProvider>
   );
 };
 
