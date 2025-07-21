@@ -1321,10 +1321,42 @@ const internshipService = {
   getCertificateStatus: async () => {
     try {
       const response = await apiClient.get("/internship/certificate-status");
+
+      // ถ้า success: true, data: null (ยังไม่ถึงขั้นตอน)
+      if (response.data.success && !response.data.data) {
+        return {
+          success: true,
+          data: null,
+          message: response.data.message || "ยังไม่มีข้อมูลสถานะหนังสือรับรอง"
+        };
+      }
+
+      // ถ้าสำเร็จและมีข้อมูล
       return response.data;
     } catch (error) {
+      // ถ้า error 404 หรือ error message "ไม่พบข้อมูล" ให้ถือว่าเป็นปกติ
+      if (
+        error.response?.status === 404 ||
+        (error.response?.data?.message &&
+          (
+            error.response.data.message.includes("ไม่พบข้อมูล") ||
+            error.response.data.message.includes("ยังไม่มีข้อมูล") ||
+            error.response.data.message.includes("ยังไม่ถึงขั้นตอน")
+          )
+        )
+      ) {
+        return {
+          success: true,
+          data: null,
+          message: error.response?.data?.message || "ยังไม่มีข้อมูลสถานะหนังสือรับรอง"
+        };
+      }
+
+      // error จริง
       console.error("Error getting certificate status:", error);
-      throw error;
+      throw new Error(
+        error.response?.data?.message || "ไม่สามารถดึงข้อมูลสถานะหนังสือรับรอง"
+      );
     }
   },
 

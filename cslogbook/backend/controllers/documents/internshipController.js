@@ -251,34 +251,28 @@ exports.getCompanyInfo = async (req, res) => {
  */
 exports.getInternshipSummary = async (req, res) => {
   try {
-    const result = await internshipManagementService.getInternshipSummary(
-      req.user.userId
-    );
+    // ... ตรวจสอบ req.user ...
+    const summary = await internshipManagementService.getInternshipSummary(req.user.userId);
+
+    if (!summary) {
+      // กรณีไม่พบข้อมูล ให้ส่ง success: true, data: null
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: "ยังไม่มีข้อมูลสรุปการฝึกงาน"
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      data: result,
+      data: summary,
+      message: "ดึงข้อมูลสรุปการฝึกงานสำเร็จ"
     });
   } catch (error) {
-    console.error("Error fetching internship summary:", error);
-    // ถ้า error message มีคำว่า 'ไม่พบข้อมูลผู้ใช้' หรือ 'ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ' หรือ 'ไม่พบข้อมูล CS05' ให้ส่ง success: false, HTTP 200, message user-friendly
-    if (
-      error.message && (
-        error.message.includes("ไม่พบข้อมูลผู้ใช้") ||
-        error.message.includes("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ") ||
-        error.message.includes("ไม่พบข้อมูล CS05")
-      )
-    ) {
-      return res.status(200).json({
-        success: false,
-        data: null,
-        message: "ยังไม่มีข้อมูลสรุปการฝึกงาน หรือยังไม่ผ่านเกณฑ์ กรุณาตรวจสอบสถานะฝึกงาน",
-      });
-    }
-    // เดิม: const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
+    // error จริง เช่น DB ล่ม, query ผิด ฯลฯ
     return res.status(500).json({
       success: false,
-      message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลสรุปการฝึกงาน",
+      message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลสรุปการฝึกงาน"
     });
   }
 };
@@ -1190,35 +1184,28 @@ exports.markCertificateDownloaded = async (req, res) => {
  */
 exports.getCertificateStatus = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // ... ตรวจสอบ req.user ...
+    const status = await internshipManagementService.getCertificateStatus(req.user.userId);
 
-    console.log(
-      `[getCertificateStatus] Checking certificate status for userId: ${userId}`
-    );
-
-    const result = await internshipManagementService.getCertificateStatus(
-      userId
-    );
+    if (!status) {
+      // กรณีไม่พบข้อมูล ให้ส่ง success: true, data: null
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: "ยังไม่มีข้อมูลสถานะหนังสือรับรอง"
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      data: result,
-      message: "ตรวจสอบสถานะหนังสือรับรองเรียบร้อยแล้ว",
+      data: status,
+      message: "ดึงสถานะหนังสือรับรองสำเร็จ"
     });
   } catch (error) {
-    console.error("Get Certificate Status Error:", error);
-    // ถ้า error message มีคำว่า 'ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ' ให้ส่ง success: false, HTTP 200, message user-friendly
-    if (error.message && error.message.includes("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ")) {
-      return res.status(200).json({
-        success: false,
-        data: null,
-        message: "ยังไม่มีข้อมูลฝึกงานที่ได้รับการอนุมัติ หรือยังไม่ผ่านเกณฑ์ กรุณาตรวจสอบสถานะฝึกงาน",
-      });
-    }
-    // เดิม: const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
+    // error จริง เช่น DB ล่ม, query ผิด ฯลฯ
     return res.status(500).json({
       success: false,
-      message: error.message || "เกิดข้อผิดพลาดในการตรวจสอบสถานะหนังสือรับรอง",
+      message: error.message || "เกิดข้อผิดพลาดในการดึงสถานะหนังสือรับรอง"
     });
   }
 };

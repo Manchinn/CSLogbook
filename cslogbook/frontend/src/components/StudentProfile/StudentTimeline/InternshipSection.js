@@ -19,22 +19,81 @@ import {
   InfoCircleOutlined 
 } from '@ant-design/icons';
 import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
+import useCertificateStatus from "../../../hooks/useCertificateStatus";
 
 const { Text, Paragraph } = Typography;
-
 
 const InternshipSection = () => {
   const {
     cs05Status,
     internshipDate,
-    summaryCompleted,
     certificateStatus,
     student,
     loading,
     error,
-    evaluationCompleted,
-    evaluationPending,
   } = useInternshipStatus();
+
+  const {
+    supervisorEvaluationStatus,
+    loading: certLoading,
+    error: certError,
+  } = useCertificateStatus();
+
+  // ฟังก์ชันช่วยแยก error ที่ควร fallback เป็นสถานะปกติ
+  const isNotFoundError = (errMsg) => {
+    if (!errMsg) return false;
+    return (
+      errMsg.includes("ไม่พบข้อมูล") ||
+      errMsg.includes("ยังไม่มีข้อมูล") ||
+      errMsg.includes("ยังไม่ถึงขั้นตอน") ||
+      errMsg.includes("No internship data")
+    );
+  };
+
+  // ถ้า loading ให้แสดง spinner
+  if (loading || certLoading) {
+    return (
+      <Card 
+        title={
+          <Space>
+            <BankOutlined />
+            <span>ฝึกงาน</span>
+            <Tag color="processing">กำลังโหลด</Tag>
+          </Space>
+        }
+      >
+        <div style={{ textAlign: "center", padding: "48px 0" }}>
+          <Spin size="large" tip="กำลังโหลดข้อมูล..." />
+        </div>
+      </Card>
+    );
+  }
+
+  // แสดง Alert เฉพาะ error จริง (ไม่ใช่ "ไม่พบข้อมูล" หรือ "ยังไม่ถึงขั้นตอน")
+  if ((error && !isNotFoundError(error)) || (certError && !isNotFoundError(certError))) {
+    return (
+      <Card 
+        title={
+          <Space>
+            <BankOutlined />
+            <span>ฝึกงาน</span>
+            <Tag color="error">เกิดข้อผิดพลาด</Tag>
+          </Space>
+        }
+      >
+        <Alert
+          type="error"
+          message="เกิดข้อผิดพลาด"
+          description={error || certError}
+          showIcon
+        />
+      </Card>
+    );
+  }
+
+  // ถ้า error เป็น "ไม่พบข้อมูล" หรือ "ยังไม่ถึงขั้นตอน" ให้ fallback เป็นค่า default
+  const safeSupervisorEvaluationStatus = isNotFoundError(certError) ? "wait" : supervisorEvaluationStatus;
+  const safeCertificateStatus = isNotFoundError(certError) ? "wait" : certificateStatus;
 
   // กำหนดขั้นตอนหลักของ timeline
   const steps = [
@@ -81,13 +140,15 @@ const InternshipSection = () => {
       key: "evaluation",
       title: "การประเมินฝึกงาน",
       description:
-        summaryCompleted === true
+        safeSupervisorEvaluationStatus === "completed"
           ? "การประเมินฝึกงานเสร็จสมบูรณ์แล้ว"
+          : safeSupervisorEvaluationStatus === "pending"
+          ? "รอพี่เลี้ยงประเมินฝึกงาน"
           : "กรุณาส่งแบบประเมินฝึกงานให้พี่เลี้ยง",
-      action: summaryCompleted !== true && (
+      action: safeSupervisorEvaluationStatus !== "completed" && (
         <Button
           type="primary"
-          href="/internship-summary"
+          href="/internship-evaluation"
           style={{ marginTop: 8 }}
         >
           ส่งแบบประเมินฝึกงาน
@@ -98,12 +159,12 @@ const InternshipSection = () => {
       key: "certificate",
       title: "ขอหนังสือรับรองการฝึกงาน",
       description:
-        certificateStatus === "ready"
+        safeCertificateStatus === "ready"
           ? "ได้รับหนังสือรับรองแล้ว"
-          : certificateStatus === "pending"
+          : safeCertificateStatus === "pending"
           ? "รอเจ้าหน้าที่อนุมัติหนังสือรับรอง"
           : "สามารถขอหนังสือรับรองการฝึกงานได้",
-      action: certificateStatus !== "ready" && (
+      action: safeCertificateStatus !== "ready" && (
         <Button
           type="primary"
           href="/internship-certificate"
@@ -117,7 +178,7 @@ const InternshipSection = () => {
       key: "done",
       title: "เสร็จสิ้นการฝึกงาน",
       description:
-        certificateStatus === "ready"
+        safeCertificateStatus === "ready"
           ? "กระบวนการฝึกงานของคุณเสร็จสมบูรณ์แล้ว"
           : "รอรับหนังสือรับรองการฝึกงาน",
     },
@@ -152,14 +213,15 @@ const InternshipSection = () => {
         if (now2 > end2) return "finish";
         return "wait";
       case "evaluation":
-        if (summaryCompleted === true) return "finish";
+        if (safeSupervisorEvaluationStatus === "completed") return "finish";
+        if (safeSupervisorEvaluationStatus === "pending") return "process";
         return "wait";
       case "certificate":
-        if (certificateStatus === "ready") return "finish";
-        if (certificateStatus === "pending") return "process";
+        if (safeCertificateStatus === "ready") return "finish";
+        if (safeCertificateStatus === "pending") return "process";
         return "wait";
       case "done":
-        if (certificateStatus === "ready") return "finish";
+        if (safeCertificateStatus === "ready") return "finish";
         return "wait";
       default:
         return "wait";
@@ -171,11 +233,9 @@ const InternshipSection = () => {
     const finishedSteps = steps.filter(step => getStepStatus(step.key) === "finish").length;
     const totalSteps = steps.length;
     const progress = Math.round((finishedSteps / totalSteps) * 100);
-    
     // หา current step (step แรกที่ไม่ใช่ finish)
     const currentStepIndex = steps.findIndex(step => getStepStatus(step.key) !== "finish");
     const currentStep = currentStepIndex !== -1 ? currentStepIndex + 1 : totalSteps;
-    
     return { progress, currentStep, totalSteps };
   };
 
@@ -185,8 +245,6 @@ const InternshipSection = () => {
   const isEligible = student?.eligibility?.internship?.eligible !== false;
   const eligibilityMessage = student?.eligibility?.internship?.message || "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ";
   const isEnrolledInternship = !!cs05Status;
-
-  // ตรวจสอบการแสดง blocked status
   const isBlocked = !isEligible;
 
   // ฟังก์ชันแปลงสถานะเป็นสีของ Tag
@@ -212,45 +270,6 @@ const InternshipSection = () => {
         return "รอดำเนินการ";
     }
   };
-
-  if (loading) {
-    return (
-      <Card 
-        title={
-          <Space>
-            <BankOutlined />
-            <span>ฝึกงาน</span>
-            <Tag color="processing">กำลังโหลด</Tag>
-          </Space>
-        }
-      >
-        <div style={{ textAlign: "center", padding: "48px 0" }}>
-          <Spin size="large" tip="กำลังโหลดข้อมูล..." />
-        </div>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card 
-        title={
-          <Space>
-            <BankOutlined />
-            <span>ฝึกงาน</span>
-            <Tag color="error">เกิดข้อผิดพลาด</Tag>
-          </Space>
-        }
-      >
-        <Alert
-          type="error"
-          message="เกิดข้อผิดพลาด"
-          description={error}
-          showIcon
-        />
-      </Card>
-    );
-  }
 
   return (
     <Card 

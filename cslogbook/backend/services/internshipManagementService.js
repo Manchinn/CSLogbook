@@ -3140,7 +3140,16 @@ class InternshipManagementService {
 
       return result;
     } catch (error) {
-      console.error(`[getCertificateStatus] Error:`, error);
+      if (
+        error.message.includes("ไม่พบข้อมูล") ||
+        error.message.includes("ยังไม่มีข้อมูล")
+      ) {
+        // log เป็น warning/info
+        console.warn(`[getCertificateStatus] No data:`, error.message);
+      } else {
+        // log เป็น error จริง
+        console.error(`[getCertificateStatus] Error:`, error);
+      }
       throw error;
     }
   }
