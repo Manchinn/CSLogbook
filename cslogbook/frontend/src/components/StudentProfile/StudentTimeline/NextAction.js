@@ -38,8 +38,8 @@ const NextAction = () => {
   // ดึงค่าที่จำเป็นจาก student object
   const {
     nextAction,
-    internshipEligible,
-    projectEligible,
+    // internshipEligible, // ลบออก
+    // projectEligible, // ลบออก
     projectStatus,
     isEnrolledInternship,
     isEnrolledProject,
@@ -58,8 +58,7 @@ const NextAction = () => {
       // Routes สำหรับการฝึกงาน (ตาม Sidebar.js)
       'internship-eligibility': '/internship-eligibility',
       'internship-requirements': '/internship-requirements',
-      'internship-registration': '/internship-registration',
-      'internship-flow': '/internship-registration/flow',
+      'internship-registration': '/internship-registration/flow',
       'internship-logbook': '/internship-logbook',
       'internship-companyinfo': '/internship-logbook/companyinfo',
       'internship-timesheet': '/internship-logbook/timesheet',
@@ -92,27 +91,23 @@ const NextAction = () => {
     return url;
   };
 
-  // หากค่า nextAction เป็น none หรือไม่ระบุ ให้พิจารณาจากสถานะอื่นๆ
+  // ปรับ flow: เริ่มจาก cs05Status และ internshipStatus
   if (!nextAction || nextAction === 'none') {
-    // ถ้ามีสิทธิ์ฝึกงานแต่ยังไม่ได้ลงทะเบียน
-    if (internshipEligible && !isEnrolledInternship && internshipStatus !== 'completed') {
+    // ถ้ายังไม่ได้ลงทะเบียนคำร้องฝึกงาน (cs05Status ไม่มีหรือเป็น waiting)
+    if (!cs05Status || cs05Status === 'waiting') {
       recommendedAction = 'register_internship';
     }
     // ถ้าฝึกงานอยู่ ให้บันทึก logbook
     else if (isEnrolledInternship && internshipStatus === 'in_progress') {
       recommendedAction = 'daily_log';
     }
-    // ถ้าผ่านฝึกงานแล้ว และมีสิทธิ์ทำโครงงาน แต่ยังไม่ได้ลงทะเบียน
-    else if (internshipStatus === 'completed' && projectEligible && !isEnrolledProject) {
+    // ถ้าผ่านฝึกงานแล้ว และยังไม่ได้ลงทะเบียนโครงงาน
+    else if (internshipStatus === 'completed' && !isEnrolledProject) {
       recommendedAction = 'register_project';
     }
     // ถ้าทำโครงงานอยู่
     else if (isEnrolledProject && projectStatus === 'in_progress') {
       recommendedAction = 'continue_project';
-    }
-    // ถ้ายังไม่มีสิทธิ์ฝึกงาน แต่หน่วยกิตใกล้เคียงแล้ว
-    else if (!internshipEligible && totalCredits > (internshipReqs.MIN_TOTAL_CREDITS - 10)) {
-      recommendedAction = 'almost_ready_internship';
     }
     // ถ้ามีขั้นตอนที่ต้องดำเนินการจาก progress
     else if (internshipStatus?.steps?.some(step => 
@@ -136,7 +131,7 @@ const NextAction = () => {
             <Button 
               type="primary" 
               icon={<FormOutlined />} 
-              href={getRouteUrl('internship-cs05')}
+              href={getRouteUrl('internship-registration')}
             >
               ลงทะเบียนฝึกงาน
             </Button>
@@ -319,7 +314,7 @@ const NextAction = () => {
             </Space>
           </Space>
         );
-      } else if (!internshipEligible && !projectEligible) {
+      } else if (!internshipReqs.MIN_TOTAL_CREDITS || !projectReqs.MIN_TOTAL_CREDITS) {
         actionContent = (
           <Space direction="vertical">
             <Text>ยังไม่มีสิทธิ์ในการฝึกงานหรือทำโครงงาน</Text>

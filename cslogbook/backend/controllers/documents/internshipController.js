@@ -1193,8 +1193,16 @@ exports.getCertificateStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Certificate Status Error:", error);
-    const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
-    return res.status(statusCode).json({
+    // ถ้า error message มีคำว่า 'ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ' ให้ส่ง success: false, HTTP 200, message user-friendly
+    if (error.message && error.message.includes("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ")) {
+      return res.status(200).json({
+        success: false,
+        data: null,
+        message: "ยังไม่มีข้อมูลฝึกงานที่ได้รับการอนุมัติ หรือยังไม่ผ่านเกณฑ์ กรุณาตรวจสอบสถานะฝึกงาน",
+      });
+    }
+    // เดิม: const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
+    return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการตรวจสอบสถานะหนังสือรับรอง",
     });

@@ -97,12 +97,14 @@ const InternshipSection = () => {
       key: "cs05",
       title: "ลงทะเบียนคำร้องฝึกงาน (คพ.05)",
       description: !cs05Status
-        ? "ยังไม่ได้ลงทะเบียนคำร้องฝึกงาน"
+        ? (student?.eligibility?.internship?.eligible === false
+            ? "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ"
+            : "ยังไม่ได้ลงทะเบียนคำร้องฝึกงาน")
         : "ลงทะเบียนคำร้องฝึกงานเรียบร้อยแล้ว",
-      action: !cs05Status && (
+      action: !cs05Status && student?.eligibility?.internship?.eligible !== false && (
         <Button
           type="primary"
-          href="/internship-registration"
+          href="/internship-registration/flow"
           style={{ marginTop: 8 }}
         >
           ลงทะเบียนคำร้องฝึกงาน
