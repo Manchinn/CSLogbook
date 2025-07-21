@@ -11,8 +11,8 @@ export const getInternshipRequirements = (requirements) => {
   // ถ้ามีค่าจาก backend ให้ใช้ค่าจาก backend
   if (requirements) {
     return {
-      MIN_YEAR: requirements.minYear || 3,
-      MIN_TOTAL_CREDITS: requirements.totalCredits || 81
+      MIN_YEAR: requirements.minYear ,
+      MIN_TOTAL_CREDITS: requirements.totalCredits 
     };
   }
   

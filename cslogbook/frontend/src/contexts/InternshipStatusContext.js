@@ -76,39 +76,7 @@ export const InternshipStatusProvider = ({ children }) => {
       } catch {}
 
       // 5. Eligibility (ตรวจสอบสิทธิ์การฝึกงาน)
-      let internshipEligibility = null;
-      if (student) {
-        // ใช้ข้อมูลจาก API ถ้ามี
-        if (student.isEligibleInternship !== undefined) {
-          internshipEligibility = {
-            eligible: !!student.isEligibleInternship,
-            message: student.isEligibleInternship 
-              ? "ผ่านเงื่อนไขการฝึกงาน" 
-              : "ไม่ผ่านเงื่อนไขการฝึกงาน"
-          };
-        } else {
-          // คำนวณด้วย studentUtils ถ้า API ไม่มีข้อมูล
-          const studentCode = student.studentCode || student.studentId;
-          const studentYearResult = calculateStudentYear(studentCode);
-          const studentYear = studentYearResult.error ? 0 : studentYearResult.year;
-
-          const totalCreditsVal = student.totalCredits ?? 0;
-          const majorCreditsVal = student.majorCredits ?? 0;
-          const requirements = student.requirements?.internship ?? null;
-
-          internshipEligibility = isEligibleForInternship(
-            studentYear,
-            totalCreditsVal,
-            majorCreditsVal,
-            requirements
-          );
-        }
-
-        console.log('Context eligibility result:', {
-          fromAPI: student.isEligibleInternship,
-          calculated: internshipEligibility
-        });
-      }
+      let internshipEligibility = student?.requirements?.internshipEligibility || null;
 
       // 6. สถานะฝึกงาน (เช่น completed/in_progress)
       let internshipStatus = "in_progress";
