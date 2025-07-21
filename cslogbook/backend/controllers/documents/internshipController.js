@@ -261,8 +261,22 @@ exports.getInternshipSummary = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching internship summary:", error);
-    const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
-    return res.status(statusCode).json({
+    // ถ้า error message มีคำว่า 'ไม่พบข้อมูลผู้ใช้' หรือ 'ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ' หรือ 'ไม่พบข้อมูล CS05' ให้ส่ง success: false, HTTP 200, message user-friendly
+    if (
+      error.message && (
+        error.message.includes("ไม่พบข้อมูลผู้ใช้") ||
+        error.message.includes("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ") ||
+        error.message.includes("ไม่พบข้อมูล CS05")
+      )
+    ) {
+      return res.status(200).json({
+        success: false,
+        data: null,
+        message: "ยังไม่มีข้อมูลสรุปการฝึกงาน หรือยังไม่ผ่านเกณฑ์ กรุณาตรวจสอบสถานะฝึกงาน",
+      });
+    }
+    // เดิม: const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
+    return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลสรุปการฝึกงาน",
     });
