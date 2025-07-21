@@ -34,7 +34,7 @@ export const InternshipStatusProvider = ({ children }) => {
       // 1. ข้อมูล CS05 + student
       const cs05Res = await internshipService.getCurrentCS05();
       let cs05Status = null, internshipDate = { startDate: null, endDate: null }, student = null;
-      let totalCredits = null, majorCredits = null, gpa = null, recentSubjects = null;
+      let totalCredits = null, majorCredits = null;
 
       if (cs05Res.success && cs05Res.data) {
         cs05Status = cs05Res.data.status;
@@ -47,8 +47,6 @@ export const InternshipStatusProvider = ({ children }) => {
         // สมมติว่ามีข้อมูลเหล่านี้ใน student object
         totalCredits = student?.totalCredits ?? null;
         majorCredits = student?.majorCredits ?? null;
-        gpa = student?.gpa ?? null;
-        recentSubjects = student?.recentSubjects ?? null;
       }
 
       // 2. ข้อมูล certificate (รวม summary)
@@ -98,8 +96,6 @@ export const InternshipStatusProvider = ({ children }) => {
         internshipStatus,
         totalCredits,
         majorCredits,
-        gpa,
-        recentSubjects,
         eligibility: {
           internship: internshipEligibility,
         },
