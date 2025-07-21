@@ -7,6 +7,9 @@ import {
   Typography,
   Spin,
   Alert,
+  Empty,
+  Space,
+  Paragraph,
 } from "antd";
 import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
 
@@ -177,6 +180,11 @@ const InternshipSection = () => {
     },
   ];
 
+  // ตรวจสอบสิทธิ์การลงทะเบียนฝึกงาน
+  const isEligible = student?.eligibility?.internship?.eligible !== false;
+  const eligibilityMessage = student?.eligibility?.internship?.message || "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ";
+  const isEnrolledInternship = !!cs05Status;
+
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "48px 0" }}>
@@ -196,9 +204,27 @@ const InternshipSection = () => {
     );
   }
 
+  // ถ้ายังไม่ได้ลงทะเบียนฝึกงาน
+  if (!isEnrolledInternship) {
+    return (
+      <Card title={<Space><Tag color="blue">ฝึกงาน</Tag><span>Timeline การฝึกงาน</span></Space>}>
+        <Empty description="คุณยังไม่ได้ลงทะเบียนฝึกงาน">
+          <Button type="primary" href="/internship-registration/flow" disabled={!isEligible}>
+            ลงทะเบียนคำร้องฝึกงาน
+          </Button>
+          {!isEligible && (
+            <Typography.Paragraph type="danger">
+              {eligibilityMessage}
+            </Typography.Paragraph>
+          )}
+        </Empty>
+      </Card>
+    );
+  }
+
   return (
     <Card
-      title={<Title level={4} style={{ margin: 0 }}>Timeline การฝึกงาน</Title>}
+      title={<Typography.Title level={4} style={{ margin: 0 }}>Timeline การฝึกงาน</Typography.Title>}
       style={{ marginBottom: 24 }}
     >
       <Timeline>
@@ -214,7 +240,7 @@ const InternshipSection = () => {
                 </Tag>
               }
             >
-              <Text strong style={{ fontSize: 16 }}>{step.title}</Text>
+              <Typography.Text strong style={{ fontSize: 16 }}>{step.title}</Typography.Text>
               <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
                 {step.description}
               </div>
