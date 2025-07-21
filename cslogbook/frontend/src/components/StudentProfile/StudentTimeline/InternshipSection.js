@@ -148,7 +148,7 @@ const InternshipSection = () => {
       action: safeSupervisorEvaluationStatus !== "completed" && (
         <Button
           type="primary"
-          href="/internship-evaluation"
+          href="/internship-summary"
           style={{ marginTop: 8 }}
         >
           ส่งแบบประเมินฝึกงาน
@@ -255,7 +255,7 @@ const InternshipSection = () => {
       case "process":
         return "blue";
       default:
-        return "gray";
+        return "gray"; // wait
     }
   };
 
@@ -267,7 +267,7 @@ const InternshipSection = () => {
       case "process":
         return "กำลังดำเนินการ";
       default:
-        return "รอดำเนินการ";
+        return "รอดำเนินการ"; // wait
     }
   };
 

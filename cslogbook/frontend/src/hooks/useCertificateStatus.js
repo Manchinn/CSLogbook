@@ -11,7 +11,7 @@ const useCertificateStatus = () => {
   
   // สถานะต่างๆ ของหนังสือรับรอง
   const [certificateStatus, setCertificateStatus] = useState('not_requested');
-  const [supervisorEvaluationStatus, setSupervisorEvaluationStatus] = useState('pending');
+  const [supervisorEvaluationStatus, setSupervisorEvaluationStatus] = useState('wait');
   const [internshipSummaryStatus, setInternshipSummaryStatus] = useState('not_submitted');
   const [totalHours, setTotalHours] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -44,8 +44,13 @@ const useCertificateStatus = () => {
         setTotalHours(data.requirements?.totalHours?.current || 0);
 
         // อัปเดตสถานะการประเมิน
+        const evalObj = data.requirements?.supervisorEvaluation;
         setSupervisorEvaluationStatus(
-          data.requirements?.supervisorEvaluation?.completed ? 'completed' : 'pending'
+          evalObj == null
+            ? 'wait'
+            : evalObj.completed
+              ? 'completed'
+              : 'pending'
         );
 
         // อัปเดตสถานะสรุปผล
@@ -53,11 +58,11 @@ const useCertificateStatus = () => {
           data.requirements?.summarySubmission?.completed ? 'submitted' : 'not_submitted'
         );
       } else if (certificateResponse.success && !certificateResponse.data) {
-        // fallback: ยังไม่มีข้อมูล ให้ set สถานะเป็น wait/pending
+        // fallback: ยังไม่มีข้อมูล ให้ set สถานะเป็น wait
         setCertificateStatus('not_requested');
         setCertificateData(null);
         setTotalHours(0);
-        setSupervisorEvaluationStatus('pending');
+        setSupervisorEvaluationStatus('wait');
         setInternshipSummaryStatus('not_submitted');
         // ไม่ต้อง setError
       } else {
