@@ -251,12 +251,12 @@ const InternshipCertificateRequest = () => {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
-      <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>
+      {/* <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>
         📜 ขอหนังสือรับรองการฝึกงาน
-      </Title>
+      </Title> */}
 
       {/* Debug Information - ลบออกใน production */}
-      {process.env.NODE_ENV === "development" && (
+      {/* {process.env.NODE_ENV === "development" && (
         <Card style={{ marginBottom: 24, backgroundColor: "#f6ffed" }}>
           <Title level={5}>🔧 Debug Information</Title>
           <Text>
@@ -276,10 +276,17 @@ const InternshipCertificateRequest = () => {
             </details>
           )}
         </Card>
-      )}
+      )} */}
 
       {/* ส่วนแสดงความคืบหน้าโดยรวม */}
-      <Card style={{ marginBottom: 24 }}>
+      <Card
+        style={{ marginBottom: 24 }}
+        extra={
+          <Button onClick={refreshStatus} loading={loading}>
+            รีเฟรชข้อมูลสถานะ
+          </Button>
+        }
+      >
         <Title level={4}>📊 ความคืบหน้าการขอหนังสือรับรอง</Title>
 
         <Progress
@@ -361,7 +368,7 @@ const InternshipCertificateRequest = () => {
               <li>ต้องได้รับการประเมินจากพี่เลี้ยงแล้ว</li>
               <li>ต้องส่งรายงานสรุปผลการฝึกงานแล้ว</li>
               <li>เจ้าหน้าที่ภาควิชาใช้เวลาตรวจสอบประมาณ 3-5 วันทำการ</li>
-              <li>หนังสือรับรองจะถูกสร้างด้วยระบบ PDF อัตโนมัติ (Frontend)</li>
+              <li>หนังสือรับรองจะถูกสร้างด้วยระบบ PDF อัตโนมัติ</li>
             </ul>
           }
           type="info"
@@ -369,12 +376,6 @@ const InternshipCertificateRequest = () => {
         />
       </Card>
 
-      {/* ปุ่มรีเฟรชข้อมูล */}
-      <Card style={{ marginTop: 24, textAlign: "center" }}>
-        <Button onClick={refreshStatus} loading={loading}>
-          รีเฟรชข้อมูลสถานะ
-        </Button>
-      </Card>
     </div>
   );
 };

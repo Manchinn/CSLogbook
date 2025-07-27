@@ -10,6 +10,7 @@ import {
   getProjectRequirements,
 } from '../../../utils/studentUtils';
 import { useInternshipStatus } from '../../../contexts/InternshipStatusContext';
+import useCertificateStatus from "../../../hooks/useCertificateStatus";
 
 const { Text } = Typography;
 
@@ -26,6 +27,12 @@ const NextAction = () => {
     loading,
     error,
   } = useInternshipStatus();
+
+  const {
+    supervisorEvaluationStatus,
+    loading: certLoading,
+    error: certError,
+  } = useCertificateStatus();
 
   // ถ้ายังโหลดข้อมูลอยู่
   if (loading) return null;
@@ -117,6 +124,16 @@ const NextAction = () => {
     else if (projectStatus?.steps?.some(step => 
       step.status === 'awaiting_student_action' || step.status === 'in_progress')) {
       recommendedAction = 'continue_project_step';
+    }
+  }
+
+  // เพิ่ม logic สำหรับการประเมินฝึกงาน
+  if (isEnrolledInternship && internshipStatus === 'completed') {
+    // ถ้ายังไม่ได้ประเมิน หรือรอพี่เลี้ยงประเมิน
+    if (supervisorEvaluationStatus === "wait" || !supervisorEvaluationStatus) {
+      recommendedAction = 'submit_evaluation';
+    } else if (supervisorEvaluationStatus === "pending") {
+      recommendedAction = 'waiting_evaluation';
     }
   }
 
@@ -260,6 +277,30 @@ const NextAction = () => {
           >
             {pendingProjectStep?.actionText || 'ดำเนินการต่อ'}
           </Button>
+        </Space>
+      );
+      break;
+
+    case 'submit_evaluation':
+      actionContent = (
+        <Space direction="vertical">
+          <Text>กรุณาส่งแบบประเมินฝึกงานให้พี่เลี้ยง</Text>
+          <Text type="secondary">เมื่อบันทึก logbook และสรุปผลครบแล้ว ให้ส่งแบบประเมินฝึกงาน</Text>
+          <Button 
+            type="primary" 
+            icon={<FormOutlined />} 
+            href={getRouteUrl('internship-summary')}
+          >
+            ส่งแบบประเมินฝึกงาน
+          </Button>
+        </Space>
+      );
+      break;
+    case 'waiting_evaluation':
+      actionContent = (
+        <Space direction="vertical">
+          <Text>รอพี่เลี้ยงประเมินฝึกงาน</Text>
+          <Text type="secondary">ระบบจะอัปเดตสถานะเมื่อพี่เลี้ยงประเมินเสร็จ</Text>
         </Space>
       );
       break;

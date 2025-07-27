@@ -29,6 +29,7 @@
   "license": "ISC",
   "description": "My project with nodemon",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "@sendgrid/mail": "^8.1.4",
     "@tanstack/react-query": "^5.72.0",
     "@tanstack/react-query-devtools": "^5.72.0",

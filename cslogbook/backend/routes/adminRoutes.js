@@ -10,6 +10,7 @@ const academacController = require('../controllers/academicController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
 // เพิ่ม import controller ใหม่สำหรับ workflow step definitions
 const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
+const importantDeadlineController = require('../controllers/importantDeadlineController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 
@@ -138,5 +139,11 @@ router.get('/notification-settings/stats', adminAuth, async (req, res) => {
         });
     }
 });
+
+// === ImportantDeadline Routes ===
+router.get('/important-deadlines', adminAuth, importantDeadlineController.getAll);
+router.post('/important-deadlines', adminAuth, importantDeadlineController.create);
+router.put('/important-deadlines/:id', adminAuth, importantDeadlineController.update);
+router.delete('/important-deadlines/:id', adminAuth, importantDeadlineController.remove);
 
 module.exports = router;
