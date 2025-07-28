@@ -134,6 +134,15 @@ class StudentService {
         order: [["startYear", "DESC"]],
       });
 
+      // ดึงปีการศึกษา/เทอมปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      let studentYearInfo = null;
+      if (currentAcademic) {
+        studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
+      } else {
+        studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
+      }
+
       return {
         studentCode: student.studentCode,
         firstName: student.user.firstName,
@@ -141,8 +150,10 @@ class StudentService {
         email: student.user.email,
         totalCredits: student.totalCredits || 0,
         majorCredits: student.majorCredits || 0,
+        studentYear: studentYearInfo?.year ?? null, // ส่ง null ถ้า error
+        studentYearInfo, // ส่ง object เต็มสำหรับ debug/frontend
         eligibility: {
-          studentYear: eligibility.studentYear,
+          studentYear: studentYearInfo,
           internship: eligibility.internship,
           project: eligibility.project,
         },

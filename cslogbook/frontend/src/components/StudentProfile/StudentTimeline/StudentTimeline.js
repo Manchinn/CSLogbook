@@ -235,28 +235,8 @@ const StudentTimeline = () => {
                           student.studentYear > 0
                         ) {
                           studentYear = student.studentYear;
-                        } else if (
-                          student &&
-                          typeof student.year === "number" &&
-                          student.year > 0
-                        ) {
-                          studentYear = student.year;
-                        } else if (student && student.studentCode) {
-                          try {
-                            const currentDate = new Date();
-                            const currentYear = currentDate.getFullYear() + 543;
-                            const studentCodePrefix =
-                              student.studentCode.substring(0, 2);
-                            const enrollmentYear =
-                              parseInt(studentCodePrefix) + 2500;
-                            studentYear = currentYear - enrollmentYear + 1;
-
-                            if (studentYear < 1) studentYear = 1;
-                            if (studentYear > 8) studentYear = 8;
-                          } catch (e) {
-                            console.error("Error calculating student year:", e);
-                            studentYear = null;
-                          }
+                        } else {
+                          studentYear = '-';
                         }
 
                         if (!studentYear) {

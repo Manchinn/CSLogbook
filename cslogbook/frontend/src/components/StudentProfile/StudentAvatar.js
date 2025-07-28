@@ -5,7 +5,9 @@ import './styles.css';
 
 const StudentAvatar = React.memo(({ student, studentYear }) => {
   const displayYear =
-    typeof studentYear === "object" ? studentYear.year : studentYear;
+    typeof studentYear === "object"
+      ? studentYear.year ?? '-' 
+      : (studentYear ?? '-');
 
   return (
     <Row gutter={[16, 24]}>

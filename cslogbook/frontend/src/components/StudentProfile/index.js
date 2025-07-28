@@ -66,7 +66,7 @@ const StudentProfile = () => {
           email: response.data.email || user.email || "",
           totalCredits,
           majorCredits,
-          studentYear: yearResult,
+          studentYear: response.data.studentYear, // ใช้ค่าจาก backend โดยตรง
 
           // เพิ่มข้อมูลเกี่ยวกับสิทธิ์และข้อกำหนด
           requirements,

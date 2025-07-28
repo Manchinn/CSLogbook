@@ -111,6 +111,21 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
         </Col>
       </Row>
       <Row style={{ marginTop: 24 }}>
+        <Col span={24}>
+          <Statistic
+            title="ชั้นปี"
+            value={
+              student.studentYear && typeof student.studentYear === 'number'
+                ? student.studentYear
+                : student.studentYear && typeof student.studentYear === 'object' && student.studentYear.year
+                  ? student.studentYear.year
+                  : '-'
+            }
+            prefix={<Tag color="blue">ชั้นปี</Tag>}
+          />
+        </Col>
+      </Row>
+      <Row style={{ marginTop: 24 }}>
         <Col span={12}>
           <Tooltip
             title={getEligibilityMessage(eligibility.internship, "internship")}
