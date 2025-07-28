@@ -71,6 +71,20 @@ class TimelineService {
       });
     }
     
+    // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ดึงมา
+    if (student) {
+      logger.info('TimelineService.findStudent: ข้อมูลที่ดึงมาจากฐานข้อมูล:', {
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        isEnrolledInternship: student.isEnrolledInternship,
+        internshipStatus: student.internshipStatus,
+        isEligibleInternship: student.isEligibleInternship,
+        isEligibleProject: student.isEligibleProject,
+        isEnrolledProject: student.isEnrolledProject,
+        projectStatus: student.projectStatus
+      });
+    }
+    
     return student;
   }
 
@@ -134,30 +148,26 @@ class TimelineService {
     try {
       logger.info(`TimelineService: กำลังค้นหานักศึกษาด้วย ID/รหัสนักศึกษา: ${studentId}`);
       
-      // ค้นหานักศึกษาทั้งจาก studentId และ studentCode
-      let student = null;
-      
-      const numericId = parseInt(studentId);
-      if (!isNaN(numericId)) {
-        student = await Student.findByPk(numericId, {
-          attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
-                    'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
-        });
-      }
-      
-      if (!student) {
-        student = await Student.findOne({
-          where: { studentCode: studentId.toString() },
-          attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
-                    'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
-        });
-      }
+      // ใช้ findStudent method ที่มีอยู่แล้ว
+      const student = await this.findStudent(studentId);
       
       if (!student) {
         throw new Error(`ไม่พบนักศึกษาที่มีรหัส ${studentId}`);
       }
       
       logger.info(`TimelineService: พบนักศึกษา: ${student.studentId} (รหัสนักศึกษา: ${student.studentCode})`);
+      
+      // เพิ่ม debug log เพื่อตรวจสอบข้อมูลจากฐานข้อมูล
+      logger.info('TimelineService: ข้อมูลจากฐานข้อมูล:', {
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        isEnrolledInternship: student.isEnrolledInternship,
+        internshipStatus: student.internshipStatus,
+        isEligibleInternship: student.isEligibleInternship,
+        isEligibleProject: student.isEligibleProject,
+        isEnrolledProject: student.isEnrolledProject,
+        projectStatus: student.projectStatus
+      });
       
       // สร้าง timeline สำหรับการฝึกงานและโครงงาน
       const [internshipTimeline, projectTimeline] = await Promise.all([
@@ -182,21 +192,35 @@ class TimelineService {
         academicInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ' };
       }
       
+      const studentData = {
+        id: student.studentId,
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        internshipStatus: student.internshipStatus,
+        isEnrolledInternship: !!student.isEnrolledInternship,
+        isEligibleInternship: student.isEligibleInternship,
+        isEligibleProject: student.isEligibleProject,
+        isEnrolledProject: student.isEnrolledProject,
+        projectStatus: student.projectStatus,
+        studentYear: studentYearInfo?.year ?? null, // เพิ่ม field นี้
+        studentYearInfo, // เพิ่ม object เต็มสำหรับ debug/frontend
+        academicInfo, // เพิ่มข้อมูลภาคการศึกษาและปีการศึกษา
+      };
+      
+      // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับไปยัง frontend
+      logger.info('TimelineService: ข้อมูลที่ส่งกลับไปยัง frontend:', {
+        studentId: studentData.studentId,
+        studentCode: studentData.studentCode,
+        isEnrolledInternship: studentData.isEnrolledInternship,
+        internshipStatus: studentData.internshipStatus,
+        isEligibleInternship: studentData.isEligibleInternship,
+        isEligibleProject: studentData.isEligibleProject,
+        isEnrolledProject: studentData.isEnrolledProject,
+        projectStatus: studentData.projectStatus
+      });
+      
       return {
-        student: {
-          id: student.studentId,
-          studentId: student.studentId,
-          studentCode: student.studentCode,
-          internshipStatus: student.internshipStatus,
-          isEnrolledInternship: !!student.isEnrolledInternship,
-          isEligibleInternship: student.isEligibleInternship,
-          isEligibleProject: student.isEligibleProject,
-          isEnrolledProject: student.isEnrolledProject,
-          projectStatus: student.projectStatus,
-          studentYear: studentYearInfo?.year ?? null, // เพิ่ม field นี้
-          studentYearInfo, // เพิ่ม object เต็มสำหรับ debug/frontend
-          academicInfo, // เพิ่มข้อมูลภาคการศึกษาและปีการศึกษา
-        },
+        student: studentData,
         progress: {
           internship: internshipTimeline,
           project: projectTimeline
