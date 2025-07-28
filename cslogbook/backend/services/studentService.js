@@ -1,4 +1,4 @@
-const { User, Student, Teacher, Curriculum } = require("../models");
+const { User, Student, Teacher, Curriculum, StudentAcademicHistory, Academic } = require("../models");
 const bcrypt = require("bcrypt");
 const {
   calculateStudentYear,
@@ -168,13 +168,15 @@ class StudentService {
     const transaction = await sequelize.transaction();
 
     try {
-      const { totalCredits, majorCredits, firstName, lastName } = updateData;
+      const { totalCredits, majorCredits, firstName, lastName, status, note } = updateData;
 
       logger.info("Received update data:", {
         totalCredits,
         majorCredits,
         firstName,
         lastName,
+        status,
+        note
       });
 
       // Find student with associated user data
@@ -256,6 +258,18 @@ class StudentService {
             transaction,
           }
         );
+      }
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
+      if (currentAcademic) {
+        await StudentAcademicHistory.create({
+          studentId: student.studentId,
+          academicYear: currentAcademic.academicYear,
+          semester: currentAcademic.currentSemester,
+          status: status || 'updated',
+          note: note || 'อัปเดตข้อมูลนักศึกษา'
+        }, { transaction });
       }
 
       await transaction.commit();
@@ -374,12 +388,24 @@ class StudentService {
           studyType: "regular",
           isEligibleInternship: false,
           isEligibleProject: false,
-          semester: getCurrentSemester(),
-          academicYear: getCurrentAcademicYear(),
+          // semester: getCurrentSemester(), // ลบออกเพราะ migrate แล้ว
+          // academicYear: getCurrentAcademicYear(), // ลบออกเพราะ migrate แล้ว
           advisorId: null,
         },
         { transaction }
       );
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
+      if (currentAcademic) {
+        await StudentAcademicHistory.create({
+          studentId: student.studentId,
+          academicYear: currentAcademic.academicYear,
+          semester: currentAcademic.currentSemester,
+          status: 'enrolled',
+          note: 'เพิ่มนักศึกษาใหม่'
+        }, { transaction });
+      }
 
       await transaction.commit();
 

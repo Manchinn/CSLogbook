@@ -316,26 +316,28 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'advisor_id'
         },
-        semester: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 1,
-            validate: {
-                min: 1,
-                max: 3
-            }
-        },
-        academicYear: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            field: 'academic_year',
-            defaultValue: () => {
-                const currentDate = new Date();
-                const currentYear = currentDate.getFullYear() + 543;
-                const currentMonth = currentDate.getMonth() + 1;
-                return currentMonth > 4 ? currentYear : currentYear - 1;
-            }
-        },
+        // ลบ field semester (ภาคเรียน) ออก เพราะจะไปอ้างอิงจาก Academic (global) แทน
+        // semester: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: false,
+        //     defaultValue: 1,
+        //     validate: {
+        //         min: 1,
+        //         max: 3
+        //     }
+        // },
+        // ลบ field academicYear (ปีการศึกษา) ออก เพราะจะไปอ้างอิงจาก Academic (global) แทน
+        // academicYear: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: false,
+        //     field: 'academic_year',
+        //     defaultValue: () => {
+        //         const currentDate = new Date();
+        //         const currentYear = currentDate.getFullYear() + 543;
+        //         const currentMonth = currentDate.getMonth() + 1;
+        //         return currentMonth > 4 ? currentYear : currentYear - 1;
+        //     }
+        // },
         studentYear: {
             type: DataTypes.INTEGER,
             allowNull: true,
@@ -382,10 +384,11 @@ module.exports = (sequelize) => {
                 name: 'idx_student_code',
                 fields: ['student_code']
             },
-            {
-                name: 'idx_academic_year',
-                fields: ['academic_year']
-            },
+            // ลบ index ของ academic_year ออก เพราะไม่มี field นี้แล้ว
+            // {
+            //     name: 'idx_academic_year',
+            //     fields: ['academic_year']
+            // },
             {
                 name: 'idx_student_curriculum',
                 fields: ['curriculum_id']

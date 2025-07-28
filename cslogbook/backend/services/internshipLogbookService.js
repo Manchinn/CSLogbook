@@ -6,6 +6,7 @@ const {
   Student,
   User,
   sequelize,
+  Academic,
 } = require("../models");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -89,7 +90,7 @@ class InternshipLogbookService {
 
     try {
       logger.info(
-        `InternshipLogbookService: บันทึกข้อมูลการฝึกงานสำหรับผู้ใช้ ${userId}`
+        `InternshipLogbookService: บันทึกข้อมูลการฝึกงานสำหรับ userId ${userId}`
       );
 
       const student = await Student.findOne({
@@ -99,6 +100,10 @@ class InternshipLogbookService {
       if (!student) {
         throw new Error("ไม่พบข้อมูลนักศึกษา");
       }
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      if (!currentAcademic) throw new Error('ไม่พบข้อมูลปีการศึกษาปัจจุบัน');
 
       const {
         workDate,
@@ -112,7 +117,6 @@ class InternshipLogbookService {
         solutions,
       } = entryData;
 
-      // ตรวจสอบว่ามี CS05 ที่อนุมัติแล้วหรือไม่
       const document = await Document.findOne({
         where: {
           userId,
@@ -131,12 +135,11 @@ class InternshipLogbookService {
       });
 
       if (!document) {
-        throw new Error("ไม่พบข้อมูล CS05 ที่รออนุมัติ");
+        throw new Error("ไม่พบข้อมูล CS05");
       }
 
       const internshipId = document.internshipDocument.internshipId;
 
-      // ตรวจสอบว่ามีบันทึกสำหรับวันที่นี้แล้วหรือไม่
       const existingEntry = await InternshipLogbook.findOne({
         where: {
           internshipId,
@@ -148,7 +151,6 @@ class InternshipLogbookService {
 
       let entry;
       if (existingEntry) {
-        // อัปเดตบันทึกที่มีอยู่
         entry = await existingEntry.update(
           {
             timeIn,
@@ -163,7 +165,7 @@ class InternshipLogbookService {
           { transaction }
         );
       } else {
-        // สร้างบันทึกใหม่
+        // เพิ่ม academicYear และ semester ตอนสร้าง logbook
         entry = await InternshipLogbook.create(
           {
             internshipId,
@@ -179,6 +181,8 @@ class InternshipLogbookService {
             solutions: solutions || "",
             supervisorApproved: false,
             advisorApproved: false,
+            academicYear: currentAcademic.academicYear,
+            semester: currentAcademic.currentSemester,
           },
           { transaction }
         );
@@ -547,20 +551,15 @@ class InternshipLogbookService {
    */
   async checkIn(userId, checkInData) {
     const transaction = await sequelize.transaction();
-
     try {
       logger.info(
-        `InternshipLogbookService: บันทึกเวลาเข้างานสำหรับผู้ใช้ ${userId}`
+        `InternshipLogbookService: บันทึกเวลาเข้างาน userId ${userId}`
       );
-
-      const student = await Student.findOne({
-        where: { userId },
-      });
-
-      if (!student) {
-        throw new Error("ไม่พบข้อมูลนักศึกษา");
-      }
-
+      const student = await Student.findOne({ where: { userId } });
+      if (!student) throw new Error("ไม่พบข้อมูลนักศึกษา");
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      if (!currentAcademic) throw new Error('ไม่พบข้อมูลปีการศึกษาปัจจุบัน');
       const {
         workDate,
         timeIn,
@@ -570,8 +569,6 @@ class InternshipLogbookService {
         problems,
         solutions,
       } = checkInData;
-
-      // ตรวจสอบว่ามี CS05 ที่รออนุมัติหรือไม่
       const document = await Document.findOne({
         where: {
           userId,
@@ -588,14 +585,8 @@ class InternshipLogbookService {
         ],
         transaction,
       });
-
-      if (!document) {
-        throw new Error("ไม่พบข้อมูล CS05 ที่รออนุมัติ");
-      }
-
+      if (!document) throw new Error("ไม่พบข้อมูล CS05");
       const internshipId = document.internshipDocument.internshipId;
-
-      // ตรวจสอบว่ามีบันทึกของวันนี้แล้วหรือไม่
       let entry = await InternshipLogbook.findOne({
         where: {
           internshipId,
@@ -604,22 +595,16 @@ class InternshipLogbookService {
         },
         transaction,
       });
-
       if (entry) {
-        // ถ้ามีบันทึกแล้ว ให้อัปเดตเวลาเข้างาน และข้อมูลเพิ่มเติมหากมี
         const updateData = { timeIn };
-
         if (logTitle !== undefined) updateData.logTitle = logTitle;
-        if (workDescription !== undefined)
-          updateData.workDescription = workDescription;
-        if (learningOutcome !== undefined)
-          updateData.learningOutcome = learningOutcome;
+        if (workDescription !== undefined) updateData.workDescription = workDescription;
+        if (learningOutcome !== undefined) updateData.learningOutcome = learningOutcome;
         if (problems !== undefined) updateData.problems = problems || "";
         if (solutions !== undefined) updateData.solutions = solutions || "";
-
         entry = await entry.update(updateData, { transaction });
       } else {
-        // ถ้ายังไม่มีบันทึก ให้สร้างบันทึกใหม่
+        // เพิ่ม academicYear และ semester ตอนสร้าง logbook
         entry = await InternshipLogbook.create(
           {
             internshipId,
@@ -635,11 +620,12 @@ class InternshipLogbookService {
             solutions: solutions || "",
             supervisorApproved: false,
             advisorApproved: false,
+            academicYear: currentAcademic.academicYear,
+            semester: currentAcademic.currentSemester,
           },
           { transaction }
         );
       }
-
       await transaction.commit();
       logger.info(`InternshipLogbookService: บันทึกเวลาเข้างานสำเร็จ`);
       return entry;
@@ -658,20 +644,15 @@ class InternshipLogbookService {
    */
   async checkOut(userId, checkOutData) {
     const transaction = await sequelize.transaction();
-
     try {
       logger.info(
-        `InternshipLogbookService: บันทึกเวลาออกงานสำหรับผู้ใช้ ${userId}`
+        `InternshipLogbookService: บันทึกเวลาออกงาน userId ${userId}`
       );
-
-      const student = await Student.findOne({
-        where: { userId },
-      });
-
-      if (!student) {
-        throw new Error("ไม่พบข้อมูลนักศึกษา");
-      }
-
+      const student = await Student.findOne({ where: { userId } });
+      if (!student) throw new Error("ไม่พบข้อมูลนักศึกษา");
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      if (!currentAcademic) throw new Error('ไม่พบข้อมูลปีการศึกษาปัจจุบัน');
       const {
         workDate,
         timeOut,
@@ -681,8 +662,6 @@ class InternshipLogbookService {
         problems,
         solutions,
       } = checkOutData;
-
-      // ตรวจสอบว่ามีบันทึกของวันนี้แล้วหรือไม่
       const entry = await InternshipLogbook.findOne({
         where: {
           studentId: student.studentId,
@@ -690,48 +669,20 @@ class InternshipLogbookService {
         },
         transaction,
       });
-
-      if (!entry) {
-        throw new Error(
-          "ไม่พบข้อมูลการบันทึกเวลาเข้างาน กรุณาบันทึกเวลาเข้างานก่อน"
-        );
-      }
-
-      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่
-      if (entry.supervisorApproved || entry.advisorApproved) {
-        throw new Error("ไม่สามารถแก้ไขบันทึกที่ได้รับการอนุมัติแล้ว");
-      }
-
-      // คำนวณชั่วโมงทำงาน
-      const timeInParts = entry.timeIn.split(":");
-      const timeOutParts = timeOut.split(":");
-
-      const timeInMinutes =
-        parseInt(timeInParts[0]) * 60 + parseInt(timeInParts[1]);
-      const timeOutMinutes =
-        parseInt(timeOutParts[0]) * 60 + parseInt(timeOutParts[1]);
-
-      if (timeOutMinutes <= timeInMinutes) {
-        throw new Error("เวลาออกงานต้องมากกว่าเวลาเข้างาน");
-      }
-
-      // คำนวณชั่วโมงทำงานเป็นทศนิยม 1 ตำแหน่ง
-      const workHours = Math.round((timeOutMinutes - timeInMinutes) / 30) / 2;
-
-      // อัปเดตข้อมูล
+      if (!entry) throw new Error("ไม่พบข้อมูลการบันทึกเวลาเข้างาน");
+      // อัปเดตข้อมูลเวลาออกงานและรายละเอียด
       await entry.update(
         {
           timeOut,
-          workHours,
           logTitle,
           workDescription,
           learningOutcome,
           problems: problems || "",
           solutions: solutions || "",
+          // ไม่ต้องอัปเดต academicYear/semester เพราะถูกกำหนดตอน checkIn แล้ว
         },
         { transaction }
       );
-
       await transaction.commit();
       logger.info(`InternshipLogbookService: บันทึกเวลาออกงานสำเร็จ`);
       return entry;
