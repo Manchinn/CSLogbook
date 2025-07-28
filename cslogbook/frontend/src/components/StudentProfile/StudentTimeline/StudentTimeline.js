@@ -247,7 +247,7 @@ const StudentTimeline = () => {
                           academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
                         }
                         
-                        return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
+                        return `ชั้นปีที่ ${studentYear} (${semester} / ${academicYear})`;
                       })()}
                     </Text>
                     <Badge

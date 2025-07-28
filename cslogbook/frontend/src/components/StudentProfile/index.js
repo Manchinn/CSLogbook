@@ -45,7 +45,6 @@ const StudentProfile = () => {
       if (response.success) {
         const totalCredits = parseInt(response.data.totalCredits);
         const majorCredits = parseInt(response.data.majorCredits);
-        const yearResult = calculateStudentYear(response.data.studentCode);
 
         // Map ข้อมูลจาก user ถ้ามี
         const { user = {} } = response.data;
@@ -74,6 +73,22 @@ const StudentProfile = () => {
           isEligibleForProject: eligibility.project?.eligible,
           internshipMessage: eligibility.internship?.message,
           projectMessage: eligibility.project?.message,
+          
+          // เพิ่มข้อมูลสำหรับ StudentAvatar
+          isEligibleInternship: eligibility.internship?.eligible || false,
+          isEnrolledInternship: response.data.isEnrolledInternship || false,
+          internshipStatus: response.data.internshipStatus || 'not_started',
+        });
+
+        // Debug log เพื่อตรวจสอบข้อมูลที่ได้รับ
+        console.log('StudentProfile - Data from API:', {
+          responseData: response.data,
+          eligibility,
+          studentData: {
+            isEligibleInternship: eligibility.internship?.eligible || false,
+            isEnrolledInternship: response.data.isEnrolledInternship || false,
+            internshipStatus: response.data.internshipStatus || 'not_started',
+          }
         });
 
         form.setFieldsValue({ totalCredits, majorCredits });

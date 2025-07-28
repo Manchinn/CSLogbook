@@ -29,7 +29,8 @@ class StudentService {
    */
   async getAllStudents(filters = {}) {
     try {
-      const { semester, academicYear } = filters;
+      // ลบการรับ parameters ที่ไม่มีใช้แล้ว
+      // const { semester, academicYear } = filters;
 
       // สร้างเงื่อนไขการค้นหา
       const whereCondition = {
@@ -38,8 +39,9 @@ class StudentService {
 
       // สร้างเงื่อนไขสำหรับ Student model
       const studentWhereCondition = {};
-      if (semester) studentWhereCondition.semester = semester;
-      if (academicYear) studentWhereCondition.academicYear = academicYear;
+      // ลบการกรองตาม semester และ academicYear เพราะไม่มีคอลัมน์เหล่านี้แล้ว
+      // if (semester) studentWhereCondition.semester = semester;
+      // if (academicYear) studentWhereCondition.academicYear = academicYear;
 
       const students = await User.findAll({
         where: whereCondition,
@@ -57,8 +59,9 @@ class StudentService {
               "majorCredits",
               "isEligibleInternship",
               "isEligibleProject",
-              "semester",
-              "academicYear",
+              // ลบคอลัมน์ที่ไม่มีอยู่แล้ว
+              // "semester",
+              // "academicYear",
               "classroom",
               "phoneNumber",
             ],
@@ -88,11 +91,12 @@ class StudentService {
           majorCredits: user.student?.majorCredits || 0,
           isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
           isEligibleForProject: Boolean(user.student?.isEligibleProject),
-          semester: user.student?.semester,
-          academicYear: user.student?.academicYear,
+          // ลบคอลัมน์ที่ไม่มีอยู่แล้ว
+          // semester: user.student?.semester,
+          // academicYear: user.student?.academicYear,
           status: status,
-          classroom: user.student?.classroom ,
-          phoneNumber: user.student?.phoneNumber ,
+          classroom: user.student?.classroom,
+          phoneNumber: user.student?.phoneNumber,
         };
       });
     } catch (error) {
@@ -162,6 +166,12 @@ class StudentService {
           projectBaseCredits: activeCurriculum?.projectBaseCredits,
           projectMajorBaseCredits: activeCurriculum?.projectMajorBaseCredits,
         },
+        // เพิ่มข้อมูลสำหรับ StudentAvatar
+        isEligibleInternship: student.isEligibleInternship || false,
+        isEnrolledInternship: student.isEnrolledInternship || false,
+        internshipStatus: student.internshipStatus || 'not_started',
+        projectStatus: student.projectStatus || 'not_started',
+        isEnrolledProject: student.isEnrolledProject || false,
       };
     } catch (error) {
       logger.error("Error in getStudentById service:", error);

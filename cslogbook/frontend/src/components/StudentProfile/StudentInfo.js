@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Card, Row, Col, Statistic, Tag, Tooltip, Button } from "antd";
+import { Card, Row, Col, Statistic, Button } from "antd";
 import { BookOutlined, ProjectOutlined } from "@ant-design/icons";
 import {
   isEligibleForInternship,
@@ -99,30 +99,6 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
             suffix="หน่วยกิต"
             prefix={<ProjectOutlined />}
           />
-        </Col>
-      </Row>
-      <Row style={{ marginTop: 12 }}>
-        <Col span={12}>
-          <Tooltip
-            title={getEligibilityMessage(eligibility.internship, "internship")}
-          >
-            <Tag color={eligibility.internship ? "green" : "red"}>
-              {eligibility.internship
-                ? "มีสิทธิ์ฝึกงาน"
-                : "ยังไม่มีสิทธิ์ฝึกงาน"}
-            </Tag>
-          </Tooltip>
-        </Col>
-        <Col span={12}>
-          <Tooltip
-            title={getEligibilityMessage(eligibility.project, "project")}
-          >
-            <Tag color={eligibility.project ? "green" : "red"}>
-              {eligibility.project
-                ? "มีสิทธิ์ทำโครงงานพิเศษ"
-                : "ยังไม่มีสิทธิ์ทำโครงงานพิเศษ"}
-            </Tag>
-          </Tooltip>
         </Col>
       </Row>
     </Card>
