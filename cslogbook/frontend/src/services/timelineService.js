@@ -137,6 +137,19 @@ export const timelineService = {
               }
             }
             
+            // ตรวจสอบและจัดการข้อมูลภาคการศึกษาและปีการศึกษา
+            if (apiData.data.student.academicInfo) {
+              // ข้อมูลภาคการศึกษาและปีการศึกษาจาก backend
+              apiData.data.student.academicInfo = apiData.data.student.academicInfo;
+              console.log("Academic info from backend:", apiData.data.student.academicInfo);
+            } else {
+              // สร้างข้อมูลภาคการศึกษาเริ่มต้นถ้าไม่มีจาก backend
+              apiData.data.student.academicInfo = {
+                error: true,
+                message: 'ไม่ได้รับข้อมูลภาคการศึกษาจาก backend'
+              };
+            }
+            
             // รองรับระบบใหม่ - ตรวจสอบและจัดการข้อมูล steps 
             // ที่มาจากรูปแบบใหม่ของ WorkflowService
             if (apiData.data.progress) {

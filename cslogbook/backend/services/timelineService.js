@@ -168,10 +168,18 @@ class TimelineService {
       // ดึงปีการศึกษาปัจจุบันจาก Academic
       let currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
       let studentYearInfo = null;
+      let academicInfo = null;
+      
       if (currentAcademic) {
         studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
+        academicInfo = {
+          academicYear: currentAcademic.academicYear,
+          currentSemester: currentAcademic.currentSemester,
+          semesterName: this.getSemesterName(currentAcademic.currentSemester)
+        };
       } else {
         studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
+        academicInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ' };
       }
       
       return {
@@ -187,6 +195,7 @@ class TimelineService {
           projectStatus: student.projectStatus,
           studentYear: studentYearInfo?.year ?? null, // เพิ่ม field นี้
           studentYearInfo, // เพิ่ม object เต็มสำหรับ debug/frontend
+          academicInfo, // เพิ่มข้อมูลภาคการศึกษาและปีการศึกษา
         },
         progress: {
           internship: internshipTimeline,
@@ -481,6 +490,22 @@ class TimelineService {
     } catch (error) {
       logger.error('TimelineService: Error in determineNextAction:', error);
       return "เกิดข้อผิดพลาดในการกำหนดการดำเนินการถัดไป";
+    }
+  }
+
+  /**
+   * ดึงชื่อภาคการศึกษา
+   * @param {number} semester - ภาคการศึกษา (1 หรือ 2)
+   * @returns {string} ชื่อภาคการศึกษา
+   */
+  getSemesterName(semester) {
+    switch (semester) {
+      case 1:
+        return 'ภาคการศึกษาที่ 1';
+      case 2:
+        return 'ภาคการศึกษาที่ 2';
+      default:
+        return 'ภาคการศึกษาไม่ระบุ';
     }
   }
 }

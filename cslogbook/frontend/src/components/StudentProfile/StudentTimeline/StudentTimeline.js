@@ -224,18 +224,29 @@ const StudentTimeline = () => {
                         if (!studentYear || studentYear === '-') {
                           return "ชั้นปีที่ไม่ระบุ";
                         }
-                        const currentDate = new Date();
-                        const currentMonth = currentDate.getMonth() + 1;
-                        let semester = "";
-                        if (currentMonth >= 1 && currentMonth <= 5) {
-                          semester = "ภาคเรียนที่ 2";
-                        } else if (currentMonth >= 6 && currentMonth <= 7) {
-                          semester = "ภาคฤดูร้อน";
+                        
+                        // ใช้ข้อมูลภาคการศึกษาและปีการศึกษาจาก backend
+                        let semester = "ภาคการศึกษาไม่ระบุ";
+                        let academicYear = "-";
+                        
+                        if (student && student.academicInfo && !student.academicInfo.error) {
+                          semester = student.academicInfo.semesterName || "ภาคการศึกษาไม่ระบุ";
+                          academicYear = student.academicInfo.academicYear || "-";
                         } else {
-                          semester = "ภาคเรียนที่ 1";
+                          // fallback ไปใช้การคำนวณเดิมถ้าไม่มีข้อมูลจาก backend
+                          const currentDate = new Date();
+                          const currentMonth = currentDate.getMonth() + 1;
+                          if (currentMonth >= 1 && currentMonth <= 5) {
+                            semester = "ภาคเรียนที่ 2";
+                          } else if (currentMonth >= 6 && currentMonth <= 7) {
+                            semester = "ภาคฤดูร้อน";
+                          } else {
+                            semester = "ภาคเรียนที่ 1";
+                          }
+                          const thaiYear = currentDate.getFullYear() + 543;
+                          academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
                         }
-                        const thaiYear = currentDate.getFullYear() + 543;
-                        const academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
+                        
                         return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
                       })()}
                     </Text>
