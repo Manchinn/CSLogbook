@@ -178,7 +178,11 @@ const EducationPath = ({ student }) => {
 
   return (
     <Card
-      title="เส้นทางการศึกษาของคุณ"
+      title={
+        <span>
+          เส้นทางการศึกษาของคุณ
+        </span>
+      }
       variant="borderless"
       styles={{ padding: "24px" }}
     >

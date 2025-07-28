@@ -220,32 +220,12 @@ const StudentTimeline = () => {
                   <Space direction="vertical" align="end">
                     <Text strong>
                       {(() => {
-                        let studentYear = null;
-
-                        if (
-                          student &&
-                          student.studentYear &&
-                          typeof student.studentYear === "object" &&
-                          student.studentYear.year
-                        ) {
-                          studentYear = student.studentYear.year;
-                        } else if (
-                          student &&
-                          typeof student.studentYear === "number" &&
-                          student.studentYear > 0
-                        ) {
-                          studentYear = student.studentYear;
-                        } else {
-                          studentYear = '-';
-                        }
-
-                        if (!studentYear) {
+                        let studentYear = student && student.studentYear ? student.studentYear : '-';
+                        if (!studentYear || studentYear === '-') {
                           return "ชั้นปีที่ไม่ระบุ";
                         }
-
                         const currentDate = new Date();
                         const currentMonth = currentDate.getMonth() + 1;
-
                         let semester = "";
                         if (currentMonth >= 1 && currentMonth <= 5) {
                           semester = "ภาคเรียนที่ 2";
@@ -254,11 +234,8 @@ const StudentTimeline = () => {
                         } else {
                           semester = "ภาคเรียนที่ 1";
                         }
-
                         const thaiYear = currentDate.getFullYear() + 543;
-                        const academicYear =
-                          currentMonth >= 8 ? thaiYear : thaiYear - 1;
-
+                        const academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
                         return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
                       })()}
                     </Text>

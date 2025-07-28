@@ -263,6 +263,9 @@ function Dashboard() {
                   loading={isLoading}
                 />
                 <Descriptions column={1} size="small">
+                  <Descriptions.Item label="ชั้นปี">
+                    {studentData?.studentYear || '-'}
+                  </Descriptions.Item>
                   <Descriptions.Item label="หน่วยกิตรวม">
                     {studentData?.totalCredits || 0} หน่วยกิต
                   </Descriptions.Item>
@@ -300,7 +303,7 @@ function Dashboard() {
                 />
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="ชั้นปี">
-                    {studentData?.studentYear?.year || '-'}
+                    {studentData?.studentYear || '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="หน่วยกิตรวม">
                     {studentData?.totalCredits || 0} หน่วยกิต

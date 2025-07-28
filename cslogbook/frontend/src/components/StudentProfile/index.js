@@ -108,9 +108,6 @@ const StudentProfile = () => {
         // ส่งค่า isEligibleInternship และ isEligibleProject ไปยัง backend
         const response = await studentService.updateStudent(id, {
           ...values,
-          // ถ้า backend ต้องการคำนวณเอง ก็ไม่จำเป็นต้องส่งค่าเหล่านี้ไป
-          // isEligibleInternship: values.isEligibleInternship,
-          // isEligibleProject: values.isEligibleProject
         });
 
         if (response.success) {

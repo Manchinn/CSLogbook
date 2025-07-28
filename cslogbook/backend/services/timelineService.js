@@ -1,6 +1,7 @@
-const { Student, sequelize } = require('../models');
+const { Student, sequelize, Academic } = require('../models');
 const logger = require('../utils/logger');
 const workflowService = require('./workflowService');
+const { calculateStudentYear } = require('../utils/studentUtils');
 
 class TimelineService {
   /**
@@ -164,6 +165,15 @@ class TimelineService {
         this.generateTimelineForType(student.studentId, 'project', student)
       ]);
       
+      // ดึงปีการศึกษาปัจจุบันจาก Academic
+      let currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      let studentYearInfo = null;
+      if (currentAcademic) {
+        studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
+      } else {
+        studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
+      }
+      
       return {
         student: {
           id: student.studentId,
@@ -175,6 +185,8 @@ class TimelineService {
           isEligibleProject: student.isEligibleProject,
           isEnrolledProject: student.isEnrolledProject,
           projectStatus: student.projectStatus,
+          studentYear: studentYearInfo?.year ?? null, // เพิ่ม field นี้
+          studentYearInfo, // เพิ่ม object เต็มสำหรับ debug/frontend
         },
         progress: {
           internship: internshipTimeline,
