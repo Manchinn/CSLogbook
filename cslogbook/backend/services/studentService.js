@@ -29,9 +29,6 @@ class StudentService {
    */
   async getAllStudents(filters = {}) {
     try {
-      // ลบการรับ parameters ที่ไม่มีใช้แล้ว
-      // const { semester, academicYear } = filters;
-
       // สร้างเงื่อนไขการค้นหา
       const whereCondition = {
         role: "student",
@@ -39,9 +36,6 @@ class StudentService {
 
       // สร้างเงื่อนไขสำหรับ Student model
       const studentWhereCondition = {};
-      // ลบการกรองตาม semester และ academicYear เพราะไม่มีคอลัมน์เหล่านี้แล้ว
-      // if (semester) studentWhereCondition.semester = semester;
-      // if (academicYear) studentWhereCondition.academicYear = academicYear;
 
       const students = await User.findAll({
         where: whereCondition,
@@ -59,9 +53,6 @@ class StudentService {
               "majorCredits",
               "isEligibleInternship",
               "isEligibleProject",
-              // ลบคอลัมน์ที่ไม่มีอยู่แล้ว
-              // "semester",
-              // "academicYear",
               "classroom",
               "phoneNumber",
             ],
@@ -91,9 +82,6 @@ class StudentService {
           majorCredits: user.student?.majorCredits || 0,
           isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
           isEligibleForProject: Boolean(user.student?.isEligibleProject),
-          // ลบคอลัมน์ที่ไม่มีอยู่แล้ว
-          // semester: user.student?.semester,
-          // academicYear: user.student?.academicYear,
           status: status,
           classroom: user.student?.classroom,
           phoneNumber: user.student?.phoneNumber,
