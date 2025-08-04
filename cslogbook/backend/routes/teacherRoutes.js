@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const teacherController = require('../controllers/teacherController');
-const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
+const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 // Protect all routes with authentication
 router.use(authenticateToken);
@@ -27,15 +27,36 @@ router.put('/:id',
   teacherController.updateTeacher
 );
 
-router.delete('/:id',
-  checkRole(['admin']),
-  teacherController.deleteTeacher
+// Routes สำหรับอาจารย์สายวิชาการเท่านั้น
+router.get('/academic/dashboard',
+  checkRole(['teacher']),
+  checkTeacherType(['academic']),
+  teacherController.getAcademicDashboard
 );
 
-// Additional routes for teacher-specific functionality
-router.get('/:id/advisees',
-  checkRole(['admin', 'teacher']),
-  teacherController.getAdvisees
+router.post('/academic/evaluation',
+  checkRole(['teacher']),
+  checkTeacherType(['academic']),
+  teacherController.submitEvaluation
+);
+
+// Routes สำหรับเจ้าหน้าที่ภาควิชาเท่านั้น
+router.get('/support/dashboard',
+  checkRole(['teacher']),
+  checkTeacherType(['support']),
+  teacherController.getSupportDashboard
+);
+
+router.post('/support/announcement',
+  checkRole(['teacher']),
+  checkTeacherType(['support']),
+  teacherController.createAnnouncement
+);
+
+// Routes ที่ทั้งสองประเภทเข้าถึงได้
+router.get('/documents',
+  checkRole(['teacher']),
+  teacherController.getDocuments
 );
 
 module.exports = router;

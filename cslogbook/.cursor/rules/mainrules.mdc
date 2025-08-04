@@ -1,6 +1,7 @@
 ---
 alwaysApply: true
 ---
+
 # CSLogbook - กฎการใช้งาน Copilot/AI Assistant
 
 ## แนวทางการโต้ตอบทั่วไป
@@ -9,25 +10,25 @@ alwaysApply: true
 - **คำศัพท์เทคนิค**: ให้ใช้คำศัพท์เทคนิคที่เป็นภาษาไทยถ้ามี แต่หากคำภาษาอังกฤษเป็นที่นิยมและเข้าใจง่ายกว่า ให้ใช้ภาษาอังกฤษพร้อมอธิบายความหมายเป็นภาษาไทยสั้น ๆ
 - **ความชัดเจนสำคัญกว่าความสั้น**: อธิบายให้ละเอียดและชัดเจนเป็นภาษาไทย แม้จะยาวก็ตาม หลีกเลี่ยงการใช้ประโยคภาษาอังกฤษที่สั้นเกินไปหรือไม่ชัดเจน
 
-## ภาพรวมโปรเจค
-นี่คือแอปพลิเคชัน React JavaScript ชื่อ "CSLogbook" (ระบบติดตามความก้าวหน้าของนักศึกษา) สำหรับติดตามและตรวจสอบความก้าวหน้าของนักศึกษา โดยมี React เป็น frontend, Node.js (Express) เป็น backend และใช้ MySQL เป็นฐานข้อมูล
+---
 
-## เทคโนโลยีที่ใช้
-### ฝั่ง Frontend
-- **React**: ใช้ฟังก์ชันคอมโพเนนต์และ hooks ในการพัฒนา UI
-- **React Router**: สำหรับการจัดการเส้นทางและการนำทางในแอป
-- **Axios**: สำหรับเรียกใช้งาน API กับ backend
-- **React Context API**: สำหรับจัดการ state ส่วนกลาง
-- **CSS/SCSS**: สำหรับตกแต่งและออกแบบ UI ให้ responsive
-- **Ant Design เวอร์ชัน ^5.25.1**: สำหรับคอมโพเนนต์ UI สำเร็จรูป
+## ภาพรวมระบบ
+CSLogbook คือระบบติดตามความก้าวหน้าของนักศึกษา โดยใช้ React (frontend) และ Node.js/Express (backend) พร้อมฐานข้อมูล MySQL ระบบนี้ออกแบบมาเพื่อให้นักศึกษา อาจารย์ที่ปรึกษา และแอดมิน สามารถบันทึกกิจกรรม ติดตามความคืบหน้า และจัดการเวิร์กโฟลว์ทางวิชาการ
 
-### ฝั่ง Backend
-- **Node.js**: รันโค้ดฝั่งเซิร์ฟเวอร์
-- **Express**: สร้าง API
-- **Sequelize ORM**: จัดการฐานข้อมูลและ migration
-- **MySQL**: ฐานข้อมูลหลัก
-- **JWT**: สำหรับ authentication และ authorization
-- **Multer**: สำหรับจัดการอัปโหลดไฟล์
+## สถาปัตยกรรมและรูปแบบสำคัญ
+- **Frontend** (`cslogbook/frontend/`):
+  - ใช้ React แบบ functional component และ hooks (ห้ามใช้ class component)
+  - ใช้ Ant Design v5.25.1 สำหรับ UI, React Router สำหรับการนำทาง, Axios สำหรับเรียก API, และ Context API สำหรับ state management
+  - แยก component ตามโดเมน เช่น `components/admin/`, `components/student/`
+  - custom hook และ utility function อยู่ใน `hooks/` และ `utils/`
+  - การเชื่อมต่อ API อยู่ใน `services/`
+  - ต้องออกแบบให้ responsive และรองรับ accessibility
+- **Backend** (`cslogbook/backend/`):
+  - Node.js + Express, ใช้ Sequelize ORM กับ MySQL
+  - แยก controller, model, route, middleware, service ตามหน้าที่
+  - background agent (เช่น eligibility check) อยู่ใน `agents/`
+  - logging ใช้ Winston, log file อยู่ใน `logs/`
+  - ส่งอีเมลผ่าน SendGrid, อัปโหลดไฟล์ด้วย Multer
 
 ## โครงสร้างโปรเจค
 แอปพลิเคชันนี้แยก frontend และ backend อย่างชัดเจน
@@ -52,6 +53,28 @@ alwaysApply: true
 - **src/utils/**: ฟังก์ชันช่วยเหลือฝั่ง frontend
 - **src/services/**: การเชื่อมต่อ API
 - **src/assets/**: ไฟล์ภาพ ไอคอน ฯลฯ
+
+## เวิร์กโฟลว์สำหรับนักพัฒนา
+- **Setup**: ดูรายละเอียดไฟล์ `README.md` ของแต่ละส่วนสำหรับ environment variable และขั้นตอนติดตั้ง
+- **Backend**:
+  - ติดตั้ง: `cd cslogbook/backend && npm install`
+  - รัน (dev): `npm run dev`
+  - ตั้งค่า environment: copy `.env.example` ไป `.env.development` แล้วแก้ไข
+- **Frontend**:
+  - ติดตั้ง: `cd cslogbook/frontend && npm install`
+  - รัน (dev): `npm start`
+  - ทดสอบ: `npm test`
+  - build: `npm run build`
+- **Database**:
+  - ต้องตั้งค่า MySQL ตาม `README.md` ที่ root
+  - migration ของ Sequelize อยู่ที่ `backend/migrations/`
+
+## รูปแบบเฉพาะของโปรเจกต์
+- **React**: ใช้เฉพาะ functional component และ hook เท่านั้น, logic เฉพาะโดเมนให้อยู่ใน context หรือ custom hook, คอมเมนต์และอธิบายเป็นภาษาไทย
+- **Backend**: ใช้ async/await, แยก logic หลักไว้ใน service, controller ให้บาง, ใช้ middleware สำหรับ auth/validation
+- **API**: RESTful endpoint, version ภายใต้ `/api/`
+- **Logging**: ใช้ Winston, log file อยู่ใน `logs/`
+- **PDF/Report Generation**: ดูตัวอย่างที่ `frontend/src/components/internship/` และไฟล์ `.github/instructions/react-pdf-generation.instructions.md`
 
 ## ข้อควรจำเมื่อแนะนำโค้ด
 - ระบบนี้เป็นระบบติดตามความก้าวหน้านักศึกษา เขียนด้วย React JavaScript
@@ -117,6 +140,22 @@ alwaysApply: true
 - ตรวจสอบและจัดการข้อผิดพลาดในฟอร์ม
 - จัดการ state ด้วย React Context และ hooks
 - จัดการข้อมูลอย่างปลอดภัยและคำนึงถึงความเป็นส่วนตัว
+
+## จุดเชื่อมต่อสำคัญ
+- **Frontend/Backend**: สื่อสารผ่าน REST API, URL กำหนดในไฟล์ `.env`
+- **Email**: ใช้ SendGrid, เปิด/ปิดฟีเจอร์ผ่าน environment variable
+- **File Uploads**: จัดการด้วย Multer, ไฟล์เก็บใน `uploads/`
+- **Background Agents**: งานเบื้องหลังหรือ scheduler อยู่ใน `backend/agents/`
+
+## ตัวอย่างการขยายระบบ
+- หากต้องการเพิ่มประเภทกิจกรรมนักศึกษาใหม่ ให้แก้ไข model/controller ฝั่ง backend, เพิ่ม API route, และอัปเดตฟอร์มหรือ component ฝั่ง frontend
+- การ export PDF ให้ดูตัวอย่างที่ `frontend/src/components/internship/` และ `.github/instructions/react-pdf-generation.instructions.md`
+
+## แหล่งอ้างอิง
+- ดู `README.md` ที่ root, backend, frontend สำหรับโครงสร้างและขั้นตอน
+- ดู `.github/instructions/` สำหรับกฎการเขียนโค้ดเฉพาะโดเมน
+
+---
 
 ## ข้อควรหลีกเลี่ยง
 - หลีกเลี่ยงการใช้ class component (ให้ใช้ฟังก์ชันคอมโพเนนต์เท่านั้น)

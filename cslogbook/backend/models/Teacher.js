@@ -44,6 +44,12 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING(20),
             allowNull: true,
             field: 'contact_extension'
+        },
+        teacherType: {
+            type: DataTypes.ENUM('academic', 'support'),
+            allowNull: false,
+            defaultValue: 'academic',
+            field: 'teacher_type'
         }
     }, {
         sequelize,
@@ -60,6 +66,10 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_teacher_user',
                 fields: ['user_id']
+            },
+            {
+                name: 'idx_teacher_type',
+                fields: ['teacher_type']
             }
         ]
     });

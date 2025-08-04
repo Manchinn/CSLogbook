@@ -154,23 +154,23 @@ const App = () => {
                   </ProtectedRoute>
                 } />
 
-                {/* Admin Routes */}
+                {/* Admin Routes - สำหรับ admin และ teacher support */}
                 <Route path="/students" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']}>
                   </ProtectedRoute>
                 } />
                 <Route path="/teachers" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']}>
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/upload" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']}>
                     <AdminUpload />
                   </ProtectedRoute>
                 } />
 
                 <Route path="/admin/*" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']}>
                     <AdminRoutes />
                   </ProtectedRoute>
                 } />

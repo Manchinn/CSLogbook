@@ -90,6 +90,61 @@ const authMiddleware = {
     next();
   },
 
+  // เพิ่ม middleware สำหรับตรวจสอบ teacher type
+  checkTeacherType: (allowedTypes) => async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'กรุณาเข้าสู่ระบบ',
+          code: 'NO_USER'
+        });
+      }
+
+      // ตรวจสอบว่าเป็น teacher หรือไม่
+      if (req.user.role !== 'teacher') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้',
+          code: 'NOT_TEACHER'
+        });
+      }
+
+      // ดึงข้อมูล teacher type จาก database
+      const { Teacher } = require('../models');
+      const teacher = await Teacher.findOne({
+        where: { userId: req.user.userId }
+      });
+
+      if (!teacher) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'ไม่พบข้อมูลอาจารย์',
+          code: 'TEACHER_NOT_FOUND'
+        });
+      }
+
+      // ตรวจสอบ teacher type
+      if (!allowedTypes.includes(teacher.teacherType)) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้',
+          code: 'INSUFFICIENT_TEACHER_TYPE'
+        });
+      }
+
+      // เพิ่ม teacher type เข้าไปใน request
+      req.user.teacherType = teacher.teacherType;
+      next();
+    } catch (error) {
+      console.error('Teacher type check error:', error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์'
+      });
+    }
+  },
+
   checkSelfOrAdmin: async (req, res, next) => {
     try {
       // เพิ่ม debug logging
