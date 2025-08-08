@@ -176,11 +176,27 @@ async function testSupportTeacher() {
   }
 }
 
+async function testTeacherDataAPI() {
+  console.log('\n🔍 ทดสอบ Teacher Data API...');
+  
+  // ทดสอบดึงข้อมูล teacher ตาม userId
+  try {
+    const response = await axios.get(`${BASE_URL}/teachers/user/175`, {
+      headers: { Authorization: `Bearer ${supportToken}` }
+    });
+    console.log('✅ Get Teacher by User ID: สำเร็จ');
+    console.log('   ข้อมูล:', response.data.data);
+  } catch (error) {
+    console.log(`❌ Get Teacher by User ID: ล้มเหลว - ${error.response?.status} ${error.response?.data?.message || error.message}`);
+  }
+}
+
 async function runTests() {
   console.log('🧪 เริ่มทดสอบ Teacher Types API...\n');
   
   await testAcademicTeacher();
   await testSupportTeacher();
+  await testTeacherDataAPI();
   
   console.log('\n🎉 การทดสอบเสร็จสิ้น!');
 }

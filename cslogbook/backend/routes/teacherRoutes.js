@@ -22,6 +22,11 @@ router.get('/:id',
   teacherController.getTeacherById
 );
 
+router.get('/user/:userId', 
+  checkRole(['admin', 'teacher']),
+  teacherController.getTeacherByUserId
+);
+
 router.put('/:id',
   checkRole(['admin', 'teacher']),
   teacherController.updateTeacher

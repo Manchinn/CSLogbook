@@ -36,16 +36,76 @@ class TeacherService {
   }
 
   /**
-   * ดึงข้อมูลอาจารย์ตาม teacherCode
+   * ดึงข้อมูลอาจารย์ตาม ID
    */
-  async getTeacherById(teacherCode) {
+  async getTeacherById(teacherId) {
     try {
-      const teacher = await Teacher.findOne({
-        where: { teacherCode },
+      // ลองค้นหาด้วย teacherId ก่อน
+      let teacher = await Teacher.findByPk(teacherId, {
         include: [{
           model: User,
           as: 'user',
           attributes: ['firstName', 'lastName', 'email']
+        }]
+      });
+
+      // ถ้าไม่เจอ ลองค้นหาด้วย teacherCode
+      if (!teacher) {
+        teacher = await Teacher.findOne({
+          where: { teacherCode: teacherId },
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName', 'email']
+          }]
+        });
+      }
+
+      // ถ้าไม่เจอ ลองค้นหาด้วย userId
+      if (!teacher) {
+        teacher = await Teacher.findOne({
+          where: { userId: teacherId },
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName', 'email']
+          }]
+        });
+      }
+
+      if (!teacher) {
+        throw new Error('ไม่พบข้อมูลอาจารย์');
+      }
+
+      return {
+        teacherId: teacher.teacherId,
+        teacherCode: teacher.teacherCode,
+        teacherType: teacher.teacherType,
+        firstName: teacher.user.firstName,
+        lastName: teacher.user.lastName,
+        email: teacher.user.email,
+        contactExtension: teacher.contactExtension
+      };
+    } catch (error) {
+      logger.error('Error in getTeacherById service:', error);
+      if (error.message === 'ไม่พบข้อมูลอาจารย์') {
+        throw error;
+      }
+      throw new Error('ไม่สามารถดึงข้อมูลอาจารย์ได้');
+    }
+  }
+
+  /**
+   * ดึงข้อมูลอาจารย์ตาม userId
+   */
+  async getTeacherByUserId(userId) {
+    try {
+      const teacher = await Teacher.findOne({
+        where: { userId },
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'email', 'role']
         }]
       });
 
@@ -54,14 +114,16 @@ class TeacherService {
       }
 
       return {
+        teacherId: teacher.teacherId,
         teacherCode: teacher.teacherCode,
+        teacherType: teacher.teacherType,
         firstName: teacher.user.firstName,
         lastName: teacher.user.lastName,
         email: teacher.user.email,
         contactExtension: teacher.contactExtension
       };
     } catch (error) {
-      logger.error('Error in getTeacherById service:', error);
+      logger.error('Error in getTeacherByUserId service:', error);
       if (error.message === 'ไม่พบข้อมูลอาจารย์') {
         throw error;
       }

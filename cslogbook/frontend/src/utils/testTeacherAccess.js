@@ -161,4 +161,39 @@ export const testApiCall = async (url, method = 'GET', data = null) => {
   }
 };
 
+// ฟังก์ชันสำหรับทดสอบการเข้าสู่ระบบ
+export const testLogin = async (username, password) => {
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log(`✅ เข้าสู่ระบบสำเร็จ: ${username}`);
+      console.log(`   - Role: ${data.role}`);
+      console.log(`   - Teacher Type: ${data.teacherType || 'N/A'}`);
+      
+      // ตรวจสอบ localStorage
+      const role = localStorage.getItem('role');
+      const teacherType = localStorage.getItem('teacherType');
+      console.log(`   - LocalStorage Role: ${role}`);
+      console.log(`   - LocalStorage TeacherType: ${teacherType}`);
+      
+      return true;
+    } else {
+      console.log(`❌ เข้าสู่ระบบล้มเหลว: ${username} - ${data.message}`);
+      return false;
+    }
+  } catch (error) {
+    console.log(`❌ เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ${error.message}`);
+    return false;
+  }
+};
+
 export default testTeacherAccess; 

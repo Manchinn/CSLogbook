@@ -41,6 +41,31 @@ exports.getTeacherById = async (req, res) => {
   }
 };
 
+exports.getTeacherByUserId = async (req, res) => {
+  try {
+    const data = await teacherService.getTeacherByUserId(req.params.userId);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    logger.error('Error in getTeacherByUserId:', error);
+    
+    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
+  }
+};
+
 exports.addTeacher = async (req, res) => {
   try {
     const {
