@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, Table, Tag, Button, Space, message } from 'antd';
+import { Card, Table, Tag, Button, Space, message, Row, Col, Input, DatePicker, Segmented, Modal, Radio, Form, Select } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
 import PDFViewerModal from '../../PDFViewerModal';
 import { internshipApprovalService } from '../../../services/internshipApprovalService';
@@ -17,6 +17,9 @@ export default function ApproveDocuments() {
   const [items, setItems] = useState([]);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
+  const [filters, setFilters] = useState({ q: '', status: 'all', dateRange: [], academicYear: 'all', semester: 'all', classYear: 'all' });
+  const [approveModal, setApproveModal] = useState({ open: false, record: null });
+  const [form] = Form.useForm();
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -55,13 +58,7 @@ export default function ApproveDocuments() {
   }, []);
 
   const handleApprove = useCallback(async (record) => {
-    try {
-      await internshipApprovalService.approveCS05(record.documentId);
-      message.success('อนุมัติสำเร็จ');
-      fetchQueue();
-    } catch (e) {
-      message.error(e.message || 'อนุมัติไม่สำเร็จ');
-    }
+  setApproveModal({ open: true, record });
   }, []);
 
   const handleReject = useCallback(async (record) => {
@@ -100,7 +97,7 @@ export default function ApproveDocuments() {
         const e = r.endDate ? dayjs(r.endDate).format('DD/MM/YYYY') : '-';
         return `${s} - ${e}`;
       }
-    },
+  },
     {
       title: 'สถานะ',
       dataIndex: 'status',
@@ -112,26 +109,168 @@ export default function ApproveDocuments() {
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (v) => (v ? dayjs(v).format('DD/MM/YYYY HH:mm') : '-')
-    },
+  },
     {
       title: 'การทำงาน',
       key: 'actions',
       render: (_, record) => (
   <Space>
     <Button icon={<EyeOutlined />} onClick={() => handleView(record)}>ดูเอกสาร</Button>
-          <Button type="primary" onClick={() => handleApprove(record)}>อนุมัติ</Button>
+      <Button type="primary" onClick={() => handleApprove(record)}>อนุมัติ</Button>
           <Button danger onClick={() => handleReject(record)}>ปฏิเสธ</Button>
         </Space>
       )
     }
   ], [handleApprove, handleReject, handleView]);
 
+  // กรองข้อมูลฝั่ง client เพื่อความสะดวก
+  const filteredItems = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    const [start, end] = filters.dateRange || [];
+
+    const computeAcademic = (dt) => {
+      if (!dt) return { yearBE: null, semester: null };
+      const d = dayjs(dt);
+      if (!d.isValid()) return { yearBE: null, semester: null };
+      const m = d.month() + 1; // 1..12
+      // นิยามง่าย: ส.ค.-ธ.ค. => ภาค 1 ของปี BE ปัจจุบัน, ม.ค.-พ.ค. => ภาค 2 ของปี BE ก่อนหน้า, อื่นๆ ปักเป็นภาค 2 ของปีก่อนหน้า
+      if (m >= 8 && m <= 12) return { yearBE: d.year() + 543, semester: 1 };
+      if (m >= 1 && m <= 5) return { yearBE: d.year() + 543 - 1, semester: 2 };
+      return { yearBE: d.year() + 543 - 1, semester: 2 };
+    };
+
+    const getEntryYearBEFromCode = (studentCode) => {
+      if (!studentCode) return null;
+      const two = String(studentCode).slice(0, 2);
+      const n = parseInt(two, 10);
+      if (Number.isNaN(n)) return null;
+      return 2500 + n; // 64 -> 2564
+    };
+
+    return items.filter((r) => {
+      // คำค้นหา: รหัส, ชื่อ, บริษัท
+      const name = `${r.student?.firstName || ''} ${r.student?.lastName || ''}`.toLowerCase();
+      const company = (r.companyName || '').toLowerCase();
+      const code = (r.student?.studentCode || '').toLowerCase();
+      const matchQ = !q || name.includes(q) || company.includes(q) || code.includes(q);
+
+      // สถานะ
+      const matchStatus = filters.status === 'all' ? true : r.status === filters.status;
+
+      // ช่วงวันส่ง
+      const created = r.createdAt ? dayjs(r.createdAt) : null;
+      const matchDate = !start || !end ? true : (created && created.isBetween(start, end, 'day', '[]'));
+
+      // ปีการศึกษา/ภาคเรียน (ยึดตาม startDate เป็นหลัก ถ้าไม่มีใช้ createdAt)
+      const baseDate = r.startDate || r.createdAt || null;
+      const { yearBE, semester } = computeAcademic(baseDate);
+      const matchYear = filters.academicYear === 'all' || (yearBE && String(yearBE) === String(filters.academicYear));
+      const matchSemester = filters.semester === 'all' || (semester && String(semester) === String(filters.semester));
+
+      // ชั้นปี: คำนวณจากปีที่เข้าศึกษา (2 หลักแรกของ studentCode)
+      const entryBE = getEntryYearBEFromCode(r.student?.studentCode);
+      const classYear = (entryBE && yearBE) ? (yearBE - entryBE + 1) : null;
+      const matchClass = filters.classYear === 'all' || (classYear && String(classYear) === String(filters.classYear));
+
+      return matchQ && matchStatus && matchDate && matchYear && matchSemester && matchClass;
+    });
+  }, [items, filters]);
+
+  // ตัวเลือกปีการศึกษา: รวบรวมจากรายการ
+  const academicYearOptions = useMemo(() => {
+    const years = new Set();
+    items.forEach((r) => {
+      const d = r.startDate || r.createdAt;
+      if (!d) return;
+      const m = dayjs(d).month() + 1;
+      const yearBE = m >= 8 ? dayjs(d).year() + 543 : dayjs(d).year() + 543 - 1;
+      years.add(yearBE);
+    });
+    return Array.from(years).filter(Boolean).sort((a, b) => b - a).map((y) => ({ label: String(y), value: String(y) }));
+  }, [items]);
+
+  const onSubmitApprove = async () => {
+    try {
+      const values = await form.validateFields();
+      const { letterType, comment } = values;
+      await internshipApprovalService.approveCS05(approveModal.record.documentId, { letterType, comment });
+      message.success('อนุมัติสำเร็จ');
+      setApproveModal({ open: false, record: null });
+      form.resetFields();
+      fetchQueue();
+    } catch (e) {
+      if (e?.errorFields) return; // validation error
+      message.error(e.message || 'อนุมัติไม่สำเร็จ');
+    }
+  };
+
   return (
     <Card title="อนุมัติเอกสาร คพ.05" extra={<Button onClick={fetchQueue}>รีเฟรช</Button>}>
-      <Table rowKey="documentId" loading={loading} columns={columns} dataSource={items} pagination={{ pageSize: 10 }} />
+      {/* แถบตัวกรองเพื่อความสะดวก */}
+      <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
+        <Col xs={24} md={8}>
+          <Input placeholder="ค้นหา ชื่อ/รหัส/บริษัท" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} allowClear />
+        </Col>
+        <Col xs={24} md={8}>
+          <DatePicker.RangePicker style={{ width: '100%' }} value={filters.dateRange} onChange={(v) => setFilters((f) => ({ ...f, dateRange: v }))} format="DD/MM/YYYY" />
+        </Col>
+        <Col xs={24} md={8}>
+          <Segmented options={[{label:'ทั้งหมด', value:'all'},{label:'รอตรวจสอบ', value:'pending'},{label:'อนุมัติแล้ว', value:'approved'},{label:'ปฏิเสธแล้ว', value:'rejected'}]} value={filters.status} onChange={(v) => setFilters((f) => ({ ...f, status: v }))} />
+        </Col>
+      </Row>
+      <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
+        <Col xs={24} md={8}>
+          <Select
+            style={{ width: '100%' }}
+            placeholder="ปีการศึกษา"
+            options={[{ label: 'ทุกปีการศึกษา', value: 'all' }, ...academicYearOptions]}
+            value={filters.academicYear}
+            onChange={(v) => setFilters((f) => ({ ...f, academicYear: v }))}
+          />
+        </Col>
+        <Col xs={24} md={8}>
+          <Segmented
+            options={[{label:'ทุกภาค', value:'all'},{label:'ภาค 1', value:'1'},{label:'ภาค 2', value:'2'}]}
+            value={filters.semester}
+            onChange={(v) => setFilters((f) => ({ ...f, semester: v }))}
+          />
+        </Col>
+        <Col xs={24} md={8}>
+          <Segmented
+            options={[{label:'ทุกชั้นปี', value:'all'},{label:'ปี 3', value:'3'},{label:'ปี 4', value:'4'}]}
+            value={filters.classYear}
+            onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
+          />
+        </Col>
+      </Row>
+
+      <Table rowKey="documentId" loading={loading} columns={columns} dataSource={filteredItems} pagination={{ pageSize: 10 }} />
+
       {showPdf && pdfUrl && (
         <PDFViewerModal visible={showPdf} pdfUrl={pdfUrl} onClose={() => setShowPdf(false)} />
       )}
+
+      {/* Modal เลือกประเภทหนังสือ ก่อนอนุมัติ */}
+      <Modal
+        open={approveModal.open}
+        title="เลือกประเภทหนังสือเพื่ออนุมัติ"
+        onCancel={() => { setApproveModal({ open: false, record: null }); form.resetFields(); }}
+        onOk={onSubmitApprove}
+        okText="ยืนยันอนุมัติ"
+        cancelText="ยกเลิก"
+      >
+        <Form form={form} layout="vertical" initialValues={{ letterType: 'referral_letter' }}>
+          <Form.Item name="letterType" label="ประเภทหนังสือ" rules={[{ required: true, message: 'กรุณาเลือกประเภทหนังสือ' }]}>
+            <Radio.Group>
+              <Radio.Button value="referral_letter">หนังสือส่งตัวนักศึกษา</Radio.Button>
+              <Radio.Button value="request_letter">หนังสือขอความอนุเคราะห์</Radio.Button>
+            </Radio.Group>
+          </Form.Item>
+          <Form.Item name="comment" label="หมายเหตุ (ถ้ามี)">
+            <Input.TextArea rows={3} placeholder="ระบุหมายเหตุเพิ่มเติม" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 }

@@ -6,9 +6,9 @@ export const internshipApprovalService = {
     const res = await apiClient.get('/internship/cs-05/head/queue');
     return res.data;
   },
-  // Approve CS05 by head
-  approveCS05: async (documentId) => {
-    const res = await apiClient.post(`/internship/cs-05/${documentId}/approve`, {});
+  // Approve CS05 by head (รองรับ letterType และ comment)
+  approveCS05: async (documentId, payload = {}) => {
+    const res = await apiClient.post(`/internship/cs-05/${documentId}/approve`, payload);
     if (!res.data?.success) {
       throw new Error(res.data?.message || 'อนุมัติไม่สำเร็จ');
     }
