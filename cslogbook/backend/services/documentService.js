@@ -159,15 +159,17 @@ class DocumentService {
             }
 
             // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-            const documents = await Document.findAll({
+        const documents = await Document.findAll({
                 where: whereCondition,
                 attributes: [
-                    "documentId",
-                    "documentName",
-                    "documentType",
-                    "status",
-                    "created_at",
-                    "updated_at"
+            "documentId",
+            "documentName",
+            "documentType",
+            "status",
+            "reviewerId",
+            "reviewDate",
+            "created_at",
+            "updated_at"
                 ],
                 include: [
                     {
@@ -199,6 +201,8 @@ class DocumentService {
                 created_at: doc.created_at,
                 updated_at: doc.updated_at,
                 status: doc.status,
+                reviewerId: doc.reviewerId || null,
+                reviewDate: doc.reviewDate || null,
             }));
 
             logger.info(`Retrieved ${documents.length} documents with filters:`, filters);

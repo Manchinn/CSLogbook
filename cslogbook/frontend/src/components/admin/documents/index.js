@@ -180,18 +180,25 @@ const OriginalDocumentManagement = ({ type }) => {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        render: (status) => {
-          const statusColors = {
-            pending: "orange",
-            approved: "green",
-            rejected: "red",
-          };
-          const statusText = {
-            pending: "รอตรวจสอบ",
-            approved: "อนุมัติ",
-            rejected: "ปฏิเสธ",
-          };
-          return <Tag color={statusColors[status]}>{statusText[status]}</Tag>;
+        render: (status, record) => {
+          // กำหนดข้อความตามเงื่อนไข:
+          // - pending + ไม่มี reviewerId => "รอตรวจสอบ"
+          // - pending + มี reviewerId => "รอหัวหน้าภาคอนุมัติ"
+          // - approved => "อนุมัติ"
+          // - rejected => "ปฏิเสธ"
+          const isPending = status === "pending";
+          const hasReviewer = !!record.reviewerId;
+          const color = isPending ? "orange" : status === "approved" ? "green" : status === "rejected" ? "red" : "default";
+          const text = isPending
+            ? hasReviewer
+              ? "รอหัวหน้าภาคอนุมัติ"
+              : "รอตรวจสอบ"
+            : status === "approved"
+            ? "อนุมัติ"
+            : status === "rejected"
+            ? "ปฏิเสธ"
+            : status;
+          return <Tag color={color}>{text}</Tag>;
         },
       },
     ],
