@@ -60,6 +60,7 @@ exports.login = async (req, res) => {
             lastName: result.data.lastName,
             email: result.data.email,
             role: result.data.role,
+            teacherType: result.data.teacherType, // เพิ่ม teacherType
             ...result.data
         });
 

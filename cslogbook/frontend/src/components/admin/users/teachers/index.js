@@ -54,6 +54,8 @@ const TeacherList = () => {
     setSelectedTeacher(null);
     setEditMode(true);
     form.resetFields();
+    // ตั้งค่า default ให้ position เป็น "คณาจารย์" ทุกครั้งที่เพิ่มใหม่
+    form.setFieldsValue({ position: "คณาจารย์" });
     setDrawerVisible(true);
   };
 
@@ -74,6 +76,10 @@ const TeacherList = () => {
   const handleSaveTeacher = async () => {
     try {
       const values = await form.validateFields();
+      // ถ้าไม่ได้เลือกตำแหน่ง ให้ default เป็น "คณาจารย์"
+      if (!values.position) {
+        values.position = "คณาจารย์";
+      }
 
       if (selectedTeacher) {
         // Update existing teacher

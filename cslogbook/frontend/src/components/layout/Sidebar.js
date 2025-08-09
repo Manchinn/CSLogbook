@@ -340,8 +340,8 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
           ].filter(Boolean)
         : []),
 
-      // Teacher Menu Items
-      ...(userData?.role === "teacher"
+      // Teacher Menu Items - Academic (อาจารย์สายวิชาการ)
+      ...(userData?.role === "teacher" && userData?.teacherType === "academic"
         ? [
             {
               key: "/review-documents",
@@ -357,6 +357,82 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               key: "/approve-documents",
               icon: <CheckCircleOutlined />,
               label: "อนุมัติเอกสาร",
+            },
+          ]
+        : []),
+
+      // Teacher Menu Items - Support (เจ้าหน้าที่ภาควิชา)
+      ...(userData?.role === "teacher" && userData?.teacherType === "support"
+        ? [
+            {
+              key: "manage",
+              icon: <TeamOutlined />,
+              label: "จัดการข้อมูล",
+              children: [
+                {
+                  key: "/admin/users/students",
+                  label: "นักศึกษา",
+                },
+                {
+                  key: "/admin/users/teachers",
+                  label: "อาจารย์",
+                },
+                {
+                  key: "/project-pairs",
+                  label: "คู่โปรเจค",
+                },
+              ],
+            },
+            {
+              key: "documents",
+              icon: <FileTextOutlined />,
+              label: "จัดการเอกสาร",
+              children: [
+                {
+                  key: "/admin/documents/internship",
+                  label: "เอกสารฝึกงาน",
+                },
+                {
+                  key: "/admin/documents/project",
+                  label: "เอกสารโครงงานพิเศษ",
+                },
+              ],
+            },
+            {
+              key: "/admin/upload",
+              icon: <UploadOutlined />,
+              label: "อัปโหลดรายชื่อนักศึกษา",
+            },
+            {
+              key: "settings",
+              icon: <SettingOutlined />,
+              label: "ตั้งค่าระบบ",
+              children: [
+                {
+                  key: "/admin/settings",
+                  label: "ภาพรวมการตั้งค่า",
+                },
+                {
+                  key: "/admin/settings/curriculum",
+                  label: "หลักสูตรการศึกษา",
+                },
+                {
+                  key: "/admin/settings/academic",
+                  label: "ปีการศึกษา/ภาคเรียน",
+                },
+                {
+                  key: "/admin/settings/status",
+                  label: "สถานะนักศึกษา",
+                },
+                {
+                  key: "/admin/settings/notification-settings",
+                  label: "การแจ้งเตือน",
+                },
+                {
+                  key: "/admin/settings/workflow-steps",
+                  label: "ขั้นตอนการทำงาน",
+                },
+              ],
             },
           ]
         : []),
@@ -541,7 +617,11 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                   : userData.role === "admin"
                   ? "ผู้ดูแลระบบ"
                   : userData.role === "teacher"
-                  ? "อาจารย์"
+                  ? userData.teacherType === "support"
+                    ? "เจ้าหน้าที่ภาควิชา"
+                    : userData.teacherType === "academic"
+                    ? "อาจารย์สายวิชาการ"
+                    : "อาจารย์"
                   : "นักศึกษา"
               }
               style={{

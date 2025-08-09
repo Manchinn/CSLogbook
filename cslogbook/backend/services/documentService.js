@@ -70,7 +70,7 @@ class DocumentService {
                         include: [{
                             model: Student,
                             as: 'student',
-                            attributes: ['studentId', 'studentCode', 'studentYear', 'totalCredits', 'majorCredits']
+                            attributes: ['studentId', 'studentCode', 'totalCredits', 'majorCredits']
                         }]
                     });
 
