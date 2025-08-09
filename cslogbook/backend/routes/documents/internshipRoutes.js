@@ -4,6 +4,7 @@ const multer = require("multer");
 const { upload } = require("../../config/uploadConfig");
 const { Document } = require("../../models");
 const cp05ApprovalController = require("../../controllers/documents/cp05ApprovalController");
+const documentController = require("../../controllers/documents/documentController");
 const internshipController = require("../../controllers/documents/internshipController");
 const {
   authenticateToken,
@@ -313,4 +314,13 @@ router.post(
   authenticateToken,
   checkRole(["teacher", "admin"]),
   cp05ApprovalController.reject
+);
+
+// หัวหน้าภาค: เปิดดูไฟล์ PDF ของเอกสาร CS05 โดยตรง (เหมือนฝั่งเจ้าหน้าที่)
+router.get(
+  "/cs-05/:id/view",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  documentController.viewDocument
 );

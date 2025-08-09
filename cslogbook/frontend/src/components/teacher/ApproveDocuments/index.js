@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, Table, Tag, Button, Space, message } from 'antd';
+import { EyeOutlined } from '@ant-design/icons';
+import PDFViewerModal from '../../PDFViewerModal';
 import { internshipApprovalService } from '../../../services/internshipApprovalService';
 import dayjs from 'dayjs';
 
@@ -13,6 +15,8 @@ const statusColor = {
 export default function ApproveDocuments() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [showPdf, setShowPdf] = useState(false);
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -32,6 +36,22 @@ export default function ApproveDocuments() {
 
   useEffect(() => {
     fetchQueue();
+  }, []);
+
+  const handleView = useCallback(async (record) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/internship/cs-05/${record.documentId}/view`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('ไม่สามารถโหลดเอกสารได้');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+      setShowPdf(true);
+    } catch (e) {
+      message.error(e.message || 'เกิดข้อผิดพลาดในการโหลดเอกสาร');
+    }
   }, []);
 
   const handleApprove = useCallback(async (record) => {
@@ -97,17 +117,21 @@ export default function ApproveDocuments() {
       title: 'การทำงาน',
       key: 'actions',
       render: (_, record) => (
-        <Space>
+  <Space>
+    <Button icon={<EyeOutlined />} onClick={() => handleView(record)}>ดูเอกสาร</Button>
           <Button type="primary" onClick={() => handleApprove(record)}>อนุมัติ</Button>
           <Button danger onClick={() => handleReject(record)}>ปฏิเสธ</Button>
         </Space>
       )
     }
-  ], [handleApprove, handleReject]);
+  ], [handleApprove, handleReject, handleView]);
 
   return (
     <Card title="อนุมัติเอกสาร คพ.05" extra={<Button onClick={fetchQueue}>รีเฟรช</Button>}>
       <Table rowKey="documentId" loading={loading} columns={columns} dataSource={items} pagination={{ pageSize: 10 }} />
+      {showPdf && pdfUrl && (
+        <PDFViewerModal visible={showPdf} pdfUrl={pdfUrl} onClose={() => setShowPdf(false)} />
+      )}
     </Card>
   );
 }
