@@ -1,4 +1,5 @@
 const { Document, DocumentLog, User, InternshipDocument, Student } = require('../../models');
+const { Op } = require('sequelize');
 const internshipService = require('../../services/internshipService');
 
 // Helper to load CS05 document with minimal validation
@@ -19,7 +20,12 @@ exports.listForHead = async (req, res) => {
   try {
     // ดึงเอกสาร CS05 ที่อยู่สถานะ pending สำหรับหัวหน้าภาควิชาอนุมัติ
     const docs = await Document.findAll({
-      where: { documentName: 'CS05', status: 'pending' },
+      where: { 
+        documentName: 'CS05', 
+        status: 'pending',
+        // แสดงเฉพาะที่ผ่านการตรวจโดยเจ้าหน้าที่ภาคแล้ว
+        reviewerId: { [Op.not]: null }
+      },
       include: [
         {
           model: User,
@@ -109,7 +115,7 @@ exports.reviewByStaff = async (req, res) => {
 exports.approveByHead = async (req, res) => {
   try {
     const { id } = req.params;
-    const { comment } = req.body || {};
+    const { comment, letterType } = req.body || {};
 
     const doc = await loadCS05(id);
     const prevStatus = doc.status;
@@ -119,8 +125,13 @@ exports.approveByHead = async (req, res) => {
       return res.status(400).json({ success: false, message: `ไม่สามารถอนุมัติได้เนื่องจากสถานะปัจจุบันคือ ${prevStatus}` });
     }
 
+    // ต้องผ่านการตรวจจากเจ้าหน้าที่ภาควิชาก่อน (reviewerId ต้องมีค่า)
+    if (!doc.reviewerId) {
+      return res.status(400).json({ success: false, message: 'ยังไม่ผ่านการตรวจจากเจ้าหน้าที่ภาควิชา' });
+    }
+
     // Delegate approval and workflow updates to service
-    await internshipService.approveCS05(doc.documentId, req.user.userId);
+    await internshipService.approveCS05(doc.documentId, req.user.userId, { letterType });
 
     await DocumentLog.create({
       documentId: doc.documentId,
@@ -131,7 +142,7 @@ exports.approveByHead = async (req, res) => {
       comment: comment || 'อนุมัติโดยหัวหน้าภาค'
     });
 
-    return res.json({ success: true, message: 'อนุมัติ คพ.05 สำเร็จ' });
+  return res.json({ success: true, message: 'อนุมัติ คพ.05 สำเร็จ' });
   } catch (error) {
     console.error('CP05 approveByHead error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });

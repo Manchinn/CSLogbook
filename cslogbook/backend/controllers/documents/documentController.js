@@ -13,7 +13,7 @@ const uploadDocument = async (req, res) => {
         }
 
         const result = await documentService.uploadDocument(
-            req.user.id, 
+            req.user.userId, 
             req.file, 
             req.body
         );
@@ -75,7 +75,7 @@ const updateDocumentStatus = async (req, res) => {
         const result = await documentService.updateDocumentStatus(
             req.params.id,
             status,
-            req.user.id,
+            req.user.userId,
             comment
         );
 
@@ -129,7 +129,7 @@ const getDocuments = async (req, res) => {
 // อนุมัติเอกสาร
 const approveDocument = async (req, res) => {
     try {
-        const result = await documentService.approveDocument(req.params.id, req.user.id);
+    const result = await documentService.approveDocument(req.params.id, req.user.userId);
 
         res.json({
             success: true,
@@ -158,7 +158,7 @@ const rejectDocument = async (req, res) => {
         
         const result = await documentService.rejectDocument(
             req.params.id,
-            req.user.id,
+            req.user.userId,
             reason
         );
 
