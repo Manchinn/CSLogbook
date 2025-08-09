@@ -32,6 +32,7 @@ import AdminUpload from './components/AdminUpload';
 import AdminRoutes from './components/admin/AdminRoutes';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
+import ApproveDocuments from './components/teacher/ApproveDocuments';
 
 const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -178,9 +179,9 @@ const App = () => {
                 } />
 
                 {/* Teacher Academic Routes */}
-                <Route path="/teacher/*" element={
+                <Route path="/approve-documents" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
-                    <div>Teacher Academic Dashboard</div>
+                    <ApproveDocuments />
                   </ProtectedRoute>
                 } />
 

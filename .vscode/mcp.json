@@ -1,48 +1,68 @@
 {
-    "servers": {
-        "sequential-thinking": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-sequential-thinking"
-            ]
-        },
-        "mcp_server_mysql": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@benborla29/mcp-server-mysql"
-            ],
-            "env": {
-                "MYSQL_HOST": "127.0.0.1",
-                "MYSQL_PORT": "3306",
-                "MYSQL_USER": "root",
-                "MYSQL_PASS": "root",
-                "MYSQL_DB": "cslogbook_local_dev",
-                
-            }
-        },
-    },
-    "inputs": [
-        {
-            "id": "mysql_hostname",
-            "type": "promptString",
-            "description": "Enter the MySQL Hostname"
-        },
-        {
-            "id": "mysql_port",
-            "type": "promptString",
-            "description": "Enter the MySQL Port Number"
-        },
-        {
-            "id": "mysql_username",
-            "type": "promptString",
-            "description": "Enter the MySQL Username"
-        },
-        {
-            "id": "mysql_username",
-            "type": "promptString",
-            "description": "Enter the MySQL Username"
-        },
-    ]
+	"servers": {
+		"sequential-thinking": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking"
+			],
+			"type": "stdio"
+		},
+		"mysql": {
+			"command": "npx",
+			"args": [
+				"-y", "@fhuang/mcp-mysql-server@1.1.0"
+			],
+			"env": {
+				"MYSQL_HOST": "${input:mysql_host}",
+				"MYSQL_PORT": "${input:mysql_port}",
+				"MYSQL_USER": "${input:mysql_user}",
+				"MYSQL_PASSWORD": "${input:mysql_user}",
+				"MYSQL_DATABASE": "${input:mysql_database}"
+			},
+			"type": "stdio"
+		}
+	},
+	"inputs": [
+		{
+			"id": "mysql_hostname",
+			"type": "promptString",
+			"description": "Enter the MySQL Hostname"
+		},
+		{
+			"id": "mysql_port",
+			"type": "promptString",
+			"description": "Enter the MySQL Port Number"
+		},
+		{
+			"id": "mysql_username",
+			"type": "promptString",
+			"description": "Enter the MySQL Username"
+		},
+		{
+			"id": "mysql_username",
+			"type": "promptString",
+			"description": "Enter the MySQL Username"
+		},
+		{
+			"id": "mysql_host",
+			"type": "promptString",
+			"description": "MySQL Hostname"
+		},
+		{
+			"id": "mysql_user",
+			"type": "promptString",
+			"description": "MySQL Username"
+		},
+		{
+			"id": "mysql_user",
+			"type": "promptString",
+			"description": "MySQL Username"
+		},
+		{
+			"id": "mysql_database",
+			"type": "promptString",
+			"description": "MySQL Database Name"
+		}
+	]
 }

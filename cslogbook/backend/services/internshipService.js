@@ -1,5 +1,4 @@
 const { Document, Student, User, WorkflowActivity, Notification } = require('../models');
-const notificationService = require('./notificationService');
 
 class InternshipService {
     /**
