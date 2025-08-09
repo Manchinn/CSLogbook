@@ -22,6 +22,12 @@ router.get('/:id',
   teacherController.getTeacherById
 );
 
+// route สำหรับดึงข้อมูลอาจารย์ของผู้ใช้ที่ล็อกอินอยู่
+router.get('/me/profile',
+  checkRole(['teacher']),
+  teacherController.getMyTeacherProfile
+);
+
 router.get('/user/:userId', 
   checkRole(['admin', 'teacher']),
   teacherController.getTeacherByUserId

@@ -18,7 +18,20 @@ exports.getAllTeachers = async (req, res, next) => {
 
 exports.getTeacherById = async (req, res) => {
   try {
-    const data = await teacherService.getTeacherById(req.params.id);
+    const { id } = req.params;
+    // รองรับการเรียกด้วย 'me' เพื่อดึงข้อมูลจาก userId ของ token
+    if (id === 'me') {
+      const data = await teacherService.getTeacherByUserId(req.user.userId);
+      return res.json({ success: true, data });
+    }
+
+    // หากผู้เรียกเป็นอาจารย์ ให้ใช้ userId จาก token เป็นหลัก
+    if (req.user?.role === 'teacher') {
+      const data = await teacherService.getTeacherByUserId(req.user.userId);
+      return res.json({ success: true, data });
+    }
+
+    const data = await teacherService.getTeacherById(id);
 
     res.json({
       success: true,
@@ -38,6 +51,20 @@ exports.getTeacherById = async (req, res) => {
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
     });
+  }
+};
+
+// สำหรับดึงข้อมูลอาจารย์ของผู้ใช้ที่ล็อกอินอยู่
+exports.getMyTeacherProfile = async (req, res) => {
+  try {
+    const data = await teacherService.getTeacherByUserId(req.user.userId);
+    res.json({ success: true, data });
+  } catch (error) {
+    logger.error('Error in getMyTeacherProfile:', error);
+    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
   }
 };
 
@@ -73,7 +100,8 @@ exports.addTeacher = async (req, res) => {
       firstName,
       lastName,
       email,
-      contactExtension
+      contactExtension,
+      position // รับตำแหน่งจาก body
     } = req.body;
 
     if (!teacherCode || !firstName || !lastName) {
@@ -89,7 +117,8 @@ exports.addTeacher = async (req, res) => {
       firstName,
       lastName,
       email,
-      contactExtension
+      contactExtension,
+      position // ส่งตำแหน่งไป service
     });
 
     res.status(201).json({
@@ -126,13 +155,14 @@ exports.addTeacher = async (req, res) => {
 exports.updateTeacher = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, contactExtension } = req.body;
+    const { firstName, lastName, email, contactExtension, position } = req.body;
 
     const result = await teacherService.updateTeacher(id, {
       firstName,
       lastName,
       email,
-      contactExtension
+      contactExtension,
+      position // ส่งตำแหน่งไป service
     });
 
     res.json({

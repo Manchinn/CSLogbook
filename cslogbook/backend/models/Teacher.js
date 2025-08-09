@@ -50,6 +50,13 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 'academic',
             field: 'teacher_type'
+        },
+        // เพิ่มฟิลด์ตำแหน่งของอาจารย์ (position)
+        position: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            defaultValue: 'คณาจารย์', // ถ้าไม่ได้ระบุตำแหน่ง จะถือว่าเป็นอาจารย์ทั่วไป
+            field: 'position'
         }
     }, {
         sequelize,

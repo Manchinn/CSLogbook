@@ -16,7 +16,7 @@ class TeacherService {
           model: Teacher,
           as: 'teacher',
           required: true,
-          attributes: ['teacherId', 'teacherCode', 'contactExtension']
+          attributes: ['teacherId', 'teacherCode', 'contactExtension', 'position']
         }]
       });
 
@@ -27,7 +27,8 @@ class TeacherService {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        contactExtension: user.teacher?.contactExtension || ''
+        contactExtension: user.teacher?.contactExtension || '',
+        position: user.teacher?.position || 'คณาจารย์' // เพิ่มตำแหน่ง
       }));
     } catch (error) {
       logger.error('Error in getAllTeachers service:', error);
@@ -84,7 +85,8 @@ class TeacherService {
         firstName: teacher.user.firstName,
         lastName: teacher.user.lastName,
         email: teacher.user.email,
-        contactExtension: teacher.contactExtension
+        contactExtension: teacher.contactExtension,
+        position: teacher.position || 'คณาจารย์' // เพิ่มตำแหน่ง
       };
     } catch (error) {
       logger.error('Error in getTeacherById service:', error);
@@ -110,7 +112,21 @@ class TeacherService {
       });
 
       if (!teacher) {
-        throw new Error('ไม่พบข้อมูลอาจารย์');
+        // กรณียังไม่มีแถวในตาราง teachers ให้คืนข้อมูลจาก users พร้อมค่า default แทน
+        const user = await User.findOne({ where: { userId }, attributes: ['firstName', 'lastName', 'email', 'role', 'userId'] });
+        if (!user) {
+          throw new Error('ไม่พบข้อมูลอาจารย์');
+        }
+        return {
+          teacherId: null,
+          teacherCode: '',
+          teacherType: 'academic',
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          contactExtension: '',
+          position: 'คณาจารย์'
+        };
       }
 
       return {
@@ -120,7 +136,8 @@ class TeacherService {
         firstName: teacher.user.firstName,
         lastName: teacher.user.lastName,
         email: teacher.user.email,
-        contactExtension: teacher.contactExtension
+        contactExtension: teacher.contactExtension,
+        position: teacher.position || 'คณาจารย์' // เพิ่มตำแหน่ง
       };
     } catch (error) {
       logger.error('Error in getTeacherByUserId service:', error);
@@ -143,7 +160,8 @@ class TeacherService {
         firstName,
         lastName,
         email,
-        contactExtension
+        contactExtension,
+        position // รับตำแหน่งจาก input
       } = teacherData;
 
       if (!teacherCode || !firstName || !lastName) {
@@ -175,7 +193,8 @@ class TeacherService {
       const teacher = await Teacher.create({
         teacherCode,
         userId: user.userId,
-        contactExtension
+        contactExtension,
+        position: position || 'คณาจารย์' // บันทึกตำแหน่ง ถ้าไม่ระบุให้ default
       }, { transaction });
 
       await transaction.commit();
@@ -187,7 +206,8 @@ class TeacherService {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        contactExtension: teacher.contactExtension
+        contactExtension: teacher.contactExtension,
+        position: teacher.position || 'คณาจารย์'
       };
     } catch (error) {
       await transaction.rollback();
@@ -203,7 +223,7 @@ class TeacherService {
     const transaction = await sequelize.transaction();
 
     try {
-      const { firstName, lastName, email, contactExtension } = updateData;
+      const { firstName, lastName, email, contactExtension, position } = updateData;
 
       const teacher = await Teacher.findOne({
         where: { teacherId },
@@ -221,7 +241,8 @@ class TeacherService {
 
       // Update teacher record
       await Teacher.update({
-        contactExtension: contactExtension || teacher.contactExtension
+        contactExtension: contactExtension || teacher.contactExtension,
+        ...(position && { position }) // อัปเดตตำแหน่งถ้ามีส่งมา
       }, {
         where: { teacherId },
         transaction
@@ -247,7 +268,8 @@ class TeacherService {
         firstName: firstName || teacher.user.firstName,
         lastName: lastName || teacher.user.lastName,
         email: email || teacher.user.email,
-        contactExtension: contactExtension || teacher.contactExtension
+        contactExtension: contactExtension || teacher.contactExtension,
+        position: position || teacher.position || 'คณาจารย์'
       };
     } catch (error) {
       await transaction.rollback();
