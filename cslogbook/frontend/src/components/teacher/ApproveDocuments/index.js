@@ -10,18 +10,11 @@ import {
   Col,
   Input,
   Modal,
-  Radio,
-  Form,
+  Tabs,
   Select,
   Typography,
 } from "antd";
-import {
-  EyeOutlined,
-  FileTextOutlined,
-  FileExclamationOutlined,
-  FileDoneOutlined,
-  CloseCircleOutlined,
-} from "@ant-design/icons";
+import { EyeOutlined } from "@ant-design/icons";
 import PDFViewerModal from "../../PDFViewerModal";
 import { internshipApprovalService } from "../../../services/internshipApprovalService";
 import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
@@ -41,6 +34,8 @@ export default function ApproveDocuments() {
   const [items, setItems] = useState([]);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
+  // แท็บการทำงาน: request = อนุมัติ คพ.05 (หนังสือขอความอนุเคราะห์), referral = หนังสือส่งตัวนักศึกษา
+  const [activeTab, setActiveTab] = useState("request");
   // ตัวกรอง: รวมปีการศึกษา+ภาคเรียนเป็นตัวเดียว (term) รูปแบบ "{semester}/{yearBE}" เช่น "1/2567"
   const [filters, setFilters] = useState({
     q: "",
@@ -48,11 +43,6 @@ export default function ApproveDocuments() {
     term: "all",
     classYear: "all",
   });
-  const [approveModal, setApproveModal] = useState({
-    open: false,
-    record: null,
-  });
-  const [form] = Form.useForm();
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -93,9 +83,32 @@ export default function ApproveDocuments() {
     }
   }, []);
 
-  const handleApprove = useCallback(async (record) => {
-    setApproveModal({ open: true, record });
-  }, []);
+  const handleApprove = useCallback(
+    async (record) => {
+      const letterType = activeTab === "request" ? "request_letter" : "referral_letter";
+      const confirmText =
+        activeTab === "request"
+          ? "ยืนยันอนุมัติ คพ.05 เพื่อให้เจ้าหน้าที่ภาคออกหนังสือขอความอนุเคราะห์ให้สถานประกอบการ"
+          : "ยืนยันอนุมัติ คพ.05 สำหรับหนังสือส่งตัวนักศึกษา (เพื่อให้นักศึกษาใช้ตอนเริ่มฝึกงาน)";
+
+      Modal.confirm({
+        title: "ยืนยันการอนุมัติ",
+        content: confirmText,
+        okText: "ยืนยัน",
+        cancelText: "ยกเลิก",
+        async onOk() {
+          try {
+            await internshipApprovalService.approveCS05(record.documentId, { letterType });
+            message.success("อนุมัติสำเร็จ");
+            fetchQueue();
+          } catch (e) {
+            message.error(e.message || "อนุมัติไม่สำเร็จ");
+          }
+        },
+      });
+    },
+    [activeTab]
+  );
 
   const handleReject = useCallback(async (record) => {
     const reason = window.prompt("กรุณาระบุเหตุผลการปฏิเสธ");
@@ -159,7 +172,7 @@ export default function ApproveDocuments() {
               ดูเอกสาร
             </Button>
             <Button type="primary" onClick={() => handleApprove(record)}>
-              อนุมัติ
+              {activeTab === "request" ? "อนุมัติหนังสือขอความอนุเคราะห์" : "อนุมัติหนังสือส่งตัว"}
             </Button>
             <Button danger onClick={() => handleReject(record)}>
               ปฏิเสธ
@@ -168,7 +181,7 @@ export default function ApproveDocuments() {
         ),
       },
     ],
-    [handleApprove, handleReject, handleView]
+    [handleApprove, handleReject, handleView, activeTab]
   );
 
   // คำนวณสถิติรวมสำหรับการแสดงบนการ์ด สไตล์เดียวกับฝั่งเจ้าหน้าที่ภาค
@@ -266,103 +279,80 @@ export default function ApproveDocuments() {
       .map((t) => ({ label: t, value: t }));
   }, [items]);
 
-  const onSubmitApprove = async () => {
-    try {
-      const values = await form.validateFields();
-      const { letterType, comment } = values;
-      await internshipApprovalService.approveCS05(
-        approveModal.record.documentId,
-        { letterType, comment }
-      );
-      message.success("อนุมัติสำเร็จ");
-      setApproveModal({ open: false, record: null });
-      form.resetFields();
-      fetchQueue();
-    } catch (e) {
-      if (e?.errorFields) return; // validation error
-      message.error(e.message || "อนุมัติไม่สำเร็จ");
-    }
-  };
+  // ไม่มี onSubmitApprove อีกต่อไป เนื่องจากแยกตามแท็บและยืนยันด้วย Modal.confirm
 
   return (
-    <Card title="อนุมัติเอกสาร คพ.05">
-      {/* ส่วนแสดงสถิติ แบบย่อพร้อมไอคอน */}
+    <Card>
+      {/* แท็บแบ่งประเภทงานของหัวหน้าภาควิชา */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={(k) => setActiveTab(k)}
+        items={[
+          {
+            key: "request",
+            label: "หนังสือขอความอนุเคราะห์",
+          },
+          {
+            key: "referral",
+            label: "หนังสือส่งตัวนักศึกษา",
+          },
+        ]}
+        style={{ marginBottom: 12 }}
+      />
+      {/* ส่วนแสดงสถิติ และตัวกรอง */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col>
-          <Space size="large">
-            <Space>
-              <FileTextOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-              <Text>เอกสารทั้งหมด: {statistics.total}</Text>
-            </Space>
-            <Space>
-              <FileExclamationOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
-              <Text>รอดำเนินการ: {statistics.pending}</Text>
-            </Space>
-            <Space>
-              <FileDoneOutlined style={{ fontSize: 24, color: '#52c41a' }} />
-              <Text>อนุมัติแล้ว: {statistics.approved}</Text>
-            </Space>
-            <Space>
-              <CloseCircleOutlined style={{ fontSize: 24, color: '#f5222d' }} />
-              <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
-            </Space>
+        <Col xs={24} md={12}>
+          <Space size="middle" wrap>
+            <Text>ทั้งหมด: {statistics.total}</Text>
+            <Tag color="gold">รอดำเนินการ: {statistics.pending}</Tag>
+            <Tag color="green">อนุมัติแล้ว: {statistics.approved}</Tag>
+            <Tag color="red">ปฏิเสธ: {statistics.rejected}</Tag>
           </Space>
         </Col>
-      </Row>
-
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col flex="auto">
-          <Input
-            placeholder="ค้นหา ชื่อ/รหัส/บริษัท"
-            value={filters.q}
-            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-            allowClear
-            style={{ maxWidth: 320 }}
-          />
-        </Col>
-        <Col>
+        <Col xs={24} md={12} style={{ textAlign: "right" }}>
           <Space size="small" wrap>
+            <Input.Search
+              allowClear
+              placeholder="ค้นหา (ชื่อ, รหัส, บริษัท)"
+              style={{ width: 220 }}
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              onSearch={(v) => setFilters((f) => ({ ...f, q: v }))}
+            />
             <Select
               size="small"
               style={{ width: 160 }}
               placeholder="สถานะ"
               options={[
-                { label: 'ทั้งหมด', value: 'all' },
-                { label: 'รอดำเนินการ', value: 'pending' },
-                { label: 'อนุมัติแล้ว', value: 'approved' },
-                { label: 'ปฏิเสธ', value: 'rejected' },
+                { label: "ทั้งหมด", value: "all" },
+                { label: "รอดำเนินการ", value: "pending" },
+                { label: "อนุมัติแล้ว", value: "approved" },
+                { label: "ปฏิเสธ", value: "rejected" },
               ]}
               value={filters.status}
               onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
-              allowClear
             />
             <Select
               size="small"
               style={{ width: 140 }}
               placeholder="ภาค/ปี"
-              options={[{ label: 'ทุกภาค/ปี', value: 'all' }, ...termOptions]}
+              options={[{ label: "ทุกภาค/ปี", value: "all" }, ...termOptions]}
               value={filters.term}
               onChange={(v) => setFilters((f) => ({ ...f, term: v }))}
-              allowClear
             />
             <Select
               size="small"
               style={{ width: 120 }}
               placeholder="ชั้นปี"
               options={[
-                { label: 'ทุกชั้นปี', value: 'all' },
-                { label: 'ปี 3', value: '3' },
-                { label: 'ปี 4', value: '4' },
+                { label: "ทุกชั้นปี", value: "all" },
+                { label: "ปี 3", value: "3" },
+                { label: "ปี 4", value: "4" },
               ]}
               value={filters.classYear}
               onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
-              allowClear
             />
-            <Button 
-              type="primary" 
-              onClick={fetchQueue}
-              loading={loading}
-            >
+            <Button type="primary" onClick={fetchQueue} loading={loading}>
               รีเฟรช
             </Button>
           </Space>
@@ -390,42 +380,7 @@ export default function ApproveDocuments() {
         />
       )}
 
-      {/* Modal เลือกประเภทหนังสือ ก่อนอนุมัติ */}
-      <Modal
-        open={approveModal.open}
-        title="เลือกประเภทหนังสือเพื่ออนุมัติ"
-        onCancel={() => {
-          setApproveModal({ open: false, record: null });
-          form.resetFields();
-        }}
-        onOk={onSubmitApprove}
-        okText="ยืนยันอนุมัติ"
-        cancelText="ยกเลิก"
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ letterType: "referral_letter" }}
-        >
-          <Form.Item
-            name="letterType"
-            label="ประเภทหนังสือ"
-            rules={[{ required: true, message: "กรุณาเลือกประเภทหนังสือ" }]}
-          >
-            <Radio.Group>
-              <Radio.Button value="referral_letter">
-                หนังสือส่งตัวนักศึกษา
-              </Radio.Button>
-              <Radio.Button value="request_letter">
-                หนังสือขอความอนุเคราะห์
-              </Radio.Button>
-            </Radio.Group>
-          </Form.Item>
-          <Form.Item name="comment" label="หมายเหตุ (ถ้ามี)">
-            <Input.TextArea rows={3} placeholder="ระบุหมายเหตุเพิ่มเติม" />
-          </Form.Item>
-        </Form>
-      </Modal>
+  {/* ไม่มี Modal เลือกประเภทแล้ว เนื่องจากกำหนดจากแท็บที่เลือก */}
     </Card>
   );
 }
