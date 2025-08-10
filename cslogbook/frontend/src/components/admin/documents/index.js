@@ -9,10 +9,10 @@ import {
   Row,
   Col,
   Card,
-  Segmented,
   message,
   Tooltip,
   Tabs,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -276,9 +276,9 @@ const OriginalDocumentManagement = ({ type }) => {
           </Col>
         </Row>
 
-        {/* ส่วนตัวกรอง */}
-        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-          <Col xs={24} sm={12} md={8}>
+        {/* ส่วนตัวกรอง (สไตล์เดียวกับหนังสือรับรอง) */}
+        <Row gutter={[16, 16]} style={{ marginBottom: "16px" }} align="middle">
+          <Col xs={24} md={12}>
             <Input
               placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
               value={filters.search}
@@ -287,60 +287,48 @@ const OriginalDocumentManagement = ({ type }) => {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={12} md={8}>
-            {/* Status filter */}
-            <Segmented
-              options={[
-                { label: "ทั้งหมด", value: "" },
-                { label: "รอตรวจสอบ", value: "pending" },
-                { label: "อนุมัติแล้ว", value: "approved" },
-                { label: "ปฏิเสธแล้ว", value: "rejected" },
-              ]}
-              value={filters.status}
-              onChange={setStatusFilter}
-            />
-            {/* <Segmented
-              options={[
-                { label: "CS05", value: "cs05" },
-                { label: "Acceptance Letter", value: "ACCEPTANCE_LETTER" },
-              ]}
-              value={documentType}
-              onChange={setDocumentType}
-            /> */}
-          </Col>
-          <Col xs={24} sm={24} md={8}>
-            <Space wrap>
-              <Tooltip title="รีเฟรช">
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={refetch}
-                  size="large"
-                  shape="square"
-                />
-              </Tooltip>
+          <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Space size="small" wrap>
+              <Select
+                size="small"
+                style={{ width: 160 }}
+                placeholder="สถานะ"
+                options={[
+                  { label: "ทั้งหมด", value: "" },
+                  { label: "รอตรวจสอบ", value: "pending" },
+                  { label: "อนุมัติแล้ว", value: "approved" },
+                  { label: "ปฏิเสธแล้ว", value: "rejected" },
+                ]}
+                value={filters.status}
+                onChange={setStatusFilter}
+                allowClear
+              />
+              <Button icon={<ReloadOutlined />} onClick={refetch}>
+                รีเฟรช
+              </Button>
               {filters.status === "pending" && (
                 <>
-                  <Tooltip
-                    title={`อนุมัติที่เลือก (${selectedRowKeys.length})`}
-                  >
+                  <Tooltip title={`อนุมัติที่เลือก (${selectedRowKeys.length})`}>
                     <Button
                       type="primary"
                       onClick={handleApproveSelectedDocuments}
                       disabled={selectedRowKeys.length === 0}
                       icon={<CheckCircleOutlined />}
-                      size="large"
-                      shape="square"
-                    />
+                      size="small"
+                    >
+                      อนุมัติที่เลือก
+                    </Button>
                   </Tooltip>
                   <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
                     <Button
-                      type="danger"
+                      danger
                       onClick={handleRejectSelectedDocuments}
                       disabled={selectedRowKeys.length === 0}
                       icon={<CloseCircleOutlined />}
-                      size="large"
-                      shape="square"
-                    />
+                      size="small"
+                    >
+                      ปฏิเสธที่เลือก
+                    </Button>
                   </Tooltip>
                 </>
               )}

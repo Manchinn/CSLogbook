@@ -13,8 +13,15 @@ import {
   Radio,
   Form,
   Select,
+  Typography,
 } from "antd";
-import { EyeOutlined } from "@ant-design/icons";
+import {
+  EyeOutlined,
+  FileTextOutlined,
+  FileExclamationOutlined,
+  FileDoneOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 import PDFViewerModal from "../../PDFViewerModal";
 import { internshipApprovalService } from "../../../services/internshipApprovalService";
 import dayjs from "dayjs";
@@ -25,6 +32,8 @@ const statusColor = {
   approved: "green",
   rejected: "red",
 };
+
+const { Text } = Typography;
 
 export default function ApproveDocuments() {
   const [loading, setLoading] = useState(false);
@@ -159,6 +168,15 @@ export default function ApproveDocuments() {
     [handleApprove, handleReject, handleView]
   );
 
+  // คำนวณสถิติรวมสำหรับการแสดงบนการ์ด สไตล์เดียวกับฝั่งเจ้าหน้าที่ภาค
+  const statistics = useMemo(() => {
+    const total = items.length;
+    const pending = items.filter((r) => r.status === "pending").length;
+    const approved = items.filter((r) => r.status === "approved").length;
+    const rejected = items.filter((r) => r.status === "rejected").length;
+    return { total, pending, approved, rejected };
+  }, [items]);
+
   // กรองข้อมูลฝั่ง client เพื่อความสะดวก
   const filteredItems = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -264,30 +282,52 @@ export default function ApproveDocuments() {
   };
 
   return (
-    <Card
-      title="อนุมัติเอกสาร คพ.05"
-      extra={<Button onClick={fetchQueue}>รีเฟรช</Button>}
-    >
-      <Row gutter={[12, 12]} style={{ marginBottom: 12 }} align="middle">
-        <Col xs={24} md={12}>
+    <Card title="อนุมัติเอกสาร คพ.05">
+      {/* ส่วนแสดงสถิติ แบบย่อพร้อมไอคอน */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col>
+          <Space size="large">
+            <Space>
+              <FileTextOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <Text>เอกสารทั้งหมด: {statistics.total}</Text>
+            </Space>
+            <Space>
+              <FileExclamationOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+              <Text>รอดำเนินการ: {statistics.pending}</Text>
+            </Space>
+            <Space>
+              <FileDoneOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+              <Text>อนุมัติแล้ว: {statistics.approved}</Text>
+            </Space>
+            <Space>
+              <CloseCircleOutlined style={{ fontSize: 24, color: '#f5222d' }} />
+              <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
+            </Space>
+          </Space>
+        </Col>
+      </Row>
+
+      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+        <Col flex="auto">
           <Input
             placeholder="ค้นหา ชื่อ/รหัส/บริษัท"
             value={filters.q}
             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
             allowClear
+            style={{ maxWidth: 320 }}
           />
         </Col>
-        <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Col>
           <Space size="small" wrap>
             <Select
               size="small"
-              style={{ width: 150 }}
+              style={{ width: 160 }}
               placeholder="สถานะ"
               options={[
-                { label: "ทั้งหมด", value: "all" },
-                { label: "รอตรวจสอบ", value: "pending" },
-                { label: "อนุมัติแล้ว", value: "approved" },
-                { label: "ปฏิเสธแล้ว", value: "rejected" },
+                { label: 'ทั้งหมด', value: 'all' },
+                { label: 'รอดำเนินการ', value: 'pending' },
+                { label: 'อนุมัติแล้ว', value: 'approved' },
+                { label: 'ปฏิเสธ', value: 'rejected' },
               ]}
               value={filters.status}
               onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
@@ -297,7 +337,7 @@ export default function ApproveDocuments() {
               size="small"
               style={{ width: 140 }}
               placeholder="ภาค/ปี"
-              options={[{ label: "ทุกภาค/ปี", value: "all" }, ...termOptions]}
+              options={[{ label: 'ทุกภาค/ปี', value: 'all' }, ...termOptions]}
               value={filters.term}
               onChange={(v) => setFilters((f) => ({ ...f, term: v }))}
               allowClear
@@ -307,14 +347,21 @@ export default function ApproveDocuments() {
               style={{ width: 120 }}
               placeholder="ชั้นปี"
               options={[
-                { label: "ทุกชั้นปี", value: "all" },
-                { label: "ปี 3", value: "3" },
-                { label: "ปี 4", value: "4" },
+                { label: 'ทุกชั้นปี', value: 'all' },
+                { label: 'ปี 3', value: '3' },
+                { label: 'ปี 4', value: '4' },
               ]}
               value={filters.classYear}
               onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
               allowClear
             />
+            <Button 
+              type="primary" 
+              onClick={fetchQueue}
+              loading={loading}
+            >
+              รีเฟรช
+            </Button>
           </Space>
         </Col>
       </Row>
@@ -324,7 +371,12 @@ export default function ApproveDocuments() {
         loading={loading}
         columns={columns}
         dataSource={filteredItems}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+        }}
+        scroll={{ x: 1000 }}
       />
 
       {showPdf && pdfUrl && (
