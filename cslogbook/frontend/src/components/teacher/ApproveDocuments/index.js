@@ -20,11 +20,30 @@ import { internshipApprovalService } from "../../../services/internshipApprovalS
 import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
 import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
 
+// สีสำหรับสถานะต่าง ๆ
 const statusColor = {
   draft: "default",
   pending: "gold",
   approved: "green",
   rejected: "red",
+  acceptance_approved: "blue",
+  referral_ready: "cyan",
+  referral_downloaded: "purple",
+  supervisor_evaluated: "magenta",
+  completed: "green",
+};
+
+// ป้ายภาษาไทยสำหรับสถานะ
+const statusLabelTh = {
+  draft: "ร่าง",
+  pending: "รอดำเนินการ",
+  approved: "อนุมัติแล้ว",
+  rejected: "ปฏิเสธ",
+  acceptance_approved: "ยืนยันหนังสือตอบรับแล้ว",
+  referral_ready: "พร้อมออกหนังสือส่งตัว",
+  referral_downloaded: "ดาวน์โหลดแล้ว",
+  supervisor_evaluated: "ประเมินโดยผู้ควบคุมงานแล้ว",
+  completed: "เสร็จสิ้น",
 };
 
 const { Text } = Typography;
@@ -160,7 +179,9 @@ export default function ApproveDocuments() {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        render: (v) => <Tag color={statusColor[v] || "default"}>{v}</Tag>,
+        render: (v) => (
+          <Tag color={statusColor[v] || "default"}>{statusLabelTh[v] || v}</Tag>
+        ),
       },
       {
         title: "ส่งเมื่อ",
