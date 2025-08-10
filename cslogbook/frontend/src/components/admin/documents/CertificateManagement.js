@@ -8,9 +8,10 @@ import {
   EyeOutlined, BellOutlined, FileTextOutlined, FileExclamationOutlined, FileDoneOutlined
 } from '@ant-design/icons';
 import certificateService from '../../../services/certificateService'; // ✅ ใช้ service ใหม่
-import dayjs from 'dayjs';
+import dayjs from '../../../utils/dayjs';
+import { DATE_TIME_FORMAT } from '../../../utils/constants';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const CertificateManagement = () => {
   const [certificateRequests, setCertificateRequests] = useState([]);
@@ -146,7 +147,7 @@ const CertificateManagement = () => {
       dataIndex: 'requestDate',
       key: 'requestDate',
       width: 120,
-      render: (date) => new Date(date).toLocaleDateString('th-TH'),
+  render: (date) => (date ? dayjs(date).format(DATE_TIME_FORMAT) : '-'),
     },
     {
       title: 'ชั่วโมงฝึกงาน',

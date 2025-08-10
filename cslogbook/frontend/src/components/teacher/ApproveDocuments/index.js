@@ -24,7 +24,8 @@ import {
 } from "@ant-design/icons";
 import PDFViewerModal from "../../PDFViewerModal";
 import { internshipApprovalService } from "../../../services/internshipApprovalService";
-import dayjs from "dayjs";
+import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
+import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
 
 const statusColor = {
   draft: "default",
@@ -130,8 +131,9 @@ export default function ApproveDocuments() {
         title: "ช่วงฝึกงาน",
         key: "period",
         render: (_, r) => {
-          const s = r.startDate ? dayjs(r.startDate).format("DD/MM/YYYY") : "-";
-          const e = r.endDate ? dayjs(r.endDate).format("DD/MM/YYYY") : "-";
+          // ใช้รูปแบบมาตรฐาน DATE_FORMAT_MEDIUM
+          const s = r.startDate ? dayjs(r.startDate).format(DATE_FORMAT_MEDIUM) : "-";
+          const e = r.endDate ? dayjs(r.endDate).format(DATE_FORMAT_MEDIUM) : "-";
           return `${s} - ${e}`;
         },
       },
@@ -145,7 +147,8 @@ export default function ApproveDocuments() {
         title: "ส่งเมื่อ",
         dataIndex: "createdAt",
         key: "createdAt",
-        render: (v) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "-"),
+  // ใช้รูปแบบมาตรฐาน DATE_TIME_FORMAT จาก utils/constants
+  render: (v) => (v ? dayjs(v).format(DATE_TIME_FORMAT) : "-"),
       },
       {
         title: "การทำงาน",
