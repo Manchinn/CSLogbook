@@ -1,9 +1,11 @@
 import apiClient from './apiClient';
 
 export const internshipApprovalService = {
-  // Head of department queue
-  getHeadQueue: async () => {
-    const res = await apiClient.get('/internship/cs-05/head/queue');
+  // Head of department queue (supports status filter via query string)
+  getHeadQueue: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `/internship/cs-05/head/queue?${query}` : '/internship/cs-05/head/queue';
+    const res = await apiClient.get(url);
     return res.data;
   },
   // Approve CS05 by head (รองรับ letterType และ comment)

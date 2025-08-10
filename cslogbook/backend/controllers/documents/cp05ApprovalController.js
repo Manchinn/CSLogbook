@@ -15,14 +15,22 @@ async function loadCS05(documentId) {
   return doc;
 }
 
-// Head of department queue: list pending CS05 for approval
+// Head of department queue: list CS05 for head (supports status filter)
 exports.listForHead = async (req, res) => {
   try {
-    // ดึงเอกสาร CS05 ที่อยู่สถานะ pending สำหรับหัวหน้าภาควิชาอนุมัติ
+    // รองรับการกรองสถานะผ่าน query เช่น ?status=pending หรือหลายค่าเช่น ?status=approved,acceptance_approved,referral_ready
+    const statusQuery = (req.query.status || 'pending')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const whereStatus = statusQuery.length > 1 ? { [Op.in]: statusQuery } : statusQuery[0] || 'pending';
+
+    // ดึงเอกสาร CS05 ตามสถานะที่ระบุ (ดีฟอลต์: pending) สำหรับหัวหน้าภาควิชา
     const docs = await Document.findAll({
       where: { 
         documentName: 'CS05', 
-        status: 'pending',
+        status: whereStatus,
         // แสดงเฉพาะที่ผ่านการตรวจโดยเจ้าหน้าที่ภาคแล้ว
         reviewerId: { [Op.not]: null }
       },
@@ -63,7 +71,7 @@ exports.listForHead = async (req, res) => {
       endDate: d.internshipDocument?.endDate || null
     }));
 
-    return res.json({ success: true, data });
+  return res.json({ success: true, data });
   } catch (error) {
     console.error('CP05 listForHead error:', error);
     return res.status(500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });

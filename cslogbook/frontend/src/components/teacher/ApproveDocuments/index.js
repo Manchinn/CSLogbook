@@ -44,10 +44,15 @@ export default function ApproveDocuments() {
     classYear: "all",
   });
 
-  const fetchQueue = async () => {
+  const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await internshipApprovalService.getHeadQueue();
+      // เลือกสถานะตามแท็บ: request => pending, referral => ชุดสถานะหลังอนุมัติ CS05
+      const statusParam =
+        activeTab === "request"
+          ? "pending"
+          : "approved,acceptance_approved,referral_ready,referral_downloaded";
+      const res = await internshipApprovalService.getHeadQueue({ status: statusParam });
       if (res.success) {
         setItems(res.data || []);
       } else {
@@ -58,11 +63,12 @@ export default function ApproveDocuments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     fetchQueue();
-  }, []);
+    // รีเฟรชทุกครั้งที่เปลี่ยนแท็บ
+  }, [fetchQueue]);
 
   const handleView = useCallback(async (record) => {
     try {
@@ -107,7 +113,7 @@ export default function ApproveDocuments() {
         },
       });
     },
-    [activeTab]
+  [activeTab, fetchQueue]
   );
 
   const handleReject = useCallback(async (record) => {
@@ -120,7 +126,7 @@ export default function ApproveDocuments() {
     } catch (e) {
       message.error(e.message || "ปฏิเสธไม่สำเร็จ");
     }
-  }, []);
+  }, [fetchQueue]);
 
   const columns = useMemo(
     () => [
@@ -192,6 +198,26 @@ export default function ApproveDocuments() {
     const rejected = items.filter((r) => r.status === "rejected").length;
     return { total, pending, approved, rejected };
   }, [items]);
+
+  // ตัวเลือกสถานะ เปลี่ยนตามแท็บ
+  const statusOptions = useMemo(() => {
+    if (activeTab === "request") {
+      return [
+        { label: "ทั้งหมด", value: "all" },
+        { label: "รอดำเนินการ", value: "pending" },
+        { label: "อนุมัติแล้ว", value: "approved" },
+        { label: "ปฏิเสธ", value: "rejected" },
+      ];
+    }
+    // แท็บหนังสือส่งตัว: เพิ่มสถานะที่เกี่ยวข้องหลังอนุมัติ
+    return [
+      { label: "ทั้งหมด", value: "all" },
+      { label: "อนุมัติแล้ว", value: "approved" },
+      { label: "ยืนยันหนังสือตอบรับแล้ว", value: "acceptance_approved" },
+      { label: "พร้อมออกหนังสือส่งตัว", value: "referral_ready" },
+      { label: "ดาวน์โหลดแล้ว", value: "referral_downloaded" },
+    ];
+  }, [activeTab]);
 
   // กรองข้อมูลฝั่ง client เพื่อความสะดวก
   const filteredItems = useMemo(() => {
@@ -299,9 +325,9 @@ export default function ApproveDocuments() {
         ]}
         style={{ marginBottom: 12 }}
       />
-      {/* ส่วนแสดงสถิติ และตัวกรอง */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} md={12}>
+      {/* ส่วนสถิติ */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
+        <Col span={24}>
           <Space size="middle" wrap>
             <Text>ทั้งหมด: {statistics.total}</Text>
             <Tag color="gold">รอดำเนินการ: {statistics.pending}</Tag>
@@ -309,53 +335,57 @@ export default function ApproveDocuments() {
             <Tag color="red">ปฏิเสธ: {statistics.rejected}</Tag>
           </Space>
         </Col>
-        <Col xs={24} md={12} style={{ textAlign: "right" }}>
-          <Space size="small" wrap>
-            <Input.Search
-              allowClear
-              placeholder="ค้นหา (ชื่อ, รหัส, บริษัท)"
-              style={{ width: 220 }}
-              value={filters.q}
-              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-              onSearch={(v) => setFilters((f) => ({ ...f, q: v }))}
-            />
-            <Select
-              size="small"
-              style={{ width: 160 }}
-              placeholder="สถานะ"
-              options={[
-                { label: "ทั้งหมด", value: "all" },
-                { label: "รอดำเนินการ", value: "pending" },
-                { label: "อนุมัติแล้ว", value: "approved" },
-                { label: "ปฏิเสธ", value: "rejected" },
-              ]}
-              value={filters.status}
-              onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
-            />
-            <Select
-              size="small"
-              style={{ width: 140 }}
-              placeholder="ภาค/ปี"
-              options={[{ label: "ทุกภาค/ปี", value: "all" }, ...termOptions]}
-              value={filters.term}
-              onChange={(v) => setFilters((f) => ({ ...f, term: v }))}
-            />
-            <Select
-              size="small"
-              style={{ width: 120 }}
-              placeholder="ชั้นปี"
-              options={[
-                { label: "ทุกชั้นปี", value: "all" },
-                { label: "ปี 3", value: "3" },
-                { label: "ปี 4", value: "4" },
-              ]}
-              value={filters.classYear}
-              onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
-            />
-            <Button type="primary" onClick={fetchQueue} loading={loading}>
-              รีเฟรช
-            </Button>
-          </Space>
+      </Row>
+
+      {/* แถบตัวกรองแบบเป็นระเบียบ */}
+      <Row gutter={[12, 12]} align="middle" style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={8}>
+          <Input.Search
+            allowClear
+            placeholder="ค้นหา (ชื่อ, รหัส, บริษัท)"
+            value={filters.q}
+            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            onSearch={(v) => setFilters((f) => ({ ...f, q: v }))}
+          />
+        </Col>
+        <Col xs={12} md={8} lg={4}>
+          <Select
+            size="small"
+            style={{ width: '100%' }}
+            placeholder="สถานะ"
+            options={statusOptions}
+            value={filters.status}
+            onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+          />
+        </Col>
+        <Col xs={12} md={8} lg={4}>
+          <Select
+            size="small"
+            style={{ width: '100%' }}
+            placeholder="ภาค/ปี"
+            options={[{ label: "ทุกภาค/ปี", value: "all" }, ...termOptions]}
+            value={filters.term}
+            onChange={(v) => setFilters((f) => ({ ...f, term: v }))}
+          />
+        </Col>
+        <Col xs={12} md={8} lg={4}>
+          <Select
+            size="small"
+            style={{ width: '100%' }}
+            placeholder="ชั้นปี"
+            options={[
+              { label: "ทุกชั้นปี", value: "all" },
+              { label: "ปี 3", value: "3" },
+              { label: "ปี 4", value: "4" },
+            ]}
+            value={filters.classYear}
+            onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
+          />
+        </Col>
+        <Col xs={12} md={8} lg={4}>
+          <Button block type="primary" onClick={fetchQueue} loading={loading}>
+            รีเฟรช
+          </Button>
         </Col>
       </Row>
 
