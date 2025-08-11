@@ -66,16 +66,14 @@ export default function ApproveDocuments() {
   const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
-      // เลือกสถานะตามแท็บ: request => pending, referral => ชุดสถานะหลังอนุมัติ CS05
-      const statusParam =
-        activeTab === "request"
-          ? "pending"
-          : "approved,acceptance_approved,referral_ready,referral_downloaded";
-      const res = await internshipApprovalService.getHeadQueue({ status: statusParam });
-      if (res.success) {
-        setItems(res.data || []);
+      if (activeTab === 'request') {
+        // คิวหัวหน้าภาคสำหรับอนุมัติ CS05 (หนังสือขอความอนุเคราะห์)
+        const res = await internshipApprovalService.getHeadQueue({ status: 'pending' });
+        if (res.success) setItems(res.data || []); else message.error(res.message || 'ไม่สามารถดึงรายการได้');
       } else {
-        message.error(res.message || "ไม่สามารถดึงรายการได้");
+        // คิวหัวหน้าภาคสำหรับอนุมัติ Acceptance Letter (เพื่อไปสู่หนังสือส่งตัว)
+        const res = await internshipApprovalService.getAcceptanceHeadQueue();
+        if (res.success) setItems(res.data || []); else message.error(res.message || 'ไม่สามารถดึงรายการได้');
       }
     } catch (e) {
       message.error(e.message || "เกิดข้อผิดพลาดในการดึงรายการ");
@@ -110,27 +108,41 @@ export default function ApproveDocuments() {
 
   const handleApprove = useCallback(
     async (record) => {
-      const letterType = activeTab === "request" ? "request_letter" : "referral_letter";
-      const confirmText =
-        activeTab === "request"
-          ? "ยืนยันอนุมัติ คพ.05 เพื่อให้เจ้าหน้าที่ภาคออกหนังสือขอความอนุเคราะห์ให้สถานประกอบการ"
-          : "ยืนยันอนุมัติ คพ.05 สำหรับหนังสือส่งตัวนักศึกษา (เพื่อให้นักศึกษาใช้ตอนเริ่มฝึกงาน)";
-
-      Modal.confirm({
-        title: "ยืนยันการอนุมัติ",
-        content: confirmText,
-        okText: "ยืนยัน",
-        cancelText: "ยกเลิก",
-        async onOk() {
-          try {
-            await internshipApprovalService.approveCS05(record.documentId, { letterType });
-            message.success("อนุมัติสำเร็จ");
-            fetchQueue();
-          } catch (e) {
-            message.error(e.message || "อนุมัติไม่สำเร็จ");
+      if (activeTab === 'request') {
+        const confirmText = "ยืนยันอนุมัติ คพ.05 เพื่อออกหนังสือขอความอนุเคราะห์";
+        Modal.confirm({
+          title: 'ยืนยันการอนุมัติ',
+          content: confirmText,
+          okText: 'ยืนยัน',
+          cancelText: 'ยกเลิก',
+          async onOk() {
+            try {
+              await internshipApprovalService.approveCS05(record.documentId, { letterType: 'request_letter' });
+              message.success('อนุมัติสำเร็จ');
+              fetchQueue();
+            } catch (e) {
+              message.error(e.message || 'อนุมัติไม่สำเร็จ');
+            }
           }
-        },
-      });
+        });
+      } else {
+        const confirmText = 'ยืนยันอนุมัติ Acceptance Letter เพื่อปลดล็อคหนังสือส่งตัวนักศึกษา';
+        Modal.confirm({
+          title: 'ยืนยันการอนุมัติ',
+          content: confirmText,
+          okText: 'ยืนยัน',
+          cancelText: 'ยกเลิก',
+          async onOk() {
+            try {
+              await internshipApprovalService.approveAcceptanceByHead(record.documentId, {});
+              message.success('อนุมัติ Acceptance Letter สำเร็จ');
+              fetchQueue();
+            } catch (e) {
+              message.error(e.message || 'อนุมัติไม่สำเร็จ');
+            }
+          }
+        });
+      }
     },
   [activeTab, fetchQueue]
   );
@@ -139,13 +151,17 @@ export default function ApproveDocuments() {
     const reason = window.prompt("กรุณาระบุเหตุผลการปฏิเสธ");
     if (!reason) return;
     try {
-      await internshipApprovalService.rejectCS05(record.documentId, reason);
+      if (activeTab === 'request') {
+        await internshipApprovalService.rejectCS05(record.documentId, reason);
+      } else {
+        await internshipApprovalService.rejectAcceptance(record.documentId, reason);
+      }
       message.success("ปฏิเสธสำเร็จ");
       fetchQueue();
     } catch (e) {
       message.error(e.message || "ปฏิเสธไม่สำเร็จ");
     }
-  }, [fetchQueue]);
+  }, [activeTab, fetchQueue]);
 
   const columns = useMemo(
     () => [
@@ -179,9 +195,19 @@ export default function ApproveDocuments() {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        render: (v) => (
-          <Tag color={statusColor[v] || "default"}>{statusLabelTh[v] || v}</Tag>
-        ),
+        render: (v, record) => {
+          // ปรับข้อความสถานะย่อยสำหรับ pending
+          // - pending + reviewerId => รอหัวหน้าภาคอนุมัติ
+          // - pending + ไม่มี reviewerId => รอตรวจโดยเจ้าหน้าที่ภาค (กรณีหลุดมา)
+          if (v === "pending") {
+            const hasReviewer = !!record.reviewerId;
+            const text = hasReviewer ? "รอหัวหน้าภาคอนุมัติ" : "รอตรวจโดยเจ้าหน้าที่ภาค";
+            return <Tag color="gold">{text}</Tag>;
+          }
+          return (
+            <Tag color={statusColor[v] || "default"}>{statusLabelTh[v] || v}</Tag>
+          );
+        },
       },
       {
         title: "ส่งเมื่อ",
@@ -198,10 +224,18 @@ export default function ApproveDocuments() {
             <Button icon={<EyeOutlined />} onClick={() => handleView(record)}>
               ดูเอกสาร
             </Button>
-            <Button type="primary" onClick={() => handleApprove(record)}>
-              {activeTab === "request" ? "อนุมัติหนังสือขอความอนุเคราะห์" : "อนุมัติหนังสือส่งตัว"}
+            <Button
+              type="primary"
+              onClick={() => handleApprove(record)}
+              disabled={!(record.status === 'pending' && !!record.reviewerId)}
+            >
+              {activeTab === "request" ? "อนุมัติหนังสือขอความอนุเคราะห์" : "อนุมัติ Acceptance Letter"}
             </Button>
-            <Button danger onClick={() => handleReject(record)}>
+            <Button
+              danger
+              onClick={() => handleReject(record)}
+              disabled={record.status !== 'pending'}
+            >
               ปฏิเสธ
             </Button>
           </Space>

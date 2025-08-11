@@ -2296,24 +2296,37 @@ class InternshipManagementService {
         cs05DocumentId,
       });
 
-      // 1. ตรวจสอบเอกสาร CS05 ก่อน
-      const cs05Document = await Document.findOne({
-        where: {
-          documentId: parseInt(cs05DocumentId),
-          userId: userId,
-          documentName: "CS05",
-          documentType: "INTERNSHIP",
-        },
-      });
-
-      if (!cs05Document) {
-        throw new Error("ไม่พบข้อมูลเอกสาร CS05");
+      // 1. ตรวจสอบเอกสาร CS05 ก่อน (รองรับกรณี cs05DocumentId เป็น null/undefined)
+      let cs05Document = null;
+      const parsedId = Number(cs05DocumentId);
+      if (Number.isFinite(parsedId) && parsedId > 0) {
+        cs05Document = await Document.findOne({
+          where: {
+            documentId: parsedId,
+            userId: userId,
+            documentName: "CS05",
+            documentType: "INTERNSHIP",
+          },
+        });
+      } else {
+        cs05Document = await Document.findOne({
+          where: {
+            userId: userId,
+            documentName: "CS05",
+            documentType: "INTERNSHIP",
+          },
+          order: [["created_at", "DESC"]],
+        });
       }
 
-      console.log("[DEBUG] CS05 Document found:", {
-        documentId: cs05Document.documentId,
-        status: cs05Document.status,
-      });
+      if (!cs05Document) {
+        console.warn("[WARN] getAcceptanceLetterStatus: ไม่พบเอกสาร CS05 ของผู้ใช้", { userId, cs05DocumentId });
+      } else {
+        console.log("[DEBUG] CS05 Document found:", {
+          documentId: cs05Document.documentId,
+          status: cs05Document.status,
+        });
+      }
 
       // 2. ✅ ค้นหาหนังสือตอบรับจากฐานข้อมูลจริง
       const acceptanceLetter = await Document.findOne({
@@ -2334,7 +2347,7 @@ class InternshipManagementService {
       let statusMessage = "";
 
       // ตรวจสอบสิทธิ์ในการอัปโหลด
-      if (cs05Document.status === "approved") {
+  if (cs05Document && cs05Document.status === "approved") {
         canUpload = true;
       }
 

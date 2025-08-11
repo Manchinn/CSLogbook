@@ -31,5 +31,34 @@ export const internshipApprovalService = {
       throw new Error(res.data?.message || 'ตรวจสอบไม่สำเร็จ');
     }
     return res.data;
-  }
+  },
+  // Acceptance Letter: คิวหัวหน้าภาค, ตรวจโดยเจ้าหน้าที่ภาค, อนุมัติ, ปฏิเสธ
+  getAcceptanceHeadQueue: async () => {
+    const res = await apiClient.get(`/internship/acceptance/head/queue`);
+    if (!res.data?.success) {
+      throw new Error('ไม่สามารถดึงคิว Acceptance Letter ได้');
+    }
+    return res.data;
+  },
+  reviewAcceptanceByStaff: async (documentId, comment) => {
+    const res = await apiClient.post(`/internship/acceptance/${documentId}/review`, { comment });
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'ไม่สามารถตรวจสอบ Acceptance Letter ได้');
+    }
+    return res.data;
+  },
+  approveAcceptanceByHead: async (documentId, payload = {}) => {
+    const res = await apiClient.post(`/internship/acceptance/${documentId}/approve`, payload);
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'ไม่สามารถอนุมัติ Acceptance Letter ได้');
+    }
+    return res.data;
+  },
+  rejectAcceptance: async (documentId, reason) => {
+    const res = await apiClient.post(`/internship/acceptance/${documentId}/reject`, { reason });
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'ไม่สามารถปฏิเสธ Acceptance Letter ได้');
+    }
+    return res.data;
+  },
 };

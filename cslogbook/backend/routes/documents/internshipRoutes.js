@@ -4,6 +4,7 @@ const multer = require("multer");
 const { upload } = require("../../config/uploadConfig");
 const { Document } = require("../../models");
 const cp05ApprovalController = require("../../controllers/documents/cp05ApprovalController");
+const acceptanceApprovalController = require("../../controllers/documents/acceptanceApprovalController");
 const documentController = require("../../controllers/documents/documentController");
 const internshipController = require("../../controllers/documents/internshipController");
 const {
@@ -323,4 +324,40 @@ router.get(
   checkRole(["teacher", "admin"]),
   checkTeacherPosition(["หัวหน้าภาควิชา"]),
   documentController.viewDocument
+);
+
+// ============= เส้นทางสำหรับการอนุมัติ Acceptance Letter (แบบสองขั้น) =============
+// หัวหน้าภาค: คิว Acceptance Letter ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
+router.get(
+  "/acceptance/head/queue",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  acceptanceApprovalController.listForHead
+);
+
+// เจ้าหน้าที่ภาคตรวจและส่งต่อ Acceptance Letter
+router.post(
+  "/acceptance/:id/review",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherType(["support"]),
+  acceptanceApprovalController.reviewByStaff
+);
+
+// หัวหน้าภาคอนุมัติ Acceptance Letter
+router.post(
+  "/acceptance/:id/approve",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  acceptanceApprovalController.approveByHead
+);
+
+// ปฏิเสธ Acceptance Letter
+router.post(
+  "/acceptance/:id/reject",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  acceptanceApprovalController.reject
 );

@@ -59,6 +59,10 @@ exports.listForHead = async (req, res) => {
     const data = docs.map((d) => ({
       documentId: d.documentId,
       status: d.status,
+      // ส่งต่อข้อมูลผู้ตรวจจากเจ้าหน้าที่ภาค เพื่อให้ฝั่งหัวหน้าภาคเปิดปุ่มอนุมัติได้
+      // หมายเหตุ: reviewerId จะมีค่าเสมอในคิวนี้ เพราะเรา where reviewerId != null อยู่แล้ว
+      reviewerId: d.reviewerId,
+      reviewDate: d.review_date,
       createdAt: d.created_at,
       student: {
         userId: d.owner?.userId,
