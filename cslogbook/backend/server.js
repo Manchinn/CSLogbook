@@ -145,6 +145,11 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+// ให้บริการสเปค OpenAPI ในรูปแบบ JSON สำหรับการเชื่อมต่อจากเครื่องมือภายนอก (เช่น MCP OpenAPI server)
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerDocs);
+});
 
 // Error handling database
 app.use((err, req, res, next) => {

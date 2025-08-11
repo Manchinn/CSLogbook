@@ -17,7 +17,7 @@
 				"MYSQL_HOST": "${input:mysql_host}",
 				"MYSQL_PORT": "${input:mysql_port}",
 				"MYSQL_USER": "${input:mysql_user}",
-				"MYSQL_PASSWORD": "${input:mysql_user}",
+				"MYSQL_PASSWORD": "${input:mysql_password}",
 				"MYSQL_DATABASE": "${input:mysql_database}"
 			},
 			"type": "stdio"
@@ -25,39 +25,25 @@
 	},
 	"inputs": [
 		{
-			"id": "mysql_hostname",
-			"type": "promptString",
-			"description": "Enter the MySQL Hostname"
-		},
-		{
-			"id": "mysql_port",
-			"type": "promptString",
-			"description": "Enter the MySQL Port Number"
-		},
-		{
-			"id": "mysql_username",
-			"type": "promptString",
-			"description": "Enter the MySQL Username"
-		},
-		{
-			"id": "mysql_username",
-			"type": "promptString",
-			"description": "Enter the MySQL Username"
-		},
-		{
 			"id": "mysql_host",
 			"type": "promptString",
 			"description": "MySQL Hostname"
 		},
 		{
-			"id": "mysql_user",
+			"id": "mysql_port",
 			"type": "promptString",
-			"description": "MySQL Username"
+			"description": "MySQL Port Number",
+			"default": "3306"
 		},
 		{
 			"id": "mysql_user",
 			"type": "promptString",
 			"description": "MySQL Username"
+		},
+		{
+			"id": "mysql_password",
+			"type": "promptString",
+			"description": "MySQL Password"
 		},
 		{
 			"id": "mysql_database",
