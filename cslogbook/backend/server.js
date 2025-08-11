@@ -86,6 +86,7 @@ const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มก
 const workflowRoutes = require('./routes/workflowRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
+const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม academicRoutes
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
@@ -208,6 +209,7 @@ app.use('/api/timeline/public', timelineRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
+app.use('/api/academic', authenticateToken, academicRoutes); // เพิ่ม academic routes
 //app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
 //app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 //app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
