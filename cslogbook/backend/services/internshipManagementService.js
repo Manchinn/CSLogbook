@@ -3151,6 +3151,12 @@ class InternshipManagementService {
         hasSummary: isSummarySubmitted,
       });
 
+      // 🎯 อัปเดต internship_status ในฐานข้อมูลเมื่อฝึกงานเสร็จสิ้น
+      if (certificateStatus === "ready") {
+        await this.updateStudentInternshipStatus(userId, "completed");
+        console.log(`[getCertificateStatus] Updated internship_status to 'completed' for userId: ${userId}`);
+      }
+
       return result;
     } catch (error) {
       if (
@@ -3282,6 +3288,47 @@ class InternshipManagementService {
     const year = d.getFullYear() + 543;
 
     return `${day} ${month} พ.ศ. ${year}`;
+  }
+
+  /**
+   * 🆕 อัปเดตสถานะการฝึกงานของนักศึกษาในฐานข้อมูล
+   * @param {number} userId - User ID
+   * @param {string} status - สถานะใหม่ ('not_started', 'pending_approval', 'in_progress', 'completed')
+   */
+  async updateStudentInternshipStatus(userId, status) {
+    try {
+      const { sequelize } = require("../config/database");
+      
+      // ตรวจสอบสถานะปัจจุบันก่อน
+      const [currentData] = await sequelize.query(
+        'SELECT student_code, internship_status FROM students WHERE user_id = ?',
+        { replacements: [userId] }
+      );
+
+      if (currentData.length === 0) {
+        console.warn(`[updateStudentInternshipStatus] Student not found for userId: ${userId}`);
+        return;
+      }
+
+      const currentStudent = currentData[0];
+      
+      // ตรวจสอบว่าสถานะเปลี่ยนแปลงหรือไม่
+      if (currentStudent.internship_status === status) {
+        console.log(`[updateStudentInternshipStatus] Status already ${status} for student ${currentStudent.student_code}`);
+        return;
+      }
+
+      // อัปเดตสถานะด้วย raw SQL
+      await sequelize.query(
+        'UPDATE students SET internship_status = ?, updated_at = NOW() WHERE user_id = ?',
+        { replacements: [status, userId] }
+      );
+
+      console.log(`[updateStudentInternshipStatus] Successfully updated internship_status from '${currentStudent.internship_status}' to '${status}' for student ${currentStudent.student_code}`);
+      
+    } catch (error) {
+      console.error(`[updateStudentInternshipStatus] Error updating status:`, error);
+    }
   }
 }
 

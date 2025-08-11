@@ -20,25 +20,41 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
 
   // ฟังก์ชันตรวจสอบสถานะสิทธิ์การฝึกงาน
   const getInternshipEligibilityStatus = () => {
+    // ตรวจสอบว่ามีข้อมูล student หรือไม่
+    if (!student) {
+      console.log('❌ No student data provided');
+      return null;
+    }
+
     // ใช้ข้อมูลจาก backend โดยตรง
     const isEligible = student?.isEligibleInternship; // มีสิทธิ์ฝึกงานหรือไม่
     const isEnrolled = student?.isEnrolledInternship; // ลงทะเบียนฝึกงานแล้วหรือไม่
     const status = student?.internshipStatus; // สถานะการฝึกงาน
 
-    console.log('Eligibility Check:', {
+    console.log('🔍 Detailed Eligibility Check:', {
+      studentCode: student?.studentCode,
       isEligible,
+      isEligibleType: typeof isEligible,
       isEnrolled,
-      status
+      isEnrolledType: typeof isEnrolled,
+      status,
+      statusType: typeof status,
+      rawStudentData: {
+        isEligibleInternship: student?.isEligibleInternship,
+        isEnrolledInternship: student?.isEnrolledInternship,
+        internshipStatus: student?.internshipStatus
+      }
     });
 
-    // ถ้าไม่มีสิทธิ์ฝึกงาน ไม่แสดง tag
-    if (!isEligible) {
-      console.log('No eligibility - not showing tag');
+    // ถ้าไม่มีสิทธิ์ฝึกงาน ไม่แสดง tag (ตรวจสอบแบบเข้มงวด)
+    if (isEligible !== true) {
+      console.log('❌ No eligibility - not showing tag (isEligible:', isEligible, ')');
       return null;
     }
 
     // ถ้าลงทะเบียนแล้ว ตรวจสอบสถานะ
-    if (isEnrolled) {
+    if (isEnrolled === true) {
+      console.log('✅ Student is enrolled - checking status:', status);
       if (status === 'completed') {
         return {
           color: 'green',
@@ -66,12 +82,18 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
       }
     } else {
       // มีสิทธิ์แต่ยังไม่ได้ลงทะเบียน
-      console.log('Eligible but not enrolled - showing gold tag');
+      console.log('✅ Eligible but not enrolled - showing GOLD tag');
+      console.log('📋 Final tag data:', {
+        condition: 'isEligible === true && isEnrolled !== true',
+        isEligible,
+        isEnrolled,
+        willShowTag: true
+      });
       return {
         color: 'gold',
-        text: 'มีสิทธิ์ฝึกงาน (ยังไม่ใช้งาน)',
+        text: 'มีสิทธิ์ฝึกงาน (ยังไม่ได้ลงทะเบียน)',
         icon: <ClockCircleOutlined />,
-        tooltip: 'มีสิทธิ์แล้ว แต่ยังไม่ได้ลงทะเบียนใช้งาน'
+        tooltip: 'มีสิทธิ์ฝึกงานแล้ว แต่ยังไม่ได้ลงทะเบียน'
       };
     }
   };
