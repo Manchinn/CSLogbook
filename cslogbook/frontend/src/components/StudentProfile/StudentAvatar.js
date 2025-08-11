@@ -52,9 +52,9 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
       return null;
     }
 
-    // ถ้าลงทะเบียนแล้ว ตรวจสอบสถานะ
-    if (isEnrolled === true) {
-      console.log('✅ Student is enrolled - checking status:', status);
+    // ตรวจสอบสถานะการฝึกงานก่อน (ให้ความสำคัญกับ status มากกว่า isEnrolled)
+    if (status && status !== 'not_started') {
+      console.log('✅ Student has internship status - showing based on status:', status);
       if (status === 'completed') {
         return {
           color: 'green',
@@ -81,12 +81,12 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
         };
       }
     } else {
-      // มีสิทธิ์แต่ยังไม่ได้ลงทะเบียน
-      console.log('✅ Eligible but not enrolled - showing GOLD tag');
+      // ไม่มีสถานะหรือเป็น not_started แต่มีสิทธิ์ฝึกงาน
+      console.log('✅ Eligible but no internship status - showing GOLD tag');
       console.log('📋 Final tag data:', {
-        condition: 'isEligible === true && isEnrolled !== true',
+        condition: 'isEligible === true && (no status or status === not_started)',
         isEligible,
-        isEnrolled,
+        status,
         willShowTag: true
       });
       return {
