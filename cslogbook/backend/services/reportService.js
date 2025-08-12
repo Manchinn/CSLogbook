@@ -185,4 +185,57 @@ module.exports = {
 
     return { academicYear, advisors };
   }
+  ,
+  /**
+   * สรุปสถานะการฝึกงานของนักศึกษา (heuristic)
+   * - started: มีเอกสารฝึกงาน (document_type='internship' และ status != 'draft') หรือมี logbook อย่างน้อย 1
+   * - completed: เอกสารฝึกงานสถานะ completed
+   * - inProgress: started - completed
+   * - notStarted: totalStudents - started
+   * TODO: รองรับ filter ตามปีการศึกษาเมื่อ schema มี (เช่น Student.academicYear หรือ InternshipDocument.academicYear)
+   */
+  async getInternshipStudentSummary({ year }) {
+    const academicYear = resolveYear(year);
+    const { Student, Document, InternshipLogbook, sequelize } = db;
+
+    const totalStudents = await Student.count();
+
+    // นักศึกษาที่มีเอกสารฝึกงาน (ไม่นับ draft)
+    const docRows = await Document.findAll({
+      attributes: ['user_id'],
+      where: { document_type: 'internship', status: { [Op.ne]: 'draft' } },
+      group: ['user_id'],
+      raw: true
+    });
+    const docUserIds = new Set(docRows.map(r => r.user_id));
+
+    // นักศึกษาที่มี logbook อย่างน้อย 1
+    const logRows = await InternshipLogbook.findAll({
+      attributes: ['student_id'],
+      group: ['student_id'],
+      raw: true
+    });
+    // map student_id -> user_id ผ่าน Student fetch (เฉพาะที่ยังไม่มีใน set เพื่อประหยัด)
+    const studentIdsMissing = logRows.map(r => r.student_id);
+    let additionalUserIds = [];
+    if (studentIdsMissing.length) {
+      const students = await Student.findAll({ where: { studentId: studentIdsMissing }, attributes: ['studentId', 'user_id'], raw: true });
+      additionalUserIds = students.map(s => s.user_id);
+    }
+    additionalUserIds.forEach(uid => docUserIds.add(uid));
+
+    // Completed
+    const completedRows = await Document.findAll({
+      attributes: ['user_id'],
+      where: { document_type: 'internship', status: 'completed' },
+      group: ['user_id'],
+      raw: true
+    });
+    const completed = completedRows.length;
+    const started = docUserIds.size;
+    const inProgress = Math.max(0, started - completed);
+    const notStarted = Math.max(0, totalStudents - started);
+
+    return { academicYear, totalStudents, started, completed, inProgress, notStarted };
+  }
 };

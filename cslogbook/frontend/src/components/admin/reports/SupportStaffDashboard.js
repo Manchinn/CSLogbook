@@ -1,10 +1,10 @@
 // รีแฟกเตอร์: แยก data fetching (hook) + chart configs + constants เพื่อลดความซับซ้อนของ component นี้
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, Row, Col, Typography, Select, Space, Table, Tabs, Skeleton, Alert } from 'antd';
 import { Line, Pie } from '@ant-design/plots';
 import { useSupportStaffReports } from './hooks/useSupportStaffReports';
 import { buildWeeklyLineConfig, buildProposalPieConfig } from './charts/configs';
-import { academicYearOptions, kpiExtractors } from './constants';
+import { academicYearOptions } from './constants';
 
 const { Title } = Typography;
 
@@ -25,9 +25,6 @@ const SupportStaffDashboard = () => {
     advisorLoad,
     projectStatus
   } = useSupportStaffReports(currentAcademicYear());
-
-  // KPI cards
-  const kpiItems = useMemo(() => overview ? kpiExtractors(overview) : [], [overview]);
 
   // Table data
   const logbookTableData = (logbookCompliance?.weeklyTrend || []).map(w => ({ key: w.week, week: w.week, onTime: w.onTime, late: w.late, missing: w.missing }));
@@ -60,57 +57,95 @@ const SupportStaffDashboard = () => {
 
       {error && <Alert type="error" message={error.message || 'โหลดข้อมูลไม่สำเร็จ'} />}
 
-      <Row gutter={[16,16]}>
-        {kpiItems.map((item, idx) => (
-          <Col xs={12} md={6} key={idx}>
-            <Card loading={loading}>
-              <Space direction="vertical" size={0}>
-                <span style={{color:'#888'}}>{item.title}</span>
-                <span style={{fontSize:24,fontWeight:600}}>{item.value}</span>
-                {item.extra && <span style={{color:'#999',fontSize:12}}>{item.extra}</span>}
-              </Space>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-
       <Tabs
-        defaultActiveKey="overview"
+        defaultActiveKey="internship"
         items={[
           {
-            key: 'overview',
-            label: 'Overview',
+            key: 'internship',
+            label: 'Internship',
             children: (
-              <Row gutter={[16,16]}>
-                <Col xs={24} md={12}>
-                  <Card title="Logbook Trend (Weekly)" size="small" bodyStyle={{padding:12}}>
-                    {loading ? <Skeleton active /> : <Line {...buildWeeklyLineConfig(logbookCompliance?.weeklyTrend || [])} />}
-                  </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Card title="Project Proposal Status" size="small" bodyStyle={{padding:12}}>
-                    {loading ? <Skeleton active /> : <Pie {...buildProposalPieConfig(projectStatus?.proposal)} />}
-                  </Card>
-                </Col>
-                <Col span={24}>
-                  <Card title="Weekly Logbook Table" size="small">
-                    <Table
-                      size="small"
-                      loading={loading}
-                      dataSource={logbookTableData}
-                      columns={weekColumns}
-                      pagination={false}
-                    />
-                  </Card>
-                </Col>
-              </Row>
+              <Space direction="vertical" style={{width:'100%'}} size="large">
+                {/* KPI เฉพาะฝึกงาน */}
+                <Row gutter={[16,16]}>
+                  {(() => {
+                    const rate = logbookCompliance?.rate;
+                    const trend = logbookCompliance?.weeklyTrend || [];
+                    const totalEntries = trend.reduce((s,w)=>s+w.onTime+w.late+w.missing,0);
+                    const internshipKPIs = [
+                      { title:'On Time %', value: rate ? rate.onTimePct + '%' : '-' },
+                      { title:'Late %', value: rate ? rate.latePct + '%' : '-' },
+                      { title:'Missing %', value: rate ? rate.missingPct + '%' : '-' },
+                      { title:'Log Entries', value: totalEntries }
+                    ];
+                    return internshipKPIs.map((k,i)=>(
+                      <Col xs={12} md={6} key={i}>
+                        <Card loading={loading}><Space direction="vertical" size={0}><span style={{color:'#888'}}>{k.title}</span><span style={{fontSize:22,fontWeight:600}}>{k.value}</span></Space></Card>
+                      </Col>
+                    ));
+                  })()}
+                </Row>
+                <Row gutter={[16,16]}>
+                  <Col xs={24} md={14}>
+                    <Card title="Logbook Trend (Weekly)" size="small" bodyStyle={{padding:12}}>
+                      {loading ? <Skeleton active /> : <Line {...buildWeeklyLineConfig(logbookCompliance?.weeklyTrend || [])} />}
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={10}>
+                    <Card title="Weekly Logbook Table" size="small">
+                      <Table size="small" loading={loading} dataSource={logbookTableData} columns={weekColumns} pagination={false} />
+                    </Card>
+                  </Col>
+                </Row>
+              </Space>
+            )
+          },
+          {
+            key: 'project',
+            label: 'Project',
+            children: (
+              <Space direction="vertical" style={{width:'100%'}} size="large">
+                <Row gutter={[16,16]}>
+                  {(() => {
+                    const proposal = projectStatus?.proposal || {};
+                    const projectKPIs = [
+                      { title:'Projects', value: overview?.projectCount ?? '-' },
+                      { title:'Submitted', value: proposal.submitted ?? 0 },
+                      { title:'Approved', value: proposal.approved ?? 0 },
+                      { title:'Rejected', value: proposal.rejected ?? 0 }
+                    ];
+                    return projectKPIs.map((k,i)=>(
+                      <Col xs={12} md={6} key={i}>
+                        <Card loading={loading}><Space direction="vertical" size={0}><span style={{color:'#888'}}>{k.title}</span><span style={{fontSize:22,fontWeight:600}}>{k.value}</span></Space></Card>
+                      </Col>
+                    ));
+                  })()}
+                </Row>
+                <Row gutter={[16,16]}>
+                  <Col xs={24} md={12}>
+                    <Card title="Project Proposal Status" size="small" bodyStyle={{padding:12}}>
+                      {loading ? <Skeleton active /> : <Pie {...buildProposalPieConfig(projectStatus?.proposal)} />}
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card title="Advisor Summary" size="small">
+                      <Table
+                        size="small"
+                        loading={loading}
+                        dataSource={advisorData.slice(0,8)}
+                        columns={advisorColumns}
+                        pagination={false}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              </Space>
             )
           },
           {
             key: 'advisor',
             label: 'Advisor Load',
             children: (
-              <Card size="small" title="Advisor Workload">
+              <Card size="small" title="Advisor Workload (All)">
                 <Table size="small" loading={loading} dataSource={advisorData} columns={advisorColumns} pagination={{pageSize:10}} />
               </Card>
             )

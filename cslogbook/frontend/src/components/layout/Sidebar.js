@@ -1,19 +1,9 @@
-// filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src\components\layout\Sidebar.js
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Layout,
-  Menu,
-  Avatar,
-  Typography,
-  Badge,
-  message,
-  Tooltip,
-} from "antd";
+import { Layout, Menu, Avatar, Typography, Tooltip, message, Badge } from "antd";
 import {
   HomeOutlined,
   TeamOutlined,
   FileTextOutlined,
-  ProjectOutlined,
   FormOutlined,
   BookOutlined,
   FileDoneOutlined,
@@ -23,6 +13,8 @@ import {
   UploadOutlined,
   SettingOutlined,
   FileProtectOutlined,
+  ProjectOutlined,
+  BarChartOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -67,11 +59,11 @@ const MenuItemWithTooltip = ({ item, disabled, title }) => {
 const Sidebar = ({ inDrawer, onMenuClick }) => {
   // In drawer mode, we don't need collapsed state
   const [collapsed] = useState(inDrawer ? false : false);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate] = useState(new Date()); // setLastUpdate removed (not used)
   const navigate = useNavigate();
   const location = useLocation();
   const { userData, logout } = useAuth();
-  const [studentData, setStudentData] = useState(null);
+  // const [studentData, setStudentData] = useState(null); // removed unused state
 
   // ใช้ StudentEligibilityContext แทน useStudentPermissions
   const {
@@ -161,7 +153,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             userData.studentCode
           );
           if (response.success) {
-            setStudentData(response.student);
+            // setStudentData(response.student); // no longer stored locally
             // setLastUpdate(new Date()); // อาจจะไม่จำเป็นแล้วถ้าใช้ lastUpdated จาก context
           }
         } catch (error) {
@@ -399,6 +391,16 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               ],
             },
             {
+              key: "reports",
+              icon: <BarChartOutlined />,
+              label: "รายงาน",
+              children: [
+                { key: "/admin/reports/support", label: "Dashboard รวม" },
+                { key: "/admin/reports/internship", label: "Internship Report" },
+                { key: "/admin/reports/project", label: "Project Report" },
+              ],
+            },
+            {
               key: "/admin/upload",
               icon: <UploadOutlined />,
               label: "อัปโหลดรายชื่อนักศึกษา",
@@ -472,6 +474,16 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                   key: "/admin/documents/project",
                   label: "เอกสารโครงงานพิเศษ",
                 },
+              ],
+            },
+            {
+              key: "reports",
+              icon: <BarChartOutlined />,
+              label: "รายงาน",
+              children: [
+                { key: "/admin/reports/support", label: "Dashboard รวม" },
+                { key: "/admin/reports/internship", label: "Internship Report" },
+                { key: "/admin/reports/project", label: "Project Report" },
               ],
             },
             {

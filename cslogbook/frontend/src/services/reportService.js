@@ -25,3 +25,9 @@ export async function getAdvisorLoad(params = {}) {
   const res = await apiClient.get(`/reports/projects/advisor-load`, { params: { year } });
   return res.data.data;
 }
+
+export async function getInternshipStudentSummary(params = {}) {
+  const { year } = params;
+  const res = await apiClient.get(`/reports/internships/student-summary`, { params: { year } });
+  return res.data.data;
+}

@@ -16,19 +16,30 @@ const currentAcademicYear = () => {
 };
 
 const InternshipReport = () => {
-	const { year, setYear, loading, error, logbookCompliance } = useInternshipReport(currentAcademicYear());
+		const { year, setYear, loading, error, logbookCompliance, internshipSummary } = useInternshipReport(currentAcademicYear());
 
-	const kpis = useMemo(() => {
-		if (!logbookCompliance) return [];
-		const { rate, weeklyTrend } = logbookCompliance;
-		const totalEntries = weeklyTrend.reduce((s,w)=> s + w.onTime + w.late + w.missing, 0);
-		return [
-			{ title:'On Time %', value: rate.onTimePct + '%' },
-			{ title:'Late %', value: rate.latePct + '%' },
-			{ title:'Missing %', value: rate.missingPct + '%' },
-			{ title:'รวม Log Entries', value: totalEntries }
-		];
-	}, [logbookCompliance]);
+		const kpis = useMemo(() => {
+			if (!logbookCompliance) return [];
+			const { rate, weeklyTrend } = logbookCompliance;
+			const totalEntries = weeklyTrend.reduce((s,w)=> s + w.onTime + w.late + w.missing, 0);
+			return [
+				{ title:'On Time %', value: rate.onTimePct + '%' },
+				{ title:'Late %', value: rate.latePct + '%' },
+				{ title:'Missing %', value: rate.missingPct + '%' },
+				{ title:'รวม Log Entries', value: totalEntries }
+			];
+		}, [logbookCompliance]);
+
+		const summaryKpis = useMemo(() => {
+			if(!internshipSummary) return [];
+			return [
+				{ title:'นักศึกษาทั้งหมด', value: internshipSummary.totalStudents },
+				{ title:'เริ่มฝึกงาน', value: internshipSummary.started },
+				{ title:'สำเร็จ', value: internshipSummary.completed },
+				{ title:'กำลังฝึกงาน', value: internshipSummary.inProgress },
+				{ title:'ยังไม่เริ่ม', value: internshipSummary.notStarted }
+			];
+		}, [internshipSummary]);
 
 	const yearOptions = academicYearOptions(year);
 
@@ -46,7 +57,20 @@ const InternshipReport = () => {
 
 			{error && <Alert type="error" message={error.message||'โหลดข้อมูลไม่สำเร็จ'} />}
 
-			<Row gutter={[16,16]}>
+					<Row gutter={[16,16]}>
+						{summaryKpis.map((k,i)=>(
+							<Col xs={12} md={4} key={i}>
+								<Card loading={loading}>
+									<Space direction="vertical" size={0}>
+										<span style={{color:'#888'}}>{k.title}</span>
+										<span style={{fontSize:22,fontWeight:600}}>{k.value}</span>
+									</Space>
+								</Card>
+							</Col>
+						))}
+					</Row>
+
+					<Row gutter={[16,16]}>
 				{kpis.map((k,i)=>(
 					<Col xs={12} md={6} key={i}>
 						<Card loading={loading}>
