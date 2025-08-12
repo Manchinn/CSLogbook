@@ -11,11 +11,11 @@ const notificationSettingsController = require('../controllers/notificationSetti
 // เพิ่ม import controller ใหม่สำหรับ workflow step definitions
 const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
 const importantDeadlineController = require('../controllers/importantDeadlineController');
-const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
+const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
-// Middleware for admin routes
-const adminAuth = [authenticateToken, checkRole(['admin'])];
+// Middleware for admin routes - รองรับทั้ง admin และ teacher support
+const adminAuth = [authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support'])];
 
 // Main dashboard stats
 router.get('/stats', adminAuth, async (req, res, next) => {

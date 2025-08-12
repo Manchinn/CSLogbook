@@ -5,7 +5,7 @@ const path = require('path');
 const notificationSettingsService = require('../services/notificationSettingsService');
 const logger = require('./logger');
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY );
 
 // ฟังก์ชันสำหรับอ่าน HTML template และแทนที่ตัวแปร
 function loadTemplate(templateName, variables = {}) {

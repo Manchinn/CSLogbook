@@ -3,10 +3,15 @@ const router = express.Router();
 const multer = require("multer");
 const { upload } = require("../../config/uploadConfig");
 const { Document } = require("../../models");
+const cp05ApprovalController = require("../../controllers/documents/cp05ApprovalController");
+const acceptanceApprovalController = require("../../controllers/documents/acceptanceApprovalController");
+const documentController = require("../../controllers/documents/documentController");
 const internshipController = require("../../controllers/documents/internshipController");
 const {
   authenticateToken,
   checkRole,
+  checkTeacherType,
+  checkTeacherPosition,
 } = require("../../middleware/authMiddleware");
 
 // ============= เส้นทางสำหรับข้อมูลนักศึกษา =============
@@ -275,3 +280,84 @@ router.patch(
 );
 
 module.exports = router;
+
+// ============= เส้นทางสำหรับการอนุมัติ คพ.05 (CP.05 Approval Flow) =============
+// หัวหน้าภาค: ดึงคิวเอกสาร CS05 ที่รออนุมัติ
+router.get(
+  "/cs-05/head/queue",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  cp05ApprovalController.listForHead
+);
+
+// เจ้าหน้าที่ภาค (support) ตรวจสอบ
+router.post(
+  "/cs-05/:id/review",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherType(["support"]),
+  cp05ApprovalController.reviewByStaff
+);
+
+// หัวหน้าภาค อนุมัติ
+router.post(
+  "/cs-05/:id/approve",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  cp05ApprovalController.approveByHead
+);
+
+// ปฏิเสธ (เจ้าหน้าที่หรือหัวหน้าภาค)
+router.post(
+  "/cs-05/:id/reject",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  cp05ApprovalController.reject
+);
+
+// หัวหน้าภาค: เปิดดูไฟล์ PDF ของเอกสาร CS05 โดยตรง (เหมือนฝั่งเจ้าหน้าที่)
+router.get(
+  "/cs-05/:id/view",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  documentController.viewDocument
+);
+
+// ============= เส้นทางสำหรับการอนุมัติ Acceptance Letter (แบบสองขั้น) =============
+// หัวหน้าภาค: คิว Acceptance Letter ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
+router.get(
+  "/acceptance/head/queue",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  acceptanceApprovalController.listForHead
+);
+
+// เจ้าหน้าที่ภาคตรวจและส่งต่อ Acceptance Letter
+router.post(
+  "/acceptance/:id/review",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherType(["support"]),
+  acceptanceApprovalController.reviewByStaff
+);
+
+// หัวหน้าภาคอนุมัติ Acceptance Letter
+router.post(
+  "/acceptance/:id/approve",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  acceptanceApprovalController.approveByHead
+);
+
+// ปฏิเสธ Acceptance Letter
+router.post(
+  "/acceptance/:id/reject",
+  authenticateToken,
+  checkRole(["teacher", "admin"]),
+  acceptanceApprovalController.reject
+);

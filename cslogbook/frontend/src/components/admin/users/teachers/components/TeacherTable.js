@@ -29,6 +29,13 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       width: 180,
     },
     {
+      title: "ตำแหน่ง",
+      dataIndex: "position",
+      key: "position",
+      width: 200,
+      render: (text) => text || "-"
+    },
+    {
       title: "อีเมล",
       dataIndex: "email",
       key: "email",
@@ -39,12 +46,6 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       dataIndex: "contactExtension",
       key: "contactExtension",
       width: 120,
-    },
-    {
-      title: "ภาควิชา",
-      dataIndex: "department",
-      key: "department",
-      width: 150,
     },
     {
       title: "จัดการ",

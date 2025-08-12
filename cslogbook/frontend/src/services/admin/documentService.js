@@ -46,6 +46,17 @@ export const documentService = {
     }
   },
 
+  // อัปเดตสถานะเอกสารแบบยืดหยุ่น (ใช้เพื่อ set reviewerId เวลาเจ้าหน้าที่ภาค "ตรวจและส่งต่อ" เอกสารที่ไม่ใช่ CS05)
+  updateStatus: async (documentId, status, comment = null) => {
+    try {
+      const response = await apiClient.patch(`/admin/documents/${documentId}/status`, { status, comment });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating document status:', error);
+      throw error;
+    }
+  },
+
   // เพิ่มฟังก์ชันสำหรับปฏิเสธเอกสาร
   rejectDocument: async (documentId) => {
     try {

@@ -1,0 +1,12 @@
+{"level":30,"time":1754758010766,"pid":36464,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1754758010767,"pid":36464,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1754758257916,"pid":28028,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1754758257916,"pid":28028,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1754758887952,"pid":26444,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1754758887953,"pid":26444,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1754850328282,"pid":37416,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1754850328282,"pid":37416,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1754907498902,"pid":6848,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1754907498902,"pid":6848,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1754916734218,"pid":12868,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1754916734219,"pid":12868,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}

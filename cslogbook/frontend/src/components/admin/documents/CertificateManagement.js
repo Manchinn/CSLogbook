@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, message, 
-  Row, Col, Card, Typography, Tooltip, Popconfirm 
+  Row, Col, Card, Typography, Tooltip, Drawer, Select
 } from 'antd';
 import {
   CheckCircleOutlined, CloseCircleOutlined, DownloadOutlined,
-  EyeOutlined, BellOutlined, FileTextOutlined
+  EyeOutlined, BellOutlined, FileTextOutlined, FileExclamationOutlined, FileDoneOutlined
 } from '@ant-design/icons';
 import certificateService from '../../../services/certificateService'; // ✅ ใช้ service ใหม่
+import dayjs from '../../../utils/dayjs';
+import { DATE_TIME_FORMAT } from '../../../utils/constants';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const CertificateManagement = () => {
   const [certificateRequests, setCertificateRequests] = useState([]);
@@ -19,6 +21,10 @@ const CertificateManagement = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [actionType, setActionType] = useState(''); // 'approve' หรือ 'reject'
   const [form] = Form.useForm();
+  // ฟิลเตอร์แบบคอมแพค
+  const [filters, setFilters] = useState({ q: '', status: 'all', term: 'all', classYear: 'all' });
+  // Drawer แสดงรายละเอียดนักศึกษา
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // ดึงรายการคำขอหนังสือรับรอง
   const fetchCertificateRequests = useCallback(async () => {
@@ -141,7 +147,7 @@ const CertificateManagement = () => {
       dataIndex: 'requestDate',
       key: 'requestDate',
       width: 120,
-      render: (date) => new Date(date).toLocaleDateString('th-TH'),
+  render: (date) => (date ? dayjs(date).format(DATE_TIME_FORMAT) : '-'),
     },
     {
       title: 'ชั่วโมงฝึกงาน',
@@ -178,6 +184,13 @@ const CertificateManagement = () => {
       width: 200,
       render: (_, record) => (
         <Space size="small">
+          <Tooltip title="ดูรายละเอียด">
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => { setSelectedRequest(record); setDetailOpen(true); }}
+            />
+          </Tooltip>
           {record.status === 'pending' && (
             <>
               <Tooltip title="อนุมัติ">
@@ -238,30 +251,170 @@ const CertificateManagement = () => {
     },
   ];
 
+  // คำนวณสถิติจำนวนคำขอแต่ละสถานะ เพื่อแสดงบนการ์ดด้านบน
+  const statistics = useMemo(() => {
+    const total = (certificateRequests || []).length;
+    let pending = 0, approved = 0, rejected = 0;
+    (certificateRequests || []).forEach(r => {
+      if (r.status === 'pending') pending += 1;
+      else if (r.status === 'approved') approved += 1;
+      else if (r.status === 'rejected') rejected += 1;
+    });
+    return { total, pending, approved, rejected };
+  }, [certificateRequests]);
+
+  // ช่วยคำนวณภาค/ปี และชั้นปีเพื่อใช้กรอง
+  const computeAcademic = (dt) => {
+    if (!dt) return { yearBE: null, semester: null };
+    const d = dayjs(dt);
+    if (!d.isValid()) return { yearBE: null, semester: null };
+    const m = d.month() + 1; // 1..12
+    if (m >= 8 && m <= 12) return { yearBE: d.year() + 543, semester: 1 };
+    if (m >= 1 && m <= 5) return { yearBE: d.year() + 542, semester: 2 };
+    return { yearBE: d.year() + 542, semester: 2 };
+  };
+
+  const getEntryYearBEFromCode = (studentCode) => {
+    if (!studentCode) return null;
+    const two = String(studentCode).slice(0, 2);
+    const n = parseInt(two, 10);
+    if (Number.isNaN(n)) return null;
+    return 2500 + n; // 64 -> 2564
+  };
+
+  // ตัวเลือกภาค/ปี (term) เช่น "1/2567"
+  const termOptions = useMemo(() => {
+    const terms = new Set();
+    (certificateRequests || []).forEach((r) => {
+      const d = r.requestDate || r.createdAt;
+      if (!d) return;
+      const m = dayjs(d).month() + 1;
+      let semester;
+      let yearBE;
+      if (m >= 8 && m <= 12) { semester = 1; yearBE = dayjs(d).year() + 543; }
+      else { semester = 2; yearBE = dayjs(d).year() + 542; }
+      terms.add(`${semester}/${yearBE}`);
+    });
+    return Array.from(terms).filter(Boolean).sort((a, b) => {
+      const [sa, ya] = String(a).split('/').map(Number);
+      const [sb, yb] = String(b).split('/').map(Number);
+      if (yb !== ya) return yb - ya;
+      return sb - sa;
+    }).map((t) => ({ label: t, value: t }));
+  }, [certificateRequests]);
+
+  // กรองข้อมูลฝั่ง client
+  const filteredRequests = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    return (certificateRequests || []).filter((r) => {
+      const name = (r.student?.fullName || '').toLowerCase();
+      const code = (r.student?.studentCode || '').toLowerCase();
+      const company = (r.companyName || '').toLowerCase(); // เผื่ออนาคตมี
+      const matchQ = !q || name.includes(q) || code.includes(q) || company.includes(q);
+
+      const matchStatus = filters.status === 'all' ? true : r.status === filters.status;
+
+      const baseDate = r.requestDate || r.createdAt || null;
+      const { yearBE, semester } = computeAcademic(baseDate);
+      const thisTerm = (semester && yearBE) ? `${semester}/${yearBE}` : null;
+      const matchTerm = filters.term === 'all' || (thisTerm && thisTerm === filters.term);
+
+      const entryBE = getEntryYearBEFromCode(r.student?.studentCode);
+      const classYear = (entryBE && yearBE) ? (yearBE - entryBE + 1) : null;
+      const matchClass = filters.classYear === 'all' || (classYear && String(classYear) === String(filters.classYear));
+
+      return matchQ && matchStatus && matchTerm && matchClass;
+    });
+  }, [certificateRequests, filters]);
+
   return (
     <div style={{ padding: 24 }}>
       <Card>
-        <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+        {/* ส่วนแสดงสถิติ */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col>
-            <Title level={4}>
-              <FileTextOutlined style={{ marginRight: 8 }} />
-              จัดการหนังสือรับรองการฝึกงาน
-            </Title>
+            <Space size="large">
+              <Space>
+                <FileTextOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                <Text>เอกสารทั้งหมด: {statistics.total}</Text>
+              </Space>
+              <Space>
+                <FileExclamationOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+                <Text>รอดำเนินการ: {statistics.pending}</Text>
+              </Space>
+              <Space>
+                <FileDoneOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+                <Text>อนุมัติแล้ว: {statistics.approved}</Text>
+              </Space>
+              <Space>
+                <CloseCircleOutlined style={{ fontSize: 24, color: '#f5222d' }} />
+                <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
+              </Space>
+            </Space>
+          </Col>
+        </Row>
+        <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+          <Col flex="auto">
+            <Input
+              placeholder="ค้นหา ชื่อ/รหัส/บริษัท"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              allowClear
+              style={{ maxWidth: 320 }}
+            />
           </Col>
           <Col>
-            <Button 
-              type="primary" 
-              onClick={fetchCertificateRequests}
-              loading={loading}
-            >
-              รีเฟรช
-            </Button>
+            <Space size="small" wrap>
+              <Select
+                size="small"
+                style={{ width: 160 }}
+                placeholder="สถานะ"
+                options={[
+                  { label: 'ทั้งหมด', value: 'all' },
+                  { label: 'รอดำเนินการ', value: 'pending' },
+                  { label: 'อนุมัติแล้ว', value: 'approved' },
+                  { label: 'ปฏิเสธ', value: 'rejected' },
+                ]}
+                value={filters.status}
+                onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+                allowClear
+              />
+              <Select
+                size="small"
+                style={{ width: 140 }}
+                placeholder="ภาค/ปี"
+                options={[{ label: 'ทุกภาค/ปี', value: 'all' }, ...termOptions]}
+                value={filters.term}
+                onChange={(v) => setFilters((f) => ({ ...f, term: v }))}
+                allowClear
+              />
+              <Select
+                size="small"
+                style={{ width: 120 }}
+                placeholder="ชั้นปี"
+                options={[
+                  { label: 'ทุกชั้นปี', value: 'all' },
+                  { label: 'ปี 3', value: '3' },
+                  { label: 'ปี 4', value: '4' },
+                ]}
+                value={filters.classYear}
+                onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
+                allowClear
+              />
+              <Button 
+                type="primary" 
+                onClick={fetchCertificateRequests}
+                loading={loading}
+              >
+                รีเฟรช
+              </Button>
+            </Space>
           </Col>
         </Row>
 
         <Table
           columns={columns}
-          dataSource={certificateRequests}
+          dataSource={filteredRequests}
           loading={loading}
           rowKey="id"
           pagination={{
@@ -326,6 +479,53 @@ const CertificateManagement = () => {
           </div>
         )}
       </Modal>
+
+      {/* Drawer แสดงรายละเอียดนักศึกษาให้เจ้าหน้าที่ภาคดู */}
+      <Drawer
+        title="รายละเอียดนักศึกษา"
+        width={480}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        destroyOnHidden
+      >
+        {selectedRequest ? (
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Card size="small">
+              <Row gutter={[8, 8]}>
+                <Col span={12}><strong>ชื่อ-นามสกุล:</strong></Col>
+                <Col span={12}>{selectedRequest.student?.fullName || '-'}</Col>
+                <Col span={12}><strong>รหัสนักศึกษา:</strong></Col>
+                <Col span={12}>{selectedRequest.student?.studentCode || '-'}</Col>
+                <Col span={12}><strong>อีเมล:</strong></Col>
+                <Col span={12}>{selectedRequest.student?.email || '-'}</Col>
+                <Col span={12}><strong>เบอร์โทร:</strong></Col>
+                <Col span={12}>{selectedRequest.student?.phone || '-'}</Col>
+                <Col span={12}><strong>ชั้นปี (คำนวณ):</strong></Col>
+                <Col span={12}>{(() => {
+                  const d = selectedRequest.requestDate || selectedRequest.createdAt;
+                  const { yearBE } = computeAcademic(d);
+                  const entryBE = getEntryYearBEFromCode(selectedRequest.student?.studentCode);
+                  const cy = (entryBE && yearBE) ? (yearBE - entryBE + 1) : null;
+                  return cy ? `ปี ${cy}` : '-';
+                })()}</Col>
+              </Row>
+            </Card>
+            <Card size="small" title="ข้อมูลคำขอ">
+              <Row gutter={[8,8]}>
+                <Col span={12}><strong>วันที่ขอ:</strong></Col>
+                <Col span={12}>{selectedRequest.requestDate ? new Date(selectedRequest.requestDate).toLocaleDateString('th-TH') : '-'}</Col>
+                <Col span={12}><strong>สถานะ:</strong></Col>
+                <Col span={12}>{selectedRequest.status}</Col>
+                <Col span={12}><strong>ชั่วโมงฝึกงาน:</strong></Col>
+                <Col span={12}>{selectedRequest.totalHours} ชม.</Col>
+                <Col span={12}><strong>หมายเลขหนังสือ:</strong></Col>
+                <Col span={12}>{selectedRequest.certificateNumber || '-'}</Col>
+              </Row>
+            </Card>
+            {/* พื้นที่สำหรับข้อมูลเพิ่มเติม เช่น บริษัท/ช่วงฝึก/ที่ปรึกษา หาก backend ส่งมา */}
+          </Space>
+        ) : null}
+      </Drawer>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const fs = require('fs');
-const { User, Student, Document, InternshipDocument, StudentWorkflowActivity, Notification } = require('../models');
+const { User, Student, Document, InternshipDocument, StudentWorkflowActivity, Notification, DocumentLog } = require('../models');
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
 const logger = require('../utils/logger');
 class DocumentService {
@@ -70,7 +70,7 @@ class DocumentService {
                         include: [{
                             model: Student,
                             as: 'student',
-                            attributes: ['studentId', 'studentCode', 'studentYear', 'totalCredits', 'majorCredits']
+                            attributes: ['studentId', 'studentCode', 'totalCredits', 'majorCredits']
                         }]
                     });
 
@@ -117,8 +117,8 @@ class DocumentService {
             await document.update({
                 status,
                 comment,
-                reviewedBy: reviewerId,
-                reviewedAt: new Date()
+                reviewerId: reviewerId,
+                reviewDate: new Date()
             });
 
             logger.info(`Document status updated: ${documentId} to ${status} by ${reviewerId}`);
@@ -159,15 +159,17 @@ class DocumentService {
             }
 
             // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-            const documents = await Document.findAll({
+        const documents = await Document.findAll({
                 where: whereCondition,
                 attributes: [
-                    "documentId",
-                    "documentName",
-                    "documentType",
-                    "status",
-                    "created_at",
-                    "updated_at"
+            "documentId",
+            "documentName",
+            "documentType",
+            "status",
+            "reviewerId",
+            "reviewDate",
+            "created_at",
+            "updated_at"
                 ],
                 include: [
                     {
@@ -199,6 +201,8 @@ class DocumentService {
                 created_at: doc.created_at,
                 updated_at: doc.updated_at,
                 status: doc.status,
+                reviewerId: doc.reviewerId || null,
+                reviewDate: doc.reviewDate || null,
             }));
 
             logger.info(`Retrieved ${documents.length} documents with filters:`, filters);
@@ -233,18 +237,46 @@ class DocumentService {
                 throw new Error('ไม่พบเอกสาร');
             }
 
-            // อัปเดตสถานะเอกสาร
+            // ถ้าเป็นเอกสาร CS05: แปลงการ "approve" บน admin route ให้เป็น "review โดยเจ้าหน้าที่ภาค"
+            // เพื่อส่งต่อหัวหน้าภาค (ไม่ตั้ง approved ที่นี่)
+            if (document.documentType === 'INTERNSHIP' && document.documentName === 'CS05') {
+                const prevStatus = document.status;
+                if (!['draft', 'pending'].includes(prevStatus)) {
+                    const err = new Error(`ไม่สามารถตรวจสอบได้ เนื่องจากสถานะปัจจุบันคือ ${prevStatus}`);
+                    err.statusCode = 400;
+                    throw err;
+                }
+
+                await document.update({
+                    status: 'pending',
+                    reviewerId: reviewerId,
+                    reviewDate: new Date()
+                });
+
+                // บันทึก Log การตรวจสอบ
+                try {
+                    await DocumentLog.create({
+                        documentId: document.documentId,
+                        userId: reviewerId,
+                        actionType: 'update',
+                        previousStatus: prevStatus,
+                        newStatus: 'pending',
+                        comment: 'ตรวจสอบโดยเจ้าหน้าที่ภาค (ผ่านหน้าผู้ดูแล)'
+                    });
+                } catch (logErr) {
+                    logger.warn('Unable to create DocumentLog for CS05 review via admin route:', logErr.message);
+                }
+
+                logger.info(`CS05 reviewed by staff via admin route: ${documentId} by ${reviewerId}`);
+                return { message: 'ตรวจสอบเอกสารแล้ว และรอหัวหน้าภาคอนุมัติ' };
+            }
+
+            // อัปเดตสถานะเอกสาร (ทั่วไป)
             await document.update({
                 status: 'approved',
-                reviewedBy: reviewerId,
-                reviewedAt: new Date()
+                reviewerId: reviewerId,
+                reviewDate: new Date()
             });
-
-            // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่
-            if (document.documentType === 'INTERNSHIP' && document.documentName === 'CS05') {
-                logger.info(`Found CS05 document, processing workflow: ${document.id}`);
-                await this.processCS05Approval(document, reviewerId);
-            }
 
             logger.info(`Document approved: ${documentId} by ${reviewerId}`);
             return { message: 'อนุมัติเอกสารเรียบร้อยแล้ว' };
@@ -268,8 +300,8 @@ class DocumentService {
             await document.update({
                 status: 'rejected',
                 comment: reason || 'ไม่ได้ระบุเหตุผล',
-                reviewedBy: reviewerId,
-                reviewedAt: new Date()
+                reviewerId: reviewerId,
+                reviewDate: new Date()
             });
 
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);

@@ -74,20 +74,25 @@ const StudentProfile = () => {
           internshipMessage: eligibility.internship?.message,
           projectMessage: eligibility.project?.message,
           
-          // เพิ่มข้อมูลสำหรับ StudentAvatar
-          isEligibleInternship: eligibility.internship?.eligible || false,
-          isEnrolledInternship: response.data.isEnrolledInternship || false,
-          internshipStatus: response.data.internshipStatus || 'not_started',
+          // เพิ่มข้อมูลสำหรับ StudentAvatar - ใช้ข้อมูลจาก backend โดยตรง
+          isEligibleInternship: response.data.isEligibleInternship,
+          isEnrolledInternship: response.data.isEnrolledInternship,
+          internshipStatus: response.data.internshipStatus,
         });
 
         // Debug log เพื่อตรวจสอบข้อมูลที่ได้รับ
-        console.log('StudentProfile - Data from API:', {
-          responseData: response.data,
-          eligibility,
-          studentData: {
-            isEligibleInternship: eligibility.internship?.eligible || false,
-            isEnrolledInternship: response.data.isEnrolledInternship || false,
-            internshipStatus: response.data.internshipStatus || 'not_started',
+        console.log('🔍 [StudentProfile] Complete API Response Analysis:', {
+          fullResponse: response,
+          directFromAPI: {
+            isEligibleInternship: response.data.isEligibleInternship,
+            isEnrolledInternship: response.data.isEnrolledInternship,
+            internshipStatus: response.data.internshipStatus
+          },
+          eligibilityObject: eligibility,
+          finalStudentData: {
+            isEligibleInternship: response.data.isEligibleInternship,
+            isEnrolledInternship: response.data.isEnrolledInternship,
+            internshipStatus: response.data.internshipStatus
           }
         });
 

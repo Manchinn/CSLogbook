@@ -32,16 +32,25 @@ import AdminUpload from './components/AdminUpload';
 import AdminRoutes from './components/admin/AdminRoutes';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
+import ApproveDocuments from './components/teacher/ApproveDocuments';
 
-const ProtectedRoute = ({ children, roles }) => {
+const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
+  // ตรวจสอบ roles
   if (roles && !roles.includes(userData.role)) {
     return <Navigate to="/dashboard" />;
+  }
+
+  // ตรวจสอบ teacherTypes (สำหรับ teacher role)
+  if (teacherTypes && userData.role === 'teacher') {
+    if (!teacherTypes.includes(userData.teacherType)) {
+      return <Navigate to="/dashboard" />;
+    }
   }
 
   return children;
@@ -155,23 +164,30 @@ const App = () => {
                   </ProtectedRoute>
                 } />
 
-                {/* Admin Routes */}
+                {/* Admin Routes - สำหรับ admin และ teacher support */}
                 <Route path="/students" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                   </ProtectedRoute>
                 } />
                 <Route path="/teachers" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/upload" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminUpload />
                   </ProtectedRoute>
                 } />
 
+                {/* Teacher Academic Routes */}
+                <Route path="/approve-documents" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <ApproveDocuments />
+                  </ProtectedRoute>
+                } />
+
                 <Route path="/admin/*" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminRoutes />
                   </ProtectedRoute>
                 } />
