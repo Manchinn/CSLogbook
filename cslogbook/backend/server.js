@@ -87,6 +87,7 @@ const workflowRoutes = require('./routes/workflowRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม academicRoutes
+const reportRoutes = require('./routes/reportRoutes'); // รายงานใหม่
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
@@ -224,6 +225,7 @@ app.use('/api/internship', internshipRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes); 
+app.use('/api/reports', authenticateToken, reportRoutes); // เส้นทางรายงาน
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

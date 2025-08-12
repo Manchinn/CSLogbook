@@ -30,6 +30,7 @@ const NotificationSettingsPage = lazy(() =>
 const WorkflowStepManagementPage = lazy(() =>
   import("./settings/WorkflowStepsSettingsPage")
 );
+const SupportStaffDashboard = lazy(() => import('./reports/SupportStaffDashboard.js'));
 
 // Loading component
 const LoadingComponent = () => (
@@ -49,6 +50,7 @@ const AdminRoutes = () => {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/reports/support" element={<SupportStaffDashboard />} />
 
               {/* ใช้ DocumentManagement สำหรับจัดการเอกสาร */}
               <Route
