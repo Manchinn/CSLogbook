@@ -238,4 +238,112 @@ module.exports = {
 
     return { academicYear, totalStudents, started, completed, inProgress, notStarted };
   }
+  ,
+  /**
+   * สรุปผลการประเมินฝึกงาน (Internship Evaluation Summary)
+   * NOTE: ยังไม่มีการเก็บ academicYear/semester ในตาราง evaluation -> ตอนนี้นับรวมทั้งหมด แล้วแนบ academicYear ที่ร้องขอ (approximation)
+   * Return:
+   *  - academicYear, semester
+   *  - totalInterns: จำนวนนักศึกษาที่มีบันทึกการฝึกงาน (distinct studentId ใน InternshipDocument หรือ InternshipEvaluation)
+   *  - evaluatedCount: จำนวนนักศึกษาที่มี evaluation (distinct studentId ใน InternshipEvaluation)
+   *  - notEvaluated = totalInterns - evaluatedCount
+   *  - completionPct = evaluatedCount / totalInterns * 100 (1 ทศนิยม)
+   *  - gradeCounts: แจกแจงตามเกรด (ใช้ overallGrade ถ้ามี; ถ้าไม่มี map จาก overallScore)
+   *  - scoreDistribution: bucket ตามคะแนน (>=80,70-79,60-69,50-59,<50)
+   *  - criteriaAverages: ค่าเฉลี่ยแต่ละหัวข้อ q1..q8
+   *  - overallAverage: AVG(overallScore)
+   */
+  async getInternshipEvaluationSummary({ year, semester }) {
+    const academicYear = resolveYear(year);
+    const sem = semester || 1;
+  const { InternshipEvaluation, InternshipLogbook } = db;
+
+  // Distinct interns (approx): ใช้ student_id จาก logbook และ evaluation (union)
+  const logbookStudents = await InternshipLogbook.findAll({ attributes: ['student_id'], group: ['student_id'], raw: true });
+  const evalStudents = await InternshipEvaluation.findAll({ attributes: ['student_id'], group: ['student_id'], raw: true });
+  const studentSet = new Set();
+  logbookStudents.forEach(r => r.student_id && studentSet.add(r.student_id));
+  evalStudents.forEach(r => r.student_id && studentSet.add(r.student_id));
+  const totalInterns = studentSet.size;
+
+    const evaluatedCount = evalStudents.length;
+    const notEvaluated = Math.max(0, totalInterns - evaluatedCount);
+    const completionPct = totalInterns ? +((evaluatedCount * 100) / totalInterns).toFixed(1) : 0;
+
+    // Aggregate averages (ignore null)
+    const agg = await InternshipEvaluation.findAll({
+      attributes: [
+        [fn('AVG', col('q1_knowledge')), 'avgQ1'],
+        [fn('AVG', col('q2_responsibility')), 'avgQ2'],
+        [fn('AVG', col('q3_initiative')), 'avgQ3'],
+        [fn('AVG', col('q4_adaptability')), 'avgQ4'],
+        [fn('AVG', col('q5_problem_solving')), 'avgQ5'],
+        [fn('AVG', col('q6_communication')), 'avgQ6'],
+        [fn('AVG', col('q7_punctuality')), 'avgQ7'],
+        [fn('AVG', col('q8_personality')), 'avgQ8'],
+        [fn('AVG', col('overall_score')), 'avgOverall']
+      ],
+      raw: true
+    });
+    const a = agg[0] || {};
+    const toNum = v => (v == null ? null : +parseFloat(v).toFixed(2));
+    const criteriaAverages = [
+      { key: 'q1Knowledge', label: 'ความรู้พื้นฐาน', avg: toNum(a.avgQ1) },
+      { key: 'q2Responsibility', label: 'ความรับผิดชอบ', avg: toNum(a.avgQ2) },
+      { key: 'q3Initiative', label: 'ความกระตือรือร้น', avg: toNum(a.avgQ3) },
+      { key: 'q4Adaptability', label: 'การปรับตัว', avg: toNum(a.avgQ4) },
+      { key: 'q5ProblemSolving', label: 'แก้ปัญหา', avg: toNum(a.avgQ5) },
+      { key: 'q6Communication', label: 'การสื่อสาร', avg: toNum(a.avgQ6) },
+      { key: 'q7Punctuality', label: 'ตรงต่อเวลา', avg: toNum(a.avgQ7) },
+      { key: 'q8Personality', label: 'บุคลิกภาพ', avg: toNum(a.avgQ8) }
+    ];
+    const overallAverage = toNum(a.avgOverall);
+
+    // ดึงทุก evaluation เพื่อคำนวณ distribution (อาจพิจารณา paginate ถ้าข้อมูลใหญ่)
+    const evaluations = await InternshipEvaluation.findAll({ attributes: ['overall_score', 'overall_grade'], raw: true });
+
+    const gradeCounts = {};
+    const scoreBuckets = { '>=80':0, '70-79':0, '60-69':0, '50-59':0, '<50':0 };
+    evaluations.forEach(ev => {
+      let grade = ev.overall_grade;
+      const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
+      if (!grade && score != null) {
+        // Simple mapping; TODO: ปรับตามเกณฑ์จริงของภาควิชา
+        if (score >= 80) grade = 'A';
+        else if (score >= 75) grade = 'B+';
+        else if (score >= 70) grade = 'B';
+        else if (score >= 65) grade = 'C+';
+        else if (score >= 60) grade = 'C';
+        else if (score >= 55) grade = 'D+';
+        else if (score >= 50) grade = 'D';
+        else grade = 'F';
+      }
+      if (grade) gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+
+      if (score != null) {
+        if (score >= 80) scoreBuckets['>=80']++;
+        else if (score >= 70) scoreBuckets['70-79']++;
+        else if (score >= 60) scoreBuckets['60-69']++;
+        else if (score >= 50) scoreBuckets['50-59']++;
+        else scoreBuckets['<50']++;
+      }
+    });
+
+    const scoreDistribution = Object.entries(scoreBuckets).map(([range,count])=>({ range, count }));
+    const gradeDistribution = Object.entries(gradeCounts).map(([grade,count])=>({ grade, count }));
+
+    return {
+      academicYear,
+      semester: sem,
+      totalInterns,
+      evaluatedCount,
+      notEvaluated,
+      completionPct,
+      criteriaAverages,
+      overallAverage,
+      scoreDistribution,
+      gradeDistribution,
+      gradeCounts
+    };
+  }
 };

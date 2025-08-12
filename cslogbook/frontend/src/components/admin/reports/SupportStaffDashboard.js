@@ -18,12 +18,15 @@ const SupportStaffDashboard = () => {
   const {
     year,
     setYear,
+    semester,
+    setSemester,
     loading,
     error,
     overview,
     logbookCompliance,
     advisorLoad,
-    projectStatus
+    projectStatus,
+    internshipEvaluation
   } = useSupportStaffReports(currentAcademicYear());
 
   // Table data
@@ -51,6 +54,8 @@ const SupportStaffDashboard = () => {
           <Space>
             <span>ปีการศึกษา:</span>
             <Select value={year} style={{ width: 120 }} onChange={setYear} options={yearOptions.map(y => ({ value: y, label: y }))} />
+            <span>ภาคเรียน:</span>
+            <Select value={semester} style={{ width: 90 }} onChange={setSemester} options={[1,2].map(s=>({value:s,label:s}))} />
           </Space>
         </Col>
       </Row>
@@ -65,21 +70,26 @@ const SupportStaffDashboard = () => {
             label: 'Internship',
             children: (
               <Space direction="vertical" style={{width:'100%'}} size="large">
-                {/* KPI เฉพาะฝึกงาน */}
+                {/* KPI ฝึกงาน: สถานะการประเมิน + Logbook */}
                 <Row gutter={[16,16]}>
                   {(() => {
                     const rate = logbookCompliance?.rate;
                     const trend = logbookCompliance?.weeklyTrend || [];
                     const totalEntries = trend.reduce((s,w)=>s+w.onTime+w.late+w.missing,0);
+                    const evalSum = internshipEvaluation;
                     const internshipKPIs = [
+                      { title:'Interns', value: evalSum?.totalInterns ?? '-' },
+                      { title:'Evaluated', value: evalSum?.evaluatedCount ?? '-' },
+                      { title:'Completion %', value: evalSum ? evalSum.completionPct + '%' : '-' },
+                      { title:'Overall Avg', value: evalSum?.overallAverage ?? '-' },
                       { title:'On Time %', value: rate ? rate.onTimePct + '%' : '-' },
                       { title:'Late %', value: rate ? rate.latePct + '%' : '-' },
                       { title:'Missing %', value: rate ? rate.missingPct + '%' : '-' },
                       { title:'Log Entries', value: totalEntries }
                     ];
                     return internshipKPIs.map((k,i)=>(
-                      <Col xs={12} md={6} key={i}>
-                        <Card loading={loading}><Space direction="vertical" size={0}><span style={{color:'#888'}}>{k.title}</span><span style={{fontSize:22,fontWeight:600}}>{k.value}</span></Space></Card>
+                      <Col xs={12} md={6} lg={3} key={i}>
+                        <Card loading={loading} size="small"><Space direction="vertical" size={0}><span style={{color:'#888',fontSize:12}}>{k.title}</span><span style={{fontSize:20,fontWeight:600}}>{k.value}</span></Space></Card>
                       </Col>
                     ));
                   })()}
@@ -91,8 +101,38 @@ const SupportStaffDashboard = () => {
                     </Card>
                   </Col>
                   <Col xs={24} md={10}>
-                    <Card title="Weekly Logbook Table" size="small">
-                      <Table size="small" loading={loading} dataSource={logbookTableData} columns={weekColumns} pagination={false} />
+                    <Space direction="vertical" style={{width:'100%'}} size="large">
+                      <Card title="Weekly Logbook Table" size="small">
+                        <Table size="small" loading={loading} dataSource={logbookTableData} columns={weekColumns} pagination={false} />
+                      </Card>
+                      <Card title="Internship Evaluation Distribution" size="small" bodyStyle={{padding:12}}>
+                        {loading ? <Skeleton active /> : (
+                          <Pie
+                            data={(internshipEvaluation?.gradeDistribution || []).map(d=>({ type:d.grade, value:d.count }))}
+                            angleField="value"
+                            colorField="type"
+                            radius={0.9}
+                            // เอา label inner ออกเพื่อหลีกเลี่ยง error shape.inner
+                            label={false}
+                            legend={{ position:'bottom' }}
+                            tooltip={{ formatter:(datum)=> ({ name: `${datum.type}`, value: datum.value }) }}
+                          />
+                        )}
+                      </Card>
+                    </Space>
+                  </Col>
+                </Row>
+                <Row gutter={[16,16]}>
+                  <Col span={24}>
+                    <Card title="Average Score by Criteria" size="small">
+                      <Table
+                        size="small"
+                        loading={loading}
+                        dataSource={(internshipEvaluation?.criteriaAverages || []).map((c,i)=>({ key:c.key||i, criteria:c.label, average:c.avg }))}
+                        columns={[{title:'หัวข้อ',dataIndex:'criteria'},{title:'เฉลี่ย',dataIndex:'average'}]}
+                        pagination={false}
+                        locale={{emptyText:'No Evaluation Data'}}
+                      />
                     </Card>
                   </Col>
                 </Row>

@@ -31,3 +31,9 @@ export async function getInternshipStudentSummary(params = {}) {
   const res = await apiClient.get(`/reports/internships/student-summary`, { params: { year } });
   return res.data.data;
 }
+
+export async function getInternshipEvaluationSummary(params = {}) {
+  const { year, semester } = params;
+  const res = await apiClient.get(`/reports/internships/evaluations/summary`, { params: { year, semester } });
+  return res.data.data;
+}
