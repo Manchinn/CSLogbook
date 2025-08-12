@@ -77,6 +77,7 @@ const App = () => {
 
                 {/* Student Routes */}
                 <Route path="/student-profile/:id" element={<StudentProfile />} />
+                
 
                 {/* Internship Routes */}
                 <Route path="/internship-registration/cs05" element={

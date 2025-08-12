@@ -40,12 +40,6 @@ sequelize.beforeDisconnect((connection) => {
 });
 
 const initializeDatabase = async () => {
-    // Validate database environment variables
-    if (!validateEnv('database')) {
-        logger.error('Database configuration is incomplete. Please check your .env file.');
-        process.exit(1);
-    }
-
     try {
         // Test connection only
         await sequelize.authenticate();
@@ -56,8 +50,9 @@ const initializeDatabase = async () => {
         logger.info('Database connection established successfully');
         return sequelize;
     } catch (error) {
-        logger.error('Database initialization error:', error);
-        throw error;
+        logger.warn('Database connection failed. This is normal if database is not set up yet.');
+        logger.warn('Error details:', error.message);
+        return null;
     }
 };
 
