@@ -25,6 +25,7 @@ import ProjectSection from "./ProjectSection";
 import StudyStatistics from "./StudyStatistics";
 import ImportantDeadlines from "./ImportantDeadlines";
 import { SearchOutlined } from '@ant-design/icons';
+import { InternshipStatusProvider } from '../../../contexts/InternshipStatusContext';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -203,7 +204,7 @@ const StudentTimeline = () => {
   }
   
   return (
-    <>
+    <InternshipStatusProvider>
       <div className="student-timeline">
         <Row gutter={[16, 16]}>
           <Col span={24}>
@@ -219,66 +220,34 @@ const StudentTimeline = () => {
                   <Space direction="vertical" align="end">
                     <Text strong>
                       {(() => {
-                        let studentYear = null;
-
-                        if (
-                          student &&
-                          student.studentYear &&
-                          typeof student.studentYear === "object" &&
-                          student.studentYear.year
-                        ) {
-                          studentYear = student.studentYear.year;
-                        } else if (
-                          student &&
-                          typeof student.studentYear === "number" &&
-                          student.studentYear > 0
-                        ) {
-                          studentYear = student.studentYear;
-                        } else if (
-                          student &&
-                          typeof student.year === "number" &&
-                          student.year > 0
-                        ) {
-                          studentYear = student.year;
-                        } else if (student && student.studentCode) {
-                          try {
-                            const currentDate = new Date();
-                            const currentYear = currentDate.getFullYear() + 543;
-                            const studentCodePrefix =
-                              student.studentCode.substring(0, 2);
-                            const enrollmentYear =
-                              parseInt(studentCodePrefix) + 2500;
-                            studentYear = currentYear - enrollmentYear + 1;
-
-                            if (studentYear < 1) studentYear = 1;
-                            if (studentYear > 8) studentYear = 8;
-                          } catch (e) {
-                            console.error("Error calculating student year:", e);
-                            studentYear = null;
-                          }
-                        }
-
-                        if (!studentYear) {
+                        let studentYear = student && student.studentYear ? student.studentYear : '-';
+                        if (!studentYear || studentYear === '-') {
                           return "ชั้นปีที่ไม่ระบุ";
                         }
-
-                        const currentDate = new Date();
-                        const currentMonth = currentDate.getMonth() + 1;
-
-                        let semester = "";
-                        if (currentMonth >= 1 && currentMonth <= 5) {
-                          semester = "ภาคเรียนที่ 2";
-                        } else if (currentMonth >= 6 && currentMonth <= 7) {
-                          semester = "ภาคฤดูร้อน";
+                        
+                        // ใช้ข้อมูลภาคการศึกษาและปีการศึกษาจาก backend
+                        let semester = "ภาคการศึกษาไม่ระบุ";
+                        let academicYear = "-";
+                        
+                        if (student && student.academicInfo && !student.academicInfo.error) {
+                          semester = student.academicInfo.semesterName || "ภาคการศึกษาไม่ระบุ";
+                          academicYear = student.academicInfo.academicYear || "-";
                         } else {
-                          semester = "ภาคเรียนที่ 1";
+                          // fallback ไปใช้การคำนวณเดิมถ้าไม่มีข้อมูลจาก backend
+                          const currentDate = new Date();
+                          const currentMonth = currentDate.getMonth() + 1;
+                          if (currentMonth >= 1 && currentMonth <= 5) {
+                            semester = "ภาคเรียนที่ 2";
+                          } else if (currentMonth >= 6 && currentMonth <= 7) {
+                            semester = "ภาคฤดูร้อน";
+                          } else {
+                            semester = "ภาคเรียนที่ 1";
+                          }
+                          const thaiYear = currentDate.getFullYear() + 543;
+                          academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
                         }
-
-                        const thaiYear = currentDate.getFullYear() + 543;
-                        const academicYear =
-                          currentMonth >= 8 ? thaiYear : thaiYear - 1;
-
-                        return `ชั้นปีที่ ${studentYear} (${semester} ปีการศึกษา ${academicYear})`;
+                        
+                        return `ชั้นปีที่ ${studentYear} (${semester} / ${academicYear})`;
                       })()}
                     </Text>
                     <Badge
@@ -363,7 +332,7 @@ const StudentTimeline = () => {
         </Row>
       </div>
       {studentSearchModal}
-    </>
+    </InternshipStatusProvider>
   );
 };
 

@@ -10,6 +10,7 @@ const academacController = require('../controllers/academicController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
 // เพิ่ม import controller ใหม่สำหรับ workflow step definitions
 const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
+const importantDeadlineController = require('../controllers/importantDeadlineController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 
 
@@ -97,46 +98,19 @@ router.put('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionControlle
 router.delete('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionController.deleteStep);
 
 // === เพิ่ม Admin Notification Settings Routes ===
-// ดึงการตั้งค่าการแจ้งเตือนทั้งหมด
 router.get('/notification-settings', adminAuth, notificationSettingsController.getAllNotificationSettings);
-// เปิด/ปิดการแจ้งเตือนประเภทใดประเภทหนึ่ง
 router.put('/notification-settings/toggle', adminAuth, notificationSettingsController.toggleNotification);
-// เปิดการแจ้งเตือนทั้งหมด
 router.put('/notification-settings/enable-all', adminAuth, notificationSettingsController.enableAllNotifications);
-// ปิดการแจ้งเตือนทั้งหมด
 router.put('/notification-settings/disable-all', adminAuth, notificationSettingsController.disableAllNotifications);
-// ดึงสถิติการแจ้งเตือน (optional - สำหรับ dashboard)
-router.get('/notification-settings/stats', adminAuth, async (req, res) => {
-    try {
-        // เรียกใช้ service เพื่อดึงสถิติ
-        const notificationSettingsService = require('../services/notificationSettingsService');
-        const settings = await notificationSettingsService.getAllSettings(false);
-        
-        // คำนวณสถิติ
-        const settingsArray = Object.values(settings);
-        const enabledCount = settingsArray.filter(setting => setting.enabled).length;
-        const totalCount = settingsArray.length;
-        const percentage = totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
-        
-        res.json({
-            success: true,
-            data: {
-                total: totalCount,
-                enabled: enabledCount,
-                disabled: totalCount - enabledCount,
-                percentage,
-                hasEnabled: enabledCount > 0,
-                allEnabled: enabledCount === totalCount,
-                lastUpdated: new Date().toISOString()
-            }
-        });
-    } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการดึงสถิติการแจ้งเตือน:', error);
-        res.status(500).json({
-            success: false,
-            message: 'เกิดข้อผิดพลาดในการดึงสถิติการแจ้งเตือน'
-        });
-    }
-});
+
+// === เพิ่ม Admin Important Deadline Routes ===
+router.get('/important-deadlines', adminAuth, importantDeadlineController.getAll);
+router.post('/important-deadlines', adminAuth, importantDeadlineController.create);
+router.put('/important-deadlines/:id', adminAuth, importantDeadlineController.update);
+router.delete('/important-deadlines/:id', adminAuth, importantDeadlineController.remove);
+
+// === เพิ่ม Admin Eligibility Update Routes ===
+router.post('/eligibility/update-all', adminAuth, adminController.updateAllStudentsEligibility);
+router.post('/eligibility/update/:studentCode', adminAuth, adminController.updateStudentEligibility);
 
 module.exports = router;

@@ -912,6 +912,18 @@ class TemplateDataService {
   }
 
   /**
+   * 🆕 สร้างหมายเลขหนังสือรับรอง
+   * @returns {string} หมายเลขหนังสือรับรอง
+   */
+  generateCertificateNumber() {
+    const year = new Date().getFullYear() + 543; // พ.ศ.
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    const random = Math.floor(Math.random() * 999).toString().padStart(3, "0");
+    
+    return `อว 7105(16)/${month}${year.toString().slice(-2)}-${random}`;
+  }
+
+  /**
    * แปลงสถานะเป็นข้อความ
    * @param {string} status - สถานะ
    */
@@ -1194,6 +1206,90 @@ class TemplateDataService {
       utilsIntegrated: true,
       lastUpdated: new Date().toISOString(),
     };
+  }
+
+  /**
+   * 🆕 เตรียมข้อมูลสำหรับหนังสือรับรองการฝึกงาน
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
+   * @returns {Object} ข้อมูลที่เตรียมแล้วสำหรับ CertificateTemplate
+   */
+  prepareCertificateData(certificateData) {
+    try {
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลหนังสือรับรอง");
+      }
+
+      // เตรียมข้อมูลตามโครงสร้างที่ CertificateTemplate ต้องการ
+      const preparedData = {
+        // ข้อมูลเอกสาร
+        documentInfo: {
+          certificateNumber: certificateData.certificateNumber || this.generateCertificateNumber(),
+          issueDate: certificateData.issueDate || new Date(),
+          documentDate: certificateData.documentDate || new Date(),
+          validityPeriod: "ไม่มีกำหนดหมดอายุ",
+          purpose: certificateData.purpose || "เพื่อใช้เป็นหลักฐานการฝึกงานตามหลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        },
+
+        // ข้อมูลนักศึกษา
+        studentInfo: {
+          studentId: certificateData.studentInfo?.studentId || certificateData.studentId,
+          firstName: certificateData.studentInfo?.firstName || certificateData.firstName,
+          lastName: certificateData.studentInfo?.lastName || certificateData.lastName,
+          fullName: certificateData.studentInfo?.fullName || 
+                   `${certificateData.firstName || ''} ${certificateData.lastName || ''}`.trim(),
+          yearLevel: certificateData.studentInfo?.yearLevel || certificateData.yearLevel,
+          classroom: certificateData.studentInfo?.classroom || certificateData.classroom,
+          department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          faculty: "คณะวิทยาศาสตร์ประยุกต์",
+          university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        },
+
+        // ข้อมูลบริษัทและการฝึกงาน
+        internshipInfo: {
+          companyName: certificateData.companyName || certificateData.internshipInfo?.companyName,
+          companyAddress: certificateData.companyAddress || certificateData.internshipInfo?.companyAddress,
+          startDate: certificateData.startDate || certificateData.internshipInfo?.startDate,
+          endDate: certificateData.endDate || certificateData.internshipInfo?.endDate,
+          totalDays: certificateData.totalDays || certificateData.internshipInfo?.totalDays,
+          totalHours: certificateData.totalHours || certificateData.internshipInfo?.totalHours,
+          supervisorName: certificateData.supervisorName || certificateData.internshipInfo?.supervisorName,
+          supervisorPosition: certificateData.supervisorPosition || certificateData.internshipInfo?.supervisorPosition,
+          supervisorPhone: certificateData.supervisorPhone || certificateData.internshipInfo?.supervisorPhone,
+          supervisorEmail: certificateData.supervisorEmail || certificateData.internshipInfo?.supervisorEmail,
+        },
+
+        // ข้อมูลการประเมิน (ถ้ามี)
+        evaluationInfo: certificateData.evaluationInfo || null,
+
+        // ข้อมูลผู้อนุมัติ
+        approvalInfo: {
+          approvedBy: certificateData.approvedBy || "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
+          approverTitle: certificateData.approverTitle || "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          approvedDate: certificateData.approvedDate || new Date(),
+          departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          facultyName: "คณะวิทยาศาสตร์ประยุกต์",
+          universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        },
+
+        // Metadata สำหรับ PDF
+        metadata: {
+          templateType: "certificate",
+          fileName: `หนังสือรับรองการฝึกงาน-${certificateData.studentInfo?.studentId || certificateData.studentId}`,
+          title: "หนังสือรับรองการฝึกงาน",
+          subject: `หนังสือรับรองการฝึกงาน - ${certificateData.studentInfo?.fullName || certificateData.fullName}`,
+          author: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          keywords: ["หนังสือรับรอง", "การฝึกงาน", "วิทยาการคอมพิวเตอร์"],
+        },
+      };
+
+      console.log("✅ Certificate data prepared successfully");
+      return preparedData;
+
+    } catch (error) {
+      console.error("❌ Error preparing certificate data:", error);
+      throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้: ${error.message}`);
+    }
   }
 }
 

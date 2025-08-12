@@ -37,10 +37,7 @@ export const studentService = {
           majorCredits: apiData.data.majorCredits ,
           classroom: apiData.data.classroom || "",
           phoneNumber: apiData.data.phoneNumber || "",
-          studentYear: apiData.data.eligibility?.studentYear || {
-            year: 0,
-            semester: 0,
-          },
+          studentYear: apiData.data.studentYear, // รับจาก backend โดยตรง
           eligibility: {
             internship: {
               eligible: Boolean(apiData.data.eligibility?.internship?.eligible),

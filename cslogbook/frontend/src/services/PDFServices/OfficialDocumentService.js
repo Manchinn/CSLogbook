@@ -7,18 +7,16 @@ import {
   StudentSummaryTemplate,
   CompanyInfoTemplate,
   AcceptanceLetterTemplate,
-  ReferralLetterTemplate, // 🆕 เพิ่ม import
-  InternshipLogbookTemplate, // 🆕 เพิ่ม import
+  ReferralLetterTemplate,
+  InternshipLogbookTemplate,
+  CertificateTemplate,
 } from "../../components/internship/templates";
 
 class OfficialDocumentService {
   constructor() {
     this.pdfService = pdfService;
     this.templateDataService = templateDataService;
-
-    // 🔧 การตั้งค่าสำหรับการบันทึก PDF Records
-    // เปิด/ปิดการบันทึกข้อมูล PDF ไปยัง Backend
-    this.enableServerRecording = false; // ปิดชั่วคราว เนื่องจากยังไม่มี Backend API
+    this.enableServerRecording = false;
   }
 
   /**
@@ -374,21 +372,22 @@ class OfficialDocumentService {
       // 🆕 พยายามหา userInfo จาก localStorage หรือแหล่งอื่น
       let userInfo = null;
       try {
-        const cachedUserInfo = localStorage.getItem('userInfo');
+        const cachedUserInfo = localStorage.getItem("userInfo");
         if (cachedUserInfo) {
           userInfo = JSON.parse(cachedUserInfo);
-          console.log('📦 Found userInfo for logbook:', userInfo);
+          console.log("📦 Found userInfo for logbook:", userInfo);
         }
       } catch (error) {
-        console.warn('⚠️ Could not load userInfo from localStorage:', error);
+        console.warn("⚠️ Could not load userInfo from localStorage:", error);
       }
 
       // เตรียมข้อมูลสำหรับ template
-      const preparedData = this.templateDataService.prepareInternshipLogbookData(
-        logbookData, 
-        null, // summaryData
-        userInfo // userInfo จาก localStorage
-      );
+      const preparedData =
+        this.templateDataService.prepareInternshipLogbookData(
+          logbookData,
+          null, // summaryData
+          userInfo // userInfo จาก localStorage
+        );
 
       if (!preparedData) {
         throw new Error("ไม่สามารถเตรียมข้อมูลสำหรับบันทึกฝึกงานได้");
@@ -450,19 +449,20 @@ class OfficialDocumentService {
       // 🆕 พยายามหา userInfo จาก localStorage
       let userInfo = null;
       try {
-        const cachedUserInfo = localStorage.getItem('userInfo');
+        const cachedUserInfo = localStorage.getItem("userInfo");
         if (cachedUserInfo) {
           userInfo = JSON.parse(cachedUserInfo);
         }
       } catch (error) {
-        console.warn('⚠️ Could not load userInfo for preview:', error);
+        console.warn("⚠️ Could not load userInfo for preview:", error);
       }
 
-      const preparedData = this.templateDataService.prepareInternshipLogbookData(
-        logbookData,
-        null, // summaryData
-        userInfo // userInfo จาก localStorage
-      );
+      const preparedData =
+        this.templateDataService.prepareInternshipLogbookData(
+          logbookData,
+          null, // summaryData
+          userInfo // userInfo จาก localStorage
+        );
 
       const template = InternshipLogbookTemplate({
         logbookData: preparedData.logEntries,
@@ -519,14 +519,14 @@ class OfficialDocumentService {
           // พยายามหา userInfo จาก localStorage
           let userInfoForLogbook = null;
           try {
-            const cachedUserInfo = localStorage.getItem('userInfo');
+            const cachedUserInfo = localStorage.getItem("userInfo");
             if (cachedUserInfo) {
               userInfoForLogbook = JSON.parse(cachedUserInfo);
             }
           } catch (error) {
-            console.warn('⚠️ Could not load userInfo for logbook case:', error);
+            console.warn("⚠️ Could not load userInfo for logbook case:", error);
           }
-          
+
           preparedData = this.templateDataService.prepareInternshipLogbookData(
             data,
             null, // summaryData
@@ -560,6 +560,422 @@ class OfficialDocumentService {
       console.error(`Error previewing PDF ${templateType}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * ✅ สร้าง PDF หนังสือรับรองการฝึกงาน (แก้ไขให้รองรับโครงสร้างใหม่)
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรองจาก API
+   * @param {Object} options - ตัวเลือกเพิ่มเติม
+   */
+  async generateCertificatePDF(certificateData, options = {}) {
+    try {
+      // ตรวจสอบว่า pdfService พร้อมใช้งาน
+      if (!this.pdfService) {
+        throw new Error("PDF Service ไม่พร้อมใช้งาน");
+      }
+
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลสำหรับสร้างหนังสือรับรอง");
+      }
+
+      console.log("🎓 Starting certificate PDF generation with data:", certificateData);
+
+      // ✅ เตรียมข้อมูลสำหรับ template ด้วย method ใหม่
+      const preparedData = this.prepareCertificateDataNew(certificateData);
+
+      if (!preparedData) {
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้");
+      }
+
+      console.log("📋 Prepared data for PDF:", preparedData);
+
+      // สร้างชื่อไฟล์
+      const studentName = preparedData.studentName || preparedData.fullName || "นักศึกษา";
+      const filename = this.pdfService.generateFileName("certificate", studentName);
+
+      // ✅ สร้าง template พร้อมข้อมูลที่เตรียมแล้ว
+      const template = CertificateTemplate({
+        data: preparedData,
+        isPreview: false,
+      });
+
+      // สร้างและดาวน์โหลด PDF
+      await this.pdfService.generateAndDownload(template, filename);
+
+      console.log(`✅ Certificate PDF generated successfully: ${filename}`);
+      return { success: true, filename, data: preparedData };
+
+    } catch (error) {
+      console.error("❌ Error generating Certificate PDF:", error);
+      throw new Error(`ไม่สามารถสร้างหนังสือรับรองได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * ✅ แสดง Preview หนังสือรับรองการฝึกงาน (แก้ไขให้รองรับโครงสร้างใหม่)
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรอง
+   */
+  async previewCertificatePDF(certificateData) {
+    try {
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลสำหรับแสดงตัวอย่างหนังสือรับรอง");
+      }
+
+      console.log("👀 Starting certificate preview with data:", certificateData);
+
+      // ✅ เตรียมข้อมูลด้วย method ใหม่
+      const preparedData = this.prepareCertificateDataNew(certificateData);
+
+      if (!preparedData) {
+        throw new Error("ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้");
+      }
+
+      console.log("📋 Prepared data for preview:", preparedData);
+
+      // สร้าง template พร้อม watermark สำหรับ preview
+      const template = CertificateTemplate({
+        data: preparedData,
+        isPreview: true,
+      });
+
+      // แสดง preview
+      await this.pdfService.previewPDF(template);
+
+      console.log(`👁️ Certificate preview opened successfully`);
+      return { success: true };
+
+    } catch (error) {
+      console.error("❌ Error previewing Certificate:", error);
+      throw new Error(`ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🆕 เตรียมข้อมูลสำหรับหนังสือรับรองการฝึกงาน (เพิ่มการค้นหา Company ครอบคลุม)
+   * @param {Object} certificateData - ข้อมูลหนังสือรับรองจาก API
+   * @returns {Object} ข้อมูลที่เตรียมแล้วสำหรับ CertificateTemplate
+   */
+  prepareCertificateDataNew(certificateData) {
+    try {
+      console.log("🔄 Preparing certificate data with new structure:", certificateData);
+
+      // ตรวจสอบข้อมูลพื้นฐาน
+      if (!certificateData) {
+        throw new Error("ไม่มีข้อมูลหนังสือรับรอง");
+      }
+
+      // ✅ ฟังก์ชันทำความสะอาดข้อความภาษาไทย
+      const cleanThaiText = (text) => {
+        if (!text) return '';
+        return text.toString().trim().replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+      };
+
+      // ✅ รองรับทั้งโครงสร้างแบบ nested และ flat
+      // ตรวจสอบข้อมูลจาก root level ก่อน (กรณี flat structure)
+      const hasRootLevelData = certificateData.studentName || certificateData.studentId || certificateData.fullName;
+      
+      let studentInfo, certificateRequest, requirements, internshipInfo;
+
+      if (hasRootLevelData) {
+        // ✅ กรณีข้อมูลอยู่ใน root level (flat structure)
+        console.log("📋 Using flat structure data");
+        studentInfo = {
+          fullName: certificateData.fullName || certificateData.studentName || '',
+          studentId: certificateData.studentId || '',
+          firstName: certificateData.firstName || '',
+          lastName: certificateData.lastName || '',
+          email: certificateData.email || '',
+          yearLevel: certificateData.yearLevel || certificateData.year || 4,
+          classroom: certificateData.classroom || certificateData.class || ''
+        };
+        
+        certificateRequest = {
+          requestDate: certificateData.certificateDate || certificateData.requestDate || new Date(),
+          status: certificateData.status || 'ready'
+        };
+        
+        requirements = {
+          totalHours: {
+            current: certificateData.totalHours || 240
+          }
+        };
+        
+        // ✅ ปรับปรุงการค้นหาข้อมูล Company ให้ครอบคลุมมากขึ้น
+        internshipInfo = {
+          companyName: certificateData.companyName || 
+                       certificateData.company_name ||
+                       certificateData.company?.name ||
+                       certificateData.company?.companyName ||
+                       '',
+          companyAddress: certificateData.companyAddress || 
+                          certificateData.company_address ||
+                          certificateData.company?.address ||
+                          certificateData.company?.companyAddress ||
+                          '',
+          supervisorName: certificateData.supervisorName || 
+                          certificateData.supervisor_name ||
+                          certificateData.supervisor?.name ||
+                          '',
+          supervisorPosition: certificateData.supervisorPosition || 
+                             certificateData.supervisor_position ||
+                             certificateData.supervisor?.position ||
+                             '',
+          startDate: certificateData.internshipStartDate || 
+                     certificateData.startDate ||
+                     certificateData.start_date,
+          endDate: certificateData.internshipEndDate || 
+                   certificateData.endDate ||
+                   certificateData.end_date
+        };
+      } else {
+        // ✅ กรณีข้อมูลอยู่ใน nested structure
+        console.log("📋 Using nested structure data");
+        studentInfo = certificateData.studentInfo || {};
+        certificateRequest = certificateData.certificateRequest || {};
+        requirements = certificateData.requirements || {};
+        
+        // ✅ ปรับปรุงการค้นหาข้อมูล Company จาก nested structure
+        const rawInternshipInfo = certificateData.internshipInfo || 
+                                 certificateData.companyInfo || 
+                                 certificateData.company || 
+                                 {};
+        
+        internshipInfo = {
+          companyName: rawInternshipInfo.companyName || 
+                       rawInternshipInfo.company_name ||
+                       rawInternshipInfo.name ||
+                       certificateData.companyName ||
+                       '',
+          companyAddress: rawInternshipInfo.companyAddress || 
+                          rawInternshipInfo.company_address ||
+                          rawInternshipInfo.address ||
+                          certificateData.companyAddress ||
+                          '',
+          supervisorName: rawInternshipInfo.supervisorName || 
+                          rawInternshipInfo.supervisor_name ||
+                          rawInternshipInfo.supervisor?.name ||
+                          certificateData.supervisorName ||
+                          '',
+          supervisorPosition: rawInternshipInfo.supervisorPosition || 
+                             rawInternshipInfo.supervisor_position ||
+                             rawInternshipInfo.supervisor?.position ||
+                             certificateData.supervisorPosition ||
+                             '',
+          startDate: rawInternshipInfo.startDate || 
+                     rawInternshipInfo.start_date ||
+                     certificateData.startDate,
+          endDate: rawInternshipInfo.endDate || 
+                   rawInternshipInfo.end_date ||
+                   certificateData.endDate
+        };
+      }
+
+      // ✅ เพิ่ม Debug logging สำหรับข้อมูล Company โดยเฉพาะ
+      console.log("🔍 Processed student info:", studentInfo);
+      console.log("🔍 Processed certificate request:", certificateRequest);
+      console.log("🏢 Processed company/internship info:", internshipInfo);
+      console.log("🔍 Company name detection:", {
+        fromInternshipInfo: internshipInfo.companyName,
+        fromCertificateData: certificateData.companyName,
+        fromCompany: certificateData.company?.name,
+        fromCompanyInfo: certificateData.companyInfo?.companyName,
+        allCompanyFields: Object.keys(certificateData).filter(key => 
+          key.toLowerCase().includes('company') || 
+          key.toLowerCase().includes('internship')
+        )
+      });
+
+      // ✅ Enhanced Company Name Detection - ค้นหาจากทุกแหล่งที่เป็นไปได้
+      const detectCompanyName = () => {
+        const possibleSources = [
+          // จาก internshipInfo ที่ประมวลผลแล้ว
+          internshipInfo.companyName,
+          
+          // จาก root level
+          certificateData.companyName,
+          certificateData.company_name,
+          
+          // จาก nested objects
+          certificateData.company?.name,
+          certificateData.company?.companyName,
+          certificateData.companyInfo?.companyName,
+          certificateData.companyInfo?.name,
+          certificateData.internshipInfo?.companyName,
+          certificateData.internshipInfo?.company_name,
+          
+          // จาก CS05 form data (ถ้ามี)
+          certificateData.cs05Data?.companyName,
+          certificateData.formData?.companyName,
+          
+          // จาก array ของ companies (ถ้ามี)
+          certificateData.companies?.[0]?.name,
+          certificateData.companies?.[0]?.companyName,
+          
+          // จาก user data หรือ profile
+          certificateData.profile?.currentCompany,
+          certificateData.userData?.company,
+          
+          // จาก document metadata
+          certificateData.documentData?.companyName,
+          certificateData.metadata?.companyName
+        ];
+        
+        for (const source of possibleSources) {
+          if (source && typeof source === 'string' && source.trim()) {
+            console.log("✅ Found company name from source:", source);
+            return cleanThaiText(source);
+          }
+        }
+        
+        console.warn("⚠️ No company name found in any source");
+        return '';
+      };
+
+      const detectedCompanyName = detectCompanyName();
+
+      // ✅ จัดรูปแบบข้อมูลให้ตรงกับ CertificateTemplate
+      const preparedData = {
+        // ข้อมูลนักศึกษา - รองรับทั้งสองโครงสร้าง
+        studentName: cleanThaiText(studentInfo.fullName || studentInfo.firstName || studentInfo.studentName || ''),
+        studentId: cleanThaiText(studentInfo.studentId || ''),
+        fullName: cleanThaiText(studentInfo.fullName || studentInfo.studentName || ''),
+        firstName: cleanThaiText(studentInfo.firstName || ''),
+        lastName: cleanThaiText(studentInfo.lastName || ''),
+        email: cleanThaiText(studentInfo.email || ''),
+        
+        // ข้อมูลระดับการศึกษาและสาขา
+        yearLevel: parseInt(studentInfo.yearLevel || studentInfo.year || 4),
+        classroom: cleanThaiText(studentInfo.classroom || studentInfo.class || ''),
+        department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        faculty: "คณะวิทยาศาสตร์ประยุกต์",
+        university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+
+        // ✅ ข้อมูลการฝึกงาน - ใช้ข้อมูลที่ตรวจจับได้
+        companyName: detectedCompanyName || 'สถานประกอบการที่ฝึกงาน',
+        companyAddress: cleanThaiText(
+          internshipInfo.companyAddress || 
+          certificateData.companyAddress || 
+          'ที่อยู่สถานประกอบการ'
+        ),
+        
+        // ข้อมูลระยะเวลาฝึกงาน
+        internshipStartDate: internshipInfo.startDate || certificateData.startDate || '2025-01-01',
+        internshipEndDate: internshipInfo.endDate || certificateData.endDate || '2025-03-01',
+        totalHours: parseInt(
+          requirements.totalHours?.current || 
+          internshipInfo.totalHours || 
+          certificateData.totalHours || 
+          240
+        ),
+        totalDays: this.calculateDaysFromHours(
+          requirements.totalHours?.current || 
+          certificateData.totalHours || 
+          240
+        ),
+        
+        // ✅ ข้อมูลผู้ควบคุมงาน
+        supervisorName: cleanThaiText(
+          internshipInfo.supervisorName || 
+          certificateData.supervisorName || 
+          'ผู้ควบคุมงาน'
+        ),
+        supervisorPosition: cleanThaiText(
+          internshipInfo.supervisorPosition || 
+          certificateData.supervisorPosition || 
+          'ตำแหน่งผู้ควบคุมงาน'
+        ),
+
+        // ✅ ข้อมูลเอกสาร
+        certificateDate: certificateRequest.requestDate ? 
+          new Date(certificateRequest.requestDate) : 
+          (certificateData.certificateDate ? new Date(certificateData.certificateDate) : new Date()),
+        certificateNumber: this.generateCertificateNumber(),
+        isCompleted: certificateRequest.status === 'approved' || 
+                     certificateData.status === 'ready' ||
+                     certificateData.status === 'approved',
+        
+        // ข้อมูลการอนุมัติ
+        approvedBy: cleanThaiText("นางสาวจันทิมา อรรฆจิตต์"),
+        approverTitle: cleanThaiText("นักวิชาการศึกษา"),
+        approvedDate: certificateRequest.requestDate ? 
+          new Date(certificateRequest.requestDate) : 
+          new Date(),
+
+        // ✅ ข้อมูลเพิ่มเติมสำหรับ debug
+        debug: {
+          originalData: certificateData,
+          dataStructure: hasRootLevelData ? 'flat' : 'nested',
+          studentInfoFound: !!(studentInfo.fullName || studentInfo.firstName || studentInfo.studentName),
+          studentIdFound: !!studentInfo.studentId,
+          companyNameFound: !!detectedCompanyName,
+          companyNameSource: detectedCompanyName ? 'detected' : 'none',
+          certificateStatus: certificateData.status,
+          requestStatus: certificateRequest.status,
+          totalHoursFromRequirements: requirements.totalHours?.current,
+          processedStudentInfo: studentInfo,
+          processedInternshipInfo: internshipInfo,
+          companyDetectionLog: {
+            detectedCompanyName,
+            internshipInfoCompanyName: internshipInfo.companyName,
+            rootLevelCompanyName: certificateData.companyName,
+            nestedCompanyName: certificateData.company?.name,
+            allCompanyFields: Object.keys(certificateData).filter(key => 
+              key.toLowerCase().includes('company') || 
+              key.toLowerCase().includes('internship')
+            )
+          }
+        }
+      };
+
+      console.log("✅ Certificate data prepared successfully:", {
+        dataStructure: preparedData.debug.dataStructure,
+        studentName: preparedData.studentName,
+        studentId: preparedData.studentId,
+        companyName: preparedData.companyName,
+        companyNameFound: preparedData.debug.companyNameFound,
+        totalHours: preparedData.totalHours,
+        isCompleted: preparedData.isCompleted,
+        debugInfo: preparedData.debug
+      });
+      
+      return preparedData;
+
+    } catch (error) {
+      console.error("❌ Error preparing certificate data:", error);
+      throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้: ${error.message}`);
+    }
+  }
+
+  /**
+   * คำนวณจำนวนวันจากชั่วโมง
+   * @param {number} hours - จำนวนชั่วโมง
+   * @returns {number} จำนวนวัน (ประมาณการ)
+   */
+  calculateDaysFromHours(hours) {
+    if (!hours || hours <= 0) return 60; // ค่าเริ่มต้น
+    
+    // คำนวณจากชั่วโมงต่อวัน (เฉลี่ย 8 ชั่วโมงต่อวัน)
+    const daysCalculated = Math.ceil(hours / 8);
+    
+    // ตรวจสอบให้อยู่ในช่วงที่สมเหตุสมผล (60-120 วัน)
+    if (daysCalculated < 60) return 60;
+    if (daysCalculated > 120) return 120;
+    
+    return daysCalculated;
+  }
+
+  /**
+   * สร้างหมายเลขหนังสือรับรอง
+   * @returns {string} หมายเลขหนังสือรับรอง
+   */
+  generateCertificateNumber() {
+    const year = new Date().getFullYear() + 543; // พ.ศ.
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    
+    return `อว 7105(05)/${year}${month}${randomNum}`;
   }
 
   /**
@@ -601,6 +1017,10 @@ class OfficialDocumentService {
                 doc.data,
                 options
               );
+              break;
+            // 🆕 เพิ่ม case สำหรับ CERTIFICATE
+            case "CERTIFICATE":
+              result = await this.generateCertificatePDF(doc.data, options);
               break;
             case "STUDENT_SUMMARY":
               result = await this.generateStudentSummaryPDF(doc.data, options);
@@ -749,15 +1169,22 @@ class OfficialDocumentService {
       ...this.pdfService.getStatus(),
       availableTemplates: [
         "CS05",
-        "OFFICIAL_LETTER",
+        "OFFICIAL_LETTER", 
         "ACCEPTANCE_LETTER",
-        "REFERRAL_LETTER", // 🆕 เพิ่มใหม่
+        "REFERRAL_LETTER",
+        "CERTIFICATE", // ✅ รองรับโครงสร้างทั้งสองแบบ
         "INTERNSHIP_LOGBOOK",
         "STUDENT_SUMMARY",
         "COMPANY_INFO",
       ],
-      serviceVersion: "1.6.0", // อัปเดตเวอร์ชัน
+      serviceVersion: "1.9.0", // อัปเดตเวอร์ชัน
       recordingStatus: this.getRecordingStatus(),
+      newFeatures: [
+        "Flexible Data Structure Support", // ใหม่!
+        "Root Level Data Processing", // ใหม่!
+        "Enhanced Debug Logging",
+        "Improved Error Handling"
+      ]
     };
   }
 }

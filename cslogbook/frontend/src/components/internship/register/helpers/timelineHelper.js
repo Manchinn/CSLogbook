@@ -244,13 +244,13 @@ const createStep3Actions = (
 
       return (
         <Card size="small" style={{ marginTop: 12 }}>
-          <Alert
+          {/* <Alert
             message="คำร้อง CS05 ได้รับการอนุมัติแล้ว"
             description="ขณะนี้คุณสามารถดาวน์โหลดหนังสือขอความอนุเคราะห์และแบบฟอร์มหนังสือตอบรับได้แล้ว"
             type="success"
             showIcon
             style={{ marginBottom: 16 }}
-          />
+          /> */}
 
           {/* หนังสือขอความอนุเคราะห์ */}
           <div style={{ marginBottom: 16 }}>

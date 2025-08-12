@@ -193,13 +193,13 @@ const TimeSheet = () => {
                     {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} -{" "}
                     {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
                   </Text>
-                  <Button
+                  {/* <Button
                     onClick={refreshData}
                     icon={<ReloadOutlined />}
                     loading={loading}
                   >
                     รีเฟรชข้อมูล
-                  </Button>
+                  </Button> */}
                 </Space>
               }
               description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"

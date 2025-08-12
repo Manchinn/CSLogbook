@@ -1,8 +1,7 @@
 import React from 'react';
 import { Card, Timeline, Tag, Alert, Typography, Space, Statistic, Row, Col } from 'antd';
 import {
-  CheckCircleOutlined, ClockCircleOutlined, UserOutlined,
-  FileDoneOutlined, ExclamationCircleOutlined
+  CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;

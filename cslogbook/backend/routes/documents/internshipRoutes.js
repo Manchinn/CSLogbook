@@ -128,8 +128,27 @@ router.post(
   internshipController.submitSupervisorEvaluation
 );
 
-// ============= Certificate Management Routes =============
-// ตรวจสอบสถานะหนังสือรับรอง
+// ============= Certificate Management Routes (ปรับปรุงใหม่) =============
+
+// ============= Certificate PDF Routes =============
+
+// แสดงตัวอย่างหนังสือรับรอง
+router.get(
+  "/certificate/preview",
+  authenticateToken,
+  checkRole(["student"]),
+  internshipController.previewCertificate
+);
+
+// ดาวน์โหลดหนังสือรับรอง
+router.get(
+  "/certificate/download",
+  authenticateToken,
+  checkRole(["student"]),
+  internshipController.downloadCertificate
+);
+
+// ตรวจสอบสถานะหนังสือรับรอง (เดิมมีอยู่แล้ว)
 router.get(
   "/certificate-status",
   authenticateToken,
@@ -137,7 +156,7 @@ router.get(
   internshipController.getCertificateStatus
 );
 
-// ส่งคำขอหนังสือรับรอง
+// ส่งคำขอหนังสือรับรอง (เดิมมีอยู่แล้ว)
 router.post(
   "/certificate-request",
   authenticateToken,
@@ -145,20 +164,12 @@ router.post(
   internshipController.submitCertificateRequest
 );
 
-// ดาวน์โหลดหนังสือรับรอง
-router.get(
-  "/download-certificate",
+// บันทึกการดาวน์โหลดหนังสือรับรอง
+router.post(
+  "/certificate-downloaded",
   authenticateToken,
   checkRole(["student"]),
-  internshipController.downloadCertificate
-);
-
-// แสดงตัวอย่างหนังสือรับรอง
-router.get(
-  "/preview-certificate",
-  authenticateToken,
-  checkRole(["student"]),
-  internshipController.previewCertificate
+  internshipController.markCertificateDownloaded
 );
 
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============

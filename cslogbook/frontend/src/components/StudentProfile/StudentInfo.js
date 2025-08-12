@@ -52,15 +52,6 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
     }
   }, [student]);
 
-  const getMessageString = (message) => {
-    if (!message) return "ไม่พบข้อความ";
-    if (typeof message === "object") {
-      console.log("Message object:", message);
-      return message.message || "ไม่พบข้อความ";
-    }
-    return message;
-  };
-
   const getEligibilityMessage = (isEligible, type) => {
     // ใช้ข้อความจาก state หากมี
     if (type === "internship") {
@@ -110,10 +101,9 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
           />
         </Col>
       </Row>
-      <Row style={{ marginTop: 24 }}>
+      <Row style={{ marginT12: 12 }}>
         <Col span={12}>
           <Tooltip
-            title={getEligibilityMessage(eligibility.internship, "internship")}
           >
             <Tag color={eligibility.internship ? "green" : "red"}>
               {eligibility.internship
@@ -133,7 +123,7 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
             </Tag>
           </Tooltip>
         </Col>
-      </Row>
+      </Row> 
     </Card>
   );
 });

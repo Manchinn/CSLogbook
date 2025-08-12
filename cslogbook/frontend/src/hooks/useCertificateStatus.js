@@ -11,7 +11,7 @@ const useCertificateStatus = () => {
   
   // สถานะต่างๆ ของหนังสือรับรอง
   const [certificateStatus, setCertificateStatus] = useState('not_requested');
-  const [supervisorEvaluationStatus, setSupervisorEvaluationStatus] = useState('pending');
+  const [supervisorEvaluationStatus, setSupervisorEvaluationStatus] = useState('wait');
   const [internshipSummaryStatus, setInternshipSummaryStatus] = useState('not_submitted');
   const [totalHours, setTotalHours] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -32,50 +32,44 @@ const useCertificateStatus = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('[useCertificateStatus] กำลังดึงข้อมูลสถานะหนังสือรับรอง...');
 
-      // เรียก API getCertificateStatus เป็นหลัก
       const certificateResponse = await internshipService.getCertificateStatus();
-      
+
       if (certificateResponse.success && certificateResponse.data) {
         const data = certificateResponse.data;
-        
-        console.log('[useCertificateStatus] Certificate API response:', data);
-        
-        // อัปเดตสถานะตาม backend response
         setCertificateStatus(data.status || 'not_requested');
         setCertificateData(data);
-        
-        // ✅ อัปเดตชั่วโมงจาก backend
-        if (data.requirements?.totalHours?.current !== undefined) {
-          setTotalHours(data.requirements.totalHours.current);
-          console.log('[useCertificateStatus] Total hours from backend:', data.requirements.totalHours.current);
-        }
-        
-        // ✅ อัปเดตสถานะการประเมินจาก backend
-        if (data.requirements?.supervisorEvaluation?.completed !== undefined) {
-          const evalStatus = data.requirements.supervisorEvaluation.completed ? 'completed' : 'pending';
-          setSupervisorEvaluationStatus(evalStatus);
-          console.log('[useCertificateStatus] Evaluation status from backend:', evalStatus);
-        }
-        
-        // ✅ อัปเดตสถานะสรุปผลจาก backend
-        if (data.requirements?.summarySubmission?.completed !== undefined) {
-          const summaryStatus = data.requirements.summarySubmission.completed ? 'submitted' : 'not_submitted';
-          setInternshipSummaryStatus(summaryStatus);
-          console.log('[useCertificateStatus] Summary status from backend:', summaryStatus);
-        }
-        
-        console.log('[useCertificateStatus] ✅ อัปเดตสถานะทั้งหมดจาก backend เรียบร้อยแล้ว');
-        
+
+        // อัปเดตชั่วโมง
+        setTotalHours(data.requirements?.totalHours?.current || 0);
+
+        // อัปเดตสถานะการประเมิน
+        const evalObj = data.requirements?.supervisorEvaluation;
+        setSupervisorEvaluationStatus(
+          evalObj == null
+            ? 'wait'
+            : evalObj.completed
+              ? 'completed'
+              : 'pending'
+        );
+
+        // อัปเดตสถานะสรุปผล
+        setInternshipSummaryStatus(
+          data.requirements?.summarySubmission?.completed ? 'submitted' : 'not_submitted'
+        );
+      } else if (certificateResponse.success && !certificateResponse.data) {
+        // fallback: ยังไม่มีข้อมูล ให้ set สถานะเป็น wait
+        setCertificateStatus('not_requested');
+        setCertificateData(null);
+        setTotalHours(0);
+        setSupervisorEvaluationStatus('wait');
+        setInternshipSummaryStatus('not_submitted');
+        // ไม่ต้อง setError
       } else {
-        console.error('[useCertificateStatus] Certificate API failed:', certificateResponse);
+        // กรณีอื่นๆ ที่ไม่ใช่ fallback
         setError('ไม่สามารถดึงข้อมูลสถานะหนังสือรับรองได้');
       }
-
     } catch (error) {
-      console.error('[useCertificateStatus] Error refreshing status:', error);
       setError(error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลสถานะ');
     } finally {
       setLoading(false);
@@ -126,42 +120,6 @@ const useCertificateStatus = () => {
     }
   }, [canRequestCertificate, userData, totalHours, supervisorEvaluationStatus, internshipSummaryStatus]);
 
-  /**
-   * ดาวน์โหลดหนังสือรับรองการฝึกงาน
-   */
-  const downloadCertificate = useCallback(async () => {
-    try {
-      if (certificateStatus !== 'ready') {
-        throw new Error('หนังสือรับรองยังไม่พร้อม');
-      }
-
-      console.log('[useCertificateStatus] กำลังดาวน์โหลดหนังสือรับรอง...');
-      await internshipService.downloadCertificate();
-      
-      console.log('[useCertificateStatus] ดาวน์โหลดสำเร็จ');
-      return { success: true };
-    } catch (error) {
-      console.error('[useCertificateStatus] Error downloading certificate:', error);
-      throw error;
-    }
-  }, [certificateStatus]);
-
-  /**
-   * แสดงตัวอย่างหนังสือรับรอง
-   */
-  const previewCertificate = useCallback(async () => {
-    try {
-      console.log('[useCertificateStatus] กำลังแสดงตัวอย่างหนังสือรับรอง...');
-      await internshipService.previewCertificate();
-      
-      console.log('[useCertificateStatus] แสดงตัวอย่างสำเร็จ');
-      return { success: true };
-    } catch (error) {
-      console.error('[useCertificateStatus] Error previewing certificate:', error);
-      throw error;
-    }
-  }, []);
-
   // ดึงข้อมูลเมื่อ component โหลดครั้งแรก
   useEffect(() => {
     if (userData) {
@@ -185,8 +143,6 @@ const useCertificateStatus = () => {
     // ฟังก์ชันต่างๆ
     refreshStatus,
     submitCertificateRequest,
-    downloadCertificate,
-    previewCertificate
   };
 };
 

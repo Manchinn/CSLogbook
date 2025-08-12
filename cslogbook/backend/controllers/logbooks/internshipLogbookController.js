@@ -132,14 +132,19 @@ exports.getTimeSheetStats = async (req, res) => {
 
     } catch (error) {
         logger.error('Get TimeSheet Stats Error:', error);
-        
-        if (error.message === 'ไม่พบข้อมูลนักศึกษา' || error.message.includes('ไม่พบข้อมูล CS05')) {
-            return res.status(404).json({
-                success: false,
-                message: error.message
-            });
+        // ถ้า error message มีคำว่า 'ไม่พบข้อมูลนักศึกษา' หรือ 'ไม่พบข้อมูล CS05' ให้ส่ง success: false, HTTP 200, message user-friendly
+        if (
+          error.message && (
+            error.message.includes('ไม่พบข้อมูลนักศึกษา') ||
+            error.message.includes('ไม่พบข้อมูล CS05')
+          )
+        ) {
+          return res.status(200).json({
+            success: false,
+            data: null,
+            message: 'ยังไม่มีข้อมูลสถิติการฝึกงาน หรือยังไม่ผ่านเกณฑ์ กรุณาตรวจสอบสถานะฝึกงาน'
+          });
         }
-
         return res.status(500).json({
             success: false,
             message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลสถิติการฝึกงาน',

@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+// ✅ ใช้ static import
 
 const internshipService = {
   // ============= ส่วนจัดการข้อมูลนักศึกษา =============
@@ -1313,17 +1314,49 @@ const internshipService = {
     }
   },
 
-  // ============= ส่วนจัดการหนังสือรับรองการฝึกงาน ============= 
+  // ============= ส่วนจัดการหนังสือรับรองการฝึกงาน =============
   /**
    * ตรวจสอบสถานะหนังสือรับรอง
    */
   getCertificateStatus: async () => {
     try {
       const response = await apiClient.get("/internship/certificate-status");
+
+      // ถ้า success: true, data: null (ยังไม่ถึงขั้นตอน)
+      if (response.data.success && !response.data.data) {
+        return {
+          success: true,
+          data: null,
+          message: response.data.message || "ยังไม่มีข้อมูลสถานะหนังสือรับรอง"
+        };
+      }
+
+      // ถ้าสำเร็จและมีข้อมูล
       return response.data;
     } catch (error) {
+      // ถ้า error 404 หรือ error message "ไม่พบข้อมูล" ให้ถือว่าเป็นปกติ
+      if (
+        error.response?.status === 404 ||
+        (error.response?.data?.message &&
+          (
+            error.response.data.message.includes("ไม่พบข้อมูล") ||
+            error.response.data.message.includes("ยังไม่มีข้อมูล") ||
+            error.response.data.message.includes("ยังไม่ถึงขั้นตอน")
+          )
+        )
+      ) {
+        return {
+          success: true,
+          data: null,
+          message: error.response?.data?.message || "ยังไม่มีข้อมูลสถานะหนังสือรับรอง"
+        };
+      }
+
+      // error จริง
       console.error("Error getting certificate status:", error);
-      throw error;
+      throw new Error(
+        error.response?.data?.message || "ไม่สามารถดึงข้อมูลสถานะหนังสือรับรอง"
+      );
     }
   },
 
@@ -1343,53 +1376,146 @@ const internshipService = {
     }
   },
 
+  // ============= ส่วนจัดการหนังสือรับรองการฝึกงาน (Frontend PDF Generation) =============
+
   /**
-   * ดาวน์โหลดหนังสือรับรอง
+   * ดาวน์โหลดหนังสือรับรอง (ใช้ Backend API)
    */
   downloadCertificate: async () => {
     try {
-      const response = await apiClient.get("/internship/download-certificate", {
-        responseType: "blob",
+      console.log('[downloadCertificate] Starting download...');
+      
+      const response = await apiClient.get("/internship/certificate/download", {
+        responseType: "blob", // สำคัญ: ต้องเป็น blob เพื่อรับ PDF
+        timeout: 30000, // 30 วินาที เพื่อให้เวลาสร้าง PDF
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // ตรวจสอบว่าได้รับ PDF จริงหรือไม่
+      if (!response.data || response.data.size === 0) {
+        throw new Error("ไม่ได้รับไฟล์ PDF จากเซิร์ฟเวอร์");
+      }
+
+      // ตรวจสอบ Content-Type
+      const contentType = response.headers['content-type'];
+      if (!contentType || !contentType.includes('application/pdf')) {
+        // อาจจะได้ HTML error page แทน PDF
+        const text = await response.data.text();
+        if (text.includes('<!DOCTYPE html>')) {
+          throw new Error("เซิร์ฟเวอร์ส่งกลับหน้า HTML แทน PDF - อาจเป็นปัญหา route");
+        }
+        throw new Error("ไฟล์ที่ได้รับไม่ใช่ PDF");
+      }
+
+      // สร้างชื่อไฟล์แบบไดนามิก
+      const currentDate = new Date().toISOString().split("T")[0];
+      const filename = `หนังสือรับรองการฝึกงาน-${currentDate}.pdf`;
+
+      // สร้าง URL สำหรับดาวน์โหลด
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "หนังสือรับรองการฝึกงาน.pdf");
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
-
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
       
-      return { success: true, message: "ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว" };
+      // ทำความสะอาด
+      window.URL.revokeObjectURL(url);
+
+      console.log('[downloadCertificate] Download completed successfully');
+
+      return {
+        success: true,
+        message: `ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว: ${filename}`,
+        filename,
+      };
     } catch (error) {
       console.error("Error downloading certificate:", error);
-      throw error;
+
+      // จัดการข้อผิดพลาดที่เฉพาะเจาะจง
+      if (error.response?.status === 404) {
+        throw new Error(
+          "ไม่พบข้อมูลหนังสือรับรอง กรุณาตรวจสอบว่าได้ส่งคำขอแล้ว"
+        );
+      } else if (error.response?.status === 409) {
+        throw new Error("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
+      } else if (error.response?.status === 403) {
+        throw new Error("ไม่มีสิทธิ์ในการดาวน์โหลดหนังสือรับรอง");
+      } else if (error.name === "NetworkError") {
+        throw new Error("ปัญหาการเชื่อมต่อเครือข่าย กรุณาลองใหม่อีกครั้ง");
+      } else {
+        throw new Error(
+          error.response?.data?.message ||
+            error.message ||
+            "ไม่สามารถดาวน์โหลดหนังสือรับรองได้"
+        );
+      }
     }
   },
 
   /**
-   * แสดงตัวอย่างหนังสือรับรอง
+   * ✅ แสดงตัวอย่างหนังสือรับรอง (ใช้ Backend API)
    */
   previewCertificate: async () => {
     try {
-      const response = await apiClient.get("/internship/preview-certificate", {
+      console.log('[previewCertificate] Starting preview...');
+      
+      const response = await apiClient.get("/internship/certificate/preview", {
         responseType: "blob",
+        timeout: 30000,
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      window.open(url, "_blank");
+      // ตรวจสอบว่าได้รับ PDF จริงหรือไม่
+      if (!response.data || response.data.size === 0) {
+        throw new Error("ไม่ได้รับไฟล์ PDF จากเซิร์ฟเวอร์");
+      }
 
-      // ทำความสะอาดหลังจาก 1 นาที
+      // ตรวจสอบ Content-Type
+      const contentType = response.headers['content-type'];
+      if (!contentType || !contentType.includes('application/pdf')) {
+        throw new Error("ไฟล์ที่ได้รับไม่ใช่ PDF");
+      }
+
+      // สร้าง blob URL สำหรับ preview
+      const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+      // เปิดในแท็บใหม่
+      const newWindow = window.open(pdfUrl, "_blank");
+      if (!newWindow) {
+        throw new Error("โปรแกรมป้องกัน Pop-up ขัดขวางการเปิดแท็บใหม่");
+      }
+
+      // ทำความสะอาด URL หลังจาก 1 นาที
       setTimeout(() => {
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(pdfUrl);
       }, 60000);
-      
-      return { success: true, message: "เปิดตัวอย่างหนังสือรับรองเรียบร้อยแล้ว" };
+
+      console.log('[previewCertificate] Preview opened successfully');
+
+      return {
+        success: true,
+        message: "เปิดตัวอย่างหนังสือรับรองในแท็บใหม่แล้ว",
+      };
     } catch (error) {
       console.error("Error previewing certificate:", error);
-      throw error;
+      
+      // จัดการ Error แบบเจาะจง
+      if (error.response?.status === 404) {
+        throw new Error("ไม่พบข้อมูลหนังสือรับรอง กรุณาตรวจสอบว่าได้ส่งคำขอแล้ว");
+      } else if (error.response?.status === 409) {
+        throw new Error("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
+      } else if (error.response?.status === 403) {
+        throw new Error("ไม่มีสิทธิ์ในการแสดงตัวอย่างหนังสือรับรอง");
+      } else if (error.name === "NetworkError") {
+        throw new Error("ปัญหาการเชื่อมต่อเครือข่าย กรุณาลองใหม่อีกครั้ง");
+      } else {
+        throw new Error(
+          error.message || "ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้"
+        );
+      }
     }
   },
 
@@ -1464,6 +1590,40 @@ const internshipService = {
         message: error.response?.data?.message || "ไม่สามารถอัปโหลดเอกสารได้",
       };
     }
+  },
+
+  /**
+   * แจ้งระบบว่าได้ดาวน์โหลดหนังสือรับรองแล้ว
+   */
+  /* markCertificateDownloaded: async () => {
+    try {
+      const response = await apiClient.patch('/internship/certificate/mark-downloaded');
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          message: 'อัปเดตสถานะการดาวน์โหลดสำเร็จ'
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'ไม่สามารถอัปเดตสถานะได้'
+        };
+      }
+    } catch (error) {
+      console.error('Error marking certificate downloaded:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ'
+      };
+    }
+  }, */
+
+  /**
+   * ดึงข้อมูลโปรไฟล์นักศึกษาสำหรับการฝึกงาน (alias ของ getStudentInfo)
+   */
+  getStudentProfile: async () => {
+    return await internshipService.getStudentInfo();
   },
 };
 

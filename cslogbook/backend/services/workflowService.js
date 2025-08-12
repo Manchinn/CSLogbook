@@ -86,7 +86,10 @@ class WorkflowService {
     try {
       console.log(`Generating ${workflowType} timeline for student ${studentId}`);
 
-      const student = await Student.findByPk(studentId);
+      const student = await Student.findByPk(studentId, {
+        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
+                  'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
+      });
       
       console.log("Student workflow info:", { // เปลี่ยนชื่อ log เล็กน้อย
         studentId,
@@ -94,6 +97,18 @@ class WorkflowService {
         projectStatus: student?.projectStatus, // เพิ่ม projectStatus ด้วยถ้ามี
         isEnrolledInternship: student?.isEnrolledInternship,
         isEnrolledProject: student?.isEnrolledProject // เพิ่ม isEnrolledProject ด้วยถ้ามี
+      });
+      
+      // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ดึงมาจากฐานข้อมูล
+      console.log("WorkflowService: ข้อมูลจากฐานข้อมูล:", {
+        studentId: student?.studentId,
+        studentCode: student?.studentCode,
+        isEnrolledInternship: student?.isEnrolledInternship,
+        internshipStatus: student?.internshipStatus,
+        isEligibleInternship: student?.isEligibleInternship,
+        isEligibleProject: student?.isEligibleProject,
+        isEnrolledProject: student?.isEnrolledProject,
+        projectStatus: student?.projectStatus
       });
 
       const stepDefinitions = await this.getWorkflowStepDefinitions(workflowType);

@@ -45,7 +45,6 @@ const StudentProfile = () => {
       if (response.success) {
         const totalCredits = parseInt(response.data.totalCredits);
         const majorCredits = parseInt(response.data.majorCredits);
-        const yearResult = calculateStudentYear(response.data.studentCode);
 
         // Map ข้อมูลจาก user ถ้ามี
         const { user = {} } = response.data;
@@ -66,7 +65,7 @@ const StudentProfile = () => {
           email: response.data.email || user.email || "",
           totalCredits,
           majorCredits,
-          studentYear: yearResult,
+          studentYear: response.data.studentYear, // ใช้ค่าจาก backend โดยตรง
 
           // เพิ่มข้อมูลเกี่ยวกับสิทธิ์และข้อกำหนด
           requirements,
@@ -74,6 +73,22 @@ const StudentProfile = () => {
           isEligibleForProject: eligibility.project?.eligible,
           internshipMessage: eligibility.internship?.message,
           projectMessage: eligibility.project?.message,
+          
+          // เพิ่มข้อมูลสำหรับ StudentAvatar
+          isEligibleInternship: eligibility.internship?.eligible || false,
+          isEnrolledInternship: response.data.isEnrolledInternship || false,
+          internshipStatus: response.data.internshipStatus || 'not_started',
+        });
+
+        // Debug log เพื่อตรวจสอบข้อมูลที่ได้รับ
+        console.log('StudentProfile - Data from API:', {
+          responseData: response.data,
+          eligibility,
+          studentData: {
+            isEligibleInternship: eligibility.internship?.eligible || false,
+            isEnrolledInternship: response.data.isEnrolledInternship || false,
+            internshipStatus: response.data.internshipStatus || 'not_started',
+          }
         });
 
         form.setFieldsValue({ totalCredits, majorCredits });
@@ -108,9 +123,6 @@ const StudentProfile = () => {
         // ส่งค่า isEligibleInternship และ isEligibleProject ไปยัง backend
         const response = await studentService.updateStudent(id, {
           ...values,
-          // ถ้า backend ต้องการคำนวณเอง ก็ไม่จำเป็นต้องส่งค่าเหล่านี้ไป
-          // isEligibleInternship: values.isEligibleInternship,
-          // isEligibleProject: values.isEligibleProject
         });
 
         if (response.success) {
