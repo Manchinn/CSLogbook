@@ -9,10 +9,10 @@ import {
   Row,
   Col,
   Card,
-  Segmented,
   message,
   Tooltip,
   Tabs,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -29,8 +29,10 @@ import { useDocuments } from "../../../hooks/admin/useDocuments";
 import dayjs from "../../../utils/dayjs";
 import { DATE_TIME_FORMAT } from "../../../utils/constants";
 import CertificateManagement from "./CertificateManagement";
+import { internshipApprovalService } from "../../../services/internshipApprovalService"; // ใช้สำหรับ "ตรวจและส่งต่อ" เอกสารฝึกงาน
+import { documentService } from "../../../services/admin/documentService"; // ใช้สำหรับอัปเดตสถานะเอกสารทั่วไป
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const DocumentManagement = ({ type }) => {
   const [activeTab, setActiveTab] = useState("documents");
@@ -96,7 +98,6 @@ const OriginalDocumentManagement = ({ type }) => {
     documents,
     statistics,
     isLoading,
-    approveDocument,
     rejectDocument,
     refetch,
   } = useDocuments({
@@ -180,18 +181,25 @@ const OriginalDocumentManagement = ({ type }) => {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        render: (status) => {
-          const statusColors = {
-            pending: "orange",
-            approved: "green",
-            rejected: "red",
-          };
-          const statusText = {
-            pending: "รอตรวจสอบ",
-            approved: "อนุมัติ",
-            rejected: "ปฏิเสธ",
-          };
-          return <Tag color={statusColors[status]}>{statusText[status]}</Tag>;
+        render: (status, record) => {
+          // กำหนดข้อความตามเงื่อนไข:
+          // - pending + ไม่มี reviewerId => "รอตรวจสอบ"
+          // - pending + มี reviewerId => "รอหัวหน้าภาคอนุมัติ"
+          // - approved => "อนุมัติ"
+          // - rejected => "ปฏิเสธ"
+          const isPending = status === "pending";
+          const hasReviewer = !!record.reviewerId;
+          const color = isPending ? "orange" : status === "approved" ? "green" : status === "rejected" ? "red" : "default";
+          const text = isPending
+            ? hasReviewer
+              ? "รอหัวหน้าภาคอนุมัติ"
+              : "รอตรวจสอบ"
+            : status === "approved"
+            ? "อนุมัติ"
+            : status === "rejected"
+            ? "ปฏิเสธ"
+            : status;
+          return <Tag color={color}>{text}</Tag>;
         },
       },
     ],
@@ -200,17 +208,40 @@ const OriginalDocumentManagement = ({ type }) => {
 
   // การจัดการเหตุการณ์
   const handleApproveSelectedDocuments = useCallback(async () => {
+    // ปรับตาม workflow ใหม่: เจ้าหน้าที่ภาค "ตรวจและส่งต่อ"
+    // - ถ้าเป็น CS05 เรียก endpoint เฉพาะ: reviewByStaff (status = pending + reviewerId)
+    // - ถ้าเป็นเอกสารอื่น (เช่น Acceptance Letter) ใช้ admin /documents/:id/status ให้เป็น pending เพื่อบันทึก reviewerId
     try {
-      const promises = selectedRowKeys.map((documentId) =>
-        approveDocument(documentId)
-      );
-      await Promise.all(promises);
-      message.success("อนุมัติเอกสารที่เลือกเรียบร้อยแล้ว");
+      // หาเอกสารจากตารางตาม selectedRowKeys เพื่อรู้ชนิดเอกสาร
+      const idToDoc = new Map(filteredDocuments.map((d) => [d.id, d]));
+
+      const ops = selectedRowKeys.map((documentId) => {
+        const doc = idToDoc.get(documentId);
+  const name = doc?.document_name?.toUpperCase() || '';
+
+        // เงื่อนไขถือเป็น CS05 เมื่อชื่อเอกสารคือ CS05
+        const isCS05 = name === 'CS05';
+
+        if (isCS05) {
+          return internshipApprovalService.reviewByStaff(documentId, null);
+        }
+        // สำหรับ Acceptance Letter: ตรวจและส่งต่อเหมือน CS05 (pending + reviewerId)
+        if (name === 'ACCEPTANCE_LETTER') {
+          return internshipApprovalService.reviewAcceptanceByStaff(documentId, null);
+        }
+        // เอกสารอื่นคงเดิม: อนุมัติผ่าน admin route
+        return documentService.approveDocument(documentId);
+      });
+
+      await Promise.all(ops);
+      message.success("ดำเนินการกับเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
+      await refetch();
     } catch (error) {
-      message.error("เกิดข้อผิดพลาดในการอนุมัติเอกสาร");
+      console.error(error);
+      message.error("เกิดข้อผิดพลาดในการตรวจและส่งต่อเอกสาร");
     }
-  }, [selectedRowKeys, approveDocument]);
+  }, [selectedRowKeys, filteredDocuments, refetch]);
 
   const handleRejectSelectedDocuments = useCallback(async () => {
     try {
@@ -229,6 +260,8 @@ const OriginalDocumentManagement = ({ type }) => {
     () => ({
       selectedRowKeys,
       onChange: setSelectedRowKeys,
+      // ป้องกันการเลือกเอกสารที่ถูกส่งต่อแล้ว (มี reviewerId แล้ว)
+      getCheckboxProps: (record) => ({ disabled: !!record.reviewerId }),
     }),
     [selectedRowKeys]
   );
@@ -269,9 +302,9 @@ const OriginalDocumentManagement = ({ type }) => {
           </Col>
         </Row>
 
-        {/* ส่วนตัวกรอง */}
-        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-          <Col xs={24} sm={12} md={8}>
+        {/* ส่วนตัวกรอง (สไตล์เดียวกับหนังสือรับรอง) */}
+        <Row gutter={[16, 16]} style={{ marginBottom: "16px" }} align="middle">
+          <Col xs={24} md={12}>
             <Input
               placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
               value={filters.search}
@@ -280,60 +313,48 @@ const OriginalDocumentManagement = ({ type }) => {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={12} md={8}>
-            {/* Status filter */}
-            <Segmented
-              options={[
-                { label: "ทั้งหมด", value: "" },
-                { label: "รอตรวจสอบ", value: "pending" },
-                { label: "อนุมัติแล้ว", value: "approved" },
-                { label: "ปฏิเสธแล้ว", value: "rejected" },
-              ]}
-              value={filters.status}
-              onChange={setStatusFilter}
-            />
-            {/* <Segmented
-              options={[
-                { label: "CS05", value: "cs05" },
-                { label: "Acceptance Letter", value: "ACCEPTANCE_LETTER" },
-              ]}
-              value={documentType}
-              onChange={setDocumentType}
-            /> */}
-          </Col>
-          <Col xs={24} sm={24} md={8}>
-            <Space wrap>
-              <Tooltip title="รีเฟรช">
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={refetch}
-                  size="large"
-                  shape="square"
-                />
-              </Tooltip>
-              {filters.status === "pending" && (
+          <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Space size="small" wrap>
+              <Select
+                size="small"
+                style={{ width: 160 }}
+                placeholder="สถานะ"
+                options={[
+                  { label: "ทั้งหมด", value: "" },
+                  { label: "รอตรวจสอบ", value: "pending" },
+                  { label: "อนุมัติแล้ว", value: "approved" },
+                  { label: "ปฏิเสธแล้ว", value: "rejected" },
+                ]}
+                value={filters.status}
+                onChange={setStatusFilter}
+                allowClear
+              />
+              <Button icon={<ReloadOutlined />} onClick={refetch}>
+                รีเฟรช
+              </Button>
+        {filters.status === "pending" && (
                 <>
-                  <Tooltip
-                    title={`อนุมัติที่เลือก (${selectedRowKeys.length})`}
-                  >
+          <Tooltip title={`ตรวจและส่งต่อที่เลือก (${selectedRowKeys.length})`}>
                     <Button
-                      type="primary"
+            type="primary"
                       onClick={handleApproveSelectedDocuments}
                       disabled={selectedRowKeys.length === 0}
-                      icon={<CheckCircleOutlined />}
-                      size="large"
-                      shape="square"
-                    />
+            icon={<CheckCircleOutlined />}
+                      size="small"
+                    >
+            ตรวจและส่งต่อที่เลือก
+                    </Button>
                   </Tooltip>
                   <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
                     <Button
-                      type="danger"
+                      danger
                       onClick={handleRejectSelectedDocuments}
                       disabled={selectedRowKeys.length === 0}
                       icon={<CloseCircleOutlined />}
-                      size="large"
-                      shape="square"
-                    />
+                      size="small"
+                    >
+                      ปฏิเสธที่เลือก
+                    </Button>
                   </Tooltip>
                 </>
               )}

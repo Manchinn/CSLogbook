@@ -38,6 +38,12 @@ export const studentService = {
           classroom: apiData.data.classroom || "",
           phoneNumber: apiData.data.phoneNumber || "",
           studentYear: apiData.data.studentYear, // รับจาก backend โดยตรง
+          // เพิ่มข้อมูลสำหรับ StudentAvatar component
+          isEligibleInternship: apiData.data.isEligibleInternship,
+          isEnrolledInternship: apiData.data.isEnrolledInternship,
+          internshipStatus: apiData.data.internshipStatus,
+          projectStatus: apiData.data.projectStatus,
+          isEnrolledProject: apiData.data.isEnrolledProject,
           eligibility: {
             internship: {
               eligible: Boolean(apiData.data.eligibility?.internship?.eligible),

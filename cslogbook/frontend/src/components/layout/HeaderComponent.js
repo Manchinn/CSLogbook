@@ -1,6 +1,7 @@
-import React from "react";
-import { Layout, Button, Typography, Space, Avatar, Badge } from "antd";
+import React, { useState, useEffect } from "react";
+import { Layout, Button, Typography, Space, Avatar, Badge, Tag, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
+import academicService from "../../services/academicService";
 import "./HeaderComponent.css";
 
 const { Header } = Layout;
@@ -35,6 +36,33 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
   const firstName = localStorage.getItem("firstName");
   const lastName = localStorage.getItem("lastName");
   const theme = themeConfig[role] || themeConfig.student;
+  
+  // State สำหรับข้อมูลปีการศึกษา
+  const [academicInfo, setAcademicInfo] = useState(null);
+  const [academicLoading, setAcademicLoading] = useState(false);
+
+  // ดึงข้อมูลปีการศึกษาปัจจุบัน
+  useEffect(() => {
+    const fetchAcademicInfo = async () => {
+      try {
+        setAcademicLoading(true);
+        const info = await academicService.getCurrentAcademicInfo();
+        setAcademicInfo(info);
+      } catch (error) {
+        console.error('Failed to fetch academic info:', error);
+        // ตั้งค่า fallback ในกรณีที่ดึงข้อมูลไม่ได้
+        setAcademicInfo({
+          academicYear: new Date().getFullYear() + 543, // ปี พ.ศ. ปัจจุบัน
+          semester: Math.ceil((new Date().getMonth() + 1) / 6), // คำนวณภาคการศึกษา
+          displayText: `${new Date().getFullYear() + 543}/${Math.ceil((new Date().getMonth() + 1) / 6)}*`
+        });
+      } finally {
+        setAcademicLoading(false);
+      }
+    };
+
+    fetchAcademicInfo();
+  }, []);
 
   const getRoleTitle = (role) => {
     switch (role) {
@@ -159,13 +187,49 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
               style={headerStyles.titleContainer}
               className="header-title-container"
             >
-              <Title
-                level={4}
-                style={headerStyles.mainTitle}
-                className="header-title"
-              >
-                CS Logbook
-              </Title>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
+                <Title
+                  level={4}
+                  style={headerStyles.mainTitle}
+                  className="header-title"
+                >
+                  CS Logbook
+                </Title>
+                {academicInfo && (
+                  <Tooltip 
+                    title={`ปีการศึกษา ${academicInfo.academicYear}${academicInfo.semester ? ` ภาคการศึกษาที่ ${academicInfo.semester}` : ''}${academicInfo.displayText?.includes('*') ? ' (คำนวณอัตโนมัติ)' : ''}`}
+                    placement="bottom"
+                  >
+                    <Tag 
+                      color={theme.primary === '#1890ff' ? 'blue' : theme.primary === '#faad14' ? 'orange' : 'red'}
+                      style={{ 
+                        fontSize: isMobile ? '10px' : '11px', 
+                        padding: isMobile ? '1px 6px' : '2px 8px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        marginTop: '-2px',
+                        lineHeight: '1.2',
+                        cursor: 'help'
+                      }}
+                    >
+                      {academicInfo.displayText}
+                    </Tag>
+                  </Tooltip>
+                )}
+                {academicLoading && (
+                  <Tag 
+                    color="default"
+                    style={{ 
+                      fontSize: isMobile ? '10px' : '11px', 
+                      padding: isMobile ? '1px 6px' : '2px 8px',
+                      borderRadius: '8px',
+                      marginTop: '-2px'
+                    }}
+                  >
+                    โหลด...
+                  </Tag>
+                )}
+              </div>
               <Text style={headerStyles.subtitle} className="header-subtitle">
                 ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
               </Text>

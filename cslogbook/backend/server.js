@@ -86,6 +86,8 @@ const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มก
 const workflowRoutes = require('./routes/workflowRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
+const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม academicRoutes
+const reportRoutes = require('./routes/reportRoutes'); // รายงานใหม่
 const app = express();
 const server = http.createServer(app);
 const pool = require('./config/database');
@@ -145,6 +147,11 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+// ให้บริการสเปค OpenAPI ในรูปแบบ JSON สำหรับการเชื่อมต่อจากเครื่องมือภายนอก (เช่น MCP OpenAPI server)
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerDocs);
+});
 
 // Error handling database
 app.use((err, req, res, next) => {
@@ -203,6 +210,7 @@ app.use('/api/timeline/public', timelineRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
+app.use('/api/academic', authenticateToken, academicRoutes); // เพิ่ม academic routes
 //app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
 //app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
 //app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
@@ -217,6 +225,7 @@ app.use('/api/internship', internshipRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes); 
+app.use('/api/reports', authenticateToken, reportRoutes); // เส้นทางรายงาน
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

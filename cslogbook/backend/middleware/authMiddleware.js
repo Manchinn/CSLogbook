@@ -145,6 +145,61 @@ const authMiddleware = {
     }
   },
 
+  // เพิ่ม middleware สำหรับตรวจสอบตำแหน่งของอาจารย์ (เช่น หัวหน้าภาควิชา)
+  checkTeacherPosition: (allowedPositions) => async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'กรุณาเข้าสู่ระบบ',
+          code: 'NO_USER'
+        });
+      }
+
+      // อนุญาต admin โดยข้ามการตรวจสอบตำแหน่ง
+      if (req.user.role === 'admin') {
+        return next();
+      }
+
+      if (req.user.role !== 'teacher') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้',
+          code: 'NOT_TEACHER'
+        });
+      }
+
+      const { Teacher } = require('../models');
+      const teacher = await Teacher.findOne({ where: { userId: req.user.userId } });
+
+      if (!teacher) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'ไม่พบข้อมูลอาจารย์',
+          code: 'TEACHER_NOT_FOUND'
+        });
+      }
+
+      if (!allowedPositions.includes(teacher.position)) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้',
+          code: 'INSUFFICIENT_TEACHER_POSITION'
+        });
+      }
+
+      // แนบตำแหน่งให้ downstream ถ้าจำเป็น
+      req.user.position = teacher.position;
+      next();
+    } catch (error) {
+      console.error('Teacher position check error:', error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ตำแหน่ง'
+      });
+    }
+  },
+
   checkSelfOrAdmin: async (req, res, next) => {
     try {
       // เพิ่ม debug logging

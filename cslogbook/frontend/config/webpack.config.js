@@ -342,7 +342,11 @@ module.exports = function (webpackEnv) {
         // Handle node_modules packages that contain sourcemaps
         shouldUseSourceMap && {
           enforce: 'pre',
-          exclude: /@babel(?:\/|\\{1,2})runtime/,
+          // เดิม exclude เฉพาะ @babel/runtime เพิ่ม @antv เพื่อเลี่ยง warning source map หาย
+          exclude: [
+            /@babel(?:\/|\\{1,2})runtime/,
+            /node_modules[\\/](?:@antv)[\\/]/
+          ],
           test: /\.(js|mjs|jsx|ts|tsx|css)$/,
           loader: require.resolve('source-map-loader'),
         },

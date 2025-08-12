@@ -6,7 +6,14 @@ const {
   checkRole,
 } = require("../middleware/authMiddleware");
 
-// ดึงข้อมูลการตั้งค่าปีการศึกษา
+// ดึงข้อมูลปีการศึกษาปัจจุบัน (สำหรับทุกคน)
+router.get(
+  "/current",
+  authenticateToken,
+  academicController.getAcademicSettings
+);
+
+// ดึงข้อมูลการตั้งค่าปีการศึกษา (สำหรับ admin เท่านั้น)
 router.get(
   "/",
   authenticateToken,

@@ -2296,24 +2296,37 @@ class InternshipManagementService {
         cs05DocumentId,
       });
 
-      // 1. ตรวจสอบเอกสาร CS05 ก่อน
-      const cs05Document = await Document.findOne({
-        where: {
-          documentId: parseInt(cs05DocumentId),
-          userId: userId,
-          documentName: "CS05",
-          documentType: "INTERNSHIP",
-        },
-      });
-
-      if (!cs05Document) {
-        throw new Error("ไม่พบข้อมูลเอกสาร CS05");
+      // 1. ตรวจสอบเอกสาร CS05 ก่อน (รองรับกรณี cs05DocumentId เป็น null/undefined)
+      let cs05Document = null;
+      const parsedId = Number(cs05DocumentId);
+      if (Number.isFinite(parsedId) && parsedId > 0) {
+        cs05Document = await Document.findOne({
+          where: {
+            documentId: parsedId,
+            userId: userId,
+            documentName: "CS05",
+            documentType: "INTERNSHIP",
+          },
+        });
+      } else {
+        cs05Document = await Document.findOne({
+          where: {
+            userId: userId,
+            documentName: "CS05",
+            documentType: "INTERNSHIP",
+          },
+          order: [["created_at", "DESC"]],
+        });
       }
 
-      console.log("[DEBUG] CS05 Document found:", {
-        documentId: cs05Document.documentId,
-        status: cs05Document.status,
-      });
+      if (!cs05Document) {
+        console.warn("[WARN] getAcceptanceLetterStatus: ไม่พบเอกสาร CS05 ของผู้ใช้", { userId, cs05DocumentId });
+      } else {
+        console.log("[DEBUG] CS05 Document found:", {
+          documentId: cs05Document.documentId,
+          status: cs05Document.status,
+        });
+      }
 
       // 2. ✅ ค้นหาหนังสือตอบรับจากฐานข้อมูลจริง
       const acceptanceLetter = await Document.findOne({
@@ -2334,7 +2347,7 @@ class InternshipManagementService {
       let statusMessage = "";
 
       // ตรวจสอบสิทธิ์ในการอัปโหลด
-      if (cs05Document.status === "approved") {
+  if (cs05Document && cs05Document.status === "approved") {
         canUpload = true;
       }
 
@@ -3138,6 +3151,12 @@ class InternshipManagementService {
         hasSummary: isSummarySubmitted,
       });
 
+      // 🎯 อัปเดต internship_status ในฐานข้อมูลเมื่อฝึกงานเสร็จสิ้น
+      if (certificateStatus === "ready") {
+        await this.updateStudentInternshipStatus(userId, "completed");
+        console.log(`[getCertificateStatus] Updated internship_status to 'completed' for userId: ${userId}`);
+      }
+
       return result;
     } catch (error) {
       if (
@@ -3269,6 +3288,47 @@ class InternshipManagementService {
     const year = d.getFullYear() + 543;
 
     return `${day} ${month} พ.ศ. ${year}`;
+  }
+
+  /**
+   * 🆕 อัปเดตสถานะการฝึกงานของนักศึกษาในฐานข้อมูล
+   * @param {number} userId - User ID
+   * @param {string} status - สถานะใหม่ ('not_started', 'pending_approval', 'in_progress', 'completed')
+   */
+  async updateStudentInternshipStatus(userId, status) {
+    try {
+      const { sequelize } = require("../config/database");
+      
+      // ตรวจสอบสถานะปัจจุบันก่อน
+      const [currentData] = await sequelize.query(
+        'SELECT student_code, internship_status FROM students WHERE user_id = ?',
+        { replacements: [userId] }
+      );
+
+      if (currentData.length === 0) {
+        console.warn(`[updateStudentInternshipStatus] Student not found for userId: ${userId}`);
+        return;
+      }
+
+      const currentStudent = currentData[0];
+      
+      // ตรวจสอบว่าสถานะเปลี่ยนแปลงหรือไม่
+      if (currentStudent.internship_status === status) {
+        console.log(`[updateStudentInternshipStatus] Status already ${status} for student ${currentStudent.student_code}`);
+        return;
+      }
+
+      // อัปเดตสถานะด้วย raw SQL
+      await sequelize.query(
+        'UPDATE students SET internship_status = ?, updated_at = NOW() WHERE user_id = ?',
+        { replacements: [status, userId] }
+      );
+
+      console.log(`[updateStudentInternshipStatus] Successfully updated internship_status from '${currentStudent.internship_status}' to '${status}' for student ${currentStudent.student_code}`);
+      
+    } catch (error) {
+      console.error(`[updateStudentInternshipStatus] Error updating status:`, error);
+    }
   }
 }
 
