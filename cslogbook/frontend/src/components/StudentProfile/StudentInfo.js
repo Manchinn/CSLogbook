@@ -5,6 +5,7 @@ import {
   isEligibleForInternship,
   isEligibleForProject,
 } from "../../utils/studentUtils";
+import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
 import "./styles.css";
 
 const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
@@ -13,11 +14,14 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
     project: false,
   });
 
+  // ดึง requirements ที่ผ่านการคำนวณแล้วจาก StudentEligibilityContext (แหล่งจริงเดียวกับหน้า Eligibility)
+  const { requirements: eligibilityRequirements } = useStudentEligibility() || {};
+
   useEffect(() => {
     if (student) {
-      // รับค่าข้อกำหนดจาก backend ถ้ามี
-      const internshipRequirements = student.requirements?.internship || null;
-      const projectRequirements = student.requirements?.project || null;
+      // รวม requirements โดยให้ context มาก่อน (เพราะมีค่าจริงจาก curriculum เช่น 86) ถ้า context ยังไม่โหลด fallback ไปที่ student.requirements
+      const internshipRequirements = eligibilityRequirements?.internship || student.requirements?.internship || null;
+      const projectRequirements = eligibilityRequirements?.project || student.requirements?.project || null;
 
       // ส่งพารามิเตอร์ครบถ้วนและถูกต้อง
       const internshipEligible = isEligibleForInternship(
@@ -50,7 +54,7 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
         projectEligible,
       });
     }
-  }, [student]);
+  }, [student, eligibilityRequirements]);
 
   const getEligibilityMessage = (isEligible, type) => {
     // ใช้ข้อความจาก state หากมี
