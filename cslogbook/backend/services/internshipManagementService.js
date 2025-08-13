@@ -3154,7 +3154,6 @@ class InternshipManagementService {
       // 🎯 อัปเดต internship_status ในฐานข้อมูลเมื่อฝึกงานเสร็จสิ้น
       if (certificateStatus === "ready") {
         await this.updateStudentInternshipStatus(userId, "completed");
-        console.log(`[getCertificateStatus] Updated internship_status to 'completed' for userId: ${userId}`);
       }
 
       return result;
@@ -3312,11 +3311,6 @@ class InternshipManagementService {
 
       const currentStudent = currentData[0];
       
-      // ตรวจสอบว่าสถานะเปลี่ยนแปลงหรือไม่
-      if (currentStudent.internship_status === status) {
-        console.log(`[updateStudentInternshipStatus] Status already ${status} for student ${currentStudent.student_code}`);
-        return;
-      }
 
       // อัปเดตสถานะด้วย raw SQL
       await sequelize.query(

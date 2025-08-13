@@ -1,6 +1,5 @@
 import React from "react";
 import { Table, Space, Button, Tooltip, Typography } from "antd";
-import RoleTag from '../../../../common/RoleTag';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
