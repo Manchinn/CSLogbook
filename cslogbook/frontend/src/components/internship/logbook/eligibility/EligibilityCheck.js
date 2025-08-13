@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Typography, Divider, List, Steps, Alert, Spin, Button, Row, Col, Statistic, Table } from 'antd';
+import React, { useState } from 'react';
+import { Card, Typography, Divider, Steps, Alert, Spin, Button, Row, Col, Statistic, Table } from 'antd';
 import { 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   InfoCircleOutlined, 
   LoadingOutlined,
-  FileTextOutlined,
   ClockCircleOutlined,
-  BarChartOutlined,
   BookOutlined 
 } from '@ant-design/icons';
 import { useStudentEligibility } from '../../../../contexts/StudentEligibilityContext';
 import './styles.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Paragraph, Text } = Typography;
 
 const EligibilityCheck = () => {
   const { 
@@ -23,6 +21,8 @@ const EligibilityCheck = () => {
     academicSettings,
     refreshEligibility,
     isLoading,
+  status,
+  student,
   } = useStudentEligibility();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -30,7 +30,7 @@ const EligibilityCheck = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshEligibility(true);
+      await refreshEligibility(true, true); // force = true เพื่อ bypass cache
     } finally {
       setTimeout(() => setRefreshing(false), 1000);
     }
@@ -38,25 +38,24 @@ const EligibilityCheck = () => {
 
   // คุณสมบัติที่จำเป็นสำหรับฝึกงาน
   const requiredCredits = requirements?.internship?.totalCredits || 81;
-  const requiredMajorCredits = requirements?.internship?.majorCredits || 0;
+  // ใช้ ?? เพื่อให้แยกแยะระหว่างไม่ถูกกำหนด (null/undefined) กับค่าจริง 0
   const allowedSemesters = requirements?.internship?.allowedSemesters || [3];
   
   // สถานะปัจจุบันของนักศึกษา
+  // ดึงค่าหน่วยกิตจาก status.internship (ข้อมูลจาก backend) หากไม่มีให้ fallback เป็น student.*
   const studentStatus = {
-    totalCredits: requirements?.status?.internship?.totalCredits || 0,
-    majorCredits: requirements?.status?.internship?.currentMajorCredits || 0,
+    totalCredits: status?.internship?.currentCredits ?? student?.totalCredits ?? 0,
+  // ตัดการใช้หน่วยกิตสาขาออก (ไม่เป็นเกณฑ์สำหรับฝึกงาน)
     currentTerm: academicSettings?.currentSemester || 1,
     currentAcademicYear: academicSettings?.currentAcademicYear || new Date().getFullYear() + 543
   };
 
   // คำนวณว่าผ่านเกณฑ์หรือไม่
   const passCredits = studentStatus.totalCredits >= requiredCredits;
-  const passMajorCredits = studentStatus.majorCredits >= requiredMajorCredits;
   const isAllowedSemester = allowedSemesters.includes(studentStatus.currentTerm);
 
   // กำหนดสถานะของแต่ละขั้นตอน
   const creditsStatus = passCredits ? "finish" : "error";
-  const majorCreditsStatus = passMajorCredits ? "finish" : "error";
   const semesterStatus = isAllowedSemester ? "finish" : "error";
   const overallStatus = canAccessInternship ? "finish" : "error";
 
@@ -129,16 +128,7 @@ const EligibilityCheck = () => {
                   prefix={<BookOutlined />}
                 />
               </Col>
-              <Col span={8}>
-                <Statistic 
-                  title="จำนวนหน่วยกิตสาขาที่เรียนแล้ว" 
-                  value={studentStatus.majorCredits} 
-                  suffix={`/ ${requiredMajorCredits}`}
-                  valueStyle={{ color: passMajorCredits ? '#3f8600' : '#cf1322' }}
-                  prefix={<BarChartOutlined />}
-                />
-              </Col>
-              <Col span={8}>
+              <Col span={12}>
                 <Statistic 
                   title="ภาคเรียนปัจจุบัน" 
                   value={`${studentStatus.currentTerm}/${studentStatus.currentAcademicYear}`}
@@ -160,12 +150,6 @@ const EligibilityCheck = () => {
                   description: `ต้องผ่านการเรียนมาแล้วอย่างน้อย ${requiredCredits} หน่วยกิต`,
                   status: creditsStatus,
                   icon: passCredits ? <CheckCircleOutlined /> : <CloseCircleOutlined />
-                },
-                {
-                  title: 'จำนวนหน่วยกิตในสาขา',
-                  description: `ต้องผ่านการเรียนวิชาในสาขามาแล้วอย่างน้อย ${requiredMajorCredits} หน่วยกิต`,
-                  status: majorCreditsStatus,
-                  icon: passMajorCredits ? <CheckCircleOutlined /> : <CloseCircleOutlined />
                 },
                 {
                   title: 'ภาคเรียนที่อนุญาต',
@@ -197,12 +181,6 @@ const EligibilityCheck = () => {
                         <li>
                           <Text strong>เพิ่มจำนวนหน่วยกิตรวม:</Text> ลงทะเบียนเรียนเพิ่มให้ครบอย่างน้อย {requiredCredits} หน่วยกิต 
                           (ขาดอีก {requiredCredits - studentStatus.totalCredits} หน่วยกิต)
-                        </li>
-                      )}
-                      {!passMajorCredits && (
-                        <li>
-                          <Text strong>เพิ่มจำนวนหน่วยกิตสาขา:</Text> ลงทะเบียนรายวิชาในสาขาเพิ่มให้ครบอย่างน้อย {requiredMajorCredits} หน่วยกิต 
-                          (ขาดอีก {requiredMajorCredits - studentStatus.majorCredits} หน่วยกิต)
                         </li>
                       )}
                       {!isAllowedSemester && (

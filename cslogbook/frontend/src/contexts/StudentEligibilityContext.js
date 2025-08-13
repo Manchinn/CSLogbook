@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { message } from 'antd';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
@@ -20,11 +20,16 @@ export const StudentEligibilityProvider = ({ children }) => {
     projectReason: null,
     requirements: null,
     academicSettings: null,
+  // เพิ่มเติม: เก็บข้อมูลสถานะหน่วยกิตและข้อมูลนักศึกษาเพื่อนำไปใช้แสดงผลในหน้า Eligibility
+  status: null,
+  student: null,
     isLoading: true,
     lastUpdated: null
   });
 
-  const fetchEligibility = useCallback(async (showMessage = false) => {
+  const lastFetchRef = useRef(null);
+
+  const fetchEligibility = useCallback(async (showMessage = false, force = false) => {
     if (!userData || userData.role !== 'student') {
       console.log('StudentEligibilityContext: fetchEligibility skipped - no userData or not a student', { userData }); // <--- LOG HERE
       setEligibility(prev => ({
@@ -34,6 +39,15 @@ export const StudentEligibilityProvider = ({ children }) => {
         canAccessProject: false,
         // ... reset other relevant fields if necessary
       }));
+      return;
+    }
+
+    // Simple cache: หากเพิ่งดึงภายใน 5 นาทีและไม่ force ให้ข้าม
+    const now = Date.now();
+    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 5 * 60 * 1000)) {
+      console.log('StudentEligibilityContext: Skip fetch (cached, <5m)');
+      if (showMessage) message.info('ข้อมูลสิทธิ์เป็นข้อมูลล่าสุดแล้ว');
+      setEligibility(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
@@ -48,6 +62,7 @@ export const StudentEligibilityProvider = ({ children }) => {
 
       if (response.data.success) {
         console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS):', response.data); // <--- LOG HERE
+        lastFetchRef.current = Date.now();
         setEligibility({
           canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
           canAccessProject: response.data.eligibility.project.canAccessFeature || false,
@@ -57,6 +72,9 @@ export const StudentEligibilityProvider = ({ children }) => {
           projectReason: response.data.eligibility.project.reason,
           requirements: response.data.requirements,
           academicSettings: response.data.academicSettings,
+          status: response.data.status || null,
+           // เก็บข้อมูลนักศึกษาเพื่อ fallback กรณี status ไม่มีค่า currentCredits
+          student: response.data.student || null,
           isLoading: false,
           lastUpdated: new Date()
         });
@@ -95,7 +113,7 @@ export const StudentEligibilityProvider = ({ children }) => {
         message.error('เกิดข้อผิดพลาดในการเชื่อมต่อเพื่ออัพเดตข้อมูลสิทธิ์');
       }
     }
-  }, [userData]); // Removed setEligibility from dependencies as it's a setter from useState
+  }, [userData]); // keep stable
 
   useEffect(() => {
     console.log('StudentEligibilityContext: useEffect triggered, calling fetchEligibility. userData:', userData); // <--- LOG HERE
@@ -105,7 +123,7 @@ export const StudentEligibilityProvider = ({ children }) => {
   }, [userData, fetchEligibility]); // fetchEligibility is stable due to useCallback
 
   return (
-    <StudentEligibilityContext.Provider value={{ ...eligibility, refreshEligibility: (showMessage = false) => fetchEligibility(showMessage) }}>
+  <StudentEligibilityContext.Provider value={{ ...eligibility, refreshEligibility: (showMessage = false, force = false) => fetchEligibility(showMessage, force) }}>
       {children}
     </StudentEligibilityContext.Provider>
   );
