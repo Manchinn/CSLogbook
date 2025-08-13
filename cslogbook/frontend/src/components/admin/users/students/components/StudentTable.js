@@ -1,5 +1,6 @@
 import React from "react";
 import { Table, Space, Button, Tag, Tooltip, Typography } from "antd";
+import RoleTag from '../../../../common/RoleTag';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getStatusTags } from "../utils/statusHelpers";
 
@@ -54,6 +55,7 @@ const StudentTable = ({ students, loading, onView, onEdit, onDelete }) => {
                 {tag.text}
               </Tag>
             ))}
+            <RoleTag role={record.role || 'student'} />
           </Space>
         );
       },

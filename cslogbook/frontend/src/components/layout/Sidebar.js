@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Layout, Menu, Avatar, Typography, Tooltip, message, Badge } from "antd";
+import { Layout, Menu, Avatar, Typography, Tooltip, message } from "antd";
+import RoleTag from '../common/RoleTag';
 import {
   HomeOutlined,
   TeamOutlined,
@@ -25,10 +26,21 @@ import "./Sidebar.css";
 const { Sider } = Layout;
 const { Title } = Typography;
 
+// mapping role -> base theme class (teacher แตกย่อยด้านล่าง)
 const themeConfig = {
   student: "student-theme",
-  teacher: "teacher-theme",
   admin: "admin-theme",
+  teacher: "teacher-theme", // fallback หากยังไม่รู้ teacherType
+};
+
+// ฟังก์ชันคืนชื่อคลาสธีมตาม role + teacherType
+const resolveThemeClass = (role, teacherType) => {
+  if (role === 'teacher') {
+    if (teacherType === 'support') return 'teacher-support-theme';
+    if (teacherType === 'academic') return 'teacher-academic-theme';
+    return 'teacher-theme';
+  }
+  return themeConfig[role] || '';
 };
 
 const MenuItemWithTooltip = ({ item, disabled, title }) => {
@@ -590,9 +602,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   return (
     <Sider
       width={230}
-      className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${
-        inDrawer ? "in-drawer" : ""
-      }`}
+      className={`sider ${resolveThemeClass(userData?.role, userData?.teacherType)} ${inDrawer ? "in-drawer" : ""}`}
       collapsed={collapsed}
       // Add CSS for proper display when in mobile drawer
       style={
@@ -622,25 +632,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             <Title level={5} style={{ margin: "8px 0 4px" }}>
               {userData?.firstName} {userData?.lastName}
             </Title>
-            <Badge
-              count={
-                !userData?.role
-                  ? ""
-                  : userData.role === "admin"
-                  ? "ผู้ดูแลระบบ"
-                  : userData.role === "teacher"
-                  ? userData.teacherType === "support"
-                    ? "เจ้าหน้าที่ภาควิชา"
-                    : userData.teacherType === "academic"
-                    ? "อาจารย์สายวิชาการ"
-                    : "อาจารย์"
-                  : "นักศึกษา"
-              }
-              style={{
-                backgroundColor: "var(--active-color)",
-                fontSize: "12px",
-              }}
-            />
+                <RoleTag role={userData?.role} teacherType={userData?.teacherType} />
           </>
         )}
       </div>
@@ -650,7 +642,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         items={menuItems}
         selectedKeys={[location.pathname]}
         defaultSelectedKeys={[location.pathname]}
-        className={`menu ${userData?.role ? themeConfig[userData.role] : ""}`}
+        className={`menu ${resolveThemeClass(userData?.role, userData?.teacherType)}`}
         onClick={handleMenuClick}
       />
 

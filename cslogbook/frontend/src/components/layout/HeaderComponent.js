@@ -7,6 +7,7 @@ import "./HeaderComponent.css";
 const { Header } = Layout;
 const { Title, Text } = Typography;
 
+// themeConfig รองรับ teacherType แยก academic / support
 const themeConfig = {
   student: {
     gradient: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
@@ -15,12 +16,19 @@ const themeConfig = {
     badge: "#1890ff",
     buttonHover: "#bae7ff",
   },
-  teacher: {
+  teacher_academic: {
     gradient: "linear-gradient(135deg, #fff7e6 0%, #ffd591 100%)",
     primary: "#faad14",
     text: "#000000d9",
     badge: "#d48806",
     buttonHover: "#ffe7ba",
+  },
+  teacher_support: {
+    gradient: "linear-gradient(135deg, #e6fffb 0%, #87e8de 100%)",
+    primary: "#13c2c2", // cyan หลัก
+    text: "#000000d9",
+    badge: "#08979C", // teal เข้มสำหรับ contrast
+    buttonHover: "#b5f5ec",
   },
   admin: {
     gradient: "linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%)",
@@ -33,9 +41,14 @@ const themeConfig = {
 
 const HeaderComponent = ({ isMobile, showDrawer }) => {
   const role = localStorage.getItem("role");
+  const teacherType = localStorage.getItem("teacherType");
   const firstName = localStorage.getItem("firstName");
   const lastName = localStorage.getItem("lastName");
-  const theme = themeConfig[role] || themeConfig.student;
+  // แปลง role + teacherType เป็นคีย์ธีม
+  const themeKey = role === 'teacher'
+    ? (teacherType === 'support' ? 'teacher_support' : 'teacher_academic')
+    : role;
+  const theme = themeConfig[themeKey] || themeConfig.student;
   
   // State สำหรับข้อมูลปีการศึกษา
   const [academicInfo, setAcademicInfo] = useState(null);
@@ -64,17 +77,14 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     fetchAcademicInfo();
   }, []);
 
-  const getRoleTitle = (role) => {
-    switch (role) {
-      case "admin":
-        return "ผู้ดูแลระบบ";
-      case "teacher":
-        return "อาจารย์";
-      case "student":
-        return "นักศึกษา";
-      default:
-        return "ผู้ใช้งาน";
+  const getRoleTitle = (role, teacherType) => {
+    if (role === 'teacher') {
+      if (teacherType === 'support') return 'เจ้าหน้าที่ภาควิชา';
+      return 'อาจารย์สายวิชาการ';
     }
+    if (role === 'admin') return 'ผู้ดูแลระบบ';
+    if (role === 'student') return 'นักศึกษา';
+    return 'ผู้ใช้งาน';
   };
   const buttonStyle = {
     display: "flex",
@@ -201,7 +211,12 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                     placement="bottom"
                   >
                     <Tag 
-                      color={theme.primary === '#1890ff' ? 'blue' : theme.primary === '#faad14' ? 'orange' : 'red'}
+                      color={
+                        themeKey === 'student' ? 'blue'
+                        : themeKey === 'teacher_academic' ? 'orange'
+                        : themeKey === 'teacher_support' ? 'cyan'
+                        : 'red'
+                      }
                       style={{ 
                         fontSize: isMobile ? '10px' : '11px', 
                         padding: isMobile ? '1px 6px' : '2px 8px',
@@ -252,7 +267,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                 {firstName} {lastName}
               </Text>
               <Badge
-                count={getRoleTitle(role)}
+                count={getRoleTitle(role, teacherType)}
                 style={headerStyles.roleBadge}
                 className="header-role-badge"
               />
