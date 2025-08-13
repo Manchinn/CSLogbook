@@ -55,7 +55,6 @@ const StudentTable = ({ students, loading, onView, onEdit, onDelete }) => {
                 {tag.text}
               </Tag>
             ))}
-            <RoleTag role={record.role || 'student'} />
           </Space>
         );
       },

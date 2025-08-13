@@ -37,25 +37,17 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       render: (text) => text || "-"
     },
     {
-      title: "ประเภท",
-      key: "teacherType",
-      width: 140,
-      render: (_, record) => (
-        <RoleTag role="teacher" teacherType={record.teacherType} />
-      )
-    },
-    {
       title: "อีเมล",
       dataIndex: "email",
       key: "email",
       width: 200,
-    },
+    },/* 
     {
       title: "เบอร์ภายใน",
       dataIndex: "contactExtension",
       key: "contactExtension",
       width: 120,
-    },
+    }, */
     {
       title: "จัดการ",
       key: "actions",

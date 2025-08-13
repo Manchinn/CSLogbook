@@ -2,53 +2,21 @@ import React, { useState, useEffect } from "react";
 import { Layout, Button, Typography, Space, Avatar, Badge, Tag, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import academicService from "../../services/academicService";
+import { getRoleTheme, resolveThemeKey } from '../../utils/roleTheme';
 import "./HeaderComponent.css";
 
 const { Header } = Layout;
 const { Title, Text } = Typography;
 
-// themeConfig รองรับ teacherType แยก academic / support
-const themeConfig = {
-  student: {
-    gradient: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
-    primary: "#1890ff",
-    text: "#000000d9",
-    badge: "#1890ff",
-    buttonHover: "#bae7ff",
-  },
-  teacher_academic: {
-    gradient: "linear-gradient(135deg, #fff7e6 0%, #ffd591 100%)",
-    primary: "#faad14",
-    text: "#000000d9",
-    badge: "#d48806",
-    buttonHover: "#ffe7ba",
-  },
-  teacher_support: {
-    gradient: "linear-gradient(135deg, #e6fffb 0%, #87e8de 100%)",
-    primary: "#13c2c2", // cyan หลัก
-    text: "#000000d9",
-    badge: "#08979C", // teal เข้มสำหรับ contrast
-    buttonHover: "#b5f5ec",
-  },
-  admin: {
-    gradient: "linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%)",
-    primary: "#f5222d",
-    text: "#000000d9",
-    badge: "#cf1322",
-    buttonHover: "#ffccc7",
-  },
-};
+// ใช้ roleTheme utility (ลด duplication)
 
 const HeaderComponent = ({ isMobile, showDrawer }) => {
   const role = localStorage.getItem("role");
   const teacherType = localStorage.getItem("teacherType");
   const firstName = localStorage.getItem("firstName");
   const lastName = localStorage.getItem("lastName");
-  // แปลง role + teacherType เป็นคีย์ธีม
-  const themeKey = role === 'teacher'
-    ? (teacherType === 'support' ? 'teacher_support' : 'teacher_academic')
-    : role;
-  const theme = themeConfig[themeKey] || themeConfig.student;
+  const themeKey = resolveThemeKey(role, teacherType);
+  const theme = getRoleTheme(role, teacherType);
   
   // State สำหรับข้อมูลปีการศึกษา
   const [academicInfo, setAcademicInfo] = useState(null);

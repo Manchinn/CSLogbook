@@ -27,10 +27,13 @@ import "./Dashboard.css";
 import { adminService } from "../../services/adminService";
 import { teacherService } from "../../services/teacherService";
 import { studentService } from "../../services/studentService";
-import moment from "moment";
+import { getRoleTheme } from '../../utils/roleTheme';
+// moment removed (not used)
 
 function Dashboard() {
   const { userData } = useAuth();
+
+  const theme = getRoleTheme(userData?.role, userData?.teacherType);
 
   function AdminView() {
     const navigate = useNavigate();
@@ -88,10 +91,12 @@ function Dashboard() {
       <div className="admin-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
           <Alert
-            message={`สวัสดี ผู้ดูแลระบบ ${userData.firstName} ${userData.lastName}`}
+            message={`สวัสดี ${userData.firstName} ${userData.lastName}`}
+            description="แดชบอร์ดผู้ดูแลระบบ"
             type="info"
             showIcon
             className="common-alert-style"
+            style={{ borderLeft: `4px solid ${theme.primary}` }}
           />
 
           <Row gutter={[16, 16]}>
@@ -117,7 +122,7 @@ function Dashboard() {
                   title="เอกสารรอดำเนินการ"
                   value={dashboardStats.documents.pending}
                   suffix={`/ ${dashboardStats.documents.total}`}
-                  valueStyle={{ color: "#faad14" }}
+                  valueStyle={{ color: dashboardStats.documents.pending > 0 ? '#faad14' : theme.primary }}
                   prefix={<FileTextOutlined />}
                 />
               </Card>
@@ -180,7 +185,7 @@ function Dashboard() {
     };
 
     return (
-      <div className="teacher-dashboard">
+  <div className="teacher-dashboard">
         <Row gutter={[16, 16]} className="stats-row">
           <Col xs={24} sm={12}>
             <Card hoverable className="stats-card">
@@ -214,10 +219,11 @@ function Dashboard() {
     const [studentData, setStudentData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const studentCode = userData?.studentCode; // แยก primitive ให้ hook dependency ชัดเจน
     useEffect(() => {
       let isMounted = true;
-      if (userData?.studentCode) {
-        studentService.getStudentInfo(userData.studentCode)
+      if (studentCode) {
+        studentService.getStudentInfo(studentCode)
           .then((response) => {
             if (isMounted) {
               setStudentData(response.data);
@@ -231,7 +237,7 @@ function Dashboard() {
           });
       }
       return () => { isMounted = false; };
-    }, [userData?.studentCode]);
+    }, [studentCode]);
 
     const isEligibleForInternship = studentData?.eligibility?.internship?.eligible || false;
     const isEligibleForProject = studentData?.eligibility?.project?.eligible || false;
@@ -244,6 +250,7 @@ function Dashboard() {
             description={`รหัสนักศึกษา: ${userData.studentCode}`}
             type="info"
             showIcon
+            style={{ borderLeft: `4px solid ${theme.primary}` }}
           />
 
           <Row gutter={[16, 16]}>
