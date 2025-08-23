@@ -1078,6 +1078,167 @@ class InternshipLogbookService {
       throw error;
     }
   }
+
+  /**
+   * 🆕 ดึงข้อมูลสรุปบันทึกฝึกงาน (สำหรับ admin) จาก internshipId โดยตรง
+   * รวมบันทึกรายวัน + reflection + สถิติ เหมือน getInternshipSummaryForPDF แต่ไม่ต้องทราบ userId
+   * @param {number} internshipId
+   * @returns {Object} summaryData
+   */
+  async getInternshipSummaryByInternshipId(internshipId) {
+    try {
+      logger.info(`InternshipLogbookService: getInternshipSummaryByInternshipId ${internshipId}`);
+
+      // หา InternshipDocument -> ใช้ documentId -> หา Document (เพื่อ userId) -> หา Student
+      const { Document } = require('../models');
+      const internshipDoc = await InternshipDocument.findByPk(internshipId, {
+        include: [{ model: Document, as: 'document', attributes: ['userId'] }]
+      });
+      if (!internshipDoc) throw new Error('ไม่พบข้อมูลการฝึกงาน');
+
+      const student = await Student.findOne({
+        where: { userId: internshipDoc.document.userId },
+        include: [{ model: User, as: 'user', attributes: ['firstName','lastName','email'] }]
+      });
+      if (!student) throw new Error('ไม่พบข้อมูลนักศึกษา');
+
+      // บันทึกการฝึกงาน
+      const logEntries = await InternshipLogbook.findAll({
+        where: { internshipId, studentId: student.studentId },
+        order: [['work_date','ASC']]
+      });
+
+      // reflection (อาจไม่มี)
+      const reflection = await InternshipLogbookReflection.findOne({
+        where: { internship_id: internshipId, student_id: student.studentId }
+      });
+
+      const totalHours = logEntries.reduce((sum,e)=> sum + (e.workHours || 0), 0);
+      const totalDays = logEntries.length;
+      const averageHours = totalDays ? (totalHours/totalDays).toFixed(1) : 0;
+
+      return {
+        studentInfo: {
+          // ใช้รหัสนักศึกษาจริง (studentCode) สำหรับแสดงผล PDF และเก็บค่า primary key แยก
+          studentId: student.studentCode, // สำหรับการแสดงผล
+          studentPrimaryId: student.studentId, // เก็บไว้เผื่ออ้างอิงภายใน
+          firstName: student.user.firstName,
+          lastName: student.user.lastName,
+          email: student.user.email,
+          yearLevel: student.yearLevel,
+          classroom: student.classroom,
+          phoneNumber: student.phoneNumber,
+        },
+        companyInfo: {
+          companyName: internshipDoc.companyName,
+          companyAddress: internshipDoc.companyAddress,
+          supervisorName: internshipDoc.supervisorName,
+          supervisorPosition: internshipDoc.supervisorPosition,
+          supervisorPhone: internshipDoc.supervisorPhone,
+          supervisorEmail: internshipDoc.supervisorEmail,
+        },
+        internshipPeriod: {
+          startDate: internshipDoc.startDate,
+          endDate: internshipDoc.endDate,
+        },
+        logEntries: logEntries.map(entry => ({
+          workDate: entry.workDate,
+          timeIn: entry.timeIn,
+          timeOut: entry.timeOut,
+          workHours: entry.workHours,
+          workDescription: entry.workDescription,
+          learningOutcome: entry.learningOutcome,
+          problems: entry.problems,
+          solutions: entry.solutions,
+          supervisorApproved: entry.supervisorApproved,
+        })),
+        reflection: reflection ? {
+          learningOutcome: reflection.learning_outcome,
+          keyLearnings: reflection.key_learnings,
+          futureApplication: reflection.future_application,
+          improvements: reflection.improvements,
+        } : null,
+        statistics: { totalDays, totalHours, averageHours },
+      };
+    } catch (error) {
+      logger.error('InternshipLogbookService: Error in getInternshipSummaryByInternshipId', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🆕 สร้าง PDF บันทึกฝึกงานจาก summaryData (ใช้ได้ทั้ง student/admin)
+   * @param {Object} summaryData
+   * @returns {Buffer}
+   */
+  async generateInternshipSummaryPDF(summaryData) {
+    const PDFDocument = require('pdfkit');
+    try {
+      logger.info('InternshipLogbookService: generateInternshipSummaryPDF start');
+
+      if (!summaryData || !summaryData.logEntries) {
+        throw new Error('ข้อมูลสรุปไม่ครบถ้วน');
+      }
+
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const chunks = [];
+      return await new Promise((resolve, reject) => {
+        doc.on('data', (c)=> chunks.push(c));
+        doc.on('error', (err)=> { logger.error('PDF generation error', err); reject(err); });
+        doc.on('end', ()=> resolve(Buffer.concat(chunks)));
+
+        // Header
+        doc.fontSize(18).text('สรุปบันทึกการฝึกงาน (Internship Logbook Summary)', { align: 'center' });
+        doc.moveDown(0.5);
+
+        const s = summaryData.studentInfo || {};
+        const c = summaryData.companyInfo || {};
+        const p = summaryData.internshipPeriod || {};
+        const stats = summaryData.statistics || {};
+
+        doc.fontSize(12).text(`รหัสนักศึกษา: ${s.studentId || '-'}`);
+        doc.text(`ชื่อ: ${[s.firstName, s.lastName].filter(Boolean).join(' ') || '-'}`);
+        doc.text(`ชั้นปี: ${s.yearLevel || '-'}   ห้อง: ${s.classroom || '-'}`);
+        doc.text(`อีเมล: ${s.email || '-'}`);
+        doc.moveDown(0.5);
+        doc.text(`สถานประกอบการ: ${c.companyName || '-'}`);
+        doc.text(`ที่อยู่: ${c.companyAddress || '-'}`);
+        doc.text(`พี่เลี้ยง: ${c.supervisorName || '-'} (${c.supervisorPosition || '-'})`);
+        doc.moveDown(0.5);
+        doc.text(`ช่วงฝึกงาน: ${p.startDate || '-'} ถึง ${p.endDate || '-'}`);
+        doc.text(`จำนวนวัน: ${stats.totalDays || 0}  ชั่วโมงรวม: ${stats.totalHours || 0}  เฉลี่ยต่อวัน: ${stats.averageHours || 0}`);
+        doc.moveDown();
+
+        // ตารางบันทึกรายวัน (อย่างย่อ เฉพาะวันที่ ชั่วโมง และกิจกรรม)
+        doc.fontSize(14).text('บันทึกรายวัน', { underline: true });
+        doc.moveDown(0.5);
+        const maxRows = 35; // จำกัดเพื่อไม่ให้เกินหน้าเดียว (ง่าย ๆ)
+        summaryData.logEntries.slice(0, maxRows).forEach(entry => {
+          doc.fontSize(10).text(`• ${entry.workDate}: ${entry.workHours || 0} ชม. - ${(entry.workDescription || '').substring(0,80)}`);
+        });
+        if (summaryData.logEntries.length > maxRows) {
+          doc.fontSize(10).fillColor('gray').text(`...มีอีก ${summaryData.logEntries.length - maxRows} รายการ`);
+          doc.fillColor('black');
+        }
+
+        // Reflection
+        if (summaryData.reflection) {
+          doc.moveDown();
+          doc.fontSize(14).text('บทสรุปการฝึกงาน', { underline: true });
+          const r = summaryData.reflection;
+            doc.fontSize(10).text(`สิ่งที่ได้เรียนรู้: ${r.learningOutcome || '-'}`);
+            doc.fontSize(10).text(`ทักษะสำคัญ: ${r.keyLearnings || '-'}`);
+            doc.fontSize(10).text(`การประยุกต์ใช้ในอนาคต: ${r.futureApplication || '-'}`);
+            doc.fontSize(10).text(`ข้อเสนอแนะ/ปรับปรุง: ${r.improvements || '-'}`);
+        }
+
+        doc.end();
+      });
+    } catch (error) {
+      logger.error('InternshipLogbookService: Error in generateInternshipSummaryPDF', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new InternshipLogbookService();

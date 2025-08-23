@@ -35,9 +35,16 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
           firstName: processedData.firstName || "",
           lastName: processedData.lastName || "",
           fullName: processedData.fullName || "",
-          studentId: processedData.studentId || "",
-          yearLevel: processedData.yearLevel || "",
-          classroom: processedData.classroom || "",
+          // ถ้า studentId สั้นผิดปกติ (< 5 ตัว) และมี studentPrimaryId หรือ studentCode ให้ใช้ตัวที่มีความยาวมากกว่า
+          studentId: (() => {
+            const sid = processedData.studentId || "";
+            const primary = processedData.studentPrimaryId || processedData.primaryId || "";
+            if (sid && String(sid).trim().length >= 5) return sid;
+            if (primary && String(primary).trim().length >= 5) return primary;
+            return sid || primary || "";
+          })(),
+          yearLevel: processedData.yearLevel || processedData.year_level || "",
+          classroom: processedData.classroom || processedData.class || "",
           phoneNumber: processedData.phoneNumber || "",
           title: processedData.title || "",
         };
@@ -140,8 +147,16 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
       }
     }
 
-    if (!studentData.studentId || studentData.studentId.trim() === "") {
+    // แก้ bug: studentId อาจเป็น number -> บังคับเป็น string ก่อน trim
+    if (!studentData.studentId || String(studentData.studentId).trim() === "") {
       studentData.studentId = "ไม่ระบุ";
+    } else if (typeof studentData.studentId !== "string") {
+      studentData.studentId = String(studentData.studentId);
+    }
+
+    // ถ้ายังไม่มี yearLevel ให้ลองเติมจาก summaryData.studentInfo
+    if ((!studentData.yearLevel || String(studentData.yearLevel).trim() === "") && summaryData?.studentInfo?.yearLevel) {
+      studentData.yearLevel = summaryData.studentInfo.yearLevel;
     }
 
     //console.log('🎯 Final processed student data:', studentData);
@@ -470,9 +485,9 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
     return chunks;
   };
 
-  // ✅ แบ่งข้อมูลตารางเป็นหน้าๆ (15 รายการต่อหน้าตามแบบฟอร์ม)
+  // ✅ แบ่งข้อมูลตารางเป็นหน้าๆ (11 รายการต่อหน้าเพื่อป้องกันล้นหน้า A4)
   const logEntries = logbookData?.entries || [];
-  const entriesPerPage = 15;
+  const entriesPerPage = 11; // เปลี่ยนจาก 15 เป็น 11
   const entryChunks = chunkArray(logEntries, entriesPerPage);
 
   return (
@@ -695,9 +710,9 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
                 );
               })}
 
-              {/* 🎯 เติมแถวว่างให้ครบ 15 แถว (ตามแบบฟอร์ม) */}
+              {/* 🎯 เติมแถวว่างให้ครบ 11 แถว */}
               {Array.from(
-                { length: Math.max(0, entriesPerPage - chunk.length) },
+                { length: Math.max(0, entriesPerPage - chunk.length) }, // จะเติมจนกว่าจะครบ 11 แถว
                 (_, i) => (
                   <View key={`empty-${i}`} style={styles.tableDataRow}>
                     <View style={styles.colNo}>
@@ -781,7 +796,7 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
           </Page>
         ))
       ) : (
-        // 📝 หน้าตารางว่างเมื่อไม่มีข้อมูล
+  // 📝 หน้าตารางว่างเมื่อไม่มีข้อมูล (11 แถว)
         <Page size="A4" style={styles.page}>
           <View style={styles.logTable}>
             <View style={styles.tableTitle}>
@@ -809,8 +824,8 @@ const InternshipLogbookTemplate = ({ logbookData, summaryData, userInfo }) => {
               </View>
             </View>
 
-            {/* แถวว่าง 15 แถว */}
-            {Array.from({ length: 15 }, (_, i) => (
+            {/* แถวว่าง 11 แถว */}
+            {Array.from({ length: 11 }, (_, i) => (
               <View key={i} style={styles.tableDataRow}>
                 <View style={styles.colNo}>
                   <Text style={styles.tableCellTextCenter}>{i + 1}</Text>

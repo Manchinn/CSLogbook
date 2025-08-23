@@ -56,6 +56,10 @@ router.post('/notify-student', adminAuth, documentController.notifyStudent);
 
 // ✅ Internship Summary (Admin)
 router.get('/internships/:internshipId/summary', adminAuth, documentController.getInternshipSummary);
+// 🆕 Full logbook summary & PDF (admin)
+router.get('/internships/:internshipId/logbook-summary', adminAuth, documentController.getInternshipLogbookSummary);
+router.get('/internships/:internshipId/logbook-summary/pdf', adminAuth, documentController.previewInternshipLogbookSummaryPDF);
+router.get('/internships/:internshipId/logbook-summary/pdf/download', adminAuth, documentController.downloadInternshipLogbookSummaryPDF);
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);

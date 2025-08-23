@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import OfficialDocumentService from '../../../services/PDFServices/OfficialDocumentService';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, message, 
   Row, Col, Card, Typography, Tooltip, Drawer, Select
@@ -348,6 +349,26 @@ const CertificateManagement = () => {
     }
   };
 
+  // 🆕 สร้าง PDF Logbook ฝั่ง frontend (ดึงข้อมูลจาก admin JSON แล้วใช้ template เดิม)
+  const handleOpenLogbookPDF = async () => {
+    const internshipId = detailData?.internship?.internshipId;
+    if (!internshipId) {
+      message.info('ไม่พบ Internship ID');
+      return;
+    }
+    try {
+      message.loading({ content: 'กำลังเตรียมข้อมูล Logbook...', key: 'logpdf' });
+      const res = await certificateService.getAdminLogbookFullSummary(internshipId); // ต้องสร้าง method ใน service
+      if (!res?.success) throw new Error(res?.message || 'ดึงข้อมูลไม่สำเร็จ');
+      const summary = res.data; // shape: summaryFull
+  await OfficialDocumentService.previewInternshipLogbookPDF(summary);
+  message.success({ content: 'แสดงตัวอย่าง PDF แล้ว', key: 'logpdf', duration: 2 });
+    } catch (err) {
+      console.error('Generate logbook PDF error:', err);
+      message.error({ content: 'ไม่สามารถสร้าง PDF Logbook ได้', key: 'logpdf' });
+    }
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Card>
@@ -512,13 +533,7 @@ const CertificateManagement = () => {
         <CertificateRequestReview
           data={detailData}
           loading={detailLoading}
-          onOpenSummary={() => {
-            if (detailData?.eligibility?.summary?.url) {
-              window.open(detailData.eligibility.summary.url, '_blank');
-            } else {
-              message.info('ยังไม่มีสรุปผล');
-            }
-          }}
+          onOpenLogbookPDF={handleOpenLogbookPDF}
           onApprove={() => {
             if (!selectedRequest) return;
             setSelectedRequest(selectedRequest); // ensure state

@@ -90,6 +90,17 @@ export const certificateService = {
       console.error('Error sending notification:', error);
       throw error;
     }
+  },
+
+  // 🆕 ดึง full logbook summary (entries + reflection + stats) สำหรับ admin แล้วใช้สร้าง PDF ฝั่ง client
+  getAdminLogbookFullSummary: async (internshipId) => {
+    try {
+      const response = await apiClient.get(`/admin/internships/${internshipId}/logbook-summary`);
+      return response.data; // { success, data }
+    } catch (error) {
+      console.error('Error fetching admin logbook summary:', error);
+      throw error;
+    }
   }
 };
 

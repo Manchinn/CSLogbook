@@ -468,6 +468,51 @@ const getInternshipSummary = async (req, res) => {
     }
 };
 
+// 🆕 Admin: JSON full logbook summary (entries + reflection + stats)
+const getInternshipLogbookSummary = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const { summaryFull } = await documentService.getInternshipLogbookSummary(internshipId, { pdf: false });
+        res.json({ success: true, data: summaryFull });
+    } catch (error) {
+        logger.error('Error fetching internship logbook full summary:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดึงข้อมูลสรุปบันทึกได้' });
+    }
+};
+
+// 🆕 Admin: Preview PDF inline
+const previewInternshipLogbookSummaryPDF = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const { summaryFull, pdfBuffer } = await documentService.getInternshipLogbookSummary(internshipId, { pdf: true });
+        const sid = summaryFull?.studentInfo?.studentId || internshipId;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="logbook-summary-' + sid + '.pdf"');
+        res.send(pdfBuffer);
+    } catch (error) {
+        logger.error('Error previewing internship logbook summary PDF:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถแสดงตัวอย่าง PDF ได้' });
+    }
+};
+
+// 🆕 Admin: Download PDF attachment
+const downloadInternshipLogbookSummaryPDF = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const { summaryFull, pdfBuffer } = await documentService.getInternshipLogbookSummary(internshipId, { pdf: true });
+        const sid = summaryFull?.studentInfo?.studentId || internshipId;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="logbook-summary-' + encodeURIComponent(sid) + '.pdf"');
+        res.send(pdfBuffer);
+    } catch (error) {
+        logger.error('Error downloading internship logbook summary PDF:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดาวน์โหลด PDF ได้' });
+    }
+};
+
 module.exports = {
     uploadDocument,
     getDocumentById,
@@ -488,4 +533,7 @@ module.exports = {
     downloadCertificateForAdmin,
     notifyStudent,
     getInternshipSummary, // ✅ ใหม่: สรุปการฝึกงานสำหรับ admin
+    getInternshipLogbookSummary,
+    previewInternshipLogbookSummaryPDF,
+    downloadInternshipLogbookSummaryPDF,
 };

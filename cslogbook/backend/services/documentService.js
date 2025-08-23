@@ -729,6 +729,7 @@ class DocumentService {
                     startDate: internshipDoc?.startDate || internshipInfo?.startDate || null,
                     endDate: internshipDoc?.endDate || internshipInfo?.endDate || null,
                     totalHours: request.totalHours,
+                    internshipId: request.internshipId || internshipDoc?.internshipId || null,
                 },
                 eligibility: {
                     hours: { current: Number(request.totalHours), required: 240, passed: Number(request.totalHours) >= 240 },
@@ -738,7 +739,8 @@ class DocumentService {
                         passScore,
                         passed: evaluationPassed
                     },
-                    summary: { available: request.summaryStatus === 'submitted', url: request.summaryStatus === 'submitted' ? `/admin/internships/${request.internshipId}/summary` : null }
+                    // summary เดิม (JSON) เปลี่ยนใช้สำหรับตรวจว่าพร้อมสร้าง PDF หรือไม่
+                    summary: { available: request.summaryStatus === 'submitted' }
                 },
                 evaluationDetail: {
                     overallScore,
@@ -816,6 +818,27 @@ class DocumentService {
             };
         } catch (error) {
             logger.error('Error in getInternshipSummary service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 🆕 ดึงข้อมูล summary logbook (full) + buffer PDF (เลือกได้) สำหรับ admin
+     * @param {number} internshipId
+     * @param {object} options { pdf?: boolean }
+     */
+    async getInternshipLogbookSummary(internshipId, options = {}) {
+        const { pdf = false } = options;
+        try {
+            const summaryFull = await require('./internshipLogbookService').getInternshipSummaryByInternshipId(internshipId);
+            if (!summaryFull) throw new Error('ไม่พบข้อมูลสรุปบันทึกฝึกงาน');
+            let pdfBuffer = null;
+            if (pdf) {
+                pdfBuffer = await require('./internshipLogbookService').generateInternshipSummaryPDF(summaryFull);
+            }
+            return { summaryFull, pdfBuffer };
+        } catch (error) {
+            logger.error('Error in getInternshipLogbookSummary service:', error);
             throw error;
         }
     }

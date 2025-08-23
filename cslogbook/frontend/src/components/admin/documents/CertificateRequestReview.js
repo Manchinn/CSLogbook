@@ -7,7 +7,7 @@ import dayjs from '../../../utils/dayjs';
  * แสดงรายละเอียดคำขอหนังสือรับรอง (ใช้ภายใน Drawer)
  * data shape ดูจาก service getCertificateRequestDetail
  */
-const CertificateRequestReview = ({ data, loading, onOpenSummary, onApprove, onReject }) => {
+const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, onReject }) => { // เปลี่ยนชื่อ prop
   if (loading) return <Skeleton active paragraph={{ rows: 6 }} />;
   if (!data) return <div>ไม่พบข้อมูล</div>;
 
@@ -75,7 +75,7 @@ const CertificateRequestReview = ({ data, loading, onOpenSummary, onApprove, onR
             ประเมิน {eligibility.evaluation.status}{hasScore && ` (${eligibility.evaluation.overallScore}/${eligibility.evaluation.passScore})`}
           </Tag>
           {eligibility.summary?.available && (
-            <Tag color="geekblue" onClick={onOpenSummary} style={{ cursor: 'pointer' }}>ดูสรุปผล</Tag>
+            <Tag color="geekblue" onClick={onOpenLogbookPDF} style={{ cursor: 'pointer' }}>ดู PDF Logbook</Tag> // ปรับข้อความและ handler
           )}
         </Space>
       </Card>
