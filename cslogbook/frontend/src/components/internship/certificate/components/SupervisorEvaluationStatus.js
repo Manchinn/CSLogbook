@@ -14,11 +14,20 @@ const { Title, Text } = Typography;
 // - hideStatusText: (boolean) ซ่อนข้อความรายละเอียดใต้คะแนน
 const SupervisorEvaluationStatus = ({
   status,
-  totalHours,
-  evaluationScore = null, // คะแนนรวม (อาจยังไม่ได้ส่งมา)
+  totalHours, // ชั่วโมงรวมทั้งหมด (raw จาก certificate status หรือ summary)
+  // หมายเหตุ: totalApprovedHours ในหน้า Summary.js ถูกคำนวณจาก useSummaryData โดย
+  //   1) แปลง entries -> ให้สถานะ approved/pending/rejected
+  //   2) filter เฉพาะ entry ที่ status === 'approved'
+  //   3) reduce รวม hours แล้วปัดทศนิยม (ดู useSummaryData: setTotalApprovedHours)
+  // เราเพิ่ม prop totalApprovedHours เพื่อส่งค่าที่คำนวณแล้วมาใช้ตรง ๆ ถ้ามี
+  totalApprovedHours = null, // 🆕 ชั่วโมงที่ "อนุมัติแล้ว" (ตรงจาก summary ถ้ามี)
+  approvedHours = null,      // 🆕 alias เก่า (ยังรองรับเพื่อ backward compatibility)
+  entries = null,            // 🆕 รายการบันทึก (fallback คำนวณได้เองถ้าไม่ส่งค่าอื่นมา)
+  evaluationScore = null,    // คะแนนรวม (อาจยังไม่ได้ส่งมา)
   passScore = 70,
   showScore = true,
   hideStatusText = false,
+  requiredHours = 240,       // 🆕 ทำเป็นตัวแปร configurable (ค่าเริ่มต้น 240)
 }) => {
   const getStatusColor = (condition) => {
     return condition ? 'success' : 'default';
@@ -28,7 +37,38 @@ const SupervisorEvaluationStatus = ({
     return condition ? <CheckCircleOutlined /> : <ClockCircleOutlined />;
   };
 
-  const isHoursComplete = totalHours >= 240;
+  // 🧮 ลำดับ fallback การคำนวณชั่วโมงที่ "อนุมัติแล้ว"
+  // 1) approvedHours (prop เดิม)
+  // 2) totalApprovedHours (prop ใหม่ สะท้อน logic ในหน้า Summary)
+  // 3) entries (คำนวณสด: นับเฉพาะ supervisorApproved/supervisor_approved)
+  // 4) totalHours (สุดท้ายอาจเป็นชั่วโมงดิบหากไม่มีข้อมูลอื่น)
+  let approvedHoursComputed =
+    approvedHours != null
+      ? approvedHours
+      : totalApprovedHours != null
+        ? totalApprovedHours
+        : null;
+
+  if (approvedHoursComputed == null && Array.isArray(entries)) {
+    approvedHoursComputed = entries.reduce((sum, e) => {
+      const isApproved =
+        e.supervisorApproved === 1 ||
+        e.supervisorApproved === true ||
+        e.supervisor_approved === 1 ||
+        e.supervisor_approved === true ||
+        e.status === 'approved';
+      if (isApproved) {
+        const h = parseFloat(
+          e.approvedHours || e.totalHours || e.workHours || e.hours || 0
+        );
+        return sum + (isNaN(h) ? 0 : h);
+      }
+      return sum;
+    }, 0);
+  }
+  if (approvedHoursComputed == null) approvedHoursComputed = totalHours || 0; // final fallback
+
+  const isHoursComplete = approvedHoursComputed >= requiredHours;
   const hasScore = typeof evaluationScore === 'number' && evaluationScore >= 0;
   const isEvaluationPassed = hasScore
     ? evaluationScore >= passScore
@@ -42,11 +82,11 @@ const SupervisorEvaluationStatus = ({
 
       {/* สถิติโดยรวม */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
+    <Col xs={24} sm={8}>
           <Statistic
-            title="ชั่วโมงฝึกงาน"
-            value={totalHours}
-            suffix="/ 240 ชั่วโมง"
+      title="ชั่วโมงที่อนุมัติแล้ว"
+      value={approvedHoursComputed}
+      suffix={`/ ${requiredHours} ชั่วโมง`}
             prefix={getStatusIcon(isHoursComplete)}
             valueStyle={{ color: isHoursComplete ? '#3f8600' : '#cf1322' }}
           />
@@ -80,14 +120,17 @@ const SupervisorEvaluationStatus = ({
         >
           <Space direction="vertical">
             <Text strong>
-              ชั่วโมงฝึกงานครบถ้วน (240 ชั่วโมง)
+              ชั่วโมงฝึกงานครบถ้วน ({requiredHours} ชั่วโมง)
             </Text>
             <Tag color={isHoursComplete ? 'success' : 'warning'}>
-              ปัจจุบัน: {totalHours} ชั่วโมง
+              อนุมัติแล้ว: {approvedHoursComputed} ชั่วโมง
             </Tag>
+            {approvedHoursComputed !== totalHours && totalHours != null && (
+              <Text type="secondary">รวม (บันทึกทั้งหมด): {totalHours} ชั่วโมง</Text>
+            )}
             {!isHoursComplete && (
               <Text type="secondary">
-                ยังขาดอีก {240 - totalHours} ชั่วโมง
+                ยังขาดอีก {Math.max(0, requiredHours - approvedHoursComputed)} ชั่วโมง
               </Text>
             )}
           </Space>
