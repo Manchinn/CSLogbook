@@ -270,17 +270,14 @@ module.exports = {
     const notEvaluated = Math.max(0, totalInterns - evaluatedCount);
     const completionPct = totalInterns ? +((evaluatedCount * 100) / totalInterns).toFixed(1) : 0;
 
-    // Aggregate averages (ignore null)
+    // Aggregate averages โครงสร้างใหม่ใช้ *_score (แต่ละหมวด 0-20) รวม overall_score (0-100)
     const agg = await InternshipEvaluation.findAll({
       attributes: [
-        [fn('AVG', col('q1_knowledge')), 'avgQ1'],
-        [fn('AVG', col('q2_responsibility')), 'avgQ2'],
-        [fn('AVG', col('q3_initiative')), 'avgQ3'],
-        [fn('AVG', col('q4_adaptability')), 'avgQ4'],
-        [fn('AVG', col('q5_problem_solving')), 'avgQ5'],
-        [fn('AVG', col('q6_communication')), 'avgQ6'],
-        [fn('AVG', col('q7_punctuality')), 'avgQ7'],
-        [fn('AVG', col('q8_personality')), 'avgQ8'],
+        [fn('AVG', col('discipline_score')), 'avgDiscipline'],
+        [fn('AVG', col('behavior_score')), 'avgBehavior'],
+        [fn('AVG', col('performance_score')), 'avgPerformance'],
+        [fn('AVG', col('method_score')), 'avgMethod'],
+        [fn('AVG', col('relation_score')), 'avgRelation'],
         [fn('AVG', col('overall_score')), 'avgOverall']
       ],
       raw: true
@@ -288,37 +285,22 @@ module.exports = {
     const a = agg[0] || {};
     const toNum = v => (v == null ? null : +parseFloat(v).toFixed(2));
     const criteriaAverages = [
-      { key: 'q1Knowledge', label: 'ความรู้พื้นฐาน', avg: toNum(a.avgQ1) },
-      { key: 'q2Responsibility', label: 'ความรับผิดชอบ', avg: toNum(a.avgQ2) },
-      { key: 'q3Initiative', label: 'ความกระตือรือร้น', avg: toNum(a.avgQ3) },
-      { key: 'q4Adaptability', label: 'การปรับตัว', avg: toNum(a.avgQ4) },
-      { key: 'q5ProblemSolving', label: 'แก้ปัญหา', avg: toNum(a.avgQ5) },
-      { key: 'q6Communication', label: 'การสื่อสาร', avg: toNum(a.avgQ6) },
-      { key: 'q7Punctuality', label: 'ตรงต่อเวลา', avg: toNum(a.avgQ7) },
-      { key: 'q8Personality', label: 'บุคลิกภาพ', avg: toNum(a.avgQ8) }
+      { key: 'discipline', label: 'ระเบียบวินัย', avg: toNum(a.avgDiscipline) },
+      { key: 'behavior', label: 'พฤติกรรม', avg: toNum(a.avgBehavior) },
+      { key: 'performance', label: 'ผลงาน', avg: toNum(a.avgPerformance) },
+      { key: 'method', label: 'วิธีการทำงาน', avg: toNum(a.avgMethod) },
+      { key: 'relation', label: 'มนุษยสัมพันธ์', avg: toNum(a.avgRelation) }
     ];
     const overallAverage = toNum(a.avgOverall);
 
     // ดึงทุก evaluation เพื่อคำนวณ distribution (อาจพิจารณา paginate ถ้าข้อมูลใหญ่)
-    const evaluations = await InternshipEvaluation.findAll({ attributes: ['overall_score', 'overall_grade'], raw: true });
+  const evaluations = await InternshipEvaluation.findAll({ attributes: ['overall_score'], raw: true });
 
     const gradeCounts = {};
     const scoreBuckets = { '>=80':0, '70-79':0, '60-69':0, '50-59':0, '<50':0 };
     evaluations.forEach(ev => {
-      let grade = ev.overall_grade;
-      const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
-      if (!grade && score != null) {
-        // Simple mapping; TODO: ปรับตามเกณฑ์จริงของภาควิชา
-        if (score >= 80) grade = 'A';
-        else if (score >= 75) grade = 'B+';
-        else if (score >= 70) grade = 'B';
-        else if (score >= 65) grade = 'C+';
-        else if (score >= 60) grade = 'C';
-        else if (score >= 55) grade = 'D+';
-        else if (score >= 50) grade = 'D';
-        else grade = 'F';
-      }
-      if (grade) gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+  // เลิกใช้ overall_grade -> คง logic bucket เฉพาะคะแนน
+  const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
 
       if (score != null) {
         if (score >= 80) scoreBuckets['>=80']++;

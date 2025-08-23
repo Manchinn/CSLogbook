@@ -12,9 +12,10 @@ import {
   Rate,
   Row,
   Col,
-  Select,
   Space,
   Tag,
+  Radio,
+  Progress,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -33,11 +34,11 @@ import {
   submitSupervisorEvaluation,
 } from "../../../services/evaluationService";
 import moment from "moment";
-import { DATE_FORMAT_MEDIUM } from "../../../utils/constants";
+// import { DATE_FORMAT_MEDIUM } from "../../../utils/constants"; // ไม่ได้ใช้งานหลังปรับโครงสร้าง
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
+// const { Option } = Select; // ไม่ได้ใช้งานหลังปรับโครงสร้าง (ตัด overallGrade)
 
 const SupervisorEvaluation = () => {
   console.log("SupervisorEvaluation component rendering");
@@ -49,6 +50,20 @@ const SupervisorEvaluation = () => {
   const [error, setError] = useState(null);
   const [evaluationDetails, setEvaluationDetails] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [liveScores, setLiveScores] = useState({
+    discipline: [null,null,null,null],
+    behavior: [null,null,null,null],
+    performance: [null,null,null,null],
+    method: [null,null,null,null],
+    relation: [null,null,null,null],
+    decision: null,
+  });
+  const computeSubtotal = (arr)=> arr.reduce((a,b)=> a + (Number.isInteger(b)? b:0),0);
+  const totalScore = ['discipline','behavior','performance','method','relation']
+    .map(k=>computeSubtotal(liveScores[k]))
+    .reduce((a,b)=>a+b,0);
+  const passByRule = totalScore >= 70;
+  const finalPass = passByRule && liveScores.decision === true;
 
   const fetchEvaluationData = useCallback(async () => {
     console.log("Entering fetchEvaluationData. Token:", token);
@@ -115,6 +130,18 @@ const SupervisorEvaluation = () => {
     fetchEvaluationData();
   }, [token, fetchEvaluationData]);
 
+  const handleRateChange = (category, index, value) => {
+    setLiveScores(prev => {
+      const updated = { ...prev, [category]: [...prev[category]] };
+      updated[category][index] = value;
+      return updated;
+    });
+  };
+
+  const handleDecisionChange = e => {
+    setLiveScores(prev => ({ ...prev, decision: e.target.value === 'pass' }));
+  };
+
   const handleSubmit = async (values) => {
     console.log("📝 Submitting Form values:", values);
     setSubmitting(true);
@@ -124,17 +151,14 @@ const SupervisorEvaluation = () => {
     const submissionData = {
       supervisorName: values.supervisorName,
       supervisorPosition: values.supervisorPosition,
-      evaluationScores: {
-        knowledge: values.q1Knowledge,
-        responsibility: values.q2Responsibility,
-        initiative: values.q3Initiative,
-        adaptability: values.q4Adaptability,
-        problemSolving: values.q5ProblemSolving,
-        communication: values.q6Communication,
-        punctuality: values.q7Punctuality,
-        personality: values.q8Personality,
+      supervisorDecision: liveScores.decision === true,
+      categories: {
+        discipline: liveScores.discipline.map(v=>v||0),
+        behavior: liveScores.behavior.map(v=>v||0),
+        performance: liveScores.performance.map(v=>v||0),
+        method: liveScores.method.map(v=>v||0),
+        relation: liveScores.relation.map(v=>v||0),
       },
-      overallRating: values.overallGrade,
       strengths: values.strengths,
       improvements: values.weaknessesToImprove,
       additionalComments: values.additionalComments || null,
@@ -288,6 +312,39 @@ const SupervisorEvaluation = () => {
   }
 
   const ratingDescriptors = ["แย่มาก", "แย่", "พอใช้", "ดี", "ดีมาก"];
+
+  const CATEGORY_CONFIG = [
+    { key:'discipline', title:'1. ระเบียบวินัย (20 คะแนน)', items:[
+      '1.1 การแต่งกายสุภาพเรียบร้อยถูกระเบียบ',
+      '1.2 ความตรงต่อเวลาในการปฏิบัติงาน',
+      '1.3 ปฏิบัติตามคำสั่ง กฎ ระเบียบ ซื่อสัตย์สุจริต',
+      '1.4 ความอดทนและขยันหมั่นเพียร'
+    ]},
+    { key:'behavior', title:'2. พฤติกรรมในการปฏิบัติงาน (20 คะแนน)', items:[
+      '2.1 การแก้ปัญหาเฉพาะหน้าในการทำงาน',
+      '2.2 ทัศนคติที่มีต่องานและหน่วยงาน',
+      '2.3 ความคิดริเริ่มสร้างสรรค์และการปรับปรุงงาน',
+      '2.4 ความตั้งใจและความสนใจในงาน'
+    ]},
+    { key:'performance', title:'3. ผลงาน (20 คะแนน)', items:[
+      '3.1 ปฏิบัติงานถูกต้องตามรูปแบบและหลักเกณฑ์',
+      '3.2 ปฏิบัติงานเสร็จเรียบร้อยในเวลาที่กำหนด',
+      '3.3 เป็นประโยชน์และสอดคล้องกับนโยบายของหน่วยงาน',
+      '3.4 ผลงานมีคุณภาพได้มาตรฐาน'
+    ]},
+    { key:'method', title:'4. วิธีการปฏิบัติงาน (20 คะแนน)', items:[
+      '4.1 ใช้วัสดุอย่างประหยัด',
+      '4.2 ทำงานถูกต้องตามขั้นตอน',
+      '4.3 คำนึงถึงหลักความประหยัดและความปลอดภัย',
+      '4.4 ใช้เครื่องมืออุปกรณ์อย่างระมัดระวังและถูกต้อง'
+    ]},
+    { key:'relation', title:'5. มนุษยสัมพันธ์ (20 คะแนน)', items:[
+      '5.1 น้ำใจ ความร่วมมือ และประสานงานกับผู้อื่น',
+      '5.2 ความสามารถในการปรับตัวให้เข้ากับสภาพแวดล้อม',
+      '5.3 สุภาพ อ่อนน้อม รู้จักกาลเทศะ',
+      '5.4 ความสามารถในการแสดงความคิดเห็นและรับฟังผู้อื่น'
+    ]},
+  ];
 
   return (
     <Row justify="center" style={{ marginTop: "20px", padding: "0 20px", marginBottom: "40px" }}>
@@ -453,77 +510,53 @@ const SupervisorEvaluation = () => {
 
             {/* ✅ การประเมินผลการปฏิบัติงาน */}
             <Title level={4}>ส่วนที่ 1: การประเมินผลการปฏิบัติงาน</Title>
-            <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
-              โปรดให้คะแนนในแต่ละหัวข้อต่อไปนี้ (5 = ดีมาก, 4 = ดี, 3 = พอใช้, 2 = แย่, 1 = แย่มาก)
+            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+              ให้คะแนนแต่ละข้อ (1–5) ระบบจะรวมอัตโนมัติ (ผ่านเมื่อ ≥ 70 และผู้ประเมินเลือกผ่าน)
             </Text>
 
-            <Form.Item
-              name="q1Knowledge"
-              label="1. ความรู้ความสามารถในงาน (Knowledge and Skills)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
+            {CATEGORY_CONFIG.map(cat => (
+              <Card key={cat.key} size="small" style={{ marginBottom: 16, border: '1px solid #f0f0f0' }}>
+                <Title level={5} style={{ marginBottom: 12 }}>{cat.title} <Tag color={computeSubtotal(liveScores[cat.key])===20?'green':'blue'}>{computeSubtotal(liveScores[cat.key])}/20</Tag></Title>
+                {cat.items.map((label, idx)=>(
+                  <Form.Item key={cat.key+idx} label={label} required>
+                    <Rate
+                      tooltips={ratingDescriptors}
+                      count={5}
+                      value={liveScores[cat.key][idx] || 0}
+                      onChange={(val)=>handleRateChange(cat.key, idx, val)}
+                    />
+                  </Form.Item>
+                ))}
+              </Card>
+            ))}
 
-            <Form.Item
-              name="q2Responsibility"
-              label="2. ความรับผิดชอบต่องานที่ได้รับมอบหมาย (Responsibility)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
-
-            <Form.Item
-              name="q3Initiative"
-              label="3. ความคิดริเริ่มสร้างสรรค์ (Initiative and Creativity)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
-
-            <Form.Item
-              name="q4Adaptability"
-              label="4. ความสามารถในการปรับตัวเข้ากับเพื่อนร่วมงานและองค์กร (Adaptability)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
-
-            <Form.Item
-              name="q5ProblemSolving"
-              label="5. ความสามารถในการเรียนรู้และแก้ไขปัญหา (Learning and Problem Solving)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
-
-            <Form.Item
-              name="q6Communication"
-              label="6. ทักษะการสื่อสาร (Communication Skills)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
-
-            <Form.Item
-              name="q7Punctuality"
-              label="7. ความตรงต่อเวลาและการรักษาระเบียบวินัย (Punctuality and Discipline)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
-
-            <Form.Item
-              name="q8Personality"
-              label="8. บุคลิกภาพโดยรวม (Overall Personality)"
-              rules={[{ required: true, message: "กรุณาให้คะแนน" }]}
-            >
-              <Rate tooltips={ratingDescriptors} count={5} />
-            </Form.Item>
+            <Card size="small" style={{ marginBottom: 24, background:'#fafafa' }}>
+              <Space direction="vertical" style={{ width:'100%' }}>
+                <Text strong>สรุปคะแนนรวม: <span style={{ color: totalScore>=70? '#3f8600':'#cf1322' }}>{totalScore} / 100</span></Text>
+                <Progress percent={Math.round((totalScore/100)*100)} status={totalScore>=70? 'success':'active'} />
+                <Form.Item name="supervisorDecision" label="การตัดสินของผู้ประเมิน" rules={[{ required: true, message: 'กรุณาเลือกการตัดสิน' }]}>
+                  <Radio.Group onChange={handleDecisionChange} value={liveScores.decision === null ? undefined : (liveScores.decision ? 'pass':'fail')}>
+                    <Radio value="pass">ผ่าน</Radio>
+                    <Radio value="fail">ไม่ผ่าน</Radio>
+                  </Radio.Group>
+                </Form.Item>
+                <Alert
+                  type={finalPass? 'success': 'warning'}
+                  showIcon
+                  message={finalPass? 'ผลสรุปเบื้องต้น: ผ่าน' : 'ผลสรุปเบื้องต้น: ยังไม่ผ่าน'}
+                  description={
+                    <div>
+                      <div>เกณฑ์: คะแนนรวม ≥ 70 และผู้ประเมินเลือก "ผ่าน"</div>
+                      {!passByRule && <div>- คะแนนยังไม่ถึง 70</div>}
+                      {passByRule && liveScores.decision === false && <div>- ผู้ประเมินเลือกไม่ผ่าน</div>}
+                      {liveScores.decision === true && !passByRule && <div>- แม้เลือกผ่าน แต่คะแนนยังไม่ถึงเกณฑ์</div>}
+                    </div>
+                  }
+                />
+              </Space>
+            </Card>
 
             <Divider />
-
-            {/* ✅ สรุปและข้อเสนอแนะ */}
             <Title level={4}>ส่วนที่ 2: สรุปและข้อเสนอแนะ</Title>
 
             <Form.Item 
@@ -562,22 +595,6 @@ const SupervisorEvaluation = () => {
                 maxLength={500}
                 showCount
               />
-            </Form.Item>
-
-            <Form.Item
-              name="overallGrade"
-              label="ผลการประเมินโดยรวม (Overall Performance)"
-              rules={[{ required: true, message: "กรุณาเลือกผลการประเมินโดยรวม" }]}
-            >
-              <Select placeholder="เลือกผลการประเมิน" size="large">
-                <Option value="A">A - ดีเยี่ยม (Excellent)</Option>
-                <Option value="B+">B+ - ดีมาก (Very Good)</Option>
-                <Option value="B">B - ดี (Good)</Option>
-                <Option value="C+">C+ - ค่อนข้างดี (Fairly Good)</Option>
-                <Option value="C">C - พอใช้ (Fair)</Option>
-                <Option value="D+">D+ - ต้องปรับปรุง (Needs Improvement)</Option>
-                <Option value="D">D - ต้องปรับปรุงมาก (Significant Improvement Needed)</Option>
-              </Select>
             </Form.Item>
 
             <Divider />
