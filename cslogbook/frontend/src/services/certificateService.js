@@ -15,6 +15,17 @@ export const certificateService = {
     }
   },
 
+  // ดึงรายละเอียดคำขอเดียว (สำหรับ Drawer Review)
+  getCertificateRequestDetail: async (requestId) => {
+    try {
+      const response = await apiClient.get(`/admin/certificate-requests/${requestId}/detail`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching certificate request detail:', error);
+      throw error;
+    }
+  },
+
   // อนุมัติคำขอหนังสือรับรอง
   approveCertificateRequest: async (requestId, certificateNumber) => {
     try {

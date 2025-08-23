@@ -327,6 +327,19 @@ const getCertificateRequests = async (req, res) => {
     }
 };
 
+// ดึงรายละเอียดคำขอหนังสือรับรองเดียว
+const getCertificateRequestDetail = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const detail = await documentService.getCertificateRequestDetail(requestId);
+        res.json({ success: true, data: detail });
+    } catch (error) {
+        logger.error('Error fetching certificate request detail:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดึงรายละเอียดคำขอได้' });
+    }
+};
+
 /**
  * อนุมัติคำขอหนังสือรับรอง (สำหรับ Admin)
  */
@@ -442,6 +455,19 @@ const notifyStudent = async (req, res) => {
     }
 };
 
+// ---------------- Internship Summary (Admin) ----------------
+const getInternshipSummary = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const data = await documentService.getInternshipSummary(internshipId);
+        res.json({ success: true, data });
+    } catch (error) {
+        logger.error('Error fetching internship summary:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดึงสรุปได้' });
+    }
+};
+
 module.exports = {
     uploadDocument,
     getDocumentById,
@@ -456,8 +482,10 @@ module.exports = {
 
     // ✅ เพิ่มฟังก์ชันใหม่สำหรับ Certificate Management
     getCertificateRequests,
+        getCertificateRequestDetail,
     approveCertificateRequest,
     rejectCertificateRequest,
     downloadCertificateForAdmin,
     notifyStudent,
+    getInternshipSummary, // ✅ ใหม่: สรุปการฝึกงานสำหรับ admin
 };
