@@ -595,10 +595,7 @@ class OfficialDocumentService {
       const filename = this.pdfService.generateFileName("certificate", studentName);
 
       // ✅ สร้าง template พร้อมข้อมูลที่เตรียมแล้ว
-      const template = CertificateTemplate({
-        data: preparedData,
-        isPreview: false,
-      });
+  const template = CertificateTemplate({ data: preparedData, isPreview: false });
 
       // สร้างและดาวน์โหลด PDF
       await this.pdfService.generateAndDownload(template, filename);
@@ -635,10 +632,7 @@ class OfficialDocumentService {
       console.log("📋 Prepared data for preview:", preparedData);
 
       // สร้าง template พร้อม watermark สำหรับ preview
-      const template = CertificateTemplate({
-        data: preparedData,
-        isPreview: true,
-      });
+  const template = CertificateTemplate({ data: preparedData, isPreview: true });
 
       // แสดง preview
       await this.pdfService.previewPDF(template);
@@ -669,7 +663,9 @@ class OfficialDocumentService {
       // ✅ ฟังก์ชันทำความสะอาดข้อความภาษาไทย
       const cleanThaiText = (text) => {
         if (!text) return '';
-        return text.toString().trim().replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+        const str = text.toString().trim();
+        // ใช้ whitelist: เก็บอักษรไทย อังกฤษ ตัวเลข ช่องว่าง และสัญลักษณ์ทั่วไป แทนการลบ control ranges ตรงๆ เพื่อลด lint warning
+        return str.replace(/[^\u0E00-\u0E7Fa-zA-Z0-9 ,./()\-_%@]/g, '');
       };
 
       // ✅ รองรับทั้งโครงสร้างแบบ nested และ flat
@@ -891,10 +887,14 @@ class OfficialDocumentService {
         certificateDate: certificateRequest.requestDate ? 
           new Date(certificateRequest.requestDate) : 
           (certificateData.certificateDate ? new Date(certificateData.certificateDate) : new Date()),
-        certificateNumber: this.generateCertificateNumber(),
-        isCompleted: certificateRequest.status === 'approved' || 
-                     certificateData.status === 'ready' ||
-                     certificateData.status === 'approved',
+        // ใช้หมายเลขที่มาจากต้นทางหากมี เพื่อความคงที่ ลดการสุ่มซ้ำ
+        certificateNumber: certificateData.certificateNumber || this.generateCertificateNumber(),
+        // Override isCompleted ถ้าต้นทางส่ง isCompleted = true มาแล้ว
+        isCompleted: certificateData.isCompleted === true ? true : (
+          certificateRequest.status === 'approved' || 
+          certificateData.status === 'ready' ||
+          certificateData.status === 'approved'
+        ),
         
         // ข้อมูลการอนุมัติ
         approvedBy: cleanThaiText("นางสาวจันทิมา อรรฆจิตต์"),

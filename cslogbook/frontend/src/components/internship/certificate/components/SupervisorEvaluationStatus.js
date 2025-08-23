@@ -8,8 +8,7 @@ const { Title, Text } = Typography;
 
 const SupervisorEvaluationStatus = ({ 
   status, 
-  totalHours, 
-  summaryStatus 
+  totalHours
 }) => {
   const getStatusColor = (condition) => {
     return condition ? 'success' : 'default';
@@ -21,8 +20,8 @@ const SupervisorEvaluationStatus = ({
 
   const isHoursComplete = totalHours >= 240;
   const isEvaluationComplete = status === 'completed';
-  const isSummarySubmitted = summaryStatus === 'submitted';
-  const allRequirementsMet = isHoursComplete && isEvaluationComplete && isSummarySubmitted;
+  // ตัด summary ออกจากเกณฑ์ตาม requirement ใหม่
+  const allRequirementsMet = isHoursComplete && isEvaluationComplete;
 
   return (
     <Card style={{ marginBottom: 24 }}>
@@ -47,14 +46,7 @@ const SupervisorEvaluationStatus = ({
             valueStyle={{ color: isEvaluationComplete ? '#3f8600' : '#cf1322' }}
           />
         </Col>
-        <Col xs={24} sm={8}>
-          <Statistic
-            title="รายงานสรุปผล"
-            value={isSummarySubmitted ? 'ส่งแล้ว' : 'ยังไม่ส่ง'}
-            prefix={getStatusIcon(isSummarySubmitted)}
-            valueStyle={{ color: isSummarySubmitted ? '#3f8600' : '#cf1322' }}
-          />
-        </Col>
+  {/* ตัดคอลัมน์รายงานสรุปผลออก */}
       </Row>
 
       {/* Timeline รายละเอียด */}
@@ -97,24 +89,7 @@ const SupervisorEvaluationStatus = ({
           </Space>
         </Timeline.Item>
 
-        <Timeline.Item 
-          color={getStatusColor(isSummarySubmitted)}
-          dot={getStatusIcon(isSummarySubmitted)}
-        >
-          <Space direction="vertical">
-            <Text strong>
-              รายงานสรุปผลการฝึกงาน
-            </Text>
-            <Tag color={isSummarySubmitted ? 'success' : 'default'}>
-              {isSummarySubmitted ? 'ส่งแล้ว' : 'ยังไม่ส่ง'}
-            </Tag>
-            {!isSummarySubmitted && (
-              <Text type="secondary">
-                กรุณาส่งรายงานสรุปผลผ่านเมนู "สรุปผลการฝึกงาน"
-              </Text>
-            )}
-          </Space>
-        </Timeline.Item>
+  {/* ตัด timeline รายงานสรุปผลออก */}
       </Timeline>
 
       {/* แสดง Alert ตามสถานะ */}

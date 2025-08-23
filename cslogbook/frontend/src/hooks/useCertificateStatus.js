@@ -19,10 +19,10 @@ const useCertificateStatus = () => {
   const [certificateData, setCertificateData] = useState(null);
 
   // ตรวจสอบว่าสามารถขอหนังสือรับรองได้หรือไม่
+  // ปรับเกณฑ์: ใช้เฉพาะ "ชั่วโมงครบ" + "การประเมินพี่เลี้ยงเสร็จ" ไม่พึ่งพารายงานสรุปแล้ว
   const canRequestCertificate = 
     totalHours >= 240 && 
     supervisorEvaluationStatus === 'completed' && 
-    internshipSummaryStatus === 'submitted' &&
     certificateStatus === 'not_requested';
 
   /**

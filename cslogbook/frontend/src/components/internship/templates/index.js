@@ -36,23 +36,21 @@ export const PDFTemplates = {
   StudentSummary: StudentSummaryTemplate,
   CompanyInfo: CompanyInfoTemplate,
   Certificate: CertificateTemplate, // ✅ เพิ่มใหม่
+  // CertificateOnline removed
 };
 
 // Export default สำหรับการใช้งานทั่วไป
-export default {
-  // Templates แบบ named
+const PDFExportBundle = {
   CS05PDFTemplate,
   OfficialLetterTemplate,
-  AcceptanceLetterTemplate, // 🆕 เพิ่มใหม่
-  ReferralLetterTemplate, // 🆕
-  InternshipLogbookTemplate, // 🆕
+  AcceptanceLetterTemplate,
+  ReferralLetterTemplate,
+  InternshipLogbookTemplate,
   StudentSummaryTemplate,
   CompanyInfoTemplate,
-  CertificateTemplate, // ✅ เพิ่มใหม่
-
-  // Templates แบบ grouped
+  CertificateTemplate,
   Templates: PDFTemplates,
-
-  // Styles
-  Styles: PDFStyles
+  Styles: PDFStyles,
 };
+
+export default PDFExportBundle;

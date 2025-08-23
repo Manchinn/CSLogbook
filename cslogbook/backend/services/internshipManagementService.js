@@ -3129,12 +3129,11 @@ class InternshipManagementService {
         order: [["created_at", "DESC"]],
       });
 
-      // คำนวณสถานะ
-      const isHoursComplete = totalHours >= 240;
-      const isEvaluationComplete = !!supervisorEvaluation;
-      const isSummarySubmitted = !!reflection;
-      const canRequestCertificate =
-        isHoursComplete && isEvaluationComplete && isSummarySubmitted;
+  // คำนวณสถานะ (ปรับเกณฑ์: ใช้เฉพาะชั่วโมง + การประเมิน ไม่บังคับ summary แล้ว)
+  const isHoursComplete = totalHours >= 240;
+  const isEvaluationComplete = !!supervisorEvaluation;
+  const isSummarySubmitted = !!reflection; // คงตรวจแต่ไม่ใช้ในเกณฑ์
+  const canRequestCertificate = isHoursComplete && isEvaluationComplete; // ตัด isSummarySubmitted ออก
 
       let certificateStatus = "not_requested";
       if (certificateRequest) {
@@ -3189,10 +3188,10 @@ class InternshipManagementService {
 
       console.log(`[getCertificateStatus] Status check completed:`, {
         status: certificateStatus,
-        canRequest: canRequestCertificate,
+  canRequest: canRequestCertificate,
         totalHours,
         hasEvaluation: isEvaluationComplete,
-        hasSummary: isSummarySubmitted,
+  hasSummary: isSummarySubmitted,
       });
 
       // 🎯 อัปเดต internship_status ในฐานข้อมูลเมื่อฝึกงานเสร็จสิ้น
@@ -3229,7 +3228,7 @@ class InternshipManagementService {
       const currentStatus = await this.getCertificateStatus(userId);
 
       if (!currentStatus.canRequestCertificate) {
-        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน");
+        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินพี่เลี้ยง)");
       }
 
       // ดึงข้อมูลนักศึกษาและเอกสาร CS05
@@ -3268,7 +3267,8 @@ class InternshipManagementService {
             requestData.totalHours ||
             currentStatus.requirements.totalHours.current,
           evaluationStatus: requestData.evaluationStatus || "completed",
-          summaryStatus: requestData.summaryStatus || "submitted",
+          // summaryStatus ไม่บังคับแล้ว ถ้าไม่มีจะตั้งค่าเป็น 'ignored'
+          summaryStatus: requestData.summaryStatus || currentStatus.requirements?.summarySubmission?.completed ? 'submitted' : 'ignored',
           requestedBy: userId,
         },
         { transaction }
