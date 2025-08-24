@@ -1,5 +1,5 @@
 // หน้าแสดงรายงานเฉพาะฝึกงาน (Internship)
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense, useRef } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Table } from 'antd';
 // import { Pie, Bar } from '@ant-design/plots'; // เปลี่ยนเป็น lazy load เพื่อลด bundle
 import { LazyPie as Pie, LazyBar as Bar } from './charts/LazyPlots';
@@ -17,9 +17,11 @@ const currentAcademicYear = () => {
 
 const InternshipReport = () => {
 	// ใช้ hook ใหม่
-	const { year, setYear, semester, setSemester, loading, error, summary, evaluation, students } = useInternshipProgressDashboard(currentAcademicYear());
+	const initialYear = currentAcademicYear();
+	const anchorYearRef = useRef(initialYear); // anchor คงที่
+	const { year, setYear, semester, setSemester, loading, error, summary, evaluation, students } = useInternshipProgressDashboard(initialYear);
 
-	const yearOptions = academicYearOptions(year);
+	const yearOptions = academicYearOptions(anchorYearRef.current);
 	const semesterOptions = [
 		{ value: 1, label: 'ภาค 1' },
 		{ value: 2, label: 'ภาค 2' },
@@ -74,9 +76,10 @@ const InternshipReport = () => {
 	const completionPieConfig = useMemo(()=> buildInternshipCompletionPie(summary), [summary]);
 
 	return (
+	  <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
 		<Space direction="vertical" style={{ width:'100%' }} size="large">
 			<Row justify="space-between" align="middle">
-				<Col><Title level={3}>Internship Progress Dashboard</Title></Col>
+				<Col><Title level={3}>แผงควบคุมรายงานระบบฝึกงาน</Title></Col>
 				<Col>
 					<Space>
 						<span>ปี:</span>
@@ -138,6 +141,7 @@ const InternshipReport = () => {
 				</Col>
 			</Row>
 		</Space>
+		</div>
 	);
 };
 

@@ -1,5 +1,5 @@
 // หน้าแสดงรายงานเฉพาะโครงงาน (Project)
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense, useRef } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Tabs, Table } from 'antd';
 // import { Pie, Bar } from '@ant-design/plots'; // ใช้ lazy แทน
 import { LazyPie as Pie, LazyBar as Bar } from './charts/LazyPlots';
@@ -17,7 +17,9 @@ const currentAcademicYear = () => {
 };
 
 const ProjectReport = () => {
-	const { year, setYear, loading, error, projectStatus, advisorLoad, overview } = useProjectReport(currentAcademicYear());
+	const initialYear = currentAcademicYear();
+	const anchorYearRef = useRef(initialYear);
+	const { year, setYear, loading, error, projectStatus, advisorLoad, overview } = useProjectReport(initialYear);
 
 	const kpis = useMemo(() => {
 		if(!projectStatus || !advisorLoad || !overview) return [];
@@ -32,7 +34,7 @@ const ProjectReport = () => {
 		];
 	}, [projectStatus, advisorLoad, overview]);
 
-	const yearOptions = academicYearOptions(year);
+	const yearOptions = academicYearOptions(anchorYearRef.current);
 
 	const advisorColumns = [
 		{ title:'อาจารย์', dataIndex:'name', key:'name' },
@@ -47,9 +49,10 @@ const ProjectReport = () => {
 	const advisorLoadBarConfig = useMemo(()=> buildAdvisorLoadBar(advisorLoad?.advisors || []), [advisorLoad]);
 
 	return (
+	  <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
 		<Space direction="vertical" style={{ width:'100%' }} size="large">
 			<Row justify="space-between" align="middle">
-				<Col><Title level={3}>Project Report</Title></Col>
+				<Col><Title level={3}>แผงควบคุมรายงานระบบโครงงานพิเศษ</Title></Col>
 				<Col>
 					<Space>
 						<span>ปี:</span>
@@ -110,6 +113,7 @@ const ProjectReport = () => {
 				]}
 			/>
 		</Space>
+		</div>
 	);
 };
 

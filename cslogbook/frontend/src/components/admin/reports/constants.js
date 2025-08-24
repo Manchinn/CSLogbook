@@ -1,6 +1,7 @@
 // ค่าคงที่และ helper สำหรับ Dashboard
 
-export const academicYearOptions = (currentYear) => Array.from({ length: 5 }, (_, i) => currentYear - i);
+// academicYearOptions: สร้าง list ย้อนหลังจาก anchorYear คงที่ (ไม่ใช่ year ที่ผู้ใช้เลือก) เพื่อไม่ให้ปีล่าสุดหายไปเมื่อเลือกปีเก่าลง
+export const academicYearOptions = (anchorYear, length = 5) => Array.from({ length }, (_, i) => anchorYear - i);
 
 export const kpiExtractors = (overview) => ([
   {
