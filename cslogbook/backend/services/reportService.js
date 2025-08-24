@@ -196,25 +196,36 @@ module.exports = {
    */
   async getInternshipStudentSummary({ year }) {
     const academicYear = resolveYear(year);
-    const { Student, Document } = db;
+    const { Student } = db;
 
-    // ฐานใหม่: ใช้ฟิลด์ is_enrolled_internship เป็นการนับ enrolled โดยตรง
-    const enrolledCount = await Student.count({ where: { is_enrolled_internship: true } });
-
-    // Completed: ใช้เอกสารฝึกงานที่ status = 'completed' (จะ mapping ผ่าน user_id -> student)
-    const completedRows = await Document.findAll({
-      attributes: ['user_id'],
-      where: { document_type: 'internship', status: 'completed' },
-      group: ['user_id'],
+    // 1) ดึงเฉพาะนักศึกษาที่ลงทะเบียนฝึกงานแล้ว (is_enrolled_internship = true)
+    //    พร้อมฟิลด์ internship_status เพื่อคำนวณกลุ่มสถานะจริง ๆ
+    const enrolledStudents = await Student.findAll({
+      attributes: ['student_id', 'internship_status'],
+      where: { is_enrolled_internship: true },
       raw: true
     });
-    const completed = completedRows.length;
-    const started = enrolledCount; // ปรับ started = enrolled เพื่อสอดคล้อง UI
-    const inProgress = Math.max(0, started - completed);
 
-    // totalStudents: ทั้งระบบ (baseline เปรียบเทียบ) – อาจมีมากกว่าผู้ลงทะเบียน
+    const enrolledCount = enrolledStudents.length;
+
+    // 2) นับสถานะตามฟิลด์ Student.internship_status โดยกันคำสะกด/ค่าที่เป็น null
+    //    กรณีระบบบางส่วนอาจใช้ 'complete' หรือ 'completed' ให้ถือเป็น completed เดียวกัน
+    let completed = 0;
+    let inProgress = 0;
+    enrolledStudents.forEach(s => {
+      const status = (s.internship_status || '').toLowerCase();
+      if (status === 'completed' || status === 'complete') completed++;
+      else if (status === 'in_progress') inProgress++;
+    });
+
+    // 3) started = inProgress + completed (เฉพาะคนที่เริ่มจริง) ไม่ใช่ทุกคนที่ลงทะเบียน
+    const started = inProgress + completed;
+
+    // 4) notStarted = นักศึกษาที่ลงทะเบียนแล้วแต่ยังไม่มีสถานะ in_progress/completed
+    const notStarted = Math.max(0, enrolledCount - started);
+
+    // 5) totalStudents: ทั้งหมดในระบบ (คงไว้เพื่อ backward compatibility/UI อื่น)
     const totalStudents = await Student.count();
-    const notStarted = Math.max(0, totalStudents - started);
 
     return { academicYear, totalStudents, enrolledCount, started, completed, inProgress, notStarted };
   }

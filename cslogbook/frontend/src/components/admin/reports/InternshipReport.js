@@ -23,19 +23,41 @@ const InternshipReport = () => {
 	// KPI: ทั้งหมด / สำเร็จแล้ว / กำลังฝึกงาน
 		const kpis = useMemo(() => {
 			const enrolledCount = summary?.enrolledCount != null ? summary.enrolledCount : (students || []).length;
-			return [
-				{ title: 'นักศึกษาลงทะเบียนฝึกงาน', value: enrolledCount },
-				{ title: 'ฝึกงานเสร็จแล้ว', value: summary?.completed ?? 0 },
-				{ title: 'อยู่ระหว่างฝึกงาน', value: summary?.inProgress ?? 0 }
-			];
+				// คำนวณเทียบจากสถานะจริงในรายการนักศึกษา (เฉพาะที่ลงทะเบียน)
+				const statusCounts = (students || []).reduce((acc,s)=>{
+					const st = s.internshipStatus; // not_started | pending_approval | in_progress | completed
+					if (st) acc[st] = (acc[st]||0)+1; return acc; }, {});
+				const completedFromList = statusCounts.completed || 0;
+				const inProgressFromList = (statusCounts.in_progress||0) + (statusCounts.pending_approval||0); // รวมที่ยังไม่ complete
+				// ใช้ summary เป็นแหล่งหลัก หากตัวเลข summary กับ list ต่างกันมาก (>1) อาจสะท้อน backend logic ต่าง -> เลือก summary แต่เก็บ listValue ไว้ tooltip
+				const completedVal = summary?.completed ?? completedFromList;
+				const inProgressVal = summary?.inProgress ?? inProgressFromList;
+				const notStartedVal = summary?.notStarted ?? Math.max(0,(summary?.totalStudents||0)- (summary?.started||enrolledCount));
+				return [
+					{ title: 'ลงทะเบียนฝึกงาน', value: enrolledCount },
+					{ title: 'ฝึกงานเสร็จแล้ว', value: completedVal },
+					{ title: 'อยู่ระหว่างฝึกงาน', value: inProgressVal },
+					{ title: 'ยังไม่เริ่ม', value: notStartedVal }
+				];
 		}, [summary, students]);
 
-	// ตารางนักศึกษา: แสดง code, name, status (internshipStatus) และชั้นปี (studentYear) ถ้ามี
+	// Mapping สถานะ -> ภาษาไทย
+	const statusTH = {
+		'not_started': 'ยังไม่เริ่ม',
+		'pending_approval': 'รออนุมัติ',
+		'in_progress': 'อยู่ระหว่างฝึกงาน',
+		'completed': 'เสร็จสิ้น'
+	};
+
+	// Filters สำหรับสถานะ
+	const statusFilters = Object.entries(statusTH).map(([value,text])=>({ text, value }));
+
+	// ตารางนักศึกษา: เพิ่ม sorter + filters
 	const studentColumns = [
-		{ title:'รหัส', dataIndex:'studentCode', key:'studentCode' },
+		{ title:'รหัส', dataIndex:'studentCode', key:'studentCode', sorter:(a,b)=> (a.studentCode||'').localeCompare(b.studentCode||'') },
 		{ title:'ชื่อ-นามสกุล', key:'name', render:(_,r)=> `${r.firstName || ''} ${r.lastName || ''}` },
-		{ title:'ชั้นปี', dataIndex:'studentYear', key:'studentYear', width:90 },
-		{ title:'สถานะฝึกงาน', dataIndex:'internshipStatus', key:'internshipStatus' }
+		{ title:'ชั้นปี', dataIndex:'studentYear', key:'studentYear', width:90, sorter:(a,b)=> (a.studentYear||0)-(b.studentYear||0) },
+		{ title:'สถานะฝึกงาน', dataIndex:'internshipStatus', key:'internshipStatus', filters: statusFilters, onFilter:(val,record)=> record.internshipStatus===val, render:(val)=> statusTH[val] || val }
 	];
 
 	// Map students (จาก studentService.getAllStudents) -> ตรวจชื่อฟิลด์ที่คาด: studentCode, firstName, lastName, internshipStatus, studentYear
@@ -55,18 +77,18 @@ const InternshipReport = () => {
 
 			{error && <Alert type="error" message={error.message || 'โหลดข้อมูลไม่สำเร็จ'} />}
 
-			<Row gutter={[16,16]}>
-				{kpis.map((k,i)=>(
-					<Col xs={12} md={8} key={i}>
-						<Card loading={loading}>
-							<Space direction="vertical" size={0}>
-								<span style={{color:'#888'}}>{k.title}</span>
-								<span style={{fontSize:26,fontWeight:600}}>{k.value}</span>
-							</Space>
-						</Card>
-					</Col>
-				))}
-			</Row>
+					<Row gutter={[16,16]}>
+						{kpis.map((k,i)=>(
+							<Col xs={12} md={6} key={i}>
+								<Card loading={loading} size="small" headStyle={{minHeight:32}} bodyStyle={{padding:12}}>
+									<Space direction="vertical" size={0}>
+										<span style={{color:'#888'}}>{k.title}</span>
+										<span style={{fontSize:26,fontWeight:600}}>{k.value}</span>
+									</Space>
+								</Card>
+							</Col>
+						))}
+					</Row>
 
 			<Row gutter={[16,16]}>
 				<Col xs={24} md={14}>
