@@ -17,9 +17,14 @@ const currentAcademicYear = () => {
 
 const InternshipReport = () => {
 	// ใช้ hook ใหม่
-	const { year, setYear, loading, error, summary, evaluation, students } = useInternshipProgressDashboard(currentAcademicYear());
+	const { year, setYear, semester, setSemester, loading, error, summary, evaluation, students } = useInternshipProgressDashboard(currentAcademicYear());
 
 	const yearOptions = academicYearOptions(year);
+	const semesterOptions = [
+		{ value: 1, label: 'ภาค 1' },
+		{ value: 2, label: 'ภาค 2' },
+		{ value: 3, label: 'ภาคฤดูร้อน' }
+	];
 
 	// KPI: ทั้งหมด / สำเร็จแล้ว / กำลังฝึกงาน
 		const kpis = useMemo(() => {
@@ -76,6 +81,15 @@ const InternshipReport = () => {
 					<Space>
 						<span>ปี:</span>
 						<Select value={year} style={{ width:120 }} onChange={setYear} options={yearOptions.map(y=>({ value:y, label:y }))} />
+						<span>ภาค:</span>
+						<Select
+							allowClear
+							placeholder="ทั้งหมด"
+							value={semester}
+							style={{ width:130 }}
+							onChange={setSemester}
+							options={semesterOptions}
+						/>
 					</Space>
 				</Col>
 			</Row>

@@ -6,19 +6,19 @@ import { getInternshipStudentSummary, getInternshipEvaluationSummary, getEnrolle
 
 export function useInternshipProgressDashboard(initialYear) {
   const [year, setYear] = useState(initialYear);
+  const [semester, setSemester] = useState(); // undefined = รวมทุกภาค
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null); // จาก getInternshipStudentSummary
   const [evaluation, setEvaluation] = useState(null); // จาก getInternshipEvaluationSummary (criteriaAverages, gradeDistribution)
   const [students, setStudents] = useState([]); // รายชื่อ
 
-  const fetchAll = useCallback(async (targetYear = year) => {
+  const fetchAll = useCallback(async (targetYear = year, targetSemester = semester) => {
     setLoading(true); setError(null);
     try {
       const [sum, evalSum, studentList] = await Promise.all([
-        getInternshipStudentSummary({ year: targetYear }),
-        // semester ไม่เกี่ยวกับ requirement นี้ ใส่ 1 ค่า default; ถ้าต้องแยกในอนาคตให้เพิ่ม state
-        getInternshipEvaluationSummary({ year: targetYear, semester: 1 }),
+        getInternshipStudentSummary({ year: targetYear, semester: targetSemester }),
+        getInternshipEvaluationSummary({ year: targetYear, semester: targetSemester }),
         getEnrolledInternshipStudents({ year: targetYear })
       ]);
       setSummary(sum);
@@ -31,9 +31,8 @@ export function useInternshipProgressDashboard(initialYear) {
     } finally {
       setLoading(false);
     }
-  }, [year]);
+  }, [year, semester]);
 
-  useEffect(()=>{ fetchAll(year); }, [year, fetchAll]);
-
-  return { year, setYear, loading, error, summary, evaluation, students, refresh: fetchAll };
+  useEffect(()=>{ fetchAll(year, semester); }, [year, semester, fetchAll]);
+  return { year, setYear, semester, setSemester, loading, error, summary, evaluation, students, refresh: fetchAll };
 }

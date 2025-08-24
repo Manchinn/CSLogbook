@@ -9,8 +9,8 @@ export async function getOverview(params = {}) {
 }
 
 export async function getInternshipLogbookCompliance(params = {}) {
-  const { year } = params;
-  const res = await apiClient.get(`/reports/internships/logbook-compliance`, { params: { year } });
+  const { year, semester } = params;
+  const res = await apiClient.get(`/reports/internships/logbook-compliance`, { params: { year, semester } });
   return res.data.data;
 }
 
@@ -27,8 +27,8 @@ export async function getAdvisorLoad(params = {}) {
 }
 
 export async function getInternshipStudentSummary(params = {}) {
-  const { year } = params;
-  const res = await apiClient.get(`/reports/internships/student-summary`, { params: { year } });
+  const { year, semester } = params;
+  const res = await apiClient.get(`/reports/internships/student-summary`, { params: { year, semester } });
   return res.data.data;
 }
 

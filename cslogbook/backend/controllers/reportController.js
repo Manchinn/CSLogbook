@@ -13,7 +13,7 @@ exports.getOverview = async (req, res, next) => {
 
 exports.getInternshipLogbookCompliance = async (req, res, next) => {
   try {
-    const data = await reportService.getInternshipLogbookCompliance({ year: req.query.year });
+    const data = await reportService.getInternshipLogbookCompliance({ year: req.query.year, semester: req.query.semester });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -40,7 +40,7 @@ exports.getAdvisorLoad = async (req, res, next) => {
  
  exports.getInternshipStudentSummary = async (req, res, next) => {
    try {
-     const data = await reportService.getInternshipStudentSummary({ year: req.query.year });
+     const data = await reportService.getInternshipStudentSummary({ year: req.query.year, semester: req.query.semester });
      res.json({ success: true, data });
    } catch (err) {
      next(err);
