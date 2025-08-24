@@ -202,7 +202,7 @@ const CS05FormStep = ({
     <div className="cs05-form-container">
       <Title level={3} style={{ textAlign: 'center' }}>แบบฟอร์มคำร้องขอฝึกงาน (คพ.05)</Title>
       <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
-        กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
+  กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
       </Text>
 
       <Form

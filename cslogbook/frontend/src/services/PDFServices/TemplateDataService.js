@@ -158,6 +158,10 @@ class TemplateDataService {
         address: "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
         phone: "02-555-2000",
         website: "http://www.cs.kmutnb.ac.th/",
+  // เจ้าหน้าที่ภาควิชา (contact footer)
+  staffOfficerName: "นายนที ปัญญาประสิทธิ์",
+  staffOfficerEmail: "natee.p@sci.kmutnb.ac.th",
+  staffOfficerPhone: "02-555-2000 ต่อ 4602",
       };
     } catch (error) {
       console.error("Error preparing Official Letter data:", error);
@@ -450,6 +454,9 @@ class TemplateDataService {
         departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
         address: "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
         phone: "02-555-2000",
+  staffOfficerName: "นายนที ปัญญาประสิทธิ์",
+  staffOfficerEmail: "natee.p@sci.kmutnb.ac.th",
+  staffOfficerPhone: "02-555-2000 ต่อ 4602",
       };
     } catch (error) {
       console.error("Error preparing Referral Letter data:", error);
