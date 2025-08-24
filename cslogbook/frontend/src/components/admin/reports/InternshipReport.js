@@ -1,7 +1,8 @@
 // หน้าแสดงรายงานเฉพาะฝึกงาน (Internship)
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Table } from 'antd';
-import { Pie, Bar } from '@ant-design/plots';
+// import { Pie, Bar } from '@ant-design/plots'; // เปลี่ยนเป็น lazy load เพื่อลด bundle
+import { LazyPie as Pie, LazyBar as Bar } from './charts/LazyPlots';
 import { academicYearOptions } from './constants';
 import { useInternshipProgressDashboard } from './hooks/useInternshipProgressDashboard';
 import { buildCriteriaBarConfig, buildInternshipCompletionPie } from './charts/internshipProgressConfigs';
@@ -63,6 +64,10 @@ const InternshipReport = () => {
 	// Map students (จาก studentService.getAllStudents) -> ตรวจชื่อฟิลด์ที่คาด: studentCode, firstName, lastName, internshipStatus, studentYear
 			const studentData = useMemo(()=> (students || []).map((s,i)=>({ key:i, ...s })), [students]);
 
+	// Memoize config objects ลด re-render ของ chart
+	const criteriaConfig = useMemo(()=> buildCriteriaBarConfig(evaluation?.criteriaAverages || []), [evaluation]);
+	const completionPieConfig = useMemo(()=> buildInternshipCompletionPie(summary), [summary]);
+
 	return (
 		<Space direction="vertical" style={{ width:'100%' }} size="large">
 			<Row justify="space-between" align="middle">
@@ -93,12 +98,20 @@ const InternshipReport = () => {
 			<Row gutter={[16,16]}>
 				<Col xs={24} md={14}>
 					<Card title="คะแนนเฉลี่ยรายหัวข้อ (ผู้ควบคุมงาน)" size="small" bodyStyle={{padding:12}}>
-						{loading ? <Skeleton active /> : <Bar {...buildCriteriaBarConfig(evaluation?.criteriaAverages || [])} />}
+						{loading ? <Skeleton active /> : (
+							<Suspense fallback={<Skeleton active />}> 
+								<Bar {...criteriaConfig} />
+							</Suspense>
+						)}
 					</Card>
 				</Col>
 				<Col xs={24} md={10}>
 					<Card title="สัดส่วนสถานะการฝึกงาน" size="small" bodyStyle={{padding:12}}>
-						{loading ? <Skeleton active /> : <Pie {...buildInternshipCompletionPie(summary)} />}
+						{loading ? <Skeleton active /> : (
+							<Suspense fallback={<Skeleton active />}> 
+								<Pie {...completionPieConfig} />
+							</Suspense>
+						)}
 					</Card>
 				</Col>
 			</Row>

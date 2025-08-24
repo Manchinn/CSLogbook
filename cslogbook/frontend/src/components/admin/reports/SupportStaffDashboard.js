@@ -1,7 +1,8 @@
 // รีแฟกเตอร์: แยก data fetching (hook) + chart configs + constants เพื่อลดความซับซ้อนของ component นี้
-import React from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Table, Tabs, Skeleton, Alert } from 'antd';
-import { Line, Pie } from '@ant-design/plots';
+// import { Line, Pie } from '@ant-design/plots'; // แปลงเป็น lazy
+import { LazyLine as Line, LazyPie as Pie } from './charts/LazyPlots';
 import { useSupportStaffReports } from './hooks/useSupportStaffReports';
 import { buildWeeklyLineConfig, buildProposalPieConfig } from './charts/configs';
 import { academicYearOptions } from './constants';
@@ -45,6 +46,10 @@ const SupportStaffDashboard = () => {
   ];
 
   const yearOptions = academicYearOptions(year);
+
+  // Memo configs เพื่อลด recreation
+  const weeklyLineConfig = useMemo(()=> buildWeeklyLineConfig(logbookCompliance?.weeklyTrend || []), [logbookCompliance]);
+  const proposalPieConfig = useMemo(()=> buildProposalPieConfig(projectStatus?.proposal), [projectStatus]);
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="large">
@@ -97,7 +102,11 @@ const SupportStaffDashboard = () => {
                 <Row gutter={[16,16]}>
                   <Col xs={24} md={14}>
                     <Card title="Logbook Trend (Weekly)" size="small" bodyStyle={{padding:12}}>
-                      {loading ? <Skeleton active /> : <Line {...buildWeeklyLineConfig(logbookCompliance?.weeklyTrend || [])} />}
+                      {loading ? <Skeleton active /> : (
+                        <Suspense fallback={<Skeleton active />}> 
+                          <Line {...weeklyLineConfig} />
+                        </Suspense>
+                      )}
                     </Card>
                   </Col>
                   <Col xs={24} md={10}>
@@ -163,7 +172,11 @@ const SupportStaffDashboard = () => {
                 <Row gutter={[16,16]}>
                   <Col xs={24} md={12}>
                     <Card title="Project Proposal Status" size="small" bodyStyle={{padding:12}}>
-                      {loading ? <Skeleton active /> : <Pie {...buildProposalPieConfig(projectStatus?.proposal)} />}
+                      {loading ? <Skeleton active /> : (
+                        <Suspense fallback={<Skeleton active />}> 
+                          <Pie {...proposalPieConfig} />
+                        </Suspense>
+                      )}
                     </Card>
                   </Col>
                   <Col xs={24} md={12}>

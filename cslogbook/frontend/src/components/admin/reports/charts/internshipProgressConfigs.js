@@ -10,11 +10,30 @@ export const buildCriteriaBarConfig = (criteria = []) => {
     yField: 'avg',
     height: 300,
     legend: false,
-    label: { text: 'avg' },
-    tooltip: { items: ['criteria','avg'] },
-    yAxis: { max: 5, title: 'Average (out of 5)' },
-    xAxis: { label: { autoRotate: true } },
-    animation: false
+    label: {
+      text: 'avg',
+      style: { fontSize: 12, fontWeight: 500 }
+    },
+    tooltip: {
+      customItems: (items) => items.map(it => ({ ...it, name: it.data.criteria, value: it.data.avg.toFixed(2) }))
+    },
+    yAxis: {
+      max: 5,
+      title: 'Average (out of 5)',
+      grid: { line: { style: { stroke: '#eee', lineWidth: 1 } } },
+      label: { formatter: v => +parseFloat(v).toFixed(1) }
+    },
+    xAxis: { label: { autoRotate: true, style: { fontSize: 11 } } },
+    interval: { // สไตล์แท่ง
+      style: {
+        radiusTopLeft: 4,
+        radiusTopRight: 4,
+        fillOpacity: 0.9
+      }
+    },
+    color: ['#1677ff'],
+    theme: { styleSheet: { brandColor: '#1677ff' } },
+    animation: { enter: { type: 'fadeIn' } }
   };
 };
 
@@ -27,13 +46,26 @@ export const buildInternshipCompletionPie = (summary) => {
   if (completed > 0) data.push({ type:'สำเร็จแล้ว', value: completed });
   if (inProgress > 0) data.push({ type:'กำลังฝึกงาน', value: inProgress });
   const finalData = data.length ? data : [{ type:'No Data', value:1 }];
+  const total = finalData.reduce((s,d)=> s + d.value, 0);
   return {
     data: finalData,
     angleField: 'value',
     colorField: 'type',
     innerRadius: 0.6,
     legend: { position: 'bottom' },
-    label: { text: 'type', position: 'outside' },
-    tooltip: { items: ['type','value'] }
+    label: {
+      // ใช้รูปแบบ position:'inside' (หลีกเลี่ยง error shape.inner)
+      text: 'type',
+      position: 'inside',
+      content: (datum) => {
+        if (datum.type === 'No Data') return 'No Data';
+        const pct = total ? ((datum.value / total) * 100).toFixed(1) : 0;
+        return pct + '%';
+      },
+      style: { fontSize: 12, fontWeight: 600, fill: '#fff' }
+    },
+  // ใช้ tooltip แบบพื้นฐานป้องกันกรณีขึ้น null จาก customItems (เวอร์ชันปัจจุบัน)
+  tooltip: { items: ['type','value'] },
+    color: ['#52c41a','#faad14','#bfbfbf']
   };
 };
