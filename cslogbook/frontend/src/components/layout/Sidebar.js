@@ -233,6 +233,11 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               children: canAccessInternship
                 ? [
                     {
+                      key: '/internship-companies',
+                      icon: <BarChartOutlined />,
+                      label: 'สถานประกอบการ (สถิติ)'
+                    },
+                    {
                       key: "/internship-registration",
                       label: "ลงทะเบียนฝึกงาน",
                       icon: <FormOutlined />,
@@ -408,6 +413,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: "รายงาน",
               children: [
                 { key: "/admin/reports/support", label: "Dashboard รวม" },
+                { key: "/internship-companies", label: "บริษัทฝึกงาน (สถิติ)" },
                 { key: "/admin/reports/internship", label: "Internship Report" },
                 { key: "/admin/reports/project", label: "Project Report" },
               ],
@@ -494,6 +500,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: "รายงาน",
               children: [
                 { key: "/admin/reports/support", label: "Dashboard รวม" },
+                { key: "/internship-companies", label: "บริษัทฝึกงาน (สถิติ)" },
                 { key: "/admin/reports/internship", label: "Internship Report" },
                 { key: "/admin/reports/project", label: "Project Report" },
               ],

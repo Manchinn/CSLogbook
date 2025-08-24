@@ -19,6 +19,7 @@ import { EligibilityCheck, InternshipRequirements } from './components/internshi
 import { InternshipRegistrationFlow } from './components/internship/register';
 // 🆕 เพิ่ม import สำหรับ InternshipCertificateRequest
 import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
+import InternshipCompanyDashboard from './components/internship/companies/InternshipCompanyDashboard';
 
 
 // Import Project Components
@@ -79,6 +80,13 @@ const App = () => {
                 <Route path="/internship-registration/cs05" element={
                   <ProtectedRoute roles={['student']}>
                     <CS05Form />
+                  </ProtectedRoute>
+                } />
+
+                {/* Dashboard บริษัทที่รับนักศึกษาฝึกงาน (ใหม่) */}
+                <Route path="/internship-companies" element={
+                  <ProtectedRoute roles={['student','teacher','admin']}>
+                    <InternshipCompanyDashboard />
                   </ProtectedRoute>
                 } />
 

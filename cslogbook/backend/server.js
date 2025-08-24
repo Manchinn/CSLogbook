@@ -81,6 +81,7 @@ const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
 const internshipRoutes = require('./routes/documents/internshipRoutes');
+const internshipCompanyStatsRoutes = require('./routes/internshipCompanyStatsRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
 const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มการนำเข้า timelineRoutes
 const workflowRoutes = require('./routes/workflowRoutes');
@@ -222,6 +223,8 @@ app.use('/api', uploadRoutes); // ใช้ route
 
 // Add routes
 app.use('/api/internship', internshipRoutes);
+// สถิติบริษัทฝึกงาน (company-stats) - แยกไฟล์ route ใหม่
+app.use('/api/internship', internshipCompanyStatsRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes); 

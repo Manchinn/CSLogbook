@@ -3,7 +3,11 @@
 
 .internship-summary-container {
   font-family: 'Kanit', sans-serif;
-  margin-bottom: 2rem;
+  /* จัด layout ให้สอดคล้องกับหน้าอื่น (เช่น Company Dashboard) */
+  max-width: 1200px;
+  margin: 0 auto 2rem auto; /* บน/ล่าง 0 และ 2rem, กลางจอ */
+  padding: 24px; /* เว้นระยะด้านใน */
+  box-sizing: border-box;
 }
 
 /* สไตล์สำหรับส่วนหัวของหน้า */
