@@ -19,5 +19,20 @@ module.exports = {
       console.error('Error getCompanyStats:', error);
       return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงสถิติ' });
     }
+  },
+
+  // รายละเอียดนักศึกษาที่ฝึกในบริษัท (approved CS05)
+  async getCompanyDetail(req, res) {
+    try {
+      const { companyName } = req.params;
+      if (!companyName) {
+        return res.status(400).json({ success: false, message: 'ต้องระบุ companyName' });
+      }
+      const data = await internshipCompanyStatsService.getCompanyDetail({ companyName });
+      return res.json({ success: true, ...data });
+    } catch (error) {
+      console.error('Error getCompanyDetail:', error);
+      return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลบริษัท' });
+    }
   }
 };

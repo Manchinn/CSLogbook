@@ -412,8 +412,8 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               icon: <BarChartOutlined />,
               label: "รายงาน",
               children: [
+                { key: "/internship-companies", label: "สถานประกอบการ" },
                 { key: "/admin/reports/support", label: "Dashboard รวม" },
-                { key: "/internship-companies", label: "บริษัทฝึกงาน (สถิติ)" },
                 { key: "/admin/reports/internship", label: "Internship Report" },
                 { key: "/admin/reports/project", label: "Project Report" },
               ],

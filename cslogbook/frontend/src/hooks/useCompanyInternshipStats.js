@@ -6,6 +6,9 @@ export function useCompanyInternshipStats({ academicYear, semester, limit, refre
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -35,7 +38,23 @@ export function useCompanyInternshipStats({ academicYear, semester, limit, refre
     return () => clearInterval(id);
   }, [fetchData, refreshInterval]);
 
-  return { data, loading, error, reload: fetchData };
+  const fetchCompanyDetail = useCallback(async (companyName) => {
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(true);
+    try {
+      const res = await internshipStatsService.getCompanyDetail(companyName);
+      setDetail(res);
+      return res; // คืนค่าให้ component ที่เรียกใช้งาน
+    } catch (e) {
+      setDetailError(e.message || 'ไม่สามารถโหลดรายละเอียดบริษัท');
+      throw e; // ให้ caller จัดการ error ได้
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  return { data, loading, error, reload: fetchData, detail, detailLoading, detailError, fetchCompanyDetail };
 }
 
 export default useCompanyInternshipStats;

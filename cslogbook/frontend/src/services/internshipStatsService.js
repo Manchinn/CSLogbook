@@ -10,6 +10,11 @@ const internshipStatsService = {
 
     const res = await apiClient.get('/internship/company-stats', { params });
     return res.data; // success, meta, rows
+  },
+  async getCompanyDetail(companyName) {
+    const res = await apiClient.get(`/internship/company-stats/${encodeURIComponent(companyName)}/detail`);
+    if (!res.data.success) throw new Error(res.data.message || 'โหลดรายละเอียดล้มเหลว');
+    return res.data;
   }
 };
 

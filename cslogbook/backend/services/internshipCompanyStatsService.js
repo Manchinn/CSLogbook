@@ -99,6 +99,46 @@ class InternshipCompanyStatsService {
       rows
     };
   }
+
+  /**
+   * ดึงรายละเอียดนักศึกษาที่ได้รับการอนุมัติให้ฝึกในบริษัทหนึ่ง (CS05 approved)
+   * @param {Object} options
+   * @param {string} options.companyName ชื่อบริษัท (exact match ตาม snapshot)
+   */
+  async getCompanyDetail({ companyName }) {
+    // NOTE: first_name / last_name อยู่ในตาราง users ไม่ใช่ students
+    // students มี student_code เท่านั้น จึงต้อง join users เพิ่ม
+    const sql = `
+      SELECT 
+        d.user_id AS userId,
+        s.student_code AS studentCode,
+        u.first_name AS firstName,
+        u.last_name  AS lastName,
+        idoc.internship_position AS internshipPosition,
+        idoc.start_date AS startDate,
+  idoc.end_date   AS endDate,
+  DATEDIFF(idoc.end_date, idoc.start_date) + 1 AS internshipDays
+      FROM internship_documents idoc
+      INNER JOIN documents d ON d.document_id = idoc.document_id
+      INNER JOIN students s ON s.user_id = d.user_id
+      INNER JOIN users u ON u.user_id = d.user_id
+      WHERE d.document_name = 'CS05'
+        AND d.status = 'approved'
+        AND idoc.company_name = :companyName
+      ORDER BY idoc.internship_position ASC, s.student_code ASC;
+    `;
+
+    const rows = await sequelize.query(sql, {
+      type: QueryTypes.SELECT,
+      replacements: { companyName }
+    });
+
+    return {
+      companyName,
+      total: rows.length,
+      interns: rows
+    };
+  }
 }
 
 module.exports = new InternshipCompanyStatsService();
