@@ -119,7 +119,8 @@ const canPerformAction = (backendStatus, action, documentType = "referral") => {
 export const fetchLatestCS05Status = async (
   internshipService,
   setLoading,
-  updateStepFromStatus
+  updateStepFromStatus,
+  setCs05Info // ✅ ส่ง callback เพื่อเก็บข้อมูล/เหตุผลการปฏิเสธ
 ) => {
   try {
     setLoading(true);
@@ -129,6 +130,10 @@ export const fetchLatestCS05Status = async (
 
     if (response.success && response.data) {
       const backendStatus = response.data.status;
+      // ✅ บันทึกข้อมูลทั้งหมด (รวม rejectionReason) ถ้ามี callback
+      if (typeof setCs05Info === "function") {
+        setCs05Info(response.data);
+      }
       const frontendStatus = mapBackendStatusToFrontend(backendStatus, "cs05");
 
       console.log("[DEBUG] 📊 CS05 Status Update:", {
@@ -139,7 +144,7 @@ export const fetchLatestCS05Status = async (
       });
 
       updateStepFromStatus(backendStatus); // ส่งสถานะ Backend เพื่อให้ตรงกับ ENUM
-    } else {
+  } else {
       console.log("[DEBUG] ⚪ ไม่พบข้อมูล CS05");
     }
   } catch (error) {

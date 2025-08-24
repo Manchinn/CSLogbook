@@ -13,6 +13,9 @@ import {
   Tooltip,
   Tabs,
   Select,
+  Modal,
+  Form,
+  Input as AntInput
 } from "antd";
 import {
   SearchOutlined,
@@ -91,6 +94,10 @@ const OriginalDocumentManagement = ({ type }) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  // Modal ปฏิเสธ
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
+  const [form] = Form.useForm();
   //const [documentType, setDocumentType] = useState("");
 
   // ใช้ custom hook
@@ -243,18 +250,27 @@ const OriginalDocumentManagement = ({ type }) => {
     }
   }, [selectedRowKeys, filteredDocuments, refetch]);
 
+  const openRejectModal = useCallback(() => {
+    if (selectedRowKeys.length === 0) return;
+    form.resetFields();
+    setRejectModalOpen(true);
+  }, [selectedRowKeys, form]);
+
   const handleRejectSelectedDocuments = useCallback(async () => {
     try {
-      const promises = selectedRowKeys.map((documentId) =>
-        rejectDocument(documentId)
-      );
-      await Promise.all(promises);
+      const { reason } = await form.validateFields();
+      setRejectSubmitting(true);
+      await Promise.all(selectedRowKeys.map((id) => rejectDocument(id, reason.trim())));
       message.success("ปฏิเสธเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
+      setRejectModalOpen(false);
     } catch (error) {
+      if (error?.errorFields) return; // validation error
       message.error("เกิดข้อผิดพลาดในการปฏิเสธเอกสาร");
+    } finally {
+      setRejectSubmitting(false);
     }
-  }, [selectedRowKeys, rejectDocument]);
+  }, [selectedRowKeys, rejectDocument, form]);
 
   const rowSelection = useMemo(
     () => ({
@@ -348,7 +364,7 @@ const OriginalDocumentManagement = ({ type }) => {
                   <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
                     <Button
                       danger
-                      onClick={handleRejectSelectedDocuments}
+                      onClick={openRejectModal}
                       disabled={selectedRowKeys.length === 0}
                       icon={<CloseCircleOutlined />}
                       size="small"
@@ -386,6 +402,38 @@ const OriginalDocumentManagement = ({ type }) => {
         open={isModalVisible}
         onClose={closeDocumentDetails}
       />
+
+      <Modal
+        title="ระบุเหตุผลการปฏิเสธ"
+        open={rejectModalOpen}
+        onCancel={() => { if (!rejectSubmitting) setRejectModalOpen(false); }}
+        onOk={handleRejectSelectedDocuments}
+        okText="ปฏิเสธ"
+        confirmLoading={rejectSubmitting}
+        okButtonProps={{ danger: true }}
+        cancelText="ยกเลิก"
+      >
+        <Form form={form} layout="vertical" name="adminRejectReasonForm">
+          <Form.Item
+            label="เหตุผล (อย่างน้อย 10 ตัวอักษร)"
+            name="reason"
+            rules={[
+              { required: true, message: 'กรุณากรอกเหตุผล' },
+              { min: 10, message: 'กรุณาระบุอย่างน้อย 10 ตัวอักษร' }
+            ]}
+          >
+            <AntInput.TextArea
+              placeholder="เช่น ข้อมูลบริษัทไม่ครบ, ไฟล์ไม่ถูกต้อง, วันที่ฝึกงานไม่ถูกต้อง ฯลฯ"
+              rows={5}
+              maxLength={500}
+              showCount
+            />
+          </Form.Item>
+          <div style={{ fontSize: 12, color: '#888' }}>
+            จะปฏิเสธทั้งหมด {selectedRowKeys.length} เอกสาร
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };

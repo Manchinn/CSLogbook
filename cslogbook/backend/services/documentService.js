@@ -297,15 +297,19 @@ class DocumentService {
                 throw new Error('ไม่พบเอกสาร');
             }
 
+            // บันทึกเหตุผลลง reviewComment (คอลัมน์จริงในตาราง documents)
             await document.update({
                 status: 'rejected',
-                comment: reason || 'ไม่ได้ระบุเหตุผล',
+                reviewComment: reason || 'ไม่ได้ระบุเหตุผล',
                 reviewerId: reviewerId,
                 reviewDate: new Date()
             });
 
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);
-            return { message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว' };
+            return { 
+                message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว',
+                reviewComment: document.reviewComment
+            };
         } catch (error) {
             logger.error('Error rejecting document:', error);
             throw error;

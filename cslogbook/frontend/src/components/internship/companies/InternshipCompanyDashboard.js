@@ -19,7 +19,7 @@ const InternshipCompanyDashboard = ({ defaultAcademicYear, defaultSemester, limi
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
       <Card style={{ marginBottom: 24, paddingTop: 16 }} >
-        <Typography.Title level={4} style={{ marginTop: 0 }}>🏢 สถานประกอบการฝึกงาน (Approved CS05)</Typography.Title>
+        <Typography.Title level={4} style={{ marginTop: 0 }}>🏢 สถานประกอบการฝึกงาน</Typography.Title>
         <Space wrap style={{ marginBottom: 16 }}>
           <Select
             allowClear

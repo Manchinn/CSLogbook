@@ -162,12 +162,52 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Socket.IO setup with validated FRONTEND_URL
+// Socket.IO setup with validated FRONTEND_URL + auth room binding
 const io = new Server(server, {
   cors: {
     origin: ENV.FRONTEND_URL,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   }
+});
+// เก็บ io ใน app สำหรับ controller/service เรียกใช้
+app.set('io', io);
+
+// Middleware แบบง่ายสำหรับ map token -> userId แล้ว join room เฉพาะ (ต้องปรับถ้ามี auth ที่ซับซ้อน)
+io.use((socket, next) => {
+  // ตัวอย่าง: รับ token จาก query หรือ headers (frontend สามารถแนบ ?token= )
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) {
+    return next(); // อนุญาตเชื่อมต่อแบบไม่ระบุตัวตน (จะไม่ได้ room ส่วนตัว)
+  }
+  try {
+    const jwt = require('jsonwebtoken');
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    socket.data.userId = payload.userId || payload.id;
+  } catch (e) {
+    console.warn('Socket auth invalid token:', e.message);
+  }
+  next();
+});
+
+io.on('connection', (socket) => {
+  const userId = socket.data.userId;
+  if (userId) {
+    socket.join(`user_${userId}`);
+    console.log(`Socket connected & joined room user_${userId}`);
+  } else {
+    console.log('Socket connected (guest)');
+  }
+
+  socket.on('joinUserRoom', (uid) => {
+    if (uid && Number(uid) === userId) {
+      socket.join(`user_${uid}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    // log optional
+  });
 });
 
 // Logging middleware

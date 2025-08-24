@@ -133,6 +133,11 @@ class InternshipManagementService {
       contactPersonName: document.internshipDocument.contactPersonName, // เพิ่มฟิลด์ใหม่
       contactPersonPosition: document.internshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
       createdAt: document.created_at,
+  // เพิ่มข้อมูลไฟล์ transcript เพื่อให้ฝั่ง frontend แสดงลิงก์ดูไฟล์เดิมได้
+  transcriptFilename: document.fileName,
+  // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
+  rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
+  reviewComment: document.reviewComment
     };
   }
 
@@ -2090,6 +2095,9 @@ class InternshipManagementService {
           originalStatus: acceptanceLetter?.status || "not_found",
           cs05OriginalStatus: cs05Document.status,
         },
+  // ✅ เหตุผลการปฏิเสธ (ถ้ามี) สำหรับ frontend แสดงผล
+  rejectionReason: acceptanceLetter?.status === 'rejected' ? acceptanceLetter?.reviewComment : undefined,
+  reviewComment: acceptanceLetter?.reviewComment
       };
     } catch (error) {
       console.error("Check Acceptance Letter Status Service Error:", error);
@@ -2444,6 +2452,12 @@ class InternshipManagementService {
         updatedAt: acceptanceLetter?.updated_at || null,
         fileName: acceptanceLetter?.fileName || null,
         documentId: acceptanceLetter?.documentId || null,
+        // ✅ เพิ่มข้อมูลเหตุผลการปฏิเสธ (ถ้ามี)
+        reviewComment: acceptanceLetter?.reviewComment || null,
+        rejectionReason:
+          acceptanceLetter?.status === "rejected"
+            ? acceptanceLetter?.reviewComment || null
+            : null,
       };
     } catch (error) {
       console.error("Get Acceptance Letter Status Service Error:", error);

@@ -13,9 +13,10 @@ import {
   Tabs,
   Select,
   Typography,
+  Form,
+  Input as AntInput
 } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
-import PDFViewerModal from "../../PDFViewerModal";
 import { internshipApprovalService } from "../../../services/internshipApprovalService";
 import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
 import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
@@ -51,8 +52,7 @@ const { Text } = Typography;
 export default function ApproveDocuments() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [showPdf, setShowPdf] = useState(false);
+  // TODO: PDF preview integration (state removed until implemented)
   // แท็บการทำงาน: request = อนุมัติ คพ.05 (หนังสือขอความอนุเคราะห์), referral = หนังสือส่งตัวนักศึกษา
   const [activeTab, setActiveTab] = useState("request");
   // ตัวกรอง: รวมปีการศึกษา+ภาคเรียนเป็นตัวเดียว (term) รูปแบบ "{semester}/{yearBE}" เช่น "1/2567"
@@ -88,23 +88,44 @@ export default function ApproveDocuments() {
   }, [fetchQueue]);
 
   const handleView = useCallback(async (record) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `/api/internship/cs-05/${record.documentId}/view`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!res.ok) throw new Error("ไม่สามารถโหลดเอกสารได้");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setShowPdf(true);
-    } catch (e) {
-      message.error(e.message || "เกิดข้อผิดพลาดในการโหลดเอกสาร");
-    }
+    // TODO: เรียกบริการดาวน์โหลด/แสดงไฟล์ PDF ของเอกสาร (ยังไม่พบในบริบทนี้)
+    message.info(`ยังไม่ได้เชื่อมต่อการแสดงไฟล์สำหรับ Document ID: ${record.documentId}`);
   }, []);
+
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState(null); // เก็บ record ที่จะปฏิเสธ
+  const [form] = Form.useForm();
+
+  const openRejectModal = useCallback((record) => {
+    setRejectTarget(record);
+    form.resetFields();
+    setRejectModalOpen(true);
+  }, [form]);
+
+  const handleRejectSubmit = useCallback(async () => {
+    try {
+      const values = await form.validateFields();
+      const reason = values.reason?.trim();
+      if (!reason) return; // validation ซ้ำชั้น
+      setRejectSubmitting(true);
+      if (!rejectTarget) return;
+      if (activeTab === 'request') {
+        await internshipApprovalService.rejectCS05(rejectTarget.documentId, reason);
+      } else {
+        await internshipApprovalService.rejectAcceptance(rejectTarget.documentId, reason);
+      }
+      message.success('ปฏิเสธสำเร็จ');
+      setRejectModalOpen(false);
+      setRejectTarget(null);
+      fetchQueue();
+    } catch (e) {
+      if (e?.errorFields) return; // validation error จาก antd
+      message.error(e.message || 'ปฏิเสธไม่สำเร็จ');
+    } finally {
+      setRejectSubmitting(false);
+    }
+  }, [activeTab, fetchQueue, rejectTarget, form]);
 
   const handleApprove = useCallback(
     async (record) => {
@@ -147,21 +168,9 @@ export default function ApproveDocuments() {
   [activeTab, fetchQueue]
   );
 
-  const handleReject = useCallback(async (record) => {
-    const reason = window.prompt("กรุณาระบุเหตุผลการปฏิเสธ");
-    if (!reason) return;
-    try {
-      if (activeTab === 'request') {
-        await internshipApprovalService.rejectCS05(record.documentId, reason);
-      } else {
-        await internshipApprovalService.rejectAcceptance(record.documentId, reason);
-      }
-      message.success("ปฏิเสธสำเร็จ");
-      fetchQueue();
-    } catch (e) {
-      message.error(e.message || "ปฏิเสธไม่สำเร็จ");
-    }
-  }, [activeTab, fetchQueue]);
+  const handleReject = useCallback((record) => {
+    openRejectModal(record);
+  }, [openRejectModal]);
 
   const columns = useMemo(
     () => [
@@ -457,13 +466,39 @@ export default function ApproveDocuments() {
         scroll={{ x: 1000 }}
       />
 
-      {showPdf && pdfUrl && (
-        <PDFViewerModal
-          visible={showPdf}
-          pdfUrl={pdfUrl}
-          onClose={() => setShowPdf(false)}
-        />
-      )}
+      <Modal
+        title={activeTab === 'request' ? 'ปฏิเสธคำร้อง CS05' : 'ปฏิเสธ Acceptance Letter'}
+        open={rejectModalOpen}
+        onCancel={() => { if (!rejectSubmitting) { setRejectModalOpen(false); setRejectTarget(null);} }}
+        onOk={handleRejectSubmit}
+        okText="ยืนยันปฏิเสธ"
+        cancelText="ยกเลิก"
+        confirmLoading={rejectSubmitting}
+        okButtonProps={{ danger: true }}
+      >
+        <Form form={form} layout="vertical" name="rejectReasonForm">
+          <Form.Item
+            label="เหตุผลการปฏิเสธ"
+            name="reason"
+            rules={[
+              { required: true, message: 'กรุณากรอกเหตุผล' },
+              { min: 10, message: 'กรุณาระบุอย่างน้อย 10 ตัวอักษร เพื่อให้นักศึกษาเข้าใจและแก้ไขได้' },
+            ]}
+          >
+            <AntInput.TextArea
+              rows={5}
+              placeholder="โปรดระบุรายละเอียดให้ชัดเจน เช่น ข้อมูลบริษัทไม่ตรง, เอกสารไม่ครบ, วันที่ฝึกงานไม่ถูกต้อง ฯลฯ"
+              maxLength={500}
+              showCount
+            />
+          </Form.Item>
+          {rejectTarget && (
+            <div style={{ fontSize: 12, color: '#888' }}>
+              เอกสาร: {activeTab === 'request' ? 'CS05' : 'Acceptance Letter'} | ID: {rejectTarget.documentId}
+            </div>
+          )}
+        </Form>
+  </Modal>
 
   {/* ไม่มี Modal เลือกประเภทแล้ว เนื่องจากกำหนดจากแท็บที่เลือก */}
     </Card>

@@ -153,6 +153,21 @@ exports.reject = async (req, res) => {
       newStatus: 'rejected',
       comment: reason,
     });
+    // ส่ง real-time notification สำหรับ Acceptance ถูกปฏิเสธ (เผื่อ frontend ใช้งานร่วม)
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${doc.userId}`).emit('document:rejected', {
+          documentId: doc.documentId,
+          documentName: 'ACCEPTANCE',
+          status: 'rejected',
+          reason,
+          message: 'หนังสือตอบรับการฝึกงานของคุณถูกปฏิเสธ'
+        });
+      }
+    } catch (notifyErr) {
+      console.warn('Socket emit failed (Acceptance reject):', notifyErr.message);
+    }
     return res.json({ success: true, message: 'ปฏิเสธ Acceptance Letter สำเร็จ' });
   } catch (error) {
     console.error('Acceptance reject error:', error);

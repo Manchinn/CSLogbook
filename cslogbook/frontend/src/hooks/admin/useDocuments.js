@@ -65,9 +65,9 @@ export function useDocuments(options = {}) {
   };
 
   // ปฏิเสธเอกสาร
-  const rejectDocument = async (documentId) => {
+  const rejectDocument = async (documentId, reason) => {
     try {
-      await documentService.rejectDocument(documentId);
+      await documentService.rejectDocument(documentId, reason);
       message.success("ปฏิเสธเอกสารเรียบร้อยแล้ว");
       fetchDocuments();
     } catch (err) {
