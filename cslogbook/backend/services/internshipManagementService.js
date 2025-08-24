@@ -17,6 +17,7 @@ const {
   calculateStudentYear,
   isEligibleForInternship,
   getCurrentAcademicYear,
+  getCurrentSemester,
 } = require("../utils/studentUtils");
 const emailService = require("../utils/mailer.js");
 const crypto = require("crypto");
@@ -201,6 +202,9 @@ class InternshipManagementService {
           supervisorPosition,
           supervisorPhone,
           supervisorEmail,
+          // snapshot academic period
+          academicYear: getCurrentAcademicYear(),
+          semester: getCurrentSemester(),
         },
         { transaction }
       );
@@ -308,6 +312,8 @@ class InternshipManagementService {
           supervisorPosition: null,
           supervisorPhone: null,
           supervisorEmail: null,
+          academicYear: getCurrentAcademicYear(),
+          semester: getCurrentSemester(),
         },
         { transaction }
       );

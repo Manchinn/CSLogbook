@@ -413,9 +413,9 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               label: "รายงาน",
               children: [
                 { key: "/internship-companies", label: "สถานประกอบการ" },
-                { key: "/admin/reports/support", label: "Dashboard รวม" },
-                { key: "/admin/reports/internship", label: "Internship Report" },
-                { key: "/admin/reports/project", label: "Project Report" },
+                { key: "/admin/reports/support", label: "แผงควบคุมรายงาน" },
+                { key: "/admin/reports/internship", label: "รายงานระบบฝึกงาน" },
+                { key: "/admin/reports/project", label: "รายงานโครงงานพิเศษ" },
               ],
             },
             {

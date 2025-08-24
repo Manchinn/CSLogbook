@@ -4,17 +4,28 @@ import { useAuth } from '../../../contexts/AuthContext';
 import useCompanyInternshipStats from '../../../hooks/useCompanyInternshipStats';
 import CompanyInternshipStatsTable from './CompanyInternshipStatsTable';
 
-// Dashboard หลักสำหรับ staff / student (ปรับตาม role ภายนอก)
-const InternshipCompanyDashboard = ({ defaultAcademicYear, defaultSemester, limit, role }) => {
+// Dashboard หลักสำหรับ staff / student (ปรับตาม role ภายนอก) - ตัดภาคเรียนออก เหลือเฉพาะปีการศึกษา
+// NOTE: เดิมมี prop defaultSemester ถูกนำออกแล้ว
+const InternshipCompanyDashboard = ({ defaultAcademicYear, limit, role }) => {
   // ถ้าไม่ได้ส่ง role เข้ามา ใช้จาก AuthContext
   const { userData } = useAuth();
   const effectiveRole = role || userData?.role;
-  const [academicYear, setAcademicYear] = useState(defaultAcademicYear || undefined);
-  const [semester, setSemester] = useState(defaultSemester || undefined);
+  // ฟังก์ชันหาปีการศึกษาปัจจุบัน (พ.ศ.) ตามเกณฑ์ไทย: ปีการศึกษาเริ่มเดือนสิงหาคม
+  const deriveCurrentAcademicYear = () => {
+    const now = new Date();
+    const buddhistYear = now.getFullYear() + 543; // แปลงเป็น พ.ศ.
+    // ถ้าเดือน ม.ค.-ก.ค. (0-6) ยังอยู่ช่วงเทอม 2/3 ของปีการศึกษาเดิมที่เริ่ม ส.ค. ปีก่อน
+    // แต่ระบบส่วนใหญ่ถือว่า ช่วง ม.ค.-ก.ค. ยังเป็นปีการศึกษาเดียวกัน (เช่น 2567) ไม่ต้องลบ 1
+    // จึงใช้ buddhistYear ตรง ๆ (ถ้าต้องการเลื่อนให้ลบ 1 สามารถเปลี่ยนตรรกะได้)
+    return buddhistYear;
+  };
+
+  const [academicYear, setAcademicYear] = useState(() => defaultAcademicYear || deriveCurrentAcademicYear());
 
   // ปรับ limit ตามบทบาท หากไม่ได้ส่งมา
   const effectiveLimit = limit || (effectiveRole === 'student' ? 10 : 50);
-  const { data, loading, error, reload, fetchCompanyDetail } = useCompanyInternshipStats({ academicYear, semester, limit: effectiveLimit });
+  // ไม่ส่ง semester เพื่อให้รวมทุกภาคเรียน
+  const { data, loading, error, reload, fetchCompanyDetail } = useCompanyInternshipStats({ academicYear, limit: effectiveLimit });
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
@@ -28,14 +39,6 @@ const InternshipCompanyDashboard = ({ defaultAcademicYear, defaultSemester, limi
             value={academicYear}
             onChange={(v) => setAcademicYear(v)}
             options={generateYearOptions()}
-          />
-          <Select
-            allowClear
-            placeholder="ภาคเรียน"
-            style={{ width: 120 }}
-            value={semester}
-            onChange={(v) => setSemester(v)}
-            options={[{ value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }]}
           />
           <Button onClick={reload} type="primary" loading={loading}>รีเฟรช</Button>
         </Space>

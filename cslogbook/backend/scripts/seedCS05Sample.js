@@ -11,6 +11,7 @@ const {
   Student,
   User
 } = require('../models');
+const { getCurrentAcademicYear, getCurrentSemester } = require('../utils/studentUtils');
 const fs = require('fs');
 
 async function main() {
@@ -91,6 +92,11 @@ async function main() {
       internshipPosition: 'Backend Intern',
       contactPersonName: 'สมชาย ทดสอบ',
       contactPersonPosition: 'HR Manager'
+    }, { transaction: t });
+    // อัพเดท snapshot academic period ให้ record ที่ seed ด้วย
+    await internshipDoc.update({
+      academicYear: getCurrentAcademicYear(),
+      semester: getCurrentSemester()
     }, { transaction: t });
 
     // อัปเดต student internship status เล็กน้อยเพื่อให้ flow ทำงาน
