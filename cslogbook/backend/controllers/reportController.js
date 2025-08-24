@@ -55,3 +55,27 @@ exports.getAdvisorLoad = async (req, res, next) => {
      next(err);
    }
  };
+
+// รายชื่อนักศึกษาฝึกงานที่ลงทะเบียน (ลด payload จาก /students ทั้งหมด)
+exports.getEnrolledInternshipStudents = async (req, res, next) => {
+  try {
+    const { Student, User } = require('../models');
+    const rows = await Student.findAll({
+      where: { is_enrolled_internship: true },
+      attributes: ['studentId','studentCode','internshipStatus','advisor_id','is_enrolled_internship'],
+      include: [{ model: User, as: 'user', attributes: ['firstName','lastName'] }],
+      order: [['studentCode','ASC']]
+    });
+    // map รวมชื่อให้ frontend ใช้ง่าย
+    const mapped = rows.map(r => ({
+      studentId: r.studentId,
+      studentCode: r.studentCode,
+      internshipStatus: r.internshipStatus,
+      advisorId: r.advisor_id,
+      isEnrolledInternship: r.is_enrolled_internship,
+      firstName: r.user?.firstName || '',
+      lastName: r.user?.lastName || ''
+    }));
+    res.json({ success: true, data: mapped });
+  } catch (err) { next(err); }
+};

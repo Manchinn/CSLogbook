@@ -1,11 +1,10 @@
 // หน้าแสดงรายงานเฉพาะฝึกงาน (Internship)
 import React, { useMemo } from 'react';
-import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Tabs } from 'antd';
-import { Line, Pie } from '@ant-design/plots';
-import { useInternshipReport } from './hooks/useInternshipReport';
+import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Table } from 'antd';
+import { Pie, Bar } from '@ant-design/plots';
 import { academicYearOptions } from './constants';
-import { buildWeeklyLineConfig } from './charts/configs';
-import { buildLogbookDistributionPie } from './charts/internshipConfigs';
+import { useInternshipProgressDashboard } from './hooks/useInternshipProgressDashboard';
+import { buildCriteriaBarConfig, buildInternshipCompletionPie } from './charts/internshipProgressConfigs';
 
 const { Title } = Typography;
 
@@ -16,94 +15,79 @@ const currentAcademicYear = () => {
 };
 
 const InternshipReport = () => {
-		const { year, setYear, loading, error, logbookCompliance, internshipSummary } = useInternshipReport(currentAcademicYear());
-
-		const kpis = useMemo(() => {
-			if (!logbookCompliance) return [];
-			const { rate, weeklyTrend } = logbookCompliance;
-			const totalEntries = weeklyTrend.reduce((s,w)=> s + w.onTime + w.late + w.missing, 0);
-			return [
-				{ title:'On Time %', value: rate.onTimePct + '%' },
-				{ title:'Late %', value: rate.latePct + '%' },
-				{ title:'Missing %', value: rate.missingPct + '%' },
-				{ title:'รวม Log Entries', value: totalEntries }
-			];
-		}, [logbookCompliance]);
-
-		const summaryKpis = useMemo(() => {
-			if(!internshipSummary) return [];
-			return [
-				{ title:'นักศึกษาทั้งหมด', value: internshipSummary.totalStudents },
-				{ title:'เริ่มฝึกงาน', value: internshipSummary.started },
-				{ title:'สำเร็จ', value: internshipSummary.completed },
-				{ title:'กำลังฝึกงาน', value: internshipSummary.inProgress },
-				{ title:'ยังไม่เริ่ม', value: internshipSummary.notStarted }
-			];
-		}, [internshipSummary]);
+	// ใช้ hook ใหม่
+	const { year, setYear, loading, error, summary, evaluation, students } = useInternshipProgressDashboard(currentAcademicYear());
 
 	const yearOptions = academicYearOptions(year);
+
+	// KPI: ทั้งหมด / สำเร็จแล้ว / กำลังฝึกงาน
+		const kpis = useMemo(() => {
+			const enrolledCount = summary?.enrolledCount != null ? summary.enrolledCount : (students || []).length;
+			return [
+				{ title: 'นักศึกษาลงทะเบียนฝึกงาน', value: enrolledCount },
+				{ title: 'ฝึกงานเสร็จแล้ว', value: summary?.completed ?? 0 },
+				{ title: 'อยู่ระหว่างฝึกงาน', value: summary?.inProgress ?? 0 }
+			];
+		}, [summary, students]);
+
+	// ตารางนักศึกษา: แสดง code, name, status (internshipStatus) และชั้นปี (studentYear) ถ้ามี
+	const studentColumns = [
+		{ title:'รหัส', dataIndex:'studentCode', key:'studentCode' },
+		{ title:'ชื่อ-นามสกุล', key:'name', render:(_,r)=> `${r.firstName || ''} ${r.lastName || ''}` },
+		{ title:'ชั้นปี', dataIndex:'studentYear', key:'studentYear', width:90 },
+		{ title:'สถานะฝึกงาน', dataIndex:'internshipStatus', key:'internshipStatus' }
+	];
+
+	// Map students (จาก studentService.getAllStudents) -> ตรวจชื่อฟิลด์ที่คาด: studentCode, firstName, lastName, internshipStatus, studentYear
+			const studentData = useMemo(()=> (students || []).map((s,i)=>({ key:i, ...s })), [students]);
 
 	return (
 		<Space direction="vertical" style={{ width:'100%' }} size="large">
 			<Row justify="space-between" align="middle">
-				<Col><Title level={3}>Internship Report</Title></Col>
+				<Col><Title level={3}>Internship Progress Dashboard</Title></Col>
 				<Col>
 					<Space>
 						<span>ปี:</span>
-						<Select value={year} style={{width:120}} onChange={setYear} options={yearOptions.map(y=>({value:y,label:y}))} />
+						<Select value={year} style={{ width:120 }} onChange={setYear} options={yearOptions.map(y=>({ value:y, label:y }))} />
 					</Space>
 				</Col>
 			</Row>
 
-			{error && <Alert type="error" message={error.message||'โหลดข้อมูลไม่สำเร็จ'} />}
+			{error && <Alert type="error" message={error.message || 'โหลดข้อมูลไม่สำเร็จ'} />}
 
-					<Row gutter={[16,16]}>
-						{summaryKpis.map((k,i)=>(
-							<Col xs={12} md={4} key={i}>
-								<Card loading={loading}>
-									<Space direction="vertical" size={0}>
-										<span style={{color:'#888'}}>{k.title}</span>
-										<span style={{fontSize:22,fontWeight:600}}>{k.value}</span>
-									</Space>
-								</Card>
-							</Col>
-						))}
-					</Row>
-
-					<Row gutter={[16,16]}>
+			<Row gutter={[16,16]}>
 				{kpis.map((k,i)=>(
-					<Col xs={12} md={6} key={i}>
+					<Col xs={12} md={8} key={i}>
 						<Card loading={loading}>
 							<Space direction="vertical" size={0}>
 								<span style={{color:'#888'}}>{k.title}</span>
-								<span style={{fontSize:22,fontWeight:600}}>{k.value}</span>
+								<span style={{fontSize:26,fontWeight:600}}>{k.value}</span>
 							</Space>
 						</Card>
 					</Col>
 				))}
 			</Row>
 
-			<Tabs
-				defaultActiveKey="trend"
-				items={[{
-					key:'trend',
-					label:'Weekly Trend',
-					children: (
-						<Row gutter={[16,16]}>
-							<Col xs={24} md={14}>
-								<Card size="small" title="Logbook Trend">
-									{loading ? <Skeleton active /> : <Line {...buildWeeklyLineConfig(logbookCompliance?.weeklyTrend || [])} />}
-								</Card>
-							</Col>
-							<Col xs={24} md={10}>
-								<Card size="small" title="Distribution (OnTime/Late/Missing)">
-									{loading ? <Skeleton active /> : <Pie {...buildLogbookDistributionPie(logbookCompliance?.weeklyTrend || [])} />}
-								</Card>
-							</Col>
-						</Row>
-					)
-				}]}
-			/>
+			<Row gutter={[16,16]}>
+				<Col xs={24} md={14}>
+					<Card title="คะแนนเฉลี่ยรายหัวข้อ (ผู้ควบคุมงาน)" size="small" bodyStyle={{padding:12}}>
+						{loading ? <Skeleton active /> : <Bar {...buildCriteriaBarConfig(evaluation?.criteriaAverages || [])} />}
+					</Card>
+				</Col>
+				<Col xs={24} md={10}>
+					<Card title="สัดส่วนสถานะการฝึกงาน" size="small" bodyStyle={{padding:12}}>
+						{loading ? <Skeleton active /> : <Pie {...buildInternshipCompletionPie(summary)} />}
+					</Card>
+				</Col>
+			</Row>
+
+			<Row gutter={[16,16]}>
+				<Col span={24}>
+					<Card title="รายชื่อนักศึกษาฝึกงาน" size="small">
+						<Table size="small" loading={loading} dataSource={studentData} columns={studentColumns} pagination={{ pageSize: 15 }} scroll={{ x: 600 }} />
+					</Card>
+				</Col>
+			</Row>
 		</Space>
 	);
 };

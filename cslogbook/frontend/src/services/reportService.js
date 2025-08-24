@@ -37,3 +37,10 @@ export async function getInternshipEvaluationSummary(params = {}) {
   const res = await apiClient.get(`/reports/internships/evaluations/summary`, { params: { year, semester } });
   return res.data.data;
 }
+
+// รายชื่อนักศึกษาที่ลงทะเบียนฝึกงาน (ลด payload จาก /students ทั้งระบบ)
+export async function getEnrolledInternshipStudents(params = {}) {
+  const { year } = params; // ปัจจุบัน backend ยังไม่ filter year แต่ส่งไว้รองรับอนาคต
+  const res = await apiClient.get(`/reports/internships/enrolled-students`, { params: { year } });
+  return res.data.data;
+}

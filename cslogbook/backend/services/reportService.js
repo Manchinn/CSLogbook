@@ -196,35 +196,12 @@ module.exports = {
    */
   async getInternshipStudentSummary({ year }) {
     const academicYear = resolveYear(year);
-    const { Student, Document, InternshipLogbook, sequelize } = db;
+    const { Student, Document } = db;
 
-    const totalStudents = await Student.count();
+    // ฐานใหม่: ใช้ฟิลด์ is_enrolled_internship เป็นการนับ enrolled โดยตรง
+    const enrolledCount = await Student.count({ where: { is_enrolled_internship: true } });
 
-    // นักศึกษาที่มีเอกสารฝึกงาน (ไม่นับ draft)
-    const docRows = await Document.findAll({
-      attributes: ['user_id'],
-      where: { document_type: 'internship', status: { [Op.ne]: 'draft' } },
-      group: ['user_id'],
-      raw: true
-    });
-    const docUserIds = new Set(docRows.map(r => r.user_id));
-
-    // นักศึกษาที่มี logbook อย่างน้อย 1
-    const logRows = await InternshipLogbook.findAll({
-      attributes: ['student_id'],
-      group: ['student_id'],
-      raw: true
-    });
-    // map student_id -> user_id ผ่าน Student fetch (เฉพาะที่ยังไม่มีใน set เพื่อประหยัด)
-    const studentIdsMissing = logRows.map(r => r.student_id);
-    let additionalUserIds = [];
-    if (studentIdsMissing.length) {
-      const students = await Student.findAll({ where: { studentId: studentIdsMissing }, attributes: ['studentId', 'user_id'], raw: true });
-      additionalUserIds = students.map(s => s.user_id);
-    }
-    additionalUserIds.forEach(uid => docUserIds.add(uid));
-
-    // Completed
+    // Completed: ใช้เอกสารฝึกงานที่ status = 'completed' (จะ mapping ผ่าน user_id -> student)
     const completedRows = await Document.findAll({
       attributes: ['user_id'],
       where: { document_type: 'internship', status: 'completed' },
@@ -232,11 +209,14 @@ module.exports = {
       raw: true
     });
     const completed = completedRows.length;
-    const started = docUserIds.size;
+    const started = enrolledCount; // ปรับ started = enrolled เพื่อสอดคล้อง UI
     const inProgress = Math.max(0, started - completed);
+
+    // totalStudents: ทั้งระบบ (baseline เปรียบเทียบ) – อาจมีมากกว่าผู้ลงทะเบียน
+    const totalStudents = await Student.count();
     const notStarted = Math.max(0, totalStudents - started);
 
-    return { academicYear, totalStudents, started, completed, inProgress, notStarted };
+    return { academicYear, totalStudents, enrolledCount, started, completed, inProgress, notStarted };
   }
   ,
   /**
@@ -284,12 +264,14 @@ module.exports = {
     });
     const a = agg[0] || {};
     const toNum = v => (v == null ? null : +parseFloat(v).toFixed(2));
+    // คะแนนหมวดเก็บแบบ 0-20; แปลง scale เป็น 0-5 เพื่อ UI
+    const scaleToFive = v => (v == null ? null : +parseFloat((v / 20 * 5)).toFixed(2));
     const criteriaAverages = [
-      { key: 'discipline', label: 'ระเบียบวินัย', avg: toNum(a.avgDiscipline) },
-      { key: 'behavior', label: 'พฤติกรรม', avg: toNum(a.avgBehavior) },
-      { key: 'performance', label: 'ผลงาน', avg: toNum(a.avgPerformance) },
-      { key: 'method', label: 'วิธีการทำงาน', avg: toNum(a.avgMethod) },
-      { key: 'relation', label: 'มนุษยสัมพันธ์', avg: toNum(a.avgRelation) }
+      { key: 'discipline', label: 'ระเบียบวินัย', avgRaw: toNum(a.avgDiscipline), avg: scaleToFive(a.avgDiscipline) },
+      { key: 'behavior', label: 'พฤติกรรม', avgRaw: toNum(a.avgBehavior), avg: scaleToFive(a.avgBehavior) },
+      { key: 'performance', label: 'ผลงาน', avgRaw: toNum(a.avgPerformance), avg: scaleToFive(a.avgPerformance) },
+      { key: 'method', label: 'วิธีการทำงาน', avgRaw: toNum(a.avgMethod), avg: scaleToFive(a.avgMethod) },
+      { key: 'relation', label: 'มนุษยสัมพันธ์', avgRaw: toNum(a.avgRelation), avg: scaleToFive(a.avgRelation) }
     ];
     const overallAverage = toNum(a.avgOverall);
 
@@ -314,7 +296,7 @@ module.exports = {
     const scoreDistribution = Object.entries(scoreBuckets).map(([range,count])=>({ range, count }));
     const gradeDistribution = Object.entries(gradeCounts).map(([grade,count])=>({ grade, count }));
 
-    return {
+  return {
       academicYear,
       semester: sem,
       totalInterns,
