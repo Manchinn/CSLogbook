@@ -45,9 +45,29 @@ const LoginForm = () => {
 
             if (loginSuccess) {
                 message.success('เข้าสู่ระบบสำเร็จ');
-                
-                // นำทางไป path ที่ตั้งใจเดิม (ถ้ามี) ไม่เช่นนั้นไป /dashboard (landing รวม)
-                navigate(from);
+
+                // กำหนด redirect ตาม role/teacherType (ให้ support staff ไป admin/dashboard)
+                const role = userData.role;
+                const teacherType = userData.teacherType;
+
+                let targetPath = from; // ค่าปริยายจาก state (เช่น ผู้ใช้กดลิงก์ protected มาก่อน)
+
+                // ถ้าไม่ได้มาจาก protected route (from เป็น default '/dashboard') ให้คำนวณใหม่
+                if (from === '/dashboard') {
+                  if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
+                    targetPath = '/admin/dashboard';
+                  } else if (role === 'teacher') {
+                    // แยก page สำหรับอาจารย์ (ถ้าระบบมีหน้าเฉพาะ อาจเปลี่ยนเป็น /teacher/dashboard)
+                    targetPath = '/dashboard';
+                  } else if (role === 'student') {
+                    // นักศึกษาอยู่หน้า dashboard รวม (หรืออาจสร้าง /student/dashboard แยก ถ้ามีในอนาคต)
+                    targetPath = '/dashboard';
+                  } else {
+                    targetPath = '/dashboard';
+                  }
+                }
+
+                navigate(targetPath, { replace: true });
             }
         }
     } catch (error) {

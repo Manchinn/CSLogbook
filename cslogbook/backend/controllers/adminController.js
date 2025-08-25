@@ -62,9 +62,15 @@ module.exports = {
 
   getRecentActivities: async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 10;
-      const activities = await adminService.getRecentActivities(limit);
-      res.json(activities);
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = req.query.offset ? parseInt(req.query.offset) : undefined;
+  const cursor = req.query.cursor || undefined; // timestamp string
+  const format = req.query.format || 'array';
+  const mode = req.query.mode || undefined; // documents | all (default)
+
+  const options = { limit, offset, cursor, format, mode };
+  const activities = await adminService.getRecentActivities(options);
+  res.json(activities);
     } catch (error) {
       console.error('Error fetching recent activities:', error);
       res.status(500).json({ 
