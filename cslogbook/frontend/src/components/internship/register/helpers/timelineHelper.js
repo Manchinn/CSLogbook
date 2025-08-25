@@ -352,6 +352,9 @@ const createStep4Actions = (
       ) {
         return "#52c41a"; // เขียว - อนุมัติแล้ว
       }
+      if (acceptanceLetterStatus === "rejected") {
+        return "#ff4d4f"; // แดง - ถูกปฏิเสธ ต้องแก้ไข
+      }
 
       const stepStatus = getStepStatus(
         4,
@@ -467,6 +470,59 @@ const createStep4Actions = (
                 )}
               </div>
             )}
+          </Card>
+        );
+      }
+
+      // ✅ กรณีถูกปฏิเสธ ให้แสดงเหตุผลและอนุญาตให้อัปโหลดใหม่
+      if (acceptanceLetterStatus === "rejected") {
+        return (
+          <Card size="small" style={{ marginTop: 12, borderColor: '#ffccc7' }}>
+            <Alert
+              message="หนังสือตอบรับถูกปฏิเสธ"
+              description={
+                <div>
+                  <p style={{ marginBottom: 8 }}>
+                    เหตุผล: {acceptanceLetterInfo?.rejectionReason || acceptanceLetterInfo?.reviewComment || 'ไม่ระบุ'}
+                  </p>
+                  <p style={{ marginBottom: 0 }}>
+                    กรุณาแก้ไขเอกสารตามเหตุผลด้านบน แล้วอัปโหลดใหม่อีกครั้ง
+                  </p>
+                </div>
+              }
+              type="error"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                📤 อัปโหลดไฟล์ฉบับแก้ไข:
+              </Text>
+              <Upload {...uploadProps}>
+                <Button icon={<PaperClipOutlined />} size="small" style={{ marginBottom: 8 }}>
+                  เลือกไฟล์ PDF ใหม่
+                </Button>
+              </Upload>
+              {acceptanceFile && (
+                <div style={{ fontSize: 12, color: '#555' }}>
+                  ไฟล์ที่เลือก: {acceptanceFile.name}
+                </div>
+              )}
+            </div>
+
+            <Space>
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                onClick={handleUploadAcceptanceLetter}
+                loading={uploadLoading}
+                disabled={!acceptanceFile}
+                size="small"
+              >
+                ส่งไฟล์ใหม่
+              </Button>
+            </Space>
           </Card>
         );
       }

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import OfficialDocumentService from '../../../services/PDFServices/OfficialDocumentService';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, message, 
   Row, Col, Card, Typography, Tooltip, Drawer, Select
 } from 'antd';
 import {
-  CheckCircleOutlined, CloseCircleOutlined, DownloadOutlined,
-  EyeOutlined, BellOutlined, FileTextOutlined, FileExclamationOutlined, FileDoneOutlined
+  CheckCircleOutlined, CloseCircleOutlined,
+  EyeOutlined, FileTextOutlined, FileExclamationOutlined, FileDoneOutlined
 } from '@ant-design/icons';
 import certificateService from '../../../services/certificateService'; // ✅ ใช้ service ใหม่
+import CertificateRequestReview from './CertificateRequestReview';
 import dayjs from '../../../utils/dayjs';
 import { DATE_TIME_FORMAT } from '../../../utils/constants';
 
@@ -25,6 +27,8 @@ const CertificateManagement = () => {
   const [filters, setFilters] = useState({ q: '', status: 'all', term: 'all', classYear: 'all' });
   // Drawer แสดงรายละเอียดนักศึกษา
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState(null);
 
   // ดึงรายการคำขอหนังสือรับรอง
   const fetchCertificateRequests = useCallback(async () => {
@@ -61,9 +65,6 @@ const CertificateManagement = () => {
       await fetchCertificateRequests();
       setModalVisible(false);
       
-      // ส่งอีเมลแจ้งเตือนนักศึกษา
-      await notifyStudent(selectedRequest.studentId, 'approved', certificateNumber);
-      
     } catch (error) {
       console.error('Error approving request:', error);
       message.error('ไม่สามารถอนุมัติคำขอได้');
@@ -83,9 +84,6 @@ const CertificateManagement = () => {
       await fetchCertificateRequests();
       setModalVisible(false);
       
-      // ส่งอีเมลแจ้งเตือนนักศึกษา
-      await notifyStudent(selectedRequest.studentId, 'rejected', null, remarks);
-      
     } catch (error) {
       console.error('Error rejecting request:', error);
       message.error('ไม่สามารถปฏิเสธคำขอได้');
@@ -94,31 +92,7 @@ const CertificateManagement = () => {
     }
   };
 
-  // ดาวน์โหลดหนังสือรับรอง
-  const downloadCertificate = async (requestId) => {
-    try {
-      await certificateService.downloadCertificateForAdmin(requestId); // ✅ ใช้ admin route
-      message.success('ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว');
-    } catch (error) {
-      console.error('Error downloading certificate:', error);
-      message.error('ไม่สามารถดาวน์โหลดหนังสือรับรองได้');
-    }
-  };
-
-  // ส่งการแจ้งเตือนให้นักศึกษา
-  const notifyStudent = async (studentId, status, certificateNumber = null, remarks = null) => {
-    try {
-      await certificateService.notifyStudent( // ✅ ใช้ admin route
-        studentId, 
-        'certificate_status', 
-        status, 
-        certificateNumber, 
-        remarks
-      );
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  };
+  // (ถอด) ฟังก์ชัน downloadCertificate / notifyStudent ไม่ใช้แล้วหลังนำปุ่มออก
 
   // สร้างหมายเลขหนังสือรับรอง
   const generateCertificateNumber = () => {
@@ -181,14 +155,18 @@ const CertificateManagement = () => {
     {
       title: 'การดำเนินการ',
       key: 'actions',
-      width: 200,
+      width: 160,
+      // เอาเฉพาะ ดูรายละเอียด / อนุมัติ / ปฏิเสธ ตามที่ร้องขอ (ถอด ดาวน์โหลด & ส่งการแจ้งเตือน)
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="ดูรายละเอียด">
             <Button
               size="small"
               icon={<EyeOutlined />}
-              onClick={() => { setSelectedRequest(record); setDetailOpen(true); }}
+              onClick={() => { 
+                setSelectedRequest(record); 
+                openDetailDrawer(record.id);
+              }}
             />
           </Tooltip>
           {record.status === 'pending' && (
@@ -219,33 +197,6 @@ const CertificateManagement = () => {
               </Tooltip>
             </>
           )}
-          
-          {record.status === 'approved' && (
-            <Tooltip title="ดาวน์โหลดหนังสือรับรอง">
-              <Button
-                type="default"
-                size="small"
-                icon={<DownloadOutlined />}
-                onClick={() => downloadCertificate(record.id)}
-              />
-            </Tooltip>
-          )}
-          
-          <Tooltip title="ส่งการแจ้งเตือน">
-            <Button
-              type="default"
-              size="small"
-              icon={<BellOutlined />}
-              onClick={() => {
-                notifyStudent(
-                  record.studentId, 
-                  record.status, 
-                  record.certificateNumber
-                );
-                message.success('ส่งการแจ้งเตือนแล้ว');
-              }}
-            />
-          </Tooltip>
         </Space>
       ),
     },
@@ -326,6 +277,41 @@ const CertificateManagement = () => {
       return matchQ && matchStatus && matchTerm && matchClass;
     });
   }, [certificateRequests, filters]);
+
+  // โหลดรายละเอียดคำขอ
+  const openDetailDrawer = async (requestId) => {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailData(null);
+    try {
+      const res = await certificateService.getCertificateRequestDetail(requestId);
+      if (res.success) setDetailData(res.data);
+    } catch (e) {
+      message.error('ไม่สามารถดึงรายละเอียดคำขอ');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // 🆕 สร้าง PDF Logbook ฝั่ง frontend (ดึงข้อมูลจาก admin JSON แล้วใช้ template เดิม)
+  const handleOpenLogbookPDF = async () => {
+    const internshipId = detailData?.internship?.internshipId;
+    if (!internshipId) {
+      message.info('ไม่พบ Internship ID');
+      return;
+    }
+    try {
+      message.loading({ content: 'กำลังเตรียมข้อมูล Logbook...', key: 'logpdf' });
+      const res = await certificateService.getAdminLogbookFullSummary(internshipId); // ต้องสร้าง method ใน service
+      if (!res?.success) throw new Error(res?.message || 'ดึงข้อมูลไม่สำเร็จ');
+      const summary = res.data; // shape: summaryFull
+  await OfficialDocumentService.previewInternshipLogbookPDF(summary);
+  message.success({ content: 'แสดงตัวอย่าง PDF แล้ว', key: 'logpdf', duration: 2 });
+    } catch (err) {
+      console.error('Generate logbook PDF error:', err);
+      message.error({ content: 'ไม่สามารถสร้าง PDF Logbook ได้', key: 'logpdf' });
+    }
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -482,49 +468,29 @@ const CertificateManagement = () => {
 
       {/* Drawer แสดงรายละเอียดนักศึกษาให้เจ้าหน้าที่ภาคดู */}
       <Drawer
-        title="รายละเอียดนักศึกษา"
-        width={480}
+        title={selectedRequest ? `รายละเอียดคำขอ #${selectedRequest.id}` : 'รายละเอียดคำขอ'}
+        width={760}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        destroyOnHidden
+        destroyOnClose
       >
-        {selectedRequest ? (
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            <Card size="small">
-              <Row gutter={[8, 8]}>
-                <Col span={12}><strong>ชื่อ-นามสกุล:</strong></Col>
-                <Col span={12}>{selectedRequest.student?.fullName || '-'}</Col>
-                <Col span={12}><strong>รหัสนักศึกษา:</strong></Col>
-                <Col span={12}>{selectedRequest.student?.studentCode || '-'}</Col>
-                <Col span={12}><strong>อีเมล:</strong></Col>
-                <Col span={12}>{selectedRequest.student?.email || '-'}</Col>
-                <Col span={12}><strong>เบอร์โทร:</strong></Col>
-                <Col span={12}>{selectedRequest.student?.phone || '-'}</Col>
-                <Col span={12}><strong>ชั้นปี (คำนวณ):</strong></Col>
-                <Col span={12}>{(() => {
-                  const d = selectedRequest.requestDate || selectedRequest.createdAt;
-                  const { yearBE } = computeAcademic(d);
-                  const entryBE = getEntryYearBEFromCode(selectedRequest.student?.studentCode);
-                  const cy = (entryBE && yearBE) ? (yearBE - entryBE + 1) : null;
-                  return cy ? `ปี ${cy}` : '-';
-                })()}</Col>
-              </Row>
-            </Card>
-            <Card size="small" title="ข้อมูลคำขอ">
-              <Row gutter={[8,8]}>
-                <Col span={12}><strong>วันที่ขอ:</strong></Col>
-                <Col span={12}>{selectedRequest.requestDate ? new Date(selectedRequest.requestDate).toLocaleDateString('th-TH') : '-'}</Col>
-                <Col span={12}><strong>สถานะ:</strong></Col>
-                <Col span={12}>{selectedRequest.status}</Col>
-                <Col span={12}><strong>ชั่วโมงฝึกงาน:</strong></Col>
-                <Col span={12}>{selectedRequest.totalHours} ชม.</Col>
-                <Col span={12}><strong>หมายเลขหนังสือ:</strong></Col>
-                <Col span={12}>{selectedRequest.certificateNumber || '-'}</Col>
-              </Row>
-            </Card>
-            {/* พื้นที่สำหรับข้อมูลเพิ่มเติม เช่น บริษัท/ช่วงฝึก/ที่ปรึกษา หาก backend ส่งมา */}
-          </Space>
-        ) : null}
+        <CertificateRequestReview
+          data={detailData}
+          loading={detailLoading}
+          onOpenLogbookPDF={handleOpenLogbookPDF}
+          onApprove={() => {
+            if (!selectedRequest) return;
+            setSelectedRequest(selectedRequest); // ensure state
+            setActionType('approve');
+            setModalVisible(true);
+          }}
+          onReject={() => {
+            if (!selectedRequest) return;
+            setSelectedRequest(selectedRequest);
+            setActionType('reject');
+            setModalVisible(true);
+          }}
+        />
       </Drawer>
     </div>
   );

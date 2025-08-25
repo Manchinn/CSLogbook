@@ -64,6 +64,12 @@ exports.toggleNotification = async (req, res) => {
         // แก้ไขการเข้าถึง adminUserId ให้ถูกต้อง
         const adminUserId = req.user?.userId || req.user?.id;
 
+        // NEW: helper ตรวจสิทธิ์ (admin หรือ teacher support)
+        const hasPermission = (
+            req.user?.role === 'admin' ||
+            (req.user?.role === 'teacher' && req.user?.teacherType === 'support')
+        );
+
         // เพิ่ม debug log เพื่อตรวจสอบ user object
         logger.info('User object in toggleNotification:', {
             user: req.user,
@@ -81,11 +87,11 @@ exports.toggleNotification = async (req, res) => {
             });
         }
 
-        // ตรวจสอบสิทธิ์ admin
-        if (req.user?.role !== 'admin') {
+    // ปรับจากตรวจเฉพาะ admin -> รองรับ teacher support
+    if (!hasPermission) {
             return res.status(403).json({
                 success: false,
-                message: 'ไม่มีสิทธิ์ในการแก้ไขการตั้งค่าการแจ้งเตือน'
+        message: 'ไม่มีสิทธิ์ในการแก้ไขการตั้งค่าการแจ้งเตือน'
             });
         }
 
@@ -140,8 +146,12 @@ exports.enableAllNotifications = async (req, res) => {
     try {
         const adminUserId = req.user?.userId || req.user?.id; // แก้ไขการเข้าถึง userId
 
-        // ตรวจสอบสิทธิ์ admin
-        if (req.user?.role !== 'admin') {
+        const hasPermission = (
+            req.user?.role === 'admin' ||
+            (req.user?.role === 'teacher' && req.user?.teacherType === 'support')
+        );
+
+        if (!hasPermission) {
             return res.status(403).json({
                 success: false,
                 message: 'ไม่มีสิทธิ์ในการแก้ไขการตั้งค่าการแจ้งเตือน'
@@ -190,8 +200,12 @@ exports.disableAllNotifications = async (req, res) => {
     try {
         const adminUserId = req.user?.userId || req.user?.id; // แก้ไขการเข้าถึง userId
 
-        // ตรวจสอบสิทธิ์ admin
-        if (req.user?.role !== 'admin') {
+        const hasPermission = (
+            req.user?.role === 'admin' ||
+            (req.user?.role === 'teacher' && req.user?.teacherType === 'support')
+        );
+
+        if (!hasPermission) {
             return res.status(403).json({
                 success: false,
                 message: 'ไม่มีสิทธิ์ในการแก้ไขการตั้งค่าการแจ้งเตือน'

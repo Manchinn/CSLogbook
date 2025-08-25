@@ -1,7 +1,8 @@
 // หน้าแสดงรายงานเฉพาะโครงงาน (Project)
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense, useRef } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Tabs, Table } from 'antd';
-import { Pie, Bar } from '@ant-design/plots';
+// import { Pie, Bar } from '@ant-design/plots'; // ใช้ lazy แทน
+import { LazyPie as Pie, LazyBar as Bar } from './charts/LazyPlots';
 import { useProjectReport } from './hooks/useProjectReport';
 import { academicYearOptions } from './constants';
 import { buildProposalPieConfig } from './charts/configs';
@@ -16,7 +17,9 @@ const currentAcademicYear = () => {
 };
 
 const ProjectReport = () => {
-	const { year, setYear, loading, error, projectStatus, advisorLoad, overview } = useProjectReport(currentAcademicYear());
+	const initialYear = currentAcademicYear();
+	const anchorYearRef = useRef(initialYear);
+	const { year, setYear, loading, error, projectStatus, advisorLoad, overview } = useProjectReport(initialYear);
 
 	const kpis = useMemo(() => {
 		if(!projectStatus || !advisorLoad || !overview) return [];
@@ -31,7 +34,7 @@ const ProjectReport = () => {
 		];
 	}, [projectStatus, advisorLoad, overview]);
 
-	const yearOptions = academicYearOptions(year);
+	const yearOptions = academicYearOptions(anchorYearRef.current);
 
 	const advisorColumns = [
 		{ title:'อาจารย์', dataIndex:'name', key:'name' },
@@ -41,10 +44,15 @@ const ProjectReport = () => {
 	];
 	const advisorData = (advisorLoad?.advisors || []).map((a,i)=>({ key:i, ...a }));
 
+	// Memo configs
+	const proposalPieConfig = useMemo(()=> buildProposalPieConfig(projectStatus?.proposal), [projectStatus]);
+	const advisorLoadBarConfig = useMemo(()=> buildAdvisorLoadBar(advisorLoad?.advisors || []), [advisorLoad]);
+
 	return (
+	  <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
 		<Space direction="vertical" style={{ width:'100%' }} size="large">
 			<Row justify="space-between" align="middle">
-				<Col><Title level={3}>Project Report</Title></Col>
+				<Col><Title level={3}>แผงควบคุมรายงานระบบโครงงานพิเศษ</Title></Col>
 				<Col>
 					<Space>
 						<span>ปี:</span>
@@ -78,12 +86,20 @@ const ProjectReport = () => {
 							<Row gutter={[16,16]}>
 								<Col xs={24} md={12}>
 									<Card size="small" title="Proposal Status">
-										{loading ? <Skeleton active /> : <Pie {...buildProposalPieConfig(projectStatus?.proposal)} />}
+										{loading ? <Skeleton active /> : (
+											<Suspense fallback={<Skeleton active />}> 
+												<Pie {...proposalPieConfig} />
+											</Suspense>
+										)}
 									</Card>
 								</Col>
 								<Col xs={24} md={12}>
 									<Card size="small" title="Advisor Load (Students)">
-										{loading ? <Skeleton active /> : <Bar {...buildAdvisorLoadBar(advisorLoad?.advisors || [])} />}
+										{loading ? <Skeleton active /> : (
+											<Suspense fallback={<Skeleton active />}> 
+												<Bar {...advisorLoadBarConfig} />
+											</Suspense>
+										)}
 									</Card>
 								</Col>
 								<Col span={24}>
@@ -97,6 +113,7 @@ const ProjectReport = () => {
 				]}
 			/>
 		</Space>
+		</div>
 	);
 };
 

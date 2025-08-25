@@ -411,15 +411,14 @@ const internshipService = {
 
       if (data.hasAcceptanceLetter) {
         // มีการอัปโหลดแล้ว
-        if (
-          data.status ===
-          ["pending", "referral_downloaded"].includes(data.status)
-        ) {
-          mappedStatus = "uploaded"; // แปลง pending เป็น uploaded สำหรับ UI
+        if (data.status === "pending") {
+          mappedStatus = "uploaded"; // pending -> uploaded (รออนุมัติ)
         } else if (data.status === "approved") {
-          mappedStatus = "approved"; // คงเดิม
+          mappedStatus = "approved";
+        } else if (data.status === "rejected") {
+          mappedStatus = "rejected"; // แสดงสถานะปฏิเสธ
         } else {
-          mappedStatus = "uploaded"; // fallback
+          mappedStatus = "uploaded"; // fallback อื่นๆ
         }
       } else {
         mappedStatus = "not_uploaded"; // ยังไม่มีการอัปโหลด
@@ -431,6 +430,8 @@ const internshipService = {
           ...data,
           status: mappedStatus, // ใช้ status ที่แปลงแล้ว
           originalStatus: data.status, // เก็บสถานะเดิมไว้สำหรับ debug
+          rejectionReason:
+            data.status === "rejected" ? data.reviewComment || null : null,
         },
       };
     } catch (error) {

@@ -17,6 +17,7 @@ const {
   calculateStudentYear,
   isEligibleForInternship,
   getCurrentAcademicYear,
+  getCurrentSemester,
 } = require("../utils/studentUtils");
 const emailService = require("../utils/mailer.js");
 const crypto = require("crypto");
@@ -133,6 +134,11 @@ class InternshipManagementService {
       contactPersonName: document.internshipDocument.contactPersonName, // เพิ่มฟิลด์ใหม่
       contactPersonPosition: document.internshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
       createdAt: document.created_at,
+  // เพิ่มข้อมูลไฟล์ transcript เพื่อให้ฝั่ง frontend แสดงลิงก์ดูไฟล์เดิมได้
+  transcriptFilename: document.fileName,
+  // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
+  rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
+  reviewComment: document.reviewComment
     };
   }
 
@@ -196,6 +202,9 @@ class InternshipManagementService {
           supervisorPosition,
           supervisorPhone,
           supervisorEmail,
+          // snapshot academic period
+          academicYear: getCurrentAcademicYear(),
+          semester: getCurrentSemester(),
         },
         { transaction }
       );
@@ -303,6 +312,8 @@ class InternshipManagementService {
           supervisorPosition: null,
           supervisorPhone: null,
           supervisorEmail: null,
+          academicYear: getCurrentAcademicYear(),
+          semester: getCurrentSemester(),
         },
         { transaction }
       );
@@ -1194,8 +1205,9 @@ class InternshipManagementService {
       const requiredFields = [
         "supervisorName",
         "supervisorPosition",
-        "evaluationScores",
-        "overallRating",
+        // โครงสร้างใหม่ใช้ categories + supervisorDecision แทน evaluationScores / overallRating
+        "categories",
+        "supervisorDecision",
         "strengths",
         "improvements",
       ];
@@ -1232,43 +1244,86 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลการฝึกงาน");
       }
 
-      // สร้างหรืออัปเดตการประเมิน
+      // ================== รูปแบบใหม่ (2025-08): 5 หมวด × 4 รายการ รวม 100 คะแนน ==================
+      // expected evaluationData.categories = { discipline:[..4], behavior:[..4], performance:[..4], method:[..4], relation:[..4] }
+      // supervisorDecision = true/false
+      const categories = evaluationData.categories || {};
+      const requiredCats = ['discipline','behavior','performance','method','relation'];
+      // ตรวจสอบจำนวนรายการย่อย (4 ต่อหมวด)
+      for (const cat of requiredCats) {
+        if (!Array.isArray(categories[cat]) || categories[cat].length !== 4) {
+          const err = new Error(`โครงสร้างคะแนนหมวด ${cat} ไม่ถูกต้อง (ต้องมี 4 รายการ)`);
+          err.statusCode = 400;
+          throw err;
+        }
+      }
+
+      // validate คะแนนเป็น 1..5
+      const validateScore = (v) => Number.isInteger(v) && v >= 1 && v <= 5;
+      for (const cat of requiredCats) {
+        categories[cat].forEach((s,i)=>{
+          if (!validateScore(s)) {
+            const err = new Error(`คะแนนหมวด ${cat} ลำดับ ${i+1} ไม่ถูกต้อง ต้องเป็นจำนวนเต็ม 1-5`);
+            err.statusCode = 400; throw err;
+          }
+        });
+      }
+
+      const sum = arr => arr.reduce((a,b)=>a+b,0);
+      const disciplineScore = sum(categories.discipline); // 0-20
+      const behaviorScore = sum(categories.behavior);
+      const performanceScore = sum(categories.performance);
+      const methodScore = sum(categories.method);
+      const relationScore = sum(categories.relation);
+      const overallScore = disciplineScore + behaviorScore + performanceScore + methodScore + relationScore; // 0-100
+
+      const supervisorPassDecision = !!evaluationData.supervisorDecision; // boolean
+      const passFail = (overallScore >= 70 && supervisorPassDecision) ? 'pass' : 'fail';
+      const evaluatedAt = new Date();
+
+      // เตรียม evaluationItems array
+      const makeItems = (catKey, arr) => arr.map((score, idx)=>({
+        category: catKey,
+        item: `${catKey}_${idx+1}`,
+        score
+      }));
+      const allItems = [
+        ...makeItems('discipline', categories.discipline),
+        ...makeItems('behavior', categories.behavior),
+        ...makeItems('performance', categories.performance),
+        ...makeItems('method', categories.method),
+        ...makeItems('relation', categories.relation),
+      ];
+
+      const weaknessesToImprove = evaluationData.improvements || evaluationData.weaknessesToImprove || null;
+
+      const defaultsPayload = {
+        evaluatorName: evaluationData.supervisorName,
+        strengths: evaluationData.strengths || null,
+        weaknessesToImprove,
+        additionalComments: evaluationData.additionalComments || null,
+        status: 'completed',
+        evaluatedBySupervisorAt: evaluatedAt,
+        // ใหม่
+        evaluationItems: JSON.stringify(allItems),
+        disciplineScore, behaviorScore, performanceScore, methodScore, relationScore,
+        overallScore, // ใช้คอลัมน์เดิม overall_score
+        supervisorPassDecision,
+        passFail,
+        passEvaluatedAt: evaluatedAt,
+      };
+
       const [evaluation, created] = await InternshipEvaluation.findOrCreate({
         where: {
           studentId: approvalToken.studentId,
           internshipId: document.internshipDocument.internshipId,
         },
-        defaults: {
-          token: token,
-          supervisorName: evaluationData.supervisorName,
-          supervisorPosition: evaluationData.supervisorPosition,
-          evaluationScores: JSON.stringify(evaluationData.evaluationScores),
-          overallRating: evaluationData.overallRating,
-          strengths: evaluationData.strengths,
-          improvements: evaluationData.improvements,
-          additionalComments: evaluationData.additionalComments || null,
-          status: "completed",
-          completedDate: new Date(),
-        },
+        defaults: defaultsPayload,
         transaction,
       });
 
       if (!created) {
-        // อัปเดตถ้ามีอยู่แล้ว
-        await evaluation.update(
-          {
-            supervisorName: evaluationData.supervisorName,
-            supervisorPosition: evaluationData.supervisorPosition,
-            evaluationScores: JSON.stringify(evaluationData.evaluationScores),
-            overallRating: evaluationData.overallRating,
-            strengths: evaluationData.strengths,
-            improvements: evaluationData.improvements,
-            additionalComments: evaluationData.additionalComments || null,
-            status: "completed",
-            completedDate: new Date(),
-          },
-          { transaction }
-        );
+        await evaluation.update(defaultsPayload, { transaction });
       }
 
       // อัปเดตสถานะ token
@@ -2046,6 +2101,9 @@ class InternshipManagementService {
           originalStatus: acceptanceLetter?.status || "not_found",
           cs05OriginalStatus: cs05Document.status,
         },
+  // ✅ เหตุผลการปฏิเสธ (ถ้ามี) สำหรับ frontend แสดงผล
+  rejectionReason: acceptanceLetter?.status === 'rejected' ? acceptanceLetter?.reviewComment : undefined,
+  reviewComment: acceptanceLetter?.reviewComment
       };
     } catch (error) {
       console.error("Check Acceptance Letter Status Service Error:", error);
@@ -2400,6 +2458,12 @@ class InternshipManagementService {
         updatedAt: acceptanceLetter?.updated_at || null,
         fileName: acceptanceLetter?.fileName || null,
         documentId: acceptanceLetter?.documentId || null,
+        // ✅ เพิ่มข้อมูลเหตุผลการปฏิเสธ (ถ้ามี)
+        reviewComment: acceptanceLetter?.reviewComment || null,
+        rejectionReason:
+          acceptanceLetter?.status === "rejected"
+            ? acceptanceLetter?.reviewComment || null
+            : null,
       };
     } catch (error) {
       console.error("Get Acceptance Letter Status Service Error:", error);
@@ -3085,12 +3149,11 @@ class InternshipManagementService {
         order: [["created_at", "DESC"]],
       });
 
-      // คำนวณสถานะ
-      const isHoursComplete = totalHours >= 240;
-      const isEvaluationComplete = !!supervisorEvaluation;
-      const isSummarySubmitted = !!reflection;
-      const canRequestCertificate =
-        isHoursComplete && isEvaluationComplete && isSummarySubmitted;
+  // คำนวณสถานะ (ปรับเกณฑ์: ใช้เฉพาะชั่วโมง + การประเมิน ไม่บังคับ summary แล้ว)
+  const isHoursComplete = totalHours >= 240;
+  const isEvaluationComplete = !!supervisorEvaluation;
+  const isSummarySubmitted = !!reflection; // คงตรวจแต่ไม่ใช้ในเกณฑ์
+  const canRequestCertificate = isHoursComplete && isEvaluationComplete; // ตัด isSummarySubmitted ออก
 
       let certificateStatus = "not_requested";
       if (certificateRequest) {
@@ -3145,16 +3208,15 @@ class InternshipManagementService {
 
       console.log(`[getCertificateStatus] Status check completed:`, {
         status: certificateStatus,
-        canRequest: canRequestCertificate,
+  canRequest: canRequestCertificate,
         totalHours,
         hasEvaluation: isEvaluationComplete,
-        hasSummary: isSummarySubmitted,
+  hasSummary: isSummarySubmitted,
       });
 
       // 🎯 อัปเดต internship_status ในฐานข้อมูลเมื่อฝึกงานเสร็จสิ้น
       if (certificateStatus === "ready") {
         await this.updateStudentInternshipStatus(userId, "completed");
-        console.log(`[getCertificateStatus] Updated internship_status to 'completed' for userId: ${userId}`);
       }
 
       return result;
@@ -3186,7 +3248,7 @@ class InternshipManagementService {
       const currentStatus = await this.getCertificateStatus(userId);
 
       if (!currentStatus.canRequestCertificate) {
-        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน");
+        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินพี่เลี้ยง)");
       }
 
       // ดึงข้อมูลนักศึกษาและเอกสาร CS05
@@ -3225,7 +3287,8 @@ class InternshipManagementService {
             requestData.totalHours ||
             currentStatus.requirements.totalHours.current,
           evaluationStatus: requestData.evaluationStatus || "completed",
-          summaryStatus: requestData.summaryStatus || "submitted",
+          // summaryStatus ไม่บังคับแล้ว ถ้าไม่มีจะตั้งค่าเป็น 'ignored'
+          summaryStatus: requestData.summaryStatus || currentStatus.requirements?.summarySubmission?.completed ? 'submitted' : 'ignored',
           requestedBy: userId,
         },
         { transaction }
@@ -3312,11 +3375,6 @@ class InternshipManagementService {
 
       const currentStudent = currentData[0];
       
-      // ตรวจสอบว่าสถานะเปลี่ยนแปลงหรือไม่
-      if (currentStudent.internship_status === status) {
-        console.log(`[updateStudentInternshipStatus] Status already ${status} for student ${currentStudent.student_code}`);
-        return;
-      }
 
       // อัปเดตสถานะด้วย raw SQL
       await sequelize.query(

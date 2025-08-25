@@ -37,6 +37,9 @@ const OfficialLetterTemplate = ({ data }) => {
     address = "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
     advisorName = "รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล",
     advisorTitle = "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+  staffOfficerName = "นายนที ปัญญาประสิทธิ์",
+  staffOfficerEmail = "natee.p@sci.kmutnb.ac.th",
+  staffOfficerPhone = "02-555-2000 ต่อ 4602",
   } = data || {};
 
   return (
@@ -139,7 +142,7 @@ const OfficialLetterTemplate = ({ data }) => {
               startDateThai || "2 มกราคม 2568"
             } ถึง ${endDateThai || "4 มีนาคม 2568"} รวมระยะเวลาทั้งสิ้น ${
               internshipDays || "60"
-            } วัน (หรือจนกวาจะครบ 240 ชั่วโมง) เพื่อให้การจัดตารางฝึกงานของนักศึกษาเป็นไปด้วยความเรียบร้อย ภาควิชาฯใคร่ขอความกรุณาโปรดพิจารณาให้ความอนุเคราะห์จักขอบพระคุณยิ่ง`}
+            } วัน (ไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง) เพื่อให้การจัดตารางฝึกงานของนักศึกษาเป็นไปด้วยความเรียบร้อย ภาควิชาฯใคร่ขอความกรุณาโปรดพิจารณาให้ความอนุเคราะห์จักขอบพระคุณยิ่ง`}
           </Text>
 
           {/* ลงนาม */}
@@ -158,8 +161,14 @@ const OfficialLetterTemplate = ({ data }) => {
           {/* ส่วนท้าย */}
           <View style={letterStyles.footer}>
             <Text style={letterStyles.footerText}>{departmentName}</Text>
+            {staffOfficerName && (
+              <Text style={letterStyles.footerText}>เจ้าหน้าที่ภาควิชา: {staffOfficerName}</Text>
+            )}
+            {staffOfficerEmail && (
+              <Text style={letterStyles.footerText}>อีเมล: {staffOfficerEmail}</Text>
+            )}
             <Text style={letterStyles.footerText}>
-              โทร. 02-555-2000 ต่อ 4602
+              โทร. {staffOfficerPhone || '02-555-2000 ต่อ 4602'}
             </Text>
           </View>
         </View>

@@ -58,9 +58,9 @@ export const documentService = {
   },
 
   // เพิ่มฟังก์ชันสำหรับปฏิเสธเอกสาร
-  rejectDocument: async (documentId) => {
+  rejectDocument: async (documentId, reason) => {
     try {
-      const response = await apiClient.post(`/admin/documents/${documentId}/reject`);
+      const response = await apiClient.post(`/admin/documents/${documentId}/reject`, { reason });
       return response.data;
     } catch (error) {
       console.error('Error rejecting document:', error);

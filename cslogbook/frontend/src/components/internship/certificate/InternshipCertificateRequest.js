@@ -1,23 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  Steps,
-  Alert,
-  Button,
-  Typography,
-  Space,
-  Divider,
-  Progress,
-  Spin,
-  message,
-} from "antd";
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  FileProtectOutlined,
-  SendOutlined,
-} from "@ant-design/icons";
-import { useAuth } from "../../../contexts/AuthContext";
+import { Card, Steps, Alert, Button, Typography, Progress, Spin, message } from "antd";
+import { CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 
 // ใช้ hook จากโฟลเดอร์ hooks
 import useCertificateStatus from "../../../hooks/useCertificateStatus";
@@ -29,11 +12,11 @@ import SupervisorEvaluationStatus from "./components/SupervisorEvaluationStatus"
 // ✅ เพิ่ม PDF Helper
 import CertificatePDFHelper from "./helpers/certificatePDFHelper";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Step } = Steps;
 
 const InternshipCertificateRequest = () => {
-  const { userData } = useAuth();
+  // const { userData } = useAuth(); // ไม่จำเป็นใน component นี้ตอนนี้
   const [requestLoading, setRequestLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -45,7 +28,6 @@ const InternshipCertificateRequest = () => {
   const {
     certificateStatus,
     supervisorEvaluationStatus,
-    internshipSummaryStatus,
     totalHours,
     loading,
     error,
@@ -57,7 +39,8 @@ const InternshipCertificateRequest = () => {
 
   useEffect(() => {
     checkInternshipCompletion();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ตั้งใจเรียกครั้งเดียวเมื่อ mount
 
   const checkInternshipCompletion = async () => {
     try {
@@ -93,7 +76,8 @@ const InternshipCertificateRequest = () => {
       setPreviewLoading(true);
       
       // ตรวจสอบสถานะหนังสือรับรอง
-      if (certificateStatus !== "ready") {
+      // อนุญาตเมื่อสถานะเป็น ready หรือ approved (บางระบบอาจใช้ approved แทน ready)
+      if (!['ready','approved'].includes(certificateStatus)) {
         message.warning("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
         return;
       }
@@ -150,7 +134,7 @@ const InternshipCertificateRequest = () => {
       setDownloadLoading(true);
       
       // ตรวจสอบสถานะหนังสือรับรอง
-      if (certificateStatus !== "ready") {
+      if (!['ready','approved'].includes(certificateStatus)) {
         message.warning("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
         return;
       }
@@ -204,17 +188,17 @@ const InternshipCertificateRequest = () => {
     }
   };
 
+  // ปรับให้ progress ใช้แค่ 2 เงื่อนไข: ชั่วโมงครบ + การประเมินเสร็จ
   const getProgressPercentage = () => {
     let completed = 0;
-    if (totalHours >= 240) completed += 33;
-    if (supervisorEvaluationStatus === "completed") completed += 33;
-    if (internshipSummaryStatus === "submitted") completed += 34;
+    if (totalHours >= 240) completed += 50;
+    if (supervisorEvaluationStatus === "completed") completed += 50;
     return completed;
   };
 
+  // ใช้ steps 2 ขั้น (0 หรือ 1)
   const getCurrentStep = () => {
-    if (certificateStatus === "ready") return 2;
-    if (certificateStatus === "pending") return 1;
+    if (totalHours >= 240 && supervisorEvaluationStatus === "completed") return 1;
     return 0;
   };
 
@@ -287,11 +271,11 @@ const InternshipCertificateRequest = () => {
           </Button>
         }
       >
-        <Title level={4}>📊 ความคืบหน้าการขอหนังสือรับรอง</Title>
+  <Title level={4}>📊 ความคืบหน้าคุณสมบัติ (ชั่วโมง + การประเมิน)</Title>
 
         <Progress
           percent={getProgressPercentage()}
-          status={certificateStatus === "ready" ? "success" : "active"}
+          status={totalHours >= 240 && supervisorEvaluationStatus === "completed" ? "success" : "active"}
           strokeColor={{
             "0%": "#108ee9",
             "100%": "#87d068",
@@ -301,39 +285,14 @@ const InternshipCertificateRequest = () => {
 
         <Steps size="small" current={getCurrentStep()}>
           <Step
-            title="ตรวจสอบความพร้อม"
-            description="ตรวจสอบชั่วโมงฝึกงานและการประเมิน"
-            icon={
-              totalHours >= 240 &&
-              supervisorEvaluationStatus === "completed" ? (
-                <CheckCircleOutlined />
-              ) : (
-                <ClockCircleOutlined />
-              )
-            }
+            title="ชั่วโมงฝึกงาน"
+            description={totalHours >= 240 ? "ครบ 240 ชั่วโมง" : `สะสม ${totalHours}/240`}
+            icon={totalHours >= 240 ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
           />
           <Step
-            title="ส่งคำขอหนังสือรับรอง"
-            description="ส่งคำขอให้เจ้าหน้าที่ภาควิชา"
-            icon={
-              certificateStatus === "pending" ||
-              certificateStatus === "ready" ? (
-                <CheckCircleOutlined />
-              ) : (
-                <SendOutlined />
-              )
-            }
-          />
-          <Step
-            title="ดาวน์โหลดหนังสือรับรอง"
-            description="หนังสือรับรองพร้อมดาวน์โหลด"
-            icon={
-              certificateStatus === "ready" ? (
-                <FileProtectOutlined />
-              ) : (
-                <ClockCircleOutlined />
-              )
-            }
+            title="การประเมินพี่เลี้ยง"
+            description={supervisorEvaluationStatus === "completed" ? "เสร็จสิ้น" : "รอดำเนินการ"}
+            icon={supervisorEvaluationStatus === "completed" ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
           />
         </Steps>
       </Card>
@@ -342,7 +301,6 @@ const InternshipCertificateRequest = () => {
       <SupervisorEvaluationStatus
         status={supervisorEvaluationStatus}
         totalHours={totalHours}
-        summaryStatus={internshipSummaryStatus}
       />
 
       {/* ส่วนแสดงสถานะหนังสือรับรอง */}
@@ -366,7 +324,6 @@ const InternshipCertificateRequest = () => {
             <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
               <li>ต้องมีชั่วโมงฝึกงานครบ 240 ชั่วโมง</li>
               <li>ต้องได้รับการประเมินจากพี่เลี้ยงแล้ว</li>
-              <li>ต้องส่งรายงานสรุปผลการฝึกงานแล้ว</li>
               <li>เจ้าหน้าที่ภาควิชาใช้เวลาตรวจสอบประมาณ 3-5 วันทำการ</li>
               <li>หนังสือรับรองจะถูกสร้างด้วยระบบ PDF อัตโนมัติ</li>
             </ul>

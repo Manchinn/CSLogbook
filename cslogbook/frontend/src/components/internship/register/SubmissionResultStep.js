@@ -9,9 +9,9 @@ import {
   Space,
 } from "antd";
 import { CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
-import "dayjs/locale/th";
+// dayjs ถูกนำออกเนื่องจากไม่ได้ใช้งานในไฟล์นี้
 import internshipService from "../../../services/internshipService";
+import io from "socket.io-client";
 import officialDocumentService from "../../../services/PDFServices/OfficialDocumentService";
 
 // นำเข้า helper functions จาก helpers directory
@@ -67,6 +67,8 @@ const SubmissionResultStep = ({
   const [acceptanceLetterInfo, setAcceptanceLetterInfo] = useState(null);
   const [referralLetterStatus, setReferralLetterStatus] = useState(null);
   const [referralLetterInfo, setReferralLetterInfo] = useState(null);
+  const [socketInstance, setSocketInstance] = useState(null);
+  const [cs05Info, setCs05Info] = useState(null); // ✅ เก็บข้อมูล CS05 ล่าสุด (รวมเหตุผลปฏิเสธ)
 
   // ตรวจสอบสถานะ PDF Service
   useEffect(() => {
@@ -194,7 +196,8 @@ const SubmissionResultStep = ({
     await fetchLatestCS05Status(
       internshipService,
       setLoading,
-      handleUpdateStepFromStatus
+  handleUpdateStepFromStatus,
+  setCs05Info // ✅ ส่ง callback เพื่อรับเหตุผลการปฏิเสธ
     );
   };
 
@@ -351,7 +354,7 @@ const SubmissionResultStep = ({
 
       initializeStatusFromAPI();
     }
-  }, [existingCS05?.status, existingCS05?.documentId]);
+  }, [existingCS05?.status, existingCS05?.documentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ✅ เพิ่มฟังก์ชันสำหรับล้าง cache (สำหรับ debug)
   const clearLocalStorageCache = () => {
@@ -399,6 +402,52 @@ const SubmissionResultStep = ({
       handleUpdateStepFromReferralStatus(referralLetterStatus, "approved");
     }
   }, [referralLetterStatus, acceptanceLetterStatus]);
+
+  // ✅ ตั้งค่า Socket สำหรับรับการแจ้งเตือน real-time การปฏิเสธหนังสือตอบรับ
+  useEffect(() => {
+    if (!existingCS05?.documentId) return;
+
+    // ป้องกันการสร้างหลาย instance
+    if (socketInstance) return;
+
+    const socketUrl =
+      process.env.REACT_APP_API_URL?.replace(/\/api$/, "") ||
+      window.location.origin;
+    const socket = io(socketUrl, { withCredentials: true });
+    setSocketInstance(socket);
+
+    socket.on("connect", () => {
+      console.log("[Socket] ✅ Connected (SubmissionResultStep)");
+    });
+
+    socket.on("disconnect", () => {
+      console.log("[Socket] ⚠️ Disconnected");
+    });
+
+    socket.on("document:rejected", async (payload) => {
+      console.log("[Socket] 📥 document:rejected event", payload);
+
+      if (payload?.documentName === "ACCEPTANCE_LETTER") {
+        message.error(
+          `หนังสือตอบรับถูกปฏิเสธ: ${payload.reason || "ไม่มีเหตุผล"}`
+        );
+        await checkAcceptanceLetterStatusWrapper();
+      }
+
+      if (payload?.documentName === "CS05") {
+        message.error(
+          `คำร้อง คพ.05 ถูกปฏิเสธ: ${payload.reason || "ไม่มีเหตุผล"}`
+        );
+        // รีเฟรชสถานะ CS05 และเก็บเหตุผล
+        await fetchLatestCS05StatusWrapper();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingCS05?.documentId]);
 
   // การสร้าง action handlers สำหรับ timeline
   const actionHandlers = {
@@ -493,6 +542,59 @@ const SubmissionResultStep = ({
         style={{ marginBottom: 24 }}
       >
         <Timeline>
+            {/* แจ้งเตือนเมื่อ CS05 ถูกปฏิเสธ */}
+            {cs05Status === "rejected" && (
+              <Timeline.Item color="red">
+                <Alert
+                  type="error"
+                  showIcon
+                  message="คำร้อง คพ.05 ถูกปฏิเสธ"
+                  description={
+                    <div>
+                      <p style={{ marginBottom: 4 }}>
+                        {cs05Info?.rejectionReason || cs05Info?.reviewComment || "เหตุผลไม่ได้ระบุ"}
+                      </p>
+                      <p style={{ marginBottom: 0 }}>
+                        กรุณาแก้ไขข้อมูลในฟอร์มและส่งใหม่อีกครั้ง (ตรวจสอบข้อมูลบริษัท / ระยะเวลาฝึกงาน / หน่วยกิต)
+                      </p>
+                    </div>
+                  }
+                />
+              </Timeline.Item>
+            )}
+            {/* แจ้งเตือนเมื่อหนังสือตอบรับถูกปฏิเสธ */}
+            {acceptanceLetterStatus === "rejected" && (
+              <Timeline.Item color="red">
+                <Alert
+                  type="error"
+                  showIcon
+                  message="หนังสือตอบรับถูกปฏิเสธ"
+                  description={
+                    <div>
+                      <p style={{ marginBottom: 4 }}>
+                        {acceptanceLetterInfo?.rejectionReason ||
+                          acceptanceLetterInfo?.reviewComment ||
+                          "เหตุผลไม่ได้ระบุ"}
+                      </p>
+                      <p style={{ marginBottom: 0 }}>
+                        กรุณาแก้ไขไฟล์และอัปโหลดใหม่อีกครั้ง
+                      </p>
+                    </div>
+                  }
+                />
+              </Timeline.Item>
+            )}
+            {/* แสดงสถานะหนังสือส่งตัวหากมี error หรือยังไม่พร้อม */}
+            {referralLetterStatus && ["error", "not_ready"].includes(referralLetterStatus) && referralLetterInfo?.statusMessage && (
+              <Timeline.Item color={referralLetterStatus === "error" ? "red" : "gray"}>
+                <Alert
+                  type={referralLetterStatus === "error" ? "error" : "info"}
+                  showIcon
+                  message={referralLetterStatus === "error" ? "ไม่สามารถตรวจสอบหนังสือส่งตัวได้" : "หนังสือส่งตัวยังไม่พร้อม"}
+                  description={referralLetterInfo.statusMessage}
+                />
+              </Timeline.Item>
+            )}
           {Array.isArray(internshipProcessSteps) &&
           internshipProcessSteps.length > 0 ? (
             internshipProcessSteps.map((step, index) => (

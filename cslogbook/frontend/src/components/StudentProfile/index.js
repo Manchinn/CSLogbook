@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, message, Spin, Form, Result, Button, Tabs } from "antd";
-import { calculateStudentYear } from "../../utils/studentUtils";
+// import { calculateStudentYear } from "../../utils/studentUtils"; // ไม่ได้ใช้ในไฟล์นี้แล้ว
+import StudentDocumentsSection from './studentDocuments/StudentDocumentsSection';
 import { studentService } from "../../services/studentService";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
 import StudentAvatar from "./StudentAvatar";
+import PasswordChangeModal from './PasswordChangeModal';
 import StudentInfo from "./StudentInfo";
 import StudentTimeline from "./StudentTimeline/index";
 import StudentEditForm from "./StudentEditForm";
@@ -30,6 +32,7 @@ const StudentProfile = () => {
   const [pdpaModalVisible, setPdpaModalVisible] = useState(false);
   const [secondModalVisible, setSecondModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   // สร้าง state สำหรับเก็บเกณฑ์
   const [eligibilityCriteria, setEligibilityCriteria] = useState({
@@ -116,7 +119,7 @@ const StudentProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate, form]);
+  }, [id, form]);
 
   useEffect(() => {
     fetchStudent();
@@ -243,11 +246,7 @@ const StudentProfile = () => {
           <FileDoneOutlined /> เอกสาร
         </span>
       ),
-      children: (
-        <div className="documents-section">
-          <p>เอกสารของนักศึกษาจะแสดงในส่วนนี้</p>
-        </div>
-      ),
+  children: <StudentDocumentsSection studentId={student.studentId} />,
     },
   ];
 
@@ -256,6 +255,11 @@ const StudentProfile = () => {
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} lg={6}>
           <StudentAvatar student={student} studentYear={student.studentYear} />
+          {canEdit && userData?.role === 'student' && userData?.studentCode === id && (
+            <div style={{ marginTop: 16 }}>
+              <Button block onClick={() => setPasswordModalOpen(true)}>เปลี่ยนรหัสผ่าน</Button>
+            </div>
+          )}
         </Col>
         <Col xs={24} lg={18}>
           <Tabs
@@ -281,6 +285,8 @@ const StudentProfile = () => {
         onOk={handleSecondModalOk}
         onCancel={handleSecondModalCancel}
       />
+
+  <PasswordChangeModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
     </div>
   );
 };

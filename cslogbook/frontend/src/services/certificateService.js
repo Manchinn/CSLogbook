@@ -15,6 +15,17 @@ export const certificateService = {
     }
   },
 
+  // ดึงรายละเอียดคำขอเดียว (สำหรับ Drawer Review)
+  getCertificateRequestDetail: async (requestId) => {
+    try {
+      const response = await apiClient.get(`/admin/certificate-requests/${requestId}/detail`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching certificate request detail:', error);
+      throw error;
+    }
+  },
+
   // อนุมัติคำขอหนังสือรับรอง
   approveCertificateRequest: async (requestId, certificateNumber) => {
     try {
@@ -77,6 +88,17 @@ export const certificateService = {
       return response.data;
     } catch (error) {
       console.error('Error sending notification:', error);
+      throw error;
+    }
+  },
+
+  // 🆕 ดึง full logbook summary (entries + reflection + stats) สำหรับ admin แล้วใช้สร้าง PDF ฝั่ง client
+  getAdminLogbookFullSummary: async (internshipId) => {
+    try {
+      const response = await apiClient.get(`/admin/internships/${internshipId}/logbook-summary`);
+      return response.data; // { success, data }
+    } catch (error) {
+      console.error('Error fetching admin logbook summary:', error);
       throw error;
     }
   }

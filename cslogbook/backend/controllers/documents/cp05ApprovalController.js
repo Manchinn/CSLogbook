@@ -195,6 +195,22 @@ exports.reject = async (req, res) => {
       comment: reason
     });
 
+    // ส่ง real-time notification ผ่าน socket.io (ถ้าตั้งค่าไว้ใน server)
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${doc.userId}`).emit('document:rejected', {
+          documentId: doc.documentId,
+            documentName: 'CS05',
+          status: 'rejected',
+          reason,
+          message: 'คำร้อง CS05 ของคุณถูกปฏิเสธ กรุณาตรวจสอบและแก้ไข'
+        });
+      }
+    } catch (notifyErr) {
+      console.warn('Socket emit failed (CS05 reject):', notifyErr.message);
+    }
+
     return res.json({ success: true, message: 'ปฏิเสธ คพ.05 สำเร็จ' });
   } catch (error) {
     console.error('CP05 reject error:', error);

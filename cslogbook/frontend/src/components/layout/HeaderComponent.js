@@ -2,40 +2,21 @@ import React, { useState, useEffect } from "react";
 import { Layout, Button, Typography, Space, Avatar, Badge, Tag, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import academicService from "../../services/academicService";
+import { getRoleTheme, resolveThemeKey } from '../../utils/roleTheme';
 import "./HeaderComponent.css";
 
 const { Header } = Layout;
 const { Title, Text } = Typography;
 
-const themeConfig = {
-  student: {
-    gradient: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
-    primary: "#1890ff",
-    text: "#000000d9",
-    badge: "#1890ff",
-    buttonHover: "#bae7ff",
-  },
-  teacher: {
-    gradient: "linear-gradient(135deg, #fff7e6 0%, #ffd591 100%)",
-    primary: "#faad14",
-    text: "#000000d9",
-    badge: "#d48806",
-    buttonHover: "#ffe7ba",
-  },
-  admin: {
-    gradient: "linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%)",
-    primary: "#f5222d",
-    text: "#000000d9",
-    badge: "#cf1322",
-    buttonHover: "#ffccc7",
-  },
-};
+// ใช้ roleTheme utility (ลด duplication)
 
 const HeaderComponent = ({ isMobile, showDrawer }) => {
   const role = localStorage.getItem("role");
+  const teacherType = localStorage.getItem("teacherType");
   const firstName = localStorage.getItem("firstName");
   const lastName = localStorage.getItem("lastName");
-  const theme = themeConfig[role] || themeConfig.student;
+  const themeKey = resolveThemeKey(role, teacherType);
+  const theme = getRoleTheme(role, teacherType);
   
   // State สำหรับข้อมูลปีการศึกษา
   const [academicInfo, setAcademicInfo] = useState(null);
@@ -64,17 +45,14 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     fetchAcademicInfo();
   }, []);
 
-  const getRoleTitle = (role) => {
-    switch (role) {
-      case "admin":
-        return "ผู้ดูแลระบบ";
-      case "teacher":
-        return "อาจารย์";
-      case "student":
-        return "นักศึกษา";
-      default:
-        return "ผู้ใช้งาน";
+  const getRoleTitle = (role, teacherType) => {
+    if (role === 'teacher') {
+      if (teacherType === 'support') return 'เจ้าหน้าที่ภาควิชา';
+      return 'อาจารย์สายวิชาการ';
     }
+    if (role === 'admin') return 'ผู้ดูแลระบบ';
+    if (role === 'student') return 'นักศึกษา';
+    return 'ผู้ใช้งาน';
   };
   const buttonStyle = {
     display: "flex",
@@ -201,7 +179,12 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                     placement="bottom"
                   >
                     <Tag 
-                      color={theme.primary === '#1890ff' ? 'blue' : theme.primary === '#faad14' ? 'orange' : 'red'}
+                      color={
+                        themeKey === 'student' ? 'blue'
+                        : themeKey === 'teacher_academic' ? 'orange'
+                        : themeKey === 'teacher_support' ? 'cyan'
+                        : 'red'
+                      }
                       style={{ 
                         fontSize: isMobile ? '10px' : '11px', 
                         padding: isMobile ? '1px 6px' : '2px 8px',
@@ -252,7 +235,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                 {firstName} {lastName}
               </Text>
               <Badge
-                count={getRoleTitle(role)}
+                count={getRoleTitle(role, teacherType)}
                 style={headerStyles.roleBadge}
                 className="header-role-badge"
               />

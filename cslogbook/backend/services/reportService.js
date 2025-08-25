@@ -4,6 +4,21 @@
 const { Op, fn, col, literal, Sequelize } = require('sequelize');
 const db = require('../models');
 
+// Helper ดึง studentIds จาก chain Document -> InternshipDocument (ไม่มีคอลัมน์ student_id ใน internship_documents)
+async function fetchInternshipStudentIdsByPeriod({ academicYear, semester }) {
+  const sequelize = db.sequelize;
+  const replacements = { ay: academicYear };
+  let semesterClause = '';
+  if (semester) { semesterClause = ' AND idoc.semester = :sem'; replacements.sem = semester; }
+  const sql = `SELECT DISTINCT s.student_id AS studentId
+               FROM students s
+               JOIN documents d ON d.user_id = s.user_id
+               JOIN internship_documents idoc ON idoc.document_id = d.document_id
+               WHERE idoc.academic_year = :ay${semesterClause}`;
+  const rows = await sequelize.query(sql, { type: sequelize.QueryTypes.SELECT, replacements });
+  return rows.map(r => r.studentId);
+}
+
 // Helper: สร้างปีการศึกษาปัจจุบันถ้าไม่ส่งมา
 function resolveYear(year) {
   const y = parseInt(year, 10);
@@ -75,11 +90,14 @@ module.exports = {
    *    supervisor_approved = 1 หลัง 7 วัน => late
    *    supervisor_approved = 0 และ work_date เกิน 7 วัน => missing (approximation)
    */
-  async getInternshipLogbookCompliance({ year }) {
+  async getInternshipLogbookCompliance({ year, semester }) {
     const academicYear = resolveYear(year);
+    const sem = semester ? parseInt(semester,10) : null; // ถ้าไม่เลือก = รวมทุกภาค
 
     // ดึง 8 สัปดาห์ล่าสุดของบันทึก (ใช้ raw SQL YEARWEEK)
     const sequelize = db.sequelize;
+    const weeklyWhere = { academic_year: academicYear };
+    if (sem) weeklyWhere.semester = sem; // ใช้กฎ: ไม่เลือกภาค = รวมทุกภาคในปี
     const weeklyRaw = await db.InternshipLogbook.findAll({
       attributes: [
         [literal('YEARWEEK(work_date, 1)'), 'yearWeek'],
@@ -94,6 +112,7 @@ module.exports = {
       group: [literal('YEARWEEK(work_date, 1)')],
       order: [[literal('YEARWEEK(work_date, 1)'), 'DESC']],
       limit: 8,
+      where: weeklyWhere,
       raw: true
     });
 
@@ -120,7 +139,7 @@ module.exports = {
     // หมายเหตุ: ต้องการรู้ studentId ใน missing -> query เพิ่ม
     const atRiskStudents = []; // TODO: พัฒนาต่อ (join Student + filter)
 
-    return { academicYear, weeklyTrend, rate, atRiskStudents };
+  return { academicYear, semester: sem || null, weeklyTrend, rate, atRiskStudents };
   },
 
   /**
@@ -194,49 +213,56 @@ module.exports = {
    * - notStarted: totalStudents - started
    * TODO: รองรับ filter ตามปีการศึกษาเมื่อ schema มี (เช่น Student.academicYear หรือ InternshipDocument.academicYear)
    */
-  async getInternshipStudentSummary({ year }) {
+  async getInternshipStudentSummary({ year, semester }) {
     const academicYear = resolveYear(year);
-    const { Student, Document, InternshipLogbook, sequelize } = db;
+    const sem = semester ? parseInt(semester,10) : null;
+    const { Student, InternshipDocument } = db;
 
+    // 1) ดึงเฉพาะนักศึกษาที่ลงทะเบียนฝึกงานแล้ว (is_enrolled_internship = true)
+    //    พร้อมฟิลด์ internship_status เพื่อคำนวณกลุ่มสถานะจริง ๆ
+    // ถ้ามีการเลือกปี (academicYear) + optional semester ให้จำกัดเฉพาะนักศึกษาที่มี InternshipDocument ในปี/ภาคนั้น
+    // ไม่เลือกภาค = รวมทุกภาคของปีนั้น
+    let enrolledStudents = [];
+    if (academicYear) {
+      const studentIds = await fetchInternshipStudentIdsByPeriod({ academicYear, semester: sem });
+      if (studentIds.length === 0) {
+        return { academicYear, semester: sem || null, totalStudents: await Student.count(), enrolledCount: 0, started: 0, completed: 0, inProgress: 0, notStarted: 0 };
+      }
+      enrolledStudents = await Student.findAll({
+        attributes: ['student_id', 'internship_status'],
+        where: { is_enrolled_internship: true, student_id: studentIds },
+        raw: true
+      });
+    } else {
+      enrolledStudents = await Student.findAll({
+        attributes: ['student_id', 'internship_status'],
+        where: { is_enrolled_internship: true },
+        raw: true
+      });
+    }
+
+    const enrolledCount = enrolledStudents.length;
+
+    // 2) นับสถานะตามฟิลด์ Student.internship_status โดยกันคำสะกด/ค่าที่เป็น null
+    //    กรณีระบบบางส่วนอาจใช้ 'complete' หรือ 'completed' ให้ถือเป็น completed เดียวกัน
+    let completed = 0;
+    let inProgress = 0;
+    enrolledStudents.forEach(s => {
+      const status = (s.internship_status || '').toLowerCase();
+      if (status === 'completed' || status === 'complete') completed++;
+      else if (status === 'in_progress') inProgress++;
+    });
+
+    // 3) started = inProgress + completed (เฉพาะคนที่เริ่มจริง) ไม่ใช่ทุกคนที่ลงทะเบียน
+    const started = inProgress + completed;
+
+    // 4) notStarted = นักศึกษาที่ลงทะเบียนแล้วแต่ยังไม่มีสถานะ in_progress/completed
+    const notStarted = Math.max(0, enrolledCount - started);
+
+    // 5) totalStudents: ทั้งหมดในระบบ (คงไว้เพื่อ backward compatibility/UI อื่น)
     const totalStudents = await Student.count();
 
-    // นักศึกษาที่มีเอกสารฝึกงาน (ไม่นับ draft)
-    const docRows = await Document.findAll({
-      attributes: ['user_id'],
-      where: { document_type: 'internship', status: { [Op.ne]: 'draft' } },
-      group: ['user_id'],
-      raw: true
-    });
-    const docUserIds = new Set(docRows.map(r => r.user_id));
-
-    // นักศึกษาที่มี logbook อย่างน้อย 1
-    const logRows = await InternshipLogbook.findAll({
-      attributes: ['student_id'],
-      group: ['student_id'],
-      raw: true
-    });
-    // map student_id -> user_id ผ่าน Student fetch (เฉพาะที่ยังไม่มีใน set เพื่อประหยัด)
-    const studentIdsMissing = logRows.map(r => r.student_id);
-    let additionalUserIds = [];
-    if (studentIdsMissing.length) {
-      const students = await Student.findAll({ where: { studentId: studentIdsMissing }, attributes: ['studentId', 'user_id'], raw: true });
-      additionalUserIds = students.map(s => s.user_id);
-    }
-    additionalUserIds.forEach(uid => docUserIds.add(uid));
-
-    // Completed
-    const completedRows = await Document.findAll({
-      attributes: ['user_id'],
-      where: { document_type: 'internship', status: 'completed' },
-      group: ['user_id'],
-      raw: true
-    });
-    const completed = completedRows.length;
-    const started = docUserIds.size;
-    const inProgress = Math.max(0, started - completed);
-    const notStarted = Math.max(0, totalStudents - started);
-
-    return { academicYear, totalStudents, started, completed, inProgress, notStarted };
+  return { academicYear, semester: sem || null, totalStudents, enrolledCount, started, completed, inProgress, notStarted };
   }
   ,
   /**
@@ -255,70 +281,61 @@ module.exports = {
    */
   async getInternshipEvaluationSummary({ year, semester }) {
     const academicYear = resolveYear(year);
-    const sem = semester || 1;
+    const sem = semester ? parseInt(semester,10) : null; // null = รวมทุกภาค
   const { InternshipEvaluation, InternshipLogbook } = db;
+  const docStudentIds = await fetchInternshipStudentIdsByPeriod({ academicYear, semester: sem });
 
-  // Distinct interns (approx): ใช้ student_id จาก logbook และ evaluation (union)
-  const logbookStudents = await InternshipLogbook.findAll({ attributes: ['student_id'], group: ['student_id'], raw: true });
-  const evalStudents = await InternshipEvaluation.findAll({ attributes: ['student_id'], group: ['student_id'], raw: true });
-  const studentSet = new Set();
-  logbookStudents.forEach(r => r.student_id && studentSet.add(r.student_id));
-  evalStudents.forEach(r => r.student_id && studentSet.add(r.student_id));
-  const totalInterns = studentSet.size;
+    if (docStudentIds.length === 0) {
+      return { academicYear, semester: sem || null, totalInterns: 0, evaluatedCount: 0, notEvaluated: 0, completionPct: 0, criteriaAverages: [], overallAverage: null, scoreDistribution: [], gradeDistribution: [], gradeCounts: {} };
+    }
+
+    // Distinct interns (approx): จำกัดเฉพาะ student ที่มี document ปี/ภาคนี้
+    const logbookWhere = { student_id: docStudentIds };
+    const logbookStudents = await InternshipLogbook.findAll({ attributes: ['student_id'], where: logbookWhere, group: ['student_id'], raw: true });
+    const evalStudents = await InternshipEvaluation.findAll({ attributes: ['student_id'], where: { student_id: docStudentIds }, group: ['student_id'], raw: true });
+    const studentSet = new Set();
+    logbookStudents.forEach(r => r.student_id && studentSet.add(r.student_id));
+    evalStudents.forEach(r => r.student_id && studentSet.add(r.student_id));
+    const totalInterns = studentSet.size;
 
     const evaluatedCount = evalStudents.length;
     const notEvaluated = Math.max(0, totalInterns - evaluatedCount);
     const completionPct = totalInterns ? +((evaluatedCount * 100) / totalInterns).toFixed(1) : 0;
 
-    // Aggregate averages (ignore null)
+    // Aggregate averages โครงสร้างใหม่ใช้ *_score (แต่ละหมวด 0-20) รวม overall_score (0-100)
     const agg = await InternshipEvaluation.findAll({
       attributes: [
-        [fn('AVG', col('q1_knowledge')), 'avgQ1'],
-        [fn('AVG', col('q2_responsibility')), 'avgQ2'],
-        [fn('AVG', col('q3_initiative')), 'avgQ3'],
-        [fn('AVG', col('q4_adaptability')), 'avgQ4'],
-        [fn('AVG', col('q5_problem_solving')), 'avgQ5'],
-        [fn('AVG', col('q6_communication')), 'avgQ6'],
-        [fn('AVG', col('q7_punctuality')), 'avgQ7'],
-        [fn('AVG', col('q8_personality')), 'avgQ8'],
+        [fn('AVG', col('discipline_score')), 'avgDiscipline'],
+        [fn('AVG', col('behavior_score')), 'avgBehavior'],
+        [fn('AVG', col('performance_score')), 'avgPerformance'],
+        [fn('AVG', col('method_score')), 'avgMethod'],
+        [fn('AVG', col('relation_score')), 'avgRelation'],
         [fn('AVG', col('overall_score')), 'avgOverall']
       ],
+      where: { student_id: docStudentIds },
       raw: true
     });
     const a = agg[0] || {};
     const toNum = v => (v == null ? null : +parseFloat(v).toFixed(2));
+    // คะแนนหมวดเก็บแบบ 0-20; แปลง scale เป็น 0-5 เพื่อ UI
+    const scaleToFive = v => (v == null ? null : +parseFloat((v / 20 * 5)).toFixed(2));
     const criteriaAverages = [
-      { key: 'q1Knowledge', label: 'ความรู้พื้นฐาน', avg: toNum(a.avgQ1) },
-      { key: 'q2Responsibility', label: 'ความรับผิดชอบ', avg: toNum(a.avgQ2) },
-      { key: 'q3Initiative', label: 'ความกระตือรือร้น', avg: toNum(a.avgQ3) },
-      { key: 'q4Adaptability', label: 'การปรับตัว', avg: toNum(a.avgQ4) },
-      { key: 'q5ProblemSolving', label: 'แก้ปัญหา', avg: toNum(a.avgQ5) },
-      { key: 'q6Communication', label: 'การสื่อสาร', avg: toNum(a.avgQ6) },
-      { key: 'q7Punctuality', label: 'ตรงต่อเวลา', avg: toNum(a.avgQ7) },
-      { key: 'q8Personality', label: 'บุคลิกภาพ', avg: toNum(a.avgQ8) }
+      { key: 'discipline', label: 'ระเบียบวินัย', avgRaw: toNum(a.avgDiscipline), avg: scaleToFive(a.avgDiscipline) },
+      { key: 'behavior', label: 'พฤติกรรม', avgRaw: toNum(a.avgBehavior), avg: scaleToFive(a.avgBehavior) },
+      { key: 'performance', label: 'ผลงาน', avgRaw: toNum(a.avgPerformance), avg: scaleToFive(a.avgPerformance) },
+      { key: 'method', label: 'วิธีการทำงาน', avgRaw: toNum(a.avgMethod), avg: scaleToFive(a.avgMethod) },
+      { key: 'relation', label: 'มนุษยสัมพันธ์', avgRaw: toNum(a.avgRelation), avg: scaleToFive(a.avgRelation) }
     ];
     const overallAverage = toNum(a.avgOverall);
 
     // ดึงทุก evaluation เพื่อคำนวณ distribution (อาจพิจารณา paginate ถ้าข้อมูลใหญ่)
-    const evaluations = await InternshipEvaluation.findAll({ attributes: ['overall_score', 'overall_grade'], raw: true });
+  const evaluations = await InternshipEvaluation.findAll({ attributes: ['overall_score'], where: { student_id: docStudentIds }, raw: true });
 
     const gradeCounts = {};
     const scoreBuckets = { '>=80':0, '70-79':0, '60-69':0, '50-59':0, '<50':0 };
     evaluations.forEach(ev => {
-      let grade = ev.overall_grade;
-      const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
-      if (!grade && score != null) {
-        // Simple mapping; TODO: ปรับตามเกณฑ์จริงของภาควิชา
-        if (score >= 80) grade = 'A';
-        else if (score >= 75) grade = 'B+';
-        else if (score >= 70) grade = 'B';
-        else if (score >= 65) grade = 'C+';
-        else if (score >= 60) grade = 'C';
-        else if (score >= 55) grade = 'D+';
-        else if (score >= 50) grade = 'D';
-        else grade = 'F';
-      }
-      if (grade) gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+  // เลิกใช้ overall_grade -> คง logic bucket เฉพาะคะแนน
+  const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
 
       if (score != null) {
         if (score >= 80) scoreBuckets['>=80']++;
@@ -332,9 +349,9 @@ module.exports = {
     const scoreDistribution = Object.entries(scoreBuckets).map(([range,count])=>({ range, count }));
     const gradeDistribution = Object.entries(gradeCounts).map(([grade,count])=>({ grade, count }));
 
-    return {
+  return {
       academicYear,
-      semester: sem,
+      semester: sem || null,
       totalInterns,
       evaluatedCount,
       notEvaluated,

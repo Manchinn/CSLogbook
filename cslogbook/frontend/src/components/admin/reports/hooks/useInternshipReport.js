@@ -4,19 +4,20 @@ import { getInternshipLogbookCompliance, getOverview, getInternshipStudentSummar
 
 export function useInternshipReport(initialYear) {
   const [year, setYear] = useState(initialYear);
+  const [semester, setSemester] = useState(); // undefined = รวมทุกภาค
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [logbookCompliance, setLogbookCompliance] = useState(null);
   const [internshipSummary, setInternshipSummary] = useState(null);
   const [overview, setOverview] = useState(null);
 
-  const fetchAll = useCallback(async (targetYear = year) => {
+  const fetchAll = useCallback(async (targetYear = year, targetSemester = semester) => {
     setLoading(true); setError(null);
     try {
       const [logComp, ov, summary] = await Promise.all([
-        getInternshipLogbookCompliance({ year: targetYear }),
+        getInternshipLogbookCompliance({ year: targetYear, semester: targetSemester }),
         getOverview({ year: targetYear }),
-        getInternshipStudentSummary({ year: targetYear })
+        getInternshipStudentSummary({ year: targetYear, semester: targetSemester })
       ]);
       setLogbookCompliance(logComp);
       setOverview(ov);
@@ -27,9 +28,8 @@ export function useInternshipReport(initialYear) {
     } finally {
       setLoading(false);
     }
-  }, [year]);
+  }, [year, semester]);
 
-  useEffect(()=>{ fetchAll(year); }, [year, fetchAll]);
-
-  return { year, setYear, loading, error, logbookCompliance, overview, internshipSummary, refresh: fetchAll };
+  useEffect(()=>{ fetchAll(year, semester); }, [year, semester, fetchAll]);
+  return { year, setYear, semester, setSemester, loading, error, logbookCompliance, overview, internshipSummary, refresh: fetchAll };
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
@@ -19,6 +19,7 @@ import { EligibilityCheck, InternshipRequirements } from './components/internshi
 import { InternshipRegistrationFlow } from './components/internship/register';
 // 🆕 เพิ่ม import สำหรับ InternshipCertificateRequest
 import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
+import InternshipCompanyDashboard from './components/internship/companies/InternshipCompanyDashboard';
 
 
 // Import Project Components
@@ -36,9 +37,11 @@ import ApproveDocuments from './components/teacher/ApproveDocuments';
 
 const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    // ส่ง state.from เพื่อให้ LoginForm รู้ว่าต้องกลับไปหน้าเดิม (ถ้ามี)
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // ตรวจสอบ roles
@@ -79,6 +82,13 @@ const App = () => {
                 <Route path="/internship-registration/cs05" element={
                   <ProtectedRoute roles={['student']}>
                     <CS05Form />
+                  </ProtectedRoute>
+                } />
+
+                {/* Dashboard บริษัทที่รับนักศึกษาฝึกงาน (ใหม่) */}
+                <Route path="/internship-companies" element={
+                  <ProtectedRoute roles={['student','teacher','admin']}>
+                    <InternshipCompanyDashboard />
                   </ProtectedRoute>
                 } />
 

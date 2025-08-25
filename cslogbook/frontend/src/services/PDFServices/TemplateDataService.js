@@ -158,6 +158,10 @@ class TemplateDataService {
         address: "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
         phone: "02-555-2000",
         website: "http://www.cs.kmutnb.ac.th/",
+  // เจ้าหน้าที่ภาควิชา (contact footer)
+  staffOfficerName: "นายนที ปัญญาประสิทธิ์",
+  staffOfficerEmail: "natee.p@sci.kmutnb.ac.th",
+  staffOfficerPhone: "02-555-2000 ต่อ 4602",
       };
     } catch (error) {
       console.error("Error preparing Official Letter data:", error);
@@ -450,6 +454,9 @@ class TemplateDataService {
         departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
         address: "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
         phone: "02-555-2000",
+  staffOfficerName: "นายนที ปัญญาประสิทธิ์",
+  staffOfficerEmail: "natee.p@sci.kmutnb.ac.th",
+  staffOfficerPhone: "02-555-2000 ต่อ 4602",
       };
     } catch (error) {
       console.error("Error preparing Referral Letter data:", error);
@@ -478,6 +485,26 @@ class TemplateDataService {
         ...summaryData,
         ...logbookData,
       };
+
+      // 🆕 เติม fallback จากโครงสร้างแบบ backend summaryFull (companyInfo, internshipPeriod, studentInfo)
+      if (combinedData.companyInfo) {
+        combinedData.companyName = combinedData.companyName || combinedData.companyInfo.companyName;
+        combinedData.companyAddress = combinedData.companyAddress || combinedData.companyInfo.companyAddress;
+        combinedData.supervisorName = combinedData.supervisorName || combinedData.companyInfo.supervisorName;
+        combinedData.supervisorPosition = combinedData.supervisorPosition || combinedData.companyInfo.supervisorPosition;
+        combinedData.supervisorPhone = combinedData.supervisorPhone || combinedData.companyInfo.supervisorPhone;
+        combinedData.supervisorEmail = combinedData.supervisorEmail || combinedData.companyInfo.supervisorEmail;
+      }
+      if (combinedData.internshipPeriod) {
+        combinedData.startDate = combinedData.startDate || combinedData.internshipPeriod.startDate;
+        combinedData.endDate = combinedData.endDate || combinedData.internshipPeriod.endDate;
+      }
+      if (combinedData.studentInfo) {
+        // เติม yearLevel / classroom ถ้ายังไม่มีใน studentInfo เดิมที่ถูกเลือก
+        combinedData.yearLevel = combinedData.yearLevel || combinedData.studentInfo.yearLevel;
+        combinedData.classroom = combinedData.classroom || combinedData.studentInfo.classroom;
+        combinedData.phoneNumber = combinedData.phoneNumber || combinedData.studentInfo.phoneNumber;
+      }
 
       // ✅ เตรียมข้อมูลนักศึกษาจากหลายแหล่ง
       const studentData = this._prepareLogbookStudentInfo(combinedData, userInfo);
@@ -533,8 +560,8 @@ class TemplateDataService {
         ),
 
         // ข้อมูลระยะเวลา
-        startDate: combinedData.startDate,
-        endDate: combinedData.endDate,
+  startDate: combinedData.startDate,
+  endDate: combinedData.endDate,
         startDateThai: formatThaiDate(combinedData.startDate, "DD MMMM BBBB"),
         endDateThai: formatThaiDate(combinedData.endDate, "DD MMMM BBBB"),
         internshipDays: this._calculateDurationDays(
@@ -678,7 +705,8 @@ class TemplateDataService {
       ),
       firstName: cleanText(studentInfo.firstName || ""),
       lastName: cleanText(studentInfo.lastName || ""),
-      studentId: formatStudentId(studentInfo.studentId || studentInfo.student_id || ""),
+  // บังคับเป็น string เพื่อเลี่ยงปัญหา trim กับ number
+  studentId: String(formatStudentId(studentInfo.studentId || studentInfo.student_id || "")),
       yearLevel: studentInfo.yearLevel || studentInfo.year_level || "",
       yearLevelText: studentInfo.yearLevel || studentInfo.year_level
         ? `ชั้นปีที่ ${studentInfo.yearLevel || studentInfo.year_level}`

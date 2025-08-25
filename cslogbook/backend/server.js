@@ -80,7 +80,9 @@ const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
+const documentsRoutes = require('./routes/documents/documentsRoutes'); // ✅ เพิ่ม documents routes สำหรับ student ใช้งาน
 const internshipRoutes = require('./routes/documents/internshipRoutes');
+const internshipCompanyStatsRoutes = require('./routes/internshipCompanyStatsRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
 const timelineRoutes = require('./routes/timelineRoutes'); // เพิ่มการนำเข้า timelineRoutes
 const workflowRoutes = require('./routes/workflowRoutes');
@@ -161,12 +163,52 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Socket.IO setup with validated FRONTEND_URL
+// Socket.IO setup with validated FRONTEND_URL + auth room binding
 const io = new Server(server, {
   cors: {
     origin: ENV.FRONTEND_URL,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   }
+});
+// เก็บ io ใน app สำหรับ controller/service เรียกใช้
+app.set('io', io);
+
+// Middleware แบบง่ายสำหรับ map token -> userId แล้ว join room เฉพาะ (ต้องปรับถ้ามี auth ที่ซับซ้อน)
+io.use((socket, next) => {
+  // ตัวอย่าง: รับ token จาก query หรือ headers (frontend สามารถแนบ ?token= )
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) {
+    return next(); // อนุญาตเชื่อมต่อแบบไม่ระบุตัวตน (จะไม่ได้ room ส่วนตัว)
+  }
+  try {
+    const jwt = require('jsonwebtoken');
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    socket.data.userId = payload.userId || payload.id;
+  } catch (e) {
+    console.warn('Socket auth invalid token:', e.message);
+  }
+  next();
+});
+
+io.on('connection', (socket) => {
+  const userId = socket.data.userId;
+  if (userId) {
+    socket.join(`user_${userId}`);
+    console.log(`Socket connected & joined room user_${userId}`);
+  } else {
+    console.log('Socket connected (guest)');
+  }
+
+  socket.on('joinUserRoom', (uid) => {
+    if (uid && Number(uid) === userId) {
+      socket.join(`user_${uid}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    // log optional
+  });
 });
 
 // Logging middleware
@@ -213,7 +255,7 @@ app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes); // เพิ่ม academic routes
 //app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
 //app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
-//app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
+app.use('/api/documents', documentsRoutes); // ✅ เปิดใช้งาน documents (ภายในไฟล์ route มี authenticateToken เฉพาะ endpoint ที่จำเป็นอยู่แล้ว)
 //app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
 //app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
 
@@ -222,6 +264,8 @@ app.use('/api', uploadRoutes); // ใช้ route
 
 // Add routes
 app.use('/api/internship', internshipRoutes);
+// สถิติบริษัทฝึกงาน (company-stats) - แยกไฟล์ route ใหม่
+app.use('/api/internship', internshipCompanyStatsRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes); 

@@ -1,12 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-
-// Role-specific particle colors
-const ROLE_COLORS = {
-  student: ['#e6f7ff', '#bae7ff', '#91d5ff'],
-  teacher: ['#fff7e6', '#ffe7ba', '#ffd591'],
-  admin: ['#fff1f0', '#ffccc7', '#ffa39e'],
-  default: ['#e6f7ff', '#bae7ff', '#91d5ff'],
-};
+import { getParticleColors } from '../../utils/roleColors';
 
 // Particle configuration
 const PARTICLE_CONFIG = {
@@ -26,8 +19,9 @@ const PARTICLE_CONFIG = {
   },
   
   getColors: () => {
-    const role = localStorage.getItem('role') || 'default';
-    return ROLE_COLORS[role] || ROLE_COLORS.default;
+    const role = localStorage.getItem('role');
+    const teacherType = localStorage.getItem('teacherType');
+    return getParticleColors(role, teacherType);
   }
 };
 
@@ -55,7 +49,6 @@ const BackgroundParticles = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     

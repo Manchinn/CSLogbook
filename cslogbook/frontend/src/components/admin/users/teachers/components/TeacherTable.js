@@ -40,13 +40,13 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       dataIndex: "email",
       key: "email",
       width: 200,
-    },
+    },/* 
     {
       title: "เบอร์ภายใน",
       dataIndex: "contactExtension",
       key: "contactExtension",
       width: 120,
-    },
+    }, */
     {
       title: "จัดการ",
       key: "actions",

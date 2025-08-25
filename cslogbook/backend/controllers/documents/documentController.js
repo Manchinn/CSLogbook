@@ -126,6 +126,19 @@ const getDocuments = async (req, res) => {
     }
 };
 
+// ดึงเอกสารของผู้ใช้ที่ล็อกอิน (นักศึกษา)
+const getMyDocuments = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+    const { type, lettersOnly } = req.query; // filter optional
+    const documents = await documentService.getDocumentsByUser(userId, { type, lettersOnly });
+        res.json({ success: true, documents });
+    } catch (error) {
+        logger.error('Error fetching my documents:', error);
+        res.status(500).json({ success: false, message: 'ไม่สามารถดึงเอกสารของคุณได้' });
+    }
+};
+
 // อนุมัติเอกสาร
 const approveDocument = async (req, res) => {
     try {
@@ -327,6 +340,19 @@ const getCertificateRequests = async (req, res) => {
     }
 };
 
+// ดึงรายละเอียดคำขอหนังสือรับรองเดียว
+const getCertificateRequestDetail = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const detail = await documentService.getCertificateRequestDetail(requestId);
+        res.json({ success: true, data: detail });
+    } catch (error) {
+        logger.error('Error fetching certificate request detail:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดึงรายละเอียดคำขอได้' });
+    }
+};
+
 /**
  * อนุมัติคำขอหนังสือรับรอง (สำหรับ Admin)
  */
@@ -366,6 +392,14 @@ const approveCertificateRequest = async (req, res) => {
 const rejectCertificateRequest = async (req, res) => {
     try {
         const { requestId } = req.params;
+
+// Placeholder (ยังไม่ได้เปิดใช้ใน routes) สำหรับประวัติเอกสาร
+const getDocumentHistory = async (req, res) => {
+    return res.status(501).json({ success: false, message: 'ยังไม่ได้รองรับฟีเจอร์ประวัติเอกสาร' });
+};
+
+// Alias สำหรับความเข้ากันได้เดิม submitDocument -> uploadDocument
+const submitDocument = (req, res, next) => uploadDocument(req, res, next);
         const { remarks } = req.body;
         const processorId = req.user.userId;
 
@@ -378,6 +412,9 @@ const rejectCertificateRequest = async (req, res) => {
         res.json({
             success: true,
             message: 'ปฏิเสธคำขอเรียบร้อยแล้ว',
+
+    getDocumentHistory,
+    submitDocument,
             data: result,
         });
     } catch (error) {
@@ -442,6 +479,64 @@ const notifyStudent = async (req, res) => {
     }
 };
 
+// ---------------- Internship Summary (Admin) ----------------
+const getInternshipSummary = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const data = await documentService.getInternshipSummary(internshipId);
+        res.json({ success: true, data });
+    } catch (error) {
+        logger.error('Error fetching internship summary:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดึงสรุปได้' });
+    }
+};
+
+// 🆕 Admin: JSON full logbook summary (entries + reflection + stats)
+const getInternshipLogbookSummary = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const { summaryFull } = await documentService.getInternshipLogbookSummary(internshipId, { pdf: false });
+        res.json({ success: true, data: summaryFull });
+    } catch (error) {
+        logger.error('Error fetching internship logbook full summary:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดึงข้อมูลสรุปบันทึกได้' });
+    }
+};
+
+// 🆕 Admin: Preview PDF inline
+const previewInternshipLogbookSummaryPDF = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const { summaryFull, pdfBuffer } = await documentService.getInternshipLogbookSummary(internshipId, { pdf: true });
+        const sid = summaryFull?.studentInfo?.studentId || internshipId;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="logbook-summary-' + sid + '.pdf"');
+        res.send(pdfBuffer);
+    } catch (error) {
+        logger.error('Error previewing internship logbook summary PDF:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถแสดงตัวอย่าง PDF ได้' });
+    }
+};
+
+// 🆕 Admin: Download PDF attachment
+const downloadInternshipLogbookSummaryPDF = async (req, res) => {
+    try {
+        const { internshipId } = req.params;
+        const { summaryFull, pdfBuffer } = await documentService.getInternshipLogbookSummary(internshipId, { pdf: true });
+        const sid = summaryFull?.studentInfo?.studentId || internshipId;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="logbook-summary-' + encodeURIComponent(sid) + '.pdf"');
+        res.send(pdfBuffer);
+    } catch (error) {
+        logger.error('Error downloading internship logbook summary PDF:', error);
+        const statusCode = /ไม่พบ/.test(error.message) ? 404 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'ไม่สามารถดาวน์โหลด PDF ได้' });
+    }
+};
+
 module.exports = {
     uploadDocument,
     getDocumentById,
@@ -456,8 +551,14 @@ module.exports = {
 
     // ✅ เพิ่มฟังก์ชันใหม่สำหรับ Certificate Management
     getCertificateRequests,
+        getCertificateRequestDetail,
     approveCertificateRequest,
     rejectCertificateRequest,
     downloadCertificateForAdmin,
     notifyStudent,
+    getInternshipSummary, // ✅ ใหม่: สรุปการฝึกงานสำหรับ admin
+    getInternshipLogbookSummary,
+    previewInternshipLogbookSummaryPDF,
+    downloadInternshipLogbookSummaryPDF,
+    getMyDocuments,
 };

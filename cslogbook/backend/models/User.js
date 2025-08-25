@@ -28,6 +28,12 @@ module.exports = (sequelize) => {
                 as: 'notificationUpdates',
                 constraints: false // ไม่บังคับ foreign key constraint
             });
+            // รหัสผ่าน: ความสัมพันธ์กับ token สำหรับการเปลี่ยนรหัสผ่าน / OTP
+            User.hasMany(models.PasswordResetToken, {
+                foreignKey: 'user_id',
+                sourceKey: 'userId',
+                as: 'passwordResetTokens'
+            });
         }
                 /**
          * เมธอดสำหรับตรวจสอบว่าเป็น admin หรือไม่

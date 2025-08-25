@@ -6,10 +6,28 @@ import {
 
 const { Title, Text } = Typography;
 
-const SupervisorEvaluationStatus = ({ 
-  status, 
-  totalHours, 
-  summaryStatus 
+// เพิ่มความสามารถแสดงคะแนนการประเมิน (ถ้ามี) หรือแสดงเพียงสถานะผ่าน/รอ
+// Props ใหม่:
+// - evaluationScore: (number) คะแนนรวมที่คำนวณแล้ว (0-100)
+// - passScore: (number) เกณฑ์ผ่าน (ค่าเริ่มต้น 60)
+// - showScore: (boolean) บังคับให้แสดงเป็นคะแนน (ถ้ามีคะแนน)
+// - hideStatusText: (boolean) ซ่อนข้อความรายละเอียดใต้คะแนน
+const SupervisorEvaluationStatus = ({
+  status,
+  totalHours, // ชั่วโมงรวมทั้งหมด (raw จาก certificate status หรือ summary)
+  // หมายเหตุ: totalApprovedHours ในหน้า Summary.js ถูกคำนวณจาก useSummaryData โดย
+  //   1) แปลง entries -> ให้สถานะ approved/pending/rejected
+  //   2) filter เฉพาะ entry ที่ status === 'approved'
+  //   3) reduce รวม hours แล้วปัดทศนิยม (ดู useSummaryData: setTotalApprovedHours)
+  // เราเพิ่ม prop totalApprovedHours เพื่อส่งค่าที่คำนวณแล้วมาใช้ตรง ๆ ถ้ามี
+  totalApprovedHours = null, // 🆕 ชั่วโมงที่ "อนุมัติแล้ว" (ตรงจาก summary ถ้ามี)
+  approvedHours = null,      // 🆕 alias เก่า (ยังรองรับเพื่อ backward compatibility)
+  entries = null,            // 🆕 รายการบันทึก (fallback คำนวณได้เองถ้าไม่ส่งค่าอื่นมา)
+  evaluationScore = null,    // คะแนนรวม (อาจยังไม่ได้ส่งมา)
+  passScore = 70,
+  showScore = true,
+  hideStatusText = false,
+  requiredHours = 240,       // 🆕 ทำเป็นตัวแปร configurable (ค่าเริ่มต้น 240)
 }) => {
   const getStatusColor = (condition) => {
     return condition ? 'success' : 'default';
@@ -19,10 +37,44 @@ const SupervisorEvaluationStatus = ({
     return condition ? <CheckCircleOutlined /> : <ClockCircleOutlined />;
   };
 
-  const isHoursComplete = totalHours >= 240;
-  const isEvaluationComplete = status === 'completed';
-  const isSummarySubmitted = summaryStatus === 'submitted';
-  const allRequirementsMet = isHoursComplete && isEvaluationComplete && isSummarySubmitted;
+  // 🧮 ลำดับ fallback การคำนวณชั่วโมงที่ "อนุมัติแล้ว"
+  // 1) approvedHours (prop เดิม)
+  // 2) totalApprovedHours (prop ใหม่ สะท้อน logic ในหน้า Summary)
+  // 3) entries (คำนวณสด: นับเฉพาะ supervisorApproved/supervisor_approved)
+  // 4) totalHours (สุดท้ายอาจเป็นชั่วโมงดิบหากไม่มีข้อมูลอื่น)
+  let approvedHoursComputed =
+    approvedHours != null
+      ? approvedHours
+      : totalApprovedHours != null
+        ? totalApprovedHours
+        : null;
+
+  if (approvedHoursComputed == null && Array.isArray(entries)) {
+    approvedHoursComputed = entries.reduce((sum, e) => {
+      const isApproved =
+        e.supervisorApproved === 1 ||
+        e.supervisorApproved === true ||
+        e.supervisor_approved === 1 ||
+        e.supervisor_approved === true ||
+        e.status === 'approved';
+      if (isApproved) {
+        const h = parseFloat(
+          e.approvedHours || e.totalHours || e.workHours || e.hours || 0
+        );
+        return sum + (isNaN(h) ? 0 : h);
+      }
+      return sum;
+    }, 0);
+  }
+  if (approvedHoursComputed == null) approvedHoursComputed = totalHours || 0; // final fallback
+
+  const isHoursComplete = approvedHoursComputed >= requiredHours;
+  const hasScore = typeof evaluationScore === 'number' && evaluationScore >= 0;
+  const isEvaluationPassed = hasScore
+    ? evaluationScore >= passScore
+    : status === 'completed'; // fallback เดิม
+  // เกณฑ์สำเร็จ: ชั่วโมงครบ + ประเมินผ่าน (ไม่สน summary แล้ว)
+  const allRequirementsMet = isHoursComplete && isEvaluationPassed;
 
   return (
     <Card style={{ marginBottom: 24 }}>
@@ -30,31 +82,34 @@ const SupervisorEvaluationStatus = ({
 
       {/* สถิติโดยรวม */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
+    <Col xs={24} sm={8}>
           <Statistic
-            title="ชั่วโมงฝึกงาน"
-            value={totalHours}
-            suffix="/ 240 ชั่วโมง"
+      title="ชั่วโมงที่อนุมัติแล้ว"
+      value={approvedHoursComputed}
+      suffix={`/ ${requiredHours} ชั่วโมง`}
             prefix={getStatusIcon(isHoursComplete)}
             valueStyle={{ color: isHoursComplete ? '#3f8600' : '#cf1322' }}
           />
         </Col>
         <Col xs={24} sm={8}>
-          <Statistic
-            title="การประเมินพี่เลี้ยง"
-            value={isEvaluationComplete ? 'เสร็จสิ้น' : 'รอดำเนินการ'}
-            prefix={getStatusIcon(isEvaluationComplete)}
-            valueStyle={{ color: isEvaluationComplete ? '#3f8600' : '#cf1322' }}
-          />
+          {showScore && hasScore ? (
+            <Statistic
+              title={`คะแนนการประเมิน (ผ่าน ${passScore})`}
+              value={evaluationScore}
+              suffix={`/ ${100}`}
+              prefix={getStatusIcon(isEvaluationPassed)}
+              valueStyle={{ color: isEvaluationPassed ? '#3f8600' : '#cf1322' }}
+            />
+          ) : (
+            <Statistic
+              title="การประเมินพี่เลี้ยง"
+              value={isEvaluationPassed ? 'ผ่านเกณฑ์' : 'รอดำเนินการ'}
+              prefix={getStatusIcon(isEvaluationPassed)}
+              valueStyle={{ color: isEvaluationPassed ? '#3f8600' : '#cf1322' }}
+            />
+          )}
         </Col>
-        <Col xs={24} sm={8}>
-          <Statistic
-            title="รายงานสรุปผล"
-            value={isSummarySubmitted ? 'ส่งแล้ว' : 'ยังไม่ส่ง'}
-            prefix={getStatusIcon(isSummarySubmitted)}
-            valueStyle={{ color: isSummarySubmitted ? '#3f8600' : '#cf1322' }}
-          />
-        </Col>
+  {/* ตัดคอลัมน์รายงานสรุปผลออก */}
       </Row>
 
       {/* Timeline รายละเอียด */}
@@ -65,56 +120,48 @@ const SupervisorEvaluationStatus = ({
         >
           <Space direction="vertical">
             <Text strong>
-              ชั่วโมงฝึกงานครบถ้วน (240 ชั่วโมง)
+              ชั่วโมงฝึกงานครบถ้วน ({requiredHours} ชั่วโมง)
             </Text>
             <Tag color={isHoursComplete ? 'success' : 'warning'}>
-              ปัจจุบัน: {totalHours} ชั่วโมง
+              อนุมัติแล้ว: {approvedHoursComputed} ชั่วโมง
             </Tag>
+            {approvedHoursComputed !== totalHours && totalHours != null && (
+              <Text type="secondary">รวม (บันทึกทั้งหมด): {totalHours} ชั่วโมง</Text>
+            )}
             {!isHoursComplete && (
               <Text type="secondary">
-                ยังขาดอีก {240 - totalHours} ชั่วโมง
+                ยังขาดอีก {Math.max(0, requiredHours - approvedHoursComputed)} ชั่วโมง
               </Text>
             )}
           </Space>
         </Timeline.Item>
 
-        <Timeline.Item 
-          color={getStatusColor(isEvaluationComplete)}
-          dot={getStatusIcon(isEvaluationComplete)}
+        <Timeline.Item
+          color={getStatusColor(isEvaluationPassed)}
+          dot={getStatusIcon(isEvaluationPassed)}
         >
           <Space direction="vertical">
-            <Text strong>
-              การประเมินผลจากพี่เลี้ยง
-            </Text>
-            <Tag color={isEvaluationComplete ? 'success' : 'processing'}>
-              {isEvaluationComplete ? 'ประเมินแล้ว' : 'รอการประเมิน'}
-            </Tag>
-            {!isEvaluationComplete && (
+            <Text strong>การประเมินผลจากพี่เลี้ยง</Text>
+            {showScore && hasScore ? (
+              <Tag color={isEvaluationPassed ? 'success' : 'error'}>
+                คะแนน {evaluationScore}/{100} {isEvaluationPassed ? '(ผ่าน)' : '(ไม่ผ่าน)'}
+              </Tag>
+            ) : (
+              <Tag color={isEvaluationPassed ? 'success' : 'processing'}>
+                {isEvaluationPassed ? 'ประเมินแล้ว / ผ่านเกณฑ์' : 'รอการประเมิน'}
+              </Tag>
+            )}
+            {!hideStatusText && !isEvaluationPassed && (
               <Text type="secondary">
-                กรุณาติดต่อพี่เลี้ยงเพื่อทำการประเมินในระบบ
+                {hasScore
+                  ? `ยังขาด ${passScore - evaluationScore} คะแนนถึงจะผ่าน`
+                  : 'กรุณาติดต่อพี่เลี้ยงเพื่อทำการประเมินในระบบ'}
               </Text>
             )}
           </Space>
         </Timeline.Item>
 
-        <Timeline.Item 
-          color={getStatusColor(isSummarySubmitted)}
-          dot={getStatusIcon(isSummarySubmitted)}
-        >
-          <Space direction="vertical">
-            <Text strong>
-              รายงานสรุปผลการฝึกงาน
-            </Text>
-            <Tag color={isSummarySubmitted ? 'success' : 'default'}>
-              {isSummarySubmitted ? 'ส่งแล้ว' : 'ยังไม่ส่ง'}
-            </Tag>
-            {!isSummarySubmitted && (
-              <Text type="secondary">
-                กรุณาส่งรายงานสรุปผลผ่านเมนู "สรุปผลการฝึกงาน"
-              </Text>
-            )}
-          </Space>
-        </Timeline.Item>
+  {/* ตัด timeline รายงานสรุปผลออก */}
       </Timeline>
 
       {/* แสดง Alert ตามสถานะ */}

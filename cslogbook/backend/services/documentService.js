@@ -137,7 +137,7 @@ class DocumentService {
             const { type, status, search } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
-            // สร้าง query condition
+            // สร้าง query condition พื้นฐาน
             let whereCondition = {};
 
             if (type && type !== 'all') {
@@ -148,18 +148,23 @@ class DocumentService {
                 whereCondition.status = status;
             }
 
-            // ถ้ามี search ให้ค้นหาในชื่อเอกสารหรือชื่อนักศึกษา
+            // ถ้ามี search ให้ค้นหาหลายเขตข้อมูล (ชื่อเอกสาร + ชื่อนักศึกษา + รหัส)
             if (search) {
+                const like = { [Op.like]: `%${search}%` };
+                // ใช้ชื่อคอลัมน์จริง (snake_case) ภายใน path $alias.field$ เพื่อหลีกเลี่ยง error Unknown column
                 whereCondition = {
                     ...whereCondition,
                     [Op.or]: [
-                        { documentName: { [Op.like]: `%${search}%` } }
+                        { documentName: like },
+                        { '$owner.first_name$': like },
+                        { '$owner.last_name$': like },
+                        { '$owner->student.student_code$': like }
                     ]
                 };
             }
 
             // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-        const documents = await Document.findAll({
+    const documents = await Document.findAll({
                 where: whereCondition,
                 attributes: [
             "documentId",
@@ -213,6 +218,52 @@ class DocumentService {
             };
         } catch (error) {
             logger.error('Error fetching documents:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ดึงเอกสารของผู้ใช้ตาม userId (สำหรับนักศึกษาเห็นของตนเอง)
+     * @param {number} userId
+     * @param {object} options { type?: string }
+     */
+    async getDocumentsByUser(userId, options = {}) {
+        try {
+            const { type, lettersOnly } = options;
+            const where = { userId };
+            if (type && type !== 'all') {
+                where.documentType = type.toLowerCase();
+            }
+            const rows = await Document.findAll({
+                where,
+                attributes: [
+                    'documentId','documentName','documentType','status','filePath','fileSize','mimeType','created_at','updated_at','reviewDate','reviewComment'
+                ],
+                order: [['created_at','DESC']]
+            });
+            let list = rows;
+            if (lettersOnly) {
+                const allow = new Set(['REQUEST_LETTER','ACCEPTANCE_LETTER','REFERRAL_LETTER']);
+                // แสดงเฉพาะที่มีอยู่จริงและอนุมัติแล้ว ไม่ auto-create อีกต่อไป
+                list = rows.filter(r => allow.has((r.documentName||'').toUpperCase()) && r.status === 'approved');
+            }
+            return list.map(r => ({
+                id: r.documentId,
+                documentId: r.documentId,
+                name: r.documentName,
+                type: r.documentType,
+                status: r.status,
+                filePath: r.filePath,
+                fileName: r.filePath ? require('path').basename(r.filePath) : null, // สร้างจาก path แทน (ไม่มีคอลัมน์ fileName)
+                fileSize: r.fileSize,
+                mimeType: r.mimeType,
+                createdAt: r.created_at,
+                updatedAt: r.updated_at,
+                reviewDate: r.reviewDate,
+                reviewComment: r.reviewComment,
+            }));
+        } catch (error) {
+            logger.error('Error in getDocumentsByUser:', error);
             throw error;
         }
     }
@@ -297,15 +348,19 @@ class DocumentService {
                 throw new Error('ไม่พบเอกสาร');
             }
 
+            // บันทึกเหตุผลลง reviewComment (คอลัมน์จริงในตาราง documents)
             await document.update({
                 status: 'rejected',
-                comment: reason || 'ไม่ได้ระบุเหตุผล',
+                reviewComment: reason || 'ไม่ได้ระบุเหตุผล',
                 reviewerId: reviewerId,
                 reviewDate: new Date()
             });
 
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);
-            return { message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว' };
+            return { 
+                message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว',
+                reviewComment: document.reviewComment
+            };
         } catch (error) {
             logger.error('Error rejecting document:', error);
             throw error;
@@ -574,6 +629,271 @@ class DocumentService {
             };
         } catch (error) {
             logger.error('Error in getCertificateRequests service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ดึงรายละเอียดคำขอหนังสือรับรองเดียว (สำหรับ Admin ตรวจสอบก่อนอนุมัติ)
+     * รวม: นักศึกษา, การฝึกงาน (เบื้องต้น), eligibility snapshot, evaluation (ถ้ามี)
+     */
+    async getCertificateRequestDetail(requestId) {
+        try {
+            const { InternshipCertificateRequest, Internship, InternshipEvaluation, InternshipDocument } = require('../models');
+
+            const request = await InternshipCertificateRequest.findByPk(requestId, {
+                include: [
+                    {
+                        model: Student,
+                        as: 'student',
+                        attributes: ['studentId', 'studentCode', 'phoneNumber'],
+                        include: [
+                            { model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }
+                        ]
+                    },
+                ]
+            });
+            if (!request) throw new Error('ไม่พบคำขอหนังสือรับรอง');
+
+            // ดึงข้อมูล internship หลัก + รายละเอียดจาก internship_documents
+            let internshipInfo = null;
+            let internshipDoc = null; // จากตาราง internship_documents (InternshipDocument model)
+            try {
+                if (Internship && request.internshipId) {
+                    internshipInfo = await Internship.findByPk(request.internshipId);
+                }
+            } catch (e) {
+                logger.warn('ไม่สามารถดึงข้อมูล Internship เพิ่มเติม:', e.message);
+            }
+            try {
+                if (InternshipDocument && request.internshipId) {
+                    internshipDoc = await InternshipDocument.findOne({ where: { internshipId: request.internshipId } });
+                }
+            } catch (e) {
+                logger.warn('ไม่สามารถดึงข้อมูล InternshipDocument:', e.message);
+            }
+
+            // ดึงข้อมูลการประเมินล่าสุดจาก InternshipEvaluation
+            let evaluationRecord = null;
+            try {
+                if (InternshipEvaluation) {
+                    evaluationRecord = await InternshipEvaluation.findOne({
+                        where: { studentId: request.studentId },
+                        order: [['evaluationDate', 'DESC']],
+                    });
+                }
+            } catch (e) {
+                logger.warn('ไม่สามารถดึงข้อมูลการประเมิน (InternshipEvaluation):', e.message);
+            }
+
+            const overallScore = evaluationRecord?.overallScore != null ? Number(evaluationRecord.overallScore) : null;
+            const passScore = 70; // ปรับเป็น 70 ตามเกณฑ์ที่ระบบใช้ (TODO: ย้ายไป config ภายหลัง)
+            let evaluationPassed = false;
+            if (typeof overallScore === 'number') {
+                evaluationPassed = overallScore >= passScore;
+            } else if (evaluationRecord?.passFail) {
+                evaluationPassed = evaluationRecord.passFail.toLowerCase() === 'pass';
+            } else if (evaluationRecord?.supervisorPassDecision != null) {
+                evaluationPassed = !!evaluationRecord.supervisorPassDecision;
+            } else {
+                evaluationPassed = request.evaluationStatus === 'completed';
+            }
+
+            // สร้าง breakdown จาก evaluationItems หรือคะแนนหมวด
+            let breakdown = [];
+            try {
+                if (evaluationRecord?.evaluationItems) {
+                    const parsed = JSON.parse(evaluationRecord.evaluationItems);
+                    if (Array.isArray(parsed)) {
+                        const categoryLabels = {
+                            discipline: 'วินัยและความรับผิดชอบ',
+                            behavior: 'พฤติกรรมและการปฏิบัติตน',
+                            performance: 'ผลงาน / คุณภาพงาน',
+                            method: 'วิธีการ / ทักษะการทำงาน',
+                            relation: 'มนุษยสัมพันธ์ / การทำงานร่วมกัน'
+                        };
+                        const categoryCounts = {};
+                        breakdown = parsed.map((it, idx) => {
+                            const catKey = it.category || 'misc';
+                            categoryCounts[catKey] = (categoryCounts[catKey] || 0) + 1;
+                            const sequence = categoryCounts[catKey];
+                            const base = categoryLabels[it.category] || it.category || `หัวข้อที่ ${idx+1}`;
+                            const label = it.label || (sequence > 1 ? `${base} (#${sequence})` : base);
+                            const score = it.score != null ? Number(it.score) : null;
+                            const max = it.max != null ? Number(it.max) : null;
+                            let percent = null;
+                            if (typeof score === 'number' && typeof max === 'number' && max > 0) {
+                                percent = Number(((score / max) * 100).toFixed(2));
+                            }
+                            return {
+                                key: it.id || (it.category ? `${it.category}-${it.item || idx}` : `item-${idx}`),
+                                label,
+                                category: it.category || null,
+                                categoryLabel: base,
+                                index: idx + 1,
+                                sequence, // ลำดับภายในหมวด
+                                score,
+                                max,
+                                percent,
+                                weight: it.weight != null ? Number(it.weight) : null,
+                                comment: it.comment || it.notes || null,
+                                raw: it // เก็บ raw เผื่อ debug ภายหลัง
+                            };
+                        });
+                    }
+                } else if (
+                    evaluationRecord && (
+                        evaluationRecord.disciplineScore != null ||
+                        evaluationRecord.behaviorScore != null ||
+                        evaluationRecord.performanceScore != null ||
+                        evaluationRecord.methodScore != null ||
+                        evaluationRecord.relationScore != null
+                    )
+                ) {
+                    const cat = (label, field, key) => evaluationRecord[field] != null ? ({ key, label, score: Number(evaluationRecord[field]), max: null }) : null;
+                    breakdown = [
+                        cat('วินัยและความรับผิดชอบ', 'disciplineScore', 'discipline'),
+                        cat('พฤติกรรมและการปฏิบัติตน', 'behaviorScore', 'behavior'),
+                        cat('ผลงาน / คุณภาพงาน', 'performanceScore', 'performance'),
+                        cat('วิธีการ / ทักษะการทำงาน', 'methodScore', 'method'),
+                        cat('มนุษยสัมพันธ์ / การทำงานร่วมกัน', 'relationScore', 'relation'),
+                    ].filter(Boolean);
+                }
+            } catch (e) {
+                logger.warn('แปลง evaluationItems ล้มเหลว:', e.message);
+            }
+
+            const fullName = request.student ? `${request.student.user.firstName} ${request.student.user.lastName}` : null;
+
+            const detail = {
+                id: request.id,
+                status: request.status,
+                requestDate: request.requestDate,
+                certificateNumber: request.certificateNumber,
+                student: {
+                    studentId: request.student?.studentId,
+                    studentCode: request.student?.studentCode,
+                    fullName,
+                    email: request.student?.user?.email || null,
+                    phone: request.student?.phoneNumber || null,
+                    internshipPosition: internshipDoc?.internshipPosition || null, // ตำแหน่งที่ฝึกงาน
+                },
+                internship: {
+                    companyName: internshipDoc?.companyName || internshipInfo?.companyName || null,
+                    location: internshipDoc?.companyAddress || internshipInfo?.province || null, // ใช้ address เป็นที่ตั้ง
+                    startDate: internshipDoc?.startDate || internshipInfo?.startDate || null,
+                    endDate: internshipDoc?.endDate || internshipInfo?.endDate || null,
+                    totalHours: request.totalHours,
+                    internshipId: request.internshipId || internshipDoc?.internshipId || null,
+                },
+                eligibility: {
+                    hours: { current: Number(request.totalHours), required: 240, passed: Number(request.totalHours) >= 240 },
+                    evaluation: {
+                        status: request.evaluationStatus,
+                        overallScore,
+                        passScore,
+                        passed: evaluationPassed
+                    },
+                    // summary เดิม (JSON) เปลี่ยนใช้สำหรับตรวจว่าพร้อมสร้าง PDF หรือไม่
+                    summary: { available: request.summaryStatus === 'submitted' }
+                },
+                evaluationDetail: {
+                    overallScore,
+                    passScore,
+                    passed: evaluationPassed,
+                    submittedAt: evaluationRecord?.evaluationDate || null,
+                    updatedAt: evaluationRecord?.updated_at || null,
+                    evaluatorName: evaluationRecord?.evaluatorName || null,
+                    strengths: evaluationRecord?.strengths || null,
+                    weaknessesToImprove: evaluationRecord?.weaknessesToImprove || null,
+                    additionalComments: evaluationRecord?.additionalComments || null,
+                    breakdown
+                }
+            };
+
+            return detail;
+        } catch (error) {
+            logger.error('Error in getCertificateRequestDetail service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ดึงสรุปภาพรวมการฝึกงาน (summary) สำหรับ admin
+     */
+    async getInternshipSummary(internshipId) {
+        try {
+            const { Internship, InternshipEvaluation, InternshipCertificateRequest } = require('../models');
+            const internship = Internship ? await Internship.findByPk(internshipId) : null;
+            if (!internship) throw new Error('ไม่พบข้อมูลการฝึกงาน');
+
+            // ดึง evaluation ล่าสุด
+            let evaluation = null;
+            if (InternshipEvaluation) {
+                evaluation = await InternshipEvaluation.findOne({ where: { internshipId }, order: [['evaluationDate', 'DESC']] });
+            }
+            let breakdown = [];
+            if (evaluation?.evaluationItems) {
+                try {
+                    const parsed = JSON.parse(evaluation.evaluationItems);
+                    if (Array.isArray(parsed)) {
+                        breakdown = parsed.map((it, idx) => ({
+                            key: it.category ? `${it.category}-${idx}` : `item-${idx}`,
+                            category: it.category || null,
+                            label: it.label || it.category || `หัวข้อที่ ${idx+1}`,
+                            score: it.score ?? null,
+                            max: it.max ?? null,
+                        }));
+                    }
+                } catch (e) {}
+            }
+
+            // หา certificate request ล่าสุดเพื่อดึง totalHours
+            let certificateReq = null;
+            if (InternshipCertificateRequest) {
+                certificateReq = await InternshipCertificateRequest.findOne({ where: { internshipId }, order: [['requestDate','DESC']] });
+            }
+
+            return {
+                internshipId,
+                companyName: internship.companyName || null,
+                period: { startDate: internship.startDate, endDate: internship.endDate },
+                totalHours: certificateReq?.totalHours || null,
+                evaluation: evaluation ? {
+                    overallScore: evaluation.overallScore,
+                    evaluatorName: evaluation.evaluatorName,
+                    evaluationDate: evaluation.evaluationDate,
+                    passed: evaluation.passFail ? evaluation.passFail.toLowerCase() === 'pass' : null,
+                    strengths: evaluation.strengths,
+                    weaknessesToImprove: evaluation.weaknessesToImprove,
+                    additionalComments: evaluation.additionalComments,
+                    breakdown
+                } : null,
+                updatedAt: new Date()
+            };
+        } catch (error) {
+            logger.error('Error in getInternshipSummary service:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 🆕 ดึงข้อมูล summary logbook (full) + buffer PDF (เลือกได้) สำหรับ admin
+     * @param {number} internshipId
+     * @param {object} options { pdf?: boolean }
+     */
+    async getInternshipLogbookSummary(internshipId, options = {}) {
+        const { pdf = false } = options;
+        try {
+            const summaryFull = await require('./internshipLogbookService').getInternshipSummaryByInternshipId(internshipId);
+            if (!summaryFull) throw new Error('ไม่พบข้อมูลสรุปบันทึกฝึกงาน');
+            let pdfBuffer = null;
+            if (pdf) {
+                pdfBuffer = await require('./internshipLogbookService').generateInternshipSummaryPDF(summaryFull);
+            }
+            return { summaryFull, pdfBuffer };
+        } catch (error) {
+            logger.error('Error in getInternshipLogbookSummary service:', error);
             throw error;
         }
     }

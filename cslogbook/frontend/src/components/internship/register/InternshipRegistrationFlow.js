@@ -380,14 +380,12 @@ const InternshipRegistrationFlow = () => {
             <Space direction="vertical" style={{ width: "100%" }}>
               <div>
                 <Text strong>เจ้าหน้าที่ภาควิชา:</Text>
-                <div>คุณสมชาย ใจดี</div>
-                <div>
-                  <PhoneOutlined /> 02-555-0000 ต่อ 1234
-                </div>
+                <div>นายนที ปัญญาประสิทธิ์</div>
+                <div><PhoneOutlined /> 02-555-2000 ต่อ 4602</div>
               </div>
               <div>
                 <Text strong>อีเมล:</Text>
-                <div>internship@university.ac.th</div>
+                <div>natee.p@sci.kmutnb.ac.th</div>
               </div>
             </Space>
           </Card>
@@ -461,7 +459,7 @@ const InternshipRegistrationFlow = () => {
                 description={
                   <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
                     <li>กรุณาตรวจสอบข้อมูลให้ถูกต้องก่อนส่ง เนื่องจากจะไม่สามารถแก้ไขได้หลังจากส่งแล้ว</li>
-                    <li>การฝึกงานต้องมีระยะเวลาอย่างน้อย 60 วัน</li>
+                    <li>การฝึกงานต้องมีระยะเวลาอย่างน้อย 40 วัน หรือ 240 ชั่วโมง</li>
                     <li>หากฝึกงาน 2 คน นักศึกษาทั้งคู่ต้องอยู่ในสาขาเดียวกัน</li>
                     <li>นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิต</li>
                   </ul>

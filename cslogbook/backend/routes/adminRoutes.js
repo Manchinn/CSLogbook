@@ -48,10 +48,18 @@ router.get('/documents/:id/download', adminAuth, documentController.downloadDocu
 // ✅ เพิ่ม Certificate Management Routes ใหม่
 // === เพิ่ม Certificate Management Routes ===
 router.get('/certificate-requests', adminAuth, documentController.getCertificateRequests);
+router.get('/certificate-requests/:requestId/detail', adminAuth, documentController.getCertificateRequestDetail);
 router.post('/certificate-requests/:requestId/approve', adminAuth, documentController.approveCertificateRequest);
 router.post('/certificate-requests/:requestId/reject', adminAuth, documentController.rejectCertificateRequest);
 router.get('/certificate-requests/:requestId/download', adminAuth, documentController.downloadCertificateForAdmin);
 router.post('/notify-student', adminAuth, documentController.notifyStudent);
+
+// ✅ Internship Summary (Admin)
+router.get('/internships/:internshipId/summary', adminAuth, documentController.getInternshipSummary);
+// 🆕 Full logbook summary & PDF (admin)
+router.get('/internships/:internshipId/logbook-summary', adminAuth, documentController.getInternshipLogbookSummary);
+router.get('/internships/:internshipId/logbook-summary/pdf', adminAuth, documentController.previewInternshipLogbookSummaryPDF);
+router.get('/internships/:internshipId/logbook-summary/pdf/download', adminAuth, documentController.downloadInternshipLogbookSummaryPDF);
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
