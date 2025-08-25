@@ -419,7 +419,7 @@ const OriginalDocumentManagement = ({ type }) => {
             title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
           />
         </Card>
-      </Space>
+      
 
       {/* Modal แสดงรายละเอียดเอกสาร */}
       <DocumentDetails
