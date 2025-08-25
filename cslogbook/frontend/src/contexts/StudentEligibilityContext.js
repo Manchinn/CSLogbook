@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { message } from 'antd';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 import { useAuth } from './AuthContext';
 
 const StudentEligibilityContext = createContext();
@@ -55,10 +55,7 @@ export const StudentEligibilityProvider = ({ children }) => {
     setEligibility(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/students/check-eligibility`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  const response = await apiClient.get('/students/check-eligibility');
 
       if (response.data.success) {
         console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS):', response.data); // <--- LOG HERE

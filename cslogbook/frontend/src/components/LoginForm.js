@@ -3,11 +3,11 @@ import { Form, Input, Button, Typography, message, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 import './LoginForm.css';
 
 const { Title, Text } = Typography;
-const API_URL = process.env.REACT_APP_API_URL;
+// ใช้ apiClient (baseURL + interceptors) แทนการเรียก axios ตรง
 
 const LoginForm = () => {
   const [loading, setLoading] = useState(false);
@@ -24,12 +24,7 @@ const LoginForm = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-        const response = await axios.post(`${API_URL}/auth/login`, values, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            timeout: 15000  // Add timeout
-        });
+  const response = await apiClient.post('/auth/login', values);
 
         console.log('Login response:', response.data);  // Debug log
 
@@ -56,11 +51,11 @@ const LoginForm = () => {
             }
         }
     } catch (error) {
-        console.error('Login error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
+    console.error('Login error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
 
         // Activate the shake animation on error
         setErrorShake(true);

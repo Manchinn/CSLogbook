@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 
 export const useInternshipStatus = () => {
   const [status, setStatus] = useState([]);
@@ -7,11 +7,7 @@ export const useInternshipStatus = () => {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('/api/internship/status', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+  const response = await apiClient.get('/internship/status');
       setStatus(response.data);
     } catch (error) {
       console.error('Error fetching status:', error);
