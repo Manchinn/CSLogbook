@@ -18,7 +18,9 @@ const LoginForm = () => {
   const [form] = Form.useForm();
 
   // ดึง path ที่ user พยายามจะเข้าถึง
-  const from = location.state?.from?.pathname || "/admin/";
+  // กำหนด default redirect หลัง login: ให้เป็น /dashboard แทน /admin/
+  // เดิม hard-coded เป็น /admin/ ทำให้ผู้ใช้ทั่วไป (ที่ไม่ได้มาจาก protected route ที่ส่ง state) ถูกพาไปหน้า admin
+  const from = location.state?.from?.pathname || "/dashboard";
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
@@ -49,13 +51,8 @@ const LoginForm = () => {
             if (loginSuccess) {
                 message.success('เข้าสู่ระบบสำเร็จ');
                 
-                // เพิ่มเงื่อนไขเฉพาะ admin
-                if (userData.role === 'admin') {
-                    navigate('/admin/dashboard');
-                } else {
-                    // ถ้าเป็น roles อื่น (teacher, student) ใช้ path เดิม
-                    navigate(from);
-                }
+                // นำทางไป path ที่ตั้งใจเดิม (ถ้ามี) ไม่เช่นนั้นไป /dashboard (landing รวม)
+                navigate(from);
             }
         }
     } catch (error) {

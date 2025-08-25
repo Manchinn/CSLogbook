@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
@@ -37,9 +37,11 @@ import ApproveDocuments from './components/teacher/ApproveDocuments';
 
 const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    // ส่ง state.from เพื่อให้ LoginForm รู้ว่าต้องกลับไปหน้าเดิม (ถ้ามี)
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // ตรวจสอบ roles
