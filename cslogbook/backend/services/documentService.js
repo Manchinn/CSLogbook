@@ -137,7 +137,7 @@ class DocumentService {
             const { type, status, search } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
-            // สร้าง query condition
+            // สร้าง query condition พื้นฐาน
             let whereCondition = {};
 
             if (type && type !== 'all') {
@@ -148,18 +148,23 @@ class DocumentService {
                 whereCondition.status = status;
             }
 
-            // ถ้ามี search ให้ค้นหาในชื่อเอกสารหรือชื่อนักศึกษา
+            // ถ้ามี search ให้ค้นหาหลายเขตข้อมูล (ชื่อเอกสาร + ชื่อนักศึกษา + รหัส)
             if (search) {
+                const like = { [Op.like]: `%${search}%` };
+                // ใช้ชื่อคอลัมน์จริง (snake_case) ภายใน path $alias.field$ เพื่อหลีกเลี่ยง error Unknown column
                 whereCondition = {
                     ...whereCondition,
                     [Op.or]: [
-                        { documentName: { [Op.like]: `%${search}%` } }
+                        { documentName: like },
+                        { '$owner.first_name$': like },
+                        { '$owner.last_name$': like },
+                        { '$owner->student.student_code$': like }
                     ]
                 };
             }
 
             // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-        const documents = await Document.findAll({
+    const documents = await Document.findAll({
                 where: whereCondition,
                 attributes: [
             "documentId",

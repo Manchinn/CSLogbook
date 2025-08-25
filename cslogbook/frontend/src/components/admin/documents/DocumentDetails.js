@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Tabs } from 'antd';
 import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
-import moment from 'moment';
+import dayjs from '../../../utils/dayjs'; // ใช้ dayjs ที่ตั้งค่า timezone + BE
 import { documentService } from '../../../services/admin/documentService';
 import PDFViewerModal from '../../PDFViewerModal';
 import CS05Preview from './CS05Preview';
@@ -12,7 +12,6 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false); // เพิ่ม state สำหรับควบคุมการแสดง PDF
   const [pdfUrl, setPdfUrl] = useState(null); // เพิ่ม state สำหรับเก็บ URL ของ PDF
   const [activeTab, setActiveTab] = useState('details');
@@ -98,50 +97,16 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     }
   };
 
-  const renderFileList = () => {
-    if (!details || !details.files || details.files.length === 0) {
-      return <Text type="secondary">ไม่พบไฟล์แนบ</Text>;
-    }
-
-    return (
-      <List
-        itemLayout="horizontal"
-        dataSource={details.files}
-        renderItem={(file) => (
-          <List.Item
-            actions={[
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={() => handleDownload(file.url, file.name)}
-              >
-                ดาวน์โหลด
-              </Button>,
-              <Button
-                type="primary"
-                onClick={() => {
-                  setSelectedFile(file);
-                  handleViewPDF(file.url); // เรียกใช้ฟังก์ชัน handleViewPDF
-                }}
-              >
-                ดูเอกสาร
-              </Button>
-            ]}
-          >
-            <List.Item.Meta
-              avatar={<Avatar icon={<FilePdfOutlined />} />}
-              title={file.name}
-              description={
-                <Space direction="vertical" size={0}>
-                  <Text type="secondary">ประเภท: {file.type || 'ไม่ระบุ'}</Text>
-                  <Text type="secondary">อัปโหลดเมื่อ: {moment(file.upload_date).format('DD/MM/YYYY HH:mm')}</Text>
-                </Space>
-              }
-            />
-          </List.Item>
-        )}
-      />
-    );
+  // ฟังก์ชัน format วันที่/เวลา (แปลงเป็น พ.ศ.)
+  const formatDateTime = (date) => {
+    if (!date) return 'ไม่ระบุ';
+    const d = dayjs(date);
+    if (!d.isValid()) return 'ไม่ระบุ';
+    const buddhistYear = d.year() + 543; // plugin บางครั้งอาจไม่ครอบ format YYYY จึงบวกเองเพื่อความชัวร์
+    return d.format(`DD/MM/`) + `${buddhistYear} ` + d.format('HH:mm');
   };
+
+  // (ลบ renderFileList เดิมที่ไม่ถูกใช้งานแล้ว)
 
   const renderDetailSection = () => {
     if (!details) return null;
@@ -183,23 +148,30 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
   
   // ย้ายส่วนแสดงรายละเอียดทั่วไปไปยังฟังก์ชันใหม่
   const renderBasicDetails = (data) => {
+    // แปลชื่อเอกสารเป็นภาษาไทยตาม mapping ใหม่
+    const mapName = (name) => {
+      const upper = (name || '').toUpperCase();
+      if (upper === 'CS05') return 'คำร้องขอฝึกงาน (คพ.05)';
+      if (upper === 'ACCEPTANCE_LETTER') return 'หนังสือตอบรับการฝึกงาน';
+      return name || 'ไม่ระบุ';
+    };
+    const displayName = mapName(data.documentName);
+  const submittedAt = data.submittedAt || data.submitted_at || data.created_at;
+    const fileName = data.filePath ? data.filePath.split('\\').pop() : null;
+    const fileSizeMB = data.fileSize ? (data.fileSize / 1024 / 1024) : null;
     return (
-      <Card 
-        title={<Title level={4}>รายละเอียดเอกสาร {data.documentName}</Title>} 
+      <Card
+        title={<Title level={4} style={{ margin: 0 }}>รายละเอียดเอกสาร: {displayName}</Title>}
         variant="outlined"
         className="detail-card"
       >
         <Row gutter={[24, 16]}>
           <Col xs={24} md={12}>
-            <Paragraph><strong>ID:</strong> {data.documentId}</Paragraph>
-            <Paragraph><strong>ชื่อเอกสาร:</strong> {data.documentName || 'ไม่ระบุ'}</Paragraph>
-            <Paragraph><strong>ประเภทเอกสาร:</strong> {data.documentType === 'INTERNSHIP' ? 'เอกสารฝึกงาน' : data.documentType}</Paragraph>
-            <Paragraph><strong>หมวดหมู่:</strong> {data.category || 'ไม่ระบุ'}</Paragraph>
+            <Paragraph><strong>ชื่อเอกสาร:</strong> {displayName}</Paragraph>
           </Col>
           <Col xs={24} md={12}>
-            <Paragraph><strong>วันที่สร้าง:</strong> {moment(data.created_at).format('DD/MM/YYYY HH:mm')}</Paragraph>
+            <Paragraph><strong>วันที่ส่ง:</strong> {formatDateTime(submittedAt)}</Paragraph>
             <Paragraph><strong>สถานะ:</strong> {renderStatus(data.status)}</Paragraph>
-            <Paragraph><strong>วันที่อัปเดต:</strong> {data.updated_at ? moment(data.updated_at).format('DD/MM/YYYY HH:mm') : 'ไม่ระบุ'}</Paragraph>
           </Col>
         </Row>
 
@@ -209,20 +181,19 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
             <Title level={5}>ข้อมูลไฟล์</Title>
             <Row gutter={[24, 16]}>
               <Col xs={24} md={12}>
-                <Paragraph><strong>ชื่อไฟล์:</strong> {data.filePath.split('\\').pop() || 'ไม่ระบุ'}</Paragraph>
-                <Paragraph><strong>ประเภทไฟล์:</strong> {data.mimeType || 'ไม่ระบุ'}</Paragraph>
+                <Paragraph><strong>ชื่อไฟล์:</strong> {fileName || 'ไม่ระบุ'}</Paragraph>
+                <Paragraph><strong>ขนาดไฟล์:</strong> {fileSizeMB ? `${fileSizeMB.toFixed(fileSizeMB >= 1 ? 2 : 3)} MB` : 'ไม่ระบุ'}</Paragraph>
               </Col>
               <Col xs={24} md={12}>
-                <Paragraph><strong>ขนาดไฟล์:</strong> {data.fileSize ? `${(data.fileSize / 1024 / 1024).toFixed(2)} MB` : 'ไม่ระบุ'}</Paragraph>
                 <Space>
-                  <Button 
+                  <Button
                     type="primary"
                     icon={<DownloadOutlined />}
-                    onClick={() => handleDownload(`/api/admin/documents/${data.documentId}/download`, data.filePath.split('\\').pop())}
+                    onClick={() => handleDownload(`/api/admin/documents/${data.documentId}/download`, fileName)}
                   >
                     ดาวน์โหลดไฟล์
                   </Button>
-                  <Button 
+                  <Button
                     type="default"
                     icon={<EyeOutlined />}
                     onClick={handleViewPDF}
@@ -243,7 +214,6 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
           <Text type="secondary">ไม่มีหมายเหตุ</Text>
         )}
 
-        {/* ถ้าข้อมูล API มี files แสดง files ถ้าไม่มีไม่ต้องแสดงส่วนนี้ */}
         {data.files && data.files.length > 0 && (
           <>
             <Divider style={{ margin: '12px 0' }} />
@@ -251,24 +221,27 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
             <List
               itemLayout="horizontal"
               dataSource={data.files}
-              renderItem={(file) => (
-                <List.Item
-                  actions={[
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={() => handleDownload(file.url, file.name)}
-                    >
-                      ดาวน์โหลด
-                    </Button>
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={<Avatar icon={<FilePdfOutlined />} />}
-                    title={file.name}
-                    description={`ประเภท: ${file.type}`}
-                  />
-                </List.Item>
-              )}
+              renderItem={(file) => {
+                const sizeLabel = file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : undefined;
+                return (
+                  <List.Item
+                    actions={[
+                      <Button
+                        icon={<DownloadOutlined />}
+                        onClick={() => handleDownload(file.url, file.name)}
+                      >
+                        ดาวน์โหลด
+                      </Button>
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={<Avatar icon={<FilePdfOutlined />} />}
+                      title={file.name}
+                      description={sizeLabel ? `ขนาด: ${sizeLabel}` : null}
+                    />
+                  </List.Item>
+                );
+              }}
             />
           </>
         )}

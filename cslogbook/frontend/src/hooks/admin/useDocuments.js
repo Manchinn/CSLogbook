@@ -28,7 +28,9 @@ export function useDocuments(options = {}) {
     setIsError(false);
     setError(null);
     try {
-      const data = await documentService.getDocuments({ type, status, search });
+  // แปลงค่าสถานะว่างให้เป็น all เพื่อรองรับ backend filter
+  const normalizedStatus = status === '' ? 'all' : status;
+  const data = await documentService.getDocuments({ type, status: normalizedStatus, search });
       setDocuments(data.documents || []);
       setStatistics({
         total: data.documents.length,

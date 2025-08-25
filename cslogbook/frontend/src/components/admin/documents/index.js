@@ -69,15 +69,15 @@ const DocumentManagement = ({ type }) => {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           items={tabItems}
           size="large"
         />
-      </Card>
+      </Space>
     </div>
   );
 };
@@ -140,22 +140,27 @@ const OriginalDocumentManagement = ({ type }) => {
 
   // กรองเอกสารตามเงื่อนไข
   const filteredDocuments = useMemo(() => {
-    return documents.filter(
-      (doc) =>
-        (filters.status === "" || doc.status === filters.status) &&
-        (
-          doc.document_name
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
-          doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())
-        ) /* &&
-        (
-          documentType === "" ||
-          doc.document_type
-            ?.toLowerCase()
-            .includes(documentType.toLowerCase())
-        ) */
-    );
+    // helper แปลชื่อไฟล์เพื่อใช้ในการค้นหาด้วย (ไทย + เดิม)
+    const searchLower = filters.search.toLowerCase();
+    const translate = (name) => {
+      if (!name) return '';
+      const upper = name.toUpperCase();
+      if (upper === 'CS05') return 'คำร้องขอฝึกงาน (คพ.05)';
+      if (upper === 'ACCEPTANCE_LETTER') return 'หนังสือตอบรับการฝึกงาน';
+      return name;
+    };
+    return documents.filter((doc) => {
+      if (filters.status !== '' && doc.status !== filters.status) return false;
+      const original = doc.document_name?.toLowerCase() || '';
+      const translated = translate(doc.document_name).toLowerCase();
+      const student = doc.student_name?.toLowerCase() || '';
+      const matchSearch =
+        searchLower === '' ||
+        original.includes(searchLower) ||
+        translated.includes(searchLower) ||
+        student.includes(searchLower);
+      return matchSearch;
+    });
   }, [documents, filters]);
 
   // คอลัมน์ตาราง
@@ -165,11 +170,18 @@ const OriginalDocumentManagement = ({ type }) => {
         title: "เอกสาร",
         dataIndex: "document_name",
         key: "document_name",
-        render: (text, record) => (
-          <Button type="link" onClick={() => showDocumentDetails(record.id)}>
-            {text}
-          </Button>
-        ),
+        render: (text, record) => {
+          // แปลชื่อเอกสารเป็นภาษาไทยตามที่ร้องขอ
+          const upper = (text || '').toUpperCase();
+          let display = text;
+          if (upper === 'CS05') display = 'คำร้องขอฝึกงาน (คพ.05)';
+          else if (upper === 'ACCEPTANCE_LETTER') display = 'หนังสือตอบรับการฝึกงาน';
+          return (
+            <Button type="link" onClick={() => showDocumentDetails(record.id)}>
+              {display}
+            </Button>
+          );
+        },
       },
       {
         title: "ชื่อนักศึกษา",
@@ -284,117 +296,110 @@ const OriginalDocumentManagement = ({ type }) => {
 
   // JSX
   return (
-    <div className="admin-document-container" style={{ padding: "24px" }}>
-      <Card>
-        {/* ส่วนแสดงสถิติ */}
-        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-          <Col>
-            <Space size="large">
-              <Space>
-                <FileTextOutlined
-                  style={{ fontSize: "24px", color: "#1890ff" }}
-                />
-                <Text>เอกสารทั้งหมด: {statistics.total}</Text>
+    // ปรับ layout ให้สอดคล้องกับ SupportStaffDashboard (ใช้ maxWidth + Space ด้านนอก)
+    <div className="admin-document-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Card>
+          {/* ส่วนแสดงสถิติ */}
+          <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+            <Col>
+              <Space size="large">
+                <Space>
+                  <FileTextOutlined style={{ fontSize: "24px", color: "#1890ff" }} />
+                  <Text>เอกสารทั้งหมด: {statistics.total}</Text>
+                </Space>
+                <Space>
+                  <FileExclamationOutlined style={{ fontSize: "24px", color: "#fa8c16" }} />
+                  <Text>รอตรวจสอบ: {statistics.pending}</Text>
+                </Space>
+                <Space>
+                  <FileDoneOutlined style={{ fontSize: "24px", color: "#52c41a" }} />
+                  <Text>อนุมัติแล้ว: {statistics.approved}</Text>
+                </Space>
+                <Space>
+                  <CloseCircleOutlined style={{ fontSize: "24px", color: "#f5222d" }} />
+                  <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
+                </Space>
               </Space>
-              <Space>
-                <FileExclamationOutlined
-                  style={{ fontSize: "24px", color: "#fa8c16" }}
-                />
-                <Text>รอตรวจสอบ: {statistics.pending}</Text>
-              </Space>
-              <Space>
-                <FileDoneOutlined
-                  style={{ fontSize: "24px", color: "#52c41a" }}
-                />
-                <Text>อนุมัติแล้ว: {statistics.approved}</Text>
-              </Space>
-              <Space>
-                <CloseCircleOutlined
-                  style={{ fontSize: "24px", color: "#f5222d" }}
-                />
-                <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
-              </Space>
-            </Space>
-          </Col>
-        </Row>
+            </Col>
+          </Row>
 
-        {/* ส่วนตัวกรอง (สไตล์เดียวกับหนังสือรับรอง) */}
-        <Row gutter={[16, 16]} style={{ marginBottom: "16px" }} align="middle">
-          <Col xs={24} md={12}>
-            <Input
-              placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
-              value={filters.search}
-              onChange={(e) => setSearchText(e.target.value)}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Space size="small" wrap>
-              <Select
-                size="small"
-                style={{ width: 160 }}
-                placeholder="สถานะ"
-                options={[
-                  { label: "ทั้งหมด", value: "" },
-                  { label: "รอตรวจสอบ", value: "pending" },
-                  { label: "อนุมัติแล้ว", value: "approved" },
-                  { label: "ปฏิเสธแล้ว", value: "rejected" },
-                ]}
-                value={filters.status}
-                onChange={setStatusFilter}
+          {/* ส่วนตัวกรอง */}
+          <Row gutter={[16, 16]} style={{ marginBottom: "16px" }} align="middle">
+            <Col xs={24} md={12}>
+              <Input
+                placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
+                value={filters.search}
+                onChange={(e) => setSearchText(e.target.value)}
+                prefix={<SearchOutlined />}
                 allowClear
               />
-              <Button icon={<ReloadOutlined />} onClick={refetch}>
-                รีเฟรช
-              </Button>
-        {filters.status === "pending" && (
-                <>
-          <Tooltip title={`ตรวจและส่งต่อที่เลือก (${selectedRowKeys.length})`}>
-                    <Button
-            type="primary"
-                      onClick={handleApproveSelectedDocuments}
-                      disabled={selectedRowKeys.length === 0}
-            icon={<CheckCircleOutlined />}
-                      size="small"
-                    >
-            ตรวจและส่งต่อที่เลือก
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
-                    <Button
-                      danger
-                      onClick={openRejectModal}
-                      disabled={selectedRowKeys.length === 0}
-                      icon={<CloseCircleOutlined />}
-                      size="small"
-                    >
-                      ปฏิเสธที่เลือก
-                    </Button>
-                  </Tooltip>
-                </>
-              )}
-            </Space>
-          </Col>
-        </Row>
+            </Col>
+            <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Space size="small" wrap>
+                <Select
+                  size="small"
+                  style={{ width: 160 }}
+                  placeholder="สถานะ"
+                  options={[
+                    { label: "ทั้งหมด", value: "" },
+                    { label: "รอตรวจสอบ", value: "pending" },
+                    { label: "อนุมัติแล้ว", value: "approved" },
+                    { label: "ปฏิเสธแล้ว", value: "rejected" },
+                  ]}
+                  value={filters.status}
+                  onChange={setStatusFilter}
+                  allowClear
+                />
+                <Button icon={<ReloadOutlined />} onClick={refetch}>รีเฟรช</Button>
+                {filters.status === "pending" && (
+                  <>
+                    <Tooltip title={`ตรวจและส่งต่อที่เลือก (${selectedRowKeys.length})`}>
+                      <Button
+                        type="primary"
+                        onClick={handleApproveSelectedDocuments}
+                        disabled={selectedRowKeys.length === 0}
+                        icon={<CheckCircleOutlined />}
+                        size="small"
+                      >
+                        ตรวจและส่งต่อที่เลือก
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
+                      <Button
+                        danger
+                        onClick={openRejectModal}
+                        disabled={selectedRowKeys.length === 0}
+                        icon={<CloseCircleOutlined />}
+                        size="small"
+                      >
+                        ปฏิเสธที่เลือก
+                      </Button>
+                    </Tooltip>
+                  </>
+                )}
+              </Space>
+            </Col>
+          </Row>
 
-        {/* ส่วนตาราง */}
-        <Table
-          loading={isLoading}
-          rowSelection={filters.status === "pending" ? rowSelection : null}
-          columns={columns}
-          dataSource={filteredDocuments}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50"],
-            showTotal: (total) => `ทั้งหมด ${total} รายการ`,
-          }}
-          bordered
-          title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
-        />
-      </Card>
+          {/* ตารางเอกสาร */}
+          <Table
+            loading={isLoading}
+            rowSelection={filters.status === "pending" ? rowSelection : null}
+            columns={columns}
+            dataSource={filteredDocuments}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50"],
+              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+            }}
+            bordered
+            title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
+          />
+        </Card>
+      </Space>
 
       {/* Modal แสดงรายละเอียดเอกสาร */}
       <DocumentDetails

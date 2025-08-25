@@ -5,8 +5,8 @@ import {
   Row, Col, Card, Typography, Tooltip, Drawer, Select
 } from 'antd';
 import {
-  CheckCircleOutlined, CloseCircleOutlined, DownloadOutlined,
-  EyeOutlined, BellOutlined, FileTextOutlined, FileExclamationOutlined, FileDoneOutlined
+  CheckCircleOutlined, CloseCircleOutlined,
+  EyeOutlined, FileTextOutlined, FileExclamationOutlined, FileDoneOutlined
 } from '@ant-design/icons';
 import certificateService from '../../../services/certificateService'; // ✅ ใช้ service ใหม่
 import CertificateRequestReview from './CertificateRequestReview';
@@ -65,9 +65,6 @@ const CertificateManagement = () => {
       await fetchCertificateRequests();
       setModalVisible(false);
       
-      // ส่งอีเมลแจ้งเตือนนักศึกษา
-      await notifyStudent(selectedRequest.studentId, 'approved', certificateNumber);
-      
     } catch (error) {
       console.error('Error approving request:', error);
       message.error('ไม่สามารถอนุมัติคำขอได้');
@@ -87,9 +84,6 @@ const CertificateManagement = () => {
       await fetchCertificateRequests();
       setModalVisible(false);
       
-      // ส่งอีเมลแจ้งเตือนนักศึกษา
-      await notifyStudent(selectedRequest.studentId, 'rejected', null, remarks);
-      
     } catch (error) {
       console.error('Error rejecting request:', error);
       message.error('ไม่สามารถปฏิเสธคำขอได้');
@@ -98,31 +92,7 @@ const CertificateManagement = () => {
     }
   };
 
-  // ดาวน์โหลดหนังสือรับรอง
-  const downloadCertificate = async (requestId) => {
-    try {
-      await certificateService.downloadCertificateForAdmin(requestId); // ✅ ใช้ admin route
-      message.success('ดาวน์โหลดหนังสือรับรองเรียบร้อยแล้ว');
-    } catch (error) {
-      console.error('Error downloading certificate:', error);
-      message.error('ไม่สามารถดาวน์โหลดหนังสือรับรองได้');
-    }
-  };
-
-  // ส่งการแจ้งเตือนให้นักศึกษา
-  const notifyStudent = async (studentId, status, certificateNumber = null, remarks = null) => {
-    try {
-      await certificateService.notifyStudent( // ✅ ใช้ admin route
-        studentId, 
-        'certificate_status', 
-        status, 
-        certificateNumber, 
-        remarks
-      );
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  };
+  // (ถอด) ฟังก์ชัน downloadCertificate / notifyStudent ไม่ใช้แล้วหลังนำปุ่มออก
 
   // สร้างหมายเลขหนังสือรับรอง
   const generateCertificateNumber = () => {
@@ -185,7 +155,8 @@ const CertificateManagement = () => {
     {
       title: 'การดำเนินการ',
       key: 'actions',
-      width: 200,
+      width: 160,
+      // เอาเฉพาะ ดูรายละเอียด / อนุมัติ / ปฏิเสธ ตามที่ร้องขอ (ถอด ดาวน์โหลด & ส่งการแจ้งเตือน)
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="ดูรายละเอียด">
@@ -226,33 +197,6 @@ const CertificateManagement = () => {
               </Tooltip>
             </>
           )}
-          
-          {record.status === 'approved' && (
-            <Tooltip title="ดาวน์โหลดหนังสือรับรอง">
-              <Button
-                type="default"
-                size="small"
-                icon={<DownloadOutlined />}
-                onClick={() => downloadCertificate(record.id)}
-              />
-            </Tooltip>
-          )}
-          
-          <Tooltip title="ส่งการแจ้งเตือน">
-            <Button
-              type="default"
-              size="small"
-              icon={<BellOutlined />}
-              onClick={() => {
-                notifyStudent(
-                  record.studentId, 
-                  record.status, 
-                  record.certificateNumber
-                );
-                message.success('ส่งการแจ้งเตือนแล้ว');
-              }}
-            />
-          </Tooltip>
         </Space>
       ),
     },
