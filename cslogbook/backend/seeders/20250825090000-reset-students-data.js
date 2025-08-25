@@ -50,8 +50,6 @@ module.exports = {
       // 2. ลบตามลำดับจาก child -> parent (หลีกเลี่ยง FK constraint)
       // ใช้ raw SQL เพื่อล้างเร็ว (MySQL assumed). ถ้าใช้ DB อื่นปรับคำสั่ง
       const tablesInOrder = [
-        'internship_logbook_attachments',
-        'internship_logbook_revisions',
         'internship_logbook_reflections',
         'internship_logbooks',
         'internship_evaluations',
