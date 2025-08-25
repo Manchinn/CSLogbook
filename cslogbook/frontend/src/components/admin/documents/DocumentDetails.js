@@ -39,22 +39,51 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
   }, [documentId]);
 
   const handleDownload = async (fileUrl, fileName) => {
+    // แก้ปัญหาไฟล์ว่าง: ใช้ fetch + Authorization header และบันทึก blob เป็นไฟล์จริง
+    const targetUrl = fileUrl || `/api/admin/documents/${documentId}/download`;
     try {
-      // สร้างลิงก์ดาวน์โหลดโดยตรงโดยใช้ path ที่ถูกต้อง
-      const downloadUrl = `/api/admin/documents/${documentId}/download`;
-      
-      // สร้าง element a แล้วจำลองการคลิก
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName || 'document.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      message.success('กำลังดาวน์โหลดไฟล์');
+      const token = localStorage.getItem('token');
+      const res = await fetch(targetUrl, {
+        method: 'GET',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+
+      if (!res.ok) {
+        throw new Error(`Download failed: ${res.status}`);
+      }
+
+      // พยายามดึงชื่อไฟล์จาก Content-Disposition หากมี
+      const disposition = res.headers.get('content-disposition');
+      let finalName = fileName || 'document.pdf';
+      if (disposition && disposition.includes('filename')) {
+        const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+        const raw = match ? (match[1] || match[2]) : null;
+        if (raw) {
+          try {
+            finalName = decodeURIComponent(raw);
+          } catch {
+            finalName = raw;
+          }
+        }
+      }
+
+      const blob = await res.blob();
+      if (blob.size === 0) {
+        throw new Error('Empty file blob');
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      message.success('ดาวน์โหลดไฟล์สำเร็จ');
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
       console.error('Error downloading file:', error);
+      message.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
     }
   };
 
