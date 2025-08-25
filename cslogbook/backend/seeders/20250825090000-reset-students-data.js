@@ -55,10 +55,7 @@ module.exports = {
         'internship_evaluations',
         'internship_documents',
         'document_logs',
-        'project_documents',
-        'project_members',
         'student_workflow_activities',
-        'student_progresses',
         'timeline_steps',
   'documents'
       ];

@@ -31,8 +31,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",
     "@sendgrid/mail": "^8.1.4",
-    "@tanstack/react-query": "^5.72.0",
-    "@tanstack/react-query-devtools": "^5.72.0",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
@@ -54,7 +52,6 @@
     "nodemailer": "^6.9.16",
     "pdfkit": "^0.17.1",
     "pg": "^8.13.3",
-    "react-pdf": "^7.7.1",
     "sequelize": "^6.37.6",
     "sequelize-cli": "^6.6.2",
     "socket.io": "^4.8.0",

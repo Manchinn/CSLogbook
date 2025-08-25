@@ -331,8 +331,10 @@ const StudentTimeline = () => {
           </Col>
         </Row>
       </div>
+      
       {studentSearchModal}
     </InternshipStatusProvider>
+    
   );
 };
 

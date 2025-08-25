@@ -138,29 +138,25 @@ const OriginalDocumentManagement = ({ type }) => {
     setSelectedDocumentId(null);
   }, []);
 
-  // กรองเอกสารตามเงื่อนไข
+  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร
   const filteredDocuments = useMemo(() => {
-    // helper แปลชื่อไฟล์เพื่อใช้ในการค้นหาด้วย (ไทย + เดิม)
-    const searchLower = filters.search.toLowerCase();
-    const translate = (name) => {
-      if (!name) return '';
-      const upper = name.toUpperCase();
-      if (upper === 'CS05') return 'คำร้องขอฝึกงาน (คพ.05)';
-      if (upper === 'ACCEPTANCE_LETTER') return 'หนังสือตอบรับการฝึกงาน';
-      return name;
-    };
-    return documents.filter((doc) => {
-      if (filters.status !== '' && doc.status !== filters.status) return false;
-      const original = doc.document_name?.toLowerCase() || '';
-      const translated = translate(doc.document_name).toLowerCase();
-      const student = doc.student_name?.toLowerCase() || '';
-      const matchSearch =
-        searchLower === '' ||
-        original.includes(searchLower) ||
-        translated.includes(searchLower) ||
-        student.includes(searchLower);
-      return matchSearch;
-    });
+    return documents.filter(
+      (doc) =>
+        // เงื่อนไขกรองตามสถานะ (ถ้าเลือก "ทั้งหมด" จะผ่านทุกสถานะ)
+        (filters.status === "" || doc.status === filters.status) &&
+        (
+          doc.document_name
+            ?.toLowerCase()
+            .includes(filters.search.toLowerCase()) ||
+          doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())
+        ) /* &&
+        (
+          documentType === "" ||
+          doc.document_type
+            ?.toLowerCase()
+            .includes(documentType.toLowerCase())
+        ) */
+    );
   }, [documents, filters]);
 
   // คอลัมน์ตาราง
@@ -296,33 +292,57 @@ const OriginalDocumentManagement = ({ type }) => {
 
   // JSX
   return (
-    // ปรับ layout ให้สอดคล้องกับ SupportStaffDashboard (ใช้ maxWidth + Space ด้านนอก)
-    <div className="admin-document-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Card>
-          {/* ส่วนแสดงสถิติ */}
-          <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-            <Col>
-              <Space size="large">
-                <Space>
-                  <FileTextOutlined style={{ fontSize: "24px", color: "#1890ff" }} />
-                  <Text>เอกสารทั้งหมด: {statistics.total}</Text>
-                </Space>
-                <Space>
-                  <FileExclamationOutlined style={{ fontSize: "24px", color: "#fa8c16" }} />
-                  <Text>รอตรวจสอบ: {statistics.pending}</Text>
-                </Space>
-                <Space>
-                  <FileDoneOutlined style={{ fontSize: "24px", color: "#52c41a" }} />
-                  <Text>อนุมัติแล้ว: {statistics.approved}</Text>
-                </Space>
-                <Space>
-                  <CloseCircleOutlined style={{ fontSize: "24px", color: "#f5222d" }} />
-                  <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
-                </Space>
+    <div className="admin-document-container" style={{ padding: "24px" }}>
+      <Card>
+        {/* ส่วนแสดงสถิติ */}
+        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+          <Col>
+            <Space size="large">
+              {/* เอกสารทั้งหมด */}
+              <Space>
+                <FileTextOutlined
+                  style={{ fontSize: "24px", color: "#1890ff" }}
+                />
+                <Text>เอกสารทั้งหมด: {statistics.total}</Text>
               </Space>
-            </Col>
-          </Row>
+              {/* เพิ่มประเภทเอกสาร CS05 */}
+              <Space>
+                <FileTextOutlined
+                  style={{ fontSize: "24px", color: "#722ed1" }}
+                />
+                <Text>CS05 {statistics.cs05}</Text>
+              </Space>
+              {/* เพิ่มประเภทเอกสาร ACCEPTANCE_LETTER */}
+              <Space>
+                <FileTextOutlined
+                  style={{ fontSize: "24px", color: "#13c2c2" }}
+                />
+                <Text>Acceptance Letter: {statistics.acceptanceLetter}</Text>
+              </Space>
+              {/* เอกสารรอตรวจสอบ */}
+              <Space>
+                <FileExclamationOutlined
+                  style={{ fontSize: "24px", color: "#fa8c16" }}
+                />
+                <Text>รอตรวจสอบ: {statistics.pending}</Text>
+              </Space>
+              {/* เอกสารอนุมัติแล้ว */}
+              <Space>
+                <FileDoneOutlined
+                  style={{ fontSize: "24px", color: "#52c41a" }}
+                />
+                <Text>อนุมัติแล้ว: {statistics.approved}</Text>
+              </Space>
+              {/* เอกสารปฏิเสธแล้ว */}
+              <Space>
+                <CloseCircleOutlined
+                  style={{ fontSize: "24px", color: "#f5222d" }}
+                />
+                <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
+              </Space>
+            </Space>
+          </Col>
+        </Row>
 
           {/* ส่วนตัวกรอง */}
           <Row gutter={[16, 16]} style={{ marginBottom: "16px" }} align="middle">
@@ -399,7 +419,7 @@ const OriginalDocumentManagement = ({ type }) => {
             title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
           />
         </Card>
-      </Space>
+      
 
       {/* Modal แสดงรายละเอียดเอกสาร */}
       <DocumentDetails
