@@ -126,6 +126,19 @@ const getDocuments = async (req, res) => {
     }
 };
 
+// ดึงเอกสารของผู้ใช้ที่ล็อกอิน (นักศึกษา)
+const getMyDocuments = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+    const { type, lettersOnly } = req.query; // filter optional
+    const documents = await documentService.getDocumentsByUser(userId, { type, lettersOnly });
+        res.json({ success: true, documents });
+    } catch (error) {
+        logger.error('Error fetching my documents:', error);
+        res.status(500).json({ success: false, message: 'ไม่สามารถดึงเอกสารของคุณได้' });
+    }
+};
+
 // อนุมัติเอกสาร
 const approveDocument = async (req, res) => {
     try {
@@ -379,6 +392,14 @@ const approveCertificateRequest = async (req, res) => {
 const rejectCertificateRequest = async (req, res) => {
     try {
         const { requestId } = req.params;
+
+// Placeholder (ยังไม่ได้เปิดใช้ใน routes) สำหรับประวัติเอกสาร
+const getDocumentHistory = async (req, res) => {
+    return res.status(501).json({ success: false, message: 'ยังไม่ได้รองรับฟีเจอร์ประวัติเอกสาร' });
+};
+
+// Alias สำหรับความเข้ากันได้เดิม submitDocument -> uploadDocument
+const submitDocument = (req, res, next) => uploadDocument(req, res, next);
         const { remarks } = req.body;
         const processorId = req.user.userId;
 
@@ -391,6 +412,9 @@ const rejectCertificateRequest = async (req, res) => {
         res.json({
             success: true,
             message: 'ปฏิเสธคำขอเรียบร้อยแล้ว',
+
+    getDocumentHistory,
+    submitDocument,
             data: result,
         });
     } catch (error) {
@@ -536,4 +560,5 @@ module.exports = {
     getInternshipLogbookSummary,
     previewInternshipLogbookSummaryPDF,
     downloadInternshipLogbookSummaryPDF,
+    getMyDocuments,
 };

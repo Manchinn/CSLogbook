@@ -80,6 +80,7 @@ const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
+const documentsRoutes = require('./routes/documents/documentsRoutes'); // ✅ เพิ่ม documents routes สำหรับ student ใช้งาน
 const internshipRoutes = require('./routes/documents/internshipRoutes');
 const internshipCompanyStatsRoutes = require('./routes/internshipCompanyStatsRoutes');
 const logbookRoutes = require('./routes/documents/logbookRoutes');
@@ -254,7 +255,7 @@ app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes); // เพิ่ม academic routes
 //app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
 //app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
-//app.use('/api/documents', authenticateToken, documentsRoutes); // ใช้ route
+app.use('/api/documents', documentsRoutes); // ✅ เปิดใช้งาน documents (ภายในไฟล์ route มี authenticateToken เฉพาะ endpoint ที่จำเป็นอยู่แล้ว)
 //app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
 //app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
 

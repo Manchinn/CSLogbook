@@ -223,6 +223,52 @@ class DocumentService {
     }
 
     /**
+     * ดึงเอกสารของผู้ใช้ตาม userId (สำหรับนักศึกษาเห็นของตนเอง)
+     * @param {number} userId
+     * @param {object} options { type?: string }
+     */
+    async getDocumentsByUser(userId, options = {}) {
+        try {
+            const { type, lettersOnly } = options;
+            const where = { userId };
+            if (type && type !== 'all') {
+                where.documentType = type.toLowerCase();
+            }
+            const rows = await Document.findAll({
+                where,
+                attributes: [
+                    'documentId','documentName','documentType','status','filePath','fileSize','mimeType','created_at','updated_at','reviewDate','reviewComment'
+                ],
+                order: [['created_at','DESC']]
+            });
+            let list = rows;
+            if (lettersOnly) {
+                const allow = new Set(['REQUEST_LETTER','ACCEPTANCE_LETTER','REFERRAL_LETTER']);
+                // แสดงเฉพาะที่มีอยู่จริงและอนุมัติแล้ว ไม่ auto-create อีกต่อไป
+                list = rows.filter(r => allow.has((r.documentName||'').toUpperCase()) && r.status === 'approved');
+            }
+            return list.map(r => ({
+                id: r.documentId,
+                documentId: r.documentId,
+                name: r.documentName,
+                type: r.documentType,
+                status: r.status,
+                filePath: r.filePath,
+                fileName: r.filePath ? require('path').basename(r.filePath) : null, // สร้างจาก path แทน (ไม่มีคอลัมน์ fileName)
+                fileSize: r.fileSize,
+                mimeType: r.mimeType,
+                createdAt: r.created_at,
+                updatedAt: r.updated_at,
+                reviewDate: r.reviewDate,
+                reviewComment: r.reviewComment,
+            }));
+        } catch (error) {
+            logger.error('Error in getDocumentsByUser:', error);
+            throw error;
+        }
+    }
+
+    /**
      * อนุมัติเอกสาร
      */
     async approveDocument(documentId, reviewerId) {

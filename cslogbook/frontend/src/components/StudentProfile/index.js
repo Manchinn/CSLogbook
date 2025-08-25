@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, message, Spin, Form, Result, Button, Tabs } from "antd";
-import { calculateStudentYear } from "../../utils/studentUtils";
+import { calculateStudentYear } from "../../utils/studentUtils"; // อาจยังใช้ในไฟล์อื่นคงไว้
+import StudentDocumentsSection from './studentDocuments/StudentDocumentsSection';
 import { studentService } from "../../services/studentService";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
@@ -243,11 +244,7 @@ const StudentProfile = () => {
           <FileDoneOutlined /> เอกสาร
         </span>
       ),
-      children: (
-        <div className="documents-section">
-          <p>เอกสารของนักศึกษาจะแสดงในส่วนนี้</p>
-        </div>
-      ),
+  children: <StudentDocumentsSection studentId={student.studentId} />,
     },
   ];
 
