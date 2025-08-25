@@ -3,7 +3,7 @@ import { Card, Table, Tag, Space, Button, message, Tooltip } from 'antd';
 import { EyeOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from '../../../utils/dayjs';
 import { studentDocumentService } from './studentDocumentService';
-import PDFViewerModal from '../../PDFViewerModal';
+// ลบการใช้ PDFViewerModal (preview เปิดแท็บใหม่แทน)
 // ✅ นำเข้า service และ helper สำหรับสร้าง PDF แบบเดียวกับหน้า SubmissionResultStep
 import internshipService from '../../../services/internshipService';
 import { prepareFormDataForPDF } from '../../internship/register/helpers/pdfHelper';
@@ -50,7 +50,7 @@ const formatDate = (d) => {
 const StudentDocumentsSection = () => {
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState([]);
-  const [pdfModal, setPdfModal] = useState({ open: false, url: null });
+  // ไม่ใช้ modal แล้ว
   const [cs05Data, setCs05Data] = useState(null); // เก็บข้อมูล CS05 เพื่อใช้ generate PDF
   const [genLoadingId, setGenLoadingId] = useState(null); // track เอกสารที่กำลัง generate
 
@@ -60,19 +60,60 @@ const StudentDocumentsSection = () => {
       // 1) โหลดรายการเอกสาร
       const data = await studentDocumentService.listMyDocuments({ type: 'internship', lettersOnly: 1 });
       const docs = data.documents || [];
-      setDocuments(docs);
-
       // 2) โหลดข้อมูล CS05 (ครั้งแรกหรือเมื่อยังไม่มี)
-      if (!cs05Data) {
+      let latestCS05 = cs05Data;
+      if (!latestCS05) {
         try {
           const cs05Res = await internshipService.getCurrentCS05();
           if (cs05Res?.data) {
+            latestCS05 = cs05Res.data;
             setCs05Data(cs05Res.data);
           }
         } catch (err) {
           console.info('ไม่มีข้อมูล CS05 สำหรับการ prepare PDF');
         }
       }
+
+      // 3) สร้าง placeholder เอกสารที่ต้องมี (on-demand) ตามสถานะ CS05
+      const working = [...docs];
+      const has = (name) => working.some(d => (d.name || d.documentName) === name);
+      const cs05Status = latestCS05?.status;
+      const showLettersStatuses = new Set(['approved','letter_ready','letter_downloaded','acceptance_uploaded','acceptance_approved','referral_ready','referral_downloaded','completed']);
+      const showReferralStatuses = new Set(['acceptance_approved','referral_ready','referral_downloaded','completed']);
+
+      if (cs05Status && showLettersStatuses.has(cs05Status)) {
+        if (!has('REQUEST_LETTER')) {
+          working.push({
+            documentId: 'synthetic_REQUEST',
+            name: 'REQUEST_LETTER',
+            status: 'approved', // แสดงเป็นอนุมัติให้ใช้งานได้เลย (on-demand)
+            filePath: null,
+            createdAt: latestCS05?.approvedAt || latestCS05?.updatedAt || null
+          });
+        }
+        if (!has('ACCEPTANCE_LETTER')) {
+          working.push({
+            documentId: 'synthetic_ACCEPTANCE',
+            name: 'ACCEPTANCE_LETTER',
+            status: 'approved',
+            filePath: null,
+            createdAt: latestCS05?.approvedAt || latestCS05?.updatedAt || null
+          });
+        }
+      }
+      if (cs05Status && showReferralStatuses.has(cs05Status)) {
+        if (!has('REFERRAL_LETTER')) {
+          working.push({
+            documentId: 'synthetic_REFERRAL',
+            name: 'REFERRAL_LETTER',
+            status: 'approved',
+            filePath: null,
+            createdAt: latestCS05?.updatedAt || null
+          });
+        }
+      }
+
+      setDocuments(working);
     } catch (e) {
       console.error(e);
       message.error('โหลดรายการเอกสารไม่สำเร็จ');
@@ -95,16 +136,24 @@ const StudentDocumentsSection = () => {
     }
   }, [cs05Data]);
 
-  const openBlobInModal = (blob) => {
+  // เปิด blob ในแท็บใหม่ (กัน popup blocker โดยเปิดหน้าว่างก่อน)
+  const openBlobInNewTab = (blob) => {
+    const newWin = window.open('', '_blank');
     const url = URL.createObjectURL(blob);
-    setPdfModal({ open: true, url });
+    if (newWin) {
+      newWin.location = url;
+    } else {
+      // fallback
+      const a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.click();
+    }
   };
 
   const fetchAndOpenExisting = async (record) => {
     const res = await fetch(`/api/documents/${record.documentId || record.id}/view`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
     if (!res.ok) throw new Error('view failed');
     const blob = await res.blob();
-    openBlobInModal(blob);
+    openBlobInNewTab(blob);
   };
 
   // ✅ View: ถ้าไม่มีไฟล์ -> generate สดแล้วให้บราวเซอร์ดาวน์โหลด/แสดง (ไม่บันทึก server)
@@ -124,7 +173,7 @@ const StudentDocumentsSection = () => {
       if (record.name === 'REQUEST_LETTER') {
         await officialDocumentService.previewPDF('official_letter', pdfData);
       } else if (record.name === 'ACCEPTANCE_LETTER') {
-        // แบบฟอร์มตอบรับ (template ว่าง) -> preview
+        // กลับมาใช้ preview (blank form)
         await officialDocumentService.previewAcceptanceForm(null, true);
       } else if (record.name === 'REFERRAL_LETTER') {
         await officialDocumentService.previewPDF('referral_letter', pdfData);
@@ -198,12 +247,6 @@ const StudentDocumentsSection = () => {
       render: statusTag
     },
     {
-      title: 'วันที่สร้าง',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: formatDate
-    },
-    {
       title: 'การจัดการ',
       key: 'actions',
       render: (_, rec) => {
@@ -243,16 +286,6 @@ const StudentDocumentsSection = () => {
         locale={{ emptyText: 'ยังไม่มีเอกสารฝึกงาน' }}
         size="small"
       />
-      {pdfModal.open && (
-        <PDFViewerModal
-          visible={pdfModal.open}
-          pdfUrl={pdfModal.url}
-          onClose={() => {
-            if (pdfModal.url) URL.revokeObjectURL(pdfModal.url);
-            setPdfModal({ open: false, url: null });
-          }}
-        />
-      )}
     </Card>
   );
 };
