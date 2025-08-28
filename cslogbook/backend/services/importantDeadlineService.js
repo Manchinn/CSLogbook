@@ -48,11 +48,25 @@ function buildDeadlineAtFromLocal(dateStr, timeStr, timezone) {
   return new Date(d.toISOString()); // UTC
 }
 
+// แปลงช่วงเวลา (start/end) จาก local date+time -> UTC
+function buildWindowFromLocal(startDate, startTime, endDate, endTime, timezone) {
+  if (!startDate || !endDate) return {};
+  const start = buildDeadlineAtFromLocal(startDate, startTime || '00:00:00', timezone);
+  const end = buildDeadlineAtFromLocal(endDate, endTime || '23:59:59', timezone);
+  if (end < start) throw new Error('windowEndAt ต้องอยู่หลัง windowStartAt');
+  return { windowStartAt: start, windowEndAt: end };
+}
+
 // เพิ่มกำหนดการใหม่ (พร้อม validation + normalization + logging) รองรับ deadlineDate + deadlineTime
 exports.create = async (data) => {
   // priority: deadlineDate + deadlineTime > deadlineAt > date
-  const deadlineDate = data.deadlineDate || data.date; // date legacy
+  const deadlineDate = data.deadlineDate || data.date; // date legacy (single point)
   const deadlineTime = data.deadlineTime; // HH:mm หรือ HH:mm:ss
+  // ฟิลด์ช่วงเวลา (window) สามารถใช้เดี่ยวๆ ได้ (ถ้าไม่ระบุ deadline เดี่ยว)
+  const windowStartDate = data.windowStartDate;
+  const windowStartTime = data.windowStartTime;
+  const windowEndDate = data.windowEndDate;
+  const windowEndTime = data.windowEndTime;
 
   const payload = {
     name: data.name?.trim(),
@@ -70,10 +84,13 @@ exports.create = async (data) => {
     gracePeriodMinutes: data.gracePeriodMinutes ?? null,
     timezone: data.timezone || 'Asia/Bangkok'
   };
+  if (data.allDay !== undefined) payload.allDay = !!data.allDay;
 
   // Validation พื้นฐาน
   if (!payload.name) throw new Error('ต้องระบุชื่อกำหนดการ (name)');
-  if (!deadlineDate && !payload.deadlineAt) throw new Error('ต้องระบุ deadlineDate หรือ deadlineAt');
+  if (!deadlineDate && !payload.deadlineAt && !(windowStartDate && windowEndDate)) {
+    throw new Error('ต้องระบุ deadlineDate หรือ windowStartDate+windowEndDate');
+  }
   if (deadlineTime && !deadlineDate) throw new Error('ระบุเวลา (deadlineTime) ได้ก็ต่อเมื่อมี deadlineDate');
   if (!payload.relatedTo) throw new Error('ต้องระบุ relatedTo');
   if (!['internship','project','general'].includes(payload.relatedTo)) {
@@ -84,9 +101,19 @@ exports.create = async (data) => {
 
   try {
     if (deadlineDate) {
-      // ถ้าให้ local date/time ให้ override deadlineAt (priority สูงสุด)
       payload.deadlineAt = buildDeadlineAtFromLocal(deadlineDate, deadlineTime, payload.timezone);
-    } else if (!payload.deadlineAt) {
+    }
+    // window มาก่อนจะใช้เป็น default deadlineAt (จุดสิ้นสุด) ถ้าไม่ระบุ deadline เดี่ยว
+    if (windowStartDate && windowEndDate) {
+      Object.assign(payload, buildWindowFromLocal(windowStartDate, windowStartTime, windowEndDate, windowEndTime, payload.timezone));
+      if (!payload.deadlineAt) {
+        // ใช้ปลายช่วงเป็น deadline หลัก (windowEndAt)
+        payload.deadlineAt = payload.windowEndAt;
+        payload.date = windowEndDate; // sync legacy date เพื่อให้ order [['date']] ยังทำงาน
+      }
+      if (payload.allDay === undefined) payload.allDay = false;
+    }
+    if (!payload.deadlineAt) {
       throw new Error('ไม่สามารถคำนวณ deadlineAt ได้');
     }
     const created = await ImportantDeadline.create(payload);
@@ -105,20 +132,30 @@ exports.update = async (id, data) => {
   const incoming = { ...data };
   const deadlineDate = incoming.deadlineDate || incoming.date; // รองรับชื่อใหม่
   const deadlineTime = incoming.deadlineTime;
+  const windowStartDate = incoming.windowStartDate;
+  const windowStartTime = incoming.windowStartTime;
+  const windowEndDate = incoming.windowEndDate;
+  const windowEndTime = incoming.windowEndTime;
+  if (incoming.allDay !== undefined) incoming.allDay = !!incoming.allDay;
 
   if (incoming.deadlineAt) {
     incoming.deadlineAt = new Date(incoming.deadlineAt);
   }
 
   if (deadlineDate) {
-    // ถ้ามีการส่ง deadlineDate เข้ามา ให้คำนวณ deadlineAt ใหม่ (override)
     const tz = incoming.timezone || deadline.timezone || 'Asia/Bangkok';
     incoming.deadlineAt = buildDeadlineAtFromLocal(deadlineDate, deadlineTime, tz);
-    incoming.date = deadlineDate; // sync legacy
+    incoming.date = deadlineDate;
   } else if (!incoming.deadlineAt && incoming.date && !deadline.deadlineAt) {
-    // กรณี legacy: ให้ date แต่ไม่ได้ให้ deadlineAt และยังไม่มีใน row
     const local = new Date(`${incoming.date}T23:59:59+07:00`);
     incoming.deadlineAt = new Date(local.toISOString());
+  }
+  if (windowStartDate && windowEndDate) {
+    Object.assign(incoming, buildWindowFromLocal(windowStartDate, windowStartTime, windowEndDate, windowEndTime, incoming.timezone || deadline.timezone || 'Asia/Bangkok'));
+    if (!incoming.deadlineAt) {
+      incoming.deadlineAt = incoming.windowEndAt; // ตั้งค่า deadline หลักเป็นปลายช่วง
+      incoming.date = windowEndDate; // sync legacy
+    }
   }
 
   const resetFlags = handleDateChange(deadline, incoming);

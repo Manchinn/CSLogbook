@@ -96,6 +96,23 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             allowNull: true,
             field: 'grace_period_minutes'
+        },
+        // ช่วงเวลา (optional) สำหรับ event หลายวัน เช่น ช่วงสอบ
+        windowStartAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'window_start_at'
+        },
+        windowEndAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'window_end_at'
+        },
+        allDay: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'all_day'
         }
     }, {
         sequelize,

@@ -146,6 +146,27 @@ module.exports.getAllForStudent = async (req, res) => {
         obj.deadlineDate = `${local.getUTCFullYear()}-${pad(local.getUTCMonth()+1)}-${pad(local.getUTCDate())}`;
         obj.deadlineTime = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
       }
+      if (obj.windowStartAt && obj.windowEndAt) {
+        const startUtc = new Date(obj.windowStartAt);
+        const endUtc = new Date(obj.windowEndAt);
+        const pad = n => n.toString().padStart(2,'0');
+        const toLocalParts = (dt) => {
+          const l = new Date(dt.getTime() + 7*60*60*1000);
+          return {
+            date: `${l.getUTCFullYear()}-${pad(l.getUTCMonth()+1)}-${pad(l.getUTCDate())}`,
+            time: `${pad(l.getUTCHours())}:${pad(l.getUTCMinutes())}:${pad(l.getUTCSeconds())}`
+          };
+        };
+        const s = toLocalParts(startUtc);
+        const e = toLocalParts(endUtc);
+        obj.windowStartDate = s.date;
+        obj.windowStartTime = s.time;
+        obj.windowEndDate = e.date;
+        obj.windowEndTime = e.time;
+        obj.isWindow = true;
+      } else {
+        obj.isWindow = false;
+      }
       return obj;
     }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
   console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,academicYear:x.academicYear,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));

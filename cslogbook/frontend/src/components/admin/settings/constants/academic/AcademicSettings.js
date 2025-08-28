@@ -17,9 +17,7 @@ import {
   Tag,
   Alert,
   TimePicker,
-  Space,
-  Collapse,
-  Tooltip,
+  Collapse
 } from "antd";
 import { SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined, CalendarOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../../services/admin/settingsService";
@@ -43,19 +41,14 @@ import { Modal } from 'antd';
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
-const { Panel } = Collapse;
-const { TextArea } = Input;
+// ลบ Panel, TextArea ที่ไม่ได้ใช้งานเพื่อลด warning
 
 const AcademicSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
-  const [deadlines, setDeadlines] = useState({
-    semester1: [],
-    semester2: [],
-    semester3: []
-  });
+  // ลบ state deadlines ที่ไม่ได้ใช้แล้ว (backend-driven)
 
   // State สำหรับ modal และข้อมูลฟอร์มกำหนดการสำคัญ
   const [modalVisible, setModalVisible] = useState(false);
@@ -64,6 +57,13 @@ const AcademicSettings = () => {
     name: '',
     date: null,
     time: null, // moment สำหรับเวลา
+  // ฟิลด์ใหม่สำหรับช่วงเวลา (window)
+  useWindow: false,
+  windowStartDate: null,
+  windowStartTime: null,
+  windowEndDate: null,
+  windowEndTime: null,
+  allDay: false,
     relatedTo: 'general',
     semester: 1,
     academicYear: '',
@@ -120,6 +120,7 @@ const AcademicSettings = () => {
   useEffect(() => {
     fetchAndSetCurriculums();
     fetchAndSetSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCurriculumChange = (value) => {
@@ -148,45 +149,19 @@ const AcademicSettings = () => {
     }
   };
 
-  const addDeadline = (semester) => {
-    const newDeadline = {
-      id: Date.now(),
-      activity: '',
-      date: null,
-      time: null,
-      note: '',
-      type: 'project' // project, internship, general
-    };
-    
-    setDeadlines(prev => ({
-      ...prev,
-      [semester]: [...prev[semester], newDeadline]
-    }));
-  };
-
-  const removeDeadline = (semesterKey, deadlineId) => {
-    setDeadlines(prev => ({
-      ...prev,
-      [semesterKey]: prev[semesterKey].filter(d => d.id !== deadlineId)
-    }));
-  };
-
-  const updateDeadline = (semesterKey, deadlineId, field, value) => {
-    setDeadlines(prev => ({
-      ...prev,
-      [semesterKey]: prev[semesterKey].map(d => 
-        d.id === deadlineId ? { ...d, [field]: value } : d
-      )
-    }));
-  };
-
-  // ฟังก์ชันเปิด modal สำหรับเพิ่ม/แก้ไข
+  // เปิด modal เพิ่มกำหนดการใหม่
   const openAddDeadlineModal = (semester) => {
     setEditingDeadline(null);
     setDeadlineForm({
       name: '',
       date: null,
       time: null,
+      useWindow: false,
+      windowStartDate: null,
+      windowStartTime: null,
+      windowEndDate: null,
+      windowEndTime: null,
+      allDay: false,
       relatedTo: 'general',
       semester,
       academicYear: academicYear || '',
@@ -201,6 +176,12 @@ const AcademicSettings = () => {
       name: deadline.name,
       date: moment(deadline.deadlineDate || deadline.date),
       time: deadline.deadlineTime ? moment(deadline.deadlineTime, 'HH:mm:ss') : null,
+      useWindow: !!(deadline.windowStartDate && deadline.windowEndDate),
+      windowStartDate: deadline.windowStartDate ? moment(deadline.windowStartDate) : null,
+      windowStartTime: deadline.windowStartTime ? moment(deadline.windowStartTime, 'HH:mm:ss') : null,
+      windowEndDate: deadline.windowEndDate ? moment(deadline.windowEndDate) : null,
+      windowEndTime: deadline.windowEndTime ? moment(deadline.windowEndTime, 'HH:mm:ss') : null,
+      allDay: !!deadline.allDay,
       relatedTo: deadline.relatedTo,
       semester: deadline.semester,
       academicYear: deadline.academicYear,
@@ -223,10 +204,40 @@ const AcademicSettings = () => {
         deadlineDate: deadlineForm.date ? deadlineForm.date.format('YYYY-MM-DD') : null,
         deadlineTime: deadlineForm.time ? deadlineForm.time.format('HH:mm:ss') : undefined
       };
-      if (!payload.name || !payload.deadlineDate) {
-        setModalError('กรุณากรอกชื่อและวันที่');
+      if (!payload.name) {
+        setModalError('กรุณากรอกชื่อ');
         setModalLoading(false);
         return;
+      }
+      // ถ้าไม่ได้ใช้ช่วงเวลา -> ต้องมีวันที่เดี่ยว
+      if (!deadlineForm.useWindow && !payload.deadlineDate) {
+        setModalError('กรุณาเลือกวันที่ (หรือเปิดใช้ช่วงเวลา)');
+        setModalLoading(false);
+        return;
+      }
+      if (deadlineForm.useWindow) {
+        if (!deadlineForm.windowStartDate || !deadlineForm.windowEndDate) {
+          setModalError('กรุณาเลือกวันที่เริ่มและสิ้นสุดของช่วงเวลา');
+          setModalLoading(false);
+          return;
+        }
+        const start = moment(deadlineForm.windowStartDate.format('YYYY-MM-DD') + ' ' + (deadlineForm.allDay ? '00:00:00' : (deadlineForm.windowStartTime ? deadlineForm.windowStartTime.format('HH:mm:ss') : '00:00:00')));
+        const end = moment(deadlineForm.windowEndDate.format('YYYY-MM-DD') + ' ' + (deadlineForm.allDay ? '23:59:59' : (deadlineForm.windowEndTime ? deadlineForm.windowEndTime.format('HH:mm:ss') : '23:59:59')));
+        if (end.isBefore(start)) {
+          setModalError('วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น');
+          setModalLoading(false);
+          return;
+        }
+        payload.windowStartDate = deadlineForm.windowStartDate.format('YYYY-MM-DD');
+        payload.windowEndDate = deadlineForm.windowEndDate.format('YYYY-MM-DD');
+        if (!deadlineForm.allDay) {
+          if (deadlineForm.windowStartTime) payload.windowStartTime = deadlineForm.windowStartTime.format('HH:mm:ss');
+          if (deadlineForm.windowEndTime) payload.windowEndTime = deadlineForm.windowEndTime.format('HH:mm:ss');
+        }
+        payload.allDay = deadlineForm.allDay;
+  // เมื่อใช้ช่วงเวลา ไม่จำเป็นต้องส่ง deadlineDate/time ให้ backend สร้าง deadlineAt จากจุดสิ้นสุดเอง
+  payload.deadlineDate = null;
+  delete payload.deadlineTime;
       }
       if (editingDeadline) {
         await importantDeadlineService.updateDeadline(editingDeadline.id, payload);
@@ -677,10 +688,29 @@ const AcademicSettings = () => {
                       }
                     >
                       <Row gutter={16}>
-                        <Col span={12}><b>วันที่:</b> {moment(deadline.deadlineDate || deadline.date).add(543, 'year').format('D MMMM YYYY')}{deadline.deadlineTime ? ' เวลา ' + moment(deadline.deadlineTime, 'HH:mm:ss').format('HH:mm') + ' น.' : ''}</Col>
+                        {deadline.windowStartDate && deadline.windowEndDate ? (
+                          <Col span={12}>
+                            <b>ช่วง:</b>{' '}
+                            {moment(deadline.windowStartDate).add(543,'year').format('D MMM YYYY')} - {moment(deadline.windowEndDate).add(543,'year').format('D MMM YYYY')}
+                            {' '}
+                            {deadline.allDay ? (
+                              <Tag color="geekblue" style={{ marginLeft:4 }}>ทั้งวัน</Tag>
+                            ) : (
+                              <Tag color="blue" style={{ marginLeft:4 }}>
+                                {`${deadline.windowStartTime ? moment(deadline.windowStartTime,'HH:mm:ss').format('HH:mm') : '00:00'} - ${deadline.windowEndTime ? moment(deadline.windowEndTime,'HH:mm:ss').format('HH:mm') : '23:59'} น.`}
+                              </Tag>
+                            )}
+                          </Col>
+                        ) : (
+                          <Col span={12}>
+                            <b>วันที่:</b>{' '}
+                            {deadline.deadlineDate ? moment(deadline.deadlineDate).add(543,'year').format('D MMMM YYYY') : '-'}
+                            {deadline.deadlineTime ? ` เวลา ${moment(deadline.deadlineTime,'HH:mm:ss').format('HH:mm')} น.` : ''}
+                          </Col>
+                        )}
                         <Col span={12}><b>ประเภท:</b> {deadline.relatedTo === 'project' ? 'โครงงาน' : deadline.relatedTo === 'internship' ? 'ฝึกงาน' : 'ทั่วไป'}</Col>
                       </Row>
-                      <Row gutter={16}>
+                      <Row gutter={16} style={{ marginTop:4 }}>
                         <Col span={24}><b>ปีการศึกษา:</b> {deadline.academicYear}</Col>
                       </Row>
                     </Card>
@@ -724,25 +754,29 @@ const AcademicSettings = () => {
                 placeholder="เช่น วันสุดท้ายของยื่นสอบหัวข้อโครงงานพิเศษ"
               />
             </Form.Item>
-            <Form.Item label="วันที่" required>
-              <DatePicker
-                style={{ width: '100%' }}
-                value={deadlineForm.date}
-                onChange={date => setDeadlineForm({ ...deadlineForm, date })}
-                format={value => moment(value).add(543, 'year').format('D MMMM YYYY')}
-                locale={th_TH}
-                placeholder="เลือกวันที่"
-              />
-            </Form.Item>
-            <Form.Item label="เวลา (ไม่ระบุ = 23:59:59)">
-              <TimePicker
-                style={{ width: '100%' }}
-                value={deadlineForm.time}
-                onChange={time => setDeadlineForm({ ...deadlineForm, time })}
-                format="HH:mm"
-                placeholder="เลือกเวลา"
-              />
-            </Form.Item>
+            {!deadlineForm.useWindow && (
+              <>
+                <Form.Item label="วันที่ *" required>
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    value={deadlineForm.date}
+                    onChange={date => setDeadlineForm({ ...deadlineForm, date })}
+                    format={value => moment(value).add(543, 'year').format('D MMMM YYYY')}
+                    locale={th_TH}
+                    placeholder={'เลือกวันที่'}
+                  />
+                </Form.Item>
+                <Form.Item label="เวลา (ไม่ระบุ = 23:59:59)">
+                  <TimePicker
+                    style={{ width: '100%' }}
+                    value={deadlineForm.time}
+                    onChange={time => setDeadlineForm({ ...deadlineForm, time })}
+                    format="HH:mm"
+                    placeholder="เลือกเวลา"
+                  />
+                </Form.Item>
+              </>
+            )}
             <Form.Item label="ประเภทกิจกรรม">
               <Select
                 value={deadlineForm.relatedTo}
@@ -770,6 +804,67 @@ const AcademicSettings = () => {
                 placeholder="เช่น 2567"
               />
             </Form.Item>
+            <Divider orientation="left" plain>ช่วงเวลา (ถ้าต้องการ)</Divider>
+            <Row gutter={12}>
+              <Col span={6}>
+                <Form.Item label="ใช้ช่วงเวลา?">
+                  <Select value={deadlineForm.useWindow ? 'yes' : 'no'} onChange={v => setDeadlineForm({ ...deadlineForm, useWindow: v==='yes' })}>
+                    <Option value="no">ไม่ใช้</Option>
+                    <Option value="yes">ใช้</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              {deadlineForm.useWindow && (
+                <>
+                  <Col span={6}>
+                    <Form.Item label="ทั้งวัน?">
+                      <Select value={deadlineForm.allDay ? 'yes':'no'} onChange={v => setDeadlineForm({ ...deadlineForm, allDay: v==='yes' })}>
+                        <Option value="no">ไม่</Option>
+                        <Option value="yes">ใช่</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item label="เริ่ม (วัน)">
+                      <DatePicker 
+                        style={{ width:'100%' }} 
+                        value={deadlineForm.windowStartDate} 
+                        onChange={v => setDeadlineForm({ ...deadlineForm, windowStartDate: v })}
+                        format={value => value ? moment(value).add(543,'year').format('D MMM YYYY') : ''}
+                        locale={th_TH}
+                        placeholder="เลือกวันที่เริ่ม"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item label="สิ้นสุด (วัน)">
+                      <DatePicker 
+                        style={{ width:'100%' }} 
+                        value={deadlineForm.windowEndDate} 
+                        onChange={v => setDeadlineForm({ ...deadlineForm, windowEndDate: v })}
+                        format={value => value ? moment(value).add(543,'year').format('D MMM YYYY') : ''}
+                        locale={th_TH}
+                        placeholder="เลือกวันที่สิ้นสุด"
+                      />
+                    </Form.Item>
+                  </Col>
+                  {!deadlineForm.allDay && (
+                    <>
+                      <Col span={6}>
+                        <Form.Item label="เวลาเริ่ม">
+                          <TimePicker style={{ width:'100%' }} format="HH:mm" value={deadlineForm.windowStartTime} onChange={v => setDeadlineForm({ ...deadlineForm, windowStartTime: v })} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item label="เวลาสิ้นสุด">
+                          <TimePicker style={{ width:'100%' }} format="HH:mm" value={deadlineForm.windowEndTime} onChange={v => setDeadlineForm({ ...deadlineForm, windowEndTime: v })} />
+                        </Form.Item>
+                      </Col>
+                    </>
+                  )}
+                </>
+              )}
+            </Row>
             {modalError && <Alert type="error" message={modalError} />}
           </Form>
         </Modal>

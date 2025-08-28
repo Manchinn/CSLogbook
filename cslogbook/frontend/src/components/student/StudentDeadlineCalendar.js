@@ -24,9 +24,19 @@ export default function StudentDeadlineCalendar() {
   const dateMap = useMemo(() => {
     const map = {};
     deadlines.forEach(d => {
-      if (!d.deadlineDate) return;
-      if (!map[d.deadlineDate]) map[d.deadlineDate] = [];
-      map[d.deadlineDate].push(d);
+      // ขยายกรณีช่วง (window) ครอบทุกวันในช่วง
+      if (d.isWindow && d.windowStartDate && d.windowEndDate) {
+        const start = dayjs(`${d.windowStartDate} 00:00:00`);
+        const end = dayjs(`${d.windowEndDate} 23:59:59`);
+        for (let cur = start; cur.isBefore(end) || cur.isSame(end,'day'); cur = cur.add(1,'day')) {
+          const key = cur.format('YYYY-MM-DD');
+          if (!map[key]) map[key] = [];
+          map[key].push({ ...d, _rangePart: true });
+        }
+      } else if (d.deadlineDate) {
+        if (!map[d.deadlineDate]) map[d.deadlineDate] = [];
+        map[d.deadlineDate].push(d);
+      }
     });
     return map;
   }, [deadlines]);
@@ -35,19 +45,29 @@ export default function StudentDeadlineCalendar() {
     const dateKey = value.format('YYYY-MM-DD');
     const items = dateMap[dateKey] || [];
     if (!items.length) return null;
-    return items.map(item => {
+    // จัดเรียง: window ก่อน ตามเวลา/ชื่อ
+    const sorted = [...items].sort((a,b)=>{
+      if (a.isWindow && !b.isWindow) return -1;
+      if (!a.isWindow && b.isWindow) return 1;
+      const ta = a.deadlineTime || a.windowStartTime || '23:59:59';
+      const tb = b.deadlineTime || b.windowStartTime || '23:59:59';
+      return ta.localeCompare(tb);
+    });
+    return sorted.slice(0,4).map(item => {
       const local = item.deadlineDate && item.deadlineTime ? dayjs(`${item.deadlineDate} ${item.deadlineTime}`) : null;
       const st = computeDeadlineStatus(local, null, { isSubmitted:item.isSubmitted, isLate:item.isLate });
       const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange' };
       const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : 'processing');
+      const label = item.isWindow ? (item.allDay ? `${item.name || item.title} (ช่วง)` : `${item.name || item.title} (ช่วงเวลา)`) : (item.name || item.title);
       return (
         <div key={item.id} style={{ marginBottom:2 }}>
-          <Tooltip title={`${item.name || item.title} · ${local?local.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`}>
-            <Badge color={colorMap[st.code] || 'blue'} status={dotStatus} text={(item.name || item.title)} />
+          <Tooltip title={item.isWindow ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''}` : `${item.name || item.title} · ${local?local.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`}>
+            <Badge color={colorMap[st.code] || 'blue'} status={dotStatus} text={label} />
           </Tooltip>
         </div>
       );
     });
+    // ถ้าเกิน 4 รายการ สามารถเพิ่ม indicator เพิ่มเติมในอนาคต
   }
 
   const headerRender = ({ value, onChange }) => {
@@ -103,11 +123,17 @@ export default function StudentDeadlineCalendar() {
               {list.map(d => (
                 <div key={d.id} style={{ borderBottom:'1px solid #eee', padding:'8px 6px', display:'flex', flexDirection:'column', gap:4 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                    <strong>{d.name || d.title}</strong>
+                    <strong>{d.name || d.title}{d.isWindow ? (d.allDay ? ' (ช่วงทั้งวัน)' : ' (ช่วงเวลา)') : ''}</strong>
                     <DeadlineBadge deadline={d.deadline_at_local} isSubmitted={d.isSubmitted} isLate={d.isLate} submittedAt={d.submittedAtLocal} />
                   </div>
                   <div style={{ fontSize:12, opacity:0.8 }}>
-                    {d.deadline_th || (d.deadline_at_local ? d.deadline_at_local.format('D MMM BBBB เวลา HH:mm น.') : '—')}
+                    {d.isWindow ? (
+                      <>
+                        ช่วง: {dayjs(d.windowStartDate).format('D MMM BBBB')} - {dayjs(d.windowEndDate).format('D MMM BBBB')} {d.allDay ? '(ทั้งวัน)' : ''}
+                      </>
+                    ) : (
+                      d.deadline_th || (d.deadline_at_local ? d.deadline_at_local.format('D MMM BBBB เวลา HH:mm น.') : '—')
+                    )}
                   </div>
                   {d.description && <div style={{ fontSize:12 }}>{d.description}</div>}
                 </div>
