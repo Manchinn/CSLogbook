@@ -16,6 +16,11 @@ export default function useAllDeadlines({ academicYear, refreshIntervalMs = 5 * 
   const sendYear = academicYear && academicYear > 2500 ? academicYear - 543 : academicYear;
   const res = await studentService.getAllDeadlines(sendYear);
       const raw = Array.isArray(res) ? res : (res?.data || []);
+      if (process.env.NODE_ENV === 'development') {
+        // debug ช่วยตรวจว่าข้อมูลมาหรือไม่
+        // eslint-disable-next-line no-console
+        console.log('[useAllDeadlines] fetched', raw.length, 'items for year', academicYear, 'sendYear', sendYear, raw.slice(0,3));
+      }
       const list = raw.map(d => {
         const dt = d.deadlineDate && d.deadlineTime ? dayjs(`${d.deadlineDate} ${d.deadlineTime}`) : null;
         return {

@@ -136,6 +136,7 @@ module.exports.getAllForStudent = async (req, res) => {
   try {
     const { academicYear } = req.query; // พ.ศ.
     const all = await importantDeadlineService.getAll({ academicYear });
+  console.log('[getAllForStudent] raw count:', all.length, 'academicYear param:', academicYear);
     const enriched = all.map(d => {
       const obj = d.toJSON();
       if (obj.deadlineAt) {
@@ -147,6 +148,7 @@ module.exports.getAllForStudent = async (req, res) => {
       }
       return obj;
     }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
+  console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,academicYear:x.academicYear,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));
     res.json({ success: true, data: enriched });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

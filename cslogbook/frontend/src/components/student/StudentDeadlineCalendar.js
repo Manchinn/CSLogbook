@@ -10,6 +10,17 @@ export default function StudentDeadlineCalendar() {
   const [academicYear, setAcademicYear] = useState(currentYear);
   const { deadlines, loading } = useAllDeadlines({ academicYear });
 
+  // แบ่งกลุ่มตามระบบ
+  const grouped = useMemo(() => {
+    const g = { internship: [], project: [], general: [] };
+    deadlines.forEach(d => {
+      if (d.relatedTo === 'internship') g.internship.push(d);
+      else if (d.relatedTo === 'project') g.project.push(d);
+      else g.general.push(d);
+    });
+    return g;
+  }, [deadlines]);
+
   const dateMap = useMemo(() => {
     const map = {};
     deadlines.forEach(d => {
@@ -81,19 +92,29 @@ export default function StudentDeadlineCalendar() {
           <Tag color="green">ส่งแล้ว</Tag>
           <Tag color="orange">ส่งช้า</Tag>
         </div>
-        <Typography.Title level={5} style={{ marginTop: 0 }}>รายละเอียด</Typography.Title>
-        {deadlines.map(d => (
-          <div key={d.id} style={{ borderBottom:'1px solid #eee', padding:'8px 0', display:'flex', flexDirection:'column', gap:4 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-              <strong>{d.name || d.title}</strong>
-              <DeadlineBadge deadline={d.deadline_at_local} isSubmitted={d.isSubmitted} isLate={d.isLate} submittedAt={d.submittedAtLocal} />
+        <Typography.Title level={5} style={{ marginTop: 0 }}>รายละเอียด (จำแนกตามระบบ)</Typography.Title>
+        {['internship','project','general'].map(section => {
+          const list = grouped[section];
+          if (!list || !list.length) return null;
+          const labelMap = { internship: 'ระบบฝึกงาน', project: 'ระบบโครงงานพิเศษ', general: 'ทั่วไป / ภาพรวม' };
+          return (
+            <div key={section} style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, margin: '4px 0 8px' }}>{labelMap[section]} ({list.length})</div>
+              {list.map(d => (
+                <div key={d.id} style={{ borderBottom:'1px solid #eee', padding:'8px 6px', display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                    <strong>{d.name || d.title}</strong>
+                    <DeadlineBadge deadline={d.deadline_at_local} isSubmitted={d.isSubmitted} isLate={d.isLate} submittedAt={d.submittedAtLocal} />
+                  </div>
+                  <div style={{ fontSize:12, opacity:0.8 }}>
+                    {d.deadline_th || (d.deadline_at_local ? d.deadline_at_local.format('D MMM BBBB เวลา HH:mm น.') : '—')}
+                  </div>
+                  {d.description && <div style={{ fontSize:12 }}>{d.description}</div>}
+                </div>
+              ))}
             </div>
-            <div style={{ fontSize:12, opacity:0.8 }}>
-              {d.deadline_th || (d.deadline_at_local ? d.deadline_at_local.format('D MMM BBBB เวลา HH:mm น.') : '—')}
-            </div>
-            {d.description && <div style={{ fontSize:12 }}>{d.description}</div>}
-          </div>
-        ))}
+          );
+        })}
       </Card>
     </div>
   );

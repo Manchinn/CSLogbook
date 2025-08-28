@@ -13,15 +13,12 @@ function handleDateChange(deadlineInstance, newData) {
 exports.getAll = async (filter = {}) => {
   const where = {};
   if (filter.academicYear) {
-    const yearStr = String(filter.academicYear);
-    const yearNum = parseInt(yearStr, 10);
-    if (!isNaN(yearNum) && yearNum >= 2500) {
-      // รองรับกรณี frontend ส่งปี พ.ศ. แต่ DB เก็บ ค.ศ. หรือกลับกัน
-      const adYear = String(yearNum - 543);
-      where.academicYear = { [Op.in]: [yearStr, adYear] };
-    } else {
-      // ค.ศ. ปกติ
-      where.academicYear = yearStr;
+    const yearNum = parseInt(filter.academicYear, 10);
+    if (!isNaN(yearNum)) {
+      // สร้างชุดปีทั้งรูปแบบ ค.ศ. และ พ.ศ. เพื่อความยืดหยุ่น (ทนต่อข้อมูลปะปน)
+      const adYear = yearNum >= 2500 ? yearNum - 543 : yearNum; // ค.ศ.
+      const beYear = yearNum >= 2500 ? yearNum : yearNum + 543; // พ.ศ.
+      where.academicYear = { [Op.in]: [String(adYear), String(beYear)] };
     }
   }
   if (filter.semester) where.semester = filter.semester;
