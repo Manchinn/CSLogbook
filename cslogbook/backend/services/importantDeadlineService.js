@@ -1,4 +1,5 @@
 const { ImportantDeadline } = require('../models');
+const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 
 // Helper: ตรวจว่ามีการเปลี่ยนวัน deadline หรือไม่เพื่อ reset flag การแจ้งเตือน
@@ -11,7 +12,18 @@ function handleDateChange(deadlineInstance, newData) {
 // ดึงกำหนดการสำคัญทั้งหมด (สามารถกรองด้วยปีการศึกษา/ภาคเรียน)
 exports.getAll = async (filter = {}) => {
   const where = {};
-  if (filter.academicYear) where.academicYear = filter.academicYear;
+  if (filter.academicYear) {
+    const yearStr = String(filter.academicYear);
+    const yearNum = parseInt(yearStr, 10);
+    if (!isNaN(yearNum) && yearNum >= 2500) {
+      // รองรับกรณี frontend ส่งปี พ.ศ. แต่ DB เก็บ ค.ศ. หรือกลับกัน
+      const adYear = String(yearNum - 543);
+      where.academicYear = { [Op.in]: [yearStr, adYear] };
+    } else {
+      // ค.ศ. ปกติ
+      where.academicYear = yearStr;
+    }
+  }
   if (filter.semester) where.semester = filter.semester;
   return ImportantDeadline.findAll({ where, order: [['date', 'ASC']] });
 };

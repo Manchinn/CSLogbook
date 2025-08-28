@@ -20,6 +20,10 @@ router.get('/important-deadlines/upcoming',
   checkRole(['student']),
   importantDeadlineController.getUpcomingForStudent
 );
+router.get('/important-deadlines',
+  checkRole(['student']),
+  importantDeadlineController.getAllForStudent
+);
 
 // Admin routes
 router.post('/', 

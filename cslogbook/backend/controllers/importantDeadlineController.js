@@ -130,3 +130,25 @@ module.exports.getUpcomingForStudent = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// นักศึกษา: ดึง deadlines ทั้งหมดของปีการศึกษาปัจจุบัน (หรือทั้งหมดถ้าไม่ระบุ) สำหรับ calendar/progress
+module.exports.getAllForStudent = async (req, res) => {
+  try {
+    const { academicYear } = req.query; // พ.ศ.
+    const all = await importantDeadlineService.getAll({ academicYear });
+    const enriched = all.map(d => {
+      const obj = d.toJSON();
+      if (obj.deadlineAt) {
+        const utc = new Date(obj.deadlineAt);
+        const local = new Date(utc.getTime() + 7*60*60*1000);
+        const pad = n => n.toString().padStart(2,'0');
+        obj.deadlineDate = `${local.getUTCFullYear()}-${pad(local.getUTCMonth()+1)}-${pad(local.getUTCDate())}`;
+        obj.deadlineTime = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
+      }
+      return obj;
+    }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
+    res.json({ success: true, data: enriched });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};

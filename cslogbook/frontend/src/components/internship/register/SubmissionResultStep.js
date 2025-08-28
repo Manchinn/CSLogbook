@@ -514,7 +514,7 @@ const SubmissionResultStep = ({
 
       {/* Timeline แสดงขั้นตอนทั้งหมด */}
       <Card
-        title="ขั้นตอนการดำเนินการฝึกงาน (ทั้งหมด 7 ขั้นตอน)"
+        title="ขั้นตอนการดำเนินการฝึกงาน"
         extra={
           <Space>
             <Button
