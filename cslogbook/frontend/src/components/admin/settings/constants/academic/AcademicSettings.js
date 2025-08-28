@@ -63,6 +63,7 @@ const AcademicSettings = () => {
   const [deadlineForm, setDeadlineForm] = useState({
     name: '',
     date: null,
+    time: null, // moment สำหรับเวลา
     relatedTo: 'general',
     semester: 1,
     academicYear: '',
@@ -185,6 +186,7 @@ const AcademicSettings = () => {
     setDeadlineForm({
       name: '',
       date: null,
+      time: null,
       relatedTo: 'general',
       semester,
       academicYear: academicYear || '',
@@ -197,7 +199,8 @@ const AcademicSettings = () => {
     setEditingDeadline(deadline);
     setDeadlineForm({
       name: deadline.name,
-      date: moment(deadline.date),
+      date: moment(deadline.deadlineDate || deadline.date),
+      time: deadline.deadlineTime ? moment(deadline.deadlineTime, 'HH:mm:ss') : null,
       relatedTo: deadline.relatedTo,
       semester: deadline.semester,
       academicYear: deadline.academicYear,
@@ -212,10 +215,15 @@ const AcademicSettings = () => {
     setModalError('');
     try {
       const payload = {
-        ...deadlineForm,
-        date: deadlineForm.date ? deadlineForm.date.format('YYYY-MM-DD') : null
+        name: deadlineForm.name,
+        relatedTo: deadlineForm.relatedTo,
+        semester: deadlineForm.semester,
+        academicYear: deadlineForm.academicYear,
+        isGlobal: deadlineForm.isGlobal,
+        deadlineDate: deadlineForm.date ? deadlineForm.date.format('YYYY-MM-DD') : null,
+        deadlineTime: deadlineForm.time ? deadlineForm.time.format('HH:mm:ss') : undefined
       };
-      if (!payload.name || !payload.date) {
+      if (!payload.name || !payload.deadlineDate) {
         setModalError('กรุณากรอกชื่อและวันที่');
         setModalLoading(false);
         return;
@@ -669,7 +677,7 @@ const AcademicSettings = () => {
                       }
                     >
                       <Row gutter={16}>
-                        <Col span={12}><b>วันที่:</b> {moment(deadline.date).add(543, 'year').format('D MMMM YYYY')}</Col>
+                        <Col span={12}><b>วันที่:</b> {moment(deadline.deadlineDate || deadline.date).add(543, 'year').format('D MMMM YYYY')}{deadline.deadlineTime ? ' เวลา ' + moment(deadline.deadlineTime, 'HH:mm:ss').format('HH:mm') + ' น.' : ''}</Col>
                         <Col span={12}><b>ประเภท:</b> {deadline.relatedTo === 'project' ? 'โครงงาน' : deadline.relatedTo === 'internship' ? 'ฝึกงาน' : 'ทั่วไป'}</Col>
                       </Row>
                       <Row gutter={16}>
@@ -724,6 +732,15 @@ const AcademicSettings = () => {
                 format={value => moment(value).add(543, 'year').format('D MMMM YYYY')}
                 locale={th_TH}
                 placeholder="เลือกวันที่"
+              />
+            </Form.Item>
+            <Form.Item label="เวลา (ไม่ระบุ = 23:59:59)">
+              <TimePicker
+                style={{ width: '100%' }}
+                value={deadlineForm.time}
+                onChange={time => setDeadlineForm({ ...deadlineForm, time })}
+                format="HH:mm"
+                placeholder="เลือกเวลา"
               />
             </Form.Item>
             <Form.Item label="ประเภทกิจกรรม">

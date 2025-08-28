@@ -31,9 +31,12 @@ class DocumentService {
             let isLate = false; let lateMinutes = null;
             let dueDate = null;
             if (deadlineRecord) {
-                dueDate = new Date(deadlineRecord.date);
-                // grace period
-                if (deadlineRecord.gracePeriodMinutes) {
+                if (deadlineRecord.deadlineAt) {
+                    dueDate = new Date(deadlineRecord.deadlineAt);
+                } else if (deadlineRecord.date) {
+                    dueDate = new Date(`${deadlineRecord.date}T23:59:59+07:00`);
+                }
+                if (deadlineRecord.gracePeriodMinutes && dueDate) {
                     dueDate = new Date(dueDate.getTime() + deadlineRecord.gracePeriodMinutes * 60000);
                 }
                 if (submittedAt > dueDate) {

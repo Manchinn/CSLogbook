@@ -41,6 +41,17 @@ module.exports = (sequelize) => {
             defaultValue: true,
             field: 'is_global'
         },
+        // ใหม่: deadline ที่มีเวลา (UTC)
+        deadlineAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'deadline_at'
+        },
+        timezone: {
+            type: DataTypes.STRING(64),
+            allowNull: false,
+            defaultValue: 'Asia/Bangkok'
+        },
         // ฟิลด์ใหม่สำหรับระบบแจ้งเตือนและ policy
         description: {
             type: DataTypes.TEXT,
