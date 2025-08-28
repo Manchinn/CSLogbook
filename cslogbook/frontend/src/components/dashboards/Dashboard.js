@@ -28,6 +28,7 @@ import { adminService } from "../../services/adminService";
 import { teacherService } from "../../services/teacherService";
 import { studentService } from "../../services/studentService";
 import { getRoleTheme } from '../../utils/roleTheme';
+import useUpcomingDeadlines from '../../hooks/useUpcomingDeadlines';
 // moment removed (not used)
 
 function Dashboard() {
@@ -90,15 +91,6 @@ function Dashboard() {
     return (
       <div className="admin-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
-          <Alert
-            message={`สวัสดี ${userData.firstName} ${userData.lastName}`}
-            description="แดชบอร์ดผู้ดูแลระบบ"
-            type="info"
-            showIcon
-            className="common-alert-style"
-            style={{ borderLeft: `4px solid ${theme.primary}` }}
-          />
-
           <Row gutter={[16, 16]}>
             {statsCards.map((card, index) => (
               <Col xs={24} sm={8} key={index}>
@@ -218,6 +210,7 @@ function Dashboard() {
     const navigate = useNavigate();
     const [studentData, setStudentData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+  const { deadlines: upcomingDeadlines, loading: loadingDeadlines } = useUpcomingDeadlines({ days:7 });
 
     const studentCode = userData?.studentCode; // แยก primitive ให้ hook dependency ชัดเจน
     useEffect(() => {
@@ -245,14 +238,6 @@ function Dashboard() {
     return (
       <div className="student-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
-          <Alert
-            message={`สวัสดี ${userData.firstName} ${userData.lastName}`}
-            description={`รหัสนักศึกษา: ${userData.studentCode}`}
-            type="info"
-            showIcon
-            style={{ borderLeft: `4px solid ${theme.primary}` }}
-          />
-
           <Row gutter={[16, 16]}>
             {/* สถานะการฝึกงาน */}
             <Col xs={24} sm={12}>
@@ -331,6 +316,23 @@ function Dashboard() {
                   >
                     จัดการโครงงานพิเศษ
                   </Button>
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Card hoverable className="upcoming-deadlines-card" style={{ height: '100%' }} title={<Space><ClockCircleOutlined /> กำหนดส่งใกล้ถึง</Space>}>
+                {loadingDeadlines ? 'กำลังโหลด...' : (
+                  upcomingDeadlines.length ? upcomingDeadlines.slice(0,5).map(d => (
+                    <div key={d.id} style={{ marginBottom:8 }}>
+                      <Space direction="vertical" size={0} style={{ width:'100%' }}>
+                        <span style={{ fontWeight:600 }}>{d.name} {d.isCritical ? <Badge status="error" text="สำคัญ" />: null}</span>
+                        <span style={{ fontSize:12, color:'#555' }}>{d.formatted}</span>
+                        <span style={{ fontSize:12 }}>
+                          <Badge color={d.diffDays <=0 ? 'red':'blue'} text={d.diffDays>0 ? `เหลือ ${d.diffDays} วัน` : (d.diffHours>0 ? `เหลือ ${d.diffHours} ชั่วโมง` : 'ใกล้ครบกำหนด')} />
+                        </span>
+                      </Space>
+                    </div>
+                  )) : <span style={{ fontSize:12 }}>ไม่มีกำหนดการที่ต้องส่งภายใน 7 วันนี้</span>
                 )}
               </Card>
             </Col>

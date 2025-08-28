@@ -100,3 +100,33 @@ exports.getStats = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// สำหรับนักศึกษา: ดึง deadline ที่จะถึงภายใน X วัน (default 7)
+module.exports.getUpcomingForStudent = async (req, res) => {
+  try {
+    const days = parseInt(req.query.days || '7', 10);
+    const now = new Date();
+    const upper = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    const all = await importantDeadlineService.getAll({});
+    // filter เฉพาะที่ยังไม่ผ่าน deadlineAt และภายในช่วง upper
+    const upcoming = all.filter(d => d.deadlineAt && new Date(d.deadlineAt) >= now && new Date(d.deadlineAt) <= upper);
+    const enriched = upcoming.map(d => {
+      const obj = d.toJSON();
+      const utc = new Date(obj.deadlineAt);
+      const msLeft = utc.getTime() - now.getTime();
+      const daysLeft = Math.floor(msLeft / (24*60*60*1000));
+      const hoursLeft = Math.floor(msLeft / (60*60*1000));
+      const localMs = utc.getTime() + 7*60*60*1000;
+      const ld = new Date(localMs);
+      const pad = (n) => n.toString().padStart(2,'0');
+      obj.deadlineDate = `${ld.getUTCFullYear()}-${pad(ld.getUTCMonth()+1)}-${pad(ld.getUTCDate())}`;
+      obj.deadlineTime = `${pad(ld.getUTCHours())}:${pad(ld.getUTCMinutes())}:${pad(ld.getUTCSeconds())}`;
+      obj.daysLeft = daysLeft;
+      obj.hoursLeft = hoursLeft;
+      return obj;
+    }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
+    res.json({ success: true, data: enriched });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};

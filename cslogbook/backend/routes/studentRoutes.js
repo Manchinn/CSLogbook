@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
+const importantDeadlineController = require('../controllers/importantDeadlineController');
 
 // Public routes (ถ้ามี)
 
@@ -12,6 +13,12 @@ router.use(authenticateToken);
 router.get('/check-eligibility', 
   checkRole(['student']), 
   studentController.checkStudentEligibility
+);
+
+// Upcoming important deadlines (student view)
+router.get('/important-deadlines/upcoming',
+  checkRole(['student']),
+  importantDeadlineController.getUpcomingForStudent
 );
 
 // Admin routes
