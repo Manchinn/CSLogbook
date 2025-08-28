@@ -17,7 +17,8 @@ exports.create = async (req, res) => {
     const deadline = await importantDeadlineService.create(req.body);
     res.status(201).json({ success: true, data: deadline });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+  console.error('[importantDeadlineController.create] Error:', error.message, error.stack);
+  res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -42,3 +43,24 @@ exports.remove = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 }; 
+
+// PATCH ปรับ policy การรับเอกสาร
+exports.updatePolicy = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deadline = await importantDeadlineService.updatePolicy(id, req.body);
+    res.json({ success: true, data: deadline });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const stats = await importantDeadlineService.getStats(id);
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};

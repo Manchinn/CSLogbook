@@ -9,12 +9,43 @@ class DocumentService {
      */
     async uploadDocument(userId, fileData, documentData) {
         try {
-            const { documentType, category } = documentData;
+            const { documentType, category, importantDeadlineId } = documentData;
 
             // ตรวจสอบประเภทเอกสาร
             const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType?.toUpperCase()];
             if (!docTypeConfig) {
                 throw new Error('ประเภทเอกสารไม่ถูกต้อง');
+            }
+
+            // ดึงข้อมูล deadline (ถ้าระบุ) เพื่อตรวจ policy + คำนวณ late
+            let deadlineRecord = null;
+            if (importantDeadlineId) {
+                const { ImportantDeadline } = require('../models');
+                deadlineRecord = await ImportantDeadline.findByPk(importantDeadlineId);
+                if (!deadlineRecord) throw new Error('ไม่พบกำหนดการอ้างอิง');
+                // ตรวจ policy การรับ
+                if (!deadlineRecord.acceptingSubmissions) throw new Error('กำหนดการนี้ปิดรับการส่ง');
+            }
+
+            const submittedAt = new Date();
+            let isLate = false; let lateMinutes = null;
+            let dueDate = null;
+            if (deadlineRecord) {
+                dueDate = new Date(deadlineRecord.date);
+                // grace period
+                if (deadlineRecord.gracePeriodMinutes) {
+                    dueDate = new Date(dueDate.getTime() + deadlineRecord.gracePeriodMinutes * 60000);
+                }
+                if (submittedAt > dueDate) {
+                    if (deadlineRecord.lockAfterDeadline) {
+                        throw new Error('หมดเขตรับเอกสารแล้ว');
+                    }
+                    if (!deadlineRecord.allowLate) {
+                        throw new Error('ไม่อนุญาตให้ส่งช้า');
+                    }
+                    isLate = true;
+                    lateMinutes = Math.ceil((submittedAt - dueDate) / 60000);
+                }
             }
 
             // บันทึกข้อมูลลงฐานข้อมูล
@@ -26,7 +57,12 @@ class DocumentService {
                 fileName: fileData.filename,
                 mimeType: fileData.mimetype,
                 fileSize: fileData.size,
-                status: 'pending'
+                status: 'pending',
+                importantDeadlineId: importantDeadlineId || null,
+                submittedAt,
+                isLate,
+                lateMinutes,
+                dueDate: dueDate || null
             });
 
             logger.info(`Document uploaded successfully: ${document.id} by user ${userId}`);
@@ -34,7 +70,9 @@ class DocumentService {
             return {
                 documentId: document.id,
                 fileUrl: `/uploads/${fileData.filename}`,
-                message: 'อัปโหลดไฟล์สำเร็จ'
+                message: 'อัปโหลดไฟล์สำเร็จ',
+                isLate,
+                lateMinutes
             };
         } catch (error) {
             logger.error('Error uploading document:', error);
@@ -61,6 +99,15 @@ class DocumentService {
             }
 
             const documentData = document.toJSON();
+
+            // คำนวณ late (เผื่อ backend ต้องการส่งซ้ำ) หากมี dueDate และ submittedAt
+            if (documentData.submitted_at && documentData.due_date && documentData.is_late === false) {
+                const sub = new Date(documentData.submitted_at);
+                const due = new Date(documentData.due_date);
+                if (sub > due) {
+                    documentData.computedLate = true;
+                }
+            }
 
             if (includeRelations) {
                 // ดึงข้อมูลผู้ใช้ที่เกี่ยวข้อง

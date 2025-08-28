@@ -8,6 +8,7 @@ module.exports = (sequelize) => {
     }
 
     ImportantDeadline.init({
+        // ใช้คอลัมน์ 'id' เป็น primary key (สอดคล้องกับโครงสร้างจริงที่พบ ขณะนี้ไม่พบคอลัมน์ important_deadline_id ใน DB)
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
@@ -39,6 +40,51 @@ module.exports = (sequelize) => {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
             field: 'is_global'
+        },
+        // ฟิลด์ใหม่สำหรับระบบแจ้งเตือนและ policy
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        isCritical: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_critical'
+        },
+        notified: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
+        criticalNotified: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'critical_notified'
+        },
+        acceptingSubmissions: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+            field: 'accepting_submissions'
+        },
+        allowLate: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+            field: 'allow_late'
+        },
+        lockAfterDeadline: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'lock_after_deadline'
+        },
+        gracePeriodMinutes: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'grace_period_minutes'
         }
     }, {
         sequelize,
@@ -47,6 +93,8 @@ module.exports = (sequelize) => {
         timestamps: true,
         underscored: true
     });
+
+    // หมายเหตุ: หากภายหลังมีการเปลี่ยน schema ให้กลับไปใช้ important_deadline_id จะต้องแก้ model นี้อีกครั้ง
 
     return ImportantDeadline;
 };

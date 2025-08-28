@@ -109,6 +109,32 @@ module.exports = (sequelize) => {
             allowNull: true,
             defaultValue: 0,
             field: 'download_count'
+        },
+        importantDeadlineId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'important_deadline_id'
+        },
+        submittedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'submitted_at'
+        },
+        isLate: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_late'
+        },
+        lateMinutes: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'late_minutes'
+        },
+        lateReason: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'late_reason'
         }
     }, {
         sequelize,
