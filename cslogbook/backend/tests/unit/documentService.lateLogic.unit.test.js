@@ -1,38 +1,32 @@
 const { Sequelize } = require('sequelize');
 
-// NOTE: ใช้กลยุทธ์ resetModules เพื่อไม่ให้ documentService ที่ถูก require จากไฟล์อื่นก่อนหน้า
-// มาค้าง cache ด้วยโมเดลจริง ป้องกัน side-effect จาก integration tests
+// NOTE: ใช้กลยุทธ์ mock models in-memory (ตั้ง global ก่อน mock)
 let sequelize, documentService;
 
 beforeAll(async () => {
   jest.resetModules();
-  // เตรียม mock container
-  global.__TEST_MODELS = {};
-  // สร้าง in-memory sequelize
   sequelize = new Sequelize('sqlite::memory:', { logging: false });
-  // โหลด factory (ไม่ผ่าน index models เพื่อหลีกเลี่ยง side effect config/database)
   const importantDeadlineFactory = require('../../models/ImportantDeadline');
   const documentFactory = require('../../models/Document');
   const ImportantDeadline = importantDeadlineFactory(sequelize);
   const Document = documentFactory(sequelize);
-  // เติม stub โมเดลอื่น ๆ ที่ service อาจ reference
-  Object.assign(global.__TEST_MODELS, {
+  global.__TEST_MODELS = {
     ImportantDeadline,
     Document,
-    User: { findByPk: jest.fn() },
+    User: { update: jest.fn() },
     Student: {},
     InternshipDocument: {},
     StudentWorkflowActivity: {},
     Notification: {},
-    DocumentLog: { create: jest.fn() },
-  });
-  // ประกาศ mock models module (หลัง resetModules)
-  jest.doMock('../../models', () => global.__TEST_MODELS, { virtual: true });
+    DocumentLog: {},
+  };
+  // mock models module AFTER global models prepared
+  jest.doMock('../../models', () => global.__TEST_MODELS);
   await sequelize.sync({ force: true });
-  // isolateModules เพื่อให้ require ใช้ mock ที่เพิ่ง doMock
-  jest.isolateModules(() => {
-    documentService = require('../../services/documentService');
-  });
+  // ลบ cache documentService เพื่อให้ดึง models mock ชุดนี้
+  const docServicePath = require.resolve('../../services/documentService');
+  delete require.cache[docServicePath];
+  documentService = require('../../services/documentService');
 });
 
 afterAll(async () => { await sequelize.close(); });

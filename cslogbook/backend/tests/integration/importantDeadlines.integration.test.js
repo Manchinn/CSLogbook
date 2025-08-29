@@ -4,28 +4,45 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-// Mock auth middleware ให้ผ่านและตั้ง req.user
-jest.mock('../../middleware/authMiddleware', () => ({
-  authenticateToken: (req,res,next)=> { req.user = { userId: 1, role: 'student' }; next(); },
-  checkRole: ()=> (req,res,next)=> next()
-}));
-
-// Mock models (ใช้ global.__TEST_MODELS เพื่อเลี่ยง out-of-scope ใน factory)
-jest.mock('../../models', () => (global.__TEST_MODELS || {}), { virtual: true });
+// จะ setup mock models + auth middleware ภายใน beforeAll แบบ isolate เพื่อลด side-effect ระหว่างไฟล์เทสอื่น
 
 let sequelize, ImportantDeadline, Document;
 
 beforeAll(async () => {
+  // รีเซ็ต module registry เพื่อความสะอาด แล้วทำการ mock ใหม่ทั้งหมด (auth + models) ก่อน require routes
+  jest.resetModules();
+
+  // Mock auth middleware (ต้องทำหลัง resetModules ไม่งั้นจะหายไป)
+  jest.doMock('../../middleware/authMiddleware', () => ({
+    authenticateToken: (req, res, next) => { req.user = { userId: 1, role: 'student' }; next(); },
+    checkRole: () => (req, res, next) => next()
+  }));
+
   sequelize = new Sequelize('sqlite::memory:', { logging: false });
   const importantDeadlineFactory = require('../../models/ImportantDeadline');
   const documentFactory = require('../../models/Document');
   ImportantDeadline = importantDeadlineFactory(sequelize);
   Document = documentFactory(sequelize);
-  global.__TEST_MODELS = { ImportantDeadline, Document };
+  const mockModels = { ImportantDeadline, Document, DocumentLog: { create: jest.fn() }, User: {}, Student: {} };
+  // ใช้ absolute path เพื่อให้การ mock ตรงกับ require('../models') ภายใน service
+  const modelsPath = require.resolve('../../models');
+  jest.doMock(modelsPath, () => mockModels);
+  // Mock service เพื่อให้ getAll ใช้ in-memory ImportantDeadline โดยตรง (เลี่ยง error order literal)
+  jest.doMock('../../services/importantDeadlineService', () => ({
+    getAll: async () => ImportantDeadline.findAll(),
+    create: async (data) => ImportantDeadline.create(data),
+    update: jest.fn(),
+    remove: jest.fn(),
+    updatePolicy: jest.fn(),
+    getStats: jest.fn()
+  }));
   await sequelize.sync({ force: true });
-  // โหลด routes หลังตั้ง global models
-  const studentRoutes = require('../../routes/studentRoutes');
-  app.use('/api/students', studentRoutes);
+
+  // isolateModules เพื่อให้ require ใช้ mocks ที่เพิ่งตั้ง
+  jest.isolateModules(() => {
+    const studentRoutes = require('../../routes/studentRoutes');
+    app.use('/api/students', studentRoutes);
+  });
 });
 
 afterAll(async () => { await sequelize.close(); });
@@ -56,7 +73,8 @@ describe('GET /api/students/important-deadlines integration status', () => {
   test('returns announcement status', async () => {
     await seed({ type:'ANNOUNCEMENT', offsetMinutes:120, allowLate:false, grace:null, lockAfterDeadline:false });
     const res = await request(app).get('/api/students/important-deadlines');
-    expect(res.status).toBe(200);
+  if (res.status !== 200) console.error('DEBUG announcement response', res.status, res.body);
+  expect(res.status).toBe(200);
     const ann = res.body.data.find(d=> d.deadlineType==='ANNOUNCEMENT');
     expect(ann.status).toBe('announcement');
   });
@@ -76,7 +94,8 @@ describe('GET /api/students/important-deadlines integration status', () => {
       status:'pending', importantDeadlineId:late.id, submittedAt:lateEff, isLate:true
     });
     const res = await request(app).get('/api/students/important-deadlines');
-    expect(res.status).toBe(200);
+  if (res.status !== 200) console.error('DEBUG submitted_late response', res.status, res.body);
+  expect(res.status).toBe(200);
     const data = res.body.data;
     const onTimeRow = data.find(d=> d.id===onTime.id);
     const lateRow = data.find(d=> d.id===late.id);
@@ -89,7 +108,8 @@ describe('GET /api/students/important-deadlines integration status', () => {
     const locked = await seed({ type:'SUBMISSION', offsetMinutes:-120, grace:30, lockAfterDeadline:true }); // passed grace
     // ปรับ deadline locked: offset -120 => eff = now-120m, grace=30 => locked now
     const res = await request(app).get('/api/students/important-deadlines');
-    const o = res.body.data.find(d=> d.id===overdue.id);
+  if (res.status !== 200) console.error('DEBUG locked/overdue response', res.status, res.body);
+  const o = res.body.data.find(d=> d.id===overdue.id);
     const l = res.body.data.find(d=> d.id===locked.id);
     expect(o.status).toBe('overdue');
     expect(l.status).toBe('locked');
