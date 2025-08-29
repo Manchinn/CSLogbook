@@ -9,7 +9,7 @@ class DocumentService {
      */
     async uploadDocument(userId, fileData, documentData) {
         try {
-            const { documentType, category, importantDeadlineId } = documentData;
+            const { documentType, category, importantDeadlineId, documentName } = documentData;
 
             // ตรวจสอบประเภทเอกสาร
             const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType?.toUpperCase()];
@@ -31,23 +31,50 @@ class DocumentService {
             let isLate = false; let lateMinutes = null;
             let dueDate = null;
             if (deadlineRecord) {
-                if (deadlineRecord.deadlineAt) {
-                    dueDate = new Date(deadlineRecord.deadlineAt);
+                // --- NEW LATE LOGIC (สอดคล้องสเปก Important Deadlines) ---
+                // effectiveDeadlineAt = windowEndAt || deadlineAt || (date legacy 23:59:59)
+                let effectiveDeadlineAt = null;
+                if (deadlineRecord.windowEndAt) {
+                    effectiveDeadlineAt = new Date(deadlineRecord.windowEndAt);
+                } else if (deadlineRecord.deadlineAt) {
+                    effectiveDeadlineAt = new Date(deadlineRecord.deadlineAt);
                 } else if (deadlineRecord.date) {
-                    dueDate = new Date(`${deadlineRecord.date}T23:59:59+07:00`);
+                    effectiveDeadlineAt = new Date(`${deadlineRecord.date}T23:59:59+07:00`);
                 }
-                if (deadlineRecord.gracePeriodMinutes && dueDate) {
-                    dueDate = new Date(dueDate.getTime() + deadlineRecord.gracePeriodMinutes * 60000);
+
+                // เก็บ effectiveDeadlineAt ลง dueDate (เปลี่ยนความหมายเดิมที่เคยบวก grace) เพื่อให้ใช้ตรวจ isLate ภายหลังได้ตรง
+                dueDate = effectiveDeadlineAt ? new Date(effectiveDeadlineAt) : null;
+
+                // graceEnd = effective + gracePeriod (ถ้า allowLate และมี minute) มิฉะนั้น = effective
+                let graceEnd = effectiveDeadlineAt;
+                if (effectiveDeadlineAt && deadlineRecord.allowLate && deadlineRecord.gracePeriodMinutes) {
+                    graceEnd = new Date(effectiveDeadlineAt.getTime() + deadlineRecord.gracePeriodMinutes * 60000);
                 }
-                if (submittedAt > dueDate) {
-                    if (deadlineRecord.lockAfterDeadline) {
-                        throw new Error('หมดเขตรับเอกสารแล้ว');
+
+                if (effectiveDeadlineAt) {
+                    if (submittedAt > effectiveDeadlineAt) {
+                        // ส่งหลังเส้น effective แล้ว
+                        if (submittedAt <= graceEnd) {
+                            // ภายใน grace window → late (submitted_late)
+                            if (!deadlineRecord.allowLate) {
+                                throw new Error('ไม่อนุญาตให้ส่งช้า');
+                            }
+                            isLate = true;
+                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        } else {
+                            // หลัง grace window
+                            // ถ้าไม่ allowLate ก่อน ให้แจ้งก่อน (ข้อความเฉพาะ) มาก่อน lock เพื่อสื่อสาเหตุ
+                            if (!deadlineRecord.allowLate) {
+                                throw new Error('ไม่อนุญาตให้ส่งช้า');
+                            }
+                            if (deadlineRecord.lockAfterDeadline) {
+                                throw new Error('หมดเขตรับเอกสารแล้ว');
+                            }
+                            // ยอมรับ (allowLate=true, ไม่ lock)
+                            isLate = true;
+                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        }
                     }
-                    if (!deadlineRecord.allowLate) {
-                        throw new Error('ไม่อนุญาตให้ส่งช้า');
-                    }
-                    isLate = true;
-                    lateMinutes = Math.ceil((submittedAt - dueDate) / 60000);
                 }
             }
 
@@ -56,6 +83,7 @@ class DocumentService {
                 userId,
                 documentType,
                 category,
+                documentName: documentName || (fileData?.originalname) || fileData?.filename || 'unnamed',
                 filePath: fileData.path,
                 fileName: fileData.filename,
                 mimeType: fileData.mimetype,
