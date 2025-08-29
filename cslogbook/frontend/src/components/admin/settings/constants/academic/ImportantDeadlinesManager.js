@@ -26,7 +26,16 @@ export default function ImportantDeadlinesManager({ academicYear }) {
     relatedTo: 'general',
     semester: 1,
     academicYear: academicYear || '',
-    isGlobal: true
+  isGlobal: true,
+  // ฟิลด์ใหม่
+  deadlineType: 'SUBMISSION',
+  isPublished: false,
+  publishAt: null,
+  visibilityScope: 'ALL',
+  acceptingSubmissions: true,
+  allowLate: true,
+  gracePeriodMinutes: 1440,
+  lockAfterDeadline: false
   };
   const [formState, setFormState] = useState(initialForm);
   const [saving, setSaving] = useState(false);
@@ -53,7 +62,15 @@ export default function ImportantDeadlinesManager({ academicYear }) {
       relatedTo: d.relatedTo,
       semester: d.semester,
       academicYear: d.academicYear,
-      isGlobal: d.isGlobal
+  isGlobal: d.isGlobal,
+  deadlineType: d.deadlineType || 'SUBMISSION',
+  isPublished: d.isPublished || false,
+  publishAt: d.publishAt ? moment(d.publishAt) : null,
+  visibilityScope: d.visibilityScope || 'ALL',
+  acceptingSubmissions: d.acceptingSubmissions !== undefined ? d.acceptingSubmissions : true,
+  allowLate: d.allowLate !== undefined ? d.allowLate : true,
+  gracePeriodMinutes: d.gracePeriodMinutes || 1440,
+  lockAfterDeadline: d.lockAfterDeadline || false
     });
     setModalError('');
     setModalVisible(true);
@@ -72,6 +89,15 @@ export default function ImportantDeadlinesManager({ academicYear }) {
         deadlineDate: formState.date ? formState.date.format('YYYY-MM-DD') : null,
         deadlineTime: formState.time ? formState.time.format('HH:mm:ss') : undefined
       };
+  // เพิ่มฟิลด์ใหม่
+  payload.deadlineType = formState.deadlineType;
+  payload.isPublished = formState.isPublished;
+  if (formState.publishAt) payload.publishAt = formState.publishAt.toISOString();
+  payload.visibilityScope = formState.visibilityScope;
+  payload.acceptingSubmissions = formState.acceptingSubmissions;
+  payload.allowLate = formState.allowLate;
+  payload.gracePeriodMinutes = formState.gracePeriodMinutes;
+  payload.lockAfterDeadline = formState.lockAfterDeadline;
       if (!payload.name) throw new Error('กรุณากรอกชื่อ');
 
       const hasWindowStart = !!formState.windowStartDate;
@@ -141,12 +167,20 @@ export default function ImportantDeadlinesManager({ academicYear }) {
                   <Button type="dashed" icon={<PlusOutlined />} onClick={() => openAdd(sem)} block>เพิ่มกำหนดการใหม่</Button>
                 </div>
                 {deadlinesLoading && <Spin />}
-                {deadlines.filter(d => d.semester === sem).map(d => (
+                {deadlines.filter(d => d.semester === sem).map(d => {
+                  const typeLabelMap = {
+                    SUBMISSION: { label: 'ส่งเอกสาร', color: 'blue' },
+                    ANNOUNCEMENT: { label: 'ประกาศ', color: 'gold' },
+                    MANUAL: { label: 'ทำรายการ', color: 'purple' },
+                    MILESTONE: { label: 'เหตุการณ์', color: 'cyan' }
+                  };
+                  const tInfo = typeLabelMap[d.deadlineType] || { label: d.deadlineType, color: 'default' };
+                  return (
                   <Card
                     key={d.id}
                     size="small"
                     style={{ marginBottom: 12 }}
-                    title={d.name}
+                    title={<span>{d.name} <Tag color={tInfo.color}>{tInfo.label}</Tag></span>}
                     extra={<><Button type="link" onClick={() => openEdit(d)}>แก้ไข</Button><Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(d.id)} /></>}
                   >
                     <Row gutter={16}>
@@ -169,13 +203,18 @@ export default function ImportantDeadlinesManager({ academicYear }) {
                           {d.deadlineTime ? ` เวลา ${moment(d.deadlineTime,'HH:mm:ss').format('HH:mm')} น.` : ''}
                         </Col>
                       )}
-                      <Col span={12}><b>ประเภท:</b> {d.relatedTo === 'project' ? 'โครงงาน' : d.relatedTo === 'internship' ? 'ฝึกงาน' : 'ทั่วไป'}</Col>
+                      <Col span={12}><b>หมวด:</b> {(
+                        d.relatedTo === 'project1' ? 'โครงงาน 1' :
+                        d.relatedTo === 'project2' ? 'โครงงาน 2' :
+                        d.relatedTo === 'project' ? 'โครงงาน (legacy)' :
+                        d.relatedTo === 'internship' ? 'ฝึกงาน' : 'ทั่วไป'
+                      )}</Col>
                     </Row>
                     <Row gutter={16} style={{ marginTop:4 }}>
                       <Col span={24}><b>ปีการศึกษา:</b> {d.academicYear}</Col>
                     </Row>
-                  </Card>
-                ))}
+                  </Card>);
+                })}
               </div>
             )
         }))}

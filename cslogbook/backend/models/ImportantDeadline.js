@@ -22,8 +22,10 @@ module.exports = (sequelize) => {
             type: DataTypes.DATEONLY,
             allowNull: false
         },
+        // relatedTo: รวมความหมายของ relatedWorkflow เดิม + tag กว้าง (migration 20250829120000)
+        // เพิ่มค่า project1, project2 เพื่อแยกชัดเจนจาก project รุ่นเดิม (project ยังคงไว้เพื่อ backward compatibility / down migration)
         relatedTo: {
-            type: DataTypes.ENUM('internship', 'project', 'general'),
+            type: DataTypes.ENUM('internship', 'project', 'project1', 'project2', 'general'),
             allowNull: false,
             field: 'related_to'
         },
@@ -113,7 +115,35 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: false,
             field: 'all_day'
-        }
+        },
+        // ---------------- ฟิลด์ใหม่ (Phase 1 schema extension) ----------------
+        // ประเภทของ deadline: ส่งเอกสาร / ประกาศ / กิจกรรม manual / milestone
+        deadlineType: {
+            type: DataTypes.ENUM('SUBMISSION','ANNOUNCEMENT','MANUAL','MILESTONE'),
+            allowNull: false,
+            defaultValue: 'SUBMISSION',
+            field: 'deadline_type'
+        },
+        // สถานะการเผยแพร่ (student จะเห็นเฉพาะที่ publish ใน phase ถัดไป)
+        isPublished: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_published'
+        },
+        publishAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'publish_at'
+        },
+        visibilityScope: {
+            type: DataTypes.ENUM('ALL','INTERNSHIP_ONLY','PROJECT_ONLY','CUSTOM'),
+            allowNull: false,
+            defaultValue: 'ALL',
+            field: 'visibility_scope'
+        },
+    // relatedWorkflow ถูกลบและ merge เข้า relatedTo (ดู migration 20250829120000) คง comment ไว้เป็นเอกสาร
+    // relatedWorkflow: { removed }
     }, {
         sequelize,
         modelName: 'ImportantDeadline',

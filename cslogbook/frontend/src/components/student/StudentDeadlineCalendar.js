@@ -1,9 +1,21 @@
-import React, { useMemo, useState } from 'react';
-import { Calendar, Badge, Select, Spin, Tooltip, Divider, Tag, Card, Typography, Space, Button } from 'antd';
-import useAllDeadlines from '../../hooks/useAllDeadlines';
-import dayjs from '../../utils/dayjs';
-import DeadlineBadge from '../deadlines/DeadlineBadge';
-import { computeDeadlineStatus } from '../../utils/deadlineUtils';
+import React, { useMemo, useState } from "react";
+import {
+  Calendar,
+  Badge,
+  Select,
+  Spin,
+  Tooltip,
+  Divider,
+  Tag,
+  Card,
+  Typography,
+  Space,
+  Button,
+} from "antd";
+import useAllDeadlines from "../../hooks/useAllDeadlines";
+import dayjs from "../../utils/dayjs";
+import DeadlineBadge from "../deadlines/DeadlineBadge";
+import { computeDeadlineStatus } from "../../utils/deadlineUtils";
 
 export default function StudentDeadlineCalendar() {
   const currentYear = dayjs().year();
@@ -13,9 +25,9 @@ export default function StudentDeadlineCalendar() {
   // แบ่งกลุ่มตามระบบ
   const grouped = useMemo(() => {
     const g = { internship: [], project: [], general: [] };
-    deadlines.forEach(d => {
-      if (d.relatedTo === 'internship') g.internship.push(d);
-      else if (d.relatedTo === 'project') g.project.push(d);
+    deadlines.forEach((d) => {
+      if (d.relatedTo === "internship") g.internship.push(d);
+      else if (d.relatedTo === "project") g.project.push(d);
       else g.general.push(d);
     });
     return g;
@@ -23,13 +35,17 @@ export default function StudentDeadlineCalendar() {
 
   const dateMap = useMemo(() => {
     const map = {};
-    deadlines.forEach(d => {
+    deadlines.forEach((d) => {
       // ขยายกรณีช่วง (window) ครอบทุกวันในช่วง
       if (d.isWindow && d.windowStartDate && d.windowEndDate) {
         const start = dayjs(`${d.windowStartDate} 00:00:00`);
         const end = dayjs(`${d.windowEndDate} 23:59:59`);
-        for (let cur = start; cur.isBefore(end) || cur.isSame(end,'day'); cur = cur.add(1,'day')) {
-          const key = cur.format('YYYY-MM-DD');
+        for (
+          let cur = start;
+          cur.isBefore(end) || cur.isSame(end, "day");
+          cur = cur.add(1, "day")
+        ) {
+          const key = cur.format("YYYY-MM-DD");
           if (!map[key]) map[key] = [];
           map[key].push({ ...d, _rangePart: true });
         }
@@ -42,31 +58,62 @@ export default function StudentDeadlineCalendar() {
   }, [deadlines]);
 
   function dateCellRender(value) {
-    const dateKey = value.format('YYYY-MM-DD');
+    const dateKey = value.format("YYYY-MM-DD");
     const items = dateMap[dateKey] || [];
     if (!items.length) return null;
     // จัดเรียง: window ก่อน ตามเวลา/ชื่อ
-    const sorted = [...items].sort((a,b)=>{
+    const sorted = [...items].sort((a, b) => {
       if (a.isWindow && !b.isWindow) return -1;
       if (!a.isWindow && b.isWindow) return 1;
-      const ta = a.deadlineTime || a.windowStartTime || '23:59:59';
-      const tb = b.deadlineTime || b.windowStartTime || '23:59:59';
+      const ta = a.deadlineTime || a.windowStartTime || "23:59:59";
+      const tb = b.deadlineTime || b.windowStartTime || "23:59:59";
       return ta.localeCompare(tb);
     });
-    return sorted.slice(0,4).map(item => {
+    return sorted.slice(0, 4).map((item) => {
       // ใช้ effective_deadline_local ถ้าไม่มี deadline_at_local
-      const baseLocal = item.deadline_at_local || item.effective_deadline_local || null;
-      const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, { isSubmitted:item.isSubmitted, isLate:item.isLate, locked:item.locked });
-      const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange', locked:'purple' };
-      const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : (st.code === 'locked' ? 'default' : 'processing'));
-      const label = item.isWindow ? (item.allDay ? `${item.name || item.title} (ช่วง)` : `${item.name || item.title} (ช่วงเวลา)`) : (item.name || item.title);
-      const tooltipDetail = item.isWindow 
-        ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''} · ${st.label}`
-        : `${item.name || item.title} · ${baseLocal?baseLocal.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`;
+      const baseLocal =
+        item.deadline_at_local || item.effective_deadline_local || null;
+      const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, {
+        isSubmitted: item.isSubmitted,
+        isLate: item.isLate,
+        locked: item.locked,
+      });
+      const colorMap = {
+        pending: "blue",
+        dueSoon: "gold",
+        overdue: "red",
+        submitted: "green",
+        late: "orange",
+        locked: "purple",
+      };
+      const dotStatus =
+        st.code === "overdue"
+          ? "error"
+          : st.code === "dueSoon"
+          ? "warning"
+          : st.code === "locked"
+          ? "default"
+          : "processing";
+      const label = item.isWindow
+        ? item.allDay
+          ? `${item.name || item.title} (ช่วง)`
+          : `${item.name || item.title} (ช่วงเวลา)`
+        : item.name || item.title;
+      const tooltipDetail = item.isWindow
+        ? `${item.name || item.title} · ${item.windowStartDate} → ${
+            item.windowEndDate
+          }${item.allDay ? " (ทั้งวัน)" : ""} · ${st.label}`
+        : `${item.name || item.title} · ${
+            baseLocal ? baseLocal.format("D MMM BBBB เวลา HH:mm น.") : ""
+          } · ${st.label}`;
       return (
-        <div key={item.id} style={{ marginBottom:2 }}>
+        <div key={item.id} style={{ marginBottom: 2 }}>
           <Tooltip title={tooltipDetail}>
-            <Badge color={colorMap[st.code] || 'blue'} status={dotStatus} text={label} />
+            <Badge
+              color={colorMap[st.code] || "blue"}
+              status={dotStatus}
+              text={label}
+            />
           </Tooltip>
         </div>
       );
@@ -78,24 +125,56 @@ export default function StudentDeadlineCalendar() {
     const current = value.clone();
     const year = current.year();
     const month = current.month();
-    const months = Array.from({ length: 12 }, (_, i) => dayjs().month(i).format('MMM'));
+    const months = Array.from({ length: 12 }, (_, i) =>
+      dayjs().month(i).format("MMM")
+    );
     return (
-      <div style={{ padding:8, display:'flex', gap:12, alignItems:'center' }}>
-        <Select size="small" value={month} onChange={m => { const newVal = value.clone().month(m); onChange(newVal); }} style={{ width:100 }}>
-          {months.map((mLabel, idx) => <Select.Option key={idx} value={idx}>{mLabel}</Select.Option>)}
+      <div
+        style={{ padding: 8, display: "flex", gap: 12, alignItems: "center" }}
+      >
+        <Select
+          size="small"
+          value={month}
+          onChange={(m) => {
+            const newVal = value.clone().month(m);
+            onChange(newVal);
+          }}
+          style={{ width: 100 }}
+        >
+          {months.map((mLabel, idx) => (
+            <Select.Option key={idx} value={idx}>
+              {mLabel}
+            </Select.Option>
+          ))}
         </Select>
-        <Select size="small" value={year} onChange={y => { const newVal = value.clone().year(y); onChange(newVal); }} style={{ width:110 }}>
-          {[year-1, year, year+1].map(y => <Select.Option key={y} value={y}>{y+543}</Select.Option>)}
+        <Select
+          size="small"
+          value={year}
+          onChange={(y) => {
+            const newVal = value.clone().year(y);
+            onChange(newVal);
+          }}
+          style={{ width: 110 }}
+        >
+          {[year - 1, year, year + 1].map((y) => (
+            <Select.Option key={y} value={y}>
+              {y + 543}
+            </Select.Option>
+          ))}
         </Select>
-        <div style={{ marginLeft:'auto', fontWeight:600 }}>{current.format('MMMM')} {year+543}</div>
+        <div style={{ marginLeft: "auto", fontWeight: 600 }}>
+          {current.format("MMMM")} {year + 543}
+        </div>
       </div>
     );
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
       <Card style={{ paddingTop: 16 }}>
-        <Typography.Title level={4} style={{ marginTop: 0 }}>📅 ปฏิทินกำหนดส่ง</Typography.Title>
+        <Typography.Title level={4} style={{ marginTop: 0 }}>
+          📅 ปฏิทินกำหนดส่ง
+        </Typography.Title>
         <Space wrap style={{ marginBottom: 16 }}>
           <Select
             value={academicYear}
@@ -103,13 +182,31 @@ export default function StudentDeadlineCalendar() {
             style={{ width: 140 }}
             options={generateYearOptions(academicYear)}
           />
-          <Button onClick={() => setAcademicYear(academicYear)} disabled={loading} loading={loading}>
+          <Button
+            onClick={() => setAcademicYear(academicYear)}
+            disabled={loading}
+            loading={loading}
+          >
             รีเฟรช
           </Button>
         </Space>
-        {loading ? <Spin /> : <Calendar dateCellRender={dateCellRender} headerRender={headerRender} />}
+        {loading ? (
+          <Spin />
+        ) : (
+          <Calendar
+            dateCellRender={dateCellRender}
+            headerRender={headerRender}
+          />
+        )}
         <Divider />
-        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:16 }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
           <Tag color="blue">รอ (ปกติ)</Tag>
           <Tag color="gold">ใกล้ถึงกำหนด (&lt;24ชม.)</Tag>
           <Tag color="red">เกินกำหนด</Tag>
@@ -117,32 +214,93 @@ export default function StudentDeadlineCalendar() {
           <Tag color="orange">ส่งช้า</Tag>
           <Tag color="purple">ปิดรับแล้ว</Tag>
         </div>
-        <Typography.Title level={5} style={{ marginTop: 0 }}>รายละเอียด (จำแนกตามระบบ)</Typography.Title>
-        {['internship','project','general'].map(section => {
+        <Typography.Title level={5} style={{ marginTop: 0 }}>
+          รายละเอียด (จำแนกตามระบบ)
+        </Typography.Title>
+        {["internship", "project", "general"].map((section) => {
           const list = grouped[section];
           if (!list || !list.length) return null;
-          const labelMap = { internship: 'ระบบฝึกงาน', project: 'ระบบโครงงานพิเศษ', general: 'ทั่วไป / ภาพรวม' };
+          const labelMap = {
+            internship: "ระบบฝึกงาน",
+            project: "ระบบโครงงานพิเศษ",
+            general: "ทั่วไป / ภาพรวม",
+          };
           return (
             <div key={section} style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 600, margin: '4px 0 8px' }}>{labelMap[section]} ({list.length})</div>
-              {list.map(d => (
-                <div key={d.id} style={{ borderBottom:'1px solid #eee', padding:'8px 6px', display:'flex', flexDirection:'column', gap:4 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                    <strong>{d.name || d.title}{d.isWindow ? (d.allDay ? ' (ช่วงทั้งวัน)' : ' (ช่วงเวลา)') : ''}</strong>
-                    <DeadlineBadge deadline={d.deadline_at_local || d.effective_deadline_local} isSubmitted={d.isSubmitted} isLate={d.isLate} submittedAt={d.submittedAtLocal} locked={d.locked} />
-                  </div>
-                  <div style={{ fontSize:12, opacity:0.8 }}>
-                    {d.isWindow ? (
-                      <>
-                        ช่วง: {dayjs(d.windowStartDate).format('D MMM BBBB')} - {dayjs(d.windowEndDate).format('D MMM BBBB')} {d.allDay ? '(ทั้งวัน)' : ''}
-                      </>
-                    ) : (
-                      d.deadline_th || (d.deadline_at_local ? d.deadline_at_local.format('D MMM BBBB เวลา HH:mm น.') : '—')
+              <div style={{ fontWeight: 600, margin: "4px 0 8px" }}>
+                {labelMap[section]} ({list.length})
+              </div>
+              {list.map((d) => {
+                const typeMap = {
+                  SUBMISSION: { txt: "ส่งเอกสาร", color: "blue" },
+                  ANNOUNCEMENT: { txt: "ประกาศ", color: "gold" },
+                  MANUAL: { txt: "ทำรายการ", color: "purple" },
+                  MILESTONE: { txt: "เหตุการณ์", color: "cyan" },
+                };
+                const t = typeMap[d.deadlineType] || {
+                  txt: d.deadlineType,
+                  color: "default",
+                };
+                return (
+                  <div
+                    key={d.id}
+                    style={{
+                      borderBottom: "1px solid #eee",
+                      padding: "8px 6px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <strong>
+                        {d.name || d.title}
+                        {d.isWindow
+                          ? d.allDay
+                            ? " (ช่วงทั้งวัน)"
+                            : " (ช่วงเวลา)"
+                          : ""}
+                      </strong>
+                      <Tag color={t.color}>{t.txt}</Tag>
+                      <DeadlineBadge
+                        deadline={
+                          d.deadline_at_local || d.effective_deadline_local
+                        }
+                        isSubmitted={d.isSubmitted}
+                        isLate={d.isLate}
+                        submittedAt={d.submittedAtLocal}
+                        locked={d.locked}
+                      />
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.8 }}>
+                      {d.isWindow ? (
+                        <>
+                          ช่วง: {dayjs(d.windowStartDate).format("D MMM BBBB")}{" "}
+                          - {dayjs(d.windowEndDate).format("D MMM BBBB")}{" "}
+                          {d.allDay ? "(ทั้งวัน)" : ""}
+                        </>
+                      ) : (
+                        d.deadline_th ||
+                        (d.deadline_at_local
+                          ? d.deadline_at_local.format(
+                              "D MMM BBBB เวลา HH:mm น."
+                            )
+                          : "—")
+                      )}
+                    </div>
+                    {d.description && (
+                      <div style={{ fontSize: 12 }}>{d.description}</div>
                     )}
                   </div>
-                  {d.description && <div style={{ fontSize:12 }}>{d.description}</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })}

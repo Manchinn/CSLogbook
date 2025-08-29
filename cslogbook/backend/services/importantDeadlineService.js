@@ -84,6 +84,12 @@ exports.create = async (data) => {
     gracePeriodMinutes: data.gracePeriodMinutes ?? null,
     timezone: data.timezone || 'Asia/Bangkok'
   };
+  // ฟิลด์ใหม่
+  if (data.deadlineType) payload.deadlineType = data.deadlineType;
+  if (data.isPublished !== undefined) payload.isPublished = !!data.isPublished;
+  if (data.publishAt) payload.publishAt = new Date(data.publishAt);
+  if (data.visibilityScope) payload.visibilityScope = data.visibilityScope;
+  // relatedWorkflow ถูก merge เข้า relatedTo แล้ว (migration 20250829120000) ไม่รับอีกต่อไป
   if (data.allDay !== undefined) payload.allDay = !!data.allDay;
 
   // Validation พื้นฐาน
@@ -93,8 +99,15 @@ exports.create = async (data) => {
   }
   if (deadlineTime && !deadlineDate) throw new Error('ระบุเวลา (deadlineTime) ได้ก็ต่อเมื่อมี deadlineDate');
   if (!payload.relatedTo) throw new Error('ต้องระบุ relatedTo');
-  if (!['internship','project','general'].includes(payload.relatedTo)) {
-    throw new Error('ค่า relatedTo ไม่ถูกต้อง ต้องเป็น internship|project|general');
+  if (!['internship','project','project1','project2','general'].includes(payload.relatedTo)) {
+    throw new Error('ค่า relatedTo ไม่ถูกต้อง ต้องเป็น internship|project|project1|project2|general');
+  }
+  // validate ฟิลด์ใหม่เบื้องต้น
+  if (payload.deadlineType && !['SUBMISSION','ANNOUNCEMENT','MANUAL','MILESTONE'].includes(payload.deadlineType)) {
+    throw new Error('deadlineType ไม่ถูกต้อง');
+  }
+  if (payload.visibilityScope && !['ALL','INTERNSHIP_ONLY','PROJECT_ONLY','CUSTOM'].includes(payload.visibilityScope)) {
+    throw new Error('visibilityScope ไม่ถูกต้อง');
   }
   if (!payload.academicYear) throw new Error('ต้องระบุ academicYear');
   if (payload.semester === undefined || payload.semester === null) throw new Error('ต้องระบุ semester');
@@ -115,6 +128,16 @@ exports.create = async (data) => {
     }
     if (!payload.deadlineAt) {
       throw new Error('ไม่สามารถคำนวณ deadlineAt ได้');
+    }
+    // กฎตามประเภท: ถ้าไม่ใช่ SUBMISSION ให้ปิด acceptingSubmissions
+    if (payload.deadlineType && payload.deadlineType !== 'SUBMISSION') {
+      payload.acceptingSubmissions = false;
+      // ประเภท ANNOUNCEMENT / MANUAL / MILESTONE ไม่ควร allowLate/lock
+      if (payload.deadlineType === 'ANNOUNCEMENT' || payload.deadlineType === 'MANUAL' || payload.deadlineType === 'MILESTONE') {
+        payload.allowLate = false;
+        payload.lockAfterDeadline = false;
+        payload.gracePeriodMinutes = null;
+      }
     }
     const created = await ImportantDeadline.create(payload);
     logger.info('ImportantDeadline created', { id: created.id, name: created.name });
@@ -141,6 +164,19 @@ exports.update = async (id, data) => {
   if (incoming.deadlineAt) {
     incoming.deadlineAt = new Date(incoming.deadlineAt);
   }
+  if (incoming.publishAt) incoming.publishAt = new Date(incoming.publishAt);
+
+  // ฟิลด์ใหม่ validate
+  if (incoming.deadlineType && !['SUBMISSION','ANNOUNCEMENT','MANUAL','MILESTONE'].includes(incoming.deadlineType)) {
+    throw new Error('deadlineType ไม่ถูกต้อง');
+  }
+  if (incoming.visibilityScope && !['ALL','INTERNSHIP_ONLY','PROJECT_ONLY','CUSTOM'].includes(incoming.visibilityScope)) {
+    throw new Error('visibilityScope ไม่ถูกต้อง');
+  }
+  if (incoming.relatedTo && !['internship','project','project1','project2','general'].includes(incoming.relatedTo)) {
+    throw new Error('relatedTo ไม่ถูกต้อง');
+  }
+  // relatedWorkflow validation ไม่จำเป็นแล้วหลัง merge
 
   if (deadlineDate) {
     const tz = incoming.timezone || deadline.timezone || 'Asia/Bangkok';
@@ -159,6 +195,15 @@ exports.update = async (id, data) => {
   }
 
   const resetFlags = handleDateChange(deadline, incoming);
+
+  // กฎเมื่อเปลี่ยนประเภท: ถ้าเปลี่ยนเป็น non-SUBMISSION ต้อง disable policy ที่เกี่ยวข้อง
+  if (incoming.deadlineType && incoming.deadlineType !== 'SUBMISSION') {
+    incoming.acceptingSubmissions = false;
+    incoming.allowLate = false;
+    incoming.lockAfterDeadline = false;
+    incoming.gracePeriodMinutes = null;
+  }
+
   await deadline.update({ ...incoming, ...resetFlags });
   return deadline;
 };

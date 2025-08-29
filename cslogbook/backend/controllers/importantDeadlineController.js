@@ -1,12 +1,25 @@
 const importantDeadlineService = require('../services/importantDeadlineService');
 
 // ดึงกำหนดการสำคัญทั้งหมด (สามารถกรองด้วยปีการศึกษา/ภาคเรียน)
+// Phase publish: ถ้าไม่ส่ง includeAll=true จะกรองเฉพาะที่เผยแพร่แล้ว (isPublished=true หรือ publishAt <= NOW)
 exports.getAll = async (req, res) => {
   try {
-    const { academicYear, semester } = req.query;
+    const { academicYear, semester, includeAll } = req.query;
     const deadlines = await importantDeadlineService.getAll({ academicYear, semester });
+    const now = new Date();
+    const filtered = includeAll === 'true'
+      ? deadlines
+      : deadlines.filter(d => {
+          // ถ้าไม่มีระบบ publishAt/isPublished (row เก่า) ให้ผ่าน
+          if (d.isPublished === undefined && d.publishAt === undefined) return true;
+          // เผยแพร่โดยตรง
+          if (d.isPublished) return true;
+          // มี publishAt และถึงเวลาแล้ว
+          if (d.publishAt && new Date(d.publishAt) <= now) return true;
+          return false;
+        });
     // enrich deadlineDate/deadlineTime สำหรับ frontend (Asia/Bangkok)
-    const enriched = deadlines.map(d => {
+  const enriched = filtered.map(d => {
       const obj = d.toJSON();
       if (obj.deadlineAt) {
         const utc = new Date(obj.deadlineAt);
@@ -134,8 +147,8 @@ module.exports.getUpcomingForStudent = async (req, res) => {
 // นักศึกษา: ดึง deadlines ทั้งหมดของปีการศึกษาปัจจุบัน (หรือทั้งหมดถ้าไม่ระบุ) สำหรับ calendar/progress
 module.exports.getAllForStudent = async (req, res) => {
   try {
-    const { academicYear } = req.query; // พ.ศ.
-    const all = await importantDeadlineService.getAll({ academicYear });
+  const { academicYear } = req.query; // พ.ศ.
+  const all = await importantDeadlineService.getAll({ academicYear });
     console.log('[getAllForStudent] raw count:', all.length, 'academicYear param:', academicYear);
 
     // Phase 1 enrichment: ผสานสถานะการส่งเอกสารของนักศึกษา (อิงการเชื่อม important_deadline_id ใน documents)
@@ -160,8 +173,16 @@ module.exports.getAllForStudent = async (req, res) => {
       }
     }
 
-    const now = new Date();
-    const enriched = all.map(d => {
+  const now = new Date();
+  // กรองเฉพาะที่ publish แล้วสำหรับ student
+  const visible = all.filter(d => {
+      if (d.isPublished === undefined && d.publishAt === undefined) return true; // backward compatibility
+      if (d.isPublished) return true;
+      if (d.publishAt && new Date(d.publishAt) <= now) return true;
+      return false;
+    });
+
+    const enriched = visible.map(d => {
       const obj = d.toJSON();
       const pad = n => n.toString().padStart(2,'0');
       // แปลง single deadline
@@ -227,7 +248,7 @@ module.exports.getAllForStudent = async (req, res) => {
 
       return obj;
     }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
-    console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,sub:x.submission,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));
+  console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,sub:x.submission,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));
     res.json({ success: true, data: enriched });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
