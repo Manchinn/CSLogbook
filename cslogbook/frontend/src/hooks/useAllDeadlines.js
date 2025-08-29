@@ -22,12 +22,23 @@ export default function useAllDeadlines({ academicYear, refreshIntervalMs = 5 * 
         console.log('[useAllDeadlines] fetched', raw.length, 'items for year', academicYear, 'sendYear', sendYear, raw.slice(0,3));
       }
       const list = raw.map(d => {
+        // แปลงเวลา deadline หลัก (single) เป็น local object (ใช้ dayjs)
         const dt = d.deadlineDate && d.deadlineTime ? dayjs(`${d.deadlineDate} ${d.deadlineTime}`) : null;
+        // effectiveDeadlineAt (UTC) แปลงเป็น local (อาศัยว่า backend ส่งรูปแบบ ISO หรือ date string)
+        const effectiveLocal = d.effectiveDeadlineAt ? dayjs(d.effectiveDeadlineAt).add(7,'hour') : null; // ถ้า backend ไม่ได้ปรับ +7 ให้บวกเอง
+        const submission = d.submission || {};
+        const submittedAtLocal = submission.submittedAt ? dayjs(submission.submittedAt).add(7,'hour') : null;
         return {
           ...d,
+            // convenience fields
           deadline_at_local: dt,
-          deadline_th: dt ? dt.format('D MMM BBBB เวลา HH:mm น.') : null,
-          deadline_day_th: dt ? dt.format('dddd D MMM') : null
+          effective_deadline_local: effectiveLocal,
+          submittedAtLocal, // ใช้ใน Badge
+          isSubmitted: !!submission.submitted,
+          isLate: !!submission.late,
+          locked: !!d.locked,
+          deadline_th: dt ? dt.format('D MMM BBBB เวลา HH:mm น.') : (effectiveLocal ? effectiveLocal.format('D MMM BBBB เวลา HH:mm น.') : null),
+          deadline_day_th: dt ? dt.format('dddd D MMM') : (effectiveLocal ? effectiveLocal.format('dddd D MMM') : null)
         };
       });
       setDeadlines(list);

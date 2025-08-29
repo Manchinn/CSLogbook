@@ -44,8 +44,9 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'reviewer_id'
         },
+        // NOTE: DB ใช้ ENUM ตัวพิมพ์ใหญ่ 'INTERNSHIP','PROJECT' จึงต้อง align ให้ตรง ไม่เช่นนั้นจะ validation error เวลา insert/update
         documentType: {
-            type: DataTypes.ENUM('internship', 'project'),
+            type: DataTypes.ENUM('INTERNSHIP', 'PROJECT'),
             allowNull: false,
             field: 'document_type'
         },

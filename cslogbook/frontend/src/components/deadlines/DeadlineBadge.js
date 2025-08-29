@@ -3,15 +3,16 @@ import { Tag, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { computeDeadlineStatus } from '../../utils/deadlineUtils';
 
-export default function DeadlineBadge({ deadline, submittedAt, isLate, isSubmitted }) {
-  const status = computeDeadlineStatus(deadline, submittedAt, { isLate, isSubmitted });
+export default function DeadlineBadge({ deadline, submittedAt, isLate, isSubmitted, locked }) {
+  const status = computeDeadlineStatus(deadline, submittedAt, { isLate, isSubmitted, locked });
   const colorMap = {
     none: 'default',
     pending: 'blue',
     dueSoon: 'gold',
     overdue: 'red',
     submitted: 'green',
-    late: 'orange'
+  late: 'orange',
+  locked: 'purple'
   };
   const color = colorMap[status.code] || 'default';
   const tooltip = submittedAt

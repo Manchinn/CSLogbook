@@ -54,14 +54,18 @@ export default function StudentDeadlineCalendar() {
       return ta.localeCompare(tb);
     });
     return sorted.slice(0,4).map(item => {
-      const local = item.deadlineDate && item.deadlineTime ? dayjs(`${item.deadlineDate} ${item.deadlineTime}`) : null;
-      const st = computeDeadlineStatus(local, null, { isSubmitted:item.isSubmitted, isLate:item.isLate });
-      const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange' };
-      const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : 'processing');
+      // ใช้ effective_deadline_local ถ้าไม่มี deadline_at_local
+      const baseLocal = item.deadline_at_local || item.effective_deadline_local || null;
+      const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, { isSubmitted:item.isSubmitted, isLate:item.isLate, locked:item.locked });
+      const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange', locked:'purple' };
+      const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : (st.code === 'locked' ? 'default' : 'processing'));
       const label = item.isWindow ? (item.allDay ? `${item.name || item.title} (ช่วง)` : `${item.name || item.title} (ช่วงเวลา)`) : (item.name || item.title);
+      const tooltipDetail = item.isWindow 
+        ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''} · ${st.label}`
+        : `${item.name || item.title} · ${baseLocal?baseLocal.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`;
       return (
         <div key={item.id} style={{ marginBottom:2 }}>
-          <Tooltip title={item.isWindow ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''}` : `${item.name || item.title} · ${local?local.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`}>
+          <Tooltip title={tooltipDetail}>
             <Badge color={colorMap[st.code] || 'blue'} status={dotStatus} text={label} />
           </Tooltip>
         </div>
@@ -111,6 +115,7 @@ export default function StudentDeadlineCalendar() {
           <Tag color="red">เกินกำหนด</Tag>
           <Tag color="green">ส่งแล้ว</Tag>
           <Tag color="orange">ส่งช้า</Tag>
+          <Tag color="purple">ปิดรับแล้ว</Tag>
         </div>
         <Typography.Title level={5} style={{ marginTop: 0 }}>รายละเอียด (จำแนกตามระบบ)</Typography.Title>
         {['internship','project','general'].map(section => {
@@ -124,7 +129,7 @@ export default function StudentDeadlineCalendar() {
                 <div key={d.id} style={{ borderBottom:'1px solid #eee', padding:'8px 6px', display:'flex', flexDirection:'column', gap:4 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                     <strong>{d.name || d.title}{d.isWindow ? (d.allDay ? ' (ช่วงทั้งวัน)' : ' (ช่วงเวลา)') : ''}</strong>
-                    <DeadlineBadge deadline={d.deadline_at_local} isSubmitted={d.isSubmitted} isLate={d.isLate} submittedAt={d.submittedAtLocal} />
+                    <DeadlineBadge deadline={d.deadline_at_local || d.effective_deadline_local} isSubmitted={d.isSubmitted} isLate={d.isLate} submittedAt={d.submittedAtLocal} locked={d.locked} />
                   </div>
                   <div style={{ fontSize:12, opacity:0.8 }}>
                     {d.isWindow ? (

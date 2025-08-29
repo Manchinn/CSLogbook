@@ -8,13 +8,17 @@ export function formatDeadlineThai(dateStr, timeStr, withTime = true) {
     : base.format('D MMM BBBB');
 }
 
-export function computeDeadlineStatus(deadlineAtLocal, submittedAtLocal, { isLate, isSubmitted }) {
+export function computeDeadlineStatus(deadlineAtLocal, submittedAtLocal, { isLate, isSubmitted, locked } = {}) {
+  // ลำดับความสำคัญ: submitted -> submitted-late -> locked -> overdue -> dueSoon -> pending
   const now = dayjs();
   const deadline = deadlineAtLocal ? dayjs(deadlineAtLocal) : null;
   if (!deadline) return { code:'none', label:'ไม่มี', color:'default' };
   if (isSubmitted) {
     if (isLate) return { code:'late', label:'ส่งช้า', color:'orange' };
     return { code:'submitted', label:'ส่งแล้ว', color:'green' };
+  }
+  if (locked) {
+    return { code:'locked', label:'ปิดรับแล้ว', color:'purple' };
   }
   if (now.isAfter(deadline)) {
     const diffDays = now.diff(deadline,'day');
