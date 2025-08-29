@@ -25,29 +25,25 @@ export default function StudentDeadlineCalendar() {
   // แบ่งกลุ่มตามระบบ
   const grouped = useMemo(() => {
     const g = { internship: [], project: [], general: [] };
-    deadlines.forEach((d) => {
-      if (d.relatedTo === "internship") g.internship.push(d);
-      else if (d.relatedTo === "project") g.project.push(d);
+    deadlines.forEach(d => {
+      if (d.relatedTo === 'internship') g.internship.push(d);
+      else if (d.relatedTo === 'project') g.project.push(d);
       else g.general.push(d);
     });
     return g;
   }, [deadlines]);
 
+  // สร้างแผนที่วันที่ -> deadlines (ขยายช่วง window)
   const dateMap = useMemo(() => {
     const map = {};
-    deadlines.forEach((d) => {
-      // ขยายกรณีช่วง (window) ครอบทุกวันในช่วง
+    deadlines.forEach(d => {
       if (d.isWindow && d.windowStartDate && d.windowEndDate) {
         const start = dayjs(`${d.windowStartDate} 00:00:00`);
         const end = dayjs(`${d.windowEndDate} 23:59:59`);
-        for (
-          let cur = start;
-          cur.isBefore(end) || cur.isSame(end, "day");
-          cur = cur.add(1, "day")
-        ) {
-          const key = cur.format("YYYY-MM-DD");
-          if (!map[key]) map[key] = [];
-          map[key].push({ ...d, _rangePart: true });
+        for (let cur = start; cur.isBefore(end) || cur.isSame(end,'day'); cur = cur.add(1,'day')) {
+          const key = cur.format('YYYY-MM-DD');
+            if (!map[key]) map[key] = [];
+            map[key].push({ ...d, _rangePart: true });
         }
       } else if (d.deadlineDate) {
         if (!map[d.deadlineDate]) map[d.deadlineDate] = [];
@@ -69,51 +65,33 @@ export default function StudentDeadlineCalendar() {
       const tb = b.deadlineTime || b.windowStartTime || "23:59:59";
       return ta.localeCompare(tb);
     });
-    return sorted.slice(0, 4).map((item) => {
-      // ใช้ effective_deadline_local ถ้าไม่มี deadline_at_local
-      const baseLocal =
-        item.deadline_at_local || item.effective_deadline_local || null;
-      const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, {
-        isSubmitted: item.isSubmitted,
-        isLate: item.isLate,
-        locked: item.locked,
-      });
-      const colorMap = {
-        pending: "blue",
-        dueSoon: "gold",
-        overdue: "red",
-        submitted: "green",
-        late: "orange",
-        locked: "purple",
-      };
-      const dotStatus =
-        st.code === "overdue"
-          ? "error"
-          : st.code === "dueSoon"
-          ? "warning"
-          : st.code === "locked"
-          ? "default"
-          : "processing";
-      const label = item.isWindow
-        ? item.allDay
-          ? `${item.name || item.title} (ช่วง)`
-          : `${item.name || item.title} (ช่วงเวลา)`
-        : item.name || item.title;
-      const tooltipDetail = item.isWindow
-        ? `${item.name || item.title} · ${item.windowStartDate} → ${
-            item.windowEndDate
-          }${item.allDay ? " (ทั้งวัน)" : ""} · ${st.label}`
-        : `${item.name || item.title} · ${
-            baseLocal ? baseLocal.format("D MMM BBBB เวลา HH:mm น.") : ""
-          } · ${st.label}`;
+    return sorted.slice(0, 4).map(item => {
+      const label = item.isWindow ? (item.allDay ? `${item.name || item.title} (ช่วง)` : `${item.name || item.title} (ช่วงเวลา)`) : (item.name || item.title);
+      // กรณี ANNOUNCEMENT ไม่ต้องคำนวณสถานะส่ง เรียก badge สีคงที่
+      if (item.deadlineType === 'ANNOUNCEMENT') {
+        const tooltipDetail = item.isWindow 
+          ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''} · ประกาศ`
+          : `${item.name || item.title} · ประกาศ`;
+        return (
+          <div key={item.id} style={{ marginBottom:2 }}>
+            <Tooltip title={tooltipDetail}>
+              <Badge color="gold" status="warning" text={label} />
+            </Tooltip>
+          </div>
+        );
+      }
+      // ปกติ: คำนวณสถานะ submission
+      const baseLocal = item.deadline_at_local || item.effective_deadline_local || null;
+      const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, { isSubmitted:item.isSubmitted, isLate:item.isLate, locked:item.locked });
+      const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange', locked:'purple' };
+      const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : (st.code === 'locked' ? 'default' : 'processing'));
+      const tooltipDetail = item.isWindow 
+        ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''} · ${st.label}`
+        : `${item.name || item.title} · ${baseLocal?baseLocal.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`;
       return (
-        <div key={item.id} style={{ marginBottom: 2 }}>
+        <div key={item.id} style={{ marginBottom:2 }}>
           <Tooltip title={tooltipDetail}>
-            <Badge
-              color={colorMap[st.code] || "blue"}
-              status={dotStatus}
-              text={label}
-            />
+            <Badge color={colorMap[st.code] || 'blue'} status={dotStatus} text={label} />
           </Tooltip>
         </div>
       );
@@ -269,15 +247,15 @@ export default function StudentDeadlineCalendar() {
                           : ""}
                       </strong>
                       <Tag color={t.color}>{t.txt}</Tag>
-                      <DeadlineBadge
-                        deadline={
-                          d.deadline_at_local || d.effective_deadline_local
-                        }
-                        isSubmitted={d.isSubmitted}
-                        isLate={d.isLate}
-                        submittedAt={d.submittedAtLocal}
-                        locked={d.locked}
-                      />
+                      {d.deadlineType !== 'ANNOUNCEMENT' && (
+                        <DeadlineBadge
+                          deadline={d.deadline_at_local || d.effective_deadline_local}
+                          isSubmitted={d.isSubmitted}
+                          isLate={d.isLate}
+                          submittedAt={d.submittedAtLocal}
+                          locked={d.locked}
+                        />
+                      )}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.8 }}>
                       {d.isWindow ? (
