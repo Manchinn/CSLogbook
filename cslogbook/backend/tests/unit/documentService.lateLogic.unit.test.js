@@ -1,21 +1,38 @@
 const { Sequelize } = require('sequelize');
 
-// NOTE: ต้องประกาศ jest.mock ก่อน require documentService และ factory จะถูกเรียกตอน service require('../models')
-// ใช้ global.__TEST_MODELS เพื่อหลีกเลี่ยงปัญหา out-of-scope ของ Jest
-jest.mock('../../models', () => global.__TEST_MODELS, { virtual: true });
-
+// NOTE: ใช้กลยุทธ์ resetModules เพื่อไม่ให้ documentService ที่ถูก require จากไฟล์อื่นก่อนหน้า
+// มาค้าง cache ด้วยโมเดลจริง ป้องกัน side-effect จาก integration tests
 let sequelize, documentService;
 
 beforeAll(async () => {
+  jest.resetModules();
+  // เตรียม mock container
+  global.__TEST_MODELS = {};
+  // สร้าง in-memory sequelize
   sequelize = new Sequelize('sqlite::memory:', { logging: false });
-  // โหลดไฟล์โมเดลดิบ (factory) แล้วผูกกับ sequelize
+  // โหลด factory (ไม่ผ่าน index models เพื่อหลีกเลี่ยง side effect config/database)
   const importantDeadlineFactory = require('../../models/ImportantDeadline');
   const documentFactory = require('../../models/Document');
   const ImportantDeadline = importantDeadlineFactory(sequelize);
   const Document = documentFactory(sequelize);
-  global.__TEST_MODELS = { ImportantDeadline, Document, User: {}, Student: {}, InternshipDocument: {}, StudentWorkflowActivity: {}, Notification: {}, DocumentLog: {} };
+  // เติม stub โมเดลอื่น ๆ ที่ service อาจ reference
+  Object.assign(global.__TEST_MODELS, {
+    ImportantDeadline,
+    Document,
+    User: { findByPk: jest.fn() },
+    Student: {},
+    InternshipDocument: {},
+    StudentWorkflowActivity: {},
+    Notification: {},
+    DocumentLog: { create: jest.fn() },
+  });
+  // ประกาศ mock models module (หลัง resetModules)
+  jest.doMock('../../models', () => global.__TEST_MODELS, { virtual: true });
   await sequelize.sync({ force: true });
-  documentService = require('../../services/documentService'); // service ส่งออกเป็น instance อยู่แล้ว
+  // isolateModules เพื่อให้ require ใช้ mock ที่เพิ่ง doMock
+  jest.isolateModules(() => {
+    documentService = require('../../services/documentService');
+  });
 });
 
 afterAll(async () => { await sequelize.close(); });

@@ -108,7 +108,8 @@
       "!src/**/*.d.ts"
     ],
     "setupFiles": [
-      "react-app-polyfill/jsdom"
+      "react-app-polyfill/jsdom",
+      "<rootDir>/src/setupEnvTest.js"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/src/setupTests.js"
