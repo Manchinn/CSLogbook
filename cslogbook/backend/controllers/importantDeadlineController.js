@@ -136,29 +136,52 @@ module.exports.getAllForStudent = async (req, res) => {
   try {
     const { academicYear } = req.query; // พ.ศ.
     const all = await importantDeadlineService.getAll({ academicYear });
-  console.log('[getAllForStudent] raw count:', all.length, 'academicYear param:', academicYear);
+    console.log('[getAllForStudent] raw count:', all.length, 'academicYear param:', academicYear);
+
+    // Phase 1 enrichment: ผสานสถานะการส่งเอกสารของนักศึกษา (อิงการเชื่อม important_deadline_id ใน documents)
+    const studentId = req.user?.userId || req.user?.id; // auth middleware อาจตั้ง userId หรือ id
+    let documentsByDeadline = new Map();
+    if (studentId && all.length) {
+      try {
+        const { Document } = require('../models');
+        const { Op } = require('sequelize');
+        const deadlineIds = all.map(d => d.id).filter(Boolean);
+        const docs = await Document.findAll({
+          where: {
+            userId: studentId,
+            importantDeadlineId: { [Op.in]: deadlineIds }
+          }
+        }).catch(err => { console.error('[getAllForStudent] Document query error', err.message); return []; });
+        for (const d of docs) {
+          documentsByDeadline.set(d.importantDeadlineId, d);
+        }
+      } catch (e) {
+        console.error('[getAllForStudent] enrich documents error', e.message);
+      }
+    }
+
+    const now = new Date();
     const enriched = all.map(d => {
       const obj = d.toJSON();
+      const pad = n => n.toString().padStart(2,'0');
+      // แปลง single deadline
       if (obj.deadlineAt) {
         const utc = new Date(obj.deadlineAt);
         const local = new Date(utc.getTime() + 7*60*60*1000);
-        const pad = n => n.toString().padStart(2,'0');
         obj.deadlineDate = `${local.getUTCFullYear()}-${pad(local.getUTCMonth()+1)}-${pad(local.getUTCDate())}`;
         obj.deadlineTime = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
       }
+      // แปลง window (ถ้ามี)
       if (obj.windowStartAt && obj.windowEndAt) {
-        const startUtc = new Date(obj.windowStartAt);
-        const endUtc = new Date(obj.windowEndAt);
-        const pad = n => n.toString().padStart(2,'0');
         const toLocalParts = (dt) => {
-          const l = new Date(dt.getTime() + 7*60*60*1000);
+          const l = new Date(new Date(dt).getTime() + 7*60*60*1000);
           return {
             date: `${l.getUTCFullYear()}-${pad(l.getUTCMonth()+1)}-${pad(l.getUTCDate())}`,
             time: `${pad(l.getUTCHours())}:${pad(l.getUTCMinutes())}:${pad(l.getUTCSeconds())}`
           };
         };
-        const s = toLocalParts(startUtc);
-        const e = toLocalParts(endUtc);
+        const s = toLocalParts(obj.windowStartAt);
+        const e = toLocalParts(obj.windowEndAt);
         obj.windowStartDate = s.date;
         obj.windowStartTime = s.time;
         obj.windowEndDate = e.date;
@@ -167,9 +190,44 @@ module.exports.getAllForStudent = async (req, res) => {
       } else {
         obj.isWindow = false;
       }
+
+      // คำนวณ effectiveDeadlineAt สำหรับการเปรียบเทียบ (ปลาย window ถ้ามี มิฉะนั้น deadlineAt)
+      const effectiveDeadlineAt = obj.windowEndAt || obj.deadlineAt || null;
+      obj.effectiveDeadlineAt = effectiveDeadlineAt;
+
+      // ผสานข้อมูล submission จาก Document (Phase 1)
+      let submission = { submitted: false, submittedAt: null, late: false };
+      if (documentsByDeadline.has(obj.id)) {
+        const doc = documentsByDeadline.get(obj.id);
+        submission.submitted = !!doc.submittedAt || ['approved','completed','supervisor_evaluated','acceptance_approved','referral_ready','referral_downloaded'].includes(doc.status);
+        submission.submittedAt = doc.submittedAt ? doc.submittedAt : null;
+        // ถ้ามี flag isLate ในเอกสาร ใช้แทน หรือคำนวณใหม่ (กันกรณี schema เปลี่ยน)
+        if (doc.isLate !== undefined && doc.isLate !== null) {
+          submission.late = !!doc.isLate;
+        } else if (submission.submittedAt && effectiveDeadlineAt) {
+          const submittedMs = new Date(submission.submittedAt).getTime();
+          const deadlineMs = new Date(effectiveDeadlineAt).getTime();
+          // รวม grace period ถ้ามี
+          let deadlineWithGrace = deadlineMs;
+            if (obj.gracePeriodMinutes) {
+              deadlineWithGrace += obj.gracePeriodMinutes * 60 * 1000;
+            }
+          submission.late = submittedMs > deadlineWithGrace;
+        }
+      }
+      obj.submission = submission;
+
+      // locked: ถ้าหมดเวลา + policy lockAfterDeadline = true และยังไม่ส่ง
+      if (effectiveDeadlineAt && obj.lockAfterDeadline) {
+        const effMs = new Date(effectiveDeadlineAt).getTime();
+        obj.locked = now.getTime() > effMs && !submission.submitted;
+      } else {
+        obj.locked = false;
+      }
+
       return obj;
     }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
-  console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,academicYear:x.academicYear,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));
+    console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,sub:x.submission,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));
     res.json({ success: true, data: enriched });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
