@@ -109,5 +109,25 @@ logger.add(new winston.transports.File({
   )
 }));
 
+// เพิ่ม transport สำหรับบันทึกเฉพาะ log หมวดการแจ้งเตือน (notification emails)
+logger.add(new winston.transports.File({
+  filename: path.join(logDir, 'notifications.log'),
+  level: 'info',
+  maxsize: 5242880, // 5MB
+  maxFiles: 5,
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+    winston.format.printf(info => {
+      // เงื่อนไข: มี meta.notificationType หรือ ข้อความมีคำสำคัญเกี่ยวกับการแจ้งเตือนอีเมล
+      const msg = info.message || '';
+      const matched = info.notificationType || /(การแจ้งเตือน|Logbook|อนุมัติ|ประเมิน)/.test(msg);
+      if (matched) {
+        return `[${info.timestamp}] ${info.level.toUpperCase()}: ${msg}` + (info.notificationType ? ` {"notificationType":"${info.notificationType}"}` : '') + (Object.keys(info).some(k => !['level','message','timestamp','notificationType','service'].includes(k)) ? ` ${JSON.stringify(Object.fromEntries(Object.entries(info).filter(([k]) => !['level','message','timestamp'].includes(k))))}` : '');
+      }
+      return null; // ข้ามถ้าไม่เข้าเงื่อนไข
+    })
+  )
+}));
+
 // Export logger
 module.exports = logger;

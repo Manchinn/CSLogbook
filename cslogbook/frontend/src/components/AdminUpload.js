@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Button, Table, message, Space, Typography, Card } from 'antd';
 import { UploadOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 
 const { Text } = Typography;
 
@@ -100,12 +100,11 @@ const AdminUpload = () => {
         return;
       }
 
-      const response = await axios.post(
-        'http://localhost:5000/api/upload-csv', // เปลี่ยน URL ให้ตรงกับการตั้งค่าใน Backend
+      const response = await apiClient.post(
+        '/upload-csv',
         formData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           }
         }

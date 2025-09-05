@@ -27,10 +27,14 @@ import "./Dashboard.css";
 import { adminService } from "../../services/adminService";
 import { teacherService } from "../../services/teacherService";
 import { studentService } from "../../services/studentService";
-import moment from "moment";
+import { getRoleTheme } from '../../utils/roleTheme';
+import useUpcomingDeadlines from '../../hooks/useUpcomingDeadlines';
+// moment removed (not used)
 
 function Dashboard() {
   const { userData } = useAuth();
+
+  const theme = getRoleTheme(userData?.role, userData?.teacherType);
 
   function AdminView() {
     const navigate = useNavigate();
@@ -87,13 +91,6 @@ function Dashboard() {
     return (
       <div className="admin-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
-          <Alert
-            message={`สวัสดี ผู้ดูแลระบบ ${userData.firstName} ${userData.lastName}`}
-            type="info"
-            showIcon
-            className="common-alert-style"
-          />
-
           <Row gutter={[16, 16]}>
             {statsCards.map((card, index) => (
               <Col xs={24} sm={8} key={index}>
@@ -117,7 +114,7 @@ function Dashboard() {
                   title="เอกสารรอดำเนินการ"
                   value={dashboardStats.documents.pending}
                   suffix={`/ ${dashboardStats.documents.total}`}
-                  valueStyle={{ color: "#faad14" }}
+                  valueStyle={{ color: dashboardStats.documents.pending > 0 ? '#faad14' : theme.primary }}
                   prefix={<FileTextOutlined />}
                 />
               </Card>
@@ -180,7 +177,7 @@ function Dashboard() {
     };
 
     return (
-      <div className="teacher-dashboard">
+  <div className="teacher-dashboard">
         <Row gutter={[16, 16]} className="stats-row">
           <Col xs={24} sm={12}>
             <Card hoverable className="stats-card">
@@ -213,11 +210,13 @@ function Dashboard() {
     const navigate = useNavigate();
     const [studentData, setStudentData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+  const { deadlines: upcomingDeadlines, loading: loadingDeadlines } = useUpcomingDeadlines({ days:7 });
 
+    const studentCode = userData?.studentCode; // แยก primitive ให้ hook dependency ชัดเจน
     useEffect(() => {
       let isMounted = true;
-      if (userData?.studentCode) {
-        studentService.getStudentInfo(userData.studentCode)
+      if (studentCode) {
+        studentService.getStudentInfo(studentCode)
           .then((response) => {
             if (isMounted) {
               setStudentData(response.data);
@@ -231,7 +230,7 @@ function Dashboard() {
           });
       }
       return () => { isMounted = false; };
-    }, [userData?.studentCode]);
+    }, [studentCode]);
 
     const isEligibleForInternship = studentData?.eligibility?.internship?.eligible || false;
     const isEligibleForProject = studentData?.eligibility?.project?.eligible || false;
@@ -239,13 +238,6 @@ function Dashboard() {
     return (
       <div className="student-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
-          <Alert
-            message={`สวัสดี ${userData.firstName} ${userData.lastName}`}
-            description={`รหัสนักศึกษา: ${userData.studentCode}`}
-            type="info"
-            showIcon
-          />
-
           <Row gutter={[16, 16]}>
             {/* สถานะการฝึกงาน */}
             <Col xs={24} sm={12}>
@@ -263,6 +255,9 @@ function Dashboard() {
                   loading={isLoading}
                 />
                 <Descriptions column={1} size="small">
+                  <Descriptions.Item label="ชั้นปี">
+                    {studentData?.studentYear || '-'}
+                  </Descriptions.Item>
                   <Descriptions.Item label="หน่วยกิตรวม">
                     {studentData?.totalCredits || 0} หน่วยกิต
                   </Descriptions.Item>
@@ -274,7 +269,7 @@ function Dashboard() {
                   <Button
                     type="primary"
                     icon={<FormOutlined />}
-                    onClick={() => navigate('/internship-registration/cs05')}
+                    onClick={() => navigate('/internship-registration/flow')}
                     style={{ marginTop: '16px' }}
                   >
                     จัดการฝึกงาน
@@ -300,7 +295,7 @@ function Dashboard() {
                 />
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="ชั้นปี">
-                    {studentData?.studentYear?.year || '-'}
+                    {studentData?.studentYear || '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="หน่วยกิตรวม">
                     {studentData?.totalCredits || 0} หน่วยกิต
@@ -321,6 +316,23 @@ function Dashboard() {
                   >
                     จัดการโครงงานพิเศษ
                   </Button>
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Card hoverable className="upcoming-deadlines-card" style={{ height: '100%' }} title={<Space><ClockCircleOutlined /> กำหนดส่งใกล้ถึง</Space>}>
+                {loadingDeadlines ? 'กำลังโหลด...' : (
+                  upcomingDeadlines.length ? upcomingDeadlines.slice(0,5).map(d => (
+                    <div key={d.id} style={{ marginBottom:8 }}>
+                      <Space direction="vertical" size={0} style={{ width:'100%' }}>
+                        <span style={{ fontWeight:600 }}>{d.name} {d.isCritical ? <Badge status="error" text="สำคัญ" />: null}</span>
+                        <span style={{ fontSize:12, color:'#555' }}>{d.formatted}</span>
+                        <span style={{ fontSize:12 }}>
+                          <Badge color={d.diffDays <=0 ? 'red':'blue'} text={d.diffDays>0 ? `เหลือ ${d.diffDays} วัน` : (d.diffHours>0 ? `เหลือ ${d.diffHours} ชั่วโมง` : 'ใกล้ครบกำหนด')} />
+                        </span>
+                      </Space>
+                    </div>
+                  )) : <span style={{ fontSize:12 }}>ไม่มีกำหนดการที่ต้องส่งภายใน 7 วันนี้</span>
                 )}
               </Card>
             </Col>

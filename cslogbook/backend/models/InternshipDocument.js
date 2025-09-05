@@ -87,6 +87,20 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: "end_date",
       },
+      // snapshot ปีการศึกษา (พ.ศ.) ณ เวลาสร้าง/ยื่นเอกสาร CS05
+      academicYear: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // จะ backfill แล้วค่อยพิจารณาเปลี่ยนเป็น false
+        field: 'academic_year',
+        comment: 'ปีการศึกษา (พ.ศ.) snapshot ของเอกสารฝึกงาน'
+      },
+      // snapshot ภาคเรียน (1,2,3) ณ เวลาสร้าง/ยื่น
+      semester: {
+        type: DataTypes.TINYINT,
+        allowNull: true,
+        field: 'semester',
+        comment: 'ภาคเรียน (1,2,3) snapshot ของเอกสารฝึกงาน'
+      }
     },
     {
       sequelize,
@@ -103,6 +117,10 @@ module.exports = (sequelize) => {
           name: "idx_internship_date",
           fields: ["start_date", "end_date"],
         },
+        {
+          name: 'idx_internship_period_company',
+          fields: ['academic_year', 'semester', 'company_name']
+        }
       ],
     }
   );

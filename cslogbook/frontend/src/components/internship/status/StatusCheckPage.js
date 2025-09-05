@@ -308,7 +308,7 @@ const StatusCheckPage = () => {
                       <Button 
                         type="primary" 
                         icon={<FileTextOutlined />}
-                        onClick={() => navigate('/internship-registration/cs05')}
+                        onClick={() => navigate('/internship-registration/flow')}
                       >
                         เริ่มกรอกคำร้อง คพ.05
                       </Button>
@@ -370,7 +370,7 @@ const StatusCheckPage = () => {
               type="primary" 
               size="large"
               icon={<FileTextOutlined />}
-              onClick={() => navigate('/internship-registration/cs05')}
+              onClick={() => navigate('/internship-registration/flow')}
             >
               เริ่มกรอกคำร้อง คพ.05
             </Button>

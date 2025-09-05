@@ -5,7 +5,7 @@
   align-items: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  background-image: url('C:\Users\chinn\CSLog\cslogbook\frontend\public\login-bg.svg'), linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* background-image: url('C:\Users\chinn\CSLog\cslogbook\frontend\public\login-bg.svg'), linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); */
   background-size: cover;
   background-position: center;
   padding: 20px;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
@@ -7,6 +7,7 @@ import MainLayout from './components/layout/MainLayout';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentProfile from './components/StudentProfile/index';
+import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
 
 // Import Internship Components
 import CS05Form from './components/internship/registration/CS05Form';
@@ -17,6 +18,10 @@ import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
 import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
 
 import { InternshipRegistrationFlow } from './components/internship/register';
+// 🆕 เพิ่ม import สำหรับ InternshipCertificateRequest
+import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
+import InternshipCompanyDashboard from './components/internship/companies/InternshipCompanyDashboard';
+
 
 // Import Project Components
 import ProjectProposalForm from './components/project/ProjectProposalForm';
@@ -29,16 +34,27 @@ import AdminUpload from './components/AdminUpload';
 import AdminRoutes from './components/admin/AdminRoutes';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
+import ApproveDocuments from './components/teacher/ApproveDocuments';
 
-const ProtectedRoute = ({ children, roles }) => {
+const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    // ส่ง state.from เพื่อให้ LoginForm รู้ว่าต้องกลับไปหน้าเดิม (ถ้ามี)
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // ตรวจสอบ roles
   if (roles && !roles.includes(userData.role)) {
     return <Navigate to="/dashboard" />;
+  }
+
+  // ตรวจสอบ teacherTypes (สำหรับ teacher role)
+  if (teacherTypes && userData.role === 'teacher') {
+    if (!teacherTypes.includes(userData.teacherType)) {
+      return <Navigate to="/dashboard" />;
+    }
   }
 
   return children;
@@ -62,11 +78,24 @@ const App = () => {
 
                 {/* Student Routes */}
                 <Route path="/student-profile/:id" element={<StudentProfile />} />
+                <Route path="/student-deadlines/calendar" element={
+                  <ProtectedRoute roles={['student']}>
+                    <StudentDeadlineCalendar />
+                  </ProtectedRoute>
+                } />
+                
 
                 {/* Internship Routes */}
                 <Route path="/internship-registration/cs05" element={
                   <ProtectedRoute roles={['student']}>
                     <CS05Form />
+                  </ProtectedRoute>
+                } />
+
+                {/* Dashboard บริษัทที่รับนักศึกษาฝึกงาน (ใหม่) */}
+                <Route path="/internship-companies" element={
+                  <ProtectedRoute roles={['student','teacher','admin']}>
+                    <InternshipCompanyDashboard />
                   </ProtectedRoute>
                 } />
 
@@ -113,6 +142,14 @@ const App = () => {
                     <InternshipSummary />
                   </ProtectedRoute>
                 } />
+
+                {/* 🆕 เพิ่ม route สำหรับขอหนังสือรับรองการฝึกงาน */}
+                <Route path="/internship-certificate" element={
+                  <ProtectedRoute roles={['student']}>
+                    <InternshipCertificateRequest />
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="/status-check" element={
                   <ProtectedRoute roles={['student']}>
                     <StatusCheck />
@@ -143,23 +180,30 @@ const App = () => {
                   </ProtectedRoute>
                 } />
 
-                {/* Admin Routes */}
+                {/* Admin Routes - สำหรับ admin และ teacher support */}
                 <Route path="/students" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                   </ProtectedRoute>
                 } />
                 <Route path="/teachers" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/upload" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminUpload />
                   </ProtectedRoute>
                 } />
 
+                {/* Teacher Academic Routes */}
+                <Route path="/approve-documents" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <ApproveDocuments />
+                  </ProtectedRoute>
+                } />
+
                 <Route path="/admin/*" element={
-                  <ProtectedRoute roles={['admin']}>
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminRoutes />
                   </ProtectedRoute>
                 } />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { message } from 'antd';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useStudentPermissions = () => {
@@ -26,11 +26,8 @@ export const useStudentPermissions = () => {
     try {
       setPermissions(prev => ({ ...prev, isLoading: true }));
       
-      const token = localStorage.getItem('token');
-      // เรียกไปที่ endpoint ที่ถูกต้องตามที่กำหนดใน server.js
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/students/check-eligibility`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  // เรียก endpoint ผ่าน apiClient (แนบ token อัตโนมัติจาก interceptor)
+  const response = await apiClient.get('/students/check-eligibility');
 
       if (response.data.success) {
         setPermissions({
@@ -65,11 +62,10 @@ export const useStudentPermissions = () => {
 
   useEffect(() => {
     fetchEligibility();
-    
     // ตั้งค่าให้อัปเดตทุก 6 ชั่วโมง
     const intervalId = setInterval(fetchEligibility, 6 * 60 * 60 * 1000);
-    
     return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
 
   return {

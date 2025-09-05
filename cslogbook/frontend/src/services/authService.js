@@ -1,11 +1,9 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL;
+import apiClient from './apiClient';
 
 const authService = {
   login: async (credentials) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, credentials);
+  const response = await apiClient.post('/auth/login', credentials);
       const data = response.data;
 
       if (data.success) {

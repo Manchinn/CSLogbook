@@ -4,19 +4,14 @@ const logger = require("../utils/logger");
 // ฟังก์ชันดึงข้อมูลนักศึกษาทั้งหมด
 exports.getAllStudents = async (req, res, next) => {
   try {
-    const { semester, academicYear } = req.query;
 
     const students = await studentService.getAllStudents({ 
-      semester, 
-      academicYear 
     });
 
     res.json({
       success: true,
       data: students,
       filters: {
-        semester: semester || null,
-        academicYear: academicYear || null,
       },
       message: "ดึงข้อมูลนักศึกษาสำเร็จ",
     });

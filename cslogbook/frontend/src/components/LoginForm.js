@@ -3,11 +3,11 @@ import { Form, Input, Button, Typography, message, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 import './LoginForm.css';
 
 const { Title, Text } = Typography;
-const API_URL = process.env.REACT_APP_API_URL;
+// ใช้ apiClient (baseURL + interceptors) แทนการเรียก axios ตรง
 
 const LoginForm = () => {
   const [loading, setLoading] = useState(false);
@@ -18,16 +18,13 @@ const LoginForm = () => {
   const [form] = Form.useForm();
 
   // ดึง path ที่ user พยายามจะเข้าถึง
-  const from = location.state?.from?.pathname || "/admin/";
+  // กำหนด default redirect หลัง login: ให้เป็น /dashboard แทน /admin/
+  // เดิม hard-coded เป็น /admin/ ทำให้ผู้ใช้ทั่วไป (ที่ไม่ได้มาจาก protected route ที่ส่ง state) ถูกพาไปหน้า admin
+  const from = location.state?.from?.pathname || "/dashboard";
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-        const response = await axios.post(`${API_URL}/auth/login`, values, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            timeout: 15000  // Add timeout
-        });
+  const response = await apiClient.post('/auth/login', values);
 
         console.log('Login response:', response.data);  // Debug log
 
@@ -48,22 +45,37 @@ const LoginForm = () => {
 
             if (loginSuccess) {
                 message.success('เข้าสู่ระบบสำเร็จ');
-                
-                // เพิ่มเงื่อนไขเฉพาะ admin
-                if (userData.role === 'admin') {
-                    navigate('/admin/dashboard');
-                } else {
-                    // ถ้าเป็น roles อื่น (teacher, student) ใช้ path เดิม
-                    navigate(from);
+
+                // กำหนด redirect ตาม role/teacherType (ให้ support staff ไป admin/dashboard)
+                const role = userData.role;
+                const teacherType = userData.teacherType;
+
+                let targetPath = from; // ค่าปริยายจาก state (เช่น ผู้ใช้กดลิงก์ protected มาก่อน)
+
+                // ถ้าไม่ได้มาจาก protected route (from เป็น default '/dashboard') ให้คำนวณใหม่
+                if (from === '/dashboard') {
+                  if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
+                    targetPath = '/admin/dashboard';
+                  } else if (role === 'teacher') {
+                    // แยก page สำหรับอาจารย์ (ถ้าระบบมีหน้าเฉพาะ อาจเปลี่ยนเป็น /teacher/dashboard)
+                    targetPath = '/dashboard';
+                  } else if (role === 'student') {
+                    // นักศึกษาอยู่หน้า dashboard รวม (หรืออาจสร้าง /student/dashboard แยก ถ้ามีในอนาคต)
+                    targetPath = '/dashboard';
+                  } else {
+                    targetPath = '/dashboard';
+                  }
                 }
+
+                navigate(targetPath, { replace: true });
             }
         }
     } catch (error) {
-        console.error('Login error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
+    console.error('Login error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
 
         // Activate the shake animation on error
         setErrorShake(true);

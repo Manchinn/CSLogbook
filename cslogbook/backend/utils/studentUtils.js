@@ -307,10 +307,12 @@ const loadDynamicConstants = async () => {
   }
 };
 
-// โหลดค่า constants เมื่อมีการ import ไฟล์นี้
-loadDynamicConstants().catch((err) =>
-  console.error("ไม่สามารถโหลดค่า constants ได้:", err)
-);
+// โหลดค่า constants เมื่อมีการ import (ยกเว้น environment test เพื่อลด side-effects ใน Jest)
+if (process.env.NODE_ENV !== 'test') {
+  loadDynamicConstants().catch((err) =>
+    console.error("ไม่สามารถโหลดค่า constants ได้:", err)
+  );
+}
 
 /**
  * คำนวณชั้นปีของนักศึกษา

@@ -13,12 +13,14 @@ import {
   getInternshipRequirements,
   getProjectRequirements,
 } from "../../../utils/studentUtils";
+import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
 
 const { Step } = Steps;
 const { Text } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงเส้นทางการศึกษาหลัก
 const EducationPath = ({ student }) => {
+  const { internshipStatus } = useInternshipStatus();
   const [requirements, setRequirements] = useState({
     internship: null,
     project: null,
@@ -51,9 +53,9 @@ const EducationPath = ({ student }) => {
   // กำหนด icon สถานะตามสถานะการทำงานในขั้นตอนนั้น
   const getStepIcon = (stepType) => {
     if (stepType === "internship") {
-      if (student.internshipStatus === "completed")
+      if (internshipStatus === "completed")
         return <CheckCircleOutlined />;
-      if (student.internshipStatus === "in_progress")
+      if (internshipStatus === "in_progress")
         return <LoadingOutlined />;
       return <LaptopOutlined />;
     }
@@ -83,8 +85,8 @@ const EducationPath = ({ student }) => {
   // กำหนดคำอธิบายสถานะของแต่ละขั้นตอน
   const getStepDescription = (stepType) => {
     if (stepType === "internship") {
-      if (student.internshipStatus === "completed") return "เสร็จสิ้น";
-      if (student.internshipStatus === "in_progress") return "กำลังดำเนินการ";
+      if (internshipStatus === "completed") return "เสร็จสิ้น";
+      if (internshipStatus === "in_progress") return "กำลังดำเนินการ";
       if (student.internshipEligible) return "พร้อมดำเนินการ";
       return "รอคุณสมบัติ";
     }
@@ -124,9 +126,9 @@ const EducationPath = ({ student }) => {
           `ต้องมีหน่วยกิตสะสมไม่น้อยกว่า ${internshipReqs.MIN_TOTAL_CREDITS} หน่วยกิต`
         );
       }
-      if (student.internshipStatus === "completed")
+      if (internshipStatus === "completed")
         return "นักศึกษาผ่านการฝึกงานเรียบร้อยแล้ว";
-      if (student.internshipStatus === "in_progress")
+      if (internshipStatus === "in_progress")
         return "นักศึกษาอยู่ระหว่างการฝึกงาน";
       return "นักศึกษามีคุณสมบัติพร้อมฝึกงานแล้ว";
     }
@@ -157,7 +159,7 @@ const EducationPath = ({ student }) => {
           `หน่วยกิตวิชาเอก ${student.majorCredits}/${majorCreditsRequired}`
         );
       }
-      if (student.internshipStatus !== "completed") {
+      if (internshipStatus !== "completed") {
         remaining.push("ยังไม่ผ่านการฝึกงาน");
       }
       if (student.projectStatus !== "completed") {
@@ -176,7 +178,11 @@ const EducationPath = ({ student }) => {
 
   return (
     <Card
-      title="เส้นทางการศึกษาของคุณ"
+      title={
+        <span>
+          เส้นทางการศึกษาของคุณ
+        </span>
+      }
       variant="borderless"
       styles={{ padding: "24px" }}
     >
@@ -190,9 +196,9 @@ const EducationPath = ({ student }) => {
           description={getStepDescription("internship")}
           icon={getStepIcon("internship")}
           status={
-            student.internshipStatus === "completed"
+            internshipStatus === "completed"
               ? "finish"
-              : student.internshipStatus === "in_progress"
+              : internshipStatus === "in_progress"
               ? "process"
               : student.internshipEligible
               ? "wait"

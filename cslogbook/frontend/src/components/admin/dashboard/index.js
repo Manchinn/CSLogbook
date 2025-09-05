@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Row,
   Col,
@@ -18,45 +18,47 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
+import { getRoleTheme } from '../../../utils/roleTheme';
 import { useDashboardStats } from "../../../hooks/admin/useDashboardStats";
 import ActivityLog from "./ActivityLog";
-import moment from "moment";
 
 const Dashboard = () => {
   const { userData } = useAuth();
   const navigate = useNavigate();
   const { stats, isLoading } = useDashboardStats();
+  const theme = useMemo(() => getRoleTheme(userData?.role, userData?.teacherType), [userData?.role, userData?.teacherType]);
 
-  const statsCards = [
+  const statsCards = useMemo(() => ([
     {
       title: "นักศึกษาทั้งหมด",
       value: stats.students.total,
       icon: <UserOutlined />,
-      color: "#1890ff",
-      onClick: () => navigate("/admin/users/students"),
+      color: '#1890ff', // semantic: primary info
+      onClick: () => navigate('/admin/users/students'),
     },
     {
-      title: "มีสิทธิ์ฝึกงาน",
+      title: 'มีสิทธิ์ฝึกงาน',
       value: stats.students.internshipEligible,
       icon: <BookOutlined />,
-      color: "#52c41a",
-      onClick: () => navigate("/admin/users/students?filter=internship"),
+      color: '#52c41a', // success
+      onClick: () => navigate('/admin/users/students?filter=internship'),
     },
     {
-      title: "มีสิทธิ์ทำโครงงานพิเศษ",
+      title: 'มีสิทธิ์ทำโครงงานพิเศษ',
       value: stats.students.projectEligible,
       icon: <ProjectOutlined />,
-      color: "#722ed1",
-      onClick: () => navigate("/admin/users/students?filter=project"),
+      color: '#722ed1', // purple accent
+      onClick: () => navigate('/admin/users/students?filter=project'),
     },
-  ];
+  ]), [stats, navigate]);
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%', padding: '24px' }}>
       <Alert
-        message={`สวัสดี ผู้ดูแลระบบ ${userData.firstName} ${userData.lastName}`}
+        message={`สวัสดี ${userData.role === 'teacher' ? (userData.teacherType === 'support' ? 'เจ้าหน้าที่ภาควิชา' : 'อาจารย์สายวิชาการ') : 'ผู้ดูแลระบบ'} ${userData.firstName} ${userData.lastName}`}
         type="info"
         showIcon
+        style={{ borderLeft: `4px solid ${theme.primary}` }}
       />
 
       <Row gutter={[16, 16]}>

@@ -26,7 +26,7 @@ const ActivityLog = () => {
   const fetchActivities = async () => {
     setIsLoading(true);
     try {
-      const data = await adminService.getRecentActivities();
+      const data = await adminService.getRecentActivities({ mode: 'documents', limit: 10 });
       setActivities(data);
     } catch (error) {
       setActivities([]);
@@ -60,7 +60,7 @@ const ActivityLog = () => {
                 title={item.title}
                 description={
                   <div>
-                    <div>{item.description}</div>
+                    {item.description && <div>{item.description}</div>}
                     <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.45)' }}>
                       {moment(item.timestamp).fromNow()}
                     </div>

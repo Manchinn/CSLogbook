@@ -25,7 +25,8 @@ import InstructionModal from "./InstructionModal";
 import { useTimeSheet } from "../../../../hooks/useTimeSheet";
 import dayjs from "../../../../utils/dayjs";
 import { DATE_FORMAT_MEDIUM } from "../../../../utils/constants";
-import "./styles.css";
+// เปลี่ยนจาก styles.css เป็น CSS Modules
+import styles from "./TimeSheet.module.css";
 
 const { Text } = Typography;
 
@@ -68,7 +69,7 @@ const TimeSheet = () => {
       );
 
       const redirectTimer = setTimeout(() => {
-        navigate("/internship-registration/cs05");
+        navigate("/internship-registration/flow");
       }, 3000);
 
       // ล้าง timer เมื่อ component unmount
@@ -80,7 +81,7 @@ const TimeSheet = () => {
       // รีเฟรชข้อมูลจากฐานข้อมูลทันทีเมื่อโหลดหน้าเสร็จ
       setTimeout(() => refreshTable(), 500);
     }
-  }, [initialLoading, hasCS05, navigate, refreshTable]); // เพิ่ม refreshTable ที่นี่
+  }, [initialLoading, hasCS05, navigate, refreshTable]);
 
   const handleInstructionClose = () => {
     if (dontShowAgain) {
@@ -101,7 +102,7 @@ const TimeSheet = () => {
   // แสดง Skeleton ขณะโหลดข้อมูลเริ่มต้น
   if (initialLoading) {
     return (
-      <div className="internship-container">
+      <div className={styles.internshipContainer}>
         <Card>
           <Alert
             type="info"
@@ -128,7 +129,7 @@ const TimeSheet = () => {
   // กรณีไม่พบข้อมูล CS05
   if (!hasCS05) {
     return (
-      <div className="internship-container">
+      <div className={styles.internshipContainer}>
         <Result
           status="warning"
           icon={<WarningOutlined />}
@@ -146,7 +147,7 @@ const TimeSheet = () => {
             <Button
               type="primary"
               key="cs05-form"
-              onClick={() => navigate("/internship-registration/cs05")}
+              onClick={() => navigate("/internship-registration/flow")}
             >
               ไปที่หน้าส่งคำร้อง คพ.05 ทันที
             </Button>,
@@ -159,7 +160,7 @@ const TimeSheet = () => {
   // กรณีเกิดข้อผิดพลาดในการดึงข้อมูล
   if (loadError) {
     return (
-      <div className="internship-container">
+      <div className={styles.internshipContainer}>
         <Alert
           type="error"
           message="เกิดข้อผิดพลาดในการโหลดข้อมูล"
@@ -173,120 +174,124 @@ const TimeSheet = () => {
       </div>
     );
   }
+
   // เพิ่มการแสดง Banner เตือนว่าอยู่ในโหมดทดสอบ
   return (
     <div
-      className="internship-container timesheet-container"
+      className={styles.internshipContainer}
       style={{ position: "relative", paddingBottom: "50px" }}
     >
-      {" "}
-      <Card className="timesheet-card">
-        {dateRange && (
-          <Alert
-            type="info"
-            message={
-              <Space size="middle" align="center">
-                <Text>
-                  กำหนดการฝึกงาน:{" "}
-                  {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} -{" "}
-                  {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
-                </Text>
-                <Button
-                  onClick={refreshData}
-                  icon={<ReloadOutlined />}
-                  loading={loading}
-                >
-                  รีเฟรชข้อมูล
-                </Button>
-              </Space>
-            }
-            description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
-            showIcon
-          />
-        )}
-      </Card>
-      {stats && Object.keys(stats).length > 0 ? (
-        <>
-          <TimeSheetStats stats={stats} />
-        </>
-      ) : (
-        <Card
-          className="timesheet-card timesheet-summary"
-          style={{ marginBottom: 16 }}
-        >
-          <Alert
-            type="info"
-            message="กำลังโหลดข้อมูลสถิติ..."
-            description={`ระบบกำลังพยายามดึงข้อมูลสถิติการฝึกงาน (hasCS05: ${hasCS05}, status: ${cs05Status})`}
-            showIcon
-          />
-          <div style={{ textAlign: "center", marginTop: 10 }}>
-            <Button onClick={refreshData} icon={<ReloadOutlined />}>
-              โหลดข้อมูลใหม่
-            </Button>
-          </div>
-        </Card>
-      )}{" "}
-      <Card className="timesheet-card">
-        {!initialLoading && internshipDates && internshipDates.length > 0 ? (
-          <>
-            <div className="timesheet-table-container">
-              <TimeSheetTable
-                data={internshipDates}
-                loading={loading}
-                onEdit={handleEdit}
-                onView={handleView}
-              />
-            </div>
-          </>
-        ) : loading || initialLoading ? (
-          <Skeleton active paragraph={{ rows: 6 }} />
-        ) : (
-          <div>
+      <Card>
+        <div className={styles.alertWrapper}>
+          {dateRange && (
             <Alert
               type="info"
-              message="ไม่พบข้อมูลวันฝึกงาน"
-              description="กรุณาตรวจสอบข้อมูลคำร้อง คพ.05 ว่าได้ระบุวันที่ฝึกงานถูกต้องหรือไม่"
+              message={
+                <Space size="middle" align="center">
+                  <Text>
+                    กำหนดการฝึกงาน:{" "}
+                    {dayjs(dateRange.startDate).format(DATE_FORMAT_MEDIUM)} -{" "}
+                    {dayjs(dateRange.endDate).format(DATE_FORMAT_MEDIUM)}
+                  </Text>
+                  {/* <Button
+                    onClick={refreshData}
+                    icon={<ReloadOutlined />}
+                    loading={loading}
+                  >
+                    รีเฟรชข้อมูล
+                  </Button> */}
+                </Space>
+              }
+              description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
               showIcon
-              style={{ marginBottom: 16 }}
             />
-            <div
-              style={{
-                padding: "16px",
-                background: "#f5f5f5",
-                margin: "16px 0",
-              }}
-            >
-              <strong>ข้อมูล Debugging:</strong>
-              <p>
-                dateRange:{" "}
-                {dateRange ? JSON.stringify(dateRange) : "ไม่พบข้อมูล"}
-              </p>
-              <p>cs05Status: {cs05Status || "ไม่พบข้อมูล"}</p>
-              <p>hasCS05: {hasCS05 ? "true" : "false"}</p>
-              <p>
-                internshipDates: {internshipDates ? internshipDates.length : 0}{" "}
-                รายการ
-              </p>
+          )}
+        </div>
+      </Card>
+
+      {stats && Object.keys(stats).length > 0 ? (
+        <div className={styles.statsWrapper}>
+          <TimeSheetStats stats={stats} />
+        </div>
+      ) : (
+        <Card style={{ marginBottom: 16 }}>
+          <div className={styles.alertWrapper}>
+            <Alert
+              type="info"
+              message="กำลังโหลดข้อมูลสถิติ..."
+              description={`ระบบกำลังพยายามดึงข้อมูลสถิติการฝึกงาน (hasCS05: ${hasCS05}, status: ${cs05Status})`}
+              showIcon
+            />
+            <div style={{ textAlign: "center", marginTop: 10 }}>
+              <Button onClick={refreshData} icon={<ReloadOutlined />}>
+                โหลดข้อมูลใหม่
+              </Button>
             </div>
           </div>
+        </Card>
+      )}
+
+      <div className={styles.tableCardWrapper}>
+        {!initialLoading && internshipDates && internshipDates.length > 0 ? (
+          <TimeSheetTable
+            data={internshipDates}
+            loading={loading}
+            onEdit={handleEdit}
+            onView={handleView}
+          />
+        ) : loading || initialLoading ? (
+          <Card>
+            <Skeleton active paragraph={{ rows: 6 }} />
+          </Card>
+        ) : (
+          <Card>
+            <div className={styles.alertWrapper}>
+              <Alert
+                type="info"
+                message="ไม่พบข้อมูลวันฝึกงาน"
+                description="กรุณาตรวจสอบข้อมูลคำร้อง คพ.05 ว่าได้ระบุวันที่ฝึกงานถูกต้องหรือไม่"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+              <div
+                style={{
+                  padding: "16px",
+                  background: "#f5f5f5",
+                  margin: "16px 0",
+                }}
+              >
+                <strong>ข้อมูล Debugging:</strong>
+                <p>
+                  dateRange:{" "}
+                  {dateRange ? JSON.stringify(dateRange) : "ไม่พบข้อมูล"}
+                </p>
+                <p>cs05Status: {cs05Status || "ไม่พบข้อมูล"}</p>
+                <p>hasCS05: {hasCS05 ? "true" : "false"}</p>
+                <p>
+                  internshipDates: {internshipDates ? internshipDates.length : 0}{" "}
+                  รายการ
+                </p>
+              </div>
+            </div>
+          </Card>
         )}
+      </div>
 
-        <EditModal
-          visible={isModalVisible}
-          loading={loading}
-          entry={selectedEntry}
-          form={form}
-          onOk={handleSave}
-          onCancel={handleClose}
-        />
+      <EditModal
+        visible={isModalVisible}
+        loading={loading}
+        entry={selectedEntry}
+        form={form}
+        onOk={handleSave}
+        onCancel={handleClose}
+      />
 
-        <ViewModal
-          visible={isViewModalVisible}
-          entry={selectedEntry}
-          onClose={handleClose}
-        />
-      </Card>
+      <ViewModal
+        visible={isViewModalVisible}
+        entry={selectedEntry}
+        onClose={handleClose}
+      />
+
       {/* เพิ่ม FloatButton สำหรับแสดงคำแนะนำ */}
       <FloatButton
         icon={<QuestionCircleOutlined />}
@@ -302,9 +307,10 @@ const TimeSheet = () => {
           zIndex: 1000,
           boxShadow: "0 6px 16px rgba(24, 144, 255, 0.3)",
           background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-          border: "none"
+          border: "none",
         }}
       />
+
       <InstructionModal
         visible={isInstructionVisible}
         onClose={handleInstructionClose}

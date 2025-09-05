@@ -1,4 +1,4 @@
-const { User, Student, Teacher, Curriculum } = require("../models");
+const { User, Student, Teacher, Curriculum, StudentAcademicHistory, Academic } = require("../models");
 const bcrypt = require("bcrypt");
 const {
   calculateStudentYear,
@@ -29,8 +29,6 @@ class StudentService {
    */
   async getAllStudents(filters = {}) {
     try {
-      const { semester, academicYear } = filters;
-
       // สร้างเงื่อนไขการค้นหา
       const whereCondition = {
         role: "student",
@@ -38,8 +36,6 @@ class StudentService {
 
       // สร้างเงื่อนไขสำหรับ Student model
       const studentWhereCondition = {};
-      if (semester) studentWhereCondition.semester = semester;
-      if (academicYear) studentWhereCondition.academicYear = academicYear;
 
       const students = await User.findAll({
         where: whereCondition,
@@ -57,8 +53,6 @@ class StudentService {
               "majorCredits",
               "isEligibleInternship",
               "isEligibleProject",
-              "semester",
-              "academicYear",
               "classroom",
               "phoneNumber",
             ],
@@ -88,11 +82,9 @@ class StudentService {
           majorCredits: user.student?.majorCredits || 0,
           isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
           isEligibleForProject: Boolean(user.student?.isEligibleProject),
-          semester: user.student?.semester,
-          academicYear: user.student?.academicYear,
           status: status,
-          classroom: user.student?.classroom ,
-          phoneNumber: user.student?.phoneNumber ,
+          classroom: user.student?.classroom,
+          phoneNumber: user.student?.phoneNumber,
         };
       });
     } catch (error) {
@@ -134,6 +126,15 @@ class StudentService {
         order: [["startYear", "DESC"]],
       });
 
+      // ดึงปีการศึกษา/เทอมปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      let studentYearInfo = null;
+      if (currentAcademic) {
+        studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
+      } else {
+        studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
+      }
+
       return {
         studentCode: student.studentCode,
         firstName: student.user.firstName,
@@ -141,8 +142,10 @@ class StudentService {
         email: student.user.email,
         totalCredits: student.totalCredits || 0,
         majorCredits: student.majorCredits || 0,
+        studentYear: studentYearInfo?.year ?? null, // ส่ง null ถ้า error
+        studentYearInfo, // ส่ง object เต็มสำหรับ debug/frontend
         eligibility: {
-          studentYear: eligibility.studentYear,
+          studentYear: studentYearInfo,
           internship: eligibility.internship,
           project: eligibility.project,
         },
@@ -151,6 +154,12 @@ class StudentService {
           projectBaseCredits: activeCurriculum?.projectBaseCredits,
           projectMajorBaseCredits: activeCurriculum?.projectMajorBaseCredits,
         },
+        // เพิ่มข้อมูลสำหรับ StudentAvatar
+        isEligibleInternship: student.isEligibleInternship || false,
+        isEnrolledInternship: student.isEnrolledInternship || false,
+        internshipStatus: student.internshipStatus || 'not_started',
+        projectStatus: student.projectStatus || 'not_started',
+        isEnrolledProject: student.isEnrolledProject || false,
       };
     } catch (error) {
       logger.error("Error in getStudentById service:", error);
@@ -168,13 +177,15 @@ class StudentService {
     const transaction = await sequelize.transaction();
 
     try {
-      const { totalCredits, majorCredits, firstName, lastName } = updateData;
+      const { totalCredits, majorCredits, firstName, lastName, status, note } = updateData;
 
       logger.info("Received update data:", {
         totalCredits,
         majorCredits,
         firstName,
         lastName,
+        status,
+        note
       });
 
       // Find student with associated user data
@@ -256,6 +267,18 @@ class StudentService {
             transaction,
           }
         );
+      }
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
+      if (currentAcademic) {
+        await StudentAcademicHistory.create({
+          studentId: student.studentId,
+          academicYear: currentAcademic.academicYear,
+          semester: currentAcademic.currentSemester,
+          status: status || 'updated',
+          note: note || 'อัปเดตข้อมูลนักศึกษา'
+        }, { transaction });
       }
 
       await transaction.commit();
@@ -374,12 +397,24 @@ class StudentService {
           studyType: "regular",
           isEligibleInternship: false,
           isEligibleProject: false,
-          semester: getCurrentSemester(),
-          academicYear: getCurrentAcademicYear(),
+          // semester: getCurrentSemester(), // ลบออกเพราะ migrate แล้ว
+          // academicYear: getCurrentAcademicYear(), // ลบออกเพราะ migrate แล้ว
           advisorId: null,
         },
         { transaction }
       );
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
+      if (currentAcademic) {
+        await StudentAcademicHistory.create({
+          studentId: student.studentId,
+          academicYear: currentAcademic.academicYear,
+          semester: currentAcademic.currentSemester,
+          status: 'enrolled',
+          note: 'เพิ่มนักศึกษาใหม่'
+        }, { transaction });
+      }
 
       await transaction.commit();
 

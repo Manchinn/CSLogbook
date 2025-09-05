@@ -227,7 +227,7 @@ const InternshipDocumentsPage = () => {
           action={
             <Button
               type="primary"
-              onClick={() => navigate('/internship-registration/cs05')}
+              onClick={() => navigate('/internship-registration/flow')}
             >
               กรอกคำร้อง คพ.05
             </Button>

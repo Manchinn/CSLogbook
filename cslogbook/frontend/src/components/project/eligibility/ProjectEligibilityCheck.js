@@ -5,26 +5,26 @@ import {
   CloseCircleOutlined, 
   InfoCircleOutlined, 
   LoadingOutlined,
-  FileTextOutlined,
   ClockCircleOutlined,
   BarChartOutlined,
-  BookOutlined,
-  TeamOutlined
+  BookOutlined
 } from '@ant-design/icons';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import './styles.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Paragraph, Text } = Typography;
 
 const ProjectEligibilityCheck = () => {
   const { 
     canAccessProject,
-    canRegisterProject,
     messages,
     requirements,
     academicSettings,
     refreshEligibility,
     isLoading,
+    status,
+    student,
+    projectReason
   } = useStudentEligibility();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +32,7 @@ const ProjectEligibilityCheck = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshEligibility(true);
+  await refreshEligibility(true, true); // force refresh เพื่อข้าม cache
     } finally {
       setTimeout(() => setRefreshing(false), 1000);
     }
@@ -44,20 +44,26 @@ const ProjectEligibilityCheck = () => {
   const allowedSemesters = requirements?.project?.allowedSemesters || [1, 2];
   const requiresInternship = requirements?.project?.requireInternship || false;
   
-  // สถานะปัจจุบันของนักศึกษา
+  // สถานะปัจจุบันของนักศึกษา (ใช้ข้อมูลจาก status.project ถ้าไม่มี fallback เป็น student)
   const studentStatus = {
-    totalCredits: requirements?.status?.project?.currentCredits || 0,
-    majorCredits: requirements?.status?.project?.currentMajorCredits || 0,
+    totalCredits: status?.project?.currentCredits ?? student?.totalCredits ?? 0,
+    majorCredits: status?.project?.currentMajorCredits ?? student?.majorCredits ?? 0,
     currentTerm: academicSettings?.currentSemester || 1,
     currentAcademicYear: academicSettings?.currentAcademicYear || new Date().getFullYear() + 543,
-    completedInternship: requirements?.status?.completedInternship || false
   };
+
+  // ตรวจความต้องการฝึกงานจาก status.project (service ใส่ requiresInternshipCompletion) หรือ requirements.project.requireInternship
+  const requiresInternshipCompletion = status?.project?.requiresInternshipCompletion ?? requiresInternship;
+
+  // พิจารณาว่าผ่านเงื่อนไขฝึกงานหรือไม่: ถ้าต้องการ แต่ projectReason มีข้อความระบุว่าต้องผ่านฝึกงาน แสดงว่ายังไม่ผ่าน
+  const internshipBlocked = requiresInternshipCompletion && projectReason && projectReason.includes('ต้องผ่านการฝึกงาน');
+  const passInternshipRequirement = !requiresInternshipCompletion || !internshipBlocked;
 
   // คำนวณว่าผ่านเกณฑ์หรือไม่
   const passCredits = studentStatus.totalCredits >= requiredCredits;
   const passMajorCredits = studentStatus.majorCredits >= requiredMajorCredits;
   const isAllowedSemester = allowedSemesters.includes(studentStatus.currentTerm);
-  const passInternshipRequirement = !requiresInternship || studentStatus.completedInternship;
+  // (แทนที่เดิม) passInternshipRequirement คำนวณจาก projectReason ข้างบน
 
   // กำหนดสถานะของแต่ละขั้นตอน
   const creditsStatus = passCredits ? "finish" : "error";
@@ -155,17 +161,17 @@ const ProjectEligibilityCheck = () => {
               </Col>
             </Row>
 
-            {requiresInternship && (
+            {requiresInternshipCompletion && (
               <Row style={{ marginBottom: 24 }}>
                 <Col span={24}>
                   <Alert
                     message="สถานะการฝึกงาน"
                     description={
-                      studentStatus.completedInternship
-                        ? "คุณผ่านการฝึกงานแล้ว"
-                        : "คุณยังไม่ผ่านการฝึกงาน ซึ่งเป็นเงื่อนไขสำหรับการทำโครงงานพิเศษ"
+                      passInternshipRequirement
+                        ? "ผ่านเงื่อนไขการฝึกงานตามหลักสูตร"
+                        : "ยังไม่ผ่านการฝึกงาน ซึ่งเป็นเงื่อนไขก่อนลงทะเบียนโครงงานพิเศษ"
                     }
-                    type={studentStatus.completedInternship ? "success" : "error"}
+                    type={passInternshipRequirement ? "success" : "error"}
                     showIcon
                   />
                 </Col>
@@ -196,7 +202,7 @@ const ProjectEligibilityCheck = () => {
                   status: semesterStatus,
                   icon: isAllowedSemester ? <CheckCircleOutlined /> : <CloseCircleOutlined />
                 },
-                ...(requiresInternship ? [{
+                ...(requiresInternshipCompletion ? [{
                   title: 'ผ่านการฝึกงานภาคอุตสาหกรรม',
                   description: 'ต้องผ่านวิชาฝึกงานภาคอุตสาหกรรมก่อนลงทะเบียนโครงงานพิเศษ',
                   status: internshipStatus,
@@ -239,7 +245,7 @@ const ProjectEligibilityCheck = () => {
                           <Text strong>รอจนถึงภาคเรียนที่กำหนด:</Text> สามารถลงทะเบียนโครงงานพิเศษได้เฉพาะในภาคเรียนที่ {allowedSemesters.join(', ')} เท่านั้น
                         </li>
                       )}
-                      {requiresInternship && !studentStatus.completedInternship && (
+                      {requiresInternshipCompletion && !passInternshipRequirement && (
                         <li>
                           <Text strong>ต้องผ่านการฝึกงาน:</Text> ตามหลักสูตรกำหนดให้นักศึกษาต้องผ่านการฝึกงานภาคอุตสาหกรรมก่อนลงทะเบียนโครงงานพิเศษ
                         </li>

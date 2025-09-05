@@ -1,11 +1,27 @@
-const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
+// เพิ่ม abstraction รองรับหลาย provider (Ethereal/SMTP/SendGrid/Console)
+const emailTransport = require('./emailTransport'); // NEW
+const sgMail = require('@sendgrid/mail'); // เดิม (ยังคงไว้สำหรับอ้างอิง / fallback)
 const fs = require('fs');
 const path = require('path');
 const notificationSettingsService = require('../services/notificationSettingsService');
 const logger = require('./logger');
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// OLD: sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// ย้ายการ setApiKey ไปทำใน emailTransport หาก EMAIL_PROVIDER=sendgrid
+
+// NEW helper ส่งอีเมลกลาง (แทน sgMail.send ตรง ๆ)
+async function sendEmail(msg) {
+    if (!msg.from) msg.from = process.env.EMAIL_SENDER;
+    return emailTransport.send(msg);
+}
+
+// NEW helper ดึง messageId ให้เป็นกลาง
+function extractMessageId(res) {
+    if (!res) return undefined;
+    if (Array.isArray(res) && res[0]?.headers) return res[0].headers['x-message-id']; // รูปแบบ sendgrid เดิม
+    return res.messageId || res.id;
+}
 
 // ฟังก์ชันสำหรับอ่าน HTML template และแทนที่ตัวแปร
 function loadTemplate(templateName, variables = {}) {
@@ -85,14 +101,11 @@ async function sendLoginNotification(email, username) {
             html: htmlContent
         };
 
-        const response = await sgMail.send(msg);
-        logger.info('ส่งอีเมลการแจ้งเตือนการเข้าสู่ระบบสำเร็จ', { 
-            email, 
-            username,
-            messageId: response[0]?.headers?.['x-message-id'] 
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD (SendGrid): const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งอีเมลการแจ้งเตือนการเข้าสู่ระบบสำเร็จ', { email, username, messageId, notificationType: 'LOGIN' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งอีเมลการแจ้งเตือนการเข้าสู่ระบบ', { 
             error: error.message,
@@ -138,16 +151,11 @@ async function sendDocumentApprovalNotification(email, username, documentType, s
             html: htmlContent
         };
         
-        const response = await sgMail.send(msg);
-        logger.info('ส่งอีเมลการแจ้งเตือนการอนุมัติเอกสารสำเร็จ', {
-            email,
-            username,
-            documentType,
-            status,
-            messageId: response[0]?.headers?.['x-message-id']
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งอีเมลการแจ้งเตือนการอนุมัติเอกสารสำเร็จ', { email, username, documentType, status, messageId, notificationType: 'DOCUMENT' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งอีเมลการแจ้งเตือนการอนุมัติเอกสาร', {
             error: error.message,
@@ -189,15 +197,11 @@ async function sendLogbookSubmissionNotification(email, username, title) {
             html: htmlContent
         };
         
-        const response = await sgMail.send(msg);
-        logger.info('ส่งอีเมลการแจ้งเตือนการส่ง Logbook สำเร็จ', {
-            email,
-            username,
-            title,
-            messageId: response[0]?.headers?.['x-message-id']
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งอีเมลการแจ้งเตือนการส่ง Logbook สำเร็จ', { email, username, title, messageId, notificationType: 'LOGBOOK' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งอีเมลการแจ้งเตือนการส่ง Logbook', {
             error: error.message,
@@ -299,16 +303,11 @@ async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, 
             html: htmlContent
         };
 
-        const response = await sgMail.send(msg);
-        logger.info('ส่งอีเมลคำขออนุมัติสำเร็จ', {
-            email,
-            supervisorName,
-            studentName,
-            type,
-            messageId: response[0]?.headers?.['x-message-id']
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งอีเมลคำขออนุมัติสำเร็จ', { email, supervisorName, studentName, type, messageId, notificationType: 'APPROVAL_REQUEST' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งอีเมลคำขออนุมัติ', {
             error: error.message,
@@ -357,7 +356,8 @@ async function sendTimeSheetApprovalResultNotification(email, studentName, statu
       html: htmlContent
     };
 
-    const response = await sgMail.send(msg);
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
     console.log('Approval result notification sent successfully');
     return response;
   } catch (error) {
@@ -407,15 +407,11 @@ async function sendInternshipEvaluationRequestEmail(supervisorEmail, supervisorN
             html: htmlContent,
         };
 
-        const response = await sgMail.send(msg);
-        logger.info('ส่งอีเมลคำขอประเมินผลการฝึกงานสำเร็จ', {
-            supervisorEmail,
-            studentFullName,
-            studentCode,
-            messageId: response[0]?.headers?.['x-message-id']
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งอีเมลคำขอประเมินผลการฝึกงานสำเร็จ', { supervisorEmail, studentFullName, studentCode, messageId, notificationType: 'EVALUATION_REQUEST' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งอีเมลคำขอประเมินผลการฝึกงาน', {
             error: error.message,
@@ -462,15 +458,11 @@ async function sendEvaluationSubmittedNotificationToStudent(studentEmail, studen
             html: htmlContent,
         };
 
-        const response = await sgMail.send(msg);
-        logger.info('ส่งการแจ้งเตือนผลการประเมินให้นักศึกษาสำเร็จ', {
-            studentEmail,
-            studentFirstName,
-            companyName,
-            messageId: response[0]?.headers?.['x-message-id']
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งการแจ้งเตือนผลการประเมินให้นักศึกษาสำเร็จ', { studentEmail, studentFirstName, companyName, messageId, notificationType: 'EVALUATION_RESULT_STUDENT' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งการแจ้งเตือนผลการประเมินให้นักศึกษา', {
             error: error.message,
@@ -518,15 +510,11 @@ async function sendEvaluationSubmittedNotificationToAdvisor(advisorEmail, studen
             html: htmlContent,
         };
 
-        const response = await sgMail.send(msg);
-        logger.info('ส่งการแจ้งเตือนผลการประเมินให้อาจารย์สำเร็จ', {
-            advisorEmail,
-            studentFullName,
-            studentCode,
-            messageId: response[0]?.headers?.['x-message-id']
-        });
-        
-        return { sent: true, response, messageId: response[0]?.headers?.['x-message-id'] };
+    // OLD: const response = await sgMail.send(msg);
+    const response = await sendEmail(msg); // NEW
+    const messageId = extractMessageId(response); // NEW
+    logger.info('ส่งการแจ้งเตือนผลการประเมินให้อาจารย์สำเร็จ', { advisorEmail, studentFullName, studentCode, messageId, notificationType: 'EVALUATION_RESULT_ADVISOR' });
+    return { sent: true, response, messageId };
     } catch (error) {
         logger.error('เกิดข้อผิดพลาดในการส่งการแจ้งเตือนผลการประเมินให้อาจารย์', {
             error: error.message,

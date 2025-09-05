@@ -1,5 +1,5 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import apiClient from '../services/apiClient';
 import { message } from 'antd';
 
 export const AuthContext = createContext({
@@ -9,9 +9,8 @@ export const AuthContext = createContext({
   logout: () => {},
 });
 
-const API_URL = process.env.REACT_APP_API_URL;
-
-if (!API_URL) {
+// baseURL อยู่ใน apiClient แล้ว ดังนั้นไม่ต้องสร้างซ้ำ
+if (!process.env.REACT_APP_API_URL) {
   throw new Error('REACT_APP_API_URL is not defined in environment variables');
 }
 
@@ -26,6 +25,7 @@ export const AuthProvider = ({ children }) => {
     lastName: localStorage.getItem('lastName'),
     email: localStorage.getItem('email'),
     role: localStorage.getItem('role'),
+    teacherType: localStorage.getItem('teacherType'), // เพิ่ม teacher type
     totalCredits: parseInt(localStorage.getItem('totalCredits')) || 0,
     majorCredits: parseInt(localStorage.getItem('majorCredits')) || 0,
     isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
@@ -34,11 +34,12 @@ export const AuthProvider = ({ children }) => {
 
   const handleLogout = useCallback(async () => {
     try {
-      delete axios.defaults.headers.common['Authorization'];
+      // เคลียร์ header จาก apiClient แทน axios ตรง
+      delete apiClient.defaults.headers.common['Authorization'];
       
       const keysToRemove = [
         'token', 'refreshToken', 'studentCode', 'firstName', 
-        'lastName', 'email', 'role', 'isEligibleForInternship', 
+        'lastName', 'email', 'role', 'teacherType', 'isEligibleForInternship', 
         'isEligibleForProject', 'totalCredits', 'majorCredits'
       ];
       keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -55,38 +56,69 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ตั้งค่า axios interceptor สำหรับจัดการ token
+  // Interceptor จัดการ refresh token (พร้อม queue กันหลายคำขอชนกัน)
+  const isRefreshingRef = useRef(false);
+  const refreshQueueRef = useRef([]); // เก็บคำสัญญาที่รอ refresh สำเร็จ
+
   useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
+    const interceptor = apiClient.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry && refreshToken) {
-          originalRequest._retry = true;
-
-          try {
-            const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-              refreshToken
-            });
-
-            const { token: newToken } = response.data;
-            setToken(newToken);
-            localStorage.setItem('token', newToken);
-
-            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-            return axios(originalRequest);
-          } catch (refreshError) {
-            handleLogout();
-            return Promise.reject(refreshError);
-          }
+        // ถ้าไม่ใช่ 401 หรือเป็น endpoint refresh เอง ให้ reject ตามปกติ
+        if (error.response?.status !== 401 || originalRequest._retry) {
+          return Promise.reject(error);
         }
-        return Promise.reject(error);
+
+        if (!refreshToken) {
+          handleLogout();
+          return Promise.reject(error);
+        }
+
+        // ทำเครื่องหมายว่า retry แล้วเพื่อกัน loop
+        originalRequest._retry = true;
+
+        // ถ้ามีการ refresh กำลังดำเนินอยู่ -> รอคิว
+        if (isRefreshingRef.current) {
+          return new Promise((resolve, reject) => {
+            refreshQueueRef.current.push({ resolve, reject });
+          })
+            .then((newToken) => {
+              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+              return apiClient(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
+        // เริ่ม refresh ใหม่
+        isRefreshingRef.current = true;
+        try {
+          const res = await apiClient.post('/auth/refresh-token', { refreshToken });
+          const { token: newToken } = res.data;
+          setToken(newToken);
+          localStorage.setItem('token', newToken);
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+
+          // ปลุก queue
+            refreshQueueRef.current.forEach(p => p.resolve(newToken));
+            refreshQueueRef.current = [];
+
+          // ตั้ง header แล้วส่งคำขอเดิมซ้ำ
+          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        } catch (refreshErr) {
+          refreshQueueRef.current.forEach(p => p.reject(refreshErr));
+          refreshQueueRef.current = [];
+          handleLogout();
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshingRef.current = false;
+        }
       }
     );
 
     return () => {
-      axios.interceptors.response.eject(interceptor);
+      apiClient.interceptors.response.eject(interceptor);
     };
   }, [refreshToken, handleLogout]);
 
@@ -117,7 +149,7 @@ export const AuthProvider = ({ children }) => {
           }
 
           // set default axios header
-          axios.defaults.headers.common['Authorization'] = `Bearer ${currToken}`;
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${currToken}`;
           setIsAuthenticated(true);
         } catch (error) {
           console.error('Token validation error:', error);
@@ -135,14 +167,12 @@ export const AuthProvider = ({ children }) => {
     const interval = setInterval(async () => {
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-            refreshToken
-          });
+          const response = await apiClient.post('/auth/refresh-token', { refreshToken });
 
           const { token: newToken } = response.data;
           setToken(newToken);
           localStorage.setItem('token', newToken);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
         } catch (error) {
           console.error('Error refreshing token:', error);
           handleLogout();
@@ -175,8 +205,11 @@ export const AuthProvider = ({ children }) => {
         lastName: userData.lastName,
         email: userData.email,
         role: userData.role,
+        teacherType: userData.teacherType, // เพิ่ม teacher type
         totalCredits: userData.totalCredits || 0,
-        majorCredits: userData.majorCredits || 0
+        majorCredits: userData.majorCredits || 0,
+        isEligibleForInternship: userData.isEligibleForInternship,
+        isEligibleForProject: userData.isEligibleForProject
       };
 
       // Store data first
@@ -192,7 +225,7 @@ export const AuthProvider = ({ children }) => {
       setUserData(userDataToStore);
 
 
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       return true;
     } catch (error) {
       handleAPIError(error, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');

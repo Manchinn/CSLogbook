@@ -205,7 +205,7 @@ const StudentEligibilityStatus = ({
               size="small" 
               type="primary" 
               style={{ marginTop: '12px' }}
-              onClick={() => navigate("/internship-registration/cs05")}
+              onClick={() => navigate("/internship-registration/flow")}
             >
               ลงทะเบียนฝึกงาน <RightOutlined />
             </Button>

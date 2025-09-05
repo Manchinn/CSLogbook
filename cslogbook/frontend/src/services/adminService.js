@@ -30,9 +30,11 @@ export const adminService = {
   },
 
   // ดึงข้อมูลกิจกรรมล่าสุด
-  getRecentActivities: async () => {
+  getRecentActivities: async (params = {}) => {
     try {
-      const response = await apiClient.get('/admin/activities');
+      const search = new URLSearchParams(params).toString();
+      const url = '/admin/activities' + (search ? `?${search}` : '');
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching recent activities:', error);

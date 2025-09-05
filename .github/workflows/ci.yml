@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, create/pdf-generate ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  # สามารถเพิ่ม permissions อื่น (เช่น packages: write) เมื่อมีการ publish image ภายหลัง
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend Tests (Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_ENV: test
+      TZ: Asia/Bangkok
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: |
+            cslogbook/backend/package-lock.json
+            cslogbook/frontend/package-lock.json
+
+      - name: Install backend dependencies (clean)
+        working-directory: cslogbook/backend
+        run: npm ci
+
+      - name: Run unit & integration tests
+        working-directory: cslogbook/backend
+        run: npx jest --runInBand --coverage
+
+      - name: Upload coverage artifact (optional)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+            name: backend-coverage
+            path: cslogbook/backend/coverage
+            retention-days: 7
+
+  frontend-tests:
+    name: Frontend Tests (React / Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      TZ: Asia/Bangkok
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: |
+            cslogbook/frontend/package-lock.json
+
+      - name: Install frontend dependencies (clean)
+        working-directory: cslogbook/frontend
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: cslogbook/frontend
+        run: npm test -- --watchAll=false --coverage
+
+      - name: Upload frontend coverage artifact (optional)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: cslogbook/frontend/coverage
+          retention-days: 7
+
+  # ตัวอย่าง job ภายหลัง (ยังไม่เปิดใช้งาน) สำหรับ frontend build/lint
+  # frontend-build:
+  #   name: Frontend Build
+  #   runs-on: ubuntu-latest
+  #   needs: backend-tests
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 18
+  #         cache: npm
+  #         cache-dependency-path: cslogbook/frontend/package-lock.json
+  #     - name: Install frontend deps
+  #       working-directory: cslogbook/frontend
+  #       run: npm ci
+  #     - name: Lint & Build
+  #       working-directory: cslogbook/frontend
+  #       run: |
+  #         npm run build
+  #         # npm run lint (ถ้าเพิ่มสคริปต์ในอนาคต)
+
+  # ตัวอย่างเพิ่ม MySQL service ภายหลัง (คอมเมนต์เป็น reference)
+  # backend-tests:
+  #   services:
+  #     mysql:
+  #       image: mysql:8
+  #       env:
+  #         MYSQL_ROOT_PASSWORD: root
+  #         MYSQL_DATABASE: cslog_test
+  #       ports: [3306:3306]
+  #       options: >-
+  #         --health-cmd="mysqladmin ping -h 127.0.0.1"
+  #         --health-interval=10s
+  #         --health-timeout=5s
+  #         --health-retries=5
+  #   steps:
+  #     - name: Wait for MySQL (ตัวอย่างสคริปต์)
+  #       run: |
+  #         for i in {1..30}; do
+  #           if mysqladmin ping -h 127.0.0.1 --silent; then break; fi;
+  #           sleep 2;
+  #         done
+  #     - name: Run migrations
+  #       working-directory: cslogbook/backend
+  #       run: npx sequelize-cli db:migrate

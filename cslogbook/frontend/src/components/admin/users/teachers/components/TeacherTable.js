@@ -29,23 +29,24 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       width: 180,
     },
     {
+      title: "ตำแหน่ง",
+      dataIndex: "position",
+      key: "position",
+      width: 200,
+      render: (text) => text || "-"
+    },
+    {
       title: "อีเมล",
       dataIndex: "email",
       key: "email",
       width: 200,
-    },
+    },/* 
     {
       title: "เบอร์ภายใน",
       dataIndex: "contactExtension",
       key: "contactExtension",
       width: 120,
-    },
-    {
-      title: "ภาควิชา",
-      dataIndex: "department",
-      key: "department",
-      width: 150,
-    },
+    }, */
     {
       title: "จัดการ",
       key: "actions",

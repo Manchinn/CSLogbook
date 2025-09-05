@@ -1,18 +1,21 @@
 import React, { useEffect } from 'react';
 import { 
   Form, Input, Button, DatePicker, Space, Typography, Divider,
-  Row, Col, Radio, InputNumber, Alert, Card, Select, Checkbox,
-  Upload, message
+  Row, Col, InputNumber, Alert, Card, Select, Checkbox,
+  message,
 } from 'antd';
 import { 
-  UserOutlined, BankOutlined, PhoneOutlined, HomeOutlined, 
-  CalendarOutlined, UploadOutlined, FileTextOutlined
+  UserOutlined, BankOutlined, PhoneOutlined,
+   HomeOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import locale from 'antd/es/date-picker/locale/th_TH';
 
-import TranscriptUpload from '../common/TranscriptUpload'; // นำเข้า component สำหรับอัปโหลด Transcript
+import TranscriptUpload from '../common/TranscriptUpload';
+
+// 🔧 แก้ไข import paths ให้ถูกต้อง
+import { formatThaiDate, calculateInternshipDays } from '../../../utils/dateUtils';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -37,13 +40,13 @@ const CS05FormStep = ({
   transcriptFile,
   setTranscriptFile,
   isSubmitted,
-  initialData // เพิ่ม prop สำหรับข้อมูลเริ่มต้น
+  initialData
 }) => {
   const [form] = Form.useForm();
   const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false);
   const [startDate, setStartDate] = React.useState(null);
   const [endDate, setEndDate] = React.useState(null);
-
+  
   // กำหนดค่าเริ่มต้นเมื่อมีข้อมูล
   React.useEffect(() => {
     if (studentData) {
@@ -55,7 +58,8 @@ const CS05FormStep = ({
             studentId: studentData.studentId,
             yearLevel: studentData.year || 3,
             totalCredits: studentData.totalCredits,
-            phoneNumber: studentData.phoneNumber || ''
+            phoneNumber: studentData.phoneNumber || '',
+            classroom: studentData.classroom || ''
           }
         ]
       });
@@ -135,7 +139,6 @@ const CS05FormStep = ({
       form.setFieldsValue({
         companyName: initialData.companyName,
         companyAddress: initialData.companyAddress,
-        // เพิ่มฟิลด์ใหม่ และรองรับทั้งชื่อเก่าและชื่อใหม่
         internshipPosition: initialData.internshipPosition || '',
         contactPersonName: initialData.contactPersonName  || '',
         contactPersonPosition: initialData.contactPersonPosition || ''
@@ -143,8 +146,8 @@ const CS05FormStep = ({
     }
   }, [initialData, form]);
   
-  // คำนวณจำนวนวันฝึกงาน
-  const calculateInternshipDays = (dates) => {
+  // คำนวณจำนวณวันฝึกงาน (ใช้ utils ใหม่)
+  const calculateInternshipDaysLocal = (dates) => {
     if (!dates || dates.length !== 2) return 0;
     
     const start = dates[0];
@@ -152,9 +155,8 @@ const CS05FormStep = ({
     
     if (!start || !end) return 0;
     
-    // คำนวณจำนวนวัน (รวมวันเริ่มต้นและวันสิ้นสุด)
-    const days = end.diff(start, 'day') + 1;
-    return days;
+    // ใช้ utils สำหรับคำนวณจำนวนวัน
+    return calculateInternshipDays(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
   };
 
   // อัปเดตจำนวนวันเมื่อเลือกช่วงวันฝึกงาน
@@ -186,7 +188,7 @@ const CS05FormStep = ({
     }
 
     // เพิ่มจำนวนวันฝึกงาน
-    values.internshipDuration = calculateInternshipDays(values.internshipDateRange);
+    values.internshipDuration = calculateInternshipDaysLocal(values.internshipDateRange);
     
     // เพิ่มข้อมูล transcript
     values.transcriptFile = transcriptFile;
@@ -194,13 +196,13 @@ const CS05FormStep = ({
     onNext(values);
   };
 
-  const internshipDays = calculateInternshipDays([startDate, endDate]);
+  const internshipDays = calculateInternshipDaysLocal([startDate, endDate]);
 
   return (
     <div className="cs05-form-container">
       <Title level={3} style={{ textAlign: 'center' }}>แบบฟอร์มคำร้องขอฝึกงาน (คพ.05)</Title>
       <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
-        กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
+  กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
       </Text>
 
       <Form
@@ -241,7 +243,7 @@ const CS05FormStep = ({
             />
           </Form.Item>
 
-          {/* เพิ่มฟิลด์ใหม่ - ตำแหน่งฝึกงาน */}
+          {/* ฟิลด์ตำแหน่งฝึกงาน */}
           <Form.Item
             label="ตำแหน่งที่ขอฝึกงาน"
             name="internshipPosition"
@@ -480,7 +482,7 @@ const CS05FormStep = ({
         <Card title="ช่วงเวลาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
           <Alert
             message="กำหนดระยะเวลาการฝึกงาน"
-            description="ระยะเวลาฝึกงานต้องไม่น้อยกว่า 60 วัน หรือ 240 ชั่วโมง และต้องฝึกงานภายในช่วงปิดภาคเรียนที่ 1 หรือเทียบเท่า"
+            description="ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง และต้องฝึกงานภายในช่วงปิดภาคเรียนที่ 1 หรือเทียบเท่า"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
@@ -495,9 +497,9 @@ const CS05FormStep = ({
                 validator(_, value) {
                   if (!value || !value.length) return Promise.resolve();
                   
-                  const days = calculateInternshipDays(value);
-                  if (days < 60) {
-                    return Promise.reject(new Error('ระยะเวลาฝึกงานต้องไม่น้อยกว่า 60 วัน'));
+                  const days = calculateInternshipDaysLocal(value);
+                  if (days < 40) {
+                    return Promise.reject(new Error('ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน'));
                   }
                   return Promise.resolve();
                 },
@@ -518,50 +520,26 @@ const CS05FormStep = ({
           </Form.Item>
           
           {(startDate && endDate) && (
-            <Text type={internshipDays >= 60 ? 'success' : 'danger'}>
-              ระยะเวลาการฝึกงาน: {internshipDays} วัน {internshipDays < 60 && '(ไม่ถึง 60 วันตามกำหนด)'}
-            </Text>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Text type={internshipDays >= 40 ? 'success' : 'danger'}>
+                ระยะเวลาการฝึกงาน: {internshipDays} วัน 
+                {internshipDays < 40 && ' (ไม่ถึง 40 วันตามกำหนด)'}
+              </Text>
+              {/* 🆕 แสดงข้อมูลวันที่ในรูปแบบไทย */}
+              <Text type="secondary">
+                จาก {formatThaiDate(startDate.format('YYYY-MM-DD'), 'DD MMMM BBBB')} 
+                {' ถึง '} 
+                {formatThaiDate(endDate.format('YYYY-MM-DD'), 'DD MMMM BBBB')}
+              </Text>
+            </Space>
           )}
         </Card>
-
-        {/* ส่วนที่ 4: ตำแหน่งฝึกงาน */}
-        {/* <Card title="รายละเอียดตำแหน่งงาน" className="form-card" style={{ marginTop: 24 }}>
-          <Form.Item
-            name="internshipPosition"
-            label="ตำแหน่งฝึกงาน"
-            rules={[
-              { required: true, message: 'กรุณากรอกตำแหน่งฝึกงาน' }
-            ]}
-          >
-            <Input placeholder="เช่น ผู้ช่วยโปรแกรมเมอร์, นักพัฒนาเว็บไซต์, ผู้ช่วยนักวิเคราะห์ระบบ" />
-          </Form.Item>
-          
-          <Form.Item
-            name="jobDescription"
-            label="ลักษณะงานที่จะได้รับมอบหมาย (ถ้ามี)"
-          >
-            <TextArea
-              placeholder="ระบุลักษณะงานที่คาดว่าจะได้รับมอบหมาย"
-              autoSize={{ minRows: 2, maxRows: 4 }}
-            />
-          </Form.Item>
-          
-          <Form.Item
-            name="additionalRequirements"
-            label="ข้อกำหนดอื่นๆ จากบริษัท (ถ้ามี)"
-          >
-            <TextArea
-              placeholder="เช่น การแต่งกาย, เอกสารที่ต้องเตรียม, ทักษะพิเศษ"
-              autoSize={{ minRows: 2, maxRows: 4 }}
-            />
-          </Form.Item>
-        </Card> */}
         
         {/* ส่วนที่ 5: อัปโหลด Transcript */}
         <Card title="ใบแสดงผลการเรียน (Transcript)" className="form-card" style={{ marginTop: 24 }}>
           <Alert
             message="ข้อมูลสำคัญ"
-            description="นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิตสะสม โดยต้องมีหน่วยกิตไม่น้อยกว่า 81 หน่วยกิต"
+            description="นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิตสะสม "
             type="info"
             showIcon
             style={{ marginBottom: 16 }}

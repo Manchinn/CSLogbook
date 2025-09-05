@@ -1,4 +1,5 @@
-const { NotificationSetting, User, sequelize } = require('../models');
+// เพิ่ม Teacher model เพื่อใช้ตรวจสอบ teacherType (support)
+const { NotificationSetting, User, Teacher, sequelize } = require('../models');
 const logger = require('../utils/logger');
 const NodeCache = require('node-cache');
 
@@ -333,28 +334,42 @@ class NotificationSettingsService {
                 adminUserIdType: typeof adminUserId
             });
             
-            // ตรวจสอบว่า adminUserId เป็น admin จริงหรือไม่ (เฉพาะเมื่อมีค่า)
+            // ตรวจสอบสิทธิ์ผู้ใช้ที่ทำการเปลี่ยนแปลง (admin หรือ teacher support)
             if (adminUserId) {
-                const adminUser = await User.findOne({
+                const updaterUser = await User.findOne({
                     where: { 
                         user_id: adminUserId,
-                        role: 'admin',
                         active_status: true
                     },
-                    attributes: ['user_id', 'username', 'first_name', 'last_name']
+                    attributes: ['user_id', 'username', 'role']
                 });
-                
-                if (!adminUser) {
-                    logger.warn(`Admin user not found or inactive: ${adminUserId}`);
-                    throw new Error('ผู้ใช้ไม่มีสิทธิ์ admin หรือไม่พบผู้ใช้');
+
+                if (!updaterUser) {
+                    logger.warn(`Updater user not found or inactive: ${adminUserId}`);
+                    throw new Error('ไม่พบผู้ใช้หรือผู้ใช้ไม่เปิดใช้งาน');
+                }
+
+                if (updaterUser.role === 'admin') {
+                    logger.info('Updater validated as admin', { adminUserId, username: updaterUser.username });
+                } else if (updaterUser.role === 'teacher') {
+                    // ตรวจสอบ teacherType = support
+                    if (!Teacher) {
+                        logger.error('Teacher model is undefined – ตรวจสอบการ export model');
+                        throw new Error('ไม่สามารถตรวจสอบสิทธิ์อาจารย์ (Teacher model)');
+                    }
+                    const teacherRecord = await Teacher.findOne({ where: { userId: adminUserId }, attributes: ['teacherType'] });
+                    if (teacherRecord?.teacherType === 'support') {
+                        logger.info('Updater validated as teacher support', { adminUserId, username: updaterUser.username });
+                    } else {
+                        logger.warn('Teacher does not have support type', { adminUserId, teacherType: teacherRecord?.teacherType });
+                        throw new Error('ผู้ใช้ไม่มีสิทธิ์แก้ไขการตั้งค่าการแจ้งเตือน');
+                    }
                 } else {
-                    logger.info('Admin user validated:', {
-                        adminUserId,
-                        username: adminUser.username
-                    });
+                    logger.warn('User role not permitted to toggle notification', { adminUserId, role: updaterUser.role });
+                    throw new Error('ผู้ใช้ไม่มีสิทธิ์แก้ไขการตั้งค่าการแจ้งเตือน');
                 }
             } else {
-                logger.warn('adminUserId is null or undefined - proceeding without admin tracking');
+                logger.warn('adminUserId is null or undefined - proceeding without admin/support tracking');
             }
             
             // ใช้ upsert สำหรับการสร้างหรืออัปเดตข้อมูล

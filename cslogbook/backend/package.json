@@ -7,6 +7,9 @@
     "setup": "copy .env.example .env.development",
     "build": "set NODE_ENV=production&& node scripts/build.js",
     "dev": "set NODE_ENV=development&& nodemon server.js",
+  "test": "cross-env NODE_ENV=test jest --runInBand",
+  "test:watch": "cross-env NODE_ENV=test jest --watch",
+  "test:cov": "cross-env NODE_ENV=test jest --coverage --runInBand",
     "db:check:models": "node scripts/checkModels.js",
     "db:check": "cross-env NODE_ENV=development node scripts/checkDb.js",
     "db:check:all": "npm run db:check && npm run db:check:models",
@@ -29,9 +32,8 @@
   "license": "ISC",
   "description": "My project with nodemon",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "@sendgrid/mail": "^8.1.4",
-    "@tanstack/react-query": "^5.72.0",
-    "@tanstack/react-query-devtools": "^5.72.0",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
@@ -51,8 +53,8 @@
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.16",
+    "pdfkit": "^0.17.1",
     "pg": "^8.13.3",
-    "react-pdf": "^7.7.1",
     "sequelize": "^6.37.6",
     "sequelize-cli": "^6.6.2",
     "socket.io": "^4.8.0",
@@ -60,11 +62,32 @@
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0"
   },
+  "jest": {
+    "setupFilesAfterEnv": ["<rootDir>/tests/jest.setup.js"],
+    "collectCoverageFrom": [
+      "services/**/*.js",
+      "controllers/**/*.js",
+      "middleware/**/*.js",
+      "utils/**/*.js",
+      "!**/node_modules/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 35,
+        "functions": 30,
+        "branches": 20,
+        "statements": 35
+      }
+    }
+  },
   "devDependencies": {
     "@types/node": "^22.13.10",
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+  "typescript": "^5.8.2",
+  "jest": "^29.7.0",
+  "supertest": "^7.1.1",
+  "sqlite3": "^5.1.7"
   }
 }

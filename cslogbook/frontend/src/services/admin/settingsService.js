@@ -15,6 +15,7 @@ export const settingsService = {
   // อัปเดตข้อมูลการตั้งค่าปีการศึกษา
   updateAcademicSettings: async (data) => {
     try {
+      // ส่ง id ไปด้วยใน body
       const response = await apiClient.put("/admin/academic", data);
       return response.data;
     } catch (error) {
