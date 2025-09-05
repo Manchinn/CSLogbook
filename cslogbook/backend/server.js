@@ -101,6 +101,40 @@ const ENV = {
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE, 10)
 };
 
+// --- Preflight Migration Check (สำคัญ: ตรวจ schema important_deadlines มี policy fields ก่อน start) ---
+// ลดความเสี่ยง deploy โดยลืมรัน migration ลำดับใหม่
+async function preflightCheck() {
+  try {
+    const { sequelize } = require('./config/database');
+    // ใช้ describeTable ตรวจคอลัมน์จำเป็น
+    const requiredCols = [
+      'deadline_at', 'accepting_submissions', 'allow_late', 'lock_after_deadline',
+      'grace_period_minutes', 'deadline_type', 'window_start_at', 'window_end_at'
+    ];
+    let missing = [];
+    try {
+      const desc = await sequelize.getQueryInterface().describeTable('important_deadlines');
+      for (const c of requiredCols) {
+        if (!desc[c]) missing.push(c);
+      }
+    } catch (e) {
+      console.warn('⚠️  Preflight: describeTable important_deadlines ล้มเหลว:', e.message);
+      return; // ไม่ block แต่เตือน
+    }
+    if (missing.length) {
+      console.warn('⚠️  IMPORTANT: ตาราง important_deadlines ขาดคอลัมน์ใหม่ (อาจยังไม่รัน migration):', missing.join(', '));
+      console.warn('➡️  โปรดรัน: npx sequelize-cli db:migrate (ตรวจลำดับ: important_deadlines ก่อน documents)');
+    } else {
+      console.log('✅ Preflight important_deadlines schema OK');
+    }
+  } catch (err) {
+    console.warn('⚠️  Preflight check general error:', err.message);
+  }
+}
+
+// fire & forget (ไม่ block server start)
+preflightCheck();
+
 const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');

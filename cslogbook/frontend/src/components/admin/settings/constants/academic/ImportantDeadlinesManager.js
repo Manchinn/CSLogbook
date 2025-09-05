@@ -23,6 +23,7 @@ export default function ImportantDeadlinesManager({ academicYear }) {
     windowEndDate: null,
     windowEndTime: null,
     allDay: false,
+    mode: 'single', // 'single' | 'window' (canonical helper)
     relatedTo: 'general',
     semester: 1,
     academicYear: academicYear || '',
@@ -50,6 +51,7 @@ export default function ImportantDeadlinesManager({ academicYear }) {
   };
   const openEdit = (d) => {
     setEditing(d);
+    const isWindow = !!(d.windowStartDate && d.windowEndDate);
     setFormState({
       name: d.name,
       date: d.deadlineDate ? moment(d.deadlineDate) : (d.date ? moment(d.date) : null),
@@ -59,6 +61,7 @@ export default function ImportantDeadlinesManager({ academicYear }) {
       windowEndDate: d.windowEndDate ? moment(d.windowEndDate) : null,
       windowEndTime: d.windowEndTime ? moment(d.windowEndTime, 'HH:mm:ss') : null,
       allDay: !!d.allDay,
+      mode: isWindow ? 'window' : 'single',
       relatedTo: d.relatedTo,
       semester: d.semester,
       academicYear: d.academicYear,
@@ -126,6 +129,20 @@ export default function ImportantDeadlinesManager({ academicYear }) {
         // กรณีมีช่วงเวลาให้ใช้ window เท่านั้น ไม่ต้อง single
         payload.deadlineDate = null;
         delete payload.deadlineTime;
+        // --- canonical enrich: เพิ่ม windowStartAt / windowEndAt (optional ส่งเสริม backend) ---
+        try {
+          const stIso = `${startDateStr}T${(formState.windowStartTime?formState.windowStartTime.format('HH:mm:ss'):'00:00:00')}+07:00`;
+          const enIso = `${endDateStr}T${(formState.windowEndTime?formState.windowEndTime.format('HH:mm:ss'):'23:59:59')}+07:00`;
+          payload.windowStartAt = new Date(stIso).toISOString();
+          payload.windowEndAt = new Date(enIso).toISOString();
+        } catch (_) { /* ignore conversion errors */ }
+      }
+      // --- canonical enrich (single deadlineAt ISO) ---
+      if (!hasWindow && payload.deadlineDate && payload.deadlineTime) {
+        try {
+          const localIso = `${payload.deadlineDate}T${payload.deadlineTime}+07:00`;
+          payload.deadlineAt = new Date(localIso).toISOString();
+        } catch (_) { /* ignore */ }
       }
       if (editing) await importantDeadlineService.updateDeadline(editing.id, payload);
       else await importantDeadlineService.createDeadline(payload);
@@ -175,6 +192,9 @@ export default function ImportantDeadlinesManager({ academicYear }) {
                     MILESTONE: { label: 'เหตุการณ์', color: 'cyan' }
                   };
                   const tInfo = typeLabelMap[d.deadlineType] || { label: d.deadlineType, color: 'default' };
+                  // Effective deadline (window end > single)
+                  const effectiveDate = d.windowEndDate || d.deadlineDate || '-';
+                  const effectiveTime = d.windowEndTime || d.deadlineTime || (d.allDay ? '' : '');
                   return (
                   <Card
                     key={d.id}
@@ -209,6 +229,24 @@ export default function ImportantDeadlinesManager({ academicYear }) {
                         d.relatedTo === 'project' ? 'โครงงาน (legacy)' :
                         d.relatedTo === 'internship' ? 'ฝึกงาน' : 'ทั่วไป'
                       )}</Col>
+                    </Row>
+                    <Row gutter={16} style={{ marginTop:4 }}>
+                      <Col span={24}>
+                        <b>วันสุดท้าย:</b> {effectiveDate !== '-' ? `${moment(effectiveDate).add(543,'year').format('D MMM YYYY')}${effectiveTime?` ${moment(effectiveTime,'HH:mm:ss').format('HH:mm')} น.`:''}` : '-'}
+                        <span style={{ marginLeft:8 }}>
+                          <Tag color={d.acceptingSubmissions ? 'green' : 'red'}>{d.acceptingSubmissions ? 'เปิดรับ' : 'ปิดรับ'}</Tag>
+                          {d.deadlineType === 'SUBMISSION' && (
+                            <>
+                              <Tag color={d.allowLate ? 'orange' : 'default'}>
+                                {d.allowLate ? `อนุญาตส่งช้า${d.gracePeriodMinutes?` +${Math.round(d.gracePeriodMinutes/60)}ชม.`:''}` : 'ไม่อนุญาตส่งช้า'}
+                              </Tag>
+                              <Tag color={d.lockAfterDeadline ? 'purple' : 'default'}>
+                                {d.lockAfterDeadline ? 'ล็อกหลังหมดเวลา' : 'ไม่ล็อก'}
+                              </Tag>
+                            </>
+                          )}
+                        </span>
+                      </Col>
                     </Row>
                     <Row gutter={16} style={{ marginTop:4 }}>
                       <Col span={24}><b>ปีการศึกษา:</b> {d.academicYear}</Col>

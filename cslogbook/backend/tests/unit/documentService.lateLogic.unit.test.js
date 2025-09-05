@@ -86,4 +86,29 @@ describe('documentService late logic', () => {
     await expect(documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'NoLate', importantDeadlineId: d.id }))
       .rejects.toThrow('ไม่อนุญาตให้ส่งช้า');
   });
+
+  // --- Window based effectiveDeadlineAt cases ---
+  test('window: submit inside window not late', async () => {
+    const start = new Date(Date.now() - 30*60000); // เริ่ม 30 นาทีที่แล้ว
+    const end = new Date(Date.now() + 30*60000);   // จบอีก 30 นาที
+    const d = await createDeadline({ windowStartAt: start, windowEndAt: end, deadlineAt: end, date: new Date(end.getTime()+7*60*60*1000).toISOString().slice(0,10) });
+    const out = await documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'WinOnTime', importantDeadlineId: d.id });
+    expect(out.isLate).toBe(false);
+  });
+  test('window: submit after window but within grace -> late', async () => {
+    const now = Date.now();
+    const end = new Date(now - 5*60000); // window จบ 5 นาทีที่แล้ว
+    const start = new Date(end.getTime() - 60*60000);
+    const d = await createDeadline({ windowStartAt: start, windowEndAt: end, deadlineAt: end, gracePeriodMinutes: 30, date: new Date(end.getTime()+7*60*60*1000).toISOString().slice(0,10) });
+    const out = await documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'WinLate', importantDeadlineId: d.id });
+    expect(out.isLate).toBe(true);
+  });
+  test('window: after grace & lock -> reject', async () => {
+    const now = Date.now();
+    const end = new Date(now - 120*60000); // 2 ชั่วโมงก่อน
+    const start = new Date(end.getTime() - 60*60000);
+    const d = await createDeadline({ windowStartAt: start, windowEndAt: end, deadlineAt: end, gracePeriodMinutes: 30, lockAfterDeadline: true, date: new Date(end.getTime()+7*60*60*1000).toISOString().slice(0,10) });
+    await expect(documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'WinLocked', importantDeadlineId: d.id }))
+      .rejects.toThrow('หมดเขตรับเอกสารแล้ว');
+  });
 });

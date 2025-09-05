@@ -39,10 +39,30 @@ exports.getAll = async (req, res) => {
   }
 };
 
-// เพิ่มกำหนดการใหม่
+// Legacy/Alias translator สำหรับ payload (รองรับ deadlineDate+deadlineTime / relatedTo alias)
+function translateLegacyPayload(body) {
+  const out = { ...body };
+  // relatedTo alias (deprecated values)
+  const relatedAlias = {
+    project: 'project', // คงเดิม (ยังรองรับ)
+    general: 'general',
+    project1: 'project1',
+    project2: 'project2',
+    internship: 'internship'
+  };
+  if (out.relatedTo && relatedAlias[out.relatedTo]) {
+    out.relatedTo = relatedAlias[out.relatedTo];
+  }
+  // รองรับกรณี client ส่ง date/time ในชื่อ legacy อยู่แล้ว importantDeadlineService.create รองรับ
+  // (ที่นี่เพียงเพิ่ม warning header)
+  return out;
+}
+
+// เพิ่มกำหนดการใหม่ (พร้อม legacy translate)
 exports.create = async (req, res) => {
   try {
-    const deadline = await importantDeadlineService.create(req.body);
+    const translated = translateLegacyPayload(req.body);
+    const deadline = await importantDeadlineService.create(translated);
     const d = deadline.deadlineAt ? new Date(deadline.deadlineAt) : null;
     let local = null;
     if (d) {
@@ -61,11 +81,12 @@ exports.create = async (req, res) => {
   }
 };
 
-// แก้ไขกำหนดการ
+// แก้ไขกำหนดการ (รองรับ legacy translate)
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const deadline = await importantDeadlineService.update(id, req.body);
+    const translated = translateLegacyPayload(req.body);
+    const deadline = await importantDeadlineService.update(id, translated);
     const d = deadline.deadlineAt ? new Date(deadline.deadlineAt) : null;
     let local = null;
     if (d) {

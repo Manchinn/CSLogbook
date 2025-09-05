@@ -14,6 +14,7 @@ import {
 } from "antd";
 import useAllDeadlines from "../../hooks/useAllDeadlines";
 import dayjs from "../../utils/dayjs";
+// NOTE: deadlines ที่มาจาก hook ผ่าน normalize แล้ว มี deadline_at_local, effective_deadline_local, isWindow, windowStartDate/EndDate legacy และ submittedAtLocal
 import DeadlineBadge from "../deadlines/DeadlineBadge";
 import { computeDeadlineStatus } from "../../utils/deadlineUtils";
 
@@ -26,8 +27,9 @@ export default function StudentDeadlineCalendar() {
   const grouped = useMemo(() => {
     const g = { internship: [], project: [], general: [] };
     deadlines.forEach(d => {
-      if (d.relatedTo === 'internship') g.internship.push(d);
-      else if (d.relatedTo === 'project') g.project.push(d);
+      const rel = d.relatedTo || 'general';
+      if (rel.startsWith('intern')) g.internship.push(d);
+      else if (rel.startsWith('project')) g.project.push(d);
       else g.general.push(d);
     });
     return g;
@@ -37,17 +39,23 @@ export default function StudentDeadlineCalendar() {
   const dateMap = useMemo(() => {
     const map = {};
     deadlines.forEach(d => {
+      // canonical window: มี windowStartAt/windowEndAt (เรายังคงมี legacy windowStartDate เพื่อแสดง)
       if (d.isWindow && d.windowStartDate && d.windowEndDate) {
         const start = dayjs(`${d.windowStartDate} 00:00:00`);
         const end = dayjs(`${d.windowEndDate} 23:59:59`);
         for (let cur = start; cur.isBefore(end) || cur.isSame(end,'day'); cur = cur.add(1,'day')) {
           const key = cur.format('YYYY-MM-DD');
-            if (!map[key]) map[key] = [];
-            map[key].push({ ...d, _rangePart: true });
+          if (!map[key]) map[key] = [];
+          map[key].push({ ...d, _rangePart: true });
         }
-      } else if (d.deadlineDate) {
-        if (!map[d.deadlineDate]) map[d.deadlineDate] = [];
-        map[d.deadlineDate].push(d);
+      } else {
+        // single point: ใช้ legacy deadlineDate ถ้ามี ไม่งั้น derive จาก deadline_at_local
+        let dateKey = d.deadlineDate;
+        if (!dateKey && d.deadline_at_local) dateKey = d.deadline_at_local.format('YYYY-MM-DD');
+        if (dateKey) {
+          if (!map[dateKey]) map[dateKey] = [];
+          map[dateKey].push(d);
+        }
       }
     });
     return map;
@@ -81,7 +89,7 @@ export default function StudentDeadlineCalendar() {
         );
       }
       // ปกติ: คำนวณสถานะ submission
-      const baseLocal = item.deadline_at_local || item.effective_deadline_local || null;
+  const baseLocal = item.deadline_at_local || item.effective_deadline_local || null; // canonical
       const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, { isSubmitted:item.isSubmitted, isLate:item.isLate, locked:item.locked });
       const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange', locked:'purple' };
       const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : (st.code === 'locked' ? 'default' : 'processing'));
@@ -267,10 +275,8 @@ export default function StudentDeadlineCalendar() {
                       ) : (
                         d.deadline_th ||
                         (d.deadline_at_local
-                          ? d.deadline_at_local.format(
-                              "D MMM BBBB เวลา HH:mm น."
-                            )
-                          : "—")
+                          ? d.deadline_at_local.format("D MMM BBBB เวลา HH:mm น.")
+                          : (d.effective_deadline_local ? d.effective_deadline_local.format("D MMM BBBB เวลา HH:mm น.") : "—"))
                       )}
                     </div>
                     {d.description && (
