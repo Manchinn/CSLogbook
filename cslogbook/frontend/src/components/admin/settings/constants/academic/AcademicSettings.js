@@ -1,27 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  Form,
-  Input,
-  Button,
-  Select,
-  Card,
-  Divider,
-  Typography,
-  Row,
-  Col,
-  InputNumber,
-  DatePicker,
-  message,
-  Spin,
-  Table,
-  Tag,
-  Alert,
-  TimePicker,
-  Space,
-  Collapse,
-  Tooltip,
-} from "antd";
-import { SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined, CalendarOutlined } from "@ant-design/icons";
+import { Form, Input, Button, Select, Card, Divider, Typography, Row, Col, InputNumber, DatePicker, message, Spin, Table, Tag, Alert } from "antd";
+import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../../services/admin/settingsService";
 import th_TH from "antd/lib/locale/th_TH";
 import moment from "moment";
@@ -36,47 +15,24 @@ import {
   loadAcademicSettingsProcess,
   saveAcademicSettingsProcess,
 } from "./academicUtils";
-import useImportantDeadlines from "../../../../../hooks/admin/useImportantDeadlines";
-import * as importantDeadlineService from "../../../../../services/admin/importantDeadlineService";
-import { Modal } from 'antd';
+// แยกส่วนกำหนดการสำคัญออกเป็นคอมโพเนนต์ย่อย
+import ImportantDeadlinesManager from './ImportantDeadlinesManager';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
-const { Panel } = Collapse;
-const { TextArea } = Input;
+// ลบ Panel, TextArea ที่ไม่ได้ใช้งานเพื่อลด warning
 
 const AcademicSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
-  const [deadlines, setDeadlines] = useState({
-    semester1: [],
-    semester2: [],
-    semester3: []
-  });
-
-  // State สำหรับ modal และข้อมูลฟอร์มกำหนดการสำคัญ
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingDeadline, setEditingDeadline] = useState(null); // ถ้า null คือเพิ่มใหม่
-  const [deadlineForm, setDeadlineForm] = useState({
-    name: '',
-    date: null,
-    relatedTo: 'general',
-    semester: 1,
-    academicYear: '',
-    isGlobal: true
-  });
-  const [modalLoading, setModalLoading] = useState(false);
-  const [modalError, setModalError] = useState('');
+  // ลบ state deadlines ที่ไม่ได้ใช้แล้ว (backend-driven)
 
   // ดึงปีการศึกษาและภาคเรียนจากฟอร์มหลัก
-  const academicYear = form.getFieldValue('currentAcademicYear');
+  // academicYear จะถูกอ่านแบบ real-time ใน props ที่ส่งให้ ImportantDeadlinesManager (ไม่ต้องเก็บแยก)
   // สำหรับแต่ละภาคเรียนจะใช้เลข 1,2,3
-
-  // ดึงข้อมูลกำหนดการสำคัญจาก backend
-  const { deadlines: backendDeadlines, loading: deadlinesLoading, fetchDeadlines } = useImportantDeadlines({ academicYear, semester: null });
 
   // Function to fetch and set curriculums
   const fetchAndSetCurriculums = async () => {
@@ -119,6 +75,7 @@ const AcademicSettings = () => {
   useEffect(() => {
     fetchAndSetCurriculums();
     fetchAndSetSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCurriculumChange = (value) => {
@@ -147,105 +104,7 @@ const AcademicSettings = () => {
     }
   };
 
-  const addDeadline = (semester) => {
-    const newDeadline = {
-      id: Date.now(),
-      activity: '',
-      date: null,
-      time: null,
-      note: '',
-      type: 'project' // project, internship, general
-    };
-    
-    setDeadlines(prev => ({
-      ...prev,
-      [semester]: [...prev[semester], newDeadline]
-    }));
-  };
-
-  const removeDeadline = (semesterKey, deadlineId) => {
-    setDeadlines(prev => ({
-      ...prev,
-      [semesterKey]: prev[semesterKey].filter(d => d.id !== deadlineId)
-    }));
-  };
-
-  const updateDeadline = (semesterKey, deadlineId, field, value) => {
-    setDeadlines(prev => ({
-      ...prev,
-      [semesterKey]: prev[semesterKey].map(d => 
-        d.id === deadlineId ? { ...d, [field]: value } : d
-      )
-    }));
-  };
-
-  // ฟังก์ชันเปิด modal สำหรับเพิ่ม/แก้ไข
-  const openAddDeadlineModal = (semester) => {
-    setEditingDeadline(null);
-    setDeadlineForm({
-      name: '',
-      date: null,
-      relatedTo: 'general',
-      semester,
-      academicYear: academicYear || '',
-      isGlobal: true
-    });
-    setModalError('');
-    setModalVisible(true);
-  };
-  const openEditDeadlineModal = (deadline) => {
-    setEditingDeadline(deadline);
-    setDeadlineForm({
-      name: deadline.name,
-      date: moment(deadline.date),
-      relatedTo: deadline.relatedTo,
-      semester: deadline.semester,
-      academicYear: deadline.academicYear,
-      isGlobal: deadline.isGlobal
-    });
-    setModalError('');
-    setModalVisible(true);
-  };
-  // ฟังก์ชันบันทึก (เพิ่ม/แก้ไข)
-  const handleSaveDeadline = async () => {
-    setModalLoading(true);
-    setModalError('');
-    try {
-      const payload = {
-        ...deadlineForm,
-        date: deadlineForm.date ? deadlineForm.date.format('YYYY-MM-DD') : null
-      };
-      if (!payload.name || !payload.date) {
-        setModalError('กรุณากรอกชื่อและวันที่');
-        setModalLoading(false);
-        return;
-      }
-      if (editingDeadline) {
-        await importantDeadlineService.updateDeadline(editingDeadline.id, payload);
-      } else {
-        await importantDeadlineService.createDeadline(payload);
-      }
-      setModalVisible(false);
-      fetchDeadlines();
-    } catch (e) {
-      setModalError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-    }
-    setModalLoading(false);
-  };
-  // ฟังก์ชันลบ
-  const handleDeleteDeadline = async (id) => {
-    Modal.confirm({
-      title: 'ยืนยันการลบกำหนดการ',
-      content: 'คุณต้องการลบกำหนดการนี้ใช่หรือไม่?',
-      okText: 'ลบ',
-      okType: 'danger',
-      cancelText: 'ยกเลิก',
-      onOk: async () => {
-        await importantDeadlineService.deleteDeadline(id);
-        fetchDeadlines();
-      }
-    });
-  };
+  // logic กำหนดการสำคัญถูกย้ายไป ImportantDeadlinesManager
 
   if (loading && !form.getFieldsValue().currentAcademicYear) {
     return <Spin tip="กำลังโหลดข้อมูล..." />;
@@ -614,148 +473,8 @@ const AcademicSettings = () => {
 
         <Divider />
 
-        {/* เพิ่มส่วนกำหนดการสำคัญ */}
-        <Card className="settings-card">
-          <Title level={5}>กำหนดการสำคัญในปีการศึกษา</Title>
-          <Text type="secondary">
-            จัดการวันที่สำคัญและ deadline ต่างๆ สำหรับการยื่นเอกสาร สอบ และกิจกรรมสำคัญในแต่ละภาคเรียน
-          </Text>
-
-          <Collapse 
-            defaultActiveKey={['semester1']} 
-            style={{ marginTop: 16 }}
-            items={['semester1', 'semester2', 'semester3'].map((semKey, idx) => ({
-              key: semKey,
-              label: (
-                <span>
-                  <CalendarOutlined style={{ marginRight: 8 }} />
-                  {`กำหนดการภาคเรียนที่ ${idx + 1}`}
-                </span>
-              ),
-              children: (
-                <div>
-                  <div style={{ marginBottom: 16 }}>
-                    <Button
-                      type="dashed"
-                      icon={<PlusOutlined />}
-                      onClick={() => openAddDeadlineModal(idx + 1)}
-                      block
-                    >
-                      เพิ่มกำหนดการใหม่
-                    </Button>
-                  </div>
-                  {deadlinesLoading ? <Spin /> : null}
-                  {backendDeadlines.filter(d => d.semester === idx + 1).map((deadline, index) => (
-                    <Card
-                      key={deadline.id}
-                      size="small"
-                      style={{ marginBottom: 12 }}
-                      title={deadline.name}
-                      extra={
-                        <>
-                          <Button
-                            type="link"
-                            onClick={() => openEditDeadlineModal(deadline)}
-                          >
-                            แก้ไข
-                          </Button>
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => handleDeleteDeadline(deadline.id)}
-                          />
-                        </>
-                      }
-                    >
-                      <Row gutter={16}>
-                        <Col span={12}><b>วันที่:</b> {moment(deadline.date).add(543, 'year').format('D MMMM YYYY')}</Col>
-                        <Col span={12}><b>ประเภท:</b> {deadline.relatedTo === 'project' ? 'โครงงาน' : deadline.relatedTo === 'internship' ? 'ฝึกงาน' : 'ทั่วไป'}</Col>
-                      </Row>
-                      <Row gutter={16}>
-                        <Col span={24}><b>ปีการศึกษา:</b> {deadline.academicYear}</Col>
-                      </Row>
-                    </Card>
-                  ))}
-                </div>
-              )
-            }))}
-          />
-
-          {/* แสดงตัวอย่างกำหนดการที่กำลังจะมีผล */}
-          <Alert
-            message="กำหนดการที่ใกล้จะถึง"
-            description={
-              <div>
-                <Text>ระบบจะแจ้งเตือนนักศึกษาเกี่ยวกับกำหนดการที่สำคัญล่วงหน้า 7 วัน</Text>
-                <br />
-                <Text type="secondary">สามารถดูกำหนดการทั้งหมดได้ในหน้าแดชบอร์ด</Text>
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginTop: 16 }}
-          />
-        </Card>
-
-        {/* Modal สำหรับเพิ่ม/แก้ไขกำหนดการ */}
-        <Modal
-          title={editingDeadline ? 'แก้ไขกำหนดการ' : 'เพิ่มกำหนดการใหม่'}
-          open={modalVisible}
-          onOk={handleSaveDeadline}
-          onCancel={() => setModalVisible(false)}
-          confirmLoading={modalLoading}
-          okText="บันทึก"
-          cancelText="ยกเลิก"
-        >
-          <Form layout="vertical">
-            <Form.Item label="ชื่อกิจกรรม" required>
-              <Input
-                value={deadlineForm.name}
-                onChange={e => setDeadlineForm({ ...deadlineForm, name: e.target.value })}
-                placeholder="เช่น วันสุดท้ายของยื่นสอบหัวข้อโครงงานพิเศษ"
-              />
-            </Form.Item>
-            <Form.Item label="วันที่" required>
-              <DatePicker
-                style={{ width: '100%' }}
-                value={deadlineForm.date}
-                onChange={date => setDeadlineForm({ ...deadlineForm, date })}
-                format={value => moment(value).add(543, 'year').format('D MMMM YYYY')}
-                locale={th_TH}
-                placeholder="เลือกวันที่"
-              />
-            </Form.Item>
-            <Form.Item label="ประเภทกิจกรรม">
-              <Select
-                value={deadlineForm.relatedTo}
-                onChange={value => setDeadlineForm({ ...deadlineForm, relatedTo: value })}
-              >
-                <Option value="project">โครงงาน/ปริญญานิพนธ์</Option>
-                <Option value="internship">ฝึกงาน/สหกิจศึกษา</Option>
-                <Option value="general">ทั่วไป</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item label="ภาคเรียน">
-              <Select
-                value={deadlineForm.semester}
-                onChange={value => setDeadlineForm({ ...deadlineForm, semester: value })}
-              >
-                <Option value={1}>ภาคเรียนที่ 1</Option>
-                <Option value={2}>ภาคเรียนที่ 2</Option>
-                <Option value={3}>ภาคฤดูร้อน</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item label="ปีการศึกษา">
-              <Input
-                value={deadlineForm.academicYear}
-                onChange={e => setDeadlineForm({ ...deadlineForm, academicYear: e.target.value })}
-                placeholder="เช่น 2567"
-              />
-            </Form.Item>
-            {modalError && <Alert type="error" message={modalError} />}
-          </Form>
-        </Modal>
+  {/* กำหนดการสำคัญ (แยกคอมโพเนนต์) */}
+  <ImportantDeadlinesManager academicYear={form.getFieldValue('currentAcademicYear')} />
 
         {/* ส่วนบันทึก */}
         <div className="setting-actions">

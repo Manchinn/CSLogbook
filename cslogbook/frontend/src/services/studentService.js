@@ -73,6 +73,16 @@ export const studentService = {
     }
   },
 
+  // ดึงกำหนดการสำคัญที่กำลังจะถึงภายใน X วัน (default 7)
+  getUpcomingDeadlines: async (days = 7) => {
+    const response = await apiClient.get(`/students/important-deadlines/upcoming`, { params: { days } });
+    return response.data.data || [];
+  },
+  getAllDeadlines: async (academicYear) => {
+    const response = await apiClient.get('/students/important-deadlines', { params: { academicYear } });
+    return response.data.data || [];
+  },
+
   // ดึงข้อมูลสถิติ (สำหรับ admin/teacher)
   getStats: async () => {
     try {

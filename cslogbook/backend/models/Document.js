@@ -44,8 +44,9 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'reviewer_id'
         },
+        // NOTE: DB ใช้ ENUM ตัวพิมพ์ใหญ่ 'INTERNSHIP','PROJECT' จึงต้อง align ให้ตรง ไม่เช่นนั้นจะ validation error เวลา insert/update
         documentType: {
-            type: DataTypes.ENUM('internship', 'project'),
+            type: DataTypes.ENUM('INTERNSHIP', 'PROJECT'),
             allowNull: false,
             field: 'document_type'
         },
@@ -109,6 +110,32 @@ module.exports = (sequelize) => {
             allowNull: true,
             defaultValue: 0,
             field: 'download_count'
+        },
+        importantDeadlineId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'important_deadline_id'
+        },
+        submittedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'submitted_at'
+        },
+        isLate: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_late'
+        },
+        lateMinutes: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'late_minutes'
+        },
+        lateReason: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'late_reason'
         }
     }, {
         sequelize,

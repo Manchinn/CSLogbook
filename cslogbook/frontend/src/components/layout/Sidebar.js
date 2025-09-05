@@ -16,6 +16,7 @@ import {
   FileProtectOutlined,
   ProjectOutlined,
   BarChartOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -218,6 +219,12 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
               key: `/student-profile/${userData.studentCode}`,
               icon: <TeamOutlined />,
               label: "ประวัตินักศึกษา",
+            },
+            {
+              key: "/student-deadlines/calendar",
+              icon: <CalendarOutlined />,
+              label: "ปฏิทินกำหนดส่ง",
+              disabled: false,
             },
             {
               key: "internship",

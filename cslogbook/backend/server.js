@@ -31,7 +31,7 @@ if (!process.env.MAX_FILE_SIZE) {
 }
 
 // Import dependencies
-const express = require('express');
+const express = require('express'); // retained for potential legacy refs
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -120,7 +120,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม academicRoutes
 const reportRoutes = require('./routes/reportRoutes'); // รายงานใหม่
-const app = express();
+// ใช้ app ที่แยกใน app.js สำหรับ test-friendly
+const app = require('./app');
 const server = http.createServer(app);
 const pool = require('./config/database');
 
@@ -355,7 +356,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Server startup with validated PORT
+// Start server (แยกจาก app เพื่อให้ supertest ใช้ app โดยตรง)
 server.listen(ENV.PORT, () => {
   console.log(`Server running in ${ENV.NODE_ENV} mode on port ${ENV.PORT}`);
   console.log(`Frontend URL: ${ENV.FRONTEND_URL}`);
@@ -415,3 +416,6 @@ process.on('SIGINT', () => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+// ส่งออก server และ app (ถ้าจำเป็นสำหรับ integration test ขั้นสูง)
+module.exports = { app, server };

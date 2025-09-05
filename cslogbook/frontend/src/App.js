@@ -7,6 +7,7 @@ import MainLayout from './components/layout/MainLayout';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentProfile from './components/StudentProfile/index';
+import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
 
 // Import Internship Components
 import CS05Form from './components/internship/registration/CS05Form';
@@ -77,6 +78,11 @@ const App = () => {
 
                 {/* Student Routes */}
                 <Route path="/student-profile/:id" element={<StudentProfile />} />
+                <Route path="/student-deadlines/calendar" element={
+                  <ProtectedRoute roles={['student']}>
+                    <StudentDeadlineCalendar />
+                  </ProtectedRoute>
+                } />
                 
 
                 {/* Internship Routes */}

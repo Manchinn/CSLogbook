@@ -115,6 +115,8 @@ router.put('/notification-settings/disable-all', adminAuth, notificationSettings
 router.get('/important-deadlines', adminAuth, importantDeadlineController.getAll);
 router.post('/important-deadlines', adminAuth, importantDeadlineController.create);
 router.put('/important-deadlines/:id', adminAuth, importantDeadlineController.update);
+router.patch('/important-deadlines/:id/policy', adminAuth, importantDeadlineController.updatePolicy); // ปรับเฉพาะ policy
+router.get('/important-deadlines/:id/stats', adminAuth, importantDeadlineController.getStats); // ดูสถิติการส่งเอกสาร
 router.delete('/important-deadlines/:id', adminAuth, importantDeadlineController.remove);
 
 // === เพิ่ม Admin Eligibility Update Routes ===

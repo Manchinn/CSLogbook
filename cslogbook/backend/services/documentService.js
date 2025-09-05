@@ -9,7 +9,7 @@ class DocumentService {
      */
     async uploadDocument(userId, fileData, documentData) {
         try {
-            const { documentType, category } = documentData;
+            const { documentType, category, importantDeadlineId, documentName } = documentData;
 
             // ตรวจสอบประเภทเอกสาร
             const docTypeConfig = UPLOAD_CONFIG.DOCUMENT_TYPES[documentType?.toUpperCase()];
@@ -17,16 +17,83 @@ class DocumentService {
                 throw new Error('ประเภทเอกสารไม่ถูกต้อง');
             }
 
+            // ดึงข้อมูล deadline (ถ้าระบุ) เพื่อตรวจ policy + คำนวณ late
+            let deadlineRecord = null;
+            if (importantDeadlineId) {
+                const { ImportantDeadline } = require('../models');
+                deadlineRecord = await ImportantDeadline.findByPk(importantDeadlineId);
+                if (!deadlineRecord) throw new Error('ไม่พบกำหนดการอ้างอิง');
+                // ตรวจ policy การรับ
+                if (!deadlineRecord.acceptingSubmissions) throw new Error('กำหนดการนี้ปิดรับการส่ง');
+            }
+
+            const submittedAt = new Date();
+            let isLate = false; let lateMinutes = null;
+            let dueDate = null;
+            if (deadlineRecord) {
+                // --- NEW LATE LOGIC (สอดคล้องสเปก Important Deadlines) ---
+                // effectiveDeadlineAt = windowEndAt || deadlineAt || (date legacy 23:59:59)
+                let effectiveDeadlineAt = null;
+                if (deadlineRecord.windowEndAt) {
+                    effectiveDeadlineAt = new Date(deadlineRecord.windowEndAt);
+                } else if (deadlineRecord.deadlineAt) {
+                    effectiveDeadlineAt = new Date(deadlineRecord.deadlineAt);
+                } else if (deadlineRecord.date) {
+                    effectiveDeadlineAt = new Date(`${deadlineRecord.date}T23:59:59+07:00`);
+                }
+
+                // เก็บ effectiveDeadlineAt ลง dueDate (เปลี่ยนความหมายเดิมที่เคยบวก grace) เพื่อให้ใช้ตรวจ isLate ภายหลังได้ตรง
+                dueDate = effectiveDeadlineAt ? new Date(effectiveDeadlineAt) : null;
+
+                // graceEnd = effective + gracePeriod (ถ้า allowLate และมี minute) มิฉะนั้น = effective
+                let graceEnd = effectiveDeadlineAt;
+                if (effectiveDeadlineAt && deadlineRecord.allowLate && deadlineRecord.gracePeriodMinutes) {
+                    graceEnd = new Date(effectiveDeadlineAt.getTime() + deadlineRecord.gracePeriodMinutes * 60000);
+                }
+
+                if (effectiveDeadlineAt) {
+                    if (submittedAt > effectiveDeadlineAt) {
+                        // ส่งหลังเส้น effective แล้ว
+                        if (submittedAt <= graceEnd) {
+                            // ภายใน grace window → late (submitted_late)
+                            if (!deadlineRecord.allowLate) {
+                                throw new Error('ไม่อนุญาตให้ส่งช้า');
+                            }
+                            isLate = true;
+                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        } else {
+                            // หลัง grace window
+                            // ถ้าไม่ allowLate ก่อน ให้แจ้งก่อน (ข้อความเฉพาะ) มาก่อน lock เพื่อสื่อสาเหตุ
+                            if (!deadlineRecord.allowLate) {
+                                throw new Error('ไม่อนุญาตให้ส่งช้า');
+                            }
+                            if (deadlineRecord.lockAfterDeadline) {
+                                throw new Error('หมดเขตรับเอกสารแล้ว');
+                            }
+                            // ยอมรับ (allowLate=true, ไม่ lock)
+                            isLate = true;
+                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        }
+                    }
+                }
+            }
+
             // บันทึกข้อมูลลงฐานข้อมูล
             const document = await Document.create({
                 userId,
                 documentType,
                 category,
+                documentName: documentName || (fileData?.originalname) || fileData?.filename || 'unnamed',
                 filePath: fileData.path,
                 fileName: fileData.filename,
                 mimeType: fileData.mimetype,
                 fileSize: fileData.size,
-                status: 'pending'
+                status: 'pending',
+                importantDeadlineId: importantDeadlineId || null,
+                submittedAt,
+                isLate,
+                lateMinutes,
+                dueDate: dueDate || null
             });
 
             logger.info(`Document uploaded successfully: ${document.id} by user ${userId}`);
@@ -34,7 +101,9 @@ class DocumentService {
             return {
                 documentId: document.id,
                 fileUrl: `/uploads/${fileData.filename}`,
-                message: 'อัปโหลดไฟล์สำเร็จ'
+                message: 'อัปโหลดไฟล์สำเร็จ',
+                isLate,
+                lateMinutes
             };
         } catch (error) {
             logger.error('Error uploading document:', error);
@@ -61,6 +130,15 @@ class DocumentService {
             }
 
             const documentData = document.toJSON();
+
+            // คำนวณ late (เผื่อ backend ต้องการส่งซ้ำ) หากมี dueDate และ submittedAt
+            if (documentData.submitted_at && documentData.due_date && documentData.is_late === false) {
+                const sub = new Date(documentData.submitted_at);
+                const due = new Date(documentData.due_date);
+                if (sub > due) {
+                    documentData.computedLate = true;
+                }
+            }
 
             if (includeRelations) {
                 // ดึงข้อมูลผู้ใช้ที่เกี่ยวข้อง

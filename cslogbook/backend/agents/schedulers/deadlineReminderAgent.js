@@ -58,20 +58,18 @@ class DeadlineReminderAgent {
   async checkDeadlines() {
     logger.debug('DeadlineReminderAgent: Checking upcoming deadlines');
 
-    const now = new Date();
-    const warningDate = new Date();
-    warningDate.setDate(now.getDate() + this.config.deadlineWarningDays);
-    
-    const criticalDate = new Date();
-    criticalDate.setDate(now.getDate() + this.config.criticalDeadlineWarningDays);
+  const now = new Date();
+  const warningDate = new Date(now.getTime() + this.config.deadlineWarningDays * 86400000);
+  const criticalDate = new Date(now.getTime() + this.config.criticalDeadlineWarningDays * 86400000);
 
     try {
       // ค้นหากำหนดส่งที่ใกล้จะถึง
       const upcomingDeadlines = await ImportantDeadline.findAll({
         where: {
-          deadline_date: {
-            [Op.between]: [now, warningDate]
-          },
+          [Op.or]: [
+            { deadline_at: { [Op.between]: [now, warningDate] } },
+            { [Op.and]: [ { deadline_at: { [Op.is]: null } }, { date: { [Op.between]: [now, warningDate] } } ] }
+          ],
           notified: false
         }
       });
@@ -79,11 +77,12 @@ class DeadlineReminderAgent {
       // ค้นหากำหนดส่งที่ใกล้มากและสำคัญ
       const criticalDeadlines = await ImportantDeadline.findAll({
         where: {
-          deadline_date: {
-            [Op.between]: [now, criticalDate]
-          },
-          is_critical: true,
-          critical_notified: false
+          [Op.or]: [
+            { deadline_at: { [Op.between]: [now, criticalDate] } },
+            { [Op.and]: [ { deadline_at: { [Op.is]: null } }, { date: { [Op.between]: [now, criticalDate] } } ] }
+          ],
+          isCritical: true,
+          criticalNotified: false
         }
       });
 
@@ -91,14 +90,14 @@ class DeadlineReminderAgent {
       for (const deadline of upcomingDeadlines) {
         await this.sendDeadlineNotification(deadline, false);
         // อัพเดตสถานะการแจ้งเตือน
-        await deadline.update({ notified: true });
+  await deadline.update({ notified: true });
       }
 
       // ส่งการแจ้งเตือนสำคัญสำหรับกำหนดส่งที่ใกล้มาก
       for (const deadline of criticalDeadlines) {
         await this.sendDeadlineNotification(deadline, true);
         // อัพเดตสถานะการแจ้งเตือน
-        await deadline.update({ critical_notified: true });
+  await deadline.update({ criticalNotified: true });
       }
 
       logger.info(`DeadlineReminderAgent: Processed ${upcomingDeadlines.length} regular deadlines and ${criticalDeadlines.length} critical deadlines`);
@@ -125,14 +124,23 @@ class DeadlineReminderAgent {
 
       // สร้างเนื้อหาการแจ้งเตือน
       const title = isCritical 
-        ? `⚠️ การแจ้งเตือนด่วน: ${deadline.title}` 
-        : `เตือนกำหนดส่ง: ${deadline.title}`;
-      
-      const daysLeft = Math.ceil((deadline.deadline_date - new Date()) / (1000 * 60 * 60 * 24));
-      
+        ? `⚠️ การแจ้งเตือนด่วน: ${deadline.name}` 
+        : `เตือนกำหนดส่ง: ${deadline.name}`;
+
+      // date เป็น DATEONLY -> แปลงเป็น Date (ตีความเป็น UTC หรือ local ตาม environment) 
+  const baseDate = deadline.deadlineAt ? new Date(deadline.deadlineAt) : (deadline.date ? new Date(`${deadline.date}T23:59:59Z`) : null);
+  if (!baseDate) return;
+  const diffMs = baseDate - new Date();
+  if (diffMs < 0) return; // เลยแล้วไม่แจ้งใน agent นี้
+  const daysLeft = Math.floor(diffMs / 86400000);
+  const hoursLeft = Math.floor((diffMs % 86400000) / 3600000);
+
+      let timePart = '';
+      try { timePart = baseDate.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', year: 'numeric', month: 'short', day: 'numeric' }); } catch(e) {}
+      const remainStr = daysLeft >= 1 ? `${daysLeft} วัน` : `${hoursLeft} ชั่วโมง`;
       const message = isCritical
-        ? `คุณมีกำหนดส่ง ${deadline.title} ที่ต้องดำเนินการภายใน ${daysLeft} วัน (${deadline.deadline_date.toLocaleDateString()})\nรายละเอียด: ${deadline.description}\nโปรดดำเนินการโดยเร็วที่สุด!`
-        : `เรียนแจ้งว่ามีกำหนดส่ง ${deadline.title} อีก ${daysLeft} วันข้างหน้า (${deadline.deadline_date.toLocaleDateString()})\nรายละเอียด: ${deadline.description}`;
+        ? `คุณมีกำหนดส่ง ${deadline.name} ภายใน ${remainStr} (${timePart})\nรายละเอียด: ${deadline.description || '-'}\nโปรดดำเนินการโดยเร็วที่สุด!`
+        : `แจ้งเตือนกำหนดส่ง ${deadline.name} เหลือ ${remainStr} (${timePart})\nรายละเอียด: ${deadline.description || '-'}`;
 
       // ส่งการแจ้งเตือนถึงนักศึกษาทุกคน
       for (const student of students) {
@@ -150,7 +158,7 @@ class DeadlineReminderAgent {
         });
       }
 
-      logger.info(`DeadlineReminderAgent: Sent ${isCritical ? 'CRITICAL' : 'regular'} notification for deadline "${deadline.title}" to ${students.length} students`);
+  logger.info(`DeadlineReminderAgent: Sent ${isCritical ? 'CRITICAL' : 'regular'} notification for deadline "${deadline.name}" to ${students.length} students`);
     } catch (error) {
       logger.error(`DeadlineReminderAgent: Error sending deadline notification:`, error);
     }
