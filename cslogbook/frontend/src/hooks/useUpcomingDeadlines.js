@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
 import 'dayjs/locale/th';
 import { studentService } from '../services/studentService';
+import { normalizeDeadline } from '../utils/deadlineNormalize';
 
 dayjs.extend(buddhistEra);
 
@@ -15,21 +16,17 @@ export default function useUpcomingDeadlines({ days = 7, refreshMinutes = 5 }) {
   const refreshTimer = useRef(null);
   const tickTimer = useRef(null);
 
-  const enrich = (list) => list.map(d => {
-    // backend ส่ง deadlineDate (YYYY-MM-DD) + deadlineTime (HH:mm:ss) ในเวลาท้องถิ่น Asia/Bangkok แล้ว
-    const base = dayjs(`${d.deadlineDate} ${d.deadlineTime}`, 'YYYY-MM-DD HH:mm:ss');
+  const enrich = (list) => list.map(raw => {
+    const d = normalizeDeadline(raw);
+    const base = d.deadline_at_local || d.effective_deadline_local; // ใช้ canonical
+    if (!base) {
+      return { ...d, formatted: '-', diffMs: 0, diffHours: 0, diffDays: 0 };
+    }
     const now = dayjs();
     const diffMs = base.diff(now);
     const diffHours = Math.floor(diffMs / (1000*60*60));
     const diffDays = Math.floor(diffHours / 24);
-    return {
-      ...d,
-      // ใช้ token BBBB (Buddhist Era) โดยไม่ต้อง .add(543,'year') ซ้ำ ไม่งั้นจะเป็น 3111
-      formatted: base.format('D MMM BBBB เวลา HH:mm น.'),
-      diffMs,
-      diffHours,
-      diffDays
-    };
+    return { ...d, formatted: base.format('D MMM BBBB เวลา HH:mm น.'), diffMs, diffHours, diffDays };
   });
 
   useEffect(() => {
