@@ -3,8 +3,7 @@ import { Form, Input, Button, Select, Card, Divider, Typography, Row, Col, Input
 import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../../services/admin/settingsService";
 import th_TH from "antd/lib/locale/th_TH";
-import moment from "moment";
-import "moment/locale/th";
+import dayjs from "../../../../../utils/dayjs";
 import {
   checkDateOverlap,
   getCurrentSemesterStatus,
@@ -121,7 +120,7 @@ const AcademicSettings = () => {
         }}
       >
         <Card className="settings-card">
-          <Title level={5}>ปีการศึกษาและภาคเรียนปัจจุบัน</Title>
+          <Title level={4}>ปีการศึกษาและภาคเรียนปัจจุบัน</Title>
           <Text type="secondary">
             ปีการศึกษาและภาคเรียนปัจจุบันจะใช้เป็นค่าตั้งต้นสำหรับการสมัครฝึกงานและโครงงาน
           </Text>
@@ -135,7 +134,7 @@ const AcademicSettings = () => {
               </Form>
               <Form.Item
                 name="currentSemester"
-                label="ภาคเรียนปัจจุบัน"
+                label={<span style={{ fontSize: 16, fontWeight: 600 }}>ภาคเรียนปัจจุบัน</span>}
                 rules={[{ required: true, message: "กรุณาเลือกภาคเรียน" }]}
               >
                 <Select>
@@ -148,7 +147,7 @@ const AcademicSettings = () => {
             <Col span={12}>
               <Form.Item
                 name="currentAcademicYear"
-                label="ปีการศึกษา"
+                label={<span style={{ fontSize: 16, fontWeight: 600 }}>ปีการศึกษา</span>}
                 rules={[{ required: true, message: "กรุณากรอกปีการศึกษา" }]}
               >
                 <InputNumber
@@ -300,7 +299,7 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
@@ -320,7 +319,7 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
@@ -337,7 +336,7 @@ const AcademicSettings = () => {
               >
                 <RangePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                 />
@@ -369,7 +368,7 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder="เลือกวันที่"
                 />
@@ -388,7 +387,7 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder="เลือกวันที่"
                 />
@@ -427,7 +426,7 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder="เลือกวันที่"
                 />
@@ -446,7 +445,7 @@ const AcademicSettings = () => {
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format={(value) => moment(value).add(543, "year").format("D MMMM YYYY")}
+                  format={(value) => dayjs(value).format("D MMMM BBBB")}
                   locale={th_TH}
                   placeholder="เลือกวันที่"
                 />

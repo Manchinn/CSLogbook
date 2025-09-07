@@ -10,11 +10,12 @@ const uploadCSV = async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
-    // ตรวจสอบสิทธิ์
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        error: 'ไม่มีสิทธิ์อัพโหลดรายชื่อนักศึกษา'
-      });
+    // ตรวจสอบสิทธิ์: อนุญาต admin หรือ teacher ที่เป็น support ตาม middleware ที่กำหนดใน routes
+    if (!req.user || !(['admin', 'teacher'].includes(req.user.role))) {
+      return res.status(403).json({ error: 'ไม่มีสิทธิ์อัพโหลดรายชื่อนักศึกษา' });
+    }
+    if (req.user.role === 'teacher' && req.user.teacherType !== 'support') {
+      return res.status(403).json({ error: 'อนุญาตเฉพาะอาจารย์ประเภท support เท่านั้น' });
     }
 
     if (!req.file) {
