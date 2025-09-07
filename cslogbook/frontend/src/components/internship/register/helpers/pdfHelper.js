@@ -19,6 +19,49 @@ export const prepareFormDataForPDF = (existingCS05, formData, studentData) => {
   try {
     const displayData = existingCS05 || formData || {};
 
+    // 🧩 สร้าง studentData แบบ fallback ถ้าไม่มี array มาจากต้นทาง
+    let resolvedStudents = Array.isArray(displayData.studentData)
+      ? displayData.studentData
+      : [];
+
+    if ((!resolvedStudents || resolvedStudents.length === 0) && studentData) {
+      // ถ้ามี studentData แบบ object เดี่ยว
+      const s = studentData;
+      resolvedStudents = [
+        {
+          fullName:
+            s.fullName ||
+            [s.title, s.firstName, s.lastName].filter(Boolean).join(" ") ||
+            "นักศึกษาฝึกงาน",
+          studentId: s.studentId || s.student_id || "",
+          yearLevel: s.yearLevel || s.year || s.year_level || 3,
+          classroom: s.classroom || s.class || "",
+          phoneNumber: s.phoneNumber || s.phone || "",
+          totalCredits: s.totalCredits || s.total_credits || 0,
+        },
+      ];
+    }
+
+    // ถ้ายังว่าง ให้พยายามดึงจาก displayData โดยตรง
+    if (!resolvedStudents || resolvedStudents.length === 0) {
+      const s = displayData;
+      if (s && (s.fullName || s.firstName || s.lastName || s.studentId)) {
+        resolvedStudents = [
+          {
+            fullName:
+              s.fullName ||
+              [s.title, s.firstName, s.lastName].filter(Boolean).join(" ") ||
+              "นักศึกษาฝึกงาน",
+            studentId: s.studentId || s.student_id || "",
+            yearLevel: s.yearLevel || s.year || s.year_level || 3,
+            classroom: s.classroom || s.class || "",
+            phoneNumber: s.phoneNumber || s.phone || "",
+            totalCredits: s.totalCredits || s.total_credits || 0,
+          },
+        ];
+      }
+    }
+
     return {
       // ข้อมูลเอกสาร
       documentNumber: "", // จะถูกสร้างอัตโนมัติ
@@ -32,20 +75,7 @@ export const prepareFormDataForPDF = (existingCS05, formData, studentData) => {
       internshipPosition: displayData.internshipPosition || "",
 
       // ข้อมูลนักศึกษา
-      studentData:
-        displayData.studentData ||
-        (studentData
-          ? [
-              {
-                fullName: studentData.fullName,
-                studentId: studentData.studentId,
-                yearLevel: studentData.year || 3,
-                classroom: studentData.classroom || "",
-                phoneNumber: studentData.phoneNumber || "",
-                totalCredits: studentData.totalCredits || 0,
-              },
-            ]
-          : []),
+  studentData: resolvedStudents,
 
       // ข้อมูลระยะเวลาฝึกงาน
       startDate: displayData.startDate || "",

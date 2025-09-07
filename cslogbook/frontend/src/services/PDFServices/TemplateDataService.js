@@ -882,16 +882,26 @@ class TemplateDataService {
 
         return {
           // ใช้ || operator และ fallback values เพื่อป้องกัน undefined/null
-          fullName: cleanText(student.fullName ?? ""),
-          studentId: formatStudentId(student.studentId ?? ""),
-          yearLevel: student.yearLevel ?? "",
-          yearLevelText: student.yearLevel
-            ? `ชั้นปีที่ ${student.yearLevel}`
-            : "",
-          classroom: cleanText(student.classroom ?? ""),
-          phoneNumber: formatThaiPhoneNumber(student.phoneNumber ?? ""),
-          totalCredits: student.totalCredits ?? 0,
-          totalCreditsText: `${student.totalCredits ?? 0} หน่วยกิต`,
+          fullName: cleanText(
+            student.fullName ||
+              formatFullName(student.firstName, student.lastName, student.title) ||
+              `${student.firstName || ""} ${student.lastName || ""}`.trim() ||
+              "นักศึกษาฝึกงาน"
+          ),
+          studentId: formatStudentId(
+            student.studentId ?? student.student_id ?? ""
+          ),
+          yearLevel: student.yearLevel ?? student.year ?? student.year_level ?? "",
+          yearLevelText:
+            (student.yearLevel ?? student.year ?? student.year_level)
+              ? `ชั้นปีที่ ${student.yearLevel ?? student.year ?? student.year_level}`
+              : "",
+          classroom: cleanText(student.classroom ?? student.class ?? ""),
+          phoneNumber: formatThaiPhoneNumber(
+            student.phoneNumber ?? student.phone ?? ""
+          ),
+          totalCredits: student.totalCredits ?? student.total_credits ?? 0,
+          totalCreditsText: `${student.totalCredits ?? student.total_credits ?? 0} หน่วยกิต`,
         };
       })
       .filter((student) => student !== null); // กรองข้อมูลที่ null ออก
