@@ -25,14 +25,18 @@ router.get('/important-deadlines',
   importantDeadlineController.getAllForStudent
 );
 
-// Admin routes
+// Admin/Support Staff routes
+// เพิ่มนักศึกษา: อนุญาต admin หรืออาจารย์ประเภท support
 router.post('/', 
-  checkRole(['admin']), 
+  checkRole(['admin', 'teacher']),
+  require('../middleware/authMiddleware').checkTeacherType(['support']),
   studentController.addStudent
 );
 
+// ดูรายการนักศึกษา: อนุญาต admin หรืออาจารย์ประเภท support
 router.get('/', 
   checkRole(['admin', 'teacher']),
+  require('../middleware/authMiddleware').checkTeacherType(['support']),
   studentController.getAllStudents
 );
 
@@ -42,12 +46,20 @@ router.get('/:id',
 );
 
 router.put('/:id',
-  checkRole(['admin', 'student']),
+  checkRole(['admin', 'student', 'teacher']),
+  // ถ้าเป็นครู ให้ตรวจสอบว่าเป็นประเภท support เท่านั้น; ถ้าเป็น admin/student ให้ข้ามได้
+  (req, res, next) => {
+    if (req.user?.role === 'teacher') {
+      return require('../middleware/authMiddleware').checkTeacherType(['support'])(req, res, next);
+    }
+    return next();
+  },
   studentController.updateStudent
 );
 
 router.delete('/:id',
-  checkRole(['admin']),
+  checkRole(['admin', 'teacher']),
+  require('../middleware/authMiddleware').checkTeacherType(['support']),
   studentController.deleteStudent
 );
 
