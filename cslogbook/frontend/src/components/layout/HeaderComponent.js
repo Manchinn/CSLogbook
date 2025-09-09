@@ -174,9 +174,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                   CS Logbook
                 </Title>
                 {academicInfo && (
-                  <Tooltip 
-                    title={`ปีการศึกษา ${academicInfo.academicYear}${academicInfo.semester ? ` ภาคการศึกษาที่ ${academicInfo.semester}` : ''}${academicInfo.displayText?.includes('*') ? ' (คำนวณอัตโนมัติ)' : ''}`}
-                    placement="bottom"
+                  <Tooltip
                   >
                     <Tag 
                       color={
@@ -186,16 +184,18 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                         : 'red'
                       }
                       style={{ 
-                        fontSize: isMobile ? '10px' : '11px', 
-                        padding: isMobile ? '1px 6px' : '2px 8px',
-                        borderRadius: '8px',
-                        fontWeight: '500',
+                        color: '#000000ff',
+                        fontSize: isMobile ? '14px' : '16px', 
+                        padding: isMobile ? '4px 10px' : '6px 14px',
+                        borderRadius: '999px',
+                        fontWeight: 500,
                         marginTop: '-2px',
-                        lineHeight: '1.2',
-                        cursor: 'help'
+                        lineHeight: 1.2,
+                        cursor: 'help',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.12)'
                       }}
                     >
-                      {academicInfo.displayText}
+                      {academicInfo.displayText?.replace('*','')}
                     </Tag>
                   </Tooltip>
                 )}
@@ -203,9 +203,9 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                   <Tag 
                     color="default"
                     style={{ 
-                      fontSize: isMobile ? '10px' : '11px', 
-                      padding: isMobile ? '1px 6px' : '2px 8px',
-                      borderRadius: '8px',
+                      fontSize: isMobile ? '14px' : '16px', 
+                      padding: isMobile ? '4px 10px' : '6px 14px',
+                      borderRadius: '999px',
                       marginTop: '-2px'
                     }}
                   >
