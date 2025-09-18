@@ -20,6 +20,8 @@ export const StudentEligibilityProvider = ({ children }) => {
     projectReason: null,
     requirements: null,
     academicSettings: null,
+    // เพิ่ม messages สำหรับให้ Sidebar/หน้า UI ใช้ (คีย์ internship, project)
+    messages: {},
   // เพิ่มเติม: เก็บข้อมูลสถานะหน่วยกิตและข้อมูลนักศึกษาเพื่อนำไปใช้แสดงผลในหน้า Eligibility
   status: null,
   student: null,
@@ -72,6 +74,11 @@ export const StudentEligibilityProvider = ({ children }) => {
           status: response.data.status || null,
            // เก็บข้อมูลนักศึกษาเพื่อ fallback กรณี status ไม่มีค่า currentCredits
           student: response.data.student || null,
+          // map reason -> messages เพื่อรองรับ component เดิมที่อ้าง messages?.project / messages?.internship
+          messages: {
+            internship: response.data.eligibility.internship.reason || null,
+            project: response.data.eligibility.project.reason || null,
+          },
           isLoading: false,
           lastUpdated: new Date()
         });
@@ -91,6 +98,10 @@ export const StudentEligibilityProvider = ({ children }) => {
           // Reset access flags if API call was not successful but didn't throw an error
           canAccessInternship: false,
           canAccessProject: false,
+          messages: {
+            internship: response.data.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้',
+            project: response.data.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้'
+          }
         }));
         if (showMessage) {
           message.error(response.data.message || 'ไม่สามารถอัพเดตข้อมูลสิทธิ์ได้');
@@ -105,6 +116,10 @@ export const StudentEligibilityProvider = ({ children }) => {
         projectReason: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
         canAccessInternship: false, // Reset on error
         canAccessProject: false,
+        messages: {
+          internship: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
+          project: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์'
+        }
       }));
       if (showMessage) {
         message.error('เกิดข้อผิดพลาดในการเชื่อมต่อเพื่ออัพเดตข้อมูลสิทธิ์');
