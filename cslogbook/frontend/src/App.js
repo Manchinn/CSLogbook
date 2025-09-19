@@ -27,6 +27,7 @@ import InternshipCompanyDashboard from './components/internship/companies/Intern
 import ProjectProposalForm from './components/project/ProjectProposalForm';
 import LogbookForm from './components/project/LogbookForm';
 import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
+import ProjectPortal from './components/project/ProjectPortal'; // 🆕 Portal รวม dashboard & gating
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -157,6 +158,11 @@ const App = () => {
                 } />
 
                 {/* Project Routes */}
+                <Route path="/project" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectPortal />
+                  </ProtectedRoute>
+                } />
                 <Route path="/project-proposal" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectProposalForm />

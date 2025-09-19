@@ -201,8 +201,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     // สร้างข้อความ tooltip สำหรับแสดงเหตุผลที่ไม่สามารถเข้าถึงได้
     const internshipTooltip =
       messages?.internship || "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน";
-    const projectTooltip =
-      messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
+    // projectTooltip no longer needed (portal centralizes access)
 
     return [
       // Dashboard - Common for all roles
@@ -300,39 +299,10 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                   ],
             },
             {
-              key: "project",
+              key: "/project",
               icon: <ProjectOutlined />,
-              label: (
-                <MenuItemWithTooltip
-                  item={{ label: "โครงงานพิเศษ" }}
-                  disabled={false}
-                  title={!canAccessProject ? projectTooltip : ""}
-                />
-              ),
-              disabled: false,
-              children: canAccessProject
-                ? [
-                    {
-                      key: "/project-proposal",
-                      label: "ฟอร์มเสนอหัวข้อ",
-                    },
-                    {
-                      key: "/project-logbook",
-                      label: "บันทึก Logbook",
-                    },
-                  ]
-                : [
-                    {
-                      key: "/project-eligibility",
-                      label: "ตรวจสอบคุณสมบัติ",
-                      icon: <FormOutlined />,
-                    },
-                    {
-                      key: "/project-requirements",
-                      label: "ข้อกำหนดโครงงาน",
-                      icon: <FileTextOutlined />,
-                    },
-                  ],
+              label: "โครงงานพิเศษ",
+              // เดินหน้าเสมอไปยังพอร์ทัลเดียว: ภายในจะเลือกแสดง Eligibility หรือ Dashboard ตามสิทธิ์
             },
             {
               key: "/status-check",
@@ -559,7 +529,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         className: "logout",
       },
     ].filter(Boolean);
-  }, [userData, canAccessInternship, canAccessProject, messages]);
+  }, [userData, canAccessInternship, messages]);
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
       handleLogout();

@@ -35,6 +35,7 @@ const workflowRoutes = require('./routes/workflowRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const documentsRoutes = require('./routes/documents/documentsRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
+const projectRoutes = require('./routes/projectRoutes'); // 🆕 Project lifecycle routes
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes);
+app.use('/api/projects', projectRoutes); // 🆕 mount project routes (auth inside route file)
 app.use('/api', uploadRoutes);
 
 // Fallback 404
