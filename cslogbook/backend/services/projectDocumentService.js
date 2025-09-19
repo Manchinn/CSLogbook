@@ -288,7 +288,8 @@ class ProjectDocumentService {
   /**
    * ดึงรายละเอียดโครงงานทั้งหมด (รวมสมาชิก)
    */
-  async getProjectById(projectId) {
+  async getProjectById(projectId, options = {}) {
+    const includeSummary = !!options.includeSummary;
     const project = await ProjectDocument.findByPk(projectId, {
       include: [
         { 
@@ -308,7 +309,23 @@ class ProjectDocumentService {
       ]
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
-    return this.serialize(project);
+    const base = this.serialize(project);
+    if (includeSummary) {
+      // ดึงสรุปเบื้องต้น (นับ milestones และ proposal ล่าสุด) แบบ query แยก เพื่อลด join หนัก
+      const { ProjectMilestone, ProjectArtifact } = require('../models');
+      const [milestoneCount, latestProposal] = await Promise.all([
+        ProjectMilestone.count({ where: { projectId: project.projectId } }),
+        ProjectArtifact.findOne({ where: { projectId: project.projectId, type: 'proposal' }, order: [['version','DESC']] })
+      ]);
+      base.summary = {
+        milestoneCount,
+        latestProposal: latestProposal ? {
+          version: latestProposal.version,
+          uploadedAt: latestProposal.uploadedAt
+        } : null
+      };
+    }
+    return base;
   }
 
   /**

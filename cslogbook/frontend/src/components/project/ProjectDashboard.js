@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Card, Table, Tag, Button, Modal, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List } from 'antd';
+import { Card, Table, Tag, Button, Modal, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List, Row, Col } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import projectService from '../../services/projectService';
 import { teacherService } from '../../services/teacherService';
+import MilestoneSummary from './MilestoneSummary';
 
 // รายชื่ออาจารย์ที่โหลดมาจาก backend (advisors)
 // เก็บเป็น state เพื่อรีเฟรชเมื่อเปิด modal / drawer
@@ -75,7 +76,7 @@ const ProjectDashboard = () => {
 
   const openDetail = useCallback(async (record) => {
     try {
-      const res = await projectService.getProject(record.projectId);
+  const res = await projectService.getProjectWithSummary(record.projectId);
       if (res.success) {
         setActiveProject(res.data);
         editForm.setFieldsValue({
@@ -123,8 +124,7 @@ const ProjectDashboard = () => {
       const res = await projectService.updateProject(activeProject.projectId, values);
       if (res.success) {
         message.success('อัปเดตโครงงานสำเร็จ');
-        // refresh detail
-        const refreshed = await projectService.getProject(activeProject.projectId);
+        const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
         setActiveProject(refreshed.data);
         fetchProjects();
       } else {
@@ -165,7 +165,7 @@ const ProjectDashboard = () => {
         message.success('เพิ่มสมาชิกสำเร็จ');
         setMemberInput('');
         setMemberError(null);
-        const refreshed = await projectService.getProject(activeProject.projectId);
+  const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
         setActiveProject(refreshed.data);
         fetchProjects();
       } else {
@@ -186,7 +186,7 @@ const ProjectDashboard = () => {
       const res = await projectService.activateProject(activeProject.projectId);
       if (res.success) {
         message.success('โครงงานเริ่มดำเนินการแล้ว');
-        const refreshed = await projectService.getProject(activeProject.projectId);
+  const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
         setActiveProject(refreshed.data);
         fetchProjects();
       } else {
@@ -304,6 +304,12 @@ const ProjectDashboard = () => {
         {activeProject && (
           <>
             <Descriptions column={1} size="small" bordered>
+            <Row gutter={[16,16]}>
+              <Col span={24}>
+                <MilestoneSummary project={activeProject} isLeader={activeProject.members?.some(m => m.role==='leader' && m.studentId === (window.__CURRENT_STUDENT_ID || activeProject.createdByStudentId))} />
+              </Col>
+            </Row>
+            <Divider />
               <Descriptions.Item label="รหัส">{activeProject.projectCode || '-'}</Descriptions.Item>
               <Descriptions.Item label="ปีการศึกษา">{activeProject.academicYear || '-'}</Descriptions.Item>
               <Descriptions.Item label="ภาคเรียน">{activeProject.semester || '-'}</Descriptions.Item>

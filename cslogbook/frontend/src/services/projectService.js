@@ -42,6 +42,15 @@ const projectService = {
       throw normalizeError(error, 'ไม่พบหรือไม่สามารถดึงข้อมูลโครงงานได้');
     }
   },
+  // ดึงรายละเอียดพร้อม summary (milestoneCount, latestProposal)
+  getProjectWithSummary: async (projectId) => {
+    try {
+      const res = await apiClient.get(`/projects/${projectId}?include=summary`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงข้อมูลโครงงาน (summary) ได้');
+    }
+  },
 
   /**
    * อัปเดต metadata (ชื่อ/ประเภท/track/advisor) - เฉพาะ leader
@@ -88,6 +97,38 @@ const projectService = {
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถเก็บถาวรโครงงานได้');
+    }
+  },
+
+  // Milestones
+  listMilestones: async (projectId) => {
+    try {
+      const res = await apiClient.get(`/projects/${projectId}/milestones`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึง Milestones ได้');
+    }
+  },
+  createMilestone: async (projectId, payload) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/milestones`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'สร้าง Milestone ไม่สำเร็จ');
+    }
+  },
+
+  // Proposal upload (multipart)
+  uploadProposal: async (projectId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/proposal`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'อัปโหลด Proposal ไม่สำเร็จ');
     }
   }
 };

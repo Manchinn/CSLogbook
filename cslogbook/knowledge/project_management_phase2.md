@@ -222,3 +222,201 @@ POST /api/projects/12/activate
 
 ---
 Revision: Phase2 v1.0 (Initial Documentation)
+
+---
+
+## 16. ส่วนขยายการออกแบบ (Extended Design – Draft สำหรับ Phase 3+)
+เอกสารช่วงแรก (ข้อ 1–15) ครอบคลุม Phase 2 ปัจจุบัน ส่วนนี้เป็นบันทึกการออกแบบเชิงลึกเพื่อรองรับการขยาย (ไม่ lock scope แต่ช่วยกำหนดทิศทาง)
+
+### 16.1 Extended Lifecycle (Proposed)
+```
+draft → advisor_assigned → proposal_submitted → proposal_review → proposal_approved → in_progress → final_ready → presentation_scheduled → evaluated → completed → archived
+```
+Trigger ตัวอย่าง:
+- เลือก advisor ครั้งแรก: draft → advisor_assigned
+- อัปโหลด proposal: advisor_assigned → proposal_submitted → proposal_review
+- Advisor อนุมัติ: proposal_review → proposal_approved → in_progress
+- ส่ง Final (ครบ checklist): in_progress → final_ready
+- เจ้าหน้าที่ตั้งวันสอบ: final_ready → presentation_scheduled
+- กรอกคะแนน / rubric: presentation_scheduled → evaluated → completed
+
+### 16.2 Role Perspective ขยาย
+| Role | Focus | จุดตัดสินใจ |
+|------|-------|--------------|
+| Student | สร้าง/อัปเดตข้อมูล + ส่ง artifacts | สร้าง draft, เลือก advisor, ส่ง proposal, อัปโหลด final |
+| Advisor | ประเมินคุณภาพ / feedback | อนุมัติ proposal, ตรวจ milestone, ให้คะแนน |
+| Co-Advisor | สนับสนุนทางเทคนิค | Comment, meeting notes |
+| Support Staff | Orchestrate กระบวนการ | เปิด/ปิดรอบ, จัดตารางนำเสนอ, monitor backlog |
+| Admin | กำกับภาพรวม / override | Force transition, audit, export |
+
+### 16.3 Page Mapping (Incremental)
+| กลุ่ม | หน้า (Route) | Purpose | Phase Suggest |
+|-------|--------------|---------|---------------|
+| Portal | /project | Dashboard ศูนย์รวม | 2 (มีแล้วพื้นฐาน) |
+| Eligibility | /project-eligibility | ตรวจคุณสมบัติ | 2 |
+| Requirements | /project-requirements | เอกสาร/เงื่อนไข | 2 |
+| Proposal | /project/:id/proposal | Upload + Review state | 3 |
+| Milestones | /project/:id/milestones | Progress control | 3 |
+| Artifacts | /project/:id/artifacts | จัดการไฟล์เวอร์ชัน | 3–4 |
+| Meetings | /project/:id/meetings | นัด/โน้ต | 4 |
+| Final | /project/:id/final | ส่งรายงาน + ภาคผนวก | 5 |
+| Presentation | /project/:id/presentation | ตารางสอบ | 6 |
+| Evaluation | /project/:id/evaluation | คะแนน/ผลประเมิน | 6 |
+| Timeline | /project/:id/history | Audit events | 6–7 |
+
+### 16.4 Component Architecture (Proposed Structure)
+```
+components/project/
+  portal/
+    ProjectPortal.js
+    ProjectStatusStepper.js
+    ProjectNextActions.js
+    ProjectAdvisorCard.js
+    ProjectMilestoneSummary.js
+  proposal/
+    ProposalUploadPanel.js
+    ProposalReviewComments.js
+  milestones/
+    MilestoneList.js
+    MilestoneFormModal.js
+    MilestoneProgressBar.js
+  artifacts/
+    ArtifactList.js
+    ArtifactUpload.js
+    ArtifactVersionTag.js
+  meetings/
+    MeetingScheduler.js
+    MeetingList.js
+    MeetingNoteDrawer.js
+  final/
+    FinalSubmissionPanel.js
+    FinalChecklist.js
+  evaluation/
+    EvaluationResultPanel.js
+    RubricBreakdown.js
+  common/
+    ProjectStatusTag.js
+    MemberAvatarList.js
+    AdvisorSelect.js
+    TimelineEvents.js
+```
+
+### 16.5 Service/API Shape (ขยาย)
+```
+projectService {
+  // core
+  create, listMine, get, update, activate, archive
+  // proposal
+  uploadProposal(id, file) / getProposal(id) / reviewProposal(id, {decision, comment})
+  // milestones
+  listMilestones(id) / createMilestone / updateMilestone / approveMilestone
+  // artifacts (generic files)
+  listArtifacts(id, type?) / uploadArtifact / getArtifactVersions
+  // meetings
+  listMeetings(id) / scheduleMeeting / updateMeeting / addMeetingNote
+  // final & evaluation
+  uploadFinalReport(id, file) / submitFinal(id)
+  getEvaluation(id) / submitEvaluation(id, rubricPayload)
+  // advisor directory
+  listAdvisors(filters)
+}
+```
+
+### 16.6 Additional Data Models (Draft)
+| Table | Fields (ย่อ) | หมายเหตุ |
+|-------|--------------|-----------|
+| project_milestones | milestone_id, project_id, title, due_date, progress, status, feedback, submitted_at, reviewed_at | status: pending/submitted/accepted/rejected |
+| project_artifacts | artifact_id, project_id, type, file_path, version, uploaded_by, checksum, uploaded_at | type: proposal/final/slide/appendix/source/other |
+| project_meetings | meeting_id, project_id, scheduled_at, channel, location_or_link, created_by, status | channel: onsite/online |
+| project_meeting_notes | note_id, meeting_id, author_type, author_id, content, created_at | author_type: student/teacher |
+| project_evaluations | evaluation_id, project_id, evaluator_type, rubric_json, total_score, comments, created_at | evaluator_type: advisor/committee |
+| project_events | event_id, project_id, event_type, actor_role, actor_id, meta_json, created_at | สำหรับ timeline/audit |
+
+### 16.7 Permission Matrix (เพิ่มเติม)
+| Action | Student | Advisor | Co-Advisor | Support | Admin |
+|--------|--------|--------|-----------|---------|-------|
+| Upload proposal | ✔ | ดู/คอมเมนต์ | ดู | ดู | ดู/override |
+| Approve proposal | ✖ | ✔ | ✖ | เสนอ flag | ✔ |
+| Create milestone | ✔ | ✔ (เสนอแก้) | คอมเมนต์ | ดู | ✔ |
+| Accept milestone | ✖ | ✔ | ✖ | แนะนำ | ✔ |
+| Schedule meeting | ขอ (draft) | ✔ (confirm) | ดู | ดู | ✔ |
+| Upload final | ✔ | ดู | ดู | ตรวจ completeness | ✔ |
+| Submit evaluation | ✖ | ✔ | อาจ (partial) | รวม/ตรวจ | ✔ |
+| Archive | ✖ | ✖ | ✖ | เสนอ | ✔ |
+
+### 16.8 UX Patterns
+| Feature | Pattern |
+|---------|--------|
+| Portal | Status Stepper + Quick Actions + Milestone bar |
+| Proposal Review | Split viewer (PDF + Comment panel) |
+| Milestones | Accordion list + inline progress badge |
+| Meetings | Calendar (weekly) + Drawer detail |
+| Artifacts | Version chip + Download + Replace |
+| Evaluation | Card per evaluator + rubric table |
+| Timeline | Vertical steps (event icon + meta) |
+
+### 16.9 Phase Roadmap (แนะนำ)
+| Phase | เนื้อหา |
+|-------|---------|
+| 3 | Proposal + Advisor review + Basic artifacts table |
+| 4 | Milestones + Meetings scheduling |
+| 5 | Final submission + Checklist validation |
+| 6 | Evaluation (rubric) + Presentation scheduling |
+| 7 | Timeline/Audit + Reports (advisor workload) |
+| 8 | Optimization, PDF enhancements, Export bundle |
+
+### 16.10 Hook Naming (ต่อยอด)
+```
+useProject(projectId)
+useProjectMilestones(projectId)
+useProjectArtifacts(projectId, type)
+useProjectMeetings(projectId)
+useProjectEvaluation(projectId)
+useProjectTimeline(projectId)
+```
+
+### 16.11 Event Types (Draft)
+```
+PROJECT_CREATED, MEMBER_ADDED, ADVISOR_ASSIGNED,
+PROPOSAL_UPLOADED, PROPOSAL_APPROVED, PROPOSAL_REJECTED,
+MILESTONE_SUBMITTED, MILESTONE_ACCEPTED, MILESTONE_REJECTED,
+FINAL_UPLOADED, PRESENTATION_SCHEDULED, EVALUATION_SUBMITTED,
+PROJECT_COMPLETED, PROJECT_ARCHIVED
+```
+
+### 16.12 Validation Highlights
+| จุด | เงื่อนไข |
+|-----|----------|
+| Milestone progress | 0 ≤ progress ≤ 100 |
+| Proposal upload | PDF only, size ≤ config |
+| Final readiness | มี proposal_approved + milestones accepted ≥ threshold |
+| Evaluation | คะแนนรวม ≤ max, rubric_json schema valid |
+| Meeting schedule | scheduled_at ≥ now |
+
+### 16.13 ความเสี่ยง (ใหม่)
+| ประเภท | รายละเอียด | แนวทางลด |
+|--------|-----------|-----------|
+| File version drift | นักศึกษาอัปโหลดหลายครั้ง advisor ดูผิดเวอร์ชัน | force latest tag + version label ชัด |
+| Milestone spam | เพิ่ม milestone เล็กมากหลายรายการ | impose min interval / advisor approve creation |
+| Meeting overload | นัดถี่เกิน | rate limit / weekly cap config |
+| Rubric divergence | เปลี่ยน rubric ระหว่างเทอม | version rubric + store snapshot ใน evaluation |
+
+### 16.14 Next Immediate Technical Tasks (Candidate)
+1. Migration: project_milestones, project_artifacts (เบื้องต้น)
+2. Service skeleton: milestone CRUD + artifact upload
+3. Portal UI ปรับเพิ่ม MilestoneSummary (ถ้าไม่มีข้อมูล -> CTA “สร้าง Milestone แรก”)
+4. Proposal placeholder endpoint (อัปโหลดเก็บใน artifacts type=proposal)
+5. Event logging helper (emit + store in project_events)
+
+### 16.15 Implementation Guidelines
+- รักษา pattern controller บาง → service หนัก
+- ใช้ transaction เมื่อมี write หลายตาราง (เช่น propose → artifact + event)
+- ตั้ง unique composite (project_id, version, type) ใน artifacts (optional)
+- ใช้ ENUM ผ่าน validate (ถ้าไม่ปรับ migration) ลด lock schema เวลาพัฒนาเร็ว
+- แยกไฟล์อัปโหลดในโฟลเดอร์ `/uploads/projects/<projectCode>/<type>/`
+
+### 16.16 สรุป
+ส่วนขยายนี้ช่วยปูทางสู่ Phase ถัด ๆ ไป โดยไม่บีบให้ refactor ใหญ่ในอนาคต (additive strategy) — สามารถเลือก implement ย่อยตาม phase roadmap ได้ทันทีโดยไม่ชนกับ Phase 2 ปัจจุบัน
+
+---
+Revision: Phase2 v1.1 (Extended Design Appendix Added)

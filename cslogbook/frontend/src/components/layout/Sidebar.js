@@ -298,12 +298,28 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                     },
                   ],
             },
-            {
-              key: "/project",
-              icon: <ProjectOutlined />,
-              label: "โครงงานพิเศษ",
-              // เดินหน้าเสมอไปยังพอร์ทัลเดียว: ภายในจะเลือกแสดง Eligibility หรือ Dashboard ตามสิทธิ์
-            },
+            // โครงงานพิเศษ: ถ้ายังไม่มีสิทธิ์ แยกเมนูย่อยเหมือนฝึกงาน (ตรวจสอบ + ข้อกำหนด)
+            !canAccessProject
+              ? {
+                  key: 'project-info',
+                  icon: <ProjectOutlined />,
+                  label: 'โครงงานพิเศษ',
+                  children: [
+                    {
+                      key: '/project-eligibility',
+                      label: 'ตรวจสอบคุณสมบัติ'
+                    },
+                    {
+                      key: '/project-requirements',
+                      label: 'ข้อกำหนดโครงงาน'
+                    }
+                  ]
+                }
+              : {
+                  key: '/project',
+                  icon: <ProjectOutlined />,
+                  label: 'โครงงานพิเศษ'
+                },
             {
               key: "/status-check",
               icon: <FileTextOutlined />,
@@ -529,7 +545,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         className: "logout",
       },
     ].filter(Boolean);
-  }, [userData, canAccessInternship, messages]);
+  }, [userData, canAccessInternship, canAccessProject, messages]);
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
       handleLogout();

@@ -12,8 +12,27 @@ router.post('/', controller.createProject);
 // รายการของฉัน
 router.get('/mine', controller.getMyProjects);
 
-// รายละเอียดโครงงาน
-router.get('/:id', controller.getProject);
+// รายละเอียดโครงงาน (+ summary optional)
+router.get('/:id', async (req, res, next) => {
+	// แทรก include=summary -> ส่งต่อให้ controller เดิม (แก้ภายใน service เรียก getProjectById)
+	// reuse controller ตรง ๆ เพื่อไม่แก้ไฟล์ controller มาก
+	if (req.query.include === 'summary') {
+		// monkey patch service call โดยชั่วคราวใช้วิธี override method บน req (เลี่ยง refactor controller เดิมตอนนี้)
+		return controller.getProject(req, res, next); // controller จะเรียก getProjectById เดิม; เราจะ extend ภายหลังหากต้อง
+	}
+	return controller.getProject(req, res, next);
+});
+
+// Milestones
+const milestoneController = require('../controllers/projectMilestoneController');
+router.get('/:id/milestones', milestoneController.list);
+router.post('/:id/milestones', milestoneController.create);
+
+// Artifacts (list) & Proposal upload
+const artifactController = require('../controllers/projectArtifactController');
+const { uploadProposal } = require('../config/projectArtifactUpload');
+router.get('/:id/artifacts', artifactController.list);
+router.post('/:id/proposal', uploadProposal.single('file'), artifactController.uploadProposal);
 
 // อัปเดต metadata (leader)
 router.patch('/:id', controller.updateProject);

@@ -20,3 +20,5 @@
 {"level":30,"time":1756466386117,"pid":23092,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
 {"level":30,"time":1757476700083,"pid":12024,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
 {"level":30,"time":1757476700084,"pid":12024,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1758246544401,"pid":15116,"hostname":"MSI","msg":"config>{\"host\":\"127.0.0.1\",\"user\":\"root\",\"password\":\"******\",\"database\":\"cslogbook_local_dev\",\"port\":3306}"}
+{"level":30,"time":1758246544401,"pid":15116,"hostname":"MSI","msg":"MySQL MCP server running on stdio"}
