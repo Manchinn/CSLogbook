@@ -103,6 +103,9 @@ module.exports = (sequelize) => {
         tableName: 'project_documents',
         timestamps: true,
         underscored: true,
+        defaultScope: {
+            attributes: { exclude: ['student_id'] } // กันกรณี Sequelize แทรก field phantom จาก association เก่า
+        },
         indexes: [
             { name: 'idx_project_name', fields: ['project_name_th'] },
             { name: 'idx_project_type', fields: ['project_type'] },

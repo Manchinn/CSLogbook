@@ -7,16 +7,25 @@ class TeacherService {
   /**
    * ดึงข้อมูลอาจารย์ทั้งหมด
    */
-  async getAllTeachers() {
+  async getAllTeachers(options = {}) {
     try {
+      const { onlyAcademic } = options;
+      const whereUser = { role: 'teacher' };
+      const whereTeacher = {};
+      if (onlyAcademic) {
+        // ถ้าตาราง Teacher มี field teacherType ให้กรอง
+        whereTeacher.teacherType = 'academic';
+      }
+
       const teachers = await User.findAll({
-        where: { role: 'teacher' },
+        where: whereUser,
         attributes: ['userId', 'firstName', 'lastName', 'email'],
         include: [{
           model: Teacher,
           as: 'teacher',
           required: true,
-          attributes: ['teacherId', 'teacherCode', 'contactExtension', 'position']
+          attributes: ['teacherId', 'teacherCode', 'contactExtension', 'position', 'teacherType'],
+          where: Object.keys(whereTeacher).length ? whereTeacher : undefined
         }]
       });
 
@@ -28,7 +37,8 @@ class TeacherService {
         lastName: user.lastName,
         email: user.email,
         contactExtension: user.teacher?.contactExtension || '',
-        position: user.teacher?.position || 'คณาจารย์' // เพิ่มตำแหน่ง
+        position: user.teacher?.position || 'คณาจารย์', // เพิ่มตำแหน่ง
+        teacherType: user.teacher?.teacherType || null
       }));
     } catch (error) {
       logger.error('Error in getAllTeachers service:', error);

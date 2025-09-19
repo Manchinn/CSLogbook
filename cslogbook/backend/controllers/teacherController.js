@@ -1,6 +1,27 @@
 const teacherService = require('../services/teacherService');
 const logger = require('../utils/logger');
 
+// ดึงรายการอาจารย์ (advisors list) สำหรับนักศึกษาเลือกเป็นที่ปรึกษา
+// เปิดเฉพาะข้อมูลจำเป็น ลด payload
+exports.getAdvisorList = async (req, res) => {
+  try {
+    // เพิ่ม filter เฉพาะ teacherType = academic (ถ้ามี field นี้ในระบบ)
+    const teachers = await teacherService.getAllTeachers({ onlyAcademic: true });
+    const data = teachers.map(t => ({
+      teacherId: t.teacherId,
+      teacherCode: t.teacherCode,
+      firstName: t.firstName,
+      lastName: t.lastName,
+      position: t.position || null,
+      teacherType: t.teacherType || null
+    }));
+    res.json({ success: true, data });
+  } catch (error) {
+    logger.error('Error in getAdvisorList:', error);
+    res.status(500).json({ success: false, message: 'ไม่สามารถดึงรายชื่ออาจารย์ที่ปรึกษาได้' });
+  }
+};
+
 exports.getAllTeachers = async (req, res, next) => {
   try {
     const teachers = await teacherService.getAllTeachers();

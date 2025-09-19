@@ -6,6 +6,12 @@ const { authenticateToken, checkRole, checkTeacherType } = require('../middlewar
 // Protect all routes with authentication
 router.use(authenticateToken);
 
+// รายชื่ออาจารย์ให้ student ใช้เลือกเป็นที่ปรึกษา (เปิด read-only)
+router.get('/advisors',
+  checkRole(['student','admin','teacher']),
+  teacherController.getAdvisorList
+);
+
 // Admin routes
 // เพิ่มอาจารย์: อนุญาต admin หรืออาจารย์ประเภท support
 router.post('/', 

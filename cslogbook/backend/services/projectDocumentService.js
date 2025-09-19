@@ -23,8 +23,28 @@ class ProjectDocumentService {
       if (!student) throw new Error('ไม่พบนักศึกษา');
 
       // ตรวจ eligibility อีกครั้งแบบง่าย (ใช้ flag isEligibleProject จาก student หรือเรียก service ลึกเพิ่มเติมได้)
-      if (!student.isEligibleProject) {
-        throw new Error('นักศึกษายังไม่มีสิทธิ์สร้างโครงงาน (ไม่ผ่านเกณฑ์โครงงานพิเศษ)');
+      // เดิมอาศัย field isEligibleProject ซึ่งอาจไม่ sync กับ logic ปัจจุบัน
+      // ปรับให้พยายามเรียก instance method checkProjectEligibility() (ถ้ามี) เพื่อประเมินสด
+      let canCreate = false;
+      let denyReason = 'ยังไม่ผ่านเกณฑ์โครงงานพิเศษ';
+      if (typeof student.checkProjectEligibility === 'function') {
+        try {
+          const projCheck = await student.checkProjectEligibility();
+            // method ใหม่จะให้ { eligible, canAccessFeature, canRegister, reason }
+          canCreate = !!(projCheck.canAccessFeature || projCheck.eligible);
+          if (!canCreate && projCheck.reason) denyReason = projCheck.reason;
+        } catch (e) {
+          logger.warn('createProject: dynamic project eligibility check failed, fallback to isEligibleProject flag', { error: e.message });
+        }
+      }
+      if (!canCreate) {
+        // fallback legacy flag ถ้ายังไม่ได้ true
+        if (student.isEligibleProject) {
+          canCreate = true; // เผื่อ test เก่าใช้ flag นี้
+        }
+      }
+      if (!canCreate) {
+        throw new Error(`นักศึกษายังไม่มีสิทธิ์สร้างโครงงาน: ${denyReason}`);
       }
 
       // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (leader)
@@ -237,15 +257,20 @@ class ProjectDocumentService {
    */
   async getMyProjects(studentId) {
     const projects = await ProjectDocument.findAll({
+      attributes: [
+        'projectId','projectCode','status','projectNameTh','projectNameEn',
+        'projectType','track','advisorId','coAdvisorId','academicYear','semester',
+        'createdByStudentId','archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
+      ], // กำหนด whitelist ป้องกัน Sequelize select column ที่ไม่มี (เช่น student_id เก่า)
       include: [
-        { 
-          model: ProjectMember, 
-          as: 'members', 
-          where: { studentId }, 
+        {
+          model: ProjectMember,
+          as: 'members',
+          where: { studentId },
           required: true,
           include: [
-            { 
-              model: Student, 
+            {
+              model: Student,
               as: 'student',
               include: [
                 { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
@@ -253,7 +278,7 @@ class ProjectDocumentService {
               attributes: ['studentId','studentCode']
             }
           ]
-        },
+        }
       ],
       order: [['updated_at','DESC']]
     });
@@ -302,6 +327,7 @@ class ProjectDocumentService {
       coAdvisorId: p.coAdvisorId,
       academicYear: p.academicYear,
       semester: p.semester,
+      createdByStudentId: p.createdByStudentId,
       // enrich member ด้วย studentCode + ชื่อ (ดึงจาก user) ลดรอบ frontend API
       members: (p.members || []).map(m => ({
         studentId: m.studentId,

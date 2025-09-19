@@ -2,10 +2,11 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, Table, Tag, Button, Modal, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import projectService from '../../services/projectService';
+import { teacherService } from '../../services/teacherService';
 
-// TODO: ภายหลังอาจดึงรายชื่ออาจารย์จาก teacherService
-// ตอนนี้ mock ไว้ (ผู้ใช้สามารถแก้ภายหลัง)
-const advisorOptions = [];
+// รายชื่ออาจารย์ที่โหลดมาจาก backend (advisors)
+// เก็บเป็น state เพื่อรีเฟรชเมื่อเปิด modal / drawer
+
 
 const statusColorMap = {
   draft: 'default',
@@ -22,6 +23,9 @@ const ProjectDashboard = () => {
   const [projects, setProjects] = useState([]);
   const [createVisible, setCreateVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [advisorError, setAdvisorError] = useState(null);
+  const [advisors, setAdvisors] = useState([]); // raw list
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [activeProject, setActiveProject] = useState(null);
@@ -49,6 +53,26 @@ const ProjectDashboard = () => {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
+  // ฟังก์ชันโหลดรายชื่ออาจารย์ที่ปรึกษา (เรียกเมื่อเปิด modal/create หรือ drawer/edit เพื่อให้ fresh)
+  const loadAdvisors = useCallback(async () => {
+    try {
+      setAdvisorLoading(true);
+      setAdvisorError(null);
+      const list = await teacherService.getAdvisors();
+      setAdvisors(list || []);
+    } catch (e) {
+      setAdvisorError(e.message || 'โหลดรายชื่ออาจารย์ล้มเหลว');
+    } finally {
+      setAdvisorLoading(false);
+    }
+  }, []);
+
+  // เปิด modal create -> โหลด advisors ถ้ายังไม่โหลด
+  const openCreateModal = () => {
+    setCreateVisible(true);
+    if (advisors.length === 0) loadAdvisors();
+  };
+
   const openDetail = useCallback(async (record) => {
     try {
       const res = await projectService.getProject(record.projectId);
@@ -63,13 +87,14 @@ const ProjectDashboard = () => {
           coAdvisorId: res.data.coAdvisorId || undefined
         });
         setDetailVisible(true);
+        if (advisors.length === 0) loadAdvisors();
       } else {
         message.error(res.message || 'ไม่สามารถเปิดรายละเอียดได้');
       }
     } catch (e) {
       message.error(e.message);
     }
-  }, [editForm]);
+  }, [editForm, advisors.length, loadAdvisors]);
 
   const handleCreate = async () => {
     try {
@@ -208,8 +233,17 @@ const ProjectDashboard = () => {
 
   const missingReasons = useMemo(() => readinessChecklist.filter(i => !i.pass).map(i => i.label), [readinessChecklist]);
 
+  // แปลง advisors -> options ของ Select
+  const advisorOptions = useMemo(() => {
+    return advisors.map(a => ({
+      value: a.teacherId,
+      // แสดงรูปแบบ: ชื่อ นามสกุล(รหัสอาจารย์) ตามคำขอ
+      label: `${a.firstName} ${a.lastName}(${a.teacherCode || 'N/A'})`
+    }));
+  }, [advisors]);
+
   return (
-    <Card title={<Space><Title level={4} style={{ margin: 0 }}>โครงงานของฉัน</Title><Button icon={<ReloadOutlined />} onClick={fetchProjects} /></Space>} extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateVisible(true)}>สร้างโครงงาน</Button>}>
+  <Card title={<Space><Title level={4} style={{ margin: 0 }}>โครงงานของฉัน</Title><Button icon={<ReloadOutlined />} onClick={fetchProjects} /></Space>} extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>สร้างโครงงาน</Button>}>
       <Table
         dataSource={projects}
         columns={columns}
@@ -233,8 +267,29 @@ const ProjectDashboard = () => {
           <Form.Item label="ชื่อโครงงาน (EN)" name="projectNameEn" rules={[{ required: false }]}> <Input placeholder="Optional ใน Draft" /> </Form.Item>
           <Form.Item label="ประเภท" name="projectType"> <Select allowClear options={[{value:'govern',label:'Govern'},{value:'private',label:'Private'},{value:'research',label:'Research'}]} /> </Form.Item>
           <Form.Item label="Track" name="track"> <Input placeholder="เช่น AI / SE / Network" /> </Form.Item>
-          <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId"> <Select allowClear showSearch placeholder="เลือกอาจารย์" options={advisorOptions} /> </Form.Item>
-          <Form.Item label="Co-Advisor" name="coAdvisorId"> <Select allowClear showSearch placeholder="(ไม่บังคับ)" options={advisorOptions} /> </Form.Item>
+          <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId"> 
+            <Select 
+              allowClear 
+              showSearch 
+              placeholder={advisorLoading ? 'กำลังโหลด...' : 'เลือกอาจารย์'} 
+              notFoundContent={advisorLoading ? 'กำลังโหลด...' : (advisorError ? advisorError : 'ไม่พบข้อมูล')} 
+              options={advisorOptions} 
+              loading={advisorLoading} 
+              onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
+              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+            /> 
+          </Form.Item>
+          <Form.Item label="Co-Advisor" name="coAdvisorId"> 
+            <Select 
+              allowClear 
+              showSearch 
+              placeholder="(ไม่บังคับ)" 
+              options={advisorOptions} 
+              loading={advisorLoading} 
+              onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
+              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+            /> 
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -259,8 +314,29 @@ const ProjectDashboard = () => {
               <Form.Item label="ชื่อโครงงาน (EN)" name="projectNameEn"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
               <Form.Item label="ประเภท" name="projectType"><Select disabled={['in_progress','completed','archived'].includes(activeProject.status)} allowClear options={[{value:'govern',label:'Govern'},{value:'private',label:'Private'},{value:'research',label:'Research'}]} /></Form.Item>
               <Form.Item label="Track" name="track"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
-              <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId"><Select disabled={['in_progress','completed','archived'].includes(activeProject.status)} allowClear options={advisorOptions} /></Form.Item>
-              <Form.Item label="Co-Advisor" name="coAdvisorId"><Select disabled={['in_progress','completed','archived'].includes(activeProject.status)} allowClear options={advisorOptions} /></Form.Item>
+              <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId">
+                <Select 
+                  disabled={['in_progress','completed','archived'].includes(activeProject.status)} 
+                  allowClear 
+                  options={advisorOptions} 
+                  loading={advisorLoading}
+                  placeholder={advisorLoading ? 'กำลังโหลด...' : 'เลือกอาจารย์'}
+                  notFoundContent={advisorLoading ? 'กำลังโหลด...' : (advisorError ? advisorError : 'ไม่พบข้อมูล')} 
+                  onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
+                  filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                />
+              </Form.Item>
+              <Form.Item label="Co-Advisor" name="coAdvisorId">
+                <Select 
+                  disabled={['in_progress','completed','archived'].includes(activeProject.status)} 
+                  allowClear 
+                  options={advisorOptions} 
+                  loading={advisorLoading}
+                  placeholder="(ไม่บังคับ)" 
+                  onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
+                  filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                />
+              </Form.Item>
               <Space>
                 <Button type="primary" loading={updating} onClick={handleUpdate}>บันทึก</Button>
               </Space>
