@@ -23,6 +23,11 @@ module.exports = (sequelize) => {
                 foreignKey: 'project_id',
                 as: 'meetings'
             });
+            // หลาย track ต่อ project
+            ProjectDocument.hasMany(models.ProjectTrack, {
+                foreignKey: 'project_id',
+                as: 'tracks'
+            });
         }
     }
 
@@ -52,9 +57,10 @@ module.exports = (sequelize) => {
             allowNull: true, // ทำ optional ใน draft
             field: 'project_type'
         },
+        // track (เดิม) ถูกแทนที่ด้วยตาราง project_tracks (multi-track). คอลัมน์นี้คงไว้ชั่วคราวกรณียังมีข้อมูลเก่า
         track: {
             type: DataTypes.STRING(100),
-            allowNull: true // optional at draft
+            allowNull: true
         },
         advisorId: {
             type: DataTypes.INTEGER,
@@ -79,6 +85,49 @@ module.exports = (sequelize) => {
         },
         semester: {
             type: DataTypes.TINYINT,
+            allowNull: true
+        },
+        // ฟิลด์รายละเอียดแบบฟอร์มเสนอหัวข้อ (คพ.01)
+        objective: { // วัตถุประสงค์
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        background: { // ที่มา/ปัญหา/เหตุผล
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        scope: { // ขอบเขตงาน
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        expectedOutcome: { // ผลลัพธ์ที่คาดหวัง
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'expected_outcome'
+        },
+        benefit: { // ประโยชน์ที่จะได้รับ
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        methodology: { // วิธีดำเนินการ/กระบวนการพัฒนา
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        tools: { // เครื่องมือ เทคโนโลยี ภาษาที่ใช้
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        timelineNote: { // สรุปแผนดำเนินงาน/กำหนดการย่อ (อาจจะระบุเป็นช่วงเวลา)
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'timeline_note'
+        },
+        risk: { // ความเสี่ยง/ข้อจำกัดที่อาจเจอ
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        constraints: { // ข้อจำกัดอื่น ๆ / เงื่อนไขเฉพาะ
+            type: DataTypes.TEXT,
             allowNull: true
         },
         createdByStudentId: {

@@ -161,7 +161,8 @@ export function useStudentProject(options = {}) {
       { key: 'name_th', label: 'ชื่อ TH', pass: !!p.projectNameTh },
       { key: 'name_en', label: 'ชื่อ EN', pass: !!p.projectNameEn },
       { key: 'type', label: 'ประเภทโครงงาน', pass: !!p.projectType },
-      { key: 'track', label: 'Track', pass: !!p.track }
+      // ใช้ p.tracks (array ของ code) ถ้าไม่มี fallback ไป legacy p.track
+      { key: 'track', label: 'Track', pass: Array.isArray(p.tracks) ? p.tracks.length > 0 : !!p.track }
     ];
   }, [activeProject]);
 

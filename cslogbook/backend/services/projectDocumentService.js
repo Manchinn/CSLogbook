@@ -1,5 +1,5 @@
 const { sequelize } = require('../config/database');
-const { ProjectDocument, ProjectMember, Student, Academic } = require('../models');
+const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack } = require('../models');
 const studentService = require('./studentService'); // reuse eligibility logic (ถ้าต้อง)
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
@@ -67,14 +67,30 @@ class ProjectDocumentService {
         projectNameTh: payload.projectNameTh || null,
         projectNameEn: payload.projectNameEn || null,
         projectType: payload.projectType || null,
-        track: payload.track || null,
         advisorId: payload.advisorId || null,
         coAdvisorId: payload.coAdvisorId || null,
+        // ฟิลด์รายละเอียด (คพ.01) (optional ขณะ draft)
+        objective: payload.objective || null,
+        background: payload.background || null,
+        scope: payload.scope || null,
+        expectedOutcome: payload.expectedOutcome || null,
+        benefit: payload.benefit || null,
+        methodology: payload.methodology || null,
+        tools: payload.tools || null,
+        timelineNote: payload.timelineNote || null,
+        risk: payload.risk || null,
+        constraints: payload.constraints || null,
         academicYear,
         semester,
         createdByStudentId: studentId,
         status: payload.advisorId ? 'advisor_assigned' : 'draft'
       }, { transaction: t });
+
+      // tracks array (payload.tracks: array ของ code เช่น NETSEC) -> สร้าง ProjectTrack
+      if (Array.isArray(payload.tracks) && payload.tracks.length) {
+        const uniqCodes = [...new Set(payload.tracks.filter(c => !!c))];
+        await ProjectTrack.bulkCreate(uniqCodes.map(code => ({ projectId: project.projectId, trackCode: code })), { transaction: t });
+      }
 
       // เพิ่ม leader ใน project_members
       await ProjectMember.create({
@@ -168,7 +184,17 @@ class ProjectDocumentService {
         if (payload.projectNameTh !== undefined) update.projectNameTh = payload.projectNameTh;
         if (payload.projectNameEn !== undefined) update.projectNameEn = payload.projectNameEn;
         if (payload.projectType !== undefined) update.projectType = payload.projectType;
-        if (payload.track !== undefined) update.track = payload.track;
+        // อนุญาตแก้ไขฟิลด์รายละเอียดก่อน in_progress
+        if (payload.objective !== undefined) update.objective = payload.objective;
+        if (payload.background !== undefined) update.background = payload.background;
+        if (payload.scope !== undefined) update.scope = payload.scope;
+        if (payload.expectedOutcome !== undefined) update.expectedOutcome = payload.expectedOutcome;
+        if (payload.benefit !== undefined) update.benefit = payload.benefit;
+        if (payload.methodology !== undefined) update.methodology = payload.methodology;
+        if (payload.tools !== undefined) update.tools = payload.tools;
+        if (payload.timelineNote !== undefined) update.timelineNote = payload.timelineNote;
+        if (payload.risk !== undefined) update.risk = payload.risk;
+        if (payload.constraints !== undefined) update.constraints = payload.constraints;
       }
       // advisor สามารถตั้ง/แก้ได้ถ้ายังไม่ in_progress
       if (!lockNames.includes(project.status)) {
@@ -179,12 +205,22 @@ class ProjectDocumentService {
         }
       }
 
-      if (Object.keys(update).length === 0) {
+      const trackCodesUpdate = Array.isArray(payload.tracks) ? [...new Set(payload.tracks.filter(c => !!c))] : null;
+
+      if (Object.keys(update).length === 0 && !trackCodesUpdate) {
         await t.rollback();
         return await this.getProjectById(projectId); // ไม่มีอะไรเปลี่ยน
       }
 
       await ProjectDocument.update(update, { where: { projectId }, transaction: t });
+
+      // อัปเดต tracks: simple replace strategy (ลบของเก่า แล้ว insert ใหม่)
+      if (trackCodesUpdate) {
+        await ProjectTrack.destroy({ where: { projectId }, transaction: t });
+        if (trackCodesUpdate.length) {
+          await ProjectTrack.bulkCreate(trackCodesUpdate.map(code => ({ projectId, trackCode: code })), { transaction: t });
+        }
+      }
       await t.commit();
       logger.info('updateMetadata success', { projectId, updateKeys: Object.keys(update) });
       return await this.getProjectById(projectId);
@@ -259,7 +295,8 @@ class ProjectDocumentService {
     const projects = await ProjectDocument.findAll({
       attributes: [
         'projectId','projectCode','status','projectNameTh','projectNameEn',
-        'projectType','track','advisorId','coAdvisorId','academicYear','semester',
+        'projectType','advisorId','coAdvisorId','academicYear','semester',
+        'objective','background','scope','expected_outcome','benefit','methodology','tools','timeline_note','risk','constraints',
         'createdByStudentId','archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
       ], // กำหนด whitelist ป้องกัน Sequelize select column ที่ไม่มี (เช่น student_id เก่า)
       include: [
@@ -278,7 +315,8 @@ class ProjectDocumentService {
               attributes: ['studentId','studentCode']
             }
           ]
-        }
+        },
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
       ],
       order: [['updated_at','DESC']]
     });
@@ -305,7 +343,8 @@ class ProjectDocumentService {
               attributes: ['studentId','studentCode']
             }
           ]
-        }
+        },
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
       ]
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
@@ -339,9 +378,19 @@ class ProjectDocumentService {
       projectNameTh: p.projectNameTh,
       projectNameEn: p.projectNameEn,
       projectType: p.projectType,
-      track: p.track,
+  tracks: (p.tracks || []).map(t => t.trackCode),
       advisorId: p.advisorId,
       coAdvisorId: p.coAdvisorId,
+  objective: p.objective,
+  background: p.background,
+  scope: p.scope,
+  expectedOutcome: p.expectedOutcome,
+  benefit: p.benefit,
+  methodology: p.methodology,
+  tools: p.tools,
+  timelineNote: p.timelineNote,
+  risk: p.risk,
+  constraints: p.constraints,
       academicYear: p.academicYear,
       semester: p.semester,
       createdByStudentId: p.createdByStudentId,

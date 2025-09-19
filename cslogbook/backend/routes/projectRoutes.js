@@ -34,6 +34,11 @@ const { uploadProposal } = require('../config/projectArtifactUpload');
 router.get('/:id/artifacts', artifactController.list);
 router.post('/:id/proposal', uploadProposal.single('file'), artifactController.uploadProposal);
 
+// Tracks (multi-track) - แยก endpoint ชัดเจน
+const projectTracksController = require('../controllers/projectTracksController');
+router.get('/:id/tracks', projectTracksController.list);
+router.post('/:id/tracks', projectTracksController.replace); // replace ทั้งชุด
+
 // อัปเดต metadata (leader)
 router.patch('/:id', controller.updateProject);
 
