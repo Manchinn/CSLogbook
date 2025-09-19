@@ -27,7 +27,14 @@ import InternshipCompanyDashboard from './components/internship/companies/Intern
 import ProjectProposalForm from './components/project/ProjectProposalForm';
 import LogbookForm from './components/project/LogbookForm';
 import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
-import ProjectPortal from './components/project/ProjectPortal'; // 🆕 Portal รวม dashboard & gating
+// Phase1 Dashboard + steps (ยุบ portal เดิมให้เหลือ phase1 dashboard ชั่วคราว)
+import Phase1Dashboard from './components/project/phase1/Phase1Dashboard';
+import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
+import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
+import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
+import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
+import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
+import ScopeAdjustPage from './components/project/phase1/steps/ScopeAdjustPage';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -158,11 +165,19 @@ const App = () => {
                 } />
 
                 {/* Project Routes */}
-                <Route path="/project" element={
+                {/* ปรับโครงสร้าง: /project/phase1 เป็น Phase1Dashboard (single menu) */}
+                <Route path="/project/phase1" element={
                   <ProtectedRoute roles={['student']}>
-                    <ProjectPortal />
+                    <Phase1Dashboard />
                   </ProtectedRoute>
-                } />
+                }>
+                  <Route path="topic-submit" element={<TopicSubmitPage />} />
+                  <Route path="topic-exam" element={<TopicExamPage />} />
+                  <Route path="proposal-revision" element={<ProposalRevisionPage />} />
+                  <Route path="exam-submit" element={<ExamSubmitPage />} />
+                  <Route path="exam-day" element={<ExamDayPage />} />
+                  <Route path="scope-adjust" element={<ScopeAdjustPage />} />
+                </Route>
                 <Route path="/project-proposal" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectProposalForm />

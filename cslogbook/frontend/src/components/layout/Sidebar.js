@@ -316,7 +316,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
                   ]
                 }
               : {
-                  key: '/project',
+                  key: '/project/phase1', // ใช้ Phase1 dashboard เดียว เป็นศูนย์กลาง step ภายใน
                   icon: <ProjectOutlined />,
                   label: 'โครงงานพิเศษ'
                 },
@@ -637,14 +637,25 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         )}
       </div>
 
-      <Menu
-        mode="inline"
-        items={menuItems}
-        selectedKeys={[location.pathname]}
-        defaultSelectedKeys={[location.pathname]}
-        className={`menu ${resolveThemeClass(userData?.role, userData?.teacherType)}`}
-        onClick={handleMenuClick}
-      />
+      {/**
+        ปรับ selectedKey ให้เมนูโครงงานพิเศษถูก highlight เสมอเมื่ออยู่ภายใต้ /project/phase1/*
+        เพื่อไม่ให้เมนูหาย focus เมื่อไปยัง sub step ภายใน Phase1
+      */}
+      {(() => {
+        const derivedSelected = location.pathname.startsWith('/project/phase1')
+          ? '/project/phase1'
+          : location.pathname;
+        return (
+          <Menu
+            mode="inline"
+            items={menuItems}
+            selectedKeys={[derivedSelected]}
+            defaultSelectedKeys={[derivedSelected]}
+            className={`menu ${resolveThemeClass(userData?.role, userData?.teacherType)}`}
+            onClick={handleMenuClick}
+          />
+        );
+      })()}
 
       {!collapsed && renderLastUpdate()}
     </Sider>
