@@ -336,13 +336,14 @@ class ProjectDocumentService {
           where: { studentId },
           required: true,
           include: [
-            {
-              model: Student,
+            { 
+              model: Student, 
               as: 'student',
               include: [
                 { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
               ],
-              attributes: ['studentId','studentCode']
+              // เพิ่ม attributes หน่วยกิตสำหรับนำไปแสดงผลหน้า Draft Detail
+              attributes: ['studentId','studentCode','totalCredits','majorCredits']
             }
           ]
         },
@@ -429,7 +430,9 @@ class ProjectDocumentService {
         studentId: m.studentId,
         role: m.role,
         studentCode: m.student?.studentCode || null,
-        name: m.student?.user ? `${m.student.user.firstName || ''} ${m.student.user.lastName || ''}`.trim() : null
+        name: m.student?.user ? `${m.student.user.firstName || ''} ${m.student.user.lastName || ''}`.trim() : null,
+        totalCredits: m.student?.totalCredits ?? null,
+        majorCredits: m.student?.majorCredits ?? null
       })),
       archivedAt: p.archivedAt
     };

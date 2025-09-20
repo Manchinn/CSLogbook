@@ -116,11 +116,23 @@ const ProjectDraftDetail = () => {
         </Descriptions>
         <Divider orientation="left" style={{ marginTop: 32 }}>สมาชิก</Divider>
         <Space wrap>
-          {(data.members || []).map(m => (
-            <Tag key={m.studentId + (m.role || '')} color="blue">
-              {m.name || '-'} {m.studentCode ? `(${m.studentCode})` : ''}
-            </Tag>
-          ))}
+          {(data.members || []).map(m => {
+            const showCredits = m.totalCredits != null || m.majorCredits != null;
+            const total = m.totalCredits != null ? m.totalCredits : '-';
+            const major = m.majorCredits != null ? m.majorCredits : '-';
+            return (
+              <Tag key={m.studentId + (m.role || '')} color="blue" style={{ padding: '4px 8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                  <span>{m.name || '-'} {m.studentCode ? `(${m.studentCode})` : ''}</span>
+                  {showCredits && (
+                    <span style={{ fontSize: 11, opacity: 0.85 }}>
+                      หน่วยกิตรวม {total} | ภาค {major}
+                    </span>
+                  )}
+                </div>
+              </Tag>
+            );
+          })}
           {(data.members || []).length === 1 && <Tag color="orange">ยังไม่มีสมาชิกคนที่สอง</Tag>}
         </Space>
       </Card>
