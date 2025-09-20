@@ -29,6 +29,7 @@ import LogbookForm from './components/project/LogbookForm';
 import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
 // Phase1 Dashboard + steps (ยุบ portal เดิมให้เหลือ phase1 dashboard ชั่วคราว)
 import Phase1Dashboard from './components/project/phase1/Phase1Dashboard';
+import ProjectDraftDetail from './components/project/phase1/ProjectDraftDetail';
 import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
 import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
 import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
@@ -181,6 +182,11 @@ const App = () => {
                 <Route path="/project-proposal" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectProposalForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project/phase1/draft/:id" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectDraftDetail />
                   </ProtectedRoute>
                 } />
                 <Route path="/project-logbook" element={
