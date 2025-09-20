@@ -62,6 +62,27 @@ class ProjectDocumentService {
       const academicYear = academic?.academicYear || (new Date().getFullYear() + 543);
       const semester = academic?.currentSemester || 1;
 
+      // เตรียม second member (optional requirement - ถ้า policy บังคับให้ตรวจที่ controller ก่อน)
+      let secondMember = null;
+      if (payload.secondMemberStudentCode) {
+        const code = String(payload.secondMemberStudentCode).trim();
+        if (!/^[0-9]{5,13}$/.test(code)) {
+          throw new Error('รูปแบบรหัสนักศึกษาไม่ถูกต้อง');
+        }
+        // หา student
+        secondMember = await Student.findOne({ where: { studentCode: code }, transaction: t });
+        if (!secondMember) {
+          throw new Error('ไม่พบนักศึกษาที่ต้องการเพิ่ม');
+        }
+        if (secondMember.studentId === studentId) {
+          throw new Error('ไม่สามารถเพิ่มตัวเองซ้ำเป็นสมาชิกได้');
+        }
+        if (!secondMember.isEligibleProject) {
+          throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
+        }
+        // ไม่ตรวจ duplicate active project สำหรับ member (เอกสารจำกัดเฉพาะ leader) -> หากต้อง เพิ่ม logic คล้าย leader ที่นี่
+      }
+
       // สร้าง ProjectDocument (draft)
       const project = await ProjectDocument.create({
         projectNameTh: payload.projectNameTh || null,
@@ -98,6 +119,15 @@ class ProjectDocumentService {
         studentId: studentId,
         role: 'leader'
       }, { transaction: t });
+
+      // ถ้ามี second member -> เพิ่มทันทีใน transaction เดียว
+      if (secondMember) {
+        await ProjectMember.create({
+          projectId: project.projectId,
+          studentId: secondMember.studentId,
+          role: 'member'
+        }, { transaction: t });
+      }
 
       await t.commit();
       logger.info('createProject success', { projectId: project.projectId, studentId });
