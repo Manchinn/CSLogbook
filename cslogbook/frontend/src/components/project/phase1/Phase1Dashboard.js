@@ -9,6 +9,7 @@ import {
   CalendarOutlined,
   EditOutlined
 } from '@ant-design/icons';
+import { useStudentProject } from '../../../hooks/useStudentProject';
 
 // Phase1Dashboard: ศูนย์รวมขั้นตอน โครงงานพิเศษ 1
 // - แสดงการ์ดขั้นตอนทั้งหมด (Phase1) ในหน้าเดียว
@@ -29,8 +30,8 @@ const steps = [
     title: 'สอบหัวข้อ',
     desc: 'จัดตารางและบันทึกผลการสอบเสนอหัวข้อ (ภายหลัง)',
     icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true
+    implemented: true,
+    comingSoon: false
   },
   {
     key: 'proposal-revision',
@@ -70,6 +71,8 @@ const Phase1Dashboard = () => {
   const { Title, Paragraph, Text } = Typography;
   const navigate = useNavigate();
   const location = useLocation();
+  // โหลดข้อมูลโครงงานของผู้ใช้ (automatic load) อยู่ใน component (ไม่ใส่ก่อนประกาศ component)
+  const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
 
   // ตรวจว่ากำลังอยู่ในหน้า sub-step หรือไม่
   const activeSub = useMemo(() => {
@@ -106,6 +109,7 @@ const Phase1Dashboard = () => {
         <Row gutter={[16,16]}>
           {steps.map(s => {
             const disabled = !s.implemented;
+            const isTopicSubmit = s.key === 'topic-submit';
             return (
               <Col xs={24} sm={12} md={8} key={s.key}>
                 <Card
@@ -121,9 +125,24 @@ const Phase1Dashboard = () => {
                       <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
                     </div>
                   </div>
-                  <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                  <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     {s.implemented ? <Tag color="blue">พร้อมใช้งาน</Tag> : <Tag>กำลังพัฒนา</Tag>}
                     {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
+                    {isTopicSubmit && activeProject && (
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/project/phase1/draft/${activeProject.projectId}`);
+                        }}
+                      >ดู Draft</Button>
+                    )}
+                    {isTopicSubmit && !activeProject && !projectLoading && (
+                      <Tag color="gold">ยังไม่มี Draft</Tag>
+                    )}
+                    {isTopicSubmit && projectLoading && (
+                      <Tag color="default">กำลังโหลด...</Tag>
+                    )}
                   </div>
                 </Card>
               </Col>
