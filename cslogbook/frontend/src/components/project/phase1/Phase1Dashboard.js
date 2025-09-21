@@ -20,8 +20,8 @@ import { useStudentProject } from '../../../hooks/useStudentProject';
 const steps = [
   {
     key: 'topic-submit',
-    title: 'เสนอหัวข้อ',
-    desc: 'เพิ่ม/แก้ไขชื่อโครงงาน TH/EN ประเภท Track และตั้งอาจารย์',
+    title: 'เสนอหัวข้อโครงงานพิเศษ',
+    desc: 'แต่ละหัวข้อโครงงาน ส่งได้เพียงครั้งเดียวเท่านั้น',
     icon: <FileAddOutlined style={{ fontSize: 28 }} />,
     implemented: true
   },
@@ -128,21 +128,7 @@ const Phase1Dashboard = () => {
                   <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     {s.implemented ? <Tag color="blue">พร้อมใช้งาน</Tag> : <Tag>กำลังพัฒนา</Tag>}
                     {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
-                    {isTopicSubmit && activeProject && (
-                      <Button
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/project/phase1/draft/${activeProject.projectId}`);
-                        }}
-                      >ดู Draft</Button>
-                    )}
-                    {isTopicSubmit && !activeProject && !projectLoading && (
-                      <Tag color="gold">ยังไม่มี Draft</Tag>
-                    )}
-                    {isTopicSubmit && projectLoading && (
-                      <Tag color="default">กำลังโหลด...</Tag>
-                    )}
+                    
                   </div>
                 </Card>
               </Col>
