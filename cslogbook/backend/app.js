@@ -36,6 +36,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const documentsRoutes = require('./routes/documents/documentsRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const projectRoutes = require('./routes/projectRoutes'); // 🆕 Project lifecycle routes
+const topicExamRoutes = require('./routes/topicExamRoutes'); // 🆕 Topic Exam Overview
 
 const app = express();
 
@@ -81,7 +82,8 @@ app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes);
-app.use('/api/projects', projectRoutes); // 🆕 mount project routes (auth inside route file)
+app.use('/api/projects', authenticateToken, projectRoutes); // 🆕 mount project routes (auth inside route file)
+app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // mount overview (มี auth ใน route เองแล้ว)
 app.use('/api', uploadRoutes);
 
 // Fallback 404

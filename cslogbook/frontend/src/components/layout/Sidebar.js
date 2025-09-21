@@ -210,6 +210,14 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         icon: <HomeOutlined />,
         label: "หน้าแรก",
       },
+      // Teacher specific: Topic Exam Overview (เตรียมจัดสอบหัวข้อ)
+      ...(userData?.role === 'teacher' ? [
+        {
+          key: '/teacher/topic-exam/overview',
+          icon: <ProjectOutlined />,
+          label: 'Topic Exam Overview'
+        }
+      ] : []),
 
       // Student Menu Items
       ...(userData?.role === "student"

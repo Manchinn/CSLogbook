@@ -44,6 +44,7 @@ import AdminRoutes from './components/admin/AdminRoutes';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
+import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
 
 const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -226,6 +227,13 @@ const App = () => {
                 <Route path="/approve-documents" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <ApproveDocuments />
+                  </ProtectedRoute>
+                } />
+
+                {/* Topic Exam Overview (Teacher/Admin) */}
+                <Route path="/teacher/topic-exam/overview" element={
+                  <ProtectedRoute roles={['teacher','admin']} teacherTypes={['academic']}>
+                    <TopicExamOverview />
                   </ProtectedRoute>
                 } />
 

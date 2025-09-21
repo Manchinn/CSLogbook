@@ -220,6 +220,42 @@ POST /api/projects/12/activate
 - เขียนฟีเจอร์เพิ่ม → รักษา constraint team size + status lock
 - เพิ่ม test ใหม่ → pattern ตามไฟล์ unit ปัจจุบัน (simplified models)
 
+## 15.1 Topic Exam Overview (Phase A Scheduling Prep) – สรุปเสริม
+ฟีเจอร์เสริม Phase 2 สำหรับเตรียมข้อมูลจัดตารางสอบนำเสนอหัวข้อ (ยังไม่เริ่ม scheduling algorithm)
+
+Endpoint: `GET /api/projects/topic-exam/overview`
+Access: teacher / admin / staff (JWT + role guard)
+
+Query Params:
+- status (all|draft|advisor_assigned|in_progress|completed|archived)
+- advisorId (filter by advisor)
+- search (LIKE: code / title TH / title EN)
+- readyOnly (boolean) – ใช้ readiness baseline
+- sortBy (updatedAt|createdAt|projectCode|memberCount), order (asc|desc)
+
+Readiness Baseline v1:
+1. มีชื่อ TH & EN
+2. มี advisorId
+
+Response Fields (หลัก): projectId, projectCode, titleTh, titleEn, status, advisor { teacherId, name }, coAdvisor, members[{ studentId, studentCode, name, role }], memberCount, readiness{...}, updatedAt, createdAt
+
+Service: `services/topicExamService.js` (map + readiness heuristic)
+Controller: `controllers/topicExamController.js`
+Route: `routes/topicExamRoutes.js` (mount: `/api/projects/topic-exam`)
+Frontend: `/teacher/topic-exam/overview` (AntD Table + filters)
+Sidebar Integration: เพิ่มเมนู `Topic Exam Overview` สำหรับ role teacher
+
+Tests เพิ่ม:
+- Unit: `tests/unit/topicExamService.unit.test.js` (ตรวจ mapping & readyOnly)
+- Integration: `tests/integration/topicExamOverview.integration.test.js` (ครอบ 403 student / 200 teacher – ปัจจุบันยอมรับ 500 ชั่วคราวถ้า DB ไม่มี seed)
+
+Logging (Winston):
+- `[TopicExam] overview request start|success|error` (route)
+- `[TopicExamService] findAll error:` + message
+- `[TopicExamService] overview result size=<n>`
+
+Roadmap ถัดไป (สั้น): เพิ่ม pagination, ปี/ภาคเรียน filter, export CSV, auto grouping session.
+
 ---
 Revision: Phase2 v1.0 (Initial Documentation)
 
