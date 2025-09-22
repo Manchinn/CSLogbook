@@ -2,7 +2,7 @@
 // ปรับให้แสดงเฉพาะ 4 คอลัมน์: ชื่อโครงงาน (TH), รหัสนักศึกษา, ชื่อเต็มนักศึกษา, Remark
 // แต่ยังคงส่วนตัวกรองพื้นฐาน (search, status, readyOnly) เพื่อการใช้งานต่อไปได้ หากต้องการตัดออกค่อย refactor เพิ่มเติมภายหลัง
 import React, { useMemo } from 'react';
-import { Table, Space, Input, Select, Switch, Card, Typography, Button, Tooltip, Dropdown } from 'antd';
+import { Table, Space, Input, Select, Switch, Card, Typography, Button, Tooltip } from 'antd';
 import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import { downloadTopicExamExport } from '../../../services/topicExamService';
@@ -81,12 +81,12 @@ export default function TopicExamOverview() {
     }
   ], []);
 
-  // ฟังก์ชันดาวน์โหลดไฟล์ export (CSV/XLSX)
-  const handleExport = async (format) => {
+  // ฟังก์ชันดาวน์โหลดไฟล์ export (XLSX only)
+  const handleExport = async () => {
     try {
-      const res = await downloadTopicExamExport({ ...filters, format });
+      const res = await downloadTopicExamExport({ ...filters, format: 'xlsx' });
       const blob = res.data;
-      let filename = `topic_exam_overview.${format === 'xlsx' ? 'xlsx' : 'csv'}`;
+      let filename = 'topic_exam_overview.xlsx';
       const dispo = res.headers && (res.headers['content-disposition'] || res.headers['Content-Disposition']);
       if (dispo) {
         const match = /filename=([^;]+)/i.exec(dispo);
@@ -111,18 +111,9 @@ export default function TopicExamOverview() {
         <Tooltip title="Reload">
           <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} />
         </Tooltip>
-        <Dropdown
-          menu={{
-            items: [
-              { key: 'csv', label: 'Export CSV', onClick: () => handleExport('csv') },
-              { key: 'xlsx', label: 'Export XLSX', onClick: () => handleExport('xlsx') }
-            ]
-          }}
-        >
-          <Tooltip title="Export">
-            <Button icon={<DownloadOutlined />} />
-          </Tooltip>
-        </Dropdown>
+        <Tooltip title="Export XLSX">
+          <Button icon={<DownloadOutlined />} onClick={handleExport} />
+        </Tooltip>
       </Space>}>
         <Space style={{ marginBottom: 16 }} wrap>
           <Input.Search placeholder="ค้นหา (code / title)" allowClear onSearch={val=>updateFilters({ search: val })} style={{ width: 240 }} />
@@ -135,7 +126,9 @@ export default function TopicExamOverview() {
             { value: 'archived', label: 'archived' }
           ]} />
           <Space>
-            <span style={{ fontSize: 12 }}>Ready Only</span>
+            <Tooltip title="Ready = หัวข้อที่กรอกชื่อ (ไทย/อังกฤษ) ครบ ไม่บังคับอาจารย์ที่ปรึกษาในขั้นนี้">
+              <span style={{ fontSize: 12 }}>เฉพาะหัวข้อพร้อม</span>
+            </Tooltip>
             <Switch checked={filters.readyOnly} onChange={v=>updateFilters({ readyOnly: v })} />
           </Space>
         </Space>

@@ -251,9 +251,10 @@ Query Params:
 - readyOnly (boolean) – ใช้ readiness baseline
 - sortBy (updatedAt|createdAt|projectCode|memberCount), order (asc|desc)
 
-Readiness Baseline v1:
-1. มีชื่อ TH & EN
-2. มี advisorId
+Readiness Baseline (ปัจจุบัน – Phase: Topic Collection):
+1. มีชื่อ TH & EN ครบ (advisor optional)
+
+หมายเหตุ: advisorId ไม่บังคับในขั้นรวบรวมหัวข้อเพื่อจัดกลุ่มสอบ หากกรอกแล้วจะแสดงในข้อมูลเสริม และในอนาคตอาจเพิ่มโหมดเข้ม (เช่น require advisor หรือสมาชิกครบ) ผ่าน query flag แยกโดยไม่เปลี่ยน baseline นี้.
 
 Response Fields (หลัก): projectId, projectCode, titleTh, titleEn, status, advisor { teacherId, name }, coAdvisor, members[{ studentId, studentCode, name, role }], memberCount, readiness{...}, updatedAt, createdAt
 
@@ -263,25 +264,24 @@ Route: `routes/topicExamRoutes.js` (mount: `/api/projects/topic-exam`)
 Frontend: `/teacher/topic-exam/overview` (AntD Table + filters)
 Sidebar Integration: เพิ่มเมนู `Topic Exam Overview` สำหรับ role teacher
 
-Export (ใหม่):
-- ปุ่ม Export (CSV/XLSX) ที่หน้า Overview (มุมขวาบน) เลือกรูปแบบได้
-- Endpoint: `GET /api/projects/topic-exam/export?format=csv|xlsx` (default csv) รับ query filters เดียวกับ overview (search, status, readyOnly ฯลฯ)
-- CSV: ใส่ BOM (UTF-8) เพื่อรองรับภาษาไทยใน Excel, คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
-- XLSX: ใช้ sheet `Overview` พร้อมคอลัมน์เดียวกัน (ยังไม่ merge cells – แต่หัวข้อซ้ำในแต่ละสมาชิกเพื่อความง่ายในการ sort ภายหลัง)
-- Remark logic (อัปเดต): ถ้า track มีคำว่า bilingual หรือ csb ⇒ "โครงการสองภาษา (CSB)" มิฉะนั้น ⇒ "โครงงานภาคปกติ"
+Export (XLSX เท่านั้น – อัปเดต):
+- ปุ่ม Export XLSX ที่หน้า Overview (มุมขวาบน)
+- Endpoint: `GET /api/projects/topic-exam/export` (param format ถ้ามีจะถูกละเว้น ส่งคืน XLSX เสมอ)
+- XLSX: sheet `Overview` คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ (หัวข้อซ้ำในแต่ละสมาชิกเพื่อให้ง่ายต่อการ sort)
+- Remark logic: track มีคำว่า bilingual หรือ csb ⇒ "โครงการสองภาษา (CSB)" มิฉะนั้น ⇒ "โครงงานภาคปกติ"
 - Security: ใช้ role guard เดียวกับ overview (teacher/admin/staff)
 
 Tests เพิ่ม:
 - Unit: `tests/unit/topicExamService.unit.test.js` (ตรวจ mapping & readyOnly)
 - Integration: `tests/integration/topicExamOverview.integration.test.js` (ครอบ 403 student / 200 teacher – ปัจจุบันยอมรับ 500 ชั่วคราวถ้า DB ไม่มี seed)
-- Integration Export: `tests/integration/topicExamExport.integration.test.js` (ตรวจ header CSV / role guard)
+- Integration Export: `tests/integration/topicExamExport.integration.test.js` (ตรวจ Content-Type เป็น XLSX (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) + role guard; พารามิเตอร์ format ถ้ามีจะถูกละเว้น)
 
 Logging (Winston):
 - `[TopicExam] overview request start|success|error` (route)
 - `[TopicExamService] findAll error:` + message
 - `[TopicExamService] overview result size=<n>`
 
-Roadmap ถัดไป (สั้น): เพิ่ม pagination, ปี/ภาคเรียน filter, export CSV, auto grouping session.
+Roadmap ถัดไป (สั้น): เพิ่ม pagination, ปี/ภาคเรียน filter, auto grouping session.
 
 ---
 Revision: Phase2 v1.0 (Initial Documentation)
@@ -294,7 +294,7 @@ Revision: Phase2 v1.0 (Initial Documentation)
 | Backend Core | createProject, addMember, updateMetadata (ปรับ lock เฉพาะชื่อ+advisor), activateProject, archiveProject, getMyProjects, getProjectById, TopicExam overview service | Proposal upload, milestones, artifacts, events | Service แยกตามไฟล์ พร้อม Winston logging พื้นฐาน |
 | Data Model | ตาราง project_documents, project_members, project_tracks + รายละเอียดฟิลด์ (objective…constraints) | milestone/artifact/event tables | Detail fields edit-after-in_progress enabled |
 | Student Frontend | Draft Wizard (5 steps: basic, classification, members, details, review), hydration/edit mode, lock indicator, readiness tags, second member sync | Portal dashboard enrichment, Activate button UI, proposal upload | ใช้ AntD + Context provider |
-| Teacher Frontend | Topic Exam Overview table (flattened member rows, merged cells, filters, readyOnly toggle) | Extra filters (ปี/เทอม), export CSV, pagination | ใช้ service topicExamService + rowSpan rendering |
+| Teacher Frontend | Topic Exam Overview table (flattened member rows, merged cells, filters, readyOnly toggle) | Extra filters (ปี/เทอม), pagination | ใช้ service topicExamService + rowSpan rendering |
 | Support Staff Frontend | (ยังไม่เริ่ม) | Dashboard, scheduling tools, archive UI | จะใช้ endpoints เดิม + ส่วนขยาย Phase 3 |
 | Admin | Archive endpoint (usable via API tools) | Admin panel UI | Minimal now |
 | Locking Policy | Names + advisor/coAdvisor locked at in_progress+ | (อาจเพิ่ม soft unlock admin) | Project type & tracks + details remain editable |
@@ -305,6 +305,7 @@ Revision: Phase2 v1.0 (Initial Documentation)
 อัปเดตสั้น: ฝั่งนักศึกษา “เสนอหัวข้อโครงงานพิเศษ” ใช้งานได้ (สร้าง/แก้ไข draft + เติมรายละเอียดหลายฟิลด์ + เพิ่มสมาชิกคนที่สอง) แต่ยังไม่มีปุ่ม Activate ใน UI (เรียก API ได้). ฝั่งอาจารย์ดูภาพรวมหัวข้อทั้งหมดได้ผ่าน Topic Exam Overview. ฝั่งเจ้าหน้าที่ (support staff) และส่วนงาน proposal/milestone อื่น ๆ ยังไม่เริ่ม.
 
 ---
+Revision: Phase2 v1.3 (TopicExam XLSX-only Export + Readiness Baseline Update – advisor ไม่บังคับใน readiness สำหรับ overview, ลบ mention CSV ที่เกี่ยวกับ TopicExam, อัปเดต test export ให้ตรวจ XLSX เท่านั้น)
 Revision: Phase2 v1.2 (Status Section + Detail Fields Lock Policy Update)
 
 ## 17. ส่วนขยายการออกแบบ (Extended Design – Draft สำหรับ Phase 3+)

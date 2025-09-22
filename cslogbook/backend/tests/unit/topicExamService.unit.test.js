@@ -87,9 +87,20 @@ describe('topicExamService.getTopicOverview (unit)', () => {
     expect(row.members[0].name).toContain('Rak');
   });
 
-  test('readyOnly filter returns only ready (requires title + advisor)', async () => {
-    const data = await service.getTopicOverview({ readyOnly: true });
-    expect(data.length).toBe(1); // row มี title + advisor → readyFlag true
+  test('readyOnly filter (baseline=title only) returns record even if advisor present/absent', async () => {
+    // First existing row has titles + advisor -> ready
+    let data = await service.getTopicOverview({ readyOnly: true });
+    expect(data.length).toBe(1);
+    expect(data[0].readiness.titleCompleted).toBe(true);
     expect(data[0].readiness.readyFlag).toBe(true);
+
+    // Create another project without advisor but with titles to confirm still ready
+    const pd2 = await ProjectDocument.create({ projectCode: 'PRJTEST-0002', projectNameTh: 'หัวข้อสอง', projectNameEn: 'Second', status: 'draft', advisorId: null });
+    // no members needed for readiness baseline
+    data = await service.getTopicOverview({ readyOnly: true });
+    // Should now have both rows (order may differ); ensure at least 2
+    expect(data.length).toBeGreaterThanOrEqual(2);
+    const hasSecond = data.some(r => r.projectCode === 'PRJTEST-0002' && r.readiness.readyFlag === true);
+    expect(hasSecond).toBe(true);
   });
 });

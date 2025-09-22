@@ -9,9 +9,10 @@ const { ProjectDocument, ProjectMember, Student, Teacher, User } = require('../m
 const logger = require('../utils/logger');
 
 /**
- * แปลง documents (ถ้ามี logic อื่นเพิ่มเติมได้ภายหลัง)
- * ปัจจุบัน readiness เบื้องต้น: มีชื่อโครงงาน TH/EN + advisor กำหนดแล้ว => ถือว่า ready
- * สามารถปรับ rule ในอนาคต: เพิ่มการตรวจอัปโหลดไฟล์ proposal ฯลฯ
+ * Readiness (Phase: topic collection) baseline ใหม่:
+ *  - มีชื่อโครงงาน TH & EN เท่านั้น (advisor optional)
+ *  - advisorAssigned / memberCountOk ให้เป็นสัญญาณประกอบ ไม่บังคับภายใต้ readyFlag
+ * Future extension: สามารถเพิ่มโหมดเข้มขึ้น (เช่น ต้องมี advisor หรือ enforceMemberMin=true) ผ่าน query param
  */
 function computeReadiness(projectInstance, { enforceMemberMin } = {}) {
   const proposalUploaded = !!projectInstance.objective; // heuristic: มี objective แปลว่าเริ่มเขียนเอกสาร
@@ -19,8 +20,8 @@ function computeReadiness(projectInstance, { enforceMemberMin } = {}) {
   const titleCompleted = !!projectInstance.projectNameTh && !!projectInstance.projectNameEn;
   const advisorAssigned = !!projectInstance.advisorId;
   const memberCountOk = (projectInstance.members?.length || 0) >= 2; // เงื่อนไขใหม่สำหรับตรวจจำนวนสมาชิก
-  // baseline: ไม่บังคับจำนวนสมาชิก เว้นแต่มี query.enforceMemberMin
-  let readyFlag = titleCompleted && advisorAssigned;
+  // baseline: ชื่อครบก็ถือว่า ready (advisor ไม่บังคับใน phase นี้)
+  let readyFlag = titleCompleted;
   if (enforceMemberMin) {
     readyFlag = readyFlag && memberCountOk;
   }
