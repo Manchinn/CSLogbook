@@ -13,13 +13,18 @@ const logger = require('../utils/logger');
  * ปัจจุบัน readiness เบื้องต้น: มีชื่อโครงงาน TH/EN + advisor กำหนดแล้ว => ถือว่า ready
  * สามารถปรับ rule ในอนาคต: เพิ่มการตรวจอัปโหลดไฟล์ proposal ฯลฯ
  */
-function computeReadiness(projectInstance) {
-  const proposalUploaded = !!projectInstance.objective; // ตัวอย่าง heuristic (มี objective ถือว่าเริ่มเขียน proposal)
+function computeReadiness(projectInstance, { enforceMemberMin } = {}) {
+  const proposalUploaded = !!projectInstance.objective; // heuristic: มี objective แปลว่าเริ่มเขียนเอกสาร
   const abstractUploaded = !!projectInstance.expectedOutcome; // heuristic
   const titleCompleted = !!projectInstance.projectNameTh && !!projectInstance.projectNameEn;
   const advisorAssigned = !!projectInstance.advisorId;
-  const readyFlag = titleCompleted && advisorAssigned; // baseline rule
-  return { proposalUploaded, abstractUploaded, titleCompleted, advisorAssigned, readyFlag };
+  const memberCountOk = (projectInstance.members?.length || 0) >= 2; // เงื่อนไขใหม่สำหรับตรวจจำนวนสมาชิก
+  // baseline: ไม่บังคับจำนวนสมาชิก เว้นแต่มี query.enforceMemberMin
+  let readyFlag = titleCompleted && advisorAssigned;
+  if (enforceMemberMin) {
+    readyFlag = readyFlag && memberCountOk;
+  }
+  return { proposalUploaded, abstractUploaded, titleCompleted, advisorAssigned, memberCountOk, readyFlag };
 }
 
 /**
@@ -103,8 +108,10 @@ async function getTopicOverview(query = {}) {
     throw err;
   }
 
+  const enforceMemberMin = query.enforceMemberMin === '1' || query.enforceMemberMin === 1 || query.enforceMemberMin === true;
+
   let result = projects.map(p => {
-    const readiness = computeReadiness(p);
+    const readiness = computeReadiness(p, { enforceMemberMin });
     return {
       projectId: p.projectId,
       projectCode: p.projectCode,

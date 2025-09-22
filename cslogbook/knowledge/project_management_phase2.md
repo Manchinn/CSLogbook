@@ -42,6 +42,24 @@ Phase 2 เพิ่มความสามารถให้นักศึก
 
 ข้อสังเกต: ใน Phase 2 ยังไม่บังคับ unique index สำหรับ project_code ในเทส (ของจริงควร unique)
 
+### 3.1 ฟิลด์รายละเอียด (Draft Detail Fields – Implemented)
+ใน Phase 2 ปัจจุบันรองรับการเก็บและแก้ไขฟิลด์รายละเอียดต่อไปนี้ (ส่วนหนึ่ง optional ระหว่าง draft):
+| Field | ใช้ใน Backend | สถานะการแก้ไขหลัง in_progress | หมายเหตุ |
+|-------|---------------|----------------------------------|----------|
+| objective | ✔ (`objective`) | แก้ได้ | วัตถุประสงค์หลัก |
+| background | ✔ (`background`) | แก้ได้ | ที่มา/เหตุผล/ปัญหา |
+| scope | ✔ (`scope`) | แก้ได้ | ขอบเขตงาน |
+| expectedOutcome | ✔ (`expected_outcome`) | แก้ได้ | ผลลัพธ์ที่คาดหวัง |
+| benefit | ✔ (`benefit`) | แก้ได้ | ประโยชน์ที่จะได้รับ |
+| methodology | ✔ (`methodology`) | แก้ได้ | กระบวนการ / วิธีดำเนินการ |
+| tools | ✔ (`tools`) | แก้ได้ | เทคโนโลยี / เครื่องมือ |
+| timelineNote | ✔ (`timeline_note`) | แก้ได้ | กำหนดการย่อ / หมายเหตุเวลา |
+| risk | ✔ (`risk`) | แก้ได้ | ความเสี่ยงสำคัญ |
+| constraints | ✔ (`constraints`) | แก้ได้ | ข้อจำกัด / เงื่อนไข |
+| problem (frontend only) | ✖ (local state) | แก้ได้ | ใช้ช่วยกรอก background (ยังไม่ persist) |
+
+หมายเหตุ: เดิม logic ล็อกฟิลด์รายละเอียดหลัง in_progress ถูกผ่อนคลายแล้ว เพื่อให้นักศึกษาสามารถ refine scope/methodology ต่อได้ก่อนเข้าสู่ Phase proposal/final.
+
 ## 4. Lifecycle & Allowed Transitions
 ```
  draft --(set advisorId)--> advisor_assigned --(activate + readiness OK)--> in_progress --(future)--> completed --(future)--> archived
@@ -67,7 +85,7 @@ Transition Rules:
    - projectNameTh & projectNameEn ไม่ว่าง
    - projectType & track ไม่ว่าง
 6. Idempotent Activate: ถ้า status = in_progress เรียกซ้ำจะคืนข้อมูลเดิม ไม่ error
-7. Metadata Lock: หลัง status ≥ in_progress (in_progress, completed, archived) ฟิลด์ชื่อ / type / track / advisor ถูกล็อค
+7. Metadata Lock (อัปเดต Sep 2025): หลัง status ≥ in_progress (in_progress, completed, archived) "ล็อกเฉพาะ" ชื่อ (TH/EN) และ advisor/co-advisor เท่านั้น; ประเภท (projectType) และ tracks ยังแก้ไขได้ + รายละเอียด (objective/background/… tools ฯลฯ) ยังแก้ได้เพื่อให้ปรับ scope ต่อเนื่อง
 8. Archive ไม่สร้างผลข้างเคียง (ไม่ลบสมาชิก) แค่ mark status + archived_at
 
 ## 6. Service Functions (Implemented)
@@ -261,7 +279,26 @@ Revision: Phase2 v1.0 (Initial Documentation)
 
 ---
 
-## 16. ส่วนขยายการออกแบบ (Extended Design – Draft สำหรับ Phase 3+)
+## 16. สถานะการพัฒนา (Implementation Status – Sep 2025)
+| ด้าน | รายละเอียดที่ทำแล้ว | เหลือ / Planned | หมายเหตุ |
+|------|---------------------|------------------|----------|
+| Backend Core | createProject, addMember, updateMetadata (ปรับ lock เฉพาะชื่อ+advisor), activateProject, archiveProject, getMyProjects, getProjectById, TopicExam overview service | Proposal upload, milestones, artifacts, events | Service แยกตามไฟล์ พร้อม Winston logging พื้นฐาน |
+| Data Model | ตาราง project_documents, project_members, project_tracks + รายละเอียดฟิลด์ (objective…constraints) | milestone/artifact/event tables | Detail fields edit-after-in_progress enabled |
+| Student Frontend | Draft Wizard (5 steps: basic, classification, members, details, review), hydration/edit mode, lock indicator, readiness tags, second member sync | Portal dashboard enrichment, Activate button UI, proposal upload | ใช้ AntD + Context provider |
+| Teacher Frontend | Topic Exam Overview table (flattened member rows, merged cells, filters, readyOnly toggle) | Extra filters (ปี/เทอม), export CSV, pagination | ใช้ service topicExamService + rowSpan rendering |
+| Support Staff Frontend | (ยังไม่เริ่ม) | Dashboard, scheduling tools, archive UI | จะใช้ endpoints เดิม + ส่วนขยาย Phase 3 |
+| Admin | Archive endpoint (usable via API tools) | Admin panel UI | Minimal now |
+| Locking Policy | Names + advisor/coAdvisor locked at in_progress+ | (อาจเพิ่ม soft unlock admin) | Project type & tracks + details remain editable |
+| Validation | Single active project per student (leader + member), second member eligibility, readiness for activate | Cross-project uniqueness checks (future) | Script scan duplicates มีแล้ว |
+| Testing | Unit tests for projectDocumentService + topicExamService, integration for overview endpoint | Add tests for edit-after-in_progress, duplicate membership guard | Jest + SQLite in-memory |
+| Documentation | Phase2 core doc + extended design + status section | Keep synced with future phases | Version bump v1.2 |
+
+อัปเดตสั้น: ฝั่งนักศึกษา “เสนอหัวข้อโครงงานพิเศษ” ใช้งานได้ (สร้าง/แก้ไข draft + เติมรายละเอียดหลายฟิลด์ + เพิ่มสมาชิกคนที่สอง) แต่ยังไม่มีปุ่ม Activate ใน UI (เรียก API ได้). ฝั่งอาจารย์ดูภาพรวมหัวข้อทั้งหมดได้ผ่าน Topic Exam Overview. ฝั่งเจ้าหน้าที่ (support staff) และส่วนงาน proposal/milestone อื่น ๆ ยังไม่เริ่ม.
+
+---
+Revision: Phase2 v1.2 (Status Section + Detail Fields Lock Policy Update)
+
+## 17. ส่วนขยายการออกแบบ (Extended Design – Draft สำหรับ Phase 3+)
 เอกสารช่วงแรก (ข้อ 1–15) ครอบคลุม Phase 2 ปัจจุบัน ส่วนนี้เป็นบันทึกการออกแบบเชิงลึกเพื่อรองรับการขยาย (ไม่ lock scope แต่ช่วยกำหนดทิศทาง)
 
 ### 16.1 Extended Lifecycle (Proposed)

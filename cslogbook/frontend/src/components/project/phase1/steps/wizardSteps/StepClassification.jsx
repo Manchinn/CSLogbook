@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Select, Tag, Spin, Alert } from 'antd';
+import { Form, Select, Tag, Spin, Alert, Tooltip } from 'antd';
 import { useCreateProjectDraft } from '../createContext';
 import { TRACK_OPTIONS } from '../../../../../constants/projectTracks';
 import { teacherService } from '../../../../../services/teacherService';
@@ -41,9 +41,11 @@ const StepClassification = () => {
     return () => { mounted = false; };
   }, [setAdvisors]);
 
+  const advisorLocked = ['in_progress','completed','archived'].includes(state.projectStatus);
+
   return (
     <Form layout="vertical">
-      <Form.Item label="ที่ปรึกษา (Advisor)">
+      <Form.Item label={<span>ที่ปรึกษา (Advisor) {advisorLocked && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>
         {error && <Alert type="error" showIcon style={{ marginBottom: 8 }} message={error} />}
         <Select
           showSearch
@@ -55,16 +57,17 @@ const StepClassification = () => {
           options={advisorOptions}
           filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
           notFoundContent={loading ? <Spin size="small" /> : 'ไม่พบอาจารย์'}
+          disabled={advisorLocked}
         />
       </Form.Item>
-      <Form.Item label="ที่ปรึกษาร่วม (Co-advisor)" extra="ถ้ามี">
+      <Form.Item label={<span>ที่ปรึกษาร่วม (Co-advisor) {advisorLocked && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>} extra="ถ้ามี">
         <Select
           allowClear
           placeholder="เลือก Co-advisor (ถ้ามี)"
           value={state.classification.coAdvisorId}
           onChange={v => setClassification({ coAdvisorId: v || null })}
           options={advisorOptions.filter(o => o.value !== state.classification.advisorId)}
-          disabled={advisorOptions.length === 0}
+          disabled={advisorOptions.length === 0 || advisorLocked}
         />
       </Form.Item>
       <Form.Item label="สาย/แทร็ก (เลือกได้หลายสาย)">

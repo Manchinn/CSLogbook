@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Alert, Descriptions, Tag, Typography, Button, Space, message, Divider } from 'antd';
+import { Alert, Descriptions, Tag, Typography, Button, Space, message, Divider, Tooltip } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import projectService from '../../../../../services/projectService';
 import { useCreateProjectDraft } from '../createContext';
@@ -56,6 +56,10 @@ const StepReview = () => {
           expectedOutcome: p.expectedOutcome || '',
           benefit: p.benefit || '',
           tools: p.tools || '',
+          methodology: p.methodology || '',
+          timelineNote: p.timelineNote || '',
+          risk: p.risk || '',
+          constraints: p.constraints || '',
           problem: details.problem // problem ไม่ได้มาจาก backend ตอนนี้ เก็บของเดิมไว้
         });
         // second member (role = member)
@@ -78,6 +82,8 @@ const StepReview = () => {
     }
   };
 
+  const lockedCore = ['in_progress','completed','archived'].includes(projectStatus);
+
   return (
     <div>
       <Alert
@@ -87,12 +93,12 @@ const StepReview = () => {
       />
 
       <Descriptions bordered size="small" column={1} title="สรุปข้อมูล">
-        <Descriptions.Item label="ชื่อ (TH)">{basic.projectNameTh || '-'} </Descriptions.Item>
-        <Descriptions.Item label="ชื่อ (EN)">{basic.projectNameEn || '-'} </Descriptions.Item>
+  <Descriptions.Item label={<span>ชื่อ (TH){lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameTh || '-'} </Descriptions.Item>
+  <Descriptions.Item label={<span>ชื่อ (EN){lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameEn || '-'} </Descriptions.Item>
         <Descriptions.Item label="ประเภท">{basic.projectType || <em>ยังไม่ระบุ</em>} </Descriptions.Item>
         <Descriptions.Item label="แทร็ก">{classification.tracks.length ? classification.tracks.join(', ') : <em>ยังไม่เลือก</em>} </Descriptions.Item>
-        <Descriptions.Item label="Advisor">{advisorName || <em>ยังไม่เลือก</em>} </Descriptions.Item>
-        <Descriptions.Item label="Co-advisor">{coAdvisorName || <span style={{ opacity: 0.5 }}>-</span>} </Descriptions.Item>
+  <Descriptions.Item label={<span>Advisor{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{advisorName || <em>ยังไม่เลือก</em>} </Descriptions.Item>
+  <Descriptions.Item label={<span>Co-advisor{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{coAdvisorName || <span style={{ opacity: 0.5 }}>-</span>} </Descriptions.Item>
         <Descriptions.Item label="สมาชิกเพิ่ม">
           {members.secondMemberCode && <Tag color="blue">คนที่2: {members.secondMemberCode}</Tag>}
           {!members.secondMemberCode && <span>-</span>}
@@ -111,6 +117,10 @@ const StepReview = () => {
   <Descriptions.Item label="Benefit">{details.benefit || '-'} </Descriptions.Item>
   <Descriptions.Item label="Scope">{details.scope || '-'} </Descriptions.Item>
   <Descriptions.Item label="Tools">{details.tools || '-'} </Descriptions.Item>
+  <Descriptions.Item label="Methodology">{details.methodology || '-'} </Descriptions.Item>
+  <Descriptions.Item label="Timeline Note">{details.timelineNote || '-'} </Descriptions.Item>
+  <Descriptions.Item label="Risk">{details.risk || '-'} </Descriptions.Item>
+  <Descriptions.Item label="Constraints">{details.constraints || '-'} </Descriptions.Item>
       </Descriptions>
 
       <div style={{ marginTop: 24 }}>
@@ -167,6 +177,10 @@ const StepReview = () => {
                 expectedOutcome: details.expectedOutcome || undefined,
                 benefit: details.benefit || undefined,
                 tools: details.tools || undefined,
+                methodology: details.methodology || undefined,
+                timelineNote: details.timelineNote || undefined,
+                risk: details.risk || undefined,
+                constraints: details.constraints || undefined,
                 tracks: classification.tracks && classification.tracks.length ? classification.tracks : undefined,
               };
               const res = await projectService.createProject(payload);
@@ -204,18 +218,23 @@ const StepReview = () => {
               try {
                 setStatus({ saving: true });
                 const updatePayload = {
-                  projectNameTh: basic.projectNameTh || '',
-                  projectNameEn: basic.projectNameEn || '',
+                  // ถ้า lockedCore จะไม่ส่งค่าชื่อ/advisor เปลี่ยน (ป้องกันแก้ไข)
+                  projectNameTh: lockedCore ? undefined : (basic.projectNameTh || ''),
+                  projectNameEn: lockedCore ? undefined : (basic.projectNameEn || ''),
                   projectType: basic.projectType || null,
-                  advisorId: classification.advisorId || null,
-                  coAdvisorId: classification.coAdvisorId || null,
+                  advisorId: lockedCore ? undefined : (classification.advisorId || null),
+                  coAdvisorId: lockedCore ? undefined : (classification.coAdvisorId || null),
                   tracks: classification.tracks,
                   objective: details.objective || null,
                   background: details.background || details.problem || null,
                   scope: details.scope || null,
                   expectedOutcome: details.expectedOutcome || null,
                   benefit: details.benefit || null,
-                  tools: details.tools || null
+                  tools: details.tools || null,
+                  methodology: details.methodology || null,
+                  timelineNote: details.timelineNote || null,
+                  risk: details.risk || null,
+                  constraints: details.constraints || null
                 };
                 await projectService.updateProject(projectId, updatePayload);
                 message.success('บันทึกการแก้ไขเรียบร้อย');

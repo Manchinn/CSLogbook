@@ -80,7 +80,15 @@ class ProjectDocumentService {
         if (!secondMember.isEligibleProject) {
           throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
         }
-        // ไม่ตรวจ duplicate active project สำหรับ member (เอกสารจำกัดเฉพาะ leader) -> หากต้อง เพิ่ม logic คล้าย leader ที่นี่
+        // ตรวจว่ามีสมาชิกในโครงงานที่ยังไม่ archived อยู่แล้วหรือไม่ (business rule: 1 active project ต่อ 1 นักศึกษา)
+        const existingActiveMembership = await ProjectMember.findOne({
+          where: { studentId: secondMember.studentId },
+          include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
+          transaction: t
+        });
+        if (existingActiveMembership) {
+          throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+        }
       }
 
       // สร้าง ProjectDocument (draft)
@@ -174,6 +182,16 @@ class ProjectDocumentService {
         throw new Error('นักศึกษาคนนี้เป็นสมาชิกอยู่แล้ว');
       }
 
+      // ตรวจว่าไม่ได้อยู่ในโครงงาน active อื่น (non-archived)
+      const existingActiveMembership = await ProjectMember.findOne({
+        where: { studentId: newStudent.studentId },
+        include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' }, projectId: { [Op.ne]: projectId } } }],
+        transaction: t
+      });
+      if (existingActiveMembership) {
+        throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+      }
+
       await ProjectMember.create({
         projectId,
         studentId: newStudent.studentId,
@@ -213,19 +231,20 @@ class ProjectDocumentService {
       if (!nameLocked) {
         if (payload.projectNameTh !== undefined) update.projectNameTh = payload.projectNameTh;
         if (payload.projectNameEn !== undefined) update.projectNameEn = payload.projectNameEn;
-        if (payload.projectType !== undefined) update.projectType = payload.projectType;
-        // อนุญาตแก้ไขฟิลด์รายละเอียดก่อน in_progress
-        if (payload.objective !== undefined) update.objective = payload.objective;
-        if (payload.background !== undefined) update.background = payload.background;
-        if (payload.scope !== undefined) update.scope = payload.scope;
-        if (payload.expectedOutcome !== undefined) update.expectedOutcome = payload.expectedOutcome;
-        if (payload.benefit !== undefined) update.benefit = payload.benefit;
-        if (payload.methodology !== undefined) update.methodology = payload.methodology;
-        if (payload.tools !== undefined) update.tools = payload.tools;
-        if (payload.timelineNote !== undefined) update.timelineNote = payload.timelineNote;
-        if (payload.risk !== undefined) update.risk = payload.risk;
-        if (payload.constraints !== undefined) update.constraints = payload.constraints;
       }
+      // projectType อนุญาตให้แก้ไขหลัง in_progress ตาม requirement ใหม่
+      if (payload.projectType !== undefined) update.projectType = payload.projectType;
+      // ฟิลด์รายละเอียด (เปิดให้แก้ไขเสมอ ไม่ล็อกหลัง in_progress ตาม requirement ใหม่)
+      if (payload.objective !== undefined) update.objective = payload.objective;
+      if (payload.background !== undefined) update.background = payload.background;
+      if (payload.scope !== undefined) update.scope = payload.scope;
+      if (payload.expectedOutcome !== undefined) update.expectedOutcome = payload.expectedOutcome;
+      if (payload.benefit !== undefined) update.benefit = payload.benefit;
+      if (payload.methodology !== undefined) update.methodology = payload.methodology;
+      if (payload.tools !== undefined) update.tools = payload.tools;
+      if (payload.timelineNote !== undefined) update.timelineNote = payload.timelineNote;
+      if (payload.risk !== undefined) update.risk = payload.risk;
+      if (payload.constraints !== undefined) update.constraints = payload.constraints;
       // advisor สามารถตั้ง/แก้ได้ถ้ายังไม่ in_progress
       if (!lockNames.includes(project.status)) {
         if (payload.advisorId !== undefined) update.advisorId = payload.advisorId || null;

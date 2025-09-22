@@ -29,6 +29,18 @@ const StepDetails = () => {
       <Form.Item label="เครื่องมือ / เทคโนโลยี (Tools)">
         <TextArea rows={2} value={state.details.tools} onChange={e => setDetails({ tools: e.target.value })} placeholder="เช่น React, Node.js, MySQL" />
       </Form.Item>
+      <Form.Item label="กระบวนการ / Methodology">
+        <TextArea rows={3} value={state.details.methodology} onChange={e => setDetails({ methodology: e.target.value })} placeholder="ขั้นตอนหรือกรอบวิธีการ (เช่น Scrum, Waterfall, Research Method)" />
+      </Form.Item>
+      <Form.Item label="กำหนดการย่อ / Timeline Note">
+        <TextArea rows={3} value={state.details.timelineNote} onChange={e => setDetails({ timelineNote: e.target.value })} placeholder="ไทม์ไลน์คร่าว ๆ หรือหมายเหตุเกี่ยวกับระยะเวลา" />
+      </Form.Item>
+      <Form.Item label="ความเสี่ยง / Risk">
+        <TextArea rows={3} value={state.details.risk} onChange={e => setDetails({ risk: e.target.value })} placeholder="ความเสี่ยงสำคัญที่คาดว่าจะเจอ" />
+      </Form.Item>
+      <Form.Item label="ข้อจำกัด / Constraints">
+        <TextArea rows={3} value={state.details.constraints} onChange={e => setDetails({ constraints: e.target.value })} placeholder="ข้อจำกัดเช่น ทรัพยากร เวลา ข้อมูล" />
+      </Form.Item>
     </Form>
   );
 };

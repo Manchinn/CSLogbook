@@ -10,7 +10,7 @@ const initialState = {
   members: { secondMemberCode: '', syncing: false, synced: false, error: null },
   projectStatus: 'draft',
   projectMembers: [], // จาก backend (leader + member พร้อม name, code)
-  details: { problem: '', objective: '', background: '', scope: '', expectedOutcome: '', benefit: '', tools: '' },
+  details: { problem: '', objective: '', background: '', scope: '', expectedOutcome: '', benefit: '', tools: '', methodology: '', timelineNote: '', risk: '', constraints: '' },
   advisors: [], // เก็บรายการอาจารย์ล่าสุดที่โหลดมา (ใช้ map id->name ใน review)
   status: { creating: false, saving: false, created: false },
   errors: {}

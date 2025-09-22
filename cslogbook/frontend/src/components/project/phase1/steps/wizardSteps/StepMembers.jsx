@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Space, Typography, Tag, message } from 'antd';
+import { Form, Input, Button, Space, Typography, Tag, message, Tooltip } from 'antd';
 import { useCreateProjectDraft } from '../createContext';
 import projectService from '../../../../../services/projectService';
 
@@ -8,6 +8,8 @@ const studentCodeRegex = /^[0-9]{5,13}$/;
 const StepMembers = () => {
   const { state, setMembers, setMembersStatus } = useCreateProjectDraft();
   const [member2, setMember2] = useState(state.members.secondMemberCode || '');
+  // ล็อกการแก้ไขสมาชิกเมื่อโครงงานเข้าสู่ in_progress หรือหลังจากนั้น
+  const memberLocked = ['in_progress','completed','archived'].includes(state.projectStatus);
 
   const errs = [];
   if (member2 && !studentCodeRegex.test(member2)) errs.push('รหัสนิสิตคนที่ 2 ไม่ถูกต้อง');
@@ -58,21 +60,23 @@ const StepMembers = () => {
 
   return (
     <div>
-      <Typography.Paragraph>เพิ่มสมาชิก (ไม่บังคับครบตอนนี้)</Typography.Paragraph>
+  <Typography.Paragraph>เพิ่มสมาชิก (ไม่บังคับครบตอนนี้) {memberLocked && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</Typography.Paragraph>
       <Form layout="vertical">
         <Form.Item label="รหัสนิสิตคนที่ 2">
-          <Input value={member2} onChange={e => setMember2(e.target.value)} placeholder="ถ้ามี" />
+          <Input value={member2} onChange={e => setMember2(e.target.value)} placeholder="ถ้ามี" disabled={memberLocked} />
         </Form.Item>
         {/* Step สำหรับ member3 จะเพิ่มภายหลัง */}
         {errs.length > 0 && <Space direction="vertical" style={{ marginBottom: 16 }}>{errs.map(er => <Tag color="red" key={er}>{er}</Tag>)}</Space>}
-        <Button
-          type="primary"
-          onClick={handleApply}
-          disabled={errs.length > 0 || state.members.syncing}
-          loading={state.members.syncing}
-        >
-          {state.projectId ? 'บันทึก & Sync' : 'บันทึกในดราฟท์'}
-        </Button>
+        {!memberLocked && (
+          <Button
+            type="primary"
+            onClick={handleApply}
+            disabled={errs.length > 0 || state.members.syncing}
+            loading={state.members.syncing}
+          >
+            {state.projectId ? 'บันทึก & Sync' : 'บันทึกในดราฟท์'}
+          </Button>
+        )}
       </Form>
       <div style={{ marginTop: 16 }}>
         <Typography.Text>สถานะสมาชิกปัจจุบัน:</Typography.Text>
@@ -82,13 +86,14 @@ const StepMembers = () => {
           {!state.members.secondMemberCode && <Typography.Text type="secondary"> ยังไม่มีสมาชิกเพิ่ม </Typography.Text>}
         </div>
         <div style={{ marginTop: 8 }}>
-          {!state.projectId && state.members.secondMemberCode && <Tag color="gold">ยังไม่สร้าง Draft</Tag>}
-          {state.projectId && state.members.secondMemberCode && !state.members.synced && !state.members.syncing && !state.members.error && (
+          {!memberLocked && !state.projectId && state.members.secondMemberCode && <Tag color="gold">ยังไม่สร้าง Draft</Tag>}
+          {!memberLocked && state.projectId && state.members.secondMemberCode && !state.members.synced && !state.members.syncing && !state.members.error && (
             <Tag color="orange">ยังไม่เพิ่มลงฐานข้อมูล</Tag>
           )}
-            {state.members.syncing && <Tag color="processing">กำลังเพิ่ม...</Tag>}
-            {state.members.synced && <Tag color="green">บันทึกแล้ว</Tag>}
-            {state.members.error && <Tag color="red">{state.members.error}</Tag>}
+          {!memberLocked && state.members.syncing && <Tag color="processing">กำลังเพิ่ม...</Tag>}
+          {state.members.synced && <Tag color="green">บันทึกแล้ว</Tag>}
+          {state.members.error && <Tag color="red">{state.members.error}</Tag>}
+          {memberLocked && <Tag color="purple">ล็อก (สถานะโครงงาน: {state.projectStatus})</Tag>}
         </div>
       </div>
     </div>

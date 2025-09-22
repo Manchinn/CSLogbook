@@ -19,7 +19,7 @@ const TopicSubmitInner = () => {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState(null);
   const [forcedNew] = useState(false); // เผื่ออนาคตอยากให้ผู้ใช้ override
-  const { setBasic, setClassification, setDetails, setProjectId, setProjectStatus, setProjectMembers } = useCreateProjectDraft();
+  const { setBasic, setClassification, setDetails, setProjectId, setProjectStatus, setProjectMembers, setMembers, setMembersStatus } = useCreateProjectDraft();
 
   const search = new URLSearchParams(location.search);
   const editPid = search.get('pid');
@@ -50,9 +50,20 @@ const TopicSubmitInner = () => {
           scope: p.scope || '',
           expectedOutcome: p.expectedOutcome || '',
           benefit: p.benefit || '',
-          tools: p.tools || ''
+          tools: p.tools || '',
+          methodology: p.methodology || '',
+          timelineNote: p.timelineNote || '',
+          risk: p.risk || '',
+          constraints: p.constraints || ''
           // problem: คงไว้ของเดิม (ยังไม่มีใน backend)
         }));
+        // Hydrate second member (role === 'member') -> เก็บลง state.members.secondMemberCode
+        const secondMember = (p.members || []).find(m => m.role === 'member');
+        if (secondMember && secondMember.studentCode) {
+          setMembers({ secondMemberCode: secondMember.studentCode });
+          // ถือว่า synced แล้วเพราะ backend มีอยู่จริง
+          setMembersStatus({ synced: true, syncing: false, error: null });
+        }
       } else {
         setError('ไม่พบโครงงานสำหรับแก้ไข');
       }
@@ -61,7 +72,7 @@ const TopicSubmitInner = () => {
     } finally {
       setChecking(false);
     }
-  }, [setBasic, setClassification, setDetails, setProjectId, setProjectMembers, setProjectStatus]);
+  }, [setBasic, setClassification, setDetails, setProjectId, setProjectMembers, setProjectStatus, setMembers, setMembersStatus]);
 
   const checkExisting = useCallback(async () => {
     setChecking(true); setError(null);
