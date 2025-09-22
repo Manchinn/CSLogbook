@@ -7,12 +7,14 @@ import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import { downloadTopicExamExport } from '../../../services/topicExamService';
 
-// ฟังก์ชันสร้าง remark จากข้อมูลโครงงาน (สามารถปรับ rule ภายหลังได้)
+// ฟังก์ชันสร้าง remark = ประเภท "โครงการพิเศษ" (ภาคปกติ vs โครงการสองภาษา CSB)
+// Assumption: ถ้า track มีคำว่า 'bilingual' หรือ 'csb' (ไม่สนตัวพิมพ์) ถือเป็นโครงการสองภาษา (CSB) มิฉะนั้นเป็นภาคปกติ
 function deriveRemark(project) {
-  // กติกาเบื้องต้น: ใช้ track ก่อน ถ้าไม่มีใช้ projectType ถ้ายังไม่มีให้เว้นว่าง
-  if (project.track) return project.track; // ex: bilingual, ds-track
-  if (project.projectType) return project.projectType; // ex: research, dev
-  return '';
+  const t = (project.track || '').toLowerCase();
+  if (t.includes('bilingual') || t.includes('csb')) {
+    return 'โครงการสองภาษา (CSB)';
+  }
+  return 'โครงงานภาคปกติ';
 }
 
 export default function TopicExamOverview() {

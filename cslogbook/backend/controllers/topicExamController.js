@@ -8,7 +8,9 @@ const { stringify } = require('node:querystring');
 function flattenProjects(projects){
   const rows = [];
   for (const p of projects){
-    const remark = p.track || p.projectType || '';
+    // Logic เดียวกับ frontend: bilingual / csb => โครงการสองภาษา (CSB) มิฉะนั้นโครงงานภาคปกติ
+    const trackLower = (p.track || '').toLowerCase();
+    const remark = (trackLower.includes('bilingual') || trackLower.includes('csb')) ? 'โครงการสองภาษา (CSB)' : 'โครงงานภาคปกติ';
     if(!p.members || p.members.length===0){
       rows.push({ titleTh: p.titleTh, studentCode: '', studentName: '', remark });
       continue;

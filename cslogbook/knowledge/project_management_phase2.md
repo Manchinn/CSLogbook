@@ -268,7 +268,7 @@ Export (ใหม่):
 - Endpoint: `GET /api/projects/topic-exam/export?format=csv|xlsx` (default csv) รับ query filters เดียวกับ overview (search, status, readyOnly ฯลฯ)
 - CSV: ใส่ BOM (UTF-8) เพื่อรองรับภาษาไทยใน Excel, คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
 - XLSX: ใช้ sheet `Overview` พร้อมคอลัมน์เดียวกัน (ยังไม่ merge cells – แต่หัวข้อซ้ำในแต่ละสมาชิกเพื่อความง่ายในการ sort ภายหลัง)
-- Remark logic: track > projectType > ว่าง
+- Remark logic (อัปเดต): ถ้า track มีคำว่า bilingual หรือ csb ⇒ "โครงการสองภาษา (CSB)" มิฉะนั้น ⇒ "โครงงานภาคปกติ"
 - Security: ใช้ role guard เดียวกับ overview (teacher/admin/staff)
 
 Tests เพิ่ม:
