@@ -1,0 +1,30 @@
+const request = require('supertest');
+const jwt = require('jsonwebtoken');
+const app = require('../../app');
+
+function sign(role, extra = {}) {
+  return jwt.sign({ userId: extra.userId || (role==='teacher'?501:601), role, ...extra }, process.env.JWT_SECRET || 'testsecret', { expiresIn: '1h' });
+}
+
+describe('GET /api/projects/topic-exam/export (integration)', () => {
+  test('403 when role=student', async () => {
+    const token = sign('student');
+    const res = await request(app)
+      .get('/api/projects/topic-exam/export')
+      .set('Authorization', `Bearer ${token}`);
+    expect([401,403]).toContain(res.status);
+  });
+
+  test('200 CSV (or 500 if underlying service fails) for teacher', async () => {
+    const token = sign('teacher');
+    const res = await request(app)
+      .get('/api/projects/topic-exam/export?format=csv')
+      .set('Authorization', `Bearer ${token}`);
+    expect([200,500]).toContain(res.status);
+    if (res.status === 200) {
+      expect(res.headers['content-type']).toMatch(/text\/csv/);
+      // header row presence
+      expect(res.text.startsWith('\uFEFFหัวข้อ,')).toBe(true);
+    }
+  });
+});

@@ -2,9 +2,10 @@
 // ปรับให้แสดงเฉพาะ 4 คอลัมน์: ชื่อโครงงาน (TH), รหัสนักศึกษา, ชื่อเต็มนักศึกษา, Remark
 // แต่ยังคงส่วนตัวกรองพื้นฐาน (search, status, readyOnly) เพื่อการใช้งานต่อไปได้ หากต้องการตัดออกค่อย refactor เพิ่มเติมภายหลัง
 import React, { useMemo } from 'react';
-import { Table, Space, Input, Select, Switch, Card, Typography, Button, Tooltip } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { Table, Space, Input, Select, Switch, Card, Typography, Button, Tooltip, Dropdown } from 'antd';
+import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
+import { downloadTopicExamExport } from '../../../services/topicExamService';
 
 // ฟังก์ชันสร้าง remark จากข้อมูลโครงงาน (สามารถปรับ rule ภายหลังได้)
 function deriveRemark(project) {
@@ -78,12 +79,48 @@ export default function TopicExamOverview() {
     }
   ], []);
 
+  // ฟังก์ชันดาวน์โหลดไฟล์ export (CSV/XLSX)
+  const handleExport = async (format) => {
+    try {
+      const res = await downloadTopicExamExport({ ...filters, format });
+      const blob = res.data;
+      let filename = `topic_exam_overview.${format === 'xlsx' ? 'xlsx' : 'csv'}`;
+      const dispo = res.headers && (res.headers['content-disposition'] || res.headers['Content-Disposition']);
+      if (dispo) {
+        const match = /filename=([^;]+)/i.exec(dispo);
+        if (match && match[1]) filename = match[1].replace(/"/g,'');
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Export ล้มเหลว: ' + (e.message || 'unknown'));
+    }
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Card title={<Space><Title level={4} style={{ margin:0 }}>Topic Exam Overview</Title></Space>} extra={<Space>
         <Tooltip title="Reload">
           <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} />
         </Tooltip>
+        <Dropdown
+          menu={{
+            items: [
+              { key: 'csv', label: 'Export CSV', onClick: () => handleExport('csv') },
+              { key: 'xlsx', label: 'Export XLSX', onClick: () => handleExport('xlsx') }
+            ]
+          }}
+        >
+          <Tooltip title="Export">
+            <Button icon={<DownloadOutlined />} />
+          </Tooltip>
+        </Dropdown>
       </Space>}>
         <Space style={{ marginBottom: 16 }} wrap>
           <Input.Search placeholder="ค้นหา (code / title)" allowClear onSearch={val=>updateFilters({ search: val })} style={{ width: 240 }} />

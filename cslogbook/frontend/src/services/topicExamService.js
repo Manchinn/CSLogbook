@@ -12,3 +12,11 @@ export async function fetchTopicExamOverview(params = {}) {
   return res.data; 
 }
 
+// ดาวน์โหลดไฟล์ export (CSV/XLSX) - จะคืนเป็น Blob ให้ผู้เรียกจัดการ save
+export async function downloadTopicExamExport(params = {}) {
+  const { format = 'csv', ...rest } = params;
+  const url = '/projects/topic-exam/export';
+  const res = await apiClient.get(url, { params: { format, ...rest }, responseType: 'blob' });
+  return res; // caller จะใช้ headers และ data (Blob)
+}
+

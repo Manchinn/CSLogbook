@@ -29,4 +29,17 @@ router.get('/overview', authenticateToken, requireTeacherLike, async (req,res,ne
   }
 });
 
+// GET /api/projects/topic-exam/export?format=csv|xlsx ใช้ query เดียวกับ overview
+router.get('/export', authenticateToken, requireTeacherLike, async (req,res,next)=>{
+  const start = Date.now();
+  logger.info(`[TopicExam] export request start user=${req.user?.userId} role=${req.user?.role} format=${req.query.format}`);
+  try {
+    await controller.exportOverview(req,res,(err)=>{ if (err) throw err; });
+    logger.info(`[TopicExam] export request success user=${req.user?.userId} ms=${Date.now()-start}`);
+  } catch (e) {
+    logger.error(`[TopicExam] export request error user=${req.user?.userId} err=${e.message}`);
+    next(e);
+  }
+});
+
 module.exports = router;

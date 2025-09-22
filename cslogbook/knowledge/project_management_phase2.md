@@ -263,9 +263,18 @@ Route: `routes/topicExamRoutes.js` (mount: `/api/projects/topic-exam`)
 Frontend: `/teacher/topic-exam/overview` (AntD Table + filters)
 Sidebar Integration: เพิ่มเมนู `Topic Exam Overview` สำหรับ role teacher
 
+Export (ใหม่):
+- ปุ่ม Export (CSV/XLSX) ที่หน้า Overview (มุมขวาบน) เลือกรูปแบบได้
+- Endpoint: `GET /api/projects/topic-exam/export?format=csv|xlsx` (default csv) รับ query filters เดียวกับ overview (search, status, readyOnly ฯลฯ)
+- CSV: ใส่ BOM (UTF-8) เพื่อรองรับภาษาไทยใน Excel, คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
+- XLSX: ใช้ sheet `Overview` พร้อมคอลัมน์เดียวกัน (ยังไม่ merge cells – แต่หัวข้อซ้ำในแต่ละสมาชิกเพื่อความง่ายในการ sort ภายหลัง)
+- Remark logic: track > projectType > ว่าง
+- Security: ใช้ role guard เดียวกับ overview (teacher/admin/staff)
+
 Tests เพิ่ม:
 - Unit: `tests/unit/topicExamService.unit.test.js` (ตรวจ mapping & readyOnly)
 - Integration: `tests/integration/topicExamOverview.integration.test.js` (ครอบ 403 student / 200 teacher – ปัจจุบันยอมรับ 500 ชั่วคราวถ้า DB ไม่มี seed)
+- Integration Export: `tests/integration/topicExamExport.integration.test.js` (ตรวจ header CSV / role guard)
 
 Logging (Winston):
 - `[TopicExam] overview request start|success|error` (route)
@@ -437,6 +446,37 @@ projectService {
 | 6 | Evaluation (rubric) + Presentation scheduling |
 | 7 | Timeline/Audit + Reports (advisor workload) |
 | 8 | Optimization, PDF enhancements, Export bundle |
+
+### 16.9.1 คำอธิบายภาษาไทยแบบขยาย
+| Phase | รายละเอียดเชิงลึก | คุณค่าที่ได้ (Value) | จุดเสี่ยง/สิ่งที่ต้องจับตา |
+|-------|--------------------|----------------------|-----------------------------|
+| 3 | เพิ่มวงจร "เสนอหัวข้ออย่างเป็นทางการ" ผ่านการอัปโหลด Proposal (ไฟล์ PDF) → Advisor เห็น/ให้ความเห็น/อนุมัติ (หรือขอแก้) พร้อมตาราง artifacts พื้นฐานเก็บไฟล์ proposal เวอร์ชันล่าสุด | ทำให้โครงงานจาก "ไอเดีย" กลายเป็นเอกสารกึ่งเป็นทางการ ลดความคลุมเครือ scope ตั้งแต่ต้น | ขนาดไฟล์, เวอร์ชันซ้ำ, Advisor backlog หากไม่มี notification / filter ที่ดี |
+| 4 | แนะนำ Milestones (จุดตรวจความคืบหน้า) + Scheduling เบื้องต้นของ Meetings (ระบบจองเวลาหรือ log การนัด) | เพิ่มการควบคุมจังหวะงาน ลดโอกาสเรื้อรัง / เงียบหาย และสร้าง trace ของการติดตาม | การสแปม milestones เล็กมาก, ซ้ำซ้อนกับช่องทางนัดภายนอก (Line/Email) หาก UX ไม่ลื่น |
+| 5 | ช่องทางส่ง Final Report, Slide, ภาคผนวก + Checklist คุณภาพ (เช่น มีส่วนประกอบครบ บรรณานุกรม ฯลฯ) ก่อนอนุญาตให้เข้าสู่ขั้นตารางสอบ | ยกระดับคุณภาพ deliverable ขั้นสุดท้าย ลดงานตรวจพื้นฐานให้ Advisor/กรรมการ | ความหลากหลายรูปแบบไฟล์, การตรวจ checklist อาจต้อง rule engine ที่ยืดหยุ่น |
+| 6 | ระบบกรอก/คำนวนคะแนนผ่าน Rubric + จัดตาราง Presentation (assign slot, ห้อง, คณะกรรมการ) | ลดงานเอกสาร manual (Excel) - ได้ข้อมูลโครงสร้างพร้อมวิเคราะห์รวดเร็ว | Overbooking slot, ความซับซ้อน time zone / ห้อง, ต้องมี guard ป้อนคะแนนซ้ำ |
+| 7 | Timeline/Audit เก็บ Event ทุกการกระทำ + รายงาน (เช่น ภาระงาน Advisor, สถานะรวมของ batch, distribution ของคะแนน/ประเภทโครงงาน) | โปร่งใส ตรวจสอบย้อนหลังได้, สนับสนุน QA / Accreditation | ปริมาณ log มาก → ต้องออกแบบ index / retention, ความเป็นส่วนตัวข้อมูล (PII) |
+| 8 | ปรับประสิทธิภาพ (query / index), เพิ่มชุด PDF (Proposal Bundle, Final Bundle), Export ZIP รวม artifacts และรายงานสรุป | พร้อมขยาย scale และออกรายงานครบวงจร / ส่งภายนอก | ขนาดไฟล์รวมใหญ่, ต้องจัดการ streaming / chunk, ต้นทุนเวลา generate PDF จำนวนมากพร้อมกัน |
+
+สรุปย่อ (Flow Value Progression):
+Phase 3 สร้างความชัดเจน → Phase 4 สร้างจังหวะควบคุม → Phase 5 ยกระดับคุณภาพส่งมอบ → Phase 6 สร้างผลการประเมินที่เป็นระบบ → Phase 7 เพิ่มการสืบค้นและการวิเคราะห์ภาพรวม → Phase 8 ทำให้ระบบเสถียรและรองรับการใช้งานเชิงบริหาร/รายงานภายนอก.
+
+แนวคิดการนำไปใช้ทีละขั้น (Incremental Release Strategy):
+1) เปิด Proposal (Phase 3) ให้ใช้งานจริงก่อน แม้ยังไม่มี Milestones เพื่อรวบรวมหัวข้ออย่างเป็นระบบ
+2) เก็บ feedback จาก Advisor เรื่องฟอร์ม/องค์ประกอบ proposal แล้วค่อยสรุป schema milestone (Phase 4) เพื่อลด refactor
+3) ระหว่าง Phase 4 → 5 อาจเริ่มเก็บ event พื้นฐาน (PROJECT_CREATED, PROPOSAL_UPLOADED) ก่อนพัฒนาเต็มใน Phase 7 เพื่อลด migration ซ้ำ
+4) ทำ Rubric (Phase 6) แบบ metadata-driven (เก็บ rubric_json) เพื่อให้อนาคตปรับ rubric ต่อเทอมโดยไม่แก้โค้ด
+5) ออกแบบ artifact storage path ตั้งแต่ Phase 3 ให้ครอบคลุม file type ของ Phase 5/8 เพื่อหลีกเลี่ยงย้ายไฟล์
+
+เกณฑ์พร้อมเลื่อน Phase (Readiness Gates):
+- Go Phase 4: ≥ 70% โครงงานมี proposal อนุมัติ + Advisor feedback latency เฉลี่ย < 7 วัน
+- Go Phase 5: ≥ 60% โครงงาน active มี ≥ 1 milestone ผ่าน (accepted) → แสดงว่าการติดตามเริ่มมีวินัย
+- Go Phase 6: ระบบ Final submission ใช้งานได้และไม่มี blocking bug ในการอ่านไฟล์ใหญ่ (≥10MB)
+- Go Phase 7: Events baseline มีอย่างน้อย 8 ประเภทหลักและขนาด log/วัน อยู่ในเกณฑ์ที่ query ได้ < 300ms (index พร้อม)
+- Go Phase 8: คะแนนทุก rubric export CSV/PDF ได้ครบ และผู้ใช้หลัก (Advisor/Staff) ไม่มี pain point ด้าน performance ระบุซ้ำ
+
+หมายเหตุการจัดลำดับความสำคัญ (Prioritization Rationale): เน้น "ลดงาน manual + เพิ่มคุณภาพ" ก่อน "การวิเคราะห์เชิงลึก" เพราะต้นทุน context switching ของ Advisor สูง หากเอกสาร/การติดตามไม่เป็นระบบตั้งแต่ Phase ต้น จะได้ข้อมูลดิบที่สกปรก ใช้สร้างรายงานเชื่อถือไม่ได้ใน Phase หลัง.
+
+คำแนะนำสั้นสำหรับทีม Dev: เก็บ Feature Flags (เช่น proposalEnabled, milestonesEnabled) ตั้งแต่ต้น จะช่วยเปิดทดลองย่อยกับกลุ่มเล็กโดยไม่ต้อง branch โค้ดซับซ้อน และบันทึกการเปลี่ยน config ลง event log เพื่อ audit.
 
 ### 16.10 Hook Naming (ต่อยอด)
 ```
