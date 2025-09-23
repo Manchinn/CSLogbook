@@ -125,6 +125,7 @@ const Phase1Dashboard = () => {
   // Root view (ยังไม่เลือก step) -> แสดง overview การ์ดทั้งหมด
   if (!activeSub) {
     return (
+      <>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {showAck && (
           <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
@@ -196,6 +197,25 @@ const Phase1Dashboard = () => {
           })}
         </Row>
       </div>
+      <Modal
+        open={ackModalOpen}
+        title="ยืนยันการรับทราบผลสอบไม่ผ่าน"
+        okText="ยืนยันรับทราบ"
+        okButtonProps={{ danger: true, loading: ackLoading }}
+        cancelText="ยกเลิก"
+        onOk={handleAcknowledge}
+        onCancel={() => !ackLoading && setAckModalOpen(false)}
+      >
+        <Typography.Paragraph>
+          เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร (Archived) และคุณจะสามารถยื่นหัวข้อใหม่ในรอบถัดไป การกระทำนี้ไม่สามารถย้อนกลับได้
+        </Typography.Paragraph>
+        {activeProject?.examFailReason && (
+          <Typography.Paragraph type="secondary" style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
+            เหตุผล: {activeProject.examFailReason}
+          </Typography.Paragraph>
+        )}
+      </Modal>
+      </>
     );
   }
 

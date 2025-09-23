@@ -115,29 +115,43 @@ export default function TopicExamResultPage() {
       }
     },
     {
+      title: 'เหตุผล',
+      dataIndex: 'examFailReason',
+      width: 320,
+      render: (_, r) => {
+        if (r.examResult !== 'failed') return <Text type="secondary">—</Text>;
+        const ts = r.examResultAt ? new Date(r.examResultAt) : null;
+        return (
+          <div style={{ maxWidth: 300 }}>
+              {r.examFailReason || ''}
+            {ts && (
+              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+                บันทึกเมื่อ: {ts.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
       title: 'Action',
       key: 'action',
       fixed: 'right',
-      width: 170,
-      render: (_, record) => (
-        <Space>
-          {!record.examResult && (
-            <>
+      width: 160,
+      render: (_, record) => {
+        if (!record.examResult) {
+          return (
+            <Space>
               <Tooltip title="บันทึกผล: ผ่าน">
                 <Button type="primary" size="small" onClick={() => handlePass(record)}>ผ่าน</Button>
               </Tooltip>
               <Tooltip title="บันทึกผล: ไม่ผ่าน (กรอกเหตุผล)">
                 <Button danger size="small" onClick={() => openFailModal(record)}>ไม่ผ่าน</Button>
               </Tooltip>
-            </>
-          )}
-          {record.examResult === 'failed' && (
-            <Tooltip title={record.examFailReason || 'ไม่มีเหตุผล'}>
-              <Tag color="red" style={{ cursor: 'pointer' }}>ดูเหตุผล</Tag>
-            </Tooltip>
-          )}
-        </Space>
-      )
+            </Space>
+          );
+        }
+      }
     }
   ];
 
