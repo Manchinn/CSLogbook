@@ -145,6 +145,27 @@ module.exports = (sequelize) => {
             type: DataTypes.DATE,
             allowNull: true,
             field: 'archived_at'
+        },
+        // ผลสอบหัวข้อ
+        examResult: {
+            type: DataTypes.ENUM('passed','failed'),
+            allowNull: true,
+            field: 'exam_result'
+        },
+        examFailReason: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'exam_fail_reason'
+        },
+        examResultAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'exam_result_at'
+        },
+        studentAcknowledgedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'student_acknowledged_at'
         }
     }, {
         sequelize,

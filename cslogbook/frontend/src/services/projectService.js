@@ -88,6 +88,16 @@ const projectService = {
     }
   },
 
+  // Acknowledge exam failed -> archive project
+  acknowledgeExamResult: async (projectId) => {
+    try {
+      const res = await apiClient.patch(`/projects/${projectId}/exam-result/ack`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถรับทราบผลสอบได้');
+    }
+  },
+
   /**
    * Archive (เฉพาะ admin – ฝั่ง UI ควรซ่อน)
    */

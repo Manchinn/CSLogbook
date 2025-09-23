@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const controller = require('../controllers/projectDocumentController');
+const topicExamResultController = require('../controllers/topicExamResultController');
 
 // ต้อง auth ทั้งหมด
 router.use(authenticateToken);
@@ -50,5 +51,10 @@ router.post('/:id/activate', controller.activateProject);
 
 // Archive (admin)
 router.post('/:id/archive', controller.archiveProject);
+
+// บันทึกผลสอบหัวข้อ (staff/admin)
+router.post('/:id/exam-result', topicExamResultController.recordResult);
+// นักศึกษา acknowledge ผลสอบไม่ผ่าน (archive project)
+router.patch('/:id/exam-result/ack', topicExamResultController.acknowledgeFailed);
 
 module.exports = router;

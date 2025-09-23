@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Typography, Tag, Space, Alert, Spin, Button } from 'antd';
+import { Table, Typography, Tag, Space, Alert, Spin, Button, Modal, message } from 'antd';
 import importantDeadlineStudentService from '../../../../services/student/importantDeadlineStudentService';
+import { useStudentProject } from '../../../../hooks/useStudentProject';
+import projectService from '../../../../services/projectService';
 
 // หน้าจอ: สอบหัวข้อ (ดึงจาก important_deadlines ที่เกี่ยวกับ project1 / project และตีความว่าเป็นช่วง "สอบเสนอหัวข้อ")
 // หมายเหตุ: ตอนนี้ยังไม่มี flag เฉพาะ จึงใช้ heuristic จากชื่อ / deadlineType / relatedTo
@@ -82,6 +84,31 @@ const TopicExamPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterYear] = useState(undefined); // เผื่อ UI เลือกปีอนาคต
+  const { activeProject, loadProjects } = useStudentProject({ autoLoad: true });
+  const [ackModalOpen, setAckModalOpen] = useState(false);
+  const [ackLoading, setAckLoading] = useState(false);
+
+  const showFailedBox = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
+  const showPassedBox = activeProject && activeProject.examResult === 'passed';
+
+  const handleAcknowledge = async () => {
+    if (!activeProject) return;
+    try {
+      setAckLoading(true);
+      const res = await projectService.acknowledgeExamResult(activeProject.projectId);
+      if (!res.success) {
+        message.error(res.message || 'รับทราบผลไม่สำเร็จ');
+      } else {
+        message.success('รับทราบผลแล้ว หัวข้อถูกเก็บถาวร');
+        await loadProjects();
+      }
+    } catch (e) {
+      message.error(e.message || 'รับทราบผลไม่สำเร็จ');
+    } finally {
+      setAckLoading(false);
+      setAckModalOpen(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -113,6 +140,31 @@ const TopicExamPage = () => {
       <Typography.Paragraph style={{ marginTop: -4 }} type="secondary">
         แสดงจาก Important Deadlines ที่เข้าข่ายเกี่ยวกับ "สอบเสนอหัวข้อ" (heuristic ชั่วคราว)
       </Typography.Paragraph>
+      {showFailedBox && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="error"
+          showIcon
+          message={<span><strong>ผลสอบหัวข้อ: ไม่ผ่าน</strong></span>}
+          description={
+            <div style={{ whiteSpace: 'pre-wrap' }}>
+              <div style={{ marginBottom: 8 }}>เหตุผล: {activeProject.examFailReason || '—'}</div>
+              <Button danger type="primary" size="small" onClick={() => setAckModalOpen(true)}>รับทราบผล (หัวข้อจะถูกเก็บถาวร)</Button>
+            </div>
+          }
+        />
+      )}
+      {showPassedBox && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="success"
+          showIcon
+          message={<span><strong>ผลสอบหัวข้อ: ผ่าน</strong></span>}
+          description={<div style={{ whiteSpace: 'pre-wrap' }}>
+            <div style={{ marginBottom: 4 }}>ยินดีด้วย! ระบบจะค่อย ๆ เปิดขั้นตอนถัดไป (เช่น การส่ง Proposal) เมื่อฟีเจอร์พร้อม</div>
+          </div>}
+        />
+      )}
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48 }}><Spin /></div>
@@ -127,6 +179,19 @@ const TopicExamPage = () => {
           pagination={{ pageSize: 8 }}
         />
       )}
+      <Modal
+        open={ackModalOpen}
+        title="ยืนยันการรับทราบผลสอบไม่ผ่าน"
+        okText="ยืนยันรับทราบ"
+        okButtonProps={{ danger: true, loading: ackLoading }}
+        cancelText="ยกเลิก"
+        onOk={handleAcknowledge}
+        onCancel={() => !ackLoading && setAckModalOpen(false)}
+      >
+        <Typography.Paragraph>
+          เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร (Archived) และคุณจะสามารถยื่นหัวข้อใหม่ในรอบถัดไป การกระทำนี้ไม่สามารถย้อนกลับได้
+        </Typography.Paragraph>
+      </Modal>
     </div>
   );
 };

@@ -22,6 +22,23 @@ class ProjectDocumentService {
       const student = await Student.findByPk(studentId, { transaction: t });
       if (!student) throw new Error('ไม่พบนักศึกษา');
 
+      // Gating: ป้องกันสร้างหัวข้อใหม่ถ้ามีโครงงานที่สอบไม่ผ่านและเพิ่ง acknowledge รอรอบใหม่
+      // เกณฑ์ง่ายเบื้องต้น: ยังมี project failed+archived ที่ยังไม่ถูก purge (studentAcknowledgedAt != null และ examResult='failed')
+      // สามารถขยายเป็นตรวจ window จริงในอนาคต (เชื่อม ImportantDeadline หรือ Academic window)
+      const blockExisting = await ProjectMember.findOne({
+        where: { studentId },
+        include: [{
+          model: ProjectDocument,
+          as: 'project',
+          required: true,
+          where: { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } }
+        }],
+        transaction: t
+      });
+      if (blockExisting) {
+        throw new Error('คุณเพิ่งรับทราบผลสอบหัวข้อไม่ผ่าน กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่');
+      }
+
       // ตรวจ eligibility อีกครั้งแบบง่าย (ใช้ flag isEligibleProject จาก student หรือเรียก service ลึกเพิ่มเติมได้)
       // เดิมอาศัย field isEligibleProject ซึ่งอาจไม่ sync กับ logic ปัจจุบัน
       // ปรับให้พยายามเรียก instance method checkProjectEligibility() (ถ้ามี) เพื่อประเมินสด
@@ -444,6 +461,10 @@ class ProjectDocumentService {
       academicYear: p.academicYear,
       semester: p.semester,
       createdByStudentId: p.createdByStudentId,
+      examResult: p.examResult,
+      examFailReason: p.examFailReason,
+      examResultAt: p.examResultAt,
+      studentAcknowledgedAt: p.studentAcknowledgedAt,
       // enrich member ด้วย studentCode + ชื่อ (ดึงจาก user) ลดรอบ frontend API
       members: (p.members || []).map(m => ({
         studentId: m.studentId,
@@ -455,6 +476,75 @@ class ProjectDocumentService {
       })),
       archivedAt: p.archivedAt
     };
+  }
+
+  /**
+   * บันทึกผลสอบหัวข้อโครงงาน
+   */
+  async setExamResult(projectId, { result, reason, actorUser }) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { transaction: t, lock: t.LOCK.UPDATE });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+      // ป้องกันการบันทึกซ้ำ (อนุญาต overwrite? ตอนนี้ไม่อนุญาต เพื่อลดความสับสน)
+      if (project.examResult) {
+        throw new Error('มีการบันทึกผลสอบหัวข้อนี้แล้ว');
+      }
+      await ProjectDocument.update({
+        examResult: result,
+        examFailReason: reason || null,
+        examResultAt: new Date()
+      }, { where: { projectId }, transaction: t });
+      await t.commit();
+      return this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
+  }
+
+  /**
+   * นักศึกษากด “รับทราบผล” (กรณีไม่ผ่าน) -> บันทึกเวลายืนยัน และ archive โครงงานเพื่อเตรียมยื่นรอบใหม่
+   * Business rule:
+   *  - ต้องเป็นสมาชิกโครงงาน (leader หรือ member)
+   *  - examResult ต้องเป็น failed
+   *  - ยังไม่ acknowledge มาก่อน
+   *  - Archive โดยเปลี่ยน status='archived' + archivedAt=NOW() (ไม่ลบข้อมูลจริง เพื่อเก็บประวัติ)
+   */
+  async acknowledgeExamResult(projectId, studentId) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { include: [{ model: ProjectMember, as: 'members' }], transaction: t, lock: t.LOCK.UPDATE });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+      if (project.examResult !== 'failed') {
+        throw new Error('โครงงานนี้ไม่ได้อยู่ในสถานะผลสอบไม่ผ่าน');
+      }
+      if (project.studentAcknowledgedAt) {
+        throw new Error('มีการรับทราบผลไปแล้ว');
+      }
+      const isMember = (project.members || []).some(m => m.studentId === Number(studentId));
+      if (!isMember) {
+        throw new Error('คุณไม่มีสิทธิ์รับทราบผลของโครงงานนี้');
+      }
+      await ProjectDocument.update({
+        studentAcknowledgedAt: new Date(),
+        status: 'archived',
+        archivedAt: new Date()
+      }, { where: { projectId }, transaction: t });
+      await t.commit();
+      return this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
+  }
+
+  /**
+   * Utility (เรียกใช้จาก scheduler) – คืนจำนวนนับของโครงงาน failed ที่ยังคงอยู่ (debug purpose)
+   */
+  async countFailedArchivedWaiting() {
+    const { ProjectDocument } = require('../models');
+    return ProjectDocument.count({ where: { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } } });
   }
 }
 

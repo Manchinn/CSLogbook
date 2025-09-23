@@ -136,6 +136,10 @@ async function getTopicOverview(query = {}) {
         role: m.role
       })),
       memberCount: p.members.length,
+      // เพิ่มข้อมูลผลสอบหัวข้อ (phase staff บันทึกผล) สำหรับหน้า TopicExamResultPage
+      examResult: p.examResult || null,
+      examFailReason: p.examFailReason || null,
+      examResultAt: p.examResultAt || null,
       readiness,
       updatedAt: p.updatedAt,
       createdAt: p.createdAt

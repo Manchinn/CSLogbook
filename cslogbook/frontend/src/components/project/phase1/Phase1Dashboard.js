@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Card, Typography, Row, Col, Tag, Button, Space } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   FileAddOutlined,
@@ -72,7 +72,31 @@ const Phase1Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   // โหลดข้อมูลโครงงานของผู้ใช้ (automatic load) อยู่ใน component (ไม่ใส่ก่อนประกาศ component)
-  const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
+  const { activeProject, loadProjects } = useStudentProject({ autoLoad: true });
+  const [ackLoading, setAckLoading] = useState(false);
+  const [ackModalOpen, setAckModalOpen] = useState(false);
+
+  const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
+  const showPassed = activeProject && activeProject.examResult === 'passed';
+
+  const handleAcknowledge = async () => {
+    if (!activeProject) return;
+    try {
+      setAckLoading(true);
+      const res = await (await import('../../../services/projectService')).default.acknowledgeExamResult(activeProject.projectId);
+      if (!res.success) {
+        message.error(res.message || 'รับทราบผลไม่สำเร็จ');
+      } else {
+        message.success('รับทราบผลแล้ว หัวข้อถูกเก็บถาวร');
+        await loadProjects(); // จะทำให้ activeProject เปลี่ยน (อาจเป็น null)
+      }
+    } catch (e) {
+      message.error(e.message || 'รับทราบผลไม่สำเร็จ');
+    } finally {
+      setAckLoading(false);
+      setAckModalOpen(false);
+    }
+  };
 
   // ตรวจว่ากำลังอยู่ในหน้า sub-step หรือไม่
   const activeSub = useMemo(() => {
@@ -102,6 +126,43 @@ const Phase1Dashboard = () => {
   if (!activeSub) {
     return (
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {showAck && (
+          <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
+            <Space direction="vertical" style={{ width: '100%' }} size={8}>
+              <Alert
+                type="error"
+                showIcon
+                message={<span><strong>ผลสอบหัวข้อ: ไม่ผ่าน</strong></span>}
+                description={
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    <div style={{ marginBottom: 8 }}>เหตุผล: {activeProject.examFailReason || '—'}</div>
+                    <div style={{ fontSize: 12, color: '#555' }}>คุณต้องยื่นหัวข้อใหม่ในรอบถัดไป กรุณากด "รับทราบผล" เพื่อเคลียร์หัวข้อนี้ออกจากระบบ</div>
+                  </div>
+                }
+              />
+              <div>
+                <Button danger type="primary" onClick={() => setAckModalOpen(true)} loading={ackLoading}>
+                  รับทราบผล (หัวข้อจะถูกเก็บถาวร)
+                </Button>
+              </div>
+            </Space>
+          </Card>
+        )}
+        {showPassed && (
+          <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #b7eb8f', background: '#f6ffed' }}>
+            <Space direction="vertical" style={{ width: '100%' }} size={6}>
+              <Alert
+                type="success"
+                showIcon
+                message={<span><strong>ผลสอบหัวข้อ: ผ่าน</strong></span>}
+                description={<div style={{ whiteSpace: 'pre-wrap' }}>
+                  <div style={{ marginBottom: 4 }}>คุณสามารถเตรียมขั้นตอนต่อไป เช่น การจัดทำ Proposal (ฟีเจอร์กำลังพัฒนา)</div>
+                  <div style={{ fontSize: 12, color: '#555' }}>ระบบจะเปิดให้ทำกิจกรรมขั้นต่อไปเมื่อฟีเจอร์พร้อม</div>
+                </div>}
+              />
+            </Space>
+          </Card>
+        )}
         <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
           <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
           <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
@@ -109,7 +170,6 @@ const Phase1Dashboard = () => {
         <Row gutter={[16,16]}>
           {steps.map(s => {
             const disabled = !s.implemented;
-            const isTopicSubmit = s.key === 'topic-submit';
             return (
               <Col xs={24} sm={12} md={8} key={s.key}>
                 <Card
@@ -141,6 +201,7 @@ const Phase1Dashboard = () => {
 
   // Sub view (อยู่ภายในขั้นตอนใดขั้นตอนหนึ่ง) -> แสดง header + Outlet เต็มความกว้าง
   return (
+    <>
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Card
@@ -155,6 +216,20 @@ const Phase1Dashboard = () => {
         </Card>
       </Space>
     </div>
+    <Modal
+      open={ackModalOpen}
+      title="ยืนยันการรับทราบผลสอบไม่ผ่าน"
+      okText="ยืนยันรับทราบ"
+      okButtonProps={{ danger: true, loading: ackLoading }}
+      cancelText="ยกเลิก"
+      onOk={handleAcknowledge}
+      onCancel={() => !ackLoading && setAckModalOpen(false)}
+    >
+      <Typography.Paragraph>
+        เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร (Archived) และคุณจะสามารถยื่นหัวข้อใหม่ในรอบถัดไป การกระทำนี้ไม่สามารถย้อนกลับได้
+      </Typography.Paragraph>
+    </Modal>
+    </>
   );
 };
 

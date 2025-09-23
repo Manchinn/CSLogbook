@@ -10,6 +10,8 @@ const logbookQualityMonitor = require('./monitors/logbookQualityMonitor');
 const eligibilityChecker = require('./schedulers/eligibilityChecker');
 // เพิ่ม eligibilityScheduler
 const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
+// เพิ่ม project purge scheduler
+const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -34,6 +36,18 @@ class AgentManager {
         stop: () => {
           logger.info('Stopping eligibility scheduler');
           // ไม่จำเป็นต้องหยุดเนื่องจากเป็น cron job
+          return true;
+        },
+        isRunning: true
+      },
+      projectPurgeScheduler: {
+        start: () => {
+          logger.info('Starting project purge scheduler');
+          projectPurgeScheduler.scheduleProjectPurge();
+          return true;
+        },
+        stop: () => {
+          logger.info('Stopping project purge scheduler (cron จะยัง active หาก library ไม่รองรับ cancel)');
           return true;
         },
         isRunning: true

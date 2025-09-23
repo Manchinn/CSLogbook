@@ -283,6 +283,48 @@ Logging (Winston):
 
 Roadmap ถัดไป (สั้น): เพิ่ม pagination, ปี/ภาคเรียน filter, auto grouping session.
 
+### 15.2 Post-Topic Exam Result Flow (Pass/Fail + Acknowledge & Auto Purge)
+หลังการสอบนำเสนอหัวข้อ (จัดนอกระบบ) ต้องบันทึกผลในระบบและจัดการกรณี “ไม่ผ่าน” ให้โปร่งใสและเป็นระเบียบ
+
+Flow (ระดับใช้งาน):
+1. สอบหัวข้อ (offline)
+2. เจ้าหน้าที่บันทึกผล: ผ่าน หรือ ไม่ผ่าน (ถ้าไม่ผ่านต้องกรอกเหตุผล)
+3. ถ้า “ผ่าน” → แสดง/ยืนยันอาจารย์ที่ปรึกษา/ร่วม และโครงงานเข้าสู่ช่วงพัฒนา (Phase โครงงานพิเศษ 1)
+4. ถ้า “ไม่ผ่าน” → นักศึกษาเห็นสถานะ + เหตุผล + ปุ่ม “รับทราบผล”
+5. นักศึกษากด “รับทราบผล” → ลบหัวข้อ (ต้องสร้างใหม่รอบถัดไป)
+6. หาก 7 วันไม่กด → ระบบลบให้อัตโนมัติ (auto purge)
+
+Fields ที่เสนอเพิ่มใน ProjectDocument:
+| Field | ความหมาย |
+|-------|----------|
+| examResult | null / passed / failed |
+| examFailReason | เหตุผลเมื่อ failed |
+| examResultAt | เวลาบันทึกผลสอบ |
+| studentAcknowledgedAt | เวลาที่นักศึกษากดยืนยันผลไม่ผ่าน |
+
+Endpoint ร่าง:
+| Method | Path | Role | ใช้ทำอะไร |
+|--------|------|------|-----------|
+| POST | /api/projects/:id/exam-result | staff/admin | บันทึกผล { result:"passed" } หรือ { result:"failed", reason } |
+| POST | /api/projects/:id/acknowledge-fail | student (member) | กดยืนยันรับทราบ (จะลบหัวข้อทันที) |
+
+Auto Purge Job:
+- รันรายวัน คัด: examResult=failed AND studentAcknowledgedAt IS NULL AND NOW() > examResultAt + 7 วัน → ลบ project + members
+
+พฤติกรรมการลบ (initial): Hard delete เพื่อล้างสนามให้นักศึกษายื่นใหม่ (เก็บประวัติผ่าน event log ในอนาคต)
+
+UI สรุป:
+- Staff: ตารางหัวข้อหลังสอบ → ปุ่ม “ผ่าน” / “ไม่ผ่าน” + modal กรอกเหตุผล
+- Student: Banner “ผลสอบ: ไม่ผ่าน” + เหตุผล + ปุ่ม “รับทราบ (หัวข้อจะถูกลบ)” + modal ยืนยัน
+
+Event Log (แนะนำภายหลัง): PROJECT_EXAM_PASSED, PROJECT_EXAM_FAILED, PROJECT_FAIL_ACK, PROJECT_PURGED_AUTO, PROJECT_PURGED_ACK
+
+แผนย่อยแนะนำ (ลำดับพัฒนา):
+1) Migration ฟิลด์ผลสอบ 2) Endpoint staff 3) UI student + acknowledge 4) Scheduled job 5) Tests (fail+ack+auto purge) 6) Event log
+
+หมายเหตุ: เลือก hard delete ตอนนี้ง่ายต่อการรีเซ็ตรอบ; หากอนาคตต้องการสถิติเชิงลึก → ใช้ event log หรือ snapshot export.
+
+
 ---
 Revision: Phase2 v1.0 (Initial Documentation)
 
@@ -305,6 +347,7 @@ Revision: Phase2 v1.0 (Initial Documentation)
 อัปเดตสั้น: ฝั่งนักศึกษา “เสนอหัวข้อโครงงานพิเศษ” ใช้งานได้ (สร้าง/แก้ไข draft + เติมรายละเอียดหลายฟิลด์ + เพิ่มสมาชิกคนที่สอง) แต่ยังไม่มีปุ่ม Activate ใน UI (เรียก API ได้). ฝั่งอาจารย์ดูภาพรวมหัวข้อทั้งหมดได้ผ่าน Topic Exam Overview. ฝั่งเจ้าหน้าที่ (support staff) และส่วนงาน proposal/milestone อื่น ๆ ยังไม่เริ่ม.
 
 ---
+Revision: Phase2 v1.4 (เพิ่ม Section 15.2 Post-Topic Exam Result Flow: pass/fail + acknowledge 7-day auto purge)
 Revision: Phase2 v1.3 (TopicExam XLSX-only Export + Readiness Baseline Update – advisor ไม่บังคับใน readiness สำหรับ overview, ลบ mention CSV ที่เกี่ยวกับ TopicExam, อัปเดต test export ให้ตรวจ XLSX เท่านั้น)
 Revision: Phase2 v1.2 (Status Section + Detail Fields Lock Policy Update)
 
