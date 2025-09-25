@@ -6,14 +6,24 @@ const { authenticateToken, checkRole, checkTeacherType } = require('../middlewar
 // Protect all routes with authentication
 router.use(authenticateToken);
 
+// รายชื่ออาจารย์ให้ student ใช้เลือกเป็นที่ปรึกษา (เปิด read-only)
+router.get('/advisors',
+  checkRole(['student','admin','teacher']),
+  teacherController.getAdvisorList
+);
+
 // Admin routes
+// เพิ่มอาจารย์: อนุญาต admin หรืออาจารย์ประเภท support
 router.post('/', 
-  checkRole(['admin']), 
+  checkRole(['admin', 'teacher']), 
+  checkTeacherType(['support']),
   teacherController.addTeacher
 );
 
+// ดูรายการอาจารย์ทั้งหมด: อนุญาต admin หรืออาจารย์ประเภท support
 router.get('/', 
-  checkRole(['admin']), 
+  checkRole(['admin', 'teacher']), 
+  checkTeacherType(['support']),
   teacherController.getAllTeachers
 );
 
@@ -36,6 +46,13 @@ router.get('/user/:userId',
 router.put('/:id',
   checkRole(['admin', 'teacher']),
   teacherController.updateTeacher
+);
+
+// ลบอาจารย์: อนุญาต admin หรืออาจารย์ประเภท support
+router.delete('/:id',
+  checkRole(['admin', 'teacher']),
+  checkTeacherType(['support']),
+  teacherController.deleteTeacher
 );
 
 // Routes สำหรับอาจารย์สายวิชาการเท่านั้น

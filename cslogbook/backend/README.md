@@ -71,6 +71,43 @@ npm start
 http://localhost:5000/api-docs
 ```
 
+### Topic Exam Overview (Summary)
+Endpoint: `GET /api/projects/topic-exam/overview`
+
+Readiness flags (response.readiness):
+- `titleCompleted`: มีชื่อโครงงานทั้งภาษาไทย/อังกฤษ
+- `advisorAssigned`: มีอาจารย์ที่ปรึกษา
+- `proposalUploaded` / `abstractUploaded`: heuristic จาก field `objective` / `expectedOutcome`
+- `memberCountOk`: (ใหม่) จำนวนสมาชิก >= 2
+- `readyFlag`: baseline = (titleCompleted && advisorAssigned) หรือหากส่ง query `enforceMemberMin=1` จะบังคับรวม `memberCountOk`
+
+Query Params เพิ่มเติม:
+- `readyOnly=true` คืนเฉพาะที่ readyFlag = true
+- `enforceMemberMin=1` ทำให้ readyFlag ต้องมีสมาชิก >=2
+
+ตัวอย่างเรียก: `/api/projects/topic-exam/overview?readyOnly=true&enforceMemberMin=1`
+
+### Scenario Seeding (ทดสอบหลายเคส)
+ไฟล์ seeder:
+1. `20250922120000-demo-topic-exam-projects.js` ตัวอย่างทั่วไป (1-2 สมาชิก, readiness ปกติ)
+2. `20250922123000-scenario-topic-exam-projects.js` สร้างเคสหลากหลาย: draft/no advisor, missing EN title, single member, multi-member พร้อม track, in_progress, completed, archived
+
+รันเฉพาะ scenario:
+```bash
+npx sequelize-cli db:seed --seed 20250922123000-scenario-topic-exam-projects.js
+```
+Rollback:
+```bash
+npx sequelize-cli db:seed:undo --seed 20250922123000-scenario-topic-exam-projects.js
+```
+
+ตรวจสอบอย่างรวดเร็ว:
+```sql
+SELECT project_id, project_name_th, status, advisor_id FROM project_documents 
+WHERE project_name_th LIKE 'SCENARIO TOPIC%';
+```
+
+
 ## การจัดการ Environment Variables
 
 1. สร้างไฟล์ .env.development จาก template:

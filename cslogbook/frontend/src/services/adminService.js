@@ -16,7 +16,7 @@ export const adminService = {
   // อัปโหลดข้อมูลนักศึกษาจากไฟล์ CSV
   uploadStudentCSV: async (formData) => {
     try {
-      const response = await apiClient.post('/api/upload-csv', formData, {
+      const response = await apiClient.post('/upload-csv', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

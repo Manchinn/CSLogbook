@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "antd";
 import { 
-  BankOutlined, 
+  BankOutlined,
   UnlockOutlined, 
   LockOutlined,
   SolutionOutlined,

@@ -1,0 +1,551 @@
+const { sequelize } = require('../config/database');
+const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack } = require('../models');
+const studentService = require('./studentService'); // reuse eligibility logic (ถ้าต้อง)
+const logger = require('../utils/logger');
+const { Op } = require('sequelize');
+
+/**
+ * Service สำหรับจัดการ ProjectDocument (Phase 2)
+ * ฟังก์ชันหลัก: createProject, addMember, updateMetadata, activateProject, archiveProject, getMyProjects, getProjectById
+ */
+class ProjectDocumentService {
+  /**
+   * สร้างโครงงาน (draft) พร้อมเพิ่ม leader (studentId)
+   * - ตรวจ eligibility (canAccessProject)
+   * - สร้าง ProjectDocument (draft) + ProjectMember (leader)
+   * - เติม academicYear/semester จาก Academic ปัจจุบัน (อันล่าสุด is_current=true ถ้ามี)
+   */
+  async createProject(studentId, payload = {}) {
+    const t = await sequelize.transaction();
+    try {
+      // ดึงข้อมูลนักศึกษา
+      const student = await Student.findByPk(studentId, { transaction: t });
+      if (!student) throw new Error('ไม่พบนักศึกษา');
+
+      // Gating: ป้องกันสร้างหัวข้อใหม่ถ้ามีโครงงานที่สอบไม่ผ่านและเพิ่ง acknowledge รอรอบใหม่
+      // เกณฑ์ง่ายเบื้องต้น: ยังมี project failed+archived ที่ยังไม่ถูก purge (studentAcknowledgedAt != null และ examResult='failed')
+      // สามารถขยายเป็นตรวจ window จริงในอนาคต (เชื่อม ImportantDeadline หรือ Academic window)
+      const blockExisting = await ProjectMember.findOne({
+        where: { studentId },
+        include: [{
+          model: ProjectDocument,
+          as: 'project',
+          required: true,
+          where: { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } }
+        }],
+        transaction: t
+      });
+      if (blockExisting) {
+        throw new Error('คุณเพิ่งรับทราบผลสอบหัวข้อไม่ผ่าน กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่');
+      }
+
+      // ตรวจ eligibility อีกครั้งแบบง่าย (ใช้ flag isEligibleProject จาก student หรือเรียก service ลึกเพิ่มเติมได้)
+      // เดิมอาศัย field isEligibleProject ซึ่งอาจไม่ sync กับ logic ปัจจุบัน
+      // ปรับให้พยายามเรียก instance method checkProjectEligibility() (ถ้ามี) เพื่อประเมินสด
+      let canCreate = false;
+      let denyReason = 'ยังไม่ผ่านเกณฑ์โครงงานพิเศษ';
+      if (typeof student.checkProjectEligibility === 'function') {
+        try {
+          const projCheck = await student.checkProjectEligibility();
+            // method ใหม่จะให้ { eligible, canAccessFeature, canRegister, reason }
+          canCreate = !!(projCheck.canAccessFeature || projCheck.eligible);
+          if (!canCreate && projCheck.reason) denyReason = projCheck.reason;
+        } catch (e) {
+          logger.warn('createProject: dynamic project eligibility check failed, fallback to isEligibleProject flag', { error: e.message });
+        }
+      }
+      if (!canCreate) {
+        // fallback legacy flag ถ้ายังไม่ได้ true
+        if (student.isEligibleProject) {
+          canCreate = true; // เผื่อ test เก่าใช้ flag นี้
+        }
+      }
+      if (!canCreate) {
+        throw new Error(`นักศึกษายังไม่มีสิทธิ์สร้างโครงงาน: ${denyReason}`);
+      }
+
+      // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (leader)
+      const existing = await ProjectMember.findOne({
+        where: { studentId, role: 'leader' },
+        include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
+        transaction: t
+      });
+      if (existing) {
+        throw new Error('คุณมีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+      }
+
+      // Academic ปัจจุบัน
+      const academic = await Academic.findOne({ where: { isCurrent: true }, order: [['updated_at','DESC']], transaction: t });
+      const academicYear = academic?.academicYear || (new Date().getFullYear() + 543);
+      const semester = academic?.currentSemester || 1;
+
+      // เตรียม second member (optional requirement - ถ้า policy บังคับให้ตรวจที่ controller ก่อน)
+      let secondMember = null;
+      if (payload.secondMemberStudentCode) {
+        const code = String(payload.secondMemberStudentCode).trim();
+        if (!/^[0-9]{5,13}$/.test(code)) {
+          throw new Error('รูปแบบรหัสนักศึกษาไม่ถูกต้อง');
+        }
+        // หา student
+        secondMember = await Student.findOne({ where: { studentCode: code }, transaction: t });
+        if (!secondMember) {
+          throw new Error('ไม่พบนักศึกษาที่ต้องการเพิ่ม');
+        }
+        if (secondMember.studentId === studentId) {
+          throw new Error('ไม่สามารถเพิ่มตัวเองซ้ำเป็นสมาชิกได้');
+        }
+        if (!secondMember.isEligibleProject) {
+          throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
+        }
+        // ตรวจว่ามีสมาชิกในโครงงานที่ยังไม่ archived อยู่แล้วหรือไม่ (business rule: 1 active project ต่อ 1 นักศึกษา)
+        const existingActiveMembership = await ProjectMember.findOne({
+          where: { studentId: secondMember.studentId },
+          include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
+          transaction: t
+        });
+        if (existingActiveMembership) {
+          throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+        }
+      }
+
+      // สร้าง ProjectDocument (draft)
+      const project = await ProjectDocument.create({
+        projectNameTh: payload.projectNameTh || null,
+        projectNameEn: payload.projectNameEn || null,
+        projectType: payload.projectType || null,
+        advisorId: payload.advisorId || null,
+        coAdvisorId: payload.coAdvisorId || null,
+        // ฟิลด์รายละเอียด (คพ.01) (optional ขณะ draft)
+        objective: payload.objective || null,
+        background: payload.background || null,
+        scope: payload.scope || null,
+        expectedOutcome: payload.expectedOutcome || null,
+        benefit: payload.benefit || null,
+        methodology: payload.methodology || null,
+        tools: payload.tools || null,
+        timelineNote: payload.timelineNote || null,
+        risk: payload.risk || null,
+        constraints: payload.constraints || null,
+        academicYear,
+        semester,
+        createdByStudentId: studentId,
+        status: payload.advisorId ? 'advisor_assigned' : 'draft'
+      }, { transaction: t });
+
+      // tracks array (payload.tracks: array ของ code เช่น NETSEC) -> สร้าง ProjectTrack
+      if (Array.isArray(payload.tracks) && payload.tracks.length) {
+        const uniqCodes = [...new Set(payload.tracks.filter(c => !!c))];
+        await ProjectTrack.bulkCreate(uniqCodes.map(code => ({ projectId: project.projectId, trackCode: code })), { transaction: t });
+      }
+
+      // เพิ่ม leader ใน project_members
+      await ProjectMember.create({
+        projectId: project.projectId,
+        studentId: studentId,
+        role: 'leader'
+      }, { transaction: t });
+
+      // ถ้ามี second member -> เพิ่มทันทีใน transaction เดียว
+      if (secondMember) {
+        await ProjectMember.create({
+          projectId: project.projectId,
+          studentId: secondMember.studentId,
+          role: 'member'
+        }, { transaction: t });
+      }
+
+      await t.commit();
+      logger.info('createProject success', { projectId: project.projectId, studentId });
+
+      return await this.getProjectById(project.projectId); // ดึงรวม members/code ที่ hook อาจสร้าง
+    } catch (error) {
+      await t.rollback();
+      logger.error('createProject failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * เพิ่มสมาชิกคนที่สอง
+   * - ตรวจว่า caller เป็น leader
+   * - ตรวจยังมีสมาชิก < 2
+   * - ตรวจ eligibility ของสมาชิกใหม่ (isEligibleProject) (ตามที่ตกลง)
+   */
+  async addMember(projectId, actorStudentId, newStudentCode) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { transaction: t });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+
+      const members = await ProjectMember.findAll({ where: { projectId }, transaction: t, lock: t.LOCK.UPDATE });
+      const leader = members.find(m => m.role === 'leader');
+      if (!leader || leader.studentId !== actorStudentId) {
+        throw new Error('เฉพาะหัวหน้าโครงงานเท่านั้นที่เพิ่มสมาชิกได้');
+      }
+      if (members.length >= 2) {
+        throw new Error('โครงงานมีสมาชิกครบ 2 คนแล้ว');
+      }
+
+      // หา student จาก studentCode
+      const newStudent = await Student.findOne({ where: { studentCode: newStudentCode }, transaction: t });
+      if (!newStudent) throw new Error('ไม่พบนักศึกษาที่ต้องการเพิ่ม');
+
+      if (!newStudent.isEligibleProject) {
+        throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
+      }
+
+      // ตรวจว่าไม่ได้อยู่ใน project นี้อยู่แล้ว
+      if (members.find(m => m.studentId === newStudent.studentId)) {
+        throw new Error('นักศึกษาคนนี้เป็นสมาชิกอยู่แล้ว');
+      }
+
+      // ตรวจว่าไม่ได้อยู่ในโครงงาน active อื่น (non-archived)
+      const existingActiveMembership = await ProjectMember.findOne({
+        where: { studentId: newStudent.studentId },
+        include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' }, projectId: { [Op.ne]: projectId } } }],
+        transaction: t
+      });
+      if (existingActiveMembership) {
+        throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+      }
+
+      await ProjectMember.create({
+        projectId,
+        studentId: newStudent.studentId,
+        role: 'member'
+      }, { transaction: t });
+
+      await t.commit();
+      logger.info('addMember success', { projectId, newStudentId: newStudent.studentId });
+      return await this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      logger.error('addMember failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดตข้อมูลเมตาดาต้า (ชื่อ, advisor, track)
+   * - Lock ชื่อถ้า status >= in_progress
+   */
+  async updateMetadata(projectId, actorStudentId, payload) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { transaction: t });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+
+      // ตรวจว่า actor เป็น leader
+      const leader = await ProjectMember.findOne({ where: { projectId, role: 'leader' }, transaction: t });
+      if (!leader || leader.studentId !== actorStudentId) {
+        throw new Error('ไม่มีสิทธิ์แก้ไขข้อมูลโครงงาน');
+      }
+
+      const lockNames = ['in_progress','completed','archived'];
+      const nameLocked = lockNames.includes(project.status);
+
+      const update = {};
+      if (!nameLocked) {
+        if (payload.projectNameTh !== undefined) update.projectNameTh = payload.projectNameTh;
+        if (payload.projectNameEn !== undefined) update.projectNameEn = payload.projectNameEn;
+      }
+      // projectType อนุญาตให้แก้ไขหลัง in_progress ตาม requirement ใหม่
+      if (payload.projectType !== undefined) update.projectType = payload.projectType;
+      // ฟิลด์รายละเอียด (เปิดให้แก้ไขเสมอ ไม่ล็อกหลัง in_progress ตาม requirement ใหม่)
+      if (payload.objective !== undefined) update.objective = payload.objective;
+      if (payload.background !== undefined) update.background = payload.background;
+      if (payload.scope !== undefined) update.scope = payload.scope;
+      if (payload.expectedOutcome !== undefined) update.expectedOutcome = payload.expectedOutcome;
+      if (payload.benefit !== undefined) update.benefit = payload.benefit;
+      if (payload.methodology !== undefined) update.methodology = payload.methodology;
+      if (payload.tools !== undefined) update.tools = payload.tools;
+      if (payload.timelineNote !== undefined) update.timelineNote = payload.timelineNote;
+      if (payload.risk !== undefined) update.risk = payload.risk;
+      if (payload.constraints !== undefined) update.constraints = payload.constraints;
+      // advisor สามารถตั้ง/แก้ได้ถ้ายังไม่ in_progress
+      if (!lockNames.includes(project.status)) {
+        if (payload.advisorId !== undefined) update.advisorId = payload.advisorId || null;
+        if (payload.coAdvisorId !== undefined) update.coAdvisorId = payload.coAdvisorId || null;
+        if (payload.advisorId && project.status === 'draft') {
+          update.status = 'advisor_assigned';
+        }
+      }
+
+      const trackCodesUpdate = Array.isArray(payload.tracks) ? [...new Set(payload.tracks.filter(c => !!c))] : null;
+
+      if (Object.keys(update).length === 0 && !trackCodesUpdate) {
+        await t.rollback();
+        return await this.getProjectById(projectId); // ไม่มีอะไรเปลี่ยน
+      }
+
+      await ProjectDocument.update(update, { where: { projectId }, transaction: t });
+
+      // อัปเดต tracks: simple replace strategy (ลบของเก่า แล้ว insert ใหม่)
+      if (trackCodesUpdate) {
+        await ProjectTrack.destroy({ where: { projectId }, transaction: t });
+        if (trackCodesUpdate.length) {
+          await ProjectTrack.bulkCreate(trackCodesUpdate.map(code => ({ projectId, trackCode: code })), { transaction: t });
+        }
+      }
+      await t.commit();
+      logger.info('updateMetadata success', { projectId, updateKeys: Object.keys(update) });
+      return await this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      logger.error('updateMetadata failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Promote -> in_progress (ตรวจ 2 คน + advisor + ชื่อไม่ว่าง)
+   */
+  async activateProject(projectId, actorStudentId) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { transaction: t });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+
+      const leader = await ProjectMember.findOne({ where: { projectId, role: 'leader' }, transaction: t });
+      if (!leader || leader.studentId !== actorStudentId) throw new Error('ไม่มีสิทธิ์');
+
+      const members = await ProjectMember.findAll({ where: { projectId }, transaction: t, lock: t.LOCK.UPDATE });
+      if (members.length !== 2) throw new Error('ต้องมีสมาชิกครบ 2 คนก่อนเริ่มดำเนินโครงงาน');
+      if (!project.advisorId) throw new Error('ต้องเลือกอาจารย์ที่ปรึกษาก่อน');
+      if (!project.projectNameTh || !project.projectNameEn) throw new Error('กรุณากรอกชื่อโครงงาน (TH/EN) ให้ครบ');
+      if (!project.projectType || !project.track) throw new Error('กรุณากรอกประเภทและ track ให้ครบ');
+
+      if (project.status === 'in_progress') return await this.getProjectById(projectId); // idempotent
+
+      if (['completed','archived'].includes(project.status)) {
+        throw new Error('ไม่สามารถเปิดใช้งานโครงงานในสถานะนี้ได้');
+      }
+
+      await ProjectDocument.update({ status: 'in_progress' }, { where: { projectId }, transaction: t });
+      await t.commit();
+      logger.info('activateProject success', { projectId });
+      return await this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      logger.error('activateProject failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Archive project (soft-deactivate)
+   */
+  async archiveProject(projectId, actorUser) {
+    const t = await sequelize.transaction();
+    try {
+      // ActorUser ควรผ่านการตรวจ role admin มาก่อนใน controller
+      const project = await ProjectDocument.findByPk(projectId, { transaction: t });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+      if (project.status === 'archived') return await this.getProjectById(projectId);
+
+      await ProjectDocument.update({ status: 'archived', archivedAt: new Date() }, { where: { projectId }, transaction: t });
+      await t.commit();
+      logger.info('archiveProject success', { projectId });
+      return await this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      logger.error('archiveProject failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * รายการโครงงานของนักศึกษาที่เกี่ยวข้อง (leader หรือ member)
+   */
+  async getMyProjects(studentId) {
+    const projects = await ProjectDocument.findAll({
+      attributes: [
+        'projectId','projectCode','status','projectNameTh','projectNameEn',
+        'projectType','advisorId','coAdvisorId','academicYear','semester',
+        'objective','background','scope','expected_outcome','benefit','methodology','tools','timeline_note','risk','constraints',
+        'createdByStudentId','archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
+      ], // กำหนด whitelist ป้องกัน Sequelize select column ที่ไม่มี (เช่น student_id เก่า)
+      include: [
+        {
+          model: ProjectMember,
+          as: 'members',
+          where: { studentId },
+          required: true,
+          include: [
+            { 
+              model: Student, 
+              as: 'student',
+              include: [
+                { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
+              ],
+              // เพิ่ม attributes หน่วยกิตสำหรับนำไปแสดงผลหน้า Draft Detail
+              attributes: ['studentId','studentCode','totalCredits','majorCredits']
+            }
+          ]
+        },
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
+      ],
+      order: [['updated_at','DESC']]
+    });
+    return projects.map(p => this.serialize(p));
+  }
+
+  /**
+   * ดึงรายละเอียดโครงงานทั้งหมด (รวมสมาชิก)
+   */
+  async getProjectById(projectId, options = {}) {
+    const includeSummary = !!options.includeSummary;
+    const project = await ProjectDocument.findByPk(projectId, {
+      include: [
+        { 
+          model: ProjectMember, 
+          as: 'members',
+          include: [
+            { 
+              model: Student, 
+              as: 'student',
+              include: [
+                { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
+              ],
+              attributes: ['studentId','studentCode']
+            }
+          ]
+        },
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
+      ]
+    });
+    if (!project) throw new Error('ไม่พบโครงงาน');
+    const base = this.serialize(project);
+    if (includeSummary) {
+      // ดึงสรุปเบื้องต้น (นับ milestones และ proposal ล่าสุด) แบบ query แยก เพื่อลด join หนัก
+      const { ProjectMilestone, ProjectArtifact } = require('../models');
+      const [milestoneCount, latestProposal] = await Promise.all([
+        ProjectMilestone.count({ where: { projectId: project.projectId } }),
+        ProjectArtifact.findOne({ where: { projectId: project.projectId, type: 'proposal' }, order: [['version','DESC']] })
+      ]);
+      base.summary = {
+        milestoneCount,
+        latestProposal: latestProposal ? {
+          version: latestProposal.version,
+          uploadedAt: latestProposal.uploadedAt
+        } : null
+      };
+    }
+    return base;
+  }
+
+  /**
+   * แปลงผลลัพธ์เป็น JSON พร้อมโครงสร้างสวยงาม
+   */
+  serialize(p) {
+    return {
+      projectId: p.projectId,
+      projectCode: p.projectCode,
+      status: p.status,
+      projectNameTh: p.projectNameTh,
+      projectNameEn: p.projectNameEn,
+      projectType: p.projectType,
+  tracks: (p.tracks || []).map(t => t.trackCode),
+      advisorId: p.advisorId,
+      coAdvisorId: p.coAdvisorId,
+  objective: p.objective,
+  background: p.background,
+  scope: p.scope,
+  expectedOutcome: p.expectedOutcome,
+  benefit: p.benefit,
+  methodology: p.methodology,
+  tools: p.tools,
+  timelineNote: p.timelineNote,
+  risk: p.risk,
+  constraints: p.constraints,
+      academicYear: p.academicYear,
+      semester: p.semester,
+      createdByStudentId: p.createdByStudentId,
+      examResult: p.examResult,
+      examFailReason: p.examFailReason,
+      examResultAt: p.examResultAt,
+      studentAcknowledgedAt: p.studentAcknowledgedAt,
+      // enrich member ด้วย studentCode + ชื่อ (ดึงจาก user) ลดรอบ frontend API
+      members: (p.members || []).map(m => ({
+        studentId: m.studentId,
+        role: m.role,
+        studentCode: m.student?.studentCode || null,
+        name: m.student?.user ? `${m.student.user.firstName || ''} ${m.student.user.lastName || ''}`.trim() : null,
+        totalCredits: m.student?.totalCredits ?? null,
+        majorCredits: m.student?.majorCredits ?? null
+      })),
+      archivedAt: p.archivedAt
+    };
+  }
+
+  /**
+   * บันทึกผลสอบหัวข้อโครงงาน
+   */
+  async setExamResult(projectId, { result, reason, actorUser }) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { transaction: t, lock: t.LOCK.UPDATE });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+      // ป้องกันการบันทึกซ้ำ (อนุญาต overwrite? ตอนนี้ไม่อนุญาต เพื่อลดความสับสน)
+      if (project.examResult) {
+        throw new Error('มีการบันทึกผลสอบหัวข้อนี้แล้ว');
+      }
+      await ProjectDocument.update({
+        examResult: result,
+        examFailReason: reason || null,
+        examResultAt: new Date()
+      }, { where: { projectId }, transaction: t });
+      await t.commit();
+      return this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
+  }
+
+  /**
+   * นักศึกษากด “รับทราบผล” (กรณีไม่ผ่าน) -> บันทึกเวลายืนยัน และ archive โครงงานเพื่อเตรียมยื่นรอบใหม่
+   * Business rule:
+   *  - ต้องเป็นสมาชิกโครงงาน (leader หรือ member)
+   *  - examResult ต้องเป็น failed
+   *  - ยังไม่ acknowledge มาก่อน
+   *  - Archive โดยเปลี่ยน status='archived' + archivedAt=NOW() (ไม่ลบข้อมูลจริง เพื่อเก็บประวัติ)
+   */
+  async acknowledgeExamResult(projectId, studentId) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, { include: [{ model: ProjectMember, as: 'members' }], transaction: t, lock: t.LOCK.UPDATE });
+      if (!project) throw new Error('ไม่พบโครงงาน');
+      if (project.examResult !== 'failed') {
+        throw new Error('โครงงานนี้ไม่ได้อยู่ในสถานะผลสอบไม่ผ่าน');
+      }
+      if (project.studentAcknowledgedAt) {
+        throw new Error('มีการรับทราบผลไปแล้ว');
+      }
+      const isMember = (project.members || []).some(m => m.studentId === Number(studentId));
+      if (!isMember) {
+        throw new Error('คุณไม่มีสิทธิ์รับทราบผลของโครงงานนี้');
+      }
+      await ProjectDocument.update({
+        studentAcknowledgedAt: new Date(),
+        status: 'archived',
+        archivedAt: new Date()
+      }, { where: { projectId }, transaction: t });
+      await t.commit();
+      return this.getProjectById(projectId);
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
+  }
+
+  /**
+   * Utility (เรียกใช้จาก scheduler) – คืนจำนวนนับของโครงงาน failed ที่ยังคงอยู่ (debug purpose)
+   */
+  async countFailedArchivedWaiting() {
+    const { ProjectDocument } = require('../models');
+    return ProjectDocument.count({ where: { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } } });
+  }
+}
+
+module.exports = new ProjectDocumentService();

@@ -153,7 +153,9 @@ const workflowRoutes = require('./routes/workflowRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม academicRoutes
+const curriculumRoutes = require('./routes/curriculumRoutes');
 const reportRoutes = require('./routes/reportRoutes'); // รายงานใหม่
+const topicExamRoutes = require('./routes/topicExamRoutes'); // NEW: topic exam overview
 // ใช้ app ที่แยกใน app.js สำหรับ test-friendly
 const app = require('./app');
 const server = http.createServer(app);
@@ -310,6 +312,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/curriculums', curriculumRoutes);
 // เพิ่มเส้นทางสำหรับช่วงเปลี่ยนผ่านชั่วคราว - จะถูกลบออกในอนาคต
 app.use('/api/timeline/public', timelineRoutes);
 
@@ -335,6 +338,8 @@ app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes); 
 app.use('/api/reports', authenticateToken, reportRoutes); // เส้นทางรายงาน
+// Topic Exam Overview routes (auth ภายในไฟล์ route เรียกเองแล้ว ไม่ต้องซ้ำที่นี่)
+app.use('/api/projects/topic-exam', topicExamRoutes);
 
 // Route to download CSV template
 app.get('/template/download-template', (req, res) => {

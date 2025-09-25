@@ -15,5 +15,12 @@
             "username": "root",
             "askForPassword": true
         }
-    ]
+    ],
+    "chat.mcp.serverSampling": {
+        "CSLog/.vscode/mcp.json: mysql": {
+            "allowedModels": [
+                "copilot/gpt-5"
+            ]
+        }
+    }
 }

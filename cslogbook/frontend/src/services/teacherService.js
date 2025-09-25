@@ -1,6 +1,18 @@
 import apiClient from './apiClient';
 
 export const teacherService = {
+  // ดึงรายการอาจารย์สำหรับให้นักศึกษาเลือกเป็น advisor (payload ย่อเฉพาะที่จำเป็น)
+  getAdvisors: async () => {
+    try {
+      const response = await apiClient.get('/teachers/advisors');
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'ไม่สามารถดึงรายชื่ออาจารย์ที่ปรึกษาได้');
+      }
+      return response.data.data; // array ของ { teacherId, teacherCode, firstName, lastName, position }
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงรายชื่ออาจารย์ที่ปรึกษา');
+    }
+  },
   // ดึงข้อมูลอาจารย์
   getTeacherInfo: async (teacherId) => {
     try {

@@ -1,9 +1,14 @@
-import moment from 'moment';
+import dayjs from '../../../../../utils/dayjs';
 import { Tag, message } from 'antd';
 import { DATE_FORMAT_MEDIUM } from "../../../../../utils/constants";
 
 // แก้ไขฟังก์ชัน checkDateOverlap เพื่อให้ตรวจสอบทั้งสองช่วงเวลา
 export const checkDateOverlap = (values) => {
+  const inRange = (d, start, end) => (
+    (d.isAfter(dayjs(start)) && d.isBefore(dayjs(end))) ||
+    d.isSame(dayjs(start), 'day') ||
+    d.isSame(dayjs(end), 'day')
+  );
   // ตรวจสอบช่วงเวลาภาคเรียน
   const sem1Start = values.semester1Range?.[0];
   const sem1End = values.semester1Range?.[1];
@@ -13,28 +18,34 @@ export const checkDateOverlap = (values) => {
   const sem3End = values.semester3Range?.[1];
 
   // 1. การทับซ้อนของภาคเรียน
-  if (sem1Start && sem1End && sem2Start && sem2End && sem1End.isAfter(sem2Start)) {
+  if (
+    sem1Start && sem1End && sem2Start && sem2End &&
+    dayjs(sem1End).isAfter(dayjs(sem2Start))
+  ) {
     message.warning("ช่วงเวลาภาคเรียนที่ 1 และ 2 ทับซ้อนกัน");
     return false;
   }
 
-  if (sem2Start && sem2End && sem3Start && sem3End && sem2End.isAfter(sem3Start)) {
+  if (
+    sem2Start && sem2End && sem3Start && sem3End &&
+    dayjs(sem2End).isAfter(dayjs(sem3Start))
+  ) {
     message.warning("ช่วงเวลาภาคเรียนที่ 2 และภาคฤดูร้อนทับซ้อนกัน");
     return false;
   }
 
-  // แปลงวันที่ลงทะเบียนเป็น moment objects
+  // แปลงวันที่ลงทะเบียนเป็น dayjs objects
   const internRegStart = values.internshipRegistrationStartDate
-    ? moment(values.internshipRegistrationStartDate)
+    ? dayjs(values.internshipRegistrationStartDate)
     : null;
   const internRegEnd = values.internshipRegistrationEndDate
-    ? moment(values.internshipRegistrationEndDate)
+    ? dayjs(values.internshipRegistrationEndDate)
     : null;
   const projectRegStart = values.projectRegistrationStartDate
-    ? moment(values.projectRegistrationStartDate)
+    ? dayjs(values.projectRegistrationStartDate)
     : null;
   const projectRegEnd = values.projectRegistrationEndDate
-    ? moment(values.projectRegistrationEndDate)
+    ? dayjs(values.projectRegistrationEndDate)
     : null;
 
   // 2. ตรวจสอบช่วงวันลงทะเบียนฝึกงาน
@@ -44,9 +55,9 @@ export const checkDateOverlap = (values) => {
       return false;
     }
     const isInternRegStartInSemester =
-      (sem1Start && sem1End && internRegStart.isBetween(sem1Start, sem1End, null, "[]")) ||
-      (sem2Start && sem2End && internRegStart.isBetween(sem2Start, sem2End, null, "[]")) ||
-      (sem3Start && sem3End && internRegStart.isBetween(sem3Start, sem3End, null, "[]"));
+      (sem1Start && sem1End && inRange(internRegStart, sem1Start, sem1End)) ||
+      (sem2Start && sem2End && inRange(internRegStart, sem2Start, sem2End)) ||
+      (sem3Start && sem3End && inRange(internRegStart, sem3Start, sem3End));
 
     if (!isInternRegStartInSemester) {
       message.warning("วันเริ่มต้นลงทะเบียนฝึกงานไม่อยู่ในช่วงเปิดภาคเรียนใดเลย");
@@ -61,9 +72,9 @@ export const checkDateOverlap = (values) => {
       return false;
     }
     const isProjectRegStartInSemester =
-      (sem1Start && sem1End && projectRegStart.isBetween(sem1Start, sem1End, null, "[]")) ||
-      (sem2Start && sem2End && projectRegStart.isBetween(sem2Start, sem2End, null, "[]")) ||
-      (sem3Start && sem3End && projectRegStart.isBetween(sem3Start, sem3End, null, "[]"));
+      (sem1Start && sem1End && inRange(projectRegStart, sem1Start, sem1End)) ||
+      (sem2Start && sem2End && inRange(projectRegStart, sem2Start, sem2End)) ||
+      (sem3Start && sem3End && inRange(projectRegStart, sem3Start, sem3End));
 
     if (!isProjectRegStartInSemester) {
       message.warning("วันเริ่มต้นลงทะเบียนโครงงานไม่อยู่ในช่วงเปิดภาคเรียนใดเลย");
@@ -73,8 +84,8 @@ export const checkDateOverlap = (values) => {
 
   // 4. ตรวจสอบการทับซ้อนระหว่างช่วงลงทะเบียนฝึกงานและโครงงาน
   if (internRegStart && internRegEnd && projectRegStart && projectRegEnd) {
-    const latestStart = moment.max(internRegStart, projectRegStart);
-    const earliestEnd = moment.min(internRegEnd, projectRegEnd);
+  const latestStart = dayjs.max(internRegStart, projectRegStart);
+  const earliestEnd = dayjs.min(internRegEnd, projectRegEnd);
 
     if (latestStart.isBefore(earliestEnd)) {
       message.warning("ช่วงเวลาลงทะเบียนฝึกงานและโครงงานทับซ้อนกัน");
@@ -87,7 +98,7 @@ export const checkDateOverlap = (values) => {
 
 // แก้ไขฟังก์ชันตัวแสดงสถานะภาคเรียนปัจจุบัน
 export const getCurrentSemesterStatus = (formInstance) => {
-  const today = moment();
+  const today = dayjs();
   const sem1Range = formInstance.getFieldValue("semester1Range");
   const sem2Range = formInstance.getFieldValue("semester2Range");
   const sem3Range = formInstance.getFieldValue("semester3Range");
@@ -96,17 +107,17 @@ export const getCurrentSemesterStatus = (formInstance) => {
     sem1Range &&
     sem1Range[0] &&
     sem1Range[1] &&
-    today.isBetween(sem1Range[0], sem1Range[1], null, "[]")
+  ((today.isAfter(dayjs(sem1Range[0])) && today.isBefore(dayjs(sem1Range[1]))) || today.isSame(dayjs(sem1Range[0]), 'day') || today.isSame(dayjs(sem1Range[1]), 'day'))
   ) {
     return <Tag color="green">ขณะนี้อยู่ในภาคเรียนที่ 1</Tag>;
   } else if (
     sem2Range &&
-    today.isBetween(sem2Range[0], sem2Range[1], null, "[]")
+  ((today.isAfter(dayjs(sem2Range[0])) && today.isBefore(dayjs(sem2Range[1]))) || today.isSame(dayjs(sem2Range[0]), 'day') || today.isSame(dayjs(sem2Range[1]), 'day'))
   ) {
     return <Tag color="green">ขณะนี้อยู่ในภาคเรียนที่ 2</Tag>;
   } else if (
     sem3Range &&
-    today.isBetween(sem3Range[0], sem3Range[1], null, "[]")
+  ((today.isAfter(dayjs(sem3Range[0])) && today.isBefore(dayjs(sem3Range[1]))) || today.isSame(dayjs(sem3Range[0]), 'day') || today.isSame(dayjs(sem3Range[1]), 'day'))
   ) {
     return <Tag color="green">ขณะนี้อยู่ในภาคฤดูร้อน</Tag>;
   }
@@ -116,37 +127,32 @@ export const getCurrentSemesterStatus = (formInstance) => {
 
 // แยกฟังก์ชันตรวจสอบสถานะการลงทะเบียนเป็นสองฟังก์ชัน
 export const getInternshipRegistrationStatus = (formInstance) => {
-  const today = moment();
+  const today = dayjs();
   const regStart = formInstance.getFieldValue(
     "internshipRegistrationStartDate"
   );
   const regEnd = formInstance.getFieldValue("internshipRegistrationEndDate");
 
-  if (
-    regStart &&
-    regEnd &&
-    moment.isMoment(regStart) &&
-    moment.isMoment(regEnd)
-  ) {
+  if (regStart && regEnd) {
     if (today.isBefore(regStart)) {
       return (
         <Tag color="orange">
           ยังไม่เปิดให้ลงทะเบียนฝึกงาน (เริ่ม{" "}
-          {moment(regStart).add(543, "year").format(DATE_FORMAT_MEDIUM)})
+          {dayjs(regStart).format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else if (today.isAfter(regEnd)) {
       return (
         <Tag color="red">
           ปิดการลงทะเบียนฝึกงานแล้ว (สิ้นสุด{" "}
-          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
+          {dayjs(regEnd).format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else {
       return (
         <Tag color="green">
           เปิดให้ลงทะเบียนฝึกงาน (ถึง{" "}
-          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
+          {dayjs(regEnd).format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     }
@@ -156,35 +162,30 @@ export const getInternshipRegistrationStatus = (formInstance) => {
 };
 
 export const getProjectRegistrationStatus = (formInstance) => {
-  const today = moment();
+  const today = dayjs();
   const regStart = formInstance.getFieldValue("projectRegistrationStartDate");
   const regEnd = formInstance.getFieldValue("projectRegistrationEndDate");
 
-  if (
-    regStart &&
-    regEnd &&
-    moment.isMoment(regStart) &&
-    moment.isMoment(regEnd)
-  ) {
+  if (regStart && regEnd) {
     if (today.isBefore(regStart)) {
       return (
         <Tag color="orange">
           ยังไม่เปิดให้ลงทะเบียนโครงงานพิเศษ (เริ่ม{" "}
-          {moment(regStart).add(543, "year").format(DATE_FORMAT_MEDIUM)})
+          {dayjs(regStart).format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else if (today.isAfter(regEnd)) {
       return (
         <Tag color="red">
           ปิดการลงทะเบียนโครงงานแล้ว (สิ้นสุด{" "}
-          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
+          {dayjs(regEnd).format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     } else {
       return (
         <Tag color="green">
           เปิดให้ลงทะเบียนโครงงาน (ถึง{" "}
-          {moment(regEnd).add(543, "year").format(DATE_FORMAT_MEDIUM)})
+          {dayjs(regEnd).format(DATE_FORMAT_MEDIUM)})
         </Tag>
       );
     }
@@ -203,7 +204,7 @@ export const isRegistrationOpenForSemester = (formInstance) => {
     1, 2,
   ];
 
-  const today = moment();
+  const today = dayjs();
   const projectRegEnd = formInstance.getFieldValue("projectRegistrationEndDate");
 
   return {
@@ -263,33 +264,33 @@ export const loadAcademicSettingsProcess = async (getAcademicSettingsService) =>
         currentSemester: data.currentSemester,
         semester1Range: data.semester1Range
           ? [
-              moment(data.semester1Range.start, "YYYY-MM-DD"),
-              moment(data.semester1Range.end, "YYYY-MM-DD"),
+        dayjs(data.semester1Range.start, "YYYY-MM-DD"),
+        dayjs(data.semester1Range.end, "YYYY-MM-DD"),
             ]
           : null,
         semester2Range: data.semester2Range
           ? [
-              moment(data.semester2Range.start, "YYYY-MM-DD"),
-              moment(data.semester2Range.end, "YYYY-MM-DD"),
+        dayjs(data.semester2Range.start, "YYYY-MM-DD"),
+        dayjs(data.semester2Range.end, "YYYY-MM-DD"),
             ]
           : null,
         semester3Range: data.semester3Range
           ? [
-              moment(data.semester3Range.start, "YYYY-MM-DD"),
-              moment(data.semester3Range.end, "YYYY-MM-DD"),
+        dayjs(data.semester3Range.start, "YYYY-MM-DD"),
+        dayjs(data.semester3Range.end, "YYYY-MM-DD"),
             ]
           : null,
         internshipRegistrationStartDate: data.internshipRegistration?.startDate
-          ? moment(data.internshipRegistration.startDate)
+      ? dayjs(data.internshipRegistration.startDate)
           : null,
         internshipRegistrationEndDate: data.internshipRegistration?.endDate
-          ? moment(data.internshipRegistration.endDate)
+      ? dayjs(data.internshipRegistration.endDate)
           : null,
         projectRegistrationStartDate: data.projectRegistration?.startDate
-          ? moment(data.projectRegistration.startDate)
+      ? dayjs(data.projectRegistration.startDate)
           : null,
         projectRegistrationEndDate: data.projectRegistration?.endDate
-          ? moment(data.projectRegistration.endDate)
+      ? dayjs(data.projectRegistration.endDate)
           : null,
         internshipSemesters: data.internshipSemesters || [3],
         projectSemesters: data.projectSemesters || [1, 2],
@@ -308,48 +309,48 @@ export const loadAcademicSettingsProcess = async (getAcademicSettingsService) =>
 const formatDataForSave = (formInstance, values) => {
   return {
     id: formInstance.getFieldValue("id"),
-    currentAcademicYear: values.currentAcademicYear,
+  academicYear: values.currentAcademicYear,
     currentSemester: values.currentSemester,
     semesters: {
       1: {
         range: values.semester1Range
           ? {
-              start: values.semester1Range[0].format("YYYY-MM-DD"),
-              end: values.semester1Range[1].format("YYYY-MM-DD"),
+        start: dayjs(values.semester1Range[0]).format("YYYY-MM-DD"),
+        end: dayjs(values.semester1Range[1]).format("YYYY-MM-DD"),
             }
           : null,
       },
       2: {
         range: values.semester2Range
           ? {
-              start: values.semester2Range[0].format("YYYY-MM-DD"),
-              end: values.semester2Range[1].format("YYYY-MM-DD"),
+        start: dayjs(values.semester2Range[0]).format("YYYY-MM-DD"),
+        end: dayjs(values.semester2Range[1]).format("YYYY-MM-DD"),
             }
           : null,
       },
       3: {
         range: values.semester3Range
           ? {
-              start: values.semester3Range[0].format("YYYY-MM-DD"),
-              end: values.semester3Range[1].format("YYYY-MM-DD"),
+        start: dayjs(values.semester3Range[0]).format("YYYY-MM-DD"),
+        end: dayjs(values.semester3Range[1]).format("YYYY-MM-DD"),
             }
           : null,
       },
     },
     internshipRegistration: {
       startDate: values.internshipRegistrationStartDate
-        ? values.internshipRegistrationStartDate.format("YYYY-MM-DD")
+    ? dayjs(values.internshipRegistrationStartDate).format("YYYY-MM-DD")
         : null,
       endDate: values.internshipRegistrationEndDate
-        ? values.internshipRegistrationEndDate.format("YYYY-MM-DD")
+    ? dayjs(values.internshipRegistrationEndDate).format("YYYY-MM-DD")
         : null,
     },
     projectRegistration: {
       startDate: values.projectRegistrationStartDate
-        ? values.projectRegistrationStartDate.format("YYYY-MM-DD")
+    ? dayjs(values.projectRegistrationStartDate).format("YYYY-MM-DD")
         : null,
       endDate: values.projectRegistrationEndDate
-        ? values.projectRegistrationEndDate.format("YYYY-MM-DD")
+    ? dayjs(values.projectRegistrationEndDate).format("YYYY-MM-DD")
         : null,
     },
     internshipSemesters: values.internshipSemesters || [3],

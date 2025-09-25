@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Table, Tag, Space, Button, message, Tooltip } from 'antd';
 import { EyeOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import dayjs from '../../../utils/dayjs';
+// dayjs removed (unused)
 import { studentDocumentService } from './studentDocumentService';
 // ลบการใช้ PDFViewerModal (preview เปิดแท็บใหม่แทน)
 // ✅ นำเข้า service และ helper สำหรับสร้าง PDF แบบเดียวกับหน้า SubmissionResultStep
@@ -40,18 +40,14 @@ const statusTag = (status) => {
   return <Tag color={cfg.color}>{cfg.text}</Tag>;
 };
 
-const formatDate = (d) => {
-  if (!d) return '-';
-  const date = dayjs(d);
-  if (!date.isValid()) return '-';
-  return date.format('DD/MM/') + (date.year() + 543);
-};
+// หมายเหตุ: formatDate ถูกนำออกเพราะไม่ได้ใช้งานในหน้านี้
 
 const StudentDocumentsSection = () => {
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState([]);
   // ไม่ใช้ modal แล้ว
   const [cs05Data, setCs05Data] = useState(null); // เก็บข้อมูล CS05 เพื่อใช้ generate PDF
+  const [studentInfo, setStudentInfo] = useState(null); // เก็บข้อมูลนักศึกษาเพื่อเติมชื่อใน PDF
   const [genLoadingId, setGenLoadingId] = useState(null); // track เอกสารที่กำลัง generate
 
   const fetchDocs = useCallback(async () => {
@@ -71,6 +67,29 @@ const StudentDocumentsSection = () => {
           }
         } catch (err) {
           console.info('ไม่มีข้อมูล CS05 สำหรับการ prepare PDF');
+        }
+      }
+
+      // 2.1) โหลดข้อมูลนักศึกษาเบื้องต้น (ใช้สำหรับชื่อไฟล์ PDF)
+      if (!studentInfo) {
+        try {
+          const infoRes = await internshipService.getStudentInfo();
+          if (infoRes?.student) {
+            const s = infoRes.student;
+            setStudentInfo({
+              fullName: s.fullName || [s.title, s.firstName, s.lastName].filter(Boolean).join(' '),
+              firstName: s.firstName,
+              lastName: s.lastName,
+              title: s.title,
+              studentId: s.studentId || s.student_id,
+              yearLevel: s.yearLevel || s.year || s.year_level,
+              classroom: s.classroom || s.class,
+              phoneNumber: s.phoneNumber || s.phone,
+              totalCredits: s.totalCredits || s.total_credits,
+            });
+          }
+        } catch (e) {
+          console.info('ไม่สามารถดึงข้อมูลนักศึกษาเพิ่มเติมสำหรับ PDF ได้');
         }
       }
 
@@ -120,7 +139,7 @@ const StudentDocumentsSection = () => {
     } finally {
       setLoading(false);
     }
-  }, [cs05Data]);
+  }, [cs05Data, studentInfo]);
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
@@ -129,12 +148,13 @@ const StudentDocumentsSection = () => {
     // ไม่มี studentData แยกต่างหากใน context นี้ ข้อมูลนักศึกษา (studentData array) มักถูกฝังใน cs05Data อยู่แล้ว
     if (!cs05Data) return null;
     try {
-      return prepareFormDataForPDF(cs05Data, cs05Data, cs05Data); // ส่ง cs05Data ทุกช่องว่างเพื่อให้ helper เลือกใช้
+      // ส่ง studentInfo เพื่อให้ helper เติมชื่อหาก cs05Data ไม่มี studentData
+      return prepareFormDataForPDF(cs05Data, cs05Data, studentInfo || cs05Data);
     } catch (e) {
       console.error('prepare PDF data failed', e);
       return null;
     }
-  }, [cs05Data]);
+  }, [cs05Data, studentInfo]);
 
   // เปิด blob ในแท็บใหม่ (กัน popup blocker โดยเปิดหน้าว่างก่อน)
   const openBlobInNewTab = (blob) => {

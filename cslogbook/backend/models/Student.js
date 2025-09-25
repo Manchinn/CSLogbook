@@ -198,6 +198,9 @@ module.exports = (sequelize) => {
                     return {
                         eligible: false,
                         reason: `หน่วยกิตรวมไม่เพียงพอสำหรับโครงงาน (มี ${this.totalCredits} จากเกณฑ์ ${requiredTotalCredits} ของหลักสูตร: ${curriculumName})`,
+                        // เพิ่ม field ให้สอดคล้องกับรูปแบบที่ service คาดหวัง
+                        canAccessFeature: false,
+                        canRegister: false,
                     };
                 }
 
@@ -206,6 +209,8 @@ module.exports = (sequelize) => {
                         return {
                             eligible: false,
                             reason: `หน่วยกิตวิชาเอกไม่เพียงพอสำหรับโครงงาน (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCredits} ของหลักสูตร: ${curriculumName})`,
+                            canAccessFeature: false,
+                            canRegister: false,
                         };
                     }
                 }
@@ -223,6 +228,8 @@ module.exports = (sequelize) => {
                         return {
                             eligible: false,
                             reason: 'ต้องผ่านการฝึกงานก่อนจึงจะสามารถลงทะเบียนโครงงานพิเศษได้',
+                            canAccessFeature: false,
+                            canRegister: false,
                         };
                     }
                 }
@@ -231,6 +238,9 @@ module.exports = (sequelize) => {
                 return {
                     eligible: true,
                     reason: `ผ่านเกณฑ์หน่วยกิตโครงงาน (หลักสูตร: ${curriculumName})`,
+                    // เมื่อผ่าน ให้เปิด access และ register (ใน Phase ปัจจุบัน)
+                    canAccessFeature: true,
+                    canRegister: true,
                 };
 
             } catch (error) {

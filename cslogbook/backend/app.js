@@ -26,6 +26,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const academicRoutes = require('./routes/academicRoutes');
+const curriculumRoutes = require('./routes/curriculumRoutes');
 const uploadRoutes = require('./routes/upload');
 const internshipRoutes = require('./routes/documents/internshipRoutes');
 const internshipCompanyStatsRoutes = require('./routes/internshipCompanyStatsRoutes');
@@ -35,6 +36,8 @@ const workflowRoutes = require('./routes/workflowRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const documentsRoutes = require('./routes/documents/documentsRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
+const projectRoutes = require('./routes/projectRoutes'); // 🆕 Project lifecycle routes
+const topicExamRoutes = require('./routes/topicExamRoutes'); // 🆕 Topic Exam Overview
 
 const app = express();
 
@@ -68,6 +71,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public & protected routes (ส่วนสำคัญเท่านั้น; บาง route อาจพึ่งพา DB จริง ให้ mock ใน test กรณีจำเป็น)
 app.use('/api/auth', authRoutes);
+app.use('/api/curriculums', curriculumRoutes);
 app.use('/api/email-approval', emailApprovalRoutes);
 app.use('/api/internship', internshipRoutes);
 app.use('/api/internship', internshipCompanyStatsRoutes);
@@ -80,7 +84,21 @@ app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes);
+app.use('/api/projects', authenticateToken, projectRoutes); // 🆕 mount project routes (auth inside route file)
+app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // mount overview (มี auth ใน route เองแล้ว)
 app.use('/api', uploadRoutes);
+
+// เส้นทางดาวน์โหลดไฟล์เทมเพลต CSV สำหรับอัปโหลดรายชื่อนักศึกษา
+app.get('/template/download-template', (req, res) => {
+  const filePath = path.join(__dirname, 'templates/student_template.csv');
+
+  res.download(filePath, 'student_template.csv', (err) => {
+    if (err) {
+      console.error('Error downloading template:', err);
+      res.status(500).send('Error downloading template');
+    }
+  });
+});
 
 // Fallback 404
 app.use((req, res) => {

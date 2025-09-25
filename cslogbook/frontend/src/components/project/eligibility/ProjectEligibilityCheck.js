@@ -38,11 +38,11 @@ const ProjectEligibilityCheck = () => {
     }
   };
 
-  // คุณสมบัติที่จำเป็นสำหรับโครงงานพิเศษ
-  const requiredCredits = requirements?.project?.totalCredits || 95;
-  const requiredMajorCredits = requirements?.project?.majorCredits || 47;
-  const allowedSemesters = requirements?.project?.allowedSemesters || [1, 2];
-  const requiresInternship = requirements?.project?.requireInternship || false;
+  // คุณสมบัติที่จำเป็นสำหรับโครงงานพิเศษ (ใช้ค่าจาก backend ถ้าไม่มีให้ fallback แบบปลอดภัย)
+  const requiredCredits = requirements?.project?.totalCredits ?? 95; // fallback 95 ถ้ายังไม่มีข้อมูลจริง
+  const requiredMajorCredits = requirements?.project?.majorCredits ?? 47;
+  const allowedSemesters = requirements?.project?.allowedSemesters ?? [1, 2];
+  const requiresInternship = requirements?.project?.requireInternship ?? false;
   
   // สถานะปัจจุบันของนักศึกษา (ใช้ข้อมูลจาก status.project ถ้าไม่มี fallback เป็น student)
   const studentStatus = {

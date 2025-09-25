@@ -99,29 +99,30 @@ module.exports = function (proxy, allowedHost) {
       disableDotRule: true,
       index: paths.publicUrlOrPath,
     },
-    // `proxy` is run between `before` and `after` `webpack-dev-server` hooks
+    // `proxy` is run between middleware registrations
     proxy,
-    onBeforeSetupMiddleware(devServer) {
-      // Keep `evalSourceMapMiddleware`
-      // middlewares before `redirectServedPath` otherwise will not have any effect
-      // This lets us fetch source contents from webpack for the error overlay
+    // ใช้รูปแบบใหม่ setupMiddlewares (แทน onBeforeSetupMiddleware/onAfterSetupMiddleware)
+    setupMiddlewares(middlewares, devServer) {
+      if (!devServer) {
+        return middlewares;
+      }
+
+      // วาง evalSourceMapMiddleware ไว้ก่อน redirectServedPath ตามตรรกะเดิม
       devServer.app.use(evalSourceMapMiddleware(devServer));
 
       if (fs.existsSync(paths.proxySetup)) {
-        // This registers user provided middleware for proxy reasons
+        // ลงทะเบียน proxy middleware ที่ผู้ใช้กำหนดเอง (เช่น setupProxy.js)
         require(paths.proxySetup)(devServer.app);
       }
-    },
-    onAfterSetupMiddleware(devServer) {
-      // Redirect to `PUBLIC_URL` or `homepage` from `package.json` if url not match
+
+      // ส่วนที่เดิมอยู่ใน onAfterSetupMiddleware
+      // Redirect ไปยัง PUBLIC_URL/homepage หาก URL ไม่ตรง
       devServer.app.use(redirectServedPath(paths.publicUrlOrPath));
 
-      // This service worker file is effectively a 'no-op' that will reset any
-      // previous service worker registered for the same host:port combination.
-      // We do this in development to avoid hitting the production cache if
-      // it used the same host and port.
-      // https://github.com/facebook/create-react-app/issues/2272#issuecomment-302832432
+      // ปิดการใช้งาน service worker ในโหมดพัฒนา เพื่อเลี่ยง cache เก่า
       devServer.app.use(noopServiceWorkerMiddleware(paths.publicUrlOrPath));
+
+      return middlewares;
     },
   };
 };

@@ -9,6 +9,7 @@ const internshipRoutes = require('./internshipRoutes');
 const internshipCompanyStatsRoutes = require('./internshipCompanyStatsRoutes');
 const emailApprovalRoutes = require('./emailApprovalRoutes');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const projectRoutes = require('./projectRoutes');
 const curriculumController = require('../controllers/curriculumController'); // เพิ่มการนำเข้า curriculumController
 
 // Public routes
@@ -28,5 +29,8 @@ router.use('/internship', internshipCompanyStatsRoutes); // ใช้ auth ท�
 
 // Add routes for email approval
 router.use('/email-approval', emailApprovalRoutes); // Ensure this line is present and active
+
+// Project management (Phase 2)
+router.use('/projects', projectRoutes);
 
 module.exports = router;
