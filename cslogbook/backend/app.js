@@ -86,6 +86,18 @@ app.use('/api/projects', authenticateToken, projectRoutes); // 🆕 mount projec
 app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // mount overview (มี auth ใน route เองแล้ว)
 app.use('/api', uploadRoutes);
 
+// เส้นทางดาวน์โหลดไฟล์เทมเพลต CSV สำหรับอัปโหลดรายชื่อนักศึกษา
+app.get('/template/download-template', (req, res) => {
+  const filePath = path.join(__dirname, 'templates/student_template.csv');
+
+  res.download(filePath, 'student_template.csv', (err) => {
+    if (err) {
+      console.error('Error downloading template:', err);
+      res.status(500).send('Error downloading template');
+    }
+  });
+});
+
 // Fallback 404
 app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Not Found' });
