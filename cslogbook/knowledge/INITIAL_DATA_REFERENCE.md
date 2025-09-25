@@ -204,59 +204,157 @@ TODO:
 - `internship_evaluations` (การประเมิน)
 - `workflow_step_definitions` (อธิบายขั้นตอน process ฝึกงาน)
 
-สรุป schema ย่อ (สำคัญที่ใช้ใน initial data context):
+สรุป schema ย่อ (สำคัญที่ใช้ใน initial data context) — อ้างอิงจากฐานจริง
+
+`documents`
+| Column | Type | Null? | Note |
+|--------|------|-------|------|
+| document_id | INT | NO (PK) | ไอดีเอกสาร |
+| user_id | INT | NO | เจ้าของเอกสาร |
+| document_type | ENUM('INTERNSHIP','PROJECT') | NO | ประเภทโดเมน |
+| category | ENUM('proposal','progress','final','acceptance') | NO | หมวดเอกสาร |
+| status | ENUM('draft','pending','approved','rejected','supervisor_evaluated') | NO | สถานะเอกสาร |
+| important_deadline_id | INT | YES | ลิงก์เดดไลน์ |
+| submitted_at | DATETIME | YES | เวลาส่งจริง |
+| is_late | TINYINT(1) | NO | ธงส่งช้า (0/1) |
+| download_status | ENUM('not_downloaded','downloaded') | YES | สถานะดาวน์โหลด |
+| downloaded_at | DATETIME | YES | เวลาดาวน์โหลดล่าสุด |
+| download_count | INT | YES | จำนวนดาวน์โหลด |
+| ... | ... | ... | document_name, file_path, reviewer_id, review_date, review_comment, due_date, file_size, mime_type, created_at, updated_at |
+
+ตัวอย่าง 3 คอลัมน์ (ข้อมูลจริง)
+
+| document_id | status   | category   |
+|-------------|----------|------------|
+| 76          | approved | proposal   |
+| 77          | approved | acceptance |
+| 87          | approved | proposal   |
 
 `internship_documents`
 | Column | Type | Null? | Note |
 |--------|------|-------|------|
-| internship_id | INT PK | NO | ใช้เชื่อมทุกส่วน |
-| document_id | INT FK documents | NO | เอกสารอ้างอิง (CS05 ฯลฯ) |
-| company_name | STRING(255) | NO | ชื่อสถานประกอบการ |
-| company_address | TEXT | NO |  |
-| internship_position | STRING(100) | YES | ตำแหน่งฝึกงาน |
-| contact_person_name/position | STRING(100) | YES | ผู้ประสานงาน |
-| supervisor_name/position/phone/email | STRING | YES | ข้อมูลพี่เลี้ยง |
-| start_date / end_date | DATEONLY | NO | ช่วงฝึกงาน |
-| academic_year / semester | INT/TINYINT | YES | snapshot เวลา submit |
-| created_at/updated_at | TIMESTAMP | NO |  |
+| internship_id | INT | NO (PK AI) | ใช้เชื่อมทุกส่วน |
+| document_id | INT | NO (UNIQUE) | เอกสารอ้างอิง (คำร้อง/ตอบรับ) |
+| company_name | VARCHAR(255) | NO | ชื่อสถานประกอบการ |
+| company_address | TEXT | NO | ที่อยู่ |
+| internship_position | VARCHAR(100) | YES | ตำแหน่งฝึกงาน |
+| contact_person_name/position | VARCHAR(100) | YES | ผู้ประสานงาน |
+| supervisor_name/position/phone/email | VARCHAR | YES | ข้อมูลพี่เลี้ยง |
+| start_date / end_date | DATE | NO | ช่วงฝึกงาน |
+| academic_year / semester | INT / TINYINT | YES | snapshot เวลา submit |
+| created_at/updated_at | TIMESTAMP | YES | timestamps |
+
+ตัวอย่าง 3 คอลัมน์ (ข้อมูลจริง)
+
+| internship_id | company_name          | internship_position                          |
+|---------------|-----------------------|----------------------------------------------|
+| 44            | deverhoodHT           | Front end Developer                           |
+| 48            | บริษัท วิชั่นเน็ต จำกัด | Database Programmer / Application Developer |
+| 49            | บริษัท วิชั่นเน็ต จำกัด | Database Programmer / Application Developer |
 
 `internship_logbooks`
 | Column | Type | Null? | Note |
 |--------|------|-------|------|
-| log_id | INT PK | NO |  |
-| internship_id | INT FK | NO |  |
-| student_id | INT FK | NO |  |
-| academic_year / semester | INT | NO | snapshot เทอมของ log |
-| work_date | DATEONLY | NO | วันที่ทำงาน |
-| log_title | STRING | NO | หัวข้อ |
+| log_id | INT | NO (PK AI) |  |
+| internship_id | INT | NO |  |
+| student_id | INT | NO |  |
+| work_date | DATE | NO | วันที่ทำงาน |
+| log_title | VARCHAR(255) | NO | หัวข้อ |
 | work_description / learning_outcome | TEXT | NO | เนื้อหา |
 | problems / solutions | TEXT | YES |  |
 | work_hours | DECIMAL(4,2) | NO | ชั่วโมงทำงาน |
-| time_in / time_out | STRING(5) | YES | HH:MM |
 | supervisor_comment | TEXT | YES |  |
-| supervisor_approved (int) | INT (0/1/2) | YES | 0 pending, 1 approve, 2 reject (ตีความ) |
-| supervisor_approved_at / supervisor_rejected_at | DATETIME | YES | timestamp action |
+| supervisor_approved | INT | NO (default 0) | 0 pending, 1 approve, 2 reject |
 | advisor_comment | TEXT | YES |  |
-| advisor_approved | BOOLEAN | YES | default false |
+| advisor_approved | TINYINT(1) | YES (default 0) |  |
+| time_in / time_out | VARCHAR(5) | YES | HH:MM |
+| supervisor_approved_at / supervisor_rejected_at | DATETIME | YES | timestamp action |
+| academic_year | INT | NO (default 2568) | snapshot เทอม |
+| semester | INT | NO (default 1) | snapshot เทอม |
+| created_at/updated_at | TIMESTAMP | YES |  |
+
+ตัวอย่าง 3 คอลัมน์ (ข้อมูลจริง)
+
+| log_id | work_date  | supervisor_approved |
+|--------|------------|---------------------|
+| 282    | 2025-07-07 | 0                   |
+| 283    | 2025-07-08 | 0                   |
+| 284    | 2025-07-09 | 0                   |
 
 `internship_evaluations`
 | Column | Type | Null? | Note |
 |--------|------|-------|------|
-| evaluation_id | INT PK | NO |  |
-| approval_token_id | INT FK | YES | เชื่อม token สำหรับ external supervisor |
-| internship_id | INT FK | NO |  |
-| student_id | INT FK | NO |  |
-| evaluator_name | STRING | YES | ชื่อผู้ประเมิน |
-| evaluation_date | DATETIME | NO | default now |
+| evaluation_id | INT | NO (PK AI) |  |
+| approval_token_id | INT | YES | external supervisor token |
+| internship_id | INT | NO |  |
+| student_id | INT | NO |  |
+| evaluator_name | VARCHAR(255) | YES | ผู้ประเมิน |
+| evaluation_date | DATETIME | NO | เวลา/วันที่ประเมิน |
 | overall_score | DECIMAL(5,2) | YES | คะแนนรวม |
-| strengths / weaknesses_to_improve / additional_comments | TEXT | YES | คำอธิบาย |
-| status | STRING(50) | NO | เช่น submitted_by_supervisor |
+| strengths / weaknesses_to_improve / additional_comments | TEXT | YES | รายละเอียดเชิงคุณภาพ |
+| status | VARCHAR(50) | NO (default 'submitted_by_supervisor') | สถานะ |
 | evaluated_by_supervisor_at | DATETIME | YES | เวลา submit |
-| evaluation_items | TEXT(JSON) | YES | รายละเอียดแต่ละหัวข้อ |
-| discipline_score / behavior_score / performance_score / method_score / relation_score | INT | YES | หมวดคะแนน (5 หมวด) |
-| supervisor_pass_decision | BOOLEAN | YES | ผ่าน/ไม่ผ่าน |
-| pass_fail | STRING(10) | YES | ใช้ค่า PASS/FAIL |
+| evaluation_items | TEXT(JSON) | YES | รายการ rubric แบบยืดหยุ่น |
+| discipline_score / behavior_score / performance_score / method_score / relation_score | INT | YES | หมวดคะแนน |
+| supervisor_pass_decision | TINYINT(1) | YES | ผ่าน/ไม่ผ่าน |
+| pass_fail | VARCHAR(10) | YES | pass/fail |
 | pass_evaluated_at | DATETIME | YES | เวลาตัดสินผล |
+| created_at/updated_at | DATETIME | NO | timestamps |
+
+ตัวอย่าง 3 คอลัมน์ (ข้อมูลจริง)
+
+| evaluation_id | status    | pass_fail |
+|---------------|-----------|-----------|
+| 26            | completed | pass      |
+| 25            | completed | pass      |
+หมายเหตุ: ขณะดึงพบ 2 แถวล่าสุด
+
+`internship_certificate_requests`
+| Column | Type | Null? | Note |
+|--------|------|-------|------|
+| id | INT | NO (PK AI) |  |
+| student_id | VARCHAR(20) | NO |  |
+| internship_id | INT | NO |  |
+| document_id | INT | NO |  |
+| request_date | DATETIME | NO |  |
+| status | ENUM('pending','approved','rejected') | YES (default 'pending') | สถานะคำขอ |
+| total_hours | DECIMAL(5,2) | NO |  |
+| evaluation_status | VARCHAR(50) | NO |  |
+| summary_status | VARCHAR(50) | NO |  |
+| requested_by | INT | NO |  |
+| processed_at | DATETIME | YES |  |
+| processed_by | INT | YES |  |
+| certificate_number | VARCHAR(50) | YES |  |
+| downloaded_at | DATETIME | YES |  |
+| download_count | INT | YES (default 0) |  |
+| remarks | TEXT | YES |  |
+| created_at/updated_at | TIMESTAMP | NO | timestamps |
+
+ตัวอย่าง 3 คอลัมน์ (ข้อมูลจริง)
+
+| id | internship_id | status   |
+|----|---------------|----------|
+| 20 | 51            | approved |
+| 21 | 58            | approved |
+
+`workflow_step_definitions` (internship)
+| Column | Type | Null? | Note |
+|--------|------|-------|------|
+| step_id | INT | NO (PK AI) |  |
+| workflow_type | ENUM('internship','project1','project2') | NO | ประเภท workflow |
+| step_key | VARCHAR(255) | NO | ชื่อโค้ดสถานะ (Reference) |
+| step_order | INT | NO | ลำดับขั้น |
+| title | VARCHAR(255) | NO | แสดงบน UI |
+| description_template | TEXT | YES |  |
+| created_at/updated_at | DATETIME | NO | timestamps |
+
+ตัวอย่าง 3 คอลัมน์ (ข้อมูลจริง)
+
+| step_key                   | step_order | title                         |
+|---------------------------|------------|-------------------------------|
+| INTERNSHIP_CS05_APPROVED  | 3          | คพ.05 ได้รับการอนุมัติแล้ว |
+| INTERNSHIP_AWAITING_START | 5          | รอเริ่มการฝึกงาน            |
+| INTERNSHIP_IN_PROGRESS    | 6          | อยู่ระหว่างการฝึกงาน        |
 
 Workflow internship (จาก seeder): 10 ขั้น (ดู Inventory) -> ใช้แสดง progress ของนักศึกษา
 
