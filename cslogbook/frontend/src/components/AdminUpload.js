@@ -16,14 +16,12 @@ import {
   Spin,
   Tooltip,
   Select,
-  List,
   Empty
 } from 'antd';
 import {
   UploadOutlined,
   ReloadOutlined,
   DownloadOutlined,
-  HistoryOutlined,
   InfoCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -58,34 +56,6 @@ const statusMeta = {
   Error: { color: 'orange', label: 'เกิดข้อผิดพลาด', icon: <ExclamationCircleOutlined /> }
 };
 
-const aggregateUploadHistory = (entries = []) => {
-  const groups = new Map();
-
-  entries.forEach((entry) => {
-    const createdAtRaw = entry.createdAt || entry.created_at || entry.created_date;
-    const createdAt = createdAtRaw ? new Date(createdAtRaw) : new Date();
-    const key = `${entry.fileName || entry.file_name}-${Math.floor(createdAt.getTime() / 1000)}`;
-
-    if (!groups.has(key)) {
-      groups.set(key, {
-        fileName: entry.fileName || entry.file_name || 'ไม่ระบุชื่อไฟล์',
-        createdAt,
-        totalRecords: 0,
-        successfulUpdates: 0,
-        failedUpdates: 0,
-        uploader: entry.uploader || null
-      });
-    }
-
-    const group = groups.get(key);
-    group.totalRecords += entry.totalRecords ?? 0;
-    group.successfulUpdates += entry.successfulUpdates ?? 0;
-    group.failedUpdates += entry.failedUpdates ?? 0;
-  });
-
-  return Array.from(groups.values()).sort((a, b) => b.createdAt - a.createdAt);
-};
-
 const AdminUpload = () => {
   const navigate = useNavigate();
   const [fileList, setFileList] = useState([]);
@@ -99,9 +69,6 @@ const AdminUpload = () => {
     academic: { ready: false, message: '' }
   });
   const [contextLoading, setContextLoading] = useState(true);
-
-  const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const templateDownloadUrl = `${getBackendBaseUrl()}/template/download-template`;
@@ -147,19 +114,6 @@ const AdminUpload = () => {
     setContextLoading(false);
   }, []);
 
-  const loadHistory = useCallback(async () => {
-    setHistoryLoading(true);
-    try {
-      const historyData = await adminService.getStudentUploadHistory();
-      setHistory(aggregateUploadHistory(historyData));
-    } catch (error) {
-      console.error('ไม่สามารถโหลดประวัติการอัปโหลด:', error);
-      message.error('ไม่สามารถโหลดประวัติการอัปโหลดได้');
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -168,8 +122,7 @@ const AdminUpload = () => {
     }
 
     loadContextData();
-    loadHistory();
-  }, [loadContextData, loadHistory]);
+  }, [loadContextData]);
 
   const isReadyToUpload = prerequisiteStatus.curriculum.ready && prerequisiteStatus.academic.ready;
 
@@ -223,7 +176,6 @@ const AdminUpload = () => {
         setSummary(data.summary || null);
         setStatusFilter('all');
         message.success('อัปโหลดไฟล์สำเร็จ');
-        loadHistory();
       } else {
         throw new Error(data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
       }
@@ -569,55 +521,6 @@ const AdminUpload = () => {
             />
           ) : (
             <Empty description="ยังไม่มีผลลัพธ์จากการอัปโหลด" />
-          )}
-        </Card>
-
-        <Card
-          bodyStyle={{ padding: 24 }}
-          title={
-            <Space>
-              <HistoryOutlined />
-              <span>ประวัติการอัปโหลดล่าสุด</span>
-            </Space>
-          }
-          extra={
-            <Button icon={<ReloadOutlined />} size="small" onClick={loadHistory}>
-              รีเฟรช
-            </Button>
-          }
-        >
-          {historyLoading ? (
-            <Spin tip="กำลังโหลดประวัติ..." />
-          ) : history.length ? (
-            <List
-              dataSource={history.slice(0, 5)}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={
-                      <Space direction="vertical" size={2}>
-                        <Text strong>{item.fileName}</Text>
-                        <Text type="secondary">อัปโหลดเมื่อ {dayjs(item.createdAt).format('DD MMM YYYY HH:mm')}</Text>
-                      </Space>
-                    }
-                    description={
-                      <Space size="middle" wrap>
-                        <Tag color="blue">เพิ่ม/อัปเดต {item.successfulUpdates}</Tag>
-                        <Tag color="default">รวม {item.totalRecords}</Tag>
-                        {item.failedUpdates > 0 && <Tag color="red">ผิดพลาด {item.failedUpdates}</Tag>}
-                        {item.uploader && (
-                          <Tag color="purple">
-                            โดย {item.uploader.firstName || ''} {item.uploader.lastName || ''}
-                          </Tag>
-                        )}
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          ) : (
-            <Empty description="ยังไม่มีประวัติการอัปโหลด" />
           )}
         </Card>
       </Space>
