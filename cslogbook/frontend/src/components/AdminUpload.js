@@ -137,9 +137,17 @@ const AdminUpload = () => {
       return Upload.LIST_IGNORE;
     }
 
-    const isCSV = file.type === 'text/csv' || file.name.endsWith('.csv');
-    if (!isCSV) {
-      message.error('สามารถอัปโหลดได้เฉพาะไฟล์ .csv เท่านั้น');
+    const fileName = file.name.toLowerCase();
+    const csvMimeType = file.type === 'text/csv';
+    const excelMimeTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    const isCsv = csvMimeType || fileName.endsWith('.csv');
+    const isExcel = excelMimeTypes.includes(file.type) || fileName.endsWith('.xlsx');
+
+    if (!isCsv && !isExcel) {
+      message.error('สามารถอัปโหลดได้เฉพาะไฟล์ .csv หรือ .xlsx เท่านั้น');
       return Upload.LIST_IGNORE;
     }
 
@@ -155,7 +163,7 @@ const AdminUpload = () => {
 
   const handleUpload = async () => {
     if (!fileList.length) {
-      message.warning('กรุณาเลือกไฟล์ CSV ก่อนเริ่มอัปโหลด');
+      message.warning('กรุณาเลือกไฟล์ CSV หรือ Excel ก่อนเริ่มอัปโหลด');
       return;
     }
 
@@ -399,11 +407,11 @@ const AdminUpload = () => {
             <Alert
               type={isReadyToUpload ? 'success' : 'warning'}
               showIcon
-              message={isReadyToUpload ? 'พร้อมสำหรับการอัปโหลดไฟล์ CSV' : 'ยังมีการตั้งค่าที่ต้องทำให้เรียบร้อยก่อนอัปโหลด'}
+              message={isReadyToUpload ? 'พร้อมสำหรับการอัปโหลดไฟล์ CSV หรือ Excel' : 'ยังมีการตั้งค่าที่ต้องทำให้เรียบร้อยก่อนอัปโหลด'}
               description={
                 <span>
                   {isReadyToUpload
-                    ? 'คุณสามารถเลือกไฟล์ CSV และเริ่มอัปโหลดได้ทันที'
+                    ? 'คุณสามารถเลือกไฟล์ CSV หรือ Excel (.xlsx) และเริ่มอัปโหลดได้ทันที'
                     : 'ตรวจสอบให้แน่ใจว่าหลักสูตรและปีการศึกษาปัจจุบันตั้งค่าไว้ถูกต้องเพื่อให้ข้อมูลที่นำเข้าอยู่ในกลุ่มที่ถูกต้อง'}
                 </span>
               }
@@ -414,7 +422,7 @@ const AdminUpload = () => {
         <Card bodyStyle={{ padding: 24 }}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Dragger
-              accept=".csv"
+              accept=".csv,.xlsx"
               beforeUpload={handleBeforeUpload}
               fileList={fileList}
               onRemove={() => setFileList([])}
@@ -424,9 +432,9 @@ const AdminUpload = () => {
               <p className="ant-upload-drag-icon">
                 <UploadOutlined />
               </p>
-              <Title level={4}>ลากไฟล์ CSV มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</Title>
+              <Title level={4}>ลากไฟล์ CSV หรือ Excel (.xlsx) มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</Title>
               <Text type="secondary">
-                รองรับไฟล์ .csv ขนาดไม่เกิน 5MB และต้องใช้งานตามโครงสร้างเทมเพลตที่กำหนด
+                รองรับไฟล์ .csv และ .xlsx ขนาดไม่เกิน 5MB และต้องใช้งานตามโครงสร้างเทมเพลตที่กำหนด
               </Text>
             </Dragger>
 

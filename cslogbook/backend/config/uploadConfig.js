@@ -22,7 +22,13 @@ const UPLOAD_CONFIG = {
 const CSV_UPLOAD_CONFIG = {
     PATH: path.join(UPLOAD_CONFIG.BASE_PATH, 'csv'),
     MAX_FILE_SIZE: 5 * 1024 * 1024,
-    ALLOWED_TYPES: ['text/csv', 'application/vnd.ms-excel']
+    ALLOWED_TYPES: [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel.sheet.macroenabled.12'
+    ],
+    ALLOWED_EXTENSIONS: ['.csv', '.xlsx']
 };
 
 // สร้างโฟลเดอร์อัตโนมัติ
@@ -141,8 +147,13 @@ const csvUpload = multer({
         fileSize: CSV_UPLOAD_CONFIG.MAX_FILE_SIZE
     },
     fileFilter: (req, file, cb) => {
-        if (!CSV_UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.mimetype)) {
-            const error = new Error('รองรับเฉพาะไฟล์ CSV เท่านั้น');
+        const mimetype = file.mimetype;
+        const extension = path.extname(file.originalname || '').toLowerCase();
+        const isAllowedMimeType = CSV_UPLOAD_CONFIG.ALLOWED_TYPES.includes(mimetype);
+        const isAllowedExtension = CSV_UPLOAD_CONFIG.ALLOWED_EXTENSIONS.includes(extension);
+
+        if (!isAllowedMimeType && !isAllowedExtension) {
+            const error = new Error('รองรับเฉพาะไฟล์ CSV หรือ Excel (.xlsx) เท่านั้น');
             error.code = 'INVALID_CSV_TYPE';
             return cb(error, false);
         }

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const ExcelJS = require('exceljs');
 
 jest.mock('../../models', () => ({
   User: { findOrCreate: jest.fn() },
@@ -27,6 +28,18 @@ const createTempCsv = (content) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'student-upload-'));
   const filePath = path.join(tempDir, 'students.csv');
   fs.writeFileSync(filePath, content, 'utf8');
+  return { filePath, tempDir };
+};
+
+const createTempXlsx = async (rows) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'student-upload-'));
+  const filePath = path.join(tempDir, 'students.xlsx');
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Students');
+  rows.forEach((row) => worksheet.addRow(row));
+  await workbook.xlsx.writeFile(filePath);
+
   return { filePath, tempDir };
 };
 
@@ -89,6 +102,54 @@ describe('processStudentCsvUpload', () => {
         expect.objectContaining({
           uploadedBy: 999,
           fileName: 'students.csv',
+          uploadType: 'students'
+        }),
+        expect.objectContaining({ transaction: expect.any(Object) })
+      );
+      expect(result.summary).toEqual({ total: 1, added: 1, updated: 0, invalid: 0, errors: 0 });
+      expect(result.results[0].status).toBe('Added');
+      expect(commitMock).toHaveBeenCalledTimes(1);
+      expect(rollbackMock).not.toHaveBeenCalled();
+    } finally {
+      cleanup(temp);
+    }
+  });
+
+  it('ควรประมวลผลไฟล์ Excel (.xlsx) ได้ถูกต้อง', async () => {
+    const temp = await createTempXlsx([
+      ['Student ID', 'Name', 'Surname'],
+      ['6404062630295', 'สมชาย', 'ใจดี']
+    ]);
+
+    const userInstance = { userId: 201, update: jest.fn() };
+    const studentInstance = { userId: 201, update: jest.fn() };
+
+    User.findOrCreate.mockResolvedValue([userInstance, true]);
+    Student.findOrCreate.mockResolvedValue([studentInstance, true]);
+    UploadHistory.create.mockResolvedValue();
+
+    try {
+      const result = await processStudentCsvUpload({
+        filePath: temp.filePath,
+        originalName: 'students.xlsx',
+        uploader: { userId: 1001 }
+      });
+
+      expect(bcrypt.hash).toHaveBeenCalledWith('6404062630295', 10);
+      expect(User.findOrCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { username: 's6404062630295' }
+        })
+      );
+      expect(Student.findOrCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 201 }
+        })
+      );
+      expect(UploadHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uploadedBy: 1001,
+          fileName: 'students.xlsx',
           uploadType: 'students'
         }),
         expect.objectContaining({ transaction: expect.any(Object) })
