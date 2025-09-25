@@ -42,6 +42,10 @@ module.exports = (sequelize) => {
             defaultValue: 0,
             field: 'failed_updates'
         },
+        details: {
+            type: DataTypes.JSON,
+            allowNull: true
+        },
         uploadType: {
             type: DataTypes.ENUM('students', 'grades'),
             defaultValue: 'students',

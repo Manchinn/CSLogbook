@@ -26,6 +26,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const academicRoutes = require('./routes/academicRoutes');
+const curriculumRoutes = require('./routes/curriculumRoutes');
 const uploadRoutes = require('./routes/upload');
 const internshipRoutes = require('./routes/documents/internshipRoutes');
 const internshipCompanyStatsRoutes = require('./routes/internshipCompanyStatsRoutes');
@@ -70,6 +71,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public & protected routes (ส่วนสำคัญเท่านั้น; บาง route อาจพึ่งพา DB จริง ให้ mock ใน test กรณีจำเป็น)
 app.use('/api/auth', authRoutes);
+app.use('/api/curriculums', curriculumRoutes);
 app.use('/api/email-approval', emailApprovalRoutes);
 app.use('/api/internship', internshipRoutes);
 app.use('/api/internship', internshipCompanyStatsRoutes);

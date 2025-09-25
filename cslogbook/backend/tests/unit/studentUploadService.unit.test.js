@@ -115,7 +115,16 @@ describe('processStudentCsvUpload', () => {
 
       expect(User.findOrCreate).not.toHaveBeenCalled();
       expect(Student.findOrCreate).not.toHaveBeenCalled();
-      expect(UploadHistory.create).not.toHaveBeenCalled();
+      expect(UploadHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uploadedBy: 1,
+          fileName: 'invalid.csv',
+          totalRecords: 1,
+          successfulUpdates: 0,
+          failedUpdates: 1
+        }),
+        expect.objectContaining({ transaction: expect.any(Object) })
+      );
       expect(result.summary).toEqual({ total: 1, added: 0, updated: 0, invalid: 1, errors: 0 });
       expect(result.results[0].status).toBe('Invalid');
       expect(commitMock).toHaveBeenCalledTimes(1);
@@ -139,6 +148,16 @@ describe('processStudentCsvUpload', () => {
 
       expect(result.summary).toEqual({ total: 1, added: 0, updated: 0, invalid: 0, errors: 1 });
       expect(result.results[0]).toMatchObject({ status: 'Error', error: 'DB error' });
+      expect(UploadHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uploadedBy: 500,
+          fileName: 'students.csv',
+          totalRecords: 1,
+          successfulUpdates: 0,
+          failedUpdates: 1
+        }),
+        expect.objectContaining({ transaction: expect.any(Object) })
+      );
       expect(commitMock).toHaveBeenCalledTimes(1);
       expect(rollbackMock).not.toHaveBeenCalled();
     } finally {

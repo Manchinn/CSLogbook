@@ -29,6 +29,17 @@ export const adminService = {
     }
   },
 
+  // ดึงประวัติการอัปโหลดไฟล์ CSV (เรียงจากล่าสุด)
+  getStudentUploadHistory: async () => {
+    try {
+      const response = await apiClient.get('/upload-csv/history');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching upload history:', error);
+      throw error;
+    }
+  },
+
   // ดึงข้อมูลกิจกรรมล่าสุด
   getRecentActivities: async (params = {}) => {
     try {

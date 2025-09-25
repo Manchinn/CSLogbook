@@ -153,6 +153,7 @@ const workflowRoutes = require('./routes/workflowRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม academicRoutes
+const curriculumRoutes = require('./routes/curriculumRoutes');
 const reportRoutes = require('./routes/reportRoutes'); // รายงานใหม่
 const topicExamRoutes = require('./routes/topicExamRoutes'); // NEW: topic exam overview
 // ใช้ app ที่แยกใน app.js สำหรับ test-friendly
@@ -311,6 +312,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/curriculums', curriculumRoutes);
 // เพิ่มเส้นทางสำหรับช่วงเปลี่ยนผ่านชั่วคราว - จะถูกลบออกในอนาคต
 app.use('/api/timeline/public', timelineRoutes);
 

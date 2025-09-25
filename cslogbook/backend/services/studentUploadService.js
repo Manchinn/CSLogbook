@@ -86,20 +86,6 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => 
             );
           }
 
-          // ✅ เก็บประวัติทีละรายการเพื่อ audit (ตรรกะจากโค้ดเดิม)
-          await UploadHistory.create(
-            {
-              uploadedBy: uploader.userId,
-              fileName: originalName,
-              totalRecords: 1,
-              successfulUpdates: 1,
-              failedUpdates: 0,
-              uploadType: 'students',
-              details: JSON.stringify(normalizedData)
-            },
-            { transaction }
-          );
-
           results.push({
             ...normalizedData,
             status: created ? 'Added' : 'Updated'
@@ -121,8 +107,6 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => 
       }
     }
 
-    await transaction.commit();
-
     const summary = {
       total: results.length,
       added: results.filter((r) => r.status === 'Added').length,
@@ -130,6 +114,28 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => 
       invalid: results.filter((r) => r.status === 'Invalid').length,
       errors: results.filter((r) => r.status === 'Error').length
     };
+
+    await UploadHistory.create(
+      {
+        uploadedBy: uploader.userId,
+        fileName: originalName,
+        totalRecords: summary.total,
+        successfulUpdates: summary.added + summary.updated,
+        failedUpdates: summary.invalid + summary.errors,
+        uploadType: 'students',
+        details: {
+          summary,
+          processedAt: new Date().toISOString(),
+          uploader: {
+            userId: uploader.userId,
+            username: uploader.username || null
+          }
+        }
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
 
     return { results, summary };
   } catch (error) {
