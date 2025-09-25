@@ -18,6 +18,13 @@ const UPLOAD_CONFIG = {
     }
 };
 
+// 🆕 กำหนดการอัปโหลดไฟล์ CSV สำหรับรายชื่อนักศึกษาไว้ที่เดียว
+const CSV_UPLOAD_CONFIG = {
+    PATH: path.join(UPLOAD_CONFIG.BASE_PATH, 'csv'),
+    MAX_FILE_SIZE: 5 * 1024 * 1024,
+    ALLOWED_TYPES: ['text/csv', 'application/vnd.ms-excel']
+};
+
 // สร้างโฟลเดอร์อัตโนมัติ
 const ensureDirectoryExists = (dirPath) => {
     if (!fs.existsSync(dirPath)) {
@@ -82,6 +89,23 @@ const storage = multer.diskStorage({
     }
 });
 
+// 🆕 สร้าง storage สำหรับไฟล์ CSV แยกเฉพาะทาง
+const csvStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        try {
+            ensureDirectoryExists(CSV_UPLOAD_CONFIG.PATH);
+            cb(null, CSV_UPLOAD_CONFIG.PATH);
+        } catch (error) {
+            cb(error);
+        }
+    },
+    filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        cb(null, `${timestamp}-${sanitizedName}`);
+    }
+});
+
 // สร้าง multer instance - ปรับปรุง fileFilter
 const upload = multer({
     storage,
@@ -106,6 +130,22 @@ const upload = multer({
             return;
         }
         
+        cb(null, true);
+    }
+});
+
+// 🆕 ตัวอัปโหลด CSV ที่ใช้ร่วมทุกที่ให้สอดคล้องกับแพทเทิร์นกลาง
+const csvUpload = multer({
+    storage: csvStorage,
+    limits: {
+        fileSize: CSV_UPLOAD_CONFIG.MAX_FILE_SIZE
+    },
+    fileFilter: (req, file, cb) => {
+        if (!CSV_UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.mimetype)) {
+            const error = new Error('รองรับเฉพาะไฟล์ CSV เท่านั้น');
+            error.code = 'INVALID_CSV_TYPE';
+            return cb(error, false);
+        }
         cb(null, true);
     }
 });
@@ -196,7 +236,9 @@ const generateFilePath = (documentType, category, filename) => {
 // Export functions และค่าคงที่
 module.exports = {
     upload,
+    csvUpload,
     UPLOAD_CONFIG,
+    CSV_UPLOAD_CONFIG,
     ensureDirectoryExists,
     deleteOldFile,
     createAcceptanceLetterRequest, // 🆕 ฟังก์ชันใหม่

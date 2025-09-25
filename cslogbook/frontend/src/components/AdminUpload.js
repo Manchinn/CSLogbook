@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Button, Table, message, Space, Typography, Card } from 'antd';
 import { UploadOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
-import apiClient from '../services/apiClient';
+import { adminService } from '../services/adminService';
 
 const { Text } = Typography;
+
+// ฟังก์ชันช่วยคำนวณ base URL ของ backend จากค่า env ให้รองรับได้หลายสภาพแวดล้อม
+const getBackendBaseUrl = () => {
+  const apiUrl = process.env.REACT_APP_API_URL || '';
+
+  if (!apiUrl) {
+    return 'http://localhost:5000';
+  }
+
+  return apiUrl.replace(/\/api\/?$/, '');
+};
 
 const AdminUpload = () => {
   const [fileList, setFileList] = useState([]);
@@ -11,6 +22,7 @@ const AdminUpload = () => {
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const templateDownloadUrl = `${getBackendBaseUrl()}/template/download-template`;
 
   const columns = [
     { 
@@ -100,22 +112,14 @@ const AdminUpload = () => {
         return;
       }
 
-      const response = await apiClient.post(
-        '/upload-csv',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
+      const data = await adminService.uploadStudentCSV(formData);
 
-      if (response.data.success) {
-        setResults(response.data.results);
-        setSummary(response.data.summary);
+      if (data.success) {
+        setResults(data.results);
+        setSummary(data.summary);
         message.success('อัปโหลดไฟล์สำเร็จ');
       } else {
-        throw new Error(response.data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
+        throw new Error(data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -152,7 +156,7 @@ const AdminUpload = () => {
   };
 
   const handleDownloadTemplate = () => {
-    window.location.href = 'http://localhost:5000/template/download-template';
+    window.location.href = templateDownloadUrl;
   };
 
   return (
