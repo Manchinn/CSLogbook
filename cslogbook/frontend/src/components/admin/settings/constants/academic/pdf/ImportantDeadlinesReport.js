@@ -3,20 +3,25 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: {
-    padding: 32,
+    padding: 36,
     fontSize: 12,
-    fontFamily: 'THSarabunNew'
+    fontFamily: 'THSarabunNew',
+    backgroundColor: '#ffffff'
+  },
+  headerContainer: {
+    marginBottom: 14,
+    textAlign: 'center'
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 6
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    fontSize: 12,
+    color: '#0d47a1',
     marginBottom: 4
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#333333',
+    marginBottom: 6
   },
   metaNote: {
     fontSize: 11,
@@ -24,123 +29,97 @@ const styles = StyleSheet.create({
     marginBottom: 2
   },
   table: {
-    marginTop: 12,
-    borderStyle: 'solid',
+    marginTop: 10,
     borderWidth: 1,
-    borderColor: '#333333'
+    borderColor: '#0d47a1',
+    borderStyle: 'solid',
+    borderRadius: 6,
+    overflow: 'hidden'
   },
-  tableRow: {
-    flexDirection: 'row'
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#0d47a1'
   },
-  tableHeaderCell: {
-    padding: 6,
-    backgroundColor: '#E6F4FF',
-    borderRightWidth: 1,
-    borderColor: '#333333',
+  headerCell: {
+    padding: 8,
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: 'bold'
   },
-  tableBodyCell: {
-    padding: 6,
-    borderRightWidth: 1,
-    borderTopWidth: 1,
-    borderColor: '#333333'
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ff'
   },
-  lastCell: {
-    borderRightWidth: 0
+  rowAlt: {
+    backgroundColor: '#f5f9ff'
   },
-  colIndex: {
-    width: 35,
-    flexGrow: 0,
-    textAlign: 'center'
+  cell: {
+    padding: 8,
+    fontSize: 12,
+    color: '#222222'
   },
-  colName: {
-    flexGrow: 2.2
+  cellActivity: {
+    flex: 2.1
   },
-  colCategory: {
-    flexGrow: 1.6
+  cellDate: {
+    flex: 1.5
   },
-  colYear: {
-    flexGrow: 1.1
+  cellNote: {
+    flex: 1.8
   },
-  colSchedule: {
-    flexGrow: 2.2
+  emptyRow: {
+    paddingVertical: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  colStatus: {
-    flexGrow: 1.3
-  },
-  colType: {
-    flexGrow: 1.2
-  },
-  emptyCell: {
-    padding: 10,
-    textAlign: 'center'
+  textWrap: {
+    flexWrap: 'wrap',
+    lineHeight: 1.4
   }
 });
 
 const ImportantDeadlinesReport = ({ records = [], meta = {} }) => (
   <Document>
     <Page size="A4" style={styles.page}>
-      <Text style={styles.headerTitle}>รายงานสรุปกำหนดการสำคัญ</Text>
-      <View style={styles.metaRow}>
-        <Text>ปีการศึกษา: {meta.academicYearLabel || 'ทั้งหมด'}</Text>
-        <Text>ภาคการศึกษา: {meta.semesterLabel || 'ทั้งหมด'}</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>{meta.title || 'กำหนดการโครงงานพิเศษและปริญญานิพนธ์'}</Text>
+        {meta.periodLabel && <Text style={styles.headerSubtitle}>{meta.periodLabel}</Text>}
+        {meta.categorySummary && <Text style={styles.metaNote}>หมวดที่เลือก: {meta.categorySummary}</Text>}
+        {meta.generatedAt && <Text style={styles.metaNote}>จัดทำเมื่อ: {meta.generatedAt}</Text>}
       </View>
-      {meta.categorySummary && <Text style={styles.metaNote}>หมวดที่เลือก: {meta.categorySummary}</Text>}
-      {meta.generatedAt && <Text style={styles.metaNote}>สร้างเมื่อ: {meta.generatedAt}</Text>}
 
       <View style={styles.table}>
-        <View style={styles.tableRow}>
-          <View style={[styles.tableHeaderCell, styles.colIndex]}>
-            <Text>ลำดับ</Text>
-          </View>
-          <View style={[styles.tableHeaderCell, styles.colName]}>
+        <View style={styles.tableHeader}>
+          <View style={[styles.headerCell, styles.cellActivity]}>
             <Text>กิจกรรม</Text>
           </View>
-          <View style={[styles.tableHeaderCell, styles.colCategory]}>
-            <Text>หมวด</Text>
+          <View style={[styles.headerCell, styles.cellDate]}>
+            <Text>วันที่</Text>
           </View>
-          <View style={[styles.tableHeaderCell, styles.colYear]}>
-            <Text>ปี / ภาค</Text>
-          </View>
-          <View style={[styles.tableHeaderCell, styles.colSchedule]}>
-            <Text>กำหนดการ</Text>
-          </View>
-          <View style={[styles.tableHeaderCell, styles.colStatus]}>
-            <Text>สถานะ</Text>
-          </View>
-          <View style={[styles.tableHeaderCell, styles.colType, styles.lastCell]}>
-            <Text>ประเภท</Text>
+          <View style={[styles.headerCell, styles.cellNote]}>
+            <Text>หมายเหตุ</Text>
           </View>
         </View>
+
         {records.length === 0 ? (
-          <View style={styles.tableRow}>
-            <View style={[styles.tableBodyCell, styles.lastCell, { flexGrow: 1 }]}>
-              <Text style={styles.emptyCell}>ไม่พบข้อมูลกำหนดการ</Text>
-            </View>
+          <View style={[styles.row, styles.emptyRow]}>
+            <Text>ไม่พบข้อมูลกำหนดการ</Text>
           </View>
         ) : (
           records.map((record, index) => (
-            <View style={styles.tableRow} key={record.id || index}>
-              <View style={[styles.tableBodyCell, styles.colIndex]}>
-                <Text>{index + 1}</Text>
+            <View
+              key={record.id || index}
+              style={[styles.row, index % 2 === 1 && styles.rowAlt]}
+            >
+              <View style={[styles.cell, styles.cellActivity]}>
+                <Text style={styles.textWrap}>{record.activity}</Text>
               </View>
-              <View style={[styles.tableBodyCell, styles.colName]}>
-                <Text>{record.name}</Text>
+              <View style={[styles.cell, styles.cellDate]}>
+                <Text style={styles.textWrap}>{record.dateDetail}</Text>
               </View>
-              <View style={[styles.tableBodyCell, styles.colCategory]}>
-                <Text>{record.categoryLabel}</Text>
-              </View>
-              <View style={[styles.tableBodyCell, styles.colYear]}>
-                <Text>{record.academicYearDisplay}</Text>
-              </View>
-              <View style={[styles.tableBodyCell, styles.colSchedule]}>
-                <Text>{record.scheduleText}</Text>
-              </View>
-              <View style={[styles.tableBodyCell, styles.colStatus]}>
-                <Text>{record.statusText}</Text>
-              </View>
-              <View style={[styles.tableBodyCell, styles.colType, styles.lastCell]}>
-                <Text>{record.deadlineTypeLabel}</Text>
+              <View style={[styles.cell, styles.cellNote]}>
+                <Text style={styles.textWrap}>{record.note || '-'}</Text>
               </View>
             </View>
           ))

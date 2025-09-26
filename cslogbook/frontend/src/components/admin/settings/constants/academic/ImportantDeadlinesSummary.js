@@ -9,6 +9,7 @@ import {
   Space,
   Checkbox,
   Divider,
+  Tabs,
   message
 } from 'antd';
 import {
@@ -30,7 +31,7 @@ import {
   getCategoryLabel
 } from './deadlineCategories';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const SEMESTER_OPTIONS = [
   { value: null, label: 'ทุกภาคเรียน' },
@@ -62,29 +63,67 @@ const formatSemesterLabel = (semester) => {
 const formatTime = (timeStr) => {
   if (!timeStr) return '';
   const [hour = '00', minute = '00'] = timeStr.split(':');
-  return `${hour}:${minute}`;
+  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
 };
 
-const buildScheduleText = (deadline) => {
+const formatDisplayTime = (timeStr) => {
+  const normalized = formatTime(timeStr);
+  if (!normalized) return '';
+  const [hour, minute] = normalized.split(':');
+  return `${hour}.${minute}`;
+};
+
+const buildDetailedScheduleText = (deadline) => {
   const startDate = deadline.windowStartDate || null;
   const endDate = deadline.windowEndDate || null;
   const singleDate = deadline.deadlineDate || null;
 
   if (startDate && endDate) {
-    const start = dayjs(startDate).format('D MMM BBBB');
-    const end = dayjs(endDate).format('D MMM BBBB');
-    if (deadline.allDay) {
-      return `${start} - ${end} (ทั้งวัน)`;
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+    const sameDay = start.isSame(end, 'day');
+    const startLabel = start.format('D MMMM');
+    const endLabel = end.format('D MMMM BBBB');
+    const sameMonthAndYear = start.month() === end.month() && start.year() === end.year();
+
+    if (sameDay) {
+      const dateText = start.format('ddddที่ D MMMM BBBB');
+      if (deadline.allDay) {
+        return `${dateText} (ทั้งวัน)`;
+      }
+      const startTime = formatDisplayTime(deadline.windowStartTime || '00:00');
+      const endTime = formatDisplayTime(deadline.windowEndTime || '23:59');
+      return `${dateText} เวลา ${startTime} - ${endTime} น.`;
     }
-    const startTime = formatTime(deadline.windowStartTime) || '00:00';
-    const endTime = formatTime(deadline.windowEndTime) || '23:59';
-    return `${start} ${startTime} น. - ${end} ${endTime} น.`;
+
+    let rangeText;
+    if (sameMonthAndYear) {
+      rangeText = `วันที่ ${start.format('D')} ถึง ${endLabel}`;
+    } else if (start.year() === end.year()) {
+      rangeText = `วันที่ ${startLabel} ถึง ${endLabel}`;
+    } else {
+      rangeText = `วันที่ ${start.format('D MMMM BBBB')} ถึง ${endLabel}`;
+    }
+
+    if (deadline.allDay || (!deadline.windowStartTime && !deadline.windowEndTime)) {
+      return rangeText;
+    }
+
+    const startTime = formatDisplayTime(deadline.windowStartTime || '00:00');
+    const endTime = formatDisplayTime(deadline.windowEndTime || '23:59');
+    return `${rangeText} เวลา ${startTime} - ${endTime} น.`;
   }
 
   if (singleDate) {
-    const dateText = dayjs(singleDate).format('D MMMM BBBB');
-    const timeText = formatTime(deadline.deadlineTime);
-    return `${dateText}${timeText ? ` เวลา ${timeText} น.` : ''}`;
+    const dateText = dayjs(singleDate).format('ddddที่ D MMMM BBBB');
+    const timeText = formatDisplayTime(deadline.deadlineTime || (deadline.allDay ? '' : null));
+    if (timeText) {
+      return `${dateText} ภายในเวลา ${timeText} น.`;
+    }
+    if (deadline.allDay) {
+      return `${dateText} (ทั้งวัน)`;
+    }
+    return dateText;
   }
 
   return '-';
@@ -146,11 +185,12 @@ const ImportantDeadlinesSummary = ({
         const categoryKey = mapDeadlineToCategory(deadline);
         const categoryLabel = getCategoryLabel(categoryKey);
         const typeLabel = DEADLINE_TYPE_LABEL[deadline.deadlineType] || deadline.deadlineType || '-';
-        const scheduleText = buildScheduleText(deadline);
+        const scheduleText = buildDetailedScheduleText(deadline);
         const statusText = buildStatusText(deadline);
-        const effectiveDate = deadline.windowEndDate || deadline.deadlineDate || null;
-        const effectiveTime = deadline.windowEndTime || deadline.deadlineTime || null;
-        const effectiveDateObj = effectiveDate ? dayjs(effectiveDate) : null;
+    const effectiveDate = deadline.windowEndDate || deadline.deadlineDate || null;
+    const effectiveTime = deadline.windowEndTime || deadline.deadlineTime || null;
+    const effectiveDateObj = effectiveDate ? dayjs(effectiveDate) : null;
+    const notesText = deadline.description?.trim() || '';
         return {
           ...deadline,
           key: deadline.id || `${deadline.name}-${deadline.semester}`,
@@ -159,6 +199,8 @@ const ImportantDeadlinesSummary = ({
           deadlineTypeLabel: typeLabel,
           scheduleText,
           statusText,
+          detailedScheduleText: scheduleText,
+          notesText,
           academicYearDisplay: deadline.academicYear
             ? `${deadline.academicYear} / ${formatSemesterLabel(deadline.semester)}`
             : formatSemesterLabel(deadline.semester),
@@ -174,73 +216,132 @@ const ImportantDeadlinesSummary = ({
       });
   }, [filteredDeadlines]);
 
-  const columns = useMemo(() => [
+  const summaryColumns = useMemo(() => [
     {
       title: 'กิจกรรม',
       dataIndex: 'name',
       key: 'name',
-      ellipsis: true
+      width: 320,
+      render: (_, record) => (
+        <Space direction="vertical" size={6}>
+          <Text strong>{record.name}</Text>
+          <Space size={4} wrap>
+            <Tag color={CATEGORY_BADGE_COLOR[record.categoryKey] || 'default'}>
+              {record.categoryLabel}
+            </Tag>
+            <Tag color="geekblue">{record.deadlineTypeLabel}</Tag>
+            <Tag color="cyan">{record.academicYearDisplay}</Tag>
+          </Space>
+          <Button type="link" onClick={() => onEditDeadline?.(record)} size="small">
+            แก้ไขรายละเอียด
+          </Button>
+        </Space>
+      )
+    },
+    {
+      title: 'วันที่',
+      dataIndex: 'detailedScheduleText',
+      key: 'schedule',
+      width: 320,
+      render: (text) => (
+        <Paragraph style={{ marginBottom: 0 }}>{text}</Paragraph>
+      )
+    },
+    {
+      title: 'หมายเหตุ',
+      dataIndex: 'notesText',
+      key: 'notes',
+      render: (text, record) => (
+        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+          <Paragraph style={{ marginBottom: 0 }}>
+            {text || '-'}
+          </Paragraph>
+          {!record.description && record.statusText && (
+            <Text type="secondary">{record.statusText}</Text>
+          )}
+        </Space>
+      )
+    }
+  ], [onEditDeadline]);
+
+  const fullColumns = useMemo(() => [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 80,
+      align: 'center',
+      render: (_, __, index) => index + 1
+    },
+    {
+      title: 'กิจกรรม',
+      dataIndex: 'name',
+      key: 'name',
+      width: 300,
+      render: (_, record) => (
+        <Space direction="vertical" size={6}>
+          <Text strong>{record.name}</Text>
+          {record.description && (
+            <Text type="secondary">{record.description}</Text>
+          )}
+          <Button type="link" onClick={() => onEditDeadline?.(record)} size="small">
+            แก้ไขรายละเอียด
+          </Button>
+        </Space>
+      )
     },
     {
       title: 'หมวด',
       dataIndex: 'categoryLabel',
       key: 'category',
-      width: 200,
+      width: 180,
       render: (_, record) => (
-        <Tag color={CATEGORY_BADGE_COLOR[record.categoryKey] || 'default'}>{record.categoryLabel}</Tag>
+        <Tag color={CATEGORY_BADGE_COLOR[record.categoryKey] || 'default'}>
+          {record.categoryLabel}
+        </Tag>
       )
     },
     {
-      title: 'ปีการศึกษา / ภาค',
+      title: 'ปี / ภาค',
       dataIndex: 'academicYearDisplay',
-      key: 'year',
-      width: 200
+      key: 'academicYear',
+      width: 160
     },
     {
       title: 'กำหนดการ',
       dataIndex: 'scheduleText',
-      key: 'schedule',
-      ellipsis: true
+      key: 'scheduleText',
+      width: 260,
+      render: (text) => <Paragraph style={{ marginBottom: 0 }}>{text}</Paragraph>
     },
     {
       title: 'สถานะ',
-      key: 'status',
+      dataIndex: 'statusText',
+      key: 'statusText',
       width: 220,
-      render: (_, record) => (
-        <Space size={4} wrap>
-          <Tag color={record.acceptingSubmissions ? 'green' : 'red'}>
-            {record.acceptingSubmissions ? 'เปิดรับ' : 'ปิดรับ'}
-          </Tag>
-          <Tag color={record.isPublished ? 'blue' : 'default'}>
-            {record.isPublished ? 'เผยแพร่แล้ว' : 'ร่าง'}
-          </Tag>
-          {record.deadlineType === 'SUBMISSION' && (
-            <>
-              <Tag color={record.allowLate ? 'orange' : 'default'}>
-                {record.allowLate ? 'อนุญาตส่งช้า' : 'ไม่อนุญาตส่งช้า'}
-              </Tag>
-              <Tag color={record.lockAfterDeadline ? 'purple' : 'default'}>
-                {record.lockAfterDeadline ? 'ล็อกหลังหมดเวลา' : 'ไม่ล็อก'}
-              </Tag>
-            </>
-          )}
-        </Space>
+      render: (text) => (
+        <Paragraph style={{ marginBottom: 0 }}>{text}</Paragraph>
       )
     },
     {
       title: 'ประเภท',
       dataIndex: 'deadlineTypeLabel',
-      key: 'type',
-      width: 140
+      key: 'deadlineTypeLabel',
+      width: 160,
+      render: (text) => (
+        <Tag color="geekblue">{text}</Tag>
+      )
     },
     {
-      title: 'การจัดการ',
-      key: 'actions',
-      width: 110,
-      render: (_, record) => (
-        <Button type="link" onClick={() => onEditDeadline?.(record)}>
-          แก้ไข
-        </Button>
+      title: 'หมายเหตุ',
+      dataIndex: 'notesText',
+      key: 'fullNotes',
+      render: (text, record) => (
+        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+          <Paragraph style={{ marginBottom: 0 }}>{text || '-'}</Paragraph>
+          {!record.description && record.statusText && (
+            <Text type="secondary">{record.statusText}</Text>
+          )}
+        </Space>
       )
     }
   ], [onEditDeadline]);
@@ -253,12 +354,9 @@ const ImportantDeadlinesSummary = ({
 
     const exportRows = enhancedRows.map((row) => ({
       id: row.id,
-      name: row.name,
-      categoryLabel: row.categoryLabel,
-      academicYearDisplay: row.academicYearDisplay,
-      scheduleText: row.scheduleText,
-      statusText: row.statusText,
-      deadlineTypeLabel: row.deadlineTypeLabel
+      activity: row.name,
+      dateDetail: row.detailedScheduleText,
+      note: row.description?.trim() || row.statusText || '-'
     }));
 
     const meta = {
@@ -267,7 +365,14 @@ const ImportantDeadlinesSummary = ({
       categorySummary: selectedCategories
         .map((key) => getCategoryLabel(key))
         .join(', '),
-      generatedAt: dayjs().format('D MMMM BBBB HH:mm น.')
+      generatedAt: dayjs().format('D MMMM BBBB HH:mm น.'),
+      periodLabel:
+        academicYearFilter && semesterFilter
+          ? `ภาคการศึกษาที่ ${semesterFilter}/${academicYearFilter}`
+          : academicYearFilter
+            ? `ปีการศึกษา ${academicYearFilter}`
+            : 'ปีการศึกษาทั้งหมด',
+      title: 'กำหนดการโครงงานพิเศษและปริญญานิพนธ์'
     };
 
     try {
@@ -350,14 +455,40 @@ const ImportantDeadlinesSummary = ({
           </Space>
         </Space>
 
-        <Table
-          columns={columns}
-          dataSource={enhancedRows}
-          loading={loading}
-          pagination={{ pageSize: 6, showSizeChanger: false }}
-          scroll={{ x: 960 }}
-          rowKey={(record) => record.id || record.key}
-          size="middle"
+        <Tabs
+          defaultActiveKey="summary"
+          items={[
+            {
+              key: 'summary',
+              label: 'มุมมองสรุป',
+              children: (
+                <Table
+                  columns={summaryColumns}
+                  dataSource={enhancedRows}
+                  loading={loading}
+                  pagination={{ pageSize: 6, showSizeChanger: false }}
+                  scroll={{ x: 960 }}
+                  rowKey={(record) => record.id || record.key}
+                  size="middle"
+                />
+              )
+            },
+            {
+              key: 'full',
+              label: 'มุมมองตารางเต็ม',
+              children: (
+                <Table
+                  columns={fullColumns}
+                  dataSource={enhancedRows}
+                  loading={loading}
+                  pagination={false}
+                  scroll={{ x: 'max-content' }}
+                  rowKey={(record) => record.id || record.key}
+                  size="middle"
+                />
+              )
+            }
+          ]}
         />
       </Space>
     </Card>
