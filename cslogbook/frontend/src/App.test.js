@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('แสดงหัวข้อระบบ CS Logbook บนหน้าหลัก', async () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  const titleElement = await screen.findByText(/CS Logbook/i);
+  expect(titleElement).toBeInTheDocument();
 });

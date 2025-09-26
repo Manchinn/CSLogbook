@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Form, Input, Button, Select, Card, Divider, Typography, Row, Col, InputNumber, DatePicker, message, Spin, Table, Tag, Alert } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Form, Input, Button, Select, Card, Divider, Typography, Row, Col, InputNumber, DatePicker, message, Spin, Table, Tag, Alert, Space } from "antd";
 import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
 import { settingsService } from "../../../../../services/admin/settingsService";
 import th_TH from "antd/lib/locale/th_TH";
@@ -15,6 +15,8 @@ import {
   saveAcademicSettingsProcess,
 } from "./academicUtils";
 // แยกส่วนกำหนดการสำคัญออกเป็นคอมโพเนนต์ย่อย
+import useImportantDeadlines from "../../../../../hooks/admin/useImportantDeadlines";
+import ImportantDeadlinesSummary from "./ImportantDeadlinesSummary";
 import ImportantDeadlinesManager from './ImportantDeadlinesManager';
 
 const { Title, Text } = Typography;
@@ -27,7 +29,11 @@ const AcademicSettings = () => {
   const [loading, setLoading] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
-  // ลบ state deadlines ที่ไม่ได้ใช้แล้ว (backend-driven)
+  const [deadlinesAcademicYear, setDeadlinesAcademicYear] = useState(() => form.getFieldValue("currentAcademicYear") || 2567);
+  const [deadlinesSemester, setDeadlinesSemester] = useState(null);
+  const [yearFilterLocked, setYearFilterLocked] = useState(false);
+  const deadlinesManagerRef = useRef(null);
+  const watchedAcademicYear = Form.useWatch("currentAcademicYear", form);
 
   // ดึงปีการศึกษาและภาคเรียนจากฟอร์มหลัก
   // academicYear จะถูกอ่านแบบ real-time ใน props ที่ส่งให้ ImportantDeadlinesManager (ไม่ต้องเก็บแยก)
@@ -77,6 +83,35 @@ const AcademicSettings = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (watchedAcademicYear && !yearFilterLocked) {
+      setDeadlinesAcademicYear(watchedAcademicYear);
+    }
+  }, [watchedAcademicYear, yearFilterLocked]);
+
+  const {
+    deadlines,
+    loading: deadlinesLoading,
+    fetchDeadlines
+  } = useImportantDeadlines({ academicYear: deadlinesAcademicYear, semester: deadlinesSemester });
+
+  const handleAcademicYearFilterChange = (value) => {
+    const nextValue = value ?? null;
+    setDeadlinesAcademicYear(nextValue);
+    setYearFilterLocked(nextValue !== watchedAcademicYear);
+  };
+
+  const handleResetAcademicYearFilter = () => {
+    setYearFilterLocked(false);
+    const fallbackYear = watchedAcademicYear || form.getFieldValue("currentAcademicYear") || 2567;
+    setDeadlinesAcademicYear(fallbackYear);
+    setDeadlinesSemester(null);
+  };
+
+  const handleSemesterFilterChange = (value) => {
+    setDeadlinesSemester(value ?? null);
+  };
+
   const handleCurriculumChange = (value) => {
     setSelectedCurriculumId(value);
     const selectedCurriculum = curriculums.find(c => c.curriculumId === value);
@@ -109,136 +144,165 @@ const AcademicSettings = () => {
     return <Spin tip="กำลังโหลดข้อมูล..." />;
   }
 
+  const currentYearValue = form.getFieldValue("currentAcademicYear") || 2567;
+  const managerAcademicYear = deadlinesAcademicYear ?? currentYearValue;
+
   return (
     <div className="academic-settings">
-      <Form 
-        form={form}
-        layout="vertical"
-        initialValues={{
-          currentAcademicYear: 2567,
-          currentSemester: 1,
-        }}
-      >
-        <Card className="settings-card">
-          <Title level={4}>ปีการศึกษาและภาคเรียนปัจจุบัน</Title>
-          <Text type="secondary">
-            ปีการศึกษาและภาคเรียนปัจจุบันจะใช้เป็นค่าตั้งต้นสำหรับการสมัครฝึกงานและโครงงาน
-          </Text>
+      <Row gutter={[16, 16]} align="stretch">
+        <Col xs={24} xl={15}>
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={{
+              currentAcademicYear: 2567,
+              currentSemester: 1
+            }}
+          >
+            <Form.Item name="id" hidden>
+              <Input />
+            </Form.Item>
 
-          <Row gutter={16} style={{ marginTop: 16 }}>
-            <Col span={12}>
-              <Form form={form} layout="vertical">
-                <Form.Item name="id" hidden>
-                  <Input />
-                </Form.Item>
-              </Form>
-              <Form.Item
-                name="currentSemester"
-                label={<span style={{ fontSize: 16, fontWeight: 600 }}>ภาคเรียนปัจจุบัน</span>}
-                rules={[{ required: true, message: "กรุณาเลือกภาคเรียน" }]}
-              >
-                <Select>
-                  <Option value={1}>ภาคเรียนที่ 1</Option>
-                  <Option value={2}>ภาคเรียนที่ 2</Option>
-                  <Option value={3}>ภาคฤดูร้อน</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="currentAcademicYear"
-                label={<span style={{ fontSize: 16, fontWeight: 600 }}>ปีการศึกษา</span>}
-                rules={[{ required: true, message: "กรุณากรอกปีการศึกษา" }]}
-              >
-                <InputNumber
-                  style={{ width: "100%" }}
-                  min={2500}
-                  max={2600}
-                  placeholder="เช่น 2567"
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Card className="settings-card">
+              <Title level={4}>ปีการศึกษาและภาคเรียนปัจจุบัน</Title>
+              <Text type="secondary">
+                ปีการศึกษาและภาคเรียนปัจจุบันจะใช้เป็นค่าตั้งต้นสำหรับการสมัครฝึกงานและโครงงาน
+              </Text>
 
-          <Divider orientation="left">หลักสูตรที่ใช้งานในปีการศึกษานี้ </Divider>
+              <Row gutter={16} style={{ marginTop: 16 }}>
+                <Col span={12}>
+                  <Form.Item
+                    name="currentSemester"
+                    label={<span style={{ fontSize: 16, fontWeight: 600 }}>ภาคเรียนปัจจุบัน</span>}
+                    rules={[{ required: true, message: "กรุณาเลือกภาคเรียน" }]}
+                  >
+                    <Select>
+                      <Option value={1}>ภาคเรียนที่ 1</Option>
+                      <Option value={2}>ภาคเรียนที่ 2</Option>
+                      <Option value={3}>ภาคฤดูร้อน</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="currentAcademicYear"
+                    label={<span style={{ fontSize: 16, fontWeight: 600 }}>ปีการศึกษา</span>}
+                    rules={[{ required: true, message: "กรุณากรอกปีการศึกษา" }]}
+                  >
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={2500}
+                      max={2600}
+                      placeholder="เช่น 2567"
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-          <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
-            <Col span={24}>
-              <Form.Item
-                name="selectedCurriculum"
-                label="เลือกหลักสูตรหลักที่ใช้ในปีการศึกษานี้"
-                rules={[{ required: true, message: "กรุณาเลือกหลักสูตร" }]}
-              >
-                <Select 
-                  placeholder="เลือกหลักสูตร" 
-                  onChange={handleCurriculumChange}
-                  value={selectedCurriculumId}
-                  loading={loading}
-                >
-                  {curriculums.map(curriculum => (
-                    <Option key={curriculum.curriculumId} value={curriculum.curriculumId}>
-                      {curriculum.code} - {curriculum.shortName || curriculum.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Alert 
-                message="หลักสูตรที่เลือกจะถูกใช้เป็นพื้นฐานในการตรวจสอบคุณสมบัติการฝึกงานและโครงงาน" 
-                type="info" 
-                showIcon 
-              />
-            </Col>
-          </Row>
+              <Divider orientation="left">หลักสูตรที่ใช้งานในปีการศึกษานี้ </Divider>
 
-          {selectedCurriculumId && (
-            <div className="selected-curriculum-details">
-              <Table
-                size="small"
-                pagination={false}
-                columns={[
-                  {
-                    title: "รหัสหลักสูตร",
-                    dataIndex: "code",
-                    key: "code",
-                  },
-                  {
-                    title: "ชื่อหลักสูตร",
-                    dataIndex: "shortName",
-                    key: "shortName",
-                    render: (text, record) => record.shortName || record.name,
-                  },
-                  {
-                    title: "ปีที่เริ่มใช้",
-                    dataIndex: "startYear",
-                    key: "startYear",
-                  },
-                  {
-                    title: "หน่วยกิตสะสมขั้นต่ำ (ฝึกงาน)",
-                    dataIndex: "internshipBaseCredits",
-                    key: "internshipBaseCredits",
-                  },
-                  {
-                    title: "หน่วยกิตสะสมขั้นต่ำ (โครงงาน)",
-                    dataIndex: "projectBaseCredits",
-                    key: "projectBaseCredits",
-                  }
-                ]}
-                dataSource={curriculums.filter(c => c.curriculumId === selectedCurriculumId).map(curriculum => ({
-                  ...curriculum,
-                  key: curriculum.curriculumId
-                }))}
-                locale={{
-                  emptyText: "ไม่พบข้อมูลหลักสูตรที่เลือก",
-                }}
-              />
-            </div>
-          )}
+              <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
+                <Col span={24}>
+                  <Form.Item
+                    name="selectedCurriculum"
+                    label="เลือกหลักสูตรหลักที่ใช้ในปีการศึกษานี้"
+                    rules={[{ required: true, message: "กรุณาเลือกหลักสูตร" }]}
+                  >
+                    <Select
+                      placeholder="เลือกหลักสูตร"
+                      onChange={handleCurriculumChange}
+                      loading={loading}
+                    >
+                      {curriculums.map((curriculum) => (
+                        <Option key={curriculum.curriculumId} value={curriculum.curriculumId}>
+                          {curriculum.code} - {curriculum.shortName || curriculum.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Alert
+                    message="หลักสูตรที่เลือกจะถูกใช้เป็นพื้นฐานในการตรวจสอบคุณสมบัติการฝึกงานและโครงงาน"
+                    type="info"
+                    showIcon
+                  />
+                </Col>
+              </Row>
 
-          <Divider orientation="left">สถานะภาคเรียน</Divider>
-          {getCurrentSemesterStatus(form)}
+              {selectedCurriculumId && (
+                <div className="selected-curriculum-details">
+                  <Table
+                    size="small"
+                    pagination={false}
+                    columns={[
+                      {
+                        title: "รหัสหลักสูตร",
+                        dataIndex: "code",
+                        key: "code"
+                      },
+                      {
+                        title: "ชื่อหลักสูตร",
+                        dataIndex: "shortName",
+                        key: "shortName",
+                        render: (text, record) => record.shortName || record.name
+                      },
+                      {
+                        title: "ปีที่เริ่มใช้",
+                        dataIndex: "startYear",
+                        key: "startYear"
+                      },
+                      {
+                        title: "หน่วยกิตสะสมขั้นต่ำ (ฝึกงาน)",
+                        dataIndex: "internshipBaseCredits",
+                        key: "internshipBaseCredits"
+                      },
+                      {
+                        title: "หน่วยกิตสะสมขั้นต่ำ (โครงงาน)",
+                        dataIndex: "projectBaseCredits",
+                        key: "projectBaseCredits"
+                      }
+                    ]}
+                    dataSource={curriculums
+                      .filter((c) => c.curriculumId === selectedCurriculumId)
+                      .map((curriculum) => ({
+                        ...curriculum,
+                        key: curriculum.curriculumId
+                      }))}
+                    locale={{ emptyText: "ไม่พบข้อมูลหลักสูตรที่เลือก" }}
+                  />
+                </div>
+              )}
 
+              <Divider orientation="left">สถานะภาคเรียน</Divider>
+              {getCurrentSemesterStatus(form)}
+
+              <Divider orientation="left">สถานะการลงทะเบียน</Divider>
+              <div>
+                {getInternshipRegistrationStatus(form)}
+                <div style={{ marginTop: 8 }}>
+                  {getProjectRegistrationStatus(form)}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <Text>สถานะการลงทะเบียนในภาคเรียนปัจจุบัน:</Text>
+                <div style={{ marginTop: 8 }}>
+                  <Tag color={isRegistrationOpenForSemester(form).internship ? "green" : "red"}>
+                    {isRegistrationOpenForSemester(form).internship ? "เปิด" : "ปิด"}
+                    ลงทะเบียนฝึกงาน
+                  </Tag>
+                  <Tag color={isRegistrationOpenForSemester(form).project ? "green" : "red"}>
+                    {isRegistrationOpenForSemester(form).project ? "เปิด" : "ปิด"}
+                    ลงทะเบียนโครงงาน
+                  </Tag>
+                </div>
+              </div>
+            </Card>
+
+            <Divider />
+
+            <Card className="settings-card">
           <Divider orientation="left">สถานะการลงทะเบียน</Divider>
           <div>
             {getInternshipRegistrationStatus(form)}
@@ -345,9 +409,9 @@ const AcademicSettings = () => {
           </Row>
         </Card>
 
-        <Divider />
+            <Divider />
 
-        <Card className="settings-card">
+            <Card className="settings-card">
           <Title level={5}>ช่วงเวลาลงทะเบียน</Title>
           <Text type="secondary">
             กำหนดช่วงเวลาและวันที่สำคัญต่างๆ ในปีการศึกษา
@@ -470,13 +534,10 @@ const AcademicSettings = () => {
           </Row>
         </Card>
 
-        <Divider />
+            <Divider />
 
-  {/* กำหนดการสำคัญ (แยกคอมโพเนนต์) */}
-  <ImportantDeadlinesManager academicYear={form.getFieldValue('currentAcademicYear')} />
-
-        {/* ส่วนบันทึก */}
-        <div className="setting-actions">
+            {/* ส่วนบันทึก */}
+            <div className="setting-actions">
           <Button
             icon={<ReloadOutlined />}
             onClick={fetchAndSetSettings}
@@ -493,8 +554,37 @@ const AcademicSettings = () => {
           >
             บันทึกการตั้งค่า
           </Button>
-        </div>
-      </Form>
+            </div>
+          </Form>
+        </Col>
+        <Col xs={24} xl={9}>
+          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+            <ImportantDeadlinesSummary
+              academicYearFilter={deadlinesAcademicYear}
+              onAcademicYearChange={handleAcademicYearFilterChange}
+              onResetAcademicYear={handleResetAcademicYearFilter}
+              semesterFilter={deadlinesSemester}
+              onSemesterChange={handleSemesterFilterChange}
+              deadlines={deadlines}
+              loading={deadlinesLoading}
+              onRefresh={fetchDeadlines}
+              onEditDeadline={(deadline) => deadlinesManagerRef.current?.openEdit(deadline)}
+              onCreateDeadline={() =>
+                deadlinesManagerRef.current?.openAdd(
+                  deadlinesSemester || form.getFieldValue("currentSemester") || 1
+                )
+              }
+            />
+            <ImportantDeadlinesManager
+              ref={deadlinesManagerRef}
+              academicYear={managerAcademicYear}
+              deadlines={deadlines}
+              loading={deadlinesLoading}
+              onReload={fetchDeadlines}
+            />
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
 };
