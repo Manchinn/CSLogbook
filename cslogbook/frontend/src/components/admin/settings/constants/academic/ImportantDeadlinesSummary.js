@@ -54,6 +54,32 @@ const DEADLINE_TYPE_LABEL = {
   MILESTONE: 'เหตุการณ์'
 };
 
+const PROJECT_CATEGORY_KEYS = new Set(['project_sem1', 'project_sem2']);
+
+const buildReportTitle = (categoryKeys = []) => {
+  const selections = new Set(categoryKeys);
+  const sections = [];
+
+  const hasProject = [...PROJECT_CATEGORY_KEYS].some((key) => selections.has(key));
+  if (hasProject) {
+    sections.push('โครงงานพิเศษและปริญญานิพนธ์');
+  }
+
+  if (selections.has('internship')) {
+    sections.push('การฝึกงานประจำปี');
+  }
+
+  if (selections.has(DEADLINE_CATEGORY_OTHERS_KEY)) {
+    sections.push('กิจกรรมอื่นๆ');
+  }
+
+  if (!sections.length) {
+    return 'กำหนดการสำคัญ';
+  }
+
+  return `กำหนดการ${sections.join(' และ ')}`;
+};
+
 const formatSemesterLabel = (semester) => {
   if (!semester) return 'ทุกภาคเรียน';
   if (semester === 3) return 'ภาคฤดูร้อน';
@@ -372,7 +398,7 @@ const ImportantDeadlinesSummary = ({
           : academicYearFilter
             ? `ปีการศึกษา ${academicYearFilter}`
             : 'ปีการศึกษาทั้งหมด',
-      title: 'กำหนดการโครงงานพิเศษและปริญญานิพนธ์'
+      title: buildReportTitle(selectedCategories)
     };
 
     try {

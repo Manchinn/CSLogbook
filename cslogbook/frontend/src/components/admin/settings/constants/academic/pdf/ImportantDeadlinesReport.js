@@ -83,7 +83,7 @@ const ImportantDeadlinesReport = ({ records = [], meta = {} }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>{meta.title || 'กำหนดการโครงงานพิเศษและปริญญานิพนธ์'}</Text>
+  <Text style={styles.headerTitle}>{meta.title || 'กำหนดการสำคัญ'}</Text>
         {meta.periodLabel && <Text style={styles.headerSubtitle}>{meta.periodLabel}</Text>}
         {meta.categorySummary && <Text style={styles.metaNote}>หมวดที่เลือก: {meta.categorySummary}</Text>}
         {meta.generatedAt && <Text style={styles.metaNote}>จัดทำเมื่อ: {meta.generatedAt}</Text>}
