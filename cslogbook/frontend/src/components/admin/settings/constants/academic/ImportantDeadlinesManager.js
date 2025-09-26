@@ -212,9 +212,9 @@ const ImportantDeadlinesManager = ({
 
   return (
     <Card className="settings-card">
-      <Title level={5}>กำหนดการสำคัญในปีการศึกษา</Title>
+      <Title level={5}>ปฏิทินกำหนดการสำคัญประจำปีการศึกษา</Title>
       <Text type="secondary">
-        จัดการวันที่สำคัญและ deadline ต่างๆ สำหรับการยื่นเอกสาร สอบ และกิจกรรมสำคัญในแต่ละภาคเรียน
+        ดูแลและปรับปรุงกำหนดการหลักสำหรับการส่งเอกสาร การสอบ และกิจกรรมที่ต้องแจ้งล่วงหน้าในแต่ละภาคเรียน
       </Text>
       <Collapse
         defaultActiveKey={["semester1"]}
@@ -223,14 +223,14 @@ const ImportantDeadlinesManager = ({
           key: `semester${sem}`,
           label: (
             <span>
-              <CalendarOutlined style={{ marginRight: 8 }} />กำหนดการภาคเรียนที่ {sem}
+              <CalendarOutlined style={{ marginRight: 8 }} />ภาคเรียนที่ {sem}
             </span>
           ),
           children: (
             <div>
               <div style={{ marginBottom: 16 }}>
                 <Button type="dashed" icon={<PlusOutlined />} onClick={() => openAdd(sem)} block>
-                  เพิ่มกำหนดการใหม่
+                  เพิ่มกำหนดการสำหรับภาคเรียนนี้
                 </Button>
               </div>
               {loading && <Spin />}
@@ -238,10 +238,10 @@ const ImportantDeadlinesManager = ({
                 .filter((deadline) => deadline.semester === sem)
                 .map((deadline) => {
                   const typeLabelMap = {
-                    SUBMISSION: { label: 'ส่งเอกสาร', color: 'blue' },
-                    ANNOUNCEMENT: { label: 'ประกาศ', color: 'gold' },
-                    MANUAL: { label: 'ทำรายการ', color: 'purple' },
-                    MILESTONE: { label: 'เหตุการณ์', color: 'cyan' }
+                    SUBMISSION: { label: 'การส่งเอกสาร', color: 'blue' },
+                    ANNOUNCEMENT: { label: 'ประกาศถึงผู้เกี่ยวข้อง', color: 'gold' },
+                    MANUAL: { label: 'การดำเนินการภายใน', color: 'purple' },
+                    MILESTONE: { label: 'เหตุการณ์สำคัญ', color: 'cyan' }
                   };
                   const typeInfo = typeLabelMap[deadline.deadlineType] || {
                     label: deadline.deadlineType,
@@ -249,6 +249,25 @@ const ImportantDeadlinesManager = ({
                   };
                   const effectiveDate = deadline.windowEndDate || deadline.deadlineDate || '-';
                   const effectiveTime = deadline.windowEndTime || deadline.deadlineTime || (deadline.allDay ? '' : '');
+                  const hasWindowRange = deadline.windowStartDate && deadline.windowEndDate;
+                  const windowRangeText = hasWindowRange
+                    ? `${moment(deadline.windowStartDate).add(543, 'year').format('D MMM YYYY')} – ${moment(deadline.windowEndDate)
+                        .add(543, 'year')
+                        .format('D MMM YYYY')}`
+                    : '';
+                  const windowTimeText = hasWindowRange && !deadline.allDay
+                    ? `${deadline.windowStartTime ? moment(deadline.windowStartTime, 'HH:mm:ss').format('HH:mm') : '00:00'} – ${deadline.windowEndTime ? moment(deadline.windowEndTime, 'HH:mm:ss').format('HH:mm') : '23:59'} น.`
+                    : '';
+                  const singleDateText = !hasWindowRange && deadline.deadlineDate
+                    ? moment(deadline.deadlineDate).add(543, 'year').format('D MMMM YYYY')
+                    : '-';
+                  const singleTimeText = !hasWindowRange && deadline.deadlineTime
+                    ? `${moment(deadline.deadlineTime, 'HH:mm:ss').format('HH:mm')} น.`
+                    : '';
+                  const finalDeadlineText = effectiveDate !== '-'
+                    ? `${moment(effectiveDate).add(543, 'year').format('D MMM YYYY')}${effectiveTime ? ` ${moment(effectiveTime, 'HH:mm:ss').format('HH:mm')} น.` : deadline.allDay ? ' (ทั้งวัน)' : ''}`
+                    : '-';
+                  const graceHours = deadline.gracePeriodMinutes ? Math.round(deadline.gracePeriodMinutes / 60) : 0;
                   return (
                     <Card
                       key={deadline.id}
@@ -274,89 +293,67 @@ const ImportantDeadlinesManager = ({
                       }
                     >
                       <Row gutter={16}>
-                        {deadline.windowStartDate && deadline.windowEndDate ? (
-                          <Col span={12}>
-                            <b>ช่วง:</b>{' '}
-                            {moment(deadline.windowStartDate).add(543, 'year').format('D MMM YYYY')} -
-                            {' '}
-                            {moment(deadline.windowEndDate).add(543, 'year').format('D MMM YYYY')}{' '}
-                            {deadline.allDay ? (
-                              <Tag color="geekblue" style={{ marginLeft: 4 }}>
-                                ทั้งวัน
-                              </Tag>
-                            ) : (
-                              <Tag color="blue" style={{ marginLeft: 4 }}>
-                                {(deadline.windowStartTime
-                                  ? moment(deadline.windowStartTime, 'HH:mm:ss').format('HH:mm')
-                                  : '00:00')} -
-                                {(deadline.windowEndTime
-                                  ? moment(deadline.windowEndTime, 'HH:mm:ss').format('HH:mm')
-                                  : '23:59')}
-                                {' '}
-                                น.
-                              </Tag>
-                            )}
-                          </Col>
-                        ) : (
-                          <Col span={12}>
-                            <b>วันที่:</b>{' '}
-                            {deadline.deadlineDate
-                              ? moment(deadline.deadlineDate).add(543, 'year').format('D MMMM YYYY')
-                              : '-'}
-                            {deadline.deadlineTime
-                              ? ` เวลา ${moment(deadline.deadlineTime, 'HH:mm:ss').format('HH:mm')} น.`
-                              : ''}
-                          </Col>
-                        )}
                         <Col span={12}>
-                          <b>หมวด:</b>{' '}
+                          <Text strong>ช่วงเวลาหลัก:</Text>{' '}
+                          {hasWindowRange ? windowRangeText : singleDateText}
+                          {hasWindowRange && deadline.allDay && (
+                            <Tag color="geekblue" style={{ marginLeft: 6 }}>
+                              ทั้งวัน
+                            </Tag>
+                          )}
+                          {windowTimeText && (
+                            <Tag color="blue" style={{ marginLeft: 6 }}>
+                              {windowTimeText}
+                            </Tag>
+                          )}
+                          {!hasWindowRange && singleTimeText && (
+                            <Tag color="blue" style={{ marginLeft: 6 }}>
+                              {singleTimeText}
+                            </Tag>
+                          )}
+                        </Col>
+                        <Col span={6}>
+                          <Text strong>หมวดงาน:</Text>{' '}
                           {deadline.relatedTo === 'project1'
                             ? 'โครงงาน 1'
                             : deadline.relatedTo === 'project2'
                             ? 'โครงงาน 2'
                             : deadline.relatedTo === 'project'
-                            ? 'โครงงาน (legacy)'
+                            ? 'โครงงาน (เดิม)'
                             : deadline.relatedTo === 'internship'
                             ? 'ฝึกงาน'
                             : 'ทั่วไป'}
                         </Col>
-                      </Row>
-                      <Row gutter={16} style={{ marginTop: 4 }}>
-                        <Col span={24}>
-                          <b>วันสุดท้าย:</b>{' '}
-                          {effectiveDate !== '-'
-                            ? `${moment(effectiveDate)
-                                .add(543, 'year')
-                                .format('D MMM YYYY')}${
-                                effectiveTime
-                                  ? ` ${moment(effectiveTime, 'HH:mm:ss').format('HH:mm')} น.`
-                                  : ''
-                              }`
-                            : '-'}
-                          <span style={{ marginLeft: 8 }}>
-                            <Tag color={deadline.acceptingSubmissions ? 'green' : 'red'}>
-                              {deadline.acceptingSubmissions ? 'เปิดรับ' : 'ปิดรับ'}
-                            </Tag>
-                            {deadline.deadlineType === 'SUBMISSION' && (
-                              <>
-                                <Tag color={deadline.allowLate ? 'orange' : 'default'}>
-                                  {deadline.allowLate
-                                    ? `อนุญาตส่งช้า${deadline.gracePeriodMinutes
-                                        ? ` +${Math.round(deadline.gracePeriodMinutes / 60)}ชม.`
-                                        : ''}`
-                                    : 'ไม่อนุญาตส่งช้า'}
-                                </Tag>
-                                <Tag color={deadline.lockAfterDeadline ? 'purple' : 'default'}>
-                                  {deadline.lockAfterDeadline ? 'ล็อกหลังหมดเวลา' : 'ไม่ล็อก'}
-                                </Tag>
-                              </>
-                            )}
-                          </span>
+                        <Col span={6}>
+                          <Text strong>ปีการศึกษา:</Text>{' '}
+                          {deadline.academicYear || '-'}
                         </Col>
                       </Row>
-                      <Row gutter={16} style={{ marginTop: 4 }}>
+                      <Row gutter={16} style={{ marginTop: 6 }}>
                         <Col span={24}>
-                          <b>ปีการศึกษา:</b> {deadline.academicYear}
+                          <Text strong>วันที่ครบกำหนดที่ระบบใช้เตือน:</Text>{' '}
+                          {finalDeadlineText}
+                        </Col>
+                      </Row>
+                      <Row gutter={16} style={{ marginTop: 8 }}>
+                        <Col span={24}>
+                          <Tag color={deadline.acceptingSubmissions ? 'green' : 'red'}>
+                            {deadline.acceptingSubmissions ? 'เปิดรับการส่ง' : 'ปิดรับการส่ง'}
+                          </Tag>
+                          {deadline.deadlineType === 'SUBMISSION' && (
+                            <>
+                              <Tag color={deadline.allowLate ? 'orange' : 'default'}>
+                                {deadline.allowLate
+                                  ? graceHours > 0
+                                    ? `ผ่อนผันส่งช้า ${graceHours} ชม.`
+                                    : 'ผ่อนผันส่งช้า (กำหนดเวลา)'
+                                  : 'ไม่ผ่อนผันส่งช้า'}
+                              </Tag>
+                              <Tag color={deadline.lockAfterDeadline ? 'purple' : 'default'}>
+                                {deadline.lockAfterDeadline ? 'ล็อกไฟล์หลังหมดเวลา' : 'ไม่ล็อกไฟล์หลังหมดเวลา'}
+                              </Tag>
+                            </>
+                          )}
                         </Col>
                       </Row>
                     </Card>
@@ -367,12 +364,12 @@ const ImportantDeadlinesManager = ({
         }))}
       />
       <Alert
-        message="กำหนดการที่ใกล้จะถึง"
+        message="สรุปกำหนดการที่กำลังจะมาถึง"
         description={
           <div>
-            <Text>ระบบจะแจ้งเตือนนักศึกษาเกี่ยวกับกำหนดการที่สำคัญล่วงหน้า 7 วัน</Text>
+            <Text>ระบบจะเตือนนักศึกษาล่วงหน้า 7 วันสำหรับกำหนดการที่ใกล้ถึงวันครบกำหนด</Text>
             <br />
-            <Text type="secondary">สามารถดูกำหนดการทั้งหมดได้ในหน้าแดชบอร์ด</Text>
+            <Text type="secondary">ผู้ใช้งานสามารถตรวจสอบรายการทั้งหมดได้จากหน้าแดชบอร์ดหลัก</Text>
           </div>
         }
         type="info"
