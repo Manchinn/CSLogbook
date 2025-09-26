@@ -318,8 +318,8 @@ const AcademicSettings = () => {
           3: formValues.semester3Range
         };
         const expectedRange = semesterMap[formValues.currentSemester] || null;
-        const projectStart = formValues.projectRegistrationStartDate || null;
-        const projectEnd = formValues.projectRegistrationEndDate || null;
+  const projectStart = formValues.projectRegistrationOpenDate || null;
+  const projectEnd = formValues.projectRegistrationCloseDate || null;
 
         if (
           expectedRange &&
