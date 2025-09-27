@@ -39,6 +39,7 @@ import ScopeAdjustPage from './components/project/phase1/steps/ScopeAdjustPage';
 import AdminUpload from './components/AdminUpload';
 // Import Admin2 Components - New Structure
 import AdminRoutes from './components/admin/AdminRoutes';
+import ProjectPairsPage from './components/admin/projectPairs';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
@@ -208,6 +209,11 @@ const App = () => {
                 <Route path="/admin/upload" element={
                   <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminUpload />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project-pairs" element={
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
+                    <ProjectPairsPage />
                   </ProtectedRoute>
                 } />
 

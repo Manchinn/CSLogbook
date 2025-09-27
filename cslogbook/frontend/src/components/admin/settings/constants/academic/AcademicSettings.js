@@ -57,7 +57,6 @@ const AcademicSettings = () => {
   const [filtersReady, setFiltersReady] = useState(false);
 
   const deadlinesManagerRef = useRef(null);
-  const [curriculumDrawerVisible, setCurriculumDrawerVisible] = useState(false);
   const [autoProjectRange, setAutoProjectRange] = useState(false);
 
   const currentAcademicYearWatch = Form.useWatch("currentAcademicYear", form);
@@ -564,14 +563,6 @@ const AcademicSettings = () => {
                       type="info"
                       showIcon
                     />
-                    <Button
-                      type="link"
-                      style={{ paddingLeft: 0, marginTop: 8 }}
-                      onClick={() => setCurriculumDrawerVisible(true)}
-                      disabled={!selectedCurriculum}
-                    >
-                      ดูรายละเอียดหลักสูตร
-                    </Button>
                   </Col>
                 </Row>
 
@@ -926,39 +917,6 @@ const AcademicSettings = () => {
     </Row>
   );
 
-  const curriculumDrawer = (
-    <Drawer
-      title="รายละเอียดหลักสูตร"
-      open={curriculumDrawerVisible}
-      onClose={() => setCurriculumDrawerVisible(false)}
-      width={480}
-    >
-      {selectedCurriculum ? (
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="รหัสหลักสูตร">
-            {selectedCurriculum.code}
-          </Descriptions.Item>
-          <Descriptions.Item label="ชื่อหลักสูตร">
-            {selectedCurriculum.shortName || selectedCurriculum.name}
-          </Descriptions.Item>
-          <Descriptions.Item label="ปีที่เริ่มใช้">
-            {selectedCurriculum.startYear || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="หน่วยกิตรวมสูงสุด">
-            {selectedCurriculum.maxCredits || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="ขั้นต่ำฝึกงาน">
-            {selectedCurriculum.internshipBaseCredits ?? "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="ขั้นต่ำโครงงาน">
-            {selectedCurriculum.projectBaseCredits ?? "-"}
-          </Descriptions.Item>
-        </Descriptions>
-      ) : (
-        <Alert type="info" message="กรุณาเลือกหลักสูตรจากขั้นตอนที่ 1" showIcon />
-      )}
-    </Drawer>
-  );
 
   return (
     <div className="academic-settings">
@@ -977,7 +935,6 @@ const AcademicSettings = () => {
           }
         ]}
       />
-      {curriculumDrawer}
     </div>
   );
 };

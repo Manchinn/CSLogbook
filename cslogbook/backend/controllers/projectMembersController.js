@@ -3,8 +3,37 @@ const logger = require('../utils/logger');
 
 exports.getProjectMembers = async (req, res) => {
   try {
-    const formattedProjects = await projectMembersService.getAllApprovedProjectMembers();
-    res.json(formattedProjects);
+    const toArray = (value) => {
+      if (!value) return undefined;
+      if (Array.isArray(value)) {
+        return value.filter(Boolean);
+      }
+      if (typeof value === 'string') {
+        return value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+      return undefined;
+    };
+
+    const projectStatus = toArray(req.query.projectStatus);
+    const documentStatus = toArray(req.query.documentStatus);
+    const trackCodes = toArray(req.query.trackCodes || req.query.trackCode || req.query.track);
+    const projectType = toArray(req.query.projectType);
+
+    const formattedProjects = await projectMembersService.getAllApprovedProjectMembers({
+      projectStatus,
+      documentStatus,
+      trackCodes,
+      projectType
+    });
+
+    res.json({
+      success: true,
+      total: formattedProjects.length,
+      data: formattedProjects
+    });
   } catch (error) {
     logger.error('Error fetching project members:', error);
     res.status(500).json({ 
