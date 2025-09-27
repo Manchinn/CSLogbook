@@ -1,4 +1,5 @@
 const { Student, sequelize, Academic } = require('../models');
+const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
 const workflowService = require('./workflowService');
 const { calculateStudentYear } = require('../utils/studentUtils');
@@ -250,6 +251,15 @@ class TimelineService {
   async generateTimelineForType(studentId, type, student) {
     try {
       const workflowType = type === 'project' ? PROJECT_WORKFLOW_TYPE : type;
+
+      if (type === 'project') {
+        try {
+          await projectDocumentService.syncStudentProjectsWorkflow(studentId);
+        } catch (syncError) {
+          logger.warn('TimelineService: syncStudentProjectsWorkflow failed', { studentId, error: syncError.message });
+        }
+      }
+
       const timeline = await workflowService.generateStudentTimeline(studentId, workflowType);
       
       // ปรับแต่งสถานะตามข้อมูลในฐานข้อมูล

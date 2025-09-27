@@ -642,6 +642,28 @@ class ProjectDocumentService {
     }
   }
 
+  async syncStudentProjectsWorkflow(studentId, { transaction } = {}) {
+    try {
+      const projects = await ProjectDocument.findAll({
+        include: [{
+          model: ProjectMember,
+          as: 'members',
+          required: true,
+          where: { studentId },
+          include: [{ model: Student, as: 'student' }]
+        }],
+        transaction
+      });
+
+      for (const project of projects) {
+        await this.syncProjectWorkflowState(project.projectId, { transaction, projectInstance: project });
+      }
+    } catch (error) {
+      logger.error('syncStudentProjectsWorkflow failed', { studentId, error: error.message });
+      throw error;
+    }
+  }
+
   computeProjectWorkflowState(project, student) {
     const members = project.members || [];
     const membersCount = members.length;
