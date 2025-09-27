@@ -20,18 +20,12 @@ const NextAction = () => {
   const {
     cs05Status,
     internshipStatus,
-    summaryCompleted,
-    certificateStatus,
     student,
-    logbookStats,
     loading,
-    error,
   } = useInternshipStatus();
 
   const {
     supervisorEvaluationStatus,
-    loading: certLoading,
-    error: certError,
   } = useCertificateStatus();
 
   // ถ้ายังโหลดข้อมูลอยู่
@@ -75,9 +69,6 @@ const NextAction = () => {
       // Routes สำหรับโครงงาน (ตาม Sidebar.js)
       'project-eligibility': '/project-eligibility',
       'project-requirements': '/project-requirements',
-      'project-proposal': '/project-proposal',
-      'project-logbook': '/project-logbook',
-      'project-status': '/status-check/project',
       
       // Routes อื่นๆ (ตาม Sidebar.js)
       'student-profile': `/student-profile/${studentCode || studentId}`,
@@ -191,14 +182,10 @@ const NextAction = () => {
       actionContent = (
         <Space direction="vertical">
           <Text>ยินดีด้วย! คุณผ่านการฝึกงานแล้ว และมีสิทธิ์ลงทะเบียนโครงงานพิเศษ</Text>
-          <Text type="secondary">เตรียมหัวข้อและอาจารย์ที่ปรึกษาก่อนลงทะเบียน</Text>
+          <Text type="secondary">โมดูลลงทะเบียนโครงงานกำลังอยู่ระหว่างการปรับปรุง โปรดติดต่อเจ้าหน้าที่ภาคเพื่อติดตามขั้นตอน</Text>
           <Space>
-            <Button 
-              type="primary" 
-              icon={<ExperimentOutlined />} 
-              href={getRouteUrl('project-proposal')}
-            >
-              เสนอหัวข้อโครงงาน
+            <Button type="primary" icon={<ExperimentOutlined />} disabled>
+              ลงทะเบียนโครงงาน (กำลังปรับปรุง)
             </Button>
             <Button 
               icon={<FileTextOutlined />} 
@@ -215,20 +202,13 @@ const NextAction = () => {
       actionContent = (
         <Space direction="vertical">
           <Text>ดำเนินการโครงงานพิเศษต่อ</Text>
-          <Text type="secondary">ติดตามความคืบหน้าและประสานงานกับอาจารย์ที่ปรึกษา</Text>
+          <Text type="secondary">ระบบติดตามโครงงานกำลังอยู่ระหว่างการปรับปรุง หากต้องการอัปเดตความคืบหน้าให้ติดต่ออาจารย์ที่ปรึกษาโดยตรง</Text>
           <Space>
-            <Button 
-              type="primary" 
-              icon={<ExperimentOutlined />} 
-              href={getRouteUrl('project-logbook')}
-            >
-              บันทึก Logbook โครงงาน
+            <Button type="primary" icon={<ExperimentOutlined />} disabled>
+              บันทึก Logbook โครงงาน (กำลังปรับปรุง)
             </Button>
-            <Button 
-              icon={<FileTextOutlined />} 
-              href={getRouteUrl('project-status')}
-            >
-              ดูสถานะโครงงาน
+            <Button icon={<FileTextOutlined />} disabled>
+              ดูสถานะโครงงาน (กำลังปรับปรุง)
             </Button>
           </Space>
         </Space>
@@ -273,9 +253,9 @@ const NextAction = () => {
           <Button 
             type="primary" 
             icon={<ExperimentOutlined />} 
-            href={pendingProjectStep?.actionLink || getRouteUrl('project-status')}
+            disabled
           >
-            {pendingProjectStep?.actionText || 'ดำเนินการต่อ'}
+            กำลังปรับปรุงระบบโครงงาน
           </Button>
         </Space>
       );
