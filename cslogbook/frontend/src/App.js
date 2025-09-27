@@ -13,7 +13,6 @@ import StudentDeadlineCalendar from './components/student/StudentDeadlineCalenda
 import CS05Form from './components/internship/registration/CS05Form';
 import TimeSheet from './components/internship/logbook/TimeSheet/index';
 import InternshipSummary from './components/internship/summary/Summary';
-import StatusCheck from './components/internship/shared/StatusCheck';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
 import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
 
@@ -159,12 +158,6 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
-                <Route path="/status-check" element={
-                  <ProtectedRoute roles={['student']}>
-                    <StatusCheck />
-                  </ProtectedRoute>
-                } />
-
                 {/* Project Routes */}
                 {/* ปรับโครงสร้าง: /project/phase1 เป็น Phase1Dashboard (single menu) */}
                 <Route path="/project/phase1" element={
