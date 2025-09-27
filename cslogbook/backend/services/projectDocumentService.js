@@ -3,6 +3,7 @@ const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack } = requ
 const studentService = require('./studentService'); // reuse eligibility logic (ถ้าต้อง)
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
+const workflowService = require('./workflowService');
 
 /**
  * Service สำหรับจัดการ ProjectDocument (Phase 2)
@@ -154,12 +155,23 @@ class ProjectDocumentService {
         }, { transaction: t });
       }
 
+      await project.reload({
+        include: [{
+          model: ProjectMember,
+          as: 'members',
+          include: [{ model: Student, as: 'student' }]
+        }],
+        transaction: t
+      });
+
+      await this.syncProjectWorkflowState(project.projectId, { transaction: t, projectInstance: project });
+
       await t.commit();
       logger.info('createProject success', { projectId: project.projectId, studentId });
 
       return await this.getProjectById(project.projectId); // ดึงรวม members/code ที่ hook อาจสร้าง
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       logger.error('createProject failed', { error: error.message });
       throw error;
     }
@@ -215,11 +227,13 @@ class ProjectDocumentService {
         role: 'member'
       }, { transaction: t });
 
+      await this.syncProjectWorkflowState(projectId, { transaction: t });
+
       await t.commit();
       logger.info('addMember success', { projectId, newStudentId: newStudent.studentId });
       return await this.getProjectById(projectId);
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       logger.error('addMember failed', { error: error.message });
       throw error;
     }
@@ -241,7 +255,7 @@ class ProjectDocumentService {
         throw new Error('ไม่มีสิทธิ์แก้ไขข้อมูลโครงงาน');
       }
 
-      const lockNames = ['in_progress','completed','archived'];
+      const lockNames = ['advisor_assigned','in_progress','completed','archived'];
       const nameLocked = lockNames.includes(project.status);
 
       const update = {};
@@ -271,11 +285,21 @@ class ProjectDocumentService {
         }
       }
 
-      const trackCodesUpdate = Array.isArray(payload.tracks) ? [...new Set(payload.tracks.filter(c => !!c))] : null;
+      let trackCodesUpdate = null;
+      if (Array.isArray(payload.tracks)) {
+        trackCodesUpdate = [...new Set(payload.tracks.filter(c => !!c))];
+      } else if (payload.track !== undefined) {
+        const normalized = String(payload.track || '').trim();
+        trackCodesUpdate = normalized ? [normalized] : [];
+      }
 
       if (Object.keys(update).length === 0 && !trackCodesUpdate) {
         await t.rollback();
         return await this.getProjectById(projectId); // ไม่มีอะไรเปลี่ยน
+      }
+
+      if (trackCodesUpdate) {
+        update.track = trackCodesUpdate[0] || null;
       }
 
       await ProjectDocument.update(update, { where: { projectId }, transaction: t });
@@ -287,11 +311,13 @@ class ProjectDocumentService {
           await ProjectTrack.bulkCreate(trackCodesUpdate.map(code => ({ projectId, trackCode: code })), { transaction: t });
         }
       }
+
+      await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       logger.info('updateMetadata success', { projectId, updateKeys: Object.keys(update) });
       return await this.getProjectById(projectId);
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       logger.error('updateMetadata failed', { error: error.message });
       throw error;
     }
@@ -322,11 +348,13 @@ class ProjectDocumentService {
       }
 
       await ProjectDocument.update({ status: 'in_progress' }, { where: { projectId }, transaction: t });
+
+  await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       logger.info('activateProject success', { projectId });
       return await this.getProjectById(projectId);
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       logger.error('activateProject failed', { error: error.message });
       throw error;
     }
@@ -344,11 +372,13 @@ class ProjectDocumentService {
       if (project.status === 'archived') return await this.getProjectById(projectId);
 
       await ProjectDocument.update({ status: 'archived', archivedAt: new Date() }, { where: { projectId }, transaction: t });
+
+  await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       logger.info('archiveProject success', { projectId });
       return await this.getProjectById(projectId);
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       logger.error('archiveProject failed', { error: error.message });
       throw error;
     }
@@ -493,12 +523,14 @@ class ProjectDocumentService {
       await ProjectDocument.update({
         examResult: result,
         examFailReason: reason || null,
-        examResultAt: new Date()
+        examResultAt: new Date(),
+        status: result === 'passed' ? 'completed' : project.status
       }, { where: { projectId }, transaction: t });
+      await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       return this.getProjectById(projectId);
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       throw error;
     }
   }
@@ -531,11 +563,175 @@ class ProjectDocumentService {
         status: 'archived',
         archivedAt: new Date()
       }, { where: { projectId }, transaction: t });
+      await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       return this.getProjectById(projectId);
     } catch (error) {
-      await t.rollback();
+      await this.safeRollback(t);
       throw error;
+    }
+  }
+
+  async safeRollback(transaction) {
+    if (!transaction || transaction.finished) {
+      return;
+    }
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.warn('transaction rollback failed', { error: rollbackError.message });
+    }
+  }
+
+  async syncProjectWorkflowState(projectId, { transaction, projectInstance } = {}) {
+    try {
+      let project = projectInstance;
+      if (!project) {
+        project = await ProjectDocument.findByPk(projectId, {
+          include: [{
+            model: ProjectMember,
+            as: 'members',
+            include: [{ model: Student, as: 'student' }]
+          }],
+          transaction
+        });
+      }
+
+      if (!project) {
+        logger.warn('syncProjectWorkflowState: ไม่พบโครงงาน', { projectId });
+        return;
+      }
+
+      const memberStudentIds = (project.members || [])
+        .map(member => member.studentId || member.student?.studentId)
+        .filter(Boolean);
+
+      if (!memberStudentIds.length) {
+        return;
+      }
+
+      const students = await Student.findAll({
+        where: { studentId: memberStudentIds },
+        transaction
+      });
+
+      for (const student of students) {
+        const state = this.computeProjectWorkflowState(project, student);
+
+        await Student.update({
+          isEnrolledProject: state.isEnrolledProject,
+          projectStatus: state.studentProjectStatus
+        }, {
+          where: { studentId: student.studentId },
+          transaction
+        });
+
+        await workflowService.updateStudentWorkflowActivity(
+          student.studentId,
+          'project1',
+          state.currentStepKey,
+          state.currentStepStatus,
+          state.overallStatus,
+          state.dataPayload,
+          { transaction }
+        );
+      }
+    } catch (error) {
+      logger.error('syncProjectWorkflowState failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  computeProjectWorkflowState(project, student) {
+    const members = project.members || [];
+    const membersCount = members.length;
+    const examResult = project.examResult;
+    const status = project.status;
+    const acknowledged = !!project.studentAcknowledgedAt;
+    const hasAdvisor = !!project.advisorId;
+
+    const steps = [
+      { key: 'PROJECT1_ELIGIBILITY_CONFIRMED', completed: !!student.isEligibleProject },
+      { key: 'PROJECT1_DRAFT_CREATED', completed: true },
+      { key: 'PROJECT1_TEAM_CONFIRMED', completed: membersCount >= 2 },
+      { key: 'PROJECT1_ADVISOR_CONFIRMED', completed: hasAdvisor },
+      { key: 'PROJECT1_IN_PROGRESS', completed: ['in_progress', 'completed', 'archived'].includes(status) },
+      { key: 'PROJECT1_TOPIC_EXAM_RESULT', completed: examResult === 'passed' || status === 'completed', blocked: examResult === 'failed' },
+      { key: 'PROJECT1_ARCHIVED', completed: status === 'archived' && acknowledged }
+    ];
+
+    let overallStatus = 'in_progress';
+    if (status === 'archived' && acknowledged) {
+      overallStatus = 'archived';
+    } else if (examResult === 'failed') {
+      overallStatus = 'failed';
+    } else if (examResult === 'passed' || status === 'completed') {
+      overallStatus = 'completed';
+    }
+
+    let currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
+    let currentStepStatus = 'completed';
+
+    if (overallStatus === 'archived') {
+      currentStepKey = 'PROJECT1_ARCHIVED';
+      currentStepStatus = 'completed';
+    } else if (overallStatus === 'failed') {
+      currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
+      currentStepStatus = 'blocked';
+    } else if (overallStatus === 'completed') {
+      currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
+      currentStepStatus = 'completed';
+    } else {
+      const firstIncomplete = steps.find(step => !step.completed && !step.blocked);
+      if (firstIncomplete) {
+        currentStepKey = firstIncomplete.key;
+        currentStepStatus = this.getProjectStepPendingStatus(firstIncomplete.key);
+      } else {
+        currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
+        currentStepStatus = 'pending';
+      }
+    }
+
+    const isEnrolledProject = overallStatus !== 'archived';
+    let studentProjectStatus = 'in_progress';
+    if (overallStatus === 'completed') {
+      studentProjectStatus = 'completed';
+    } else if (overallStatus === 'archived') {
+      studentProjectStatus = 'not_started';
+    }
+
+    return {
+      currentStepKey,
+      currentStepStatus,
+      overallStatus,
+      isEnrolledProject,
+      studentProjectStatus,
+      dataPayload: {
+        projectId: project.projectId,
+        projectStatus: status,
+        examResult,
+        membersCount,
+        advisorId: project.advisorId,
+        archivedAt: project.archivedAt,
+        studentAcknowledgedAt: project.studentAcknowledgedAt
+      }
+    };
+  }
+
+  getProjectStepPendingStatus(stepKey) {
+    switch (stepKey) {
+      case 'PROJECT1_ELIGIBILITY_CONFIRMED':
+        return 'awaiting_student_action';
+      case 'PROJECT1_TEAM_CONFIRMED':
+        return 'awaiting_student_action';
+      case 'PROJECT1_ADVISOR_CONFIRMED':
+        return 'awaiting_student_action';
+      case 'PROJECT1_IN_PROGRESS':
+        return 'awaiting_admin_action';
+      case 'PROJECT1_TOPIC_EXAM_RESULT':
+        return 'pending';
+      default:
+        return 'in_progress';
     }
   }
 

@@ -12,7 +12,13 @@ const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 jest.doMock('../../config/database', () => ({ sequelize }), { virtual: true });
 
 // Mock logger ลด noise
-jest.doMock('../../utils/logger', () => ({ info: jest.fn(), error: jest.fn() }), { virtual: true });
+jest.doMock('../../utils/logger', () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn() }), { virtual: true });
+
+// Mock workflowService เพื่อตัด side effect ของการ sync timeline ในเทส
+const mockUpdateWorkflowActivity = jest.fn().mockResolvedValue(null);
+jest.doMock('../../services/workflowService', () => ({
+  updateStudentWorkflowActivity: mockUpdateWorkflowActivity
+}), { virtual: true });
 
 // สร้าง simplified models (ตัด FK อื่นเพื่อลด complexity)
 const Student = sequelize.define('Student', {
@@ -22,7 +28,9 @@ const Student = sequelize.define('Student', {
   totalCredits: { type: DataTypes.INTEGER, defaultValue: 0, field: 'total_credits' },
   majorCredits: { type: DataTypes.INTEGER, defaultValue: 0, field: 'major_credits' },
   isEligibleProject: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'is_eligible_project' },
-  isEligibleInternship: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'is_eligible_internship' }
+  isEligibleInternship: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'is_eligible_internship' },
+  isEnrolledProject: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'is_enrolled_project' },
+  projectStatus: { type: DataTypes.STRING, defaultValue: 'not_started', field: 'project_status' }
 }, { tableName: 'students', underscored: true, timestamps: false });
 
 let projectCodeCounter = 0; // นับเพื่อสร้างรหัสไม่ซ้ำง่ายๆ ในเทส
@@ -40,7 +48,11 @@ const ProjectDocument = sequelize.define('ProjectDocument', {
   semester: { type: DataTypes.TINYINT, allowNull: true },
   createdByStudentId: { type: DataTypes.INTEGER, allowNull: true, field: 'created_by_student_id' },
   projectCode: { type: DataTypes.STRING, allowNull: true, field: 'project_code' },
-  archivedAt: { type: DataTypes.DATE, allowNull: true, field: 'archived_at' }
+  archivedAt: { type: DataTypes.DATE, allowNull: true, field: 'archived_at' },
+  examResult: { type: DataTypes.STRING, allowNull: true, field: 'exam_result' },
+  examFailReason: { type: DataTypes.TEXT, allowNull: true, field: 'exam_fail_reason' },
+  examResultAt: { type: DataTypes.DATE, allowNull: true, field: 'exam_result_at' },
+  studentAcknowledgedAt: { type: DataTypes.DATE, allowNull: true, field: 'student_acknowledged_at' }
 }, { tableName: 'project_documents', underscored: true, timestamps: false, hooks: {
   beforeCreate(instance) {
     if (!instance.projectCode) instance.projectCode = `PRJTEST-${++projectCodeCounter}`;
@@ -53,6 +65,11 @@ const ProjectMember = sequelize.define('ProjectMember', {
   role: { type: DataTypes.STRING, allowNull: false },
   joinedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'joined_at' }
 }, { tableName: 'project_members', underscored: true, timestamps: false });
+
+const ProjectTrack = sequelize.define('ProjectTrack', {
+  projectId: { type: DataTypes.INTEGER, field: 'project_id' },
+  trackCode: { type: DataTypes.STRING, field: 'track_code' }
+}, { tableName: 'project_tracks', underscored: true, timestamps: false });
 
 const Academic = sequelize.define('Academic', {
   academicYear: { type: DataTypes.INTEGER, allowNull: true, field: 'academic_year' },
@@ -74,6 +91,7 @@ Student.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
 ProjectDocument.hasMany(ProjectMember, { as: 'members', foreignKey: 'project_id' });
 ProjectMember.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
 ProjectMember.belongsTo(Student, { as: 'student', foreignKey: 'student_id' });
+ProjectDocument.hasMany(ProjectTrack, { as: 'tracks', foreignKey: 'project_id' });
 
 // Mock '../models' ให้ service มองเห็น models เหล่านี้
 jest.doMock('../../models', () => ({
@@ -82,7 +100,8 @@ jest.doMock('../../models', () => ({
   ProjectDocument,
   ProjectMember,
   Academic,
-  User
+  User,
+  ProjectTrack
 }), { virtual: true });
 
 // ตอนนี้ require service หลัง mock ทั้งหมด
@@ -104,6 +123,10 @@ async function createStudent({ code, eligibleProject = true }) {
 beforeAll(async () => {
   await sequelize.sync({ force: true });
   // ไม่สร้าง Academic เพื่อทดสอบ fallback (service จะใช้ปีปัจจุบัน + ภาค 1)
+});
+
+beforeEach(() => {
+  mockUpdateWorkflowActivity.mockClear();
 });
 
 afterAll(async () => {
