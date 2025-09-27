@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Input, Space, Button, message, Row, Col } from 'antd';
 import { SearchOutlined, ReloadOutlined, ProjectOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 import './StudentList.css';
 
 // Constants
@@ -12,12 +12,6 @@ const TABLE_PAGINATION = {
   defaultPageSize: 10,
   pageSizeOptions: ['10', '20', '50']
 };
-
-const API_URL = process.env.REACT_APP_API_URL;
-
-if (!API_URL) {
-  throw new Error('REACT_APP_API_URL is not defined in environment variables');
-}
 
 // Table Columns Configuration
 const getColumns = (sortedInfo) => [
@@ -106,10 +100,13 @@ const ProjectMembersList = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      // เปลี่ยน endpoint
-      const response = await axios.get(`${API_URL}/project-members`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      if (!token) {
+        message.error('กรุณาเข้าสู่ระบบก่อน');
+        return;
+      }
+
+      const response = await apiClient.get('/project-members');
 
       if (Array.isArray(response.data)) {
         setProjectMembers(response.data);

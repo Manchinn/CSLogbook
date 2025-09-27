@@ -33,13 +33,15 @@ class WorkflowService {
   }
 
   // ฟังก์ชันอัปเดตหรือสร้าง StudentWorkflowActivity
-  async updateStudentWorkflowActivity(studentId, workflowType, stepKey, status, overallStatus, dataPayload = {}) {
+  async updateStudentWorkflowActivity(studentId, workflowType, stepKey, status, overallStatus, dataPayload = {}, options = {}) {
     try {
-      console.log(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} status: ${status}`);
+      console.log(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} status: ${status}`, options);
+      const { transaction } = options;
       
       // ค้นหากิจกรรม workflow ที่มีอยู่แล้ว
       let activity = await StudentWorkflowActivity.findOne({
-        where: { studentId, workflowType }
+        where: { studentId, workflowType },
+        transaction
       });
       
       // แปลง dataPayload เป็น string (ถ้าเป็น object)
@@ -59,7 +61,7 @@ class WorkflowService {
           overallWorkflowStatus: overallStatus,
           dataPayload: payloadData,
           startedAt: new Date()
-        });
+        }, { transaction });
       } else {
         // ถ้ามีอยู่แล้ว ให้อัปเดต
         console.log(`Updating existing workflow activity for student ${studentId}`);
@@ -70,7 +72,7 @@ class WorkflowService {
           currentStepStatus: status,
           overallWorkflowStatus: overallStatus,
           dataPayload: payloadData
-        });
+        }, { transaction });
       }
       
       console.log(`Successfully updated workflow activity for student ${studentId}`);
@@ -163,7 +165,7 @@ class WorkflowService {
       let overallTimelineStatus = 'not_started'; 
       if (workflowType === 'internship' && student) {
         overallTimelineStatus = student.internshipStatus || 'not_started';
-      } else if (workflowType === 'project' && student) {
+      } else if ((workflowType === 'project' || workflowType === 'project1') && student) {
         overallTimelineStatus = student.projectStatus || 'not_started';
       }
       // ถ้ามี activity, overallWorkflowStatus จาก activity อาจจะแม่นยำกว่า
@@ -186,6 +188,9 @@ class WorkflowService {
             console.log(`No workflowActivity found for ${workflowType}, student ${studentId}, but stepDefinitions exist. Timeline might be incomplete.`);
         }
         
+        const isProjectWorkflow = workflowType === 'project' || workflowType === 'project1';
+        const isStudentEligibleForProject = !!student?.isEligibleProject;
+
         stepDefinitions.forEach((def, index) => {
           let stepUiStatus = 'waiting'; // สถานะที่จะส่งให้ UI (เช่น 'completed', 'pending', 'in_progress', 'waiting')
           let isStepCompleted = false;
@@ -213,8 +218,14 @@ class WorkflowService {
                 case 'awaiting_action': // ชื่อเดิมที่อาจจะใช้
                   stepUiStatus = 'awaiting_action';
                   break;
+                case 'awaiting_admin_action':
+                  stepUiStatus = 'pending';
+                  break;
                 case 'in_progress': // กำลังดำเนินการใน step นั้นๆ
                   stepUiStatus = 'in_progress';
+                  break;
+                case 'blocked':
+                  stepUiStatus = 'blocked';
                   break;
                 default: // 'not_started', 'waiting', หรืออื่นๆ ที่ไม่รู้จัก
                   stepUiStatus = 'waiting'; // ให้เป็น waiting ถ้าไม่เข้าเงื่อนไขอื่น
@@ -227,6 +238,10 @@ class WorkflowService {
             if (index === 0) {
                 stepUiStatus = 'awaiting_action'; // หรือ 'in_progress' ขึ้นอยู่กับว่า step แรกคืออะไร
             }
+          } else if (!workflowActivity && isProjectWorkflow && def.stepKey === 'PROJECT1_ELIGIBILITY_CONFIRMED' && isStudentEligibleForProject) {
+            // ถ้านักศึกษาผ่านเกณฑ์โครงงานแล้วแต่ยังไม่มี workflow activity ให้ step แรกเป็น completed
+            stepUiStatus = 'completed';
+            isStepCompleted = true;
           }
           
           steps.push({
@@ -244,13 +259,28 @@ class WorkflowService {
         if (currentStepIndex >= 0 && workflowActivity && stepDefinitions.length > 0) {
           // ถ้า step ปัจจุบัน completed, นับเต็ม step นั้น + index
           // ถ้า step ปัจจุบันยังไม่ completed (เช่น in_progress, pending), นับครึ่ง step นั้น + index
-          const stepProgressFactor = workflowActivity.currentStepStatus === 'completed' ? 1 : 0.5;
+          let stepProgressFactor = 0.5;
+          if (workflowActivity.currentStepStatus === 'completed') stepProgressFactor = 1;
+          if (workflowActivity.currentStepStatus === 'blocked') stepProgressFactor = 0.8;
           progress = Math.round(((currentStepIndex + stepProgressFactor) / stepDefinitions.length) * 100);
         } else if (!workflowActivity && student && overallTimelineStatus === 'in_progress' && stepDefinitions.length > 0) {
           // กรณีไม่มี activity แต่สถานะ in_progress (อาจจะเพิ่งเริ่ม) ให้ progress เล็กน้อยสำหรับ step แรก
           progress = Math.round(((0 + 0.5) / stepDefinitions.length) * 100);
         } else if (overallTimelineStatus === 'completed') {
           progress = 100;
+        } else if (overallTimelineStatus === 'archived') {
+          progress = 100;
+        }
+      }
+
+      const completedStepsCount = steps.filter(step => step.completed).length;
+      if (!workflowActivity && completedStepsCount > 0 && stepDefinitions.length > 0) {
+        const calculatedProgress = Math.round((completedStepsCount / stepDefinitions.length) * 100);
+        if (progress < calculatedProgress) {
+          progress = calculatedProgress;
+        }
+        if (currentStepIndex < completedStepsCount - 1) {
+          currentStepIndex = completedStepsCount - 1;
         }
       }
       
@@ -258,14 +288,19 @@ class WorkflowService {
       if (progress > 100) progress = 100;
       if (progress < 0) progress = 0;
 
+      if (overallTimelineStatus === 'failed' && progress > 90) {
+        progress = 90;
+      }
+
       console.log(`Generated timeline for ${workflowType} - Student: ${studentId}, Steps: ${steps.length}, Progress: ${progress}%, OverallStatus: ${overallTimelineStatus}, CurrentStepIndex: ${currentStepIndex}`);
       
       return {
         steps: steps, // ไม่ต้อง steps || [] เพราะถ้า stepDefinitions.length > 0 จะมี steps เสมอ
         progress: progress,
         status: overallTimelineStatus, // สถานะโดยรวมของ workflow
-        currentStepDisplay: currentStepIndex >= 0 ? currentStepIndex + 1 : (overallTimelineStatus === 'in_progress' && steps.length > 0 ? 1 : 0), // ถ้า in_progress แต่ไม่มี currentStepIndex ให้แสดง step 1
-        totalStepsDisplay: stepDefinitions.length
+        currentStepDisplay: currentStepIndex >= 0 ? currentStepIndex + 1 : (completedStepsCount > 0 ? completedStepsCount : (overallTimelineStatus === 'in_progress' && steps.length > 0 ? 1 : 0)), // ถ้า in_progress แต่ไม่มี currentStepIndex ให้แสดง step 1
+        totalStepsDisplay: stepDefinitions.length,
+        blocked: overallTimelineStatus === 'failed'
       };
     } catch (error) {
       logger.error(`Error generating student timeline for ${workflowType}, student ${studentId}:`, error);
@@ -275,11 +310,11 @@ class WorkflowService {
         status: 'not_started',
         currentStepDisplay: 0,
         totalStepsDisplay: 0,
+        blocked: false,
         error: error.message
       };
     }
   }
-
   /**
    * ดึงข้อมูลขั้นตอนการทำงานตาม workflow type (สำหรับ Controller)
    * @param {string} workflowType - ประเภท workflow

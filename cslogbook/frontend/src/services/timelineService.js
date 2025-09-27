@@ -157,7 +157,6 @@ export const timelineService = {
             // ตรวจสอบและจัดการข้อมูลภาคการศึกษาและปีการศึกษา
             if (apiData.data.student.academicInfo) {
               // ข้อมูลภาคการศึกษาและปีการศึกษาจาก backend
-              apiData.data.student.academicInfo = apiData.data.student.academicInfo;
               console.log("Academic info from backend:", apiData.data.student.academicInfo);
             } else {
               // สร้างข้อมูลภาคการศึกษาเริ่มต้นถ้าไม่มีจาก backend
@@ -208,6 +207,10 @@ export const timelineService = {
                       apiData.data.progress[type].totalSteps || 0;
                   }
                   
+                  apiData.data.progress[type].blocked = 
+                    apiData.data.progress[type].blocked || 
+                    apiData.data.progress[type].status === 'failed';
+
                   if (!apiData.data.progress[type].hasOwnProperty('progress')) {
                     // คำนวณความคืบหน้าจากขั้นตอนที่เสร็จแล้ว
                     const completedCount = formattedSteps.filter(s => s.status === 'completed').length;

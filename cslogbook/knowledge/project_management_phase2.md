@@ -4,11 +4,26 @@
 
 ## 1. วัตถุประสงค์ (Objective)
 Phase 2 เพิ่มความสามารถให้นักศึกษาที่ผ่านเกณฑ์ (eligible) สามารถ:
-- สร้างโครงงาน (draft) พร้อมสถานะ lifecycle
-- จำกัดจำนวนสมาชิก 2 คน (leader + member)
-- กำหนดข้อมูลเบื้องต้น (ชื่อ TH/EN, ประเภท, track, advisor, co-advisor)
-- Promote โครงงานสู่สถานะ in_progress เมื่อครบเงื่อนไขพร้อมดำเนินการ
-- (เตรียมทาง) สำหรับสถานะ completed / archived ใน Phase ถัดไป
+
+## 1.1 ลำดับขั้นตอนโครงงานพิเศษ (Focus: Phase 2 → เตรียม Project1)
+> ใช้สำหรับทีมพัฒนาและผู้ใช้งานเพื่อเห็นภาพรวม flow ที่ระบบ Phase 2 รองรับจริง ณ ปัจจุบัน (Sep 2025)
+
+| ลำดับ | สถานะ / Action | ผู้ปฏิบัติ | รายละเอียด | เงื่อนไข/ผลลัพธ์ |
+|-------|----------------|------------|-------------|------------------|
+| 0 | ตรวจสิทธิ์โครงงาน (`Student.isEligibleProject`) | ระบบ | นักศึกษาต้องผ่านเกณฑ์หน่วยกิต/ชั้นปี ก่อนระบบเปิดให้สร้างโครงงาน | ถ้าไม่ผ่าน → จะไม่สามารถเริ่ม Step ต่อไปได้ |
+| 1 | สร้าง Draft (`createProject`) | นักศึกษา (leader) | กรอกชื่อ TH/EN, ประเภท,รายละเอียดเบื้องต้น (optional), ระบบสร้าง `ProjectDocument` + สมาชิก leader | สถานะเริ่มต้น `draft` หรือ `advisor_assigned` เมื่อเลือกอาจารย์ทันที |
+| 2 | เพิ่มสมาชิกคนที่สอง (`addMember`) | Leader | เชิญนักศึกษา (ต้อง eligible เช่นกัน) เข้าร่วมทีม | จำกัดสูงสุด 2 คน, ใช้ transaction ป้องกันซ้ำ |
+| 3 | อัปเดต Metadata (`updateMetadata`) | Leader | ปรับข้อมูลรายละเอียด, ตั้ง advisor/co-advisor, ระบุ track | หลังสถานะ ≥ `in_progress` จะ lock ชื่อ/อาจารย์ |
+| 4 | ตรวจ readiness (checklist) | ระบบ + Leader | เช็กเงื่อนไข: สมาชิกครบ 2, advisor ตั้งแล้ว, ชื่อ TH/EN, ประเภท, track ครบ | ใช้ใน UI Project Dashboard เพื่อแจ้งสถานะความพร้อม |
+| 5 | Activate Project (`activateProject`) | Leader | เมื่อ checklist ครบ → Promote จาก `draft/ advisor_assigned` → `in_progress` | เป็นสัญญาณเข้าสู่การพัฒนา Phase 1 (เตรียมสอบหัวข้อ) |
+| 6 | (อนาคต – Phase3+) Proposal/Artifact Workflow | – | placeholder สำหรับฟีเจอร์ต่อไป (upload KP01, approvals ฯลฯ) | ยังไม่ implement ใน Phase 2 |
+| 7 | บันทึกผลสอบหัวข้อ (`setExamResult`) | เจ้าหน้าที่/ผู้มีสิทธิ์ | หลังสอบหัวข้อ บันทึกผล `passed/failed` + เหตุผลถ้าล้มเหลว | หาก `failed` → ต้องให้นักศึกษากด acknowledge ก่อนระบบ archive |
+| 8 | นักศึกษารับทราบผลสอบ (`acknowledgeExamResult`) | สมาชิกโครงงาน | กดรับทราบเมื่อไม่ผ่าน เพื่อให้ระบบ archive โครงงานและเปิดทางยื่นรอบใหม่ | ระบบเปลี่ยน status → `archived` + timestamp |
+| 9 | Archive โครงงาน (`archiveProject`) | Admin/Staff | ใช้กรณียุติโครงการหรือทำความสะอาดข้อมูล | เปลี่ยน status → `archived`, เก็บ `archivedAt` |
+| 10 | Sync Timeline (`syncProjectWorkflowState`) | ระบบ | หลังข้อ 1–9 ระบบจะอัปเดต `StudentWorkflowActivity` และ field `Student.projectStatus` เพื่อให้หน้า timeline แสดงผล | ใช้ในบริการ `timelineService` และ frontend Student Timeline |
+
+> หมายเหตุ: ขั้นตอนข้อ 7–8 เป็นส่วนขยายจาก Section 15.2 (Post-Topic Exam Result Flow) ซึ่งมีการเพิ่มฟิลด์ `examResult`, `examFailReason`, `studentAcknowledgedAt` ใน `ProjectDocument` และเชื่อมกับ workflow timeline แล้วในเดือน Sep 2025.
+
 
 ## 2. ขอบเขต (Scope ใน Phase 2)
 รวม:

@@ -13,7 +13,6 @@ import StudentDeadlineCalendar from './components/student/StudentDeadlineCalenda
 import CS05Form from './components/internship/registration/CS05Form';
 import TimeSheet from './components/internship/logbook/TimeSheet/index';
 import InternshipSummary from './components/internship/summary/Summary';
-import StatusCheck from './components/internship/shared/StatusCheck';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
 import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
 
@@ -24,8 +23,6 @@ import InternshipCompanyDashboard from './components/internship/companies/Intern
 
 
 // Import Project Components
-import ProjectProposalForm from './components/project/ProjectProposalForm';
-import LogbookForm from './components/project/LogbookForm';
 import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
 // Phase1 Dashboard + steps (ยุบ portal เดิมให้เหลือ phase1 dashboard ชั่วคราว)
 import Phase1Dashboard from './components/project/phase1/Phase1Dashboard';
@@ -41,6 +38,7 @@ import ScopeAdjustPage from './components/project/phase1/steps/ScopeAdjustPage';
 import AdminUpload from './components/AdminUpload';
 // Import Admin2 Components - New Structure
 import AdminRoutes from './components/admin/AdminRoutes';
+import ProjectPairsPage from './components/admin/users/projectPairs';
 import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
@@ -160,12 +158,6 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
-                <Route path="/status-check" element={
-                  <ProtectedRoute roles={['student']}>
-                    <StatusCheck />
-                  </ProtectedRoute>
-                } />
-
                 {/* Project Routes */}
                 {/* ปรับโครงสร้าง: /project/phase1 เป็น Phase1Dashboard (single menu) */}
                 <Route path="/project/phase1" element={
@@ -180,19 +172,9 @@ const App = () => {
                   <Route path="exam-day" element={<ExamDayPage />} />
                   <Route path="scope-adjust" element={<ScopeAdjustPage />} />
                 </Route>
-                <Route path="/project-proposal" element={
-                  <ProtectedRoute roles={['student']}>
-                    <ProjectProposalForm />
-                  </ProtectedRoute>
-                } />
                 <Route path="/project/phase1/draft/:id" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectDraftDetail />
-                  </ProtectedRoute>
-                } />
-                <Route path="/project-logbook" element={
-                  <ProtectedRoute roles={['student']}>
-                    <LogbookForm />
                   </ProtectedRoute>
                 } />
                 
@@ -220,6 +202,11 @@ const App = () => {
                 <Route path="/admin/upload" element={
                   <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminUpload />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project-pairs" element={
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
+                    <ProjectPairsPage />
                   </ProtectedRoute>
                 } />
 

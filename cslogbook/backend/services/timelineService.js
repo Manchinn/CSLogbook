@@ -1,7 +1,9 @@
 const { Student, sequelize, Academic } = require('../models');
+const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
 const workflowService = require('./workflowService');
 const { calculateStudentYear } = require('../utils/studentUtils');
+const PROJECT_WORKFLOW_TYPE = 'project1';
 
 class TimelineService {
   /**
@@ -25,7 +27,7 @@ class TimelineService {
       // สร้าง timeline สำหรับการฝึกงานและโครงงานแยกกัน
       const [internshipTimeline, projectTimeline] = await Promise.all([
         workflowService.generateStudentTimeline(student.studentId, 'internship'),
-        workflowService.generateStudentTimeline(student.studentId, 'project')
+        workflowService.generateStudentTimeline(student.studentId, PROJECT_WORKFLOW_TYPE)
       ]);
       
       // เพิ่มการปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
@@ -98,9 +100,15 @@ class TimelineService {
     if (type === 'internship' && student.isEnrolledInternship && timeline.status === 'not_started') {
       timeline.status = student.internshipStatus || 'in_progress';
       timeline.progress = student.internshipStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
-    } else if (type === 'project' && student.isEnrolledProject && timeline.status === 'not_started') {
-      timeline.status = student.projectStatus || 'in_progress';
-      timeline.progress = student.projectStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
+    } else if (type === 'project') {
+      if (timeline.status === 'failed') {
+        timeline.progress = Math.max(timeline.progress, 80);
+      } else if (timeline.status === 'archived') {
+        timeline.progress = 100;
+      } else if (student.isEnrolledProject && timeline.status === 'not_started') {
+        timeline.status = student.projectStatus || 'in_progress';
+        timeline.progress = student.projectStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
+      }
     }
   }
 
@@ -242,12 +250,31 @@ class TimelineService {
    */
   async generateTimelineForType(studentId, type, student) {
     try {
-      const timeline = await workflowService.generateStudentTimeline(studentId, type);
+      const workflowType = type === 'project' ? PROJECT_WORKFLOW_TYPE : type;
+
+      if (type === 'project') {
+        try {
+          await projectDocumentService.syncStudentProjectsWorkflow(studentId);
+        } catch (syncError) {
+          logger.warn('TimelineService: syncStudentProjectsWorkflow failed', { studentId, error: syncError.message });
+        }
+      }
+
+      const timeline = await workflowService.generateStudentTimeline(studentId, workflowType);
       
       // ปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
       if (type === 'internship' && student.isEnrolledInternship && timeline.status === 'not_started') {
         timeline.status = student.internshipStatus || 'in_progress';
         timeline.progress = student.internshipStatus === 'completed' ? 100 : 30;
+      } else if (type === 'project') {
+        if (timeline.status === 'not_started' && student.isEnrolledProject) {
+          timeline.status = student.projectStatus || 'in_progress';
+        }
+        if (timeline.status === 'failed') {
+          timeline.progress = Math.max(timeline.progress, 80);
+        } else if (timeline.status === 'archived') {
+          timeline.progress = 100;
+        }
       }
       
       return timeline;

@@ -35,17 +35,17 @@ export const checkDateOverlap = (values) => {
   }
 
   // แปลงวันที่ลงทะเบียนเป็น dayjs objects
-  const internRegStart = values.internshipRegistrationStartDate
-    ? dayjs(values.internshipRegistrationStartDate)
+  const internRegStart = values.internshipRegistrationOpenDate
+    ? dayjs(values.internshipRegistrationOpenDate)
     : null;
-  const internRegEnd = values.internshipRegistrationEndDate
-    ? dayjs(values.internshipRegistrationEndDate)
+  const internRegEnd = values.internshipRegistrationCloseDate
+    ? dayjs(values.internshipRegistrationCloseDate)
     : null;
-  const projectRegStart = values.projectRegistrationStartDate
-    ? dayjs(values.projectRegistrationStartDate)
+  const projectRegStart = values.projectRegistrationOpenDate
+    ? dayjs(values.projectRegistrationOpenDate)
     : null;
-  const projectRegEnd = values.projectRegistrationEndDate
-    ? dayjs(values.projectRegistrationEndDate)
+  const projectRegEnd = values.projectRegistrationCloseDate
+    ? dayjs(values.projectRegistrationCloseDate)
     : null;
 
   // 2. ตรวจสอบช่วงวันลงทะเบียนฝึกงาน
@@ -129,9 +129,9 @@ export const getCurrentSemesterStatus = (formInstance) => {
 export const getInternshipRegistrationStatus = (formInstance) => {
   const today = dayjs();
   const regStart = formInstance.getFieldValue(
-    "internshipRegistrationStartDate"
+    "internshipRegistrationOpenDate"
   );
-  const regEnd = formInstance.getFieldValue("internshipRegistrationEndDate");
+  const regEnd = formInstance.getFieldValue("internshipRegistrationCloseDate");
 
   if (regStart && regEnd) {
     if (today.isBefore(regStart)) {
@@ -163,8 +163,8 @@ export const getInternshipRegistrationStatus = (formInstance) => {
 
 export const getProjectRegistrationStatus = (formInstance) => {
   const today = dayjs();
-  const regStart = formInstance.getFieldValue("projectRegistrationStartDate");
-  const regEnd = formInstance.getFieldValue("projectRegistrationEndDate");
+  const regStart = formInstance.getFieldValue("projectRegistrationOpenDate");
+  const regEnd = formInstance.getFieldValue("projectRegistrationCloseDate");
 
   if (regStart && regEnd) {
     if (today.isBefore(regStart)) {
@@ -205,7 +205,7 @@ export const isRegistrationOpenForSemester = (formInstance) => {
   ];
 
   const today = dayjs();
-  const projectRegEnd = formInstance.getFieldValue("projectRegistrationEndDate");
+  const projectRegEnd = formInstance.getFieldValue("projectRegistrationCloseDate");
 
   return {
     internship: internshipSemesters.includes(currentSemester),
@@ -280,17 +280,17 @@ export const loadAcademicSettingsProcess = async (getAcademicSettingsService) =>
         dayjs(data.semester3Range.end, "YYYY-MM-DD"),
             ]
           : null,
-        internshipRegistrationStartDate: data.internshipRegistration?.startDate
-      ? dayjs(data.internshipRegistration.startDate)
+        internshipRegistrationOpenDate: data.internshipRegistration?.startDate
+          ? dayjs(data.internshipRegistration.startDate)
           : null,
-        internshipRegistrationEndDate: data.internshipRegistration?.endDate
-      ? dayjs(data.internshipRegistration.endDate)
+        internshipRegistrationCloseDate: data.internshipRegistration?.endDate
+          ? dayjs(data.internshipRegistration.endDate)
           : null,
-        projectRegistrationStartDate: data.projectRegistration?.startDate
-      ? dayjs(data.projectRegistration.startDate)
+        projectRegistrationOpenDate: data.projectRegistration?.startDate
+          ? dayjs(data.projectRegistration.startDate)
           : null,
-        projectRegistrationEndDate: data.projectRegistration?.endDate
-      ? dayjs(data.projectRegistration.endDate)
+        projectRegistrationCloseDate: data.projectRegistration?.endDate
+          ? dayjs(data.projectRegistration.endDate)
           : null,
         internshipSemesters: data.internshipSemesters || [3],
         projectSemesters: data.projectSemesters || [1, 2],
@@ -338,19 +338,19 @@ const formatDataForSave = (formInstance, values) => {
       },
     },
     internshipRegistration: {
-      startDate: values.internshipRegistrationStartDate
-    ? dayjs(values.internshipRegistrationStartDate).format("YYYY-MM-DD")
+      startDate: values.internshipRegistrationOpenDate
+        ? dayjs(values.internshipRegistrationOpenDate).format("YYYY-MM-DD")
         : null,
-      endDate: values.internshipRegistrationEndDate
-    ? dayjs(values.internshipRegistrationEndDate).format("YYYY-MM-DD")
+      endDate: values.internshipRegistrationCloseDate
+        ? dayjs(values.internshipRegistrationCloseDate).format("YYYY-MM-DD")
         : null,
     },
     projectRegistration: {
-      startDate: values.projectRegistrationStartDate
-    ? dayjs(values.projectRegistrationStartDate).format("YYYY-MM-DD")
+      startDate: values.projectRegistrationOpenDate
+        ? dayjs(values.projectRegistrationOpenDate).format("YYYY-MM-DD")
         : null,
-      endDate: values.projectRegistrationEndDate
-    ? dayjs(values.projectRegistrationEndDate).format("YYYY-MM-DD")
+      endDate: values.projectRegistrationCloseDate
+        ? dayjs(values.projectRegistrationCloseDate).format("YYYY-MM-DD")
         : null,
     },
     internshipSemesters: values.internshipSemesters || [3],

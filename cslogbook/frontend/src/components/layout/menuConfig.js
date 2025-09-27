@@ -6,7 +6,6 @@ import {
   FormOutlined,
   BookOutlined,
   FileDoneOutlined,
-  BankOutlined,
   LogoutOutlined,
   CheckCircleOutlined,
   UploadOutlined,
@@ -126,15 +125,6 @@ export const getMenuConfig = ({
                 label: 'โครงงานพิเศษ',
                 onClick: () => navigate('/project/phase1'),
               },
-          {
-            key: '/status-check',
-            icon: <FileTextOutlined />,
-            label: 'ตรวจสอบสถานะ',
-            children: [
-              { key: '/status-check/internship', icon: <BankOutlined />, label: 'เอกสารฝึกงาน', onClick: () => navigate('/status-check/internship') },
-              { key: '/status-check/project', icon: <ProjectOutlined />, label: 'เอกสารโครงงาน', onClick: () => navigate('/status-check/project') },
-            ],
-          },
         ].filter(Boolean)
       : []),
     // Teacher academic
@@ -155,7 +145,7 @@ export const getMenuConfig = ({
             children: [
               { key: '/admin/users/students', label: 'นักศึกษา', onClick: () => navigate('/admin/users/students') },
               { key: '/admin/users/teachers', label: 'อาจารย์', onClick: () => navigate('/admin/users/teachers') },
-              { key: '/project-pairs', label: 'คู่โปรเจค', onClick: () => navigate('/project-pairs') },
+              { key: '/project-pairs', label: 'นักศึกษาโครงงานพิเศษ', onClick: () => navigate('/project-pairs') },
             ],
           },
           {
@@ -205,7 +195,7 @@ export const getMenuConfig = ({
             children: [
               { key: '/admin/users/students', label: 'นักศึกษา', onClick: () => navigate('/admin/users/students') },
               { key: '/admin/users/teachers', label: 'อาจารย์', onClick: () => navigate('/admin/users/teachers') },
-              { key: '/project-pairs', label: 'คู่โปรเจค', onClick: () => navigate('/project-pairs') },
+              { key: '/project-pairs', label: 'นักศึกษาโครงงานพิเศษ', onClick: () => navigate('/project-pairs') },
             ],
           },
           {

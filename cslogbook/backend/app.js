@@ -38,6 +38,7 @@ const documentsRoutes = require('./routes/documents/documentsRoutes');
 const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const projectRoutes = require('./routes/projectRoutes'); // 🆕 Project lifecycle routes
 const topicExamRoutes = require('./routes/topicExamRoutes'); // 🆕 Topic Exam Overview
+const projectMembersRoutes = require('./routes/projectMembersRoutes');
 
 const app = express();
 
@@ -86,6 +87,7 @@ app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes);
 app.use('/api/projects', authenticateToken, projectRoutes); // 🆕 mount project routes (auth inside route file)
 app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // mount overview (มี auth ใน route เองแล้ว)
+app.use('/api/project-members', projectMembersRoutes);
 app.use('/api', uploadRoutes);
 
 // เส้นทางดาวน์โหลดไฟล์เทมเพลต CSV สำหรับอัปโหลดรายชื่อนักศึกษา
