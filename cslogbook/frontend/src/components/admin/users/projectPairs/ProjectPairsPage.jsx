@@ -25,8 +25,8 @@ import {
   SearchOutlined,
   TeamOutlined
 } from '@ant-design/icons';
-import dayjs from '../../../utils/dayjs';
-import { fetchProjectPairs } from '../../../services/projectPairsService';
+import dayjs from '../../../../utils/dayjs';
+import { fetchProjectPairs } from '../../../../services/projectPairsService';
 
 const { Title, Text, Paragraph } = Typography;
 
