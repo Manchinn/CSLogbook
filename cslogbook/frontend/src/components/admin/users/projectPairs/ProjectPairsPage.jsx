@@ -13,7 +13,6 @@ import {
   Row,
   Select,
   Space,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -27,6 +26,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { fetchProjectPairs } from '../../../../services/projectPairsService';
+import '../students/styles.css';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -337,37 +337,33 @@ const ProjectPairsPage = () => {
   ], [openDrawer]);
 
   return (
-    <Space direction="vertical" size={24} style={{ width: '100%' }}>
+    <div className="admin-student-container project-pairs-page">
       <div>
-        <Title level={3} style={{ marginBottom: 0 }}>ข้อมูลคู่โปรเจค</Title>
+        <Title level={3} className="title">ข้อมูลคู่โปรเจค</Title>
         <Text type="secondary">สรุปข้อมูลโครงงานและสมาชิกสำหรับเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์</Text>
       </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
-          <Card>
-            <Statistic
-              title="จำนวนโครงงานทั้งหมด"
-              value={summary.total}
-              prefix={<ProjectPairsHeadlineIcon />}
-            />
-          </Card>
-        </Col>
+      <div className="statistics-chips">
+        <div className="statistic-item" key="total-projects">
+          <ProjectPairsHeadlineIcon />
+          <Space direction="vertical" size={0}>
+            <Text type="secondary">จำนวนโครงงานทั้งหมด</Text>
+            <Title level={4} style={{ margin: 0 }}>{summary.total}</Title>
+          </Space>
+        </div>
         {statusSummaryItems.map((item) => (
-          <Col xs={24} md={8} lg={4} key={item.statusKey}>
-            <Card>
-              <Space direction="vertical" size={0}>
-                <Text type="secondary">{item.label}</Text>
-                <Title level={4} style={{ margin: 0 }}>{item.value}</Title>
-              </Space>
-            </Card>
-          </Col>
+          <div className="statistic-item" key={item.statusKey}>
+            <Space direction="vertical" size={0}>
+              <Text type="secondary">{item.label}</Text>
+              <Title level={4} style={{ margin: 0 }}>{item.value}</Title>
+            </Space>
+          </div>
         ))}
-      </Row>
+      </div>
 
-      <Card>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Row gutter={[16, 16]}>
+      <Card bordered={false} style={{ padding: 0 }}>
+        <div className="filter-section">
+          <Row gutter={[16, 16]} style={{ width: '100%' }}>
             <Col xs={24} lg={10}>
               <Input
                 allowClear
@@ -438,25 +434,26 @@ const ProjectPairsPage = () => {
               </Button>
             </Col>
           </Row>
+        </div>
 
-          <Table
-            rowKey={(record) => record.projectId || record.projectCode || `${record.projectNameTh}-${record.createdAt}`}
-            dataSource={filteredProjects}
-            columns={columns}
-            loading={loading}
-            scroll={{ x: 1200 }}
-            locale={{ emptyText: <Empty description="ไม่พบข้อมูลโครงงาน" /> }}
-            pagination={{
-              showSizeChanger: true,
-              defaultPageSize: 10,
-              pageSizeOptions: ['10', '20', '50'],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`
-            }}
-          />
-        </Space>
+        <Table
+          rowKey={(record) => record.projectId || record.projectCode || `${record.projectNameTh}-${record.createdAt}`}
+          dataSource={filteredProjects}
+          columns={columns}
+          loading={loading}
+          scroll={{ x: 1200 }}
+          locale={{ emptyText: <Empty description="ไม่พบข้อมูลโครงงาน" /> }}
+          pagination={{
+            showSizeChanger: true,
+            defaultPageSize: 10,
+            pageSizeOptions: ['10', '20', '50'],
+            showTotal: (total) => `ทั้งหมด ${total} รายการ`
+          }}
+        />
       </Card>
 
       <Drawer
+        className="student-drawer"
         title={`รายละเอียดโครงงาน: ${drawerState.project?.projectNameTh || '-'}`}
         width={720}
         open={drawerState.open}
@@ -581,7 +578,7 @@ const ProjectPairsPage = () => {
           <Empty description="ไม่พบข้อมูลโครงงาน" />
         )}
       </Drawer>
-    </Space>
+    </div>
   );
 };
 
