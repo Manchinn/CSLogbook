@@ -14,6 +14,7 @@ const {
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { buildSummary } = require('./meetingSummaryHelper');
+const mailer = require('../utils/mailer');
 
 class MeetingService {
   async ensureProjectAccess(projectId, actor, options = {}) {
@@ -160,8 +161,9 @@ class MeetingService {
     }
 
     const t = await sequelize.transaction();
+    let meeting;
     try {
-      const meeting = await Meeting.create({
+      meeting = await Meeting.create({
         meetingTitle: payload.meetingTitle.trim(),
         meetingDate,
         meetingMethod: payload.meetingMethod,
@@ -192,35 +194,66 @@ class MeetingService {
       });
 
       await t.commit();
-
-      const created = await Meeting.findByPk(meeting.meetingId, {
-        include: [
-          {
-            model: MeetingParticipant,
-            as: 'participants',
-            include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] }]
-          },
-          {
-            model: MeetingLog,
-            as: 'logs',
-            include: [
-              { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
-              { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
-              { model: MeetingAttachment, as: 'attachments' },
-              { model: MeetingActionItem, as: 'actionItems' }
-            ]
-          }
-        ]
-      });
-
-      logger.info('meetingService.createMeeting success', { projectId, meetingId: meeting.meetingId, actorId: actor.userId });
-      return this.serializeMeeting(created);
     } catch (error) {
-      await t.rollback();
+      // หาก transaction ยังไม่ถูกปิด (finished) ให้ rollback เพื่อคืนสถานะ
+      if (!t.finished) {
+        await t.rollback();
+      }
       logger.error('meetingService.createMeeting failed', { message: error.message, projectId });
       if (!error.statusCode) error.statusCode = 400;
       throw error;
     }
+
+    const created = await Meeting.findByPk(meeting.meetingId, {
+      include: [
+        {
+          model: MeetingParticipant,
+          as: 'participants',
+          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] }]
+        },
+        {
+          model: MeetingLog,
+          as: 'logs',
+          include: [
+            { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+            { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+            { model: MeetingAttachment, as: 'attachments' },
+            { model: MeetingActionItem, as: 'actionItems' }
+          ]
+        }
+      ]
+    });
+
+    const serialized = this.serializeMeeting(created);
+
+    logger.info('meetingService.createMeeting success', { projectId, meetingId: meeting.meetingId, actorId: actor.userId });
+
+    if (payload.suppressNotifications !== true) {
+      const notificationNote = typeof payload.notificationMessage === 'string' && payload.notificationMessage.trim()
+        ? payload.notificationMessage.trim()
+        : typeof payload.notificationNote === 'string' && payload.notificationNote.trim()
+          ? payload.notificationNote.trim()
+          : null;
+      try {
+        await this.sendMeetingScheduledNotifications({
+          project: context.project,
+          meeting: serialized,
+          actor,
+          members: context.members || [],
+          note: notificationNote
+        });
+      } catch (notificationError) {
+        logger.error('meetingService.createMeeting notification error', {
+          message: notificationError.message,
+          projectId,
+          meetingId: meeting?.meetingId || null,
+          actorId: actor.userId,
+          stack: notificationError.stack
+        });
+      }
+    }
+
+    return serialized;
   }
 
   async createMeetingLog(projectId, meetingId, actor, payload = {}) {
@@ -261,8 +294,9 @@ class MeetingService {
     }
 
     const t = await sequelize.transaction();
+    let log;
     try {
-      const log = await MeetingLog.create({
+      log = await MeetingLog.create({
         meetingId,
         discussionTopic: payload.discussionTopic.trim(),
         currentProgress: payload.currentProgress.trim(),
@@ -292,24 +326,27 @@ class MeetingService {
       }
 
       await t.commit();
-
-      const created = await MeetingLog.findByPk(log.logId, {
-        include: [
-          { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
-          { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
-          { model: MeetingAttachment, as: 'attachments' },
-          { model: MeetingActionItem, as: 'actionItems' }
-        ]
-      });
-
-      logger.info('meetingService.createMeetingLog success', { meetingId, logId: log.logId, actorId: actor.userId });
-      return this.serializeLog(created);
     } catch (error) {
-      await t.rollback();
+      // ป้องกัน error rollback หลัง commit โดยตรวจสอบสถานะ transaction ก่อนเสมอ
+      if (!t.finished) {
+        await t.rollback();
+      }
       logger.error('meetingService.createMeetingLog failed', { message: error.message, meetingId });
       if (!error.statusCode) error.statusCode = 400;
       throw error;
     }
+
+    const created = await MeetingLog.findByPk(log.logId, {
+      include: [
+        { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+        { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+        { model: MeetingAttachment, as: 'attachments' },
+        { model: MeetingActionItem, as: 'actionItems' }
+      ]
+    });
+
+    logger.info('meetingService.createMeetingLog success', { meetingId, logId: log.logId, actorId: actor.userId });
+    return this.serializeLog(created);
   }
 
   async updateLogApproval(projectId, meetingId, logId, actor, payload = {}) {
@@ -390,6 +427,170 @@ class MeetingService {
     return this.serializeLog(updated);
   }
 
+  async sendMeetingScheduledNotifications({ project, meeting, actor, members = [], note = null } = {}) {
+    if (!project || !meeting) {
+      return { recipients: [], totalRecipients: 0 };
+    }
+
+    const meetingData = typeof meeting === 'object' && typeof meeting.toJSON === 'function'
+      ? this.serializeMeeting(meeting)
+      : meeting;
+
+    const participants = Array.isArray(meetingData.participants) ? meetingData.participants : [];
+    if (!participants.length) {
+      logger.warn('meetingService.sendMeetingScheduledNotifications skipped: no participants', {
+        projectId: project.projectId,
+        meetingId: meetingData.meetingId
+      });
+      return { recipients: [], totalRecipients: 0 };
+    }
+
+    const memberMap = new Map();
+    if (Array.isArray(members)) {
+      members.forEach(member => {
+        const studentUserId = member.student?.user?.userId;
+        if (studentUserId) {
+          memberMap.set(studentUserId, {
+            studentCode: member.student?.studentCode || null
+          });
+        }
+      });
+    }
+
+    const roleLabels = {
+      advisor: 'อาจารย์ที่ปรึกษา',
+      co_advisor: 'อาจารย์ที่ปรึกษาร่วม',
+      student: 'นักศึกษา',
+      guest: 'ผู้เข้าร่วม'
+    };
+
+    const participantDetails = participants.map(participant => {
+      const userInfo = participant.user || {};
+      const fullName = userInfo.fullName || [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ').trim();
+      const fallbackName = memberMap.get(participant.userId)?.studentCode || userInfo.email || 'ผู้เข้าร่วม';
+      return {
+        userId: participant.userId,
+        email: userInfo.email || null,
+        name: fullName || fallbackName,
+        role: participant.role || 'guest',
+        roleLabel: roleLabels[participant.role] || 'ผู้เข้าร่วม',
+        studentCode: memberMap.get(participant.userId)?.studentCode || null
+      };
+    });
+
+    const recipientMap = new Map();
+    participantDetails.forEach(detail => {
+      if (!detail.email) return;
+      if (!recipientMap.has(detail.email)) {
+        recipientMap.set(detail.email, detail);
+      }
+    });
+
+    if (!recipientMap.size) {
+      logger.warn('meetingService.sendMeetingScheduledNotifications skipped: participant emails missing', {
+        projectId: project.projectId,
+        meetingId: meetingData.meetingId
+      });
+      return { recipients: [], totalRecipients: 0 };
+    }
+
+    let initiatorName = null;
+    if (actor?.userId) {
+      const initiator = participantDetails.find(detail => detail.userId === actor.userId && detail.name);
+      if (initiator?.name) {
+        initiatorName = initiator.name;
+      } else {
+        const initiatorUser = await User.findByPk(actor.userId, {
+          attributes: ['firstName', 'lastName', 'email']
+        });
+        if (initiatorUser) {
+          initiatorName = [initiatorUser.firstName, initiatorUser.lastName].filter(Boolean).join(' ').trim() || initiatorUser.email || null;
+        }
+      }
+    }
+    if (!initiatorName) {
+      initiatorName = 'ผู้ใช้ระบบ';
+    }
+
+    const meetingMethodLabels = {
+      onsite: 'onsite (พบกันที่สถานที่จริง)',
+      online: 'online (ผ่านระบบออนไลน์)',
+      hybrid: 'hybrid (ผสม onsite/online)'
+    };
+
+    const meetingDateValue = meetingData.meetingDate ? new Date(meetingData.meetingDate) : null;
+    const meetingDateLabel = meetingDateValue
+      ? meetingDateValue.toLocaleString('th-TH', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : '-';
+
+    const noteText = typeof note === 'string' && note.trim().length ? note.trim() : null;
+
+    const basePayload = {
+      projectName: project.projectNameTh || project.projectNameEn || `Project ${project.projectId}`,
+      meetingTitle: meetingData.meetingTitle || 'การประชุมโครงงาน',
+      meetingDate: meetingData.meetingDate || null,
+      meetingDateLabel,
+      meetingMethod: meetingData.meetingMethod,
+      meetingMethodLabel: meetingMethodLabels[meetingData.meetingMethod] || meetingData.meetingMethod || 'onsite',
+      meetingLocation: meetingData.meetingLocation || null,
+      meetingLink: meetingData.meetingLink || null,
+      participants: participantDetails.map(({ name, studentCode, roleLabel }) => ({
+        name,
+        studentCode,
+        roleLabel
+      })),
+      initiatorName,
+      note: noteText
+    };
+
+    const recipients = [];
+    for (const detail of recipientMap.values()) {
+      try {
+        const sendResult = await mailer.sendMeetingScheduledNotification({
+          recipientEmail: detail.email,
+          recipientName: detail.name,
+          ...basePayload
+        });
+        recipients.push({
+          email: detail.email,
+          name: detail.name,
+          sent: sendResult.sent !== false,
+          reason: sendResult.reason || null,
+          messageId: sendResult.messageId || null
+        });
+      } catch (error) {
+        logger.error('meetingService.sendMeetingScheduledNotifications send failed', {
+          message: error.message,
+          stack: error.stack,
+          projectId: project.projectId,
+          meetingId: meetingData.meetingId,
+          recipient: detail.email
+        });
+        recipients.push({
+          email: detail.email,
+          name: detail.name,
+          sent: false,
+          reason: error.message || 'email_error',
+          messageId: null
+        });
+      }
+    }
+
+    logger.info('meetingService.sendMeetingScheduledNotifications completed', {
+      projectId: project.projectId,
+      meetingId: meetingData.meetingId,
+      recipientCount: recipients.length
+    });
+
+    return { recipients, totalRecipients: recipients.length };
+  }
+
   async buildParticipants({ meetingId, project, members, actor, additionalParticipantIds }) {
     const participants = new Map();
 
@@ -438,7 +639,9 @@ class MeetingService {
 
   serializeMeeting(meetingInstance) {
     if (!meetingInstance) return null;
-    const meeting = meetingInstance.toJSON();
+    const meeting = typeof meetingInstance.toJSON === 'function'
+      ? meetingInstance.toJSON()
+      : meetingInstance;
     return {
       meetingId: meeting.meetingId,
       meetingTitle: meeting.meetingTitle,
@@ -458,7 +661,10 @@ class MeetingService {
 
   serializeParticipant(participantInstance) {
     if (!participantInstance) return null;
-    const participant = participantInstance.toJSON();
+    const participant = typeof participantInstance.toJSON === 'function'
+      ? participantInstance.toJSON()
+      : participantInstance;
+    if (!participant || typeof participant !== 'object') return null;
     return {
       meetingId: participant.meetingId,
       userId: participant.userId,
@@ -479,7 +685,10 @@ class MeetingService {
 
   serializeLog(logInstance) {
     if (!logInstance) return null;
-    const log = logInstance.toJSON();
+    const log = typeof logInstance.toJSON === 'function'
+      ? logInstance.toJSON()
+      : logInstance;
+    if (!log || typeof log !== 'object') return null;
     return {
       logId: log.logId,
       meetingId: log.meetingId,

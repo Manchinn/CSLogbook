@@ -55,6 +55,11 @@ class NotificationSettingsService {
                     isEnabled: false
                 },
                 { 
+                    notificationType: 'MEETING', 
+                    description: 'การแจ้งเตือนเมื่อมีการขออนุมัติบันทึกการพบอาจารย์',
+                    isEnabled: false
+                },
+                { 
                     notificationType: 'EVALUATION', 
                     description: 'การแจ้งเตือนเมื่อมีการประเมินผล',
                     isEnabled: false

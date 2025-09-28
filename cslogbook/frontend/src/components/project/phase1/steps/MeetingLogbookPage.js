@@ -1,0 +1,361 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Card,
+  Collapse,
+  DatePicker,
+  Empty,
+  Form,
+  Input,
+  message,
+  Modal,
+  Select,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  Tooltip
+} from 'antd';
+import {
+  CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  MailOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  TeamOutlined
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import { useStudentProject } from '../../../../hooks/useStudentProject';
+import meetingService from '../../../../services/meetingService';
+import { useAuth } from '../../../../contexts/AuthContext';
+
+const { TextArea } = Input;
+
+const statusColors = {
+  pending: 'blue',
+  approved: 'green',
+  rejected: 'red'
+};
+
+const statusText = {
+  pending: 'รออนุมัติ',
+  approved: 'อนุมัติแล้ว',
+  rejected: 'ขอปรับปรุง'
+};
+
+dayjs.locale('th');
+
+const MeetingLogbookPage = () => {
+  const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
+  const { userData } = useAuth();
+  const [listLoading, setListLoading] = useState(false);
+  const [meetings, setMeetings] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [createMeetingOpen, setCreateMeetingOpen] = useState(false);
+  const [createLogOpen, setCreateLogOpen] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [actionLoadingKey, setActionLoadingKey] = useState(null);
+
+  const [createMeetingForm] = Form.useForm();
+  const [createLogForm] = Form.useForm();
+
+  const canManage = useMemo(() => ['student', 'teacher', 'admin'].includes(userData?.role), [userData?.role]);
+  const canApprove = useMemo(() => ['teacher', 'admin'].includes(userData?.role), [userData?.role]);
+
+  const fetchMeetings = useCallback(async () => {
+    if (!activeProject?.projectId) return;
+    try {
+      setListLoading(true);
+      const res = await meetingService.listMeetings(activeProject.projectId);
+      if (!res?.success) {
+        message.error(res?.message || 'ไม่สามารถดึงข้อมูลการพบอาจารย์ได้');
+        return;
+      }
+      setMeetings(res.data || []);
+      setStats(res.stats || null);
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setListLoading(false);
+    }
+  }, [activeProject?.projectId]);
+
+  useEffect(() => {
+    if (activeProject?.projectId) {
+      fetchMeetings();
+    }
+  }, [activeProject?.projectId, fetchMeetings]);
+
+  const handleCreateMeeting = async () => {
+    if (!activeProject?.projectId) return;
+    try {
+      const values = await createMeetingForm.validateFields();
+      const payload = {
+        meetingTitle: values.meetingTitle.trim(),
+        meetingDate: values.meetingDate ? values.meetingDate.toISOString() : null,
+        meetingMethod: values.meetingMethod,
+        meetingLocation: values.meetingLocation || null,
+        meetingLink: values.meetingLink || null
+      };
+      await meetingService.createMeeting(activeProject.projectId, payload);
+      message.success('สร้างการประชุมสำเร็จ ระบบจะส่งอีเมลแจ้งผู้เข้าร่วมให้อัตโนมัติ');
+      setCreateMeetingOpen(false);
+      createMeetingForm.resetFields();
+      fetchMeetings();
+    } catch (error) {
+      // แสดงข้อความผิดพลาดให้ผู้ใช้ทราบ (ภาษาไทย)
+      message.error(error.message || 'สร้างการประชุมไม่สำเร็จ');
+    }
+  };
+
+  const handleOpenLogModal = (meeting) => {
+    setSelectedMeeting(meeting);
+    createLogForm.resetFields();
+    setCreateLogOpen(true);
+  };
+
+  const handleCreateLog = async () => {
+    if (!activeProject?.projectId || !selectedMeeting?.meetingId) return;
+    try {
+      const values = await createLogForm.validateFields();
+      const payload = {
+        discussionTopic: values.discussionTopic.trim(),
+        currentProgress: values.currentProgress.trim(),
+        problemsIssues: values.problemsIssues ? values.problemsIssues.trim() : null,
+        nextActionItems: values.nextActionItems.trim(),
+        advisorComment: values.advisorComment ? values.advisorComment.trim() : null
+      };
+      await meetingService.createMeetingLog(activeProject.projectId, selectedMeeting.meetingId, payload);
+      message.success('บันทึก log การพบสำเร็จ');
+      setCreateLogOpen(false);
+      createLogForm.resetFields();
+      fetchMeetings();
+    } catch (error) {
+      message.error(error.message || 'บันทึก log ไม่สำเร็จ');
+    }
+  };
+
+  const handleApproval = async (meetingId, logId, status) => {
+    if (!activeProject?.projectId) return;
+    try {
+      const loadingKey = `${meetingId}-${logId}-${status}`;
+      setActionLoadingKey(loadingKey);
+      await meetingService.updateLogApproval(activeProject.projectId, meetingId, logId, { status });
+      message.success('อัปเดตสถานะสำเร็จ');
+      fetchMeetings();
+    } catch (error) {
+      message.error(error.message || 'อัปเดตสถานะไม่สำเร็จ');
+    } finally {
+      setActionLoadingKey(null);
+    }
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return '-';
+    return dayjs(value).locale('th').format('DD MMM YYYY HH:mm');
+  };
+
+  const collapseItems = meetings.map((meeting) => ({
+    key: meeting.meetingId,
+    label: (
+      <Space direction="vertical" size={0} style={{ width: '100%' }}>
+        <Space align="center" size={12}>
+          <CalendarOutlined style={{ color: '#1d4ed8' }} />
+          <span style={{ fontWeight: 600 }}>{meeting.meetingTitle}</span>
+          <Tag>{formatDateTime(meeting.meetingDate)}</Tag>
+        </Space>
+        <Space size={8} wrap>
+          <Tag color="geekblue">{meeting.meetingMethod === 'onsite' ? 'onsite' : meeting.meetingMethod === 'online' ? 'online' : 'hybrid'}</Tag>
+          {meeting.status && <Tag color="purple">{meeting.status}</Tag>}
+          <Tag icon={<TeamOutlined />}>{meeting.participants?.length || 0} ผู้เข้าร่วม</Tag>
+        </Space>
+      </Space>
+    ),
+    children: (
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space direction="vertical" size={4}>
+          {meeting.meetingLocation && (
+            <div style={{ fontSize: 13, color: '#475569' }}>สถานที่: {meeting.meetingLocation}</div>
+          )}
+          {meeting.meetingLink && (
+            <div style={{ fontSize: 13, color: '#475569' }}>ลิงก์: <a href={meeting.meetingLink} target="_blank" rel="noreferrer">เปิดลิงก์</a></div>
+          )}
+        </Space>
+
+        <Space align="center" style={{ justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 13, color: '#64748b' }}>
+            บันทึกล่าสุด: {meeting.logs?.length ? formatDateTime(meeting.logs[0].createdAt) : 'ยังไม่มี'}
+          </div>
+          {canManage && (
+            <Space>
+              <Tooltip title="เพิ่ม log สำหรับการพบครั้งนี้">
+                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleOpenLogModal(meeting)}>
+                  บันทึกการพบ
+                </Button>
+              </Tooltip>
+            </Space>
+          )}
+        </Space>
+
+        {meeting.logs?.length ? meeting.logs.map((log) => (
+          <Card key={log.logId} size="small" title={log.discussionTopic} extra={<Tag color={statusColors[log.approvalStatus] || 'default'}>{statusText[log.approvalStatus] || log.approvalStatus}</Tag>}>
+            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+              <div style={{ fontSize: 13, color: '#475569' }}>บันทึกเมื่อ: {formatDateTime(log.createdAt)}</div>
+              {log.recorder?.fullName && (
+                <div style={{ fontSize: 13, color: '#475569' }}>ผู้บันทึก: {log.recorder.fullName}</div>
+              )}
+              <div style={{ whiteSpace: 'pre-wrap' }}><strong>ความคืบหน้า:</strong> {log.currentProgress || '-'}</div>
+              {log.problemsIssues && (
+                <div style={{ whiteSpace: 'pre-wrap' }}><strong>ปัญหา/อุปสรรค:</strong> {log.problemsIssues}</div>
+              )}
+              <div style={{ whiteSpace: 'pre-wrap' }}><strong>งานถัดไป:</strong> {log.nextActionItems || '-'}</div>
+              {log.advisorComment && (
+                <Alert type="info" showIcon message="หมายเหตุจากอาจารย์" description={log.advisorComment} />
+              )}
+              {canApprove && (
+                <Space wrap>
+                  <Button
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    type="primary"
+                    ghost
+                    loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-approved`}
+                    onClick={() => handleApproval(meeting.meetingId, log.logId, 'approved')}
+                  >
+                    อนุมัติ
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    icon={<CloseCircleOutlined />}
+                    loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-rejected`}
+                    onClick={() => handleApproval(meeting.meetingId, log.logId, 'rejected')}
+                  >
+                    ขอปรับปรุง
+                  </Button>
+                  <Button
+                    size="small"
+                    icon={<ClockCircleOutlined />}
+                    loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-pending`}
+                    onClick={() => handleApproval(meeting.meetingId, log.logId, 'pending')}
+                  >
+                    รีเซ็ตสถานะ
+                  </Button>
+                </Space>
+              )}
+            </Space>
+          </Card>
+        )) : (
+          <Empty description="ยังไม่มีบันทึกการพบในครั้งนี้" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        )}
+      </Space>
+    )
+  }));
+
+  return (
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={fetchMeetings} disabled={listLoading}>รีเฟรช</Button>
+          {canManage && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateMeetingOpen(true)}>
+              สร้างการประชุมใหม่
+            </Button>
+          )}
+        </Space>
+      </Space>
+
+      <Alert
+        type="info"
+        showIcon
+        message="การอนุมัติบันทึกในระบบ"
+        description="หลังสร้างการประชุม ระบบจะส่งอีเมลแจ้งนัดหมายให้ผู้เข้าร่วมอัตโนมัติ และอาจารย์สามารถอนุมัติบันทึกได้โดยตรงใน CS Logbook"
+      />
+
+      <Card>
+        <Space size={16} wrap>
+          <Statistic title="จำนวนการพบทั้งหมด" value={stats?.totalMeetings ?? 0} prefix={<CalendarOutlined />} />
+          <Statistic title="บันทึกทั้งหมด" value={stats?.totalLogs ?? 0} prefix={<ClockCircleOutlined />} />
+          <Statistic title="อนุมัติแล้ว" value={stats?.approvedLogs ?? 0} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#16a34a' }} />
+          <Statistic title="รออนุมัติ" value={stats?.pendingLogs ?? 0} prefix={<MailOutlined />} valueStyle={{ color: '#2563eb' }} />
+        </Space>
+      </Card>
+
+      {projectLoading || listLoading ? (
+        <div style={{ padding: 48, textAlign: 'center' }}>
+          <Spin />
+        </div>
+      ) : !activeProject ? (
+        <Empty description="ยังไม่มีโครงงานที่ต้องติดตาม" />
+      ) : meetings.length ? (
+        <Collapse items={collapseItems} accordion bordered={false} />
+      ) : (
+        <Empty description="ยังไม่มีการบันทึกการพบในโครงงานนี้" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      )}
+
+      <Modal
+        title="สร้างการประชุม"
+        open={createMeetingOpen}
+        okText="บันทึก"
+        onCancel={() => setCreateMeetingOpen(false)}
+        onOk={handleCreateMeeting}
+        destroyOnClose
+      >
+        <Form layout="vertical" form={createMeetingForm}>
+          <Form.Item name="meetingTitle" label="หัวข้อการประชุม" rules={[{ required: true, message: 'กรุณาระบุหัวข้อการประชุม' }]}> 
+            <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
+          </Form.Item>
+          <Form.Item name="meetingDate" label="วันและเวลา" rules={[{ required: true, message: 'กรุณาเลือกวันและเวลา' }]}> 
+            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="meetingMethod" label="รูปแบบ" initialValue="onsite" rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการประชุม' }]}> 
+            <Select>
+              <Select.Option value="onsite">onsite (พบกันที่สถานที่จริง)</Select.Option>
+              <Select.Option value="online">online (ผ่านระบบออนไลน์)</Select.Option>
+              <Select.Option value="hybrid">hybrid (ผสม onsite/online)</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="meetingLocation" label="สถานที่ (ถ้ามี)">
+            <Input placeholder="ห้อง/สถานที่" />
+          </Form.Item>
+          <Form.Item name="meetingLink" label="ลิงก์ประชุม (ถ้ามี)">
+            <Input placeholder="เช่น https://teams.microsoft.com/..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={selectedMeeting ? `บันทึกการพบ: ${selectedMeeting.meetingTitle}` : 'บันทึกการพบ'}
+        open={createLogOpen}
+        okText="บันทึก"
+        onCancel={() => setCreateLogOpen(false)}
+        onOk={handleCreateLog}
+        destroyOnClose
+      >
+        <Form layout="vertical" form={createLogForm}>
+          <Form.Item name="discussionTopic" label="หัวข้อที่พูดคุย" rules={[{ required: true, message: 'กรุณาระบุหัวข้อที่พูดคุย' }]}> 
+            <Input placeholder="หัวข้อหลักในการพบครั้งนี้" />
+          </Form.Item>
+          <Form.Item name="currentProgress" label="ความคืบหน้า" rules={[{ required: true, message: 'กรุณาระบุความคืบหน้า' }]}> 
+            <TextArea rows={3} placeholder="บันทึกสิ่งที่ดำเนินการแล้ว" />
+          </Form.Item>
+          <Form.Item name="problemsIssues" label="ปัญหา/อุปสรรค">
+            <TextArea rows={3} placeholder="ถ้ามีปัญหาใดให้บันทึกไว้" />
+          </Form.Item>
+          <Form.Item name="nextActionItems" label="งานหรือภารกิจถัดไป" rules={[{ required: true, message: 'กรุณาระบุงานถัดไป' }]}> 
+            <TextArea rows={3} placeholder="สิ่งที่ต้องดำเนินการต่อหลังการพบครั้งนี้" />
+          </Form.Item>
+          <Form.Item name="advisorComment" label="หมายเหตุถึงอาจารย์ (ทางเลือก)">
+            <TextArea rows={3} placeholder="ข้อความถึงอาจารย์เพิ่มเติม" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </Space>
+  );
+};
+
+export default MeetingLogbookPage;

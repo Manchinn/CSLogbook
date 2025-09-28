@@ -33,6 +33,7 @@ import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevi
 import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
 import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
 import ScopeAdjustPage from './components/project/phase1/steps/ScopeAdjustPage';
+import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -167,6 +168,7 @@ const App = () => {
                 }>
                   <Route path="topic-submit" element={<TopicSubmitPage />} />
                   <Route path="topic-exam" element={<TopicExamPage />} />
+                  <Route path="meeting-logbook" element={<MeetingLogbookPage />} />
                   <Route path="proposal-revision" element={<ProposalRevisionPage />} />
                   <Route path="exam-submit" element={<ExamSubmitPage />} />
                   <Route path="exam-day" element={<ExamDayPage />} />
