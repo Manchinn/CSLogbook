@@ -132,6 +132,7 @@ export const getMenuConfig = ({
       ? [
           { key: '/review-documents', icon: <FileTextOutlined />, label: 'ตรวจสอบเอกสารโครงงาน', onClick: () => navigate('/review-documents') },
           { key: '/advise-project', icon: <ProjectOutlined />, label: 'ให้คำแนะนำโครงงาน', onClick: () => navigate('/advise-project') },
+          { key: '/teacher/meeting-approvals', icon: <CalendarOutlined />, label: 'อนุมัติบันทึกการพบ', onClick: () => navigate('/teacher/meeting-approvals') },
           { key: '/approve-documents', icon: <CheckCircleOutlined />, label: 'อนุมัติเอกสาร', onClick: () => navigate('/approve-documents') },
         ]
       : []),

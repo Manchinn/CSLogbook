@@ -427,6 +427,280 @@ class MeetingService {
     return this.serializeLog(updated);
   }
 
+  async listTeacherMeetingApprovals(actor, filters = {}) {
+    if (!actor || actor.role !== 'teacher') {
+      const error = new Error('อนุญาตเฉพาะอาจารย์เท่านั้นในการดึงคิวอนุมัติ');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const teacher = await Teacher.findOne({ where: { userId: actor.userId } });
+    if (!teacher) {
+      const error = new Error('ไม่พบข้อมูลอาจารย์สำหรับผู้ใช้นี้');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (teacher.teacherType && teacher.teacherType !== 'academic') {
+      const error = new Error('ฟีเจอร์นี้เปิดเฉพาะอาจารย์ที่ปรึกษาสายวิชาการเท่านั้น');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const allowedStatuses = new Set(['pending', 'approved', 'rejected', 'all']);
+    const requestedStatusRaw = typeof filters.status === 'string' ? filters.status.trim().toLowerCase() : null;
+    const requestedStatus = allowedStatuses.has(requestedStatusRaw) ? requestedStatusRaw : 'pending';
+
+    const logWhere = {};
+    if (requestedStatus !== 'all') {
+      logWhere.approvalStatus = requestedStatus;
+    }
+
+    const teacherConstraint = {
+      [Op.or]: [
+        { advisorId: teacher.teacherId },
+        { coAdvisorId: teacher.teacherId }
+      ]
+    };
+
+    const projectWhere = { ...teacherConstraint };
+    const academicYear = filters.academicYear ? Number(filters.academicYear) : null;
+    if (Number.isInteger(academicYear) && academicYear > 1900) {
+      projectWhere.academicYear = academicYear;
+    }
+    const semester = filters.semester ? Number(filters.semester) : null;
+    if ([1, 2, 3].includes(semester)) {
+      projectWhere.semester = semester;
+    }
+    const projectId = filters.projectId ? Number(filters.projectId) : null;
+    if (Number.isInteger(projectId) && projectId > 0) {
+      projectWhere.projectId = projectId;
+    }
+
+    const searchTerm = typeof filters.q === 'string' ? filters.q.trim() : '';
+    if (searchTerm) {
+      const likeValue = `%${searchTerm.replace(/[%_]/g, '\\$&')}%`;
+      logWhere[Op.or] = [
+        { discussionTopic: { [Op.like]: likeValue } },
+        { currentProgress: { [Op.like]: likeValue } },
+        { problemsIssues: { [Op.like]: likeValue } },
+        { nextActionItems: { [Op.like]: likeValue } }
+      ];
+    }
+
+    const logs = await MeetingLog.findAll({
+      where: logWhere,
+      include: [
+        {
+          model: Meeting,
+          as: 'meeting',
+          attributes: ['meetingId', 'meetingTitle', 'meetingDate', 'meetingMethod', 'meetingLocation', 'meetingLink', 'projectId'],
+          required: true,
+          include: [
+            {
+              model: ProjectDocument,
+              as: 'project',
+              attributes: ['projectId', 'projectCode', 'projectNameTh', 'projectNameEn', 'advisorId', 'coAdvisorId', 'academicYear', 'semester'],
+              where: projectWhere,
+              required: true,
+              include: [
+                {
+                  model: Teacher,
+                  as: 'advisor',
+                  attributes: ['teacherId', 'teacherCode', 'userId'],
+                  include: [
+                    {
+                      model: User,
+                      as: 'user',
+                      attributes: ['userId', 'firstName', 'lastName', 'email']
+                    }
+                  ]
+                },
+                {
+                  model: Teacher,
+                  as: 'coAdvisor',
+                  attributes: ['teacherId', 'teacherCode', 'userId'],
+                  include: [
+                    {
+                      model: User,
+                      as: 'user',
+                      attributes: ['userId', 'firstName', 'lastName', 'email']
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+        { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+        { model: MeetingAttachment, as: 'attachments', attributes: ['attachmentId', 'fileName', 'filePath', 'fileType', 'fileSize', 'uploadDate', 'uploadedBy'] },
+        { model: MeetingActionItem, as: 'actionItems', attributes: ['itemId', 'actionDescription', 'assignedTo', 'dueDate', 'status', 'completionDate'] }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    const projectIds = Array.from(new Set(
+      logs
+        .map(log => log.meeting?.project?.projectId)
+        .filter(id => Number.isInteger(id))
+    ));
+
+    const projectMemberMap = new Map();
+    // รวมข้อมูลนักศึกษาในแต่ละโครงงานไว้ล่วงหน้า เพื่อให้เมธอดหลักสามารถนำไปแสดงผลได้สะดวก
+    if (projectIds.length) {
+      const memberships = await ProjectMember.findAll({
+        where: { projectId: { [Op.in]: projectIds } },
+        attributes: ['projectId'],
+        include: [
+          {
+            model: Student,
+            as: 'student',
+            attributes: ['studentId', 'studentCode', 'userId'],
+            include: [{
+              model: User,
+              as: 'user',
+              attributes: ['userId', 'firstName', 'lastName', 'email']
+            }]
+          }
+        ]
+      });
+
+      memberships.forEach(member => {
+        if (!projectMemberMap.has(member.projectId)) {
+          projectMemberMap.set(member.projectId, []);
+        }
+        const student = member.student;
+        if (!student) return;
+        const user = student.user;
+        const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(' ').trim() : null;
+        projectMemberMap.get(member.projectId).push({
+          studentId: student.studentId,
+          studentCode: student.studentCode,
+          userId: student.userId,
+          fullName: fullName || student.studentCode,
+          email: user?.email || null
+        });
+      });
+    }
+
+    const now = Date.now();
+    const items = logs.map(logInstance => {
+      const serializedLog = this.serializeLog(logInstance);
+      const meeting = logInstance.meeting;
+      const project = meeting?.project;
+      const projectIdValue = project?.projectId || null;
+      const students = projectIdValue ? (projectMemberMap.get(projectIdValue) || []) : [];
+      const pendingDurationMs = serializedLog.createdAt ? now - new Date(serializedLog.createdAt).getTime() : null;
+      const pendingDurationDays = pendingDurationMs != null ? Math.max(0, Math.floor(pendingDurationMs / (24 * 60 * 60 * 1000))) : null;
+
+      const advisorRole = project
+        ? project.advisorId === teacher.teacherId
+          ? 'advisor'
+          : project.coAdvisorId === teacher.teacherId
+            ? 'coAdvisor'
+            : null
+        : null;
+
+      return {
+        ...serializedLog,
+        meeting: meeting ? {
+          meetingId: meeting.meetingId,
+          meetingTitle: meeting.meetingTitle,
+          meetingDate: meeting.meetingDate,
+          meetingMethod: meeting.meetingMethod,
+          meetingLocation: meeting.meetingLocation,
+          meetingLink: meeting.meetingLink,
+          projectId: meeting.projectId
+        } : null,
+        project: project ? {
+          projectId: project.projectId,
+          projectCode: project.projectCode,
+          projectNameTh: project.projectNameTh,
+          projectNameEn: project.projectNameEn,
+          academicYear: project.academicYear,
+          semester: project.semester,
+          advisor: project.advisor ? {
+            teacherId: project.advisor.teacherId,
+            teacherCode: project.advisor.teacherCode,
+            userId: project.advisor.userId,
+            firstName: project.advisor.user?.firstName || null,
+            lastName: project.advisor.user?.lastName || null,
+            email: project.advisor.user?.email || null
+          } : null,
+          coAdvisor: project.coAdvisor ? {
+            teacherId: project.coAdvisor.teacherId,
+            teacherCode: project.coAdvisor.teacherCode,
+            userId: project.coAdvisor.userId,
+            firstName: project.coAdvisor.user?.firstName || null,
+            lastName: project.coAdvisor.user?.lastName || null,
+            email: project.coAdvisor.user?.email || null
+          } : null
+        } : null,
+        students,
+        advisorRole,
+        pendingDurationDays
+      };
+    });
+
+    // คำนวณสรุปจำนวนตามสถานะเพื่อใช้แสดงบน Dashboard ของอาจารย์
+    const summaryRows = await MeetingLog.findAll({
+      attributes: [
+        'approvalStatus',
+        [sequelize.fn('COUNT', sequelize.col('MeetingLog.log_id')), 'count']
+      ],
+      include: [{
+        model: Meeting,
+        as: 'meeting',
+        attributes: [],
+        required: true,
+        include: [{
+          model: ProjectDocument,
+          as: 'project',
+          attributes: [],
+          required: true,
+          where: projectWhere
+        }]
+      }],
+      group: ['MeetingLog.approval_status'],
+      raw: true
+    });
+
+    const summary = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      total: 0
+    };
+    summaryRows.forEach(row => {
+      const status = row.approvalStatus || row['MeetingLog.approvalStatus'] || row.approval_status;
+      const count = Number(row.count || 0);
+      if (status === 'approved') summary.approved = count;
+      else if (status === 'rejected') summary.rejected = count;
+      else if (status === 'pending') summary.pending = count;
+    });
+    summary.total = summary.pending + summary.approved + summary.rejected;
+
+    return {
+      items,
+      summary,
+      teacher: {
+        teacherId: teacher.teacherId,
+        teacherType: teacher.teacherType || null
+      },
+      meta: {
+        totalItems: items.length,
+        appliedFilters: {
+          status: requestedStatus,
+          academicYear: Number.isInteger(academicYear) ? academicYear : null,
+          semester: [1, 2, 3].includes(semester) ? semester : null,
+          projectId: Number.isInteger(projectId) ? projectId : null,
+          search: searchTerm || null
+        }
+      }
+    };
+  }
+
   async sendMeetingScheduledNotifications({ project, meeting, actor, members = [], note = null } = {}) {
     if (!project || !meeting) {
       return { recipients: [], totalRecipients: 0 };

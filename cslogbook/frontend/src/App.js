@@ -44,6 +44,7 @@ import SupervisorEvaluation from './components/internship/evaluation/SupervisorE
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
 import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
+import MeetingApprovals from './components/teacher/MeetingApprovals';
 
 const ProtectedRoute = ({ children, roles, teacherTypes }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -213,6 +214,11 @@ const App = () => {
                 } />
 
                 {/* Teacher Academic Routes */}
+                <Route path="/teacher/meeting-approvals" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <MeetingApprovals />
+                  </ProtectedRoute>
+                } />
                 <Route path="/approve-documents" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <ApproveDocuments />

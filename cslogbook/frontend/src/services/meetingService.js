@@ -45,6 +45,15 @@ const meetingService = {
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถอัปเดตสถานะการอนุมัติได้');
     }
+  },
+
+  listTeacherApprovals: async (params = {}) => {
+    try {
+      const res = await apiClient.get('/teachers/meeting-approvals', { params });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงคิวอนุมัติบันทึกการพบได้');
+    }
   }
 };
 
