@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const controller = require('../controllers/projectDocumentController');
 const topicExamResultController = require('../controllers/topicExamResultController');
+const meetingController = require('../controllers/meetingController');
 
 // ต้อง auth ทั้งหมด
 router.use(authenticateToken);
@@ -28,6 +29,12 @@ router.get('/:id', async (req, res, next) => {
 const milestoneController = require('../controllers/projectMilestoneController');
 router.get('/:id/milestones', milestoneController.list);
 router.post('/:id/milestones', milestoneController.create);
+
+// Meetings & Logs
+router.get('/:id/meetings', meetingController.list);
+router.post('/:id/meetings', meetingController.create);
+router.post('/:id/meetings/:meetingId/logs', meetingController.createLog);
+router.patch('/:id/meetings/:meetingId/logs/:logId/approval', meetingController.updateApproval);
 
 // Artifacts (list) & Proposal upload
 const artifactController = require('../controllers/projectArtifactController');

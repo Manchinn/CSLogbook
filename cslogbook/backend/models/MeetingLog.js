@@ -11,9 +11,17 @@ module.exports = (sequelize) => {
                 foreignKey: 'recorded_by',
                 as: 'recorder'
             });
+            MeetingLog.belongsTo(models.User, {
+                foreignKey: 'approved_by',
+                as: 'approver'
+            });
             MeetingLog.hasMany(models.MeetingAttachment, {
                 foreignKey: 'log_id',
                 as: 'attachments'
+            });
+            MeetingLog.hasMany(models.MeetingActionItem, {
+                foreignKey: 'log_id',
+                as: 'actionItems'
             });
         }
     }
@@ -55,6 +63,27 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'advisor_comment'
         },
+        approvalStatus: {
+            type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+            allowNull: false,
+            defaultValue: 'pending',
+            field: 'approval_status'
+        },
+        approvedBy: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'approved_by'
+        },
+        approvedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'approved_at'
+        },
+        approvalNote: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'approval_note'
+        },
         recordedBy: {
             type: DataTypes.INTEGER,
             allowNull: false,
@@ -74,6 +103,14 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_meeting_log_recorder',
                 fields: ['recorded_by']
+            },
+            {
+                name: 'idx_meeting_log_approval_status',
+                fields: ['approval_status']
+            },
+            {
+                name: 'idx_meeting_log_approved_by',
+                fields: ['approved_by']
             }
         ]
     });
