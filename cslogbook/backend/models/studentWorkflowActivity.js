@@ -59,14 +59,31 @@ module.exports = (sequelize) => {
       field: 'current_step_key'
     },
     currentStepStatus: {
-      type: DataTypes.ENUM('pending', 'in_progress', 'awaiting_student_action', 
-                          'awaiting_admin_action', 'completed', 'rejected', 'skipped'),
+      type: DataTypes.ENUM(
+        'pending',
+        'in_progress',
+        'awaiting_student_action',
+        'awaiting_admin_action',
+        'completed',
+        'rejected',
+        'skipped',
+        'blocked'
+      ),
       allowNull: false,
       defaultValue: 'pending',
       field: 'current_step_status'
     },
     overallWorkflowStatus: {
-      type: DataTypes.ENUM('not_started', 'eligible', 'enrolled', 'in_progress', 'completed', 'blocked'),
+      type: DataTypes.ENUM(
+        'not_started',
+        'eligible',
+        'enrolled',
+        'in_progress',
+        'completed',
+        'blocked',
+        'failed',
+        'archived'
+      ),
       allowNull: false,
       defaultValue: 'not_started',
       field: 'overall_workflow_status'
