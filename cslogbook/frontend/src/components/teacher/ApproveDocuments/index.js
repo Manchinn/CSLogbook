@@ -20,6 +20,7 @@ import { EyeOutlined } from "@ant-design/icons";
 import { internshipApprovalService } from "../../../services/internshipApprovalService";
 import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
 import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
+import PDFViewerModal from "../../PDFViewerModal";
 
 // สีสำหรับสถานะต่าง ๆ
 const statusColor = {
@@ -52,7 +53,6 @@ const { Text } = Typography;
 export default function ApproveDocuments() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
-  // TODO: PDF preview integration (state removed until implemented)
   // แท็บการทำงาน: request = อนุมัติ คพ.05 (หนังสือขอความอนุเคราะห์), referral = หนังสือส่งตัวนักศึกษา
   const [activeTab, setActiveTab] = useState("request");
   // ตัวกรอง: รวมปีการศึกษา+ภาคเรียนเป็นตัวเดียว (term) รูปแบบ "{semester}/{yearBE}" เช่น "1/2567"
@@ -87,15 +87,60 @@ export default function ApproveDocuments() {
     // รีเฟรชทุกครั้งที่เปลี่ยนแท็บ
   }, [fetchQueue]);
 
-  const handleView = useCallback(async (record) => {
-    // TODO: เรียกบริการดาวน์โหลด/แสดงไฟล์ PDF ของเอกสาร (ยังไม่พบในบริบทนี้)
-    message.info(`ยังไม่ได้เชื่อมต่อการแสดงไฟล์สำหรับ Document ID: ${record.documentId}`);
-  }, []);
-
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const [rejectTarget, setRejectTarget] = useState(null); // เก็บ record ที่จะปฏิเสธ
   const [form] = Form.useForm();
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState(null);
+  const [viewerTitle, setViewerTitle] = useState("");
+  const [viewingDocId, setViewingDocId] = useState(null);
+
+  const handleView = useCallback(async (record) => {
+    const messageKey = `view-doc-${record.documentId}`;
+    setViewingDocId(record.documentId);
+    message.loading({ content: "กำลังเปิดเอกสาร...", key: messageKey });
+
+    try {
+      if (viewerUrl) {
+        URL.revokeObjectURL(viewerUrl);
+        setViewerUrl(null);
+      }
+
+      const response = activeTab === "request"
+        ? await internshipApprovalService.viewCS05(record.documentId)
+        : await internshipApprovalService.viewAcceptance(record.documentId);
+
+      const blobUrl = URL.createObjectURL(response.data);
+      const studentName = `${record.student?.firstName || ""} ${record.student?.lastName || ""}`.trim();
+      const docLabel = activeTab === "request" ? "หนังสือขอความอนุเคราะห์ (CS05)" : "Acceptance Letter";
+
+      setViewerUrl(blobUrl);
+      setViewerTitle(studentName ? `${docLabel} - ${studentName}` : docLabel);
+      setViewerVisible(true);
+      message.success({ content: "เปิดเอกสารสำเร็จ", key: messageKey, duration: 1.5 });
+    } catch (e) {
+      const errorMessage = e?.response?.data?.message || e?.message || "ไม่สามารถเปิดเอกสารได้";
+      message.error({ content: errorMessage, key: messageKey });
+    } finally {
+      setViewingDocId(null);
+    }
+  }, [activeTab, viewerUrl]);
+
+  const handleViewerClose = useCallback(() => {
+    if (viewerUrl) {
+      URL.revokeObjectURL(viewerUrl);
+    }
+    setViewerUrl(null);
+    setViewerVisible(false);
+    setViewerTitle("");
+  }, [viewerUrl]);
+
+  useEffect(() => () => {
+    if (viewerUrl) {
+      URL.revokeObjectURL(viewerUrl);
+    }
+  }, [viewerUrl]);
 
   const openRejectModal = useCallback((record) => {
     setRejectTarget(record);
@@ -230,7 +275,11 @@ export default function ApproveDocuments() {
         key: "actions",
         render: (_, record) => (
           <Space>
-            <Button icon={<EyeOutlined />} onClick={() => handleView(record)}>
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => handleView(record)}
+              loading={viewingDocId === record.documentId}
+            >
               ดูเอกสาร
             </Button>
             <Button
@@ -251,7 +300,7 @@ export default function ApproveDocuments() {
         ),
       },
     ],
-    [handleApprove, handleReject, handleView, activeTab]
+  [handleApprove, handleReject, handleView, activeTab, viewingDocId]
   );
 
   // คำนวณสถิติรวมสำหรับการแสดงบนการ์ด สไตล์เดียวกับฝั่งเจ้าหน้าที่ภาค
@@ -498,9 +547,17 @@ export default function ApproveDocuments() {
             </div>
           )}
         </Form>
-  </Modal>
+      </Modal>
 
-  {/* ไม่มี Modal เลือกประเภทแล้ว เนื่องจากกำหนดจากแท็บที่เลือก */}
+      {/* ไม่มี Modal เลือกประเภทแล้ว เนื่องจากกำหนดจากแท็บที่เลือก */}
+      {viewerVisible && (
+        <PDFViewerModal
+          visible={viewerVisible}
+          pdfUrl={viewerUrl}
+          onClose={handleViewerClose}
+          title={viewerTitle || "เอกสาร PDF"}
+        />
+      )}
     </Card>
   );
 }

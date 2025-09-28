@@ -8,6 +8,12 @@ export const internshipApprovalService = {
     const res = await apiClient.get(url);
     return res.data;
   },
+  // View CS05 document (returns blob response)
+  viewCS05: async (documentId) => {
+    return apiClient.get(`/internship/cs-05/${documentId}/view`, {
+      responseType: 'blob'
+    });
+  },
   // Approve CS05 by head (รองรับ letterType และ comment)
   approveCS05: async (documentId, payload = {}) => {
     const res = await apiClient.post(`/internship/cs-05/${documentId}/approve`, payload);
@@ -61,4 +67,10 @@ export const internshipApprovalService = {
     }
     return res.data;
   },
+  viewAcceptance: async (documentId) => {
+    // ใช้เส้นทางเอกสารกลาง เพื่อรองรับการดูเอกสารทุกประเภท
+    return apiClient.get(`/documents/${documentId}/view`, {
+      responseType: 'blob'
+    });
+  }
 };
