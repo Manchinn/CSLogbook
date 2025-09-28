@@ -665,12 +665,14 @@ class ProjectDocumentService {
   }
 
   computeProjectWorkflowState(project, student) {
-    const members = project.members || [];
-    const membersCount = members.length;
-    const examResult = project.examResult;
-    const status = project.status;
-    const acknowledged = !!project.studentAcknowledgedAt;
-    const hasAdvisor = !!project.advisorId;
+  const members = project.members || [];
+  const membersCount = members.length;
+  const examResult = project.examResult;
+  const status = project.status;
+  const acknowledged = !!project.studentAcknowledgedAt;
+  const hasAdvisor = !!project.advisorId;
+  const isExamFailed = examResult === 'failed';
+  const isExamFailedAcknowledged = isExamFailed && acknowledged;
 
     const steps = [
       { key: 'PROJECT1_ELIGIBILITY_CONFIRMED', completed: !!student.isEligibleProject },
@@ -678,14 +680,14 @@ class ProjectDocumentService {
       { key: 'PROJECT1_TEAM_CONFIRMED', completed: membersCount >= 2 },
       { key: 'PROJECT1_ADVISOR_CONFIRMED', completed: hasAdvisor },
       { key: 'PROJECT1_IN_PROGRESS', completed: ['in_progress', 'completed', 'archived'].includes(status) },
-      { key: 'PROJECT1_TOPIC_EXAM_RESULT', completed: examResult === 'passed' || status === 'completed', blocked: examResult === 'failed' },
+  { key: 'PROJECT1_TOPIC_EXAM_RESULT', completed: examResult === 'passed' || status === 'completed', blocked: isExamFailed },
       { key: 'PROJECT1_ARCHIVED', completed: status === 'archived' && acknowledged }
     ];
 
     let overallStatus = 'in_progress';
     if (status === 'archived' && acknowledged) {
       overallStatus = 'archived';
-    } else if (examResult === 'failed') {
+    } else if (isExamFailed) {
       overallStatus = 'failed';
     } else if (examResult === 'passed' || status === 'completed') {
       overallStatus = 'completed';
@@ -714,9 +716,11 @@ class ProjectDocumentService {
       }
     }
 
-    const isEnrolledProject = overallStatus !== 'archived';
+    const isEnrolledProject = status !== 'archived';
     let studentProjectStatus = 'in_progress';
-    if (overallStatus === 'completed') {
+    if (examResult === 'failed') {
+      studentProjectStatus = 'failed';
+    } else if (overallStatus === 'completed') {
       studentProjectStatus = 'completed';
     } else if (overallStatus === 'archived') {
       studentProjectStatus = 'not_started';
@@ -735,7 +739,8 @@ class ProjectDocumentService {
         membersCount,
         advisorId: project.advisorId,
         archivedAt: project.archivedAt,
-        studentAcknowledgedAt: project.studentAcknowledgedAt
+        studentAcknowledgedAt: project.studentAcknowledgedAt,
+        failureAcknowledged: isExamFailedAcknowledged
       }
     };
   }

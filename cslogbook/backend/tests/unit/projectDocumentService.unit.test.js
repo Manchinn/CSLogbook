@@ -222,3 +222,53 @@ describe('projectDocumentService.updateMetadata & activateProject', () => {
     expect(after.projectNameTh).toBe(before.projectNameTh); // unchanged
   });
 });
+
+describe('projectDocumentService exam result lifecycle', () => {
+  let leader, member, projectId;
+
+  beforeAll(async () => {
+    leader = await createStudent({ code: '640000000030' });
+    member = await createStudent({ code: '640000000031' });
+    const project = await projectDocumentService.createProject(leader.studentId, {
+      projectNameTh: 'โครงงานทดสอบ',
+      projectNameEn: 'Test Project'
+    });
+    projectId = project.projectId;
+    await projectDocumentService.addMember(projectId, leader.studentId, member.studentCode);
+    await projectDocumentService.updateMetadata(projectId, leader.studentId, {
+      advisorId: 501,
+      projectType: 'internal',
+      track: 'CS'
+    });
+    await projectDocumentService.activateProject(projectId, leader.studentId);
+  });
+
+  beforeEach(() => {
+    mockUpdateWorkflowActivity.mockClear();
+  });
+
+  test('บันทึกผลสอบไม่ผ่านทำให้สถานะ student เป็น failed', async () => {
+    const updated = await projectDocumentService.setExamResult(projectId, {
+      result: 'failed',
+      reason: 'ขาดคุณสมบัติ',
+      actorUser: { userId: 999 }
+    });
+    expect(updated.examResult).toBe('failed');
+    const leaderAfter = await Student.findByPk(leader.studentId);
+    expect(leaderAfter.projectStatus).toBe('failed');
+    expect(leaderAfter.isEnrolledProject).toBe(true);
+    const overallStatuses = mockUpdateWorkflowActivity.mock.calls.map(call => call[4]);
+    expect(overallStatuses).toContain('failed');
+  });
+
+  test('นักศึกษารับทราบผลสอบไม่ผ่านแล้ว isEnrolledProject=false แต่ projectStatus ยังเป็น failed', async () => {
+    const acknowledged = await projectDocumentService.acknowledgeExamResult(projectId, leader.studentId);
+    expect(acknowledged.status).toBe('archived');
+    expect(acknowledged.studentAcknowledgedAt).not.toBeNull();
+    const leaderAfterAck = await Student.findByPk(leader.studentId);
+    expect(leaderAfterAck.isEnrolledProject).toBe(false);
+    expect(leaderAfterAck.projectStatus).toBe('failed');
+  const overallStatuses = mockUpdateWorkflowActivity.mock.calls.map(call => call[4]);
+  expect(overallStatuses).toContain('archived');
+  });
+});

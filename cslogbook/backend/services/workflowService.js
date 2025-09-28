@@ -118,6 +118,15 @@ class WorkflowService {
         where: { studentId, workflowType }
       });
 
+      let activityPayload = {};
+      if (workflowActivity?.dataPayload) {
+        try {
+          activityPayload = JSON.parse(workflowActivity.dataPayload);
+        } catch (payloadError) {
+          logger.warn('workflowService: parse dataPayload error', { workflowType, studentId, error: payloadError.message });
+        }
+      }
+
       console.log(`Found ${stepDefinitions.length} step definitions for ${workflowType}, activity exists: ${!!workflowActivity}`);
 
       // สร้าง activity ถ้ายังไม่มีและนักศึกษามีสถานะ enrolled (ปรับปรุงให้รองรับ project ด้วยถ้าต้องการ)
@@ -171,6 +180,13 @@ class WorkflowService {
       // ถ้ามี activity, overallWorkflowStatus จาก activity อาจจะแม่นยำกว่า
       if (workflowActivity) {
         overallTimelineStatus = workflowActivity.overallWorkflowStatus;
+      }
+
+      if (
+        overallTimelineStatus === 'archived' &&
+        (activityPayload?.examResult === 'failed' || activityPayload?.failureAcknowledged)
+      ) {
+        overallTimelineStatus = 'failed';
       }
 
 
@@ -288,7 +304,7 @@ class WorkflowService {
       if (progress > 100) progress = 100;
       if (progress < 0) progress = 0;
 
-      if (overallTimelineStatus === 'failed' && progress > 90) {
+      if ((overallTimelineStatus === 'failed') && progress > 90) {
         progress = 90;
       }
 
