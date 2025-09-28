@@ -50,6 +50,15 @@ const statusLabelTh = {
 
 const { Text } = Typography;
 
+const containerStyle = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
+};
+
 export default function ApproveDocuments() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
@@ -421,7 +430,8 @@ export default function ApproveDocuments() {
   // ไม่มี onSubmitApprove อีกต่อไป เนื่องจากแยกตามแท็บและยืนยันด้วย Modal.confirm
 
   return (
-    <Card>
+    <div style={containerStyle}>
+      <Card>
       {/* แท็บแบ่งประเภทงานของหัวหน้าภาควิชา */}
       <Tabs
         activeKey={activeTab}
@@ -558,6 +568,7 @@ export default function ApproveDocuments() {
           title={viewerTitle || "เอกสาร PDF"}
         />
       )}
-    </Card>
+      </Card>
+    </div>
   );
 }

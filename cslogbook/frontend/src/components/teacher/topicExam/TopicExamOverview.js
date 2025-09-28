@@ -7,6 +7,15 @@ import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import { downloadTopicExamExport } from '../../../services/topicExamService';
 
+const containerStyle = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
+};
+
 // ฟังก์ชันสร้าง remark = ประเภท "โครงการพิเศษ" (ภาคปกติ vs โครงการสองภาษา CSB)
 // Assumption: ถ้า track มีคำว่า 'bilingual' หรือ 'csb' (ไม่สนตัวพิมพ์) ถือเป็นโครงการสองภาษา (CSB) มิฉะนั้นเป็นภาคปกติ
 function deriveRemark(project) {
@@ -106,7 +115,7 @@ export default function TopicExamOverview() {
   };
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={containerStyle}>
       <Card title={<Space><Title level={4} style={{ margin:0 }}>Topic Exam Overview</Title></Space>} extra={<Space>
         <Tooltip title="Reload">
           <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} />

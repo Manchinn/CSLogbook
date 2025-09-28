@@ -33,6 +33,15 @@ const { Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
+const containerStyle = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
+};
+
 const statusColors = {
   pending: 'gold',
   approved: 'green',
@@ -342,62 +351,64 @@ const MeetingApprovals = () => {
   );
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
-        <Space wrap>
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh} disabled={loading}>
-            รีเฟรช
-          </Button>
-          <Select
-            value={filters.status}
-            onChange={handleStatusChange}
-            style={{ width: 180 }}
-          >
-            {statusOptions.map((option) => (
-              <Option key={option.value} value={option.value}>{option.label}</Option>
-            ))}
-          </Select>
-          <Input.Search
-            placeholder="ค้นหาหัวข้อหรือคำสำคัญ"
-            allowClear
-            onSearch={handleSearch}
-            style={{ width: 260 }}
-          />
+    <div style={containerStyle}>
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
+          <Space wrap>
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh} disabled={loading}>
+              รีเฟรช
+            </Button>
+            <Select
+              value={filters.status}
+              onChange={handleStatusChange}
+              style={{ width: 180 }}
+            >
+              {statusOptions.map((option) => (
+                <Option key={option.value} value={option.value}>{option.label}</Option>
+              ))}
+            </Select>
+            <Input.Search
+              placeholder="ค้นหาหัวข้อหรือคำสำคัญ"
+              allowClear
+              onSearch={handleSearch}
+              style={{ width: 260 }}
+            />
+          </Space>
         </Space>
-      </Space>
 
-      <Alert
-        type="info"
-        showIcon
-        message="คิวอนุมัติบันทึกการพบ"
-        description="รายการนี้รวบรวมบันทึกการพบของนักศึกษาที่คุณเป็นอาจารย์ที่ปรึกษา สามารถอนุมัติหรือขอปรับปรุงได้จากหน้านี้โดยตรง"
-      />
-
-      <Card>
-        <Space size={16} wrap>
-          <Statistic title="รออนุมัติ" value={summary.pending ?? 0} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#d97706' }} />
-          <Statistic title="อนุมัติแล้ว" value={summary.approved ?? 0} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#16a34a' }} />
-          <Statistic title="ขอปรับปรุง" value={summary.rejected ?? 0} prefix={<CloseCircleOutlined />} valueStyle={{ color: '#dc2626' }} />
-          <Statistic title="ทั้งหมด" value={summary.total ?? 0} prefix={<TeamOutlined />} />
-        </Space>
-      </Card>
-
-      {loading ? (
-        <div style={{ padding: 48, textAlign: 'center' }}>
-          <Spin />
-        </div>
-      ) : items.length ? (
-        <Table
-          rowKey={(record) => record.logId}
-          columns={columns}
-          dataSource={items}
-          expandable={{ expandedRowRender }}
-          pagination={{ pageSize: 10, showTotal: (total) => `ทั้งหมด ${total} รายการ` }}
+        <Alert
+          type="info"
+          showIcon
+          message="คิวอนุมัติบันทึกการพบ"
+          description="รายการนี้รวบรวมบันทึกการพบของนักศึกษาที่คุณเป็นอาจารย์ที่ปรึกษา สามารถอนุมัติหรือขอปรับปรุงได้จากหน้านี้โดยตรง"
         />
-      ) : (
-        <Empty description="ยังไม่มีบันทึกที่รออนุมัติ" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-      )}
-    </Space>
+
+        <Card>
+          <Space size={16} wrap>
+            <Statistic title="รออนุมัติ" value={summary.pending ?? 0} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#d97706' }} />
+            <Statistic title="อนุมัติแล้ว" value={summary.approved ?? 0} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#16a34a' }} />
+            <Statistic title="ขอปรับปรุง" value={summary.rejected ?? 0} prefix={<CloseCircleOutlined />} valueStyle={{ color: '#dc2626' }} />
+            <Statistic title="ทั้งหมด" value={summary.total ?? 0} prefix={<TeamOutlined />} />
+          </Space>
+        </Card>
+
+        {loading ? (
+          <div style={{ padding: 48, textAlign: 'center' }}>
+            <Spin />
+          </div>
+        ) : items.length ? (
+          <Table
+            rowKey={(record) => record.logId}
+            columns={columns}
+            dataSource={items}
+            expandable={{ expandedRowRender }}
+            pagination={{ pageSize: 10, showTotal: (total) => `ทั้งหมด ${total} รายการ` }}
+          />
+        ) : (
+          <Empty description="ยังไม่มีบันทึกที่รออนุมัติ" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        )}
+      </Space>
+    </div>
   );
 };
 
