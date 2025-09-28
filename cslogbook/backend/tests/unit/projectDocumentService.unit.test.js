@@ -273,9 +273,11 @@ describe('projectDocumentService exam result lifecycle', () => {
     const updated = await projectDocumentService.setExamResult(projectId, {
       result: 'failed',
       reason: 'ขาดคุณสมบัติ',
+      advisorId: 777,
       actorUser: { userId: 999 }
     });
     expect(updated.examResult).toBe('failed');
+    expect(updated.advisorId).toBe(777);
     const leaderAfter = await Student.findByPk(leader.studentId);
     expect(leaderAfter.projectStatus).toBe('failed');
     expect(leaderAfter.isEnrolledProject).toBe(true);

@@ -516,7 +516,7 @@ class ProjectDocumentService {
   /**
    * บันทึกผลสอบหัวข้อโครงงาน
    */
-  async setExamResult(projectId, { result, reason, actorUser }) {
+  async setExamResult(projectId, { result, reason, advisorId, actorUser }) {
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t, lock: t.LOCK.UPDATE });
@@ -525,12 +525,18 @@ class ProjectDocumentService {
       if (project.examResult) {
         throw new Error('มีการบันทึกผลสอบหัวข้อนี้แล้ว');
       }
-      await ProjectDocument.update({
+      const updatePayload = {
         examResult: result,
         examFailReason: reason || null,
         examResultAt: new Date(),
         status: result === 'passed' ? 'completed' : project.status
-      }, { where: { projectId }, transaction: t });
+      };
+
+      if (advisorId !== undefined) {
+        updatePayload.advisorId = advisorId;
+      }
+
+      await ProjectDocument.update(updatePayload, { where: { projectId }, transaction: t });
       await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       return this.getProjectById(projectId);
@@ -658,15 +664,16 @@ class ProjectDocumentService {
         include: [{
           model: ProjectMember,
           as: 'members',
-          required: true,
-          where: { studentId },
-          include: [{ model: Student, as: 'student' }]
+          include: [{ model: Student, as: 'student' }],
+          required: false
         }],
+        where: { '$members.student_id$': studentId },
         transaction
       });
 
       for (const project of projects) {
-        await this.syncProjectWorkflowState(project.projectId, { transaction, projectInstance: project });
+        // รีโหลดข้อมูลโปรเจกต์เพื่อให้ได้สมาชิกครบทุกคนก่อนคำนวณ workflow
+        await this.syncProjectWorkflowState(project.projectId, { transaction });
       }
     } catch (error) {
       logger.error('syncStudentProjectsWorkflow failed', { studentId, error: error.message });

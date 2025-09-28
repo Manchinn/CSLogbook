@@ -3,11 +3,12 @@
 // เวอร์ชันแรก: ยังไม่มี endpoint บันทึกผลจริง ใช้ mock action + TODO comment
 // อ้างอิงโครงตารางจาก TopicExamOverview ของอาจารย์ แต่เพิ่มปุ่ม "ผ่าน" / "ไม่ผ่าน"
 
-import React, { useState, useCallback } from 'react';
-import { Table, Tag, Space, Button, Typography, Modal, Form, Input, message, Tooltip, Alert } from 'antd';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Table, Tag, Space, Button, Typography, Modal, Form, Input, message, Tooltip, Alert, Select } from 'antd';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import { downloadTopicExamExport } from '../../../services/topicExamService';
 import { recordTopicExamResult } from '../../../services/topicExamResultService';
+import { teacherService } from '../../../services/teacherService';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -18,22 +19,104 @@ export default function TopicExamResultPage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const [advisorOptions, setAdvisorOptions] = useState([]);
+  const [advisorSelections, setAdvisorSelections] = useState({});
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const fetchAdvisors = async () => {
+      setAdvisorLoading(true);
+      try {
+        const list = await teacherService.getAdvisors();
+        if (!active) return;
+        const options = (list || []).map((item) => ({
+          value: Number(item.teacherId),
+          label: [item.teacherCode, `${item.firstName || ''} ${item.lastName || ''}`.trim()]
+            .filter(Boolean)
+            .join(' – ')
+        }));
+        setAdvisorOptions(options);
+      } catch (err) {
+        if (active) {
+          message.error(err?.message || 'ไม่สามารถดึงรายชื่ออาจารย์ที่ปรึกษาได้');
+        }
+      } finally {
+        if (active) {
+          setAdvisorLoading(false);
+        }
+      }
+    };
+    fetchAdvisors();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!Array.isArray(records)) {
+      setAdvisorSelections((prev) => (Object.keys(prev).length ? {} : prev));
+      return;
+    }
+    setAdvisorSelections((prev) => {
+      const next = {};
+      records.forEach((project) => {
+        if (!project?.projectId) return;
+        if (Object.prototype.hasOwnProperty.call(prev, project.projectId)) {
+          next[project.projectId] = prev[project.projectId];
+        } else if (project?.advisor?.teacherId) {
+          next[project.projectId] = Number(project.advisor.teacherId);
+        } else {
+          next[project.projectId] = null;
+        }
+      });
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      const unchanged =
+        prevKeys.length === nextKeys.length &&
+        nextKeys.every((key) => prev[key] === next[key]);
+      return unchanged ? prev : next;
+    });
+  }, [records]);
+
+  const advisorOptionMap = useMemo(() => {
+    const map = new Map();
+    advisorOptions.forEach((opt) => {
+      map.set(opt.value, opt.label);
+    });
+    return map;
+  }, [advisorOptions]);
+
+  const handleAdvisorChange = useCallback((projectId, value) => {
+    const normalized = typeof value === 'number' ? value : (value ? Number(value) : null);
+    setAdvisorSelections((prev) => ({ ...prev, [projectId]: normalized }));
+  }, []);
 
   // ฟังก์ชันกดผ่าน (เรียก API จริง)
   const handlePass = useCallback(async (project) => {
+    const advisorId = advisorSelections[project.projectId];
+    if (!advisorId) {
+      message.warning('กรุณาเลือกอาจารย์ที่ปรึกษาก่อนบันทึกผล');
+      return;
+    }
     try {
-      await recordTopicExamResult(project.projectId, { result: 'passed' });
+      await recordTopicExamResult(project.projectId, { result: 'passed', advisorId });
       message.success(`บันทึกผล: ผ่าน – ${project.titleTh || project.titleEn || 'หัวข้อไม่มีชื่อ'}`);
       reload();
     } catch (e) {
       message.error(e.response?.data?.message || 'บันทึกผลไม่สำเร็จ');
     }
-  }, [reload]);
+  }, [advisorSelections, reload]);
 
   // เปิด modal กรอกเหตุผลไม่ผ่าน
   const openFailModal = (project) => {
     setSelectedProject(project);
     form.resetFields();
+    const defaultAdvisor = advisorSelections[project.projectId] ?? project?.advisor?.teacherId ?? null;
+    form.setFieldsValue({
+      advisorId: defaultAdvisor || undefined,
+      reason: undefined
+    });
     setFailModalOpen(true);
   };
 
@@ -41,13 +124,25 @@ export default function TopicExamResultPage() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      await recordTopicExamResult(selectedProject.projectId, { result: 'failed', reason: values.reason });
+      const advisorId = values.advisorId || advisorSelections[selectedProject.projectId];
+      if (!advisorId) {
+        message.warning('กรุณาเลือกอาจารย์ที่ปรึกษาก่อนบันทึกผล');
+        setSubmitting(false);
+        return;
+      }
+      await recordTopicExamResult(selectedProject.projectId, {
+        result: 'failed',
+        reason: values.reason,
+        advisorId
+      });
+      setAdvisorSelections((prev) => ({ ...prev, [selectedProject.projectId]: advisorId }));
       message.success(`บันทึกผล: ไม่ผ่าน – ${selectedProject?.titleTh || selectedProject?.titleEn}`);
       setFailModalOpen(false);
       setSelectedProject(null);
+      form.resetFields();
       reload();
     } catch (err) {
-      if (err?.errorFields) return; // validation
+      if (err?.errorFields) return; // validation จาก antd form
       message.error(err.response?.data?.message || 'บันทึกผลไม่สำเร็จ');
     } finally {
       setSubmitting(false);
@@ -101,8 +196,29 @@ export default function TopicExamResultPage() {
     {
       title: 'อ. ที่ปรึกษา',
       dataIndex: 'advisor',
-      width: 160,
-      render: (adv) => adv?.name || <Text type="secondary">(ยัง)</Text>
+      width: 220,
+      render: (_, record) => {
+        const projectId = record.projectId;
+        const currentValue = advisorSelections[projectId] ?? null;
+        if (record.examResult) {
+          const label = advisorOptionMap.get(currentValue) || record.advisor?.name;
+          return label ? <Text>{label}</Text> : <Text type="secondary">(ยังไม่ระบุ)</Text>;
+        }
+        return (
+          <Select
+            placeholder="เลือกอาจารย์ที่ปรึกษา"
+            value={currentValue ?? undefined}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            style={{ width: '100%' }}
+            options={advisorOptions}
+            loading={advisorLoading}
+            onChange={(value) => handleAdvisorChange(projectId, value)}
+            notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
+          />
+        );
+      }
     },
     {
       title: 'ผลสอบ',
@@ -178,7 +294,11 @@ export default function TopicExamResultPage() {
       <Modal
         title={<span><ExclamationCircleOutlined style={{ color: '#faad14', marginRight: 8 }} />บันทึกผล: ไม่ผ่าน</span>}
         open={failModalOpen}
-        onCancel={() => setFailModalOpen(false)}
+        onCancel={() => {
+          setFailModalOpen(false);
+          setSelectedProject(null);
+          form.resetFields();
+        }}
         onOk={submitFail}
         okText="ยืนยันผลไม่ผ่าน"
         confirmLoading={submitting}
@@ -186,6 +306,27 @@ export default function TopicExamResultPage() {
         <Form form={form} layout="vertical">
           <Form.Item label="หัวข้อ" style={{ marginBottom: 4 }}>
             <Text strong>{selectedProject?.titleTh || selectedProject?.titleEn || '—'}</Text>
+          </Form.Item>
+          <Form.Item
+            label="อาจารย์ที่ปรึกษา"
+            name="advisorId"
+            rules={[{ required: true, message: 'เลือกอาจารย์ที่ปรึกษา' }]}
+          >
+            <Select
+              placeholder="เลือกอาจารย์ที่ปรึกษา"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              options={advisorOptions}
+              loading={advisorLoading}
+              onChange={(value) => {
+                const normalized = typeof value === 'number' ? value : (value ? Number(value) : null);
+                if (selectedProject?.projectId) {
+                  setAdvisorSelections((prev) => ({ ...prev, [selectedProject.projectId]: normalized }));
+                }
+              }}
+              notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
+            />
           </Form.Item>
           <Form.Item
             label="เหตุผลที่ไม่ผ่าน"
