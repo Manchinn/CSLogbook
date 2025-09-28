@@ -43,6 +43,9 @@ export const getMenuConfig = ({
 
   const internshipTooltip = messages?.internship || 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน';
   const canSeeTopicExamOverview = userData.role === 'teacher' && Boolean(userData.canAccessTopicExam);
+  const isAcademicTeacher = userData.role === 'teacher' && userData.teacherType === 'academic';
+  const canApproveDocuments =
+    isAcademicTeacher && userData.teacherPosition === 'หัวหน้าภาควิชา';
 
   const items = [
     // Dashboard
@@ -129,10 +132,19 @@ export const getMenuConfig = ({
         ].filter(Boolean)
       : []),
     // Teacher academic
-    ...(userData.role === 'teacher' && userData.teacherType === 'academic'
+    ...(isAcademicTeacher
       ? [
           { key: '/teacher/meeting-approvals', icon: <CalendarOutlined />, label: 'อนุมัติบันทึกการพบ', onClick: () => navigate('/teacher/meeting-approvals') },
-          { key: '/approve-documents', icon: <CheckCircleOutlined />, label: 'อนุมัติเอกสาร', onClick: () => navigate('/approve-documents') },
+          ...(canApproveDocuments
+            ? [
+                {
+                  key: '/approve-documents',
+                  icon: <CheckCircleOutlined />,
+                  label: 'อนุมัติเอกสาร',
+                  onClick: () => navigate('/approve-documents'),
+                },
+              ]
+            : []),
         ]
       : []),
     // Teacher support
