@@ -58,10 +58,10 @@ export const CreateProvider = ({ children }) => {
     const member2Valid = /^[0-9]{5,13}$/.test((members.secondMemberCode||'').trim());
     const backendMemberExists = projectMembers.some(m => m.role === 'member');
     return [
-      { key: 'name_th', label: 'ชื่อ TH', pass: !!basic.projectNameTh.trim() },
-      { key: 'name_en', label: 'ชื่อ EN', pass: !!basic.projectNameEn.trim() },
-      { key: 'type', label: 'ประเภท', pass: !!basic.projectType },
-      { key: 'tracks', label: 'Tracks', pass: classification.tracks.length > 0 },
+      { key: 'name_th', label: 'ชื่อโครงงานพิเศษภาษาไทย', pass: !!basic.projectNameTh.trim() },
+      { key: 'name_en', label: 'ชื่อโครงงานพิเศษภาษาอังกฤษ', pass: !!basic.projectNameEn.trim() },
+      { key: 'type', label: 'ประเภทโครงงานพิเศษ', pass: !!basic.projectType },
+      { key: 'tracks', label: 'หมวด', pass: classification.tracks.length > 0 },
       { key: 'advisor', label: 'อาจารย์ที่ปรึกษา', pass: !!classification.advisorId },
       { key: 'details', label: 'รายละเอียด (อย่างน้อย 1)', pass: !!(details.objective || details.problem || details.background) },
       { key: 'member2', label: 'สมาชิกคนที่สอง', pass: backendMemberExists || (!member2Filled) || (member2Valid && members.synced) }
