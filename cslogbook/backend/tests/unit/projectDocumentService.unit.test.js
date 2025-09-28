@@ -71,6 +71,25 @@ const ProjectTrack = sequelize.define('ProjectTrack', {
   trackCode: { type: DataTypes.STRING, field: 'track_code' }
 }, { tableName: 'project_tracks', underscored: true, timestamps: false });
 
+const Meeting = sequelize.define('Meeting', {
+  meetingId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'meeting_id' },
+  projectId: { type: DataTypes.INTEGER, allowNull: false, field: 'project_id' }
+}, { tableName: 'meetings', underscored: true, timestamps: false });
+
+const MeetingParticipant = sequelize.define('MeetingParticipant', {
+  meetingId: { type: DataTypes.INTEGER, primaryKey: true, field: 'meeting_id' },
+  userId: { type: DataTypes.INTEGER, primaryKey: true, field: 'user_id' },
+  role: { type: DataTypes.STRING, allowNull: false },
+  attendanceStatus: { type: DataTypes.STRING, allowNull: false, defaultValue: 'present', field: 'attendance_status' }
+}, { tableName: 'meeting_participants', underscored: true, timestamps: false });
+
+const MeetingLog = sequelize.define('MeetingLog', {
+  logId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'log_id' },
+  meetingId: { type: DataTypes.INTEGER, allowNull: false, field: 'meeting_id' },
+  approvalStatus: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pending', field: 'approval_status' },
+  approvedAt: { type: DataTypes.DATE, allowNull: true, field: 'approved_at' }
+}, { tableName: 'meeting_logs', underscored: true, timestamps: false });
+
 const Academic = sequelize.define('Academic', {
   academicYear: { type: DataTypes.INTEGER, allowNull: true, field: 'academic_year' },
   currentSemester: { type: DataTypes.INTEGER, allowNull: true, field: 'current_semester' },
@@ -101,7 +120,10 @@ jest.doMock('../../models', () => ({
   ProjectMember,
   Academic,
   User,
-  ProjectTrack
+  ProjectTrack,
+  Meeting,
+  MeetingParticipant,
+  MeetingLog
 }), { virtual: true });
 
 // ตอนนี้ require service หลัง mock ทั้งหมด

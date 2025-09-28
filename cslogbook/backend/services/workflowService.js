@@ -204,9 +204,6 @@ class WorkflowService {
             console.log(`No workflowActivity found for ${workflowType}, student ${studentId}, but stepDefinitions exist. Timeline might be incomplete.`);
         }
         
-        const isProjectWorkflow = workflowType === 'project' || workflowType === 'project1';
-        const isStudentEligibleForProject = !!student?.isEligibleProject;
-
         stepDefinitions.forEach((def, index) => {
           let stepUiStatus = 'waiting'; // สถานะที่จะส่งให้ UI (เช่น 'completed', 'pending', 'in_progress', 'waiting')
           let isStepCompleted = false;
@@ -254,10 +251,6 @@ class WorkflowService {
             if (index === 0) {
                 stepUiStatus = 'awaiting_action'; // หรือ 'in_progress' ขึ้นอยู่กับว่า step แรกคืออะไร
             }
-          } else if (!workflowActivity && isProjectWorkflow && def.stepKey === 'PROJECT1_ELIGIBILITY_CONFIRMED' && isStudentEligibleForProject) {
-            // ถ้านักศึกษาผ่านเกณฑ์โครงงานแล้วแต่ยังไม่มี workflow activity ให้ step แรกเป็น completed
-            stepUiStatus = 'completed';
-            isStepCompleted = true;
           }
           
           steps.push({

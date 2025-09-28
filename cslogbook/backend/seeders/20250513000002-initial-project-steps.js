@@ -7,64 +7,46 @@ module.exports = {
     const projectSteps = [
       {
         workflow_type: 'project1',
-        step_key: 'PROJECT1_ELIGIBILITY_CONFIRMED',
+        step_key: 'PROJECT1_TEAM_READY',
         step_order: 1,
-        title: 'ผ่านเกณฑ์โครงงานพิเศษ',
-        description_template: 'ยืนยันว่านักศึกษาผ่านเกณฑ์โครงงานพิเศษตามหน่วยกิตขั้นต่ำของหลักสูตร',
-        created_at: now,
-        updated_at: now
-      },
-      {
-        workflow_type: 'project1',
-        step_key: 'PROJECT1_DRAFT_CREATED',
-        step_order: 2,
-        title: 'สร้างร่างหัวข้อโครงงาน',
-        description_template: 'นักศึกษาเริ่มต้นร่างหัวข้อโครงงานและจัดเตรียมรายละเอียดเบื้องต้น',
-        created_at: now,
-        updated_at: now
-      },
-      {
-        workflow_type: 'project1',
-        step_key: 'PROJECT1_TEAM_CONFIRMED',
-        step_order: 3,
-        title: 'ยืนยันสมาชิกทีมโครงงาน',
-        description_template: 'ตรวจสอบให้ทีมโครงงานมีสมาชิกครบตามเกณฑ์และพร้อมทำงานร่วมกัน',
-        created_at: now,
-        updated_at: now
-      },
-      {
-        workflow_type: 'project1',
-        step_key: 'PROJECT1_ADVISOR_CONFIRMED',
-        step_order: 4,
-        title: 'เลือกอาจารย์ที่ปรึกษา',
-        description_template: 'ระบุอาจารย์ที่ปรึกษา (และอาจารย์ร่วม) เพื่อรับผิดชอบโครงงาน',
+        title: 'ส่งหัวข้อโครงงานพิเศษ',
+        description_template: 'เตรียมทีมให้ครบ 2 คน กรอกชื่อหัวข้อ (TH/EN) และข้อมูลพื้นฐานเพื่อส่งหัวข้อเข้ารับการสอบ',
         created_at: now,
         updated_at: now
       },
       {
         workflow_type: 'project1',
         step_key: 'PROJECT1_IN_PROGRESS',
+        step_order: 2,
+        title: 'เปิดดำเนินโครงงาน',
+        description_template: 'เปิดใช้งานโครงงานสู่สถานะ in progress และเริ่มดำเนินงานตามแผนที่วางไว้',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        workflow_type: 'project1',
+        step_key: 'PROJECT1_PROGRESS_CHECKINS',
+        step_order: 3,
+        title: 'บันทึกความคืบหน้ากับอาจารย์',
+        description_template: 'จัดการพบอาจารย์และบันทึก log ที่ได้รับการอนุมัติ เพื่อยืนยันความคืบหน้าโครงงาน',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        workflow_type: 'project1',
+        step_key: 'PROJECT1_READINESS_REVIEW',
+        step_order: 4,
+        title: 'ตรวจความพร้อมยื่นสอบโครงงานพิเศษ 1',
+        description_template: 'ตรวจสอบเงื่อนไขความพร้อมก่อนยื่นสอบ เช่น การพบอาจารย์ที่ได้รับอนุมัติครบตามเกณฑ์',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        workflow_type: 'project1',
+        step_key: 'PROJECT1_DEFENSE_RESULT',
         step_order: 5,
-        title: 'เริ่มดำเนินโครงงาน',
-        description_template: 'โครงงานถูกเปิดใช้งานอย่างเป็นทางการและกำลังอยู่ในระหว่างดำเนินการ',
-        created_at: now,
-        updated_at: now
-      },
-      {
-        workflow_type: 'project1',
-        step_key: 'PROJECT1_TOPIC_EXAM_RESULT',
-        step_order: 6,
-        title: 'สรุปผลการสอบหัวข้อ',
-        description_template: 'บันทึกผลการสอบหัวข้อโครงงาน (ผ่านหรือไม่ผ่าน)',
-        created_at: now,
-        updated_at: now
-      },
-      {
-        workflow_type: 'project1',
-        step_key: 'PROJECT1_ARCHIVED',
-        step_order: 7,
-        title: 'ปิดโครงงาน (เก็บถาวร)',
-        description_template: 'ปิดโครงงานหลังรับทราบผลแล้ว เพื่อเตรียมการยื่นรอบถัดไปหรือเก็บประวัติ',
+        title: 'ผลการสอบหัวข้อโครงงาน',
+        description_template: 'สรุปผลการสอบหัวข้อโครงงานและดำเนินการตามผล (ผ่าน / ไม่ผ่าน / รับทราบผล)',
         created_at: now,
         updated_at: now
       }
@@ -78,13 +60,11 @@ module.exports = {
       workflow_type: 'project1',
       step_key: {
         [Op.in]: [
-          'PROJECT1_ELIGIBILITY_CONFIRMED',
-          'PROJECT1_DRAFT_CREATED',
-          'PROJECT1_TEAM_CONFIRMED',
-          'PROJECT1_ADVISOR_CONFIRMED',
+          'PROJECT1_TEAM_READY',
           'PROJECT1_IN_PROGRESS',
-          'PROJECT1_TOPIC_EXAM_RESULT',
-          'PROJECT1_ARCHIVED'
+          'PROJECT1_PROGRESS_CHECKINS',
+          'PROJECT1_READINESS_REVIEW',
+          'PROJECT1_DEFENSE_RESULT'
         ]
       }
     }, {});
