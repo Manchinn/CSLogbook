@@ -57,6 +57,12 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 'คณาจารย์', // ถ้าไม่ได้ระบุตำแหน่ง จะถือว่าเป็นอาจารย์ทั่วไป
             field: 'position'
+        },
+        canAccessTopicExam: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'can_access_topic_exam'
         }
     }, {
         sequelize,

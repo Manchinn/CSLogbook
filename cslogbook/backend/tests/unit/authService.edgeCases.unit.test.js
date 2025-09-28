@@ -4,7 +4,7 @@ jest.mock('bcrypt', () => ({ compare: jest.fn(() => false) }));
 
 describe('authService edge cases', () => {
   let authService;
-  const fakeUser = { userId: 7, username: 'u1', password: 'hash', role: 'student', email: 'a@b', firstName: 'A', lastName: 'B' };
+  const fakeUser = { userId: 7, username: 'u1', password: 'hash', role: 'student', email: 'a@b', firstName: 'A', lastName: 'B', activeStatus: true };
 
   beforeAll(() => {
     process.env.JWT_SECRET = 'test-secret-key-at-least-32-chars-long-for-jest';
@@ -21,7 +21,8 @@ describe('authService edge cases', () => {
         return null;
       }), update: jest.fn() },
       Student: { findOne: jest.fn(() => ({ studentCode: '6401', totalCredits: 100, majorCredits: 60, isEligibleInternship: true, isEligibleProject: false })) },
-      Admin: {}, Teacher: {}
+      Admin: {},
+      Teacher: { findOne: jest.fn(() => ({ teacherId: 1, teacherCode: 'T001', teacherType: 'academic', canAccessTopicExam: false })) }
     }), { virtual: true });
     authService = require('../../services/authService');
   });

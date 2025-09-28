@@ -46,6 +46,7 @@ npm run setup  # จะทำการ copy .env.example ไปเป็น .env
 - `EMAIL_LOGIN_ENABLED`: เปิด/ปิดการส่งอีเมลตอน login
 - `EMAIL_DOCUMENT_ENABLED`: เปิด/ปิดการส่งอีเมลเกี่ยวกับเอกสาร
 - `EMAIL_LOGBOOK_ENABLED`: เปิด/ปิดการส่งอีเมลเกี่ยวกับ logbook
+- `EMAIL_MEETING_ENABLED`: เปิด/ปิดการส่งอีเมลขออนุมัติบันทึกการพบอาจารย์
 
 ### Upload Configuration
 - `UPLOAD_DIR`: directory สำหรับเก็บไฟล์ที่อัพโหลด (default: uploads/)
@@ -106,6 +107,17 @@ npx sequelize-cli db:seed:undo --seed 20250922123000-scenario-topic-exam-project
 SELECT project_id, project_name_th, status, advisor_id FROM project_documents 
 WHERE project_name_th LIKE 'SCENARIO TOPIC%';
 ```
+
+### Project Meetings & Logbook Approval
+API ชุดใหม่สำหรับติดตามการพบอาจารย์หลังสอบหัวข้อและการอนุมัติ logbook
+
+- `GET /api/projects/:projectId/meetings` — รายการ meeting พร้อม logs, ผู้เข้าร่วม และสรุปจำนวนครั้งที่อนุมัติแล้วของนักศึกษาแต่ละคน
+- `POST /api/projects/:projectId/meetings` — สร้าง meeting ใหม่ (ระบบจะดึงสมาชิกและอาจารย์ที่ปรึกษามาเป็นผู้เข้าร่วมอัตโนมัติ สามารถระบุผู้เข้าร่วมเพิ่มเติมได้ผ่าน `additionalParticipantIds`)
+- `POST /api/projects/:projectId/meetings/:meetingId/logs` — เพิ่มบันทึกการพบ (log) ระบุหัวข้อ, ความคืบหน้า, ปัญหา, งานถัดไป และ action items
+- `PATCH /api/projects/:projectId/meetings/:meetingId/logs/:logId/approval` — ให้ครูที่ปรึกษา/ผู้ดูแลระบบอนุมัติ, ปฏิเสธ หรือรีเซ็ตสถานะบันทึก พร้อมบันทึก comment เพิ่มเติม
+- `POST /api/projects/:projectId/meetings/request-approval` — นักศึกษาหรืออาจารย์ร้องขอให้ระบบส่งอีเมลแจ้งเตือนบันทึกที่ยังรออนุมัติ (เลือกได้ทั้งแบบรวมทั้งหมดหรือเฉพาะรอบสัปดาห์)
+
+โครงสร้าง log ถูกออกแบบให้ครอบคลุมข้อกำหนด “นักศึกษาต้องพบอาจารย์อย่างน้อย 4 ครั้งและต้องได้รับการอนุมัติทุกครั้ง” โดย summary ใน response จะบอกจำนวนบันทึกที่ได้รับอนุมัติของแต่ละนักศึกษาอย่างชัดเจน
 
 
 ## การจัดการ Environment Variables

@@ -43,8 +43,7 @@ const TopicSubmitInner = () => {
             coAdvisorId: p.coAdvisorId || null,
             tracks: Array.isArray(p.tracks) ? p.tracks : []
         });
-        setDetails(d => ({
-          ...d,
+        setDetails({
           objective: p.objective || '',
           background: p.background || '',
           scope: p.scope || '',
@@ -56,7 +55,7 @@ const TopicSubmitInner = () => {
           risk: p.risk || '',
           constraints: p.constraints || ''
           // problem: คงไว้ของเดิม (ยังไม่มีใน backend)
-        }));
+        });
         // Hydrate second member (role === 'member') -> เก็บลง state.members.secondMemberCode
         const secondMember = (p.members || []).find(m => m.role === 'member');
         if (secondMember && secondMember.studentCode) {

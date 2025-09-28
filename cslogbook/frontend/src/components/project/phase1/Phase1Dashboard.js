@@ -7,7 +7,8 @@ import {
   FileSyncOutlined,
   UploadOutlined,
   CalendarOutlined,
-  EditOutlined
+  EditOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 
@@ -32,6 +33,13 @@ const steps = [
     icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     comingSoon: false
+  },
+  {
+    key: 'meeting-logbook',
+    title: 'บันทึกการพบอาจารย์',
+    desc: 'จองการพบและบันทึก log พร้อมส่งอีเมลขออนุมัติ',
+    icon: <TeamOutlined style={{ fontSize: 28 }} />,
+    implemented: true
   },
   {
     key: 'proposal-revision',

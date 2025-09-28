@@ -47,6 +47,16 @@ function loadTemplate(templateName, variables = {}) {
   }
 }
 
+function escapeHtml(value) {
+    if (value === undefined || value === null) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ปรับปรุงฟังก์ชันเช็คสถานะการเปิด/ปิดการแจ้งเตือน - ไม่ใช้ .env เป็น fallback
 const isNotificationEnabled = async (type) => {
     try {
@@ -208,6 +218,134 @@ async function sendLogbookSubmissionNotification(email, username, title) {
             email,
             username,
             title,
+            stack: error.stack
+        });
+        throw error;
+    }
+}
+
+// สำหรับการแจ้งเตือนการนัดหมายประชุมโครงงาน
+async function sendMeetingScheduledNotification({
+    recipientEmail,
+    recipientName,
+    projectName,
+    meetingTitle,
+    meetingDate,
+    meetingDateLabel,
+    meetingMethod,
+    meetingMethodLabel,
+    meetingLocation,
+    meetingLink,
+    participants = [],
+    initiatorName,
+    note
+}) {
+    try {
+        const isEnabled = await isNotificationEnabled('MEETING');
+
+        if (!isEnabled) {
+            logger.info('การแจ้งเตือน MEETING ถูกปิดใช้งาน - ไม่ส่งอีเมลแจ้งนัดหมายการพบ', {
+                recipientEmail,
+                projectName,
+                meetingTitle,
+                notificationType: 'MEETING'
+            });
+            return { sent: false, reason: 'notification_disabled' };
+        }
+
+        const formatDateTime = (value) => {
+            if (!value) return '-';
+            try {
+                return new Date(value).toLocaleString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                return escapeHtml(value);
+            }
+        };
+
+        const safeMeetingDate = meetingDateLabel || formatDateTime(meetingDate);
+
+        const participantsMarkup = Array.isArray(participants) && participants.length
+            ? participants
+                .map((participant) => {
+                    const name = escapeHtml(participant.name || '-');
+                    const code = participant.studentCode ? ` (${escapeHtml(participant.studentCode)})` : '';
+                    const roleLabel = participant.roleLabel ? ` – ${escapeHtml(participant.roleLabel)}` : '';
+                    return `<li><strong>${name}</strong>${code}${roleLabel}</li>`;
+                })
+                .join('')
+            : '<li>—</li>';
+
+        const participantsSection = `<ul>${participantsMarkup}</ul>`;
+
+        const locationSection = meetingLocation
+            ? `<div><strong>สถานที่:</strong> ${escapeHtml(meetingLocation)}</div>`
+            : '';
+
+        const linkSection = meetingLink
+            ? `<div><strong>ลิงก์ประชุม:</strong> <a href="${escapeHtml(meetingLink)}" target="_blank" rel="noopener">${escapeHtml(meetingLink)}</a></div>`
+            : '';
+
+        const noteSection = note
+            ? `
+                <div class="note-box">
+                    <div class="note-box__title">ข้อความเพิ่มเติมจากผู้สร้างนัดหมาย</div>
+                    <div class="note-box__body">${escapeHtml(note)}</div>
+                </div>
+            `
+            : '';
+
+        const htmlContent = loadTemplate('meetingScheduledNotification', {
+            recipientName: escapeHtml(recipientName || 'ผู้เข้าร่วม'),
+            projectName: escapeHtml(projectName || 'โครงงานพิเศษ'),
+            meetingTitle: escapeHtml(meetingTitle || 'การประชุมโครงงาน'),
+            meetingDateTime: escapeHtml(safeMeetingDate || '-'),
+            meetingMethodLabel: escapeHtml(meetingMethodLabel || meetingMethod || '-'),
+            meetingLocationSection: locationSection,
+            meetingLinkSection: linkSection,
+            participantsHtml: participantsSection,
+            initiatorName: escapeHtml(initiatorName || 'ผู้ใช้ระบบ'),
+            noteSection,
+            currentYear: new Date().getFullYear(),
+            generatedDateTime: new Date().toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        });
+
+        const subject = `CS Logbook - แจ้งนัดหมายการพบ (${meetingTitle || projectName || 'Project'})`;
+
+        const msg = {
+            to: recipientEmail,
+            from: process.env.EMAIL_SENDER,
+            subject,
+            html: htmlContent
+        };
+
+        const response = await sendEmail(msg);
+        const messageId = extractMessageId(response);
+        logger.info('ส่งอีเมลแจ้งนัดหมายการพบสำเร็จ', {
+            recipientEmail,
+            projectName,
+            meetingTitle,
+            messageId,
+            notificationType: 'MEETING_SCHEDULED'
+        });
+        return { sent: true, response, messageId };
+    } catch (error) {
+        logger.error('เกิดข้อผิดพลาดในการส่งอีเมลแจ้งนัดหมายการพบ', {
+            error: error.message,
+            recipientEmail,
+            projectName,
+            meetingTitle,
             stack: error.stack
         });
         throw error;
@@ -529,12 +667,13 @@ async function sendEvaluationSubmittedNotificationToAdvisor(advisorEmail, studen
 
 
 module.exports = { 
-  sendLoginNotification, 
-  sendDocumentApprovalNotification, 
-  sendLogbookSubmissionNotification,
-  sendTimeSheetApprovalRequest,
-  sendTimeSheetApprovalResultNotification,
-  sendInternshipEvaluationRequestEmail,
-  sendEvaluationSubmittedNotificationToStudent, // Added
-  sendEvaluationSubmittedNotificationToAdvisor  // Added
+    sendLoginNotification, 
+    sendDocumentApprovalNotification, 
+    sendLogbookSubmissionNotification,
+    sendMeetingScheduledNotification,
+    sendTimeSheetApprovalRequest,
+    sendTimeSheetApprovalResultNotification,
+    sendInternshipEvaluationRequestEmail,
+    sendEvaluationSubmittedNotificationToStudent, // Added
+    sendEvaluationSubmittedNotificationToAdvisor  // Added
 };

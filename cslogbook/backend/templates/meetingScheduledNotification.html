@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แจ้งนัดหมายการพบอาจารย์ - CS Logbook</title>
+  <style>
+    body {
+      font-family: 'Sarabun', 'TH SarabunPSK', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #f4f6f8;
+      color: #1f2937;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 24px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      background: linear-gradient(120deg, #1f3b73 0%, #274b9f 100%);
+      color: #ffffff;
+      padding: 28px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #22d3ee, #6366f1, #ec4899, #f97316);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0.4px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+      opacity: 0.85;
+    }
+
+    .content {
+      padding: 28px 32px 32px;
+    }
+
+    .salutation {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    .meeting-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 24px;
+      border-left: 4px solid #2563eb;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .meeting-box strong {
+      color: #1e3a8a;
+      display: block;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .meeting-box div {
+      font-size: 14px;
+      color: #1f2937;
+      margin: 4px 0;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 26px 0 12px;
+    }
+
+    .participant-list {
+      margin: 0;
+      padding: 18px 22px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .participant-list ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .note-box {
+      margin-top: 24px;
+      padding: 16px 18px;
+      border-radius: 10px;
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+    }
+
+    .note-box__title {
+      font-weight: 600;
+      color: #b45309;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .note-box__body {
+      font-size: 14px;
+      color: #92400e;
+      line-height: 1.5;
+    }
+
+    .cta {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .footer {
+      background: #111827;
+      color: #e2e8f0;
+      padding: 18px 24px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .footer small {
+      display: block;
+      margin-top: 4px;
+      opacity: 0.65;
+    }
+
+    .footer a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 12px;
+      }
+
+      .content {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>CS Logbook – แจ้งนัดหมายการพบอาจารย์</h1>
+      <p>ระบบติดตามโครงงานพิเศษ | ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ</p>
+    </div>
+    <div class="content">
+      <div class="salutation">เรียน คุณ{{recipientName}}</div>
+      <div class="meeting-box">
+        <strong>หัวข้อโครงงาน:</strong> {{projectName}}
+        <div><strong>หัวข้อการประชุม:</strong> {{meetingTitle}}</div>
+        <div><strong>วันและเวลา:</strong> {{meetingDateTime}}</div>
+        <div><strong>รูปแบบ:</strong> {{meetingMethodLabel}}</div>
+        {{meetingLocationSection}}
+        {{meetingLinkSection}}
+      </div>
+
+      <div class="section-title">รายชื่อผู้เข้าร่วม</div>
+      <div class="participant-list">
+        {{participantsHtml}}
+      </div>
+
+      {{noteSection}}
+
+      <div class="cta">
+        กรุณาล็อกอินเข้าสู่ระบบ CS Logbook เพื่อดูรายละเอียดเพิ่มเติมและบันทึกความคืบหน้าหลังการพบ<br />
+        นัดหมายนี้ถูกสร้างโดย: <strong>{{initiatorName}}</strong>
+      </div>
+    </div>
+    <div class="footer">
+      <div>มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ – คณะวิทยาศาสตร์ประยุกต์</div>
+      <div>อีเมลนี้จัดส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</div>
+      <small>สร้างเมื่อ: {{generatedDateTime}} | &copy; {{currentYear}} CS Logbook</small>
+    </div>
+  </div>
+</body>
+</html>

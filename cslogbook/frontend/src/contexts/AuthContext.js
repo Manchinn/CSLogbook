@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../services/apiClient';
+import { teacherService } from '../services/teacherService';
 import { message } from 'antd';
 
 export const AuthContext = createContext({
@@ -25,12 +26,18 @@ export const AuthProvider = ({ children }) => {
     lastName: localStorage.getItem('lastName'),
     email: localStorage.getItem('email'),
     role: localStorage.getItem('role'),
+    teacherId: localStorage.getItem('teacherId'),
+    teacherCode: localStorage.getItem('teacherCode'),
     teacherType: localStorage.getItem('teacherType'), // เพิ่ม teacher type
+    teacherPosition: localStorage.getItem('teacherPosition'),
+    canAccessTopicExam: localStorage.getItem('canAccessTopicExam') === 'true',
     totalCredits: parseInt(localStorage.getItem('totalCredits')) || 0,
     majorCredits: parseInt(localStorage.getItem('majorCredits')) || 0,
     isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
     isEligibleForProject: localStorage.getItem('isEligibleForProject') === 'true'
   });
+
+  const teacherProfileFetchedRef = useRef(false);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -39,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       
       const keysToRemove = [
         'token', 'refreshToken', 'studentCode', 'firstName', 
-        'lastName', 'email', 'role', 'teacherType', 'isEligibleForInternship', 
+        'lastName', 'email', 'role', 'teacherId', 'teacherCode', 'teacherType', 'teacherPosition', 'canAccessTopicExam', 'isEligibleForInternship', 
         'isEligibleForProject', 'totalCredits', 'majorCredits'
       ];
       keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -48,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       setRefreshToken(null);
       setIsAuthenticated(false);
       setUserData(null);
+      teacherProfileFetchedRef.current = false;
 
       window.location.href = '/login';
     } catch (error) {
@@ -205,7 +213,11 @@ export const AuthProvider = ({ children }) => {
         lastName: userData.lastName,
         email: userData.email,
         role: userData.role,
+        teacherId: userData.teacherId,
+        teacherCode: userData.teacherCode,
         teacherType: userData.teacherType, // เพิ่ม teacher type
+        teacherPosition: userData.teacherPosition,
+        canAccessTopicExam: Boolean(userData.canAccessTopicExam),
         totalCredits: userData.totalCredits || 0,
         majorCredits: userData.majorCredits || 0,
         isEligibleForInternship: userData.isEligibleForInternship,
@@ -223,15 +235,100 @@ export const AuthProvider = ({ children }) => {
       setRefreshToken(refreshToken);
       setIsAuthenticated(true);
       setUserData(userDataToStore);
+      teacherProfileFetchedRef.current = false;
 
-
-  apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       return true;
     } catch (error) {
       handleAPIError(error, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
       return false;
     }
   };
+
+  useEffect(() => {
+    if (!token) {
+      teacherProfileFetchedRef.current = false;
+      return;
+    }
+
+    if (!userData || userData.role !== 'teacher') {
+      teacherProfileFetchedRef.current = false;
+      return;
+    }
+
+    const isProfileIncomplete =
+      !userData.teacherPosition ||
+      !userData.teacherId ||
+      !userData.teacherCode ||
+      typeof userData.canAccessTopicExam !== 'boolean';
+
+    if (!isProfileIncomplete) {
+      return;
+    }
+
+    if (teacherProfileFetchedRef.current) {
+      return;
+    }
+
+    const fetchTeacherProfile = async () => {
+      teacherProfileFetchedRef.current = true;
+
+      try {
+        const profileResponse = await teacherService.getTeacherInfo('me');
+
+        if (profileResponse?.success && profileResponse.data) {
+          const {
+            teacherId,
+            teacherCode,
+            position,
+            teacherType,
+            canAccessTopicExam,
+          } = profileResponse.data;
+
+          setUserData((previous) => {
+            const prevData = previous || {};
+            const updated = {
+              ...prevData,
+              teacherId: teacherId ?? prevData.teacherId,
+              teacherCode: teacherCode ?? prevData.teacherCode,
+              teacherType: teacherType ?? prevData.teacherType,
+              teacherPosition: position ?? prevData.teacherPosition,
+              canAccessTopicExam:
+                typeof canAccessTopicExam === 'boolean'
+                  ? canAccessTopicExam
+                  : prevData.canAccessTopicExam ?? false,
+            };
+
+            if (updated.teacherId !== undefined && updated.teacherId !== null) {
+              localStorage.setItem('teacherId', String(updated.teacherId));
+            }
+            if (updated.teacherCode) {
+              localStorage.setItem('teacherCode', String(updated.teacherCode));
+            }
+            if (updated.teacherType) {
+              localStorage.setItem('teacherType', String(updated.teacherType));
+            }
+            if (updated.teacherPosition) {
+              localStorage.setItem('teacherPosition', updated.teacherPosition);
+            }
+            if (typeof updated.canAccessTopicExam === 'boolean') {
+              localStorage.setItem(
+                'canAccessTopicExam',
+                String(updated.canAccessTopicExam)
+              );
+            }
+
+            return updated;
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching teacher profile:', error);
+        teacherProfileFetchedRef.current = false;
+      }
+    };
+
+    fetchTeacherProfile();
+  }, [token, userData]);
 
   const value = {
     isAuthenticated,

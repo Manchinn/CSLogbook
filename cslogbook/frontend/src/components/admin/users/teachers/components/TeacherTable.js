@@ -1,5 +1,5 @@
 import React from "react";
-import { Table, Space, Button, Tooltip, Typography } from "antd";
+import { Table, Space, Button, Tooltip, Typography, Tag } from "antd";
 import { EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
@@ -48,6 +48,17 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       width: 120,
     }, */
     {
+      title: "Topic Exam Overview",
+      dataIndex: "canAccessTopicExam",
+      key: "canAccessTopicExam",
+      width: 160,
+      render: (value) => (
+        <Tag color={value ? 'green' : 'default'}>
+          {value ? 'เปิดใช้งาน' : 'ปิด' }
+        </Tag>
+      )
+    },
+    {
       title: "จัดการ",
       key: "actions",
       width: 180,
@@ -91,7 +102,7 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
     <Table
       columns={columns}
       dataSource={teachers}
-      rowKey="id"
+      rowKey="teacherId"
       loading={loading}
       pagination={{
         pageSize: 10,

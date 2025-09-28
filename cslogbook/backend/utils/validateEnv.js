@@ -3,7 +3,7 @@ const requiredEnvVars = {
   server: ['PORT', 'BASE_URL', 'API_PREFIX'],
   jwt: ['JWT_SECRET', 'JWT_EXPIRES_IN'],
   email: ['SENDGRID_API_KEY', 'EMAIL_SENDER'],
-  features: ['EMAIL_LOGIN_ENABLED', 'EMAIL_DOCUMENT_ENABLED', 'EMAIL_LOGBOOK_ENABLED']
+  features: ['EMAIL_LOGIN_ENABLED', 'EMAIL_DOCUMENT_ENABLED', 'EMAIL_LOGBOOK_ENABLED', 'EMAIL_MEETING_ENABLED']
 };
 
 function validateEnv(category = 'all', isOptional = false) {
@@ -41,7 +41,7 @@ function validateEnv(category = 'all', isOptional = false) {
   }
 
   if (category === 'all' || category === 'features') {
-    ['EMAIL_LOGIN_ENABLED', 'EMAIL_DOCUMENT_ENABLED', 'EMAIL_LOGBOOK_ENABLED'].forEach(flag => {
+  ['EMAIL_LOGIN_ENABLED', 'EMAIL_DOCUMENT_ENABLED', 'EMAIL_LOGBOOK_ENABLED', 'EMAIL_MEETING_ENABLED'].forEach(flag => {
       if (process.env[flag] && !['true', 'false'].includes(process.env[flag].toLowerCase())) {
         throw new Error(`${flag} must be 'true' or 'false'`);
       }

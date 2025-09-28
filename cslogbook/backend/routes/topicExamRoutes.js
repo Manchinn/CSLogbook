@@ -2,6 +2,7 @@
 // เส้นทางสำหรับระบบรวมข้อมูลการเสนอหัวข้อ (Topic Exam Overview)
 const router = require('express').Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { Teacher } = require('../models');
 const controller = require('../controllers/topicExamController');
 const logger = require('../utils/logger');
 
@@ -16,8 +17,34 @@ function requireTeacherLike(req, res, next) {
   next();
 }
 
+async function ensureTopicExamAccess(req, res, next) {
+  const role = req.user?.role?.toString().toLowerCase();
+
+  if (role === 'admin') {
+    return next();
+  }
+
+  if (role !== 'teacher') {
+    return res.status(403).json({ success: false, error: 'FORBIDDEN_ROLE' });
+  }
+
+  try {
+    const teacher = await Teacher.findOne({ where: { userId: req.user.userId } });
+    if (!teacher || !teacher.canAccessTopicExam) {
+      return res.status(403).json({
+        success: false,
+        error: 'TOPIC_EXAM_ACCESS_DENIED',
+        message: 'ยังไม่มีสิทธิ์เข้าถึง Topic Exam Overview'
+      });
+    }
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 // GET /api/projects/topic-exam/overview
-router.get('/overview', authenticateToken, requireTeacherLike, async (req,res,next)=>{
+router.get('/overview', authenticateToken, requireTeacherLike, ensureTopicExamAccess, async (req,res,next)=>{
   const start = Date.now();
   logger.info(`[TopicExam] overview request start user=${req.user?.userId} role=${req.user?.role}`);
   try {
@@ -30,7 +57,7 @@ router.get('/overview', authenticateToken, requireTeacherLike, async (req,res,ne
 });
 
 // GET /api/projects/topic-exam/export?format=csv|xlsx ใช้ query เดียวกับ overview
-router.get('/export', authenticateToken, requireTeacherLike, async (req,res,next)=>{
+router.get('/export', authenticateToken, requireTeacherLike, ensureTopicExamAccess, async (req,res,next)=>{
   const start = Date.now();
   logger.info(`[TopicExam] export request start user=${req.user?.userId} role=${req.user?.role} format=${req.query.format}`);
   try {

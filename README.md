@@ -106,6 +106,7 @@ EMAIL_SENDER=noreply@yoursite.com
 EMAIL_LOGIN_ENABLED=false
 EMAIL_DOCUMENT_ENABLED=false
 EMAIL_LOGBOOK_ENABLED=false
+EMAIL_MEETING_ENABLED=false
 
 # File Upload Configuration
 UPLOAD_DIR=uploads/

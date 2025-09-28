@@ -8,9 +8,6 @@ const StepDetails = () => {
   const { state, setDetails } = useCreateProjectDraft();
   return (
     <Form layout="vertical">
-      <Form.Item label="ปัญหา / Pain Point (Problem)">
-        <TextArea rows={3} value={state.details.problem} onChange={e => setDetails({ problem: e.target.value })} placeholder="อธิบายปัญหาหรือ Pain Point" />
-      </Form.Item>
       <Form.Item label="ที่มา / เหตุผล (Background)">
         <TextArea rows={3} value={state.details.background} onChange={e => setDetails({ background: e.target.value })} placeholder="ที่มาของโครงงาน / เหตุผลความสำคัญ" />
       </Form.Item>

@@ -15,7 +15,8 @@ beforeAll(async () => {
   // Mock auth middleware (ต้องทำหลัง resetModules ไม่งั้นจะหายไป)
   jest.doMock('../../middleware/authMiddleware', () => ({
     authenticateToken: (req, res, next) => { req.user = { userId: 1, role: 'student' }; next(); },
-    checkRole: () => (req, res, next) => next()
+    checkRole: () => (req, res, next) => next(),
+    checkTeacherType: () => (req, res, next) => next()
   }));
 
   sequelize = new Sequelize('sqlite::memory:', { logging: false });

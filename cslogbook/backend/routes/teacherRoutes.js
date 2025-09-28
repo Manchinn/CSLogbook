@@ -27,6 +27,12 @@ router.get('/',
   teacherController.getAllTeachers
 );
 
+router.get('/meeting-approvals',
+  checkRole(['teacher']),
+  checkTeacherType(['academic']),
+  teacherController.getMeetingApprovalQueue
+);
+
 router.get('/:id', 
   checkRole(['admin', 'teacher']),
   teacherController.getTeacherById
