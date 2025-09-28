@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
     email: localStorage.getItem('email'),
     role: localStorage.getItem('role'),
     teacherType: localStorage.getItem('teacherType'), // เพิ่ม teacher type
+    canAccessTopicExam: localStorage.getItem('canAccessTopicExam') === 'true',
     totalCredits: parseInt(localStorage.getItem('totalCredits')) || 0,
     majorCredits: parseInt(localStorage.getItem('majorCredits')) || 0,
     isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       
       const keysToRemove = [
         'token', 'refreshToken', 'studentCode', 'firstName', 
-        'lastName', 'email', 'role', 'teacherType', 'isEligibleForInternship', 
+        'lastName', 'email', 'role', 'teacherType', 'canAccessTopicExam', 'isEligibleForInternship', 
         'isEligibleForProject', 'totalCredits', 'majorCredits'
       ];
       keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -206,6 +207,7 @@ export const AuthProvider = ({ children }) => {
         email: userData.email,
         role: userData.role,
         teacherType: userData.teacherType, // เพิ่ม teacher type
+        canAccessTopicExam: Boolean(userData.canAccessTopicExam),
         totalCredits: userData.totalCredits || 0,
         majorCredits: userData.majorCredits || 0,
         isEligibleForInternship: userData.isEligibleForInternship,

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Form, Input } from 'antd';
+import { Form, Input, Switch } from 'antd';
 
 const TeacherForm = ({ form, teacher, initialValues = {} }) => {
   useEffect(() => {
@@ -9,6 +9,7 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
         firstName: teacher.firstName,
         lastName: teacher.lastName,
         email: teacher.email,
+        canAccessTopicExam: Boolean(teacher.canAccessTopicExam),
         ...initialValues
       });
     } else {
@@ -70,6 +71,13 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
           <option value="ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายสหกิจศึกษาและบริการวิชาการ)">ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายสหกิจศึกษาและบริการวิชาการ)</option>
           <option value="คณาจารย์">คณาจารย์ (อาจารย์สอนทั่วไป)</option>
         </select>
+      </Form.Item>
+      <Form.Item
+        name="canAccessTopicExam"
+        label="เปิดสิทธิ์ Topic Exam Overview"
+        valuePropName="checked"
+      >
+        <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
       </Form.Item>
     </Form>
   );

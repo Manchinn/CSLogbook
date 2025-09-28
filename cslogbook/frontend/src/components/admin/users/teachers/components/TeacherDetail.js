@@ -11,6 +11,7 @@ const TeacherDetail = ({ teacher }) => {
       <p><strong>ชื่อ-นามสกุล:</strong> {teacher.firstName} {teacher.lastName}</p>
       <p><strong>ตำแหน่ง:</strong> {teacher.position || '-'}</p>
       <p><strong>อีเมล:</strong> {teacher.email || '-'}</p>
+      <p><strong>สิทธิ์ Topic Exam Overview:</strong> {teacher.canAccessTopicExam ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</p>
     </div>
   );
 };

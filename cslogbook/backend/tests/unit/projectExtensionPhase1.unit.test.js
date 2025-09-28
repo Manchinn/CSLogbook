@@ -9,20 +9,32 @@ const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
 jest.doMock('../../config/database', () => ({ sequelize }), { virtual: true });
 jest.doMock('../../utils/logger', () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn() }), { virtual: true });
+const mockUpdateWorkflowActivity = jest.fn().mockResolvedValue(null);
+jest.doMock('../../services/workflowService', () => ({
+  updateStudentWorkflowActivity: mockUpdateWorkflowActivity
+}), { virtual: true });
 
 // Models simplified
 const Student = sequelize.define('Student', {
   studentId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'student_id' },
   studentCode: { type: DataTypes.STRING, unique: true, allowNull: false, field: 'student_code' },
+  userId: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1, field: 'user_id' },
   isEligibleProject: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'is_eligible_project' }
 }, { tableName: 'students', underscored: true, timestamps: false });
 
 const ProjectDocument = sequelize.define('ProjectDocument', {
   projectId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'project_id' },
   projectCode: { type: DataTypes.STRING, field: 'project_code' },
-  status: { type: DataTypes.STRING, defaultValue: 'draft' }
+  projectNameTh: { type: DataTypes.STRING, field: 'project_name_th' },
+  projectNameEn: { type: DataTypes.STRING, field: 'project_name_en' },
+  projectType: { type: DataTypes.STRING, field: 'project_type' },
+  track: { type: DataTypes.STRING },
+  advisorId: { type: DataTypes.INTEGER, field: 'advisor_id' },
+  status: { type: DataTypes.STRING, defaultValue: 'draft' },
+  examResult: { type: DataTypes.STRING, field: 'exam_result' },
+  studentAcknowledgedAt: { type: DataTypes.DATE, field: 'student_acknowledged_at' }
 }, { tableName: 'project_documents', underscored: true, timestamps: false, hooks: {
-  beforeCreate(inst){ if(!inst.projectCode) inst.projectCode = 'PRJX-' + inst.projectId; }
+  beforeCreate(inst){ if(!inst.projectCode) inst.projectCode = `PRJX-${Date.now()}`; }
 }});
 
 const ProjectMember = sequelize.define('ProjectMember', {
@@ -50,9 +62,29 @@ const ProjectArtifact = sequelize.define('ProjectArtifact', {
   uploadedByStudentId: { type: DataTypes.INTEGER }
 }, { tableName: 'project_artifacts', underscored: true, timestamps: false });
 
+const Academic = sequelize.define('Academic', {
+  academicYear: { type: DataTypes.INTEGER, field: 'academic_year' },
+  currentSemester: { type: DataTypes.INTEGER, field: 'current_semester' },
+  isCurrent: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'is_current' },
+  updatedAt: { type: DataTypes.DATE, field: 'updated_at' }
+}, { tableName: 'academics', underscored: true, timestamps: false });
+
+const User = sequelize.define('User', {
+  userId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'user_id' },
+  firstName: { type: DataTypes.STRING, field: 'first_name' },
+  lastName: { type: DataTypes.STRING, field: 'last_name' }
+}, { tableName: 'users', underscored: true, timestamps: false });
+
+const ProjectTrack = sequelize.define('ProjectTrack', {
+  projectId: { type: DataTypes.INTEGER, field: 'project_id' },
+  trackCode: { type: DataTypes.STRING, field: 'track_code' }
+}, { tableName: 'project_tracks', underscored: true, timestamps: false });
+
 ProjectDocument.hasMany(ProjectMember, { as: 'members', foreignKey: 'project_id' });
 ProjectMember.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
 ProjectMember.belongsTo(Student, { as: 'student', foreignKey: 'student_id' });
+ProjectDocument.hasMany(ProjectTrack, { as: 'tracks', foreignKey: 'project_id' });
+Student.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
 
 jest.doMock('../../models', () => ({
   sequelize,
@@ -60,24 +92,33 @@ jest.doMock('../../models', () => ({
   ProjectMember,
   ProjectMilestone,
   ProjectArtifact,
+  User,
+  ProjectTrack,
+  Academic,
   Student
 }), { virtual: true });
 
-const projectDocumentService = require('../../services/projectDocumentService');
-const milestoneService = require('../../services/projectMilestoneService');
-const artifactService = require('../../services/projectArtifactService');
+let projectDocumentService;
+let milestoneService;
+let artifactService;
 
 async function bootstrap() {
   await sequelize.sync({ force: true });
   // create leader
-  const leader = await Student.create({ studentCode: '650000000001', isEligibleProject: true });
-  const proj = await projectDocumentService.createProject(leader.studentId, { projectNameTh: 'x', projectNameEn:'y' });
+  const user = await User.create({ firstName: 'Leader', lastName: 'One' });
+  const leader = await Student.create({ studentCode: '650000000001', userId: user.userId, isEligibleProject: true });
+    const proj = await projectDocumentService.createProject(leader.studentId, { projectNameTh: 'x', projectNameEn:'y' });
   return { leader, proj };
 }
 
 describe('Milestone + Proposal basic', () => {
   let leader, proj;
   beforeAll(async () => {
+    jest.isolateModules(() => {
+      projectDocumentService = require('../../services/projectDocumentService');
+      milestoneService = require('../../services/projectMilestoneService');
+      artifactService = require('../../services/projectArtifactService');
+    });
     ({ leader, proj } = await bootstrap());
   });
 

@@ -46,7 +46,7 @@ import ApproveDocuments from './components/teacher/ApproveDocuments';
 import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
 import MeetingApprovals from './components/teacher/MeetingApprovals';
 
-const ProtectedRoute = ({ children, roles, teacherTypes }) => {
+const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
   const location = useLocation();
 
@@ -65,6 +65,10 @@ const ProtectedRoute = ({ children, roles, teacherTypes }) => {
     if (!teacherTypes.includes(userData.teacherType)) {
       return <Navigate to="/dashboard" />;
     }
+  }
+
+  if (typeof condition === 'function' && !condition(userData)) {
+    return <Navigate to="/dashboard" />;
   }
 
   return children;
@@ -227,7 +231,10 @@ const App = () => {
 
                 {/* Topic Exam Overview (Teacher/Admin) */}
                 <Route path="/teacher/topic-exam/overview" element={
-                  <ProtectedRoute roles={['teacher','admin']} teacherTypes={['academic']}>
+                  <ProtectedRoute
+                    roles={['teacher','admin']}
+                    condition={(user) => user.role === 'admin' || Boolean(user.canAccessTopicExam)}
+                  >
                     <TopicExamOverview />
                   </ProtectedRoute>
                 } />

@@ -24,7 +24,7 @@ class TeacherService {
           model: Teacher,
           as: 'teacher',
           required: true,
-          attributes: ['teacherId', 'teacherCode', 'contactExtension', 'position', 'teacherType'],
+          attributes: ['teacherId', 'teacherCode', 'contactExtension', 'position', 'teacherType', 'canAccessTopicExam'],
           where: Object.keys(whereTeacher).length ? whereTeacher : undefined
         }]
       });
@@ -38,7 +38,8 @@ class TeacherService {
         email: user.email,
         contactExtension: user.teacher?.contactExtension || '',
         position: user.teacher?.position || 'คณาจารย์', // เพิ่มตำแหน่ง
-        teacherType: user.teacher?.teacherType || null
+  teacherType: user.teacher?.teacherType || null,
+  canAccessTopicExam: Boolean(user.teacher?.canAccessTopicExam)
       }));
     } catch (error) {
       logger.error('Error in getAllTeachers service:', error);
@@ -96,7 +97,8 @@ class TeacherService {
         lastName: teacher.user.lastName,
         email: teacher.user.email,
         contactExtension: teacher.contactExtension,
-        position: teacher.position || 'คณาจารย์' // เพิ่มตำแหน่ง
+  position: teacher.position || 'คณาจารย์', // เพิ่มตำแหน่ง
+  canAccessTopicExam: Boolean(teacher.canAccessTopicExam)
       };
     } catch (error) {
       logger.error('Error in getTeacherById service:', error);
@@ -135,7 +137,8 @@ class TeacherService {
           lastName: user.lastName,
           email: user.email,
           contactExtension: '',
-          position: 'คณาจารย์'
+    position: 'คณาจารย์',
+    canAccessTopicExam: false
         };
       }
 
@@ -147,7 +150,8 @@ class TeacherService {
         lastName: teacher.user.lastName,
         email: teacher.user.email,
         contactExtension: teacher.contactExtension,
-        position: teacher.position || 'คณาจารย์' // เพิ่มตำแหน่ง
+  position: teacher.position || 'คณาจารย์', // เพิ่มตำแหน่ง
+  canAccessTopicExam: Boolean(teacher.canAccessTopicExam)
       };
     } catch (error) {
       logger.error('Error in getTeacherByUserId service:', error);
@@ -171,7 +175,8 @@ class TeacherService {
         lastName,
         email,
         contactExtension,
-        position // รับตำแหน่งจาก input
+        position, // รับตำแหน่งจาก input
+        canAccessTopicExam
       } = teacherData;
 
       if (!teacherCode || !firstName || !lastName) {
@@ -204,7 +209,10 @@ class TeacherService {
         teacherCode,
         userId: user.userId,
         contactExtension,
-        position: position || 'คณาจารย์' // บันทึกตำแหน่ง ถ้าไม่ระบุให้ default
+        position: position || 'คณาจารย์', // บันทึกตำแหน่ง ถ้าไม่ระบุให้ default
+        canAccessTopicExam: typeof canAccessTopicExam === 'boolean'
+          ? canAccessTopicExam
+          : canAccessTopicExam === 'true'
       }, { transaction });
 
       await transaction.commit();
@@ -217,7 +225,8 @@ class TeacherService {
         lastName: user.lastName,
         email: user.email,
         contactExtension: teacher.contactExtension,
-        position: teacher.position || 'คณาจารย์'
+  position: teacher.position || 'คณาจารย์',
+  canAccessTopicExam: Boolean(teacher.canAccessTopicExam)
       };
     } catch (error) {
       await transaction.rollback();
@@ -233,7 +242,7 @@ class TeacherService {
     const transaction = await sequelize.transaction();
 
     try {
-      const { firstName, lastName, email, contactExtension, position } = updateData;
+  const { firstName, lastName, email, contactExtension, position, canAccessTopicExam } = updateData;
 
       const teacher = await Teacher.findOne({
         where: { teacherId },
@@ -252,7 +261,12 @@ class TeacherService {
       // Update teacher record
       await Teacher.update({
         contactExtension: contactExtension || teacher.contactExtension,
-        ...(position && { position }) // อัปเดตตำแหน่งถ้ามีส่งมา
+        ...(position && { position }), // อัปเดตตำแหน่งถ้ามีส่งมา
+        ...(typeof canAccessTopicExam !== 'undefined' && {
+          canAccessTopicExam: typeof canAccessTopicExam === 'boolean'
+            ? canAccessTopicExam
+            : canAccessTopicExam === 'true'
+        })
       }, {
         where: { teacherId },
         transaction
@@ -279,7 +293,10 @@ class TeacherService {
         lastName: lastName || teacher.user.lastName,
         email: email || teacher.user.email,
         contactExtension: contactExtension || teacher.contactExtension,
-        position: position || teacher.position || 'คณาจารย์'
+        position: position || teacher.position || 'คณาจารย์',
+        canAccessTopicExam: typeof canAccessTopicExam !== 'undefined'
+          ? (typeof canAccessTopicExam === 'boolean' ? canAccessTopicExam : canAccessTopicExam === 'true')
+          : Boolean(teacher.canAccessTopicExam)
       };
     } catch (error) {
       await transaction.rollback();

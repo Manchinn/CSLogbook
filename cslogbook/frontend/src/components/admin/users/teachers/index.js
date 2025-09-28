@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Row, Col, Form, message, Modal, Typography } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import { userService } from "../../../../services/admin/userService";
@@ -55,7 +55,7 @@ const TeacherList = () => {
     setEditMode(true);
     form.resetFields();
     // ตั้งค่า default ให้ position เป็น "คณาจารย์" ทุกครั้งที่เพิ่มใหม่
-    form.setFieldsValue({ position: "คณาจารย์" });
+    form.setFieldsValue({ position: "คณาจารย์", canAccessTopicExam: false });
     setDrawerVisible(true);
   };
 
