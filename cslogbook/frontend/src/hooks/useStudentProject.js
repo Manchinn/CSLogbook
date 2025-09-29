@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import projectService from '../services/projectService';
 import { teacherService } from '../services/teacherService';
 import { message } from 'antd';
+import { evaluateProjectReadiness } from '../utils/projectReadiness';
 
 /**
  * useStudentProject
@@ -152,21 +153,11 @@ export function useStudentProject(options = {}) {
   }, [activeProject]);
 
   // Readiness checklist (memo)
-  const readiness = useMemo(() => {
-    if (!activeProject) return [];
-    const p = activeProject;
-    return [
-      { key: 'members', label: 'สมาชิกครบ 2 คน', pass: p.members?.length === 2 },
-      { key: 'advisor', label: 'เลือกอาจารย์ที่ปรึกษา', pass: !!p.advisorId },
-      { key: 'name_th', label: 'ชื่อ TH', pass: !!p.projectNameTh },
-      { key: 'name_en', label: 'ชื่อ EN', pass: !!p.projectNameEn },
-      { key: 'type', label: 'ประเภทโครงงาน', pass: !!p.projectType },
-      // ใช้ p.tracks (array ของ code) ถ้าไม่มี fallback ไป legacy p.track
-      { key: 'track', label: 'Track', pass: Array.isArray(p.tracks) ? p.tracks.length > 0 : !!p.track }
-    ];
-  }, [activeProject]);
+  const activationReadiness = useMemo(() => evaluateProjectReadiness(activeProject), [activeProject]);
 
-  const canActivate = useMemo(() => readiness.every(r => r.pass) && activeProject && !['in_progress','completed','archived'].includes(activeProject.status), [readiness, activeProject]);
+  const readiness = activationReadiness.checklist;
+
+  const canActivate = activationReadiness.canActivate;
 
   // ออโต้โหลดเมื่อ mount
   useEffect(() => { if (autoLoad) loadProjects(); }, [autoLoad, loadProjects]);
@@ -177,8 +168,9 @@ export function useStudentProject(options = {}) {
     projects,
     activeProject,
     advisors,
-    readiness,
-    canActivate,
+  readiness,
+  canActivate,
+  activationReadiness,
     // loading flags
     loading,
     advisorLoading,

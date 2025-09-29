@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Card, Table, Tag, Button, Modal, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List, Row, Col } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Button, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List, Row, Col } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import projectService from '../../services/projectService';
 import { teacherService } from '../../services/teacherService';
 import MilestoneSummary from './MilestoneSummary';
 import { TRACK_OPTIONS, CODE_TO_LABEL, normalizeIncomingTracks } from '../../constants/projectTracks';
+import { evaluateProjectReadiness, extractProjectTrackCodes } from '../../utils/projectReadiness';
 
 // รายชื่ออาจารย์ที่โหลดมาจาก backend (advisors)
 // เก็บเป็น state เพื่อรีเฟรชเมื่อเปิด modal / drawer
@@ -23,26 +24,17 @@ const { Title, Text } = Typography; // ใช้ Text สำหรับ error/h
 const ProjectDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState([]);
-  const [createVisible, setCreateVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
   const [advisorLoading, setAdvisorLoading] = useState(false);
   const [advisorError, setAdvisorError] = useState(null);
   const [advisors, setAdvisors] = useState([]); // raw list
-  const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [activeProject, setActiveProject] = useState(null);
   const [memberInput, setMemberInput] = useState('');
-  const [activating, setActivating] = useState(false);
+  const [activatingId, setActivatingId] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [memberError, setMemberError] = useState(null); // เก็บ error แสดงใต้ input
-
-  const getTrackCodes = useCallback((project) => {
-    if (!project) return [];
-    if (Array.isArray(project.tracks) && project.tracks.length) return project.tracks;
-    if (project.track) return [project.track];
-    return [];
-  }, []);
 
   const fillEditForm = useCallback((project) => {
     if (!project) {
@@ -53,11 +45,11 @@ const ProjectDashboard = () => {
       projectNameTh: project.projectNameTh || undefined,
       projectNameEn: project.projectNameEn || undefined,
       projectType: project.projectType || undefined,
-      tracks: getTrackCodes(project),
+      tracks: extractProjectTrackCodes(project),
       advisorId: project.advisorId || undefined,
       coAdvisorId: project.coAdvisorId || undefined
     });
-  }, [editForm, getTrackCodes]);
+  }, [editForm]);
 
   const applyActiveProject = useCallback((project) => {
     const normalized = normalizeIncomingTracks(project);
@@ -84,7 +76,7 @@ const ProjectDashboard = () => {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  // ฟังก์ชันโหลดรายชื่ออาจารย์ที่ปรึกษา (เรียกเมื่อเปิด modal/create หรือ drawer/edit เพื่อให้ fresh)
+  // ฟังก์ชันโหลดรายชื่ออาจารย์ที่ปรึกษา (เรียกเมื่อเปิด drawer เพื่อให้ fresh)
   const loadAdvisors = useCallback(async () => {
     try {
       setAdvisorLoading(true);
@@ -97,12 +89,6 @@ const ProjectDashboard = () => {
       setAdvisorLoading(false);
     }
   }, []);
-
-  // เปิด modal create -> โหลด advisors ถ้ายังไม่โหลด
-  const openCreateModal = () => {
-    setCreateVisible(true);
-    if (advisors.length === 0) loadAdvisors();
-  };
 
   const openDetail = useCallback(async (record) => {
     try {
@@ -118,31 +104,6 @@ const ProjectDashboard = () => {
       message.error(e.message);
     }
   }, [applyActiveProject, advisors.length, loadAdvisors]);
-
-  const handleCreate = async () => {
-    try {
-      const values = await createForm.validateFields();
-      const payload = {
-        ...values,
-        tracks: Array.isArray(values.tracks) ? values.tracks.filter(Boolean) : []
-      };
-      if (!payload.tracks.length) {
-        delete payload.tracks;
-      }
-      const res = await projectService.createProject(payload);
-      if (res.success) {
-        message.success('สร้างโครงงานสำเร็จ');
-        setCreateVisible(false);
-        createForm.resetFields();
-        fetchProjects();
-      } else {
-        message.error(res.message || 'สร้างโครงงานไม่สำเร็จ');
-      }
-    } catch (e) {
-      if (e.errorFields) return; // validation error
-      message.error(e.message);
-    }
-  };
 
   const handleUpdate = async () => {
     if (!activeProject) return;
@@ -211,67 +172,74 @@ const ProjectDashboard = () => {
     }
   };
 
-  const handleActivate = async () => {
-    if (!activeProject) return;
+  const handleActivate = useCallback(async (project) => {
+    if (!project) return;
     try {
-      setActivating(true);
-      const res = await projectService.activateProject(activeProject.projectId);
+      setActivatingId(project.projectId);
+      const res = await projectService.activateProject(project.projectId);
       if (res.success) {
         message.success('โครงงานเริ่มดำเนินการแล้ว');
-        const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
-        applyActiveProject(refreshed.data);
-        fetchProjects();
+        if (detailVisible && activeProject?.projectId === project.projectId) {
+          const refreshed = await projectService.getProjectWithSummary(project.projectId);
+          if (refreshed.success) {
+            applyActiveProject(refreshed.data);
+          }
+        }
+        await fetchProjects();
       } else {
         message.error(res.message || 'ไม่สามารถเริ่มได้');
       }
     } catch (e) {
       message.error(e.message);
     } finally {
-      setActivating(false);
+      setActivatingId(null);
     }
-  };
+  }, [activeProject?.projectId, applyActiveProject, detailVisible, fetchProjects]);
 
   const columns = useMemo(() => [
     { title: 'รหัส', dataIndex: 'projectCode', key: 'projectCode', width: 140 },
     { title: 'ชื่อโครงงานพิเศษ', dataIndex: 'projectNameTh', key: 'projectNameTh', ellipsis: true },
-    { title: 'หมวด', key: 'tracks', width: 220, render: (_, r) => {
-      const codes = getTrackCodes(r);
+    { title: 'หมวด', key: 'tracks', width: 220, render: (_, project) => {
+      const codes = extractProjectTrackCodes(project);
       return codes.length ? codes.map(code => <Tag key={code}>{CODE_TO_LABEL[code] || code}</Tag>) : '-';
     } },
     { title: 'สถานะ', dataIndex: 'status', key: 'status', width: 130, render: s => <Tag color={statusColorMap[s] || 'default'}>{s}</Tag> },
     { title: 'สมาชิก', key: 'members', width: 160, render: (_, r) => (r.members || []).map(m => <Tag key={m.studentId}>{m.role === 'leader' ? 'หัวหน้า' : 'สมาชิก'}</Tag>) },
-    { title: 'ดำเนินการ', key: 'action', width: 110, render: (_, r) => <Button size="small" onClick={() => openDetail(r)}>รายละเอียด</Button> }
-  ], [getTrackCodes, openDetail]);
+    {
+      title: 'ดำเนินการ',
+      key: 'action',
+      width: 220,
+      render: (_, project) => {
+        const readiness = evaluateProjectReadiness(project);
+        const tooltipTitle = readiness.canActivate
+          ? 'พร้อมเริ่มโครงงาน'
+          : (readiness.missingReasons.length ? `ยังขาด: ${readiness.missingReasons.join(', ')}` : 'กรุณาตรวจสอบรายละเอียดใน Drawer');
+        const isActivating = activatingId === project.projectId;
+        return (
+          <Space size="small">
+            <Button size="small" onClick={() => openDetail(project)}>รายละเอียด</Button>
+            <Tooltip title={tooltipTitle}>
+              <Button
+                size="small"
+                type="primary"
+                disabled={!readiness.canActivate}
+                loading={isActivating}
+                onClick={() => handleActivate(project)}
+              >
+                เริ่มโครงงาน
+              </Button>
+            </Tooltip>
+          </Space>
+        );
+      }
+    }
+  ], [activatingId, handleActivate, openDetail]);
 
-  const canActivate = useMemo(() => {
-    if (!activeProject) return false;
-    const p = activeProject;
-    const hasTracks = getTrackCodes(p).length > 0;
-    return p.status !== 'in_progress' && p.status !== 'completed' && p.status !== 'archived'
-      && p.members?.length === 2
-      && p.advisorId
-      && p.projectNameTh && p.projectNameEn
-      && p.projectType && hasTracks;
-  }, [activeProject, getTrackCodes]);
+  const activeReadiness = useMemo(() => evaluateProjectReadiness(activeProject), [activeProject]);
 
-  // สร้าง checklist รายการเงื่อนไข พร้อมสถานะผ่าน/ไม่ผ่าน
-  const readinessChecklist = useMemo(() => {
-    if (!activeProject) return [];
-    const p = activeProject;
-    const hasTracks = getTrackCodes(p).length > 0;
-    return [
-      { key: 'members', label: 'มีสมาชิกครบ 2 คน', pass: (p.members?.length === 2) },
-      { key: 'advisor', label: 'เลือกอาจารย์ที่ปรึกษา', pass: !!p.advisorId },
-      { key: 'name_th', label: 'ชื่อโครงงานพิเศษภาษาไทย', pass: !!p.projectNameTh },
-      { key: 'name_en', label: 'ชื่อโครงงานพิเศษภาษาอังกฤษ', pass: !!p.projectNameEn },
-      { key: 'type', label: 'ระบุประเภทโครงงานพิเศษ', pass: !!p.projectType },
-      { key: 'track', label: 'ระบุหมวด', pass: hasTracks }
-    ];
-  }, [activeProject, getTrackCodes]);
+  const readinessChecklist = activeReadiness.checklist;
 
-  const missingReasons = useMemo(() => readinessChecklist.filter(i => !i.pass).map(i => i.label), [readinessChecklist]);
-
-  const activeTrackCodes = useMemo(() => getTrackCodes(activeProject), [activeProject, getTrackCodes]);
+  const activeTrackCodes = useMemo(() => extractProjectTrackCodes(activeProject), [activeProject]);
 
   // แปลง advisors -> options ของ Select
   const trackSelectOptions = useMemo(() => TRACK_OPTIONS.map(({ code, label }) => ({ value: code, label })), []);
@@ -285,7 +253,7 @@ const ProjectDashboard = () => {
   }, [advisors]);
 
   return (
-  <Card title={<Space><Title level={4} style={{ margin: 0 }}>โครงงานของฉัน</Title><Button icon={<ReloadOutlined />} onClick={fetchProjects} /></Space>} extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>สร้างโครงงาน</Button>}>
+  <Card title={<Space><Title level={4} style={{ margin: 0 }}>โครงงานของฉัน</Title><Button icon={<ReloadOutlined />} onClick={fetchProjects} /></Space>}>
       <Table
         dataSource={projects}
         columns={columns}
@@ -294,54 +262,6 @@ const ProjectDashboard = () => {
         pagination={false}
         size="small"
       />
-
-      {/* Modal สร้างโครงงาน */}
-      <Modal
-        title="สร้างโครงงานใหม่"
-        open={createVisible}
-        onCancel={() => setCreateVisible(false)}
-        onOk={handleCreate}
-        okText="บันทึก"
-        cancelText="ยกเลิก"
-      >
-        <Form form={createForm} layout="vertical">
-          <Form.Item label="ชื่อโครงงานภาษาไทย" name="projectNameTh" rules={[{ required: false }]}> <Input placeholder="เว้นว่างได้ใน Draft" /> </Form.Item>
-          <Form.Item label="ชื่อโครงงานภาษาอังกฤษ" name="projectNameEn" rules={[{ required: false }]}> <Input placeholder="Optional ใน Draft" /> </Form.Item>
-          <Form.Item label="ประเภท" name="projectType"> <Select allowClear options={[{value:'govern',label:'Govern'},{value:'private',label:'Private'},{value:'research',label:'Research'}]} /> </Form.Item>
-          <Form.Item label="หมวด" name="tracks">
-            <Select
-              mode="multiple"
-              allowClear
-              options={trackSelectOptions}
-              placeholder="เลือกหมวดโครงงาน (เลือกได้หลายหมวด)"
-              maxTagCount="responsive"
-            />
-          </Form.Item>
-          <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId"> 
-            <Select 
-              allowClear 
-              showSearch 
-              placeholder={advisorLoading ? 'กำลังโหลด...' : 'เลือกอาจารย์'} 
-              notFoundContent={advisorLoading ? 'กำลังโหลด...' : (advisorError ? advisorError : 'ไม่พบข้อมูล')} 
-              options={advisorOptions} 
-              loading={advisorLoading} 
-              onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
-              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-            /> 
-          </Form.Item>
-          <Form.Item label="Co-Advisor" name="coAdvisorId"> 
-            <Select 
-              allowClear 
-              showSearch 
-              placeholder="(ไม่บังคับ)" 
-              options={advisorOptions} 
-              loading={advisorLoading} 
-              onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
-              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-            /> 
-          </Form.Item>
-        </Form>
-      </Modal>
 
       {/* Drawer รายละเอียด */}
       <Drawer
@@ -456,10 +376,21 @@ const ProjectDashboard = () => {
                 )}
               />
             </div>
+            {activeReadiness.canActivate ? (
+              <Text type="success" style={{ display: 'block', marginBottom: 12 }}>
+                สามารถเริ่มโครงงานได้ผ่านปุ่มในตาราง "โครงงานของฉัน"
+              </Text>
+            ) : (
+              <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+                เมื่อเงื่อนไขครบ ระบบจะแสดงปุ่ม "เริ่มดำเนินโครงงาน" ในตาราง "โครงงานของฉัน"
+              </Text>
+            )}
+            {!activeReadiness.canActivate && activeReadiness.missingReasons.length > 0 && (
+              <Text type="danger" style={{ display: 'block', marginBottom: 12 }}>
+                {`ยังขาด: ${activeReadiness.missingReasons.join(', ')}`}
+              </Text>
+            )}
             <Space wrap>
-              <Tooltip title={canActivate ? 'พร้อมเริ่มโครงงาน' : `ยังขาด: ${missingReasons.join(', ')}`}> 
-                <Button type="primary" disabled={!canActivate} loading={activating} onClick={handleActivate}>เริ่มดำเนินโครงงาน</Button>
-              </Tooltip>
               <Popconfirm title="ยืนยันเก็บถาวร?" okText="ใช่" cancelText="ไม่" disabled>
                 <Button danger disabled>เก็บถาวร (เฉพาะ Admin)</Button>
               </Popconfirm>
