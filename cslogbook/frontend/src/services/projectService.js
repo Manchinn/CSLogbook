@@ -8,7 +8,7 @@ import apiClient from './apiClient';
 const projectService = {
   /**
    * สร้างโครงงาน (leader สร้าง) -> status เริ่ม draft หรือ advisor_assigned ถ้าส่ง advisorId
-   * payload ตัวเลือก: { projectNameTh, projectNameEn, projectType, track, advisorId, coAdvisorId }
+  * payload ตัวเลือก: { projectNameTh, projectNameEn, projectType, tracks, advisorId, coAdvisorId }
    */
   createProject: async (payload = {}) => {
     try {

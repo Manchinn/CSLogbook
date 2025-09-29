@@ -10,6 +10,9 @@ import {
   TeamOutlined
 } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
+import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
+import ProjectDashboard from '../ProjectDashboard';
+import { ProjectEligibilityCheck } from '../eligibility';
 
 // Phase1Dashboard: ศูนย์รวมขั้นตอน โครงงานพิเศษ 1
 // - แสดงการ์ดขั้นตอนทั้งหมด (Phase1) ในหน้าเดียว
@@ -71,8 +74,23 @@ const Phase1Dashboard = () => {
   const location = useLocation();
   // โหลดข้อมูลโครงงานของผู้ใช้ (automatic load) อยู่ใน component (ไม่ใส่ก่อนประกาศ component)
   const { activeProject, loadProjects } = useStudentProject({ autoLoad: true });
+  const {
+    canAccessProject,
+    isLoading: eligibilityLoading,
+    projectReason,
+    messages
+  } = useStudentEligibility();
   const [ackLoading, setAckLoading] = useState(false);
   const [ackModalOpen, setAckModalOpen] = useState(false);
+  const containerStyle = useMemo(() => ({
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24
+  }), []);
+  const projectAccessReason = projectReason || messages?.project || null;
 
   const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
   const showPassed = activeProject && activeProject.examResult === 'passed';
@@ -122,79 +140,43 @@ const Phase1Dashboard = () => {
 
   // Root view (ยังไม่เลือก step) -> แสดง overview การ์ดทั้งหมด
   if (!activeSub) {
-    return (
-      <>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {showAck && (
-          <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
-            <Space direction="vertical" style={{ width: '100%' }} size={8}>
-              <Alert
-                type="error"
-                showIcon
-                message={<span><strong>ผลสอบหัวข้อ: ไม่ผ่าน</strong></span>}
-                description={
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    <div style={{ marginBottom: 8 }}>เหตุผล: {activeProject.examFailReason || '—'}</div>
-                    <div style={{ fontSize: 12, color: '#555' }}>คุณต้องยื่นหัวข้อใหม่ในรอบถัดไป กรุณากด "รับทราบผล" เพื่อเคลียร์หัวข้อนี้ออกจากระบบ</div>
-                  </div>
-                }
-              />
-              <div>
-                <Button danger type="primary" onClick={() => setAckModalOpen(true)} loading={ackLoading}>
-                  รับทราบผล (หัวข้อจะถูกเก็บถาวร)
-                </Button>
-              </div>
+    if (eligibilityLoading) {
+      return (
+        <div style={containerStyle}>
+          <Card bodyStyle={{ padding: 24 }}>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Title level={4} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>
+              <Text type="secondary">กำลังตรวจสอบสิทธิ์การใช้งานโครงงานของคุณ...</Text>
             </Space>
           </Card>
-        )}
-        {showPassed && (
-          <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #b7eb8f', background: '#f6ffed' }}>
-            <Space direction="vertical" style={{ width: '100%' }} size={6}>
+        </div>
+      );
+    }
+
+    if (!canAccessProject) {
+      return (
+        <div style={containerStyle}>
+          <Card bodyStyle={{ padding: 24 }} title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
+            <Paragraph style={{ marginBottom: 8 }}>
+              ระบบจะเปิดใช้งานฟีเจอร์โครงงานพิเศษเมื่อคุณผ่านเกณฑ์ตามข้อกำหนดด้านล่าง
+            </Paragraph>
+            <Text type="secondary">ตรวจสอบสถานะล่าสุดและเตรียมข้อมูลให้พร้อม จากนั้นรีเฟรชหน้านี้เพื่อใช้งานชุดเครื่องมือ Phase 1</Text>
+            {projectAccessReason && (
               <Alert
-                type="success"
+                style={{ marginTop: 16 }}
+                type="warning"
                 showIcon
-                message={<span><strong>ผลสอบหัวข้อ: ผ่าน</strong></span>}
-                description={<div style={{ whiteSpace: 'pre-wrap' }}>
-                  <div style={{ marginBottom: 4 }}>คุณสามารถเตรียมขั้นตอนต่อไป เช่น การจัดทำ Proposal (ฟีเจอร์กำลังพัฒนา)</div>
-                  <div style={{ fontSize: 12, color: '#555' }}>ระบบจะเปิดให้ทำกิจกรรมขั้นต่อไปเมื่อฟีเจอร์พร้อม</div>
-                </div>}
+                message="ยังไม่สามารถใช้งานโครงงานพิเศษ"
+                description={projectAccessReason}
               />
-            </Space>
+            )}
           </Card>
-        )}
-        <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
-          <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
-          <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
-        </Card>
-        <Row gutter={[16,16]}>
-          {steps.map(s => {
-            const disabled = !s.implemented;
-            return (
-              <Col xs={24} sm={12} md={8} key={s.key}>
-                <Card
-                  hoverable={!disabled}
-                  onClick={() => handleOpen(s.key)}
-                  bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: disabled ? 0.55 : 1 }}
-                  style={disabled ? { cursor: 'not-allowed' } : undefined}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {s.icon}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{s.title}</div>
-                      <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {s.implemented ? <Tag color="blue">พร้อมใช้งาน</Tag> : <Tag>กำลังพัฒนา</Tag>}
-                    {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
-                    
-                  </div>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      </div>
+          <ProjectEligibilityCheck />
+        </div>
+      );
+    }
+
+    const ackModal = (
       <Modal
         open={ackModalOpen}
         title="ยืนยันการรับทราบผลสอบไม่ผ่าน"
@@ -213,6 +195,82 @@ const Phase1Dashboard = () => {
           </Typography.Paragraph>
         )}
       </Modal>
+    );
+
+    return (
+      <>
+        <div style={containerStyle}>
+          {showAck && (
+            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
+              <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                <Alert
+                  type="error"
+                  showIcon
+                  message={<span><strong>ผลสอบหัวข้อ: ไม่ผ่าน</strong></span>}
+                  description={
+                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                      <div style={{ marginBottom: 8 }}>เหตุผล: {activeProject.examFailReason || '—'}</div>
+                      <div style={{ fontSize: 12, color: '#555' }}>คุณต้องยื่นหัวข้อใหม่ในรอบถัดไป กรุณากด "รับทราบผล" เพื่อเคลียร์หัวข้อนี้ออกจากระบบ</div>
+                    </div>
+                  }
+                />
+                <div>
+                  <Button danger type="primary" onClick={() => setAckModalOpen(true)} loading={ackLoading}>
+                    รับทราบผล (หัวข้อจะถูกเก็บถาวร)
+                  </Button>
+                </div>
+              </Space>
+            </Card>
+          )}
+          {showPassed && (
+            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #b7eb8f', background: '#f6ffed' }}>
+              <Space direction="vertical" style={{ width: '100%' }} size={6}>
+                <Alert
+                  type="success"
+                  showIcon
+                  message={<span><strong>ผลสอบหัวข้อ: ผ่าน</strong></span>}
+                  description={<div style={{ whiteSpace: 'pre-wrap' }}>
+                    <div style={{ marginBottom: 4 }}>คุณสามารถเตรียมขั้นตอนต่อไป เช่น การจัดทำ Proposal (ฟีเจอร์กำลังพัฒนา)</div>
+                    <div style={{ fontSize: 12, color: '#555' }}>ระบบจะเปิดให้ทำกิจกรรมขั้นต่อไปเมื่อฟีเจอร์พร้อม</div>
+                  </div>}
+                />
+              </Space>
+            </Card>
+          )}
+          <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
+            <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
+            <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
+          </Card>
+          <Row gutter={[16,16]}>
+            {steps.map(s => {
+              const disabled = !s.implemented;
+              return (
+                <Col xs={24} sm={12} md={8} key={s.key}>
+                  <Card
+                    hoverable={!disabled}
+                    onClick={() => handleOpen(s.key)}
+                    bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: disabled ? 0.55 : 1 }}
+                    style={disabled ? { cursor: 'not-allowed' } : undefined}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {s.icon}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>{s.title}</div>
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {s.implemented ? <Tag color="blue">พร้อมใช้งาน</Tag> : <Tag>กำลังพัฒนา</Tag>}
+                      {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
+                    </div>
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
+          <ProjectDashboard />
+        </div>
+        {ackModal}
       </>
     );
   }

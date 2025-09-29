@@ -4,6 +4,7 @@ import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import projectService from '../../services/projectService';
 import { teacherService } from '../../services/teacherService';
 import MilestoneSummary from './MilestoneSummary';
+import { TRACK_OPTIONS, CODE_TO_LABEL, normalizeIncomingTracks } from '../../constants/projectTracks';
 
 // รายชื่ออาจารย์ที่โหลดมาจาก backend (advisors)
 // เก็บเป็น state เพื่อรีเฟรชเมื่อเปิด modal / drawer
@@ -36,12 +37,41 @@ const ProjectDashboard = () => {
   const [addingMember, setAddingMember] = useState(false);
   const [memberError, setMemberError] = useState(null); // เก็บ error แสดงใต้ input
 
+  const getTrackCodes = useCallback((project) => {
+    if (!project) return [];
+    if (Array.isArray(project.tracks) && project.tracks.length) return project.tracks;
+    if (project.track) return [project.track];
+    return [];
+  }, []);
+
+  const fillEditForm = useCallback((project) => {
+    if (!project) {
+      editForm.resetFields();
+      return;
+    }
+    editForm.setFieldsValue({
+      projectNameTh: project.projectNameTh || undefined,
+      projectNameEn: project.projectNameEn || undefined,
+      projectType: project.projectType || undefined,
+      tracks: getTrackCodes(project),
+      advisorId: project.advisorId || undefined,
+      coAdvisorId: project.coAdvisorId || undefined
+    });
+  }, [editForm, getTrackCodes]);
+
+  const applyActiveProject = useCallback((project) => {
+    const normalized = normalizeIncomingTracks(project);
+    setActiveProject(normalized);
+    fillEditForm(normalized);
+  }, [fillEditForm]);
+
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       const res = await projectService.getMyProjects();
       if (res.success) {
-        setProjects(res.data || []);
+        const list = (res.data || []).map(normalizeIncomingTracks);
+        setProjects(list);
       } else {
         message.error(res.message || 'ดึงรายการโครงงานล้มเหลว');
       }
@@ -76,17 +106,9 @@ const ProjectDashboard = () => {
 
   const openDetail = useCallback(async (record) => {
     try {
-  const res = await projectService.getProjectWithSummary(record.projectId);
+      const res = await projectService.getProjectWithSummary(record.projectId);
       if (res.success) {
-        setActiveProject(res.data);
-        editForm.setFieldsValue({
-          projectNameTh: res.data.projectNameTh,
-          projectNameEn: res.data.projectNameEn,
-          projectType: res.data.projectType,
-          track: res.data.track,
-          advisorId: res.data.advisorId || undefined,
-          coAdvisorId: res.data.coAdvisorId || undefined
-        });
+        applyActiveProject(res.data);
         setDetailVisible(true);
         if (advisors.length === 0) loadAdvisors();
       } else {
@@ -95,12 +117,18 @@ const ProjectDashboard = () => {
     } catch (e) {
       message.error(e.message);
     }
-  }, [editForm, advisors.length, loadAdvisors]);
+  }, [applyActiveProject, advisors.length, loadAdvisors]);
 
   const handleCreate = async () => {
     try {
       const values = await createForm.validateFields();
-      const payload = { ...values };
+      const payload = {
+        ...values,
+        tracks: Array.isArray(values.tracks) ? values.tracks.filter(Boolean) : []
+      };
+      if (!payload.tracks.length) {
+        delete payload.tracks;
+      }
       const res = await projectService.createProject(payload);
       if (res.success) {
         message.success('สร้างโครงงานสำเร็จ');
@@ -121,11 +149,15 @@ const ProjectDashboard = () => {
     try {
       setUpdating(true);
       const values = await editForm.validateFields();
-      const res = await projectService.updateProject(activeProject.projectId, values);
+      const payload = {
+        ...values,
+        tracks: Array.isArray(values.tracks) ? values.tracks.filter(Boolean) : []
+      };
+      const res = await projectService.updateProject(activeProject.projectId, payload);
       if (res.success) {
         message.success('อัปเดตโครงงานสำเร็จ');
         const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
-        setActiveProject(refreshed.data);
+        applyActiveProject(refreshed.data);
         fetchProjects();
       } else {
         message.error(res.message || 'อัปเดตไม่สำเร็จ');
@@ -165,8 +197,8 @@ const ProjectDashboard = () => {
         message.success('เพิ่มสมาชิกสำเร็จ');
         setMemberInput('');
         setMemberError(null);
-  const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
-        setActiveProject(refreshed.data);
+        const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
+        applyActiveProject(refreshed.data);
         fetchProjects();
       } else {
         // map backend error (message field)
@@ -186,8 +218,8 @@ const ProjectDashboard = () => {
       const res = await projectService.activateProject(activeProject.projectId);
       if (res.success) {
         message.success('โครงงานเริ่มดำเนินการแล้ว');
-  const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
-        setActiveProject(refreshed.data);
+        const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
+        applyActiveProject(refreshed.data);
         fetchProjects();
       } else {
         message.error(res.message || 'ไม่สามารถเริ่มได้');
@@ -201,39 +233,49 @@ const ProjectDashboard = () => {
 
   const columns = useMemo(() => [
     { title: 'รหัส', dataIndex: 'projectCode', key: 'projectCode', width: 140 },
-    { title: 'ชื่อโครงงาน (TH)', dataIndex: 'projectNameTh', key: 'projectNameTh', ellipsis: true },
+    { title: 'ชื่อโครงงานพิเศษ', dataIndex: 'projectNameTh', key: 'projectNameTh', ellipsis: true },
+    { title: 'หมวด', key: 'tracks', width: 220, render: (_, r) => {
+      const codes = getTrackCodes(r);
+      return codes.length ? codes.map(code => <Tag key={code}>{CODE_TO_LABEL[code] || code}</Tag>) : '-';
+    } },
     { title: 'สถานะ', dataIndex: 'status', key: 'status', width: 130, render: s => <Tag color={statusColorMap[s] || 'default'}>{s}</Tag> },
     { title: 'สมาชิก', key: 'members', width: 160, render: (_, r) => (r.members || []).map(m => <Tag key={m.studentId}>{m.role === 'leader' ? 'หัวหน้า' : 'สมาชิก'}</Tag>) },
     { title: 'ดำเนินการ', key: 'action', width: 110, render: (_, r) => <Button size="small" onClick={() => openDetail(r)}>รายละเอียด</Button> }
-  ], [openDetail]);
+  ], [getTrackCodes, openDetail]);
 
   const canActivate = useMemo(() => {
     if (!activeProject) return false;
     const p = activeProject;
+    const hasTracks = getTrackCodes(p).length > 0;
     return p.status !== 'in_progress' && p.status !== 'completed' && p.status !== 'archived'
       && p.members?.length === 2
       && p.advisorId
       && p.projectNameTh && p.projectNameEn
-      && p.projectType && p.track;
-  }, [activeProject]);
+      && p.projectType && hasTracks;
+  }, [activeProject, getTrackCodes]);
 
   // สร้าง checklist รายการเงื่อนไข พร้อมสถานะผ่าน/ไม่ผ่าน
   const readinessChecklist = useMemo(() => {
     if (!activeProject) return [];
     const p = activeProject;
+    const hasTracks = getTrackCodes(p).length > 0;
     return [
       { key: 'members', label: 'มีสมาชิกครบ 2 คน', pass: (p.members?.length === 2) },
       { key: 'advisor', label: 'เลือกอาจารย์ที่ปรึกษา', pass: !!p.advisorId },
-      { key: 'name_th', label: 'ชื่อโครงงาน (TH)', pass: !!p.projectNameTh },
-      { key: 'name_en', label: 'ชื่อโครงงาน (EN)', pass: !!p.projectNameEn },
-      { key: 'type', label: 'ระบุประเภทโครงงาน', pass: !!p.projectType },
-      { key: 'track', label: 'ระบุ Track', pass: !!p.track }
+      { key: 'name_th', label: 'ชื่อโครงงานพิเศษภาษาไทย', pass: !!p.projectNameTh },
+      { key: 'name_en', label: 'ชื่อโครงงานพิเศษภาษาอังกฤษ', pass: !!p.projectNameEn },
+      { key: 'type', label: 'ระบุประเภทโครงงานพิเศษ', pass: !!p.projectType },
+      { key: 'track', label: 'ระบุหมวด', pass: hasTracks }
     ];
-  }, [activeProject]);
+  }, [activeProject, getTrackCodes]);
 
   const missingReasons = useMemo(() => readinessChecklist.filter(i => !i.pass).map(i => i.label), [readinessChecklist]);
 
+  const activeTrackCodes = useMemo(() => getTrackCodes(activeProject), [activeProject, getTrackCodes]);
+
   // แปลง advisors -> options ของ Select
+  const trackSelectOptions = useMemo(() => TRACK_OPTIONS.map(({ code, label }) => ({ value: code, label })), []);
+
   const advisorOptions = useMemo(() => {
     return advisors.map(a => ({
       value: a.teacherId,
@@ -263,10 +305,18 @@ const ProjectDashboard = () => {
         cancelText="ยกเลิก"
       >
         <Form form={createForm} layout="vertical">
-          <Form.Item label="ชื่อโครงงาน (TH)" name="projectNameTh" rules={[{ required: false }]}> <Input placeholder="เว้นว่างได้ใน Draft" /> </Form.Item>
-          <Form.Item label="ชื่อโครงงาน (EN)" name="projectNameEn" rules={[{ required: false }]}> <Input placeholder="Optional ใน Draft" /> </Form.Item>
+          <Form.Item label="ชื่อโครงงานภาษาไทย" name="projectNameTh" rules={[{ required: false }]}> <Input placeholder="เว้นว่างได้ใน Draft" /> </Form.Item>
+          <Form.Item label="ชื่อโครงงานภาษาอังกฤษ" name="projectNameEn" rules={[{ required: false }]}> <Input placeholder="Optional ใน Draft" /> </Form.Item>
           <Form.Item label="ประเภท" name="projectType"> <Select allowClear options={[{value:'govern',label:'Govern'},{value:'private',label:'Private'},{value:'research',label:'Research'}]} /> </Form.Item>
-          <Form.Item label="Track" name="track"> <Input placeholder="เช่น AI / SE / Network" /> </Form.Item>
+          <Form.Item label="หมวด" name="tracks">
+            <Select
+              mode="multiple"
+              allowClear
+              options={trackSelectOptions}
+              placeholder="เลือกหมวดโครงงาน (เลือกได้หลายหมวด)"
+              maxTagCount="responsive"
+            />
+          </Form.Item>
           <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId"> 
             <Select 
               allowClear 
@@ -295,10 +345,10 @@ const ProjectDashboard = () => {
 
       {/* Drawer รายละเอียด */}
       <Drawer
-        title={activeProject ? `รายละเอียดโครงงาน: ${activeProject.projectCode || ''}` : 'รายละเอียดโครงงาน'}
+        title={activeProject ? `รายละเอียดโครงงาน: ${activeProject.projectNameTh || ''}` : 'รายละเอียดโครงงาน'}
         open={detailVisible}
         width={640}
-        onClose={() => { setDetailVisible(false); setActiveProject(null); }}
+  onClose={() => { setDetailVisible(false); setActiveProject(null); editForm.resetFields(); }}
         extra={activeProject && <Tag color={statusColorMap[activeProject.status]}>{activeProject.status}</Tag>}
       >
         {activeProject && (
@@ -313,13 +363,30 @@ const ProjectDashboard = () => {
               <Descriptions.Item label="รหัส">{activeProject.projectCode || '-'}</Descriptions.Item>
               <Descriptions.Item label="ปีการศึกษา">{activeProject.academicYear || '-'}</Descriptions.Item>
               <Descriptions.Item label="ภาคเรียน">{activeProject.semester || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ประเภทโครงงาน">{activeProject.projectType || '-'}</Descriptions.Item>
+              <Descriptions.Item label="หมวด">
+                {activeTrackCodes.length
+                  ? activeTrackCodes.map(code => (
+                    <Tag key={code} color="blue">{CODE_TO_LABEL[code] || code}</Tag>
+                  ))
+                  : '-'}
+              </Descriptions.Item>
             </Descriptions>
             <Divider />
             <Form form={editForm} layout="vertical" onFinish={handleUpdate}>
-              <Form.Item label="ชื่อโครงงาน (TH)" name="projectNameTh"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
-              <Form.Item label="ชื่อโครงงาน (EN)" name="projectNameEn"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
+              <Form.Item label="ชื่อโครงงานภาษาไทย" name="projectNameTh"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
+              <Form.Item label="ชื่อโครงงานภาษาอังกฤษ" name="projectNameEn"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
               <Form.Item label="ประเภท" name="projectType"><Select disabled={['in_progress','completed','archived'].includes(activeProject.status)} allowClear options={[{value:'govern',label:'Govern'},{value:'private',label:'Private'},{value:'research',label:'Research'}]} /></Form.Item>
-              <Form.Item label="Track" name="track"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
+              <Form.Item label="หมวด" name="tracks">
+                <Select
+                  mode="multiple"
+                  disabled={['in_progress','completed','archived'].includes(activeProject.status)}
+                  allowClear
+                  options={trackSelectOptions}
+                  placeholder="เลือกหมวดโครงงาน"
+                  maxTagCount="responsive"
+                />
+              </Form.Item>
               <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorId">
                 <Select 
                   disabled={['in_progress','completed','archived'].includes(activeProject.status)} 
@@ -328,7 +395,7 @@ const ProjectDashboard = () => {
                   loading={advisorLoading}
                   placeholder={advisorLoading ? 'กำลังโหลด...' : 'เลือกอาจารย์'}
                   notFoundContent={advisorLoading ? 'กำลังโหลด...' : (advisorError ? advisorError : 'ไม่พบข้อมูล')} 
-                  onDropdownVisibleChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
+                  onOpenChange={(open) => { if (open && advisors.length === 0 && !advisorLoading) loadAdvisors(); }}
                   filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                 />
               </Form.Item>

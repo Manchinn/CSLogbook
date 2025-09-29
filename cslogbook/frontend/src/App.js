@@ -165,6 +165,11 @@ const App = () => {
                 } />
                 
                 {/* Project Routes */}
+                <Route path="/project" element={
+                  <ProtectedRoute roles={['student']}>
+                    <Navigate to="/project/phase1" replace />
+                  </ProtectedRoute>
+                } />
                 {/* ปรับโครงสร้าง: /project/phase1 เป็น Phase1Dashboard (single menu) */}
                 <Route path="/project/phase1" element={
                   <ProtectedRoute roles={['student']}>

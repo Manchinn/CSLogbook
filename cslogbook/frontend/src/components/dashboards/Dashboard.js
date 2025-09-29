@@ -311,7 +311,7 @@ function Dashboard() {
                   <Button
                     type="primary"
                     icon={<ProjectOutlined />}
-                    onClick={() => navigate('/project')}
+                    onClick={() => navigate('/project/phase1')}
                     style={{ marginTop: '16px' }}
                   >
                     จัดการโครงงานพิเศษ
