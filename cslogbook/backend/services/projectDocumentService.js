@@ -67,9 +67,9 @@ class ProjectDocumentService {
         throw new Error(`นักศึกษายังไม่มีสิทธิ์สร้างโครงงาน: ${denyReason}`);
       }
 
-      // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (leader)
+      // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (ไม่ว่าจะเป็น leader หรือ member)
       const existing = await ProjectMember.findOne({
-        where: { studentId, role: 'leader' },
+        where: { studentId },
         include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
         transaction: t
       });

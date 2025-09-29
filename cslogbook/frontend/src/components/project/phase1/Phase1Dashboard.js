@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message } from 'antd';
+import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message, Tooltip } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   FileAddOutlined,
@@ -41,14 +41,16 @@ const steps = [
     title: 'บันทึกการพบอาจารย์',
     desc: 'จองการพบและบันทึก log พร้อมส่งอีเมลขออนุมัติ',
     icon: <TeamOutlined style={{ fontSize: 28 }} />,
-    implemented: true
+    implemented: true,
+    requiresPostTopicUnlock: true
   },
   {
     key: 'exam-submit',
     title: 'ส่งเอกสารสอบ',
     desc: 'เตรียมเอกสารประกอบการสอบปลายภาคโครงงานพิเศษ 1',
     icon: <UploadOutlined style={{ fontSize: 28 }} />,
-    implemented: true
+    implemented: true,
+    requiresPostTopicUnlock: true
   },
   {
     key: 'exam-day',
@@ -56,7 +58,8 @@ const steps = [
     desc: 'สรุปกำหนดการ / บันทึกผล (อนาคต)',
     icon: <CalendarOutlined style={{ fontSize: 28 }} />,
     implemented: false,
-    comingSoon: true
+    comingSoon: true,
+    requiresPostTopicUnlock: true
   },
   {
     key: 'scope-adjust',
@@ -64,7 +67,8 @@ const steps = [
     desc: 'บันทึกการปรับขอบเขตหลังสอบ (อนาคต)',
     icon: <EditOutlined style={{ fontSize: 28 }} />,
     implemented: false,
-    comingSoon: true
+    comingSoon: true,
+    requiresPostTopicUnlock: true
   }
 ];
 
@@ -91,6 +95,27 @@ const Phase1Dashboard = () => {
     gap: 24
   }), []);
   const projectAccessReason = projectReason || messages?.project || null;
+
+  const postTopicLockReasons = useMemo(() => {
+    if (!activeProject) return [];
+    const reasons = [];
+    if (!activeProject.examResult) {
+      reasons.push('เจ้าหน้าที่ภาควิชายังไม่ได้บันทึกผลสอบหัวข้อในระบบ');
+    } else if (activeProject.examResult !== 'passed') {
+      reasons.push('ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้');
+    }
+    if (activeProject.status !== 'in_progress') {
+      reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ"');
+    }
+    return reasons;
+  }, [activeProject]);
+
+  const postTopicGateReasons = useMemo(() => {
+    if (!activeProject) {
+      return ['ยังไม่มีข้อมูลโครงงานที่เจ้าหน้าที่ภาควิชาบันทึกในระบบ'];
+    }
+    return postTopicLockReasons;
+  }, [activeProject, postTopicLockReasons]);
 
   const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
   const showPassed = activeProject && activeProject.examResult === 'passed';
@@ -125,8 +150,15 @@ const Phase1Dashboard = () => {
   const handleOpen = (stepKey) => {
     const meta = stepsMap[stepKey];
     if (!meta) return;
-    // ถ้ายังไม่ implement ป้องกันการเข้า (อาจเปลี่ยนเป็น Modal แจ้งเตือนในอนาคต)
     if (!meta.implemented) return;
+    if (meta.requiresPostTopicUnlock) {
+      const reasons = !activeProject ? postTopicGateReasons : postTopicGateReasons;
+      if (!activeProject || reasons.length > 0) {
+        const summary = reasons.length ? reasons.join(' • ') : 'ขั้นตอนนี้จะเปิดใช้งานหลังจากเจ้าหน้าที่บันทึกหัวข้อและสถานะโครงงานเป็น in_progress';
+        message.warning(summary);
+        return;
+      }
+    }
     navigate(`/project/phase1/${stepKey}`);
   };
 
@@ -136,6 +168,32 @@ const Phase1Dashboard = () => {
   if (activeSub && !activeStepMeta) {
     // reset กลับ root
     navigate('/project/phase1', { replace: true });
+  }
+
+  if (activeSub && activeStepMeta?.requiresPostTopicUnlock && (!activeProject || postTopicGateReasons.length > 0)) {
+    return (
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <Card>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Title level={4} style={{ margin: 0 }}>ยังไม่สามารถเข้าถึงขั้นตอนนี้ได้</Title>
+            <Text type="secondary">
+              ขั้นตอน {activeStepMeta.title} จะเปิดใช้งานหลังจากเจ้าหน้าที่ภาควิชาบันทึกผลสอบหัวข้อเป็น "ผ่าน" และโครงงานอยู่ในสถานะ "in_progress"
+            </Text>
+            <div>
+              <Text strong>เหตุผลที่ยังไม่พร้อม:</Text>
+              <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                {postTopicGateReasons.map((reason, index) => (
+                  <li key={`lock-${index}`}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+            <Button type="primary" onClick={() => navigate('/project/phase1')}>
+              ย้อนกลับไปหน้าหลัก Phase 1
+            </Button>
+          </Space>
+        </Card>
+      </div>
+    );
   }
 
   // Root view (ยังไม่เลือก step) -> แสดง overview การ์ดทั้งหมด
@@ -241,29 +299,74 @@ const Phase1Dashboard = () => {
             <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
             <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
           </Card>
+          {activeProject && postTopicLockReasons.length > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              message="ขั้นตอนหลังสอบหัวข้อยังไม่พร้อมใช้งาน"
+              description={(
+                <ul style={{ margin: '12px 0 0 20px', padding: 0 }}>
+                  {postTopicLockReasons.map((reason, index) => (
+                    <li key={`post-topic-alert-${index}`}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+              style={{ border: '1px solid #ffe58f', background: '#fffbe6' }}
+            />
+          )}
           <Row gutter={[16,16]}>
             {steps.map(s => {
-              const disabled = !s.implemented;
+              const lockReasonsForStep = s.requiresPostTopicUnlock ? postTopicGateReasons : [];
+              const cardDisabled = !s.implemented || lockReasonsForStep.length > 0;
+              const tooltipTitle = !s.implemented
+                ? 'ฟีเจอร์กำลังพัฒนา'
+                : (lockReasonsForStep.length
+                  ? (
+                    <div>
+                      {lockReasonsForStep.map((reason, index) => (
+                        <div key={`tooltip-${s.key}-${index}`}>{reason}</div>
+                      ))}
+                    </div>
+                  )
+                  : undefined);
               return (
                 <Col xs={24} sm={12} md={8} key={s.key}>
-                  <Card
-                    hoverable={!disabled}
-                    onClick={() => handleOpen(s.key)}
-                    bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: disabled ? 0.55 : 1 }}
-                    style={disabled ? { cursor: 'not-allowed' } : undefined}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      {s.icon}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600 }}>{s.title}</div>
-                        <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
+                  <Tooltip title={tooltipTitle} placement="top">
+                    <Card
+                      hoverable={!cardDisabled}
+                      onClick={() => {
+                        if (cardDisabled) {
+                          if (lockReasonsForStep.length) {
+                            message.info(lockReasonsForStep.join(' • '));
+                          }
+                          return;
+                        }
+                        handleOpen(s.key);
+                      }}
+                      bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: cardDisabled ? 0.55 : 1 }}
+                      style={cardDisabled ? { cursor: 'not-allowed' } : undefined}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {s.icon}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600 }}>{s.title}</div>
+                          <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {s.implemented ? <Tag color="blue">พร้อมใช้งาน</Tag> : <Tag>กำลังพัฒนา</Tag>}
-                      {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
-                    </div>
-                  </Card>
+                      <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {s.implemented ? (
+                          lockReasonsForStep.length > 0 ? (
+                            <Tag color="gold">รอเปิดใช้งาน</Tag>
+                          ) : (
+                            <Tag color="blue">พร้อมใช้งาน</Tag>
+                          )
+                        ) : (
+                          <Tag>กำลังพัฒนา</Tag>
+                        )}
+                        {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
+                      </div>
+                    </Card>
+                  </Tooltip>
                 </Col>
               );
             })}

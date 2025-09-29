@@ -114,6 +114,7 @@ async function bootstrap() {
 describe('Milestone + Proposal basic', () => {
   let leader, proj;
   beforeAll(async () => {
+    jest.resetModules();
     jest.isolateModules(() => {
       projectDocumentService = require('../../services/projectDocumentService');
       milestoneService = require('../../services/projectMilestoneService');

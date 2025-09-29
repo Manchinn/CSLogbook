@@ -13,6 +13,7 @@ describe('authService edge cases', () => {
 
   beforeEach(() => {
     jest.resetModules();
+    jest.doMock('../../utils/mailer', () => ({ sendLoginNotification: jest.fn().mockResolvedValue({ sent: false }) }), { virtual: true });
     jest.doMock('../../models', () => ({
       User: { findOne: jest.fn(({ where }) => {
         if (where.username === 'missing') return null;

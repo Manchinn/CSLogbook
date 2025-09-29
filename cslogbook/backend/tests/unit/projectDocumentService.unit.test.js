@@ -127,7 +127,7 @@ jest.doMock('../../models', () => ({
 }), { virtual: true });
 
 // ตอนนี้ require service หลัง mock ทั้งหมด
-const projectDocumentService = require('../../services/projectDocumentService');
+let projectDocumentService;
 
 // Helper สร้าง student + user (เพื่อให้ include user ทำงานและไม่โดน FK constraint)
 async function createStudent({ code, eligibleProject = true }) {
@@ -143,6 +143,10 @@ async function createStudent({ code, eligibleProject = true }) {
 }
 
 beforeAll(async () => {
+  jest.resetModules();
+  jest.isolateModules(() => {
+    projectDocumentService = require('../../services/projectDocumentService');
+  });
   await sequelize.sync({ force: true });
   // ไม่สร้าง Academic เพื่อทดสอบ fallback (service จะใช้ปีปัจจุบัน + ภาค 1)
 });

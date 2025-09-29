@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -52,6 +53,7 @@ dayjs.locale('th');
 const MeetingLogbookPage = () => {
   const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
   const { userData } = useAuth();
+  const navigate = useNavigate();
   const [listLoading, setListLoading] = useState(false);
   const [meetings, setMeetings] = useState([]);
   const [stats, setStats] = useState(null);
@@ -66,8 +68,24 @@ const MeetingLogbookPage = () => {
   const canManage = useMemo(() => ['student', 'teacher', 'admin'].includes(userData?.role), [userData?.role]);
   const canApprove = useMemo(() => ['teacher', 'admin'].includes(userData?.role), [userData?.role]);
 
+  const postTopicLockReasons = useMemo(() => {
+    if (!activeProject) return [];
+    const reasons = [];
+    if (!activeProject.examResult) {
+      reasons.push('เจ้าหน้าที่ภาควิชายังไม่ได้บันทึกผลสอบหัวข้อ');
+    } else if (activeProject.examResult !== 'passed') {
+      reasons.push('ผลสอบหัวข้อยังไม่ผ่าน');
+    }
+    if (activeProject.status !== 'in_progress') {
+      reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ" (in_progress)');
+    }
+    return reasons;
+  }, [activeProject]);
+
+  const isPostTopicLocked = !!activeProject && postTopicLockReasons.length > 0;
+
   const fetchMeetings = useCallback(async () => {
-    if (!activeProject?.projectId) return;
+    if (!activeProject?.projectId || isPostTopicLocked) return;
     try {
       setListLoading(true);
       const res = await meetingService.listMeetings(activeProject.projectId);
@@ -82,15 +100,23 @@ const MeetingLogbookPage = () => {
     } finally {
       setListLoading(false);
     }
-  }, [activeProject?.projectId]);
+  }, [activeProject?.projectId, isPostTopicLocked]);
 
   useEffect(() => {
-    if (activeProject?.projectId) {
+    if (activeProject?.projectId && !isPostTopicLocked) {
       fetchMeetings();
+    } else {
+      setMeetings([]);
+      setStats(null);
     }
-  }, [activeProject?.projectId, fetchMeetings]);
+  }, [activeProject?.projectId, fetchMeetings, isPostTopicLocked]);
 
   const handleCreateMeeting = async () => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.warning(summary);
+      return;
+    }
     if (!activeProject?.projectId) return;
     try {
       const values = await createMeetingForm.validateFields();
@@ -113,12 +139,22 @@ const MeetingLogbookPage = () => {
   };
 
   const handleOpenLogModal = (meeting) => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.info(summary);
+      return;
+    }
     setSelectedMeeting(meeting);
     createLogForm.resetFields();
     setCreateLogOpen(true);
   };
 
   const handleCreateLog = async () => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.warning(summary);
+      return;
+    }
     if (!activeProject?.projectId || !selectedMeeting?.meetingId) return;
     try {
       const values = await createLogForm.validateFields();
@@ -140,6 +176,11 @@ const MeetingLogbookPage = () => {
   };
 
   const handleApproval = async (meetingId, logId, status) => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.warning(summary);
+      return;
+    }
     if (!activeProject?.projectId) return;
     try {
       const loadingKey = `${meetingId}-${logId}-${status}`;
@@ -260,9 +301,31 @@ const MeetingLogbookPage = () => {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchMeetings} disabled={listLoading}>รีเฟรช</Button>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => {
+              if (isPostTopicLocked) {
+                message.info(postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน');
+                return;
+              }
+              fetchMeetings();
+            }}
+            disabled={listLoading}
+          >
+            รีเฟรช
+          </Button>
           {canManage && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateMeetingOpen(true)}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                if (isPostTopicLocked) {
+                  message.info(postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน');
+                  return;
+                }
+                setCreateMeetingOpen(true);
+              }}
+            >
               สร้างการประชุมใหม่
             </Button>
           )}
@@ -291,6 +354,26 @@ const MeetingLogbookPage = () => {
         </div>
       ) : !activeProject ? (
         <Empty description="ยังไม่มีโครงงานที่ต้องติดตาม" />
+      ) : isPostTopicLocked ? (
+        <Card>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              type="warning"
+              showIcon
+              message="ยังไม่สามารถบันทึกการพบอาจารย์ได้"
+              description={(
+                <ul style={{ margin: '12px 0 0 20px', padding: 0 }}>
+                  {(postTopicLockReasons.length ? postTopicLockReasons : ['ขั้นตอนนี้จะเปิดใช้งานหลังจากเจ้าหน้าที่บันทึกผลสอบหัวข้อและสถานะโครงงานเป็น in_progress']).map((reason, index) => (
+                    <li key={`meeting-lock-${index}`}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+            />
+            <Button type="primary" onClick={() => navigate('/project/phase1')}>
+              ย้อนกลับไปหน้าหลัก Phase 1
+            </Button>
+          </Space>
+        </Card>
       ) : meetings.length ? (
         <Collapse items={collapseItems} accordion bordered={false} />
       ) : (
