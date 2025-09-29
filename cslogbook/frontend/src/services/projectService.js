@@ -98,6 +98,24 @@ const projectService = {
     }
   },
 
+  getProject1DefenseRequest: async (projectId) => {
+    try {
+      const res = await apiClient.get(`/projects/${projectId}/kp02`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงข้อมูลคำขอสอบได้');
+    }
+  },
+
+  submitProject1DefenseRequest: async (projectId, payload) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/kp02`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถบันทึกคำขอสอบได้');
+    }
+  },
+
   /**
    * Archive (เฉพาะ admin – ฝั่ง UI ควรซ่อน)
    */

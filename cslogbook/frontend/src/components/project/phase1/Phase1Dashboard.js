@@ -45,8 +45,7 @@ const steps = [
     title: 'ส่งเอกสารสอบ',
     desc: 'เตรียมเอกสารประกอบการสอบปลายภาคโครงงานพิเศษ 1',
     icon: <UploadOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true
+    implemented: true
   },
   {
     key: 'exam-day',

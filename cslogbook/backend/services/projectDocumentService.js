@@ -598,15 +598,20 @@ class ProjectDocumentService {
     try {
       let project = projectInstance;
       if (!project) {
+        const defenseRequestModel = sequelize.models.ProjectDefenseRequest;
+        const includes = [{
+          model: ProjectMember,
+          as: 'members',
+          include: [{ model: Student, as: 'student' }]
+        }, {
+          model: ProjectTrack,
+          as: 'tracks'
+        }];
+        if (defenseRequestModel) {
+          includes.push({ model: defenseRequestModel, as: 'defenseRequests' });
+        }
         project = await ProjectDocument.findByPk(projectId, {
-          include: [{
-            model: ProjectMember,
-            as: 'members',
-            include: [{ model: Student, as: 'student' }]
-          }, {
-            model: ProjectTrack,
-            as: 'tracks'
-          }],
+          include: includes,
           transaction
         });
       }
@@ -804,6 +809,8 @@ class ProjectDocumentService {
     const hasAdvisor = !!project.advisorId;
     const isExamFailed = examResult === 'failed';
     const isExamFailedAcknowledged = isExamFailed && acknowledged;
+  const defenseRequests = project.defenseRequests || [];
+  const project1DefenseRequestSubmitted = defenseRequests.some(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled');
 
     const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
     const approvedMeetingLogs = studentMetrics.approvedLogs || 0;
@@ -821,6 +828,7 @@ class ProjectDocumentService {
       { key: 'PROJECT1_IN_PROGRESS', completed: projectInProgress },
       { key: 'PROJECT1_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
       { key: 'PROJECT1_READINESS_REVIEW', completed: projectInProgress && readinessApproved },
+      { key: 'PROJECT1_DEFENSE_REQUEST', completed: project1DefenseRequestSubmitted },
       { key: 'PROJECT1_DEFENSE_RESULT', completed: examResult === 'passed' || (isExamFailed && acknowledged), blocked: isExamFailed && !acknowledged }
     ];
 
@@ -877,6 +885,7 @@ class ProjectDocumentService {
         archivedAt: project.archivedAt,
         studentAcknowledgedAt: project.studentAcknowledgedAt,
   topicSubmitted: topicSubmissionComplete,
+    project1DefenseRequestSubmitted,
         failureAcknowledged: isExamFailedAcknowledged,
         meetingMetrics: {
           approvedLogs: approvedMeetingLogs,
@@ -900,6 +909,8 @@ class ProjectDocumentService {
         return 'in_progress';
       case 'PROJECT1_READINESS_REVIEW':
         return 'pending';
+      case 'PROJECT1_DEFENSE_REQUEST':
+        return 'awaiting_student_action';
       case 'PROJECT1_DEFENSE_RESULT':
         return 'pending';
       default:

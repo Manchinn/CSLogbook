@@ -4,6 +4,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 const controller = require('../controllers/projectDocumentController');
 const topicExamResultController = require('../controllers/topicExamResultController');
 const meetingController = require('../controllers/meetingController');
+const projectDefenseRequestController = require('../controllers/projectDefenseRequestController');
 
 // ต้อง auth ทั้งหมด
 router.use(authenticateToken);
@@ -13,6 +14,10 @@ router.post('/', controller.createProject);
 
 // รายการของฉัน
 router.get('/mine', controller.getMyProjects);
+
+// คำขอสอบโครงงานพิเศษ 1 (KP02 Project1)
+router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
+router.post('/:id/kp02', projectDefenseRequestController.submitProject1Request);
 
 // รายละเอียดโครงงาน (+ summary optional)
 router.get('/:id', async (req, res, next) => {
