@@ -4,7 +4,6 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   FileAddOutlined,
   ScheduleOutlined,
-  FileSyncOutlined,
   UploadOutlined,
   CalendarOutlined,
   EditOutlined,
@@ -40,14 +39,6 @@ const steps = [
     desc: 'จองการพบและบันทึก log พร้อมส่งอีเมลขออนุมัติ',
     icon: <TeamOutlined style={{ fontSize: 28 }} />,
     implemented: true
-  },
-  {
-    key: 'proposal-revision',
-    title: 'แก้ไขข้อเสนอ (Proposal)',
-    desc: 'อัปโหลดเอกสาร Proposal เวอร์ชัน และติดตามสถานะ (เชื่อม proposal upload ปัจจุบัน)',
-    icon: <FileSyncOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true
   },
   {
     key: 'exam-submit',

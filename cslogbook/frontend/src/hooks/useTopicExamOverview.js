@@ -9,7 +9,9 @@ const DEFAULT_FILTERS = {
   advisorId: '',
   readyOnly: false,
   sortBy: 'updatedAt',
-  order: 'desc'
+  order: 'desc',
+  academicYear: null,
+  semester: null
 };
 
 export function useTopicExamOverview(initialFilters = {}) {
@@ -17,7 +19,14 @@ export function useTopicExamOverview(initialFilters = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [records, setRecords] = useState([]);
-  const [meta, setMeta] = useState({ count: 0 });
+  const [meta, setMeta] = useState({
+    count: 0,
+    availableAcademicYears: [],
+    availableSemestersByYear: {},
+    defaultAcademicYear: null,
+    defaultSemester: null,
+    appliedFilters: {}
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -25,7 +34,14 @@ export function useTopicExamOverview(initialFilters = {}) {
     try {
   const payload = await fetchTopicExamOverview(filters);
   setRecords(payload?.data || []);
-  setMeta({ count: payload?.count || (payload?.data?.length || 0) });
+  setMeta({
+    count: payload?.count || (payload?.data?.length || 0),
+    availableAcademicYears: payload?.meta?.availableAcademicYears || [],
+    availableSemestersByYear: payload?.meta?.availableSemestersByYear || {},
+    defaultAcademicYear: payload?.meta?.defaultAcademicYear ?? null,
+    defaultSemester: payload?.meta?.defaultSemester ?? null,
+    appliedFilters: payload?.meta?.appliedFilters || {}
+  });
     } catch (e) {
       setError(e.message || 'Load failed');
     } finally {
@@ -34,6 +50,39 @@ export function useTopicExamOverview(initialFilters = {}) {
   }, [filters]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (filters.academicYear == null && meta.defaultAcademicYear != null) {
+      setFilters((prev) => ({ ...prev, academicYear: meta.defaultAcademicYear }));
+    }
+  }, [filters.academicYear, meta.defaultAcademicYear]);
+
+  useEffect(() => {
+    if (filters.academicYear == null) {
+      if (filters.semester != null) {
+        setFilters((prev) => ({ ...prev, semester: null }));
+      }
+      return;
+    }
+
+    const available = meta.availableSemestersByYear?.[filters.academicYear] || [];
+
+    if (!available.length) {
+      if (filters.semester != null) {
+        setFilters((prev) => ({ ...prev, semester: null }));
+      }
+      return;
+    }
+
+    if (filters.semester != null && !available.includes(filters.semester)) {
+      setFilters((prev) => ({ ...prev, semester: available[0] ?? null }));
+      return;
+    }
+
+    if (filters.semester == null && meta.defaultSemester != null && available.includes(meta.defaultSemester)) {
+      setFilters((prev) => ({ ...prev, semester: meta.defaultSemester }));
+    }
+  }, [filters.academicYear, filters.semester, meta.availableSemestersByYear, meta.defaultSemester]);
 
   const updateFilters = (patch) => {
     setFilters(f => ({ ...f, ...patch }));

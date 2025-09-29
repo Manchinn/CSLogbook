@@ -64,10 +64,16 @@ const initialSummary = { pending: 0, approved: 0, rejected: 0, total: 0 };
 const MeetingApprovals = () => {
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState(initialSummary);
-  const [filters, setFilters] = useState({ status: 'pending', q: '' });
+  const [filters, setFilters] = useState({ status: 'pending', q: '', academicYear: null, semester: null });
   const [loading, setLoading] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [meta, setMeta] = useState({
+    availableAcademicYears: [],
+    availableSemestersByYear: {},
+    defaultAcademicYear: null,
+    defaultSemester: null
+  });
 
   const statusOptions = useMemo(() => ([
     { value: 'pending', label: 'รออนุมัติ' },
@@ -91,6 +97,12 @@ const MeetingApprovals = () => {
         if (ignore) return;
         setItems(response.data?.items || []);
         setSummary(response.data?.summary || initialSummary);
+        setMeta({
+          availableAcademicYears: response.data?.meta?.availableAcademicYears || [],
+          availableSemestersByYear: response.data?.meta?.availableSemestersByYear || {},
+          defaultAcademicYear: response.data?.meta?.defaultAcademicYear ?? null,
+          defaultSemester: response.data?.meta?.defaultSemester ?? null
+        });
       } catch (error) {
         if (!ignore) {
           message.error(error.message || 'เกิดข้อผิดพลาดในการดึงคิวอนุมัติ');
@@ -108,12 +120,64 @@ const MeetingApprovals = () => {
     };
   }, [filters, reloadToken]);
 
+  useEffect(() => {
+    if (filters.academicYear == null && meta.defaultAcademicYear != null) {
+      setFilters((prev) => ({ ...prev, academicYear: meta.defaultAcademicYear }));
+    }
+  }, [filters.academicYear, meta.defaultAcademicYear]);
+
+  useEffect(() => {
+    if (filters.academicYear == null) {
+      if (filters.semester != null) {
+        setFilters((prev) => ({ ...prev, semester: null }));
+      }
+      return;
+    }
+
+    const available = meta.availableSemestersByYear?.[filters.academicYear] || [];
+    if (!available.length) {
+      if (filters.semester != null) {
+        setFilters((prev) => ({ ...prev, semester: null }));
+      }
+      return;
+    }
+
+    if (filters.semester != null && !available.includes(filters.semester)) {
+      setFilters((prev) => ({ ...prev, semester: available[0] ?? null }));
+      return;
+    }
+
+    if (filters.semester == null && meta.defaultSemester != null && available.includes(meta.defaultSemester)) {
+      setFilters((prev) => ({ ...prev, semester: meta.defaultSemester }));
+    }
+  }, [filters.academicYear, filters.semester, meta.availableSemestersByYear, meta.defaultSemester]);
+
   const handleStatusChange = (value) => {
     setFilters((prev) => ({ ...prev, status: value }));
   };
 
   const handleSearch = (value) => {
     setFilters((prev) => ({ ...prev, q: (value || '').trim() }));
+  };
+
+  const academicYearOptions = useMemo(() => {
+    const years = meta.availableAcademicYears || [];
+    return years.map((year) => ({ value: year, label: `${year}` }));
+  }, [meta.availableAcademicYears]);
+
+  const semesterOptions = useMemo(() => {
+    if (!filters.academicYear) return [];
+    const mapping = meta.availableSemestersByYear || {};
+    const semesters = mapping[filters.academicYear] || [];
+    return semesters.map((sem) => ({ value: sem, label: `ภาคเรียนที่ ${sem}` }));
+  }, [filters.academicYear, meta.availableSemestersByYear]);
+
+  const handleAcademicYearChange = (value) => {
+    setFilters((prev) => ({ ...prev, academicYear: value ?? null, semester: null }));
+  };
+
+  const handleSemesterChange = (value) => {
+    setFilters((prev) => ({ ...prev, semester: value ?? null }));
   };
 
   const handleRefresh = () => {
@@ -358,6 +422,23 @@ const MeetingApprovals = () => {
             <Button icon={<ReloadOutlined />} onClick={handleRefresh} disabled={loading}>
               รีเฟรช
             </Button>
+            <Select
+              placeholder="เลือกปีการศึกษา"
+              allowClear
+              style={{ width: 160 }}
+              value={filters.academicYear}
+              options={academicYearOptions}
+              onChange={handleAcademicYearChange}
+            />
+            <Select
+              placeholder="เลือกภาคเรียน"
+              allowClear
+              disabled={!filters.academicYear || !semesterOptions.length}
+              style={{ width: 150 }}
+              value={filters.semester}
+              options={semesterOptions}
+              onChange={handleSemesterChange}
+            />
             <Select
               value={filters.status}
               onChange={handleStatusChange}

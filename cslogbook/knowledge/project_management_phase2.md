@@ -350,7 +350,7 @@ Revision: Phase2 v1.0 (Initial Documentation)
 |------|---------------------|------------------|----------|
 | Backend Core | createProject, addMember, updateMetadata (ปรับ lock เฉพาะชื่อ+advisor), activateProject, archiveProject, getMyProjects, getProjectById, TopicExam overview service | Proposal upload, milestones, artifacts, events | Service แยกตามไฟล์ พร้อม Winston logging พื้นฐาน |
 | Data Model | ตาราง project_documents, project_members, project_tracks + รายละเอียดฟิลด์ (objective…constraints) | milestone/artifact/event tables | Detail fields edit-after-in_progress enabled |
-| Student Frontend | Draft Wizard (5 steps: basic, classification, members, details, review), hydration/edit mode, lock indicator, readiness tags, second member sync | Portal dashboard enrichment, Activate button UI, proposal upload | ใช้ AntD + Context provider |
+| Student Frontend | Draft Wizard (5 steps: basic, classification, members, details, review), hydration/edit mode, lock indicator, readiness tags, second member sync, Phase1 dashboard cards: เสนอหัวข้อ, สอบหัวข้อ, บันทึกการพบอาจารย์, ส่งเอกสารสอบ, วันสอบ, ปรับ Scope (ยกเลิกการ์ด "แก้ไขข้อเสนอ" เพราะรวมการปรับขอบเขต/วัตถุประสงค์ผ่านบันทึกการพบอาจารย์แล้ว) | Portal dashboard enrichment, Activate button UI | ใช้ AntD + Context provider |
 | Teacher Frontend | Topic Exam Overview table (flattened member rows, merged cells, filters, readyOnly toggle) | Extra filters (ปี/เทอม), pagination | ใช้ service topicExamService + rowSpan rendering |
 | Support Staff Frontend | (ยังไม่เริ่ม) | Dashboard, scheduling tools, archive UI | จะใช้ endpoints เดิม + ส่วนขยาย Phase 3 |
 | Admin | Archive endpoint (usable via API tools) | Admin panel UI | Minimal now |

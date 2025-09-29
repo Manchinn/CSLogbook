@@ -40,8 +40,8 @@ function flattenProjects(projects){
 
 exports.getOverview = async (req, res, next) => {
   try {
-    const data = await topicExamService.getTopicOverview(req.query);
-    res.json({ success: true, count: data.length, data });
+    const { data, meta } = await topicExamService.getTopicOverview(req.query);
+    res.json({ success: true, count: data.length, data, meta });
   } catch (err) {
     next(err);
   }
@@ -50,7 +50,7 @@ exports.getOverview = async (req, res, next) => {
 // GET /api/projects/topic-exam/export (XLSX only)
 exports.exportOverview = async (req,res,next)=>{
   try {
-    const data = await topicExamService.getTopicOverview(req.query);
+    const { data } = await topicExamService.getTopicOverview(req.query);
     const rawRows = flattenProjects(data);
     // จัดเรียงตามผลการสอบ: ผ่าน -> ไม่ผ่าน -> ว่าง
     const rank = { 'ผ่าน': 0, 'ไม่ผ่าน': 1, '': 2 };

@@ -1,7 +1,7 @@
 // frontend/src/components/teacher/topicExam/TopicExamOverview.js
 // ปรับให้แสดงเฉพาะ 4 คอลัมน์: ชื่อโครงงาน (TH), รหัสนักศึกษา, ชื่อเต็มนักศึกษา, Remark
 // แต่ยังคงส่วนตัวกรองพื้นฐาน (search, status, readyOnly) เพื่อการใช้งานต่อไปได้ หากต้องการตัดออกค่อย refactor เพิ่มเติมภายหลัง
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Table, Space, Input, Select, Switch, Card, Typography, Button, Tooltip } from 'antd';
 import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
@@ -28,7 +28,7 @@ function deriveRemark(project) {
 
 export default function TopicExamOverview() {
   const { Title } = Typography;
-  const { records, filters, updateFilters, loading, error, reload } = useTopicExamOverview();
+  const { records, filters, updateFilters, loading, error, reload, meta } = useTopicExamOverview();
 
   // แปลง project-level -> member-level rows (flat)
   const flatRows = useMemo(() => {
@@ -90,6 +90,26 @@ export default function TopicExamOverview() {
     }
   ], []);
 
+  const academicYearOptions = useMemo(() => {
+    const years = meta?.availableAcademicYears || [];
+    return years.map((year) => ({ label: `${year}`, value: year }));
+  }, [meta?.availableAcademicYears]);
+
+  const semesterOptions = useMemo(() => {
+    if (!filters.academicYear) return [];
+    const mapping = meta?.availableSemestersByYear || {};
+    const semesters = mapping[filters.academicYear] || [];
+    return semesters.map((sem) => ({ label: `ภาคเรียนที่ ${sem}`, value: sem }));
+  }, [filters.academicYear, meta?.availableSemestersByYear]);
+
+  const handleAcademicYearChange = useCallback((value) => {
+    updateFilters({ academicYear: value ?? null, semester: null });
+  }, [updateFilters]);
+
+  const handleSemesterChange = useCallback((value) => {
+    updateFilters({ semester: value ?? null });
+  }, [updateFilters]);
+
   // ฟังก์ชันดาวน์โหลดไฟล์ export (XLSX only)
   const handleExport = async () => {
     try {
@@ -125,6 +145,23 @@ export default function TopicExamOverview() {
         </Tooltip>
       </Space>}>
         <Space style={{ marginBottom: 16 }} wrap>
+          <Select
+            placeholder="เลือกปีการศึกษา"
+            allowClear
+            value={filters.academicYear}
+            onChange={handleAcademicYearChange}
+            style={{ width: 160 }}
+            options={academicYearOptions}
+          />
+          <Select
+            placeholder="เลือกภาคเรียน"
+            allowClear
+            disabled={!filters.academicYear || !semesterOptions.length}
+            value={filters.semester}
+            onChange={handleSemesterChange}
+            style={{ width: 150 }}
+            options={semesterOptions}
+          />
           <Input.Search placeholder="ค้นหา (code / title)" allowClear onSearch={val=>updateFilters({ search: val })} style={{ width: 240 }} />
           <Select value={filters.status} onChange={v=>updateFilters({ status: v })} style={{ width: 150 }} options={[
             { value: 'all', label: 'ทุกสถานะ' },

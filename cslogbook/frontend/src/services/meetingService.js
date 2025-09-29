@@ -1,5 +1,16 @@
 import apiClient from './apiClient';
 
+const sanitizeParams = (params = {}) => {
+  const cleaned = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') {
+      return;
+    }
+    cleaned[key] = value;
+  });
+  return cleaned;
+};
+
 function normalizeError(error, fallbackMessage) {
   if (error?.response?.data?.message) {
     return new Error(error.response.data.message);
@@ -49,7 +60,7 @@ const meetingService = {
 
   listTeacherApprovals: async (params = {}) => {
     try {
-      const res = await apiClient.get('/teachers/meeting-approvals', { params });
+      const res = await apiClient.get('/teachers/meeting-approvals', { params: sanitizeParams(params) });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถดึงคิวอนุมัติบันทึกการพบได้');

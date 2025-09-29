@@ -4,6 +4,7 @@
 // ถ้าในอนาคตมีตารางเฉพาะสำหรับการ submit topic จะ refactor มา join เพิ่มได้
 
 const { Op } = require("sequelize");
+const { sequelize } = require("../config/database");
 // เพิ่ม User เพื่อ join เอาชื่ออาจารย์/นักศึกษาที่จริงเก็บไว้ในตาราง users
 const {
   ProjectDocument,
@@ -45,7 +46,7 @@ function computeReadiness(projectInstance, { enforceMemberMin } = {}) {
 /**
  * สร้าง where / filter เฉพาะจาก query
  */
-function buildFilters({ status, advisorId, search, readyOnly }) {
+function buildFilters({ status, advisorId, search, readyOnly, academicYear, semester }) {
   const where = {};
   if (status && status !== "all") {
     where.status = status; // status ของ ProjectDocument (draft|advisor_assigned|in_progress|completed|archived)
@@ -61,14 +62,44 @@ function buildFilters({ status, advisorId, search, readyOnly }) {
       { projectCode: like },
     ];
   }
-  return { where, readyOnly: readyOnly === "true" || readyOnly === true };
+  let yearFilter = null;
+  if (academicYear !== undefined && academicYear !== null && academicYear !== "") {
+    const year = Number(academicYear);
+    if (Number.isInteger(year) && year >= 1900) {
+      where.academicYear = year;
+      yearFilter = year;
+    }
+  }
+  let semesterFilter = null;
+  if (semester !== undefined && semester !== null && semester !== "") {
+    const sem = Number(semester);
+    if ([1, 2, 3].includes(sem)) {
+      where.semester = sem;
+      semesterFilter = sem;
+    }
+  }
+  return {
+    where,
+    filters: {
+      academicYear: yearFilter,
+      semester: semesterFilter,
+    },
+    readyOnly: readyOnly === "true" || readyOnly === true,
+  };
 }
 
 /**
  * Main overview aggregation
  */
 async function getTopicOverview(query = {}) {
-  const { where, readyOnly } = buildFilters(query);
+  const { where, readyOnly, filters } = buildFilters(query);
+  const metaWhere = { ...where };
+  if (Object.prototype.hasOwnProperty.call(metaWhere, "academicYear")) {
+    delete metaWhere.academicYear;
+  }
+  if (Object.prototype.hasOwnProperty.call(metaWhere, "semester")) {
+    delete metaWhere.semester;
+  }
 
   const order = [];
   // รองรับ sortBy (minimal)
@@ -194,8 +225,73 @@ async function getTopicOverview(query = {}) {
     });
   }
 
+  let availableAcademicYears = [];
+  let availableSemestersByYear = {};
+
+  try {
+    const periodRows = await ProjectDocument.findAll({
+      attributes: [
+        [sequelize.col("academic_year"), "academicYear"],
+        [sequelize.col("semester"), "semester"],
+      ],
+      where: metaWhere,
+      group: ["academic_year", "semester"],
+      order: [
+        [sequelize.literal("academic_year IS NULL"), "ASC"],
+        [sequelize.literal("academic_year"), "DESC"],
+        [sequelize.literal("semester"), "ASC"],
+      ],
+      raw: true,
+    });
+
+    availableAcademicYears = [];
+    availableSemestersByYear = {};
+    periodRows.forEach((row) => {
+      const year = row.academicYear;
+      const sem = row.semester;
+      if (year == null) {
+        return;
+      }
+      if (!availableAcademicYears.includes(year)) {
+        availableAcademicYears.push(year);
+      }
+      if (!availableSemestersByYear[year]) {
+        availableSemestersByYear[year] = [];
+      }
+      if (sem != null && !availableSemestersByYear[year].includes(sem)) {
+        availableSemestersByYear[year].push(sem);
+      }
+    });
+    availableAcademicYears.sort((a, b) => b - a);
+    Object.values(availableSemestersByYear).forEach((list) => list.sort((a, b) => a - b));
+  } catch (metaErr) {
+    logger.warn(`[TopicExamService] overview meta build failed: ${metaErr.message}`);
+  }
+
+  const defaultAcademicYear =
+    filters.academicYear != null
+      ? filters.academicYear
+      : availableAcademicYears.length > 0
+      ? availableAcademicYears[0]
+      : null;
+  const defaultSemester =
+    filters.semester != null
+      ? filters.semester
+      : defaultAcademicYear && availableSemestersByYear[defaultAcademicYear]
+      ? availableSemestersByYear[defaultAcademicYear][0] || null
+      : null;
+
   logger.info(`[TopicExamService] overview result size=${result.length}`);
-  return result;
+  return {
+    data: result,
+    meta: {
+      availableAcademicYears,
+      availableSemestersByYear,
+      defaultAcademicYear,
+      defaultSemester,
+      appliedFilters: filters,
+    },
+  };
 }
 
 module.exports = { getTopicOverview };
