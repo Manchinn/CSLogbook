@@ -14,7 +14,7 @@ import { ExclamationCircleOutlined } from '@ant-design/icons';
 const { Title, Text } = Typography;
 
 export default function TopicExamResultPage() {
-  const { records, filters, loading, error, reload } = useTopicExamOverview();
+  const { records, filters, loading, error, reload, updateFilters, meta } = useTopicExamOverview();
   const [failModalOpen, setFailModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -87,10 +87,30 @@ export default function TopicExamResultPage() {
     return map;
   }, [advisorOptions]);
 
+  const academicYearOptions = useMemo(() => {
+    const years = meta?.availableAcademicYears || [];
+    return years.map((year) => ({ value: year, label: `${year}` }));
+  }, [meta?.availableAcademicYears]);
+
+  const semesterOptions = useMemo(() => {
+    if (!filters.academicYear) return [];
+    const mapping = meta?.availableSemestersByYear || {};
+    const semesters = mapping[filters.academicYear] || [];
+    return semesters.map((sem) => ({ value: sem, label: `ภาคเรียนที่ ${sem}` }));
+  }, [filters.academicYear, meta?.availableSemestersByYear]);
+
   const handleAdvisorChange = useCallback((projectId, value) => {
     const normalized = typeof value === 'number' ? value : (value ? Number(value) : null);
     setAdvisorSelections((prev) => ({ ...prev, [projectId]: normalized }));
   }, []);
+
+  const handleAcademicYearChange = useCallback((value) => {
+    updateFilters({ academicYear: value ?? null, semester: null, projectId: null });
+  }, [updateFilters]);
+
+  const handleSemesterChange = useCallback((value) => {
+    updateFilters({ semester: value ?? null });
+  }, [updateFilters]);
 
   // ฟังก์ชันกดผ่าน (เรียก API จริง)
   const handlePass = useCallback(async (project) => {
@@ -275,9 +295,26 @@ export default function TopicExamResultPage() {
     <div>
       <Title level={3}>บันทึกผลสอบหัวข้อ (เจ้าหน้าที่ภาควิชา)</Title>
       <Alert type="info" showIcon style={{ marginBottom: 16 }} message="เจ้าหน้าที่สามารถบันทึกผลสอบหัวข้อได้ครั้งเดียว หากบันทึกผิดให้ติดต่อผู้ดูแลระบบ" />
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap>
         <Button onClick={reload} loading={loading}>รีเฟรช</Button>
         <Button onClick={handleExport}>Export XLSX</Button>
+        <Select
+          placeholder="เลือกปีการศึกษา"
+          allowClear
+          style={{ width: 160 }}
+          value={filters.academicYear}
+          options={academicYearOptions}
+          onChange={handleAcademicYearChange}
+        />
+        <Select
+          placeholder="เลือกภาคเรียน"
+          allowClear
+          style={{ width: 150 }}
+          value={filters.semester}
+          disabled={!filters.academicYear || !semesterOptions.length}
+          options={semesterOptions}
+          onChange={handleSemesterChange}
+        />
       </Space>
       {error && <Alert type="error" message={error} style={{ marginBottom: 12 }} />}
       <Table
