@@ -45,6 +45,7 @@ export const evaluateProjectReadiness = (project) => {
 		return {
 			checklist: [],
 			missingReasons: ['ยังไม่มีข้อมูลโครงงาน'],
+			blockingMessage: null,
 			canActivate: false
 		};
 	}
@@ -52,15 +53,14 @@ export const evaluateProjectReadiness = (project) => {
 	const normalized = ensureNormalizedProject(project);
 	const checklist = buildProjectActivationChecklist(normalized);
 	const missingChecklist = checklist.filter(item => !item.pass).map(item => item.label);
-	const blocking = PROJECT_ACTIVATION_BLOCK_STATUSES.includes(normalized.status)
-		? [STATUS_BLOCK_MESSAGES[normalized.status] || 'สถานะปัจจุบันไม่อนุญาตให้เริ่ม']
-		: [];
-
-	const missingReasons = [...missingChecklist, ...blocking];
+	const blockingMessage = PROJECT_ACTIVATION_BLOCK_STATUSES.includes(normalized.status)
+		? (STATUS_BLOCK_MESSAGES[normalized.status] || 'สถานะปัจจุบันไม่อนุญาตให้เริ่ม')
+		: null;
 
 	return {
 		checklist,
-		missingReasons,
-		canActivate: missingReasons.length === 0
+		missingReasons: missingChecklist,
+		blockingMessage,
+		canActivate: !blockingMessage && missingChecklist.length === 0
 	};
 };

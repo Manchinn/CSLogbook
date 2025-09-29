@@ -19,6 +19,12 @@ const statusColorMap = {
   archived: 'error'
 };
 
+const PROJECT_TYPE_LABELS = {
+  govern: 'ความร่วมมือกับหน่วยงานรัฐ',
+  private: 'ความร่วมมือกับภาคเอกชน',
+  research: 'โครงงานวิจัย'
+};
+
 const { Title, Text } = Typography; // ใช้ Text สำหรับ error/help
 
 const ProjectDashboard = () => {
@@ -213,22 +219,30 @@ const ProjectDashboard = () => {
         const readiness = evaluateProjectReadiness(project);
         const tooltipTitle = readiness.canActivate
           ? 'พร้อมเริ่มโครงงาน'
-          : (readiness.missingReasons.length ? `ยังขาด: ${readiness.missingReasons.join(', ')}` : 'กรุณาตรวจสอบรายละเอียดใน Drawer');
+          : (readiness.blockingMessage
+            ? readiness.blockingMessage
+            : (readiness.missingReasons.length ? `ยังขาด: ${readiness.missingReasons.join(', ')}` : 'กรุณาตรวจสอบรายละเอียดใน Drawer'));
         const isActivating = activatingId === project.projectId;
         return (
           <Space size="small">
             <Button size="small" onClick={() => openDetail(project)}>รายละเอียด</Button>
-            <Tooltip title={tooltipTitle}>
-              <Button
-                size="small"
-                type="primary"
-                disabled={!readiness.canActivate}
-                loading={isActivating}
-                onClick={() => handleActivate(project)}
-              >
-                เริ่มโครงงาน
-              </Button>
-            </Tooltip>
+            {readiness.blockingMessage ? (
+              <Tooltip title={readiness.blockingMessage}>
+                <Tag color="blue" style={{ margin: 0 }}>กำลังดำเนินการ</Tag>
+              </Tooltip>
+            ) : (
+              <Tooltip title={tooltipTitle}>
+                <Button
+                  size="small"
+                  type="primary"
+                  disabled={!readiness.canActivate}
+                  loading={isActivating}
+                  onClick={() => handleActivate(project)}
+                >
+                  เริ่มโครงงาน
+                </Button>
+              </Tooltip>
+            )}
           </Space>
         );
       }
@@ -283,7 +297,7 @@ const ProjectDashboard = () => {
               <Descriptions.Item label="รหัส">{activeProject.projectCode || '-'}</Descriptions.Item>
               <Descriptions.Item label="ปีการศึกษา">{activeProject.academicYear || '-'}</Descriptions.Item>
               <Descriptions.Item label="ภาคเรียน">{activeProject.semester || '-'}</Descriptions.Item>
-              <Descriptions.Item label="ประเภทโครงงาน">{activeProject.projectType || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ประเภทโครงงาน">{PROJECT_TYPE_LABELS[activeProject.projectType] || '-'}</Descriptions.Item>
               <Descriptions.Item label="หมวด">
                 {activeTrackCodes.length
                   ? activeTrackCodes.map(code => (
@@ -296,7 +310,17 @@ const ProjectDashboard = () => {
             <Form form={editForm} layout="vertical" onFinish={handleUpdate}>
               <Form.Item label="ชื่อโครงงานภาษาไทย" name="projectNameTh"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
               <Form.Item label="ชื่อโครงงานภาษาอังกฤษ" name="projectNameEn"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
-              <Form.Item label="ประเภท" name="projectType"><Select disabled={['in_progress','completed','archived'].includes(activeProject.status)} allowClear options={[{value:'govern',label:'Govern'},{value:'private',label:'Private'},{value:'research',label:'Research'}]} /></Form.Item>
+              <Form.Item label="ประเภท" name="projectType">
+                <Select
+                  disabled={['in_progress','completed','archived'].includes(activeProject.status)}
+                  allowClear
+                  options={[
+                    { value: 'govern', label: PROJECT_TYPE_LABELS.govern },
+                    { value: 'private', label: PROJECT_TYPE_LABELS.private },
+                    { value: 'research', label: PROJECT_TYPE_LABELS.research }
+                  ]}
+                />
+              </Form.Item>
               <Form.Item label="หมวด" name="tracks">
                 <Select
                   mode="multiple"
@@ -380,12 +404,22 @@ const ProjectDashboard = () => {
               <Text type="success" style={{ display: 'block', marginBottom: 12 }}>
                 สามารถเริ่มโครงงานได้ผ่านปุ่มในตาราง "โครงงานของฉัน"
               </Text>
+            ) : activeReadiness.blockingMessage ? (
+              <Text
+                type={activeProject?.status === 'in_progress' ? 'success'
+                  : activeProject?.status === 'completed' ? 'secondary'
+                  : activeProject?.status === 'archived' ? 'danger'
+                  : 'secondary'}
+                style={{ display: 'block', marginBottom: 12 }}
+              >
+                {activeReadiness.blockingMessage}
+              </Text>
             ) : (
               <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
                 เมื่อเงื่อนไขครบ ระบบจะแสดงปุ่ม "เริ่มดำเนินโครงงาน" ในตาราง "โครงงานของฉัน"
               </Text>
             )}
-            {!activeReadiness.canActivate && activeReadiness.missingReasons.length > 0 && (
+            {!activeReadiness.canActivate && !activeReadiness.blockingMessage && activeReadiness.missingReasons.length > 0 && (
               <Text type="danger" style={{ display: 'block', marginBottom: 12 }}>
                 {`ยังขาด: ${activeReadiness.missingReasons.join(', ')}`}
               </Text>

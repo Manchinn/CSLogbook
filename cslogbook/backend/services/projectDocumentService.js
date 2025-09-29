@@ -529,7 +529,7 @@ class ProjectDocumentService {
         examResult: result,
         examFailReason: reason || null,
         examResultAt: new Date(),
-        status: result === 'passed' ? 'completed' : project.status
+        status: result === 'passed' ? 'in_progress' : project.status
       };
 
       if (advisorId !== undefined) {
