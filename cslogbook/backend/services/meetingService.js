@@ -477,7 +477,7 @@ class MeetingService {
       projectWhere.projectId = projectId;
     }
 
-    const metaWhere = { ...projectWhere };
+  const metaWhere = { ...teacherConstraint };
     if (metaWhere.academicYear !== undefined) {
       delete metaWhere.academicYear;
     }
@@ -691,6 +691,7 @@ class MeetingService {
 
     let availableAcademicYears = [];
     let availableSemestersByYear = {};
+    let projectsByAcademicYear = {};
     try {
       const periodRows = await ProjectDocument.findAll({
         attributes: [
@@ -727,6 +728,40 @@ class MeetingService {
       });
       availableAcademicYears.sort((a, b) => b - a);
       Object.values(availableSemestersByYear).forEach((list) => list.sort((a, b) => a - b));
+
+      const projectRows = await ProjectDocument.findAll({
+        attributes: [
+          [sequelize.col('academic_year'), 'academicYear'],
+          [sequelize.col('project_id'), 'projectId'],
+          [sequelize.col('project_code'), 'projectCode'],
+          [sequelize.col('project_name_th'), 'projectNameTh'],
+          [sequelize.col('project_name_en'), 'projectNameEn'],
+          [sequelize.col('semester'), 'semester']
+        ],
+        where: metaWhere,
+        order: [
+          [sequelize.literal('academic_year'), 'DESC'],
+          [sequelize.literal('semester'), 'ASC'],
+          ['project_name_th', 'ASC']
+        ],
+        raw: true
+      });
+
+      projectsByAcademicYear = projectRows.reduce((acc, row) => {
+        const year = row.academicYear;
+        if (year == null) return acc;
+        if (!acc[year]) {
+          acc[year] = [];
+        }
+        acc[year].push({
+          projectId: row.projectId,
+          projectCode: row.projectCode,
+          titleTh: row.projectNameTh,
+          titleEn: row.projectNameEn,
+          semester: row.semester
+        });
+        return acc;
+      }, {});
     } catch (metaError) {
       logger.warn('meetingService.listTeacherMeetingApprovals meta build failed', { error: metaError.message });
     }
@@ -753,7 +788,8 @@ class MeetingService {
         availableAcademicYears,
         availableSemestersByYear,
         defaultAcademicYear,
-        defaultSemester
+        defaultSemester,
+        projectsByAcademicYear
       }
     };
   }

@@ -46,13 +46,21 @@ function computeReadiness(projectInstance, { enforceMemberMin } = {}) {
 /**
  * สร้าง where / filter เฉพาะจาก query
  */
-function buildFilters({ status, advisorId, search, readyOnly, academicYear, semester }) {
+function buildFilters({ status, advisorId, search, readyOnly, academicYear, semester, projectId }) {
   const where = {};
   if (status && status !== "all") {
     where.status = status; // status ของ ProjectDocument (draft|advisor_assigned|in_progress|completed|archived)
   }
   if (advisorId) {
     where.advisorId = advisorId;
+  }
+  let projectFilter = null;
+  if (projectId !== undefined && projectId !== null && projectId !== "") {
+    const numericProjectId = Number(projectId);
+    if (Number.isInteger(numericProjectId) && numericProjectId > 0) {
+      where.projectId = numericProjectId;
+      projectFilter = numericProjectId;
+    }
   }
   if (search) {
     const like = { [Op.like]: `%${search}%` };
@@ -83,6 +91,7 @@ function buildFilters({ status, advisorId, search, readyOnly, academicYear, seme
     filters: {
       academicYear: yearFilter,
       semester: semesterFilter,
+      projectId: projectFilter,
     },
     readyOnly: readyOnly === "true" || readyOnly === true,
   };
@@ -99,6 +108,9 @@ async function getTopicOverview(query = {}) {
   }
   if (Object.prototype.hasOwnProperty.call(metaWhere, "semester")) {
     delete metaWhere.semester;
+  }
+  if (Object.prototype.hasOwnProperty.call(metaWhere, "projectId")) {
+    delete metaWhere.projectId;
   }
 
   const order = [];
@@ -281,6 +293,45 @@ async function getTopicOverview(query = {}) {
       ? availableSemestersByYear[defaultAcademicYear][0] || null
       : null;
 
+  let projectsByAcademicYear = {};
+  try {
+    const projectRows = await ProjectDocument.findAll({
+      attributes: [
+        [sequelize.col("academic_year"), "academicYear"],
+        [sequelize.col("project_id"), "projectId"],
+        [sequelize.col("project_code"), "projectCode"],
+        [sequelize.col("project_name_th"), "projectNameTh"],
+        [sequelize.col("project_name_en"), "projectNameEn"],
+        [sequelize.col("semester"), "semester"],
+      ],
+      where: metaWhere,
+      order: [
+        [sequelize.literal("academic_year"), "DESC"],
+        [sequelize.literal("semester"), "ASC"],
+        ["project_name_th", "ASC"],
+      ],
+      raw: true,
+    });
+
+    projectsByAcademicYear = projectRows.reduce((acc, row) => {
+      const year = row.academicYear;
+      if (year == null) return acc;
+      if (!acc[year]) {
+        acc[year] = [];
+      }
+      acc[year].push({
+        projectId: row.projectId,
+        projectCode: row.projectCode,
+        titleTh: row.projectNameTh,
+        titleEn: row.projectNameEn,
+        semester: row.semester,
+      });
+      return acc;
+    }, {});
+  } catch (projectMetaErr) {
+    logger.warn(`[TopicExamService] project meta build failed: ${projectMetaErr.message}`);
+  }
+
   logger.info(`[TopicExamService] overview result size=${result.length}`);
   return {
     data: result,
@@ -290,6 +341,7 @@ async function getTopicOverview(query = {}) {
       defaultAcademicYear,
       defaultSemester,
       appliedFilters: filters,
+      projectsByAcademicYear,
     },
   };
 }

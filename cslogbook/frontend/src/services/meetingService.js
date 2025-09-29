@@ -6,6 +6,14 @@ const sanitizeParams = (params = {}) => {
     if (value === null || value === undefined || value === '') {
       return;
     }
+    if (key === 'projectId') {
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue)) {
+        return;
+      }
+      cleaned[key] = numericValue;
+      return;
+    }
     cleaned[key] = value;
   });
   return cleaned;

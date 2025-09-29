@@ -11,7 +11,8 @@ const DEFAULT_FILTERS = {
   sortBy: 'updatedAt',
   order: 'desc',
   academicYear: null,
-  semester: null
+  semester: null,
+  projectId: null
 };
 
 export function useTopicExamOverview(initialFilters = {}) {
@@ -25,7 +26,8 @@ export function useTopicExamOverview(initialFilters = {}) {
     availableSemestersByYear: {},
     defaultAcademicYear: null,
     defaultSemester: null,
-    appliedFilters: {}
+    appliedFilters: {},
+    projectsByAcademicYear: {}
   });
 
   const load = useCallback(async () => {
@@ -40,7 +42,8 @@ export function useTopicExamOverview(initialFilters = {}) {
     availableSemestersByYear: payload?.meta?.availableSemestersByYear || {},
     defaultAcademicYear: payload?.meta?.defaultAcademicYear ?? null,
     defaultSemester: payload?.meta?.defaultSemester ?? null,
-    appliedFilters: payload?.meta?.appliedFilters || {}
+    appliedFilters: payload?.meta?.appliedFilters || {},
+    projectsByAcademicYear: payload?.meta?.projectsByAcademicYear || {}
   });
     } catch (e) {
       setError(e.message || 'Load failed');
@@ -62,27 +65,36 @@ export function useTopicExamOverview(initialFilters = {}) {
       if (filters.semester != null) {
         setFilters((prev) => ({ ...prev, semester: null }));
       }
-      return;
-    }
-
-    const available = meta.availableSemestersByYear?.[filters.academicYear] || [];
-
-    if (!available.length) {
-      if (filters.semester != null) {
-        setFilters((prev) => ({ ...prev, semester: null }));
+      if (filters.projectId != null) {
+        setFilters((prev) => ({ ...prev, projectId: null }));
       }
       return;
     }
 
-    if (filters.semester != null && !available.includes(filters.semester)) {
-      setFilters((prev) => ({ ...prev, semester: available[0] ?? null }));
+    const availableSemesters = meta.availableSemestersByYear?.[filters.academicYear] || [];
+    const projectList = meta.projectsByAcademicYear?.[filters.academicYear] || [];
+
+    if (!availableSemesters.length && filters.semester != null) {
+      setFilters((prev) => ({ ...prev, semester: null }));
+    }
+
+    if (!projectList.length && filters.projectId != null) {
+      setFilters((prev) => ({ ...prev, projectId: null }));
+    }
+
+    if (filters.semester != null && !availableSemesters.includes(filters.semester)) {
+      setFilters((prev) => ({ ...prev, semester: availableSemesters[0] ?? null }));
       return;
     }
 
-    if (filters.semester == null && meta.defaultSemester != null && available.includes(meta.defaultSemester)) {
+    if (filters.semester == null && meta.defaultSemester != null && availableSemesters.includes(meta.defaultSemester)) {
       setFilters((prev) => ({ ...prev, semester: meta.defaultSemester }));
     }
-  }, [filters.academicYear, filters.semester, meta.availableSemestersByYear, meta.defaultSemester]);
+
+    if (filters.projectId != null && !projectList.some((proj) => proj.projectId === filters.projectId)) {
+      setFilters((prev) => ({ ...prev, projectId: projectList[0]?.projectId ?? null }));
+    }
+  }, [filters.academicYear, filters.semester, filters.projectId, meta.availableSemestersByYear, meta.defaultSemester, meta.projectsByAcademicYear]);
 
   const updateFilters = (patch) => {
     setFilters(f => ({ ...f, ...patch }));
