@@ -120,43 +120,56 @@ afterAll(async () => {
 describe('submitProject1Request', () => {
   test('บันทึกคำขอใหม่สำเร็จและเรียก sync workflow', async () => {
     const payload = {
-      examDate: '2025-10-01',
-      examTime: '13:30',
-      examLocation: 'ห้องประชุม 7',
-      committee: [{ role: 'chair', name: 'Dr.A' }],
-      advisorName: 'Dr.B'
+      advisorName: 'Dr.B',
+      coAdvisorName: 'Dr.C',
+      additionalNotes: 'พร้อมสำหรับการประเมิน',
+      students: [
+        { studentId: leader.studentId, phone: '0812345678', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0823456789', email: '' }
+      ]
     };
 
     const record = await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, payload);
     expect(record).toBeDefined();
     expect(record.status).toBe('submitted');
-    expect(record.formPayload.examLocation).toBe('ห้องประชุม 7');
+    expect(record.formPayload.advisorName).toBe('Dr.B');
+    expect(record.formPayload.coAdvisorName).toBe('Dr.C');
+    expect(record.formPayload.students).toEqual(expect.arrayContaining([
+      expect.objectContaining({ studentId: leader.studentId, phone: '0812345678', email: 'leader@example.com' }),
+      expect.objectContaining({ studentId: member.studentId, phone: '0823456789', email: '' })
+    ]));
+    expect(record.formPayload.examLocation).toBeUndefined();
     expect(mockSyncProjectWorkflowState).toHaveBeenCalled();
   });
 
   test('อนุญาตให้แก้ไขคำขอเดิมได้', async () => {
     const updated = await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
-      examDate: '2025-10-02',
-      examTime: '09:00',
-      examLocation: 'ห้องประชุมใหญ่'
+      advisorName: 'อ. ที่ปรึกษา',
+      additionalNotes: 'อัปเดตข้อมูล',
+      students: [
+        { studentId: leader.studentId, phone: '0899999999', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '', email: '' }
+      ]
     });
-    expect(updated.formPayload.examDate).toBe('2025-10-02');
-    expect(updated.formPayload.examLocation).toBe('ห้องประชุมใหญ่');
+    expect(updated.formPayload.additionalNotes).toBe('อัปเดตข้อมูล');
+    const leaderContact = updated.formPayload.students.find(item => item.studentId === leader.studentId);
+    expect(leaderContact.phone).toBe('0899999999');
+    expect(updated.formPayload.examDate).toBeUndefined();
   });
 
   test('ห้ามนักศึกษาที่ไม่ใช่หัวหน้ายื่นคำขอ', async () => {
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, member.studentId, {
-      examDate: '2025-10-05',
-      examTime: '09:00',
-      examLocation: 'ห้องประชุม'
+      students: [
+        { studentId: leader.studentId, phone: '0800000000', email: '' },
+        { studentId: member.studentId, phone: '0811111111', email: '' }
+      ]
     })).rejects.toThrow(/อนุญาตเฉพาะหัวหน้าโครงงาน/);
   });
 
   test('ตรวจสอบ validation ข้อมูลไม่ครบ', async () => {
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
-      examDate: '2025-10-05',
-      examLocation: ''
-    })).rejects.toThrow(/ข้อมูลไม่ครบถ้วน/);
+      students: []
+    })).rejects.toThrow(/ช่องติดต่อของสมาชิก/);
   });
 });
 

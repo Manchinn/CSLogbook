@@ -44,7 +44,9 @@ class ProjectDefenseRequestService {
       }
 
       const cleanedPayload = this.normalizeProject1Payload(payload, project);
-      this.validateProject1Payload(cleanedPayload);
+      this.validateProject1Payload(cleanedPayload, {
+        rawStudentsCount: Array.isArray(payload?.students) ? payload.students.length : 0
+      });
 
       let record = await ProjectDefenseRequest.findOne({
         where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
@@ -137,7 +139,34 @@ class ProjectDefenseRequestService {
       name: member.student?.user ? `${member.student.user.firstName || ''} ${member.student.user.lastName || ''}`.trim() : null
     }));
 
-    safePayload.projectSnapshot = {
+    // รวมข้อมูลติดต่อจาก payload เดิม โดยต้องจับคู่กับสมาชิกที่อยู่ในโครงงานจริงเท่านั้น
+    const contactsFromPayload = Array.isArray(safePayload.students) ? safePayload.students : [];
+    const studentContacts = membersSnapshot.map(member => {
+      const matched = contactsFromPayload.find(item => Number(item.studentId) === Number(member.studentId)) || {};
+      return {
+        studentId: member.studentId,
+        studentCode: member.studentCode,
+        name: member.name,
+        phone: typeof matched.phone === 'string' ? matched.phone.trim() : '',
+        email: typeof matched.email === 'string' ? matched.email.trim() : ''
+      };
+    });
+
+    const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+    // ตัดข้อมูลที่ไม่ต้องการ และเก็บเฉพาะฟิลด์ที่ยังใช้ในระบบคพ.02
+    const normalizedPayload = {
+      requestDate: normalizeText(safePayload.requestDate) || new Date().toISOString().slice(0, 10),
+      advisorName: normalizeText(safePayload.advisorName),
+      coAdvisorName: normalizeText(safePayload.coAdvisorName),
+      additionalNotes: normalizeText(safePayload.additionalNotes),
+      students: studentContacts
+    };
+
+    if (safePayload.projectSnapshotOverride && typeof safePayload.projectSnapshotOverride === 'object') {
+      normalizedPayload.projectSnapshotOverride = { ...safePayload.projectSnapshotOverride };
+    }
+
+    normalizedPayload.projectSnapshot = {
       projectId: project.projectId,
       projectCode: project.projectCode,
       projectNameTh: project.projectNameTh,
@@ -145,24 +174,29 @@ class ProjectDefenseRequestService {
       advisorId: project.advisorId,
       coAdvisorId: project.coAdvisorId
     };
-    safePayload.membersSnapshot = membersSnapshot;
-    return safePayload;
+    normalizedPayload.membersSnapshot = membersSnapshot;
+    return normalizedPayload;
   }
 
   /**
    * Validation พื้นฐานของข้อมูลคพ.02 (minimal requirement – ปรับเพิ่มได้ภายหลัง)
    */
-  validateProject1Payload(payload) {
+  validateProject1Payload(payload, { rawStudentsCount = 0 } = {}) {
     if (!payload || typeof payload !== 'object') {
       throw new Error('กรุณากรอกข้อมูลคำขอสอบก่อนบันทึก');
     }
-    const requiredFields = ['examDate', 'examTime', 'examLocation'];
-    const missing = requiredFields.filter(field => !payload[field]);
-    if (missing.length) {
-      throw new Error(`ข้อมูลไม่ครบถ้วน: ${missing.join(', ')}`);
+    if (!payload.requestDate) {
+      throw new Error('กรุณาระบุวันที่ยื่นคำขอ');
     }
-    if (payload.committee && !Array.isArray(payload.committee)) {
-      throw new Error('ข้อมูลคณะกรรมการต้องอยู่ในรูปแบบรายการ');
+    if (!Array.isArray(payload.students) || !payload.students.length) {
+      throw new Error('กรุณากรอกข้อมูลช่องติดต่อของสมาชิกโครงงาน');
+    }
+    if (rawStudentsCount === 0) {
+      throw new Error('กรุณากรอกข้อมูลช่องติดต่อของสมาชิกโครงงาน');
+    }
+    const invalidStudent = payload.students.find(item => !item.studentId);
+    if (invalidStudent) {
+      throw new Error('ข้อมูลสมาชิกไม่ครบถ้วน');
     }
   }
 
