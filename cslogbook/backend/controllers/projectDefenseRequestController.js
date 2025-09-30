@@ -51,5 +51,20 @@ module.exports = {
       logger.error('scheduleProject1Defense error', { projectId: req.params.id, error: error.message });
       return res.status(400).json({ success: false, message: error.message });
     }
+  },
+
+  async cancelProject1DefenseSchedule(req, res) {
+    try {
+      const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
+      if (!isStaff) {
+        return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ยกเลิกการนัดสอบโครงงานพิเศษ 1' });
+      }
+
+      const record = await projectDefenseRequestService.cancelProject1DefenseSchedule(req.params.id, req.user);
+      return res.status(200).json({ success: true, data: record });
+    } catch (error) {
+      logger.error('cancelProject1DefenseSchedule error', { projectId: req.params.id, error: error.message });
+      return res.status(400).json({ success: false, message: error.message });
+    }
   }
 };

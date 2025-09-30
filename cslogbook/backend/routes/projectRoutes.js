@@ -19,6 +19,7 @@ router.get('/mine', controller.getMyProjects);
 router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
 router.post('/:id/kp02', projectDefenseRequestController.submitProject1Request);
 router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
+router.post('/:id/kp02/cancel-schedule', projectDefenseRequestController.cancelProject1DefenseSchedule);
 
 // รายละเอียดโครงงาน (+ summary optional)
 router.get('/:id', async (req, res, next) => {

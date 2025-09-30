@@ -268,6 +268,53 @@ class ProjectDefenseRequestService {
     }
   }
 
+  async cancelProject1DefenseSchedule(projectId, actorUser = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const request = await ProjectDefenseRequest.findOne({
+        where: {
+          projectId,
+          defenseType: DEFENSE_TYPE_PROJECT1,
+          status: { [Op.ne]: 'cancelled' }
+        },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!request) {
+        throw new Error('ยังไม่มีคำขอสอบโครงงานพิเศษ 1 สำหรับโครงงานนี้');
+      }
+      if (request.status === 'completed') {
+        throw new Error('ไม่สามารถยกเลิกกำหนดการหลังบันทึกผลสอบแล้ว');
+      }
+      if (request.status !== 'scheduled') {
+        throw new Error('คำขอสอบยังไม่ถูกนัดหมาย ไม่สามารถยกเลิกได้');
+      }
+
+      await request.update({
+        status: 'submitted',
+        defenseScheduledAt: null,
+        defenseLocation: null,
+        defenseNote: null,
+        scheduledByUserId: null,
+        scheduledAt: null
+      }, { transaction: t });
+
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
+      await t.commit();
+
+      logger.info('cancelProject1DefenseSchedule success', {
+        projectId,
+        cancelledBy: actorUser?.userId || null
+      });
+      return request.get({ plain: true });
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('cancelProject1DefenseSchedule failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
   async safeRollback(transaction) {
     if (!transaction || transaction.finished) return;
     try {
