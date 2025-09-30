@@ -34,6 +34,7 @@ const SupportStaffDashboard = lazy(() => import('./reports/SupportStaffDashboard
 const InternshipReport = lazy(() => import('./reports/InternshipReport.js'));
 const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
 const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
+const Project1DefenseSchedulePage = lazy(() => import('./project/Project1DefenseSchedulePage'));
 
 // Loading component
 const LoadingComponent = () => (
@@ -57,6 +58,7 @@ const AdminRoutes = () => {
               <Route path="/reports/internship" element={<InternshipReport />} />
               <Route path="/reports/project" element={<ProjectReport />} />
               <Route path="/topic-exam/results" element={<TopicExamResultPage />} />
+              <Route path="/project1/defense-schedule" element={<Project1DefenseSchedulePage />} />
 
               {/* ใช้ DocumentManagement สำหรับจัดการเอกสาร */}
               <Route

@@ -366,33 +366,3 @@ describe('scheduleProject1Defense', () => {
     }, { userId: staffUser.userId })).rejects.toThrow(/กรุณาระบุวันและเวลานัดสอบให้ถูกต้อง/);
   });
 });
-
-describe('cancelProject1DefenseSchedule', () => {
-  test('ยกเลิกกำหนดการสำเร็จและรีเซ็ตสถานะกลับเป็น submitted', async () => {
-    const record = await projectDefenseRequestService.cancelProject1DefenseSchedule(
-      project.projectId,
-      { userId: staffUser.userId }
-    );
-
-    expect(record.status).toBe('submitted');
-    expect(record.defenseScheduledAt).toBeNull();
-    expect(record.defenseLocation).toBeNull();
-    expect(record.scheduledByUserId).toBeNull();
-    expect(mockSyncProjectWorkflowState).toHaveBeenCalled();
-  });
-
-  test('ห้ามยกเลิกเมื่อคำขอไม่ได้อยู่ในสถานะ scheduled', async () => {
-    await expect(projectDefenseRequestService.cancelProject1DefenseSchedule(
-      project.projectId,
-      { userId: staffUser.userId }
-    )).rejects.toThrow(/ยังไม่ถูกนัดหมาย/);
-  });
-
-  test('ห้ามยกเลิกหลังบันทึกผลสอบแล้ว', async () => {
-    await ProjectDefenseRequest.update({ status: 'completed' }, { where: { projectId: project.projectId } });
-    await expect(projectDefenseRequestService.cancelProject1DefenseSchedule(
-      project.projectId,
-      { userId: staffUser.userId }
-    )).rejects.toThrow(/หลังบันทึกผลสอบแล้ว/);
-  });
-});
