@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import {
   Card,
   Table,
@@ -12,7 +12,6 @@ import {
   Drawer,
   Descriptions,
   Divider,
-  Form,
   message,
   Alert,
   Spin
@@ -21,14 +20,11 @@ import {
   ReloadOutlined,
   CalendarOutlined,
   TeamOutlined,
-  EnvironmentOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import projectService from '../../../services/projectService';
-import { getDeadlines as getImportantDeadlines } from '../../../services/admin/importantDeadlineService';
 import dayjs from '../../../utils/dayjs';
-import { normalizeList } from '../../../utils/deadlineNormalize';
 
 const { Title, Text } = Typography;
 
@@ -52,12 +48,6 @@ const Project1DefenseSchedulePage = () => {
   const [activeDefense, setActiveDefense] = useState(undefined);
   const [defenseCache, setDefenseCache] = useState({}); // เก็บ cache คำขอสอบตาม projectId เพื่อลดการยิง API ซ้ำ
   const [rowLoading, setRowLoading] = useState({}); // เก็บสถานะการโหลดราย project สำหรับแสดง spinner
-  const [scheduling, setScheduling] = useState(false);
-  const [deadlineOptions, setDeadlineOptions] = useState([]);
-  const [deadlineLoading, setDeadlineLoading] = useState(false);
-  const [deadlineError, setDeadlineError] = useState(null);
-  const [form] = Form.useForm();
-  const selectedDeadlineId = Form.useWatch('deadlineSlotId', form);
 
   const academicYearOptions = useMemo(() => {
     const years = meta?.availableAcademicYears || [];
@@ -74,105 +64,6 @@ const Project1DefenseSchedulePage = () => {
   const setRowLoadingState = useCallback((projectId, value) => {
     setRowLoading((prev) => ({ ...prev, [projectId]: value }));
   }, []);
-
-  // เติมค่าในฟอร์มตามข้อมูลนัดสอบล่าสุด (ถ้าไม่มีให้รีเซ็ตว่าง)
-  const hydrateForm = useCallback((defenseRecord) => {
-    if (!defenseRecord) {
-      form.setFieldsValue({ deadlineSlotId: undefined, location: '', note: '' });
-      return;
-    }
-    form.setFieldsValue({
-      deadlineSlotId: undefined,
-      location: defenseRecord.defenseLocation || '',
-      note: defenseRecord.defenseNote || ''
-    });
-  }, [form]);
-
-  const loadDeadlineOptions = useCallback(async (project) => {
-    if (!project) {
-      setDeadlineOptions([]);
-      setDeadlineError(null);
-      return;
-    }
-
-    setDeadlineLoading(true);
-    setDeadlineError(null);
-    setDeadlineOptions([]);
-
-    try {
-      const params = {
-        relatedTo: 'project1',
-        isPublished: true
-      };
-
-      const academicYear = project.academicYear || filters?.academicYear || meta?.defaultAcademicYear;
-      const semester = project.semester || filters?.semester;
-      if (academicYear) params.academicYear = academicYear;
-      if (semester) params.semester = semester;
-
-      const response = await getImportantDeadlines(params);
-      const rawList = response?.data?.data || [];
-      const normalized = normalizeList(rawList);
-      const slots = normalized
-        .filter((item) => item && !item.isWindow && (item.deadlineAt || item.deadline_at_local) && ['MANUAL', 'MILESTONE'].includes((item.deadlineType || '').toUpperCase()))
-        .map((item) => {
-          const localTime = item.deadline_at_local || (item.deadlineAt ? dayjs(item.deadlineAt) : null);
-          const labelDate = localTime ? localTime.format('DD MMM BBBB เวลา HH:mm น.') : 'ไม่พบเวลาที่ชัดเจน';
-          return {
-            value: String(item.id),
-            label: `${labelDate} • ${item.name || 'ไม่ระบุชื่อ'}`,
-            raw: item,
-            sortKey: localTime ? localTime.valueOf() : Number.MAX_SAFE_INTEGER
-          };
-        })
-        .sort((a, b) => a.sortKey - b.sortKey)
-        .map(({ sortKey, ...rest }) => rest);
-
-      setDeadlineOptions(slots);
-      if (!slots.length) {
-        setDeadlineError('ยังไม่พบกำหนดการสอบจาก Important Deadlines สำหรับภาคเรียนนี้');
-      }
-    } catch (err) {
-      setDeadlineOptions([]);
-      setDeadlineError(err?.message || 'โหลดกำหนดการสอบไม่สำเร็จ');
-    } finally {
-      setDeadlineLoading(false);
-    }
-  }, [filters?.academicYear, filters?.semester, meta?.defaultAcademicYear]);
-
-  useEffect(() => {
-    if (!drawerOpen || !activeProject) {
-      if (!drawerOpen) {
-        setDeadlineOptions([]);
-        setDeadlineError(null);
-      }
-      return;
-    }
-    loadDeadlineOptions(activeProject);
-  }, [drawerOpen, activeProject, loadDeadlineOptions]);
-
-  const selectedDeadline = useMemo(() => {
-    if (!selectedDeadlineId) return null;
-    const matched = deadlineOptions.find((item) => String(item.value) === String(selectedDeadlineId));
-    return matched ? matched.raw : null;
-  }, [deadlineOptions, selectedDeadlineId]);
-
-  useEffect(() => {
-    if (!activeDefense?.defenseScheduledAt || !deadlineOptions.length) return;
-    const currentValue = form.getFieldValue('deadlineSlotId');
-    if (currentValue) return;
-    const scheduledAt = dayjs(activeDefense.defenseScheduledAt);
-    if (!scheduledAt.isValid()) return;
-    const toleranceMinutes = 10;
-    const matched = deadlineOptions.find((item) => {
-      const slotTime = item.raw?.deadline_at_local || (item.raw?.deadlineAt ? dayjs(item.raw.deadlineAt) : null);
-      if (!slotTime || !slotTime.isValid()) return false;
-      return Math.abs(slotTime.diff(scheduledAt, 'minute')) <= toleranceMinutes;
-    });
-    if (matched) {
-      form.setFieldsValue({ deadlineSlotId: matched.value });
-    }
-  }, [activeDefense?.defenseScheduledAt, deadlineOptions, form]);
 
   // ดึงข้อมูลคำขอสอบจาก backend แบบ lazy load และเก็บไว้ใน cache
   const fetchDefenseRecord = useCallback(async (projectId, { force = false } = {}) => {
@@ -202,55 +93,13 @@ const Project1DefenseSchedulePage = () => {
     // โหลดคำขอสอบ (lazy load)
     const record = await fetchDefenseRecord(project.projectId);
     setActiveDefense(record);
-    hydrateForm(record ?? null);
-  }, [fetchDefenseRecord, hydrateForm]);
+  }, [fetchDefenseRecord]);
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
     setActiveProject(null);
     setActiveDefense(undefined);
-    form.resetFields();
-    setDeadlineOptions([]);
-    setDeadlineError(null);
-    setDeadlineLoading(false);
-  }, [form]);
-
-  const handleSchedule = useCallback(async () => {
-    if (!activeProject) return;
-    try {
-      const values = await form.validateFields();
-      const slot = deadlineOptions.find((item) => String(item.value) === String(values.deadlineSlotId));
-      if (!slot) {
-        message.error('กรุณาเลือกกำหนดการสอบจากรายการ Important Deadlines');
-        return;
-      }
-      const slotData = slot.raw || {};
-      const scheduledAtIso = slotData.deadlineAt || slotData.effectiveDeadlineAt || (slotData.deadline_at_local ? slotData.deadline_at_local.toDate().toISOString() : null);
-      if (!scheduledAtIso) {
-        message.error('กำหนดการที่เลือกยังไม่มีเวลา กรุณาตรวจสอบรายละเอียดใน Important Deadlines');
-        return;
-      }
-      const payload = {
-        scheduledAt: scheduledAtIso,
-        location: values.location?.trim(),
-        note: values.note?.trim() || undefined
-      };
-
-      setScheduling(true);
-      const response = await projectService.scheduleProject1Defense(activeProject.projectId, payload);
-      const updatedRecord = response?.data ?? null;
-      setDefenseCache((prev) => ({ ...prev, [activeProject.projectId]: updatedRecord }));
-      setActiveDefense(updatedRecord);
-      hydrateForm(updatedRecord);
-      message.success('บันทึกการนัดสอบเรียบร้อยแล้ว');
-    } catch (err) {
-      if (err?.errorFields) return; // validation จาก AntD Form
-      const msgText = err?.message || 'ไม่สามารถบันทึกกำหนดการสอบได้';
-      message.error(msgText);
-    } finally {
-      setScheduling(false);
-    }
-  }, [activeProject, deadlineOptions, form, hydrateForm]);
+  }, []);
 
   const renderMembers = useCallback((members = []) => (
     <Space direction="vertical" size={2}>
@@ -282,17 +131,28 @@ const Project1DefenseSchedulePage = () => {
     if (!record) {
       return <Tag color="default">ไม่ทราบสถานะ</Tag>;
     }
+    if (record.status === 'staff_verified') {
+      return (
+        <Space direction="vertical" size={2}>
+          <Tag color="green">ตรวจสอบแล้ว (ติดตามในปฏิทิน)</Tag>
+          <Text style={{ fontSize: 12 }}>ตารางสอบจะประกาศในปฏิทินภาควิชา</Text>
+        </Space>
+      );
+    }
     if (record.status === 'scheduled') {
       return (
         <Space direction="vertical" size={2}>
-          <Tag color="green">นัดสอบแล้ว</Tag>
+          <Tag color="green">นัดสอบแล้ว (ระบบเดิม)</Tag>
           <Text style={{ fontSize: 12 }}>{formatScheduleLabel(record)}</Text>
           {record.defenseLocation && <Text style={{ fontSize: 12 }}>สถานที่: {record.defenseLocation}</Text>}
         </Space>
       );
     }
-    if (record.status === 'submitted') {
-      return <Tag color="orange">รอเจ้าหน้าที่นัด</Tag>;
+    if (record.status === 'advisor_approved') {
+      return <Tag color="blue">รอเจ้าหน้าที่ตรวจสอบ</Tag>;
+    }
+    if (record.status === 'advisor_in_review') {
+      return <Tag color="orange">รออาจารย์อนุมัติครบ</Tag>;
     }
     if (record.status === 'completed') {
       return <Tag color="blue">บันทึกผลสอบแล้ว</Tag>;
@@ -355,7 +215,7 @@ const Project1DefenseSchedulePage = () => {
               โหลดสถานะ
             </Button>
             <Button type="primary" size="small" onClick={() => openDrawer(project)} loading={isRowLoading}>
-              จัดการนัดสอบ
+              ดูรายละเอียดคำขอ
             </Button>
           </Space>
         );
@@ -369,7 +229,7 @@ const Project1DefenseSchedulePage = () => {
         title={(
           <Space>
             <CalendarOutlined />
-            <Title level={4} style={{ margin: 0 }}>จัดตารางสอบโครงงานพิเศษ 1</Title>
+            <Title level={4} style={{ margin: 0 }}>ติดตามคำขอสอบโครงงานพิเศษ 1</Title>
           </Space>
         )}
         extra={(
@@ -436,12 +296,12 @@ const Project1DefenseSchedulePage = () => {
       </Card>
 
       <Drawer
-        title={activeProject ? `จัดการนัดสอบ – ${activeProject.titleTh || activeProject.projectCode}` : 'จัดการนัดสอบ'}
+        title={activeProject ? `รายละเอียดคำขอสอบ – ${activeProject.titleTh || activeProject.projectCode}` : 'รายละเอียดคำขอสอบ'}
         width={520}
         open={drawerOpen}
         onClose={closeDrawer}
       >
-        {!activeProject && <Text type="secondary">เลือกโครงงานจากตารางเพื่อจัดการนัดสอบ</Text>}
+        {!activeProject && <Text type="secondary">เลือกโครงงานจากตารางเพื่อดูสถานะคำขอสอบ</Text>}
 
         {activeProject && (
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
@@ -469,7 +329,12 @@ const Project1DefenseSchedulePage = () => {
             )}
 
             {!rowLoading[activeProject.projectId] && activeDefense === null && (
-              <Alert type="info" showIcon message="ยังไม่มีคำขอสอบโครงงานพิเศษ 1 จากทีมนี้" description="เมื่อนักศึกษายื่นคำขอ (คพ.02) แล้ว เจ้าหน้าที่สามารถกลับมาหน้านี้เพื่อกำหนดวันสอบได้" />
+              <Alert
+                type="info"
+                showIcon
+                message="ยังไม่มีคำขอสอบโครงงานพิเศษ 1 จากทีมนี้"
+                description="เมื่อนักศึกษายื่นคำขอ (คพ.02) แล้ว หน้านี้จะแสดงสถานะล่าสุดเพื่อให้เจ้าหน้าที่ติดตามและประสานงานต่อ"
+              />
             )}
 
             {!rowLoading[activeProject.projectId] && activeDefense && (
@@ -490,6 +355,14 @@ const Project1DefenseSchedulePage = () => {
                         </div>
                       ))}
                     </div>
+                    {activeDefense.status === 'staff_verified' && (
+                      <Alert
+                        type="success"
+                        showIcon
+                        message="เจ้าหน้าที่ตรวจสอบแล้ว"
+                        description="ตารางสอบและสถานที่จะแสดงผ่านปฏิทินภาควิชา"
+                      />
+                    )}
                     {activeDefense.status === 'scheduled' && (
                       <Alert
                         type="success"
@@ -501,88 +374,35 @@ const Project1DefenseSchedulePage = () => {
                   </Space>
                 </Card>
 
-                <Form layout="vertical" form={form} onFinish={handleSchedule}>
-                  <Form.Item
-                    label="กำหนดการสอบ (Important Deadlines)"
-                    name="deadlineSlotId"
-                    rules={[{ required: true, message: 'กรุณาเลือกกำหนดการสอบจากรายการ' }]}
-                  >
-                    <Select
-                      placeholder="เลือกกำหนดการสอบที่ประกาศไว้"
-                      options={deadlineOptions}
-                      showSearch
-                      optionFilterProp="label"
-                      loading={deadlineLoading}
-                      disabled={deadlineLoading || !deadlineOptions.length}
-                      notFoundContent={deadlineLoading ? <Spin size="small" /> : 'ยังไม่พบกำหนดการสอบ'}
-                    />
-                  </Form.Item>
+                <Alert
+                  type="info"
+                  showIcon
+                  message="การนัดสอบจัดการผ่านปฏิทินภาควิชา"
+                  description="โปรดอัปเดตวันเวลาและสถานที่สอบในระบบปฏิทินของภาควิชา จากนั้นแจ้งเตือนทีมโครงงานตามช่องทางที่ภาควิชากำหนด"
+                />
 
-                  {deadlineError && (
-                    <Alert
-                      type="warning"
-                      showIcon
-                      message={deadlineError}
-                      style={{ marginBottom: 16 }}
-                    />
-                  )}
-
-                  {!deadlineError && !deadlineLoading && !deadlineOptions.length && (
-                    <Alert
-                      type="info"
-                      showIcon
-                      message="ยังไม่มีรายการกำหนดการสอบสำหรับภาคเรียนนี้"
-                      description="โปรดตรวจสอบและเพิ่มกำหนดการในเมนูปฏิทินกำหนดการสำคัญก่อน"
-                      style={{ marginBottom: 16 }}
-                    />
-                  )}
-
-                  {selectedDeadline && (
-                    <Descriptions size="small" column={1} bordered style={{ marginBottom: 16 }}>
-                      <Descriptions.Item label="ชื่อกำหนดการ">{selectedDeadline.name || '-'}</Descriptions.Item>
-                      <Descriptions.Item label="วันและเวลา">
-                        {selectedDeadline.deadline_at_local
-                          ? selectedDeadline.deadline_at_local.format('DD MMM BBBB เวลา HH:mm น.')
-                          : selectedDeadline.deadlineAt
-                            ? dayjs(selectedDeadline.deadlineAt).format('DD MMM BBBB เวลา HH:mm น.')
-                            : '-'}
+                {activeDefense.defenseScheduledAt && (
+                  <Descriptions size="small" bordered column={1}>
+                    <Descriptions.Item label="ข้อมูลวันที่ในระบบเดิม">
+                      {dayjs(activeDefense.defenseScheduledAt).format('DD MMM BBBB HH:mm น.')}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="สถานที่ (ระบบเดิม)">
+                      {activeDefense.defenseLocation || 'ประกาศผ่านช่องทางภายนอก'}
+                    </Descriptions.Item>
+                    {activeDefense.defenseNote && (
+                      <Descriptions.Item label="หมายเหตุ (ระบบเดิม)">
+                        {activeDefense.defenseNote}
                       </Descriptions.Item>
-                      {selectedDeadline.description && (
-                        <Descriptions.Item label="รายละเอียดเพิ่มเติม">
-                          {selectedDeadline.description}
-                        </Descriptions.Item>
-                      )}
-                    </Descriptions>
-                  )}
+                    )}
+                  </Descriptions>
+                )}
 
-                  <Form.Item
-                    label="สถานที่สอบ"
-                    name="location"
-                    rules={[{ required: true, message: 'กรุณาระบุสถานที่ในการสอบ' }, { min: 3, message: 'กรุณากรอกอย่างน้อย 3 ตัวอักษร' }]}
-                  >
-                    <Input placeholder="เช่น ห้องประชุม 301 อาคาร 3" prefix={<EnvironmentOutlined />} />
-                  </Form.Item>
-                  <Form.Item
-                    label="หมายเหตุถึงทีมโครงงาน"
-                    name="note"
-                    rules={[{ max: 500, message: 'หมายเหตุควรสั้นกว่า 500 ตัวอักษร' }]}
-                  >
-                    <Input.TextArea rows={3} placeholder="เช่น โปรดมาถึงก่อนเวลา 30 นาที" />
-                  </Form.Item>
-                  <Space>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={scheduling}
-                      disabled={deadlineLoading || !deadlineOptions.length}
-                    >
-                      บันทึกการนัดสอบ
-                    </Button>
-                    <Button onClick={() => hydrateForm(defenseCache[activeProject.projectId] ?? null)}>
-                      รีเซ็ตฟอร์ม
-                    </Button>
-                  </Space>
-                </Form>
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="ต้องการแก้ไขข้อมูล?"
+                  description="หากจำเป็นต้องแก้ไขคำขอ ให้ติดต่อผู้ดูแลระบบเพื่อปลดล็อกหรือปรับรายละเอียดในระบบปฏิทิน"
+                />
               </Space>
             )}
           </Space>

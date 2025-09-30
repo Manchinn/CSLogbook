@@ -15,7 +15,6 @@ const ExcelJS = require('exceljs');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
 const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
-const ALLOWED_SCHEDULE_STATUSES = ['staff_verified', 'scheduled'];
 
 class ProjectDefenseRequestService {
   buildProjectInclude({ projectWhere } = {}) {
@@ -450,62 +449,8 @@ class ProjectDefenseRequestService {
     return count > 0;
   }
 
-  async scheduleProject1Defense(projectId, { scheduledAt, location, note } = {}, actorUser = {}) {
-    const t = await sequelize.transaction();
-    try {
-      const scheduleDate = scheduledAt ? new Date(scheduledAt) : null;
-      if (!scheduleDate || Number.isNaN(scheduleDate.getTime())) {
-        throw new Error('กรุณาระบุวันและเวลานัดสอบให้ถูกต้อง');
-      }
-
-      const locationText = typeof location === 'string' ? location.trim() : '';
-      if (!locationText) {
-        throw new Error('กรุณาระบุสถานที่สอบ');
-      }
-
-      const request = await ProjectDefenseRequest.findOne({
-        where: {
-          projectId,
-          defenseType: DEFENSE_TYPE_PROJECT1,
-          status: { [Op.ne]: 'cancelled' }
-        },
-        include: this.buildRequestInclude(),
-        transaction: t,
-        lock: t.LOCK.UPDATE
-      });
-
-      if (!request) {
-        throw new Error('ยังไม่มีคำขอสอบโครงงานพิเศษ 1 สำหรับโครงงานนี้');
-      }
-      if (request.status === 'completed') {
-        throw new Error('ไม่สามารถเปลี่ยนแปลงกำหนดการหลังบันทึกผลสอบแล้ว');
-      }
-      if (!ALLOWED_SCHEDULE_STATUSES.includes(request.status)) {
-        throw new Error('คำขอยังไม่ผ่านการตรวจจากเจ้าหน้าที่ ไม่สามารถนัดสอบได้');
-      }
-
-      const updatePayload = {
-        status: 'scheduled',
-        defenseScheduledAt: scheduleDate,
-        defenseLocation: locationText,
-        defenseNote: typeof note === 'string' && note.trim() ? note.trim() : null,
-        scheduledByUserId: actorUser?.userId || null,
-        scheduledAt: new Date()
-      };
-
-      await request.update(updatePayload, { transaction: t });
-      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
-      await t.commit();
-
-      logger.info('scheduleProject1Defense success', { projectId, scheduledAt: scheduleDate.toISOString() });
-
-      const serialized = this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
-      return serialized;
-    } catch (error) {
-      await this.safeRollback(t);
-      logger.error('scheduleProject1Defense failed', { projectId, error: error.message });
-      throw error;
-    }
+  async scheduleProject1Defense() {
+    throw new Error('ระบบนัดสอบโครงงานพิเศษ 1 ถูกย้ายไปจัดการผ่านปฏิทินภาควิชาแล้ว เจ้าหน้าที่ไม่ต้องบันทึกวันและสถานที่ในระบบนี้');
   }
 
   async verifyProject1Request(projectId, { note } = {}, actorUser = {}) {

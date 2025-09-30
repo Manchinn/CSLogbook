@@ -133,23 +133,14 @@ module.exports = {
   },
 
   async scheduleProject1Defense(req, res) {
-    try {
-      const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
-      if (!isStaff) {
-        return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์นัดหมายการสอบโครงงานพิเศษ 1' });
-      }
-
-      const { scheduledAt, location, note } = req.body || {};
-      const record = await projectDefenseRequestService.scheduleProject1Defense(
-        req.params.id,
-        { scheduledAt, location, note },
-        req.user
-      );
-      return res.status(200).json({ success: true, data: record });
-    } catch (error) {
-      logger.error('scheduleProject1Defense error', { projectId: req.params.id, error: error.message });
-      return res.status(400).json({ success: false, message: error.message });
+    const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
+    if (!isStaff) {
+      return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์นัดหมายการสอบโครงงานพิเศษ 1' });
     }
+
+    const message = 'ระบบนัดสอบโครงงานพิเศษ 1 ถูกย้ายไปจัดการผ่านปฏิทินภาควิชาแล้ว โปรดอัปเดตข้อมูลผ่านระบบปฏิทินโดยตรง';
+    logger.info('scheduleProject1Defense deprecated access', { projectId: req.params.id, userId: req.user.userId });
+    return res.status(410).json({ success: false, message });
   },
 
   async exportStaffVerificationList(req, res) {

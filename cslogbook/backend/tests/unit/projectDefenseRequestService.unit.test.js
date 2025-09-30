@@ -363,60 +363,9 @@ describe('getLatestProject1Request', () => {
   });
 });
 
-describe('scheduleProject1Defense', () => {
-  const location = 'ห้องประชุม 301';
-
-  test('นัดหมายสำเร็จและอัปเดตสถานะเป็น scheduled', async () => {
-    await resetMeetings();
-    await seedApprovedMeetings(5);
-    await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
-      advisorName: 'อ. Test',
-      students: [
-        { studentId: leader.studentId, phone: '0800000000', email: 'leader@example.com' },
-        { studentId: member.studentId, phone: '0800000001', email: '' }
-      ]
-    });
-
-    await projectDefenseRequestService.submitAdvisorDecision(project.projectId, advisor.teacherId, {
-      decision: 'approved',
-      note: 'ผ่านเกณฑ์'
-    });
-
-    await projectDefenseRequestService.verifyProject1Request(
-      project.projectId,
-      { note: 'เอกสารครบถ้วน' },
-      { userId: staffUser.userId }
-    );
-
-    const scheduledAt = new Date(Date.now() + 86400000).toISOString();
-    const record = await projectDefenseRequestService.scheduleProject1Defense(
-      project.projectId,
-      { scheduledAt, location, note: 'เตรียมเอกสาร' },
-      { userId: staffUser.userId }
-    );
-
-    expect(record.status).toBe('scheduled');
-    expect(new Date(record.defenseScheduledAt).toISOString()).toBe(new Date(scheduledAt).toISOString());
-    expect(record.defenseLocation).toBe(location);
-    expect(record.scheduledByUserId).toBe(staffUser.userId);
-    expect(record.staffVerifiedByUserId).toBe(staffUser.userId);
-    expect(mockSyncProjectWorkflowState).toHaveBeenCalled();
-  });
-
-  test('ห้ามแก้ไขคำขอหลังนัดสอบแล้ว', async () => {
-    await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
-      advisorName: 'อ. Update',
-      students: [
-        { studentId: leader.studentId, phone: '0899999999', email: 'leader@example.com' },
-        { studentId: member.studentId, phone: '0899999998', email: '' }
-      ]
-    })).rejects.toThrow(/ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว/);
-  });
-
-  test('นัดหมายต้องระบุวันเวลาและสถานที่', async () => {
-    await expect(projectDefenseRequestService.scheduleProject1Defense(project.projectId, {
-      scheduledAt: null,
-      location: ''
-    }, { userId: staffUser.userId })).rejects.toThrow(/กรุณาระบุวันและเวลานัดสอบให้ถูกต้อง/);
+describe('scheduleProject1Defense (deprecated)', () => {
+  test('ป้องกันการเรียกใช้งานและแจ้งเตือนให้ใช้ปฏิทิน', async () => {
+    await expect(projectDefenseRequestService.scheduleProject1Defense(project.projectId, {})).rejects.toThrow(/ปฏิทินภาควิชา/);
   });
 });
+

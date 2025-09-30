@@ -876,7 +876,14 @@ class ProjectDocumentService {
     const defenseRequests = project.defenseRequests || [];
     const project1DefenseRequest = defenseRequests.find(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled') || null;
     const project1DefenseRequestSubmitted = !!project1DefenseRequest;
-    const project1DefenseScheduled = project1DefenseRequestSubmitted && project1DefenseRequest.status === 'scheduled' && !!project1DefenseRequest.defenseScheduledAt;
+    const project1DefenseScheduleInfo = project1DefenseRequest && project1DefenseRequest.defenseScheduledAt
+      ? {
+        scheduledAt: project1DefenseRequest.defenseScheduledAt,
+        location: project1DefenseRequest.defenseLocation,
+        note: project1DefenseRequest.defenseNote
+      }
+      : null;
+    const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled'].includes(project1DefenseRequest.status);
 
     const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
     const approvedMeetingLogs = studentMetrics.approvedLogs || 0;
@@ -954,11 +961,7 @@ class ProjectDocumentService {
         topicSubmitted: topicSubmissionComplete,
         project1DefenseRequestSubmitted,
         project1DefenseScheduled,
-        project1DefenseSchedule: project1DefenseScheduled ? {
-          scheduledAt: project1DefenseRequest.defenseScheduledAt,
-          location: project1DefenseRequest.defenseLocation,
-          note: project1DefenseRequest.defenseNote
-        } : null,
+        project1DefenseSchedule: project1DefenseScheduleInfo,
         failureAcknowledged: isExamFailedAcknowledged,
         meetingMetrics: {
           approvedLogs: approvedMeetingLogs,

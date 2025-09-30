@@ -10,8 +10,8 @@ const KP02_STATUS_META = {
   submitted: { label: 'ยื่นคำขอแล้ว (รออาจารย์อนุมัติ)', color: 'orange', alert: 'info' },
   advisor_in_review: { label: 'รอการอนุมัติจากอาจารย์ที่ปรึกษา', color: 'orange', alert: 'info' },
   advisor_approved: { label: 'อาจารย์อนุมัติครบแล้ว รอเจ้าหน้าที่ตรวจสอบ', color: 'processing', alert: 'success' },
-  staff_verified: { label: 'เจ้าหน้าที่ตรวจสอบแล้ว ', color: 'green', alert: 'success' },
-  scheduled: { label: 'นัดสอบแล้ว', color: 'blue', alert: 'success' },
+  staff_verified: { label: 'เจ้าหน้าที่ตรวจสอบแล้ว (ติดตามตารางสอบในปฏิทิน)', color: 'green', alert: 'success' },
+  scheduled: { label: 'นัดสอบแล้ว (ข้อมูลระบบเดิม)', color: 'blue', alert: 'success' },
   completed: { label: 'บันทึกผลสอบเรียบร้อย', color: 'geekblue', alert: 'success' },
   cancelled: { label: 'คำขอถูกยกเลิก', color: 'red', alert: 'warning' },
   advisor_rejected: { label: 'อาจารย์ไม่อนุมัติ', color: 'red', alert: 'warning' },
@@ -86,7 +86,7 @@ const ExamSubmitPage = () => {
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
-  const formLocked = requestRecord?.status === 'scheduled' || requestRecord?.status === 'completed';
+  const formLocked = ['staff_verified', 'scheduled', 'completed'].includes(requestRecord?.status);
   const statusMeta = KP02_STATUS_META[requestRecord?.status] || KP02_STATUS_META.default;
 
   const currentStudentCode = useMemo(() => {
@@ -272,10 +272,24 @@ const ExamSubmitPage = () => {
                   <Descriptions.Item label="เจ้าหน้าที่ตรวจสอบ">{formatDateTime(requestRecord.staffVerifiedAt)}</Descriptions.Item>
                   <Descriptions.Item label="ผู้ตรวจสอบ">{requestRecord.staffVerifiedBy?.fullName || '-'}</Descriptions.Item>
                   <Descriptions.Item label="หมายเหตุเจ้าหน้าที่">{requestRecord.staffVerificationNote || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="วันสอบที่นัดหมาย">{formatDateTime(requestRecord.defenseScheduledAt)}</Descriptions.Item>
-                  <Descriptions.Item label="สถานที่สอบ">{requestRecord.defenseLocation || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="วันสอบที่นัดหมาย">
+                    {requestRecord.defenseScheduledAt
+                      ? formatDateTime(requestRecord.defenseScheduledAt)
+                      : 'ตรวจสอบกำหนดการสอบจากปฏิทินภาควิชา'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="สถานที่สอบ">
+                    {requestRecord.defenseLocation || 'ประกาศสถานที่สอบจะแสดงผ่านช่องทางภายนอก'}
+                  </Descriptions.Item>
                   <Descriptions.Item label="หมายเหตุจากเจ้าหน้าที่">{requestRecord.defenseNote || '-'}</Descriptions.Item>
                 </Descriptions>
+
+                <Alert
+                  type="info"
+                  showIcon
+                  message="การนัดสอบแสดงบนปฏิทินภาควิชา"
+                  description="หลังเจ้าหน้าที่ตรวจสอบแล้ว กรุณาติดตามวันเวลาและสถานที่สอบจากปฏิทินหรือประกาศที่ภาควิชาส่งให้"
+                  style={{ marginTop: 12 }}
+                />
 
                 {advisorApprovals.length > 0 && (
                   <Space direction="vertical" size={4} style={{ width: '100%' }}>
@@ -304,7 +318,7 @@ const ExamSubmitPage = () => {
 
                 {formLocked && (
                   <Text type="secondary" style={{ marginTop: 4 }}>
-                    แบบฟอร์มถูกล็อกเนื่องจากมีการนัดสอบหรือบันทึกผลสอบแล้ว หากต้องแก้ไข โปรดติดต่อเจ้าหน้าที่ภาควิชา
+                    แบบฟอร์มถูกล็อกหลังเจ้าหน้าที่ตรวจสอบคำขอแล้ว หากต้องแก้ไขโปรดติดต่อเจ้าหน้าที่ภาควิชา
                   </Text>
                 )}
               </Space>

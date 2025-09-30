@@ -40,9 +40,9 @@ const STATUS_OPTIONS = [
 
 const STATUS_MAP = {
   advisor_in_review: { color: 'orange', text: 'รออาจารย์อนุมัติครบ' },
-  advisor_approved: { color: 'green', text: 'อาจารย์อนุมัติครบ' },
-  staff_verified: { color: 'blue', text: 'เจ้าหน้าที่ตรวจสอบแล้ว' },
-  scheduled: { color: 'cyan', text: 'นัดสอบแล้ว' },
+  advisor_approved: { color: 'green', text: 'อาจารย์อนุมัติครบ (รอตรวจสอบ)' },
+  staff_verified: { color: 'blue', text: 'เจ้าหน้าที่ตรวจสอบแล้ว (รอประกาศในปฏิทิน)' },
+  scheduled: { color: 'cyan', text: 'นัดสอบแล้ว (ข้อมูลเดิม)' },
   completed: { color: 'purple', text: 'บันทึกผลสอบแล้ว' }
 };
 
@@ -120,13 +120,16 @@ const AdvisorKP02Queue = () => {
     return filteredItems.reduce(
       (acc, item) => {
         const status = item.myApproval?.status || 'pending';
+        const requestStatus = item.status;
         acc.total += 1;
         if (status === 'pending') acc.pending += 1;
         if (status === 'approved') acc.approved += 1;
         if (status === 'rejected') acc.rejected += 1;
+        if (requestStatus === 'staff_verified') acc.staffVerified += 1;
+        if (requestStatus === 'scheduled') acc.legacyScheduled += 1;
         return acc;
       },
-      { pending: 0, approved: 0, rejected: 0, total: 0 }
+      { pending: 0, approved: 0, rejected: 0, total: 0, staffVerified: 0, legacyScheduled: 0 }
     );
   }, [filteredItems]);
 
@@ -301,11 +304,13 @@ const AdvisorKP02Queue = () => {
               {record.staffVerifiedBy?.fullName && (
                 <Text>ผู้ตรวจสอบ: {record.staffVerifiedBy.fullName}</Text>
               )}
-              {(record.defenseScheduledAt || record.defenseLocation) && (
+              <Space size={4} wrap>
                 <Text>
-                  นัดสอบ: {formatDateTime(record.defenseScheduledAt)} {record.defenseLocation ? `@ ${record.defenseLocation}` : ''}
+                  นัดสอบ: {record.defenseScheduledAt ? formatDateTime(record.defenseScheduledAt) : 'ติดตามประกาศผ่านปฏิทินภาควิชา'}
+                  {record.defenseLocation ? ` @ ${record.defenseLocation}` : ''}
                 </Text>
-              )}
+                {record.defenseScheduledAt && <Tag color="default">ข้อมูลจากระบบเดิม</Tag>}
+              </Space>
               {record.staffVerificationNote && <Alert type="info" message={`หมายเหตุเจ้าหน้าที่: ${record.staffVerificationNote}`} showIcon />}
             </Space>
           </Card>

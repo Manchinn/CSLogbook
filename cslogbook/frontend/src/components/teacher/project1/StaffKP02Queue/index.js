@@ -40,8 +40,8 @@ const STATUS_OPTIONS = [
 const STATUS_MAP = {
   advisor_in_review: { color: 'orange', text: 'รออาจารย์อนุมัติครบ' },
   advisor_approved: { color: 'blue', text: 'รอเจ้าหน้าที่ตรวจสอบ' },
-  staff_verified: { color: 'green', text: 'ตรวจสอบแล้ว' },
-  scheduled: { color: 'cyan', text: 'นัดสอบแล้ว' },
+  staff_verified: { color: 'green', text: 'ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)' },
+  scheduled: { color: 'cyan', text: 'นัดสอบแล้ว (ระบบเดิม)' },
   completed: { color: 'purple', text: 'บันทึกผลสอบแล้ว' }
 };
 
@@ -179,10 +179,11 @@ const StaffKP02Queue = () => {
         acc.total += 1;
         if (status === 'advisor_approved') acc.waiting += 1;
         if (status === 'staff_verified') acc.verified += 1;
-        if (status === 'scheduled') acc.scheduled += 1;
+        if (status === 'scheduled') acc.legacyScheduled += 1;
+        if (status === 'completed') acc.completed += 1;
         return acc;
       },
-      { waiting: 0, verified: 0, scheduled: 0, total: 0 }
+      { waiting: 0, verified: 0, legacyScheduled: 0, completed: 0, total: 0 }
     );
   }, [items]);
 
@@ -236,7 +237,9 @@ const StaffKP02Queue = () => {
           <Text>ส่งคำขอ: {formatDateTime(record.submittedAt)}</Text>
           <Text>อนุมัติครบ: {formatDateTime(record.advisorApprovedAt)}</Text>
           <Text>ตรวจสอบแล้ว: {formatDateTime(record.staffVerifiedAt)}</Text>
-          <Text>นัดสอบ: {formatDateTime(record.defenseScheduledAt)}</Text>
+          <Text>
+            ตารางสอบ: {record.defenseScheduledAt ? formatDateTime(record.defenseScheduledAt) : 'ติดตามผ่านปฏิทินภาควิชา'}
+          </Text>
         </Space>
       )
     },
@@ -270,8 +273,8 @@ const StaffKP02Queue = () => {
             <Space direction="vertical" size={6} style={{ width: '100%' }}>
               <Text>หมายเหตุเจ้าหน้าที่: {record.staffVerificationNote || '-'}</Text>
               <Text>เจ้าหน้าที่ผู้ตรวจ: {record.staffVerifiedBy?.fullName || '-'}</Text>
-              <Text>หมายเหตุการนัดสอบ: {record.defenseNote || '-'}</Text>
-              <Text>สถานที่สอบ: {record.defenseLocation || '-'}</Text>
+              <Text>หมายเหตุการนัดสอบ (ข้อมูลเดิม): {record.defenseNote || 'ตรวจสอบประกาศจากปฏิทิน'}</Text>
+              <Text>สถานที่สอบ (ข้อมูลเดิม): {record.defenseLocation || 'ประกาศผ่านช่องทางภายนอก'}</Text>
             </Space>
           </Card>
         </Col>
@@ -296,11 +299,25 @@ const StaffKP02Queue = () => {
     <div style={containerStyle}>
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>แดชบอร์ดคำขอสอบ คพ.02 (เจ้าหน้าที่)</Title>
+          <Title level={3}>คำร้องขอสอบโครงงานพิเศษ1 (คพ.02)</Title>
           <Text type="secondary">
             เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติครบแล้ว บันทึกผลการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบได้
           </Text>
         </Space>
+
+        <Alert
+          type="info"
+          showIcon
+          message="การนัดสอบจัดการผ่านปฏิทินภาควิชา"
+          description={(
+            <Space direction="vertical" size={2}>
+              <span>หลังตรวจสอบคำขอแล้ว โปรดอัปเดตวันเวลาและสถานที่สอบในปฏิทินหรือระบบภายนอกของภาควิชาเท่านั้น</span>
+              {summary.legacyScheduled > 0 && (
+                <span>ยังมี {summary.legacyScheduled} รายการที่มีข้อมูลนัดสอบจากระบบเดิม</span>
+              )}
+            </Space>
+          )}
+        />
 
         <Row gutter={[16, 16]}>
           <Col xs={24} md={6}>
@@ -310,12 +327,12 @@ const StaffKP02Queue = () => {
           </Col>
           <Col xs={24} md={6}>
             <Card size="small">
-              <Statistic title="ตรวจสอบแล้ว" value={summary.verified} suffix="รายการ" />
+              <Statistic title="ตรวจสอบแล้ว (รอปฏิทิน)" value={summary.verified} suffix="รายการ" />
             </Card>
           </Col>
           <Col xs={24} md={6}>
             <Card size="small">
-              <Statistic title="นัดสอบแล้ว" value={summary.scheduled} suffix="รายการ" />
+              <Statistic title="บันทึกผลสอบแล้ว" value={summary.completed} suffix="รายการ" />
             </Card>
           </Col>
           <Col xs={24} md={6}>
