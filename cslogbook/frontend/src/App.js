@@ -45,6 +45,8 @@ import TimesheetApproval from './components/internship/approval/TimesheetApprova
 import ApproveDocuments from './components/teacher/ApproveDocuments';
 import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
 import MeetingApprovals from './components/teacher/MeetingApprovals';
+import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
+import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -228,6 +230,11 @@ const App = () => {
                     <MeetingApprovals />
                   </ProtectedRoute>
                 } />
+                <Route path="/teacher/project1/advisor-queue" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <AdvisorKP02Queue />
+                  </ProtectedRoute>
+                } />
                 <Route path="/approve-documents" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <ApproveDocuments />
@@ -247,6 +254,11 @@ const App = () => {
                 <Route path="/admin/*" element={
                   <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminRoutes />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/project1/kp02-queue" element={
+                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
+                    <StaffKP02Queue />
                   </ProtectedRoute>
                 } />
               

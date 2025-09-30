@@ -135,6 +135,12 @@ export const getMenuConfig = ({
     ...(isAcademicTeacher
       ? [
           { key: '/teacher/meeting-approvals', icon: <CalendarOutlined />, label: 'อนุมัติบันทึกการพบ', onClick: () => navigate('/teacher/meeting-approvals') },
+          {
+            key: '/teacher/project1/advisor-queue',
+            icon: <ProjectOutlined />,
+            label: 'คำขอสอบ คพ.02',
+            onClick: () => navigate('/teacher/project1/advisor-queue')
+          },
           ...(canApproveDocuments
             ? [
                 {
@@ -172,6 +178,7 @@ export const getMenuConfig = ({
                 label: 'เอกสารโครงงานพิเศษ',
                 children: [
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
+                  { key: '/admin/project1/kp02-queue', label: 'ตรวจสอบคำขอ คพ.02', onClick: () => navigate('/admin/project1/kp02-queue') },
                   { key: '/admin/project1/defense-schedule', label: 'นัดสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project1/defense-schedule') }
                 ]
               },
@@ -228,7 +235,9 @@ export const getMenuConfig = ({
                 key: '/admin/documents/project',
                 label: 'เอกสารโครงงานพิเศษ',
                 children: [
+                  
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
+                  { key: '/admin/project1/kp02-queue', label: 'ตรวจสอบคำขอ คพ.02', onClick: () => navigate('/admin/project1/kp02-queue') },
                   { key: '/admin/project1/defense-schedule', label: 'นัดสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project1/defense-schedule') }
                 ]
               },
