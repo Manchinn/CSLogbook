@@ -167,7 +167,14 @@ export const getMenuConfig = ({
             label: 'จัดการเอกสาร',
             children: [
               { key: '/admin/documents/internship', label: 'เอกสารฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
-              { key: '/admin/documents/project', label: 'เอกสารโครงงานพิเศษ', onClick: () => navigate('/admin/documents/project') },
+              {
+                key: '/admin/documents/project',
+                label: 'เอกสารโครงงานพิเศษ',
+                children: [
+                  { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
+                  { key: '/admin/project1/defense-schedule', label: 'นัดสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project1/defense-schedule') }
+                ]
+              },
             ],
           },
           {
@@ -182,7 +189,6 @@ export const getMenuConfig = ({
             ],
           },
           { key: '/admin/upload', icon: <UploadOutlined />, label: 'อัปโหลดรายชื่อนักศึกษา', onClick: () => navigate('/admin/upload') },
-          { key: '/admin/topic-exam/results', icon: <CheckCircleOutlined />, label: 'บันทึกผลสอบหัวข้อ', onClick: () => navigate('/admin/topic-exam/results') },
           {
             key: 'settings',
             icon: <SettingOutlined />,
@@ -218,7 +224,14 @@ export const getMenuConfig = ({
             label: 'จัดการเอกสาร',
             children: [
               { key: '/admin/documents/internship', label: 'เอกสารฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
-              { key: '/admin/documents/project', label: 'เอกสารโครงงานพิเศษ', onClick: () => navigate('/admin/documents/project') },
+              {
+                key: '/admin/documents/project',
+                label: 'เอกสารโครงงานพิเศษ',
+                children: [
+                  { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
+                  { key: '/admin/project1/defense-schedule', label: 'นัดสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project1/defense-schedule') }
+                ]
+              },
             ],
           },
           {
@@ -233,7 +246,6 @@ export const getMenuConfig = ({
             ],
           },
           { key: '/admin/upload', icon: <UploadOutlined />, label: 'อัปโหลดรายชื่อนักศึกษา', onClick: () => navigate('/admin/upload') },
-          { key: '/admin/topic-exam/results', icon: <CheckCircleOutlined />, label: 'บันทึกผลสอบหัวข้อ', onClick: () => navigate('/admin/topic-exam/results') },
           {
             key: 'settings',
             icon: <SettingOutlined />,

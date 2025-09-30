@@ -339,6 +339,14 @@ Event Log (แนะนำภายหลัง): PROJECT_EXAM_PASSED, PROJECT_E
 
 หมายเหตุ: เลือก hard delete ตอนนี้ง่ายต่อการรีเซ็ตรอบ; หากอนาคตต้องการสถิติเชิงลึก → ใช้ event log หรือ snapshot export.
 
+### 15.3 Support Staff Project1 Defense Scheduling UI (Oct 2025)
+- Route: `/admin/project1/defense-schedule` (AntD Table + Drawer Form)
+- Data flow: เรียก `projectDefenseRequestService` → โหลดคำขอ KP02 ที่ผ่านเกณฑ์ → ให้เจ้าหน้าที่ตั้ง `scheduledAt`, `room`, `committeeChair`
+- Validation: ตรวจสอบว่ามีวันที่/เวลา/ห้องสอบก่อนส่ง, ปิดปุ่มซ้ำเมื่อ `status === 'SCHEDULED'`
+- Navigation: ย้ายเมนูไปอยู่ใต้ `จัดการเอกสาร > เอกสารโครงงานพิเศษ > นัดสอบโครงงานพิเศษ 1` เพื่อจัดกลุ่มกับ `บันทึกผลสอบหัวข้อโครงงานพิเศษ`
+- Logging: เพิ่ม log `[ProjectDefense] schedule` ใน service layer (reuse Winston)
+- Next step: เพิ่มการแจ้งเตือนอีเมล + ปุ่ม export ตารางสอบสำหรับคณะกรรมการ
+
 
 ---
 Revision: Phase2 v1.0 (Initial Documentation)
@@ -352,7 +360,7 @@ Revision: Phase2 v1.0 (Initial Documentation)
 | Data Model | ตาราง project_documents, project_members, project_tracks + รายละเอียดฟิลด์ (objective…constraints) | milestone/artifact/event tables | Detail fields edit-after-in_progress enabled |
 | Student Frontend | Draft Wizard (5 steps: basic, classification, members, details, review), hydration/edit mode, lock indicator, readiness tags, second member sync, Phase1 dashboard cards: เสนอหัวข้อ, สอบหัวข้อ, บันทึกการพบอาจารย์, ส่งเอกสารสอบ, วันสอบ, ปรับ Scope (ยกเลิกการ์ด "แก้ไขข้อเสนอ" เพราะรวมการปรับขอบเขต/วัตถุประสงค์ผ่านบันทึกการพบอาจารย์แล้ว) | Portal dashboard enrichment, Activate button UI | ใช้ AntD + Context provider |
 | Teacher Frontend | Topic Exam Overview table (flattened member rows, merged cells, filters, readyOnly toggle) | Extra filters (ปี/เทอม), pagination | ใช้ service topicExamService + rowSpan rendering |
-| Support Staff Frontend | (ยังไม่เริ่ม) | Dashboard, scheduling tools, archive UI | จะใช้ endpoints เดิม + ส่วนขยาย Phase 3 |
+| Support Staff Frontend | หน้านัดสอบโครงงานพิเศษ 1 (ตารางคำขอ + Drawer กำหนดวัน/เวลา/สถานที่) พร้อมย้ายเมนูไปที่ `จัดการเอกสาร > เอกสารโครงงานพิเศษ` | Dashboard รวมสถานะ, archive UI, แจ้งเตือน | ใช้บริการ `projectDefenseRequestService.scheduleProject1Defense` + แชร์ component กับ AntD Table |
 | Admin | Archive endpoint (usable via API tools) | Admin panel UI | Minimal now |
 | Locking Policy | Names + advisor/coAdvisor locked at in_progress+ | (อาจเพิ่ม soft unlock admin) | Project type & tracks + details remain editable |
 | Validation | Single active project per student (leader + member), second member eligibility, readiness for activate | Cross-project uniqueness checks (future) | Script scan duplicates มีแล้ว |

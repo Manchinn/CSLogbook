@@ -221,7 +221,8 @@ Indices: (projectId + docType + version), (defenseId, type), (projectId, status)
 - Frontend: หน้ารายการโครงงาน, หน้ารายละเอียด + แท็บ Documents, Approvals, Timeline
 
 ### Iteration 2
-- Project1 Defense flow (KP02), Defense scheduling UI reuse, Notifications
+- ✅ (Oct 2025) Project1 Defense scheduling flow: backend service + support staff UI ผ่านเมนู `จัดการเอกสาร > เอกสารโครงงานพิเศษ > นัดสอบโครงงานพิเศษ 1`
+- Project1 Defense notifications + committee assignment wizard
 
 ### Iteration 3
 - 30-Day Request, Thesis Defense, Corrections flows, Deadline config UI
