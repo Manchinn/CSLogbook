@@ -1,5 +1,5 @@
 const { sequelize } = require('../config/database');
-const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack, Meeting, MeetingParticipant, MeetingLog } = require('../models');
+const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack, Meeting, MeetingParticipant, MeetingLog, ProjectDefenseRequest } = require('../models');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
@@ -446,7 +446,8 @@ class ProjectDocumentService {
             }
           ]
         },
-        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
+        { model: ProjectDefenseRequest, as: 'defenseRequests' }
       ]
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
@@ -544,7 +545,20 @@ class ProjectDocumentService {
         totalCredits: m.student?.totalCredits ?? null,
         majorCredits: m.student?.majorCredits ?? null
       })),
-      archivedAt: p.archivedAt
+      archivedAt: p.archivedAt,
+      defenseRequests: (p.defenseRequests || []).map(req => ({
+        requestId: req.requestId,
+        defenseType: req.defenseType,
+        status: req.status,
+        formPayload: req.formPayload,
+        submittedByStudentId: req.submittedByStudentId,
+        submittedAt: req.submittedAt,
+        defenseScheduledAt: req.defenseScheduledAt,
+        defenseLocation: req.defenseLocation,
+        defenseNote: req.defenseNote,
+        scheduledByUserId: req.scheduledByUserId,
+        scheduledAt: req.scheduledAt
+      }))
     };
   }
 
@@ -577,6 +591,16 @@ class ProjectDocumentService {
       }
 
       await ProjectDocument.update(updatePayload, { where: { projectId }, transaction: t });
+      await ProjectDefenseRequest.update({
+        status: 'completed'
+      }, {
+        where: {
+          projectId,
+          defenseType: 'PROJECT1',
+          status: { [Op.ne]: 'cancelled' }
+        },
+        transaction: t
+      });
       await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       return this.getProjectById(projectId);
@@ -849,8 +873,10 @@ class ProjectDocumentService {
     const hasAdvisor = !!project.advisorId;
     const isExamFailed = examResult === 'failed';
     const isExamFailedAcknowledged = isExamFailed && acknowledged;
-  const defenseRequests = project.defenseRequests || [];
-  const project1DefenseRequestSubmitted = defenseRequests.some(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled');
+    const defenseRequests = project.defenseRequests || [];
+    const project1DefenseRequest = defenseRequests.find(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled') || null;
+    const project1DefenseRequestSubmitted = !!project1DefenseRequest;
+    const project1DefenseScheduled = project1DefenseRequestSubmitted && project1DefenseRequest.status === 'scheduled' && !!project1DefenseRequest.defenseScheduledAt;
 
     const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
     const approvedMeetingLogs = studentMetrics.approvedLogs || 0;
@@ -869,6 +895,7 @@ class ProjectDocumentService {
       { key: 'PROJECT1_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
       { key: 'PROJECT1_READINESS_REVIEW', completed: projectInProgress && readinessApproved },
       { key: 'PROJECT1_DEFENSE_REQUEST', completed: project1DefenseRequestSubmitted },
+      { key: 'PROJECT1_DEFENSE_SCHEDULED', completed: project1DefenseScheduled },
       { key: 'PROJECT1_DEFENSE_RESULT', completed: examResult === 'passed' || (isExamFailed && acknowledged), blocked: isExamFailed && !acknowledged }
     ];
 
@@ -924,8 +951,14 @@ class ProjectDocumentService {
         advisorId: project.advisorId,
         archivedAt: project.archivedAt,
         studentAcknowledgedAt: project.studentAcknowledgedAt,
-  topicSubmitted: topicSubmissionComplete,
-    project1DefenseRequestSubmitted,
+        topicSubmitted: topicSubmissionComplete,
+        project1DefenseRequestSubmitted,
+        project1DefenseScheduled,
+        project1DefenseSchedule: project1DefenseScheduled ? {
+          scheduledAt: project1DefenseRequest.defenseScheduledAt,
+          location: project1DefenseRequest.defenseLocation,
+          note: project1DefenseRequest.defenseNote
+        } : null,
         failureAcknowledged: isExamFailedAcknowledged,
         meetingMetrics: {
           approvedLogs: approvedMeetingLogs,
@@ -951,6 +984,8 @@ class ProjectDocumentService {
         return 'pending';
       case 'PROJECT1_DEFENSE_REQUEST':
         return 'awaiting_student_action';
+      case 'PROJECT1_DEFENSE_SCHEDULED':
+        return 'pending';
       case 'PROJECT1_DEFENSE_RESULT':
         return 'pending';
       default:

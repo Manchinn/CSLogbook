@@ -18,6 +18,7 @@ router.get('/mine', controller.getMyProjects);
 // คำขอสอบโครงงานพิเศษ 1 (KP02 Project1)
 router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
 router.post('/:id/kp02', projectDefenseRequestController.submitProject1Request);
+router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
 
 // รายละเอียดโครงงาน (+ summary optional)
 router.get('/:id', async (req, res, next) => {

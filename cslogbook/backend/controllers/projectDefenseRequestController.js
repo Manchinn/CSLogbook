@@ -25,10 +25,30 @@ module.exports = {
       if (req.user.role !== 'student' || !req.user.studentId) {
         return res.status(403).json({ success: false, message: 'อนุญาตเฉพาะหัวหน้าโครงงาน' });
       }
-  const record = await projectDefenseRequestService.submitProject1Request(req.params.id, req.user.studentId, req.body || {});
-  return res.status(200).json({ success: true, data: record });
+      const record = await projectDefenseRequestService.submitProject1Request(req.params.id, req.user.studentId, req.body || {});
+      return res.status(200).json({ success: true, data: record });
     } catch (error) {
       logger.error('submitProject1Request error', { projectId: req.params.id, error: error.message });
+      return res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  async scheduleProject1Defense(req, res) {
+    try {
+      const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
+      if (!isStaff) {
+        return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์นัดหมายการสอบโครงงานพิเศษ 1' });
+      }
+
+      const { scheduledAt, location, note } = req.body || {};
+      const record = await projectDefenseRequestService.scheduleProject1Defense(
+        req.params.id,
+        { scheduledAt, location, note },
+        req.user
+      );
+      return res.status(200).json({ success: true, data: record });
+    } catch (error) {
+      logger.error('scheduleProject1Defense error', { projectId: req.params.id, error: error.message });
       return res.status(400).json({ success: false, message: error.message });
     }
   }

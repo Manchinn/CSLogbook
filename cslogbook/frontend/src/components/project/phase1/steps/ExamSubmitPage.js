@@ -63,13 +63,21 @@ const formToPayload = (project, values) => {
 };
 
 const ExamSubmitPage = () => {
-  const { activeProject, advisors, advisorLoading, loadProjects } = useStudentProject({ autoLoad: true });
+  const { activeProject, advisors, advisorLoading, loadProjects, currentStudentId } = useStudentProject({ autoLoad: true });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
+  const formLocked = requestRecord?.status === 'scheduled' || requestRecord?.status === 'completed';
+  const scheduledMoment = requestRecord?.defenseScheduledAt ? dayjs(requestRecord.defenseScheduledAt) : null;
 
-  const currentStudentId = useMemo(() => window.__CURRENT_STUDENT_ID || null, []);
+  const currentStudentCode = useMemo(() => {
+    try {
+      return typeof window !== 'undefined' ? localStorage.getItem('studentCode') : null;
+    } catch (error) {
+      return null;
+    }
+  }, []);
 
   const leaderMember = useMemo(() => {
     if (!activeProject) return null;
@@ -77,9 +85,15 @@ const ExamSubmitPage = () => {
   }, [activeProject]);
 
   const isLeader = useMemo(() => {
-    if (!activeProject || !currentStudentId) return false;
-    return Number(leaderMember?.studentId) === Number(currentStudentId);
-  }, [activeProject, currentStudentId, leaderMember]);
+    if (!activeProject || !leaderMember) return false;
+    if (currentStudentId) {
+      return Number(leaderMember.studentId) === Number(currentStudentId);
+    }
+    if (currentStudentCode && leaderMember.studentCode) {
+      return String(leaderMember.studentCode).trim() === String(currentStudentCode).trim();
+    }
+    return false;
+  }, [activeProject, leaderMember, currentStudentId, currentStudentCode]);
 
   const meetingRequirement = useMemo(() => {
     const metrics = activeProject?.meetingMetrics;
@@ -186,6 +200,18 @@ const ExamSubmitPage = () => {
               <div>
                 <div>บันทึกล่าสุด: {dayjs(requestRecord.submittedAt).format('DD/MM/YYYY HH:mm')}</div>
                 <div>สถานะ: {requestRecord.status}</div>
+                {scheduledMoment && (
+                  <div style={{ marginTop: 8 }}>
+                    <div>วันสอบที่นัดหมาย: {scheduledMoment.format('DD/MM/YYYY HH:mm')}</div>
+                    <div>สถานที่สอบ: {requestRecord.defenseLocation || '-'}</div>
+                    {requestRecord.defenseNote && (
+                      <div>หมายเหตุจากเจ้าหน้าที่: {requestRecord.defenseNote}</div>
+                    )}
+                  </div>
+                )}
+                {formLocked && (
+                  <div style={{ marginTop: 8 }}>แบบฟอร์มถูกล็อกเนื่องจากนัดสอบแล้ว หากต้องแก้ไข โปรดติดต่อเจ้าหน้าที่ภาควิชา</div>
+                )}
               </div>
             }
           />
@@ -222,7 +248,7 @@ const ExamSubmitPage = () => {
         />
 
         <Spin spinning={loadingRequest}>
-          <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={disabledSubmission || loadingRequest}>
+          <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={disabledSubmission || loadingRequest || formLocked}>
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
@@ -276,7 +302,7 @@ const ExamSubmitPage = () => {
             </Form.Item>
 
             <Space>
-              <Button type="primary" htmlType="submit" loading={saving} disabled={disabledSubmission}>
+              <Button type="primary" htmlType="submit" loading={saving} disabled={disabledSubmission || formLocked}>
                 บันทึกคำขอสอบ
               </Button>
               <Text type="secondary">ระบบจะบันทึกข้อมูลไว้ในสถานะ "submitted" และสามารถแก้ไขได้จนกว่าจะเข้าสู่กระบวนการสอบ</Text>

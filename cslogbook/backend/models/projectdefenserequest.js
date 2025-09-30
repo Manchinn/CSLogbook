@@ -11,6 +11,10 @@ module.exports = (sequelize) => {
         foreignKey: 'submitted_by_student_id',
         as: 'submittedBy'
       });
+      ProjectDefenseRequest.belongsTo(models.User, {
+        foreignKey: 'scheduled_by_user_id',
+        as: 'scheduledBy'
+      });
     }
   }
 
@@ -33,7 +37,7 @@ module.exports = (sequelize) => {
       field: 'defense_type'
     },
     status: {
-      type: DataTypes.ENUM('draft', 'submitted', 'cancelled'),
+      type: DataTypes.ENUM('draft', 'submitted', 'scheduled', 'completed', 'cancelled'),
       allowNull: false,
       defaultValue: 'submitted'
     },
@@ -51,6 +55,31 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: false,
       field: 'submitted_at'
+    },
+    defenseScheduledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'defense_scheduled_at'
+    },
+    defenseLocation: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'defense_location'
+    },
+    defenseNote: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'defense_note'
+    },
+    scheduledByUserId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'scheduled_by_user_id'
+    },
+    scheduledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'scheduled_at'
     }
   }, {
     sequelize,

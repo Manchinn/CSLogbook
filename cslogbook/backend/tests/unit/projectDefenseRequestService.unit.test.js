@@ -25,6 +25,7 @@ async function createStudent(code) {
 let leader;
 let member;
 let project;
+let staffUser;
 
 async function resetMeetings() {
   await MeetingLog.destroy({ where: {} });
@@ -87,7 +88,12 @@ beforeAll(async () => {
     status: { type: DataTypesCtor.STRING },
     formPayload: { type: DataTypesCtor.JSON, field: 'form_payload' },
     submittedByStudentId: { type: DataTypesCtor.INTEGER, field: 'submitted_by_student_id' },
-    submittedAt: { type: DataTypesCtor.DATE, field: 'submitted_at' }
+    submittedAt: { type: DataTypesCtor.DATE, field: 'submitted_at' },
+    defenseScheduledAt: { type: DataTypesCtor.DATE, field: 'defense_scheduled_at' },
+    defenseLocation: { type: DataTypesCtor.STRING, field: 'defense_location' },
+    defenseNote: { type: DataTypesCtor.TEXT, field: 'defense_note' },
+    scheduledByUserId: { type: DataTypesCtor.INTEGER, field: 'scheduled_by_user_id' },
+    scheduledAt: { type: DataTypesCtor.DATE, field: 'scheduled_at' }
   }, { tableName: 'project_defense_requests', underscored: true, timestamps: true });
 
   Meeting = sequelize.define('Meeting', {
@@ -210,6 +216,7 @@ beforeAll(async () => {
   await sequelize.sync({ force: true });
   leader = await createStudent('640000001111');
   member = await createStudent('640000001112');
+  staffUser = await User.create({ firstName: 'Staff', lastName: 'Dept' });
   project = await ProjectDocument.create({
     projectNameTh: 'ระบบทดสอบ',
     projectNameEn: 'Test System',
@@ -311,5 +318,51 @@ describe('getLatestProject1Request', () => {
     const record = await projectDefenseRequestService.getLatestProject1Request(project.projectId);
     expect(record).toBeTruthy();
     expect(record.status).toBe('submitted');
+  });
+});
+
+describe('scheduleProject1Defense', () => {
+  const location = 'ห้องประชุม 301';
+
+  test('นัดหมายสำเร็จและอัปเดตสถานะเป็น scheduled', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5);
+    await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
+      advisorName: 'อ. Test',
+      students: [
+        { studentId: leader.studentId, phone: '0800000000', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0800000001', email: '' }
+      ]
+    });
+
+    const scheduledAt = new Date(Date.now() + 86400000).toISOString();
+    const record = await projectDefenseRequestService.scheduleProject1Defense(
+      project.projectId,
+      { scheduledAt, location, note: 'เตรียมเอกสาร' },
+      { userId: staffUser.userId }
+    );
+
+    expect(record.status).toBe('scheduled');
+    expect(new Date(record.defenseScheduledAt).toISOString()).toBe(new Date(scheduledAt).toISOString());
+    expect(record.defenseLocation).toBe(location);
+    expect(record.scheduledByUserId).toBe(staffUser.userId);
+    expect(mockSyncProjectWorkflowState).toHaveBeenCalled();
+  });
+
+  test('ห้ามแก้ไขคำขอหลังนัดสอบแล้ว', async () => {
+    await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
+      advisorName: 'อ. Update',
+      students: [
+        { studentId: leader.studentId, phone: '0899999999', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0899999998', email: '' }
+      ]
+    })).rejects.toThrow(/ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว/);
+  });
+
+  test('นัดหมายต้องระบุวันเวลาและสถานที่', async () => {
+    await expect(projectDefenseRequestService.scheduleProject1Defense(project.projectId, {
+      scheduledAt: null,
+      location: ''
+    }, { userId: staffUser.userId })).rejects.toThrow(/กรุณาระบุวันและเวลานัดสอบให้ถูกต้อง/);
   });
 });

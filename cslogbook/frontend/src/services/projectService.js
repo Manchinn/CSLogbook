@@ -116,6 +116,15 @@ const projectService = {
     }
   },
 
+  scheduleProject1Defense: async (projectId, payload) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/kp02/schedule`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถนัดหมายการสอบได้');
+    }
+  },
+
   /**
    * Archive (เฉพาะ admin – ฝั่ง UI ควรซ่อน)
    */

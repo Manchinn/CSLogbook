@@ -66,6 +66,10 @@ class ProjectDefenseRequestService {
         lock: t.LOCK.UPDATE
       });
 
+      if (record && ['scheduled', 'completed'].includes(record.status)) {
+        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+      }
+
       const now = new Date();
       if (record) {
         await record.update({
@@ -209,6 +213,58 @@ class ProjectDefenseRequestService {
     const invalidStudent = payload.students.find(item => !item.studentId);
     if (invalidStudent) {
       throw new Error('ข้อมูลสมาชิกไม่ครบถ้วน');
+    }
+  }
+
+  async scheduleProject1Defense(projectId, { scheduledAt, location, note } = {}, actorUser = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const scheduleDate = scheduledAt ? new Date(scheduledAt) : null;
+      if (!scheduleDate || Number.isNaN(scheduleDate.getTime())) {
+        throw new Error('กรุณาระบุวันและเวลานัดสอบให้ถูกต้อง');
+      }
+
+      const locationText = typeof location === 'string' ? location.trim() : '';
+      if (!locationText) {
+        throw new Error('กรุณาระบุสถานที่สอบ');
+      }
+
+      const request = await ProjectDefenseRequest.findOne({
+        where: {
+          projectId,
+          defenseType: DEFENSE_TYPE_PROJECT1,
+          status: { [Op.ne]: 'cancelled' }
+        },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!request) {
+        throw new Error('ยังไม่มีคำขอสอบโครงงานพิเศษ 1 สำหรับโครงงานนี้');
+      }
+      if (request.status === 'completed') {
+        throw new Error('ไม่สามารถเปลี่ยนแปลงกำหนดการหลังบันทึกผลสอบแล้ว');
+      }
+
+      await request.update({
+        status: 'scheduled',
+        defenseScheduledAt: scheduleDate,
+        defenseLocation: locationText,
+        defenseNote: typeof note === 'string' && note.trim() ? note.trim() : null,
+        scheduledByUserId: actorUser?.userId || null,
+        scheduledAt: new Date()
+      }, { transaction: t });
+
+      await request.reload({ transaction: t });
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
+      await t.commit();
+
+      logger.info('scheduleProject1Defense success', { projectId, scheduledAt: scheduleDate.toISOString() });
+      return request.get({ plain: true });
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('scheduleProject1Defense failed', { projectId, error: error.message });
+      throw error;
     }
   }
 
