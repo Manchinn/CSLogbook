@@ -15,9 +15,16 @@ router.post('/', controller.createProject);
 // รายการของฉัน
 router.get('/mine', controller.getMyProjects);
 
+// KP02 queues & actions (ต้องอยู่ก่อน path ที่มี :id เพื่อไม่ให้ชน routing)
+router.get('/kp02/advisor-queue', projectDefenseRequestController.getAdvisorQueue);
+router.get('/kp02/staff-queue', projectDefenseRequestController.getStaffVerificationQueue);
+router.get('/kp02/staff-queue/export', projectDefenseRequestController.exportStaffVerificationList);
+
 // คำขอสอบโครงงานพิเศษ 1 (KP02 Project1)
 router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
 router.post('/:id/kp02', projectDefenseRequestController.submitProject1Request);
+router.post('/:id/kp02/advisor-approve', projectDefenseRequestController.submitAdvisorDecision);
+router.post('/:id/kp02/verify', projectDefenseRequestController.verifyProject1Request);
 router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
 
 // รายละเอียดโครงงาน (+ summary optional)

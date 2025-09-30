@@ -1,10 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Descriptions, Divider, Form, Input, Row, Space, Spin, Typography, message } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Card, Col, DatePicker, Descriptions, Divider, Form, Input, Row, Space, Spin, Tag, Timeline, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
 
 const { Title, Text, Paragraph } = Typography;
+
+const KP02_STATUS_META = {
+  submitted: { label: 'ยื่นคำขอแล้ว (รออาจารย์อนุมัติ)', color: 'orange', alert: 'info' },
+  advisor_in_review: { label: 'รอการอนุมัติจากอาจารย์ที่ปรึกษา', color: 'orange', alert: 'info' },
+  advisor_approved: { label: 'อาจารย์อนุมัติครบแล้ว รอเจ้าหน้าที่ตรวจสอบ', color: 'processing', alert: 'success' },
+  staff_verified: { label: 'เจ้าหน้าที่ตรวจสอบแล้ว รอการนัดสอบ', color: 'green', alert: 'success' },
+  scheduled: { label: 'นัดสอบแล้ว', color: 'blue', alert: 'success' },
+  completed: { label: 'บันทึกผลสอบเรียบร้อย', color: 'geekblue', alert: 'success' },
+  cancelled: { label: 'คำขอถูกยกเลิก', color: 'red', alert: 'warning' },
+  advisor_rejected: { label: 'อาจารย์ไม่อนุมัติ', color: 'red', alert: 'warning' },
+  default: { label: 'ไม่พบสถานะคำขอ', color: 'default', alert: 'info' }
+};
+
+const ADVISOR_STATUS_META = {
+  pending: { label: 'รอดำเนินการ', color: 'default' },
+  approved: { label: 'อนุมัติ', color: 'green' },
+  rejected: { label: 'ปฏิเสธ', color: 'red' }
+};
 
 const buildStudentInitial = (project, existingPayload) => {
   const snapshot = existingPayload?.students || [];
@@ -69,7 +87,7 @@ const ExamSubmitPage = () => {
   const [saving, setSaving] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
   const formLocked = requestRecord?.status === 'scheduled' || requestRecord?.status === 'completed';
-  const scheduledMoment = requestRecord?.defenseScheduledAt ? dayjs(requestRecord.defenseScheduledAt) : null;
+  const statusMeta = KP02_STATUS_META[requestRecord?.status] || KP02_STATUS_META.default;
 
   const currentStudentCode = useMemo(() => {
     try {
@@ -126,6 +144,13 @@ const ExamSubmitPage = () => {
     return `${found.firstName || ''} ${found.lastName || ''}`.trim();
   }, [activeProject, advisors]);
 
+  const formatDateTime = useCallback((value) => {
+    if (!value) return '-';
+    const dt = dayjs(value);
+    if (!dt.isValid()) return '-';
+    return dt.format('DD/MM/YYYY HH:mm น.');
+  }, []);
+
   useEffect(() => {
     const loadRequest = async () => {
       if (!activeProject) return;
@@ -168,6 +193,43 @@ const ExamSubmitPage = () => {
     }
   };
 
+  const advisorApprovals = useMemo(() => Array.isArray(requestRecord?.advisorApprovals) ? requestRecord.advisorApprovals : [], [requestRecord]);
+
+  const timelineItems = useMemo(() => {
+    if (!requestRecord) return [];
+    const items = [];
+    if (requestRecord.submittedAt) {
+      items.push({ key: 'submitted', label: 'ส่งคำขอ', timestamp: requestRecord.submittedAt, color: 'blue' });
+    }
+    if (requestRecord.advisorApprovedAt) {
+      items.push({ key: 'advisorApproved', label: 'อาจารย์อนุมัติครบ', timestamp: requestRecord.advisorApprovedAt, color: 'green' });
+    }
+    if (requestRecord.staffVerifiedAt) {
+      items.push({ key: 'staffVerified', label: 'เจ้าหน้าที่ตรวจสอบแล้ว', timestamp: requestRecord.staffVerifiedAt, color: 'green' });
+    }
+    if (requestRecord.defenseScheduledAt) {
+      items.push({ key: 'scheduled', label: 'กำหนดวันสอบ', timestamp: requestRecord.defenseScheduledAt, color: 'cyan', extra: requestRecord.defenseLocation || undefined });
+    }
+    if (requestRecord.updatedAt && !items.length) {
+      items.push({ key: 'updated', label: 'อัปเดตล่าสุด', timestamp: requestRecord.updatedAt, color: 'blue' });
+    }
+    return items.map((item) => ({
+      color: item.color,
+      children: (
+        <Space direction="vertical" size={0} key={item.key}>
+          <Text strong>{item.label}</Text>
+          <Text type="secondary">{formatDateTime(item.timestamp)}</Text>
+          {item.extra && <Text type="secondary">{item.extra}</Text>}
+        </Space>
+      )
+    }));
+  }, [formatDateTime, requestRecord]);
+
+  const lastUpdatedAt = useMemo(() => {
+    if (!requestRecord) return null;
+    return requestRecord.updatedAt || requestRecord.defenseScheduledAt || requestRecord.staffVerifiedAt || requestRecord.advisorApprovedAt || requestRecord.submittedAt || null;
+  }, [requestRecord]);
+
   if (!activeProject) {
     return <Alert type="info" message="ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้" showIcon />;
   }
@@ -192,27 +254,60 @@ const ExamSubmitPage = () => {
 
         {requestRecord && (
           <Alert
-            type="success"
+            type={statusMeta.alert || 'info'}
             showIcon
             style={{ marginBottom: 16 }}
             message="มีการส่งคำขอสอบแล้ว"
             description={
-              <div>
-                <div>บันทึกล่าสุด: {dayjs(requestRecord.submittedAt).format('DD/MM/YYYY HH:mm')}</div>
-                <div>สถานะ: {requestRecord.status}</div>
-                {scheduledMoment && (
-                  <div style={{ marginTop: 8 }}>
-                    <div>วันสอบที่นัดหมาย: {scheduledMoment.format('DD/MM/YYYY HH:mm')}</div>
-                    <div>สถานที่สอบ: {requestRecord.defenseLocation || '-'}</div>
-                    {requestRecord.defenseNote && (
-                      <div>หมายเหตุจากเจ้าหน้าที่: {requestRecord.defenseNote}</div>
-                    )}
-                  </div>
+              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                <Space size="small" wrap>
+                  <Text strong>สถานะปัจจุบัน:</Text>
+                  <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                  <Text type="secondary">อัปเดตล่าสุด: {formatDateTime(lastUpdatedAt)}</Text>
+                </Space>
+
+                <Descriptions bordered size="small" column={1}>
+                  <Descriptions.Item label="ส่งคำขอเมื่อ">{formatDateTime(requestRecord.submittedAt)}</Descriptions.Item>
+                  <Descriptions.Item label="อาจารย์อนุมัติครบ">{formatDateTime(requestRecord.advisorApprovedAt)}</Descriptions.Item>
+                  <Descriptions.Item label="เจ้าหน้าที่ตรวจสอบ">{formatDateTime(requestRecord.staffVerifiedAt)}</Descriptions.Item>
+                  <Descriptions.Item label="ผู้ตรวจสอบ">{requestRecord.staffVerifiedBy?.fullName || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="หมายเหตุเจ้าหน้าที่">{requestRecord.staffVerificationNote || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="วันสอบที่นัดหมาย">{formatDateTime(requestRecord.defenseScheduledAt)}</Descriptions.Item>
+                  <Descriptions.Item label="สถานที่สอบ">{requestRecord.defenseLocation || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="หมายเหตุจากเจ้าหน้าที่">{requestRecord.defenseNote || '-'}</Descriptions.Item>
+                </Descriptions>
+
+                {advisorApprovals.length > 0 && (
+                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                    <Divider orientation="left" orientationMargin={0} style={{ margin: '12px 0 8px' }}>สถานะอาจารย์ที่ปรึกษา</Divider>
+                    {advisorApprovals.map((approval) => {
+                      const meta = ADVISOR_STATUS_META[approval.status] || ADVISOR_STATUS_META.pending;
+                      const teacherName = approval.teacher?.name || '-';
+                      return (
+                        <Space key={approval.approvalId || `${approval.teacherId}-${approval.status}`} size="small" wrap>
+                          <Tag color={meta.color}>{meta.label}</Tag>
+                          <Text>{teacherName}</Text>
+                          <Text type="secondary">{formatDateTime(approval.approvedAt)}</Text>
+                          {approval.note && <Text type="secondary">หมายเหตุ: {approval.note}</Text>}
+                        </Space>
+                      );
+                    })}
+                  </Space>
                 )}
+
+                {timelineItems.length > 0 && (
+                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                    <Divider orientation="left" orientationMargin={0} style={{ margin: '12px 0 8px' }}>เส้นทางสถานะคำขอ</Divider>
+                    <Timeline items={timelineItems} style={{ marginTop: 4 }} />
+                  </Space>
+                )}
+
                 {formLocked && (
-                  <div style={{ marginTop: 8 }}>แบบฟอร์มถูกล็อกเนื่องจากนัดสอบแล้ว หากต้องแก้ไข โปรดติดต่อเจ้าหน้าที่ภาควิชา</div>
+                  <Text type="secondary" style={{ marginTop: 4 }}>
+                    แบบฟอร์มถูกล็อกเนื่องจากมีการนัดสอบหรือบันทึกผลสอบแล้ว หากต้องแก้ไข โปรดติดต่อเจ้าหน้าที่ภาควิชา
+                  </Text>
                 )}
-              </div>
+              </Space>
             }
           />
         )}

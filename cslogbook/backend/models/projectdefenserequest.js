@@ -15,6 +15,14 @@ module.exports = (sequelize) => {
         foreignKey: 'scheduled_by_user_id',
         as: 'scheduledBy'
       });
+      ProjectDefenseRequest.belongsTo(models.User, {
+        foreignKey: 'staff_verified_by_user_id',
+        as: 'staffVerifiedBy'
+      });
+      ProjectDefenseRequest.hasMany(models.ProjectDefenseRequestAdvisorApproval, {
+        foreignKey: 'request_id',
+        as: 'advisorApprovals'
+      });
     }
   }
 
@@ -37,7 +45,7 @@ module.exports = (sequelize) => {
       field: 'defense_type'
     },
     status: {
-      type: DataTypes.ENUM('draft', 'submitted', 'scheduled', 'completed', 'cancelled'),
+      type: DataTypes.ENUM('draft', 'submitted', 'advisor_in_review', 'advisor_approved', 'staff_verified', 'scheduled', 'completed', 'cancelled'),
       allowNull: false,
       defaultValue: 'submitted'
     },
@@ -55,6 +63,11 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: false,
       field: 'submitted_at'
+    },
+    advisorApprovedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'advisor_approved_at'
     },
     defenseScheduledAt: {
       type: DataTypes.DATE,
@@ -80,6 +93,21 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'scheduled_at'
+    },
+    staffVerifiedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'staff_verified_at'
+    },
+    staffVerifiedByUserId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'staff_verified_by_user_id'
+    },
+    staffVerificationNote: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'staff_verification_note'
     }
   }, {
     sequelize,

@@ -116,6 +116,68 @@ const projectService = {
     }
   },
 
+  submitProject1AdvisorDecision: async (projectId, payload) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/kp02/advisor-approve`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถบันทึกการอนุมัติอาจารย์ได้');
+    }
+  },
+
+  verifyProject1DefenseRequest: async (projectId, payload = {}) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/kp02/verify`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถบันทึกการตรวจสอบได้');
+    }
+  },
+
+  listProject1AdvisorQueue: async (params = {}) => {
+    try {
+      const res = await apiClient.get('/projects/kp02/advisor-queue', { params });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงรายการคำขอของอาจารย์ได้');
+    }
+  },
+
+  listProject1StaffQueue: async (params = {}) => {
+    try {
+      const res = await apiClient.get('/projects/kp02/staff-queue', { params });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงคิวคำขอของเจ้าหน้าที่ได้');
+    }
+  },
+
+  exportProject1StaffQueue: async (params = {}) => {
+    try {
+      const res = await apiClient.get('/projects/kp02/staff-queue/export', {
+        params,
+        responseType: 'blob'
+      });
+      const disposition = res.headers?.['content-disposition'] || res.headers?.['Content-Disposition'] || '';
+      const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
+      const encodedName = match?.[1];
+      const basicName = match?.[2];
+      const filename = encodedName ? decodeURIComponent(encodedName) : (basicName || `kp02_staff_queue_${Date.now()}.xlsx`);
+      return { blob: res.data, filename };
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถส่งออกข้อมูลได้');
+    }
+  },
+
+  recordProject1ExamResult: async (projectId, payload) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/exam-result`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถบันทึกผลสอบได้');
+    }
+  },
+
   scheduleProject1Defense: async (projectId, payload) => {
     try {
       const res = await apiClient.post(`/projects/${projectId}/kp02/schedule`, payload);

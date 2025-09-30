@@ -347,6 +347,17 @@ Event Log (แนะนำภายหลัง): PROJECT_EXAM_PASSED, PROJECT_E
 - Logging: เพิ่ม log `[ProjectDefense] schedule` ใน service layer (reuse Winston)
 - Next step: เพิ่มการแจ้งเตือนอีเมล + ปุ่ม export ตารางสอบสำหรับคณะกรรมการ
 
+### 15.4 Project1 Defense Request Flow Snapshot (Sep 2025)
+> ย้ำขั้นตอนที่ต้องครอบคลุมใน Phase 2 เพื่อรองรับคำขอสอบโครงงานพิเศษ 1 ตั้งแต่ฝั่งนักศึกษาจนถึงปลดล็อก Phase 2
+
+1. **นักศึกษากรอกคำขอ (คพ.02)** – หน้า `ExamSubmitPage` เรียก `POST /api/projects/:id/kp02` → `projectDefenseRequestService.submitProject1Request` ตรวจเกณฑ์ logbook + เก็บ snapshot สมาชิก/ที่ปรึกษา
+2. **อาจารย์ลงนาม / เจ้าหน้าที่ตรวจความพร้อม** – ปัจจุบันเป็นขั้น Manual (แนบไฟล์คพ.02 ที่ลงนามจริง) โดยระบบช่วยแสดง metric จาก `projectDocumentService.buildProjectMeetingMetrics` เพื่อดูจำนวนบันทึกการพบอาจารย์ที่อนุมัติครบตามเกณฑ์
+3. **เจ้าหน้าที่นัดสอบ** – UI `Project1DefenseSchedulePage` ส่ง `POST /api/projects/:id/kp02/schedule` → บันทึกวันเวลา/สถานที่ และเปลี่ยนสถานะคำขอเป็น `scheduled` (timeline step `PROJECT1_DEFENSE_SCHEDULED`)
+4. **บันทึกผลสอบ** – ใช้ endpoint `POST /api/projects/:id/exam-result` (controller `topicExamResultController.recordResult`) เพื่ออัปเดตผล `passed/failed` และหมายเหตุ (พร้อมเตรียม modal UI ให้สอดคล้องกับเอกสารคพ.02)
+5. **ปลดล็อก Phase 2 / โครงงานพิเศษ 2** – `projectDocumentService.syncProjectWorkflowState` ดึงผลสอบไปอัปเดต `StudentWorkflowActivity`; หากผลสอบผ่านจะเปิดการ์ด Phase 2 ให้ดำเนินการต่อ, หากไม่ผ่านนักศึกษาต้องกด `PATCH /api/projects/:id/exam-result/ack` เพื่อ archive และยื่นใหม่
+
+> Backlog: เพิ่ม endpoint/ปุ่ม Export Excel รายชื่อทีมที่สถานะ `scheduled` เพื่อให้ผู้จัดตารางสอบดาวน์โหลดได้รวดเร็ว (reuse logic จาก Topic Exam Export) และฝัง upload ฟอร์มคพ.02 ที่ลงนามแล้วให้ตรวจสอบย้อนหลังได้ในระบบ.
+
 
 ---
 Revision: Phase2 v1.0 (Initial Documentation)

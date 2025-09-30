@@ -1,151 +1,243 @@
 const { sequelize } = require('../config/database');
-const { ProjectDefenseRequest, ProjectDocument, ProjectMember, Student } = require('../models');
+const {
+  ProjectDefenseRequest,
+  ProjectDefenseRequestAdvisorApproval,
+  ProjectDocument,
+  ProjectMember,
+  Student,
+  Teacher,
+  User
+} = require('../models');
 const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
+const ExcelJS = require('exceljs');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
+const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
+const ALLOWED_SCHEDULE_STATUSES = ['staff_verified', 'scheduled'];
 
 class ProjectDefenseRequestService {
-  /**
-   * บันทึก/อัปเดตคำขอสอบโครงงานพิเศษ 1 (คพ.02)
-   * - อนุญาตเฉพาะหัวหน้าโครงงาน
-   * - ตรวจให้โครงงานอยู่ในสถานะ in_progress (หรือ later stage)
-   * - เก็บ payload (JSON) พร้อม snapshot ข้อมูลโครงงานและสมาชิก ณ เวลายื่น
-   */
-  async submitProject1Request(projectId, actorStudentId, payload = {}) {
-    const t = await sequelize.transaction();
-    try {
-      const project = await ProjectDocument.findByPk(projectId, {
-        include: [{
+  buildProjectInclude({ projectWhere } = {}) {
+    const projectInclude = {
+      model: ProjectDocument,
+      as: 'project',
+      include: [
+        {
           model: ProjectMember,
           as: 'members',
-          include: [{
-            model: Student,
-            as: 'student',
-            include: [{ association: Student.associations.user }]
-          }]
-        }],
-        transaction: t,
-        lock: t.LOCK.UPDATE
-      });
+          include: [
+            {
+              model: Student,
+              as: 'student',
+              include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+            }
+          ]
+        },
+        {
+          model: Teacher,
+          as: 'advisor',
+          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+        },
+        {
+          model: Teacher,
+          as: 'coAdvisor',
+          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+        }
+      ]
+    };
 
-      if (!project) {
-        throw new Error('ไม่พบโครงงาน');
-      }
-
-      const leader = (project.members || []).find(member => member.role === 'leader');
-      if (!leader || leader.studentId !== Number(actorStudentId)) {
-        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
-      }
-
-      if (!['in_progress', 'completed'].includes(project.status)) {
-        throw new Error('โครงงานต้องอยู่ในสถานะ in_progress ก่อนยื่นคำขอสอบ');
-      }
-
-      const memberStudentIds = (project.members || []).map(member => member.studentId).filter(Boolean);
-      const students = memberStudentIds.length
-        ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
-        : [];
-      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t });
-      const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
-      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
-      // ถ้าบันทึกการพบที่ได้รับอนุมัติยังไม่ครบตามเกณฑ์ ให้บล็อกการส่งคำขอสอบไว้ก่อน
-      if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
-        throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${requiredApprovedLogs} ครั้ง`);
-      }
-
-      const cleanedPayload = this.normalizeProject1Payload(payload, project);
-      this.validateProject1Payload(cleanedPayload, {
-        rawStudentsCount: Array.isArray(payload?.students) ? payload.students.length : 0
-      });
-
-      let record = await ProjectDefenseRequest.findOne({
-        where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
-        transaction: t,
-        lock: t.LOCK.UPDATE
-      });
-
-      if (record && ['scheduled', 'completed'].includes(record.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
-      }
-
-      const now = new Date();
-      if (record) {
-        await record.update({
-          formPayload: cleanedPayload,
-          status: 'submitted',
-          submittedByStudentId: actorStudentId,
-          submittedAt: now
-        }, { transaction: t });
-      } else {
-        record = await ProjectDefenseRequest.create({
-          projectId,
-          defenseType: DEFENSE_TYPE_PROJECT1,
-          status: 'submitted',
-          formPayload: cleanedPayload,
-          submittedByStudentId: actorStudentId,
-          submittedAt: now
-        }, { transaction: t });
-      }
-
-      await project.reload({
-        include: [{
-          model: ProjectMember,
-          as: 'members',
-          include: [{
-            model: Student,
-            as: 'student',
-            include: [{ association: Student.associations.user }]
-          }]
-        }, {
-          model: ProjectDefenseRequest,
-          as: 'defenseRequests'
-        }],
-        transaction: t
-      });
-
-      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
-      await t.commit();
-
-      logger.info('submitProject1Request success', { projectId });
-      return record.get({ plain: true });
-    } catch (error) {
-      await this.safeRollback(t);
-      logger.error('submitProject1Request failed', { projectId, error: error.message });
-      throw error;
+    if (projectWhere && Object.keys(projectWhere).length) {
+      projectInclude.where = projectWhere;
     }
+
+    return projectInclude;
   }
 
-  /**
-   * ดึงคำขอสอบโครงงานพิเศษ 1 ล่าสุด
-   */
-  async getLatestProject1Request(projectId) {
-    const record = await ProjectDefenseRequest.findOne({
-      where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
-      order: [['submitted_at', 'DESC']]
-    });
-    return record ? record.get({ plain: true }) : null;
-  }
-
-  /**
-   * ตรวจสอบว่ามีการส่งคำขอแล้วหรือไม่ (ใช้กับ workflow state)
-   */
-  async hasSubmittedProject1Request(projectId, { transaction } = {}) {
-    const count = await ProjectDefenseRequest.count({
-      where: {
-        projectId,
-        defenseType: DEFENSE_TYPE_PROJECT1,
-        status: { [Op.ne]: 'cancelled' }
+  buildRequestInclude(options = {}) {
+    const include = [
+      this.buildProjectInclude({ projectWhere: options.projectWhere }),
+      {
+        model: Student,
+        as: 'submittedBy',
+        include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       },
-      transaction
-    });
-    return count > 0;
+      {
+        association: ProjectDefenseRequest.associations.advisorApprovals,
+        include: [
+          {
+            model: Teacher,
+            as: 'teacher',
+            include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+          }
+        ]
+      },
+      {
+        association: ProjectDefenseRequest.associations.scheduledBy,
+        attributes: ['userId', 'firstName', 'lastName']
+      },
+      {
+        association: ProjectDefenseRequest.associations.staffVerifiedBy,
+        attributes: ['userId', 'firstName', 'lastName']
+      }
+    ];
+
+    return include;
   }
 
-  /**
-   * tidy payload (เติม snapshot ข้อมูลโครงงาน/สมาชิก)
-   */
+  serializeProject(projectInstance) {
+    if (!projectInstance) return null;
+    const project = projectInstance.get ? projectInstance.get({ plain: true }) : projectInstance;
+
+    const buildTeacher = (teacher) => {
+      if (!teacher) return null;
+      const name = [`${teacher.user?.firstName || ''}`.trim(), `${teacher.user?.lastName || ''}`.trim()].filter(Boolean).join(' ').trim();
+      return {
+        teacherId: teacher.teacherId,
+        teacherCode: teacher.teacherCode,
+        name
+      };
+    };
+
+    return {
+      projectId: project.projectId,
+      projectCode: project.projectCode,
+      projectNameTh: project.projectNameTh,
+      projectNameEn: project.projectNameEn,
+      status: project.status,
+      academicYear: project.academicYear,
+      semester: project.semester,
+      advisorId: project.advisorId,
+      coAdvisorId: project.coAdvisorId,
+      advisor: buildTeacher(project.advisor),
+      coAdvisor: buildTeacher(project.coAdvisor),
+      members: (project.members || []).map((member) => {
+        const student = member.student || {};
+        const user = student.user || {};
+        const name = [`${user.firstName || ''}`.trim(), `${user.lastName || ''}`.trim()].filter(Boolean).join(' ').trim();
+        return {
+          studentId: member.studentId,
+          role: member.role,
+          studentCode: student.studentCode || null,
+          name: name || null
+        };
+      })
+    };
+  }
+
+  serializeRequest(instance) {
+    if (!instance) return null;
+    const data = instance.get ? instance.get({ plain: true }) : instance;
+    const buildUser = (user) => {
+      if (!user) return null;
+      return {
+        userId: user.userId,
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+        fullName: [`${user.firstName || ''}`.trim(), `${user.lastName || ''}`.trim()].filter(Boolean).join(' ').trim() || null
+      };
+    };
+
+    const buildStudent = (student) => {
+      if (!student) return null;
+      const user = student.user || {};
+      const fullName = [`${user.firstName || ''}`.trim(), `${user.lastName || ''}`.trim()].filter(Boolean).join(' ').trim();
+      return {
+        studentId: student.studentId,
+        studentCode: student.studentCode || null,
+        name: fullName || null
+      };
+    };
+
+    return {
+      requestId: data.requestId,
+      projectId: data.projectId,
+      defenseType: data.defenseType,
+      status: data.status,
+      formPayload: data.formPayload,
+      submittedByStudentId: data.submittedByStudentId,
+      submittedAt: data.submittedAt,
+      advisorApprovedAt: data.advisorApprovedAt,
+      defenseScheduledAt: data.defenseScheduledAt,
+      defenseLocation: data.defenseLocation,
+      defenseNote: data.defenseNote,
+      scheduledAt: data.scheduledAt,
+  scheduledByUserId: data.scheduledByUserId || null,
+      staffVerifiedAt: data.staffVerifiedAt,
+  staffVerifiedByUserId: data.staffVerifiedByUserId || null,
+      staffVerificationNote: data.staffVerificationNote,
+      project: this.serializeProject(data.project),
+      submittedBy: buildStudent(data.submittedBy),
+      scheduledBy: buildUser(data.scheduledBy),
+      staffVerifiedBy: buildUser(data.staffVerifiedBy),
+      advisorApprovals: (data.advisorApprovals || []).map((approval) => {
+        const teacher = approval.teacher || {};
+        const user = teacher.user || {};
+        const name = [`${user.firstName || ''}`.trim(), `${user.lastName || ''}`.trim()].filter(Boolean).join(' ').trim();
+        return {
+          approvalId: approval.approvalId,
+          requestId: approval.requestId,
+          teacherId: approval.teacherId,
+          teacherRole: approval.teacherRole || null,
+          status: approval.status,
+          note: approval.note || null,
+          approvedAt: approval.approvedAt,
+          teacher: teacher.teacherId ? {
+            teacherId: teacher.teacherId,
+            teacherCode: teacher.teacherCode,
+            name: name || null
+          } : null
+        };
+      }),
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
+  }
+
+  async attachMeetingMetrics(serializedRequest, { transaction } = {}) {
+    if (!serializedRequest || !serializedRequest.project) {
+      return serializedRequest;
+    }
+    const memberStudentIds = (serializedRequest.project.members || []).map((member) => member.studentId).filter(Boolean);
+    if (!memberStudentIds.length) {
+      return serializedRequest;
+    }
+
+    try {
+      const students = await Student.findAll({ where: { studentId: memberStudentIds }, transaction });
+      const metrics = await projectDocumentService.buildProjectMeetingMetrics(serializedRequest.project.projectId, students, { transaction });
+      const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
+
+      serializedRequest.meetingMetrics = {
+        requiredApprovedLogs,
+        totalMeetings: metrics.totalMeetings || 0,
+        totalApprovedLogs: metrics.totalApprovedLogs || 0,
+        lastApprovedLogAt: metrics.lastApprovedLogAt || null,
+        perStudent: memberStudentIds.map((studentId) => ({
+          studentId,
+          approvedLogs: metrics.perStudent?.[studentId]?.approvedLogs || 0,
+          attendedMeetings: metrics.perStudent?.[studentId]?.attendedMeetings || 0
+        }))
+      };
+    } catch (error) {
+      logger.warn('attachMeetingMetrics failed', { projectId: serializedRequest.project.projectId, error: error.message });
+    }
+
+    return serializedRequest;
+  }
+
+  getAdvisorAssignments(project) {
+    if (!project) return [];
+    const assignments = [];
+    if (project.advisorId) {
+      assignments.push({ teacherId: Number(project.advisorId), role: 'advisor' });
+    }
+    if (project.coAdvisorId && Number(project.coAdvisorId) !== Number(project.advisorId)) {
+      assignments.push({ teacherId: Number(project.coAdvisorId), role: 'co_advisor' });
+    }
+    return assignments;
+  }
+
   normalizeProject1Payload(payload, project) {
     const safePayload = payload && typeof payload === 'object' ? { ...payload } : {};
     const membersSnapshot = (project.members || []).map(member => ({
@@ -155,7 +247,6 @@ class ProjectDefenseRequestService {
       name: member.student?.user ? `${member.student.user.firstName || ''} ${member.student.user.lastName || ''}`.trim() : null
     }));
 
-    // รวมข้อมูลติดต่อจาก payload เดิม โดยต้องจับคู่กับสมาชิกที่อยู่ในโครงงานจริงเท่านั้น
     const contactsFromPayload = Array.isArray(safePayload.students) ? safePayload.students : [];
     const studentContacts = membersSnapshot.map(member => {
       const matched = contactsFromPayload.find(item => Number(item.studentId) === Number(member.studentId)) || {};
@@ -169,7 +260,6 @@ class ProjectDefenseRequestService {
     });
 
     const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
-    // ตัดข้อมูลที่ไม่ต้องการ และเก็บเฉพาะฟิลด์ที่ยังใช้ในระบบคพ.02
     const normalizedPayload = {
       requestDate: normalizeText(safePayload.requestDate) || new Date().toISOString().slice(0, 10),
       advisorName: normalizeText(safePayload.advisorName),
@@ -194,9 +284,6 @@ class ProjectDefenseRequestService {
     return normalizedPayload;
   }
 
-  /**
-   * Validation พื้นฐานของข้อมูลคพ.02 (minimal requirement – ปรับเพิ่มได้ภายหลัง)
-   */
   validateProject1Payload(payload, { rawStudentsCount = 0 } = {}) {
     if (!payload || typeof payload !== 'object') {
       throw new Error('กรุณากรอกข้อมูลคำขอสอบก่อนบันทึก');
@@ -214,6 +301,153 @@ class ProjectDefenseRequestService {
     if (invalidStudent) {
       throw new Error('ข้อมูลสมาชิกไม่ครบถ้วน');
     }
+  }
+
+  async submitProject1Request(projectId, actorStudentId, payload = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, {
+        include: [{
+          model: ProjectMember,
+          as: 'members',
+          include: [{
+            model: Student,
+            as: 'student',
+            include: [{ association: Student.associations.user }]
+          }]
+        }],
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!project) {
+        throw new Error('ไม่พบโครงงาน');
+      }
+
+      const members = project.members || [];
+      const leader = members.find(member => member.role === 'leader');
+      if (!leader || leader.studentId !== Number(actorStudentId)) {
+        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
+      }
+
+      if (!['in_progress', 'completed'].includes(project.status)) {
+        throw new Error('โครงงานต้องอยู่ในสถานะ in_progress ก่อนยื่นคำขอสอบ');
+      }
+
+      const memberStudentIds = members.map(member => member.studentId).filter(Boolean);
+      const students = memberStudentIds.length
+        ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
+        : [];
+      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t });
+      const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
+      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
+      if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
+        throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${requiredApprovedLogs} ครั้ง`);
+      }
+
+      const cleanedPayload = this.normalizeProject1Payload(payload, project);
+      this.validateProject1Payload(cleanedPayload, {
+        rawStudentsCount: Array.isArray(payload?.students) ? payload.students.length : 0
+      });
+
+      let record = await ProjectDefenseRequest.findOne({
+        where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (record && ['scheduled', 'completed'].includes(record.status)) {
+        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+      }
+
+      const now = new Date();
+      const basePayload = {
+        formPayload: cleanedPayload,
+        status: 'advisor_in_review',
+        submittedByStudentId: actorStudentId,
+        submittedAt: now,
+        advisorApprovedAt: null,
+        staffVerifiedAt: null,
+        staffVerifiedByUserId: null,
+        staffVerificationNote: null
+      };
+
+      if (record) {
+        await record.update(basePayload, { transaction: t });
+      } else {
+        record = await ProjectDefenseRequest.create({
+          projectId,
+          defenseType: DEFENSE_TYPE_PROJECT1,
+          ...basePayload
+        }, { transaction: t });
+      }
+
+      const advisorAssignments = this.getAdvisorAssignments(project);
+      await ProjectDefenseRequestAdvisorApproval.destroy({ where: { requestId: record.requestId }, transaction: t });
+
+      if (advisorAssignments.length) {
+        const approvalRows = advisorAssignments.map(({ teacherId, role }) => ({
+          requestId: record.requestId,
+          teacherId,
+          teacherRole: role,
+          status: 'pending',
+          note: null,
+          approvedAt: null
+        }));
+        await ProjectDefenseRequestAdvisorApproval.bulkCreate(approvalRows, { transaction: t });
+      } else {
+        await record.update({ status: 'advisor_approved', advisorApprovedAt: now }, { transaction: t });
+      }
+
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
+      await t.commit();
+
+      logger.info('submitProject1Request success', { projectId });
+      return this.getProject1Request(projectId, { withMetrics: true });
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('submitProject1Request failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async getProject1Request(projectId, { withMetrics = false, transaction } = {}) {
+    const request = await ProjectDefenseRequest.findOne({
+      where: {
+        projectId,
+        defenseType: DEFENSE_TYPE_PROJECT1,
+        status: { [Op.ne]: 'cancelled' }
+      },
+      order: [['submitted_at', 'DESC']],
+      include: this.buildRequestInclude(),
+      transaction
+    });
+
+    if (!request) {
+      return null;
+    }
+
+    const serialized = this.serializeRequest(request);
+    if (withMetrics) {
+      await this.attachMeetingMetrics(serialized, { transaction });
+    }
+    return serialized;
+  }
+
+  async getLatestProject1Request(projectId) {
+    return this.getProject1Request(projectId, { withMetrics: true });
+  }
+
+  async hasSubmittedProject1Request(projectId, { transaction } = {}) {
+    const count = await ProjectDefenseRequest.count({
+      where: {
+        projectId,
+        defenseType: DEFENSE_TYPE_PROJECT1,
+        status: { [Op.ne]: 'cancelled' }
+      },
+      transaction
+    });
+    return count > 0;
   }
 
   async scheduleProject1Defense(projectId, { scheduledAt, location, note } = {}, actorUser = {}) {
@@ -235,6 +469,7 @@ class ProjectDefenseRequestService {
           defenseType: DEFENSE_TYPE_PROJECT1,
           status: { [Op.ne]: 'cancelled' }
         },
+        include: this.buildRequestInclude(),
         transaction: t,
         lock: t.LOCK.UPDATE
       });
@@ -245,27 +480,311 @@ class ProjectDefenseRequestService {
       if (request.status === 'completed') {
         throw new Error('ไม่สามารถเปลี่ยนแปลงกำหนดการหลังบันทึกผลสอบแล้ว');
       }
+      if (!ALLOWED_SCHEDULE_STATUSES.includes(request.status)) {
+        throw new Error('คำขอยังไม่ผ่านการตรวจจากเจ้าหน้าที่ ไม่สามารถนัดสอบได้');
+      }
 
-      await request.update({
+      const updatePayload = {
         status: 'scheduled',
         defenseScheduledAt: scheduleDate,
         defenseLocation: locationText,
         defenseNote: typeof note === 'string' && note.trim() ? note.trim() : null,
         scheduledByUserId: actorUser?.userId || null,
         scheduledAt: new Date()
-      }, { transaction: t });
+      };
 
-      await request.reload({ transaction: t });
+      await request.update(updatePayload, { transaction: t });
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
 
       logger.info('scheduleProject1Defense success', { projectId, scheduledAt: scheduleDate.toISOString() });
-      return request.get({ plain: true });
+
+      const serialized = this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
+      return serialized;
     } catch (error) {
       await this.safeRollback(t);
       logger.error('scheduleProject1Defense failed', { projectId, error: error.message });
       throw error;
     }
+  }
+
+  async verifyProject1Request(projectId, { note } = {}, actorUser = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const request = await ProjectDefenseRequest.findOne({
+        where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
+        include: this.buildRequestInclude(),
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!request) {
+        throw new Error('ไม่พบคำขอสอบสำหรับโครงงานนี้');
+      }
+      if (['completed', 'scheduled'].includes(request.status)) {
+        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+      }
+      if (request.status !== 'advisor_approved' && request.status !== 'staff_verified') {
+        throw new Error('คำขอยังไม่ได้รับการอนุมัติจากอาจารย์ครบถ้วน');
+      }
+
+      const updatePayload = {
+        status: 'staff_verified',
+        staffVerifiedAt: new Date(),
+        staffVerifiedByUserId: actorUser?.userId || null,
+        staffVerificationNote: typeof note === 'string' && note.trim() ? note.trim() : null
+      };
+
+      await request.update(updatePayload, { transaction: t });
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
+      await t.commit();
+
+      logger.info('verifyProject1Request success', { projectId, staffUserId: actorUser?.userId || null });
+
+      const serialized = this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
+      return serialized;
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('verifyProject1Request failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async getAdvisorApprovalQueue(teacherId, { status = ['pending'], withMetrics = false } = {}) {
+    const statusFilter = Array.isArray(status) ? status : [status];
+    const approvals = await ProjectDefenseRequestAdvisorApproval.findAll({
+      where: {
+        teacherId,
+        status: { [Op.in]: statusFilter }
+      },
+      include: [{
+        model: ProjectDefenseRequest,
+        as: 'request',
+        include: this.buildRequestInclude()
+      }],
+      order: [[{ model: ProjectDefenseRequest, as: 'request' }, 'submitted_at', 'ASC']]
+    });
+
+    const results = [];
+    for (const approval of approvals) {
+      if (!approval.request) continue;
+      let serialized = this.serializeRequest(approval.request);
+      serialized = await this.attachMeetingMetrics(serialized, {});
+      serialized.myApproval = {
+        approvalId: approval.approvalId,
+        status: approval.status,
+        note: approval.note || null,
+        approvedAt: approval.approvedAt,
+        teacherRole: approval.teacherRole || null
+      };
+      if (!withMetrics) {
+        delete serialized.meetingMetrics;
+      }
+      results.push(serialized);
+    }
+    return results;
+  }
+
+  async submitAdvisorDecision(projectId, teacherId, { decision, note } = {}) {
+    const normalizedDecision = String(decision || '').toLowerCase();
+    if (!['approved', 'rejected'].includes(normalizedDecision)) {
+      throw new Error('รูปแบบการตัดสินใจไม่ถูกต้อง');
+    }
+    if (normalizedDecision === 'rejected') {
+      const trimmedNote = typeof note === 'string' ? note.trim() : '';
+      if (trimmedNote.length < 5) {
+        throw new Error('กรุณาระบุหมายเหตุอย่างน้อย 5 ตัวอักษรเมื่อปฏิเสธคำขอ');
+      }
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      const request = await ProjectDefenseRequest.findOne({
+        where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
+        include: this.buildRequestInclude(),
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!request) {
+        throw new Error('ไม่พบคำขอสอบสำหรับโครงงานนี้');
+      }
+      if (['scheduled', 'completed'].includes(request.status)) {
+        throw new Error('ไม่สามารถเปลี่ยนแปลงคำขอหลังนัดสอบแล้ว');
+      }
+
+      const approval = await ProjectDefenseRequestAdvisorApproval.findOne({
+        where: { requestId: request.requestId, teacherId },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!approval) {
+        throw new Error('ไม่มีสิทธิ์เข้าถึงคำขอสอบนี้');
+      }
+
+      await approval.update({
+        status: normalizedDecision,
+        note: typeof note === 'string' && note.trim() ? note.trim() : null,
+        approvedAt: new Date()
+      }, { transaction: t });
+
+      const approvals = await ProjectDefenseRequestAdvisorApproval.findAll({ where: { requestId: request.requestId }, transaction: t });
+      const hasRejected = approvals.some(item => item.status === 'rejected');
+      const allApproved = approvals.length > 0 && approvals.every(item => item.status === 'approved');
+
+      const statusUpdate = {
+        staffVerifiedAt: null,
+        staffVerifiedByUserId: null,
+        staffVerificationNote: null
+      };
+
+      if (hasRejected) {
+        statusUpdate.status = 'advisor_in_review';
+        statusUpdate.advisorApprovedAt = null;
+      } else if (allApproved) {
+        statusUpdate.status = 'advisor_approved';
+        statusUpdate.advisorApprovedAt = new Date();
+      } else {
+        statusUpdate.status = 'advisor_in_review';
+        statusUpdate.advisorApprovedAt = null;
+      }
+
+      await request.update(statusUpdate, { transaction: t });
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
+      await t.commit();
+
+      logger.info('submitAdvisorDecision success', {
+        projectId,
+        teacherId,
+        decision: normalizedDecision
+      });
+
+      const refreshed = await ProjectDefenseRequest.findByPk(request.requestId, { include: this.buildRequestInclude() });
+      const serialized = this.serializeRequest(refreshed);
+      await this.attachMeetingMetrics(serialized, {});
+      return serialized;
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('submitAdvisorDecision failed', { projectId, teacherId, error: error.message });
+      throw error;
+    }
+  }
+
+  async getStaffVerificationQueue(filters = {}) {
+    const {
+      status,
+      academicYear,
+      semester,
+      search,
+      withMetrics = false
+    } = filters;
+
+    let statuses = STAFF_QUEUE_DEFAULT_STATUSES;
+    if (status) {
+      statuses = Array.isArray(status) ? status : [status];
+    }
+
+    const where = {
+      defenseType: DEFENSE_TYPE_PROJECT1,
+      status: { [Op.in]: statuses }
+    };
+
+    const projectWhere = {};
+    if (academicYear) {
+      const year = Number(academicYear);
+      if (Number.isInteger(year)) {
+        projectWhere.academicYear = year;
+      }
+    }
+    if (semester) {
+      const sem = Number(semester);
+      if ([1, 2, 3].includes(sem)) {
+        projectWhere.semester = sem;
+      }
+    }
+    if (search && typeof search === 'string' && search.trim()) {
+      const like = { [Op.like]: `%${search.trim()}%` };
+      projectWhere[Op.or] = [
+        { projectCode: like },
+        { projectNameTh: like },
+        { projectNameEn: like }
+      ];
+    }
+
+    const include = this.buildRequestInclude({ projectWhere });
+    const requests = await ProjectDefenseRequest.findAll({
+      where,
+      include,
+      order: [['submitted_at', 'ASC']]
+    });
+
+    const serializedList = [];
+    for (const request of requests) {
+      const serialized = this.serializeRequest(request);
+      if (withMetrics) {
+        await this.attachMeetingMetrics(serialized, {});
+      }
+      serializedList.push(serialized);
+    }
+    return serializedList;
+  }
+
+  async exportStaffVerificationList(filters = {}) {
+    const records = await this.getStaffVerificationQueue({ ...filters, withMetrics: true });
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('KP02 Eligible');
+
+    worksheet.columns = [
+      { header: 'ลำดับ', key: 'index', width: 8 },
+      { header: 'รหัสโครงงาน', key: 'projectCode', width: 16 },
+      { header: 'ชื่อโครงงาน (TH)', key: 'titleTh', width: 40 },
+      { header: 'สมาชิก', key: 'members', width: 40 },
+      { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 28 },
+      { header: 'สถานะคำขอ', key: 'status', width: 18 },
+      { header: 'ยื่นคำขอเมื่อ', key: 'submittedAt', width: 20 },
+      { header: 'อนุมัติอาจารย์เมื่อ', key: 'advisorApprovedAt', width: 20 },
+      { header: 'ตรวจโดยเจ้าหน้าที่เมื่อ', key: 'staffVerifiedAt', width: 20 },
+      { header: 'เจ้าหน้าที่ผู้ตรวจ', key: 'staffVerifiedBy', width: 24 },
+      { header: 'วันสอบที่นัด', key: 'defenseScheduledAt', width: 22 },
+      { header: 'หมายเหตุเจ้าหน้าที่', key: 'staffNote', width: 28 },
+      { header: 'จำนวนบันทึกการพบ (หัวหน้า)', key: 'leaderLogs', width: 18 },
+      { header: 'บันทึกที่ต้องมีขั้นต่ำ', key: 'requiredLogs', width: 18 }
+    ];
+
+    records.forEach((record, index) => {
+      const project = record.project || {};
+      const members = (project.members || []).map((member) => `${member.studentCode || '-'} ${member.name || ''}`.trim()).join('\n');
+      const advisorName = project.advisor?.name || '-';
+      const staffName = record.staffVerifiedBy?.fullName || '-';
+      const leaderStudentId = project.members?.find((member) => member.role === 'leader')?.studentId;
+      const leaderMetrics = record.meetingMetrics?.perStudent?.find((item) => item.studentId === leaderStudentId) || { approvedLogs: 0 };
+      worksheet.addRow({
+        index: index + 1,
+        projectCode: project.projectCode || '-',
+        titleTh: project.projectNameTh || '-',
+        members: members || '-',
+        advisor: advisorName,
+        status: record.status,
+        submittedAt: record.submittedAt ? new Date(record.submittedAt).toLocaleString('th-TH') : '-',
+        advisorApprovedAt: record.advisorApprovedAt ? new Date(record.advisorApprovedAt).toLocaleString('th-TH') : '-',
+        staffVerifiedAt: record.staffVerifiedAt ? new Date(record.staffVerifiedAt).toLocaleString('th-TH') : '-',
+        staffVerifiedBy: staffName || '-',
+        defenseScheduledAt: record.defenseScheduledAt ? new Date(record.defenseScheduledAt).toLocaleString('th-TH') : '-',
+        staffNote: record.staffVerificationNote || '-',
+        leaderLogs: leaderMetrics.approvedLogs || 0,
+        requiredLogs: record.meetingMetrics?.requiredApprovedLogs || projectDocumentService.getRequiredApprovedMeetingLogs()
+      });
+    });
+
+    worksheet.eachRow((row) => {
+      row.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const filename = `kp02_eligible_${Date.now()}.xlsx`;
+    logger.info('exportStaffVerificationList success', { rowCount: records.length });
+    return { buffer, filename };
   }
 
   async safeRollback(transaction) {
@@ -279,3 +798,4 @@ class ProjectDefenseRequestService {
 }
 
 module.exports = new ProjectDefenseRequestService();
+

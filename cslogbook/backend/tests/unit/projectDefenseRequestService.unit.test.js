@@ -11,6 +11,8 @@ let User;
 let ProjectDocument;
 let ProjectMember;
 let ProjectDefenseRequest;
+let ProjectDefenseRequestAdvisorApproval;
+let Teacher;
 let Meeting;
 let MeetingParticipant;
 let MeetingLog;
@@ -26,6 +28,7 @@ let leader;
 let member;
 let project;
 let staffUser;
+let advisor;
 
 async function resetMeetings() {
   await MeetingLog.destroy({ where: {} });
@@ -89,12 +92,32 @@ beforeAll(async () => {
     formPayload: { type: DataTypesCtor.JSON, field: 'form_payload' },
     submittedByStudentId: { type: DataTypesCtor.INTEGER, field: 'submitted_by_student_id' },
     submittedAt: { type: DataTypesCtor.DATE, field: 'submitted_at' },
+    advisorApprovedAt: { type: DataTypesCtor.DATE, field: 'advisor_approved_at' },
     defenseScheduledAt: { type: DataTypesCtor.DATE, field: 'defense_scheduled_at' },
     defenseLocation: { type: DataTypesCtor.STRING, field: 'defense_location' },
     defenseNote: { type: DataTypesCtor.TEXT, field: 'defense_note' },
     scheduledByUserId: { type: DataTypesCtor.INTEGER, field: 'scheduled_by_user_id' },
-    scheduledAt: { type: DataTypesCtor.DATE, field: 'scheduled_at' }
+    scheduledAt: { type: DataTypesCtor.DATE, field: 'scheduled_at' },
+    staffVerifiedAt: { type: DataTypesCtor.DATE, field: 'staff_verified_at' },
+    staffVerifiedByUserId: { type: DataTypesCtor.INTEGER, field: 'staff_verified_by_user_id' },
+    staffVerificationNote: { type: DataTypesCtor.TEXT, field: 'staff_verification_note' }
   }, { tableName: 'project_defense_requests', underscored: true, timestamps: true });
+
+  ProjectDefenseRequestAdvisorApproval = sequelize.define('ProjectDefenseRequestAdvisorApproval', {
+    approvalId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'approval_id' },
+    requestId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'request_id' },
+    teacherId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'teacher_id' },
+    teacherRole: { type: DataTypesCtor.STRING, field: 'teacher_role' },
+    status: { type: DataTypesCtor.STRING, allowNull: false, defaultValue: 'pending' },
+    note: { type: DataTypesCtor.TEXT },
+    approvedAt: { type: DataTypesCtor.DATE, field: 'approved_at' }
+  }, { tableName: 'project_defense_request_approvals', underscored: true, timestamps: true });
+
+  Teacher = sequelize.define('Teacher', {
+    teacherId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'teacher_id' },
+    userId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'user_id' },
+    teacherCode: { type: DataTypesCtor.STRING, allowNull: true, field: 'teacher_code' }
+  }, { tableName: 'teachers', underscored: true, timestamps: false });
 
   Meeting = sequelize.define('Meeting', {
     meetingId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'meeting_id' },
@@ -119,6 +142,16 @@ beforeAll(async () => {
   ProjectMember.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
   ProjectMember.belongsTo(Student, { as: 'student', foreignKey: 'student_id' });
   ProjectDocument.hasMany(ProjectDefenseRequest, { as: 'defenseRequests', foreignKey: 'project_id' });
+  ProjectDocument.belongsTo(Teacher, { as: 'advisor', foreignKey: 'advisor_id' });
+  ProjectDocument.belongsTo(Teacher, { as: 'coAdvisor', foreignKey: 'co_advisor_id' });
+  Teacher.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
+  ProjectDefenseRequest.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
+  ProjectDefenseRequest.belongsTo(Student, { as: 'submittedBy', foreignKey: 'submitted_by_student_id' });
+  ProjectDefenseRequest.belongsTo(User, { as: 'scheduledBy', foreignKey: 'scheduled_by_user_id' });
+  ProjectDefenseRequest.belongsTo(User, { as: 'staffVerifiedBy', foreignKey: 'staff_verified_by_user_id' });
+  ProjectDefenseRequest.hasMany(ProjectDefenseRequestAdvisorApproval, { as: 'advisorApprovals', foreignKey: 'request_id' });
+  ProjectDefenseRequestAdvisorApproval.belongsTo(ProjectDefenseRequest, { as: 'request', foreignKey: 'request_id' });
+  ProjectDefenseRequestAdvisorApproval.belongsTo(Teacher, { as: 'teacher', foreignKey: 'teacher_id' });
 
   jest.isolateModules(() => {
     jest.doMock('../../config/database', () => ({ sequelize }));
@@ -206,6 +239,8 @@ beforeAll(async () => {
       ProjectDocument,
       ProjectMember,
       ProjectDefenseRequest,
+      ProjectDefenseRequestAdvisorApproval,
+      Teacher,
       Meeting,
       MeetingParticipant,
       MeetingLog
@@ -217,12 +252,14 @@ beforeAll(async () => {
   leader = await createStudent('640000001111');
   member = await createStudent('640000001112');
   staffUser = await User.create({ firstName: 'Staff', lastName: 'Dept' });
+  const advisorUserInstance = await User.create({ firstName: 'Advisor', lastName: 'One' });
+  advisor = await Teacher.create({ userId: advisorUserInstance.userId, teacherCode: 'T001' });
   project = await ProjectDocument.create({
     projectNameTh: 'ระบบทดสอบ',
     projectNameEn: 'Test System',
     projectCode: 'PRJTEST-001',
     status: 'in_progress',
-    advisorId: 10
+    advisorId: advisor.teacherId
   });
   await ProjectMember.bulkCreate([
     { projectId: project.projectId, studentId: leader.studentId, role: 'leader' },
@@ -255,7 +292,11 @@ describe('submitProject1Request', () => {
 
     const record = await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, payload);
     expect(record).toBeDefined();
-    expect(record.status).toBe('submitted');
+    expect(record.status).toBe('advisor_in_review');
+    expect(record.advisorApprovals).toBeDefined();
+    expect(record.advisorApprovals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ status: 'pending', teacherId: advisor.teacherId })
+    ]));
     expect(record.formPayload.advisorName).toBe('Dr.B');
     expect(record.formPayload.coAdvisorName).toBe('Dr.C');
     expect(record.formPayload.students).toEqual(expect.arrayContaining([
@@ -288,6 +329,7 @@ describe('submitProject1Request', () => {
         { studentId: member.studentId, phone: '', email: '' }
       ]
     });
+    expect(updated.status).toBe('advisor_in_review');
     expect(updated.formPayload.additionalNotes).toBe('อัปเดตข้อมูล');
     const leaderContact = updated.formPayload.students.find(item => item.studentId === leader.studentId);
     expect(leaderContact.phone).toBe('0899999999');
@@ -317,7 +359,7 @@ describe('getLatestProject1Request', () => {
   test('ดึงคำขอล่าสุดกลับมาได้', async () => {
     const record = await projectDefenseRequestService.getLatestProject1Request(project.projectId);
     expect(record).toBeTruthy();
-    expect(record.status).toBe('submitted');
+    expect(record.status).toBe('advisor_in_review');
   });
 });
 
@@ -335,6 +377,17 @@ describe('scheduleProject1Defense', () => {
       ]
     });
 
+    await projectDefenseRequestService.submitAdvisorDecision(project.projectId, advisor.teacherId, {
+      decision: 'approved',
+      note: 'ผ่านเกณฑ์'
+    });
+
+    await projectDefenseRequestService.verifyProject1Request(
+      project.projectId,
+      { note: 'เอกสารครบถ้วน' },
+      { userId: staffUser.userId }
+    );
+
     const scheduledAt = new Date(Date.now() + 86400000).toISOString();
     const record = await projectDefenseRequestService.scheduleProject1Defense(
       project.projectId,
@@ -346,6 +399,7 @@ describe('scheduleProject1Defense', () => {
     expect(new Date(record.defenseScheduledAt).toISOString()).toBe(new Date(scheduledAt).toISOString());
     expect(record.defenseLocation).toBe(location);
     expect(record.scheduledByUserId).toBe(staffUser.userId);
+    expect(record.staffVerifiedByUserId).toBe(staffUser.userId);
     expect(mockSyncProjectWorkflowState).toHaveBeenCalled();
   });
 
