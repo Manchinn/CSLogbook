@@ -71,10 +71,39 @@ const ExamSubmitPage = () => {
 
   const currentStudentId = useMemo(() => window.__CURRENT_STUDENT_ID || null, []);
 
+  const leaderMember = useMemo(() => {
+    if (!activeProject) return null;
+    return (activeProject.members || []).find(member => member.role === 'leader') || null;
+  }, [activeProject]);
+
   const isLeader = useMemo(() => {
     if (!activeProject || !currentStudentId) return false;
-    return (activeProject.members || []).some(member => member.role === 'leader' && Number(member.studentId) === Number(currentStudentId));
-  }, [activeProject, currentStudentId]);
+    return Number(leaderMember?.studentId) === Number(currentStudentId);
+  }, [activeProject, currentStudentId, leaderMember]);
+
+  const meetingRequirement = useMemo(() => {
+    const metrics = activeProject?.meetingMetrics;
+    if (!metrics) {
+      return {
+        approved: 0,
+        required: 0,
+        totalApproved: 0,
+        satisfied: true
+      };
+    }
+    const required = Number(metrics.requiredApprovedLogs) || 0;
+    const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
+    const leaderApproved = leaderMember
+      ? (perStudent.find(item => Number(item.studentId) === Number(leaderMember.studentId))?.approvedLogs || 0)
+      : 0;
+    const totalApproved = Number(metrics.totalApprovedLogs) || leaderApproved;
+    return {
+      approved: leaderApproved,
+      required,
+      totalApproved,
+      satisfied: required === 0 || leaderApproved >= required
+    };
+  }, [activeProject, leaderMember]);
 
   const advisorNameFromList = useMemo(() => {
     if (!activeProject?.advisorId || !Array.isArray(advisors)) return '';
@@ -129,7 +158,7 @@ const ExamSubmitPage = () => {
     return <Alert type="info" message="ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้" showIcon />;
   }
 
-  const disabledSubmission = !isLeader || ['completed', 'archived', 'failed'].includes(activeProject.status);
+  const disabledSubmission = !isLeader || ['completed', 'archived', 'failed'].includes(activeProject.status) || !meetingRequirement.satisfied;
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%', paddingBottom: 32 }}>
@@ -173,6 +202,24 @@ const ExamSubmitPage = () => {
             ))}
           </Descriptions.Item>
         </Descriptions>
+
+        <Alert
+          type={meetingRequirement.satisfied ? 'info' : 'warning'}
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={meetingRequirement.satisfied ? 'ผ่านเกณฑ์การพบอาจารย์แล้ว' : 'ยังไม่ครบเกณฑ์การพบอาจารย์'}
+          description={
+            <div>
+              <div>บันทึกการพบที่อาจารย์อนุมัติ (หัวหน้าโครงงาน): {meetingRequirement.approved} / {meetingRequirement.required}</div>
+              {meetingRequirement.totalApproved !== meetingRequirement.approved && (
+                <div>รวมทั้งทีม: {meetingRequirement.totalApproved}</div>
+              )}
+              {!meetingRequirement.satisfied && (
+                <div style={{ marginTop: 4 }}>ต้องมีการพบอาจารย์และได้รับอนุมัติอย่างน้อย {meetingRequirement.required} ครั้งก่อนยื่นคำขอสอบ</div>
+              )}
+            </div>
+          }
+        />
 
         <Spin spinning={loadingRequest}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={disabledSubmission || loadingRequest}>

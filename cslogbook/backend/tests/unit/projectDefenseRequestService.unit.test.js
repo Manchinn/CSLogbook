@@ -11,6 +11,9 @@ let User;
 let ProjectDocument;
 let ProjectMember;
 let ProjectDefenseRequest;
+let Meeting;
+let MeetingParticipant;
+let MeetingLog;
 let projectDefenseRequestService;
 const mockSyncProjectWorkflowState = jest.fn().mockResolvedValue(null);
 
@@ -22,6 +25,24 @@ async function createStudent(code) {
 let leader;
 let member;
 let project;
+
+async function resetMeetings() {
+  await MeetingLog.destroy({ where: {} });
+  await MeetingParticipant.destroy({ where: {} });
+  await Meeting.destroy({ where: {} });
+}
+
+async function seedApprovedMeetings(count = 5) {
+  // สร้างข้อมูลการพบอาจารย์ที่ได้รับอนุมัติครบตามจำนวนที่กำหนด เพื่อใช้ทดสอบเกณฑ์ยื่นสอบ
+  for (let i = 0; i < count; i += 1) {
+    const meeting = await Meeting.create({ projectId: project.projectId });
+    await MeetingParticipant.bulkCreate([
+      { meetingId: meeting.meetingId, userId: leader.userId, role: 'student', attendanceStatus: 'present' },
+      { meetingId: meeting.meetingId, userId: member.userId, role: 'student', attendanceStatus: 'present' }
+    ]);
+    await MeetingLog.create({ meetingId: meeting.meetingId, approvalStatus: 'approved', approvedAt: new Date() });
+  }
+}
 
 beforeAll(async () => {
   jest.resetModules();
@@ -69,6 +90,25 @@ beforeAll(async () => {
     submittedAt: { type: DataTypesCtor.DATE, field: 'submitted_at' }
   }, { tableName: 'project_defense_requests', underscored: true, timestamps: true });
 
+  Meeting = sequelize.define('Meeting', {
+    meetingId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'meeting_id' },
+    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' }
+  }, { tableName: 'meetings', underscored: true, timestamps: false });
+
+  MeetingParticipant = sequelize.define('MeetingParticipant', {
+    meetingId: { type: DataTypesCtor.INTEGER, primaryKey: true, field: 'meeting_id' },
+    userId: { type: DataTypesCtor.INTEGER, primaryKey: true, field: 'user_id' },
+    role: { type: DataTypesCtor.STRING, allowNull: false },
+    attendanceStatus: { type: DataTypesCtor.STRING, allowNull: false, defaultValue: 'present', field: 'attendance_status' }
+  }, { tableName: 'meeting_participants', underscored: true, timestamps: false });
+
+  MeetingLog = sequelize.define('MeetingLog', {
+    logId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'log_id' },
+    meetingId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'meeting_id' },
+    approvalStatus: { type: DataTypesCtor.STRING, allowNull: false, field: 'approval_status' },
+    approvedAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'approved_at' }
+  }, { tableName: 'meeting_logs', underscored: true, timestamps: false });
+
   ProjectDocument.hasMany(ProjectMember, { as: 'members', foreignKey: 'project_id' });
   ProjectMember.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
   ProjectMember.belongsTo(Student, { as: 'student', foreignKey: 'student_id' });
@@ -79,7 +119,79 @@ beforeAll(async () => {
     jest.doMock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
     jest.doMock('../../services/projectDocumentService', () => ({
       syncProjectWorkflowState: mockSyncProjectWorkflowState,
-      getProjectById: jest.fn()
+      getProjectById: jest.fn(),
+      getRequiredApprovedMeetingLogs: () => 5,
+      buildProjectMeetingMetrics: async (projectId, students) => {
+        const metrics = {
+          totalMeetings: 0,
+          totalApprovedLogs: 0,
+          lastApprovedLogAt: null,
+          perStudent: {}
+        };
+
+        if (!Array.isArray(students) || students.length === 0) {
+          return metrics;
+        }
+
+        const userToStudentId = {};
+        const userIds = [];
+        students.forEach(student => {
+          metrics.perStudent[student.studentId] = { approvedLogs: 0, attendedMeetings: 0 };
+          if (student.userId) {
+            userToStudentId[student.userId] = student.studentId;
+            userIds.push(student.userId);
+          }
+        });
+
+        if (!userIds.length) {
+          return metrics;
+        }
+
+        const meetings = await Meeting.findAll({ where: { projectId }, raw: true });
+        metrics.totalMeetings = meetings.length;
+        if (!meetings.length) {
+          return metrics;
+        }
+
+        const meetingIds = meetings.map(item => item.meetingId);
+        const participants = await MeetingParticipant.findAll({
+          where: { meetingId: meetingIds, userId: userIds },
+          raw: true
+        });
+        const participantsByMeeting = new Map();
+        participants.forEach(row => {
+          const studentId = userToStudentId[row.userId];
+          if (!studentId) return;
+          if (!participantsByMeeting.has(row.meetingId)) {
+            participantsByMeeting.set(row.meetingId, new Set());
+          }
+          participantsByMeeting.get(row.meetingId).add(studentId);
+          metrics.perStudent[studentId].attendedMeetings += 1;
+        });
+
+        const approvedLogs = await MeetingLog.findAll({
+          where: { meetingId: meetingIds, approvalStatus: 'approved' },
+          order: [['approved_at', 'DESC']],
+          raw: true
+        });
+        metrics.totalApprovedLogs = approvedLogs.length;
+
+        approvedLogs.forEach(log => {
+          if (!metrics.lastApprovedLogAt && log.approvedAt) {
+            metrics.lastApprovedLogAt = log.approvedAt;
+          }
+          const studentSet = participantsByMeeting.get(log.meetingId);
+          if (!studentSet) return;
+          studentSet.forEach(studentId => {
+            const current = metrics.perStudent[studentId];
+            if (current) {
+              current.approvedLogs += 1;
+            }
+          });
+        });
+
+        return metrics;
+      }
     }));
     jest.doMock('../../models', () => ({
       sequelize,
@@ -87,7 +199,10 @@ beforeAll(async () => {
       User,
       ProjectDocument,
       ProjectMember,
-      ProjectDefenseRequest
+      ProjectDefenseRequest,
+      Meeting,
+      MeetingParticipant,
+      MeetingLog
     }));
     projectDefenseRequestService = require('../../services/projectDefenseRequestService');
   });
@@ -119,6 +234,8 @@ afterAll(async () => {
 
 describe('submitProject1Request', () => {
   test('บันทึกคำขอใหม่สำเร็จและเรียก sync workflow', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5);
     const payload = {
       advisorName: 'Dr.B',
       coAdvisorName: 'Dr.C',
@@ -142,7 +259,20 @@ describe('submitProject1Request', () => {
     expect(mockSyncProjectWorkflowState).toHaveBeenCalled();
   });
 
+  test('ยับยั้งการส่งเมื่อบันทึกการพบอาจารย์ไม่ครบตามเกณฑ์', async () => {
+    await resetMeetings();
+    await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
+      advisorName: 'Dr.Ready',
+      students: [
+        { studentId: leader.studentId, phone: '0800000000', email: '' },
+        { studentId: member.studentId, phone: '0800000001', email: '' }
+      ]
+    })).rejects.toThrow(/บันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย/);
+  });
+
   test('อนุญาตให้แก้ไขคำขอเดิมได้', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5);
     const updated = await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
       advisorName: 'อ. ที่ปรึกษา',
       additionalNotes: 'อัปเดตข้อมูล',
@@ -158,6 +288,7 @@ describe('submitProject1Request', () => {
   });
 
   test('ห้ามนักศึกษาที่ไม่ใช่หัวหน้ายื่นคำขอ', async () => {
+    await resetMeetings();
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, member.studentId, {
       students: [
         { studentId: leader.studentId, phone: '0800000000', email: '' },
@@ -167,6 +298,8 @@ describe('submitProject1Request', () => {
   });
 
   test('ตรวจสอบ validation ข้อมูลไม่ครบ', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5);
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
       students: []
     })).rejects.toThrow(/ช่องติดต่อของสมาชิก/);

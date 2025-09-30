@@ -5,7 +5,7 @@ const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
 
 // กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
-const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
+const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '5', 10) || 5, 1);
 
 /**
  * Service สำหรับจัดการ ProjectDocument (Phase 2)
@@ -451,6 +451,41 @@ class ProjectDocumentService {
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
     const base = this.serialize(project);
+    try {
+      const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
+      if (memberStudentIds.length) {
+        const students = await Student.findAll({ where: { studentId: memberStudentIds } });
+        const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students);
+        base.meetingMetrics = {
+          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+          totalMeetings: meetingMetrics.totalMeetings,
+          totalApprovedLogs: meetingMetrics.totalApprovedLogs,
+          lastApprovedLogAt: meetingMetrics.lastApprovedLogAt,
+          perStudent: memberStudentIds.map(studentId => ({
+            studentId,
+            approvedLogs: meetingMetrics.perStudent?.[studentId]?.approvedLogs || 0,
+            attendedMeetings: meetingMetrics.perStudent?.[studentId]?.attendedMeetings || 0
+          }))
+        };
+      } else {
+        base.meetingMetrics = {
+          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+          totalMeetings: 0,
+          totalApprovedLogs: 0,
+          lastApprovedLogAt: null,
+          perStudent: []
+        };
+      }
+    } catch (error) {
+      logger.warn('getProjectById meeting metrics failed', { projectId, error: error.message });
+      base.meetingMetrics = {
+        requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+        totalMeetings: 0,
+        totalApprovedLogs: 0,
+        lastApprovedLogAt: null,
+        perStudent: []
+      };
+    }
     if (includeSummary) {
       // ดึงสรุปเบื้องต้น (นับ milestones และ proposal ล่าสุด) แบบ query แยก เพื่อลด join หนัก
       const { ProjectMilestone, ProjectArtifact } = require('../models');
@@ -511,6 +546,11 @@ class ProjectDocumentService {
       })),
       archivedAt: p.archivedAt
     };
+  }
+
+  getRequiredApprovedMeetingLogs() {
+    // คืนค่ามาตรฐานจำนวนบันทึกการพบที่ต้องได้รับอนุมัติ เพื่อใช้เป็นเกณฑ์กลางทั้งฝั่ง UI และ Service อื่น
+    return REQUIRED_APPROVED_MEETING_LOGS;
   }
 
   /**

@@ -43,6 +43,18 @@ class ProjectDefenseRequestService {
         throw new Error('โครงงานต้องอยู่ในสถานะ in_progress ก่อนยื่นคำขอสอบ');
       }
 
+      const memberStudentIds = (project.members || []).map(member => member.studentId).filter(Boolean);
+      const students = memberStudentIds.length
+        ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
+        : [];
+      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t });
+      const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
+      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
+      // ถ้าบันทึกการพบที่ได้รับอนุมัติยังไม่ครบตามเกณฑ์ ให้บล็อกการส่งคำขอสอบไว้ก่อน
+      if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
+        throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${requiredApprovedLogs} ครั้ง`);
+      }
+
       const cleanedPayload = this.normalizeProject1Payload(payload, project);
       this.validateProject1Payload(cleanedPayload, {
         rawStudentsCount: Array.isArray(payload?.students) ? payload.students.length : 0
