@@ -10,7 +10,7 @@ const KP02_STATUS_META = {
   submitted: { label: 'ยื่นคำขอแล้ว (รออาจารย์อนุมัติ)', color: 'orange', alert: 'info' },
   advisor_in_review: { label: 'รอการอนุมัติจากอาจารย์ที่ปรึกษา', color: 'orange', alert: 'info' },
   advisor_approved: { label: 'อาจารย์อนุมัติครบแล้ว รอเจ้าหน้าที่ตรวจสอบ', color: 'processing', alert: 'success' },
-  staff_verified: { label: 'เจ้าหน้าที่ตรวจสอบแล้ว รอการนัดสอบ', color: 'green', alert: 'success' },
+  staff_verified: { label: 'เจ้าหน้าที่ตรวจสอบแล้ว ', color: 'green', alert: 'success' },
   scheduled: { label: 'นัดสอบแล้ว', color: 'blue', alert: 'success' },
   completed: { label: 'บันทึกผลสอบเรียบร้อย', color: 'geekblue', alert: 'success' },
   cancelled: { label: 'คำขอถูกยกเลิก', color: 'red', alert: 'warning' },

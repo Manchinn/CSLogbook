@@ -3,9 +3,7 @@ import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message, 
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   FileAddOutlined,
-  ScheduleOutlined,
   UploadOutlined,
-  CalendarOutlined,
   EditOutlined,
   TeamOutlined
 } from '@ant-design/icons';
@@ -29,14 +27,6 @@ const steps = [
     implemented: true
   },
   {
-    key: 'topic-exam',
-    title: 'สอบหัวข้อ',
-    desc: 'จัดตารางและบันทึกผลการสอบเสนอหัวข้อ (ภายหลัง)',
-    icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
-    implemented: true,
-    comingSoon: false
-  },
-  {
     key: 'meeting-logbook',
     title: 'บันทึกการพบอาจารย์',
     desc: 'จองการพบและบันทึก log พร้อมส่งอีเมลขออนุมัติ',
@@ -50,15 +40,6 @@ const steps = [
     desc: 'เตรียมเอกสารประกอบการสอบปลายภาคโครงงานพิเศษ 1',
     icon: <UploadOutlined style={{ fontSize: 28 }} />,
     implemented: true,
-    requiresPostTopicUnlock: true
-  },
-  {
-    key: 'exam-day',
-    title: 'วันสอบ',
-    desc: 'สรุปกำหนดการ / บันทึกผล (อนาคต)',
-    icon: <CalendarOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true,
     requiresPostTopicUnlock: true
   },
   {

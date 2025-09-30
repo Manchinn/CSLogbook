@@ -21,7 +21,6 @@ import {
   CheckCircleOutlined,
   DownloadOutlined,
   ReloadOutlined,
-  ScheduleOutlined,
   SearchOutlined
 } from '@ant-design/icons';
 import FileSaver from 'file-saver';
@@ -258,15 +257,6 @@ const StaffKP02Queue = () => {
               ตรวจสอบแล้ว
             </Button>
           </Tooltip>
-          <Tooltip title="ไปยังหน้าจัดตารางสอบ">
-            <Button
-              icon={<ScheduleOutlined />}
-              href={`/admin/project1/defense-schedule?projectId=${record.project?.projectId || ''}`}
-              target="_blank"
-            >
-              นัดสอบ
-            </Button>
-          </Tooltip>
         </Space>
       )
     }
@@ -310,12 +300,6 @@ const StaffKP02Queue = () => {
           <Text type="secondary">
             เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติครบแล้ว บันทึกผลการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบได้
           </Text>
-          <Alert
-            type="info"
-            showIcon
-            message="แนวทาง"
-            description="ตรวจสอบข้อมูลนักศึกษาและหมายเหตุอาจารย์ก่อนกดตรวจสอบ หากต้องการนัดสอบให้กดปุ่มนัดสอบเพื่อเปิดหน้าตาราง"
-          />
         </Space>
 
         <Row gutter={[16, 16]}>
