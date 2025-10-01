@@ -192,12 +192,12 @@ const letterStyles = StyleSheet.create({
   
   // ส่วนท้าย
   footer: {
-    marginTop: 30, // เพิ่มระยะห่างจากส่วนลงนาม
+    marginTop: 10, // เพิ่มระยะห่างจากส่วนลงนาม
   },
   
   footerText: {
     fontSize: 12,
-    marginBottom: 3, // เพิ่มระยะห่างระหว่างบรรทัด
+    marginBottom: 1, // เพิ่มระยะห่างระหว่างบรรทัด
   },
 });
 
