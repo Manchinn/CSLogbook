@@ -19,6 +19,19 @@ const statusColorMap = {
   archived: 'error'
 };
 
+const statusLabelMap = {
+  draft: 'ร่าง',
+  advisor_assigned: 'รอเริ่มต้น',
+  in_progress: 'กำลังดำเนินการ',
+  completed: 'เสร็จสมบูรณ์',
+  archived: 'เก็บถาวร'
+};
+
+const examResultMeta = {
+  passed: { color: 'green', text: 'หัวข้อผ่าน' },
+  failed: { color: 'red', text: 'หัวข้อไม่ผ่าน' }
+};
+
 const PROJECT_TYPE_LABELS = {
   govern: 'ความร่วมมือกับหน่วยงานรัฐ',
   private: 'ความร่วมมือกับภาคเอกชน',
@@ -209,7 +222,27 @@ const ProjectDashboard = () => {
       const codes = extractProjectTrackCodes(project);
       return codes.length ? codes.map(code => <Tag key={code}>{CODE_TO_LABEL[code] || code}</Tag>) : '-';
     } },
-    { title: 'สถานะ', dataIndex: 'status', key: 'status', width: 130, render: s => <Tag color={statusColorMap[s] || 'default'}>{s}</Tag> },
+    {
+      title: 'สถานะ',
+      key: 'status',
+      width: 180,
+      render: (_, project) => {
+        const statusTag = (
+          <Tag key="status" color={statusColorMap[project.status] || 'default'}>
+            {statusLabelMap[project.status] || project.status || '-'}
+          </Tag>
+        );
+        const examMeta = project.examResult ? examResultMeta[project.examResult] : null;
+        return (
+          <Space size={4} wrap>
+            {statusTag}
+            {examMeta && (
+              <Tag key="exam" color={examMeta.color}>{examMeta.text}</Tag>
+            )}
+          </Space>
+        );
+      }
+    },
     { title: 'สมาชิก', key: 'members', width: 160, render: (_, r) => (r.members || []).map(m => <Tag key={m.studentId}>{m.role === 'leader' ? 'หัวหน้า' : 'สมาชิก'}</Tag>) },
     {
       title: 'ดำเนินการ',

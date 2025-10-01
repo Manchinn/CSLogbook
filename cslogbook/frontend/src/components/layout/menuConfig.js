@@ -14,6 +14,7 @@ import {
   ProjectOutlined,
   BarChartOutlined,
   CalendarOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import React from 'react';
 
@@ -44,6 +45,8 @@ export const getMenuConfig = ({
   const internshipTooltip = messages?.internship || 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน';
   const canSeeTopicExamOverview = userData.role === 'teacher' && Boolean(userData.canAccessTopicExam);
   const isAcademicTeacher = userData.role === 'teacher' && userData.teacherType === 'academic';
+  const isSupportTeacher = userData.role === 'teacher' && userData.teacherType === 'support';
+  const canExportKP02 = userData.role === 'teacher' && Boolean(userData.canExportProject1) && !isSupportTeacher;
   const canApproveDocuments =
     isAcademicTeacher && userData.teacherPosition === 'หัวหน้าภาควิชา';
 
@@ -141,6 +144,16 @@ export const getMenuConfig = ({
             label: 'คำขอสอบ คพ.02',
             onClick: () => navigate('/teacher/project1/advisor-queue')
           },
+          ...(canExportKP02
+            ? [
+                {
+                  key: '/admin/project1/kp02-queue',
+                  icon: <DownloadOutlined />,
+                  label: 'รายการส่งออก คพ.02',
+                  onClick: () => navigate('/admin/project1/kp02-queue')
+                }
+              ]
+            : []),
           ...(canApproveDocuments
             ? [
                 {

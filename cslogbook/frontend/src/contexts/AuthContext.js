@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
     teacherType: localStorage.getItem('teacherType'), // เพิ่ม teacher type
     teacherPosition: localStorage.getItem('teacherPosition'),
     canAccessTopicExam: localStorage.getItem('canAccessTopicExam') === 'true',
+  canExportProject1: localStorage.getItem('canExportProject1') === 'true',
     totalCredits: parseInt(localStorage.getItem('totalCredits')) || 0,
     majorCredits: parseInt(localStorage.getItem('majorCredits')) || 0,
     isEligibleForInternship: localStorage.getItem('isEligibleForInternship') === 'true',
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       
       const keysToRemove = [
         'token', 'refreshToken', 'studentCode', 'firstName', 
-        'lastName', 'email', 'role', 'teacherId', 'teacherCode', 'teacherType', 'teacherPosition', 'canAccessTopicExam', 'isEligibleForInternship', 
+        'lastName', 'email', 'role', 'teacherId', 'teacherCode', 'teacherType', 'teacherPosition', 'canAccessTopicExam', 'canExportProject1', 'isEligibleForInternship', 
         'isEligibleForProject', 'totalCredits', 'majorCredits'
       ];
       keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -218,6 +219,7 @@ export const AuthProvider = ({ children }) => {
         teacherType: userData.teacherType, // เพิ่ม teacher type
         teacherPosition: userData.teacherPosition,
         canAccessTopicExam: Boolean(userData.canAccessTopicExam),
+  canExportProject1: Boolean(userData.canExportProject1),
         totalCredits: userData.totalCredits || 0,
         majorCredits: userData.majorCredits || 0,
         isEligibleForInternship: userData.isEligibleForInternship,
@@ -259,8 +261,9 @@ export const AuthProvider = ({ children }) => {
     const isProfileIncomplete =
       !userData.teacherPosition ||
       !userData.teacherId ||
-      !userData.teacherCode ||
-      typeof userData.canAccessTopicExam !== 'boolean';
+  !userData.teacherCode ||
+  typeof userData.canAccessTopicExam !== 'boolean' ||
+  typeof userData.canExportProject1 !== 'boolean';
 
     if (!isProfileIncomplete) {
       return;
@@ -283,6 +286,7 @@ export const AuthProvider = ({ children }) => {
             position,
             teacherType,
             canAccessTopicExam,
+            canExportProject1,
           } = profileResponse.data;
 
           setUserData((previous) => {
@@ -297,6 +301,10 @@ export const AuthProvider = ({ children }) => {
                 typeof canAccessTopicExam === 'boolean'
                   ? canAccessTopicExam
                   : prevData.canAccessTopicExam ?? false,
+              canExportProject1:
+                typeof canExportProject1 === 'boolean'
+                  ? canExportProject1
+                  : prevData.canExportProject1 ?? false,
             };
 
             if (updated.teacherId !== undefined && updated.teacherId !== null) {
@@ -315,6 +323,12 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem(
                 'canAccessTopicExam',
                 String(updated.canAccessTopicExam)
+              );
+            }
+            if (typeof updated.canExportProject1 === 'boolean') {
+              localStorage.setItem(
+                'canExportProject1',
+                String(updated.canExportProject1)
               );
             }
 

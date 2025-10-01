@@ -99,7 +99,6 @@ const Phase1Dashboard = () => {
   }, [activeProject, postTopicLockReasons]);
 
   const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
-  const showPassed = activeProject && activeProject.examResult === 'passed';
 
   const handleAcknowledge = async () => {
     if (!activeProject) return;
@@ -258,21 +257,6 @@ const Phase1Dashboard = () => {
                     รับทราบผล (หัวข้อจะถูกเก็บถาวร)
                   </Button>
                 </div>
-              </Space>
-            </Card>
-          )}
-          {showPassed && (
-            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #b7eb8f', background: '#f6ffed' }}>
-              <Space direction="vertical" style={{ width: '100%' }} size={6}>
-                <Alert
-                  type="success"
-                  showIcon
-                  message={<span><strong>ผลสอบหัวข้อ: ผ่าน</strong></span>}
-                  description={<div style={{ whiteSpace: 'pre-wrap' }}>
-                    <div style={{ marginBottom: 4 }}>คุณสามารถเตรียมขั้นตอนต่อไป เช่น การจัดทำ Proposal (ฟีเจอร์กำลังพัฒนา)</div>
-                    <div style={{ fontSize: 12, color: '#555' }}>ระบบจะเปิดให้ทำกิจกรรมขั้นต่อไปเมื่อฟีเจอร์พร้อม</div>
-                  </div>}
-                />
               </Space>
             </Card>
           )}

@@ -63,6 +63,12 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: false,
             field: 'can_access_topic_exam'
+        },
+        canExportProject1: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'can_export_project1'
         }
     }, {
         sequelize,

@@ -257,7 +257,14 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/project1/kp02-queue" element={
-                  <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
+                  <ProtectedRoute
+                    roles={['admin', 'teacher']}
+                    condition={(user) =>
+                      user.role === 'admin' ||
+                      user.teacherType === 'support' ||
+                      Boolean(user.canExportProject1)
+                    }
+                  >
                     <StaffKP02Queue />
                   </ProtectedRoute>
                 } />

@@ -59,6 +59,17 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       )
     },
     {
+      title: "สิทธิ์ส่งออก คพ.02",
+      dataIndex: "canExportProject1",
+      key: "canExportProject1",
+      width: 160,
+      render: (value) => (
+        <Tag color={value ? 'green' : 'default'}>
+          {value ? 'เปิดใช้งาน' : 'ปิด' }
+        </Tag>
+      )
+    },
+    {
       title: "จัดการ",
       key: "actions",
       width: 180,

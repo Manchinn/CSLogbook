@@ -20,6 +20,7 @@ import {
 import {
   CheckCircleOutlined,
   DownloadOutlined,
+  EyeOutlined,
   ReloadOutlined,
   SearchOutlined
 } from '@ant-design/icons';
@@ -27,6 +28,7 @@ import FileSaver from 'file-saver';
 import dayjs from '../../../../utils/dayjs';
 import { DATE_TIME_FORMAT } from '../../../../utils/constants';
 import projectService from '../../../../services/projectService';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const { Text, Title } = Typography;
 
@@ -52,6 +54,7 @@ const containerStyle = {
 };
 
 const StaffKP02Queue = () => {
+  const { userData } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -64,6 +67,20 @@ const StaffKP02Queue = () => {
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+
+  const isStaff = useMemo(() => {
+    if (!userData) return false;
+    if (userData.role === 'admin') return true;
+    return userData.role === 'teacher' && userData.teacherType === 'support';
+  }, [userData]);
+
+  const canSchedulerExport = useMemo(() => {
+    if (!userData) return false;
+    return userData.role === 'teacher' && Boolean(userData.canExportProject1);
+  }, [userData]);
+
+  const canExport = isStaff || canSchedulerExport;
 
   const loadQueue = useCallback(async () => {
     try {
@@ -113,6 +130,10 @@ const StaffKP02Queue = () => {
   }, []);
 
   const handleVerify = useCallback((record) => {
+    if (!isStaff) {
+      message.warning('เฉพาะเจ้าหน้าที่ที่ได้รับสิทธิ์เท่านั้นที่สามารถบันทึกการตรวจสอบได้');
+      return;
+    }
     let noteValue = '';
     Modal.confirm({
       title: 'ยืนยันการตรวจสอบคำขอ',
@@ -151,9 +172,13 @@ const StaffKP02Queue = () => {
         return Promise.resolve();
       }
     });
-  }, []);
+  }, [isStaff]);
 
   const handleExport = useCallback(async () => {
+    if (!canExport) {
+      message.warning('คุณไม่มีสิทธิ์ส่งออกข้อมูลชุดนี้');
+      return;
+    }
     try {
       setExporting(true);
       const params = {};
@@ -170,7 +195,7 @@ const StaffKP02Queue = () => {
     } finally {
       setExporting(false);
     }
-  }, [filters]);
+  }, [canExport, filters]);
 
   const summary = useMemo(() => {
     return items.reduce(
@@ -187,7 +212,7 @@ const StaffKP02Queue = () => {
     );
   }, [items]);
 
-  const columns = useMemo(() => [
+  const baseColumns = useMemo(() => [
     {
       title: 'โครงงาน',
       dataIndex: 'project',
@@ -242,28 +267,37 @@ const StaffKP02Queue = () => {
           </Text>
         </Space>
       )
-    },
-    {
-      title: 'การดำเนินการ',
-      key: 'actions',
-      width: 240,
-      render: (_value, record) => (
-        <Space>
-          <Tooltip title="บันทึกการตรวจสอบ">
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleVerify(record)}
-              disabled={record.status !== 'advisor_approved'}
-              loading={actionLoadingKey === `${record.requestId}-verify`}
-            >
-              ตรวจสอบแล้ว
-            </Button>
-          </Tooltip>
-        </Space>
-      )
     }
-  ], [actionLoadingKey, formatDateTime, handleVerify]);
+  ], [formatDateTime]);
+
+  const columns = useMemo(() => {
+    const list = [...baseColumns];
+    if (isStaff) {
+      list.push({
+        title: 'การดำเนินการ',
+        key: 'actions',
+        width: 240,
+        render: (_value, record) => (
+          <Space>
+            <Tooltip title="บันทึกการตรวจสอบ">
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={() => handleVerify(record)}
+                disabled={record.status !== 'advisor_approved'}
+                loading={actionLoadingKey === `${record.requestId}-verify`}
+              >
+                ตรวจสอบแล้ว
+              </Button>
+            </Tooltip>
+          </Space>
+        )
+      });
+    }
+    return list;
+  }, [actionLoadingKey, baseColumns, handleVerify, isStaff]);
+
+  const previewColumns = useMemo(() => baseColumns, [baseColumns]);
 
   const expandedRowRender = useCallback((record) => {
     return (
@@ -315,6 +349,10 @@ const StaffKP02Queue = () => {
               {summary.legacyScheduled > 0 && (
                 <span>ยังมี {summary.legacyScheduled} รายการที่มีข้อมูลนัดสอบจากระบบเดิม</span>
               )}
+              {canSchedulerExport && !isStaff && (
+                <span>คุณได้รับสิทธิ์ในการตรวจสอบรายชื่อและส่งออกรายการ คพ.02 (อ่านอย่างเดียว)</span>
+              )}
+              <span>กด "ดูตัวอย่างก่อนส่งออก" เพื่อทบทวนรายชื่อทั้งหมดก่อนสร้างไฟล์</span>
             </Space>
           )}
         />
@@ -395,14 +433,24 @@ const StaffKP02Queue = () => {
                 <Button icon={<ReloadOutlined />} onClick={() => setReloadToken((prev) => prev + 1)}>
                   รีเฟรช
                 </Button>
-                <Button
-                  type="primary"
-                  icon={<DownloadOutlined />}
-                  loading={exporting}
-                  onClick={handleExport}
-                >
-                  ส่งออกข้อมูล
-                </Button>
+                {canExport && (
+                  <Button
+                    icon={<EyeOutlined />} 
+                    onClick={() => setPreviewVisible(true)}
+                  >
+                    ดูตัวอย่างก่อนส่งออก
+                  </Button>
+                )}
+                {canExport && (
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    loading={exporting}
+                    onClick={handleExport}
+                  >
+                    ส่งออกข้อมูล
+                  </Button>
+                )}
                 <Button
                   danger
                   onClick={() => setFilters({ status: 'advisor_approved', academicYear: undefined, semester: undefined, search: '' })}
@@ -427,6 +475,46 @@ const StaffKP02Queue = () => {
           />
         </Spin>
       </Space>
+      <Modal
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        title="ตัวอย่างรายชื่อก่อนส่งออก"
+        width={960}
+        footer={[
+          <Button key="close" onClick={() => setPreviewVisible(false)}>
+            ปิด
+          </Button>,
+          canExport ? (
+            <Button
+              key="export"
+              type="primary"
+              icon={<DownloadOutlined />}
+              loading={exporting}
+              onClick={async () => {
+                await handleExport();
+              }}
+            >
+              ส่งออกข้อมูล
+            </Button>
+          ) : null
+        ].filter(Boolean)}
+      >
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Alert
+            type="info"
+            showIcon
+            message="ตรวจสอบรายชื่อโครงงานทั้งหมดก่อนสร้างไฟล์"
+            description="รายการนี้จะใช้ตัวกรองเดียวกับหน้าหลัก หากข้อมูลผิดพลาดโปรดกลับไปปรับตัวกรองหรือบันทึกหมายเหตุให้ครบถ้วนก่อนส่งออก"
+          />
+          <Table
+            rowKey={(record) => record.requestId}
+            dataSource={items}
+            columns={previewColumns}
+            pagination={false}
+            scroll={{ y: 400 }}
+          />
+        </Space>
+      </Modal>
     </div>
   );
 };

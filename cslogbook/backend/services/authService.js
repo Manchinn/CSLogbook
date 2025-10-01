@@ -111,7 +111,7 @@ class AuthService {
         case 'teacher':
           const teacherData = await Teacher.findOne({
             where: { userId: user.userId },
-            attributes: ['teacherId', 'teacherCode', 'teacherType', 'canAccessTopicExam']
+            attributes: ['teacherId', 'teacherCode', 'teacherType', 'canAccessTopicExam', 'canExportProject1']
           });
           
           roleData = {
@@ -119,7 +119,8 @@ class AuthService {
             teacherCode: teacherData?.teacherCode,
             teacherType: teacherData?.teacherType || 'academic',
             isSystemAdmin: teacherData?.teacherType === 'support',
-            canAccessTopicExam: Boolean(teacherData?.canAccessTopicExam)
+            canAccessTopicExam: Boolean(teacherData?.canAccessTopicExam),
+            canExportProject1: Boolean(teacherData?.canExportProject1)
           };
           break;
 
@@ -158,7 +159,8 @@ class AuthService {
         ...(user.role === 'teacher' && { 
           teacherId: roleData.teacherId,
           teacherType: roleData.teacherType,
-          canAccessTopicExam: roleData.canAccessTopicExam
+          canAccessTopicExam: roleData.canAccessTopicExam,
+          canExportProject1: roleData.canExportProject1
         }),
         ...(user.role === 'admin' && { adminId: roleData.adminId })
       };

@@ -83,7 +83,8 @@ module.exports = {
   async getStaffVerificationQueue(req, res) {
     try {
       const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
-      if (!isStaff) {
+  const isScheduler = req.user.role === 'teacher' && Boolean(req.user.canExportProject1); // ให้สิทธิ์อาจารย์ผู้ดูแลการนัดสอบเข้าดูรายการเพื่อเตรียมส่งออก
+      if (!isStaff && !isScheduler) {
         return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงคิวตรวจสอบ' });
       }
 
@@ -146,7 +147,8 @@ module.exports = {
   async exportStaffVerificationList(req, res) {
     try {
       const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
-      if (!isStaff) {
+      const isScheduler = req.user.role === 'teacher' && Boolean(req.user.canExportProject1); // กรณีอาจารย์ได้รับมอบหมายจัดตารางสอบ
+      if (!isStaff && !isScheduler) {
         return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ส่งออกข้อมูล' });
       }
 

@@ -55,7 +55,7 @@ const TeacherList = () => {
     setEditMode(true);
     form.resetFields();
     // ตั้งค่า default ให้ position เป็น "คณาจารย์" ทุกครั้งที่เพิ่มใหม่
-    form.setFieldsValue({ position: "คณาจารย์", canAccessTopicExam: false });
+  form.setFieldsValue({ position: "คณาจารย์", canAccessTopicExam: false, canExportProject1: false });
     setDrawerVisible(true);
   };
 

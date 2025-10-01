@@ -124,7 +124,8 @@ exports.addTeacher = async (req, res) => {
       email,
       contactExtension,
       position, // รับตำแหน่งจาก body
-      canAccessTopicExam
+      canAccessTopicExam,
+      canExportProject1
     } = req.body;
 
     if (!teacherCode || !firstName || !lastName) {
@@ -142,7 +143,8 @@ exports.addTeacher = async (req, res) => {
       email,
       contactExtension,
       position, // ส่งตำแหน่งไป service
-      canAccessTopicExam
+      canAccessTopicExam,
+      canExportProject1
     });
 
     res.status(201).json({
@@ -179,7 +181,7 @@ exports.addTeacher = async (req, res) => {
 exports.updateTeacher = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, contactExtension, position, canAccessTopicExam } = req.body;
+    const { firstName, lastName, email, contactExtension, position, canAccessTopicExam, canExportProject1 } = req.body;
 
     const result = await teacherService.updateTeacher(id, {
       firstName,
@@ -187,7 +189,8 @@ exports.updateTeacher = async (req, res) => {
       email,
       contactExtension,
       position, // ส่งตำแหน่งไป service
-      canAccessTopicExam
+      canAccessTopicExam,
+      canExportProject1
     });
 
     res.json({
