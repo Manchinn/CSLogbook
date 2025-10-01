@@ -314,9 +314,9 @@ function Dashboard() {
 
     const formatDateTime = (value) => {
       if (!value) return "-";
-      const parsed = dayjs(value);
+      const parsed = dayjs(value).tz();
       if (!parsed.isValid()) return "-";
-      return parsed.format("DD MMM YYYY HH:mm น.");
+      return parsed.format("D MMM BBBB เวลา HH:mm น.");
     };
 
     const pendingTagColor = (days) => {

@@ -806,7 +806,7 @@ class TeacherService {
       {
         key: 'deadlines',
         label: 'กำหนดส่งสำคัญ',
-        description: 'ดูปฏิทินเส้นตายและประกาศล่าสุด',
+        description: 'ดูปฏิทินกำหนดการและประกาศล่าสุด',
         pendingCount: deadlines.length,
         path: '/teacher/deadlines/calendar'
       }
