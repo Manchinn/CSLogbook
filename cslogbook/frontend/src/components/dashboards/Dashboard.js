@@ -587,7 +587,7 @@ function Dashboard() {
               </Card>
             </Col>
             <Col xs={24} lg={12}>
-              <Card title="กำหนดส่งใกล้ถึง" bordered={false}>
+              <Card title="กำหนดการใกล้ถึง" variant="default">
                 {isLoading ? (
                   <Skeleton active paragraph={{ rows: 4 }} />
                 ) : deadlines.length ? (
@@ -870,7 +870,7 @@ function Dashboard() {
                 style={{ height: "100%" }}
                 title={
                   <Space>
-                    <ClockCircleOutlined /> กำหนดส่งใกล้ถึง
+                    <ClockCircleOutlined /> กำหนดการใกล้ถึง
                   </Space>
                 }
               >

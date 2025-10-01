@@ -41,14 +41,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const {
     stats,
-    activities,
     isStatsLoading,
-    isActivitiesLoading,
     statsError,
-    activitiesError,
     lastFetchedAt,
     refreshStats,
-    refreshActivities,
   } = useDashboardStats();
   const theme = useMemo(
     () => getRoleTheme(userData?.role, userData?.teacherType),
@@ -320,20 +316,7 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} lg={14}>
-          {activitiesError ? (
-            <Alert
-              type="warning"
-              message="ไม่สามารถโหลดกิจกรรมล่าสุด"
-              description={activitiesError?.message || "โปรดลองรีเฟรช"}
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-          ) : null}
-          <ActivityLog
-            activities={activities}
-            loading={isActivitiesLoading}
-            onRefresh={refreshActivities}
-          />
+          <ActivityLog />
         </Col>
       </Row>
     </Space>

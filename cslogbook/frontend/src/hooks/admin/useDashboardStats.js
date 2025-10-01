@@ -12,11 +12,8 @@ const initialStats = {
  */
 export function useDashboardStats() {
   const [stats, setStats] = useState(initialStats);
-  const [activities, setActivities] = useState([]);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
-  const [isActivitiesLoading, setIsActivitiesLoading] = useState(true);
   const [statsError, setStatsError] = useState(null);
-  const [activitiesError, setActivitiesError] = useState(null);
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
 
   const fetchStats = useCallback(async () => {
@@ -33,51 +30,30 @@ export function useDashboardStats() {
     }
   }, []);
 
-  const fetchActivities = useCallback(async () => {
-    setIsActivitiesLoading(true);
-    setActivitiesError(null);
-    try {
-      const data = await adminService.getRecentActivities({ mode: 'documents', limit: 10 });
-      setActivities(data);
-    } catch (err) {
-      setActivitiesError(err);
-    } finally {
-      setIsActivitiesLoading(false);
-    }
-  }, []);
-
-  // ดึงข้อมูลครั้งแรกและตั้ง interval สำหรับรีเฟรช (คุมคิวข้อมูลสถิติและกิจกรรมแยกกัน)
+  // ดึงข้อมูลครั้งแรกและตั้ง interval สำหรับรีเฟรชข้อมูลสถิติ
   useEffect(() => {
     fetchStats();
-    fetchActivities();
 
     const statsInterval = setInterval(fetchStats, 1000 * 60 * 3); // 3 นาที
-    const activitiesInterval = setInterval(fetchActivities, 1000 * 60 * 2); // 2 นาที
 
     return () => {
       clearInterval(statsInterval);
-      clearInterval(activitiesInterval);
     };
-  }, [fetchStats, fetchActivities]);
+  }, [fetchStats]);
 
   const refetch = useCallback(() => {
     fetchStats();
-    fetchActivities();
-  }, [fetchStats, fetchActivities]);
+  }, [fetchStats]);
 
-  const isLoading = useMemo(() => isStatsLoading || isActivitiesLoading, [isStatsLoading, isActivitiesLoading]);
+  const isLoading = useMemo(() => isStatsLoading, [isStatsLoading]);
 
   return {
     stats,
-    activities,
     isLoading,
     isStatsLoading,
-    isActivitiesLoading,
     statsError,
-    activitiesError,
     lastFetchedAt,
     refetch,
-    refreshStats: fetchStats,
-    refreshActivities: fetchActivities
+    refreshStats: fetchStats
   };
 }
