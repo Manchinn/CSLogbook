@@ -225,6 +225,11 @@ const App = () => {
                 } />
 
                 {/* Teacher Academic Routes */}
+                <Route path="/teacher/deadlines/calendar" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <StudentDeadlineCalendar audience="teacher" />
+                  </ProtectedRoute>
+                } />
                 <Route path="/teacher/meeting-approvals" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <MeetingApprovals />

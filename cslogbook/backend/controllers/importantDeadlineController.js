@@ -1,4 +1,5 @@
 const importantDeadlineService = require('../services/importantDeadlineService');
+const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
 
 // ดึงกำหนดการสำคัญทั้งหมด (สามารถกรองด้วยปีการศึกษา/ภาคเรียน)
 // Phase publish: ถ้าไม่ส่ง includeAll=true จะกรองเฉพาะที่เผยแพร่แล้ว (isPublished=true หรือ publishAt <= NOW)
@@ -135,6 +136,106 @@ exports.getStats = async (req, res) => {
   }
 };
 
+const pad = (n) => n.toString().padStart(2, '0');
+
+const toLocalParts = (dateTime) => {
+  if (!dateTime) return null;
+  const local = new Date(new Date(dateTime).getTime() + 7 * 60 * 60 * 1000);
+  return {
+    date: `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}`,
+    time: `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`,
+  };
+};
+
+const isPublishedForAudience = (deadline, now = new Date()) => {
+  if (deadline.isPublished === undefined && deadline.publishAt === undefined) {
+    return true;
+  }
+  if (deadline.isPublished) {
+    return true;
+  }
+  if (deadline.publishAt && new Date(deadline.publishAt) <= now) {
+    return true;
+  }
+  return false;
+};
+
+const isVisibleForTeacher = (deadline) => {
+  const scope = deadline.visibilityScope || 'ALL';
+  return ['ALL', 'INTERNSHIP_ONLY', 'PROJECT_ONLY'].includes(scope);
+};
+
+const buildSubmissionFromDocument = (doc, effectiveDeadlineAt, deadlineObj) => {
+  const submission = {
+    submitted: false,
+    submittedAt: null,
+    late: false,
+    afterGrace: false,
+    status: null,
+  };
+
+  if (!doc) {
+    return submission;
+  }
+
+  submission.submitted = !!doc.submittedAt || ['approved', 'completed', 'supervisor_evaluated', 'acceptance_approved', 'referral_ready', 'referral_downloaded'].includes(doc.status);
+  submission.submittedAt = doc.submittedAt ? doc.submittedAt : null;
+  submission.status = doc.status || null;
+
+  if (submission.submittedAt && effectiveDeadlineAt) {
+    const submittedMs = new Date(submission.submittedAt).getTime();
+    const effMs = new Date(effectiveDeadlineAt).getTime();
+    let graceEndMs = effMs;
+    if (deadlineObj.allowLate && deadlineObj.gracePeriodMinutes) {
+      graceEndMs = effMs + deadlineObj.gracePeriodMinutes * 60 * 1000;
+    }
+    if (submittedMs > effMs) {
+      submission.late = true;
+    }
+    if (submittedMs > graceEndMs && deadlineObj.lockAfterDeadline) {
+      submission.afterGrace = true;
+    }
+  } else if (doc.isLate) {
+    submission.late = true;
+  }
+
+  return submission;
+};
+
+const mapDeadlineForResponse = (deadline, { document = null, now = new Date() } = {}) => {
+  const obj = deadline.toJSON();
+
+  if (obj.deadlineAt) {
+    const utc = new Date(obj.deadlineAt);
+    const local = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
+    obj.deadlineDate = `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}`;
+    obj.deadlineTime = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
+  }
+
+  if (obj.windowStartAt && obj.windowEndAt) {
+    const start = toLocalParts(obj.windowStartAt);
+    const end = toLocalParts(obj.windowEndAt);
+    obj.windowStartDate = start?.date;
+    obj.windowStartTime = start?.time;
+    obj.windowEndDate = end?.date;
+    obj.windowEndTime = end?.time;
+    obj.isWindow = true;
+  } else {
+    obj.isWindow = false;
+  }
+
+  obj.effectiveDeadlineAt = obj.windowEndAt || obj.deadlineAt || null;
+  const submission = buildSubmissionFromDocument(document, obj.effectiveDeadlineAt, obj);
+  obj.submission = submission;
+
+  const { status, locked } = computeStatus(obj, submission, now);
+  obj.status = status;
+  obj.locked = locked;
+  obj.daysLeft = computeDaysLeft(obj, now);
+
+  return obj;
+};
+
 // สำหรับนักศึกษา: ดึง deadline ที่จะถึงภายใน X วัน (default 7)
 module.exports.getUpcomingForStudent = async (req, res) => {
   try {
@@ -168,13 +269,12 @@ module.exports.getUpcomingForStudent = async (req, res) => {
 // นักศึกษา: ดึง deadlines ทั้งหมดของปีการศึกษาปัจจุบัน (หรือทั้งหมดถ้าไม่ระบุ) สำหรับ calendar/progress
 module.exports.getAllForStudent = async (req, res) => {
   try {
-  const { academicYear } = req.query; // พ.ศ.
-  const all = await importantDeadlineService.getAll({ academicYear });
+    const { academicYear } = req.query;
+    const all = await importantDeadlineService.getAll({ academicYear });
     console.log('[getAllForStudent] raw count:', all.length, 'academicYear param:', academicYear);
 
-    // Phase 1 enrichment: ผสานสถานะการส่งเอกสารของนักศึกษา (อิงการเชื่อม important_deadline_id ใน documents)
-    const studentId = req.user?.userId || req.user?.id; // auth middleware อาจตั้ง userId หรือ id
-    let documentsByDeadline = new Map();
+    const studentId = req.user?.userId || req.user?.id;
+    const documentsByDeadline = new Map();
     if (studentId && all.length) {
       try {
         const { Document } = require('../models');
@@ -183,9 +283,12 @@ module.exports.getAllForStudent = async (req, res) => {
         const docs = await Document.findAll({
           where: {
             userId: studentId,
-            importantDeadlineId: { [Op.in]: deadlineIds }
-          }
-        }).catch(err => { console.error('[getAllForStudent] Document query error', err.message); return []; });
+            importantDeadlineId: { [Op.in]: deadlineIds },
+          },
+        }).catch(err => {
+          console.error('[getAllForStudent] Document query error', err.message);
+          return [];
+        });
         for (const d of docs) {
           documentsByDeadline.set(d.importantDeadlineId, d);
         }
@@ -194,67 +297,33 @@ module.exports.getAllForStudent = async (req, res) => {
       }
     }
 
-  const now = new Date();
-  // กรองเฉพาะที่ publish แล้วสำหรับ student
-  const visible = all.filter(d => {
-      if (d.isPublished === undefined && d.publishAt === undefined) return true; // backward compatibility
-      if (d.isPublished) return true;
-      if (d.publishAt && new Date(d.publishAt) <= now) return true;
-      return false;
-    });
+    const now = new Date();
+    const visible = all.filter(d => isPublishedForAudience(d, now));
 
-  const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
-  const enriched = visible.map(d => {
-      const obj = d.toJSON();
-      const pad = n => n.toString().padStart(2,'0');
-      // แปลง single deadline -> local
-      if (obj.deadlineAt) {
-        const utc = new Date(obj.deadlineAt);
-        const local = new Date(utc.getTime() + 7*60*60*1000);
-        obj.deadlineDate = `${local.getUTCFullYear()}-${pad(local.getUTCMonth()+1)}-${pad(local.getUTCDate())}`;
-        obj.deadlineTime = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
-      }
-      // window mapping
-      if (obj.windowStartAt && obj.windowEndAt) {
-        const toLocalParts = (dt) => {
-          const l = new Date(new Date(dt).getTime() + 7*60*60*1000);
-          return { date: `${l.getUTCFullYear()}-${pad(l.getUTCMonth()+1)}-${pad(l.getUTCDate())}`, time: `${pad(l.getUTCHours())}:${pad(l.getUTCMinutes())}:${pad(l.getUTCSeconds())}` };
-        };
-        const s = toLocalParts(obj.windowStartAt); const e = toLocalParts(obj.windowEndAt);
-        obj.windowStartDate = s.date; obj.windowStartTime = s.time; obj.windowEndDate = e.date; obj.windowEndTime = e.time; obj.isWindow = true;
-      } else { obj.isWindow = false; }
+    const enriched = visible
+      .map(d => mapDeadlineForResponse(d, { document: documentsByDeadline.get(d.id), now }))
+      .sort((a, b) => new Date(a.deadlineAt) - new Date(b.deadlineAt));
 
-      // effectiveDeadlineAt = ปลาย window ถ้ามี ไม่งั้น deadlineAt
-      const effectiveDeadlineAt = obj.windowEndAt || obj.deadlineAt || null;
-      obj.effectiveDeadlineAt = effectiveDeadlineAt;
+    console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x => ({ id: x.id, name: x.name, sub: x.submission, deadlineDate: x.deadlineDate, deadlineTime: x.deadlineTime })));
+    res.json({ success: true, data: enriched });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
-      // Submission enrichment
-      let submission = { submitted: false, submittedAt: null, late: false, status: null };
-      if (documentsByDeadline.has(obj.id)) {
-        const doc = documentsByDeadline.get(obj.id);
-        submission.submitted = !!doc.submittedAt || ['approved','completed','supervisor_evaluated','acceptance_approved','referral_ready','referral_downloaded'].includes(doc.status);
-        submission.submittedAt = doc.submittedAt ? doc.submittedAt : null;
-        if (submission.submittedAt && effectiveDeadlineAt) {
-            const submittedMs = new Date(submission.submittedAt).getTime();
-            const effMs = new Date(effectiveDeadlineAt).getTime();
-            let graceEndMs = effMs;
-            if (obj.allowLate && obj.gracePeriodMinutes) graceEndMs = effMs + obj.gracePeriodMinutes * 60 * 1000;
-            if (submittedMs > effMs) submission.late = true; // late นับตั้งแต่เหนือ effective
-            if (submittedMs > graceEndMs && obj.lockAfterDeadline) submission.afterGrace = true;
-        } else if (doc.isLate) {
-            submission.late = true; // fallback flag
-        }
-      }
-      obj.submission = submission;
+// อาจารย์ที่ปรึกษา: ดึงกำหนดการที่เผยแพร่แล้วจากเจ้าหน้าที่ เพื่อให้วางแผนประกบกับนักศึกษา
+module.exports.getAllForTeacher = async (req, res) => {
+  try {
+    const { academicYear } = req.query;
+    const all = await importantDeadlineService.getAll({ academicYear });
 
-  // Status model (ใช้ util)
-  const { status, locked } = computeStatus(obj, submission, now);
-  obj.status = status;
-  obj.locked = locked;
-  obj.daysLeft = computeDaysLeft(obj, now);
-      return obj;
-    }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
-  console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x=>({id:x.id,name:x.name,sub:x.submission,deadlineDate:x.deadlineDate,deadlineTime:x.deadlineTime})));
+    const now = new Date();
+    const visible = all.filter(d => isPublishedForAudience(d, now) && isVisibleForTeacher(d));
+
+    const enriched = visible
+      .map(d => mapDeadlineForResponse(d, { now }))
+      .sort((a, b) => new Date(a.deadlineAt) - new Date(b.deadlineAt));
+
     res.json({ success: true, data: enriched });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

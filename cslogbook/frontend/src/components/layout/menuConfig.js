@@ -89,6 +89,17 @@ export const getMenuConfig = ({
       label: 'หน้าแรก',
       onClick: () => navigate('/admin/dashboard'),
     },
+    // Teacher academic calendar shortcut
+    ...(isAcademicTeacher
+      ? [
+          {
+            key: '/teacher/deadlines/calendar',
+            icon: <CalendarOutlined />,
+            label: 'ปฏิทินกำหนดการ',
+            onClick: () => navigate('/teacher/deadlines/calendar'),
+          },
+        ]
+      : []),
     // Student menus
     ...(userData.role === 'student'
       ? [
@@ -101,7 +112,7 @@ export const getMenuConfig = ({
             {
               key: '/student-deadlines/calendar',
               icon: <CalendarOutlined />,
-              label: 'ปฏิทินกำหนดส่ง',
+              label: 'ปฏิทินกำหนดการ',
               onClick: () => navigate('/student-deadlines/calendar'),
             },
           {

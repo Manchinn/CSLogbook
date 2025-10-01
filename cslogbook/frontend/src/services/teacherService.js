@@ -13,6 +13,10 @@ export const teacherService = {
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงรายชื่ออาจารย์ที่ปรึกษา');
     }
   },
+  getAllDeadlines: async (academicYear) => {
+    const response = await apiClient.get('/teachers/important-deadlines', { params: { academicYear } });
+    return response.data.data || [];
+  },
   // ดึงข้อมูลอาจารย์
   getTeacherInfo: async (teacherId) => {
     try {
