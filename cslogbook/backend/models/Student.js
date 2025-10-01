@@ -343,7 +343,7 @@ module.exports = (sequelize) => {
             field: 'internship_status'
         },
         projectStatus: {
-            type: DataTypes.ENUM('not_started', 'in_progress', 'completed'),
+            type: DataTypes.ENUM('not_started', 'in_progress', 'completed', 'failed'),
             defaultValue: 'not_started',
             field: 'project_status'
         },

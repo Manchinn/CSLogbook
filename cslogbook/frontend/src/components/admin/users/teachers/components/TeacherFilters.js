@@ -10,7 +10,7 @@ const TeacherFilters = ({
   loading
 }) => {
   return (
-    <Space size="small">
+    <Space size="small" wrap>
       <Input
         placeholder="ค้นหาด้วยรหัส, ชื่อ หรือนามสกุล"
         prefix={<SearchOutlined />}

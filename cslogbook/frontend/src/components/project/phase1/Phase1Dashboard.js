@@ -1,16 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message } from 'antd';
+import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message, Tooltip } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   FileAddOutlined,
-  ScheduleOutlined,
-  FileSyncOutlined,
   UploadOutlined,
-  CalendarOutlined,
   EditOutlined,
   TeamOutlined
 } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
+import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
+import ProjectDashboard from '../ProjectDashboard';
+import { ProjectEligibilityCheck } from '../eligibility';
 
 // Phase1Dashboard: ศูนย์รวมขั้นตอน โครงงานพิเศษ 1
 // - แสดงการ์ดขั้นตอนทั้งหมด (Phase1) ในหน้าเดียว
@@ -27,43 +27,20 @@ const steps = [
     implemented: true
   },
   {
-    key: 'topic-exam',
-    title: 'สอบหัวข้อ',
-    desc: 'จัดตารางและบันทึกผลการสอบเสนอหัวข้อ (ภายหลัง)',
-    icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
-    implemented: true,
-    comingSoon: false
-  },
-  {
     key: 'meeting-logbook',
     title: 'บันทึกการพบอาจารย์',
     desc: 'จองการพบและบันทึก log พร้อมส่งอีเมลขออนุมัติ',
     icon: <TeamOutlined style={{ fontSize: 28 }} />,
-    implemented: true
-  },
-  {
-    key: 'proposal-revision',
-    title: 'แก้ไขข้อเสนอ (Proposal)',
-    desc: 'อัปโหลดเอกสาร Proposal เวอร์ชัน และติดตามสถานะ (เชื่อม proposal upload ปัจจุบัน)',
-    icon: <FileSyncOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true
+    implemented: true,
+    requiresPostTopicUnlock: true
   },
   {
     key: 'exam-submit',
     title: 'ส่งเอกสารสอบ',
     desc: 'เตรียมเอกสารประกอบการสอบปลายภาคโครงงานพิเศษ 1',
     icon: <UploadOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true
-  },
-  {
-    key: 'exam-day',
-    title: 'วันสอบ',
-    desc: 'สรุปกำหนดการ / บันทึกผล (อนาคต)',
-    icon: <CalendarOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true
+    implemented: true,
+    requiresPostTopicUnlock: true
   },
   {
     key: 'scope-adjust',
@@ -71,7 +48,8 @@ const steps = [
     desc: 'บันทึกการปรับขอบเขตหลังสอบ (อนาคต)',
     icon: <EditOutlined style={{ fontSize: 28 }} />,
     implemented: false,
-    comingSoon: true
+    comingSoon: true,
+    requiresPostTopicUnlock: true
   }
 ];
 
@@ -81,11 +59,46 @@ const Phase1Dashboard = () => {
   const location = useLocation();
   // โหลดข้อมูลโครงงานของผู้ใช้ (automatic load) อยู่ใน component (ไม่ใส่ก่อนประกาศ component)
   const { activeProject, loadProjects } = useStudentProject({ autoLoad: true });
+  const {
+    canAccessProject,
+    isLoading: eligibilityLoading,
+    projectReason,
+    messages
+  } = useStudentEligibility();
   const [ackLoading, setAckLoading] = useState(false);
   const [ackModalOpen, setAckModalOpen] = useState(false);
+  const containerStyle = useMemo(() => ({
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24
+  }), []);
+  const projectAccessReason = projectReason || messages?.project || null;
+
+  const postTopicLockReasons = useMemo(() => {
+    if (!activeProject) return [];
+    const reasons = [];
+    if (!activeProject.examResult) {
+      reasons.push('เจ้าหน้าที่ภาควิชายังไม่ได้บันทึกผลสอบหัวข้อในระบบ');
+    } else if (activeProject.examResult !== 'passed') {
+      reasons.push('ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้');
+    }
+    if (activeProject.status !== 'in_progress') {
+      reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ"');
+    }
+    return reasons;
+  }, [activeProject]);
+
+  const postTopicGateReasons = useMemo(() => {
+    if (!activeProject) {
+      return ['ยังไม่มีข้อมูลโครงงานที่เจ้าหน้าที่ภาควิชาบันทึกในระบบ'];
+    }
+    return postTopicLockReasons;
+  }, [activeProject, postTopicLockReasons]);
 
   const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
-  const showPassed = activeProject && activeProject.examResult === 'passed';
 
   const handleAcknowledge = async () => {
     if (!activeProject) return;
@@ -117,8 +130,15 @@ const Phase1Dashboard = () => {
   const handleOpen = (stepKey) => {
     const meta = stepsMap[stepKey];
     if (!meta) return;
-    // ถ้ายังไม่ implement ป้องกันการเข้า (อาจเปลี่ยนเป็น Modal แจ้งเตือนในอนาคต)
     if (!meta.implemented) return;
+    if (meta.requiresPostTopicUnlock) {
+      const reasons = !activeProject ? postTopicGateReasons : postTopicGateReasons;
+      if (!activeProject || reasons.length > 0) {
+        const summary = reasons.length ? reasons.join(' • ') : 'ขั้นตอนนี้จะเปิดใช้งานหลังจากเจ้าหน้าที่บันทึกหัวข้อและสถานะโครงงานเป็น in_progress';
+        message.warning(summary);
+        return;
+      }
+    }
     navigate(`/project/phase1/${stepKey}`);
   };
 
@@ -130,81 +150,71 @@ const Phase1Dashboard = () => {
     navigate('/project/phase1', { replace: true });
   }
 
+  if (activeSub && activeStepMeta?.requiresPostTopicUnlock && (!activeProject || postTopicGateReasons.length > 0)) {
+    return (
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <Card>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Title level={4} style={{ margin: 0 }}>ยังไม่สามารถเข้าถึงขั้นตอนนี้ได้</Title>
+            <Text type="secondary">
+              ขั้นตอน {activeStepMeta.title} จะเปิดใช้งานหลังจากเจ้าหน้าที่ภาควิชาบันทึกผลสอบหัวข้อเป็น "ผ่าน" และโครงงานอยู่ในสถานะ "in_progress"
+            </Text>
+            <div>
+              <Text strong>เหตุผลที่ยังไม่พร้อม:</Text>
+              <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                {postTopicGateReasons.map((reason, index) => (
+                  <li key={`lock-${index}`}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+            <Button type="primary" onClick={() => navigate('/project/phase1')}>
+              ย้อนกลับไปหน้าหลัก Phase 1
+            </Button>
+          </Space>
+        </Card>
+      </div>
+    );
+  }
+
   // Root view (ยังไม่เลือก step) -> แสดง overview การ์ดทั้งหมด
   if (!activeSub) {
-    return (
-      <>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {showAck && (
-          <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
-            <Space direction="vertical" style={{ width: '100%' }} size={8}>
-              <Alert
-                type="error"
-                showIcon
-                message={<span><strong>ผลสอบหัวข้อ: ไม่ผ่าน</strong></span>}
-                description={
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    <div style={{ marginBottom: 8 }}>เหตุผล: {activeProject.examFailReason || '—'}</div>
-                    <div style={{ fontSize: 12, color: '#555' }}>คุณต้องยื่นหัวข้อใหม่ในรอบถัดไป กรุณากด "รับทราบผล" เพื่อเคลียร์หัวข้อนี้ออกจากระบบ</div>
-                  </div>
-                }
-              />
-              <div>
-                <Button danger type="primary" onClick={() => setAckModalOpen(true)} loading={ackLoading}>
-                  รับทราบผล (หัวข้อจะถูกเก็บถาวร)
-                </Button>
-              </div>
+    if (eligibilityLoading) {
+      return (
+        <div style={containerStyle}>
+          <Card bodyStyle={{ padding: 24 }}>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Title level={4} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>
+              <Text type="secondary">กำลังตรวจสอบสิทธิ์การใช้งานโครงงานของคุณ...</Text>
             </Space>
           </Card>
-        )}
-        {showPassed && (
-          <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #b7eb8f', background: '#f6ffed' }}>
-            <Space direction="vertical" style={{ width: '100%' }} size={6}>
+        </div>
+      );
+    }
+
+    if (!canAccessProject) {
+      return (
+        <div style={containerStyle}>
+          <Card bodyStyle={{ padding: 24 }} title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
+            <Paragraph style={{ marginBottom: 8 }}>
+              ระบบจะเปิดใช้งานฟีเจอร์โครงงานพิเศษเมื่อคุณผ่านเกณฑ์ตามข้อกำหนดด้านล่าง
+            </Paragraph>
+            <Text type="secondary">ตรวจสอบสถานะล่าสุดและเตรียมข้อมูลให้พร้อม จากนั้นรีเฟรชหน้านี้เพื่อใช้งานชุดเครื่องมือ Phase 1</Text>
+            {projectAccessReason && (
               <Alert
-                type="success"
+                style={{ marginTop: 16 }}
+                type="warning"
                 showIcon
-                message={<span><strong>ผลสอบหัวข้อ: ผ่าน</strong></span>}
-                description={<div style={{ whiteSpace: 'pre-wrap' }}>
-                  <div style={{ marginBottom: 4 }}>คุณสามารถเตรียมขั้นตอนต่อไป เช่น การจัดทำ Proposal (ฟีเจอร์กำลังพัฒนา)</div>
-                  <div style={{ fontSize: 12, color: '#555' }}>ระบบจะเปิดให้ทำกิจกรรมขั้นต่อไปเมื่อฟีเจอร์พร้อม</div>
-                </div>}
+                message="ยังไม่สามารถใช้งานโครงงานพิเศษ"
+                description={projectAccessReason}
               />
-            </Space>
+            )}
           </Card>
-        )}
-        <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
-          <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
-          <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
-        </Card>
-        <Row gutter={[16,16]}>
-          {steps.map(s => {
-            const disabled = !s.implemented;
-            return (
-              <Col xs={24} sm={12} md={8} key={s.key}>
-                <Card
-                  hoverable={!disabled}
-                  onClick={() => handleOpen(s.key)}
-                  bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: disabled ? 0.55 : 1 }}
-                  style={disabled ? { cursor: 'not-allowed' } : undefined}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {s.icon}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{s.title}</div>
-                      <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {s.implemented ? <Tag color="blue">พร้อมใช้งาน</Tag> : <Tag>กำลังพัฒนา</Tag>}
-                    {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
-                    
-                  </div>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      </div>
+          <ProjectEligibilityCheck />
+        </div>
+      );
+    }
+
+    const ackModal = (
       <Modal
         open={ackModalOpen}
         title="ยืนยันการรับทราบผลสอบไม่ผ่าน"
@@ -223,6 +233,112 @@ const Phase1Dashboard = () => {
           </Typography.Paragraph>
         )}
       </Modal>
+    );
+
+    return (
+      <>
+        <div style={containerStyle}>
+          {showAck && (
+            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
+              <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                <Alert
+                  type="error"
+                  showIcon
+                  message={<span><strong>ผลสอบหัวข้อ: ไม่ผ่าน</strong></span>}
+                  description={
+                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                      <div style={{ marginBottom: 8 }}>เหตุผล: {activeProject.examFailReason || '—'}</div>
+                      <div style={{ fontSize: 12, color: '#555' }}>คุณต้องยื่นหัวข้อใหม่ในรอบถัดไป กรุณากด "รับทราบผล" เพื่อเคลียร์หัวข้อนี้ออกจากระบบ</div>
+                    </div>
+                  }
+                />
+                <div>
+                  <Button danger type="primary" onClick={() => setAckModalOpen(true)} loading={ackLoading}>
+                    รับทราบผล (หัวข้อจะถูกเก็บถาวร)
+                  </Button>
+                </div>
+              </Space>
+            </Card>
+          )}
+          <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
+            <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
+            <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
+          </Card>
+          {activeProject && postTopicLockReasons.length > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              message="ขั้นตอนหลังสอบหัวข้อยังไม่พร้อมใช้งาน"
+              description={(
+                <ul style={{ margin: '12px 0 0 20px', padding: 0 }}>
+                  {postTopicLockReasons.map((reason, index) => (
+                    <li key={`post-topic-alert-${index}`}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+              style={{ border: '1px solid #ffe58f', background: '#fffbe6' }}
+            />
+          )}
+          <Row gutter={[16,16]}>
+            {steps.map(s => {
+              const lockReasonsForStep = s.requiresPostTopicUnlock ? postTopicGateReasons : [];
+              const cardDisabled = !s.implemented || lockReasonsForStep.length > 0;
+              const tooltipTitle = !s.implemented
+                ? 'ฟีเจอร์กำลังพัฒนา'
+                : (lockReasonsForStep.length
+                  ? (
+                    <div>
+                      {lockReasonsForStep.map((reason, index) => (
+                        <div key={`tooltip-${s.key}-${index}`}>{reason}</div>
+                      ))}
+                    </div>
+                  )
+                  : undefined);
+              return (
+                <Col xs={24} sm={12} md={8} key={s.key}>
+                  <Tooltip title={tooltipTitle} placement="top">
+                    <Card
+                      hoverable={!cardDisabled}
+                      onClick={() => {
+                        if (cardDisabled) {
+                          if (lockReasonsForStep.length) {
+                            message.info(lockReasonsForStep.join(' • '));
+                          }
+                          return;
+                        }
+                        handleOpen(s.key);
+                      }}
+                      bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: cardDisabled ? 0.55 : 1 }}
+                      style={cardDisabled ? { cursor: 'not-allowed' } : undefined}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {s.icon}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600 }}>{s.title}</div>
+                          <div style={{ fontSize: 12, opacity: 0.75 }}>{s.desc}</div>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {s.implemented ? (
+                          lockReasonsForStep.length > 0 ? (
+                            <Tag color="gold">รอเปิดใช้งาน</Tag>
+                          ) : (
+                            <Tag color="blue">พร้อมใช้งาน</Tag>
+                          )
+                        ) : (
+                          <Tag>กำลังพัฒนา</Tag>
+                        )}
+                        {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
+                      </div>
+                    </Card>
+                  </Tooltip>
+                </Col>
+              );
+            })}
+          </Row>
+          <ProjectDashboard />
+        </div>
+        {ackModal}
       </>
     );
   }

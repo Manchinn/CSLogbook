@@ -1,18 +1,31 @@
 import { buildProposalPieConfig } from './configs';
 
-// Bar chart แสดง advisor load (จำนวน advisee ต่ออาจารย์)
+// Bar chart แสดงภาระงานอาจารย์ โดยแบ่งเป็นนักศึกษาที่ดูแล + โครงงานที่เป็นที่ปรึกษาหลัก/ร่วม
 export const buildAdvisorLoadBar = (advisors = []) => {
-  const data = advisors.map(a => ({ advisor: a.name || a.teacherId, students: a.adviseeCount || 0 }));
+  const rows = advisors.flatMap((a) => {
+    const displayName = a?.name || (a?.teacherId ? `อ.${a.teacherId}` : 'ไม่ระบุ');
+    return [
+      { advisor: displayName, metric: 'นักศึกษา', value: a?.adviseeCount || 0 },
+      { advisor: displayName, metric: 'ที่ปรึกษาหลัก', value: a?.advisorProjectCount || 0 },
+      { advisor: displayName, metric: 'ที่ปรึกษาร่วม', value: a?.coAdvisorProjectCount || 0 }
+    ];
+  });
+
   return {
-    data,
-    xField: 'students',
+    data: rows,
+    xField: 'value',
     yField: 'advisor',
-    seriesField: undefined,
-    legend: false,
-    height: 300,
-    label: { text: 'students', position: 'right' },
-    tooltip: { items: ['advisor','students'] },
-    scrollbar: { y: { ratio: 0.5 } }
+    seriesField: 'metric',
+    isGroup: true,
+    height: 320,
+    legend: { position: 'top-left' },
+    label: { text: 'value', position: 'right' },
+    tooltip: {
+      fields: ['metric', 'value'],
+      formatter: ({ metric, value }) => ({ name: metric, value })
+    },
+    scrollbar: rows.length > 12 ? { y: { ratio: 0.6 } } : undefined,
+    interactions: [{ type: 'element-highlight' }]
   };
 };
 

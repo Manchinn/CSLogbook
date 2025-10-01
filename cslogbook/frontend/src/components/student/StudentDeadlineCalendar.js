@@ -18,10 +18,10 @@ import dayjs from "../../utils/dayjs";
 import DeadlineBadge from "../deadlines/DeadlineBadge";
 import { computeDeadlineStatus } from "../../utils/deadlineUtils";
 
-export default function StudentDeadlineCalendar() {
+export default function StudentDeadlineCalendar({ audience = 'student' }) {
   const currentYear = dayjs().year();
   const [academicYear, setAcademicYear] = useState(currentYear);
-  const { deadlines, loading } = useAllDeadlines({ academicYear });
+  const { deadlines, loading } = useAllDeadlines({ academicYear, audience });
 
   // แบ่งกลุ่มตามระบบ
   const grouped = useMemo(() => {
@@ -159,7 +159,7 @@ export default function StudentDeadlineCalendar() {
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
       <Card style={{ paddingTop: 16 }}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
-          📅 ปฏิทินกำหนดส่ง
+          📅 ปฏิทินกำหนดการ
         </Typography.Title>
         <Space wrap style={{ marginBottom: 16 }}>
           <Select
@@ -195,10 +195,14 @@ export default function StudentDeadlineCalendar() {
         >
           <Tag color="blue">รอ (ปกติ)</Tag>
           <Tag color="gold">ใกล้ถึงกำหนด (&lt;24ชม.)</Tag>
-          <Tag color="red">เกินกำหนด</Tag>
-          <Tag color="green">ส่งแล้ว</Tag>
-          <Tag color="orange">ส่งช้า</Tag>
-          <Tag color="purple">ปิดรับแล้ว</Tag>
+          {audience !== 'teacher' && (
+            <>
+              <Tag color="red">เกินกำหนด</Tag>
+              <Tag color="green">ส่งแล้ว</Tag>
+              <Tag color="orange">ส่งช้า</Tag>
+              <Tag color="purple">ปิดรับแล้ว</Tag>
+            </>
+          )}
         </div>
         <Typography.Title level={5} style={{ marginTop: 0 }}>
           รายละเอียด (จำแนกตามระบบ)
@@ -255,7 +259,7 @@ export default function StudentDeadlineCalendar() {
                           : ""}
                       </strong>
                       <Tag color={t.color}>{t.txt}</Tag>
-                      {d.deadlineType !== 'ANNOUNCEMENT' && (
+                      {audience !== 'teacher' && d.deadlineType !== 'ANNOUNCEMENT' && (
                         <DeadlineBadge
                           deadline={d.deadline_at_local || d.effective_deadline_local}
                           isSubmitted={d.isSubmitted}

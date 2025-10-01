@@ -64,10 +64,17 @@ const initialSummary = { pending: 0, approved: 0, rejected: 0, total: 0 };
 const MeetingApprovals = () => {
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState(initialSummary);
-  const [filters, setFilters] = useState({ status: 'pending', q: '' });
+  const [filters, setFilters] = useState({ status: 'pending', q: '', academicYear: null, semester: null, projectId: null });
   const [loading, setLoading] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [meta, setMeta] = useState({
+    availableAcademicYears: [],
+    availableSemestersByYear: {},
+    defaultAcademicYear: null,
+    defaultSemester: null,
+    projectsByAcademicYear: {}
+  });
 
   const statusOptions = useMemo(() => ([
     { value: 'pending', label: 'รออนุมัติ' },
@@ -91,6 +98,13 @@ const MeetingApprovals = () => {
         if (ignore) return;
         setItems(response.data?.items || []);
         setSummary(response.data?.summary || initialSummary);
+        setMeta({
+          availableAcademicYears: response.data?.meta?.availableAcademicYears || [],
+          availableSemestersByYear: response.data?.meta?.availableSemestersByYear || {},
+          defaultAcademicYear: response.data?.meta?.defaultAcademicYear ?? null,
+          defaultSemester: response.data?.meta?.defaultSemester ?? null,
+          projectsByAcademicYear: response.data?.meta?.projectsByAcademicYear || {}
+        });
       } catch (error) {
         if (!ignore) {
           message.error(error.message || 'เกิดข้อผิดพลาดในการดึงคิวอนุมัติ');
@@ -108,12 +122,95 @@ const MeetingApprovals = () => {
     };
   }, [filters, reloadToken]);
 
+  useEffect(() => {
+    if (filters.academicYear == null && meta.defaultAcademicYear != null) {
+      setFilters((prev) => ({ ...prev, academicYear: meta.defaultAcademicYear }));
+    }
+  }, [filters.academicYear, meta.defaultAcademicYear]);
+
+  useEffect(() => {
+    if (filters.academicYear == null) {
+      if (filters.semester != null) {
+        setFilters((prev) => ({ ...prev, semester: null }));
+      }
+      if (filters.projectId != null) {
+        setFilters((prev) => ({ ...prev, projectId: null }));
+      }
+      return;
+    }
+
+    const availableSemesters = meta.availableSemestersByYear?.[filters.academicYear] || [];
+    const projectList = meta.projectsByAcademicYear?.[filters.academicYear] || [];
+
+    if (!availableSemesters.length && filters.semester != null) {
+      setFilters((prev) => ({ ...prev, semester: null }));
+    }
+
+    if (!projectList.length && filters.projectId != null) {
+      setFilters((prev) => ({ ...prev, projectId: null }));
+    }
+
+    if (filters.semester != null && !availableSemesters.includes(filters.semester)) {
+      setFilters((prev) => ({ ...prev, semester: availableSemesters[0] ?? null }));
+      return;
+    }
+
+    if (filters.semester == null && meta.defaultSemester != null && availableSemesters.includes(meta.defaultSemester)) {
+      setFilters((prev) => ({ ...prev, semester: meta.defaultSemester }));
+    }
+
+    if (filters.projectId != null && !projectList.some((proj) => proj.projectId === filters.projectId && (!filters.semester || proj.semester == null || proj.semester === filters.semester))) {
+      const fallbackProject = projectList.find((proj) => !filters.semester || proj.semester == null || proj.semester === filters.semester);
+      setFilters((prev) => ({ ...prev, projectId: fallbackProject?.projectId ?? null }));
+    }
+  }, [filters.academicYear, filters.semester, filters.projectId, meta.availableSemestersByYear, meta.defaultSemester, meta.projectsByAcademicYear]);
+
   const handleStatusChange = (value) => {
     setFilters((prev) => ({ ...prev, status: value }));
   };
 
   const handleSearch = (value) => {
     setFilters((prev) => ({ ...prev, q: (value || '').trim() }));
+  };
+
+  const academicYearOptions = useMemo(() => {
+    const years = meta.availableAcademicYears || [];
+    return years.map((year) => ({ value: year, label: `${year}` }));
+  }, [meta.availableAcademicYears]);
+
+  const semesterOptions = useMemo(() => {
+    if (!filters.academicYear) return [];
+    const mapping = meta.availableSemestersByYear || {};
+    const semesters = mapping[filters.academicYear] || [];
+    return semesters.map((sem) => ({ value: sem, label: `ภาคเรียนที่ ${sem}` }));
+  }, [filters.academicYear, meta.availableSemestersByYear]);
+
+  const projectOptions = useMemo(() => {
+    if (!filters.academicYear) return [];
+    const projects = meta.projectsByAcademicYear?.[filters.academicYear] || [];
+
+    return projects
+      .filter((proj) => !filters.semester || proj.semester == null || proj.semester === filters.semester)
+      .map((proj) => {
+        // ใช้ชื่อโครงงานภาษาไทยเป็นหลัก หากไม่มีก็ fallback เป็นภาษาอังกฤษหรือรหัส
+        const displayName = proj.titleTh || proj.titleEn || proj.projectNameTh || proj.projectNameEn || proj.projectCode || `Project ${proj.projectId}`;
+        const label = proj.projectCode
+          ? `${displayName}${displayName.includes(proj.projectCode) ? '' : ` (${proj.projectCode})`}`
+          : displayName;
+        return { value: proj.projectId, label };
+      });
+  }, [filters.academicYear, filters.semester, meta.projectsByAcademicYear]);
+
+  const handleAcademicYearChange = (value) => {
+    setFilters((prev) => ({ ...prev, academicYear: value ?? null, semester: null, projectId: null }));
+  };
+
+  const handleSemesterChange = (value) => {
+    setFilters((prev) => ({ ...prev, semester: value ?? null }));
+  };
+
+  const handleProjectChange = (value) => {
+    setFilters((prev) => ({ ...prev, projectId: value ?? null }));
   };
 
   const handleRefresh = () => {
@@ -359,6 +456,34 @@ const MeetingApprovals = () => {
               รีเฟรช
             </Button>
             <Select
+              placeholder="เลือกปีการศึกษา"
+              allowClear
+              style={{ width: 160 }}
+              value={filters.academicYear}
+              options={academicYearOptions}
+              onChange={handleAcademicYearChange}
+            />
+            <Select
+              placeholder="เลือกภาคเรียน"
+              allowClear
+              disabled={!filters.academicYear || !semesterOptions.length}
+              style={{ width: 150 }}
+              value={filters.semester}
+              options={semesterOptions}
+              onChange={handleSemesterChange}
+            />
+            <Select
+              placeholder="เลือกโครงงาน"
+              allowClear
+              disabled={!filters.academicYear || !projectOptions.length}
+              style={{ width: 260 }}
+              value={filters.projectId}
+              options={projectOptions}
+              onChange={handleProjectChange}
+              optionFilterProp="label"
+              showSearch
+            />
+            <Select
               value={filters.status}
               onChange={handleStatusChange}
               style={{ width: 180 }}
@@ -375,14 +500,7 @@ const MeetingApprovals = () => {
             />
           </Space>
         </Space>
-
-        <Alert
-          type="info"
-          showIcon
-          message="คิวอนุมัติบันทึกการพบ"
-          description="รายการนี้รวบรวมบันทึกการพบของนักศึกษาที่คุณเป็นอาจารย์ที่ปรึกษา สามารถอนุมัติหรือขอปรับปรุงได้จากหน้านี้โดยตรง"
-        />
-
+        
         <Card>
           <Space size={16} wrap>
             <Statistic title="รออนุมัติ" value={summary.pending ?? 0} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#d97706' }} />

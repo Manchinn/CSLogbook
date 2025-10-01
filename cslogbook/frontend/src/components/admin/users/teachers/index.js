@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Row, Col, Form, message, Modal, Typography } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { UserOutlined, ScheduleOutlined, FileTextOutlined } from "@ant-design/icons";
 import { userService } from "../../../../services/admin/userService";
+import "../students/styles.css";
 import "./style.css";
 
 // นำเข้าคอมโพเนนต์
@@ -55,7 +56,7 @@ const TeacherList = () => {
     setEditMode(true);
     form.resetFields();
     // ตั้งค่า default ให้ position เป็น "คณาจารย์" ทุกครั้งที่เพิ่มใหม่
-    form.setFieldsValue({ position: "คณาจารย์", canAccessTopicExam: false });
+  form.setFieldsValue({ position: "คณาจารย์", canAccessTopicExam: false, canExportProject1: false });
     setDrawerVisible(true);
   };
 
@@ -164,15 +165,38 @@ const TeacherList = () => {
     setEditMode(false);
   };
 
+  const teacherStatistics = useMemo(() => {
+    const total = teachers.length;
+    return [
+      {
+        key: "total",
+        icon: <UserOutlined />,
+        label: `อาจารย์ทั้งหมด: ${total} คน`,
+      },
+    ];
+  }, [teachers]);
+
+  const emptyTableText = useMemo(() => {
+    if (searchText && searchText.trim()) {
+      return `ไม่พบอาจารย์ที่ตรงกับคำค้นหา "${searchText}"`;
+    }
+    return "ไม่พบข้อมูลอาจารย์";
+  }, [searchText]);
+
   return (
-    <div className="admin-teacher-container">
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Text strong style={{ fontSize: 16 }}>
-            <UserOutlined /> อาจารย์ทั้งหมด ({teachers.length} คน)
-          </Text>
+    <div className="admin-student-container teacher-page">
+      <Row justify="space-between" align="top" className="filter-section">
+        <Col xs={24} lg={14}>
+          <div className="statistics-chips">
+            {teacherStatistics.map((item) => (
+              <div className="statistic-item" key={item.key}>
+                {item.icon}
+                <Text>{item.label}</Text>
+              </div>
+            ))}
+          </div>
         </Col>
-        <Col>
+        <Col xs={24} lg={10} style={{ textAlign: "right" }}>
           <TeacherFilters
             searchText={searchText}
             setSearchText={setSearchText}
@@ -193,6 +217,7 @@ const TeacherList = () => {
           setDrawerVisible(true);
         }}
         onDelete={handleDeleteTeacher}
+        emptyText={emptyTableText}
       />
 
       <TeacherDrawer

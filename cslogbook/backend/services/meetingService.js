@@ -477,6 +477,14 @@ class MeetingService {
       projectWhere.projectId = projectId;
     }
 
+  const metaWhere = { ...teacherConstraint };
+    if (metaWhere.academicYear !== undefined) {
+      delete metaWhere.academicYear;
+    }
+    if (metaWhere.semester !== undefined) {
+      delete metaWhere.semester;
+    }
+
     const searchTerm = typeof filters.q === 'string' ? filters.q.trim() : '';
     if (searchTerm) {
       const likeValue = `%${searchTerm.replace(/[%_]/g, '\\$&')}%`;
@@ -681,6 +689,86 @@ class MeetingService {
     });
     summary.total = summary.pending + summary.approved + summary.rejected;
 
+    let availableAcademicYears = [];
+    let availableSemestersByYear = {};
+    let projectsByAcademicYear = {};
+    try {
+      const periodRows = await ProjectDocument.findAll({
+        attributes: [
+          [sequelize.col('academic_year'), 'academicYear'],
+          [sequelize.col('semester'), 'semester']
+        ],
+        where: metaWhere,
+        group: ['academic_year', 'semester'],
+        order: [
+          [sequelize.literal('academic_year IS NULL'), 'ASC'],
+          [sequelize.literal('academic_year'), 'DESC'],
+          [sequelize.literal('semester'), 'ASC']
+        ],
+        raw: true
+      });
+
+      availableAcademicYears = [];
+      availableSemestersByYear = {};
+      periodRows.forEach((row) => {
+        const year = row.academicYear;
+        const sem = row.semester;
+        if (year == null) {
+          return;
+        }
+        if (!availableAcademicYears.includes(year)) {
+          availableAcademicYears.push(year);
+        }
+        if (!availableSemestersByYear[year]) {
+          availableSemestersByYear[year] = [];
+        }
+        if (sem != null && !availableSemestersByYear[year].includes(sem)) {
+          availableSemestersByYear[year].push(sem);
+        }
+      });
+      availableAcademicYears.sort((a, b) => b - a);
+      Object.values(availableSemestersByYear).forEach((list) => list.sort((a, b) => a - b));
+
+      const projectRows = await ProjectDocument.findAll({
+        attributes: [
+          [sequelize.col('academic_year'), 'academicYear'],
+          [sequelize.col('project_id'), 'projectId'],
+          [sequelize.col('project_code'), 'projectCode'],
+          [sequelize.col('project_name_th'), 'projectNameTh'],
+          [sequelize.col('project_name_en'), 'projectNameEn'],
+          [sequelize.col('semester'), 'semester']
+        ],
+        where: metaWhere,
+        order: [
+          [sequelize.literal('academic_year'), 'DESC'],
+          [sequelize.literal('semester'), 'ASC'],
+          ['project_name_th', 'ASC']
+        ],
+        raw: true
+      });
+
+      projectsByAcademicYear = projectRows.reduce((acc, row) => {
+        const year = row.academicYear;
+        if (year == null) return acc;
+        if (!acc[year]) {
+          acc[year] = [];
+        }
+        acc[year].push({
+          projectId: row.projectId,
+          projectCode: row.projectCode,
+          titleTh: row.projectNameTh,
+          titleEn: row.projectNameEn,
+          semester: row.semester
+        });
+        return acc;
+      }, {});
+    } catch (metaError) {
+      logger.warn('meetingService.listTeacherMeetingApprovals meta build failed', { error: metaError.message });
+    }
+
+    const defaultAcademicYear = academicYear ?? (availableAcademicYears[0] ?? null);
+    const defaultSemester = semester ?? (defaultAcademicYear ? (availableSemestersByYear[defaultAcademicYear]?.[0] ?? null) : null);
+
     return {
       items,
       summary,
@@ -696,7 +784,12 @@ class MeetingService {
           semester: [1, 2, 3].includes(semester) ? semester : null,
           projectId: Number.isInteger(projectId) ? projectId : null,
           search: searchTerm || null
-        }
+        },
+        availableAcademicYears,
+        availableSemestersByYear,
+        defaultAcademicYear,
+        defaultSemester,
+        projectsByAcademicYear
       }
     };
   }

@@ -83,6 +83,7 @@ const StepReview = () => {
   };
 
   const lockedCore = ['in_progress','completed','archived'].includes(projectStatus);
+  const readOnlyExamPassed = ['completed','archived'].includes(projectStatus);
 
   return (
     <div>
@@ -93,13 +94,13 @@ const StepReview = () => {
       />
 
       <Descriptions bordered size="small" column={1} title="สรุปข้อมูล">
-  <Descriptions.Item label={<span>ชื่อ (TH){lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameTh || '-'} </Descriptions.Item>
-  <Descriptions.Item label={<span>ชื่อ (EN){lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameEn || '-'} </Descriptions.Item>
-        <Descriptions.Item label="ประเภท">{basic.projectType || <em>ยังไม่ระบุ</em>} </Descriptions.Item>
-        <Descriptions.Item label="แทร็ก">{classification.tracks.length ? classification.tracks.join(', ') : <em>ยังไม่เลือก</em>} </Descriptions.Item>
-  <Descriptions.Item label={<span>Advisor{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{advisorName || <em>ยังไม่เลือก</em>} </Descriptions.Item>
-  <Descriptions.Item label={<span>Co-advisor{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{coAdvisorName || <span style={{ opacity: 0.5 }}>-</span>} </Descriptions.Item>
-        <Descriptions.Item label="สมาชิกเพิ่ม">
+  <Descriptions.Item label={<span>ชื่อโครงงานภาษาไทย{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameTh || '-'} </Descriptions.Item>
+  <Descriptions.Item label={<span>ชื่อโครงงานภาษาอังกฤษ{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameEn || '-'} </Descriptions.Item>
+        <Descriptions.Item label="ประเภทโครงงานพิเศษ">{basic.projectType || <em>ยังไม่ระบุ</em>} </Descriptions.Item>
+        <Descriptions.Item label="หมวด">{classification.tracks.length ? classification.tracks.join(', ') : <em>ยังไม่เลือก</em>} </Descriptions.Item>
+  <Descriptions.Item label={<span>อาจารย์ที่ปรึกษา{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{advisorName || <em>ยังไม่เลือก</em>} </Descriptions.Item>
+  <Descriptions.Item label={<span>อาจารย์ที่ปรึกษาร่วม{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{coAdvisorName || <span style={{ opacity: 0.5 }}>-</span>} </Descriptions.Item>
+        <Descriptions.Item label="สมาชิกโครงงานพิเศษ">
           {members.secondMemberCode && <Tag color="blue">คนที่2: {members.secondMemberCode}</Tag>}
           {!members.secondMemberCode && <span>-</span>}
           {members.secondMemberCode && !projectId && <Tag color="gold">ยังไม่สร้าง Draft</Tag>}
@@ -110,26 +111,25 @@ const StepReview = () => {
           {members.secondMemberCode && members.synced && <Tag color="green">บันทึกแล้ว</Tag>}
           {members.secondMemberCode && members.error && <Tag color="red">{members.error}</Tag>}
         </Descriptions.Item>
-        <Descriptions.Item label="Problem / Pain Point">{details.problem || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Background">{details.background || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Objective">{details.objective || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Expected Outcome">{details.expectedOutcome || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Benefit">{details.benefit || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Scope">{details.scope || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Tools">{details.tools || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Methodology">{details.methodology || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Timeline Note">{details.timelineNote || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Risk">{details.risk || '-'} </Descriptions.Item>
-  <Descriptions.Item label="Constraints">{details.constraints || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ที่มา / เหตุผล">{details.background || '-'} </Descriptions.Item>
+  <Descriptions.Item label="เป้าหมาย">{details.objective || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ผลลัพธ์ที่คาดหวัง">{details.expectedOutcome || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ประโยชน์">{details.benefit || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ขอบเขต">{details.scope || '-'} </Descriptions.Item>
+  <Descriptions.Item label="เครื่องมือ / เทคโนโลยี">{details.tools || '-'} </Descriptions.Item>
+  <Descriptions.Item label="กระบวนการ / Methodology">{details.methodology || '-'} </Descriptions.Item>
+  <Descriptions.Item label="หมายเหตุ Timeline">{details.timelineNote || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ความเสี่ยง">{details.risk || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ข้อจำกัด">{details.constraints || '-'} </Descriptions.Item>
       </Descriptions>
 
       <div style={{ marginTop: 24 }}>
-        <Typography.Text>ความพร้อม (Draft Readiness): </Typography.Text>
+        <Typography.Text>ความพร้อมของข้อมูล: </Typography.Text>
         <div style={{ marginTop: 8 }}>
           {readiness.name_th && readiness.name_en && <Tag color="green">ชื่อครบ</Tag>}
           {readiness.type && <Tag color="green">ประเภท</Tag>}
-          {readiness.tracks && <Tag color="green">Tracks</Tag>}
-          {readiness.advisor && <Tag color="green">Advisor</Tag>}
+          {readiness.tracks && <Tag color="green">หมวด</Tag>}
+          {readiness.advisor && <Tag color="green">อาจารย์ที่ปรึกษา</Tag>}
           {readiness.details && <Tag color="green">รายละเอียดขั้นต่ำ</Tag>}
           {readiness.member2 && members.secondMemberCode && <Tag color="green">สมาชิกคนที่สอง OK</Tag>}
           {!readiness.member2 && members.secondMemberCode && <Tag color="orange">สมาชิกคนที่สองยังไม่พร้อม</Tag>}
@@ -204,17 +204,19 @@ const StepReview = () => {
             }
           }}
         >{projectId ? 'สร้างแล้ว' : 'สร้าง Draft โครงงาน'}</Button>
-        {projectId && <Tag color="blue">Project ID: {projectId}</Tag>}
-        {projectId && <Tag color="purple">{projectStatus || 'draft'}</Tag>}
         {projectId && (
           <Button onClick={handleRefresh} loading={status.refreshing} disabled={status.refreshing}>รีเฟรช</Button>
         )}
         {projectId && (
           <Button
             type="dashed"
-            disabled={status.saving}
+            disabled={status.saving || readOnlyExamPassed}
             loading={status.saving}
             onClick={async () => {
+              if (readOnlyExamPassed) {
+                message.info('โครงงานผ่านการสอบหัวข้อแล้ว ไม่สามารถบันทึกแก้ไขได้');
+                return;
+              }
               try {
                 setStatus({ saving: true });
                 const updatePayload = {
@@ -252,7 +254,7 @@ const StepReview = () => {
             ดูหน้า Draft
           </Button>
         )}
-        {projectId && members.secondMemberCode && !members.synced && !members.syncing && (
+        {projectId && members.secondMemberCode && !members.synced && !members.syncing && !readOnlyExamPassed && (
           <Button
             onClick={async () => {
               try {

@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const teacherController = require('../controllers/teacherController');
+const importantDeadlineController = require('../controllers/importantDeadlineController');
 const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 // Protect all routes with authentication
 router.use(authenticateToken);
+
+// ดึงกำหนดการสำคัญที่เจ้าหน้าที่เผยแพร่ให้ทีมอาจารย์ที่ปรึกษา
+router.get('/important-deadlines',
+  checkRole(['teacher']),
+  checkTeacherType(['academic']),
+  importantDeadlineController.getAllForTeacher
+);
 
 // รายชื่ออาจารย์ให้ student ใช้เลือกเป็นที่ปรึกษา (เปิด read-only)
 router.get('/advisors',

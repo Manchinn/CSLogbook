@@ -29,13 +29,34 @@ class StudentService {
    */
   async getAllStudents(filters = {}) {
     try {
-      // สร้างเงื่อนไขการค้นหา
+      const { search, status, academicYear, semester } = filters;
+
       const whereCondition = {
         role: "student",
       };
 
-      // สร้างเงื่อนไขสำหรับ Student model
       const studentWhereCondition = {};
+
+      if (search && search.trim()) {
+        const likeValue = `%${search.trim()}%`;
+
+        whereCondition[Op.or] = [
+          { firstName: { [Op.like]: likeValue } },
+          { lastName: { [Op.like]: likeValue } },
+          { email: { [Op.like]: likeValue } },
+        ];
+
+        studentWhereCondition[Op.or] = [
+          { studentCode: { [Op.like]: likeValue } },
+          { classroom: { [Op.like]: likeValue } },
+        ];
+      }
+
+      if (status === "internship") {
+        studentWhereCondition.isEligibleInternship = true;
+      } else if (status === "project") {
+        studentWhereCondition.isEligibleProject = true;
+      }
 
       const students = await User.findAll({
         where: whereCondition,
@@ -58,35 +79,75 @@ class StudentService {
             ],
           },
         ],
+        order: [
+          ["firstName", "ASC"],
+          ["lastName", "ASC"],
+        ],
       });
 
-      return students.map((user) => {
-        // กำหนดค่า status ตามค่า boolean ในฐานข้อมูล
-        let status = null;
+      const academicYearFilter = academicYear
+        ? parseInt(academicYear, 10)
+        : null;
 
-        // ตรวจสอบสถานะตามลำดับความสำคัญ
-        if (user.student?.isEligibleProject) {
-          status = "eligible_project";
-        } else if (user.student?.isEligibleInternship) {
-          status = "eligible_internship";
-        }
+      const mappedStudents = students
+        .map((user) => {
+          let eligibilityStatus = null;
 
-        return {
-          userId: user.userId,
-          studentId: user.student?.studentId,
-          studentCode: user.student?.studentCode,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          totalCredits: user.student?.totalCredits || 0,
-          majorCredits: user.student?.majorCredits || 0,
-          isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
-          isEligibleForProject: Boolean(user.student?.isEligibleProject),
-          status: status,
-          classroom: user.student?.classroom,
-          phoneNumber: user.student?.phoneNumber,
-        };
-      });
+          if (user.student?.isEligibleProject) {
+            eligibilityStatus = "eligible_project";
+          } else if (user.student?.isEligibleInternship) {
+            eligibilityStatus = "eligible_internship";
+          }
+
+          const studentYearInfo = calculateStudentYear(
+            user.student?.studentCode
+          );
+
+          const admissionAcademicYear = deriveAcademicYearFromStudentCode(
+            user.student?.studentCode
+          );
+
+          return {
+            userId: user.userId,
+            studentId: user.student?.studentId,
+            studentCode: user.student?.studentCode,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            totalCredits: user.student?.totalCredits || 0,
+            majorCredits: user.student?.majorCredits || 0,
+            isEligibleForInternship: Boolean(
+              user.student?.isEligibleInternship
+            ),
+            isEligibleForProject: Boolean(user.student?.isEligibleProject),
+            status: eligibilityStatus,
+            classroom: user.student?.classroom,
+            phoneNumber: user.student?.phoneNumber,
+            academicYear: admissionAcademicYear,
+            studentYear: studentYearInfo?.error ? null : studentYearInfo.year,
+            studentYearStatus: studentYearInfo?.error
+              ? null
+              : studentYearInfo.status,
+            studentYearLabel: studentYearInfo?.error
+              ? null
+              : studentYearInfo.statusLabel,
+          };
+        })
+        .filter((student) => {
+          if (academicYearFilter) {
+            return student.academicYear === academicYearFilter;
+          }
+          return true;
+        });
+
+      if (semester) {
+        logger.info(
+          "ได้รับคำขอฟิลเตอร์ภาคเรียน แต่ยังไม่มีข้อมูลเพียงพอในการกรอง",
+          { semester }
+        );
+      }
+
+      return mappedStudents;
     } catch (error) {
       logger.error("Error in getAllStudents service:", error);
       throw new Error("ไม่สามารถดึงข้อมูลนักศึกษาได้");
@@ -800,3 +861,22 @@ class StudentService {
 }
 
 module.exports = new StudentService();
+
+/**
+ * แปลงรหัสนักศึกษาให้ได้ปีการศึกษาที่เข้าศึกษา (รูปแบบ พ.ศ.)
+ * @param {string} studentCode รหัสนักศึกษา 13 หลัก
+ * @returns {number|null} ปีการศึกษาเป็น พ.ศ. หรือ null หากไม่สามารถคำนวณได้
+ */
+function deriveAcademicYearFromStudentCode(studentCode) {
+  if (!studentCode || typeof studentCode !== "string" || studentCode.length < 2) {
+    return null;
+  }
+
+  const prefix = parseInt(studentCode.substring(0, 2), 10);
+
+  if (Number.isNaN(prefix)) {
+    return null;
+  }
+
+  return prefix + 2500;
+}

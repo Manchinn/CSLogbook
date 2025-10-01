@@ -1,28 +1,89 @@
 const request = require('supertest');
-const jwt = require('jsonwebtoken');
-const app = require('../../app');
-
-function sign(role, extra = {}) {
-  return jwt.sign({ userId: extra.userId || (role==='teacher'?501:601), role, ...extra }, process.env.JWT_SECRET || 'testsecret', { expiresIn: '1h' });
-}
+const express = require('express');
 
 describe('GET /api/projects/topic-exam/export (integration XLSX only)', () => {
-  test('403 when role=student', async () => {
-    const token = sign('student');
-    const res = await request(app)
-      .get('/api/projects/topic-exam/export')
-      .set('Authorization', `Bearer ${token}`);
-    expect([401,403]).toContain(res.status);
+  let app;
+  let teacherFindOne;
+  let exportMock;
+
+  beforeAll(() => {
+    jest.resetModules();
+
+    teacherFindOne = jest.fn(async ({ where }) => {
+      if ([500, 501].includes(where.userId)) {
+        return { teacherType: 'support', canAccessTopicExam: true };
+      }
+      return null;
+    });
+
+    jest.doMock('../../middleware/authMiddleware', () => ({
+      authenticateToken: (req, res, next) => {
+        const role = req.headers['x-test-role'];
+        if (!role) {
+          return res.status(401).json({ success: false, error: 'NO_AUTH' });
+        }
+        req.user = {
+          userId: Number(req.headers['x-test-userid']) || 0,
+          role
+        };
+        next();
+      }
+    }));
+
+    jest.doMock('../../models', () => ({
+      Teacher: { findOne: teacherFindOne }
+    }));
+
+    exportMock = jest.fn((req, res) => {
+      res
+        .status(200)
+        .set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .send('FAKE_XLSX_CONTENT');
+    });
+
+    jest.doMock('../../controllers/topicExamController', () => ({
+      getOverview: jest.fn(),
+      exportOverview: exportMock
+    }));
+
+    const topicExamRoutes = require('../../routes/topicExamRoutes');
+    app = express();
+    app.use(express.json());
+    app.use('/api/projects/topic-exam', topicExamRoutes);
   });
 
-  test('200 XLSX (หรือ 403/401/500 ขึ้นกับ seed) สำหรับ teacher', async () => {
-    const token = sign('teacher');
+  afterAll(() => {
+    jest.resetModules();
+  });
+
+  beforeEach(() => {
+    teacherFindOne.mockClear();
+    teacherFindOne.mockImplementation(async ({ where }) => {
+      if ([500, 501].includes(where.userId)) {
+        return { teacherType: 'support', canAccessTopicExam: true };
+      }
+      return null;
+    });
+    exportMock.mockClear();
+  });
+
+  test('403 when role=student', async () => {
     const res = await request(app)
-      .get('/api/projects/topic-exam/export?format=csv') // even if csv requested should return XLSX
-      .set('Authorization', `Bearer ${token}`);
-    expect([200,401,403,500]).toContain(res.status);
-    if (res.status === 200) {
-      expect(res.headers['content-type']).toMatch(/spreadsheetml\.sheet/);
-    }
+      .get('/api/projects/topic-exam/export')
+      .set('x-test-role', 'student')
+      .set('x-test-userid', '601');
+
+    expect(res.status).toBe(403);
+  });
+
+  test('200 XLSX สำหรับ teacher ที่มีสิทธิ์', async () => {
+    const res = await request(app)
+      .get('/api/projects/topic-exam/export?format=csv')
+      .set('x-test-role', 'teacher')
+      .set('x-test-userid', '501');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/spreadsheetml\.sheet/);
+    expect(exportMock).toHaveBeenCalled();
   });
 });

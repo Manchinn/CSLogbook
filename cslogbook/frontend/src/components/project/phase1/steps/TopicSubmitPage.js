@@ -19,7 +19,7 @@ const TopicSubmitInner = () => {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState(null);
   const [forcedNew] = useState(false); // เผื่ออนาคตอยากให้ผู้ใช้ override
-  const { setBasic, setClassification, setDetails, setProjectId, setProjectStatus, setProjectMembers, setMembers, setMembersStatus } = useCreateProjectDraft();
+  const { state, setBasic, setClassification, setDetails, setProjectId, setProjectStatus, setProjectMembers, setMembers, setMembersStatus } = useCreateProjectDraft();
 
   const search = new URLSearchParams(location.search);
   const editPid = search.get('pid');
@@ -81,10 +81,11 @@ const TopicSubmitInner = () => {
         await preloadProject(editPid);
         return;
       }
-      const res = await projectService.getMyProjects();
-      const list = res?.data || res?.projects || [];
-      // เลือกโครงงานที่ยังไม่ archived (priority: draft > advisor_assigned > in_progress)
-      const preferredOrder = ['draft','advisor_assigned','in_progress'];
+  const res = await projectService.getMyProjects();
+  const list = res?.data || res?.projects || [];
+  // เลือกโครงงานที่ยังไม่ archived (priority: draft > advisor_assigned > in_progress > completed)
+  // completed: ผ่านสอบหัวข้อแล้ว ให้แสดงข้อมูลแบบอ่านอย่างเดียว
+  const preferredOrder = ['draft','advisor_assigned','in_progress','completed'];
       let chosen = null;
       for (const status of preferredOrder) {
         const found = list.find(p => p.status === status);
@@ -96,7 +97,11 @@ const TopicSubmitInner = () => {
         return;
       }
       if (!forcedNew) {
-        navigate(`/project/phase1/draft/${chosen.projectId}`, { replace: true });
+        if (chosen.status === 'completed') {
+          navigate(`/project/phase1/topic-submit?pid=${chosen.projectId}`, { replace: true });
+        } else {
+          navigate(`/project/phase1/draft/${chosen.projectId}`, { replace: true });
+        }
         return; // ไม่ต้อง setChecking false เพราะไปหน้าใหม่แล้ว
       }
       setChecking(false);
@@ -108,9 +113,11 @@ const TopicSubmitInner = () => {
 
   useEffect(() => { checkExisting(); }, [checkExisting]);
 
+  const readOnlyExamPassed = ['completed', 'archived'].includes(state.projectStatus);
+
   return (
     <div style={{ padding: 16 }}>
-      <Title level={4} style={{ marginTop: 0 }}>เสนอหัวข้อโครงงาน (เวอร์ชันใหม่ - Draft)</Title>
+      <Title level={4} style={{ marginTop: 0 }}>เสนอหัวข้อโครงงานพิเศษ</Title>
       {checking && (
         <div style={{ padding: 32, textAlign: 'center' }}>
           <Spin />
@@ -127,6 +134,15 @@ const TopicSubmitInner = () => {
           <Paragraph type="secondary" style={{ marginTop: -4 }}>
             {editPid ? 'โหมดแก้ไข Draft ที่มีอยู่' : 'กรอกข้อมูลทีละขั้น สามารถเว้นบางส่วนไว้ก่อนแล้วกลับมาเติมทีหลังได้'}
           </Paragraph>
+          {readOnlyExamPassed && (
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="โครงงานนี้ผ่านการสอบหัวข้อแล้ว"
+              description="ข้อมูลทุกส่วนถูกล็อกเพื่อเก็บเป็นหลักฐาน ไม่สามารถแก้ไขเพิ่มเติมได้"
+            />
+          )}
           <CreateWizard />
         </>
       )}

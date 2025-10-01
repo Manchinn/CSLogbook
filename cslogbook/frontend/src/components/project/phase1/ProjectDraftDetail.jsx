@@ -7,21 +7,32 @@ import { teacherService } from '../../../services/teacherService';
 // หน้าแสดงรายละเอียด Draft โครงงาน (หลังสร้างแล้ว)
 // เน้น read-only + ปุ่ม Refresh + ปุ่มกลับไปแก้ไข (Wizard เดิม)
 
-const statusColor = (status) => {
-  switch(status) {
-    case 'draft': return 'default';
-    case 'advisor_assigned': return 'blue';
-    case 'in_progress': return 'green';
-    case 'archived': return 'red';
-    default: return 'default';
-  }
+const STATUS_COLOR_MAP = {
+  draft: 'default',
+  advisor_assigned: 'blue',
+  in_progress: 'green',
+  completed: 'success',
+  archived: 'red'
+};
+
+const STATUS_LABEL_MAP = {
+  draft: 'ร่าง',
+  advisor_assigned: 'รอเริ่มต้น',
+  in_progress: 'กำลังดำเนินการ',
+  completed: 'เสร็จสมบูรณ์',
+  archived: 'เก็บถาวร'
+};
+
+const EXAM_RESULT_META = {
+  passed: { color: 'green', text: 'หัวข้อผ่าน' },
+  failed: { color: 'red', text: 'หัวข้อไม่ผ่าน' }
 };
 
 // Mapping ประเภทโครงงาน -> ป้ายภาษาไทย
 const PROJECT_TYPE_LABELS = {
-  govern: 'ทำให้องค์กรภายนอก',
-  private: 'ทำให้ภาควิชา',
-  research: 'งานวิจัย'
+  govern: 'ความร่วมมือกับหน่วยงานรัฐ',
+  private: 'ความร่วมมือกับภาคเอกชน',
+  research: 'โครงงานวิจัย'
 };
 
 const ProjectDraftDetail = () => {
@@ -92,15 +103,30 @@ const ProjectDraftDetail = () => {
   const advisorTag = data.advisorId ? <Tag color="blue">{findTeacherName(data.advisorId)}</Tag> : <Tag>ยังไม่เลือก</Tag>;
   const coAdvisorTag = data.coAdvisorId ? <Tag color="purple">{findTeacherName(data.coAdvisorId)}</Tag> : <Tag color="default">-</Tag>;
   const tracks = (data.tracks || []).length ? data.tracks.join(', ') : '-';
+  const statusTag = (
+    <Tag color={STATUS_COLOR_MAP[data.status] || 'default'}>
+      {STATUS_LABEL_MAP[data.status] || data.status || '-'}
+    </Tag>
+  );
+  const examMeta = data.examResult ? EXAM_RESULT_META[data.examResult] : null;
+  const examTag = examMeta ? <Tag color={examMeta.color}>{examMeta.text}</Tag> : null;
 
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16 }}>
-        <Button onClick={() => navigate(-1)}>ย้อนกลับ</Button>
-  <Button type="primary" onClick={() => navigate(`/project/phase1/topic-submit?pid=${data.projectId}`)}>กลับไปแก้ไข Wizard</Button>
+    <Button onClick={() => navigate(-1)}>ย้อนกลับ</Button>
+    <Button type="primary" onClick={() => navigate(`/project/phase1/topic-submit?pid=${data.projectId}`)}>แก้ไข</Button>
         <Button onClick={() => load(true)} loading={refreshing}>รีเฟรช</Button>
       </Space>
-      <Card title={<span>Draft โครงงาน #{data.projectId} <Tag color={statusColor(data.status)}>{data.status}</Tag></span>}>
+      <Card
+        title={
+          <Space size={8} wrap>
+            <span>รายละเอียดโครงงาน</span>
+            {statusTag}
+            {examTag}
+          </Space>
+        }
+      >
         <Descriptions bordered size="small" column={1}>
           <Descriptions.Item label="ชื่อโครงงานพิเศษ(ภาษาไทย)">{data.projectNameTh || '-'}</Descriptions.Item>
           <Descriptions.Item label="ชื่อโครงงานพิเศษ(ภาษาอังกฤษ)">{data.projectNameEn || '-'}</Descriptions.Item>

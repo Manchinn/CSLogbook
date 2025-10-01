@@ -237,3 +237,113 @@
     width: 40%;
   }
 }
+
+.teacher-hero-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.teacher-hero-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.teacher-hero-greeting {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.teacher-hero-email {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.teacher-hero-tag {
+  border-radius: 16px;
+  border: none;
+  font-weight: 500;
+}
+
+.teacher-hero-button {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 600;
+}
+
+.teacher-hero-button:hover,
+.teacher-hero-button:focus {
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+
+.teacher-quick-actions .ant-list-item {
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+.teacher-quick-action-item .ant-list-item-meta-title {
+  margin-bottom: 4px;
+}
+
+.teacher-quick-action-desc {
+  color: var(--text-secondary);
+}
+
+.teacher-quick-action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-color);
+}
+
+.teacher-queue-description,
+.teacher-deadline-meta,
+.teacher-meeting-meta {
+  color: var(--text-secondary);
+}
+
+.teacher-queue-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.teacher-queue-item,
+.teacher-deadline-item,
+.teacher-meeting-item {
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 0;
+}
+
+.teacher-queue-item:last-child,
+.teacher-deadline-item:last-child,
+.teacher-meeting-item:last-child {
+  border-bottom: none;
+}
+
+.teacher-meeting-meta span,
+.teacher-deadline-meta span {
+  font-size: 13px;
+}
+
+@media (max-width: 576px) {
+  .teacher-hero-content {
+    flex-direction: column;
+  }
+
+  .teacher-quick-action-item .ant-list-item-meta {
+    align-items: flex-start;
+  }
+}

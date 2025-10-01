@@ -38,6 +38,8 @@
 | 16 | แก้ไขรูปเล่ม (Formatting Corrections) | ส่งไฟล์รูปเล่มขั้นสุดท้าย + ใบรับรองเจ้าหน้าที่ | เจ้าหน้าที่/Staff อนุมัติ | ต้องอยู่ในกำหนด M วันต่อจากข้อ 15 |
 | 17 | ปิดโครงงาน (Completed/Archived) | ระบบเปลี่ยนสถานะสุดท้าย เก็บ snapshot | ระบบอัตโนมัติ (หรือ Staff กด) | เงื่อนไขคือทุกขั้นผ่าน/อนุมัติครบ |
 
+> หมายเหตุ (Sep 2025): หน้า Phase 1 Dashboard ของนักศึกษาไม่มีการ์ด "แก้ไขข้อเสนอ" อีกต่อไป การปรับขอบเขต/วัตถุประสงค์หลังสอบใช้ workflow บันทึกการพบอาจารย์แทน เพื่อให้บันทึกเหตุผลและมติที่ปรึกษาอยู่ในจุดเดียวกัน.
+
 หมายเหตุ: ลำดับนี้สามารถ mapping กลับไปยัง state diagram (Section 3) ได้โดย 1→7 อยู่ใน Proposal/Project1 Phase, 11→17 อยู่ใน Thesis Phase. |
 
 ## 2. คุณสมบัติ/เกณฑ์ความพร้อม (Eligibility Rules)
@@ -100,10 +102,23 @@ graph TD
 | 16 | Formatting Corrections | Upload final PDF + form signed staff | Dept Staff | Formatting Approval | ภายใน M วัน ต่อจากข้อ 15 |
 | 17 | Completed | System transition | - | Archive snapshot | ทั้งหมด Approved |
 
+### 4.1 Project1 Defense Request Flow (อัปเดต Sep 2025)
+
+ตารางนี้ไล่ขั้นตอนการ “ขอสอบโครงงานพิเศษ 1 (คพ.02)” ตาม flow ที่ใช้งานจริง พร้อม mapping ไปยังบริการในระบบ
+
+| ลำดับ | ผู้ปฏิบัติ / ผู้เกี่ยวข้องหลัก | รายละเอียดธุรกรรม | การทำงานในระบบ / Endpoint | ผลลัพธ์ | หมายเหตุ |
+|-------|-------------------------------|---------------------|-----------------------------|---------|---------|
+| 1 | นักศึกษา (หัวหน้าโครงงาน) + สมาชิก | กรอกข้อมูล คพ.02, ช่องทางติดต่อ และ snapshot โครงงาน เพื่อเตรียมส่งให้อาจารย์ลงนาม | หน้าจอ `ExamSubmitPage` → `POST /api/projects/:id/kp02` (`projectService.submitProject1DefenseRequest`) เก็บ `formPayload` และตรวจเกณฑ์บันทึกการพบผ่าน `projectDefenseRequestService` | เกิด `ProjectDefenseRequest` สถานะ `submitted` พร้อม snapshot สมาชิก/ที่ปรึกษา | ยังต้องแนบแบบฟอร์มที่มีลายเซ็นอาจารย์จริง (อัปโหลด/แนบภายนอกอยู่ในแผน PDF automation) |
+| 2 | อาจารย์ที่ปรึกษา/ร่วม และเจ้าหน้าที่ภาควิชา | ตรวจสอบลายเซ็นในเอกสารจริง + ตรวจ logbook ตามเกณฑ์ก่อนรับคำขอ | ระบบคำนวณ metric จาก `projectDocumentService.buildProjectMeetingMetrics` เพื่อช่วยให้เจ้าหน้าที่เห็นจำนวนบันทึกที่อนุมัติ; ขั้นอนุมัติตัวเอกสารยังเป็น Manual (เจ้าหน้าที่ตรวจจากไฟล์ที่นักศึกษาส่ง) | ยืนยันว่าเอกสารครบและทีมผ่านเกณฑ์ พร้อมให้เข้าสู่ขั้นนัดสอบ | จะเพิ่ม UI แชร์ไฟล์/ตราประทับอนุมัติใน Iteration ถัดไป |
+| 3 | เจ้าหน้าที่ภาควิชา + อาจารย์ผู้จัดตารางสอบ | นัดวัน/เวลา/สถานที่สอบ และจัดสรรห้องสอบผ่านปฏิทินภาควิชา (ไม่บันทึกข้อมูลซ้ำใน CSLogbook) | หน้า `Project1DefenseSchedulePage` ใช้เพื่อตรวจสอบสถานะคำขอ/ข้อมูลติดต่อเท่านั้น; การนัดสอบจริงดำเนินผ่านปฏิทิน + ไฟล์ภายนอก (ปุ่มส่งออกยังใช้ service เดิม) | คำขออยู่สถานะ `staff_verified` (หรือ `scheduled` สำหรับข้อมูลเก่า), Timeline “PROJECT1_DEFENSE_SCHEDULED” ถือว่าเสร็จเมื่อเจ้าหน้าที่ตรวจสอบแล้ว | การซิงก์เวลาจากปฏิทินอยู่ใน Backlog; ผู้ใช้ต้องแจ้งทีมโครงงานจากปฏิทินเอง |
+| 4 | คณะกรรมการสอบ + เจ้าหน้าที่ภาควิชา | จัดสอบและบันทึกผล (ผ่าน/ไม่ผ่าน + เหตุผล) | Endpoint `POST /api/projects/:id/exam-result` (controller `topicExamResultController.recordResult`) เรียก `projectDocumentService.setExamResult` เปลี่ยนสถานะโครงงาน และถ้า “ไม่ผ่าน” เตรียม workflow ให้กดรับทราบ | ผลสอบถูกบันทึก, ถ้าผ่าน → โครงงานยังอยู่สถานะ `in_progress` พร้อมเข้าสู่ Phase ต่อไป, ถ้าไม่ผ่าน → ระบบรอให้นักศึกษากด acknowledge ก่อน archive | UI สำหรับบันทึกผล Project1 จะ reuse modal จาก flow ผลสอบหัวข้อ (กำลังปรับปรุงให้สอดคล้องกับเอกสารคพ.02) |
+| 5 | นักศึกษา + ระบบอัตโนมัติ | หลังผลสอบผ่าน → เดินหน้าสู่ Phase 2 (โครงงานพิเศษ 2 / ปริญญานิพนธ์). ถ้าไม่ผ่านต้องรับทราบและยื่นใหม่ | `projectDocumentService.syncProjectWorkflowState` อัปเดต `StudentWorkflowActivity` → unlock ขั้น “PROJECT1_DEFENSE_RESULT”; หากไม่ผ่านใช้ `PATCH /api/projects/:id/exam-result/ack` เพื่อ archive | สถานะ workflow ถูกอัปเดต และหน้า Dashboard นักศึกษาจะเปิดทางให้เริ่ม Phase 2 | ระบบจะรีเฟรช readiness cards อัตโนมัติ; ส่วน PDF KP02 เวอร์ชันปริญญานิพนธ์จะแยกด้วย `defenseType=THESIS` ใน flow ถัดไป |
+
+> Note: ฟีเจอร์ Export รายชื่อโครงงานที่ผ่านเกณฑ์สอบ (Excel) วางไว้ใน Iteration ต่อไป โดย reuse service `useTopicExamOverview` และเสริม endpoint `/api/projects/project1/export` (อยู่ใน Backlog)
+
 ## 5. ประเภทเอกสาร (Document Types & Versioning)
 Key:
-- KP01 (proposal) - versioned; lock after approval; store original + revisions
-- Scope Revision (post defense) - versioned separate category
+- Scope Revision (**post** defense) - versioned separate category
 - KP02 (defense request) - two logical instances: PROJECT1, THESIS
 - ThesisCh1-3 set (ก่อน Project1 Defense) - optional upload to track progress
 - ThesisFull (หลัง Project1, สำหรับ Thesis Defense)
@@ -119,7 +134,7 @@ Metadata Common Fields: `projectId, docType, version, filePath, uploadedBy, uplo
 | Student | Create/Update proposal before approval, submit KP02, upload revisions, view statuses, download templates |
 | Advisor | Approve KP01, scope revisions, ack 30-day request, approve content corrections, view logs |
 | Committee (Defense) | Record defense result (only assigned) |
-| Staff (Dept) | Manage scheduling, verify formatting, close project, override deadlines (with log) |
+| Staff (Dept) | Verify KP02, ประสานตารางสอบผ่านปฏิทินภาควิชา, verify formatting, close project, override deadlines (with log) |
 | Admin | Configure deadlines windows, manage templates, force state change (with audit) |
 
 Reuse จากระบบฝึกงาน: Auth roles + approval modal + timeline component + PDF generator (เทมเพลตใหม่)
@@ -219,7 +234,8 @@ Indices: (projectId + docType + version), (defenseId, type), (projectId, status)
 - Frontend: หน้ารายการโครงงาน, หน้ารายละเอียด + แท็บ Documents, Approvals, Timeline
 
 ### Iteration 2
-- Project1 Defense flow (KP02), Defense scheduling UI reuse, Notifications
+- ✅ (Oct 2025) Project1 Defense scheduling flow: backend service + support staff UI ผ่านเมนู `จัดการเอกสาร > เอกสารโครงงานพิเศษ > นัดสอบโครงงานพิเศษ 1`
+- Project1 Defense notifications + committee assignment wizard
 
 ### Iteration 3
 - 30-Day Request, Thesis Defense, Corrections flows, Deadline config UI

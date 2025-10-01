@@ -28,6 +28,10 @@ module.exports = (sequelize) => {
                 foreignKey: 'project_id',
                 as: 'tracks'
             });
+            ProjectDocument.hasMany(models.ProjectDefenseRequest, {
+                foreignKey: 'project_id',
+                as: 'defenseRequests'
+            });
         }
     }
 

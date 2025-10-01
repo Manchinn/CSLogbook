@@ -118,6 +118,15 @@ class WorkflowService {
         where: { studentId, workflowType }
       });
 
+      let activityPayload = {};
+      if (workflowActivity?.dataPayload) {
+        try {
+          activityPayload = JSON.parse(workflowActivity.dataPayload);
+        } catch (payloadError) {
+          logger.warn('workflowService: parse dataPayload error', { workflowType, studentId, error: payloadError.message });
+        }
+      }
+
       console.log(`Found ${stepDefinitions.length} step definitions for ${workflowType}, activity exists: ${!!workflowActivity}`);
 
       // สร้าง activity ถ้ายังไม่มีและนักศึกษามีสถานะ enrolled (ปรับปรุงให้รองรับ project ด้วยถ้าต้องการ)
@@ -173,6 +182,13 @@ class WorkflowService {
         overallTimelineStatus = workflowActivity.overallWorkflowStatus;
       }
 
+      if (
+        overallTimelineStatus === 'archived' &&
+        (activityPayload?.examResult === 'failed' || activityPayload?.failureAcknowledged)
+      ) {
+        overallTimelineStatus = 'failed';
+      }
+
 
       if (stepDefinitions.length > 0) {
         if (workflowActivity) {
@@ -188,9 +204,6 @@ class WorkflowService {
             console.log(`No workflowActivity found for ${workflowType}, student ${studentId}, but stepDefinitions exist. Timeline might be incomplete.`);
         }
         
-        const isProjectWorkflow = workflowType === 'project' || workflowType === 'project1';
-        const isStudentEligibleForProject = !!student?.isEligibleProject;
-
         stepDefinitions.forEach((def, index) => {
           let stepUiStatus = 'waiting'; // สถานะที่จะส่งให้ UI (เช่น 'completed', 'pending', 'in_progress', 'waiting')
           let isStepCompleted = false;
@@ -238,10 +251,6 @@ class WorkflowService {
             if (index === 0) {
                 stepUiStatus = 'awaiting_action'; // หรือ 'in_progress' ขึ้นอยู่กับว่า step แรกคืออะไร
             }
-          } else if (!workflowActivity && isProjectWorkflow && def.stepKey === 'PROJECT1_ELIGIBILITY_CONFIRMED' && isStudentEligibleForProject) {
-            // ถ้านักศึกษาผ่านเกณฑ์โครงงานแล้วแต่ยังไม่มี workflow activity ให้ step แรกเป็น completed
-            stepUiStatus = 'completed';
-            isStepCompleted = true;
           }
           
           steps.push({
@@ -288,7 +297,7 @@ class WorkflowService {
       if (progress > 100) progress = 100;
       if (progress < 0) progress = 0;
 
-      if (overallTimelineStatus === 'failed' && progress > 90) {
+      if ((overallTimelineStatus === 'failed') && progress > 90) {
         progress = 90;
       }
 

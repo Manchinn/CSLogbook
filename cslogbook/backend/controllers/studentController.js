@@ -5,13 +5,23 @@ const logger = require("../utils/logger");
 exports.getAllStudents = async (req, res, next) => {
   try {
 
-    const students = await studentService.getAllStudents({ 
-    });
+    const filters = {
+      search: req.query.search,
+      status: req.query.status,
+      academicYear: req.query.academicYear,
+      semester: req.query.semester,
+    };
+
+    const students = await studentService.getAllStudents(filters);
 
     res.json({
       success: true,
       data: students,
       filters: {
+        search: filters.search || null,
+        status: filters.status || null,
+        academicYear: filters.academicYear || null,
+        semester: filters.semester || null,
       },
       message: "ดึงข้อมูลนักศึกษาสำเร็จ",
     });

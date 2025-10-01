@@ -13,6 +13,10 @@ export const teacherService = {
       throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงรายชื่ออาจารย์ที่ปรึกษา');
     }
   },
+  getAllDeadlines: async (academicYear) => {
+    const response = await apiClient.get('/teachers/important-deadlines', { params: { academicYear } });
+    return response.data.data || [];
+  },
   // ดึงข้อมูลอาจารย์
   getTeacherInfo: async (teacherId) => {
     try {
@@ -36,16 +40,16 @@ export const teacherService = {
   // ดึงข้อมูลสถิติ
   getStats: async () => {
     try {
-      const response = await apiClient.get('/teachers/stats');
-      
+      const response = await apiClient.get('/teachers/academic/dashboard');
+
       if (!response.data.success) {
-        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลสถิติได้');
+        throw new Error(response.data.message || 'ไม่สามารถดึงข้อมูลแดชบอร์ดอาจารย์ได้');
       }
 
-      return response.data;
+      return response.data.data;
     } catch (error) {
-      console.error('Error fetching stats:', error);
-      throw error;
+      console.error('Error fetching teacher dashboard:', error);
+      throw new Error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลแดชบอร์ดอาจารย์');
     }
   },
 

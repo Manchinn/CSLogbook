@@ -45,6 +45,8 @@ import TimesheetApproval from './components/internship/approval/TimesheetApprova
 import ApproveDocuments from './components/teacher/ApproveDocuments';
 import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
 import MeetingApprovals from './components/teacher/MeetingApprovals';
+import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
+import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -165,6 +167,11 @@ const App = () => {
                 } />
                 
                 {/* Project Routes */}
+                <Route path="/project" element={
+                  <ProtectedRoute roles={['student']}>
+                    <Navigate to="/project/phase1" replace />
+                  </ProtectedRoute>
+                } />
                 {/* ปรับโครงสร้าง: /project/phase1 เป็น Phase1Dashboard (single menu) */}
                 <Route path="/project/phase1" element={
                   <ProtectedRoute roles={['student']}>
@@ -218,9 +225,19 @@ const App = () => {
                 } />
 
                 {/* Teacher Academic Routes */}
+                <Route path="/teacher/deadlines/calendar" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <StudentDeadlineCalendar audience="teacher" />
+                  </ProtectedRoute>
+                } />
                 <Route path="/teacher/meeting-approvals" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <MeetingApprovals />
+                  </ProtectedRoute>
+                } />
+                <Route path="/teacher/project1/advisor-queue" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <AdvisorKP02Queue />
                   </ProtectedRoute>
                 } />
                 <Route path="/approve-documents" element={
@@ -242,6 +259,18 @@ const App = () => {
                 <Route path="/admin/*" element={
                   <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
                     <AdminRoutes />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/project1/kp02-queue" element={
+                  <ProtectedRoute
+                    roles={['admin', 'teacher']}
+                    condition={(user) =>
+                      user.role === 'admin' ||
+                      user.teacherType === 'support' ||
+                      Boolean(user.canExportProject1)
+                    }
+                  >
+                    <StaffKP02Queue />
                   </ProtectedRoute>
                 } />
               

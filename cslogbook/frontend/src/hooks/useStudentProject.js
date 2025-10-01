@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import projectService from '../services/projectService';
 import { teacherService } from '../services/teacherService';
 import { message } from 'antd';
+import { evaluateProjectReadiness } from '../utils/projectReadiness';
 
 /**
  * useStudentProject
@@ -25,6 +26,7 @@ export function useStudentProject(options = {}) {
   const [updating, setUpdating] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [currentStudentId, setCurrentStudentId] = useState(null);
 
   // ใช้ ref กัน race condition เมื่อมีการกดหลาย action พร้อมกัน
   const lastLoadToken = useRef(0);
@@ -54,8 +56,27 @@ export function useStudentProject(options = {}) {
         return;
       }
       if (token !== lastLoadToken.current) return; // race: มีโหลดใหม่หลังสุด
-      setProjects(res.data || []);
-      const first = (res.data || [])[0];
+      const projectList = res.data || [];
+      setProjects(projectList);
+      const derivedStudentId = (() => {
+        for (const project of projectList) {
+          if (!project || !Array.isArray(project.members)) continue;
+          const selfMember = project.members.find(member => member && member.studentId);
+          if (selfMember?.studentId) {
+            return selfMember.studentId;
+          }
+        }
+        return null;
+      })();
+      setCurrentStudentId(derivedStudentId || null);
+      if (typeof window !== 'undefined') {
+        if (derivedStudentId) {
+          window.__CURRENT_STUDENT_ID = derivedStudentId;
+        } else if (window.__CURRENT_STUDENT_ID) {
+          delete window.__CURRENT_STUDENT_ID;
+        }
+      }
+      const first = projectList[0];
       if (first) {
         // ดึงรายละเอียดเต็ม + summary
         const full = await projectService.getProjectWithSummary(first.projectId);
@@ -152,21 +173,11 @@ export function useStudentProject(options = {}) {
   }, [activeProject]);
 
   // Readiness checklist (memo)
-  const readiness = useMemo(() => {
-    if (!activeProject) return [];
-    const p = activeProject;
-    return [
-      { key: 'members', label: 'สมาชิกครบ 2 คน', pass: p.members?.length === 2 },
-      { key: 'advisor', label: 'เลือกอาจารย์ที่ปรึกษา', pass: !!p.advisorId },
-      { key: 'name_th', label: 'ชื่อ TH', pass: !!p.projectNameTh },
-      { key: 'name_en', label: 'ชื่อ EN', pass: !!p.projectNameEn },
-      { key: 'type', label: 'ประเภทโครงงาน', pass: !!p.projectType },
-      // ใช้ p.tracks (array ของ code) ถ้าไม่มี fallback ไป legacy p.track
-      { key: 'track', label: 'Track', pass: Array.isArray(p.tracks) ? p.tracks.length > 0 : !!p.track }
-    ];
-  }, [activeProject]);
+  const activationReadiness = useMemo(() => evaluateProjectReadiness(activeProject), [activeProject]);
 
-  const canActivate = useMemo(() => readiness.every(r => r.pass) && activeProject && !['in_progress','completed','archived'].includes(activeProject.status), [readiness, activeProject]);
+  const readiness = activationReadiness.checklist;
+
+  const canActivate = activationReadiness.canActivate;
 
   // ออโต้โหลดเมื่อ mount
   useEffect(() => { if (autoLoad) loadProjects(); }, [autoLoad, loadProjects]);
@@ -179,6 +190,8 @@ export function useStudentProject(options = {}) {
     advisors,
     readiness,
     canActivate,
+    activationReadiness,
+    currentStudentId,
     // loading flags
     loading,
     advisorLoading,

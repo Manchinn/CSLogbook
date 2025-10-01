@@ -14,6 +14,7 @@ import {
   ProjectOutlined,
   BarChartOutlined,
   CalendarOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import React from 'react';
 
@@ -44,8 +45,41 @@ export const getMenuConfig = ({
   const internshipTooltip = messages?.internship || 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน';
   const canSeeTopicExamOverview = userData.role === 'teacher' && Boolean(userData.canAccessTopicExam);
   const isAcademicTeacher = userData.role === 'teacher' && userData.teacherType === 'academic';
+  const isSupportTeacher = userData.role === 'teacher' && userData.teacherType === 'support';
+  const canExportKP02 = userData.role === 'teacher' && Boolean(userData.canExportProject1) && !isSupportTeacher;
   const canApproveDocuments =
     isAcademicTeacher && userData.teacherPosition === 'หัวหน้าภาควิชา';
+
+  const teacherPrivilegeGroup =
+    userData.role === 'teacher' && (canSeeTopicExamOverview || canExportKP02)
+      ? {
+          key: 'teacher-privileged',
+          icon: <ProjectOutlined />,
+          label: 'สำหรับอาจารย์ที่มีสิทธิ์',
+          children: [
+            ...(canSeeTopicExamOverview
+              ? [
+                  {
+                    key: '/teacher/topic-exam/overview',
+                    icon: <ProjectOutlined />,
+                    label: 'รายชื่อหัวข้อโครงงานพิเศษ',
+                    onClick: () => navigate('/teacher/topic-exam/overview'),
+                  },
+                ]
+              : []),
+            ...(canExportKP02
+              ? [
+                  {
+                    key: '/admin/project1/kp02-queue',
+                    icon: <DownloadOutlined />,
+                    label: 'รายชื่อสอบโครงงานพิเศษ',
+                    onClick: () => navigate('/admin/project1/kp02-queue'),
+                  },
+                ]
+              : []),
+          ],
+        }
+      : null;
 
   const items = [
     // Dashboard
@@ -55,14 +89,14 @@ export const getMenuConfig = ({
       label: 'หน้าแรก',
       onClick: () => navigate('/admin/dashboard'),
     },
-    // Teacher: Topic Exam Overview (ตามสิทธิ์ที่กำหนด)
-    ...(canSeeTopicExamOverview
+    // Teacher academic calendar shortcut
+    ...(isAcademicTeacher
       ? [
           {
-            key: '/teacher/topic-exam/overview',
-            icon: <ProjectOutlined />,
-            label: 'Topic Exam Overview',
-            onClick: () => navigate('/teacher/topic-exam/overview'),
+            key: '/teacher/deadlines/calendar',
+            icon: <CalendarOutlined />,
+            label: 'ปฏิทินกำหนดการ',
+            onClick: () => navigate('/teacher/deadlines/calendar'),
           },
         ]
       : []),
@@ -78,7 +112,7 @@ export const getMenuConfig = ({
             {
               key: '/student-deadlines/calendar',
               icon: <CalendarOutlined />,
-              label: 'ปฏิทินกำหนดส่ง',
+              label: 'ปฏิทินกำหนดการ',
               onClick: () => navigate('/student-deadlines/calendar'),
             },
           {
@@ -135,6 +169,13 @@ export const getMenuConfig = ({
     ...(isAcademicTeacher
       ? [
           { key: '/teacher/meeting-approvals', icon: <CalendarOutlined />, label: 'อนุมัติบันทึกการพบ', onClick: () => navigate('/teacher/meeting-approvals') },
+          {
+            key: '/teacher/project1/advisor-queue',
+            icon: <ProjectOutlined />,
+            label: 'คำขอสอบ คพ.02',
+            onClick: () => navigate('/teacher/project1/advisor-queue')
+          },
+          ...(teacherPrivilegeGroup ? [teacherPrivilegeGroup] : []),
           ...(canApproveDocuments
             ? [
                 {
@@ -150,6 +191,7 @@ export const getMenuConfig = ({
     // Teacher support
     ...(userData.role === 'teacher' && userData.teacherType === 'support'
       ? [
+          ...(teacherPrivilegeGroup ? [teacherPrivilegeGroup] : []),
           {
             key: 'manage',
             icon: <TeamOutlined />,
@@ -166,7 +208,14 @@ export const getMenuConfig = ({
             label: 'จัดการเอกสาร',
             children: [
               { key: '/admin/documents/internship', label: 'เอกสารฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
-              { key: '/admin/documents/project', label: 'เอกสารโครงงานพิเศษ', onClick: () => navigate('/admin/documents/project') },
+              {
+                key: '/admin/documents/project',
+                label: 'เอกสารโครงงานพิเศษ',
+                children: [
+                  { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
+                  { key: '/admin/project1/kp02-queue', label: 'ตรวจสอบคำขอ คพ.02', onClick: () => navigate('/admin/project1/kp02-queue') }
+                ]
+              },
             ],
           },
           {
@@ -181,7 +230,6 @@ export const getMenuConfig = ({
             ],
           },
           { key: '/admin/upload', icon: <UploadOutlined />, label: 'อัปโหลดรายชื่อนักศึกษา', onClick: () => navigate('/admin/upload') },
-          { key: '/admin/topic-exam/results', icon: <CheckCircleOutlined />, label: 'บันทึกผลสอบหัวข้อ', onClick: () => navigate('/admin/topic-exam/results') },
           {
             key: 'settings',
             icon: <SettingOutlined />,
@@ -216,7 +264,15 @@ export const getMenuConfig = ({
             label: 'จัดการเอกสาร',
             children: [
               { key: '/admin/documents/internship', label: 'เอกสารฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
-              { key: '/admin/documents/project', label: 'เอกสารโครงงานพิเศษ', onClick: () => navigate('/admin/documents/project') },
+              {
+                key: '/admin/documents/project',
+                label: 'เอกสารโครงงานพิเศษ',
+                children: [
+                  
+                  { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
+                  { key: '/admin/project1/kp02-queue', label: 'ตรวจสอบคำขอ คพ.02', onClick: () => navigate('/admin/project1/kp02-queue') }
+                ]
+              },
             ],
           },
           {
@@ -231,7 +287,6 @@ export const getMenuConfig = ({
             ],
           },
           { key: '/admin/upload', icon: <UploadOutlined />, label: 'อัปโหลดรายชื่อนักศึกษา', onClick: () => navigate('/admin/upload') },
-          { key: '/admin/topic-exam/results', icon: <CheckCircleOutlined />, label: 'บันทึกผลสอบหัวข้อ', onClick: () => navigate('/admin/topic-exam/results') },
           {
             key: 'settings',
             icon: <SettingOutlined />,

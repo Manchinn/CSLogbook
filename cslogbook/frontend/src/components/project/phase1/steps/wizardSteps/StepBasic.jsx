@@ -6,6 +6,7 @@ const StepBasic = () => {
   const { state, setBasic } = useCreateProjectDraft();
   // ล็อกชื่อเมื่อสถานะโครงงานเข้าสู่ in_progress หรือหลังจากนั้น
   const locked = ['in_progress','completed','archived'].includes(state.projectStatus);
+  const typeReadOnly = ['completed','archived'].includes(state.projectStatus);
   return (
     <Form layout="vertical">
       <Form.Item label={
@@ -33,6 +34,7 @@ const StepBasic = () => {
             { value: 'private', label: 'ทำให้ภาควิชา' },
             { value: 'research', label: 'งานวิจัย' }
           ]}
+          disabled={typeReadOnly}
         />
       </Form.Item>
     </Form>

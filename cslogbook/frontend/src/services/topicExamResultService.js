@@ -4,6 +4,6 @@
 import apiClient from './apiClient';
 
 export async function recordTopicExamResult(projectId, payload) {
-  // payload: { result: 'passed' } หรือ { result: 'failed', reason: '...' }
+  // payload: { result: 'passed', advisorId } หรือ { result: 'failed', reason, advisorId }
   return apiClient.post(`/projects/${projectId}/exam-result`, payload);
 }

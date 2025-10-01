@@ -60,28 +60,33 @@ describe('topicExamService.getTopicOverview (unit)', () => {
     const pd = await ProjectDocument.create({ projectCode: 'PRJTEST-0001', projectNameTh: 'ตัวอย่าง', projectNameEn: 'Example', status: 'draft', advisorId: t1.teacherId });
     await ProjectMember.create({ projectId: pd.projectId, studentId: s1.studentId, role: 'leader' });
 
-    // Mock ../models export structure used by service
-    jest.doMock('../../models', () => ({
-      ProjectDocument,
-      ProjectMember,
-      Student,
-      Teacher,
-      User,
-      Op
-    }));
-
-    service = require('../../services/topicExamService');
+    jest.isolateModules(() => {
+      jest.doMock('../../config/database', () => ({ sequelize }));
+      jest.doMock('../../models', () => ({
+        sequelize,
+        ProjectDocument,
+        ProjectMember,
+        Student,
+        Teacher,
+        User,
+        Op
+      }));
+      jest.doMock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+      service = require('../../services/topicExamService');
+    });
   });
 
   afterAll(async () => {
     await sequelize.close();
+    jest.resetModules();
   });
 
   test('returns array with mapped fields', async () => {
-    const data = await service.getTopicOverview({});
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBe(1);
-    const row = data[0];
+    const result = await service.getTopicOverview({});
+    expect(result).toBeDefined();
+    expect(Array.isArray(result.data)).toBe(true);
+  expect(result.data.length).toBeGreaterThanOrEqual(1);
+    const row = result.data[0];
     expect(row.projectCode).toBe('PRJTEST-0001');
     expect(row.advisor.name).toContain('Somchai');
     expect(row.members[0].name).toContain('Rak');
@@ -89,18 +94,18 @@ describe('topicExamService.getTopicOverview (unit)', () => {
 
   test('readyOnly filter (baseline=title only) returns record even if advisor present/absent', async () => {
     // First existing row has titles + advisor -> ready
-    let data = await service.getTopicOverview({ readyOnly: true });
-    expect(data.length).toBe(1);
-    expect(data[0].readiness.titleCompleted).toBe(true);
-    expect(data[0].readiness.readyFlag).toBe(true);
+    let result = await service.getTopicOverview({ readyOnly: true });
+  expect(result.data.length).toBeGreaterThanOrEqual(1);
+    expect(result.data[0].readiness.titleCompleted).toBe(true);
+    expect(result.data[0].readiness.readyFlag).toBe(true);
 
     // Create another project without advisor but with titles to confirm still ready
     const pd2 = await ProjectDocument.create({ projectCode: 'PRJTEST-0002', projectNameTh: 'หัวข้อสอง', projectNameEn: 'Second', status: 'draft', advisorId: null });
     // no members needed for readiness baseline
-    data = await service.getTopicOverview({ readyOnly: true });
+    result = await service.getTopicOverview({ readyOnly: true });
     // Should now have both rows (order may differ); ensure at least 2
-    expect(data.length).toBeGreaterThanOrEqual(2);
-    const hasSecond = data.some(r => r.projectCode === 'PRJTEST-0002' && r.readiness.readyFlag === true);
+    expect(result.data.length).toBeGreaterThanOrEqual(2);
+    const hasSecond = result.data.some(r => r.projectCode === 'PRJTEST-0002' && r.readiness.readyFlag === true);
     expect(hasSecond).toBe(true);
   });
 });

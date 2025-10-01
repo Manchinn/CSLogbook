@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Tooltip, Typography, Divider, Spin, Tag, Progress } from 'antd';
+import { Card, Row, Col, Statistic, Tooltip, Typography, Divider, Spin } from 'antd';
 import { 
-  BookOutlined, TrophyOutlined, BarChartOutlined, 
+  BookOutlined, 
   CheckCircleOutlined, CloseCircleOutlined, 
   InfoCircleOutlined, WarningOutlined
 } from '@ant-design/icons';
@@ -9,9 +9,7 @@ import { studentService } from '../../../services/studentService';
 import { 
   calculateStudentYear, 
   isEligibleForInternship, 
-  isEligibleForProject, 
-  getInternshipRequirements, 
-  getProjectRequirements 
+  isEligibleForProject 
 } from '../../../utils/studentUtils';
 import { useInternshipStatus } from '../../../contexts/InternshipStatusContext'; // เพิ่มบรรทัดนี้
 
@@ -52,7 +50,7 @@ const StudyStatistics = ({ student, progress }) => {
     if (student && (!student.totalCredits || !student.majorCredits)) {
       fetchAdditionalStudentInfo();
     }
-  }, [student?.studentCode, student?.studentId]);
+  }, [student]);
 
   // 2. เรียก Hook context สำหรับสถานะฝึกงาน/โครงงานพิเศษ (ต้องอยู่บนสุด)
   const {
@@ -116,6 +114,7 @@ const StudyStatistics = ({ student, progress }) => {
   // 5. ตรวจสอบสถานะผ่าน/ไม่ผ่าน
   const hasPassedInternship = internshipStatus === 'completed';
   const hasPassedProject = projectStatus === 'completed';
+  const isProjectFailed = projectStatus === 'failed';
 
   // 6. ฟังก์ชันแปลสถานะเป็นข้อความไทย
   const getStatusText = (status) => {
@@ -128,7 +127,6 @@ const StudyStatistics = ({ student, progress }) => {
   };
 
   // 7. ฟังก์ชันสำหรับสีของสถานะสิทธิ์
-  const getEligibilityColor = (isEligible) => isEligible ? '#52c41a' : '#faad14';
   const getEligibilityIcon = (isEligible) => isEligible ? <CheckCircleOutlined /> : <WarningOutlined />;
 
   // 8. loading เฉพาะส่วนสถานะ (context)
@@ -194,7 +192,8 @@ const StudyStatistics = ({ student, progress }) => {
           <Tooltip title={
             hasPassedProject ? 'นักศึกษาผ่านโครงงานพิเศษแล้ว' :
               projectStatus === 'in_progress' ? 'นักศึกษากำลังทำโครงงานพิเศษ' :
-                projectEligibility.message
+                isProjectFailed ? 'นักศึกษายังไม่ผ่านการสอบหัวข้อโครงงาน' :
+                  projectEligibility.message
           }>
             <Statistic
               title="โครงงานพิเศษ"
@@ -205,14 +204,16 @@ const StudyStatistics = ({ student, progress }) => {
               }
               valueStyle={{
                 color: hasPassedProject ? '#52c41a' :
-                  projectStatus === 'in_progress' ? '#1890ff' : '#faad14'
+                  projectStatus === 'in_progress' ? '#1890ff' :
+                    isProjectFailed ? '#f5222d' : '#faad14'
               }}
               prefix={
                 showStatusLoading
                   ? null
                   : hasPassedProject ? <CheckCircleOutlined /> :
                     projectStatus === 'in_progress' ? <InfoCircleOutlined /> :
-                      getEligibilityIcon(isEligibleForProjectStatus)
+                      isProjectFailed ? <CloseCircleOutlined /> :
+                        getEligibilityIcon(isEligibleForProjectStatus)
               }
             />
           </Tooltip>

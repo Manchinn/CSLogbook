@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { studentService } from '../services/studentService';
+import { teacherService } from '../services/teacherService';
 import { normalizeList } from '../utils/deadlineNormalize';
 
 // hook ดึง deadline ทั้งหมด (สำหรับ Calendar / Progress)
-export default function useAllDeadlines({ academicYear, refreshIntervalMs = 5 * 60 * 1000 } = {}) {
+export default function useAllDeadlines({ academicYear, refreshIntervalMs = 5 * 60 * 1000, audience = 'student' } = {}) {
   const [deadlines, setDeadlines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,7 +15,10 @@ export default function useAllDeadlines({ academicYear, refreshIntervalMs = 5 * 
       setError(null);
   // ถ้า frontend เป็น พ.ศ. (>2500) ให้ส่งปี ค.ศ. ไป backend (ลด 543) เพื่อความแน่นอน
   const sendYear = academicYear && academicYear > 2500 ? academicYear - 543 : academicYear;
-  const res = await studentService.getAllDeadlines(sendYear);
+  const fetcher = audience === 'teacher'
+      ? teacherService.getAllDeadlines
+      : studentService.getAllDeadlines;
+  const res = await fetcher(sendYear);
       const raw = Array.isArray(res) ? res : (res?.data || []);
       if (process.env.NODE_ENV === 'development') {
         // debug ช่วยตรวจว่าข้อมูลมาหรือไม่
@@ -32,7 +36,7 @@ export default function useAllDeadlines({ academicYear, refreshIntervalMs = 5 * 
     } finally {
       setLoading(false);
     }
-  }, [academicYear]);
+  }, [academicYear, audience]);
 
   useEffect(() => { load(); }, [load]);
 

@@ -42,6 +42,7 @@ const StepClassification = () => {
   }, [setAdvisors]);
 
   const advisorLocked = ['in_progress','completed','archived'].includes(state.projectStatus);
+  const tracksReadOnly = ['completed','archived'].includes(state.projectStatus);
 
   return (
     <Form layout="vertical">
@@ -70,7 +71,12 @@ const StepClassification = () => {
           disabled={advisorOptions.length === 0 || advisorLocked}
         />
       </Form.Item>
-      <Form.Item label="สาย/แทร็ก (เลือกได้หลายสาย)">
+      <Form.Item label={
+        <span>
+          สาย/แทร็ก (เลือกได้หลายสาย)
+          {tracksReadOnly && <Tooltip title="ล็อกหลังผ่านการสอบหัวข้อ"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}
+        </span>
+      }>
         <Select
           mode="multiple"
           allowClear
@@ -78,7 +84,8 @@ const StepClassification = () => {
           value={state.classification.tracks}
           onChange={codes => setClassification({ tracks: codes })}
           options={TRACK_OPTIONS.map(t => ({ value: t.code, label: t.label }))}
-          tagRender={(props) => <Tag color="blue" closable onClose={props.onClose}>{props.label}</Tag>}
+          tagRender={(props) => <Tag color="blue" closable={!tracksReadOnly} onClose={props.onClose}>{props.label}</Tag>}
+          disabled={tracksReadOnly}
         />
       </Form.Item>
     </Form>

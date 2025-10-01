@@ -1,9 +1,41 @@
 const { sequelize } = require('../config/database');
-const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack } = require('../models');
-const studentService = require('./studentService'); // reuse eligibility logic (ถ้าต้อง)
+let ProjectDocument;
+let ProjectMember;
+let Student;
+let Academic;
+let ProjectTrack;
+let Meeting;
+let MeetingParticipant;
+let MeetingLog;
+let ProjectDefenseRequest;
+
+const attachModels = () => {
+  ({
+    ProjectDocument,
+    ProjectMember,
+    Student,
+    Academic,
+    ProjectTrack,
+    Meeting,
+    MeetingParticipant,
+    MeetingLog,
+    ProjectDefenseRequest
+  } = require('../models'));
+};
+
+attachModels();
+
+const ensureModels = () => {
+  if (process.env.NODE_ENV === 'test') {
+    attachModels();
+  }
+};
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
+
+// กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
+const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '5', 10) || 5, 1);
 
 /**
  * Service สำหรับจัดการ ProjectDocument (Phase 2)
@@ -17,6 +49,7 @@ class ProjectDocumentService {
    * - เติม academicYear/semester จาก Academic ปัจจุบัน (อันล่าสุด is_current=true ถ้ามี)
    */
   async createProject(studentId, payload = {}) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       // ดึงข้อมูลนักศึกษา
@@ -65,9 +98,9 @@ class ProjectDocumentService {
         throw new Error(`นักศึกษายังไม่มีสิทธิ์สร้างโครงงาน: ${denyReason}`);
       }
 
-      // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (leader)
+      // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (ไม่ว่าจะเป็น leader หรือ member)
       const existing = await ProjectMember.findOne({
-        where: { studentId, role: 'leader' },
+        where: { studentId },
         include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
         transaction: t
       });
@@ -160,6 +193,9 @@ class ProjectDocumentService {
           model: ProjectMember,
           as: 'members',
           include: [{ model: Student, as: 'student' }]
+        }, {
+          model: ProjectTrack,
+          as: 'tracks'
         }],
         transaction: t
       });
@@ -184,6 +220,7 @@ class ProjectDocumentService {
    * - ตรวจ eligibility ของสมาชิกใหม่ (isEligibleProject) (ตามที่ตกลง)
    */
   async addMember(projectId, actorStudentId, newStudentCode) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
@@ -244,6 +281,7 @@ class ProjectDocumentService {
    * - Lock ชื่อถ้า status >= in_progress
    */
   async updateMetadata(projectId, actorStudentId, payload) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
@@ -327,6 +365,7 @@ class ProjectDocumentService {
    * Promote -> in_progress (ตรวจ 2 คน + advisor + ชื่อไม่ว่าง)
    */
   async activateProject(projectId, actorStudentId) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
@@ -425,6 +464,7 @@ class ProjectDocumentService {
    */
   async getProjectById(projectId, options = {}) {
     const includeSummary = !!options.includeSummary;
+    ensureModels();
     const project = await ProjectDocument.findByPk(projectId, {
       include: [
         { 
@@ -441,11 +481,47 @@ class ProjectDocumentService {
             }
           ]
         },
-        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
+        { model: ProjectDefenseRequest, as: 'defenseRequests' }
       ]
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
     const base = this.serialize(project);
+    try {
+      const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
+      if (memberStudentIds.length) {
+        const students = await Student.findAll({ where: { studentId: memberStudentIds } });
+        const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students);
+        base.meetingMetrics = {
+          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+          totalMeetings: meetingMetrics.totalMeetings,
+          totalApprovedLogs: meetingMetrics.totalApprovedLogs,
+          lastApprovedLogAt: meetingMetrics.lastApprovedLogAt,
+          perStudent: memberStudentIds.map(studentId => ({
+            studentId,
+            approvedLogs: meetingMetrics.perStudent?.[studentId]?.approvedLogs || 0,
+            attendedMeetings: meetingMetrics.perStudent?.[studentId]?.attendedMeetings || 0
+          }))
+        };
+      } else {
+        base.meetingMetrics = {
+          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+          totalMeetings: 0,
+          totalApprovedLogs: 0,
+          lastApprovedLogAt: null,
+          perStudent: []
+        };
+      }
+    } catch (error) {
+      logger.warn('getProjectById meeting metrics failed', { projectId, error: error.message });
+      base.meetingMetrics = {
+        requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+        totalMeetings: 0,
+        totalApprovedLogs: 0,
+        lastApprovedLogAt: null,
+        perStudent: []
+      };
+    }
     if (includeSummary) {
       // ดึงสรุปเบื้องต้น (นับ milestones และ proposal ล่าสุด) แบบ query แยก เพื่อลด join หนัก
       const { ProjectMilestone, ProjectArtifact } = require('../models');
@@ -504,14 +580,33 @@ class ProjectDocumentService {
         totalCredits: m.student?.totalCredits ?? null,
         majorCredits: m.student?.majorCredits ?? null
       })),
-      archivedAt: p.archivedAt
+      archivedAt: p.archivedAt,
+      defenseRequests: (p.defenseRequests || []).map(req => ({
+        requestId: req.requestId,
+        defenseType: req.defenseType,
+        status: req.status,
+        formPayload: req.formPayload,
+        submittedByStudentId: req.submittedByStudentId,
+        submittedAt: req.submittedAt,
+        defenseScheduledAt: req.defenseScheduledAt,
+        defenseLocation: req.defenseLocation,
+        defenseNote: req.defenseNote,
+        scheduledByUserId: req.scheduledByUserId,
+        scheduledAt: req.scheduledAt
+      }))
     };
+  }
+
+  getRequiredApprovedMeetingLogs() {
+    // คืนค่ามาตรฐานจำนวนบันทึกการพบที่ต้องได้รับอนุมัติ เพื่อใช้เป็นเกณฑ์กลางทั้งฝั่ง UI และ Service อื่น
+    return REQUIRED_APPROVED_MEETING_LOGS;
   }
 
   /**
    * บันทึกผลสอบหัวข้อโครงงาน
    */
-  async setExamResult(projectId, { result, reason, actorUser }) {
+  async setExamResult(projectId, { result, reason, advisorId, actorUser }) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t, lock: t.LOCK.UPDATE });
@@ -520,12 +615,28 @@ class ProjectDocumentService {
       if (project.examResult) {
         throw new Error('มีการบันทึกผลสอบหัวข้อนี้แล้ว');
       }
-      await ProjectDocument.update({
+      const updatePayload = {
         examResult: result,
         examFailReason: reason || null,
         examResultAt: new Date(),
-        status: result === 'passed' ? 'completed' : project.status
-      }, { where: { projectId }, transaction: t });
+        status: result === 'passed' ? 'in_progress' : project.status
+      };
+
+      if (advisorId !== undefined) {
+        updatePayload.advisorId = advisorId;
+      }
+
+      await ProjectDocument.update(updatePayload, { where: { projectId }, transaction: t });
+      await ProjectDefenseRequest.update({
+        status: 'completed'
+      }, {
+        where: {
+          projectId,
+          defenseType: 'PROJECT1',
+          status: { [Op.ne]: 'cancelled' }
+        },
+        transaction: t
+      });
       await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       return this.getProjectById(projectId);
@@ -587,12 +698,20 @@ class ProjectDocumentService {
     try {
       let project = projectInstance;
       if (!project) {
+        const defenseRequestModel = sequelize.models.ProjectDefenseRequest;
+        const includes = [{
+          model: ProjectMember,
+          as: 'members',
+          include: [{ model: Student, as: 'student' }]
+        }, {
+          model: ProjectTrack,
+          as: 'tracks'
+        }];
+        if (defenseRequestModel) {
+          includes.push({ model: defenseRequestModel, as: 'defenseRequests' });
+        }
         project = await ProjectDocument.findByPk(projectId, {
-          include: [{
-            model: ProjectMember,
-            as: 'members',
-            include: [{ model: Student, as: 'student' }]
-          }],
+          include: includes,
           transaction
         });
       }
@@ -615,8 +734,10 @@ class ProjectDocumentService {
         transaction
       });
 
+      const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction });
+
       for (const student of students) {
-        const state = this.computeProjectWorkflowState(project, student);
+        const state = this.computeProjectWorkflowState(project, student, meetingMetrics);
 
         await Student.update({
           isEnrolledProject: state.isEnrolledProject,
@@ -648,15 +769,16 @@ class ProjectDocumentService {
         include: [{
           model: ProjectMember,
           as: 'members',
-          required: true,
-          where: { studentId },
-          include: [{ model: Student, as: 'student' }]
+          include: [{ model: Student, as: 'student' }],
+          required: false
         }],
+        where: { '$members.student_id$': studentId },
         transaction
       });
 
       for (const project of projects) {
-        await this.syncProjectWorkflowState(project.projectId, { transaction, projectInstance: project });
+        // รีโหลดข้อมูลโปรเจกต์เพื่อให้ได้สมาชิกครบทุกคนก่อนคำนวณ workflow
+        await this.syncProjectWorkflowState(project.projectId, { transaction });
       }
     } catch (error) {
       logger.error('syncStudentProjectsWorkflow failed', { studentId, error: error.message });
@@ -664,59 +786,195 @@ class ProjectDocumentService {
     }
   }
 
-  computeProjectWorkflowState(project, student) {
+  async buildProjectMeetingMetrics(projectId, students, { transaction } = {}) {
+    const metrics = {
+      totalMeetings: 0,
+      totalApprovedLogs: 0,
+      lastApprovedLogAt: null,
+      perStudent: {}
+    };
+
+    if (!Array.isArray(students) || !students.length) {
+      return metrics;
+    }
+
+    try {
+      const userToStudentId = {};
+      const userIds = [];
+
+      students.forEach(student => {
+        if (!student) return;
+        metrics.perStudent[student.studentId] = { approvedLogs: 0, attendedMeetings: 0 };
+        if (student.userId) {
+          userToStudentId[student.userId] = student.studentId;
+          userIds.push(student.userId);
+        }
+      });
+
+      const uniqueUserIds = [...new Set(userIds)];
+
+      if (!uniqueUserIds.length) {
+        return metrics;
+      }
+
+      const meetings = await Meeting.findAll({
+        attributes: ['meetingId'],
+        where: { projectId },
+        transaction,
+        raw: true
+      });
+
+      metrics.totalMeetings = meetings.length;
+      if (!meetings.length) {
+        return metrics;
+      }
+
+      const meetingIds = meetings.map(meeting => meeting.meetingId);
+
+      const participantRows = await MeetingParticipant.findAll({
+        attributes: ['meetingId', 'userId'],
+        where: {
+          meetingId: { [Op.in]: meetingIds },
+          userId: { [Op.in]: uniqueUserIds },
+          role: 'student',
+          attendanceStatus: { [Op.ne]: 'absent' }
+        },
+        transaction,
+        raw: true
+      });
+
+      const participantsByMeeting = new Map();
+      const studentMeetingSets = new Map();
+
+      participantRows.forEach(row => {
+        const studentId = userToStudentId[row.userId];
+        if (!studentId) return;
+
+        if (!participantsByMeeting.has(row.meetingId)) {
+          participantsByMeeting.set(row.meetingId, new Set());
+        }
+        participantsByMeeting.get(row.meetingId).add(studentId);
+
+        if (!studentMeetingSets.has(studentId)) {
+          studentMeetingSets.set(studentId, new Set());
+        }
+        studentMeetingSets.get(studentId).add(row.meetingId);
+      });
+
+      studentMeetingSets.forEach((meetingSet, studentId) => {
+        metrics.perStudent[studentId].attendedMeetings = meetingSet.size;
+      });
+
+      const approvedLogs = await MeetingLog.findAll({
+        attributes: ['meetingId', 'approvedAt'],
+        where: {
+          meetingId: { [Op.in]: meetingIds },
+          approvalStatus: 'approved'
+        },
+        order: [['approved_at', 'DESC']],
+        transaction,
+        raw: true
+      });
+
+      metrics.totalApprovedLogs = approvedLogs.length;
+
+      approvedLogs.forEach(log => {
+        if (!metrics.lastApprovedLogAt && log.approvedAt) {
+          metrics.lastApprovedLogAt = log.approvedAt;
+        }
+
+        const studentSet = participantsByMeeting.get(log.meetingId);
+        if (!studentSet) return;
+
+        studentSet.forEach(studentId => {
+          const current = metrics.perStudent[studentId];
+          if (!current) return;
+          current.approvedLogs += 1;
+        });
+      });
+
+      return metrics;
+    } catch (error) {
+      logger.warn('buildProjectMeetingMetrics failed', { projectId, error: error.message });
+      return metrics;
+    }
+  }
+
+  computeProjectWorkflowState(project, student, meetingMetrics = {}) {
     const members = project.members || [];
     const membersCount = members.length;
     const examResult = project.examResult;
     const status = project.status;
     const acknowledged = !!project.studentAcknowledgedAt;
     const hasAdvisor = !!project.advisorId;
+    const isExamFailed = examResult === 'failed';
+    const isExamFailedAcknowledged = isExamFailed && acknowledged;
+    const defenseRequests = project.defenseRequests || [];
+    const project1DefenseRequest = defenseRequests.find(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled') || null;
+    const project1DefenseRequestSubmitted = !!project1DefenseRequest;
+    const project1DefenseScheduleInfo = project1DefenseRequest && project1DefenseRequest.defenseScheduledAt
+      ? {
+        scheduledAt: project1DefenseRequest.defenseScheduledAt,
+        location: project1DefenseRequest.defenseLocation,
+        note: project1DefenseRequest.defenseNote
+      }
+      : null;
+    const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled'].includes(project1DefenseRequest.status);
+
+    const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
+    const approvedMeetingLogs = studentMetrics.approvedLogs || 0;
+    const attendedMeetings = studentMetrics.attendedMeetings || 0;
+    const hasAnyApprovedMeetingLog = approvedMeetingLogs > 0;
+  // readinessApproved จะเป็น true เมื่อมีบันทึกการพบที่ได้รับอนุมัติครบตามเกณฑ์ เพื่อสะท้อนสถานะ "พร้อมสอบ"
+  const readinessApproved = approvedMeetingLogs >= REQUIRED_APPROVED_MEETING_LOGS;
+    const hasTopicTitles = !!project.projectNameTh && !!project.projectNameEn;
+  // topicSubmissionComplete บ่งบอกว่ามีทีมครบและกรอกข้อมูลสำหรับส่งหัวข้อแล้ว (ไม่บังคับเลือกอาจารย์ล่วงหน้า)
+  const topicSubmissionComplete = !!student.isEligibleProject && membersCount >= 2 && hasTopicTitles;
+    const projectInProgress = ['in_progress', 'completed', 'archived'].includes(status);
 
     const steps = [
-      { key: 'PROJECT1_ELIGIBILITY_CONFIRMED', completed: !!student.isEligibleProject },
-      { key: 'PROJECT1_DRAFT_CREATED', completed: true },
-      { key: 'PROJECT1_TEAM_CONFIRMED', completed: membersCount >= 2 },
-      { key: 'PROJECT1_ADVISOR_CONFIRMED', completed: hasAdvisor },
-      { key: 'PROJECT1_IN_PROGRESS', completed: ['in_progress', 'completed', 'archived'].includes(status) },
-      { key: 'PROJECT1_TOPIC_EXAM_RESULT', completed: examResult === 'passed' || status === 'completed', blocked: examResult === 'failed' },
-      { key: 'PROJECT1_ARCHIVED', completed: status === 'archived' && acknowledged }
+      { key: 'PROJECT1_TEAM_READY', completed: topicSubmissionComplete },
+      { key: 'PROJECT1_IN_PROGRESS', completed: projectInProgress },
+      { key: 'PROJECT1_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
+      { key: 'PROJECT1_READINESS_REVIEW', completed: projectInProgress && readinessApproved },
+      { key: 'PROJECT1_DEFENSE_REQUEST', completed: project1DefenseRequestSubmitted },
+      { key: 'PROJECT1_DEFENSE_SCHEDULED', completed: project1DefenseScheduled },
+      { key: 'PROJECT1_DEFENSE_RESULT', completed: examResult === 'passed' || (isExamFailed && acknowledged), blocked: isExamFailed && !acknowledged }
     ];
 
-    let overallStatus = 'in_progress';
+    let overallStatus = 'not_started';
     if (status === 'archived' && acknowledged) {
       overallStatus = 'archived';
-    } else if (examResult === 'failed') {
+    } else if (isExamFailed) {
       overallStatus = 'failed';
     } else if (examResult === 'passed' || status === 'completed') {
       overallStatus = 'completed';
+    } else if (projectInProgress || topicSubmissionComplete) {
+      overallStatus = 'in_progress';
     }
 
-    let currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
+    let currentStepKey = steps[steps.length - 1].key;
     let currentStepStatus = 'completed';
 
-    if (overallStatus === 'archived') {
-      currentStepKey = 'PROJECT1_ARCHIVED';
-      currentStepStatus = 'completed';
-    } else if (overallStatus === 'failed') {
-      currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
-      currentStepStatus = 'blocked';
-    } else if (overallStatus === 'completed') {
-      currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
-      currentStepStatus = 'completed';
-    } else {
-      const firstIncomplete = steps.find(step => !step.completed && !step.blocked);
-      if (firstIncomplete) {
-        currentStepKey = firstIncomplete.key;
-        currentStepStatus = this.getProjectStepPendingStatus(firstIncomplete.key);
-      } else {
-        currentStepKey = 'PROJECT1_TOPIC_EXAM_RESULT';
-        currentStepStatus = 'pending';
+    for (const step of steps) {
+      if (step.blocked) {
+        currentStepKey = step.key;
+        currentStepStatus = 'blocked';
+        break;
+      }
+
+      if (!step.completed) {
+        currentStepKey = step.key;
+        currentStepStatus = this.getProjectStepPendingStatus(step.key);
+        break;
       }
     }
 
-    const isEnrolledProject = overallStatus !== 'archived';
+    const isEnrolledProject = status !== 'archived';
     let studentProjectStatus = 'in_progress';
-    if (overallStatus === 'completed') {
+    if (isExamFailed) {
+      studentProjectStatus = 'failed';
+    } else if (overallStatus === 'completed') {
       studentProjectStatus = 'completed';
     } else if (overallStatus === 'archived') {
       studentProjectStatus = 'not_started';
@@ -735,22 +993,39 @@ class ProjectDocumentService {
         membersCount,
         advisorId: project.advisorId,
         archivedAt: project.archivedAt,
-        studentAcknowledgedAt: project.studentAcknowledgedAt
+        studentAcknowledgedAt: project.studentAcknowledgedAt,
+        topicSubmitted: topicSubmissionComplete,
+        project1DefenseRequestSubmitted,
+        project1DefenseScheduled,
+        project1DefenseSchedule: project1DefenseScheduleInfo,
+        failureAcknowledged: isExamFailedAcknowledged,
+        meetingMetrics: {
+          approvedLogs: approvedMeetingLogs,
+          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+          attendedMeetings,
+          totalApprovedLogs: meetingMetrics.totalApprovedLogs || 0,
+          totalMeetings: meetingMetrics.totalMeetings || 0,
+          lastApprovedLogAt: meetingMetrics.lastApprovedLogAt || null
+        }
       }
     };
   }
 
   getProjectStepPendingStatus(stepKey) {
     switch (stepKey) {
-      case 'PROJECT1_ELIGIBILITY_CONFIRMED':
-        return 'awaiting_student_action';
-      case 'PROJECT1_TEAM_CONFIRMED':
-        return 'awaiting_student_action';
-      case 'PROJECT1_ADVISOR_CONFIRMED':
+      case 'PROJECT1_TEAM_READY':
         return 'awaiting_student_action';
       case 'PROJECT1_IN_PROGRESS':
-        return 'awaiting_admin_action';
-      case 'PROJECT1_TOPIC_EXAM_RESULT':
+        return 'awaiting_student_action';
+      case 'PROJECT1_PROGRESS_CHECKINS':
+        return 'in_progress';
+      case 'PROJECT1_READINESS_REVIEW':
+        return 'pending';
+      case 'PROJECT1_DEFENSE_REQUEST':
+        return 'awaiting_student_action';
+      case 'PROJECT1_DEFENSE_SCHEDULED':
+        return 'pending';
+      case 'PROJECT1_DEFENSE_RESULT':
         return 'pending';
       default:
         return 'in_progress';

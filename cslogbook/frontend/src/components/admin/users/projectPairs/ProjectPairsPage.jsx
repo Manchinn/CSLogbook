@@ -38,18 +38,6 @@ const statusConfig = {
   archived: { label: 'เก็บถาวร', color: 'magenta' }
 };
 
-const documentStatusConfig = {
-  draft: { label: 'ร่างเอกสาร', color: 'default' },
-  pending: { label: 'รอตรวจ', color: 'warning' },
-  approved: { label: 'อนุมัติแล้ว', color: 'success' },
-  rejected: { label: 'ต้องแก้ไข', color: 'error' },
-  supervisor_evaluated: { label: 'อาจารย์ประเมินแล้ว', color: 'processing' },
-  acceptance_approved: { label: 'ผ่านการตรวจสอบ', color: 'geekblue' },
-  referral_ready: { label: 'พร้อมออกหนังสือส่งตัว', color: 'cyan' },
-  referral_downloaded: { label: 'ดาวน์โหลดหนังสือแล้ว', color: 'purple' },
-  completed: { label: 'จบกระบวนการ', color: 'success' }
-};
-
 const projectTypeLabels = {
   govern: 'โครงงานร่วมภาครัฐ',
   private: 'โครงงานร่วมเอกชน',
@@ -71,14 +59,6 @@ const getStatusTag = (status) => {
     return <Tag>-</Tag>;
   }
   const config = statusConfig[status] || { label: status, color: 'default' };
-  return <Tag color={config.color}>{config.label}</Tag>;
-};
-
-const getDocumentStatusTag = (status) => {
-  if (!status) {
-    return <Tag>-</Tag>;
-  }
-  const config = documentStatusConfig[status] || { label: status, color: 'default' };
   return <Tag color={config.color}>{config.label}</Tag>;
 };
 
@@ -183,11 +163,6 @@ const ProjectPairsPage = () => {
         return false;
       }
 
-      // 3) กรองตามสถานะเอกสาร
-      if (filters.documentStatus.length && !filters.documentStatus.includes(project.documentStatus)) {
-        return false;
-      }
-
       // 4) กรองตามแทร็ก (ต้องมีอย่างน้อยหนึ่งรายการที่ตรง)
       if (filters.trackCodes.length) {
         const projectTracks = project.tracks || [];
@@ -250,13 +225,6 @@ const ProjectPairsPage = () => {
       render: (value) => getStatusTag(value)
     },
     {
-      title: 'สถานะเอกสาร',
-      dataIndex: 'documentStatus',
-      key: 'documentStatus',
-      width: 160,
-      render: (value) => getDocumentStatusTag(value)
-    },
-    {
       title: 'สมาชิกโครงงาน',
       dataIndex: 'members',
       key: 'members',
@@ -299,7 +267,7 @@ const ProjectPairsPage = () => {
       )
     },
     {
-      title: 'แทร็ก',
+      title: 'หมวดโครงงานพิเศษ',
       dataIndex: 'tracks',
       key: 'tracks',
       width: 200,
@@ -390,22 +358,8 @@ const ProjectPairsPage = () => {
             <Col xs={24} lg={3}>
               <Select
                 mode="multiple"
-                value={filters.documentStatus}
-                placeholder="สถานะเอกสาร"
-                allowClear
-                options={Object.keys(documentStatusConfig).map((statusKey) => ({
-                  label: documentStatusConfig[statusKey].label,
-                  value: statusKey
-                }))}
-                onChange={(value) => setFilters((prev) => ({ ...prev, documentStatus: value }))}
-                style={{ width: '100%' }}
-              />
-            </Col>
-            <Col xs={24} lg={3}>
-              <Select
-                mode="multiple"
                 value={filters.trackCodes}
-                placeholder="Track"
+                placeholder="หมวดโครงงานพิเศษ"
                 allowClear
                 options={trackOptions}
                 onChange={(value) => setFilters((prev) => ({ ...prev, trackCodes: value }))}
@@ -471,9 +425,6 @@ const ProjectPairsPage = () => {
               <Descriptions.Item label="สถานะโครงงาน">
                 {getStatusTag(drawerState.project.status)}
               </Descriptions.Item>
-              <Descriptions.Item label="สถานะเอกสาร">
-                {getDocumentStatusTag(drawerState.project.documentStatus)}
-              </Descriptions.Item>
               <Descriptions.Item label="ประเภทโครงงาน">
                 {projectTypeLabels[drawerState.project.projectType] || drawerState.project.projectType || '-'}
               </Descriptions.Item>
@@ -483,7 +434,7 @@ const ProjectPairsPage = () => {
               <Descriptions.Item label="ที่ปรึกษาร่วม">
                 {drawerState.project.coAdvisor?.fullName || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Track">
+              <Descriptions.Item label="หมวดโครงงานพิเศษ">
                 {(drawerState.project.tracks || []).length ? (
                   <Space wrap>
                     {drawerState.project.tracks.map((track) => (
