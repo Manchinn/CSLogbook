@@ -53,9 +53,12 @@ const APPROVAL_STATUS_MAP = {
 };
 
 const containerStyle = {
-  maxWidth: 1200,
+  maxWidth: '1200px',
   margin: '0 auto',
-  padding: '24px'
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
 };
 
 const AdvisorKP02Queue = () => {
@@ -95,9 +98,18 @@ const AdvisorKP02Queue = () => {
   }, []);
 
   const filteredItems = useMemo(() => {
-    if (!filters.search) return items;
-    const keyword = filters.search.toLowerCase();
+    const keyword = (filters.search || '').toLowerCase();
     return items.filter((item) => {
+      const approvalStatus = (item.myApproval?.status || 'pending').toLowerCase();
+      const matchesStatus = filters.status === 'all' || approvalStatus === filters.status;
+      if (!matchesStatus) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
       // ค้นหาจากทั้งชื่อโครงงานและรายชื่อสมาชิก เพื่อให้ที่ปรึกษาเจอทีมที่ต้องการได้ง่าย
       const project = item.project || {};
       const projectValues = [project.projectCode, project.projectNameTh, project.projectNameEn]
@@ -114,7 +126,7 @@ const AdvisorKP02Queue = () => {
         );
       });
     });
-  }, [items, filters.search]);
+  }, [items, filters.search, filters.status]);
 
   const summary = useMemo(() => {
     return filteredItems.reduce(
@@ -359,7 +371,7 @@ const AdvisorKP02Queue = () => {
     <div style={containerStyle}>
       <Space direction="vertical" style={{ width: '100%' }} size={24}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>คำขอสอบ คพ.02 (มุมมองอาจารย์)</Title>
+          <Title level={3}>คำขอสอบโครงงานพิเศษ 1 (คพ.02)</Title>
           <Text type="secondary">
             ระบบจะแสดงเฉพาะคำขอที่เกี่ยวข้องกับคุณในฐานะอาจารย์ที่ปรึกษา / ที่ปรึกษาร่วม
           </Text>

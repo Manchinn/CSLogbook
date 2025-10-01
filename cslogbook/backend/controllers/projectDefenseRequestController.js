@@ -168,7 +168,7 @@ module.exports = {
         search
       });
 
-      const downloadName = filename || `kp02_staff_queue_${Date.now()}.xlsx`;
+  const downloadName = filename || `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadName)}"`);
       const outputBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);

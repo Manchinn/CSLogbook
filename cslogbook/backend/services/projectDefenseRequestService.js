@@ -12,9 +12,34 @@ const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const ExcelJS = require('exceljs');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+const buddhistEra = require('dayjs/plugin/buddhistEra');
+require('dayjs/locale/th');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(buddhistEra);
+dayjs.tz.setDefault('Asia/Bangkok');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
 const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
+
+const STAFF_STATUS_LABELS_TH = {
+  advisor_in_review: 'รออาจารย์อนุมัติครบ',
+  advisor_approved: 'รอเจ้าหน้าที่ตรวจสอบ',
+  staff_verified: 'ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)',
+  scheduled: 'นัดสอบแล้ว (ระบบเดิม)',
+  completed: 'บันทึกผลสอบแล้ว'
+};
+
+const formatThaiDateTime = (value) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  if (!parsed.isValid()) return '-';
+  return parsed.locale('th').tz().format('D MMM BBBB เวลา HH:mm น.');
+};
 
 class ProjectDefenseRequestService {
   buildProjectInclude({ projectWhere } = {}) {
@@ -682,8 +707,7 @@ class ProjectDefenseRequestService {
 
     worksheet.columns = [
       { header: 'ลำดับ', key: 'index', width: 8 },
-      { header: 'รหัสโครงงาน', key: 'projectCode', width: 16 },
-      { header: 'ชื่อโครงงาน (TH)', key: 'titleTh', width: 40 },
+      { header: 'ชื่อโครงงานพิเศษ', key: 'titleTh', width: 40 },
       { header: 'สมาชิก', key: 'members', width: 40 },
       { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 28 },
       { header: 'สถานะคำขอ', key: 'status', width: 18 },
@@ -693,8 +717,6 @@ class ProjectDefenseRequestService {
       { header: 'เจ้าหน้าที่ผู้ตรวจ', key: 'staffVerifiedBy', width: 24 },
       { header: 'วันสอบที่นัด', key: 'defenseScheduledAt', width: 22 },
       { header: 'หมายเหตุเจ้าหน้าที่', key: 'staffNote', width: 28 },
-      { header: 'จำนวนบันทึกการพบ (หัวหน้า)', key: 'leaderLogs', width: 18 },
-      { header: 'บันทึกที่ต้องมีขั้นต่ำ', key: 'requiredLogs', width: 18 }
     ];
 
     records.forEach((record, index) => {
@@ -710,12 +732,12 @@ class ProjectDefenseRequestService {
         titleTh: project.projectNameTh || '-',
         members: members || '-',
         advisor: advisorName,
-        status: record.status,
-        submittedAt: record.submittedAt ? new Date(record.submittedAt).toLocaleString('th-TH') : '-',
-        advisorApprovedAt: record.advisorApprovedAt ? new Date(record.advisorApprovedAt).toLocaleString('th-TH') : '-',
-        staffVerifiedAt: record.staffVerifiedAt ? new Date(record.staffVerifiedAt).toLocaleString('th-TH') : '-',
+        status: STAFF_STATUS_LABELS_TH[record.status] || record.status,
+        submittedAt: formatThaiDateTime(record.submittedAt),
+        advisorApprovedAt: formatThaiDateTime(record.advisorApprovedAt),
+        staffVerifiedAt: formatThaiDateTime(record.staffVerifiedAt),
         staffVerifiedBy: staffName || '-',
-        defenseScheduledAt: record.defenseScheduledAt ? new Date(record.defenseScheduledAt).toLocaleString('th-TH') : '-',
+        defenseScheduledAt: formatThaiDateTime(record.defenseScheduledAt),
         staffNote: record.staffVerificationNote || '-',
         leaderLogs: leaderMetrics.approvedLogs || 0,
         requiredLogs: record.meetingMetrics?.requiredApprovedLogs || projectDocumentService.getRequiredApprovedMeetingLogs()
@@ -726,8 +748,8 @@ class ProjectDefenseRequestService {
       row.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
     });
 
-    const buffer = await workbook.xlsx.writeBuffer();
-    const filename = `kp02_eligible_${Date.now()}.xlsx`;
+  const buffer = await workbook.xlsx.writeBuffer();
+  const filename = `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`;
     logger.info('exportStaffVerificationList success', { rowCount: records.length });
     return { buffer, filename };
   }

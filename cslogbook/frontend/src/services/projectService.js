@@ -162,7 +162,7 @@ const projectService = {
       const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
       const encodedName = match?.[1];
       const basicName = match?.[2];
-      const filename = encodedName ? decodeURIComponent(encodedName) : (basicName || `kp02_staff_queue_${Date.now()}.xlsx`);
+  const filename = encodedName ? decodeURIComponent(encodedName) : (basicName || `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`);
       return { blob: res.data, filename };
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถส่งออกข้อมูลได้');

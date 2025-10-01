@@ -35,7 +35,6 @@ const { Text, Title } = Typography;
 const STATUS_OPTIONS = [
   { value: 'advisor_approved', label: 'รอเจ้าหน้าที่ตรวจสอบ' },
   { value: 'staff_verified', label: 'ตรวจสอบแล้ว' },
-  { value: 'scheduled', label: 'นัดสอบแล้ว' },
   { value: 'all', label: 'ทั้งหมด' }
 ];
 
@@ -48,9 +47,12 @@ const STATUS_MAP = {
 };
 
 const containerStyle = {
-  maxWidth: 1280,
+  maxWidth: '1200px',
   margin: '0 auto',
-  padding: '24px'
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
 };
 
 const StaffKP02Queue = () => {
@@ -188,7 +190,7 @@ const StaffKP02Queue = () => {
       if (filters.search) params.search = filters.search;
 
       const { blob, filename } = await projectService.exportProject1StaffQueue(params);
-      FileSaver.saveAs(blob, filename || `kp02_staff_queue_${Date.now()}.xlsx`);
+  FileSaver.saveAs(blob, filename || `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`);
       message.success('ส่งออกไฟล์เรียบร้อย');
     } catch (error) {
       message.error(error.message || 'ไม่สามารถส่งออกข้อมูลได้');
