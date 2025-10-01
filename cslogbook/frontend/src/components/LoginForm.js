@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Typography, message, Card } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import {
+  UserOutlined,
+  LockOutlined,
+  ScheduleOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import apiClient from '../services/apiClient';
 import './LoginForm.css';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 // ใช้ apiClient (baseURL + interceptors) แทนการเรียก axios ตรง
 
 const LoginForm = () => {
@@ -17,135 +22,178 @@ const LoginForm = () => {
   const { login } = useAuth();
   const [form] = Form.useForm();
 
-  // ดึง path ที่ user พยายามจะเข้าถึง
-  // กำหนด default redirect หลัง login: ให้เป็น /dashboard แทน /admin/
-  // เดิม hard-coded เป็น /admin/ ทำให้ผู้ใช้ทั่วไป (ที่ไม่ได้มาจาก protected route ที่ส่ง state) ถูกพาไปหน้า admin
-  const from = location.state?.from?.pathname || "/dashboard";
+  // ดึง path ที่ user พยายามจะเข้าถึง; ถ้าไม่มีให้ใช้ /dashboard เป็นค่าเริ่มต้น
+  const from = location.state?.from?.pathname || '/dashboard';
+
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-  const response = await apiClient.post('/auth/login', values);
+      const response = await apiClient.post('/auth/login', values);
 
-        console.log('Login response:', response.data);  // Debug log
+      const { success, token, ...userData } = response.data;
 
-        const { success, token, ...userData } = response.data;
-        
-        if (success) {
-            const loginSuccess = await login({
-                token,
-                userData: {
-                    studentID: userData.studentID || null,
-                    firstName: userData.firstName || '',
-                    lastName: userData.lastName || '',
-                    email: userData.email || '',
-                    role: userData.role || '',
-                    ...userData  // Include all role-specific data
-                }
-            });
+      if (success) {
+        // รวมข้อมูลผู้ใช้เพื่อเก็บใน context (กัน null/undefined)
+        const loginSuccess = await login({
+          token,
+          userData: {
+            studentID: userData.studentID || null,
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            email: userData.email || '',
+            role: userData.role || '',
+            ...userData,
+          },
+        });
 
-            if (loginSuccess) {
-                message.success('เข้าสู่ระบบสำเร็จ');
+        if (loginSuccess) {
+          message.success('เข้าสู่ระบบสำเร็จ');
 
-                // กำหนด redirect ตาม role/teacherType (ให้ support staff ไป admin/dashboard)
-                const role = userData.role;
-                const teacherType = userData.teacherType;
+          // จัดการเส้นทางปลายทางตามบทบาทผู้ใช้
+          const role = userData.role;
+          const teacherType = userData.teacherType;
 
-                let targetPath = from; // ค่าปริยายจาก state (เช่น ผู้ใช้กดลิงก์ protected มาก่อน)
+          let targetPath = from;
 
-                // ถ้าไม่ได้มาจาก protected route (from เป็น default '/dashboard') ให้คำนวณใหม่
-                if (from === '/dashboard') {
-                  if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
-                    targetPath = '/admin/dashboard';
-                  } else if (role === 'teacher') {
-                    // แยก page สำหรับอาจารย์ (ถ้าระบบมีหน้าเฉพาะ อาจเปลี่ยนเป็น /teacher/dashboard)
-                    targetPath = '/dashboard';
-                  } else if (role === 'student') {
-                    // นักศึกษาอยู่หน้า dashboard รวม (หรืออาจสร้าง /student/dashboard แยก ถ้ามีในอนาคต)
-                    targetPath = '/dashboard';
-                  } else {
-                    targetPath = '/dashboard';
-                  }
-                }
-
-                navigate(targetPath, { replace: true });
+          if (from === '/dashboard') {
+            if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
+              targetPath = '/admin/dashboard';
+            } else if (role === 'teacher') {
+              targetPath = '/dashboard';
+            } else if (role === 'student') {
+              targetPath = '/dashboard';
+            } else {
+              targetPath = '/dashboard';
             }
+          }
+
+          navigate(targetPath, { replace: true });
         }
+      }
     } catch (error) {
-    console.error('Login error details:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
+      console.error('Login error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
 
-        // Activate the shake animation on error
-        setErrorShake(true);
-        setTimeout(() => setErrorShake(false), 600); // Remove shake class after animation
+      // กระตุ้นแอนิเมชันสั่นเพื่อแจ้งเตือนผู้ใช้เมื่อเกิดข้อผิดพลาด
+      setErrorShake(true);
+      setTimeout(() => setErrorShake(false), 600);
 
-        message.error(
-            error.response?.data?.message || 
-            'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง'
-        );
+      message.error(
+        error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง',
+      );
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-  };  return (
-    <div className="login-container">      <Card className={`login-card ${errorShake ? 'shake' : ''}`}>
-        <div className="login-header">
-          <img src="/logo.svg" alt="CS Logbook" className="school-logo" />
-          <Title level={2} className="login-title">CS Logbook</Title>
-          <Text className="login-subtitle">กรุณาใช้บัญชี ICIT Account ของท่าน</Text>
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-background" aria-hidden="true">
+        <div className="login-gradient" />
+        <div className="login-circle login-circle--one" />
+        <div className="login-circle login-circle--two" />
+      </div>
+
+      <div className="login-layout">
+        <div className="login-brand-panel">
+          <div className="login-brand-header">
+            <img src="/logo.svg" alt="CS Logbook" className="school-logo" />
+            <Title level={1} className="login-brand-title">
+              CS Logbook
+            </Title>
+            <Paragraph className="login-brand-description">
+              ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์สำหรับนักศึกษา อาจารย์ และเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
+            </Paragraph>
+          </div>
+
+          <div className="login-brand-highlights">
+            <div className="login-highlight">
+              <div className="login-highlight-icon">
+                <ScheduleOutlined />
+              </div>
+              <div>
+                <Text className="login-highlight-title">อัปเดตสถานะฝึกงานเรียลไทม์</Text>
+                <Text type="secondary">ดูความคืบหน้าจากทุกบันทึกที่ส่งและสถานะการอนุมัติได้ในหน้าเดียว</Text>
+              </div>
+            </div>
+
+            <div className="login-highlight">
+              <div className="login-highlight-icon">
+                <TeamOutlined />
+              </div>
+              <div>
+                <Text className="login-highlight-title">ทำงานร่วมกันได้ราบรื่น</Text>
+                <Text type="secondary">อาจารย์ที่ปรึกษาและเจ้าหน้าที่สามารถตรวจสอบอนุมัติได้ทันที</Text>
+              </div>
+            </div>
+          </div>
+
+          <div className="login-brand-footer">
+            <Text type="secondary">ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ • คณะวิทยาศาสตร์ประยุกต์ • มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</Text>
+          </div>
         </div>
 
-        <Form
-          form={form}
-          onFinish={handleSubmit}
-          layout="vertical"
-        >
-          <Form.Item
-            name="username"
-            className="login-form-item"
-            rules={[{ required: true, message: 'กรุณากรอก ICIT Account' }]}
-          >
-            <Input 
-              className="login-input"
-              prefix={<UserOutlined />}
-              placeholder="ICIT Account"
-              size="large"
-            />
-          </Form.Item>          <Form.Item
-            name="password"
-            className="login-form-item"
-            rules={[{ required: true, message: 'กรุณากรอกรหัสผ่าน' }]}
-          >
-            <Input.Password
-              className="login-input"
-              prefix={<LockOutlined />}
-              placeholder="รหัสผ่าน"
-              size="large"
-              onPressEnter={() => form.submit()}
-            />
-          </Form.Item>
+        <Card className={`login-card ${errorShake ? 'shake' : ''}`} variant={false}>
+          <div className="login-form-header">
+            <Title level={3} className="login-title">
+              ลงชื่อเข้าใช้ระบบ
+            </Title>
+            <Text className="login-subtitle">โปรดใช้บัญชี ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
+          </div>
 
-          <Form.Item>
-            <Button 
-              className="login-button"
-              type="primary" 
-              htmlType="submit"
-              loading={loading}
-              block
-              size="large"
+          <Form form={form} onFinish={handleSubmit} layout="vertical" className="login-form">
+            <Form.Item
+              name="username"
+              className="login-form-item"
+              rules={[{ required: true, message: 'กรุณากรอก ICIT Account' }]}
             >
-              เข้าสู่ระบบ
-            </Button>
-          </Form.Item>
-        </Form>
-        
-        <div className="login-footer">
-          <Text type="secondary">
-            ระบบ CS Logbook • คณะวิทยาศาสตร์และเทคโนโลยี 
-          </Text>
-        </div>
-      </Card>
+              <Input
+                className="login-input"
+                prefix={<UserOutlined />}
+                placeholder="ICIT Account"
+                size="large"
+                autoComplete="username"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              className="login-form-item"
+              rules={[{ required: true, message: 'กรุณากรอกรหัสผ่าน' }]}
+            >
+              <Input.Password
+                className="login-input"
+                prefix={<LockOutlined />}
+                placeholder="รหัสผ่าน"
+                size="large"
+                autoComplete="current-password"
+                onPressEnter={() => form.submit()}
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                className="login-button"
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                size="large"
+              >
+                เข้าสู่ระบบ
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div className="login-help">
+            <Text type="secondary">ต้องการความช่วยเหลือ?</Text>{' '}
+            <Typography.Link href="mailto:natee.p@sci.kmutnb.ac.th">ติดต่อเจ้าหน้าที่ระบบ</Typography.Link>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

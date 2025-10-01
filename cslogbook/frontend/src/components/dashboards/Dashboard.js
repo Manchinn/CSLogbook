@@ -362,14 +362,11 @@ function Dashboard() {
                     <Tag color={theme.badge} className="teacher-hero-tag">
                       นักศึกษาทั้งหมด {adviseeStats.total} คน
                     </Tag>
-                    <Tag color="gold" className="teacher-hero-tag">
-                      ฝึกงานกำลังดำเนิน {adviseeStats.internshipInProgress} คน
-                    </Tag>
                     <Tag color="purple" className="teacher-hero-tag">
-                      โครงงานที่ดูแล {projectStats.active} โครงการ
+                      โครงงานพิเศษที่ดูแล {projectStats.active} โครงการ
                     </Tag>
                     <Tag color="green" className="teacher-hero-tag">
-                      โครงงานเสร็จสิ้น {projectStats.completed} โครงการ
+                      โครงงานพิเศษเสร็จสิ้น {projectStats.completed} โครงการ
                     </Tag>
                   </Space>
                 </Space>
@@ -404,17 +401,6 @@ function Dashboard() {
                   value={adviseeStats.total}
                   prefix={<UserOutlined />}
                   valueStyle={{ color: theme.primary }}
-                  loading={isLoading}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card hoverable className="stats-card" bordered={false}>
-                <Statistic
-                  title="ฝึกงานระหว่างดำเนินการ"
-                  value={adviseeStats.internshipInProgress}
-                  prefix={<BookOutlined />}
-                  valueStyle={{ color: "#faad14" }}
                   loading={isLoading}
                 />
               </Card>
