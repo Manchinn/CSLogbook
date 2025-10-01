@@ -50,6 +50,37 @@ export const getMenuConfig = ({
   const canApproveDocuments =
     isAcademicTeacher && userData.teacherPosition === 'หัวหน้าภาควิชา';
 
+  const teacherPrivilegeGroup =
+    userData.role === 'teacher' && (canSeeTopicExamOverview || canExportKP02)
+      ? {
+          key: 'teacher-privileged',
+          icon: <ProjectOutlined />,
+          label: 'สำหรับอาจารย์ที่มีสิทธิ์',
+          children: [
+            ...(canSeeTopicExamOverview
+              ? [
+                  {
+                    key: '/teacher/topic-exam/overview',
+                    icon: <ProjectOutlined />,
+                    label: 'รายชื่อหัวข้อโครงงานพิเศษ',
+                    onClick: () => navigate('/teacher/topic-exam/overview'),
+                  },
+                ]
+              : []),
+            ...(canExportKP02
+              ? [
+                  {
+                    key: '/admin/project1/kp02-queue',
+                    icon: <DownloadOutlined />,
+                    label: 'รายชื่อสอบโครงงานพิเศษ',
+                    onClick: () => navigate('/admin/project1/kp02-queue'),
+                  },
+                ]
+              : []),
+          ],
+        }
+      : null;
+
   const items = [
     // Dashboard
     {
@@ -58,17 +89,6 @@ export const getMenuConfig = ({
       label: 'หน้าแรก',
       onClick: () => navigate('/admin/dashboard'),
     },
-    // Teacher: Topic Exam Overview (ตามสิทธิ์ที่กำหนด)
-    ...(canSeeTopicExamOverview
-      ? [
-          {
-            key: '/teacher/topic-exam/overview',
-            icon: <ProjectOutlined />,
-            label: 'Topic Exam Overview',
-            onClick: () => navigate('/teacher/topic-exam/overview'),
-          },
-        ]
-      : []),
     // Student menus
     ...(userData.role === 'student'
       ? [
@@ -144,16 +164,7 @@ export const getMenuConfig = ({
             label: 'คำขอสอบ คพ.02',
             onClick: () => navigate('/teacher/project1/advisor-queue')
           },
-          ...(canExportKP02
-            ? [
-                {
-                  key: '/admin/project1/kp02-queue',
-                  icon: <DownloadOutlined />,
-                  label: 'รายการส่งออก คพ.02',
-                  onClick: () => navigate('/admin/project1/kp02-queue')
-                }
-              ]
-            : []),
+          ...(teacherPrivilegeGroup ? [teacherPrivilegeGroup] : []),
           ...(canApproveDocuments
             ? [
                 {
@@ -169,6 +180,7 @@ export const getMenuConfig = ({
     // Teacher support
     ...(userData.role === 'teacher' && userData.teacherType === 'support'
       ? [
+          ...(teacherPrivilegeGroup ? [teacherPrivilegeGroup] : []),
           {
             key: 'manage',
             icon: <TeamOutlined />,

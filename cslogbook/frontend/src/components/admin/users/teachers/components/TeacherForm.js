@@ -75,14 +75,14 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
       </Form.Item>
       <Form.Item
         name="canAccessTopicExam"
-        label="เปิดสิทธิ์ Topic Exam Overview"
+        label="เปิดสิทธิ์การเข้าถึงหัวข้อสอบโครงงานพิเศษ"
         valuePropName="checked"
       >
         <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
       </Form.Item>
       <Form.Item
         name="canExportProject1"
-        label="เปิดสิทธิ์ส่งออกรายชื่อ คพ.02"
+        label="เปิดสิทธิ์ส่งออกรายชื่อสอบโครงงานพิเศษ"
         valuePropName="checked"
         tooltip="สำหรับอาจารย์ที่ได้รับมอบหมายให้จัดตารางสอบ"
       >
