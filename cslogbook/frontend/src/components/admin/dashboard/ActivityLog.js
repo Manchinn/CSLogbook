@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Card, List, Avatar, Spin, Empty } from 'antd';
-import { UserOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { adminService } from '../../../services/adminService';
+import React from 'react';
+import { Card, List, Avatar, Spin, Empty, Button, Badge } from 'antd';
+import {
+  UserOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import moment from 'moment';
+import 'moment/locale/th';
 
 const getActivityIcon = (type) => {
   switch (type) {
@@ -19,31 +25,24 @@ const getActivityIcon = (type) => {
   }
 };
 
-const ActivityLog = () => {
-  const [activities, setActivities] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const ActivityLog = ({ activities = [], loading = false, onRefresh }) => {
+  // ตั้ง locale ภาษาไทยให้ moment สำหรับใช้งานในคอมโพเนนต์นี้
+  moment.locale('th');
 
-  const fetchActivities = async () => {
-    setIsLoading(true);
-    try {
-      const data = await adminService.getRecentActivities({ mode: 'documents', limit: 10 });
-      setActivities(data);
-    } catch (error) {
-      setActivities([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchActivities();
-    const interval = setInterval(fetchActivities, 60000); // รีเฟรชทุก 1 นาที
-    return () => clearInterval(interval);
-  }, []);
+  const extraAction = onRefresh ? (
+    <Button
+      type="text"
+      size="small"
+      icon={<ReloadOutlined />}
+      onClick={onRefresh}
+    >
+      รีเฟรช
+    </Button>
+  ) : null;
 
   return (
-    <Card title="กิจกรรมล่าสุด">
-      {isLoading ? (
+    <Card title="กิจกรรมล่าสุด" extra={extraAction} className="activity-card">
+      {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
           <Spin />
         </div>
@@ -56,13 +55,17 @@ const ActivityLog = () => {
           renderItem={(item) => (
             <List.Item>
               <List.Item.Meta
-                avatar={<Avatar icon={getActivityIcon(item.type)} />}
+                avatar={
+                  <Badge dot={item.isNew} offset={[0, 4]}>
+                    <Avatar icon={getActivityIcon(item.type)} />
+                  </Badge>
+                }
                 title={item.title}
                 description={
                   <div>
                     {item.description && <div>{item.description}</div>}
                     <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.45)' }}>
-                      {moment(item.timestamp).fromNow()}
+                      {item.timestamp ? moment(item.timestamp).fromNow() : ''}
                     </div>
                   </div>
                 }
