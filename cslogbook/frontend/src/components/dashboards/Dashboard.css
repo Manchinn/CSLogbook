@@ -218,6 +218,105 @@
   transform: translateX(4px);
 }
 
+.student-hero-card .ant-card-body {
+  padding: 32px 32px 28px;
+}
+
+.student-hero-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-hero-greeting {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.student-hero-tags {
+  margin-top: 8px;
+}
+
+.student-hero-tag {
+  border-radius: 16px;
+  border: none;
+  font-weight: 500;
+  margin: 0;
+}
+
+.student-summary-metrics .ant-statistic {
+  margin: 0;
+}
+
+.student-summary-metrics .ant-statistic + .ant-statistic {
+  margin-top: 8px;
+}
+
+.student-status-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.student-status-card .ant-tag {
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.student-status-descriptions .ant-descriptions-item-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.student-quick-actions .ant-list-item {
+  padding: 16px 0;
+  align-items: flex-start;
+}
+
+.student-quick-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-color);
+}
+
+.student-quick-desc {
+  color: var(--text-secondary);
+}
+
+.student-deadlines-card .ant-list-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.student-deadlines-card .ant-list-item:last-child {
+  border-bottom: none;
+}
+
+.student-deadline-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.student-info-card .ant-descriptions-item-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .student-hero-card .ant-card-body {
+    padding: 24px;
+  }
+
+  .student-summary-metrics {
+    width: 100%;
+  }
+}
+
 /* Responsive Layouts */
 @media (max-width: 768px) {
   .student-dashboard, .admin-dashboard, .teacher-dashboard {
