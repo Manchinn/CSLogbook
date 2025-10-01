@@ -293,7 +293,7 @@ export default function TopicExamResultPage() {
 
   return (
     <div>
-      <Title level={3}>บันทึกผลสอบหัวข้อ (เจ้าหน้าที่ภาควิชา)</Title>
+      <Title level={3}>บันทึกผลสอบหัวข้อโครงงานพิเศษ</Title>
       <Alert type="info" showIcon style={{ marginBottom: 16 }} message="เจ้าหน้าที่สามารถบันทึกผลสอบหัวข้อได้ครั้งเดียว หากบันทึกผิดให้ติดต่อผู้ดูแลระบบ" />
       <Space style={{ marginBottom: 16 }} wrap>
         <Button onClick={reload} loading={loading}>รีเฟรช</Button>
