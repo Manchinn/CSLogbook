@@ -14,12 +14,6 @@ import { studentService } from "../../../../services/studentService";
 const StudentList = () => {
   // State สำหรับจัดการข้อมูล
   const [students, setStudents] = useState([]);
-  const [statistics, setStatistics] = useState({
-    total: 0,
-    internshipEligible: 0,
-    projectEligible: 0,
-    noEligibility: 0,
-  });
   const [loading, setLoading] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -34,11 +28,6 @@ const StudentList = () => {
 
   const filterParams = React.useMemo(() => {
     const params = {};
-
-    if (searchText && searchText.trim()) {
-      params.search = searchText.trim();
-    }
-
     if (statusFilter) {
       params.status = statusFilter;
     }
@@ -48,7 +37,7 @@ const StudentList = () => {
     }
 
     return params;
-  }, [searchText, statusFilter, academicYear]);
+  }, [statusFilter, academicYear]);
 
   const calculateStatistics = React.useCallback((data) => {
     if (!Array.isArray(data) || data.length === 0) {
@@ -93,7 +82,6 @@ const StudentList = () => {
       try {
         const response = await studentService.getAllStudents(params);
         setStudents(response);
-        setStatistics(calculateStatistics(response));
       } catch (error) {
         message.error("ไม่สามารถโหลดข้อมูลนักศึกษาได้");
         console.error("Error fetching students:", error);
@@ -101,7 +89,7 @@ const StudentList = () => {
         setLoading(false);
       }
     },
-    [calculateStatistics]
+    []
   );
 
   // ดึงข้อมูลปีการศึกษา
@@ -191,6 +179,47 @@ const StudentList = () => {
     fetchStudents(filterParams);
   }, [fetchStudents, filterParams]);
 
+  const filteredStudents = React.useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+
+    return students.filter((student) => {
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === "internship" && student.isEligibleForInternship) ||
+        (statusFilter === "project" && student.isEligibleForProject);
+
+      if (!matchesStatus) {
+        return false;
+      }
+
+      if (academicYear && student.academicYear && student.academicYear !== academicYear) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      const searchFields = [
+        student.studentCode,
+        student.firstName,
+        student.lastName,
+        `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+        student.email,
+        student.classroom,
+      ];
+
+      return searchFields
+        .filter((field) => typeof field === "string" && field.trim())
+        .some((field) => field.toLowerCase().includes(keyword));
+    });
+  }, [students, searchText, statusFilter, academicYear]);
+
+  const displayedStatistics = React.useMemo(
+    () => calculateStatistics(filteredStudents),
+    [filteredStudents, calculateStatistics]
+  );
+
   const emptyTableText = React.useMemo(() => {
     if (searchText && searchText.trim()) {
       return `ไม่พบนักศึกษาที่ตรงกับคำค้นหา "${searchText}"`;
@@ -213,7 +242,7 @@ const StudentList = () => {
     <div className="admin-student-container">
       <Row justify="space-between" align="middle" className="filter-section">
         <Col>
-          <StudentStatistics statistics={statistics} />
+          <StudentStatistics statistics={displayedStatistics} />
         </Col>
         <Col>
           <StudentFilters
@@ -254,7 +283,7 @@ const StudentList = () => {
       </Row>
 
       <StudentTable
-        students={students}
+        students={filteredStudents}
         loading={loading}
         onView={handleViewStudent}
         onEdit={(student) => {
