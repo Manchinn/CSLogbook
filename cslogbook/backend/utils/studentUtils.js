@@ -515,27 +515,27 @@ const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
   if (studentYear < CONSTANTS.PROJECT.MIN_YEAR) {
     return {
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`,
     };
   }
 
   if (totalCredits < CONSTANTS.PROJECT.MIN_TOTAL_CREDITS) {
     return {
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`,
     };
   }
 
   if (majorCredits < CONSTANTS.PROJECT.MIN_MAJOR_CREDITS) {
     return {
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`,
     };
   }
 
   return {
     eligible: true,
-    message: "ผ่านเงื่อนไขการทำโปรเจค",
+    message: "ผ่านเงื่อนไขการทำโครงงานพิเศษ",
   };
 };
 

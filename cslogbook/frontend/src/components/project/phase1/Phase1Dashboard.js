@@ -29,7 +29,7 @@ const steps = [
   {
     key: 'meeting-logbook',
     title: 'บันทึกการพบอาจารย์',
-    desc: 'จองการพบและบันทึก log พร้อมส่งอีเมลขออนุมัติ',
+    desc: 'จองการพบและบันทึกการประชุมพร้อมส่งอีเมลแจ้งเตือนผู้เข้าร่วม',
     icon: <TeamOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     requiresPostTopicUnlock: true

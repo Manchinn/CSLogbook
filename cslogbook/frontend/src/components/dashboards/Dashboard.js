@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Row,
   Col,
@@ -8,7 +8,6 @@ import {
   Space,
   Button,
   message,
-  Badge,
   Descriptions,
   Skeleton,
   List,
@@ -25,9 +24,10 @@ import {
   ClockCircleOutlined,
   UploadOutlined,
   FileTextOutlined,
-  CheckCircleOutlined,
   TeamOutlined,
   CalendarOutlined,
+  FileDoneOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -362,14 +362,11 @@ function Dashboard() {
                     <Tag color={theme.badge} className="teacher-hero-tag">
                       นักศึกษาทั้งหมด {adviseeStats.total} คน
                     </Tag>
-                    <Tag color="gold" className="teacher-hero-tag">
-                      ฝึกงานกำลังดำเนิน {adviseeStats.internshipInProgress} คน
-                    </Tag>
                     <Tag color="purple" className="teacher-hero-tag">
-                      โครงงานที่ดูแล {projectStats.active} โครงการ
+                      โครงงานพิเศษที่ดูแล {projectStats.active} โครงการ
                     </Tag>
                     <Tag color="green" className="teacher-hero-tag">
-                      โครงงานเสร็จสิ้น {projectStats.completed} โครงการ
+                      โครงงานพิเศษเสร็จสิ้น {projectStats.completed} โครงการ
                     </Tag>
                   </Space>
                 </Space>
@@ -404,17 +401,6 @@ function Dashboard() {
                   value={adviseeStats.total}
                   prefix={<UserOutlined />}
                   valueStyle={{ color: theme.primary }}
-                  loading={isLoading}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card hoverable className="stats-card" bordered={false}>
-                <Statistic
-                  title="ฝึกงานระหว่างดำเนินการ"
-                  value={adviseeStats.internshipInProgress}
-                  prefix={<BookOutlined />}
-                  valueStyle={{ color: "#faad14" }}
                   loading={isLoading}
                 />
               </Card>
@@ -587,7 +573,7 @@ function Dashboard() {
               </Card>
             </Col>
             <Col xs={24} lg={12}>
-              <Card title="กำหนดส่งใกล้ถึง" bordered={false}>
+              <Card title="กำหนดการใกล้ถึง" variant="default">
                 {isLoading ? (
                   <Skeleton active paragraph={{ rows: 4 }} />
                 ) : deadlines.length ? (
@@ -732,190 +718,546 @@ function Dashboard() {
     const navigate = useNavigate();
     const [studentData, setStudentData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const { deadlines: upcomingDeadlines, loading: loadingDeadlines } =
-      useUpcomingDeadlines({ days: 7 });
+      useUpcomingDeadlines({ days: 14 });
 
     const studentCode = userData?.studentCode; // แยก primitive ให้ hook dependency ชัดเจน
     useEffect(() => {
       let isMounted = true;
-      if (studentCode) {
-        studentService
-          .getStudentInfo(studentCode)
-          .then((response) => {
-            if (isMounted) {
-              setStudentData(response.data);
-              setIsLoading(false);
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching student info:", error);
-            message.error("ไม่สามารถโหลดข้อมูลนักศึกษาได้");
-            setIsLoading(false);
-          });
+
+      if (!studentCode) {
+        setError(new Error("ไม่พบรหัสนักศึกษาในข้อมูลผู้ใช้"));
+        setIsLoading(false);
+        return () => {
+          isMounted = false;
+        };
       }
+
+      studentService
+        .getStudentInfo(studentCode)
+        .then((response) => {
+          if (isMounted) {
+            setStudentData(response.data);
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching student info:", err);
+          if (isMounted) {
+            setError(err);
+            message.error("ไม่สามารถโหลดข้อมูลนักศึกษาได้");
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        });
+
       return () => {
         isMounted = false;
       };
     }, [studentCode]);
 
-    const isEligibleForInternship =
-      studentData?.eligibility?.internship?.eligible || false;
-    const isEligibleForProject =
-      studentData?.eligibility?.project?.eligible || false;
+    const studentNameParts = [
+      studentData?.firstName || userData?.firstName,
+      studentData?.lastName || userData?.lastName,
+    ].filter(Boolean);
+    const studentName = studentNameParts.length
+      ? studentNameParts.join(" ")
+      : "นักศึกษา";
+
+    const internshipEligibility = studentData?.eligibility?.internship;
+    const projectEligibility = studentData?.eligibility?.project;
+    const internshipEligible = Boolean(internshipEligibility?.eligible);
+    const projectEligible = Boolean(projectEligibility?.eligible);
+
+    const formattedStudentCode = studentData?.studentCode || studentCode || "-";
+
+    const classifyDeadline = useCallback((deadline) => {
+      // จัดหมวดหมู่สถานะตามเวลาที่เหลือ เพื่อให้นักศึกษาจัดลำดับความสำคัญได้ง่าย
+      const diffHours = deadline.diffHours ?? 0;
+      if (diffHours <= 0) {
+        return { color: "red", label: "เลยกำหนด" };
+      }
+      if (diffHours <= 24) {
+        return { color: "orange", label: "ภายใน 24 ชั่วโมง" };
+      }
+      if (diffHours <= 72) {
+        return { color: "gold", label: "ภายใน 3 วัน" };
+      }
+      return { color: "blue", label: "ล่วงหน้า" };
+    }, []);
+
+    const displayDeadlines = useMemo(
+      () => upcomingDeadlines.slice(0, 5),
+      [upcomingDeadlines]
+    );
+
+    const summaryMetrics = [
+      {
+        key: "totalCredits",
+        title: "หน่วยกิตสะสม",
+        value: studentData?.totalCredits ?? 0,
+        icon: <BookOutlined />,
+        color: theme.primary,
+        loading: isLoading,
+      },
+      {
+        key: "majorCredits",
+        title: "หน่วยกิตภาค",
+        value: studentData?.majorCredits ?? 0,
+        icon: <ProjectOutlined />,
+        color: "#722ed1",
+        loading: isLoading,
+      },
+      {
+        key: "incomingDeadlines",
+        title: "กำหนดการใน 14 วัน",
+        value: upcomingDeadlines.length,
+        icon: <CalendarOutlined />,
+        color: "#13c2c2",
+        loading: loadingDeadlines,
+      },
+    ];
+
+    const quickActions = useMemo(() => {
+      const actions = [
+        {
+          key: "internshipFlow",
+          icon: <FormOutlined />,
+          title: "ขั้นตอนการฝึกงาน",
+          description: internshipEligible
+            ? "จัดการขั้นตอนและส่งเอกสารสำคัญทั้งหมด"
+            : "ตรวจสอบคุณสมบัติและเงื่อนไขก่อนเริ่มฝึกงาน",
+          actionLabel: internshipEligible ? "เปิดดู" : "ดูเงื่อนไข",
+          path: internshipEligible
+            ? "/internship-registration/flow"
+            : "/internship-eligibility",
+          disabled: !internshipEligible,
+          badge: internshipEligible ? null : "ต้องมีสิทธิ์",
+          primary: internshipEligible,
+        },
+        {
+          key: "logbook",
+          icon: <ClockCircleOutlined />,
+          title: "บันทึกการฝึกงาน",
+          description: "ลงเวลา ตรวจสถานะ และส่งอนุมัติให้หัวหน้างาน",
+          actionLabel: "ไปที่ Logbook",
+          path: "/internship-logbook/timesheet",
+          primary: true,
+        },
+        {
+          key: "deadlines",
+          icon: <CalendarOutlined />,
+          title: "ปฏิทินกำหนดการ",
+          description: "ดูกำหนดการทั้งหมดและตั้งการแจ้งเตือนล่วงหน้า",
+          actionLabel: "เปิดปฏิทิน",
+          path: "/student-deadlines/calendar",
+        },
+        {
+          key: "project",
+          icon: <ProjectOutlined />,
+          title: "โครงงานพิเศษ",
+          description: projectEligible
+            ? "ติดตาม Milestone และความคืบหน้าโครงงาน"
+            : "ศึกษาข้อกำหนดและเตรียมตัวสำหรับโครงงาน",
+          actionLabel: projectEligible ? "จัดการโครงงาน" : "ดูรายละเอียด",
+          path: projectEligible ? "/project/phase1" : "/project-eligibility",
+          disabled: !projectEligible,
+          badge: projectEligible ? null : "รอมีสิทธิ์",
+        },
+        {
+          key: "certificate",
+          icon: <FileDoneOutlined />,
+          title: "ขอหนังสือรับรองฝึกงาน",
+          description: "ยื่นคำขอและติดตามสถานะหนังสือรับรอง",
+          actionLabel: "ยื่นคำขอ",
+          path: "/internship-certificate",
+        },
+      ];
+
+      return actions;
+    }, [internshipEligible, projectEligible]);
+
+    const renderStatusTag = (eligible) => (
+      <Tag color={eligible ? "green" : "red"} bordered={false}>
+        {eligible ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
+      </Tag>
+    );
 
     return (
       <div className="student-dashboard">
         <Space direction="vertical" size="large" className="common-space-style">
-          <Row gutter={[16, 16]}>
-            {/* สถานะการฝึกงาน */}
-            <Col xs={24} sm={12}>
-              <Card
-                hoverable
-                className="eligibility-card"
-                style={{ height: "100%" }}
-              >
-                <Statistic
-                  title="สถานะการฝึกงาน"
-                  value={isEligibleForInternship ? "มีสิทธิ์" : "ไม่มีสิทธิ์"}
-                  valueStyle={{
-                    color: isEligibleForInternship ? "#52c41a" : "#ff4d4f",
-                  }}
-                  prefix={
-                    isEligibleForInternship ? (
-                      <CheckCircleOutlined />
-                    ) : (
-                      <ClockCircleOutlined />
-                    )
-                  }
-                  loading={isLoading}
-                />
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="ชั้นปี">
-                    {studentData?.studentYear || "-"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="หน่วยกิตรวม">
-                    {studentData?.totalCredits || 0} หน่วยกิต
-                  </Descriptions.Item>
-                  <Descriptions.Item label="สถานะ">
-                    {studentData?.eligibility?.internship?.message ||
-                      "ตรวจสอบหน่วยกิตและชั้นปี"}
-                  </Descriptions.Item>
-                </Descriptions>
-                {isEligibleForInternship && (
-                  <Button
-                    type="primary"
-                    icon={<FormOutlined />}
-                    onClick={() => navigate("/internship-registration/flow")}
-                    style={{ marginTop: "16px" }}
-                  >
-                    จัดการฝึกงาน
-                  </Button>
-                )}
-              </Card>
-            </Col>
-
-            {/* สถานะโครงงาน */}
-            <Col xs={24} sm={12}>
-              <Card
-                hoverable
-                className="eligibility-card"
-                style={{ height: "100%" }}
-              >
-                <Statistic
-                  title="สถานะโครงงานพิเศษ"
-                  value={isEligibleForProject ? "มีสิทธิ์" : "ไม่มีสิทธิ์"}
-                  valueStyle={{
-                    color: isEligibleForProject ? "#52c41a" : "#ff4d4f",
-                  }}
-                  prefix={
-                    isEligibleForProject ? (
-                      <CheckCircleOutlined />
-                    ) : (
-                      <ClockCircleOutlined />
-                    )
-                  }
-                  loading={isLoading}
-                />
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="ชั้นปี">
-                    {studentData?.studentYear || "-"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="หน่วยกิตรวม">
-                    {studentData?.totalCredits || 0} หน่วยกิต
-                  </Descriptions.Item>
-                  <Descriptions.Item label="หน่วยกิตภาควิชา">
-                    {studentData?.majorCredits || 0} หน่วยกิต
-                  </Descriptions.Item>
-                  <Descriptions.Item label="สถานะ">
-                    {studentData?.eligibility?.project?.message ||
-                      "ตรวจสอบหน่วยกิตและชั้นปี"}
-                  </Descriptions.Item>
-                </Descriptions>
-                {isEligibleForProject && (
-                  <Button
-                    type="primary"
-                    icon={<ProjectOutlined />}
-                    onClick={() => navigate("/project/phase1")}
-                    style={{ marginTop: "16px" }}
-                  >
-                    จัดการโครงงานพิเศษ
-                  </Button>
-                )}
-              </Card>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Card
-                hoverable
-                className="upcoming-deadlines-card"
-                style={{ height: "100%" }}
-                title={
-                  <Space>
-                    <ClockCircleOutlined /> กำหนดส่งใกล้ถึง
-                  </Space>
-                }
-              >
-                {loadingDeadlines ? (
-                  "กำลังโหลด..."
-                ) : upcomingDeadlines.length ? (
-                  upcomingDeadlines.slice(0, 5).map((d) => (
-                    <div key={d.id} style={{ marginBottom: 8 }}>
-                      <Space
-                        direction="vertical"
-                        size={0}
-                        style={{ width: "100%" }}
+          <Card
+            className="student-hero-card"
+            bordered={false}
+            style={{ background: theme.gradient, color: theme.text }}
+          >
+            <Row gutter={[24, 24]} align="middle">
+              <Col xs={24} md={16}>
+                <Space
+                  direction="vertical"
+                  size={8}
+                  className="student-hero-content"
+                >
+                  <Text className="student-hero-greeting">ยินดีต้อนรับกลับ</Text>
+                  <Title level={3} style={{ color: theme.text, margin: 0 }}>
+                    {studentName}
+                  </Title>
+                  <Space size={[8, 8]} wrap className="student-hero-tags">
+                    <Tag color="blue" className="student-hero-tag" bordered={false}>
+                      รหัส {formattedStudentCode}
+                    </Tag>
+                    {studentData?.studentYear ? (
+                      <Tag
+                        color="purple"
+                        className="student-hero-tag"
+                        bordered={false}
                       >
-                        <span style={{ fontWeight: 600 }}>
-                          {d.name}{" "}
-                          {d.isCritical ? (
-                            <Badge status="error" text="สำคัญ" />
-                          ) : null}
-                        </span>
-                        <span style={{ fontSize: 12, color: "#555" }}>
-                          {d.formatted}
-                        </span>
-                        <span style={{ fontSize: 12 }}>
-                          <Badge
-                            color={d.diffDays <= 0 ? "red" : "blue"}
-                            text={
-                              d.diffDays > 0
-                                ? `เหลือ ${d.diffDays} วัน`
-                                : d.diffHours > 0
-                                ? `เหลือ ${d.diffHours} ชั่วโมง`
-                                : "ใกล้ครบกำหนด"
-                            }
-                          />
-                        </span>
-                      </Space>
-                    </div>
-                  ))
+                        ชั้นปี {studentData.studentYear}
+                      </Tag>
+                    ) : null}
+                    <Tag
+                      color={internshipEligible ? "green" : "orange"}
+                      className="student-hero-tag"
+                      bordered={false}
+                    >
+                      ฝึกงาน {internshipEligible ? "พร้อมเริ่ม" : "รอตรวจสอบ"}
+                    </Tag>
+                    <Tag
+                      color={projectEligible ? "geekblue" : "default"}
+                      className="student-hero-tag"
+                      bordered={false}
+                    >
+                      โครงงานพิเศษ {projectEligible ? "พร้อมเริ่ม" : "รอสิทธิ์"}
+                    </Tag>
+                  </Space>
+                  <Text style={{ color: theme.text, opacity: 0.8 }}>
+                    {loadingDeadlines
+                      ? "กำลังกวาดรวมกำหนดการล่าสุด..."
+                      : `มี${
+                          upcomingDeadlines.length
+                            ? ` ${upcomingDeadlines.length} `
+                            : " "
+                        }กำหนดการภายใน 14 วันจากนี้`}
+                  </Text>
+                  <Space size={[12, 12]} wrap>
+                    <Button
+                      type="primary"
+                      ghost
+                      icon={<FormOutlined />}
+                      onClick={() =>
+                        navigate(
+                          internshipEligible
+                            ? "/internship-registration/flow"
+                            : "/internship-eligibility"
+                        )
+                      }
+                    >
+                      {internshipEligible
+                        ? "เปิดขั้นตอนการฝึกงาน"
+                        : "ตรวจสอบสิทธิ์ฝึกงาน"}
+                    </Button>
+                    <Button
+                      type="default"
+                      icon={<ClockCircleOutlined />}
+                      onClick={() => navigate("/internship-logbook/timesheet")}
+                    >
+                      เปิด Logbook
+                    </Button>
+                  </Space>
+                </Space>
+              </Col>
+              <Col xs={24} md={8}>
+                <Space
+                  direction="vertical"
+                  size={16}
+                  className="student-summary-metrics"
+                  style={{ width: "100%" }}
+                >
+                  {summaryMetrics.map((metric) => (
+                    <Statistic
+                      key={metric.key}
+                      title={metric.title}
+                      value={metric.value}
+                      prefix={metric.icon}
+                      valueStyle={{ color: metric.color }}
+                      loading={metric.loading}
+                    />
+                  ))}
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {error ? (
+            <Alert
+              className="dashboard-alert"
+              type="warning"
+              message="ไม่สามารถโหลดข้อมูลนักศึกษาได้"
+              description={error?.message || "โปรดลองรีเฟรชหน้านี้อีกครั้ง"}
+              showIcon
+            />
+          ) : null}
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={12}>
+              <Card title="สถานะการฝึกงาน" className="student-status-card">
+                {isLoading ? (
+                  <Skeleton active paragraph={{ rows: 4 }} />
                 ) : (
-                  <span style={{ fontSize: 12 }}>
-                    ไม่มีกำหนดการที่ต้องส่งภายใน 7 วันนี้
-                  </span>
+                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <Space align="center" size="small" wrap>
+                      {renderStatusTag(internshipEligible)}
+                      <Text type="secondary">
+                        {internshipEligibility?.message ||
+                          "ตรวจสอบคุณสมบัติกับงานทะเบียนอีกครั้ง"}
+                      </Text>
+                    </Space>
+                    <Descriptions
+                      column={1}
+                      size="small"
+                      className="student-status-descriptions"
+                    >
+                      <Descriptions.Item label="สถานะล่าสุด">
+                        {studentData?.internshipStatus || "-"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="ลงทะเบียนแล้วหรือยัง">
+                        {studentData?.isEnrolledInternship
+                          ? "ดำเนินการแล้ว"
+                          : "ยังไม่ดำเนินการ"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                    <Space size={[8, 8]} wrap>
+                      <Button
+                        type="primary"
+                        icon={<FormOutlined />}
+                        onClick={() =>
+                          navigate(
+                            internshipEligible
+                              ? "/internship-registration/flow"
+                              : "/internship-eligibility"
+                          )
+                        }
+                      >
+                        {internshipEligible
+                          ? "จัดการขั้นตอนฝึกงาน"
+                          : "ตรวจสอบเงื่อนไข"}
+                      </Button>
+                      <Button
+                        icon={<FileTextOutlined />}
+                        onClick={() => navigate("/internship-requirements")}
+                      >
+                        ข้อกำหนดฝึกงาน
+                      </Button>
+                    </Space>
+                  </Space>
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="สถานะโครงงานพิเศษ" className="student-status-card">
+                {isLoading ? (
+                  <Skeleton active paragraph={{ rows: 4 }} />
+                ) : (
+                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <Space align="center" size="small" wrap>
+                      {renderStatusTag(projectEligible)}
+                      <Text type="secondary">
+                        {projectEligibility?.message ||
+                          "เตรียมตัวสำหรับโครงงานโดยตรวจสอบสิทธิ์"}
+                      </Text>
+                    </Space>
+                    <Descriptions
+                      column={1}
+                      size="small"
+                      className="student-status-descriptions"
+                    >
+                      <Descriptions.Item label="สถานะนักศึกษากับโครงงาน">
+                        {studentData?.projectStatus || "-"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="ลงทะเบียนโครงงานแล้วหรือยัง">
+                        {studentData?.isEnrolledProject
+                          ? "ลงทะเบียนแล้ว"
+                          : "ยังไม่ได้ลงทะเบียน"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                    <Space size={[8, 8]} wrap>
+                      <Button
+                        type="primary"
+                        icon={<ProjectOutlined />}
+                        onClick={() =>
+                          navigate(
+                            projectEligible
+                              ? "/project/phase1"
+                              : "/project-eligibility"
+                          )
+                        }
+                      >
+                        {projectEligible ? "จัดการโครงงาน" : "ดูเงื่อนไข"}
+                      </Button>
+                      <Button
+                        icon={<FileTextOutlined />}
+                        onClick={() => navigate("/project-requirements")}
+                      >
+                        ข้อกำหนดโครงงาน
+                      </Button>
+                    </Space>
+                  </Space>
                 )}
               </Card>
             </Col>
           </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={14}>
+              <Card title="ทางลัดสำคัญ" className="student-quick-actions">
+                {isLoading ? (
+                  <Skeleton active paragraph={{ rows: 4 }} />
+                ) : (
+                  <List
+                    dataSource={quickActions}
+                    renderItem={(action) => (
+                      <List.Item
+                        key={action.key}
+                        className="student-quick-action-item"
+                        actions={[
+                          <Button
+                            key="open"
+                            type={action.primary ? "primary" : "default"}
+                            icon={<ArrowRightOutlined />}
+                            onClick={() => navigate(action.path)}
+                            disabled={action.disabled}
+                          >
+                            {action.actionLabel}
+                          </Button>,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          avatar={<div className="student-quick-icon">{action.icon}</div>}
+                          title={
+                            <Space size="small" wrap>
+                              <Text strong>{action.title}</Text>
+                              {action.badge ? (
+                                <Tag color="gold" bordered={false}>
+                                  {action.badge}
+                                </Tag>
+                              ) : null}
+                            </Space>
+                          }
+                          description={
+                            <span className="student-quick-desc">
+                              {action.description}
+                            </span>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} lg={10}>
+              <Card
+                title="กำหนดการใกล้ถึง"
+                className="student-deadlines-card"
+                extra={
+                  <Button
+                    type="link"
+                    onClick={() => navigate("/student-deadlines/calendar")}
+                  >
+                    ดูทั้งหมด
+                  </Button>
+                }
+              >
+                {loadingDeadlines ? (
+                  <Skeleton active paragraph={{ rows: 4 }} />
+                ) : displayDeadlines.length ? (
+                  <List
+                    dataSource={displayDeadlines}
+                    renderItem={(deadline) => {
+                      const status = classifyDeadline(deadline);
+                      return (
+                        <List.Item key={deadline.id || deadline.name}>
+                          <List.Item.Meta
+                            title={
+                              <Space size="small" wrap>
+                                <Text strong>{deadline.name}</Text>
+                                {deadline.isCritical ? (
+                                  <Tag color="red" bordered={false}>
+                                    สำคัญ
+                                  </Tag>
+                                ) : null}
+                                <Tag color={status.color} bordered={false}>
+                                  {status.label}
+                                </Tag>
+                              </Space>
+                            }
+                            description={
+                              <Space
+                                direction="vertical"
+                                size={0}
+                                className="student-deadline-meta"
+                              >
+                                <span>{deadline.formatted || "-"}</span>
+                                <span>
+                                  {deadline.diffHours <= 0
+                                    ? "ครบกำหนดแล้ว"
+                                    : deadline.diffDays > 0
+                                    ? `เหลือ ${deadline.diffDays} วัน (${deadline.diffHours} ชั่วโมง)`
+                                    : `เหลือ ${deadline.diffHours} ชั่วโมง`}
+                                </span>
+                              </Space>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }}
+                  />
+                ) : (
+                  <Empty description="ยังไม่มีกำหนดการในช่วงนี้" />
+                )}
+              </Card>
+            </Col>
+          </Row>
+
+          <Card
+            title="ข้อมูลส่วนตัว"
+            className="student-info-card"
+            extra={
+              <Button
+                type="link"
+                onClick={() =>
+                  formattedStudentCode !== "-" &&
+                  navigate(`/student-profile/${formattedStudentCode}`)
+                }
+                disabled={formattedStudentCode === "-"}
+              >
+                แก้ไขโปรไฟล์
+              </Button>
+            }
+          >
+            {isLoading ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : (
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="ชื่อ-สกุล">
+                  {studentName}
+                </Descriptions.Item>
+                <Descriptions.Item label="อีเมล">
+                  {studentData?.email || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="ห้องเรียน">
+                  {studentData?.classroom || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="เบอร์โทรศัพท์">
+                  {studentData?.phoneNumber || "-"}
+                </Descriptions.Item>
+              </Descriptions>
+            )}
+          </Card>
         </Space>
       </div>
     );

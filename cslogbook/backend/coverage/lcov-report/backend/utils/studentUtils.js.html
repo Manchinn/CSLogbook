@@ -1764,27 +1764,27 @@ const isEligibleForProject = <span class="fstat-no" title="function not covered"
 <span class="cstat-no" title="statement not covered" >  if (studentYear &lt; CONSTANTS.PROJECT.MIN_YEAR) {</span>
 <span class="cstat-no" title="statement not covered" >    return {</span>
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`,
     };
   }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  if (totalCredits &lt; CONSTANTS.PROJECT.MIN_TOTAL_CREDITS) {</span>
 <span class="cstat-no" title="statement not covered" >    return {</span>
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`,
     };
   }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  if (majorCredits &lt; CONSTANTS.PROJECT.MIN_MAJOR_CREDITS) {</span>
 <span class="cstat-no" title="statement not covered" >    return {</span>
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`,
     };
   }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return {</span>
     eligible: true,
-    message: "ผ่านเงื่อนไขการทำโปรเจค",
+    message: "ผ่านเงื่อนไขการทำโครงงานพิเศษ",
   };
 };
 &nbsp;

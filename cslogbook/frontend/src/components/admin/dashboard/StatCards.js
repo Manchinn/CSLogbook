@@ -19,21 +19,22 @@ const StatCards = ({ stats, loading }) => {
       value: stats?.students?.internshipEligible || 0,
       icon: <BookOutlined />,
       color: '#52c41a',
-      onClick: () => navigate('/admin/users/students?filter=eligible_internship')
+      onClick: () => navigate('/admin/users/students?filter=internship')
     },
     {
       title: 'มีสิทธิ์ทำโครงงานพิเศษ', 
       value: stats?.students?.projectEligible || 0,
       icon: <ProjectOutlined />,
       color: '#722ed1',
-      onClick: () => navigate('/admin/users/students?filter=eligible_project')
+      onClick: () => navigate('/admin/users/students?filter=project')
     },
     {
       title: 'เอกสารรอดำเนินการ',
       value: stats?.documents?.pending || 0,
       icon: <FileTextOutlined />,
       color: '#faad14',
-      onClick: () => navigate('/admin/documents/pending')
+      suffix: ` / ${stats?.documents?.total || 0}`,
+      onClick: () => navigate('/admin/documents/internship')
     }
   ];
 
@@ -51,6 +52,7 @@ const StatCards = ({ stats, loading }) => {
               value={card.value}
               prefix={card.icon}
               valueStyle={{ color: card.color }}
+              suffix={card.suffix}
               loading={loading}
             />
           </Card>
