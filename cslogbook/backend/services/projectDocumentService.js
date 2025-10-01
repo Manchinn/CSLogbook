@@ -1,5 +1,35 @@
 const { sequelize } = require('../config/database');
-const { ProjectDocument, ProjectMember, Student, Academic, ProjectTrack, Meeting, MeetingParticipant, MeetingLog, ProjectDefenseRequest } = require('../models');
+let ProjectDocument;
+let ProjectMember;
+let Student;
+let Academic;
+let ProjectTrack;
+let Meeting;
+let MeetingParticipant;
+let MeetingLog;
+let ProjectDefenseRequest;
+
+const attachModels = () => {
+  ({
+    ProjectDocument,
+    ProjectMember,
+    Student,
+    Academic,
+    ProjectTrack,
+    Meeting,
+    MeetingParticipant,
+    MeetingLog,
+    ProjectDefenseRequest
+  } = require('../models'));
+};
+
+attachModels();
+
+const ensureModels = () => {
+  if (process.env.NODE_ENV === 'test') {
+    attachModels();
+  }
+};
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
@@ -19,6 +49,7 @@ class ProjectDocumentService {
    * - เติม academicYear/semester จาก Academic ปัจจุบัน (อันล่าสุด is_current=true ถ้ามี)
    */
   async createProject(studentId, payload = {}) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       // ดึงข้อมูลนักศึกษา
@@ -189,6 +220,7 @@ class ProjectDocumentService {
    * - ตรวจ eligibility ของสมาชิกใหม่ (isEligibleProject) (ตามที่ตกลง)
    */
   async addMember(projectId, actorStudentId, newStudentCode) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
@@ -249,6 +281,7 @@ class ProjectDocumentService {
    * - Lock ชื่อถ้า status >= in_progress
    */
   async updateMetadata(projectId, actorStudentId, payload) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
@@ -332,6 +365,7 @@ class ProjectDocumentService {
    * Promote -> in_progress (ตรวจ 2 คน + advisor + ชื่อไม่ว่าง)
    */
   async activateProject(projectId, actorStudentId) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
@@ -430,6 +464,7 @@ class ProjectDocumentService {
    */
   async getProjectById(projectId, options = {}) {
     const includeSummary = !!options.includeSummary;
+    ensureModels();
     const project = await ProjectDocument.findByPk(projectId, {
       include: [
         { 
@@ -571,6 +606,7 @@ class ProjectDocumentService {
    * บันทึกผลสอบหัวข้อโครงงาน
    */
   async setExamResult(projectId, { result, reason, advisorId, actorUser }) {
+    ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t, lock: t.LOCK.UPDATE });

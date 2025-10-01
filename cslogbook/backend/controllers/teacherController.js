@@ -302,21 +302,16 @@ exports.getMeetingApprovalQueue = async (req, res) => {
 // ฟังก์ชันสำหรับอาจารย์สายวิชาการ (Academic)
 exports.getAcademicDashboard = async (req, res) => {
   try {
-    // TODO: เพิ่มลอจิกสำหรับ dashboard ของอาจารย์สายวิชาการ
+    const data = await teacherService.getAcademicDashboardOverview(req.user.userId);
     res.json({
       success: true,
-      message: 'Dashboard สำหรับอาจารย์สายวิชาการ',
-      data: {
-        pendingEvaluations: 0,
-        activeStudents: 0,
-        recentActivities: []
-      }
+      data
     });
   } catch (error) {
     logger.error('Error in getAcademicDashboard:', error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
+      message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
     });
   }
 };
