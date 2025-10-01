@@ -1,7 +1,25 @@
-import React, { useEffect } from 'react';
-import { Form, Input, Switch } from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import { Form, Input, Switch, Select } from 'antd';
+import { TEACHER_POSITION_OPTIONS, getTeacherTypeByPosition } from '../constants';
 
 const TeacherForm = ({ form, teacher, initialValues = {} }) => {
+  const positionValue = Form.useWatch('position', form);
+
+  const positionOptions = useMemo(() => {
+    if (teacher?.position && !TEACHER_POSITION_OPTIONS.some((option) => option.value === teacher.position)) {
+      return [
+        ...TEACHER_POSITION_OPTIONS,
+        {
+          value: teacher.position,
+          label: teacher.position,
+          teacherType: teacher.teacherType || getTeacherTypeByPosition(teacher.position),
+          disabled: true
+        }
+      ];
+    }
+    return TEACHER_POSITION_OPTIONS;
+  }, [teacher]);
+
   useEffect(() => {
     if (teacher) {
       form.setFieldsValue({
@@ -11,6 +29,8 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
         email: teacher.email,
         canAccessTopicExam: Boolean(teacher.canAccessTopicExam),
         canExportProject1: Boolean(teacher.canExportProject1),
+        position: teacher.position || TEACHER_POSITION_OPTIONS[1].value,
+  teacherType: teacher.teacherType || getTeacherTypeByPosition(teacher.position),
         ...initialValues
       });
     } else {
@@ -21,18 +41,27 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
     }
   }, [form, teacher, initialValues]);
 
+  useEffect(() => {
+    if (positionValue) {
+      const teacherType = getTeacherTypeByPosition(positionValue);
+      if (form.getFieldValue('teacherType') !== teacherType) {
+        form.setFieldsValue({ teacherType });
+      }
+    }
+  }, [positionValue, form]);
+
   return (
     <Form
       form={form}
       layout="vertical"
       className="teacher-form"
     >
-      <Form.Item 
-        name="teacherCode" 
-        label="รหัสอาจารย์" 
+      <Form.Item
+        name="teacherCode"
+        label="รหัสอาจารย์"
         rules={[{ required: true, message: "กรุณากรอกรหัสอาจารย์!" }]}
       >
-        <Input disabled={!!teacher} />
+        <Input />
       </Form.Item>
       <Form.Item 
         name="firstName" 
@@ -63,15 +92,10 @@ const TeacherForm = ({ form, teacher, initialValues = {} }) => {
         label="ตำแหน่ง"
         rules={[{ required: true, message: "กรุณาเลือกตำแหน่ง!" }]}
       >
-        <select style={{ width: '100%', height: 32 }}>
-          <option value="หัวหน้าภาควิชา">หัวหน้าภาควิชา</option>
-          <option value="รองหัวหน้าภาควิชา">รองหัวหน้าภาควิชา</option>
-          <option value="ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายสารสนเทศและวิจัย)">ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายสารสนเทศและวิจัย)</option>
-          <option value="ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายกิจการนักศึกษา)">ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายกิจการนักศึกษา)</option>
-          <option value="ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายประกันคุณภาพการศึกษาและบริหารความเสี่ยง)">ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายประกันคุณภาพการศึกษาและบริหารความเสี่ยง)</option>
-          <option value="ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายสหกิจศึกษาและบริการวิชาการ)">ผู้ช่วยหัวหน้าภาควิชา (ฝ่ายสหกิจศึกษาและบริการวิชาการ)</option>
-          <option value="คณาจารย์">คณาจารย์ (อาจารย์สอนทั่วไป)</option>
-        </select>
+        <Select options={positionOptions} />
+      </Form.Item>
+      <Form.Item name="teacherType" hidden>
+        <Input type="hidden" />
       </Form.Item>
       <Form.Item
         name="canAccessTopicExam"

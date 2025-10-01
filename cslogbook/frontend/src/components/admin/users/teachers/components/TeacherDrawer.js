@@ -9,6 +9,7 @@ const TeacherDrawer = ({
   teacher,
   editMode,
   form,
+  initialValues,
   onClose,
   onEdit,
   onCancelEdit,
@@ -44,7 +45,7 @@ const TeacherDrawer = ({
       extra={drawerExtra}
     >
       {editMode ? (
-        <TeacherForm form={form} teacher={teacher} />
+        <TeacherForm form={form} teacher={teacher} initialValues={initialValues} />
       ) : (
         <TeacherDetail teacher={teacher} />
       )}
