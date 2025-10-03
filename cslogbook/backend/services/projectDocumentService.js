@@ -9,7 +9,15 @@ let MeetingParticipant;
 let MeetingLog;
 let ProjectDefenseRequest;
 
+const resolveModelsPath = () => require.resolve('../models');
+const IS_JEST = Boolean(process.env.JEST_WORKER_ID);
+
 const attachModels = () => {
+  if (process.env.NODE_ENV === 'test') {
+    // ลบ cache ของ require เพื่อให้ Jest ใช้ mock model ที่กำหนดในแต่ละเทสต์
+    delete require.cache[resolveModelsPath()];
+  }
+
   ({
     ProjectDocument,
     ProjectMember,
@@ -26,9 +34,7 @@ const attachModels = () => {
 attachModels();
 
 const ensureModels = () => {
-  if (process.env.NODE_ENV === 'test') {
-    attachModels();
-  }
+  attachModels();
 };
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
