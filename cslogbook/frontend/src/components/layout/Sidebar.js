@@ -250,8 +250,8 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         เพื่อไม่ให้เมนูหาย focus เมื่อไปยัง sub step ภายใน Phase1
       */}
       {(() => {
-        const derivedSelected = location.pathname.startsWith('/project/phase1')
-          ? '/project/phase1'
+        const derivedSelected = location.pathname.startsWith('/project/phase')
+          ? (location.pathname.startsWith('/project/phase2') ? '/project/phase2' : '/project/phase1')
           : location.pathname;
         return (
           <Menu
@@ -259,6 +259,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             items={menuItems}
             selectedKeys={[derivedSelected]}
             defaultSelectedKeys={[derivedSelected]}
+            defaultOpenKeys={location.pathname.startsWith('/project/phase') ? ['project-main'] : undefined}
             className={`menu ${resolveThemeClass(userData?.role, userData?.teacherType)}`}
             onClick={handleMenuClick}
           />

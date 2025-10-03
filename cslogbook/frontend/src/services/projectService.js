@@ -109,6 +109,15 @@ const projectService = {
     }
   },
 
+  getProjectExamResult: async (projectId, params = {}) => {
+    try {
+      const res = await apiClient.get(`/projects/${projectId}/exam-result`, { params });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงผลสอบโครงงานได้');
+    }
+  },
+
   submitProject1DefenseRequest: async (projectId, payload) => {
     try {
       const res = await apiClient.post(`/projects/${projectId}/kp02`, payload);

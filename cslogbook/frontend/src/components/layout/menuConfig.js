@@ -158,10 +158,13 @@ export const getMenuConfig = ({
                 ],
               }
             : {
-                key: '/project/phase1',
+                key: 'project-main',
                 icon: <ProjectOutlined />,
                 label: 'โครงงานพิเศษ',
-                onClick: () => navigate('/project/phase1'),
+                children: [
+                  { key: '/project/phase1', label: 'โครงงานพิเศษ 1', onClick: () => navigate('/project/phase1') },
+                  { key: '/project/phase2', label: 'โครงงานพิเศษ 2', onClick: () => navigate('/project/phase2') }
+                ]
               },
         ].filter(Boolean)
       : []),

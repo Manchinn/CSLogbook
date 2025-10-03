@@ -7,6 +7,7 @@ import MilestoneSummary from './MilestoneSummary';
 import { TRACK_OPTIONS, CODE_TO_LABEL, normalizeIncomingTracks } from '../../constants/projectTracks';
 import { evaluateProjectReadiness, extractProjectTrackCodes } from '../../utils/projectReadiness';
 import dayjs from '../../utils/dayjs';
+import { useNavigate } from 'react-router-dom';
 
 // รายชื่ออาจารย์ที่โหลดมาจาก backend (advisors)
 // เก็บเป็น state เพื่อรีเฟรชเมื่อเปิด modal / drawer
@@ -42,6 +43,7 @@ const PROJECT_TYPE_LABELS = {
 const { Title, Text } = Typography; // ใช้ Text สำหรับ error/help
 
 const ProjectDashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState([]);
   const [detailVisible, setDetailVisible] = useState(false);
@@ -432,7 +434,14 @@ const ProjectDashboard = () => {
                   type="success"
                   showIcon
                   message="ผลสอบหัวข้อผ่าน"
-                  description="ระบบกำลังเปิดขั้นตอนถัดไปให้ใช้งาน"
+                  description={(
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Text>ระบบกำลังเปิดขั้นตอนถัดไปให้ใช้งาน</Text>
+                      <Button type="link" onClick={() => navigate('/project/phase2')} style={{ padding: 0 }}>
+                        ดูขั้นตอนโครงงานพิเศษ 2
+                      </Button>
+                    </Space>
+                  )}
                 />
               )}
             </Space>

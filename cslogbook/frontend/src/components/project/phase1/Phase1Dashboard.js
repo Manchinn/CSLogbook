@@ -96,6 +96,20 @@ const Phase1Dashboard = () => {
     return postTopicLockReasons;
   }, [activeProject, postTopicLockReasons]);
 
+  const phase2GateReasons = useMemo(() => {
+    // รวบรวมเหตุผลที่ยังไม่สามารถเปิด Phase 2 (โครงงานพิเศษ 2) ให้ผู้ใช้เข้าไปดำเนินการได้
+    if (!activeProject) return ['ยังไม่มีข้อมูลโครงงาน'];
+    const reasons = [];
+    if (activeProject.examResult !== 'passed') {
+      reasons.push('ผลสอบหัวข้อยังไม่ผ่าน');
+    }
+    if (!['in_progress', 'completed'].includes(activeProject.status || '')) {
+      reasons.push('สถานะโครงงานยังไม่อยู่ในขั้น "กำลังดำเนินการ"');
+    }
+    return reasons;
+  }, [activeProject]);
+  const canAccessPhase2 = activeProject && phase2GateReasons.length === 0;
+
   const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
 
   const handleAcknowledge = async () => {
@@ -334,6 +348,38 @@ const Phase1Dashboard = () => {
               );
             })}
           </Row>
+          {activeProject && (
+            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #d6e4ff', background: '#f0f5ff' }}>
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Space direction="vertical" size={0}>
+                  <Text strong>ก้าวสู่โครงงานพิเศษ 2</Text>
+                  <Text type="secondary">ระบบจะเปิดหน้า Phase 2 เมื่อหัวข้อสอบผ่านและโครงงานอยู่ในสถานะกำลังดำเนินการ</Text>
+                </Space>
+                {canAccessPhase2 ? (
+                  <Button type="primary" onClick={() => navigate('/project/phase2')}>
+                    เปิดดูขั้นตอนโครงงานพิเศษ 2
+                  </Button>
+                ) : (
+                  <Alert
+                    type="info"
+                    showIcon
+                    message="ยังไม่พร้อมเปิด Phase 2"
+                    description={(
+                      phase2GateReasons.length ? (
+                        <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                          {phase2GateReasons.map((reason, index) => (
+                            <li key={`phase2-reason-${index}`}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span>ระบบจะเปิดอัตโนมัติเมื่อผลสอบหัวข้อได้รับการบันทึกครบ</span>
+                      )
+                    )}
+                  />
+                )}
+              </Space>
+            </Card>
+          )}
           <ProjectDashboard />
         </div>
         {ackModal}

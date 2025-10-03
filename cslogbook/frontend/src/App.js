@@ -33,6 +33,7 @@ import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevi
 import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
 import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
 import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
+import { Phase2Dashboard } from './components/project/phase2';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -187,6 +188,11 @@ const App = () => {
                 <Route path="/project/phase1/draft/:id" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectDraftDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project/phase2" element={
+                  <ProtectedRoute roles={['student']}>
+                    <Phase2Dashboard />
                   </ProtectedRoute>
                 } />
                 
