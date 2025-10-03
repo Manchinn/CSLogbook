@@ -4,8 +4,8 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   FileAddOutlined,
   UploadOutlined,
-  EditOutlined,
-  TeamOutlined
+  TeamOutlined,
+  FileSearchOutlined
 } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
@@ -27,6 +27,13 @@ const steps = [
     implemented: true
   },
   {
+    key: 'topic-exam',
+    title: 'ติดตามผลสอบหัวข้อ',
+    desc: 'ตรวจสอบกำหนดการสอบและสถานะผลหัวข้อ',
+    icon: <FileSearchOutlined style={{ fontSize: 28 }} />,
+    implemented: true
+  },
+  {
     key: 'meeting-logbook',
     title: 'บันทึกการพบอาจารย์',
     desc: 'จองการพบและบันทึกการประชุมพร้อมส่งอีเมลแจ้งเตือนผู้เข้าร่วม',
@@ -42,15 +49,6 @@ const steps = [
     implemented: true,
     requiresPostTopicUnlock: true
   },
-  {
-    key: 'scope-adjust',
-    title: 'ปรับ Scope',
-    desc: 'บันทึกการปรับขอบเขตหลังสอบ (อนาคต)',
-    icon: <EditOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    comingSoon: true,
-    requiresPostTopicUnlock: true
-  }
 ];
 
 const Phase1Dashboard = () => {

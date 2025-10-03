@@ -32,7 +32,6 @@ import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
 import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
 import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
 import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
-import ScopeAdjustPage from './components/project/phase1/steps/ScopeAdjustPage';
 import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
 
 // Import Admin Components
@@ -184,7 +183,6 @@ const App = () => {
                   <Route path="proposal-revision" element={<ProposalRevisionPage />} />
                   <Route path="exam-submit" element={<ExamSubmitPage />} />
                   <Route path="exam-day" element={<ExamDayPage />} />
-                  <Route path="scope-adjust" element={<ScopeAdjustPage />} />
                 </Route>
                 <Route path="/project/phase1/draft/:id" element={
                   <ProtectedRoute roles={['student']}>

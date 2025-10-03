@@ -403,7 +403,10 @@ server.listen(ENV.PORT, () => {
   console.log(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
   
   // เริ่มการทำงานของ Agent หลังจาก server เริ่มทำงาน
-  if (process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production') {
+  const enableAllAgents = process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production';
+  const enableAcademicSchedulerOnly = !enableAllAgents && (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || '').toLowerCase() === 'true';
+
+  if (enableAllAgents) {
     console.log('Starting CSLogbook Agents...');
     // เริ่ม Agent ทุกตัวพร้อมกัน
     agentManager.startAllAgents();
@@ -416,6 +419,14 @@ server.listen(ENV.PORT, () => {
     // agentManager.startAgent('eligibilityChecker');
     
     console.log('CSLogbook Agents started successfully');
+  } else if (enableAcademicSchedulerOnly) {
+    console.log('Starting Academic Semester Scheduler (auto-update only)...');
+    try {
+      agentManager.startAgent('academicSemesterScheduler');
+      console.log('Academic Semester Scheduler started');
+    } catch (error) {
+      console.error('Failed to start Academic Semester Scheduler:', error.message);
+    }
   }
 });
 

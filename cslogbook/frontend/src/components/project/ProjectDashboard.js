@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Card, Table, Tag, Button, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List, Row, Col } from 'antd';
+import { Card, Table, Tag, Button, Form, Input, Select, Space, message, Drawer, Descriptions, Divider, Typography, Popconfirm, Tooltip, List, Row, Col, Alert, Modal } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import projectService from '../../services/projectService';
 import { teacherService } from '../../services/teacherService';
 import MilestoneSummary from './MilestoneSummary';
 import { TRACK_OPTIONS, CODE_TO_LABEL, normalizeIncomingTracks } from '../../constants/projectTracks';
 import { evaluateProjectReadiness, extractProjectTrackCodes } from '../../utils/projectReadiness';
+import dayjs from '../../utils/dayjs';
 
 // รายชื่ออาจารย์ที่โหลดมาจาก backend (advisors)
 // เก็บเป็น state เพื่อรีเฟรชเมื่อเปิด modal / drawer
@@ -54,6 +55,8 @@ const ProjectDashboard = () => {
   const [updating, setUpdating] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [memberError, setMemberError] = useState(null); // เก็บ error แสดงใต้ input
+  const [ackModalOpen, setAckModalOpen] = useState(false);
+  const [ackLoading, setAckLoading] = useState(false);
 
   const fillEditForm = useCallback((project) => {
     if (!project) {
@@ -215,6 +218,31 @@ const ProjectDashboard = () => {
     }
   }, [activeProject?.projectId, applyActiveProject, detailVisible, fetchProjects]);
 
+  const handleAcknowledgeExamResult = useCallback(async () => {
+    if (!activeProject) return;
+    try {
+      setAckLoading(true);
+      const res = await projectService.acknowledgeExamResult(activeProject.projectId);
+      if (res.success) {
+        message.success('รับทราบผลแล้ว หัวข้อจะถูกเก็บถาวร');
+        if (detailVisible) {
+          const refreshed = await projectService.getProjectWithSummary(activeProject.projectId);
+          if (refreshed?.success) {
+            applyActiveProject(refreshed.data);
+          }
+        }
+        await fetchProjects();
+      } else {
+        message.error(res.message || 'รับทราบผลไม่สำเร็จ');
+      }
+    } catch (e) {
+      message.error(e.message || 'รับทราบผลไม่สำเร็จ');
+    } finally {
+      setAckLoading(false);
+      setAckModalOpen(false);
+    }
+  }, [activeProject, applyActiveProject, detailVisible, fetchProjects]);
+
   const columns = useMemo(() => [
     { title: 'รหัส', dataIndex: 'projectCode', key: 'projectCode', width: 140 },
     { title: 'ชื่อโครงงานพิเศษ', dataIndex: 'projectNameTh', key: 'projectNameTh', ellipsis: true },
@@ -288,6 +316,20 @@ const ProjectDashboard = () => {
 
   const activeTrackCodes = useMemo(() => extractProjectTrackCodes(activeProject), [activeProject]);
 
+  const activeExamMeta = useMemo(() => {
+    if (!activeProject?.examResult) return null;
+    return examResultMeta[activeProject.examResult] || null;
+  }, [activeProject?.examResult]);
+
+  const formatDateTime = useCallback((value) => {
+    if (!value) return null;
+    return dayjs(value).format('DD MMM YYYY HH:mm');
+  }, []);
+
+  const examRecordedAt = activeProject?.examResultAt ? formatDateTime(activeProject.examResultAt) : null;
+  const examAcknowledgedAt = activeProject?.studentAcknowledgedAt ? formatDateTime(activeProject.studentAcknowledgedAt) : null;
+  const shouldAckExam = Boolean(activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt);
+
   // แปลง advisors -> options ของ Select
   const trackSelectOptions = useMemo(() => TRACK_OPTIONS.map(({ code, label }) => ({ value: code, label })), []);
 
@@ -315,7 +357,13 @@ const ProjectDashboard = () => {
         title={activeProject ? `รายละเอียดโครงงาน: ${activeProject.projectNameTh || ''}` : 'รายละเอียดโครงงาน'}
         open={detailVisible}
         width={640}
-  onClose={() => { setDetailVisible(false); setActiveProject(null); editForm.resetFields(); }}
+        onClose={() => {
+          setDetailVisible(false);
+          setActiveProject(null);
+          editForm.resetFields();
+          setAckModalOpen(false);
+          setAckLoading(false);
+        }}
         extra={activeProject && <Tag color={statusColorMap[activeProject.status]}>{activeProject.status}</Tag>}
       >
         {activeProject && (
@@ -339,6 +387,55 @@ const ProjectDashboard = () => {
                   : '-'}
               </Descriptions.Item>
             </Descriptions>
+            <Divider />
+            <Title level={5}>ผลสอบหัวข้อ</Title>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              {activeExamMeta ? (
+                <Space size={8} align="center">
+                  <Tag color={activeExamMeta.color}>{activeExamMeta.text}</Tag>
+                  {examRecordedAt && <Text type="secondary">บันทึกผลเมื่อ {examRecordedAt}</Text>}
+                </Space>
+              ) : (
+                <Text type="secondary">ยังไม่มีการบันทึกผลสอบจากเจ้าหน้าที่ภาควิชา</Text>
+              )}
+              {activeProject?.examFailReason && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message="เหตุผลที่ไม่ผ่าน"
+                  description={<div style={{ whiteSpace: 'pre-wrap' }}>{activeProject.examFailReason}</div>}
+                />
+              )}
+              {shouldAckExam && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="ผลสอบหัวข้อยังไม่ผ่าน"
+                  description={
+                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                      <Text>คุณต้องยื่นหัวข้อใหม่ในรอบถัดไป กรุณากด "รับทราบผล" เพื่อเก็บหัวข้อนี้</Text>
+                      <Button danger type="primary" size="small" onClick={() => setAckModalOpen(true)}>รับทราบผล (หัวข้อจะถูกเก็บถาวร)</Button>
+                    </Space>
+                  }
+                />
+              )}
+              {!shouldAckExam && activeProject?.examResult === 'failed' && examAcknowledgedAt && (
+                <Alert
+                  type="info"
+                  showIcon
+                  message="รับทราบผลแล้ว"
+                  description={`รับทราบเมื่อ ${examAcknowledgedAt}`}
+                />
+              )}
+              {activeProject?.examResult === 'passed' && (
+                <Alert
+                  type="success"
+                  showIcon
+                  message="ผลสอบหัวข้อผ่าน"
+                  description="ระบบกำลังเปิดขั้นตอนถัดไปให้ใช้งาน"
+                />
+              )}
+            </Space>
             <Divider />
             <Form form={editForm} layout="vertical" onFinish={handleUpdate}>
               <Form.Item label="ชื่อโครงงานภาษาไทย" name="projectNameTh"><Input disabled={['in_progress','completed','archived'].includes(activeProject.status)} /></Form.Item>
@@ -465,6 +562,24 @@ const ProjectDashboard = () => {
           </>
         )}
       </Drawer>
+      <Modal
+        open={ackModalOpen}
+        title="ยืนยันการรับทราบผลสอบไม่ผ่าน"
+        okText="ยืนยันรับทราบ"
+        okButtonProps={{ danger: true, loading: ackLoading }}
+        cancelText="ยกเลิก"
+        onOk={handleAcknowledgeExamResult}
+        onCancel={() => !ackLoading && setAckModalOpen(false)}
+      >
+        <Typography.Paragraph>
+          เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร (Archived) และคุณจะสามารถยื่นหัวข้อใหม่ในรอบถัดไป การกระทำนี้ไม่สามารถย้อนกลับได้
+        </Typography.Paragraph>
+        {activeProject?.examFailReason && (
+          <Typography.Paragraph type="secondary" style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
+            เหตุผล: {activeProject.examFailReason}
+          </Typography.Paragraph>
+        )}
+      </Modal>
     </Card>
   );
 };
