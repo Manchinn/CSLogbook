@@ -1,5 +1,6 @@
 const { StudentWorkflowActivity, sequelize } = require('../models');
 const logger = require('../utils/logger');
+const workflowService = require('./workflowService');
 
 /**
  * Service: ProjectWorkflowService
@@ -14,37 +15,44 @@ class ProjectWorkflowService {
       const t = transaction || await sequelize.transaction();
 
       try {
-        // อัปเดตสถานะขั้นตอนปัจจุบัน
-        await StudentWorkflowActivity.update(
-          {
-            status: 'completed',
-            completedAt: new Date()
-          },
-          {
-            where: {
-              studentId,
-              stepKey: currentStep
-            },
-            transaction: t
-          }
-        );
+        const activity = await StudentWorkflowActivity.findOne({
+          where: { studentId, workflowType: 'project1' },
+          transaction: t
+        });
 
-        // ตัวอย่างการ unlock Phase 2 (Thesis Phase)
-        // ขั้นตอนถัดไป: SCOPE_REVISION_AFTER_PROJECT1 หรือ 30_DAY_REQUEST
-        const nextSteps = ['SCOPE_REVISION_AFTER_PROJECT1', '30_DAY_REQUEST'];
+        let overallStatus = 'in_progress';
+        let payload = {};
 
-        for (const stepKey of nextSteps) {
-          await StudentWorkflowActivity.findOrCreate({
-            where: { studentId, stepKey },
-            defaults: {
-              studentId,
-              stepKey,
-              status: 'available',
-              availableAt: new Date()
-            },
-            transaction: t
-          });
+        if (activity?.overallWorkflowStatus) {
+          overallStatus = activity.overallWorkflowStatus;
         }
+
+        if (activity?.dataPayload) {
+          try {
+            payload = JSON.parse(activity.dataPayload);
+          } catch (parseError) {
+            logger.warn('unlockNextPhase: parse dataPayload failed', {
+              studentId,
+              error: parseError.message
+            });
+          }
+        }
+
+        payload = {
+          ...payload,
+          autoUnlockedFrom: currentStep,
+          autoUnlockedAt: new Date().toISOString()
+        };
+
+        await workflowService.updateStudentWorkflowActivity(
+          studentId,
+          'project1',
+          currentStep,
+          'completed',
+          overallStatus,
+          payload,
+          { transaction: t }
+        );
 
         if (!transaction) {
           await t.commit();

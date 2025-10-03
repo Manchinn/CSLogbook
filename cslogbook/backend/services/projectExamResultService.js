@@ -1,81 +1,140 @@
-const { ProjectExamResult, ProjectDocument, ProjectMember, Student, User, Teacher, sequelize } = require('../models');
+const {
+  ProjectExamResult,
+  ProjectDocument,
+  ProjectMember,
+  Student,
+  User,
+  Teacher,
+  ProjectDefenseRequest,
+  sequelize
+} = require('../models');
+const { Op } = require('sequelize');
 const logger = require('../utils/logger');
-// const notificationService = require('./notificationService'); // TODO: เพิ่มเมื่อมี notification service
-const projectWorkflowService = require('./projectWorkflowService');
+const projectDocumentService = require('./projectDocumentService');
 
-/**
- * Service: ProjectExamResultService
- * จัดการผลการสอบโครงงานพิเศษ (PROJECT1 และ THESIS)
- */
+const DEFENSE_READY_STATUSES = ['staff_verified', 'scheduled', 'completed'];
+
 class ProjectExamResultService {
   /**
-   * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ PROJECT1
-   * (โครงงานที่ผ่านการอนุมัติจากเจ้าหน้าที่แล้ว แต่ยังไม่มีผลสอบ)
+   * รวม include พื้นฐานของ ProjectDocument เพื่อป้องกันโค้ดซ้ำ
    */
-  async getProject1PendingResults({ academicYear, semester } = {}) {
-    try {
-      const whereClause = {
-        status: ['staff_verified', 'scheduled'] // สถานะที่พร้อมบันทึกผล
-      };
-
-      // ดึงรายการโครงงานที่มี defense request แต่ยังไม่มีผลสอบ
-      const projects = await ProjectDocument.findAll({
+  _buildProjectIncludes({ includeDefenseRequests = false, defenseWhere, defenseRequired = false } = {}) {
+    const includes = [
+      {
+        model: ProjectMember,
+        as: 'members',
         include: [
           {
-            model: ProjectMember,
-            as: 'members',
-            include: [
-              {
-                model: Student,
-                as: 'student',
-                include: [
-                  {
-                    model: User,
-                    as: 'user',
-                    attributes: ['userId', 'firstName', 'lastName', 'email']
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            model: Teacher,
-            as: 'advisor',
-            include: [
-              {
-                model: User,
-                as: 'user',
-                attributes: ['userId', 'firstName', 'lastName', 'email']
-              }
-            ]
-          },
-          {
-            model: Teacher,
-            as: 'coAdvisor',
-            include: [
-              {
-                model: User,
-                as: 'user',
-                attributes: ['userId', 'firstName', 'lastName', 'email']
-              }
-            ]
-          },
+            model: Student,
+            as: 'student',
+            include: [{ model: User, as: 'user' }]
+          }
+        ]
+      },
+      {
+        model: Teacher,
+        as: 'advisor',
+        include: [{ model: User, as: 'user' }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        include: [{ model: User, as: 'user' }]
+      }
+    ];
+
+    if (includeDefenseRequests) {
+      includes.push({
+        model: ProjectDefenseRequest,
+        as: 'defenseRequests',
+        where: defenseWhere,
+        required: defenseRequired
+      });
+    }
+
+    return includes;
+  }
+
+  /**
+   * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ PROJECT1
+   */
+  async getProject1PendingResults({ academicYear, semester, search } = {}) {
+    try {
+      const whereClause = {};
+
+      if (academicYear) {
+        whereClause.academicYear = academicYear;
+      }
+
+      if (semester) {
+        whereClause.semester = semester;
+      }
+
+      const projects = await ProjectDocument.findAll({
+        where: whereClause,
+        include: [
+          ...this._buildProjectIncludes({
+            includeDefenseRequests: true,
+            defenseRequired: true,
+            defenseWhere: {
+              defenseType: 'PROJECT1',
+              status: { [Op.in]: DEFENSE_READY_STATUSES }
+            }
+          }),
           {
             model: ProjectExamResult,
             as: 'examResults',
             where: { exam_type: 'PROJECT1' },
-            required: false // LEFT JOIN เพื่อดูว่ามีผลสอบหรือยัง
+            required: false
           }
         ],
-        where: whereClause
+        order: [['projectId', 'ASC']]
       });
 
-      // กรองเฉพาะโครงงานที่ยังไม่มีผลสอบ PROJECT1
-      const pendingProjects = projects.filter(project => 
-        !project.examResults || project.examResults.length === 0
-      );
+      let projectList = projects
+        .filter((project) => !project.examResults || project.examResults.length === 0)
+        .map((project) => {
+          const json = project.toJSON();
+          const normalizedId = json.projectId ?? json.project_id ?? null;
 
-      return pendingProjects;
+          return {
+            ...json,
+            projectId: normalizedId != null ? Number(normalizedId) : null
+          };
+        });
+
+      if (search) {
+        const keyword = search.trim().toLowerCase();
+
+        projectList = projectList.filter((project) => {
+          const projectFields = [
+            project.projectNameTh,
+            project.projectNameEn,
+            project.projectCode,
+            project.projectId != null ? String(project.projectId) : null
+          ];
+
+          const projectMatches = projectFields.some(
+            (field) => field && field.toLowerCase().includes(keyword)
+          );
+
+          const memberMatches = (project.members || []).some((member) => {
+            const studentCode = member.student?.studentCode;
+            const fullName = member.student?.user
+              ? `${member.student.user.firstName || ''} ${member.student.user.lastName || ''}`.trim()
+              : '';
+
+            return (
+              (studentCode && studentCode.toLowerCase().includes(keyword)) ||
+              (fullName && fullName.toLowerCase().includes(keyword))
+            );
+          });
+
+          return projectMatches || memberMatches;
+        });
+      }
+
+      return projectList;
     } catch (error) {
       logger.error('Error in getProject1PendingResults:', error);
       throw error;
@@ -86,102 +145,86 @@ class ProjectExamResultService {
    * บันทึกผลสอบโครงงานพิเศษ
    */
   async recordExamResult(projectId, examData, recordedByUserId) {
+    const normalizedProjectId = Number(projectId);
+
+    if (!Number.isInteger(normalizedProjectId) || normalizedProjectId <= 0) {
+      throw new Error('รหัสโครงงานไม่ถูกต้อง');
+    }
+
     const transaction = await sequelize.transaction();
-    
+
     try {
       const { examType, result, score, notes, requireScopeRevision } = examData;
 
-      // 1. ตรวจสอบว่าโครงงานมีอยู่จริง
-      const project = await ProjectDocument.findByPk(projectId, {
-        include: [
-          {
-            model: ProjectMember,
-            as: 'members',
-            include: [
-              {
-                model: Student,
-                as: 'student',
-                include: [{ model: User, as: 'user' }]
-              }
-            ]
-          },
-          {
-            model: Teacher,
-            as: 'advisor',
-            include: [{ model: User, as: 'user' }]
-          },
-          {
-            model: Teacher,
-            as: 'coAdvisor',
-            include: [{ model: User, as: 'user' }]
-          }
-        ],
-        transaction
+      const project = await ProjectDocument.findByPk(normalizedProjectId, {
+        include: this._buildProjectIncludes({ includeDefenseRequests: true }),
+        transaction,
+        lock: transaction.LOCK.UPDATE
       });
 
       if (!project) {
-        throw new Error('ไม่พบโครงงานที่ระบุ');
+        throw new Error(`ไม่พบโครงงานที่ระบุ (ID: ${normalizedProjectId})`);
       }
 
-      // 2. ตรวจสอบว่ามีผลสอบแล้วหรือยัง
-      const existingResult = await ProjectExamResult.hasExamResult(projectId, examType);
+      const existingResult = await ProjectExamResult.hasExamResult(normalizedProjectId, examType);
       if (existingResult) {
         throw new Error('โครงงานนี้มีผลสอบแล้ว ไม่สามารถบันทึกซ้ำได้');
       }
 
-      // 3. ตรวจสอบสถานะโครงงาน (ต้องผ่านการอนุมัติจากเจ้าหน้าที่แล้ว)
-      if (!['staff_verified', 'scheduled'].includes(project.status)) {
+      const defenseRequest = (project.defenseRequests || []).find(
+        (request) =>
+          request.defenseType === examType && DEFENSE_READY_STATUSES.includes(request.status)
+      );
+
+      if (!defenseRequest) {
         throw new Error('โครงงานยังไม่พร้อมสำหรับบันทึกผลสอบ');
       }
 
-      // 4. สร้างผลสอบ
-      const examResult = await ProjectExamResult.create({
-        projectId,
-        examType,
-        result,
-        score: score || null,
-        notes: notes || null,
-        requireScopeRevision: result === 'PASS' ? (requireScopeRevision || false) : false,
-        recordedByUserId,
-        recordedAt: new Date()
-      }, { transaction });
+      const examResult = await ProjectExamResult.create(
+        {
+          projectId: normalizedProjectId,
+          examType,
+          result,
+          score: score ?? null,
+          notes: notes ?? null,
+          requireScopeRevision: result === 'PASS' ? Boolean(requireScopeRevision) : false,
+          recordedByUserId,
+          recordedAt: new Date()
+        },
+        { transaction }
+      );
 
-      // 5. อัปเดตสถานะโครงงาน
-      let newProjectStatus;
-      if (examType === 'PROJECT1') {
-        if (result === 'PASS') {
-          newProjectStatus = 'project1_completed';
-        } else {
-          newProjectStatus = 'project1_failed_pending_ack';
-        }
-      } else if (examType === 'THESIS') {
-        if (result === 'PASS') {
-          newProjectStatus = 'thesis_completed';
-        } else {
-          newProjectStatus = 'thesis_failed_pending_ack';
-        }
+      const examRecordedAt = new Date();
+      const projectUpdates = {
+        examResult: result === 'PASS' ? 'passed' : 'failed',
+        examResultAt: examRecordedAt,
+        examFailReason: result === 'FAIL' ? notes || null : null,
+        studentAcknowledgedAt: null
+      };
+
+      if (result === 'PASS') {
+        projectUpdates.status = examType === 'THESIS' ? 'completed' : 'in_progress';
       }
 
-      await project.update({ status: newProjectStatus }, { transaction });
+      await project.update(projectUpdates, { transaction });
+      await defenseRequest.update({ status: 'completed' }, { transaction });
 
-      // 6. อัปเดต Workflow สำหรับนักศึกษา (ถ้าผ่าน)
-      if (result === 'PASS' && examType === 'PROJECT1') {
-        // Unlock ขั้นตอนถัดไป (Phase 2)
-        for (const member of project.members) {
-          await projectWorkflowService.unlockNextPhase(
-            member.studentId,
-            'PROJECT1_DEFENSE_RESULT',
-            transaction
-          );
-        }
-      }
+      await project.reload({
+        include: this._buildProjectIncludes({ includeDefenseRequests: true }),
+        transaction
+      });
 
-      // 7. ส่งการแจ้งเตือน
-      await this._sendExamResultNotifications(project, examResult, transaction);
+      // ซิงก์สถานะ Workflow ให้อัตโนมัติ เพื่อให้นักศึกษามองเห็นสเตตัสล่าสุด
+      await projectDocumentService.syncProjectWorkflowState(project.projectId, {
+        transaction,
+        projectInstance: project
+      });
+
+      await this._sendExamResultNotifications(project, examResult);
 
       await transaction.commit();
 
-      logger.info(`ผลสอบ ${examType} ถูกบันทึกสำหรับโครงงาน ${projectId}: ${result}`);
+      logger.info(`ผลสอบ ${examType} ถูกบันทึกสำหรับโครงงาน ${normalizedProjectId}: ${result}`);
       return examResult;
     } catch (error) {
       await transaction.rollback();
@@ -206,12 +249,17 @@ class ProjectExamResultService {
    * นักศึกษารับทราบผลสอบ (กรณีไม่ผ่าน)
    */
   async acknowledgeExamResult(projectId, examType, studentId) {
+    const normalizedProjectId = Number(projectId);
+
+    if (!Number.isInteger(normalizedProjectId) || normalizedProjectId <= 0) {
+      throw new Error('รหัสโครงงานไม่ถูกต้อง');
+    }
+
     const transaction = await sequelize.transaction();
-    
+
     try {
-      // 1. ตรวจสอบว่านักศึกษาเป็นสมาชิกของโครงงาน
       const member = await ProjectMember.findOne({
-        where: { projectId, studentId },
+        where: { projectId: normalizedProjectId, studentId },
         transaction
       });
 
@@ -219,9 +267,8 @@ class ProjectExamResultService {
         throw new Error('คุณไม่ได้เป็นสมาชิกของโครงงานนี้');
       }
 
-      // 2. ดึงผลสอบ
       const examResult = await ProjectExamResult.findOne({
-        where: { project_id: projectId, exam_type: examType },
+        where: { project_id: normalizedProjectId, exam_type: examType },
         transaction
       });
 
@@ -237,20 +284,47 @@ class ProjectExamResultService {
         throw new Error('รับทราบผลแล้ว');
       }
 
-      // 3. บันทึกการรับทราบ
-      await examResult.update({ 
-        studentAcknowledgedAt: new Date() 
-      }, { transaction });
+      const acknowledgedAt = new Date();
 
-      // 4. อัปเดตสถานะโครงงานเป็น archived
-      const project = await ProjectDocument.findByPk(projectId, { transaction });
-      await project.update({ 
-        status: examType === 'PROJECT1' ? 'project1_failed_acknowledged' : 'thesis_failed_acknowledged'
-      }, { transaction });
+      await examResult.update(
+        {
+          studentAcknowledgedAt: acknowledgedAt
+        },
+        { transaction }
+      );
+
+      const project = await ProjectDocument.findByPk(normalizedProjectId, {
+        include: this._buildProjectIncludes({ includeDefenseRequests: true }),
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      if (!project) {
+        throw new Error(`ไม่พบโครงงานที่ระบุ (ID: ${normalizedProjectId})`);
+      }
+
+      await project.update(
+        {
+          status: 'archived',
+          archivedAt: acknowledgedAt,
+          studentAcknowledgedAt: acknowledgedAt
+        },
+        { transaction }
+      );
+
+      await project.reload({
+        include: this._buildProjectIncludes({ includeDefenseRequests: true }),
+        transaction
+      });
+
+      await projectDocumentService.syncProjectWorkflowState(project.projectId, {
+        transaction,
+        projectInstance: project
+      });
 
       await transaction.commit();
 
-      logger.info(`นักศึกษา ${studentId} รับทราบผลสอบ ${examType} ของโครงงาน ${projectId}`);
+      logger.info(`นักศึกษา ${studentId} รับทราบผลสอบ ${examType} ของโครงงาน ${normalizedProjectId}`);
       return examResult;
     } catch (error) {
       await transaction.rollback();
@@ -266,27 +340,39 @@ class ProjectExamResultService {
     try {
       const whereClause = { exam_type: examType };
 
+      const include = [
+        {
+          model: ProjectDocument,
+          as: 'project',
+          attributes: ['projectId', 'projectNameTh', 'status', 'academicYear', 'semester']
+        }
+      ];
+
+      if (academicYear || semester) {
+        include[0].where = {};
+        if (academicYear) {
+          include[0].where.academicYear = academicYear;
+        }
+        if (semester) {
+          include[0].where.semester = semester;
+        }
+      }
+
       const results = await ProjectExamResult.findAll({
         where: whereClause,
-        include: [
-          {
-            model: ProjectDocument,
-            as: 'project',
-            attributes: ['projectId', 'projectNameTh', 'status']
-          }
-        ]
+        include
       });
 
       const stats = {
         total: results.length,
-        pass: results.filter(r => r.result === 'PASS').length,
-        fail: results.filter(r => r.result === 'FAIL').length,
+        pass: results.filter((r) => r.result === 'PASS').length,
+        fail: results.filter((r) => r.result === 'FAIL').length,
         passRate: 0,
-        requireScopeRevision: results.filter(r => r.requireScopeRevision).length,
-        acknowledged: results.filter(r => r.result === 'FAIL' && r.studentAcknowledgedAt).length
+        requireScopeRevision: results.filter((r) => r.requireScopeRevision).length,
+        acknowledged: results.filter((r) => r.result === 'FAIL' && r.studentAcknowledgedAt).length
       };
 
-      stats.passRate = stats.total > 0 ? ((stats.pass / stats.total) * 100).toFixed(2) : 0;
+      stats.passRate = stats.total > 0 ? Number(((stats.pass / stats.total) * 100).toFixed(2)) : 0;
 
       return stats;
     } catch (error) {
@@ -297,61 +383,49 @@ class ProjectExamResultService {
 
   /**
    * ส่งการแจ้งเตือนผลสอบ
-   * @private
    */
-  async _sendExamResultNotifications(project, examResult, transaction) {
+  async _sendExamResultNotifications(project, examResult) {
     try {
       const examTypeTh = examResult.examType === 'PROJECT1' ? 'โครงงานพิเศษ 1' : 'ปริญญานิพนธ์';
       const resultTh = examResult.result === 'PASS' ? 'ผ่าน' : 'ไม่ผ่าน';
       const resultIcon = examResult.result === 'PASS' ? '🎉' : '❌';
 
-      // แจ้งนักศึกษาทุกคน
       for (const member of project.members) {
         const studentEmail = member.student?.user?.email;
-        if (studentEmail) {
-          let message = `${resultIcon} ผลการสอบ${examTypeTh}: ${resultTh}\n\nโครงงาน: ${project.projectNameTh}`;
-          
-          if (examResult.notes) {
-            message += `\n\nหมายเหตุจากคณะกรรมการ:\n${examResult.notes}`;
-          }
-
-          if (examResult.result === 'PASS') {
-            if (examResult.requireScopeRevision) {
-              message += '\n\n⚠️ คุณต้องส่งเอกสารปรับปรุง Scope ก่อนดำเนินการต่อ';
-            } else {
-              message += '\n\n✅ คุณสามารถเดินหน้าไปยังขั้นตอนถัดไปได้แล้ว';
-            }
-          } else {
-            message += '\n\nกรุณาเข้าระบบเพื่อรับทราบผล';
-          }
-
-          // ส่งอีเมล (ถ้า service พร้อม)
-          // await notificationService.sendEmail(studentEmail, `ผลการสอบ${examTypeTh}`, message);
-          
-          logger.info(`Notification sent to student: ${studentEmail}`);
+        if (!studentEmail) {
+          continue;
         }
+
+        let message = `${resultIcon} ผลการสอบ${examTypeTh}: ${resultTh}\n\nโครงงาน: ${project.projectNameTh}`;
+
+        if (examResult.notes) {
+          message += `\n\nหมายเหตุจากคณะกรรมการ:\n${examResult.notes}`;
+        }
+
+        if (examResult.result === 'PASS') {
+          if (examResult.requireScopeRevision) {
+            message += '\n\n⚠️ คุณต้องส่งเอกสารปรับปรุง Scope ก่อนดำเนินการต่อ';
+          } else {
+            message += '\n\n✅ คุณสามารถเดินหน้าไปยังขั้นตอนถัดไปได้แล้ว';
+          }
+        } else {
+          message += '\n\nกรุณาเข้าระบบเพื่อรับทราบผล';
+        }
+
+        logger.info(`Notification sent to student: ${studentEmail}`);
       }
 
-      // แจ้งอาจารย์ที่ปรึกษา
       const advisorEmail = project.advisor?.user?.email;
       if (advisorEmail) {
-        const message = `ผลการสอบ${examTypeTh} ของโครงงาน "${project.projectNameTh}": ${resultTh}`;
-        // await notificationService.sendEmail(advisorEmail, `ผลการสอบ${examTypeTh}`, message);
         logger.info(`Notification sent to advisor: ${advisorEmail}`);
       }
 
-      // แจ้งอาจารย์ร่วม (ถ้ามี)
-      if (project.coAdvisor) {
-        const coAdvisorEmail = project.coAdvisor?.user?.email;
-        if (coAdvisorEmail) {
-          const message = `ผลการสอบ${examTypeTh} ของโครงงาน "${project.projectNameTh}": ${resultTh}`;
-          // await notificationService.sendEmail(coAdvisorEmail, `ผลการสอบ${examTypeTh}`, message);
-          logger.info(`Notification sent to co-advisor: ${coAdvisorEmail}`);
-        }
+      const coAdvisorEmail = project.coAdvisor?.user?.email;
+      if (coAdvisorEmail) {
+        logger.info(`Notification sent to co-advisor: ${coAdvisorEmail}`);
       }
     } catch (error) {
       logger.error('Error sending exam result notifications:', error);
-      // ไม่ throw error เพราะเป็น side effect
     }
   }
 }

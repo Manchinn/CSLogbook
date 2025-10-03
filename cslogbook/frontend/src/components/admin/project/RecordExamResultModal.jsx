@@ -46,7 +46,13 @@ const RecordExamResultModal = ({ visible, project, onClose, onSuccess }) => {
         requireScopeRevision: values.result === 'PASS' ? values.requireScopeRevision || false : false
       };
 
-      await projectExamResultService.recordExamResult(project.projectId, examData);
+      const targetProjectId = project?.projectId ?? project?.project_id ?? null;
+
+      if (!targetProjectId) {
+        throw new Error('ไม่พบรหัสโครงงานของโครงงานนี้');
+      }
+
+      await projectExamResultService.recordExamResult(targetProjectId, examData);
       
       message.success('บันทึกผลสอบสำเร็จ');
       form.resetFields();

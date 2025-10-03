@@ -12,11 +12,12 @@ class ProjectExamResultController {
    */
   async getProject1PendingResults(req, res) {
     try {
-      const { academicYear, semester } = req.query;
+      const { academicYear, semester, search } = req.query;
 
       const projects = await projectExamResultService.getProject1PendingResults({
         academicYear,
-        semester
+        semester,
+        search
       });
 
       res.status(200).json({
@@ -41,9 +42,19 @@ class ProjectExamResultController {
    */
   async recordExamResult(req, res) {
     try {
-      const { projectId } = req.params;
+  const projectId = req.params.projectId ?? req.params.id;
       const { examType, result, score, notes, requireScopeRevision } = req.body;
       const recordedByUserId = req.user.userId;
+
+      if (
+        !['admin', 'teacher'].includes(req.user.role) ||
+        (req.user.role === 'teacher' && req.user.teacherType !== 'support')
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'ไม่มีสิทธิ์บันทึกผลสอบ'
+        });
+      }
 
       // Validation
       if (!examType || !result) {
@@ -102,7 +113,7 @@ class ProjectExamResultController {
    */
   async getExamResult(req, res) {
     try {
-      const { projectId } = req.params;
+  const projectId = req.params.projectId ?? req.params.id;
       const { examType = 'PROJECT1' } = req.query;
 
       const examResult = await projectExamResultService.getExamResult(projectId, examType);
@@ -135,7 +146,7 @@ class ProjectExamResultController {
    */
   async acknowledgeExamResult(req, res) {
     try {
-      const { projectId } = req.params;
+  const projectId = req.params.projectId ?? req.params.id;
       const { examType = 'PROJECT1' } = req.body;
       const studentId = req.user.studentId;
 

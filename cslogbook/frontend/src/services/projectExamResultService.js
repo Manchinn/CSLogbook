@@ -12,7 +12,8 @@ class ProjectExamResultService {
     try {
       const params = new URLSearchParams();
       if (filters.academicYear) params.append('academicYear', filters.academicYear);
-      if (filters.semester) params.append('semester', filters.semester);
+  if (filters.semester) params.append('semester', filters.semester);
+  if (filters.search) params.append('search', filters.search.trim());
 
       const response = await apiClient.get(
         `/projects/exam-results/project1/pending${params.toString() ? `?${params.toString()}` : ''}`

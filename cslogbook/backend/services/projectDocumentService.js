@@ -919,7 +919,7 @@ class ProjectDocumentService {
         note: project1DefenseRequest.defenseNote
       }
       : null;
-    const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled'].includes(project1DefenseRequest.status);
+  const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled', 'completed'].includes(project1DefenseRequest.status);
 
     const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
     const approvedMeetingLogs = studentMetrics.approvedLogs || 0;
