@@ -89,9 +89,11 @@ const projectService = {
   },
 
   // Acknowledge exam failed -> archive project
-  acknowledgeExamResult: async (projectId) => {
+  acknowledgeExamResult: async (projectId, examType = 'PROJECT1') => {
     try {
-      const res = await apiClient.patch(`/projects/${projectId}/exam-result/ack`);
+      const res = await apiClient.patch(`/projects/${projectId}/exam-result/acknowledge`, {
+        examType
+      });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถรับทราบผลสอบได้');

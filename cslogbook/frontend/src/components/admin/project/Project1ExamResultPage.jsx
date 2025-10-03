@@ -86,7 +86,9 @@ const Project1ExamResultPage = () => {
   const fetchPendingProjects = useCallback(async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = {
+        status: filters.status
+      };
       if (filters.academicYear) {
         params.academicYear = filters.academicYear;
       }
@@ -98,18 +100,7 @@ const Project1ExamResultPage = () => {
       }
 
       const response = await projectExamResultService.getProject1PendingResults(params);
-      let projectList = response.data || [];
-
-      // กรองตาม status
-      if (filters.status && filters.status !== 'all') {
-        projectList = projectList.filter((project) => {
-          const hasResult = project.examResults && project.examResults.length > 0;
-          if (filters.status === 'pending') return !hasResult;
-          if (filters.status === 'passed') return hasResult && project.examResults[0].result === 'PASS';
-          if (filters.status === 'failed') return hasResult && project.examResults[0].result === 'FAIL';
-          return true;
-        });
-      }
+      const projectList = response.data || [];
 
       setProjects(projectList);
     } catch (error) {

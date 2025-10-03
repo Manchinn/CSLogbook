@@ -13,6 +13,7 @@ class ProjectExamResultService {
       const params = new URLSearchParams();
       if (filters.academicYear) params.append('academicYear', filters.academicYear);
   if (filters.semester) params.append('semester', filters.semester);
+      if (filters.status) params.append('status', filters.status);
   if (filters.search) params.append('search', filters.search.trim());
 
       const response = await apiClient.get(

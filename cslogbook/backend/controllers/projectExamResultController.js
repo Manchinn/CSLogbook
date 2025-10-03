@@ -12,12 +12,13 @@ class ProjectExamResultController {
    */
   async getProject1PendingResults(req, res) {
     try {
-      const { academicYear, semester, search } = req.query;
+      const { academicYear, semester, search, status } = req.query;
 
       const projects = await projectExamResultService.getProject1PendingResults({
         academicYear,
         semester,
-        search
+        search,
+        status
       });
 
       res.status(200).json({

@@ -6,11 +6,14 @@ const {
   User,
   Teacher,
   ProjectDefenseRequest,
+  Academic,
   sequelize
 } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const projectDocumentService = require('./projectDocumentService');
+const projectWorkflowService = require('./projectWorkflowService');
+const dayjs = require('dayjs');
 
 const DEFENSE_READY_STATUSES = ['staff_verified', 'scheduled', 'completed'];
 
@@ -58,7 +61,7 @@ class ProjectExamResultService {
   /**
    * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ PROJECT1
    */
-  async getProject1PendingResults({ academicYear, semester, search } = {}) {
+  async getProject1PendingResults({ academicYear, semester, search, status } = {}) {
     try {
       const whereClause = {};
 
@@ -91,17 +94,49 @@ class ProjectExamResultService {
         order: [['projectId', 'ASC']]
       });
 
-      let projectList = projects
-        .filter((project) => !project.examResults || project.examResults.length === 0)
-        .map((project) => {
-          const json = project.toJSON();
-          const normalizedId = json.projectId ?? json.project_id ?? null;
+      const normalizedStatus = (status || 'pending').toLowerCase();
 
-          return {
-            ...json,
-            projectId: normalizedId != null ? Number(normalizedId) : null
-          };
-        });
+      let projectList = projects.map((project) => {
+        const json = project.toJSON();
+        const normalizedId = json.projectId ?? json.project_id ?? null;
+        const sortedExamResults = Array.isArray(json.examResults)
+          ? [...json.examResults].sort((a, b) => {
+              const aTime = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+              const bTime = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+              return bTime - aTime;
+            })
+          : [];
+
+        return {
+          ...json,
+          projectId: normalizedId != null ? Number(normalizedId) : null,
+          examResults: sortedExamResults
+        };
+      });
+
+      switch (normalizedStatus) {
+        case 'pending':
+          projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
+          break;
+        case 'passed':
+          projectList = projectList.filter(
+            (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'PASS'
+          );
+          break;
+        case 'failed':
+          projectList = projectList.filter(
+            (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'FAIL'
+          );
+          break;
+        case 'all':
+          // ไม่กรอง
+          break;
+          break;
+        default:
+          // สำหรับค่าที่ไม่รู้จัก ให้ถือว่า pending เพื่อความเข้ากันได้ย้อนหลัง
+          projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
+          break;
+      }
 
       if (search) {
         const keyword = search.trim().toLowerCase();
@@ -219,6 +254,22 @@ class ProjectExamResultService {
         transaction,
         projectInstance: project
       });
+
+      if (examType === 'PROJECT1' && result === 'PASS') {
+        const canUnlock = await this._canUnlockNextPhase(project, transaction);
+        if (canUnlock) {
+          for (const member of project.members || []) {
+            if (!member.studentId) {
+              continue;
+            }
+            await projectWorkflowService.unlockNextPhase(
+              member.studentId,
+              'PROJECT1_DEFENSE_RESULT',
+              transaction
+            );
+          }
+        }
+      }
 
       await this._sendExamResultNotifications(project, examResult);
 
@@ -384,6 +435,83 @@ class ProjectExamResultService {
   /**
    * ส่งการแจ้งเตือนผลสอบ
    */
+  async _canUnlockNextPhase(project, transaction) {
+    try {
+      if (!project || !project.semester) {
+        return false;
+      }
+
+      const nextSemester = project.semester === 3 ? 1 : project.semester + 1;
+
+      if (!nextSemester || nextSemester === project.semester) {
+        return false;
+      }
+
+      const whereCandidates = [];
+      if (project.academicYear) {
+        whereCandidates.push({ academicYear: project.academicYear });
+      }
+      whereCandidates.push({ isCurrent: true });
+
+      let academicSettings = null;
+      for (const where of whereCandidates) {
+        academicSettings = await Academic.findOne({
+          where,
+          order: [['updated_at', 'DESC']],
+          transaction
+        });
+        if (academicSettings) {
+          break;
+        }
+      }
+
+      if (!academicSettings) {
+        logger.warn('ข้ามการปลดล็อก Phase 2: ไม่พบข้อมูลปีการศึกษา', {
+          projectId: project.projectId
+        });
+        return false;
+      }
+
+      const rangeField = nextSemester === 1 ? 'semester1Range' : nextSemester === 2 ? 'semester2Range' : 'semester3Range';
+      const rangeValue = academicSettings[rangeField];
+
+      if (!rangeValue || !rangeValue.start) {
+        logger.info('ข้ามการปลดล็อก Phase 2: ยังไม่มีช่วงภาคเรียนถัดไปหรือยังไม่กำหนดวันที่เริ่มต้น', {
+          projectId: project.projectId,
+          nextSemester
+        });
+        return false;
+      }
+
+      const start = dayjs(rangeValue.start);
+
+      if (!start.isValid()) {
+        logger.warn('ข้ามการปลดล็อก Phase 2: ค่ากำหนดวันเริ่มภาคเรียนถัดไปไม่ถูกต้อง', {
+          projectId: project.projectId,
+          nextSemester,
+          start: rangeValue.start
+        });
+        return false;
+      }
+
+      const now = dayjs();
+
+      if (start.isAfter(now)) {
+        logger.info('ข้ามการปลดล็อก Phase 2: ภาคเรียนถัดไปยังไม่เปิด', {
+          projectId: project.projectId,
+          nextSemester,
+          startsAt: start.toISOString()
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      logger.error('Error in _canUnlockNextPhase:', error);
+      return false;
+    }
+  }
+
   async _sendExamResultNotifications(project, examResult) {
     try {
       const examTypeTh = examResult.examType === 'PROJECT1' ? 'โครงงานพิเศษ 1' : 'ปริญญานิพนธ์';
