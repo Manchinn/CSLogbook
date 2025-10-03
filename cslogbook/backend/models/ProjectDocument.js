@@ -32,6 +32,11 @@ module.exports = (sequelize) => {
                 foreignKey: 'project_id',
                 as: 'defenseRequests'
             });
+            // ความสัมพันธ์กับผลสอบโครงงาน
+            ProjectDocument.hasMany(models.ProjectExamResult, {
+                foreignKey: 'project_id',
+                as: 'examResults'
+            });
         }
     }
 
