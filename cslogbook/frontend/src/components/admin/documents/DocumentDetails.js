@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Tabs } from 'antd';
+import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Tabs, Alert } from 'antd';
 import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import dayjs from '../../../utils/dayjs'; // ใช้ dayjs ที่ตั้งค่า timezone + BE
 import { documentService } from '../../../services/admin/documentService';
@@ -33,7 +33,9 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       })
       .catch((error) => {
         console.error('Error fetching document details:', error);
-        setError(error);
+        const errorMessage = error?.message || 'เกิดข้อผิดพลาดในการโหลดรายละเอียดเอกสาร';
+        setError(errorMessage);
+        message.error(errorMessage);
       })
       .finally(() => setLoading(false));
   }, [documentId]);
@@ -310,6 +312,16 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       destroyOnHidden={true}
       className="document-detail-modal"
     >
+      {error && (
+        <Alert
+          type="error"
+          showIcon
+          message="ไม่สามารถโหลดรายละเอียดเอกสารได้"
+          description={error}
+          style={{ marginBottom: '16px' }}
+        />
+      )}
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
           <Spin size="large" tip="กำลังโหลดข้อมูล..." />

@@ -18,8 +18,8 @@ export function useSummaryData() {
   const [isCS05Approved, setIsCS05Approved] = useState(false);
   const [totalApprovedHours, setTotalApprovedHours] = useState(0);
   const [weeklyData, setWeeklyData] = useState([]);
-  const [skillCategories, setSkillCategories] = useState([]);
-  const [skillTags, setSkillTags] = useState([]);
+  const skillCategories = [];
+  const skillTags = [];
   const [reflection, setReflection] = useState(null);
   const [evaluationFormSent, setEvaluationFormSent] = useState(false);
   const [evaluationSentDate, setEvaluationSentDate] = useState(null);

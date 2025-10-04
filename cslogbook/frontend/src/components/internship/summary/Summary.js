@@ -10,9 +10,7 @@ import {
   Alert,
   Typography,
   Badge,
-  Tag,
   Progress,
-  Empty,
   Result,
   message,
   Spin,
@@ -26,15 +24,12 @@ import {
   AuditOutlined,
   ProfileOutlined,
   FilePdfOutlined,
-  PrinterOutlined,
   MailOutlined,
   UserOutlined,
   TeamOutlined,
   PhoneOutlined,
-  SendOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
 
 // Import styles
 import "./styles/variables.css";
@@ -96,7 +91,6 @@ const InternshipSummary = () => {
     skillTags,
     reflection,
     evaluationFormSent,
-    evaluationSentDate,
     setReflection,
     fetchSummaryData: refreshData,
   } = useSummaryData();

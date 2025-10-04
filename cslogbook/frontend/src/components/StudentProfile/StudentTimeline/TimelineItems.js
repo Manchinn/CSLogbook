@@ -37,7 +37,6 @@ const TimelineItems = ({ items = [], onAction }) => {
     }
     
     // ตรวจสอบการมีอยู่ของค่าต่างๆ
-    const hasName = item.name || item.title;
     const title = item.name || item.title || 'ไม่มีชื่อขั้นตอน';
     const description = item.desc || item.description;
     
