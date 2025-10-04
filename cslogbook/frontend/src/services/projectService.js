@@ -89,9 +89,11 @@ const projectService = {
   },
 
   // Acknowledge exam failed -> archive project
-  acknowledgeExamResult: async (projectId) => {
+  acknowledgeExamResult: async (projectId, examType = 'PROJECT1') => {
     try {
-      const res = await apiClient.patch(`/projects/${projectId}/exam-result/ack`);
+      const res = await apiClient.patch(`/projects/${projectId}/exam-result/acknowledge`, {
+        examType
+      });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถรับทราบผลสอบได้');
@@ -104,6 +106,15 @@ const projectService = {
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถดึงข้อมูลคำขอสอบได้');
+    }
+  },
+
+  getProjectExamResult: async (projectId, params = {}) => {
+    try {
+      const res = await apiClient.get(`/projects/${projectId}/exam-result`, { params });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงผลสอบโครงงานได้');
     }
   },
 
@@ -223,6 +234,83 @@ const projectService = {
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'อัปโหลด Proposal ไม่สำเร็จ');
+    }
+  },
+
+  getSystemTestRequest: async (projectId) => {
+    try {
+      const res = await apiClient.get(`/projects/${projectId}/system-test/request`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงข้อมูลคำขอทดสอบระบบได้');
+    }
+  },
+
+  submitSystemTestRequest: async (projectId, payload = {}) => {
+    const formData = new FormData();
+    if (payload.testStartDate) formData.append('testStartDate', payload.testStartDate);
+    if (payload.testPeriodStart) formData.append('testPeriodStart', payload.testPeriodStart);
+    if (payload.testPeriodEnd) formData.append('testPeriodEnd', payload.testPeriodEnd);
+    if (payload.testDueDate) formData.append('testDueDate', payload.testDueDate);
+    if (payload.studentNote) formData.append('studentNote', payload.studentNote);
+    if (payload.requestFile) formData.append('requestFile', payload.requestFile);
+
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/system-test/request`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถส่งคำขอทดสอบระบบได้');
+    }
+  },
+
+  submitSystemTestAdvisorDecision: async (projectId, payload = {}) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/system-test/request/advisor-decision`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถบันทึกผลการพิจารณาได้');
+    }
+  },
+
+  submitSystemTestStaffDecision: async (projectId, payload = {}) => {
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/system-test/request/staff-decision`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถบันทึกผลการตรวจสอบได้');
+    }
+  },
+
+  uploadSystemTestEvidence: async (projectId, file) => {
+    const formData = new FormData();
+    formData.append('evidenceFile', file);
+    try {
+      const res = await apiClient.post(`/projects/${projectId}/system-test/request/evidence`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถอัปโหลดหลักฐานการประเมินได้');
+    }
+  },
+
+  listSystemTestAdvisorQueue: async () => {
+    try {
+      const res = await apiClient.get('/projects/system-test/advisor-queue');
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงรายการคำขอที่รออาจารย์พิจารณาได้');
+    }
+  },
+
+  listSystemTestStaffQueue: async (params = {}) => {
+    try {
+      const res = await apiClient.get('/projects/system-test/staff-queue', { params });
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถดึงรายการคำขอที่รอเจ้าหน้าที่ตรวจสอบได้');
     }
   }
 };

@@ -38,6 +38,14 @@ const CertificateTemplate = ({ data = {} }) => {
     // ข้อมูลอนุมัติ
     approvedBy: 'นางสาวจันทิมา อรรฆจิตต์',
     approverTitle: 'นักวิชาการศึกษา',
+
+    // ข้อมูลสถาบัน/เอกสารเพิ่มเติม
+    facultyName: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
+    programName: 'หลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาวิทยาการคอมพิวเตอร์',
+  institutionName: 'คณะวิทยาศาสตร์ประยุกต์',
+  certificateNumber: '',
+  issueLocation: 'ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ',
+  academicYear: '',
     
     // ✅ ผสานข้อมูลที่ส่งเข้ามา
     ...data
@@ -51,9 +59,8 @@ const CertificateTemplate = ({ data = {} }) => {
   
   const studentId = defaultData.studentId || 'รหัสนักศึกษา';
   const companyName = defaultData.companyName || 'สถานที่ฝึกงาน';
+  const issueLocation = defaultData.issueLocation || defaultData.facultyName;
   
-  const startDateThai = formatThaiDate(defaultData.internshipStartDate);
-  const endDateThai = formatThaiDate(defaultData.internshipEndDate);
   const certificateDateThai = formatThaiDate(defaultData.certificateDate);
 
   // ✅ Enhanced debug logging สำหรับตรวจสอบข้อมูล
@@ -115,69 +122,65 @@ const CertificateTemplate = ({ data = {} }) => {
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={certificateStyles.page}>
-        {/* เส้นขอบตกแต่ง */}
+        {/* เส้นขอบตกแต่งและลายน้ำแบบเรียบง่าย */}
         <View style={certificateStyles.decorativeBorder} />
-        <View style={certificateStyles.innerBorder} />
-        
-        {/* หัวข้อหลัก */}
-        <View style={certificateStyles.header}>
-          <Text style={certificateStyles.title}>หนังสือรับรองการฝึกงาน</Text>
-        </View>
-        
-        {/* ✅ ตารางข้อมูลนักศึกษา - แสดงข้อมูลจริง */}
-        <View style={certificateStyles.studentInfoTable}>
-          <View style={certificateStyles.tableRow}>
-            <Text style={certificateStyles.tableCellLabel}>ชื่อ - นามสกุล</Text>
-            <Text style={certificateStyles.tableCellValue}>{studentFullName}</Text>
-            <Text style={certificateStyles.tableCellLabel}>รหัสนักศึกษา</Text>
-            <Text style={certificateStyles.tableCellValueLast}>{studentId}</Text>
+        <Text style={certificateStyles.watermark}>KMUTNB</Text>
+
+        <View style={certificateStyles.contentWrapper}>
+          {/* ส่วนหัว */}
+          <View style={certificateStyles.header}>
+            <Text style={certificateStyles.title}>หนังสือรับรองการฝึกงาน</Text>
           </View>
-          <View style={certificateStyles.tableRowLast}>
-            <Text style={certificateStyles.tableCellLabel}>สถานที่ฝึกงาน</Text>
-            <Text style={certificateStyles.tableCellCompany}>
-              {companyName}
-            </Text>
+
+          {/* ตารางข้อมูลนักศึกษา */}
+          <View style={certificateStyles.studentInfoTable}>
+            <View style={[certificateStyles.tableRow, certificateStyles.tableRowBorder]}>
+              <Text style={certificateStyles.tableCellLabel}>ชื่อ - นามสกุล</Text>
+              <Text style={certificateStyles.tableCellValue}>{studentFullName}</Text>
+              <Text style={certificateStyles.tableCellLabel}>รหัสนักศึกษา</Text>
+              <Text style={certificateStyles.tableCellValue}>{studentId}</Text>
+            </View>
+            <View style={certificateStyles.tableRow}>
+              <Text style={certificateStyles.tableCellLabel}>สถานที่ฝึกงาน</Text>
+              <Text style={certificateStyles.tableCellValueWide}>{companyName}</Text>
+            </View>
           </View>
-        </View>
-        
-        {/* เนื้อหาหลัก */}
-        <View style={certificateStyles.mainContent}>
-          <Text style={certificateStyles.contentText}>
-            ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอรับรองว่า นักศึกษาได้ผ่านการฝึกงานภาคสนามตามหลักสูตรที่กำหนด (ไม่น้อยกว่า 240 ชั่วโมง) และส่งเอกสารหลังเสร็จสิ้นการฝึกงานเป็นที่เรียบร้อยแล้ว
+
+          {/* เนื้อหาหลักของเอกสาร */}
+          <Text style={certificateStyles.mainParagraph}>
+            ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอรับรองว่า นักศึกษาได้ผ่านการฝึกงานภาคสนามตามหลักสูตรที่กำหนด
+            {defaultData.totalHours ? ` (ไม่น้อยกว่า ${defaultData.totalHours} ชั่วโมง)` : ' (ไม่น้อยกว่า 240 ชั่วโมง)'}
+            และส่งเอกสารหลังเสร็จสิ้นการฝึกงานเป็นที่เรียบร้อยแล้ว
           </Text>
-        </View>
-        
-        {/* ✅ ส่วนตรวจสอบเอกสาร และ ลายเซ็น - ในแถวเดียวกัน */}
-        <View style={certificateStyles.bottomSection}>
-          {/* ส่วนซ้าย: ตรวจสอบเอกสาร */}
-          <View style={certificateStyles.checkboxSection}>
-            <Text style={certificateStyles.checkboxTitle}>ตรวจสอบเอกสาร</Text>
-            
-            <View style={certificateStyles.checkboxItem}>
-              <View style={defaultData.isCompleted ? certificateStyles.checkboxChecked : certificateStyles.checkbox}>
-                {defaultData.isCompleted && <Text style={{ color: '#ffffff', fontSize: 8 }}>✓</Text>}
+
+          {/* ส่วนล่าง: กล่องตรวจสอบเอกสาร + ลายเซ็น */}
+          <View style={certificateStyles.bottomRow}>
+            <View style={certificateStyles.checklistBox}>
+              <Text style={certificateStyles.checklistTitle}>ตรวจสอบเอกสาร</Text>
+
+              <View style={certificateStyles.checklistItem}>
+                <View style={defaultData.isCompleted ? certificateStyles.checkboxChecked : certificateStyles.checkbox}>
+                  {defaultData.isCompleted && <Text style={certificateStyles.checkboxMark}>✓</Text>}
+                </View>
+                <Text style={certificateStyles.checklistText}>ใบลงเวลาของนักศึกษาฝึกงาน</Text>
               </View>
-              <Text style={certificateStyles.checkboxText}>ใบลงเวลาของนักศึกษาฝึกงาน</Text>
-            </View>
-            
-            <View style={certificateStyles.checkboxItem}>
-              <View style={defaultData.isCompleted ? certificateStyles.checkboxChecked : certificateStyles.checkbox}>
-                {defaultData.isCompleted && <Text style={{ color: '#ffffff', fontSize: 8 }}>✓</Text>}
+
+              <View style={certificateStyles.checklistItem}>
+                <View style={defaultData.isCompleted ? certificateStyles.checkboxChecked : certificateStyles.checkbox}>
+                  {defaultData.isCompleted && <Text style={certificateStyles.checkboxMark}>✓</Text>}
+                </View>
+                <Text style={certificateStyles.checklistText}>แบบประเมินผลการฝึกงาน</Text>
               </View>
-              <Text style={certificateStyles.checkboxText}>แบบประเมินผลการฝึกงาน</Text>
-            </View>
-            
-            <View style={certificateStyles.checkboxItem}>
-              <View style={defaultData.isCompleted ? certificateStyles.checkboxChecked : certificateStyles.checkbox}>
-                {defaultData.isCompleted && <Text style={{ color: '#ffffff', fontSize: 8 }}>✓</Text>}
+
+              <View style={certificateStyles.checklistItem}>
+                <View style={defaultData.isCompleted ? certificateStyles.checkboxChecked : certificateStyles.checkbox}>
+                  {defaultData.isCompleted && <Text style={certificateStyles.checkboxMark}>✓</Text>}
+                </View>
+                <Text style={certificateStyles.checklistText}>สมุดบันทึกการปฏิบัติงาน</Text>
               </View>
-              <Text style={certificateStyles.checkboxText}>สมุดบันทึกการปฏิบัติงาน</Text>
             </View>
-          </View>
-          
-          {/* ส่วนขวา: ลายเซ็น */}
-          <View style={certificateStyles.signatureSection}>
-            <View style={certificateStyles.signatureBox}>
+
+            <View style={certificateStyles.signatureBlock}>
               <Text style={certificateStyles.signatureLabel}>ลงชื่อ..................................................</Text>
               <View style={certificateStyles.signatureLine} />
               <Text style={certificateStyles.signerName}>
@@ -186,18 +189,16 @@ const CertificateTemplate = ({ data = {} }) => {
               <Text style={certificateStyles.signerTitle}>
                 {defaultData.approverTitle || 'นักวิชาการศึกษา'}
               </Text>
+              <Text style={certificateStyles.signatureDate}>
+                ออกให้ ณ {issueLocation} วันที่ {certificateDateThai}
+              </Text>
             </View>
           </View>
-        </View>
-        
-        {/* วันที่ */}
-        <View style={certificateStyles.dateSection}>
-          <Text>วันที่ {certificateDateThai}</Text>
-        </View>
-        
-        {/* หมายเหตุ */}
-        <View style={certificateStyles.noteSection}>
-          <Text>**นักศึกษาส่งเอกสารฉบับนี้แก่อาจารย์ประจำวิชาของนักศึกษาแต่ละภาคการศึกษาด้วย**</Text>
+
+          {/* หมายเหตุ */}
+          <Text style={certificateStyles.note}>
+            **นักศึกษาส่งเอกสารฉบับนี้แก่อาจารย์ประจำวิชาของนักศึกษาแต่ละภาคการศึกษาด้วย**
+          </Text>
         </View>
       </Page>
     </Document>

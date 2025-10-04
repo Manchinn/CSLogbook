@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { 
   Form, Input, Button, DatePicker, Space, Typography, Divider,
   Row, Col, InputNumber, Alert, Card, Select, Checkbox,
@@ -131,7 +131,7 @@ const CS05FormStep = ({
       
       setHasTwoStudents(formData.hasTwoStudents || false);
     }
-  }, [form, studentData, formData, existingCS05]);
+  }, [form, studentData, formData, existingCS05, setTranscriptFile]);
 
   // เพิ่ม useEffect เพื่อตั้งค่าฟอร์มเมื่อมีข้อมูลเริ่มต้น
   React.useEffect(() => {

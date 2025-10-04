@@ -58,6 +58,11 @@ module.exports = (sequelize) => {
             type: DataTypes.ENUM('scheduled', 'in_progress', 'completed', 'cancelled'),
             defaultValue: 'scheduled'
         },
+        phase: {
+            type: DataTypes.ENUM('phase1', 'phase2'),
+            allowNull: false,
+            defaultValue: 'phase1'
+        },
         projectId: {
             type: DataTypes.INTEGER,
             allowNull: false,

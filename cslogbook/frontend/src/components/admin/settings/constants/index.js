@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Card, Typography, message } from 'antd';
+import { Tabs, Card, Typography } from 'antd';
 import AcademicSettings from './academic/AcademicSettings';
 import StatusSettings from './StatusSettings';
 import CurriculumSettings from './CurriculumSettings';

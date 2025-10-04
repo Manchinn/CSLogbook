@@ -11,6 +11,7 @@ import {
   Input,
   message,
   Modal,
+  Segmented,
   Select,
   Space,
   Spin,
@@ -50,6 +51,17 @@ const statusText = {
 
 dayjs.locale('th');
 
+const MEETING_PHASE_LABELS = {
+  phase1: 'โครงงานพิเศษ 1',
+  phase2: 'โครงงานพิเศษ 2'
+};
+
+const MEETING_PHASE_COLORS = {
+  phase1: 'purple',
+  phase2: 'geekblue'
+};
+
+const MEETING_PHASE_KEYS = ['phase1', 'phase2'];
 const MeetingLogbookPage = () => {
   const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
   const { userData } = useAuth();
@@ -61,6 +73,7 @@ const MeetingLogbookPage = () => {
   const [createLogOpen, setCreateLogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
+  const [activePhase, setActivePhase] = useState('phase1');
 
   const [createMeetingForm] = Form.useForm();
   const [createLogForm] = Form.useForm();
@@ -83,6 +96,60 @@ const MeetingLogbookPage = () => {
   }, [activeProject]);
 
   const isPostTopicLocked = !!activeProject && postTopicLockReasons.length > 0;
+
+  const phase2LockReasons = useMemo(() => {
+    if (!activeProject) return ['ยังไม่มีโครงงาน'];
+    const reasons = [];
+    if (activeProject.examResult !== 'passed') {
+      reasons.push('ผลสอบหัวข้อยังไม่ผ่าน');
+    }
+    if (!['in_progress', 'completed'].includes(activeProject.status || '')) {
+      reasons.push('สถานะโครงงานยังไม่อยู่ในขั้น "กำลังดำเนินการ"');
+    }
+    return reasons;
+  }, [activeProject]);
+
+  const canAccessPhase2 = phase2LockReasons.length === 0;
+
+  const segmentedOptions = useMemo(() => (
+    MEETING_PHASE_KEYS.map((phase) => ({
+      label: MEETING_PHASE_LABELS[phase],
+      value: phase,
+      disabled: phase === 'phase2' ? !canAccessPhase2 : false
+    }))
+  ), [canAccessPhase2]);
+
+  const meetingsByPhase = useMemo(() => {
+    return MEETING_PHASE_KEYS.reduce((acc, phase) => {
+      acc[phase] = (meetings || []).filter(meeting => (meeting?.phase || 'phase1') === phase);
+      return acc;
+    }, { phase1: [], phase2: [] });
+  }, [meetings]);
+
+  const defaultStatsSnapshot = useMemo(() => ({
+    totalMeetings: 0,
+    totalLogs: 0,
+    approvedLogs: 0,
+    pendingLogs: 0
+  }), []);
+
+  const statsByPhase = useMemo(() => {
+    const breakdown = stats?.phaseBreakdown || {};
+    return MEETING_PHASE_KEYS.reduce((acc, phase) => {
+      const source = breakdown?.[phase] || {};
+      acc[phase] = {
+        totalMeetings: source.totalMeetings ?? 0,
+        totalLogs: source.totalLogs ?? 0,
+        approvedLogs: source.approvedLogs ?? 0,
+        pendingLogs: source.pendingLogs ?? 0
+      };
+      return acc;
+    }, {});
+  }, [stats]);
+
+  const currentMeetings = meetingsByPhase[activePhase] || [];
+  const currentPhaseStats = statsByPhase[activePhase] || defaultStatsSnapshot;
+  const currentPhaseLabel = MEETING_PHASE_LABELS[activePhase] || MEETING_PHASE_LABELS.phase1;
 
   const fetchMeetings = useCallback(async () => {
     if (!activeProject?.projectId || isPostTopicLocked) return;
@@ -111,6 +178,20 @@ const MeetingLogbookPage = () => {
     }
   }, [activeProject?.projectId, fetchMeetings, isPostTopicLocked]);
 
+  useEffect(() => {
+    if (!canAccessPhase2 && activePhase === 'phase2') {
+      setActivePhase('phase1');
+    }
+  }, [canAccessPhase2, activePhase]);
+
+  useEffect(() => {
+    if (createMeetingOpen) {
+      createMeetingForm.setFieldsValue({
+        phase: canAccessPhase2 ? activePhase : 'phase1'
+      });
+    }
+  }, [createMeetingOpen, activePhase, canAccessPhase2, createMeetingForm]);
+
   const handleCreateMeeting = async () => {
     if (isPostTopicLocked) {
       const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
@@ -125,7 +206,8 @@ const MeetingLogbookPage = () => {
         meetingDate: values.meetingDate ? values.meetingDate.toISOString() : null,
         meetingMethod: values.meetingMethod,
         meetingLocation: values.meetingLocation || null,
-        meetingLink: values.meetingLink || null
+        meetingLink: values.meetingLink || null,
+        phase: values.phase || activePhase || 'phase1'
       };
       await meetingService.createMeeting(activeProject.projectId, payload);
       message.success('สร้างการประชุมสำเร็จ ระบบจะส่งอีเมลแจ้งผู้เข้าร่วมให้อัตโนมัติ');
@@ -200,107 +282,111 @@ const MeetingLogbookPage = () => {
     return dayjs(value).locale('th').format('DD MMM YYYY HH:mm');
   };
 
-  const collapseItems = meetings.map((meeting) => ({
-    key: meeting.meetingId,
-    label: (
-      <Space direction="vertical" size={0} style={{ width: '100%' }}>
-        <Space align="center" size={12}>
-          <CalendarOutlined style={{ color: '#1d4ed8' }} />
-          <span style={{ fontWeight: 600 }}>{meeting.meetingTitle}</span>
-          <Tag>{formatDateTime(meeting.meetingDate)}</Tag>
+  const collapseItems = currentMeetings.map((meeting) => {
+    const meetingPhase = meeting?.phase || 'phase1';
+    return {
+      key: meeting.meetingId,
+      label: (
+        <Space direction="vertical" size={0} style={{ width: '100%' }}>
+          <Space align="center" size={12}>
+            <CalendarOutlined style={{ color: '#1d4ed8' }} />
+            <span style={{ fontWeight: 600 }}>{meeting.meetingTitle}</span>
+            <Tag>{formatDateTime(meeting.meetingDate)}</Tag>
+            <Tag color={MEETING_PHASE_COLORS[meetingPhase] || 'purple'} bordered={false}>{MEETING_PHASE_LABELS[meetingPhase]}</Tag>
+          </Space>
+          <Space size={8} wrap>
+            <Tag color="geekblue">{meeting.meetingMethod === 'onsite' ? 'onsite' : meeting.meetingMethod === 'online' ? 'online' : 'hybrid'}</Tag>
+            {meeting.status && <Tag color="purple">{meeting.status}</Tag>}
+            <Tag icon={<TeamOutlined />}>{meeting.participants?.length || 0} ผู้เข้าร่วม</Tag>
+          </Space>
         </Space>
-        <Space size={8} wrap>
-          <Tag color="geekblue">{meeting.meetingMethod === 'onsite' ? 'onsite' : meeting.meetingMethod === 'online' ? 'online' : 'hybrid'}</Tag>
-          {meeting.status && <Tag color="purple">{meeting.status}</Tag>}
-          <Tag icon={<TeamOutlined />}>{meeting.participants?.length || 0} ผู้เข้าร่วม</Tag>
-        </Space>
-      </Space>
-    ),
-    children: (
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <Space direction="vertical" size={4}>
-          {meeting.meetingLocation && (
-            <div style={{ fontSize: 13, color: '#475569' }}>สถานที่: {meeting.meetingLocation}</div>
-          )}
-          {meeting.meetingLink && (
-            <div style={{ fontSize: 13, color: '#475569' }}>ลิงก์: <a href={meeting.meetingLink} target="_blank" rel="noreferrer">เปิดลิงก์</a></div>
-          )}
-        </Space>
+      ),
+      children: (
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Space direction="vertical" size={4}>
+            {meeting.meetingLocation && (
+              <div style={{ fontSize: 13, color: '#475569' }}>สถานที่: {meeting.meetingLocation}</div>
+            )}
+            {meeting.meetingLink && (
+              <div style={{ fontSize: 13, color: '#475569' }}>ลิงก์: <a href={meeting.meetingLink} target="_blank" rel="noreferrer">เปิดลิงก์</a></div>
+            )}
+          </Space>
 
-        <Space align="center" style={{ justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 13, color: '#64748b' }}>
-            บันทึกล่าสุด: {meeting.logs?.length ? formatDateTime(meeting.logs[0].createdAt) : 'ยังไม่มี'}
-          </div>
-          {canManage && (
-            <Space>
-              <Tooltip title="เพิ่ม log สำหรับการพบครั้งนี้">
-                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleOpenLogModal(meeting)}>
-                  บันทึกการพบ
-                </Button>
-              </Tooltip>
-            </Space>
+          <Space align="center" style={{ justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 13, color: '#64748b' }}>
+              บันทึกล่าสุด: {meeting.logs?.length ? formatDateTime(meeting.logs[0].createdAt) : 'ยังไม่มี'}
+            </div>
+            {canManage && (
+              <Space>
+                <Tooltip title="เพิ่ม log สำหรับการพบครั้งนี้">
+                  <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleOpenLogModal(meeting)}>
+                    บันทึกการพบ
+                  </Button>
+                </Tooltip>
+              </Space>
+            )}
+          </Space>
+
+          {meeting.logs?.length ? meeting.logs.map((log) => (
+            <Card key={log.logId} size="small" title={log.discussionTopic} extra={<Tag color={statusColors[log.approvalStatus] || 'default'}>{statusText[log.approvalStatus] || log.approvalStatus}</Tag>}>
+              <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                <div style={{ fontSize: 13, color: '#475569' }}>บันทึกเมื่อ: {formatDateTime(log.createdAt)}</div>
+                {log.recorder?.fullName && (
+                  <div style={{ fontSize: 13, color: '#475569' }}>ผู้บันทึก: {log.recorder.fullName}</div>
+                )}
+                <div style={{ whiteSpace: 'pre-wrap' }}><strong>ความคืบหน้า:</strong> {log.currentProgress || '-'}</div>
+                {log.problemsIssues && (
+                  <div style={{ whiteSpace: 'pre-wrap' }}><strong>ปัญหา/อุปสรรค:</strong> {log.problemsIssues}</div>
+                )}
+                <div style={{ whiteSpace: 'pre-wrap' }}><strong>งานถัดไป:</strong> {log.nextActionItems || '-'}</div>
+                {log.advisorComment && (
+                  <Alert type="info" showIcon message="หมายเหตุจากอาจารย์" description={log.advisorComment} />
+                )}
+                {canApprove && (
+                  <Space wrap>
+                    <Button
+                      size="small"
+                      icon={<CheckCircleOutlined />}
+                      type="primary"
+                      ghost
+                      loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-approved`}
+                      onClick={() => handleApproval(meeting.meetingId, log.logId, 'approved')}
+                    >
+                      อนุมัติ
+                    </Button>
+                    <Button
+                      size="small"
+                      danger
+                      icon={<CloseCircleOutlined />}
+                      loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-rejected`}
+                      onClick={() => handleApproval(meeting.meetingId, log.logId, 'rejected')}
+                    >
+                      ขอปรับปรุง
+                    </Button>
+                    <Button
+                      size="small"
+                      icon={<ClockCircleOutlined />}
+                      loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-pending`}
+                      onClick={() => handleApproval(meeting.meetingId, log.logId, 'pending')}
+                    >
+                      รีเซ็ตสถานะ
+                    </Button>
+                  </Space>
+                )}
+              </Space>
+            </Card>
+          )) : (
+            <Empty description="ยังไม่มีบันทึกการพบในครั้งนี้" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
         </Space>
-
-        {meeting.logs?.length ? meeting.logs.map((log) => (
-          <Card key={log.logId} size="small" title={log.discussionTopic} extra={<Tag color={statusColors[log.approvalStatus] || 'default'}>{statusText[log.approvalStatus] || log.approvalStatus}</Tag>}>
-            <Space direction="vertical" size={6} style={{ width: '100%' }}>
-              <div style={{ fontSize: 13, color: '#475569' }}>บันทึกเมื่อ: {formatDateTime(log.createdAt)}</div>
-              {log.recorder?.fullName && (
-                <div style={{ fontSize: 13, color: '#475569' }}>ผู้บันทึก: {log.recorder.fullName}</div>
-              )}
-              <div style={{ whiteSpace: 'pre-wrap' }}><strong>ความคืบหน้า:</strong> {log.currentProgress || '-'}</div>
-              {log.problemsIssues && (
-                <div style={{ whiteSpace: 'pre-wrap' }}><strong>ปัญหา/อุปสรรค:</strong> {log.problemsIssues}</div>
-              )}
-              <div style={{ whiteSpace: 'pre-wrap' }}><strong>งานถัดไป:</strong> {log.nextActionItems || '-'}</div>
-              {log.advisorComment && (
-                <Alert type="info" showIcon message="หมายเหตุจากอาจารย์" description={log.advisorComment} />
-              )}
-              {canApprove && (
-                <Space wrap>
-                  <Button
-                    size="small"
-                    icon={<CheckCircleOutlined />}
-                    type="primary"
-                    ghost
-                    loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-approved`}
-                    onClick={() => handleApproval(meeting.meetingId, log.logId, 'approved')}
-                  >
-                    อนุมัติ
-                  </Button>
-                  <Button
-                    size="small"
-                    danger
-                    icon={<CloseCircleOutlined />}
-                    loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-rejected`}
-                    onClick={() => handleApproval(meeting.meetingId, log.logId, 'rejected')}
-                  >
-                    ขอปรับปรุง
-                  </Button>
-                  <Button
-                    size="small"
-                    icon={<ClockCircleOutlined />}
-                    loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-pending`}
-                    onClick={() => handleApproval(meeting.meetingId, log.logId, 'pending')}
-                  >
-                    รีเซ็ตสถานะ
-                  </Button>
-                </Space>
-              )}
-            </Space>
-          </Card>
-        )) : (
-          <Empty description="ยังไม่มีบันทึกการพบในครั้งนี้" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        )}
-      </Space>
-    )
-  }));
+      )
+    };
+  });
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
-        <Space>
+      <Space align="center" style={{ justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 12 }}>
+        <Space wrap>
           <Button
             icon={<ReloadOutlined />}
             onClick={() => {
@@ -330,6 +416,11 @@ const MeetingLogbookPage = () => {
             </Button>
           )}
         </Space>
+        <Segmented
+          options={segmentedOptions}
+          value={activePhase}
+          onChange={(value) => setActivePhase(value)}
+        />
       </Space>
 
       <Alert
@@ -340,11 +431,17 @@ const MeetingLogbookPage = () => {
       />
 
       <Card>
-        <Space size={16} wrap>
-          <Statistic title="จำนวนการพบทั้งหมด" value={stats?.totalMeetings ?? 0} prefix={<CalendarOutlined />} />
-          <Statistic title="บันทึกทั้งหมด" value={stats?.totalLogs ?? 0} prefix={<ClockCircleOutlined />} />
-          <Statistic title="อนุมัติแล้ว" value={stats?.approvedLogs ?? 0} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#16a34a' }} />
-          <Statistic title="รออนุมัติ" value={stats?.pendingLogs ?? 0} prefix={<MailOutlined />} valueStyle={{ color: '#2563eb' }} />
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Space align="center" size={8} wrap>
+            <Tag color={MEETING_PHASE_COLORS[activePhase] || 'purple'} bordered={false}>{currentPhaseLabel}</Tag>
+            <span style={{ color: '#64748b', fontSize: 13 }}>ข้อมูลด้านล่างจะแสดงเฉพาะช่วงนี้</span>
+          </Space>
+          <Space size={16} wrap>
+            <Statistic title="จำนวนการพบทั้งหมด" value={currentPhaseStats.totalMeetings} prefix={<CalendarOutlined />} />
+            <Statistic title="บันทึกทั้งหมด" value={currentPhaseStats.totalLogs} prefix={<ClockCircleOutlined />} />
+            <Statistic title="อนุมัติแล้ว" value={currentPhaseStats.approvedLogs} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#16a34a' }} />
+            <Statistic title="รออนุมัติ" value={currentPhaseStats.pendingLogs} prefix={<MailOutlined />} valueStyle={{ color: '#2563eb' }} />
+          </Space>
         </Space>
       </Card>
 
@@ -389,6 +486,16 @@ const MeetingLogbookPage = () => {
         destroyOnClose
       >
         <Form layout="vertical" form={createMeetingForm}>
+          <Form.Item
+            name="phase"
+            label="ช่วงโครงงาน"
+            rules={[{ required: true, message: 'กรุณาเลือกช่วงโครงงาน' }]}
+          >
+            <Select>
+              <Select.Option value="phase1">{MEETING_PHASE_LABELS.phase1}</Select.Option>
+              <Select.Option value="phase2" disabled={!canAccessPhase2}>{MEETING_PHASE_LABELS.phase2}</Select.Option>
+            </Select>
+          </Form.Item>
           <Form.Item name="meetingTitle" label="หัวข้อการประชุม" rules={[{ required: true, message: 'กรุณาระบุหัวข้อการประชุม' }]}> 
             <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
           </Form.Item>

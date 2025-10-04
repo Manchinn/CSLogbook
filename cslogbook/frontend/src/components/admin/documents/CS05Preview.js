@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
-import { Card, Typography, Row, Col, Divider, Space } from 'antd';
+import { Card, Typography, Divider, Space } from 'antd';
 import moment from 'moment';
 import 'moment/locale/th';
-import dayjs from 'dayjs';
-import 'dayjs/locale/th';
 
 const { Title, Paragraph, Text } = Typography;
 

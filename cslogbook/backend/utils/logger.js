@@ -34,54 +34,73 @@ const logFormat = winston.format.combine(
   })
 );
 
+const isJest = Boolean(process.env.JEST_WORKER_ID);
+const resolveConsoleLogging = () => {
+  if (typeof process.env.LOG_ENABLE_CONSOLE !== 'undefined') {
+    return process.env.LOG_ENABLE_CONSOLE !== 'false';
+  }
+  if (isJest || process.env.NODE_ENV === 'test') {
+    return false;
+  }
+  // ใน production ปิด console เพื่อไม่ให้ stdout รก ยกเว้นตั้งค่าเปิดไว้ชัดเจน
+  return process.env.NODE_ENV !== 'production';
+};
+
 // สร้าง logger ด้วย winston
+const transports = [
+  // บันทึก error ลงในไฟล์
+  new winston.transports.File({
+    filename: path.join(logDir, 'error.log'),
+    level: 'error',
+    maxsize: 5242880, // 5MB
+    maxFiles: 10,
+  }),
+
+  // บันทึก log ทั้งหมดลงในไฟล์
+  new winston.transports.File({
+    filename: path.join(logDir, 'app.log'),
+    maxsize: 10485760, // 10MB
+    maxFiles: 10,
+  }),
+
+  // บันทึก log เฉพาะส่วนของ agent ลงในไฟล์แยก
+  new winston.transports.File({
+    filename: path.join(logDir, 'agents.log'),
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
+    format: winston.format.combine(
+      winston.format((info) => {
+        const message = (info.message || '').toLowerCase();
+        const hasAgentKeyword = message.includes('agent');
+
+        if (!hasAgentKeyword && !info.agent) {
+          return false; // ข้าม log ที่ไม่เกี่ยวข้องกับ agent
+        }
+
+        return info;
+      })(),
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+      winston.format.printf((info) => `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`)
+    )
+  })
+];
+
+if (resolveConsoleLogging()) {
+  transports.push(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  );
+}
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info', // ระดับการบันทึก log (debug, info, warn, error)
   format: logFormat,
   defaultMeta: { service: 'cslogbook' },
-  transports: [
-    // บันทึก error ลงในไฟล์
-    new winston.transports.File({ 
-      filename: path.join(logDir, 'error.log'), 
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 10,
-    }),
-    
-    // บันทึก log ทั้งหมดลงในไฟล์
-    new winston.transports.File({ 
-      filename: path.join(logDir, 'app.log'),
-      maxsize: 10485760, // 10MB
-      maxFiles: 10, 
-    }),
-    
-    // บันทึก log เฉพาะส่วนของ agent ลงในไฟล์แยก
-    new winston.transports.File({ 
-      filename: path.join(logDir, 'agents.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-      format: winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-        winston.format.printf(info => {
-          // บันทึกเฉพาะ log ที่เกี่ยวข้องกับ agent
-          if (info.message && (info.message.includes('Agent') || info.message.includes('agent'))) {
-            return `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`;
-          }
-          return null;
-        })
-      )
-    }),
-    
-    // แสดง log ใน console เมื่ออยู่ใน development mode
-    ...(process.env.NODE_ENV !== 'production' ? [
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      })
-    ] : [])
-  ]
+  transports
 });
 
 // เพิ่ม transport สำหรับบันทึก log ของการ authentication
@@ -91,21 +110,23 @@ logger.add(new winston.transports.File({
   maxsize: 5242880, // 5MB
   maxFiles: 5,
   format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.printf(info => {
-      // บันทึกเฉพาะ log ที่เกี่ยวข้องกับการ authenticate
-      if (info.message && (
-        info.message.includes('login') || 
-        info.message.includes('auth') || 
-        info.message.includes('password') ||
-        info.message.includes('jwt') ||
-        info.message.includes('token') ||
-        info.message.includes('user:')
-      )) {
-        return `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`;
+    winston.format((info) => {
+      const message = info.message ? info.message.toLowerCase() : '';
+      const matched = message.includes('login')
+        || message.includes('auth')
+        || message.includes('password')
+        || message.includes('jwt')
+        || message.includes('token')
+        || message.includes('user:');
+
+      if (!matched) {
+        return false; // ข้าม log ที่ไม่เกี่ยวข้องกับการ authenticate
       }
-      return null;
-    })
+
+      return info;
+    })(),
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+    winston.format.printf((info) => `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`)
   )
 }));
 
@@ -116,15 +137,27 @@ logger.add(new winston.transports.File({
   maxsize: 5242880, // 5MB
   maxFiles: 5,
   format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.printf(info => {
-      // เงื่อนไข: มี meta.notificationType หรือ ข้อความมีคำสำคัญเกี่ยวกับการแจ้งเตือนอีเมล
+    winston.format((info) => {
       const msg = info.message || '';
-      const matched = info.notificationType || /(การแจ้งเตือน|Logbook|อนุมัติ|ประเมิน)/.test(msg);
-      if (matched) {
-        return `[${info.timestamp}] ${info.level.toUpperCase()}: ${msg}` + (info.notificationType ? ` {"notificationType":"${info.notificationType}"}` : '') + (Object.keys(info).some(k => !['level','message','timestamp','notificationType','service'].includes(k)) ? ` ${JSON.stringify(Object.fromEntries(Object.entries(info).filter(([k]) => !['level','message','timestamp'].includes(k))))}` : '');
+      const matched = info.notificationType || /(การแจ้งเตือน|logbook|อนุมัติ|ประเมิน)/i.test(msg);
+
+      if (!matched) {
+        return false; // ข้าม log ที่ไม่เกี่ยวข้องกับการแจ้งเตือน
       }
-      return null; // ข้ามถ้าไม่เข้าเงื่อนไข
+
+      return info;
+    })(),
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+    winston.format.printf((info) => {
+      const msg = info.message || '';
+      const base = `[${info.timestamp}] ${info.level.toUpperCase()}: ${msg}`;
+
+      const notificationMeta = info.notificationType ? ` {"notificationType":"${info.notificationType}"}` : '';
+
+      const extraMetaEntries = Object.entries(info).filter(([key]) => !['level', 'message', 'timestamp', 'notificationType', 'service'].includes(key));
+      const extraMeta = extraMetaEntries.length > 0 ? ` ${JSON.stringify(Object.fromEntries(extraMetaEntries))}` : '';
+
+      return `${base}${notificationMeta}${extraMeta}`;
     })
   )
 }));

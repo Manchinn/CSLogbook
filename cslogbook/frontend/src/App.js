@@ -30,10 +30,11 @@ import ProjectDraftDetail from './components/project/phase1/ProjectDraftDetail';
 import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
 import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
 import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
+import SystemTestRequestPage from './components/project/phase1/steps/SystemTestRequestPage';
 import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
 import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
-import ScopeAdjustPage from './components/project/phase1/steps/ScopeAdjustPage';
 import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
+import { Phase2Dashboard } from './components/project/phase2';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -47,6 +48,8 @@ import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview'
 import MeetingApprovals from './components/teacher/MeetingApprovals';
 import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
 import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
+import AdvisorSystemTestQueue from './components/teacher/systemTest/AdvisorQueue';
+import StaffSystemTestQueue from './components/teacher/systemTest/StaffQueue';
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -184,11 +187,20 @@ const App = () => {
                   <Route path="proposal-revision" element={<ProposalRevisionPage />} />
                   <Route path="exam-submit" element={<ExamSubmitPage />} />
                   <Route path="exam-day" element={<ExamDayPage />} />
-                  <Route path="scope-adjust" element={<ScopeAdjustPage />} />
                 </Route>
                 <Route path="/project/phase1/draft/:id" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectDraftDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project/phase2" element={
+                  <ProtectedRoute roles={['student']}>
+                    <Phase2Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project/phase2/system-test" element={
+                  <ProtectedRoute roles={['student']}>
+                    <SystemTestRequestPage />
                   </ProtectedRoute>
                 } />
                 
@@ -240,6 +252,11 @@ const App = () => {
                     <AdvisorKP02Queue />
                   </ProtectedRoute>
                 } />
+                <Route path="/teacher/system-test/advisor-queue" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <AdvisorSystemTestQueue />
+                  </ProtectedRoute>
+                } />
                 <Route path="/approve-documents" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <ApproveDocuments />
@@ -271,6 +288,18 @@ const App = () => {
                     }
                   >
                     <StaffKP02Queue />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/system-test/staff-queue" element={
+                  <ProtectedRoute
+                    roles={['admin', 'teacher']}
+                    condition={(user) =>
+                      user.role === 'admin' ||
+                      user.teacherType === 'support' ||
+                      Boolean(user.canExportProject1)
+                    }
+                  >
+                    <StaffSystemTestQueue />
                   </ProtectedRoute>
                 } />
               

@@ -714,6 +714,51 @@ function Dashboard() {
     );
   }
 
+  const STATUS_LABELS = {
+    common: {
+      not_started: "ยังไม่เริ่ม",
+      pending: "รอดำเนินการ",
+      pending_approval: "รอการอนุมัติ",
+      awaiting_approval: "รอการอนุมัติ",
+      awaiting_action: "รอดำเนินการ",
+      awaiting_student_action: "รอการดำเนินการจากนักศึกษา",
+      awaiting_admin_action: "รอเจ้าหน้าที่ดำเนินการ",
+      in_progress: "กำลังดำเนินการ",
+      completed: "เสร็จสิ้น",
+      enrolled: "ลงทะเบียนแล้ว",
+      eligible: "ผ่านเงื่อนไข",
+      blocked: "ติดขัดต้องแก้ไข",
+      rejected: "ถูกปฏิเสธ",
+      overdue: "เกินกำหนด",
+    },
+    internship: {
+      not_started: "ยังไม่เริ่มดำเนินการ",
+      pending_approval: "รอตรวจสอบ",
+      in_progress: "กำลังฝึกงาน",
+      completed: "ฝึกงานเสร็จสิ้น",
+      enrolled: "ลงทะเบียนฝึกงานแล้ว",
+    },
+    project: {
+      not_started: "ยังไม่เริ่มโครงงาน",
+      pending_approval: "รออาจารย์อนุมัติ",
+      in_progress: "กำลังทำโครงงาน",
+      completed: "โครงงานเสร็จสิ้น",
+      enrolled: "ลงทะเบียนโครงงานแล้ว",
+    },
+  };
+
+  const resolveStatusLabel = (type, status) => {
+    if (!status) return "-";
+    const normalized = String(status).toLowerCase();
+
+    // กรองหาข้อความภาษาไทยจาก mapping แบบเจาะจงประเภทก่อน แล้วจึง fallback เป็นค่ารวม
+    return (
+      STATUS_LABELS[type]?.[normalized] ||
+      STATUS_LABELS.common[normalized] ||
+      `ไม่ทราบสถานะ (${status})`
+    );
+  };
+
   function StudentView() {
     const navigate = useNavigate();
     const [studentData, setStudentData] = useState(null);
@@ -1022,7 +1067,10 @@ function Dashboard() {
                       className="student-status-descriptions"
                     >
                       <Descriptions.Item label="สถานะล่าสุด">
-                        {studentData?.internshipStatus || "-"}
+                        {resolveStatusLabel(
+                          "internship",
+                          studentData?.internshipStatus
+                        )}
                       </Descriptions.Item>
                       <Descriptions.Item label="ลงทะเบียนแล้วหรือยัง">
                         {studentData?.isEnrolledInternship
@@ -1076,7 +1124,10 @@ function Dashboard() {
                       className="student-status-descriptions"
                     >
                       <Descriptions.Item label="สถานะนักศึกษากับโครงงาน">
-                        {studentData?.projectStatus || "-"}
+                        {resolveStatusLabel(
+                          "project",
+                          studentData?.projectStatus
+                        )}
                       </Descriptions.Item>
                       <Descriptions.Item label="ลงทะเบียนโครงงานแล้วหรือยัง">
                         {studentData?.isEnrolledProject

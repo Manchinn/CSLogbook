@@ -3,8 +3,11 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const controller = require('../controllers/projectDocumentController');
 const topicExamResultController = require('../controllers/topicExamResultController');
+const projectExamResultController = require('../controllers/projectExamResultController');
 const meetingController = require('../controllers/meetingController');
 const projectDefenseRequestController = require('../controllers/projectDefenseRequestController');
+const projectSystemTestController = require('../controllers/projectSystemTestController');
+const { uploadSystemTestRequest, uploadSystemTestEvidence } = require('../config/projectSystemTestUpload');
 
 // ต้อง auth ทั้งหมด
 router.use(authenticateToken);
@@ -14,6 +17,20 @@ router.post('/', controller.createProject);
 
 // รายการของฉัน
 router.get('/mine', controller.getMyProjects);
+
+// ผลสอบโครงงานพิเศษ - routes ที่ไม่มี :id (ต้องอยู่ก่อน)
+router.get('/exam-results/project1/pending', projectExamResultController.getProject1PendingResults);
+router.get('/exam-results/statistics', projectExamResultController.getExamStatistics);
+
+// System test request (ก่อนยื่นสอบโครงงานพิเศษ)
+router.get('/system-test/advisor-queue', projectSystemTestController.advisorQueue);
+router.get('/system-test/staff-queue', projectSystemTestController.staffQueue);
+
+router.get('/:id/system-test/request', projectSystemTestController.getLatestRequest);
+router.post('/:id/system-test/request', uploadSystemTestRequest.single('requestFile'), projectSystemTestController.submitRequest);
+router.post('/:id/system-test/request/advisor-decision', projectSystemTestController.submitAdvisorDecision);
+router.post('/:id/system-test/request/staff-decision', projectSystemTestController.submitStaffDecision);
+router.post('/:id/system-test/request/evidence', uploadSystemTestEvidence.single('evidenceFile'), projectSystemTestController.uploadEvidence);
 
 // KP02 queues & actions (ต้องอยู่ก่อน path ที่มี :id เพื่อไม่ให้ชน routing)
 router.get('/kp02/advisor-queue', projectDefenseRequestController.getAdvisorQueue);
@@ -72,9 +89,13 @@ router.post('/:id/activate', controller.activateProject);
 // Archive (admin)
 router.post('/:id/archive', controller.archiveProject);
 
-// บันทึกผลสอบหัวข้อ (staff/admin)
-router.post('/:id/exam-result', topicExamResultController.recordResult);
-// นักศึกษา acknowledge ผลสอบไม่ผ่าน (archive project)
-router.patch('/:id/exam-result/ack', topicExamResultController.acknowledgeFailed);
+// บันทึกผลสอบหัวข้อ (staff/admin) - เดิม
+router.post('/:id/topic-exam-result', topicExamResultController.recordResult);
+router.patch('/:id/topic-exam-result/ack', topicExamResultController.acknowledgeFailed);
+
+// บันทึกผลสอบโครงงานพิเศษ 1 และ Thesis (staff/admin)
+router.post('/:id/exam-result', projectExamResultController.recordExamResult);
+router.get('/:id/exam-result', projectExamResultController.getExamResult);
+router.patch('/:id/exam-result/acknowledge', projectExamResultController.acknowledgeExamResult);
 
 module.exports = router;

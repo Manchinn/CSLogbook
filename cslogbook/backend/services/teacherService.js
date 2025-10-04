@@ -7,6 +7,19 @@ const { Op } = require('sequelize');
 const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
 
 const ALLOWED_DEADLINE_SCOPES_FOR_TEACHER = new Set(['ALL', 'INTERNSHIP_ONLY', 'PROJECT_ONLY', 'CUSTOM']);
+const ALLOWED_TEACHER_TYPES = new Set(['academic', 'support']);
+const SUPPORT_POSITIONS = new Set(['เจ้าหน้าที่ภาควิชา']);
+
+// ฟังก์ชันช่วยกำหนด teacherType จากค่าที่รับเข้ามาและตำแหน่ง
+const resolveTeacherType = (explicitType, position) => {
+  if (explicitType && ALLOWED_TEACHER_TYPES.has(explicitType)) {
+    return explicitType;
+  }
+  if (position && SUPPORT_POSITIONS.has(position)) {
+    return 'support';
+  }
+  return 'academic';
+};
 
 // ฟังก์ชันช่วยสร้างชื่อเต็ม (ป้องกันค่า null/undefined)
 const buildFullName = (firstName = '', lastName = '') => [firstName, lastName].filter(Boolean).join(' ').trim();
@@ -229,6 +242,7 @@ class TeacherService {
         email,
         contactExtension,
         position, // รับตำแหน่งจาก input
+        teacherType,
         canAccessTopicExam,
         canExportProject1
       } = teacherData;
@@ -259,11 +273,14 @@ class TeacherService {
         activeStatus: true
       }, { transaction });
 
+      const resolvedTeacherType = resolveTeacherType(teacherType, position);
+
       const teacher = await Teacher.create({
         teacherCode,
         userId: user.userId,
         contactExtension,
         position: position || 'คณาจารย์', // บันทึกตำแหน่ง ถ้าไม่ระบุให้ default
+        teacherType: resolvedTeacherType,
         canAccessTopicExam: typeof canAccessTopicExam === 'boolean'
           ? canAccessTopicExam
           : canAccessTopicExam === 'true',
@@ -283,6 +300,7 @@ class TeacherService {
         email: user.email,
         contactExtension: teacher.contactExtension,
         position: teacher.position || 'คณาจารย์',
+        teacherType: resolvedTeacherType,
         canAccessTopicExam: Boolean(teacher.canAccessTopicExam),
         canExportProject1: Boolean(teacher.canExportProject1)
       };
@@ -300,7 +318,7 @@ class TeacherService {
     const transaction = await sequelize.transaction();
 
     try {
-    const { firstName, lastName, email, contactExtension, position, canAccessTopicExam, canExportProject1 } = updateData;
+  const { firstName, lastName, email, contactExtension, position, teacherType, canAccessTopicExam, canExportProject1 } = updateData;
 
       const teacher = await Teacher.findOne({
         where: { teacherId },
@@ -316,10 +334,13 @@ class TeacherService {
         throw new Error('ไม่พบข้อมูลอาจารย์');
       }
 
+      const resolvedTeacherType = resolveTeacherType(teacherType, position || teacher.position);
+
       // Update teacher record
       await Teacher.update({
         contactExtension: contactExtension || teacher.contactExtension,
         ...(position && { position }), // อัปเดตตำแหน่งถ้ามีส่งมา
+        teacherType: resolvedTeacherType,
         ...(typeof canAccessTopicExam !== 'undefined' && {
           canAccessTopicExam: typeof canAccessTopicExam === 'boolean'
             ? canAccessTopicExam
@@ -357,6 +378,7 @@ class TeacherService {
         email: email || teacher.user.email,
         contactExtension: contactExtension || teacher.contactExtension,
         position: position || teacher.position || 'คณาจารย์',
+        teacherType: resolvedTeacherType,
         canAccessTopicExam: typeof canAccessTopicExam !== 'undefined'
           ? (typeof canAccessTopicExam === 'boolean' ? canAccessTopicExam : canAccessTopicExam === 'true')
           : Boolean(teacher.canAccessTopicExam),

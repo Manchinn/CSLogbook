@@ -48,7 +48,10 @@ describe('academicSemesterScheduler', () => {
 
       await academicSemesterScheduler.updateCurrentSemester();
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('ไม่พบข้อมูล'));
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('ไม่พบข้อมูล'),
+        expect.objectContaining({ agent: 'AcademicSemesterScheduler' })
+      );
     });
 
     it('updates semester when current date is in second semester range', async () => {

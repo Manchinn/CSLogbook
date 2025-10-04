@@ -47,6 +47,7 @@ npm run setup  # จะทำการ copy .env.example ไปเป็น .env
 - `EMAIL_DOCUMENT_ENABLED`: เปิด/ปิดการส่งอีเมลเกี่ยวกับเอกสาร
 - `EMAIL_LOGBOOK_ENABLED`: เปิด/ปิดการส่งอีเมลเกี่ยวกับ logbook
 - `EMAIL_MEETING_ENABLED`: เปิด/ปิดการส่งอีเมลขออนุมัติบันทึกการพบอาจารย์
+- `LOG_ENABLE_CONSOLE`: ตั้งเป็น `false` เพื่อปิดการแสดง log ใน console (ค่าเริ่มต้นจะปิดอัตโนมัติเมื่อรันเทสต์ และเปิดเฉพาะในโหมด development)
 
 ### Upload Configuration
 - `UPLOAD_DIR`: directory สำหรับเก็บไฟล์ที่อัพโหลด (default: uploads/)

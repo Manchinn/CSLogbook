@@ -1,8 +1,8 @@
 import React from 'react';
-import { Modal, Typography, List, Checkbox, Button, Divider } from 'antd';
+import { Modal, Typography, Checkbox, Button, Divider } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 const InstructionModal = ({ visible, onClose, dontShowAgain, onCheckboxChange }) => {
   return (

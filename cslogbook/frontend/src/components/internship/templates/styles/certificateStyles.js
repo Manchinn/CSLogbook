@@ -1,247 +1,210 @@
 import { StyleSheet } from '@react-pdf/renderer';
-import { themeColors, fontSizes, spacing } from './themeStyles';
+import { themeColors } from './themeStyles';
 
 const certificateStyles = StyleSheet.create({
-  // หน้ากระดาษแนวนอน - ใช้ฟอนต์ THSarabunNew
+  // หน้ากระดาษแนวนอน - โทนเรียบง่าย เหมือนตัวอย่างอ้างอิง
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
-    padding: 15,
-    fontFamily: 'THSarabunNew', 
+    padding: 36,
+    fontFamily: 'THSarabunNew',
     fontSize: 18,
-    lineHeight: 1.3,
+    lineHeight: 1.35,
   },
-  
-  // หัวข้อหลัก
+
+  decorativeBorder: {
+    position: 'absolute',
+    top: 26,
+    left: 26,
+    right: 26,
+    bottom: 26,
+    border: '1.6px solid #2d2d2d',
+    borderRadius: 6,
+  },
+
+  watermark: {
+    position: 'absolute',
+    top: '25%',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 110,
+    color: 'rgba(226, 36, 43, 0.08)',
+    fontWeight: 'bold',
+    letterSpacing: 8,
+    textTransform: 'uppercase',
+  },
+
+  contentWrapper: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+
   header: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 18,
   },
-  
+
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 12,
-    color: themeColors.university.primary,
+    color: '#111111',
   },
-  
-  // ตารางข้อมูลนักศึกษา
+
+  certificateNumber: {
+    fontSize: 16,
+    color: '#444444',
+    marginTop: 4,
+  },
+
   studentInfoTable: {
-    border: '2px solid #000',
-    marginBottom: 12,
-    borderRadius: 3,
+    border: '1.6px solid #000000',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 18,
   },
-  
+
   tableRow: {
     flexDirection: 'row',
-    borderBottom: '1px solid #000',
-    minHeight: 32,
+    minHeight: 38,
   },
-  
-  tableRowLast: {
-    flexDirection: 'row',
-    minHeight: 32,
+
+  tableRowBorder: {
+    borderBottom: '1.1px solid #000000',
   },
-  
+
   tableCellLabel: {
     width: '25%',
-    padding: 6,
-    fontSize: 17,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    borderRight: '1px solid #000',
-    backgroundColor: '#f8f9fa',
-    alignItems: 'center',
+    borderRight: '1.1px solid #000000',
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f7f7f7',
+    fontWeight: 'bold',
+    fontSize: 18,
+    paddingVertical: 6,
   },
-  
+
   tableCellValue: {
     width: '25%',
-    padding: 6,
-    fontSize: 17,
-    textAlign: 'center',
-    borderRight: '1px solid #000',
-    alignItems: 'center',
+    borderRight: '1.1px solid #000000',
     justifyContent: 'center',
-  },
-  
-  tableCellValueLast: {
-    width: '25%',
-    padding: 6,
-    fontSize: 17,
-    textAlign: 'center',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  tableCellCompany: {
-    width: '75%',
-    padding: 6,
-    fontSize: 17,
-    textAlign: 'left',
-    paddingLeft: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  // เนื้อหาหลัก
-  mainContent: {
-    marginBottom: 12,
-    lineHeight: 1.5,
-    paddingHorizontal: 6,
-  },
-  
-  contentText: {
     fontSize: 18,
-    marginBottom: 12,
+    paddingVertical: 6,
+  },
+
+  tableCellValueWide: {
+    width: '75%',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    fontSize: 18,
+  },
+
+  mainParagraph: {
+    fontSize: 18,
     textAlign: 'justify',
-    textIndent: 40,
-    lineHeight: 1.5,
+    marginBottom: 22,
   },
-  
-  // ✅ ส่วนล่าง - container สำหรับ checkbox และ signature
-  bottomSection: {
-    flexDirection: 'row', // แถวเดียวกัน
-    justifyContent: 'space-between', // กระจายซ้าย-ขวา
-    alignItems: 'flex-start', // จัดให้อยู่ด้านบน
-    marginBottom: 15,
-    gap: 20, // ระยะห่างระหว่างสองส่วน
+
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  
-  // ส่วนการตรวจสอบเอกสาร - ด้านซ้าย
-  checkboxSection: {
-    width: '55%', // ให้พื้นที่มากกว่าลายเซ็น
-    padding: 10,
-    border: '2px solid #000',
-    borderRadius: 3,
-    backgroundColor: '#fafafa',
-    marginBottom: 0, // ลบ marginBottom เพราะอยู่ใน bottomSection แล้ว
+
+  checklistBox: {
+    width: '45%',
+    border: '1.4px solid #000000',
+    borderRadius: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
   },
-  
-  checkboxTitle: {
+
+  checklistTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'left',
     marginBottom: 10,
-    textAlign: 'center',
-    color: themeColors.university.primary,
+    color: '#111111',
   },
-  
-  checkboxItem: {
+
+  checklistItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
-    paddingLeft: 15,
+    marginBottom: 8,
   },
-  
+
   checkbox: {
     width: 18,
     height: 18,
-    border: '2px solid #000',
-    marginRight: 10,
-    backgroundColor: '#ffffff',
+    border: '1.4px solid #000000',
     borderRadius: 2,
+    marginRight: 10,
   },
-  
+
   checkboxChecked: {
     width: 18,
     height: 18,
-    border: '2px solid #000',
+    border: '1.4px solid #000000',
+    borderRadius: 2,
     marginRight: 10,
     backgroundColor: '#000000',
-    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
-  checkboxText: {
-    fontSize: 17,
-    flex: 1,
-    lineHeight: 1.3,
-  },
-  
-  // ส่วนลายเซ็น - ด้านขวา
-  signatureSection: {
-    width: '40%', // ให้พื้นที่น้อยกว่า checkbox
-    flexDirection: 'column', // เปลี่ยนเป็น column
-    justifyContent: 'center', // จัดกึ่งกลางแนวตั้ง
-    alignItems: 'center',
-    marginTop: 0, // ลบ marginTop
-    paddingHorizontal: 10, // ลด padding
-  },
-  
-  signatureBox: {
-    width: '100%', // ใช้ความกว้างเต็ม
-    alignItems: 'center',
-    padding: 6,
-  },
-  
-  signatureLabel: {
-    fontSize: 17,
-    marginBottom: 25,
-    textAlign: 'center',
-  },
-  
-  signatureLine: {
-    width: '95%',
-    height: 1,
-    backgroundColor: '#000',
-    marginBottom: 6,
-  },
-  
-  signerName: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 3,
+
+  checkboxMark: {
+    color: '#ffffff',
+    fontSize: 10,
     fontWeight: 'bold',
   },
-  
+
+  checklistText: {
+    fontSize: 18,
+    flex: 1,
+  },
+
+  signatureBlock: {
+    width: '40%',
+    alignItems: 'center',
+  },
+
+  signatureLine: {
+    width: '100%',
+    height: 1.2,
+    backgroundColor: '#000000',
+    marginBottom: 4,
+  },
+
+  signatureLabel: {
+    fontSize: 18,
+    marginBottom: 24,
+  },
+
+  signerName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: themeColors.university.primary,
+  },
+
   signerTitle: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 1.2,
-    paddingHorizontal: 3,
-  },
-  
-  // วันที่และหมายเหตุ
-  dateSection: {
-    position: 'absolute',
-    bottom: 35,
-    right: 40,
     fontSize: 17,
+  },
+
+  signatureDate: {
+    fontSize: 18,
+    marginTop: 12,
     textAlign: 'center',
   },
-  
-  noteSection: {
-    position: 'absolute',
-    bottom: 15,
-    left: 20,
-    right: 20,
-    fontSize: 14,
-    fontStyle: 'italic',
+
+  note: {
     textAlign: 'center',
-    color: '#666666',
-  },
-  
-  // เส้นขอบตกแต่ง
-  decorativeBorder: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    bottom: 10,
-    border: '3px solid #1a365d',
-    borderRadius: 6,
-  },
-  
-  innerBorder: {
-    position: 'absolute',
-    top: 15,
-    left: 15,
-    right: 15,
-    bottom: 15,
-    border: '1px solid #4a5568',
-    borderRadius: 4,
+    fontSize: 16,
+    color: '#444444',
+    marginTop: 12,
   },
 });
 

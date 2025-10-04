@@ -6,11 +6,7 @@ import internshipService from '../../../services/internshipService';
 import { EditOutlined, WarningOutlined } from '@ant-design/icons';
 import "./InternshipStyles.css";
 
-const { Title, Text, Paragraph } = Typography;
-
-const validateCompanyData = (data) => {
-  return data?.supervisorName && data?.supervisorPhone && data?.supervisorEmail;
-};
+const { Title, Text } = Typography;
 
 const CompanyForm = () => {
   const [form] = Form.useForm();
@@ -87,7 +83,7 @@ const CompanyForm = () => {
     };
 
     checkCS05Status();
-  }, []); // ไม่พึ่งพา dependencies จาก Context
+  }, [setCS05Data]); // ไม่พึ่งพา dependencies จาก Context
 
   // ดึงข้อมูลบริษัทเมื่อสามารถแก้ไขได้
   useEffect(() => {

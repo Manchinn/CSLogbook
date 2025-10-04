@@ -5,7 +5,6 @@ import {
     Button, 
     Typography, 
     Space, 
-    Divider, 
     Row, 
     Col, 
     Spin, 
@@ -13,15 +12,13 @@ import {
     Statistic,
     Tooltip,
     Badge,
-    Progress,
-    Tag
+    Progress
 } from 'antd';
 import { 
     BellOutlined, 
     BellFilled,
     CheckCircleOutlined,
     StopOutlined,
-    InfoCircleOutlined,
     ReloadOutlined,
     SettingOutlined,
     SoundOutlined,
@@ -29,7 +26,7 @@ import {
 } from '@ant-design/icons';
 import { useNotificationSettings } from '../../../../hooks/admin/useNotificationSettings';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 /**
  * Component สำหรับจัดการการตั้งค่าการแจ้งเตือนในส่วน Admin
@@ -38,7 +35,6 @@ const { Title, Text, Paragraph } = Typography;
  */
 const NotificationSettings = () => {
     const {
-        settings,
         loading,
         updating,
         error,

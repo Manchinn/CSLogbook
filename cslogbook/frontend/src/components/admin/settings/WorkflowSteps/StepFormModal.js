@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Modal, Form, Input, InputNumber, Switch, Select, Space, Button,
-  Row, Col, Alert, Typography, Divider, Tooltip, Card, Tag
+  Modal, Form, Input, InputNumber, Select, Space, Button,
+  Row, Col, Alert, Typography, Tooltip, Card, Tag
 } from 'antd';
-import { SaveOutlined, InfoCircleOutlined, CloseOutlined } from '@ant-design/icons';
+import { SaveOutlined, InfoCircleOutlined } from '@ant-design/icons';
 // อัปเดต import path
 import workflowStepService from '../../../../services/admin/workflowStepService';
 
 const { TextArea } = Input;
 const { Option } = Select;
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 /**
  * Modal สำหรับสร้างและแก้ไขขั้นตอน Workflow
@@ -40,7 +40,7 @@ const StepFormModal = ({
    * ฟังก์ชันดึงรายการขั้นตอนที่สามารถเลือกเป็น dependencies
    * ปรับปรุงให้รองรับการแก้ไขที่ดีขึ้น
    */
-  const loadAvailableSteps = async (workflowType) => {
+  const loadAvailableSteps = useCallback(async (workflowType) => {
     if (!workflowType) return;
     
     try {
@@ -91,7 +91,7 @@ const StepFormModal = ({
     } finally {
       setLoadingSteps(false);
     }
-  };
+  }, [editingStep, form]);
 
   // รีเซ็ตฟอร์มเมื่อเปิด/ปิด modal
   useEffect(() => {
@@ -144,7 +144,7 @@ const StepFormModal = ({
       setValidationErrors({});
       setAvailableSteps([]);
     }
-  }, [visible, editingStep, selectedWorkflowType, form]);
+  }, [visible, editingStep, selectedWorkflowType, form, loadAvailableSteps]);
 
   /**
    * ฟังก์ชันจัดการเมื่อเปลี่ยน workflow type

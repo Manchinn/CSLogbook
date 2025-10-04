@@ -3164,6 +3164,29 @@ class InternshipManagementService {
         }
       }
 
+  // ✅ ดึงข้อมูลสถานประกอบการจากเอกสาร CS05 เพื่อใช้เติมในหนังสือรับรอง
+  const internshipDocument = cs05Document.internshipDocument || {};
+      const internshipInfo = {
+        companyName: internshipDocument.companyName || "",
+        companyAddress: internshipDocument.companyAddress || "",
+        startDate:
+          internshipDocument.startDate ||
+          internshipDocument.internshipStartDate ||
+          null,
+        endDate:
+          internshipDocument.endDate ||
+          internshipDocument.internshipEndDate ||
+          null,
+        supervisorName: internshipDocument.supervisorName || "",
+        supervisorPosition: internshipDocument.supervisorPosition || "",
+        supervisorPhone: internshipDocument.supervisorPhone || "",
+        supervisorEmail: internshipDocument.supervisorEmail || "",
+        contactPersonName: internshipDocument.contactPersonName || "",
+        contactPersonPosition: internshipDocument.contactPersonPosition || "",
+        internshipPosition: internshipDocument.internshipPosition || "",
+        totalHours,
+      };
+
       const result = {
         // สถานะโดยรวม
         status: certificateStatus,
@@ -3204,14 +3227,25 @@ class InternshipManagementService {
           fullName: `${student.user.firstName} ${student.user.lastName}`,
           email: student.user.email,
         },
+
+        // ข้อมูลสถานประกอบการและการฝึกงาน (ใหม่)
+        companyName: internshipInfo.companyName,
+        companyAddress: internshipInfo.companyAddress,
+        internshipStartDate: internshipInfo.startDate,
+        internshipEndDate: internshipInfo.endDate,
+        supervisorName: internshipInfo.supervisorName,
+        supervisorPosition: internshipInfo.supervisorPosition,
+        internshipInfo,
+        companyInfo: internshipInfo,
       };
 
       console.log(`[getCertificateStatus] Status check completed:`, {
         status: certificateStatus,
-  canRequest: canRequestCertificate,
+        companyName: internshipInfo.companyName,
+        canRequest: canRequestCertificate,
         totalHours,
         hasEvaluation: isEvaluationComplete,
-  hasSummary: isSummarySubmitted,
+        hasSummary: isSummarySubmitted,
       });
 
       // 🎯 อัปเดต internship_status ในฐานข้อมูลเมื่อฝึกงานเสร็จสิ้น

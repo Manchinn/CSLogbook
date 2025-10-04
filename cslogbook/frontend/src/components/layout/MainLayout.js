@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Drawer, Grid } from "antd";
+import { Layout, Drawer } from "antd";
 import Sidebar from "./Sidebar";
 import HeaderComponent from "./HeaderComponent";
 import BackgroundParticles from "./BackgroundParticles";
@@ -12,7 +12,6 @@ import "./LayoutFixes.css"; // Import the new layout fixes
 import "./MobileDrawer.css"; // Import mobile drawer optimizations
 
 const { Content } = Layout;
-const { useBreakpoint } = Grid;
 
 const MainLayout = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);

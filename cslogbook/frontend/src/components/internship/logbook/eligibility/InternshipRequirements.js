@@ -5,15 +5,13 @@ import {
   FileTextOutlined,
   BookOutlined,
   BankOutlined,
-  WarningOutlined,
-  UserOutlined,
   RocketOutlined,
   CheckCircleOutlined,
   ExperimentOutlined,
 } from '@ant-design/icons';
 import './styles.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const InternshipRequirements = () => {

@@ -8,8 +8,17 @@ let Meeting;
 let MeetingParticipant;
 let MeetingLog;
 let ProjectDefenseRequest;
+let ProjectTestRequest;
+
+const resolveModelsPath = () => require.resolve('../models');
+const IS_JEST = Boolean(process.env.JEST_WORKER_ID);
 
 const attachModels = () => {
+  if (process.env.NODE_ENV === 'test') {
+    // ลบ cache ของ require เพื่อให้ Jest ใช้ mock model ที่กำหนดในแต่ละเทสต์
+    delete require.cache[resolveModelsPath()];
+  }
+
   ({
     ProjectDocument,
     ProjectMember,
@@ -19,16 +28,15 @@ const attachModels = () => {
     Meeting,
     MeetingParticipant,
     MeetingLog,
-    ProjectDefenseRequest
+    ProjectDefenseRequest,
+    ProjectTestRequest
   } = require('../models'));
 };
 
 attachModels();
 
 const ensureModels = () => {
-  if (process.env.NODE_ENV === 'test') {
-    attachModels();
-  }
+  attachModels();
 };
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
@@ -522,6 +530,24 @@ class ProjectDocumentService {
         perStudent: []
       };
     }
+    try {
+      const latestSystemTest = await ProjectTestRequest.findOne({
+        where: { projectId: project.projectId },
+        order: [['submittedAt', 'DESC']],
+        attributes: ['requestId', 'status', 'submittedAt', 'testStartDate', 'testDueDate', 'evidenceSubmittedAt']
+      });
+      base.systemTestRequest = latestSystemTest ? {
+        requestId: latestSystemTest.requestId,
+        status: latestSystemTest.status,
+        submittedAt: latestSystemTest.submittedAt,
+        testStartDate: latestSystemTest.testStartDate,
+        testDueDate: latestSystemTest.testDueDate,
+        evidenceSubmittedAt: latestSystemTest.evidenceSubmittedAt
+      } : null;
+    } catch (error) {
+      logger.warn('getProjectById system test summary failed', { projectId, error: error.message });
+      base.systemTestRequest = null;
+    }
     if (includeSummary) {
       // ดึงสรุปเบื้องต้น (นับ milestones และ proposal ล่าสุด) แบบ query แยก เพื่อลด join หนัก
       const { ProjectMilestone, ProjectArtifact } = require('../models');
@@ -919,7 +945,7 @@ class ProjectDocumentService {
         note: project1DefenseRequest.defenseNote
       }
       : null;
-    const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled'].includes(project1DefenseRequest.status);
+  const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled', 'completed'].includes(project1DefenseRequest.status);
 
     const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
     const approvedMeetingLogs = studentMetrics.approvedLogs || 0;

@@ -289,6 +289,19 @@ const StudentTimeline = () => {
           </Col>
         </Row>
 
+        {error && (
+          <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+            <Col span={24}>
+              <Alert
+                type="error"
+                showIcon
+                message="ไม่สามารถโหลดข้อมูลได้"
+                description={error}
+              />
+            </Col>
+          </Row>
+        )}
+
         {notifications && notifications.length > 0 && (
           <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
             <Col span={24}>

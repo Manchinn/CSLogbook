@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal, Button, Space, Alert, Typography, Card, List, 
-  InputNumber, Row, Col, Tag, message, Spin
+  Modal, Button, Space, Alert, Typography, Card, 
+  InputNumber, Row, Col, Tag, message
 } from 'antd';
 import {
   DragOutlined, SaveOutlined, ReloadOutlined, 
@@ -13,12 +13,12 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import workflowStepService from '../../../../services/admin/workflowStepService';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 /**
  * คอมโพเนนต์รายการขั้นตอนที่สามารถลากได้
  */
-const SortableStepItem = ({ step, index, onOrderChange }) => {
+const SortableStepItem = ({ step, onOrderChange, onMoveUp, onMoveDown }) => {
   const {
     attributes,
     listeners,
@@ -46,10 +46,10 @@ const SortableStepItem = ({ step, index, onOrderChange }) => {
       >
         <Row align="middle" gutter={16}>
           <Col span={2}>
-            <div 
-              {...attributes} 
+            <div
+              {...attributes}
               {...listeners}
-              style={{ 
+              style={{
                 cursor: 'grab',
                 padding: '4px',
                 textAlign: 'center'
@@ -58,7 +58,7 @@ const SortableStepItem = ({ step, index, onOrderChange }) => {
               <DragOutlined style={{ fontSize: '16px', color: '#8c8c8c' }} />
             </div>
           </Col>
-          
+
           <Col span={4}>
             <InputNumber
               min={1}
@@ -68,15 +68,32 @@ const SortableStepItem = ({ step, index, onOrderChange }) => {
               size="small"
             />
           </Col>
-          
+
           <Col span={6}>
             <Text code style={{ fontSize: '12px' }}>
               {step.stepKey}
             </Text>
           </Col>
-          
-          <Col span={10}>
+
+          <Col span={8}>
             <Text strong>{step.title}</Text>
+          </Col>
+
+          <Col span={4}>
+            <Space>
+              <Button
+                size="small"
+                icon={<ArrowUpOutlined />}
+                onClick={() => onMoveUp(step.stepId)}
+                aria-label="ย้ายขั้นตอนขึ้น"
+              />
+              <Button
+                size="small"
+                icon={<ArrowDownOutlined />}
+                onClick={() => onMoveDown(step.stepId)}
+                aria-label="ย้ายขั้นตอนลง"
+              />
+            </Space>
           </Col>
         </Row>
       </Card>
@@ -341,8 +358,11 @@ const StepReorderModal = ({
               <Col span={6}>
                 <Text strong>รหัสขั้นตอน</Text>
               </Col>
-              <Col span={10}>
+              <Col span={8}>
                 <Text strong>ชื่อขั้นตอน</Text>
+              </Col>
+              <Col span={4}>
+                <Text strong>การจัดลำดับ</Text>
               </Col>
             </Row>
           </Card>
@@ -357,12 +377,13 @@ const StepReorderModal = ({
                 items={reorderedSteps.map(step => step.stepId)}
                 strategy={verticalListSortingStrategy}
               >
-                {reorderedSteps.map((step, index) => (
+                {reorderedSteps.map((step) => (
                   <SortableStepItem
                     key={step.stepId}
                     step={step}
-                    index={index}
                     onOrderChange={handleOrderChange}
+                    onMoveUp={moveStepUp}
+                    onMoveDown={moveStepDown}
                   />
                 ))}
               </SortableContext>

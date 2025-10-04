@@ -15,6 +15,7 @@ dayjs.extend(timezone);
 
 const TIMEZONE = 'Asia/Bangkok';
 const DEFAULT_CRON = '5 0 * * *'; // รันเวลา 00:05 ของทุกวันตามเวลาประเทศไทย
+const AGENT_META = { agent: 'AcademicSemesterScheduler' };
 
 class AcademicSemesterScheduler {
   constructor() {
@@ -54,6 +55,7 @@ class AcademicSemesterScheduler {
         parsed = JSON.parse(parsed);
       } catch (error) {
         logger.warn('AcademicSemesterScheduler: แปลงช่วงเวลาไม่สำเร็จ (JSON.parse ล้มเหลว)', {
+          ...AGENT_META,
           value: rawRange,
           error: error.message
         });
@@ -70,6 +72,7 @@ class AcademicSemesterScheduler {
 
     if (!start.isValid() || !end.isValid()) {
       logger.warn('AcademicSemesterScheduler: ค่าช่วงเวลาไม่ถูกต้อง', {
+        ...AGENT_META,
         start: parsed.start,
         end: parsed.end
       });
@@ -142,7 +145,7 @@ class AcademicSemesterScheduler {
       });
 
       if (!settings) {
-        logger.warn('AcademicSemesterScheduler: ไม่พบข้อมูล Academic ที่ตั้งเป็นปัจจุบัน');
+        logger.warn('AcademicSemesterScheduler: ไม่พบข้อมูล Academic ที่ตั้งเป็นปัจจุบัน', AGENT_META);
         return;
       }
 
@@ -158,6 +161,7 @@ class AcademicSemesterScheduler {
 
       if (!active) {
         logger.info('AcademicSemesterScheduler: ยังไม่พบช่วงภาคเรียนที่ครอบคลุมวันที่ปัจจุบัน', {
+          ...AGENT_META,
           checkedAt: now.format()
         });
         return;
@@ -179,19 +183,23 @@ class AcademicSemesterScheduler {
       }
 
       if (Object.keys(updates).length === 0) {
-        logger.debug('AcademicSemesterScheduler: ข้อมูลภาคเรียนปัจจุบันถูกต้องอยู่แล้ว');
+        logger.debug('AcademicSemesterScheduler: ข้อมูลภาคเรียนปัจจุบันถูกต้องอยู่แล้ว', AGENT_META);
         return;
       }
 
       await settings.update(updates);
 
       logger.info('AcademicSemesterScheduler: อัปเดตภาคเรียนอัตโนมัติสำเร็จ', {
+        ...AGENT_META,
         newSemester: updates.currentSemester || current.currentSemester,
         academicYear: updates.academicYear || current.academicYear,
         checkedAt: now.format()
       });
     } catch (error) {
-      logger.error('AcademicSemesterScheduler: เกิดข้อผิดพลาดระหว่างอัปเดตภาคเรียน', error);
+      logger.error('AcademicSemesterScheduler: เกิดข้อผิดพลาดระหว่างอัปเดตภาคเรียน', {
+        ...AGENT_META,
+        error
+      });
     }
   }
 
@@ -200,12 +208,12 @@ class AcademicSemesterScheduler {
    */
   start() {
     if (!this.isEnabled()) {
-      logger.info('AcademicSemesterScheduler: ปิดการใช้งาน (ตั้งค่า ACADEMIC_AUTO_UPDATE_ENABLED != true)');
+      logger.info('AcademicSemesterScheduler: ปิดการใช้งาน (ตั้งค่า ACADEMIC_AUTO_UPDATE_ENABLED != true)', AGENT_META);
       return false;
     }
 
     if (this.isRunning) {
-      logger.warn('AcademicSemesterScheduler: งานถูกเริ่มไว้แล้ว');
+      logger.warn('AcademicSemesterScheduler: งานถูกเริ่มไว้แล้ว', AGENT_META);
       return true;
     }
 
@@ -223,13 +231,17 @@ class AcademicSemesterScheduler {
     this.isRunning = true;
 
     logger.info('AcademicSemesterScheduler: เริ่มงานอัปเดตภาคเรียนอัตโนมัติ', {
+      ...AGENT_META,
       cron: cronExpression,
       timezone: TIMEZONE
     });
 
     // รันหนึ่งครั้งทันทีหลังเริ่มต้น
     this.updateCurrentSemester().catch((error) => {
-      logger.error('AcademicSemesterScheduler: อัปเดตครั้งแรกหลังเริ่มงานล้มเหลว', error);
+      logger.error('AcademicSemesterScheduler: อัปเดตครั้งแรกหลังเริ่มงานล้มเหลว', {
+        ...AGENT_META,
+        error
+      });
     });
 
     return true;
@@ -247,9 +259,12 @@ class AcademicSemesterScheduler {
       this.job.stop();
       this.job = null;
       this.isRunning = false;
-      logger.info('AcademicSemesterScheduler: หยุดงานอัปเดตภาคเรียนแล้ว');
+      logger.info('AcademicSemesterScheduler: หยุดงานอัปเดตภาคเรียนแล้ว', AGENT_META);
     } catch (error) {
-      logger.error('AcademicSemesterScheduler: ไม่สามารถหยุดงาน cron ได้', error);
+      logger.error('AcademicSemesterScheduler: ไม่สามารถหยุดงาน cron ได้', {
+        ...AGENT_META,
+        error
+      });
     }
 
     return true;

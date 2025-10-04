@@ -18,7 +18,6 @@ import {
   Space,
   Tabs,
   Steps,
-  Drawer,
   Descriptions,
   Timeline,
   Switch
