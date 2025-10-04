@@ -254,16 +254,19 @@ const SystemTestRequestPage = () => {
     return dt.locale('th').format('D MMMM BBBB เวลา HH:mm น.');
   }, []);
 
-  const handlePreviewEvidence = useCallback(() => {
-    const file = requestRecord?.evidence;
+  const handlePreviewFile = useCallback((file, fallbackTitle) => {
     if (!file?.url) {
-      message.warning('ไม่พบไฟล์หลักฐานสำหรับแสดงตัวอย่าง');
+      message.warning('ไม่พบไฟล์สำหรับแสดงตัวอย่าง');
       return;
     }
     setViewerUrl(file.url);
-    setViewerTitle(file.name || 'หลักฐานการประเมิน');
+    setViewerTitle(file.name || fallbackTitle || 'เอกสาร PDF');
     setViewerVisible(true);
-  }, [requestRecord?.evidence]);
+  }, []);
+
+  const handlePreviewEvidence = useCallback(() => {
+    handlePreviewFile(requestRecord?.evidence, 'หลักฐานการประเมิน');
+  }, [handlePreviewFile, requestRecord?.evidence]);
 
   const handleCloseViewer = useCallback(() => {
     setViewerVisible(false);
@@ -331,9 +334,16 @@ const SystemTestRequestPage = () => {
                   <Descriptions.Item label="ครบกำหนด 30 วัน">{formatThaiDate(dueDate)}</Descriptions.Item>
                   <Descriptions.Item label="ไฟล์คำขอ">
                     {requestRecord.requestFile?.url ? (
-                      <a href={requestRecord.requestFile.url} target="_blank" rel="noreferrer">
-                        <FilePdfOutlined /> ดาวน์โหลดไฟล์
-                      </a>
+                      <Button
+                        type="link"
+                        icon={<EyeOutlined />}
+                        onClick={() => handlePreviewFile(
+                          requestRecord.requestFile,
+                          `คำขอทดสอบระบบ - ${requestRecord.requestFile.name || 'ไฟล์ PDF'}`
+                        )}
+                      >
+                        เปิดดูไฟล์คำขอ
+                      </Button>
                     ) : '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="หมายเหตุที่นักศึกษาบันทึก">{requestRecord.studentNote || '-'}</Descriptions.Item>
