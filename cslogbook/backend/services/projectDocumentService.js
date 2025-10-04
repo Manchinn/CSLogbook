@@ -8,6 +8,7 @@ let Meeting;
 let MeetingParticipant;
 let MeetingLog;
 let ProjectDefenseRequest;
+let ProjectTestRequest;
 
 const resolveModelsPath = () => require.resolve('../models');
 const IS_JEST = Boolean(process.env.JEST_WORKER_ID);
@@ -27,7 +28,8 @@ const attachModels = () => {
     Meeting,
     MeetingParticipant,
     MeetingLog,
-    ProjectDefenseRequest
+    ProjectDefenseRequest,
+    ProjectTestRequest
   } = require('../models'));
 };
 
@@ -527,6 +529,24 @@ class ProjectDocumentService {
         lastApprovedLogAt: null,
         perStudent: []
       };
+    }
+    try {
+      const latestSystemTest = await ProjectTestRequest.findOne({
+        where: { projectId: project.projectId },
+        order: [['submittedAt', 'DESC']],
+        attributes: ['requestId', 'status', 'submittedAt', 'testStartDate', 'testDueDate', 'evidenceSubmittedAt']
+      });
+      base.systemTestRequest = latestSystemTest ? {
+        requestId: latestSystemTest.requestId,
+        status: latestSystemTest.status,
+        submittedAt: latestSystemTest.submittedAt,
+        testStartDate: latestSystemTest.testStartDate,
+        testDueDate: latestSystemTest.testDueDate,
+        evidenceSubmittedAt: latestSystemTest.evidenceSubmittedAt
+      } : null;
+    } catch (error) {
+      logger.warn('getProjectById system test summary failed', { projectId, error: error.message });
+      base.systemTestRequest = null;
     }
     if (includeSummary) {
       // ดึงสรุปเบื้องต้น (นับ milestones และ proposal ล่าสุด) แบบ query แยก เพื่อลด join หนัก

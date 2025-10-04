@@ -229,6 +229,35 @@ const Phase1Dashboard = () => {
       }
     }
 
+    const systemTestSummary = activeProject.systemTestRequest;
+    if (!systemTestSummary) {
+      setStatus('system-test', 'ยังไม่ยื่นคำขอ', 'default');
+    } else {
+      switch (systemTestSummary.status) {
+        case 'pending_advisor':
+          setStatus('system-test', 'รออาจารย์อนุมัติ', 'orange');
+          break;
+        case 'advisor_rejected':
+          setStatus('system-test', 'อาจารย์ส่งกลับแก้ไข', 'red');
+          break;
+        case 'pending_staff':
+          setStatus('system-test', 'รอเจ้าหน้าที่ตรวจสอบ', 'purple');
+          break;
+        case 'staff_rejected':
+          setStatus('system-test', 'เจ้าหน้าที่ส่งกลับ', 'red');
+          break;
+        case 'staff_approved':
+          if (systemTestSummary.evidenceSubmittedAt) {
+            setStatus('system-test', 'อัปโหลดหลักฐานครบแล้ว', 'green');
+          } else {
+            setStatus('system-test', 'ต้องอัปโหลดหลักฐานหลังครบ 30 วัน', 'blue');
+          }
+          break;
+        default:
+          setStatus('system-test', 'รอดำเนินการ', 'default');
+      }
+    }
+
     if (!project1DefenseRequest) {
       setStatus('exam-submit', 'ยังไม่ยื่นคำขอ', 'default');
     } else {

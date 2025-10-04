@@ -30,6 +30,7 @@ import ProjectDraftDetail from './components/project/phase1/ProjectDraftDetail';
 import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
 import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
 import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
+import SystemTestRequestPage from './components/project/phase1/steps/SystemTestRequestPage';
 import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
 import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
 import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
@@ -193,6 +194,11 @@ const App = () => {
                 <Route path="/project/phase2" element={
                   <ProtectedRoute roles={['student']}>
                     <Phase2Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/project/phase2/system-test" element={
+                  <ProtectedRoute roles={['student']}>
+                    <SystemTestRequestPage />
                   </ProtectedRoute>
                 } />
                 

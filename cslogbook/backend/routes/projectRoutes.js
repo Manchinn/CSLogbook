@@ -6,6 +6,8 @@ const topicExamResultController = require('../controllers/topicExamResultControl
 const projectExamResultController = require('../controllers/projectExamResultController');
 const meetingController = require('../controllers/meetingController');
 const projectDefenseRequestController = require('../controllers/projectDefenseRequestController');
+const projectSystemTestController = require('../controllers/projectSystemTestController');
+const { uploadSystemTestRequest, uploadSystemTestEvidence } = require('../config/projectSystemTestUpload');
 
 // ต้อง auth ทั้งหมด
 router.use(authenticateToken);
@@ -19,6 +21,16 @@ router.get('/mine', controller.getMyProjects);
 // ผลสอบโครงงานพิเศษ - routes ที่ไม่มี :id (ต้องอยู่ก่อน)
 router.get('/exam-results/project1/pending', projectExamResultController.getProject1PendingResults);
 router.get('/exam-results/statistics', projectExamResultController.getExamStatistics);
+
+// System test request (ก่อนยื่นสอบโครงงานพิเศษ)
+router.get('/system-test/advisor-queue', projectSystemTestController.advisorQueue);
+router.get('/system-test/staff-queue', projectSystemTestController.staffQueue);
+
+router.get('/:id/system-test/request', projectSystemTestController.getLatestRequest);
+router.post('/:id/system-test/request', uploadSystemTestRequest.single('requestFile'), projectSystemTestController.submitRequest);
+router.post('/:id/system-test/request/advisor-decision', projectSystemTestController.submitAdvisorDecision);
+router.post('/:id/system-test/request/staff-decision', projectSystemTestController.submitStaffDecision);
+router.post('/:id/system-test/request/evidence', uploadSystemTestEvidence.single('evidenceFile'), projectSystemTestController.uploadEvidence);
 
 // KP02 queues & actions (ต้องอยู่ก่อน path ที่มี :id เพื่อไม่ให้ชน routing)
 router.get('/kp02/advisor-queue', projectDefenseRequestController.getAdvisorQueue);

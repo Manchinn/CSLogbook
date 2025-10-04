@@ -16,6 +16,7 @@ let Teacher;
 let Meeting;
 let MeetingParticipant;
 let MeetingLog;
+let ProjectTestRequest;
 let projectDefenseRequestService;
 const mockSyncProjectWorkflowState = jest.fn().mockResolvedValue(null);
 
@@ -30,10 +31,16 @@ let project;
 let staffUser;
 let advisor;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 async function resetMeetings() {
   await MeetingLog.destroy({ where: {} });
   await MeetingParticipant.destroy({ where: {} });
   await Meeting.destroy({ where: {} });
+}
+
+async function resetSystemTests() {
+  await ProjectTestRequest.destroy({ where: {} });
 }
 
 async function seedApprovedMeetings(count = 5) {
@@ -46,6 +53,32 @@ async function seedApprovedMeetings(count = 5) {
     ]);
     await MeetingLog.create({ meetingId: meeting.meetingId, approvalStatus: 'approved', approvedAt: new Date() });
   }
+}
+
+async function seedApprovedSystemTest() {
+  const start = new Date(Date.now() - 45 * DAY_MS);
+  const due = new Date(Date.now() - 15 * DAY_MS);
+  const evidenceAt = new Date(Date.now() - 10 * DAY_MS);
+  await ProjectTestRequest.create({
+    projectId: project.projectId,
+    submittedByStudentId: leader.studentId,
+    status: 'staff_approved',
+    requestFilePath: 'requests/request.pdf',
+    requestFileName: 'request.pdf',
+    studentNote: null,
+    submittedAt: start,
+    testStartDate: start,
+    testDueDate: due,
+    advisorTeacherId: advisor.teacherId,
+    advisorDecisionNote: null,
+    advisorDecidedAt: new Date(start.getTime() + 2 * DAY_MS),
+    staffUserId: staffUser?.userId || null,
+    staffDecisionNote: null,
+    staffDecidedAt: new Date(due.getTime() + 1 * DAY_MS),
+    evidenceFilePath: 'evidence/evidence.pdf',
+    evidenceFileName: 'evidence.pdf',
+    evidenceSubmittedAt: evidenceAt
+  });
 }
 
 beforeAll(async () => {
@@ -153,6 +186,28 @@ beforeAll(async () => {
   ProjectDefenseRequestAdvisorApproval.belongsTo(ProjectDefenseRequest, { as: 'request', foreignKey: 'request_id' });
   ProjectDefenseRequestAdvisorApproval.belongsTo(Teacher, { as: 'teacher', foreignKey: 'teacher_id' });
 
+  ProjectTestRequest = sequelize.define('ProjectTestRequest', {
+    requestId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'request_id' },
+    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' },
+    submittedByStudentId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'submitted_by_student_id' },
+    status: { type: DataTypesCtor.STRING, allowNull: false },
+    requestFilePath: { type: DataTypesCtor.STRING, field: 'request_file_path' },
+    requestFileName: { type: DataTypesCtor.STRING, field: 'request_file_name' },
+    studentNote: { type: DataTypesCtor.TEXT, field: 'student_note' },
+    submittedAt: { type: DataTypesCtor.DATE, field: 'submitted_at' },
+    testStartDate: { type: DataTypesCtor.DATE, field: 'test_start_date' },
+    testDueDate: { type: DataTypesCtor.DATE, field: 'test_due_date' },
+    advisorTeacherId: { type: DataTypesCtor.INTEGER, field: 'advisor_teacher_id' },
+    advisorDecisionNote: { type: DataTypesCtor.TEXT, field: 'advisor_decision_note' },
+    advisorDecidedAt: { type: DataTypesCtor.DATE, field: 'advisor_decided_at' },
+    staffUserId: { type: DataTypesCtor.INTEGER, field: 'staff_user_id' },
+    staffDecisionNote: { type: DataTypesCtor.TEXT, field: 'staff_decision_note' },
+    staffDecidedAt: { type: DataTypesCtor.DATE, field: 'staff_decided_at' },
+    evidenceFilePath: { type: DataTypesCtor.STRING, field: 'evidence_file_path' },
+    evidenceFileName: { type: DataTypesCtor.STRING, field: 'evidence_file_name' },
+    evidenceSubmittedAt: { type: DataTypesCtor.DATE, field: 'evidence_submitted_at' }
+  }, { tableName: 'project_test_requests', underscored: true, timestamps: true });
+
   jest.isolateModules(() => {
     jest.doMock('../../config/database', () => ({ sequelize }));
     jest.doMock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
@@ -243,7 +298,8 @@ beforeAll(async () => {
       Teacher,
       Meeting,
       MeetingParticipant,
-      MeetingLog
+      MeetingLog,
+      ProjectTestRequest
     }));
     projectDefenseRequestService = require('../../services/projectDefenseRequestService');
   });
@@ -271,6 +327,10 @@ afterEach(() => {
   mockSyncProjectWorkflowState.mockClear();
 });
 
+beforeEach(async () => {
+  await resetSystemTests();
+});
+
 afterAll(async () => {
   await sequelize.close();
   jest.resetModules();
@@ -280,6 +340,7 @@ describe('submitProject1Request', () => {
   test('บันทึกคำขอใหม่สำเร็จและเรียก sync workflow', async () => {
     await resetMeetings();
     await seedApprovedMeetings(5);
+    await seedApprovedSystemTest();
     const payload = {
       advisorName: 'Dr.B',
       coAdvisorName: 'Dr.C',
@@ -309,6 +370,7 @@ describe('submitProject1Request', () => {
 
   test('ยับยั้งการส่งเมื่อบันทึกการพบอาจารย์ไม่ครบตามเกณฑ์', async () => {
     await resetMeetings();
+    await seedApprovedSystemTest();
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
       advisorName: 'Dr.Ready',
       students: [
@@ -318,9 +380,22 @@ describe('submitProject1Request', () => {
     })).rejects.toThrow(/บันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย/);
   });
 
+  test('ยับยั้งการส่งเมื่อยังไม่ผ่านการทดสอบระบบ', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5);
+    await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
+      advisorName: 'Dr.System',
+      students: [
+        { studentId: leader.studentId, phone: '0812345678', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0823456789', email: '' }
+      ]
+    })).rejects.toThrow(/กรุณาส่งคำขอทดสอบระบบ/);
+  });
+
   test('อนุญาตให้แก้ไขคำขอเดิมได้', async () => {
     await resetMeetings();
     await seedApprovedMeetings(5);
+    await seedApprovedSystemTest();
     const updated = await projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
       advisorName: 'อ. ที่ปรึกษา',
       additionalNotes: 'อัปเดตข้อมูล',
@@ -338,6 +413,7 @@ describe('submitProject1Request', () => {
 
   test('ห้ามนักศึกษาที่ไม่ใช่หัวหน้ายื่นคำขอ', async () => {
     await resetMeetings();
+    await seedApprovedSystemTest();
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, member.studentId, {
       students: [
         { studentId: leader.studentId, phone: '0800000000', email: '' },
@@ -349,6 +425,7 @@ describe('submitProject1Request', () => {
   test('ตรวจสอบ validation ข้อมูลไม่ครบ', async () => {
     await resetMeetings();
     await seedApprovedMeetings(5);
+    await seedApprovedSystemTest();
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
       students: []
     })).rejects.toThrow(/ช่องติดต่อของสมาชิก/);

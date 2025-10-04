@@ -1,0 +1,449 @@
+const path = require('path');
+const { sequelize } = require('../config/database');
+const {
+  ProjectTestRequest,
+  ProjectDocument,
+  ProjectMember,
+  Student,
+  Teacher,
+  User
+} = require('../models');
+const projectDocumentService = require('./projectDocumentService');
+const logger = require('../utils/logger');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+const buddhistEra = require('dayjs/plugin/buddhistEra');
+const { Op } = require('sequelize');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(buddhistEra);
+dayjs.tz.setDefault('Asia/Bangkok');
+
+const PUBLIC_UPLOAD_BASE = (process.env.PUBLIC_UPLOAD_BASE_URL || '/uploads').replace(/\/$/, '');
+
+const STAFF_ROLES = new Set(['admin']);
+
+function isSupportTeacher(user = {}) {
+  return user.role === 'teacher' && (user.teacherType === 'support' || user.canExportProject1);
+}
+
+function buildRelativePath(filePath) {
+  if (!filePath) return null;
+  const uploadsRoot = path.join(__dirname, '..', 'uploads');
+  const relative = path.relative(uploadsRoot, filePath);
+  return relative.replace(/\\/g, '/');
+}
+
+function buildFileInfo(filePath, fileName) {
+  if (!filePath) return null;
+  const relative = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  const url = `${PUBLIC_UPLOAD_BASE}/${relative}`;
+  return {
+    path: relative,
+    url,
+    name: fileName || path.basename(relative)
+  };
+}
+
+function normalizeDateInput(value, { asEnd = false } = {}) {
+  if (!value) return null;
+  const parsed = dayjs(value).tz();
+  if (!parsed.isValid()) return null;
+  return asEnd ? parsed.endOf('day') : parsed.startOf('day');
+}
+
+function ensureStudentMember(project, studentId) {
+  if (!project) return false;
+  return (project.members || []).some(member => Number(member.studentId) === Number(studentId));
+}
+
+function ensureLeader(project, studentId) {
+  if (!project) return false;
+  return (project.members || []).some(member => member.role === 'leader' && Number(member.studentId) === Number(studentId));
+}
+
+function ensureAdvisor(project, teacherId) {
+  if (!project) return false;
+  const ids = [project.advisorId, project.coAdvisorId].filter(Boolean).map(Number);
+  return ids.includes(Number(teacherId));
+}
+
+class ProjectSystemTestService {
+  serialize(instance) {
+    if (!instance) return null;
+    const data = instance.get ? instance.get({ plain: true }) : instance;
+    const project = data.project || {};
+    const advisor = data.advisor || {};
+    const advisorUser = advisor.user || {};
+    const submittedBy = data.submittedBy || {};
+    const submittedUser = submittedBy.user || {};
+    const staffUser = data.staffUser || {};
+
+    return {
+      requestId: data.requestId,
+      projectId: data.projectId,
+      status: data.status,
+      studentNote: data.studentNote || null,
+      testStartDate: data.testStartDate,
+      testDueDate: data.testDueDate,
+      submittedAt: data.submittedAt,
+      requestFile: buildFileInfo(data.requestFilePath, data.requestFileName),
+      advisorDecision: {
+        teacherId: data.advisorTeacherId,
+        name: advisorUser.userId ? `${advisorUser.firstName || ''} ${advisorUser.lastName || ''}`.trim() : null,
+        decidedAt: data.advisorDecidedAt,
+        note: data.advisorDecisionNote || null
+      },
+      staffDecision: {
+        userId: data.staffUserId,
+        name: staffUser.userId ? `${staffUser.firstName || ''} ${staffUser.lastName || ''}`.trim() : null,
+        decidedAt: data.staffDecidedAt,
+        note: data.staffDecisionNote || null
+      },
+      evidence: buildFileInfo(data.evidenceFilePath, data.evidenceFileName),
+      evidenceSubmittedAt: data.evidenceSubmittedAt,
+      submittedBy: submittedBy.studentId ? {
+        studentId: submittedBy.studentId,
+        studentCode: submittedBy.studentCode || null,
+        name: `${submittedUser.firstName || ''} ${submittedUser.lastName || ''}`.trim() || null
+      } : null,
+      projectSnapshot: project.projectId ? {
+        projectId: project.projectId,
+        projectCode: project.projectCode,
+        projectNameTh: project.projectNameTh,
+        advisorId: project.advisorId,
+        coAdvisorId: project.coAdvisorId
+      } : null,
+      timeline: {
+        submittedAt: data.submittedAt,
+        advisorDecidedAt: data.advisorDecidedAt,
+        staffDecidedAt: data.staffDecidedAt,
+        evidenceSubmittedAt: data.evidenceSubmittedAt
+      }
+    };
+  }
+
+  async findLatest(projectId, options = {}) {
+    const include = [
+      {
+        model: ProjectDocument,
+        as: 'project'
+      },
+      {
+        model: Student,
+        as: 'submittedBy',
+        include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'advisor',
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: User,
+        as: 'staffUser',
+        attributes: ['userId', 'firstName', 'lastName']
+      }
+    ];
+
+    const record = await ProjectTestRequest.findOne({
+      where: { projectId },
+      order: [['submittedAt', 'DESC']],
+      include,
+      transaction: options.transaction
+    });
+    return record;
+  }
+
+  async getLatest(projectId, actor, options = {}) {
+    const { project } = await this.ensureProjectAccess(projectId, actor, { transaction: options.transaction });
+    const record = await this.findLatest(project.projectId, options);
+    return this.serialize(record);
+  }
+
+  async ensureProjectAccess(projectId, actor = {}, { transaction } = {}) {
+    const project = await ProjectDocument.findByPk(projectId, {
+      include: [{
+        model: ProjectMember,
+        as: 'members'
+      }],
+      transaction
+    });
+    if (!project) {
+      throw new Error('ไม่พบโครงงาน');
+    }
+
+    const role = actor.role;
+    if (role === 'student') {
+      if (!ensureStudentMember(project, actor.studentId)) {
+        throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลคำขอทดสอบระบบ');
+      }
+    } else if (role === 'teacher') {
+      if (!(isSupportTeacher(actor) || ensureAdvisor(project, actor.teacherId))) {
+        throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลคำขอทดสอบระบบ');
+      }
+    } else if (!STAFF_ROLES.has(role)) {
+      throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลคำขอทดสอบระบบ');
+    }
+
+    return { project };
+  }
+
+  async submitRequest(projectId, actor, payload = {}, fileMeta) {
+    const t = await sequelize.transaction();
+    try {
+      const { project } = await this.ensureProjectAccess(projectId, actor, { transaction: t });
+      if (actor.role !== 'student') {
+        throw new Error('อนุญาตเฉพาะนักศึกษาที่เป็นสมาชิกโครงงานในการส่งคำขอทดสอบระบบ');
+      }
+      if (!ensureLeader(project, actor.studentId)) {
+        throw new Error('จำกัดเฉพาะหัวหน้าโครงงานในการส่งคำขอนี้');
+      }
+      if (!['in_progress', 'completed'].includes(project.status)) {
+        throw new Error('โครงงานต้องอยู่ในสถานะกำลังดำเนินการก่อนส่งคำขอทดสอบระบบ');
+      }
+
+      const latest = await this.findLatest(project.projectId, { transaction: t });
+      if (latest && ['pending_advisor', 'pending_staff'].includes(latest.status)) {
+        throw new Error('มีคำขอทดสอบระบบที่อยู่ระหว่างการพิจารณาอยู่แล้ว');
+      }
+      if (latest && latest.status === 'staff_approved' && !latest.evidenceSubmittedAt) {
+        throw new Error('กรุณาอัปโหลดหลักฐานการประเมินทดสอบระบบให้คำขอเดิมก่อน');
+      }
+
+      const startDay = normalizeDateInput(payload.testPeriodStart || payload.testStartDate);
+      const endDayRaw = normalizeDateInput(payload.testPeriodEnd || payload.testDueDate, { asEnd: true });
+      if (!startDay || !endDayRaw) {
+        throw new Error('กรุณาระบุช่วงเวลาเริ่มและสิ้นสุดการทดสอบระบบให้ครบถ้วน');
+      }
+      if (endDayRaw.isBefore(startDay)) {
+        throw new Error('วันสิ้นสุดต้องอยู่หลังวันเริ่มทดสอบระบบ');
+      }
+
+      const durationDays = endDayRaw.diff(startDay, 'day');
+      if (durationDays < 29) {
+        throw new Error('ช่วงเวลาทดสอบระบบต้องไม่น้อยกว่า 30 วัน');
+      }
+      const dueDay = endDayRaw;
+      const now = dayjs().tz();
+      if (startDay.isAfter(now.add(30, 'day'))) {
+        throw new Error('วันเริ่มทดสอบระบบต้องอยู่ภายใน 30 วันนับจากปัจจุบัน');
+      }
+
+      const memberStudentIds = (project.members || []).map(member => member.studentId).filter(Boolean);
+      const students = memberStudentIds.length
+        ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
+        : [];
+      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(project.projectId, students, { transaction: t });
+      const requiredLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
+      const leaderMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
+      if ((leaderMetrics.approvedLogs || 0) < requiredLogs) {
+        throw new Error(`ยังไม่ครบเกณฑ์บันทึกการพบอาจารย์: ต้องมีอย่างน้อย ${requiredLogs} รายการที่ได้รับอนุมัติ`);
+      }
+
+      const relativePath = fileMeta?.path ? buildRelativePath(fileMeta.path) : null;
+      const record = await ProjectTestRequest.create({
+        projectId: project.projectId,
+        submittedByStudentId: actor.studentId,
+        status: 'pending_advisor',
+        requestFilePath: relativePath,
+        requestFileName: fileMeta?.originalname || null,
+        studentNote: payload.studentNote || null,
+        submittedAt: new Date(),
+        testStartDate: startDay.toDate(),
+        testDueDate: dueDay.toDate(),
+        advisorTeacherId: project.advisorId || null
+      }, { transaction: t });
+
+      await t.commit();
+      logger.info('submit system test request', {
+        projectId: project.projectId,
+        studentId: actor.studentId,
+        hasRequestFile: Boolean(relativePath)
+      });
+      return this.serialize(await this.findLatest(project.projectId));
+    } catch (error) {
+      await t.rollback();
+      logger.error('submit system test request failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async submitAdvisorDecision(projectId, actor, payload = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const { project } = await this.ensureProjectAccess(projectId, actor, { transaction: t });
+      if (actor.role !== 'teacher' || !ensureAdvisor(project, actor.teacherId)) {
+        throw new Error('เฉพาะอาจารย์ที่ปรึกษาเท่านั้นที่สามารถอนุมัติคำขอนี้');
+      }
+      const record = await this.findLatest(project.projectId, { transaction: t });
+      if (!record) {
+        throw new Error('ยังไม่มีคำขอทดสอบระบบในโครงงานนี้');
+      }
+      if (record.status !== 'pending_advisor') {
+        throw new Error('คำขอนี้ไม่อยู่ในสถานะรออาจารย์อนุมัติ');
+      }
+
+      const decision = (payload.decision || '').toLowerCase();
+      if (!['approve', 'reject'].includes(decision)) {
+        throw new Error('กรุณาเลือกผลการพิจารณาให้ถูกต้อง');
+      }
+
+      const update = {
+        advisorTeacherId: actor.teacherId,
+        advisorDecidedAt: new Date(),
+        advisorDecisionNote: payload.note || null,
+        status: decision === 'approve' ? 'pending_staff' : 'advisor_rejected'
+      };
+
+      await record.update(update, { transaction: t });
+      await t.commit();
+      return this.serialize(await this.findLatest(project.projectId));
+    } catch (error) {
+      await t.rollback();
+      logger.error('advisor decision failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async submitStaffDecision(projectId, actor, payload = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const isStaff = STAFF_ROLES.has(actor.role) || isSupportTeacher(actor);
+      if (!isStaff) {
+        throw new Error('ไม่มีสิทธิ์ตรวจสอบคำขอทดสอบระบบนี้');
+      }
+      const { project } = await this.ensureProjectAccess(projectId, actor, { transaction: t });
+      const record = await this.findLatest(project.projectId, { transaction: t });
+      if (!record) {
+        throw new Error('ยังไม่มีคำขอทดสอบระบบในโครงงานนี้');
+      }
+      if (record.status !== 'pending_staff') {
+        throw new Error('คำขอนี้ไม่อยู่ในสถานะรอเจ้าหน้าที่อนุมัติ');
+      }
+
+      const decision = (payload.decision || '').toLowerCase();
+      if (!['approve', 'reject'].includes(decision)) {
+        throw new Error('กรุณาเลือกผลการพิจารณาให้ถูกต้อง');
+      }
+
+      const update = {
+        staffUserId: actor.userId,
+        staffDecidedAt: new Date(),
+        staffDecisionNote: payload.note || null,
+        status: decision === 'approve' ? 'staff_approved' : 'staff_rejected'
+      };
+      await record.update(update, { transaction: t });
+      await t.commit();
+      return this.serialize(await this.findLatest(project.projectId));
+    } catch (error) {
+      await t.rollback();
+      logger.error('staff decision failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async uploadEvidence(projectId, actor, fileMeta) {
+    if (!fileMeta || !fileMeta.path) {
+      throw new Error('กรุณาอัปโหลดไฟล์หลักฐานการประเมิน (PDF)');
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      const { project } = await this.ensureProjectAccess(projectId, actor, { transaction: t });
+      if (actor.role !== 'student' || !ensureStudentMember(project, actor.studentId)) {
+        throw new Error('จำกัดเฉพาะนักศึกษาสมาชิกโครงงานในการอัปโหลดหลักฐาน');
+      }
+
+      const record = await this.findLatest(project.projectId, { transaction: t });
+      if (!record || record.status !== 'staff_approved') {
+        throw new Error('ต้องได้รับการอนุมัติจากเจ้าหน้าที่ก่อนจึงจะอัปโหลดหลักฐานได้');
+      }
+      if (record.evidenceSubmittedAt) {
+        throw new Error('มีการอัปโหลดหลักฐานเรียบร้อยแล้ว');
+      }
+
+      const dueDay = dayjs(record.testDueDate).tz();
+      if (dueDay.isValid()) {
+        const now = dayjs().tz();
+        if (now.isBefore(dueDay)) {
+          throw new Error('ยังไม่ครบกำหนด 30 วันของการทดสอบระบบ ไม่สามารถอัปโหลดหลักฐานได้');
+        }
+      }
+
+      const relativePath = buildRelativePath(fileMeta.path);
+      await record.update({
+        evidenceFilePath: relativePath,
+        evidenceFileName: fileMeta.originalname || null,
+        evidenceSubmittedAt: new Date()
+      }, { transaction: t });
+
+      await t.commit();
+      logger.info('upload system test evidence', { projectId: project.projectId, studentId: actor.studentId });
+      return this.serialize(await this.findLatest(project.projectId));
+    } catch (error) {
+      await t.rollback();
+      logger.error('upload system test evidence failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async advisorQueue(teacherId, options = {}) {
+    const include = [
+      {
+        model: ProjectDocument,
+        as: 'project'
+      },
+      {
+        model: Student,
+        as: 'submittedBy',
+        include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      }
+    ];
+
+    const records = await ProjectTestRequest.findAll({
+      where: {
+        advisorTeacherId: teacherId,
+        status: { [Op.in]: ['pending_advisor', 'pending_staff', 'staff_approved'] }
+      },
+      order: [['submittedAt', 'DESC']],
+      include
+    });
+    return records.map(record => this.serialize(record));
+  }
+
+  async staffQueue(options = {}) {
+    const where = {};
+    if (options.status) {
+      const statuses = Array.isArray(options.status) ? options.status : String(options.status).split(',');
+      where.status = { [Op.in]: statuses };
+    } else {
+      where.status = { [Op.in]: ['pending_staff', 'staff_approved'] };
+    }
+
+    const include = [
+      { model: ProjectDocument, as: 'project' },
+      {
+        model: Student,
+        as: 'submittedBy',
+        include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'advisor',
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      }
+    ];
+
+    const records = await ProjectTestRequest.findAll({
+      where,
+      order: [['submittedAt', 'DESC']],
+      include
+    });
+    return records.map(record => this.serialize(record));
+  }
+}
+
+module.exports = new ProjectSystemTestService();

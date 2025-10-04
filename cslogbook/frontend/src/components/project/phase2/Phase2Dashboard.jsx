@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Card, Col, Divider, Empty, List, Row, Space, Spin, Tag, Timeline, Typography } from 'antd';
+import { Alert, Button, Card, Col, Descriptions, Divider, Empty, List, Row, Space, Spin, Tag, Timeline, Typography } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import projectService from '../../../services/projectService';
 import dayjs from '../../../utils/dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -22,7 +23,17 @@ const DEFENSE_STATUS_META = {
   default: { color: 'default', text: 'ไม่พบสถานะคำขอ' }
 };
 
+const SYSTEM_TEST_STATUS_META = {
+  pending_advisor: { color: 'orange', text: 'รออาจารย์อนุมัติ' },
+  advisor_rejected: { color: 'red', text: 'อาจารย์ส่งกลับ' },
+  pending_staff: { color: 'purple', text: 'รอเจ้าหน้าที่ตรวจสอบ' },
+  staff_rejected: { color: 'red', text: 'เจ้าหน้าที่ส่งกลับ' },
+  staff_approved: { color: 'green', text: 'อนุมัติครบ (รอหลักฐาน)' },
+  default: { color: 'default', text: 'ยังไม่ยื่นคำขอ' }
+};
+
 const Phase2Dashboard = () => {
+  const navigate = useNavigate();
   const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
   const { academicSettings } = useStudentEligibility();
   const [examDetail, setExamDetail] = useState(null);
@@ -91,6 +102,26 @@ const Phase2Dashboard = () => {
   const thesisStatusKey = thesisRequest?.status || 'not_submitted';
   const thesisStatusMeta = DEFENSE_STATUS_META[thesisStatusKey] || DEFENSE_STATUS_META.default;
 
+  const systemTestSummary = useMemo(() => activeProject?.systemTestRequest || null, [activeProject?.systemTestRequest]);
+  const systemTestStatusMeta = useMemo(() => {
+    if (!systemTestSummary) return SYSTEM_TEST_STATUS_META.default;
+    if (systemTestSummary.status === 'staff_approved' && systemTestSummary.evidenceSubmittedAt) {
+      return { color: 'green', text: 'อนุมัติครบและอัปโหลดหลักฐานครบแล้ว' };
+    }
+    return SYSTEM_TEST_STATUS_META[systemTestSummary.status] || SYSTEM_TEST_STATUS_META.default;
+  }, [systemTestSummary]);
+  const systemTestDueDay = useMemo(() => {
+    if (!systemTestSummary?.testDueDate) return null;
+    const due = dayjs(systemTestSummary.testDueDate);
+    return due.isValid() ? due : null;
+  }, [systemTestSummary?.testDueDate]);
+  const systemTestCanUpload = useMemo(() => {
+    if (!systemTestSummary || systemTestSummary.status !== 'staff_approved') return false;
+    if (systemTestSummary.evidenceSubmittedAt) return false;
+    if (!systemTestDueDay) return false;
+    return dayjs().isAfter(systemTestDueDay);
+  }, [systemTestSummary, systemTestDueDay]);
+
   const requireScopeRevision = Boolean(examDetail?.requireScopeRevision);
 
   const meetingRequirement = useMemo(() => {
@@ -112,6 +143,13 @@ const Phase2Dashboard = () => {
     const dt = dayjs(value);
     if (!dt.isValid()) return null;
     return dt.format('DD MMM YYYY เวลา HH:mm น.');
+  };
+
+  const formatDateOnly = (value) => {
+    if (!value) return null;
+    const dt = dayjs(value);
+    if (!dt.isValid()) return null;
+    return dt.format('DD/MM/YYYY');
   };
 
   const timelineItems = useMemo(() => {
@@ -304,6 +342,61 @@ const Phase2Dashboard = () => {
 
       <Card title="ลำดับขั้นตอนสำคัญ">
         <Timeline mode="left" items={timelineItems} />
+      </Card>
+
+      <Card title="สถานะคำขอทดสอบระบบ 30 วัน">
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {!systemTestSummary ? (
+            <>
+              <Alert
+                type="info"
+                showIcon
+                message="ยังไม่ยื่นคำขอทดสอบระบบ"
+                description="เมื่อพร้อมทดลองใช้งานจริง สามารถยื่นคำขอผ่านปุ่มด้านล่าง"
+              />
+              <Button type="primary" onClick={() => navigate('/project/phase2/system-test')}>
+                เปิดหน้าคำขอทดสอบระบบ
+              </Button>
+            </>
+          ) : (
+            <>
+              <Space size={8} align="center" wrap>
+                <Tag color={systemTestStatusMeta.color}>{systemTestStatusMeta.text}</Tag>
+                <Text type="secondary">
+                  {systemTestSummary.timeline?.staffDecidedAt
+                    ? `อนุมัติล่าสุด ${formatDate(systemTestSummary.timeline.staffDecidedAt) || '—'}`
+                    : `ส่งคำขอเมื่อ ${formatDate(systemTestSummary.submittedAt) || '—'}`}
+                </Text>
+              </Space>
+              <Descriptions bordered column={1} size="small">
+                <Descriptions.Item label="วันเริ่มทดสอบ">
+                  {formatDateOnly(systemTestSummary.testStartDate) || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label="ครบกำหนด 30 วัน">
+                  {formatDateOnly(systemTestSummary.testDueDate) || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label="หลักฐานการประเมิน">
+                  {systemTestSummary.evidenceSubmittedAt
+                    ? `อัปโหลดเมื่อ ${formatDate(systemTestSummary.evidenceSubmittedAt)}`
+                    : systemTestCanUpload
+                      ? 'ครบกำหนด สามารถอัปโหลดหลักฐานได้แล้ว'
+                      : 'ยังไม่ถึงกำหนดหรือยังไม่ได้อัปโหลด'}
+                </Descriptions.Item>
+              </Descriptions>
+              {systemTestCanUpload && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="ครบกำหนด 30 วัน"
+                  description="กรุณาอัปโหลดไฟล์หลักฐานการประเมินบนหน้าคำขอทดสอบระบบ"
+                />
+              )}
+              <Button type="primary" onClick={() => navigate('/project/phase2/system-test')}>
+                เปิดหน้าคำขอ / อัปโหลดหลักฐาน
+              </Button>
+            </>
+          )}
+        </Space>
       </Card>
 
       <Card title="ทรัพยากรแนะนำ">
