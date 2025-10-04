@@ -16,6 +16,9 @@ const logger = require('../utils/logger');
 const { buildSummary } = require('./meetingSummaryHelper');
 const mailer = require('../utils/mailer');
 
+const MEETING_PHASES = ['phase1', 'phase2'];
+const DEFAULT_MEETING_PHASE = 'phase1';
+
 class MeetingService {
   async ensureProjectAccess(projectId, actor, options = {}) {
     const project = await ProjectDocument.findByPk(projectId);
@@ -160,6 +163,23 @@ class MeetingService {
       throw error;
     }
 
+    const requestedPhaseRaw = typeof payload.phase === 'string' ? payload.phase.toLowerCase() : DEFAULT_MEETING_PHASE;
+    const meetingPhase = MEETING_PHASES.includes(requestedPhaseRaw) ? requestedPhaseRaw : DEFAULT_MEETING_PHASE;
+
+    if (meetingPhase === 'phase2') {
+      const status = context.project?.status || null;
+      if (context.project?.examResult !== 'passed') {
+        const error = new Error('ยังไม่สามารถสร้างการพบสำหรับโครงงานพิเศษ 2 ได้');
+        error.statusCode = 400;
+        throw error;
+      }
+      if (!['in_progress', 'completed'].includes(status)) {
+        const error = new Error('โครงงานยังไม่อยู่ในสถานะที่รองรับการบันทึกการพบของโครงงานพิเศษ 2');
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+
     const t = await sequelize.transaction();
     let meeting;
     try {
@@ -171,7 +191,8 @@ class MeetingService {
         meetingLink: payload.meetingLink || null,
         status: payload.status || 'scheduled',
         projectId,
-        createdBy: actor.userId
+        createdBy: actor.userId,
+        phase: meetingPhase
       }, { transaction: t });
 
       const participants = await this.buildParticipants({
@@ -1016,7 +1037,8 @@ class MeetingService {
       meetingMethod: meeting.meetingMethod,
       meetingLocation: meeting.meetingLocation,
       meetingLink: meeting.meetingLink,
-      status: meeting.status,
+    status: meeting.status,
+    phase: meeting.phase || DEFAULT_MEETING_PHASE,
       projectId: meeting.projectId,
       createdBy: meeting.createdBy,
       createdAt: meeting.createdAt,

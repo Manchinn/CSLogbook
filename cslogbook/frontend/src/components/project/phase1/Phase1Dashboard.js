@@ -11,16 +11,19 @@ import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import ProjectDashboard from '../ProjectDashboard';
 import { ProjectEligibilityCheck } from '../eligibility';
+import { phase2CardSteps } from '../phase2';
 
 // Phase1Dashboard: ศูนย์รวมขั้นตอน โครงงานพิเศษ 1
 // - แสดงการ์ดขั้นตอนทั้งหมด (Phase1) ในหน้าเดียว
 // - คลิกการ์ดแล้ว navigate ไปยัง sub-route เฉพาะ (placeholder ณ ตอนนี้)
 // - Sub-route จะ render ผ่าน <Outlet /> ด้านล่าง (ถ้ามี)
 
-// metadata ของขั้นตอนแต่ละการ์ด สามารถขยายเพิ่ม field อื่นได้ในอนาคต เช่น requiredRoles, permissions
-const steps = [
+// metadata ของการ์ดขั้นตอน Phase 1 สามารถขยาย field เพิ่มเติมได้ในอนาคต เช่น requiredRoles, permissions
+const phase1Steps = Object.freeze([
   {
     key: 'topic-submit',
+    phase: 'phase1',
+  phaseLabel: 'โครงงานพิเศษ1',
     title: 'เสนอหัวข้อโครงงานพิเศษ',
     desc: 'แต่ละหัวข้อโครงงาน ส่งได้เพียงครั้งเดียวเท่านั้น',
     icon: <FileAddOutlined style={{ fontSize: 28 }} />,
@@ -28,6 +31,8 @@ const steps = [
   },
   {
     key: 'topic-exam',
+    phase: 'phase1',
+  phaseLabel: 'โครงงานพิเศษ1',
     title: 'ติดตามผลสอบหัวข้อ',
     desc: 'ตรวจสอบกำหนดการสอบและสถานะผลหัวข้อ',
     icon: <FileSearchOutlined style={{ fontSize: 28 }} />,
@@ -35,6 +40,8 @@ const steps = [
   },
   {
     key: 'meeting-logbook',
+    phase: 'phase1',
+  phaseLabel: 'โครงงานพิเศษ1',
     title: 'บันทึกการพบอาจารย์',
     desc: 'จองการพบและบันทึกการประชุมพร้อมส่งอีเมลแจ้งเตือนผู้เข้าร่วม',
     icon: <TeamOutlined style={{ fontSize: 28 }} />,
@@ -43,13 +50,15 @@ const steps = [
   },
   {
     key: 'exam-submit',
+    phase: 'phase1',
+  phaseLabel: 'โครงงานพิเศษ1',
     title: 'ส่งเอกสารสอบ',
     desc: 'เตรียมเอกสารประกอบการสอบปลายภาคโครงงานพิเศษ 1',
     icon: <UploadOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     requiresPostTopicUnlock: true
-  },
-];
+  }
+]);
 
 const Phase1Dashboard = () => {
   const { Title, Paragraph, Text } = Typography;
@@ -110,6 +119,150 @@ const Phase1Dashboard = () => {
   }, [activeProject]);
   const canAccessPhase2 = activeProject && phase2GateReasons.length === 0;
 
+  const leaderMember = useMemo(() => {
+    if (!activeProject || !Array.isArray(activeProject.members)) return null;
+    return activeProject.members.find(member => member.role === 'leader') || null;
+  }, [activeProject]);
+
+  const meetingProgress = useMemo(() => {
+    if (!activeProject) {
+      return {
+        required: 0,
+        approved: 0,
+        totalApproved: 0,
+        satisfied: true
+      };
+    }
+    const metrics = activeProject.meetingMetrics;
+    if (!metrics) {
+      return {
+        required: 0,
+        approved: 0,
+        totalApproved: 0,
+        satisfied: true
+      };
+    }
+    const required = Number(metrics.requiredApprovedLogs) || 0;
+    const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
+    const leaderId = leaderMember?.studentId;
+    const leaderApproved = leaderId
+      ? Number(perStudent.find(item => Number(item.studentId) === Number(leaderId))?.approvedLogs || 0)
+      : 0;
+    const totalApproved = Number(metrics.totalApprovedLogs) || leaderApproved;
+    return {
+      required,
+      approved: leaderApproved,
+      totalApproved,
+      satisfied: required === 0 || leaderApproved >= required
+    };
+  }, [activeProject, leaderMember]);
+
+  const project1DefenseRequest = useMemo(() => {
+    if (!Array.isArray(activeProject?.defenseRequests)) return null;
+    return activeProject.defenseRequests.find(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled') || null;
+  }, [activeProject?.defenseRequests]);
+
+  const thesisDefenseRequest = useMemo(() => {
+    if (!Array.isArray(activeProject?.defenseRequests)) return null;
+    return activeProject.defenseRequests.find(request => request.defenseType === 'THESIS' && request.status !== 'cancelled') || null;
+  }, [activeProject?.defenseRequests]);
+
+  const stepStatusMap = useMemo(() => {
+    const statuses = {};
+
+    const setStatus = (key, label, color = 'default') => {
+      statuses[key] = { label, color };
+    };
+
+    if (!activeProject) {
+      ['topic-submit', 'topic-exam', 'meeting-logbook', 'exam-submit', 'phase2-overview'].forEach(key => setStatus(key, 'ยังไม่มีโครงงาน', 'default'));
+      return statuses;
+    }
+
+    const members = Array.isArray(activeProject.members) ? activeProject.members : [];
+    const membersCount = members.length;
+    const hasTopicTitles = Boolean(activeProject.projectNameTh) && Boolean(activeProject.projectNameEn);
+    const isFailedArchived = activeProject.examResult === 'failed' && Boolean(activeProject.studentAcknowledgedAt);
+
+    if (isFailedArchived) {
+      setStatus('topic-submit', 'ต้องยื่นใหม่', 'red');
+    } else if (membersCount >= 2 && hasTopicTitles) {
+      setStatus('topic-submit', 'เสร็จสิ้น', 'green');
+    } else if (membersCount > 0 || hasTopicTitles) {
+      setStatus('topic-submit', 'กำลังดำเนินการ', 'blue');
+    } else {
+      setStatus('topic-submit', 'ยังไม่เริ่ม', 'default');
+    }
+
+    const project1Status = project1DefenseRequest?.status;
+    if (activeProject.examResult === 'passed') {
+      setStatus('topic-exam', 'ผ่านการสอบหัวข้อ', 'green');
+    } else if (activeProject.examResult === 'failed') {
+      setStatus('topic-exam', activeProject.studentAcknowledgedAt ? 'ไม่ผ่าน (รับทราบแล้ว)' : 'ไม่ผ่าน', 'red');
+    } else if (project1Status) {
+      if (['advisor_rejected', 'staff_returned', 'cancelled'].includes(project1Status)) {
+        setStatus('topic-exam', 'คำขอถูกส่งกลับ', 'red');
+      } else if (['staff_verified', 'scheduled'].includes(project1Status)) {
+        setStatus('topic-exam', 'รอวันสอบ', 'geekblue');
+      } else if (project1Status === 'completed') {
+        setStatus('topic-exam', 'รอประกาศผล', 'geekblue');
+      } else {
+        setStatus('topic-exam', 'อยู่ระหว่างพิจารณา', 'blue');
+      }
+    } else {
+      setStatus('topic-exam', 'ยังไม่ยื่นคำขอสอบ', 'default');
+    }
+
+    if (meetingProgress.required > 0) {
+      if (meetingProgress.satisfied) {
+        setStatus('meeting-logbook', `ครบเกณฑ์ ${meetingProgress.approved}/${meetingProgress.required}`, 'green');
+      } else if (meetingProgress.approved > 0) {
+        setStatus('meeting-logbook', `อนุมัติแล้ว ${meetingProgress.approved}/${meetingProgress.required}`, 'blue');
+      } else {
+        setStatus('meeting-logbook', `ยังไม่บันทึก (${meetingProgress.required})`, 'default');
+      }
+    } else {
+      if (meetingProgress.approved > 0) {
+        setStatus('meeting-logbook', `บันทึกแล้ว ${meetingProgress.approved}`, 'blue');
+      } else {
+        setStatus('meeting-logbook', 'พร้อมบันทึก', 'default');
+      }
+    }
+
+    if (!project1DefenseRequest) {
+      setStatus('exam-submit', 'ยังไม่ยื่นคำขอ', 'default');
+    } else {
+      const defenseStatus = project1DefenseRequest.status;
+      if (['advisor_rejected', 'staff_returned', 'cancelled'].includes(defenseStatus)) {
+        setStatus('exam-submit', 'คำขอถูกส่งกลับ', 'red');
+      } else if (['staff_verified', 'scheduled', 'completed'].includes(defenseStatus)) {
+        setStatus('exam-submit', 'ส่งเรียบร้อย', 'green');
+      } else if (defenseStatus === 'advisor_approved') {
+        setStatus('exam-submit', 'อาจารย์อนุมัติครบ', 'purple');
+      } else {
+        setStatus('exam-submit', 'รอการอนุมัติ', 'blue');
+      }
+    }
+
+    if (!canAccessPhase2) {
+      setStatus('phase2-overview', 'รอปลดล็อก', 'gold');
+    } else if (thesisDefenseRequest?.status === 'completed') {
+      setStatus('phase2-overview', 'เสร็จสิ้น Phase 2', 'green');
+    } else if (thesisDefenseRequest) {
+      if (['advisor_rejected', 'staff_returned', 'cancelled'].includes(thesisDefenseRequest.status)) {
+        setStatus('phase2-overview', 'คำขอสอบ 2 ถูกส่งกลับ', 'red');
+      } else if (['staff_verified', 'scheduled'].includes(thesisDefenseRequest.status)) {
+        setStatus('phase2-overview', 'รอสอบโครงงานพิเศษ 2', 'geekblue');
+      } else {
+        setStatus('phase2-overview', 'กำลังยื่นสอบ Phase 2', 'blue');
+      }
+    } else {
+      setStatus('phase2-overview', 'พร้อมเริ่ม Phase 2', 'geekblue');
+    }
+
+    return statuses;
+  }, [activeProject, canAccessPhase2, meetingProgress, project1DefenseRequest, thesisDefenseRequest]);
+
   const showAck = activeProject && activeProject.examResult === 'failed' && !activeProject.studentAcknowledgedAt;
 
   const handleAcknowledge = async () => {
@@ -137,24 +290,53 @@ const Phase1Dashboard = () => {
     return match ? match[1] : null;
   }, [location.pathname]);
 
-  const stepsMap = useMemo(() => steps.reduce((acc, s) => { acc[s.key] = s; return acc; }, {}), []);
+  const phase1StepsMap = useMemo(() => phase1Steps.reduce((acc, s) => {
+    acc[s.key] = s;
+    return acc;
+  }, {}), []);
 
+  const allSteps = [...phase1Steps, ...phase2CardSteps];
+
+  // handleOpen: จัดการคลิกการ์ดแต่ละขั้นตอน แยกตามเฟสและตรวจสอบเงื่อนไขการปลดล็อก
   const handleOpen = (stepKey) => {
-    const meta = stepsMap[stepKey];
-    if (!meta) return;
-    if (!meta.implemented) return;
-    if (meta.requiresPostTopicUnlock) {
-      const reasons = !activeProject ? postTopicGateReasons : postTopicGateReasons;
-      if (!activeProject || reasons.length > 0) {
-        const summary = reasons.length ? reasons.join(' • ') : 'ขั้นตอนนี้จะเปิดใช้งานหลังจากเจ้าหน้าที่บันทึกหัวข้อและสถานะโครงงานเป็น in_progress';
-        message.warning(summary);
-        return;
-      }
+    const meta = allSteps.find((step) => step.key === stepKey);
+    if (!meta) {
+      return;
     }
-    navigate(`/project/phase1/${stepKey}`);
+
+    const lockReasons = [];
+    if (meta.requiresPostTopicUnlock) {
+      lockReasons.push(...postTopicGateReasons);
+    }
+    if (meta.requiresPhase2Unlock) {
+      lockReasons.push(...phase2GateReasons);
+    }
+
+    if (!meta.implemented) {
+      message.info(meta.comingSoon ? 'ฟีเจอร์กำลังพัฒนา (Coming Soon)' : 'ฟีเจอร์กำลังพัฒนา');
+      return;
+    }
+
+    if (lockReasons.length > 0) {
+      const summary = lockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.warning(summary);
+      return;
+    }
+
+    if (meta.phase === 'phase1') {
+      navigate(`/project/phase1/${stepKey}`);
+      return;
+    }
+
+    if (meta.target) {
+      navigate(meta.target);
+      return;
+    }
+
+    message.info('กำลังเตรียมฟีเจอร์นี้ให้พร้อมใช้งาน');
   };
 
-  const activeStepMeta = activeSub ? stepsMap[activeSub] : null;
+  const activeStepMeta = activeSub ? phase1StepsMap[activeSub] : null;
 
   // ถ้า URL ไม่ตรงกับ step ที่มี ให้ถือว่าไม่มี activeSub
   if (activeSub && !activeStepMeta) {
@@ -272,9 +454,9 @@ const Phase1Dashboard = () => {
               </Space>
             </Card>
           )}
-          <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
-            <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงาน</Paragraph>
-            <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนอื่นอยู่ระหว่างพัฒนา</Text>
+          <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษและปริญญานิพนธ์</Title>}>
+            <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงานจากทั้งสอง Phase ภายในหน้าเดียว</Paragraph>
+            <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนที่ล็อกอยู่จะอธิบายเหตุผลบน Tooltip</Text>
           </Card>
           {activeProject && postTopicLockReasons.length > 0 && (
             <Alert
@@ -292,8 +474,14 @@ const Phase1Dashboard = () => {
             />
           )}
           <Row gutter={[16,16]}>
-            {steps.map(s => {
-              const lockReasonsForStep = s.requiresPostTopicUnlock ? postTopicGateReasons : [];
+            {allSteps.map(s => {
+              const lockReasonsForStep = [];
+              if (s.requiresPostTopicUnlock) {
+                lockReasonsForStep.push(...postTopicGateReasons);
+              }
+              if (s.requiresPhase2Unlock) {
+                lockReasonsForStep.push(...phase2GateReasons);
+              }
               const cardDisabled = !s.implemented || lockReasonsForStep.length > 0;
               const tooltipTitle = !s.implemented
                 ? 'ฟีเจอร์กำลังพัฒนา'
@@ -331,14 +519,19 @@ const Phase1Dashboard = () => {
                         </div>
                       </div>
                       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {s.implemented ? (
-                          lockReasonsForStep.length > 0 ? (
-                            <Tag color="gold">รอเปิดใช้งาน</Tag>
-                          ) : (
-                            <Tag color="blue">พร้อมใช้งาน</Tag>
-                          )
-                        ) : (
+                        {s.phaseLabel && (
+                          <Tag color={s.phase === 'phase2' ? 'geekblue' : 'purple'} bordered={false}>
+                            {s.phaseLabel}
+                          </Tag>
+                        )}
+                        {!s.implemented ? (
                           <Tag>กำลังพัฒนา</Tag>
+                        ) : lockReasonsForStep.length > 0 ? (
+                          <Tag color="gold">รอปลดล็อก</Tag>
+                        ) : (
+                          <Tag color={stepStatusMap[s.key]?.color || 'blue'} bordered={false}>
+                            {stepStatusMap[s.key]?.label || 'พร้อมใช้งาน'}
+                          </Tag>
                         )}
                         {s.comingSoon && !s.implemented && <Tag color="default">Coming Soon</Tag>}
                       </div>
@@ -348,38 +541,6 @@ const Phase1Dashboard = () => {
               );
             })}
           </Row>
-          {activeProject && (
-            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #d6e4ff', background: '#f0f5ff' }}>
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <Space direction="vertical" size={0}>
-                  <Text strong>ก้าวสู่โครงงานพิเศษ 2</Text>
-                  <Text type="secondary">ระบบจะเปิดหน้า Phase 2 เมื่อหัวข้อสอบผ่านและโครงงานอยู่ในสถานะกำลังดำเนินการ</Text>
-                </Space>
-                {canAccessPhase2 ? (
-                  <Button type="primary" onClick={() => navigate('/project/phase2')}>
-                    เปิดดูขั้นตอนโครงงานพิเศษ 2
-                  </Button>
-                ) : (
-                  <Alert
-                    type="info"
-                    showIcon
-                    message="ยังไม่พร้อมเปิด Phase 2"
-                    description={(
-                      phase2GateReasons.length ? (
-                        <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-                          {phase2GateReasons.map((reason, index) => (
-                            <li key={`phase2-reason-${index}`}>{reason}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span>ระบบจะเปิดอัตโนมัติเมื่อผลสอบหัวข้อได้รับการบันทึกครบ</span>
-                      )
-                    )}
-                  />
-                )}
-              </Space>
-            </Card>
-          )}
           <ProjectDashboard />
         </div>
         {ackModal}

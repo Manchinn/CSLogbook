@@ -1,4 +1,7 @@
-function buildSummary(meetings, members) {
+const MEETING_PHASES = ['phase1', 'phase2'];
+const DEFAULT_PHASE = 'phase1';
+
+function summarize(meetings, members) {
   const safeMeetings = Array.isArray(meetings) ? meetings : [];
   const safeMembers = Array.isArray(members) ? members : [];
 
@@ -47,6 +50,22 @@ function buildSummary(meetings, members) {
     approvedLogs,
     pendingLogs,
     approvalsByStudent: Array.from(studentMap.values())
+  };
+}
+
+function buildSummary(meetings, members) {
+  const overall = summarize(meetings, members);
+  const safeMeetings = Array.isArray(meetings) ? meetings : [];
+
+  const phaseBreakdown = MEETING_PHASES.reduce((acc, phase) => {
+    const subset = safeMeetings.filter(meeting => (meeting?.phase || DEFAULT_PHASE) === phase);
+    acc[phase] = summarize(subset, members);
+    return acc;
+  }, {});
+
+  return {
+    ...overall,
+    phaseBreakdown
   };
 }
 
