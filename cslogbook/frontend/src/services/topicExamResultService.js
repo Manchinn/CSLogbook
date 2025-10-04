@@ -1,46 +1,43 @@
-// Service สำหรับบันทึกผลสอบหัวข้อโครงงาน
-// ใช้ endpoint POST /api/projects/:id/exam-result
+// Service สำหรับบันทึกผลสอบหัวข้อโครงงานพิเศษ (สอบเสนอหัวข้อ / KP02)
+// ใช้ endpoint POST /api/projects/:id/topic-exam-result
 // เปลี่ยนมาใช้ apiClient กลาง (axios instance) แทน utils/api เดิม
 import apiClient from './apiClient';
 
 function normalizeResult(rawResult) {
   const value = typeof rawResult === 'string' ? rawResult.trim().toLowerCase() : '';
-  if (['pass', 'passed', 'p'].includes(value)) return 'PASS';
-  if (['fail', 'failed', 'f'].includes(value)) return 'FAIL';
+  if (['pass', 'passed', 'p'].includes(value)) return 'passed';
+  if (['fail', 'failed', 'f'].includes(value)) return 'failed';
   throw new Error('ผลสอบต้องเป็น passed หรือ failed');
 }
 
-function normalizeExamType(rawType) {
-  const value = typeof rawType === 'string' ? rawType.trim().toUpperCase() : '';
-  if (!value) return 'PROJECT1';
-  if (['PROJECT1', 'THESIS'].includes(value)) return value;
-  throw new Error('ประเภทการสอบไม่ถูกต้อง');
+function normalizeAdvisorId(rawAdvisorId) {
+  if (rawAdvisorId === undefined || rawAdvisorId === null || rawAdvisorId === '') {
+    return undefined;
+  }
+  const numeric = Number(rawAdvisorId);
+  if (!Number.isInteger(numeric) || numeric <= 0) {
+    throw new Error('advisorId ต้องเป็นเลขจำนวนเต็มบวก');
+  }
+  return numeric;
 }
 
 export async function recordTopicExamResult(projectId, payload = {}) {
-  const examType = normalizeExamType(payload.examType);
   const result = normalizeResult(payload.result ?? payload.examResult);
+  const advisorId = normalizeAdvisorId(payload.advisorId ?? payload.selectedAdvisorId);
 
-  const requestBody = {
-    examType,
-    result,
-    requireScopeRevision: result === 'PASS' ? Boolean(payload.requireScopeRevision) : false
-  };
+  const requestBody = { result };
 
-  if (payload.score !== undefined && payload.score !== null && payload.score !== '') {
-    const numericScore = Number(payload.score);
-    if (!Number.isNaN(numericScore)) {
-      requestBody.score = numericScore;
+  if (advisorId !== undefined) {
+    requestBody.advisorId = advisorId;
+  }
+
+  if (result === 'failed') {
+    const reasonSource = typeof payload.reason === 'string' ? payload.reason : payload.notes;
+    const reason = typeof reasonSource === 'string' ? reasonSource.trim() : '';
+    if (reason) {
+      requestBody.reason = reason;
     }
   }
 
-  const noteSource = result === 'FAIL'
-    ? (payload.reason ?? payload.notes)
-    : payload.notes;
-
-  if (typeof noteSource === 'string' && noteSource.trim()) {
-    requestBody.notes = noteSource.trim();
-  }
-
-  return apiClient.post(`/projects/${projectId}/exam-result`, requestBody);
+  return apiClient.post(`/projects/${projectId}/topic-exam-result`, requestBody);
 }
