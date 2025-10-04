@@ -21,6 +21,7 @@ import {
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
+  EyeOutlined,
   FileTextOutlined,
   ReloadOutlined,
   SearchOutlined
@@ -29,6 +30,7 @@ import dayjs from '../../../../utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../../utils/constants';
 import projectService from '../../../../services/projectService';
 import { useAuth } from '../../../../contexts/AuthContext';
+import PDFViewerModal from '../../../PDFViewerModal';
 
 const { Title, Text } = Typography;
 
@@ -65,6 +67,9 @@ const StaffSystemTestQueue = () => {
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState(null);
+  const [viewerTitle, setViewerTitle] = useState('');
 
   const canDecide = useMemo(() => {
     if (!userData) return false;
@@ -149,6 +154,22 @@ const StaffSystemTestQueue = () => {
       { waiting: 0, approved: 0, rejected: 0, advisorRejected: 0, total: 0 }
     );
   }, [filteredItems]);
+
+  const handlePreview = useCallback((file, title) => {
+    if (!file?.url) {
+      message.warning('ไม่พบไฟล์สำหรับแสดงตัวอย่าง');
+      return;
+    }
+    setViewerUrl(file.url);
+    setViewerTitle(title || file.name || 'เอกสาร PDF');
+    setViewerVisible(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerVisible(false);
+    setViewerUrl(null);
+    setViewerTitle('');
+  }, []);
 
   const handleDecision = useCallback((record, decision) => {
     if (!record?.projectSnapshot?.projectId) {
@@ -319,21 +340,23 @@ const StaffSystemTestQueue = () => {
               ) : (
                 <Text type="secondary">ไม่มีไฟล์คำขอแนบ</Text>
               )}
-              <Text>
-                หลักฐานการประเมิน:{' '}
-                {record.evidence ? (
+              {record.evidence ? (
+                <Space size={8} wrap>
+                  <Text>หลักฐานการประเมิน:</Text>
                   <Button
                     type="link"
-                    href={record.evidence.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    icon={<EyeOutlined />}
+                    onClick={() => handlePreview(record.evidence, `หลักฐานการประเมิน - ${record.projectSnapshot?.projectNameTh || record.projectSnapshot?.projectNameEn || record.evidence.name}`)}
                   >
-                    ดาวน์โหลดไฟล์ ({record.evidence.name})
+                    เปิดดู
                   </Button>
-                ) : (
+                </Space>
+              ) : (
+                <Space size={8}>
+                  <Text>หลักฐานการประเมิน:</Text>
                   <Tag color="warning">ยังไม่อัปโหลด</Tag>
-                )}
-              </Text>
+                </Space>
+              )}
             </Space>
           </Card>
         </Col>
@@ -379,7 +402,7 @@ const StaffSystemTestQueue = () => {
         </Col>
       </Row>
     );
-  }, [formatDate, formatDateTime]);
+  }, [formatDate, formatDateTime, handlePreview]);
 
   return (
     <div style={containerStyle}>
@@ -480,6 +503,14 @@ const StaffSystemTestQueue = () => {
             }}
           />
         </Spin>
+        {viewerVisible && (
+          <PDFViewerModal
+            visible={viewerVisible}
+            pdfUrl={viewerUrl}
+            onClose={handleCloseViewer}
+            title={viewerTitle || 'หลักฐานการประเมิน'}
+          />
+        )}
       </Space>
     </div>
   );
