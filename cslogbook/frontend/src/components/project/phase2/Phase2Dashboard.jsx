@@ -138,6 +138,27 @@ const Phase2Dashboard = () => {
     };
   }, [activeProject?.meetingMetrics]);
 
+  const thesisBlockingReasons = useMemo(() => {
+    const reasons = [];
+    if (!meetingRequirement.satisfied) {
+      reasons.push(`บันทึกการพบอาจารย์ได้รับอนุมัติ ${meetingRequirement.totalApproved}/${meetingRequirement.required} ครั้ง`);
+    }
+    if (!systemTestSummary) {
+      reasons.push('ยังไม่ส่งคำขอทดสอบระบบ 30 วัน');
+    } else {
+      if (systemTestSummary.status !== 'staff_approved') {
+        reasons.push('คำขอทดสอบระบบยังไม่ผ่านการอนุมัติจากเจ้าหน้าที่');
+      }
+      if (!systemTestSummary.evidenceSubmittedAt) {
+        reasons.push('ยังไม่ได้อัปโหลดหลักฐานผลการทดสอบระบบ');
+      }
+      if (!systemTestDueDay || !dayjs().isAfter(systemTestDueDay)) {
+        reasons.push('ยังไม่ครบกำหนด 30 วันหลังการทดสอบระบบ');
+      }
+    }
+    return reasons;
+  }, [meetingRequirement, systemTestSummary, systemTestDueDay]);
+
   const formatDate = (value) => {
     if (!value) return null;
     const dt = dayjs(value);
@@ -396,6 +417,62 @@ const Phase2Dashboard = () => {
               </Button>
             </>
           )}
+        </Space>
+      </Card>
+
+      <Card title="คำขอสอบโครงงานพิเศษ 2 (คพ.03)">
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space size={8} align="center" wrap>
+            <Tag color={thesisStatusMeta.color}>{thesisStatusMeta.text}</Tag>
+            {thesisRequest?.submittedAt && (
+              <Text type="secondary">ยื่นล่าสุด {formatDate(thesisRequest.submittedAt) || '—'}</Text>
+            )}
+          </Space>
+
+          <Descriptions bordered size="small" column={1}>
+            <Descriptions.Item label="บันทึกการพบอาจารย์ที่ได้รับอนุมัติ">
+              {`${meetingRequirement.totalApproved}/${meetingRequirement.required}`} ครั้ง
+            </Descriptions.Item>
+            <Descriptions.Item label="สถานะคำขอทดสอบระบบ">
+              {systemTestSummary
+                ? `${systemTestStatusMeta.text}${systemTestSummary.evidenceSubmittedAt ? ' (อัปโหลดหลักฐานแล้ว)' : ''}`
+                : 'ยังไม่ยื่นคำขอ'}
+            </Descriptions.Item>
+            <Descriptions.Item label="ครบกำหนด 30 วัน">
+              {systemTestDueDay ? formatDateOnly(systemTestDueDay) : '—'}
+            </Descriptions.Item>
+            <Descriptions.Item label="สถานะล่าสุด">
+              {thesisRequest
+                ? formatDate(thesisRequest.updatedAt) || '—'
+                : 'ยังไม่ยื่นคำขอ'}
+            </Descriptions.Item>
+          </Descriptions>
+
+          {thesisBlockingReasons.length > 0 ? (
+            <Alert
+              type="warning"
+              showIcon
+              message="ยังไม่พร้อมยื่นคำขอสอบ"
+              description={(
+                <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                  {thesisBlockingReasons.map((reason, index) => (
+                    <li key={`thesis-block-${index}`}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+            />
+          ) : (
+            <Alert
+              type="success"
+              showIcon
+              message="พร้อมยื่นคำขอสอบ คพ.03 แล้ว"
+              description="ตรวจสอบข้อมูลให้ครบถ้วนก่อนกดปุ่มเพื่อไปยังหน้าคำขอ"
+            />
+          )}
+
+          <Button type="primary" onClick={() => navigate('/project/phase2/thesis-defense')}>
+            เปิดหน้าคำขอสอบ คพ.03
+          </Button>
         </Space>
       </Card>
 

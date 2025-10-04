@@ -30,6 +30,16 @@ const DEFENSE_TYPE_THESIS = 'THESIS';
 const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
 const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
 
+const DEFENSE_TYPE_LABELS_TH = Object.freeze({
+  [DEFENSE_TYPE_PROJECT1]: 'โครงงานพิเศษ 1',
+  [DEFENSE_TYPE_THESIS]: 'ปริญญานิพนธ์'
+});
+
+const DEFENSE_EXPORT_PREFIX = Object.freeze({
+  [DEFENSE_TYPE_PROJECT1]: 'รายชื่อสอบโครงงานพิเศษ1',
+  [DEFENSE_TYPE_THESIS]: 'รายชื่อสอบปริญญานิพนธ์'
+});
+
 const STAFF_STATUS_LABELS_TH = {
   advisor_in_review: 'รออาจารย์อนุมัติครบ',
   advisor_approved: 'รอเจ้าหน้าที่ตรวจสอบ',
@@ -222,7 +232,7 @@ class ProjectDefenseRequestService {
     };
   }
 
-  async attachMeetingMetrics(serializedRequest, { transaction } = {}) {
+  async attachMeetingMetrics(serializedRequest, { transaction, defenseType } = {}) {
     if (!serializedRequest || !serializedRequest.project) {
       return serializedRequest;
     }
@@ -232,9 +242,12 @@ class ProjectDefenseRequestService {
     }
 
     try {
+      const type = defenseType || serializedRequest.defenseType || DEFENSE_TYPE_PROJECT1;
       const students = await Student.findAll({ where: { studentId: memberStudentIds }, transaction });
       const metrics = await projectDocumentService.buildProjectMeetingMetrics(serializedRequest.project.projectId, students, { transaction });
-      const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
+      const requiredApprovedLogs = type === DEFENSE_TYPE_THESIS
+        ? THESIS_REQUIRED_APPROVED_MEETING_LOGS
+        : projectDocumentService.getRequiredApprovedMeetingLogs();
 
       serializedRequest.meetingMetrics = {
         requiredApprovedLogs,
@@ -389,9 +402,6 @@ class ProjectDefenseRequestService {
     }
     if (!payload.requestDate) {
       throw new Error('กรุณาระบุวันที่ยื่นคำขอ');
-    }
-    if (!payload.intendedDefenseDate) {
-      throw new Error('กรุณาระบุวันที่คาดว่าจะสอบโครงงานพิเศษ 2');
     }
     if (!Array.isArray(payload.students) || !payload.students.length) {
       throw new Error('กรุณากรอกข้อมูลช่องติดต่อของสมาชิกโครงงาน');
@@ -590,19 +600,6 @@ class ProjectDefenseRequestService {
         rawStudentsCount: Array.isArray(payload?.students) ? payload.students.length : 0
       });
 
-      if (!cleanedPayload.intendedDefenseDate) {
-        throw new Error('กรุณาระบุวันที่คาดว่าจะสอบโครงงานพิเศษ 2');
-      }
-
-      const intendedDay = dayjs(cleanedPayload.intendedDefenseDate);
-      if (!intendedDay.isValid()) {
-        throw new Error('รูปแบบวันที่คาดว่าจะสอบไม่ถูกต้อง');
-      }
-
-      if (testDue && intendedDay.isBefore(testDue.add(1, 'day'))) {
-        throw new Error('วันที่ขอสอบต้องอยู่หลังวันครบกำหนดทดสอบระบบอย่างน้อย 1 วัน');
-      }
-
       let record = await ProjectDefenseRequest.findOne({
         where: { projectId, defenseType: DEFENSE_TYPE_THESIS },
         transaction: t,
@@ -682,7 +679,7 @@ class ProjectDefenseRequestService {
 
     const serialized = this.serializeRequest(request);
     if (withMetrics) {
-      await this.attachMeetingMetrics(serialized, { transaction });
+      await this.attachMeetingMetrics(serialized, { transaction, defenseType });
     }
     return serialized;
   }
@@ -793,7 +790,7 @@ class ProjectDefenseRequestService {
     for (const approval of approvals) {
       if (!approval.request) continue;
       let serialized = this.serializeRequest(approval.request);
-      serialized = await this.attachMeetingMetrics(serialized, {});
+      serialized = await this.attachMeetingMetrics(serialized, { defenseType });
       serialized.myApproval = {
         approvalId: approval.approvalId,
         status: approval.status,
@@ -887,7 +884,7 @@ class ProjectDefenseRequestService {
 
       const refreshed = await ProjectDefenseRequest.findByPk(request.requestId, { include: this.buildRequestInclude() });
       const serialized = this.serializeRequest(refreshed);
-      await this.attachMeetingMetrics(serialized, {});
+  await this.attachMeetingMetrics(serialized, { defenseType });
       return serialized;
     } catch (error) {
       await this.safeRollback(t);
@@ -949,7 +946,7 @@ class ProjectDefenseRequestService {
     for (const request of requests) {
       const serialized = this.serializeRequest(request);
       if (withMetrics) {
-        await this.attachMeetingMetrics(serialized, {});
+        await this.attachMeetingMetrics(serialized, { defenseType });
       }
       serializedList.push(serialized);
     }
@@ -957,9 +954,11 @@ class ProjectDefenseRequestService {
   }
 
   async exportStaffVerificationList(filters = {}) {
+    const { defenseType = DEFENSE_TYPE_PROJECT1 } = filters;
     const records = await this.getStaffVerificationQueue({ ...filters, withMetrics: true });
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('KP02 Eligible');
+    const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'KP02 Thesis' : 'KP02 Project1';
+    const worksheet = workbook.addWorksheet(worksheetName);
 
     worksheet.columns = [
       { header: 'ลำดับ', key: 'index', width: 8 },
@@ -996,7 +995,7 @@ class ProjectDefenseRequestService {
         defenseScheduledAt: formatThaiDateTime(record.defenseScheduledAt),
         staffNote: record.staffVerificationNote || '-',
         leaderLogs: leaderMetrics.approvedLogs || 0,
-        requiredLogs: record.meetingMetrics?.requiredApprovedLogs || projectDocumentService.getRequiredApprovedMeetingLogs()
+        requiredLogs: record.meetingMetrics?.requiredApprovedLogs ?? (defenseType === DEFENSE_TYPE_THESIS ? THESIS_REQUIRED_APPROVED_MEETING_LOGS : projectDocumentService.getRequiredApprovedMeetingLogs())
       });
     });
 
@@ -1004,9 +1003,10 @@ class ProjectDefenseRequestService {
       row.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
     });
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  const filename = `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`;
-    logger.info('exportStaffVerificationList success', { rowCount: records.length });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const filenamePrefix = DEFENSE_EXPORT_PREFIX[defenseType] || DEFENSE_EXPORT_PREFIX[DEFENSE_TYPE_PROJECT1];
+    const filename = `${filenamePrefix}_${Date.now()}.xlsx`;
+    logger.info('exportStaffVerificationList success', { rowCount: records.length, defenseType });
     return { buffer, filename };
   }
 

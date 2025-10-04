@@ -3,7 +3,8 @@ import {
   CalendarOutlined,
   FileTextOutlined,
   FundProjectionScreenOutlined,
-  ExperimentOutlined
+  ExperimentOutlined,
+  AuditOutlined
 } from '@ant-design/icons';
 
 export { default as Phase2Dashboard } from './Phase2Dashboard';
@@ -30,6 +31,17 @@ export const phase2CardSteps = Object.freeze([
     implemented: true,
     requiresPhase2Unlock: true,
     target: '/project/phase2/system-test'
+  },
+  {
+    key: 'thesis-defense-request',
+    phase: 'phase2',
+  phaseLabel: 'โครงงานพิเศษ 2',
+    title: 'ยื่นคำขอสอบ คพ.03',
+    desc: 'ส่งคำขอสอบโครงงานพิเศษ 2 พร้อมหลักฐานสำคัญ',
+    icon: <AuditOutlined style={{ fontSize: 28 }} />,
+    implemented: true,
+    requiresPhase2Unlock: true,
+    target: '/project/phase2/thesis-defense'
   },
   {
     key: 'phase2-progress-report',

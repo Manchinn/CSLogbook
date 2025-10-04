@@ -32,6 +32,20 @@ import { useAuth } from '../../../../contexts/AuthContext';
 
 const { Text, Title } = Typography;
 
+const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
+const DEFENSE_TYPE_THESIS = 'THESIS';
+
+const DEFENSE_UI_META = {
+  [DEFENSE_TYPE_PROJECT1]: {
+    title: 'คำร้องขอสอบโครงงานพิเศษ1 (คพ.02)',
+    description: 'เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติครบแล้ว บันทึกผลการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบได้'
+  },
+  [DEFENSE_TYPE_THESIS]: {
+    title: 'คำร้องขอสอบปริญญานิพนธ์ (คพ.03)',
+    description: 'ติดตามคำขอสอบปริญญานิพนธ์ที่ผ่านการอนุมัติจากอาจารย์ บันทึกการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบ'
+  }
+};
+
 const STATUS_OPTIONS = [
   { value: 'advisor_approved', label: 'รอเจ้าหน้าที่ตรวจสอบ' },
   { value: 'staff_verified', label: 'ตรวจสอบแล้ว' },
@@ -55,8 +69,9 @@ const containerStyle = {
   gap: 24,
 };
 
-const StaffKP02Queue = () => {
+const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
   const { userData } = useAuth();
+  const uiMeta = DEFENSE_UI_META[defenseType] || DEFENSE_UI_META[DEFENSE_TYPE_PROJECT1];
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -78,9 +93,12 @@ const StaffKP02Queue = () => {
   }, [userData]);
 
   const canSchedulerExport = useMemo(() => {
-    if (!userData) return false;
-    return userData.role === 'teacher' && Boolean(userData.canExportProject1);
-  }, [userData]);
+    if (!userData || userData.role !== 'teacher') return false;
+    const schedulerFlag = defenseType === DEFENSE_TYPE_THESIS
+      ? (userData.canExportThesis ?? userData.canExportProject1)
+      : userData.canExportProject1;
+    return Boolean(schedulerFlag);
+  }, [userData, defenseType]);
 
   const canExport = isStaff || canSchedulerExport;
 
@@ -100,7 +118,7 @@ const StaffKP02Queue = () => {
       if (filters.search) {
         params.search = filters.search;
       }
-      const response = await projectService.listProject1StaffQueue(params);
+  const response = await projectService.listProject1StaffQueue({ ...params, defenseType });
       if (!response?.success) {
         message.error(response?.message || 'ไม่สามารถดึงคิวตรวจสอบได้');
         return;
@@ -111,7 +129,7 @@ const StaffKP02Queue = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, defenseType]);
 
   useEffect(() => {
     loadQueue();
@@ -162,7 +180,11 @@ const StaffKP02Queue = () => {
         const loadingKey = `${record.requestId}-verify`;
         setActionLoadingKey(loadingKey);
         try {
-          await projectService.verifyProject1DefenseRequest(record.project.projectId, { note: (noteValue || '').trim() || undefined });
+          await projectService.verifyProject1DefenseRequest(
+            record.project.projectId,
+            { note: (noteValue || '').trim() || undefined },
+            { defenseType }
+          );
           message.success('บันทึกการตรวจสอบแล้ว');
           setReloadToken((prev) => prev + 1);
         } catch (error) {
@@ -174,7 +196,7 @@ const StaffKP02Queue = () => {
         return Promise.resolve();
       }
     });
-  }, [isStaff]);
+  }, [defenseType, isStaff]);
 
   const handleExport = useCallback(async () => {
     if (!canExport) {
@@ -189,15 +211,15 @@ const StaffKP02Queue = () => {
       if (filters.semester) params.semester = filters.semester;
       if (filters.search) params.search = filters.search;
 
-      const { blob, filename } = await projectService.exportProject1StaffQueue(params);
-  FileSaver.saveAs(blob, filename || `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`);
+    const { blob, filename } = await projectService.exportProject1StaffQueue({ ...params, defenseType });
+  FileSaver.saveAs(blob, filename);
       message.success('ส่งออกไฟล์เรียบร้อย');
     } catch (error) {
       message.error(error.message || 'ไม่สามารถส่งออกข้อมูลได้');
     } finally {
       setExporting(false);
     }
-  }, [canExport, filters]);
+  }, [canExport, defenseType, filters]);
 
   const summary = useMemo(() => {
     return items.reduce(
@@ -335,10 +357,8 @@ const StaffKP02Queue = () => {
     <div style={containerStyle}>
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>คำร้องขอสอบโครงงานพิเศษ1 (คพ.02)</Title>
-          <Text type="secondary">
-            เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติครบแล้ว บันทึกผลการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบได้
-          </Text>
+          <Title level={3}>{uiMeta.title}</Title>
+          <Text type="secondary">{uiMeta.description}</Text>
         </Space>
 
         <Alert
