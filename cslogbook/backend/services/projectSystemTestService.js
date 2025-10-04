@@ -366,11 +366,15 @@ class ProjectSystemTestService {
       }
 
       const dueDay = dayjs(record.testDueDate).tz();
-      if (dueDay.isValid()) {
-        const now = dayjs().tz();
-        if (now.isBefore(dueDay)) {
-          throw new Error('ยังไม่ครบกำหนด 30 วันของการทดสอบระบบ ไม่สามารถอัปโหลดหลักฐานได้');
-        }
+      const now = dayjs().tz();
+      if (dueDay.isValid() && now.isBefore(dueDay)) {
+        // อนุญาตให้อัปโหลดก่อนครบกำหนด แต่เก็บ log ไว้เพื่อตรวจสอบย้อนหลังว่ามีการยื่นก่อนเวลา
+        logger.warn('system test evidence uploaded before due date', {
+          projectId: project.projectId,
+          studentId: actor.studentId,
+          dueDate: dueDay.format(),
+          uploadedAt: now.format()
+        });
       }
 
       const relativePath = buildRelativePath(fileMeta.path);

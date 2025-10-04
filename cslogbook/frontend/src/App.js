@@ -48,6 +48,8 @@ import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview'
 import MeetingApprovals from './components/teacher/MeetingApprovals';
 import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
 import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
+import AdvisorSystemTestQueue from './components/teacher/systemTest/AdvisorQueue';
+import StaffSystemTestQueue from './components/teacher/systemTest/StaffQueue';
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -250,6 +252,11 @@ const App = () => {
                     <AdvisorKP02Queue />
                   </ProtectedRoute>
                 } />
+                <Route path="/teacher/system-test/advisor-queue" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <AdvisorSystemTestQueue />
+                  </ProtectedRoute>
+                } />
                 <Route path="/approve-documents" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <ApproveDocuments />
@@ -281,6 +288,18 @@ const App = () => {
                     }
                   >
                     <StaffKP02Queue />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/system-test/staff-queue" element={
+                  <ProtectedRoute
+                    roles={['admin', 'teacher']}
+                    condition={(user) =>
+                      user.role === 'admin' ||
+                      user.teacherType === 'support' ||
+                      Boolean(user.canExportProject1)
+                    }
+                  >
+                    <StaffSystemTestQueue />
                   </ProtectedRoute>
                 } />
               

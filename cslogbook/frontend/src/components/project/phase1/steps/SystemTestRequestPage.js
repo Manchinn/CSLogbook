@@ -18,7 +18,7 @@ import {
   message
 } from 'antd';
 import { CloudUploadOutlined, FilePdfOutlined, InboxOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs';
 import { useNavigate } from 'react-router-dom';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
@@ -87,16 +87,41 @@ const SystemTestRequestPage = () => {
 
   const dueDate = useMemo(() => {
     if (!requestRecord?.testDueDate) return null;
-    const parsed = dayjs(requestRecord.testDueDate);
+    const parsed = dayjs(requestRecord.testDueDate).local();
     return parsed.isValid() ? parsed : null;
   }, [requestRecord?.testDueDate]);
 
   const canUploadEvidence = useMemo(() => {
     if (!requestRecord || requestRecord.status !== 'staff_approved') return false;
     if (requestRecord.evidence) return false;
+    return true;
+  }, [requestRecord]);
+
+  const isBeforeDueDate = useMemo(() => {
     if (!dueDate) return false;
-    return dayjs().isAfter(dueDate);
-  }, [requestRecord, dueDate]);
+    return dayjs().isBefore(dueDate, 'day');
+  }, [dueDate]);
+
+  const isOnOrBeforeDueDate = useMemo(() => {
+    if (!dueDate) return false;
+    return !dayjs().isAfter(dueDate, 'day');
+  }, [dueDate]);
+
+  const evidenceStatusText = useMemo(() => {
+    if (requestRecord?.evidence) {
+      return '';
+    }
+    if (requestRecord?.status !== 'staff_approved') {
+      return 'ยังไม่มีหลักฐาน';
+    }
+    if (isBeforeDueDate) {
+      return 'ระบบเปิดให้อัปโหลดได้ (ก่อนครบกำหนด)';
+    }
+    if (isOnOrBeforeDueDate) {
+      return 'ครบกำหนดวันนี้ สามารถอัปโหลดได้';
+    }
+    return 'ครบกำหนด สามารถอัปโหลดได้';
+  }, [isBeforeDueDate, isOnOrBeforeDueDate, requestRecord]);
 
   const loadRequest = async () => {
     if (!activeProject) return;
@@ -121,8 +146,8 @@ const SystemTestRequestPage = () => {
       form.resetFields();
       return;
     }
-    const start = requestRecord.testStartDate ? dayjs(requestRecord.testStartDate) : null;
-    const due = requestRecord.testDueDate ? dayjs(requestRecord.testDueDate) : null;
+  const start = requestRecord.testStartDate ? dayjs(requestRecord.testStartDate) : null;
+  const due = requestRecord.testDueDate ? dayjs(requestRecord.testDueDate) : null;
     form.setFieldsValue({
       testPeriod: start && due ? [start, due] : undefined,
       studentNote: requestRecord.studentNote || ''
@@ -231,9 +256,9 @@ const SystemTestRequestPage = () => {
 
   function formatDateTime(value) {
     if (!value) return '-';
-    const dt = dayjs(value);
+    const dt = dayjs(value).local();
     if (!dt.isValid()) return '-';
-    return dt.format('DD/MM/YYYY HH:mm น.');
+    return dt.format('DD/MM/BBBB HH:mm น.');
   }
 
   if (!activeProject) {
@@ -287,8 +312,8 @@ const SystemTestRequestPage = () => {
                   <Text type="secondary">อัปเดตล่าสุด: {formatDateTime(requestRecord.updatedAt || requestRecord.timeline?.staffDecidedAt || requestRecord.timeline?.submittedAt)}</Text>
                 </Space>
                 <Descriptions bordered size="small" column={1}>
-                  <Descriptions.Item label="วันที่เริ่มทดสอบ">{requestRecord.testStartDate ? dayjs(requestRecord.testStartDate).format('DD/MM/YYYY') : '-'}</Descriptions.Item>
-                  <Descriptions.Item label="ครบกำหนด 30 วัน">{dueDate ? dueDate.format('DD/MM/YYYY') : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="วันที่เริ่มทดสอบ">{requestRecord.testStartDate ? dayjs(requestRecord.testStartDate).format('DD/MM/BBBB') : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="ครบกำหนด 30 วัน">{dueDate ? dueDate.format('DD/MM/BBBB') : '-'}</Descriptions.Item>
                   <Descriptions.Item label="ไฟล์คำขอ">
                     {requestRecord.requestFile?.url ? (
                       <a href={requestRecord.requestFile.url} target="_blank" rel="noreferrer">
@@ -304,9 +329,7 @@ const SystemTestRequestPage = () => {
                       <a href={requestRecord.evidence.url} target="_blank" rel="noreferrer">
                         <FilePdfOutlined /> ดาวน์โหลดหลักฐาน
                       </a>
-                    ) : (
-                      canUploadEvidence ? 'ครบกำหนด สามารถอัปโหลดได้' : 'ยังไม่มีหลักฐาน'
-                    )}
+                    ) : evidenceStatusText}
                   </Descriptions.Item>
                 </Descriptions>
                 {timelineItems.length > 0 && (
@@ -319,6 +342,14 @@ const SystemTestRequestPage = () => {
                   <Button type="primary" icon={<CloudUploadOutlined />} onClick={() => setEvidenceModalOpen(true)}>
                     อัปโหลดหลักฐานการประเมิน 30 วัน
                   </Button>
+                )}
+                {canUploadEvidence && isBeforeDueDate && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message="อัปโหลดล่วงหน้าก่อนครบ 30 วัน"
+                    description="ระบบอนุญาตให้อัปโหลดหลักฐานได้ก่อนครบกำหนด กรุณาตรวจสอบให้แน่ใจว่าการประเมินเสร็จสมบูรณ์แล้ว"
+                  />
                 )}
               </Space>
             )}
@@ -359,7 +390,7 @@ const SystemTestRequestPage = () => {
                 })
               ]}
             >
-              <RangePicker format="DD/MM/YYYY" style={{ width: '100%' }} allowClear={false} />
+              <RangePicker format="DD/MM/BBBB" style={{ width: '100%' }} allowClear={false} />
             </Form.Item>
 
             <Form.Item label="รายละเอียดเพิ่มเติม" name="studentNote">

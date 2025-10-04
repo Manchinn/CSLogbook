@@ -75,6 +75,12 @@ export const getMenuConfig = ({
                     label: 'รายชื่อสอบโครงงานพิเศษ',
                     onClick: () => navigate('/admin/project1/kp02-queue'),
                   },
+                  {
+                    key: '/admin/system-test/staff-queue',
+                    icon: <ProjectOutlined />,
+                    label: 'คำขอทดสอบระบบ',
+                    onClick: () => navigate('/admin/system-test/staff-queue'),
+                  },
                 ]
               : []),
           ],
@@ -178,6 +184,12 @@ export const getMenuConfig = ({
             label: 'คำขอสอบ คพ.02',
             onClick: () => navigate('/teacher/project1/advisor-queue')
           },
+          {
+            key: '/teacher/system-test/advisor-queue',
+            icon: <ProjectOutlined />,
+            label: 'คำขอทดสอบระบบ',
+            onClick: () => navigate('/teacher/system-test/advisor-queue')
+          },
           ...(teacherPrivilegeGroup ? [teacherPrivilegeGroup] : []),
           ...(canApproveDocuments
             ? [
@@ -217,6 +229,7 @@ export const getMenuConfig = ({
                 children: [
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
                   { key: '/admin/project1/kp02-queue', label: 'ตรวจสอบคำขอ คพ.02', onClick: () => navigate('/admin/project1/kp02-queue') },
+                      { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ', onClick: () => navigate('/admin/system-test/staff-queue') },
                   { key: '/admin/project-exam/results', label: 'บันทึกผลสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project-exam/results') }
                 ]
               },
@@ -274,6 +287,7 @@ export const getMenuConfig = ({
                 children: [
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
                   { key: '/admin/project1/kp02-queue', label: 'ตรวจสอบคำขอ คพ.02', onClick: () => navigate('/admin/project1/kp02-queue') },
+                      { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ', onClick: () => navigate('/admin/system-test/staff-queue') },
                   { key: '/admin/project-exam/results', label: 'บันทึกผลสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project-exam/results') }
                 ]
               },
