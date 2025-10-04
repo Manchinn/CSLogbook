@@ -4,7 +4,10 @@ import {
   Button,
   Card,
   Col,
+  Descriptions,
+  Divider,
   Input,
+  List,
   message,
   Modal,
   Row,
@@ -58,6 +61,15 @@ const STATUS_MAP = {
   staff_verified: { color: 'green', text: 'ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)' },
   scheduled: { color: 'cyan', text: 'นัดสอบแล้ว (ระบบเดิม)' },
   completed: { color: 'purple', text: 'บันทึกผลสอบแล้ว' }
+};
+
+const SYSTEM_TEST_STATUS_META = {
+  pending_advisor: { color: 'orange', text: 'รออาจารย์อนุมัติ' },
+  advisor_rejected: { color: 'red', text: 'อาจารย์ส่งกลับ' },
+  pending_staff: { color: 'purple', text: 'รอเจ้าหน้าที่ตรวจสอบ' },
+  staff_rejected: { color: 'red', text: 'เจ้าหน้าที่ส่งกลับ' },
+  staff_approved: { color: 'green', text: 'อนุมัติครบ (รอหลักฐาน)' },
+  default: { color: 'default', text: 'ยังไม่ยื่นคำขอ' }
 };
 
 const containerStyle = {
@@ -147,6 +159,13 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
   const formatDateTime = useCallback((value) => {
     if (!value) return '-';
     return dayjs(value).locale('th').format(DATE_TIME_FORMAT);
+  }, []);
+
+  const formatDateOnly = useCallback((value) => {
+    if (!value) return '-';
+    const dt = dayjs(value);
+    if (!dt.isValid()) return '-';
+    return dt.locale('th').format('DD/MM/YYYY');
   }, []);
 
   const handleVerify = useCallback((record) => {
@@ -324,34 +343,183 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
   const previewColumns = useMemo(() => baseColumns, [baseColumns]);
 
   const expandedRowRender = useCallback((record) => {
+    const recordDefenseType = record.defenseType || defenseType;
+    const isThesis = recordDefenseType === DEFENSE_TYPE_THESIS;
+
+    const meetingMetrics = record.meetingMetrics || null;
+    const perStudentMap = new Map();
+    if (Array.isArray(meetingMetrics?.perStudent)) {
+      meetingMetrics.perStudent.forEach((entry) => {
+        if (!entry || entry.studentId === undefined || entry.studentId === null) return;
+        perStudentMap.set(Number(entry.studentId), {
+          approvedLogs: Number(entry.approvedLogs) || 0,
+          attendedMeetings: Number(entry.attendedMeetings) || 0
+        });
+      });
+    }
+
+    const members = Array.isArray(record.project?.members) ? record.project.members : [];
+    const memberItems = members.map((member, index) => ({
+      ...member,
+      __key: member.studentId || member.studentCode || `member-${index}`,
+      __metrics: perStudentMap.get(Number(member.studentId)) || { approvedLogs: 0, attendedMeetings: 0 }
+    }));
+    const leaderStudentId = members.find((member) => member.role === 'leader')?.studentId;
+
+    const contactList = Array.isArray(record.formPayload?.students) ? record.formPayload.students : [];
+    const contactItems = contactList.map((item, index) => ({
+      ...item,
+      __key: item.studentId || item.studentCode || item.email || item.phone || `contact-${index}`
+    }));
+
+    const attachments = Array.isArray(record.formPayload?.additionalMaterials) ? record.formPayload.additionalMaterials : [];
+    const requestDate = record.formPayload?.requestDate;
+    const intendedDefenseDate = record.formPayload?.intendedDefenseDate;
+    const additionalNotes = record.formPayload?.additionalNotes;
+
+    const systemTestSnapshot = isThesis ? record.formPayload?.systemTestSnapshot || null : null;
+    const systemTestMetaBase = systemTestSnapshot
+      ? SYSTEM_TEST_STATUS_META[systemTestSnapshot.status] || SYSTEM_TEST_STATUS_META.default
+      : SYSTEM_TEST_STATUS_META.default;
+    const systemTestMeta = systemTestSnapshot?.status === 'staff_approved' && systemTestSnapshot.evidenceSubmittedAt
+      ? { color: 'green', text: 'อนุมัติครบและได้รับหลักฐานครบแล้ว' }
+      : systemTestMetaBase;
+
     return (
       <Row gutter={[24, 16]}>
         <Col xs={24} md={14}>
-          <Card size="small" title="รายละเอียดเพิ่มเติม">
-            <Space direction="vertical" size={6} style={{ width: '100%' }}>
-              <Text>หมายเหตุเจ้าหน้าที่: {record.staffVerificationNote || '-'}</Text>
-              <Text>เจ้าหน้าที่ผู้ตรวจ: {record.staffVerifiedBy?.fullName || '-'}</Text>
-              <Text>หมายเหตุการนัดสอบ (ข้อมูลเดิม): {record.defenseNote || 'ตรวจสอบประกาศจากปฏิทิน'}</Text>
-              <Text>สถานที่สอบ (ข้อมูลเดิม): {record.defenseLocation || 'ประกาศผ่านช่องทางภายนอก'}</Text>
-            </Space>
-          </Card>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card size="small" title="รายละเอียดเพิ่มเติม">
+              <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                <Text>หมายเหตุเจ้าหน้าที่: {record.staffVerificationNote || '-'}</Text>
+                <Text>เจ้าหน้าที่ผู้ตรวจ: {record.staffVerifiedBy?.fullName || '-'}</Text>
+                <Text>หมายเหตุการนัดสอบ (ข้อมูลเดิม): {record.defenseNote || 'ตรวจสอบประกาศจากปฏิทิน'}</Text>
+                <Text>สถานที่สอบ (ข้อมูลเดิม): {record.defenseLocation || 'ประกาศผ่านช่องทางภายนอก'}</Text>
+                <Divider style={{ margin: '8px 0' }} />
+                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                  <Text strong>ข้อมูลจากแบบคำขอ</Text>
+                  <Text>วันที่ยื่นคำขอ: {requestDate ? formatDateOnly(requestDate) : '-'}</Text>
+                  {isThesis && intendedDefenseDate && (
+                    <Text>วันที่คาดว่าจะสอบ: {formatDateOnly(intendedDefenseDate)}</Text>
+                  )}
+                  {additionalNotes && (
+                    <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>หมายเหตุจากคำขอ: {additionalNotes}</Text>
+                  )}
+                </Space>
+                {attachments.length > 0 && (
+                  <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                    <Text strong>รายการเอกสารแนบ:</Text>
+                    {attachments.map((item, index) => (
+                      <Text key={`attachment-${index}`} type="secondary">
+                        • {item.label ? `${item.label}: ` : ''}{item.value}
+                      </Text>
+                    ))}
+                  </Space>
+                )}
+              </Space>
+            </Card>
+            {contactItems.length > 0 && (
+              <Card size="small" title="ช่องทางติดต่อสมาชิกโครงงาน">
+                <List
+                  size="small"
+                  dataSource={contactItems}
+                  renderItem={(item) => (
+                    <List.Item key={item.__key}>
+                      <Space direction="vertical" size={2}>
+                        <Space size={8} wrap>
+                          <Text strong>{item.name || item.studentCode || 'สมาชิก'}</Text>
+                          {item.studentCode && <Tag color="geekblue">{item.studentCode}</Tag>}
+                        </Space>
+                        <Space size={12} wrap>
+                          <Text>โทร: {item.phone || '-'}</Text>
+                          <Text>อีเมล: {item.email || '-'}</Text>
+                        </Space>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            )}
+          </Space>
         </Col>
         <Col xs={24} md={10}>
-          <Card size="small" title="สรุปบันทึกการพบ (หัวหน้าโครงงาน)">
-            {record.meetingMetrics ? (
-              <Space direction="vertical" size={4}>
-                <Text>อนุมัติทั้งหมด: {record.meetingMetrics.totalApprovedLogs || 0}</Text>
-                <Text>ต้องมีขั้นต่ำ: {record.meetingMetrics.requiredApprovedLogs || 0}</Text>
-                <Text>อนุมัติครั้งล่าสุด: {formatDateTime(record.meetingMetrics.lastApprovedLogAt)}</Text>
-              </Space>
-            ) : (
-              <Alert type="info" message="ไม่พบข้อมูลบันทึกการพบ" showIcon />
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card size="small" title="สรุปบันทึกการพบ">
+              {meetingMetrics ? (
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Space direction="vertical" size={2}>
+                    <Text>อนุมัติทั้งหมด: {meetingMetrics.totalApprovedLogs || 0}</Text>
+                    <Text>ต้องมีขั้นต่ำ: {meetingMetrics.requiredApprovedLogs || 0}</Text>
+                    <Text>อนุมัติครั้งล่าสุด: {formatDateTime(meetingMetrics.lastApprovedLogAt)}</Text>
+                  </Space>
+                  <Divider style={{ margin: '4px 0' }} />
+                  {memberItems.length > 0 ? (
+                    <List
+                      size="small"
+                      dataSource={memberItems}
+                      renderItem={(member) => (
+                        <List.Item key={member.__key}>
+                          <Space direction="vertical" size={2}>
+                            <Space size={8} wrap>
+                              <Text strong>{member.name || member.studentCode || 'สมาชิก'}</Text>
+                              {member.studentCode && <Tag color="geekblue">{member.studentCode}</Tag>}
+                              {Number(member.studentId) === Number(leaderStudentId) && <Tag color="blue">หัวหน้าโครงงาน</Tag>}
+                            </Space>
+                            <Space size={8} wrap>
+                              <Tag color="green">อนุมัติแล้ว {member.__metrics.approvedLogs}</Tag>
+                              <Tag color="cyan">เข้าร่วม {member.__metrics.attendedMeetings}</Tag>
+                            </Space>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <Alert type="info" showIcon message="ไม่พบข้อมูลสมาชิกโครงงาน" />
+                  )}
+                </Space>
+              ) : (
+                <Alert type="info" message="ไม่พบข้อมูลบันทึกการพบ" showIcon />
+              )}
+            </Card>
+            {isThesis && (
+              <Card size="small" title="คำขอทดสอบระบบ 30 วัน">
+                {systemTestSnapshot ? (
+                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    <Space size={8} wrap>
+                      <Tag color={systemTestMeta.color}>{systemTestMeta.text}</Tag>
+                      <Text type="secondary">
+                        {systemTestSnapshot.staffDecidedAt
+                          ? `อนุมัติล่าสุด ${formatDateTime(systemTestSnapshot.staffDecidedAt)}`
+                          : `ยื่นคำขอเมื่อ ${formatDateTime(systemTestSnapshot.testStartDate)}`}
+                      </Text>
+                    </Space>
+                    <Descriptions bordered size="small" column={1}>
+                      <Descriptions.Item label="วันเริ่มทดสอบ">
+                        {formatDateOnly(systemTestSnapshot.testStartDate)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="ครบกำหนด 30 วัน">
+                        {formatDateOnly(systemTestSnapshot.testDueDate)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="วันอนุมัติล่าสุด">
+                        {systemTestSnapshot.staffDecidedAt ? formatDateTime(systemTestSnapshot.staffDecidedAt) : '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="หลักฐานการประเมิน">
+                        {systemTestSnapshot.evidenceSubmittedAt
+                          ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt)
+                          : 'ยังไม่อัปโหลด'}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Space>
+                ) : (
+                  <Alert type="info" showIcon message="ยังไม่มีคำขอทดสอบระบบ 30 วัน" />
+                )}
+              </Card>
             )}
-          </Card>
+          </Space>
         </Col>
       </Row>
     );
-  }, [formatDateTime]);
+  }, [defenseType, formatDateOnly, formatDateTime]);
 
   return (
     <div style={containerStyle}>

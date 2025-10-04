@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, Descriptions, Divider, Empty, List, Row, Space, Spin, Tag, Timeline, Typography } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, FilePdfOutlined, LinkOutlined, TeamOutlined } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import projectService from '../../../services/projectService';
@@ -39,6 +39,12 @@ const Phase2Dashboard = () => {
   const [examDetail, setExamDetail] = useState(null);
   const [examLoading, setExamLoading] = useState(false);
   const [examError, setExamError] = useState(null);
+
+  const openInNewTab = useCallback((url) => {
+    if (!url) return;
+    if (typeof window === 'undefined') return;
+    window.open(url, '_blank', 'noopener');
+  }, []);
 
   useEffect(() => {
     // ถ้าโครงงานยังไม่ผ่านการสอบหัวข้อ จะไม่ต้องยิง API เพื่อดึงรายละเอียดผลสอบเพิ่มเติม
@@ -99,10 +105,47 @@ const Phase2Dashboard = () => {
     return activeProject.defenseRequests.find((request) => request.defenseType === 'THESIS' && request.status !== 'cancelled') || null;
   }, [activeProject?.defenseRequests]);
 
+  const leaderMember = useMemo(() => {
+    if (!Array.isArray(activeProject?.members)) return null;
+    return activeProject.members.find((member) => member.role === 'leader') || null;
+  }, [activeProject?.members]);
+
+  const meetingBreakdown = useMemo(() => {
+    const members = Array.isArray(activeProject?.members) ? activeProject.members : [];
+    const metrics = activeProject?.meetingMetrics;
+    const perStudentMap = new Map();
+
+    if (Array.isArray(metrics?.perStudent)) {
+      metrics.perStudent.forEach((entry) => {
+        if (!entry || entry.studentId === undefined || entry.studentId === null) return;
+        perStudentMap.set(Number(entry.studentId), {
+          approvedLogs: Number(entry.approvedLogs) || 0,
+          attendedMeetings: Number(entry.attendedMeetings) || 0
+        });
+      });
+    }
+
+    return members.map((member) => {
+      const counts = perStudentMap.get(Number(member.studentId)) || { approvedLogs: 0, attendedMeetings: 0 };
+      return {
+        studentId: member.studentId,
+        name: member.name || member.studentCode || 'สมาชิก',
+        studentCode: member.studentCode || '-',
+        role: member.role || 'member',
+        approvedLogs: counts.approvedLogs,
+        attendedMeetings: counts.attendedMeetings
+      };
+    });
+  }, [activeProject?.members, activeProject?.meetingMetrics]);
+
   const thesisStatusKey = thesisRequest?.status || 'not_submitted';
   const thesisStatusMeta = DEFENSE_STATUS_META[thesisStatusKey] || DEFENSE_STATUS_META.default;
 
   const systemTestSummary = useMemo(() => activeProject?.systemTestRequest || null, [activeProject?.systemTestRequest]);
+  const systemTestRequestFile = systemTestSummary?.requestFile || null;
+  const systemTestEvidenceFile = systemTestSummary?.evidence || null;
+  const systemTestRequestFileUrl = systemTestRequestFile?.url || null;
+  const systemTestEvidenceFileUrl = systemTestEvidenceFile?.url || null;
   const systemTestStatusMeta = useMemo(() => {
     if (!systemTestSummary) return SYSTEM_TEST_STATUS_META.default;
     if (systemTestSummary.status === 'staff_approved' && systemTestSummary.evidenceSubmittedAt) {
@@ -158,6 +201,85 @@ const Phase2Dashboard = () => {
     }
     return reasons;
   }, [meetingRequirement, systemTestSummary, systemTestDueDay]);
+
+  const handleOpenMeetingLogbook = useCallback(() => {
+    navigate('/project/phase1/meeting-logbook?phase=phase2');
+  }, [navigate]);
+
+  const lastApprovedMeeting = useMemo(() => {
+    const value = activeProject?.meetingMetrics?.lastApprovedLogAt;
+    if (!value) return null;
+    const dt = dayjs(value);
+    if (!dt.isValid()) return null;
+    return dt.format('DD MMM YYYY เวลา HH:mm น.');
+  }, [activeProject?.meetingMetrics?.lastApprovedLogAt]);
+
+  const resourceLinks = useMemo(() => ([
+    {
+      key: 'meeting-logbook',
+      title: 'Meeting Logbook (Phase 2)',
+      description: 'ดูรายละเอียดการพบอาจารย์ ตรวจสอบสถานะการอนุมัติ และบันทึก log เพิ่มเติม',
+      actions: [
+        {
+          key: 'open-logbook',
+          label: 'เปิด Meeting Logbook',
+          icon: <TeamOutlined />,
+          onClick: handleOpenMeetingLogbook
+        }
+      ]
+    },
+    {
+      key: 'system-test',
+      title: 'คำขอทดสอบระบบ 30 วัน',
+      description: systemTestSummary
+        ? 'ติดตามสถานะคำขอและไฟล์หลักฐานที่อัปโหลดในระบบ'
+        : 'เตรียมแบบฟอร์มและยื่นคำขอทดสอบระบบล่วงหน้าอย่างน้อย 30 วัน',
+      actions: [
+        ...(systemTestRequestFileUrl ? [{
+          key: 'view-request',
+          label: 'ดูไฟล์คำขอ',
+          icon: <FilePdfOutlined />,
+          onClick: () => openInNewTab(systemTestRequestFileUrl)
+        }] : []),
+        ...(systemTestEvidenceFileUrl ? [{
+          key: 'view-evidence',
+          label: 'ดูหลักฐานประเมิน',
+          icon: <FilePdfOutlined />,
+          onClick: () => openInNewTab(systemTestEvidenceFileUrl)
+        }] : []),
+        {
+          key: 'open-system-test',
+          label: 'เปิดหน้าคำขอทดสอบ',
+          icon: <LinkOutlined />,
+          onClick: () => navigate('/project/phase2/system-test')
+        }
+      ]
+    },
+    {
+      key: 'thesis-defense',
+      title: 'คำขอสอบ คพ.03',
+      description: thesisRequest
+        ? 'ตรวจสอบสถานะคำขอและแก้ไขข้อมูลเพิ่มเติมได้ทันที'
+        : 'ตรวจสอบรายการเอกสารและยื่นคำขอสอบปริญญานิพนธ์เมื่อพร้อม',
+      actions: [
+        {
+          key: 'open-thesis',
+          label: 'เปิดหน้าคำขอ คพ.03',
+          icon: <LinkOutlined />,
+          onClick: () => navigate('/project/phase2/thesis-defense'),
+          primary: true
+        }
+      ]
+    }
+  ]), [
+    handleOpenMeetingLogbook,
+    navigate,
+    openInNewTab,
+    systemTestEvidenceFileUrl,
+    systemTestRequestFileUrl,
+    systemTestSummary,
+    thesisRequest
+  ]);
 
   const formatDate = (value) => {
     if (!value) return null;
@@ -365,6 +487,56 @@ const Phase2Dashboard = () => {
         <Timeline mode="left" items={timelineItems} />
       </Card>
 
+      <Card title="บันทึกการพบอาจารย์ (Phase 2)">
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Alert
+            type={meetingRequirement.satisfied ? 'success' : 'warning'}
+            showIcon
+            message={meetingRequirement.satisfied ? 'บันทึกการพบครบตามเกณฑ์แล้ว' : 'ยังไม่ครบเกณฑ์บันทึกการพบ'}
+            description={(
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text>
+                  ได้รับอนุมัติ {meetingRequirement.totalApproved}/{meetingRequirement.required} ครั้ง
+                </Text>
+                {lastApprovedMeeting && (
+                  <Text type="secondary">ครั้งล่าสุดเมื่อ {lastApprovedMeeting}</Text>
+                )}
+              </Space>
+            )}
+          />
+          {meetingBreakdown.length > 0 ? (
+            <List
+              size="small"
+              dataSource={meetingBreakdown}
+              renderItem={(item) => (
+                <List.Item key={item.studentId || item.studentCode}>
+                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                    <Space size={8} wrap>
+                      <Text strong>{item.name}</Text>
+                      {item.studentCode && <Tag color="geekblue">{item.studentCode}</Tag>}
+                      {leaderMember && Number(item.studentId) === Number(leaderMember.studentId) && (
+                        <Tag color="blue">หัวหน้าโครงงาน</Tag>
+                      )}
+                    </Space>
+                    <Space size={8} wrap>
+                      <Tag color="green">อนุมัติแล้ว {item.approvedLogs}</Tag>
+                      <Tag color="cyan">เข้าร่วม {item.attendedMeetings}</Tag>
+                    </Space>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          ) : (
+            <Alert type="info" showIcon message="ยังไม่มีการบันทึกการพบที่ได้รับอนุมัติ" />
+          )}
+          <Space wrap>
+            <Button icon={<TeamOutlined />} onClick={handleOpenMeetingLogbook}>
+              เปิด Meeting Logbook
+            </Button>
+          </Space>
+        </Space>
+      </Card>
+
       <Card title="สถานะคำขอทดสอบระบบ 30 วัน">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           {!systemTestSummary ? (
@@ -375,7 +547,7 @@ const Phase2Dashboard = () => {
                 message="ยังไม่ยื่นคำขอทดสอบระบบ"
                 description="เมื่อพร้อมทดลองใช้งานจริง สามารถยื่นคำขอผ่านปุ่มด้านล่าง"
               />
-              <Button type="primary" onClick={() => navigate('/project/phase2/system-test')}>
+              <Button type="primary" icon={<LinkOutlined />} onClick={() => navigate('/project/phase2/system-test')}>
                 เปิดหน้าคำขอทดสอบระบบ
               </Button>
             </>
@@ -396,6 +568,11 @@ const Phase2Dashboard = () => {
                 <Descriptions.Item label="ครบกำหนด 30 วัน">
                   {formatDateOnly(systemTestSummary.testDueDate) || '—'}
                 </Descriptions.Item>
+                <Descriptions.Item label="วันอนุมัติล่าสุด">
+                  {systemTestSummary.timeline?.staffDecidedAt
+                    ? formatDate(systemTestSummary.timeline.staffDecidedAt) || '—'
+                    : 'ยังไม่ถูกเจ้าหน้าที่ตรวจสอบ'}
+                </Descriptions.Item>
                 <Descriptions.Item label="หลักฐานการประเมิน">
                   {systemTestSummary.evidenceSubmittedAt
                     ? `อัปโหลดเมื่อ ${formatDate(systemTestSummary.evidenceSubmittedAt)}`
@@ -403,6 +580,16 @@ const Phase2Dashboard = () => {
                       ? 'ครบกำหนด สามารถอัปโหลดหลักฐานได้แล้ว'
                       : 'ยังไม่ถึงกำหนดหรือยังไม่ได้อัปโหลด'}
                 </Descriptions.Item>
+                {systemTestRequestFile && (
+                  <Descriptions.Item label="ไฟล์คำขอที่แนบ">
+                    {systemTestRequestFile.name || systemTestRequestFile.url}
+                  </Descriptions.Item>
+                )}
+                {systemTestEvidenceFile && (
+                  <Descriptions.Item label="ไฟล์หลักฐานล่าสุด">
+                    {systemTestEvidenceFile.name || systemTestEvidenceFile.url}
+                  </Descriptions.Item>
+                )}
               </Descriptions>
               {systemTestCanUpload && (
                 <Alert
@@ -412,9 +599,21 @@ const Phase2Dashboard = () => {
                   description="กรุณาอัปโหลดไฟล์หลักฐานการประเมินบนหน้าคำขอทดสอบระบบ"
                 />
               )}
-              <Button type="primary" onClick={() => navigate('/project/phase2/system-test')}>
-                เปิดหน้าคำขอ / อัปโหลดหลักฐาน
-              </Button>
+              <Space wrap>
+                <Button type="primary" icon={<LinkOutlined />} onClick={() => navigate('/project/phase2/system-test')}>
+                  เปิดหน้าคำขอ / อัปโหลดหลักฐาน
+                </Button>
+                {systemTestRequestFileUrl && (
+                  <Button icon={<FilePdfOutlined />} onClick={() => openInNewTab(systemTestRequestFileUrl)}>
+                    ดูไฟล์คำขอ
+                  </Button>
+                )}
+                {systemTestEvidenceFileUrl && (
+                  <Button icon={<FilePdfOutlined />} onClick={() => openInNewTab(systemTestEvidenceFileUrl)}>
+                    ดูหลักฐานประเมิน
+                  </Button>
+                )}
+              </Space>
             </>
           )}
         </Space>
@@ -478,14 +677,25 @@ const Phase2Dashboard = () => {
 
       <Card title="ทรัพยากรแนะนำ">
         <List
-          dataSource={[
-            'แบบคำขอสอบโครงงานพิเศษ 2 (คพ.03) และรายการแนบ',
-            'ตัวอย่าง Progress Report สำหรับใช้นำเสนอความคืบหน้า',
-            'ปฏิทินภาควิชาสำหรับติดตามวันสอบล่าสุด'
-          ]}
+          dataSource={resourceLinks}
           renderItem={(item) => (
-            <List.Item>
-              <Text>{item}</Text>
+            <List.Item key={item.key}>
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Text strong>{item.title}</Text>
+                <Text type="secondary">{item.description}</Text>
+                <Space wrap>
+                  {item.actions.map((action) => (
+                    <Button
+                      key={action.key}
+                      type={action.primary ? 'primary' : 'default'}
+                      icon={action.icon}
+                      onClick={action.onClick}
+                    >
+                      {action.label}
+                    </Button>
+                  ))}
+                </Space>
+              </Space>
             </List.Item>
           )}
         />

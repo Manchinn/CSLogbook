@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  CalendarOutlined,
-  FileTextOutlined,
   FundProjectionScreenOutlined,
   ExperimentOutlined,
   AuditOutlined
@@ -43,26 +41,4 @@ export const phase2CardSteps = Object.freeze([
     requiresPhase2Unlock: true,
     target: '/project/phase2/thesis-defense'
   },
-  {
-    key: 'phase2-progress-report',
-    phase: 'phase2',
-  phaseLabel: 'โครงงานพิเศษ 2',
-    title: 'เตรียมรายงานความก้าวหน้า',
-    desc: 'รวบรวม Progress Report และหลักฐานประกอบการยื่นสอบ คพ.03',
-    icon: <FileTextOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    requiresPhase2Unlock: true,
-    comingSoon: true
-  },
-  {
-    key: 'phase2-defense-schedule',
-    phase: 'phase2',
-  phaseLabel: 'โครงงานพิเศษ 2',
-    title: 'ติดตามกำหนดการสอบโครงงานพิเศษ 2',
-    desc: 'ตรวจสอบวัน เวลา และสถานที่สอบจากเจ้าหน้าที่ภาควิชา',
-    icon: <CalendarOutlined style={{ fontSize: 28 }} />,
-    implemented: false,
-    requiresPhase2Unlock: true,
-    comingSoon: true
-  }
 ]);
