@@ -22,12 +22,13 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ReloadOutlined,
-  FileTextOutlined,
+  EyeOutlined,
   CalendarOutlined
 } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../../utils/constants';
 import projectService from '../../../../services/projectService';
+import PDFViewerModal from '../../../PDFViewerModal';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -61,6 +62,9 @@ const AdvisorSystemTestQueue = () => {
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState(null);
+  const [viewerTitle, setViewerTitle] = useState('');
 
   const loadQueue = useCallback(async () => {
     try {
@@ -130,6 +134,22 @@ const AdvisorSystemTestQueue = () => {
       { pending: 0, waiting: 0, completed: 0, total: 0 }
     );
   }, [filteredItems]);
+
+  const handlePreview = useCallback((file, title) => {
+    if (!file?.url) {
+      message.warning('ไม่พบไฟล์สำหรับแสดงตัวอย่าง');
+      return;
+    }
+    setViewerUrl(file.url);
+    setViewerTitle(title || file.name || 'เอกสาร PDF');
+    setViewerVisible(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerVisible(false);
+    setViewerUrl(null);
+    setViewerTitle('');
+  }, []);
 
   const handleDecision = useCallback((record, decision) => {
     if (!record?.projectSnapshot?.projectId) {
@@ -285,12 +305,19 @@ const AdvisorSystemTestQueue = () => {
               {requestFile ? (
                 <Button
                   type="link"
-                  icon={<FileTextOutlined />}
-                  href={requestFile.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    handlePreview(
+                      requestFile,
+                      `ไฟล์คำขอทดสอบระบบ - ${
+                        record.projectSnapshot?.projectNameTh ||
+                        record.projectSnapshot?.projectNameEn ||
+                        requestFile.name
+                      }`
+                    )
+                  }
                 >
-                  ดาวน์โหลดไฟล์คำขอ ({requestFile.name})
+                  เปิดดูไฟล์คำขอ ({requestFile.name})
                 </Button>
               ) : (
                 <Text type="secondary">ไม่มีไฟล์คำขอแนบมาด้วย</Text>
@@ -340,7 +367,7 @@ const AdvisorSystemTestQueue = () => {
         </Col>
       </Row>
     );
-  }, [formatDate, formatDateTime]);
+  }, [formatDate, formatDateTime, handlePreview]);
 
   return (
     <div style={containerStyle}>
@@ -428,6 +455,14 @@ const AdvisorSystemTestQueue = () => {
             }}
           />
         </Spin>
+        {viewerVisible && (
+          <PDFViewerModal
+            visible={viewerVisible}
+            pdfUrl={viewerUrl}
+            onClose={handleCloseViewer}
+            title={viewerTitle || 'ไฟล์คำขอทดสอบระบบ'}
+          />
+        )}
       </Space>
     </div>
   );
