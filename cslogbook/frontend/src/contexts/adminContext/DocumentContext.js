@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { documentService } from '../../services/admin/documentService';
 
 // สร้าง initial state
@@ -53,7 +53,7 @@ export const DocumentProvider = ({ children, type = 'project' }) => {
   const [state, dispatch] = useReducer(documentReducer, initialState);
   
   // ฟังก์ชันสำหรับโหลดเอกสาร
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     dispatch({ type: 'FETCH_DOCUMENTS_START' });
     try {
       // ใช้ documentService แทนการเรียก API โดยตรง
@@ -63,12 +63,12 @@ export const DocumentProvider = ({ children, type = 'project' }) => {
       console.error('Error in DocumentContext.loadDocuments:', error);
       dispatch({ type: 'FETCH_DOCUMENTS_ERROR', payload: error.message });
     }
-  };
+  }, [type]);
   
   // โหลดเอกสารเมื่อ component mount หรือเมื่อ type เปลี่ยน
   useEffect(() => {
     loadDocuments();
-  }, [type]);
+  }, [loadDocuments]);
   
   // ฟังก์ชันอนุมัติเอกสาร
   const approveDocument = async (documentId) => {

@@ -5,14 +5,12 @@ import {
   Text,
   View,
   Image,
-  StyleSheet,
 } from "@react-pdf/renderer";
 import letterStyles from "./styles/letterStyles";
 import { formatThaiDate } from "../../../utils/dateUtils";
 import {
   cleanText,
   formatStudentId,
-  formatFullName,
   formatThaiPhoneNumber,
 } from "../../../utils/thaiFormatter";
 
@@ -21,10 +19,8 @@ const ReferralLetterTemplate = ({ data }) => {
   // ตรวจสอบข้อมูลและกำหนดค่าเริ่มต้นถ้าไม่มีข้อมูล
   const {
     documentNumber = "อว 7105(05)/...",
-    documentDate = new Date(),
     documentDateThai = formatThaiDate(new Date(), "DD MMMM BBBB"),
     companyName = "",
-    companyAddress = "",
     contactPersonName = "",
     contactPersonPosition = "",
     supervisorName = "",
@@ -32,8 +28,6 @@ const ReferralLetterTemplate = ({ data }) => {
     supervisorPhone = "",
     supervisorEmail = "",
     studentData = [],
-    startDate = "",
-    endDate = "",
     startDateThai = "",
     endDateThai = "",
     internshipDays = 0,

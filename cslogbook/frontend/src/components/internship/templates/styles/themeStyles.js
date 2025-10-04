@@ -193,7 +193,7 @@ export const borderRadius = {
   full: 9999
 };
 
-export default {
+const themeStyles = {
   themeColors,
   fontSizes,
   spacing,
@@ -202,3 +202,5 @@ export default {
   shadows,
   borderRadius
 };
+
+export default themeStyles;

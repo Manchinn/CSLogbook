@@ -5,14 +5,12 @@ import {
   Text,
   View,
   Image,
-  StyleSheet,
 } from "@react-pdf/renderer";
 import letterStyles from "./styles/letterStyles";
 import { formatThaiDate } from "../../../utils/dateUtils";
 import {
   cleanText,
   formatStudentId,
-  formatFullName,
 } from "../../../utils/thaiFormatter";
 
 // ตัวอย่างหนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน
@@ -20,14 +18,11 @@ const OfficialLetterTemplate = ({ data }) => {
   // ตรวจสอบข้อมูลและกำหนดค่าเริ่มต้นถ้าไม่มีข้อมูล
   const {
     documentNumber = "อว 7105(05)/...",
-    documentDate = new Date(),
     documentDateThai = formatThaiDate(new Date(), "DD MMMM BBBB"),
     companyName = "",
     contactPersonName = "",
     contactPersonPosition = "",
     studentData = [],
-    startDate = "",
-    endDate = "",
     startDateThai = "",
     endDateThai = "",
     internshipDays = 0,

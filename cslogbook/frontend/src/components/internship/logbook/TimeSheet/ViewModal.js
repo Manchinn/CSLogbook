@@ -18,7 +18,7 @@ import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT, TIME_FORMAT } from '../../../../u
 // นำเข้า locale ภาษาไทยสำหรับ dayjs
 import 'dayjs/locale/th';
 
-const { Title, Paragraph, Text } = Typography;
+const { Paragraph, Text } = Typography;
 
 // สร้างฟังก์ชันสำหรับแปลงวันที่เป็นชื่อวันภาษาไทย
 const getThaiDayName = (date) => {

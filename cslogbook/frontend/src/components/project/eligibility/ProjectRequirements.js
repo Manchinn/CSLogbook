@@ -4,21 +4,17 @@ import {
   CalendarOutlined,
   FileTextOutlined,
   BookOutlined,
-  BankOutlined,
-  WarningOutlined,
-  UserOutlined,
   RocketOutlined,
   CheckCircleOutlined,
   ExperimentOutlined,
   TeamOutlined,
   CodeOutlined,
   ReadOutlined,
-  FileSearchOutlined,
-  ClockCircleOutlined
+  FileSearchOutlined
 } from '@ant-design/icons';
 import './styles.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const ProjectRequirements = () => {

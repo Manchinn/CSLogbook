@@ -7,7 +7,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const ReviewDataStep = ({ 
   studentData, 

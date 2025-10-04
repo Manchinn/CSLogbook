@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Steps, Card, Typography, Alert, Space, message,
-  Row, Col, Progress, Divider, Tag, Spin, Button
+  Row, Col, Divider, Tag, Spin, Button
 } from 'antd';
 import { 
   FormOutlined, CheckCircleOutlined, SendOutlined,
@@ -18,7 +18,7 @@ import SubmissionResultStep from './SubmissionResultStep';
 // นำเข้า CSS ที่มีอยู่แล้ว
 import '../shared/InternshipStyles.css';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const InternshipRegistrationFlow = () => {
   const navigate = useNavigate();
@@ -32,7 +32,6 @@ const InternshipRegistrationFlow = () => {
   const [existingCS05, setExistingCS05] = useState(null);
   const [transcriptFile, setTranscriptFile] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
 
   // ขั้นตอนการลงทะเบียนฝึกงาน
   const registrationSteps = [
@@ -115,7 +114,6 @@ const InternshipRegistrationFlow = () => {
           
           const submittedStatus = cs05Data.status !== 'rejected';
           setIsSubmitted(submittedStatus);
-          setFormSubmitted(submittedStatus);
           
           // ✅ สำคัญ: ถ้ามีการส่งคำร้องแล้ว และไม่ได้มาจาก query parameter ให้ไปที่ step 2
           const viewParam = searchParams.get('view');
@@ -295,7 +293,6 @@ const InternshipRegistrationFlow = () => {
         message.success('ส่งคำร้อง คพ.05 เรียบร้อยแล้ว');
         setExistingCS05(response.data);
         setIsSubmitted(true);
-        setFormSubmitted(true);
         setCurrentStep(2); // ไปยังหน้า SubmissionResultStep
         
         // บันทึกข้อมูลลงใน localStorage เพื่อให้กลับมาดูได้ในภายหลัง

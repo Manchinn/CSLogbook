@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Modal, Form, Input, TimePicker, Row, Col, InputNumber, DatePicker, Alert } from 'antd';
 import dayjs from '../../../../utils/dayjs';
 import { calculateWorkHours } from '../../../../utils/timeUtils';
-import { DATE_FORMAT_MEDIUM, TIME_FORMAT } from '../../../../utils/constants';
+import { TIME_FORMAT } from '../../../../utils/constants';
 
 const EditModal = ({ visible, loading, entry, form, onOk, onCancel }) => {
   const title = "บันทึกข้อมูลการฝึกงาน";

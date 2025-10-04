@@ -59,7 +59,6 @@ const CertificateTemplate = ({ data = {} }) => {
   
   const studentId = defaultData.studentId || 'รหัสนักศึกษา';
   const companyName = defaultData.companyName || 'สถานที่ฝึกงาน';
-  const certificateNumber = defaultData.certificateNumber || '';
   const issueLocation = defaultData.issueLocation || defaultData.facultyName;
   
   const certificateDateThai = formatThaiDate(defaultData.certificateDate);

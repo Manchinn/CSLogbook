@@ -334,7 +334,7 @@ export const getDateRange = (startDate, endDate) => {
 };
 
 // Export default สำหรับการใช้งานทั่วไป
-export default {
+const dateUtils = {
   formatThaiDate,
   formatOfficialDate,
   calculateDateDiff,
@@ -353,3 +353,5 @@ export default {
   THAI_DAYS,
   THAI_DAYS_SHORT
 };
+
+export default dateUtils;

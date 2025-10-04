@@ -448,7 +448,7 @@ export const isValidArray = (arr) => {
 };
 
 // Export default สำหรับการใช้งานทั่วไป
-export default {
+const thaiFormatter = {
   toThaiDigits,
   fromThaiDigits,
   numberToThaiText,
@@ -470,3 +470,5 @@ export default {
   THAI_BAHT_UNITS,
   THAI_DIGITS_TEXT
 };
+
+export default thaiFormatter;

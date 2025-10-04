@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Collapse,
-  Divider,
   DatePicker,
   Empty,
   Form,
@@ -147,13 +146,6 @@ const MeetingLogbookPage = () => {
       return acc;
     }, {});
   }, [stats]);
-
-  const overallStats = useMemo(() => ({
-    totalMeetings: stats?.totalMeetings ?? 0,
-    totalLogs: stats?.totalLogs ?? 0,
-    approvedLogs: stats?.approvedLogs ?? 0,
-    pendingLogs: stats?.pendingLogs ?? 0
-  }), [stats]);
 
   const currentMeetings = meetingsByPhase[activePhase] || [];
   const currentPhaseStats = statsByPhase[activePhase] || defaultStatsSnapshot;

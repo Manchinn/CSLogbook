@@ -1,8 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
-import { formatThaiDate, formatOfficialDate } from '../../../utils/dateUtils';
-import { formatFullName, formatThaiPhoneNumber } from '../../../utils/thaiFormatter';
-import { officialStyles } from './styles/officialStyles';
+import { formatThaiDate } from '../../../utils/dateUtils';
 
 // ลงทะเบียนฟอนต์ไทย
 Font.register({
@@ -195,7 +193,6 @@ const acceptanceStyles = StyleSheet.create({
 
 const AcceptanceLetterTemplate = ({ data, isBlank = false }) => {
   // ข้อมูลที่ใช้ในเอกสาร
-  const documentDate = formatOfficialDate(data?.documentDate || new Date());
   const student = data?.studentData?.[0] || {};
   const company = data || {};
 

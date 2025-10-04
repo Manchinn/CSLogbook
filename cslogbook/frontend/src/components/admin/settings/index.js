@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Typography, Row, Col, Badge, Divider, Alert } from 'antd';
+import { Card, Typography, Row, Col, Badge, Alert } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   SettingOutlined, 
