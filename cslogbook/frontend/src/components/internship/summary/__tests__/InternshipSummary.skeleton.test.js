@@ -1,4 +1,3 @@
-import React from 'react';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, createUser } from '../../../../test-utils/renderWithProviders';
 import InternshipSummary from '../Summary';
@@ -42,7 +41,6 @@ jest.mock('../hooks/useFormActions', () => ({
 
 // Mock useAuth ให้คืนค่า user พื้นฐาน (ไฟล์ summary ใช้ user จาก useAuth แบบ user / userData ต่างเวอร์ชัน)
 jest.mock('../../../../contexts/AuthContext', () => {
-  const React = require('react');
   return {
     AuthContext: {
       Provider: ({ children }) => children,

@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import './Dashboard.css';
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 /**
  * Component แสดงสถานะสิทธิ์การลงทะเบียนฝึกงานและโครงงานพิเศษของนักศึกษา

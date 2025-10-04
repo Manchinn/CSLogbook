@@ -9,7 +9,7 @@ import {
 import internshipService from '../../../services/internshipService';
 
 const { TextArea } = Input;
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph } = Typography;
 
 const ReflectionForm = ({ onSave, initialData, readOnly = false }) => {
   const [form] = Form.useForm();

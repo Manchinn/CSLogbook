@@ -89,10 +89,27 @@ const projectService = {
   },
 
   // Acknowledge exam failed -> archive project
-  acknowledgeExamResult: async (projectId, examType = 'PROJECT1') => {
+  acknowledgeExamResult: async (projectId, options) => {
+    let examType;
+
+    if (typeof options === 'string') {
+      examType = options;
+    } else if (options && typeof options === 'object') {
+      examType = options.examType ?? options.type;
+    }
+
+    const normalizedType = typeof examType === 'string' ? examType.trim().toUpperCase() : undefined;
+    const isTopicExam =
+      !normalizedType || ['TOPIC', 'TOPIC_EXAM', 'KP02', 'TOPICEXAM'].includes(normalizedType);
+
     try {
+      if (isTopicExam) {
+        const res = await apiClient.patch(`/projects/${projectId}/topic-exam-result/ack`);
+        return res.data;
+      }
+
       const res = await apiClient.patch(`/projects/${projectId}/exam-result/acknowledge`, {
-        examType
+        examType: normalizedType
       });
       return res.data;
     } catch (error) {

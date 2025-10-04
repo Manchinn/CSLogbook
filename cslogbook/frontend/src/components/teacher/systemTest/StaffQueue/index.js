@@ -22,7 +22,6 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   EyeOutlined,
-  FileTextOutlined,
   ReloadOutlined,
   SearchOutlined
 } from '@ant-design/icons';
@@ -330,12 +329,19 @@ const StaffSystemTestQueue = () => {
               {requestFile ? (
                 <Button
                   type="link"
-                  icon={<FileTextOutlined />}
-                  href={requestFile.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    handlePreview(
+                      requestFile,
+                      `ไฟล์คำขอทดสอบระบบ - ${
+                        record.projectSnapshot?.projectNameTh ||
+                        record.projectSnapshot?.projectNameEn ||
+                        requestFile.name
+                      }`
+                    )
+                  }
                 >
-                  ดาวน์โหลดไฟล์คำขอ ({requestFile.name})
+                  เปิดดูไฟล์คำขอ ({requestFile.name})
                 </Button>
               ) : (
                 <Text type="secondary">ไม่มีไฟล์คำขอแนบ</Text>

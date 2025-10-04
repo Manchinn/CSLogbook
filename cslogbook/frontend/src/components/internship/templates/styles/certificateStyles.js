@@ -1,23 +1,28 @@
 import { StyleSheet } from '@react-pdf/renderer';
-import { themeColors } from './themeStyles';
+import { themeColors, fontSizes, spacing } from './themeStyles';
+
+// กำหนดค่าพื้นฐานโดยอิงจาก design tokens เพื่อให้สอดคล้องกับธีมรวม
+const baseParagraphSize = fontSizes.thai.medium + 2; // 18
+const pagePadding = spacing['3xl'] + spacing.xs; // 36
+const checklistPadding = spacing.lg + spacing.sm; // 24
 
 const certificateStyles = StyleSheet.create({
   // หน้ากระดาษแนวนอน - โทนเรียบง่าย เหมือนตัวอย่างอ้างอิง
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
-    padding: 36,
+    padding: pagePadding,
     fontFamily: 'THSarabunNew',
-    fontSize: 18,
+    fontSize: baseParagraphSize,
     lineHeight: 1.35,
   },
 
   decorativeBorder: {
     position: 'absolute',
-    top: 26,
-    left: 26,
-    right: 26,
-    bottom: 26,
+    top: spacing['3xl'] - spacing.sm,
+    left: spacing['3xl'] - spacing.sm,
+    right: spacing['3xl'] - spacing.sm,
+    bottom: spacing['3xl'] - spacing.sm,
     border: '1.6px solid #2d2d2d',
     borderRadius: 6,
   },
@@ -118,13 +123,13 @@ const certificateStyles = StyleSheet.create({
     width: '45%',
     border: '1.4px solid #000000',
     borderRadius: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm + spacing.xs,
+    paddingHorizontal: checklistPadding,
     backgroundColor: '#ffffff',
   },
 
   checklistTitle: {
-    fontSize: 18,
+    fontSize: baseParagraphSize,
     fontWeight: 'bold',
     textAlign: 'left',
     marginBottom: 10,
@@ -163,7 +168,7 @@ const certificateStyles = StyleSheet.create({
   },
 
   checklistText: {
-    fontSize: 18,
+    fontSize: baseParagraphSize,
     flex: 1,
   },
 

@@ -4,7 +4,6 @@ const {
   ProjectDefenseRequestAdvisorApproval,
   ProjectDocument,
   ProjectMember,
-  ProjectTestRequest,
   Student,
   Teacher,
   User
@@ -368,28 +367,6 @@ class ProjectDefenseRequestService {
       const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
       if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
         throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${requiredApprovedLogs} ครั้ง`);
-      }
-
-      const latestSystemTest = await ProjectTestRequest.findOne({
-        where: { projectId },
-        order: [['submittedAt', 'DESC']],
-        transaction: t,
-        lock: t.LOCK.UPDATE
-      });
-
-      if (!latestSystemTest || latestSystemTest.status !== 'staff_approved') {
-        throw new Error('กรุณาส่งคำขอทดสอบระบบและได้รับการอนุมัติจากเจ้าหน้าที่ก่อนยื่นสอบโครงงานพิเศษ 1');
-      }
-      if (!latestSystemTest.evidenceSubmittedAt || !latestSystemTest.evidenceFilePath) {
-        throw new Error('ยังไม่มีการอัปโหลดใบประเมินผลการทดสอบระบบ กรุณาอัปโหลดให้เรียบร้อยก่อนยื่นสอบ');
-      }
-
-      const dueDay = dayjs(latestSystemTest.testDueDate);
-      if (dueDay.isValid()) {
-        const evidenceDay = dayjs(latestSystemTest.evidenceSubmittedAt);
-        if (evidenceDay.isValid() && evidenceDay.isBefore(dueDay)) {
-          throw new Error('ระยะเวลาทดสอบระบบยังไม่ครบ 30 วัน กรุณารอให้ครบกำหนดก่อนยื่นสอบ');
-        }
       }
 
       const cleanedPayload = this.normalizeProject1Payload(payload, project);
