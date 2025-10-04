@@ -6,7 +6,13 @@ import React, { createContext, useReducer, useContext, useCallback } from 'react
 const initialState = {
   projectId: null, // จะถูกกำหนดหลังสร้างครั้งแรก (Step 1)
   basic: { projectNameTh: '', projectNameEn: '', projectType: undefined },
-  classification: { tracks: [], advisorId: null, coAdvisorId: null },
+  classification: {
+    tracks: [],
+    advisorId: null, // เก็บ teacherId เพื่อใช้แสดงผล/เทียบใน state เดิม
+    advisorUserId: undefined, // เก็บ userId ของอาจารย์ (ใช้ส่งให้ backend ซึ่งล็อก FK กับ users)
+    coAdvisorId: null,
+    coAdvisorUserId: undefined
+  },
   members: { secondMemberCode: '', syncing: false, synced: false, error: null },
   projectStatus: 'draft',
   projectMembers: [], // จาก backend (leader + member พร้อม name, code)
