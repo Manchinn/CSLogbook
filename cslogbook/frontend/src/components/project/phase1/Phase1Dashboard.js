@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Typography, Row, Col, Tag, Button, Space, Alert, Modal, message, Tooltip } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import dayjs from 'dayjs';
 import {
   FileAddOutlined,
   UploadOutlined,
@@ -60,6 +61,15 @@ const phase1Steps = Object.freeze([
   }
 ]);
 
+// ฟอร์แมตวันที่ให้เป็นรูปแบบวัน/เดือน/ปี พ.ศ. เช่น 2/10/2568
+const formatThaiDate = (dateInput) => {
+  if (!dateInput) return null;
+  const parsed = dayjs(dateInput);
+  if (!parsed.isValid()) return null;
+  const thaiYear = parsed.year() + 543;
+  return `${parsed.format('D/M')}/${thaiYear}`;
+};
+
 const Phase1Dashboard = () => {
   const { Title, Paragraph, Text } = Typography;
   const navigate = useNavigate();
@@ -70,8 +80,15 @@ const Phase1Dashboard = () => {
     canAccessProject,
     isLoading: eligibilityLoading,
     projectReason,
-    messages
+    messages,
+    academicSettings,
+    requirements
   } = useStudentEligibility();
+
+  const projectRegistrationStartDate = academicSettings?.projectRegistrationPeriod?.startDate || null;
+  const currentSemester = academicSettings?.currentSemester !== undefined && academicSettings?.currentSemester !== null
+    ? Number(academicSettings.currentSemester)
+    : null;
   const [ackLoading, setAckLoading] = useState(false);
   const [ackModalOpen, setAckModalOpen] = useState(false);
   const containerStyle = useMemo(() => ({
@@ -105,6 +122,33 @@ const Phase1Dashboard = () => {
     return postTopicLockReasons;
   }, [activeProject, postTopicLockReasons]);
 
+  const allowedPhase2Semesters = useMemo(() => {
+    const rawSemesters = requirements?.project?.allowedSemesters;
+    if (!rawSemesters) return null;
+
+    // รองรับหลายรูปแบบที่ backend อาจส่งมา (array, object, json string)
+    const normalize = (value) => {
+      if (value === null || value === undefined) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'object') return Object.values(value).flat();
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed)
+            ? parsed
+            : (typeof parsed === 'object' ? Object.values(parsed).flat() : []);
+        } catch (error) {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    return normalize(rawSemesters)
+      .map((item) => Number(item))
+      .filter((semester) => Number.isInteger(semester));
+  }, [requirements?.project?.allowedSemesters]);
+
   const phase2GateReasons = useMemo(() => {
     // รวบรวมเหตุผลที่ยังไม่สามารถเปิด Phase 2 (โครงงานพิเศษ 2) ให้ผู้ใช้เข้าไปดำเนินการได้
     if (!activeProject) return ['ยังไม่มีข้อมูลโครงงาน'];
@@ -115,8 +159,27 @@ const Phase1Dashboard = () => {
     if (!['in_progress', 'completed'].includes(activeProject.status || '')) {
       reasons.push('สถานะโครงงานยังไม่อยู่ในขั้น "กำลังดำเนินการ"');
     }
+
+    if (allowedPhase2Semesters && allowedPhase2Semesters.length > 0 && Number.isInteger(currentSemester)) {
+      // ตรวจสอบว่าภาคเรียนปัจจุบันอยู่ในช่วงที่หลักสูตรอนุญาตให้สอบโครงงานพิเศษ 2 หรือไม่
+      if (!allowedPhase2Semesters.includes(currentSemester)) {
+        reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบโครงงานพิเศษ 2`);
+      }
+    }
+
+    if (projectRegistrationStartDate) {
+      const startDate = dayjs(projectRegistrationStartDate);
+      if (startDate.isValid() && dayjs().isBefore(startDate)) {
+        const displayDate = formatThaiDate(projectRegistrationStartDate);
+        reasons.push(
+          displayDate
+            ? `ภาคเรียนถัดไปจะเปิดให้ยื่นสอบโครงงานพิเศษ 2 ในวันที่ ${displayDate}`
+            : 'ภาคเรียนถัดไปยังไม่เปิดให้ยื่นสอบโครงงานพิเศษ 2'
+        );
+      }
+    }
     return reasons;
-  }, [activeProject]);
+  }, [activeProject, currentSemester, allowedPhase2Semesters, projectRegistrationStartDate]);
   const canAccessPhase2 = activeProject && phase2GateReasons.length === 0;
 
   const leaderMember = useMemo(() => {
