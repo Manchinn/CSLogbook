@@ -4,6 +4,8 @@ const {
   ProjectDefenseRequestAdvisorApproval,
   ProjectDocument,
   ProjectMember,
+  ProjectExamResult,
+  ProjectTestRequest,
   Student,
   Teacher,
   User
@@ -24,6 +26,8 @@ dayjs.extend(buddhistEra);
 dayjs.tz.setDefault('Asia/Bangkok');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
+const DEFENSE_TYPE_THESIS = 'THESIS';
+const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
 const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
 
 const STAFF_STATUS_LABELS_TH = {
@@ -327,6 +331,80 @@ class ProjectDefenseRequestService {
     }
   }
 
+  normalizeThesisPayload(payload, project, latestSystemTest) {
+    const base = this.normalizeProject1Payload(payload, project);
+    const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+    const rawIntended = payload?.intendedDefenseDate || payload?.intendedDate;
+    const intendedDay = rawIntended ? dayjs(rawIntended) : null;
+    const intendedDefenseDate = intendedDay && intendedDay.isValid()
+      ? intendedDay.format('YYYY-MM-DD')
+      : null;
+
+    const attachments = Array.isArray(payload?.attachments)
+      ? payload.attachments
+          .map((item) => {
+            if (!item) return null;
+            if (typeof item === 'string') {
+              const trimmed = item.trim();
+              return trimmed ? { label: null, value: trimmed } : null;
+            }
+            if (typeof item === 'object') {
+              const value = normalizeText(item.value);
+              if (!value) return null;
+              return {
+                label: normalizeText(item.label) || null,
+                value
+              };
+            }
+            return null;
+          })
+          .filter(Boolean)
+      : [];
+
+    const thesisPayload = {
+      ...base,
+      intendedDefenseDate,
+      presentationFormat: normalizeText(payload?.presentationFormat),
+      progressSummary: normalizeText(payload?.progressSummary),
+      additionalMaterials: attachments,
+      systemTestSnapshot: latestSystemTest
+        ? {
+            requestId: latestSystemTest.requestId,
+            status: latestSystemTest.status,
+            testStartDate: latestSystemTest.testStartDate,
+            testDueDate: latestSystemTest.testDueDate,
+            staffDecidedAt: latestSystemTest.staffDecidedAt,
+            evidenceSubmittedAt: latestSystemTest.evidenceSubmittedAt
+          }
+        : null
+    };
+
+    return thesisPayload;
+  }
+
+  validateThesisPayload(payload, { rawStudentsCount = 0 } = {}) {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('กรุณากรอกข้อมูลคำขอสอบก่อนบันทึก');
+    }
+    if (!payload.requestDate) {
+      throw new Error('กรุณาระบุวันที่ยื่นคำขอ');
+    }
+    if (!payload.intendedDefenseDate) {
+      throw new Error('กรุณาระบุวันที่คาดว่าจะสอบโครงงานพิเศษ 2');
+    }
+    if (!Array.isArray(payload.students) || !payload.students.length) {
+      throw new Error('กรุณากรอกข้อมูลช่องติดต่อของสมาชิกโครงงาน');
+    }
+    if (rawStudentsCount === 0) {
+      throw new Error('กรุณากรอกข้อมูลช่องติดต่อของสมาชิกโครงงาน');
+    }
+    const invalidStudent = payload.students.find(item => !item.studentId);
+    if (invalidStudent) {
+      throw new Error('ข้อมูลสมาชิกไม่ครบถ้วน');
+    }
+  }
+
   async submitProject1Request(projectId, actorStudentId, payload = {}) {
     const t = await sequelize.transaction();
     try {
@@ -435,11 +513,162 @@ class ProjectDefenseRequestService {
     }
   }
 
-  async getProject1Request(projectId, { withMetrics = false, transaction } = {}) {
+  async submitThesisRequest(projectId, actorStudentId, payload = {}) {
+    const t = await sequelize.transaction();
+    try {
+      const project = await ProjectDocument.findByPk(projectId, {
+        include: [
+          {
+            model: ProjectMember,
+            as: 'members',
+            include: [{
+              model: Student,
+              as: 'student',
+              include: [{ association: Student.associations.user }]
+            }]
+          },
+          {
+            model: ProjectExamResult,
+            as: 'examResults'
+          }
+        ],
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!project) {
+        throw new Error('ไม่พบโครงงาน');
+      }
+
+      const members = project.members || [];
+      const leader = members.find(member => member.role === 'leader');
+      if (!leader || leader.studentId !== Number(actorStudentId)) {
+        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
+      }
+
+      if (!['in_progress', 'completed'].includes(project.status)) {
+        throw new Error('โครงงานต้องอยู่ในสถานะ in_progress ก่อนยื่นคำขอสอบ');
+      }
+
+      const examResults = project.examResults || [];
+      const project1Result = examResults.find((exam) => exam.examType === DEFENSE_TYPE_PROJECT1);
+      if (!project1Result || project1Result.result !== 'PASS') {
+        throw new Error('ต้องผ่านการสอบโครงงานพิเศษ 1 ก่อนจึงจะยื่นคำขอสอบโครงงานพิเศษ 2 ได้');
+      }
+
+      const memberStudentIds = members.map(member => member.studentId).filter(Boolean);
+      const students = memberStudentIds.length
+        ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
+        : [];
+      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t });
+      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
+      if ((leaderMetrics.approvedLogs || 0) < THESIS_REQUIRED_APPROVED_MEETING_LOGS) {
+        throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${THESIS_REQUIRED_APPROVED_MEETING_LOGS} ครั้ง`);
+      }
+
+      const latestSystemTest = await ProjectTestRequest.findOne({
+        where: { projectId },
+        order: [['submitted_at', 'DESC']],
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!latestSystemTest || latestSystemTest.status !== 'staff_approved') {
+        throw new Error('ยังไม่ได้รับการอนุมัติคำขอทดสอบระบบครบ 30 วัน');
+      }
+      if (!latestSystemTest.evidenceSubmittedAt) {
+        throw new Error('กรุณาอัปโหลดหลักฐานการประเมินการทดสอบระบบให้ครบถ้วนก่อนยื่นคำขอสอบ');
+      }
+
+      const testDue = latestSystemTest.testDueDate ? dayjs(latestSystemTest.testDueDate) : null;
+      if (testDue && testDue.isAfter(dayjs())) {
+        throw new Error('ยังไม่ครบกำหนดระยะเวลาทดสอบระบบ 30 วัน');
+      }
+
+      const cleanedPayload = this.normalizeThesisPayload(payload, project, latestSystemTest);
+      this.validateThesisPayload(cleanedPayload, {
+        rawStudentsCount: Array.isArray(payload?.students) ? payload.students.length : 0
+      });
+
+      if (!cleanedPayload.intendedDefenseDate) {
+        throw new Error('กรุณาระบุวันที่คาดว่าจะสอบโครงงานพิเศษ 2');
+      }
+
+      const intendedDay = dayjs(cleanedPayload.intendedDefenseDate);
+      if (!intendedDay.isValid()) {
+        throw new Error('รูปแบบวันที่คาดว่าจะสอบไม่ถูกต้อง');
+      }
+
+      if (testDue && intendedDay.isBefore(testDue.add(1, 'day'))) {
+        throw new Error('วันที่ขอสอบต้องอยู่หลังวันครบกำหนดทดสอบระบบอย่างน้อย 1 วัน');
+      }
+
+      let record = await ProjectDefenseRequest.findOne({
+        where: { projectId, defenseType: DEFENSE_TYPE_THESIS },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (record && ['scheduled', 'completed'].includes(record.status)) {
+        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+      }
+
+      const now = new Date();
+      const basePayload = {
+        formPayload: cleanedPayload,
+        status: 'advisor_in_review',
+        submittedByStudentId: actorStudentId,
+        submittedAt: now,
+        advisorApprovedAt: null,
+        staffVerifiedAt: null,
+        staffVerifiedByUserId: null,
+        staffVerificationNote: null
+      };
+
+      if (record) {
+        await record.update(basePayload, { transaction: t });
+      } else {
+        record = await ProjectDefenseRequest.create({
+          projectId,
+          defenseType: DEFENSE_TYPE_THESIS,
+          ...basePayload
+        }, { transaction: t });
+      }
+
+      const advisorAssignments = this.getAdvisorAssignments(project);
+      await ProjectDefenseRequestAdvisorApproval.destroy({ where: { requestId: record.requestId }, transaction: t });
+
+      if (advisorAssignments.length) {
+        const approvalRows = advisorAssignments.map(({ teacherId, role }) => ({
+          requestId: record.requestId,
+          teacherId,
+          teacherRole: role,
+          status: 'pending',
+          note: null,
+          approvedAt: null
+        }));
+        await ProjectDefenseRequestAdvisorApproval.bulkCreate(approvalRows, { transaction: t });
+      } else {
+        await record.update({ status: 'advisor_approved', advisorApprovedAt: now }, { transaction: t });
+      }
+
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
+      await t.commit();
+
+      logger.info('submitThesisRequest success', { projectId });
+      return this.getThesisRequest(projectId, { withMetrics: true });
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('submitThesisRequest failed', { projectId, error: error.message });
+      throw error;
+    }
+  }
+
+  async getDefenseRequest(projectId, defenseType, { withMetrics = false, transaction } = {}) {
     const request = await ProjectDefenseRequest.findOne({
       where: {
         projectId,
-        defenseType: DEFENSE_TYPE_PROJECT1,
+        defenseType,
         status: { [Op.ne]: 'cancelled' }
       },
       order: [['submitted_at', 'DESC']],
@@ -458,15 +687,27 @@ class ProjectDefenseRequestService {
     return serialized;
   }
 
-  async getLatestProject1Request(projectId) {
-    return this.getProject1Request(projectId, { withMetrics: true });
+  async getProject1Request(projectId, options = {}) {
+    return this.getDefenseRequest(projectId, DEFENSE_TYPE_PROJECT1, options);
   }
 
-  async hasSubmittedProject1Request(projectId, { transaction } = {}) {
+  async getLatestProject1Request(projectId) {
+    return this.getDefenseRequest(projectId, DEFENSE_TYPE_PROJECT1, { withMetrics: true });
+  }
+
+  async getThesisRequest(projectId, options = {}) {
+    return this.getDefenseRequest(projectId, DEFENSE_TYPE_THESIS, options);
+  }
+
+  async getLatestThesisRequest(projectId) {
+    return this.getDefenseRequest(projectId, DEFENSE_TYPE_THESIS, { withMetrics: true });
+  }
+
+  async hasSubmittedDefenseRequest(projectId, defenseType, { transaction } = {}) {
     const count = await ProjectDefenseRequest.count({
       where: {
         projectId,
-        defenseType: DEFENSE_TYPE_PROJECT1,
+        defenseType,
         status: { [Op.ne]: 'cancelled' }
       },
       transaction
@@ -474,15 +715,19 @@ class ProjectDefenseRequestService {
     return count > 0;
   }
 
+  async hasSubmittedProject1Request(projectId, options = {}) {
+    return this.hasSubmittedDefenseRequest(projectId, DEFENSE_TYPE_PROJECT1, options);
+  }
+
   async scheduleProject1Defense() {
     throw new Error('ระบบนัดสอบโครงงานพิเศษ 1 ถูกย้ายไปจัดการผ่านปฏิทินภาควิชาแล้ว เจ้าหน้าที่ไม่ต้องบันทึกวันและสถานที่ในระบบนี้');
   }
 
-  async verifyProject1Request(projectId, { note } = {}, actorUser = {}) {
+  async verifyDefenseRequest(projectId, { note } = {}, actorUser = {}, defenseType = DEFENSE_TYPE_PROJECT1) {
     const t = await sequelize.transaction();
     try {
       const request = await ProjectDefenseRequest.findOne({
-        where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
+        where: { projectId, defenseType },
         include: this.buildRequestInclude(),
         transaction: t,
         lock: t.LOCK.UPDATE
@@ -509,18 +754,26 @@ class ProjectDefenseRequestService {
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
 
-      logger.info('verifyProject1Request success', { projectId, staffUserId: actorUser?.userId || null });
+      logger.info('verifyDefenseRequest success', { projectId, defenseType, staffUserId: actorUser?.userId || null });
 
       const serialized = this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
       return serialized;
     } catch (error) {
       await this.safeRollback(t);
-      logger.error('verifyProject1Request failed', { projectId, error: error.message });
+      logger.error('verifyDefenseRequest failed', { projectId, defenseType, error: error.message });
       throw error;
     }
   }
 
-  async getAdvisorApprovalQueue(teacherId, { status = ['pending'], withMetrics = false } = {}) {
+  async verifyProject1Request(projectId, payload = {}, actorUser = {}) {
+    return this.verifyDefenseRequest(projectId, payload, actorUser, DEFENSE_TYPE_PROJECT1);
+  }
+
+  async verifyThesisRequest(projectId, payload = {}, actorUser = {}) {
+    return this.verifyDefenseRequest(projectId, payload, actorUser, DEFENSE_TYPE_THESIS);
+  }
+
+  async getAdvisorApprovalQueue(teacherId, { status = ['pending'], withMetrics = false, defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {
     const statusFilter = Array.isArray(status) ? status : [status];
     const approvals = await ProjectDefenseRequestAdvisorApproval.findAll({
       where: {
@@ -530,6 +783,7 @@ class ProjectDefenseRequestService {
       include: [{
         model: ProjectDefenseRequest,
         as: 'request',
+        where: { defenseType },
         include: this.buildRequestInclude()
       }],
       order: [[{ model: ProjectDefenseRequest, as: 'request' }, 'submitted_at', 'ASC']]
@@ -555,7 +809,7 @@ class ProjectDefenseRequestService {
     return results;
   }
 
-  async submitAdvisorDecision(projectId, teacherId, { decision, note } = {}) {
+  async submitAdvisorDecision(projectId, teacherId, { decision, note } = {}, { defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {
     const normalizedDecision = String(decision || '').toLowerCase();
     if (!['approved', 'rejected'].includes(normalizedDecision)) {
       throw new Error('รูปแบบการตัดสินใจไม่ถูกต้อง');
@@ -570,7 +824,7 @@ class ProjectDefenseRequestService {
     const t = await sequelize.transaction();
     try {
       const request = await ProjectDefenseRequest.findOne({
-        where: { projectId, defenseType: DEFENSE_TYPE_PROJECT1 },
+        where: { projectId, defenseType },
         include: this.buildRequestInclude(),
         transaction: t,
         lock: t.LOCK.UPDATE
@@ -627,6 +881,7 @@ class ProjectDefenseRequestService {
       logger.info('submitAdvisorDecision success', {
         projectId,
         teacherId,
+        defenseType,
         decision: normalizedDecision
       });
 
@@ -647,7 +902,8 @@ class ProjectDefenseRequestService {
       academicYear,
       semester,
       search,
-      withMetrics = false
+      withMetrics = false,
+      defenseType = DEFENSE_TYPE_PROJECT1
     } = filters;
 
     let statuses = STAFF_QUEUE_DEFAULT_STATUSES;
@@ -656,7 +912,7 @@ class ProjectDefenseRequestService {
     }
 
     const where = {
-      defenseType: DEFENSE_TYPE_PROJECT1,
+      defenseType,
       status: { [Op.in]: statuses }
     };
 

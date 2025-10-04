@@ -38,9 +38,16 @@ const TopicSubmitInner = () => {
             projectNameEn: p.projectNameEn || '',
             projectType: p.projectType || undefined
         });
+        const findAdvisorUserId = (teacherId) => {
+          if (!teacherId || !Array.isArray(state.advisors)) return undefined;
+          const matched = state.advisors.find(item => Number(item.teacherId) === Number(teacherId));
+          return matched?.userId;
+        };
         setClassification({
           advisorId: p.advisorId || null,
+            advisorUserId: p.advisorId ? findAdvisorUserId(p.advisorId) : null,
             coAdvisorId: p.coAdvisorId || null,
+            coAdvisorUserId: p.coAdvisorId ? findAdvisorUserId(p.coAdvisorId) : null,
             tracks: Array.isArray(p.tracks) ? p.tracks : []
         });
         setDetails({
@@ -71,7 +78,7 @@ const TopicSubmitInner = () => {
     } finally {
       setChecking(false);
     }
-  }, [setBasic, setClassification, setDetails, setProjectId, setProjectMembers, setProjectStatus, setMembers, setMembersStatus]);
+  }, [setBasic, setClassification, setDetails, setProjectId, setProjectMembers, setProjectStatus, setMembers, setMembersStatus, state.advisors]);
 
   const checkExisting = useCallback(async () => {
     setChecking(true); setError(null);

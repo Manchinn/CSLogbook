@@ -12,6 +12,7 @@ const buildAdvisorLabel = (t) => `${t.firstName} ${t.lastName}`;
 const StepClassification = () => {
   const { state, setClassification, setAdvisors } = useCreateProjectDraft();
   const [advisorOptions, setAdvisorOptions] = useState([]);
+  const [advisorList, setAdvisorList] = useState([]); // เก็บ raw data พร้อม userId เพื่อ map -> payload
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -20,11 +21,18 @@ const StepClassification = () => {
     const fetchAdvisors = async () => {
       setLoading(true); setError(null);
       try {
-  const list = await teacherService.getAdvisors();
-        if (!mounted) return;
-  const mapped = list.map(t => ({ value: t.teacherId, label: buildAdvisorLabel(t) }));
-  setAdvisorOptions(mapped);
-  setAdvisors(list); // เก็บลง context สำหรับ StepReview ใช้ชื่อ
+          const list = await teacherService.getAdvisors();
+          if (!mounted) return;
+          const sanitized = Array.isArray(list) ? list.filter(item => item && item.teacherId) : [];
+          const mapped = sanitized.map(t => ({
+            value: Number(t.teacherId),
+            label: buildAdvisorLabel(t),
+            teacherId: Number(t.teacherId),
+            userId: t.userId
+          }));
+          setAdvisorList(sanitized);
+          setAdvisorOptions(mapped);
+          setAdvisors(sanitized); // เก็บลง context สำหรับ StepReview ใช้ชื่อ + userId
       } catch (e) {
         if (!mounted) return;
         // ตรวจ 401 แบบระบุชัด (กรณี interceptor เคลียร์ token แล้ว redirect อาจยังไม่ทัน)
@@ -41,6 +49,52 @@ const StepClassification = () => {
     return () => { mounted = false; };
   }, [setAdvisors]);
 
+  const { advisorId, advisorUserId, coAdvisorId, coAdvisorUserId } = state.classification;
+
+  useEffect(() => {
+    if (!advisorList.length) return;
+
+    if (advisorId && advisorUserId === undefined) {
+      const matched = advisorList.find(item => Number(item.teacherId) === Number(advisorId));
+      if (matched && matched.userId !== undefined && matched.userId !== advisorUserId) {
+        setClassification({ advisorUserId: matched.userId });
+      }
+    }
+
+    if (coAdvisorId && coAdvisorUserId === undefined) {
+      const matched = advisorList.find(item => Number(item.teacherId) === Number(coAdvisorId));
+      if (matched && matched.userId !== undefined && matched.userId !== coAdvisorUserId) {
+        setClassification({ coAdvisorUserId: matched.userId });
+      }
+    }
+  }, [advisorList, advisorId, advisorUserId, coAdvisorId, coAdvisorUserId, setClassification]);
+
+  const handleAdvisorChange = (value) => {
+    if (!value) {
+      setClassification({ advisorId: null, advisorUserId: null });
+      return;
+    }
+    const matched = advisorList.find(item => Number(item.teacherId) === Number(value));
+    const userId = matched?.userId;
+    setClassification({
+      advisorId: Number(value),
+      advisorUserId: userId !== undefined ? userId : undefined
+    });
+  };
+
+  const handleCoAdvisorChange = (value) => {
+    if (!value) {
+      setClassification({ coAdvisorId: null, coAdvisorUserId: null });
+      return;
+    }
+    const matched = advisorList.find(item => Number(item.teacherId) === Number(value));
+    const userId = matched?.userId;
+    setClassification({
+      coAdvisorId: Number(value),
+      coAdvisorUserId: userId !== undefined ? userId : undefined
+    });
+  };
+
   const advisorLocked = ['in_progress','completed','archived'].includes(state.projectStatus);
   const tracksReadOnly = ['completed','archived'].includes(state.projectStatus);
 
@@ -54,7 +108,7 @@ const StepClassification = () => {
           loading={loading}
           placeholder={loading ? 'กำลังโหลด...' : 'เลือกอาจารย์ที่ปรึกษา หรือเว้นไว้'}
           value={state.classification.advisorId}
-          onChange={v => setClassification({ advisorId: v })}
+          onChange={handleAdvisorChange}
           options={advisorOptions}
           filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
           notFoundContent={loading ? <Spin size="small" /> : 'ไม่พบอาจารย์'}
@@ -66,8 +120,8 @@ const StepClassification = () => {
           allowClear
           placeholder="เลือก Co-advisor (ถ้ามี)"
           value={state.classification.coAdvisorId}
-          onChange={v => setClassification({ coAdvisorId: v || null })}
-          options={advisorOptions.filter(o => o.value !== state.classification.advisorId)}
+          onChange={handleCoAdvisorChange}
+          options={advisorOptions.filter(o => o.teacherId !== Number(state.classification.advisorId))}
           disabled={advisorOptions.length === 0 || advisorLocked}
         />
       </Form.Item>

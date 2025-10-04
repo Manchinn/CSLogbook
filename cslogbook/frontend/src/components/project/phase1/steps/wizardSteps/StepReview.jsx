@@ -16,17 +16,33 @@ const StepReview = () => {
 
   const advisorName = useMemo(() => {
     if (!classification.advisorId) return null;
-    const found = advisors.find(a => a.teacherId === classification.advisorId);
+    const found = advisors.find(a => Number(a.teacherId) === Number(classification.advisorId));
     if (!found) return `#${classification.advisorId}`;
     return `${found.firstName} ${found.lastName}`;
   }, [classification.advisorId, advisors]);
 
   const coAdvisorName = useMemo(() => {
     if (!classification.coAdvisorId) return null;
-    const found = advisors.find(a => a.teacherId === classification.coAdvisorId);
+    const found = advisors.find(a => Number(a.teacherId) === Number(classification.coAdvisorId));
     if (!found) return `#${classification.coAdvisorId}`;
     return `${found.firstName} ${found.lastName}`;
   }, [classification.coAdvisorId, advisors]);
+
+  const findAdvisorUserId = (teacherId) => {
+    if (!teacherId) return undefined;
+    const matched = advisors.find(item => Number(item.teacherId) === Number(teacherId));
+    return matched?.userId;
+  };
+
+  const resolveAdvisorIdForPayload = (teacherId, userId) => {
+    if (userId !== undefined) {
+      return userId;
+    }
+    if (!teacherId) {
+      return undefined;
+    }
+    return undefined; // กรณีหา userId ไม่เจอให้ข้ามการอัปเดต เพื่อลดโอกาส FK ผิดพลาด
+  };
 
   const handleRefresh = async () => {
     if (!projectId) return;
@@ -45,7 +61,9 @@ const StepReview = () => {
         });
         setClassification({
           advisorId: p.advisorId || null,
+          advisorUserId: p.advisorId ? findAdvisorUserId(p.advisorId) : null,
           coAdvisorId: p.coAdvisorId || null,
+          coAdvisorUserId: p.coAdvisorId ? findAdvisorUserId(p.coAdvisorId) : null,
           tracks: Array.isArray(p.tracks) ? p.tracks : []
         });
         // details
@@ -165,12 +183,12 @@ const StepReview = () => {
             // เกณฑ์ขั้นต่ำ: มีชื่อ TH/EN (advisor ยัง optional) เพื่อให้สร้าง draft ได้เร็ว
             try {
               setStatus({ creating: true });
+              const advisorPayloadId = resolveAdvisorIdForPayload(classification.advisorId, classification.advisorUserId);
+              const coAdvisorPayloadId = resolveAdvisorIdForPayload(classification.coAdvisorId, classification.coAdvisorUserId);
               const payload = {
                 projectNameTh: basic.projectNameTh || undefined,
                 projectNameEn: basic.projectNameEn || undefined,
                 projectType: basic.projectType || undefined,
-                advisorId: classification.advisorId || undefined,
-                coAdvisorId: classification.coAdvisorId || undefined,
                 objective: details.objective || undefined,
                 background: details.background || details.problem || undefined,
                 scope: details.scope || undefined,
@@ -181,8 +199,14 @@ const StepReview = () => {
                 timelineNote: details.timelineNote || undefined,
                 risk: details.risk || undefined,
                 constraints: details.constraints || undefined,
-                tracks: classification.tracks && classification.tracks.length ? classification.tracks : undefined,
+                tracks: classification.tracks && classification.tracks.length ? classification.tracks : undefined
               };
+              if (advisorPayloadId !== undefined) {
+                payload.advisorId = advisorPayloadId;
+              }
+              if (coAdvisorPayloadId !== undefined) {
+                payload.coAdvisorId = coAdvisorPayloadId;
+              }
               const res = await projectService.createProject(payload);
               if (res?.success && res?.data?.projectId) {
                 const newId = res.data.projectId;
@@ -219,13 +243,13 @@ const StepReview = () => {
               }
               try {
                 setStatus({ saving: true });
+                const advisorPayloadId = resolveAdvisorIdForPayload(classification.advisorId, classification.advisorUserId);
+                const coAdvisorPayloadId = resolveAdvisorIdForPayload(classification.coAdvisorId, classification.coAdvisorUserId);
                 const updatePayload = {
                   // ถ้า lockedCore จะไม่ส่งค่าชื่อ/advisor เปลี่ยน (ป้องกันแก้ไข)
                   projectNameTh: lockedCore ? undefined : (basic.projectNameTh || ''),
                   projectNameEn: lockedCore ? undefined : (basic.projectNameEn || ''),
                   projectType: basic.projectType || null,
-                  advisorId: lockedCore ? undefined : (classification.advisorId || null),
-                  coAdvisorId: lockedCore ? undefined : (classification.coAdvisorId || null),
                   tracks: classification.tracks,
                   objective: details.objective || null,
                   background: details.background || details.problem || null,
@@ -238,6 +262,15 @@ const StepReview = () => {
                   risk: details.risk || null,
                   constraints: details.constraints || null
                 };
+                if (!lockedCore) {
+                  if (advisorPayloadId !== undefined) {
+                    updatePayload.advisorId = advisorPayloadId;
+                  }
+                  if (coAdvisorPayloadId !== undefined) {
+                    updatePayload.coAdvisorId = coAdvisorPayloadId;
+                  }
+                }
+
                 await projectService.updateProject(projectId, updatePayload);
                 message.success('บันทึกการแก้ไขเรียบร้อย');
                 await handleRefresh();
