@@ -1,24 +1,12 @@
 'use strict';
 
+// legacy placeholder: ใช้งานไฟล์ 20250424000000-add-base-credits-to-curriculums.js แทน
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('curriculums', 'internship_base_credits', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('curriculums', 'project_base_credits', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('curriculums', 'project_major_base_credits', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-    });
+  async up() {
+    // intentionally left blank
   },
 
-  async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('curriculums', 'internship_base_credits');
-    await queryInterface.removeColumn('curriculums', 'project_base_credits');
-    await queryInterface.removeColumn('curriculums', 'project_major_base_credits');
+  async down() {
+    // intentionally left blank
   }
 };
