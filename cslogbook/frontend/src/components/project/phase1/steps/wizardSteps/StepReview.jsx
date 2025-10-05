@@ -86,7 +86,7 @@ const StepReview = () => {
           // ถ้า code ตรงกับ local และเคย synced ปล่อยคงเดิม; ถ้า local ว่าง -> set
           if (!members.secondMemberCode || members.secondMemberCode === second.studentCode) {
             setMembers({ secondMemberCode: second.studentCode });
-            setMembersStatus({ synced: true, syncing: false, error: null });
+            setMembersStatus({ synced: true, syncing: false, validated: true, error: null });
           }
         }
         message.success('รีเฟรชข้อมูลล่าสุดแล้ว');
@@ -121,7 +121,9 @@ const StepReview = () => {
         <Descriptions.Item label="สมาชิกโครงงานพิเศษ">
           {members.secondMemberCode && <Tag color="blue">คนที่2: {members.secondMemberCode}</Tag>}
           {!members.secondMemberCode && <span>-</span>}
-          {members.secondMemberCode && !projectId && <Tag color="gold">ยังไม่สร้าง Draft</Tag>}
+          {members.secondMemberCode && !projectId && <Tag color="gold">รอสร้าง Draft เพื่อซิงค์</Tag>}
+          {members.secondMemberCode && !projectId && members.validated && <Tag color="geekblue">ตรวจสอบข้อมูลแล้ว</Tag>}
+          {members.secondMemberCode && !projectId && !members.validated && !members.error && <Tag color="default">ยังไม่ตรวจสอบ</Tag>}
           {members.secondMemberCode && projectId && !members.synced && !members.syncing && !members.error && (
             <Tag color="orange">ยังไม่เพิ่มลงฐานข้อมูล</Tag>
           )}
@@ -294,14 +296,14 @@ const StepReview = () => {
                 setMembersStatus({ syncing: true, error: null });
                 const res = await projectService.addMember(projectId, members.secondMemberCode);
                 if (res?.success) {
-                  setMembersStatus({ syncing: false, synced: true });
+                  setMembersStatus({ syncing: false, synced: true, validated: true });
                   message.success('ซิงค์สมาชิกคนที่ 2 สำเร็จ');
                 } else {
-                  setMembersStatus({ syncing: false, error: 'เพิ่มสมาชิกไม่สำเร็จ' });
+                  setMembersStatus({ syncing: false, synced: false, validated: false, error: 'เพิ่มสมาชิกไม่สำเร็จ' });
                   message.error('เพิ่มสมาชิกไม่สำเร็จ');
                 }
               } catch (e) {
-                setMembersStatus({ syncing: false, error: e.message || 'เพิ่มสมาชิกไม่สำเร็จ' });
+                setMembersStatus({ syncing: false, synced: false, validated: false, error: e.message || 'เพิ่มสมาชิกไม่สำเร็จ' });
                 message.error(e.message || 'เพิ่มสมาชิกไม่สำเร็จ');
               }
             }}

@@ -13,7 +13,7 @@ const initialState = {
     coAdvisorId: null,
     coAdvisorUserId: undefined
   },
-  members: { secondMemberCode: '', syncing: false, synced: false, error: null },
+  members: { secondMemberCode: '', syncing: false, synced: false, validated: false, error: null },
   projectStatus: 'draft',
   projectMembers: [], // จาก backend (leader + member พร้อม name, code)
   details: { problem: '', objective: '', background: '', scope: '', expectedOutcome: '', benefit: '', tools: '', methodology: '', timelineNote: '', risk: '', constraints: '' },
@@ -59,10 +59,16 @@ export const CreateProvider = ({ children }) => {
   const setAdvisors = useCallback(list => dispatch({ type: 'SET_ADVISORS', list }), []);
 
   const computeDraftReadiness = useCallback(() => {
-    const { basic, classification, members, details, projectMembers } = state;
+    const { basic, classification, members, details, projectMembers, projectId } = state;
     const member2Filled = !!(members.secondMemberCode||'').trim();
     const member2Valid = /^[0-9]{5,13}$/.test((members.secondMemberCode||'').trim());
     const backendMemberExists = projectMembers.some(m => m.role === 'member');
+    const localValidated = !projectId && member2Valid && members.validated;
+    // ถ้ายังไม่มี draft แต่ตรวจสอบรหัสผ่านแล้ว ให้ถือว่าข้อมูลพร้อมและจะ sync อัตโนมัติหลังสร้าง Draft
+    const member2Ready = backendMemberExists
+      || !member2Filled
+      || (member2Valid && members.synced)
+      || localValidated;
     return [
       { key: 'name_th', label: 'ชื่อโครงงานพิเศษภาษาไทย', pass: !!basic.projectNameTh.trim() },
       { key: 'name_en', label: 'ชื่อโครงงานพิเศษภาษาอังกฤษ', pass: !!basic.projectNameEn.trim() },
@@ -70,7 +76,7 @@ export const CreateProvider = ({ children }) => {
       { key: 'tracks', label: 'หมวด', pass: classification.tracks.length > 0 },
       { key: 'advisor', label: 'อาจารย์ที่ปรึกษา', pass: !!classification.advisorId },
       { key: 'details', label: 'รายละเอียด (อย่างน้อย 1)', pass: !!(details.objective || details.problem || details.background) },
-      { key: 'member2', label: 'สมาชิกคนที่สอง', pass: backendMemberExists || (!member2Filled) || (member2Valid && members.synced) }
+      { key: 'member2', label: 'สมาชิกคนที่สอง', pass: member2Ready }
     ];
   }, [state]);
 

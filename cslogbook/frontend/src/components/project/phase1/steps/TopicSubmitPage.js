@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Typography, Spin, Alert, Button } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CreateProvider } from './createContext';
@@ -19,6 +19,7 @@ const TopicSubmitInner = () => {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState(null);
   const [forcedNew] = useState(false); // เผื่ออนาคตอยากให้ผู้ใช้ override
+  const hasCheckedRef = useRef(false); // ป้องกันการรัน checkExisting() ซ้ำหลังจากโหลดครั้งแรก
   const { state, setBasic, setClassification, setDetails, setProjectId, setProjectStatus, setProjectMembers, setMembers, setMembersStatus } = useCreateProjectDraft();
 
   const search = new URLSearchParams(location.search);
@@ -68,7 +69,7 @@ const TopicSubmitInner = () => {
         if (secondMember && secondMember.studentCode) {
           setMembers({ secondMemberCode: secondMember.studentCode });
           // ถือว่า synced แล้วเพราะ backend มีอยู่จริง
-          setMembersStatus({ synced: true, syncing: false, error: null });
+          setMembersStatus({ synced: true, syncing: false, validated: true, error: null });
         }
       } else {
         setError('ไม่พบโครงงานสำหรับแก้ไข');
@@ -118,7 +119,11 @@ const TopicSubmitInner = () => {
     }
   }, [navigate, forcedNew, editPid, preloadProject]);
 
-  useEffect(() => { checkExisting(); }, [checkExisting]);
+  useEffect(() => {
+    if (hasCheckedRef.current) return;
+    hasCheckedRef.current = true;
+    checkExisting();
+  }, [checkExisting]);
 
   const readOnlyExamPassed = ['completed', 'archived'].includes(state.projectStatus);
 
