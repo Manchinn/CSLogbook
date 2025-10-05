@@ -60,12 +60,6 @@ const PDFViewerModal = ({ visible, pdfUrl, onClose, title = 'เอกสาร 
               <Button size="small" icon={<ReloadOutlined />} onClick={resetZoom} disabled={scale === 1} />
             </Tooltip>
           </Space>
-          <Space size="small">
-            <Tooltip title="เปิดในแท็บใหม่">
-              <Button size="small" icon={<FullscreenOutlined />} onClick={handleOpenNewTab} disabled={!pdfUrl}>เปิดแท็บใหม่</Button>
-            </Tooltip>
-            <Button size="small" onClick={handleClose}>ปิด</Button>
-          </Space>
         </div>
       ]}
     >

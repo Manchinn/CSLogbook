@@ -595,7 +595,13 @@ class ProjectDefenseRequestService {
 
       const examResults = project.examResults || [];
       const project1Result = examResults.find((exam) => exam.examType === DEFENSE_TYPE_PROJECT1);
-      if (!project1Result || project1Result.result !== 'PASS') {
+      const hasProject1Pass = (project1Result?.result || '').toString().trim().toUpperCase() === 'PASS';
+
+      // รองรับข้อมูล legacy ที่ยังบันทึกผลสอบไว้ใน project_documents.exam_result = 'passed'
+      const legacyExamResult = (project.examResult || '').toString().trim().toLowerCase();
+      const legacyProject1Pass = legacyExamResult === 'passed';
+
+      if (!hasProject1Pass && !legacyProject1Pass) {
         throw new Error('ต้องผ่านการสอบโครงงานพิเศษ 1 ก่อนจึงจะยื่นคำขอสอบโครงงานพิเศษ 2 ได้');
       }
 

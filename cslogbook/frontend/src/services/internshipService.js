@@ -1125,9 +1125,6 @@ const internshipService = {
       const pdfBlob = new Blob([response.data], { type: "application/pdf" });
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
 
-      // เปิดในแท็บใหม่
-      window.open(pdfUrl, "_blank");
-
       // ทำความสะอาด URL หลังจาก 1 นาที
       setTimeout(() => {
         window.URL.revokeObjectURL(pdfUrl);
@@ -1482,12 +1479,6 @@ const internshipService = {
       // สร้าง blob URL สำหรับ preview
       const pdfBlob = new Blob([response.data], { type: "application/pdf" });
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
-
-      // เปิดในแท็บใหม่
-      const newWindow = window.open(pdfUrl, "_blank");
-      if (!newWindow) {
-        throw new Error("โปรแกรมป้องกัน Pop-up ขัดขวางการเปิดแท็บใหม่");
-      }
 
       // ทำความสะอาด URL หลังจาก 1 นาที
       setTimeout(() => {

@@ -524,6 +524,7 @@ const Project1ExamResultPage = () => {
         <RecordExamResultModal
           visible={modalVisible}
           project={selectedProject}
+          examType="PROJECT1"
           onClose={handleModalClose}
           onSuccess={handleRecordSuccess}
         />

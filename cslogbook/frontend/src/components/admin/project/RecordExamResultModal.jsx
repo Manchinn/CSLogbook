@@ -25,10 +25,20 @@ const { TextArea } = Input;
 /**
  * Modal สำหรับบันทึกผลสอบโครงงานพิเศษ
  */
-const RecordExamResultModal = ({ visible, project, onClose, onSuccess }) => {
+const RecordExamResultModal = ({ visible, project, examType = 'PROJECT1', onClose, onSuccess }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+
+  const examNameTh = examType === 'THESIS' ? 'ปริญญานิพนธ์' : 'โครงงานพิเศษ 1';
+
+  const successAlertMessage = examType === 'THESIS'
+    ? '✅ เมื่อบันทึกผลแล้ว โครงงานจะถูกปิดเป็นสถานะ "สำเร็จ" และระบบจะเตรียมขั้นตอนส่งเล่ม'
+    : '✅ เมื่อบันทึกผลแล้ว นักศึกษาจะสามารถเข้าสู่ Phase 2 (ปริญญานิพนธ์) ได้';
+
+  const failAlertMessage = examType === 'THESIS'
+    ? '❌ เมื่อบันทึกว่าผลสอบไม่ผ่าน นักศึกษาต้องส่งคำร้องใหม่ตามรอบที่ภาควิชากำหนด'
+    : '❌ เมื่อบันทึกผลแล้ว นักศึกษาจะต้องรับทราบผล จากนั้นโครงงานจะถูก archive';
 
   /**
    * Handle form submit
@@ -39,7 +49,7 @@ const RecordExamResultModal = ({ visible, project, onClose, onSuccess }) => {
       setLoading(true);
 
       const examData = {
-        examType: 'PROJECT1',
+        examType,
         result: values.result,
         notes: values.notes || null,
         score: values.score || null,
@@ -83,7 +93,7 @@ const RecordExamResultModal = ({ visible, project, onClose, onSuccess }) => {
       title={
         <Space>
           <FileTextOutlined />
-          บันทึกผลสอบโครงงานพิเศษ 1
+          บันทึกผลสอบ{examNameTh}
         </Space>
       }
       open={visible}
@@ -210,9 +220,7 @@ const RecordExamResultModal = ({ visible, project, onClose, onSuccess }) => {
       {result && (
         <Alert
           message={
-            result === 'PASS'
-              ? '✅ เมื่อบันทึกผลแล้ว นักศึกษาจะสามารถเข้าสู่ Phase 2 (ปริญญานิพนธ์) ได้'
-              : '❌ เมื่อบันทึกผลแล้ว นักศึกษาจะต้องรับทราบผล จากนั้นโครงงานจะถูก archive'
+            result === 'PASS' ? successAlertMessage : failAlertMessage
           }
           type={result === 'PASS' ? 'success' : 'warning'}
           showIcon

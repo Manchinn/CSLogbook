@@ -38,6 +38,80 @@ class ProjectExamResultController {
   }
 
   /**
+   * GET /api/projects/exam-results/thesis/pending
+   * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ THESIS
+   */
+  async getThesisPendingResults(req, res) {
+    try {
+      const { academicYear, semester, search, status } = req.query;
+
+      const projects = await projectExamResultService.getThesisPendingResults({
+        academicYear,
+        semester,
+        search,
+        status
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'ดึงรายการโครงงานปริญญานิพนธ์ที่พร้อมบันทึกผลสำเร็จ',
+        data: projects,
+        count: projects.length
+      });
+    } catch (error) {
+      logger.error('Error in getThesisPendingResults:', error);
+      res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการดึงรายการโครงงานปริญญานิพนธ์',
+        error: error.message
+      });
+    }
+  }
+
+  async updateFinalDocumentStatus(req, res) {
+    try {
+      const projectId = req.params.projectId ?? req.params.id;
+      const { status, comment } = req.body || {};
+
+      if (
+        !['admin', 'teacher'].includes(req.user.role) ||
+        (req.user.role === 'teacher' && req.user.teacherType !== 'support')
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'ไม่มีสิทธิ์อัปเดตสถานะเล่ม'
+        });
+      }
+
+      const result = await projectExamResultService.updateFinalDocumentStatus(
+        projectId,
+        { status, comment },
+        req.user.userId
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'อัปเดตสถานะเล่มสำเร็จ',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error in updateFinalDocumentStatus:', error);
+
+      if (['ไม่พบโครงงาน', 'ไม่พบสมาชิกโครงงานสำหรับสร้างเล่มออฟไลน์', 'ไม่พบข้อมูลนักศึกษาสำหรับสร้างเล่มออฟไลน์'].includes(error.message)) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะเล่ม'
+      });
+    }
+  }
+
+  /**
    * POST /api/projects/:projectId/exam-result
    * บันทึกผลสอบโครงงานพิเศษ
    */

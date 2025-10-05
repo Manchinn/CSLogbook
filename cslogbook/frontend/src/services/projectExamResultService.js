@@ -5,25 +5,46 @@ import apiClient from './apiClient';
  * จัดการ API สำหรับผลการสอบโครงงานพิเศษ (PROJECT1 และ THESIS)
  */
 class ProjectExamResultService {
+  _buildPendingQuery(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.academicYear) params.append('academicYear', filters.academicYear);
+    if (filters.semester) params.append('semester', filters.semester);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.search) params.append('search', filters.search.trim());
+    return params;
+  }
+
+  _buildPendingEndpoint(examType = 'PROJECT1') {
+    return examType === 'THESIS'
+      ? '/projects/exam-results/thesis/pending'
+      : '/projects/exam-results/project1/pending';
+  }
+
+  async getPendingResults(examType = 'PROJECT1', filters = {}) {
+    try {
+      const params = this._buildPendingQuery(filters);
+      const endpoint = this._buildPendingEndpoint(examType);
+      const queryString = params.toString();
+      const response = await apiClient.get(`${endpoint}${queryString ? `?${queryString}` : ''}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching ${examType} pending results:`, error);
+      throw error;
+    }
+  }
+
   /**
    * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ PROJECT1
    */
   async getProject1PendingResults(filters = {}) {
-    try {
-      const params = new URLSearchParams();
-      if (filters.academicYear) params.append('academicYear', filters.academicYear);
-  if (filters.semester) params.append('semester', filters.semester);
-      if (filters.status) params.append('status', filters.status);
-  if (filters.search) params.append('search', filters.search.trim());
+    return this.getPendingResults('PROJECT1', filters);
+  }
 
-      const response = await apiClient.get(
-        `/projects/exam-results/project1/pending${params.toString() ? `?${params.toString()}` : ''}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching project1 pending results:', error);
-      throw error;
-    }
+  /**
+   * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ THESIS
+   */
+  async getThesisPendingResults(filters = {}) {
+    return this.getPendingResults('THESIS', filters);
   }
 
   /**

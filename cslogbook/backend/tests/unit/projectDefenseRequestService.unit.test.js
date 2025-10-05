@@ -127,7 +127,11 @@ beforeAll(async () => {
     projectCode: DataTypesCtor.STRING,
     status: { type: DataTypesCtor.STRING, defaultValue: 'draft' },
     advisorId: DataTypesCtor.INTEGER,
-    coAdvisorId: DataTypesCtor.INTEGER
+    coAdvisorId: DataTypesCtor.INTEGER,
+    examResult: { type: DataTypesCtor.STRING, allowNull: true, field: 'exam_result' },
+    examResultAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'exam_result_at' },
+    examFailReason: { type: DataTypesCtor.TEXT, allowNull: true, field: 'exam_fail_reason' },
+    studentAcknowledgedAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'student_acknowledged_at' }
   }, { tableName: 'project_documents', underscored: true, timestamps: false });
 
   ProjectMember = sequelize.define('ProjectMember', {
@@ -366,6 +370,12 @@ afterEach(() => {
 
 beforeEach(async () => {
   await resetExamAndTest();
+  await project.update({
+    examResult: null,
+    examResultAt: null,
+    examFailReason: null,
+    studentAcknowledgedAt: null
+  });
 });
 
 afterAll(async () => {
@@ -478,6 +488,26 @@ describe('submitThesisRequest', () => {
         name: 'sample.pdf'
       }
     }));
+  });
+
+  test('ยื่นคำขอสำเร็จเมื่อข้อมูล legacy บันทึกผลสอบเป็น passed', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5, { phase: 'phase2' });
+  await project.update({ examResult: 'passed', examResultAt: daysAgo(45) });
+  const refreshedProject = await ProjectDocument.findByPk(project.projectId);
+  expect(refreshedProject.examResult).toBe('passed');
+    const testRequest = await seedSystemTestRequest({ dueDaysAgo: 12, includeEvidence: true });
+
+    const record = await projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    });
+
+    expect(record).toBeDefined();
+    expect(record.status).toBe('advisor_in_review');
+    expect(record.formPayload.systemTestSnapshot.requestId).toBe(testRequest.requestId);
   });
 
   test('ปฏิเสธเมื่อยังไม่ผ่านการสอบโครงงานพิเศษ 1', async () => {

@@ -7,21 +7,37 @@ const {
   Teacher,
   ProjectDefenseRequest,
   Academic,
+  Document,
   sequelize
 } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const projectDocumentService = require('./projectDocumentService');
 const projectWorkflowService = require('./projectWorkflowService');
+const documentService = require('./documentService');
 const dayjs = require('dayjs');
 
 const DEFENSE_READY_STATUSES = ['staff_verified', 'scheduled', 'completed'];
+const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
+  'approved',
+  'completed',
+  'supervisor_evaluated',
+  'acceptance_approved',
+  'referral_ready',
+  'referral_downloaded'
+]);
 
 class ProjectExamResultService {
   /**
    * รวม include พื้นฐานของ ProjectDocument เพื่อป้องกันโค้ดซ้ำ
    */
-  _buildProjectIncludes({ includeDefenseRequests = false, defenseWhere, defenseRequired = false } = {}) {
+  _buildProjectIncludes({
+    includeDefenseRequests = false,
+    defenseWhere,
+    defenseRequired = false,
+    includeFinalDocument = false,
+    documentInclude
+  } = {}) {
     const includes = [
       {
         model: ProjectMember,
@@ -55,125 +71,216 @@ class ProjectExamResultService {
       });
     }
 
+    if (includeFinalDocument) {
+      const documentConfig = {
+        model: Document,
+        as: 'document',
+        required: false
+      };
+
+      if (Array.isArray(documentInclude) && documentInclude.length) {
+        documentConfig.include = documentInclude;
+      }
+
+      includes.push(documentConfig);
+    }
+
     return includes;
   }
-
+ 
   /**
    * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ PROJECT1
    */
-  async getProject1PendingResults({ academicYear, semester, search, status } = {}) {
+  async getProject1PendingResults(params = {}) {
     try {
-      const whereClause = {};
-
-      if (academicYear) {
-        whereClause.academicYear = academicYear;
-      }
-
-      if (semester) {
-        whereClause.semester = semester;
-      }
-
-      const projects = await ProjectDocument.findAll({
-        where: whereClause,
-        include: [
-          ...this._buildProjectIncludes({
-            includeDefenseRequests: true,
-            defenseRequired: true,
-            defenseWhere: {
-              defenseType: 'PROJECT1',
-              status: { [Op.in]: DEFENSE_READY_STATUSES }
-            }
-          }),
-          {
-            model: ProjectExamResult,
-            as: 'examResults',
-            where: { exam_type: 'PROJECT1' },
-            required: false
-          }
-        ],
-        order: [['projectId', 'ASC']]
-      });
-
-      const normalizedStatus = (status || 'pending').toLowerCase();
-
-      let projectList = projects.map((project) => {
-        const json = project.toJSON();
-        const normalizedId = json.projectId ?? json.project_id ?? null;
-        const sortedExamResults = Array.isArray(json.examResults)
-          ? [...json.examResults].sort((a, b) => {
-              const aTime = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
-              const bTime = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
-              return bTime - aTime;
-            })
-          : [];
-
-        return {
-          ...json,
-          projectId: normalizedId != null ? Number(normalizedId) : null,
-          examResults: sortedExamResults
-        };
-      });
-
-      switch (normalizedStatus) {
-        case 'pending':
-          projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
-          break;
-        case 'passed':
-          projectList = projectList.filter(
-            (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'PASS'
-          );
-          break;
-        case 'failed':
-          projectList = projectList.filter(
-            (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'FAIL'
-          );
-          break;
-        case 'all':
-          // ไม่กรอง
-          break;
-          break;
-        default:
-          // สำหรับค่าที่ไม่รู้จัก ให้ถือว่า pending เพื่อความเข้ากันได้ย้อนหลัง
-          projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
-          break;
-      }
-
-      if (search) {
-        const keyword = search.trim().toLowerCase();
-
-        projectList = projectList.filter((project) => {
-          const projectFields = [
-            project.projectNameTh,
-            project.projectNameEn,
-            project.projectCode,
-            project.projectId != null ? String(project.projectId) : null
-          ];
-
-          const projectMatches = projectFields.some(
-            (field) => field && field.toLowerCase().includes(keyword)
-          );
-
-          const memberMatches = (project.members || []).some((member) => {
-            const studentCode = member.student?.studentCode;
-            const fullName = member.student?.user
-              ? `${member.student.user.firstName || ''} ${member.student.user.lastName || ''}`.trim()
-              : '';
-
-            return (
-              (studentCode && studentCode.toLowerCase().includes(keyword)) ||
-              (fullName && fullName.toLowerCase().includes(keyword))
-            );
-          });
-
-          return projectMatches || memberMatches;
-        });
-      }
-
-      return projectList;
+      return await this._getPendingResultsByExamType('PROJECT1', params);
     } catch (error) {
       logger.error('Error in getProject1PendingResults:', error);
       throw error;
     }
+  }
+
+  /**
+   * ดึงรายการโครงงานที่พร้อมบันทึกผลสอบ THESIS
+   */
+  async getThesisPendingResults(params = {}) {
+    try {
+      return await this._getPendingResultsByExamType('THESIS', params, { includeDocument: true });
+    } catch (error) {
+      logger.error('Error in getThesisPendingResults:', error);
+      throw error;
+    }
+  }
+
+  async _getPendingResultsByExamType(examType, { academicYear, semester, search, status } = {}, { includeDocument = false } = {}) {
+    const whereClause = {};
+
+    if (academicYear) {
+      whereClause.academicYear = academicYear;
+    }
+
+    if (semester) {
+      whereClause.semester = semester;
+    }
+
+    const includes = [
+      ...this._buildProjectIncludes({
+        includeDefenseRequests: true,
+        defenseRequired: true,
+        defenseWhere: {
+          defenseType: examType,
+          status: { [Op.in]: DEFENSE_READY_STATUSES }
+        },
+        includeFinalDocument: includeDocument,
+        documentInclude: includeDocument
+          ? [
+              {
+                model: User,
+                as: 'owner',
+                attributes: ['userId', 'firstName', 'lastName', 'email']
+              },
+              {
+                model: User,
+                as: 'reviewer',
+                attributes: ['userId', 'firstName', 'lastName', 'email']
+              }
+            ]
+          : undefined
+      }),
+      {
+        model: ProjectExamResult,
+        as: 'examResults',
+        where: { exam_type: examType },
+        required: false
+      }
+    ];
+
+    const projects = await ProjectDocument.findAll({
+      where: whereClause,
+      include: includes,
+      order: [['projectId', 'ASC']]
+    });
+
+    const normalizedStatus = (status || 'pending').toLowerCase();
+
+    let projectList = projects.map((project) => {
+      const json = project.toJSON();
+      const normalizedId = json.projectId ?? json.project_id ?? null;
+      const filteredExamResults = Array.isArray(json.examResults)
+        ? json.examResults
+            .filter((result) => {
+              const resultExamType = result.examType || result.exam_type || null;
+              // ถ้าไม่มีการระบุประเภท ให้ถือว่าเป็นประเภทเดียวกับที่ขอ (เข้ากันได้ย้อนหลัง)
+              return !resultExamType || resultExamType === examType;
+            })
+            .sort((a, b) => {
+              const aTime = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+              const bTime = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+              return bTime - aTime;
+            })
+        : [];
+
+      const finalDocument = includeDocument && json.document
+        ? this._normalizeFinalDocument(json.document)
+        : null;
+
+      return {
+        ...json,
+        projectId: normalizedId != null ? Number(normalizedId) : null,
+        examResults: filteredExamResults,
+        finalDocument
+      };
+    });
+
+    switch (normalizedStatus) {
+      case 'pending':
+        projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
+        break;
+      case 'passed':
+        projectList = projectList.filter(
+          (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'PASS'
+        );
+        break;
+      case 'failed':
+        projectList = projectList.filter(
+          (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'FAIL'
+        );
+        break;
+      case 'all':
+        break;
+      default:
+        projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
+        break;
+    }
+
+    if (search) {
+      const keyword = search.trim().toLowerCase();
+
+      projectList = projectList.filter((project) => {
+        const projectFields = [
+          project.projectNameTh,
+          project.projectNameEn,
+          project.projectCode,
+          project.projectId != null ? String(project.projectId) : null
+        ];
+
+        const projectMatches = projectFields.some(
+          (field) => field && field.toLowerCase().includes(keyword)
+        );
+
+        const memberMatches = (project.members || []).some((member) => {
+          const studentCode = member.student?.studentCode;
+          const fullName = member.student?.user
+            ? `${member.student.user.firstName || ''} ${member.student.user.lastName || ''}`.trim()
+            : '';
+
+          return (
+            (studentCode && studentCode.toLowerCase().includes(keyword)) ||
+            (fullName && fullName.toLowerCase().includes(keyword))
+          );
+        });
+
+        return projectMatches || memberMatches;
+      });
+    }
+
+    return projectList;
+  }
+
+  _normalizeFinalDocument(documentInstance) {
+    if (!documentInstance) {
+      return null;
+    }
+
+    const doc = documentInstance.toJSON ? documentInstance.toJSON() : documentInstance;
+
+    const getTimestamp = (primary, fallback) => {
+      if (primary) {
+        return primary;
+      }
+      if (doc[fallback]) {
+        return doc[fallback];
+      }
+      return null;
+    };
+
+    return {
+      documentId: doc.documentId ?? doc.document_id ?? null,
+      documentName: doc.documentName ?? doc.document_name ?? null,
+      status: doc.status ?? null,
+      reviewDate: getTimestamp(doc.reviewDate, 'review_date'),
+      submittedAt: getTimestamp(doc.submittedAt, 'submitted_at') || getTimestamp(doc.createdAt, 'created_at'),
+      downloadStatus: doc.downloadStatus ?? doc.download_status ?? null,
+      downloadCount: doc.downloadCount ?? doc.download_count ?? 0,
+      reviewer: doc.reviewer
+        ? {
+            userId: doc.reviewer.userId ?? doc.reviewer.user_id ?? null,
+            firstName: doc.reviewer.firstName,
+            lastName: doc.reviewer.lastName,
+            email: doc.reviewer.email || null
+          }
+        : null
+    };
   }
 
   /**
@@ -192,7 +299,10 @@ class ProjectExamResultService {
       const { examType, result, score, notes, requireScopeRevision } = examData;
 
       const project = await ProjectDocument.findByPk(normalizedProjectId, {
-        include: this._buildProjectIncludes({ includeDefenseRequests: true }),
+        include: this._buildProjectIncludes({
+          includeDefenseRequests: true,
+          includeFinalDocument: examType === 'THESIS'
+        }),
         transaction,
         lock: transaction.LOCK.UPDATE
       });
@@ -238,14 +348,28 @@ class ProjectExamResultService {
       };
 
       if (result === 'PASS') {
-        projectUpdates.status = examType === 'THESIS' ? 'completed' : 'in_progress';
+        if (examType === 'THESIS') {
+          const finalDocumentReady = this._isFinalDocumentApproved(project.document);
+          projectUpdates.status = finalDocumentReady ? 'completed' : 'in_progress';
+
+          if (!finalDocumentReady) {
+            logger.info('THESIS exam passed but final document not yet approved, keeping project in-progress', {
+              projectId: normalizedProjectId
+            });
+          }
+        } else {
+          projectUpdates.status = 'in_progress';
+        }
       }
 
       await project.update(projectUpdates, { transaction });
       await defenseRequest.update({ status: 'completed' }, { transaction });
 
       await project.reload({
-        include: this._buildProjectIncludes({ includeDefenseRequests: true }),
+        include: this._buildProjectIncludes({
+          includeDefenseRequests: true,
+          includeFinalDocument: examType === 'THESIS'
+        }),
         transaction
       });
 
@@ -512,6 +636,16 @@ class ProjectExamResultService {
     }
   }
 
+  _isFinalDocumentApproved(documentInstance) {
+    if (!documentInstance) {
+      return false;
+    }
+
+    const doc = documentInstance.toJSON ? documentInstance.toJSON() : documentInstance;
+    const status = String(doc.status || '').toLowerCase();
+    return FINAL_DOCUMENT_ACCEPTED_STATUSES.has(status);
+  }
+
   async _sendExamResultNotifications(project, examResult) {
     try {
       const examTypeTh = examResult.examType === 'PROJECT1' ? 'โครงงานพิเศษ 1' : 'ปริญญานิพนธ์';
@@ -555,6 +689,27 @@ class ProjectExamResultService {
     } catch (error) {
       logger.error('Error sending exam result notifications:', error);
     }
+  }
+
+  async updateFinalDocumentStatus(projectId, payload = {}, reviewerUserId) {
+    const normalizedProjectId = Number(projectId);
+    if (!Number.isInteger(normalizedProjectId) || normalizedProjectId <= 0) {
+      throw new Error('รหัสโครงงานไม่ถูกต้อง');
+    }
+
+    const { status, comment } = payload;
+    if (!status) {
+      throw new Error('กรุณาเลือกสถานะเล่มที่ต้องการตั้ง');
+    }
+
+    const result = await documentService.updateProjectFinalDocumentStatus(
+      normalizedProjectId,
+      status,
+      reviewerUserId,
+      comment ?? null
+    );
+
+    return result;
   }
 }
 
