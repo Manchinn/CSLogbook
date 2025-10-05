@@ -455,7 +455,7 @@ const Phase1Dashboard = () => {
 
   if (activeSub && activeStepMeta?.requiresPostTopicUnlock && (!activeProject || postTopicGateReasons.length > 0)) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <div style={containerStyle}>
         <Card>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Title level={4} style={{ margin: 0 }}>ยังไม่สามารถเข้าถึงขั้นตอนนี้ได้</Title>
@@ -660,7 +660,7 @@ const Phase1Dashboard = () => {
   // Sub view (อยู่ภายในขั้นตอนใดขั้นตอนหนึ่ง) -> แสดง header + Outlet เต็มความกว้าง
   return (
     <>
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={containerStyle}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Card
           title={<Space align="center">{activeStepMeta?.icon}<span>{activeStepMeta?.title}</span></Space>}

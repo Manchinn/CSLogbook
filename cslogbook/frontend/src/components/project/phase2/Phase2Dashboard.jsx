@@ -46,6 +46,10 @@ const Phase2Dashboard = () => {
   const [examLoading, setExamLoading] = useState(false);
   const [examError, setExamError] = useState(null);
 
+  const handleBackToPhase1Overview = useCallback(() => {
+    navigate('/project/phase1');
+  }, [navigate]);
+
   const openInNewTab = useCallback((url) => {
     if (!url) return;
     if (typeof window === 'undefined') return;
@@ -106,6 +110,15 @@ const Phase2Dashboard = () => {
 
   const phase2Unlocked = useMemo(() => phase2GateReasons.length === 0, [phase2GateReasons]);
 
+  const containerStyle = useMemo(() => ({
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24
+  }), []);
+
   const location = useLocation();
 
   const activeSub = useMemo(() => {
@@ -115,15 +128,6 @@ const Phase2Dashboard = () => {
   }, [location.pathname]);
 
   const activeStepMeta = activeSub ? phase2StepsLookup[activeSub] : null;
-
-  const subContainerStyle = useMemo(() => ({
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 24
-  }), []);
 
   const thesisRequest = useMemo(() => {
     if (!Array.isArray(activeProject?.defenseRequests)) return null;
@@ -431,46 +435,52 @@ const Phase2Dashboard = () => {
 
   if (projectLoading) {
     return (
-      <Card bodyStyle={{ padding: 32 }}>
-        <Space align="center" style={{ width: '100%', justifyContent: 'center' }}>
-          <Spin />
-          <Text>กำลังโหลดข้อมูลโครงงาน...</Text>
-        </Space>
-      </Card>
+      <div style={containerStyle}>
+        <Card bodyStyle={{ padding: 32 }}>
+          <Space align="center" style={{ width: '100%', justifyContent: 'center' }}>
+            <Spin />
+            <Text>กำลังโหลดข้อมูลโครงงาน...</Text>
+          </Space>
+        </Card>
+      </div>
     );
   }
 
   if (!activeProject) {
     return (
-      <Card title={renderHeader()}>
-        <Empty description="ยังไม่มีข้อมูลโครงงานสำหรับเข้า Phase 2" />
-      </Card>
+      <div style={containerStyle}>
+        <Card title={renderHeader()}>
+          <Empty description="ยังไม่มีข้อมูลโครงงานสำหรับเข้า Phase 2" />
+        </Card>
+      </div>
     );
   }
 
   if (!phase2Unlocked) {
     return (
-      <Space direction="vertical" size={24} style={{ width: '100%' }}>
-        <Card title={renderHeader()}>
-          <Alert
-            type="warning"
-            showIcon
-            message="ยังไม่สามารถเข้าถึงขั้นตอนโครงงานพิเศษ 2"
-            description={(
-              <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-                {phase2GateReasons.map((reason, index) => (
-                  <li key={`phase2-lock-${index}`}>{reason}</li>
-                ))}
-              </ul>
-            )}
-          />
-        </Card>
-        <Card>
-          <Paragraph style={{ marginBottom: 0 }}>
-            กรุณาตรวจสอบขั้นตอนในโครงงานพิเศษ 1 ให้ครบถ้วนก่อน ระบบจะเปิด Phase 2 อัตโนมัติเมื่อเงื่อนไขครบ
-          </Paragraph>
-        </Card>
-      </Space>
+      <div style={containerStyle}>
+        <Space direction="vertical" size={24} style={{ width: '100%' }}>
+          <Card title={renderHeader()}>
+            <Alert
+              type="warning"
+              showIcon
+              message="ยังไม่สามารถเข้าถึงขั้นตอนโครงงานพิเศษ 2"
+              description={(
+                <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                  {phase2GateReasons.map((reason, index) => (
+                    <li key={`phase2-lock-${index}`}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+            />
+          </Card>
+          <Card>
+            <Paragraph style={{ marginBottom: 0 }}>
+              กรุณาตรวจสอบขั้นตอนในโครงงานพิเศษ 1 ให้ครบถ้วนก่อน ระบบจะเปิด Phase 2 อัตโนมัติเมื่อเงื่อนไขครบ
+            </Paragraph>
+          </Card>
+        </Space>
+      </div>
     );
   }
 
@@ -483,11 +493,11 @@ const Phase2Dashboard = () => {
     );
 
     return (
-      <div style={subContainerStyle}>
+      <div style={containerStyle}>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           <Card
             title={headerTitle}
-            extra={<Button onClick={() => navigate('/project/phase2')}>ย้อนกลับ</Button>}
+            extra={<Button onClick={handleBackToPhase1Overview}>ย้อนกลับ</Button>}
           >
             <Paragraph style={{ marginBottom: 0 }}>
               {activeStepMeta?.desc || 'หน้ารายละเอียดขั้นตอนโครงงานพิเศษ 2'}
@@ -502,277 +512,279 @@ const Phase2Dashboard = () => {
   }
 
   return (
-    <Space direction="vertical" style={{ width: '100%' }} size={24}>
-      <Card title={renderHeader()}>
-        <Row gutter={[24, 16]}>
-          <Col xs={24} md={12}>
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              <Text><strong>รหัสโครงงาน:</strong> {activeProject.projectCode || '-'}</Text>
-              <Text><strong>ชื่อโครงงาน:</strong> {activeProject.projectNameTh || '-'}</Text>
-              <Text type="secondary">ผลสอบหัวข้อ: ผ่าน</Text>
-              {examLoading && <Spin size="small" />}
-              {examError && (
-                <Alert
-                  type="error"
-                  showIcon
-                  message="ไม่สามารถโหลดรายละเอียดผลสอบได้"
-                  description={examError}
-                />
-              )}
-            </Space>
-          </Col>
-          <Col xs={24} md={12}>
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              <Text><strong>อาจารย์ที่ปรึกษา:</strong> {activeProject.advisor?.name || '-'}</Text>
-              {requireScopeRevision && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  message="ผลสอบผ่านแบบมีเงื่อนไข"
-                  description="โปรดปรับปรุง Scope ตามคำแนะนำของกรรมการก่อนยื่นคำขอสอบโครงงานพิเศษ 2"
-                />
-              )}
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-
-      <Card title="ลำดับขั้นตอนสำคัญ">
-        <Timeline mode="left" items={timelineItems} />
-      </Card>
-
-      <Card title="บันทึกการพบอาจารย์ (Phase 2)">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Alert
-            type={meetingRequirement.satisfied ? 'success' : 'warning'}
-            showIcon
-            message={meetingRequirement.satisfied ? 'บันทึกการพบครบตามเกณฑ์แล้ว' : 'ยังไม่ครบเกณฑ์บันทึกการพบ'}
-            description={(
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Text>
-                  ได้รับอนุมัติ {meetingRequirement.totalApproved}/{meetingRequirement.required} ครั้ง
-                </Text>
-                {lastApprovedMeeting && (
-                  <Text type="secondary">ครั้งล่าสุดเมื่อ {lastApprovedMeeting}</Text>
+    <div style={containerStyle}>
+      <Space direction="vertical" style={{ width: '100%' }} size={24}>
+        <Card title={renderHeader()}>
+          <Row gutter={[24, 16]}>
+            <Col xs={24} md={12}>
+              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <Text><strong>รหัสโครงงาน:</strong> {activeProject.projectCode || '-'}</Text>
+                <Text><strong>ชื่อโครงงาน:</strong> {activeProject.projectNameTh || '-'}</Text>
+                <Text type="secondary">ผลสอบหัวข้อ: ผ่าน</Text>
+                {examLoading && <Spin size="small" />}
+                {examError && (
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="ไม่สามารถโหลดรายละเอียดผลสอบได้"
+                    description={examError}
+                  />
                 )}
               </Space>
-            )}
-          />
-          {meetingBreakdown.length > 0 ? (
-            <List
-              size="small"
-              dataSource={meetingBreakdown}
-              renderItem={(item) => (
-                <List.Item key={item.studentId || item.studentCode}>
-                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                    <Space size={8} wrap>
-                      <Text strong>{item.name}</Text>
-                      {item.studentCode && <Tag color="geekblue">{item.studentCode}</Tag>}
-                      {leaderMember && Number(item.studentId) === Number(leaderMember.studentId) && (
-                        <Tag color="blue">หัวหน้าโครงงาน</Tag>
-                      )}
-                    </Space>
-                    <Space size={8} wrap>
-                      <Tag color="green">อนุมัติแล้ว {item.approvedLogs}</Tag>
-                      <Tag color="cyan">เข้าร่วม {item.attendedMeetings}</Tag>
-                    </Space>
-                  </Space>
-                </List.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <Text><strong>อาจารย์ที่ปรึกษา:</strong> {activeProject.advisor?.name || '-'}</Text>
+                {requireScopeRevision && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message="ผลสอบผ่านแบบมีเงื่อนไข"
+                    description="โปรดปรับปรุง Scope ตามคำแนะนำของกรรมการก่อนยื่นคำขอสอบโครงงานพิเศษ 2"
+                  />
+                )}
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+
+        <Card title="ลำดับขั้นตอนสำคัญ">
+          <Timeline mode="left" items={timelineItems} />
+        </Card>
+
+        <Card title="บันทึกการพบอาจารย์ (Phase 2)">
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Alert
+              type={meetingRequirement.satisfied ? 'success' : 'warning'}
+              showIcon
+              message={meetingRequirement.satisfied ? 'บันทึกการพบครบตามเกณฑ์แล้ว' : 'ยังไม่ครบเกณฑ์บันทึกการพบ'}
+              description={(
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Text>
+                    ได้รับอนุมัติ {meetingRequirement.totalApproved}/{meetingRequirement.required} ครั้ง
+                  </Text>
+                  {lastApprovedMeeting && (
+                    <Text type="secondary">ครั้งล่าสุดเมื่อ {lastApprovedMeeting}</Text>
+                  )}
+                </Space>
               )}
             />
-          ) : (
-            <Alert type="info" showIcon message="ยังไม่มีการบันทึกการพบที่ได้รับอนุมัติ" />
-          )}
-          <Space wrap>
-            <Button icon={<TeamOutlined />} onClick={handleOpenMeetingLogbook}>
-              เปิด Meeting Logbook
+            {meetingBreakdown.length > 0 ? (
+              <List
+                size="small"
+                dataSource={meetingBreakdown}
+                renderItem={(item) => (
+                  <List.Item key={item.studentId || item.studentCode}>
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Space size={8} wrap>
+                        <Text strong>{item.name}</Text>
+                        {item.studentCode && <Tag color="geekblue">{item.studentCode}</Tag>}
+                        {leaderMember && Number(item.studentId) === Number(leaderMember.studentId) && (
+                          <Tag color="blue">หัวหน้าโครงงาน</Tag>
+                        )}
+                      </Space>
+                      <Space size={8} wrap>
+                        <Tag color="green">อนุมัติแล้ว {item.approvedLogs}</Tag>
+                        <Tag color="cyan">เข้าร่วม {item.attendedMeetings}</Tag>
+                      </Space>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Alert type="info" showIcon message="ยังไม่มีการบันทึกการพบที่ได้รับอนุมัติ" />
+            )}
+            <Space wrap>
+              <Button icon={<TeamOutlined />} onClick={handleOpenMeetingLogbook}>
+                เปิด Meeting Logbook
+              </Button>
+            </Space>
+          </Space>
+        </Card>
+
+        <Card title="สถานะคำขอทดสอบระบบ 30 วัน">
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            {!systemTestSummary ? (
+              <>
+                <Alert
+                  type="info"
+                  showIcon
+                  message="ยังไม่ยื่นคำขอทดสอบระบบ"
+                  description="เมื่อพร้อมทดลองใช้งานจริง สามารถยื่นคำขอผ่านปุ่มด้านล่าง"
+                />
+                <Button type="primary" icon={<LinkOutlined />} onClick={() => navigate('/project/phase2/system-test')}>
+                  เปิดหน้าคำขอทดสอบระบบ
+                </Button>
+              </>
+            ) : (
+              <>
+                <Space size={8} align="center" wrap>
+                  <Tag color={systemTestStatusMeta.color}>{systemTestStatusMeta.text}</Tag>
+                  <Text type="secondary">
+                    {systemTestSummary.timeline?.staffDecidedAt
+                      ? `อนุมัติล่าสุด ${formatDate(systemTestSummary.timeline.staffDecidedAt) || '—'}`
+                      : `ส่งคำขอเมื่อ ${formatDate(systemTestSummary.submittedAt) || '—'}`}
+                  </Text>
+                </Space>
+                <Descriptions bordered column={1} size="small">
+                  <Descriptions.Item label="วันเริ่มทดสอบ">
+                    {formatDateOnly(systemTestSummary.testStartDate) || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="ครบกำหนด 30 วัน">
+                    {formatDateOnly(systemTestSummary.testDueDate) || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="วันอนุมัติล่าสุด">
+                    {systemTestSummary.timeline?.staffDecidedAt
+                      ? formatDate(systemTestSummary.timeline.staffDecidedAt) || '—'
+                      : 'ยังไม่ถูกเจ้าหน้าที่ตรวจสอบ'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="หลักฐานการประเมิน">
+                    {systemTestSummary.evidenceSubmittedAt
+                      ? `อัปโหลดเมื่อ ${formatDate(systemTestSummary.evidenceSubmittedAt)}`
+                      : systemTestCanUpload
+                        ? 'ครบกำหนด สามารถอัปโหลดหลักฐานได้แล้ว'
+                        : 'ยังไม่ถึงกำหนดหรือยังไม่ได้อัปโหลด'}
+                  </Descriptions.Item>
+                  {systemTestRequestFile && (
+                    <Descriptions.Item label="ไฟล์คำขอที่แนบ">
+                      {systemTestRequestFile.name || systemTestRequestFile.url}
+                    </Descriptions.Item>
+                  )}
+                  {systemTestEvidenceFile && (
+                    <Descriptions.Item label="ไฟล์หลักฐานล่าสุด">
+                      {systemTestEvidenceFile.name || systemTestEvidenceFile.url}
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+                {systemTestCanUpload && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message="ครบกำหนด 30 วัน"
+                    description="กรุณาอัปโหลดไฟล์หลักฐานการประเมินบนหน้าคำขอทดสอบระบบ"
+                  />
+                )}
+                <Space wrap>
+                  <Button type="primary" icon={<LinkOutlined />} onClick={() => navigate('/project/phase2/system-test')}>
+                    เปิดหน้าคำขอ / อัปโหลดหลักฐาน
+                  </Button>
+                  {systemTestRequestFileUrl && (
+                    <Button icon={<FilePdfOutlined />} onClick={() => openInNewTab(systemTestRequestFileUrl)}>
+                      ดูไฟล์คำขอ
+                    </Button>
+                  )}
+                  {systemTestEvidenceFileUrl && (
+                    <Button icon={<FilePdfOutlined />} onClick={() => openInNewTab(systemTestEvidenceFileUrl)}>
+                      ดูหลักฐานประเมิน
+                    </Button>
+                  )}
+                </Space>
+              </>
+            )}
+          </Space>
+        </Card>
+
+        <Card title="คำขอสอบโครงงานพิเศษ 2 (คพ.03)">
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Space size={8} align="center" wrap>
+              <Tag color={thesisStatusMeta.color}>{thesisStatusMeta.text}</Tag>
+              {thesisRequest?.submittedAt && (
+                <Text type="secondary">ยื่นล่าสุด {formatDate(thesisRequest.submittedAt) || '—'}</Text>
+              )}
+            </Space>
+
+            <Descriptions bordered size="small" column={1}>
+              <Descriptions.Item label="บันทึกการพบอาจารย์ที่ได้รับอนุมัติ">
+                {`${meetingRequirement.totalApproved}/${meetingRequirement.required}`} ครั้ง
+              </Descriptions.Item>
+              <Descriptions.Item label="สถานะคำขอทดสอบระบบ">
+                {systemTestSummary
+                  ? `${systemTestStatusMeta.text}${systemTestSummary.evidenceSubmittedAt ? ' (อัปโหลดหลักฐานแล้ว)' : ''}`
+                  : 'ยังไม่ยื่นคำขอ'}
+              </Descriptions.Item>
+              <Descriptions.Item label="ครบกำหนด 30 วัน">
+                {systemTestDueDay ? formatDateOnly(systemTestDueDay) : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="สถานะล่าสุด">
+                {thesisRequest
+                  ? formatDate(thesisRequest.updatedAt) || '—'
+                  : 'ยังไม่ยื่นคำขอ'}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {thesisBlockingReasons.length > 0 ? (
+              <Alert
+                type="warning"
+                showIcon
+                message="ยังไม่พร้อมยื่นคำขอสอบ"
+                description={(
+                  <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                    {thesisBlockingReasons.map((reason, index) => (
+                      <li key={`thesis-block-${index}`}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+              />
+            ) : (
+              <Alert
+                type="success"
+                showIcon
+                message="พร้อมยื่นคำขอสอบ คพ.03 แล้ว"
+                description="ตรวจสอบข้อมูลให้ครบถ้วนก่อนกดปุ่มเพื่อไปยังหน้าคำขอ"
+              />
+            )}
+
+            <Button type="primary" onClick={() => navigate('/project/phase2/thesis-defense')}>
+              เปิดหน้าคำขอสอบ คพ.03
             </Button>
           </Space>
-        </Space>
-      </Card>
-
-      <Card title="สถานะคำขอทดสอบระบบ 30 วัน">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          {!systemTestSummary ? (
-            <>
-              <Alert
-                type="info"
-                showIcon
-                message="ยังไม่ยื่นคำขอทดสอบระบบ"
-                description="เมื่อพร้อมทดลองใช้งานจริง สามารถยื่นคำขอผ่านปุ่มด้านล่าง"
-              />
-              <Button type="primary" icon={<LinkOutlined />} onClick={() => navigate('/project/phase2/system-test')}>
-                เปิดหน้าคำขอทดสอบระบบ
-              </Button>
-            </>
-          ) : (
-            <>
-              <Space size={8} align="center" wrap>
-                <Tag color={systemTestStatusMeta.color}>{systemTestStatusMeta.text}</Tag>
-                <Text type="secondary">
-                  {systemTestSummary.timeline?.staffDecidedAt
-                    ? `อนุมัติล่าสุด ${formatDate(systemTestSummary.timeline.staffDecidedAt) || '—'}`
-                    : `ส่งคำขอเมื่อ ${formatDate(systemTestSummary.submittedAt) || '—'}`}
-                </Text>
-              </Space>
-              <Descriptions bordered column={1} size="small">
-                <Descriptions.Item label="วันเริ่มทดสอบ">
-                  {formatDateOnly(systemTestSummary.testStartDate) || '—'}
-                </Descriptions.Item>
-                <Descriptions.Item label="ครบกำหนด 30 วัน">
-                  {formatDateOnly(systemTestSummary.testDueDate) || '—'}
-                </Descriptions.Item>
-                <Descriptions.Item label="วันอนุมัติล่าสุด">
-                  {systemTestSummary.timeline?.staffDecidedAt
-                    ? formatDate(systemTestSummary.timeline.staffDecidedAt) || '—'
-                    : 'ยังไม่ถูกเจ้าหน้าที่ตรวจสอบ'}
-                </Descriptions.Item>
-                <Descriptions.Item label="หลักฐานการประเมิน">
-                  {systemTestSummary.evidenceSubmittedAt
-                    ? `อัปโหลดเมื่อ ${formatDate(systemTestSummary.evidenceSubmittedAt)}`
-                    : systemTestCanUpload
-                      ? 'ครบกำหนด สามารถอัปโหลดหลักฐานได้แล้ว'
-                      : 'ยังไม่ถึงกำหนดหรือยังไม่ได้อัปโหลด'}
-                </Descriptions.Item>
-                {systemTestRequestFile && (
-                  <Descriptions.Item label="ไฟล์คำขอที่แนบ">
-                    {systemTestRequestFile.name || systemTestRequestFile.url}
-                  </Descriptions.Item>
-                )}
-                {systemTestEvidenceFile && (
-                  <Descriptions.Item label="ไฟล์หลักฐานล่าสุด">
-                    {systemTestEvidenceFile.name || systemTestEvidenceFile.url}
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
-              {systemTestCanUpload && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  message="ครบกำหนด 30 วัน"
-                  description="กรุณาอัปโหลดไฟล์หลักฐานการประเมินบนหน้าคำขอทดสอบระบบ"
-                />
-              )}
-              <Space wrap>
-                <Button type="primary" icon={<LinkOutlined />} onClick={() => navigate('/project/phase2/system-test')}>
-                  เปิดหน้าคำขอ / อัปโหลดหลักฐาน
-                </Button>
-                {systemTestRequestFileUrl && (
-                  <Button icon={<FilePdfOutlined />} onClick={() => openInNewTab(systemTestRequestFileUrl)}>
-                    ดูไฟล์คำขอ
-                  </Button>
-                )}
-                {systemTestEvidenceFileUrl && (
-                  <Button icon={<FilePdfOutlined />} onClick={() => openInNewTab(systemTestEvidenceFileUrl)}>
-                    ดูหลักฐานประเมิน
-                  </Button>
-                )}
-              </Space>
-            </>
-          )}
-        </Space>
-      </Card>
-
-      <Card title="คำขอสอบโครงงานพิเศษ 2 (คพ.03)">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Space size={8} align="center" wrap>
-            <Tag color={thesisStatusMeta.color}>{thesisStatusMeta.text}</Tag>
-            {thesisRequest?.submittedAt && (
-              <Text type="secondary">ยื่นล่าสุด {formatDate(thesisRequest.submittedAt) || '—'}</Text>
-            )}
-          </Space>
-
-          <Descriptions bordered size="small" column={1}>
-            <Descriptions.Item label="บันทึกการพบอาจารย์ที่ได้รับอนุมัติ">
-              {`${meetingRequirement.totalApproved}/${meetingRequirement.required}`} ครั้ง
-            </Descriptions.Item>
-            <Descriptions.Item label="สถานะคำขอทดสอบระบบ">
-              {systemTestSummary
-                ? `${systemTestStatusMeta.text}${systemTestSummary.evidenceSubmittedAt ? ' (อัปโหลดหลักฐานแล้ว)' : ''}`
-                : 'ยังไม่ยื่นคำขอ'}
-            </Descriptions.Item>
-            <Descriptions.Item label="ครบกำหนด 30 วัน">
-              {systemTestDueDay ? formatDateOnly(systemTestDueDay) : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label="สถานะล่าสุด">
-              {thesisRequest
-                ? formatDate(thesisRequest.updatedAt) || '—'
-                : 'ยังไม่ยื่นคำขอ'}
-            </Descriptions.Item>
-          </Descriptions>
-
-          {thesisBlockingReasons.length > 0 ? (
-            <Alert
-              type="warning"
-              showIcon
-              message="ยังไม่พร้อมยื่นคำขอสอบ"
-              description={(
-                <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-                  {thesisBlockingReasons.map((reason, index) => (
-                    <li key={`thesis-block-${index}`}>{reason}</li>
-                  ))}
-                </ul>
-              )}
-            />
-          ) : (
-            <Alert
-              type="success"
-              showIcon
-              message="พร้อมยื่นคำขอสอบ คพ.03 แล้ว"
-              description="ตรวจสอบข้อมูลให้ครบถ้วนก่อนกดปุ่มเพื่อไปยังหน้าคำขอ"
-            />
-          )}
-
-          <Button type="primary" onClick={() => navigate('/project/phase2/thesis-defense')}>
-            เปิดหน้าคำขอสอบ คพ.03
-          </Button>
-        </Space>
-      </Card>
-
-      <Card title="ทรัพยากรแนะนำ">
-        <List
-          dataSource={resourceLinks}
-          renderItem={(item) => (
-            <List.Item key={item.key}>
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <Text strong>{item.title}</Text>
-                <Text type="secondary">{item.description}</Text>
-                <Space wrap>
-                  {item.actions.map((action) => (
-                    <Button
-                      key={action.key}
-                      type={action.primary ? 'primary' : 'default'}
-                      icon={action.icon}
-                      onClick={action.onClick}
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
-                </Space>
-              </Space>
-            </List.Item>
-          )}
-        />
-      </Card>
-
-      {thesisRequest && (
-        <Card title="สรุปสถานะคำขอสอบโครงงานพิเศษ 2 (คพ.03)">
-          <Space direction="vertical" size={8} style={{ width: '100%' }}>
-            <Tag color={thesisStatusMeta.color}>{thesisStatusMeta.text}</Tag>
-            {thesisRequest.defenseLocation && (
-              <Text type="secondary">สถานที่สอบ: {thesisRequest.defenseLocation}</Text>
-            )}
-            {thesisRequest.defenseNote && (
-              <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>หมายเหตุ: {thesisRequest.defenseNote}</Text>
-            )}
-          </Space>
-          <Divider />
-          <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            ระบบจะอัปเดตสถานะคำขอและวันสอบโดยอัตโนมัติเมื่อเจ้าหน้าที่บันทึกข้อมูล
-          </Paragraph>
         </Card>
-      )}
-    </Space>
+
+        <Card title="ทรัพยากรแนะนำ">
+          <List
+            dataSource={resourceLinks}
+            renderItem={(item) => (
+              <List.Item key={item.key}>
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Text strong>{item.title}</Text>
+                  <Text type="secondary">{item.description}</Text>
+                  <Space wrap>
+                    {item.actions.map((action) => (
+                      <Button
+                        key={action.key}
+                        type={action.primary ? 'primary' : 'default'}
+                        icon={action.icon}
+                        onClick={action.onClick}
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                  </Space>
+                </Space>
+              </List.Item>
+            )}
+          />
+        </Card>
+
+        {thesisRequest && (
+          <Card title="สรุปสถานะคำขอสอบโครงงานพิเศษ 2 (คพ.03)">
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Tag color={thesisStatusMeta.color}>{thesisStatusMeta.text}</Tag>
+              {thesisRequest.defenseLocation && (
+                <Text type="secondary">สถานที่สอบ: {thesisRequest.defenseLocation}</Text>
+              )}
+              {thesisRequest.defenseNote && (
+                <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>หมายเหตุ: {thesisRequest.defenseNote}</Text>
+              )}
+            </Space>
+            <Divider />
+            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+              ระบบจะอัปเดตสถานะคำขอและวันสอบโดยอัตโนมัติเมื่อเจ้าหน้าที่บันทึกข้อมูล
+            </Paragraph>
+          </Card>
+        )}
+      </Space>
+    </div>
   );
 };
 

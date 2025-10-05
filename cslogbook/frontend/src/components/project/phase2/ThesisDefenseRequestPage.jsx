@@ -18,6 +18,8 @@ import {
   message
 } from 'antd';
 import dayjs from 'dayjs';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import useStudentProject from '../../../hooks/useStudentProject';
 import projectService from '../../../services/projectService';
 
@@ -44,11 +46,20 @@ const ADVISOR_STATUS_META = {
 const DEFAULT_REQUIRED_LOGS = 4;
 
 const ThesisDefenseRequestPage = () => {
+  const navigate = useNavigate();
   const { activeProject, loadProjects, currentStudentId } = useStudentProject({ autoLoad: true });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
+  const containerStyle = useMemo(() => ({
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24
+  }), []);
 
   const leaderMember = useMemo(() => {
     if (!activeProject) return null;
@@ -64,6 +75,10 @@ const ThesisDefenseRequestPage = () => {
   }, [activeProject, currentStudentId, leaderMember]);
 
   const existingPayload = useMemo(() => requestRecord?.formPayload || null, [requestRecord]);
+
+  const handleBackToPhase1 = useCallback(() => {
+    navigate('/project/phase1');
+  }, [navigate]);
 
   const buildStudentContactList = useCallback((project, payload) => {
     const snapshot = payload?.students || [];
@@ -285,8 +300,15 @@ const ThesisDefenseRequestPage = () => {
   const hasSubmitted = !!requestRecord;
 
   return (
-    <Space direction="vertical" style={{ width: '100%', paddingBottom: 32 }} size={24}>
-      <Card title={<Title level={4} style={{ margin: 0 }}>คำขอสอบโครงงานพิเศษ 2 (คพ.03)</Title>}>
+    <div style={containerStyle}>
+      <Card
+        title={<Title level={4} style={{ margin: 0 }}>คำขอสอบโครงงานพิเศษ 2 (คพ.03)</Title>}
+        extra={(
+          <Button icon={<ArrowLeftOutlined />} onClick={handleBackToPhase1}>
+            ย้อนกลับ
+          </Button>
+        )}
+      >
         <Paragraph type="secondary" style={{ marginBottom: 16 }}>
           แบบฟอร์มนี้ใช้ยื่นคำขอสอบปริญญานิพนธ์ (โครงงานพิเศษ 2) หลังจากครบเงื่อนไขการทดสอบระบบและการพบอาจารย์ตามเกณฑ์
         </Paragraph>
@@ -408,7 +430,7 @@ const ThesisDefenseRequestPage = () => {
           </>
         )}
       </Card>
-    </Space>
+    </div>
   );
 };
 
