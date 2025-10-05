@@ -7,7 +7,6 @@ import {
   Descriptions,
   Divider,
   Input,
-  List,
   message,
   Modal,
   Row,
@@ -24,6 +23,7 @@ import {
   CheckCircleOutlined,
   DownloadOutlined,
   EyeOutlined,
+  FilePdfOutlined,
   ReloadOutlined,
   SearchOutlined
 } from '@ant-design/icons';
@@ -32,6 +32,7 @@ import dayjs from '../../../../utils/dayjs';
 import { DATE_TIME_FORMAT } from '../../../../utils/constants';
 import projectService from '../../../../services/projectService';
 import { useAuth } from '../../../../contexts/AuthContext';
+import PDFViewerModal from '../../../PDFViewerModal';
 
 const { Text, Title } = Typography;
 
@@ -98,6 +99,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [evidencePreview, setEvidencePreview] = useState({ visible: false, url: '', title: '' });
 
   const isStaff = useMemo(() => {
     if (!userData) return false;
@@ -246,6 +248,24 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
     }
   }, [canExport, defenseType, filters]);
 
+  const handleOpenEvidence = useCallback((evidence, projectName) => {
+    if (!evidence || !evidence.url) {
+      message.warning('ไม่พบไฟล์หลักฐานสำหรับคำขอนี้');
+      return;
+    }
+    const targetName = (projectName && projectName.trim()) || evidence.name || 'หลักฐานการประเมิน';
+    // เปิด PDF หลักฐานใน modal เพื่อให้เจ้าหน้าที่ตรวจสอบได้ทันทีโดยไม่ต้องออกจากหน้า
+    setEvidencePreview({
+      visible: true,
+      url: evidence.url,
+      title: `หลักฐานการประเมิน - ${targetName}`
+    });
+  }, []);
+
+  const handleCloseEvidence = useCallback(() => {
+    setEvidencePreview({ visible: false, url: '', title: '' });
+  }, []);
+
   const summary = useMemo(() => {
     return items.reduce(
       (acc, item) => {
@@ -361,35 +381,11 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
     const meetingPhaseLabel = isThesis ? 'Phase 2' : 'Phase 1';
     const fallbackPhaseMetrics = isThesis ? projectMetricsPhase1 : projectMetricsPhase2;
     const fallbackPhaseLabel = isThesis ? 'Phase 1' : 'Phase 2';
-    const perStudentMap = new Map();
-    if (Array.isArray(meetingMetrics?.perStudent)) {
-      meetingMetrics.perStudent.forEach((entry) => {
-        if (!entry || entry.studentId === undefined || entry.studentId === null) return;
-        perStudentMap.set(Number(entry.studentId), {
-          approvedLogs: Number(entry.approvedLogs) || 0,
-          attendedMeetings: Number(entry.attendedMeetings) || 0
-        });
-      });
-    }
-
-    const members = Array.isArray(record.project?.members) ? record.project.members : [];
-    const memberItems = members.map((member, index) => ({
-      ...member,
-      __key: member.studentId || member.studentCode || `member-${index}`,
-      __metrics: perStudentMap.get(Number(member.studentId)) || { approvedLogs: 0, attendedMeetings: 0 }
-    }));
-    const leaderStudentId = members.find((member) => member.role === 'leader')?.studentId;
-
-    const contactList = Array.isArray(record.formPayload?.students) ? record.formPayload.students : [];
-    const contactItems = contactList.map((item, index) => ({
-      ...item,
-      __key: item.studentId || item.studentCode || item.email || item.phone || `contact-${index}`
-    }));
-
     const attachments = Array.isArray(record.formPayload?.additionalMaterials) ? record.formPayload.additionalMaterials : [];
     const requestDate = record.formPayload?.requestDate;
     const intendedDefenseDate = record.formPayload?.intendedDefenseDate;
     const additionalNotes = record.formPayload?.additionalNotes;
+    const projectNameForEvidence = record.project?.projectNameTh || record.project?.projectNameEn || record.project?.projectCode || '';
 
     const systemTestSnapshot = isThesis ? record.formPayload?.systemTestSnapshot || null : null;
     const systemTestMetaBase = systemTestSnapshot
@@ -432,28 +428,6 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                 )}
               </Space>
             </Card>
-            {contactItems.length > 0 && (
-              <Card size="small" title="ช่องทางติดต่อสมาชิกโครงงาน">
-                <List
-                  size="small"
-                  dataSource={contactItems}
-                  renderItem={(item) => (
-                    <List.Item key={item.__key}>
-                      <Space direction="vertical" size={2}>
-                        <Space size={8} wrap>
-                          <Text strong>{item.name || item.studentCode || 'สมาชิก'}</Text>
-                          {item.studentCode && <Tag color="geekblue">{item.studentCode}</Tag>}
-                        </Space>
-                        <Space size={12} wrap>
-                          <Text>โทร: {item.phone || '-'}</Text>
-                          <Text>อีเมล: {item.email || '-'}</Text>
-                        </Space>
-                      </Space>
-                    </List.Item>
-                  )}
-                />
-              </Card>
-            )}
           </Space>
         </Col>
         <Col xs={24} md={10}>
@@ -466,30 +440,6 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                     <Text>ต้องมีขั้นต่ำ: {meetingMetrics.requiredApprovedLogs || 0}</Text>
                     <Text>อนุมัติครั้งล่าสุด: {formatDateTime(meetingMetrics.lastApprovedLogAt)}</Text>
                   </Space>
-                  <Divider style={{ margin: '4px 0' }} />
-                  {memberItems.length > 0 ? (
-                    <List
-                      size="small"
-                      dataSource={memberItems}
-                      renderItem={(member) => (
-                        <List.Item key={member.__key}>
-                          <Space direction="vertical" size={2}>
-                            <Space size={8} wrap>
-                              <Text strong>{member.name || member.studentCode || 'สมาชิก'}</Text>
-                              {member.studentCode && <Tag color="geekblue">{member.studentCode}</Tag>}
-                              {Number(member.studentId) === Number(leaderStudentId) && <Tag color="blue">หัวหน้าโครงงาน</Tag>}
-                            </Space>
-                            <Space size={8} wrap>
-                              <Tag color="green">อนุมัติแล้ว {member.__metrics.approvedLogs}</Tag>
-                              <Tag color="cyan">เข้าร่วม {member.__metrics.attendedMeetings}</Tag>
-                            </Space>
-                          </Space>
-                        </List.Item>
-                      )}
-                    />
-                  ) : (
-                    <Alert type="info" showIcon message="ไม่พบข้อมูลสมาชิกโครงงาน" />
-                  )}
                 </Space>
               ) : (
                 <Alert type="info" message="ไม่พบข้อมูลบันทึกการพบ" showIcon />
@@ -524,13 +474,32 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                         {formatDateOnly(systemTestSnapshot.testDueDate)}
                       </Descriptions.Item>
                       <Descriptions.Item label="วันอนุมัติล่าสุด">
-                        {systemTestSnapshot.staffDecidedAt ? formatDateTime(systemTestSnapshot.staffDecidedAt) : '-'}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="หลักฐานการประเมิน">
-                        {systemTestSnapshot.evidenceSubmittedAt
-                          ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt)
-                          : 'ยังไม่อัปโหลด'}
-                      </Descriptions.Item>
+                          {systemTestSnapshot.staffDecidedAt ? formatDateTime(systemTestSnapshot.staffDecidedAt) : '-'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="อัปโหลดหลักฐาน">
+                          {systemTestSnapshot.evidenceSubmittedAt
+                            ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt)
+                            : 'ยังไม่อัปโหลด'}
+                        </Descriptions.Item>
+                        {systemTestSnapshot.evidence?.url && (
+                          <Descriptions.Item label="ไฟล์หลักฐาน">
+                            <Space size={8} wrap>
+                              <Button
+                                size="small"
+                                icon={<FilePdfOutlined />}
+                                onClick={() => handleOpenEvidence(systemTestSnapshot.evidence, projectNameForEvidence)}
+                              >
+                                เปิดในระบบ
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={() => window.open(systemTestSnapshot.evidence.url, '_blank', 'noopener,noreferrer')}
+                              >
+                                เปิดแท็บใหม่
+                              </Button>
+                            </Space>
+                          </Descriptions.Item>
+                        )}
                     </Descriptions>
                   </Space>
                 ) : (
@@ -542,7 +511,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
         </Col>
       </Row>
     );
-  }, [defenseType, formatDateOnly, formatDateTime]);
+  }, [defenseType, formatDateOnly, formatDateTime, handleOpenEvidence]);
 
   return (
     <div style={containerStyle}>
@@ -728,6 +697,12 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           />
         </Space>
       </Modal>
+      <PDFViewerModal
+        visible={evidencePreview.visible}
+        pdfUrl={evidencePreview.url}
+        title={evidencePreview.title}
+        onClose={handleCloseEvidence}
+      />
     </div>
   );
 };

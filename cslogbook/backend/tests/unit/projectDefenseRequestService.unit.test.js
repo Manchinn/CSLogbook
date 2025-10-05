@@ -81,6 +81,9 @@ async function seedSystemTestRequest(options = {}) {
     includeEvidence = true
   } = options;
 
+  const evidencePath = includeEvidence ? 'system-test/evidence/sample.pdf' : null;
+  const evidenceName = includeEvidence ? 'sample.pdf' : null;
+
   return ProjectTestRequest.create({
     projectId: project.projectId,
     submittedByStudentId: leader.studentId,
@@ -89,6 +92,8 @@ async function seedSystemTestRequest(options = {}) {
     testStartDate: daysAgo(submittedDaysAgo),
     testDueDate: daysAgo(dueDaysAgo),
     staffDecidedAt: status === 'staff_approved' ? daysAgo(dueDaysAgo + 1) : null,
+    evidenceFilePath: evidencePath,
+    evidenceFileName: evidenceName,
     evidenceSubmittedAt: includeEvidence ? daysAgo(Math.max(dueDaysAgo - 1, 0)) : null
   });
 }
@@ -199,7 +204,9 @@ beforeAll(async () => {
     requestId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'request_id' },
     projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' },
     submittedByStudentId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'submitted_by_student_id' },
-    status: { type: DataTypesCtor.STRING, allowNull: false },
+  status: { type: DataTypesCtor.STRING, allowNull: false },
+  evidenceFilePath: { type: DataTypesCtor.STRING, allowNull: true, field: 'evidence_file_path' },
+  evidenceFileName: { type: DataTypesCtor.STRING, allowNull: true, field: 'evidence_file_name' },
     submittedAt: { type: DataTypesCtor.DATE, allowNull: false, field: 'submitted_at' },
     testStartDate: { type: DataTypesCtor.DATE, allowNull: false, field: 'test_start_date' },
     testDueDate: { type: DataTypesCtor.DATE, allowNull: false, field: 'test_due_date' },
@@ -463,7 +470,14 @@ describe('submitThesisRequest', () => {
     expect(record.defenseType).toBe('THESIS');
     expect(record.status).toBe('advisor_in_review');
     expect(record.formPayload.intendedDefenseDate).toBeNull();
-    expect(record.formPayload.systemTestSnapshot).toEqual(expect.objectContaining({ requestId: testRequest.requestId }));
+    expect(record.formPayload.systemTestSnapshot).toEqual(expect.objectContaining({
+      requestId: testRequest.requestId,
+      evidence: {
+        path: 'system-test/evidence/sample.pdf',
+        url: '/uploads/system-test/evidence/sample.pdf',
+        name: 'sample.pdf'
+      }
+    }));
   });
 
   test('ปฏิเสธเมื่อยังไม่ผ่านการสอบโครงงานพิเศษ 1', async () => {

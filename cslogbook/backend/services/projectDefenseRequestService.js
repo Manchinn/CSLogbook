@@ -1,3 +1,4 @@
+const path = require('path');
 const { sequelize } = require('../config/database');
 const {
   ProjectDefenseRequest,
@@ -46,6 +47,22 @@ const STAFF_STATUS_LABELS_TH = {
   staff_verified: 'ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)',
   scheduled: 'นัดสอบแล้ว (ระบบเดิม)',
   completed: 'บันทึกผลสอบแล้ว'
+};
+
+const PUBLIC_UPLOAD_BASE = (process.env.PUBLIC_UPLOAD_BASE_URL || '/uploads').replace(/\/?$/, '');
+
+const buildFileInfo = (relativePath, fileName) => {
+  if (!relativePath) {
+    return null;
+  }
+  // แปลง path ในระบบเป็น URL ที่ client เข้าถึงได้ พร้อมบันทึกชื่อไฟล์เพื่อให้ UI แสดงผลครบถ้วน
+  const normalized = String(relativePath).replace(/\\/g, '/').replace(/^\/+/, '');
+  const url = `${PUBLIC_UPLOAD_BASE}/${normalized}`;
+  return {
+    path: normalized,
+    url,
+    name: fileName || path.basename(normalized)
+  };
 };
 
 const formatThaiDateTime = (value) => {
@@ -403,7 +420,8 @@ class ProjectDefenseRequestService {
             testStartDate: latestSystemTest.testStartDate,
             testDueDate: latestSystemTest.testDueDate,
             staffDecidedAt: latestSystemTest.staffDecidedAt,
-            evidenceSubmittedAt: latestSystemTest.evidenceSubmittedAt
+            evidenceSubmittedAt: latestSystemTest.evidenceSubmittedAt,
+            evidence: buildFileInfo(latestSystemTest.evidenceFilePath, latestSystemTest.evidenceFileName)
           }
         : null
     };
@@ -675,6 +693,47 @@ class ProjectDefenseRequestService {
       throw error;
     }
   }
+  
+  async attachSystemTestEvidence(serializedRequest, { transaction } = {}) {
+    if (!serializedRequest || serializedRequest.defenseType !== DEFENSE_TYPE_THESIS) {
+      return serializedRequest;
+    }
+    const snapshot = serializedRequest.formPayload?.systemTestSnapshot;
+    if (!snapshot || (snapshot.evidence && snapshot.evidence.url)) {
+      return serializedRequest;
+    }
+
+    if (!serializedRequest.projectId) {
+      return serializedRequest;
+    }
+
+    const latestSystemTest = await ProjectTestRequest.findOne({
+      where: { projectId: serializedRequest.projectId },
+      order: [['submitted_at', 'DESC']],
+      transaction
+    });
+
+    if (!latestSystemTest) {
+      return serializedRequest;
+    }
+
+    const evidenceInfo = buildFileInfo(latestSystemTest.evidenceFilePath, latestSystemTest.evidenceFileName);
+    if (!evidenceInfo) {
+      return serializedRequest;
+    }
+
+    serializedRequest.formPayload = serializedRequest.formPayload || {};
+    serializedRequest.formPayload.systemTestSnapshot = {
+      ...snapshot,
+      evidence: evidenceInfo,
+      evidenceSubmittedAt: snapshot.evidenceSubmittedAt || latestSystemTest.evidenceSubmittedAt || null,
+      staffDecidedAt: snapshot.staffDecidedAt || latestSystemTest.staffDecidedAt || null,
+      testStartDate: snapshot.testStartDate || latestSystemTest.testStartDate || null,
+      testDueDate: snapshot.testDueDate || latestSystemTest.testDueDate || null
+    };
+
+    return serializedRequest;
+  }
 
   async getDefenseRequest(projectId, defenseType, { withMetrics = false, transaction } = {}) {
     const request = await ProjectDefenseRequest.findOne({
@@ -693,6 +752,7 @@ class ProjectDefenseRequestService {
     }
 
     const serialized = this.serializeRequest(request);
+    await this.attachSystemTestEvidence(serialized, { transaction });
     if (withMetrics) {
       await this.attachMeetingMetrics(serialized, { transaction, defenseType });
     }
