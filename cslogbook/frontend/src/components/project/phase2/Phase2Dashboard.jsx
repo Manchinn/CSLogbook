@@ -5,7 +5,8 @@ import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import projectService from '../../../services/projectService';
 import dayjs from '../../../utils/dayjs';
-import { useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { phase2CardSteps } from './phase2CardSteps';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -31,6 +32,11 @@ const SYSTEM_TEST_STATUS_META = {
   staff_approved: { color: 'green', text: 'อนุมัติครบ (รอหลักฐาน)' },
   default: { color: 'default', text: 'ยังไม่ยื่นคำขอ' }
 };
+
+const phase2StepsLookup = phase2CardSteps.reduce((acc, step) => {
+  acc[step.key] = step;
+  return acc;
+}, {});
 
 const Phase2Dashboard = () => {
   const navigate = useNavigate();
@@ -99,6 +105,25 @@ const Phase2Dashboard = () => {
   }, [activeProject]);
 
   const phase2Unlocked = useMemo(() => phase2GateReasons.length === 0, [phase2GateReasons]);
+
+  const location = useLocation();
+
+  const activeSub = useMemo(() => {
+    const match = location.pathname.match(/\/project\/phase2\/([^/]+)/);
+    if (!match) return null;
+    return match[1];
+  }, [location.pathname]);
+
+  const activeStepMeta = activeSub ? phase2StepsLookup[activeSub] : null;
+
+  const subContainerStyle = useMemo(() => ({
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24
+  }), []);
 
   const thesisRequest = useMemo(() => {
     if (!Array.isArray(activeProject?.defenseRequests)) return null;
@@ -446,6 +471,33 @@ const Phase2Dashboard = () => {
           </Paragraph>
         </Card>
       </Space>
+    );
+  }
+
+  if (activeSub) {
+    const headerTitle = (
+      <Space align="center">
+        {activeStepMeta?.icon}
+        <span>{activeStepMeta?.title || 'รายละเอียดขั้นตอนโครงงานพิเศษ 2'}</span>
+      </Space>
+    );
+
+    return (
+      <div style={subContainerStyle}>
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Card
+            title={headerTitle}
+            extra={<Button onClick={() => navigate('/project/phase2')}>ย้อนกลับ</Button>}
+          >
+            <Paragraph style={{ marginBottom: 0 }}>
+              {activeStepMeta?.desc || 'หน้ารายละเอียดขั้นตอนโครงงานพิเศษ 2'}
+            </Paragraph>
+          </Card>
+          <Card bodyStyle={{ padding: 16 }}>
+            <Outlet />
+          </Card>
+        </Space>
+      </div>
     );
   }
 
