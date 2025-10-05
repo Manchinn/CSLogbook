@@ -18,6 +18,27 @@ import dayjs from "../../utils/dayjs";
 import DeadlineBadge from "../deadlines/DeadlineBadge";
 import { computeDeadlineStatus } from "../../utils/deadlineUtils";
 
+const SUBMISSION_STATUS_META = Object.freeze({
+  pending: { label: "รอพิจารณา", color: "gold" },
+  reviewing: { label: "กำลังตรวจสอบ", color: "gold" },
+  in_review: { label: "กำลังตรวจสอบ", color: "gold" },
+  approved: { label: "อนุมัติแล้ว", color: "green" },
+  completed: { label: "เสร็จสิ้น", color: "green" },
+  accepted: { label: "ยอมรับแล้ว", color: "green" },
+  supervisor_evaluated: { label: "อาจารย์ประเมินแล้ว", color: "blue" },
+  acceptance_approved: { label: "เจ้าหน้าที่อนุมัติ", color: "cyan" },
+  referral_ready: { label: "พร้อมออกหนังสือ", color: "purple" },
+  referral_downloaded: { label: "ดาวน์โหลดแล้ว", color: "geekblue" },
+  rejected: { label: "ไม่อนุมัติ", color: "red" },
+  rescinded: { label: "ยกเลิก", color: "default" }
+});
+
+function resolveSubmissionMeta(status) {
+  if (!status) return null;
+  const normalized = String(status).toLowerCase();
+  return SUBMISSION_STATUS_META[normalized] || null;
+}
+
 export default function StudentDeadlineCalendar({ audience = 'student' }) {
   const currentYear = dayjs().year();
   const [academicYear, setAcademicYear] = useState(currentYear);
@@ -75,6 +96,8 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
     });
     return sorted.slice(0, 4).map(item => {
       const label = item.isWindow ? (item.allDay ? `${item.name || item.title} (ช่วง)` : `${item.name || item.title} (ช่วงเวลา)`) : (item.name || item.title);
+      const submissionMeta = resolveSubmissionMeta(item.submission?.status);
+      const submittedAtText = item.submittedAtLocal ? item.submittedAtLocal.format("D MMM BBBB เวลา HH:mm น.") : null;
       // กรณี ANNOUNCEMENT ไม่ต้องคำนวณสถานะส่ง เรียก badge สีคงที่
       if (item.deadlineType === 'ANNOUNCEMENT') {
         const tooltipDetail = item.isWindow 
@@ -93,9 +116,19 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
       const st = computeDeadlineStatus(baseLocal, item.submittedAtLocal, { isSubmitted:item.isSubmitted, isLate:item.isLate, locked:item.locked });
       const colorMap = { pending:'blue', dueSoon:'gold', overdue:'red', submitted:'green', late:'orange', locked:'purple' };
       const dotStatus = st.code === 'overdue' ? 'error' : (st.code === 'dueSoon' ? 'warning' : (st.code === 'locked' ? 'default' : 'processing'));
+      const statusSuffixParts = [];
+      if (item.isSubmitted) {
+        statusSuffixParts.push(submissionMeta?.label || 'ส่งแล้ว');
+        if (submittedAtText) statusSuffixParts.push(`ส่งเมื่อ ${submittedAtText}`);
+      } else if (item.locked) {
+        statusSuffixParts.push(st.label);
+      } else if (st.label) {
+        statusSuffixParts.push(st.label);
+      }
+      const statusSuffix = statusSuffixParts.length ? ` · ${statusSuffixParts.join(' · ')}` : '';
       const tooltipDetail = item.isWindow 
-        ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''} · ${st.label}`
-        : `${item.name || item.title} · ${baseLocal?baseLocal.format('D MMM BBBB เวลา HH:mm น.'):''} · ${st.label}`;
+        ? `${item.name || item.title} · ${item.windowStartDate} → ${item.windowEndDate}${item.allDay?' (ทั้งวัน)':''}${statusSuffix}`
+        : `${item.name || item.title} · ${baseLocal?baseLocal.format('D MMM BBBB เวลา HH:mm น.'):''}${statusSuffix}`;
       return (
         <div key={item.id} style={{ marginBottom:2 }}>
           <Tooltip title={tooltipDetail}>
@@ -231,6 +264,10 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
                   txt: d.deadlineType,
                   color: "default",
                 };
+                const submissionMeta = resolveSubmissionMeta(d.submission?.status);
+                const submittedAtDisplay = d.submittedAtLocal
+                  ? d.submittedAtLocal.format("D MMM BBBB เวลา HH:mm น.")
+                  : null;
                 return (
                   <div
                     key={d.id}
@@ -260,13 +297,20 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
                       </strong>
                       <Tag color={t.color}>{t.txt}</Tag>
                       {audience !== 'teacher' && d.deadlineType !== 'ANNOUNCEMENT' && (
-                        <DeadlineBadge
-                          deadline={d.deadline_at_local || d.effective_deadline_local}
-                          isSubmitted={d.isSubmitted}
-                          isLate={d.isLate}
-                          submittedAt={d.submittedAtLocal}
-                          locked={d.locked}
-                        />
+                        <>
+                          <DeadlineBadge
+                            deadline={d.deadline_at_local || d.effective_deadline_local}
+                            isSubmitted={d.isSubmitted}
+                            isLate={d.isLate}
+                            submittedAt={d.submittedAtLocal}
+                            locked={d.locked}
+                          />
+                          {submissionMeta && (
+                            <Tag color={submissionMeta.color} bordered={false}>
+                              {submissionMeta.label}
+                            </Tag>
+                          )}
+                        </>
                       )}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.8 }}>
@@ -283,6 +327,11 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
                           : (d.effective_deadline_local ? d.effective_deadline_local.format("D MMM BBBB เวลา HH:mm น.") : "—"))
                       )}
                     </div>
+                    {submittedAtDisplay && (
+                      <div style={{ fontSize: 12, color: "#389e0d" }}>
+                        ส่งเมื่อ {submittedAtDisplay}
+                      </div>
+                    )}
                     {d.description && (
                       <div style={{ fontSize: 12 }}>{d.description}</div>
                     )}

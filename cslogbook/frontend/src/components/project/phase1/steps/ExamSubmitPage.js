@@ -3,6 +3,9 @@ import { Alert, Button, Card, Col, DatePicker, Descriptions, Divider, Form, Inpu
 import dayjs from 'dayjs';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
+import useProjectDeadlines from '../../../../hooks/useProjectDeadlines';
+import DeadlineBadge from '../../../deadlines/DeadlineBadge';
+import { computeDeadlineStatus } from '../../../../utils/deadlineUtils';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -67,7 +70,7 @@ const formToPayload = (project, values) => {
   }));
 
   return {
-    requestDate: values.requestDate ? dayjs(values.requestDate).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+    requestDate: dayjs().format('YYYY-MM-DD'),
     advisorName: values.advisorName?.trim() || '',
     coAdvisorName: values.coAdvisorName?.trim() || '',
     additionalNotes: values.additionalNotes?.trim() || '',
@@ -82,12 +85,71 @@ const formToPayload = (project, values) => {
 
 const ExamSubmitPage = () => {
   const { activeProject, advisors, advisorLoading, loadProjects, currentStudentId } = useStudentProject({ autoLoad: true });
+  const projectAcademicYear = useMemo(() => {
+    if (!activeProject?.academicYear) return undefined;
+    const yearNum = Number(activeProject.academicYear);
+    if (Number.isNaN(yearNum)) return undefined;
+    return yearNum > 2500 ? yearNum - 543 : yearNum;
+  }, [activeProject?.academicYear]);
+  const {
+    deadlines: projectDeadlines,
+    upcoming: upcomingProjectDeadlines,
+    loading: projectDeadlineLoading
+  } = useProjectDeadlines({ academicYear: projectAcademicYear });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
   const formLocked = ['staff_verified', 'scheduled', 'completed'].includes(requestRecord?.status);
   const statusMeta = KP02_STATUS_META[requestRecord?.status] || KP02_STATUS_META.default;
+  const prioritizedDeadline = useMemo(() => {
+    const now = dayjs();
+    const inUpcoming = (upcomingProjectDeadlines || []).filter((deadline) => {
+      const related = String(deadline.relatedTo || '').toLowerCase();
+      return related.startsWith('project1');
+    });
+    if (inUpcoming.length > 0) {
+      return inUpcoming[0];
+    }
+    const futureFallback = (projectDeadlines || []).find((deadline) => {
+      const related = String(deadline.relatedTo || '').toLowerCase();
+      const due = deadline.effective_deadline_local || deadline.deadline_at_local;
+      return related.startsWith('project1') && due && due.isAfter(now);
+    });
+    if (futureFallback) return futureFallback;
+    return (upcomingProjectDeadlines || [])[0] || null;
+  }, [upcomingProjectDeadlines, projectDeadlines]);
+  const prioritizedDeadlineMoment = useMemo(() => {
+    if (!prioritizedDeadline) return null;
+    return prioritizedDeadline.effective_deadline_local || prioritizedDeadline.deadline_at_local || null;
+  }, [prioritizedDeadline]);
+  const prioritizedDeadlineStatus = useMemo(() => {
+    if (!prioritizedDeadlineMoment) return null;
+    return computeDeadlineStatus(prioritizedDeadlineMoment, prioritizedDeadline.submittedAtLocal, {
+      isLate: prioritizedDeadline.isLate,
+      isSubmitted: prioritizedDeadline.isSubmitted,
+      locked: prioritizedDeadline.locked
+    });
+  }, [prioritizedDeadline, prioritizedDeadlineMoment]);
+  const prioritizedDeadlineDisplay = useMemo(() => {
+    if (!prioritizedDeadline) return '—';
+    if (prioritizedDeadline.isWindow) {
+      const startSource = prioritizedDeadline.windowStartDate || prioritizedDeadline.windowStartAt || null;
+      const endSource = prioritizedDeadline.windowEndDate || prioritizedDeadline.windowEndAt || null;
+      const start = startSource ? dayjs(startSource) : null;
+      const end = endSource ? dayjs(endSource) : null;
+      const startText = start && start.isValid() ? start.format('D MMM BBBB') : '-';
+      const endText = end && end.isValid() ? end.format('D MMM BBBB') : '-';
+      const suffix = prioritizedDeadline.allDay ? ' (ทั้งวัน)' : '';
+      return `${startText} - ${endText}${suffix}`;
+    }
+    if (prioritizedDeadlineMoment && prioritizedDeadlineMoment.isValid()) {
+      return prioritizedDeadline.allDay
+        ? prioritizedDeadlineMoment.format('D MMM BBBB (ทั้งวัน)')
+        : prioritizedDeadlineMoment.format('D MMM BBBB เวลา HH:mm น.');
+    }
+    return prioritizedDeadline.deadline_th || '—';
+  }, [prioritizedDeadline, prioritizedDeadlineMoment]);
 
   const currentStudentCode = useMemo(() => {
     try {
@@ -235,6 +297,7 @@ const ExamSubmitPage = () => {
   }
 
   const disabledSubmission = !isLeader || ['completed', 'archived', 'failed'].includes(activeProject.status) || !meetingRequirement.satisfied;
+  const hasSubmitted = !!requestRecord;
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%', paddingBottom: 32 }}>
@@ -243,16 +306,38 @@ const ExamSubmitPage = () => {
           ฟอร์มนี้บันทึกข้อมูลจากแบบฟอร์มคพ.02 เพื่อแจ้งความพร้อมสอบโครงงานพิเศษ 1 — ข้อมูลที่กรอกจะถูกเก็บในระบบและใช้ติดตามสถานะขั้นตอนถัดไป
         </Paragraph>
 
-        {disabledSubmission && (
+        {!projectDeadlineLoading && prioritizedDeadline && (
           <Alert
-            type="warning"
+            type={prioritizedDeadline.deadlineType === 'ANNOUNCEMENT' ? 'info' : 'warning'}
             showIcon
             style={{ marginBottom: 16 }}
-            message="เฉพาะหัวหน้าโครงงานที่อยู่ในสถานะ in_progress เท่านั้นที่สามารถยื่นคำขอนี้ได้"
+            message={prioritizedDeadline.name || 'กำหนดการที่เกี่ยวข้อง'}
+            description={(
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text type="secondary">เส้นตาย: {prioritizedDeadlineDisplay}</Text>
+                {prioritizedDeadline.deadlineType !== 'ANNOUNCEMENT' && (
+                  <Space size={6} wrap>
+                    <DeadlineBadge
+                      deadline={prioritizedDeadlineMoment}
+                      isSubmitted={prioritizedDeadline.isSubmitted}
+                      isLate={prioritizedDeadline.isLate}
+                      submittedAt={prioritizedDeadline.submittedAtLocal}
+                      locked={prioritizedDeadline.locked}
+                    />
+                    {prioritizedDeadlineStatus && prioritizedDeadlineStatus.code !== 'none' && (
+                      <Tag color={prioritizedDeadlineStatus.color}>{prioritizedDeadlineStatus.label}</Tag>
+                    )}
+                  </Space>
+                )}
+                {prioritizedDeadline.description && (
+                  <Text type="secondary">{prioritizedDeadline.description}</Text>
+                )}
+              </Space>
+            )}
           />
         )}
 
-        {requestRecord && (
+        {hasSubmitted ? (
           <Alert
             type={statusMeta.alert || 'info'}
             showIcon
@@ -324,100 +409,111 @@ const ExamSubmitPage = () => {
               </Space>
             }
           />
-        )}
+        ) : (
+          <>
+            {disabledSubmission && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="เฉพาะหัวหน้าโครงงานที่อยู่ในสถานะ in_progress เท่านั้นที่สามารถยื่นคำขอนี้ได้"
+              />
+            )}
 
-        <Descriptions bordered size="small" column={1} style={{ marginBottom: 24 }}>
-          <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
-          <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.projectNameTh || '-'}</Descriptions.Item>
-          <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.projectNameEn || '-'}</Descriptions.Item>
-          <Descriptions.Item label="สถานะ">{activeProject.status}</Descriptions.Item>
-          <Descriptions.Item label="สมาชิก">
-            {(activeProject.members || []).map(member => (
-              <div key={member.studentId}>{member.name || member.studentCode} ({member.role})</div>
-            ))}
-          </Descriptions.Item>
-        </Descriptions>
+            <Descriptions bordered size="small" column={1} style={{ marginBottom: 24 }}>
+              <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.projectNameTh || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.projectNameEn || '-'}</Descriptions.Item>
+              <Descriptions.Item label="สถานะ">{activeProject.status}</Descriptions.Item>
+              <Descriptions.Item label="สมาชิก">
+                {(activeProject.members || []).map(member => (
+                  <div key={member.studentId}>{member.name || member.studentCode} ({member.role})</div>
+                ))}
+              </Descriptions.Item>
+            </Descriptions>
 
-        <Alert
-          type={meetingRequirement.satisfied ? 'info' : 'warning'}
-          showIcon
-          style={{ marginBottom: 16 }}
-          message={meetingRequirement.satisfied ? 'ผ่านเกณฑ์การพบอาจารย์แล้ว' : 'ยังไม่ครบเกณฑ์การพบอาจารย์'}
-          description={
-            <div>
-              <div>บันทึกการพบที่อาจารย์อนุมัติ (หัวหน้าโครงงาน): {meetingRequirement.approved} / {meetingRequirement.required}</div>
-              {meetingRequirement.totalApproved !== meetingRequirement.approved && (
-                <div>รวมทั้งทีม: {meetingRequirement.totalApproved}</div>
-              )}
-              {!meetingRequirement.satisfied && (
-                <div style={{ marginTop: 4 }}>ต้องมีการพบอาจารย์และได้รับอนุมัติอย่างน้อย {meetingRequirement.required} ครั้งก่อนยื่นคำขอสอบ</div>
-              )}
-            </div>
-          }
-        />
+            <Alert
+              type={meetingRequirement.satisfied ? 'info' : 'warning'}
+              showIcon
+              style={{ marginBottom: 16 }}
+              message={meetingRequirement.satisfied ? 'ผ่านเกณฑ์การพบอาจารย์แล้ว' : 'ยังไม่ครบเกณฑ์การพบอาจารย์'}
+              description={
+                <div>
+                  <div>บันทึกการพบที่อาจารย์อนุมัติ (หัวหน้าโครงงาน): {meetingRequirement.approved} / {meetingRequirement.required}</div>
+                  {meetingRequirement.totalApproved !== meetingRequirement.approved && (
+                    <div>รวมทั้งทีม: {meetingRequirement.totalApproved}</div>
+                  )}
+                  {!meetingRequirement.satisfied && (
+                    <div style={{ marginTop: 4 }}>ต้องมีการพบอาจารย์และได้รับอนุมัติอย่างน้อย {meetingRequirement.required} ครั้งก่อนยื่นคำขอสอบ</div>
+                  )}
+                </div>
+              }
+            />
 
-        <Spin spinning={loadingRequest}>
-          <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={disabledSubmission || loadingRequest || formLocked}>
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
-                  <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider orientation="left">ข้อมูลที่ปรึกษา</Divider>
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorName">
-                  <Input placeholder="ชื่อ-นามสกุล" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item label="อาจารย์ที่ปรึกษาร่วม" name="coAdvisorName">
-                  <Input placeholder="(ถ้ามี)" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider orientation="left">ข้อมูลสมาชิก (ช่องติดต่อ)
-              {advisorLoading && <Text style={{ marginLeft: 8 }} type="secondary">(กำลังโหลดรายชื่ออาจารย์)</Text>}
-            </Divider>
-            <Form.List name="students">
-              {(fields) => (
-                <Row gutter={[16, 8]}>
-                  {fields.map(field => {
-                    const { key, name, ...restField } = field;
-                    const student = form.getFieldValue(['students', name]) || {};
-                    return (
-                      <Col xs={24} md={12} key={key}>
-                        <Card size="small" bordered>
-                          <Text strong>{student?.name} ({student?.studentCode})</Text>
-                          <Form.Item {...restField} name={[name, 'phone']} label="เบอร์ติดต่อ" style={{ marginTop: 12 }}>
-                            <Input placeholder="08x-xxx-xxxx" />
-                          </Form.Item>
-                          <Form.Item {...restField} name={[name, 'email']} label="อีเมล (ถ้ามี)" style={{ marginBottom: 0 }}>
-                            <Input placeholder="student@example.com" />
-                          </Form.Item>
-                        </Card>
-                      </Col>
-                    );
-                  })}
+            <Spin spinning={loadingRequest}>
+              <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={disabledSubmission || loadingRequest || formLocked}>
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
+                      <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} allowClear={false} disabled />
+                    </Form.Item>
+                  </Col>
                 </Row>
-              )}
-            </Form.List>
-            <Form.Item label="หมายเหตุเพิ่มเติม" name="additionalNotes">
-              <Input.TextArea rows={4} placeholder="หากมีข้อมูลอื่น ๆ จากฟอร์มคพ.02 ให้บันทึกในส่วนนี้" />
-            </Form.Item>
 
-            <Space>
-              <Button type="primary" htmlType="submit" loading={saving} disabled={disabledSubmission || formLocked}>
-                บันทึกคำขอสอบ
-              </Button>
-              <Text type="secondary">ระบบจะบันทึกข้อมูลไว้ในสถานะ "submitted" และสามารถแก้ไขได้จนกว่าจะเข้าสู่กระบวนการสอบ</Text>
-            </Space>
-          </Form>
-        </Spin>
+                <Divider orientation="left">ข้อมูลที่ปรึกษา</Divider>
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="อาจารย์ที่ปรึกษา" name="advisorName">
+                      <Input placeholder="ชื่อ-นามสกุล" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="อาจารย์ที่ปรึกษาร่วม" name="coAdvisorName">
+                      <Input placeholder="(ถ้ามี)" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Divider orientation="left">ข้อมูลสมาชิก (ช่องติดต่อ)
+                  {advisorLoading && <Text style={{ marginLeft: 8 }} type="secondary">(กำลังโหลดรายชื่ออาจารย์)</Text>}
+                </Divider>
+                <Form.List name="students">
+                  {(fields) => (
+                    <Row gutter={[16, 8]}>
+                      {fields.map(field => {
+                        const { key, name, ...restField } = field;
+                        const student = form.getFieldValue(['students', name]) || {};
+                        return (
+                          <Col xs={24} md={12} key={key}>
+                            <Card size="small" bordered>
+                              <Text strong>{student?.name} ({student?.studentCode})</Text>
+                              <Form.Item {...restField} name={[name, 'phone']} label="เบอร์ติดต่อ" style={{ marginTop: 12 }}>
+                                <Input placeholder="08x-xxx-xxxx" />
+                              </Form.Item>
+                              <Form.Item {...restField} name={[name, 'email']} label="อีเมล (ถ้ามี)" style={{ marginBottom: 0 }}>
+                                <Input placeholder="student@example.com" />
+                              </Form.Item>
+                            </Card>
+                          </Col>
+                        );
+                      })}
+                    </Row>
+                  )}
+                </Form.List>
+                <Form.Item label="หมายเหตุเพิ่มเติม" name="additionalNotes">
+                  <Input.TextArea rows={4} placeholder="หากมีข้อมูลอื่น ๆ จากฟอร์มคพ.02 ให้บันทึกในส่วนนี้" />
+                </Form.Item>
+
+                <Space>
+                  <Button type="primary" htmlType="submit" loading={saving} disabled={disabledSubmission || formLocked}>
+                    บันทึกคำขอสอบ
+                  </Button>
+                  <Text type="secondary">ระบบจะบันทึกข้อมูลไว้ในสถานะ "submitted" และสามารถแก้ไขได้จนกว่าจะเข้าสู่กระบวนการสอบ</Text>
+                </Space>
+              </Form>
+            </Spin>
+          </>
+        )}
       </Card>
     </Space>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Modal, Button, Slider, Space, Typography, Tooltip } from 'antd';
-import { ZoomInOutlined, ZoomOutOutlined, FullscreenOutlined, ReloadOutlined, FileOutlined } from '@ant-design/icons';
+import { ZoomInOutlined, ZoomOutOutlined, ReloadOutlined, FileOutlined } from '@ant-design/icons';
 import PDFViewer from './PDFViewer';
 
 const { Text } = Typography;
@@ -12,7 +12,6 @@ const PDFViewerModal = ({ visible, pdfUrl, onClose, title = 'เอกสาร 
   const handleZoomChange = useCallback((value) => setScale(value / 100), []);
   const quickZoom = useCallback((delta) => setScale(prev => Math.max(0.5, Math.min(3, prev + delta))), []);
   const resetZoom = useCallback(() => setScale(1), []);
-  const handleOpenNewTab = useCallback(() => { if (pdfUrl) window.open(pdfUrl, '_blank', 'noopener,noreferrer'); }, [pdfUrl]);
   const handleClose = useCallback(() => { setScale(1); onClose(); }, [onClose]);
 
   if (!visible) return null;
@@ -59,12 +58,6 @@ const PDFViewerModal = ({ visible, pdfUrl, onClose, title = 'เอกสาร 
             <Tooltip title="รีเซ็ต 100%">
               <Button size="small" icon={<ReloadOutlined />} onClick={resetZoom} disabled={scale === 1} />
             </Tooltip>
-          </Space>
-          <Space size="small">
-            <Tooltip title="เปิดในแท็บใหม่">
-              <Button size="small" icon={<FullscreenOutlined />} onClick={handleOpenNewTab} disabled={!pdfUrl}>เปิดแท็บใหม่</Button>
-            </Tooltip>
-            <Button size="small" onClick={handleClose}>ปิด</Button>
           </Space>
         </div>
       ]}

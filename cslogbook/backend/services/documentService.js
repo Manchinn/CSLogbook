@@ -1,8 +1,29 @@
 const { Op } = require('sequelize');
 const fs = require('fs');
-const { User, Student, Document, InternshipDocument, StudentWorkflowActivity, Notification, DocumentLog } = require('../models');
+const {
+    User,
+    Student,
+    Document,
+    InternshipDocument,
+    StudentWorkflowActivity,
+    Notification,
+    DocumentLog,
+    ProjectDocument,
+    ProjectExamResult,
+    ProjectMember
+} = require('../models');
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
 const logger = require('../utils/logger');
+const projectDocumentService = require('./projectDocumentService');
+
+const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
+    'approved',
+    'completed',
+    'supervisor_evaluated',
+    'acceptance_approved',
+    'referral_ready',
+    'referral_downloaded'
+]);
 class DocumentService {
     /**
      * อัพโหลดเอกสารและบันทึกข้อมูลลงฐานข้อมูล
@@ -199,6 +220,8 @@ class DocumentService {
                 reviewDate: new Date()
             });
 
+            await this._syncProjectCompletionFromDocument(document);
+
             logger.info(`Document status updated: ${documentId} to ${status} by ${reviewerId}`);
             return { message: 'อัพเดทสถานะเอกสารสำเร็จ' };
         } catch (error) {
@@ -345,6 +368,90 @@ class DocumentService {
             throw error;
         }
     }
+
+            async ensureProjectFinalDocument(projectId) {
+                const normalizedProjectId = Number(projectId);
+                if (!Number.isInteger(normalizedProjectId) || normalizedProjectId <= 0) {
+                    throw new Error('รหัสโครงงานไม่ถูกต้อง');
+                }
+
+                const project = await ProjectDocument.findByPk(normalizedProjectId, {
+                    include: [{ model: Document, as: 'document' }]
+                });
+
+                if (!project) {
+                    throw new Error('ไม่พบโครงงาน');
+                }
+
+                if (project.document) {
+                    return project.document;
+                }
+
+                let ownerStudentId = project.createdByStudentId ?? project.created_by_student_id ?? null;
+
+                if (!ownerStudentId) {
+                    const leaderMember = await ProjectMember.findOne({
+                        where: { projectId: normalizedProjectId, role: 'leader' }
+                    });
+                    ownerStudentId = leaderMember?.studentId ?? leaderMember?.student_id ?? null;
+                }
+
+                if (!ownerStudentId) {
+                    const anyMember = await ProjectMember.findOne({
+                        where: { projectId: normalizedProjectId }
+                    });
+                    ownerStudentId = anyMember?.studentId ?? anyMember?.student_id ?? null;
+                }
+
+                if (!ownerStudentId) {
+                    throw new Error('ไม่พบสมาชิกโครงงานสำหรับสร้างเล่มออฟไลน์');
+                }
+
+                const student = await Student.findByPk(ownerStudentId);
+                if (!student || !student.userId) {
+                    throw new Error('ไม่พบข้อมูลนักศึกษาสำหรับสร้างเล่มออฟไลน์');
+                }
+
+                const baseName = project.projectNameTh || project.projectNameEn || `Project ${project.projectId}`;
+                const documentName = `Final Thesis Offline - ${baseName}`.slice(0, 250);
+
+                const document = await Document.create({
+                    userId: student.userId,
+                    documentType: 'PROJECT',
+                    documentName,
+                    category: 'final',
+                    status: 'pending',
+                    submittedAt: new Date(),
+                    isLate: false,
+                    lateMinutes: null,
+                    downloadStatus: 'not_downloaded'
+                });
+
+                await project.update({ documentId: document.documentId });
+                    project.document = document;
+
+                logger.info('create offline final document success', {
+                    projectId: normalizedProjectId,
+                    documentId: document.documentId
+                });
+
+                return document;
+            }
+
+            async updateProjectFinalDocumentStatus(projectId, status, reviewerId, comment = null) {
+                if (!status) {
+                    throw new Error('กรุณาระบุสถานะเล่มที่ต้องการตั้ง');
+                }
+
+                const document = await this.ensureProjectFinalDocument(projectId);
+                await this.updateDocumentStatus(document.documentId, status, reviewerId, comment);
+
+                return {
+                    message: 'อัพเดทสถานะเอกสารสำเร็จ',
+                    documentId: document.documentId,
+                    status
+                };
+            }
 
     /**
      * อนุมัติเอกสาร
@@ -833,6 +940,7 @@ class DocumentService {
                         cat('วินัยและความรับผิดชอบ', 'disciplineScore', 'discipline'),
                         cat('พฤติกรรมและการปฏิบัติตน', 'behaviorScore', 'behavior'),
                         cat('ผลงาน / คุณภาพงาน', 'performanceScore', 'performance'),
+
                         cat('วิธีการ / ทักษะการทำงาน', 'methodScore', 'method'),
                         cat('มนุษยสัมพันธ์ / การทำงานร่วมกัน', 'relationScore', 'relation'),
                     ].filter(Boolean);
@@ -1179,6 +1287,92 @@ class DocumentService {
         
         ออกให้ ณ วันที่ ${data.issueDate}
         `;
+    }
+
+    _isProjectFinalDocument(document) {
+        if (!document) {
+            return false;
+        }
+
+        const doc = document.toJSON ? document.toJSON() : document;
+        const type = String(doc.documentType || doc.document_type || '').toUpperCase();
+        const category = String(doc.category || '').toLowerCase();
+        return type === 'PROJECT' && category === 'final';
+    }
+
+    _isFinalDocumentApproved(document) {
+        if (!document) {
+            return false;
+        }
+
+        const doc = document.toJSON ? document.toJSON() : document;
+        const status = String(doc.status || '').toLowerCase();
+        return FINAL_DOCUMENT_ACCEPTED_STATUSES.has(status);
+    }
+
+    async _syncProjectCompletionFromDocument(document) {
+        try {
+            if (!this._isProjectFinalDocument(document)) {
+                return;
+            }
+
+            const documentId = document.documentId ?? document.id ?? document.document_id;
+            if (!documentId) {
+                return;
+            }
+
+            const project = await ProjectDocument.findOne({
+                where: { documentId },
+                include: [
+                    {
+                        model: ProjectExamResult,
+                        as: 'examResults',
+                        required: false
+                    }
+                ]
+            });
+
+            if (!project) {
+                return;
+            }
+
+            if (project.status === 'archived' || project.status === 'failed') {
+                return;
+            }
+
+            const thesisResult = (project.examResults || []).find((exam) => {
+                const examType = (exam.examType || exam.exam_type || '').toUpperCase();
+                return examType === 'THESIS';
+            });
+
+            const thesisPassed = thesisResult && String(thesisResult.result || '').toUpperCase() === 'PASS';
+
+            if (!thesisPassed) {
+                if (project.status === 'completed') {
+                    await project.update({ status: 'in_progress' });
+                    await projectDocumentService.syncProjectWorkflowState(project.projectId);
+                    logger.info('Project reverted to in-progress because thesis exam result is not PASS', { projectId: project.projectId });
+                }
+                return;
+            }
+
+            const documentReady = this._isFinalDocumentApproved(document);
+
+            if (documentReady && project.status !== 'completed') {
+                await project.update({ status: 'completed' });
+                await projectDocumentService.syncProjectWorkflowState(project.projectId);
+                logger.info('Project marked as completed after final document approval', { projectId: project.projectId });
+            } else if (!documentReady && project.status === 'completed') {
+                await project.update({ status: 'in_progress' });
+                await projectDocumentService.syncProjectWorkflowState(project.projectId);
+                logger.info('Project reverted to in-progress due to final document status change', { projectId: project.projectId });
+            }
+        } catch (error) {
+            logger.warn('syncProjectCompletionFromDocument failed', {
+                documentId: document?.documentId ?? document?.id,
+                error: error.message
+            });
+        }
     }
 }
 

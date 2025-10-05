@@ -56,6 +56,18 @@ const SystemTestRequestPage = () => {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerTitle, setViewerTitle] = useState('');
+  const containerStyle = useMemo(() => ({
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24
+  }), []);
+
+  const handleBackToPhase1 = useCallback(() => {
+    navigate('/project/phase1');
+  }, [navigate]);
 
   const leaderMember = useMemo(() => {
     if (!activeProject) return null;
@@ -158,8 +170,8 @@ const SystemTestRequestPage = () => {
       form.resetFields();
       return;
     }
-  const start = requestRecord.testStartDate ? dayjs(requestRecord.testStartDate) : null;
-  const due = requestRecord.testDueDate ? dayjs(requestRecord.testDueDate) : null;
+    const start = requestRecord.testStartDate ? dayjs(requestRecord.testStartDate) : null;
+    const due = requestRecord.testDueDate ? dayjs(requestRecord.testDueDate) : null;
     form.setFieldsValue({
       testPeriod: start && due ? [start, due] : undefined,
       studentNote: requestRecord.studentNote || ''
@@ -307,179 +319,181 @@ const SystemTestRequestPage = () => {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%', paddingBottom: 32 }}>
-      <Button
-        icon={<ArrowLeftOutlined />}
-        type="link"
-        onClick={() => navigate('/project/phase2')}
-        style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
-      >
-        กลับไปหน้าโครงงานพิเศษ 2
-      </Button>
-      <Card title={<Title level={4} style={{ margin: 0 }}>คำขอทดสอบระบบและหลักฐานการประเมิน</Title>}>
-        {requestRecord && (
-          <Alert
-            type={statusMeta.alert}
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="สถานะคำขอปัจจุบัน"
-            description={(
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <Space size="small" wrap>
-                  <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
-                  <Text type="secondary">อัปเดตล่าสุด: {formatThaiDateTime(requestRecord.updatedAt || requestRecord.timeline?.staffDecidedAt || requestRecord.timeline?.submittedAt)}</Text>
-                </Space>
-                <Descriptions bordered size="small" column={1}>
-                  <Descriptions.Item label="วันที่เริ่มทดสอบ">{formatThaiDate(requestRecord.testStartDate)}</Descriptions.Item>
-                  <Descriptions.Item label="ครบกำหนด 30 วัน">{formatThaiDate(dueDate)}</Descriptions.Item>
-                  <Descriptions.Item label="ไฟล์คำขอ">
-                    {requestRecord.requestFile?.url ? (
-                      <Button
-                        type="link"
-                        icon={<EyeOutlined />}
-                        onClick={() => handlePreviewFile(
-                          requestRecord.requestFile,
-                          `คำขอทดสอบระบบ - ${requestRecord.requestFile.name || 'ไฟล์ PDF'}`
-                        )}
-                      >
-                        เปิดดูไฟล์คำขอ
-                      </Button>
-                    ) : '-'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="หมายเหตุที่นักศึกษาบันทึก">{requestRecord.studentNote || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="ผลการพิจารณาอาจารย์">{requestRecord.advisorDecision?.note || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="ผลการพิจารณาเจ้าหน้าที่">{requestRecord.staffDecision?.note || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="หลักฐานการประเมิน">
-                    {requestRecord.evidence ? (
-                      <Button
-                        type="link"
-                        icon={<EyeOutlined />}
-                        onClick={handlePreviewEvidence}
-                      >
-                        เปิดดูหลักฐาน
-                      </Button>
-                    ) : evidenceStatusText}
-                  </Descriptions.Item>
-                </Descriptions>
-                {timelineItems.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <Divider orientation="left" orientationMargin={0}>ไทม์ไลน์คำขอ</Divider>
-                    <Timeline items={timelineItems} style={{ marginTop: 8 }} />
-                  </div>
-                )}
-                {canUploadEvidence && (
-                  <Button type="primary" icon={<CloudUploadOutlined />} onClick={() => setEvidenceModalOpen(true)}>
-                    อัปโหลดหลักฐานการประเมิน 30 วัน
-                  </Button>
-                )}
-                {canUploadEvidence && isBeforeDueDate && (
-                  <Alert
-                    type="warning"
-                    showIcon
-                    message="อัปโหลดล่วงหน้าก่อนครบ 30 วัน"
-                    description="ระบบอนุญาตให้อัปโหลดหลักฐานได้ก่อนครบกำหนด กรุณาตรวจสอบให้แน่ใจว่าการประเมินเสร็จสมบูรณ์แล้ว"
-                  />
-                )}
-              </Space>
-            )}
-          />
-        )}
-
-        {allowNewRequest && (
-          <>
-            <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-              ขั้นตอนนี้ใช้สำหรับแจ้งความประสงค์ทดลองใช้งานระบบจริงกับสถานประกอบการเป็นเวลา 30 วัน และบันทึกหลักฐานการประเมินหลังเสร็จสิ้น
-            </Paragraph>
-            <Paragraph type="secondary" style={{ marginTop: -8, marginBottom: 16 }}>
-              หากยังไม่มีไฟล์คำขอ (PDF) สามารถส่งคำขอได้เลยและแนบไฟล์ภายหลังได้
-            </Paragraph>
-
-            {!isLeader && (
-              <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="เฉพาะหัวหน้าโครงงานเท่านั้นที่สามารถส่งคำขอนี้ได้" />
-            )}
-
-            {!meetingRequirement.satisfied && (
-              <Alert
-                type="warning"
-                showIcon
-                style={{ marginBottom: 16 }}
-                message={`บันทึกการพบอาจารย์ที่ได้รับอนุมัติ ${meetingRequirement.approved}/${meetingRequirement.required}`}
-                description="ต้องมีบันทึกการพบอาจารย์ที่ได้รับการอนุมัติครบตามเกณฑ์ก่อนจึงจะส่งคำขอได้"
-              />
-            )}
-
-            <Spin spinning={loadingRequest}>
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleSubmit}
-                disabled={!isLeader || !meetingRequirement.satisfied || disabledSubmission || loadingRequest}
-              >
-                <Form.Item
-                  label="ช่วงเวลาทดสอบระบบ 30 วัน"
-                  name="testPeriod"
-                  rules={[
-                    { required: true, message: 'กรุณาเลือกช่วงเวลาทดสอบระบบ' },
-                    () => ({
-                      validator(_, value) {
-                        if (!value || value.length !== 2) {
-                          return Promise.reject(new Error('กรุณาเลือกช่วงเวลาทดสอบระบบ'));
-                        }
-                        const [start, end] = value;
-                        const startDay = dayjs(start);
-                        const endDay = dayjs(end);
-                        if (!startDay.isValid() || !endDay.isValid()) {
-                          return Promise.reject(new Error('รูปแบบวันที่ไม่ถูกต้อง'));
-                        }
-                        if (endDay.diff(startDay, 'day') < 29) {
-                          return Promise.reject(new Error('ช่วงเวลาทดสอบระบบต้องไม่น้อยกว่า 30 วัน'));
-                        }
-                        if (startDay.isAfter(dayjs().add(30, 'day'), 'day')) {
-                          return Promise.reject(new Error('วันเริ่มต้องอยู่ภายใน 30 วันนับจากวันนี้'));
-                        }
-                        return Promise.resolve();
+    <>
+      <div style={containerStyle}>
+        <Card
+          title={<Title level={4} style={{ margin: 0 }}>คำขอทดสอบระบบและหลักฐานการประเมิน</Title>}
+          extra={(
+            <Button icon={<ArrowLeftOutlined />} onClick={handleBackToPhase1}>
+              ย้อนกลับ
+            </Button>
+          )}
+        >
+          {requestRecord && (
+            <Alert
+              type={statusMeta.alert}
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="สถานะคำขอปัจจุบัน"
+              description={(
+                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                  <Space size="small" wrap>
+                    <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                    <Text type="secondary">อัปเดตล่าสุด: {formatThaiDateTime(requestRecord.updatedAt || requestRecord.timeline?.staffDecidedAt || requestRecord.timeline?.submittedAt)}</Text>
+                  </Space>
+                  <Descriptions bordered size="small" column={1}>
+                    <Descriptions.Item label="วันที่เริ่มทดสอบ">{formatThaiDate(requestRecord.testStartDate)}</Descriptions.Item>
+                    <Descriptions.Item label="ครบกำหนด 30 วัน">{formatThaiDate(dueDate)}</Descriptions.Item>
+                    <Descriptions.Item label="ไฟล์คำขอ">
+                      {requestRecord.requestFile?.url ? (
+                        <Button
+                          type="link"
+                          icon={<EyeOutlined />}
+                          onClick={() => handlePreviewFile(
+                            requestRecord.requestFile,
+                            `คำขอทดสอบระบบ - ${requestRecord.requestFile.name || 'ไฟล์ PDF'}`
+                          )}
+                        >
+                          เปิดดูไฟล์คำขอ
+                        </Button>
+                      ) : '-'
                       }
-                    })
-                  ]}
-                >
-                  <RangePicker format="DD/MM/BBBB" style={{ width: '100%' }} allowClear={false} />
-                </Form.Item>
-
-                <Form.Item label="รายละเอียดเพิ่มเติม" name="studentNote">
-                  <Input.TextArea rows={3} placeholder="ระบุข้อมูลสรุปเพิ่มเติม (ถ้ามี)" maxLength={1000} showCount />
-                </Form.Item>
-
-                <Form.Item
-                  label="ไฟล์คำขอทดสอบระบบ (PDF) – ไม่บังคับ"
-                  name="requestFile"
-                  valuePropName="fileList"
-                  getValueFromEvent={normFile}
-                >
-                  <Upload.Dragger
-                    name="requestFile"
-                    accept=".pdf"
-                    beforeUpload={() => false}
-                    maxCount={1}
-                  >
-                    <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-                    <p className="ant-upload-text">ลากไฟล์ PDF มาวาง หรือคลิกเพื่อเลือกไฟล์ (แนบหรือไม่ก็ได้)</p>
-                    <p className="ant-upload-hint">ขนาดไฟล์ไม่เกิน 10MB</p>
-                  </Upload.Dragger>
-                </Form.Item>
-
-                <Space>
-                  <Button type="primary" htmlType="submit" loading={saving} disabled={!isLeader || !meetingRequirement.satisfied}>
-                    ส่งคำขอทดสอบระบบ
-                  </Button>
-                  {disabledSubmission && (
-                    <Text type="secondary">ไม่สามารถส่งคำขอใหม่ได้จนกว่าคำขอปัจจุบันจะเสร็จสิ้น</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="หมายเหตุที่นักศึกษาบันทึก">{requestRecord.studentNote || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="ผลการพิจารณาอาจารย์">{requestRecord.advisorDecision?.note || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="ผลการพิจารณาเจ้าหน้าที่">{requestRecord.staffDecision?.note || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="หลักฐานการประเมิน">
+                      {requestRecord.evidence ? (
+                        <Button
+                          type="link"
+                          icon={<EyeOutlined />}
+                          onClick={handlePreviewEvidence}
+                        >
+                          เปิดดูหลักฐาน
+                        </Button>
+                      ) : evidenceStatusText}
+                    </Descriptions.Item>
+                  </Descriptions>
+                  {timelineItems.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <Divider orientation="left" orientationMargin={0}>ไทม์ไลน์คำขอ</Divider>
+                      <Timeline items={timelineItems} style={{ marginTop: 8 }} />
+                    </div>
+                  )}
+                  {canUploadEvidence && (
+                    <Button type="primary" icon={<CloudUploadOutlined />} onClick={() => setEvidenceModalOpen(true)}>
+                      อัปโหลดหลักฐานการประเมิน 30 วัน
+                    </Button>
+                  )}
+                  {canUploadEvidence && isBeforeDueDate && (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="อัปโหลดล่วงหน้าก่อนครบ 30 วัน"
+                      description="ระบบอนุญาตให้อัปโหลดหลักฐานได้ก่อนครบกำหนด กรุณาตรวจสอบให้แน่ใจว่าการประเมินเสร็จสมบูรณ์แล้ว"
+                    />
                   )}
                 </Space>
-              </Form>
-            </Spin>
-          </>
-        )}
-      </Card>
+              )}
+            />
+          )}
+
+          {allowNewRequest && (
+            <>
+              <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                ขั้นตอนนี้ใช้สำหรับแจ้งความประสงค์ทดลองใช้งานระบบจริงกับสถานประกอบการเป็นเวลา 30 วัน และบันทึกหลักฐานการประเมินหลังเสร็จสิ้น
+              </Paragraph>
+              <Paragraph type="secondary" style={{ marginTop: -8, marginBottom: 16 }}>
+                หากยังไม่มีไฟล์คำขอ (PDF) สามารถส่งคำขอได้เลยและแนบไฟล์ภายหลังได้
+              </Paragraph>
+
+              {!isLeader && (
+                <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="เฉพาะหัวหน้าโครงงานเท่านั้นที่สามารถส่งคำขอนี้ได้" />
+              )}
+
+              {!meetingRequirement.satisfied && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                  message={`บันทึกการพบอาจารย์ที่ได้รับอนุมัติ ${meetingRequirement.approved}/${meetingRequirement.required}`}
+                  description="ต้องมีบันทึกการพบอาจารย์ที่ได้รับการอนุมัติครบตามเกณฑ์ก่อนจึงจะส่งคำขอได้"
+                />
+              )}
+
+              <Spin spinning={loadingRequest}>
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleSubmit}
+                  disabled={!isLeader || !meetingRequirement.satisfied || disabledSubmission || loadingRequest}
+                >
+                  <Form.Item
+                    label="ช่วงเวลาทดสอบระบบ 30 วัน"
+                    name="testPeriod"
+                    rules={[
+                      { required: true, message: 'กรุณาเลือกช่วงเวลาทดสอบระบบ' },
+                      () => ({
+                        validator(_, value) {
+                          if (!value || value.length !== 2) {
+                            return Promise.reject(new Error('กรุณาเลือกช่วงเวลาทดสอบระบบ'));
+                          }
+                          const [start, end] = value;
+                          const startDay = dayjs(start);
+                          const endDay = dayjs(end);
+                          if (!startDay.isValid() || !endDay.isValid()) {
+                            return Promise.reject(new Error('รูปแบบวันที่ไม่ถูกต้อง'));
+                          }
+                          if (endDay.diff(startDay, 'day') < 29) {
+                            return Promise.reject(new Error('ช่วงเวลาทดสอบระบบต้องไม่น้อยกว่า 30 วัน'));
+                          }
+                          if (startDay.isAfter(dayjs().add(30, 'day'), 'day')) {
+                            return Promise.reject(new Error('วันเริ่มต้องอยู่ภายใน 30 วันนับจากวันนี้'));
+                          }
+                          return Promise.resolve();
+                        }
+                      })
+                    ]}
+                  >
+                    <RangePicker format="DD/MM/BBBB" style={{ width: '100%' }} allowClear={false} />
+                  </Form.Item>
+
+                  <Form.Item label="รายละเอียดเพิ่มเติม" name="studentNote">
+                    <Input.TextArea rows={3} placeholder="ระบุข้อมูลสรุปเพิ่มเติม (ถ้ามี)" maxLength={1000} showCount />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="ไฟล์คำขอทดสอบระบบ (PDF) – ไม่บังคับ"
+                    name="requestFile"
+                    valuePropName="fileList"
+                    getValueFromEvent={normFile}
+                  >
+                    <Upload.Dragger
+                      name="requestFile"
+                      accept=".pdf"
+                      beforeUpload={() => false}
+                      maxCount={1}
+                    >
+                      <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                      <p className="ant-upload-text">ลากไฟล์ PDF มาวาง หรือคลิกเพื่อเลือกไฟล์ (แนบหรือไม่ก็ได้)</p>
+                      <p className="ant-upload-hint">ขนาดไฟล์ไม่เกิน 10MB</p>
+                    </Upload.Dragger>
+                  </Form.Item>
+
+                  <Space>
+                    <Button type="primary" htmlType="submit" loading={saving} disabled={!isLeader || !meetingRequirement.satisfied}>
+                      ส่งคำขอทดสอบระบบ
+                    </Button>
+                    {disabledSubmission && (
+                      <Text type="secondary">ไม่สามารถส่งคำขอใหม่ได้จนกว่าคำขอปัจจุบันจะเสร็จสิ้น</Text>
+                    )}
+                  </Space>
+                </Form>
+              </Spin>
+            </>
+          )}
+        </Card>
+      </div>
 
       <Modal
         title="อัปโหลดหลักฐานการประเมินการทดสอบระบบ"
@@ -526,7 +540,7 @@ const SystemTestRequestPage = () => {
           title={viewerTitle || 'หลักฐานการประเมิน'}
         />
       )}
-    </Space>
+    </>
   );
 };
 

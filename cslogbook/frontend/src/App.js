@@ -35,6 +35,7 @@ import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
 import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
 import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
 import { Phase2Dashboard } from './components/project/phase2';
+import ThesisDefenseRequestPage from './components/project/phase2/ThesisDefenseRequestPage';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -48,6 +49,8 @@ import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview'
 import MeetingApprovals from './components/teacher/MeetingApprovals';
 import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
 import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
+import AdvisorThesisQueue from './components/teacher/thesis/AdvisorThesisQueue';
+import StaffThesisQueue from './components/teacher/thesis/StaffThesisQueue';
 import AdvisorSystemTestQueue from './components/teacher/systemTest/AdvisorQueue';
 import StaffSystemTestQueue from './components/teacher/systemTest/StaffQueue';
 
@@ -203,6 +206,11 @@ const App = () => {
                     <SystemTestRequestPage />
                   </ProtectedRoute>
                 } />
+                <Route path="/project/phase2/thesis-defense" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ThesisDefenseRequestPage />
+                  </ProtectedRoute>
+                } />
                 
                 {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดโครงงานพิเศษ */}
                 <Route path="/project-eligibility" element={
@@ -252,6 +260,11 @@ const App = () => {
                     <AdvisorKP02Queue />
                   </ProtectedRoute>
                 } />
+                <Route path="/teacher/thesis/advisor-queue" element={
+                  <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
+                    <AdvisorThesisQueue />
+                  </ProtectedRoute>
+                } />
                 <Route path="/teacher/system-test/advisor-queue" element={
                   <ProtectedRoute roles={['teacher']} teacherTypes={['academic']}>
                     <AdvisorSystemTestQueue />
@@ -290,6 +303,19 @@ const App = () => {
                     <StaffKP02Queue />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/thesis/staff-queue" element={
+                  <ProtectedRoute
+                    roles={['admin', 'teacher']}
+                    condition={(user) =>
+                      user.role === 'admin' ||
+                      user.teacherType === 'support' ||
+                      Boolean(user.canExportThesis ?? user.canExportProject1)
+                    }
+                  >
+                    <StaffThesisQueue />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/thesis/kp02-queue" element={<Navigate to="/admin/thesis/staff-queue" replace />} />
                 <Route path="/admin/system-test/staff-queue" element={
                   <ProtectedRoute
                     roles={['admin', 'teacher']}

@@ -109,7 +109,7 @@ const Phase1Dashboard = () => {
     } else if (activeProject.examResult !== 'passed') {
       reasons.push('ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้');
     }
-    if (activeProject.status !== 'in_progress') {
+    if (!['in_progress', 'completed'].includes(activeProject.status)) {
       reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ"');
     }
     return reasons;
@@ -336,6 +336,23 @@ const Phase1Dashboard = () => {
       }
     }
 
+    if (!thesisDefenseRequest) {
+      setStatus('thesis-defense-request', 'ยังไม่ยื่นคำขอ', 'default');
+    } else {
+      const thesisStatus = thesisDefenseRequest.status;
+      if (['advisor_rejected', 'staff_returned', 'cancelled'].includes(thesisStatus)) {
+        setStatus('thesis-defense-request', 'คำขอถูกส่งกลับ', 'red');
+      } else if (thesisStatus === 'advisor_approved') {
+        setStatus('thesis-defense-request', 'อาจารย์อนุมัติครบ', 'purple');
+      } else if (['staff_verified', 'scheduled'].includes(thesisStatus)) {
+        setStatus('thesis-defense-request', 'ติดตามประกาศวันสอบ', 'geekblue');
+      } else if (thesisStatus === 'completed') {
+        setStatus('thesis-defense-request', 'บันทึกผลสอบแล้ว', 'green');
+      } else {
+        setStatus('thesis-defense-request', 'รอการอนุมัติ', 'blue');
+      }
+    }
+
     if (!canAccessPhase2) {
       setStatus('phase2-overview', 'รอปลดล็อก', 'gold');
     } else if (thesisDefenseRequest?.status === 'completed') {
@@ -387,7 +404,24 @@ const Phase1Dashboard = () => {
     return acc;
   }, {}), []);
 
-  const allSteps = [...phase1Steps, ...phase2CardSteps];
+  const phase2OverviewStep = useMemo(
+    () => phase2CardSteps.find((step) => step.key === 'phase2-overview') || null,
+    []
+  );
+
+  const phase2SecondarySteps = useMemo(
+    () => phase2CardSteps.filter((step) => step.key !== 'phase2-overview'),
+    []
+  );
+
+  const allSteps = useMemo(
+    () => [
+      ...(phase2OverviewStep ? [phase2OverviewStep] : []),
+      ...phase1Steps,
+      ...phase2SecondarySteps
+    ],
+    [phase2OverviewStep, phase2SecondarySteps]
+  );
 
   // handleOpen: จัดการคลิกการ์ดแต่ละขั้นตอน แยกตามเฟสและตรวจสอบเงื่อนไขการปลดล็อก
   const handleOpen = (stepKey) => {
@@ -438,7 +472,7 @@ const Phase1Dashboard = () => {
 
   if (activeSub && activeStepMeta?.requiresPostTopicUnlock && (!activeProject || postTopicGateReasons.length > 0)) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <div style={containerStyle}>
         <Card>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Title level={4} style={{ margin: 0 }}>ยังไม่สามารถเข้าถึงขั้นตอนนี้ได้</Title>
@@ -547,8 +581,6 @@ const Phase1Dashboard = () => {
             </Card>
           )}
           <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษและปริญญานิพนธ์</Title>}>
-            <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงานจากทั้งสอง Phase ภายในหน้าเดียว</Paragraph>
-            <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนที่ล็อกอยู่จะอธิบายเหตุผลบน Tooltip</Text>
           </Card>
           {activeProject && postTopicLockReasons.length > 0 && (
             <Alert
@@ -643,7 +675,7 @@ const Phase1Dashboard = () => {
   // Sub view (อยู่ภายในขั้นตอนใดขั้นตอนหนึ่ง) -> แสดง header + Outlet เต็มความกว้าง
   return (
     <>
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={containerStyle}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Card
           title={<Space align="center">{activeStepMeta?.icon}<span>{activeStepMeta?.title}</span></Space>}

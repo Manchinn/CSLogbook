@@ -20,6 +20,7 @@ router.get('/mine', controller.getMyProjects);
 
 // ผลสอบโครงงานพิเศษ - routes ที่ไม่มี :id (ต้องอยู่ก่อน)
 router.get('/exam-results/project1/pending', projectExamResultController.getProject1PendingResults);
+router.get('/exam-results/thesis/pending', projectExamResultController.getThesisPendingResults);
 router.get('/exam-results/statistics', projectExamResultController.getExamStatistics);
 
 // System test request (ก่อนยื่นสอบโครงงานพิเศษ)
@@ -43,6 +44,8 @@ router.post('/:id/kp02', projectDefenseRequestController.submitProject1Request);
 router.post('/:id/kp02/advisor-approve', projectDefenseRequestController.submitAdvisorDecision);
 router.post('/:id/kp02/verify', projectDefenseRequestController.verifyProject1Request);
 router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
+
+router.patch('/:id/final-document/status', projectExamResultController.updateFinalDocumentStatus);
 
 // รายละเอียดโครงงาน (+ summary optional)
 router.get('/:id', async (req, res, next) => {

@@ -11,6 +11,15 @@ import { recordTopicExamResult } from '../../../services/topicExamResultService'
 import { teacherService } from '../../../services/teacherService';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 
+const containerStyle = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24
+};
+
 const { Title, Text } = Typography;
 
 export default function TopicExamResultPage() {
@@ -292,9 +301,8 @@ export default function TopicExamResultPage() {
   ];
 
   return (
-    <div>
+    <div style={containerStyle}>
       <Title level={3}>บันทึกผลสอบหัวข้อโครงงานพิเศษ</Title>
-      <Alert type="info" showIcon style={{ marginBottom: 16 }} message="เจ้าหน้าที่สามารถบันทึกผลสอบหัวข้อได้ครั้งเดียว หากบันทึกผิดให้ติดต่อผู้ดูแลระบบ" />
       <Space style={{ marginBottom: 16 }} wrap>
         <Button onClick={reload} loading={loading}>รีเฟรช</Button>
         <Button onClick={handleExport}>Export XLSX</Button>

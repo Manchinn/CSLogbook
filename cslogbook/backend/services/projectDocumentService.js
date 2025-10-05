@@ -9,6 +9,9 @@ let MeetingParticipant;
 let MeetingLog;
 let ProjectDefenseRequest;
 let ProjectTestRequest;
+let ProjectExamResult;
+let Document;
+let User;
 
 const resolveModelsPath = () => require.resolve('../models');
 const IS_JEST = Boolean(process.env.JEST_WORKER_ID);
@@ -29,7 +32,10 @@ const attachModels = () => {
     MeetingParticipant,
     MeetingLog,
     ProjectDefenseRequest,
-    ProjectTestRequest
+    ProjectTestRequest,
+    ProjectExamResult,
+    Document,
+    User
   } = require('../models'));
 };
 
@@ -44,6 +50,70 @@ const workflowService = require('./workflowService');
 
 // กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
 const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '5', 10) || 5, 1);
+const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
+const VALID_MEETING_PHASES = new Set(['phase1', 'phase2']);
+
+const toPlainObject = (instance) => {
+  if (!instance) return null;
+  return typeof instance.toJSON === 'function' ? instance.toJSON() : instance;
+};
+
+const mapUserSummary = (userInstance) => {
+  const user = toPlainObject(userInstance);
+  if (!user) return null;
+  return {
+    userId: user.userId ?? user.user_id ?? null,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    email: user.email ?? null,
+    role: user.role ?? null
+  };
+};
+
+const normalizeFinalDocument = (documentInstance) => {
+  const doc = toPlainObject(documentInstance);
+  if (!doc) return null;
+
+  const resolveTimestamp = (primary, fallbackKey) => {
+    if (primary) return primary;
+    if (fallbackKey && doc[fallbackKey]) return doc[fallbackKey];
+    return null;
+  };
+
+  return {
+    documentId: doc.documentId ?? doc.document_id ?? null,
+    documentName: doc.documentName ?? doc.document_name ?? null,
+    status: doc.status ?? null,
+    reviewComment: doc.reviewComment ?? doc.review_comment ?? null,
+    reviewDate: resolveTimestamp(doc.reviewDate, 'review_date'),
+    submittedAt:
+      resolveTimestamp(doc.submittedAt, 'submitted_at') ||
+      resolveTimestamp(doc.createdAt, 'created_at'),
+    downloadCount: doc.downloadCount ?? doc.download_count ?? 0,
+    downloadStatus: doc.downloadStatus ?? doc.download_status ?? null,
+    owner: mapUserSummary(doc.owner),
+    reviewer: mapUserSummary(doc.reviewer)
+  };
+};
+
+const normalizeExamResult = (examResultInstance) => {
+  const result = toPlainObject(examResultInstance);
+  if (!result) return null;
+
+  return {
+    examResultId: result.examResultId ?? result.exam_result_id ?? null,
+    projectId: result.projectId ?? result.project_id ?? null,
+    examType: result.examType ?? result.exam_type ?? null,
+    result: result.result ?? null,
+    score: result.score ?? null,
+    notes: result.notes ?? null,
+    requireScopeRevision: Boolean(result.requireScopeRevision ?? result.require_scope_revision),
+    recordedAt: result.recordedAt ?? result.recorded_at ?? null,
+    recordedByUserId: result.recordedByUserId ?? result.recorded_by_user_id ?? null,
+    recordedBy: mapUserSummary(result.recordedBy),
+    studentAcknowledgedAt: result.studentAcknowledgedAt ?? result.student_acknowledged_at ?? null
+  };
+};
 
 /**
  * Service สำหรับจัดการ ProjectDocument (Phase 2)
@@ -473,62 +543,101 @@ class ProjectDocumentService {
   async getProjectById(projectId, options = {}) {
     const includeSummary = !!options.includeSummary;
     ensureModels();
+    const includes = [
+      { 
+        model: ProjectMember, 
+        as: 'members',
+        include: [
+          { 
+            model: Student, 
+            as: 'student',
+            include: [
+              { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
+            ],
+            attributes: ['studentId','studentCode']
+          }
+        ]
+      },
+      { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
+      { model: ProjectDefenseRequest, as: 'defenseRequests' }
+    ];
+
+    if (Document) {
+      const documentInclude = [];
+      if (User) {
+        documentInclude.push({ model: User, as: 'owner', attributes: ['userId', 'firstName', 'lastName', 'email'] });
+        documentInclude.push({ model: User, as: 'reviewer', attributes: ['userId', 'firstName', 'lastName', 'email'] });
+      }
+      includes.push({
+        model: Document,
+        as: 'document',
+        required: false,
+        ...(documentInclude.length ? { include: documentInclude } : {})
+      });
+    }
+
+    if (ProjectExamResult) {
+      const examResultInclude = [];
+      if (User) {
+        examResultInclude.push({ model: User, as: 'recordedBy', attributes: ['userId', 'firstName', 'lastName', 'role'] });
+      }
+      includes.push({
+        model: ProjectExamResult,
+        as: 'examResults',
+        required: false,
+        ...(examResultInclude.length ? { include: examResultInclude } : {})
+      });
+    }
+
     const project = await ProjectDocument.findByPk(projectId, {
-      include: [
-        { 
-          model: ProjectMember, 
-          as: 'members',
-          include: [
-            { 
-              model: Student, 
-              as: 'student',
-              include: [
-                { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
-              ],
-              attributes: ['studentId','studentCode']
-            }
-          ]
-        },
-        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
-        { model: ProjectDefenseRequest, as: 'defenseRequests' }
-      ]
+      include: includes
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
     const base = this.serialize(project);
+    const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
+    const buildMetricsPayload = (metrics, requiredApprovedLogs) => ({
+      requiredApprovedLogs,
+      totalMeetings: metrics?.totalMeetings || 0,
+      totalApprovedLogs: metrics?.totalApprovedLogs || 0,
+      lastApprovedLogAt: metrics?.lastApprovedLogAt || null,
+      perStudent: memberStudentIds.map(studentId => ({
+        studentId,
+        approvedLogs: metrics?.perStudent?.[studentId]?.approvedLogs || 0,
+        attendedMeetings: metrics?.perStudent?.[studentId]?.attendedMeetings || 0
+      }))
+    });
+    const cloneMetrics = (payload) => ({
+      ...payload,
+      perStudent: (payload.perStudent || []).map(entry => ({ ...entry }))
+    });
+
     try {
-      const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
       if (memberStudentIds.length) {
         const students = await Student.findAll({ where: { studentId: memberStudentIds } });
-        const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students);
-        base.meetingMetrics = {
-          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
-          totalMeetings: meetingMetrics.totalMeetings,
-          totalApprovedLogs: meetingMetrics.totalApprovedLogs,
-          lastApprovedLogAt: meetingMetrics.lastApprovedLogAt,
-          perStudent: memberStudentIds.map(studentId => ({
-            studentId,
-            approvedLogs: meetingMetrics.perStudent?.[studentId]?.approvedLogs || 0,
-            attendedMeetings: meetingMetrics.perStudent?.[studentId]?.attendedMeetings || 0
-          }))
-        };
+        // แยกนับบันทึกการพบตาม phase เพื่อให้ Phase 1 และ Phase 2 ใช้เกณฑ์คนละชุด
+        const [phase1Metrics, phase2Metrics] = await Promise.all([
+          this.buildProjectMeetingMetrics(project.projectId, students, { phase: 'phase1' }),
+          this.buildProjectMeetingMetrics(project.projectId, students, { phase: 'phase2' })
+        ]);
+        const phase1Payload = buildMetricsPayload(phase1Metrics, REQUIRED_APPROVED_MEETING_LOGS);
+        const phase2Payload = buildMetricsPayload(phase2Metrics, THESIS_REQUIRED_APPROVED_MEETING_LOGS);
+        base.meetingMetrics = cloneMetrics(phase1Payload);
+        base.meetingMetricsPhase1 = cloneMetrics(phase1Payload);
+        base.meetingMetricsPhase2 = cloneMetrics(phase2Payload);
       } else {
-        base.meetingMetrics = {
-          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
-          totalMeetings: 0,
-          totalApprovedLogs: 0,
-          lastApprovedLogAt: null,
-          perStudent: []
-        };
+        const emptyPhase1 = buildMetricsPayload(null, REQUIRED_APPROVED_MEETING_LOGS);
+        const emptyPhase2 = buildMetricsPayload(null, THESIS_REQUIRED_APPROVED_MEETING_LOGS);
+        base.meetingMetrics = cloneMetrics(emptyPhase1);
+        base.meetingMetricsPhase1 = cloneMetrics(emptyPhase1);
+        base.meetingMetricsPhase2 = cloneMetrics(emptyPhase2);
       }
     } catch (error) {
       logger.warn('getProjectById meeting metrics failed', { projectId, error: error.message });
-      base.meetingMetrics = {
-        requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
-        totalMeetings: 0,
-        totalApprovedLogs: 0,
-        lastApprovedLogAt: null,
-        perStudent: []
-      };
+      const fallbackPhase1 = buildMetricsPayload(null, REQUIRED_APPROVED_MEETING_LOGS);
+      const fallbackPhase2 = buildMetricsPayload(null, THESIS_REQUIRED_APPROVED_MEETING_LOGS);
+      base.meetingMetrics = cloneMetrics(fallbackPhase1);
+      base.meetingMetricsPhase1 = cloneMetrics(fallbackPhase1);
+      base.meetingMetricsPhase2 = cloneMetrics(fallbackPhase2);
     }
     try {
       const latestSystemTest = await ProjectTestRequest.findOne({
@@ -570,6 +679,18 @@ class ProjectDocumentService {
    * แปลงผลลัพธ์เป็น JSON พร้อมโครงสร้างสวยงาม
    */
   serialize(p) {
+    const finalDocument = normalizeFinalDocument(p.document);
+    const examResults = Array.isArray(p.examResults)
+      ? p.examResults
+          .map(normalizeExamResult)
+          .filter(Boolean)
+          .sort((a, b) => {
+            const aTime = a?.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+            const bTime = b?.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+            return bTime - aTime;
+          })
+      : [];
+
     return {
       projectId: p.projectId,
       projectCode: p.projectCode,
@@ -577,19 +698,22 @@ class ProjectDocumentService {
       projectNameTh: p.projectNameTh,
       projectNameEn: p.projectNameEn,
       projectType: p.projectType,
-  tracks: (p.tracks || []).map(t => t.trackCode),
+      createdAt: p.createdAt || p.created_at || null,
+      updatedAt: p.updatedAt || p.updated_at || null,
+      topicSubmittedAt: p.createdAt || p.created_at || null,
+      tracks: (p.tracks || []).map(t => t.trackCode),
       advisorId: p.advisorId,
       coAdvisorId: p.coAdvisorId,
-  objective: p.objective,
-  background: p.background,
-  scope: p.scope,
-  expectedOutcome: p.expectedOutcome,
-  benefit: p.benefit,
-  methodology: p.methodology,
-  tools: p.tools,
-  timelineNote: p.timelineNote,
-  risk: p.risk,
-  constraints: p.constraints,
+      objective: p.objective,
+      background: p.background,
+      scope: p.scope,
+      expectedOutcome: p.expectedOutcome,
+      benefit: p.benefit,
+      methodology: p.methodology,
+      tools: p.tools,
+      timelineNote: p.timelineNote,
+      risk: p.risk,
+      constraints: p.constraints,
       academicYear: p.academicYear,
       semester: p.semester,
       createdByStudentId: p.createdByStudentId,
@@ -619,7 +743,10 @@ class ProjectDocumentService {
         defenseNote: req.defenseNote,
         scheduledByUserId: req.scheduledByUserId,
         scheduledAt: req.scheduledAt
-      }))
+      })),
+      finalDocument,
+      document: finalDocument,
+      examResults
     };
   }
 
@@ -760,7 +887,7 @@ class ProjectDocumentService {
         transaction
       });
 
-      const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction });
+  const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
 
       for (const student of students) {
         const state = this.computeProjectWorkflowState(project, student, meetingMetrics);
@@ -812,7 +939,7 @@ class ProjectDocumentService {
     }
   }
 
-  async buildProjectMeetingMetrics(projectId, students, { transaction } = {}) {
+  async buildProjectMeetingMetrics(projectId, students, { transaction, phase } = {}) {
     const metrics = {
       totalMeetings: 0,
       totalApprovedLogs: 0,
@@ -843,9 +970,35 @@ class ProjectDocumentService {
         return metrics;
       }
 
+      const meetingWhere = { projectId };
+      if (phase !== undefined && phase !== null) {
+        const normalizedPhases = [];
+        const pushPhase = (value) => {
+          if (typeof value !== 'string') return;
+          const trimmed = value.trim().toLowerCase();
+          if (!trimmed) return;
+          if (!VALID_MEETING_PHASES.has(trimmed)) return;
+          if (!normalizedPhases.includes(trimmed)) {
+            normalizedPhases.push(trimmed);
+          }
+        };
+
+        if (Array.isArray(phase)) {
+          phase.forEach(pushPhase);
+        } else {
+          pushPhase(phase);
+        }
+
+        if (normalizedPhases.length === 1) {
+          meetingWhere.phase = normalizedPhases[0];
+        } else if (normalizedPhases.length > 1) {
+          meetingWhere.phase = { [Op.in]: normalizedPhases };
+        }
+      }
+
       const meetings = await Meeting.findAll({
         attributes: ['meetingId'],
-        where: { projectId },
+        where: meetingWhere,
         transaction,
         raw: true
       });

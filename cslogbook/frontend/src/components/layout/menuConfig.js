@@ -47,11 +47,12 @@ export const getMenuConfig = ({
   const isAcademicTeacher = userData.role === 'teacher' && userData.teacherType === 'academic';
   const isSupportTeacher = userData.role === 'teacher' && userData.teacherType === 'support';
   const canExportKP02 = userData.role === 'teacher' && Boolean(userData.canExportProject1) && !isSupportTeacher;
+  const canExportThesis = userData.role === 'teacher' && Boolean(userData.canExportThesis ?? userData.canExportProject1) && !isSupportTeacher;
   const canApproveDocuments =
     isAcademicTeacher && userData.teacherPosition === 'หัวหน้าภาควิชา';
 
   const teacherPrivilegeGroup =
-    userData.role === 'teacher' && (canSeeTopicExamOverview || canExportKP02)
+    userData.role === 'teacher' && (canSeeTopicExamOverview || canExportKP02 || canExportThesis)
       ? {
           key: 'teacher-privileged',
           icon: <ProjectOutlined />,
@@ -81,6 +82,22 @@ export const getMenuConfig = ({
                     label: 'คำขอทดสอบระบบ',
                     onClick: () => navigate('/admin/system-test/staff-queue'),
                   },
+                ]
+              : []),
+            ...(canExportThesis
+              ? [
+                  {
+                    key: '/admin/thesis/kp02-queue',
+                    icon: <DownloadOutlined />,
+                    label: 'รายชื่อสอบปริญญานิพนธ์',
+                    onClick: () => navigate('/admin/thesis/kp02-queue'),
+                  },
+                  {
+                    key: '/admin/thesis/staff-queue',
+                    icon: <ProjectOutlined />,
+                    label: 'ตรวจสอบคำขอสอบ คพ.03',
+                    onClick: () => navigate('/admin/thesis/staff-queue'),
+                  }
                 ]
               : []),
           ],
@@ -168,8 +185,7 @@ export const getMenuConfig = ({
                 icon: <ProjectOutlined />,
                 label: 'โครงงานพิเศษ',
                 children: [
-                  { key: '/project/phase1', label: 'โครงงานพิเศษ 1', onClick: () => navigate('/project/phase1') },
-                  { key: '/project/phase2', label: 'โครงงานพิเศษ 2', onClick: () => navigate('/project/phase2') }
+                  { key: '/project/phase1', label: 'ขั้นตอนโครงงานพิเศษ', onClick: () => navigate('/project/phase1') },
                 ]
               },
         ].filter(Boolean)
@@ -183,6 +199,12 @@ export const getMenuConfig = ({
             icon: <ProjectOutlined />,
             label: 'คำขอสอบ คพ.02',
             onClick: () => navigate('/teacher/project1/advisor-queue')
+          },
+          {
+            key: '/teacher/thesis/advisor-queue',
+            icon: <ProjectOutlined />,
+            label: 'คำขอสอบ คพ.03',
+            onClick: () => navigate('/teacher/thesis/advisor-queue')
           },
           {
             key: '/teacher/system-test/advisor-queue',
@@ -230,12 +252,15 @@ export const getMenuConfig = ({
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
                   { key: '/admin/project1/kp02-queue', label: 'คำร้องขอสอบโครงงานพิเศษ 1 (คพ.02)', onClick: () => navigate('/admin/project1/kp02-queue') },
                   { key: '/admin/project-exam/results', label: 'บันทึกผลสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project-exam/results') },
-                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ (System Test)', onClick: () => navigate('/admin/system-test/staff-queue') }
+                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ (System Test)', onClick: () => navigate('/admin/system-test/staff-queue') },
+                  { key: '/admin/thesis/staff-queue', label: 'คำร้องขอสอบปริญญานิพนธ์ (คพ.03)', onClick: () => navigate('/admin/thesis/staff-queue') },
+                  { key: '/admin/thesis/exam-results', label: 'บันทึกผลสอบปริญญานิพนธ์', onClick: () => navigate('/admin/thesis/exam-results') }
                 ]
               },
             ],
           },
           {
+
             key: 'reports',
             icon: <BarChartOutlined />,
             label: 'รายงาน',
@@ -288,7 +313,9 @@ export const getMenuConfig = ({
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
                   { key: '/admin/project1/kp02-queue', label: 'คำร้องขอสอบโครงงานพิเศษ 1 (คพ.02)', onClick: () => navigate('/admin/project1/kp02-queue') },
                   { key: '/admin/project-exam/results', label: 'บันทึกผลสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project-exam/results') },
-                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ (System Test)', onClick: () => navigate('/admin/system-test/staff-queue') }
+                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ (System Test)', onClick: () => navigate('/admin/system-test/staff-queue') },
+                  { key: '/admin/thesis/staff-queue', label: 'ตรวจสอบคำขอสอบ คพ.03', onClick: () => navigate('/admin/thesis/staff-queue') },
+                  { key: '/admin/thesis/exam-results', label: 'บันทึกผลสอบปริญญานิพนธ์', onClick: () => navigate('/admin/thesis/exam-results') }
                 ]
               },
             ],

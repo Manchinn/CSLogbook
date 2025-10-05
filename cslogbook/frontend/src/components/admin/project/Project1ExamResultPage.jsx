@@ -386,21 +386,6 @@ const Project1ExamResultPage = () => {
           </Text>
         </Space>
 
-        {/* Alert Box */}
-        <Alert
-          type="info"
-          showIcon
-          message="คำแนะนำสำหรับการบันทึกผลสอบ"
-          description={(
-            <Space direction="vertical" size={2}>
-              <span>• บันทึกผลสอบได้เฉพาะโครงงานที่ผ่านการตรวจสอบจากเจ้าหน้าที่แล้วเท่านั้น</span>
-              <span>• หากผลสอบ "ผ่าน" สามารถระบุว่าต้องแก้ไข Scope หรือไม่</span>
-              <span>• หากผลสอบ "ไม่ผ่าน" นักศึกษาจะต้องรับทราบผลก่อนที่โครงงานจะถูก archive</span>
-              <span>• ผลสอบที่บันทึกแล้วไม่สามารถแก้ไขได้ โปรดตรวจสอบข้อมูลให้ถูกต้องก่อนบันทึก</span>
-            </Space>
-          )}
-        />
-
         {/* Summary Cards */}
         <Row gutter={[16, 16]}>
           <Col xs={24} md={6}>
@@ -409,7 +394,6 @@ const Project1ExamResultPage = () => {
                 title="รอบันทึกผล"
                 value={summary.pending}
                 suffix="รายการ"
-                valueStyle={{ color: '#1890ff' }}
               />
             </Card>
           </Col>
@@ -419,7 +403,6 @@ const Project1ExamResultPage = () => {
                 title="ผ่าน"
                 value={summary.passed}
                 suffix="รายการ"
-                valueStyle={{ color: '#52c41a' }}
               />
             </Card>
           </Col>
@@ -429,7 +412,6 @@ const Project1ExamResultPage = () => {
                 title="ไม่ผ่าน"
                 value={summary.failed}
                 suffix="รายการ"
-                valueStyle={{ color: '#ff4d4f' }}
               />
             </Card>
           </Col>
@@ -542,6 +524,7 @@ const Project1ExamResultPage = () => {
         <RecordExamResultModal
           visible={modalVisible}
           project={selectedProject}
+          examType="PROJECT1"
           onClose={handleModalClose}
           onSuccess={handleRecordSuccess}
         />

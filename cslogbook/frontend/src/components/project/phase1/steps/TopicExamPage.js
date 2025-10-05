@@ -67,16 +67,6 @@ const columns = [
       return <Space size={4}>{tags}</Space>;
     }
   },
-  {
-    title: 'การดำเนินการ',
-    key: 'actions',
-    render: (_, r) => (
-      <Space>
-        <Button size="small" disabled>จองเวลา (เร็วๆนี้)</Button>
-        <Button size="small" disabled>บันทึกผล (เร็วๆนี้)</Button>
-      </Space>
-    )
-  }
 ];
 
 const TopicExamPage = () => {
@@ -138,7 +128,7 @@ const TopicExamPage = () => {
     <div style={{ padding: 8 }}>
       <Typography.Title level={4} style={{ marginTop: 0 }}>ตารางสอบเสนอหัวข้อ</Typography.Title>
       <Typography.Paragraph style={{ marginTop: -4 }} type="secondary">
-        แสดงจาก Important Deadlines ที่เข้าข่ายเกี่ยวกับ "สอบเสนอหัวข้อ" (heuristic ชั่วคราว)
+        แสดงจาก Important Deadlines ที่เข้าข่ายเกี่ยวกับ "สอบเสนอหัวข้อ"
       </Typography.Paragraph>
       {showFailedBox && (
         <Alert

@@ -31,6 +31,20 @@ import projectService from '../../../../services/projectService';
 const { Title, Text } = Typography;
 const { Search } = Input;
 
+const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
+const DEFENSE_TYPE_THESIS = 'THESIS';
+
+const DEFENSE_UI_META = {
+  [DEFENSE_TYPE_PROJECT1]: {
+    title: 'คำขอสอบโครงงานพิเศษ 1 (คพ.02)',
+    description: 'ระบบจะแสดงเฉพาะคำขอที่เกี่ยวข้องกับคุณในฐานะอาจารย์ที่ปรึกษา / ที่ปรึกษาร่วม'
+  },
+  [DEFENSE_TYPE_THESIS]: {
+    title: 'คำขอสอบปริญญานิพนธ์ (คพ.03)',
+    description: 'รายชื่อคำขอสอบปริญญานิพนธ์จากทีมที่คุณเป็นอาจารย์ที่ปรึกษา ตรวจสอบตารางและเอกสารก่อนอนุมัติ'
+  }
+};
+
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'รอการอนุมัติ' },
   { value: 'approved', label: 'อนุมัติแล้ว' },
@@ -61,7 +75,8 @@ const containerStyle = {
   gap: 24,
 };
 
-const AdvisorKP02Queue = () => {
+const AdvisorKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
+  const uiMeta = DEFENSE_UI_META[defenseType] || DEFENSE_UI_META[DEFENSE_TYPE_PROJECT1];
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ status: 'pending', search: '' });
@@ -73,10 +88,15 @@ const AdvisorKP02Queue = () => {
     try {
       setLoading(true);
       const params = {};
-      if (filters.status && filters.status !== 'all') {
-        params.status = filters.status;
+      if (filters.status) {
+        if (filters.status === 'all') {
+          // ส่งสถานะครบชุดเพื่อให้ API ดึงทั้งรายการที่รอพิจารณา อนุมัติแล้ว และคำขอที่ปิดงานไปแล้ว
+          params.status = ['pending', 'approved', 'rejected', 'completed'];
+        } else {
+          params.status = filters.status;
+        }
       }
-      const response = await projectService.listProject1AdvisorQueue(params);
+      const response = await projectService.listProject1AdvisorQueue({ ...params, defenseType });
       if (!response?.success) {
         message.error(response?.message || 'ไม่สามารถดึงคิวคำขอสอบได้');
         return;
@@ -87,7 +107,7 @@ const AdvisorKP02Queue = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters.status]);
+  }, [filters.status, defenseType]);
 
   useEffect(() => {
     loadQueue();
@@ -158,7 +178,11 @@ const AdvisorKP02Queue = () => {
     const loadingKey = `${record.requestId}-approve`;
     setActionLoadingKey(loadingKey);
     try {
-      await projectService.submitProject1AdvisorDecision(record.project.projectId, { decision: 'approved' });
+      await projectService.submitProject1AdvisorDecision(
+        record.project.projectId,
+        { decision: 'approved' },
+        { defenseType }
+      );
       message.success('บันทึกการอนุมัติสำเร็จ');
       setReloadToken((prev) => prev + 1);
     } catch (error) {
@@ -166,7 +190,7 @@ const AdvisorKP02Queue = () => {
     } finally {
       setActionLoadingKey(null);
     }
-  }, []);
+  }, [defenseType]);
 
   const handleReject = useCallback((record) => {
     if (!record?.project?.projectId) {
@@ -202,10 +226,14 @@ const AdvisorKP02Queue = () => {
         const loadingKey = `${record.requestId}-reject`;
         setActionLoadingKey(loadingKey);
         try {
-          await projectService.submitProject1AdvisorDecision(record.project.projectId, {
-            decision: 'rejected',
-            note
-          });
+          await projectService.submitProject1AdvisorDecision(
+            record.project.projectId,
+            {
+              decision: 'rejected',
+              note
+            },
+            { defenseType }
+          );
           message.success('บันทึกการปฏิเสธแล้ว');
           setReloadToken((prev) => prev + 1);
         } catch (error) {
@@ -217,7 +245,7 @@ const AdvisorKP02Queue = () => {
         return Promise.resolve();
       }
     });
-  }, []);
+  }, [defenseType]);
 
   const columns = useMemo(() => [
     {
@@ -371,10 +399,8 @@ const AdvisorKP02Queue = () => {
     <div style={containerStyle}>
       <Space direction="vertical" style={{ width: '100%' }} size={24}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>คำขอสอบโครงงานพิเศษ 1 (คพ.02)</Title>
-          <Text type="secondary">
-            ระบบจะแสดงเฉพาะคำขอที่เกี่ยวข้องกับคุณในฐานะอาจารย์ที่ปรึกษา / ที่ปรึกษาร่วม
-          </Text>
+          <Title level={3}>{uiMeta.title}</Title>
+          <Text type="secondary">{uiMeta.description}</Text>
         </Space>
 
         <Row gutter={[16, 16]}>

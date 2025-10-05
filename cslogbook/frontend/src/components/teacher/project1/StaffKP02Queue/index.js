@@ -4,6 +4,8 @@ import {
   Button,
   Card,
   Col,
+  Descriptions,
+  Divider,
   Input,
   message,
   Modal,
@@ -21,6 +23,7 @@ import {
   CheckCircleOutlined,
   DownloadOutlined,
   EyeOutlined,
+  FilePdfOutlined,
   ReloadOutlined,
   SearchOutlined
 } from '@ant-design/icons';
@@ -29,12 +32,28 @@ import dayjs from '../../../../utils/dayjs';
 import { DATE_TIME_FORMAT } from '../../../../utils/constants';
 import projectService from '../../../../services/projectService';
 import { useAuth } from '../../../../contexts/AuthContext';
+import PDFViewerModal from '../../../PDFViewerModal';
 
 const { Text, Title } = Typography;
+
+const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
+const DEFENSE_TYPE_THESIS = 'THESIS';
+
+const DEFENSE_UI_META = {
+  [DEFENSE_TYPE_PROJECT1]: {
+    title: 'คำร้องขอสอบโครงงานพิเศษ1 (คพ.02)',
+    description: 'เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติครบแล้ว บันทึกผลการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบได้'
+  },
+  [DEFENSE_TYPE_THESIS]: {
+    title: 'คำร้องขอสอบปริญญานิพนธ์ (คพ.03)',
+    description: 'ติดตามคำขอสอบปริญญานิพนธ์ที่ผ่านการอนุมัติจากอาจารย์ บันทึกการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบ'
+  }
+};
 
 const STATUS_OPTIONS = [
   { value: 'advisor_approved', label: 'รอเจ้าหน้าที่ตรวจสอบ' },
   { value: 'staff_verified', label: 'ตรวจสอบแล้ว' },
+  { value: 'completed', label: 'บันทึกผลสอบแล้ว' },
   { value: 'all', label: 'ทั้งหมด' }
 ];
 
@@ -46,6 +65,15 @@ const STATUS_MAP = {
   completed: { color: 'purple', text: 'บันทึกผลสอบแล้ว' }
 };
 
+const SYSTEM_TEST_STATUS_META = {
+  pending_advisor: { color: 'orange', text: 'รออาจารย์อนุมัติ' },
+  advisor_rejected: { color: 'red', text: 'อาจารย์ส่งกลับ' },
+  pending_staff: { color: 'purple', text: 'รอเจ้าหน้าที่ตรวจสอบ' },
+  staff_rejected: { color: 'red', text: 'เจ้าหน้าที่ส่งกลับ' },
+  staff_approved: { color: 'green', text: 'อนุมัติครบ (รอหลักฐาน)' },
+  default: { color: 'default', text: 'ยังไม่ยื่นคำขอ' }
+};
+
 const containerStyle = {
   maxWidth: '1200px',
   margin: '0 auto',
@@ -55,13 +83,14 @@ const containerStyle = {
   gap: 24,
 };
 
-const StaffKP02Queue = () => {
+const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
   const { userData } = useAuth();
+  const uiMeta = DEFENSE_UI_META[defenseType] || DEFENSE_UI_META[DEFENSE_TYPE_PROJECT1];
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [filters, setFilters] = useState({
-    status: 'advisor_approved',
+    status: 'all',
     academicYear: undefined,
     semester: undefined,
     search: ''
@@ -70,6 +99,7 @@ const StaffKP02Queue = () => {
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [evidencePreview, setEvidencePreview] = useState({ visible: false, url: '', title: '' });
 
   const isStaff = useMemo(() => {
     if (!userData) return false;
@@ -78,9 +108,12 @@ const StaffKP02Queue = () => {
   }, [userData]);
 
   const canSchedulerExport = useMemo(() => {
-    if (!userData) return false;
-    return userData.role === 'teacher' && Boolean(userData.canExportProject1);
-  }, [userData]);
+    if (!userData || userData.role !== 'teacher') return false;
+    const schedulerFlag = defenseType === DEFENSE_TYPE_THESIS
+      ? (userData.canExportThesis ?? userData.canExportProject1)
+      : userData.canExportProject1;
+    return Boolean(schedulerFlag);
+  }, [userData, defenseType]);
 
   const canExport = isStaff || canSchedulerExport;
 
@@ -88,8 +121,13 @@ const StaffKP02Queue = () => {
     try {
       setLoading(true);
       const params = {};
-      if (filters.status && filters.status !== 'all') {
-        params.status = filters.status;
+      if (filters.status) {
+        if (filters.status === 'all') {
+          // ดึงทุกสถานะที่เจ้าหน้าที่ควรติดตาม รวมถึงรายการที่สรุปผลสอบแล้วด้วย
+          params.status = ['advisor_approved', 'staff_verified', 'scheduled', 'completed'];
+        } else {
+          params.status = filters.status;
+        }
       }
       if (filters.academicYear) {
         params.academicYear = filters.academicYear;
@@ -100,7 +138,7 @@ const StaffKP02Queue = () => {
       if (filters.search) {
         params.search = filters.search;
       }
-      const response = await projectService.listProject1StaffQueue(params);
+  const response = await projectService.listProject1StaffQueue({ ...params, defenseType });
       if (!response?.success) {
         message.error(response?.message || 'ไม่สามารถดึงคิวตรวจสอบได้');
         return;
@@ -111,7 +149,7 @@ const StaffKP02Queue = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, defenseType]);
 
   useEffect(() => {
     loadQueue();
@@ -129,6 +167,13 @@ const StaffKP02Queue = () => {
   const formatDateTime = useCallback((value) => {
     if (!value) return '-';
     return dayjs(value).locale('th').format(DATE_TIME_FORMAT);
+  }, []);
+
+  const formatDateOnly = useCallback((value) => {
+    if (!value) return '-';
+    const dt = dayjs(value);
+    if (!dt.isValid()) return '-';
+    return dt.locale('th').format('DD/MM/YYYY');
   }, []);
 
   const handleVerify = useCallback((record) => {
@@ -162,7 +207,11 @@ const StaffKP02Queue = () => {
         const loadingKey = `${record.requestId}-verify`;
         setActionLoadingKey(loadingKey);
         try {
-          await projectService.verifyProject1DefenseRequest(record.project.projectId, { note: (noteValue || '').trim() || undefined });
+          await projectService.verifyProject1DefenseRequest(
+            record.project.projectId,
+            { note: (noteValue || '').trim() || undefined },
+            { defenseType }
+          );
           message.success('บันทึกการตรวจสอบแล้ว');
           setReloadToken((prev) => prev + 1);
         } catch (error) {
@@ -174,7 +223,7 @@ const StaffKP02Queue = () => {
         return Promise.resolve();
       }
     });
-  }, [isStaff]);
+  }, [defenseType, isStaff]);
 
   const handleExport = useCallback(async () => {
     if (!canExport) {
@@ -189,15 +238,33 @@ const StaffKP02Queue = () => {
       if (filters.semester) params.semester = filters.semester;
       if (filters.search) params.search = filters.search;
 
-      const { blob, filename } = await projectService.exportProject1StaffQueue(params);
-  FileSaver.saveAs(blob, filename || `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`);
+    const { blob, filename } = await projectService.exportProject1StaffQueue({ ...params, defenseType });
+  FileSaver.saveAs(blob, filename);
       message.success('ส่งออกไฟล์เรียบร้อย');
     } catch (error) {
       message.error(error.message || 'ไม่สามารถส่งออกข้อมูลได้');
     } finally {
       setExporting(false);
     }
-  }, [canExport, filters]);
+  }, [canExport, defenseType, filters]);
+
+  const handleOpenEvidence = useCallback((evidence, projectName) => {
+    if (!evidence || !evidence.url) {
+      message.warning('ไม่พบไฟล์หลักฐานสำหรับคำขอนี้');
+      return;
+    }
+    const targetName = (projectName && projectName.trim()) || evidence.name || 'หลักฐานการประเมิน';
+    // เปิด PDF หลักฐานใน modal เพื่อให้เจ้าหน้าที่ตรวจสอบได้ทันทีโดยไม่ต้องออกจากหน้า
+    setEvidencePreview({
+      visible: true,
+      url: evidence.url,
+      title: `หลักฐานการประเมิน - ${targetName}`
+    });
+  }, []);
+
+  const handleCloseEvidence = useCallback(() => {
+    setEvidencePreview({ visible: false, url: '', title: '' });
+  }, []);
 
   const summary = useMemo(() => {
     return items.reduce(
@@ -302,62 +369,157 @@ const StaffKP02Queue = () => {
   const previewColumns = useMemo(() => baseColumns, [baseColumns]);
 
   const expandedRowRender = useCallback((record) => {
+    const recordDefenseType = record.defenseType || defenseType;
+    const isThesis = recordDefenseType === DEFENSE_TYPE_THESIS;
+
+    // เลือก metric ให้ตรงกับ phase ที่คำขอสอบต้องการ เพื่อให้เจ้าหน้าที่เห็นข้อมูลล่าสุดตามเกณฑ์
+    const projectMetricsPhase1 = record.project?.meetingMetricsPhase1 || record.project?.meetingMetrics || null;
+    const projectMetricsPhase2 = record.project?.meetingMetricsPhase2 || null;
+    const meetingMetrics = isThesis
+      ? record.meetingMetrics || projectMetricsPhase2 || null
+      : record.meetingMetrics || projectMetricsPhase1 || null;
+    const meetingPhaseLabel = isThesis ? 'Phase 2' : 'Phase 1';
+    const fallbackPhaseMetrics = isThesis ? projectMetricsPhase1 : projectMetricsPhase2;
+    const fallbackPhaseLabel = isThesis ? 'Phase 1' : 'Phase 2';
+    const attachments = Array.isArray(record.formPayload?.additionalMaterials) ? record.formPayload.additionalMaterials : [];
+    const requestDate = record.formPayload?.requestDate;
+    const intendedDefenseDate = record.formPayload?.intendedDefenseDate;
+    const additionalNotes = record.formPayload?.additionalNotes;
+    const projectNameForEvidence = record.project?.projectNameTh || record.project?.projectNameEn || record.project?.projectCode || '';
+
+    const systemTestSnapshot = isThesis ? record.formPayload?.systemTestSnapshot || null : null;
+    const systemTestMetaBase = systemTestSnapshot
+      ? SYSTEM_TEST_STATUS_META[systemTestSnapshot.status] || SYSTEM_TEST_STATUS_META.default
+      : SYSTEM_TEST_STATUS_META.default;
+    const systemTestMeta = systemTestSnapshot?.status === 'staff_approved' && systemTestSnapshot.evidenceSubmittedAt
+      ? { color: 'green', text: 'อนุมัติครบและได้รับหลักฐานครบแล้ว' }
+      : systemTestMetaBase;
+
     return (
       <Row gutter={[24, 16]}>
         <Col xs={24} md={14}>
-          <Card size="small" title="รายละเอียดเพิ่มเติม">
-            <Space direction="vertical" size={6} style={{ width: '100%' }}>
-              <Text>หมายเหตุเจ้าหน้าที่: {record.staffVerificationNote || '-'}</Text>
-              <Text>เจ้าหน้าที่ผู้ตรวจ: {record.staffVerifiedBy?.fullName || '-'}</Text>
-              <Text>หมายเหตุการนัดสอบ (ข้อมูลเดิม): {record.defenseNote || 'ตรวจสอบประกาศจากปฏิทิน'}</Text>
-              <Text>สถานที่สอบ (ข้อมูลเดิม): {record.defenseLocation || 'ประกาศผ่านช่องทางภายนอก'}</Text>
-            </Space>
-          </Card>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card size="small" title="รายละเอียดเพิ่มเติม">
+              <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                <Text>หมายเหตุเจ้าหน้าที่: {record.staffVerificationNote || '-'}</Text>
+                <Text>เจ้าหน้าที่ผู้ตรวจ: {record.staffVerifiedBy?.fullName || '-'}</Text>
+                <Text>หมายเหตุการนัดสอบ (ข้อมูลเดิม): {record.defenseNote || 'ตรวจสอบประกาศจากปฏิทิน'}</Text>
+                <Text>สถานที่สอบ (ข้อมูลเดิม): {record.defenseLocation || 'ประกาศผ่านช่องทางภายนอก'}</Text>
+                <Divider style={{ margin: '8px 0' }} />
+                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                  <Text strong>ข้อมูลจากแบบคำขอ</Text>
+                  <Text>วันที่ยื่นคำขอ: {requestDate ? formatDateOnly(requestDate) : '-'}</Text>
+                  {isThesis && intendedDefenseDate && (
+                    <Text>วันที่คาดว่าจะสอบ: {formatDateOnly(intendedDefenseDate)}</Text>
+                  )}
+                  {additionalNotes && (
+                    <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>หมายเหตุจากคำขอ: {additionalNotes}</Text>
+                  )}
+                </Space>
+                {attachments.length > 0 && (
+                  <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                    <Text strong>รายการเอกสารแนบ:</Text>
+                    {attachments.map((item, index) => (
+                      <Text key={`attachment-${index}`} type="secondary">
+                        • {item.label ? `${item.label}: ` : ''}{item.value}
+                      </Text>
+                    ))}
+                  </Space>
+                )}
+              </Space>
+            </Card>
+          </Space>
         </Col>
         <Col xs={24} md={10}>
-          <Card size="small" title="สรุปบันทึกการพบ (หัวหน้าโครงงาน)">
-            {record.meetingMetrics ? (
-              <Space direction="vertical" size={4}>
-                <Text>อนุมัติทั้งหมด: {record.meetingMetrics.totalApprovedLogs || 0}</Text>
-                <Text>ต้องมีขั้นต่ำ: {record.meetingMetrics.requiredApprovedLogs || 0}</Text>
-                <Text>อนุมัติครั้งล่าสุด: {formatDateTime(record.meetingMetrics.lastApprovedLogAt)}</Text>
-              </Space>
-            ) : (
-              <Alert type="info" message="ไม่พบข้อมูลบันทึกการพบ" showIcon />
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card size="small" title={`สรุปบันทึกการพบ (${meetingPhaseLabel})`}>
+              {meetingMetrics ? (
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Space direction="vertical" size={2}>
+                    <Text>อนุมัติทั้งหมด: {meetingMetrics.totalApprovedLogs || 0}</Text>
+                    <Text>ต้องมีขั้นต่ำ: {meetingMetrics.requiredApprovedLogs || 0}</Text>
+                    <Text>อนุมัติครั้งล่าสุด: {formatDateTime(meetingMetrics.lastApprovedLogAt)}</Text>
+                  </Space>
+                </Space>
+              ) : (
+                <Alert type="info" message="ไม่พบข้อมูลบันทึกการพบ" showIcon />
+              )}
+            </Card>
+            {isThesis && fallbackPhaseMetrics && (
+              <Card size="small" title={`ภาพรวมบันทึกการพบ (${fallbackPhaseLabel})`}>
+                <Space direction="vertical" size={6}>
+                  <Text>อนุมัติทั้งหมด: {fallbackPhaseMetrics.totalApprovedLogs || 0}</Text>
+                  <Text>ต้องมีขั้นต่ำ: {fallbackPhaseMetrics.requiredApprovedLogs || 0}</Text>
+                  <Text>อนุมัติครั้งล่าสุด: {formatDateTime(fallbackPhaseMetrics.lastApprovedLogAt)}</Text>
+                </Space>
+              </Card>
             )}
-          </Card>
+            {isThesis && (
+              <Card size="small" title="คำขอทดสอบระบบ 30 วัน">
+                {systemTestSnapshot ? (
+                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    <Space size={8} wrap>
+                      <Tag color={systemTestMeta.color}>{systemTestMeta.text}</Tag>
+                      <Text type="secondary">
+                        {systemTestSnapshot.staffDecidedAt
+                          ? `อนุมัติล่าสุด ${formatDateTime(systemTestSnapshot.staffDecidedAt)}`
+                          : `ยื่นคำขอเมื่อ ${formatDateTime(systemTestSnapshot.testStartDate)}`}
+                      </Text>
+                    </Space>
+                    <Descriptions bordered size="small" column={1}>
+                      <Descriptions.Item label="วันเริ่มทดสอบ">
+                        {formatDateOnly(systemTestSnapshot.testStartDate)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="ครบกำหนด 30 วัน">
+                        {formatDateOnly(systemTestSnapshot.testDueDate)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="วันอนุมัติล่าสุด">
+                          {systemTestSnapshot.staffDecidedAt ? formatDateTime(systemTestSnapshot.staffDecidedAt) : '-'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="อัปโหลดหลักฐาน">
+                          {systemTestSnapshot.evidenceSubmittedAt
+                            ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt)
+                            : 'ยังไม่อัปโหลด'}
+                        </Descriptions.Item>
+                        {systemTestSnapshot.evidence?.url && (
+                          <Descriptions.Item label="ไฟล์หลักฐาน">
+                            <Space size={8} wrap>
+                              <Button
+                                size="small"
+                                icon={<FilePdfOutlined />}
+                                onClick={() => handleOpenEvidence(systemTestSnapshot.evidence, projectNameForEvidence)}
+                              >
+                                เปิดในระบบ
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={() => window.open(systemTestSnapshot.evidence.url, '_blank', 'noopener,noreferrer')}
+                              >
+                                เปิดแท็บใหม่
+                              </Button>
+                            </Space>
+                          </Descriptions.Item>
+                        )}
+                    </Descriptions>
+                  </Space>
+                ) : (
+                  <Alert type="info" showIcon message="ยังไม่มีคำขอทดสอบระบบ 30 วัน" />
+                )}
+              </Card>
+            )}
+          </Space>
         </Col>
       </Row>
     );
-  }, [formatDateTime]);
+  }, [defenseType, formatDateOnly, formatDateTime, handleOpenEvidence]);
 
   return (
     <div style={containerStyle}>
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>คำร้องขอสอบโครงงานพิเศษ1 (คพ.02)</Title>
-          <Text type="secondary">
-            เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติครบแล้ว บันทึกผลการตรวจสอบ และส่งออกข้อมูลสำหรับการนัดสอบได้
-          </Text>
+          <Title level={3}>{uiMeta.title}</Title>
+          <Text type="secondary">{uiMeta.description}</Text>
         </Space>
-
-        <Alert
-          type="info"
-          showIcon
-          message="การนัดสอบจัดการผ่านปฏิทินภาควิชา"
-          description={(
-            <Space direction="vertical" size={2}>
-              <span>หลังตรวจสอบคำขอแล้ว โปรดอัปเดตวันเวลาและสถานที่สอบในปฏิทินหรือระบบภายนอกของภาควิชาเท่านั้น</span>
-              {summary.legacyScheduled > 0 && (
-                <span>ยังมี {summary.legacyScheduled} รายการที่มีข้อมูลนัดสอบจากระบบเดิม</span>
-              )}
-              {canSchedulerExport && !isStaff && (
-                <span>คุณได้รับสิทธิ์ในการตรวจสอบรายชื่อและส่งออกรายการ คพ.02 (อ่านอย่างเดียว)</span>
-              )}
-              <span>กด "ดูตัวอย่างก่อนส่งออก" เพื่อทบทวนรายชื่อทั้งหมดก่อนสร้างไฟล์</span>
-            </Space>
-          )}
-        />
 
         <Row gutter={[16, 16]}>
           <Col xs={24} md={6}>
@@ -455,7 +617,7 @@ const StaffKP02Queue = () => {
                 )}
                 <Button
                   danger
-                  onClick={() => setFilters({ status: 'advisor_approved', academicYear: undefined, semester: undefined, search: '' })}
+                  onClick={() => setFilters({ status: 'all', academicYear: undefined, semester: undefined, search: '' })}
                 >
                   รีเซ็ตตัวกรอง
                 </Button>
@@ -517,6 +679,12 @@ const StaffKP02Queue = () => {
           />
         </Space>
       </Modal>
+      <PDFViewerModal
+        visible={evidencePreview.visible}
+        pdfUrl={evidencePreview.url}
+        title={evidencePreview.title}
+        onClose={handleCloseEvidence}
+      />
     </div>
   );
 };

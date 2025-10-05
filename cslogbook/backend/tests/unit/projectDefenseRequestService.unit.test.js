@@ -5,6 +5,7 @@
 
 let SequelizeCtor;
 let DataTypesCtor;
+let Op;
 let sequelize;
 let Student;
 let User;
@@ -16,8 +17,15 @@ let Teacher;
 let Meeting;
 let MeetingParticipant;
 let MeetingLog;
+let ProjectExamResult;
+let ProjectTestRequest;
 let projectDefenseRequestService;
 const mockSyncProjectWorkflowState = jest.fn().mockResolvedValue(null);
+
+const formatDateOnly = (date) => {
+  if (!(date instanceof Date)) return null;
+  return date.toISOString().slice(0, 10);
+};
 
 async function createStudent(code) {
   const user = await User.create({ firstName: 'Stu', lastName: code.slice(-3) });
@@ -36,10 +44,15 @@ async function resetMeetings() {
   await Meeting.destroy({ where: {} });
 }
 
-async function seedApprovedMeetings(count = 5) {
+async function resetExamAndTest() {
+  await ProjectExamResult.destroy({ where: {} });
+  await ProjectTestRequest.destroy({ where: {} });
+}
+
+async function seedApprovedMeetings(count = 5, { phase = 'phase1' } = {}) {
   // สร้างข้อมูลการพบอาจารย์ที่ได้รับอนุมัติครบตามจำนวนที่กำหนด เพื่อใช้ทดสอบเกณฑ์ยื่นสอบ
   for (let i = 0; i < count; i += 1) {
-    const meeting = await Meeting.create({ projectId: project.projectId });
+    const meeting = await Meeting.create({ projectId: project.projectId, phase });
     await MeetingParticipant.bulkCreate([
       { meetingId: meeting.meetingId, userId: leader.userId, role: 'student', attendanceStatus: 'present' },
       { meetingId: meeting.meetingId, userId: member.userId, role: 'student', attendanceStatus: 'present' }
@@ -48,9 +61,48 @@ async function seedApprovedMeetings(count = 5) {
   }
 }
 
+const daysAgo = (days) => new Date(Date.now() - (days * 24 * 60 * 60 * 1000));
+
+async function seedProject1ExamPass() {
+  return ProjectExamResult.create({
+    projectId: project.projectId,
+    examType: 'PROJECT1',
+    result: 'PASS',
+    recordedByUserId: staffUser.userId,
+    recordedAt: daysAgo(45)
+  });
+}
+
+async function seedSystemTestRequest(options = {}) {
+  const {
+    status = 'staff_approved',
+    submittedDaysAgo = 60,
+    dueDaysAgo = 5,
+    includeEvidence = true
+  } = options;
+
+  const evidencePath = includeEvidence ? 'system-test/evidence/sample.pdf' : null;
+  const evidenceName = includeEvidence ? 'sample.pdf' : null;
+
+  return ProjectTestRequest.create({
+    projectId: project.projectId,
+    submittedByStudentId: leader.studentId,
+    status,
+    submittedAt: daysAgo(submittedDaysAgo),
+    testStartDate: daysAgo(submittedDaysAgo),
+    testDueDate: daysAgo(dueDaysAgo),
+    staffDecidedAt: status === 'staff_approved' ? daysAgo(dueDaysAgo + 1) : null,
+    evidenceFilePath: evidencePath,
+    evidenceFileName: evidenceName,
+    evidenceSubmittedAt: includeEvidence ? daysAgo(Math.max(dueDaysAgo - 1, 0)) : null
+  });
+}
+
 beforeAll(async () => {
   jest.resetModules();
-  ({ Sequelize: SequelizeCtor, DataTypes: DataTypesCtor } = require('sequelize'));
+  ({ Sequelize: SequelizeCtor, DataTypes: DataTypesCtor, Op } = require('sequelize'));
+
+  process.env.THESIS_REQUIRED_APPROVED_LOGS = '4';
 
   sequelize = new SequelizeCtor('sqlite::memory:', { logging: false });
 
@@ -75,7 +127,11 @@ beforeAll(async () => {
     projectCode: DataTypesCtor.STRING,
     status: { type: DataTypesCtor.STRING, defaultValue: 'draft' },
     advisorId: DataTypesCtor.INTEGER,
-    coAdvisorId: DataTypesCtor.INTEGER
+    coAdvisorId: DataTypesCtor.INTEGER,
+    examResult: { type: DataTypesCtor.STRING, allowNull: true, field: 'exam_result' },
+    examResultAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'exam_result_at' },
+    examFailReason: { type: DataTypesCtor.TEXT, allowNull: true, field: 'exam_fail_reason' },
+    studentAcknowledgedAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'student_acknowledged_at' }
   }, { tableName: 'project_documents', underscored: true, timestamps: false });
 
   ProjectMember = sequelize.define('ProjectMember', {
@@ -121,7 +177,8 @@ beforeAll(async () => {
 
   Meeting = sequelize.define('Meeting', {
     meetingId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'meeting_id' },
-    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' }
+    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' },
+    phase: { type: DataTypesCtor.STRING, allowNull: true }
   }, { tableName: 'meetings', underscored: true, timestamps: false });
 
   MeetingParticipant = sequelize.define('MeetingParticipant', {
@@ -138,12 +195,39 @@ beforeAll(async () => {
     approvedAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'approved_at' }
   }, { tableName: 'meeting_logs', underscored: true, timestamps: false });
 
+  ProjectExamResult = sequelize.define('ProjectExamResult', {
+    examResultId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'exam_result_id' },
+    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' },
+    examType: { type: DataTypesCtor.STRING, allowNull: false, field: 'exam_type' },
+    result: { type: DataTypesCtor.STRING, allowNull: false },
+    recordedByUserId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'recorded_by_user_id' },
+    recordedAt: { type: DataTypesCtor.DATE, allowNull: false, defaultValue: DataTypesCtor.NOW, field: 'recorded_at' }
+  }, { tableName: 'project_exam_results', underscored: true, timestamps: false });
+
+  ProjectTestRequest = sequelize.define('ProjectTestRequest', {
+    requestId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'request_id' },
+    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' },
+    submittedByStudentId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'submitted_by_student_id' },
+  status: { type: DataTypesCtor.STRING, allowNull: false },
+  evidenceFilePath: { type: DataTypesCtor.STRING, allowNull: true, field: 'evidence_file_path' },
+  evidenceFileName: { type: DataTypesCtor.STRING, allowNull: true, field: 'evidence_file_name' },
+    submittedAt: { type: DataTypesCtor.DATE, allowNull: false, field: 'submitted_at' },
+    testStartDate: { type: DataTypesCtor.DATE, allowNull: false, field: 'test_start_date' },
+    testDueDate: { type: DataTypesCtor.DATE, allowNull: false, field: 'test_due_date' },
+    staffDecidedAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'staff_decided_at' },
+    evidenceSubmittedAt: { type: DataTypesCtor.DATE, allowNull: true, field: 'evidence_submitted_at' }
+  }, { tableName: 'project_test_requests', underscored: true, timestamps: false });
+
   ProjectDocument.hasMany(ProjectMember, { as: 'members', foreignKey: 'project_id' });
   ProjectMember.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
   ProjectMember.belongsTo(Student, { as: 'student', foreignKey: 'student_id' });
   ProjectDocument.hasMany(ProjectDefenseRequest, { as: 'defenseRequests', foreignKey: 'project_id' });
   ProjectDocument.belongsTo(Teacher, { as: 'advisor', foreignKey: 'advisor_id' });
   ProjectDocument.belongsTo(Teacher, { as: 'coAdvisor', foreignKey: 'co_advisor_id' });
+  ProjectDocument.hasMany(ProjectExamResult, { as: 'examResults', foreignKey: 'project_id' });
+  ProjectExamResult.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
+  ProjectDocument.hasMany(ProjectTestRequest, { as: 'testRequests', foreignKey: 'project_id' });
+  ProjectTestRequest.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
   Teacher.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
   ProjectDefenseRequest.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
   ProjectDefenseRequest.belongsTo(Student, { as: 'submittedBy', foreignKey: 'submitted_by_student_id' });
@@ -160,7 +244,7 @@ beforeAll(async () => {
       syncProjectWorkflowState: mockSyncProjectWorkflowState,
       getProjectById: jest.fn(),
       getRequiredApprovedMeetingLogs: () => 5,
-      buildProjectMeetingMetrics: async (projectId, students) => {
+      buildProjectMeetingMetrics: async (projectId, students, options = {}) => {
         const metrics = {
           totalMeetings: 0,
           totalApprovedLogs: 0,
@@ -186,7 +270,18 @@ beforeAll(async () => {
           return metrics;
         }
 
-        const meetings = await Meeting.findAll({ where: { projectId }, raw: true });
+        const meetingWhere = { projectId };
+        const { phase } = options;
+        if (phase) {
+          const normalized = Array.isArray(phase) ? phase.filter(Boolean) : [phase].filter(Boolean);
+          if (normalized.length === 1) {
+            meetingWhere.phase = normalized[0];
+          } else if (normalized.length > 1) {
+            meetingWhere.phase = { [Op.in]: normalized };
+          }
+        }
+
+        const meetings = await Meeting.findAll({ where: meetingWhere, raw: true });
         metrics.totalMeetings = meetings.length;
         if (!meetings.length) {
           return metrics;
@@ -243,7 +338,9 @@ beforeAll(async () => {
       Teacher,
       Meeting,
       MeetingParticipant,
-      MeetingLog
+      MeetingLog,
+      ProjectExamResult,
+      ProjectTestRequest
     }));
     projectDefenseRequestService = require('../../services/projectDefenseRequestService');
   });
@@ -269,6 +366,16 @@ beforeAll(async () => {
 
 afterEach(() => {
   mockSyncProjectWorkflowState.mockClear();
+});
+
+beforeEach(async () => {
+  await resetExamAndTest();
+  await project.update({
+    examResult: null,
+    examResultAt: null,
+    examFailReason: null,
+    studentAcknowledgedAt: null
+  });
 });
 
 afterAll(async () => {
@@ -352,6 +459,127 @@ describe('submitProject1Request', () => {
     await expect(projectDefenseRequestService.submitProject1Request(project.projectId, leader.studentId, {
       students: []
     })).rejects.toThrow(/ช่องติดต่อของสมาชิก/);
+  });
+});
+
+describe('submitThesisRequest', () => {
+  test('ยื่นคำขอสำเร็จเมื่อครบเงื่อนไขทั้งหมด', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5, { phase: 'phase2' });
+    await seedProject1ExamPass();
+    const testRequest = await seedSystemTestRequest({ dueDaysAgo: 10, includeEvidence: true });
+    const payload = {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    };
+
+    const record = await projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, payload);
+    expect(record).toBeDefined();
+    expect(record.defenseType).toBe('THESIS');
+    expect(record.status).toBe('advisor_in_review');
+    expect(record.formPayload.intendedDefenseDate).toBeNull();
+    expect(record.formPayload.systemTestSnapshot).toEqual(expect.objectContaining({
+      requestId: testRequest.requestId,
+      evidence: {
+        path: 'system-test/evidence/sample.pdf',
+        url: '/uploads/system-test/evidence/sample.pdf',
+        name: 'sample.pdf'
+      }
+    }));
+  });
+
+  test('ยื่นคำขอสำเร็จเมื่อข้อมูล legacy บันทึกผลสอบเป็น passed', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5, { phase: 'phase2' });
+  await project.update({ examResult: 'passed', examResultAt: daysAgo(45) });
+  const refreshedProject = await ProjectDocument.findByPk(project.projectId);
+  expect(refreshedProject.examResult).toBe('passed');
+    const testRequest = await seedSystemTestRequest({ dueDaysAgo: 12, includeEvidence: true });
+
+    const record = await projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: 'leader@example.com' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    });
+
+    expect(record).toBeDefined();
+    expect(record.status).toBe('advisor_in_review');
+    expect(record.formPayload.systemTestSnapshot.requestId).toBe(testRequest.requestId);
+  });
+
+  test('ปฏิเสธเมื่อยังไม่ผ่านการสอบโครงงานพิเศษ 1', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(5, { phase: 'phase2' });
+    await seedSystemTestRequest({ dueDaysAgo: 15, includeEvidence: true });
+
+    await expect(projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: '' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    })).rejects.toThrow(/ต้องผ่านการสอบโครงงานพิเศษ 1/);
+  });
+
+  test('ปฏิเสธเมื่อบันทึกการพบอาจารย์ไม่ครบตามเกณฑ์พิเศษ', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(3, { phase: 'phase2' });
+    await seedProject1ExamPass();
+    await seedSystemTestRequest({ dueDaysAgo: 20, includeEvidence: true });
+
+    await expect(projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: '' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    })).rejects.toThrow(/บันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย/);
+  });
+
+  test('ปฏิเสธเมื่อสถานะคำขอทดสอบระบบยังไม่อนุมัติโดยเจ้าหน้าที่', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(6, { phase: 'phase2' });
+    await seedProject1ExamPass();
+    await seedSystemTestRequest({ status: 'pending_staff', includeEvidence: false });
+
+    await expect(projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: '' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    })).rejects.toThrow(/ยังไม่ได้รับการอนุมัติคำขอทดสอบระบบ/);
+  });
+
+  test('ปฏิเสธเมื่อยังไม่อัปโหลดหลักฐานการทดสอบระบบครบ', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(6, { phase: 'phase2' });
+    await seedProject1ExamPass();
+    await seedSystemTestRequest({ includeEvidence: false, dueDaysAgo: 20 });
+
+    await expect(projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: '' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    })).rejects.toThrow(/กรุณาอัปโหลดหลักฐานการประเมินการทดสอบระบบ/);
+  });
+
+  test('ปฏิเสธเมื่อยังไม่ครบกำหนด 30 วันของการทดสอบระบบ', async () => {
+    await resetMeetings();
+    await seedApprovedMeetings(6, { phase: 'phase2' });
+    await seedProject1ExamPass();
+    const testRequest = await seedSystemTestRequest({ dueDaysAgo: -2 });
+
+    await expect(projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
+      students: [
+        { studentId: leader.studentId, phone: '0811111111', email: '' },
+        { studentId: member.studentId, phone: '0822222222', email: '' }
+      ]
+    })).rejects.toThrow(/ยังไม่ครบกำหนดระยะเวลาทดสอบระบบ 30 วัน/);
+
+    // ป้องกันไม่ให้ intended date ซ้ำหรือก่อน due date
+    expect(testRequest.testDueDate).toBeInstanceOf(Date);
   });
 });
 

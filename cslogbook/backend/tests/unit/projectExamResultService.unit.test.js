@@ -245,6 +245,86 @@ describe('recordExamResult', () => {
     expect(mockUnlockNextPhase).not.toHaveBeenCalled();
     expect(ackResult).toBe(examResult);
   });
+
+  test('บันทึกผล THESIS PASS แต่เล่มยังไม่อนุมัติ ทำให้สถานะยังคงเป็น in_progress', async () => {
+    const defenseRequest = {
+      defenseType: 'THESIS',
+      status: 'staff_verified',
+      update: jest.fn().mockResolvedValue()
+    };
+
+    const project = {
+      projectId: 5,
+      semester: 2,
+      academicYear: 2567,
+      members: [{ studentId: 301 }],
+      defenseRequests: [defenseRequest],
+      document: { status: 'pending' },
+      status: 'in_progress',
+      update: jest.fn().mockResolvedValue(),
+      reload: jest.fn().mockResolvedValue()
+    };
+
+    modelMocks.ProjectExamResult.hasExamResult.mockResolvedValue(false);
+    modelMocks.ProjectDocument.findByPk.mockResolvedValue(project);
+    modelMocks.ProjectExamResult.create.mockResolvedValue({
+      examType: 'THESIS',
+      result: 'PASS'
+    });
+
+    await projectExamResultService.recordExamResult(5, {
+      examType: 'THESIS',
+      result: 'PASS'
+    }, 777);
+
+    expect(project.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'in_progress',
+      examResult: 'passed'
+    }), expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(defenseRequest.update).toHaveBeenCalledWith({ status: 'completed' }, expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(mockSyncProjectWorkflowState).toHaveBeenCalledWith(5, expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(transactions[0].commit).toHaveBeenCalled();
+  });
+
+  test('บันทึกผล THESIS PASS และเล่มอนุมัติแล้ว ทำให้โครงงานถูกปิดเป็น completed', async () => {
+    const defenseRequest = {
+      defenseType: 'THESIS',
+      status: 'staff_verified',
+      update: jest.fn().mockResolvedValue()
+    };
+
+    const project = {
+      projectId: 6,
+      semester: 2,
+      academicYear: 2567,
+      members: [{ studentId: 302 }],
+      defenseRequests: [defenseRequest],
+      document: { status: 'completed' },
+      status: 'in_progress',
+      update: jest.fn().mockResolvedValue(),
+      reload: jest.fn().mockResolvedValue()
+    };
+
+    modelMocks.ProjectExamResult.hasExamResult.mockResolvedValue(false);
+    modelMocks.ProjectDocument.findByPk.mockResolvedValue(project);
+    modelMocks.ProjectExamResult.create.mockResolvedValue({
+      examType: 'THESIS',
+      result: 'PASS'
+    });
+
+    await projectExamResultService.recordExamResult(6, {
+      examType: 'THESIS',
+      result: 'PASS'
+    }, 888);
+
+    expect(project.update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'completed',
+      examResult: 'passed'
+    }), expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(defenseRequest.update).toHaveBeenCalledWith({ status: 'completed' }, expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(mockSyncProjectWorkflowState).toHaveBeenCalledWith(6, expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(transactions[0].commit).toHaveBeenCalled();
+  });
 });
 
 describe('getProject1PendingResults', () => {

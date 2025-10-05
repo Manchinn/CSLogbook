@@ -1,5 +1,40 @@
 import apiClient from './apiClient';
 
+const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
+const DEFENSE_TYPE_THESIS = 'THESIS';
+const DEFENSE_TYPES = [DEFENSE_TYPE_PROJECT1, DEFENSE_TYPE_THESIS];
+
+const normalizeDefenseType = (value, fallback = DEFENSE_TYPE_PROJECT1) => {
+  if (!value && value !== 0) return fallback;
+  const normalized = String(value).trim().toUpperCase();
+  if (!normalized) return fallback;
+  return DEFENSE_TYPES.includes(normalized) ? normalized : fallback;
+};
+
+const resolveDefenseTypeOption = (options, fallback = DEFENSE_TYPE_PROJECT1) => {
+  if (!options) return fallback;
+  if (typeof options === 'string') {
+    return normalizeDefenseType(options, fallback);
+  }
+  if (typeof options === 'object') {
+    return normalizeDefenseType(options.defenseType ?? options.type, fallback);
+  }
+  return fallback;
+};
+
+const buildDefenseParams = (options = {}, defenseType = DEFENSE_TYPE_PROJECT1) => {
+  const params = { ...(options || {}) };
+  delete params.defenseType;
+  delete params.type;
+  params.defenseType = defenseType;
+  return params;
+};
+
+const buildDefenseExportFallbackName = (defenseType = DEFENSE_TYPE_PROJECT1) => {
+  const prefix = defenseType === DEFENSE_TYPE_THESIS ? 'รายชื่อสอบปริญญานิพนธ์' : 'รายชื่อสอบโครงงานพิเศษ1';
+  return `${prefix}_${Date.now()}.xlsx`;
+};
+
 /**
  * projectService
  * Service เรียกใช้งาน API โครงงานพิเศษ (Phase 2)
@@ -117,9 +152,12 @@ const projectService = {
     }
   },
 
-  getProject1DefenseRequest: async (projectId) => {
+  getProject1DefenseRequest: async (projectId, options = {}) => {
     try {
-      const res = await apiClient.get(`/projects/${projectId}/kp02`);
+      const defenseType = resolveDefenseTypeOption(options, DEFENSE_TYPE_PROJECT1);
+      const res = await apiClient.get(`/projects/${projectId}/kp02`, {
+        params: buildDefenseParams({}, defenseType)
+      });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถดึงข้อมูลคำขอสอบได้');
@@ -135,27 +173,36 @@ const projectService = {
     }
   },
 
-  submitProject1DefenseRequest: async (projectId, payload) => {
+  submitProject1DefenseRequest: async (projectId, payload, options = {}) => {
     try {
-      const res = await apiClient.post(`/projects/${projectId}/kp02`, payload);
+      const defenseType = resolveDefenseTypeOption(options, DEFENSE_TYPE_PROJECT1);
+      const res = await apiClient.post(`/projects/${projectId}/kp02`, payload, {
+        params: buildDefenseParams({}, defenseType)
+      });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถบันทึกคำขอสอบได้');
     }
   },
 
-  submitProject1AdvisorDecision: async (projectId, payload) => {
+  submitProject1AdvisorDecision: async (projectId, payload, options = {}) => {
     try {
-      const res = await apiClient.post(`/projects/${projectId}/kp02/advisor-approve`, payload);
+      const defenseType = resolveDefenseTypeOption(options, DEFENSE_TYPE_PROJECT1);
+      const res = await apiClient.post(`/projects/${projectId}/kp02/advisor-approve`, payload, {
+        params: buildDefenseParams({}, defenseType)
+      });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถบันทึกการอนุมัติอาจารย์ได้');
     }
   },
 
-  verifyProject1DefenseRequest: async (projectId, payload = {}) => {
+  verifyProject1DefenseRequest: async (projectId, payload = {}, options = {}) => {
     try {
-      const res = await apiClient.post(`/projects/${projectId}/kp02/verify`, payload);
+      const defenseType = resolveDefenseTypeOption(options, DEFENSE_TYPE_PROJECT1);
+      const res = await apiClient.post(`/projects/${projectId}/kp02/verify`, payload, {
+        params: buildDefenseParams({}, defenseType)
+      });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถบันทึกการตรวจสอบได้');
@@ -164,7 +211,9 @@ const projectService = {
 
   listProject1AdvisorQueue: async (params = {}) => {
     try {
-      const res = await apiClient.get('/projects/kp02/advisor-queue', { params });
+      const defenseType = resolveDefenseTypeOption(params, DEFENSE_TYPE_PROJECT1);
+      const requestParams = buildDefenseParams(params, defenseType);
+      const res = await apiClient.get('/projects/kp02/advisor-queue', { params: requestParams });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถดึงรายการคำขอของอาจารย์ได้');
@@ -173,7 +222,9 @@ const projectService = {
 
   listProject1StaffQueue: async (params = {}) => {
     try {
-      const res = await apiClient.get('/projects/kp02/staff-queue', { params });
+      const defenseType = resolveDefenseTypeOption(params, DEFENSE_TYPE_PROJECT1);
+      const requestParams = buildDefenseParams(params, defenseType);
+      const res = await apiClient.get('/projects/kp02/staff-queue', { params: requestParams });
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถดึงคิวคำขอของเจ้าหน้าที่ได้');
@@ -182,15 +233,17 @@ const projectService = {
 
   exportProject1StaffQueue: async (params = {}) => {
     try {
+      const defenseType = resolveDefenseTypeOption(params, DEFENSE_TYPE_PROJECT1);
+      const requestParams = buildDefenseParams(params, defenseType);
       const res = await apiClient.get('/projects/kp02/staff-queue/export', {
-        params,
+        params: requestParams,
         responseType: 'blob'
       });
       const disposition = res.headers?.['content-disposition'] || res.headers?.['Content-Disposition'] || '';
       const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
       const encodedName = match?.[1];
       const basicName = match?.[2];
-  const filename = encodedName ? decodeURIComponent(encodedName) : (basicName || `รายชื่อสอบโครงงานพิเศษ1_${Date.now()}.xlsx`);
+      const filename = encodedName ? decodeURIComponent(encodedName) : (basicName || buildDefenseExportFallbackName(defenseType));
       return { blob: res.data, filename };
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถส่งออกข้อมูลได้');
