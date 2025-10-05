@@ -1,4 +1,14 @@
-const { User, Student, Teacher, Curriculum, StudentAcademicHistory, Academic } = require("../models");
+const {
+  User,
+  Student,
+  Teacher,
+  Curriculum,
+  StudentAcademicHistory,
+  Academic,
+  ProjectMember,
+  ProjectDocument,
+  ProjectExamResult,
+} = require("../models");
 const bcrypt = require("bcrypt");
 const {
   calculateStudentYear,
@@ -574,6 +584,81 @@ class StudentService {
         student.checkProjectEligibility(),
       ]);
 
+      let projectAccessOverride = false;
+      let projectOverrideReason = null;
+
+      if (ProjectMember && ProjectDocument) {
+        try {
+          const examResultInclude = ProjectExamResult
+            ? [
+                {
+                  model: ProjectExamResult,
+                  as: "examResults",
+                  attributes: ["examType", "result"],
+                },
+              ]
+            : [];
+
+          const projectMemberships = await ProjectMember.findAll({
+            where: { studentId: student.studentId },
+            include: [
+              {
+                model: ProjectDocument,
+                as: "project",
+                required: true,
+                attributes: ["projectId", "status", "examResult"],
+                ...(examResultInclude.length ? { include: examResultInclude } : {}),
+              },
+            ],
+          });
+
+          const ALLOWED_PROJECT_STATUSES = new Set([
+            "draft",
+            "advisor_assigned",
+            "in_progress",
+            "completed",
+          ]);
+
+          projectAccessOverride = projectMemberships.some((membership) => {
+            const project = membership?.project;
+            if (!project) return false;
+
+            if (ALLOWED_PROJECT_STATUSES.has(project.status)) {
+              projectOverrideReason = "มีโครงงานที่อยู่ระหว่างดำเนินการหรือเสร็จสิ้นในระบบ";
+              return true;
+            }
+
+            if (project.status === "archived") {
+              const examResults = Array.isArray(project.examResults)
+                ? project.examResults
+                : [];
+              const thesisPassed = examResults.some(
+                (exam) =>
+                  exam?.examType === "THESIS" && (exam?.result || "").toUpperCase() === "PASS"
+              );
+              const project1Passed =
+                (project.examResult || "").toLowerCase() === "passed" ||
+                examResults.some(
+                  (exam) =>
+                    exam?.examType === "PROJECT1" && (exam?.result || "").toUpperCase() === "PASS"
+                );
+
+              if (thesisPassed && project1Passed) {
+                projectOverrideReason = "ผ่านการสอบโครงงานพิเศษครบทั้งสองช่วงแล้ว";
+                return true;
+              }
+            }
+
+            return false;
+          });
+        } catch (overrideError) {
+          logger.warn("checkStudentEligibility: ไม่สามารถตรวจสอบสถานะโครงงานเพื่อ override access ได้", {
+            error: overrideError.message,
+            studentId: student.studentId,
+          });
+        }
+      }
+
       // ดึงข้อมูลการตั้งค่าปีการศึกษาล่าสุด
       const academicSettings = await sequelize.models.Academic.findOne({
         order: [["created_at", "DESC"]],
@@ -671,6 +756,13 @@ class StudentService {
       }
 
       // สร้าง eligibility object
+      if (projectAccessOverride) {
+        projectStatus.canAccess = true;
+        if (!projectCheck.canAccessFeature) {
+          projectStatus.reason = projectOverrideReason || projectStatus.reason;
+        }
+      }
+
       const eligibility = {
         internship: {
           isEligible: isCreditEligibleForInternship,
@@ -682,9 +774,12 @@ class StudentService {
         },
         project: {
           isEligible: projectCheck.eligible,
-          canAccessFeature: projectCheck.canAccessFeature || false,
+          canAccessFeature: (projectCheck.canAccessFeature || false) || projectAccessOverride,
           canRegister: projectCheck.canRegister || false,
-          reason: projectCheck.reason || null,
+          reason:
+            projectAccessOverride && !projectCheck.canAccessFeature
+              ? projectOverrideReason || projectCheck.reason || null
+              : projectCheck.reason || null,
         },
       };
 

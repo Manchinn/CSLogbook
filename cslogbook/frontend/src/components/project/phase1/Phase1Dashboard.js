@@ -109,7 +109,7 @@ const Phase1Dashboard = () => {
     } else if (activeProject.examResult !== 'passed') {
       reasons.push('ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้');
     }
-    if (activeProject.status !== 'in_progress') {
+    if (!['in_progress', 'completed'].includes(activeProject.status)) {
       reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ"');
     }
     return reasons;
