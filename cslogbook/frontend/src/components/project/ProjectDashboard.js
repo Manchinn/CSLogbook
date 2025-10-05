@@ -131,9 +131,8 @@ const ProjectDashboard = () => {
   const coAdvisorName = useMemo(() => buildCoAdvisorName(activeProject, advisors), [activeProject, advisors]);
 
   return (
-    <div style={containerStyle}>
       <Card>
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space direction="vertical" size={16} style={containerStyle}>
           <Title level={4} style={{ margin: 0 }}>📘 แผงสรุปโครงงานพิเศษ</Title>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
@@ -262,7 +261,6 @@ const ProjectDashboard = () => {
           )}
         </Space>
       </Card>
-    </div>
   );
 };
 
