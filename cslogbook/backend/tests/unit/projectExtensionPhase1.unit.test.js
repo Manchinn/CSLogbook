@@ -5,9 +5,13 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
 // In-memory
-const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+const mockSequelize = new Sequelize('sqlite::memory:', { logging: false });
+const sequelize = mockSequelize;
 
 const mockUpdateWorkflowActivity = jest.fn().mockResolvedValue(null);
+const mockLogger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
+
+const mockDatabaseModule = { Sequelize, sequelize: mockSequelize };
 
 // Models simplified
 const Student = sequelize.define('Student', {
@@ -19,6 +23,7 @@ const Student = sequelize.define('Student', {
 
 const ProjectDocument = sequelize.define('ProjectDocument', {
   projectId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'project_id' },
+  documentId: { type: DataTypes.INTEGER, allowNull: true, field: 'document_id' },
   projectCode: { type: DataTypes.STRING, field: 'project_code' },
   projectNameTh: { type: DataTypes.STRING, field: 'project_name_th' },
   projectNameEn: { type: DataTypes.STRING, field: 'project_name_en' },
@@ -109,9 +114,31 @@ ProjectDefenseRequest.hasMany(ProjectDefenseRequestAdvisorApproval, { as: 'advis
 ProjectDefenseRequestAdvisorApproval.belongsTo(ProjectDefenseRequest, { as: 'request', foreignKey: 'request_id', constraints: false });
 ProjectDefenseRequestAdvisorApproval.belongsTo(Teacher, { as: 'teacher', foreignKey: 'teacher_id', constraints: false });
 
-let projectDocumentService;
-let milestoneService;
-let artifactService;
+const mockModels = {
+  sequelize,
+  ProjectDocument,
+  ProjectMember,
+  ProjectMilestone,
+  ProjectArtifact,
+  User,
+  ProjectTrack,
+  Academic,
+  Student,
+  ProjectDefenseRequest,
+  ProjectDefenseRequestAdvisorApproval,
+  Teacher
+};
+
+jest.mock('../../config/database', () => mockDatabaseModule);
+jest.mock('../../utils/logger', () => mockLogger);
+jest.mock('../../services/workflowService', () => ({
+  updateStudentWorkflowActivity: mockUpdateWorkflowActivity
+}));
+jest.mock('../../models', () => mockModels);
+
+const projectDocumentService = require('../../services/projectDocumentService');
+const milestoneService = require('../../services/projectMilestoneService');
+const artifactService = require('../../services/projectArtifactService');
 
 async function bootstrap() {
   await sequelize.sync({ force: true });
@@ -125,34 +152,18 @@ async function bootstrap() {
 describe('Milestone + Proposal basic', () => {
   let leader, proj;
   beforeAll(async () => {
-    jest.resetModules();
-    jest.isolateModules(() => {
-      jest.doMock('../../config/database', () => ({ sequelize }), { virtual: true });
-      jest.doMock('../../utils/logger', () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn() }), { virtual: true });
-      jest.doMock('../../services/workflowService', () => ({
-        updateStudentWorkflowActivity: mockUpdateWorkflowActivity
-      }), { virtual: true });
-      jest.doMock('../../models', () => ({
-        sequelize,
-        ProjectDocument,
-        ProjectMember,
-        ProjectMilestone,
-        ProjectArtifact,
-        User,
-        ProjectTrack,
-        Academic,
-        Student,
-        ProjectDefenseRequest,
-        ProjectDefenseRequestAdvisorApproval,
-        Teacher
-      }), { virtual: true });
-      projectDocumentService = require('../../services/projectDocumentService');
-      milestoneService = require('../../services/projectMilestoneService');
-      artifactService = require('../../services/projectArtifactService');
-      const models = require('../../models');
-      expect(models.Student).toBe(Student);
-    });
     ({ leader, proj } = await bootstrap());
+  });
+
+  beforeEach(() => {
+    mockUpdateWorkflowActivity.mockClear();
+    mockLogger.info.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.warn.mockClear();
+  });
+
+  afterAll(async () => {
+    await sequelize.close();
   });
 
   test('create milestone success', async () => {

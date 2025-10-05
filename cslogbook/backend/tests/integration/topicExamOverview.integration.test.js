@@ -1,61 +1,58 @@
 const request = require('supertest');
 const express = require('express');
 
+const mockTeacherFindOne = jest.fn(async ({ where }) => {
+  if ([500, 501].includes(where.userId)) {
+    return { teacherType: 'support', canAccessTopicExam: true };
+  }
+  return null;
+});
+
+jest.mock('../../middleware/authMiddleware', () => ({
+  authenticateToken: (req, res, next) => {
+    const role = req.headers['x-test-role'];
+    if (!role) {
+      return res.status(401).json({ success: false, error: 'NO_AUTH' });
+    }
+    req.user = {
+      userId: Number(req.headers['x-test-userid']) || 0,
+      role
+    };
+    next();
+  }
+}));
+
+jest.mock('../../models', () => ({
+  Teacher: { findOne: (...args) => mockTeacherFindOne(...args) }
+}));
+
+const mockGetOverview = jest.fn((_req, res) => res.json({ success: true, data: [], meta: {} }));
+
+jest.mock('../../controllers/topicExamController', () => ({
+  getOverview: mockGetOverview,
+  exportOverview: jest.fn()
+}));
+
+const topicExamRoutes = require('../../routes/topicExamRoutes');
+
 describe('GET /api/projects/topic-exam/overview (integration)', () => {
   let app;
-  let teacherFindOne;
 
   beforeAll(() => {
-    jest.resetModules();
-
-    teacherFindOne = jest.fn(async ({ where }) => {
-      if ([500, 501].includes(where.userId)) {
-        return { teacherType: 'support', canAccessTopicExam: true };
-      }
-      return null;
-    });
-
-    jest.doMock('../../middleware/authMiddleware', () => ({
-      authenticateToken: (req, res, next) => {
-        const role = req.headers['x-test-role'];
-        if (!role) {
-          return res.status(401).json({ success: false, error: 'NO_AUTH' });
-        }
-        req.user = {
-          userId: Number(req.headers['x-test-userid']) || 0,
-          role
-        };
-        next();
-      }
-    }));
-
-    jest.doMock('../../models', () => ({
-      Teacher: { findOne: teacherFindOne }
-    }));
-
-    jest.doMock('../../controllers/topicExamController', () => ({
-      getOverview: jest.fn((_req, res) => res.json({ success: true, data: [], meta: {} })),
-      exportOverview: jest.fn()
-    }));
-
-    const topicExamRoutes = require('../../routes/topicExamRoutes');
     app = express();
     app.use(express.json());
     app.use('/api/projects/topic-exam', topicExamRoutes);
   });
 
-  afterAll(() => {
-    jest.resetModules();
-  });
-
   beforeEach(() => {
-    teacherFindOne.mockClear();
-    teacherFindOne.mockImplementation(async ({ where }) => {
+    mockTeacherFindOne.mockClear();
+    mockTeacherFindOne.mockImplementation(async ({ where }) => {
       if ([500, 501].includes(where.userId)) {
         return { teacherType: 'support', canAccessTopicExam: true };
       }
       return null;
     });
+    mockGetOverview.mockClear();
   });
 
   test('403 when role=student', async () => {

@@ -3,17 +3,29 @@ const os = require('os');
 const path = require('path');
 const ExcelJS = require('exceljs');
 
-jest.mock('../../models', () => ({
-  User: { findOrCreate: jest.fn() },
-  Student: { findOrCreate: jest.fn() },
-  UploadHistory: { create: jest.fn() }
-}));
+const mockUserModel = { findOrCreate: jest.fn() };
+const mockStudentModel = { findOrCreate: jest.fn() };
+const mockUploadHistoryModel = { create: jest.fn() };
 
-jest.mock('../../config/database', () => ({
-  sequelize: {
-    transaction: jest.fn()
-  }
-}));
+const mockModels = {
+  User: mockUserModel,
+  Student: mockStudentModel,
+  UploadHistory: mockUploadHistoryModel
+};
+
+jest.mock('../../models', () => mockModels);
+
+const mockSequelizeModule = (() => {
+  const { Sequelize } = require('sequelize');
+  return {
+    Sequelize,
+    sequelize: {
+      transaction: jest.fn()
+    }
+  };
+})();
+
+jest.mock('../../config/database', () => mockSequelizeModule);
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(() => Promise.resolve('hashed-password'))
@@ -48,7 +60,7 @@ describe('processStudentCsvUpload', () => {
   let rollbackMock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+  jest.clearAllMocks();
     commitMock = jest.fn();
     rollbackMock = jest.fn();
     sequelize.transaction.mockImplementation(() =>

@@ -122,6 +122,7 @@ beforeAll(async () => {
 
   ProjectDocument = sequelize.define('ProjectDocument', {
     projectId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'project_id' },
+    documentId: { type: DataTypesCtor.INTEGER, allowNull: true, field: 'document_id' },
     projectNameTh: DataTypesCtor.STRING,
     projectNameEn: DataTypesCtor.STRING,
     projectCode: DataTypesCtor.STRING,
@@ -238,7 +239,7 @@ beforeAll(async () => {
   ProjectDefenseRequestAdvisorApproval.belongsTo(Teacher, { as: 'teacher', foreignKey: 'teacher_id' });
 
   jest.isolateModules(() => {
-    jest.doMock('../../config/database', () => ({ sequelize }));
+    jest.doMock('../../config/database', () => ({ sequelize, Sequelize: SequelizeCtor }));
     jest.doMock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
     jest.doMock('../../services/projectDocumentService', () => ({
       syncProjectWorkflowState: mockSyncProjectWorkflowState,

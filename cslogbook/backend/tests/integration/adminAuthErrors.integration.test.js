@@ -1,20 +1,25 @@
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
-const app = require('../../app');
+
+const mockUserFindOne = jest.fn(({ where }) => {
+  if (where.userId === 10) return { userId: 10, role: 'teacher', activeStatus: true };
+  if (where.userId === 11) return { userId: 11, role: 'teacher', activeStatus: true };
+  return null;
+});
+
+const mockTeacherFindOne = jest.fn(({ where }) => {
+  if (where.userId === 10) return { teacherType: 'academic' };
+  if (where.userId === 11) return { teacherType: 'support' };
+  return null;
+});
 
 jest.mock('../../models', () => ({
-  User: { findOne: jest.fn(({ where }) => {
-    if (where.userId === 10) return { userId: 10, role: 'teacher', activeStatus: true };
-    if (where.userId === 11) return { userId: 11, role: 'teacher', activeStatus: true };
-    return null;
-  }) },
+  User: { findOne: (...args) => mockUserFindOne(...args) },
   Student: { findOne: jest.fn() },
-  Teacher: { findOne: jest.fn(({ where }) => {
-    if (where.userId === 10) return { teacherType: 'academic' };
-    if (where.userId === 11) return { teacherType: 'support' };
-    return null;
-  }) }
-}), { virtual: true });
+  Teacher: { findOne: (...args) => mockTeacherFindOne(...args) }
+}));
+
+const app = require('../../app');
 
 describe('admin route auth error paths', () => {
   beforeAll(() => {
