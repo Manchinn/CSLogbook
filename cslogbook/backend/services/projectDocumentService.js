@@ -9,6 +9,9 @@ let MeetingParticipant;
 let MeetingLog;
 let ProjectDefenseRequest;
 let ProjectTestRequest;
+let ProjectExamResult;
+let Document;
+let User;
 
 const resolveModelsPath = () => require.resolve('../models');
 const IS_JEST = Boolean(process.env.JEST_WORKER_ID);
@@ -29,7 +32,10 @@ const attachModels = () => {
     MeetingParticipant,
     MeetingLog,
     ProjectDefenseRequest,
-    ProjectTestRequest
+    ProjectTestRequest,
+    ProjectExamResult,
+    Document,
+    User
   } = require('../models'));
 };
 
@@ -46,6 +52,68 @@ const workflowService = require('./workflowService');
 const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '5', 10) || 5, 1);
 const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
 const VALID_MEETING_PHASES = new Set(['phase1', 'phase2']);
+
+const toPlainObject = (instance) => {
+  if (!instance) return null;
+  return typeof instance.toJSON === 'function' ? instance.toJSON() : instance;
+};
+
+const mapUserSummary = (userInstance) => {
+  const user = toPlainObject(userInstance);
+  if (!user) return null;
+  return {
+    userId: user.userId ?? user.user_id ?? null,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    email: user.email ?? null,
+    role: user.role ?? null
+  };
+};
+
+const normalizeFinalDocument = (documentInstance) => {
+  const doc = toPlainObject(documentInstance);
+  if (!doc) return null;
+
+  const resolveTimestamp = (primary, fallbackKey) => {
+    if (primary) return primary;
+    if (fallbackKey && doc[fallbackKey]) return doc[fallbackKey];
+    return null;
+  };
+
+  return {
+    documentId: doc.documentId ?? doc.document_id ?? null,
+    documentName: doc.documentName ?? doc.document_name ?? null,
+    status: doc.status ?? null,
+    reviewComment: doc.reviewComment ?? doc.review_comment ?? null,
+    reviewDate: resolveTimestamp(doc.reviewDate, 'review_date'),
+    submittedAt:
+      resolveTimestamp(doc.submittedAt, 'submitted_at') ||
+      resolveTimestamp(doc.createdAt, 'created_at'),
+    downloadCount: doc.downloadCount ?? doc.download_count ?? 0,
+    downloadStatus: doc.downloadStatus ?? doc.download_status ?? null,
+    owner: mapUserSummary(doc.owner),
+    reviewer: mapUserSummary(doc.reviewer)
+  };
+};
+
+const normalizeExamResult = (examResultInstance) => {
+  const result = toPlainObject(examResultInstance);
+  if (!result) return null;
+
+  return {
+    examResultId: result.examResultId ?? result.exam_result_id ?? null,
+    projectId: result.projectId ?? result.project_id ?? null,
+    examType: result.examType ?? result.exam_type ?? null,
+    result: result.result ?? null,
+    score: result.score ?? null,
+    notes: result.notes ?? null,
+    requireScopeRevision: Boolean(result.requireScopeRevision ?? result.require_scope_revision),
+    recordedAt: result.recordedAt ?? result.recorded_at ?? null,
+    recordedByUserId: result.recordedByUserId ?? result.recorded_by_user_id ?? null,
+    recordedBy: mapUserSummary(result.recordedBy),
+    studentAcknowledgedAt: result.studentAcknowledgedAt ?? result.student_acknowledged_at ?? null
+  };
+};
 
 /**
  * Service สำหรับจัดการ ProjectDocument (Phase 2)
@@ -475,25 +543,54 @@ class ProjectDocumentService {
   async getProjectById(projectId, options = {}) {
     const includeSummary = !!options.includeSummary;
     ensureModels();
+    const includes = [
+      { 
+        model: ProjectMember, 
+        as: 'members',
+        include: [
+          { 
+            model: Student, 
+            as: 'student',
+            include: [
+              { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
+            ],
+            attributes: ['studentId','studentCode']
+          }
+        ]
+      },
+      { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
+      { model: ProjectDefenseRequest, as: 'defenseRequests' }
+    ];
+
+    if (Document) {
+      const documentInclude = [];
+      if (User) {
+        documentInclude.push({ model: User, as: 'owner', attributes: ['userId', 'firstName', 'lastName', 'email'] });
+        documentInclude.push({ model: User, as: 'reviewer', attributes: ['userId', 'firstName', 'lastName', 'email'] });
+      }
+      includes.push({
+        model: Document,
+        as: 'document',
+        required: false,
+        ...(documentInclude.length ? { include: documentInclude } : {})
+      });
+    }
+
+    if (ProjectExamResult) {
+      const examResultInclude = [];
+      if (User) {
+        examResultInclude.push({ model: User, as: 'recordedBy', attributes: ['userId', 'firstName', 'lastName', 'role'] });
+      }
+      includes.push({
+        model: ProjectExamResult,
+        as: 'examResults',
+        required: false,
+        ...(examResultInclude.length ? { include: examResultInclude } : {})
+      });
+    }
+
     const project = await ProjectDocument.findByPk(projectId, {
-      include: [
-        { 
-          model: ProjectMember, 
-          as: 'members',
-          include: [
-            { 
-              model: Student, 
-              as: 'student',
-              include: [
-                { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
-              ],
-              attributes: ['studentId','studentCode']
-            }
-          ]
-        },
-        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
-        { model: ProjectDefenseRequest, as: 'defenseRequests' }
-      ]
+      include: includes
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
     const base = this.serialize(project);
@@ -582,6 +679,18 @@ class ProjectDocumentService {
    * แปลงผลลัพธ์เป็น JSON พร้อมโครงสร้างสวยงาม
    */
   serialize(p) {
+    const finalDocument = normalizeFinalDocument(p.document);
+    const examResults = Array.isArray(p.examResults)
+      ? p.examResults
+          .map(normalizeExamResult)
+          .filter(Boolean)
+          .sort((a, b) => {
+            const aTime = a?.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+            const bTime = b?.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+            return bTime - aTime;
+          })
+      : [];
+
     return {
       projectId: p.projectId,
       projectCode: p.projectCode,
@@ -634,7 +743,10 @@ class ProjectDocumentService {
         defenseNote: req.defenseNote,
         scheduledByUserId: req.scheduledByUserId,
         scheduledAt: req.scheduledAt
-      }))
+      })),
+      finalDocument,
+      document: finalDocument,
+      examResults
     };
   }
 

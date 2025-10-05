@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, Descriptions, Empty, List, Row, Space, Spin, Tag, Timeline, Tooltip, Typography } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, FilePdfOutlined, LinkOutlined, TeamOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, CloseCircleOutlined, FilePdfOutlined, FileDoneOutlined, LinkOutlined, TeamOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import projectService from '../../../services/projectService';
@@ -31,6 +31,50 @@ const SYSTEM_TEST_STATUS_META = {
   staff_rejected: { color: 'red', text: 'เจ้าหน้าที่ส่งกลับ' },
   staff_approved: { color: 'green', text: 'อนุมัติครบ (รอหลักฐาน)' },
   default: { color: 'default', text: 'ยังไม่ยื่นคำขอ' }
+};
+
+const FINAL_DOCUMENT_STATUS_META = {
+  draft: { color: 'default', text: 'ร่าง' },
+  pending: { color: 'orange', text: 'รอตรวจสอบ' },
+  approved: { color: 'green', text: 'อนุมัติ' },
+  rejected: { color: 'red', text: 'ส่งกลับ' },
+  completed: { color: 'green', text: 'เรียบร้อย' },
+  supervisor_evaluated: { color: 'purple', text: 'หัวหน้าภาคตรวจแล้ว' },
+  acceptance_approved: { color: 'geekblue', text: 'อนุมัติรับเล่ม' },
+  referral_ready: { color: 'blue', text: 'พร้อมส่งต่อ' },
+  referral_downloaded: { color: 'cyan', text: 'ดาวน์โหลดแล้ว' }
+};
+
+const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
+  'approved',
+  'completed',
+  'acceptance_approved',
+  'referral_ready',
+  'referral_downloaded'
+]);
+
+const normalizeExamResultEntry = (entry) => {
+  if (!entry) return null;
+  const examType = (entry.examType || entry.exam_type || '').toUpperCase();
+  if (!examType) return null;
+
+  return {
+    examResultId: entry.examResultId ?? entry.exam_result_id ?? null,
+    examType,
+    result: entry.result || null,
+    score: entry.score ?? null,
+    notes: entry.notes ?? null,
+    requireScopeRevision: Boolean(entry.requireScopeRevision ?? entry.require_scope_revision),
+    recordedAt: entry.recordedAt || entry.recorded_at || null,
+    recordedBy: entry.recordedBy
+      ? {
+          userId: entry.recordedBy.userId ?? entry.recordedBy.user_id ?? null,
+          firstName: entry.recordedBy.firstName || null,
+          lastName: entry.recordedBy.lastName || null,
+          role: entry.recordedBy.role || null
+        }
+      : null
+  };
 };
 
 const phase2StepsLookup = phase2CardSteps.reduce((acc, step) => {
@@ -245,6 +289,47 @@ const Phase2Dashboard = () => {
     };
   }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2]);
 
+  const examResultsByType = useMemo(() => {
+    if (!Array.isArray(activeProject?.examResults)) {
+      return {};
+    }
+
+    const map = {};
+    activeProject.examResults.forEach((entry) => {
+      const normalized = normalizeExamResultEntry(entry);
+      if (!normalized || !normalized.examType) {
+        return;
+      }
+
+      const existing = map[normalized.examType];
+      if (!existing) {
+        map[normalized.examType] = normalized;
+        return;
+      }
+
+      const existingTime = existing.recordedAt ? dayjs(existing.recordedAt) : null;
+      const currentTime = normalized.recordedAt ? dayjs(normalized.recordedAt) : null;
+      if (!existingTime || (currentTime && currentTime.isAfter(existingTime))) {
+        map[normalized.examType] = normalized;
+      }
+    });
+
+    return map;
+  }, [activeProject?.examResults]);
+
+  const thesisExamResult = useMemo(() => examResultsByType.THESIS || null, [examResultsByType]);
+
+  const finalDocument = useMemo(
+    () => activeProject?.finalDocument || activeProject?.document || null,
+    [activeProject?.finalDocument, activeProject?.document]
+  );
+
+  const finalDocumentStatusMeta = useMemo(() => {
+    if (!finalDocument?.status) return null;
+    const key = String(finalDocument.status).toLowerCase();
+    return FINAL_DOCUMENT_STATUS_META[key] || { color: 'default', text: finalDocument.status };
+  }, [finalDocument?.status]);
+
   const thesisBlockingReasons = useMemo(() => {
     const reasons = [];
     if (!meetingRequirement.satisfied) {
@@ -371,6 +456,54 @@ const Phase2Dashboard = () => {
     const examRecorded = formatDate(examDetail?.recordedAt || activeProject?.examResultAt);
     const thesisScheduled = thesisRequest?.defenseScheduledAt ? formatDate(thesisRequest.defenseScheduledAt) : null;
     const thesisCompleted = thesisStatusKey === 'completed';
+    const thesisExamRecorded = thesisExamResult?.recordedAt ? formatDate(thesisExamResult.recordedAt) : null;
+    const thesisExamPassed = thesisExamResult?.result === 'PASS';
+    const thesisExamRequireRevision = Boolean(thesisExamResult?.requireScopeRevision);
+    // จัดรูปแบบสีและไอคอนสำหรับผลสอบปริญญานิพนธ์ เพื่อให้ผู้ใช้เห็นผลล่าสุดได้ทันที
+    const thesisExamTimelineColor = thesisExamResult
+      ? (thesisExamPassed ? 'green' : 'red')
+      : thesisScheduled
+        ? 'blue'
+        : 'gray';
+    const thesisExamTimelineDot = thesisExamResult
+      ? (thesisExamPassed ? <CheckCircleOutlined /> : <CloseCircleOutlined />)
+      : <ClockCircleOutlined />;
+
+    const finalDocumentStatusKey = finalDocument?.status ? String(finalDocument.status).toLowerCase() : null;
+    const finalDocumentSubmitted = finalDocument?.submittedAt ? formatDate(finalDocument.submittedAt) : null;
+    const finalDocumentReviewed = finalDocument?.reviewDate ? formatDate(finalDocument.reviewDate) : null;
+    let finalDocumentReviewerName = null;
+    if (finalDocument?.reviewer) {
+      const reviewerNames = [
+        finalDocument.reviewer.firstName || '',
+        finalDocument.reviewer.lastName || ''
+      ].filter(Boolean);
+      finalDocumentReviewerName = reviewerNames.length ? reviewerNames.join(' ') : null;
+    }
+    // กำหนดสีและไอคอนของสถานะเล่ม เพื่อสะท้อนความคืบหน้าและปัญหา (ถ้ามี) ในเส้นเวลาเดียวกัน
+    const finalDocumentTimelineColor = finalDocumentStatusKey
+      ? FINAL_DOCUMENT_ACCEPTED_STATUSES.has(finalDocumentStatusKey)
+        ? 'green'
+        : finalDocumentStatusKey === 'rejected'
+          ? 'red'
+          : 'blue'
+      : 'gray';
+    const finalDocumentTimelineDot = finalDocumentStatusKey
+      ? FINAL_DOCUMENT_ACCEPTED_STATUSES.has(finalDocumentStatusKey)
+        ? <CheckCircleOutlined />
+        : finalDocumentStatusKey === 'rejected'
+          ? <CloseCircleOutlined />
+          : <FileDoneOutlined />
+      : <ClockCircleOutlined />;
+
+    let thesisExamRecorderName = null;
+    if (thesisExamResult?.recordedBy) {
+      const recorderNames = [
+        thesisExamResult.recordedBy.firstName || '',
+        thesisExamResult.recordedBy.lastName || ''
+      ].filter(Boolean);
+      thesisExamRecorderName = recorderNames.length ? recorderNames.join(' ') : 'เจ้าหน้าที่ภาควิชา';
+    }
 
     const items = [
       {
@@ -457,6 +590,69 @@ const Phase2Dashboard = () => {
             </Text>
           </Space>
         )
+      },
+      {
+        key: 'thesis-exam-result',
+        color: thesisExamTimelineColor,
+        dot: thesisExamTimelineDot,
+        children: (
+          <Space direction="vertical" size={2}>
+            <Text strong>ผลสอบปริญญานิพนธ์</Text>
+            {thesisExamResult ? (
+              <>
+                <Space size={6} wrap>
+                  <Tag color={thesisExamPassed ? 'green' : 'red'}>
+                    {thesisExamPassed ? 'ผ่าน' : 'ไม่ผ่าน'}
+                  </Tag>
+                  {thesisExamPassed && thesisExamRequireRevision && (
+                    <Tag color="orange">มีเงื่อนไข</Tag>
+                  )}
+                </Space>
+                {thesisExamRecorded && (
+                  <Text type="secondary">บันทึกเมื่อ {thesisExamRecorded}</Text>
+                )}
+                {thesisExamRecorderName && (
+                  <Text type="secondary">โดย {thesisExamRecorderName}</Text>
+                )}
+                {thesisExamResult.notes && (
+                  <Text type="secondary">หมายเหตุ: {thesisExamResult.notes}</Text>
+                )}
+              </>
+            ) : (
+              <Text type="secondary">ยังไม่ประกาศผลสอบ</Text>
+            )}
+          </Space>
+        )
+      },
+      {
+        key: 'final-document-status',
+        color: finalDocumentTimelineColor,
+        dot: finalDocumentTimelineDot,
+        children: (
+          <Space direction="vertical" size={2}>
+            <Text strong>สถานะเล่มปริญญานิพนธ์</Text>
+            {finalDocument ? (
+              <>
+                <Tag color={finalDocumentStatusMeta?.color || 'default'}>
+                  {finalDocumentStatusMeta?.text || finalDocument.status || 'ไม่ทราบสถานะ'}
+                </Tag>
+                {finalDocumentSubmitted && (
+                  <Text type="secondary">ส่งเมื่อ {finalDocumentSubmitted}</Text>
+                )}
+                {finalDocumentReviewerName && finalDocumentReviewed && (
+                  <Text type="secondary">
+                    ตรวจโดย {finalDocumentReviewerName} เมื่อ {finalDocumentReviewed}
+                  </Text>
+                )}
+                {typeof finalDocument.downloadCount === 'number' && finalDocument.downloadCount > 0 && (
+                  <Text type="secondary">ดาวน์โหลดแล้ว {finalDocument.downloadCount} ครั้ง</Text>
+                )}
+              </>
+            ) : (
+              <Text type="secondary">ระบบยังไม่พบเล่มในระบบ เจ้าหน้าที่จะเพิ่มให้เมื่อได้รับเล่มจากคุณ</Text>
+            )}
+          </Space>
+        )
       }
     ];
 
@@ -473,7 +669,10 @@ const Phase2Dashboard = () => {
     meetingRequirement,
     thesisRequest,
     thesisStatusKey,
-    thesisStatusMeta
+    thesisStatusMeta,
+    thesisExamResult,
+    finalDocument,
+    finalDocumentStatusMeta
   ]);
 
   const renderHeader = () => (
@@ -624,7 +823,7 @@ const Phase2Dashboard = () => {
 
         <Card title="ลำดับขั้นตอนสำคัญ">
           <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-            ผังนี้แสดงสถานะตั้งแต่ผลสอบโครงงานพิเศษ 1 การปรับ Scope การเก็บ Meeting Logbook ไปจนถึงการยื่นและสอบปริญญานิพนธ์
+            ผังนี้แสดงสถานะตั้งแต่ผลสอบโครงงานพิเศษ 1 การปรับ Scope การเก็บ Meeting Logbook ไปจนถึงการยื่นสอบ ผลสอบปริญญานิพนธ์ และความคืบหน้าเล่มปริญญานิพนธ์
           </Paragraph>
           <Timeline mode="left" items={timelineItems} />
         </Card>
