@@ -316,7 +316,7 @@ const InternshipSummary = () => {
           title="ยังไม่มีข้อมูลการฝึกงาน"
           subTitle="กรุณาลงทะเบียนการฝึกงานโดยกรอกแบบฟอร์ม คพ.05 ก่อน"
           extra={
-            <Button type="primary" onClick={() => navigate("/internship/cs05")}>
+            <Button type="primary" onClick={() => navigate("/internship-registration/flow")}>
               ไปยังแบบฟอร์ม คพ.05
             </Button>
           }

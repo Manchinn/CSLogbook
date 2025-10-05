@@ -12,6 +12,15 @@ const { Op } = require("sequelize");
 const dayjs = require("dayjs");
 const { calculateWorkdays } = require("../utils/dateUtils");
 const logger = require("../utils/logger");
+
+// สถานะของเอกสาร CS05 ที่ถือว่า “มีผล” สำหรับการเข้าถึงข้อมูลฝึกงาน
+// ครอบคลุมทั้งกรณีรออนุมัติ, อนุมัติแล้ว และผ่านการตรวจของอาจารย์นิเทศ
+const ACTIVE_CS05_STATUSES = [
+  "pending",
+  "approved",
+  "supervisor_approved",
+  "supervisor_evaluated",
+];
 class InternshipLogbookService {
   /**
    * ดึงข้อมูลบันทึกการฝึกงานทั้งหมดของนักศึกษา
@@ -38,7 +47,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -121,7 +130,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -311,7 +320,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -415,7 +424,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -463,7 +472,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -573,7 +582,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -783,7 +792,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -890,7 +899,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {
@@ -973,7 +982,7 @@ class InternshipLogbookService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["pending", "approved", "supervisor_evaluated"],
+          status: ACTIVE_CS05_STATUSES,
         },
         include: [
           {

@@ -280,9 +280,9 @@ export const getMenuConfig = ({
               { key: '/admin/settings', label: 'ภาพรวมการตั้งค่า', onClick: () => navigate('/admin/settings') },
               { key: '/admin/settings/curriculum', label: 'หลักสูตรการศึกษา', onClick: () => navigate('/admin/settings/curriculum') },
               { key: '/admin/settings/academic', label: 'ปีการศึกษา/ภาคเรียน', onClick: () => navigate('/admin/settings/academic') },
-              { key: '/admin/settings/status', label: 'สถานะนักศึกษา', onClick: () => navigate('/admin/settings/status') },
+              //{ key: '/admin/settings/status', label: 'สถานะนักศึกษา', onClick: () => navigate('/admin/settings/status') },
               { key: '/admin/settings/notification-settings', label: 'การแจ้งเตือน', onClick: () => navigate('/admin/settings/notification-settings') },
-              { key: '/admin/settings/workflow-steps', label: 'ขั้นตอนการทำงาน', onClick: () => navigate('/admin/settings/workflow-steps') },
+              //{ key: '/admin/settings/workflow-steps', label: 'ขั้นตอนการทำงาน', onClick: () => navigate('/admin/settings/workflow-steps') },
             ],
           },
         ]
