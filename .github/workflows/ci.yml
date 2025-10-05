@@ -44,7 +44,7 @@ jobs:
         run: npx jest --runInBand --coverage
 
       - name: Upload coverage artifact (optional)
-        if: success()
+        if: ${{ success() && hashFiles('cslogbook/backend/coverage/**') != '' }}
         uses: actions/upload-artifact@v4
         with:
             name: backend-coverage
@@ -79,7 +79,7 @@ jobs:
         run: npm test -- --watchAll=false --coverage
 
       - name: Upload frontend coverage artifact (optional)
-        if: success()
+        if: ${{ success() && hashFiles('cslogbook/frontend/coverage/**') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
