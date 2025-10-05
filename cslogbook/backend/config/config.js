@@ -1,23 +1,21 @@
 const path = require('path');
+const fs = require('fs');
 const dotenv = require('dotenv');
 
-// Load env file
+// โหลดไฟล์ environment ตาม NODE_ENV หากมีอยู่
 const envFile = path.resolve(process.cwd(), `.env.${process.env.NODE_ENV}`);
-const result = dotenv.config({ path: envFile });
 
-if (result.error) {
-  console.error('Error loading .env file:', result.error);
-  process.exit(1);
+if (fs.existsSync(envFile)) {
+  const result = dotenv.config({ path: envFile });
+
+  if (result.error) {
+    console.warn('⚠️  ไม่สามารถโหลดไฟล์ env ได้ แต่จะใช้ค่า environment ที่กำหนดไว้แทน:', result.error);
+  } else {
+    console.log('✅ โหลดไฟล์ env สำเร็จ:', envFile);
+  }
+} else {
+  console.log(`ℹ️  ไม่พบไฟล์ ${envFile} ใน container จะใช้ค่า environment จากระบบแทน`);
 }
-
-console.log('Env File Path:', envFile);
-console.log('Current ENV:', process.env.NODE_ENV);
-console.log('Database Config:', {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT
-});
 
 module.exports = {
   development: {
