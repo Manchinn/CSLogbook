@@ -107,7 +107,26 @@ class AcademicService {
     try {
       logger.info('AcademicService: Creating new academic settings');
       
-      const { activeCurriculumId, isCurrent, ...restOfData } = academicData;
+      const {
+        activeCurriculumId,
+        isCurrent,
+        semesters,
+        ...restOfData
+      } = academicData;
+
+      // แปลงโครงสร้างช่วงภาคเรียนจาก semesters -> semesterXRange สำหรับบันทึกลงฐานข้อมูล
+      const processedData = { ...restOfData };
+      if (semesters) {
+        if (semesters["1"] && Object.prototype.hasOwnProperty.call(semesters["1"], "range")) {
+          processedData.semester1Range = semesters["1"].range ?? null;
+        }
+        if (semesters["2"] && Object.prototype.hasOwnProperty.call(semesters["2"], "range")) {
+          processedData.semester2Range = semesters["2"].range ?? null;
+        }
+        if (semesters["3"] && Object.prototype.hasOwnProperty.call(semesters["3"], "range")) {
+          processedData.semester3Range = semesters["3"].range ?? null;
+        }
+      }
       
       // ตรวจสอบ activeCurriculumId ถ้ามี
       if (activeCurriculumId) {
@@ -118,17 +137,19 @@ class AcademicService {
         }
       }
       
-      // ถ้า isCurrent เป็น true ให้เปลี่ยนรายการอื่นเป็น false
-      if (isCurrent === true) {
+      const currentFlag = isCurrent ?? true; // ถ้าไม่ได้ส่งมา ให้ถือว่าเป็นปีการศึกษาปัจจุบัน
+
+      // ถ้า currentFlag เป็น true ให้เปลี่ยนรายการอื่นเป็น false
+      if (currentFlag === true) {
         await this.updateCurrentStatus(null, t);
       }
       
       // สร้างการตั้งค่าใหม่
       const newSettings = await Academic.create(
         { 
-          ...restOfData, 
+          ...processedData, 
           activeCurriculumId, 
-          isCurrent: isCurrent === undefined ? false : isCurrent 
+          isCurrent: currentFlag 
         },
         { transaction: t }
       );
@@ -181,6 +202,12 @@ class AcademicService {
       
       // เตรียมข้อมูลที่จะอัปเดต
       const updatedData = { ...rest, activeCurriculumId, isCurrent };
+        if (updatedData.isCurrent === undefined) {
+          delete updatedData.isCurrent;
+        }
+        if (updatedData.activeCurriculumId === undefined) {
+          delete updatedData.activeCurriculumId;
+        }
       
       logger.info(`AcademicService: Initial update data:`, JSON.stringify(updatedData, null, 2));
       

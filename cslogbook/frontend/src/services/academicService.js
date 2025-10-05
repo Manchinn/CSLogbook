@@ -16,6 +16,15 @@ export const academicService = {
       };
     } catch (error) {
       console.error('Error fetching academic settings:', error);
+      // กรณียังไม่เคยตั้งค่าปีการศึกษาให้ส่งกลับ success: false เพื่อให้ฝั่ง UI จัดการได้
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          data: null,
+          message: error.response.data?.message || 'ยังไม่มีการตั้งค่าปีการศึกษา'
+        };
+      }
+
       throw error;
     }
   },
@@ -54,13 +63,22 @@ export const academicService = {
           isFromDatabase: true
         };
       }
-      
+      // กรณี success เป็น false (เช่น ยังไม่มีข้อมูล) ให้คืนค่า null เพื่อแสดง fallback ใน UI
+      if (!response.success) {
+        return null;
+      }
+
       return null;
     } catch (error) {
       console.error('Error fetching current academic info:', error);
       
       // ถ้าเป็น error 403 (ไม่มีสิทธิ์) ให้ return null
       if (error.response?.status === 403) {
+        return null;
+      }
+
+      // ถ้าเจอ 404 จาก call ฝั่งนี้ (กรณีไม่ผ่านการจัดการข้างบน) ให้คืน null เช่นกัน
+      if (error.response?.status === 404) {
         return null;
       }
       

@@ -15,8 +15,25 @@ export const settingsService = {
   // อัปเดตข้อมูลการตั้งค่าปีการศึกษา
   updateAcademicSettings: async (data) => {
     try {
-      // ส่ง id ไปด้วยใน body
-      const response = await apiClient.put("/admin/academic", data);
+      const { id, ...payload } = data || {};
+
+      // ลบค่า undefined ออกจาก payload เพื่อไม่ให้ backend ได้รับค่าที่ไม่จำเป็น
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined) {
+          delete payload[key];
+        }
+      });
+
+      if (!id) {
+        // หากยังไม่มี id แสดงว่าเป็นการบันทึกครั้งแรก -> เรียกสร้างข้อมูลใหม่และตั้งให้เป็นปีปัจจุบัน
+        const response = await apiClient.post("/admin/academic", {
+          ...payload,
+          isCurrent: true,
+        });
+        return response.data;
+      }
+
+      const response = await apiClient.put("/admin/academic", { id, ...payload });
       return response.data;
     } catch (error) {
       console.error("Error updating academic settings:", error);

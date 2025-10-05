@@ -10,6 +10,7 @@ node_modules/
 /backend/.env
 /frontend/.env
 /frontend/.env.development
+.env.docker
 
 # Build files
 /frontend/build/
