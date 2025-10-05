@@ -336,6 +336,23 @@ const Phase1Dashboard = () => {
       }
     }
 
+    if (!thesisDefenseRequest) {
+      setStatus('thesis-defense-request', 'ยังไม่ยื่นคำขอ', 'default');
+    } else {
+      const thesisStatus = thesisDefenseRequest.status;
+      if (['advisor_rejected', 'staff_returned', 'cancelled'].includes(thesisStatus)) {
+        setStatus('thesis-defense-request', 'คำขอถูกส่งกลับ', 'red');
+      } else if (thesisStatus === 'advisor_approved') {
+        setStatus('thesis-defense-request', 'อาจารย์อนุมัติครบ', 'purple');
+      } else if (['staff_verified', 'scheduled'].includes(thesisStatus)) {
+        setStatus('thesis-defense-request', 'ติดตามประกาศวันสอบ', 'geekblue');
+      } else if (thesisStatus === 'completed') {
+        setStatus('thesis-defense-request', 'บันทึกผลสอบแล้ว', 'green');
+      } else {
+        setStatus('thesis-defense-request', 'รอการอนุมัติ', 'blue');
+      }
+    }
+
     if (!canAccessPhase2) {
       setStatus('phase2-overview', 'รอปลดล็อก', 'gold');
     } else if (thesisDefenseRequest?.status === 'completed') {
