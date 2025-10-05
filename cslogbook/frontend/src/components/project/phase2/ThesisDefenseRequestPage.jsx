@@ -200,8 +200,9 @@ const ThesisDefenseRequestPage = () => {
     if (!activeProject) return;
     try {
       setSaving(true);
+      const requestDate = dayjs().format('YYYY-MM-DD');
       const payload = {
-        requestDate: values.requestDate ? dayjs(values.requestDate).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        requestDate,
         students: (values.students || []).map((student) => ({
           studentId: student.studentId,
           phone: student.phone?.trim() || '',
@@ -281,42 +282,15 @@ const ThesisDefenseRequestPage = () => {
     </Space>
   );
 
+  const hasSubmitted = !!requestRecord;
+
   return (
     <Space direction="vertical" style={{ width: '100%', paddingBottom: 32 }} size={24}>
       <Card title={<Title level={4} style={{ margin: 0 }}>คำขอสอบโครงงานพิเศษ 2 (คพ.03)</Title>}>
         <Paragraph type="secondary" style={{ marginBottom: 16 }}>
           แบบฟอร์มนี้ใช้ยื่นคำขอสอบปริญญานิพนธ์ (โครงงานพิเศษ 2) หลังจากครบเงื่อนไขการทดสอบระบบและการพบอาจารย์ตามเกณฑ์
         </Paragraph>
-
-        {!isLeader && (
-          <Alert
-            type="warning"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="เฉพาะหัวหน้าโครงงานเท่านั้นที่สามารถยื่นคำขอนี้ได้"
-          />
-        )}
-
-        {!meetingRequirement.satisfied && (
-          <Alert
-            type="warning"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message={`ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${meetingRequirement.required} ครั้งก่อนยื่นคำขอสอบ`}
-          />
-        )}
-
-        {!systemTestReady && (
-          <Alert
-            type="warning"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="ยังไม่ครบเงื่อนไขคำขอทดสอบระบบ 30 วัน"
-            description="กรุณาตรวจสอบให้คำขอทดสอบระบบได้รับการอนุมัติจากเจ้าหน้าที่ ครบกำหนดอย่างน้อย 30 วัน และอัปโหลดหลักฐานการประเมินเรียบร้อย"
-          />
-        )}
-
-        {requestRecord && (
+        {hasSubmitted ? (
           <Alert
             type={statusMeta.alert || 'info'}
             showIcon
@@ -324,85 +298,115 @@ const ThesisDefenseRequestPage = () => {
             message="มีการส่งคำขอสอบแล้ว"
             description={statusDescription}
           />
-        )}
+        ) : (
+          <>
+            {!isLeader && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="เฉพาะหัวหน้าโครงงานเท่านั้นที่สามารถยื่นคำขอนี้ได้"
+              />
+            )}
 
-        <Descriptions bordered size="small" column={1} style={{ marginBottom: 24 }}>
-          <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
-          <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.projectNameTh || '-'}</Descriptions.Item>
-          <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.projectNameEn || '-'}</Descriptions.Item>
-          <Descriptions.Item label="อาจารย์ที่ปรึกษา">{activeProject.advisor?.name || '-'}</Descriptions.Item>
-        </Descriptions>
+            {!meetingRequirement.satisfied && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={`ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${meetingRequirement.required} ครั้งก่อนยื่นคำขอสอบ`}
+              />
+            )}
 
-        <Row gutter={[16, 16]}> 
-          <Col span={24}>
-            <Alert
-              type={meetingRequirement.satisfied ? 'success' : 'warning'}
-              showIcon
-              message={`บันทึกการพบอาจารย์ (หัวหน้าทีม): ${meetingRequirement.approved}/${meetingRequirement.required}`}
-            />
-          </Col>
-          <Col span={24}>
-            <Alert
-              type={systemTestReady ? 'success' : 'warning'}
-              showIcon
-              message={systemTestReady ? 'คำขอทดสอบระบบครบเงื่อนไขแล้ว' : 'ยังไม่ครบเงื่อนไขคำขอทดสอบระบบ'}
-              description={systemTestSnapshot ? (
-                <Space direction="vertical" size={0}>
-                  <Text>สถานะ: {systemTestSnapshot.status}</Text>
-                  <Text>ครบกำหนด 30 วัน: {formatDateOnly(systemTestSnapshot.testDueDate)}</Text>
-                  <Text>อัปโหลดหลักฐาน: {systemTestSnapshot.evidenceSubmittedAt ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt) : 'ยังไม่อัปโหลด'}</Text>
-                </Space>
-              ) : 'ยังไม่ยื่นคำขอทดสอบระบบ'}
-            />
-          </Col>
-        </Row>
+            {!systemTestReady && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="ยังไม่ครบเงื่อนไขคำขอทดสอบระบบ 30 วัน"
+                description="กรุณาตรวจสอบให้คำขอทดสอบระบบได้รับการอนุมัติจากเจ้าหน้าที่ ครบกำหนดอย่างน้อย 30 วัน และอัปโหลดหลักฐานการประเมินเรียบร้อย"
+              />
+            )}
 
-        <Spin spinning={loadingRequest}>
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            disabled={!isLeader || loadingRequest || saving}
-          >
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
-                  <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                </Form.Item>
+            <Descriptions bordered size="small" column={1} style={{ marginBottom: 24 }}>
+              <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.projectNameTh || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.projectNameEn || '-'}</Descriptions.Item>
+              <Descriptions.Item label="อาจารย์ที่ปรึกษา">{activeProject.advisor?.name || '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Alert
+                  type={meetingRequirement.satisfied ? 'success' : 'warning'}
+                  showIcon
+                  message={`บันทึกการพบอาจารย์ (หัวหน้าทีม): ${meetingRequirement.approved}/${meetingRequirement.required}`}
+                />
+              </Col>
+              <Col span={24}>
+                <Alert
+                  type={systemTestReady ? 'success' : 'warning'}
+                  showIcon
+                  message={systemTestReady ? 'คำขอทดสอบระบบครบเงื่อนไขแล้ว' : 'ยังไม่ครบเงื่อนไขคำขอทดสอบระบบ'}
+                  description={systemTestSnapshot ? (
+                    <Space direction="vertical" size={0}>
+                      <Text>สถานะ: {systemTestSnapshot.status}</Text>
+                      <Text>ครบกำหนด 30 วัน: {formatDateOnly(systemTestSnapshot.testDueDate)}</Text>
+                      <Text>อัปโหลดหลักฐาน: {systemTestSnapshot.evidenceSubmittedAt ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt) : 'ยังไม่อัปโหลด'}</Text>
+                    </Space>
+                  ) : 'ยังไม่ยื่นคำขอทดสอบระบบ'}
+                />
               </Col>
             </Row>
 
-            <Divider orientation="left">ข้อมูลการติดต่อสมาชิก</Divider>
-            <Form.List name="students">
-              {(fields) => (
-                <Row gutter={[16, 8]}>
-                  {fields.map(({ key, name, ...restField }) => {
-                    const student = form.getFieldValue(['students', name]) || {};
-                    return (
-                      <Col xs={24} md={12} key={key}>
-                        <Card size="small" bordered>
-                          <Text strong>{student?.name} ({student?.studentCode})</Text>
-                          <Form.Item {...restField} name={[name, 'phone']} label="เบอร์ติดต่อ" style={{ marginTop: 12 }}>
-                            <Input placeholder="08x-xxx-xxxx" />
-                          </Form.Item>
-                          <Form.Item {...restField} name={[name, 'email']} label="อีเมล (ถ้ามี)" style={{ marginBottom: 0 }}>
-                            <Input placeholder="student@example.com" />
-                          </Form.Item>
-                        </Card>
-                      </Col>
-                    );
-                  })}
+            <Spin spinning={loadingRequest}>
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                disabled={!isLeader || loadingRequest || saving}
+              >
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
+                      <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} allowClear={false} disabled />
+                    </Form.Item>
+                  </Col>
                 </Row>
-              )}
-            </Form.List>
 
-            <Form.Item style={{ marginTop: 16 }}>
-              <Button type="primary" htmlType="submit" loading={saving} disabled={isSubmissionDisabled}>
-                บันทึกคำขอสอบโครงงานพิเศษ 2
-              </Button>
-            </Form.Item>
-          </Form>
-        </Spin>
+                <Divider orientation="left">ข้อมูลการติดต่อสมาชิก</Divider>
+                <Form.List name="students">
+                  {(fields) => (
+                    <Row gutter={[16, 8]}>
+                      {fields.map(({ key, name, ...restField }) => {
+                        const student = form.getFieldValue(['students', name]) || {};
+                        return (
+                          <Col xs={24} md={12} key={key}>
+                            <Card size="small" bordered>
+                              <Text strong>{student?.name} ({student?.studentCode})</Text>
+                              <Form.Item {...restField} name={[name, 'phone']} label="เบอร์ติดต่อ" style={{ marginTop: 12 }}>
+                                <Input placeholder="08x-xxx-xxxx" />
+                              </Form.Item>
+                              <Form.Item {...restField} name={[name, 'email']} label="อีเมล (ถ้ามี)" style={{ marginBottom: 0 }}>
+                                <Input placeholder="student@example.com" />
+                              </Form.Item>
+                            </Card>
+                          </Col>
+                        );
+                      })}
+                    </Row>
+                  )}
+                </Form.List>
+
+                <Form.Item style={{ marginTop: 16 }}>
+                  <Button type="primary" htmlType="submit" loading={saving} disabled={isSubmissionDisabled}>
+                    บันทึกคำขอสอบโครงงานพิเศษ 2
+                  </Button>
+                </Form.Item>
+              </Form>
+            </Spin>
+          </>
+        )}
       </Card>
     </Space>
   );
