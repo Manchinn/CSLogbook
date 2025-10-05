@@ -9,9 +9,9 @@ export const phase2CardSteps = Object.freeze([
   {
     key: 'phase2-overview',
     phase: 'phase2',
-    phaseLabel: 'โครงงานพิเศษ 2',
-    title: 'โครงงานพิเศษ 2 – ภาพรวม',
-    desc: 'ติดตามสถานะ ผลสอบ และไทม์ไลน์หลังผ่านโครงงานพิเศษ 1',
+  phaseLabel: 'ภาพรวม',
+  title: 'โครงงานพิเศษ & ปริญญานิพนธ์ – ภาพรวม',
+  desc: 'ติดตามสถานะตั้งแต่โครงงานพิเศษ 1 จนถึงปริญญานิพนธ์ พร้อมไทม์ไลน์สำคัญ',
     icon: <FundProjectionScreenOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     requiresPhase2Unlock: true,

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, Descriptions, Divider, Empty, List, Row, Space, Spin, Tag, Timeline, Typography } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, FilePdfOutlined, LinkOutlined, TeamOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Descriptions, Empty, List, Row, Space, Spin, Tag, Timeline, Tooltip, Typography } from 'antd';
+import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, FilePdfOutlined, LinkOutlined, TeamOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
 import projectService from '../../../services/projectService';
@@ -38,9 +38,30 @@ const phase2StepsLookup = phase2CardSteps.reduce((acc, step) => {
   return acc;
 }, {});
 
+const overviewStepMeta = phase2StepsLookup['phase2-overview'] || null;
+
+const buildTeacherDisplayName = (teacher) => {
+  if (!teacher) return '';
+  const nameFromField = teacher.name || [teacher.firstName, teacher.lastName].filter(Boolean).join(' ').trim();
+  const code = teacher.teacherCode || teacher.code || teacher.teacher_id;
+  if (nameFromField && code) {
+    return `${nameFromField} (${code})`;
+  }
+  if (nameFromField) return nameFromField;
+  if (code) return `รหัสอาจารย์ ${code}`;
+  return '';
+};
+
 const Phase2Dashboard = () => {
   const navigate = useNavigate();
-  const { activeProject, loading: projectLoading } = useStudentProject({ autoLoad: true });
+  const {
+    activeProject,
+    advisors,
+    advisorLoading,
+    advisorError,
+    loadAdvisors,
+    loading: projectLoading
+  } = useStudentProject({ autoLoad: true });
   const { academicSettings } = useStudentEligibility();
   const [examDetail, setExamDetail] = useState(null);
   const [examLoading, setExamLoading] = useState(false);
@@ -133,6 +154,18 @@ const Phase2Dashboard = () => {
     if (!Array.isArray(activeProject?.defenseRequests)) return null;
     return activeProject.defenseRequests.find((request) => request.defenseType === 'THESIS' && request.status !== 'cancelled') || null;
   }, [activeProject?.defenseRequests]);
+
+  const advisorDisplayName = useMemo(() => {
+    if (!activeProject) return '';
+    const directName = buildTeacherDisplayName(activeProject.advisor);
+    if (directName) return directName;
+    const advisorId = activeProject.advisorId || activeProject.advisor?.teacherId;
+    if (!advisorId) return '';
+    const matched = Array.isArray(advisors)
+      ? advisors.find((teacher) => Number(teacher.teacherId) === Number(advisorId))
+      : null;
+    return buildTeacherDisplayName(matched);
+  }, [activeProject, advisors]);
 
   const leaderMember = useMemo(() => {
     if (!Array.isArray(activeProject?.members)) return null;
@@ -248,8 +281,8 @@ const Phase2Dashboard = () => {
   const resourceLinks = useMemo(() => ([
     {
       key: 'meeting-logbook',
-      title: 'Meeting Logbook (Phase 2)',
-      description: 'ดูรายละเอียดการพบอาจารย์ ตรวจสอบสถานะการอนุมัติ และบันทึก log เพิ่มเติม',
+      title: 'Meeting Logbook (Phase 1 & 2)',
+      description: 'ติดตามการพบอาจารย์ตลอดทั้งสอง Phase ใช้ตรวจสอบเกณฑ์ก่อนยื่นสอบโครงงานพิเศษ 2 และปริญญานิพนธ์',
       actions: [
         {
           key: 'open-logbook',
@@ -328,11 +361,33 @@ const Phase2Dashboard = () => {
 
   const timelineItems = useMemo(() => {
     if (!phase2Unlocked) return [];
+
+    const topicSubmitted = formatDate(
+      activeProject?.topicSubmittedAt
+      || activeProject?.document?.submittedAt
+      || activeProject?.createdAt
+      || activeProject?.created_at
+    );
     const examRecorded = formatDate(examDetail?.recordedAt || activeProject?.examResultAt);
     const thesisScheduled = thesisRequest?.defenseScheduledAt ? formatDate(thesisRequest.defenseScheduledAt) : null;
     const thesisCompleted = thesisStatusKey === 'completed';
 
     const items = [
+      {
+        key: 'topic-submit',
+        color: topicSubmitted ? 'green' : 'gray',
+        dot: topicSubmitted ? <CheckCircleOutlined /> : <ClockCircleOutlined />,
+        children: (
+          <Space direction="vertical" size={2}>
+            <Text strong>เสนอหัวข้อโครงงานพิเศษ</Text>
+            <Text type="secondary">
+              {topicSubmitted
+                ? `ส่งหัวข้อแล้วเมื่อ ${topicSubmitted}`
+                : 'ระบบกำลังรอการบันทึกวันที่เสนอหัวข้อจากเจ้าหน้าที่ภาควิชา'}
+            </Text>
+          </Space>
+        )
+      },
       {
         key: 'phase1-result',
         color: 'green',
@@ -373,17 +428,6 @@ const Phase2Dashboard = () => {
         )
       },
       {
-        key: 'progress-report',
-        color: 'blue',
-        dot: <ClockCircleOutlined />,
-        children: (
-          <Space direction="vertical" size={2}>
-            <Text strong>รายงานความก้าวหน้า (Progress Report)</Text>
-            <Text type="secondary">เตรียมแบบฟอร์มและหลักฐานประกอบการยื่นสอบ คพ.03 (จะเปิดส่งในระบบเร็ว ๆ นี้)</Text>
-          </Space>
-        )
-      },
-      {
         key: 'thesis-request',
         color: thesisStatusKey === 'completed' ? 'green' : thesisStatusMeta.color,
         dot: thesisStatusKey === 'completed' ? <CheckCircleOutlined /> : <ClockCircleOutlined />,
@@ -417,13 +461,31 @@ const Phase2Dashboard = () => {
     ];
 
     return items;
-  }, [phase2Unlocked, examDetail, activeProject?.examResultAt, requireScopeRevision, meetingRequirement, thesisRequest, thesisStatusKey, thesisStatusMeta]);
+  }, [
+    phase2Unlocked,
+    examDetail,
+  activeProject?.examResultAt,
+  activeProject?.document?.submittedAt,
+  activeProject?.createdAt,
+  activeProject?.created_at,
+  activeProject?.topicSubmittedAt,
+    requireScopeRevision,
+    meetingRequirement,
+    thesisRequest,
+    thesisStatusKey,
+    thesisStatusMeta
+  ]);
 
   const renderHeader = () => (
     <Space direction="vertical" size="small" style={{ width: '100%' }}>
-      <Title level={4} style={{ margin: 0 }}>โครงงานพิเศษ 2 (Phase 2)</Title>
+      <Space align="center" size={8}>
+        {overviewStepMeta?.icon}
+        <Title level={4} style={{ margin: 0 }}>
+          {overviewStepMeta?.title || 'โครงงานพิเศษ & ปริญญานิพนธ์ – ภาพรวม'}
+        </Title>
+      </Space>
       <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        เมื่อผ่านผลสอบหัวข้อแล้ว ระบบจะเปิดขั้นตอนสำหรับโครงงานพิเศษ 2 ให้ตรวจสอบและเตรียมเอกสารได้ทันที
+        {overviewStepMeta?.desc || 'ติดตามเส้นทางตั้งแต่ผลสอบโครงงานพิเศษ 1 จนถึงการยื่นสอบปริญญานิพนธ์ พร้อมมองเห็นเงื่อนไขที่ต้องทำให้ครบ'}
       </Paragraph>
       {academicSettings && (
         <Text type="secondary">
@@ -464,7 +526,7 @@ const Phase2Dashboard = () => {
             <Alert
               type="warning"
               showIcon
-              message="ยังไม่สามารถเข้าถึงขั้นตอนโครงงานพิเศษ 2"
+              message="ยังไม่พร้อมแสดงภาพรวมโครงงานพิเศษ & ปริญญานิพนธ์"
               description={(
                 <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
                   {phase2GateReasons.map((reason, index) => (
@@ -476,7 +538,7 @@ const Phase2Dashboard = () => {
           </Card>
           <Card>
             <Paragraph style={{ marginBottom: 0 }}>
-              กรุณาตรวจสอบขั้นตอนในโครงงานพิเศษ 1 ให้ครบถ้วนก่อน ระบบจะเปิด Phase 2 อัตโนมัติเมื่อเงื่อนไขครบ
+              กรุณาดำเนินขั้นตอนในโครงงานพิเศษ 1 ให้ครบถ้วน ระบบจะเปิดให้ติดตามเส้นทางโครงงานจนถึงปริญญานิพนธ์ให้อัตโนมัติเมื่อเงื่อนไขพร้อม
             </Paragraph>
           </Card>
         </Space>
@@ -518,7 +580,6 @@ const Phase2Dashboard = () => {
           <Row gutter={[24, 16]}>
             <Col xs={24} md={12}>
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                <Text><strong>รหัสโครงงาน:</strong> {activeProject.projectCode || '-'}</Text>
                 <Text><strong>ชื่อโครงงาน:</strong> {activeProject.projectNameTh || '-'}</Text>
                 <Text type="secondary">ผลสอบหัวข้อ: ผ่าน</Text>
                 {examLoading && <Spin size="small" />}
@@ -534,7 +595,20 @@ const Phase2Dashboard = () => {
             </Col>
             <Col xs={24} md={12}>
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                <Text><strong>อาจารย์ที่ปรึกษา:</strong> {activeProject.advisor?.name || '-'}</Text>
+                <Space size={8} align="center" wrap>
+                  <Text><strong>อาจารย์ที่ปรึกษา:</strong> {advisorDisplayName || '—'}</Text>
+                  {advisorLoading && <Spin size="small" />}
+                  {!advisorLoading && advisorError && (
+                    <Tooltip title={advisorError}>
+                      <Tag color="red">โหลดรายชื่อไม่สำเร็จ</Tag>
+                    </Tooltip>
+                  )}
+                  {!advisorLoading && !advisorDisplayName && activeProject?.advisorId && (
+                    <Button size="small" icon={<ReloadOutlined />} onClick={loadAdvisors}>
+                      รีโหลดรายชื่อ
+                    </Button>
+                  )}
+                </Space>
                 {requireScopeRevision && (
                   <Alert
                     type="warning"
@@ -549,10 +623,13 @@ const Phase2Dashboard = () => {
         </Card>
 
         <Card title="ลำดับขั้นตอนสำคัญ">
+          <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+            ผังนี้แสดงสถานะตั้งแต่ผลสอบโครงงานพิเศษ 1 การปรับ Scope การเก็บ Meeting Logbook ไปจนถึงการยื่นและสอบปริญญานิพนธ์
+          </Paragraph>
           <Timeline mode="left" items={timelineItems} />
         </Card>
 
-        <Card title="บันทึกการพบอาจารย์ (Phase 2)">
+  <Card title="บันทึกการพบอาจารย์เพื่อสอบโครงงานพิเศษ 2 และปริญญานิพนธ์">
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Alert
               type={meetingRequirement.satisfied ? 'success' : 'warning'}
@@ -765,24 +842,6 @@ const Phase2Dashboard = () => {
             )}
           />
         </Card>
-
-        {thesisRequest && (
-          <Card title="สรุปสถานะคำขอสอบโครงงานพิเศษ 2 (คพ.03)">
-            <Space direction="vertical" size={8} style={{ width: '100%' }}>
-              <Tag color={thesisStatusMeta.color}>{thesisStatusMeta.text}</Tag>
-              {thesisRequest.defenseLocation && (
-                <Text type="secondary">สถานที่สอบ: {thesisRequest.defenseLocation}</Text>
-              )}
-              {thesisRequest.defenseNote && (
-                <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>หมายเหตุ: {thesisRequest.defenseNote}</Text>
-              )}
-            </Space>
-            <Divider />
-            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              ระบบจะอัปเดตสถานะคำขอและวันสอบโดยอัตโนมัติเมื่อเจ้าหน้าที่บันทึกข้อมูล
-            </Paragraph>
-          </Card>
-        )}
       </Space>
     </div>
   );

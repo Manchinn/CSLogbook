@@ -404,7 +404,24 @@ const Phase1Dashboard = () => {
     return acc;
   }, {}), []);
 
-  const allSteps = [...phase1Steps, ...phase2CardSteps];
+  const phase2OverviewStep = useMemo(
+    () => phase2CardSteps.find((step) => step.key === 'phase2-overview') || null,
+    []
+  );
+
+  const phase2SecondarySteps = useMemo(
+    () => phase2CardSteps.filter((step) => step.key !== 'phase2-overview'),
+    []
+  );
+
+  const allSteps = useMemo(
+    () => [
+      ...(phase2OverviewStep ? [phase2OverviewStep] : []),
+      ...phase1Steps,
+      ...phase2SecondarySteps
+    ],
+    [phase2OverviewStep, phase2SecondarySteps]
+  );
 
   // handleOpen: จัดการคลิกการ์ดแต่ละขั้นตอน แยกตามเฟสและตรวจสอบเงื่อนไขการปลดล็อก
   const handleOpen = (stepKey) => {
