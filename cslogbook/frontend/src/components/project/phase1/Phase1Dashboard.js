@@ -581,8 +581,6 @@ const Phase1Dashboard = () => {
             </Card>
           )}
           <Card title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษและปริญญานิพนธ์</Title>}>
-            <Paragraph style={{ marginBottom: 4 }}>เลือกขั้นตอนที่ต้องการทำงานจากทั้งสอง Phase ภายในหน้าเดียว</Paragraph>
-            <Text type="secondary">เฉพาะการ์ดที่พร้อม (Implemented) เท่านั้นที่คลิกได้ ส่วนที่ล็อกอยู่จะอธิบายเหตุผลบน Tooltip</Text>
           </Card>
           {activeProject && postTopicLockReasons.length > 0 && (
             <Alert

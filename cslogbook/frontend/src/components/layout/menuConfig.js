@@ -185,9 +185,7 @@ export const getMenuConfig = ({
                 icon: <ProjectOutlined />,
                 label: 'โครงงานพิเศษ',
                 children: [
-                  { key: '/project/phase1', label: 'โครงงานพิเศษ 1', onClick: () => navigate('/project/phase1') },
-                  { key: '/project/phase2', label: 'โครงงานพิเศษ 2', onClick: () => navigate('/project/phase2') },
-                  { key: '/project/phase2/thesis-defense', label: 'ยื่นสอบ คพ.03', onClick: () => navigate('/project/phase2/thesis-defense') }
+                  { key: '/project/phase1', label: 'ขั้นตอนโครงงานพิเศษ', onClick: () => navigate('/project/phase1') },
                 ]
               },
         ].filter(Boolean)
