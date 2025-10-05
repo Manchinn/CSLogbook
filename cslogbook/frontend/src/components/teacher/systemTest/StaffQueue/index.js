@@ -420,19 +420,6 @@ const StaffSystemTestQueue = () => {
           </Text>
         </Space>
 
-        <Alert
-          type="info"
-          showIcon
-          message="แนวทางการตรวจสอบ"
-          description={(
-            <ul style={{ paddingLeft: 24, marginBottom: 0 }}>
-              <li>ตรวจสอบช่วงเวลาทดสอบระบบให้ครอบคลุมอย่างน้อย 30 วันต่อเนื่อง</li>
-              <li>ตรวจสอบหมายเหตุจากอาจารย์และนักศึกษาเพื่อดูเงื่อนไขเพิ่มเติม</li>
-              <li>หลังอนุมัติแล้ว ให้นักศึกษาทราบเรื่องการอัปโหลดหลักฐานเมื่อครบกำหนด</li>
-            </ul>
-          )}
-        />
-
         <Row gutter={[16, 16]}>
           <Col xs={24} md={6}>
             <Card size="small">

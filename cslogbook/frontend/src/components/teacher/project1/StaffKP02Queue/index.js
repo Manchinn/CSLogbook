@@ -521,24 +521,6 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           <Text type="secondary">{uiMeta.description}</Text>
         </Space>
 
-        <Alert
-          type="info"
-          showIcon
-          message="การนัดสอบจัดการผ่านปฏิทินภาควิชา"
-          description={(
-            <Space direction="vertical" size={2}>
-              <span>หลังตรวจสอบคำขอแล้ว โปรดอัปเดตวันเวลาและสถานที่สอบในปฏิทินหรือระบบภายนอกของภาควิชาเท่านั้น</span>
-              {summary.legacyScheduled > 0 && (
-                <span>ยังมี {summary.legacyScheduled} รายการที่มีข้อมูลนัดสอบจากระบบเดิม</span>
-              )}
-              {canSchedulerExport && !isStaff && (
-                <span>คุณได้รับสิทธิ์ในการตรวจสอบรายชื่อและส่งออกรายการ คพ.02 (อ่านอย่างเดียว)</span>
-              )}
-              <span>กด "ดูตัวอย่างก่อนส่งออก" เพื่อทบทวนรายชื่อทั้งหมดก่อนสร้างไฟล์</span>
-            </Space>
-          )}
-        />
-
         <Row gutter={[16, 16]}>
           <Col xs={24} md={6}>
             <Card size="small">
