@@ -3,6 +3,9 @@ import { Alert, Button, Card, Col, DatePicker, Descriptions, Divider, Form, Inpu
 import dayjs from 'dayjs';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
+import useProjectDeadlines from '../../../../hooks/useProjectDeadlines';
+import DeadlineBadge from '../../../deadlines/DeadlineBadge';
+import { computeDeadlineStatus } from '../../../../utils/deadlineUtils';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -82,12 +85,71 @@ const formToPayload = (project, values) => {
 
 const ExamSubmitPage = () => {
   const { activeProject, advisors, advisorLoading, loadProjects, currentStudentId } = useStudentProject({ autoLoad: true });
+  const projectAcademicYear = useMemo(() => {
+    if (!activeProject?.academicYear) return undefined;
+    const yearNum = Number(activeProject.academicYear);
+    if (Number.isNaN(yearNum)) return undefined;
+    return yearNum > 2500 ? yearNum - 543 : yearNum;
+  }, [activeProject?.academicYear]);
+  const {
+    deadlines: projectDeadlines,
+    upcoming: upcomingProjectDeadlines,
+    loading: projectDeadlineLoading
+  } = useProjectDeadlines({ academicYear: projectAcademicYear });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
   const formLocked = ['staff_verified', 'scheduled', 'completed'].includes(requestRecord?.status);
   const statusMeta = KP02_STATUS_META[requestRecord?.status] || KP02_STATUS_META.default;
+  const prioritizedDeadline = useMemo(() => {
+    const now = dayjs();
+    const inUpcoming = (upcomingProjectDeadlines || []).filter((deadline) => {
+      const related = String(deadline.relatedTo || '').toLowerCase();
+      return related.startsWith('project1');
+    });
+    if (inUpcoming.length > 0) {
+      return inUpcoming[0];
+    }
+    const futureFallback = (projectDeadlines || []).find((deadline) => {
+      const related = String(deadline.relatedTo || '').toLowerCase();
+      const due = deadline.effective_deadline_local || deadline.deadline_at_local;
+      return related.startsWith('project1') && due && due.isAfter(now);
+    });
+    if (futureFallback) return futureFallback;
+    return (upcomingProjectDeadlines || [])[0] || null;
+  }, [upcomingProjectDeadlines, projectDeadlines]);
+  const prioritizedDeadlineMoment = useMemo(() => {
+    if (!prioritizedDeadline) return null;
+    return prioritizedDeadline.effective_deadline_local || prioritizedDeadline.deadline_at_local || null;
+  }, [prioritizedDeadline]);
+  const prioritizedDeadlineStatus = useMemo(() => {
+    if (!prioritizedDeadlineMoment) return null;
+    return computeDeadlineStatus(prioritizedDeadlineMoment, prioritizedDeadline.submittedAtLocal, {
+      isLate: prioritizedDeadline.isLate,
+      isSubmitted: prioritizedDeadline.isSubmitted,
+      locked: prioritizedDeadline.locked
+    });
+  }, [prioritizedDeadline, prioritizedDeadlineMoment]);
+  const prioritizedDeadlineDisplay = useMemo(() => {
+    if (!prioritizedDeadline) return '—';
+    if (prioritizedDeadline.isWindow) {
+      const startSource = prioritizedDeadline.windowStartDate || prioritizedDeadline.windowStartAt || null;
+      const endSource = prioritizedDeadline.windowEndDate || prioritizedDeadline.windowEndAt || null;
+      const start = startSource ? dayjs(startSource) : null;
+      const end = endSource ? dayjs(endSource) : null;
+      const startText = start && start.isValid() ? start.format('D MMM BBBB') : '-';
+      const endText = end && end.isValid() ? end.format('D MMM BBBB') : '-';
+      const suffix = prioritizedDeadline.allDay ? ' (ทั้งวัน)' : '';
+      return `${startText} - ${endText}${suffix}`;
+    }
+    if (prioritizedDeadlineMoment && prioritizedDeadlineMoment.isValid()) {
+      return prioritizedDeadline.allDay
+        ? prioritizedDeadlineMoment.format('D MMM BBBB (ทั้งวัน)')
+        : prioritizedDeadlineMoment.format('D MMM BBBB เวลา HH:mm น.');
+    }
+    return prioritizedDeadline.deadline_th || '—';
+  }, [prioritizedDeadline, prioritizedDeadlineMoment]);
 
   const currentStudentCode = useMemo(() => {
     try {
@@ -243,6 +305,37 @@ const ExamSubmitPage = () => {
         <Paragraph type="secondary" style={{ marginBottom: 16 }}>
           ฟอร์มนี้บันทึกข้อมูลจากแบบฟอร์มคพ.02 เพื่อแจ้งความพร้อมสอบโครงงานพิเศษ 1 — ข้อมูลที่กรอกจะถูกเก็บในระบบและใช้ติดตามสถานะขั้นตอนถัดไป
         </Paragraph>
+
+        {!projectDeadlineLoading && prioritizedDeadline && (
+          <Alert
+            type={prioritizedDeadline.deadlineType === 'ANNOUNCEMENT' ? 'info' : 'warning'}
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={prioritizedDeadline.name || 'กำหนดการที่เกี่ยวข้อง'}
+            description={(
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text type="secondary">เส้นตาย: {prioritizedDeadlineDisplay}</Text>
+                {prioritizedDeadline.deadlineType !== 'ANNOUNCEMENT' && (
+                  <Space size={6} wrap>
+                    <DeadlineBadge
+                      deadline={prioritizedDeadlineMoment}
+                      isSubmitted={prioritizedDeadline.isSubmitted}
+                      isLate={prioritizedDeadline.isLate}
+                      submittedAt={prioritizedDeadline.submittedAtLocal}
+                      locked={prioritizedDeadline.locked}
+                    />
+                    {prioritizedDeadlineStatus && prioritizedDeadlineStatus.code !== 'none' && (
+                      <Tag color={prioritizedDeadlineStatus.color}>{prioritizedDeadlineStatus.label}</Tag>
+                    )}
+                  </Space>
+                )}
+                {prioritizedDeadline.description && (
+                  <Text type="secondary">{prioritizedDeadline.description}</Text>
+                )}
+              </Space>
+            )}
+          />
+        )}
 
         {hasSubmitted ? (
           <Alert
