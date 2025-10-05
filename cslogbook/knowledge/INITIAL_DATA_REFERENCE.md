@@ -35,28 +35,34 @@ TODO: สรุปขอบเขต
 รายการรวบรวมทั้งหมดในรูปแบบแถวต่อหน่วยข้อมูลตั้งต้น (อาจขยายตารางเพิ่มได้)  
 ให้คง idempotent: seed ซ้ำได้โดยไม่ duplication
 
+> คำสั่ง seed หลัก (รันจากโฟลเดอร์ `cslogbook/backend`)
+> ```powershell
+> npm run seed:prod   # ข้อมูลอ้างอิงที่ต้องมีใน production (seeders/production/index.js)
+> npm run seed:dev    # ข้อมูลตัวอย่างสำหรับ dev/staging (seeders/dev/index.js)
+> ```
+
 | Code/Slug | ชื่อ | คำอธิบาย | แหล่งที่มา (manual/script) | ที่จัดเก็บ (DB Table/File Path) | วิธี seed (migration/seeder/manual) | เปลี่ยนบ่อย? (Y/N/Per Term) | Owner | Risk หากหาย | หมายเหตุ |
 |-----------|------|-----------|-----------------------------|---------------------------------|------------------------------------|-------------------------------|-------|--------------|---------|
 | ROLE_ADMIN | บทบาทผู้ดูแล | สิทธิ์เต็มระบบ | manual / migration (ตรวจ) | users/roles | seeder/manual | N | TODO | Access Control สูญเสีย | ต้องยืนยันกลไกสร้าง |
-| CURR_CS63 | หลักสูตร CS 63 | หลักสูตรปี 2563 | seeder `create-default-curriculum` | curriculums | seeder | Low | TODO | Mapping credit ผิด | active=true |
-| CURR_CS68 | หลักสูตร CS 68 | หลักสูตรปี 2568 | seeder `create-default-curriculum` | curriculums | seeder | Low | TODO | Mapping credit ผิด | require internship before project |
-| ACADEMIC_DEFAULT | Academic baseline | academic year/semester เริ่มต้น | seeder `create-default-curriculum` | academics | seeder | Per Term | TODO | Term logic ผิด | active_curriculum_id set |
-| WF_INT_ELIGIBLE | Internship step 1 | INTERNSHIP_ELIGIBILITY_MET | seeder `initial-internship-steps` | workflow_step_definitions | seeder | Rare | TODO | Workflow UI ล่ม | step_order=1 |
-| WF_INT_CS05_SUBMITTED | Internship step 2 | INTERNSHIP_CS05_SUBMITTED | seeder | workflow_step_definitions | seeder | Rare | TODO | Tracking ผิด |  |
-| WF_INT_CS05_APPROVAL_PENDING | Internship step 3 | INTERNSHIP_CS05_APPROVAL_PENDING | seeder | workflow_step_definitions | seeder | Rare | TODO | Tracking ผิด |  |
-| WF_INT_CS05_APPROVED | Internship step 4 | INTERNSHIP_CS05_APPROVED | seeder | workflow_step_definitions | seeder | Rare | TODO | ขั้นถัดไปไม่เริ่ม |  |
-| WF_INT_COMPANY_RESPONSE_PENDING | Internship step 5 | INTERNSHIP_COMPANY_RESPONSE_PENDING | seeder | workflow_step_definitions | seeder | Rare | TODO | ติดค้าง |  |
-| WF_INT_COMPANY_RESPONSE_RECEIVED | Internship step 6 | INTERNSHIP_COMPANY_RESPONSE_RECEIVED | seeder | workflow_step_definitions | seeder | Rare | TODO | ตีความผิด |  |
-| WF_INT_AWAITING_START | Internship step 7 | INTERNSHIP_AWAITING_START | seeder | workflow_step_definitions | seeder | Rare | TODO |  |  |
-| WF_INT_IN_PROGRESS | Internship step 8 | INTERNSHIP_IN_PROGRESS | seeder | workflow_step_definitions | seeder | Rare | TODO | สถานะไม่อัปเดต |  |
-| WF_INT_SUMMARY_PENDING | Internship step 9 | INTERNSHIP_SUMMARY_PENDING | seeder | workflow_step_definitions | seeder | Rare | TODO | ปิดงานช้า |  |
-| WF_INT_COMPLETED | Internship step 10 | INTERNSHIP_COMPLETED | seeder | workflow_step_definitions | seeder | Rare | TODO | ไม่รู้ว่าจบ |  |
-| NOTIF_LOGIN | แจ้งเตือนเข้าสู่ระบบ | ประเภท LOGIN disabled default | seeder `seed-notification-settings-default` | notification_settings | seeder | Config | TODO | ไม่รู้กิจกรรม login | default is_enabled=false |
-| NOTIF_DOCUMENT | แจ้งเตือนเอกสาร | ประเภท DOCUMENT | seeder | notification_settings | seeder | Config | TODO | พลาดอัปเดต | default disabled |
-| NOTIF_LOGBOOK | แจ้งเตือน logbook | ประเภท LOGBOOK | seeder | notification_settings | seeder | Config | TODO | พลาดการติดตาม | default disabled |
-| NOTIF_EVALUATION | แจ้งเตือนการประเมิน | ประเภท EVALUATION | seeder | notification_settings | seeder | Config | TODO | ไม่ทราบผลประเมิน | default disabled |
-| NOTIF_APPROVAL | แจ้งเตือนอนุมัติ | ประเภท APPROVAL | seeder | notification_settings | seeder | Config | TODO | ล่าช้า approval | default disabled |
-| INT_EVAL_STUDENT32 | ตัวอย่าง evaluation | Internship evaluation (demo) | seeder `seed-internship-evaluation-student32` | internship_evaluations | seeder | N | TODO | data ตัวอย่างหาย | เฉพาะ dev/testing |
+| CURR_CS63 | หลักสูตร CS 63 | หลักสูตรปี 2563 | seeder `create-default-curriculum` | curriculums | `npm run seed:prod` (20250428081219) | Low | TODO | Mapping credit ผิด | active=true |
+| CURR_CS68 | หลักสูตร CS 68 | หลักสูตรปี 2568 | seeder `create-default-curriculum` | curriculums | `npm run seed:prod` (20250428081219) | Low | TODO | Mapping credit ผิด | require internship before project |
+| ACADEMIC_DEFAULT | Academic baseline | academic year/semester เริ่มต้น | seeder `create-default-curriculum` | academics | `npm run seed:prod` (20250428081219) | Per Term | TODO | Term logic ผิด | active_curriculum_id set |
+| WF_INT_ELIGIBLE | Internship step 1 | INTERNSHIP_ELIGIBILITY_MET | seeder `initial-internship-steps` | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | Workflow UI ล่ม | step_order=1 |
+| WF_INT_CS05_SUBMITTED | Internship step 2 | INTERNSHIP_CS05_SUBMITTED | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | Tracking ผิด |  |
+| WF_INT_CS05_APPROVAL_PENDING | Internship step 3 | INTERNSHIP_CS05_APPROVAL_PENDING | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | Tracking ผิด |  |
+| WF_INT_CS05_APPROVED | Internship step 4 | INTERNSHIP_CS05_APPROVED | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | ขั้นถัดไปไม่เริ่ม |  |
+| WF_INT_COMPANY_RESPONSE_PENDING | Internship step 5 | INTERNSHIP_COMPANY_RESPONSE_PENDING | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | ติดค้าง |  |
+| WF_INT_COMPANY_RESPONSE_RECEIVED | Internship step 6 | INTERNSHIP_COMPANY_RESPONSE_RECEIVED | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | ตีความผิด |  |
+| WF_INT_AWAITING_START | Internship step 7 | INTERNSHIP_AWAITING_START | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO |  |  |
+| WF_INT_IN_PROGRESS | Internship step 8 | INTERNSHIP_IN_PROGRESS | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | สถานะไม่อัปเดต |  |
+| WF_INT_SUMMARY_PENDING | Internship step 9 | INTERNSHIP_SUMMARY_PENDING | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | ปิดงานช้า |  |
+| WF_INT_COMPLETED | Internship step 10 | INTERNSHIP_COMPLETED | seeder | workflow_step_definitions | `npm run seed:prod` (20250513000001) | Rare | TODO | ไม่รู้ว่าจบ |  |
+| NOTIF_LOGIN | แจ้งเตือนเข้าสู่ระบบ | ประเภท LOGIN disabled default | seeder `seed-notification-settings-default` | notification_settings | `npm run seed:prod` (20250528101244) | Config | TODO | ไม่รู้กิจกรรม login | default is_enabled=false |
+| NOTIF_DOCUMENT | แจ้งเตือนเอกสาร | ประเภท DOCUMENT | seeder | notification_settings | `npm run seed:prod` (20250528101244) | Config | TODO | พลาดอัปเดต | default disabled |
+| NOTIF_LOGBOOK | แจ้งเตือน logbook | ประเภท LOGBOOK | seeder | notification_settings | `npm run seed:prod` (20250528101244) | Config | TODO | พลาดการติดตาม | default disabled |
+| NOTIF_EVALUATION | แจ้งเตือนการประเมิน | ประเภท EVALUATION | seeder | notification_settings | `npm run seed:prod` (20250528101244) | Config | TODO | ไม่ทราบผลประเมิน | default disabled |
+| NOTIF_APPROVAL | แจ้งเตือนอนุมัติ | ประเภท APPROVAL | seeder | notification_settings | `npm run seed:prod` (20250528101244) | Config | TODO | ล่าช้า approval | default disabled |
+| INT_EVAL_STUDENT32 | ตัวอย่าง evaluation | Internship evaluation (demo) | seeder `seed-internship-evaluation-student32` | internship_evaluations | `npm run seed:dev` | N | TODO | data ตัวอย่างหาย | เฉพาะ dev/testing |
 | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
 
 (เพิ่มแถวต่อเนื่อง)
@@ -74,7 +80,7 @@ TODO: สรุปขอบเขต
 
 สรุป schema (อิงจาก models/migrations ที่มีในโปรเจกต์):
 - users: user_id PK, email (unique), password_hash, first_name/last_name (ถ้ามี), role-like ถูกใช้งานผ่านตาราง/โมเดลโดเมน (admin/teacher/student)
-- teachers: teacher_id PK, user_id FK→users, teacher_type ENUM(support,advisor,coordinator,reviewer ฯลฯ จาก migration add-teacher-sub-roles), position STRING (migration 20250809-add-teacher-position)
+- teachers: teacher_id PK, user_id FK→users, teacher_type ENUM(support,advisor,coordinator,reviewer ฯลฯ จาก migration add-teacher-sub-roles), position STRING (migration 20250809000000-add-teacher-position)
 - admins: โปรเจกต์นี้มีการ “convert admin เป็น teacher support” (20250101000001) จึงใช้งานผ่านตาราง teachers แทน admin แยก
 
 ตัวอย่างข้อมูล (3 แถว) – ตาราง teachers
@@ -96,8 +102,9 @@ TODO: สรุปขอบเขต
 - หลักสูตร (curriculum) + mapping รายวิชา
 - Deadlines เชิงวิชาการเริ่มต้น (เช่น ลงทะเบียน, เพิ่ม/ถอน)
 
-รายละเอียด seeders เกี่ยวข้อง:
-- `create-default-curriculum` (2 ไฟล์ timestamp 20250428080912 / 20250428081219) -> เพิ่ม 2 หลักสูตร (CS2563, CS2568) และตั้งค่า academics แรกเริ่ม (current_semester=1, academic_year=2567) + active_curriculum_id
+-รายละเอียด seeders เกี่ยวข้อง:
+- Production: `20250428081219-create-default-curriculum` (รันผ่าน `npm run seed:prod`) -> เพิ่มหลักสูตร CS2563/CS2568 และตั้งค่า academics แรกเริ่ม (current_semester=1, academic_year=2567) + active_curriculum_id
+- Dev/demo: `20250428080912-create-default-curriculum` (รันผ่าน `npm run seed:dev`) -> เติมหลักสูตร CS2566 สำหรับสถานการณ์ทดสอบเพิ่มเติม
 - Migration เสริม credits / short_name / max_credits (ดู migrations หลายไฟล์ add_*_to_curriculums)
 
 ประเด็นสำคัญ:
@@ -190,7 +197,7 @@ TODO:
 |----|------|-----------|---------------|----------|---------------|------|-------------|--------------|------------|----------------------|
 | 7 | วันสอบหัวข้อโครงงานพิเศษ | project1 | 2568 | 1 | ANNOUNCEMENT | 2025-07-17 | 2025-07-17 23:59:59 | 1 | 0 |  |
 | 8 | ประกาศรายชื่อหัวข้อโครงงานพิเศษที่ได้รับอนุมัติจากภาควิชา | project1 | 2568 | 1 | ANNOUNCEMENT | 2025-07-18 | 2025-07-18 23:59:59 | 1 | 0 |  |
-| 9 | วันสุดท้ายของการยื่นเอกสารขอทดสอบโครงงานพิเศษ 30 วัน (เชพาะการยื่นขอสอบปริญญานิพนธ์) | project1 | 2568 | 1 | SUBMISSION | 2025-10-03 | 2025-10-03 15:59:00 | 1 | 1 |  |
+| 9 | วันสุดท้ายของการยื่นเอกสารขอทดสอบโครงงานพิเศษ 30 วัน (เชพอการยื่นขอสอบปริญญานิพนธ์) | project1 | 2568 | 1 | SUBMISSION | 2025-10-03 | 2025-10-03 15:59:00 | 1 | 1 |  |
 
 ### 4.4 Internship Master Data
 - แบบประเมิน (evaluation form structure) เก็บ JSON หรือแยกตาราง? Path?
@@ -700,19 +707,19 @@ Legend ประเภทข้อมูล:
 
 | ระบบ | หมวด | รายการ (Table/Entity) | ประเภท | แหล่ง seed/migration (ไฟล์อ้างอิงใน repo) | Prod จำเป็น? | ความเสี่ยงถ้าขาด | ตัวอย่างการใช้งานจริง |
 |------|------|-----------------------|---------|---------------------------------------|--------------|------------------|---------------------|
-| Core | Admin/Support baseline | บัญชีผู้ดูแล/อาจารย์สนับสนุน (แนวทาง role ในระบบนี้อิง teacher-sub-roles) | Reference | migrations: 20250101000000-add-teacher-sub-roles.js, 20250101000001-convert-admin-to-teacher-support.js | Yes | เข้า backend/เมนูจัดการไม่ได้ | ใช้งานใน authController + middleware/authMiddleware เพื่อตรวจสิทธิ์เมนูครู/ซัพพอร์ต |
-| Core | Curriculum | หลักสูตร CS2563, CS2568 ใน `curriculums` | Reference | seeders: 20250428080912/20250428081219-create-default-curriculum.js; migrations: 20250422045919-create-curriculums.js (+ add_*_to_curriculums) | Yes | Eligibility/การลงทะเบียน mapping ผิด | เรียกผ่าน curriculumService + curriculumController (GET /api/curriculums, GET /api/curriculums/active) ใช้ใน Student model เป็น fallback ด้วย activeCurriculumId |
+| Core | Admin/Support baseline | บัญชีผู้ดูแล/อาจารย์สนับสนุน (แนวทาง role ในระบบนี้อิง teacher-sub-roles) | Reference | migrations: 20250101000000-add-teacher-sub-roles.js, legacy script: scripts/legacy/convert-admin-to-teacher-support.js, manual: scripts/manual/createInitialSupportStaff.js | Yes | เข้า backend/เมนูจัดการไม่ได้ | ใช้งานใน authController + middleware/authMiddleware เพื่อตรวจสิทธิ์เมนูครู/ซัพพอร์ต |
+| Core | Curriculum | หลักสูตร CS2563, CS2568 ใน `curriculums` | Reference | seeders/production/index.js → 20250428081219, seeders/dev/index.js → 20250428080912; migrations: 20250422045919-create-curriculums.js (+ add_*_to_curriculums) | Yes | Eligibility/การลงทะเบียน mapping ผิด | เรียกผ่าน curriculumService + curriculumController (GET /api/curriculums, GET /api/curriculums/active) ใช้ใน Student model เป็น fallback ด้วย activeCurriculumId |
 | Core | Academic Term | baseline ใน `academics` ตั้งค่า is_current, active_curriculum_id | Operational Baseline | migrations: 20250424213208-create_academics_table.js, 20250428080602-add_active_curriculum_id_to_academics.js, 20250518090949-add-is-current-to-academics.js | Yes | ระบบไม่ทราบเทอม/หลักสูตรปัจจุบัน ส่งผลหลายจุด | academicService ใช้ดึง current term; Student model fallback หา Academic ล่าสุดเพื่อ set curriculum อัตโนมัติ |
-| Core | Workflow Catalog | 10 ขั้นตอนฝึกงานใน `workflow_step_definitions` | Reference | migration: 20250513000001-create-workflow-step-definitions.js; seeder: 20250513000001-initial-internship-steps.js | Yes | Progress/logic ฝึกงานล่ม | ใช้คู่กับ `student_workflow_activities` แสดงสถานะรวมใน UI และ service ฝั่งเอกสาร/ฝึกงาน |
+| Core | Workflow Catalog | 10 ขั้นตอนฝึกงาน + Project1 workflow v2 ใน `workflow_step_definitions` | Reference | migration: 20250513000001-create-workflow-step-definitions.js; seeders/production/index.js → 20250513000001-initial-internship-steps.js, 20250513000002-initial-project-steps.js, 20250930121000-update-project1-workflow-steps.js | Yes | Progress/logic ฝึกงานล่ม | ใช้คู่กับ `student_workflow_activities` แสดงสถานะรวมใน UI และ service ฝั่งเอกสาร/ฝึกงาน |
 | Core | Notifications | `notification_settings` ค่า default (LOGIN, DOCUMENT, LOGBOOK, EVALUATION, APPROVAL) | Config | migrations: 20250528120518-create-notification-settings-fixed.js; seeder: 20250528101244-seed-notification-settings-default.js | Yes | แจ้งเตือนเปิด/ปิดไม่ชัดเจน | ใช้โดย agents (เช่น DocumentStatusMonitor) เพื่อควบคุมการแจ้งเตือนอาจารย์เมื่อเอกสารค้าง |
 | Core | Documents Enum/Flags | ค่าประเภท/สถานะใน `documents` เช่น category, acceptance, download_status, late flags | Reference | migrations: 20250615142055-add-category-acceptance-in-documents.js, 20250615214418-add-download_status-in-documents.js, 20250828094500-alter-documents-add-late-and-deadline-link.js | Yes | บันทึก/อนุมัติเอกสารผิดพลาด | documentService/documentController ใช้อ่าน/อัปเดตสถานะ, ผูก important_deadline |
 | Internship | Evaluation Structure (schema) | ตาราง `internship_evaluations` + ช่องรายการคะแนน/JSON items | Config/Reference | migration: 20250522062110-create-internship-evaluations.js (+ 20250824* advanced fields); seeder(dev): 20250101000000-seed-internship-evaluation-student32.js | Yes | ไม่สามารถบันทึก/สรุปผลประเมินได้ | ใช้ใน workflow submission โดย supervisor ผ่าน approval token; มี controller/flow อ้างอิงใน documentService |
 | Internship | Certificate Requests | `internship_certificate_requests` | Operational Baseline | migration: 20250706074957-create-internship-certificate-requests.js | Yes (ว่างได้) | ฟีเจอร์ขอหนังสือรับรองใช้งานไม่ได้ | documentController exposes endpoints สำหรับ list/approve/reject/generate PDF |
 | Internship | Logbook snapshots | ช่อง academic_year/semester ใน `internship_logbooks` | Reference (schema) | migrations: 20250518121000-add-academicYear-semester-to-internship-logbooks.js, 20250518155741-add-supervisor-approval-timestamps-to-internship-logbooks.js, 20250518160605-change-supervisor-approved-to-integer.js | Yes | รายงานสรุป ชั่วโมง/เทอมผิด | documentService.getInternshipLogbookSummary ใช้ข้อมูลนี้ทำสรุป/ออก PDF |
 | Internship | Approval Tokens | `approval_tokens` (รองรับ external supervisor) | Operational Baseline | migration: 20250508000000-create-approval-tokens.js (+ add-email/document-id/format) | Yes | ลิงก์อนุมัติภายนอกใช้งานไม่ได้ | ใช้ใน cp05/acceptance approvals และบันทึกการประเมินโดย supervisor ภายนอก |
-| Internship | Sample Logbooks/Evals (dev) | ตัวอย่างใน `internship_logbooks`, `internship_evaluations` | Sample | seeders: หลายไฟล์ seed-studentXX-logbook.js, seed-internship-reflections.js | No | ปนข้อมูลจริง | ใช้เฉพาะ dev/testing เพื่อเดโมหน้า summary/logbook |
+| Internship | Sample Logbooks/Evals (dev) | ตัวอย่างใน `internship_logbooks`, `internship_evaluations` | Sample | seeders/dev/index.js (bundle: seed-studentXX-logbook.js, seed-internship-reflections.js ฯลฯ) | No | ปนข้อมูลจริง | ใช้เฉพาะ dev/testing เพื่อเดโมหน้า summary/logbook |
 | Project | Timeline Steps (v1) | `timeline_steps` (proposal/mid/final) | Reference | migration: 20250429000000-create-timeline-steps.js | Yes | หน้า milestone ว่าง/ไทม์ไลน์ทำงานไม่ได้ | ใช้ใน projectDocumentService เพื่อกำหนดขั้นเริ่มต้นของโครงงาน |
-| Project | Project Lifecycle (v2) | ตาราง: `project_milestones`, `project_artifacts`, `project_events`, `project_tracks` | Reference | migrations: 20250919* create-project-* + 20250923093000-add-exam-result-fields-to-project-documents.js | Future/Gradual | ฟีเจอร์ project ขั้นสูงใช้งานไม่ได้ | controllers: projectDocumentController, projectMilestoneController, topicExamResultController อ้างอิง service เดียวกัน |
+| Project | Project Lifecycle (v2) | ตาราง v2 (project_milestones, project_artifacts, project_events, project_tracks) | Reference | migrations: 20250919* create-project-* + 20250923093000-add-exam-result-fields-to-project-documents.js | Future/Gradual | ฟีเจอร์ project ขั้นสูงใช้งานไม่ได้ | controllers: projectDocumentController, projectMilestoneController, topicExamResultController อ้างอิง service เดียวกัน |
 | Shared | Important Deadlines | `important_deadlines` (+ extended fields: deadline_at, window, flags, related_to) | Reference/Config | migrations: 20250828* และ 20250829120000-merge-relatedWorkflow-into-relatedTo.js | Yes | การประกาศ/บังคับใช้นโยบายรับงานผิด | importantDeadlineController ใช้ดึง + enrich เอกสารที่เชื่อม deadline เพื่อแสดงบน UI นักศึกษา |
 | Shared | Student Workflow Activity | `student_workflow_activities` (สถานะภาพรวม per student) | Operational Baseline | migration: 20250513084144-create-student-workflow-activities.js (+ 20250516201713 add overall pending_approval) | Yes | ไม่สามารถเก็บสถานะรวมและแสดง progress bar | ใช้เชื่อมกับ workflow_step_definitions เพื่อแสดงสถานะปัจจุบัน/overall_workflow_status |
 | Shared | Password Reset | `password_reset_tokens` (+ temp_new_password_hash ใน users) | Operational Baseline | migrations: 20250825094500-create-password-reset-tokens.js, 20250825110000-add-temp-new-password-hash.js | Yes | ลืมรหัสผ่านกู้คืนไม่ได้ / ความปลอดภัย | ใช้ใน passwordController/flows เปลี่ยนรหัสผ่านสองจังหวะ |
@@ -729,7 +736,7 @@ Legend ประเภทข้อมูล:
    - Model hook: `models/Student.js` ใช้ `Academic.activeCurriculumId` เป็น fallback กำหนด `curriculumId` ให้ student ใหม่ ถ้าไม่มีในข้อมูลนำเข้า
 
 2) Workflow Catalog + Student Workflow Activity (Internship)
-   - Migration + Seeder: สร้าง `workflow_step_definitions` 10 ขั้น (ไฟล์ 20250513000001-*) และใช้งานร่วมกับ `student_workflow_activities`
+   - Migration + Seeder: สร้าง `workflow_step_definitions` 10 ขั้น (ไฟล์ 20250513000001-*) และใช้งานร่วมกับ `student_workflow_activities` โดยรัน `npm run seed:prod` เพื่อเติม internship/project1 steps + เวอร์ชันอัปเดต (20250930121000)
    - UI: ใช้แสดง progress ของนักศึกษาตาม `current_step_key` และ `overall_workflow_status` (เช่น eligible/in_progress/completed)
 
 3) Important Deadlines ↔ Documents
@@ -777,6 +784,16 @@ Quick SQL checks (สำหรับตรวจบนฐาน Prod/Test ก่
 อัปเดต: 2025-09-24 (เติมตารางและตัวอย่างการใช้งานจริงของ Section 10 จาก migrations/seeders/controllers ในรีโป)
 - ตาราง Operational Baseline อาจเริ่มว่าง (0 record) แต่ schema ต้องมีให้พร้อม → ควรมี smoke test ตรวจ
 - Sample data: ควรติด tag หรือชื่อ slug ชัดเจนเพื่อ pipeline ล้างก่อน deploy (เช่น student_code ที่ขึ้นต้น DEV_ หรือใช้ตาราง mapping)
+
+**คู่มือย่อ: สร้างบัญชีเจ้าหน้าที่ภาควิชาคนแรก (production)**
+1. ตั้งค่าตัวแปรสิ่งแวดล้อมเชื่อมต่อฐานข้อมูล production (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, ฯลฯ) และถ้าต้องการป้อนรหัสผ่านแบบไม่แสดง ให้ตั้ง `INITIAL_STAFF_PASSWORD` ไว้ล่วงหน้า
+2. รันคำสั่งภายใต้โฟลเดอร์ `backend`
+   ```powershell
+   node scripts/manual/createInitialSupportStaff.js
+   ```
+3. กรอกข้อมูลตามที่สคริปต์ถาม (อีเมล, username, teacher_code, ตำแหน่ง ฯลฯ) → ระบบจะสร้าง `users` + `teachers` (teacher_type=support) ภายใต้ธุรกรรมเดียว
+4. ส่งมอบ username/password ให้เจ้าหน้าที่ และสั่งให้เปลี่ยนรหัสผ่านทันทีหลังเข้าสู่ระบบ
+5. ลบค่าตัวแปร `INITIAL_STAFF_PASSWORD` ออกจาก shell/secret store หลังใช้งาน เพื่อความปลอดภัย
 
 ### 10.1 สิ่งที่ต้องตรวจอัตโนมัติ (Proposed Checks)
 | Check | วิธีตรวจ | เกณฑ์ผ่าน |

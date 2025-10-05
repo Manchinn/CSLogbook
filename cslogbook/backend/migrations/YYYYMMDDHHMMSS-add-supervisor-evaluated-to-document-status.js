@@ -1,21 +1,12 @@
 'use strict';
 
+// legacy placeholder: ใช้งานไฟล์ 20250527120000-add-supervisor-evaluated-to-document-status.js แทน
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    await queryInterface.changeColumn('documents', 'status', {
-      type: Sequelize.ENUM('draft', 'pending', 'approved', 'rejected', 'supervisor_evaluated'),
-      allowNull: false,
-      defaultValue: 'draft'
-    });
+  async up() {
+    // intentionally left blank
   },
 
-  async down (queryInterface, Sequelize) {
-    // Revert to the old ENUM values if needed. 
-    // Note: This might fail if there are records with 'supervisor_evaluated' status.
-    await queryInterface.changeColumn('documents', 'status', {
-      type: Sequelize.ENUM('draft', 'pending', 'approved', 'rejected'),
-      allowNull: false,
-      defaultValue: 'draft'
-    });
+  async down() {
+    // intentionally left blank
   }
 };
