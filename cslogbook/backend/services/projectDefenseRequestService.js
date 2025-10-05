@@ -57,6 +57,12 @@ const formatThaiDateTime = (value) => {
 
 class ProjectDefenseRequestService {
   buildProjectInclude({ projectWhere } = {}) {
+    const pickExistingAttributes = (model, desired = []) => {
+      if (!model || !Array.isArray(desired) || !desired.length) return undefined;
+      const available = model.rawAttributes ? desired.filter((name) => model.rawAttributes[name]) : desired;
+      return available.length ? available : undefined;
+    };
+
     const projectInclude = {
       model: ProjectDocument,
       as: 'project',
@@ -64,23 +70,27 @@ class ProjectDefenseRequestService {
         {
           model: ProjectMember,
           as: 'members',
+          attributes: pickExistingAttributes(ProjectMember, ['projectId', 'studentId', 'role', 'joinedAt']) || undefined,
           include: [
             {
               model: Student,
               as: 'student',
-              include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+              attributes: pickExistingAttributes(Student, ['studentId', 'studentCode']) || undefined,
+              include: [{ association: Student.associations.user, attributes: pickExistingAttributes(User, ['userId', 'firstName', 'lastName']) || undefined }]
             }
           ]
         },
         {
           model: Teacher,
           as: 'advisor',
-          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+          attributes: pickExistingAttributes(Teacher, ['teacherId', 'teacherCode', 'userId', 'teacherType', 'canExportProject1']) || undefined,
+          include: [{ model: User, as: 'user', attributes: pickExistingAttributes(User, ['userId', 'firstName', 'lastName']) || undefined }]
         },
         {
           model: Teacher,
           as: 'coAdvisor',
-          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+          attributes: pickExistingAttributes(Teacher, ['teacherId', 'teacherCode', 'userId', 'teacherType', 'canExportProject1']) || undefined,
+          include: [{ model: User, as: 'user', attributes: pickExistingAttributes(User, ['userId', 'firstName', 'lastName']) || undefined }]
         }
       ]
     };
@@ -243,8 +253,13 @@ class ProjectDefenseRequestService {
 
     try {
       const type = defenseType || serializedRequest.defenseType || DEFENSE_TYPE_PROJECT1;
+      const meetingPhase = type === DEFENSE_TYPE_THESIS ? 'phase2' : 'phase1';
       const students = await Student.findAll({ where: { studentId: memberStudentIds }, transaction });
-      const metrics = await projectDocumentService.buildProjectMeetingMetrics(serializedRequest.project.projectId, students, { transaction });
+      const metrics = await projectDocumentService.buildProjectMeetingMetrics(
+        serializedRequest.project.projectId,
+        students,
+        { transaction, phase: meetingPhase }
+      );
       const requiredApprovedLogs = type === DEFENSE_TYPE_THESIS
         ? THESIS_REQUIRED_APPROVED_MEETING_LOGS
         : projectDocumentService.getRequiredApprovedMeetingLogs();
@@ -450,7 +465,7 @@ class ProjectDefenseRequestService {
       const students = memberStudentIds.length
         ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
         : [];
-      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t });
+  const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t, phase: 'phase1' });
       const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
       const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
       if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
@@ -570,7 +585,7 @@ class ProjectDefenseRequestService {
       const students = memberStudentIds.length
         ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
         : [];
-      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t });
+  const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t, phase: 'phase2' });
       const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
       if ((leaderMetrics.approvedLogs || 0) < THESIS_REQUIRED_APPROVED_MEETING_LOGS) {
         throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${THESIS_REQUIRED_APPROVED_MEETING_LOGS} ครั้ง`);

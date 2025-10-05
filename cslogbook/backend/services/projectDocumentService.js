@@ -44,6 +44,8 @@ const workflowService = require('./workflowService');
 
 // กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
 const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '5', 10) || 5, 1);
+const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
+const VALID_MEETING_PHASES = new Set(['phase1', 'phase2']);
 
 /**
  * Service สำหรับจัดการ ProjectDocument (Phase 2)
@@ -495,40 +497,50 @@ class ProjectDocumentService {
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
     const base = this.serialize(project);
+    const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
+    const buildMetricsPayload = (metrics, requiredApprovedLogs) => ({
+      requiredApprovedLogs,
+      totalMeetings: metrics?.totalMeetings || 0,
+      totalApprovedLogs: metrics?.totalApprovedLogs || 0,
+      lastApprovedLogAt: metrics?.lastApprovedLogAt || null,
+      perStudent: memberStudentIds.map(studentId => ({
+        studentId,
+        approvedLogs: metrics?.perStudent?.[studentId]?.approvedLogs || 0,
+        attendedMeetings: metrics?.perStudent?.[studentId]?.attendedMeetings || 0
+      }))
+    });
+    const cloneMetrics = (payload) => ({
+      ...payload,
+      perStudent: (payload.perStudent || []).map(entry => ({ ...entry }))
+    });
+
     try {
-      const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
       if (memberStudentIds.length) {
         const students = await Student.findAll({ where: { studentId: memberStudentIds } });
-        const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students);
-        base.meetingMetrics = {
-          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
-          totalMeetings: meetingMetrics.totalMeetings,
-          totalApprovedLogs: meetingMetrics.totalApprovedLogs,
-          lastApprovedLogAt: meetingMetrics.lastApprovedLogAt,
-          perStudent: memberStudentIds.map(studentId => ({
-            studentId,
-            approvedLogs: meetingMetrics.perStudent?.[studentId]?.approvedLogs || 0,
-            attendedMeetings: meetingMetrics.perStudent?.[studentId]?.attendedMeetings || 0
-          }))
-        };
+        // แยกนับบันทึกการพบตาม phase เพื่อให้ Phase 1 และ Phase 2 ใช้เกณฑ์คนละชุด
+        const [phase1Metrics, phase2Metrics] = await Promise.all([
+          this.buildProjectMeetingMetrics(project.projectId, students, { phase: 'phase1' }),
+          this.buildProjectMeetingMetrics(project.projectId, students, { phase: 'phase2' })
+        ]);
+        const phase1Payload = buildMetricsPayload(phase1Metrics, REQUIRED_APPROVED_MEETING_LOGS);
+        const phase2Payload = buildMetricsPayload(phase2Metrics, THESIS_REQUIRED_APPROVED_MEETING_LOGS);
+        base.meetingMetrics = cloneMetrics(phase1Payload);
+        base.meetingMetricsPhase1 = cloneMetrics(phase1Payload);
+        base.meetingMetricsPhase2 = cloneMetrics(phase2Payload);
       } else {
-        base.meetingMetrics = {
-          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
-          totalMeetings: 0,
-          totalApprovedLogs: 0,
-          lastApprovedLogAt: null,
-          perStudent: []
-        };
+        const emptyPhase1 = buildMetricsPayload(null, REQUIRED_APPROVED_MEETING_LOGS);
+        const emptyPhase2 = buildMetricsPayload(null, THESIS_REQUIRED_APPROVED_MEETING_LOGS);
+        base.meetingMetrics = cloneMetrics(emptyPhase1);
+        base.meetingMetricsPhase1 = cloneMetrics(emptyPhase1);
+        base.meetingMetricsPhase2 = cloneMetrics(emptyPhase2);
       }
     } catch (error) {
       logger.warn('getProjectById meeting metrics failed', { projectId, error: error.message });
-      base.meetingMetrics = {
-        requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
-        totalMeetings: 0,
-        totalApprovedLogs: 0,
-        lastApprovedLogAt: null,
-        perStudent: []
-      };
+      const fallbackPhase1 = buildMetricsPayload(null, REQUIRED_APPROVED_MEETING_LOGS);
+      const fallbackPhase2 = buildMetricsPayload(null, THESIS_REQUIRED_APPROVED_MEETING_LOGS);
+      base.meetingMetrics = cloneMetrics(fallbackPhase1);
+      base.meetingMetricsPhase1 = cloneMetrics(fallbackPhase1);
+      base.meetingMetricsPhase2 = cloneMetrics(fallbackPhase2);
     }
     try {
       const latestSystemTest = await ProjectTestRequest.findOne({
@@ -760,7 +772,7 @@ class ProjectDocumentService {
         transaction
       });
 
-      const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction });
+  const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
 
       for (const student of students) {
         const state = this.computeProjectWorkflowState(project, student, meetingMetrics);
@@ -812,7 +824,7 @@ class ProjectDocumentService {
     }
   }
 
-  async buildProjectMeetingMetrics(projectId, students, { transaction } = {}) {
+  async buildProjectMeetingMetrics(projectId, students, { transaction, phase } = {}) {
     const metrics = {
       totalMeetings: 0,
       totalApprovedLogs: 0,
@@ -843,9 +855,35 @@ class ProjectDocumentService {
         return metrics;
       }
 
+      const meetingWhere = { projectId };
+      if (phase !== undefined && phase !== null) {
+        const normalizedPhases = [];
+        const pushPhase = (value) => {
+          if (typeof value !== 'string') return;
+          const trimmed = value.trim().toLowerCase();
+          if (!trimmed) return;
+          if (!VALID_MEETING_PHASES.has(trimmed)) return;
+          if (!normalizedPhases.includes(trimmed)) {
+            normalizedPhases.push(trimmed);
+          }
+        };
+
+        if (Array.isArray(phase)) {
+          phase.forEach(pushPhase);
+        } else {
+          pushPhase(phase);
+        }
+
+        if (normalizedPhases.length === 1) {
+          meetingWhere.phase = normalizedPhases[0];
+        } else if (normalizedPhases.length > 1) {
+          meetingWhere.phase = { [Op.in]: normalizedPhases };
+        }
+      }
+
       const meetings = await Meeting.findAll({
         attributes: ['meetingId'],
-        where: { projectId },
+        where: meetingWhere,
         transaction,
         raw: true
       });

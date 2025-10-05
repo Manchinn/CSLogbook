@@ -88,8 +88,13 @@ const AdvisorKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
     try {
       setLoading(true);
       const params = {};
-      if (filters.status && filters.status !== 'all') {
-        params.status = filters.status;
+      if (filters.status) {
+        if (filters.status === 'all') {
+          // ส่งสถานะครบชุดเพื่อให้ API ดึงทั้งรายการที่รอพิจารณา อนุมัติแล้ว และคำขอที่ปิดงานไปแล้ว
+          params.status = ['pending', 'approved', 'rejected', 'completed'];
+        } else {
+          params.status = filters.status;
+        }
       }
       const response = await projectService.listProject1AdvisorQueue({ ...params, defenseType });
       if (!response?.success) {

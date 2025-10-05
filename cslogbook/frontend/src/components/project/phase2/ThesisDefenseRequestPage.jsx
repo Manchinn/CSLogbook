@@ -105,7 +105,8 @@ const ThesisDefenseRequestPage = () => {
   }, [systemTestSnapshot]);
 
   const meetingRequirement = useMemo(() => {
-    const metrics = requestRecord?.meetingMetrics || activeProject?.meetingMetrics;
+    const metrics = requestRecord?.meetingMetrics || activeProject?.meetingMetricsPhase2 || activeProject?.meetingMetrics;
+    // ใช้ข้อมูลบันทึกการพบของ Phase 2 เป็นหลัก หากยังไม่เคยส่งคำขอให้ fallback ไปที่สรุปจากโปรเจกต์
     const required = Number(metrics?.requiredApprovedLogs ?? DEFAULT_REQUIRED_LOGS);
     if (!metrics || !Array.isArray(metrics.perStudent)) {
       return { required, approved: 0, satisfied: required === 0 };
@@ -118,7 +119,7 @@ const ThesisDefenseRequestPage = () => {
       approved: leaderApproved,
       satisfied: leaderApproved >= required
     };
-  }, [activeProject?.meetingMetrics, leaderMember, requestRecord?.meetingMetrics]);
+  }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2, leaderMember, requestRecord?.meetingMetrics]);
 
   const statusMeta = useMemo(() => DEFENSE_STATUS_META[requestRecord?.status] || DEFENSE_STATUS_META.default, [requestRecord]);
 

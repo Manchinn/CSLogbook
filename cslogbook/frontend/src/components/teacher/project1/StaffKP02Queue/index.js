@@ -52,6 +52,7 @@ const DEFENSE_UI_META = {
 const STATUS_OPTIONS = [
   { value: 'advisor_approved', label: 'รอเจ้าหน้าที่ตรวจสอบ' },
   { value: 'staff_verified', label: 'ตรวจสอบแล้ว' },
+  { value: 'completed', label: 'บันทึกผลสอบแล้ว' },
   { value: 'all', label: 'ทั้งหมด' }
 ];
 
@@ -88,7 +89,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [filters, setFilters] = useState({
-    status: 'advisor_approved',
+    status: 'all',
     academicYear: undefined,
     semester: undefined,
     search: ''
@@ -118,8 +119,13 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
     try {
       setLoading(true);
       const params = {};
-      if (filters.status && filters.status !== 'all') {
-        params.status = filters.status;
+      if (filters.status) {
+        if (filters.status === 'all') {
+          // ดึงทุกสถานะที่เจ้าหน้าที่ควรติดตาม รวมถึงรายการที่สรุปผลสอบแล้วด้วย
+          params.status = ['advisor_approved', 'staff_verified', 'scheduled', 'completed'];
+        } else {
+          params.status = filters.status;
+        }
       }
       if (filters.academicYear) {
         params.academicYear = filters.academicYear;
@@ -346,7 +352,15 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
     const recordDefenseType = record.defenseType || defenseType;
     const isThesis = recordDefenseType === DEFENSE_TYPE_THESIS;
 
-    const meetingMetrics = record.meetingMetrics || null;
+    // เลือก metric ให้ตรงกับ phase ที่คำขอสอบต้องการ เพื่อให้เจ้าหน้าที่เห็นข้อมูลล่าสุดตามเกณฑ์
+    const projectMetricsPhase1 = record.project?.meetingMetricsPhase1 || record.project?.meetingMetrics || null;
+    const projectMetricsPhase2 = record.project?.meetingMetricsPhase2 || null;
+    const meetingMetrics = isThesis
+      ? record.meetingMetrics || projectMetricsPhase2 || null
+      : record.meetingMetrics || projectMetricsPhase1 || null;
+    const meetingPhaseLabel = isThesis ? 'Phase 2' : 'Phase 1';
+    const fallbackPhaseMetrics = isThesis ? projectMetricsPhase1 : projectMetricsPhase2;
+    const fallbackPhaseLabel = isThesis ? 'Phase 1' : 'Phase 2';
     const perStudentMap = new Map();
     if (Array.isArray(meetingMetrics?.perStudent)) {
       meetingMetrics.perStudent.forEach((entry) => {
@@ -444,7 +458,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
         </Col>
         <Col xs={24} md={10}>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Card size="small" title="สรุปบันทึกการพบ">
+            <Card size="small" title={`สรุปบันทึกการพบ (${meetingPhaseLabel})`}>
               {meetingMetrics ? (
                 <Space direction="vertical" size={8} style={{ width: '100%' }}>
                   <Space direction="vertical" size={2}>
@@ -481,6 +495,15 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                 <Alert type="info" message="ไม่พบข้อมูลบันทึกการพบ" showIcon />
               )}
             </Card>
+            {isThesis && fallbackPhaseMetrics && (
+              <Card size="small" title={`ภาพรวมบันทึกการพบ (${fallbackPhaseLabel})`}>
+                <Space direction="vertical" size={6}>
+                  <Text>อนุมัติทั้งหมด: {fallbackPhaseMetrics.totalApprovedLogs || 0}</Text>
+                  <Text>ต้องมีขั้นต่ำ: {fallbackPhaseMetrics.requiredApprovedLogs || 0}</Text>
+                  <Text>อนุมัติครั้งล่าสุด: {formatDateTime(fallbackPhaseMetrics.lastApprovedLogAt)}</Text>
+                </Space>
+              </Card>
+            )}
             {isThesis && (
               <Card size="small" title="คำขอทดสอบระบบ 30 วัน">
                 {systemTestSnapshot ? (
@@ -643,7 +666,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                 )}
                 <Button
                   danger
-                  onClick={() => setFilters({ status: 'advisor_approved', academicYear: undefined, semester: undefined, search: '' })}
+                  onClick={() => setFilters({ status: 'all', academicYear: undefined, semester: undefined, search: '' })}
                 >
                   รีเซ็ตตัวกรอง
                 </Button>

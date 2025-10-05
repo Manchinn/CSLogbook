@@ -236,7 +236,7 @@ class ProjectSystemTestService {
       const students = memberStudentIds.length
         ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
         : [];
-      const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(project.projectId, students, { transaction: t });
+  const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(project.projectId, students, { transaction: t, phase: 'phase1' });
       const requiredLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
       const leaderMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
       if ((leaderMetrics.approvedLogs || 0) < requiredLogs) {

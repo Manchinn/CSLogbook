@@ -5,6 +5,7 @@
 
 let SequelizeCtor;
 let DataTypesCtor;
+let Op;
 let sequelize;
 let Student;
 let User;
@@ -48,10 +49,10 @@ async function resetExamAndTest() {
   await ProjectTestRequest.destroy({ where: {} });
 }
 
-async function seedApprovedMeetings(count = 5) {
+async function seedApprovedMeetings(count = 5, { phase = 'phase1' } = {}) {
   // สร้างข้อมูลการพบอาจารย์ที่ได้รับอนุมัติครบตามจำนวนที่กำหนด เพื่อใช้ทดสอบเกณฑ์ยื่นสอบ
   for (let i = 0; i < count; i += 1) {
-    const meeting = await Meeting.create({ projectId: project.projectId });
+    const meeting = await Meeting.create({ projectId: project.projectId, phase });
     await MeetingParticipant.bulkCreate([
       { meetingId: meeting.meetingId, userId: leader.userId, role: 'student', attendanceStatus: 'present' },
       { meetingId: meeting.meetingId, userId: member.userId, role: 'student', attendanceStatus: 'present' }
@@ -94,7 +95,7 @@ async function seedSystemTestRequest(options = {}) {
 
 beforeAll(async () => {
   jest.resetModules();
-  ({ Sequelize: SequelizeCtor, DataTypes: DataTypesCtor } = require('sequelize'));
+  ({ Sequelize: SequelizeCtor, DataTypes: DataTypesCtor, Op } = require('sequelize'));
 
   process.env.THESIS_REQUIRED_APPROVED_LOGS = '4';
 
@@ -167,7 +168,8 @@ beforeAll(async () => {
 
   Meeting = sequelize.define('Meeting', {
     meetingId: { type: DataTypesCtor.INTEGER, primaryKey: true, autoIncrement: true, field: 'meeting_id' },
-    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' }
+    projectId: { type: DataTypesCtor.INTEGER, allowNull: false, field: 'project_id' },
+    phase: { type: DataTypesCtor.STRING, allowNull: true }
   }, { tableName: 'meetings', underscored: true, timestamps: false });
 
   MeetingParticipant = sequelize.define('MeetingParticipant', {
@@ -231,7 +233,7 @@ beforeAll(async () => {
       syncProjectWorkflowState: mockSyncProjectWorkflowState,
       getProjectById: jest.fn(),
       getRequiredApprovedMeetingLogs: () => 5,
-      buildProjectMeetingMetrics: async (projectId, students) => {
+      buildProjectMeetingMetrics: async (projectId, students, options = {}) => {
         const metrics = {
           totalMeetings: 0,
           totalApprovedLogs: 0,
@@ -257,7 +259,18 @@ beforeAll(async () => {
           return metrics;
         }
 
-        const meetings = await Meeting.findAll({ where: { projectId }, raw: true });
+        const meetingWhere = { projectId };
+        const { phase } = options;
+        if (phase) {
+          const normalized = Array.isArray(phase) ? phase.filter(Boolean) : [phase].filter(Boolean);
+          if (normalized.length === 1) {
+            meetingWhere.phase = normalized[0];
+          } else if (normalized.length > 1) {
+            meetingWhere.phase = { [Op.in]: normalized };
+          }
+        }
+
+        const meetings = await Meeting.findAll({ where: meetingWhere, raw: true });
         metrics.totalMeetings = meetings.length;
         if (!meetings.length) {
           return metrics;
@@ -435,7 +448,7 @@ describe('submitProject1Request', () => {
 describe('submitThesisRequest', () => {
   test('ยื่นคำขอสำเร็จเมื่อครบเงื่อนไขทั้งหมด', async () => {
     await resetMeetings();
-    await seedApprovedMeetings(5);
+    await seedApprovedMeetings(5, { phase: 'phase2' });
     await seedProject1ExamPass();
     const testRequest = await seedSystemTestRequest({ dueDaysAgo: 10, includeEvidence: true });
     const payload = {
@@ -455,7 +468,7 @@ describe('submitThesisRequest', () => {
 
   test('ปฏิเสธเมื่อยังไม่ผ่านการสอบโครงงานพิเศษ 1', async () => {
     await resetMeetings();
-    await seedApprovedMeetings(5);
+    await seedApprovedMeetings(5, { phase: 'phase2' });
     await seedSystemTestRequest({ dueDaysAgo: 15, includeEvidence: true });
 
     await expect(projectDefenseRequestService.submitThesisRequest(project.projectId, leader.studentId, {
@@ -468,7 +481,7 @@ describe('submitThesisRequest', () => {
 
   test('ปฏิเสธเมื่อบันทึกการพบอาจารย์ไม่ครบตามเกณฑ์พิเศษ', async () => {
     await resetMeetings();
-    await seedApprovedMeetings(3);
+    await seedApprovedMeetings(3, { phase: 'phase2' });
     await seedProject1ExamPass();
     await seedSystemTestRequest({ dueDaysAgo: 20, includeEvidence: true });
 
@@ -482,7 +495,7 @@ describe('submitThesisRequest', () => {
 
   test('ปฏิเสธเมื่อสถานะคำขอทดสอบระบบยังไม่อนุมัติโดยเจ้าหน้าที่', async () => {
     await resetMeetings();
-    await seedApprovedMeetings(6);
+    await seedApprovedMeetings(6, { phase: 'phase2' });
     await seedProject1ExamPass();
     await seedSystemTestRequest({ status: 'pending_staff', includeEvidence: false });
 
@@ -496,7 +509,7 @@ describe('submitThesisRequest', () => {
 
   test('ปฏิเสธเมื่อยังไม่อัปโหลดหลักฐานการทดสอบระบบครบ', async () => {
     await resetMeetings();
-    await seedApprovedMeetings(6);
+    await seedApprovedMeetings(6, { phase: 'phase2' });
     await seedProject1ExamPass();
     await seedSystemTestRequest({ includeEvidence: false, dueDaysAgo: 20 });
 
@@ -510,7 +523,7 @@ describe('submitThesisRequest', () => {
 
   test('ปฏิเสธเมื่อยังไม่ครบกำหนด 30 วันของการทดสอบระบบ', async () => {
     await resetMeetings();
-    await seedApprovedMeetings(6);
+    await seedApprovedMeetings(6, { phase: 'phase2' });
     await seedProject1ExamPass();
     const testRequest = await seedSystemTestRequest({ dueDaysAgo: -2 });
 

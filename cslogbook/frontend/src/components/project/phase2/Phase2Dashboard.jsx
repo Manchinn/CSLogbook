@@ -112,7 +112,8 @@ const Phase2Dashboard = () => {
 
   const meetingBreakdown = useMemo(() => {
     const members = Array.isArray(activeProject?.members) ? activeProject.members : [];
-    const metrics = activeProject?.meetingMetrics;
+    const metrics = activeProject?.meetingMetricsPhase2 || activeProject?.meetingMetrics;
+    // ให้คำนวณจากบันทึก Phase 2 เป็นค่าเริ่มต้น เพื่อสะท้อนความพร้อมยื่น คพ.03
     const perStudentMap = new Map();
 
     if (Array.isArray(metrics?.perStudent)) {
@@ -136,7 +137,7 @@ const Phase2Dashboard = () => {
         attendedMeetings: counts.attendedMeetings
       };
     });
-  }, [activeProject?.members, activeProject?.meetingMetrics]);
+  }, [activeProject?.members, activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2]);
 
   const thesisStatusKey = thesisRequest?.status || 'not_submitted';
   const thesisStatusMeta = DEFENSE_STATUS_META[thesisStatusKey] || DEFENSE_STATUS_META.default;
@@ -168,7 +169,8 @@ const Phase2Dashboard = () => {
   const requireScopeRevision = Boolean(examDetail?.requireScopeRevision);
 
   const meetingRequirement = useMemo(() => {
-    const metrics = activeProject?.meetingMetrics;
+    const metrics = activeProject?.meetingMetricsPhase2 || activeProject?.meetingMetrics;
+    // หากยังไม่มีข้อมูล Phase 2 (กรณีเพิ่งเริ่ม), จะถอยไปใช้ summary เดิมเพื่อหลีกเลี่ยงค่า null
     if (!metrics) {
       return { required: 0, totalApproved: 0, satisfied: true };
     }
@@ -179,7 +181,7 @@ const Phase2Dashboard = () => {
       totalApproved,
       satisfied: required === 0 || totalApproved >= required
     };
-  }, [activeProject?.meetingMetrics]);
+  }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2]);
 
   const thesisBlockingReasons = useMemo(() => {
     const reasons = [];
@@ -207,12 +209,12 @@ const Phase2Dashboard = () => {
   }, [navigate]);
 
   const lastApprovedMeeting = useMemo(() => {
-    const value = activeProject?.meetingMetrics?.lastApprovedLogAt;
+    const value = (activeProject?.meetingMetricsPhase2 || activeProject?.meetingMetrics)?.lastApprovedLogAt;
     if (!value) return null;
     const dt = dayjs(value);
     if (!dt.isValid()) return null;
     return dt.format('DD MMM YYYY เวลา HH:mm น.');
-  }, [activeProject?.meetingMetrics?.lastApprovedLogAt]);
+  }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2]);
 
   const resourceLinks = useMemo(() => ([
     {
