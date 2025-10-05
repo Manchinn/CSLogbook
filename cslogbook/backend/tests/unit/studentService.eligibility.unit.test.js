@@ -1,10 +1,48 @@
 const mockLogger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
 
+const mockAcademicModel = { findOne: jest.fn() };
+const mockCurriculumModel = { findOne: jest.fn() };
+const mockStudentModel = { findByPk: jest.fn() };
+const mockProjectMemberModel = { findAll: jest.fn() };
+
+const mockModels = {
+  User: {},
+  Teacher: {},
+  Curriculum: mockCurriculumModel,
+  StudentAcademicHistory: {},
+  Academic: mockAcademicModel,
+  Student: mockStudentModel,
+  ProjectMember: mockProjectMemberModel,
+  ProjectDocument: {},
+  ProjectExamResult: {},
+};
+
+const mockDatabaseModule = {
+  Sequelize: require('sequelize').Sequelize,
+  sequelize: {
+    models: {
+      Academic: mockAcademicModel,
+      Curriculum: mockCurriculumModel,
+    },
+  },
+};
+
+jest.mock('../../utils/logger', () => mockLogger);
+jest.mock('../../models', () => mockModels);
+jest.mock('../../config/database', () => mockDatabaseModule);
+
+const studentService = require('../../services/studentService');
+
 describe('studentService.checkStudentEligibility - project access override', () => {
-  afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
-  });
+  const resetBaseMocks = () => {
+    mockLogger.info.mockReset();
+    mockLogger.error.mockReset();
+    mockLogger.warn.mockReset();
+    mockAcademicModel.findOne.mockReset().mockResolvedValue(null);
+    mockCurriculumModel.findOne.mockReset().mockResolvedValue(null);
+    mockStudentModel.findByPk.mockReset();
+    mockProjectMemberModel.findAll.mockReset();
+  };
 
   const setupScenario = ({
     projectStatus = 'completed',
@@ -12,6 +50,8 @@ describe('studentService.checkStudentEligibility - project access override', () 
     thesisResult = 'PASS',
     overrideProjectEligibility = false,
   } = {}) => {
+    resetBaseMocks();
+
     const mockStudentInstance = {
       studentId: 101,
       studentCode: '6404062630295',
@@ -31,17 +71,7 @@ describe('studentService.checkStudentEligibility - project access override', () 
       }),
     };
 
-    const mockAcademicModel = {
-      findOne: jest.fn().mockResolvedValue(null),
-    };
-
-    const mockCurriculumModel = {
-      findOne: jest.fn().mockResolvedValue(null),
-    };
-
-    const mockStudentModel = {
-      findByPk: jest.fn().mockResolvedValue(mockStudentInstance),
-    };
+    mockStudentModel.findByPk.mockResolvedValue(mockStudentInstance);
 
     const mockProjectMemberships = [
       {
@@ -57,47 +87,16 @@ describe('studentService.checkStudentEligibility - project access override', () 
       },
     ];
 
-    const mockModels = {
-      User: {},
-      Teacher: {},
-      Curriculum: mockCurriculumModel,
-      StudentAcademicHistory: {},
-      Academic: mockAcademicModel,
-      Student: mockStudentModel,
-      ProjectMember: {
-        findAll: jest.fn().mockResolvedValue(mockProjectMemberships),
-      },
-      ProjectDocument: {},
-      ProjectExamResult: {},
-    };
-
-    jest.doMock('../../utils/logger', () => mockLogger, { virtual: true });
-    jest.doMock('../../models', () => mockModels, { virtual: true });
-    jest.doMock('../../config/database', () => ({
-      sequelize: {
-        models: {
-          Academic: mockAcademicModel,
-          Curriculum: mockCurriculumModel,
-        },
-      },
-    }), { virtual: true });
-
-    let studentService;
-    jest.isolateModules(() => {
-      studentService = require('../../services/studentService');
-    });
+    mockProjectMemberModel.findAll.mockResolvedValue(mockProjectMemberships);
 
     return {
-      studentService,
       mockStudentInstance,
-      mockStudentModel,
       mockProjectMemberships,
-      mockModels,
     };
   };
 
   it('ให้สิทธิ์เข้าถึงระบบโครงงานต่อเนื่องเมื่อโครงงานเสร็จสมบูรณ์แล้ว', async () => {
-    const { studentService, mockStudentInstance } = setupScenario();
+    const { mockStudentInstance } = setupScenario();
 
     const response = await studentService.checkStudentEligibility(101);
 
@@ -109,13 +108,13 @@ describe('studentService.checkStudentEligibility - project access override', () 
   });
 
   it('ไม่ override หากไม่มีข้อมูลโครงงานหรือผลสอบผ่านครบ', async () => {
-    const { studentService, mockModels } = setupScenario({
+    setupScenario({
       projectStatus: 'archived',
       projectExamResult: 'failed',
       thesisResult: 'FAIL',
     });
 
-    mockModels.ProjectMember.findAll.mockResolvedValue([]);
+    mockProjectMemberModel.findAll.mockResolvedValue([]);
 
     const response = await studentService.checkStudentEligibility(101);
 

@@ -67,6 +67,7 @@
     "setupFilesAfterEnv": [
       "<rootDir>/tests/jest.setup.js"
     ],
+    "globalTeardown": "<rootDir>/tests/jest.teardown.js",
     "collectCoverageFrom": [
       "services/**/*.js",
       "controllers/**/*.js",

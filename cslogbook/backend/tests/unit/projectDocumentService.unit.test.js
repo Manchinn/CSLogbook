@@ -6,10 +6,16 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
 // สร้าง in-memory sequelize สำหรับเทสนี้
-const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+const mockSequelize = new Sequelize('sqlite::memory:', { logging: false });
+const sequelize = mockSequelize;
 
 // Mock workflowService เพื่อตัด side effect ของการ sync timeline ในเทส
 const mockUpdateWorkflowActivity = jest.fn().mockResolvedValue(null);
+
+// mock logger ใช้ตัวเดียวกันทั้งไฟล์เพื่อให้ jest.mock คืนอ็อบเจ็กต์เดิมทุกครั้ง
+const mockLogger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
+
+const mockDatabaseModule = { Sequelize, sequelize: mockSequelize };
 
 // สร้าง simplified models (ตัด FK อื่นเพื่อลด complexity)
 const Student = sequelize.define('Student', {
@@ -28,6 +34,7 @@ let projectCodeCounter = 0; // นับเพื่อสร้างรหั�
 
 const ProjectDocument = sequelize.define('ProjectDocument', {
   projectId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'project_id' },
+  documentId: { type: DataTypes.INTEGER, allowNull: true, field: 'document_id' },
   projectNameTh: { type: DataTypes.STRING, allowNull: true, field: 'project_name_th' },
   projectNameEn: { type: DataTypes.STRING, allowNull: true, field: 'project_name_en' },
   projectType: { type: DataTypes.STRING, allowNull: true, field: 'project_type' },
@@ -134,8 +141,6 @@ ProjectDefenseRequest.hasMany(ProjectDefenseRequestAdvisorApproval, { as: 'advis
 ProjectDefenseRequestAdvisorApproval.belongsTo(ProjectDefenseRequest, { as: 'request', foreignKey: 'request_id', constraints: false });
 ProjectDefenseRequestAdvisorApproval.belongsTo(Teacher, { as: 'teacher', foreignKey: 'teacher_id', constraints: false });
 
-let projectDocumentService;
-
 // Helper สร้าง student + user (เพื่อให้ include user ทำงานและไม่โดน FK constraint)
 async function createStudent({ code, eligibleProject = true }) {
   const user = await User.create({ firstName: 'Stu', lastName: code.slice(-3) });
@@ -149,38 +154,41 @@ async function createStudent({ code, eligibleProject = true }) {
   });
 }
 
+jest.mock('../../config/database', () => mockDatabaseModule);
+jest.mock('../../utils/logger', () => mockLogger);
+const mockModels = {
+  sequelize: mockSequelize,
+  Student,
+  ProjectDocument,
+  ProjectMember,
+  Academic,
+  User,
+  ProjectTrack,
+  ProjectDefenseRequest,
+  ProjectDefenseRequestAdvisorApproval,
+  Teacher,
+  Meeting,
+  MeetingParticipant,
+  MeetingLog
+};
+
+jest.mock('../../services/workflowService', () => ({
+  updateStudentWorkflowActivity: mockUpdateWorkflowActivity
+}));
+jest.mock('../../models', () => mockModels);
+
+const projectDocumentService = require('../../services/projectDocumentService');
+
 beforeAll(async () => {
-  jest.resetModules();
-  jest.isolateModules(() => {
-    jest.doMock('../../config/database', () => ({ sequelize }), { virtual: true });
-    jest.doMock('../../utils/logger', () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn() }), { virtual: true });
-    jest.doMock('../../services/workflowService', () => ({
-      updateStudentWorkflowActivity: mockUpdateWorkflowActivity
-    }), { virtual: true });
-    jest.doMock('../../models', () => ({
-      sequelize,
-      Student,
-      ProjectDocument,
-      ProjectMember,
-      Academic,
-      User,
-      ProjectTrack,
-      ProjectDefenseRequest,
-      ProjectDefenseRequestAdvisorApproval,
-      Teacher,
-      Meeting,
-      MeetingParticipant,
-      MeetingLog
-    }), { virtual: true });
-    // require หลังจากลงทะเบียน mock
-    projectDocumentService = require('../../services/projectDocumentService');
-  });
   await sequelize.sync({ force: true });
   // ไม่สร้าง Academic เพื่อทดสอบ fallback (service จะใช้ปีปัจจุบัน + ภาค 1)
 });
 
 beforeEach(() => {
   mockUpdateWorkflowActivity.mockClear();
+  mockLogger.info.mockClear();
+  mockLogger.error.mockClear();
+  mockLogger.warn.mockClear();
 });
 
 afterAll(async () => {
