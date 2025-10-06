@@ -1,217 +1,286 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography, Alert, Spin } from 'antd';
+import React from "react";
+import {
+  Card,
+  Timeline,
+  Tag,
+  Button,
+  Typography,
+  Spin,
+  Alert,
+  Space,
+  Progress,
+  Tooltip,
+} from "antd";
 import { 
-  LaptopOutlined, UnlockOutlined, LockOutlined, 
-  FileDoneOutlined, InfoCircleOutlined, ReloadOutlined 
+  BankOutlined,
+  UnlockOutlined, 
+  LockOutlined,
+  SolutionOutlined,
+  InfoCircleOutlined 
 } from '@ant-design/icons';
-import TimelineItems from './TimelineItems';
-import { workflowService } from '../../../services/workflowService';
-import { calculateStudentYear, isEligibleForInternship } from '../../../utils/studentUtils';
+import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
+import useCertificateStatus from "../../../hooks/useCertificateStatus";
 
 const { Text, Paragraph } = Typography;
 
-// คอมโพเนนต์สำหรับแสดงส่วนการฝึกงาน
-const InternshipSection = ({ student, progress }) => {
-  const [requirements, setRequirements] = useState({ internship: null });
-  const [workflowData, setWorkflowData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+const InternshipSection = () => {
+  const {
+    cs05Status,
+    internshipDate,
+    certificateStatus,
+    student,
+    loading,
+    error,
+  } = useInternshipStatus();
 
-  // ดึงข้อมูล workflow timeline จาก API
-  useEffect(() => {
-    const fetchWorkflowTimeline = async () => {
-      if (!student?.studentId && !student?.studentCode) return;
+  const {
+    supervisorEvaluationStatus,
+    loading: certLoading,
+    error: certError,
+  } = useCertificateStatus();
 
-      try {
-        setLoading(true);
-        const studentId = student.studentId || student.studentCode;
-        
-        console.log('🔄 เรียก API workflow timeline สำหรับนักศึกษา:', studentId);
-        
-        // ดึง timeline จาก backend ผ่าน workflowService ใหม่
-        const timelineResponse = await workflowService.getInternshipTimeline(studentId);
-        
-        console.log('📡 ผลตอบกลับจาก workflow API:', timelineResponse);
-        
-        if (timelineResponse.success) {
-          setWorkflowData(timelineResponse.data);
-          console.log('✅ ตั้งค่า workflowData สำเร็จ:', timelineResponse.data);
-        } else {
-          console.warn('⚠️ API ไม่สำเร็จ, ใช้ข้อมูลจาก progress:', timelineResponse.error);
-          // ใช้ข้อมูลจาก progress object เป็น fallback
-          if (progress?.internship) {
-            setWorkflowData({
-              steps: progress.internship.steps || [],
-              progress: progress.internship.progress || 0,
-              status: progress.internship.status || 'not_started',
-              currentStepDisplay: progress.internship.currentStepDisplay || 1,
-              totalStepsDisplay: progress.internship.totalStepsDisplay || 0,
-              blocked: progress.internship.blocked || false,
-              blockReason: progress.internship.blockReason || null
-            });
-          }
-        }
-
-        // ดึงข้อกำหนดจาก student object
-        if (student?.requirements) {
-          setRequirements(student.requirements);
-        }
-      } catch (error) {
-        console.error('❌ เกิดข้อผิดพลาดในการดึงข้อมูล workflow:', error);
-        
-        // ใช้ข้อมูลจาก progress เป็น fallback
-        if (progress?.internship) {
-          console.log('🔄 ใช้ข้อมูลจาก progress เป็น fallback');
-          setWorkflowData({
-            steps: progress.internship.steps || [],
-            progress: progress.internship.progress || 0,
-            status: progress.internship.status || 'not_started',
-            currentStepDisplay: progress.internship.currentStepDisplay || 1,
-            totalStepsDisplay: progress.internship.totalStepsDisplay || 0,
-            blocked: progress.internship.blocked || false,
-            blockReason: progress.internship.blockReason || null
-          });
-        } else {
-          setWorkflowData(null);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWorkflowTimeline();
-  }, [student?.studentId, student?.studentCode, refreshKey]);
-
-  // ตรวจสอบการลงทะเบียนฝึกงาน โดยใช้หลายวิธี
-  const isRegistered = React.useMemo(() => {
-    return Boolean(
-      student?.isEnrolledInternship === true ||
-      student?.isEnrolledInternship === 1 ||
-      student?.internshipStatus === 'in_progress' ||
-      student?.internshipStatus === 'completed' ||
-      progress?.internship?.currentStep > 0 ||
-      workflowData?.steps?.length > 0
-    );
-  }, [student, progress, workflowData]);
-
-  // ตรวจสอบสิทธิ์การฝึกงานด้วย utils function
-  const checkEligibilityWithUtils = () => {
-    const studentCode = student.studentCode || student.studentId;
-    const studentYearResult = calculateStudentYear(studentCode);
-    const studentYear = studentYearResult.error ? 0 : studentYearResult.year;
-
-    return isEligibleForInternship(
-      studentYear, 
-      student.totalCredits, 
-      student.majorCredits, 
-      requirements.internship
+  // ฟังก์ชันช่วยแยก error ที่ควร fallback เป็นสถานะปกติ
+  const isNotFoundError = (errMsg) => {
+    if (!errMsg) return false;
+    return (
+      errMsg.includes("ไม่พบข้อมูล") ||
+      errMsg.includes("ยังไม่มีข้อมูล") ||
+      errMsg.includes("ยังไม่ถึงขั้นตอน") ||
+      errMsg.includes("No internship data")
     );
   };
 
-  // ตรวจสอบสิทธิ์การฝึกงานจากหลายแหล่งข้อมูล
-  const hasInternshipEligibility = () => {
-    // กรณีมีข้อมูลจาก eligibility object ซึ่งเป็นรูปแบบใหม่
-    if (student.eligibility && student.eligibility.internship) {
-      return student.eligibility.internship.eligible;
+  // ถ้า loading ให้แสดง spinner
+  if (loading || certLoading) {
+    return (
+      <Card 
+        title={
+          <Space>
+            <BankOutlined />
+            <span>ฝึกงาน</span>
+            <Tag color="processing">กำลังโหลด</Tag>
+          </Space>
+        }
+      >
+        <div style={{ textAlign: "center", padding: "48px 0" }}>
+          <Spin size="large" tip="กำลังโหลดข้อมูล..." />
+        </div>
+      </Card>
+    );
+  }
+
+  // แสดง Alert เฉพาะ error จริง (ไม่ใช่ "ไม่พบข้อมูล" หรือ "ยังไม่ถึงขั้นตอน")
+  if ((error && !isNotFoundError(error)) || (certError && !isNotFoundError(certError))) {
+    return (
+      <Card 
+        title={
+          <Space>
+            <BankOutlined />
+            <span>ฝึกงาน</span>
+            <Tag color="error">เกิดข้อผิดพลาด</Tag>
+          </Space>
+        }
+      >
+        <Alert
+          type="error"
+          message="เกิดข้อผิดพลาด"
+          description={error || certError}
+          showIcon
+        />
+      </Card>
+    );
+  }
+
+  // ถ้า error เป็น "ไม่พบข้อมูล" หรือ "ยังไม่ถึงขั้นตอน" ให้ fallback เป็นค่า default
+  const safeSupervisorEvaluationStatus = isNotFoundError(certError) ? "wait" : supervisorEvaluationStatus;
+  const safeCertificateStatus = isNotFoundError(certError) ? "wait" : certificateStatus;
+
+  // กำหนดขั้นตอนหลักของ timeline
+  const steps = [
+    {
+      key: "cs05",
+      title: "ลงทะเบียนคำร้องฝึกงาน",
+      description: !cs05Status
+        ? (student?.eligibility?.internship?.eligible === false
+            ? "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ"
+            : "ยังไม่ได้ลงทะเบียนคำร้องฝึกงาน")
+        : "ลงทะเบียนคำร้องฝึกงานเรียบร้อยแล้ว",
+      action: !cs05Status && student?.eligibility?.internship?.eligible !== false && (
+        <Button
+          type="primary"
+          href="/internship-registration/flow"
+          style={{ marginTop: 8 }}
+        >
+          ลงทะเบียนคำร้องฝึกงาน
+        </Button>
+      ),
+    },
+    {
+      key: "wait_start",
+      title: "รอเริ่มการฝึกงาน",
+      description: internshipDate?.startDate
+        ? `รอถึงวันเริ่มฝึกงาน (${new Date(
+            internshipDate.startDate
+          ).toLocaleDateString()})`
+        : "ยังไม่มีข้อมูลวันเริ่มฝึกงาน",
+    },
+    {
+      key: "in_progress",
+      title: "อยู่ระหว่างการฝึกงาน",
+      description:
+        internshipDate?.startDate && internshipDate?.endDate
+          ? `ช่วงฝึกงาน: ${new Date(
+              internshipDate.startDate
+            ).toLocaleDateString()} - ${new Date(
+              internshipDate.endDate
+            ).toLocaleDateString()}`
+          : "ยังไม่มีข้อมูลช่วงฝึกงาน",
+    },
+    {
+      key: "evaluation",
+      title: "การประเมินฝึกงาน",
+      description:
+        safeSupervisorEvaluationStatus === "completed"
+          ? "การประเมินฝึกงานเสร็จสมบูรณ์แล้ว"
+          : safeSupervisorEvaluationStatus === "pending"
+          ? "รอพี่เลี้ยงประเมินฝึกงาน"
+          : "กรุณาส่งแบบประเมินฝึกงานให้พี่เลี้ยง",
+      action: safeSupervisorEvaluationStatus !== "completed" && (
+        <Button
+          type="primary"
+          href="/internship-summary"
+          style={{ marginTop: 8 }}
+        >
+          ส่งแบบประเมินฝึกงาน
+        </Button>
+      ),
+    },
+    {
+      key: "certificate",
+      title: "ขอหนังสือรับรองการฝึกงาน",
+      description:
+        safeCertificateStatus === "ready"
+          ? "ได้รับหนังสือรับรองแล้ว"
+          : safeCertificateStatus === "pending"
+          ? "รอเจ้าหน้าที่อนุมัติหนังสือรับรอง"
+          : "สามารถขอหนังสือรับรองการฝึกงานได้",
+      action: safeCertificateStatus !== "ready" && (
+        <Button
+          type="primary"
+          href="/internship-certificate"
+          style={{ marginTop: 8 }}
+        >
+          ขอหนังสือรับรอง
+        </Button>
+      ),
+    },
+    {
+      key: "done",
+      title: "เสร็จสิ้นการฝึกงาน",
+      description:
+        safeCertificateStatus === "ready"
+          ? "กระบวนการฝึกงานของคุณเสร็จสมบูรณ์แล้ว"
+          : "รอรับหนังสือรับรองการฝึกงาน",
+    },
+  ];
+
+  // ฟังก์ชันแปลงสถานะสำหรับแต่ละ step
+  const getStepStatus = (stepKey) => {
+    switch (stepKey) {
+      case "eligibility":
+        return student?.eligibility?.internship?.eligible ? "finish" : "process";
+      case "cs05":
+        if (!cs05Status) return "wait";
+        if (
+          ["approved", "supervisor_approved", "supervisor_evaluated"].includes(
+            cs05Status
+          )
+        )
+          return "finish";
+        return "process";
+      case "wait_start":
+        if (!internshipDate?.startDate) return "wait";
+        const now = new Date();
+        const start = new Date(internshipDate.startDate);
+        if (now < start) return "process";
+        return "finish";
+      case "in_progress":
+        if (!internshipDate?.startDate) return "wait";
+        const now2 = new Date();
+        const start2 = new Date(internshipDate.startDate);
+        const end2 = new Date(internshipDate.endDate);
+        if (now2 >= start2 && now2 <= end2) return "process";
+        if (now2 > end2) return "finish";
+        return "wait";
+      case "evaluation":
+        if (safeSupervisorEvaluationStatus === "completed") return "finish";
+        if (safeSupervisorEvaluationStatus === "pending") return "process";
+        return "wait";
+      case "certificate":
+        if (safeCertificateStatus === "ready") return "finish";
+        if (safeCertificateStatus === "pending") return "process";
+        return "wait";
+      case "done":
+        if (safeCertificateStatus === "ready") return "finish";
+        return "wait";
+      default:
+        return "wait";
     }
-    
-    // กรณีมีข้อมูลจาก workflowData
-    if (workflowData && typeof workflowData.blocked === 'boolean') {
-      return !workflowData.blocked;
-    }
-    
-    // กรณีมีข้อมูลจาก progress object
-    if (progress && progress.internship && typeof progress.internship.blocked === 'boolean') {
-      return !progress.internship.blocked;
-    }
-    
-    // กรณีมีข้อมูลจาก student object (รูปแบบเดิม)
-    if (typeof student.internshipEligible === 'boolean') {
-      return student.internshipEligible;
-    }
-    
-    // ใช้ utils function เป็น fallback
-    const eligibilityCheck = checkEligibilityWithUtils();
-    return eligibilityCheck.eligible;
   };
-  
-  // ดึงข้อความเหตุผลที่ไม่มีสิทธิ์ (ถ้ามี)
-  const getEligibilityMessage = () => {
-    if (student.eligibility && student.eligibility.internship && 
-        student.eligibility.internship.message) {
-      return student.eligibility.internship.message;
-    }
-    
-    if (workflowData && workflowData.blockReason) {
-      return workflowData.blockReason;
-    }
-    
-    if (progress && progress.internship && progress.internship.blockReason) {
-      return progress.internship.blockReason;
-    }
-    
-    if (student.internshipEligibleMessage) {
-      return student.internshipEligibleMessage;
-    }
-    
-    // ใช้ utils function เพื่อดึงข้อความ
-    const eligibilityCheck = checkEligibilityWithUtils();
-    return eligibilityCheck.message;
+
+  // คำนวณ progress และ current step
+  const calculateProgress = () => {
+    const finishedSteps = steps.filter(step => getStepStatus(step.key) === "finish").length;
+    const totalSteps = steps.length;
+    const progress = Math.round((finishedSteps / totalSteps) * 100);
+    // หา current step (step แรกที่ไม่ใช่ finish)
+    const currentStepIndex = steps.findIndex(step => getStepStatus(step.key) !== "finish");
+    const currentStep = currentStepIndex !== -1 ? currentStepIndex + 1 : totalSteps;
+    return { progress, currentStep, totalSteps };
   };
 
-  const isEligible = hasInternshipEligibility();
-  const eligibilityMessage = getEligibilityMessage();
+  const { progress: overallProgress, currentStep, totalSteps } = calculateProgress();
 
-  // รวมข้อมูลขั้นตอนจาก workflowData และ progress (ให้ความสำคัญกับ workflowData)
-  const timelineSteps = workflowData?.steps || progress?.internship?.steps || [];
-  const currentStepDisplay = workflowData?.currentStepDisplay || (progress?.internship?.currentStep + 1) || 1;
-  const totalStepsDisplay = workflowData?.totalStepsDisplay || progress?.internship?.totalSteps || timelineSteps.length;
-  const overallProgress = workflowData?.progress || progress?.internship?.progress || 0;
-  
-  // ตรวจสอบการแสดง blocked status
-  const isBlocked = workflowData?.blocked || progress?.internship?.blocked || !isEligible;
+  // ตรวจสอบสิทธิ์การลงทะเบียนฝึกงาน
+  const isEligible = student?.eligibility?.internship?.eligible !== false;
+  const eligibilityMessage = student?.eligibility?.internship?.message || "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ";
+  const isEnrolledInternship = !!cs05Status;
+  const isBlocked = !isEligible;
 
-  // Handler สำหรับการคลิกปุ่มดำเนินการ
-  const handleAction = async (item) => {
-    // จัดการการดำเนินการตาม step_key หรือ action
-    if (item.step_key) {
-      switch (item.step_key) {
-        case 'INTERNSHIP_CS05_SUBMITTED':
-          window.location.href = '/internship-registration';
-          break;
-        case 'INTERNSHIP_COMPANY_RESPONSE_PENDING':
-          window.location.href = '/internship/upload-response';
-          break;
-        case 'INTERNSHIP_IN_PROGRESS':
-          window.location.href = '/internship/daily-log';
-          break;
-        case 'INTERNSHIP_SUMMARY_PENDING':
-          window.location.href = '/internship/summary';
-          break;
-        default:
-          if (item.actionLink) {
-            window.location.href = item.actionLink;
-          }
-      }
-    } else if (item.actionLink) {
-      // สำหรับรูปแบบเดิม
-      window.location.href = item.actionLink;
+  // ฟังก์ชันแปลงสถานะเป็นสีของ Tag
+  const getColor = (status) => {
+    switch (status) {
+      case "finish":
+        return "green";
+      case "process":
+        return "blue";
+      default:
+        return "gray"; // wait
     }
   };
 
-  // ฟังก์ชันรีเฟรชข้อมูล
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
+  // ฟังก์ชันแปลงสถานะเป็นข้อความ
+  const getStatusText = (status) => {
+    switch (status) {
+      case "finish":
+        return "เสร็จสิ้น";
+      case "process":
+        return "กำลังดำเนินการ";
+      default:
+        return "รอดำเนินการ"; // wait
+    }
   };
 
   return (
     <Card 
       title={
         <Space>
-          <LaptopOutlined />
-          <span>การฝึกงาน</span>
+          <BankOutlined />
+          <span>ฝึกงาน</span>
           {isBlocked ? (
             <Tag color="error">ไม่มีสิทธิ์</Tag>
+          ) : !isEnrolledInternship ? (
+            <Tag color="default">ยังไม่เริ่ม</Tag>
           ) : (
             <Tag color={overallProgress === 100 ? "success" : "processing"}>
               {overallProgress === 100 ? "เสร็จสิ้น" : "กำลังดำเนินการ"}
@@ -227,9 +296,9 @@ const InternshipSection = ({ student, progress }) => {
             size={40} 
             format={percent => `${percent}%`}
           />
-          {totalStepsDisplay > 0 && (
+          {totalSteps > 0 && (
             <Text type="secondary">
-              ขั้นตอนที่ {currentStepDisplay}/{totalStepsDisplay}
+              ขั้นตอนที่ {currentStep}/{totalSteps}
             </Text>
           )}
           {isEligible ? (
@@ -239,53 +308,47 @@ const InternshipSection = ({ student, progress }) => {
               <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
             </Tooltip>
           )}
-          <Button 
-            icon={<ReloadOutlined />} 
-            size="small" 
-            onClick={handleRefresh}
-            loading={loading}
-            title="รีเฟรชข้อมูล"
-          />
         </Space>
       }
-      loading={loading}
     >
-      
-      {/* แสดงผลตามเงื่อนไข */}
-      {isRegistered || student.isEnrolledInternship ? (
-        timelineSteps.length > 0 ? (
-          <TimelineItems items={timelineSteps} onAction={handleAction} />
-        ) : loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <Spin tip="กำลังโหลดข้อมูลขั้นตอนการฝึกงาน..." />
-          </div>
-        ) : (
-          <Empty 
-            description="ยังไม่มีข้อมูลขั้นตอนการฝึกงาน" 
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        )
+      {isEnrolledInternship ? (
+        <Timeline>
+          {steps.map((step) => {
+            const status = getStepStatus(step.key);
+            return (
+              <Timeline.Item
+                key={step.key}
+                color={getColor(status)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Typography.Text strong style={{ fontSize: 16 }}>{step.title}</Typography.Text>
+                  <Tag color={getColor(status)} size="small">
+                    {getStatusText(status)}
+                  </Tag>
+                </div>
+                <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
+                  {step.description}
+                </div>
+                {step.action}
+              </Timeline.Item>
+            );
+          })}
+        </Timeline>
       ) : (
         <div style={{ padding: '32px 0', textAlign: 'center' }}>
-          <FileDoneOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
+          <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
           <Paragraph>คุณยังไม่ได้ลงทะเบียนฝึกงาน</Paragraph>
           <Button 
             type="primary" 
-            href="/internship-registration" 
+            href="/internship-registration/flow" 
             disabled={!isEligible}
           >
-            ลงทะเบียนฝึกงาน
+            ลงทะเบียนคำร้องฝึกงาน
           </Button>
           {!isEligible && (
-            <div style={{ marginTop: 16 }}>
-              <Alert
-                message="ยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน"
-                description={eligibilityMessage}
-                type="warning"
-                showIcon
-                icon={<InfoCircleOutlined />}
-              />
-            </div>
+            <Paragraph style={{ marginTop: 16 }} type="danger">
+              <InfoCircleOutlined /> {eligibilityMessage}
+            </Paragraph>
           )}
         </div>
       )}

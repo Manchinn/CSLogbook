@@ -62,9 +62,24 @@ const ProjectSection = ({ student, progress }) => {
   const currentStepDisplay = progress?.project?.currentStepDisplay || 0;
   const totalStepsDisplay = progress?.project?.totalStepsDisplay || 0;
   const overallProgress = progress?.project?.progress || 0;
-  
-  // ตรวจสอบการแสดง blocked status
-  const isBlocked = progress?.project?.blocked || !isEligible;
+  const overallStatus = progress?.project?.status || 'not_started';
+  const hasProjectHistory = projectSteps.length > 0;
+  const statusTagConfig = (() => {
+    switch (overallStatus) {
+      case 'completed':
+        return { color: 'success', label: 'เสร็จสิ้น' };
+      case 'failed':
+        return { color: 'error', label: 'สอบหัวข้อไม่ผ่าน' };
+      case 'archived':
+        return { color: 'default', label: 'เก็บถาวร' };
+      case 'not_started':
+        return { color: 'default', label: 'ยังไม่เริ่ม' };
+      default:
+        return { color: 'processing', label: 'กำลังดำเนินการ' };
+    }
+  })();
+
+  const showEligibilityWarning = !isEligible && !hasProjectHistory;
 
   // Handler สำหรับการคลิกปุ่มดำเนินการ
   const handleAction = (item) => {
@@ -80,12 +95,10 @@ const ProjectSection = ({ student, progress }) => {
         <Space>
           <ExperimentOutlined />
           <span>โครงงานพิเศษ</span>
-          {isBlocked ? (
-            <Tag color="error">ไม่มีสิทธิ์</Tag>
+          {showEligibilityWarning ? (
+            <Tag color="error">ยังไม่มีสิทธิ์</Tag>
           ) : (
-            <Tag color={overallProgress === 100 ? "success" : "processing"}>
-              {overallProgress === 100 ? "เสร็จสิ้น" : "กำลังดำเนินการ"}
-            </Tag>
+            <Tag color={statusTagConfig.color}>{statusTagConfig.label}</Tag>
           )}
         </Space>
       }
@@ -112,7 +125,7 @@ const ProjectSection = ({ student, progress }) => {
         </Space>
       }
     >
-      {student.isEnrolledProject ? (
+      {student.isEnrolledProject || hasProjectHistory ? (
         projectSteps.length > 0 ? (
           <TimelineItems items={projectSteps} onAction={handleAction} />
         ) : (

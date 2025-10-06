@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Row, Col, Form, message, Modal, Typography } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import { userService } from "../../../../services/admin/userService";
+import "../students/styles.css";
 import "./style.css";
 
 // นำเข้าคอมโพเนนต์
 import TeacherFilters from "./components/TeacherFilters";
 import TeacherTable from "./components/TeacherTable";
 import TeacherDrawer from "./components/TeacherDrawer";
+import { TEACHER_POSITION_OPTIONS, getTeacherTypeByPosition } from "./constants";
 
 const { Text } = Typography;
 
@@ -15,9 +17,14 @@ const TeacherList = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [filters, setFilters] = useState({
+    position: [],
+    teacherType: []
+  });
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [formInitialValues, setFormInitialValues] = useState({});
   const [form] = Form.useForm();
 
   // Fetch teachers
@@ -25,7 +32,8 @@ const TeacherList = () => {
     setLoading(true);
     try {
       const response = await userService.getTeachers({
-        search: searchText,
+        position: filters.position.join(','),
+        teacherType: filters.teacherType.join(',')
       });
 
       if (response.success && Array.isArray(response.data)) {
@@ -42,7 +50,7 @@ const TeacherList = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchText]);
+  }, [filters]);
 
   // Load teachers on mount and when search changes
   useEffect(() => {
@@ -54,17 +62,28 @@ const TeacherList = () => {
     setSelectedTeacher(null);
     setEditMode(true);
     form.resetFields();
+    // ตั้งค่า default ให้ position เป็น "คณาจารย์" ทุกครั้งที่เพิ่มใหม่
+    const defaultPosition = TEACHER_POSITION_OPTIONS[1];
+    const defaults = {
+      position: defaultPosition.value,
+      teacherType: defaultPosition.teacherType,
+      canAccessTopicExam: false,
+      canExportProject1: false
+    };
+    setFormInitialValues(defaults);
     setDrawerVisible(true);
   };
 
   const handleViewTeacher = (teacher) => {
     setSelectedTeacher(teacher);
     setEditMode(false);
+    setFormInitialValues({});
     setDrawerVisible(true);
   };
 
   const handleEditTeacher = () => {
     setEditMode(true);
+    setFormInitialValues({});
   };
 
   const handleCancelEdit = () => {
@@ -74,6 +93,10 @@ const TeacherList = () => {
   const handleSaveTeacher = async () => {
     try {
       const values = await form.validateFields();
+      // ถ้าไม่ได้เลือกตำแหน่ง ให้ default เป็น "คณาจารย์"
+      if (!values.position) {
+        values.position = "คณาจารย์";
+      }
 
       if (selectedTeacher) {
         // Update existing teacher
@@ -156,20 +179,85 @@ const TeacherList = () => {
   const handleCloseDrawer = () => {
     setDrawerVisible(false);
     setEditMode(false);
+    setFormInitialValues({});
   };
 
+  const filteredTeachers = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return teachers.filter((teacher) => {
+      const teacherPosition = teacher.position || '';
+      const teacherType = teacher.teacherType || getTeacherTypeByPosition(teacherPosition);
+
+      if (filters.position.length && !filters.position.includes(teacherPosition)) {
+        return false;
+      }
+
+      if (filters.teacherType.length && !filters.teacherType.includes(teacherType)) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      const searchFields = [
+        teacher.teacherCode,
+        teacher.firstName,
+        teacher.lastName,
+        `${teacher.firstName || ''} ${teacher.lastName || ''}`,
+        teacher.email,
+        teacherPosition
+      ];
+
+      return searchFields
+        .filter((field) => typeof field === 'string' && field.trim())
+        .some((field) => field.toLowerCase().includes(keyword));
+    });
+  }, [teachers, searchText, filters]);
+
+  const teacherStatistics = useMemo(() => {
+    const total = teachers.length;
+    const filteredTotal = filteredTeachers.length;
+    return [
+      {
+        key: "total",
+        icon: <UserOutlined />,
+        label: `อาจารย์ทั้งหมด: ${total} คน`
+      },
+      {
+        key: "filtered",
+        icon: <UserOutlined />,
+        label: `ผลการค้นหา: ${filteredTotal} คน`
+      }
+    ];
+  }, [teachers, filteredTeachers]);
+
+  const emptyTableText = useMemo(() => {
+    if (searchText && searchText.trim()) {
+      return `ไม่พบอาจารย์ที่ตรงกับคำค้นหา "${searchText}"`;
+    }
+    return "ไม่พบข้อมูลอาจารย์";
+  }, [searchText]);
+
   return (
-    <div className="admin-teacher-container">
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Text strong style={{ fontSize: 16 }}>
-            <UserOutlined /> อาจารย์ทั้งหมด ({teachers.length} คน)
-          </Text>
+    <div className="admin-student-container teacher-page">
+      <Row justify="space-between" align="top" className="filter-section">
+        <Col xs={24} lg={14}>
+          <div className="statistics-chips">
+            {teacherStatistics.map((item) => (
+              <div className="statistic-item" key={item.key}>
+                {item.icon}
+                <Text>{item.label}</Text>
+              </div>
+            ))}
+          </div>
         </Col>
-        <Col>
+        <Col xs={24} lg={10} style={{ textAlign: "right" }}>
           <TeacherFilters
             searchText={searchText}
-            setSearchText={setSearchText}
+            onSearchChange={setSearchText}
+            filters={filters}
+            setFilters={setFilters}
             onRefresh={fetchTeachers}
             onAddTeacher={handleAddTeacher}
             loading={loading}
@@ -178,7 +266,7 @@ const TeacherList = () => {
       </Row>
 
       <TeacherTable
-        teachers={teachers}
+        teachers={filteredTeachers}
         loading={loading}
         onView={handleViewTeacher}
         onEdit={(teacher) => {
@@ -187,6 +275,7 @@ const TeacherList = () => {
           setDrawerVisible(true);
         }}
         onDelete={handleDeleteTeacher}
+        emptyText={emptyTableText}
       />
 
       <TeacherDrawer
@@ -194,6 +283,7 @@ const TeacherList = () => {
         teacher={selectedTeacher}
         editMode={editMode}
         form={form}
+        initialValues={formInitialValues}
         onClose={handleCloseDrawer}
         onEdit={handleEditTeacher}
         onCancelEdit={handleCancelEdit}

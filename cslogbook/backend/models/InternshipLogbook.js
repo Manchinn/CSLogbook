@@ -42,6 +42,20 @@ module.exports = (sequelize) => {
             allowNull: false,
             field: 'student_id'
         },
+        // เพิ่ม field academicYear (ปีการศึกษา) สำหรับบันทึกปีการศึกษาของ logbook นี้
+        academicYear: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            field: 'academic_year',
+            comment: 'ปีการศึกษาที่ logbook นี้ถูกบันทึก'
+        },
+        // เพิ่ม field semester (ภาคเรียน) สำหรับบันทึกภาคเรียนของ logbook นี้
+        semester: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            field: 'semester',
+            comment: 'ภาคเรียนที่ logbook นี้ถูกบันทึก (1, 2, 3)'
+        },
         workDate: {
             type: DataTypes.DATEONLY,
             allowNull: false,

@@ -8,7 +8,7 @@ import {
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import internshipService from '../../../services/internshipService';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Dragger } = Upload;
 
 const DocumentUploadPage = () => {

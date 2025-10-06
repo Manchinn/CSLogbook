@@ -10,11 +10,12 @@ const academacController = require('../controllers/academicController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
 // เพิ่ม import controller ใหม่สำหรับ workflow step definitions
 const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
-const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
+const importantDeadlineController = require('../controllers/importantDeadlineController');
+const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
-// Middleware for admin routes
-const adminAuth = [authenticateToken, checkRole(['admin'])];
+// Middleware for admin routes - รองรับทั้ง admin และ teacher support
+const adminAuth = [authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support'])];
 
 // Main dashboard stats
 router.get('/stats', adminAuth, async (req, res, next) => {
@@ -43,6 +44,22 @@ router.post('/documents/:id/reject', adminAuth, documentController.rejectDocumen
 router.patch('/documents/:id/status', adminAuth, documentController.updateDocumentStatus);
 router.get('/documents/:id/view', adminAuth, documentController.viewDocument); // เพิ่ม route สำหรับดู PDF
 router.get('/documents/:id/download', adminAuth, documentController.downloadDocument); // เพิ่ม route สำหรับดาวน์โหลด PDF
+
+// ✅ เพิ่ม Certificate Management Routes ใหม่
+// === เพิ่ม Certificate Management Routes ===
+router.get('/certificate-requests', adminAuth, documentController.getCertificateRequests);
+router.get('/certificate-requests/:requestId/detail', adminAuth, documentController.getCertificateRequestDetail);
+router.post('/certificate-requests/:requestId/approve', adminAuth, documentController.approveCertificateRequest);
+router.post('/certificate-requests/:requestId/reject', adminAuth, documentController.rejectCertificateRequest);
+router.get('/certificate-requests/:requestId/download', adminAuth, documentController.downloadCertificateForAdmin);
+router.post('/notify-student', adminAuth, documentController.notifyStudent);
+
+// ✅ Internship Summary (Admin)
+router.get('/internships/:internshipId/summary', adminAuth, documentController.getInternshipSummary);
+// 🆕 Full logbook summary & PDF (admin)
+router.get('/internships/:internshipId/logbook-summary', adminAuth, documentController.getInternshipLogbookSummary);
+router.get('/internships/:internshipId/logbook-summary/pdf', adminAuth, documentController.previewInternshipLogbookSummaryPDF);
+router.get('/internships/:internshipId/logbook-summary/pdf/download', adminAuth, documentController.downloadInternshipLogbookSummaryPDF);
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
@@ -89,46 +106,21 @@ router.put('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionControlle
 router.delete('/workflow-steps/:stepId', adminAuth, workflowStepDefinitionController.deleteStep);
 
 // === เพิ่ม Admin Notification Settings Routes ===
-// ดึงการตั้งค่าการแจ้งเตือนทั้งหมด
 router.get('/notification-settings', adminAuth, notificationSettingsController.getAllNotificationSettings);
-// เปิด/ปิดการแจ้งเตือนประเภทใดประเภทหนึ่ง
 router.put('/notification-settings/toggle', adminAuth, notificationSettingsController.toggleNotification);
-// เปิดการแจ้งเตือนทั้งหมด
 router.put('/notification-settings/enable-all', adminAuth, notificationSettingsController.enableAllNotifications);
-// ปิดการแจ้งเตือนทั้งหมด
 router.put('/notification-settings/disable-all', adminAuth, notificationSettingsController.disableAllNotifications);
-// ดึงสถิติการแจ้งเตือน (optional - สำหรับ dashboard)
-router.get('/notification-settings/stats', adminAuth, async (req, res) => {
-    try {
-        // เรียกใช้ service เพื่อดึงสถิติ
-        const notificationSettingsService = require('../services/notificationSettingsService');
-        const settings = await notificationSettingsService.getAllSettings(false);
-        
-        // คำนวณสถิติ
-        const settingsArray = Object.values(settings);
-        const enabledCount = settingsArray.filter(setting => setting.enabled).length;
-        const totalCount = settingsArray.length;
-        const percentage = totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
-        
-        res.json({
-            success: true,
-            data: {
-                total: totalCount,
-                enabled: enabledCount,
-                disabled: totalCount - enabledCount,
-                percentage,
-                hasEnabled: enabledCount > 0,
-                allEnabled: enabledCount === totalCount,
-                lastUpdated: new Date().toISOString()
-            }
-        });
-    } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการดึงสถิติการแจ้งเตือน:', error);
-        res.status(500).json({
-            success: false,
-            message: 'เกิดข้อผิดพลาดในการดึงสถิติการแจ้งเตือน'
-        });
-    }
-});
+
+// === เพิ่ม Admin Important Deadline Routes ===
+router.get('/important-deadlines', adminAuth, importantDeadlineController.getAll);
+router.post('/important-deadlines', adminAuth, importantDeadlineController.create);
+router.put('/important-deadlines/:id', adminAuth, importantDeadlineController.update);
+router.patch('/important-deadlines/:id/policy', adminAuth, importantDeadlineController.updatePolicy); // ปรับเฉพาะ policy
+router.get('/important-deadlines/:id/stats', adminAuth, importantDeadlineController.getStats); // ดูสถิติการส่งเอกสาร
+router.delete('/important-deadlines/:id', adminAuth, importantDeadlineController.remove);
+
+// === เพิ่ม Admin Eligibility Update Routes ===
+router.post('/eligibility/update-all', adminAuth, adminController.updateAllStudentsEligibility);
+router.post('/eligibility/update/:studentCode', adminAuth, adminController.updateStudentEligibility);
 
 module.exports = router;

@@ -50,14 +50,31 @@ export const timelineService = {
             
             if (apiData.data.student.hasOwnProperty('isEnrolledInternship')) {
               // แปลงค่าจาก 0/1 หรือ string เป็น boolean
+              const originalValue = apiData.data.student.isEnrolledInternship;
               apiData.data.student.isEnrolledInternship = 
                 apiData.data.student.isEnrolledInternship === true || 
                 apiData.data.student.isEnrolledInternship === 1 || 
                 apiData.data.student.isEnrolledInternship === '1' || 
                 false;
               
-              console.log("Student isEnrolledInternship converted to:", apiData.data.student.isEnrolledInternship);
+              console.log("Student isEnrolledInternship conversion:", {
+                originalValue,
+                convertedValue: apiData.data.student.isEnrolledInternship,
+                type: typeof originalValue
+              });
             }
+            
+            // เพิ่ม debug log สำหรับข้อมูลทั้งหมดที่ได้รับจาก API
+            console.log("Complete student data from API:", {
+              studentId: apiData.data.student.studentId,
+              studentCode: apiData.data.student.studentCode,
+              isEnrolledInternship: apiData.data.student.isEnrolledInternship,
+              internshipStatus: apiData.data.student.internshipStatus,
+              isEligibleInternship: apiData.data.student.isEligibleInternship,
+              isEligibleProject: apiData.data.student.isEligibleProject,
+              isEnrolledProject: apiData.data.student.isEnrolledProject,
+              projectStatus: apiData.data.student.projectStatus
+            });
             
             // สร้าง alias ของ studentId เพื่อให้เข้าถึงได้หลายวิธี
             if (apiData.data.student.id && !apiData.data.student.studentId) {
@@ -137,6 +154,18 @@ export const timelineService = {
               }
             }
             
+            // ตรวจสอบและจัดการข้อมูลภาคการศึกษาและปีการศึกษา
+            if (apiData.data.student.academicInfo) {
+              // ข้อมูลภาคการศึกษาและปีการศึกษาจาก backend
+              console.log("Academic info from backend:", apiData.data.student.academicInfo);
+            } else {
+              // สร้างข้อมูลภาคการศึกษาเริ่มต้นถ้าไม่มีจาก backend
+              apiData.data.student.academicInfo = {
+                error: true,
+                message: 'ไม่ได้รับข้อมูลภาคการศึกษาจาก backend'
+              };
+            }
+            
             // รองรับระบบใหม่ - ตรวจสอบและจัดการข้อมูล steps 
             // ที่มาจากรูปแบบใหม่ของ WorkflowService
             if (apiData.data.progress) {
@@ -178,6 +207,10 @@ export const timelineService = {
                       apiData.data.progress[type].totalSteps || 0;
                   }
                   
+                  apiData.data.progress[type].blocked = 
+                    apiData.data.progress[type].blocked || 
+                    apiData.data.progress[type].status === 'failed';
+
                   if (!apiData.data.progress[type].hasOwnProperty('progress')) {
                     // คำนวณความคืบหน้าจากขั้นตอนที่เสร็จแล้ว
                     const completedCount = formattedSteps.filter(s => s.status === 'completed').length;

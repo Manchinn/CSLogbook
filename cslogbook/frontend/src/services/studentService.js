@@ -37,10 +37,13 @@ export const studentService = {
           majorCredits: apiData.data.majorCredits ,
           classroom: apiData.data.classroom || "",
           phoneNumber: apiData.data.phoneNumber || "",
-          studentYear: apiData.data.eligibility?.studentYear || {
-            year: 0,
-            semester: 0,
-          },
+          studentYear: apiData.data.studentYear, // รับจาก backend โดยตรง
+          // เพิ่มข้อมูลสำหรับ StudentAvatar component
+          isEligibleInternship: apiData.data.isEligibleInternship,
+          isEnrolledInternship: apiData.data.isEnrolledInternship,
+          internshipStatus: apiData.data.internshipStatus,
+          projectStatus: apiData.data.projectStatus,
+          isEnrolledProject: apiData.data.isEnrolledProject,
           eligibility: {
             internship: {
               eligible: Boolean(apiData.data.eligibility?.internship?.eligible),
@@ -68,6 +71,16 @@ export const studentService = {
       });
       throw error;
     }
+  },
+
+  // ดึงกำหนดการสำคัญที่กำลังจะถึงภายใน X วัน (default 7)
+  getUpcomingDeadlines: async (days = 7) => {
+    const response = await apiClient.get(`/students/important-deadlines/upcoming`, { params: { days } });
+    return response.data.data || [];
+  },
+  getAllDeadlines: async (academicYear) => {
+    const response = await apiClient.get('/students/important-deadlines', { params: { academicYear } });
+    return response.data.data || [];
   },
 
   // ดึงข้อมูลสถิติ (สำหรับ admin/teacher)

@@ -2,9 +2,11 @@ import React, { useCallback, useState } from 'react';
 import { Table, Space, Button, Badge, Tooltip, Tag, Typography, Modal, Select, DatePicker, Form, message, Popover, Alert } from 'antd';
 import { EditOutlined, EyeOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, SendOutlined } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
-import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT, TIME_FORMAT } from '../../../../utils/constants';
+import { DATE_FORMAT_MEDIUM, TIME_FORMAT } from '../../../../utils/constants';
 import emailApprovalService from '../../../../services/emailApprovalService';
 import { useAuth } from '../../../../contexts/AuthContext';
+// เปลี่ยนจาก styles.css เป็น CSS Modules
+import styles from './TimeSheet.module.css';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -47,8 +49,6 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
   // เพิ่ม studentId เป็น prop
   const [approvalModalVisible, setApprovalModalVisible] = useState(false);
   const [requestType, setRequestType] = useState('full');
-  const [selectedLogIds, setSelectedLogIds] = useState([]);
-  const [dateRange, setDateRange] = useState(null);
   const [loadingApproval, setLoadingApproval] = useState(false);
   const [form] = Form.useForm();
   const { user } = useAuth();
@@ -106,9 +106,7 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
       
       let data = { type: requestType };
       
-      if (requestType === 'selected' && selectedLogIds && selectedLogIds.length > 0) {
-        data.logIds = selectedLogIds;
-      } else if ((requestType === 'weekly' || requestType === 'monthly') && values.dateRange) {
+      if (requestType === 'weekly' && values.dateRange) {
         data.startDate = values.dateRange[0].format('YYYY-MM-DD');
         data.endDate = values.dateRange[1].format('YYYY-MM-DD');
       }
@@ -269,9 +267,10 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
       },
     },
   ];
+
   return (
-    <div className="timesheet-table-wrapper" style={{ width: '100%', overflow: 'auto' }}>
-      <div className="timesheet-actions" style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+    <div className={styles.timesheetTableWrapper}>
+      <div className={styles.timesheetActions}>
         <Tooltip title={!hasUnapprovedLogs ? "ไม่มีรายการที่รอการอนุมัติ หรือข้อมูลไม่ครบถ้วน" : ""}>
           <Button
             type="primary"
@@ -336,30 +335,8 @@ const TimeSheetTable = ({ data, loading, onEdit, onView, studentId }) => {
             </Select>
           </Form.Item>
           
-          {/* {requestType === \'selected\' && (
-            <Form.Item label="เลือกรายการที่ต้องการขออนุมัติ" name="logIds" rules={[{ required: true, message: \'กรุณาเลือกอย่างน้อย 1 รายการ\' }]}>
-              <Select
-                mode="multiple"
-                placeholder="เลือกรายการที่ต้องการขออนุมัติ"
-                onChange={setSelectedLogIds}
-                style={{ width: \'100%\' }}
-              >
-                {pendingLogbooks.map(log => (
-                  <Option 
-                    key={log.logId} 
-                    value={log.logId}
-                  >
-                    {dayjs(log.workDate).format(DATE_FORMAT_MEDIUM)} - {log.logTitle}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          )} */}
-          
-          {/* {(requestType === \'weekly\' || requestType === \'monthly\') && ( */}
           {requestType === 'weekly' && (
             <Form.Item 
-              // label={`เลือกช่วงวันที่ (${requestType === \'weekly\' ? \'สัปดาห์\' : \'เดือน\'})`} 
               label="เลือกช่วงวันที่ (สัปดาห์)"
               name="dateRange"
               rules={[{ required: true, message: 'กรุณาเลือกช่วงวันที่' }]}

@@ -1,11 +1,104 @@
 import React from 'react';
-import { Row, Col, Card, Avatar, Tag } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Avatar, Tag, Tooltip, Space } from 'antd';
+import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import './styles.css';
 
 const StudentAvatar = React.memo(({ student, studentYear }) => {
   const displayYear =
-    typeof studentYear === "object" ? studentYear.year : studentYear;
+    typeof studentYear === "object"
+      ? studentYear.year ?? '-' 
+      : (studentYear ?? '-');
+
+  // Debug log เพื่อตรวจสอบข้อมูล
+  console.log('StudentAvatar Debug:', {
+    student,
+    studentYear,
+    isEligibleInternship: student?.isEligibleInternship,
+    isEnrolledInternship: student?.isEnrolledInternship,
+    internshipStatus: student?.internshipStatus
+  });
+
+  // ฟังก์ชันตรวจสอบสถานะสิทธิ์การฝึกงาน
+  const getInternshipEligibilityStatus = () => {
+    // ตรวจสอบว่ามีข้อมูล student หรือไม่
+    if (!student) {
+      console.log('❌ No student data provided');
+      return null;
+    }
+
+    // ใช้ข้อมูลจาก backend โดยตรง
+    const isEligible = student?.isEligibleInternship; // มีสิทธิ์ฝึกงานหรือไม่
+    const isEnrolled = student?.isEnrolledInternship; // ลงทะเบียนฝึกงานแล้วหรือไม่
+    const status = student?.internshipStatus; // สถานะการฝึกงาน
+
+    console.log('🔍 Detailed Eligibility Check:', {
+      studentCode: student?.studentCode,
+      isEligible,
+      isEligibleType: typeof isEligible,
+      isEnrolled,
+      isEnrolledType: typeof isEnrolled,
+      status,
+      statusType: typeof status,
+      rawStudentData: {
+        isEligibleInternship: student?.isEligibleInternship,
+        isEnrolledInternship: student?.isEnrolledInternship,
+        internshipStatus: student?.internshipStatus
+      }
+    });
+
+    // ถ้าไม่มีสิทธิ์ฝึกงาน ไม่แสดง tag (ตรวจสอบแบบเข้มงวด)
+    if (isEligible !== true) {
+      console.log('❌ No eligibility - not showing tag (isEligible:', isEligible, ')');
+      return null;
+    }
+
+    // ตรวจสอบสถานะการฝึกงานก่อน (ให้ความสำคัญกับ status มากกว่า isEnrolled)
+    if (status && status !== 'not_started') {
+      console.log('✅ Student has internship status - showing based on status:', status);
+      if (status === 'completed') {
+        return {
+          color: 'green',
+          text: 'ฝึกงานเสร็จสิ้น',
+          tooltip: 'เสร็จสิ้นแล้ว'
+        };
+      } else if (status === 'in_progress') {
+        return {
+          color: 'blue',
+          text: 'กำลังฝึกงาน',
+          tooltip: 'กำลังดำเนินการ'
+        };
+      } else if (status === 'pending_approval') {
+        return {
+          color: 'orange',
+          text: 'รออนุมัติการฝึกงาน',
+          tooltip: 'ลงทะเบียนแล้ว รอการอนุมัติ'
+        };
+      } else {
+        return {
+          color: 'orange',
+          text: 'ลงทะเบียนฝึกงานแล้ว',
+          tooltip: 'ลงทะเบียนแล้ว รอเริ่มดำเนินการ'
+        };
+      }
+    } else {
+      // ไม่มีสถานะหรือเป็น not_started แต่มีสิทธิ์ฝึกงาน
+      console.log('✅ Eligible but no internship status - showing GOLD tag');
+      console.log('📋 Final tag data:', {
+        condition: 'isEligible === true && (no status or status === not_started)',
+        isEligible,
+        status,
+        willShowTag: true
+      });
+      return {
+        color: 'gold',
+        text: 'มีสิทธิ์ฝึกงาน (ยังไม่ได้ลงทะเบียน)',
+        icon: <ClockCircleOutlined />,
+        tooltip: 'มีสิทธิ์ฝึกงานแล้ว แต่ยังไม่ได้ลงทะเบียน'
+      };
+    }
+  };
+
+  const internshipStatus = getInternshipEligibilityStatus();
 
   return (
     <Row gutter={[16, 24]}>
@@ -18,7 +111,20 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
               : "ไม่ระบุชื่อ-นามสกุล"}
           </h2>
           <p>{student.studentCode}</p>
-          <Tag color="blue">ชั้นปีที่ {displayYear}</Tag>
+          <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
+            <Tag color="blue">ชั้นปีที่ {displayYear}</Tag>
+            {internshipStatus && (
+              <Tooltip title={internshipStatus.tooltip}>
+                <Tag 
+                  color={internshipStatus.color}
+                  icon={internshipStatus.icon}
+                  style={{ fontSize: '12px', padding: '4px 8px' }}
+                >
+                  {internshipStatus.text}
+                </Tag>
+              </Tooltip>
+            )}
+          </Space>
         </Card>
       </Col>
       <Col span={24}>

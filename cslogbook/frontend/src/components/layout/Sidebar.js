@@ -1,28 +1,7 @@
-// filepath: c:\Users\chinn\CSLog\cslogbook\frontend\src\components\layout\Sidebar.js
-import React, { useState, useEffect, useMemo } from "react";
-import {
-  Layout,
-  Menu,
-  Avatar,
-  Typography,
-  Badge,
-  message,
-  Tooltip,
-} from "antd";
-import {
-  HomeOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  ProjectOutlined,
-  FormOutlined,
-  BookOutlined,
-  FileDoneOutlined,
-  BankOutlined,
-  LogoutOutlined,
-  CheckCircleOutlined,
-  UploadOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Layout, Menu, Avatar, Typography, message } from "antd";
+import RoleTag from '../common/RoleTag';
+import { getMenuConfig } from './menuConfig';
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
@@ -32,76 +11,64 @@ import "./Sidebar.css";
 const { Sider } = Layout;
 const { Title } = Typography;
 
+// mapping role -> base theme class (teacher แตกย่อยด้านล่าง)
 const themeConfig = {
   student: "student-theme",
-  teacher: "teacher-theme",
   admin: "admin-theme",
+  teacher: "teacher-theme", // fallback หากยังไม่รู้ teacherType
 };
 
-const MenuItemWithTooltip = ({ item, disabled, title }) => {
-  // เพิ่มการตรวจสอบว่ามี title และ disabled หรือไม่
-  if (disabled && title) {
-    return (
-      <Tooltip
-        title={title}
-        placement="right"
-        color={disabled ? "#ff4d4f" : "#52c41a"}
-      >
-        <span
-          style={{
-            opacity: disabled ? 0.5 : 1,
-            cursor: disabled ? "not-allowed" : "pointer",
-          }}
-        >
-          {item.label}
-        </span>
-      </Tooltip>
-    );
+// ฟังก์ชันคืนชื่อคลาสธีมตาม role + teacherType
+const resolveThemeClass = (role, teacherType) => {
+  if (role === 'teacher') {
+    if (teacherType === 'support') return 'teacher-support-theme';
+    if (teacherType === 'academic') return 'teacher-academic-theme';
+    return 'teacher-theme';
   }
-  return item.label;
+  return themeConfig[role] || '';
 };
+
+// Tooltip logic ถูกย้าย/ตัดทิ้ง (รวมศูนย์ที่ menuConfig แล้วถ้าจำเป็น)
 
 // เพิ่ม prop inDrawer เพื่อบอกว่า Sidebar นี้อยู่ใน Drawer หรือไม่
 // เพิ่ม prop onMenuClick สำหรับปิด drawer เมื่อคลิกเมนู
 const Sidebar = ({ inDrawer, onMenuClick }) => {
   // In drawer mode, we don't need collapsed state
   const [collapsed] = useState(inDrawer ? false : false);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate] = useState(new Date()); // setLastUpdate removed (not used)
   const navigate = useNavigate();
   const location = useLocation();
   const { userData, logout } = useAuth();
-  const [studentData, setStudentData] = useState(null);
-  
+  // const [studentData, setStudentData] = useState(null); // removed unused state
+
   // ใช้ StudentEligibilityContext แทน useStudentPermissions
-  const { 
-    canAccessInternship, 
-    canAccessProject, 
+  const {
+    canAccessInternship,
+    canAccessProject,
     messages,
     lastUpdated,
-    refreshEligibility 
+    refreshEligibility,
   } = useStudentEligibility();
 
   // Handle logout
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      // Set userData to null ก่อน navigate
       await logout();
-      // Navigate หลังจาก clear userData แล้ว
       navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
       message.error("เกิดข้อผิดพลาดในการออกจากระบบ");
     }
-  };
+  }, [logout, navigate]);
 
   useEffect(() => {
     // ตรวจสอบเมื่อ path เปลี่ยน
     const checkRouteAccess = () => {
       const path = location.pathname;
-      const showNotificationKey = 'access_notification';
+      const showNotificationKey = "access_notification";
       // ตรวจสอบว่าเคยแสดง notification แล้วหรือไม่ในวันนี้
       const todayDate = new Date().toDateString();
-      const lastShown = localStorage.getItem('lastNotificationShown');
+      const lastShown = localStorage.getItem("lastNotificationShown");
       const alreadyShownToday = lastShown === todayDate;
 
       // ถ้ายังไม่เคยแสดงในวันนี้ ให้แสดงและบันทึกวันที่
@@ -111,24 +78,29 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
           if (path.includes("/project-proposal") && !canAccessProject) {
             // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
             message.info({
-              content: "คุณสามารถดูข้อมูลหน้าเสนอหัวข้อโครงงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              content:
+                "คุณสามารถดูข้อมูลหน้าเสนอหัวข้อโครงงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
               key: showNotificationKey,
-              duration: 5
+              duration: 5,
             });
-            localStorage.setItem('lastNotificationShown', todayDate);
+            localStorage.setItem("lastNotificationShown", todayDate);
           }
 
-          if (path.includes("/internship-registration/cs05") && !canAccessInternship) {
+          if (
+            path.includes("/internship-registration/cs05") &&
+            !canAccessInternship
+          ) {
             // ใช้ message.info ที่มีค่า key เพื่อไม่ให้แสดงซ้ำ
             message.info({
-              content: "คุณสามารถดูข้อมูลหน้าลงทะเบียนฝึกงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
+              content:
+                "คุณสามารถดูข้อมูลหน้าลงทะเบียนฝึกงานได้ ระบบจะตรวจสอบสิทธิ์เมื่อทำการบันทึกข้อมูล",
               key: showNotificationKey,
-              duration: 5
+              duration: 5,
             });
-            localStorage.setItem('lastNotificationShown', todayDate);
-            
+            localStorage.setItem("lastNotificationShown", todayDate);
+
             // ทำการรีเฟรชข้อมูลสิทธิ์เมื่อเข้าถึงหน้าลงทะเบียนฝึกงาน
-            if (typeof refreshEligibility === 'function') {
+            if (typeof refreshEligibility === "function") {
               refreshEligibility();
             }
           }
@@ -143,7 +115,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     canAccessProject,
     canAccessInternship,
     navigate,
-    refreshEligibility
+    refreshEligibility,
   ]);
 
   // เพิ่ม Effect เพื่อติดตามการเปลี่ยนแปลงข้อมูลนักศึกษา
@@ -155,7 +127,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             userData.studentCode
           );
           if (response.success) {
-            setStudentData(response.student);
+            // setStudentData(response.student); // no longer stored locally
             // setLastUpdate(new Date()); // อาจจะไม่จำเป็นแล้วถ้าใช้ lastUpdated จาก context
           }
         } catch (error) {
@@ -174,273 +146,23 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
     // การเปลี่ยนแปลงของ lastUpdated จะ trigger useEffect นี้ให้ทำงาน (ถ้า userData.studentCode และ role ยังคงเดิม)
   }, [userData?.studentCode, userData?.role, lastUpdated]); // ใช้ lastUpdated จาก context เป็นตัวกระตุ้นหลัก
 
-  const menuItems = useMemo(() => {
-    // ถ้าไม่มี userData return เฉพาะ logout
-    if (!userData?.role) {
-      return [
-        {
-          key: "logout",
-          icon: <LogoutOutlined />,
-          label: "ออกจากระบบ",
-          className: "logout",
-        },
-      ];
-    }
-
-    // สร้างข้อความ tooltip สำหรับแสดงเหตุผลที่ไม่สามารถเข้าถึงได้
-    const internshipTooltip = messages?.internship || "คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน";
-    const projectTooltip = messages?.project || "คุณยังไม่มีสิทธิ์เข้าถึงระบบโครงงานพิเศษ";
-
-    return [
-      // Dashboard - Common for all roles
-      {
-        key: "/admin/dashboard",
-        icon: <HomeOutlined />,
-        label: "หน้าแรก",
-      },
-
-      // Student Menu Items
-      ...(userData?.role === "student"
-        ? [
-            {
-              key: `/student-profile/${userData.studentCode}`,
-              icon: <TeamOutlined />,
-              label: "ประวัตินักศึกษา",
-            },
-            {
-              key: "internship",
-              icon: <FileTextOutlined />,
-              label: (
-                <MenuItemWithTooltip
-                  item={{ label: "ระบบฝึกงาน" }}
-                  disabled={false} 
-                  title={!canAccessInternship ? internshipTooltip : ""} 
-                />
-              ),
-              disabled: false,
-              children: canAccessInternship
-                ? [
-                    {
-                      key: "/internship-registration",
-                      label: "ลงทะเบียนฝึกงาน",
-                      icon: <FormOutlined />,
-                      children: [
-                        /* {
-                          key: "/internship-registration/cs05",
-                          label: "คพ.05 - คำร้องขอฝึกงาน",
-                        }, */
-                        {
-                        key: "/internship-registration/flow", // ใช้ InternshipRegistrationFlow ใหม่
-                        label: "คพ.05 - คำร้องขอฝึกงาน",
-                        },
-                      ],
-                    },
-                    {
-                      key: "/internship-logbook",
-                      label: "บันทึกการฝึกงาน",
-                      icon: <BookOutlined />,
-                      children: [
-                        {
-                          key: "/internship-logbook/companyinfo",
-                          label: "สถานประกอบการ",
-                        },
-                        {
-                          key: "/internship-logbook/timesheet",
-                          label: "ใบลงเวลาและบันทึกประจำวัน",
-                        },
-                      ],
-                    },
-                    {
-                      key: "/internship-summary",
-                      label: "สรุปผลการฝึกงาน",
-                      icon: <FileDoneOutlined />,
-                    },
-                  ]
-                : [
-                    {
-                      key: "/internship-eligibility",
-                      label: "ตรวจสอบคุณสมบัติ",
-                      icon: <FormOutlined />,
-                    },
-                    {
-                      key: "/internship-requirements",  
-                      label: "ข้อกำหนดฝึกงาน",
-                      icon: <FileTextOutlined />,
-                    },
-                  ],
-            },
-            {
-              key: "project",
-              icon: <ProjectOutlined />,
-              label: (
-                <MenuItemWithTooltip
-                  item={{ label: "โครงงานพิเศษ" }}
-                  disabled={false}
-                  title={!canAccessProject ? projectTooltip : ""}
-                />
-              ),
-              disabled: false,
-              children: canAccessProject
-                ? [
-                    {
-                      key: "/project-proposal",
-                      label: "ฟอร์มเสนอหัวข้อ",
-                    },
-                    {
-                      key: "/project-logbook",
-                      label: "บันทึก Logbook",
-                    },
-                  ]
-                : [
-                    {
-                      key: "/project-eligibility",
-                      label: "ตรวจสอบคุณสมบัติ", 
-                      icon: <FormOutlined />,
-                    },
-                    {
-                      key: "/project-requirements",
-                      label: "ข้อกำหนดโครงงาน",
-                      icon: <FileTextOutlined />,
-                    },
-                  ],
-            },
-            {
-              key: "/status-check",
-              icon: <FileTextOutlined />,
-              label: "ตรวจสอบสถานะ",
-              children: [
-                {
-                  key: "/status-check/internship",
-                  icon: <BankOutlined />,
-                  label: "เอกสารฝึกงาน",
-                  disabled: false,
-                },
-                {
-                  key: "/status-check/project",
-                  icon: <ProjectOutlined />,
-                  label: "เอกสารโครงงาน",
-                  disabled: false,
-                },
-              ],
-            },
-          ].filter(Boolean)
-        : []),
-
-      // Teacher Menu Items
-      ...(userData?.role === "teacher"
-        ? [
-            {
-              key: "/review-documents",
-              icon: <FileTextOutlined />,
-              label: "ตรวจสอบเอกสารโครงงาน",
-            },
-            {
-              key: "/advise-project",
-              icon: <ProjectOutlined />,
-              label: "ให้คำแนะนำโครงงาน",
-            },
-            {
-              key: "/approve-documents",
-              icon: <CheckCircleOutlined />,
-              label: "อนุมัติเอกสาร",
-            },
-          ]
-        : []),
-
-      // Admin Menu Items
-      ...(userData?.role === "admin"
-        ? [
-            {
-              key: "manage",
-              icon: <TeamOutlined />,
-              label: "จัดการข้อมูล",
-              children: [
-                {
-                  key: "/admin/users/students",
-                  label: "นักศึกษา",
-                },
-                {
-                  key: "/admin/users/teachers",
-                  label: "อาจารย์",
-                },
-                {
-                  key: "/project-pairs",
-                  label: "คู่โปรเจค",
-                },
-              ],
-            },
-            {
-              key: "documents",
-              icon: <FileTextOutlined />,
-              label: "จัดการเอกสาร",
-              children: [
-                {
-                  key: "/admin/documents/internship",
-                  label: "เอกสารฝึกงาน",
-                },
-                {
-                  key: "/admin/documents/project",
-                  label: "เอกสารโครงงานพิเศษ",
-                },
-              ],
-            },
-            {
-              key: "/admin/upload",
-              icon: <UploadOutlined />,
-              label: "อัปโหลดรายชื่อนักศึกษา",
-            },
-            {
-              key: "settings",
-              icon: <SettingOutlined />,
-              label: "ตั้งค่าระบบ",
-              children: [
-                {
-                  key: "/admin/settings",
-                  label: "ภาพรวมการตั้งค่า",
-                },
-                {
-                  key: "/admin/settings/curriculum",
-                  label: "หลักสูตรการศึกษา",
-                },
-                {
-                  key: "/admin/settings/academic",
-                  label: "ปีการศึกษา/ภาคเรียน",
-                },
-                {
-                  key: "/admin/settings/status",
-                  label: "สถานะนักศึกษา",
-                },
-                {
-                  key: "/admin/settings/notification-settings",
-                  label: "การแจ้งเตือน",
-                },
-                {
-                  key: "/admin/settings/workflow-steps",
-                  label: "ขั้นตอนการทำงาน",
-                },
-              ],
-            },
-          ]
-        : []),
-
-      // Logout - Common for all roles
-      {
-        key: "logout",
-        icon: <LogoutOutlined />,
-        label: "ออกจากระบบ",
-        className: "logout",
-      },
-    ].filter(Boolean);
-  }, [userData, canAccessInternship, canAccessProject, messages]);
+  const menuItems = useMemo(() => getMenuConfig({
+    userData,
+    canAccessInternship,
+    canAccessProject,
+    messages,
+    navigate,
+    handleLogout,
+  }), [userData, canAccessInternship, canAccessProject, messages, navigate, handleLogout]);
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
       handleLogout();
     } else {
       navigate(key);
     }
-    
+
     // If in drawer mode and onMenuClick prop exists, call it to close the drawer
-    if (inDrawer && typeof onMenuClick === 'function') {
+    if (inDrawer && typeof onMenuClick === "function") {
       onMenuClick();
     }
   };
@@ -451,32 +173,32 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         <div
           className="last-update"
           style={{
-        textAlign: 'center', // Corrected to 'center' to align inline content (like the <small> tag)
-        padding: '8px 16px' // Added padding for better spacing
+            textAlign: "center", // Corrected to 'center' to align inline content (like the <small> tag)
+            padding: "8px 16px", // Added padding for better spacing
           }}
         >
           <small style={{ fontSize: "10px", opacity: 0.7 }}>
-        อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
+            อัพเดทล่าสุด: {lastUpdate.toLocaleTimeString()}
           </small>
           <button
-        onClick={() => {
-          if (typeof refreshEligibility === 'function') {
-            refreshEligibility();
-          }
-        }}
-        style={{
-          fontSize: "10px",
-          display: "block", // Makes the button a block-level element
-          margin: "4px auto 0 auto", // Centers the block-level button horizontally (top, right/left, bottom)
-          background: "none",
-          border: "none",
-          padding: 0,
-          color: "var(--link-color, #1890ff)", // Use a CSS variable or a default link color
-          cursor: "pointer", // Add cursor pointer for better UX
-          textAlign: 'center', // Corrected to 'center' to align text inside the button
-        }}
+            onClick={() => {
+              if (typeof refreshEligibility === "function") {
+                refreshEligibility();
+              }
+            }}
+            style={{
+              fontSize: "10px",
+              display: "block", // Makes the button a block-level element
+              margin: "4px auto 0 auto", // Centers the block-level button horizontally (top, right/left, bottom)
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "var(--link-color, #1890ff)", // Use a CSS variable or a default link color
+              cursor: "pointer", // Add cursor pointer for better UX
+              textAlign: "center", // Corrected to 'center' to align text inside the button
+            }}
           >
-        รีเฟรชข้อมูลสิทธิ์
+            รีเฟรชข้อมูลสิทธิ์
           </button>
         </div>
       );
@@ -488,15 +210,19 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   return (
     <Sider
       width={230}
-      className={`sider ${userData?.role ? themeConfig[userData.role] : ""} ${inDrawer ? 'in-drawer' : ''}`}
+      className={`sider ${resolveThemeClass(userData?.role, userData?.teacherType)} ${inDrawer ? "in-drawer" : ""}`}
       collapsed={collapsed}
       // Add CSS for proper display when in mobile drawer
-      style={inDrawer ? { 
-        position: 'static',
-        height: 'auto',
-        boxShadow: 'none',
-        border: 'none'
-      } : undefined}
+      style={
+        inDrawer
+          ? {
+              position: "static",
+              height: "auto",
+              boxShadow: "none",
+              border: "none",
+            }
+          : undefined
+      }
     >
       <div className="profile">
         <Avatar
@@ -514,33 +240,31 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             <Title level={5} style={{ margin: "8px 0 4px" }}>
               {userData?.firstName} {userData?.lastName}
             </Title>
-            <Badge
-              count={
-                !userData?.role
-                  ? ""
-                  : userData.role === "admin"
-                  ? "ผู้ดูแลระบบ"
-                  : userData.role === "teacher"
-                  ? "อาจารย์"
-                  : "นักศึกษา"
-              }
-              style={{
-                backgroundColor: "var(--active-color)",
-                fontSize: "12px",
-              }}
-            />
+                <RoleTag role={userData?.role} teacherType={userData?.teacherType} />
           </>
         )}
       </div>
 
-      <Menu
-        mode="inline"
-        items={menuItems}
-        selectedKeys={[location.pathname]}
-        defaultSelectedKeys={[location.pathname]}
-        className={`menu ${userData?.role ? themeConfig[userData.role] : ""}`}
-        onClick={handleMenuClick}
-      />
+      {/**
+        ปรับ selectedKey ให้เมนูโครงงานพิเศษถูก highlight เสมอเมื่ออยู่ภายใต้ /project/phase1/*
+        เพื่อไม่ให้เมนูหาย focus เมื่อไปยัง sub step ภายใน Phase1
+      */}
+      {(() => {
+        const derivedSelected = location.pathname.startsWith('/project/phase')
+          ? (location.pathname.startsWith('/project/phase2') ? '/project/phase2' : '/project/phase1')
+          : location.pathname;
+        return (
+          <Menu
+            mode="inline"
+            items={menuItems}
+            selectedKeys={[derivedSelected]}
+            defaultSelectedKeys={[derivedSelected]}
+            defaultOpenKeys={location.pathname.startsWith('/project/phase') ? ['project-main'] : undefined}
+            className={`menu ${resolveThemeClass(userData?.role, userData?.teacherType)}`}
+            onClick={handleMenuClick}
+          />
+        );
+      })()}
 
       {!collapsed && renderLastUpdate()}
     </Sider>

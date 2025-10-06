@@ -61,7 +61,6 @@ const SkillsPanel = ({
             onClick={toggleEditReflection}
             icon={<FormOutlined />}
           >
-            แก้ไขบทสรุป
           </Button>
         )}
 

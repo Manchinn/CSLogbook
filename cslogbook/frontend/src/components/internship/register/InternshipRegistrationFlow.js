@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Steps, Card, Typography, Alert, Space, message,
-  Row, Col, Progress, Divider, Tag, Spin, Button
+  Row, Col, Divider, Tag, Spin, Button
 } from 'antd';
 import { 
   FormOutlined, CheckCircleOutlined, SendOutlined,
   PhoneOutlined 
 } from '@ant-design/icons';
-// เพิ่ม import สำหรับ TranscriptUpload component
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom'; // เพิ่ม useSearchParams
 import internshipService from '../../../services/internshipService';
 
 // นำเข้า Components ย่อยที่สร้างไว้แล้ว
@@ -19,10 +18,11 @@ import SubmissionResultStep from './SubmissionResultStep';
 // นำเข้า CSS ที่มีอยู่แล้ว
 import '../shared/InternshipStyles.css';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const InternshipRegistrationFlow = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // เพิ่มสำหรับอ่าน query parameters
   
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,6 @@ const InternshipRegistrationFlow = () => {
   const [existingCS05, setExistingCS05] = useState(null);
   const [transcriptFile, setTranscriptFile] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false); // 1. เพิ่มตัวแปร state เพื่อเก็บสถานะว่าส่งฟอร์มแล้วหรือยัง
 
   // ขั้นตอนการลงทะเบียนฝึกงาน
   const registrationSteps = [
@@ -55,6 +54,20 @@ const InternshipRegistrationFlow = () => {
       content: 'result'
     }
   ];
+
+  // ✅ เพิ่ม useEffect สำหรับตรวจสอบ query parameter ตอนเริ่มต้น
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    
+    if (viewParam === 'result') {
+      console.log('[DEBUG] ตรวจพบ view=result parameter, ไปยังขั้นตอน result');
+      setCurrentStep(2); // ไปยัง SubmissionResultStep ทันที
+      return; // หยุดการทำงานของ useEffect นี้
+    }
+    
+    // ถ้าไม่มี view=result ให้ทำงานปกติ
+    console.log('[DEBUG] ไม่พบ view=result parameter, เริ่มต้นปกติ');
+  }, [searchParams]);
 
   // โหลดข้อมูลนักศึกษาเมื่อเริ่มต้น
   useEffect(() => {
@@ -82,7 +95,6 @@ const InternshipRegistrationFlow = () => {
         
         // 2. ตรวจสอบ CS05 ที่มีอยู่แล้ว
         const cs05Response = await internshipService.getCurrentCS05();
-        console.log('[DEBUG] ข้อมูลดิบที่ได้จาก API:', cs05Response);
         
         if (cs05Response.success && cs05Response.data) {
           const cs05Data = cs05Response.data;
@@ -97,11 +109,18 @@ const InternshipRegistrationFlow = () => {
             internshipPosition: cs05Data.internshipPosition
           };
           
-          
           setFormData(formDataWithNewFields);
           setExistingCS05(formDataWithNewFields);
           
-          setIsSubmitted(cs05Data.status !== 'rejected');
+          const submittedStatus = cs05Data.status !== 'rejected';
+          setIsSubmitted(submittedStatus);
+          
+          // ✅ สำคัญ: ถ้ามีการส่งคำร้องแล้ว และไม่ได้มาจาก query parameter ให้ไปที่ step 2
+          const viewParam = searchParams.get('view');
+          if (submittedStatus && !viewParam) {
+            console.log('[DEBUG] พบ CS05 ที่ส่งแล้ว, ไปยังขั้นตอน result');
+            setCurrentStep(2); // ไปยัง SubmissionResultStep
+          }
           
           // ถ้ามีไฟล์ transcript
           if (cs05Data.transcriptFilename) {
@@ -123,11 +142,56 @@ const InternshipRegistrationFlow = () => {
     };
 
     fetchData();
-  }, []);
+  }, [searchParams]); // เพิ่ม searchParams ใน dependency array
+
+  // ✅ ปรับปรุง getStepContent เพื่อจัดการกรณี view=result
+  const getStepContent = () => {
+    const stepProps = {
+      studentData,
+      formData,
+      loading,
+      existingCS05,
+      transcriptFile,
+      setTranscriptFile,
+      isSubmitted,
+      onNext: handleNextStep,
+      onPrev: handlePrevStep,
+      onSubmit: handleSubmit
+    };
+
+    // เพิ่มการตรวจสอบ view parameter
+    const viewParam = searchParams.get('view');
+    
+    // ถ้า view=result ให้แสดง SubmissionResultStep ทันที (แม้ currentStep จะยังไม่ใช่ 2)
+    if (viewParam === 'result' || currentStep === 2) {
+      return (
+        <SubmissionResultStep
+          {...stepProps}
+          navigate={navigate}
+        />
+      );
+    }
+
+    switch (currentStep) {
+      case 0:
+        return (
+          <CS05FormStep 
+            {...stepProps}
+          />
+        );
+      case 1:
+        return (
+          <ReviewDataStep 
+            {...stepProps}
+          />
+        );
+      default:
+        return <CS05FormStep {...stepProps} />;
+    }
+  };
 
   // ฟังก์ชันสำหรับไปขั้นตอนถัดไป
   const handleNextStep = (data) => {
-    
     setFormData({ ...formData, ...data });
     console.log('[DEBUG] formData หลังจาก update:', { ...formData, ...data });
     
@@ -229,7 +293,6 @@ const InternshipRegistrationFlow = () => {
         message.success('ส่งคำร้อง คพ.05 เรียบร้อยแล้ว');
         setExistingCS05(response.data);
         setIsSubmitted(true);
-        setFormSubmitted(true); // เพิ่มบรรทัดนี้
         setCurrentStep(2); // ไปยังหน้า SubmissionResultStep
         
         // บันทึกข้อมูลลงใน localStorage เพื่อให้กลับมาดูได้ในภายหลัง
@@ -244,50 +307,6 @@ const InternshipRegistrationFlow = () => {
       message.error(error.message || 'เกิดข้อผิดพลาดในการส่งคำร้อง');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // เนื้อหาตามขั้นตอน
-  const getStepContent = () => {
-    const stepProps = {
-      studentData,
-      formData,
-      loading,
-      existingCS05,
-      transcriptFile,
-      setTranscriptFile,
-      isSubmitted,
-      onNext: handleNextStep,
-      onPrev: handlePrevStep,
-      onSubmit: handleSubmit
-    };
-
-    console.log('[DEBUG] stepProps ที่ส่งให้ step ที่', currentStep, ':', {
-      existingCS05Fields: stepProps.existingCS05 ? Object.keys(stepProps.existingCS05) : [],
-    });
-
-    switch (currentStep) {
-      case 0:
-        return (
-          <CS05FormStep 
-            {...stepProps}
-          />
-        );
-      case 1:
-        return (
-          <ReviewDataStep 
-            {...stepProps}
-          />
-        );
-      case 2:
-        return (
-          <SubmissionResultStep 
-            {...stepProps}
-            navigate={navigate}
-          />
-        );
-      default:
-        return <CS05FormStep {...stepProps} />;
     }
   };
 
@@ -358,14 +377,12 @@ const InternshipRegistrationFlow = () => {
             <Space direction="vertical" style={{ width: "100%" }}>
               <div>
                 <Text strong>เจ้าหน้าที่ภาควิชา:</Text>
-                <div>คุณสมชาย ใจดี</div>
-                <div>
-                  <PhoneOutlined /> 02-555-0000 ต่อ 1234
-                </div>
+                <div>นายนที ปัญญาประสิทธิ์</div>
+                <div><PhoneOutlined /> 02-555-2000 ต่อ 4602</div>
               </div>
               <div>
                 <Text strong>อีเมล:</Text>
-                <div>internship@university.ac.th</div>
+                <div>natee.p@sci.kmutnb.ac.th</div>
               </div>
             </Space>
           </Card>
@@ -385,29 +402,6 @@ const InternshipRegistrationFlow = () => {
       </div>
     );
   };
-
-  useEffect(() => {
-    // ตรวจสอบว่าเคยส่งฟอร์มแล้วหรือไม่
-    const isSubmitted = localStorage.getItem('cs05_submitted') === 'true';
-    const savedCS05Data = localStorage.getItem('cs05_data');
-    
-    if (isSubmitted && savedCS05Data) {
-      try {
-        const parsedData = JSON.parse(savedCS05Data);
-        setExistingCS05(parsedData);
-        setIsSubmitted(true);
-        setFormSubmitted(true);
-        
-        // ถ้ามีการระบุใน URL ว่าต้องการดูผลการส่ง
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('view') === 'result') {
-          setCurrentStep(2); // ไปที่หน้า SubmissionResultStep
-        }
-      } catch (error) {
-        console.error('Error parsing saved CS05 data:', error);
-      }
-    }
-  }, []);
 
   if (fetchLoading) {
     return (
@@ -462,7 +456,7 @@ const InternshipRegistrationFlow = () => {
                 description={
                   <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
                     <li>กรุณาตรวจสอบข้อมูลให้ถูกต้องก่อนส่ง เนื่องจากจะไม่สามารถแก้ไขได้หลังจากส่งแล้ว</li>
-                    <li>การฝึกงานต้องมีระยะเวลาอย่างน้อย 60 วัน</li>
+                    <li>การฝึกงานต้องมีระยะเวลาอย่างน้อย 40 วัน หรือ 240 ชั่วโมง</li>
                     <li>หากฝึกงาน 2 คน นักศึกษาทั้งคู่ต้องอยู่ในสาขาเดียวกัน</li>
                     <li>นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิต</li>
                   </ul>

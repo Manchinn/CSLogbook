@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Form,
   Input,
@@ -12,6 +12,8 @@ import {
   Row,
   Col,
   Alert,
+  Tag,
+  Tooltip
 } from "antd";
 import dayjs from "dayjs";
 import 'dayjs/locale/th'; // Import Thai locale for dayjs
@@ -20,7 +22,8 @@ import locale from 'antd/es/date-picker/locale/th_TH'; // Import Ant Design's Da
 import { useInternship } from "../../../contexts/InternshipContext";
 import internshipService from '../../../services/internshipService';
 import TranscriptUpload from '../common/TranscriptUpload';
-import { UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined, ReloadOutlined } from '@ant-design/icons';
+import io from 'socket.io-client';
 import "./InternshipStyles.css";
 import "./InputCustomStyles.css";
 
@@ -34,15 +37,49 @@ const CS05Form = () => {
   const { state, setCS05Data } = useInternship();
   const [loading, setLoading] = useState(false);
   const [studentData, setStudentData] = useState(null);
-  const [fetchLoading, setFetchLoading] = useState(true);
+  // const [fetchLoading, setFetchLoading] = useState(true); // loading state not currently displayed
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState(null);
   const [existingCS05, setExistingCS05] = useState(null);
   const [transcriptFile, setTranscriptFile] = useState(null);
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
+
+  const POLL_INTERVAL = 15000; // 15s polling while pending
+
+  const fetchCS05 = useCallback(async (silent = false) => {
+    if (!silent) setRefreshingStatus(true);
+    try {
+      const response = await internshipService.getCurrentCS05();
+      if (response.success && response.data) {
+        const cs05Data = response.data;
+        setFormData(cs05Data);
+        setExistingCS05(cs05Data);
+        setIsSubmitted(cs05Data.status !== 'rejected');
+        setCS05Data(cs05Data);
+        form.setFieldsValue({
+          companyName: cs05Data.companyName || '',
+          companyAddress: cs05Data.companyAddress || '',
+          internshipPeriod: cs05Data.startDate && cs05Data.endDate
+            ? [dayjs(cs05Data.startDate), dayjs(cs05Data.endDate)]
+            : undefined
+        });
+        if (cs05Data.transcriptFilename) {
+          setTranscriptFile(prev => prev || {
+            name: cs05Data.transcriptFilename,
+            status: 'done',
+            uid: '-1'
+          });
+        }
+      }
+    } catch (e) {
+      // ignore errors here (manual refresh will show message if needed)
+    } finally {
+      if (!silent) setRefreshingStatus(false);
+    }
+  }, [form, setCS05Data]);
 
   useEffect(() => {
-    const fetchStudentData = async () => {
-      setFetchLoading(true);
+  const fetchStudentData = async () => {
       try {
         const data = await internshipService.getStudentInfo();
         console.log('Student Data:', data);
@@ -66,7 +103,7 @@ const CS05Form = () => {
         console.error('Fetch Student Error:', error);
         message.error(error.message);
       } finally {
-        setFetchLoading(false);
+        // no fetch loading state currently shown
       }
     };
 
@@ -86,21 +123,14 @@ const CS05Form = () => {
     const checkExistingCS05 = async () => {
       try {
         const response = await internshipService.getCurrentCS05();
-
-        // Log the fetched data
         console.log('Fetched CS05 Data:', response);
-
-        // ตรวจสอบว่า component ยังคงอยู่หรือไม่
         if (!isMounted) return;
-
         if (response.success && response.data) {
           const cs05Data = response.data;
           setFormData(cs05Data);
           setExistingCS05(cs05Data);
           setIsSubmitted(cs05Data.status !== 'rejected');
           setCS05Data(cs05Data);
-
-          // Set form values
           form.setFieldsValue({
             companyName: cs05Data.companyName || '',
             companyAddress: cs05Data.companyAddress || '',
@@ -108,27 +138,22 @@ const CS05Form = () => {
               ? [dayjs(cs05Data.startDate), dayjs(cs05Data.endDate)]
               : undefined
           });
-
           if (cs05Data.transcriptFilename) {
-            setTranscriptFile({
+            setTranscriptFile(prev => prev || {
               name: cs05Data.transcriptFilename,
               status: 'done',
               uid: '-1'
             });
           }
         } else {
-          // กรณีไม่มีข้อมูล CS05 แต่ API ตอบกลับปกติ (success: true, data: null)
           message.info(response.message || 'กรุณากรอกข้อมูลคำร้องขอฝึกงาน (คพ.05)');
         }
       } catch (error) {
         if (!isMounted) return;
-        
-        // กรณี 404 - ยังไม่มีข้อมูล CS05
         if (error.response?.status === 404) {
           console.log('ไม่พบข้อมูล CS05: นักศึกษายังไม่ได้กรอกข้อมูล');
           message.info('กรุณากรอกข้อมูลคำร้องขอฝึกงาน (คพ.05) เพื่อดำเนินการต่อไป');
         } else {
-          // กรณีเกิดข้อผิดพลาดอื่นๆ
           console.error('Error fetching CS05:', error);
           message.error('ไม่สามารถโหลดข้อมูล CS05 กรุณาลองใหม่ภายหลัง');
         }
@@ -141,7 +166,16 @@ const CS05Form = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [form, setCS05Data]);
+
+  // Polling while pending
+  useEffect(() => {
+    if (formData?.status !== 'pending') return; // only poll while pending
+    const intervalId = setInterval(() => {
+      fetchCS05(true);
+    }, POLL_INTERVAL);
+    return () => clearInterval(intervalId);
+  }, [formData?.status, fetchCS05]);
 
   const validateInternshipPeriod = (startDate, endDate) => {
     const start = dayjs(startDate);
@@ -165,8 +199,9 @@ const CS05Form = () => {
       return;
     }
 
-    // ตรวจสอบว่ามีไฟล์ transcript หรือไม่ (ปรับปรุงการตรวจสอบให้ละเอียดขึ้น)
-    if (!transcriptFile) {
+    // ตรวจสอบ transcript: อนุญาตใช้ไฟล์เดิมถ้ามีในระบบ
+    const hasExistingTranscript = !!formData?.transcriptFilename;
+    if (!transcriptFile && !hasExistingTranscript) {
       message.error('กรุณาอัปโหลดใบแสดงผลการเรียน (Transcript)');
       return;
     }
@@ -193,14 +228,20 @@ const CS05Form = () => {
       // เพิ่มข้อมูลฟอร์มเป็น JSON
       formData.append('formData', JSON.stringify(submitData));
 
-      // เพิ่มไฟล์ transcript (ตรวจสอบว่าเป็น File object หรือไม่)
+      // เพิ่มไฟล์ transcript (ตรวจสอบว่าเป็น File object หรือไม่) หรือใช้ไฟล์เดิม
+      let appended = false;
       if (transcriptFile instanceof File) {
         formData.append('transcript', transcriptFile);
-      } else if (transcriptFile.originFileObj) {
-        // กรณีที่ได้จาก Upload component ของ Ant Design
+        appended = true;
+      } else if (transcriptFile && transcriptFile.originFileObj) {
         formData.append('transcript', transcriptFile.originFileObj);
-      } else {
-        // เมื่อมีเฉพาะข้อมูลเก่า แต่ไม่มีไฟล์ใหม่
+        appended = true;
+      }
+      if (!appended && hasExistingTranscript) {
+        submitData.useExistingTranscript = true; // backend ต้องรองรับ flag นี้
+        // need to update JSON field because we added flag after append earlier
+        formData.set('formData', JSON.stringify(submitData));
+      } else if (!appended) {
         message.error('ไม่พบไฟล์ที่อัปโหลด กรุณาอัปโหลดไฟล์ใหม่');
         setLoading(false);
         return;
@@ -226,9 +267,36 @@ const CS05Form = () => {
 
   const isFieldsDisabled = isSubmitted && existingCS05?.status !== 'rejected';
 
+  useEffect(() => {
+    // subscribe to socket events เพื่อ real-time แจ้งเตือนเมื่อถูกปฏิเสธ
+    const socketUrl = process.env.REACT_APP_API_URL?.replace(/\/api$/, '') || window.location.origin;
+    const socket = io(socketUrl, { withCredentials: true });
+    socket.on('document:rejected', (payload) => {
+      if (payload.documentName === 'CS05') {
+        message.error(payload.message || 'คำร้อง CS05 ถูกปฏิเสธ');
+        // ดึงสถานะใหม่
+        fetchCS05();
+      }
+    });
+    return () => socket.disconnect();
+  }, [fetchCS05]);
+
   return (
     <div className="internship-container">
       <Card className="internship-card">
+        <Space style={{ width: '100%', justifyContent: 'flex-end', marginBottom: 8 }}>
+          {formData?.status && (
+            <Tag color={
+              formData.status === 'approved' ? 'green' :
+              formData.status === 'rejected' ? 'red' : 'gold'
+            }>
+              สถานะ: {formData.status === 'pending' ? 'รอการพิจารณา' : formData.status === 'approved' ? 'อนุมัติ' : 'ปฏิเสธ'}
+            </Tag>
+          )}
+          <Tooltip title="รีเฟรชสถานะ">
+            <Button size="small" icon={<ReloadOutlined spin={refreshingStatus} />} onClick={() => fetchCS05()} />
+          </Tooltip>
+        </Space>
         <div className="text-center">
           <Title level={4} className="text-right">
             คพ.05
@@ -414,6 +482,15 @@ const CS05Form = () => {
                 >
                   บันทึกคำร้องและอัปโหลด Transcript
                 </Button>
+              )}
+              {formData?.status === 'rejected' && formData?.rejectionReason && (
+                <Alert
+                  style={{ marginTop: 12 }}
+                  type="error"
+                  showIcon
+                  message="เหตุผลที่ปฏิเสธ"
+                  description={formData.rejectionReason}
+                />
               )}
             </div>
           </Space>

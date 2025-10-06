@@ -1,10 +1,10 @@
 import React from "react";
-import { Table, Space, Button, Tooltip, Typography } from "antd";
+import { Table, Space, Button, Tooltip, Typography, Tag } from "antd";
 import { EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
-const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
+const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete, emptyText }) => {
   const columns = [
     {
       title: "รหัสอาจารย์",
@@ -29,22 +29,45 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
       width: 180,
     },
     {
+      title: "ตำแหน่ง",
+      dataIndex: "position",
+      key: "position",
+      width: 200,
+      render: (text) => text || "-"
+    },
+    {
       title: "อีเมล",
       dataIndex: "email",
       key: "email",
       width: 200,
-    },
+    },/* 
     {
       title: "เบอร์ภายใน",
       dataIndex: "contactExtension",
       key: "contactExtension",
       width: 120,
+    }, */
+    {
+      title: "เข้าถึงรายชื่อหัวข้อโครงงานพิเศษ1",
+      dataIndex: "canAccessTopicExam",
+      key: "canAccessTopicExam",
+      width: 160,
+      render: (value) => (
+        <Tag color={value ? 'green' : 'default'}>
+          {value ? 'เปิดใช้งาน' : 'ปิด' }
+        </Tag>
+      )
     },
     {
-      title: "ภาควิชา",
-      dataIndex: "department",
-      key: "department",
-      width: 150,
+      title: "เข้ารายชื่อสอบโครงงานพิเศษ1",
+      dataIndex: "canExportProject1",
+      key: "canExportProject1",
+      width: 160,
+      render: (value) => (
+        <Tag color={value ? 'green' : 'default'}>
+          {value ? 'เปิดใช้งาน' : 'ปิด' }
+        </Tag>
+      )
     },
     {
       title: "จัดการ",
@@ -90,14 +113,18 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete }) => {
     <Table
       columns={columns}
       dataSource={teachers}
-      rowKey="id"
+      rowKey={(record) => record.teacherId || record.teacherCode}
       loading={loading}
       pagination={{
         pageSize: 10,
+        pageSizeOptions: [10, 20, 50, 100],
         showSizeChanger: true,
         showTotal: (total) => `ทั้งหมด ${total} รายการ`,
       }}
       scroll={{ x: "max-content" }}
+      locale={{
+        emptyText: loading ? "กำลังโหลดข้อมูล..." : emptyText || "ไม่พบข้อมูลอาจารย์",
+      }}
       onRow={(record) => ({
         onClick: () => onView(record),
       })}

@@ -24,7 +24,7 @@ export const useTimeSheet = (form) => {
   const [dateRange, setDateRange] = useState(null);
   const [hasCS05, setHasCS05] = useState(false);
   const [cs05Status, setCS05Status] = useState(null);
-  const [isTestMode, setIsTestMode] = useState(true); // คง isTestMode ไว้ตามเดิม
+  const [isTestMode] = useState(true); // โหมดทดสอบสำหรับการเช็คสถานะเอกสาร
   const [loadError, setLoadError] = useState(null);
   const isInitialLoadDoneRef = useRef(false); // สร้าง ref เพื่อติดตามการโหลดครั้งแรก
 
@@ -373,6 +373,8 @@ export const useTimeSheet = (form) => {
         message.error('เวลาออกงานต้องมากกว่าเวลาเข้างาน');
       } else if (error.message?.includes('ไม่พบข้อมูลการบันทึกเวลาเข้างาน')) {
         message.error('คุณต้องบันทึกเวลาเข้างานก่อน');
+      } else if (error.message?.includes('ไม่สามารถแก้ไขบันทึกที่ได้รับการอนุมัติแล้ว')) {
+        message.warning('บันทึกนี้ได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขได้ กรุณาเพิ่มบันทึกใหม่หากต้องการปรับปรุงข้อมูล');
       } else {
         message.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
       }

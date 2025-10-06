@@ -99,6 +99,17 @@
   --active-color: var(--warning-color);
 }
 
+/* แยกย่อย teacher ประเภท academic / support */
+.teacher-academic-theme {
+  --menu-hover: rgba(250, 173, 20, 0.12); /* gold อมส้ม */
+  --active-color: var(--warning-color);
+}
+
+.teacher-support-theme {
+  --menu-hover: rgba(0, 193, 185, 0.12); /* teal อ่อน */
+  --active-color: #13c2c2; /* cyan หลัก */
+}
+
 .admin-theme {
   --menu-hover: rgba(255, 77, 79, 0.1);
   --active-color: var(--error-color);

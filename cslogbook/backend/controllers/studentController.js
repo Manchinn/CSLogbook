@@ -4,19 +4,24 @@ const logger = require("../utils/logger");
 // ฟังก์ชันดึงข้อมูลนักศึกษาทั้งหมด
 exports.getAllStudents = async (req, res, next) => {
   try {
-    const { semester, academicYear } = req.query;
 
-    const students = await studentService.getAllStudents({ 
-      semester, 
-      academicYear 
-    });
+    const filters = {
+      search: req.query.search,
+      status: req.query.status,
+      academicYear: req.query.academicYear,
+      semester: req.query.semester,
+    };
+
+    const students = await studentService.getAllStudents(filters);
 
     res.json({
       success: true,
       data: students,
       filters: {
-        semester: semester || null,
-        academicYear: academicYear || null,
+        search: filters.search || null,
+        status: filters.status || null,
+        academicYear: filters.academicYear || null,
+        semester: filters.semester || null,
       },
       message: "ดึงข้อมูลนักศึกษาสำเร็จ",
     });

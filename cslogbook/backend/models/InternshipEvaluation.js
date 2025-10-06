@@ -73,46 +73,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.NOW,
       field: 'evaluation_date'
     },
-    q1Knowledge: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q1_knowledge'
-    },
-    q2Responsibility: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q2_responsibility'
-    },
-    q3Initiative: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q3_initiative'
-    },
-    q4Adaptability: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q4_adaptability'
-    },
-    q5ProblemSolving: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q5_problem_solving'
-    },
-    q6Communication: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q6_communication'
-    },
-    q7Punctuality: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q7_punctuality'
-    },
-    q8Personality: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'q8_personality'
-    },
     overallScore: {
       type: DataTypes.DECIMAL(5, 2),
       allowNull: true,
@@ -132,11 +92,6 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'additional_comments'
     },
-    overallGrade: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      field: 'overall_grade'
-    },
     status: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -146,6 +101,54 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'evaluated_by_supervisor_at'
+    }
+    ,
+    // ================= ฟิลด์ใหม่สำหรับโครงสร้างการประเมิน 5 หมวด (2025-08) =================
+    evaluationItems: {
+      // เก็บ JSON string ของ array [{category:'discipline', item:'1.1', score:5}, ...]
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'evaluation_items'
+    },
+    disciplineScore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'discipline_score'
+    },
+    behaviorScore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'behavior_score'
+    },
+    performanceScore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'performance_score'
+    },
+    methodScore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'method_score'
+    },
+    relationScore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'relation_score'
+    },
+    supervisorPassDecision: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      field: 'supervisor_pass_decision'
+    },
+    passFail: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+      field: 'pass_fail'
+    },
+    passEvaluatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'pass_evaluated_at'
     }
   }, {
     sequelize, // Use the sequelize instance passed by index.js

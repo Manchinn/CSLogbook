@@ -199,14 +199,6 @@ export const useNotificationSettings = () => {
     }, [settings]);
 
     /**
-     * ตรวจสอบว่ามีการแจ้งเตือนที่เปิดใช้งานอยู่หรือไม่
-     * @returns {boolean} - มีการแจ้งเตือนที่เปิดใช้งานหรือไม่
-     */
-    const hasEnabledNotifications = useCallback(() => {
-        return getEnabledCount() > 0;
-    }, [getEnabledCount]);
-
-    /**
      * ดึงข้อมูลการตั้งค่าของการแจ้งเตือนประเภทใดประเภทหนึ่ง
      * @param {string} type - ประเภทการแจ้งเตือน
      * @returns {Object} - ข้อมูลการตั้งค่า

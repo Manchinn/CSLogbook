@@ -1,11 +1,11 @@
-const { Document, Student, User, WorkflowActivity, Notification } = require('../models');
-const notificationService = require('./notificationService');
+const { Document, Student, User } = require('../models');
+const workflowService = require('./workflowService');
 
 class InternshipService {
     /**
      * อนุมัติเอกสาร คพ.05
      */
-    async approveCS05(documentId, adminId) {
+    async approveCS05(documentId, adminId, options = {}) {
         try {
             // 1. เรียกใช้ฟังก์ชันพื้นฐานเพื่ออัปเดตสถานะเอกสาร
             await this._approveDocumentBase(documentId, adminId);
@@ -27,7 +27,7 @@ class InternshipService {
             }
             
             // 3. จัดการขั้นตอน workflow เมื่ออนุมัติเอกสาร CS05
-            const result = await this.handleCS05Approval(document, adminId);
+            const result = await this.handleCS05Approval(document, adminId, options);
             if (!result) {
                 throw new Error('Failed to handle CS05 approval workflow');
             }
@@ -54,8 +54,8 @@ class InternshipService {
         
         await document.update({
             status: 'approved',
-            reviewedBy: adminId,
-            reviewedAt: new Date()
+            reviewerId: adminId,
+            reviewDate: new Date()
         });
         
         return document;
@@ -64,7 +64,7 @@ class InternshipService {
     /**
      * จัดการขั้นตอน workflow เมื่ออนุมัติเอกสาร CS05
      */
-    async handleCS05Approval(document, adminId) {
+    async handleCS05Approval(document, adminId, options = {}) {
         try {
             console.log(`Starting handleCS05Approval for document ID: ${document.documentId}, by admin: ${adminId}`);
             
@@ -76,60 +76,46 @@ class InternshipService {
             
             console.log(`Processing workflow for student: ${studentId}`);
             
-            // 1. อัปเดตขั้นตอน "รออนุมัติ" เป็นเสร็จสิ้น
-            await this.updateWorkflowActivity(
-                studentId,
-                'internship',
-                'INTERNSHIP_CS05_APPROVAL_PENDING',
-                'completed',
-                'in_progress',
-                { 
-                    approvedBy: adminId,
-                    approvedAt: new Date().toISOString()
-                }
-            );
-            
-            // 2. เพิ่มขั้นตอน "ได้รับอนุมัติ" และทำเครื่องหมายว่าเสร็จสิ้น
-            await this.updateWorkflowActivity(
-                studentId,
-                'internship',
-                'INTERNSHIP_CS05_APPROVED',
-                'completed',
-                'in_progress',
-                { 
-                    approvedBy: adminId,
-                    approvedAt: new Date().toISOString()
-                }
-            );
-            
-            // 3. สร้างขั้นตอนถัดไป "รอหนังสือตอบรับ"
-            await this.updateWorkflowActivity(
-                studentId,
-                'internship',
-                'INTERNSHIP_COMPANY_RESPONSE_PENDING',
-                'awaiting_student_action',
-                'in_progress',
-                {}
-            );
+                        // 1) ปรับสถานะ workflow ผ่าน workflowService ให้สอดคล้องกับตาราง StudentWorkflowActivity
+                        // อัปเดตขั้นตอน "รออนุมัติ" เป็นเสร็จสิ้น
+                                    await workflowService.updateStudentWorkflowActivity(
+                            studentId,
+                            'internship',
+                            'INTERNSHIP_CS05_APPROVAL_PENDING',
+                            'completed',
+                            'in_progress',
+                                        { approvedBy: adminId, approvedAt: new Date().toISOString(), letterType: options.letterType || null }
+                        );
+
+                        // เพิ่มขั้นตอน "ได้รับอนุมัติ" และทำเครื่องหมายว่าเสร็จสิ้น
+                                    await workflowService.updateStudentWorkflowActivity(
+                            studentId,
+                            'internship',
+                            'INTERNSHIP_CS05_APPROVED',
+                            'completed',
+                            'in_progress',
+                                        { approvedBy: adminId, approvedAt: new Date().toISOString(), letterType: options.letterType || null }
+                        );
+
+                        // สร้างขั้นตอนถัดไป "รอหนังสือตอบรับ"
+                                    await workflowService.updateStudentWorkflowActivity(
+                            studentId,
+                            'internship',
+                            'INTERNSHIP_COMPANY_RESPONSE_PENDING',
+                            'awaiting_student_action',
+                            'in_progress',
+                                        { nextAction: 'upload_acceptance_letter' }
+                        );
             
             console.log(`Workflow updated successfully for student: ${studentId}`);
             
             // 4. สร้างการแจ้งเตือน (ถ้ามีโมเดล Notification)
-            try {
-                if (Notification) {
-                    await Notification.create({
-                        userId: document.userId,
-                        title: 'เอกสาร คพ.05 ได้รับการอนุมัติแล้ว',
-                        message: 'คำร้องขอฝึกงานของคุณได้รับการอนุมัติแล้ว โปรดดำเนินการขั้นตอนถัดไป',
-                        type: 'document_approved',
-                        referenceId: document.documentId,
-                        isRead: false
-                    });
-                }
-            } catch (notifyError) {
-                console.error('Error creating notification:', notifyError);
-                // ไม่ทำให้กระบวนการล้มเหลวหากแจ้งเตือนไม่สำเร็จ
-            }
+            // หมายเหตุ: โมเดล Notification ยังไม่มีในระบบปัจจุบัน จึงข้ามการสร้าง notification ตรงนี้
+
+            // TODO: สร้างไฟล์หนังสือทางการหลังอนุมัติ
+            // - options.letterType อาจเป็น 'request_letter' หรือ 'referral_letter'
+            // - ณ ตอนนี้ยังไม่ได้ generate PDF ที่นี่ เพื่อให้สอดคล้องกับโฟลว์ react-pdf ฝั่ง frontend
+            //   สามารถเพิ่ม service การสร้างไฟล์และบันทึก filePath ที่ Document หรือ InternshipDocument ได้ในงานถัดไป
             
             return true;
         } catch (error) {
@@ -141,50 +127,18 @@ class InternshipService {
     /**
      * อัปเดตหรือสร้าง workflow activity สำหรับนักศึกษา
      */
-    async updateWorkflowActivity(studentId, workflowType, stepKey, status, workflowStatus, metadata) {
-        console.log(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} to ${status}`);
-        
-        try {
-            // ค้นหา activity ที่มีอยู่แล้ว
-            let activity = await WorkflowActivity.findOne({
-                where: {
-                    studentId,
-                    workflowType,
-                    stepKey
-                }
-            });
-            
-            // ถ้าไม่มี ให้สร้างใหม่
-            if (!activity) {
-                console.log(`Creating new workflow activity: ${stepKey}`);
-                activity = await WorkflowActivity.create({
-                    studentId,
-                    workflowType,
-                    stepKey,
-                    status,
-                    workflowStatus,
-                    metadata: JSON.stringify(metadata || {})
-                });
-            } else {
-                // ถ้ามีอยู่แล้ว ให้อัปเดต
-                console.log(`Updating existing workflow activity: ${stepKey}`);
-                await activity.update({
-                    status,
-                    workflowStatus,
-                    metadata: JSON.stringify({
-                        ...JSON.parse(activity.metadata || '{}'),
-                        ...(metadata || {})
-                    })
-                });
-            }
-            
-            console.log(`Successfully updated workflow activity: ${stepKey}`);
-            return activity;
-        } catch (error) {
-            console.error(`Error updating workflow activity ${stepKey}:`, error);
-            throw error;
+        // เดิมมีเมธอด updateWorkflowActivity ที่อ้างอิงโมเดล WorkflowActivity (ไม่มีอยู่จริง)
+        // หากโค้ดภายนอกเรียกใช้ จะกระจายไปใช้ workflowService เพื่อความเข้ากันได้ย้อนหลัง
+        async updateWorkflowActivity(studentId, workflowType, stepKey, status, workflowStatus, metadata) {
+            return workflowService.updateStudentWorkflowActivity(
+                studentId,
+                workflowType,
+                stepKey,
+                status,
+                workflowStatus,
+                metadata
+            );
         }
-    }
 }
 
 module.exports = new InternshipService();

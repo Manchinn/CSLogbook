@@ -46,6 +46,8 @@ npm run setup  # จะทำการ copy .env.example ไปเป็น .env
 - `EMAIL_LOGIN_ENABLED`: เปิด/ปิดการส่งอีเมลตอน login
 - `EMAIL_DOCUMENT_ENABLED`: เปิด/ปิดการส่งอีเมลเกี่ยวกับเอกสาร
 - `EMAIL_LOGBOOK_ENABLED`: เปิด/ปิดการส่งอีเมลเกี่ยวกับ logbook
+- `EMAIL_MEETING_ENABLED`: เปิด/ปิดการส่งอีเมลขออนุมัติบันทึกการพบอาจารย์
+- `LOG_ENABLE_CONSOLE`: ตั้งเป็น `false` เพื่อปิดการแสดง log ใน console (ค่าเริ่มต้นจะปิดอัตโนมัติเมื่อรันเทสต์ และเปิดเฉพาะในโหมด development)
 
 ### Upload Configuration
 - `UPLOAD_DIR`: directory สำหรับเก็บไฟล์ที่อัพโหลด (default: uploads/)
@@ -70,6 +72,54 @@ npm start
 ```
 http://localhost:5000/api-docs
 ```
+
+### Topic Exam Overview (Summary)
+Endpoint: `GET /api/projects/topic-exam/overview`
+
+Readiness flags (response.readiness):
+- `titleCompleted`: มีชื่อโครงงานทั้งภาษาไทย/อังกฤษ
+- `advisorAssigned`: มีอาจารย์ที่ปรึกษา
+- `proposalUploaded` / `abstractUploaded`: heuristic จาก field `objective` / `expectedOutcome`
+- `memberCountOk`: (ใหม่) จำนวนสมาชิก >= 2
+- `readyFlag`: baseline = (titleCompleted && advisorAssigned) หรือหากส่ง query `enforceMemberMin=1` จะบังคับรวม `memberCountOk`
+
+Query Params เพิ่มเติม:
+- `readyOnly=true` คืนเฉพาะที่ readyFlag = true
+- `enforceMemberMin=1` ทำให้ readyFlag ต้องมีสมาชิก >=2
+
+ตัวอย่างเรียก: `/api/projects/topic-exam/overview?readyOnly=true&enforceMemberMin=1`
+
+### Scenario Seeding (ทดสอบหลายเคส)
+ไฟล์ seeder:
+1. `20250922120000-demo-topic-exam-projects.js` ตัวอย่างทั่วไป (1-2 สมาชิก, readiness ปกติ)
+2. `20250922123000-scenario-topic-exam-projects.js` สร้างเคสหลากหลาย: draft/no advisor, missing EN title, single member, multi-member พร้อม track, in_progress, completed, archived
+
+รันเฉพาะ scenario:
+```bash
+npx sequelize-cli db:seed --seed 20250922123000-scenario-topic-exam-projects.js
+```
+Rollback:
+```bash
+npx sequelize-cli db:seed:undo --seed 20250922123000-scenario-topic-exam-projects.js
+```
+
+ตรวจสอบอย่างรวดเร็ว:
+```sql
+SELECT project_id, project_name_th, status, advisor_id FROM project_documents 
+WHERE project_name_th LIKE 'SCENARIO TOPIC%';
+```
+
+### Project Meetings & Logbook Approval
+API ชุดใหม่สำหรับติดตามการพบอาจารย์หลังสอบหัวข้อและการอนุมัติ logbook
+
+- `GET /api/projects/:projectId/meetings` — รายการ meeting พร้อม logs, ผู้เข้าร่วม และสรุปจำนวนครั้งที่อนุมัติแล้วของนักศึกษาแต่ละคน
+- `POST /api/projects/:projectId/meetings` — สร้าง meeting ใหม่ (ระบบจะดึงสมาชิกและอาจารย์ที่ปรึกษามาเป็นผู้เข้าร่วมอัตโนมัติ สามารถระบุผู้เข้าร่วมเพิ่มเติมได้ผ่าน `additionalParticipantIds`)
+- `POST /api/projects/:projectId/meetings/:meetingId/logs` — เพิ่มบันทึกการพบ (log) ระบุหัวข้อ, ความคืบหน้า, ปัญหา, งานถัดไป และ action items
+- `PATCH /api/projects/:projectId/meetings/:meetingId/logs/:logId/approval` — ให้ครูที่ปรึกษา/ผู้ดูแลระบบอนุมัติ, ปฏิเสธ หรือรีเซ็ตสถานะบันทึก พร้อมบันทึก comment เพิ่มเติม
+- `POST /api/projects/:projectId/meetings/request-approval` — นักศึกษาหรืออาจารย์ร้องขอให้ระบบส่งอีเมลแจ้งเตือนบันทึกที่ยังรออนุมัติ (เลือกได้ทั้งแบบรวมทั้งหมดหรือเฉพาะรอบสัปดาห์)
+
+โครงสร้าง log ถูกออกแบบให้ครอบคลุมข้อกำหนด “นักศึกษาต้องพบอาจารย์อย่างน้อย 4 ครั้งและต้องได้รับการอนุมัติทุกครั้ง” โดย summary ใน response จะบอกจำนวนบันทึกที่ได้รับอนุมัติของแต่ละนักศึกษาอย่างชัดเจน
+
 
 ## การจัดการ Environment Variables
 

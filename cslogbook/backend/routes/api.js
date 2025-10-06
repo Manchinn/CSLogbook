@@ -6,8 +6,10 @@ const userRoutes = require('./users/userRoutes');
 const curriculumRoutes = require('./curriculumRoutes');
 const academicRoutes = require("./academicRoutes"); // Corrected path
 const internshipRoutes = require('./internshipRoutes');
+const internshipCompanyStatsRoutes = require('./internshipCompanyStatsRoutes');
 const emailApprovalRoutes = require('./emailApprovalRoutes');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const projectRoutes = require('./projectRoutes');
 const curriculumController = require('../controllers/curriculumController'); // เพิ่มการนำเข้า curriculumController
 
 // Public routes
@@ -23,8 +25,12 @@ router.use('/academic', authenticateToken, academicRoutes);
 
 // เพิ่ม routes สำหรับการฝึกงาน
 router.use('/internship', authenticateToken, internshipRoutes);
+router.use('/internship', internshipCompanyStatsRoutes); // ใช้ auth ที่ระดับ route ภายในไฟล์เอง
 
 // Add routes for email approval
 router.use('/email-approval', emailApprovalRoutes); // Ensure this line is present and active
+
+// Project management (Phase 2)
+router.use('/projects', projectRoutes);
 
 module.exports = router;

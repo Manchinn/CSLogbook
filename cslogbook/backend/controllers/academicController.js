@@ -22,8 +22,15 @@ exports.getAcademicSettings = async (req, res) => {
 // อัปเดตข้อมูลการตั้งค่าปีการศึกษา
 exports.updateAcademicSettings = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
+    // เปลี่ยนจาก req.params เป็น req.body
+    const { id, ...updateData } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "ไม่พบ ID ของข้อมูลที่ต้องการอัปเดต" 
+      });
+    }
 
     await academicService.updateAcademicSettings(id, updateData);
     
@@ -31,7 +38,6 @@ exports.updateAcademicSettings = async (req, res) => {
   } catch (error) {
     logger.error("Error updating academic settings:", error);
     
-    // ส่งข้อความข้อผิดพลาดที่ชัดเจนกลับไป
     const statusCode = error.message.includes("ไม่พบข้อมูล") ? 404 : 
                      error.message.includes("ไม่ถูกต้อง") ? 400 : 500;
     

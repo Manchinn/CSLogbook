@@ -1,6 +1,8 @@
 import React from 'react';
 import { Timeline, Space, Tag, Typography, Empty, Button } from 'antd';
 import { ClockCircleOutlined, SearchOutlined } from '@ant-design/icons';
+import moment from 'moment';
+import 'moment/locale/th';
 
 const { Text } = Typography;
 
@@ -34,7 +36,12 @@ const ImportantDeadlines = ({ deadlines = [] }) => {
                     {deadline.related === 'internship' && <Tag color="cyan">ฝึกงาน</Tag>}
                     {deadline.related === 'project' && <Tag color="purple">โครงงาน</Tag>}
                   </Space>
-                  <div><Text type="secondary">วันที่: {deadline.date}</Text></div>
+                  <div>
+                    <Text type="secondary">
+                      วันที่: {deadline.deadlineDate ? moment(deadline.deadlineDate).add(543,'year').format('D MMMM YYYY') : deadline.date}
+                      {deadline.deadlineTime ? ` เวลา ${moment(deadline.deadlineTime, 'HH:mm:ss').format('HH:mm')} น.` : ''}
+                    </Text>
+                  </div>
                 </>
               ),
             }))}

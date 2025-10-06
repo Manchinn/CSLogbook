@@ -5,6 +5,7 @@ import { SystemProvider } from "../../contexts/adminContext/SystemContext";
 import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
 import { DocumentProvider } from "../../contexts/adminContext/DocumentContext";
 import DocumentManagement from "./documents";
+import CertificateManagement from "./documents/CertificateManagement";
 
 // Lazy loading components
 const Dashboard = lazy(() => import("./dashboard"));
@@ -29,6 +30,12 @@ const NotificationSettingsPage = lazy(() =>
 const WorkflowStepManagementPage = lazy(() =>
   import("./settings/WorkflowStepsSettingsPage")
 );
+const SupportStaffDashboard = lazy(() => import('./reports/SupportStaffDashboard.js'));
+const InternshipReport = lazy(() => import('./reports/InternshipReport.js'));
+const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
+const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
+const Project1ExamResultPage = lazy(() => import('./project/Project1ExamResultPage'));
+const ThesisExamResultPage = lazy(() => import('./project/ThesisExamResultPage'));
 
 // Loading component
 const LoadingComponent = () => (
@@ -48,6 +55,12 @@ const AdminRoutes = () => {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/reports/support" element={<SupportStaffDashboard />} />
+              <Route path="/reports/internship" element={<InternshipReport />} />
+              <Route path="/reports/project" element={<ProjectReport />} />
+              <Route path="/topic-exam/results" element={<TopicExamResultPage />} />
+              <Route path="/project-exam/results" element={<Project1ExamResultPage />} />
+              <Route path="/thesis/exam-results" element={<ThesisExamResultPage />} />
 
               {/* ใช้ DocumentManagement สำหรับจัดการเอกสาร */}
               <Route
@@ -55,6 +68,15 @@ const AdminRoutes = () => {
                 element={
                   <DocumentProvider type="internship">
                     <DocumentManagement type="internship" />
+                  </DocumentProvider>
+                }
+              />
+
+              <Route
+                path="documents/certificates"
+                element={
+                  <DocumentProvider type="certificate">
+                    <CertificateManagement />
                   </DocumentProvider>
                 }
               />
@@ -78,9 +100,14 @@ const AdminRoutes = () => {
                 <Route path="academic" element={<AcademicSettingsPage />} />
                 <Route path="status" element={<StatusSettingsPage />} />
                 <Route path="curriculum" element={<CurriculumSettingsPage />} />
-                <Route path="notification-settings" element={<NotificationSettingsPage />} />
-                <Route path="workflow-steps" element={<WorkflowStepManagementPage />} />
-
+                <Route
+                  path="notification-settings"
+                  element={<NotificationSettingsPage />}
+                />
+                <Route
+                  path="workflow-steps"
+                  element={<WorkflowStepManagementPage />}
+                />
               </Route>
             </Routes>
           </Suspense>

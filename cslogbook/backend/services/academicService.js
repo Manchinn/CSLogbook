@@ -1,5 +1,6 @@
 const { Academic, Curriculum, sequelize } = require('../models');
 const logger = require('../utils/logger');
+const { Op } = require('sequelize');
 
 /**
  * AcademicService - บริการสำหรับจัดการข้อมูลการตั้งค่าปีการศึกษาและหลักสูตร
@@ -73,10 +74,10 @@ class AcademicService {
    */
   async updateCurrentStatus(excludeId = null, transaction = null) {
     try {
-      const whereClause = {};
+      let whereClause = {};
       
       if (excludeId) {
-        whereClause.id = { [sequelize.Op.ne]: excludeId };
+        whereClause.id = { [Op.ne]: excludeId }; // เปลี่ยนจาก sequelize.Op.ne เป็น Op.ne
       }
       
       const options = { where: whereClause };
@@ -85,13 +86,13 @@ class AcademicService {
         options.transaction = transaction;
       }
       
-      logger.info(`AcademicService: Setting all academic records to non-current (excluding ID: ${excludeId || 'none'})`);
+      logger.info(`AcademicService: Setting all academic settings to not current (excluding ID: ${excludeId || 'none'})`);
       
       await Academic.update({ isCurrent: false }, options);
       
     } catch (error) {
       logger.error('AcademicService: Error updating current status', error);
-      throw new Error('ไม่สามารถอัปเดตสถานะปีการศึกษาปัจจุบันได้: ' + error.message);
+      throw new Error('ไม่สามารถอัปเดตสถานะปัจจุบันได้: ' + error.message);
     }
   }
 
@@ -106,7 +107,26 @@ class AcademicService {
     try {
       logger.info('AcademicService: Creating new academic settings');
       
-      const { activeCurriculumId, isCurrent, ...restOfData } = academicData;
+      const {
+        activeCurriculumId,
+        isCurrent,
+        semesters,
+        ...restOfData
+      } = academicData;
+
+      // แปลงโครงสร้างช่วงภาคเรียนจาก semesters -> semesterXRange สำหรับบันทึกลงฐานข้อมูล
+      const processedData = { ...restOfData };
+      if (semesters) {
+        if (semesters["1"] && Object.prototype.hasOwnProperty.call(semesters["1"], "range")) {
+          processedData.semester1Range = semesters["1"].range ?? null;
+        }
+        if (semesters["2"] && Object.prototype.hasOwnProperty.call(semesters["2"], "range")) {
+          processedData.semester2Range = semesters["2"].range ?? null;
+        }
+        if (semesters["3"] && Object.prototype.hasOwnProperty.call(semesters["3"], "range")) {
+          processedData.semester3Range = semesters["3"].range ?? null;
+        }
+      }
       
       // ตรวจสอบ activeCurriculumId ถ้ามี
       if (activeCurriculumId) {
@@ -117,17 +137,19 @@ class AcademicService {
         }
       }
       
-      // ถ้า isCurrent เป็น true ให้เปลี่ยนรายการอื่นเป็น false
-      if (isCurrent === true) {
+      const currentFlag = isCurrent ?? true; // ถ้าไม่ได้ส่งมา ให้ถือว่าเป็นปีการศึกษาปัจจุบัน
+
+      // ถ้า currentFlag เป็น true ให้เปลี่ยนรายการอื่นเป็น false
+      if (currentFlag === true) {
         await this.updateCurrentStatus(null, t);
       }
       
       // สร้างการตั้งค่าใหม่
       const newSettings = await Academic.create(
         { 
-          ...restOfData, 
+          ...processedData, 
           activeCurriculumId, 
-          isCurrent: isCurrent === undefined ? false : isCurrent 
+          isCurrent: currentFlag 
         },
         { transaction: t }
       );
@@ -155,6 +177,7 @@ class AcademicService {
     
     try {
       logger.info(`AcademicService: Updating academic settings with ID: ${id}`);
+      logger.info(`AcademicService: Received data:`, JSON.stringify(academicData, null, 2));
       
       if (!id) {
         await t.rollback();
@@ -179,6 +202,14 @@ class AcademicService {
       
       // เตรียมข้อมูลที่จะอัปเดต
       const updatedData = { ...rest, activeCurriculumId, isCurrent };
+        if (updatedData.isCurrent === undefined) {
+          delete updatedData.isCurrent;
+        }
+        if (updatedData.activeCurriculumId === undefined) {
+          delete updatedData.activeCurriculumId;
+        }
+      
+      logger.info(`AcademicService: Initial update data:`, JSON.stringify(updatedData, null, 2));
       
       // อัปเดตข้อมูลภาคเรียน
       if (semesters) {
@@ -193,11 +224,15 @@ class AcademicService {
         }
       }
       
+      logger.info(`AcademicService: Final update data:`, JSON.stringify(updatedData, null, 2));
+      
       // อัปเดตข้อมูล
       const [updatedCount] = await Academic.update(updatedData, {
         where: { id },
         transaction: t
       });
+      
+      logger.info(`AcademicService: Update result - affected rows: ${updatedCount}`);
       
       if (updatedCount === 0) {
         await t.rollback();
@@ -206,11 +241,17 @@ class AcademicService {
       
       await t.commit();
       
+      // ตรวจสอบข้อมูลหลังอัปเดต
+      const updatedRecord = await Academic.findByPk(id);
+      logger.info(`AcademicService: Updated record:`, JSON.stringify(updatedRecord.toJSON(), null, 2));
+      
       logger.info(`AcademicService: Successfully updated academic settings with ID: ${id}`);
       return updatedCount;
       
     } catch (error) {
-      await t.rollback();
+      if (t && !t.finished) {
+        await t.rollback();
+      }
       logger.error(`AcademicService: Error updating academic settings with ID: ${id}`, error);
       throw new Error(error.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลการตั้งค่าปีการศึกษา');
     }

@@ -1,4 +1,14 @@
-const { User, Student, Teacher, Curriculum } = require("../models");
+const {
+  User,
+  Student,
+  Teacher,
+  Curriculum,
+  StudentAcademicHistory,
+  Academic,
+  ProjectMember,
+  ProjectDocument,
+  ProjectExamResult,
+} = require("../models");
 const bcrypt = require("bcrypt");
 const {
   calculateStudentYear,
@@ -29,17 +39,34 @@ class StudentService {
    */
   async getAllStudents(filters = {}) {
     try {
-      const { semester, academicYear } = filters;
+      const { search, status, academicYear, semester } = filters;
 
-      // สร้างเงื่อนไขการค้นหา
       const whereCondition = {
         role: "student",
       };
 
-      // สร้างเงื่อนไขสำหรับ Student model
       const studentWhereCondition = {};
-      if (semester) studentWhereCondition.semester = semester;
-      if (academicYear) studentWhereCondition.academicYear = academicYear;
+
+      if (search && search.trim()) {
+        const likeValue = `%${search.trim()}%`;
+
+        whereCondition[Op.or] = [
+          { firstName: { [Op.like]: likeValue } },
+          { lastName: { [Op.like]: likeValue } },
+          { email: { [Op.like]: likeValue } },
+        ];
+
+        studentWhereCondition[Op.or] = [
+          { studentCode: { [Op.like]: likeValue } },
+          { classroom: { [Op.like]: likeValue } },
+        ];
+      }
+
+      if (status === "internship") {
+        studentWhereCondition.isEligibleInternship = true;
+      } else if (status === "project") {
+        studentWhereCondition.isEligibleProject = true;
+      }
 
       const students = await User.findAll({
         where: whereCondition,
@@ -57,44 +84,80 @@ class StudentService {
               "majorCredits",
               "isEligibleInternship",
               "isEligibleProject",
-              "semester",
-              "academicYear",
               "classroom",
               "phoneNumber",
             ],
           },
         ],
+        order: [
+          ["firstName", "ASC"],
+          ["lastName", "ASC"],
+        ],
       });
 
-      return students.map((user) => {
-        // กำหนดค่า status ตามค่า boolean ในฐานข้อมูล
-        let status = null;
+      const academicYearFilter = academicYear
+        ? parseInt(academicYear, 10)
+        : null;
 
-        // ตรวจสอบสถานะตามลำดับความสำคัญ
-        if (user.student?.isEligibleProject) {
-          status = "eligible_project";
-        } else if (user.student?.isEligibleInternship) {
-          status = "eligible_internship";
-        }
+      const mappedStudents = students
+        .map((user) => {
+          let eligibilityStatus = null;
 
-        return {
-          userId: user.userId,
-          studentId: user.student?.studentId,
-          studentCode: user.student?.studentCode,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          totalCredits: user.student?.totalCredits || 0,
-          majorCredits: user.student?.majorCredits || 0,
-          isEligibleForInternship: Boolean(user.student?.isEligibleInternship),
-          isEligibleForProject: Boolean(user.student?.isEligibleProject),
-          semester: user.student?.semester,
-          academicYear: user.student?.academicYear,
-          status: status,
-          classroom: user.student?.classroom ,
-          phoneNumber: user.student?.phoneNumber ,
-        };
-      });
+          if (user.student?.isEligibleProject) {
+            eligibilityStatus = "eligible_project";
+          } else if (user.student?.isEligibleInternship) {
+            eligibilityStatus = "eligible_internship";
+          }
+
+          const studentYearInfo = calculateStudentYear(
+            user.student?.studentCode
+          );
+
+          const admissionAcademicYear = deriveAcademicYearFromStudentCode(
+            user.student?.studentCode
+          );
+
+          return {
+            userId: user.userId,
+            studentId: user.student?.studentId,
+            studentCode: user.student?.studentCode,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            totalCredits: user.student?.totalCredits || 0,
+            majorCredits: user.student?.majorCredits || 0,
+            isEligibleForInternship: Boolean(
+              user.student?.isEligibleInternship
+            ),
+            isEligibleForProject: Boolean(user.student?.isEligibleProject),
+            status: eligibilityStatus,
+            classroom: user.student?.classroom,
+            phoneNumber: user.student?.phoneNumber,
+            academicYear: admissionAcademicYear,
+            studentYear: studentYearInfo?.error ? null : studentYearInfo.year,
+            studentYearStatus: studentYearInfo?.error
+              ? null
+              : studentYearInfo.status,
+            studentYearLabel: studentYearInfo?.error
+              ? null
+              : studentYearInfo.statusLabel,
+          };
+        })
+        .filter((student) => {
+          if (academicYearFilter) {
+            return student.academicYear === academicYearFilter;
+          }
+          return true;
+        });
+
+      if (semester) {
+        logger.info(
+          "ได้รับคำขอฟิลเตอร์ภาคเรียน แต่ยังไม่มีข้อมูลเพียงพอในการกรอง",
+          { semester }
+        );
+      }
+
+      return mappedStudents;
     } catch (error) {
       logger.error("Error in getAllStudents service:", error);
       throw new Error("ไม่สามารถดึงข้อมูลนักศึกษาได้");
@@ -134,6 +197,15 @@ class StudentService {
         order: [["startYear", "DESC"]],
       });
 
+      // ดึงปีการศึกษา/เทอมปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      let studentYearInfo = null;
+      if (currentAcademic) {
+        studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
+      } else {
+        studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
+      }
+
       return {
         studentCode: student.studentCode,
         firstName: student.user.firstName,
@@ -141,8 +213,10 @@ class StudentService {
         email: student.user.email,
         totalCredits: student.totalCredits || 0,
         majorCredits: student.majorCredits || 0,
+        studentYear: studentYearInfo?.year ?? null, // ส่ง null ถ้า error
+        studentYearInfo, // ส่ง object เต็มสำหรับ debug/frontend
         eligibility: {
-          studentYear: eligibility.studentYear,
+          studentYear: studentYearInfo,
           internship: eligibility.internship,
           project: eligibility.project,
         },
@@ -151,6 +225,12 @@ class StudentService {
           projectBaseCredits: activeCurriculum?.projectBaseCredits,
           projectMajorBaseCredits: activeCurriculum?.projectMajorBaseCredits,
         },
+        // เพิ่มข้อมูลสำหรับ StudentAvatar
+        isEligibleInternship: student.isEligibleInternship || false,
+        isEnrolledInternship: student.isEnrolledInternship || false,
+        internshipStatus: student.internshipStatus || 'not_started',
+        projectStatus: student.projectStatus || 'not_started',
+        isEnrolledProject: student.isEnrolledProject || false,
       };
     } catch (error) {
       logger.error("Error in getStudentById service:", error);
@@ -168,13 +248,15 @@ class StudentService {
     const transaction = await sequelize.transaction();
 
     try {
-      const { totalCredits, majorCredits, firstName, lastName } = updateData;
+      const { totalCredits, majorCredits, firstName, lastName, status, note } = updateData;
 
       logger.info("Received update data:", {
         totalCredits,
         majorCredits,
         firstName,
         lastName,
+        status,
+        note
       });
 
       // Find student with associated user data
@@ -256,6 +338,18 @@ class StudentService {
             transaction,
           }
         );
+      }
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
+      if (currentAcademic) {
+        await StudentAcademicHistory.create({
+          studentId: student.studentId,
+          academicYear: currentAcademic.academicYear,
+          semester: currentAcademic.currentSemester,
+          status: status || 'updated',
+          note: note || 'อัปเดตข้อมูลนักศึกษา'
+        }, { transaction });
       }
 
       await transaction.commit();
@@ -374,12 +468,24 @@ class StudentService {
           studyType: "regular",
           isEligibleInternship: false,
           isEligibleProject: false,
-          semester: getCurrentSemester(),
-          academicYear: getCurrentAcademicYear(),
+          // semester: getCurrentSemester(), // ลบออกเพราะ migrate แล้ว
+          // academicYear: getCurrentAcademicYear(), // ลบออกเพราะ migrate แล้ว
           advisorId: null,
         },
         { transaction }
       );
+
+      // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
+      const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
+      if (currentAcademic) {
+        await StudentAcademicHistory.create({
+          studentId: student.studentId,
+          academicYear: currentAcademic.academicYear,
+          semester: currentAcademic.currentSemester,
+          status: 'enrolled',
+          note: 'เพิ่มนักศึกษาใหม่'
+        }, { transaction });
+      }
 
       await transaction.commit();
 
@@ -478,6 +584,81 @@ class StudentService {
         student.checkProjectEligibility(),
       ]);
 
+      let projectAccessOverride = false;
+      let projectOverrideReason = null;
+
+      if (ProjectMember && ProjectDocument) {
+        try {
+          const examResultInclude = ProjectExamResult
+            ? [
+                {
+                  model: ProjectExamResult,
+                  as: "examResults",
+                  attributes: ["examType", "result"],
+                },
+              ]
+            : [];
+
+          const projectMemberships = await ProjectMember.findAll({
+            where: { studentId: student.studentId },
+            include: [
+              {
+                model: ProjectDocument,
+                as: "project",
+                required: true,
+                attributes: ["projectId", "status", "examResult"],
+                ...(examResultInclude.length ? { include: examResultInclude } : {}),
+              },
+            ],
+          });
+
+          const ALLOWED_PROJECT_STATUSES = new Set([
+            "draft",
+            "advisor_assigned",
+            "in_progress",
+            "completed",
+          ]);
+
+          projectAccessOverride = projectMemberships.some((membership) => {
+            const project = membership?.project;
+            if (!project) return false;
+
+            if (ALLOWED_PROJECT_STATUSES.has(project.status)) {
+              projectOverrideReason = "มีโครงงานที่อยู่ระหว่างดำเนินการหรือเสร็จสิ้นในระบบ";
+              return true;
+            }
+
+            if (project.status === "archived") {
+              const examResults = Array.isArray(project.examResults)
+                ? project.examResults
+                : [];
+              const thesisPassed = examResults.some(
+                (exam) =>
+                  exam?.examType === "THESIS" && (exam?.result || "").toUpperCase() === "PASS"
+              );
+              const project1Passed =
+                (project.examResult || "").toLowerCase() === "passed" ||
+                examResults.some(
+                  (exam) =>
+                    exam?.examType === "PROJECT1" && (exam?.result || "").toUpperCase() === "PASS"
+                );
+
+              if (thesisPassed && project1Passed) {
+                projectOverrideReason = "ผ่านการสอบโครงงานพิเศษครบทั้งสองช่วงแล้ว";
+                return true;
+              }
+            }
+
+            return false;
+          });
+        } catch (overrideError) {
+          logger.warn("checkStudentEligibility: ไม่สามารถตรวจสอบสถานะโครงงานเพื่อ override access ได้", {
+            error: overrideError.message,
+            studentId: student.studentId,
+          });
+        }
+      }
+
       // ดึงข้อมูลการตั้งค่าปีการศึกษาล่าสุด
       const academicSettings = await sequelize.models.Academic.findOne({
         order: [["created_at", "DESC"]],
@@ -575,6 +756,13 @@ class StudentService {
       }
 
       // สร้าง eligibility object
+      if (projectAccessOverride) {
+        projectStatus.canAccess = true;
+        if (!projectCheck.canAccessFeature) {
+          projectStatus.reason = projectOverrideReason || projectStatus.reason;
+        }
+      }
+
       const eligibility = {
         internship: {
           isEligible: isCreditEligibleForInternship,
@@ -586,9 +774,12 @@ class StudentService {
         },
         project: {
           isEligible: projectCheck.eligible,
-          canAccessFeature: projectCheck.canAccessFeature || false,
+          canAccessFeature: (projectCheck.canAccessFeature || false) || projectAccessOverride,
           canRegister: projectCheck.canRegister || false,
-          reason: projectCheck.reason || null,
+          reason:
+            projectAccessOverride && !projectCheck.canAccessFeature
+              ? projectOverrideReason || projectCheck.reason || null
+              : projectCheck.reason || null,
         },
       };
 
@@ -765,3 +956,22 @@ class StudentService {
 }
 
 module.exports = new StudentService();
+
+/**
+ * แปลงรหัสนักศึกษาให้ได้ปีการศึกษาที่เข้าศึกษา (รูปแบบ พ.ศ.)
+ * @param {string} studentCode รหัสนักศึกษา 13 หลัก
+ * @returns {number|null} ปีการศึกษาเป็น พ.ศ. หรือ null หากไม่สามารถคำนวณได้
+ */
+function deriveAcademicYearFromStudentCode(studentCode) {
+  if (!studentCode || typeof studentCode !== "string" || studentCode.length < 2) {
+    return null;
+  }
+
+  const prefix = parseInt(studentCode.substring(0, 2), 10);
+
+  if (Number.isNaN(prefix)) {
+    return null;
+  }
+
+  return prefix + 2500;
+}

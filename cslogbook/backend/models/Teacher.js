@@ -44,6 +44,31 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING(20),
             allowNull: true,
             field: 'contact_extension'
+        },
+        teacherType: {
+            type: DataTypes.ENUM('academic', 'support'),
+            allowNull: false,
+            defaultValue: 'academic',
+            field: 'teacher_type'
+        },
+        // เพิ่มฟิลด์ตำแหน่งของอาจารย์ (position)
+        position: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            defaultValue: 'คณาจารย์', // ถ้าไม่ได้ระบุตำแหน่ง จะถือว่าเป็นอาจารย์ทั่วไป
+            field: 'position'
+        },
+        canAccessTopicExam: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'can_access_topic_exam'
+        },
+        canExportProject1: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'can_export_project1'
         }
     }, {
         sequelize,
@@ -60,6 +85,10 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_teacher_user',
                 fields: ['user_id']
+            },
+            {
+                name: 'idx_teacher_type',
+                fields: ['teacher_type']
             }
         ]
     });

@@ -5,7 +5,7 @@ import { getStatusTags } from "../utils/statusHelpers";
 
 const { Text } = Typography;
 
-const StudentTable = ({ students, loading, onView, onEdit, onDelete }) => {
+const StudentTable = ({ students, loading, onView, onEdit, onDelete, emptyText }) => {
   const columns = [
     {
       title: "รหัสนักศึกษา",
@@ -100,7 +100,7 @@ const StudentTable = ({ students, loading, onView, onEdit, onDelete }) => {
     <Table
       columns={columns}
       dataSource={students}
-      rowKey="id"
+      rowKey={(record) => record.studentId || record.userId || record.studentCode}
       loading={loading}
       pagination={{
         pageSizeOptions: [10, 20, 50, 100],
@@ -109,7 +109,7 @@ const StudentTable = ({ students, loading, onView, onEdit, onDelete }) => {
       }}
       scroll={{ x: "max-content" }}
       locale={{
-        emptyText: loading ? "กำลังโหลดข้อมูล..." : "ไม่พบข้อมูลนักศึกษา",
+        emptyText: loading ? "กำลังโหลดข้อมูล..." : emptyText || "ไม่พบข้อมูลนักศึกษา",
       }}
       onRow={(record) => ({
         onClick: () => onView(record),

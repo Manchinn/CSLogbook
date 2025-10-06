@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Card, Table, Button, Space, Select, message, Modal, Form, Input,
-  InputNumber, Switch, Typography, Tag, Popconfirm, Tooltip, Row, Col,
-  Alert, Spin, Empty, Divider
+  Card, Table, Button, Space, Select, message, Input,
+  Typography, Tag, Popconfirm, Tooltip, Row, Col,
+  Empty, Divider
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, 
-  ReloadOutlined, SaveOutlined, SearchOutlined,
+  ReloadOutlined, SearchOutlined,
   BarChartOutlined, SettingOutlined, DragOutlined
 } from '@ant-design/icons';
 // อัปเดต import path
@@ -46,6 +46,8 @@ const WorkflowStepManagement = () => {
   const [editingStep, setEditingStep] = useState(null);
   const [selectedStepForUsage, setSelectedStepForUsage] = useState(null);
 
+  const { current: currentPage, pageSize } = pagination;
+
   // ตัวเลือกประเภท workflow
   const workflowTypes = [
     { value: 'internship', label: 'การฝึกงาน', color: 'blue' },
@@ -60,9 +62,9 @@ const WorkflowStepManagement = () => {
       setLoading(true);
       const queryParams = {
         workflowType: selectedWorkflowType,
-        page: pagination.current,
-        limit: pagination.pageSize,
-        search: searchText,
+        page: params.page ?? currentPage,
+        limit: params.limit ?? pageSize,
+        search: params.search ?? searchText,
         ...params
       };
 
@@ -82,12 +84,12 @@ const WorkflowStepManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedWorkflowType, searchText, pagination.current, pagination.pageSize]);
+  }, [selectedWorkflowType, searchText, currentPage, pageSize]);
 
   // โหลดข้อมูลเมื่อเริ่มต้นและเมื่อ dependencies เปลี่ยน
   useEffect(() => {
     fetchSteps();
-  }, [selectedWorkflowType]);
+  }, [selectedWorkflowType, fetchSteps]);
 
   /**
    * ฟังก์ชันค้นหา
@@ -95,7 +97,6 @@ const WorkflowStepManagement = () => {
   const handleSearch = (value) => {
     setSearchText(value);
     setPagination(prev => ({ ...prev, current: 1 }));
-    fetchSteps({ search: value, page: 1 });
   };
 
   /**
@@ -144,9 +145,9 @@ const WorkflowStepManagement = () => {
   const handleDeleteStep = async (stepId, stepKey) => {
     try {
       setLoading(true);
-      await workflowStepService.deleteStep(stepId);
+  await workflowStepService.deleteStep(stepId);
       message.success(`ลบขั้นตอน "${stepKey}" สำเร็จ`);
-      fetchSteps();
+  await fetchSteps();
     } catch (error) {
       message.error('เกิดข้อผิดพลาดในการลบ: ' + error.message);
     } finally {
@@ -158,8 +159,8 @@ const WorkflowStepManagement = () => {
    * ฟังก์ชันจัดการการบันทึกข้อมูลจาก Modal
    */
   const handleFormSubmitSuccess = () => {
-    closeFormModal();
-    fetchSteps();
+  closeFormModal();
+  fetchSteps();
     message.success(editingStep ? 'อัปเดตขั้นตอนสำเร็จ' : 'สร้างขั้นตอนใหม่สำเร็จ');
   };
 
@@ -167,8 +168,8 @@ const WorkflowStepManagement = () => {
    * ฟังก์ชันจัดการการจัดเรียงลำดับสำเร็จ
    */
   const handleReorderSuccess = () => {
-    setIsReorderModalVisible(false);
-    fetchSteps();
+  setIsReorderModalVisible(false);
+  fetchSteps();
     message.success('จัดเรียงลำดับขั้นตอนใหม่สำเร็จ');
   };
 
@@ -378,9 +379,8 @@ const WorkflowStepManagement = () => {
             loading={loading}
             pagination={{
               ...pagination,
-              onChange: (page, pageSize) => {
-                setPagination(prev => ({ ...prev, current: page, pageSize }));
-                fetchSteps({ page, limit: pageSize });
+              onChange: (page, newPageSize) => {
+                setPagination(prev => ({ ...prev, current: page, pageSize: newPageSize }));
               }
             }}
             scroll={{ x: 1000 }}

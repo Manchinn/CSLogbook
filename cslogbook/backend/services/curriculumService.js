@@ -1,5 +1,6 @@
 const { Curriculum, Academic, sequelize } = require('../models');
 const logger = require('../utils/logger');
+const { Op } = require('sequelize');
 
 /**
  * CurriculumService - บริการสำหรับจัดการข้อมูลหลักสูตร
@@ -87,7 +88,7 @@ class CurriculumService {
       let whereClause = {};
       
       if (activeId) {
-        whereClause.curriculumId = { [sequelize.Op.ne]: activeId };
+        whereClause.curriculumId = { [Op.ne]: activeId }; // เปลี่ยนจาก sequelize.Op.ne เป็น Op.ne
       }
       
       const options = { where: whereClause };

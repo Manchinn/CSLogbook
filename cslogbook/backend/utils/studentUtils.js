@@ -59,6 +59,32 @@ const CONSTANTS = {
 const db = require("../models");
 const Curriculum = db.Curriculum;
 const Academic = db.Academic;
+const logger = require("../utils/logger");
+
+const formatLine = (label, value) => {
+  if (value === null || value === undefined || value === "") {
+    return `• ${label}: -`;
+  }
+
+  if (typeof value === "object") {
+    if (value.start && value.end) {
+      return `• ${label}: { start: '${value.start}', end: '${value.end}' }`;
+    }
+
+    try {
+      return `• ${label}: ${JSON.stringify(value)}`;
+    } catch (err) {
+      return `• ${label}: ${String(value)}`;
+    }
+  }
+
+  return `• ${label}: ${value}`;
+};
+
+const logSection = (title, lines = []) => {
+  const content = [title, ...lines.map((line) => `  ${line}`)].join("\n");
+  logger.info(content);
+};
 
 /**
  * โหลดค่า constants จาก database
@@ -66,7 +92,7 @@ const Academic = db.Academic;
  */
 const loadDynamicConstants = async () => {
   try {
-    console.log("กำลังโหลดค่า constants จากฐานข้อมูล...");
+    logger.info("⚙️ กำลังโหลดค่า constants จากฐานข้อมูล...");
 
     // โหลดข้อมูล Academic
     const academicData = await Academic.findOne({
@@ -74,15 +100,15 @@ const loadDynamicConstants = async () => {
     });
 
     if (academicData) {
-      console.log("ข้อมูล Academic ที่โหลดได้:");
-      console.log("- ID:", academicData.academic_id || academicData.academicId);
-      console.log("- Active Curriculum ID:", academicData.active_curriculum_id || academicData.activeCurriculumId);
-      console.log("- Semester 1 Range:", academicData.semester1Range);
-      console.log("- Semester 2 Range:", academicData.semester2Range);
-      console.log("- Semester 3 Range:", academicData.semester3Range);
-      // เพิ่ม console.log สำหรับ properties อื่นๆ ที่ต้องการแสดงผล
+      logSection("📚 ข้อมูล Academic", [
+        formatLine("ID", academicData.academic_id || academicData.academicId),
+        formatLine("Active Curriculum ID", academicData.active_curriculum_id || academicData.activeCurriculumId),
+        formatLine("Semester 1 Range", academicData.semester1Range),
+        formatLine("Semester 2 Range", academicData.semester2Range),
+        formatLine("Semester 3 Range", academicData.semester3Range),
+      ]);
     } else {
-      console.log("ไม่พบข้อมูล Academic");
+      logger.warn("ไม่พบข้อมูล Academic");
     }
 
     // โหลดหลักสูตรที่ใช้งานอยู่
@@ -94,8 +120,7 @@ const loadDynamicConstants = async () => {
     } else if (academicData?.active_curriculum_id) {
       activeCurriculumId = academicData.active_curriculum_id;
     }
-
-    console.log(`active_curriculum_id ที่โหลดได้: ${activeCurriculumId}`);
+    logger.info(`🎯 active_curriculum_id ที่โหลดได้: ${activeCurriculumId ?? "-"}`);
 
     // ถ้ามี curriculum_id ในข้อมูล Academic ให้ใช้ curriculum นั้น
     if (activeCurriculumId) {
@@ -113,14 +138,17 @@ const loadDynamicConstants = async () => {
         }
 
         if (activeCurriculum) {
-          console.log(
-            `โหลดหลักสูตรจาก activeCurriculumId = ${activeCurriculumId} สำเร็จ`
+          logger.info(
+            `📘 โหลดหลักสูตรจาก activeCurriculumId = ${activeCurriculumId} สำเร็จ`
           );
         }
       } catch (error) {
-        console.error(
-          `เกิดข้อผิดพลาดในการโหลดหลักสูตร ID ${activeCurriculumId}:`,
-          error.message
+        logger.error(
+          `เกิดข้อผิดพลาดในการโหลดหลักสูตร ID ${activeCurriculumId}`,
+          {
+            error: error.message,
+            stack: error.stack,
+          }
         );
       }
     }
@@ -134,13 +162,13 @@ const loadDynamicConstants = async () => {
         });
 
         if (activeCurriculum) {
-          console.log("โหลดหลักสูตรที่มี active = true สำเร็จ");
+          logger.info("📘 โหลดหลักสูตรที่ active = true สำเร็จ");
         }
       } catch (error) {
-        console.error(
-          "เกิดข้อผิดพลาดในการโหลดหลักสูตรที่ active:",
-          error.message
-        );
+        logger.error("เกิดข้อผิดพลาดในการโหลดหลักสูตรที่ active", {
+          error: error.message,
+          stack: error.stack,
+        });
       }
     }
 
@@ -152,44 +180,47 @@ const loadDynamicConstants = async () => {
         });
 
         if (activeCurriculum) {
-          console.log("โหลดหลักสูตรล่าสุดสำเร็จ");
+          logger.info("📘 โหลดหลักสูตรล่าสุดสำเร็จ");
         }
       } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการโหลดหลักสูตรล่าสุด:", error.message);
+        logger.error("เกิดข้อผิดพลาดในการโหลดหลักสูตรล่าสุด", {
+          error: error.message,
+          stack: error.stack,
+        });
       }
     }
 
     // พิมพ์รายละเอียดของหลักสูตร
     if (activeCurriculum) {
-      console.log("ข้อมูลหลักสูตรที่โหลดได้:");
-      console.log(
-        "- ID:",
-        activeCurriculum.curriculum_id || activeCurriculum.curriculumId
-      );
-      console.log("- Name:", activeCurriculum.name);
-      console.log(
-        "- Internship Base Credits:",
-        activeCurriculum.internship_base_credits ||
-          activeCurriculum.internshipBaseCredits
-      );
-      console.log(
-        "- Project Base Credits:",
-        activeCurriculum.project_base_credits ||
-          activeCurriculum.projectBaseCredits
-      );
-      console.log(
-        "- Project Major Base Credits:",
-        activeCurriculum.project_major_base_credits ||
-          activeCurriculum.projectMajorBaseCredits
-      );
+      logSection("📘 ข้อมูลหลักสูตรที่ใช้งาน", [
+        formatLine(
+          "ID",
+          activeCurriculum.curriculum_id || activeCurriculum.curriculumId
+        ),
+        formatLine("Name", activeCurriculum.name),
+        formatLine(
+          "Internship Base Credits",
+          activeCurriculum.internship_base_credits ||
+            activeCurriculum.internshipBaseCredits
+        ),
+        formatLine(
+          "Project Base Credits",
+          activeCurriculum.project_base_credits ||
+            activeCurriculum.projectBaseCredits
+        ),
+        formatLine(
+          "Project Major Base Credits",
+          activeCurriculum.project_major_base_credits ||
+            activeCurriculum.projectMajorBaseCredits
+        ),
+      ]);
 
-      // ดูทุกคุณสมบัติของโมเดล
-      console.log(
-        "รายละเอียดทั้งหมดของหลักสูตร:",
-        JSON.stringify(activeCurriculum.toJSON(), null, 2)
-      );
+      // ล็อกข้อมูลละเอียดทั้งหมดในระดับ debug เพื่อใช้ตรวจสอบย้อนหลัง
+      logger.debug("รายละเอียดทั้งหมดของหลักสูตร", {
+        curriculum: activeCurriculum.toJSON(),
+      });
     } else {
-      console.log("ไม่พบข้อมูลหลักสูตร");
+      logger.warn("ไม่พบข้อมูลหลักสูตร");
     }
 
     // อัปเดตค่า constants จาก Academic
@@ -209,8 +240,8 @@ const loadDynamicConstants = async () => {
           CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE = startDate;
           CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE = endDate;
 
-          console.log(
-            `อัปเดตช่วงเวลาภาคเรียนที่ 1: ${startDate.toLocaleDateString(
+          logger.info(
+            `🗓️ อัปเดตช่วงเวลาภาคเรียนที่ 1: ${startDate.toLocaleDateString(
               "th-TH"
             )} - ${endDate.toLocaleDateString("th-TH")}`
           );
@@ -233,8 +264,8 @@ const loadDynamicConstants = async () => {
           CONSTANTS.ACADEMIC_TERMS.SECOND.START_DATE = startDate;
           CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE = endDate;
 
-          console.log(
-            `อัปเดตช่วงเวลาภาคเรียนที่ 2: ${startDate.toLocaleDateString(
+          logger.info(
+            `🗓️ อัปเดตช่วงเวลาภาคเรียนที่ 2: ${startDate.toLocaleDateString(
               "th-TH"
             )} - ${endDate.toLocaleDateString("th-TH")}`
           );
@@ -257,8 +288,8 @@ const loadDynamicConstants = async () => {
           CONSTANTS.ACADEMIC_TERMS.SUMMER.START_DATE = startDate;
           CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE = endDate;
 
-          console.log(
-            `อัปเดตช่วงเวลาภาคเรียนฤดูร้อน: ${startDate.toLocaleDateString(
+          logger.info(
+            `🗓️ อัปเดตช่วงเวลาภาคเรียนฤดูร้อน: ${startDate.toLocaleDateString(
               "th-TH"
             )} - ${endDate.toLocaleDateString("th-TH")}`
           );
@@ -289,28 +320,37 @@ const loadDynamicConstants = async () => {
       CONSTANTS.PROJECT.MIN_MAJOR_CREDITS = projectMajorCredits;
     }
 
-    console.log("โหลดค่า constants จาก database สำเร็จ:");
-    console.log(
-      "INTERNSHIP.MIN_TOTAL_CREDITS:",
-      CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS
-    );
-    console.log(
-      "PROJECT.MIN_TOTAL_CREDITS:",
-      CONSTANTS.PROJECT.MIN_TOTAL_CREDITS
-    );
-    console.log(
-      "PROJECT.MIN_MAJOR_CREDITS:",
-      CONSTANTS.PROJECT.MIN_MAJOR_CREDITS
-    );
+    logSection("✅ โหลดค่า constants จากฐานข้อมูลสำเร็จ", [
+      formatLine(
+        "INTERNSHIP.MIN_TOTAL_CREDITS",
+        CONSTANTS.INTERNSHIP.MIN_TOTAL_CREDITS
+      ),
+      formatLine(
+        "PROJECT.MIN_TOTAL_CREDITS",
+        CONSTANTS.PROJECT.MIN_TOTAL_CREDITS
+      ),
+      formatLine(
+        "PROJECT.MIN_MAJOR_CREDITS",
+        CONSTANTS.PROJECT.MIN_MAJOR_CREDITS
+      ),
+    ]);
   } catch (error) {
-    console.error("เกิดข้อผิดพลาดในการโหลดค่า constants:", error);
+    logger.error("เกิดข้อผิดพลาดในการโหลดค่า constants", {
+      error: error.message,
+      stack: error.stack,
+    });
   }
 };
 
-// โหลดค่า constants เมื่อมีการ import ไฟล์นี้
-loadDynamicConstants().catch((err) =>
-  console.error("ไม่สามารถโหลดค่า constants ได้:", err)
-);
+// โหลดค่า constants เมื่อมีการ import (ยกเว้น environment test เพื่อลด side-effects ใน Jest)
+if (process.env.NODE_ENV !== 'test') {
+  loadDynamicConstants().catch((err) =>
+    logger.error("ไม่สามารถโหลดค่า constants ได้", {
+      error: err.message,
+      stack: err.stack,
+    })
+  );
+}
 
 /**
  * คำนวณชั้นปีของนักศึกษา
@@ -363,7 +403,10 @@ const calculateStudentYear = (studentCode) => {
       isExtended: studentClassYear > CONSTANTS.STUDENT_STATUS.NORMAL.maxYear,
     };
   } catch (error) {
-    console.error("Error calculating student year:", error);
+    logger.error("Error calculating student year", {
+      error: error.message,
+      stack: error.stack,
+    });
     return {
       error: true,
       message: "เกิดข้อผิดพลาดในการคำนวณชั้นปี",
@@ -513,27 +556,27 @@ const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
   if (studentYear < CONSTANTS.PROJECT.MIN_YEAR) {
     return {
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องเป็นนักศึกษาชั้นปีที่ ${CONSTANTS.PROJECT.MIN_YEAR} ขึ้นไป`,
     };
   }
 
   if (totalCredits < CONSTANTS.PROJECT.MIN_TOTAL_CREDITS) {
     return {
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตรวมอย่างน้อย ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต`,
     };
   }
 
   if (majorCredits < CONSTANTS.PROJECT.MIN_MAJOR_CREDITS) {
     return {
       eligible: false,
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`,
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`,
     };
   }
 
   return {
     eligible: true,
-    message: "ผ่านเงื่อนไขการทำโปรเจค",
+    message: "ผ่านเงื่อนไขการทำโครงงานพิเศษ",
   };
 };
 

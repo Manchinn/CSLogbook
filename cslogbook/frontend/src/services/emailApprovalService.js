@@ -37,4 +37,6 @@ class EmailApprovalService {
   }
 }
 
-export default new  EmailApprovalService();
+const emailApprovalService = new EmailApprovalService();
+
+export default emailApprovalService;

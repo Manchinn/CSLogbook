@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal, Spin, Alert, Descriptions, Card, Row, Col, 
   Statistic, Tag, Typography, Space, Empty, Divider
@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import workflowStepService from '../../../../services/admin/workflowStepService';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 /**
  * Modal สำหรับแสดงสถิติการใช้งานขั้นตอน Workflow
@@ -20,20 +20,9 @@ const StepUsageModal = ({ visible, step, onCancel }) => {
   const [error, setError] = useState(null);
 
   // โหลดข้อมูลสถิติเมื่อเปิด modal
-  useEffect(() => {
-    if (visible && step?.stepId) {
-      fetchUsageStats();
-    } else {
-      // รีเซ็ตข้อมูลเมื่อปิด modal
-      setUsageData(null);
-      setError(null);
-    }
-  }, [visible, step]);
+  const fetchUsageStats = useCallback(async () => {
+    if (!step?.stepId) return;
 
-  /**
-   * ฟังก์ชันดึงข้อมูลสถิติการใช้งาน
-   */
-  const fetchUsageStats = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,7 +38,17 @@ const StepUsageModal = ({ visible, step, onCancel }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [step?.stepId]);
+
+  useEffect(() => {
+    if (visible && step?.stepId) {
+      fetchUsageStats();
+    } else {
+      // รีเซ็ตข้อมูลเมื่อปิด modal
+      setUsageData(null);
+      setError(null);
+    }
+  }, [visible, step, fetchUsageStats]);
 
   /**
    * ฟังก์ชันแปลงประเภท workflow เป็นภาษาไทย

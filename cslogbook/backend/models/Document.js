@@ -44,8 +44,9 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'reviewer_id'
         },
+        // NOTE: DB ใช้ ENUM ตัวพิมพ์ใหญ่ 'INTERNSHIP','PROJECT' จึงต้อง align ให้ตรง ไม่เช่นนั้นจะ validation error เวลา insert/update
         documentType: {
-            type: DataTypes.ENUM('internship', 'project'),
+            type: DataTypes.ENUM('INTERNSHIP', 'PROJECT'),
             allowNull: false,
             field: 'document_type'
         },
@@ -60,7 +61,7 @@ module.exports = (sequelize) => {
             field: 'file_path'
         },
         status: {
-            type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected', 'supervisor_evaluated'),
+            type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected', 'supervisor_evaluated','acceptance_approved','referral_ready','referral_downloaded', 'completed'),
             defaultValue: 'draft'
         },
         reviewDate: {
@@ -74,7 +75,7 @@ module.exports = (sequelize) => {
             field: 'review_comment'
         },
         category: {
-            type: DataTypes.ENUM('proposal', 'progress', 'final'),
+            type: DataTypes.ENUM('proposal', 'progress', 'final', 'acceptance'),
             allowNull: false,
             field: 'category'
         },
@@ -92,6 +93,49 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING(50), // MIME type of the file
             allowNull: true,
             field: 'mime_type'
+        },
+        downloadStatus: {
+            type: DataTypes.ENUM('not_downloaded', 'downloaded'),
+            allowNull: true,
+            defaultValue: 'not_downloaded',
+            field: 'download_status'
+        },
+        downloadedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'downloaded_at'
+        },
+        downloadCount: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0,
+            field: 'download_count'
+        },
+        importantDeadlineId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'important_deadline_id'
+        },
+        submittedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'submitted_at'
+        },
+        isLate: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_late'
+        },
+        lateMinutes: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'late_minutes'
+        },
+        lateReason: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'late_reason'
         }
     }, {
         sequelize,
@@ -121,6 +165,18 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_document_created',
                 fields: ['created_at']
+            },
+            {
+                name: 'idx_documents_download_status',
+                fields: ['download_status']
+            },
+            {
+                name: 'idx_documents_type_download_status', 
+                fields: ['document_type', 'download_status']
+            },
+            {
+                name: 'idx_documents_downloaded_at',
+                fields: ['downloaded_at']
             }
         ]
     });

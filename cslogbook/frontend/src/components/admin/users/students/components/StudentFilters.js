@@ -1,7 +1,6 @@
 import React from 'react';
 import { Input, Space, Button, Segmented, Select, Row, Col } from 'antd';
-import { SearchOutlined, ReloadOutlined, UserAddOutlined, UploadOutlined } from '@ant-design/icons';
-import { STUDENT_STATUS } from '../../../../../utils/adminConstants';
+import { SearchOutlined, ReloadOutlined, UserAddOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -15,7 +14,6 @@ const StudentFilters = ({
   academicYearOptions, 
   onRefresh, 
   onAddStudent, 
-  onUpload, 
   loading
 }) => {
   return (

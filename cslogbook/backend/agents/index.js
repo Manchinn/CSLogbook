@@ -10,6 +10,9 @@ const logbookQualityMonitor = require('./monitors/logbookQualityMonitor');
 const eligibilityChecker = require('./schedulers/eligibilityChecker');
 // เพิ่ม eligibilityScheduler
 const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
+// เพิ่ม project purge scheduler
+const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
+const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -37,6 +40,31 @@ class AgentManager {
           return true;
         },
         isRunning: true
+      },
+      projectPurgeScheduler: {
+        start: () => {
+          logger.info('Starting project purge scheduler');
+          projectPurgeScheduler.scheduleProjectPurge();
+          return true;
+        },
+        stop: () => {
+          logger.info('Stopping project purge scheduler (cron จะยัง active หาก library ไม่รองรับ cancel)');
+          return true;
+        },
+        isRunning: true
+      },
+      academicSemesterScheduler: {
+        start: () => {
+          logger.info('Starting academic semester scheduler');
+          return academicSemesterScheduler.start();
+        },
+        stop: () => {
+          logger.info('Stopping academic semester scheduler');
+          return academicSemesterScheduler.stop();
+        },
+        get isRunning() {
+          return academicSemesterScheduler.isRunning;
+        }
       },
       // เพิ่ม agent อื่นๆ ที่นี่
     };

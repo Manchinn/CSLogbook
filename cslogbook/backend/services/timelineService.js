@@ -1,6 +1,9 @@
-const { Student, sequelize } = require('../models');
+const { Student, sequelize, Academic } = require('../models');
+const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
 const workflowService = require('./workflowService');
+const { calculateStudentYear } = require('../utils/studentUtils');
+const PROJECT_WORKFLOW_TYPE = 'project1';
 
 class TimelineService {
   /**
@@ -24,7 +27,7 @@ class TimelineService {
       // สร้าง timeline สำหรับการฝึกงานและโครงงานแยกกัน
       const [internshipTimeline, projectTimeline] = await Promise.all([
         workflowService.generateStudentTimeline(student.studentId, 'internship'),
-        workflowService.generateStudentTimeline(student.studentId, 'project')
+        workflowService.generateStudentTimeline(student.studentId, PROJECT_WORKFLOW_TYPE)
       ]);
       
       // เพิ่มการปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
@@ -70,6 +73,20 @@ class TimelineService {
       });
     }
     
+    // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ดึงมา
+    if (student) {
+      logger.info('TimelineService.findStudent: ข้อมูลที่ดึงมาจากฐานข้อมูล:', {
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        isEnrolledInternship: student.isEnrolledInternship,
+        internshipStatus: student.internshipStatus,
+        isEligibleInternship: student.isEligibleInternship,
+        isEligibleProject: student.isEligibleProject,
+        isEnrolledProject: student.isEnrolledProject,
+        projectStatus: student.projectStatus
+      });
+    }
+    
     return student;
   }
 
@@ -83,9 +100,15 @@ class TimelineService {
     if (type === 'internship' && student.isEnrolledInternship && timeline.status === 'not_started') {
       timeline.status = student.internshipStatus || 'in_progress';
       timeline.progress = student.internshipStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
-    } else if (type === 'project' && student.isEnrolledProject && timeline.status === 'not_started') {
-      timeline.status = student.projectStatus || 'in_progress';
-      timeline.progress = student.projectStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
+    } else if (type === 'project') {
+      if (timeline.status === 'failed') {
+        timeline.progress = Math.max(timeline.progress, 80);
+      } else if (timeline.status === 'archived') {
+        timeline.progress = 100;
+      } else if (student.isEnrolledProject && timeline.status === 'not_started') {
+        timeline.status = student.projectStatus || 'in_progress';
+        timeline.progress = student.projectStatus === 'completed' ? 100 : Math.max(timeline.progress, 30);
+      }
     }
   }
 
@@ -133,24 +156,8 @@ class TimelineService {
     try {
       logger.info(`TimelineService: กำลังค้นหานักศึกษาด้วย ID/รหัสนักศึกษา: ${studentId}`);
       
-      // ค้นหานักศึกษาทั้งจาก studentId และ studentCode
-      let student = null;
-      
-      const numericId = parseInt(studentId);
-      if (!isNaN(numericId)) {
-        student = await Student.findByPk(numericId, {
-          attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
-                    'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
-        });
-      }
-      
-      if (!student) {
-        student = await Student.findOne({
-          where: { studentCode: studentId.toString() },
-          attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
-                    'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
-        });
-      }
+      // ใช้ findStudent method ที่มีอยู่แล้ว
+      const student = await this.findStudent(studentId);
       
       if (!student) {
         throw new Error(`ไม่พบนักศึกษาที่มีรหัส ${studentId}`);
@@ -158,24 +165,70 @@ class TimelineService {
       
       logger.info(`TimelineService: พบนักศึกษา: ${student.studentId} (รหัสนักศึกษา: ${student.studentCode})`);
       
+      // เพิ่ม debug log เพื่อตรวจสอบข้อมูลจากฐานข้อมูล
+      logger.info('TimelineService: ข้อมูลจากฐานข้อมูล:', {
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        isEnrolledInternship: student.isEnrolledInternship,
+        internshipStatus: student.internshipStatus,
+        isEligibleInternship: student.isEligibleInternship,
+        isEligibleProject: student.isEligibleProject,
+        isEnrolledProject: student.isEnrolledProject,
+        projectStatus: student.projectStatus
+      });
+      
       // สร้าง timeline สำหรับการฝึกงานและโครงงาน
       const [internshipTimeline, projectTimeline] = await Promise.all([
         this.generateTimelineForType(student.studentId, 'internship', student),
         this.generateTimelineForType(student.studentId, 'project', student)
       ]);
       
+      // ดึงปีการศึกษาปัจจุบันจาก Academic
+      let currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
+      let studentYearInfo = null;
+      let academicInfo = null;
+      
+      if (currentAcademic) {
+        studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
+        academicInfo = {
+          academicYear: currentAcademic.academicYear,
+          currentSemester: currentAcademic.currentSemester,
+          semesterName: this.getSemesterName(currentAcademic.currentSemester)
+        };
+      } else {
+        studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
+        academicInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ' };
+      }
+      
+      const studentData = {
+        id: student.studentId,
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        internshipStatus: student.internshipStatus,
+        isEnrolledInternship: !!student.isEnrolledInternship,
+        isEligibleInternship: student.isEligibleInternship,
+        isEligibleProject: student.isEligibleProject,
+        isEnrolledProject: student.isEnrolledProject,
+        projectStatus: student.projectStatus,
+        studentYear: studentYearInfo?.year ?? null, // เพิ่ม field นี้
+        studentYearInfo, // เพิ่ม object เต็มสำหรับ debug/frontend
+        academicInfo, // เพิ่มข้อมูลภาคการศึกษาและปีการศึกษา
+      };
+      
+      // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับไปยัง frontend
+      logger.info('TimelineService: ข้อมูลที่ส่งกลับไปยัง frontend:', {
+        studentId: studentData.studentId,
+        studentCode: studentData.studentCode,
+        isEnrolledInternship: studentData.isEnrolledInternship,
+        internshipStatus: studentData.internshipStatus,
+        isEligibleInternship: studentData.isEligibleInternship,
+        isEligibleProject: studentData.isEligibleProject,
+        isEnrolledProject: studentData.isEnrolledProject,
+        projectStatus: studentData.projectStatus
+      });
+      
       return {
-        student: {
-          id: student.studentId,
-          studentId: student.studentId,
-          studentCode: student.studentCode,
-          internshipStatus: student.internshipStatus,
-          isEnrolledInternship: !!student.isEnrolledInternship,
-          isEligibleInternship: student.isEligibleInternship,
-          isEligibleProject: student.isEligibleProject,
-          isEnrolledProject: student.isEnrolledProject,
-          projectStatus: student.projectStatus,
-        },
+        student: studentData,
         progress: {
           internship: internshipTimeline,
           project: projectTimeline
@@ -197,12 +250,31 @@ class TimelineService {
    */
   async generateTimelineForType(studentId, type, student) {
     try {
-      const timeline = await workflowService.generateStudentTimeline(studentId, type);
+      const workflowType = type === 'project' ? PROJECT_WORKFLOW_TYPE : type;
+
+      if (type === 'project') {
+        try {
+          await projectDocumentService.syncStudentProjectsWorkflow(studentId);
+        } catch (syncError) {
+          logger.warn('TimelineService: syncStudentProjectsWorkflow failed', { studentId, error: syncError.message });
+        }
+      }
+
+      const timeline = await workflowService.generateStudentTimeline(studentId, workflowType);
       
       // ปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
       if (type === 'internship' && student.isEnrolledInternship && timeline.status === 'not_started') {
         timeline.status = student.internshipStatus || 'in_progress';
         timeline.progress = student.internshipStatus === 'completed' ? 100 : 30;
+      } else if (type === 'project') {
+        if (timeline.status === 'not_started' && student.isEnrolledProject) {
+          timeline.status = student.projectStatus || 'in_progress';
+        }
+        if (timeline.status === 'failed') {
+          timeline.progress = Math.max(timeline.progress, 80);
+        } else if (timeline.status === 'archived') {
+          timeline.progress = 100;
+        }
       }
       
       return timeline;
@@ -469,6 +541,22 @@ class TimelineService {
     } catch (error) {
       logger.error('TimelineService: Error in determineNextAction:', error);
       return "เกิดข้อผิดพลาดในการกำหนดการดำเนินการถัดไป";
+    }
+  }
+
+  /**
+   * ดึงชื่อภาคการศึกษา
+   * @param {number} semester - ภาคการศึกษา (1 หรือ 2)
+   * @returns {string} ชื่อภาคการศึกษา
+   */
+  getSemesterName(semester) {
+    switch (semester) {
+      case 1:
+        return 'ภาคการศึกษาที่ 1';
+      case 2:
+        return 'ภาคการศึกษาที่ 2';
+      default:
+        return 'ภาคการศึกษาไม่ระบุ';
     }
   }
 }

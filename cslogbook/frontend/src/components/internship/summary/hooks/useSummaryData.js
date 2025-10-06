@@ -18,8 +18,8 @@ export function useSummaryData() {
   const [isCS05Approved, setIsCS05Approved] = useState(false);
   const [totalApprovedHours, setTotalApprovedHours] = useState(0);
   const [weeklyData, setWeeklyData] = useState([]);
-  const [skillCategories, setSkillCategories] = useState([]);
-  const [skillTags, setSkillTags] = useState([]);
+  const skillCategories = [];
+  const skillTags = [];
   const [reflection, setReflection] = useState(null);
   const [evaluationFormSent, setEvaluationFormSent] = useState(false);
   const [evaluationSentDate, setEvaluationSentDate] = useState(null);
@@ -308,5 +308,6 @@ export function useSummaryData() {
     evaluationFormSent,
     evaluationSentDate,
     fetchSummaryData, // ให้ฟังก์ชันนี้เพื่อให้สามารถรีเฟรชข้อมูลได้
+    setReflection,    // <<== เพิ่มบรรทัดนี้
   };
 }

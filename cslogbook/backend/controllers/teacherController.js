@@ -1,5 +1,27 @@
 const teacherService = require('../services/teacherService');
+const meetingService = require('../services/meetingService');
 const logger = require('../utils/logger');
+
+// ดึงรายการอาจารย์ (advisors list) สำหรับนักศึกษาเลือกเป็นที่ปรึกษา
+// เปิดเฉพาะข้อมูลจำเป็น ลด payload
+exports.getAdvisorList = async (req, res) => {
+  try {
+    // เพิ่ม filter เฉพาะ teacherType = academic (ถ้ามี field นี้ในระบบ)
+    const teachers = await teacherService.getAllTeachers({ onlyAcademic: true });
+    const data = teachers.map(t => ({
+      teacherId: t.teacherId,
+      teacherCode: t.teacherCode,
+      firstName: t.firstName,
+      lastName: t.lastName,
+      position: t.position || null,
+      teacherType: t.teacherType || null
+    }));
+    res.json({ success: true, data });
+  } catch (error) {
+    logger.error('Error in getAdvisorList:', error);
+    res.status(500).json({ success: false, message: 'ไม่สามารถดึงรายชื่ออาจารย์ที่ปรึกษาได้' });
+  }
+};
 
 exports.getAllTeachers = async (req, res, next) => {
   try {
@@ -18,7 +40,20 @@ exports.getAllTeachers = async (req, res, next) => {
 
 exports.getTeacherById = async (req, res) => {
   try {
-    const data = await teacherService.getTeacherById(req.params.id);
+    const { id } = req.params;
+    // รองรับการเรียกด้วย 'me' เพื่อดึงข้อมูลจาก userId ของ token
+    if (id === 'me') {
+      const data = await teacherService.getTeacherByUserId(req.user.userId);
+      return res.json({ success: true, data });
+    }
+
+    // หากผู้เรียกเป็นอาจารย์ ให้ใช้ userId จาก token เป็นหลัก
+    if (req.user?.role === 'teacher') {
+      const data = await teacherService.getTeacherByUserId(req.user.userId);
+      return res.json({ success: true, data });
+    }
+
+    const data = await teacherService.getTeacherById(id);
 
     res.json({
       success: true,
@@ -41,6 +76,45 @@ exports.getTeacherById = async (req, res) => {
   }
 };
 
+// สำหรับดึงข้อมูลอาจารย์ของผู้ใช้ที่ล็อกอินอยู่
+exports.getMyTeacherProfile = async (req, res) => {
+  try {
+    const data = await teacherService.getTeacherByUserId(req.user.userId);
+    res.json({ success: true, data });
+  } catch (error) {
+    logger.error('Error in getMyTeacherProfile:', error);
+    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+  }
+};
+
+exports.getTeacherByUserId = async (req, res) => {
+  try {
+    const data = await teacherService.getTeacherByUserId(req.params.userId);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    logger.error('Error in getTeacherByUserId:', error);
+    
+    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
+  }
+};
+
 exports.addTeacher = async (req, res) => {
   try {
     const {
@@ -48,7 +122,10 @@ exports.addTeacher = async (req, res) => {
       firstName,
       lastName,
       email,
-      contactExtension
+      contactExtension,
+      position, // รับตำแหน่งจาก body
+      canAccessTopicExam,
+      canExportProject1
     } = req.body;
 
     if (!teacherCode || !firstName || !lastName) {
@@ -64,7 +141,10 @@ exports.addTeacher = async (req, res) => {
       firstName,
       lastName,
       email,
-      contactExtension
+      contactExtension,
+      position, // ส่งตำแหน่งไป service
+      canAccessTopicExam,
+      canExportProject1
     });
 
     res.status(201).json({
@@ -101,13 +181,16 @@ exports.addTeacher = async (req, res) => {
 exports.updateTeacher = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, contactExtension } = req.body;
+    const { firstName, lastName, email, contactExtension, position, canAccessTopicExam, canExportProject1 } = req.body;
 
     const result = await teacherService.updateTeacher(id, {
       firstName,
       lastName,
       email,
-      contactExtension
+      contactExtension,
+      position, // ส่งตำแหน่งไป service
+      canAccessTopicExam,
+      canExportProject1
     });
 
     res.json({
@@ -197,6 +280,120 @@ exports.getAdvisees = async (req, res) => {
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษาในที่ปรึกษา',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// ดึงคิวบันทึกการพบที่รออาจารย์อนุมัติ
+exports.getMeetingApprovalQueue = async (req, res) => {
+  try {
+    const result = await meetingService.listTeacherMeetingApprovals(req.user, req.query || {});
+    res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error in getMeetingApprovalQueue:', error);
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      message: error.message || 'เกิดข้อผิดพลาดในการดึงคิวอนุมัติบันทึกการพบ'
+    });
+  }
+};
+
+// ฟังก์ชันสำหรับอาจารย์สายวิชาการ (Academic)
+exports.getAcademicDashboard = async (req, res) => {
+  try {
+    const data = await teacherService.getAcademicDashboardOverview(req.user.userId);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    logger.error('Error in getAcademicDashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
+    });
+  }
+};
+
+exports.submitEvaluation = async (req, res) => {
+  try {
+    const { studentId, evaluationData } = req.body;
+    
+    // TODO: เพิ่มลอจิกสำหรับการส่งการประเมินผล
+    res.json({
+      success: true,
+      message: 'ส่งการประเมินผลสำเร็จ',
+      data: { studentId, evaluationData }
+    });
+  } catch (error) {
+    logger.error('Error in submitEvaluation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการส่งการประเมินผล'
+    });
+  }
+};
+
+// ฟังก์ชันสำหรับเจ้าหน้าที่ภาควิชา (Support)
+exports.getSupportDashboard = async (req, res) => {
+  try {
+    // TODO: เพิ่มลอจิกสำหรับ dashboard ของเจ้าหน้าที่ภาควิชา
+    res.json({
+      success: true,
+      message: 'Dashboard สำหรับเจ้าหน้าที่ภาควิชา',
+      data: {
+        totalStudents: 0,
+        totalTeachers: 0,
+        pendingApprovals: 0,
+        systemStats: {}
+      }
+    });
+  } catch (error) {
+    logger.error('Error in getSupportDashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
+    });
+  }
+};
+
+exports.createAnnouncement = async (req, res) => {
+  try {
+    const { title, content, targetAudience } = req.body;
+    
+    // TODO: เพิ่มลอจิกสำหรับการสร้างประกาศ
+    res.json({
+      success: true,
+      message: 'สร้างประกาศสำเร็จ',
+      data: { title, content, targetAudience }
+    });
+  } catch (error) {
+    logger.error('Error in createAnnouncement:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการสร้างประกาศ'
+    });
+  }
+};
+
+// ฟังก์ชันที่ทั้งสองประเภทเข้าถึงได้
+exports.getDocuments = async (req, res) => {
+  try {
+    // TODO: เพิ่มลอจิกสำหรับการดึงเอกสาร
+    res.json({
+      success: true,
+      message: 'ดึงข้อมูลเอกสารสำเร็จ',
+      data: {
+        documents: [],
+        totalCount: 0
+      }
+    });
+  } catch (error) {
+    logger.error('Error in getDocuments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร'
     });
   }
 };

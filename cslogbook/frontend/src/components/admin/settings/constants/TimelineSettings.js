@@ -6,42 +6,28 @@ import {
   Timeline,
   Row,
   Col,
-  Select,
   Tag,
   Badge,
   Button,
   Divider,
   Space,
-  Collapse,
   Tooltip,
   Input,
   Form,
   message,
 } from "antd";
 import {
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   BookOutlined,
   ExperimentOutlined,
-  SolutionOutlined,
-  FileTextOutlined,
-  FileProtectOutlined,
   LaptopOutlined,
-  BuildOutlined,
   UserOutlined,
-  SaveOutlined,
   ClockCircleFilled,
-  WarningOutlined,
-  LoadingOutlined,
   LockOutlined,
   UnlockOutlined,
 } from "@ant-design/icons";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Step } = Steps;
-const { Option } = Select;
-const { Panel } = Collapse;
 
 // Sample student data
 const MOCK_STUDENT = {
@@ -186,22 +172,6 @@ const MOCK_DEADLINES = [
   },
 ];
 
-// Status Icon Component
-const StatusIcon = ({ status }) => {
-  switch (status) {
-    case "completed":
-      return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
-    case "in_progress":
-      return <LoadingOutlined style={{ color: "#1890ff" }} />;
-    case "waiting":
-      return <ClockCircleOutlined style={{ color: "#faad14" }} />;
-    case "blocked":
-      return <LockOutlined style={{ color: "#ff4d4f" }} />;
-    default:
-      return <WarningOutlined style={{ color: "#ff4d4f" }} />;
-  }
-};
-
 // Student Status Badge Component
 const StudentStatusBadge = ({ status }) => {
   let color = "default";
@@ -220,16 +190,19 @@ const StudentStatusBadge = ({ status }) => {
       color = "error";
       text = "พ้นสภาพการเป็นนักศึกษา";
       break;
+    default:
+      color = "default";
+      text = "ไม่ทราบสถานะ";
+      break;
   }
 
   return <Badge status={color} text={text} />;
 };
 
 const TimelineSettings = () => {
-  const [student, setStudent] = useState(MOCK_STUDENT);
-  const [milestones, setMilestones] = useState(MOCK_MILESTONES);
-  const [deadlines, setDeadlines] = useState(MOCK_DEADLINES);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [student] = useState(MOCK_STUDENT);
+  const [milestones] = useState(MOCK_MILESTONES);
+  const [deadlines] = useState(MOCK_DEADLINES);
   const [form] = Form.useForm();
 
   // Calculate the current main step (Internship -> Project 1 -> Project 2 -> Graduation)

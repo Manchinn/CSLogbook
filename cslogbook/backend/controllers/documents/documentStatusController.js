@@ -12,7 +12,7 @@ const documentStatusController = {
             // อัพเดทสถานะ
             await document.update({
                 status,
-                reviewerId: req.user.id,
+                reviewerId: req.user.userId,
                 reviewDate: new Date(),
                 reviewComment: comment
             }, { transaction });
@@ -20,7 +20,7 @@ const documentStatusController = {
             // บันทึก Log
             await DocumentLog.create({
                 documentId: id,
-                userId: req.user.id,
+                userId: req.user.userId,
                 actionType: status === 'approved' ? 'approve' : 'reject',
                 previousStatus: oldStatus,
                 newStatus: status,

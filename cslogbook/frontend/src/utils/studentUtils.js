@@ -11,8 +11,8 @@ export const getInternshipRequirements = (requirements) => {
   // ถ้ามีค่าจาก backend ให้ใช้ค่าจาก backend
   if (requirements) {
     return {
-      MIN_YEAR: requirements.minYear || 3,
-      MIN_TOTAL_CREDITS: requirements.totalCredits || 81
+      MIN_YEAR: requirements.minYear ,
+      MIN_TOTAL_CREDITS: requirements.totalCredits 
     };
   }
   
@@ -137,11 +137,11 @@ export const isEligibleForInternship = (studentYear, totalCredits, majorCredits,
 };
 
 /**
- * ตรวจสอบสิทธิ์การทำโปรเจค
+ * ตรวจสอบสิทธิ์การทำโครงงานพิเศษ
  * @param {number|object} studentYear - ชั้นปีของนักศึกษา (อาจเป็นตัวเลขหรือออบเจ็คที่มี year)
  * @param {number} totalCredits - หน่วยกิตรวม
  * @param {number} majorCredits - หน่วยกิตวิชาเอก
- * @param {object} requirements - เงื่อนไขการทำโปรเจคจาก backend
+ * @param {object} requirements - เงื่อนไขการทำโครงงานพิเศษจาก backend
  * @returns {object} - ผลการตรวจสอบสิทธิ์
  */
 export const isEligibleForProject = (studentYear, totalCredits, majorCredits, requirements = null) => {
@@ -154,26 +154,26 @@ export const isEligibleForProject = (studentYear, totalCredits, majorCredits, re
   if (year < REQUIREMENTS.MIN_YEAR) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องเป็นนักศึกษาชั้นปีที่ ${REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องเป็นนักศึกษาชั้นปีที่ ${REQUIREMENTS.MIN_YEAR} ขึ้นไป` 
     };
   }
   
   if (totalCredits < REQUIREMENTS.MIN_TOTAL_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตรวมอย่างน้อย ${REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตรวมอย่างน้อย ${REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต` 
     };
   }
   
   if (majorCredits < REQUIREMENTS.MIN_MAJOR_CREDITS) {
     return { 
       eligible: false, 
-      message: `ไม่ผ่านเงื่อนไขการทำโปรเจค: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${REQUIREMENTS.MIN_MAJOR_CREDITS} หน่วยกิต` 
+      message: `ไม่ผ่านเงื่อนไขการทำโครงงานพิเศษ: ต้องมีหน่วยกิตภาควิชาอย่างน้อย ${REQUIREMENTS.MIN_MAJOR_CREDITS} หน่วยกิต` 
     };
   }
 
   return { 
     eligible: true, 
-    message: 'ผ่านเงื่อนไขการทำโปรเจค' 
+    message: 'ผ่านเงื่อนไขการทำโครงงานพิเศษ' 
   };
 };

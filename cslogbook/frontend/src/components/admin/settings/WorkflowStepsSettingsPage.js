@@ -5,11 +5,7 @@ import {
   SettingOutlined, 
   InfoCircleOutlined, 
   HomeOutlined, 
-  ToolOutlined,
-  BookOutlined,
-  CalendarOutlined,
-  BellOutlined,
-  TeamOutlined
+  ToolOutlined
 } from '@ant-design/icons';
 import WorkflowStepManagement from './WorkflowSteps/WorkflowStepManagement';
 

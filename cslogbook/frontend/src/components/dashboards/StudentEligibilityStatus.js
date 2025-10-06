@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import './Dashboard.css';
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 /**
  * Component แสดงสถานะสิทธิ์การลงทะเบียนฝึกงานและโครงงานพิเศษของนักศึกษา
@@ -205,7 +205,7 @@ const StudentEligibilityStatus = ({
               size="small" 
               type="primary" 
               style={{ marginTop: '12px' }}
-              onClick={() => navigate("/internship-registration/cs05")}
+              onClick={() => navigate("/internship-registration/flow")}
             >
               ลงทะเบียนฝึกงาน <RightOutlined />
             </Button>

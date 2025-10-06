@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Form, Card, Button, Table, Space, Switch, Typography, Modal, Input, 
-  InputNumber, message, Select, Tag, Spin, Popconfirm
+  Form, Card, Button, Table, Space, Switch, Modal, Input, 
+  InputNumber, message, Select, Tag, Popconfirm
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
-import { settingsService } from '../../../../services/admin/settingsService';
 
-const { Title, Text } = Typography;
 const { Option } = Select;
 
 const StatusSettings = () => {
-  const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [statuses, setStatuses] = useState([]);

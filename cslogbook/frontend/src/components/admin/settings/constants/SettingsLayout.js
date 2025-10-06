@@ -1,7 +1,6 @@
 import React from 'react';
-import { Card, Typography, Breadcrumb, Button, Space } from 'antd';
-import { Link, useNavigate } from 'react-router-dom';
-import { HomeOutlined, LeftOutlined, SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Typography, Button, Space } from 'antd';
+import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import './styles.css';
 
 const { Title } = Typography;
