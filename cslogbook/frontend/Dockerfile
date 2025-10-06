@@ -6,11 +6,17 @@
 FROM node:18-alpine AS build
 WORKDIR /app
 
-# ติดตั้ง dependencies สำหรับการ build
-COPY package*.json ./
-RUN npm ci
+# ติดตั้ง dependencies ที่จำเป็นสำหรับ alpine
+RUN apk add --no-cache python3 make g++
 
-# คัดลอก source
+# คัดลอกเฉพาะ package files ก่อน
+COPY package*.json ./
+
+# ติดตั้ง dependencies และลบ cache
+RUN npm ci --no-audit --no-fund && \
+    npm cache clean --force
+
+# คัดลอก source code
 COPY . .
 
 # กำหนดค่า build-time vars (override ผ่าน --build-arg)
@@ -18,9 +24,11 @@ ARG REACT_APP_API_URL
 ARG REACT_APP_UPLOAD_URL
 ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 ENV REACT_APP_UPLOAD_URL=${REACT_APP_UPLOAD_URL}
+ENV NODE_ENV=production
 
-# สร้าง production build (เพิ่ม memory limit 1GB สำหรับ Node.js)
-RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
+# สร้าง production build และลบ node_modules
+RUN npm run build && \
+    rm -rf node_modules
 
 ###########
 # Runtime stage
