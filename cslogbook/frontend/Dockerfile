@@ -19,8 +19,8 @@ ARG REACT_APP_UPLOAD_URL
 ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 ENV REACT_APP_UPLOAD_URL=${REACT_APP_UPLOAD_URL}
 
-# สร้าง production build
-RUN npm run build
+# สร้าง production build (เพิ่ม memory limit 1GB สำหรับ Node.js)
+RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 ###########
 # Runtime stage
