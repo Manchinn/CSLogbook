@@ -1,9 +1,9 @@
 // แยก Express app ออกจาก server.js เพื่อให้ง่ายต่อการทดสอบ (supertest)
 require('dotenv').config({
-  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development'
+  path: process.env.NODE_ENV === 'development' ? '.env.development' : '.env.production'
 });
 
-if (!process.env.NODE_ENV) process.env.NODE_ENV = 'development';
+if (!process.env.NODE_ENV) process.env.NODE_ENV = 'production';
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'test-secret-key-at-least-32-chars-long-for-jest';
 }

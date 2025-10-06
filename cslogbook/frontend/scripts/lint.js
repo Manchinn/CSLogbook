@@ -1,6 +1,6 @@
 // กำหนดค่า environment สำหรับการรัน ESLint
-process.env.BABEL_ENV = process.env.BABEL_ENV || 'development';
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+process.env.BABEL_ENV = process.env.BABEL_ENV || 'production';
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 process.on('unhandledRejection', err => {
   throw err;

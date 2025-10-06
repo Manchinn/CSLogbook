@@ -5,7 +5,7 @@ require('dotenv').config({
 
 // ตรวจสอบ NODE_ENV ก่อน
 if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development'; // set default
+  process.env.NODE_ENV = 'production'; // set default
 }
 
 // Set default values for required environment variables if not present

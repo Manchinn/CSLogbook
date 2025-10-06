@@ -26,7 +26,8 @@ ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 ENV REACT_APP_UPLOAD_URL=${REACT_APP_UPLOAD_URL}
 ENV NODE_ENV=production
 
-# สร้าง production build และลบ node_modules
+# สร้าง production build และลบ node_modules (ปรับ memory limit สำหรับ 1GB RAM)
+ENV NODE_OPTIONS="--max-old-space-size=768"
 RUN npm run build && \
     rm -rf node_modules
 
