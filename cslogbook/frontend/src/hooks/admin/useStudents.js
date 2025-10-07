@@ -6,7 +6,7 @@ import { message } from 'antd';
  * Hook สำหรับการจัดการข้อมูลนักศึกษาในส่วน Admin
  */
 export function useStudents(filters = {}) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); 
   
   // ดึงรายการนักศึกษา
   const studentsQuery = useQuery({
