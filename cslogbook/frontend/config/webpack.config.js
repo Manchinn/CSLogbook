@@ -272,6 +272,8 @@ module.exports = function (webpackEnv) {
               // Pending further investigation:
               // https://github.com/terser-js/terser/issues/120
               inline: 2,
+              // Remove console.log statements in production
+              drop_console: true,
             },
             mangle: {
               safari10: true,
