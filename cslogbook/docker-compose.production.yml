@@ -1,102 +1,41 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: cslogbook-mysql
-    command: >-
-      --default-authentication-plugin=mysql_native_password
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --innodb-buffer-pool-size=256M
-      --max-connections=100
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile
     container_name: cslogbook-backend
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
     env_file:
       - .env.production
     environment:
-      DB_HOST: ${DB_HOST:-mysql}
-      DB_PORT: ${DB_PORT:-3306}
-      NODE_ENV: production
+      DB_HOST: 119.59.102.136
+      DB_PORT: 3306
     volumes:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs
     ports:
-      - "${BACKEND_PORT:-5000}:5000"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+      - "5000:5000"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL}
-        REACT_APP_UPLOAD_URL: ${REACT_APP_UPLOAD_URL}
-      shm_size: '256mb'
+        REACT_APP_API_URL: http://119.59.102.136:5000/api
+        REACT_APP_UPLOAD_URL: http://119.59.102.136:5000/uploads
+      shm_size: '512mb'
     container_name: cslogbook-frontend
     restart: unless-stopped
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     ports:
-      - "${FRONTEND_PORT:-80}:80"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      - "3000:80"
     deploy:
       resources:
         limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+          memory: 1G
 
 volumes:
   backend-uploads:
-    driver: local
   backend-logs:
-    driver: local
   mysql-data:
-    driver: local
