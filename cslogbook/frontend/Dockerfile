@@ -1,82 +1,32 @@
-# syntax=docker/dockerfile:1.6
+# ใช้ภาพ Node.js อย่างเป็นทางการเป็น base image
+FROM node:18-alpine AS build
 
-###########
-# Dependencies stage - แยกการติดตั้ง dependencies
-###########
-FROM node:18-alpine AS deps
+# ตั้งค่า working directory
 WORKDIR /app
 
-# คัดลอกเฉพาะ package files
+# คัดลอก package.json และ package-lock.json
 COPY package*.json ./
 
 # ติดตั้ง dependencies
-RUN npm ci --no-audit --no-fund --prefer-offline
+RUN npm install
 
-###########
-# Build stage - สร้าง production build
-###########
-FROM node:18-alpine AS build
-WORKDIR /app
-
-# คัดลอก dependencies จาก deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package*.json ./
-
-# คัดลอก source code
+# คัดลอกโค้ดที่เหลือ
 COPY . .
 
-# กำหนดค่า build-time variables
-ARG REACT_APP_API_URL
-ARG REACT_APP_UPLOAD_URL
-ENV REACT_APP_API_URL=${REACT_APP_API_URL}
-ENV REACT_APP_UPLOAD_URL=${REACT_APP_UPLOAD_URL}
-ENV NODE_ENV=production
-
-# ปรับ memory limit สำหรับ 2GB RAM server และปิด source maps
-ENV NODE_OPTIONS="--max-old-space-size=1536"
-ENV GENERATE_SOURCEMAP=false
-
-# สร้าง production build
+# สร้างแอปพลิเคชัน
 RUN npm run build
 
-###########
-# Runtime stage - เฉพาะไฟล์ที่จำเป็น
-###########
-FROM nginx:1.27-alpine AS runtime
+# ใช้ Nginx เพื่อ serve ไฟล์ที่สร้าง
+FROM nginx:alpine
 
-# ตั้งค่า timezone
-ENV TZ=Asia/Bangkok
-RUN apk add --no-cache tzdata && \
-    cp /usr/share/zoneinfo/Asia/Bangkok /etc/localtime && \
-    apk del tzdata
-
-# ลบ default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
-
-# คัดลอก nginx config
-COPY config/docker/nginx.conf /etc/nginx/conf.d/default.conf
-
-# คัดลอกเฉพาะ build files จาก build stage
+# คัดลอกไฟล์ที่สร้างจากขั้นตอนก่อนหน้า
 COPY --from=build /app/build /usr/share/nginx/html
 
-# สร้าง non-root user สำหรับ security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 -G nodejs
+# คัดลอกไฟล์การตั้งค่า Nginx
+COPY config/docker/nginx.conf /etc/nginx/conf.d/default.conf
 
-# ตั้งค่า permissions
-RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
-    chown -R nextjs:nodejs /var/cache/nginx && \
-    chown -R nextjs:nodejs /var/log/nginx && \
-    chown -R nextjs:nodejs /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R nextjs:nodejs /var/run/nginx.pid
-
-USER nextjs
-
+# เปิดพอร์ต 80
 EXPOSE 80
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
-
+# เริ่มต้น Nginx
 CMD ["nginx", "-g", "daemon off;"]
