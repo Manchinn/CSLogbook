@@ -61,6 +61,11 @@ const AdminUpload = () => {
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // เพิ่ม state สำหรับ preview mode
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [confirming, setConfirming] = useState(false);
 
   const [prerequisiteStatus, setPrerequisiteStatus] = useState({
     curriculum: { ready: false, message: '' },
@@ -176,21 +181,24 @@ const AdminUpload = () => {
     formData.append('file', fileList[0]);
 
     try {
-      const data = await adminService.uploadStudentCSV(formData);
+      // เรียก API ในโหมดตรวจสอบ (preview mode)
+      const data = await adminService.uploadStudentCSV(formData, { preview: true });
 
       if (data.success) {
+        setPreviewData(data);
         setResults(data.results || []);
         setSummary(data.summary || null);
         setStatusFilter('all');
+        setIsPreviewMode(true);
         
         // Check for file errors and display as warning instead of success
         if (data.summary?.fileError) {
           message.warning(data.summary.fileError);
         } else {
-          message.success('อัปโหลดไฟล์สำเร็จ');
+          message.success('ตรวจสอบไฟล์เสร็จสิ้น กรุณาตรวจสอบผลลัพธ์และยืนยันการอัปโหลด');
         }
       } else {
-        throw new Error(data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
+        throw new Error(data.message || 'ไม่สามารถประมวลผลได้');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -229,8 +237,55 @@ const AdminUpload = () => {
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการอัปโหลดจริงหลังจากตรวจสอบแล้ว
+  const handleConfirmUpload = async () => {
+    if (!previewData) {
+      message.error('ไม่พบข้อมูลที่ตรวจสอบแล้ว กรุณาตรวจสอบไฟล์ใหม่');
+      return;
+    }
+
+    setConfirming(true);
+    const formData = new FormData();
+    formData.append('file', fileList[0]);
+
+    try {
+      // เรียก API ในโหมดอัปโหลดจริง
+      const data = await adminService.uploadStudentCSV(formData, { confirm: true });
+
+      if (data.success) {
+        setResults(data.results || []);
+        setSummary(data.summary || null);
+        setStatusFilter('all');
+        setIsPreviewMode(false);
+        setPreviewData(null);
+        
+        message.success('อัปโหลดและบันทึกข้อมูลนักศึกษาเสร็จสิ้น');
+      } else {
+        throw new Error(data.message || 'ไม่สามารถบันทึกข้อมูลได้');
+      }
+    } catch (error) {
+      console.error('Confirm upload error:', error);
+      const errorMessage = error.response?.data?.error || 
+                          error.message || 
+                          'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+      message.error(errorMessage);
+    } finally {
+      setConfirming(false);
       setFileList([]);
     }
+  };
+
+  // ฟังก์ชันสำหรับยกเลิกการอัปโหลด
+  const handleCancelUpload = () => {
+    setIsPreviewMode(false);
+    setPreviewData(null);
+    setResults([]);
+    setSummary(null);
+    setFileList([]);
+    message.info('ยกเลิกการอัปโหลดแล้ว');
   };
 
   const handleDownloadCsvTemplate = () => {
@@ -435,15 +490,36 @@ const AdminUpload = () => {
             </Dragger>
 
             <Space size="middle" wrap>
-              <Button
-                type="primary"
-                onClick={handleUpload}
-                disabled={!fileList.length || uploading || !isReadyToUpload}
-                loading={uploading}
-                icon={<ReloadOutlined />}
-              >
-                ตรวจสอบและอัปโหลด
-              </Button>
+              {!isPreviewMode ? (
+                <Button
+                  type="primary"
+                  onClick={handleUpload}
+                  disabled={!fileList.length || uploading || !isReadyToUpload}
+                  loading={uploading}
+                  icon={<ReloadOutlined />}
+                >
+                  ตรวจสอบข้อมูล
+                </Button>
+              ) : (
+                <Space>
+                  <Button
+                    type="primary"
+                    onClick={handleConfirmUpload}
+                    disabled={confirming}
+                    loading={confirming}
+                    icon={<CheckCircleOutlined />}
+                  >
+                    ยืนยันการอัปโหลด
+                  </Button>
+                  <Button
+                    onClick={handleCancelUpload}
+                    disabled={confirming}
+                    icon={<CloseCircleOutlined />}
+                  >
+                    ยกเลิก
+                  </Button>
+                </Space>
+              )}
               <Button icon={<DownloadOutlined />} onClick={handleDownloadCsvTemplate}>
                 ดาวน์โหลดเทมเพลต CSV
               </Button>
@@ -456,7 +532,20 @@ const AdminUpload = () => {
 
         {summary && (
           <Card bodyStyle={{ padding: 24 }}>
-            <Title level={4} style={{ marginBottom: 16 }}>สรุปผลการนำเข้า</Title>
+            <Title level={4} style={{ marginBottom: 16 }}>
+              {isPreviewMode ? 'ตรวจสอบข้อมูลก่อนอัปโหลด' : 'สรุปผลการนำเข้า'}
+            </Title>
+            
+            {/* แสดงข้อความแจ้งเตือนในโหมด preview */}
+            {isPreviewMode && (
+              <Alert
+                type="info"
+                showIcon
+                message="กรุณาตรวจสอบข้อมูลก่อนยืนยันการอัปโหลด"
+                description="ข้อมูลด้านล่างเป็นการแสดงตัวอย่างผลลัพธ์ที่จะเกิดขึ้นหลังจากอัปโหลด หากข้อมูลถูกต้องแล้ว กรุณากดปุ่ม 'ยืนยันการอัปโหลด' เพื่อดำเนินการต่อ"
+                style={{ marginBottom: 16 }}
+              />
+            )}
             
             {/* Display file error if exists */}
             {summary.fileError && (
