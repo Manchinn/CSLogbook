@@ -41,3 +41,6 @@ Thumbs.db
 # Upload directory - ignore contents but keep directory
 /backend/uploads/*
 !/backend/uploads/.gitkeep
+
+/knowledge/*
+/scripts/*

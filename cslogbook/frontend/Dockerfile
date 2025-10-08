@@ -6,20 +6,11 @@
 FROM node:18-alpine AS deps
 WORKDIR /app
 
-# ติดตั้ง build tools ใน virtual package เพื่อลบได้ง่าย
-RUN apk add --no-cache --virtual .build-deps \
-    python3 make g++ && \
-    ln -sf python3 /usr/bin/python
-
 # คัดลอกเฉพาะ package files
 COPY package*.json ./
 
-# ติดตั้ง dependencies พร้อม cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --no-audit --no-fund --prefer-offline
-
-# ลบ build tools หลังติดตั้งเสร็จ
-RUN apk del .build-deps
+# ติดตั้ง dependencies
+RUN npm ci --no-audit --no-fund --prefer-offline
 
 ###########
 # Build stage - สร้าง production build
@@ -45,9 +36,8 @@ ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=1536"
 ENV GENERATE_SOURCEMAP=false
 
-# สร้าง production build พร้อม cache mount
-RUN --mount=type=cache,target=/tmp/.buildcache \
-    npm run build
+# สร้าง production build
+RUN npm run build
 
 ###########
 # Runtime stage - เฉพาะไฟล์ที่จำเป็น
