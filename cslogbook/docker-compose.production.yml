@@ -8,8 +8,8 @@ services:
     env_file:
       - .env.production
     environment:
-      DB_HOST: 119.59.102.136
-      DB_PORT: 3306
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
     volumes:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs
@@ -21,8 +21,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: http://119.59.102.136:5000/api
-        REACT_APP_UPLOAD_URL: http://119.59.102.136:5000/uploads
+        REACT_APP_API_URL: http://${DB_HOST}:5000/api
+        REACT_APP_UPLOAD_URL: http://${DB_HOST}:5000/uploads
       shm_size: '512mb'
     container_name: cslogbook-frontend
     restart: unless-stopped
