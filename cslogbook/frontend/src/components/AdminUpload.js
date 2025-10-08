@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import dayjs from 'dayjs';
 import {
   Upload,
   Button,
@@ -14,7 +13,6 @@ import {
   Tag,
   Statistic,
   Spin,
-  Tooltip,
   Select,
   Empty
 } from 'antd';
@@ -71,7 +69,8 @@ const AdminUpload = () => {
   const [contextLoading, setContextLoading] = useState(true);
 
   const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const templateDownloadUrl = `${getBackendBaseUrl()}/template/download-template`;
+  const csvTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-csv-template`;
+  const excelTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-excel-template`;
 
   const loadContextData = useCallback(async () => {
     setContextLoading(true);
@@ -183,7 +182,13 @@ const AdminUpload = () => {
         setResults(data.results || []);
         setSummary(data.summary || null);
         setStatusFilter('all');
-        message.success('อัปโหลดไฟล์สำเร็จ');
+        
+        // Check for file errors and display as warning instead of success
+        if (data.summary?.fileError) {
+          message.warning(data.summary.fileError);
+        } else {
+          message.success('อัปโหลดไฟล์สำเร็จ');
+        }
       } else {
         throw new Error(data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
       }
@@ -197,7 +202,30 @@ const AdminUpload = () => {
       } else if (status === 415) {
         message.error('รูปแบบไฟล์ไม่ถูกต้อง');
       } else {
-        message.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+        // Check if it's a soft error from backend
+        const errorMessage = error.response?.data?.summary?.fileError || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            'เกิดข้อผิดพลาดในการอัปโหลด';
+        
+        // Display as warning for file structure issues, error for other issues
+        if (errorMessage.includes('ไฟล์ว่างเปล่า') || 
+            errorMessage.includes('ไม่พบการแสดงคอลัมน์ที่ถูกต้อง') || 
+            errorMessage.includes('ไม่มีข้อมูลนักศึกษา')) {
+          message.warning(errorMessage);
+          // Still set empty results to show the UI
+          setResults([]);
+          setSummary({ 
+            total: 0, 
+            added: 0, 
+            updated: 0, 
+            invalid: 0, 
+            errors: 1,
+            fileError: errorMessage 
+          });
+        } else {
+          message.error(errorMessage);
+        }
       }
     } finally {
       setUploading(false);
@@ -205,46 +233,14 @@ const AdminUpload = () => {
     }
   };
 
-  const handleDownloadTemplate = () => {
-    window.open(templateDownloadUrl, '_blank');
+  const handleDownloadCsvTemplate = () => {
+    window.open(csvTemplateDownloadUrl, '_blank');
   };
 
-  const handleExportResults = () => {
-    if (!results.length) {
-      message.info('ยังไม่มีข้อมูลสำหรับดาวน์โหลด');
-      return;
-    }
-
-    try {
-      const headers = ['studentID', 'firstName', 'lastName', 'email', 'status', 'errors'];
-      const csvRows = [headers.join(',')];
-
-      results.forEach((item) => {
-        const row = [
-          item.studentID || '',
-          item.firstName || '',
-          item.lastName || '',
-          item.email || '',
-          item.status || '',
-          (item.errors || item.error || []).toString().replace(/,/g, ';')
-        ];
-        csvRows.push(row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','));
-      });
-
-      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.setAttribute('download', `student-upload-results-${dayjs().format('YYYYMMDD-HHmmss')}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('ไม่สามารถสร้างไฟล์สรุปได้:', error);
-      message.error('เกิดข้อผิดพลาดในการสร้างไฟล์สรุป');
-    }
+  const handleDownloadExcelTemplate = () => {
+    window.open(excelTemplateDownloadUrl, '_blank');
   };
+
 
   const filteredResults = useMemo(() => {
     if (statusFilter === 'all') return results;
@@ -448,18 +444,12 @@ const AdminUpload = () => {
               >
                 ตรวจสอบและอัปโหลด
               </Button>
-              <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
+              <Button icon={<DownloadOutlined />} onClick={handleDownloadCsvTemplate}>
                 ดาวน์โหลดเทมเพลต CSV
               </Button>
-              <Tooltip title="ดาวน์โหลดผลลัพธ์การประมวลผล (CSV)">
-                <Button
-                  icon={<FileExcelOutlined />}
-                  onClick={handleExportResults}
-                  disabled={!results.length}
-                >
-                  ดาวน์โหลดผลลัพธ์
-                </Button>
-              </Tooltip>
+              <Button icon={<FileExcelOutlined />} onClick={handleDownloadExcelTemplate}>
+                ดาวน์โหลดเทมเพลต Excel
+              </Button>
             </Space>
           </Space>
         </Card>
@@ -467,6 +457,18 @@ const AdminUpload = () => {
         {summary && (
           <Card bodyStyle={{ padding: 24 }}>
             <Title level={4} style={{ marginBottom: 16 }}>สรุปผลการนำเข้า</Title>
+            
+            {/* Display file error if exists */}
+            {summary.fileError && (
+              <Alert
+                type="warning"
+                showIcon
+                message="ปัญหาเกี่ยวกับไฟล์"
+                description={summary.fileError}
+                style={{ marginBottom: 16 }}
+              />
+            )}
+            
             <Row gutter={[16, 16]}>
               <Col xs={24} md={6}>
                 <Card size="small" bordered={false} style={{ background: '#f5f5f5' }}>
