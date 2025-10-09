@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, DatePicker, Descriptions, Divider, Form, Input, Row, Space, Spin, Tag, Timeline, Typography, message } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
 import useProjectDeadlines from '../../../../hooks/useProjectDeadlines';
-import DeadlineBadge from '../../../deadlines/DeadlineBadge';
 import { computeDeadlineStatus } from '../../../../utils/deadlineUtils';
 
 const { Title, Text, Paragraph } = Typography;
@@ -25,6 +24,19 @@ const ADVISOR_STATUS_META = {
   pending: { label: 'รอดำเนินการ', color: 'default' },
   approved: { label: 'อนุมัติ', color: 'green' },
   rejected: { label: 'ปฏิเสธ', color: 'red' }
+};
+
+// เพิ่มฟังก์ชันแปลสถานะโครงงาน
+const getProjectStatusLabel = (status) => {
+  const statusMap = {
+    'draft': 'ร่าง',
+    'in_progress': 'กำลังดำเนินการ',
+    'completed': 'เสร็จสิ้น',
+    'archived': 'เก็บถาวร',
+    'failed': 'ไม่ผ่าน',
+    'cancelled': 'ยกเลิก'
+  };
+  return statusMap[status] || status;
 };
 
 const buildStudentInitial = (project, existingPayload) => {
@@ -210,7 +222,7 @@ const ExamSubmitPage = () => {
     if (!value) return '-';
     const dt = dayjs(value);
     if (!dt.isValid()) return '-';
-    return dt.format('DD/MM/YYYY HH:mm น.');
+    return dt.format('DD/MM/BBBB HH:mm น.');
   }, []);
 
   useEffect(() => {
@@ -306,37 +318,6 @@ const ExamSubmitPage = () => {
           ฟอร์มนี้บันทึกข้อมูลจากแบบฟอร์มคพ.02 เพื่อแจ้งความพร้อมสอบโครงงานพิเศษ 1 — ข้อมูลที่กรอกจะถูกเก็บในระบบและใช้ติดตามสถานะขั้นตอนถัดไป
         </Paragraph>
 
-        {!projectDeadlineLoading && prioritizedDeadline && (
-          <Alert
-            type={prioritizedDeadline.deadlineType === 'ANNOUNCEMENT' ? 'info' : 'warning'}
-            showIcon
-            style={{ marginBottom: 16 }}
-            message={prioritizedDeadline.name || 'กำหนดการที่เกี่ยวข้อง'}
-            description={(
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Text type="secondary">วันสุดท้าย: {prioritizedDeadlineDisplay}</Text>
-                {prioritizedDeadline.deadlineType !== 'ANNOUNCEMENT' && (
-                  <Space size={6} wrap>
-                    <DeadlineBadge
-                      deadline={prioritizedDeadlineMoment}
-                      isSubmitted={prioritizedDeadline.isSubmitted}
-                      isLate={prioritizedDeadline.isLate}
-                      submittedAt={prioritizedDeadline.submittedAtLocal}
-                      locked={prioritizedDeadline.locked}
-                    />
-                    {prioritizedDeadlineStatus && prioritizedDeadlineStatus.code !== 'none' && (
-                      <Tag color={prioritizedDeadlineStatus.color}>{prioritizedDeadlineStatus.label}</Tag>
-                    )}
-                  </Space>
-                )}
-                {prioritizedDeadline.description && (
-                  <Text type="secondary">{prioritizedDeadline.description}</Text>
-                )}
-              </Space>
-            )}
-          />
-        )}
-
         {hasSubmitted ? (
           <Alert
             type={statusMeta.alert || 'info'}
@@ -416,15 +397,14 @@ const ExamSubmitPage = () => {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="เฉพาะหัวหน้าโครงงานที่อยู่ในสถานะ in_progress เท่านั้นที่สามารถยื่นคำขอนี้ได้"
+                message="เฉพาะหัวหน้าโครงงานที่อยู่ในสถานะกำลังดำเนินการเท่านั้นที่สามารถยื่นคำขอนี้ได้"
               />
             )}
 
             <Descriptions bordered size="small" column={1} style={{ marginBottom: 24 }}>
-              <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
-              <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.projectNameTh || '-'}</Descriptions.Item>
-              <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.projectNameEn || '-'}</Descriptions.Item>
-              <Descriptions.Item label="สถานะ">{activeProject.status}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงานพิเศษภาษาไทย">{activeProject.projectNameTh || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงานพิเศษภาษาอังกฤษ">{activeProject.projectNameEn || '-'}</Descriptions.Item>
+              <Descriptions.Item label="สถานะ">{getProjectStatusLabel(activeProject.status)}</Descriptions.Item>
               <Descriptions.Item label="สมาชิก">
                 {(activeProject.members || []).map(member => (
                   <div key={member.studentId}>{member.name || member.studentCode} ({member.role})</div>
@@ -455,7 +435,7 @@ const ExamSubmitPage = () => {
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
                     <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
-                      <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} allowClear={false} disabled />
+                      <DatePicker format="DD/MM/BBBB" style={{ width: '100%' }} allowClear={false} disabled />
                     </Form.Item>
                   </Col>
                 </Row>
