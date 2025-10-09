@@ -414,7 +414,7 @@ const StaffSystemTestQueue = () => {
     <div style={containerStyle}>
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>ตรวจสอบคำขอทดสอบระบบ (System Test)</Title>
+          <Title level={3}>ตรวจสอบคำขอทดสอบระบบ</Title>
           <Text type="secondary">
             เจ้าหน้าที่สามารถตรวจสอบคำขอที่อาจารย์อนุมัติแล้ว บันทึกผลการตรวจสอบ และติดตามการส่งหลักฐานจากนักศึกษา
           </Text>

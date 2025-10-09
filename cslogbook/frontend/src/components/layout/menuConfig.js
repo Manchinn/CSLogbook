@@ -252,7 +252,7 @@ export const getMenuConfig = ({
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
                   { key: '/admin/project1/kp02-queue', label: 'คำร้องขอสอบโครงงานพิเศษ 1 (คพ.02)', onClick: () => navigate('/admin/project1/kp02-queue') },
                   { key: '/admin/project-exam/results', label: 'บันทึกผลสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project-exam/results') },
-                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ (System Test)', onClick: () => navigate('/admin/system-test/staff-queue') },
+                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ', onClick: () => navigate('/admin/system-test/staff-queue') },
                   { key: '/admin/thesis/staff-queue', label: 'คำร้องขอสอบปริญญานิพนธ์ (คพ.03)', onClick: () => navigate('/admin/thesis/staff-queue') },
                   { key: '/admin/thesis/exam-results', label: 'บันทึกผลสอบปริญญานิพนธ์', onClick: () => navigate('/admin/thesis/exam-results') }
                 ]
@@ -313,7 +313,7 @@ export const getMenuConfig = ({
                   { key: '/admin/topic-exam/results', label: 'บันทึกผลสอบหัวข้อโครงงานพิเศษ', onClick: () => navigate('/admin/topic-exam/results') },
                   { key: '/admin/project1/kp02-queue', label: 'คำร้องขอสอบโครงงานพิเศษ 1 (คพ.02)', onClick: () => navigate('/admin/project1/kp02-queue') },
                   { key: '/admin/project-exam/results', label: 'บันทึกผลสอบโครงงานพิเศษ 1', onClick: () => navigate('/admin/project-exam/results') },
-                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ (System Test)', onClick: () => navigate('/admin/system-test/staff-queue') },
+                  { key: '/admin/system-test/staff-queue', label: 'ตรวจสอบคำขอทดสอบระบบ', onClick: () => navigate('/admin/system-test/staff-queue') },
                   { key: '/admin/thesis/staff-queue', label: 'ตรวจสอบคำขอสอบ คพ.03', onClick: () => navigate('/admin/thesis/staff-queue') },
                   { key: '/admin/thesis/exam-results', label: 'บันทึกผลสอบปริญญานิพนธ์', onClick: () => navigate('/admin/thesis/exam-results') }
                 ]

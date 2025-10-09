@@ -171,7 +171,7 @@ export default function TopicExamResultPage() {
       render: (_, __, idx) => idx + 1
     },
     {
-      title: 'ชื่อหัวข้อ (TH / EN)',
+      title: 'ชื่อหัวข้อโครงงานพิเศษ',
       dataIndex: 'titleTh',
       width: 360,
       render: (_, r) => (
@@ -194,7 +194,7 @@ export default function TopicExamResultPage() {
       )
     },
     {
-      title: 'อ. ที่ปรึกษา',
+      title: 'อาจารย์ที่ปรึกษา',
       dataIndex: 'advisor',
       width: 220,
       render: (_, record) => {
