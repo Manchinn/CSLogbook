@@ -314,7 +314,7 @@ const ExamSubmitPage = () => {
             message={prioritizedDeadline.name || 'กำหนดการที่เกี่ยวข้อง'}
             description={(
               <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Text type="secondary">เส้นตาย: {prioritizedDeadlineDisplay}</Text>
+                <Text type="secondary">วันสุดท้าย: {prioritizedDeadlineDisplay}</Text>
                 {prioritizedDeadline.deadlineType !== 'ANNOUNCEMENT' && (
                   <Space size={6} wrap>
                     <DeadlineBadge
