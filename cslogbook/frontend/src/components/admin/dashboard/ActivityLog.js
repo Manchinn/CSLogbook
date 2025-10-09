@@ -132,14 +132,14 @@ const ActivityLog = () => {
                   title={
                     <Space size="small" wrap>
                       <Text strong>{deadline.name || 'ไม่ระบุชื่อกำหนดการ'}</Text>
-                      <Tag color={related.color} bordered={false}>
+                      <Tag color={related.color} variant="borderless">
                         {related.label}
                       </Tag>
-                      <Tag color={status.color} bordered={false}>
+                      <Tag color={status.color} variant="borderless">
                         {status.label}
                       </Tag>
                       {deadline.isWindow ? (
-                        <Tag icon={<ClockCircleOutlined />} color="processing" bordered={false}>
+                        <Tag icon={<ClockCircleOutlined />} color="processing" variant="borderless">
                           ช่วงเวลา
                         </Tag>
                       ) : null}

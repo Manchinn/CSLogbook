@@ -18,16 +18,16 @@
     "migrate:undo": "cross-env NODE_ENV=development sequelize-cli db:migrate:undo",
     "migrate:create": "cross-env NODE_ENV=development sequelize-cli migration:generate --name",
     "migrate:status": "cross-env NODE_ENV=development sequelize-cli db:migrate:status",
-  "seed": "cross-env NODE_ENV=development sequelize-cli db:seed:all",
-  "seed:undo": "cross-env NODE_ENV=development sequelize-cli db:seed:undo",
-  "seed:one": "cross-env NODE_ENV=development sequelize-cli db:seed --seed",
-  "seed:create": "cross-env NODE_ENV=development sequelize-cli seed:generate --name",
-  "seed:undo:all": "cross-env NODE_ENV=development sequelize-cli db:seed:undo:all",
-  "seed:undo:one": "cross-env NODE_ENV=development sequelize-cli db:seed:undo --seed",
-  "seed:prod": "cross-env NODE_ENV=production sequelize-cli db:seed --seed seeders/production/index.js",
-  "seed:prod:undo": "cross-env NODE_ENV=production sequelize-cli db:seed:undo --seed seeders/production/index.js",
-  "seed:dev": "cross-env NODE_ENV=development sequelize-cli db:seed --seed seeders/dev/index.js",
-  "seed:dev:undo": "cross-env NODE_ENV=development sequelize-cli db:seed:undo --seed seeders/dev/index.js"
+    "seed": "cross-env NODE_ENV=development sequelize-cli db:seed:all",
+    "seed:undo": "cross-env NODE_ENV=development sequelize-cli db:seed:undo",
+    "seed:one": "cross-env NODE_ENV=development sequelize-cli db:seed --seed",
+    "seed:create": "cross-env NODE_ENV=development sequelize-cli seed:generate --name",
+    "seed:undo:all": "cross-env NODE_ENV=development sequelize-cli db:seed:undo:all",
+    "seed:undo:one": "cross-env NODE_ENV=development sequelize-cli db:seed:undo --seed",
+    "seed:prod": "cross-env NODE_ENV=production sequelize-cli db:seed --seed seeders/production/index.js",
+    "seed:prod:undo": "cross-env NODE_ENV=production sequelize-cli db:seed:undo --seed seeders/production/index.js",
+    "seed:dev": "cross-env NODE_ENV=development sequelize-cli db:seed --seed seeders/dev/index.js",
+    "seed:dev:undo": "cross-env NODE_ENV=development sequelize-cli db:seed:undo --seed seeders/dev/index.js"
   },
   "keywords": [],
   "author": "",
@@ -41,9 +41,9 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
-    "exceljs": "^4.4.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^4.21.1",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
@@ -63,7 +63,8 @@
     "socket.io": "^4.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5"
   },
   "jest": {
     "setupFilesAfterEnv": [

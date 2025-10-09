@@ -109,6 +109,8 @@ const Phase1Dashboard = () => {
     } else if (activeProject.examResult !== 'passed') {
       reasons.push('ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้');
     }
+    // อนุญาตให้เข้าถึงได้ทั้งสถานะ in_progress และ completed
+    // เพื่อให้นักศึกษาสามารถดูบันทึกการพบอาจารย์ย้อนหลังได้แม้โครงงานเสร็จสิ้นแล้ว
     if (!['in_progress', 'completed'].includes(activeProject.status)) {
       reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ"');
     }
@@ -313,7 +315,20 @@ const Phase1Dashboard = () => {
           if (systemTestSummary.evidenceSubmittedAt) {
             setStatus('system-test', 'อัปโหลดหลักฐานครบแล้ว', 'green');
           } else {
-            setStatus('system-test', 'ต้องอัปโหลดหลักฐานหลังครบ 30 วัน', 'blue');
+            // ตรวจสอบว่าครบ 30 วันแล้วหรือยัง
+            const testDueDate = systemTestSummary.testDueDate;
+            if (testDueDate) {
+              const dueDate = dayjs(testDueDate);
+              const now = dayjs();
+              if (now.isAfter(dueDate)) {
+                setStatus('system-test', 'ต้องอัปโหลดหลักฐานการทดสอบ', 'red');
+              } else {
+                const daysLeft = dueDate.diff(now, 'day');
+                setStatus('system-test', `รอการทดสอบ (เหลือ ${daysLeft} วัน)`, 'blue');
+              }
+            } else {
+              setStatus('system-test', 'ต้องอัปโหลดหลักฐานหลังครบ 30 วัน', 'blue');
+            }
           }
           break;
         default:
@@ -501,7 +516,7 @@ const Phase1Dashboard = () => {
     if (eligibilityLoading) {
       return (
         <div style={containerStyle}>
-          <Card bodyStyle={{ padding: 24 }}>
+          <Card styles={{ body: { padding: 24  }}}>
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
               <Title level={4} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>
               <Text type="secondary">กำลังตรวจสอบสิทธิ์การใช้งานโครงงานของคุณ...</Text>
@@ -514,7 +529,7 @@ const Phase1Dashboard = () => {
     if (!canAccessProject) {
       return (
         <div style={containerStyle}>
-          <Card bodyStyle={{ padding: 24 }} title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
+          <Card styles={{ body: { padding: 24  }}} title={<Title level={3} style={{ margin: 0 }}>โครงงานพิเศษ 1 (Phase 1)</Title>}>
             <Paragraph style={{ marginBottom: 8 }}>
               ระบบจะเปิดใช้งานฟีเจอร์โครงงานพิเศษเมื่อคุณผ่านเกณฑ์ตามข้อกำหนดด้านล่าง
             </Paragraph>
@@ -559,7 +574,7 @@ const Phase1Dashboard = () => {
       <>
         <div style={containerStyle}>
           {showAck && (
-            <Card bodyStyle={{ padding: 16 }} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
+            <Card styles={{ body: { padding: 16  }}} style={{ border: '1px solid #ffa39e', background: '#fff1f0' }}>
               <Space direction="vertical" style={{ width: '100%' }} size={8}>
                 <Alert
                   type="error"
@@ -632,7 +647,7 @@ const Phase1Dashboard = () => {
                         }
                         handleOpen(s.key);
                       }}
-                      bodyStyle={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: cardDisabled ? 0.55 : 1 }}
+                      styles={{ body: { minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: cardDisabled ? 0.55 : 1  }}}
                       style={cardDisabled ? { cursor: 'not-allowed' } : undefined}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -644,7 +659,7 @@ const Phase1Dashboard = () => {
                       </div>
                       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {s.phaseLabel && (
-                          <Tag color={s.phase === 'phase2' ? 'geekblue' : 'purple'} bordered={false}>
+                          <Tag color={s.phase === 'phase2' ? 'geekblue' : 'purple'} variant="borderless">
                             {s.phaseLabel}
                           </Tag>
                         )}
@@ -653,7 +668,7 @@ const Phase1Dashboard = () => {
                         ) : lockReasonsForStep.length > 0 ? (
                           <Tag color="gold">รอปลดล็อก</Tag>
                         ) : (
-                          <Tag color={stepStatusMap[s.key]?.color || 'blue'} bordered={false}>
+                          <Tag color={stepStatusMap[s.key]?.color || 'blue'} variant="borderless">
                             {stepStatusMap[s.key]?.label || 'พร้อมใช้งาน'}
                           </Tag>
                         )}
@@ -683,7 +698,7 @@ const Phase1Dashboard = () => {
         >
           <Paragraph style={{ marginBottom: 0 }}>{activeStepMeta?.desc}</Paragraph>
         </Card>
-        <Card bodyStyle={{ padding: 16 }}>
+        <Card styles={{ body: { padding: 16  }}}>
           {/* แสดงคอนเทนต์ย่อยที่ route โหลด (ไม่ใช่ placeholder) */}
           <Outlet />
         </Card>

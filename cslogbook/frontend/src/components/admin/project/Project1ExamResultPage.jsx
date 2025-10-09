@@ -423,7 +423,7 @@ const Project1ExamResultPage = () => {
         </Row>
 
         {/* Filter Panel */}
-        <Card size="small" bodyStyle={{ padding: 16 }}>
+        <Card size="small" styles={{ body: { padding: 16  }}}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={6}>
               <Space direction="vertical" size={4} style={{ width: '100%' }}>

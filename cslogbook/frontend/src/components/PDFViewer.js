@@ -4,9 +4,9 @@ import { Spin, Button } from 'antd';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// แก้ไข worker path สำหรับเวอร์ชันใหม่
+// แก้ไข worker path สำหรับเวอร์ชันใหม่ - ใช้ local worker แทน CDN
 if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 }
 
 const PDFViewer = ({ 

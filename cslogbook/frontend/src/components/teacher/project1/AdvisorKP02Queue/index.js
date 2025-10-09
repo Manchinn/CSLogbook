@@ -363,7 +363,7 @@ const AdvisorKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                 const meta = APPROVAL_STATUS_MAP[approval.status] || APPROVAL_STATUS_MAP.pending;
                 const teacherName = approval.teacher?.name || '-' ;
                 return (
-                  <Card key={approval.approvalId || `${approval.teacherId}-${approval.status}`} size="small" bordered={false}>
+                  <Card key={approval.approvalId || `${approval.teacherId}-${approval.status}`} size="small" variant="borderless">
                     <Space direction="vertical" size={2} style={{ width: '100%' }}>
                       <Space wrap>
                         <Tag color={meta.color}>{meta.text}</Tag>
@@ -426,7 +426,7 @@ const AdvisorKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           </Col>
         </Row>
 
-        <Card size="small" bodyStyle={{ padding: 16 }}>
+        <Card size="small" styles={{ body: { padding: 16  }}}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={12}>
               <Space>

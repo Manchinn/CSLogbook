@@ -334,7 +334,7 @@ function Dashboard() {
         <Space direction="vertical" size="large" className="common-space-style">
           <Card
             className="teacher-hero-card"
-            bordered={false}
+            variant="borderless"
             style={{ background: theme.gradient, color: theme.text }}
           >
             {isLoading ? (
@@ -395,7 +395,7 @@ function Dashboard() {
 
           <Row gutter={[16, 16]} className="stats-row">
             <Col xs={24} sm={12} md={6}>
-              <Card hoverable className="stats-card" bordered={false}>
+              <Card hoverable className="stats-card" variant="borderless">
                 <Statistic
                   title="นักศึกษาที่ปรึกษา"
                   value={adviseeStats.total}
@@ -406,7 +406,7 @@ function Dashboard() {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Card hoverable className="stats-card" bordered={false}>
+              <Card hoverable className="stats-card" variant="borderless">
                 <Statistic
                   title="โครงงานระหว่างดำเนินการ"
                   value={projectStats.active}
@@ -417,7 +417,7 @@ function Dashboard() {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Card hoverable className="stats-card" bordered={false}>
+              <Card hoverable className="stats-card" variant="borderless">
                 <Statistic
                   title="งานที่รออนุมัติ"
                   value={meetingQueue.pending + (documentQueue.pending || 0)}
@@ -432,7 +432,7 @@ function Dashboard() {
           <Card
             title="งานที่ต้องดำเนินการ"
             className="teacher-quick-actions"
-            bordered={false}
+            variant="borderless"
           >
             {isLoading ? (
               <Skeleton active paragraph={{ rows: 3 }} />
@@ -452,7 +452,7 @@ function Dashboard() {
                       <Space size="small">
                         <Tag
                           color={action.pendingCount ? theme.badge : "default"}
-                          bordered={false}
+                          variant="borderless"
                         >
                           {action.pendingCount} รายการ
                         </Tag>
@@ -490,7 +490,7 @@ function Dashboard() {
             <Col xs={24} lg={12}>
               <Card
                 title={`บันทึกการพบที่รออนุมัติ (${meetingQueue.pending || 0})`}
-                bordered={false}
+                variant="borderless"
               >
                 {isLoading ? (
                   <Skeleton active paragraph={{ rows: 4 }} />
@@ -522,7 +522,7 @@ function Dashboard() {
                                   "โครงงานไม่ระบุ"}
                               </Text>
                               {item.projectCode ? (
-                                <Tag color="blue" bordered={false}>
+                                <Tag color="blue" variant="borderless">
                                   {item.projectCode}
                                 </Tag>
                               ) : null}
@@ -542,7 +542,7 @@ function Dashboard() {
                                 สถานะ:{" "}
                                 <Tag
                                   color={pendingTagColor(item.pendingDays)}
-                                  bordered={false}
+                                  variant="borderless"
                                 >
                                   {item.pendingDays
                                     ? `ค้าง ${item.pendingDays} วัน`
@@ -590,7 +590,7 @@ function Dashboard() {
                               <Text strong>{deadline.name}</Text>
                               <Tag
                                 color={deadline.isCritical ? "red" : "blue"}
-                                bordered={false}
+                                variant="borderless"
                               >
                                 {resolveRelatedLabel(deadline.relatedTo)}
                               </Tag>
@@ -599,7 +599,7 @@ function Dashboard() {
                                   DEADLINE_STATUS_COLORS[deadline.status] ||
                                   "default"
                                 }
-                                bordered={false}
+                                variant="borderless"
                               >
                                 {DEADLINE_STATUS_LABELS[deadline.status] ||
                                   deadline.status}
@@ -633,7 +633,7 @@ function Dashboard() {
             </Col>
           </Row>
 
-          <Card title="การประชุมที่กำลังจะมาถึง" bordered={false}>
+          <Card title="การประชุมที่กำลังจะมาถึง" variant="borderless">
             {isLoading ? (
               <Skeleton active paragraph={{ rows: 3 }} />
             ) : upcomingMeetings.length ? (
@@ -659,12 +659,12 @@ function Dashboard() {
                           <Text strong>
                             {meeting.meetingTitle || "การประชุม"}
                           </Text>
-                          <Tag color="blue" bordered={false}>
+                          <Tag color="blue" variant="borderless">
                             {formatDateTime(meeting.meetingDate)}
                           </Tag>
                           <Tag
                             color={meeting.daysLeft > 0 ? "green" : "gold"}
-                            bordered={false}
+                            variant="borderless"
                           >
                             {meeting.daysLeft > 0
                               ? `อีก ${meeting.daysLeft} วัน`
@@ -927,7 +927,7 @@ function Dashboard() {
     }, [internshipEligible, projectEligible]);
 
     const renderStatusTag = (eligible) => (
-      <Tag color={eligible ? "green" : "red"} bordered={false}>
+      <Tag color={eligible ? "green" : "red"} variant="borderless">
         {eligible ? "มีสิทธิ์" : "ยังไม่มีสิทธิ์"}
       </Tag>
     );
@@ -937,7 +937,7 @@ function Dashboard() {
         <Space direction="vertical" size="large" className="common-space-style">
           <Card
             className="student-hero-card"
-            bordered={false}
+            variant="borderless"
             style={{ background: theme.gradient, color: theme.text }}
           >
             <Row gutter={[24, 24]} align="middle">
@@ -952,14 +952,14 @@ function Dashboard() {
                     {studentName}
                   </Title>
                   <Space size={[8, 8]} wrap className="student-hero-tags">
-                    <Tag color="blue" className="student-hero-tag" bordered={false}>
+                    <Tag color="blue" className="student-hero-tag" variant="borderless">
                       รหัส {formattedStudentCode}
                     </Tag>
                     {studentData?.studentYear ? (
                       <Tag
                         color="purple"
                         className="student-hero-tag"
-                        bordered={false}
+                        variant="borderless"
                       >
                         ชั้นปี {studentData.studentYear}
                       </Tag>
@@ -967,14 +967,14 @@ function Dashboard() {
                     <Tag
                       color={internshipEligible ? "green" : "orange"}
                       className="student-hero-tag"
-                      bordered={false}
+                      variant="borderless"
                     >
                       ฝึกงาน {internshipEligible ? "พร้อมเริ่ม" : "รอตรวจสอบ"}
                     </Tag>
                     <Tag
                       color={projectEligible ? "geekblue" : "default"}
                       className="student-hero-tag"
-                      bordered={false}
+                      variant="borderless"
                     >
                       โครงงานพิเศษ {projectEligible ? "พร้อมเริ่ม" : "รอสิทธิ์"}
                     </Tag>
@@ -1192,7 +1192,7 @@ function Dashboard() {
                             <Space size="small" wrap>
                               <Text strong>{action.title}</Text>
                               {action.badge ? (
-                                <Tag color="gold" bordered={false}>
+                                <Tag color="gold" variant="borderless">
                                   {action.badge}
                                 </Tag>
                               ) : null}
@@ -1237,11 +1237,11 @@ function Dashboard() {
                               <Space size="small" wrap>
                                 <Text strong>{deadline.name}</Text>
                                 {deadline.isCritical ? (
-                                  <Tag color="red" bordered={false}>
+                                  <Tag color="red" variant="borderless">
                                     สำคัญ
                                   </Tag>
                                 ) : null}
-                                <Tag color={status.color} bordered={false}>
+                                <Tag color={status.color} variant="borderless">
                                   {status.label}
                                 </Tag>
                               </Space>

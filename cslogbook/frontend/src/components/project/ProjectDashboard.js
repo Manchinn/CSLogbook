@@ -136,7 +136,11 @@ const ProjectDashboard = () => {
           <Title level={4} style={{ margin: 0 }}>📘 แผงสรุปโครงงานพิเศษ</Title>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-              <Spin tip="กำลังโหลดข้อมูลโครงงาน" />
+              <Spin spinning={true} tip="กำลังโหลดข้อมูลโครงงาน">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
             </div>
           ) : !activeProject ? (
             <Paragraph type="secondary" style={{ marginBottom: 0 }}>
@@ -186,7 +190,17 @@ const ProjectDashboard = () => {
                 </Space>
               </div>
 
-              <Divider style={{ margin: '12px 0' }} />
+              <div>
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Title level={5} style={{ margin: 0 }}>อาจารย์ที่ปรึกษา</Title>
+                  <Space size={6} wrap>
+                    <Tag color="processing">อาจารย์หลัก: {advisorName}</Tag>
+                    {coAdvisorName && (
+                      <Tag color="default">อาจารย์ร่วม: {coAdvisorName}</Tag>
+                    )}
+                  </Space>
+                </Space>
+              </div>
 
               <div>
                 <Space align="baseline" size={8} style={{ marginBottom: 8 }}>
@@ -213,42 +227,6 @@ const ProjectDashboard = () => {
                       </List.Item>
                     );
                   }}
-                />
-              </div>
-
-              <div>
-                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                  <Title level={5} style={{ margin: 0 }}>อาจารย์ที่ปรึกษา</Title>
-                  <Space size={6} wrap>
-                    <Tag color="processing">อาจารย์หลัก: {advisorName}</Tag>
-                    {coAdvisorName && (
-                      <Tag color="default">อาจารย์ร่วม: {coAdvisorName}</Tag>
-                    )}
-                  </Space>
-                </Space>
-              </div>
-
-              <Divider style={{ margin: '12px 0' }} />
-
-              <div>
-                <Space align="baseline" size={8} style={{ marginBottom: 8 }}>
-                  <Title level={5} style={{ margin: 0 }}>ความพร้อมในการเริ่มดำเนินงาน</Title>
-                  <Tag color={canActivate ? 'green' : 'gold'}>{canActivate ? 'พร้อมเริ่มโครงงาน' : 'ยังไม่ครบเงื่อนไข'}</Tag>
-                </Space>
-                {activationReadiness?.blockingMessage && (
-                  <Paragraph type="danger">{activationReadiness.blockingMessage}</Paragraph>
-                )}
-                <List
-                  size="small"
-                  dataSource={readinessItems}
-                  renderItem={(item) => (
-                    <List.Item>
-                      <Space size={8} align="center">
-                        <Tag color={readinessColor(item.pass)}>{item.pass ? 'ครบ' : 'ขาด'}</Tag>
-                        <Text>{item.label}</Text>
-                      </Space>
-                    </List.Item>
-                  )}
                 />
               </div>
 

@@ -324,7 +324,11 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-          <Spin size="large" tip="กำลังโหลดข้อมูล..." />
+          <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูล...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
         </div>
       ) : (
         <div className="document-detail-container">

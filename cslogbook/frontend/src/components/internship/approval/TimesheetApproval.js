@@ -233,7 +233,11 @@ const TimesheetApproval = () => {
   if (loading) {
     return (
       <div className={styles.stateContainer}>
-        <Spin size="large" tip="กำลังโหลดข้อมูลการอนุมัติ..." />
+        <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูลการอนุมัติ...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
       </div>
     );
   }

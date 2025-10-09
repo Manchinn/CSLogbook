@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import dayjs from 'dayjs';
 import {
   Upload,
   Button,
@@ -14,7 +13,6 @@ import {
   Tag,
   Statistic,
   Spin,
-  Tooltip,
   Select,
   Empty
 } from 'antd';
@@ -63,6 +61,11 @@ const AdminUpload = () => {
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // เพิ่ม state สำหรับ preview mode
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [confirming, setConfirming] = useState(false);
 
   const [prerequisiteStatus, setPrerequisiteStatus] = useState({
     curriculum: { ready: false, message: '' },
@@ -71,7 +74,8 @@ const AdminUpload = () => {
   const [contextLoading, setContextLoading] = useState(true);
 
   const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const templateDownloadUrl = `${getBackendBaseUrl()}/template/download-template`;
+  const csvTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-csv-template`;
+  const excelTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-excel-template`;
 
   const loadContextData = useCallback(async () => {
     setContextLoading(true);
@@ -177,15 +181,24 @@ const AdminUpload = () => {
     formData.append('file', fileList[0]);
 
     try {
-      const data = await adminService.uploadStudentCSV(formData);
+      // เรียก API ในโหมดตรวจสอบ (preview mode)
+      const data = await adminService.uploadStudentCSV(formData, { preview: true });
 
       if (data.success) {
+        setPreviewData(data);
         setResults(data.results || []);
         setSummary(data.summary || null);
         setStatusFilter('all');
-        message.success('อัปโหลดไฟล์สำเร็จ');
+        setIsPreviewMode(true);
+        
+        // Check for file errors and display as warning instead of success
+        if (data.summary?.fileError) {
+          message.warning(data.summary.fileError);
+        } else {
+          message.success('ตรวจสอบไฟล์เสร็จสิ้น กรุณาตรวจสอบผลลัพธ์และยืนยันการอัปโหลด');
+        }
       } else {
-        throw new Error(data.message || 'ไม่สามารถประมวลผลไฟล์ได้');
+        throw new Error(data.message || 'ไม่สามารถประมวลผลได้');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -197,54 +210,92 @@ const AdminUpload = () => {
       } else if (status === 415) {
         message.error('รูปแบบไฟล์ไม่ถูกต้อง');
       } else {
-        message.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+        // Check if it's a soft error from backend
+        const errorMessage = error.response?.data?.summary?.fileError || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            'เกิดข้อผิดพลาดในการอัปโหลด';
+        
+        // Display as warning for file structure issues, error for other issues
+        if (errorMessage.includes('ไฟล์ว่างเปล่า') || 
+            errorMessage.includes('ไม่พบการแสดงคอลัมน์ที่ถูกต้อง') || 
+            errorMessage.includes('ไม่มีข้อมูลนักศึกษา')) {
+          message.warning(errorMessage);
+          // Still set empty results to show the UI
+          setResults([]);
+          setSummary({ 
+            total: 0, 
+            added: 0, 
+            updated: 0, 
+            invalid: 0, 
+            errors: 1,
+            fileError: errorMessage 
+          });
+        } else {
+          message.error(errorMessage);
+        }
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการอัปโหลดจริงหลังจากตรวจสอบแล้ว
+  const handleConfirmUpload = async () => {
+    if (!previewData) {
+      message.error('ไม่พบข้อมูลที่ตรวจสอบแล้ว กรุณาตรวจสอบไฟล์ใหม่');
+      return;
+    }
+
+    setConfirming(true);
+    const formData = new FormData();
+    formData.append('file', fileList[0]);
+
+    try {
+      // เรียก API ในโหมดอัปโหลดจริง
+      const data = await adminService.uploadStudentCSV(formData, { confirm: true });
+
+      if (data.success) {
+        setResults(data.results || []);
+        setSummary(data.summary || null);
+        setStatusFilter('all');
+        setIsPreviewMode(false);
+        setPreviewData(null);
+        
+        message.success('อัปโหลดและบันทึกข้อมูลนักศึกษาเสร็จสิ้น');
+      } else {
+        throw new Error(data.message || 'ไม่สามารถบันทึกข้อมูลได้');
+      }
+    } catch (error) {
+      console.error('Confirm upload error:', error);
+      const errorMessage = error.response?.data?.error || 
+                          error.message || 
+                          'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+      message.error(errorMessage);
+    } finally {
+      setConfirming(false);
       setFileList([]);
     }
   };
 
-  const handleDownloadTemplate = () => {
-    window.open(templateDownloadUrl, '_blank');
+  // ฟังก์ชันสำหรับยกเลิกการอัปโหลด
+  const handleCancelUpload = () => {
+    setIsPreviewMode(false);
+    setPreviewData(null);
+    setResults([]);
+    setSummary(null);
+    setFileList([]);
+    message.info('ยกเลิกการอัปโหลดแล้ว');
   };
 
-  const handleExportResults = () => {
-    if (!results.length) {
-      message.info('ยังไม่มีข้อมูลสำหรับดาวน์โหลด');
-      return;
-    }
-
-    try {
-      const headers = ['studentID', 'firstName', 'lastName', 'email', 'status', 'errors'];
-      const csvRows = [headers.join(',')];
-
-      results.forEach((item) => {
-        const row = [
-          item.studentID || '',
-          item.firstName || '',
-          item.lastName || '',
-          item.email || '',
-          item.status || '',
-          (item.errors || item.error || []).toString().replace(/,/g, ';')
-        ];
-        csvRows.push(row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','));
-      });
-
-      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.setAttribute('download', `student-upload-results-${dayjs().format('YYYYMMDD-HHmmss')}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('ไม่สามารถสร้างไฟล์สรุปได้:', error);
-      message.error('เกิดข้อผิดพลาดในการสร้างไฟล์สรุป');
-    }
+  const handleDownloadCsvTemplate = () => {
+    window.open(csvTemplateDownloadUrl, '_blank');
   };
+
+  const handleDownloadExcelTemplate = () => {
+    window.open(excelTemplateDownloadUrl, '_blank');
+  };
+
 
   const filteredResults = useMemo(() => {
     if (statusFilter === 'all') return results;
@@ -355,7 +406,7 @@ const AdminUpload = () => {
           />
         )}
 
-        <Card bodyStyle={{ padding: 24 }}>
+        <Card styles={{ body: { padding: 24  }}}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
               <Space>
@@ -368,7 +419,11 @@ const AdminUpload = () => {
             </Space>
 
             {contextLoading ? (
-              <Spin tip="กำลังตรวจสอบการตั้งค่า..." />
+              <Spin spinning={true} tip="กำลังตรวจสอบการตั้งค่า...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
             ) : (
               <Row gutter={[16, 16]}>
                 {prerequisites.map((item) => (
@@ -419,7 +474,7 @@ const AdminUpload = () => {
           </Space>
         </Card>
 
-        <Card bodyStyle={{ padding: 24 }}>
+        <Card styles={{ body: { padding: 24  }}}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Dragger
               accept=".csv,.xlsx"
@@ -439,52 +494,92 @@ const AdminUpload = () => {
             </Dragger>
 
             <Space size="middle" wrap>
-              <Button
-                type="primary"
-                onClick={handleUpload}
-                disabled={!fileList.length || uploading || !isReadyToUpload}
-                loading={uploading}
-                icon={<ReloadOutlined />}
-              >
-                ตรวจสอบและอัปโหลด
-              </Button>
-              <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
+              {!isPreviewMode ? (
+                <Button
+                  type="primary"
+                  onClick={handleUpload}
+                  disabled={!fileList.length || uploading || !isReadyToUpload}
+                  loading={uploading}
+                  icon={<ReloadOutlined />}
+                >
+                  ตรวจสอบข้อมูล
+                </Button>
+              ) : (
+                <Space>
+                  <Button
+                    type="primary"
+                    onClick={handleConfirmUpload}
+                    disabled={confirming}
+                    loading={confirming}
+                    icon={<CheckCircleOutlined />}
+                  >
+                    ยืนยันการอัปโหลด
+                  </Button>
+                  <Button
+                    onClick={handleCancelUpload}
+                    disabled={confirming}
+                    icon={<CloseCircleOutlined />}
+                  >
+                    ยกเลิก
+                  </Button>
+                </Space>
+              )}
+              <Button icon={<DownloadOutlined />} onClick={handleDownloadCsvTemplate}>
                 ดาวน์โหลดเทมเพลต CSV
               </Button>
-              <Tooltip title="ดาวน์โหลดผลลัพธ์การประมวลผล (CSV)">
-                <Button
-                  icon={<FileExcelOutlined />}
-                  onClick={handleExportResults}
-                  disabled={!results.length}
-                >
-                  ดาวน์โหลดผลลัพธ์
-                </Button>
-              </Tooltip>
+              <Button icon={<FileExcelOutlined />} onClick={handleDownloadExcelTemplate}>
+                ดาวน์โหลดเทมเพลต Excel
+              </Button>
             </Space>
           </Space>
         </Card>
 
         {summary && (
-          <Card bodyStyle={{ padding: 24 }}>
-            <Title level={4} style={{ marginBottom: 16 }}>สรุปผลการนำเข้า</Title>
+          <Card styles={{ body: { padding: 24  }}}>
+            <Title level={4} style={{ marginBottom: 16 }}>
+              {isPreviewMode ? 'ตรวจสอบข้อมูลก่อนอัปโหลด' : 'สรุปผลการนำเข้า'}
+            </Title>
+            
+            {/* แสดงข้อความแจ้งเตือนในโหมด preview */}
+            {isPreviewMode && (
+              <Alert
+                type="info"
+                showIcon
+                message="กรุณาตรวจสอบข้อมูลก่อนยืนยันการอัปโหลด"
+                description="ข้อมูลด้านล่างเป็นการแสดงตัวอย่างผลลัพธ์ที่จะเกิดขึ้นหลังจากอัปโหลด หากข้อมูลถูกต้องแล้ว กรุณากดปุ่ม 'ยืนยันการอัปโหลด' เพื่อดำเนินการต่อ"
+                style={{ marginBottom: 16 }}
+              />
+            )}
+            
+            {/* Display file error if exists */}
+            {summary.fileError && (
+              <Alert
+                type="warning"
+                showIcon
+                message="ปัญหาเกี่ยวกับไฟล์"
+                description={summary.fileError}
+                style={{ marginBottom: 16 }}
+              />
+            )}
+            
             <Row gutter={[16, 16]}>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#f5f5f5' }}>
+                <Card size="small" variant="borderless" style={{ background: '#f5f5f5' }}>
                   <Statistic title="จำนวนรายการทั้งหมด" value={summary.total || 0} suffix="รายการ" />
                 </Card>
               </Col>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#f6ffed' }}>
+                <Card size="small" variant="borderless" style={{ background: '#f6ffed' }}>
                   <Statistic title="เพิ่มใหม่" value={summary.added || 0} suffix="รายการ" valueStyle={{ color: '#52c41a' }} />
                 </Card>
               </Col>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#e6f4ff' }}>
+                <Card size="small" variant="borderless" style={{ background: '#e6f4ff' }}>
                   <Statistic title="อัปเดตข้อมูล" value={summary.updated || 0} suffix="รายการ" valueStyle={{ color: '#1890ff' }} />
                 </Card>
               </Col>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#fff1f0' }}>
+                <Card size="small" variant="borderless" style={{ background: '#fff1f0' }}>
                   <Statistic title="ข้อมูลไม่ถูกต้อง" value={summary.invalid || 0} suffix="รายการ" valueStyle={{ color: '#ff4d4f' }} />
                 </Card>
               </Col>
@@ -493,7 +588,7 @@ const AdminUpload = () => {
         )}
 
         <Card
-          bodyStyle={{ padding: 24 }}
+          styles={{ body: { padding: 24  }}}
           title={
             <Space>
               <FilterOutlined />
