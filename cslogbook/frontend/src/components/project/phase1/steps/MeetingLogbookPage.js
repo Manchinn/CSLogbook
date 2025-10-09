@@ -310,7 +310,7 @@ const MeetingLogbookPage = () => {
             <CalendarOutlined style={{ color: '#1d4ed8' }} />
             <span style={{ fontWeight: 600 }}>{meeting.meetingTitle}</span>
             <Tag>{formatDateTime(meeting.meetingDate)}</Tag>
-            <Tag color={MEETING_PHASE_COLORS[meetingPhase] || 'purple'} bordered={false}>{MEETING_PHASE_LABELS[meetingPhase]}</Tag>
+            <Tag color={MEETING_PHASE_COLORS[meetingPhase] || 'purple'} variant="borderless">{MEETING_PHASE_LABELS[meetingPhase]}</Tag>
           </Space>
           <Space size={8} wrap>
             <Tag color="geekblue">{meeting.meetingMethod === 'onsite' ? 'onsite' : meeting.meetingMethod === 'online' ? 'online' : 'hybrid'}</Tag>
@@ -444,7 +444,7 @@ const MeetingLogbookPage = () => {
       <Card>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           <Space align="center" size={8} wrap>
-            <Tag color={MEETING_PHASE_COLORS[activePhase] || 'purple'} bordered={false}>{currentPhaseLabel}</Tag>
+            <Tag color={MEETING_PHASE_COLORS[activePhase] || 'purple'} variant="borderless">{currentPhaseLabel}</Tag>
             <span style={{ color: '#64748b', fontSize: 13 }}>ข้อมูลด้านล่างจะแสดงเฉพาะช่วงนี้</span>
           </Space>
           <Space size={16} wrap>
@@ -483,7 +483,7 @@ const MeetingLogbookPage = () => {
           </Space>
         </Card>
       ) : meetings.length ? (
-        <Collapse items={collapseItems} accordion bordered={false} />
+        <Collapse items={collapseItems} accordion variant="borderless" />
       ) : (
         <Empty description="ยังไม่มีการบันทึกการพบในโครงงานนี้" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       )}

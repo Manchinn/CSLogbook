@@ -443,7 +443,7 @@ const StaffSystemTestQueue = () => {
           </Col>
         </Row>
 
-        <Card size="small" bodyStyle={{ padding: 16 }}>
+        <Card size="small" styles={{ body: { padding: 16  }}}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={7}>
               <Space direction="vertical" size={4}>

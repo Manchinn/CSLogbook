@@ -138,7 +138,7 @@ const Dashboard = () => {
     <Space direction="vertical" size="large" className="admin-dashboard-container">
       <Card
         className="admin-hero-card"
-        bordered={false}
+        variant="borderless"
         style={{ background: theme.gradient, color: theme.text }}
       >
         <Row gutter={[24, 24]} align="middle">

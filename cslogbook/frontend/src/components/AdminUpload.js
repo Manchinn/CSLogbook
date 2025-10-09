@@ -406,7 +406,7 @@ const AdminUpload = () => {
           />
         )}
 
-        <Card bodyStyle={{ padding: 24 }}>
+        <Card styles={{ body: { padding: 24  }}}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
               <Space>
@@ -419,7 +419,11 @@ const AdminUpload = () => {
             </Space>
 
             {contextLoading ? (
-              <Spin tip="กำลังตรวจสอบการตั้งค่า..." />
+              <Spin spinning={true} tip="กำลังตรวจสอบการตั้งค่า...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
             ) : (
               <Row gutter={[16, 16]}>
                 {prerequisites.map((item) => (
@@ -470,7 +474,7 @@ const AdminUpload = () => {
           </Space>
         </Card>
 
-        <Card bodyStyle={{ padding: 24 }}>
+        <Card styles={{ body: { padding: 24  }}}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Dragger
               accept=".csv,.xlsx"
@@ -531,7 +535,7 @@ const AdminUpload = () => {
         </Card>
 
         {summary && (
-          <Card bodyStyle={{ padding: 24 }}>
+          <Card styles={{ body: { padding: 24  }}}>
             <Title level={4} style={{ marginBottom: 16 }}>
               {isPreviewMode ? 'ตรวจสอบข้อมูลก่อนอัปโหลด' : 'สรุปผลการนำเข้า'}
             </Title>
@@ -560,22 +564,22 @@ const AdminUpload = () => {
             
             <Row gutter={[16, 16]}>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#f5f5f5' }}>
+                <Card size="small" variant="borderless" style={{ background: '#f5f5f5' }}>
                   <Statistic title="จำนวนรายการทั้งหมด" value={summary.total || 0} suffix="รายการ" />
                 </Card>
               </Col>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#f6ffed' }}>
+                <Card size="small" variant="borderless" style={{ background: '#f6ffed' }}>
                   <Statistic title="เพิ่มใหม่" value={summary.added || 0} suffix="รายการ" valueStyle={{ color: '#52c41a' }} />
                 </Card>
               </Col>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#e6f4ff' }}>
+                <Card size="small" variant="borderless" style={{ background: '#e6f4ff' }}>
                   <Statistic title="อัปเดตข้อมูล" value={summary.updated || 0} suffix="รายการ" valueStyle={{ color: '#1890ff' }} />
                 </Card>
               </Col>
               <Col xs={24} md={6}>
-                <Card size="small" bordered={false} style={{ background: '#fff1f0' }}>
+                <Card size="small" variant="borderless" style={{ background: '#fff1f0' }}>
                   <Statistic title="ข้อมูลไม่ถูกต้อง" value={summary.invalid || 0} suffix="รายการ" valueStyle={{ color: '#ff4d4f' }} />
                 </Card>
               </Col>
@@ -584,7 +588,7 @@ const AdminUpload = () => {
         )}
 
         <Card
-          bodyStyle={{ padding: 24 }}
+          styles={{ body: { padding: 24  }}}
           title={
             <Space>
               <FilterOutlined />

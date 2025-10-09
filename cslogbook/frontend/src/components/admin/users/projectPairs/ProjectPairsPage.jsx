@@ -329,7 +329,7 @@ const ProjectPairsPage = () => {
         ))}
       </div>
 
-      <Card bordered={false} style={{ padding: 0 }}>
+      <Card variant="borderless" style={{ padding: 0 }}>
         <div className="filter-section">
           <Row gutter={[16, 16]} style={{ width: '100%' }}>
             <Col xs={24} lg={10}>

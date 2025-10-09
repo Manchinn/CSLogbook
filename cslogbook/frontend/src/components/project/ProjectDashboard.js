@@ -136,7 +136,11 @@ const ProjectDashboard = () => {
           <Title level={4} style={{ margin: 0 }}>📘 แผงสรุปโครงงานพิเศษ</Title>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-              <Spin tip="กำลังโหลดข้อมูลโครงงาน" />
+              <Spin spinning={true} tip="กำลังโหลดข้อมูลโครงงาน">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
             </div>
           ) : !activeProject ? (
             <Paragraph type="secondary" style={{ marginBottom: 0 }}>

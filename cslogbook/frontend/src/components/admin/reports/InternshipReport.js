@@ -102,7 +102,7 @@ const InternshipReport = () => {
 					<Row gutter={[16,16]}>
 						{kpis.map((k,i)=>(
 							<Col xs={12} md={6} key={i}>
-								<Card loading={loading} size="small" headStyle={{minHeight:32}} bodyStyle={{padding:12}}>
+								<Card loading={loading} size="small" headStyle={{minHeight:32}} styles={{ body: {padding:12 }}}>
 									<Space direction="vertical" size={0}>
 										<span style={{color:'#888'}}>{k.title}</span>
 										<span style={{fontSize:26,fontWeight:600}}>{k.value}</span>
@@ -114,7 +114,7 @@ const InternshipReport = () => {
 
 			<Row gutter={[16,16]}>
 				<Col xs={24} md={14}>
-					<Card title="คะแนนเฉลี่ยรายหัวข้อ (ผู้ควบคุมงาน)" size="small" bodyStyle={{padding:12}}>
+					<Card title="คะแนนเฉลี่ยรายหัวข้อ (ผู้ควบคุมงาน)" size="small" styles={{ body: {padding:12 }}}>
 						{loading ? <Skeleton active /> : (
 							<Suspense fallback={<Skeleton active />}> 
 								<Bar {...criteriaConfig} />
@@ -123,7 +123,7 @@ const InternshipReport = () => {
 					</Card>
 				</Col>
 				<Col xs={24} md={10}>
-					<Card title="สัดส่วนสถานะการฝึกงาน" size="small" bodyStyle={{padding:12}}>
+					<Card title="สัดส่วนสถานะการฝึกงาน" size="small" styles={{ body: {padding:12 }}}>
 						{loading ? <Skeleton active /> : (
 							<Suspense fallback={<Skeleton active />}> 
 								<Pie {...completionPieConfig} />

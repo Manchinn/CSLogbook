@@ -544,7 +544,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           </Col>
         </Row>
 
-        <Card size="small" bodyStyle={{ padding: 16 }}>
+        <Card size="small" styles={{ body: { padding: 16  }}}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={6}>
               <Space direction="vertical" size={4}>

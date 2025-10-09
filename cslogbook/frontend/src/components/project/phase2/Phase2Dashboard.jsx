@@ -697,7 +697,7 @@ const Phase2Dashboard = () => {
   if (projectLoading) {
     return (
       <div style={containerStyle}>
-        <Card bodyStyle={{ padding: 32 }}>
+        <Card styles={{ body: { padding: 32  }}}>
           <Space align="center" style={{ width: '100%', justifyContent: 'center' }}>
             <Spin />
             <Text>กำลังโหลดข้อมูลโครงงาน...</Text>
@@ -764,7 +764,7 @@ const Phase2Dashboard = () => {
               {activeStepMeta?.desc || 'หน้ารายละเอียดขั้นตอนโครงงานพิเศษ 2'}
             </Paragraph>
           </Card>
-          <Card bodyStyle={{ padding: 16 }}>
+          <Card styles={{ body: { padding: 16  }}}>
             <Outlet />
           </Card>
         </Space>
