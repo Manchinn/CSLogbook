@@ -109,6 +109,8 @@ const Phase1Dashboard = () => {
     } else if (activeProject.examResult !== 'passed') {
       reasons.push('ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้');
     }
+    // อนุญาตให้เข้าถึงได้ทั้งสถานะ in_progress และ completed
+    // เพื่อให้นักศึกษาสามารถดูบันทึกการพบอาจารย์ย้อนหลังได้แม้โครงงานเสร็จสิ้นแล้ว
     if (!['in_progress', 'completed'].includes(activeProject.status)) {
       reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ"');
     }

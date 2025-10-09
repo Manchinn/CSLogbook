@@ -78,8 +78,17 @@ const MeetingLogbookPage = () => {
   const [createMeetingForm] = Form.useForm();
   const [createLogForm] = Form.useForm();
 
-  const canManage = useMemo(() => ['student', 'teacher', 'admin'].includes(userData?.role), [userData?.role]);
-  const canApprove = useMemo(() => ['teacher', 'admin'].includes(userData?.role), [userData?.role]);
+  const canManage = useMemo(() => {
+    // อนุญาตให้จัดการได้เฉพาะเมื่อโครงงานยังดำเนินการอยู่
+    const hasRole = ['student', 'teacher', 'admin'].includes(userData?.role);
+    const isProjectActive = activeProject?.status === 'in_progress';
+    return hasRole && isProjectActive;
+  }, [userData?.role, activeProject?.status]);
+  
+  const canApprove = useMemo(() => {
+    // อาจารย์และแอดมินสามารถอนุมัติได้แม้โครงงานเสร็จแล้ว
+    return ['teacher', 'admin'].includes(userData?.role);
+  }, [userData?.role]);
 
   const postTopicLockReasons = useMemo(() => {
     if (!activeProject) return [];
@@ -89,8 +98,9 @@ const MeetingLogbookPage = () => {
     } else if (activeProject.examResult !== 'passed') {
       reasons.push('ผลสอบหัวข้อยังไม่ผ่าน');
     }
-    if (activeProject.status !== 'in_progress') {
-      reasons.push('สถานะโครงงานยังไม่เป็น "กำลังดำเนินการ" (in_progress)');
+    // อนุญาตให้เข้าถึงได้ทั้งโครงงานที่กำลังดำเนินการและเสร็จแล้ว
+    if (!['in_progress', 'completed'].includes(activeProject.status || '')) {
+      reasons.push('สถานะโครงงานยังไม่อยู่ในขั้น "กำลังดำเนินการ" หรือ "เสร็จสิ้น"');
     }
     return reasons;
   }, [activeProject]);
@@ -152,7 +162,14 @@ const MeetingLogbookPage = () => {
   const currentPhaseLabel = MEETING_PHASE_LABELS[activePhase] || MEETING_PHASE_LABELS.phase1;
 
   const fetchMeetings = useCallback(async () => {
-    if (!activeProject?.projectId || isPostTopicLocked) return;
+    // อนุญาตให้ดึงข้อมูลได้แม้โครงงานจะเสร็จแล้ว เพื่อดูประวัติการพบอาจารย์
+    if (!activeProject?.projectId) return;
+    
+    // ตรวจสอบเฉพาะเงื่อนไขพื้นฐานที่จำเป็น
+    if (!activeProject.examResult || activeProject.examResult !== 'passed') {
+      return; // ยังไม่ผ่านการสอบหัวข้อ ไม่ต้องดึงข้อมูล
+    }
+    
     try {
       setListLoading(true);
       const res = await meetingService.listMeetings(activeProject.projectId);
@@ -167,16 +184,17 @@ const MeetingLogbookPage = () => {
     } finally {
       setListLoading(false);
     }
-  }, [activeProject?.projectId, isPostTopicLocked]);
+  }, [activeProject?.projectId, activeProject?.examResult]);
 
   useEffect(() => {
-    if (activeProject?.projectId && !isPostTopicLocked) {
+    // เรียก fetchMeetings เมื่อมี projectId และผ่านการสอบหัวข้อแล้ว
+    if (activeProject?.projectId && activeProject?.examResult === 'passed') {
       fetchMeetings();
     } else {
       setMeetings([]);
       setStats(null);
     }
-  }, [activeProject?.projectId, fetchMeetings, isPostTopicLocked]);
+  }, [activeProject?.projectId, activeProject?.examResult, fetchMeetings]);
 
   useEffect(() => {
     if (!canAccessPhase2 && activePhase === 'phase2') {
@@ -422,13 +440,6 @@ const MeetingLogbookPage = () => {
           onChange={(value) => setActivePhase(value)}
         />
       </Space>
-
-      <Alert
-        type="info"
-        showIcon
-        message="การอนุมัติบันทึกในระบบ"
-        description="หลังสร้างการประชุม ระบบจะส่งอีเมลแจ้งนัดหมายให้ผู้เข้าร่วมอัตโนมัติ และอาจารย์สามารถอนุมัติบันทึกได้โดยตรงใน CS Logbook"
-      />
 
       <Card>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
