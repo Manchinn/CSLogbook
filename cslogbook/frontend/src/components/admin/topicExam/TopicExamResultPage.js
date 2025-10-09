@@ -25,11 +25,12 @@ const { Title, Text } = Typography;
 export default function TopicExamResultPage() {
   const { records, filters, loading, error, reload, updateFilters, meta } = useTopicExamOverview();
   const [failModalOpen, setFailModalOpen] = useState(false);
+  const [passModalOpen, setPassModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  const [failForm] = Form.useForm();
+  const [passForm] = Form.useForm();
   const [advisorOptions, setAdvisorOptions] = useState([]);
-  const [advisorSelections, setAdvisorSelections] = useState({});
   const [advisorLoading, setAdvisorLoading] = useState(false);
 
   useEffect(() => {
@@ -62,39 +63,7 @@ export default function TopicExamResultPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!Array.isArray(records)) {
-      setAdvisorSelections((prev) => (Object.keys(prev).length ? {} : prev));
-      return;
-    }
-    setAdvisorSelections((prev) => {
-      const next = {};
-      records.forEach((project) => {
-        if (!project?.projectId) return;
-        if (Object.prototype.hasOwnProperty.call(prev, project.projectId)) {
-          next[project.projectId] = prev[project.projectId];
-        } else if (project?.advisor?.teacherId) {
-          next[project.projectId] = Number(project.advisor.teacherId);
-        } else {
-          next[project.projectId] = null;
-        }
-      });
-      const prevKeys = Object.keys(prev);
-      const nextKeys = Object.keys(next);
-      const unchanged =
-        prevKeys.length === nextKeys.length &&
-        nextKeys.every((key) => prev[key] === next[key]);
-      return unchanged ? prev : next;
-    });
-  }, [records]);
-
-  const advisorOptionMap = useMemo(() => {
-    const map = new Map();
-    advisorOptions.forEach((opt) => {
-      map.set(opt.value, opt.label);
-    });
-    return map;
-  }, [advisorOptions]);
+  // ไม่ต้อง sync การเลือกอาจารย์รายแถวในตารางอีกต่อไป เพราะจะเลือกผ่าน Modal เท่านั้น
 
   const academicYearOptions = useMemo(() => {
     const years = meta?.availableAcademicYears || [];
@@ -108,10 +77,7 @@ export default function TopicExamResultPage() {
     return semesters.map((sem) => ({ value: sem, label: `ภาคเรียนที่ ${sem}` }));
   }, [filters.academicYear, meta?.availableSemestersByYear]);
 
-  const handleAdvisorChange = useCallback((projectId, value) => {
-    const normalized = typeof value === 'number' ? value : (value ? Number(value) : null);
-    setAdvisorSelections((prev) => ({ ...prev, [projectId]: normalized }));
-  }, []);
+  // การเลือกอาจารย์ทำผ่าน Modal ฝั่ง "ผ่าน" เท่านั้น
 
   const handleAcademicYearChange = useCallback((value) => {
     updateFilters({ academicYear: value ?? null, semester: null, projectId: null });
@@ -121,54 +87,59 @@ export default function TopicExamResultPage() {
     updateFilters({ semester: value ?? null });
   }, [updateFilters]);
 
-  // ฟังก์ชันกดผ่าน (เรียก API จริง)
-  const handlePass = useCallback(async (project) => {
-    const advisorId = advisorSelections[project.projectId];
-    if (!advisorId) {
-      message.warning('กรุณาเลือกอาจารย์ที่ปรึกษาก่อนบันทึกผล');
-      return;
-    }
-    try {
-      await recordTopicExamResult(project.projectId, { result: 'passed', advisorId });
-      message.success(`บันทึกผล: ผ่าน – ${project.titleTh || project.titleEn || 'หัวข้อไม่มีชื่อ'}`);
-      reload();
-    } catch (e) {
-      message.error(e.response?.data?.message || 'บันทึกผลไม่สำเร็จ');
-    }
-  }, [advisorSelections, reload]);
-
-  // เปิด modal กรอกเหตุผลไม่ผ่าน
-  const openFailModal = (project) => {
+  // เปิด modal เลือกอาจารย์เมื่อกด "ผ่าน"
+  const openPassModal = (project) => {
     setSelectedProject(project);
-    form.resetFields();
-    const defaultAdvisor = advisorSelections[project.projectId] ?? project?.advisor?.teacherId ?? null;
-    form.setFieldsValue({
-      advisorId: defaultAdvisor || undefined,
-      reason: undefined
-    });
-    setFailModalOpen(true);
+    passForm.resetFields();
+    const defaultAdvisor = project?.advisor?.teacherId ? Number(project.advisor.teacherId) : undefined;
+    passForm.setFieldsValue({ advisorId: defaultAdvisor });
+    setPassModalOpen(true);
   };
 
-  const submitFail = async () => {
+  const submitPass = async () => {
     try {
-      const values = await form.validateFields();
+      const values = await passForm.validateFields();
       setSubmitting(true);
-      const advisorId = values.advisorId || advisorSelections[selectedProject.projectId];
+      const advisorId = values.advisorId;
       if (!advisorId) {
         message.warning('กรุณาเลือกอาจารย์ที่ปรึกษาก่อนบันทึกผล');
         setSubmitting(false);
         return;
       }
+      await recordTopicExamResult(selectedProject.projectId, { result: 'passed', advisorId });
+      message.success(`บันทึกผล: ผ่าน – ${selectedProject?.titleTh || selectedProject?.titleEn || 'หัวข้อไม่มีชื่อ'}`);
+      setPassModalOpen(false);
+      setSelectedProject(null);
+      passForm.resetFields();
+      reload();
+    } catch (err) {
+      if (err?.errorFields) return; // validation จาก antd form
+      message.error(err.response?.data?.message || 'บันทึกผลไม่สำเร็จ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // เปิด modal กรอกเหตุผลไม่ผ่าน
+  const openFailModal = (project) => {
+    setSelectedProject(project);
+    failForm.resetFields();
+    failForm.setFieldsValue({ reason: undefined });
+    setFailModalOpen(true);
+  };
+
+  const submitFail = async () => {
+    try {
+      const values = await failForm.validateFields();
+      setSubmitting(true);
       await recordTopicExamResult(selectedProject.projectId, {
         result: 'failed',
-        reason: values.reason,
-        advisorId
+        reason: values.reason
       });
-      setAdvisorSelections((prev) => ({ ...prev, [selectedProject.projectId]: advisorId }));
       message.success(`บันทึกผล: ไม่ผ่าน – ${selectedProject?.titleTh || selectedProject?.titleEn}`);
       setFailModalOpen(false);
       setSelectedProject(null);
-      form.resetFields();
+      failForm.resetFields();
       reload();
     } catch (err) {
       if (err?.errorFields) return; // validation จาก antd form
@@ -227,26 +198,10 @@ export default function TopicExamResultPage() {
       dataIndex: 'advisor',
       width: 220,
       render: (_, record) => {
-        const projectId = record.projectId;
-        const currentValue = advisorSelections[projectId] ?? null;
-        if (record.examResult) {
-          const label = advisorOptionMap.get(currentValue) || record.advisor?.name;
-          return label ? <Text>{label}</Text> : <Text type="secondary">(ยังไม่ระบุ)</Text>;
-        }
-        return (
-          <Select
-            placeholder="เลือกอาจารย์ที่ปรึกษา"
-            value={currentValue ?? undefined}
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: '100%' }}
-            options={advisorOptions}
-            loading={advisorLoading}
-            onChange={(value) => handleAdvisorChange(projectId, value)}
-            notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
-          />
-        );
+        // แสดงผลเฉพาะเมื่อมีการบันทึกผลสอบแล้ว
+        if (!record.examResult) return <Text type="secondary">—</Text>;
+        const label = record.advisor?.name;
+        return label ? <Text>{label}</Text> : <Text type="secondary">(ยังไม่ระบุ)</Text>;
       }
     },
     {
@@ -288,7 +243,7 @@ export default function TopicExamResultPage() {
           return (
             <Space>
               <Tooltip title="บันทึกผล: ผ่าน">
-                <Button type="primary" size="small" onClick={() => handlePass(record)}>ผ่าน</Button>
+                <Button type="primary" size="small" onClick={() => openPassModal(record)}>ผ่าน</Button>
               </Tooltip>
               <Tooltip title="บันทึกผล: ไม่ผ่าน (กรอกเหตุผล)">
                 <Button danger size="small" onClick={() => openFailModal(record)}>ไม่ผ่าน</Button>
@@ -337,18 +292,18 @@ export default function TopicExamResultPage() {
       />
 
       <Modal
-        title={<span><ExclamationCircleOutlined style={{ color: '#faad14', marginRight: 8 }} />บันทึกผล: ไม่ผ่าน</span>}
-        open={failModalOpen}
+        title={<span><ExclamationCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />บันทึกผล: ผ่าน</span>}
+        open={passModalOpen}
         onCancel={() => {
-          setFailModalOpen(false);
+          setPassModalOpen(false);
           setSelectedProject(null);
-          form.resetFields();
+          passForm.resetFields();
         }}
-        onOk={submitFail}
-        okText="ยืนยันผลไม่ผ่าน"
+        onOk={submitPass}
+        okText="ยืนยันผลผ่าน"
         confirmLoading={submitting}
       >
-        <Form form={form} layout="vertical">
+        <Form form={passForm} layout="vertical">
           <Form.Item label="หัวข้อ" style={{ marginBottom: 4 }}>
             <Text strong>{selectedProject?.titleTh || selectedProject?.titleEn || '—'}</Text>
           </Form.Item>
@@ -364,14 +319,27 @@ export default function TopicExamResultPage() {
               optionFilterProp="label"
               options={advisorOptions}
               loading={advisorLoading}
-              onChange={(value) => {
-                const normalized = typeof value === 'number' ? value : (value ? Number(value) : null);
-                if (selectedProject?.projectId) {
-                  setAdvisorSelections((prev) => ({ ...prev, [selectedProject.projectId]: normalized }));
-                }
-              }}
               notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
             />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<span><ExclamationCircleOutlined style={{ color: '#faad14', marginRight: 8 }} />บันทึกผล: ไม่ผ่าน</span>}
+        open={failModalOpen}
+        onCancel={() => {
+          setFailModalOpen(false);
+          setSelectedProject(null);
+          failForm.resetFields();
+        }}
+        onOk={submitFail}
+        okText="ยืนยันผลไม่ผ่าน"
+        confirmLoading={submitting}
+      >
+        <Form form={failForm} layout="vertical">
+          <Form.Item label="หัวข้อ" style={{ marginBottom: 4 }}>
+            <Text strong>{selectedProject?.titleTh || selectedProject?.titleEn || '—'}</Text>
           </Form.Item>
           <Form.Item
             label="เหตุผลที่ไม่ผ่าน"
