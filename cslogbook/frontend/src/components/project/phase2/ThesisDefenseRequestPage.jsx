@@ -17,7 +17,7 @@ import {
   Typography,
   message
 } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../../utils/dayjs';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import useStudentProject from '../../../hooks/useStudentProject';
@@ -47,7 +47,7 @@ const DEFAULT_REQUIRED_LOGS = 4;
 
 const ThesisDefenseRequestPage = () => {
   const navigate = useNavigate();
-  const { activeProject, loadProjects, currentStudentId } = useStudentProject({ autoLoad: true });
+  const { activeProject, loadProjects, currentStudentId, advisors, advisorLoading, loadAdvisors } = useStudentProject({ autoLoad: true });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,6 +101,32 @@ const ThesisDefenseRequestPage = () => {
       students: buildStudentContactList(project, payload)
     };
   }, [buildStudentContactList]);
+
+  // ฟังก์ชันสร้างชื่อแสดงของอาจารย์
+  const buildTeacherDisplayName = useCallback((teacher) => {
+    if (!teacher) return '';
+    const nameFromField = teacher.name || [teacher.firstName, teacher.lastName].filter(Boolean).join(' ').trim();
+    const code = teacher.teacherCode || teacher.code || teacher.teacher_id;
+    if (nameFromField && code) {
+      return `${nameFromField} (${code})`;
+    }
+    if (nameFromField) return nameFromField;
+    if (code) return `รหัสอาจารย์ ${code}`;
+    return '';
+  }, []);
+
+  // ชื่อแสดงของอาจารย์ที่ปรึกษา
+  const advisorDisplayName = useMemo(() => {
+    if (!activeProject) return '';
+    const directName = buildTeacherDisplayName(activeProject.advisor);
+    if (directName) return directName;
+    const advisorId = activeProject.advisorId || activeProject.advisor?.teacherId;
+    if (!advisorId) return '';
+    const matched = Array.isArray(advisors)
+      ? advisors.find((teacher) => Number(teacher.teacherId) === Number(advisorId))
+      : null;
+    return buildTeacherDisplayName(matched);
+  }, [activeProject, advisors, buildTeacherDisplayName]);
 
   const systemTestSnapshot = useMemo(() => {
     if (existingPayload?.systemTestSnapshot) {
@@ -166,14 +192,14 @@ const ThesisDefenseRequestPage = () => {
     if (!value) return '-';
     const dt = dayjs(value);
     if (!dt.isValid()) return '-';
-    return dt.format('DD/MM/YYYY HH:mm น.');
+    return dt.format('DD/MM/BBBB HH:mm น.');
   }, []);
 
   const formatDateOnly = useCallback((value) => {
     if (!value) return '-';
     const dt = dayjs(value);
     if (!dt.isValid()) return '-';
-    return dt.format('DD/MM/YYYY');
+    return dt.format('DD/MM/BBBB');
   }, []);
 
   const timelineItems = useMemo(() => {
@@ -350,10 +376,9 @@ const ThesisDefenseRequestPage = () => {
             )}
 
             <Descriptions bordered size="small" column={1} style={{ marginBottom: 24 }}>
-              <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
-              <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.projectNameTh || '-'}</Descriptions.Item>
-              <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.projectNameEn || '-'}</Descriptions.Item>
-              <Descriptions.Item label="อาจารย์ที่ปรึกษา">{activeProject.advisor?.name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงานพิเศษภาษาไทย">{activeProject.projectNameTh || '-'}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อโครงงานพิเศษภาษาอังกฤษ">{activeProject.projectNameEn || '-'}</Descriptions.Item>
+              <Descriptions.Item label="อาจารย์ที่ปรึกษา">{advisorDisplayName || '-'}</Descriptions.Item>
             </Descriptions>
 
             <Row gutter={[16, 16]}>
@@ -368,10 +393,13 @@ const ThesisDefenseRequestPage = () => {
                 <Alert
                   type={systemTestReady ? 'success' : 'warning'}
                   showIcon
-                  message={systemTestReady ? 'คำขอทดสอบระบบครบเงื่อนไขแล้ว' : 'ยังไม่ครบเงื่อนไขคำขอทดสอบระบบ'}
+                  message={systemTestReady ? 'ระบบทดสอบพร้อมแล้ว' : 'ระบบทดสอบยังไม่พร้อม'}
                   description={systemTestSnapshot ? (
                     <Space direction="vertical" size={0}>
-                      <Text>สถานะ: {systemTestSnapshot.status}</Text>
+                      <Text>สถานะ: {systemTestSnapshot.status === 'staff_approved' ? 'อนุมัติแล้ว' : 
+                                  systemTestSnapshot.status === 'pending' ? 'รอการอนุมัติ' : 
+                                  systemTestSnapshot.status === 'rejected' ? 'ไม่อนุมัติ' : 
+                                  systemTestSnapshot.status}</Text>
                       <Text>ครบกำหนด 30 วัน: {formatDateOnly(systemTestSnapshot.testDueDate)}</Text>
                       <Text>อัปโหลดหลักฐาน: {systemTestSnapshot.evidenceSubmittedAt ? formatDateTime(systemTestSnapshot.evidenceSubmittedAt) : 'ยังไม่อัปโหลด'}</Text>
                     </Space>
