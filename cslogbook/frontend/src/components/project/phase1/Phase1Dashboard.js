@@ -315,7 +315,20 @@ const Phase1Dashboard = () => {
           if (systemTestSummary.evidenceSubmittedAt) {
             setStatus('system-test', 'อัปโหลดหลักฐานครบแล้ว', 'green');
           } else {
-            setStatus('system-test', 'ต้องอัปโหลดหลักฐานหลังครบ 30 วัน', 'blue');
+            // ตรวจสอบว่าครบ 30 วันแล้วหรือยัง
+            const testDueDate = systemTestSummary.testDueDate;
+            if (testDueDate) {
+              const dueDate = dayjs(testDueDate);
+              const now = dayjs();
+              if (now.isAfter(dueDate)) {
+                setStatus('system-test', 'ต้องอัปโหลดหลักฐานการทดสอบ', 'red');
+              } else {
+                const daysLeft = dueDate.diff(now, 'day');
+                setStatus('system-test', `รอการทดสอบ (เหลือ ${daysLeft} วัน)`, 'blue');
+              }
+            } else {
+              setStatus('system-test', 'ต้องอัปโหลดหลักฐานหลังครบ 30 วัน', 'blue');
+            }
           }
           break;
         default:

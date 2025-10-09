@@ -269,7 +269,6 @@ const ThesisDefenseRequestPage = () => {
             ? formatDateTime(requestRecord.defenseScheduledAt)
             : 'ติดตามประกาศจากเจ้าหน้าที่ภายนอก'}
         </Descriptions.Item>
-        <Descriptions.Item label="สถานที่สอบ">{requestRecord?.defenseLocation || '-'}</Descriptions.Item>
       </Descriptions>
       {advisorApprovals.length > 0 && (
         <Space direction="vertical" size={4} style={{ width: '100%' }}>

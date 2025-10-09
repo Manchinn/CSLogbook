@@ -178,25 +178,35 @@ const buildSubmissionFromDocument = (doc, effectiveDeadlineAt, deadlineObj) => {
     return submission;
   }
 
-  submission.submitted = !!doc.submittedAt || ['approved', 'completed', 'supervisor_evaluated', 'acceptance_approved', 'referral_ready', 'referral_downloaded'].includes(doc.status);
-  submission.submittedAt = doc.submittedAt ? doc.submittedAt : null;
+  // ตรวจสอบว่าส่งเอกสารแล้วหรือไม่
+  const submittedStatuses = ['approved', 'completed', 'supervisor_evaluated', 'acceptance_approved', 'referral_ready', 'referral_downloaded', 'submitted'];
+  submission.submitted = !!doc.submittedAt || submittedStatuses.includes(doc.status);
+  submission.submittedAt = doc.submittedAt ? doc.submittedAt : (doc.createdAt ? doc.createdAt : null);
   submission.status = doc.status || null;
 
+  // คำนวณสถานะการส่งช้า
   if (submission.submittedAt && effectiveDeadlineAt) {
     const submittedMs = new Date(submission.submittedAt).getTime();
     const effMs = new Date(effectiveDeadlineAt).getTime();
+    
+    // คำนวณ grace period
     let graceEndMs = effMs;
     if (deadlineObj.allowLate && deadlineObj.gracePeriodMinutes) {
       graceEndMs = effMs + deadlineObj.gracePeriodMinutes * 60 * 1000;
     }
+    
+    // ตรวจสอบการส่งช้า
     if (submittedMs > effMs) {
       submission.late = true;
     }
+    
+    // ตรวจสอบการส่งหลัง grace period
     if (submittedMs > graceEndMs && deadlineObj.lockAfterDeadline) {
       submission.afterGrace = true;
     }
-  } else if (doc.isLate) {
-    submission.late = true;
+  } else if (doc.isLate !== undefined) {
+    // ใช้ค่า isLate จาก document ถ้ามี
+    submission.late = !!doc.isLate;
   }
 
   return submission;
@@ -275,23 +285,33 @@ module.exports.getAllForStudent = async (req, res) => {
 
     const studentId = req.user?.userId || req.user?.id;
     const documentsByDeadline = new Map();
+    
     if (studentId && all.length) {
       try {
         const { Document } = require('../models');
         const { Op } = require('sequelize');
         const deadlineIds = all.map(d => d.id).filter(Boolean);
+        
+        // ดึงเอกสารทั้งหมดที่เกี่ยวข้องกับ deadline และ student
         const docs = await Document.findAll({
           where: {
             userId: studentId,
             importantDeadlineId: { [Op.in]: deadlineIds },
           },
+          order: [['createdAt', 'DESC']] // เรียงตามวันที่สร้างล่าสุด
         }).catch(err => {
           console.error('[getAllForStudent] Document query error', err.message);
           return [];
         });
-        for (const d of docs) {
-          documentsByDeadline.set(d.importantDeadlineId, d);
+        
+        // จัดกลุ่มเอกสารตาม deadline (เอาเอกสารล่าสุดของแต่ละ deadline)
+        for (const doc of docs) {
+          if (!documentsByDeadline.has(doc.importantDeadlineId)) {
+            documentsByDeadline.set(doc.importantDeadlineId, doc);
+          }
         }
+        
+        console.log('[getAllForStudent] Found documents for deadlines:', Array.from(documentsByDeadline.keys()));
       } catch (e) {
         console.error('[getAllForStudent] enrich documents error', e.message);
       }
@@ -301,12 +321,54 @@ module.exports.getAllForStudent = async (req, res) => {
     const visible = all.filter(d => isPublishedForAudience(d, now));
 
     const enriched = visible
-      .map(d => mapDeadlineForResponse(d, { document: documentsByDeadline.get(d.id), now }))
+      .map(d => {
+        const document = documentsByDeadline.get(d.id);
+        const mapped = mapDeadlineForResponse(d, { document, now });
+        
+        // เพิ่มข้อมูลสำหรับ frontend ในรูปแบบที่ normalize function คาดหวัง
+        if (document) {
+          mapped.hasSubmission = true;
+          mapped.documentId = document.id;
+          mapped.documentStatus = document.status;
+          mapped.submittedAtLocal = document.submittedAt ? 
+            new Date(new Date(document.submittedAt).getTime() + 7 * 60 * 60 * 1000).toISOString() : null;
+          
+          // เพิ่ม submission object ที่ frontend normalize function ต้องการ
+          mapped.submission = {
+            submitted: true,
+            submittedAt: document.submittedAt || document.createdAt,
+            late: document.isLate || false,
+            status: document.status
+          };
+        } else {
+          mapped.hasSubmission = false;
+          mapped.documentId = null;
+          mapped.documentStatus = null;
+          mapped.submittedAtLocal = null;
+          mapped.submission = {
+            submitted: false,
+            submittedAt: null,
+            late: false,
+            status: null
+          };
+        }
+        
+        return mapped;
+      })
       .sort((a, b) => new Date(a.deadlineAt) - new Date(b.deadlineAt));
 
-    console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x => ({ id: x.id, name: x.name, sub: x.submission, deadlineDate: x.deadlineDate, deadlineTime: x.deadlineTime })));
+    console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x => ({ 
+      id: x.id, 
+      name: x.name, 
+      hasSubmission: x.hasSubmission,
+      submission: x.submission, 
+      deadlineDate: x.deadlineDate, 
+      deadlineTime: x.deadlineTime 
+    })));
+    
     res.json({ success: true, data: enriched });
   } catch (error) {
+    console.error('[getAllForStudent] Error:', error);
     res.status(400).json({ success: false, message: error.message });
   }
 };
