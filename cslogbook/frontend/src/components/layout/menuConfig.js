@@ -87,15 +87,9 @@ export const getMenuConfig = ({
             ...(canExportThesis
               ? [
                   {
-                    key: '/admin/thesis/kp02-queue',
-                    icon: <DownloadOutlined />,
-                    label: 'รายชื่อสอบปริญญานิพนธ์',
-                    onClick: () => navigate('/admin/thesis/kp02-queue'),
-                  },
-                  {
                     key: '/admin/thesis/staff-queue',
                     icon: <ProjectOutlined />,
-                    label: 'ตรวจสอบคำขอสอบ คพ.03',
+                    label: 'รายชื่อสอบปริญญานิพนธ์',
                     onClick: () => navigate('/admin/thesis/staff-queue'),
                   }
                 ]
