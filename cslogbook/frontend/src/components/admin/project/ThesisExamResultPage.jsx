@@ -407,28 +407,6 @@ const ThesisExamResultPage = () => {
             )}
           </Card>
         </Col>
-        <Col xs={24}>
-          <Card size="small" title="สถานะเล่มเอกสาร">
-            {doc ? (
-              <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                <Text>
-                  สถานะ: <Tag color={(DOCUMENT_STATUS_MAP[doc.status] || {}).color || 'default'}>{(DOCUMENT_STATUS_MAP[doc.status] || {}).text || doc.status || 'ไม่ทราบสถานะ'}</Tag>
-                </Text>
-                {doc.submittedAt && <Text>ส่งเมื่อ: {formatDateTime(doc.submittedAt)}</Text>}
-                {doc.reviewDate && doc.reviewer && (
-                  <Text>
-                    ตรวจโดย {doc.reviewer.firstName} {doc.reviewer.lastName} เมื่อ {formatDateTime(doc.reviewDate)}
-                  </Text>
-                )}
-                {typeof doc.downloadCount === 'number' && doc.downloadCount > 0 && (
-                  <Text>ดาวน์โหลดแล้ว {doc.downloadCount} ครั้ง</Text>
-                )}
-              </Space>
-            ) : (
-              <Alert type="warning" showIcon message="ยังไม่ได้ส่งเล่มเอกสารปริญญานิพนธ์" />
-            )}
-          </Card>
-        </Col>
       </Row>
     );
   }, [formatDateTime]);

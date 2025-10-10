@@ -100,7 +100,7 @@ const ProjectReport = () => {
 			<Row gutter={[16,16]}>
 				{kpis.map((k,i)=>(
 					<Col xs={12} md={6} key={i}>
-						<Card loading={loading} size="small" bodyStyle={{padding:12}}>
+						<Card loading={loading} size="small" styles={{ body: {padding:12 }}}>
 							<Space direction="vertical" size={4}>
 								<span style={{color:'#888',fontSize:12}}>{k.title}</span>
 								<span style={{fontSize:24,fontWeight:600}}>{k.value}</span>
@@ -120,7 +120,7 @@ const ProjectReport = () => {
 						children: (
 							<Row gutter={[16,16]}>
 								<Col xs={24} md={12}>
-									<Card size="small" title="สถานะข้อเสนอโครงงาน" bodyStyle={{padding:12}}>
+									<Card size="small" title="สถานะข้อเสนอโครงงาน" styles={{ body: {padding:12 }}}>
 										{loading ? <Skeleton active /> : (
 											hasProposalData ? (
 												<Suspense fallback={<Skeleton active />}> 
@@ -131,7 +131,7 @@ const ProjectReport = () => {
 									</Card>
 								</Col>
 								<Col xs={24} md={12}>
-									<Card size="small" title="ภาระงานอาจารย์" bodyStyle={{padding:12}}>
+									<Card size="small" title="ภาระงานอาจารย์" styles={{ body: {padding:12 }}}>
 										<Space direction="vertical" style={{width:'100%'}} size="small">
 											{advisorSummary && (
 												<Space wrap size={[12,4]} style={{fontSize:12,color:'#595959'}}>

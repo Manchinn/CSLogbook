@@ -325,7 +325,11 @@ const Project1DefenseSchedulePage = () => {
             <Divider style={{ margin: '12px 0' }} />
 
             {rowLoading[activeProject.projectId] && (
-              <Spin tip="กำลังโหลดข้อมูลคำขอสอบ..." />
+              <Spin spinning={true} tip="กำลังโหลดข้อมูลคำขอสอบ...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
             )}
 
             {!rowLoading[activeProject.projectId] && activeDefense === null && (

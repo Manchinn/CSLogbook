@@ -306,7 +306,7 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
                             locked={d.locked}
                           />
                           {submissionMeta && (
-                            <Tag color={submissionMeta.color} bordered={false}>
+                            <Tag color={submissionMeta.color} variant="borderless">
                               {submissionMeta.label}
                             </Tag>
                           )}

@@ -95,7 +95,7 @@ const SupportStaffDashboard = () => {
                 </Row>
                 <Row gutter={[16,16]}>
                   <Col span={24}>
-                    <Card title="แนวโน้ม Logbook (รายสัปดาห์)" size="small" bodyStyle={{padding:12}}>
+                    <Card title="แนวโน้ม Logbook (รายสัปดาห์)" size="small" styles={{ body: {padding:12 }}}>
                       {loading ? <Skeleton active /> : (
                         <Suspense fallback={<Skeleton active />}> 
                           <Line {...weeklyLineConfig} />
@@ -130,7 +130,7 @@ const SupportStaffDashboard = () => {
                 </Row>
                 <Row gutter={[16,16]}>
                   <Col xs={24} md={12}>
-                    <Card title="สถานะข้อเสนอโครงงาน" size="small" bodyStyle={{padding:12}}>
+                    <Card title="สถานะข้อเสนอโครงงาน" size="small" styles={{ body: {padding:12 }}}>
                       {loading ? <Skeleton active /> : (
                         <Suspense fallback={<Skeleton active />}> 
                           <Pie {...proposalPieConfig} />

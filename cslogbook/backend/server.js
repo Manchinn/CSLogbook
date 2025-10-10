@@ -341,16 +341,9 @@ app.use('/api/reports', authenticateToken, reportRoutes); // เส้นทา�
 // Topic Exam Overview routes (auth ภายในไฟล์ route เรียกเองแล้ว ไม่ต้องซ้ำที่นี่)
 app.use('/api/projects/topic-exam', topicExamRoutes);
 
-// Route to download CSV template
-app.get('/template/download-template', (req, res) => {
-  const filePath = path.join(__dirname, 'templates/student_template.csv');
-  res.download(filePath, 'student_template.csv', (err) => {
-    if (err) {
-      console.error('Error downloading template:', err);
-      res.status(500).send('Error downloading template');
-    }
-  });
-});
+// Template routes
+const templateRoutes = require('./routes/template');
+app.use('/template', templateRoutes);
 
 // API สำหรับอัปโหลดไฟล์พร้อมข้อมูล companyInfo
 app.post('/upload-with-info', upload.single('file'), (req, res) => {

@@ -302,7 +302,11 @@ const InternshipSummary = () => {
   if (loading) {
     return (
       <div className="loading-container">
-        <Spin size="large" tip="กำลังโหลดข้อมูล..." />
+        <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูล...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
       </div>
     );
   }

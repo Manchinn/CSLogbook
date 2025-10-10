@@ -474,7 +474,11 @@ const AcademicSettings = () => {
   const managerAcademicYear = deadlinesAcademicYear ?? currentYearValue;
 
   if (loading && !form.getFieldValue("currentAcademicYear")) {
-    return <Spin tip="กำลังโหลดข้อมูล..." />;
+    return <Spin spinning={true} tip="กำลังโหลดข้อมูล...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>;
   }
 
   const deadlinesTabContent = (
@@ -523,7 +527,7 @@ const AcademicSettings = () => {
           </Form.Item>
 
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
-            <Card className="settings-card" bodyStyle={{ padding: "16px 24px" }}>
+            <Card className="settings-card" styles={{ body: { padding: "16px 24px"  }}}>
               <Steps size="small" current={stepsCurrent} items={stepsItems} responsive />
             </Card>
 

@@ -212,7 +212,11 @@ const SupervisorEvaluation = () => {
     return (
       <Row justify="center" align="middle" style={{ minHeight: "100vh" }}>
         <Col>
-          <Spin size="large" tip="กำลังโหลดข้อมูลแบบประเมิน..." />
+          <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูลแบบประเมิน...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
         </Col>
       </Row>
     );
@@ -319,7 +323,7 @@ const SupervisorEvaluation = () => {
   return (
     <Row justify="center" style={{ marginTop: "20px", padding: "0 20px", marginBottom: "40px" }}>
       <Col xs={24} sm={22} md={20} lg={18} xl={16}>
-        <Card bordered={false} style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+        <Card variant="borderless" style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
           <Title level={2} style={{ textAlign: "center", marginBottom: "24px" }}>
             แบบประเมินผลการฝึกงาน
           </Title>

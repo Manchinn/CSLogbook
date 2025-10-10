@@ -40,7 +40,11 @@ const ThesisExamResultPage = lazy(() => import('./project/ThesisExamResultPage')
 // Loading component
 const LoadingComponent = () => (
   <div style={{ display: "flex", justifyContent: "center", padding: "50px" }}>
-    <Spin size="large" tip="กำลังโหลด..." />
+    <Spin size="large" spinning={true} tip="กำลังโหลด...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
   </div>
 );
 

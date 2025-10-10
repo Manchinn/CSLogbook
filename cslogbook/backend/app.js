@@ -90,17 +90,9 @@ app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // moun
 app.use('/api/project-members', projectMembersRoutes);
 app.use('/api', uploadRoutes);
 
-// เส้นทางดาวน์โหลดไฟล์เทมเพลต CSV สำหรับอัปโหลดรายชื่อนักศึกษา
-app.get('/template/download-template', (req, res) => {
-  const filePath = path.join(__dirname, 'templates/student_template.csv');
-
-  res.download(filePath, 'student_template.csv', (err) => {
-    if (err) {
-      console.error('Error downloading template:', err);
-      res.status(500).send('Error downloading template');
-    }
-  });
-});
+// Template routes
+const templateRoutes = require('./routes/template');
+app.use('/template', templateRoutes);
 
 // Fallback 404
 app.use((req, res) => {

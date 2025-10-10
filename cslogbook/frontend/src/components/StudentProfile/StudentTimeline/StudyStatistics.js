@@ -143,7 +143,11 @@ const StudyStatistics = ({ student, progress }) => {
         </div>
       }>
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" tip="กำลังโหลดข้อมูลสถิติ..." />
+          <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูลสถิติ...">
+        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{/* Loading content */}</div>
+        </div>
+      </Spin>
         </div>
       </Card>
     );
