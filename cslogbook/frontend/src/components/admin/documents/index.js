@@ -380,7 +380,7 @@ const OriginalDocumentManagement = ({ type }) => {
       <Space direction="vertical" size={24} style={{ width: "100%" }}>
         {/* Header */}
         <div>
-          <Title level={3} style={{ margin: 0 }}>
+          <Title level={4} style={{ margin: 0 }}>
             จัดการเอกสารฝึกงาน
           </Title>
           <Text type="secondary">

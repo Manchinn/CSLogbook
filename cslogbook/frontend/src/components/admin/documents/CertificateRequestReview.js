@@ -66,7 +66,7 @@ const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, 
         <Divider style={{ margin: '12px 0' }} />
         <Space>
           <Tooltip title={`${hourPct}%`}>
-            <Progress type="circle" width={70} percent={hourPct} status={eligibility.hours.passed ? 'success' : 'active'} />
+            <Progress type="circle" size={70} percent={hourPct} status={eligibility.hours.passed ? 'success' : 'active'} />
           </Tooltip>
           <Tag color={eligibility.hours.passed ? 'green' : 'orange'}>
             ชั่วโมง {eligibility.hours.current}/{eligibility.hours.required}
