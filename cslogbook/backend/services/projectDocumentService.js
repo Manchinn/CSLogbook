@@ -758,14 +758,14 @@ class ProjectDocumentService {
   /**
    * บันทึกผลสอบหัวข้อโครงงาน
    */
-  async setExamResult(projectId, { result, reason, advisorId, actorUser }) {
+  async setExamResult(projectId, { result, reason, advisorId, actorUser, allowOverwrite = false }) {
     ensureModels();
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t, lock: t.LOCK.UPDATE });
       if (!project) throw new Error('ไม่พบโครงงาน');
-      // ป้องกันการบันทึกซ้ำ (อนุญาต overwrite? ตอนนี้ไม่อนุญาต เพื่อลดความสับสน)
-      if (project.examResult) {
+      // ป้องกันการบันทึกซ้ำ (อนุญาต overwrite เมื่อ allowOverwrite = true)
+      if (project.examResult && !allowOverwrite) {
         throw new Error('มีการบันทึกผลสอบหัวข้อนี้แล้ว');
       }
       const updatePayload = {

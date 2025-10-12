@@ -361,7 +361,6 @@ const ThesisExamResultPage = () => {
   const expandedRowRender = useCallback((project) => {
     const examResult = project.examResults && project.examResults.length > 0 ? project.examResults[0] : null;
     const defense = project.defenseRequests && project.defenseRequests.length > 0 ? project.defenseRequests[0] : null;
-    const doc = project.finalDocument;
 
     return (
       <Row gutter={[24, 16]}>
@@ -448,27 +447,28 @@ const ThesisExamResultPage = () => {
           </Col>
         </Row>
 
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} lg={10}>
-            <Input
-              placeholder="ค้นหาโครงงานหรือชื่อนักศึกษา"
-              value={filters.search}
-              onChange={onSearchChange}
-              prefix={<SearchOutlined />}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} lg={14} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Space size="small" wrap>
-              <Select
-                style={{ width: 160 }}
-                placeholder="สถานะ"
-                options={STATUS_OPTIONS}
-                value={filters.status}
-                onChange={onStatusChange}
+        <Card size="small" styles={{ body: { padding: 16 } }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} lg={10}>
+              <Input
+                placeholder="ค้นหาโครงงานหรือชื่อนักศึกษา"
+                value={filters.search}
+                onChange={onSearchChange}
+                prefix={<SearchOutlined />}
+                allowClear
               />
-              <Select
-                style={{ width: 140 }}
+            </Col>
+            <Col xs={24} lg={14} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Space size="small" wrap>
+                <Select
+                  style={{ width: 160 }}
+                  placeholder="สถานะ"
+                  options={STATUS_OPTIONS}
+                  value={filters.status}
+                  onChange={onStatusChange}
+                />
+                <Select
+                  style={{ width: 140 }}
                 placeholder="ปีการศึกษา"
                 allowClear
                 options={availableAcademicYears.map((year) => ({ label: year, value: year }))}
@@ -493,6 +493,7 @@ const ThesisExamResultPage = () => {
             </Space>
           </Col>
         </Row>
+        </Card>
 
         <Spin spinning={loading} tip="กำลังโหลดข้อมูล">
           <Table

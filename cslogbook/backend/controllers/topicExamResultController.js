@@ -10,7 +10,7 @@ module.exports = {
       if (!['admin','teacher'].includes(req.user.role) || (req.user.role === 'teacher' && req.user.teacherType !== 'support')) {
         return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์บันทึกผลสอบหัวข้อ' });
       }
-      const { result, reason, advisorId } = req.body || {};
+      const { result, reason, advisorId, allowOverwrite } = req.body || {};
       if (!['passed','failed'].includes(result)) {
         return res.status(400).json({ success: false, message: 'result ต้องเป็น passed หรือ failed' });
       }
@@ -38,7 +38,8 @@ module.exports = {
         result,
         reason: result === 'failed' ? reason.trim() : null,
         advisorId: validatedAdvisorId,
-        actorUser: req.user
+        actorUser: req.user,
+        allowOverwrite: Boolean(allowOverwrite) // รองรับการแก้ไขผล
       });
       return res.json({ success: true, data: project });
     } catch (error) {

@@ -47,7 +47,7 @@ const DEFAULT_REQUIRED_LOGS = 4;
 
 const ThesisDefenseRequestPage = () => {
   const navigate = useNavigate();
-  const { activeProject, loadProjects, currentStudentId, advisors, advisorLoading, loadAdvisors } = useStudentProject({ autoLoad: true });
+  const { activeProject, loadProjects, currentStudentId, advisors, } = useStudentProject({ autoLoad: true });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);

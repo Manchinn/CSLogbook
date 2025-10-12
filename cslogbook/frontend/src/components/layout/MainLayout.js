@@ -6,6 +6,7 @@ import BackgroundParticles from "./BackgroundParticles";
 import { Outlet } from "react-router-dom";
 import "./MainLayout.css";
 import "./ResponsiveAdjustments.css";
+import "./ResponsiveUtilities.css";
 import "./MobileOptimizations.css";
 import "./GlassMorphism.css";
 import "./LayoutFixes.css"; // Import the new layout fixes

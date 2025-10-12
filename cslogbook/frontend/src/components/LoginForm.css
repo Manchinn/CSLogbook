@@ -5,7 +5,12 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 48px 24px;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  padding: var(--spacing-xl) var(--spacing-md);
+  padding-top: max(var(--spacing-xl), env(safe-area-inset-top));
+  padding-bottom: max(var(--spacing-xl), env(safe-area-inset-bottom));
+  padding-left: max(var(--spacing-md), env(safe-area-inset-left));
+  padding-right: max(var(--spacing-md), env(safe-area-inset-right));
   background: linear-gradient(135deg, #f3f7ff 0%, #e2ecff 35%, #fdf2f8 100%);
   overflow: hidden;
 }
@@ -52,8 +57,8 @@
   max-width: 1080px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
-  gap: 32px;
-  padding: 24px;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 24px 80px rgba(15, 33, 58, 0.15);
@@ -64,14 +69,14 @@
 .login-brand-panel {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding: 16px 24px 16px 16px;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-sm);
 }
 
 .login-brand-header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-xs);
 }
 
 .login-brand-title {
@@ -159,9 +164,11 @@
 
 .login-input {
   height: 50px !important;
+  min-height: 44px !important; /* Minimum touch target */
   border-radius: 12px !important;
   border: 1px solid rgba(16, 42, 99, 0.12) !important;
   transition: all 0.25s ease !important;
+  font-size: var(--font-size-md) !important;
 }
 
 .login-input:hover,
@@ -172,14 +179,15 @@
 
 .login-input .ant-input-prefix {
   color: rgba(16, 42, 99, 0.4);
-  margin-right: 10px;
+  margin-right: var(--spacing-xs);
   font-size: 18px;
 }
 
 .login-button {
   height: 52px !important;
+  min-height: 44px !important; /* Minimum touch target */
   border-radius: 12px !important;
-  font-size: 16px !important;
+  font-size: var(--font-size-md) !important;
   font-weight: 600 !important;
   letter-spacing: 0.3px;
   background: linear-gradient(135deg, #1890ff 0%, #096dd9 50%, #1d39c4 100%) !important;
@@ -213,11 +221,11 @@
 @media (max-width: 992px) {
   .login-layout {
     grid-template-columns: 1fr;
-    padding: 32px 28px;
+    padding: var(--spacing-lg) var(--spacing-md);
   }
 
   .login-brand-panel {
-    padding-right: 16px;
+    padding-right: var(--spacing-sm);
   }
 
   .login-card {
@@ -228,12 +236,14 @@
 
 @media (max-width: 576px) {
   .login-container {
-    padding: 32px 18px;
+    padding: var(--spacing-lg) var(--spacing-sm);
+    padding-top: max(var(--spacing-lg), env(safe-area-inset-top));
+    padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
   }
 
   .login-layout {
-    padding: 24px 18px;
-    gap: 24px;
+    padding: var(--spacing-md) var(--spacing-sm);
+    gap: var(--spacing-md);
   }
 
   .login-brand-panel {
@@ -242,20 +252,59 @@
 
   .login-highlight {
     grid-template-columns: 52px 1fr;
-    gap: 14px;
-    padding: 16px;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
   }
 
   .login-card {
-    padding: 28px !important;
+    padding: var(--spacing-md) !important;
   }
 
   .login-input {
     height: 48px !important;
+    min-height: 44px !important;
+    font-size: var(--font-size-sm) !important;
   }
 
   .login-button {
     height: 48px !important;
+    min-height: 44px !important;
+    font-size: var(--font-size-sm) !important;
+  }
+}
+
+/* Landscape mode optimization for mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .login-container {
+    padding: var(--spacing-sm);
+    align-items: flex-start;
+  }
+  
+  .login-layout {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+  
+  .login-brand-panel {
+    display: none; /* Hide brand panel in landscape to save space */
+  }
+  
+  .login-card {
+    padding: var(--spacing-sm) !important;
+  }
+}
+
+/* Enhanced mobile touch targets */
+@media (hover: none) and (pointer: coarse) {
+  .login-input,
+  .login-button {
+    min-height: 48px !important;
+    padding: var(--spacing-sm) !important;
+  }
+  
+  .login-input .ant-input-prefix {
+    font-size: 20px;
   }
 }
 

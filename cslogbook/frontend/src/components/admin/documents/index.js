@@ -15,27 +15,38 @@ import {
   Select,
   Modal,
   Form,
-  Input as AntInput
+  Input as AntInput,
+  Statistic,
+  Spin,
 } from "antd";
 import {
   SearchOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
-  FileExclamationOutlined,
-  FileDoneOutlined,
   CloseCircleOutlined,
   FileProtectOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
 import dayjs from "../../../utils/dayjs";
 import { DATE_TIME_FORMAT } from "../../../utils/constants";
 import CertificateManagement from "./CertificateManagement";
-import { internshipApprovalService } from "../../../services/internshipApprovalService"; // ใช้สำหรับ "ตรวจและส่งต่อ" เอกสารฝึกงาน
-import { documentService } from "../../../services/admin/documentService"; // ใช้สำหรับอัปเดตสถานะเอกสารทั่วไป
+import { internshipApprovalService } from "../../../services/internshipApprovalService";
+import { documentService } from "../../../services/admin/documentService";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
+
+// Container style ตาม StaffKP02Queue pattern
+const containerStyle = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  padding: "24px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 24,
+};
 
 const DocumentManagement = ({ type }) => {
   const [activeTab, setActiveTab] = useState("documents");
@@ -69,7 +80,7 @@ const DocumentManagement = ({ type }) => {
   ];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+    <div style={containerStyle}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Tabs
           activeKey={activeTab}
@@ -94,21 +105,20 @@ const OriginalDocumentManagement = ({ type }) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  
   // Modal ปฏิเสธ
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const [form] = Form.useForm();
-  //const [documentType, setDocumentType] = useState("");
 
   // ใช้ custom hook
   const {
     documents,
-    statistics,
     isLoading,
     rejectDocument,
     refetch,
   } = useDocuments({
-    type, // ใช้ type จาก props
+    type,
     status: filters.status,
     search: filters.search,
   });
@@ -142,22 +152,36 @@ const OriginalDocumentManagement = ({ type }) => {
   const filteredDocuments = useMemo(() => {
     return documents.filter(
       (doc) =>
-        // เงื่อนไขกรองตามสถานะ (ถ้าเลือก "ทั้งหมด" จะผ่านทุกสถานะ)
         (filters.status === "" || doc.status === filters.status) &&
         (
           doc.document_name
             ?.toLowerCase()
             .includes(filters.search.toLowerCase()) ||
           doc.student_name?.toLowerCase().includes(filters.search.toLowerCase())
-        ) /* &&
-        (
-          documentType === "" ||
-          doc.document_type
-            ?.toLowerCase()
-            .includes(documentType.toLowerCase())
-        ) */
+        )
     );
   }, [documents, filters]);
+
+  // สรุปสถิติตาม StaffKP02Queue pattern
+  const summary = useMemo(() => {
+    const total = filteredDocuments.length;
+    const pending = filteredDocuments.filter(doc => doc.status === "pending" && !doc.reviewerId).length;
+    const reviewing = filteredDocuments.filter(doc => doc.status === "pending" && doc.reviewerId).length;
+    const approved = filteredDocuments.filter(doc => doc.status === "approved").length;
+    const rejected = filteredDocuments.filter(doc => doc.status === "rejected").length;
+    const cs05 = filteredDocuments.filter(doc => doc.document_name?.toUpperCase() === "CS05").length;
+    const acceptanceLetter = filteredDocuments.filter(doc => doc.document_name?.toUpperCase() === "ACCEPTANCE_LETTER").length;
+
+    return {
+      total,
+      pending,
+      reviewing,
+      approved,
+      rejected,
+      cs05,
+      acceptanceLetter
+    };
+  }, [filteredDocuments]);
 
   // คอลัมน์ตาราง
   const columns = useMemo(
@@ -167,7 +191,6 @@ const OriginalDocumentManagement = ({ type }) => {
         dataIndex: "document_name",
         key: "document_name",
         render: (text, record) => {
-          // แปลชื่อเอกสารเป็นภาษาไทยตามที่ร้องขอ
           const upper = (text || '').toUpperCase();
           let display = text;
           if (upper === 'CS05') display = 'คำร้องขอฝึกงาน (คพ.05)';
@@ -187,7 +210,7 @@ const OriginalDocumentManagement = ({ type }) => {
       },
       {
         title: "วันที่อัปโหลด",
-        dataIndex: "created_at", // หรือ updated_at หากต้องการใช้ updated_at
+        dataIndex: "created_at",
         key: "created_at",
         render: (text) => dayjs(text).format(DATE_TIME_FORMAT),
         sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
@@ -197,11 +220,6 @@ const OriginalDocumentManagement = ({ type }) => {
         dataIndex: "status",
         key: "status",
         render: (status, record) => {
-          // กำหนดข้อความตามเงื่อนไข:
-          // - pending + ไม่มี reviewerId => "รอตรวจสอบ"
-          // - pending + มี reviewerId => "รอหัวหน้าภาคอนุมัติ"
-          // - approved => "อนุมัติ"
-          // - rejected => "ปฏิเสธ"
           const isPending = status === "pending";
           const hasReviewer = !!record.reviewerId;
           const color = isPending ? "orange" : status === "approved" ? "green" : status === "rejected" ? "red" : "default";
@@ -217,34 +235,44 @@ const OriginalDocumentManagement = ({ type }) => {
           return <Tag color={color}>{text}</Tag>;
         },
       },
+      {
+        title: "การจัดการ",
+        key: "actions",
+        width: 120,
+        render: (_, record) => (
+          <Space size="small">
+            <Tooltip title="ดูรายละเอียด">
+              <Button
+                type="text"
+                icon={<EyeOutlined />}
+                onClick={() => showDocumentDetails(record.id)}
+                size="small"
+              />
+            </Tooltip>
+          </Space>
+        ),
+      },
     ],
     [showDocumentDetails]
   );
 
   // การจัดการเหตุการณ์
   const handleApproveSelectedDocuments = useCallback(async () => {
-    // ปรับตาม workflow ใหม่: เจ้าหน้าที่ภาค "ตรวจและส่งต่อ"
-    // - ถ้าเป็น CS05 เรียก endpoint เฉพาะ: reviewByStaff (status = pending + reviewerId)
-    // - ถ้าเป็นเอกสารอื่น (เช่น Acceptance Letter) ใช้ admin /documents/:id/status ให้เป็น pending เพื่อบันทึก reviewerId
     try {
-      // หาเอกสารจากตารางตาม selectedRowKeys เพื่อรู้ชนิดเอกสาร
       const idToDoc = new Map(filteredDocuments.map((d) => [d.id, d]));
 
       const ops = selectedRowKeys.map((documentId) => {
         const doc = idToDoc.get(documentId);
-  const name = doc?.document_name?.toUpperCase() || '';
+        const name = doc?.document_name?.toUpperCase() || '';
 
-        // เงื่อนไขถือเป็น CS05 เมื่อชื่อเอกสารคือ CS05
         const isCS05 = name === 'CS05';
 
         if (isCS05) {
           return internshipApprovalService.reviewByStaff(documentId, null);
         }
-        // สำหรับ Acceptance Letter: ตรวจและส่งต่อเหมือน CS05 (pending + reviewerId)
         if (name === 'ACCEPTANCE_LETTER') {
           return internshipApprovalService.reviewAcceptanceByStaff(documentId, null);
         }
-        // เอกสารอื่นคงเดิม: อนุมัติผ่าน admin route
         return documentService.approveDocument(documentId);
       });
 
@@ -273,7 +301,7 @@ const OriginalDocumentManagement = ({ type }) => {
       setSelectedRowKeys([]);
       setRejectModalOpen(false);
     } catch (error) {
-      if (error?.errorFields) return; // validation error
+      if (error?.errorFields) return;
       message.error("เกิดข้อผิดพลาดในการปฏิเสธเอกสาร");
     } finally {
       setRejectSubmitting(false);
@@ -284,94 +312,138 @@ const OriginalDocumentManagement = ({ type }) => {
     () => ({
       selectedRowKeys,
       onChange: setSelectedRowKeys,
-      // ป้องกันการเลือกเอกสารที่ถูกส่งต่อแล้ว (มี reviewerId แล้ว)
       getCheckboxProps: (record) => ({ disabled: !!record.reviewerId }),
     }),
     [selectedRowKeys]
   );
 
+
   // JSX
   return (
-    <div className="admin-document-container" style={{ padding: "24px" }}>
-      <Card>
-        {/* ส่วนแสดงสถิติ */}
-        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-          <Col>
-            <Space size="large">
-              {/* เอกสารทั้งหมด */}
-              <Space>
-                <FileTextOutlined
-                  style={{ fontSize: "24px", color: "#1890ff" }}
-                />
-                <Text>เอกสารทั้งหมด: {statistics.total}</Text>
-              </Space>
-              {/* เพิ่มประเภทเอกสาร CS05 */}
-              <Space>
-                <FileTextOutlined
-                  style={{ fontSize: "24px", color: "#722ed1" }}
-                />
-                <Text>CS05 {statistics.cs05}</Text>
-              </Space>
-              {/* เพิ่มประเภทเอกสาร ACCEPTANCE_LETTER */}
-              <Space>
-                <FileTextOutlined
-                  style={{ fontSize: "24px", color: "#13c2c2" }}
-                />
-                <Text>Acceptance Letter: {statistics.acceptanceLetter}</Text>
-              </Space>
-              {/* เอกสารรอตรวจสอบ */}
-              <Space>
-                <FileExclamationOutlined
-                  style={{ fontSize: "24px", color: "#fa8c16" }}
-                />
-                <Text>รอตรวจสอบ: {statistics.pending}</Text>
-              </Space>
-              {/* เอกสารอนุมัติแล้ว */}
-              <Space>
-                <FileDoneOutlined
-                  style={{ fontSize: "24px", color: "#52c41a" }}
-                />
-                <Text>อนุมัติแล้ว: {statistics.approved}</Text>
-              </Space>
-              {/* เอกสารปฏิเสธแล้ว */}
-              <Space>
-                <CloseCircleOutlined
-                  style={{ fontSize: "24px", color: "#f5222d" }}
-                />
-                <Text>ปฏิเสธแล้ว: {statistics.rejected}</Text>
-              </Space>
-            </Space>
+    <div style={containerStyle}>
+      <Space direction="vertical" size={24} style={{ width: "100%" }}>
+        {/* Header */}
+        <div>
+          <Title level={4} style={{ margin: 0 }}>
+            จัดการเอกสารฝึกงาน
+          </Title>
+          <Text type="secondary">
+            ตรวจสอบและอนุมัติเอกสารฝึกงานของนักศึกษา
+          </Text>
+        </div>
+
+        {/* Summary Statistics Cards */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="รอตรวจสอบ"
+                value={summary.pending}
+                suffix="รายการ"
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="รอหัวหน้าภาคอนุมัติ"
+                value={summary.reviewing}
+                suffix="รายการ"
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="อนุมัติแล้ว"
+                value={summary.approved}
+                suffix="รายการ"
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="ทั้งหมด"
+                value={summary.total}
+                suffix="รายการ"
+              />
+            </Card>
           </Col>
         </Row>
 
-          {/* ส่วนตัวกรอง */}
-          <Row gutter={[16, 16]} style={{ marginBottom: "16px" }} align="middle">
-            <Col xs={24} md={12}>
-              <Input
-                placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
-                value={filters.search}
-                onChange={(e) => setSearchText(e.target.value)}
-                prefix={<SearchOutlined />}
-                allowClear
+        {/* Document Type Statistics */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="คำร้องขอฝึกงาน (คพ.05)"
+                value={summary.cs05}
+                suffix="รายการ"
               />
-            </Col>
-            <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Space size="small" wrap>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="หนังสือตอบรับ"
+                value={summary.acceptanceLetter}
+                suffix="รายการ"
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="ปฏิเสธแล้ว"
+                value={summary.rejected}
+                suffix="รายการ"
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Filters Section */}
+        <Card size="small" styles={{ body: { padding: 16 } }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} md={6}>
+              <Space direction="vertical" size={4}>
+                <Text strong>สถานะเอกสาร</Text>
                 <Select
-                  size="small"
-                  style={{ width: 160 }}
-                  placeholder="สถานะ"
+                  style={{ width: "100%" }}
+                  placeholder="เลือกสถานะ"
+                  value={filters.status}
+                  onChange={setStatusFilter}
                   options={[
                     { label: "ทั้งหมด", value: "" },
                     { label: "รอตรวจสอบ", value: "pending" },
                     { label: "อนุมัติแล้ว", value: "approved" },
                     { label: "ปฏิเสธแล้ว", value: "rejected" },
                   ]}
-                  value={filters.status}
-                  onChange={setStatusFilter}
                   allowClear
                 />
-                <Button icon={<ReloadOutlined />} onClick={refetch}>รีเฟรช</Button>
+              </Space>
+            </Col>
+            <Col xs={24} md={6}>
+              <Space direction="vertical" size={4}>
+                <Text strong>ค้นหา</Text>
+                <Input
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
+                  value={filters.search}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </Space>
+            </Col>
+            <Col xs={24} md={12} style={{ textAlign: 'right' }}>
+              <Space wrap>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={refetch}
+                >
+                  รีเฟรช
+                </Button>
                 {filters.status === "pending" && (
                   <>
                     <Tooltip title={`ตรวจและส่งต่อที่เลือก (${selectedRowKeys.length})`}>
@@ -380,7 +452,6 @@ const OriginalDocumentManagement = ({ type }) => {
                         onClick={handleApproveSelectedDocuments}
                         disabled={selectedRowKeys.length === 0}
                         icon={<CheckCircleOutlined />}
-                        size="small"
                       >
                         ตรวจและส่งต่อที่เลือก
                       </Button>
@@ -391,18 +462,28 @@ const OriginalDocumentManagement = ({ type }) => {
                         onClick={openRejectModal}
                         disabled={selectedRowKeys.length === 0}
                         icon={<CloseCircleOutlined />}
-                        size="small"
                       >
                         ปฏิเสธที่เลือก
                       </Button>
                     </Tooltip>
                   </>
                 )}
+                <Button
+                  danger
+                  onClick={() => {
+                    setFilters({ status: "", search: "" });
+                    setSelectedRowKeys([]);
+                  }}
+                >
+                  รีเซ็ตตัวกรอง
+                </Button>
               </Space>
             </Col>
           </Row>
+        </Card>
 
-          {/* ตารางเอกสาร */}
+        {/* Table with Expandable Rows */}
+        <Spin spinning={isLoading} tip="กำลังโหลดข้อมูล">
           <Table
             loading={isLoading}
             rowSelection={filters.status === "pending" ? rowSelection : null}
@@ -418,8 +499,8 @@ const OriginalDocumentManagement = ({ type }) => {
             bordered
             title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
           />
-        </Card>
-      
+        </Spin>
+      </Space>
 
       {/* Modal แสดงรายละเอียดเอกสาร */}
       <DocumentDetails
@@ -428,6 +509,7 @@ const OriginalDocumentManagement = ({ type }) => {
         onClose={closeDocumentDetails}
       />
 
+      {/* Modal ปฏิเสธ */}
       <Modal
         title="ระบุเหตุผลการปฏิเสธ"
         open={rejectModalOpen}
