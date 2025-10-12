@@ -18,8 +18,6 @@ import {
   Input as AntInput,
   Statistic,
   Spin,
-  Alert,
-  Descriptions
 } from "antd";
 import {
   SearchOutlined,
@@ -107,7 +105,6 @@ const OriginalDocumentManagement = ({ type }) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [expandedRowKey, setExpandedRowKey] = useState(null);
   
   // Modal ปฏิเสธ
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -320,59 +317,6 @@ const OriginalDocumentManagement = ({ type }) => {
     [selectedRowKeys]
   );
 
-  // Expandable row render
-  const expandedRowRender = useCallback((record) => {
-    return (
-      <Row gutter={[24, 16]}>
-        <Col xs={24} md={12}>
-          <Card size="small" title="ข้อมูลเพิ่มเติม">
-            <Descriptions column={1} size="small">
-              <Descriptions.Item label="รหัสนักศึกษา">
-                {record.student_id || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="อีเมล">
-                {record.student_email || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="ขนาดไฟล์">
-                {record.file_size ? `${(record.file_size / 1024 / 1024).toFixed(2)} MB` : "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="ประเภทไฟล์">
-                {record.file_type || "-"}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
-        </Col>
-        <Col xs={24} md={12}>
-          <Card size="small" title="ประวัตการดำเนินการ">
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <Text>
-                <strong>วันที่อัปโหลด:</strong> {dayjs(record.created_at).format(DATE_TIME_FORMAT)}
-              </Text>
-              {record.updated_at && (
-                <Text>
-                  <strong>อัปเดตล่าสุด:</strong> {dayjs(record.updated_at).format(DATE_TIME_FORMAT)}
-                </Text>
-              )}
-              {record.reviewerId && (
-                <Text>
-                  <strong>ผู้ตรวจสอบ:</strong> {record.reviewer_name || "ระบบ"}
-                </Text>
-              )}
-              {record.rejection_reason && (
-                <Alert
-                  type="error"
-                  message="เหตุผลการปฏิเสธ"
-                  description={record.rejection_reason}
-                  showIcon
-                  size="small"
-                />
-              )}
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-    );
-  }, []);
 
   // JSX
   return (
@@ -554,12 +498,6 @@ const OriginalDocumentManagement = ({ type }) => {
             }}
             bordered
             title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
-            expandable={{
-              expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
-              onExpand: (expanded, record) =>
-                setExpandedRowKey(expanded ? record.id : null),
-              expandedRowRender,
-            }}
           />
         </Spin>
       </Space>

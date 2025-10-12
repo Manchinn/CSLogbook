@@ -313,7 +313,6 @@ const ProjectPairsPage = () => {
 
       <div className="statistics-chips">
         <div className="statistic-item" key="total-projects">
-          <ProjectPairsHeadlineIcon />
           <Space direction="vertical" size={0}>
             <Text type="secondary">จำนวนโครงงานทั้งหมด</Text>
             <Title level={4} style={{ margin: 0 }}>{summary.total}</Title>
