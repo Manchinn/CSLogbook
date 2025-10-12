@@ -29,7 +29,8 @@ import {
   EyeOutlined,
   SearchOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import { downloadTopicExamExport } from '../../../services/topicExamService';
@@ -64,10 +65,12 @@ export default function TopicExamResultPage() {
   const { records, filters, loading, error, reload, updateFilters, meta } = useTopicExamOverview();
   const [failModalOpen, setFailModalOpen] = useState(false);
   const [passModalOpen, setPassModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [failForm] = Form.useForm();
   const [passForm] = Form.useForm();
+  const [editForm] = Form.useForm();
   const [advisorOptions, setAdvisorOptions] = useState([]);
   const [advisorLoading, setAdvisorLoading] = useState(false);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
@@ -199,6 +202,60 @@ export default function TopicExamResultPage() {
     } catch (err) {
       if (err?.errorFields) return; // validation จาก antd form
       message.error(err.response?.data?.message || 'บันทึกผลไม่สำเร็จ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // เปิด modal แก้ไขผลการบันทึก
+  const openEditModal = useCallback((project) => {
+    setSelectedProject(project);
+    editForm.resetFields();
+    
+    // ตั้งค่าเริ่มต้นตามผลปัจจุบัน
+    if (project.examResult === 'passed') {
+      const defaultAdvisor = project?.advisor?.teacherId ? Number(project.advisor.teacherId) : undefined;
+      editForm.setFieldsValue({ 
+        result: 'passed',
+        advisorId: defaultAdvisor 
+      });
+    } else if (project.examResult === 'failed') {
+      editForm.setFieldsValue({ 
+        result: 'failed',
+        reason: project.failReason || ''
+      });
+    }
+    
+    setEditModalOpen(true);
+  }, [editForm]);
+
+  const submitEdit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      setSubmitting(true);
+      
+      const payload = { result: values.result };
+      
+      if (values.result === 'passed') {
+        if (!values.advisorId) {
+          message.warning('กรุณาเลือกอาจารย์ที่ปรึกษาก่อนบันทึกผล');
+          setSubmitting(false);
+          return;
+        }
+        payload.advisorId = values.advisorId;
+      } else if (values.result === 'failed') {
+        payload.reason = values.reason;
+      }
+      
+      await recordTopicExamResult(selectedProject.projectId, payload, true); // ส่ง isEdit = true
+      message.success(`แก้ไขผลการบันทึกเรียบร้อย – ${selectedProject?.titleTh || selectedProject?.titleEn || 'หัวข้อไม่มีชื่อ'}`);
+      setEditModalOpen(false);
+      setSelectedProject(null);
+      editForm.resetFields();
+      reload();
+    } catch (err) {
+      if (err?.errorFields) return; // validation จาก antd form
+      message.error(err.response?.data?.message || 'แก้ไขผลการบันทึกไม่สำเร็จ');
     } finally {
       setSubmitting(false);
     }
@@ -388,11 +445,24 @@ export default function TopicExamResultPage() {
             </Space>
           );
         }
-        return <Text type="secondary">บันทึกแล้ว</Text>;
+        return (
+          <Space>
+            <Text type="secondary">บันทึกแล้ว</Text>
+            <Tooltip title="แก้ไขผลการบันทึก">
+              <Button 
+                size="small" 
+                icon={<EditOutlined />}
+                onClick={() => openEditModal(record)}
+              >
+                แก้ไข
+              </Button>
+            </Tooltip>
+          </Space>
+        );
       }
     });
     return list;
-  }, [baseColumns, openPassModal, openFailModal]);
+  }, [baseColumns, openPassModal, openFailModal, openEditModal]);
 
   const previewColumns = useMemo(() => baseColumns, [baseColumns]);
 
@@ -645,6 +715,93 @@ export default function TopicExamResultPage() {
             <Input.TextArea rows={4} placeholder="เช่น ขอบเขตกว้างไป / วัตถุประสงค์ยังไม่ชัด / ยังไม่มีข้อมูลอ้างอิง" />
           </Form.Item>
           <Alert type="warning" showIcon message="ระบบจะบันทึกเหตุผลและเวลา (timestamp) ทันทีหลังยืนยัน" />
+        </Form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        title={<span><EditOutlined style={{ color: '#1890ff', marginRight: 8 }} />แก้ไขผลการบันทึก</span>}
+        open={editModalOpen}
+        onCancel={() => {
+          setEditModalOpen(false);
+          setSelectedProject(null);
+          editForm.resetFields();
+        }}
+        onOk={submitEdit}
+        okText="ยืนยันการแก้ไข"
+        confirmLoading={submitting}
+        width={600}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item label="หัวข้อ" style={{ marginBottom: 16 }}>
+            <Text strong>{selectedProject?.titleTh || selectedProject?.titleEn || '—'}</Text>
+          </Form.Item>
+          
+          <Form.Item
+            label="ผลการสอบ"
+            name="result"
+            rules={[{ required: true, message: 'เลือกผลการสอบ' }]}
+          >
+            <Select placeholder="เลือกผลการสอบ">
+              <Select.Option value="passed">ผ่าน</Select.Option>
+              <Select.Option value="failed">ไม่ผ่าน</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.result !== currentValues.result}
+          >
+            {({ getFieldValue }) => {
+              const result = getFieldValue('result');
+              
+              if (result === 'passed') {
+                return (
+                  <Form.Item
+                    label="อาจารย์ที่ปรึกษา"
+                    name="advisorId"
+                    rules={[{ required: true, message: 'เลือกอาจารย์ที่ปรึกษา' }]}
+                  >
+                    <Select
+                      placeholder="เลือกอาจารย์ที่ปรึกษา"
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      options={advisorOptions}
+                      loading={advisorLoading}
+                      notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
+                    />
+                  </Form.Item>
+                );
+              }
+              
+              if (result === 'failed') {
+                return (
+                  <Form.Item
+                    label="เหตุผลที่ไม่ผ่าน"
+                    name="reason"
+                    rules={[
+                      { required: true, message: 'กรอกเหตุผล' }, 
+                      { min: 5, message: 'ควรอย่างน้อย 5 ตัวอักษร' }
+                    ]}
+                  >
+                    <Input.TextArea 
+                      rows={4} 
+                      placeholder="เช่น ขอบเขตกว้างไป / วัตถุประสงค์ยังไม่ชัด / ยังไม่มีข้อมูลอ้างอิง" 
+                    />
+                  </Form.Item>
+                );
+              }
+              
+              return null;
+            }}
+          </Form.Item>
+          
+          <Alert 
+            type="info" 
+            showIcon 
+            message="การแก้ไขจะเขียนทับข้อมูลเดิม และบันทึกเวลาการแก้ไขล่าสุด" 
+          />
         </Form>
       </Modal>
     </div>

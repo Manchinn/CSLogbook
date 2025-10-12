@@ -21,7 +21,7 @@ function normalizeAdvisorId(rawAdvisorId) {
   return numeric;
 }
 
-export async function recordTopicExamResult(projectId, payload = {}) {
+export async function recordTopicExamResult(projectId, payload = {}, isEdit = false) {
   const result = normalizeResult(payload.result ?? payload.examResult);
   const advisorId = normalizeAdvisorId(payload.advisorId ?? payload.selectedAdvisorId);
 
@@ -29,6 +29,10 @@ export async function recordTopicExamResult(projectId, payload = {}) {
 
   if (advisorId !== undefined) {
     requestBody.advisorId = advisorId;
+  }
+
+  if (isEdit) {
+    requestBody.allowOverwrite = true; // ส่ง allowOverwrite เมื่อเป็นการแก้ไข
   }
 
   if (result === 'failed') {
