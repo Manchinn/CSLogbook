@@ -348,7 +348,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           return (
             <Space direction="vertical" size={2}>
               {members.map((member) => (
-                <Text key={member.studentId}>
+                <Text key={member.studentId} style={{ fontSize: 12 }}>
                   {member.studentCode || ""} {member.name || ""}
                 </Text>
               ))}

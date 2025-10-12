@@ -413,7 +413,6 @@ export default function TopicExamResultPage() {
                 title="รอบันทึกผล"
                 value={summary.pending}
                 suffix="รายการ"
-                valueStyle={{ color: '#fa8c16' }}
               />
             </Card>
           </Col>
@@ -423,7 +422,6 @@ export default function TopicExamResultPage() {
                 title="ผ่าน"
                 value={summary.passed}
                 suffix="รายการ"
-                valueStyle={{ color: '#52c41a' }}
               />
             </Card>
           </Col>
@@ -433,7 +431,6 @@ export default function TopicExamResultPage() {
                 title="ไม่ผ่าน"
                 value={summary.failed}
                 suffix="รายการ"
-                valueStyle={{ color: '#ff4d4f' }}
               />
             </Card>
           </Col>
