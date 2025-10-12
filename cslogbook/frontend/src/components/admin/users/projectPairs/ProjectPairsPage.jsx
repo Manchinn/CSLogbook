@@ -19,10 +19,8 @@ import {
   Typography
 } from 'antd';
 import {
-  BarChartOutlined,
   ReloadOutlined,
   SearchOutlined,
-  TeamOutlined
 } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { fetchProjectPairs } from '../../../../services/projectPairsService';
@@ -531,12 +529,5 @@ const ProjectPairsPage = () => {
     </div>
   );
 };
-
-const ProjectPairsHeadlineIcon = () => (
-  <Space size={4}>
-    <TeamOutlined />
-    <BarChartOutlined />
-  </Space>
-);
 
 export default ProjectPairsPage;
