@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, Typography, Space, Spin, Tag, List, Divider, Avatar } from 'antd';
+import { Card, Typography, Space, Spin, Tag, List, Avatar } from 'antd';
 import { UserOutlined, TeamOutlined, ProfileOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from '../../utils/dayjs';
 import useStudentProject from '../../hooks/useStudentProject';
@@ -23,8 +23,6 @@ const statusMeta = {
   archived: { label: 'ถูกเก็บถาวร', color: 'purple' },
   failed: { label: 'ไม่ผ่าน', color: 'red' },
 };
-
-const readinessColor = (pass) => (pass ? 'green' : 'gold');
 
 const renderMemberRole = (role) => {
   if (!role) return 'สมาชิก';
@@ -101,19 +99,12 @@ const ProjectDashboard = () => {
     activeProject,
     advisors,
     projects,
-    readiness,
-    canActivate,
-    activationReadiness,
     loading,
   } = useStudentProject();
 
   const members = useMemo(() => (
     Array.isArray(activeProject?.members) ? activeProject.members : []
   ), [activeProject?.members]);
-
-  const readinessItems = useMemo(() => (
-    Array.isArray(readiness) ? readiness : []
-  ), [readiness]);
 
   const updatedAtText = useMemo(() => {
     if (!activeProject?.updatedAt && !activeProject?.updated_at) return null;

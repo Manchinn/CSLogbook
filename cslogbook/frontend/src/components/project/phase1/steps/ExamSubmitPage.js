@@ -106,7 +106,6 @@ const ExamSubmitPage = () => {
   const {
     deadlines: projectDeadlines,
     upcoming: upcomingProjectDeadlines,
-    loading: projectDeadlineLoading
   } = useProjectDeadlines({ academicYear: projectAcademicYear });
   const [form] = Form.useForm();
   const [loadingRequest, setLoadingRequest] = useState(false);

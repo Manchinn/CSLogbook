@@ -361,7 +361,6 @@ const ThesisExamResultPage = () => {
   const expandedRowRender = useCallback((project) => {
     const examResult = project.examResults && project.examResults.length > 0 ? project.examResults[0] : null;
     const defense = project.defenseRequests && project.defenseRequests.length > 0 ? project.defenseRequests[0] : null;
-    const doc = project.finalDocument;
 
     return (
       <Row gutter={[24, 16]}>
