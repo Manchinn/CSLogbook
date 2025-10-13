@@ -190,7 +190,7 @@ class AgentStatusService {
             securityMonitor: 'ทุก 1 ชั่วโมง',
             logbookQualityMonitor: 'ทุก 24 ชั่วโมง',
             eligibilityChecker: 'เมื่อมีการเปลี่ยนแปลงข้อมูล',
-            eligibilityScheduler: 'ทุกวันเที่ยงคืน',
+            eligibilityScheduler: 'ทุกเดือน (วันที่ 1)',
             projectPurgeScheduler: 'ทุกสัปดาห์',
             academicSemesterScheduler: 'ทุกเดือน'
         };

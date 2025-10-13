@@ -6,11 +6,11 @@ const cron = require('node-cron');
 const { updateAllStudentsEligibility } = require('../eligibilityUpdater');
 const logger = require('../../utils/logger');
 
-// ตั้งเวลารันทุกวันเวลาเที่ยงคืน
+// ตั้งเวลารันทุกเดือนตามตัวจัดการภาคการศึกษา
 const scheduleEligibilityUpdate = () => {
-  // ตั้งค่าให้รันทุกวันเวลา 00:00 น. (เที่ยงคืน)
-  cron.schedule('0 0 * * *', async () => {
-    logger.info('เริ่มงานปรับปรุงสถานะสิทธิ์นักศึกษาอัตโนมัติ');
+  // ตั้งค่าให้รันวันที่ 1 ของทุกเดือนเวลา 00:00 น. (เที่ยงคืน)
+  cron.schedule('0 0 1 * *', async () => {
+    logger.info('เริ่มงานปรับปรุงสถานะสิทธิ์นักศึกษาอัตโนมัติ (รายเดือน)');
     
     try {
       // อัพเดตสถานะสิทธิ์นักศึกษา
@@ -29,7 +29,7 @@ const scheduleEligibilityUpdate = () => {
     timezone: 'Asia/Bangkok' // ตั้งเป็นเวลาประเทศไทย
   });
   
-  logger.info('ตั้งค่า scheduler ปรับปรุงสถานะสิทธิ์นักศึกษาสำเร็จ (รันทุกวันเวลา 00:00 น.)');
+  logger.info('ตั้งค่า scheduler ปรับปรุงสถานะสิทธิ์นักศึกษาสำเร็จ (รันทุกเดือนวันที่ 1 เวลา 00:00 น.)');
 };
 
 module.exports = {
