@@ -8,6 +8,7 @@ import LoginForm from './components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentProfile from './components/StudentProfile/index';
 import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
+import ProjectManagement from './components/student/ProjectManagement';
 
 // Import Internship Components
 import CS05Form from './components/internship/registration/CS05Form';
@@ -221,6 +222,13 @@ const App = () => {
                 <Route path="/project-requirements" element={
                   <ProtectedRoute roles={['student']}>
                     <ProjectRequirements />
+                  </ProtectedRoute>
+                } />
+
+                {/* เพิ่มเส้นทางสำหรับจัดการโครงงานพิเศษของนักศึกษา */}
+                <Route path="/student/projects" element={
+                  <ProtectedRoute roles={['student']}>
+                    <ProjectManagement />
                   </ProtectedRoute>
                 } />
 

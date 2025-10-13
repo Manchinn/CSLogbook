@@ -418,13 +418,13 @@ class TimelineService {
             status: student.internshipStatus,
             currentStep: internshipCurrentStep || 'ยังไม่เริ่มต้น',
             overallStatus: internshipActivity?.overallWorkflowStatus || 'not_started',
-            lastUpdated: internshipActivity?.updatedAt || null
+            lastUpdated: internshipActivity?.updated_at || null
           },
           project: {
             status: student.projectStatus,
             currentStep: projectCurrentStep || 'ยังไม่เริ่มต้น',
             overallStatus: projectActivity?.overallWorkflowStatus || 'not_started',
-            lastUpdated: projectActivity?.updatedAt || null
+            lastUpdated: projectActivity?.updated_at || null
           }
         };
       }));
@@ -448,7 +448,7 @@ class TimelineService {
     try {
       return await sequelize.models.StudentWorkflowActivity.findOne({
         where: { studentId, workflowType },
-        attributes: ['currentStepKey', 'currentStepStatus', 'overallWorkflowStatus', 'updatedAt']
+        attributes: ['currentStepKey', 'currentStepStatus', 'overallWorkflowStatus', 'updated_at']
       });
     } catch (error) {
       logger.error(`TimelineService: Error getting workflow activity for ${workflowType}:`, error);

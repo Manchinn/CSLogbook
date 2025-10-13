@@ -62,8 +62,8 @@ class ProjectMilestoneService {
       feedback: m.feedback,
       submittedAt: m.submittedAt,
       reviewedAt: m.reviewedAt,
-      createdAt: m.createdAt,
-      updatedAt: m.updatedAt
+      createdAt: m.created_at,
+      updatedAt: m.updated_at
     };
   }
 }

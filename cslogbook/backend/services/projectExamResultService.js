@@ -269,7 +269,7 @@ class ProjectExamResultService {
       documentName: doc.documentName ?? doc.document_name ?? null,
       status: doc.status ?? null,
       reviewDate: getTimestamp(doc.reviewDate, 'review_date'),
-      submittedAt: getTimestamp(doc.submittedAt, 'submitted_at') || getTimestamp(doc.createdAt, 'created_at'),
+      submittedAt: getTimestamp(doc.submittedAt, 'submitted_at') || getTimestamp(doc.created_at, 'created_at'),
       downloadStatus: doc.downloadStatus ?? doc.download_status ?? null,
       downloadCount: doc.downloadCount ?? doc.download_count ?? 0,
       reviewer: doc.reviewer

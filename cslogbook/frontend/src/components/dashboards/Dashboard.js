@@ -684,9 +684,6 @@ function Dashboard() {
                               meeting.projectTitleEn ||
                               "ไม่ระบุ"}
                           </span>
-                          {meeting.projectCode ? (
-                            <span>รหัสโครงงาน: {meeting.projectCode}</span>
-                          ) : null}
                           {meeting.students?.length ? (
                             <span>
                               นักศึกษา:{" "}

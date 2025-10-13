@@ -19,11 +19,13 @@ import {
   Typography
 } from 'antd';
 import {
+  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { fetchProjectPairs } from '../../../../services/projectPairsService';
+import AddProjectModal from '../../projects/AddProjectModal';
 import '../students/styles.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -79,6 +81,7 @@ const ProjectPairsPage = () => {
     projectType: []
   });
   const [drawerState, setDrawerState] = useState({ open: false, project: null });
+  const [addModalVisible, setAddModalVisible] = useState(false);
 
   const loadProjectPairs = useCallback(async () => {
     setLoading(true);
@@ -193,6 +196,21 @@ const ProjectPairsPage = () => {
     setDrawerState({ open: false, project: null });
   }, []);
 
+  // Handler functions สำหรับ AddProjectModal
+  const handleAddProject = useCallback(() => {
+    setAddModalVisible(true);
+  }, []);
+
+  const handleAddModalCancel = useCallback(() => {
+    setAddModalVisible(false);
+  }, []);
+
+  const handleAddModalSuccess = useCallback(() => {
+    setAddModalVisible(false);
+    loadProjectPairs(); // Refresh data หลังเพิ่มโครงงานสำเร็จ
+    message.success('เพิ่มโครงงานพิเศษสำเร็จ');
+  }, [loadProjectPairs]);
+
   const columns = useMemo(() => [
     {
       title: 'โครงงาน',
@@ -207,7 +225,6 @@ const ProjectPairsPage = () => {
             <Text type="secondary">{record.projectNameEn}</Text>
           )}
           <Space size={4} wrap>
-            {record.projectCode && <Tag color="default">{record.projectCode}</Tag>}
             {record.projectType && (
               <Tag color="gold">{projectTypeLabels[record.projectType] || record.projectType}</Tag>
             )}
@@ -304,11 +321,20 @@ const ProjectPairsPage = () => {
 
   return (
     <div className="admin-student-container project-pairs-page">
-      <div>
-        <Title level={3} className="title">ข้อมูลคู่โปรเจค</Title>
-        <Text type="secondary">สรุปข้อมูลโครงงานและสมาชิกสำหรับเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์</Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+        <div>
+          <Title level={3} className="title">ข้อมูลคู่โปรเจค</Title>
+          <Text type="secondary">สรุปข้อมูลโครงงานและสมาชิกสำหรับเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์</Text>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />}
+          size="large"
+          onClick={handleAddProject}
+        >
+          เพิ่มโครงงานพิเศษ
+        </Button>
       </div>
-
       <div className="statistics-chips">
         <div className="statistic-item" key="total-projects">
           <Space direction="vertical" size={0}>
@@ -415,9 +441,6 @@ const ProjectPairsPage = () => {
             <Descriptions column={1} bordered size="small">
               <Descriptions.Item label="ชื่อภาษาอังกฤษ">
                 {drawerState.project.projectNameEn || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="รหัสโครงงาน">
-                {drawerState.project.projectCode || '-'}
               </Descriptions.Item>
               <Descriptions.Item label="สถานะโครงงาน">
                 {getStatusTag(drawerState.project.status)}
@@ -526,6 +549,12 @@ const ProjectPairsPage = () => {
           <Empty description="ไม่พบข้อมูลโครงงาน" />
         )}
       </Drawer>
+      {/* Add Project Modal */}
+    <AddProjectModal
+      visible={addModalVisible}
+      onCancel={handleAddModalCancel}
+      onSuccess={handleAddModalSuccess}
+    />
     </div>
   );
 };

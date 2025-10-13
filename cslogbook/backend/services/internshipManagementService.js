@@ -22,6 +22,7 @@ const {
 const emailService = require("../utils/mailer.js");
 const crypto = require("crypto");
 const notificationSettingsService = require("./notificationSettingsService"); // เพิ่มบรรทัดนี้
+const logger = require("../utils/logger");
 
 /**
  * Service สำหรับจัดการการฝึกงาน
@@ -545,7 +546,7 @@ class InternshipManagementService {
    * ดึงข้อมูลสรุปการฝึกงาน
    */
   async getInternshipSummary(userId) {
-    console.log(`[getInternshipSummary] Starting for userId: ${userId}`);
+    logger.info(`[getInternshipSummary] Starting for userId: ${userId}`);
 
     // ดึงข้อมูลครบถ้วนในครั้งเดียวด้วย Sequelize associations
     // เริ่มจาก User เพราะ Document associate กับ User โดยตรง
@@ -598,7 +599,7 @@ class InternshipManagementService {
     });
 
     if (!userWithInternship) {
-      console.log(`[getInternshipSummary] No user found for userId: ${userId}`);
+      logger.warn(`[getInternshipSummary] No user found for userId: ${userId}`);
       throw new Error(
         "ไม่พบข้อมูลผู้ใช้หรือข้อมูลการฝึกงานที่ได้รับการอนุมัติ"
       );
@@ -606,7 +607,7 @@ class InternshipManagementService {
 
     // ตรวจสอบว่ามีข้อมูลนักศึกษาหรือไม่
     if (!userWithInternship.student) {
-      console.log(
+      logger.warn(
         `[getInternshipSummary] No student data found for userId: ${userId}`
       );
       throw new Error("ไม่พบข้อมูลนักศึกษา");
@@ -617,13 +618,13 @@ class InternshipManagementService {
     const internshipDoc = latestDocument.internshipDocument;
 
     if (!internshipDoc) {
-      console.log(`[getInternshipSummary] No internship document found`);
+      logger.warn(`[getInternshipSummary] No internship document found`);
       throw new Error("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
     }
 
     // ดึงข้อมูลบันทึกฝึกงาน (logbooks) ที่ได้จาก include
     const logbooks = internshipDoc.logbooks || [];
-    console.log(
+    logger.info(
       `[getInternshipSummary] Found ${logbooks.length} logbook entries`
     );
 
@@ -645,7 +646,7 @@ class InternshipManagementService {
     let reflectionData = null;
 
     try {
-      console.log(
+      logger.info(
         `[getInternshipSummary] Fetching reflection for student_id: ${userWithInternship.student.studentId}, internship_id: ${internshipDoc.internshipId}`
       );
 
@@ -658,7 +659,7 @@ class InternshipManagementService {
       });
 
       if (reflectionEntry) {
-        console.log(`[getInternshipSummary] Found reflection entry`);
+        logger.info(`[getInternshipSummary] Found reflection entry`);
 
         // รวมข้อมูล reflection หลายฟิลด์เป็น learning outcome
         const reflectionParts = [];
@@ -694,10 +695,10 @@ class InternshipManagementService {
           improvements: reflectionEntry.improvements || "",
         };
       } else {
-        console.log(`[getInternshipSummary] No reflection entry found`);
+        logger.info(`[getInternshipSummary] No reflection entry found`);
       }
     } catch (reflectionError) {
-      console.error(
+      logger.error(
         `[getInternshipSummary] Error fetching reflection for student_id ${userWithInternship.student.studentId}, internship_id ${internshipDoc.internshipId}:`,
         reflectionError
       );
@@ -1003,7 +1004,7 @@ class InternshipManagementService {
    */
   async getSupervisorEvaluationFormDetails(token) {
     try {
-      console.log(`🔍 กำลังดึงข้อมูลแบบประเมินสำหรับ token: ${token}`);
+      logger.info(`🔍 กำลังดึงข้อมูลแบบประเมินสำหรับ token: ${token}`);
 
       // 1. ตรวจสอบ token และดึงข้อมูลการประเมิน
       const approvalToken = await ApprovalToken.findOne({
@@ -1023,7 +1024,7 @@ class InternshipManagementService {
         throw new Error("ลิงก์การประเมินหมดอายุแล้ว");
       }
 
-      console.log(`✅ Token ถูกต้อง:`, {
+      logger.info(`✅ Token ถูกต้อง:`, {
         tokenId: approvalToken.tokenId,
         documentId: approvalToken.documentId,
         studentId: approvalToken.studentId,
@@ -1063,7 +1064,7 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลการฝึกงาน");
       }
 
-      console.log(`✅ ดึงข้อมูลเอกสารสำเร็จ:`, {
+      logger.info(`✅ ดึงข้อมูลเอกสารสำเร็จ:`, {
         documentId: document.documentId,
         hasInternshipDoc: !!document.internshipDocument,
         userId: document.userId,
@@ -1084,7 +1085,7 @@ class InternshipManagementService {
 
       if (!student || !student.user) {
         // ✅ ถ้าไม่พบ ใช้ข้อมูลจาก approvalToken แทน
-        console.warn(
+        logger.warn(
           `⚠️ ไม่พบข้อมูลนักศึกษาสำหรับ userId: ${document.userId}, ใช้ข้อมูลจาก token`
         );
       }
@@ -1128,13 +1129,13 @@ class InternshipManagementService {
         },
       };
 
-      console.log(
+      logger.info(
         `✅ ดึงข้อมูลแบบประเมินสำเร็จสำหรับนักศึกษา: ${formData.studentInfo.fullName}`
       );
 
       return formData;
     } catch (error) {
-      console.error("❌ Error in getSupervisorEvaluationFormDetails:", error);
+      logger.error("❌ Error in getSupervisorEvaluationFormDetails:", error);
       throw error;
     }
   }
@@ -1169,7 +1170,7 @@ class InternshipManagementService {
         studentCode: student.studentCode,
       };
     } catch (error) {
-      console.error("Error getting student from userId:", error);
+      logger.error("Error getting student from userId:", error);
       throw error;
     }
   }
@@ -1181,7 +1182,7 @@ class InternshipManagementService {
     const transaction = await sequelize.transaction();
 
     try {
-      console.log(`🔍 กำลังบันทึกผลการประเมินสำหรับ token: ${token}`);
+      logger.info(`🔍 กำลังบันทึกผลการประเมินสำหรับ token: ${token}`);
 
       // ตรวจสอบ token
       const approvalToken = await ApprovalToken.findOne({
@@ -1336,7 +1337,7 @@ class InternshipManagementService {
 
       await transaction.commit();
 
-      console.log(
+      logger.info(
         `✅ บันทึกผลการประเมินสำเร็จสำหรับ evaluationId: ${evaluation.evaluationId}`
       );
 
@@ -1349,13 +1350,13 @@ class InternshipManagementService {
           );
 
         if (!isEvaluationNotificationEnabled) {
-          console.log("⚠️ การแจ้งเตือน EVALUATION ถูกปิดใช้งาน");
+          logger.info("⚠️ การแจ้งเตือน EVALUATION ถูกปิดใช้งาน");
         } else {
           // ✅ ใช้ฟังก์ชันใหม่ที่ง่ายกว่า
           const studentData = await this.getStudentFromUserId(document.userId);
 
           if (studentData && studentData.email) {
-            console.log(`📧 กำลังส่งอีเมลแจ้งเตือนไปยัง: ${studentData.email}`);
+            logger.info(`📧 กำลังส่งอีเมลแจ้งเตือนไปยัง: ${studentData.email}`);
 
             await emailService.sendEvaluationSubmittedNotificationToStudent(
               studentData.email,
@@ -1364,13 +1365,13 @@ class InternshipManagementService {
               evaluationData.supervisorName
             );
 
-            console.log(
+            logger.info(
               `✅ ส่งอีเมลแจ้งเตือนสำเร็จไปยัง: ${studentData.email}`
             );
           }
         }
       } catch (emailError) {
-        console.warn("⚠️ ไม่สามารถส่งอีเมลแจ้งเตือนได้:", emailError.message);
+        logger.warn("⚠️ ไม่สามารถส่งอีเมลแจ้งเตือนได้:", emailError.message);
       }
 
       return {
@@ -1383,7 +1384,7 @@ class InternshipManagementService {
       };
     } catch (error) {
       await transaction.rollback();
-      console.error("❌ Error in submitSupervisorEvaluation:", error);
+      logger.error("❌ Error in submitSupervisorEvaluation:", error);
       throw error;
     }
   }
@@ -1393,7 +1394,7 @@ class InternshipManagementService {
    */
   async getReferralLetterStatus(userId, cs05DocumentId) {
     try {
-      console.log("[DEBUG] getReferralLetterStatus:", {
+      logger.debug("[DEBUG] getReferralLetterStatus:", {
         userId,
         cs05DocumentId,
       });
@@ -1451,7 +1452,7 @@ class InternshipManagementService {
         isDownloaded = true;
       }
 
-      console.log("[DEBUG] Status calculation result:", {
+      logger.debug("[DEBUG] Status calculation result:", {
         cs05Status: status, // ✅ ควรเป็น "approved" ตลอด
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceDownloaded: isDownloaded,
@@ -1507,7 +1508,7 @@ class InternshipManagementService {
         },
       };
     } catch (error) {
-      console.error("Get Referral Letter Status Service Error:", error);
+      logger.error("Get Referral Letter Status Service Error:", error);
       throw error;
     }
   }
@@ -1520,7 +1521,7 @@ class InternshipManagementService {
    */
   async generateReferralLetterPDF(userId, documentId) {
     try {
-      console.log("[DEBUG] generateReferralLetterPDF:", { userId, documentId });
+      logger.debug("[DEBUG] generateReferralLetterPDF:", { userId, documentId });
 
       // 1. ตรวจสอบเอกสาร CS05 และสิทธิ์
       const cs05Document = await Document.findOne({
@@ -1745,7 +1746,7 @@ class InternshipManagementService {
 
       const fileName = `หนังสือส่งตัว-${pdfData.studentData[0].fullName}-${documentId}.pdf`;
 
-      console.log("[DEBUG] PDF generated successfully:", {
+      logger.debug("[DEBUG] PDF generated successfully:", {
         documentId,
         fileName,
         bufferSize: pdfBuffer.length,
@@ -1763,7 +1764,7 @@ class InternshipManagementService {
         },
       };
     } catch (error) {
-      console.error("Generate Referral Letter PDF Service Error:", error);
+      logger.error("Generate Referral Letter PDF Service Error:", error);
       throw error;
     }
   }
@@ -1775,7 +1776,7 @@ class InternshipManagementService {
     const transaction = await sequelize.transaction();
 
     try {
-      console.log("[DEBUG] uploadAcceptanceLetter:", {
+      logger.debug("[DEBUG] uploadAcceptanceLetter:", {
         userId,
         cs05DocumentId,
         fileName: fileData?.filename,
@@ -1820,7 +1821,7 @@ class InternshipManagementService {
         );
       }
 
-      console.log("[DEBUG] CS05 Document validated:", {
+      logger.debug("[DEBUG] CS05 Document validated:", {
         documentId: cs05Document.documentId,
         status: cs05Document.status,
       });
@@ -1853,7 +1854,7 @@ class InternshipManagementService {
         existingAcceptanceLetter &&
         existingAcceptanceLetter.status === "pending"
       ) {
-        console.log("[DEBUG] Updating existing acceptance letter:", {
+        logger.debug("[DEBUG] Updating existing acceptance letter:", {
           existingDocumentId: existingAcceptanceLetter.documentId,
         });
 
@@ -1900,12 +1901,12 @@ class InternshipManagementService {
         { transaction }
       );
 
-      console.log("[DEBUG] Created new acceptance letter document:", {
+      logger.debug("[DEBUG] Created new acceptance letter document:", {
         documentId: acceptanceDocument.documentId,
         fileName: fileData.filename,
       });
 
-      console.log("[DEBUG] Updated CS05 status to acceptance_uploaded");
+      logger.debug("[DEBUG] Updated CS05 status to acceptance_uploaded");
 
       await transaction.commit();
 
@@ -1923,7 +1924,7 @@ class InternshipManagementService {
       };
     } catch (error) {
       await transaction.rollback();
-      console.error("Upload Acceptance Letter Service Error:", error);
+      logger.error("Upload Acceptance Letter Service Error:", error);
       throw error;
     }
   }
@@ -1933,7 +1934,7 @@ class InternshipManagementService {
    */
   async checkAcceptanceLetterStatus(userId, cs05DocumentId) {
     try {
-      console.log("[DEBUG] checkAcceptanceLetterStatus:", {
+      logger.debug("[DEBUG] checkAcceptanceLetterStatus:", {
         userId,
         cs05DocumentId,
       });
@@ -1958,7 +1959,7 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      console.log("[DEBUG] CS05 Document found:", {
+      logger.debug("[DEBUG] CS05 Document found:", {
         documentId: cs05Document.documentId,
         status: cs05Document.status,
       });
@@ -1975,7 +1976,7 @@ class InternshipManagementService {
         order: [["created_at", "DESC"]], // เอาล่าสุด
       });
 
-      console.log("[DEBUG] Acceptance letter found:", {
+      logger.debug("[DEBUG] Acceptance letter found:", {
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceStatus: acceptanceLetter?.status,
         fileName: acceptanceLetter?.fileName,
@@ -2014,7 +2015,7 @@ class InternshipManagementService {
 
             // ✅ อัปเดต CS05 status เป็น acceptance_approved ถ้าจำเป็น
             if (cs05Document.status !== "acceptance_approved") {
-              console.log(
+              logger.debug(
                 "[DEBUG] 🔄 อัปเดต CS05 status เป็น acceptance_approved"
               );
 
@@ -2023,7 +2024,7 @@ class InternshipManagementService {
                 updated_at: new Date(),
               });
 
-              console.log("[DEBUG] ✅ อัปเดต CS05 status เรียบร้อย");
+              logger.debug("[DEBUG] ✅ อัปเดต CS05 status เรียบร้อย");
             }
             break;
           case "rejected":
@@ -2048,7 +2049,7 @@ class InternshipManagementService {
       const isReadyForNextStep =
         acceptanceStatus === "approved" && hasCompleteSupervisorInfo;
 
-      console.log("[DEBUG] Final status calculation:", {
+      logger.debug("[DEBUG] Final status calculation:", {
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceStatus, // ✅ สถานะจริงจากฐานข้อมูล
@@ -2106,7 +2107,7 @@ class InternshipManagementService {
   reviewComment: acceptanceLetter?.reviewComment
       };
     } catch (error) {
-      console.error("Check Acceptance Letter Status Service Error:", error);
+      logger.error("Check Acceptance Letter Status Service Error:", error);
       throw error;
     }
   }
@@ -2118,7 +2119,7 @@ class InternshipManagementService {
     const transaction = await sequelize.transaction();
 
     try {
-      console.log("[DEBUG] deleteAcceptanceLetter:", {
+      logger.debug("[DEBUG] deleteAcceptanceLetter:", {
         userId,
         acceptanceDocumentId,
       });
@@ -2156,12 +2157,12 @@ class InternshipManagementService {
 
         try {
           await fs.unlink(acceptanceDocument.filePath);
-          console.log(
+          logger.debug(
             "[DEBUG] File deleted from filesystem:",
             acceptanceDocument.filePath
           );
         } catch (fileError) {
-          console.warn("[DEBUG] Could not delete file:", fileError.message);
+          logger.warn("[DEBUG] Could not delete file:", fileError.message);
           // ไม่ throw error เพราะไฟล์อาจถูกลบไปแล้ว
         }
       }
@@ -2178,7 +2179,7 @@ class InternshipManagementService {
       };
     } catch (error) {
       await transaction.rollback();
-      console.error("Delete Acceptance Letter Service Error:", error);
+      logger.error("Delete Acceptance Letter Service Error:", error);
       throw error;
     }
   }
@@ -2188,7 +2189,7 @@ class InternshipManagementService {
    */
   async downloadAcceptanceLetter(userId, acceptanceDocumentId) {
     try {
-      console.log("[DEBUG] downloadAcceptanceLetter:", {
+      logger.debug("[DEBUG] downloadAcceptanceLetter:", {
         userId,
         acceptanceDocumentId,
       });
@@ -2224,7 +2225,7 @@ class InternshipManagementService {
         // อ่านไฟล์
         const fileBuffer = await fs.readFile(acceptanceDocument.filePath);
 
-        console.log("[DEBUG] File read successfully:", {
+        logger.debug("[DEBUG] File read successfully:", {
           filePath: acceptanceDocument.filePath,
           fileSize: fileBuffer.length,
         });
@@ -2237,11 +2238,11 @@ class InternshipManagementService {
           documentId: acceptanceDocument.documentId,
         };
       } catch (fileError) {
-        console.error("[DEBUG] File access error:", fileError);
+        logger.error("[DEBUG] File access error:", fileError);
         throw new Error("ไม่สามารถเข้าถึงไฟล์ได้ ไฟล์อาจถูกลบหรือย้ายที่");
       }
     } catch (error) {
-      console.error("Download Acceptance Letter Service Error:", error);
+      logger.error("Download Acceptance Letter Service Error:", error);
       throw error;
     }
   }
@@ -2349,7 +2350,7 @@ class InternshipManagementService {
    */
   async getAcceptanceLetterStatus(userId, cs05DocumentId) {
     try {
-      console.log("[DEBUG] getAcceptanceLetterStatus:", {
+      logger.debug("[DEBUG] getAcceptanceLetterStatus:", {
         userId,
         cs05DocumentId,
       });
@@ -2378,9 +2379,9 @@ class InternshipManagementService {
       }
 
       if (!cs05Document) {
-        console.warn("[WARN] getAcceptanceLetterStatus: ไม่พบเอกสาร CS05 ของผู้ใช้", { userId, cs05DocumentId });
+        logger.warn("[WARN] getAcceptanceLetterStatus: ไม่พบเอกสาร CS05 ของผู้ใช้", { userId, cs05DocumentId });
       } else {
-        console.log("[DEBUG] CS05 Document found:", {
+        logger.debug("[DEBUG] CS05 Document found:", {
           documentId: cs05Document.documentId,
           status: cs05Document.status,
         });
@@ -2437,7 +2438,7 @@ class InternshipManagementService {
         }
       }
 
-      console.log("[DEBUG] Acceptance letter status calculation:", {
+      logger.debug("[DEBUG] Acceptance letter status calculation:", {
         cs05Status: cs05Document.status,
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceStatus, // ✅ สถานะจริง
@@ -2466,7 +2467,7 @@ class InternshipManagementService {
             : null,
       };
     } catch (error) {
-      console.error("Get Acceptance Letter Status Service Error:", error);
+      logger.error("Get Acceptance Letter Status Service Error:", error);
       throw error;
     }
   }
@@ -2478,7 +2479,7 @@ class InternshipManagementService {
     const transaction = await sequelize.transaction();
 
     try {
-      console.log("[DEBUG] Service markReferralLetterDownloaded:", {
+      logger.debug("[DEBUG] Service markReferralLetterDownloaded:", {
         userId,
         cs05DocumentId,
       });
@@ -2530,7 +2531,7 @@ class InternshipManagementService {
         );
       }
 
-      console.log("[DEBUG] Found documents BEFORE update:", {
+      logger.debug("[DEBUG] Found documents BEFORE update:", {
         cs05DocumentId: cs05Document.documentId,
         cs05Status: cs05Document.status, // ควรเป็น "approved"
         acceptanceDocumentId: acceptanceLetter.documentId,
@@ -2556,14 +2557,14 @@ class InternshipManagementService {
       );
 
       // 5. ✅ CS05 ยังคงเป็น "approved" (ไม่เปลี่ยนแปลง)
-      console.log("[DEBUG] CS05 status remains:", cs05Document.status);
+      logger.debug("[DEBUG] CS05 status remains:", cs05Document.status);
 
-      console.log("[DEBUG] Update completed successfully");
+      logger.debug("[DEBUG] Update completed successfully");
 
       // 6. ตรวจสอบผลลัพธ์หลัง update
       await acceptanceLetter.reload({ transaction });
 
-      console.log("[DEBUG] Documents AFTER update:", {
+      logger.debug("[DEBUG] Documents AFTER update:", {
         cs05DocumentId: cs05Document.documentId,
         cs05Status: cs05Document.status, // ยังคงเป็น "approved"
         acceptanceDocumentId: acceptanceLetter.documentId,
@@ -2595,7 +2596,7 @@ class InternshipManagementService {
       };
     } catch (error) {
       await transaction.rollback();
-      console.error("Mark Referral Letter Downloaded Service Error:", error);
+      logger.error("Mark Referral Letter Downloaded Service Error:", error);
       throw error;
     }
   }
@@ -2607,7 +2608,7 @@ class InternshipManagementService {
    */
   async previewCertificatePDF(userId) {
     try {
-      console.log(`[previewCertificatePDF] Starting for userId: ${userId}`);
+      logger.debug(`[previewCertificatePDF] Starting for userId: ${userId}`);
 
       // 1. ตรวจสอบสถานะหนังสือรับรอง
       const certificateStatus = await this.getCertificateStatus(userId);
@@ -2626,7 +2627,7 @@ class InternshipManagementService {
       // 3. สร้าง PDF โดยใช้ PDFKit
       const pdfBuffer = await this.createCertificatePDF(certificateData);
 
-      console.log(
+      logger.debug(
         `[previewCertificatePDF] PDF generated successfully for userId: ${userId}`
       );
 
@@ -2642,7 +2643,7 @@ class InternshipManagementService {
         },
       };
     } catch (error) {
-      console.error(`[previewCertificatePDF] Error:`, error);
+      logger.error(`[previewCertificatePDF] Error:`, error);
       // เพิ่ม statusCode ถ้ายังไม่มี
       if (!error.statusCode) {
         error.statusCode = 500;
@@ -2656,7 +2657,7 @@ class InternshipManagementService {
    */
   async downloadCertificatePDF(userId) {
     try {
-      console.log(`[downloadCertificatePDF] Starting for userId: ${userId}`);
+      logger.debug(`[downloadCertificatePDF] Starting for userId: ${userId}`);
 
       // 1. ตรวจสอบสถานะหนังสือรับรอง
       const certificateStatus = await this.getCertificateStatus(userId);
@@ -2678,18 +2679,18 @@ class InternshipManagementService {
       // 4. บันทึกการดาวน์โหลด
       try {
         await this.markCertificateDownloaded(userId);
-        console.log(
+        logger.debug(
           `[downloadCertificatePDF] Download status recorded for userId: ${userId}`
         );
       } catch (markError) {
-        console.warn(
+        logger.warn(
           `[downloadCertificatePDF] Failed to mark download:`,
           markError.message
         );
         // ไม่ throw error เพราะ PDF สร้างสำเร็จแล้ว
       }
 
-      console.log(
+      logger.debug(
         `[downloadCertificatePDF] PDF generated successfully for userId: ${userId}`
       );
 
@@ -2705,7 +2706,7 @@ class InternshipManagementService {
         },
       };
     } catch (error) {
-      console.error(`[downloadCertificatePDF] Error:`, error);
+      logger.error(`[downloadCertificatePDF] Error:`, error);
       // เพิ่ม statusCode ถ้ายังไม่มี
       if (!error.statusCode) {
         error.statusCode = 500;
@@ -2881,7 +2882,7 @@ class InternshipManagementService {
    */
   async getCertificateData(userId) {
     try {
-      console.log(`[getCertificateData] Fetching data for userId: ${userId}`);
+      logger.debug(`[getCertificateData] Fetching data for userId: ${userId}`);
 
       // ตรวจสอบสถานะหนังสือรับรอง
       const status = await this.getCertificateStatus(userId);
@@ -3011,13 +3012,13 @@ class InternshipManagementService {
         },
       };
 
-      console.log(
+      logger.debug(
         `[getCertificateData] Data prepared successfully for ${summaryData.studentInfo.studentId}`
       );
 
       return certificateData;
     } catch (error) {
-      console.error(`[getCertificateData] Error:`, error);
+      logger.error(`[getCertificateData] Error:`, error);
       throw error;
     }
   }
@@ -3051,7 +3052,7 @@ class InternshipManagementService {
         }
       );
 
-      console.log(
+      logger.debug(
         `[markCertificateDownloaded] Download status updated for studentId: ${student.studentId}`
       );
 
@@ -3062,14 +3063,14 @@ class InternshipManagementService {
         studentId: student.studentId,
       };
     } catch (error) {
-      console.error(`[markCertificateDownloaded] Error:`, error);
+      logger.error(`[markCertificateDownloaded] Error:`, error);
       throw error;
     }
   }
 
   async getCertificateStatus(userId) {
     try {
-      console.log(
+      logger.debug(
         `[getCertificateStatus] Checking certificate status for userId: ${userId}`
       );
 
@@ -3239,7 +3240,7 @@ class InternshipManagementService {
         companyInfo: internshipInfo,
       };
 
-      console.log(`[getCertificateStatus] Status check completed:`, {
+      logger.debug(`[getCertificateStatus] Status check completed:`, {
         status: certificateStatus,
         companyName: internshipInfo.companyName,
         canRequest: canRequestCertificate,
@@ -3260,10 +3261,10 @@ class InternshipManagementService {
         error.message.includes("ยังไม่มีข้อมูล")
       ) {
         // log เป็น warning/info
-        console.warn(`[getCertificateStatus] No data:`, error.message);
+        logger.warn(`[getCertificateStatus] No data:`, error.message);
       } else {
         // log เป็น error จริง
-        console.error(`[getCertificateStatus] Error:`, error);
+        logger.error(`[getCertificateStatus] Error:`, error);
       }
       throw error;
     }
@@ -3274,7 +3275,7 @@ class InternshipManagementService {
     const transaction = await sequelize.transaction();
 
     try {
-      console.log(
+      logger.debug(
         `[submitCertificateRequest] Processing request for userId: ${userId}`
       );
 
@@ -3330,7 +3331,7 @@ class InternshipManagementService {
 
       await transaction.commit();
 
-      console.log(
+      logger.info(
         `[submitCertificateRequest] Certificate request created successfully:`,
         {
           requestId: certificateRequest.id,
@@ -3348,7 +3349,7 @@ class InternshipManagementService {
       };
     } catch (error) {
       await transaction.rollback();
-      console.error(`[submitCertificateRequest] Error:`, error);
+      logger.error(`[submitCertificateRequest] Error:`, error);
       throw error;
     }
   }
@@ -3403,7 +3404,7 @@ class InternshipManagementService {
       );
 
       if (currentData.length === 0) {
-        console.warn(`[updateStudentInternshipStatus] Student not found for userId: ${userId}`);
+        logger.warn(`[updateStudentInternshipStatus] Student not found for userId: ${userId}`);
         return;
       }
 
@@ -3416,10 +3417,10 @@ class InternshipManagementService {
         { replacements: [status, userId] }
       );
 
-      console.log(`[updateStudentInternshipStatus] Successfully updated internship_status from '${currentStudent.internship_status}' to '${status}' for student ${currentStudent.student_code}`);
+      logger.debug(`[updateStudentInternshipStatus] Successfully updated internship_status from '${currentStudent.internship_status}' to '${status}' for student ${currentStudent.student_code}`);
       
     } catch (error) {
-      console.error(`[updateStudentInternshipStatus] Error updating status:`, error);
+      logger.error(`[updateStudentInternshipStatus] Error updating status:`, error);
     }
   }
 }

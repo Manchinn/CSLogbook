@@ -169,12 +169,6 @@ const Project1DefenseSchedulePage = () => {
       render: (_, __, index) => index + 1
     },
     {
-      title: 'รหัสโครงงาน',
-      dataIndex: 'projectCode',
-      width: 140,
-      render: (code) => code || <Text type="secondary">(ยังไม่กำหนด)</Text>
-    },
-    {
       title: 'ชื่อโครงงาน',
       dataIndex: 'titleTh',
       ellipsis: true,
@@ -306,7 +300,6 @@ const Project1DefenseSchedulePage = () => {
         {activeProject && (
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
             <Descriptions size="small" bordered column={1}>
-              <Descriptions.Item label="รหัสโครงงาน">{activeProject.projectCode || '-'}</Descriptions.Item>
               <Descriptions.Item label="ชื่อโครงงาน (TH)">{activeProject.titleTh || '-'}</Descriptions.Item>
               <Descriptions.Item label="ชื่อโครงงาน (EN)">{activeProject.titleEn || '-'}</Descriptions.Item>
               <Descriptions.Item label="สถานะ">{activeProject.status}</Descriptions.Item>

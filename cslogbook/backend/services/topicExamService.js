@@ -116,14 +116,14 @@ async function getTopicOverview(query = {}) {
   const order = [];
   // รองรับ sortBy (minimal)
   if (query.sortBy === "createdAt")
-    order.push(["createdAt", query.order === "asc" ? "ASC" : "DESC"]);
+    order.push(["created_at", query.order === "asc" ? "ASC" : "DESC"]);
   else if (query.sortBy === "memberCount") {
     // จะ sort ภายหลังจาก map เพราะ memberCount มาจาก association
   } else if (query.sortBy === "projectCode") {
     order.push(["projectCode", query.order === "asc" ? "ASC" : "DESC"]);
   } else {
     // default: updatedAt desc
-    order.push(["updatedAt", "DESC"]);
+    order.push(["updated_at", "DESC"]);
   }
 
   let projects;
@@ -220,8 +220,8 @@ async function getTopicOverview(query = {}) {
       examFailReason: p.examFailReason || null,
       examResultAt: p.examResultAt || null,
       readiness,
-      updatedAt: p.updatedAt,
-      createdAt: p.createdAt,
+      updatedAt: p.updated_at,
+      createdAt: p.created_at,
     };
   });
 

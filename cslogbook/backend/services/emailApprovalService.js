@@ -42,7 +42,7 @@ class EmailApprovalService {
             [Op.in]: ["pending", "approved", "rejected"],
           },
         },
-        order: [["createdAt", "DESC"]],
+        order: [["created_at", "DESC"]],
         limit: 50,
       });
 
@@ -687,8 +687,8 @@ class EmailApprovalService {
         status: tokenData.status,
         logId: tokenData.logId,
         expiresAt: tokenData.expiresAt,
-        createdAt: tokenData.createdAt,
-        updatedAt: tokenData.updatedAt,
+        createdAt: tokenData.created_at,
+        updatedAt: tokenData.updated_at,
         email: email,
         tokenId: tokenData.tokenId,
         supervisorId: tokenData.supervisorId,

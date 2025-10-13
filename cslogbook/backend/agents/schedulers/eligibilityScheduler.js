@@ -3,26 +3,17 @@
  */
 
 const cron = require('node-cron');
-const { updateAllStudentsEligibility, updateStudentYears } = require('../eligibilityUpdater');
+const { updateAllStudentsEligibility } = require('../eligibilityUpdater');
 const logger = require('../../utils/logger');
 
-// ตั้งเวลารันทุกวันเวลาเที่ยงคืน
+// ตั้งเวลารันทุกเดือนตามตัวจัดการภาคการศึกษา
 const scheduleEligibilityUpdate = () => {
-  // ตั้งค่าให้รันทุกวันเวลา 00:00 น. (เที่ยงคืน)
-  cron.schedule('0 0 * * *', async () => {
-    logger.info('เริ่มงานปรับปรุงสถานะสิทธิ์นักศึกษาอัตโนมัติ');
+  // ตั้งค่าให้รันวันที่ 1 ของทุกเดือนเวลา 00:00 น. (เที่ยงคืน)
+  cron.schedule('0 0 1 * *', async () => {
+    logger.info('เริ่มงานปรับปรุงสถานะสิทธิ์นักศึกษาอัตโนมัติ (รายเดือน)');
     
     try {
-      // อัพเดตชั้นปีนักศึกษาก่อน
-      const yearUpdateResult = await updateStudentYears();
-      
-      if (yearUpdateResult.success) {
-        logger.info(`อัพเดตชั้นปีนักศึกษาสำเร็จ: ${yearUpdateResult.updatedCount} คน`);
-      } else {
-        logger.error(`เกิดข้อผิดพลาดในการอัพเดตชั้นปีนักศึกษา: ${yearUpdateResult.error}`);
-      }
-      
-      // จากนั้นค่อยอัพเดตสถานะสิทธิ์
+      // อัพเดตสถานะสิทธิ์นักศึกษา
       const result = await updateAllStudentsEligibility();
       
       if (result.success) {
@@ -38,20 +29,7 @@ const scheduleEligibilityUpdate = () => {
     timezone: 'Asia/Bangkok' // ตั้งเป็นเวลาประเทศไทย
   });
   
-  logger.info('ตั้งค่า scheduler ปรับปรุงสถานะสิทธิ์นักศึกษาสำเร็จ (รันทุกวันเวลา 00:00 น.)');
-  
-  // เรียกใช้ฟังก์ชัน updateStudentYears ครั้งแรกเมื่อเริ่มต้นระบบ
-  updateStudentYears()
-    .then(result => {
-      if (result.success) {
-        logger.info(`อัพเดตชั้นปีนักศึกษาเริ่มต้นสำเร็จ: ${result.updatedCount} คน`);
-      } else {
-        logger.error(`เกิดข้อผิดพลาดในการอัพเดตชั้นปีนักศึกษาเริ่มต้น: ${result.error}`);
-      }
-    })
-    .catch(err => {
-      logger.error('เกิดข้อผิดพลาดในการอัพเดตชั้นปีนักศึกษาเริ่มต้น:', err);
-    });
+  logger.info('ตั้งค่า scheduler ปรับปรุงสถานะสิทธิ์นักศึกษาสำเร็จ (รันทุกเดือนวันที่ 1 เวลา 00:00 น.)');
 };
 
 module.exports = {

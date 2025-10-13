@@ -102,43 +102,7 @@ async function updateStudentEligibility(studentCode) {
   }
 }
 
-/**
- * ฟังก์ชันอัพเดตชั้นปีของนักศึกษาอัตโนมัติ
- * ใช้รหัสนักศึกษาในการคำนวณชั้นปีปัจจุบัน
- */
-async function updateStudentYears() {
-  try {
-    logger.info('เริ่มการอัพเดตชั้นปีนักศึกษา');
-    
-    // ใช้ raw query สำหรับการอัพเดตจำนวนมาก (bulk update) เพื่อประสิทธิภาพ
-    // ปรับแก้ให้ใช้วิธีคำนวณเดียวกับใน migration
-    const [results, metadata] = await sequelize.query(`
-      UPDATE students 
-      SET student_year = CASE
-        WHEN (YEAR(CURDATE()) - (2000 + CAST(SUBSTRING(student_code, 1, 2) AS SIGNED))) + 1 > 8 THEN 8
-        WHEN (YEAR(CURDATE()) - (2000 + CAST(SUBSTRING(student_code, 1, 2) AS SIGNED))) + 1 < 1 THEN 1
-        ELSE (YEAR(CURDATE()) - (2000 + CAST(SUBSTRING(student_code, 1, 2) AS SIGNED))) + 1
-      END
-      WHERE student_code REGEXP '^[0-9]';
-    `);
-    
-    logger.info(`อัพเดตชั้นปีนักศึกษาสำเร็จจำนวน ${metadata} คน`);
-    
-    return {
-      success: true,
-      updatedCount: metadata
-    };
-  } catch (error) {
-    logger.error('เกิดข้อผิดพลาดในการอัพเดตชั้นปีนักศึกษา:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
 module.exports = {
   updateAllStudentsEligibility,
-  updateStudentEligibility,
-  updateStudentYears
+  updateStudentEligibility
 };
