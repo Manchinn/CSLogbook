@@ -162,7 +162,6 @@ const EditProjectModal = ({ visible, onCancel, onSuccess, projectData }) => {
             showIcon
             message={
               <div>
-                <Text strong>รหัสโครงงาน: {projectData.projectCode}</Text>
                 {projectData.projectMembers && projectData.projectMembers.length > 0 && (
                   <div style={{ marginTop: 4 }}>
                     <Text>นักศึกษา: </Text>

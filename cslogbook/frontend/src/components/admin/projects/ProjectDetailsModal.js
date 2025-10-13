@@ -135,9 +135,6 @@ const ProjectDetailsModal = ({ visible, onCancel, projectId, onEdit }) => {
             </Title>
             
             <Descriptions column={2} size="small">
-              <Descriptions.Item label="รหัสโครงงาน" span={1}>
-                <Text strong>{projectData.projectCode}</Text>
-              </Descriptions.Item>
               <Descriptions.Item label="สถานะ" span={1}>
                 <Tag color={getStatusColor(projectData.status)}>
                   {getStatusText(projectData.status)}

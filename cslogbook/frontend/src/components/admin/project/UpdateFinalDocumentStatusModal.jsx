@@ -131,7 +131,6 @@ const UpdateFinalDocumentStatusModal = ({
         />
 
         <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label="รหัสโครงงาน">#{project?.projectId ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="ชื่อโครงงาน">
             {project?.projectNameTh || project?.projectNameEn || 'ไม่ระบุ'}
           </Descriptions.Item>

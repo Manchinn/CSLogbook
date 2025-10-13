@@ -225,7 +225,6 @@ const ProjectPairsPage = () => {
             <Text type="secondary">{record.projectNameEn}</Text>
           )}
           <Space size={4} wrap>
-            {record.projectCode && <Tag color="default">{record.projectCode}</Tag>}
             {record.projectType && (
               <Tag color="gold">{projectTypeLabels[record.projectType] || record.projectType}</Tag>
             )}
@@ -442,9 +441,6 @@ const ProjectPairsPage = () => {
             <Descriptions column={1} bordered size="small">
               <Descriptions.Item label="ชื่อภาษาอังกฤษ">
                 {drawerState.project.projectNameEn || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="รหัสโครงงาน">
-                {drawerState.project.projectCode || '-'}
               </Descriptions.Item>
               <Descriptions.Item label="สถานะโครงงาน">
                 {getStatusTag(drawerState.project.status)}

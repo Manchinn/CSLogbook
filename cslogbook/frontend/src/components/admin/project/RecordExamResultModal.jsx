@@ -110,9 +110,6 @@ const RecordExamResultModal = ({ visible, project, examType = 'PROJECT1', onClos
         message="ข้อมูลโครงงาน"
         description={
           <Descriptions column={1} size="small">
-            <Descriptions.Item label="รหัสโครงงาน">
-              <Tag color="blue">#{project.projectId}</Tag>
-            </Descriptions.Item>
             <Descriptions.Item label="ชื่อโครงงาน">
               {project.projectNameTh || 'ไม่ระบุ'}
             </Descriptions.Item>
