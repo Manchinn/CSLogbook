@@ -565,14 +565,14 @@ class NotificationSettingsService {
 
             // ดึงการตั้งค่าล่าสุด
             const latestUpdate = await NotificationSetting.findOne({
-                order: [['updatedAt', 'DESC']],
+                order: [['updated_at', 'DESC']],
                 include: [{
                     model: User,
                     as: 'updatedByUser',
                     attributes: ['username', 'first_name', 'last_name'],
                     required: false
                 }],
-                attributes: ['notificationType', 'isEnabled', 'updatedAt']
+                attributes: ['notificationType', 'isEnabled', 'updated_at']
             });
 
             return {
@@ -582,7 +582,7 @@ class NotificationSettingsService {
                 latestUpdate: latestUpdate ? {
                     type: latestUpdate.notificationType,
                     enabled: latestUpdate.isEnabled,
-                    updatedAt: latestUpdate.updatedAt,
+                    updatedAt: latestUpdate.updated_at,
                     updatedBy: latestUpdate.updatedByUser ? 
                         `${latestUpdate.updatedByUser.first_name || ''} ${latestUpdate.updatedByUser.last_name || ''}`.trim() || latestUpdate.updatedByUser.username :
                         null

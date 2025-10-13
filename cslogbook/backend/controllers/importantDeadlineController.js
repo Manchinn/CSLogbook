@@ -181,7 +181,7 @@ const buildSubmissionFromDocument = (doc, effectiveDeadlineAt, deadlineObj) => {
   // ตรวจสอบว่าส่งเอกสารแล้วหรือไม่
   const submittedStatuses = ['approved', 'completed', 'supervisor_evaluated', 'acceptance_approved', 'referral_ready', 'referral_downloaded', 'submitted'];
   submission.submitted = !!doc.submittedAt || submittedStatuses.includes(doc.status);
-  submission.submittedAt = doc.submittedAt ? doc.submittedAt : (doc.createdAt ? doc.createdAt : null);
+  submission.submittedAt = doc.submittedAt ? doc.submittedAt : (doc.created_at ? doc.created_at : null);
   submission.status = doc.status || null;
 
   // คำนวณสถานะการส่งช้า
@@ -298,7 +298,7 @@ module.exports.getAllForStudent = async (req, res) => {
             userId: studentId,
             importantDeadlineId: { [Op.in]: deadlineIds },
           },
-          order: [['createdAt', 'DESC']] // เรียงตามวันที่สร้างล่าสุด
+          order: [['created_at', 'DESC']] // เรียงตามวันที่สร้างล่าสุด
         }).catch(err => {
           console.error('[getAllForStudent] Document query error', err.message);
           return [];
@@ -336,7 +336,7 @@ module.exports.getAllForStudent = async (req, res) => {
           // เพิ่ม submission object ที่ frontend normalize function ต้องการ
           mapped.submission = {
             submitted: true,
-            submittedAt: document.submittedAt || document.createdAt,
+            submittedAt: document.submittedAt || document.created_at,
             late: document.isLate || false,
             status: document.status
           };

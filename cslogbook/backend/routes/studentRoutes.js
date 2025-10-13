@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
+const studentProjectController = require('../controllers/studentProjectController');
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 const importantDeadlineController = require('../controllers/importantDeadlineController');
 
@@ -23,6 +24,37 @@ router.get('/important-deadlines/upcoming',
 router.get('/important-deadlines',
   checkRole(['student']),
   importantDeadlineController.getAllForStudent
+);
+
+// Student project management routes
+// ดูโครงงานของนักศึกษา
+router.get('/projects',
+  checkRole(['student']),
+  studentProjectController.getMyProjects
+);
+
+// ดูรายละเอียดโครงงานเฉพาะ
+router.get('/projects/:id',
+  checkRole(['student']),
+  studentProjectController.getProjectById
+);
+
+// แก้ไขข้อมูลโครงงาน
+router.put('/projects/:id',
+  checkRole(['student']),
+  studentProjectController.updateProject
+);
+
+// เพิ่มสมาชิกในโครงงาน
+router.post('/projects/:id/members',
+  checkRole(['student']),
+  studentProjectController.addMember
+);
+
+// เปิดใช้งานโครงงาน
+router.put('/projects/:id/activate',
+  checkRole(['student']),
+  studentProjectController.activateProject
 );
 
 // Admin/Support Staff routes

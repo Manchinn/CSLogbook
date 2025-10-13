@@ -619,7 +619,7 @@ exports.getApprovalDetails = async (req, res) => {
       companyName: companyName,
       timesheetEntries: timesheetEntries,
       createdAt: approvalTokenResult.created_at,
-      updatedAt: approvalTokenResult.updatedAt,
+      updatedAt: approvalTokenResult.updated_at,
       expiresAt: tokenInfo.expiresAt
     };
 

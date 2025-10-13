@@ -576,7 +576,7 @@ class DocumentService {
             const documents = await Document.findAll({
                 where: whereCondition,
                 limit: 20,
-                order: [['createdAt', 'DESC']]
+                order: [['created_at', 'DESC']]
             });
 
             logger.info(`Search completed for query: ${query}, found ${documents.length} documents`);
@@ -594,7 +594,7 @@ class DocumentService {
         try {
             const documents = await Document.findAll({
                 limit,
-                order: [['createdAt', 'DESC']]
+                order: [['created_at', 'DESC']]
             });
 
             logger.info(`Retrieved ${documents.length} recent documents`);

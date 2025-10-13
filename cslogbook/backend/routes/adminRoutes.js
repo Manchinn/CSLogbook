@@ -12,6 +12,7 @@ const notificationSettingsController = require('../controllers/notificationSetti
 const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
 const importantDeadlineController = require('../controllers/importantDeadlineController');
 const agentStatusController = require('../controllers/agentStatusController');
+const projectManagementController = require('../controllers/projectManagementController');
 const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
@@ -129,5 +130,22 @@ router.get('/agent-status', adminAuth, agentStatusController.getAgentSystemStatu
 router.get('/agent-status/notifications', adminAuth, agentStatusController.getAgentNotificationStats);
 router.get('/agent-status/email-stats', adminAuth, agentStatusController.getEmailStats);
 router.post('/agent-status/:agentName/restart', adminAuth, agentStatusController.restartAgent);
+
+// === Project Management Routes ===
+// ค้นหานักศึกษา
+router.get('/projects/student/:studentCode', adminAuth, projectManagementController.findStudentByCode);
+
+// จัดการโครงงานพิเศษ
+router.get('/projects', adminAuth, projectManagementController.getAllProjects);
+router.post('/projects/manual', adminAuth, projectManagementController.createProjectManually);
+router.post('/projects/create-manually', adminAuth, projectManagementController.createProjectManually);
+
+// ข้อมูลสำหรับ dropdown (ต้องมาก่อน dynamic routes)
+router.get('/projects/tracks', adminAuth, projectManagementController.getAvailableTracks);
+router.get('/advisors', adminAuth, projectManagementController.getAvailableAdvisors);
+
+// Dynamic routes (ต้องมาหลัง static routes)
+router.get('/projects/:projectId', adminAuth, projectManagementController.getProjectById);
+router.put('/projects/:projectId', adminAuth, projectManagementController.updateProject);
 
 module.exports = router;

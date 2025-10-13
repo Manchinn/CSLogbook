@@ -50,7 +50,7 @@ const getUploadHistory = async (req, res) => {
         as: 'uploader',
         attributes: ['username', 'firstName', 'lastName']
       }],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json(history);

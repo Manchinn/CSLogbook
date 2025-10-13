@@ -23,9 +23,37 @@ const logFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
     
-    // เพิ่มข้อมูลเพิ่มเติม (metadata) ถ้ามี
+    // เพิ่มข้อมูลเพิ่มเติม (metadata) ถ้ามี โดยจัดการ circular structure
     if (Object.keys(meta).length > 0) {
-      log += ` ${JSON.stringify(meta)}`;
+      try {
+        // ใช้ JSON.stringify กับ replacer function เพื่อจัดการ circular reference
+        const safeStringify = (obj) => {
+          const seen = new WeakSet();
+          return JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+              if (seen.has(value)) {
+                return '[Circular Reference]';
+              }
+              seen.add(value);
+              
+              // กรอง Sequelize transaction objects และ properties ที่ไม่จำเป็น
+              if (value.constructor && value.constructor.name === 'Transaction') {
+                return '[Sequelize Transaction]';
+              }
+              
+              // กรอง Sequelize model instances
+              if (value._modelOptions || value.dataValues) {
+                return '[Sequelize Model Instance]';
+              }
+            }
+            return value;
+          });
+        };
+        
+        log += ` ${safeStringify(meta)}`;
+      } catch (error) {
+        log += ` [Error serializing metadata: ${error.message}]`;
+      }
     }
     
     // เพิ่ม stack trace ในกรณีที่เป็น error

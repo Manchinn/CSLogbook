@@ -254,8 +254,8 @@ class ProjectDefenseRequestService {
           } : null
         };
       }),
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
     };
   }
 

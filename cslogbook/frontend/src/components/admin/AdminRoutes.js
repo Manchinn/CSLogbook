@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Spin, Layout } from "antd";
 import { SystemProvider } from "../../contexts/adminContext/SystemContext";
 import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
@@ -36,6 +36,7 @@ const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
 const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
 const Project1ExamResultPage = lazy(() => import('./project/Project1ExamResultPage'));
 const ThesisExamResultPage = lazy(() => import('./project/ThesisExamResultPage'));
+// ProjectManagement ถูกลบแล้ว - ใช้ ProjectPairsPage แทน
 
 // Loading component
 const LoadingComponent = () => (
@@ -97,6 +98,10 @@ const AdminRoutes = () => {
                 <Route path="students" element={<StudentList />} />
                 <Route path="teachers" element={<TeacherList />} />
               </Route>
+              
+              {/* ใช้ ProjectPairsPage สำหรับการจัดการโครงงานพิเศษ */}
+              <Route path="/projects" element={<Navigate to="/admin/users/project-pairs" replace />} />
+              
               <Route path="/upload" element={<AdminUpload />} />
               <Route path="/settings">
                 <Route index element={<Settings />} />

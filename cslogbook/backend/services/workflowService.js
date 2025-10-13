@@ -35,7 +35,11 @@ class WorkflowService {
   // ฟังก์ชันอัปเดตหรือสร้าง StudentWorkflowActivity
   async updateStudentWorkflowActivity(studentId, workflowType, stepKey, status, overallStatus, dataPayload = {}, options = {}) {
     try {
-      logger.info(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} status: ${status}`, options);
+      // สร้าง safe options object สำหรับ logging โดยไม่รวม transaction
+      const safeOptions = { ...options };
+      delete safeOptions.transaction;
+      
+      logger.info(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} status: ${status}`, safeOptions);
       const { transaction } = options;
       
       // ค้นหากิจกรรม workflow ที่มีอยู่แล้ว
@@ -221,7 +225,7 @@ class WorkflowService {
                 case 'completed': // step ปัจจุบันเพิ่งเสร็จ
                   stepUiStatus = 'completed';
                   isStepCompleted = true;
-                  stepCompletedDate = workflowActivity.updatedAt;
+                  stepCompletedDate = workflowActivity.updated_at;
                   break;
                 case 'pending': // เช่น รอการอนุมัติเอกสาร
                 case 'awaiting_approval': // ชื่อเดิมที่อาจจะใช้
