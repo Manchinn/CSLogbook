@@ -11,6 +11,7 @@ const notificationSettingsController = require('../controllers/notificationSetti
 // เพิ่ม import controller ใหม่สำหรับ workflow step definitions
 const workflowStepDefinitionController = require('../controllers/workflowStepDefinitionController');
 const importantDeadlineController = require('../controllers/importantDeadlineController');
+const agentStatusController = require('../controllers/agentStatusController');
 const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
@@ -122,5 +123,11 @@ router.delete('/important-deadlines/:id', adminAuth, importantDeadlineController
 // === เพิ่ม Admin Eligibility Update Routes ===
 router.post('/eligibility/update-all', adminAuth, adminController.updateAllStudentsEligibility);
 router.post('/eligibility/update/:studentCode', adminAuth, adminController.updateStudentEligibility);
+
+// === เพิ่ม Admin Agent Status Routes ===
+router.get('/agent-status', adminAuth, agentStatusController.getAgentSystemStatus);
+router.get('/agent-status/notifications', adminAuth, agentStatusController.getAgentNotificationStats);
+router.get('/agent-status/email-stats', adminAuth, agentStatusController.getEmailStats);
+router.post('/agent-status/:agentName/restart', adminAuth, agentStatusController.restartAgent);
 
 module.exports = router;

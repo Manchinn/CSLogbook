@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
     Card, 
     Switch, 
@@ -12,7 +12,10 @@ import {
     Statistic,
     Tooltip,
     Badge,
-    Progress
+    Progress,
+    Collapse,
+    List,
+    Divider
 } from 'antd';
 import { 
     BellOutlined, 
@@ -22,11 +25,16 @@ import {
     ReloadOutlined,
     SettingOutlined,
     SoundOutlined,
-    NotificationOutlined
+    NotificationOutlined,
+    InfoCircleOutlined,
+    DownOutlined,
+    RightOutlined
 } from '@ant-design/icons';
 import { useNotificationSettings } from '../../../../hooks/admin/useNotificationSettings';
+import AgentSystemStatus from '../AgentSystemStatus';
 
 const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
 /**
  * Component สำหรับจัดการการตั้งค่าการแจ้งเตือนในส่วน Admin
@@ -79,7 +87,7 @@ const NotificationSettings = () => {
      * Render แต่ละรายการการแจ้งเตือน
      */
     const renderNotificationItem = (notificationType) => {
-        const { key, label, description, icon, color } = notificationType;
+        const { key, label, description, detailedDescription, examples, icon, color } = notificationType;
         const enabled = isNotificationEnabled(key);
         const settingInfo = getNotificationSetting(key);
 
@@ -97,70 +105,135 @@ const NotificationSettings = () => {
             >
                 <Row align="middle" justify="space-between">
                     <Col flex="auto">
-                        <Space size="middle">
-                            {/* ไอคอนการแจ้งเตือน */}
-                            <div 
-                                className="notification-icon"
-                                style={{
-                                    fontSize: '24px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '8px',
-                                    backgroundColor: '#fff',
-                                    border: `2px solid ${enabled ? color : '#f0f0f0'}`,
-                                    filter: enabled ? 'none' : 'grayscale(70%)',
-                                    opacity: enabled ? 1 : 0.6,
-                                    transition: 'all 0.3s ease'
-                                }}
-                            >
-                                {icon}
-                            </div>
-                            
-                            {/* ข้อมูลการแจ้งเตือน */}
-                            <div className="notification-info">
-                                <Space direction="vertical" size="small">
-                                    <Space align="center">
-                                        <Text strong className="notification-label" style={{ fontSize: '16px' }}>
-                                            {label}
-                                        </Text>
-                                        <Badge 
-                                            status={enabled ? "success" : "default"} 
-                                            text={
-                                                <Text type={enabled ? "success" : "secondary"}>
-                                                    {enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                            <Row align="middle" justify="space-between">
+                                <Col flex="auto">
+                                    <Space size="middle">
+                                        {/* ไอคอนการแจ้งเตือน */}
+                                        <div 
+                                            className="notification-icon"
+                                            style={{
+                                                fontSize: '24px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '48px',
+                                                height: '48px',
+                                                borderRadius: '8px',
+                                                backgroundColor: '#fff',
+                                                border: `2px solid ${enabled ? color : '#f0f0f0'}`,
+                                                filter: enabled ? 'none' : 'grayscale(70%)',
+                                                opacity: enabled ? 1 : 0.6,
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                        >
+                                            {icon}
+                                        </div>
+                                        
+                                        {/* ข้อมูลการแจ้งเตือน */}
+                                        <div className="notification-info">
+                                            <Space direction="vertical" size="small">
+                                                <Space align="center">
+                                                    <Text strong className="notification-label" style={{ fontSize: '16px' }}>
+                                                        {label}
+                                                    </Text>
+                                                    <Badge 
+                                                        status={enabled ? "success" : "default"} 
+                                                        text={
+                                                            <Text type={enabled ? "success" : "secondary"}>
+                                                                {enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                                                            </Text>
+                                                        }
+                                                    />
+                                                </Space>
+                                                <Text type="secondary" style={{ fontSize: '14px', lineHeight: 1.4 }}>
+                                                    {description}
                                                 </Text>
-                                            }
-                                        />
+                                                {settingInfo.lastUpdated && (
+                                                    <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                                                        อัปเดตล่าสุด: {new Date(settingInfo.lastUpdated).toLocaleString('th-TH')}
+                                                        {settingInfo.updatedBy && ` โดย ${settingInfo.updatedBy}`}
+                                                    </Text>
+                                                )}
+                                            </Space>
+                                        </div>
                                     </Space>
-                                    <Text type="secondary" style={{ fontSize: '14px', lineHeight: 1.4 }}>
-                                        {description}
-                                    </Text>
-                                    {settingInfo.lastUpdated && (
-                                        <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
-                                            อัปเดตล่าสุด: {new Date(settingInfo.lastUpdated).toLocaleString('th-TH')}
-                                            {settingInfo.updatedBy && ` โดย ${settingInfo.updatedBy}`}
-                                        </Text>
-                                    )}
-                                </Space>
-                            </div>
+                                </Col>
+                                
+                                {/* Switch สำหรับเปิด/ปิด */}
+                                <Col>
+                                    <Switch
+                                        checked={enabled}
+                                        onChange={(checked) => handleToggle(key, checked)}
+                                        loading={updating}
+                                        checkedChildren={<CheckCircleOutlined />}
+                                        unCheckedChildren={<StopOutlined />}
+                                        style={{
+                                            backgroundColor: enabled ? color : undefined
+                                        }}
+                                    />
+                                </Col>
+                            </Row>
+
+                            {/* รายละเอียดเพิ่มเติมและตัวอย่าง */}
+                            {(detailedDescription || examples) && (
+                                <Collapse 
+                                    ghost 
+                                    size="small"
+                                    expandIcon={({ isActive }) => 
+                                        isActive ? <DownOutlined /> : <RightOutlined />
+                                    }
+                                    style={{ marginTop: 8 }}
+                                >
+                                    <Panel 
+                                        header={
+                                            <Space>
+                                                <InfoCircleOutlined style={{ color: color }} />
+                                                <Text style={{ fontSize: '13px', color: '#666' }}>
+                                                    ดูรายละเอียดและตัวอย่าง
+                                                </Text>
+                                            </Space>
+                                        } 
+                                        key={key}
+                                        style={{ 
+                                            backgroundColor: 'transparent',
+                                            border: 'none'
+                                        }}
+                                    >
+                                        <div style={{ paddingLeft: 24 }}>
+                                            {detailedDescription && (
+                                                <>
+                                                    <Text style={{ fontSize: '13px', lineHeight: 1.5 }}>
+                                                        {detailedDescription}
+                                                    </Text>
+                                                    {examples && <Divider style={{ margin: '12px 0' }} />}
+                                                </>
+                                            )}
+                                            
+                                            {examples && examples.length > 0 && (
+                                                <>
+                                                    <Text strong style={{ fontSize: '13px', color: '#666' }}>
+                                                        ตัวอย่างการแจ้งเตือน:
+                                                    </Text>
+                                                    <List
+                                                        size="small"
+                                                        dataSource={examples}
+                                                        renderItem={(example, index) => (
+                                                            <List.Item style={{ padding: '4px 0', border: 'none' }}>
+                                                                <Text style={{ fontSize: '12px', color: '#666' }}>
+                                                                    • {example}
+                                                                </Text>
+                                                            </List.Item>
+                                                        )}
+                                                        style={{ marginTop: 8 }}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
+                                    </Panel>
+                                </Collapse>
+                            )}
                         </Space>
-                    </Col>
-                    
-                    {/* Switch สำหรับเปิด/ปิด */}
-                    <Col>
-                        <Switch
-                            checked={enabled}
-                            onChange={(checked) => handleToggle(key, checked)}
-                            loading={updating}
-                            checkedChildren={<CheckCircleOutlined />}
-                            unCheckedChildren={<StopOutlined />}
-                            style={{
-                                backgroundColor: enabled ? color : undefined
-                            }}
-                        />
                     </Col>
                 </Row>
             </Card>
@@ -318,6 +391,11 @@ const NotificationSettings = () => {
                 </Title>
                 
                 {notificationTypes.map(renderNotificationItem)}
+            </div>
+
+            {/* Agent System Status */}
+            <div style={{ marginTop: 32 }}>
+                <AgentSystemStatus />
             </div>
         </div>
     );

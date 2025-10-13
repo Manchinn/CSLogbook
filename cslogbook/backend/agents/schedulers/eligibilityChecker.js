@@ -4,7 +4,7 @@
  */
 
 const { Op } = require('sequelize');
-const { Student, Curriculum, Academic } = require('../../models');
+const { Student, Curriculum, Academic, User } = require('../../models');
 const notificationService = require('../helpers/notificationService');
 const agentConfig = require('../config');
 const logger = require('../../utils/logger');
@@ -90,7 +90,6 @@ class EligibilityChecker {
       // ดึงข้อมูลนักศึกษาที่ยังไม่ได้ทำการฝึกงานหรือโครงงาน
       const students = await Student.findAll({
         where: {
-          active: true,
           // ยังไม่ลงทะเบียนฝึกงานหรือโครงงาน
           internship_status: {
             [Op.or]: [null, 'not_started']
@@ -101,8 +100,16 @@ class EligibilityChecker {
         },
         include: [
           {
+            model: User,
+            as: 'user',
+            where: {
+              activeStatus: true
+            },
+            attributes: ['userId', 'firstName', 'lastName', 'activeStatus']
+          },
+          {
             model: Curriculum,
-            as: 'curriculum'
+            as: 'studentCurriculum'
           }
         ]
       });
@@ -187,33 +194,19 @@ class EligibilityChecker {
       // ในระบบจริง ข้อมูลนี้อาจต้องดึงจากระบบทะเบียนหรือจากฐานข้อมูลที่เก็บประวัติการเรียน
       // แต่สำหรับตัวอย่างนี้ จะจำลองข้อมูลแบบง่ายๆ
       
-      // สมมติว่ามีตาราง AcademicRecord ที่เก็บข้อมูลหน่วยกิตและวิชาที่ผ่าน
-      const { AcademicRecord } = require('../../models');
+      // หมายเหตุ: ไม่มี AcademicRecord Model ในระบบ จึงใช้ข้อมูลจำลองแทน
+      // ในอนาคตอาจต้องสร้าง model หรือใช้ข้อมูลจาก StudentAcademicHistory
       
-      const record = await AcademicRecord.findOne({
-        where: {
-          student_id: studentId,
-        },
-        order: [['updated_at', 'DESC']]
-      });
-      
-      if (!record) {
+      if (!studentId) {
         return null;
       }
       
-      return {
-        totalCredits: record.total_credits,
-        passedCourses: record.passed_courses ? JSON.parse(record.passed_courses) : []
-      };
-      
-      // หมายเหตุ: ในกรณีที่ไม่มี AcademicRecord Model จริง คุณอาจจำเป็นต้องปรับโค้ดส่วนนี้
-      // หรืออาจสร้างข้อมูลจำลองแทน เช่น:
-      /*
+      // สร้างข้อมูลจำลองสำหรับการทดสอบ
       return {
         totalCredits: Math.floor(Math.random() * 50) + 90, // สุ่มหน่วยกิตระหว่าง 90-140
-        passedCourses: ['261103', '261200', '261208']
+        passedCourses: ['261103', '261200', '261208', '261207', '261216'] // รายวิชาที่ผ่านแล้ว
       };
-      */
+      
     } catch (error) {
       logger.error(`EligibilityChecker: Error getting academic data for student #${studentId}:`, error);
       return null;
@@ -228,8 +221,8 @@ class EligibilityChecker {
    */
   checkInternshipEligibility(student, academicData) {
     // ตรวจสอบหน่วยกิต
-    const minCredits = student.curriculum && student.curriculum.internship_min_credits ? 
-                      student.curriculum.internship_min_credits : 
+    const minCredits = student.studentCurriculum && student.studentCurriculum.internship_min_credits ? 
+                      student.studentCurriculum.internship_min_credits : 
                       this.eligibilityCriteria.internship.minCredits;
                       
     if (academicData.totalCredits < minCredits) {
@@ -237,8 +230,8 @@ class EligibilityChecker {
     }
     
     // ตรวจสอบรายวิชาที่ต้องผ่าน
-    const requiredCourses = student.curriculum && student.curriculum.internship_required_courses ?
-                           JSON.parse(student.curriculum.internship_required_courses) :
+    const requiredCourses = student.studentCurriculum && student.studentCurriculum.internship_required_courses ?
+                           JSON.parse(student.studentCurriculum.internship_required_courses) :
                            this.eligibilityCriteria.internship.requiredCourses;
     
     for (const course of requiredCourses) {
@@ -259,8 +252,8 @@ class EligibilityChecker {
    */
   checkProjectEligibility(student, academicData) {
     // ตรวจสอบหน่วยกิต
-    const minCredits = student.curriculum && student.curriculum.project_min_credits ? 
-                      student.curriculum.project_min_credits : 
+    const minCredits = student.studentCurriculum && student.studentCurriculum.project_min_credits ? 
+                      student.studentCurriculum.project_min_credits : 
                       this.eligibilityCriteria.project.minCredits;
                       
     if (academicData.totalCredits < minCredits) {
@@ -268,8 +261,8 @@ class EligibilityChecker {
     }
     
     // ตรวจสอบรายวิชาที่ต้องผ่าน
-    const requiredCourses = student.curriculum && student.curriculum.project_required_courses ?
-                           JSON.parse(student.curriculum.project_required_courses) :
+    const requiredCourses = student.studentCurriculum && student.studentCurriculum.project_required_courses ?
+                           JSON.parse(student.studentCurriculum.project_required_courses) :
                            this.eligibilityCriteria.project.requiredCourses;
     
     for (const course of requiredCourses) {

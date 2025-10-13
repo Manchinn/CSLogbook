@@ -4,7 +4,7 @@
  */
 
 const { Op } = require('sequelize');
-const { Document, DocumentLog, Teacher } = require('../../models');
+const { Document, DocumentLog, User } = require('../../models');
 const notificationService = require('../helpers/notificationService');
 const agentConfig = require('../config');
 const logger = require('../../utils/logger');
@@ -67,14 +67,14 @@ class DocumentStatusMonitor {
           status: 'pending_review',
           updated_at: {
             [Op.lte]: cutoffDate
-          },
-          notification_sent: false  // เพิ่มฟิลด์นี้ใน Model ถ้ายังไม่มี
+          }
+          // หมายเหตุ: ลบ notification_sent field เนื่องจากไม่มีในตาราง Document
         },
         include: [
           {
-            model: Teacher,
+            model: User,
             as: 'reviewer',
-            attributes: ['id', 'name', 'email']
+            attributes: ['userId', 'firstName', 'lastName', 'email']
           }
         ]
       });
@@ -88,14 +88,14 @@ class DocumentStatusMonitor {
       for (const doc of stuckDocuments) {
         if (!doc.reviewer) continue;
         
-        if (!teacherMap.has(doc.reviewer.id)) {
-          teacherMap.set(doc.reviewer.id, {
+        if (!teacherMap.has(doc.reviewer.userId)) {
+          teacherMap.set(doc.reviewer.userId, {
             teacher: doc.reviewer,
             documents: []
           });
         }
         
-        teacherMap.get(doc.reviewer.id).documents.push(doc);
+        teacherMap.get(doc.reviewer.userId).documents.push(doc);
       }
       
       // ส่งการแจ้งเตือนไปยังผู้ตรวจแต่ละคน
@@ -104,7 +104,7 @@ class DocumentStatusMonitor {
         
         // สร้างข้อความแจ้งเตือนที่มีรายการเอกสารที่ค้าง
         const title = `⚠️ มีเอกสารที่รอการตรวจสอบเกิน ${this.config.documentsStuckInReviewDays} วัน`;
-        let message = `เรียน ${teacher.name},\n\n`;
+        let message = `เรียน ${teacher.firstName} ${teacher.lastName},\n\n`;
         message += `มีเอกสารที่รอการตรวจสอบจากท่านเกินกำหนดเวลา ${this.config.documentsStuckInReviewDays} วันจำนวน ${documents.length} รายการ ดังนี้:\n\n`;
         
         documents.forEach((doc, index) => {
@@ -133,13 +133,11 @@ class DocumentStatusMonitor {
         
         logger.info(`DocumentStatusMonitor: Notified teacher #${teacherId} about ${documents.length} stuck documents`);
         
-        // อัพเดทสถานะว่าได้ส่งการแจ้งเตือนแล้ว
+        // บันทึกการแจ้งเตือนลงใน DocumentLog แทนการอัปเดต notification_sent
         for (const doc of documents) {
-          await doc.update({ notification_sent: true });
-          
           // เพิ่มบันทึกการแจ้งเตือนลงใน DocumentLog
           await DocumentLog.create({
-            document_id: doc.id,
+            document_id: doc.documentId,
             action: 'notification_sent',
             description: `ระบบส่งการแจ้งเตือนถึงผู้ตรวจเนื่องจากเอกสารค้างการตรวจเกิน ${this.config.documentsStuckInReviewDays} วัน`,
             created_by: 'system',

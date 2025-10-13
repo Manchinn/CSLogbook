@@ -74,13 +74,20 @@ class LogbookQualityMonitor {
         include: [
           {
             model: Student,
-            as: 'student'
+            as: 'student',
+            include: [
+              {
+                model: require('../../models').User,
+                as: 'user',
+                attributes: ['firstName', 'lastName']
+              }
+            ]
           },
           {
             model: InternshipLogbookRevision,
-            as: 'latest_revision',
+            as: 'revisions',
             limit: 1,
-            order: [['revision_number', 'DESC']]
+            order: [['revision_date', 'DESC']]
           }
         ]
       });
@@ -93,7 +100,7 @@ class LogbookQualityMonitor {
       // วิเคราะห์แต่ละบันทึก
       for (const logbook of recentLogbooks) {
         // ข้ามถ้าไม่มีข้อมูลหรือข้อมูล revision ล่าสุด
-        if (!logbook.latest_revision || !logbook.latest_revision.content) {
+        if (!logbook.revisions || logbook.revisions.length === 0 || !logbook.revisions[0].workDescription) {
           continue;
         }
         
@@ -110,7 +117,8 @@ class LogbookQualityMonitor {
         }
         
         // วิเคราะห์เนื้อหาบันทึกด้วย logbookAnalyzer
-        const analysis = logbookAnalyzer.analyzeContent(logbook.latest_revision.content);
+        const latestRevision = logbook.revisions[0];
+        const analysis = logbookAnalyzer.analyzeContent(latestRevision.workDescription);
         
         // บันทึกเวลาตรวจล่าสุด
         this.lastChecked.set(studentId, currentTime);
@@ -148,12 +156,17 @@ class LogbookQualityMonitor {
         ? `🔔 คำแนะนำสำหรับการปรับปรุงบันทึกประจำวันที่ ${logDate}`
         : `👍 การประเมินบันทึกประจำวันที่ ${logDate}`;
       
+      // ดึงข้อมูล User ที่เชื่อมโยงกับ Student เพื่อใช้ชื่อ
+      const studentName = logbook.student?.user ? 
+        `${logbook.student.user.firstName} ${logbook.student.user.lastName}` : 
+        'นักศึกษา';
+      
       let message = isPoor
-        ? `เรียน ${logbook.student.name || 'นักศึกษา'}\n\n` +
+        ? `เรียน ${studentName}\n\n` +
           `ระบบได้ตรวจสอบบันทึกประจำวัน วันที่ ${logDate} ของคุณแล้ว ` +
           `และพบว่าคุณควรปรับปรุงคุณภาพของบันทึกเพื่อให้อาจารย์สามารถติดตามความก้าวหน้าได้ดียิ่งขึ้น\n\n` +
           `คำแนะนำสำหรับการปรับปรุง:\n`
-        : `เรียน ${logbook.student.name || 'นักศึกษา'}\n\n` +
+        : `เรียน ${studentName}\n\n` +
           `ระบบได้ตรวจสอบบันทึกประจำวัน วันที่ ${logDate} ของคุณแล้ว ` +
           `และพบว่าบันทึกของคุณมีคุณภาพ${analysis.quality === 'excellent' ? 'ดีมาก' : 'ดี'}\n\n` +
           `ข้อเสนอแนะเพิ่มเติม:\n`;

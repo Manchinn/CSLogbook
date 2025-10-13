@@ -204,8 +204,8 @@ class SecurityMonitor {
       
       const suspiciousActions = await DocumentLog.findAll({
         where: {
-          action: {
-            [Op.in]: ['delete', 'bulk_delete', 'force_approve', 'status_override']
+          actionType: {
+            [Op.in]: ['delete', 'approve', 'reject']
           },
           created_at: {
             [Op.gt]: this.lastLogCheck
@@ -220,10 +220,10 @@ class SecurityMonitor {
         const groupByAction = {};
         
         for (const action of suspiciousActions) {
-          if (!groupByAction[action.action]) {
-            groupByAction[action.action] = [];
+          if (!groupByAction[action.actionType]) {
+            groupByAction[action.actionType] = [];
           }
-          groupByAction[action.action].push(action);
+          groupByAction[action.actionType].push(action);
         }
 
         for (const [actionType, actions] of Object.entries(groupByAction)) {
