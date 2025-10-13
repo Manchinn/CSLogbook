@@ -35,7 +35,7 @@ class WorkflowService {
   // ฟังก์ชันอัปเดตหรือสร้าง StudentWorkflowActivity
   async updateStudentWorkflowActivity(studentId, workflowType, stepKey, status, overallStatus, dataPayload = {}, options = {}) {
     try {
-      console.log(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} status: ${status}`, options);
+      logger.info(`Updating workflow: ${workflowType}.${stepKey} for student ${studentId} status: ${status}`, options);
       const { transaction } = options;
       
       // ค้นหากิจกรรม workflow ที่มีอยู่แล้ว
@@ -52,7 +52,7 @@ class WorkflowService {
       
       // ถ้าไม่มี ให้สร้างใหม่
       if (!activity) {
-        console.log(`Creating new workflow activity for student ${studentId}`);
+        logger.info(`Creating new workflow activity for student ${studentId}`);
         activity = await StudentWorkflowActivity.create({
           studentId,
           workflowType,
@@ -64,7 +64,7 @@ class WorkflowService {
         }, { transaction });
       } else {
         // ถ้ามีอยู่แล้ว ให้อัปเดต
-        console.log(`Updating existing workflow activity for student ${studentId}`);
+        logger.info(`Updating existing workflow activity for student ${studentId}`);
         
         // อัปเดตค่าใหม่
         await activity.update({
@@ -75,7 +75,7 @@ class WorkflowService {
         }, { transaction });
       }
       
-      console.log(`Successfully updated workflow activity for student ${studentId}`);
+      logger.info(`Successfully updated workflow activity for student ${studentId}`);
       return activity;
     } catch (error) {
       logger.error(`Error updating workflow activity:`, error);
@@ -86,14 +86,14 @@ class WorkflowService {
   // ฟังก์ชันสร้าง timeline สำหรับแสดงผลใน frontend
   async generateStudentTimeline(studentId, workflowType) {
     try {
-      console.log(`Generating ${workflowType} timeline for student ${studentId}`);
+      logger.info(`Generating ${workflowType} timeline for student ${studentId}`);
 
       const student = await Student.findByPk(studentId, {
         attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
                   'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
       });
       
-      console.log("Student workflow info:", { // เปลี่ยนชื่อ log เล็กน้อย
+      logger.debug("Student workflow info:", { // เปลี่ยนชื่อ log เล็กน้อย
         studentId,
         internshipStatus: student?.internshipStatus,
         projectStatus: student?.projectStatus, // เพิ่ม projectStatus ด้วยถ้ามี
@@ -102,7 +102,7 @@ class WorkflowService {
       });
       
       // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ดึงมาจากฐานข้อมูล
-      console.log("WorkflowService: ข้อมูลจากฐานข้อมูล:", {
+      logger.debug("WorkflowService: ข้อมูลจากฐานข้อมูล:", {
         studentId: student?.studentId,
         studentCode: student?.studentCode,
         isEnrolledInternship: student?.isEnrolledInternship,
@@ -127,7 +127,7 @@ class WorkflowService {
         }
       }
 
-      console.log(`Found ${stepDefinitions.length} step definitions for ${workflowType}, activity exists: ${!!workflowActivity}`);
+      logger.info(`Found ${stepDefinitions.length} step definitions for ${workflowType}, activity exists: ${!!workflowActivity}`);
 
       // สร้าง activity ถ้ายังไม่มีและนักศึกษามีสถานะ enrolled (ปรับปรุงให้รองรับ project ด้วยถ้าต้องการ)
       if (!workflowActivity && student) {
@@ -155,7 +155,7 @@ class WorkflowService {
         // else if (workflowType === 'project' && student.isEnrolledProject) { ... }
 
         if (shouldCreateActivity) {
-          console.log(`Creating new ${workflowType} activity for student ${studentId} based on student status.`);
+          logger.info(`Creating new ${workflowType} activity for student ${studentId} based on student status.`);
           workflowActivity = await this.updateStudentWorkflowActivity(
             studentId,
             workflowType,
@@ -196,12 +196,12 @@ class WorkflowService {
             step => step.stepKey === workflowActivity.currentStepKey
           );
           
-          console.log(`WorkflowActivity currentStepKey for ${workflowType}:`, workflowActivity.currentStepKey);
-          console.log(`Available step keys from ${workflowType} definitions:`, stepDefinitions.map(step => step.stepKey));
-          console.log(`Current step index found for ${workflowType}:`, currentStepIndex); 
+          logger.debug(`WorkflowActivity currentStepKey for ${workflowType}:`, workflowActivity.currentStepKey);
+          logger.debug(`Available step keys from ${workflowType} definitions:`, stepDefinitions.map(step => step.stepKey));
+          logger.debug(`Current step index found for ${workflowType}:`, currentStepIndex); 
         } else {
             // กรณีไม่มี workflowActivity แต่มี stepDefinitions (อาจจะไม่ควรเกิดขึ้นถ้า logic การสร้าง activity ถูกต้อง)
-            console.log(`No workflowActivity found for ${workflowType}, student ${studentId}, but stepDefinitions exist. Timeline might be incomplete.`);
+            logger.warn(`No workflowActivity found for ${workflowType}, student ${studentId}, but stepDefinitions exist. Timeline might be incomplete.`);
         }
         
         stepDefinitions.forEach((def, index) => {
@@ -301,7 +301,7 @@ class WorkflowService {
         progress = 90;
       }
 
-      console.log(`Generated timeline for ${workflowType} - Student: ${studentId}, Steps: ${steps.length}, Progress: ${progress}%, OverallStatus: ${overallTimelineStatus}, CurrentStepIndex: ${currentStepIndex}`);
+      logger.info(`Generated timeline for ${workflowType} - Student: ${studentId}, Steps: ${steps.length}, Progress: ${progress}%, OverallStatus: ${overallTimelineStatus}, CurrentStepIndex: ${currentStepIndex}`);
       
       return {
         steps: steps, // ไม่ต้อง steps || [] เพราะถ้า stepDefinitions.length > 0 จะมี steps เสมอ

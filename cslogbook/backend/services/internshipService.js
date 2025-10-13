@@ -1,5 +1,6 @@
 const { Document, Student, User } = require('../models');
 const workflowService = require('./workflowService');
+const logger = require('../utils/logger');
 
 class InternshipService {
     /**
@@ -37,7 +38,7 @@ class InternshipService {
                 message: 'อนุมัติ คพ.05 เรียบร้อยแล้ว นักศึกษาจะได้รับการแจ้งเตือนให้ดำเนินการต่อไป' 
             };
         } catch (error) {
-            console.error('Error approving CS05:', error);
+            logger.error('Error approving CS05:', error);
             throw error;
         }
     }
@@ -66,15 +67,15 @@ class InternshipService {
      */
     async handleCS05Approval(document, adminId, options = {}) {
         try {
-            console.log(`Starting handleCS05Approval for document ID: ${document.documentId}, by admin: ${adminId}`);
+            logger.info(`Starting handleCS05Approval for document ID: ${document.documentId}, by admin: ${adminId}`);
             
             const studentId = document.owner?.student?.studentId;
             if (!studentId) {
-                console.error(`Cannot find studentId for document ${document.documentId}`);
+                logger.error(`Cannot find studentId for document ${document.documentId}`);
                 return false;
             }
             
-            console.log(`Processing workflow for student: ${studentId}`);
+            logger.info(`Processing workflow for student: ${studentId}`);
             
                         // 1) ปรับสถานะ workflow ผ่าน workflowService ให้สอดคล้องกับตาราง StudentWorkflowActivity
                         // อัปเดตขั้นตอน "รออนุมัติ" เป็นเสร็จสิ้น
@@ -107,7 +108,7 @@ class InternshipService {
                                         { nextAction: 'upload_acceptance_letter' }
                         );
             
-            console.log(`Workflow updated successfully for student: ${studentId}`);
+            logger.info(`Workflow updated successfully for student: ${studentId}`);
             
             // 4. สร้างการแจ้งเตือน (ถ้ามีโมเดล Notification)
             // หมายเหตุ: โมเดล Notification ยังไม่มีในระบบปัจจุบัน จึงข้ามการสร้าง notification ตรงนี้
@@ -119,7 +120,7 @@ class InternshipService {
             
             return true;
         } catch (error) {
-            console.error('Error handling CS05 approval workflow:', error);
+            logger.error('Error handling CS05 approval workflow:', error);
             throw error;
         }
     }
