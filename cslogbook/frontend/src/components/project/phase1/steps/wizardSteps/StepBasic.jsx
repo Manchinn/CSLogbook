@@ -30,8 +30,8 @@ const StepBasic = () => {
           placeholder="เลือกหรือใส่ภายหลัง"
           onChange={v => setBasic({ projectType: v })}
           options={[
-            { value: 'govern', label: 'ทำให้องค์กรภายนอก' },
-            { value: 'private', label: 'ทำให้ภาควิชา' },
+            { value: 'govern', label: 'องค์กรภายนอก' },
+            { value: 'private', label: 'ภาควิชา' },
             { value: 'research', label: 'งานวิจัย' }
           ]}
           disabled={typeReadOnly}

@@ -84,10 +84,9 @@ const ProjectDetailsModal = ({ visible, onCancel, projectId, onEdit }) => {
   // Project type text mapping
   const getProjectTypeText = (type) => {
     const typeTexts = {
-      'individual': 'โครงงานเดี่ยว',
-      'group': 'โครงงานกลุ่ม',
-      'research': 'โครงงานวิจัย',
-      'development': 'โครงงานพัฒนา'
+      'govern': 'องค์กรภายนอก',
+      'private': 'ภาควิชา',
+      'research': 'งานวิจัย'
     };
     return typeTexts[type] || type;
   };

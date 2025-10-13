@@ -119,10 +119,9 @@ const EditProjectModal = ({ visible, onCancel, onSuccess, projectData }) => {
 
   // Project types
   const projectTypes = [
-    { value: 'individual', label: 'โครงงานเดี่ยว' },
-    { value: 'group', label: 'โครงงานกลุ่ม' },
-    { value: 'research', label: 'โครงงานวิจัย' },
-    { value: 'development', label: 'โครงงานพัฒนา' }
+    { value: 'govern', label: 'องค์กรภายนอก' },
+    { value: 'private', label: 'ภาควิชา' },
+    { value: 'research', label: 'งานวิจัย' }
   ];
 
   // Status options

@@ -782,14 +782,6 @@ const Phase2Dashboard = () => {
                 <Text><strong>ชื่อโครงงาน:</strong> {activeProject.projectNameTh || '-'}</Text>
                 <Text type="secondary">ผลสอบหัวข้อ: ผ่าน</Text>
                 {examLoading && <Spin size="small" />}
-                {examError && (
-                  <Alert
-                    type="error"
-                    showIcon
-                    message="ไม่สามารถโหลดรายละเอียดผลสอบได้"
-                    description={examError}
-                  />
-                )}
               </Space>
             </Col>
             <Col xs={24} md={12}>
