@@ -25,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { fetchProjectPairs } from '../../../../services/projectPairsService';
+import { studentService } from '../../../../services/studentService';
 import AddProjectModal from '../../projects/AddProjectModal';
 import '../students/styles.css';
 
@@ -78,15 +79,29 @@ const ProjectPairsPage = () => {
     status: [],
     documentStatus: [],
     trackCodes: [],
-    projectType: []
+    projectType: [],
+    academicYear: '',
+    semester: ''
   });
   const [drawerState, setDrawerState] = useState({ open: false, project: null });
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [filterOptions, setFilterOptions] = useState({
+    academicYears: [],
+    semesters: []
+  });
 
   const loadProjectPairs = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetchProjectPairs();
+      const response = await fetchProjectPairs({
+        projectStatus: filters.status,
+        documentStatus: filters.documentStatus,
+        trackCodes: filters.trackCodes,
+        projectType: filters.projectType,
+        academicYear: filters.academicYear,
+        semester: filters.semester
+      });
+
       if (!response.success) {
         message.error('ไม่สามารถดึงข้อมูลคู่โปรเจคได้');
         setProjects([]);
@@ -109,6 +124,33 @@ const ProjectPairsPage = () => {
     } finally {
       setLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const options = await studentService.getFilterOptions();
+        setFilterOptions(options);
+      } catch (error) {
+        console.error('Error loading filter options:', error);
+        // ใช้ค่าเริ่มต้นถ้าไม่สามารถดึงข้อมูลได้
+        setFilterOptions({
+          academicYears: [
+            {
+              value: new Date().getFullYear() + 543,
+              label: `${new Date().getFullYear() + 543}`,
+            },
+          ],
+          semesters: [
+            { value: 1, label: "ภาคเรียนที่ 1" },
+            { value: 2, label: "ภาคเรียนที่ 2" },
+            { value: 3, label: "ภาคฤดูร้อน" },
+          ],
+        });
+      }
+    };
+
+    loadFilterOptions();
   }, []);
 
   useEffect(() => {
@@ -354,8 +396,10 @@ const ProjectPairsPage = () => {
 
       <Card variant="borderless" style={{ padding: 0 }}>
         <div className="filter-section">
-          <Row gutter={[16, 16]} style={{ width: '100%' }}>
-            <Col xs={24} lg={10}>
+          {/* แถวแรก: Search, Academic Year, Semester */}
+          <Row gutter={[16, 16]} style={{ width: '100%', marginBottom: '16px' }}>
+            {/* Search Input */}
+            <Col xs={24} sm={24} md={16} lg={12} xl={16}>
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
@@ -364,7 +408,42 @@ const ProjectPairsPage = () => {
                 onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
               />
             </Col>
-            <Col xs={24} lg={3}>
+            
+            {/* Academic Year & Semester - ให้พื้นที่มากขึ้น */}
+            <Col xs={12} sm={12} md={4} lg={6} xl={4}>
+              <Select
+                value={filters.academicYear}
+                placeholder="ปีการศึกษา"
+                allowClear
+                options={filterOptions.academicYears?.map((year) => ({
+                  label: year.label || `ปีการศึกษา ${year.value}`,
+                  value: year.value
+                })) || []}
+                onChange={(value) => setFilters((prev) => ({ ...prev, academicYear: value }))}
+                style={{ width: '100%' }}
+                size="middle"
+              />
+            </Col>
+            <Col xs={12} sm={12} md={4} lg={6} xl={4}>
+              <Select
+                value={filters.semester}
+                placeholder="ภาคเรียน"
+                allowClear
+                options={filterOptions.semesters?.map((semester) => ({
+                  label: semester.label || `ภาคเรียนที่ ${semester.value}`,
+                  value: semester.value
+                })) || []}
+                onChange={(value) => setFilters((prev) => ({ ...prev, semester: value }))}
+                style={{ width: '100%' }}
+                size="middle"
+              />
+            </Col>
+          </Row>
+
+          {/* แถวที่สอง: Status, Track, Project Type, Refresh Button */}
+          <Row gutter={[16, 16]} style={{ width: '100%' }}>
+            {/* Status Filter */}
+            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Select
                 mode="multiple"
                 value={filters.status}
@@ -376,9 +455,13 @@ const ProjectPairsPage = () => {
                 }))}
                 onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
                 style={{ width: '100%' }}
+                size="middle"
+                maxTagCount="responsive"
               />
             </Col>
-            <Col xs={24} lg={3}>
+            
+            {/* Track Filter */}
+            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Select
                 mode="multiple"
                 value={filters.trackCodes}
@@ -387,9 +470,13 @@ const ProjectPairsPage = () => {
                 options={trackOptions}
                 onChange={(value) => setFilters((prev) => ({ ...prev, trackCodes: value }))}
                 style={{ width: '100%' }}
+                size="middle"
+                maxTagCount="responsive"
               />
             </Col>
-            <Col xs={24} lg={3}>
+            
+            {/* Project Type Filter */}
+            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Select
                 mode="multiple"
                 value={filters.projectType}
@@ -398,14 +485,19 @@ const ProjectPairsPage = () => {
                 options={projectTypeOptions}
                 onChange={(value) => setFilters((prev) => ({ ...prev, projectType: value }))}
                 style={{ width: '100%' }}
+                size="middle"
+                maxTagCount="responsive"
               />
             </Col>
-            <Col xs={24} lg={2}>
+            
+            {/* Refresh Button */}
+            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Button
                 block
                 icon={<ReloadOutlined />}
                 onClick={loadProjectPairs}
                 loading={loading}
+                size="middle"
               >
                 รีเฟรช
               </Button>
