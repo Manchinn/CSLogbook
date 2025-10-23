@@ -24,6 +24,8 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
   MailOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -71,12 +73,17 @@ const MeetingLogbookPage = () => {
   const [stats, setStats] = useState(null);
   const [createMeetingOpen, setCreateMeetingOpen] = useState(false);
   const [createLogOpen, setCreateLogOpen] = useState(false);
+  const [editMeetingOpen, setEditMeetingOpen] = useState(false);
+  const [editLogOpen, setEditLogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [selectedLog, setSelectedLog] = useState(null);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [activePhase, setActivePhase] = useState('phase1');
 
   const [createMeetingForm] = Form.useForm();
   const [createLogForm] = Form.useForm();
+  const [editMeetingForm] = Form.useForm();
+  const [editLogForm] = Form.useForm();
 
   const canManage = useMemo(() => {
     // อนุญาตให้จัดการได้เฉพาะเมื่อโครงงานยังดำเนินการอยู่
@@ -98,7 +105,7 @@ const MeetingLogbookPage = () => {
     } else if (activeProject.examResult !== 'passed') {
       reasons.push('ผลสอบหัวข้อยังไม่ผ่าน');
     }
-    // อนุญาตให้เข้าถึงได้ทั้งโครงงานที่กำลังดำเนินการและเสร็จแล้ว
+    // อนุญาตให้เข้าถึงได้ทั้งโครงงานที่กำลังดำเนินการแกะบบสมคงการพบอาจารย์ได้
     if (!['in_progress', 'completed'].includes(activeProject.status || '')) {
       reasons.push('สถานะโครงงานยังไม่อยู่ในขั้น "กำลังดำเนินการ" หรือ "เสร็จสิ้น"');
     }
@@ -187,7 +194,7 @@ const MeetingLogbookPage = () => {
   }, [activeProject?.projectId, activeProject?.examResult]);
 
   useEffect(() => {
-    // เรียก fetchMeetings เมื่อมี projectId และผ่านการสอบหัวข้อแล้ว
+    // เรียก fetchMeetings เมื่อมี projectId แกะบบสมคงการพบอาจารย์ได้
     if (activeProject?.projectId && activeProject?.examResult === 'passed') {
       fetchMeetings();
     } else {
@@ -295,22 +302,207 @@ const MeetingLogbookPage = () => {
     }
   };
 
-  const formatDateTime = (value) => {
-    if (!value) return '-';
-    return dayjs(value).locale('th').format('DD MMM YYYY HH:mm');
+  const handleEditMeeting = (meeting) => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.info(summary);
+      return;
+    }
+    setSelectedMeeting(meeting);
+    editMeetingForm.setFieldsValue({
+      meetingTitle: meeting.meetingTitle,
+      meetingDate: meeting.meetingDate ? dayjs(meeting.meetingDate) : null,
+      meetingMethod: meeting.meetingMethod,
+      meetingLocation: meeting.meetingLocation,
+      meetingLink: meeting.meetingLink,
+      phase: meeting.phase || 'phase1'
+    });
+    setEditMeetingOpen(true);
   };
+
+  const handleUpdateMeeting = async () => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.warning(summary);
+      return;
+    }
+    if (!activeProject?.projectId || !selectedMeeting?.meetingId) return;
+    try {
+      const values = await editMeetingForm.validateFields();
+      const payload = {
+        meetingTitle: values.meetingTitle.trim(),
+        meetingDate: values.meetingDate ? values.meetingDate.toISOString() : null,
+        meetingMethod: values.meetingMethod,
+        meetingLocation: values.meetingLocation || null,
+        meetingLink: values.meetingLink || null,
+        phase: values.phase || activePhase || 'phase1'
+      };
+      await meetingService.updateMeeting(activeProject.projectId, selectedMeeting.meetingId, payload);
+      message.success('แก้ไขการประชุมสำเร็จ');
+      setEditMeetingOpen(false);
+      editMeetingForm.resetFields();
+      fetchMeetings();
+    } catch (error) {
+      message.error(error.message || 'แก้ไขการประชุมไม่สำเร็จ');
+    }
+  };
+
+  const handleDeleteMeeting = (meeting) => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.info(summary);
+      return;
+    }
+    Modal.confirm({
+      title: 'ยืนยันการลบการประชุม',
+      content: `คุณต้องการลบการประชุม "${meeting.meetingTitle}" หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้`,
+      okText: 'ลบ',
+      okType: 'danger',
+      cancelText: 'ยกเลิก',
+      onOk: async () => {
+        try {
+          await meetingService.deleteMeeting(activeProject.projectId, meeting.meetingId);
+          message.success('ลบการประชุมสำเร็จ');
+          fetchMeetings();
+        } catch (error) {
+          message.error(error.message || 'ลบการประชุมไม่สำเร็จ');
+        }
+      }
+    });
+  };
+
+  const handleEditLog = (meeting, log) => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.info(summary);
+      return;
+    }
+    setSelectedMeeting(meeting);
+    setSelectedLog(log);
+    editLogForm.setFieldsValue({
+      discussionTopic: log.discussionTopic,
+      currentProgress: log.currentProgress,
+      problemsIssues: log.problemsIssues,
+      nextActionItems: log.nextActionItems,
+      advisorComment: log.advisorComment
+    });
+    setEditLogOpen(true);
+  };
+
+  const handleUpdateLog = async () => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.warning(summary);
+      return;
+    }
+    if (!activeProject?.projectId || !selectedMeeting?.meetingId || !selectedLog?.logId) return;
+    try {
+      const values = await editLogForm.validateFields();
+      const payload = {
+        discussionTopic: values.discussionTopic.trim(),
+        currentProgress: values.currentProgress.trim(),
+        problemsIssues: values.problemsIssues ? values.problemsIssues.trim() : null,
+        nextActionItems: values.nextActionItems.trim(),
+        advisorComment: values.advisorComment ? values.advisorComment.trim() : null
+      };
+      await meetingService.updateMeetingLog(activeProject.projectId, selectedMeeting.meetingId, selectedLog.logId, payload);
+      message.success('แก้ไข log การพบสำเร็จ');
+      setEditLogOpen(false);
+      editLogForm.resetFields();
+      fetchMeetings();
+    } catch (error) {
+      message.error(error.message || 'แก้ไข log ไม่สำเร็จ');
+    }
+  };
+
+  const handleDeleteLog = (meeting, log) => {
+    if (isPostTopicLocked) {
+      const summary = postTopicLockReasons.join(' • ') || 'ขั้นตอนนี้ยังไม่พร้อมใช้งาน';
+      message.info(summary);
+      return;
+    }
+    Modal.confirm({
+      title: 'ยืนยันการลบบันทึกการพบ',
+      content: `คุณต้องการลบบันทึกการพบ "${log.discussionTopic}" หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้`,
+      okText: 'ลบ',
+      okType: 'danger',
+      cancelText: 'ยกเลิก',
+      onOk: async () => {
+        try {
+          await meetingService.deleteMeetingLog(activeProject.projectId, meeting.meetingId, log.logId);
+          message.success('ลบบันทึกการพบสำเร็จ');
+          fetchMeetings();
+        } catch (error) {
+          message.error(error.message || 'ลบบันทึกการพบไม่สำเร็จ');
+        }
+      }
+    });
+  };
+
+  const formatDateTime = useCallback((dateValue) => {
+    if (!dateValue) return '-';
+    
+    // ตรวจสอบว่าเป็น string หรือ Date object
+    let date;
+    if (typeof dateValue === 'string') {
+      date = dayjs(dateValue);
+    } else if (dateValue instanceof Date) {
+      date = dayjs(dateValue);
+    } else {
+      return '-';
+    }
+    
+    // ตรวจสอบว่า date ถูกต้องหรือไม่
+    if (!date.isValid()) {
+      return '-';
+    }
+    
+    return date.locale('th').format('DD MMM BBBB HH:mm');
+  }, []);
 
   const collapseItems = currentMeetings.map((meeting) => {
     const meetingPhase = meeting?.phase || 'phase1';
+    const hasApprovedLogs = meeting.logs?.some(log => log.approvalStatus === 'approved');
+    const canEditMeeting = canManage && !hasApprovedLogs;
+    
     return {
       key: meeting.meetingId,
       label: (
         <Space direction="vertical" size={0} style={{ width: '100%' }}>
-          <Space align="center" size={12}>
-            <CalendarOutlined style={{ color: '#1d4ed8' }} />
-            <span style={{ fontWeight: 600 }}>{meeting.meetingTitle}</span>
-            <Tag>{formatDateTime(meeting.meetingDate)}</Tag>
-            <Tag color={MEETING_PHASE_COLORS[meetingPhase] || 'purple'} variant="borderless">{MEETING_PHASE_LABELS[meetingPhase]}</Tag>
+          <Space align="center" size={12} style={{ justifyContent: 'space-between', width: '100%' }}>
+            <Space align="center" size={12}>
+              <CalendarOutlined style={{ color: '#1d4ed8' }} />
+              <span style={{ fontWeight: 600 }}>{meeting.meetingTitle}</span>
+              <Tag>{formatDateTime(meeting.meetingDate)}</Tag>
+              <Tag color={MEETING_PHASE_COLORS[meetingPhase] || 'purple'} variant="borderless">{MEETING_PHASE_LABELS[meetingPhase]}</Tag>
+            </Space>
+            {canEditMeeting && (
+              <Space size={4}>
+                <Tooltip title="แก้ไขการประชุม">
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<EditOutlined />} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditMeeting(meeting);
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="ลบการประชุม">
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    danger 
+                    icon={<DeleteOutlined />} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteMeeting(meeting);
+                    }}
+                  />
+                </Tooltip>
+              </Space>
+            )}
           </Space>
           <Space size={8} wrap>
             <Tag color="geekblue">{meeting.meetingMethod === 'onsite' ? 'onsite' : meeting.meetingMethod === 'online' ? 'online' : 'hybrid'}</Tag>
@@ -332,7 +524,7 @@ const MeetingLogbookPage = () => {
 
           <Space align="center" style={{ justifyContent: 'space-between' }}>
             <div style={{ fontSize: 13, color: '#64748b' }}>
-              บันทึกล่าสุด: {meeting.logs?.length ? formatDateTime(meeting.logs[0].createdAt) : 'ยังไม่มี'}
+              บันทึกล่าสุด: {meeting.logs?.length ? formatDateTime(meeting.logs[0].updatedAt || meeting.logs[0].createdAt) : 'ยังไม่มี'}
             </div>
             {canManage && (
               <Space>
@@ -346,9 +538,46 @@ const MeetingLogbookPage = () => {
           </Space>
 
           {meeting.logs?.length ? meeting.logs.map((log) => (
-            <Card key={log.logId} size="small" title={log.discussionTopic} extra={<Tag color={statusColors[log.approvalStatus] || 'default'}>{statusText[log.approvalStatus] || log.approvalStatus}</Tag>}>
+            <Card 
+              key={log.logId} 
+              size="small" 
+              title={
+                <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
+                  <span>{log.discussionTopic}</span>
+                  {canManage && log.approvalStatus !== 'approved' && (
+                    <Space size={4}>
+                      <Tooltip title="แก้ไขบันทึกการพบ">
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          icon={<EditOutlined />} 
+                          onClick={() => handleEditLog(meeting, log)}
+                        />
+                      </Tooltip>
+                      <Tooltip title="ลบบันทึกการพบ">
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          danger 
+                          icon={<DeleteOutlined />} 
+                          onClick={() => handleDeleteLog(meeting, log)}
+                        />
+                      </Tooltip>
+                    </Space>
+                  )}
+                </Space>
+              } 
+              extra={<Tag color={statusColors[log.approvalStatus] || 'default'}>{statusText[log.approvalStatus] || log.approvalStatus}</Tag>}
+            >
               <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                <div style={{ fontSize: 13, color: '#475569' }}>บันทึกเมื่อ: {formatDateTime(log.createdAt)}</div>
+                <div style={{ fontSize: 13, color: '#475569' }}>
+                  บันทึกเมื่อ: {formatDateTime(log.createdAt)}
+                  {log.updatedAt && log.updatedAt !== log.createdAt && (
+                    <span style={{ marginLeft: 8, color: '#f59e0b' }}>
+                      (แก้ไขล่าสุด: {formatDateTime(log.updatedAt)})
+                    </span>
+                  )}
+                </div>
                 {log.recorder?.fullName && (
                   <div style={{ fontSize: 13, color: '#475569' }}>ผู้บันทึก: {log.recorder.fullName}</div>
                 )}
@@ -468,10 +697,10 @@ const MeetingLogbookPage = () => {
             <Alert
               type="warning"
               showIcon
-              message="ยังไม่สามารถบันทึกการพบอาจารย์ได้"
+              message="ยังไม่สามารถบันทึกการพบอาจารย์ด้"
               description={(
                 <ul style={{ margin: '12px 0 0 20px', padding: 0 }}>
-                  {(postTopicLockReasons.length ? postTopicLockReasons : ['ขั้นตอนนี้จะเปิดใช้งานหลังจากเจ้าหน้าที่บันทึกผลสอบหัวข้อและสถานะโครงงานเป็น in_progress']).map((reason, index) => (
+                  {(postTopicLockReasons.length ? postTopicLockReasons : ['ขั้นตอนนี้จะเปิดใช้งานหลังจากเจ้าหน้าที่บันทึกผลสอบหัวข้อ']).map((reason, index) => (
                     <li key={`meeting-lock-${index}`}>{reason}</li>
                   ))}
                 </ul>
@@ -538,6 +767,74 @@ const MeetingLogbookPage = () => {
         destroyOnClose
       >
         <Form layout="vertical" form={createLogForm}>
+          <Form.Item name="discussionTopic" label="หัวข้อที่พูดคุย" rules={[{ required: true, message: 'กรุณาระบุหัวข้อที่พูดคุย' }]}> 
+            <Input placeholder="หัวข้อหลักในการพบครั้งนี้" />
+          </Form.Item>
+          <Form.Item name="currentProgress" label="ความคืบหน้า" rules={[{ required: true, message: 'กรุณาระบุความคืบหน้า' }]}> 
+            <TextArea rows={3} placeholder="บันทึกสิ่งที่ดำเนินการแล้ว" />
+          </Form.Item>
+          <Form.Item name="problemsIssues" label="ปัญหา/อุปสรรค">
+            <TextArea rows={3} placeholder="ถ้ามีปัญหาใดให้บันทึกไว้" />
+          </Form.Item>
+          <Form.Item name="nextActionItems" label="งานหรือภารกิจถัดไป" rules={[{ required: true, message: 'กรุณาระบุงานถัดไป' }]}> 
+            <TextArea rows={3} placeholder="สิ่งที่ต้องดำเนินการต่อหลังการพบครั้งนี้" />
+          </Form.Item>
+          <Form.Item name="advisorComment" label="หมายเหตุถึงอาจารย์ (ทางเลือก)">
+            <TextArea rows={3} placeholder="ข้อความถึงอาจารย์เพิ่มเติม" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="แก้ไขการประชุม"
+        open={editMeetingOpen}
+        okText="บันทึก"
+        onCancel={() => setEditMeetingOpen(false)}
+        onOk={handleUpdateMeeting}
+        destroyOnClose
+      >
+        <Form layout="vertical" form={editMeetingForm}>
+          <Form.Item
+            name="phase"
+            label="ช่วงโครงงาน"
+            rules={[{ required: true, message: 'กรุณาเลือกช่วงโครงงาน' }]}
+          >
+            <Select>
+              <Select.Option value="phase1">{MEETING_PHASE_LABELS.phase1}</Select.Option>
+              <Select.Option value="phase2" disabled={!canAccessPhase2}>{MEETING_PHASE_LABELS.phase2}</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="meetingTitle" label="หัวข้อการประชุม" rules={[{ required: true, message: 'กรุณาระบุหัวข้อการประชุม' }]}> 
+            <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
+          </Form.Item>
+          <Form.Item name="meetingDate" label="วันและเวลา" rules={[{ required: true, message: 'กรุณาเลือกวันและเวลา' }]}> 
+            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="meetingMethod" label="รูปแบบ" initialValue="onsite" rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการประชุม' }]}> 
+            <Select>
+              <Select.Option value="onsite">onsite (พบกันที่สถานที่จริง)</Select.Option>
+              <Select.Option value="online">online (ผ่านระบบออนไลน์)</Select.Option>
+              <Select.Option value="hybrid">hybrid (ผสม onsite/online)</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="meetingLocation" label="สถานที่ (ถ้ามี)">
+            <Input placeholder="ห้อง/สถานที่" />
+          </Form.Item>
+          <Form.Item name="meetingLink" label="ลิงก์ประชุม (ถ้ามี)">
+            <Input placeholder="เช่น https://teams.microsoft.com/..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={selectedLog ? `แก้ไขบันทึกการพบ: ${selectedLog.discussionTopic}` : 'แก้ไขบันทึกการพบ'}
+        open={editLogOpen}
+        okText="บันทึก"
+        onCancel={() => setEditLogOpen(false)}
+        onOk={handleUpdateLog}
+        destroyOnClose
+      >
+        <Form layout="vertical" form={editLogForm}>
           <Form.Item name="discussionTopic" label="หัวข้อที่พูดคุย" rules={[{ required: true, message: 'กรุณาระบุหัวข้อที่พูดคุย' }]}> 
             <Input placeholder="หัวข้อหลักในการพบครั้งนี้" />
           </Form.Item>

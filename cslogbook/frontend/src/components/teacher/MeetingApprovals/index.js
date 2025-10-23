@@ -279,15 +279,6 @@ const MeetingApprovals = () => {
         return (
           <Space direction="vertical" size={0}>
             <Text strong>{displayName}</Text>
-            <Space size={4} wrap>
-              {project.projectCode && <Tag color="geekblue">{project.projectCode}</Tag>}
-              {record.advisorRole && (
-                <Tag color="purple">{advisorRoleLabels[record.advisorRole] || record.advisorRole}</Tag>
-              )}
-              {typeof record.pendingDurationDays === 'number' && record.pendingDurationDays >= 1 && (
-                <Tag color="volcano">ค้าง {record.pendingDurationDays} วัน</Tag>
-              )}
-            </Space>
           </Space>
         );
       }

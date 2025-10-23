@@ -66,7 +66,11 @@ router.post('/:id/milestones', milestoneController.create);
 // Meetings & Logs
 router.get('/:id/meetings', meetingController.list);
 router.post('/:id/meetings', meetingController.create);
+router.put('/:id/meetings/:meetingId', meetingController.update);
+router.delete('/:id/meetings/:meetingId', meetingController.delete);
 router.post('/:id/meetings/:meetingId/logs', meetingController.createLog);
+router.put('/:id/meetings/:meetingId/logs/:logId', meetingController.updateLog);
+router.delete('/:id/meetings/:meetingId/logs/:logId', meetingController.deleteLog);
 router.patch('/:id/meetings/:meetingId/logs/:logId/approval', meetingController.updateApproval);
 
 // Artifacts (list) & Proposal upload

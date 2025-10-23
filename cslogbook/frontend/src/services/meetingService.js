@@ -48,12 +48,48 @@ const meetingService = {
     }
   },
 
+  updateMeeting: async (projectId, meetingId, payload) => {
+    try {
+      const res = await apiClient.put(`/projects/${projectId}/meetings/${meetingId}`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถแก้ไขการประชุมได้');
+    }
+  },
+
+  deleteMeeting: async (projectId, meetingId) => {
+    try {
+      const res = await apiClient.delete(`/projects/${projectId}/meetings/${meetingId}`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถลบการประชุมได้');
+    }
+  },
+
   createMeetingLog: async (projectId, meetingId, payload) => {
     try {
       const res = await apiClient.post(`/projects/${projectId}/meetings/${meetingId}/logs`, payload);
       return res.data;
     } catch (error) {
       throw normalizeError(error, 'ไม่สามารถบันทึก log การพบอาจารย์ได้');
+    }
+  },
+
+  updateMeetingLog: async (projectId, meetingId, logId, payload) => {
+    try {
+      const res = await apiClient.put(`/projects/${projectId}/meetings/${meetingId}/logs/${logId}`, payload);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถแก้ไข log การพบอาจารย์ได้');
+    }
+  },
+
+  deleteMeetingLog: async (projectId, meetingId, logId) => {
+    try {
+      const res = await apiClient.delete(`/projects/${projectId}/meetings/${meetingId}/logs/${logId}`);
+      return res.data;
+    } catch (error) {
+      throw normalizeError(error, 'ไม่สามารถลบ log การพบอาจารย์ได้');
     }
   },
 

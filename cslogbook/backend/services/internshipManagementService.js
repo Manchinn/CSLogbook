@@ -3150,11 +3150,11 @@ class InternshipManagementService {
         order: [["created_at", "DESC"]],
       });
 
-  // คำนวณสถานะ (ปรับเกณฑ์: ใช้เฉพาะชั่วโมง + การประเมิน ไม่บังคับ summary แล้ว)
+  // คำนวณสถานะ (ปรับเกณฑ์: ใช้เฉพาะชั่วโมง + การประเมิน)
   const isHoursComplete = totalHours >= 240;
   const isEvaluationComplete = !!supervisorEvaluation;
-  const isSummarySubmitted = !!reflection; // คงตรวจแต่ไม่ใช้ในเกณฑ์
-  const canRequestCertificate = isHoursComplete && isEvaluationComplete; // ตัด isSummarySubmitted ออก
+  const isSummarySubmitted = !!reflection;
+  const canRequestCertificate = isHoursComplete && isEvaluationComplete;
 
       let certificateStatus = "not_requested";
       if (certificateRequest) {

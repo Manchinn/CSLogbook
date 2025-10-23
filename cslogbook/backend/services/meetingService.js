@@ -370,6 +370,326 @@ class MeetingService {
     return this.serializeLog(created);
   }
 
+  async updateMeetingLog(projectId, meetingId, logId, actor, payload = {}) {
+    const context = await this.ensureMeetingAccess(meetingId, actor, { includeMembers: true });
+    if (context.project.projectId !== Number(projectId)) {
+      const error = new Error('การประชุมไม่อยู่ในโครงงานที่ระบุ');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const log = await MeetingLog.findByPk(logId, {
+      include: [{ model: Meeting, as: 'meeting' }]
+    });
+
+    if (!log || log.meeting.meetingId !== Number(meetingId)) {
+      const error = new Error('ไม่พบบันทึกการพบที่ระบุ');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // ตรวจสอบสิทธิ์ในการแก้ไข
+    // นักศึกษาสามารถแก้ไขได้เมื่อ: ยังไม่ได้อนุมัติ หรือ ถูก rejected (ขอปรับปรุง)
+    const canEdit = actor.role === 'admin' || 
+                   (actor.userId === log.recordedBy && 
+                    (log.approvalStatus !== 'approved' || log.approvalStatus === 'rejected'));
+    
+    if (!canEdit) {
+      const error = new Error('ไม่สามารถแก้ไขบันทึกการพบที่อนุมัติแล้วได้');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Validation
+    if (!payload.discussionTopic || !payload.discussionTopic.trim()) {
+      const error = new Error('กรุณาระบุหัวข้อที่สนทนา');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!payload.currentProgress || !payload.currentProgress.trim()) {
+      const error = new Error('กรุณาระบุความคืบหน้าปัจจุบัน');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!payload.nextActionItems || !payload.nextActionItems.trim()) {
+      const error = new Error('กรุณาระบุงานถัดไป');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      // เตรียมข้อมูลสำหรับอัปเดต
+      const updateData = {
+        discussionTopic: payload.discussionTopic.trim(),
+        currentProgress: payload.currentProgress.trim(),
+        problemsIssues: payload.problemsIssues ? payload.problemsIssues.trim() : null,
+        nextActionItems: payload.nextActionItems.trim(),
+        advisorComment: payload.advisorComment ? payload.advisorComment.trim() : null
+      };
+
+      // หากบันทึกถูก rejected และนักศึกษาแก้ไข ให้รีเซ็ตสถานะเป็น pending
+      if (log.approvalStatus === 'rejected' && actor.userId === log.recordedBy) {
+        updateData.approvalStatus = 'pending';
+        updateData.approvedBy = null;
+        updateData.approvedAt = null;
+        updateData.rejectionReason = null;
+      }
+
+      await log.update(updateData, { transaction: t });
+
+      await t.commit();
+    } catch (error) {
+      if (!t.finished) {
+        await t.rollback();
+      }
+      logger.error('meetingService.updateMeetingLog failed', { message: error.message, logId });
+      if (!error.statusCode) error.statusCode = 400;
+      throw error;
+    }
+
+    const updated = await MeetingLog.findByPk(logId, {
+      include: [
+        { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+        { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+        { model: MeetingAttachment, as: 'attachments' },
+        { model: MeetingActionItem, as: 'actionItems' }
+      ]
+    });
+
+    logger.info('meetingService.updateMeetingLog success', { meetingId, logId, actorId: actor.userId });
+    return this.serializeLog(updated);
+  }
+
+  async deleteMeetingLog(projectId, meetingId, logId, actor) {
+    const context = await this.ensureMeetingAccess(meetingId, actor, { includeMembers: true });
+    if (context.project.projectId !== Number(projectId)) {
+      const error = new Error('การประชุมไม่อยู่ในโครงงานที่ระบุ');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const log = await MeetingLog.findByPk(logId, {
+      include: [{ model: Meeting, as: 'meeting' }]
+    });
+
+    if (!log || log.meeting.meetingId !== Number(meetingId)) {
+      const error = new Error('ไม่พบบันทึกการพบที่ระบุ');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // ตรวจสอบสิทธิ์ในการลบ
+    // นักศึกษาสามารถลบได้เมื่อ: ยังไม่ได้อนุมัติ หรือ ถูก rejected (ขอปรับปรุง)
+    const canDelete = actor.role === 'admin' || 
+                     (actor.userId === log.recordedBy && 
+                      (log.approvalStatus !== 'approved' || log.approvalStatus === 'rejected'));
+    
+    if (!canDelete) {
+      const error = new Error('ไม่สามารถลบบันทึกการพบที่อนุมัติแล้วได้');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      // ลบ action items ที่เกี่ยวข้อง
+      await MeetingActionItem.destroy({
+        where: { logId },
+        transaction: t
+      });
+
+      // ลบ attachments ที่เกี่ยวข้อง
+      await MeetingAttachment.destroy({
+        where: { logId },
+        transaction: t
+      });
+
+      // ลบ log
+      await log.destroy({ transaction: t });
+
+      await t.commit();
+    } catch (error) {
+      if (!t.finished) {
+        await t.rollback();
+      }
+      logger.error('meetingService.deleteMeetingLog failed', { message: error.message, logId });
+      if (!error.statusCode) error.statusCode = 400;
+      throw error;
+    }
+
+    logger.info('meetingService.deleteMeetingLog success', { meetingId, logId, actorId: actor.userId });
+    return { success: true, message: 'ลบบันทึกการพบสำเร็จ' };
+  }
+
+  async updateMeeting(projectId, meetingId, actor, payload = {}) {
+    const context = await this.ensureProjectAccess(projectId, actor, { includeMembers: true });
+    
+    const meeting = await Meeting.findByPk(meetingId, {
+      include: [
+        { model: MeetingLog, as: 'logs' }
+      ]
+    });
+
+    if (!meeting || meeting.projectId !== Number(projectId)) {
+      const error = new Error('ไม่พบการประชุมที่ระบุ');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // ตรวจสอบว่ามี log ที่อนุมัติแล้วหรือไม่
+    const hasApprovedLogs = meeting.logs.some(log => log.approvalStatus === 'approved');
+    
+    // ตรวจสอบสิทธิ์ในการแก้ไข
+    const canEdit = actor.role === 'admin' || 
+                   (context.members.some(m => m.userId === actor.userId) && !hasApprovedLogs);
+    
+    if (!canEdit) {
+      const error = new Error('ไม่สามารถแก้ไขการประชุมที่มี log อนุมัติแล้วได้');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Validation
+    if (payload.meetingPhase && !MEETING_PHASES.includes(payload.meetingPhase)) {
+      const error = new Error('ระยะการประชุมไม่ถูกต้อง');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!payload.meetingTitle || !payload.meetingTitle.trim()) {
+      const error = new Error('กรุณาระบุหัวข้อการประชุม');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!payload.meetingDate) {
+      const error = new Error('กรุณาระบุวันที่ประชุม');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      await meeting.update({
+        meetingPhase: payload.meetingPhase || meeting.meetingPhase,
+        meetingTitle: payload.meetingTitle.trim(),
+        meetingDate: payload.meetingDate,
+        meetingMethod: payload.meetingMethod || meeting.meetingMethod,
+        meetingLocation: payload.meetingLocation ? payload.meetingLocation.trim() : null,
+        meetingLink: payload.meetingLink ? payload.meetingLink.trim() : null
+      }, { transaction: t });
+
+      await t.commit();
+    } catch (error) {
+      if (!t.finished) {
+        await t.rollback();
+      }
+      logger.error('meetingService.updateMeeting failed', { message: error.message, meetingId });
+      if (!error.statusCode) error.statusCode = 400;
+      throw error;
+    }
+
+    const updated = await Meeting.findByPk(meetingId, {
+      include: [
+        {
+          model: MeetingParticipant,
+          as: 'participants',
+          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] }]
+        },
+        {
+          model: MeetingLog,
+          as: 'logs',
+          include: [
+            { model: User, as: 'recorder', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+            { model: User, as: 'approver', attributes: ['userId', 'firstName', 'lastName', 'email', 'role'] },
+            { model: MeetingAttachment, as: 'attachments' },
+            { model: MeetingActionItem, as: 'actionItems' }
+          ]
+        }
+      ]
+    });
+
+    logger.info('meetingService.updateMeeting success', { projectId, meetingId, actorId: actor.userId });
+    return this.serializeMeeting(updated);
+  }
+
+  async deleteMeeting(projectId, meetingId, actor) {
+    const context = await this.ensureProjectAccess(projectId, actor, { includeMembers: true });
+    
+    const meeting = await Meeting.findByPk(meetingId, {
+      include: [
+        { model: MeetingLog, as: 'logs' }
+      ]
+    });
+
+    if (!meeting || meeting.projectId !== Number(projectId)) {
+      const error = new Error('ไม่พบการประชุมที่ระบุ');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // ตรวจสอบว่ามี log ที่อนุมัติแล้วหรือไม่
+    const hasApprovedLogs = meeting.logs.some(log => log.approvalStatus === 'approved');
+    
+    // ตรวจสอบสิทธิ์ในการลบ
+    const canDelete = actor.role === 'admin' || 
+                     (context.members.some(m => m.userId === actor.userId) && !hasApprovedLogs);
+    
+    if (!canDelete) {
+      const error = new Error('ไม่สามารถลบการประชุมที่มี log อนุมัติแล้วได้');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      // ลบ action items ที่เกี่ยวข้องกับ logs ทั้งหมด
+      const logIds = meeting.logs.map(log => log.logId);
+      if (logIds.length > 0) {
+        await MeetingActionItem.destroy({
+          where: { logId: { [Op.in]: logIds } },
+          transaction: t
+        });
+
+        // ลบ attachments ที่เกี่ยวข้องกับ logs ทั้งหมด
+        await MeetingAttachment.destroy({
+          where: { logId: { [Op.in]: logIds } },
+          transaction: t
+        });
+
+        // ลบ logs ทั้งหมด
+        await MeetingLog.destroy({
+          where: { meetingId },
+          transaction: t
+        });
+      }
+
+      // ลบ participants
+      await MeetingParticipant.destroy({
+        where: { meetingId },
+        transaction: t
+      });
+
+      // ลบ meeting
+      await meeting.destroy({ transaction: t });
+
+      await t.commit();
+    } catch (error) {
+      if (!t.finished) {
+        await t.rollback();
+      }
+      logger.error('meetingService.deleteMeeting failed', { message: error.message, meetingId });
+      if (!error.statusCode) error.statusCode = 400;
+      throw error;
+    }
+
+    logger.info('meetingService.deleteMeeting success', { projectId, meetingId, actorId: actor.userId });
+    return { success: true, message: 'ลบการประชุมสำเร็จ' };
+  }
+
   async updateLogApproval(projectId, meetingId, logId, actor, payload = {}) {
     const context = await this.ensureMeetingAccess(meetingId, actor);
     if (context.project.projectId !== Number(projectId)) {
@@ -996,6 +1316,7 @@ class MeetingService {
       }
     };
 
+    // เพิ่มสมาชิกโครงงานทุกคนเป็น participants อัตโนมัติ
     if (Array.isArray(members)) {
       members.forEach(member => {
         const studentUserId = member.student?.user?.userId;
@@ -1005,6 +1326,7 @@ class MeetingService {
       });
     }
 
+    // เพิ่มอาจารย์ที่ปรึกษา
     const teacherIds = [project.advisorId, project.coAdvisorId].filter(Boolean);
     if (teacherIds.length) {
       const teachers = await Teacher.findAll({ where: { teacherId: { [Op.in]: teacherIds } } });
@@ -1013,6 +1335,7 @@ class MeetingService {
       });
     }
 
+    // เพิ่มผู้เข้าร่วมเพิ่มเติม
     if (Array.isArray(additionalParticipantIds)) {
       additionalParticipantIds
         .map(id => Number(id))
@@ -1020,6 +1343,7 @@ class MeetingService {
         .forEach(userId => addParticipant(userId, 'guest'));
     }
 
+    // เพิ่มผู้สร้างการประชุม (ถ้ายังไม่ได้เป็น participant)
     addParticipant(actor.userId, actor.role === 'teacher' ? 'advisor' : actor.role === 'student' ? 'student' : 'guest');
 
     return Array.from(participants.values());
@@ -1078,6 +1402,12 @@ class MeetingService {
       ? logInstance.toJSON()
       : logInstance;
     if (!log || typeof log !== 'object') return null;
+    
+    // แก้ไข: ใช้ชื่อ field ที่ถูกต้องตาม underscored convention
+    // Sequelize จะแปลง created_at เป็น createdAt ใน JavaScript object
+    const createdAt = log.createdAt || log.created_at || null;
+    const updatedAt = log.updatedAt || log.updated_at || null;
+    
     return {
       logId: log.logId,
       meetingId: log.meetingId,
@@ -1091,8 +1421,8 @@ class MeetingService {
       approvedBy: log.approvedBy,
       approvedAt: log.approvedAt,
       recordedBy: log.recordedBy,
-      createdAt: log.createdAt,
-      updatedAt: log.updatedAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       recorder: log.recorder ? {
         userId: log.recorder.userId,
         firstName: log.recorder.firstName,
