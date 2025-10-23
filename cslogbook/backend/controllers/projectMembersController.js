@@ -21,12 +21,17 @@ exports.getProjectMembers = async (req, res) => {
     const documentStatus = toArray(req.query.documentStatus);
     const trackCodes = toArray(req.query.trackCodes || req.query.trackCode || req.query.track);
     const projectType = toArray(req.query.projectType);
+    // เพิ่มการรับ parameters ปีการศึกษาและภาคการศึกษา
+    const academicYear = toArray(req.query.academicYear);
+    const semester = toArray(req.query.semester);
 
     const formattedProjects = await projectMembersService.getAllApprovedProjectMembers({
       projectStatus,
       documentStatus,
       trackCodes,
-      projectType
+      projectType,
+      academicYear,
+      semester
     });
 
     res.json({

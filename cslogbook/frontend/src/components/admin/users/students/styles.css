@@ -63,6 +63,89 @@
     margin-bottom: 24px;
     gap: 16px;
     flex-wrap: wrap;
+    padding: 16px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+}
+
+/* Enhanced Filter Controls */
+.filter-section .ant-select {
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.filter-section .ant-select:hover .ant-select-selector {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.filter-section .ant-select-focused .ant-select-selector {
+    border-color: #40a9ff !important;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Academic Year & Semester Group Styling */
+.filter-section .ant-col:nth-child(2),
+.filter-section .ant-col:nth-child(3) {
+    position: relative;
+}
+
+.filter-section .ant-col:nth-child(2)::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 20px;
+    background-color: #d9d9d9;
+}
+
+/* Input Styling */
+.filter-section .ant-input {
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.filter-section .ant-input:hover,
+.filter-section .ant-input:focus {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+/* Button Styling */
+.filter-section .ant-btn {
+    border-radius: 6px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.filter-section .ant-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Multiple Select Tag Styling */
+.filter-section .ant-select-multiple .ant-select-selection-item {
+    background: #e6f7ff;
+    border: 1px solid #91d5ff;
+    border-radius: 4px;
+    color: #1890ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.filter-section .ant-select-multiple .ant-select-selection-item-remove {
+    color: #1890ff;
+}
+
+.filter-section .ant-select-multiple .ant-select-selection-item-remove:hover {
+    color: #ff4d4f;
 }
 
 /* Table Styling */
