@@ -68,6 +68,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 // Upload config (minimal for test)
 const upload = multer({ dest: process.env.UPLOAD_DIR });
 if (!fs.existsSync(process.env.UPLOAD_DIR)) fs.mkdirSync(process.env.UPLOAD_DIR, { recursive: true });
+// Static files middleware
+// เพิ่มการตั้งค่า MIME type สำหรับไฟล์ .mjs
+express.static.mime.define({'application/javascript': ['mjs']});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public & protected routes (ส่วนสำคัญเท่านั้น; บาง route อาจพึ่งพา DB จริง ให้ mock ใน test กรณีจำเป็น)

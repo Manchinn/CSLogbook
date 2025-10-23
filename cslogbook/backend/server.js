@@ -308,6 +308,8 @@ if (!fs.existsSync(ENV.UPLOAD_DIR)) {
 }
 
 // Serve static files from the uploads directory
+// เพิ่มการตั้งค่า MIME type สำหรับไฟล์ .mjs
+express.static.mime.define({'application/javascript': ['mjs']});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
