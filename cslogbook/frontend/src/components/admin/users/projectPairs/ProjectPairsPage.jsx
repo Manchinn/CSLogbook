@@ -415,7 +415,10 @@ const ProjectPairsPage = () => {
                 value={filters.academicYear}
                 placeholder="ปีการศึกษา"
                 allowClear
-                options={filterOptions.academicYears}
+                options={filterOptions.academicYears?.map((year) => ({
+                  label: year.label || `ปีการศึกษา ${year.value}`,
+                  value: year.value
+                })) || []}
                 onChange={(value) => setFilters((prev) => ({ ...prev, academicYear: value }))}
                 style={{ width: '100%' }}
                 size="middle"
@@ -424,9 +427,12 @@ const ProjectPairsPage = () => {
             <Col xs={12} sm={12} md={4} lg={6} xl={4}>
               <Select
                 value={filters.semester}
-                placeholder="ภาคการศึกษา"
+                placeholder="ภาคเรียน"
                 allowClear
-                options={filterOptions.semesters}
+                options={filterOptions.semesters?.map((semester) => ({
+                  label: semester.label || `ภาคเรียนที่ ${semester.value}`,
+                  value: semester.value
+                })) || []}
                 onChange={(value) => setFilters((prev) => ({ ...prev, semester: value }))}
                 style={{ width: '100%' }}
                 size="middle"
