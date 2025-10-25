@@ -33,6 +33,8 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+import locale from 'antd/locale/th_TH';
 import { useStudentProject } from '../../../../hooks/useStudentProject';
 import meetingService from '../../../../services/meetingService';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -51,6 +53,7 @@ const statusText = {
   rejected: 'ขอปรับปรุง'
 };
 
+dayjs.extend(buddhistEra);
 dayjs.locale('th');
 
 const MEETING_PHASE_LABELS = {
@@ -741,7 +744,13 @@ const MeetingLogbookPage = () => {
             <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
           </Form.Item>
           <Form.Item name="meetingDate" label="วันและเวลา" rules={[{ required: true, message: 'กรุณาเลือกวันและเวลา' }]}> 
-            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+            <DatePicker 
+              showTime 
+              format="DD/MM/BBBB HH:mm" 
+              style={{ width: '100%' }} 
+              locale={locale}
+              placeholder="เลือกวันที่และเวลา"
+            />
           </Form.Item>
           <Form.Item name="meetingMethod" label="รูปแบบ" initialValue="onsite" rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการประชุม' }]}> 
             <Select>
@@ -809,7 +818,13 @@ const MeetingLogbookPage = () => {
             <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
           </Form.Item>
           <Form.Item name="meetingDate" label="วันและเวลา" rules={[{ required: true, message: 'กรุณาเลือกวันและเวลา' }]}> 
-            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+            <DatePicker 
+              showTime 
+              format="DD/MM/BBBB HH:mm" 
+              style={{ width: '100%' }} 
+              locale={locale}
+              placeholder="เลือกวันที่และเวลา"
+            />
           </Form.Item>
           <Form.Item name="meetingMethod" label="รูปแบบ" initialValue="onsite" rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการประชุม' }]}> 
             <Select>
