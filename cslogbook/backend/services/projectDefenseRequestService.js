@@ -28,7 +28,7 @@ dayjs.tz.setDefault('Asia/Bangkok');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
 const DEFENSE_TYPE_THESIS = 'THESIS';
-const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
+const THESIS_REQUIRED_APPROVED_MEETING_LOGS = 4;
 const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
 
 const DEFENSE_TYPE_LABELS_TH = Object.freeze({

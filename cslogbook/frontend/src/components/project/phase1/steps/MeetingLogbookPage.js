@@ -462,8 +462,9 @@ const MeetingLogbookPage = () => {
 
   const collapseItems = currentMeetings.map((meeting) => {
     const meetingPhase = meeting?.phase || 'phase1';
-    const hasApprovedLogs = meeting.logs?.some(log => log.approvalStatus === 'approved');
-    const canEditMeeting = canManage && !hasApprovedLogs;
+    // ปรับเงื่อนไขให้สามารถแก้ไขการประชุมได้แม้จะมี log ที่อนุมัติแล้ว
+    // เฉพาะในกรณีที่โครงงานยังดำเนินการอยู่
+    const canEditMeeting = canManage;
     
     return {
       key: meeting.meetingId,
