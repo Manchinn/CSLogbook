@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, DatePicker, Descriptions, Divider, Form, Input, Row, Space, Spin, Tag, Timeline, Typography, message } from 'antd';
 import dayjs from '../../../../utils/dayjs';
+import buddhistLocale from '../../../../utils/buddhistLocale';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
 import useProjectDeadlines from '../../../../hooks/useProjectDeadlines';
@@ -434,7 +435,14 @@ const ExamSubmitPage = () => {
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
                     <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
-                      <DatePicker format="DD/MM/BBBB" style={{ width: '100%' }} allowClear={false} disabled />
+                      <DatePicker 
+                        format="DD/MM/BBBB" 
+                        style={{ width: '100%' }} 
+                        allowClear={false} 
+                        disabled 
+                        locale={buddhistLocale}
+                        placement="bottomLeft"
+                      />
                     </Form.Item>
                   </Col>
                 </Row>

@@ -18,7 +18,7 @@ import {
 import dayjs from "dayjs";
 import 'dayjs/locale/th'; // Import Thai locale for dayjs
 import buddhistEra from 'dayjs/plugin/buddhistEra'; // Import Buddhist Era plugin
-import locale from 'antd/es/date-picker/locale/th_TH'; // Import Ant Design's DatePicker locale for Thai
+import buddhistLocale from '../../../utils/buddhistLocale'; // Import Buddhist Locale
 import { useInternship } from "../../../contexts/InternshipContext";
 import internshipService from '../../../services/internshipService';
 import TranscriptUpload from '../common/TranscriptUpload';
@@ -396,10 +396,11 @@ const CS05Form = () => {
                 ระยะเวลาฝึกงาน{" "}
                 <Form.Item name="internshipPeriod" noStyle rules={[{ required: true }]}>
                   <DatePicker.RangePicker
-                    locale={locale} // Add locale prop for Ant Design DatePicker
+                    locale={buddhistLocale} // Add locale prop for Ant Design DatePicker
                     disabled={isFieldsDisabled}
                     //disabledDate={(current) => current && current < dayjs().startOf("day")} //หากต้องการให้เลือกวันในอนาคตเท่านั้น
                     format="D MMMM BBBB" 
+                    placement="bottomLeft"
                   />
                 </Form.Item>
               </Paragraph>
