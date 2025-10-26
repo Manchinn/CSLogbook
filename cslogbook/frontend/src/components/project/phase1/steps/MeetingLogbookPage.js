@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Collapse,
+  ConfigProvider,
   DatePicker,
   Empty,
   Form,
@@ -33,6 +34,8 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+import buddhistLocale from '../../../../utils/buddhistLocale';
 import { useStudentProject } from '../../../../hooks/useStudentProject';
 import meetingService from '../../../../services/meetingService';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -51,6 +54,7 @@ const statusText = {
   rejected: 'ขอปรับปรุง'
 };
 
+dayjs.extend(buddhistEra);
 dayjs.locale('th');
 
 const MEETING_PHASE_LABELS = {
@@ -79,6 +83,8 @@ const MeetingLogbookPage = () => {
   const [selectedLog, setSelectedLog] = useState(null);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [activePhase, setActivePhase] = useState('phase1');
+  const [createMeetingMethod, setCreateMeetingMethod] = useState('onsite');
+  const [editMeetingMethod, setEditMeetingMethod] = useState('onsite');
 
   const [createMeetingForm] = Form.useForm();
   const [createLogForm] = Form.useForm();
@@ -309,6 +315,7 @@ const MeetingLogbookPage = () => {
       return;
     }
     setSelectedMeeting(meeting);
+    setEditMeetingMethod(meeting.meetingMethod || 'onsite');
     editMeetingForm.setFieldsValue({
       meetingTitle: meeting.meetingTitle,
       meetingDate: meeting.meetingDate ? dayjs(meeting.meetingDate) : null,
@@ -406,12 +413,12 @@ const MeetingLogbookPage = () => {
         advisorComment: values.advisorComment ? values.advisorComment.trim() : null
       };
       await meetingService.updateMeetingLog(activeProject.projectId, selectedMeeting.meetingId, selectedLog.logId, payload);
-      message.success('แก้ไข log การพบสำเร็จ');
+      message.success('แก้ไขรายละเอียดการพบอาจารย์สำเร็จ');
       setEditLogOpen(false);
       editLogForm.resetFields();
       fetchMeetings();
     } catch (error) {
-      message.error(error.message || 'แก้ไข log ไม่สำเร็จ');
+      message.error(error.message || 'แก้ไขรายละเอียดการพบอาจารย์ไม่สำเร็จ');
     }
   };
 
@@ -462,8 +469,9 @@ const MeetingLogbookPage = () => {
 
   const collapseItems = currentMeetings.map((meeting) => {
     const meetingPhase = meeting?.phase || 'phase1';
-    const hasApprovedLogs = meeting.logs?.some(log => log.approvalStatus === 'approved');
-    const canEditMeeting = canManage && !hasApprovedLogs;
+    // ปรับเงื่อนไขให้สามารถแก้ไขการประชุมได้แม้จะมี log ที่อนุมัติแล้ว
+    // เฉพาะในกรณีที่โครงงานยังดำเนินการอยู่
+    const canEditMeeting = canManage;
     
     return {
       key: meeting.meetingId,
@@ -528,7 +536,7 @@ const MeetingLogbookPage = () => {
             </div>
             {canManage && (
               <Space>
-                <Tooltip title="เพิ่ม log สำหรับการพบครั้งนี้">
+                <Tooltip title="เพิ่มรายละเอียดสำหรับการพบครั้งนี้">
                   <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleOpenLogModal(meeting)}>
                     บันทึกการพบ
                   </Button>
@@ -631,7 +639,8 @@ const MeetingLogbookPage = () => {
   });
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <ConfigProvider locale={buddhistLocale}>
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Space align="center" style={{ justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 12 }}>
         <Space wrap>
           <Button
@@ -723,7 +732,8 @@ const MeetingLogbookPage = () => {
         okText="บันทึก"
         onCancel={() => setCreateMeetingOpen(false)}
         onOk={handleCreateMeeting}
-        destroyOnClose
+        destroyOnHidden
+        style={{ top: 20 }}
       >
         <Form layout="vertical" form={createMeetingForm}>
           <Form.Item
@@ -740,10 +750,16 @@ const MeetingLogbookPage = () => {
             <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
           </Form.Item>
           <Form.Item name="meetingDate" label="วันและเวลา" rules={[{ required: true, message: 'กรุณาเลือกวันและเวลา' }]}> 
-            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+            <DatePicker 
+              showTime 
+              format="DD/MM/BBBB HH:mm" 
+              style={{ width: '100%' }} 
+              locale={buddhistLocale}
+              placeholder="เลือกวันที่และเวลา"
+            />
           </Form.Item>
           <Form.Item name="meetingMethod" label="รูปแบบ" initialValue="onsite" rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการประชุม' }]}> 
-            <Select>
+            <Select onChange={(value) => setCreateMeetingMethod(value)}>
               <Select.Option value="onsite">onsite (พบกันที่สถานที่จริง)</Select.Option>
               <Select.Option value="online">online (ผ่านระบบออนไลน์)</Select.Option>
               <Select.Option value="hybrid">hybrid (ผสม onsite/online)</Select.Option>
@@ -752,9 +768,11 @@ const MeetingLogbookPage = () => {
           <Form.Item name="meetingLocation" label="สถานที่ (ถ้ามี)">
             <Input placeholder="ห้อง/สถานที่" />
           </Form.Item>
-          <Form.Item name="meetingLink" label="ลิงก์ประชุม (ถ้ามี)">
-            <Input placeholder="เช่น https://teams.microsoft.com/..." />
-          </Form.Item>
+          {(createMeetingMethod === 'online' || createMeetingMethod === 'hybrid') && (
+            <Form.Item name="meetingLink" label="ลิงก์ประชุม (ถ้ามี)">
+              <Input placeholder="เช่น https://teams.microsoft.com/..." />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
 
@@ -764,7 +782,8 @@ const MeetingLogbookPage = () => {
         okText="บันทึก"
         onCancel={() => setCreateLogOpen(false)}
         onOk={handleCreateLog}
-        destroyOnClose
+        destroyOnHidden
+        style={{ top: 10 }}
       >
         <Form layout="vertical" form={createLogForm}>
           <Form.Item name="discussionTopic" label="หัวข้อที่พูดคุย" rules={[{ required: true, message: 'กรุณาระบุหัวข้อที่พูดคุย' }]}> 
@@ -791,7 +810,8 @@ const MeetingLogbookPage = () => {
         okText="บันทึก"
         onCancel={() => setEditMeetingOpen(false)}
         onOk={handleUpdateMeeting}
-        destroyOnClose
+        destroyOnHidden
+        style={{ top: 10 }}
       >
         <Form layout="vertical" form={editMeetingForm}>
           <Form.Item
@@ -808,10 +828,16 @@ const MeetingLogbookPage = () => {
             <Input placeholder="เช่น ติดตามความคืบหน้าหลังสอบหัวข้อ" />
           </Form.Item>
           <Form.Item name="meetingDate" label="วันและเวลา" rules={[{ required: true, message: 'กรุณาเลือกวันและเวลา' }]}> 
-            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+            <DatePicker 
+              showTime 
+              format="DD/MM/BBBB HH:mm" 
+              style={{ width: '100%' }} 
+              locale={buddhistLocale}
+              placeholder="เลือกวันที่และเวลา"
+            />
           </Form.Item>
           <Form.Item name="meetingMethod" label="รูปแบบ" initialValue="onsite" rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการประชุม' }]}> 
-            <Select>
+            <Select onChange={(value) => setEditMeetingMethod(value)}>
               <Select.Option value="onsite">onsite (พบกันที่สถานที่จริง)</Select.Option>
               <Select.Option value="online">online (ผ่านระบบออนไลน์)</Select.Option>
               <Select.Option value="hybrid">hybrid (ผสม onsite/online)</Select.Option>
@@ -820,9 +846,11 @@ const MeetingLogbookPage = () => {
           <Form.Item name="meetingLocation" label="สถานที่ (ถ้ามี)">
             <Input placeholder="ห้อง/สถานที่" />
           </Form.Item>
-          <Form.Item name="meetingLink" label="ลิงก์ประชุม (ถ้ามี)">
-            <Input placeholder="เช่น https://teams.microsoft.com/..." />
-          </Form.Item>
+          {(editMeetingMethod === 'online' || editMeetingMethod === 'hybrid') && (
+            <Form.Item name="meetingLink" label="ลิงก์ประชุม (ถ้ามี)">
+              <Input placeholder="เช่น https://teams.microsoft.com/..." />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
 
@@ -832,7 +860,8 @@ const MeetingLogbookPage = () => {
         okText="บันทึก"
         onCancel={() => setEditLogOpen(false)}
         onOk={handleUpdateLog}
-        destroyOnClose
+        destroyOnHidden
+        style={{ top: 20 }}
       >
         <Form layout="vertical" form={editLogForm}>
           <Form.Item name="discussionTopic" label="หัวข้อที่พูดคุย" rules={[{ required: true, message: 'กรุณาระบุหัวข้อที่พูดคุย' }]}> 
@@ -853,6 +882,7 @@ const MeetingLogbookPage = () => {
         </Form>
       </Modal>
     </Space>
+    </ConfigProvider>
   );
 };
 

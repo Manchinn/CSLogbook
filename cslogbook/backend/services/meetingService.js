@@ -539,15 +539,30 @@ class MeetingService {
       throw error;
     }
 
-    // ตรวจสอบว่ามี log ที่อนุมัติแล้วหรือไม่
-    const hasApprovedLogs = meeting.logs.some(log => log.approvalStatus === 'approved');
-    
     // ตรวจสอบสิทธิ์ในการแก้ไข
-    const canEdit = actor.role === 'admin' || 
-                   (context.members.some(m => m.userId === actor.userId) && !hasApprovedLogs);
+    let canEdit = false;
+    
+    if (actor.role === 'admin') {
+      canEdit = true;
+    } else if (actor.role === 'student') {
+      // ตรวจสอบว่าเป็นสมาชิกโครงงานหรือไม่
+      const membership = await ProjectMember.findOne({ 
+        where: { projectId, studentId: actor.studentId } 
+      });
+      canEdit = !!membership;
+    } else if (actor.role === 'teacher') {
+      // ตรวจสอบว่าเป็นอาจารย์ที่ปรึกษาหรือไม่
+      const teacher = await Teacher.findOne({ where: { userId: actor.userId } });
+      if (teacher) {
+        const isAdvisor = [context.project.advisorId, context.project.coAdvisorId]
+          .filter(Boolean)
+          .includes(teacher.teacherId);
+        canEdit = isAdvisor;
+      }
+    }
     
     if (!canEdit) {
-      const error = new Error('ไม่สามารถแก้ไขการประชุมที่มี log อนุมัติแล้วได้');
+      const error = new Error('ไม่มีสิทธิ์ในการแก้ไขการประชุมนี้');
       error.statusCode = 403;
       throw error;
     }
@@ -631,15 +646,30 @@ class MeetingService {
       throw error;
     }
 
-    // ตรวจสอบว่ามี log ที่อนุมัติแล้วหรือไม่
-    const hasApprovedLogs = meeting.logs.some(log => log.approvalStatus === 'approved');
-    
     // ตรวจสอบสิทธิ์ในการลบ
-    const canDelete = actor.role === 'admin' || 
-                     (context.members.some(m => m.userId === actor.userId) && !hasApprovedLogs);
+    let canDelete = false;
+    
+    if (actor.role === 'admin') {
+      canDelete = true;
+    } else if (actor.role === 'student') {
+      // ตรวจสอบว่าเป็นสมาชิกโครงงานหรือไม่
+      const membership = await ProjectMember.findOne({ 
+        where: { projectId, studentId: actor.studentId } 
+      });
+      canDelete = !!membership;
+    } else if (actor.role === 'teacher') {
+      // ตรวจสอบว่าเป็นอาจารย์ที่ปรึกษาหรือไม่
+      const teacher = await Teacher.findOne({ where: { userId: actor.userId } });
+      if (teacher) {
+        const isAdvisor = [context.project.advisorId, context.project.coAdvisorId]
+          .filter(Boolean)
+          .includes(teacher.teacherId);
+        canDelete = isAdvisor;
+      }
+    }
     
     if (!canDelete) {
-      const error = new Error('ไม่สามารถลบการประชุมที่มี log อนุมัติแล้วได้');
+      const error = new Error('ไม่มีสิทธิ์ในการลบการประชุมนี้');
       error.statusCode = 403;
       throw error;
     }

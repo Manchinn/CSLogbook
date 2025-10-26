@@ -29,7 +29,7 @@ const phase1Steps = Object.freeze([
     desc: 'แต่ละหัวข้อโครงงาน ส่งได้เพียงครั้งเดียวเท่านั้น',
     icon: <FileAddOutlined style={{ fontSize: 28 }} />,
     implemented: true
-  },
+  },/* 
   {
     key: 'topic-exam',
     phase: 'phase1',
@@ -38,7 +38,7 @@ const phase1Steps = Object.freeze([
     desc: 'ตรวจสอบกำหนดการสอบและสถานะผลหัวข้อ',
     icon: <FileSearchOutlined style={{ fontSize: 28 }} />,
     implemented: true
-  },
+  }, */
   {
     key: 'meeting-logbook',
     phase: 'phase1',

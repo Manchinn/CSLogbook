@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Modal, Form, Input, DatePicker, TimePicker, Select, Row, Col, Divider, Alert, Switch, InputNumber, Grid } from 'antd';
 import moment from 'moment';
+import buddhistLocale from '../../../../../utils/buddhistLocale'; // Import Buddhist Locale
 
 const { Option } = Select;
 
@@ -182,7 +183,8 @@ export default function DeadlineModal({
                 style={{ width:'100%' }}
                 value={formState.publishAt}
                 onChange={dt => setFormState({ ...formState, publishAt: dt })}
-                locale={thLocale}
+                locale={buddhistLocale}
+                placement="bottomLeft"
               />
             </Form.Item>
           </Col>
@@ -207,9 +209,10 @@ export default function DeadlineModal({
                 value={formState.date}
                 onChange={date => setFormState({ ...formState, date })}
                 format={v => v ? moment(v).add(543,'year').format('D MMMM YYYY') : ''}
-                locale={thLocale}
+                locale={buddhistLocale}
                 placeholder="เลือกวันที่"
                 disabled={!!(formState.windowStartDate && formState.windowEndDate)}
+                placement="bottomLeft"
               />
             </Form.Item>
           </Col>
@@ -234,8 +237,9 @@ export default function DeadlineModal({
                 value={formState.windowStartDate}
                 onChange={v => setFormState({ ...formState, windowStartDate: v })}
                 format={v => v ? moment(v).add(543,'year').format('D MMM YYYY') : ''}
-                locale={thLocale}
+                locale={buddhistLocale}
                 placeholder="วันเริ่ม"
+                placement="bottomLeft"
               />
             </Form.Item>
           </Col>
@@ -246,8 +250,9 @@ export default function DeadlineModal({
                 value={formState.windowEndDate}
                 onChange={v => setFormState({ ...formState, windowEndDate: v })}
                 format={v => v ? moment(v).add(543,'year').format('D MMM YYYY') : ''}
-                locale={thLocale}
+                locale={buddhistLocale}
                 placeholder="วันสิ้นสุด"
+                placement="bottomLeft"
               />
             </Form.Item>
           </Col>

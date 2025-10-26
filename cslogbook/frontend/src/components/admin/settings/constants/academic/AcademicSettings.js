@@ -23,7 +23,7 @@ import {
   Switch
 } from "antd";
 import { SaveOutlined, ReloadOutlined } from "@ant-design/icons";
-import th_TH from "antd/lib/locale/th_TH";
+import buddhistLocale from "../../../../../utils/buddhistLocale";
 import dayjs from "../../../../../utils/dayjs";
 import { settingsService } from "../../../../../services/admin/settingsService";
 import * as importantDeadlineService from "../../../../../services/admin/importantDeadlineService";
@@ -660,7 +660,8 @@ const AcademicSettings = () => {
                               <RangePicker
                                 style={{ width: "100%" }}
                                 format={(value) => dayjs(value).format("D MMMM BBBB")}
-                                locale={th_TH}
+                                locale={buddhistLocale}
+                                placement="bottomLeft"
                                 placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                               />
                             </Form.Item>
@@ -682,7 +683,8 @@ const AcademicSettings = () => {
                               <RangePicker
                                 style={{ width: "100%" }}
                                 format={(value) => dayjs(value).format("D MMMM BBBB")}
-                                locale={th_TH}
+                                locale={buddhistLocale}
+                                placement="bottomLeft"
                                 placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                               />
                             </Form.Item>
@@ -704,7 +706,8 @@ const AcademicSettings = () => {
                               <RangePicker
                                 style={{ width: "100%" }}
                                 format={(value) => dayjs(value).format("D MMMM BBBB")}
-                                locale={th_TH}
+                                locale={buddhistLocale}
+                                placement="bottomLeft"
                                 placeholder={["วันเริ่มต้น", "วันสิ้นสุด"]}
                               />
                             </Form.Item>
@@ -769,7 +772,8 @@ const AcademicSettings = () => {
                       <DatePicker
                         style={{ width: "100%" }}
                         format={(value) => dayjs(value).format("D MMMM BBBB")}
-                        locale={th_TH}
+                        locale={buddhistLocale}
+                        placement="bottomLeft"
                       />
                     </Form.Item>
                   </Col>
@@ -782,7 +786,8 @@ const AcademicSettings = () => {
                       <DatePicker
                         style={{ width: "100%" }}
                         format={(value) => dayjs(value).format("D MMMM BBBB")}
-                        locale={th_TH}
+                        locale={buddhistLocale}
+                        placement="bottomLeft"
                       />
                     </Form.Item>
                   </Col>
@@ -829,7 +834,8 @@ const AcademicSettings = () => {
                       <DatePicker
                         style={{ width: "100%" }}
                         format={(value) => dayjs(value).format("D MMMM BBBB")}
-                        locale={th_TH}
+                        locale={buddhistLocale}
+                        placement="bottomLeft"
                       />
                     </Form.Item>
                   </Col>
@@ -842,7 +848,8 @@ const AcademicSettings = () => {
                       <DatePicker
                         style={{ width: "100%" }}
                         format={(value) => dayjs(value).format("D MMMM BBBB")}
-                        locale={th_TH}
+                        locale={buddhistLocale}
+                        placement="bottomLeft"
                       />
                     </Form.Item>
                   </Col>

@@ -22,15 +22,21 @@ const LoginForm = () => {
   const { login } = useAuth();
   const [form] = Form.useForm();
 
-  // ดึง path ที่ user พยายามจะเข้าถึง; ถ้าไม่มีให้ใช้ /dashboard เป็นค่าเริ่มต้น
-  const from = location.state?.from?.pathname || '/dashboard';
+  // ดึง path ที่ user พยายามจะเข้าถึง; ถ้าไม่มีให้ใช้ /login เป็นค่าเริ่มต้น
+  const from = location.state?.from?.pathname || '/login';
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      const response = await apiClient.post('/auth/login', values);
+      // เพิ่ม redirectPath ใน request body
+      const loginData = {
+        ...values,
+        redirectPath: from !== '/login' ? from : undefined
+      };
+      
+      const response = await apiClient.post('/auth/login', loginData);
 
-      const { success, token, ...userData } = response.data;
+      const { success, token, finalRedirectPath, ...userData } = response.data;
 
       if (success) {
         // รวมข้อมูลผู้ใช้เพื่อเก็บใน context (กัน null/undefined)
@@ -49,13 +55,14 @@ const LoginForm = () => {
         if (loginSuccess) {
           message.success('เข้าสู่ระบบสำเร็จ');
 
-          // จัดการเส้นทางปลายทางตามบทบาทผู้ใช้
-          const role = userData.role;
-          const teacherType = userData.teacherType;
+          // ใช้ finalRedirectPath จาก backend หรือ fallback ไปยัง dashboard
+          let targetPath = finalRedirectPath || '/dashboard';
 
-          let targetPath = from;
+          // จัดการเส้นทางปลายทางตามบทบาทผู้ใช้ (เฉพาะกรณีที่เป็น dashboard)
+          if (targetPath === '/dashboard') {
+            const role = userData.role;
+            const teacherType = userData.teacherType;
 
-          if (from === '/dashboard') {
             if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
               targetPath = '/admin/dashboard';
             } else if (role === 'teacher') {

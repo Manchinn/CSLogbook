@@ -49,8 +49,8 @@ const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
 
 // กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
-const REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.PROJECT1_REQUIRED_APPROVED_LOGS ?? '5', 10) || 5, 1);
-const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
+const REQUIRED_APPROVED_MEETING_LOGS = 4;
+const THESIS_REQUIRED_APPROVED_MEETING_LOGS = 4;
 const VALID_MEETING_PHASES = new Set(['phase1', 'phase2']);
 
 const toPlainObject = (instance) => {

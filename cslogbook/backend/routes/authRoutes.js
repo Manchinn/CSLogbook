@@ -34,8 +34,6 @@ router.get('/verify-token', authenticateToken, (req, res) => {
     });
 });
 
-// KMUTNB SSO Routes
-router.get('/sso/kmutnb', authController.redirectToKmutnbSso);
-router.get('/sso/kmutnb/callback', authController.handleKmutnbSsoCallback);
+
 
 module.exports = router;
