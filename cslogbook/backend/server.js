@@ -164,8 +164,25 @@ const pool = require('./config/database');
 // เพิ่มก่อน middleware อื่นๆ
 app.set('trust proxy', 1);
 
+// รายการ Origin ที่อนุญาต
+const allowedOrigins = [
+  'http://localhost:3000',               // Development
+  'http://192.168.14.41:12342',          // Production
+  process.env.FRONTEND_URL               // จาก environment variable
+].filter(Boolean); // กรองค่า undefined/null
+
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // อนุญาตให้ request ที่ไม่มี origin (เช่น mobile apps, curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

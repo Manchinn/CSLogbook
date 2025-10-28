@@ -10,12 +10,17 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import locale from 'antd/es/date-picker/locale/th_TH';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
 
 import TranscriptUpload from '../common/TranscriptUpload';
+import buddhistLocale from '../../../utils/buddhistLocale';
 
 // 🔧 แก้ไข import paths ให้ถูกต้อง
 import { formatThaiDate, calculateInternshipDays } from '../../../utils/dateUtils';
+
+// ตั้งค่า dayjs plugin
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -482,7 +487,7 @@ const CS05FormStep = ({
         <Card title="ช่วงเวลาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
           <Alert
             message="กำหนดระยะเวลาการฝึกงาน"
-            description="ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง และต้องฝึกงานภายในช่วงปิดภาคเรียนที่ 1 หรือเทียบเท่า"
+            description="ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
@@ -509,13 +514,9 @@ const CS05FormStep = ({
             <RangePicker 
               style={{ width: '100%' }} 
               format="D MMMM BBBB"
-              locale={locale}
+              locale={buddhistLocale}
               onChange={handleDateRangeChange}
               placeholder={['วันเริ่มต้น', 'วันสิ้นสุด']}
-              disabledDate={(current) => {
-                // ห้ามเลือกวันที่ในอดีต
-                return current && current < dayjs().startOf('day');
-              }}
             />
           </Form.Item>
           
