@@ -1,5 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+import buddhistLocale from './utils/buddhistLocale';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
@@ -11,21 +16,16 @@ import StudentDeadlineCalendar from './components/student/StudentDeadlineCalenda
 import ProjectManagement from './components/student/ProjectManagement';
 
 // Import Internship Components
-import CS05Form from './components/internship/registration/CS05Form';
 import TimeSheet from './components/internship/logbook/TimeSheet/index';
 import InternshipSummary from './components/internship/summary/Summary';
 import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
 import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
-
 import { InternshipRegistrationFlow } from './components/internship/register';
-// 🆕 เพิ่ม import สำหรับ InternshipCertificateRequest
 import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
 import InternshipCompanyDashboard from './components/internship/companies/InternshipCompanyDashboard';
 
-
 // Import Project Components
 import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
-// Phase1 Dashboard + steps (ยุบ portal เดิมให้เหลือ phase1 dashboard ชั่วคราว)
 import Phase1Dashboard from './components/project/phase1/Phase1Dashboard';
 import ProjectDraftDetail from './components/project/phase1/ProjectDraftDetail';
 import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
@@ -40,10 +40,9 @@ import ThesisDefenseRequestPage from './components/project/phase2/ThesisDefenseR
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
-// Import Admin2 Components - New Structure
 import AdminRoutes from './components/admin/AdminRoutes';
 import ProjectPairsPage from './components/admin/users/projectPairs';
-import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation'; // Added new import
+import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation';
 import TimesheetApproval from './components/internship/approval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
 import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
@@ -54,6 +53,10 @@ import AdvisorThesisQueue from './components/teacher/thesis/AdvisorThesisQueue';
 import StaffThesisQueue from './components/teacher/thesis/StaffThesisQueue';
 import AdvisorSystemTestQueue from './components/teacher/systemTest/AdvisorQueue';
 import StaffSystemTestQueue from './components/teacher/systemTest/StaffQueue';
+
+// ตั้งค่า dayjs plugin
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -85,15 +88,16 @@ const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <StudentEligibilityProvider>
-          <InternshipProvider>
-            <Routes>
-              <Route path="/login" element={<LoginForm />} />
-              {/* Add the new public route for supervisor evaluation */}
-              <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
-              <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
+    <ConfigProvider locale={buddhistLocale}>
+      <BrowserRouter>
+        <AuthProvider>
+          <StudentEligibilityProvider>
+            <InternshipProvider>
+              <Routes>
+                <Route path="/login" element={<LoginForm />} />
+                {/* Add the new public route for supervisor evaluation */}
+                <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
+                <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
 
               <Route element={<MainLayout />}>
                 {/* Dashboard Route */}
@@ -104,14 +108,6 @@ const App = () => {
                 <Route path="/student-deadlines/calendar" element={
                   <ProtectedRoute roles={['student']}>
                     <StudentDeadlineCalendar />
-                  </ProtectedRoute>
-                } />
-                
-
-                {/* Internship Routes */}
-                <Route path="/internship-registration/cs05" element={
-                  <ProtectedRoute roles={['student']}>
-                    <CS05Form />
                   </ProtectedRoute>
                 } />
 
@@ -347,6 +343,7 @@ const App = () => {
         </StudentEligibilityProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ConfigProvider>
   );
 };
 
