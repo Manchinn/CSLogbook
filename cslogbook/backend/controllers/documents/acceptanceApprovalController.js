@@ -14,16 +14,33 @@ async function loadAcceptance(documentId) {
   return doc;
 }
 
-// คิวหัวหน้าภาค: รายการ Acceptance Letter ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
+// คิวหัวหน้าภาค: รายการ Acceptance Letter (รองรับการกรองสถานะเช่นเดียวกับ CS05)
 exports.listForHead = async (req, res) => {
   try {
+    const { InternshipDocument } = require('../../models');
+    
+    // รองรับการกรองสถานะผ่าน query เช่น ?status=pending หรือหลายค่า ?status=pending,approved
+    const statusQuery = (req.query.status || 'pending')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const whereStatus = statusQuery.length > 1 ? { [Op.in]: statusQuery } : statusQuery[0] || 'pending';
+
+    // สร้าง where condition - ถ้าสถานะเป็น pending ต้องมี reviewerId, ถ้าเป็นสถานะอื่นไม่บังคับ
+    const whereCondition = {
+      documentName: 'ACCEPTANCE_LETTER',
+      category: 'acceptance',
+      status: whereStatus
+    };
+
+    // ถ้ากรองเฉพาะ pending ให้ต้องมี reviewerId (ผ่านเจ้าหน้าที่แล้ว)
+    if (statusQuery.length === 1 && statusQuery[0] === 'pending') {
+      whereCondition.reviewerId = { [Op.not]: null };
+    }
+
     const docs = await Document.findAll({
-      where: {
-        documentName: 'ACCEPTANCE_LETTER',
-        category: 'acceptance',
-        status: 'pending',
-        reviewerId: { [Op.not]: null },
-      },
+      where: whereCondition,
       include: [
         {
           model: User,
@@ -31,6 +48,11 @@ exports.listForHead = async (req, res) => {
           attributes: ['userId', 'firstName', 'lastName'],
           include: [{ model: Student, as: 'student', attributes: ['studentId', 'studentCode'] }],
         },
+        {
+          model: InternshipDocument,
+          as: 'internshipDocument',
+          attributes: ['companyName', 'startDate', 'endDate', 'academicYear', 'semester']
+        }
       ],
       order: [['created_at', 'DESC']],
     });
@@ -47,6 +69,11 @@ exports.listForHead = async (req, res) => {
         lastName: d.owner?.lastName,
         studentCode: d.owner?.student?.studentCode || null,
       },
+      companyName: d.internshipDocument?.companyName || '',
+      startDate: d.internshipDocument?.startDate || null,
+      endDate: d.internshipDocument?.endDate || null,
+      academicYear: d.internshipDocument?.academicYear || null,
+      semester: d.internshipDocument?.semester || null,
     }));
 
     return res.json({ success: true, data });
@@ -124,7 +151,7 @@ exports.approveByHead = async (req, res) => {
       console.warn('Acceptance approve sync warning:', e.message);
     }
 
-    return res.json({ success: true, message: 'อนุมัติ Acceptance Letter สำเร็จ' });
+    return res.json({ success: true, message: 'อนุมัติหนังสือตอบรับนักศึกษาสำเร็จ' });
   } catch (error) {
     console.error('Acceptance approveByHead error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });

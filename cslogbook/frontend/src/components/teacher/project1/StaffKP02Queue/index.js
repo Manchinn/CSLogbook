@@ -62,7 +62,7 @@ const STATUS_OPTIONS = [
 const STATUS_MAP = {
   advisor_in_review: { color: "orange", text: "รออาจารย์อนุมัติครบ" },
   advisor_approved: { color: "blue", text: "รอเจ้าหน้าที่ตรวจสอบ" },
-  staff_verified: { color: "green", text: "ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)" },
+  staff_verified: { color: "green", text: "ตรวจสอบแล้ว" },
   scheduled: { color: "cyan", text: "นัดสอบแล้ว (ระบบเดิม)" },
   completed: { color: "purple", text: "บันทึกผลสอบแล้ว" },
 };

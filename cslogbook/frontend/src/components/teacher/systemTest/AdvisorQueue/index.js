@@ -373,7 +373,7 @@ const AdvisorSystemTestQueue = () => {
     <div style={containerStyle}>
       <Space direction="vertical" size={24} style={{ width: '100%' }}>
         <Space direction="vertical" size={8}>
-          <Title level={3}>คำขอทดสอบระบบ (System Test)</Title>
+          <Title level={3}>คำขอทดสอบระบบ</Title>
           <Text type="secondary">
             ระบบจะแสดงเฉพาะคำขอทดสอบระบบจากโครงงานที่คุณเป็นอาจารย์ที่ปรึกษาหรือที่ปรึกษาร่วม
           </Text>

@@ -39,8 +39,10 @@ export const internshipApprovalService = {
     return res.data;
   },
   // Acceptance Letter: คิวหัวหน้าภาค, ตรวจโดยเจ้าหน้าที่ภาค, อนุมัติ, ปฏิเสธ
-  getAcceptanceHeadQueue: async () => {
-    const res = await apiClient.get(`/internship/acceptance/head/queue`);
+  getAcceptanceHeadQueue: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `/internship/acceptance/head/queue?${query}` : '/internship/acceptance/head/queue';
+    const res = await apiClient.get(url);
     if (!res.data?.success) {
       throw new Error('ไม่สามารถดึงคิว Acceptance Letter ได้');
     }
