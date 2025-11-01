@@ -14,14 +14,14 @@ const useCertificateStatus = () => {
   const [supervisorEvaluationStatus, setSupervisorEvaluationStatus] = useState('wait');
   const [internshipSummaryStatus, setInternshipSummaryStatus] = useState('not_submitted');
   const [totalHours, setTotalHours] = useState(0);
+  const [approvedHours, setApprovedHours] = useState(0); // ✅ เพิ่ม state สำหรับ approved hours
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
 
-  // ตรวจสอบว่าสามารถขอหนังสือรับรองได้หรือไม่
-  // ปรับเกณฑ์: ใช้เฉพาะ "ชั่วโมงครบ" + "การประเมินพี่เลี้ยงเสร็จ" ไม่พึ่งพารายงานสรุปแล้ว
+  // ✅ ตรวจสอบว่าสามารถขอหนังสือรับรองได้หรือไม่ (ใช้ approvedHours แทน totalHours)
   const canRequestCertificate = 
-    totalHours >= 240 && 
+    approvedHours >= 240 && 
     supervisorEvaluationStatus === 'completed' && 
     certificateStatus === 'not_requested';
 
@@ -40,8 +40,9 @@ const useCertificateStatus = () => {
         setCertificateStatus(data.status || 'not_requested');
         setCertificateData(data);
 
-        // อัปเดตชั่วโมง
+        // ✅ อัปเดตชั่วโมง (ทั้ง total และ approved)
         setTotalHours(data.requirements?.totalHours?.current || 0);
+        setApprovedHours(data.requirements?.totalHours?.approved || 0);
 
         // อัปเดตสถานะการประเมิน
         const evalObj = data.requirements?.supervisorEvaluation;
@@ -62,6 +63,7 @@ const useCertificateStatus = () => {
         setCertificateStatus('not_requested');
         setCertificateData(null);
         setTotalHours(0);
+        setApprovedHours(0); // ✅ เพิ่ม reset approved hours
         setSupervisorEvaluationStatus('wait');
         setInternshipSummaryStatus('not_submitted');
         // ไม่ต้อง setError
@@ -92,6 +94,7 @@ const useCertificateStatus = () => {
         studentId: userData.studentCode || userData.studentId,
         requestDate: new Date().toISOString(),
         totalHours: totalHours,
+        approvedHours: approvedHours, // ✅ เพิ่ม approved hours
         evaluationStatus: supervisorEvaluationStatus,
         summaryStatus: internshipSummaryStatus
       };
@@ -118,7 +121,7 @@ const useCertificateStatus = () => {
         message: error.message || 'เกิดข้อผิดพลาดในการส่งคำขอ'
       };
     }
-  }, [canRequestCertificate, userData, totalHours, supervisorEvaluationStatus, internshipSummaryStatus]);
+  }, [canRequestCertificate, userData, totalHours, approvedHours, supervisorEvaluationStatus, internshipSummaryStatus]);
 
   // ดึงข้อมูลเมื่อ component โหลดครั้งแรก
   useEffect(() => {
@@ -133,6 +136,7 @@ const useCertificateStatus = () => {
     supervisorEvaluationStatus,
     internshipSummaryStatus,
     totalHours,
+    approvedHours, // ✅ export approved hours
     loading,
     error,
     certificateData,

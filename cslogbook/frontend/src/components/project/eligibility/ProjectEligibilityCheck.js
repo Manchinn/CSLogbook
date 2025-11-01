@@ -10,6 +10,7 @@ import {
   BookOutlined
 } from '@ant-design/icons';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
+import { getProjectRequirements } from '../../../utils/studentUtils';
 import './styles.css';
 
 const { Paragraph, Text } = Typography;
@@ -38,9 +39,10 @@ const ProjectEligibilityCheck = () => {
     }
   };
 
-  // คุณสมบัติที่จำเป็นสำหรับโครงงานพิเศษ (ใช้ค่าจาก backend ถ้าไม่มีให้ fallback แบบปลอดภัย)
-  const requiredCredits = requirements?.project?.totalCredits ?? 95; // fallback 95 ถ้ายังไม่มีข้อมูลจริง
-  const requiredMajorCredits = requirements?.project?.majorCredits ?? 47;
+  // คุณสมบัติที่จำเป็นสำหรับโครงงานพิเศษ (ใช้ค่าจาก backend ถ้าไม่มีให้ fallback จาก constants)
+  const DEFAULT_REQUIREMENTS = getProjectRequirements(null);
+  const requiredCredits = requirements?.project?.totalCredits ?? DEFAULT_REQUIREMENTS.MIN_TOTAL_CREDITS;
+  const requiredMajorCredits = requirements?.project?.majorCredits ?? DEFAULT_REQUIREMENTS.MIN_MAJOR_CREDITS;
   const allowedSemesters = requirements?.project?.allowedSemesters ?? [1, 2];
   const requiresInternship = requirements?.project?.requireInternship ?? false;
   

@@ -31,23 +31,23 @@ const SkillsPanel = ({
   // skillTags, // ยังไม่ได้ใช้งานในปัจจุบัน
   summaryData
 }) => {
-  // ตรวจสอบว่าพี่เลี้ยงได้ประเมินผลการฝึกงานแล้วหรือยัง
+  // ตรวจสอบว่าผู้ควบคุมงานได้ประเมินผลการฝึกงานแล้วหรือยัง
   const isSupervisorEvaluated = summaryData?.status === 'supervisor_evaluated';
 
   // กำหนดว่าฟอร์มควรจะอยู่ในโหมดอ่านอย่างเดียวหรือไม่
-  // จะเป็น read-only ถ้าพี่เลี้ยงประเมินแล้ว หรือ ถ้าไม่ได้อยู่ในโหมดแก้ไขและมีข้อมูล reflection อยู่แล้ว
+  // จะเป็น read-only ถ้าผู้ควบคุมงานประเมินแล้ว หรือ ถ้าไม่ได้อยู่ในโหมดแก้ไขและมีข้อมูล reflection อยู่แล้ว
   // const isFormReadOnly = isSupervisorEvaluated || (!editingReflection && reflection); // ตัวแปรนี้ถูกคำนวณแต่ไม่ได้ใช้โดยตรง จะใช้ isSupervisorEvaluated ในการตัดสินใจแทน
 
   // กำหนดว่าจะแสดงปุ่ม "แก้ไขบทสรุป" หรือไม่
-  // แสดงเมื่อมีข้อมูล reflection, ไม่ได้ถูกประเมินโดยพี่เลี้ยง, และไม่ได้อยู่ในโหมดแก้ไข
+  // แสดงเมื่อมีข้อมูล reflection, ไม่ได้ถูกประเมินโดยผู้ควบคุมงาน, และไม่ได้อยู่ในโหมดแก้ไข
   const showEditButton = reflection && !isSupervisorEvaluated && !editingReflection;
   
   // กำหนดว่าจะแสดงปุ่ม "ยกเลิกการแก้ไข" หรือไม่
-  // แสดงเมื่อมีข้อมูล reflection, ไม่ได้ถูกประเมินโดยพี่เลี้ยง, และอยู่ในโหมดแก้ไข
+  // แสดงเมื่อมีข้อมูล reflection, ไม่ได้ถูกประเมินโดยผู้ควบคุมงาน, และอยู่ในโหมดแก้ไข
   const showCancelEditButton = reflection && !isSupervisorEvaluated && editingReflection;
 
   // กำหนดว่าจะแสดงปุ่ม "เพิ่มบทสรุปการฝึกงาน" หรือไม่
-  // แสดงเมื่อยังไม่มีข้อมูล reflection, ไม่ได้อยู่ในโหมดแก้ไข, และยังไม่ได้ถูกประเมินโดยพี่เลี้ยง
+  // แสดงเมื่อยังไม่มีข้อมูล reflection, ไม่ได้อยู่ในโหมดแก้ไข, และยังไม่ได้ถูกประเมินโดยผู้ควบคุมงาน
   const showAddButton = !reflection && !editingReflection && !isSupervisorEvaluated;
 
   return (

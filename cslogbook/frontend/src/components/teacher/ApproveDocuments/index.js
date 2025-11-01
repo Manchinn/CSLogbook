@@ -77,11 +77,13 @@ export default function ApproveDocuments() {
     try {
       if (activeTab === 'request') {
         // คิวหัวหน้าภาคสำหรับอนุมัติ CS05 (หนังสือขอความอนุเคราะห์)
-        const res = await internshipApprovalService.getHeadQueue({ status: 'pending' });
+        // ดึงทุกสถานะเพื่อให้กรองได้ในฝั่ง client
+        const res = await internshipApprovalService.getHeadQueue({ status: 'pending,approved,rejected' });
         if (res.success) setItems(res.data || []); else message.error(res.message || 'ไม่สามารถดึงรายการได้');
       } else {
         // คิวหัวหน้าภาคสำหรับอนุมัติ Acceptance Letter (เพื่อไปสู่หนังสือส่งตัว)
-        const res = await internshipApprovalService.getAcceptanceHeadQueue();
+        // ดึงทุกสถานะที่เกี่ยวข้อง
+        const res = await internshipApprovalService.getAcceptanceHeadQueue({ status: 'pending,approved,rejected' });
         if (res.success) setItems(res.data || []); else message.error(res.message || 'ไม่สามารถดึงรายการได้');
       }
     } catch (e) {
@@ -226,6 +228,100 @@ export default function ApproveDocuments() {
     openRejectModal(record);
   }, [openRejectModal]);
 
+  // ตัวเลือกสถานะ เปลี่ยนตามแท็บ
+  const statusOptions = useMemo(() => {
+    if (activeTab === "request") {
+      return [
+        { label: "ทั้งหมด", value: "all" },
+        { label: "รอดำเนินการ", value: "pending" },
+        { label: "อนุมัติแล้ว", value: "approved" },
+        { label: "ปฏิเสธ", value: "rejected" },
+      ];
+    }
+    // แท็บหนังสือส่งตัว: เพิ่มสถานะที่เกี่ยวข้องหลังอนุมัติ
+    return [
+      { label: "ทั้งหมด", value: "all" },
+      { label: "อนุมัติแล้ว", value: "approved" },
+      { label: "ยืนยันหนังสือตอบรับแล้ว", value: "acceptance_approved" },
+      { label: "พร้อมออกหนังสือส่งตัว", value: "referral_ready" },
+      { label: "ดาวน์โหลดแล้ว", value: "referral_downloaded" },
+    ];
+  }, [activeTab]);
+
+  // กรองข้อมูลฝั่ง client เพื่อความสะดวก
+  const filteredItems = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+
+    return items.filter((r) => {
+      // คำค้นหา: รหัส, ชื่อ, บริษัท
+      const name = `${r.student?.firstName || ""} ${
+        r.student?.lastName || ""
+      }`.toLowerCase();
+      const company = (r.companyName || "").toLowerCase();
+      const code = (r.student?.studentCode || "").toLowerCase();
+      const matchQ =
+        !q || name.includes(q) || company.includes(q) || code.includes(q);
+
+      // สถานะ
+      const matchStatus =
+        filters.status === "all" ? true : r.status === filters.status;
+
+      // term: ใช้ academicYear และ semester จาก internship_documents ที่ส่งมาจาก API
+      const yearBE = r.academicYear || null;
+      const semester = r.semester || null;
+      const thisTerm = semester && yearBE ? `${semester}/${yearBE}` : null;
+      const matchTerm =
+        filters.term === "all" || (thisTerm && thisTerm === filters.term);
+
+      // ชั้นปี: คำนวณจากปีที่เข้าศึกษา (2 หลักแรกของ studentCode) และปีการศึกษาจาก internship_documents
+      const getEntryYearBEFromCode = (studentCode) => {
+        if (!studentCode) return null;
+        const two = String(studentCode).slice(0, 2);
+        const n = parseInt(two, 10);
+        if (Number.isNaN(n)) return null;
+        return 2500 + n; // 64 -> 2564
+      };
+      const entryBE = getEntryYearBEFromCode(r.student?.studentCode);
+      const classYear = entryBE && yearBE ? yearBE - entryBE + 1 : null;
+      const matchClass =
+        filters.classYear === "all" ||
+        (classYear && String(classYear) === String(filters.classYear));
+
+      return matchQ && matchStatus && matchTerm && matchClass;
+    });
+  }, [items, filters]);
+
+  // ตัวเลือกภาค/ปี (term) เช่น "1/2567": รวบรวมจาก academicYear และ semester ที่ส่งมาจาก API
+  const termOptions = useMemo(() => {
+    const terms = new Set();
+    items.forEach((r) => {
+      const semester = r.semester;
+      const yearBE = r.academicYear;
+      if (semester && yearBE) {
+        terms.add(`${semester}/${yearBE}`);
+      }
+    });
+    return Array.from(terms)
+      .filter(Boolean)
+      .sort((a, b) => {
+        // เรียงจากใหม่ไปเก่า: เปรียบเทียบปี BE ก่อน แล้วค่อยภาค
+        const [sa, ya] = String(a).split("/").map(Number);
+        const [sb, yb] = String(b).split("/").map(Number);
+        if (yb !== ya) return yb - ya;
+        return sb - sa;
+      })
+      .map((t) => ({ label: t, value: t }));
+  }, [items]);
+
+  // คำนวณสถิติรวมสำหรับการแสดงบนการ์ด (จากข้อมูลที่กรองแล้ว)
+  const statistics = useMemo(() => {
+    const total = filteredItems.length;
+    const pending = filteredItems.filter((r) => r.status === "pending").length;
+    const approved = filteredItems.filter((r) => r.status === "approved").length;
+    const rejected = filteredItems.filter((r) => r.status === "rejected").length;
+    return { total, pending, approved, rejected };
+  }, [filteredItems]);
+
   const columns = useMemo(
     () => [
       {
@@ -296,7 +392,7 @@ export default function ApproveDocuments() {
               onClick={() => handleApprove(record)}
               disabled={!(record.status === 'pending' && !!record.reviewerId)}
             >
-              {activeTab === "request" ? "อนุมัติหนังสือขอความอนุเคราะห์" : "อนุมัติ Acceptance Letter"}
+              {activeTab === "request" ? "อนุมัติ" : "อนุมัติ"}
             </Button>
             <Button
               danger
@@ -311,121 +407,6 @@ export default function ApproveDocuments() {
     ],
   [handleApprove, handleReject, handleView, activeTab, viewingDocId]
   );
-
-  // คำนวณสถิติรวมสำหรับการแสดงบนการ์ด สไตล์เดียวกับฝั่งเจ้าหน้าที่ภาค
-  const statistics = useMemo(() => {
-    const total = items.length;
-    const pending = items.filter((r) => r.status === "pending").length;
-    const approved = items.filter((r) => r.status === "approved").length;
-    const rejected = items.filter((r) => r.status === "rejected").length;
-    return { total, pending, approved, rejected };
-  }, [items]);
-
-  // ตัวเลือกสถานะ เปลี่ยนตามแท็บ
-  const statusOptions = useMemo(() => {
-    if (activeTab === "request") {
-      return [
-        { label: "ทั้งหมด", value: "all" },
-        { label: "รอดำเนินการ", value: "pending" },
-        { label: "อนุมัติแล้ว", value: "approved" },
-        { label: "ปฏิเสธ", value: "rejected" },
-      ];
-    }
-    // แท็บหนังสือส่งตัว: เพิ่มสถานะที่เกี่ยวข้องหลังอนุมัติ
-    return [
-      { label: "ทั้งหมด", value: "all" },
-      { label: "อนุมัติแล้ว", value: "approved" },
-      { label: "ยืนยันหนังสือตอบรับแล้ว", value: "acceptance_approved" },
-      { label: "พร้อมออกหนังสือส่งตัว", value: "referral_ready" },
-      { label: "ดาวน์โหลดแล้ว", value: "referral_downloaded" },
-    ];
-  }, [activeTab]);
-
-  // กรองข้อมูลฝั่ง client เพื่อความสะดวก
-  const filteredItems = useMemo(() => {
-    const q = filters.q.trim().toLowerCase();
-
-    // helper: คำนวณปีการศึกษา/ภาคเรียนจากวันที่อ้างอิง
-    const computeAcademic = (dt) => {
-      if (!dt) return { yearBE: null, semester: null };
-      const d = dayjs(dt);
-      if (!d.isValid()) return { yearBE: null, semester: null };
-      const m = d.month() + 1; // 1..12
-      // ส.ค.-ธ.ค. => ภาค 1 ของปี BE ปัจจุบัน, ม.ค.-พ.ค. => ภาค 2 ของปี BE ก่อนหน้า, อื่นๆ ปักเป็นภาค 2 ของปีก่อนหน้า
-      if (m >= 8 && m <= 12) return { yearBE: d.year() + 543, semester: 1 };
-      if (m >= 1 && m <= 5) return { yearBE: d.year() + 542, semester: 2 };
-      return { yearBE: d.year() + 542, semester: 2 };
-    };
-
-    const getEntryYearBEFromCode = (studentCode) => {
-      if (!studentCode) return null;
-      const two = String(studentCode).slice(0, 2);
-      const n = parseInt(two, 10);
-      if (Number.isNaN(n)) return null;
-      return 2500 + n; // 64 -> 2564
-    };
-
-    return items.filter((r) => {
-      // คำค้นหา: รหัส, ชื่อ, บริษัท
-      const name = `${r.student?.firstName || ""} ${
-        r.student?.lastName || ""
-      }`.toLowerCase();
-      const company = (r.companyName || "").toLowerCase();
-      const code = (r.student?.studentCode || "").toLowerCase();
-      const matchQ =
-        !q || name.includes(q) || company.includes(q) || code.includes(q);
-
-      // สถานะ
-      const matchStatus =
-        filters.status === "all" ? true : r.status === filters.status;
-
-      // term: รวมภาค/ปี เช่น "1/2567"
-      const baseDate = r.startDate || r.createdAt || null;
-      const { yearBE, semester } = computeAcademic(baseDate);
-      const thisTerm = semester && yearBE ? `${semester}/${yearBE}` : null;
-      const matchTerm =
-        filters.term === "all" || (thisTerm && thisTerm === filters.term);
-
-      // ชั้นปี: คำนวณจากปีที่เข้าศึกษา (2 หลักแรกของ studentCode)
-      const entryBE = getEntryYearBEFromCode(r.student?.studentCode);
-      const classYear = entryBE && yearBE ? yearBE - entryBE + 1 : null;
-      const matchClass =
-        filters.classYear === "all" ||
-        (classYear && String(classYear) === String(filters.classYear));
-
-      return matchQ && matchStatus && matchTerm && matchClass;
-    });
-  }, [items, filters]);
-
-  // ตัวเลือกภาค/ปี (term) เช่น "1/2567": รวบรวมจากรายการ
-  const termOptions = useMemo(() => {
-    const terms = new Set();
-    items.forEach((r) => {
-      const d = r.startDate || r.createdAt;
-      if (!d) return;
-      const m = dayjs(d).month() + 1;
-      let semester;
-      let yearBE;
-      if (m >= 8 && m <= 12) {
-        semester = 1;
-        yearBE = dayjs(d).year() + 543;
-      } else {
-        semester = 2;
-        yearBE = dayjs(d).year() + 542;
-      }
-      terms.add(`${semester}/${yearBE}`);
-    });
-    return Array.from(terms)
-      .filter(Boolean)
-      .sort((a, b) => {
-        // เรียงจากใหม่ไปเก่า: เปรียบเทียบปี BE ก่อน แล้วค่อยภาค
-        const [sa, ya] = String(a).split("/").map(Number);
-        const [sb, yb] = String(b).split("/").map(Number);
-        if (yb !== ya) return yb - ya;
-        return sb - sa;
-      })
-      .map((t) => ({ label: t, value: t }));
-  }, [items]);
 
   // ไม่มี onSubmitApprove อีกต่อไป เนื่องจากแยกตามแท็บและยืนยันด้วย Modal.confirm
 

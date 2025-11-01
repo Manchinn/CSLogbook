@@ -235,7 +235,7 @@ class DocumentService {
      */
     async getDocuments(filters = {}, pagination = {}) {
         try {
-            const { type, status, search } = filters;
+            const { type, status, search, academicYear, semester } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
             // สร้าง query condition พื้นฐาน
@@ -264,6 +264,48 @@ class DocumentService {
                 };
             }
 
+            // สร้าง include array
+            const includeArray = [
+                {
+                    model: User,
+                    as: 'owner',
+                    attributes: ['firstName', 'lastName'],
+                    include: [{
+                        model: Student,
+                        as: 'student',
+                        attributes: ['studentCode']
+                    }]
+                }
+            ];
+
+            // ถ้ามีการกรองด้วย academicYear หรือ semester (และ type เป็น internship)
+            // ต้อง join กับ InternshipDocument หรือ ProjectDocument
+            if ((academicYear || semester) && type === 'internship') {
+                const internshipDocWhere = {};
+                if (academicYear) internshipDocWhere.academicYear = academicYear;
+                if (semester) internshipDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: InternshipDocument,
+                    as: 'internshipDocument',
+                    attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    where: internshipDocWhere,
+                    required: true, // inner join เพื่อกรองเฉพาะที่ match
+                });
+            } else if ((academicYear || semester) && type === 'project') {
+                const projectDocWhere = {};
+                if (academicYear) projectDocWhere.academicYear = academicYear;
+                if (semester) projectDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: ProjectDocument,
+                    as: 'projectDocument',
+                    attributes: ['projectId', 'projectName', 'academicYear', 'semester'],
+                    where: projectDocWhere,
+                    required: true,
+                });
+            }
+
             // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
     const documents = await Document.findAll({
                 where: whereCondition,
@@ -277,18 +319,7 @@ class DocumentService {
             "created_at",
             "updated_at"
                 ],
-                include: [
-                    {
-                        model: User,
-                        as: 'owner',
-                        attributes: ['firstName', 'lastName'],
-                        include: [{
-                            model: Student,
-                            as: 'student',
-                            attributes: ['studentCode']
-                        }]
-                    }
-                ],
+                include: includeArray,
                 order: [['created_at', 'DESC']],
                 limit,
                 offset
@@ -298,18 +329,33 @@ class DocumentService {
             const statistics = await this.getDocumentStatistics();
 
             // จัดรูปแบบข้อมูลก่อนส่งกลับ
-            const formattedDocuments = documents.map(doc => ({
-                id: doc.id || doc.documentId,
-                document_name: doc.documentName,
-                student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
-                student_code: doc.owner.student ? doc.owner.student.studentCode : '',
-                type: doc.documentType.toLowerCase(),
-                created_at: doc.created_at,
-                updated_at: doc.updated_at,
-                status: doc.status,
-                reviewerId: doc.reviewerId || null,
-                reviewDate: doc.reviewDate || null,
-            }));
+            const formattedDocuments = documents.map(doc => {
+                const base = {
+                    id: doc.id || doc.documentId,
+                    document_name: doc.documentName,
+                    student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
+                    student_code: doc.owner.student ? doc.owner.student.studentCode : '',
+                    type: doc.documentType.toLowerCase(),
+                    created_at: doc.created_at,
+                    updated_at: doc.updated_at,
+                    status: doc.status,
+                    reviewerId: doc.reviewerId || null,
+                    reviewDate: doc.reviewDate || null,
+                };
+
+                // เพิ่มข้อมูล academicYear และ semester ถ้ามี
+                if (doc.internshipDocument) {
+                    base.academicYear = doc.internshipDocument.academicYear;
+                    base.semester = doc.internshipDocument.semester;
+                    base.companyName = doc.internshipDocument.companyName;
+                } else if (doc.projectDocument) {
+                    base.academicYear = doc.projectDocument.academicYear;
+                    base.semester = doc.projectDocument.semester;
+                    base.projectName = doc.projectDocument.projectName;
+                }
+
+                return base;
+            });
 
             logger.info(`Retrieved ${documents.length} documents with filters:`, filters);
 
@@ -762,46 +808,94 @@ class DocumentService {
      */
     async getCertificateRequests(filters = {}, pagination = {}) {
         try {
-            const { status, studentId } = filters;
+            const { status, studentId, academicYear, semester } = filters;
             const { page = 1, limit = 10 } = pagination;
             
             const whereClause = {};
             if (status) whereClause.status = status;
             if (studentId) whereClause.studentId = { [Op.like]: `%${studentId}%` };
 
-            const { InternshipCertificateRequest } = require('../models');
+            const { InternshipCertificateRequest, InternshipLogbook } = require('../models');
+
+            // สร้าง include สำหรับ internship -> internshipDocument
+            const includeArray = [
+                {
+                    model: Student,
+                    as: 'student',
+                    attributes: ['studentId', 'studentCode'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'user',
+                            attributes: ['firstName', 'lastName'],
+                        },
+                    ],
+                },
+            ];
+
+            // ถ้ามีการกรองด้วย academicYear หรือ semester ต้อง join กับ InternshipDocument
+            if (academicYear || semester) {
+                const internshipDocWhere = {};
+                if (academicYear) internshipDocWhere.academicYear = academicYear;
+                if (semester) internshipDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: InternshipDocument,
+                    as: 'internship',
+                    attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    where: internshipDocWhere,
+                    required: true, // inner join เพื่อกรองเฉพาะที่ match
+                });
+            }
 
             const requests = await InternshipCertificateRequest.findAndCountAll({
                 where: whereClause,
-                include: [
-                    {
-                        model: Student,
-                        as: 'student',
-                        attributes: ['studentId', 'studentCode'],
-                        include: [
-                            {
-                                model: User,
-                                as: 'user',
-                                attributes: ['firstName', 'lastName'],
-                            },
-                        ],
-                    },
-                ],
+                include: includeArray,
                 order: [['requestDate', 'DESC']],
                 limit: parseInt(limit),
                 offset: (parseInt(page) - 1) * parseInt(limit),
             });
 
-            // เพิ่มข้อมูล fullName
-            const formattedData = requests.rows.map(request => ({
-                ...request.toJSON(),
-                student: request.student ? {
-                    ...request.student.toJSON(),
-                    fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
-                } : null,
+            // ✅ คำนวณ approvedHours จริงๆ จาก logbooks แทนที่จะใช้ค่าจาก database
+            const formattedData = await Promise.all(requests.rows.map(async (request) => {
+                const requestJSON = request.toJSON();
+                
+                // คำนวณ approvedHours จริงๆ
+                const logbooks = await InternshipLogbook.findAll({
+                    where: {
+                        studentId: request.studentId,
+                        internshipId: request.internshipId,
+                    },
+                });
+                
+                const approvedHours = logbooks
+                    .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+                    .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+                
+                // ถ้ายังไม่มี internship ใน include (กรณีไม่มีการกรองปีการศึกษา) ให้ดึงเพิ่ม
+                let internshipData = requestJSON.internship || null;
+                if (!internshipData && request.internshipId) {
+                    const internshipDoc = await InternshipDocument.findByPk(request.internshipId, {
+                        attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    });
+                    if (internshipDoc) {
+                        internshipData = internshipDoc.toJSON();
+                    }
+                }
+                
+                return {
+                    ...requestJSON,
+                    totalHours: approvedHours, // ✅ ใช้ approved hours แทน
+                    _originalTotalHours: requestJSON.totalHours, // เก็บค่าเดิมไว้ (ถ้าต้องการ debug)
+                    internship: internshipData, // ✅ ส่ง academicYear & semester กลับไป
+                    student: request.student ? {
+                        ...request.student.toJSON(),
+                        fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
+                    } : null,
+                };
             }));
 
-            logger.info(`Retrieved ${requests.count} certificate requests`);
+            logger.info(`Retrieved ${requests.count} certificate requests with calculated approved hours`);
 
             return {
                 data: formattedData,
@@ -951,6 +1045,19 @@ class DocumentService {
 
             const fullName = request.student ? `${request.student.user.firstName} ${request.student.user.lastName}` : null;
 
+            // ✅ คำนวณ approvedHours จริงๆ จาก logbooks
+            const { InternshipLogbook } = require('../models');
+            const logbooks = await InternshipLogbook.findAll({
+                where: {
+                    studentId: request.studentId,
+                    internshipId: request.internshipId,
+                },
+            });
+            
+            const approvedHours = logbooks
+                .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+                .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+
             const detail = {
                 id: request.id,
                 status: request.status,
@@ -969,11 +1076,12 @@ class DocumentService {
                     location: internshipDoc?.companyAddress || internshipInfo?.province || null, // ใช้ address เป็นที่ตั้ง
                     startDate: internshipDoc?.startDate || internshipInfo?.startDate || null,
                     endDate: internshipDoc?.endDate || internshipInfo?.endDate || null,
-                    totalHours: request.totalHours,
+                    totalHours: approvedHours, // ✅ ใช้ approved hours แทน
+                    _originalTotalHours: request.totalHours, // เก็บค่าเดิม (ถ้าต้องการ debug)
                     internshipId: request.internshipId || internshipDoc?.internshipId || null,
                 },
                 eligibility: {
-                    hours: { current: Number(request.totalHours), required: 240, passed: Number(request.totalHours) >= 240 },
+                    hours: { current: Number(approvedHours), required: 240, passed: Number(approvedHours) >= 240 },
                     evaluation: {
                         status: request.evaluationStatus,
                         overallScore,

@@ -162,7 +162,7 @@ export default function TopicExamOverview() {
             style={{ width: 150 }}
             options={semesterOptions}
           />
-          <Input.Search placeholder="ค้นหา (code / title)" allowClear onSearch={val=>updateFilters({ search: val })} style={{ width: 240 }} />
+          <Input.Search placeholder="ค้นหา(หัวข้อโครงงานพิเศษ)" allowClear onSearch={val=>updateFilters({ search: val })} style={{ width: 240 }} />
           <Select value={filters.status} onChange={v=>updateFilters({ status: v })} style={{ width: 150 }} options={[
             { value: 'all', label: 'ทุกสถานะ' },
             { value: 'draft', label: 'draft' },

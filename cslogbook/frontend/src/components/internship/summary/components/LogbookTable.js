@@ -15,9 +15,6 @@ import '../styles/LogbookTable.css';
 const LogbookTable = ({ logEntries, totalApprovedHours }) => {
   const navigate = useNavigate();
   
-  const approvedLogEntries = logEntries.filter(entry => entry.status === 'approved');
-  const countOfApprovedDays = approvedLogEntries.length;
-
   const columns = [
     {
       title: 'วันที่',
@@ -111,9 +108,6 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
       variant="borderless"
       title={<>
         <FileProtectOutlined /> บันทึกการทำงาน
-        <div className="card-subtitle">
-          บันทึกการทำงานทั้งหมด {logEntries.length} วัน / {countOfApprovedDays} วันที่อนุมัติ / {totalApprovedHours} ชั่วโมงที่อนุมัติ
-        </div>
       </>}
       extra={
         <Button 

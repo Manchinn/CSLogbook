@@ -1174,7 +1174,7 @@ const internshipService = {
   },
 
   /**
-   * ส่งแบบประเมินให้พี่เลี้ยง
+   * ส่งแบบประเมินให้ผู้ควบคุมงาน
    */
   sendEvaluationForm: async (documentId) => {
     // Changed to accept internshipId
@@ -1194,7 +1194,7 @@ const internshipService = {
       // ส่งต่อข้อมูล error ที่มีรายละเอียดมากขึ้น
       const errorData = error.response?.data;
       const customError = new Error(
-        errorData?.message || "ไม่สามารถส่งแบบประเมินไปยังพี่เลี้ยงได้"
+        errorData?.message || "ไม่สามารถส่งแบบประเมินไปยังผู้ควบคุมงานได้"
       );
       customError.type = errorData?.errorType || "UNKNOWN_ERROR";
       customError.status = error.response?.status;
@@ -1205,7 +1205,7 @@ const internshipService = {
   },
 
   /**
-   * ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+   * ตรวจสอบสถานะการส่งแบบประเมินให้ผู้ควบคุมงาน
    */
   getEvaluationFormStatus: async () => {
     try {
@@ -1291,7 +1291,7 @@ const internshipService = {
   },
 
   /**
-   * บันทึกผลการประเมินจากพี่เลี้ยง
+   * บันทึกผลการประเมินจากผู้ควบคุมงาน
    */
   submitSupervisorEvaluation: async (data) => {
     try {

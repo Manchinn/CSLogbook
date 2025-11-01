@@ -351,7 +351,6 @@ const MeetingApprovals = () => {
           <Button
             icon={<CheckCircleOutlined />}
             type="primary"
-            ghost
             size="small"
             loading={actionLoadingKey === `${record.logId}-approved`}
             disabled={record.approvalStatus === 'approved'}
@@ -364,11 +363,11 @@ const MeetingApprovals = () => {
             danger
             size="small"
             loading={actionLoadingKey === `${record.logId}-rejected`}
-            disabled={record.approvalStatus === 'rejected'}
+            disabled={['rejected','approved'].includes(record.approvalStatus)}
             onClick={() => confirmReject(record)}
           >
             ขอปรับปรุง
-          </Button>
+          </Button>{/* 
           <Button
             icon={<ClockCircleOutlined />}
             size="small"
@@ -377,7 +376,7 @@ const MeetingApprovals = () => {
             onClick={() => handleUpdateStatus(record, 'pending')}
           >
             รีเซ็ตสถานะ
-          </Button>
+          </Button> */}
         </Space>
       )
     }

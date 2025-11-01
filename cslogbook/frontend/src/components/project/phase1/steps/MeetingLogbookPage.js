@@ -603,7 +603,6 @@ const MeetingLogbookPage = () => {
                       size="small"
                       icon={<CheckCircleOutlined />}
                       type="primary"
-                      ghost
                       loading={actionLoadingKey === `${meeting.meetingId}-${log.logId}-approved`}
                       onClick={() => handleApproval(meeting.meetingId, log.logId, 'approved')}
                     >
