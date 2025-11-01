@@ -634,18 +634,6 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                               >
                                 เปิดในระบบ
                               </Button>
-                              <Button
-                                size="small"
-                                onClick={() =>
-                                  window.open(
-                                    systemTestSnapshot.evidence.url,
-                                    "_blank",
-                                    "noopener,noreferrer"
-                                  )
-                                }
-                              >
-                                เปิดแท็บใหม่
-                              </Button>
                             </Space>
                           </Descriptions.Item>
                         )}
