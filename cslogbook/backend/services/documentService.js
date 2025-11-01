@@ -769,7 +769,7 @@ class DocumentService {
             if (status) whereClause.status = status;
             if (studentId) whereClause.studentId = { [Op.like]: `%${studentId}%` };
 
-            const { InternshipCertificateRequest } = require('../models');
+            const { InternshipCertificateRequest, InternshipLogbook } = require('../models');
 
             const requests = await InternshipCertificateRequest.findAndCountAll({
                 where: whereClause,
@@ -792,16 +792,34 @@ class DocumentService {
                 offset: (parseInt(page) - 1) * parseInt(limit),
             });
 
-            // เพิ่มข้อมูล fullName
-            const formattedData = requests.rows.map(request => ({
-                ...request.toJSON(),
-                student: request.student ? {
-                    ...request.student.toJSON(),
-                    fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
-                } : null,
+            // ✅ คำนวณ approvedHours จริงๆ จาก logbooks แทนที่จะใช้ค่าจาก database
+            const formattedData = await Promise.all(requests.rows.map(async (request) => {
+                const requestJSON = request.toJSON();
+                
+                // คำนวณ approvedHours จริงๆ
+                const logbooks = await InternshipLogbook.findAll({
+                    where: {
+                        studentId: request.studentId,
+                        internshipId: request.internshipId,
+                    },
+                });
+                
+                const approvedHours = logbooks
+                    .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+                    .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+                
+                return {
+                    ...requestJSON,
+                    totalHours: approvedHours, // ✅ ใช้ approved hours แทน
+                    _originalTotalHours: requestJSON.totalHours, // เก็บค่าเดิมไว้ (ถ้าต้องการ debug)
+                    student: request.student ? {
+                        ...request.student.toJSON(),
+                        fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
+                    } : null,
+                };
             }));
 
-            logger.info(`Retrieved ${requests.count} certificate requests`);
+            logger.info(`Retrieved ${requests.count} certificate requests with calculated approved hours`);
 
             return {
                 data: formattedData,
@@ -951,6 +969,19 @@ class DocumentService {
 
             const fullName = request.student ? `${request.student.user.firstName} ${request.student.user.lastName}` : null;
 
+            // ✅ คำนวณ approvedHours จริงๆ จาก logbooks
+            const { InternshipLogbook } = require('../models');
+            const logbooks = await InternshipLogbook.findAll({
+                where: {
+                    studentId: request.studentId,
+                    internshipId: request.internshipId,
+                },
+            });
+            
+            const approvedHours = logbooks
+                .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+                .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+
             const detail = {
                 id: request.id,
                 status: request.status,
@@ -969,11 +1000,12 @@ class DocumentService {
                     location: internshipDoc?.companyAddress || internshipInfo?.province || null, // ใช้ address เป็นที่ตั้ง
                     startDate: internshipDoc?.startDate || internshipInfo?.startDate || null,
                     endDate: internshipDoc?.endDate || internshipInfo?.endDate || null,
-                    totalHours: request.totalHours,
+                    totalHours: approvedHours, // ✅ ใช้ approved hours แทน
+                    _originalTotalHours: request.totalHours, // เก็บค่าเดิม (ถ้าต้องการ debug)
                     internshipId: request.internshipId || internshipDoc?.internshipId || null,
                 },
                 eligibility: {
-                    hours: { current: Number(request.totalHours), required: 240, passed: Number(request.totalHours) >= 240 },
+                    hours: { current: Number(approvedHours), required: 240, passed: Number(approvedHours) >= 240 },
                     evaluation: {
                         status: request.evaluationStatus,
                         overallScore,

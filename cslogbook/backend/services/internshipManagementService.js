@@ -3123,10 +3123,15 @@ class InternshipManagementService {
         },
       });
 
+      // ✅ คำนวณทั้ง totalHours และ approvedHours
       const totalHours = logbooks.reduce(
         (sum, log) => sum + parseFloat(log.workHours || 0),
         0
       );
+      
+      const approvedHours = logbooks
+        .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+        .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
       // ตรวจสอบการประเมินจากพี่เลี้ยง
       const supervisorEvaluation = await InternshipEvaluation.findOne({
@@ -3153,8 +3158,8 @@ class InternshipManagementService {
         order: [["created_at", "DESC"]],
       });
 
-  // คำนวณสถานะ (ปรับเกณฑ์: ใช้เฉพาะชั่วโมง + การประเมิน)
-  const isHoursComplete = totalHours >= 240;
+  // ✅ คำนวณสถานะ (ใช้ approvedHours แทน totalHours)
+  const isHoursComplete = approvedHours >= 240;
   const isEvaluationComplete = !!supervisorEvaluation;
   const isSummarySubmitted = !!reflection;
   const canRequestCertificate = isHoursComplete && isEvaluationComplete;
@@ -3189,6 +3194,7 @@ class InternshipManagementService {
         contactPersonPosition: internshipDocument.contactPersonPosition || "",
         internshipPosition: internshipDocument.internshipPosition || "",
         totalHours,
+        approvedHours, // ✅ เพิ่ม approved hours ใน internshipInfo
       };
 
       const result = {
@@ -3197,10 +3203,11 @@ class InternshipManagementService {
         canRequestCertificate:
           canRequestCertificate && certificateStatus === "not_requested",
 
-        // ข้อมูลการตรวจสอบเงื่อนไข
+        // ✅ ข้อมูลการตรวจสอบเงื่อนไข (เพิ่ม approvedHours)
         requirements: {
           totalHours: {
             current: totalHours,
+            approved: approvedHours, // ✅ เพิ่ม approved hours
             required: 240,
             completed: isHoursComplete,
           },
@@ -3313,7 +3320,7 @@ class InternshipManagementService {
         transaction,
       });
 
-      // สร้างคำขอหนังสือรับรอง
+      // ✅ สร้างคำขอหนังสือรับรอง (บันทึก approvedHours ลงฟิลด์ total_hours)
       const certificateRequest = await InternshipCertificateRequest.create(
         {
           studentId: student.studentId,
@@ -3321,9 +3328,10 @@ class InternshipManagementService {
           documentId: cs05Document.documentId,
           requestDate: new Date(requestData.requestDate),
           status: "pending",
+          // ✅ บันทึก approvedHours แทน totalHours (ฟิลด์ยังชื่อ total_hours)
           totalHours:
-            requestData.totalHours ||
-            currentStatus.requirements.totalHours.current,
+            requestData.approvedHours ||
+            currentStatus.requirements.totalHours.approved,
           evaluationStatus: requestData.evaluationStatus || "completed",
           // summaryStatus ไม่บังคับแล้ว ถ้าไม่มีจะตั้งค่าเป็น 'ignored'
           summaryStatus: requestData.summaryStatus || currentStatus.requirements?.summarySubmission?.completed ? 'submitted' : 'ignored',

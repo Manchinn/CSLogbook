@@ -24,11 +24,12 @@ const InternshipCertificateRequest = () => {
   // ✅ สร้าง instance ของ PDF Helper
   const [pdfHelper] = useState(() => new CertificatePDFHelper());
 
-  // ใช้ custom hook สำหรับจัดการสถานะ
+  // ✅ ใช้ custom hook สำหรับจัดการสถานะ (เพิ่ม approvedHours)
   const {
     certificateStatus,
     supervisorEvaluationStatus,
     totalHours,
+    approvedHours, // ✅ เพิ่ม approved hours
     loading,
     error,
     canRequestCertificate,
@@ -188,17 +189,17 @@ const InternshipCertificateRequest = () => {
     }
   };
 
-  // ปรับให้ progress ใช้แค่ 2 เงื่อนไข: ชั่วโมงครบ + การประเมินเสร็จ
+  // ✅ ปรับให้ progress ใช้ approvedHours แทน totalHours
   const getProgressPercentage = () => {
     let completed = 0;
-    if (totalHours >= 240) completed += 50;
+    if (approvedHours >= 240) completed += 50;
     if (supervisorEvaluationStatus === "completed") completed += 50;
     return completed;
   };
 
-  // ใช้ steps 2 ขั้น (0 หรือ 1)
+  // ✅ ใช้ steps 2 ขั้น (0 หรือ 1) โดยตรวจสอบ approvedHours
   const getCurrentStep = () => {
-    if (totalHours >= 240 && supervisorEvaluationStatus === "completed") return 1;
+    if (approvedHours >= 240 && supervisorEvaluationStatus === "completed") return 1;
     return 0;
   };
 
@@ -275,7 +276,7 @@ const InternshipCertificateRequest = () => {
 
         <Progress
           percent={getProgressPercentage()}
-          status={totalHours >= 240 && supervisorEvaluationStatus === "completed" ? "success" : "active"}
+          status={approvedHours >= 240 && supervisorEvaluationStatus === "completed" ? "success" : "active"}
           strokeColor={{
             "0%": "#108ee9",
             "100%": "#87d068",
@@ -285,9 +286,9 @@ const InternshipCertificateRequest = () => {
 
         <Steps size="small" current={getCurrentStep()}>
           <Step
-            title="ชั่วโมงฝึกงาน"
-            description={totalHours >= 240 ? "ครบ 240 ชั่วโมง" : `สะสม ${totalHours}/240`}
-            icon={totalHours >= 240 ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
+            title="ชั่วโมงฝึกงาน (อนุมัติแล้ว)"
+            description={approvedHours >= 240 ? "ครบ 240 ชั่วโมง" : `อนุมัติแล้ว ${approvedHours}/240`}
+            icon={approvedHours >= 240 ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
           />
           <Step
             title="การประเมินพี่เลี้ยง"
@@ -297,10 +298,11 @@ const InternshipCertificateRequest = () => {
         </Steps>
       </Card>
 
-      {/* ส่วนแสดงสถานะการประเมินจากพี่เลี้ยง */}
+      {/* ✅ ส่วนแสดงสถานะการประเมินจากพี่เลี้ยง (ส่ง approvedHours ด้วย) */}
       <SupervisorEvaluationStatus
         status={supervisorEvaluationStatus}
         totalHours={totalHours}
+        totalApprovedHours={approvedHours}
       />
 
       {/* ส่วนแสดงสถานะหนังสือรับรอง */}
