@@ -634,11 +634,14 @@ class InternshipManagementService {
       (sum, log) => sum + parseFloat(log.workHours || 0),
       0
     );
+    
+    // ✅ แก้ไข Logic การ filter ให้รองรับทั้ง boolean และ integer
     const approvedDays = logbooks.filter(
-      (log) => log.supervisorApproved
+      (log) => log.supervisorApproved === 1 || log.supervisorApproved === true
     ).length;
+    
     const approvedHours = logbooks
-      .filter((log) => log.supervisorApproved)
+      .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
       .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
     // ดึงข้อมูลสรุปทักษะและความรู้ (Reflection) ด้วย field name ที่ถูกต้อง
@@ -952,8 +955,8 @@ class InternshipManagementService {
 
       // 3. สร้างและบันทึก token ใหม่
       const tokenValue = crypto.randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 นาทีหมดอายุ
-      //const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 วันหมดอายุ
+      //const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 นาทีหมดอายุ
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 วันหมดอายุ
 
       await ApprovalToken.create(
         {

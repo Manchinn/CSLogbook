@@ -190,48 +190,73 @@ export function useSummaryData() {
         currentSummaryData.status === "supervisor_evaluated"
       );
 
-      // ดึงข้อมูลบันทึกการฝึกงาน
-      const entriesResponse = await internshipService.getTimeSheetEntries();
-      if (entriesResponse.success && entriesResponse.data) {
-        const entriesData = entriesResponse.data.logEntries || entriesResponse.data;
-        const transformedEntries = entriesData.map((entry, index) => {
-          let status;
-          if (entry.supervisorApproved === 1) {
-            status = "approved";
-          } else if (entry.supervisorApproved === -1) {
-            status = "rejected";
+      // ดึงข้อมูลบันทึกการฝึกงาน (ไม่บังคับต้องมี)
+      try {
+        const entriesResponse = await internshipService.getTimeSheetEntries();
+        if (entriesResponse.success && entriesResponse.data) {
+          const entriesData = entriesResponse.data.logEntries || entriesResponse.data;
+          
+          // ตรวจสอบว่ามีข้อมูล entries จริงๆ หรือไม่
+          if (Array.isArray(entriesData) && entriesData.length > 0) {
+            const transformedEntries = entriesData.map((entry, index) => {
+              // ✅ แก้ไข Logic การตรวจสอบสถานะให้รองรับทั้ง boolean และ integer
+              let status;
+              
+              // กรณี supervisorApproved เป็น integer (1, 0, -1)
+              if (entry.supervisorApproved === 1 || entry.supervisorApproved === true) {
+                status = "approved";
+              } else if (entry.supervisorApproved === -1) {
+                status = "rejected";
+              } else if (entry.supervisorApproved === 0 || entry.supervisorApproved === false || entry.supervisorApproved === null || entry.supervisorApproved === undefined) {
+                status = "pending";
+              } else {
+                // Default fallback
+                status = "pending";
+              }
+              
+              return {
+                ...entry,
+                key: entry.logbookId || entry.id || entry.logId || `entry-${index}-${entry.workDate}`,
+                id: entry.logbookId || entry.id || entry.logId,
+                date: dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM),
+                dayName: getThaiDayName(entry.workDate),
+                status: status,
+                hours: parseFloat(entry.workHours || 0),
+                title: entry.logTitle || entry.tasksCompleted || entry.title || 'ไม่มีหัวข้อบันทึก',
+                description: entry.workDescription || entry.problemsAndSolutions || entry.description || entry.taskDesc || entry.taskDetails || '',
+              };
+            })
+            .sort((a, b) => dayjs(a.workDate).diff(dayjs(b.workDate)));
+
+            setLogEntries(transformedEntries);
+
+            const approvedHours = transformedEntries
+              .filter((entry) => entry.status === "approved")
+              .reduce((sum, entry) => sum + (parseFloat(entry.hours) || 0), 0);
+            setTotalApprovedHours(Math.round(approvedHours * 10) / 10);
+
+            const weekly = prepareWeeklyData(transformedEntries, currentSummaryData);
+            setWeeklyData(weekly);
           } else {
-            status = "pending";
+            // ไม่มี entries แต่ยังมี CS05 อยู่
+            console.log("No logbook entries yet, but CS05 exists.");
+            setLogEntries([]);
+            setTotalApprovedHours(0);
+            setWeeklyData([]);
           }
-          return {
-            ...entry,
-            key: entry.logbookId || entry.id || entry.logId || `entry-${index}-${entry.workDate}`,
-            id: entry.logbookId || entry.id || entry.logId,
-            date: dayjs(entry.workDate).format(DATE_FORMAT_MEDIUM),
-            dayName: getThaiDayName(entry.workDate),
-            status: status,
-            hours: parseFloat(entry.workHours || 0),
-            title: entry.logTitle || entry.tasksCompleted || entry.title || 'ไม่มีหัวข้อบันทึก',
-            description: entry.workDescription || entry.problemsAndSolutions || entry.description || entry.taskDesc || entry.taskDetails || '',
-          };
-        })
-        .sort((a, b) => dayjs(a.workDate).diff(dayjs(b.workDate)));
-
-        setLogEntries(transformedEntries);
-
-        const approvedHours = transformedEntries
-          .filter((entry) => entry.status === "approved")
-          .reduce((sum, entry) => sum + (parseFloat(entry.hours) || 0), 0);
-        setTotalApprovedHours(Math.round(approvedHours * 10) / 10);
-
-        const weekly = prepareWeeklyData(transformedEntries, currentSummaryData);
-        setWeeklyData(weekly);
-      } else {
-        console.log("No timesheet entries or error fetching them.");
+        } else {
+          // ไม่สามารถดึงข้อมูล entries ได้ แต่ CS05 ยังอยู่
+          console.log("Failed to fetch timesheet entries, but CS05 exists.");
+          setLogEntries([]);
+          setTotalApprovedHours(0);
+          setWeeklyData([]);
+        }
+      } catch (entriesError) {
+        // เกิด error ในการดึง entries แต่ไม่ควร block การแสดงหน้า
+        console.log("Error fetching timesheet entries:", entriesError);
         setLogEntries([]);
         setTotalApprovedHours(0);
-        // Ensure prepareWeeklyData is robust enough for empty entries if currentSummaryData is available
-        setWeeklyData(prepareWeeklyData([], currentSummaryData)); 
+        setWeeklyData([]);
       }
 
       // ดึงข้อมูลบทสรุปและตั้งค่า state ของ reflection
