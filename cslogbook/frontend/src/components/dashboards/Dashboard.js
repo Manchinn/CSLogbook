@@ -372,7 +372,6 @@ function Dashboard() {
                 </Space>
                 <Button
                   type="primary"
-                  ghost
                   icon={<TeamOutlined />}
                   className="teacher-hero-button"
                   onClick={() => navigate("/teacher/meeting-approvals")}
@@ -458,7 +457,6 @@ function Dashboard() {
                         </Tag>
                         <Button
                           type="primary"
-                          ghost
                           className="teacher-hero-button"
                           onClick={() => navigate(action.path)}
                         >
@@ -988,7 +986,6 @@ function Dashboard() {
                   <Space size={[12, 12]} wrap>
                     <Button
                       type="primary"
-                      ghost
                       icon={<FormOutlined />}
                       onClick={() =>
                         navigate(
