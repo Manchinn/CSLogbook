@@ -1,13 +1,20 @@
-// Factory สำหรับสร้าง transport ส่งอีเมลหลายผู้ให้บริการ (SendGrid, Ethereal, SMTP, Console)
-// ใช้ในโหมด development: ตั้ง EMAIL_PROVIDER=ethereal จะได้ preview URL ไม่ส่งออกจริง
-// Author: migration layer เพื่อเลิกผูกกับ SendGrid โดยตรง
+/**
+ * Email Transport Factory
+ * สนับสนุนผู้ให้บริการ: gmail, ethereal, console
+ * 
+ * Environment Variables:
+ * - EMAIL_PROVIDER: gmail|ethereal|console (default: gmail)
+ * - GMAIL_*: สำหรับ Gmail API (ดูที่ gmailTransport.js)
+ * 
+ * ใช้ในโหมด development: ตั้ง EMAIL_PROVIDER=ethereal จะได้ preview URL ไม่ส่งออกจริง
+ */
 
 const nodemailer = require('nodemailer');
-const sgMail = require('@sendgrid/mail');
+const gmailTransport = require('./gmailTransport');
 const logger = require('./logger');
 
 let initialized = false;
-let provider = (process.env.EMAIL_PROVIDER || 'sendgrid').toLowerCase();
+let provider = (process.env.EMAIL_PROVIDER || 'gmail').toLowerCase(); // เปลี่ยน default เป็น gmail
 let transport; // สำหรับ nodemailer หรือ wrapper object
 
 // สร้าง transport ตาม provider
@@ -15,6 +22,23 @@ async function init() {
   if (initialized) return;
   try {
     switch (provider) {
+      case 'gmail': {
+        // ใช้ Gmail API transport
+        await gmailTransport.initialize();
+        transport = {
+          sendMail: async (msg) => {
+            const result = await gmailTransport.sendMail(msg);
+            return {
+              messageId: result.messageId,
+              envelope: result.envelope,
+              accepted: result.accepted,
+              rejected: result.rejected
+            };
+          }
+        };
+        logger.info('Initialized Gmail API transport');
+        break;
+      }
       case 'ethereal': {
         const testAccount = await nodemailer.createTestAccount();
         transport = nodemailer.createTransport({
@@ -24,19 +48,6 @@ async function init() {
           auth: { user: testAccount.user, pass: testAccount.pass }
         });
         logger.info('สร้าง Ethereal test account สำเร็จ (อีเมลจะไม่ถูกส่งจริง)', { user: testAccount.user });
-        break;
-      }
-      case 'smtp': {
-        transport = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT || 587),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: (process.env.SMTP_USER && process.env.SMTP_PASS) ? {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS
-            } : undefined
-        });
-        logger.info('Initialised generic SMTP transport');
         break;
       }
       case 'console': {
@@ -50,40 +61,27 @@ async function init() {
         logger.warn('ใช้งาน console mail transport (ไม่ส่งจริง)');
         break;
       }
-      case 'sendgrid':
       default: {
-        provider = 'sendgrid';
-        if (!process.env.SENDGRID_API_KEY) {
-          logger.warn('ไม่พบ SENDGRID_API_KEY -> fallback console transport');
-          transport = {
-            sendMail: async (msg) => {
-              logger.info('[EMAIL-CONSOLE]', { to: msg.to, subject: msg.subject });
-              return { messageId: 'console-fallback', envelope: { to: [].concat(msg.to) } };
-            }
-          };
-        } else {
-          sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-          transport = {
-            // ให้ภายนอกเรียกใช้เหมือน nodemailer
-            sendMail: async (msg) => {
-              const res = await sgMail.send(msg);
-              const messageId = res?.[0]?.headers?.['x-message-id'];
-              return { raw: res, messageId, envelope: { to: [].concat(msg.to) } };
-            }
-          };
-          logger.info('Initialised SendGrid mail transport');
-        }
+        // Fallback to console transport for unknown providers
+        logger.warn(`Unknown email provider: ${provider}, using console transport`);
+        transport = {
+          sendMail: async (msg) => {
+            logger.info('[EMAIL-CONSOLE-FALLBACK]', { to: msg.to, subject: msg.subject });
+            return { messageId: 'console-fallback', envelope: { to: [].concat(msg.to) } };
+          }
+        };
+        provider = 'console';
         break;
       }
     }
 
-    // verify สำหรับ SMTP/ethereal (ไม่ใช้กับ sendgrid/console)
-    if (provider === 'smtp' || provider === 'ethereal') {
+    // verify สำหรับ ethereal (ไม่ใช้กับ console)
+    if (provider === 'ethereal') {
       try {
         await transport.verify();
-        logger.info(`ตรวจสอบ SMTP (${provider}) สำเร็จ`);
+        logger.info(`ตรวจสอบ Ethereal transport สำเร็จ`);
       } catch (e) {
-        logger.warn('SMTP verify ล้มเหลว (จะพยายามส่งต่อเมื่อมีการใช้งาน)', { error: e.message });
+        logger.warn('Ethereal verify ล้มเหลว (จะพยายามส่งต่อเมื่อมีการใช้งาน)', { error: e.message });
       }
     }
     initialized = true;

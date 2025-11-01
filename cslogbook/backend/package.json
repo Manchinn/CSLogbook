@@ -35,7 +35,6 @@
   "description": "My project with nodemon",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",
-    "@sendgrid/mail": "^8.1.4",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
@@ -47,6 +46,7 @@
     "express": "^4.21.1",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
+    "googleapis": "^144.0.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.5.47",
