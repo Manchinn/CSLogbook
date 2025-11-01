@@ -147,8 +147,8 @@ const InternshipSection = () => {
         safeSupervisorEvaluationStatus === "completed"
           ? "การประเมินฝึกงานเสร็จสมบูรณ์แล้ว"
           : safeSupervisorEvaluationStatus === "pending"
-          ? "รอพี่เลี้ยงประเมินฝึกงาน"
-          : "กรุณาส่งแบบประเมินฝึกงานให้พี่เลี้ยง",
+          ? "รอผู้ควบคุมงานประเมินฝึกงาน"
+          : "กรุณาส่งแบบประเมินฝึกงานให้ผู้ควบคุมงาน",
       action: safeSupervisorEvaluationStatus !== "completed" && (
         <Button
           type="primary"

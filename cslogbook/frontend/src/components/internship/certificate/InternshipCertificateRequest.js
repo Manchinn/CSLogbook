@@ -291,14 +291,14 @@ const InternshipCertificateRequest = () => {
             icon={approvedHours >= 240 ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
           />
           <Step
-            title="การประเมินพี่เลี้ยง"
+            title="การประเมินจากผู้ควบคุมงาน"
             description={supervisorEvaluationStatus === "completed" ? "เสร็จสิ้น" : "รอดำเนินการ"}
             icon={supervisorEvaluationStatus === "completed" ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
           />
         </Steps>
       </Card>
 
-      {/* ✅ ส่วนแสดงสถานะการประเมินจากพี่เลี้ยง (ส่ง approvedHours ด้วย) */}
+      {/* ✅ ส่วนแสดงสถานะการประเมินจาก (ส่ง approvedHours ด้วย) */}
       <SupervisorEvaluationStatus
         status={supervisorEvaluationStatus}
         totalHours={totalHours}
@@ -325,7 +325,7 @@ const InternshipCertificateRequest = () => {
           description={
             <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
               <li>ต้องมีชั่วโมงฝึกงานครบ 240 ชั่วโมง</li>
-              <li>ต้องได้รับการประเมินจากพี่เลี้ยงแล้ว</li>
+              <li>ต้องได้รับการประเมินจากผู้ควบคุมงานแล้ว</li>
               <li>เจ้าหน้าที่ภาควิชาใช้เวลาตรวจสอบประมาณ 3-5 วันทำการ</li>
               <li>หนังสือรับรองจะถูกสร้างด้วยระบบ PDF อัตโนมัติ</li>
             </ul>

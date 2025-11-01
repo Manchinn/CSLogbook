@@ -424,7 +424,7 @@ const SupervisorEvaluation = () => {
 
             {/* ✅ ข้อมูลผู้ประเมิน */}
             <Title level={4}>
-              <UserOutlined /> ข้อมูลผู้ประเมิน (พี่เลี้ยง/หัวหน้างาน)
+              <UserOutlined /> ข้อมูลผู้ประเมิน (ผู้ควบคุมงาน/หัวหน้างาน)
             </Title>
 
             <Row gutter={[16, 0]}>

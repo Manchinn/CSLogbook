@@ -102,7 +102,7 @@ const SupervisorEvaluationStatus = ({
             />
           ) : (
             <Statistic
-              title="การประเมินพี่เลี้ยง"
+              title="การประเมินผู้ควบคุมงาน"
               value={isEvaluationPassed ? 'ผ่านเกณฑ์' : 'รอดำเนินการ'}
               prefix={getStatusIcon(isEvaluationPassed)}
               valueStyle={{ color: isEvaluationPassed ? '#3f8600' : '#cf1322' }}
@@ -141,7 +141,7 @@ const SupervisorEvaluationStatus = ({
           dot={getStatusIcon(isEvaluationPassed)}
         >
           <Space direction="vertical">
-            <Text strong>การประเมินผลจากพี่เลี้ยง</Text>
+            <Text strong>การประเมินผลจากผู้ควบคุมงาน</Text>
             {showScore && hasScore ? (
               <Tag color={isEvaluationPassed ? 'success' : 'error'}>
                 คะแนน {evaluationScore}/{100} {isEvaluationPassed ? '(ผ่าน)' : '(ไม่ผ่าน)'}
@@ -155,7 +155,7 @@ const SupervisorEvaluationStatus = ({
               <Text type="secondary">
                 {hasScore
                   ? `ยังขาด ${passScore - evaluationScore} คะแนนถึงจะผ่าน`
-                  : 'กรุณาติดต่อพี่เลี้ยงเพื่อทำการประเมินในระบบ'}
+                  : 'กรุณาติดต่อผู้ควบคุมงานเพื่อทำการประเมินในระบบ'}
               </Text>
             )}
           </Space>

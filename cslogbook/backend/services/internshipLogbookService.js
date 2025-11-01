@@ -1212,7 +1212,7 @@ class InternshipLogbookService {
         doc.moveDown(0.5);
         doc.text(`สถานประกอบการ: ${c.companyName || '-'}`);
         doc.text(`ที่อยู่: ${c.companyAddress || '-'}`);
-        doc.text(`พี่เลี้ยง: ${c.supervisorName || '-'} (${c.supervisorPosition || '-'})`);
+        doc.text(`ผู้ควบคุมงาน: ${c.supervisorName || '-'} (${c.supervisorPosition || '-'})`);
         doc.moveDown(0.5);
         doc.text(`ช่วงฝึกงาน: ${p.startDate || '-'} ถึง ${p.endDate || '-'}`);
         doc.text(`จำนวนวัน: ${stats.totalDays || 0}  ชั่วโมงรวม: ${stats.totalHours || 0}  เฉลี่ยต่อวัน: ${stats.averageHours || 0}`);

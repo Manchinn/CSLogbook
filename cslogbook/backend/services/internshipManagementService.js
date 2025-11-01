@@ -856,7 +856,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ส่งแบบประเมินให้พี่เลี้ยง - แก้ไขการค้นหาเอกสาร
+   * ส่งแบบประเมินให้ผู้ควบคุมงาน - แก้ไขการค้นหาเอกสาร
    */
   async sendEvaluationForm(documentId, userId) {
     const transaction = await sequelize.transaction();
@@ -2899,7 +2899,7 @@ class InternshipManagementService {
       // ดึงข้อมูลแบบเดียวกับ getInternshipSummary แต่เพิ่มข้อมูลสำหรับหนังสือรับรอง
       const summaryData = await this.getInternshipSummary(userId);
 
-      // ดึงข้อมูลการประเมินจากพี่เลี้ยง
+      // ดึงข้อมูลการประเมินจากผู้ควบคุมงาน
       const student = await Student.findOne({
         where: { userId },
         include: [
@@ -3133,7 +3133,7 @@ class InternshipManagementService {
         .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
         .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
-      // ตรวจสอบการประเมินจากพี่เลี้ยง
+      // ตรวจสอบการประเมินจากผู้ควบคุมงาน
       const supervisorEvaluation = await InternshipEvaluation.findOne({
         where: {
           studentId: student.studentId,
@@ -3293,7 +3293,7 @@ class InternshipManagementService {
       const currentStatus = await this.getCertificateStatus(userId);
 
       if (!currentStatus.canRequestCertificate) {
-        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินพี่เลี้ยง)");
+        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินผู้ควบคุมงาน)");
       }
 
       // ดึงข้อมูลนักศึกษาและเอกสาร CS05

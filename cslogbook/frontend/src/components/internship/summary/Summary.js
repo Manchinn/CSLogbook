@@ -449,7 +449,7 @@ const InternshipSummary = () => {
           <ProfileOutlined />
           {summaryData?.status === "supervisor_evaluated"
             ? "ได้รับการประเมินแล้ว"
-            : "การประเมินจากพี่เลี้ยง"}
+            : "การประเมินจากผู้ควบคุมงาน"}
         </span>
       ),
       children: (
@@ -462,7 +462,7 @@ const InternshipSummary = () => {
               marginBottom: 16,
             }}
           >
-            <Title level={4}>การประเมินผลการฝึกงานโดยพี่เลี้ยง</Title>
+            <Title level={4}>การประเมินผลการฝึกงาน</Title>
           </div>
 
           {/* ✅ ส่ง totalApprovedHours ไปด้วย */}
@@ -475,11 +475,11 @@ const InternshipSummary = () => {
             }}
           />
 
-          {/* แสดงข้อมูลพี่เลี้ยงเมื่อมีการประเมินแล้วหรือยังไม่ได้ส่งแบบประเมิน */}
+          {/* แสดงข้อมูลผู้ควบคุมงานเมื่อมีการประเมินแล้วหรือยังไม่ได้ส่งแบบประเมิน */}
           {(summaryData?.status === "supervisor_evaluated" ||
             !evaluationFormSent) && (
             <Card
-              title="ข้อมูลพี่เลี้ยง"
+              title="ข้อมูลผู้ควบคุมงาน"
               type="inner"
               style={{ marginTop: 24 }}
             >

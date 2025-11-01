@@ -123,7 +123,7 @@ const NextAction = () => {
 
   // เพิ่ม logic สำหรับการประเมินฝึกงาน
   if (isEnrolledInternship && internshipStatus === 'completed') {
-    // ถ้ายังไม่ได้ประเมิน หรือรอพี่เลี้ยงประเมิน
+    // ถ้ายังไม่ได้ประเมิน หรือรอผู้ควบคุมงานประเมิน
     if (supervisorEvaluationStatus === "wait" || !supervisorEvaluationStatus) {
       recommendedAction = 'submit_evaluation';
     } else if (supervisorEvaluationStatus === "pending") {
@@ -259,7 +259,7 @@ const NextAction = () => {
     case 'submit_evaluation':
       actionContent = (
         <Space direction="vertical">
-          <Text>กรุณาส่งแบบประเมินฝึกงานให้พี่เลี้ยง</Text>
+          <Text>กรุณาส่งแบบประเมินฝึกงานให้ผู้ควบคุมงาน</Text>
           <Text type="secondary">เมื่อบันทึก logbook และสรุปผลครบแล้ว ให้ส่งแบบประเมินฝึกงาน</Text>
           <Button 
             type="primary" 
@@ -274,8 +274,8 @@ const NextAction = () => {
     case 'waiting_evaluation':
       actionContent = (
         <Space direction="vertical">
-          <Text>รอพี่เลี้ยงประเมินฝึกงาน</Text>
-          <Text type="secondary">ระบบจะอัปเดตสถานะเมื่อพี่เลี้ยงประเมินเสร็จ</Text>
+          <Text>รอผู้ควบคุมงานประเมินฝึกงาน</Text>
+          <Text type="secondary">ระบบจะอัปเดตสถานะเมื่อผู้ควบคุมงานประเมินเสร็จ</Text>
         </Space>
       );
       break;
