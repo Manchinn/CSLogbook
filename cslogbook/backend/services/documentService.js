@@ -235,7 +235,7 @@ class DocumentService {
      */
     async getDocuments(filters = {}, pagination = {}) {
         try {
-            const { type, status, search } = filters;
+            const { type, status, search, academicYear, semester } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
             // สร้าง query condition พื้นฐาน
@@ -264,6 +264,48 @@ class DocumentService {
                 };
             }
 
+            // สร้าง include array
+            const includeArray = [
+                {
+                    model: User,
+                    as: 'owner',
+                    attributes: ['firstName', 'lastName'],
+                    include: [{
+                        model: Student,
+                        as: 'student',
+                        attributes: ['studentCode']
+                    }]
+                }
+            ];
+
+            // ถ้ามีการกรองด้วย academicYear หรือ semester (และ type เป็น internship)
+            // ต้อง join กับ InternshipDocument หรือ ProjectDocument
+            if ((academicYear || semester) && type === 'internship') {
+                const internshipDocWhere = {};
+                if (academicYear) internshipDocWhere.academicYear = academicYear;
+                if (semester) internshipDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: InternshipDocument,
+                    as: 'internshipDocument',
+                    attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    where: internshipDocWhere,
+                    required: true, // inner join เพื่อกรองเฉพาะที่ match
+                });
+            } else if ((academicYear || semester) && type === 'project') {
+                const projectDocWhere = {};
+                if (academicYear) projectDocWhere.academicYear = academicYear;
+                if (semester) projectDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: ProjectDocument,
+                    as: 'projectDocument',
+                    attributes: ['projectId', 'projectName', 'academicYear', 'semester'],
+                    where: projectDocWhere,
+                    required: true,
+                });
+            }
+
             // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
     const documents = await Document.findAll({
                 where: whereCondition,
@@ -277,18 +319,7 @@ class DocumentService {
             "created_at",
             "updated_at"
                 ],
-                include: [
-                    {
-                        model: User,
-                        as: 'owner',
-                        attributes: ['firstName', 'lastName'],
-                        include: [{
-                            model: Student,
-                            as: 'student',
-                            attributes: ['studentCode']
-                        }]
-                    }
-                ],
+                include: includeArray,
                 order: [['created_at', 'DESC']],
                 limit,
                 offset
@@ -298,18 +329,33 @@ class DocumentService {
             const statistics = await this.getDocumentStatistics();
 
             // จัดรูปแบบข้อมูลก่อนส่งกลับ
-            const formattedDocuments = documents.map(doc => ({
-                id: doc.id || doc.documentId,
-                document_name: doc.documentName,
-                student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
-                student_code: doc.owner.student ? doc.owner.student.studentCode : '',
-                type: doc.documentType.toLowerCase(),
-                created_at: doc.created_at,
-                updated_at: doc.updated_at,
-                status: doc.status,
-                reviewerId: doc.reviewerId || null,
-                reviewDate: doc.reviewDate || null,
-            }));
+            const formattedDocuments = documents.map(doc => {
+                const base = {
+                    id: doc.id || doc.documentId,
+                    document_name: doc.documentName,
+                    student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
+                    student_code: doc.owner.student ? doc.owner.student.studentCode : '',
+                    type: doc.documentType.toLowerCase(),
+                    created_at: doc.created_at,
+                    updated_at: doc.updated_at,
+                    status: doc.status,
+                    reviewerId: doc.reviewerId || null,
+                    reviewDate: doc.reviewDate || null,
+                };
+
+                // เพิ่มข้อมูล academicYear และ semester ถ้ามี
+                if (doc.internshipDocument) {
+                    base.academicYear = doc.internshipDocument.academicYear;
+                    base.semester = doc.internshipDocument.semester;
+                    base.companyName = doc.internshipDocument.companyName;
+                } else if (doc.projectDocument) {
+                    base.academicYear = doc.projectDocument.academicYear;
+                    base.semester = doc.projectDocument.semester;
+                    base.projectName = doc.projectDocument.projectName;
+                }
+
+                return base;
+            });
 
             logger.info(`Retrieved ${documents.length} documents with filters:`, filters);
 

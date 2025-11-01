@@ -99,6 +99,8 @@ const OriginalDocumentManagement = ({ type }) => {
   const [filters, setFilters] = useState({
     status: "",
     search: "",
+    academicYear: "all",
+    semester: "all",
   });
 
   // State สำหรับการแสดง Modal
@@ -121,6 +123,8 @@ const OriginalDocumentManagement = ({ type }) => {
     type,
     status: filters.status,
     search: filters.search,
+    academicYear: filters.academicYear !== "all" ? filters.academicYear : undefined,
+    semester: filters.semester !== "all" ? filters.semester : undefined,
   });
 
   useEffect(() => {
@@ -148,7 +152,28 @@ const OriginalDocumentManagement = ({ type }) => {
     setSelectedDocumentId(null);
   }, []);
 
-  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร
+  // ตัวเลือกปีการศึกษา (academicYear)
+  const academicYearOptions = useMemo(() => {
+    const years = new Set();
+    (documents || []).forEach((doc) => {
+      if (doc.academicYear) {
+        years.add(doc.academicYear);
+      }
+    });
+    return Array.from(years)
+      .filter(Boolean)
+      .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+      .map((year) => ({ label: `${year}`, value: year }));
+  }, [documents]);
+
+  // ตัวเลือกภาคเรียน
+  const semesterOptions = [
+    { label: "ภาคเรียนที่ 1", value: 1 },
+    { label: "ภาคเรียนที่ 2", value: 2 },
+    { label: "ภาคฤดูร้อน", value: 3 },
+  ];
+
+  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร (ส่วนใหญ่กรองที่ API แล้ว)
   const filteredDocuments = useMemo(() => {
     return documents.filter(
       (doc) =>
@@ -406,8 +431,8 @@ const OriginalDocumentManagement = ({ type }) => {
         {/* Filters Section */}
         <Card size="small" styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} md={6}>
-              <Space direction="vertical" size={4}>
+            <Col xs={24} md={5}>
+              <Space direction="vertical" size={4} style={{ width: "100%" }}>
                 <Text strong>สถานะเอกสาร</Text>
                 <Select
                   style={{ width: "100%" }}
@@ -424,8 +449,34 @@ const OriginalDocumentManagement = ({ type }) => {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={6}>
-              <Space direction="vertical" size={4}>
+            <Col xs={24} md={4}>
+              <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                <Text strong>ปีการศึกษา</Text>
+                <Select
+                  style={{ width: "100%" }}
+                  placeholder="ทุกปีการศึกษา"
+                  value={filters.academicYear}
+                  onChange={(v) => setFilters((f) => ({ ...f, academicYear: v }))}
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  allowClear
+                />
+              </Space>
+            </Col>
+            <Col xs={24} md={4}>
+              <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                <Text strong>ภาคเรียน</Text>
+                <Select
+                  style={{ width: "100%" }}
+                  placeholder="ทุกภาคเรียน"
+                  value={filters.semester}
+                  onChange={(v) => setFilters((f) => ({ ...f, semester: v }))}
+                  options={[{ label: "ทุกภาคเรียน", value: "all" }, ...semesterOptions]}
+                  allowClear
+                />
+              </Space>
+            </Col>
+            <Col xs={24} md={5}>
+              <Space direction="vertical" size={4} style={{ width: "100%" }}>
                 <Text strong>ค้นหา</Text>
                 <Input
                   allowClear
@@ -436,7 +487,7 @@ const OriginalDocumentManagement = ({ type }) => {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={12} style={{ textAlign: 'right' }}>
+            <Col xs={24} md={6} style={{ textAlign: 'right', paddingTop: 24 }}>
               <Space wrap>
                 <Button
                   icon={<ReloadOutlined />}
@@ -453,7 +504,7 @@ const OriginalDocumentManagement = ({ type }) => {
                         disabled={selectedRowKeys.length === 0}
                         icon={<CheckCircleOutlined />}
                       >
-                        ตรวจและส่งต่อที่เลือก
+                        ตรวจและส่งต่อ
                       </Button>
                     </Tooltip>
                     <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
@@ -463,21 +514,24 @@ const OriginalDocumentManagement = ({ type }) => {
                         disabled={selectedRowKeys.length === 0}
                         icon={<CloseCircleOutlined />}
                       >
-                        ปฏิเสธที่เลือก
+                        ปฏิเสธ
                       </Button>
                     </Tooltip>
                   </>
                 )}
-                <Button
-                  danger
-                  onClick={() => {
-                    setFilters({ status: "", search: "" });
-                    setSelectedRowKeys([]);
-                  }}
-                >
-                  รีเซ็ตตัวกรอง
-                </Button>
               </Space>
+            </Col>
+          </Row>
+          <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+            <Col xs={24} style={{ textAlign: 'right' }}>
+              <Button
+                onClick={() => {
+                  setFilters({ status: "", search: "", academicYear: "all", semester: "all" });
+                  setSelectedRowKeys([]);
+                }}
+              >
+                รีเซ็ตตัวกรอง
+              </Button>
             </Col>
           </Row>
         </Card>
