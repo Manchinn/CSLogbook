@@ -176,7 +176,7 @@ const Dashboard = () => {
             <Space direction="vertical" style={{ width: "100%" }}>
               <Button
                 type="primary"
-                ghost
+                
                 size="large"
                 icon={<UploadOutlined />}
                 onClick={() => navigate("/admin/upload")}
@@ -186,7 +186,7 @@ const Dashboard = () => {
               </Button>
               <Button
                 type="default"
-                size="large"
+                //size="large"
                 icon={<FileTextOutlined />}
                 onClick={() => navigate("/admin/documents/internship")}
                 className="admin-hero-button"

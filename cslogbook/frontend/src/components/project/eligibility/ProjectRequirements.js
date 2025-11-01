@@ -12,6 +12,7 @@ import {
   ReadOutlined,
   FileSearchOutlined
 } from '@ant-design/icons';
+import { getProjectRequirements } from '../../../utils/studentUtils';
 import './styles.css';
 
 const { Title, Text } = Typography;
@@ -20,22 +21,28 @@ const { Panel } = Collapse;
 const ProjectRequirements = () => {
   const [eligibilityCriteria, setEligibilityCriteria] = useState(null);
 
+  // ใช้ค่าจาก constants
+  const DEFAULT_REQUIREMENTS = getProjectRequirements(null);
+
   // Simulate fetching data or setting it after component mounts
   useEffect(() => {
     // In a real application, you would fetch this data from an API
-    // For demonstration, we'll set it after a short delay
+    // For demonstration, we'll use values from constants
     const timer = setTimeout(() => {
-      setEligibilityCriteria({ minTotalCredits: 95, minMajorCredits: 47 });
+      setEligibilityCriteria({ 
+        minTotalCredits: DEFAULT_REQUIREMENTS.MIN_TOTAL_CREDITS, 
+        minMajorCredits: DEFAULT_REQUIREMENTS.MIN_MAJOR_CREDITS 
+      });
     }, 1000); // Simulate 1 second delay
 
     return () => clearTimeout(timer); // Cleanup timer on unmount
-  }, []); // Empty dependency array ensures this effect runs only once on mount
+  }, [DEFAULT_REQUIREMENTS.MIN_TOTAL_CREDITS, DEFAULT_REQUIREMENTS.MIN_MAJOR_CREDITS]); // Empty dependency array ensures this effect runs only once on mount
 
-  // ข้อมูลขั้นตอนการทำโครงงานพิเศษ
+  // ข้อมูลขั้นตอนการทำโครงงานพิเศษและปริญญานิพนธ์
   const projectSteps = [
     {
-      title: 'เลือกหัวข้อโครงงานและอาจารย์ที่ปรึกษา',
-      description: 'ปรึกษาและกำหนดหัวข้อโครงงานร่วมกับอาจารย์ที่ปรึกษา',
+      title: 'เลือกหัวข้อโครงงานและปรึกษาอาจารย์',
+      description: 'ปรึกษาและกำหนดหัวข้อโครงงานร่วมกับอาจารย์',
       icon: <TeamOutlined />
     },
     {
@@ -44,43 +51,47 @@ const ProjectRequirements = () => {
       icon: <FileTextOutlined />
     },
     {
-      title: 'จัดทำเอกสารข้อเสนอโครงงาน (Proposal)',
-      description: 'จัดทำรายละเอียดโครงงาน วัตถุประสงค์ ขอบเขต และแผนการดำเนินงาน',
-      icon: <ReadOutlined />
-    },
-    {
-      title: 'สอบหัวข้อโครงงาน',
-      description: 'นำเสนอหัวข้อโครงงานต่อคณะกรรมการ',
+      title: 'สอบหัวข้อโครงงานพิเศษ',
+      description: 'นำเสนอหัวข้อโครงงานพิเศษต่อคณะกรรมการ -> ผ่าน',
       icon: <RocketOutlined />
     },
     {
-      title: 'พัฒนาโครงงาน',
+      title: 'พัฒนาโครงงานพิเศษ1',
       description: 'ดำเนินการพัฒนาโครงงานตามแผนงาน และบันทึก Logbook อย่างสม่ำเสมอ',
       icon: <CodeOutlined />
     },
     {
-      title: 'จัดทำรายงานฉบับสมบูรณ์',
-      description: 'จัดทำเอกสารรายงานโครงงานฉบับสมบูรณ์',
-      icon: <BookOutlined />
+      title: 'สอบความคืบหน้าโครงงานพิเศษ (โครงงานพิเศษ1)',
+      description: 'นำเสนอโครงงานพิเศษ1ต่อคณะกรรมการ -> ผ่าน',
+      icon: <ReadOutlined />
     },
     {
-      title: 'สอบปริญญานิพนธ์',
+      title: 'พัฒนาโครงงานพิเศษ2/ปริญญานิพนธ์',
+      description: 'ดำเนินการพัฒนาโครงงานตามแผนงาน และบันทึก Logbook อย่างสม่ำเสมอ',
+      icon: <CodeOutlined />
+    },
+    {
+      title: 'สอบป้องกันปริญญานิพนธ์ (สอบโครงงานพิเศษ 2)',
       description: 'นำเสนอและสาธิตผลงานต่อคณะกรรมการ',
       icon: <FileSearchOutlined />
+    },
+    {
+      title: 'ส่งปริญญานิพนธ์ฉบับสมบูรณ์ตามระยะเวลาที่ภาควิชากำหนด',
+      description: '',
+      icon: <BookOutlined />
     }
   ];
 
-  // ข้อกำหนดคุณสมบัติ
+  // ข้อกำหนดคุณสมบัติ (ใช้ค่าจาก DEFAULT_REQUIREMENTS)
   const qualificationRequirements = useMemo(() => {
     if (!eligibilityCriteria) {
       // Return placeholder text or an empty array while data is loading
       return [
-        'กำลังโหลดข้อกำหนดหน่วยกิตรวม...',
-        'กำลังโหลดข้อกำหนดหน่วยกิตในสาขา...',
+        `กำลังโหลดข้อกำหนดหน่วยกิตรวม... (ค่าเริ่มต้น: ${DEFAULT_REQUIREMENTS.MIN_TOTAL_CREDITS} หน่วยกิต)`,
+        `กำลังโหลดข้อกำหนดหน่วยกิตในสาขา... (ค่าเริ่มต้น: ${DEFAULT_REQUIREMENTS.MIN_MAJOR_CREDITS} หน่วยกิต)`,
         'ต้องเป็นนักศึกษาชั้นปีที่ 4 หรือเทียบเท่า',
         'ต้องลงทะเบียนเรียนวิชาโครงงานพิเศษ 1 และ 2 ตามลำดับ',
         'ต้องมีอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน',
-        'กรณีที่หลักสูตรกำหนด ต้องผ่านการฝึกงานภาคอุตสาหกรรมก่อน'
       ];
     }
     return [
@@ -89,48 +100,19 @@ const ProjectRequirements = () => {
       'ต้องเป็นนักศึกษาชั้นปีที่ 4 หรือเทียบเท่า',
       'ต้องลงทะเบียนเรียนวิชาโครงงานพิเศษ 1 และ 2 ตามลำดับ',
       'ต้องมีอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน',
-      'กรณีที่หลักสูตรกำหนด ต้องผ่านการฝึกงานภาคอุตสาหกรรมก่อน'
     ];
-  }, [eligibilityCriteria]); // Recalculate when eligibilityCriteria changes
+  }, [eligibilityCriteria, DEFAULT_REQUIREMENTS.MIN_TOTAL_CREDITS, DEFAULT_REQUIREMENTS.MIN_MAJOR_CREDITS]); // Recalculate when eligibilityCriteria changes
 
   // ข้อกำหนดเอกสารที่ต้องส่งในระบบ
   const documentRequirements = [
-    'แบบเสนอหัวข้อโครงงานพิเศษ',
-    'เอกสารข้อเสนอโครงงาน (Proposal)',
-    'รายงานความก้าวหน้า (Progress Report)',
-    'บันทึก Logbook การทำงานอย่างสม่ำเสมอ',
-    'รายงานโครงงานฉบับสมบูรณ์',
+    'แบบฟอร์มยื่นสอบหัวข้อโครงงานพิเศษ พร้อมเอกสารข้อเสนอโครงงาน (Proposal)',
+    'คพ.02 - แบบฟอร์มขอสอบโครงงานพิเศษ 1 พร้อมรายงานบทที่ 1-3',
+    'แจ้งความประสงค์สอบล่วงหน้า 30 วัน (สำหรับสอบปริญญานิพนธ์)',
+    'คพ.02 - แบบฟอร์มขอสอบปริญญานิพนธ์ พร้อมรายงานฉบับสมบูรณ์',
+    'บันทึกการประชุมกับอาจารย์ที่ปรึกษา (Logbook) อย่างสม่ำเสมอ',
+    'เอกสารแก้ไขตามข้อเสนอแนะของกรรมการ (ถ้ามี)',
     'ซอร์สโค้ด/ไฟล์โปรแกรม/ผลงาน',
-    'เอกสารคู่มือการใช้งาน (ถ้ามี)'
-  ];
-
-  // ข้อกำหนดการประเมินผล
-  const evaluationRequirements = [
-    'การสอบข้อเสนอโครงงาน (สัดส่วน 10%)',
-    'ความก้าวหน้าของโครงงาน (สัดส่วน 20%)',
-    'การรายงานและการประชุมกับอาจารย์ที่ปรึกษา (สัดส่วน 10%)',
-    'คุณภาพของรายงานฉบับสมบูรณ์ (สัดส่วน 20%)',
-    'การนำเสนอและสาธิตผลงาน (สัดส่วน 20%)',
-    'คุณภาพของซอฟต์แวร์/ผลงาน (สัดส่วน 20%)'
-  ];
-
-  const projectTypes = [
-    {
-      title: 'โครงงานพัฒนาซอฟต์แวร์',
-      description: 'เน้นการพัฒนาซอฟต์แวร์หรือแอปพลิเคชันเพื่อแก้ปัญหาหรือตอบสนองความต้องการ'
-    },
-    {
-      title: 'โครงงานวิจัย',
-      description: 'เน้นการศึกษาวิจัยหัวข้อเฉพาะทางด้านคอมพิวเตอร์หรือเทคโนโลยีสารสนเทศ'
-    },
-    {
-      title: 'โครงงานฮาร์ดแวร์',
-      description: 'เน้นการออกแบบและพัฒนาอุปกรณ์ฮาร์ดแวร์หรือระบบฝังตัว'
-    },
-    {
-      title: 'โครงงานวิเคราะห์และออกแบบระบบ',
-      description: 'เน้นการวิเคราะห์และออกแบบระบบสารสนเทศหรือแก้ปัญหาทางธุรกิจ'
-    }
+    'เอกสารคู่มือการใช้งาน (User Manual)'
   ];
 
   return (
@@ -144,7 +126,7 @@ const ProjectRequirements = () => {
           style={{ marginBottom: 20 }}
         />
 
-        <Title level={4}><CalendarOutlined /> ขั้นตอนการทำโครงงานพิเศษ</Title>
+        <Title level={4}><CalendarOutlined /> ขั้นตอนการทำโครงงานพิเศษ (โครงงานพิเศษ 1 และ 2)</Title>
         <Timeline 
           items={projectSteps.map((step, index) => ({
             color: index === projectSteps.length - 1 ? 'green' : 'blue',
@@ -190,40 +172,6 @@ const ProjectRequirements = () => {
               renderItem={(item) => (
                 <List.Item>
                   <Text>{item}</Text>
-                </List.Item>
-              )}
-            />
-          </Panel>
-
-          <Panel 
-            header={<Space><RocketOutlined /> การประเมินผล</Space>} 
-            key="3"
-          >
-            <List
-              bordered
-              dataSource={evaluationRequirements}
-              renderItem={(item) => (
-                <List.Item>
-                  <Text>{item}</Text>
-                </List.Item>
-              )}
-            />
-          </Panel>
-          
-          <Panel
-            header={<Space><CodeOutlined /> ประเภทของโครงงานพิเศษ</Space>}
-            key="4"
-          >
-            <List
-              bordered
-              dataSource={projectTypes}
-              renderItem={(item) => (
-                <List.Item>
-                  <div>
-                    <Text strong>{item.title}</Text>
-                    <br />
-                    <Text>{item.description}</Text>
-                  </div>
                 </List.Item>
               )}
             />

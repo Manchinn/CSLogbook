@@ -50,7 +50,7 @@ exports.listForHead = async (req, res) => {
         {
           model: InternshipDocument,
           as: 'internshipDocument',
-          attributes: ['companyName', 'startDate', 'endDate']
+          attributes: ['companyName', 'startDate', 'endDate', 'academicYear', 'semester']
         }
       ],
       order: [['created_at', 'DESC']]
@@ -72,7 +72,9 @@ exports.listForHead = async (req, res) => {
       },
       companyName: d.internshipDocument?.companyName || '',
       startDate: d.internshipDocument?.startDate || null,
-      endDate: d.internshipDocument?.endDate || null
+      endDate: d.internshipDocument?.endDate || null,
+      academicYear: d.internshipDocument?.academicYear || null,
+      semester: d.internshipDocument?.semester || null
     }));
 
   return res.json({ success: true, data });

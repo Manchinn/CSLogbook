@@ -76,12 +76,6 @@ export const getMenuConfig = ({
                     label: 'รายชื่อสอบโครงงานพิเศษ',
                     onClick: () => navigate('/admin/project1/kp02-queue'),
                   },
-                  {
-                    key: '/admin/system-test/staff-queue',
-                    icon: <ProjectOutlined />,
-                    label: 'คำขอทดสอบระบบ',
-                    onClick: () => navigate('/admin/system-test/staff-queue'),
-                  },
                 ]
               : []),
             ...(canExportThesis

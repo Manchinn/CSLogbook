@@ -176,7 +176,7 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHo
             <Space direction="vertical" size="small">
               <Text>
                 ขณะนี้ระบบได้ปิดการแจ้งเตือนการประเมินผลชั่วคราว 
-                จึงไม่สามารถส่งคำขอประเมินผลไปยังพี่เลี้ยงได้
+                จึงไม่สามารถส่งคำขอประเมินผลไปยังผู้ควบคุมงานได้
               </Text>
               <Text type="secondary">
                 <InfoCircleOutlined style={{ marginRight: 4 }} />
@@ -222,7 +222,7 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHo
             <Space direction="vertical" style={{ width: '100%' }}>
               <Text>
                 <ClockCircleOutlined style={{ marginRight: 4 }} />
-                ต้องบันทึกการฝึกงานให้ครบ {requiredHours} ชั่วโมง เพื่อส่งแบบประเมินให้พี่เลี้ยง
+                ต้องบันทึกการฝึกงานให้ครบ {requiredHours} ชั่วโมง เพื่อส่งแบบประเมินให้ผู้ควบคุมงาน
               </Text>
               <div style={{ margin: '8px 0' }}>
                 <Progress 
@@ -269,7 +269,7 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHo
             <Alert
               type="success"
               message="ประเมินผลการฝึกงานเรียบร้อยแล้ว"
-              description="พี่เลี้ยงได้ทำการประเมินผลการฝึกงานของคุณเรียบร้อยแล้ว"
+              description="ผู้ควบคุมงานได้ทำการประเมินผลการฝึกงานของคุณเรียบร้อยแล้ว"
               showIcon
             />
           </Space>
@@ -281,7 +281,7 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHo
             {renderInternshipProgress()}
             <Alert
               type="info"
-              message="ส่งแบบประเมินไปยังพี่เลี้ยงแล้ว"
+              message="ส่งแบบประเมินไปยังผู้ควบคุมงานแล้ว"
               description={
                 <Space direction="vertical" size="small">
                   <Text>ส่งไปยัง: {evaluationData.supervisorEmail}</Text>
@@ -316,8 +316,8 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHo
             {renderInternshipProgress()}
             
             <Alert
-              message="ส่งแบบประเมินให้พี่เลี้ยงของคุณ"
-              description="เมื่อบันทึกการฝึกงานครบตามเกณฑ์แล้ว คุณสามารถส่งแบบประเมินไปยังพี่เลี้ยงผ่านอีเมลได้"
+              message="ส่งแบบประเมินให้ผู้ควบคุมงานของคุณ"
+              description="เมื่อบันทึกการฝึกงานครบตามเกณฑ์แล้ว คุณสามารถส่งแบบประเมินไปยังผู้ควบคุมงานผ่านอีเมลได้"
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
@@ -332,7 +332,7 @@ const EvaluationRequestButton = ({ documentId, onEvaluationSent, totalApprovedHo
                 style={{ width: '100%' }}
                 size="large"
               >
-                ส่งคำขอประเมินผลไปยังพี่เลี้ยง
+                ส่งคำขอประเมินผลไปยังผู้ควบคุมงาน
               </Button>
             ) : (
               <Tooltip 

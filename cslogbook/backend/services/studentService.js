@@ -692,18 +692,18 @@ class StudentService {
         academicSettings?.projectRegistration
       );
 
-      // สำหรับการพัฒนา: ให้สิทธิ์การเข้าถึงและการลงทะเบียนฝึกงานขึ้นอยู่กับเกณฑ์หน่วยกิต
+      // ให้สิทธิ์การเข้าถึงและการลงทะเบียนฝึกงานขึ้นอยู่กับเกณฑ์หน่วยกิต
       const isCreditEligibleForInternship = internshipCheck.eligible;
 
       const internshipStatus = {
         canAccess: isCreditEligibleForInternship,
         canRegister: isCreditEligibleForInternship,
         reason: isCreditEligibleForInternship
-          ? "ผ่านเกณฑ์หน่วยกิต (สำหรับการพัฒนา)"
+          ? "ผ่านเกณฑ์หน่วยกิต"
           : internshipCheck.reason || "ไม่ผ่านเกณฑ์หน่วยกิต",
         registrationOpen: isCreditEligibleForInternship,
         registrationReason: isCreditEligibleForInternship
-          ? "ช่วงลงทะเบียนเปิด (สำหรับการพัฒนา)"
+          ? "ช่วงลงทะเบียนเปิด"
           : "เงื่อนไขหน่วยกิตไม่ผ่าน",
         requiredCredits: curriculum?.internshipBaseCredits,
         requiredMajorCredits: curriculum?.internshipMajorBaseCredits,
@@ -769,7 +769,7 @@ class StudentService {
           canAccessFeature: isCreditEligibleForInternship,
           canRegister: isCreditEligibleForInternship,
           reason: isCreditEligibleForInternship
-            ? "ผ่านเกณฑ์หน่วยกิต (สำหรับการพัฒนา)"
+            ? "ผ่านเกณฑ์หน่วยกิต"
             : internshipCheck.reason || "ไม่ผ่านเกณฑ์หน่วยกิต",
         },
         project: {

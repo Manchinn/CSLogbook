@@ -104,9 +104,15 @@ const updateDocumentStatus = async (req, res) => {
 // ดึงข้อมูลเอกสารทั้งหมด
 const getDocuments = async (req, res) => {
     try {
-        const { type, status, search, limit, offset } = req.query;
+        const { type, status, search, academicYear, semester, limit, offset } = req.query;
         
-        const filters = { type, status, search };
+        const filters = { 
+            type, 
+            status, 
+            search,
+            academicYear: academicYear ? parseInt(academicYear) : undefined,
+            semester: semester ? parseInt(semester) : undefined
+        };
         const pagination = { 
             limit: limit ? parseInt(limit) : 50, 
             offset: offset ? parseInt(offset) : 0 
@@ -320,9 +326,14 @@ const downloadDocument = async (req, res) => {
  */
 const getCertificateRequests = async (req, res) => {
     try {
-        const { page, limit, status, studentId } = req.query;
+        const { page, limit, status, studentId, academicYear, semester } = req.query;
         
-        const filters = { status, studentId };
+        const filters = { 
+            status, 
+            studentId,
+            academicYear: academicYear ? parseInt(academicYear) : undefined,
+            semester: semester ? parseInt(semester) : undefined
+        };
         const pagination = { page, limit };
         
         const result = await documentService.getCertificateRequests(filters, pagination);

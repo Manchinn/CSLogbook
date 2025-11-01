@@ -147,7 +147,7 @@ const EligibilityCheck = () => {
               items={[
                 {
                   title: 'จำนวนหน่วยกิตรวม',
-                  description: `ต้องผ่านการเรียนมาแล้วอย่างน้อย ${requiredCredits} หน่วยกิต`,
+                  description: `ต้องผ่านการเรียนและมีหน่วยกิจสะสมอย่างน้อย ${requiredCredits} หน่วยกิต`,
                   status: creditsStatus,
                   icon: passCredits ? <CheckCircleOutlined /> : <CloseCircleOutlined />
                 },

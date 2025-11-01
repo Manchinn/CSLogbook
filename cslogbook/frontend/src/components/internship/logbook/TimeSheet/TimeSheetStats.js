@@ -101,8 +101,8 @@ const TimeSheetStats = ({ stats = {} }) => {
             suffix="วัน"
             prefix={<CheckSquareOutlined />}
           />
-          <Tooltip title="จำนวนวันที่ได้รับการอนุมัติจากพี่เลี้ยง">
-            <small className="help-text">วันที่ได้รับการอนุมัติจากพี่เลี้ยงแล้ว</small>
+          <Tooltip title="จำนวนวันที่ได้รับการอนุมัติจากผู้ควบคุมงาน">
+            <small className="help-text">วันที่ได้รับการอนุมัติจากผู้ควบคุมงานแล้ว</small>
           </Tooltip>
         </Card>
       </Col>

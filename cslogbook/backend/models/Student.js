@@ -197,7 +197,7 @@ module.exports = (sequelize) => {
                 if (this.totalCredits < requiredTotalCredits) {
                     return {
                         eligible: false,
-                        reason: `หน่วยกิตรวมไม่เพียงพอสำหรับโครงงาน (มี ${this.totalCredits} จากเกณฑ์ ${requiredTotalCredits} ของหลักสูตร: ${curriculumName})`,
+                        reason: `หน่วยกิตรวมไม่เพียงพอสำหรับโครงงาน `,
                         // เพิ่ม field ให้สอดคล้องกับรูปแบบที่ service คาดหวัง
                         canAccessFeature: false,
                         canRegister: false,

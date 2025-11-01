@@ -8,9 +8,11 @@ import { message } from "antd";
  * @param {string} options.type - ประเภทเอกสาร ('all', 'internship', 'project')
  * @param {string} options.status - สถานะเอกสาร ('all', 'pending', 'approved', 'rejected')
  * @param {string} options.search - คำค้นหา
+ * @param {number} options.academicYear - ปีการศึกษา (พ.ศ.)
+ * @param {number} options.semester - ภาคเรียน (1, 2, 3)
  */
 export function useDocuments(options = {}) {
-  const { type = "all", status = "", search = "" } = options;
+  const { type = "all", status = "", search = "", academicYear, semester } = options;
 
   const [documents, setDocuments] = useState([]);
   const [statistics, setStatistics] = useState({
@@ -30,7 +32,17 @@ export function useDocuments(options = {}) {
     try {
   // แปลงค่าสถานะว่างให้เป็น all เพื่อรองรับ backend filter
   const normalizedStatus = status === '' ? 'all' : status;
-  const data = await documentService.getDocuments({ type, status: normalizedStatus, search });
+  const params = { 
+    type, 
+    status: normalizedStatus, 
+    search 
+  };
+  
+  // เพิ่ม academicYear และ semester ถ้ามีค่า
+  if (academicYear) params.academicYear = academicYear;
+  if (semester) params.semester = semester;
+  
+  const data = await documentService.getDocuments(params);
       setDocuments(data.documents || []);
       setStatistics({
         total: data.documents.length,
@@ -46,7 +58,7 @@ export function useDocuments(options = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [type, status, search]);
+  }, [type, status, search, academicYear, semester]);
 
   useEffect(() => {
     fetchDocuments();

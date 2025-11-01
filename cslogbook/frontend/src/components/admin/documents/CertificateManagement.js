@@ -45,8 +45,8 @@ const CertificateManagement = () => {
   const [filters, setFilters] = useState({
     q: "",
     status: "all",
-    term: "all",
-    classYear: "all",
+    academicYear: "all",
+    semester: "all",
   });
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -63,7 +63,14 @@ const CertificateManagement = () => {
   const fetchCertificateRequests = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await certificateService.getCertificateRequests();
+      
+      // สร้าง params สำหรับ API
+      const params = {};
+      if (filters.status !== "all") params.status = filters.status;
+      if (filters.academicYear !== "all") params.academicYear = filters.academicYear;
+      if (filters.semester !== "all") params.semester = filters.semester;
+      
+      const response = await certificateService.getCertificateRequests(params);
 
       if (response.success) {
         setCertificateRequests(response.data || []);
@@ -74,9 +81,9 @@ const CertificateManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters.status, filters.academicYear, filters.semester]);
 
-  // โหลดข้อมูลเมื่อ component mount
+  // โหลดข้อมูลเมื่อ component mount หรือเมื่อ filters เปลี่ยน
   useEffect(() => {
     fetchCertificateRequests();
   }, [fetchCertificateRequests]);
@@ -146,82 +153,40 @@ const CertificateManagement = () => {
     };
   }, [certificateRequests]);
 
-  // ช่วยคำนวณภาค/ปี และชั้นปีเพื่อใช้กรอง
-  const computeAcademic = (dt) => {
-    if (!dt) return { yearBE: null, semester: null };
-    const d = dayjs(dt);
-    if (!d.isValid()) return { yearBE: null, semester: null };
-    const m = d.month() + 1;
-    if (m >= 8 && m <= 12) return { yearBE: d.year() + 543, semester: 1 };
-    if (m >= 1 && m <= 5) return { yearBE: d.year() + 542, semester: 2 };
-    return { yearBE: d.year() + 542, semester: 2 };
-  };
-
-  const getEntryYearBEFromCode = (studentCode) => {
-    if (!studentCode) return null;
-    const two = String(studentCode).slice(0, 2);
-    const n = parseInt(two, 10);
-    if (Number.isNaN(n)) return null;
-    return 2500 + n;
-  };
-
-  // ตัวเลือกภาค/ปี (term)
-  const termOptions = useMemo(() => {
-    const terms = new Set();
+  // ตัวเลือกปีการศึกษา (academicYear)
+  const academicYearOptions = useMemo(() => {
+    const years = new Set();
     (certificateRequests || []).forEach((r) => {
-      const d = r.requestDate || r.createdAt;
-      if (!d) return;
-      const m = dayjs(d).month() + 1;
-      let semester;
-      let yearBE;
-      if (m >= 8 && m <= 12) {
-        semester = 1;
-        yearBE = dayjs(d).year() + 543;
-      } else {
-        semester = 2;
-        yearBE = dayjs(d).year() + 542;
+      if (r.internship?.academicYear) {
+        years.add(r.internship.academicYear);
       }
-      terms.add(`${semester}/${yearBE}`);
     });
-    return Array.from(terms)
+    return Array.from(years)
       .filter(Boolean)
-      .sort((a, b) => {
-        const [sa, ya] = String(a).split("/").map(Number);
-        const [sb, yb] = String(b).split("/").map(Number);
-        if (yb !== ya) return yb - ya;
-        return sb - sa;
-      })
-      .map((t) => ({ label: t, value: t }));
+      .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+      .map((year) => ({ label: `${year}`, value: year }));
   }, [certificateRequests]);
 
-  // กรองข้อมูลฝั่ง client
+  // ตัวเลือกภาคเรียน
+  const semesterOptions = [
+    { label: "ภาคเรียนที่ 1", value: 1 },
+    { label: "ภาคเรียนที่ 2", value: 2 },
+    { label: "ภาคฤดูร้อน", value: 3 },
+  ];
+
+  // กรองข้อมูลฝั่ง client (สำหรับค้นหาชื่อ/รหัสเท่านั้น เพราะ filter อื่นทำที่ API แล้ว)
   const filteredRequests = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     return (certificateRequests || []).filter((r) => {
       const name = (r.student?.fullName || "").toLowerCase();
       const code = (r.student?.studentCode || "").toLowerCase();
-      const company = (r.companyName || "").toLowerCase();
+      const company = (r.internship?.companyName || "").toLowerCase();
       const matchQ =
         !q || name.includes(q) || code.includes(q) || company.includes(q);
 
-      const matchStatus =
-        filters.status === "all" ? true : r.status === filters.status;
-
-      const baseDate = r.requestDate || r.createdAt || null;
-      const { yearBE, semester } = computeAcademic(baseDate);
-      const thisTerm = semester && yearBE ? `${semester}/${yearBE}` : null;
-      const matchTerm =
-        filters.term === "all" || (thisTerm && thisTerm === filters.term);
-
-      const entryBE = getEntryYearBEFromCode(r.student?.studentCode);
-      const classYear = entryBE && yearBE ? yearBE - entryBE + 1 : null;
-      const matchClass =
-        filters.classYear === "all" ||
-        (classYear && String(classYear) === String(filters.classYear));
-
-      return matchQ && matchStatus && matchTerm && matchClass;
+      return matchQ;
     });
-  }, [certificateRequests, filters]);
+  }, [certificateRequests, filters.q]);
 
   // โหลดรายละเอียดคำขอ
   const openDetailDrawer = async (requestId) => {
@@ -274,7 +239,7 @@ const CertificateManagement = () => {
 
   // Reset filters
   const handleResetFilters = useCallback(() => {
-    setFilters({ q: "", status: "all", term: "all", classYear: "all" });
+    setFilters({ q: "", status: "all", academicYear: "all", semester: "all" });
   }, []);
 
   // คอลัมน์ตาราง
@@ -326,13 +291,6 @@ const CertificateManagement = () => {
         { text: "ปฏิเสธ", value: "rejected" },
       ],
       onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: "หมายเลขหนังสือ",
-      dataIndex: "certificateNumber",
-      key: "certificateNumber",
-      width: 150,
-      render: (number) => number || "-",
     },
     {
       title: "การดำเนินการ",
@@ -472,24 +430,23 @@ const CertificateManagement = () => {
           <Col xs={24} sm={12} md={6} lg={4}>
             <Select
               style={{ width: "100%" }}
-              placeholder="ภาค/ปี"
-              options={[{ label: "ทุกภาค/ปี", value: "all" }, ...termOptions]}
-              value={filters.term}
-              onChange={(v) => setFilters((f) => ({ ...f, term: v }))}
+              placeholder="ปีการศึกษา"
+              options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+              value={filters.academicYear}
+              onChange={(v) => setFilters((f) => ({ ...f, academicYear: v }))}
               allowClear
             />
           </Col>
           <Col xs={24} sm={12} md={4} lg={3}>
             <Select
               style={{ width: "100%" }}
-              placeholder="ชั้นปี"
+              placeholder="ภาคเรียน"
               options={[
-                { label: "ทุกชั้นปี", value: "all" },
-                { label: "ปี 3", value: "3" },
-                { label: "ปี 4", value: "4" },
+                { label: "ทุกภาคเรียน", value: "all" },
+                ...semesterOptions,
               ]}
-              value={filters.classYear}
-              onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
+              value={filters.semester}
+              onChange={(v) => setFilters((f) => ({ ...f, semester: v }))}
               allowClear
             />
           </Col>

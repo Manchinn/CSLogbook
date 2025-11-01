@@ -44,7 +44,7 @@ const DEFENSE_EXPORT_PREFIX = Object.freeze({
 const STAFF_STATUS_LABELS_TH = {
   advisor_in_review: 'รออาจารย์อนุมัติครบ',
   advisor_approved: 'รอเจ้าหน้าที่ตรวจสอบ',
-  staff_verified: 'ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)',
+  staff_verified: 'ตรวจสอบแล้ว',
   scheduled: 'นัดสอบแล้ว (ระบบเดิม)',
   completed: 'บันทึกผลสอบแล้ว'
 };

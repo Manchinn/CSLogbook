@@ -43,7 +43,7 @@ export function useReflectionForm(onSuccess) {
 }
 
 /**
- * Hook สำหรับจัดการการส่งแบบประเมินให้พี่เลี้ยง
+ * Hook สำหรับจัดการการส่งแบบประเมินให้ผู้ควบคุมงาน
  * @param {Function} onSuccess ฟังก์ชันที่จะทำงานเมื่อส่งสำเร็จ
  * @returns {Object} ฟังก์ชันและสถานะสำหรับการส่งแบบประเมิน
  */
@@ -57,7 +57,7 @@ export function useEvaluationForm(onSuccess) {
     try {
       const response = await internshipService.sendEvaluationForm(data);
       if (response.success) {
-        message.success('ส่งแบบประเมินให้พี่เลี้ยงเรียบร้อยแล้ว');
+        message.success('ส่งแบบประเมินให้ผู้ควบคุมงานเรียบร้อยแล้ว');
         if (onSuccess) {
           onSuccess(response.data);
         }
@@ -66,7 +66,7 @@ export function useEvaluationForm(onSuccess) {
         throw new Error(response.message || 'เกิดข้อผิดพลาดในการส่งแบบประเมิน');
       }
     } catch (err) {
-      const errorMsg = err.message || 'ไม่สามารถส่งแบบประเมินให้พี่เลี้ยง';
+      const errorMsg = err.message || 'ไม่สามารถส่งแบบประเมินให้ผู้ควบคุมงานได้';
       message.error(errorMsg);
       setError(errorMsg);
       return null;

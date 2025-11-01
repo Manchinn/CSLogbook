@@ -16,7 +16,7 @@ import {
   ScheduleOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
+import dayjs from "../../../../utils/dayjs"; // ใช้ dayjs ที่มี plugin buddhistEra
 
 // นำเข้า CSS
 import "../styles/OverviewComponents.css";
@@ -122,7 +122,7 @@ const WeeklyOverview = ({ weeklyData }) => {
             }}
             >
             <span className="log-date">
-              {item.date || dayjs(item.workDate).format("D MMM YYYY")}
+              {item.date || dayjs(item.workDate).format("D MMM BBBB")}
             </span>
             <Tag
               color={

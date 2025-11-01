@@ -178,7 +178,6 @@ const NotificationSettings = () => {
                             {/* รายละเอียดเพิ่มเติมและตัวอย่าง */}
                             {(detailedDescription || examples) && (
                                 <Collapse 
-                                    ghost 
                                     size="small"
                                     expandIcon={({ isActive }) => 
                                         isActive ? <DownOutlined /> : <RightOutlined />

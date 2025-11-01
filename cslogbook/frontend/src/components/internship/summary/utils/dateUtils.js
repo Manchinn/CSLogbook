@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs'; // ใช้ dayjs ที่มี plugin buddhistEra
 
 /**
  * คำนวณจำนวนวันระหว่างสองวันที่
@@ -26,13 +26,24 @@ export function getThaiDayName(date) {
 }
 
 /**
- * สร้างช่วงวันที่ในรูปแบบที่กำหนด
+ * สร้างช่วงวันที่ในรูปแบบที่กำหนด (แปลงเป็น พ.ศ.)
  * @param {Date|string} startDate วันที่เริ่มต้น
  * @param {Date|string} endDate วันที่สิ้นสุด
- * @param {string} format รูปแบบการแสดงวันที่
- * @returns {string} ช่วงวันที่ในรูปแบบที่กำหนด
+ * @param {string} format รูปแบบการแสดงวันที่ (ใช้ BBBB สำหรับปี พ.ศ.)
+ * @returns {string} ช่วงวันที่ในรูปแบบที่กำหนด (พ.ศ.)
  */
-export function formatDateRange(startDate, endDate, format = 'D/M/YYYY') {
+export function formatDateRange(startDate, endDate, format = 'D/M/BBBB') {
   if (!startDate || !endDate) return '-';
-  return `${dayjs(startDate).format(format)} - ${dayjs(endDate).format(format)}`;
+  
+  // ใช้ BBBB สำหรับแสดงปี พ.ศ. โดยตรงจาก dayjs plugin buddhistEra
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+  
+  // ถ้า format มี YYYY ให้เปลี่ยนเป็น BBBB
+  const buddhistFormat = format.replace(/YYYY/g, 'BBBB');
+  
+  const formatStart = start.format(buddhistFormat);
+  const formatEnd = end.format(buddhistFormat);
+  
+  return `${formatStart} - ${formatEnd}`;
 }
