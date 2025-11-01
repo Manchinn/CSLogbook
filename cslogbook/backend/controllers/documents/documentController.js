@@ -320,9 +320,14 @@ const downloadDocument = async (req, res) => {
  */
 const getCertificateRequests = async (req, res) => {
     try {
-        const { page, limit, status, studentId } = req.query;
+        const { page, limit, status, studentId, academicYear, semester } = req.query;
         
-        const filters = { status, studentId };
+        const filters = { 
+            status, 
+            studentId,
+            academicYear: academicYear ? parseInt(academicYear) : undefined,
+            semester: semester ? parseInt(semester) : undefined
+        };
         const pagination = { page, limit };
         
         const result = await documentService.getCertificateRequests(filters, pagination);
