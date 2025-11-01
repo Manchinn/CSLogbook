@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
     "setup": "copy .env.example .env.development",
-    "build": "set NODE_ENV=production&& node scripts/build.js",
-    "dev": "set NODE_ENV=development&& nodemon server.js",
+    "build": "cross-env NODE_ENV=production node scripts/build.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
     "test:cov": "cross-env NODE_ENV=test jest --coverage --runInBand",
