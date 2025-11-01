@@ -62,7 +62,7 @@ import {
 
 // ค่าคงที่
 const { Title, Text } = Typography;
-const DATE_FORMAT_MEDIUM = "D MMM YYYY";
+const DATE_FORMAT_MEDIUM = "D MMM BBBB"; // เปลี่ยนเป็น BBBB สำหรับแสดงปี พ.ศ.
 
 /**
  * หน้าสรุปการฝึกงาน

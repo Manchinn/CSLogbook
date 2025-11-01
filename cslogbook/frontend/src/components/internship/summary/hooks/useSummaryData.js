@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react"; // เพิ่ม useCallback
-import dayjs from "dayjs";
+import dayjs from "../../../../utils/dayjs"; // ใช้ dayjs ที่มี plugin buddhistEra
 import internshipService from "../../../../services/internshipService";
 import { getThaiDayName } from "../utils/dateUtils";
 
-const DATE_FORMAT_MEDIUM = "D MMM YYYY";
+const DATE_FORMAT_MEDIUM = "D MMM BBBB"; // เปลี่ยนจาก YYYY เป็น BBBB สำหรับแสดงปี พ.ศ.
 
 /**
  * Hook สำหรับดึงข้อมูลสรุปการฝึกงาน
@@ -110,8 +110,8 @@ export function useSummaryData() {
           week: `สัปดาห์ที่${weekNumber} `,
           weekNumber,
           dateRange: ` ${weekStart.format("D MMM")} - ${weekEnd.format(
-            "D MMM YYYY"
-          )}`,
+            "D MMM BBBB"
+          )}`, // เปลี่ยนเป็น BBBB
           entries: [],
           days: 0,
           totalHours: 0,

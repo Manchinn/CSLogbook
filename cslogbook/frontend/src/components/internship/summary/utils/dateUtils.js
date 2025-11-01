@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import dayjs from '../../../../utils/dayjs'; // ใช้ dayjs ที่มี plugin buddhistEra
 
 /**
  * คำนวณจำนวนวันระหว่างสองวันที่
@@ -29,23 +29,21 @@ export function getThaiDayName(date) {
  * สร้างช่วงวันที่ในรูปแบบที่กำหนด (แปลงเป็น พ.ศ.)
  * @param {Date|string} startDate วันที่เริ่มต้น
  * @param {Date|string} endDate วันที่สิ้นสุด
- * @param {string} format รูปแบบการแสดงวันที่
+ * @param {string} format รูปแบบการแสดงวันที่ (ใช้ BBBB สำหรับปี พ.ศ.)
  * @returns {string} ช่วงวันที่ในรูปแบบที่กำหนด (พ.ศ.)
  */
-export function formatDateRange(startDate, endDate, format = 'D/M/YYYY') {
+export function formatDateRange(startDate, endDate, format = 'D/M/BBBB') {
   if (!startDate || !endDate) return '-';
   
-  // แปลงปี ค.ศ. เป็น พ.ศ. โดยการ +543
+  // ใช้ BBBB สำหรับแสดงปี พ.ศ. โดยตรงจาก dayjs plugin buddhistEra
   const start = dayjs(startDate);
   const end = dayjs(endDate);
   
-  // แยกส่วนของ format เพื่อแปลงปีเป็น พ.ศ.
-  const formatStart = start.format(format);
-  const formatEnd = end.format(format);
+  // ถ้า format มี YYYY ให้เปลี่ยนเป็น BBBB
+  const buddhistFormat = format.replace(/YYYY/g, 'BBBB');
   
-  // แปลงปี ค.ศ. เป็น พ.ศ. (เพิ่ม 543)
-  const buddhistStart = formatStart.replace(/\b(\d{4})\b/g, (match) => parseInt(match) + 543);
-  const buddhistEnd = formatEnd.replace(/\b(\d{4})\b/g, (match) => parseInt(match) + 543);
+  const formatStart = start.format(buddhistFormat);
+  const formatEnd = end.format(buddhistFormat);
   
-  return `${buddhistStart} - ${buddhistEnd}`;
+  return `${formatStart} - ${formatEnd}`;
 }

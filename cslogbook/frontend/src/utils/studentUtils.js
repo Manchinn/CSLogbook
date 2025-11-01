@@ -33,11 +33,11 @@ export const getProjectRequirements = (requirements) => {
     };
   }
   
-  // ถ้าไม่มีค่าจาก backend ให้ใช้ค่า default
+  // ถ้าไม่มีค่าจาก backend ให้ใช้ค่า default (ตาม academic_system.md)
   return {
     MIN_YEAR: 4,
     MIN_TOTAL_CREDITS: 95,
-    MIN_MAJOR_CREDITS: 59
+    MIN_MAJOR_CREDITS: 57 // แก้ไขจาก 59 เป็น 57 ตามเอกสาร
   };
 };
 
