@@ -666,7 +666,7 @@ class InternshipManagementService {
 
       logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}, Acceptance status: ${acceptanceCheck.status}`);
     } catch (checkError) {
-      logger.error(`[getInternshipSummary] Pre-check failed:`, checkError.message);
+      logger.error(`[getInternshipSummary] Pre-check failed for userId ${userId}: ${checkError.message}`);
       throw checkError;
     }
 

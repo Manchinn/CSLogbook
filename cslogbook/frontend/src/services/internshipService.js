@@ -1051,9 +1051,9 @@ const internshipService = {
       };
     } catch (error) {
       console.error("Error fetching internship summary:", error);
-      throw new Error(
-        error.response?.data?.message || "ไม่สามารถโหลดข้อมูลสรุปการฝึกงาน"
-      );
+      // ปรับปรุง error handling ให้แสดง error message ที่ชัดเจน
+      const errorMessage = error.response?.data?.message || error.message || "ไม่สามารถโหลดข้อมูลสรุปการฝึกงาน";
+      throw new Error(errorMessage);
     }
   },
   /**

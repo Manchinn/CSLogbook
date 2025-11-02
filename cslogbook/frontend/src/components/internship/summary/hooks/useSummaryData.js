@@ -308,7 +308,9 @@ export function useSummaryData() {
         console.log("Error fetching evaluation status:", evalError);
       }
     } catch (err) {
-      setError(err);
+      console.error("Error in fetchSummaryData:", err);
+      // แปลง error เป็น string เพื่อไม่ให้ React crash
+      setError(err?.message || err?.toString() || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoading(false);
     }
