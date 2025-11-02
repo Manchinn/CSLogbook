@@ -329,21 +329,41 @@ const InternshipSummary = () => {
     );
   }
 
-  // แสดงกรณี CS05 ยังไม่ได้รับการอนุมัติ
-  if (!isCS05Approved && summaryData?.status !== "supervisor_evaluated") {
+  // ✅ แสดงกรณี CS05 ยังไม่ได้รับการอนุมัติ - เปลี่ยนเงื่อนไขให้เข้มงวดขึ้น
+  if (!isCS05Approved) {
+    // กำหนด message ตามสถานะ
+    let resultTitle = "ไม่สามารถเข้าถึงสรุปผลการฝึกงานได้";
+    let resultSubTitle = "กรุณารอการอนุมัติแบบฟอร์ม คพ.05 จากเจ้าหน้าที่ภาควิชาก่อน";
+    let resultStatus = "warning";
+
+    if (summaryData?.status === "rejected") {
+      resultStatus = "error";
+      resultTitle = "แบบฟอร์ม คพ.05 ไม่ได้รับการอนุมัติ";
+      resultSubTitle = "กรุณาติดต่อเจ้าหน้าที่หรือส่งคำร้องใหม่";
+    } else if (summaryData?.status === "pending") {
+      resultStatus = "info";
+      resultTitle = "แบบฟอร์ม คพ.05 อยู่ระหว่างการพิจารณา";
+      resultSubTitle = "กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชา";
+    }
+
     return (
       <div className="no-data-container">
         <Result
-          status="warning"
-          title="แบบฟอร์ม คพ.05 อยู่ระหว่างการพิจารณา"
-          subTitle="กรุณารอการอนุมัติจากอาจารย์ที่ปรึกษาเพื่อเริ่มบันทึกการฝึกงาน"
+          status={resultStatus}
+          title={resultTitle}
+          subTitle={resultSubTitle}
           extra={
-            <Button
-              type="primary"
-              onClick={() => navigate("/internship-registration/flow")}
-            >
-              ดูสถานะล่าสุด
-            </Button>
+            <Space>
+              <Button
+                type="primary"
+                onClick={() => navigate("/internship/status")}
+              >
+                ดูสถานะล่าสุด
+              </Button>
+              <Button onClick={() => navigate("/dashboard")}>
+                กลับหน้าหลัก
+              </Button>
+            </Space>
           }
         />
       </div>

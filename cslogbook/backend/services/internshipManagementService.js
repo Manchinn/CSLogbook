@@ -439,10 +439,10 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      // ตรวจสอบสถานะ CS05 ว่าสามารถแก้ไขข้อมูลได้หรือไม่
-      if (document.status === "rejected") {
+      // ✅ ตรวจสอบสถานะ CS05 - อนุญาตเฉพาะ approved เท่านั้น
+      if (document.status !== "approved") {
         throw new Error(
-          "ไม่สามารถกรอกข้อมูลได้เนื่องจากคำร้อง CS05 ไม่ได้รับการอนุมัติ"
+          `ไม่สามารถกรอกข้อมูลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${document.status})`
         );
       }
 
@@ -574,9 +574,10 @@ class InternshipManagementService {
         throw new Error("ไม่พบแบบฟอร์ม คพ.05 กรุณายื่นคำร้องขอฝึกงานก่อน");
       }
 
-      if (!["approved", "supervisor_approved", "supervisor_evaluated"].includes(cs05Check.status)) {
-        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId}`);
-        throw new Error(`แบบฟอร์ม คพ.05 ของคุณอยู่ในสถานะ '${cs05Check.status}' กรุณารอการอนุมัติ`);
+      // ✅ เปลี่ยนเงื่อนไข: อนุญาตเฉพาะ approved เท่านั้น
+      if (cs05Check.status !== "approved") {
+        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId} - Access denied (only 'approved' allowed)`);
+        throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${cs05Check.status})`);
       }
 
       logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}`);

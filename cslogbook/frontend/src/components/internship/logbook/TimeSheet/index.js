@@ -157,6 +157,76 @@ const TimeSheet = () => {
     );
   }
 
+  // ✅ กรณี CS05 ยังไม่ได้รับการอนุมัติ - แสดงหน้าแต่ไม่ให้แก้ไข
+  if (cs05Status !== 'approved') {
+    // กำหนด message ตามสถานะ
+    let resultStatus = 'warning';
+    let resultTitle = 'ไม่สามารถบันทึกเวลาทำงานได้';
+    let resultSubTitle = '';
+    let alertType = 'warning';
+    let alertMessage = 'กรุณารอการอนุมัติ';
+
+    if (cs05Status === 'rejected') {
+      resultStatus = 'error';
+      resultTitle = 'คำร้อง คพ.05 ไม่ได้รับการอนุมัติ';
+      resultSubTitle = 'กรุณาติดต่อเจ้าหน้าที่หรือส่งคำร้องใหม่เพื่อดำเนินการฝึกงาน';
+      alertType = 'error';
+      alertMessage = 'คำร้องถูกปฏิเสธ';
+    } else if (cs05Status === 'pending') {
+      resultStatus = 'info';
+      resultTitle = 'คำร้อง คพ.05 อยู่ระหว่างการพิจารณา';
+      resultSubTitle = 'กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชาก่อนจึงจะสามารถบันทึกเวลาทำงานได้';
+      alertType = 'info';
+      alertMessage = 'อยู่ระหว่างตรวจสอบ';
+    } else {
+      // สถานะอื่นๆ
+      resultSubTitle = `คำร้อง CS05 ต้องได้รับการอนุมัติก่อนจึงจะสามารถบันทึกได้ (สถานะปัจจุบัน: ${cs05Status || 'ไม่ทราบ'})`;
+    }
+
+    return (
+      <div className={styles.internshipContainer}>
+        <Alert
+          type={alertType}
+          message={alertMessage}
+          description={resultSubTitle}
+          showIcon
+          style={{ marginBottom: 16 }}
+          action={
+            <Space>
+              <Button 
+                size="small" 
+                type="primary"
+                onClick={() => navigate("/internship-registration/flow")}
+              >
+                ดูสถานะคำร้อง
+              </Button>
+            </Space>
+          }
+        />
+        <Result
+          status={resultStatus}
+          title={resultTitle}
+          subTitle={resultSubTitle}
+          extra={[
+            <Button
+              key="status"
+              type="primary"
+              onClick={() => navigate("/internship-registration/flow")}
+            >
+              ตรวจสอบสถานะคำร้อง
+            </Button>,
+            <Button
+              key="home"
+              onClick={() => navigate("/dashboard")}
+            >
+              กลับหน้าหลัก
+            </Button>,
+          ]}
+        />
+      </div>
+    );
+  }
+
   // กรณีเกิดข้อผิดพลาดในการดึงข้อมูล
   if (loadError) {
     return (

@@ -43,8 +43,8 @@ const CompanyForm = () => {
           
           setHasCS05(true);
           setCS05Status(fetchedCS05Data.status);
+          // ✅ เปลี่ยนเงื่อนไข: อนุญาตเฉพาะ approved เท่านั้น
           setCanEditCompanyInfo(
-            fetchedCS05Data.status === 'pending' || 
             fetchedCS05Data.status === 'approved'
           );
           
@@ -285,47 +285,62 @@ const CompanyForm = () => {
     );
   }
 
-  // กรณี CS05 ถูกปฏิเสธ
-  if (cs05Status === 'rejected') {
-    return (
-      <Result
-        status="error"
-        title="คำร้อง คพ.05 ไม่ได้รับการอนุมัติ"
-        subTitle="คำร้องของคุณไม่ได้รับการอนุมัติ กรุณาติดต่ออาจารย์ที่ปรึกษาหรือแก้ไขคำร้องใหม่"
-        extra={
-          <Space>
-            <Button onClick={() => navigate('/internship/status')}>
-              ดูสถานะคำร้อง
-            </Button>
-            <Button type="primary" onClick={() => navigate('/internship-registration/flow')}>
-              ส่งคำร้องใหม่
-            </Button>
-            <Button onClick={() => navigate('/internship')}>
-              กลับหน้าหลัก
-            </Button>
-          </Space>
-        }
-      />
-    );
-  }
-
-  // กรณีสถานะอื่นๆ ที่ไม่รองรับ
+  // ✅ กรณีสถานะไม่ใช่ approved - แสดงข้อความตามสถานะ
   if (!canEditCompanyInfo) {
+    // กำหนด message และ status ตามสถานะของ CS05
+    let resultStatus = 'info';
+    let resultTitle = 'ไม่สามารถกรอกข้อมูลได้ในขณะนี้';
+    let resultSubTitle = '';
+    let extraButtons = [];
+
+    if (cs05Status === 'rejected') {
+      resultStatus = 'error';
+      resultTitle = 'คำร้องขอฝึกงาน(คพ.05)ไม่ได้รับการอนุมัติ';
+      resultSubTitle = 'คำร้องของคุณไม่ได้รับการอนุมัติ กรุณาติดต่ออาจารย์ที่ปรึกษาหรือแก้ไขคำร้องใหม่';
+      extraButtons = [
+        <Button key="status" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="resubmit" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ส่งคำร้องใหม่
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (cs05Status === 'pending') {
+      resultStatus = 'warning';
+      resultTitle = 'คำร้อง คพ.05 อยู่ระหว่างการพิจารณา';
+      resultSubTitle = 'กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชาก่อนจึงจะสามารถกรอกข้อมูลสถานประกอบการได้';
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else {
+      // สถานะอื่นๆ (draft, supervisor_approved, etc.)
+      resultStatus = 'info';
+      resultTitle = 'ไม่สามารถกรอกข้อมูลได้ในขณะนี้';
+      resultSubTitle = `คำร้องขอฝึกงานต้องได้รับการอนุมัติก่อนจึงจะสามารถกรอกข้อมูลได้ (สถานะปัจจุบัน: ${cs05Status || 'ไม่ทราบ'})`;
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    }
+
     return (
       <Result
-        status="info"
-        title="ไม่สามารถกรอกข้อมูลได้ในขณะนี้"
-        subTitle={`สถานะปัจจุบันของคำร้อง CS05: ${cs05Status || 'ไม่ทราบสถานะ'}`}
-        extra={
-          <Space>
-            <Button type="primary" onClick={() => navigate('/internship/status')}>
-              ดูสถานะคำร้อง
-            </Button>
-            <Button onClick={() => navigate('/internship')}>
-              กลับหน้าหลัก
-            </Button>
-          </Space>
-        }
+        status={resultStatus}
+        title={resultTitle}
+        subTitle={resultSubTitle}
+        extra={<Space>{extraButtons}</Space>}
       />
     );
   }
