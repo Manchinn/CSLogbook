@@ -548,6 +548,43 @@ class InternshipManagementService {
   async getInternshipSummary(userId) {
     logger.info(`[getInternshipSummary] Starting for userId: ${userId}`);
 
+    // 🔍 Debug: ตรวจสอบข้อมูลพื้นฐานก่อน
+    try {
+      const userCheck = await User.findByPk(userId);
+      if (!userCheck) {
+        logger.error(`[getInternshipSummary] User not found in database for userId: ${userId}`);
+        throw new Error("ไม่พบข้อมูลผู้ใช้ในระบบ");
+      }
+
+      const studentCheck = await Student.findOne({ where: { userId } });
+      if (!studentCheck) {
+        logger.error(`[getInternshipSummary] Student record not found for userId: ${userId}`);
+        throw new Error("ไม่พบข้อมูลนักศึกษา กรุณาติดต่อเจ้าหน้าที่เพื่อลงทะเบียน");
+      }
+
+      const cs05Check = await Document.findOne({
+        where: { 
+          userId, 
+          documentName: "CS05" 
+        }
+      });
+      
+      if (!cs05Check) {
+        logger.warn(`[getInternshipSummary] No CS05 found for userId: ${userId}`);
+        throw new Error("ไม่พบแบบฟอร์ม คพ.05 กรุณายื่นคำร้องขอฝึกงานก่อน");
+      }
+
+      if (!["approved", "supervisor_approved", "supervisor_evaluated"].includes(cs05Check.status)) {
+        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId}`);
+        throw new Error(`แบบฟอร์ม คพ.05 ของคุณอยู่ในสถานะ '${cs05Check.status}' กรุณารอการอนุมัติ`);
+      }
+
+      logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}`);
+    } catch (checkError) {
+      logger.error(`[getInternshipSummary] Pre-check failed:`, checkError.message);
+      throw checkError;
+    }
+
     // ดึงข้อมูลครบถ้วนในครั้งเดียวด้วย Sequelize associations
     // เริ่มจาก User เพราะ Document associate กับ User โดยตรง
     const userWithInternship = await User.findOne({
@@ -599,9 +636,9 @@ class InternshipManagementService {
     });
 
     if (!userWithInternship) {
-      logger.warn(`[getInternshipSummary] No user found for userId: ${userId}`);
+      logger.error(`[getInternshipSummary] Complex query returned null for userId: ${userId} - likely missing InternshipDocument`);
       throw new Error(
-        "ไม่พบข้อมูลผู้ใช้หรือข้อมูลการฝึกงานที่ได้รับการอนุมัติ"
+        "ไม่พบข้อมูลการฝึกงานที่สมบูรณ์ อาจเป็นเพราะข้อมูลบริษัท/วันที่ฝึกงานยังไม่ครบถ้วน กรุณาติดต่อเจ้าหน้าที่"
       );
     }
 
