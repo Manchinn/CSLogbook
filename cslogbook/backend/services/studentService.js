@@ -175,7 +175,7 @@ class StudentService {
           {
             model: User,
             as: "user",
-            attributes: ["firstName", "lastName", "email"],
+            attributes: ["userId", "firstName", "lastName", "email"],
           },
         ],
       });
@@ -207,10 +207,14 @@ class StudentService {
       }
 
       return {
+        studentId: student.student_id, // เพิ่ม primary key
         studentCode: student.studentCode,
+        userId: student.user.userId, // เพิ่ม userId
         firstName: student.user.firstName,
         lastName: student.user.lastName,
         email: student.user.email,
+        phoneNumber: student.phoneNumber || null, // เพิ่มเบอร์โทร
+        classroom: student.classroom || null, // เพิ่มห้องเรียน
         totalCredits: student.totalCredits || 0,
         majorCredits: student.majorCredits || 0,
         studentYear: studentYearInfo?.year ?? null, // ส่ง null ถ้า error

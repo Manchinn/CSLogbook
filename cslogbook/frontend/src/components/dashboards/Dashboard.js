@@ -1267,42 +1267,6 @@ function Dashboard() {
               </Card>
             </Col>
           </Row>
-
-          <Card
-            title="ข้อมูลส่วนตัว"
-            className="student-info-card"
-            extra={
-              <Button
-                type="link"
-                onClick={() =>
-                  formattedStudentCode !== "-" &&
-                  navigate(`/student-profile/${formattedStudentCode}`)
-                }
-                disabled={formattedStudentCode === "-"}
-              >
-                แก้ไขโปรไฟล์
-              </Button>
-            }
-          >
-            {isLoading ? (
-              <Skeleton active paragraph={{ rows: 3 }} />
-            ) : (
-              <Descriptions column={1} size="small">
-                <Descriptions.Item label="ชื่อ-สกุล">
-                  {studentName}
-                </Descriptions.Item>
-                <Descriptions.Item label="อีเมล">
-                  {studentData?.email || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="ห้องเรียน">
-                  {studentData?.classroom || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="เบอร์โทรศัพท์">
-                  {studentData?.phoneNumber || "-"}
-                </Descriptions.Item>
-              </Descriptions>
-            )}
-          </Card>
         </Space>
       </div>
     );

@@ -104,12 +104,11 @@ exports.updateStudent = async (req, res) => {
 
 exports.updateContactInfo = async (req, res) => {
   try {
-    const { studentId } = req.params;
+    const studentCode = req.params.id; // รับ studentCode จาก URL parameter
     const { classroom, phoneNumber } = req.body;
     
-    // ตรวจสอบสิทธิ์การเข้าถึง (ต้องเป็นเจ้าของข้อมูลหรือแอดมิน)
-    const userId = req.user.id;
-    const student = await studentService.getStudentByIdWithUserId(studentId);
+    // ค้นหานักศึกษาจาก studentCode
+    const student = await studentService.getStudentById(studentCode);
     
     if (!student) {
       return res.status(404).json({
@@ -118,15 +117,17 @@ exports.updateContactInfo = async (req, res) => {
       });
     }
     
-    if (student.userId !== userId && req.user.role !== 'admin') {
+    // ตรวจสอบสิทธิ์การเข้าถึง (ต้องเป็นเจ้าของข้อมูลหรือแอดมิน/ครู)
+    const userId = req.user.id;
+    if (student.userId !== userId && req.user.role !== 'admin' && req.user.role !== 'teacher') {
       return res.status(403).json({
         success: false,
         message: 'ไม่มีสิทธิ์อัพเดทข้อมูลนี้'
       });
     }
     
-    // เรียกใช้ service แทนการเข้าถึงโมเดลโดยตรง
-    const updatedData = await studentService.updateContactInfo(studentId, {
+    // เรียกใช้ service โดยส่ง studentId (primary key)
+    const updatedData = await studentService.updateContactInfo(student.studentId, {
       classroom,
       phoneNumber
     });
