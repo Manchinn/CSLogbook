@@ -446,6 +446,29 @@ class InternshipManagementService {
         );
       }
 
+      // ✅ ตรวจสอบสถานะ ACCEPTANCE_LETTER - ต้องได้รับการอนุมัติแล้ว
+      const acceptanceLetter = await Document.findOne({
+        where: {
+          userId,
+          documentType: "INTERNSHIP",
+          documentName: "ACCEPTANCE_LETTER",
+        },
+        order: [["created_at", "DESC"]],
+        transaction,
+      });
+
+      if (!acceptanceLetter) {
+        throw new Error(
+          "ไม่สามารถกรอกข้อมูลได้ เนื่องจากยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท"
+        );
+      }
+
+      if (acceptanceLetter.status !== "approved") {
+        throw new Error(
+          `ไม่สามารถกรอกข้อมูลได้ เนื่องจากหนังสือตอบรับยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${acceptanceLetter.status})`
+        );
+      }
+
       // อัพเดทข้อมูลผู้ควบคุมงาน
       await document.internshipDocument.update(
         {
@@ -580,7 +603,27 @@ class InternshipManagementService {
         throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${cs05Check.status})`);
       }
 
-      logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}`);
+      // ✅ ตรวจสอบสถานะ หนังสืบตอบรับฝึกงาน
+      const acceptanceCheck = await Document.findOne({
+        where: {
+          userId,
+          documentType: "INTERNSHIP",
+          documentName: "ACCEPTANCE_LETTER",
+        },
+        order: [["created_at", "DESC"]],
+      });
+
+      if (!acceptanceCheck) {
+        logger.warn(`[getInternshipSummary] No ACCEPTANCE_LETTER found for userId: ${userId}`);
+        throw new Error("ไม่สามารถดูสรุปผลได้ เนื่องจากยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท");
+      }
+
+      if (acceptanceCheck.status !== "approved") {
+        logger.warn(`[getInternshipSummary] ACCEPTANCE_LETTER status is '${acceptanceCheck.status}' for userId: ${userId} - Access denied`);
+        throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากหนังสือตอบรับยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${acceptanceCheck.status})`);
+      }
+
+      logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}, Acceptance status: ${acceptanceCheck.status}`);
     } catch (checkError) {
       logger.error(`[getInternshipSummary] Pre-check failed:`, checkError.message);
       throw checkError;

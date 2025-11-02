@@ -7,7 +7,7 @@ export const useInternshipStatus = () => {
 
   const fetchStatus = async () => {
     try {
-  const response = await apiClient.get('/internship/status');
+  const response = await apiClient.get('/internship-registration/flow');
       setStatus(response.data);
     } catch (error) {
       console.error('Error fetching status:', error);

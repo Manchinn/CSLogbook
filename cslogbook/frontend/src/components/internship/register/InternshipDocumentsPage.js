@@ -393,7 +393,7 @@ const InternshipDocumentsPage = () => {
           <Button 
             size="large"
             icon={<CheckCircleOutlined />}
-            onClick={() => navigate('/internship/status')}
+            onClick={() => navigate('/internship-registration/flow')}
           >
             ติดตามสถานะ
           </Button>
