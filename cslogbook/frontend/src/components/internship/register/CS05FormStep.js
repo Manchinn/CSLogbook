@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Form, Input, Button, DatePicker, Space, Typography, Divider,
-  Row, Col, InputNumber, Alert, Card, Select, Checkbox,
+  Row, Col, InputNumber, Alert, Card, Select, // Checkbox, (ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน)
   message,
 } from 'antd';
 import { 
@@ -48,7 +48,7 @@ const CS05FormStep = ({
   initialData
 }) => {
   const [form] = Form.useForm();
-  const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false);
+  // const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
   const [startDate, setStartDate] = React.useState(null);
   const [endDate, setEndDate] = React.useState(null);
   
@@ -104,17 +104,17 @@ const CS05FormStep = ({
         additionalRequirements: existingCS05.additionalRequirements
       });
       
-      setHasTwoStudents(existingCS05.hasTwoStudents || false);
+      // setHasTwoStudents(existingCS05.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
       
-      // ถ้ามีข้อมูลนักศึกษาคนที่ 2
-      if (existingCS05.hasTwoStudents && existingCS05.studentData?.length > 1) {
-        form.setFieldsValue({
-          studentData: [
-            ...form.getFieldValue('studentData'),
-            existingCS05.studentData[1]
-          ]
-        });
-      }
+      // ถ้ามีข้อมูลนักศึกษาคนที่ 2 (ปิดไว้ชั่วคราว)
+      // if (existingCS05.hasTwoStudents && existingCS05.studentData?.length > 1) {
+      //   form.setFieldsValue({
+      //     studentData: [
+      //       ...form.getFieldValue('studentData'),
+      //       existingCS05.studentData[1]
+      //     ]
+      //   });
+      // }
     } else if (formData && Object.keys(formData).length > 0) {
       // กรณีที่มีข้อมูล formData แต่ไม่ใช่จาก existingCS05
       if (formData.internshipDateRange && formData.internshipDateRange.length === 2) {
@@ -134,7 +134,7 @@ const CS05FormStep = ({
         form.setFieldsValue(formData);
       }
       
-      setHasTwoStudents(formData.hasTwoStudents || false);
+      // setHasTwoStudents(formData.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
     }
   }, [form, studentData, formData, existingCS05, setTranscriptFile]);
 
@@ -309,15 +309,26 @@ const CS05FormStep = ({
 
         {/* ส่วนที่ 2: ข้อมูลนักศึกษา */}
         <Card title="ข้อมูลนักศึกษาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
-          <Form.Item name="hasTwoStudents" valuePropName="checked">
+          {/* 
+            🚧 Feature: ฝึกงาน 2 คน (ปิดไว้ชั่วคราว)
+            📋 Implementation Plan: ดูที่ IMPLEMENTATION_SIMPLE_TWO_STUDENTS.md
+            📋 Table Analysis: ดูที่ knowledge/TWO_STUDENTS_TABLE_ANALYSIS.md
+            📋 Full Plan: ดูที่ IMPLEMENTATION_PLAN_INTERNSHIP_STUDENTS.md
+            
+            TODO: เปิดใช้งานเมื่อ Backend พร้อม
+            - Migration file: backend/migrations/20251102000000-add-secondary-student-to-internship-documents.js
+            - Model: backend/models/InternshipDocument.js (เพิ่ม secondaryStudentId, hasTwoStudents)
+            - Service: backend/services/internshipManagementService.js (submitCS05WithTranscript, getCurrentCS05)
+          */}
+          {/* <Form.Item name="hasTwoStudents" valuePropName="checked">
             <Checkbox 
               onChange={(e) => setHasTwoStudents(e.target.checked)}
             >
               ฝึกงาน 2 คน (ในบริษัทเดียวกัน)
             </Checkbox>
-          </Form.Item>
+          </Form.Item> */}
 
-          <Divider orientation="left">นักศึกษาคนที่ 1</Divider>
+          <Divider orientation="left">ข้อมูลนักศึกษา</Divider>
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
@@ -402,7 +413,8 @@ const CS05FormStep = ({
             </Col>
           </Row>
 
-          {hasTwoStudents && (
+          {/* 🚧 ฟอร์มนักศึกษาคนที่ 2 (ปิดไว้ชั่วคราว - รอ Backend เสร็จ) */}
+          {/* {hasTwoStudents && (
             <>
               <Divider orientation="left">นักศึกษาคนที่ 2</Divider>
               <Row gutter={16}>
@@ -504,7 +516,7 @@ const CS05FormStep = ({
                 </Col>
               </Row>
             </>
-          )}
+          )} */}
         </Card>
 
         {/* ส่วนที่ 3: ช่วงเวลาฝึกงาน */}
