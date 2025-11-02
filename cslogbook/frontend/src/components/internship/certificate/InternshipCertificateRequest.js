@@ -4,6 +4,7 @@ import { CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 
 // ใช้ hook จากโฟลเดอร์ hooks
 import useCertificateStatus from "../../../hooks/useCertificateStatus";
+import useInternshipAccess from "../../../hooks/useInternshipAccess";
 
 // ใช้ components ที่มีอยู่แล้ว
 import CertificateStatusCard from "./components/CertificateStatusCard";
@@ -24,6 +25,18 @@ const InternshipCertificateRequest = () => {
   // ✅ สร้าง instance ของ PDF Helper
   const [pdfHelper] = useState(() => new CertificatePDFHelper());
 
+  // ✅ ใช้ useInternshipAccess สำหรับตรวจสอบทั้ง CS05 และ ACCEPTANCE_LETTER
+  const {
+    canAccess: hasRequiredApprovals,
+    cs05Status,
+    acceptanceStatus,
+    isCS05Approved,
+    isAcceptanceApproved,
+    hasCS05,
+    hasAcceptance,
+    loading: accessLoading
+  } = useInternshipAccess();
+
   // ✅ ใช้ custom hook สำหรับจัดการสถานะ (เพิ่ม approvedHours)
   const {
     certificateStatus,
@@ -32,11 +45,16 @@ const InternshipCertificateRequest = () => {
     approvedHours, // ✅ เพิ่ม approved hours
     loading,
     error,
-    canRequestCertificate,
+    canRequestCertificate: canRequestFromHook,
     refreshStatus,
     submitCertificateRequest,
     certificateData,
   } = useCertificateStatus();
+
+  // ✅ อัปเดต canRequestCertificate ให้รวมการตรวจสอบ dual status
+  const canRequestCertificate = 
+    hasRequiredApprovals && 
+    canRequestFromHook;
 
   useEffect(() => {
     checkInternshipCompletion();
@@ -189,7 +207,7 @@ const InternshipCertificateRequest = () => {
     }
   };
 
-  // ✅ ปรับให้ progress ใช้ approvedHours แทน totalHours
+  // ✅ ปรับให้ progress แสดงเฉพาะ 2 เงื่อนไข (ชั่วโมงและการประเมิน)
   const getProgressPercentage = () => {
     let completed = 0;
     if (approvedHours >= 240) completed += 50;
@@ -197,10 +215,11 @@ const InternshipCertificateRequest = () => {
     return completed;
   };
 
-  // ✅ ใช้ steps 2 ขั้น (0 หรือ 1) โดยตรวจสอบ approvedHours
+  // ✅ ใช้ steps 2 ขั้น แสดงเฉพาะชั่วโมงและการประเมิน
   const getCurrentStep = () => {
-    if (approvedHours >= 240 && supervisorEvaluationStatus === "completed") return 1;
-    return 0;
+    if (approvedHours < 240) return 0;
+    if (supervisorEvaluationStatus !== "completed") return 1;
+    return 2;
   };
 
   // แสดง loading state
@@ -240,43 +259,81 @@ const InternshipCertificateRequest = () => {
         📜 ขอหนังสือรับรองการฝึกงาน
       </Title> */}
 
-      {/* Debug Information - ลบออกใน production */}
-      {/* {process.env.NODE_ENV === "development" && (
-        <Card style={{ marginBottom: 24, backgroundColor: "#f6ffed" }}>
-          <Title level={5}>🔧 Debug Information</Title>
-          <Text>
-            Status: {certificateStatus} | Hours: {totalHours} | Evaluation:{" "}
-            {supervisorEvaluationStatus} | Summary: {internshipSummaryStatus} |{" "}
-            Can Request: {canRequestCertificate ? "Yes" : "No"} |{" "}
-            Has Certificate Data: {certificateData ? "Yes" : "No"} |{" "}
-            Has Basic Data: {certificateData ? (pdfHelper.hasBasicCertificateData(certificateData) ? "Yes" : "No") : "N/A"} |{" "}
-            PDF Service Available: {pdfHelper.isOfficialDocumentServiceAvailable() ? "Yes" : "No"}
-          </Text>
-          {certificateData && (
-            <details style={{ marginTop: 8 }}>
-              <summary>🔍 Certificate Data Details</summary>
-              <pre style={{ fontSize: '12px', backgroundColor: '#f0f0f0', padding: 8, borderRadius: 4 }}>
-                {JSON.stringify(certificateData, null, 2)}
-              </pre>
-            </details>
-          )}
-        </Card>
-      )} */}
+      {/* ✅ Alert แจ้งเตือนเงื่อนไขการอนุมัติ CS05 และหนังสือตอบรับ */}
+      {!hasRequiredApprovals && (
+        <Alert
+          type="warning"
+          message="ต้องผ่านการอนุมัติก่อนจึงจะสามารถขอหนังสือรับรองได้"
+          description={
+            <div>
+              <p>คุณต้องผ่านการอนุมัติทั้งสองส่วนก่อนจึงจะขอหนังสือรับรองการฝึกงานได้:</p>
+              <ul style={{ marginBottom: 0 }}>
+                <li>
+                  คำร้องขอฝึกงาน (คพ.05): {' '}
+                  {isCS05Approved ? (
+                    <span style={{ color: '#52c41a', fontWeight: 'bold' }}>✅ อนุมัติแล้ว</span>
+                  ) : (
+                    <span style={{ color: '#faad14' }}>⚠️ {
+                      !hasCS05 ? 'ยังไม่ได้ส่งคำร้อง' :
+                      cs05Status === 'pending' ? 'รอการพิจารณา' :
+                      cs05Status === 'rejected' ? 'ไม่ได้รับการอนุมัติ' :
+                      cs05Status || 'ไม่ทราบสถานะ'
+                    }</span>
+                  )}
+                </li>
+                <li>
+                  หนังสือตอบรับฝึกงานจากบริษัท: {' '}
+                  {isAcceptanceApproved ? (
+                    <span style={{ color: '#52c41a', fontWeight: 'bold' }}>✅ อนุมัติแล้ว</span>
+                  ) : (
+                    <span style={{ color: '#faad14' }}>⚠️ {
+                      !hasAcceptance ? 'ยังไม่ได้อัปโหลด' :
+                      acceptanceStatus === 'pending' ? 'รอการพิจารณา' :
+                      acceptanceStatus === 'rejected' ? 'ไม่ได้รับการอนุมัติ' :
+                      acceptanceStatus || 'ไม่ทราบสถานะ'
+                    }</span>
+                  )}
+                </li>
+              </ul>
+              {!hasCS05 && (
+                <Button 
+                  type="link" 
+                  style={{ paddingLeft: 0 }}
+                  onClick={() => window.location.href = '/internship-registration/flow'}
+                >
+                  → ไปยังหน้าส่งคำร้องขอฝึกงาน (คพ.05)
+                </Button>
+              )}
+              {isCS05Approved && !hasAcceptance && (
+                <Button 
+                  type="link" 
+                  style={{ paddingLeft: 0 }}
+                  onClick={() => window.location.href = '/internship/status'}
+                >
+                  → ไปยังหน้าอัปโหลดหนังสือตอบรับฝึกงาน
+                </Button>
+              )}
+            </div>
+          }
+          showIcon
+          style={{ marginBottom: 24 }}
+        />
+      )}
 
       {/* ส่วนแสดงความคืบหน้าโดยรวม */}
       <Card
         style={{ marginBottom: 24 }}
         extra={
-          <Button onClick={refreshStatus} loading={loading}>
+          <Button onClick={refreshStatus} loading={loading || accessLoading}>
             รีเฟรชข้อมูลสถานะ
           </Button>
         }
       >
-  <Title level={4}>📊 ความคืบหน้าคุณสมบัติ (บันทึกการฝึกงาน + การประเมิน)</Title>
+        <Title level={4}>📊 ความคืบหน้าคุณสมบัติการขอหนังสือรับรองการฝึกงาน</Title>
 
         <Progress
           percent={getProgressPercentage()}
-          status={approvedHours >= 240 && supervisorEvaluationStatus === "completed" ? "success" : "active"}
+          status={getProgressPercentage() === 100 ? "success" : "active"}
           strokeColor={{
             "0%": "#108ee9",
             "100%": "#87d068",
@@ -284,16 +341,16 @@ const InternshipCertificateRequest = () => {
           style={{ marginBottom: 24 }}
         />
 
-        <Steps size="small" current={getCurrentStep()}>
+        <Steps size="small" current={getCurrentStep()} direction="vertical">
           <Step
-            title="ชั่วโมงฝึกงาน (อนุมัติแล้ว)"
-            description={approvedHours >= 240 ? "ครบ 240 ชั่วโมง" : `อนุมัติแล้ว ${approvedHours}/240`}
-            icon={approvedHours >= 240 ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
+            title="ชั่วโมงฝึกงาน (ที่ได้รับการอนุมัติ)"
+            description={approvedHours >= 240 ? "ครบ 240 ชั่วโมง" : `อนุมัติแล้ว ${approvedHours}/240 ชั่วโมง`}
+            icon={approvedHours >= 240 ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <ClockCircleOutlined />}
           />
           <Step
             title="การประเมินจากผู้ควบคุมงาน"
-            description={supervisorEvaluationStatus === "completed" ? "เสร็จสิ้น" : "รอดำเนินการ"}
-            icon={supervisorEvaluationStatus === "completed" ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
+            description={supervisorEvaluationStatus === "completed" ? "ประเมินเสร็จสิ้นแล้ว" : "รอการประเมิน"}
+            icon={supervisorEvaluationStatus === "completed" ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <ClockCircleOutlined />}
           />
         </Steps>
       </Card>
@@ -324,10 +381,18 @@ const InternshipCertificateRequest = () => {
           message="เงื่อนไขการขอหนังสือรับรองการฝึกงาน"
           description={
             <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-              <li>ต้องมีชั่วโมงฝึกงานครบ 240 ชั่วโมง</li>
-              <li>ต้องได้รับการประเมินจากผู้ควบคุมงานแล้ว</li>
-              <li>เจ้าหน้าที่ภาควิชาใช้เวลาตรวจสอบประมาณ 3-5 วันทำการ</li>
-              <li>หนังสือรับรองจะถูกสร้างด้วยระบบ PDF อัตโนมัติ</li>
+              <li>
+                <strong>ชั่วโมงฝึกงาน</strong> ต้องครบ 240 ชั่วโมง และได้รับการอนุมัติจากผู้ควบคุมงาน
+              </li>
+              <li>
+                <strong>การประเมิน</strong> ต้องได้รับการประเมินจากผู้ควบคุมงานแล้ว
+              </li>
+              <li style={{ marginTop: 8, color: '#1890ff' }}>
+                💡 เจ้าหน้าที่ภาควิชาใช้เวลาตรวจสอบประมาณ 3-5 วันทำการ
+              </li>
+              <li style={{ color: '#52c41a' }}>
+                ✨ หนังสือรับรองจะถูกสร้างด้วยระบบ PDF อัตโนมัติ
+              </li>
             </ul>
           }
           type="info"
