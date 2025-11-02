@@ -52,6 +52,29 @@ module.exports = (sequelize) => {
         async checkInternshipEligibility() {
             try {
                 const Academic = sequelize.models.Academic;
+                const { calculateStudentYear } = require('../utils/studentUtils');
+
+                // ตรวจสอบชั้นปีก่อน
+                const yearInfo = calculateStudentYear(this.studentCode);
+                if (yearInfo.error) {
+                    return {
+                        eligible: false,
+                        reason: `ไม่สามารถคำนวณชั้นปีได้: ${yearInfo.message}`,
+                        canAccessFeature: false,
+                        canRegister: false
+                    };
+                }
+
+                // ตรวจสอบว่าเป็นนักศึกษาปี 3 ขึ้นไปหรือไม่
+                const MIN_YEAR_FOR_INTERNSHIP = 3;
+                if (yearInfo.year < MIN_YEAR_FOR_INTERNSHIP) {
+                    return {
+                        eligible: false,
+                        reason: `ต้องเป็นนักศึกษาชั้นปีที่ ${MIN_YEAR_FOR_INTERNSHIP} ขึ้นไป (ปัจจุบันอยู่ชั้นปีที่ ${yearInfo.year})`,
+                        canAccessFeature: false,
+                        canRegister: false
+                    };
+                }
 
                 const studentSpecificCurriculum = await this.getStudentCurriculum();
 
@@ -148,6 +171,29 @@ module.exports = (sequelize) => {
         async checkProjectEligibility() {
             try {
                 const Academic = sequelize.models.Academic;
+                const { calculateStudentYear } = require('../utils/studentUtils');
+
+                // ตรวจสอบชั้นปีก่อน
+                const yearInfo = calculateStudentYear(this.studentCode);
+                if (yearInfo.error) {
+                    return {
+                        eligible: false,
+                        reason: `ไม่สามารถคำนวณชั้นปีได้: ${yearInfo.message}`,
+                        canAccessFeature: false,
+                        canRegister: false
+                    };
+                }
+
+                // ตรวจสอบว่าเป็นนักศึกษาปี 4 ขึ้นไปหรือไม่
+                const MIN_YEAR_FOR_PROJECT = 4;
+                if (yearInfo.year < MIN_YEAR_FOR_PROJECT) {
+                    return {
+                        eligible: false,
+                        reason: `ต้องเป็นนักศึกษาชั้นปีที่ ${MIN_YEAR_FOR_PROJECT} ขึ้นไป (ปัจจุบันอยู่ชั้นปีที่ ${yearInfo.year})`,
+                        canAccessFeature: false,
+                        canRegister: false
+                    };
+                }
 
                 const studentSpecificCurriculum = await this.getStudentCurriculum();
 

@@ -13,6 +13,7 @@ const {
   checkTeacherType,
   checkTeacherPosition,
 } = require("../../middleware/authMiddleware");
+const { checkInternshipEligibility } = require("../../middleware/internshipEligibilityMiddleware");
 
 // ============= เส้นทางสำหรับข้อมูลนักศึกษา =============
 // ดึงข้อมูลนักศึกษาและสิทธิ์การฝึกงาน
@@ -25,27 +26,30 @@ router.get(
 
 // ============= เส้นทางสำหรับแบบฟอร์ม คพ.05 =============
 
-// ดึงข้อมูล คพ.05 ปัจจุบันของนักศึกษา
+// ดึงข้อมูล คพ.05 ปัจจุบันของนักศึกษา - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/current-cs05",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.getCurrentCS05
 );
 
-// ส่งคำร้องขอฝึกงาน (คพ.05)
+// ส่งคำร้องขอฝึกงาน (คพ.05) - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/cs-05/submit",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.submitCS05
 );
 
-// บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript
+// บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/cs-05/submit-with-transcript",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   upload.single("transcript"),
   internshipController.submitCS05WithTranscript
 );
@@ -53,11 +57,12 @@ router.post(
 // ดึงข้อมูล คพ.05 ตาม ID
 router.get("/cs-05/:id", authenticateToken, internshipController.getCS05ById);
 
-// บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน
+// บันทึกข้อมูลบริษัท/หน่วยงานฝึกงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/company-info/submit",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   (req, res, next) => {
     // Validate required fields
     const { documentId, supervisorName, supervisorPhone, supervisorEmail } =
@@ -73,11 +78,12 @@ router.post(
   internshipController.submitCompanyInfo
 );
 
-// ดึงข้อมูลผู้ควบคุมงาน
+// ดึงข้อมูลผู้ควบคุมงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/company-info/:documentId",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.getCompanyInfo
 );
 
@@ -93,19 +99,21 @@ router.get(
 
 // ============= เส้นทางสำหรับการประเมินผลการฝึกงาน =============
 
-// ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง
+// ตรวจสอบสถานะการส่งแบบประเมินให้พี่เลี้ยง - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/evaluation/status",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.getEvaluationStatus
 );
 
-// ส่งคำขอประเมินผลไปยัง Supervisor
+// ส่งคำขอประเมินผลไปยัง Supervisor - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/request-evaluation/send/:documentId",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.sendEvaluationForm
 );
 
@@ -127,52 +135,58 @@ router.post(
 
 // ============= Certificate PDF Routes =============
 
-// แสดงตัวอย่างหนังสือรับรอง
+// แสดงตัวอย่างหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/certificate/preview",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.previewCertificate
 );
 
-// ดาวน์โหลดหนังสือรับรอง
+// ดาวน์โหลดหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/certificate/download",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.downloadCertificate
 );
 
-// ตรวจสอบสถานะหนังสือรับรอง (เดิมมีอยู่แล้ว)
+// ตรวจสอบสถานะหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/certificate-status",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.getCertificateStatus
 );
 
-// ส่งคำขอหนังสือรับรอง (เดิมมีอยู่แล้ว)
+// ส่งคำขอหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/certificate-request",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.submitCertificateRequest
 );
 
-// บันทึกการดาวน์โหลดหนังสือรับรอง
+// บันทึกการดาวน์โหลดหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/certificate-downloaded",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.markCertificateDownloaded
 );
 
 // ============= เส้นทางสำหรับอัปโหลดเอกสาร =============
-// อัปโหลดใบแสดงผลการเรียน (Transcript)
+// อัปโหลดใบแสดงผลการเรียน (Transcript) - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/upload-transcript",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   upload.single("file"),
   async (req, res) => {
     try {
@@ -218,54 +232,60 @@ router.post(
 
 // ============= เส้นทางสำหรับอัปโหลดหนังสือตอบรับ =============
 
-// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน
+// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.post(
   "/upload-acceptance-letter",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   upload.single("acceptanceLetter"), // ใช้ field name เดียวกับ frontend
   internshipController.uploadAcceptanceLetter
 );
 
-// ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ
+// ตรวจสอบสถานะการอัปโหลดหนังสือตอบรับ - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/acceptance-letter-status/:documentId",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.getAcceptanceLetterStatus
 );
 
-// ดาวน์โหลดหนังสือตอบรับที่อัปโหลดแล้ว
+// ดาวน์โหลดหนังสือตอบรับที่อัปโหลดแล้ว - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/download-acceptance-letter/:documentId",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.downloadAcceptanceLetter
 );
 
 // ============= เส้นทางสำหรับหนังสือส่งตัวนักศึกษา =============
 
-// ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา
+// ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/referral-letter-status/:documentId",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.getReferralLetterStatus
 );
 
-// ดาวน์โหลดหนังสือส่งตัวนักศึกษา
+// ดาวน์โหลดหนังสือส่งตัวนักศึกษา - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.get(
   "/download-referral-letter/:documentId",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.downloadReferralLetter
 );
 
-// อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว
+// อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว - ต้องตรวจสอบสิทธิ์ฝึกงาน
 router.patch(
   "/referral-letter/:documentId/mark-downloaded",
   authenticateToken,
   checkRole(["student"]),
+  checkInternshipEligibility,
   internshipController.markReferralLetterDownloaded
 );
 
