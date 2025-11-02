@@ -225,7 +225,11 @@ const CS05FormStep = ({
                 label="ชื่อบริษัท/หน่วยงาน"
                 rules={[
                   { required: true, message: 'กรุณากรอกชื่อบริษัท' },
-                  { min: 2, message: 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร' }
+                  { min: 2, message: 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกชื่อบริษัท ห้ามเป็นช่องว่าง' 
+                  }
                 ]}
               >
                 <Input prefix={<BankOutlined />} placeholder="ชื่อบริษัทหรือหน่วยงานที่ฝึกงาน" />
@@ -238,7 +242,11 @@ const CS05FormStep = ({
             label="สถานที่ตั้ง"
             rules={[
               { required: true, message: 'กรุณากรอกที่อยู่บริษัท' },
-              { min: 10, message: 'ที่อยู่ต้องมีรายละเอียดครบถ้วน' }
+              { min: 10, message: 'ที่อยู่ต้องมีรายละเอียดครบถ้วน (อย่างน้อย 10 ตัวอักษร)' },
+              { 
+                whitespace: true, 
+                message: 'กรุณากรอกที่อยู่บริษัท ห้ามเป็นช่องว่าง' 
+              }
             ]}
           >
             <TextArea
@@ -252,9 +260,12 @@ const CS05FormStep = ({
           <Form.Item
             label="ตำแหน่งที่ขอฝึกงาน"
             name="internshipPosition"
-            rules={[{ required: false }]}
+            rules={[
+              { required: true, message: 'กรุณากรอกตำแหน่งที่ขอฝึกงาน' },
+              { min: 2, message: 'ตำแหน่งต้องมีอย่างน้อย 2 ตัวอักษร' }
+            ]}
           >
-            <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน" />
+            <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน (เช่น Web Developer, Data Analyst)" />
           </Form.Item>      
 
           <Row gutter={16}>
@@ -263,7 +274,12 @@ const CS05FormStep = ({
                 name="contactPersonName"
                 label="เรียนถึง (ชื่อผู้ติดต่อ)"
                 rules={[
-                  { required: true, message: 'กรุณากรอกชื่อผู้ติดต่อหรือ HR' }
+                  { required: true, message: 'กรุณากรอกชื่อผู้ติดต่อหรือ HR' },
+                  { min: 2, message: 'ชื่อผู้ติดต่อต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกชื่อผู้ติดต่อ ห้ามเป็นช่องว่าง' 
+                  }
                 ]}
               >
                 <Input 
@@ -277,7 +293,12 @@ const CS05FormStep = ({
                 name="contactPersonPosition"
                 label="ตำแหน่ง"
                 rules={[
-                  { required: true, message: 'กรุณากรอกตำแหน่ง' }
+                  { required: true, message: 'กรุณากรอกตำแหน่ง' },
+                  { min: 2, message: 'ตำแหน่งต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกตำแหน่ง ห้ามเป็นช่องว่าง' 
+                  }
                 ]}
               >
                 <Input placeholder="เช่น ผู้จัดการฝ่ายบุคคล, HR Manager" />
@@ -327,11 +348,8 @@ const CS05FormStep = ({
               <Form.Item
                 name={['studentData', 0, 'classroom']}
                 label="ห้อง"
-                rules={[
-                  { required: true, message: 'กรุณาเลือกห้อง' }
-                ]}
               >
-                <Select placeholder="เลือกห้อง">
+                <Select placeholder="เลือกห้อง (ถ้ามี)">
                   {classroomOptions.map(option => (
                     <Select.Option key={option.value} value={option.value}>
                       {option.label}
@@ -358,12 +376,12 @@ const CS05FormStep = ({
               <Form.Item
                 name={['studentData', 0, 'phoneNumber']}
                 label="เบอร์โทรศัพท์"
-                rules={[
-                  { required: true, message: 'กรุณากรอกเบอร์โทรศัพท์' },
-                  { pattern: /^[0-9-]{9,10}$/, message: 'รูปแบบเบอร์โทรไม่ถูกต้อง' }
-                ]}
               >
-                <Input prefix={<PhoneOutlined />} placeholder="เช่น 0812345678" />
+                <Input 
+                  prefix={<PhoneOutlined />} 
+                  placeholder="เช่น 0812345678 (ถ้ามี)" 
+                  maxLength={10}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
@@ -393,7 +411,12 @@ const CS05FormStep = ({
                     name={['studentData', 1, 'fullName']}
                     label="ชื่อ-นามสกุล"
                     rules={[
-                      { required: true, message: 'กรุณากรอกชื่อ-นามสกุล' }
+                      { required: hasTwoStudents, message: 'กรุณากรอกชื่อ-นามสกุล' },
+                      { min: 3, message: 'ชื่อ-นามสกุลต้องมีอย่างน้อย 3 ตัวอักษร' },
+                      { 
+                        whitespace: true, 
+                        message: 'กรุณากรอกชื่อ-นามสกุล ห้ามเป็นช่องว่าง' 
+                      }
                     ]}
                   >
                     <Input prefix={<UserOutlined />} placeholder="ชื่อ-นามสกุลนักศึกษาคนที่ 2" />
@@ -418,11 +441,8 @@ const CS05FormStep = ({
                   <Form.Item
                     name={['studentData', 1, 'classroom']}
                     label="ห้อง"
-                    rules={[
-                      { required: hasTwoStudents, message: 'กรุณาเลือกห้อง' }
-                    ]}
                   >
-                    <Select placeholder="เลือกห้อง">
+                    <Select placeholder="เลือกห้อง (ถ้ามี)">
                       {classroomOptions.map(option => (
                         <Select.Option key={option.value} value={option.value}>
                           {option.label}
@@ -439,22 +459,26 @@ const CS05FormStep = ({
                     name={['studentData', 1, 'studentId']}
                     label="รหัสประจำตัวนักศึกษา"
                     rules={[
-                      { required: hasTwoStudents, message: 'กรุณากรอกรหัสนักศึกษา' }
+                      { required: hasTwoStudents, message: 'กรุณากรอกรหัสนักศึกษา' },
+                      { 
+                        pattern: /^[0-9]{10}$/, 
+                        message: 'รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก' 
+                      }
                     ]}
                   >
-                    <Input placeholder="เช่น 6404101000" />
+                    <Input placeholder="เช่น 6404101000" maxLength={10} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={8}>
                   <Form.Item
                     name={['studentData', 1, 'phoneNumber']}
                     label="เบอร์โทรศัพท์"
-                    rules={[
-                      { required: hasTwoStudents, message: 'กรุณากรอกเบอร์โทรศัพท์' },
-                      { pattern: /^[0-9-]{9,10}$/, message: 'รูปแบบเบอร์โทรไม่ถูกต้อง' }
-                    ]}
                   >
-                    <Input prefix={<PhoneOutlined />} placeholder="เช่น 0812345678" />
+                    <Input 
+                      prefix={<PhoneOutlined />} 
+                      placeholder="เช่น 0812345678 (ถ้ามี)" 
+                      maxLength={10}
+                    />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={8}>

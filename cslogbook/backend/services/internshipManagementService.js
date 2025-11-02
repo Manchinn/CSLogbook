@@ -266,6 +266,9 @@ class InternshipManagementService {
         internshipPosition, // เพิ่มฟิลด์ใหม่
         contactPersonName, // เพิ่มฟิลด์ใหม่
         contactPersonPosition, // เพิ่มฟิลด์ใหม่
+        studentData, // ข้อมูลนักศึกษา (สำหรับบันทึก phoneNumber และ classroom)
+        phoneNumber, // เบอร์โทรศัพท์นักศึกษาคนที่ 1
+        classroom, // ห้องเรียนนักศึกษาคนที่ 1
       } = formData;
 
       // ตรวจสอบว่ามี CS05 ที่ pending อยู่หรือไม่
@@ -319,7 +322,7 @@ class InternshipManagementService {
         { transaction }
       );
 
-      // 3. อัปเดตสถานะการฝึกงานในตาราง students
+      // 3. อัปเดตสถานะการฝึกงานในตาราง students พร้อมบันทึก phoneNumber และ classroom
       const student = await Student.findOne(
         {
           where: { userId },
@@ -328,13 +331,33 @@ class InternshipManagementService {
       );
 
       if (student) {
-        await student.update(
-          {
-            internshipStatus: "pending_approval",
-            isEnrolledInternship: true,
-          },
-          { transaction }
-        );
+        // เตรียมข้อมูลสำหรับอัปเดต
+        const updateData = {
+          internshipStatus: "pending_approval",
+          isEnrolledInternship: true,
+        };
+
+        // บันทึก phoneNumber ถ้ามี (จากฟิลด์แยก หรือจาก studentData[0])
+        const studentPhoneNumber = phoneNumber || studentData?.[0]?.phoneNumber;
+        if (studentPhoneNumber && studentPhoneNumber.trim() !== '') {
+          updateData.phoneNumber = studentPhoneNumber.trim();
+        }
+
+        // บันทึก classroom ถ้ามี (จากฟิลด์แยก หรือจาก studentData[0])
+        const studentClassroom = classroom || studentData?.[0]?.classroom;
+        if (studentClassroom && studentClassroom.trim() !== '') {
+          updateData.classroom = studentClassroom.trim();
+        }
+
+        await student.update(updateData, { transaction });
+
+        console.log('✅ [submitCS05WithTranscript] อัปเดตข้อมูลนักศึกษา:', {
+          userId,
+          studentId: student.studentId,
+          phoneNumber: updateData.phoneNumber || 'ไม่ได้ระบุ',
+          classroom: updateData.classroom || 'ไม่ได้ระบุ',
+          internshipStatus: 'pending_approval'
+        });
       }
 
       await transaction.commit();
