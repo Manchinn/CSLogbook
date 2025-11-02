@@ -83,17 +83,7 @@ router.get(
 
 // ============= เส้นทางสำหรับเอกสารสรุปการฝึกงาน =============
 
-// ดึงข้อมูลสรุปการฝึกงาน
-router.get(
-  "/summary",
-  authenticateToken,
-  checkRole(["student"]),
-  internshipController.getInternshipSummary
-);
-
-// ============= เส้นทางสำหรับการรายงานผล =============
-
-// ตรวจสอบสถานะของสรุปการฝึกงาน
+// ดึงข้อมูลสรุปการฝึกงาน (รองรับทั้ง student และ teacher)
 router.get(
   "/summary",
   authenticateToken,
