@@ -39,8 +39,9 @@ import "./styles/Summary.css";
 // นำเข้า custom hooks
 import { useSummaryData } from "./hooks/useSummaryData";
 import { useReflectionForm } from "./hooks/useFormActions";
-// ✅ เพิ่ม import useAuth
+// ✅ เพิ่ม import useAuth และ useInternshipAccess
 import { useAuth } from "../../../contexts/AuthContext";
+import useInternshipAccess from "../../../hooks/useInternshipAccess";
 
 // นำเข้า component ย่อย
 import { WeeklyOverview, StatsOverview } from "./components/OverviewComponents";
@@ -77,13 +78,24 @@ const InternshipSummary = () => {
   // ✅ เพิ่มการใช้ useAuth hook
   const { user } = useAuth();
 
+  // ✅ ใช้ useInternshipAccess สำหรับตรวจสอบทั้ง CS05 และ ACCEPTANCE_LETTER
+  const {
+    canAccess,
+    cs05Status,
+    acceptanceStatus,
+    errorMessage,
+    hasCS05: hasCS05Access,
+    isCS05Approved: isCS05ApprovedAccess,
+    hasAcceptance,
+    loading: accessLoading
+  } = useInternshipAccess();
+
   // ใช้ custom hooks
   const {
     loading,
     summaryData,
     logEntries,
     error,
-    hasCS05,
     isCS05Approved,
     totalApprovedHours,
     weeklyData,
@@ -299,7 +311,7 @@ const InternshipSummary = () => {
   };
 
   // แสดงหน้า loading
-  if (loading) {
+  if (loading || accessLoading) {
     return (
       <div className="loading-container">
         <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูล...">
@@ -311,40 +323,118 @@ const InternshipSummary = () => {
     );
   }
 
-  // แสดงกรณีไม่มีข้อมูล CS05
-  if (!hasCS05) {
-    return (
-      <div className="no-data-container">
-        <Result
-          status="info"
-          title="ยังไม่มีข้อมูลการฝึกงาน"
-          subTitle="กรุณาลงทะเบียนการฝึกงานโดยกรอกแบบฟอร์ม คพ.05 ก่อน"
-          extra={
-            <Button type="primary" onClick={() => navigate("/internship-registration/flow")}>
-              ไปยังแบบฟอร์ม คพ.05
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
+  // ✅ ตรวจสอบเงื่อนไขการเข้าถึงด้วย useInternshipAccess (ทั้ง CS05 และ ACCEPTANCE_LETTER)
+  if (!canAccess) {
+    // กำหนด message และ status ตามสถานะ
+    let resultStatus = 'info';
+    let resultTitle = 'ไม่สามารถเข้าถึงสรุปผลการฝึกงานได้';
+    let resultSubTitle = errorMessage || '';
+    let extraButtons = [];
 
-  // แสดงกรณี CS05 ยังไม่ได้รับการอนุมัติ
-  if (!isCS05Approved && summaryData?.status !== "supervisor_evaluated") {
+    // ตรวจสอบ CS05 ก่อน
+    if (!hasCS05Access) {
+      resultStatus = 'warning';
+      resultTitle = 'ไม่พบข้อมูลคำร้อง คพ.05';
+      resultSubTitle = 'คุณจำเป็นต้องส่งคำร้อง คพ.05 ก่อนจึงจะสามารถดูสรุปผลการฝึกงานได้';
+      extraButtons = [
+        <Button key="cs05" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ไปที่หน้าส่งคำร้อง คพ.05
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (cs05Status === 'rejected') {
+      resultStatus = 'error';
+      resultTitle = 'คำร้องขอฝึกงาน(คพ.05) ไม่ได้รับการอนุมัติ';
+      resultSubTitle = 'คำร้องของคุณไม่ได้รับการอนุมัติ กรุณาติดต่อเจ้าหน้าที่หรือส่งคำร้องใหม่';
+      extraButtons = [
+        <Button key="status" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="resubmit" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ส่งคำร้องใหม่
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (cs05Status === 'pending') {
+      resultStatus = 'warning';
+      resultTitle = 'คำร้อง คพ.05 อยู่ระหว่างการพิจารณา';
+      resultSubTitle = 'กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชาก่อน';
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะล่าสุด
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (isCS05ApprovedAccess && !hasAcceptance) {
+      // CS05 approved แล้ว แต่ยังไม่มี ACCEPTANCE_LETTER
+      resultStatus = 'info';
+      resultTitle = 'ยังไม่มีหนังสือตอบรับจากบริษัท';
+      resultSubTitle = 'กรุณาอัปโหลดหนังสือตอบรับจากบริษัทก่อนจึงจะสามารถดูสรุปผลการฝึกงานได้';
+      extraButtons = [
+        <Button key="upload" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ไปอัปโหลดหนังสือตอบรับ
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (isCS05ApprovedAccess && acceptanceStatus === 'pending') {
+      // ACCEPTANCE_LETTER รอการอนุมัติ
+      resultStatus = 'warning';
+      resultTitle = 'หนังสือตอบรับอยู่ระหว่างการพิจารณา';
+      resultSubTitle = 'กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชา';
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะล่าสุด
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (isCS05ApprovedAccess && acceptanceStatus === 'rejected') {
+      // ACCEPTANCE_LETTER ถูกปฏิเสธ
+      resultStatus = 'error';
+      resultTitle = 'หนังสือตอบรับไม่ได้รับการอนุมัติ';
+      resultSubTitle = 'กรุณาอัปโหลดหนังสือตอบรับใหม่';
+      extraButtons = [
+        <Button key="upload" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          อัปโหลดหนังสือใหม่
+        </Button>,
+        <Button key="status" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else {
+      // สถานะอื่นๆ
+      resultStatus = 'info';
+      resultTitle = 'ไม่สามารถเข้าถึงสรุปผลการฝึกงานได้';
+      resultSubTitle = errorMessage || `ระบบต้องการให้คำร้องขอฝึกงาน (คพ.05)และหนังสือตอบรับได้รับการอนุมัติก่อน`;
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    }
+
     return (
       <div className="no-data-container">
         <Result
-          status="warning"
-          title="แบบฟอร์ม คพ.05 อยู่ระหว่างการพิจารณา"
-          subTitle="กรุณารอการอนุมัติจากอาจารย์ที่ปรึกษาเพื่อเริ่มบันทึกการฝึกงาน"
-          extra={
-            <Button
-              type="primary"
-              onClick={() => navigate("/internship-registration/flow")}
-            >
-              ดูสถานะล่าสุด
-            </Button>
-          }
+          status={resultStatus}
+          title={resultTitle}
+          subTitle={resultSubTitle}
+          extra={<Space>{extraButtons}</Space>}
         />
       </div>
     );

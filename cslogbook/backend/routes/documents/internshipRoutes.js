@@ -326,8 +326,8 @@ router.get(
   documentController.viewDocument
 );
 
-// ============= เส้นทางสำหรับการอนุมัติ Acceptance Letter (แบบสองขั้น) =============
-// หัวหน้าภาค: คิว Acceptance Letter ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
+// ============= เส้นทางสำหรับการอนุมัติ หนังสือตอบรับการฝึกงาน (แบบสองขั้น) =============
+// หัวหน้าภาค: คิว หนังสือตอบรับการฝึกงาน ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
 router.get(
   "/acceptance/head/queue",
   authenticateToken,
@@ -345,7 +345,7 @@ router.post(
   acceptanceApprovalController.reviewByStaff
 );
 
-// หัวหน้าภาคอนุมัติ Acceptance Letter
+// หัวหน้าภาคอนุมัติ หนังสือตอบรับการฝึกงาน เพื่อส่ง หนังสือส่งตัวนักศึกษา
 router.post(
   "/acceptance/:id/approve",
   authenticateToken,

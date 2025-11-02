@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Form, Input, Button, DatePicker, Space, Typography, Divider,
-  Row, Col, InputNumber, Alert, Card, Select, Checkbox,
+  Row, Col, InputNumber, Alert, Card, Select, // Checkbox, (ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน)
   message,
 } from 'antd';
 import { 
@@ -48,7 +48,7 @@ const CS05FormStep = ({
   initialData
 }) => {
   const [form] = Form.useForm();
-  const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false);
+  // const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
   const [startDate, setStartDate] = React.useState(null);
   const [endDate, setEndDate] = React.useState(null);
   
@@ -101,20 +101,28 @@ const CS05FormStep = ({
         hasTwoStudents: existingCS05.hasTwoStudents || false,
         internshipPosition: existingCS05.internshipPosition,
         jobDescription: existingCS05.jobDescription,
-        additionalRequirements: existingCS05.additionalRequirements
+        additionalRequirements: existingCS05.additionalRequirements,
+        // ✨ เพิ่มการ set ค่า classroom และ phoneNumber จาก existingCS05
+        studentData: [
+          {
+            ...form.getFieldValue(['studentData', 0]),
+            classroom: existingCS05.classroom || studentData?.classroom || '',
+            phoneNumber: existingCS05.phoneNumber || studentData?.phoneNumber || ''
+          }
+        ]
       });
       
-      setHasTwoStudents(existingCS05.hasTwoStudents || false);
+      // setHasTwoStudents(existingCS05.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
       
-      // ถ้ามีข้อมูลนักศึกษาคนที่ 2
-      if (existingCS05.hasTwoStudents && existingCS05.studentData?.length > 1) {
-        form.setFieldsValue({
-          studentData: [
-            ...form.getFieldValue('studentData'),
-            existingCS05.studentData[1]
-          ]
-        });
-      }
+      // ถ้ามีข้อมูลนักศึกษาคนที่ 2 (ปิดไว้ชั่วคราว)
+      // if (existingCS05.hasTwoStudents && existingCS05.studentData?.length > 1) {
+      //   form.setFieldsValue({
+      //     studentData: [
+      //       ...form.getFieldValue('studentData'),
+      //       existingCS05.studentData[1]
+      //     ]
+      //   });
+      // }
     } else if (formData && Object.keys(formData).length > 0) {
       // กรณีที่มีข้อมูล formData แต่ไม่ใช่จาก existingCS05
       if (formData.internshipDateRange && formData.internshipDateRange.length === 2) {
@@ -134,7 +142,7 @@ const CS05FormStep = ({
         form.setFieldsValue(formData);
       }
       
-      setHasTwoStudents(formData.hasTwoStudents || false);
+      // setHasTwoStudents(formData.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
     }
   }, [form, studentData, formData, existingCS05, setTranscriptFile]);
 
@@ -225,7 +233,11 @@ const CS05FormStep = ({
                 label="ชื่อบริษัท/หน่วยงาน"
                 rules={[
                   { required: true, message: 'กรุณากรอกชื่อบริษัท' },
-                  { min: 2, message: 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร' }
+                  { min: 2, message: 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกชื่อบริษัท ห้ามเป็นช่องว่าง' 
+                  }
                 ]}
               >
                 <Input prefix={<BankOutlined />} placeholder="ชื่อบริษัทหรือหน่วยงานที่ฝึกงาน" />
@@ -238,7 +250,11 @@ const CS05FormStep = ({
             label="สถานที่ตั้ง"
             rules={[
               { required: true, message: 'กรุณากรอกที่อยู่บริษัท' },
-              { min: 10, message: 'ที่อยู่ต้องมีรายละเอียดครบถ้วน' }
+              { min: 10, message: 'ที่อยู่ต้องมีรายละเอียดครบถ้วน (อย่างน้อย 10 ตัวอักษร)' },
+              { 
+                whitespace: true, 
+                message: 'กรุณากรอกที่อยู่บริษัท ห้ามเป็นช่องว่าง' 
+              }
             ]}
           >
             <TextArea
@@ -252,9 +268,12 @@ const CS05FormStep = ({
           <Form.Item
             label="ตำแหน่งที่ขอฝึกงาน"
             name="internshipPosition"
-            rules={[{ required: false }]}
+            rules={[
+              { required: true, message: 'กรุณากรอกตำแหน่งที่ขอฝึกงาน' },
+              { min: 2, message: 'ตำแหน่งต้องมีอย่างน้อย 2 ตัวอักษร' }
+            ]}
           >
-            <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน" />
+            <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน (เช่น Web Developer, Data Analyst)" />
           </Form.Item>      
 
           <Row gutter={16}>
@@ -263,7 +282,12 @@ const CS05FormStep = ({
                 name="contactPersonName"
                 label="เรียนถึง (ชื่อผู้ติดต่อ)"
                 rules={[
-                  { required: true, message: 'กรุณากรอกชื่อผู้ติดต่อหรือ HR' }
+                  { required: true, message: 'กรุณากรอกชื่อผู้ติดต่อหรือ HR' },
+                  { min: 2, message: 'ชื่อผู้ติดต่อต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกชื่อผู้ติดต่อ ห้ามเป็นช่องว่าง' 
+                  }
                 ]}
               >
                 <Input 
@@ -277,7 +301,12 @@ const CS05FormStep = ({
                 name="contactPersonPosition"
                 label="ตำแหน่ง"
                 rules={[
-                  { required: true, message: 'กรุณากรอกตำแหน่ง' }
+                  { required: true, message: 'กรุณากรอกตำแหน่ง' },
+                  { min: 2, message: 'ตำแหน่งต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกตำแหน่ง ห้ามเป็นช่องว่าง' 
+                  }
                 ]}
               >
                 <Input placeholder="เช่น ผู้จัดการฝ่ายบุคคล, HR Manager" />
@@ -288,15 +317,26 @@ const CS05FormStep = ({
 
         {/* ส่วนที่ 2: ข้อมูลนักศึกษา */}
         <Card title="ข้อมูลนักศึกษาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
-          <Form.Item name="hasTwoStudents" valuePropName="checked">
+          {/* 
+            🚧 Feature: ฝึกงาน 2 คน (ปิดไว้ชั่วคราว)
+            📋 Implementation Plan: ดูที่ IMPLEMENTATION_SIMPLE_TWO_STUDENTS.md
+            📋 Table Analysis: ดูที่ knowledge/TWO_STUDENTS_TABLE_ANALYSIS.md
+            📋 Full Plan: ดูที่ IMPLEMENTATION_PLAN_INTERNSHIP_STUDENTS.md
+            
+            TODO: เปิดใช้งานเมื่อ Backend พร้อม
+            - Migration file: backend/migrations/20251102000000-add-secondary-student-to-internship-documents.js
+            - Model: backend/models/InternshipDocument.js (เพิ่ม secondaryStudentId, hasTwoStudents)
+            - Service: backend/services/internshipManagementService.js (submitCS05WithTranscript, getCurrentCS05)
+          */}
+          {/* <Form.Item name="hasTwoStudents" valuePropName="checked">
             <Checkbox 
               onChange={(e) => setHasTwoStudents(e.target.checked)}
             >
               ฝึกงาน 2 คน (ในบริษัทเดียวกัน)
             </Checkbox>
-          </Form.Item>
+          </Form.Item> */}
 
-          <Divider orientation="left">นักศึกษาคนที่ 1</Divider>
+          <Divider orientation="left">ข้อมูลนักศึกษา</Divider>
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
@@ -327,11 +367,11 @@ const CS05FormStep = ({
               <Form.Item
                 name={['studentData', 0, 'classroom']}
                 label="ห้อง"
-                rules={[
-                  { required: true, message: 'กรุณาเลือกห้อง' }
-                ]}
               >
-                <Select placeholder="เลือกห้อง">
+                <Select 
+                  placeholder="เลือกห้อง (ถ้ามี)"
+                  disabled={existingCS05 && existingCS05.classroom} // ✅ disable เมื่อมีข้อมูลแล้ว
+                >
                   {classroomOptions.map(option => (
                     <Select.Option key={option.value} value={option.value}>
                       {option.label}
@@ -358,12 +398,13 @@ const CS05FormStep = ({
               <Form.Item
                 name={['studentData', 0, 'phoneNumber']}
                 label="เบอร์โทรศัพท์"
-                rules={[
-                  { required: true, message: 'กรุณากรอกเบอร์โทรศัพท์' },
-                  { pattern: /^[0-9-]{9,10}$/, message: 'รูปแบบเบอร์โทรไม่ถูกต้อง' }
-                ]}
               >
-                <Input prefix={<PhoneOutlined />} placeholder="เช่น 0812345678" />
+                <Input 
+                  prefix={<PhoneOutlined />} 
+                  placeholder="เช่น 0812345678 (ถ้ามี)" 
+                  maxLength={10}
+                  disabled={existingCS05 && existingCS05.phoneNumber} // ✅ disable เมื่อมีข้อมูลแล้ว
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
@@ -384,7 +425,8 @@ const CS05FormStep = ({
             </Col>
           </Row>
 
-          {hasTwoStudents && (
+          {/* 🚧 ฟอร์มนักศึกษาคนที่ 2 (ปิดไว้ชั่วคราว - รอ Backend เสร็จ) */}
+          {/* {hasTwoStudents && (
             <>
               <Divider orientation="left">นักศึกษาคนที่ 2</Divider>
               <Row gutter={16}>
@@ -393,7 +435,12 @@ const CS05FormStep = ({
                     name={['studentData', 1, 'fullName']}
                     label="ชื่อ-นามสกุล"
                     rules={[
-                      { required: true, message: 'กรุณากรอกชื่อ-นามสกุล' }
+                      { required: hasTwoStudents, message: 'กรุณากรอกชื่อ-นามสกุล' },
+                      { min: 3, message: 'ชื่อ-นามสกุลต้องมีอย่างน้อย 3 ตัวอักษร' },
+                      { 
+                        whitespace: true, 
+                        message: 'กรุณากรอกชื่อ-นามสกุล ห้ามเป็นช่องว่าง' 
+                      }
                     ]}
                   >
                     <Input prefix={<UserOutlined />} placeholder="ชื่อ-นามสกุลนักศึกษาคนที่ 2" />
@@ -418,11 +465,8 @@ const CS05FormStep = ({
                   <Form.Item
                     name={['studentData', 1, 'classroom']}
                     label="ห้อง"
-                    rules={[
-                      { required: hasTwoStudents, message: 'กรุณาเลือกห้อง' }
-                    ]}
                   >
-                    <Select placeholder="เลือกห้อง">
+                    <Select placeholder="เลือกห้อง (ถ้ามี)">
                       {classroomOptions.map(option => (
                         <Select.Option key={option.value} value={option.value}>
                           {option.label}
@@ -439,22 +483,26 @@ const CS05FormStep = ({
                     name={['studentData', 1, 'studentId']}
                     label="รหัสประจำตัวนักศึกษา"
                     rules={[
-                      { required: hasTwoStudents, message: 'กรุณากรอกรหัสนักศึกษา' }
+                      { required: hasTwoStudents, message: 'กรุณากรอกรหัสนักศึกษา' },
+                      { 
+                        pattern: /^[0-9]{10}$/, 
+                        message: 'รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก' 
+                      }
                     ]}
                   >
-                    <Input placeholder="เช่น 6404101000" />
+                    <Input placeholder="เช่น 6404101000" maxLength={10} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={8}>
                   <Form.Item
                     name={['studentData', 1, 'phoneNumber']}
                     label="เบอร์โทรศัพท์"
-                    rules={[
-                      { required: hasTwoStudents, message: 'กรุณากรอกเบอร์โทรศัพท์' },
-                      { pattern: /^[0-9-]{9,10}$/, message: 'รูปแบบเบอร์โทรไม่ถูกต้อง' }
-                    ]}
                   >
-                    <Input prefix={<PhoneOutlined />} placeholder="เช่น 0812345678" />
+                    <Input 
+                      prefix={<PhoneOutlined />} 
+                      placeholder="เช่น 0812345678 (ถ้ามี)" 
+                      maxLength={10}
+                    />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={8}>
@@ -480,7 +528,7 @@ const CS05FormStep = ({
                 </Col>
               </Row>
             </>
-          )}
+          )} */}
         </Card>
 
         {/* ส่วนที่ 3: ช่วงเวลาฝึกงาน */}

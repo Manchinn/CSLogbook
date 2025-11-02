@@ -58,14 +58,14 @@ export const internshipApprovalService = {
   approveAcceptanceByHead: async (documentId, payload = {}) => {
     const res = await apiClient.post(`/internship/acceptance/${documentId}/approve`, payload);
     if (!res.data?.success) {
-      throw new Error(res.data?.message || 'ไม่สามารถอนุมัติ Acceptance Letter ได้');
+      throw new Error(res.data?.message || 'ไม่สามารถอนุมัติ หนังสือส่งตัวนักศึกษา ได้');
     }
     return res.data;
   },
   rejectAcceptance: async (documentId, reason) => {
     const res = await apiClient.post(`/internship/acceptance/${documentId}/reject`, { reason });
     if (!res.data?.success) {
-      throw new Error(res.data?.message || 'ไม่สามารถปฏิเสธ Acceptance Letter ได้');
+      throw new Error(res.data?.message || 'ไม่สามารถปฏิเสธ หนังสือส่งตัวนักศึกษา ได้');
     }
     return res.data;
   },

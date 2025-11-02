@@ -203,7 +203,7 @@ export default function ApproveDocuments() {
           }
         });
       } else {
-        const confirmText = 'ยืนยันอนุมัติ Acceptance Letter เพื่อปลดล็อคหนังสือส่งตัวนักศึกษา';
+        const confirmText = 'อนุมัติตรวจสอบหนังสือรับรองการฝึกงาน เพื่อปลดล็อคหนังสือส่งตัวนักศึกษา';
         Modal.confirm({
           title: 'ยืนยันการอนุมัติ',
           content: confirmText,
@@ -212,7 +212,7 @@ export default function ApproveDocuments() {
           async onOk() {
             try {
               await internshipApprovalService.approveAcceptanceByHead(record.documentId, {});
-              message.success('อนุมัติ Acceptance Letter สำเร็จ');
+              message.success('อนุมัติ หนังสือส่งตัวนักศึกษา สำเร็จ');
               fetchQueue();
             } catch (e) {
               message.error(e.message || 'อนุมัติไม่สำเร็จ');

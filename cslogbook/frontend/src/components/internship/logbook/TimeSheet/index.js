@@ -23,6 +23,7 @@ import EditModal from "./EditModal";
 import ViewModal from "./ViewModal";
 import InstructionModal from "./InstructionModal";
 import { useTimeSheet } from "../../../../hooks/useTimeSheet";
+import useInternshipAccess from "../../../../hooks/useInternshipAccess";
 import dayjs from "../../../../utils/dayjs";
 import { DATE_FORMAT_MEDIUM } from "../../../../utils/constants";
 // เปลี่ยนจาก styles.css เป็น CSS Modules
@@ -35,6 +36,17 @@ const TimeSheet = () => {
   const navigate = useNavigate();
   const [isInstructionVisible, setIsInstructionVisible] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // ✅ ใช้ useInternshipAccess สำหรับตรวจสอบทั้ง CS05 และ ACCEPTANCE_LETTER
+  const {
+    canEdit: canAccessLogbook,
+    cs05Status: accessCS05Status,
+    acceptanceStatus,
+    errorMessage,
+    hasCS05: hasCS05Access,
+    isCS05Approved,
+    hasAcceptance
+  } = useInternshipAccess();
 
   const {
     loading,
@@ -157,6 +169,134 @@ const TimeSheet = () => {
     );
   }
 
+  // ✅ ตรวจสอบเงื่อนไขการเข้าถึงด้วย useInternshipAccess (ทั้ง CS05 และ ACCEPTANCE_LETTER)
+  if (!canAccessLogbook) {
+    // กำหนด message และ status ตามสถานะ
+    let resultStatus = 'info';
+    let resultTitle = 'ไม่สามารถบันทึกเวลาทำงานได้';
+    let resultSubTitle = errorMessage || '';
+    let extraButtons = [];
+    let alertComponent = null;
+
+    // ตรวจสอบ CS05 ก่อน
+    if (!hasCS05Access) {
+      resultStatus = 'warning';
+      resultTitle = 'ไม่พบข้อมูลคำร้อง คพ.05';
+      resultSubTitle = 'คุณจำเป็นต้องส่งคำร้อง คพ.05 ก่อนจึงจะสามารถบันทึกเวลาทำงานได้';
+      extraButtons = [
+        <Button key="cs05" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ไปที่หน้าส่งคำร้อง คพ.05
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (accessCS05Status === 'rejected') {
+      resultStatus = 'error';
+      resultTitle = 'คำร้องขอฝึกงาน(คพ.05) ไม่ได้รับการอนุมัติ';
+      resultSubTitle = 'คำร้องของคุณไม่ได้รับการอนุมัติ กรุณาติดต่อเจ้าหน้าที่หรือส่งคำร้องใหม่';
+      extraButtons = [
+        <Button key="status" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="resubmit" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ส่งคำร้องใหม่
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (accessCS05Status === 'pending') {
+      resultStatus = 'warning';
+      resultTitle = 'คำร้อง คพ.05 อยู่ระหว่างการพิจารณา';
+      resultSubTitle = 'กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชาก่อน';
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะล่าสุด
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (isCS05Approved && !hasAcceptance) {
+      // CS05 approved แล้ว แต่ยังไม่มี ACCEPTANCE_LETTER
+      resultStatus = 'info';
+      resultTitle = 'ยังไม่มีหนังสือตอบรับจากบริษัท';
+      resultSubTitle = 'กรุณาอัปโหลดหนังสือตอบรับจากบริษัทก่อนจึงจะสามารถบันทึกเวลาทำงานได้';
+      alertComponent = (
+        <Alert
+          message="ขั้นตอนต่อไป"
+          description="1. พิมพ์หนังสือขอความอนุเคราะห์ไปยื่นต่อบริษัท → 2. อัปโหลดหนังสือตอบรับ → 3. รอการอนุมัติ → 4. บันทึกเวลาทำงาน"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16, textAlign: 'left' }}
+        />
+      );
+      extraButtons = [
+        <Button key="upload" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ไปอัปโหลดหนังสือตอบรับ
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (isCS05Approved && acceptanceStatus === 'pending') {
+      // ACCEPTANCE_LETTER รอการอนุมัติ
+      resultStatus = 'warning';
+      resultTitle = 'หนังสือตอบรับอยู่ระหว่างการพิจารณา';
+      resultSubTitle = 'กรุณารอการอนุมัติจากเจ้าหน้าที่ภาควิชา';
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะล่าสุด
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else if (isCS05Approved && acceptanceStatus === 'rejected') {
+      // ACCEPTANCE_LETTER ถูกปฏิเสธ
+      resultStatus = 'error';
+      resultTitle = 'หนังสือตอบรับไม่ได้รับการอนุมัติ';
+      resultSubTitle = 'กรุณาอัปโหลดหนังสือตอบรับใหม่';
+      extraButtons = [
+        <Button key="upload" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          อัปโหลดหนังสือใหม่
+        </Button>,
+        <Button key="status" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    } else {
+      // สถานะอื่นๆ
+      resultStatus = 'info';
+      resultTitle = 'ไม่สามารถบันทึกเวลาทำงานได้';
+      resultSubTitle = errorMessage || `ระบบต้องการให้ CS05 และหนังสือตอบรับได้รับการอนุมัติก่อน`;
+      extraButtons = [
+        <Button key="status" type="primary" onClick={() => navigate('/internship-registration/flow')}>
+          ดูสถานะคำร้อง
+        </Button>,
+        <Button key="home" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>
+      ];
+    }
+
+    return (
+      <div className={styles.internshipContainer}>
+        {alertComponent}
+        <Result
+          status={resultStatus}
+          title={resultTitle}
+          subTitle={resultSubTitle}
+          extra={<Space>{extraButtons}</Space>}
+        />
+      </div>
+    );
+  }
+
   // กรณีเกิดข้อผิดพลาดในการดึงข้อมูล
   if (loadError) {
     return (
@@ -202,7 +342,7 @@ const TimeSheet = () => {
                   </Button> */}
                 </Space>
               }
-              description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์ม คพ.05 คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
+              description="รายการด้านล่างถูกสร้างขึ้นตามวันที่คุณระบุในแบบฟอร์มคำร้องขอฝึกงาน คลิกปุ่มแก้ไขเพื่อกรอกข้อมูลการฝึกงานในแต่ละวัน"
               showIcon
             />
           )}
