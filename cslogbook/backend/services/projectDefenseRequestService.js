@@ -29,7 +29,8 @@ dayjs.tz.setDefault('Asia/Bangkok');
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
 const DEFENSE_TYPE_THESIS = 'THESIS';
 const THESIS_REQUIRED_APPROVED_MEETING_LOGS = 4;
-const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
+const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified'];
+const EXPORT_DEFAULT_STATUSES = ['completed']; // เฉพาะโครงงานที่พร้อมสอบแล้ว
 
 const DEFENSE_TYPE_LABELS_TH = Object.freeze({
   [DEFENSE_TYPE_PROJECT1]: 'โครงงานพิเศษ 1',
@@ -501,8 +502,9 @@ class ProjectDefenseRequestService {
         lock: t.LOCK.UPDATE
       });
 
+      // ตรวจสอบสถานะที่ไม่สามารถแก้ไขได้: 'completed' (บันทึกผลสอบแล้ว) และ 'scheduled' (legacy: ระบบเดิม)
       if (record && ['scheduled', 'completed'].includes(record.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+        throw new Error('ไม่สามารถแก้ไขคำขอได้ เนื่องจากอยู่ในสถานะที่ดำเนินการเรียบร้อยแล้ว');
       }
 
       const now = new Date();
@@ -645,8 +647,9 @@ class ProjectDefenseRequestService {
         lock: t.LOCK.UPDATE
       });
 
+      // ตรวจสอบสถานะที่ไม่สามารถแก้ไขได้: 'completed' (บันทึกผลสอบแล้ว) และ 'scheduled' (legacy: ระบบเดิม)
       if (record && ['scheduled', 'completed'].includes(record.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+        throw new Error('ไม่สามารถแก้ไขคำขอได้ เนื่องจากอยู่ในสถานะที่ดำเนินการเรียบร้อยแล้ว');
       }
 
       const now = new Date();
@@ -814,8 +817,9 @@ class ProjectDefenseRequestService {
       if (!request) {
         throw new Error('ไม่พบคำขอสอบสำหรับโครงงานนี้');
       }
+      // ตรวจสอบสถานะที่ไม่สามารถแก้ไขได้: 'completed' (บันทึกผลสอบแล้ว) และ 'scheduled' (legacy: ระบบเดิม)
       if (['completed', 'scheduled'].includes(request.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+        throw new Error('ไม่สามารถตรวจสอบคำขอได้ เนื่องจากอยู่ในสถานะที่ดำเนินการเรียบร้อยแล้ว');
       }
       if (request.status !== 'advisor_approved' && request.status !== 'staff_verified') {
         throw new Error('คำขอยังไม่ได้รับการอนุมัติจากอาจารย์ครบถ้วน');
@@ -1036,52 +1040,49 @@ class ProjectDefenseRequestService {
 
   async exportStaffVerificationList(filters = {}) {
     const { defenseType = DEFENSE_TYPE_PROJECT1 } = filters;
-    const records = await this.getStaffVerificationQueue({ ...filters, withMetrics: true });
+    // ใช้สถานะเฉพาะ 'completed' สำหรับการ export เพื่อจัดตารางสอบ
+    const exportFilters = { ...filters, status: EXPORT_DEFAULT_STATUSES, withMetrics: false };
+    const records = await this.getStaffVerificationQueue(exportFilters);
     const workbook = new ExcelJS.Workbook();
-    const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'KP02 Thesis' : 'KP02 Project1';
+    const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'รายชื่อสอบปริญญานิพนธ์' : 'รายชื่อสอบโครงงานพิเศษ 1';
     const worksheet = workbook.addWorksheet(worksheetName);
 
     worksheet.columns = [
-      { header: 'ลำดับ', key: 'index', width: 8 },
-      { header: 'ชื่อโครงงานพิเศษ', key: 'titleTh', width: 40 },
-      { header: 'สมาชิก', key: 'members', width: 40 },
-      { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 28 },
-      { header: 'สถานะคำขอ', key: 'status', width: 18 },
-      { header: 'ยื่นคำขอเมื่อ', key: 'submittedAt', width: 20 },
-      { header: 'อนุมัติอาจารย์เมื่อ', key: 'advisorApprovedAt', width: 20 },
-      { header: 'ตรวจโดยเจ้าหน้าที่เมื่อ', key: 'staffVerifiedAt', width: 20 },
-      { header: 'เจ้าหน้าที่ผู้ตรวจ', key: 'staffVerifiedBy', width: 24 },
-      { header: 'วันสอบที่นัด', key: 'defenseScheduledAt', width: 22 },
-      { header: 'หมายเหตุเจ้าหน้าที่', key: 'staffNote', width: 28 },
+      { header: 'ลำดับ', key: 'index', width: 10 },
+      { header: 'ชื่อโครงงานพิเศษ', key: 'titleTh', width: 50 },
+      { header: 'สมาชิก', key: 'members', width: 45 },
+      { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 30 }
     ];
 
     records.forEach((record, index) => {
       const project = record.project || {};
-      const members = (project.members || []).map((member) => `${member.studentCode || '-'} ${member.name || ''}`.trim()).join('\n');
+      const members = (project.members || [])
+        .map((member) => {
+          const code = member.studentCode || '-';
+          const name = member.name || '';
+          return `${code} ${name}`.trim();
+        })
+        .join('\n');
       const advisorName = project.advisor?.name || '-';
-      const staffName = record.staffVerifiedBy?.fullName || '-';
-      const leaderStudentId = project.members?.find((member) => member.role === 'leader')?.studentId;
-      const leaderMetrics = record.meetingMetrics?.perStudent?.find((item) => item.studentId === leaderStudentId) || { approvedLogs: 0 };
+      
       worksheet.addRow({
         index: index + 1,
-        projectCode: project.projectCode || '-',
         titleTh: project.projectNameTh || '-',
         members: members || '-',
-        advisor: advisorName,
-        status: STAFF_STATUS_LABELS_TH[record.status] || record.status,
-        submittedAt: formatThaiDateTime(record.submittedAt),
-        advisorApprovedAt: formatThaiDateTime(record.advisorApprovedAt),
-        staffVerifiedAt: formatThaiDateTime(record.staffVerifiedAt),
-        staffVerifiedBy: staffName || '-',
-        defenseScheduledAt: formatThaiDateTime(record.defenseScheduledAt),
-        staffNote: record.staffVerificationNote || '-',
-        leaderLogs: leaderMetrics.approvedLogs || 0,
-        requiredLogs: record.meetingMetrics?.requiredApprovedLogs ?? (defenseType === DEFENSE_TYPE_THESIS ? THESIS_REQUIRED_APPROVED_MEETING_LOGS : projectDocumentService.getRequiredApprovedMeetingLogs())
+        advisor: advisorName
       });
     });
 
-    worksheet.eachRow((row) => {
+    worksheet.eachRow((row, rowNumber) => {
       row.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+      if (rowNumber === 1) {
+        row.font = { bold: true };
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+      }
     });
 
     const buffer = await workbook.xlsx.writeBuffer();

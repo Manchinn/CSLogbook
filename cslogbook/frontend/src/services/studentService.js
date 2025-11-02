@@ -342,7 +342,7 @@ export const studentService = {
         phoneNumber: contactData.phoneNumber || null
       };
 
-      const response = await apiClient.patch(
+      const response = await apiClient.put(
         `/students/${studentCode}/contact-info`,
         sanitizedData
       );

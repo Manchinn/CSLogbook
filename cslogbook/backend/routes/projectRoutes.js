@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { checkProjectEligibility } = require('../middleware/projectEligibilityMiddleware');
 const controller = require('../controllers/projectDocumentController');
 const topicExamResultController = require('../controllers/topicExamResultController');
 const projectExamResultController = require('../controllers/projectExamResultController');
@@ -12,11 +13,11 @@ const { uploadSystemTestRequest, uploadSystemTestEvidence } = require('../config
 // ต้อง auth ทั้งหมด
 router.use(authenticateToken);
 
-// สร้างโครงงาน (นักศึกษา)
-router.post('/', controller.createProject);
+// สร้างโครงงาน (นักศึกษา) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.post('/', checkProjectEligibility, controller.createProject);
 
-// รายการของฉัน
-router.get('/mine', controller.getMyProjects);
+// รายการของฉัน - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.get('/mine', checkProjectEligibility, controller.getMyProjects);
 
 // ผลสอบโครงงานพิเศษ - routes ที่ไม่มี :id (ต้องอยู่ก่อน)
 router.get('/exam-results/project1/pending', projectExamResultController.getProject1PendingResults);
@@ -47,8 +48,8 @@ router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProjec
 
 router.patch('/:id/final-document/status', projectExamResultController.updateFinalDocumentStatus);
 
-// รายละเอียดโครงงาน (+ summary optional)
-router.get('/:id', async (req, res, next) => {
+// รายละเอียดโครงงาน (+ summary optional) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.get('/:id', checkProjectEligibility, async (req, res, next) => {
 	// แทรก include=summary -> ส่งต่อให้ controller เดิม (แก้ภายใน service เรียก getProjectById)
 	// reuse controller ตรง ๆ เพื่อไม่แก้ไฟล์ controller มาก
 	if (req.query.include === 'summary') {
@@ -58,51 +59,51 @@ router.get('/:id', async (req, res, next) => {
 	return controller.getProject(req, res, next);
 });
 
-// Milestones
+// Milestones - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const milestoneController = require('../controllers/projectMilestoneController');
-router.get('/:id/milestones', milestoneController.list);
-router.post('/:id/milestones', milestoneController.create);
+router.get('/:id/milestones', checkProjectEligibility, milestoneController.list);
+router.post('/:id/milestones', checkProjectEligibility, milestoneController.create);
 
-// Meetings & Logs
-router.get('/:id/meetings', meetingController.list);
-router.post('/:id/meetings', meetingController.create);
-router.put('/:id/meetings/:meetingId', meetingController.update);
-router.delete('/:id/meetings/:meetingId', meetingController.delete);
-router.post('/:id/meetings/:meetingId/logs', meetingController.createLog);
-router.put('/:id/meetings/:meetingId/logs/:logId', meetingController.updateLog);
-router.delete('/:id/meetings/:meetingId/logs/:logId', meetingController.deleteLog);
+// Meetings & Logs - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.get('/:id/meetings', checkProjectEligibility, meetingController.list);
+router.post('/:id/meetings', checkProjectEligibility, meetingController.create);
+router.put('/:id/meetings/:meetingId', checkProjectEligibility, meetingController.update);
+router.delete('/:id/meetings/:meetingId', checkProjectEligibility, meetingController.delete);
+router.post('/:id/meetings/:meetingId/logs', checkProjectEligibility, meetingController.createLog);
+router.put('/:id/meetings/:meetingId/logs/:logId', checkProjectEligibility, meetingController.updateLog);
+router.delete('/:id/meetings/:meetingId/logs/:logId', checkProjectEligibility, meetingController.deleteLog);
 router.patch('/:id/meetings/:meetingId/logs/:logId/approval', meetingController.updateApproval);
 
-// Artifacts (list) & Proposal upload
+// Artifacts (list) & Proposal upload - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const artifactController = require('../controllers/projectArtifactController');
 const { uploadProposal } = require('../config/projectArtifactUpload');
-router.get('/:id/artifacts', artifactController.list);
-router.post('/:id/proposal', uploadProposal.single('file'), artifactController.uploadProposal);
+router.get('/:id/artifacts', checkProjectEligibility, artifactController.list);
+router.post('/:id/proposal', checkProjectEligibility, uploadProposal.single('file'), artifactController.uploadProposal);
 
-// Tracks (multi-track) - แยก endpoint ชัดเจน
+// Tracks (multi-track) - แยก endpoint ชัดเจน - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const projectTracksController = require('../controllers/projectTracksController');
-router.get('/:id/tracks', projectTracksController.list);
-router.post('/:id/tracks', projectTracksController.replace); // replace ทั้งชุด
+router.get('/:id/tracks', checkProjectEligibility, projectTracksController.list);
+router.post('/:id/tracks', checkProjectEligibility, projectTracksController.replace); // replace ทั้งชุด
 
-// อัปเดต metadata (leader)
-router.patch('/:id', controller.updateProject);
+// อัปเดต metadata (leader) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.patch('/:id', checkProjectEligibility, controller.updateProject);
 
-// เพิ่มสมาชิกคนที่สอง
-router.post('/:id/members', controller.addMember);
+// เพิ่มสมาชิกคนที่สอง - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.post('/:id/members', checkProjectEligibility, controller.addMember);
 
-// Promote -> in_progress
-router.post('/:id/activate', controller.activateProject);
+// Promote -> in_progress - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
+router.post('/:id/activate', checkProjectEligibility, controller.activateProject);
 
 // Archive (admin)
 router.post('/:id/archive', controller.archiveProject);
 
 // บันทึกผลสอบหัวข้อ (staff/admin) - เดิม
 router.post('/:id/topic-exam-result', topicExamResultController.recordResult);
-router.patch('/:id/topic-exam-result/ack', topicExamResultController.acknowledgeFailed);
+router.patch('/:id/topic-exam-result/ack', checkProjectEligibility, topicExamResultController.acknowledgeFailed);
 
 // บันทึกผลสอบโครงงานพิเศษ 1 และ Thesis (staff/admin)
 router.post('/:id/exam-result', projectExamResultController.recordExamResult);
-router.get('/:id/exam-result', projectExamResultController.getExamResult);
-router.patch('/:id/exam-result/acknowledge', projectExamResultController.acknowledgeExamResult);
+router.get('/:id/exam-result', checkProjectEligibility, projectExamResultController.getExamResult);
+router.patch('/:id/exam-result/acknowledge', checkProjectEligibility, projectExamResultController.acknowledgeExamResult);
 
 module.exports = router;

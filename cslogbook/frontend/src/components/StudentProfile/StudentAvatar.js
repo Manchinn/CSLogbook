@@ -1,9 +1,11 @@
-import React from 'react';
-import { Row, Col, Card, Avatar, Tag, Tooltip, Space } from 'antd';
-import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Row, Col, Card, Avatar, Tag, Tooltip, Space, Button } from 'antd';
+import { UserOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
+import ContactInfoEditModal from './ContactInfoEditModal';
 import './styles.css';
 
-const StudentAvatar = React.memo(({ student, studentYear }) => {
+const StudentAvatar = React.memo(({ student, studentYear, canEdit, onContactInfoUpdated }) => {
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const displayYear =
     typeof studentYear === "object"
       ? studentYear.year ?? '-' 
@@ -128,12 +130,36 @@ const StudentAvatar = React.memo(({ student, studentYear }) => {
         </Card>
       </Col>
       <Col span={24}>
-        <Card title="ข้อมูลติดต่อ">
+        <Card 
+          title="ข้อมูลติดต่อ"
+          extra={canEdit && (
+            <Button 
+              type="link" 
+              icon={<EditOutlined />}
+              onClick={() => setEditModalVisible(true)}
+            >
+              แก้ไข
+            </Button>
+          )}
+        >
           <p>
             <strong>อีเมล:</strong> {(student.email && student.email.trim()) ? student.email : "ไม่ระบุอีเมล"}
           </p>
+          <p>
+            <strong>เบอร์โทร:</strong> {(student.phoneNumber && student.phoneNumber.trim()) ? student.phoneNumber : "ไม่ระบุเบอร์โทร"}
+          </p>
+          <p>
+            <strong>ห้องเรียน:</strong> {(student.classroom && student.classroom.trim()) ? student.classroom : "ไม่ระบุห้องเรียน"}
+          </p>
         </Card>
       </Col>
+
+      <ContactInfoEditModal
+        visible={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        student={student}
+        onSuccess={onContactInfoUpdated}
+      />
     </Row>
   );
 });

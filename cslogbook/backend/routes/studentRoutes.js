@@ -77,6 +77,12 @@ router.get('/:id',
   studentController.getStudentById
 );
 
+// อัปเดตข้อมูลติดต่อ (เบอร์โทรและห้องเรียน) - นักศึกษาสามารถแก้ไขข้อมูลของตัวเองได้
+router.put('/:id/contact-info',
+  checkRole(['admin', 'student', 'teacher']),
+  studentController.updateContactInfo
+);
+
 router.put('/:id',
   checkRole(['admin', 'student', 'teacher']),
   // ถ้าเป็นครู ให้ตรวจสอบว่าเป็นประเภท support เท่านั้น; ถ้าเป็น admin/student ให้ข้ามได้

@@ -175,7 +175,7 @@ class StudentService {
           {
             model: User,
             as: "user",
-            attributes: ["firstName", "lastName", "email"],
+            attributes: ["userId", "firstName", "lastName", "email"],
           },
         ],
       });
@@ -207,10 +207,14 @@ class StudentService {
       }
 
       return {
+        studentId: student.studentId, // ใช้ camelCase ตาม Sequelize model
         studentCode: student.studentCode,
+        userId: student.user.userId, // เพิ่ม userId
         firstName: student.user.firstName,
         lastName: student.user.lastName,
         email: student.user.email,
+        phoneNumber: student.phoneNumber || null, // เพิ่มเบอร์โทร
+        classroom: student.classroom || null, // เพิ่มห้องเรียน
         totalCredits: student.totalCredits || 0,
         majorCredits: student.majorCredits || 0,
         studentYear: studentYearInfo?.year ?? null, // ส่ง null ถ้า error
@@ -311,14 +315,13 @@ class StudentService {
         parsedTotalCredits
       );
 
-      // Update student record
+      // Update student record (updatedAt จะถูกอัพเดทอัตโนมัติโดย Sequelize)
       await Student.update(
         {
           totalCredits: parsedTotalCredits,
           majorCredits: parsedMajorCredits,
           isEligibleInternship: internshipEligibility.eligible,
-          isEligibleProject: projectEligibility.eligible,
-          lastUpdated: new Date(),
+          isEligibleProject: projectEligibility.eligible
         },
         {
           where: { studentCode },
@@ -896,30 +899,28 @@ class StudentService {
         throw new Error('ไม่พบข้อมูลนักศึกษา');
       }
       
-      // อัพเดทข้อมูลติดต่อ
+      // อัพเดทข้อมูลติดต่อ (updated_at จะถูกอัพเดทอัตโนมัติโดย Sequelize)
       await Student.update(
         {
           classroom: classroom || null,
-          phone_number: phoneNumber || null,
-          lastUpdated: new Date()
+          phoneNumber: phoneNumber || null
         },
         {
-          where: { student_id: studentId }
+          where: { studentId: studentId }
         }
       );
       
       // ดึงข้อมูลหลังการอัพเดท
       const updatedStudent = await Student.findOne({
-        where: { student_id: studentId },
-        attributes: ['student_id', 'student_code', 'classroom', 'phone_number', 'last_updated']
+        where: { studentId: studentId },
+        attributes: ['studentId', 'studentCode', 'classroom', 'phoneNumber']
       });
       
       return {
-        studentId: updatedStudent.student_id,
-        studentCode: updatedStudent.student_code,
+        studentId: updatedStudent.studentId,
+        studentCode: updatedStudent.studentCode,
         classroom: updatedStudent.classroom,
-        phoneNumber: updatedStudent.phone_number,
-        lastUpdated: updatedStudent.last_updated
+        phoneNumber: updatedStudent.phoneNumber
       };
     } catch (error) {
       logger.error('Error in updateContactInfo service:', error);

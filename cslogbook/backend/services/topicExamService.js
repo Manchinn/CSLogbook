@@ -139,7 +139,7 @@ async function getTopicOverview(query = {}) {
             {
               model: Student,
               as: "student",
-              attributes: ["studentId", "studentCode"],
+              attributes: ["studentId", "studentCode", "classroom"],
               include: [
                 {
                   model: User,
@@ -182,6 +182,13 @@ async function getTopicOverview(query = {}) {
 
   let result = projects.map((p) => {
     const readiness = computeReadiness(p, { enforceMemberMin });
+    
+    // ตรวจสอบว่านักศึกษาทุกคนมีข้อมูลห้องเรียนหรือไม่
+    const allMembersHaveClassroom = p.members.every((m) => {
+      const classroom = m.student?.classroom;
+      return classroom && ['RA', 'RB', 'RC', 'DA', 'DB', 'CSB'].includes(classroom);
+    });
+    
     return {
       projectId: p.projectId,
       projectCode: p.projectCode,
@@ -206,20 +213,39 @@ async function getTopicOverview(query = {}) {
             }`.trim(),
           }
         : null,
-      members: p.members.map((m) => ({
-        studentId: m.student?.studentId,
-        studentCode: m.student?.studentCode,
-        name: `${m.student?.user?.firstName || ""} ${
-          m.student?.user?.lastName || ""
-        }`.trim(),
-        role: m.role,
-      })),
+      members: p.members.map((m) => {
+        const classroom = m.student?.classroom || '';
+        // กำหนด remark ตามห้องเรียน
+        let remark = '';
+        if (classroom === 'CSB') {
+          remark = 'โครงงานภาคสองภาษา (CSB)';
+        } else if (['RA', 'RB', 'RC', 'DA', 'DB'].includes(classroom)) {
+          remark = `โครงงานภาคปกติ`;
+        } else {
+          remark = 'โครงงานภาคปกติ';
+        }
+        
+        return {
+          studentId: m.student?.studentId,
+          studentCode: m.student?.studentCode,
+          name: `${m.student?.user?.firstName || ""} ${
+            m.student?.user?.lastName || ""
+          }`.trim(),
+          role: m.role,
+          classroom: classroom,
+          remark: remark,
+        };
+      }),
       memberCount: p.members.length,
       // เพิ่มข้อมูลผลสอบหัวข้อ (phase staff บันทึกผล) สำหรับหน้า TopicExamResultPage
       examResult: p.examResult || null,
       examFailReason: p.examFailReason || null,
       examResultAt: p.examResultAt || null,
-      readiness,
+      readiness: {
+        ...readiness,
+        allMembersHaveClassroom: allMembersHaveClassroom,
+        readyForExport: readiness.readyFlag && allMembersHaveClassroom && p.members.length > 0,
+      },
       updatedAt: p.updated_at,
       createdAt: p.created_at,
     };

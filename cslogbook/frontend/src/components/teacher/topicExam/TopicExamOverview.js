@@ -2,10 +2,12 @@
 // ปรับให้แสดงเฉพาะ 4 คอลัมน์: ชื่อโครงงาน (TH), รหัสนักศึกษา, ชื่อเต็มนักศึกษา, Remark
 // แต่ยังคงส่วนตัวกรองพื้นฐาน (search, status, readyOnly) เพื่อการใช้งานต่อไปได้ หากต้องการตัดออกค่อย refactor เพิ่มเติมภายหลัง
 import React, { useMemo, useCallback } from 'react';
-import { Table, Space, Input, Select, Switch, Card, Typography, Button, Tooltip } from 'antd';
+import { Table, Space, Input, Select, Card, Typography, Button, Tooltip } from 'antd';
 import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
 import { downloadTopicExamExport } from '../../../services/topicExamService';
+
+const { Title, Text } = Typography;
 
 const containerStyle = {
   maxWidth: '1200px',
@@ -16,18 +18,7 @@ const containerStyle = {
   gap: 24,
 };
 
-// ฟังก์ชันสร้าง remark = ประเภท "โครงการพิเศษ" (ภาคปกติ vs โครงการสองภาษา CSB)
-// Assumption: ถ้า track มีคำว่า 'bilingual' หรือ 'csb' (ไม่สนตัวพิมพ์) ถือเป็นโครงการสองภาษา (CSB) มิฉะนั้นเป็นภาคปกติ
-function deriveRemark(project) {
-  const t = (project.track || '').toLowerCase();
-  if (t.includes('bilingual') || t.includes('csb')) {
-    return 'โครงการสองภาษา (CSB)';
-  }
-  return 'โครงงานภาคปกติ';
-}
-
 export default function TopicExamOverview() {
-  const { Title } = Typography;
   const { records, filters, updateFilters, loading, error, reload, meta } = useTopicExamOverview();
 
   // แปลง project-level -> member-level rows (flat)
@@ -36,8 +27,9 @@ export default function TopicExamOverview() {
     const rows = [];
     for (const p of records) {
       if (!p.members || p.members.length === 0) continue; // ข้ามถ้าไม่มีสมาชิก
-      const remark = deriveRemark(p);
       const memberCount = p.members.length;
+      const readyForExport = p.readiness?.readyForExport || false;
+      
       p.members.forEach((m, idx) => {
         rows.push({
           key: `${p.projectId}_${m.studentId || m.studentCode}`,
@@ -45,9 +37,11 @@ export default function TopicExamOverview() {
           titleTh: p.titleTh,
           studentCode: m.studentCode,
           studentName: m.name,
-          remark,
+          remark: m.remark || '',
+          classroom: m.classroom || '',
           memberIndex: idx,
-          memberCount
+          memberCount,
+          readyForExport
         });
       });
     }
@@ -57,13 +51,39 @@ export default function TopicExamOverview() {
   // คอลัมน์ใหม่ตาม requirement
   const columns = useMemo(() => [
     {
-      title: 'หัวข้อ',
+      title: 'ลำดับ',
+      key: 'order',
+      width: 70,
+      align: 'center',
+      onCell: (row) => ({
+        rowSpan: row.memberIndex === 0 ? row.memberCount : 0
+      }),
+      render: (_, row, index) => {
+        if (row.memberIndex !== 0) return null;
+        // หาลำดับโครงงานจาก flatRows โดยนับเฉพาะแถวแรกของแต่ละโครงงาน
+        const projectIndex = flatRows.filter((r, i) => i <= index && r.memberIndex === 0).length;
+        return projectIndex;
+      }
+    },
+    {
+      title: 'หัวข้อโครงงาน',
       dataIndex: 'titleTh',
       key: 'titleTh',
       ellipsis: true,
       onCell: (row) => ({
         rowSpan: row.memberIndex === 0 ? row.memberCount : 0
-      })
+      }),
+      render: (text, row) => {
+        const statusIcon = row.readyForExport ? 
+          <Tooltip title="พร้อม Export"><span style={{ color: '#52c41a', marginRight: 8 }}>✓</span></Tooltip> : 
+          <Tooltip title="ยังไม่พร้อม Export"><span style={{ color: '#ff4d4f', marginRight: 8 }}>✗</span></Tooltip>;
+        return (
+          <span>
+            {row.memberIndex === 0 && statusIcon}
+            {text}
+          </span>
+        );
+      }
     },
     {
       title: 'รหัสนักศึกษา',
@@ -83,12 +103,17 @@ export default function TopicExamOverview() {
       title: 'หมายเหตุ',
       dataIndex: 'remark',
       key: 'remark',
-      width: 140,
-      onCell: (row) => ({
-        rowSpan: row.memberIndex === 0 ? row.memberCount : 0
-      })
+      width: 250,
+      render: (text, row) => {
+        const hasClassroom = row.classroom && ['RA', 'RB', 'RC', 'DA', 'DB', 'CSB'].includes(row.classroom);
+        return hasClassroom ? text : (
+          <span style={{ color: '#ff4d4f' }}>
+            {text || 'ไม่มีข้อมูลห้องเรียน'}
+          </span>
+        );
+      }
     }
-  ], []);
+  ], [flatRows]);
 
   const academicYearOptions = useMemo(() => {
     const years = meta?.availableAcademicYears || [];
@@ -140,8 +165,10 @@ export default function TopicExamOverview() {
         <Tooltip title="Reload">
           <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} />
         </Tooltip>
-        <Tooltip title="Export XLSX">
-          <Button icon={<DownloadOutlined />} onClick={handleExport} />
+        <Tooltip title="Export XLSX (เฉพาะโครงงานที่มีข้อมูลครบถ้วน)">
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExport}>
+            Export
+          </Button>
         </Tooltip>
       </Space>}>
         <Space style={{ marginBottom: 16 }} wrap>
@@ -162,24 +189,44 @@ export default function TopicExamOverview() {
             style={{ width: 150 }}
             options={semesterOptions}
           />
-          <Input.Search placeholder="ค้นหา(หัวข้อโครงงานพิเศษ)" allowClear onSearch={val=>updateFilters({ search: val })} style={{ width: 240 }} />
-          <Select value={filters.status} onChange={v=>updateFilters({ status: v })} style={{ width: 150 }} options={[
-            { value: 'all', label: 'ทุกสถานะ' },
-            { value: 'draft', label: 'draft' },
-            { value: 'advisor_assigned', label: 'advisor_assigned' },
-            { value: 'in_progress', label: 'in_progress' },
-            { value: 'completed', label: 'completed' },
-            { value: 'archived', label: 'archived' }
-          ]} />
-          <Space>
-            <Tooltip title="Ready = หัวข้อที่กรอกชื่อ (ไทย/อังกฤษ) ครบ ไม่บังคับอาจารย์ที่ปรึกษาในขั้นนี้">
-              <span style={{ fontSize: 12 }}>เฉพาะหัวข้อพร้อม</span>
-            </Tooltip>
-            <Switch checked={filters.readyOnly} onChange={v=>updateFilters({ readyOnly: v })} />
-          </Space>
+          <Input.Search 
+            placeholder="ค้นหา(หัวข้อโครงงานพิเศษ)" 
+            allowClear 
+            onSearch={val=>updateFilters({ search: val })} 
+            onChange={e => { if (!e.target.value) updateFilters({ search: '' }); }}
+            style={{ width: 240 }} 
+          />
+          <Select 
+            value={filters.status} 
+            onChange={v=>updateFilters({ status: v })} 
+            style={{ width: 150 }} 
+            options={[
+              { value: 'all', label: 'ทุกสถานะ' },
+              { value: 'draft', label: 'Draft' },
+              { value: 'advisor_assigned', label: 'Advisor Assigned' },
+              { value: 'in_progress', label: 'In Progress' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'archived', label: 'Archived' }
+            ]} 
+          />
         </Space>
 
         {error && <div style={{ color: 'red', marginBottom: 12 }}>Error: {error}</div>}
+
+        <div style={{ marginBottom: 12, padding: '12px', background: '#f0f7ff', borderRadius: '4px', border: '1px solid #91d5ff' }}>
+          <Space direction="vertical" size={4}>
+            <Text strong>📋 เกณฑ์การ Export:</Text>
+            <Text type="secondary" style={{ fontSize: '13px' }}>
+              • โครงงานที่แสดง <span style={{ color: '#52c41a' }}>✓</span> มีข้อมูลครบถ้วน (หัวข้อ + รหัสนักศึกษา + ชื่อ-นามสกุล + ห้องเรียน) และพร้อมสำหรับการ Export
+            </Text>
+            <Text type="secondary" style={{ fontSize: '13px' }}>
+              • โครงงานที่แสดง <span style={{ color: '#ff4d4f' }}>✗</span> ยังขาดข้อมูลห้องเรียนของนักศึกษา ต้องเพิ่มข้อมูลก่อนจึงจะสามารถ Export ได้
+            </Text>
+            <Text type="secondary" style={{ fontSize: '13px' }}>
+              • การกดปุ่ม <strong>Export</strong> จะส่งออกเฉพาะโครงงานที่พร้อมเท่านั้น
+            </Text>
+          </Space>
+        </div>
 
         <Table
           dataSource={flatRows}

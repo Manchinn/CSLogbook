@@ -254,7 +254,12 @@ const StudentProfile = () => {
     <div className="container">
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} lg={6}>
-          <StudentAvatar student={student} studentYear={student.studentYear} />
+          <StudentAvatar 
+            student={student} 
+            studentYear={student.studentYear}
+            canEdit={canEdit && userData?.role === 'student' && userData?.studentCode === id}
+            onContactInfoUpdated={fetchStudent}
+          />
           {canEdit && userData?.role === 'student' && userData?.studentCode === id && (
             <div style={{ marginTop: 16 }}>
               <Button block onClick={() => setPasswordModalOpen(true)}>เปลี่ยนรหัสผ่าน</Button>
