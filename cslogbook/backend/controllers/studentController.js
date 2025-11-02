@@ -118,8 +118,19 @@ exports.updateContactInfo = async (req, res) => {
     }
     
     // ตรวจสอบสิทธิ์การเข้าถึง (ต้องเป็นเจ้าของข้อมูลหรือแอดมิน/ครู)
-    const userId = req.user.id;
-    if (student.userId !== userId && req.user.role !== 'admin' && req.user.role !== 'teacher') {
+    const userId = req.user.userId;
+    
+    // นักศึกษาสามารถแก้ไขข้อมูลของตัวเองได้ หรือ admin/teacher สามารถแก้ไขได้
+    if (req.user.role === 'student') {
+      // นักศึกษาต้องแก้ไขข้อมูลของตัวเองเท่านั้น
+      if (student.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'ไม่มีสิทธิ์อัพเดทข้อมูลนักศึกษาคนอื่น'
+        });
+      }
+    } else if (req.user.role !== 'admin' && req.user.role !== 'teacher') {
+      // บทบาทอื่นๆ ไม่สามารถแก้ไขได้
       return res.status(403).json({
         success: false,
         message: 'ไม่มีสิทธิ์อัพเดทข้อมูลนี้'
