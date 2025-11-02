@@ -18,9 +18,6 @@ import {
 } from '@ant-design/icons';
 import React from 'react';
 
-// ฟังก์ชันช่วย (ภายในไฟล์นี้เท่านั้น) สำหรับกรณี tooltip (ถ้าในอนาคตนำกลับมาใช้)
-const wrapLabel = (label) => label; // ตอนนี้ยังไม่ต้องใช้ Tooltip จริง
-
 // สร้างเมนูหลัก (อ้างอิงจาก Sidebar.js ปัจจุบันเป็นแหล่งจริง)
 export const getMenuConfig = ({
   userData,
@@ -41,8 +38,6 @@ export const getMenuConfig = ({
       },
     ];
   }
-
-  const internshipTooltip = messages?.internship || 'คุณยังไม่มีสิทธิ์เข้าถึงระบบฝึกงาน';
   const canSeeTopicExamOverview = userData.role === 'teacher' && Boolean(userData.canAccessTopicExam);
   const isAcademicTeacher = userData.role === 'teacher' && userData.teacherType === 'academic';
   const isSupportTeacher = userData.role === 'teacher' && userData.teacherType === 'support';
@@ -129,29 +124,22 @@ export const getMenuConfig = ({
           {
             key: 'internship',
             icon: <FileTextOutlined />,
-            label: wrapLabel('ระบบฝึกงาน', internshipTooltip),
+            label: 'ระบบฝึกงาน',
             children: canAccessInternship
               ? [
                   { key: '/internship-companies', icon: <BarChartOutlined />, label: 'สถานประกอบการ (สถิติ)', onClick: () => navigate('/internship-companies') },
-                  {
-                    key: '/internship-registration',
-                    label: 'ลงทะเบียนฝึกงาน',
-                    icon: <FormOutlined />,
-                    children: [
-                      { key: '/internship-registration/flow', label: 'คำร้องขอฝึกงาน', onClick: () => navigate('/internship-registration/flow') },
-                    ],
-                  },
+                  { key: '/internship-registration/flow', label: 'ลงทะเบียนคำร้องขอฝึกงาน', icon: <FormOutlined />, onClick: () => navigate('/internship-registration/flow') },
                   {
                     key: '/internship-logbook',
                     label: 'บันทึกการฝึกงาน',
                     icon: <BookOutlined />,
                     children: [
                       { key: '/internship-logbook/companyinfo', label: 'สถานประกอบการ', onClick: () => navigate('/internship-logbook/companyinfo') },
-                      { key: '/internship-logbook/timesheet', label: 'ใบลงเวลาและบันทึกประจำวัน', onClick: () => navigate('/internship-logbook/timesheet') },
+                      { key: '/internship-logbook/timesheet', label: 'บันทึกประจำวัน', onClick: () => navigate('/internship-logbook/timesheet') },
                     ],
                   },
-                  { key: '/internship-summary', label: 'สรุปผลการฝึกงาน', icon: <FileDoneOutlined />, onClick: () => navigate('/internship-summary') },
-                  { key: '/internship-certificate', label: 'ขอหนังสือรับรองการฝึกงาน', icon: <FileProtectOutlined />, onClick: () => navigate('/internship-certificate') },
+                  { key: '/internship-summary', label: 'สรุปผลฝึกงาน', icon: <FileDoneOutlined />, onClick: () => navigate('/internship-summary') },
+                  { key: '/internship-certificate', label: 'หนังสือรับรองฝึกงาน', icon: <FileProtectOutlined />, onClick: () => navigate('/internship-certificate') },
                 ]
               : [
                   { key: '/internship-eligibility', label: 'ตรวจสอบคุณสมบัติ', icon: <FormOutlined />, onClick: () => navigate('/internship-eligibility') },
