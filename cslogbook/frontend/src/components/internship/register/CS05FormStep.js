@@ -101,7 +101,15 @@ const CS05FormStep = ({
         hasTwoStudents: existingCS05.hasTwoStudents || false,
         internshipPosition: existingCS05.internshipPosition,
         jobDescription: existingCS05.jobDescription,
-        additionalRequirements: existingCS05.additionalRequirements
+        additionalRequirements: existingCS05.additionalRequirements,
+        // ✨ เพิ่มการ set ค่า classroom และ phoneNumber จาก existingCS05
+        studentData: [
+          {
+            ...form.getFieldValue(['studentData', 0]),
+            classroom: existingCS05.classroom || studentData?.classroom || '',
+            phoneNumber: existingCS05.phoneNumber || studentData?.phoneNumber || ''
+          }
+        ]
       });
       
       // setHasTwoStudents(existingCS05.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
@@ -360,7 +368,10 @@ const CS05FormStep = ({
                 name={['studentData', 0, 'classroom']}
                 label="ห้อง"
               >
-                <Select placeholder="เลือกห้อง (ถ้ามี)">
+                <Select 
+                  placeholder="เลือกห้อง (ถ้ามี)"
+                  disabled={existingCS05 && existingCS05.classroom} // ✅ disable เมื่อมีข้อมูลแล้ว
+                >
                   {classroomOptions.map(option => (
                     <Select.Option key={option.value} value={option.value}>
                       {option.label}
@@ -392,6 +403,7 @@ const CS05FormStep = ({
                   prefix={<PhoneOutlined />} 
                   placeholder="เช่น 0812345678 (ถ้ามี)" 
                   maxLength={10}
+                  disabled={existingCS05 && existingCS05.phoneNumber} // ✅ disable เมื่อมีข้อมูลแล้ว
                 />
               </Form.Item>
             </Col>

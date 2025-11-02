@@ -113,6 +113,18 @@ class InternshipManagementService {
           required: true,
           as: "internshipDocument",
         },
+        {
+          model: User,
+          as: "owner", // ✅ ใช้ alias ที่ถูกต้องตาม Document.associate
+          required: true,
+          include: [
+            {
+              model: Student,
+              as: "student",
+              attributes: ["studentId", "studentCode", "classroom", "phoneNumber"],
+            },
+          ],
+        },
       ],
       order: [["created_at", "DESC"]],
     });
@@ -120,6 +132,10 @@ class InternshipManagementService {
     if (!document) {
       return null;
     }
+
+    // ดึงข้อมูล classroom และ phoneNumber จาก Student
+    const classroom = document.owner?.student?.classroom || "";
+    const phoneNumber = document.owner?.student?.phoneNumber || "";
 
     return {
       documentId: document.documentId,
@@ -134,12 +150,14 @@ class InternshipManagementService {
       internshipPosition: document.internshipDocument.internshipPosition, // เพิ่มฟิลด์ใหม่
       contactPersonName: document.internshipDocument.contactPersonName, // เพิ่มฟิลด์ใหม่
       contactPersonPosition: document.internshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
+      classroom: classroom, // ✨ เพิ่มข้อมูลห้องเรียน
+      phoneNumber: phoneNumber, // ✨ เพิ่มเบอร์โทรศัพท์
       createdAt: document.created_at,
-  // เพิ่มข้อมูลไฟล์ transcript เพื่อให้ฝั่ง frontend แสดงลิงก์ดูไฟล์เดิมได้
-  transcriptFilename: document.fileName,
-  // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
-  rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
-  reviewComment: document.reviewComment
+      // เพิ่มข้อมูลไฟล์ transcript เพื่อให้ฝั่ง frontend แสดงลิงก์ดูไฟล์เดิมได้
+      transcriptFilename: document.fileName,
+      // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
+      rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
+      reviewComment: document.reviewComment
     };
   }
 
