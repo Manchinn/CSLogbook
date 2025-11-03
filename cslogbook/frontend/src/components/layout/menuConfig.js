@@ -15,6 +15,8 @@ import {
   BarChartOutlined,
   CalendarOutlined,
   DownloadOutlined,
+  FunnelPlotOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import React from 'react';
 
@@ -242,9 +244,11 @@ export const getMenuConfig = ({
             label: 'รายงาน',
             children: [
               { key: '/internship-companies', label: 'สถานประกอบการ', onClick: () => navigate('/internship-companies') },
-              { key: '/admin/reports/support', label: 'แผงควบคุมรายงาน', onClick: () => navigate('/admin/reports/support') },
               { key: '/admin/reports/internship', label: 'รายงานระบบฝึกงาน', onClick: () => navigate('/admin/reports/internship') },
               { key: '/admin/reports/project', label: 'รายงานโครงงานพิเศษ', onClick: () => navigate('/admin/reports/project') },
+              { key: '/admin/reports/workflow-progress', label: 'ความคืบหน้า Workflow', onClick: () => navigate('/admin/reports/workflow-progress') },
+              { key: '/admin/reports/deadline-compliance', label: 'การปฏิบัติตามกำหนดการ', onClick: () => navigate('/admin/reports/deadline-compliance') },
+              { key: '/admin/reports/advisor-workload', label: 'ภาระงานอาจารย์', onClick: () => navigate('/admin/reports/advisor-workload') },
             ],
           },
           { key: '/admin/upload', icon: <UploadOutlined />, label: 'อัปโหลดรายชื่อนักศึกษา', onClick: () => navigate('/admin/upload') },
@@ -301,10 +305,12 @@ export const getMenuConfig = ({
             icon: <BarChartOutlined />,
             label: 'รายงาน',
             children: [
-              { key: '/admin/reports/support', label: 'Dashboard รวม', onClick: () => navigate('/admin/reports/support') },
               { key: '/internship-companies', label: 'บริษัทฝึกงาน (สถิติ)', onClick: () => navigate('/internship-companies') },
               { key: '/admin/reports/internship', label: 'Internship Report', onClick: () => navigate('/admin/reports/internship') },
               { key: '/admin/reports/project', label: 'Project Report', onClick: () => navigate('/admin/reports/project') },
+              { key: '/admin/reports/workflow-progress', label: 'ความคืบหน้า Workflow', icon: <FunnelPlotOutlined />, onClick: () => navigate('/admin/reports/workflow-progress') },
+              { key: '/admin/reports/deadline-compliance', label: 'การปฏิบัติตาม Deadline', icon: <ClockCircleOutlined />, onClick: () => navigate('/admin/reports/deadline-compliance') },
+              { key: '/admin/reports/advisor-workload', label: 'ภาระงานอาจารย์', icon: <TeamOutlined />, onClick: () => navigate('/admin/reports/advisor-workload') },
             ],
           },
           { key: '/admin/upload', icon: <UploadOutlined />, label: 'อัปโหลดรายชื่อนักศึกษา', onClick: () => navigate('/admin/upload') },

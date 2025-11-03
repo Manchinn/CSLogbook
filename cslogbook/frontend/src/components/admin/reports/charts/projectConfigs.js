@@ -22,7 +22,7 @@ export const buildAdvisorLoadBar = (advisors = []) => {
     label: { text: 'value', position: 'right' },
     tooltip: {
       fields: ['metric', 'value'],
-      formatter: ({ metric, value }) => ({ name: metric, value })
+      formatter: (datum) => ({ name: datum.metric, value: datum.value })
     },
     scrollbar: rows.length > 12 ? { y: { ratio: 0.6 } } : undefined,
     interactions: [{ type: 'element-highlight' }]

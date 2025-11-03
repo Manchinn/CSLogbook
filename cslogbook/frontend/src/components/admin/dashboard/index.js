@@ -109,9 +109,9 @@ const Dashboard = () => {
         {
           key: "reports",
           icon: <BarChartOutlined />,
-          title: "แผงควบคุมรายงาน",
-          description: "สรุปสถิติงานฝึกงานและโครงงานพิเศษ",
-          onClick: () => navigate("/admin/reports/support"),
+          title: "รายงานระบบฝึกงาน",
+          description: "สรุปสถิติงานฝึกงาน",
+          onClick: () => navigate("/admin/reports/internship"),
         },
         {
           key: "settings",
@@ -127,7 +127,7 @@ const Dashboard = () => {
         icon: <CalendarOutlined />,
         title: "กำหนดการสำคัญ",
         description: "ตรวจสอบไทม์ไลน์และวันที่ต้องติดตาม",
-        onClick: () => navigate("/admin/reports/support"),
+        onClick: () => navigate("/admin/reports/deadline-compliance"),
       });
     }
 

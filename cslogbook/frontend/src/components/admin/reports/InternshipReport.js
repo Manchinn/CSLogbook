@@ -1,11 +1,9 @@
 // หน้าแสดงรายงานเฉพาะฝึกงาน (Internship)
-import React, { useMemo, Suspense, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Table } from 'antd';
-// import { Pie, Bar } from '@ant-design/plots'; // เปลี่ยนเป็น lazy load เพื่อลด bundle
-import { LazyPie as Pie, LazyBar as Bar } from './charts/LazyPlots';
+import { SimpleBarChart, SimplePieChart, CHART_COLORS } from './charts/RechartsComponents';
 import { academicYearOptions } from './constants';
 import { useInternshipProgressDashboard } from './hooks/useInternshipProgressDashboard';
-import { buildCriteriaBarConfig, buildInternshipCompletionPie } from './charts/internshipProgressConfigs';
 
 const { Title } = Typography;
 
@@ -71,9 +69,27 @@ const InternshipReport = () => {
 	// Map students (จาก studentService.getAllStudents) -> ตรวจชื่อฟิลด์ที่คาด: studentCode, firstName, lastName, internshipStatus, studentYear
 			const studentData = useMemo(()=> (students || []).map((s,i)=>({ key:i, ...s })), [students]);
 
-	// Memoize config objects ลด re-render ของ chart
-	const criteriaConfig = useMemo(()=> buildCriteriaBarConfig(evaluation?.criteriaAverages || []), [evaluation]);
-	const completionPieConfig = useMemo(()=> buildInternshipCompletionPie(summary), [summary]);
+	// เตรียมข้อมูลสำหรับ Bar Chart (คะแนนเฉลี่ยรายหัวข้อ)
+	const criteriaBarData = useMemo(() => {
+		return (evaluation?.criteriaAverages || []).map((item) => ({
+			criteria: item.criteriaName || item.name || 'ไม่ระบุ',
+			score: parseFloat(item.averageScore || item.score || 0)
+		}));
+	}, [evaluation]);
+
+	// เตรียมข้อมูลสำหรับ Pie Chart (สัดส่วนสถานะ)
+	const statusPieData = useMemo(() => {
+		const enrolledCount = summary?.enrolledCount || 0;
+		const completedVal = summary?.completed || 0;
+		const inProgressVal = summary?.inProgress || 0;
+		const notStartedVal = summary?.notStarted || Math.max(0, enrolledCount - completedVal - inProgressVal);
+		
+		return [
+			{ name: 'เสร็จสิ้น', value: completedVal, fill: CHART_COLORS.success },
+			{ name: 'อยู่ระหว่างดำเนินการ', value: inProgressVal, fill: CHART_COLORS.warning },
+			{ name: 'ยังไม่เริ่ม', value: notStartedVal, fill: CHART_COLORS.danger }
+		].filter(item => item.value > 0);
+	}, [summary]);
 
 	return (
 	  <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
@@ -116,18 +132,27 @@ const InternshipReport = () => {
 				<Col xs={24} md={14}>
 					<Card title="คะแนนเฉลี่ยรายหัวข้อ (ผู้ควบคุมงาน)" size="small" styles={{ body: {padding:12 }}}>
 						{loading ? <Skeleton active /> : (
-							<Suspense fallback={<Skeleton active />}> 
-								<Bar {...criteriaConfig} />
-							</Suspense>
+							<SimpleBarChart 
+								data={criteriaBarData}
+								xKey="criteria"
+								yKey="score"
+								height={300}
+								barColor={CHART_COLORS.primary}
+								yAxisFormatter={(value) => value.toFixed(1)}
+							/>
 						)}
 					</Card>
 				</Col>
 				<Col xs={24} md={10}>
 					<Card title="สัดส่วนสถานะการฝึกงาน" size="small" styles={{ body: {padding:12 }}}>
 						{loading ? <Skeleton active /> : (
-							<Suspense fallback={<Skeleton active />}> 
-								<Pie {...completionPieConfig} />
-							</Suspense>
+							<SimplePieChart 
+								data={statusPieData}
+								height={300}
+								innerRadius={60}
+								showLabel
+								showLegend
+							/>
 						)}
 					</Card>
 				</Col>

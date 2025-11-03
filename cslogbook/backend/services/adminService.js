@@ -105,7 +105,7 @@ class AdminService {
     }
   }
 
-  // ---------- Recent Activities (Documents Only) ----------
+  // ---------- Recent Activities (Enhanced for Activity Logs Report) ----------
   async getRecentActivities(arg = 10) {
     try {
       let options = {};
