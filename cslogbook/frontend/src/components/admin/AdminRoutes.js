@@ -30,12 +30,17 @@ const NotificationSettingsPage = lazy(() =>
 const WorkflowStepManagementPage = lazy(() =>
   import("./settings/WorkflowStepsSettingsPage")
 );
-const SupportStaffDashboard = lazy(() => import('./reports/SupportStaffDashboard.js'));
 const InternshipReport = lazy(() => import('./reports/InternshipReport.js'));
 const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
 const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
 const Project1ExamResultPage = lazy(() => import('./project/Project1ExamResultPage'));
 const ThesisExamResultPage = lazy(() => import('./project/ThesisExamResultPage'));
+
+// New Reports - 3 หน้ารายงานใหม่
+const WorkflowProgressReport = lazy(() => import('./reports/WorkflowProgressReport'));
+// const DeadlineComplianceReport = lazy(() => import('./reports/DeadlineComplianceReport'));
+const DeadlineComplianceReport = lazy(() => import('./reports/DeadlineComplianceReportRecharts')); // ใช้ Recharts แทน
+const AdvisorWorkloadDetailReport = lazy(() => import('./reports/AdvisorWorkloadDetailReport'));
 // ProjectManagement ถูกลบแล้ว - ใช้ ProjectPairsPage แทน
 
 // Loading component
@@ -60,9 +65,14 @@ const AdminRoutes = () => {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/reports/support" element={<SupportStaffDashboard />} />
               <Route path="/reports/internship" element={<InternshipReport />} />
               <Route path="/reports/project" element={<ProjectReport />} />
+              
+              {/* New Reports - 3 หน้ารายงานใหม่ */}
+              <Route path="/reports/workflow-progress" element={<WorkflowProgressReport />} />
+              <Route path="/reports/deadline-compliance" element={<DeadlineComplianceReport />} />
+              <Route path="/reports/advisor-workload" element={<AdvisorWorkloadDetailReport />} />
+              
               <Route path="/topic-exam/results" element={<TopicExamResultPage />} />
               <Route path="/project-exam/results" element={<Project1ExamResultPage />} />
               <Route path="/thesis/exam-results" element={<ThesisExamResultPage />} />

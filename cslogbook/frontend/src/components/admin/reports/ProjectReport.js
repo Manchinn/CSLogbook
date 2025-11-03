@@ -1,12 +1,9 @@
 // หน้าแสดงรายงานเฉพาะโครงงาน (Project)
-import React, { useMemo, Suspense, useRef, useCallback } from 'react';
-import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Tabs, Table, Empty } from 'antd';
-// import { Pie, Bar } from '@ant-design/plots'; // ใช้ lazy แทน
-import { LazyPie as Pie, LazyBar as Bar } from './charts/LazyPlots';
+import React, { useMemo, useRef, useCallback } from 'react';
+import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Empty, Tabs } from 'antd';
+import { SimplePieChart, CHART_COLORS } from './charts/RechartsComponents';
 import { useProjectReport } from './hooks/useProjectReport';
 import { academicYearOptions } from './constants';
-import { buildProposalPieConfig } from './charts/configs';
-import { buildAdvisorLoadBar } from './charts/projectConfigs';
 
 const { Title } = Typography;
 
@@ -19,7 +16,7 @@ const currentAcademicYear = () => {
 const ProjectReport = () => {
 	const initialYear = currentAcademicYear();
 	const anchorYearRef = useRef(initialYear);
-	const { year, setYear, loading, error, projectStatus, advisorLoad, overview } = useProjectReport(initialYear);
+	const { year, setYear, loading, error, projectStatus, overview } = useProjectReport(initialYear);
 
 	const numberFormatter = useMemo(() => new Intl.NumberFormat('th-TH'), []);
 	const formatNumber = useCallback((value, fallback = '-') => {
@@ -30,57 +27,31 @@ const ProjectReport = () => {
 
 	const yearOptions = academicYearOptions(anchorYearRef.current);
 
-	// Memo configs
-	const proposalPieConfig = useMemo(()=> buildProposalPieConfig(projectStatus?.proposal), [projectStatus]);
-	const advisorLoadBarConfig = useMemo(()=> buildAdvisorLoadBar(advisorLoad?.advisors || []), [advisorLoad]);
+	// เตรียมข้อมูลสำหรับ Pie Chart (ข้อเสนอโครงงาน)
+	const proposalPieData = useMemo(() => {
+		const proposal = projectStatus?.proposal || {};
+		return [
+			{ name: 'อนุมัติ', value: proposal.approved || 0, fill: CHART_COLORS.success },
+			{ name: 'รอพิจารณา', value: proposal.pending || 0, fill: CHART_COLORS.warning },
+			{ name: 'ปฏิเสธ', value: proposal.rejected || 0, fill: CHART_COLORS.danger },
+			{ name: 'ยังไม่ส่ง', value: proposal.notSubmitted || 0, fill: CHART_COLORS.info }
+		].filter(item => item.value > 0);
+	}, [projectStatus]);
 
 	const kpis = useMemo(() => {
-		if(!projectStatus && !advisorLoad && !overview) return [];
+		if(!projectStatus && !overview) return [];
 		const proposal = projectStatus?.proposal || {};
-		const advisors = advisorLoad?.advisors || [];
-		const totalAdvisees = advisors.reduce((sum,a)=> sum + (a.adviseeCount || 0), 0);
-		const totalAdvisorProjects = advisors.reduce((sum,a)=> sum + (a.advisorProjectCount || 0) + (a.coAdvisorProjectCount || 0), 0);
-		const advisorCount = advisors.length;
-		const avgAdvisees = advisorCount ? (totalAdvisees / advisorCount).toFixed(1) : '-';
-		const avgProjects = advisorCount ? (totalAdvisorProjects / advisorCount).toFixed(1) : '-';
 		return [
 			{ title:'โครงงานทั้งหมด', value: formatNumber(overview?.projectCount) },
 			{ title:'ข้อเสนอส่งแล้ว', value: formatNumber(proposal.submitted) },
 			{ title:'ข้อเสนออนุมัติ', value: formatNumber(proposal.approved) },
-			{ title:'อาจารย์ที่ปรึกษา', value: formatNumber(advisorCount), extra: advisorCount ? `นศ.เฉลี่ย ${avgAdvisees} | โครงงานเฉลี่ย ${avgProjects}` : 'ไม่มีข้อมูล' }
+			{ title:'ข้อเสนอรอพิจารณา', value: formatNumber(proposal.pending) }
 		];
-	}, [projectStatus, advisorLoad, overview, formatNumber]);
+	}, [projectStatus, overview, formatNumber]);
 
-	const advisorColumns = [
-		{ title:'อาจารย์', dataIndex:'name', key:'name', render:(val,record)=> val || (record.teacherId ? `อ.${record.teacherId}` : '-') },
-		{ title:'นักศึกษาที่ดูแล', dataIndex:'adviseeCount', key:'adviseeCount', align:'right', render:(val)=> val == null ? '-' : formatNumber(val) },
-		{ title:'โครงงาน (ที่ปรึกษาหลัก)', dataIndex:'advisorProjectCount', key:'advisorProjectCount', align:'right', render:(val)=> val == null ? '-' : formatNumber(val) },
-		{ title:'โครงงาน (ที่ปรึกษาร่วม)', dataIndex:'coAdvisorProjectCount', key:'coAdvisorProjectCount', align:'right', render:(val)=> val == null ? '-' : formatNumber(val) }
-	];
-	const advisorData = (advisorLoad?.advisors || []).map((a,i)=>({ key:i, ...a }));
-	const advisorSummary = useMemo(()=>{
-		// รวมตัวเลขสำคัญของภาระงานอาจารย์เพื่อใช้แสดงสรุปแบบรวดเร็ว
-		const advisors = advisorLoad?.advisors || [];
-		if (!advisors.length) return null;
-		const totalAdvisees = advisors.reduce((sum,a)=> sum + (a.adviseeCount || 0), 0);
-		const totalAdvisorProjects = advisors.reduce((sum,a)=> sum + (a.advisorProjectCount || 0), 0);
-		const totalCoAdvisorProjects = advisors.reduce((sum,a)=> sum + (a.coAdvisorProjectCount || 0), 0);
-		const advisorCount = advisors.length;
-		return {
-			advisorCount,
-			totalAdvisees,
-			totalAdvisorProjects,
-			totalCoAdvisorProjects,
-			avgAdvisee: advisorCount ? totalAdvisees / advisorCount : null,
-			avgProjects: advisorCount ? (totalAdvisorProjects + totalCoAdvisorProjects) / advisorCount : null
-		};
-	}, [advisorLoad]);
 	const hasProposalData = useMemo(() => {
-		const proposal = projectStatus?.proposal;
-		if (!proposal) return false;
-		return Object.values(proposal).some(v => (v || 0) > 0);
-	}, [projectStatus]);
-	const hasAdvisorChartData = useMemo(() => (advisorLoadBarConfig?.data || []).some(d => d.value > 0), [advisorLoadBarConfig]);
+		return proposalPieData.length > 0;
+	}, [proposalPieData]);
 
 	return (
 	  <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
@@ -119,51 +90,19 @@ const ProjectReport = () => {
 						label:'ข้อเสนอโครงงาน',
 						children: (
 							<Row gutter={[16,16]}>
-								<Col xs={24} md={12}>
+								<Col xs={24}>
 									<Card size="small" title="สถานะข้อเสนอโครงงาน" styles={{ body: {padding:12 }}}>
 										{loading ? <Skeleton active /> : (
 											hasProposalData ? (
-												<Suspense fallback={<Skeleton active />}> 
-													<Pie {...proposalPieConfig} />
-												</Suspense>
+												<SimplePieChart 
+													data={proposalPieData}
+													height={300}
+													innerRadius={60}
+													showLabel
+													showLegend
+												/>
 											) : <Empty description="ยังไม่มีข้อมูลข้อเสนอโครงงาน" image={Empty.PRESENTED_IMAGE_SIMPLE} />
 										)}
-									</Card>
-								</Col>
-								<Col xs={24} md={12}>
-									<Card size="small" title="ภาระงานอาจารย์" styles={{ body: {padding:12 }}}>
-										<Space direction="vertical" style={{width:'100%'}} size="small">
-											{advisorSummary && (
-												<Space wrap size={[12,4]} style={{fontSize:12,color:'#595959'}}>
-													<span>จำนวนอาจารย์: <strong>{formatNumber(advisorSummary.advisorCount)}</strong> คน</span>
-													<span>นักศึกษาที่ดูแลรวม: <strong>{formatNumber(advisorSummary.totalAdvisees)}</strong> คน</span>
-													<span>โครงงาน (ที่ปรึกษาหลัก): <strong>{formatNumber(advisorSummary.totalAdvisorProjects)}</strong></span>
-													<span>โครงงาน (ที่ปรึกษาร่วม): <strong>{formatNumber(advisorSummary.totalCoAdvisorProjects)}</strong></span>
-													<span>เฉลี่ยนักศึกษาต่ออาจารย์: <strong>{advisorSummary.avgAdvisee != null ? advisorSummary.avgAdvisee.toFixed(1) : '-'}</strong></span>
-													<span>เฉลี่ยโครงงานต่ออาจารย์: <strong>{advisorSummary.avgProjects != null ? advisorSummary.avgProjects.toFixed(1) : '-'}</strong></span>
-												</Space>
-											)}
-											{loading ? <Skeleton active /> : (
-												hasAdvisorChartData ? (
-													<Suspense fallback={<Skeleton active />}> 
-														<Bar {...advisorLoadBarConfig} />
-													</Suspense>
-												) : <Empty description="ยังไม่มีข้อมูลภาระงานอาจารย์" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-											)}
-										</Space>
-									</Card>
-								</Col>
-								<Col span={24}>
-									<Card size="small" title="รายละเอียดภาระงานอาจารย์">
-										<Table
-											size="small"
-											loading={loading}
-											dataSource={advisorData}
-											columns={advisorColumns}
-											pagination={{pageSize:12}}
-											scroll={{ x: 720 }}
-											locale={{ emptyText: <Empty description="ยังไม่มีข้อมูลภาระงานอาจารย์" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-										/>
 									</Card>
 								</Col>
 							</Row>

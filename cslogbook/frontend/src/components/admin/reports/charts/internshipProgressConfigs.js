@@ -64,8 +64,8 @@ export const buildInternshipCompletionPie = (summary) => {
       },
       style: { fontSize: 12, fontWeight: 600, fill: '#fff' }
     },
-  // ใช้ tooltip แบบพื้นฐานป้องกันกรณีขึ้น null จาก customItems (เวอร์ชันปัจจุบัน)
-  tooltip: { items: ['type','value'] },
+    // ใช้ tooltip แบบพื้นฐานป้องกันกรณีขึ้น null จาก customItems (เวอร์ชันปัจจุบัน)
+    tooltip: { items: ['type','value'] },
     color: ['#52c41a','#faad14','#bfbfbf']
   };
 };

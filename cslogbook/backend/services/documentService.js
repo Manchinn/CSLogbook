@@ -583,6 +583,60 @@ class DocumentService {
                 reviewDate: new Date()
             });
 
+            // Update workflow สำหรับ ACCEPTANCE_LETTER
+            if (document.documentType === 'INTERNSHIP' && document.documentName === 'ACCEPTANCE_LETTER') {
+                const studentId = document.owner?.student?.studentId;
+                if (studentId) {
+                    // 1. สร้างหนังสือส่งตัว (Referral Letter) พร้อม generate PDF
+                    try {
+                        // หา CS05 ที่อนุมัติแล้วของนักศึกษาคนนี้
+                        const cs05Document = await Document.findOne({
+                            where: {
+                                userId: document.userId,
+                                documentName: 'CS05',
+                                status: 'approved'
+                            },
+                            order: [['updated_at', 'DESC']]
+                        });
+
+                        if (cs05Document) {
+                            // เรียกใช้ service สำหรับ generate PDF หนังสือส่งตัว
+                            const internshipManagementService = require('./internshipManagementService');
+                            const referralLetterResult = await internshipManagementService.generateReferralLetterPDF(
+                                document.userId,
+                                cs05Document.documentId
+                            );
+                            
+                            logger.info(`Generated referral letter PDF for student ${studentId}:`, {
+                                documentId: referralLetterResult.documentId,
+                                filePath: referralLetterResult.filePath
+                            });
+                        } else {
+                            logger.warn(`No approved CS05 found for student ${studentId}, skipping referral letter generation`);
+                        }
+                    } catch (refError) {
+                        logger.error('Error generating referral letter:', refError);
+                        // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติหนังสือตอบรับ
+                    }
+
+                    // 2. Update workflow เป็น AWAITING_START
+                    const workflowService = require('./workflowService');
+                    await workflowService.updateStudentWorkflowActivity(
+                        studentId,
+                        'internship',
+                        'INTERNSHIP_AWAITING_START',
+                        'in_progress',
+                        'in_progress',
+                        { 
+                            acceptanceLetterApprovedAt: new Date().toISOString(), 
+                            approvedBy: reviewerId,
+                            referralLetterGenerated: true
+                        }
+                    );
+                    logger.info(`Updated workflow to AWAITING_START for student ${studentId}`);
+                }
+            }
+
             logger.info(`Document approved: ${documentId} by ${reviewerId}`);
             return { message: 'อนุมัติเอกสารเรียบร้อยแล้ว' };
         } catch (error) {
@@ -1246,6 +1300,34 @@ class DocumentService {
                 processedAt: new Date(),
                 processedBy: processorId,
             });
+
+            // Update workflow - การฝึกงานเสร็จสมบูรณ์
+            try {
+                const { Internship } = require('../models');
+                const internship = await Internship.findByPk(request.internshipId, {
+                    include: [{ model: Student, as: 'student' }]
+                });
+                
+                if (internship?.student) {
+                    const workflowService = require('./workflowService');
+                    await workflowService.updateStudentWorkflowActivity(
+                        internship.student.studentId,
+                        'internship',
+                        'INTERNSHIP_COMPLETED',
+                        'completed',
+                        'completed',
+                        { 
+                            certificateApprovedAt: new Date().toISOString(),
+                            certificateNumber: request.certificateNumber,
+                            processedBy: processorId 
+                        }
+                    );
+                    logger.info(`Updated workflow to COMPLETED for student ${internship.student.studentId}`);
+                }
+            } catch (workflowError) {
+                logger.error('Error updating workflow after certificate approval:', workflowError);
+                // ไม่ throw error เพราะ certificate ได้รับการอนุมัติแล้ว
+            }
 
             // สร้างการแจ้งเตือน
             await this.createCertificateApprovalNotification(request);

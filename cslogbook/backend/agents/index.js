@@ -14,6 +14,7 @@ const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
 const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
 const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
 const projectDeadlineMonitor = require('./projectDeadlineMonitor');
+const internshipWorkflowMonitor = require('./internshipWorkflowMonitor');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -81,6 +82,21 @@ class AgentManager {
         },
         get isRunning() {
           return projectDeadlineMonitor.isRunning;
+        }
+      },
+      internshipWorkflowMonitor: {
+        start: () => {
+          logger.info('Starting internship workflow monitor');
+          internshipWorkflowMonitor.start();
+          return true;
+        },
+        stop: () => {
+          logger.info('Stopping internship workflow monitor');
+          internshipWorkflowMonitor.stop();
+          return true;
+        },
+        get isRunning() {
+          return internshipWorkflowMonitor.isRunning || false;
         }
       },
       // เพิ่ม agent อื่นๆ ที่นี่

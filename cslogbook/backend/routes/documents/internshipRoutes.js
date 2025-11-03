@@ -14,7 +14,8 @@ const {
   checkTeacherPosition,
 } = require("../../middleware/authMiddleware");
 const { checkInternshipEligibility } = require("../../middleware/internshipEligibilityMiddleware");
-const { checkDeadlineBeforeSubmission } = require("../../middleware/deadlineEnforcementMiddleware");
+const { checkInternshipDeadline } = require("../../middleware/internshipDeadlineMiddleware");
+// Note: checkDeadlineBeforeSubmission is for PROJECT workflows only
 
 // ============= เส้นทางสำหรับข้อมูลนักศึกษา =============
 // ดึงข้อมูลนักศึกษาและสิทธิ์การฝึกงาน
@@ -42,7 +43,7 @@ router.post(
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
-  checkDeadlineBeforeSubmission('SUBMISSION'),
+  checkInternshipDeadline('CS05', 'SUBMISSION'),
   internshipController.submitCS05
 );
 
@@ -52,7 +53,7 @@ router.post(
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
-  checkDeadlineBeforeSubmission('SUBMISSION'),
+  checkInternshipDeadline('CS05', 'SUBMISSION'),
   upload.single("transcript"),
   internshipController.submitCS05WithTranscript
 );
@@ -241,7 +242,7 @@ router.post(
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
-  checkDeadlineBeforeSubmission('SUBMISSION'),
+  checkInternshipDeadline('acceptance_letter', 'SUBMISSION'),
   upload.single("acceptanceLetter"), // ใช้ field name เดียวกับ frontend
   internshipController.uploadAcceptanceLetter
 );

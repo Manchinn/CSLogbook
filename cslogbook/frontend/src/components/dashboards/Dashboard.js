@@ -901,7 +901,7 @@ function Dashboard() {
           icon: <ProjectOutlined />,
           title: "โครงงานพิเศษ",
           description: projectEligible
-            ? "ติดตาม Milestone และความคืบหน้าโครงงาน"
+            ? "ติดตามความคืบหน้าโครงงานพิเศษ"
             : "ศึกษาข้อกำหนดและเตรียมตัวสำหรับโครงงาน",
           actionLabel: projectEligible ? "จัดการโครงงาน" : "ดูรายละเอียด",
           path: projectEligible ? "/project/phase1" : "/project-eligibility",

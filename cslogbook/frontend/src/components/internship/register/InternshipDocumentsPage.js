@@ -315,58 +315,55 @@ const InternshipDocumentsPage = () => {
       {/* Timeline แสดงประวัติเอกสาร */}
       {cs05Data && (
         <Card title="ประวัติการจัดการเอกสาร" style={{ marginBottom: 24 }}>
-          <Timeline>
-            <Timeline.Item
-              dot={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              color="green"
-            >
-              <div>
-                <Text strong>ส่งคำร้อง คพ.05</Text>
-                <div style={{ color: '#666', fontSize: 12 }}>
-                  {dayjs(cs05Data.submittedAt).format('DD/MM/YYYY HH:mm')}
-                </div>
-              </div>
-            </Timeline.Item>
-
-            {documents.cooperation_letter && (
-              <Timeline.Item
-                dot={<DownloadOutlined style={{ color: '#1890ff' }} />}
-                color="blue"
-              >
-                <div>
-                  <Text strong>หนังสือขอความอนุเคราะห์พร้อมใช้งาน</Text>
-                  <div style={{ color: '#666', fontSize: 12 }}>
-                    {dayjs(documents.cooperation_letter.createdAt).format('DD/MM/YYYY HH:mm')}
+          <Timeline
+            items={[
+              {
+                dot: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+                color: "green",
+                children: (
+                  <div>
+                    <Text strong>ส่งคำร้อง คพ.05</Text>
+                    <div style={{ color: '#666', fontSize: 12 }}>
+                      {dayjs(cs05Data.submittedAt).format('DD/MM/YYYY HH:mm')}
+                    </div>
                   </div>
-                </div>
-              </Timeline.Item>
-            )}
-
-            {documents.referral_letter && (
-              <Timeline.Item
-                dot={<FileTextOutlined style={{ color: '#722ed1' }} />}
-                color="purple"
-              >
-                <div>
-                  <Text strong>หนังสือส่งตัวพร้อมใช้งาน</Text>
-                  <div style={{ color: '#666', fontSize: 12 }}>
-                    {dayjs(documents.referral_letter.createdAt).format('DD/MM/YYYY HH:mm')}
+                )
+              },
+              ...(documents.cooperation_letter ? [{
+                dot: <DownloadOutlined style={{ color: '#1890ff' }} />,
+                color: "blue",
+                children: (
+                  <div>
+                    <Text strong>หนังสือขอความอนุเคราะห์พร้อมใช้งาน</Text>
+                    <div style={{ color: '#666', fontSize: 12 }}>
+                      {dayjs(documents.cooperation_letter.createdAt).format('DD/MM/YYYY HH:mm')}
+                    </div>
                   </div>
-                </div>
-              </Timeline.Item>
-            )}
-
-            {['processing', 'submitted', 'under_review'].includes(cs05Data.status) && (
-              <Timeline.Item
-                dot={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                color="yellow"
-              >
-                <div>
-                  <Text>รอการดำเนินการขั้นตอนถัดไป...</Text>
-                </div>
-              </Timeline.Item>
-            )}
-          </Timeline>
+                )
+              }] : []),
+              ...(documents.referral_letter ? [{
+                dot: <FileTextOutlined style={{ color: '#722ed1' }} />,
+                color: "purple",
+                children: (
+                  <div>
+                    <Text strong>หนังสือส่งตัวพร้อมใช้งาน</Text>
+                    <div style={{ color: '#666', fontSize: 12 }}>
+                      {dayjs(documents.referral_letter.createdAt).format('DD/MM/YYYY HH:mm')}
+                    </div>
+                  </div>
+                )
+              }] : []),
+              ...(['processing', 'submitted', 'under_review'].includes(cs05Data.status) ? [{
+                dot: <ClockCircleOutlined style={{ color: '#faad14' }} />,
+                color: "yellow",
+                children: (
+                  <div>
+                    <Text>รอการดำเนินการขั้นตอนถัดไป...</Text>
+                  </div>
+                )
+              }] : [])
+            ]}
+          />
         </Card>
       )}
 

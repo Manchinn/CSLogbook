@@ -82,8 +82,12 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
     return map;
   }, [deadlines]);
 
-  function dateCellRender(value) {
-    const dateKey = value.format("YYYY-MM-DD");
+  // Renamed from dateCellRender to cellRender for Ant Design 5.x compatibility
+  function cellRender(current, info) {
+    // For calendar cells, we only render content for date cells
+    if (info.type !== 'date') return info.originNode;
+    
+    const dateKey = current.format("YYYY-MM-DD");
     const items = dateMap[dateKey] || [];
     if (!items.length) return null;
     // จัดเรียง: window ก่อน ตามเวลา/ชื่อ
@@ -213,7 +217,7 @@ export default function StudentDeadlineCalendar({ audience = 'student' }) {
           <Spin />
         ) : (
           <Calendar
-            dateCellRender={dateCellRender}
+            cellRender={cellRender}
             headerRender={headerRender}
           />
         )}

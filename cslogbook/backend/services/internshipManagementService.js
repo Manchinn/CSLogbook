@@ -2033,6 +2033,23 @@ class InternshipManagementService {
 
       logger.debug("[DEBUG] Updated CS05 status to acceptance_uploaded");
 
+      // 5. Update workflow - หนังสือตอบรับถูกอัปโหลดแล้ว
+      const workflowService = require('./workflowService');
+      const student = await Student.findOne({ where: { userId }, transaction });
+      
+      if (student) {
+        await workflowService.updateStudentWorkflowActivity(
+          student.studentId,
+          'internship',
+          'INTERNSHIP_COMPANY_RESPONSE_RECEIVED',
+          'completed',
+          'in_progress',
+          { acceptanceLetterDocId: acceptanceDocument.documentId, uploadedAt: new Date().toISOString() },
+          { transaction }
+        );
+        logger.info(`Updated workflow to COMPANY_RESPONSE_RECEIVED for student ${student.studentId}`);
+      }
+
       await transaction.commit();
 
       return {

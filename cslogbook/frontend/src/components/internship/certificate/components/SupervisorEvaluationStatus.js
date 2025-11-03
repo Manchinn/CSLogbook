@@ -113,56 +113,59 @@ const SupervisorEvaluationStatus = ({
       </Row>
 
       {/* Timeline รายละเอียด */}
-      <Timeline>
-        <Timeline.Item 
-          color={getStatusColor(isHoursComplete)}
-          dot={getStatusIcon(isHoursComplete)}
-        >
-          <Space direction="vertical">
-            <Text strong>
-              ชั่วโมงฝึกงานครบถ้วน ({requiredHours} ชั่วโมง)
-            </Text>
-            <Tag color={isHoursComplete ? 'success' : 'warning'}>
-              อนุมัติแล้ว: {approvedHoursComputed} ชั่วโมง
-            </Tag>
-            {approvedHoursComputed !== totalHours && totalHours != null && (
-              <Text type="secondary">รวม (บันทึกทั้งหมด): {totalHours} ชั่วโมง</Text>
-            )}
-            {!isHoursComplete && (
-              <Text type="secondary">
-                ยังขาดอีก {Math.max(0, requiredHours - approvedHoursComputed)} ชั่วโมง
-              </Text>
-            )}
-          </Space>
-        </Timeline.Item>
-
-        <Timeline.Item
-          color={getStatusColor(isEvaluationPassed)}
-          dot={getStatusIcon(isEvaluationPassed)}
-        >
-          <Space direction="vertical">
-            <Text strong>การประเมินผลจากผู้ควบคุมงาน</Text>
-            {showScore && hasScore ? (
-              <Tag color={isEvaluationPassed ? 'success' : 'error'}>
-                คะแนน {evaluationScore}/{100} {isEvaluationPassed ? '(ผ่าน)' : '(ไม่ผ่าน)'}
-              </Tag>
-            ) : (
-              <Tag color={isEvaluationPassed ? 'success' : 'processing'}>
-                {isEvaluationPassed ? 'ประเมินแล้ว / ผ่านเกณฑ์' : 'รอการประเมิน'}
-              </Tag>
-            )}
-            {!hideStatusText && !isEvaluationPassed && (
-              <Text type="secondary">
-                {hasScore
-                  ? `ยังขาด ${passScore - evaluationScore} คะแนนถึงจะผ่าน`
-                  : 'กรุณาติดต่อผู้ควบคุมงานเพื่อทำการประเมินในระบบ'}
-              </Text>
-            )}
-          </Space>
-        </Timeline.Item>
+      <Timeline
+        items={[
+          {
+            color: getStatusColor(isHoursComplete),
+            dot: getStatusIcon(isHoursComplete),
+            children: (
+              <Space direction="vertical">
+                <Text strong>
+                  ชั่วโมงฝึกงานครบถ้วน ({requiredHours} ชั่วโมง)
+                </Text>
+                <Tag color={isHoursComplete ? 'success' : 'warning'}>
+                  อนุมัติแล้ว: {approvedHoursComputed} ชั่วโมง
+                </Tag>
+                {approvedHoursComputed !== totalHours && totalHours != null && (
+                  <Text type="secondary">รวม (บันทึกทั้งหมด): {totalHours} ชั่วโมง</Text>
+                )}
+                {!isHoursComplete && (
+                  <Text type="secondary">
+                    ยังขาดอีก {Math.max(0, requiredHours - approvedHoursComputed)} ชั่วโมง
+                  </Text>
+                )}
+              </Space>
+            )
+          },
+          {
+            color: getStatusColor(isEvaluationPassed),
+            dot: getStatusIcon(isEvaluationPassed),
+            children: (
+              <Space direction="vertical">
+                <Text strong>การประเมินผลจากผู้ควบคุมงาน</Text>
+                {showScore && hasScore ? (
+                  <Tag color={isEvaluationPassed ? 'success' : 'error'}>
+                    คะแนน {evaluationScore}/{100} {isEvaluationPassed ? '(ผ่าน)' : '(ไม่ผ่าน)'}
+                  </Tag>
+                ) : (
+                  <Tag color={isEvaluationPassed ? 'success' : 'processing'}>
+                    {isEvaluationPassed ? 'ประเมินแล้ว / ผ่านเกณฑ์' : 'รอการประเมิน'}
+                  </Tag>
+                )}
+                {!hideStatusText && !isEvaluationPassed && (
+                  <Text type="secondary">
+                    {hasScore
+                      ? `ยังขาด ${passScore - evaluationScore} คะแนนถึงจะผ่าน`
+                      : 'กรุณาติดต่อผู้ควบคุมงานเพื่อทำการประเมินในระบบ'}
+                  </Text>
+                )}
+              </Space>
+            )
+          }
+        ]}
+      />
 
   {/* ตัด timeline รายงานสรุปผลออก */}
-      </Timeline>
 
       {/* แสดง Alert ตามสถานะ */}
       {allRequirementsMet ? (

@@ -33,7 +33,19 @@ exports.getAllStudents = async (req, res, next) => {
 
 exports.getStudentById = async (req, res) => {
   try {
-    const data = await studentService.getStudentById(req.params.id);
+    const requestedId = req.params.id;
+    
+    // Validate that the ID looks like a studentCode (starts with digits, typically 13 chars)
+    // This helps catch cases where userId is mistakenly passed instead of studentCode
+    if (!/^\d{13}$/.test(requestedId)) {
+      logger.warn(`getStudentById: Invalid studentCode format: ${requestedId}. Expected 13-digit studentCode, not userId.`);
+      return res.status(400).json({
+        success: false,
+        message: "รูปแบบรหัสนักศึกษาไม่ถูกต้อง กรุณาใช้รหัสนักศึกษา 13 หลัก (เช่น 651050xxx)",
+      });
+    }
+    
+    const data = await studentService.getStudentById(requestedId);
 
     res.json({
       success: true,

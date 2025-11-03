@@ -142,8 +142,14 @@ class DeadlineReminderAgent {
 
       // ส่งการแจ้งเตือนถึงนักศึกษาทุกคน
       for (const student of students) {
+        // ตรวจสอบว่ามี studentId ก่อนส่ง notification
+        if (!student.studentId) {
+          logger.warn(`DeadlineReminderAgent: Student missing studentId:`, student);
+          continue;
+        }
+
         await notificationService.sendNotification({
-          userId: student.id,
+          userId: student.studentId,
           userType: 'student',
           title,
           message,
