@@ -2,14 +2,17 @@
 import React, { useMemo } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Alert, Table, Tag, Tabs, Skeleton, Empty, Statistic } from 'antd';
 import { 
-  FunnelPlotOutlined, 
   WarningOutlined, 
   CheckCircleOutlined, 
   SyncOutlined,
   ClockCircleOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
-import { SimpleBarChart, SimplePieChart, CHART_COLORS } from './charts/RechartsComponents';
+import {
+  BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList
+} from 'recharts';
+import { CHART_COLORS } from './charts/RechartsComponents';
 import { useWorkflowProgress } from './hooks/useWorkflowProgress';
 
 const { Title, Text } = Typography;
@@ -219,9 +222,24 @@ const WorkflowProgressReport = () => {
                   {loading ? (
                     <Skeleton active />
                   ) : data?.funnelData?.length > 0 ? (
-                    <div style={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Text type="secondary">Funnel Chart ยังไม่ได้ implement (ใช้ Recharts ไม่มี funnel chart)</Text>
-                    </div>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={data.funnelData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis 
+                          type="category" 
+                          dataKey="stepTitle" 
+                          width={200}
+                          style={{ fontSize: 12 }}
+                        />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="completed" stackId="a" fill={CHART_COLORS.success} name="เสร็จสิ้น" />
+                        <Bar dataKey="inProgress" stackId="a" fill={CHART_COLORS.warning} name="กำลังดำเนินการ" />
+                        <Bar dataKey="pending" stackId="a" fill={CHART_COLORS.info} name="รอดำเนินการ" />
+                        <Bar dataKey="blocked" stackId="a" fill={CHART_COLORS.danger} name="ติดขัด" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   ) : (
                     <Empty description="ไม่มีข้อมูล" />
                   )}
@@ -238,15 +256,40 @@ const WorkflowProgressReport = () => {
                       {loading ? (
                         <Skeleton active />
                       ) : bottleneckBarData.length > 0 ? (
-                        <SimpleBarChart
-                          data={bottleneckBarData}
-                          xKey="step"
-                          yKey="value"
-                          height={300}
-                          layout="horizontal"
-                          showLabel
-                          labelFormatter={(value, entry) => `${value}% (${entry.count} คน)`}
-                        />
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={bottleneckBarData} layout="horizontal">
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="step" 
+                              angle={-45}
+                              textAnchor="end"
+                              height={100}
+                              interval={0}
+                              style={{ fontSize: 11 }}
+                            />
+                            <YAxis 
+                              domain={[0, 100]}
+                              tickFormatter={(value) => `${value}%`}
+                            />
+                            <Tooltip 
+                              formatter={(value, name, props) => [
+                                `${value}% (${props.payload.count} คน)`,
+                                'อัตราติดขัด'
+                              ]}
+                            />
+                            <Bar dataKey="value" name="อัตราติดขัด">
+                              {bottleneckBarData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                              ))}
+                              <LabelList 
+                                dataKey="value" 
+                                position="top" 
+                                formatter={(value, props) => `${value}%`}
+                                style={{ fontSize: 11 }}
+                              />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
                       ) : (
                         <Empty description="ไม่มีข้อมูล" />
                       )}
@@ -257,13 +300,28 @@ const WorkflowProgressReport = () => {
                       {loading ? (
                         <Skeleton active />
                       ) : statusPieData.length > 0 ? (
-                        <SimplePieChart
-                          data={statusPieData}
-                          height={300}
-                          innerRadius={60}
-                          showLabel
-                          showLegend
-                        />
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={statusPieData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, value, percent }) => 
+                                `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                              }
+                              outerRadius={100}
+                              innerRadius={60}
+                              dataKey="value"
+                            >
+                              {statusPieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
                       ) : (
                         <Empty description="ไม่มีข้อมูล" />
                       )}
