@@ -16,8 +16,7 @@ const logger = require('../utils/logger');
 const { getCurrentAcademicYear, getCurrentSemester } = require('../utils/studentUtils');
 const { 
   checkDeadlineStatus, 
-  handleDeadlineCheckResult,
-  buildDeadlineOrderClause 
+  handleDeadlineCheckResult
 } = require('../utils/deadlineChecker');
 
 /**
@@ -35,24 +34,29 @@ const checkInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION') => 
       // ถ้ามี student object ใน req (จาก checkInternshipEligibility middleware)
       if (req.student) {
         // ใช้ข้อมูลจากการลงทะเบียนฝึกงานของนักศึกษา (ถ้ามี)
-        const { InternshipDocument } = require('../models');
-        const internshipDoc = await InternshipDocument.findOne({
+        const { InternshipDocument, Document } = require('../models');
+        
+        // หา CS05 document ของนักศึกษาล่าสุด
+        const cs05Document = await Document.findOne({
           where: {
-            '$Document.userId$': req.student.userId
+            userId: req.student.userId,
+            documentName: 'CS05'
           },
-          include: [{
-            model: require('../models').Document,
-            where: {
-              documentName: 'CS05'
-            },
-            required: true
-          }],
-          order: [['createdAt', 'DESC']]
+          order: [['created_at', 'DESC']]
         });
 
-        if (internshipDoc) {
-          academicYear = internshipDoc.academicYear;
-          semester = internshipDoc.semester;
+        // ถ้าเจอ CS05 แล้ว ให้หา InternshipDocument ที่เชื่อมกับมัน
+        if (cs05Document) {
+          const internshipDoc = await InternshipDocument.findOne({
+            where: {
+              documentId: cs05Document.documentId
+            }
+          });
+
+          if (internshipDoc) {
+            academicYear = internshipDoc.academicYear;
+            semester = internshipDoc.semester;
+          }
         }
       }
 
@@ -68,21 +72,31 @@ const checkInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION') => 
         userId: req.user?.userId
       });
 
-      // ดึง deadline จากฐานข้อมูล
-      const deadline = await ImportantDeadline.findOne({
+      // ดึง deadline จากฐานข้อมูล ผ่าน DeadlineWorkflowMapping
+      const { DeadlineWorkflowMapping } = require('../models');
+      
+      // ค้นหา mapping ที่ตรงกับ documentSubtype
+      const mapping = await DeadlineWorkflowMapping.findOne({
         where: {
-          relatedTo: 'internship',
-          academicYear,
-          semester,
-          deadlineType: actionType,
-          isPublished: true,
-          [Op.or]: [
-            { documentSubtype },
-            { documentSubtype: null } // รวม general internship deadlines
-          ]
+          workflowType: 'internship',
+          documentSubtype,
+          active: true
         },
-        order: buildDeadlineOrderClause(documentSubtype)
+        include: [{
+          model: ImportantDeadline,
+          as: 'deadline',
+          where: {
+            relatedTo: 'internship',
+            academicYear,
+            semester,
+            deadlineType: actionType,
+            isPublished: true
+          },
+          required: true
+        }]
       });
+
+      const deadline = mapping ? mapping.deadline : null;
 
       if (!deadline) {
         // ไม่มี deadline กำหนด - อนุญาตให้ดำเนินการ
@@ -127,21 +141,30 @@ const warnIfPastInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION'
     try {
       const academicYear = getCurrentAcademicYear();
       const semester = getCurrentSemester();
+      const { DeadlineWorkflowMapping } = require('../models');
 
-      const deadline = await ImportantDeadline.findOne({
+      // ค้นหา deadline ผ่าน DeadlineWorkflowMapping
+      const mapping = await DeadlineWorkflowMapping.findOne({
         where: {
-          relatedTo: 'internship',
-          academicYear,
-          semester,
-          deadlineType: actionType,
-          isPublished: true,
-          [Op.or]: [
-            { documentSubtype },
-            { documentSubtype: null }
-          ]
+          workflowType: 'internship',
+          documentSubtype,
+          active: true
         },
-        order: buildDeadlineOrderClause(documentSubtype)
+        include: [{
+          model: ImportantDeadline,
+          as: 'deadline',
+          where: {
+            relatedTo: 'internship',
+            academicYear,
+            semester,
+            deadlineType: actionType,
+            isPublished: true
+          },
+          required: true
+        }]
       });
+
+      const deadline = mapping ? mapping.deadline : null;
 
       if (deadline) {
         // ใช้ shared utility function แต่จับเฉพาะ metadata

@@ -5,6 +5,11 @@
  * 1. Auto-fill ชื่อกำหนดการ
  * 2. กำหนด workflow mapping อัตโนมัติ
  * 3. ตั้งค่า late tracking policy
+ * 
+ * ⚠️ สำหรับระบบฝึกงาน มี deadline เฉพาะ 2 ขั้นตอน:
+ *    1. CS05 - คำร้องขอฝึกงาน (มี deadline enforcement)
+ *    2. Report - คำขอหนังสือรับรอง (มี deadline enforcement)
+ *    - Acceptance Letter ไม่มี deadline (ขึ้นอยู่กับบริษัท)
  */
 
 export const DEADLINE_TEMPLATES = [
@@ -12,7 +17,7 @@ export const DEADLINE_TEMPLATES = [
   {
     id: 'INTERNSHIP_CS05_SUBMISSION',
     name: 'วันสุดท้ายของการส่งคำร้องขอฝึกงาน (คพ.05)',
-    description: 'ส่งคำร้องขอฝึกงาน พร้อมแนบเอกสารที่เกี่ยวข้อง',
+    description: 'ส่งคำร้องขอฝึกงาน (คพ.05) พร้อมแนบเอกสารและใบแสดงผลการเรียน - มีการบังคับใช้ deadline',
     category: 'internship',
     relatedTo: 'internship',
     deadlineType: 'SUBMISSION',
@@ -22,33 +27,16 @@ export const DEADLINE_TEMPLATES = [
     defaultSettings: {
       acceptingSubmissions: true,
       allowLate: true,
-      gracePeriodMinutes: 1440, // 1 วัน
+      gracePeriodMinutes: 10080, // 7 วัน
       lockAfterDeadline: false
     },
-    autoCreateMapping: true
+    autoCreateMapping: true,
+    important: true
   },
   {
-    id: 'INTERNSHIP_ACCEPTANCE_SUBMISSION',
-    name: 'วันสุดท้ายของการส่งหนังสือตอบรับฝึกงาน',
-    description: 'ส่งหนังสือตอบรับจากสถานประกอบการ',
-    category: 'internship',
-    relatedTo: 'internship',
-    deadlineType: 'SUBMISSION',
-    documentSubtype: 'acceptance_letter',
-    workflowType: 'internship',
-    icon: '📨',
-    defaultSettings: {
-      acceptingSubmissions: true,
-      allowLate: true,
-      gracePeriodMinutes: 2880, // 2 วัน
-      lockAfterDeadline: false
-    },
-    autoCreateMapping: true
-  },
-  {
-    id: 'INTERNSHIP_CS05_SUBMISSION',
-    name: 'วันสุดท้ายของการส่งรายงานผลการฝึกงาน',
-    description: 'ส่งรายงานผลการฝึกงานเพื่อรับหนังสือรับรองการฝึกงาน',
+    id: 'INTERNSHIP_REPORT_SUBMISSION',
+    name: 'วันสุดท้ายของการส่งคำขอหนังสือรับรองการฝึกงาน',
+    description: 'ส่งคำขอหนังสือรับรองผลการฝึกงาน (Certificate Request) หลังเสร็จสิ้นการฝึกงาน',
     category: 'internship',
     relatedTo: 'internship',
     deadlineType: 'SUBMISSION',
