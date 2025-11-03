@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Space, Typography, Tag, message, Tooltip } from 'antd';
+import { Form, Input, Button, Space, Typography, Tag, message, Tooltip, Alert } from 'antd';
 import { useCreateProjectDraft } from '../createContext';
 import projectService from '../../../../../services/projectService';
 import { studentService } from '../../../../../services/studentService';
@@ -94,10 +94,17 @@ const StepMembers = () => {
 
   return (
     <div>
-  <Typography.Paragraph>เพิ่มสมาชิก (ไม่บังคับครบตอนนี้) {memberLocked && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</Typography.Paragraph>
+      <Alert
+        type="warning"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message="โครงงานพิเศษต้องมีสมาชิก 2 คน"
+        description="กรุณาระบุรหัสนักศึกษาคนที่ 2 เพื่อให้สามารถสร้างโครงงานได้"
+      />
+      <Typography.Paragraph>สมาชิกโครงงาน {memberLocked && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</Typography.Paragraph>
       <Form layout="vertical">
-        <Form.Item label="รหัสนักศึกษาคนที่ 2">
-          <Input value={member2} onChange={e => setMember2(e.target.value)} placeholder="ถ้ามี" disabled={memberLocked} />
+        <Form.Item label="รหัสนักศึกษาคนที่ 2 (บังคับ)" required>
+          <Input value={member2} onChange={e => setMember2(e.target.value)} placeholder="กรอกรหัสนักศึกษา 13 หลัก" disabled={memberLocked} />
         </Form.Item>
         {/* Step สำหรับ member3 จะเพิ่มภายหลัง */}
         {errs.length > 0 && <Space direction="vertical" style={{ marginBottom: 16 }}>{errs.map(er => <Tag color="red" key={er}>{er}</Tag>)}</Space>}

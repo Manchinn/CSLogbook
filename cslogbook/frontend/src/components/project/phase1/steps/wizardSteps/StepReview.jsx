@@ -1,48 +1,18 @@
 import React, { useMemo } from 'react';
 import { Alert, Descriptions, Tag, Typography, Button, Space, message, Divider, Tooltip } from 'antd';
-import { useNavigate } from 'react-router-dom';
 import projectService from '../../../../../services/projectService';
 import { useCreateProjectDraft } from '../createContext';
 
 const StepReview = () => {
   const { state, computeDraftReadiness, setProjectId, setStatus, setMembersStatus, setBasic, setClassification, setMembers, setDetails, setProjectStatus, setProjectMembers } = useCreateProjectDraft();
-  const { basic, classification, members, details, advisors, projectId, status, projectStatus, projectMembers } = state;
-  const navigate = useNavigate();
+  const { basic, classification, members, details, projectId, status, projectStatus, projectMembers } = state;
   const readinessList = computeDraftReadiness();
   const readiness = useMemo(() => {
     // แปลง array -> object เพื่อใช้เช็คสะดวก
     return readinessList.reduce((acc, r) => { acc[r.key] = r.pass; return acc; }, {});
   }, [readinessList]);
 
-  const advisorName = useMemo(() => {
-    if (!classification.advisorId) return null;
-    const found = advisors.find(a => Number(a.teacherId) === Number(classification.advisorId));
-    if (!found) return `#${classification.advisorId}`;
-    return `${found.firstName} ${found.lastName}`;
-  }, [classification.advisorId, advisors]);
-
-  const coAdvisorName = useMemo(() => {
-    if (!classification.coAdvisorId) return null;
-    const found = advisors.find(a => Number(a.teacherId) === Number(classification.coAdvisorId));
-    if (!found) return `#${classification.coAdvisorId}`;
-    return `${found.firstName} ${found.lastName}`;
-  }, [classification.coAdvisorId, advisors]);
-
-  const findAdvisorUserId = (teacherId) => {
-    if (!teacherId) return undefined;
-    const matched = advisors.find(item => Number(item.teacherId) === Number(teacherId));
-    return matched?.userId;
-  };
-
-  const resolveAdvisorIdForPayload = (teacherId, userId) => {
-    if (userId !== undefined) {
-      return userId;
-    }
-    if (!teacherId) {
-      return undefined;
-    }
-    return undefined; // กรณีหา userId ไม่เจอให้ข้ามการอัปเดต เพื่อลดโอกาส FK ผิดพลาด
-  };
+  // 🆕 ไม่ต้องแสดงอาจารย์ที่ปรึกษาเพราะจะกำหนดโดยเจ้าหน้าที่ภาควิชา
 
   const handleRefresh = async () => {
     if (!projectId) return;
@@ -60,25 +30,13 @@ const StepReview = () => {
           projectType: p.projectType || undefined
         });
         setClassification({
-          advisorId: p.advisorId || null,
-          advisorUserId: p.advisorId ? findAdvisorUserId(p.advisorId) : null,
-          coAdvisorId: p.coAdvisorId || null,
-          coAdvisorUserId: p.coAdvisorId ? findAdvisorUserId(p.coAdvisorId) : null,
           tracks: Array.isArray(p.tracks) ? p.tracks : []
         });
         // details
         setDetails({
-          objective: p.objective || '',
           background: p.background || '',
-          scope: p.scope || '',
-          expectedOutcome: p.expectedOutcome || '',
-          benefit: p.benefit || '',
-          tools: p.tools || '',
-          methodology: p.methodology || '',
-          timelineNote: p.timelineNote || '',
-          risk: p.risk || '',
-          constraints: p.constraints || '',
-          problem: details.problem // problem ไม่ได้มาจาก backend ตอนนี้ เก็บของเดิมไว้
+          objective: p.objective || '',
+          benefit: p.benefit || ''
         });
         // second member (role = member)
         const second = (p.members || []).find(m => m.role === 'member');
@@ -116,9 +74,7 @@ const StepReview = () => {
   <Descriptions.Item label={<span>ชื่อโครงงานภาษาอังกฤษ{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{basic.projectNameEn || '-'} </Descriptions.Item>
         <Descriptions.Item label="ประเภทโครงงานพิเศษ">{basic.projectType || <em>ยังไม่ระบุ</em>} </Descriptions.Item>
         <Descriptions.Item label="หมวด">{classification.tracks.length ? classification.tracks.join(', ') : <em>ยังไม่เลือก</em>} </Descriptions.Item>
-  <Descriptions.Item label={<span>อาจารย์ที่ปรึกษา{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{advisorName || <em>ยังไม่เลือก</em>} </Descriptions.Item>
-  <Descriptions.Item label={<span>อาจารย์ที่ปรึกษาร่วม{lockedCore && <Tooltip title="ล็อกหลังเริ่มดำเนินโครงงาน"><span style={{color:'#aa00ff', fontSize:12}}> (ล็อก)</span></Tooltip>}</span>}>{coAdvisorName || <span style={{ opacity: 0.5 }}>-</span>} </Descriptions.Item>
-        <Descriptions.Item label="สมาชิกโครงงานพิเศษ">
+        <Descriptions.Item label="สมาชิกโครงงานพิเศษ (บังคับ 2 คน)">
           {members.secondMemberCode && <Tag color="blue">คนที่2: {members.secondMemberCode}</Tag>}
           {!members.secondMemberCode && <span>-</span>}
           {members.secondMemberCode && !projectId && <Tag color="gold">รอสร้าง Draft เพื่อซิงค์</Tag>}
@@ -131,16 +87,9 @@ const StepReview = () => {
           {members.secondMemberCode && members.synced && <Tag color="green">บันทึกแล้ว</Tag>}
           {members.secondMemberCode && members.error && <Tag color="red">{members.error}</Tag>}
         </Descriptions.Item>
-  <Descriptions.Item label="ที่มา / เหตุผล">{details.background || '-'} </Descriptions.Item>
-  <Descriptions.Item label="เป้าหมาย">{details.objective || '-'} </Descriptions.Item>
-  <Descriptions.Item label="ผลลัพธ์ที่คาดหวัง">{details.expectedOutcome || '-'} </Descriptions.Item>
-  <Descriptions.Item label="ประโยชน์">{details.benefit || '-'} </Descriptions.Item>
-  <Descriptions.Item label="ขอบเขต">{details.scope || '-'} </Descriptions.Item>
-  <Descriptions.Item label="เครื่องมือ / เทคโนโลยี">{details.tools || '-'} </Descriptions.Item>
-  <Descriptions.Item label="กระบวนการ / Methodology">{details.methodology || '-'} </Descriptions.Item>
-  <Descriptions.Item label="หมายเหตุ Timeline">{details.timelineNote || '-'} </Descriptions.Item>
-  <Descriptions.Item label="ความเสี่ยง">{details.risk || '-'} </Descriptions.Item>
-  <Descriptions.Item label="ข้อจำกัด">{details.constraints || '-'} </Descriptions.Item>
+  <Descriptions.Item label="ที่มา / เหตุผล">{details.background || <em style={{ color: '#999' }}>ยังไม่กรอก</em>} </Descriptions.Item>
+  <Descriptions.Item label="เป้าหมาย">{details.objective || <em style={{ color: '#999' }}>ยังไม่กรอก</em>} </Descriptions.Item>
+  <Descriptions.Item label="ประโยชน์ที่จะได้รับ">{details.benefit || <em style={{ color: '#999' }}>ยังไม่กรอก</em>} </Descriptions.Item>
       </Descriptions>
 
       <div style={{ marginTop: 24 }}>
@@ -149,10 +98,9 @@ const StepReview = () => {
           {readiness.name_th && readiness.name_en && <Tag color="green">ชื่อครบ</Tag>}
           {readiness.type && <Tag color="green">ประเภท</Tag>}
           {readiness.tracks && <Tag color="green">หมวด</Tag>}
-          {readiness.advisor && <Tag color="green">อาจารย์ที่ปรึกษา</Tag>}
           {readiness.details && <Tag color="green">รายละเอียดขั้นต่ำ</Tag>}
           {readiness.member2 && members.secondMemberCode && <Tag color="green">สมาชิกคนที่สอง OK</Tag>}
-          {!readiness.member2 && members.secondMemberCode && <Tag color="orange">สมาชิกคนที่สองยังไม่พร้อม</Tag>}
+          {!readiness.member2 && <Tag color="red">ต้องมีสมาชิกคนที่สอง</Tag>}
         </div>
       </div>
       <Divider orientation="left" style={{ marginTop: 32 }}>สมาชิก</Divider>
@@ -182,44 +130,36 @@ const StepReview = () => {
           disabled={!!projectId || !basic.projectNameTh || !basic.projectNameEn || status.creating}
           loading={status.creating}
           onClick={async () => {
-            // เกณฑ์ขั้นต่ำ: มีชื่อ TH/EN (advisor ยัง optional) เพื่อให้สร้าง draft ได้เร็ว
+            // 🆕 เกณฑ์ขั้นต่ำ: มีชื่อ TH/EN, ประเภท, หมวด และสมาชิก 2 คน (บังคับ)
             try {
               setStatus({ creating: true });
-              const advisorPayloadId = resolveAdvisorIdForPayload(classification.advisorId, classification.advisorUserId);
-              const coAdvisorPayloadId = resolveAdvisorIdForPayload(classification.coAdvisorId, classification.coAdvisorUserId);
+              // 🆕 ไม่ส่ง advisorId เพราะจะกำหนดโดยเจ้าหน้าที่ภาควิชา
               const payload = {
                 projectNameTh: basic.projectNameTh || undefined,
                 projectNameEn: basic.projectNameEn || undefined,
                 projectType: basic.projectType || undefined,
+                background: details.background || undefined,
                 objective: details.objective || undefined,
-                background: details.background || details.problem || undefined,
-                scope: details.scope || undefined,
-                expectedOutcome: details.expectedOutcome || undefined,
                 benefit: details.benefit || undefined,
-                tools: details.tools || undefined,
-                methodology: details.methodology || undefined,
-                timelineNote: details.timelineNote || undefined,
-                risk: details.risk || undefined,
-                constraints: details.constraints || undefined,
-                tracks: classification.tracks && classification.tracks.length ? classification.tracks : undefined
+                tracks: classification.tracks && classification.tracks.length ? classification.tracks : undefined,
+                secondMemberStudentCode: members.secondMemberCode || undefined // 🆕 บังคับสมาชิกคนที่ 2
               };
-              if (advisorPayloadId !== undefined) {
-                payload.advisorId = advisorPayloadId;
-              }
-              if (coAdvisorPayloadId !== undefined) {
-                payload.coAdvisorId = coAdvisorPayloadId;
-              }
               const res = await projectService.createProject(payload);
               if (res?.success && res?.data?.projectId) {
                 const newId = res.data.projectId;
                 setProjectId(newId);
-                message.success('สร้าง Draft โครงงานสำเร็จ');
-                navigate(`/project/phase1/draft/${newId}`);
+                setProjectStatus(res.data.status || 'draft');
+                if (res.data.members) setProjectMembers(res.data.members);
+                message.success('สร้างโครงงานสำเร็จ! สมาชิก 2 คนได้ถูกบันทึกแล้ว');
+                // 🆕 อัปเดต members status เป็น synced
+                setMembersStatus({ synced: true, syncing: false, validated: true, error: null });
               } else if (res?.project?.projectId) { // fallback legacy key
                 const newId = res.project.projectId;
                 setProjectId(newId);
-                message.success('สร้าง Draft โครงงานสำเร็จ');
-                navigate(`/project/phase1/draft/${newId}`);
+                setProjectStatus(res.project.status || 'draft');
+                if (res.project.members) setProjectMembers(res.project.members);
+                message.success('สร้างโครงงานสำเร็จ! สมาชิก 2 คนได้ถูกบันทึกแล้ว');
+                setMembersStatus({ synced: true, syncing: false, validated: true, error: null });
               } else {
                 message.warning('สร้างสำเร็จ (ไม่พบ projectId ใน response)');
               }
@@ -245,33 +185,17 @@ const StepReview = () => {
               }
               try {
                 setStatus({ saving: true });
-                const advisorPayloadId = resolveAdvisorIdForPayload(classification.advisorId, classification.advisorUserId);
-                const coAdvisorPayloadId = resolveAdvisorIdForPayload(classification.coAdvisorId, classification.coAdvisorUserId);
+                // 🆕 ไม่ส่ง advisorId เพราะจะกำหนดโดยเจ้าหน้าที่ภาควิชา
                 const updatePayload = {
-                  // ถ้า lockedCore จะไม่ส่งค่าชื่อ/advisor เปลี่ยน (ป้องกันแก้ไข)
+                  // ถ้า lockedCore จะไม่ส่งค่าชื่อเปลี่ยน (ป้องกันแก้ไข)
                   projectNameTh: lockedCore ? undefined : (basic.projectNameTh || ''),
                   projectNameEn: lockedCore ? undefined : (basic.projectNameEn || ''),
                   projectType: basic.projectType || null,
                   tracks: classification.tracks,
+                  background: details.background || null,
                   objective: details.objective || null,
-                  background: details.background || details.problem || null,
-                  scope: details.scope || null,
-                  expectedOutcome: details.expectedOutcome || null,
-                  benefit: details.benefit || null,
-                  tools: details.tools || null,
-                  methodology: details.methodology || null,
-                  timelineNote: details.timelineNote || null,
-                  risk: details.risk || null,
-                  constraints: details.constraints || null
+                  benefit: details.benefit || null
                 };
-                if (!lockedCore) {
-                  if (advisorPayloadId !== undefined) {
-                    updatePayload.advisorId = advisorPayloadId;
-                  }
-                  if (coAdvisorPayloadId !== undefined) {
-                    updatePayload.coAdvisorId = coAdvisorPayloadId;
-                  }
-                }
 
                 await projectService.updateProject(projectId, updatePayload);
                 message.success('บันทึกการแก้ไขเรียบร้อย');
@@ -283,11 +207,6 @@ const StepReview = () => {
               }
             }}
           >บันทึกการแก้ไข</Button>
-        )}
-        {projectId && (
-          <Button onClick={() => navigate(`/project/phase1/draft/${projectId}`)}>
-            ดูหน้า Draft
-          </Button>
         )}
         {projectId && members.secondMemberCode && !members.synced && !members.syncing && !readOnlyExamPassed && (
           <Button
