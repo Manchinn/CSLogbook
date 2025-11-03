@@ -19,6 +19,10 @@ const { authenticateToken, checkRole, checkTeacherType } = require('../middlewar
 // Middleware for admin routes - รองรับทั้ง admin และ teacher support
 const adminAuth = [authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support'])];
 
+// 🆕 Project workflow state dashboard
+const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');
+router.get('/dashboard/project-statistics', adminAuth, projectWorkflowStateController.getAdminDashboardStatistics);
+
 // Main dashboard stats
 router.get('/stats', adminAuth, async (req, res, next) => {
   console.log('Admin stats request received');

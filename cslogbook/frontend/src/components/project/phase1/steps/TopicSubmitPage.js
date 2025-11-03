@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Typography, Spin, Alert, Button } from 'antd';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { CreateProvider } from './createContext';
 import CreateWizard from './CreateWizard';
 import { useCreateProjectDraft } from './createContext';
@@ -14,11 +14,9 @@ const { Title, Paragraph } = Typography;
 
 // แยก inner component เพื่อให้เข้าถึง context หลัง Provider ได้
 const TopicSubmitInner = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState(null);
-  const [forcedNew] = useState(false); // เผื่ออนาคตอยากให้ผู้ใช้ override
   const hasCheckedRef = useRef(false); // ป้องกันการรัน checkExisting() ซ้ำหลังจากโหลดครั้งแรก
   const { state, setBasic, setClassification, setDetails, setProjectId, setProjectStatus, setProjectMembers, setMembers, setMembersStatus } = useCreateProjectDraft();
 
@@ -84,40 +82,31 @@ const TopicSubmitInner = () => {
   const checkExisting = useCallback(async () => {
     setChecking(true); setError(null);
     try {
-      // ถ้ามี pid (โหมดแก้ไข) ให้ preload แล้วจบ ไม่ redirect
+      // ถ้ามี pid (โหมดแก้ไข) ให้ preload แล้วจบ
       if (editPid) {
         await preloadProject(editPid);
         return;
       }
-  const res = await projectService.getMyProjects();
-  const list = res?.data || res?.projects || [];
-  // เลือกโครงงานที่ยังไม่ archived (priority: draft > advisor_assigned > in_progress > completed)
-  // completed: ผ่านสอบหัวข้อแล้ว ให้แสดงข้อมูลแบบอ่านอย่างเดียว
-  const preferredOrder = ['draft','advisor_assigned','in_progress','completed'];
+      // 🆕 โหลดโครงงานที่มีอยู่แล้วมาแสดงในหน้าเดียวกัน (ไม่ redirect)
+      const res = await projectService.getMyProjects();
+      const list = res?.data || res?.projects || [];
+      // เลือกโครงงานที่ยังไม่ archived
+      const preferredOrder = ['draft','advisor_assigned','in_progress','completed'];
       let chosen = null;
       for (const status of preferredOrder) {
         const found = list.find(p => p.status === status);
         if (found) { chosen = found; break; }
       }
-      if (!chosen) {
-        // ถ้าไม่มี draft เลยแต่มี project อื่น (เช่น completed) ก็ไม่ redirect ให้สร้างใหม่ได้
-        setChecking(false);
-        return;
-      }
-      if (!forcedNew) {
-        if (chosen.status === 'completed') {
-          navigate(`/project/phase1/topic-submit?pid=${chosen.projectId}`, { replace: true });
-        } else {
-          navigate(`/project/phase1/draft/${chosen.projectId}`, { replace: true });
-        }
-        return; // ไม่ต้อง setChecking false เพราะไปหน้าใหม่แล้ว
+      if (chosen) {
+        // 🆕 โหลดข้อมูลเข้า context แทนการ redirect
+        await preloadProject(chosen.projectId);
       }
       setChecking(false);
     } catch (e) {
       setError(e.message || 'ตรวจสอบโครงงานก่อนหน้าล้มเหลว');
       setChecking(false);
     }
-  }, [navigate, forcedNew, editPid, preloadProject]);
+  }, [editPid, preloadProject]);
 
   useEffect(() => {
     if (hasCheckedRef.current) return;

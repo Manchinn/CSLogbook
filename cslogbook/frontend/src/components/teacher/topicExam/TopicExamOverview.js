@@ -106,11 +106,15 @@ export default function TopicExamOverview() {
       width: 250,
       render: (text, row) => {
         const hasClassroom = row.classroom && ['RA', 'RB', 'RC', 'DA', 'DB', 'CSB'].includes(row.classroom);
-        return hasClassroom ? text : (
-          <span style={{ color: '#ff4d4f' }}>
-            {text || 'ไม่มีข้อมูลห้องเรียน'}
-          </span>
-        );
+        if (!hasClassroom) {
+          return (
+            <span style={{ color: '#ff4d4f' }}>
+              ไม่มีข้อมูลห้องเรียน
+            </span>
+          );
+        }
+        // ห้อง CSB = โครงงานสองภาษา, ห้องอื่นๆ = โครงงานพิเศษ
+        return row.classroom === 'CSB' ? 'โครงงานสองภาษา(CSB)' : 'โครงงานพิเศษ';
       }
     }
   ], [flatRows]);
@@ -162,7 +166,7 @@ export default function TopicExamOverview() {
   return (
     <div style={containerStyle}>
       <Card title={<Space><Title level={4} style={{ margin:0 }}>รายชื่อหัวข้อโครงงานพิเศษ</Title></Space>} extra={<Space>
-        <Tooltip title="Reload">
+        <Tooltip title="รีเฟรช">
           <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} />
         </Tooltip>
         <Tooltip title="Export XLSX (เฉพาะโครงงานที่มีข้อมูลครบถ้วน)">
@@ -195,19 +199,6 @@ export default function TopicExamOverview() {
             onSearch={val=>updateFilters({ search: val })} 
             onChange={e => { if (!e.target.value) updateFilters({ search: '' }); }}
             style={{ width: 240 }} 
-          />
-          <Select 
-            value={filters.status} 
-            onChange={v=>updateFilters({ status: v })} 
-            style={{ width: 150 }} 
-            options={[
-              { value: 'all', label: 'ทุกสถานะ' },
-              { value: 'draft', label: 'Draft' },
-              { value: 'advisor_assigned', label: 'Advisor Assigned' },
-              { value: 'in_progress', label: 'In Progress' },
-              { value: 'completed', label: 'Completed' },
-              { value: 'archived', label: 'Archived' }
-            ]} 
           />
         </Space>
 

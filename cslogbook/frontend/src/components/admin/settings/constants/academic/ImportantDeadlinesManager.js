@@ -118,7 +118,12 @@ const ImportantDeadlinesManager = ({
         acceptingSubmissions: formState.acceptingSubmissions,
         allowLate: formState.allowLate,
         gracePeriodMinutes: formState.gracePeriodMinutes,
-        lockAfterDeadline: formState.lockAfterDeadline
+        lockAfterDeadline: formState.lockAfterDeadline,
+        // 🆕 Template metadata สำหรับ auto-create mapping
+        templateId: formState.templateId || undefined,
+        workflowType: formState.workflowType || undefined,
+        documentSubtype: formState.documentSubtype || undefined,
+        autoCreateMapping: formState.autoCreateMapping || false
       };
 
       if (formState.publishAt) {
@@ -337,25 +342,72 @@ const ImportantDeadlinesManager = ({
                       </Row>
                       <Row gutter={16} style={{ marginTop: 8 }}>
                         <Col span={24}>
-                          <Tag color={deadline.acceptingSubmissions ? 'green' : 'red'}>
-                            {deadline.acceptingSubmissions ? 'เปิดรับการส่ง' : 'ปิดรับการส่ง'}
-                          </Tag>
-                          {deadline.deadlineType === 'SUBMISSION' && (
+                          {/* แสดงสถานะตามประเภทของกำหนดการ */}
+                          {deadline.deadlineType === 'SUBMISSION' ? (
                             <>
-                              <Tag color={deadline.allowLate ? 'orange' : 'default'}>
-                                {deadline.allowLate
-                                  ? graceHours > 0
-                                    ? `ผ่อนผันส่งช้า ${graceHours} ชม.`
-                                    : 'ผ่อนผันส่งช้า (กำหนดเวลา)'
-                                  : 'ไม่ผ่อนผันส่งช้า'}
+                              {/* สถานะการรับส่งเอกสาร */}
+                              <Tag color={deadline.acceptingSubmissions ? 'green' : 'red'}>
+                                {deadline.acceptingSubmissions ? 'เปิดรับส่งเอกสาร' : 'ปิดรับส่งเอกสาร'}
                               </Tag>
-                              <Tag color={deadline.lockAfterDeadline ? 'purple' : 'default'}>
-                                {deadline.lockAfterDeadline ? 'ล็อกไฟล์หลังหมดเวลา' : 'ไม่ล็อกไฟล์หลังหมดเวลา'}
+                              
+                              {/* นโยบายการส่งช้า (Late Policy) */}
+                              {deadline.allowLate ? (
+                                <>
+                                  <Tag color="orange">
+                                    อนุญาตส่งช้า {graceHours > 0 ? `${graceHours} ชม.` : '(ไม่จำกัด)'}
+                                  </Tag>
+                                  <Tag color={deadline.lockAfterDeadline ? 'volcano' : 'gold'}>
+                                    {deadline.lockAfterDeadline ? 'ล็อกหลังหมดเวลาผ่อนผัน' : 'ไม่ล็อกหลังหมดเวลา'}
+                                  </Tag>
+                                </>
+                              ) : (
+                                <Tag color="default">
+                                  ไม่อนุญาตส่งช้า
+                                </Tag>
+                              )}
+                              
+                              {/* แสดง Late Tracking Badge */}
+                              <Tag color="blue" style={{ borderStyle: 'dashed' }}>
+                                Late Tracking: เปิดใช้งาน
                               </Tag>
                             </>
+                          ) : (
+                            /* กำหนดการประเภทอื่น (ANNOUNCEMENT, MILESTONE, etc.) */
+                            <Tag color="geekblue">
+                              {deadline.deadlineType === 'ANNOUNCEMENT' ? 'ประกาศ' : 
+                               deadline.deadlineType === 'MILESTONE' ? 'เหตุการณ์สำคัญ' : 
+                               deadline.deadlineType === 'MANUAL' ? 'ดำเนินการภายใน' : 
+                               deadline.deadlineType}
+                            </Tag>
                           )}
                         </Col>
                       </Row>
+                      
+                      {/* แสดงรายละเอียดเพิ่มเติมสำหรับการส่งเอกสาร */}
+                      {deadline.deadlineType === 'SUBMISSION' && deadline.allowLate && graceHours > 0 && (
+                        <Row gutter={16} style={{ marginTop: 8 }}>
+                          <Col span={24}>
+                            <Alert
+                              type="info"
+                              message={
+                                <span style={{ fontSize: '12px' }}>
+                                  นักศึกษาสามารถส่งได้ถึง{' '}
+                                  <strong>
+                                    {moment(effectiveDate)
+                                      .add(deadline.gracePeriodMinutes || 0, 'minutes')
+                                      .add(543, 'year')
+                                      .format('D MMM YYYY HH:mm')} น.
+                                  </strong>
+                                  {' '}(หลังจาก deadline {graceHours} ชั่วโมง) - ระบบจะแท็กว่า "ส่งล่าช้า"
+                                </span>
+                              }
+                              showIcon
+                              banner
+                              style={{ fontSize: '12px' }}
+                            />
+                          </Col>
+                        </Row>
+                      )}
                     </Card>
                   );
                 })}

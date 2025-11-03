@@ -24,6 +24,11 @@ module.exports = (sequelize) => {
                 foreignKey: 'document_id',
                 as: 'documentLogs'
             });
+            // 🆕 Association with ImportantDeadline for late tracking
+            Document.belongsTo(models.ImportantDeadline, {
+                foreignKey: 'important_deadline_id',
+                as: 'importantDeadline'
+            });
         }
     }
 
@@ -136,6 +141,21 @@ module.exports = (sequelize) => {
             type: DataTypes.TEXT,
             allowNull: true,
             field: 'late_reason'
+        },
+        // 🆕 Google Classroom-style late tracking
+        submittedLate: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'submitted_late',
+            comment: 'ส่งงานหลังเวลากำหนดหรือไม่ (Google Classroom style)'
+        },
+        submissionDelayMinutes: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+            field: 'submission_delay_minutes',
+            comment: 'จำนวนนาทีที่ส่งช้า (null = ส่งทันหรือไม่ได้ track)'
         }
     }, {
         sequelize,

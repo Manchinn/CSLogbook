@@ -14,6 +14,7 @@ const {
   checkTeacherPosition,
 } = require("../../middleware/authMiddleware");
 const { checkInternshipEligibility } = require("../../middleware/internshipEligibilityMiddleware");
+const { checkDeadlineBeforeSubmission } = require("../../middleware/deadlineEnforcementMiddleware");
 
 // ============= เส้นทางสำหรับข้อมูลนักศึกษา =============
 // ดึงข้อมูลนักศึกษาและสิทธิ์การฝึกงาน
@@ -35,21 +36,23 @@ router.get(
   internshipController.getCurrentCS05
 );
 
-// ส่งคำร้องขอฝึกงาน (คพ.05) - ต้องตรวจสอบสิทธิ์ฝึกงาน
+// ส่งคำร้องขอฝึกงาน (คพ.05) - ต้องตรวจสอบสิทธิ์ฝึกงาน และ deadline
 router.post(
   "/cs-05/submit",
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
+  checkDeadlineBeforeSubmission('SUBMISSION'),
   internshipController.submitCS05
 );
 
-// บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript - ต้องตรวจสอบสิทธิ์ฝึกงาน
+// บันทึกคำร้องขอฝึกงาน (คพ.05) พร้อม transcript - ต้องตรวจสอบสิทธิ์ฝึกงาน และ deadline
 router.post(
   "/cs-05/submit-with-transcript",
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
+  checkDeadlineBeforeSubmission('SUBMISSION'),
   upload.single("transcript"),
   internshipController.submitCS05WithTranscript
 );
@@ -232,12 +235,13 @@ router.post(
 
 // ============= เส้นทางสำหรับอัปโหลดหนังสือตอบรับ =============
 
-// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน
+// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน และ deadline
 router.post(
   "/upload-acceptance-letter",
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
+  checkDeadlineBeforeSubmission('SUBMISSION'),
   upload.single("acceptanceLetter"), // ใช้ field name เดียวกับ frontend
   internshipController.uploadAcceptanceLetter
 );

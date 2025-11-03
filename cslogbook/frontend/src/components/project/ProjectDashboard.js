@@ -1,8 +1,12 @@
-import React, { useMemo } from 'react';
-import { Card, Typography, Space, Spin, Tag, List, Avatar } from 'antd';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Card, Typography, Space, Spin, Tag, List, Avatar, Row, Col } from 'antd';
 import { UserOutlined, TeamOutlined, ProfileOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from '../../utils/dayjs';
 import useStudentProject from '../../hooks/useStudentProject';
+import DeadlineAlert from '../common/DeadlineAlert';
+import DeadlineCountdown from '../common/DeadlineCountdown';
+import UpcomingDeadlines from '../common/UpcomingDeadlines';
+import projectWorkflowStateService from '../../services/projectWorkflowStateService';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -102,9 +106,42 @@ const ProjectDashboard = () => {
     loading,
   } = useStudentProject();
 
+  const [projectState, setProjectState] = useState(null);
+  const [loadingDeadlines, setLoadingDeadlines] = useState(false);
+
   const members = useMemo(() => (
     Array.isArray(activeProject?.members) ? activeProject.members : []
   ), [activeProject?.members]);
+
+  // โหลด workflow state พร้อม deadlines
+  useEffect(() => {
+    const projectId = activeProject?.projectId;
+    
+    // ตรวจสอบว่า projectId เป็นตัวเลขที่ valid
+    if (!projectId || isNaN(Number(projectId))) {
+      console.log('Invalid or missing projectId:', projectId);
+      setProjectState(null);
+      return;
+    }
+
+    const fetchProjectState = async () => {
+      try {
+        setLoadingDeadlines(true);
+        const response = await projectWorkflowStateService.getProjectStateWithDeadlines(
+          Number(projectId)
+        );
+        setProjectState(response.data);
+      } catch (error) {
+        console.error('Error fetching project state with deadlines:', error);
+        // ไม่แสดง error message เพื่อไม่รบกวน UX
+        setProjectState(null);
+      } finally {
+        setLoadingDeadlines(false);
+      }
+    };
+    
+    fetchProjectState();
+  }, [activeProject?.projectId]);
 
   const updatedAtText = useMemo(() => {
     if (!activeProject?.updatedAt && !activeProject?.updated_at) return null;
@@ -139,6 +176,37 @@ const ProjectDashboard = () => {
             </Paragraph>
           ) : (
             <Space direction="vertical" size={20} style={{ width: '100%' }}>
+              {/* Deadline Alerts */}
+              {!loadingDeadlines && projectState?.deadlines && (
+                <>
+                  {/* Overdue Alert */}
+                  {projectState.deadlines.overdue && projectState.deadlines.overdue.length > 0 && (
+                    <DeadlineAlert 
+                      deadlines={projectState.deadlines.overdue} 
+                      type="overdue" 
+                    />
+                  )}
+
+                  {/* Deadline Countdown & Upcoming Deadlines */}
+                  <Row gutter={16}>
+                    {projectState.deadlines.next && (
+                      <Col xs={24} lg={12}>
+                        <DeadlineCountdown deadline={projectState.deadlines.next} />
+                      </Col>
+                    )}
+                    {projectState.deadlines.upcoming && projectState.deadlines.upcoming.length > 0 && (
+                      <Col xs={24} lg={projectState.deadlines.next ? 12 : 24}>
+                        <UpcomingDeadlines 
+                          deadlines={projectState.deadlines.upcoming} 
+                          maxItems={5}
+                          title="Deadline โครงงาน"
+                        />
+                      </Col>
+                    )}
+                  </Row>
+                </>
+              )}
+
               <div>
                 <Title level={5} style={{ marginBottom: 8 }}>รายละเอียดโครงงาน</Title>
                 <Space direction="vertical" size={8} style={{ width: '100%' }}>

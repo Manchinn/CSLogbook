@@ -1,6 +1,7 @@
 const { sequelize } = require('../config/database');
 let ProjectDocument;
 let ProjectMember;
+let ProjectWorkflowState;
 let Student;
 let Academic;
 let ProjectTrack;
@@ -25,6 +26,7 @@ const attachModels = () => {
   ({
     ProjectDocument,
     ProjectMember,
+    ProjectWorkflowState,
     Student,
     Academic,
     ProjectTrack,
@@ -191,42 +193,44 @@ class ProjectDocumentService {
       const academicYear = academic?.academicYear || (new Date().getFullYear() + 543);
       const semester = academic?.currentSemester || 1;
 
-      // เตรียม second member (optional requirement - ถ้า policy บังคับให้ตรวจที่ controller ก่อน)
+      // 🆕 เตรียม second member (REQUIRED - โครงงานพิเศษต้องมี 2 คน)
       let secondMember = null;
-      if (payload.secondMemberStudentCode) {
-        const code = String(payload.secondMemberStudentCode).trim();
-        if (!/^[0-9]{5,13}$/.test(code)) {
-          throw new Error('รูปแบบรหัสนักศึกษาไม่ถูกต้อง');
-        }
-        // หา student
-        secondMember = await Student.findOne({ where: { studentCode: code }, transaction: t });
-        if (!secondMember) {
-          throw new Error('ไม่พบนักศึกษาที่ต้องการเพิ่ม');
-        }
-        if (secondMember.studentId === studentId) {
-          throw new Error('ไม่สามารถเพิ่มตัวเองซ้ำเป็นสมาชิกได้');
-        }
-        if (!secondMember.isEligibleProject) {
-          throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
-        }
-        // ตรวจว่ามีสมาชิกในโครงงานที่ยังไม่ archived อยู่แล้วหรือไม่ (business rule: 1 active project ต่อ 1 นักศึกษา)
-        const existingActiveMembership = await ProjectMember.findOne({
-          where: { studentId: secondMember.studentId },
-          include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
-          transaction: t
-        });
-        if (existingActiveMembership) {
-          throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
-        }
+      if (!payload.secondMemberStudentCode) {
+        throw new Error('โครงงานพิเศษต้องมีสมาชิก 2 คน กรุณาระบุรหัสนักศึกษาคนที่ 2');
       }
 
-      // สร้าง ProjectDocument (draft)
+      const code = String(payload.secondMemberStudentCode).trim();
+      if (!/^[0-9]{5,13}$/.test(code)) {
+        throw new Error('รูปแบบรหัสนักศึกษาไม่ถูกต้อง');
+      }
+      // หา student
+      secondMember = await Student.findOne({ where: { studentCode: code }, transaction: t });
+      if (!secondMember) {
+        throw new Error('ไม่พบนักศึกษาที่ต้องการเพิ่ม');
+      }
+      if (secondMember.studentId === studentId) {
+        throw new Error('ไม่สามารถเพิ่มตัวเองซ้ำเป็นสมาชิกได้');
+      }
+      if (!secondMember.isEligibleProject) {
+        throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
+      }
+      // ตรวจว่ามีสมาชิกในโครงงานที่ยังไม่ archived อยู่แล้วหรือไม่ (business rule: 1 active project ต่อ 1 นักศึกษา)
+      const existingActiveMembership = await ProjectMember.findOne({
+        where: { studentId: secondMember.studentId },
+        include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
+        transaction: t
+      });
+      if (existingActiveMembership) {
+        throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+      }
+
+      // สร้าง ProjectDocument (draft) - ไม่บังคับ advisorId ในตอนสร้าง
       const project = await ProjectDocument.create({
         projectNameTh: payload.projectNameTh || null,
         projectNameEn: payload.projectNameEn || null,
         projectType: payload.projectType || null,
-        advisorId: payload.advisorId || null,
-        coAdvisorId: payload.coAdvisorId || null,
+        advisorId: null, // 🆕 ไม่กำหนดอาจารย์ที่ปรึกษาในตอนยื่นหัวข้อ
+        coAdvisorId: null, // 🆕 ไม่กำหนด co-advisor ในตอนยื่นหัวข้อ
         // ฟิลด์รายละเอียด (คพ.01) (optional ขณะ draft)
         objective: payload.objective || null,
         background: payload.background || null,
@@ -241,7 +245,7 @@ class ProjectDocumentService {
         academicYear,
         semester,
         createdByStudentId: studentId,
-        status: payload.advisorId ? 'advisor_assigned' : 'draft'
+        status: 'draft' // 🆕 เริ่มต้นเป็น draft เสมอ (ไม่ขึ้นกับ advisorId)
       }, { transaction: t });
 
       // tracks array (payload.tracks: array ของ code เช่น NETSEC) -> สร้าง ProjectTrack
@@ -257,14 +261,12 @@ class ProjectDocumentService {
         role: 'leader'
       }, { transaction: t });
 
-      // ถ้ามี second member -> เพิ่มทันทีใน transaction เดียว
-      if (secondMember) {
-        await ProjectMember.create({
-          projectId: project.projectId,
-          studentId: secondMember.studentId,
-          role: 'member'
-        }, { transaction: t });
-      }
+      // 🆕 เพิ่ม second member (required) ทันทีใน transaction เดียว
+      await ProjectMember.create({
+        projectId: project.projectId,
+        studentId: secondMember.studentId,
+        role: 'member'
+      }, { transaction: t });
 
       await project.reload({
         include: [{
@@ -275,6 +277,13 @@ class ProjectDocumentService {
           model: ProjectTrack,
           as: 'tracks'
         }],
+        transaction: t
+      });
+
+      // 🆕 สร้าง ProjectWorkflowState สำหรับโครงงานใหม่
+      await ProjectWorkflowState.createForProject(project.projectId, {
+        phase: 'DRAFT', // 🆕 เริ่มต้นเป็น DRAFT เสมอ
+        userId: studentId,
         transaction: t
       });
 
@@ -392,14 +401,8 @@ class ProjectDocumentService {
       if (payload.timelineNote !== undefined) update.timelineNote = payload.timelineNote;
       if (payload.risk !== undefined) update.risk = payload.risk;
       if (payload.constraints !== undefined) update.constraints = payload.constraints;
-      // advisor สามารถตั้ง/แก้ได้ถ้ายังไม่ in_progress
-      if (!lockNames.includes(project.status)) {
-        if (payload.advisorId !== undefined) update.advisorId = payload.advisorId || null;
-        if (payload.coAdvisorId !== undefined) update.coAdvisorId = payload.coAdvisorId || null;
-        if (payload.advisorId && project.status === 'draft') {
-          update.status = 'advisor_assigned';
-        }
-      }
+      // 🆕 ไม่อนุญาตให้นักศึกษาแก้ไข advisor ผ่านฟังก์ชันนี้
+      // advisor จะถูกกำหนดโดยเจ้าหน้าที่ภาควิชาผ่านฟังก์ชัน setExamResult เท่านั้น
 
       let trackCodesUpdate = null;
       if (Array.isArray(payload.tracks)) {
@@ -888,6 +891,16 @@ class ProjectDocumentService {
       });
 
   const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
+
+      // 🆕 อัปเดต meeting count ใน ProjectWorkflowState
+      if (meetingMetrics.totalLogs !== undefined || meetingMetrics.approvedLogs !== undefined) {
+        await ProjectWorkflowState.updateMeetingCount(
+          project.projectId,
+          meetingMetrics.totalLogs || 0,
+          meetingMetrics.approvedLogs || 0,
+          { userId: null, transaction }
+        );
+      }
 
       for (const student of students) {
         const state = this.computeProjectWorkflowState(project, student, meetingMetrics);

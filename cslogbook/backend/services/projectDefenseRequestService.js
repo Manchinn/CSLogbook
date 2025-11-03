@@ -7,6 +7,7 @@ const {
   ProjectMember,
   ProjectExamResult,
   ProjectTestRequest,
+  ProjectWorkflowState,
   Student,
   Teacher,
   User
@@ -546,6 +547,15 @@ class ProjectDefenseRequestService {
         await record.update({ status: 'advisor_approved', advisorApprovedAt: now }, { transaction: t });
       }
 
+      // 🆕 อัปเดต workflow state ทันทีเมื่อยื่นคำขอ
+      await ProjectWorkflowState.updateFromDefenseRequest(
+        projectId,
+        DEFENSE_TYPE_PROJECT1,
+        record.requestId,
+        'submitted',
+        { userId: actorStudentId, transaction: t }
+      );
+
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
       await t.commit();
 
@@ -691,6 +701,15 @@ class ProjectDefenseRequestService {
         await record.update({ status: 'advisor_approved', advisorApprovedAt: now }, { transaction: t });
       }
 
+      // 🆕 อัปเดต workflow state ทันทีเมื่อยื่นคำขอ
+      await ProjectWorkflowState.updateFromDefenseRequest(
+        projectId,
+        DEFENSE_TYPE_THESIS,
+        record.requestId,
+        'submitted',
+        { userId: actorStudentId, transaction: t }
+      );
+
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
       await t.commit();
 
@@ -833,6 +852,16 @@ class ProjectDefenseRequestService {
       };
 
       await request.update(updatePayload, { transaction: t });
+      
+      // 🆕 อัปเดต workflow state เมื่อ staff verify
+      await ProjectWorkflowState.updateFromDefenseRequest(
+        projectId,
+        defenseType,
+        request.requestId,
+        'scheduled',
+        { userId: actorUser?.userId || null, transaction: t }
+      );
+      
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
 
