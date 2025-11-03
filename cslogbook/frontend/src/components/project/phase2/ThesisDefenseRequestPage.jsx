@@ -418,7 +418,7 @@ const ThesisDefenseRequestPage = () => {
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
                     <Form.Item label="วันที่ยื่นคำขอ" name="requestDate">
-                      <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} allowClear={false} disabled />
+                      <DatePicker format="DD/MM/BBBB" style={{ width: '100%' }} allowClear={false} disabled />
                     </Form.Item>
                   </Col>
                 </Row>

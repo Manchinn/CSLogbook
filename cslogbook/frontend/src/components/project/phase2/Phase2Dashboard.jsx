@@ -360,18 +360,18 @@ const Phase2Dashboard = () => {
     if (!value) return null;
     const dt = dayjs(value);
     if (!dt.isValid()) return null;
-    return dt.format('DD MMM YYYY เวลา HH:mm น.');
+    return dt.format('DD MMM BBBB เวลา HH:mm น.');
   }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2]);
 
   const resourceLinks = useMemo(() => ([
     {
       key: 'meeting-logbook',
-      title: 'Meeting Logbook (Phase 1 & 2)',
-      description: 'ติดตามการพบอาจารย์ตลอดทั้งสอง Phase ใช้ตรวจสอบเกณฑ์ก่อนยื่นสอบโครงงานพิเศษ 2 และปริญญานิพนธ์',
+      title: 'บันทึกการพบอาจารย์ (โครงงานพิเศษ1/โครงงานพิเศษ2)',
+      description: 'ติดตามการพบอาจารย์ตลอดทั้งสองช่วงใช้ตรวจสอบเกณฑ์ก่อนยื่นสอบโครงงานพิเศษ1 และปริญญานิพนธ์',
       actions: [
         {
           key: 'open-logbook',
-          label: 'เปิด Meeting Logbook',
+          label: 'เปิด บันทึกการพบอาจารย์',
           icon: <TeamOutlined />,
           onClick: handleOpenMeetingLogbook
         }
@@ -434,14 +434,14 @@ const Phase2Dashboard = () => {
     if (!value) return null;
     const dt = dayjs(value);
     if (!dt.isValid()) return null;
-    return dt.format('DD MMM YYYY เวลา HH:mm น.');
+    return dt.format('DD MMM BBBB เวลา HH:mm น.');
   };
 
   const formatDateOnly = (value) => {
     if (!value) return null;
     const dt = dayjs(value);
     if (!dt.isValid()) return null;
-    return dt.format('DD/MM/YYYY');
+    return dt.format('DD/MM/BBBB');
   };
 
   const timelineItems = useMemo(() => {
@@ -864,7 +864,7 @@ const Phase2Dashboard = () => {
             )}
             <Space wrap>
               <Button icon={<TeamOutlined />} onClick={handleOpenMeetingLogbook}>
-                เปิด Meeting Logbook
+                เปิด บันทึกการพบอาจารย์
               </Button>
             </Space>
           </Space>
