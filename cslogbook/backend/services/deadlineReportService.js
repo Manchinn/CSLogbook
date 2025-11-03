@@ -50,12 +50,16 @@ class DeadlineReportService {
       // Compliance trend (รายสัปดาห์)
       const trend = this._calculateComplianceTrend(deadlineStats);
 
+      // รายชื่อนักศึกษาที่ส่งช้า
+      const lateSubmissions = await this._getLateSubmissions(deadlines);
+
       return {
         summary,
         deadlineStats,
         upcoming,
         overdue,
-        trend
+        trend,
+        lateSubmissions
       };
     } catch (error) {
       logger.error('Error in getDeadlineCompliance:', error);
@@ -301,6 +305,164 @@ class DeadlineReportService {
           parseFloat(((w.onTime / w.totalSubmissions) * 100).toFixed(1)) : 0
       }))
       .sort((a, b) => a.week.localeCompare(b.week));
+  }
+
+  /**
+   * ดึงรายชื่อนักศึกษาที่ส่งช้า/เลยกำหนด
+   */
+  async _getLateSubmissions(deadlines) {
+    try {
+      const lateSubmissions = [];
+      const now = dayjs().tz('Asia/Bangkok');
+
+      for (const deadline of deadlines) {
+        const deadlineDate = dayjs(deadline.deadlineAt).tz('Asia/Bangkok');
+        const gracePeriodEnd = deadline.gracePeriodMinutes ? 
+          deadlineDate.add(deadline.gracePeriodMinutes, 'minute') : deadlineDate;
+
+        // ข้ามถ้า deadline ยังไม่ถึง
+        if (now.isBefore(deadlineDate)) {
+          continue;
+        }
+
+        // ดึงเอกสารที่ส่งช้าตาม relatedTo
+        let lateDocuments = [];
+
+        if (deadline.relatedTo === 'internship') {
+          // ดึงจาก InternshipDocument
+          lateDocuments = await InternshipDocument.findAll({
+            where: {
+              academicYear: deadline.academicYear,
+              semester: deadline.semester
+            },
+            include: [
+              {
+                model: Document,
+                as: 'document',
+                attributes: ['documentId', 'userId', 'created_at'],
+                include: [
+                  {
+                    model: User,
+                    as: 'owner', // Fix: Document has 2 User associations (owner + reviewer)
+                    attributes: ['firstName', 'lastName'],
+                    include: [
+                      {
+                        model: Student,
+                        as: 'student',
+                        attributes: ['studentId', 'studentCode']
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          });
+
+          // กรองเฉพาะที่ส่งช้า
+          for (const doc of lateDocuments) {
+            if (!doc.document || !doc.document.owner || !doc.document.owner.student) {
+              continue;
+            }
+
+            const submittedAt = dayjs(doc.document.created_at).tz('Asia/Bangkok');
+            
+            // ตรวจสอบว่าส่งหลัง grace period หรือไม่
+            if (submittedAt.isAfter(gracePeriodEnd)) {
+              const hoursLate = submittedAt.diff(gracePeriodEnd, 'hour');
+              const daysLate = Math.floor(hoursLate / 24);
+
+              let status = 'late';
+              if (daysLate > 3) {
+                status = 'very_late';
+              } else if (daysLate > 7) {
+                status = 'overdue';
+              }
+
+              lateSubmissions.push({
+                studentId: doc.document.owner.student.studentCode,
+                firstName: doc.document.owner.firstName,
+                lastName: doc.document.owner.lastName,
+                deadlineName: deadline.name,
+                deadlineAt: deadline.deadlineAt,
+                documentType: 'internship',
+                documentSubtype: doc.documentType,
+                documentId: doc.document.documentId,
+                submittedAt: doc.document.created_at,
+                hoursLate,
+                daysLate,
+                status
+              });
+            }
+          }
+        } else if (deadline.relatedTo.startsWith('project')) {
+          // ดึงจาก ProjectDocument
+          const projects = await ProjectDocument.findAll({
+            attributes: ['projectId', 'created_at'],
+            include: [
+              {
+                model: require('../models').ProjectMember,
+                as: 'members',
+                include: [
+                  {
+                    model: Student,
+                    as: 'student',
+                    include: [
+                      {
+                        model: User,
+                        as: 'user',
+                        attributes: ['firstName', 'lastName']
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          });
+
+          // กรองเฉพาะที่ส่งช้า
+          for (const project of projects) {
+            const submittedAt = dayjs(project.created_at).tz('Asia/Bangkok');
+            
+            if (submittedAt.isAfter(gracePeriodEnd) && project.members) {
+              const hoursLate = submittedAt.diff(gracePeriodEnd, 'hour');
+              const daysLate = Math.floor(hoursLate / 24);
+
+              let status = 'late';
+              if (daysLate > 3) {
+                status = 'very_late';
+              } else if (daysLate > 7) {
+                status = 'overdue';
+              }
+
+              // เพิ่มทุกคนใน project
+              for (const member of project.members) {
+                if (member.student && member.student.user) {
+                  lateSubmissions.push({
+                    studentId: member.student.studentCode,
+                    firstName: member.student.user.firstName,
+                    lastName: member.student.user.lastName,
+                    deadlineName: deadline.name,
+                    deadlineAt: deadline.deadlineAt,
+                    documentType: 'project',
+                    documentSubtype: deadline.relatedTo,
+                    documentId: project.projectId,
+                    submittedAt: project.created_at,
+                    hoursLate,
+                    daysLate,
+                    status
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return lateSubmissions;
+    } catch (error) {
+      logger.error('Error getting late submissions:', error);
+      return [];
+    }
   }
 
   /**

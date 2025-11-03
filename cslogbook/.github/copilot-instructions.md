@@ -88,6 +88,26 @@ REACT_APP_UPLOAD_URL=http://localhost:5000/uploads
 2. **Migrations**: Prefix with timestamp `YYYYMMDDHHMMSS-description.js`
 3. **Foreign keys**: Use `underscored: true` convention (e.g., `student_id`, `project_id`)
 4. **Charset**: All tables use `utf8mb4_unicode_ci` for Thai language
+5. **Multiple associations**: When defining multiple associations between same models, **ALWAYS use unique `as` aliases**. Example from `Document.js`:
+   ```javascript
+   // ✅ Correct - Two associations with unique aliases
+   Document.belongsTo(models.User, {
+     foreignKey: 'user_id',
+     as: 'owner'  // First association
+   });
+   Document.belongsTo(models.User, {
+     foreignKey: 'reviewer_id',
+     as: 'reviewer'  // Second association
+   });
+   ```
+   When querying, **MUST use the alias**:
+   ```javascript
+   // ✅ Correct
+   include: [{ model: User, as: 'owner' }]
+   
+   // ❌ Wrong - will throw "associated multiple times" error
+   include: [{ model: User }]
+   ```
 
 ### API Response Format
 ```javascript
@@ -164,6 +184,7 @@ await workflowService.updateStudentWorkflowActivity(
 5. **Association errors**: If relation not found, check `models/index.js` for missing associations
 6. **Agent not running**: Verify `ENABLE_AGENTS=true` or specific agent flags in production
 7. **Missing deadline enforcement**: Currently `submitCS05()` and `createProject()` check eligibility but NOT ImportantDeadline - this is a known gap that needs addressing
+8. **Multiple associations error**: When a model has multiple associations to the same model (e.g., `Document` has both `owner` and `reviewer` associations to `User`), **ALWAYS use the `as` keyword** with the correct alias in include statements. Check the model file for association aliases before writing queries. Common error: `"Model is associated to X multiple times. To identify the correct association, you must use the 'as' keyword..."`
 
 ## Testing Practices
 

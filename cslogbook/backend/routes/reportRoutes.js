@@ -29,6 +29,7 @@ router.get('/workflow/blocked-students', authenticateToken, workflowReportContro
 router.get('/deadlines/compliance', authenticateToken, deadlineReportController.getDeadlineCompliance);
 router.get('/deadlines/upcoming', authenticateToken, deadlineReportController.getUpcomingDeadlines);
 router.get('/deadlines/overdue', authenticateToken, deadlineReportController.getOverdueDeadlines);
+router.get('/deadlines/late-submissions', authenticateToken, deadlineReportController.getLateSubmissions);
 router.get('/students/:studentId/deadline-history', authenticateToken, deadlineReportController.getStudentDeadlineHistory);
 
 module.exports = router;
