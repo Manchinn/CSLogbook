@@ -6,6 +6,7 @@ const {
   User,
   Teacher,
   ProjectDefenseRequest,
+  ProjectWorkflowState,
   Academic,
   Document,
   sequelize
@@ -372,6 +373,18 @@ class ProjectExamResultService {
         }),
         transaction
       });
+
+      // 🆕 อัปเดต workflow state โดยตรง
+      await ProjectWorkflowState.updateFromExamResult(
+        normalizedProjectId,
+        examType,
+        result,
+        {
+          userId: recordedByUserId,
+          examDate: examRecordedAt,
+          transaction
+        }
+      );
 
       // ซิงก์สถานะ Workflow ให้อัตโนมัติ เพื่อให้นักศึกษามองเห็นสเตตัสล่าสุด
       await projectDocumentService.syncProjectWorkflowState(project.projectId, {

@@ -15,6 +15,7 @@ const {
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
 const logger = require('../utils/logger');
 const projectDocumentService = require('./projectDocumentService');
+const deadlineAutoAssignService = require('./deadlineAutoAssignService');
 
 const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
     'approved',
@@ -74,28 +75,47 @@ class DocumentService {
 
                 if (effectiveDeadlineAt) {
                     if (submittedAt > effectiveDeadlineAt) {
-                        // ส่งหลังเส้น effective แล้ว
-                        if (submittedAt <= graceEnd) {
-                            // ภายใน grace window → late (submitted_late)
-                            if (!deadlineRecord.allowLate) {
-                                throw new Error('ไม่อนุญาตให้ส่งช้า');
-                            }
-                            isLate = true;
-                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
-                        } else {
-                            // หลัง grace window
-                            // ถ้าไม่ allowLate ก่อน ให้แจ้งก่อน (ข้อความเฉพาะ) มาก่อน lock เพื่อสื่อสาเหตุ
-                            if (!deadlineRecord.allowLate) {
-                                throw new Error('ไม่อนุญาตให้ส่งช้า');
-                            }
-                            if (deadlineRecord.lockAfterDeadline) {
-                                throw new Error('หมดเขตรับเอกสารแล้ว');
-                            }
-                            // ยอมรับ (allowLate=true, ไม่ lock)
-                            isLate = true;
-                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        // 🆕 Google Classroom Style: อนุญาตให้ส่งเสมอ แต่ track ว่าสาย
+                        // ยกเว้นกรณีที่ acceptingSubmissions = false (ปิดรับเอกสารโดยสิ้นเชิง)
+                        if (!deadlineRecord.acceptingSubmissions) {
+                            throw new Error('ปิดรับเอกสารแล้ว (accepting_submissions = false)');
                         }
+
+                        // คำนวณว่าส่งช้ากี่นาที
+                        isLate = true;
+                        lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        
+                        // Log สำหรับ monitoring
+                        logger.warn('[DocumentService] Late submission detected', {
+                            documentType,
+                            category,
+                            deadlineName: deadlineRecord.name,
+                            effectiveDeadline: effectiveDeadlineAt.toISOString(),
+                            submittedAt: submittedAt.toISOString(),
+                            delayMinutes: lateMinutes
+                        });
                     }
+                }
+            }
+
+            // 🆕 Auto-assign deadline ถ้ายังไม่ระบุมา
+            let finalDeadlineId = importantDeadlineId;
+            if (!finalDeadlineId) {
+                try {
+                    // ดึงข้อมูล student เพื่อหา academicYear, semester
+                    const student = await Student.findOne({ where: { userId } });
+                    const autoDeadlineId = await deadlineAutoAssignService.findMatchingDeadline({
+                        documentType,
+                        category,
+                        academicYear: student?.currentAcademicYear,
+                        semester: student?.currentSemester
+                    });
+                    if (autoDeadlineId) {
+                        finalDeadlineId = autoDeadlineId;
+                        logger.info(`[DocumentService] Auto-assigned deadline ${autoDeadlineId} to document`);
+                    }
+                } catch (autoError) {
+                    logger.warn('[DocumentService] Auto-assign deadline failed:', autoError.message);
                 }
             }
 
@@ -110,11 +130,14 @@ class DocumentService {
                 mimeType: fileData.mimetype,
                 fileSize: fileData.size,
                 status: 'pending',
-                importantDeadlineId: importantDeadlineId || null,
+                importantDeadlineId: finalDeadlineId || null,
                 submittedAt,
                 isLate,
                 lateMinutes,
-                dueDate: dueDate || null
+                dueDate: dueDate || null,
+                // 🆕 Google Classroom-style late tracking
+                submittedLate: isLate,
+                submissionDelayMinutes: lateMinutes
             });
 
             logger.info(`Document uploaded successfully: ${document.id} by user ${userId}`);

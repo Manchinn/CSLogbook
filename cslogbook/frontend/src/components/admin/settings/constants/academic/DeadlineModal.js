@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Modal, Form, Input, DatePicker, TimePicker, Select, Row, Col, Divider, Alert, Switch, InputNumber, Grid } from 'antd';
+import { Modal, Form, Input, DatePicker, TimePicker, Select, Row, Col, Divider, Alert, Switch, InputNumber, Grid, Typography } from 'antd';
 import moment from 'moment';
 import buddhistLocale from '../../../../../utils/buddhistLocale'; // Import Buddhist Locale
 
 const { Option } = Select;
+const { Text } = Typography;
 
 const LateSubmissionDuration = ({ gracePeriodMinutes, setFormState, formState }) => {
   const breakdown = useMemo(() => {
@@ -125,13 +126,91 @@ export default function DeadlineModal({
       confirmLoading={loading}
       okText="บันทึก"
       cancelText="ยกเลิก"
-      destroyOnHidden
+      destroyOnClose
       centered
       width={modalWidth}
       style={{ top: screens.xs ? 12 : 24, padding: 0, maxWidth: '100%' }}
+      bodyStyle={{ paddingTop: 12 }}
     >
       <Form layout="vertical" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 4 }}>
-        <Divider orientation="left" plain>ข้อมูลพื้นฐาน</Divider>
+        <Divider orientation="left" plain style={{ marginTop: 0 }}>ข้อมูลพื้นฐาน</Divider>
+        
+        {/* Template Selector */}
+        {!editing && (
+          <Form.Item 
+            label="เลือก Template" 
+            tooltip="เลือกจาก template สำเร็จรูปเพื่อความสะดวก"
+            extra="ระบบจะช่วยกรอกข้อมูลให้อัตโนมัติ หรือข้ามเพื่อกรอกเอง"
+          >
+            <Select
+              value={formState.templateId || undefined}
+              onChange={(templateId) => {
+                const { getTemplateById } = require('./deadlineTemplates');
+                const template = getTemplateById(templateId);
+                if (template && !template.isCustom) {
+                  setFormState({
+                    ...formState,
+                    templateId,
+                    name: template.name,
+                    relatedTo: template.relatedTo,
+                    deadlineType: template.deadlineType,
+                    mode: template.useWindowMode ? 'window' : 'single',
+                    ...template.defaultSettings,
+                    workflowType: template.workflowType,
+                    documentSubtype: template.documentSubtype,
+                    autoCreateMapping: template.autoCreateMapping
+                  });
+                } else if (template?.isCustom) {
+                  setFormState({
+                    ...formState,
+                    templateId: null,
+                    autoCreateMapping: false
+                  });
+                }
+              }}
+              placeholder="เลือก template (หรือข้ามเพื่อกำหนดเอง)"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+              size="large"
+            >
+              {(() => {
+                const { TEMPLATE_GROUPS } = require('./deadlineTemplates');
+                return TEMPLATE_GROUPS.map(group => (
+                  <Select.OptGroup key={group.key} label={group.label}>
+                    {group.templates.map(tpl => (
+                      <Option key={tpl.id} value={tpl.id}>
+                        {tpl.name}
+                        {tpl.important && <span style={{ color: '#ff4d4f', marginLeft: 4 }}> (แนะนำ)</span>}
+                      </Option>
+                    ))}
+                  </Select.OptGroup>
+                ));
+              })()}
+            </Select>
+            {formState.templateId && (() => {
+              const { getTemplateById } = require('./deadlineTemplates');
+              const template = getTemplateById(formState.templateId);
+              return template?.description && (
+                <Alert 
+                  message={template.description} 
+                  type="info" 
+                  showIcon 
+                  style={{ marginTop: 8 }}
+                />
+              );
+            })()}
+            {formState.autoCreateMapping && (
+              <Alert
+                message="ระบบจะเชื่อมโยงกับเอกสารอัตโนมัติ และติดตาม Late Tracking"
+                type="success"
+                showIcon
+                style={{ marginTop: 8 }}
+              />
+            )}
+          </Form.Item>
+        )}
+        
         <Form.Item label="ชื่อกำหนดการ" >
           <Input
             value={formState.name}
@@ -139,37 +218,40 @@ export default function DeadlineModal({
             placeholder="เช่น กรอกคำร้องขอฝึกงาน(คพ.05) / ส่งเอกสารการฝึกงานเพื่อรับใบรับรองการฝึกงาน / วันสอบโครงงานพิเศษ"
           />
         </Form.Item>
-        <Row gutter={12}>
+        <Row gutter={16}>
           <Col span={12}>
-      <Form.Item label="ประเภทของกำหนดการ" tooltip="กำหนดพฤติกรรม: ส่งเอกสาร / ประกาศ / ทำรายการเอง / เหตุการณ์">
+            <Form.Item 
+              label="ประเภท" 
+              tooltip="กำหนดพฤติกรรมของกำหนดการ"
+            >
               <Select
                 value={formState.deadlineType}
                 onChange={v => setFormState({ ...formState, deadlineType: v })}
               >
-        <Option value="SUBMISSION">ส่งเอกสาร</Option>
-        <Option value="ANNOUNCEMENT">ประกาศ</Option>
+                <Option value="SUBMISSION">ส่งเอกสาร</Option>
+                <Option value="ANNOUNCEMENT">ประกาศ</Option>
               </Select>
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="หมวด" >
+            <Form.Item label="หมวดงาน">
               <Select
                 value={formState.relatedTo}
                 onChange={value => setFormState({ ...formState, relatedTo: value })}
               >
-        <Option value="project1">โครงงานพิเศษ 1</Option>
-        <Option value="project2">โครงงานพิเศษ 2</Option>
-        {formState.relatedTo === 'project' && <Option value="project">โครงงาน (legacy)</Option>}
-        <Option value="internship">ฝึกงาน</Option>
-        <Option value="general">ทั่วไป</Option>
+                <Option value="project1">โครงงานพิเศษ 1</Option>
+                <Option value="project2">โครงงานพิเศษ 2</Option>
+                {formState.relatedTo === 'project' && <Option value="project">โครงงาน (legacy)</Option>}
+                <Option value="internship">ฝึกงาน</Option>
+                <Option value="general">ทั่วไป</Option>
               </Select>
             </Form.Item>
           </Col>
         </Row>
         <Divider orientation="left" plain>การเผยแพร่</Divider>
-        <Row gutter={12}>
+        <Row gutter={16}>
           <Col span={8}>
-            <Form.Item label="เผยแพร่ทันที?">
+            <Form.Item label="เผยแพร่ทันที">
               <Switch
                 checked={formState.isPublished}
                 onChange={ck => setFormState({ ...formState, isPublished: ck })}
@@ -177,7 +259,10 @@ export default function DeadlineModal({
             </Form.Item>
           </Col>
           <Col span={16}>
-            <Form.Item label="ตั้งเวลาเผยแพร่ (ถ้ามี)" tooltip="ถ้าระบุและยังไม่ถึงเวลา นักศึกษาจะยังไม่เห็น">
+            <Form.Item 
+              label="กำหนดเวลาเผยแพร่" 
+              tooltip="นักศึกษาจะเห็นเมื่อถึงเวลาที่กำหนด"
+            >
               <DatePicker
                 showTime
                 style={{ width:'100%' }}
@@ -185,79 +270,127 @@ export default function DeadlineModal({
                 onChange={dt => setFormState({ ...formState, publishAt: dt })}
                 locale={buddhistLocale}
                 placement="bottomLeft"
+                placeholder="ไม่ระบุ = เผยแพร่ทันทีเมื่อบันทึก"
               />
             </Form.Item>
           </Col>
         </Row>
-        <Form.Item label="ขอบเขตการมองเห็น" tooltip="จำกัดผู้เห็นตามประเภท">
+        <Form.Item label="ขอบเขต" tooltip="จำกัดผู้ที่เห็นกำหนดการนี้">
           <Select
             value={formState.visibilityScope}
             onChange={v => setFormState({ ...formState, visibilityScope: v })}
           >
             <Option value="ALL">ทั้งหมด</Option>
-            <Option value="INTERNSHIP_ONLY">เฉพาะฝึกงาน</Option>
-            <Option value="PROJECT_ONLY">เฉพาะโครงงาน</Option>
+            <Option value="INTERNSHIP_ONLY">เฉพาะนักศึกษาฝึกงาน</Option>
+            <Option value="PROJECT_ONLY">เฉพาะนักศึกษาโครงงาน</Option>
           </Select>
         </Form.Item>
-        <Divider orientation="left" plain>วันที่ / ช่วงเวลา</Divider>
-        <Alert type="info" showIcon style={{ marginBottom:12 }} message="เลือก 'วันที่เดี่ยว' หรือกำหนดแบบช่วงเวลา (ถ้าใส่แบบช่วงเวลา ระบบจะใช้วันสิ้นสุดเป็นวันสุดท้าย)" />
-        <Row gutter={12}>
-          <Col span={12}>
-            <Form.Item label="วันที่ (หากไม่ใช้ช่วงเวลา)" required={!(formState.windowStartDate && formState.windowEndDate)}>
+        <Divider orientation="left" plain>วันที่และเวลา</Divider>
+        <Alert 
+          type="info" 
+          showIcon 
+          style={{ marginBottom: 16 }} 
+          message="กำหนดวันที่เดียว หรือระบุช่วงเวลา (เลือกได้อย่างใดอย่างหนึ่ง)" 
+        />
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item 
+              label="วันที่" 
+              required={!(formState.windowStartDate && formState.windowEndDate)}
+              extra={formState.windowStartDate || formState.windowEndDate ? "ปิดการใช้งานเพราะเลือกช่วงเวลาแล้ว" : null}
+            >
               <DatePicker
                 style={{ width: '100%' }}
                 value={formState.date}
-                onChange={date => setFormState({ ...formState, date })}
-                format={v => v ? moment(v).add(543,'year').format('D MMMM YYYY') : ''}
+                onChange={date => {
+                  // เมื่อเลือกวันที่เดียว ให้เคลียร์ช่วงเวลา
+                  setFormState({ 
+                    ...formState, 
+                    date,
+                    windowStartDate: null,
+                    windowEndDate: null,
+                    windowStartTime: null,
+                    windowEndTime: null,
+                    allDay: false
+                  });
+                }}
                 locale={buddhistLocale}
                 placeholder="เลือกวันที่"
-                disabled={!!(formState.windowStartDate && formState.windowEndDate)}
+                disabled={!!(formState.windowStartDate || formState.windowEndDate)}
                 placement="bottomLeft"
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item label="เวลา (ของวันที่เดียว)">
+          <Col xs={24} sm={12}>
+            <Form.Item 
+              label="เวลา"
+              extra={formState.windowStartDate || formState.windowEndDate ? "ปิดการใช้งานเพราะเลือกช่วงเวลาแล้ว" : null}
+            >
               <TimePicker
                 style={{ width: '100%' }}
                 value={formState.time}
                 onChange={time => setFormState({ ...formState, time })}
                 format="HH:mm"
-                placeholder="ไม่ระบุ = 23:59"
-                disabled={!!(formState.windowStartDate && formState.windowEndDate)}
+                placeholder="ไม่ระบุ = 23:59 น."
+                disabled={!!(formState.windowStartDate || formState.windowEndDate)}
               />
             </Form.Item>
           </Col>
         </Row>
-        <Row gutter={12}>
-          <Col span={8}>
-            <Form.Item label="เริ่ม (วัน)">
+        <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: 12, marginTop: 12 }}>
+          หรือกำหนดแบบช่วงเวลา (ใช้สำหรับกิจกรรมที่มีหลายวัน)
+        </Text>
+        <Row gutter={16}>
+          <Col xs={24} sm={10}>
+            <Form.Item 
+              label="วันเริ่ม"
+              extra={formState.date ? "ปิดการใช้งานเพราะเลือกวันที่เดียวแล้ว" : null}
+            >
               <DatePicker
                 style={{ width:'100%' }}
                 value={formState.windowStartDate}
-                onChange={v => setFormState({ ...formState, windowStartDate: v })}
-                format={v => v ? moment(v).add(543,'year').format('D MMM YYYY') : ''}
+                onChange={v => {
+                  // เมื่อเลือกช่วงเวลา ให้เคลียร์วันที่เดียว
+                  setFormState({ 
+                    ...formState, 
+                    windowStartDate: v,
+                    date: null,
+                    time: null
+                  });
+                }}
                 locale={buddhistLocale}
-                placeholder="วันเริ่ม"
+                placeholder="เลือกวันเริ่ม"
                 placement="bottomLeft"
+                disabled={!!formState.date}
               />
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="สิ้นสุด (วัน)">
+          <Col xs={24} sm={10}>
+            <Form.Item 
+              label="วันสิ้นสุด"
+              extra={formState.date ? "ปิดการใช้งานเพราะเลือกวันที่เดียวแล้ว" : null}
+            >
               <DatePicker
                 style={{ width:'100%' }}
                 value={formState.windowEndDate}
-                onChange={v => setFormState({ ...formState, windowEndDate: v })}
-                format={v => v ? moment(v).add(543,'year').format('D MMM YYYY') : ''}
+                onChange={v => {
+                  // เมื่อเลือกช่วงเวลา ให้เคลียร์วันที่เดียว
+                  setFormState({ 
+                    ...formState, 
+                    windowEndDate: v,
+                    date: null,
+                    time: null
+                  });
+                }}
                 locale={buddhistLocale}
-                placeholder="วันสิ้นสุด"
+                placeholder="เลือกวันสิ้นสุด"
                 placement="bottomLeft"
+                disabled={!!formState.date}
               />
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="ทั้งวัน?">
+          <Col xs={24} sm={4}>
+            <Form.Item label="ทั้งวัน">
               <Select
                 value={formState.allDay ? 'yes' : 'no'}
                 onChange={v => setFormState({ ...formState, allDay: v === 'yes' })}
@@ -270,23 +403,25 @@ export default function DeadlineModal({
           </Col>
           {formState.windowStartDate && formState.windowEndDate && !formState.allDay && (
             <>
-              <Col span={8}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="เวลาเริ่ม">
                   <TimePicker
                     style={{ width:'100%' }}
                     value={formState.windowStartTime}
                     onChange={v => setFormState({ ...formState, windowStartTime: v })}
                     format="HH:mm"
+                    placeholder="00:00"
                   />
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="เวลาสิ้นสุด">
                   <TimePicker
                     style={{ width:'100%' }}
                     value={formState.windowEndTime}
                     onChange={v => setFormState({ ...formState, windowEndTime: v })}
                     format="HH:mm"
+                    placeholder="23:59"
                   />
                 </Form.Item>
               </Col>
@@ -295,67 +430,80 @@ export default function DeadlineModal({
         </Row>
         {formState.deadlineType === 'SUBMISSION' && (
           <>
-            <Divider orientation="left" plain>ตั้งค่าการส่งเอกสาร</Divider>
-            <Row gutter={12}>
-              <Col span={12}>
-                <Form.Item label="เปิดรับส่งไฟล์?">
+            <Divider orientation="left" plain>การส่งเอกสาร</Divider>
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item label="เปิดรับส่งเอกสาร">
                   <Switch
                     checked={formState.acceptingSubmissions}
                     onChange={v => setFormState({ ...formState, acceptingSubmissions: v })}
+                    checkedChildren="เปิด"
+                    unCheckedChildren="ปิด"
                   />
                 </Form.Item>
               </Col>
-              <Col span={12}>
-                <Form.Item label="อนุญาตส่งล่าช้า?">
+              <Col xs={24} sm={12}>
+                <Form.Item label="อนุญาตส่งช้า">
                   <Switch
                     checked={formState.allowLate}
                     onChange={v => setFormState({ ...formState, allowLate: v })}
+                    checkedChildren="อนุญาต"
+                    unCheckedChildren="ไม่อนุญาต"
                   />
                 </Form.Item>
               </Col>
             </Row>
             {formState.allowLate && (
-                <Row gutter={12}>
-                  <Col span={24}>
-                    <LateSubmissionDuration
-                      gracePeriodMinutes={formState.gracePeriodMinutes}
-                      setFormState={setFormState}
-                      formState={formState}
-                    />
-                  </Col>
-                <Col span={12}>
-                  <Form.Item label="ล็อกหลังหมดเวลาล่าช้า?" tooltip="ถ้าเปิดจะไม่ให้ส่งหลังเลยเวลาล่าช้า">
-                    <Switch
-                      checked={formState.lockAfterDeadline}
-                      onChange={v => setFormState({ ...formState, lockAfterDeadline: v })}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <>
+                <LateSubmissionDuration
+                  gracePeriodMinutes={formState.gracePeriodMinutes}
+                  setFormState={setFormState}
+                  formState={formState}
+                />
+                <Form.Item label="ล็อกหลังหมดเวลาผ่อนผัน" tooltip="ปิดการส่งหลังพ้นช่วงเวลาผ่อนผัน">
+                  <Switch
+                    checked={formState.lockAfterDeadline}
+                    onChange={v => setFormState({ ...formState, lockAfterDeadline: v })}
+                    checkedChildren="ล็อก"
+                    unCheckedChildren="ไม่ล็อก"
+                  />
+                </Form.Item>
+              </>
             )}
           </>
         )}
-  {formState.deadlineType !== 'SUBMISSION' && (
-          <Alert type="warning" showIcon style={{ marginTop: 8 }} message={<span>ประเภท {formState.deadlineType} จะไม่เปิดรับไฟล์ (ระบบจะปิดการรับส่งอัตโนมัติ)</span>} />
-        )}
-        <Divider orientation="left" plain>ภาคเรียน / ปีการศึกษา</Divider>
-        <Form.Item label="ภาคเรียน" tooltip="ภาคเรียนที่เดดไลน์นี้อยู่">
-          <Select
-            value={formState.semester}
-            onChange={v => setFormState({ ...formState, semester: v })}
-          >
-            <Option value={1}>ภาคเรียนที่ 1</Option>
-            <Option value={2}>ภาคเรียนที่ 2</Option>
-            <Option value={3}>ภาคฤดูร้อน</Option>
-          </Select>
-        </Form.Item>
-        <Form.Item label="ปีการศึกษา" tooltip="ระบุเป็น พ.ศ. (เช่น 2567)">
-          <Input
-            value={formState.academicYear}
-            onChange={e => setFormState({ ...formState, academicYear: e.target.value })}
-            placeholder="เช่น 2567"
+        {formState.deadlineType !== 'SUBMISSION' && (
+          <Alert 
+            type="info" 
+            showIcon 
+            style={{ marginTop: 8 }} 
+            message="ประเภท 'ประกาศ' จะไม่เปิดรับการส่งเอกสาร" 
           />
-        </Form.Item>
+        )}
+        <Divider orientation="left" plain>ภาคเรียนและปีการศึกษา</Divider>
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item label="ภาคเรียน">
+              <Select
+                value={formState.semester}
+                onChange={v => setFormState({ ...formState, semester: v })}
+              >
+                <Option value={1}>ภาคเรียนที่ 1</Option>
+                <Option value={2}>ภาคเรียนที่ 2</Option>
+                <Option value={3}>ภาคฤดูร้อน</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item label="ปีการศึกษา (พ.ศ.)">
+              <Input
+                value={formState.academicYear}
+                onChange={e => setFormState({ ...formState, academicYear: e.target.value })}
+                placeholder="เช่น 2567"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
         {error && <Alert type="error" message={error} />}
       </Form>
     </Modal>

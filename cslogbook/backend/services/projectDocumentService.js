@@ -1,6 +1,7 @@
 const { sequelize } = require('../config/database');
 let ProjectDocument;
 let ProjectMember;
+let ProjectWorkflowState;
 let Student;
 let Academic;
 let ProjectTrack;
@@ -25,6 +26,7 @@ const attachModels = () => {
   ({
     ProjectDocument,
     ProjectMember,
+    ProjectWorkflowState,
     Student,
     Academic,
     ProjectTrack,
@@ -275,6 +277,13 @@ class ProjectDocumentService {
           model: ProjectTrack,
           as: 'tracks'
         }],
+        transaction: t
+      });
+
+      // 🆕 สร้าง ProjectWorkflowState สำหรับโครงงานใหม่
+      await ProjectWorkflowState.createForProject(project.projectId, {
+        phase: payload.advisorId ? 'ADVISOR_ASSIGNED' : 'DRAFT',
+        userId: studentId,
         transaction: t
       });
 
@@ -888,6 +897,16 @@ class ProjectDocumentService {
       });
 
   const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
+
+      // 🆕 อัปเดต meeting count ใน ProjectWorkflowState
+      if (meetingMetrics.totalLogs !== undefined || meetingMetrics.approvedLogs !== undefined) {
+        await ProjectWorkflowState.updateMeetingCount(
+          project.projectId,
+          meetingMetrics.totalLogs || 0,
+          meetingMetrics.approvedLogs || 0,
+          { userId: null, transaction }
+        );
+      }
 
       for (const student of students) {
         const state = this.computeProjectWorkflowState(project, student, meetingMetrics);

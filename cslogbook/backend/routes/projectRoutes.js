@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { checkProjectEligibility } = require('../middleware/projectEligibilityMiddleware');
+const { checkDeadlineBeforeSubmission } = require('../middleware/deadlineEnforcementMiddleware');
 const controller = require('../controllers/projectDocumentController');
 const topicExamResultController = require('../controllers/topicExamResultController');
 const projectExamResultController = require('../controllers/projectExamResultController');
@@ -29,7 +30,7 @@ router.get('/system-test/advisor-queue', projectSystemTestController.advisorQueu
 router.get('/system-test/staff-queue', projectSystemTestController.staffQueue);
 
 router.get('/:id/system-test/request', projectSystemTestController.getLatestRequest);
-router.post('/:id/system-test/request', uploadSystemTestRequest.single('requestFile'), projectSystemTestController.submitRequest);
+router.post('/:id/system-test/request', checkDeadlineBeforeSubmission('SUBMISSION'), uploadSystemTestRequest.single('requestFile'), projectSystemTestController.submitRequest);
 router.post('/:id/system-test/request/advisor-decision', projectSystemTestController.submitAdvisorDecision);
 router.post('/:id/system-test/request/staff-decision', projectSystemTestController.submitStaffDecision);
 router.post('/:id/system-test/request/evidence', uploadSystemTestEvidence.single('evidenceFile'), projectSystemTestController.uploadEvidence);
@@ -39,14 +40,19 @@ router.get('/kp02/advisor-queue', projectDefenseRequestController.getAdvisorQueu
 router.get('/kp02/staff-queue', projectDefenseRequestController.getStaffVerificationQueue);
 router.get('/kp02/staff-queue/export', projectDefenseRequestController.exportStaffVerificationList);
 
-// คำขอสอบโครงงานพิเศษ 1 (KP02 Project1)
+// คำขอสอบโครงงานพิเศษ 1 (KP02 Project1) และ Thesis
 router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
-router.post('/:id/kp02', projectDefenseRequestController.submitProject1Request);
+router.post('/:id/kp02', checkDeadlineBeforeSubmission('SUBMISSION'), projectDefenseRequestController.submitProject1Request);
 router.post('/:id/kp02/advisor-approve', projectDefenseRequestController.submitAdvisorDecision);
 router.post('/:id/kp02/verify', projectDefenseRequestController.verifyProject1Request);
 router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
 
 router.patch('/:id/final-document/status', projectExamResultController.updateFinalDocumentStatus);
+
+// Workflow state - เพิ่มเข้ามาก่อน route /:id เพื่อไม่ให้ชน
+const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');
+router.get('/:id/workflow-state/deadlines', checkProjectEligibility, projectWorkflowStateController.getProjectStateWithDeadlines);
+router.get('/:id/workflow-state', checkProjectEligibility, projectWorkflowStateController.getProjectState);
 
 // รายละเอียดโครงงาน (+ summary optional) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 router.get('/:id', checkProjectEligibility, async (req, res, next) => {

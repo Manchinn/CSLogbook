@@ -13,6 +13,7 @@ const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
 // เพิ่ม project purge scheduler
 const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
 const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
+const projectDeadlineMonitor = require('./projectDeadlineMonitor');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -64,6 +65,22 @@ class AgentManager {
         },
         get isRunning() {
           return academicSemesterScheduler.isRunning;
+        }
+      },
+      projectDeadlineMonitor: {
+        start: () => {
+          logger.info('Starting project deadline monitor');
+          const schedule = process.env.PROJECT_DEADLINE_MONITOR_SCHEDULE || '0 * * * *'; // ทุกชั่วโมง
+          projectDeadlineMonitor.start(schedule);
+          return true;
+        },
+        stop: () => {
+          logger.info('Stopping project deadline monitor');
+          projectDeadlineMonitor.stop();
+          return true;
+        },
+        get isRunning() {
+          return projectDeadlineMonitor.isRunning;
         }
       },
       // เพิ่ม agent อื่นๆ ที่นี่
