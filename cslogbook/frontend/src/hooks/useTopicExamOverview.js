@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchTopicExamOverview } from '../services/topicExamService';
 
 const DEFAULT_FILTERS = {
-  status: 'all',
+  status: 'draft',
   search: '',
   advisorId: '',
   readyOnly: false,
