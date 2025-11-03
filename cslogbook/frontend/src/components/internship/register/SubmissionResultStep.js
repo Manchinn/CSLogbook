@@ -541,10 +541,12 @@ const SubmissionResultStep = ({
         }
         style={{ marginBottom: 24 }}
       >
-        <Timeline>
-            {/* แจ้งเตือนเมื่อ CS05 ถูกปฏิเสธ */}
-            {cs05Status === "rejected" && (
-              <Timeline.Item color="red">
+        <Timeline
+          items={[
+            // แจ้งเตือนเมื่อ CS05 ถูกปฏิเสธ
+            ...(cs05Status === "rejected" ? [{
+              color: "red",
+              children: (
                 <Alert
                   type="error"
                   showIcon
@@ -560,11 +562,12 @@ const SubmissionResultStep = ({
                     </div>
                   }
                 />
-              </Timeline.Item>
-            )}
-            {/* แจ้งเตือนเมื่อหนังสือตอบรับถูกปฏิเสธ */}
-            {acceptanceLetterStatus === "rejected" && (
-              <Timeline.Item color="red">
+              )
+            }] : []),
+            // แจ้งเตือนเมื่อหนังสือตอบรับถูกปฏิเสธ
+            ...(acceptanceLetterStatus === "rejected" ? [{
+              color: "red",
+              children: (
                 <Alert
                   type="error"
                   showIcon
@@ -582,119 +585,121 @@ const SubmissionResultStep = ({
                     </div>
                   }
                 />
-              </Timeline.Item>
-            )}
-            {/* แสดงสถานะหนังสือส่งตัวหากมี error หรือยังไม่พร้อม */}
-            {referralLetterStatus && ["error", "not_ready"].includes(referralLetterStatus) && referralLetterInfo?.statusMessage && (
-              <Timeline.Item color={referralLetterStatus === "error" ? "red" : "gray"}>
+              )
+            }] : []),
+            // แสดงสถานะหนังสือส่งตัวหากมี error หรือยังไม่พร้อม
+            ...(referralLetterStatus && ["error", "not_ready"].includes(referralLetterStatus) && referralLetterInfo?.statusMessage ? [{
+              color: referralLetterStatus === "error" ? "red" : "gray",
+              children: (
                 <Alert
                   type={referralLetterStatus === "error" ? "error" : "info"}
                   showIcon
                   message={referralLetterStatus === "error" ? "ไม่สามารถตรวจสอบหนังสือส่งตัวได้" : "หนังสือส่งตัวยังไม่พร้อม"}
                   description={referralLetterInfo.statusMessage}
                 />
-              </Timeline.Item>
-            )}
-          {Array.isArray(internshipProcessSteps) &&
-          internshipProcessSteps.length > 0 ? (
-            internshipProcessSteps.map((step, index) => (
-              <Timeline.Item
-                key={index}
-                dot={
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "50%",
-                      backgroundColor: step.color,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "white",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {index + 1}
-                  </div>
-                }
-                color={step.color}
-              >
-                <div style={{ paddingLeft: 16 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text strong style={{ fontSize: "16px" }}>
-                      {step.title}
-                    </Text>
-                    <span
+              )
+            }] : []),
+            // ขั้นตอนหลัก
+            ...(Array.isArray(internshipProcessSteps) && internshipProcessSteps.length > 0
+              ? internshipProcessSteps.map((step, index) => ({
+                  key: index,
+                  color: step.color,
+                  dot: (
+                    <div
                       style={{
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        backgroundColor:
-                          step.status === "finish"
-                            ? "#f6ffed"
-                            : step.status === "process"
-                            ? "#e6f7ff"
-                            : "#fafafa",
-                        color:
-                          step.status === "finish"
-                            ? "#52c41a"
-                            : step.status === "process"
-                            ? "#1890ff"
-                            : "#8c8c8c",
-                        border: `1px solid ${
-                          step.status === "finish"
-                            ? "#b7eb8f"
-                            : step.status === "process"
-                            ? "#91d5ff"
-                            : "#d9d9d9"
-                        }`,
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        backgroundColor: step.color,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        fontWeight: "bold",
+                        fontSize: "14px",
                       }}
                     >
-                      {step.status === "finish"
-                        ? "เสร็จสิ้น"
-                        : step.status === "process"
-                        ? "กำลังดำเนินการ"
-                        : "รอดำเนินการ"}
-                    </span>
-                  </div>
-                  <Text type="secondary">{step.description}</Text>
+                      {index + 1}
+                    </div>
+                  ),
+                  children: (
+                    <div style={{ paddingLeft: 16 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <Text strong style={{ fontSize: "16px" }}>
+                          {step.title}
+                        </Text>
+                        <span
+                          style={{
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                            backgroundColor:
+                              step.status === "finish"
+                                ? "#f6ffed"
+                                : step.status === "process"
+                                ? "#e6f7ff"
+                                : "#fafafa",
+                            color:
+                              step.status === "finish"
+                                ? "#52c41a"
+                                : step.status === "process"
+                                ? "#1890ff"
+                                : "#8c8c8c",
+                            border: `1px solid ${
+                              step.status === "finish"
+                                ? "#b7eb8f"
+                                : step.status === "process"
+                                ? "#91d5ff"
+                                : "#d9d9d9"
+                            }`,
+                          }}
+                        >
+                          {step.status === "finish"
+                            ? "เสร็จสิ้น"
+                            : step.status === "process"
+                            ? "กำลังดำเนินการ"
+                            : "รอดำเนินการ"}
+                        </span>
+                      </div>
+                      <Text type="secondary">{step.description}</Text>
 
-                  {/* แสดงรายละเอียดเพิ่มเติม */}
-                  {step.status === "process" && (
-                    <Alert
-                      message="รายละเอียดขั้นตอนนี้"
-                      description={
-                        <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-                          {step.details?.map((detail, detailIndex) => (
-                            <li key={detailIndex}>{detail}</li>
-                          )) || []}
-                        </ul>
-                      }
-                      type="info"
-                      showIcon
-                      style={{ marginTop: 12 }}
-                    />
-                  )}
+                      {/* แสดงรายละเอียดเพิ่มเติม */}
+                      {step.status === "process" && (
+                        <Alert
+                          message="รายละเอียดขั้นตอนนี้"
+                          description={
+                            <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                              {step.details?.map((detail, detailIndex) => (
+                                <li key={detailIndex}>{detail}</li>
+                              )) || []}
+                            </ul>
+                          }
+                          type="info"
+                          showIcon
+                          style={{ marginTop: 12 }}
+                        />
+                      )}
 
-                  {/* แสดงปุ่ม actions ถ้ามี */}
-                  {step.actions && step.actions}
-                </div>
-              </Timeline.Item>
-            ))
-          ) : (
-            <Timeline.Item>
-              <Alert message="กำลังโหลดข้อมูลขั้นตอน..." type="info" showIcon />
-            </Timeline.Item>
-          )}
-        </Timeline>
+                      {/* แสดงปุ่ม actions ถ้ามี */}
+                      {step.actions && step.actions}
+                    </div>
+                  )
+                }))
+              : [{
+                  children: (
+                    <Alert message="กำลังโหลดข้อมูลขั้นตอน..." type="info" showIcon />
+                  )
+                }]
+            )
+          ]}
+        />
       </Card>
     </div>
   );

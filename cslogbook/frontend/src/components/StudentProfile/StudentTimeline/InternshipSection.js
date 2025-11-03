@@ -316,28 +316,29 @@ const InternshipSection = () => {
       }
     >
       {isEnrolledInternship ? (
-        <Timeline>
-          {steps.map((step) => {
+        <Timeline
+          items={steps.map((step) => {
             const status = getStepStatus(step.key);
-            return (
-              <Timeline.Item
-                key={step.key}
-                color={getColor(status)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Typography.Text strong style={{ fontSize: 16 }}>{step.title}</Typography.Text>
-                  <Tag color={getColor(status)} size="small">
-                    {getStatusText(status)}
-                  </Tag>
-                </div>
-                <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
-                  {step.description}
-                </div>
-                {step.action}
-              </Timeline.Item>
-            );
+            return {
+              key: step.key,
+              color: getColor(status),
+              children: (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <Typography.Text strong style={{ fontSize: 16 }}>{step.title}</Typography.Text>
+                    <Tag color={getColor(status)} size="small">
+                      {getStatusText(status)}
+                    </Tag>
+                  </div>
+                  <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
+                    {step.description}
+                  </div>
+                  {step.action}
+                </>
+              )
+            };
           })}
-        </Timeline>
+        />
       ) : (
         <div style={{ padding: '32px 0', textAlign: 'center' }}>
           <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />

@@ -13,10 +13,11 @@ export const studentService = {
     }
   },
 
-  // ดึงข้อมูลนักศึกษาจาก ID
-  getStudentInfo: async (studentId) => {
+  // ดึงข้อมูลนักศึกษาจาก studentCode (รหัสนักศึกษา เช่น 651050xxx)
+  getStudentInfo: async (studentCode) => {
     try {
-      const response = await apiClient.get(`/students/${studentId}`);
+      // NOTE: Backend expects studentCode (e.g., "651050xxx"), NOT userId
+      const response = await apiClient.get(`/students/${studentCode}`);
       return response.data;
     } catch (error) {
       console.error("Error fetching student info:", error);

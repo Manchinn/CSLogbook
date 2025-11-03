@@ -62,25 +62,43 @@ const CertificateStatusCard = ({
               คำขอของคุณได้รับการส่งเรียบร้อยแล้ว เจ้าหน้าที่ภาควิชากำลังตรวจสอบและออกหนังสือรับรอง
             </Text>
 
-            <Timeline style={{ textAlign: 'left', marginTop: 32 }}>
-              <Timeline.Item color="green" dot={<CheckCircleOutlined />}>
-                <strong>ส่งคำขอหนังสือรับรอง</strong>
-                <br />
-                <Text type="secondary">เรียบร้อยแล้ว</Text>
-              </Timeline.Item>
-              
-              <Timeline.Item color="blue" dot={<ClockCircleOutlined />}>
-                <strong>เจ้าหน้าที่ภาควิชาตรวจสอบเอกสาร</strong>
-                <br />
-                <Text type="secondary">กำลังดำเนินการ...</Text>
-              </Timeline.Item>
-              
-              <Timeline.Item color="gray">
-                <strong>หนังสือรับรองพร้อมดาวน์โหลด</strong>
-                <br />
-                <Text type="secondary">รอการดำเนินการ</Text>
-              </Timeline.Item>
-            </Timeline>
+            <Timeline 
+              style={{ textAlign: 'left', marginTop: 32 }}
+              items={[
+                {
+                  color: "green",
+                  dot: <CheckCircleOutlined />,
+                  children: (
+                    <>
+                      <strong>ส่งคำขอหนังสือรับรอง</strong>
+                      <br />
+                      <Text type="secondary">เรียบร้อยแล้ว</Text>
+                    </>
+                  )
+                },
+                {
+                  color: "blue",
+                  dot: <ClockCircleOutlined />,
+                  children: (
+                    <>
+                      <strong>เจ้าหน้าที่ภาควิชาตรวจสอบเอกสาร</strong>
+                      <br />
+                      <Text type="secondary">กำลังดำเนินการ...</Text>
+                    </>
+                  )
+                },
+                {
+                  color: "gray",
+                  children: (
+                    <>
+                      <strong>หนังสือรับรองพร้อมดาวน์โหลด</strong>
+                      <br />
+                      <Text type="secondary">รอการดำเนินการ</Text>
+                    </>
+                  )
+                }
+              ]}
+            />
 
             <Alert
               message="ระยะเวลาการดำเนินการ"
