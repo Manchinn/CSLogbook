@@ -1,17 +1,18 @@
 import React from 'react';
 import { CATEGORY_MAP } from '../../internship/evaluation/evaluationConfig';
-import { Card, Descriptions, Space, Tag, Progress, Tooltip, Divider, Table, Skeleton } from 'antd';
+import { Card, Descriptions, Space, Tag, Progress, Tooltip, Divider, Table, Skeleton, Button, Typography } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dayjs from '../../../utils/dayjs';
 
 /**
  * แสดงรายละเอียดคำขอหนังสือรับรอง (ใช้ภายใน Drawer)
  * data shape ดูจาก service getCertificateRequestDetail
  */
-const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, onReject }) => { // เปลี่ยนชื่อ prop
+const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, onReject }) => {
   if (loading) return <Skeleton active paragraph={{ rows: 6 }} />;
   if (!data) return <div>ไม่พบข้อมูล</div>;
 
-  const { student, internship, eligibility, evaluationDetail, status } = data;
+  const { student, internship, eligibility, evaluationDetail, status, requestDate, certificateNumber, processedAt, processedBy, remarks } = data;
   const hourPct = Math.min(100, Math.round((eligibility.hours.current / eligibility.hours.required) * 100));
   const hasScore = typeof evaluationDetail.overallScore === 'number';
 
@@ -39,14 +40,45 @@ const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, 
 
   const formatDate = (d) => d ? dayjs(d).format('DD MMM BBBB') : '-';
 
+  const { Text } = Typography;
+
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      {/* ข้อมูลคำขอ */}
+      <Card size="small" title="ข้อมูลคำขอ">
+        <Descriptions column={2} size="small" bordered>
+          <Descriptions.Item label="วันที่ขอ">{formatDate(requestDate)}</Descriptions.Item>
+          <Descriptions.Item label="สถานะ">
+            {status === 'pending' && <Tag color="orange">รอดำเนินการ</Tag>}
+            {status === 'approved' && <Tag color="green">อนุมัติแล้ว</Tag>}
+            {status === 'rejected' && <Tag color="red">ปฏิเสธ</Tag>}
+          </Descriptions.Item>
+          {certificateNumber && (
+            <Descriptions.Item label="หมายเลขหนังสือรับรอง" span={2}>
+              <Text strong>{certificateNumber}</Text>
+            </Descriptions.Item>
+          )}
+          {processedAt && (
+            <Descriptions.Item label="วันที่ดำเนินการ">{formatDate(processedAt)}</Descriptions.Item>
+          )}
+          {processedBy && (
+            <Descriptions.Item label="ผู้ดำเนินการ">ID: {processedBy}</Descriptions.Item>
+          )}
+          {remarks && status === 'rejected' && (
+            <Descriptions.Item label="เหตุผลการปฏิเสธ" span={2}>
+              <Text type="danger">{remarks}</Text>
+            </Descriptions.Item>
+          )}
+        </Descriptions>
+      </Card>
+
       <Card size="small" title="ข้อมูลนักศึกษา">
         <Descriptions column={2} size="small" bordered>
           <Descriptions.Item label="ชื่อ">{student?.fullName || '-'}</Descriptions.Item>
           <Descriptions.Item label="รหัสนักศึกษา">{student?.studentCode || '-'}</Descriptions.Item>
           <Descriptions.Item label="อีเมล">{student?.email || '-'}</Descriptions.Item>
-            <Descriptions.Item label="ตำแหน่งที่ฝึกงาน" span={2}>{student?.internshipPosition || '-'}</Descriptions.Item>
+          <Descriptions.Item label="เบอร์โทร">{student?.phone || '-'}</Descriptions.Item>
+          <Descriptions.Item label="ตำแหน่งที่ฝึกงาน" span={2}>{student?.internshipPosition || '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
@@ -75,7 +107,7 @@ const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, 
             ประเมิน {eligibility.evaluation.status}{hasScore && ` (${eligibility.evaluation.overallScore}/${eligibility.evaluation.passScore})`}
           </Tag>
           {eligibility.summary?.available && (
-            <Tag color="geekblue" onClick={onOpenLogbookPDF} style={{ cursor: 'pointer' }}>ดู PDF Logbook</Tag> // ปรับข้อความและ handler
+            <Tag color="geekblue" onClick={onOpenLogbookPDF} style={{ cursor: 'pointer' }}>ดู PDF Logbook</Tag>
           )}
         </Space>
       </Card>
@@ -87,10 +119,22 @@ const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, 
           <Space>
             {hasScore && <Tag color={evaluationDetail.passed ? 'green' : 'red'}>{evaluationDetail.overallScore}/{evaluationDetail.passScore}</Tag>}
             {!hasScore && <Tag color="blue">{eligibility.evaluation.status}</Tag>}
-            {['pending'].includes(status) && (
+            {status === 'pending' && (
               <Space>
-                <button type="button" onClick={onApprove} style={{ border: '1px solid #52c41a', background: '#52c41a', color: '#fff', padding: '2px 8px', borderRadius: 4, cursor: 'pointer' }}>อนุมัติ</button>
-                <button type="button" onClick={onReject} style={{ border: '1px solid #ff4d4f', background: '#ff4d4f', color: '#fff', padding: '2px 8px', borderRadius: 4, cursor: 'pointer' }}>ปฏิเสธ</button>
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  onClick={onApprove}
+                >
+                  อนุมัติ
+                </Button>
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  onClick={onReject}
+                >
+                  ปฏิเสธ
+                </Button>
               </Space>
             )}
           </Space>
