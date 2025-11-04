@@ -429,42 +429,104 @@ const calculateStudentStatus = (yearLevel) => {
 };
 
 /**
- * คำนวณปีการศึกษาปัจจุบัน
- * @returns {number} ปีการศึกษาในรูปแบบ พ.ศ.
+ * คำนวณปีการศึกษาปัจจุบัน (อ้างอิงจาก Academic model ในฐานข้อมูล)
+ * @returns {Promise<number>} ปีการศึกษาในรูปแบบ พ.ศ.
  */
-const getCurrentAcademicYear = () => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
-  const currentMonth = currentDate.getMonth() + 1;
+const getCurrentAcademicYear = async () => {
+  try {
+    const { Academic } = require('../models');
+    
+    // ดึงข้อมูลปีการศึกษาปัจจุบันจาก Academic model
+    const currentAcademic = await Academic.findOne({ 
+      where: { isCurrent: true },
+      order: [['updated_at', 'DESC']]
+    });
+    
+    if (currentAcademic && currentAcademic.academicYear) {
+      return currentAcademic.academicYear;
+    }
+    
+    // Fallback: คำนวณจากวันที่ปัจจุบันถ้าไม่พบข้อมูลในฐานข้อมูล
+    console.warn('getCurrentAcademicYear: ไม่พบข้อมูลปีการศึกษาในฐานข้อมูล ใช้การคำนวณจากวันที่');
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
+    const currentMonth = currentDate.getMonth() + 1;
 
-  // หลัง มีนาคม ถึงก่อน กรกฎาคม = เตรียมขึ้นปีการศึกษาใหม่
-  if (
-    currentMonth > CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH &&
-    currentMonth < CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH
-  ) {
-    return currentYear;
+    // หลัง มีนาคม ถึงก่อน กรกฎาคม = เตรียมขึ้นปีการศึกษาใหม่
+    if (
+      currentMonth > CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH &&
+      currentMonth < CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH
+    ) {
+      return currentYear;
+    }
+
+    return currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH
+      ? currentYear
+      : currentYear - 1;
+  } catch (error) {
+    console.error('getCurrentAcademicYear: Error fetching from database:', error);
+    
+    // Fallback: คำนวณจากวันที่ปัจจุบัน
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() + CONSTANTS.THAI_YEAR_OFFSET;
+    const currentMonth = currentDate.getMonth() + 1;
+
+    if (
+      currentMonth > CONSTANTS.ACADEMIC_TERMS.SECOND.END_MONTH &&
+      currentMonth < CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH
+    ) {
+      return currentYear;
+    }
+
+    return currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH
+      ? currentYear
+      : currentYear - 1;
   }
-
-  return currentMonth >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_MONTH
-    ? currentYear
-    : currentYear - 1;
 };
 
 /**
- * คำนวณภาคเรียนปัจจุบัน (ใช้ค่าวันที่จริงจากฐานข้อมูลถ้ามี)
+ * คำนวณภาคเรียนปัจจุบัน (อ้างอิงจาก Academic model ในฐานข้อมูล)
+ * @returns {Promise<number>} ภาคเรียน (1, 2, หรือ 3)
+ */
+const getCurrentSemester = async () => {
+  try {
+    const { Academic } = require('../models');
+    
+    // ดึงข้อมูลภาคเรียนปัจจุบันจาก Academic model
+    const currentAcademic = await Academic.findOne({ 
+      where: { isCurrent: true },
+      order: [['updated_at', 'DESC']]
+    });
+    
+    if (currentAcademic && currentAcademic.currentSemester) {
+      return currentAcademic.currentSemester;
+    }
+    
+    // Fallback: คำนวณจากวันที่ปัจจุบันถ้าไม่พบข้อมูลในฐานข้อมูล
+    console.warn('getCurrentSemester: ไม่พบข้อมูลภาคเรียนในฐานข้อมูล ใช้การคำนวณจากวันที่');
+    return calculateSemesterFromDate(new Date());
+  } catch (error) {
+    console.error('getCurrentSemester: Error fetching from database:', error);
+    
+    // Fallback: คำนวณจากวันที่ปัจจุบัน
+    return calculateSemesterFromDate(new Date());
+  }
+};
+
+/**
+ * คำนวณภาคเรียนจากวันที่ (ฟังก์ชันช่วยเหลือสำหรับ fallback)
+ * @param {Date} date - วันที่ที่ต้องการคำนวณ
  * @returns {number} ภาคเรียน (1, 2, หรือ 3)
  */
-const getCurrentSemester = () => {
-  const currentDate = new Date();
-
+const calculateSemesterFromDate = (date) => {
   // ถ้ามีการตั้งค่าวันที่จริงจากฐานข้อมูล ให้ใช้ค่านั้นเพื่อความแม่นยำ
   if (
     CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE &&
     CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE
   ) {
     if (
-      currentDate >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE &&
-      currentDate <= CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE
+      date >= CONSTANTS.ACADEMIC_TERMS.FIRST.START_DATE &&
+      date <= CONSTANTS.ACADEMIC_TERMS.FIRST.END_DATE
     ) {
       return 1;
     }
@@ -475,8 +537,8 @@ const getCurrentSemester = () => {
     CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE
   ) {
     if (
-      currentDate >= CONSTANTS.ACADEMIC_TERMS.SECOND.START_DATE &&
-      currentDate <= CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE
+      date >= CONSTANTS.ACADEMIC_TERMS.SECOND.START_DATE &&
+      date <= CONSTANTS.ACADEMIC_TERMS.SECOND.END_DATE
     ) {
       return 2;
     }
@@ -487,8 +549,8 @@ const getCurrentSemester = () => {
     CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE
   ) {
     if (
-      currentDate >= CONSTANTS.ACADEMIC_TERMS.SUMMER.START_DATE &&
-      currentDate <= CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE
+      date >= CONSTANTS.ACADEMIC_TERMS.SUMMER.START_DATE &&
+      date <= CONSTANTS.ACADEMIC_TERMS.SUMMER.END_DATE
     ) {
       return 3;
     }
@@ -496,7 +558,7 @@ const getCurrentSemester = () => {
 
   // ถ้าไม่มีการตั้งค่าวันที่จากฐานข้อมูลหรือวันที่ปัจจุบันไม่อยู่ในช่วงที่กำหนด
   // ให้ใช้การคำนวณจากเดือนแบบเดิม
-  const currentMonth = currentDate.getMonth() + 1;
+  const currentMonth = date.getMonth() + 1;
 
   // ภาคเรียนที่ 1: กรกฎาคม - พฤศจิกายน
   if (
@@ -584,12 +646,12 @@ const isEligibleForProject = (studentYear, totalCredits, majorCredits) => {
  * คำนวณข้อมูลปีการศึกษาจากรหัสนักศึกษา
  * @param {string} studentCode - รหัสนักศึกษา
  * @param {number} currentAcademicYear - ปีการศึกษาปัจจุบัน
- * @returns {object} - ข้อมูลปีการศึกษา
+ * @returns {Promise<object>} - ข้อมูลปีการศึกษา
  */
-const calculateAcademicInfo = (studentCode, currentAcademicYear) => {
+const calculateAcademicInfo = async (studentCode, currentAcademicYear) => {
   const enrollYear = 2500 + parseInt(studentCode.substring(0, 2));
   const yearLevel = currentAcademicYear - enrollYear + 1;
-  const semester = getCurrentSemester();
+  const semester = await getCurrentSemester();
 
   return {
     enrollmentYear: enrollYear,
