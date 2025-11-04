@@ -1,26 +1,63 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, Table, Tag, Space, Button, message, Tooltip } from 'antd';
-import { EyeOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-// dayjs removed (unused)
+import { Card, Table, Tag, Space, Button, message, Tooltip, Typography } from 'antd';
+import { 
+  EyeOutlined, 
+  DownloadOutlined, 
+  ReloadOutlined,
+  FileTextOutlined,
+  FileDoneOutlined,
+  SendOutlined 
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
 import { studentDocumentService } from './studentDocumentService';
-// ลบการใช้ PDFViewerModal (preview เปิดแท็บใหม่แทน)
-// ✅ นำเข้า service และ helper สำหรับสร้าง PDF แบบเดียวกับหน้า SubmissionResultStep
 import internshipService from '../../../services/internshipService';
 import { prepareFormDataForPDF } from '../../internship/register/helpers/pdfHelper';
 import officialDocumentService from '../../../services/PDFServices/OfficialDocumentService';
 
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
+
+const { Text } = Typography;
+
 // หมายเหตุ: หน้านี้ไม่มี formData / studentData จาก props จึงต้องดึง CS05 ปัจจุบันมาใช้เป็นแหล่งข้อมูล
 
-// แปลงชื่อเอกสารเป็นภาษาไทย
-const mapDocName = (name) => {
-  if (!name) return 'ไม่ระบุ';
+// แปลงชื่อเอกสารเป็นภาษาไทย พร้อมไอคอนและคำอธิบาย
+const getDocumentInfo = (name) => {
+  if (!name) return { title: 'ไม่ระบุ', icon: <FileTextOutlined />, description: '' };
   const n = name.toUpperCase();
   switch (n) {
-    case 'CS05': return 'คำร้องขอฝึกงาน (คพ.05)';
-    case 'REQUEST_LETTER': return 'หนังสือขอความอนุเคราะห์';
-    case 'ACCEPTANCE_LETTER': return 'หนังสือตอบรับการฝึกงาน (Template)';
-    case 'REFERRAL_LETTER': return 'หนังสือส่งตัวนักศึกษาฝึกงาน';
-    default: return name;
+    case 'CS05': 
+      return { 
+        title: 'คำร้องขอฝึกงาน (คพ.05)', 
+        icon: <FileTextOutlined style={{ color: '#1890ff' }} />,
+        description: 'แบบฟอร์มคำร้องขอฝึกงาน'
+      };
+    case 'REQUEST_LETTER': 
+      return { 
+        title: 'หนังสือขอความอนุเคราะห์', 
+        icon: <FileTextOutlined style={{ color: '#52c41a' }} />,
+        description: 'หนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน'
+      };
+    case 'ACCEPTANCE_LETTER': 
+      return { 
+        title: 'หนังสือตอบรับการฝึกงาน', 
+        icon: <FileDoneOutlined style={{ color: '#722ed1' }} />,
+        description: 'แบบฟอร์มหนังสือตอบรับจากบริษัท (Template)'
+      };
+    case 'REFERRAL_LETTER': 
+      return { 
+        title: 'หนังสือส่งตัวนักศึกษา', 
+        icon: <SendOutlined style={{ color: '#13c2c2' }} />,
+        description: 'หนังสือส่งตัวนักศึกษาเข้าฝึกงาน'
+      };
+    default: 
+      return { 
+        title: name, 
+        icon: <FileTextOutlined />,
+        description: ''
+      };
   }
 };
 
@@ -28,7 +65,7 @@ const statusTag = (status) => {
   const map = {
     draft: { color: 'default', text: 'ร่าง' },
     pending: { color: 'orange', text: 'รอตรวจ' },
-    approved: { color: 'green', text: 'อนุมัติ' },
+    approved: { color: 'green', text: 'พร้อมใช้งาน' },
     rejected: { color: 'red', text: 'ปฏิเสธ' },
     supervisor_evaluated: { color: 'blue', text: 'หัวหน้าฝึกงานประเมิน' },
     acceptance_approved: { color: 'purple', text: 'ตอบรับแล้ว' },
@@ -40,7 +77,6 @@ const statusTag = (status) => {
   return <Tag color={cfg.color}>{cfg.text}</Tag>;
 };
 
-// หมายเหตุ: formatDate ถูกนำออกเพราะไม่ได้ใช้งานในหน้านี้
 
 const StudentDocumentsSection = () => {
   const [loading, setLoading] = useState(false);
@@ -97,15 +133,40 @@ const StudentDocumentsSection = () => {
       const working = [...docs];
       const has = (name) => working.some(d => (d.name || d.documentName) === name);
       const cs05Status = latestCS05?.status;
-      const showLettersStatuses = new Set(['approved','letter_ready','letter_downloaded','acceptance_uploaded','acceptance_approved','referral_ready','referral_downloaded','completed']);
-      const showReferralStatuses = new Set(['acceptance_approved','referral_ready','referral_downloaded','completed']);
+      
+      // สถานะที่แสดงหนังสือขอความอนุเคราะห์และหนังสือตอบรับ
+      const showLettersStatuses = new Set([
+        'approved',
+        'letter_ready',
+        'letter_downloaded',
+        'acceptance_uploaded',
+        'acceptance_approved',
+        'referral_ready',
+        'referral_downloaded',
+        'completed'
+      ]);
+      
+      // สถานะที่แสดงหนังสือส่งตัว (เมื่อหนังสือตอบรับได้รับการอนุมัติแล้ว)
+      const showReferralStatuses = new Set([
+        'acceptance_approved',
+        'referral_ready',
+        'referral_downloaded',
+        'completed'
+      ]);
+      
+      // ตรวจสอบว่ามีหนังสือตอบรับที่อนุมัติแล้วหรือไม่
+      const hasApprovedAcceptance = docs.some(d => 
+        (d.name || d.documentName) === 'ACCEPTANCE_LETTER' && 
+        d.status === 'approved'
+      );
 
+      // แสดงหนังสือขอความอนุเคราะห์และหนังสือตอบรับ
       if (cs05Status && showLettersStatuses.has(cs05Status)) {
         if (!has('REQUEST_LETTER')) {
           working.push({
             documentId: 'synthetic_REQUEST',
             name: 'REQUEST_LETTER',
-            status: 'approved', // แสดงเป็นอนุมัติให้ใช้งานได้เลย (on-demand)
+            status: 'approved',
             filePath: null,
             createdAt: latestCS05?.approvedAt || latestCS05?.updatedAt || null
           });
@@ -120,7 +181,9 @@ const StudentDocumentsSection = () => {
           });
         }
       }
-      if (cs05Status && showReferralStatuses.has(cs05Status)) {
+      
+      // แสดงหนังสือส่งตัว (เมื่อหนังสือตอบรับได้รับการอนุมัติแล้ว หรือ CS05 อยู่ในสถานะที่เหมาะสม)
+      if ((cs05Status && showReferralStatuses.has(cs05Status)) || hasApprovedAcceptance) {
         if (!has('REFERRAL_LETTER')) {
           working.push({
             documentId: 'synthetic_REFERRAL',
@@ -255,20 +318,40 @@ const StudentDocumentsSection = () => {
 
   const columns = [
     {
-      title: 'ชื่อเอกสาร',
+      title: 'เอกสาร',
       dataIndex: 'name',
       key: 'name',
-      render: (text, rec) => mapDocName(text || rec.documentName)
+      width: '40%',
+      render: (text, rec) => {
+        const docInfo = getDocumentInfo(text || rec.documentName);
+        return (
+          <Space direction="vertical" size={0}>
+            <Space>
+              {docInfo.icon}
+              <Text strong>{docInfo.title}</Text>
+            </Space>
+            {docInfo.description && (
+              <Text type="secondary" style={{ fontSize: '12px', marginLeft: 24 }}>
+                {docInfo.description}
+              </Text>
+            )}
+          </Space>
+        );
+      }
     },
     {
       title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',
+      width: '20%',
+      align: 'center',
       render: statusTag
     },
     {
       title: 'การจัดการ',
       key: 'actions',
+      width: '20%',
+      align: 'center',
       render: (_, rec) => {
         const loadingThis = genLoadingId === (rec.documentId || rec.id);
         return (
@@ -279,15 +362,17 @@ const StudentDocumentsSection = () => {
                 loading={loadingThis}
                 onClick={() => handleView(rec)}
                 size="small"
-              ></Button>
+                type="default"
+              />
             </Tooltip>
-            <Tooltip title="ดาวน์โหลด">
+            <Tooltip title="ดาวน์โหลด PDF">
               <Button
                 icon={<DownloadOutlined />}
                 loading={loadingThis}
                 onClick={() => handleDownload(rec)}
                 size="small"
-              ></Button>
+                type="primary"
+              />
             </Tooltip>
           </Space>
         );
@@ -296,15 +381,44 @@ const StudentDocumentsSection = () => {
   ];
 
   return (
-  <Card title={<span>เอกสารฝึกงานของฉัน <Button size="small" icon={<ReloadOutlined />} onClick={fetchDocs} /> </span>}>
+    <Card 
+      title={
+        <Space>
+          <FileDoneOutlined />
+          <span>เอกสารฝึกงานของฉัน</span>
+        </Space>
+      }
+      extra={
+        <Tooltip title="รีเฟรชข้อมูล">
+          <Button 
+            size="small" 
+            icon={<ReloadOutlined />} 
+            onClick={fetchDocs}
+            loading={loading}
+          >
+            รีเฟรช
+          </Button>
+        </Tooltip>
+      }
+    >
       <Table
         rowKey={r => r.documentId || r.id}
         dataSource={documents}
         columns={columns}
         loading={loading}
         pagination={false}
-        locale={{ emptyText: 'ยังไม่มีเอกสารฝึกงาน' }}
-        size="small"
+        locale={{ 
+          emptyText: (
+            <Space direction="vertical" style={{ padding: '24px 0' }}>
+              <FileTextOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+              <Text type="secondary">ยังไม่มีเอกสารฝึกงาน</Text>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                เอกสารจะแสดงเมื่อคำร้องฝึกงานของคุณได้รับการอนุมัติ
+              </Text>
+            </Space>
+          )
+        }}
+        size="middle"
       />
     </Card>
   );
