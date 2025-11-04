@@ -206,7 +206,8 @@ class DocumentService {
                     where: { documentId: documentId },
                     attributes: [
                         'internshipId', 'documentId', 'companyName',
-                        'companyAddress', 'supervisorName', 'supervisorPosition',
+                        'companyAddress', 'internshipPosition', 'contactPersonName', 'contactPersonPosition',
+                        'supervisorName', 'supervisorPosition',
                         'supervisorPhone', 'supervisorEmail', 'startDate', 'endDate',
                         'created_at', 'updated_at'
                     ]
