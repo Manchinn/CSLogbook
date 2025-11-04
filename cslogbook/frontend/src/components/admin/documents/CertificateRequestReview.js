@@ -12,7 +12,7 @@ const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, 
   if (loading) return <Skeleton active paragraph={{ rows: 6 }} />;
   if (!data) return <div>ไม่พบข้อมูล</div>;
 
-  const { student, internship, eligibility, evaluationDetail, status, requestDate, certificateNumber, processedAt, processedBy, remarks } = data;
+  const { student, internship, eligibility, evaluationDetail, status, requestDate, /* certificateNumber, */ processedAt, processedBy, remarks } = data;
   const hourPct = Math.min(100, Math.round((eligibility.hours.current / eligibility.hours.required) * 100));
   const hasScore = typeof evaluationDetail.overallScore === 'number';
 
@@ -53,11 +53,11 @@ const CertificateRequestReview = ({ data, loading, onOpenLogbookPDF, onApprove, 
             {status === 'approved' && <Tag color="green">อนุมัติแล้ว</Tag>}
             {status === 'rejected' && <Tag color="red">ปฏิเสธ</Tag>}
           </Descriptions.Item>
-          {certificateNumber && (
+          {/* {certificateNumber && (
             <Descriptions.Item label="หมายเลขหนังสือรับรอง" span={2}>
               <Text strong>{certificateNumber}</Text>
             </Descriptions.Item>
-          )}
+          )} */}
           {processedAt && (
             <Descriptions.Item label="วันที่ดำเนินการ">{formatDate(processedAt)}</Descriptions.Item>
           )}
