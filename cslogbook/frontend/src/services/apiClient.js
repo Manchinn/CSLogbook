@@ -33,7 +33,8 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor - จัดการเฉพาะ timeout
+// Note: 401 handling ทำใน AuthContext.js แล้ว (มี refresh token queue)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -41,11 +42,6 @@ apiClient.interceptors.response.use(
       return Promise.reject({
         message: 'การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง'
       });
-    }
-    if (error.response?.status === 401) {
-      message.error('กรุณาเข้าสู่ระบบใหม่');
-      localStorage.clear();
-      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

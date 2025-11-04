@@ -78,19 +78,11 @@ const LoginForm = () => {
         }
       }
     } catch (error) {
-      console.error('Login error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
 
-      // กระตุ้นแอนิเมชันสั่นเพื่อแจ้งเตือนผู้ใช้เมื่อเกิดข้อผิดพลาด
-      setErrorShake(true);
-      setTimeout(() => setErrorShake(false), 600);
-
-      message.error(
-        error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง',
-      );
+      const errorMessage = error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง';
+      console.log('=== Showing error message:', errorMessage);
+      
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }

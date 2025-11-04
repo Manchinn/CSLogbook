@@ -1,0 +1,305 @@
+{
+  "description": "Sample test data for Project Deadline Integration Testing",
+  "date": "4 November 2568",
+  
+  "deadlines": {
+    "project1_proposal": {
+      "templateId": "PROJECT1_PROPOSAL_SUBMISSION",
+      "name": "ส่งหัวข้อโครงงานพิเศษ 1",
+      "relatedTo": "project1",
+      "deadlineType": "SUBMISSION",
+      "documentSubtype": "PROJECT1_PROPOSAL",
+      "deadlineAt": "2025-11-15T23:59:59+07:00",
+      "gracePeriodMinutes": 4320,
+      "allowLate": true,
+      "lockAfterDeadline": false,
+      "academicYear": "2568",
+      "semester": "1"
+    },
+    "project1_defense": {
+      "templateId": "PROJECT1_DEFENSE_REQUEST_SUBMISSION",
+      "name": "ส่งคำร้องขอสอบ (คพ.02)",
+      "relatedTo": "project1",
+      "deadlineType": "SUBMISSION",
+      "documentSubtype": "PROJECT1_DEFENSE_REQUEST",
+      "deadlineAt": "2025-11-30T23:59:59+07:00",
+      "gracePeriodMinutes": 2880,
+      "allowLate": true,
+      "lockAfterDeadline": false,
+      "academicYear": "2568",
+      "semester": "1"
+    },
+    "project2_system_test": {
+      "templateId": "PROJECT_SYSTEM_TEST_REQUEST",
+      "name": "ยื่นคำขอทดสอบระบบ",
+      "relatedTo": "project2",
+      "deadlineType": "SUBMISSION",
+      "documentSubtype": "PROJECT_SYSTEM_TEST_REQUEST",
+      "deadlineAt": "2025-12-10T23:59:59+07:00",
+      "gracePeriodMinutes": 1440,
+      "allowLate": true,
+      "lockAfterDeadline": false,
+      "academicYear": "2568",
+      "semester": "1"
+    },
+    "thesis_defense": {
+      "templateId": "THESIS_DEFENSE_REQUEST_SUBMISSION",
+      "name": "ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)",
+      "relatedTo": "project2",
+      "deadlineType": "SUBMISSION",
+      "documentSubtype": "THESIS_DEFENSE_REQUEST",
+      "deadlineAt": "2025-12-20T23:59:59+07:00",
+      "gracePeriodMinutes": 2880,
+      "allowLate": true,
+      "lockAfterDeadline": true,
+      "academicYear": "2568",
+      "semester": "1"
+    },
+    "thesis_final": {
+      "templateId": "THESIS_FINAL_SUBMISSION",
+      "name": "ส่งปริญญานิพนธ์ฉบับสมบูรณ์",
+      "relatedTo": "project2",
+      "deadlineType": "SUBMISSION",
+      "documentSubtype": "THESIS_FINAL_REPORT",
+      "deadlineAt": "2026-01-15T23:59:59+07:00",
+      "gracePeriodMinutes": 7200,
+      "allowLate": true,
+      "lockAfterDeadline": false,
+      "academicYear": "2568",
+      "semester": "1"
+    }
+  },
+  
+  "projects": {
+    "project_34": {
+      "id": 34,
+      "projectCode": "PRJ2568001",
+      "title": "ระบบจัดการ CSLogbook",
+      "academicYear": "2568",
+      "semester": "1",
+      "studentId": "6501234567",
+      "studentName": "สมชาย ใจดี",
+      "advisorId": 1,
+      "advisorName": "ผศ.ดร. สมชาย ใจดี",
+      "coAdvisorId": 2,
+      "coAdvisorName": "อ.ดร. สมหญิง ใจดี",
+      "workflowState": {
+        "currentPhase": "TOPIC_SUBMISSION",
+        "currentStep": "PENDING_KP02",
+        "projectStatus": "in_progress",
+        "isOverdue": false
+      }
+    },
+    "project_35": {
+      "id": 35,
+      "projectCode": "PRJ2568002",
+      "title": "ระบบแนะนำหนังสือด้วย AI",
+      "academicYear": "2568",
+      "semester": "1",
+      "studentId": "6501234568",
+      "studentName": "สมหญิง ใจดี",
+      "advisorId": 1,
+      "advisorName": "ผศ.ดร. สมชาย ใจดี",
+      "coAdvisorId": null,
+      "workflowState": {
+        "currentPhase": "IN_PROGRESS",
+        "currentStep": "ONGOING",
+        "projectStatus": "in_progress",
+        "isOverdue": false
+      }
+    }
+  },
+  
+  "lateSubmissions": [
+    {
+      "studentId": "6501234567",
+      "firstName": "สมชาย",
+      "lastName": "ใจดี",
+      "deadlineName": "ส่ง KP.02",
+      "deadlineAt": "2025-11-16T23:59:59+07:00",
+      "submittedAt": "2025-11-18T10:30:00+07:00",
+      "hoursLate": 58,
+      "daysLate": 2,
+      "status": "late",
+      "relatedTo": "project1",
+      "documentType": "PROJECT1_DEFENSE_REQUEST",
+      "academicYear": "2568"
+    },
+    {
+      "studentId": "6501234568",
+      "firstName": "สมหญิง",
+      "lastName": "ใจดี",
+      "deadlineName": "ส่งหัวข้อโครงงาน",
+      "deadlineAt": "2025-11-15T23:59:59+07:00",
+      "submittedAt": "2025-11-16T08:15:00+07:00",
+      "hoursLate": 8,
+      "daysLate": 0,
+      "status": "late",
+      "relatedTo": "project1",
+      "documentType": "PROJECT1_PROPOSAL",
+      "academicYear": "2568"
+    },
+    {
+      "studentId": "6501234569",
+      "firstName": "สมศักดิ์",
+      "lastName": "รักดี",
+      "deadlineName": "ส่งคำร้องขอสอบปริญญานิพนธ์",
+      "deadlineAt": "2025-12-20T23:59:59+07:00",
+      "submittedAt": "2025-12-26T16:45:00+07:00",
+      "hoursLate": 136,
+      "daysLate": 5,
+      "status": "very_late",
+      "relatedTo": "project2",
+      "documentType": "THESIS_DEFENSE_REQUEST",
+      "academicYear": "2568"
+    }
+  ],
+  
+  "advisorLoad": [
+    {
+      "teacherId": 1,
+      "name": "ผศ.ดร. สมชาย ใจดี",
+      "teacherCode": "T001",
+      "advisorProjectCount": 5,
+      "coAdvisorProjectCount": 3,
+      "count": 8,
+      "status": "normal"
+    },
+    {
+      "teacherId": 2,
+      "name": "อ.ดร. สมหญิง ใจดี",
+      "teacherCode": "T002",
+      "advisorProjectCount": 7,
+      "coAdvisorProjectCount": 3,
+      "count": 10,
+      "status": "high_load"
+    },
+    {
+      "teacherId": 3,
+      "name": "รศ.ดร. สมศักดิ์ รักดี",
+      "teacherCode": "T003",
+      "advisorProjectCount": 3,
+      "coAdvisorProjectCount": 1,
+      "count": 4,
+      "status": "low_load"
+    }
+  ],
+  
+  "testScenarios": {
+    "scenario_1_on_time": {
+      "description": "นักศึกษายื่นเอกสารทันเวลา",
+      "deadline": "2025-11-15T23:59:59+07:00",
+      "submittedAt": "2025-11-14T10:00:00+07:00",
+      "expectedResult": "success",
+      "expectedStatus": 200,
+      "expectedWarning": false,
+      "isLateSubmission": false
+    },
+    "scenario_2_late_within_grace": {
+      "description": "นักศึกษายื่นช้า แต่ภายใน grace period",
+      "deadline": "2025-11-15T23:59:59+07:00",
+      "gracePeriodMinutes": 4320,
+      "gracePeriodDays": 3,
+      "submittedAt": "2025-11-17T14:00:00+07:00",
+      "hoursLate": 38,
+      "expectedResult": "success_with_warning",
+      "expectedStatus": 200,
+      "expectedWarning": true,
+      "warningMessage": "คุณกำลังส่งเอกสารหลังเลยกำหนดส่ง",
+      "isLateSubmission": true
+    },
+    "scenario_3_locked": {
+      "description": "นักศึกษายื่นหลังเลย grace period และถูกล็อค",
+      "deadline": "2025-11-15T23:59:59+07:00",
+      "gracePeriodMinutes": 4320,
+      "gracePeriodDays": 3,
+      "submittedAt": "2025-11-20T10:00:00+07:00",
+      "hoursLate": 106,
+      "lockAfterDeadline": true,
+      "expectedResult": "blocked",
+      "expectedStatus": 403,
+      "expectedError": "หมดเวลายื่นเอกสารแล้ว",
+      "isLateSubmission": false
+    },
+    "scenario_4_no_deadline": {
+      "description": "ไม่มี deadline กำหนด",
+      "deadline": null,
+      "submittedAt": "2025-11-20T10:00:00+07:00",
+      "expectedResult": "success",
+      "expectedStatus": 200,
+      "expectedWarning": false,
+      "isLateSubmission": false
+    }
+  },
+  
+  "expectedResponses": {
+    "workflowStateSuccess": {
+      "success": true,
+      "data": {
+        "id": 1,
+        "projectId": 34,
+        "currentPhase": "TOPIC_SUBMISSION",
+        "currentStep": "PENDING_KP02",
+        "projectStatus": "in_progress",
+        "isOverdue": false,
+        "lastActivityAt": "2025-11-03T10:00:00.000Z"
+      }
+    },
+    "deadlinesSuccess": {
+      "success": true,
+      "data": {
+        "projectState": {
+          "currentPhase": "TOPIC_SUBMISSION",
+          "currentStep": "PENDING_KP02"
+        },
+        "deadlines": {
+          "upcoming": [
+            {
+              "templateId": "PROJECT1_PROPOSAL_SUBMISSION",
+              "name": "ส่งหัวข้อโครงงานพิเศษ 1",
+              "deadlineAt": "2025-11-15T23:59:59.000Z",
+              "status": "upcoming",
+              "daysLeft": 11
+            }
+          ],
+          "overdue": [],
+          "next": {
+            "templateId": "PROJECT1_PROPOSAL_SUBMISSION",
+            "name": "ส่งหัวข้อโครงงานพิเศษ 1",
+            "deadlineAt": "2025-11-15T23:59:59.000Z"
+          }
+        },
+        "isOverdue": false
+      }
+    },
+    "submissionBlocked": {
+      "success": false,
+      "error": "หมดเวลายื่นเอกสารแล้ว",
+      "details": {
+        "deadlineName": "ส่งหัวข้อโครงงานพิเศษ 1",
+        "deadlineAt": "2025-11-15T23:59:59.000Z",
+        "lockAfterDeadline": true
+      }
+    },
+    "submissionLate": {
+      "success": true,
+      "message": "อัปโหลดเอกสารสำเร็จ",
+      "warning": "คุณกำลังส่งเอกสารหลังเลยกำหนดส่ง",
+      "lateSubmission": true,
+      "data": {
+        "id": 123,
+        "fileName": "proposal.pdf",
+        "uploadedAt": "2025-11-17T14:00:00.000Z",
+        "isLateSubmission": true
+      }
+    }
+  },
+  
+  "notes": [
+    "ใช้ไฟล์นี้เป็นแนวทางในการสร้าง test data",
+    "แก้ไขค่าตาม environment และเวลาปัจจุบัน",
+    "ตรวจสอบ timezone เป็น Asia/Bangkok (+07:00)",
+    "Grace period อยู่ในหน่วย minutes: 1440 = 1 วัน, 4320 = 3 วัน, 7200 = 5 วัน"
+  ]
+}
+
