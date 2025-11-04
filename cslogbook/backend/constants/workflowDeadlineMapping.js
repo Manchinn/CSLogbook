@@ -12,6 +12,7 @@ const INTERNSHIP_DEADLINE_MAPPING = {
   // Phase: CS05 Submission
   PENDING_CS05_SUBMISSION: {
     templateId: 'INTERNSHIP_CS05_SUBMISSION',
+    deadlineName: 'ยื่นคำร้องขอฝึกงาน (คพ.05)',
     relatedTo: 'internship',
     documentSubtype: 'CS05',
     deadlineType: 'SUBMISSION',
@@ -26,6 +27,7 @@ const INTERNSHIP_DEADLINE_MAPPING = {
   /*
   AWAITING_ACCEPTANCE_LETTER: {
     templateId: 'INTERNSHIP_ACCEPTANCE_SUBMISSION',
+    deadlineName: 'ส่งหนังสือตอบรับฝึกงาน',
     relatedTo: 'internship',
     documentSubtype: 'acceptance_letter',
     deadlineType: 'SUBMISSION',
@@ -38,6 +40,7 @@ const INTERNSHIP_DEADLINE_MAPPING = {
   // Phase: Report Submission
   IN_PROGRESS: {
     templateId: 'INTERNSHIP_REPORT_SUBMISSION',
+    deadlineName: 'ส่งรายงานผลการฝึกงาน',
     relatedTo: 'internship',
     documentSubtype: 'report',
     deadlineType: 'SUBMISSION',
@@ -54,6 +57,7 @@ const PROJECT1_DEADLINE_MAPPING = {
   // Phase: Topic Submission
   TOPIC_SUBMISSION: {
     templateId: 'PROJECT1_PROPOSAL_SUBMISSION',
+    deadlineName: 'ส่งหัวข้อโครงงานพิเศษ 1',
     relatedTo: 'project1',
     documentSubtype: 'PROJECT1_PROPOSAL',
     deadlineType: 'SUBMISSION',
@@ -65,6 +69,7 @@ const PROJECT1_DEADLINE_MAPPING = {
   // Phase: Defense Request (KP.02)
   TOPIC_EXAM_PENDING: {
     templateId: 'PROJECT1_DEFENSE_REQUEST_SUBMISSION',
+    deadlineName: 'ส่งคำร้องขอสอบ (คพ.02)',
     relatedTo: 'project1',
     documentSubtype: 'PROJECT1_DEFENSE_REQUEST',
     deadlineType: 'SUBMISSION',
@@ -81,6 +86,7 @@ const PROJECT2_DEADLINE_MAPPING = {
   // Phase: System Test Request
   IN_PROGRESS: {
     templateId: 'PROJECT_SYSTEM_TEST_REQUEST',
+    deadlineName: 'ยื่นคำขอทดสอบระบบ',
     relatedTo: 'project2',
     documentSubtype: 'PROJECT_SYSTEM_TEST_REQUEST',
     deadlineType: 'SUBMISSION',
@@ -93,6 +99,7 @@ const PROJECT2_DEADLINE_MAPPING = {
   // Phase: Thesis Defense Request (KP.03)
   THESIS_SUBMISSION: {
     templateId: 'THESIS_DEFENSE_REQUEST_SUBMISSION',
+    deadlineName: 'ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)',
     relatedTo: 'project2',
     documentSubtype: 'THESIS_DEFENSE_REQUEST',
     deadlineType: 'SUBMISSION',
@@ -104,6 +111,7 @@ const PROJECT2_DEADLINE_MAPPING = {
   // Phase: Final Report
   THESIS_EXAM_PASSED: {
     templateId: 'THESIS_FINAL_SUBMISSION',
+    deadlineName: 'ส่งปริญญานิพนธ์ฉบับสมบูรณ์',
     relatedTo: 'project2',
     documentSubtype: 'THESIS_FINAL_REPORT',
     deadlineType: 'SUBMISSION',

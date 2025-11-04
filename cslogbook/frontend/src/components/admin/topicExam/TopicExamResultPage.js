@@ -62,7 +62,7 @@ const containerStyle = {
 };
 
 export default function TopicExamResultPage() {
-  const { records, filters, loading, error, reload, updateFilters, meta } = useTopicExamOverview();
+  const { records, filters, loading, error, reload, updateFilters, meta } = useTopicExamOverview({ status: 'all' });
   const [failModalOpen, setFailModalOpen] = useState(false);
   const [passModalOpen, setPassModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);

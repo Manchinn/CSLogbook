@@ -9,6 +9,7 @@
 
 const dayjs = require('dayjs');
 const logger = require('./logger');
+const { ImportantDeadline } = require('../models');
 
 /**
  * ตรวจสอบว่าเลย deadline หรือไม่ และควรทำอย่างไร
@@ -179,8 +180,7 @@ function checkDeadlineStatus(deadline, context = {}) {
         id: deadline.id,
         name: deadline.name,
         deadlineAt: deadline.deadlineAt,
-        effectiveDeadline: effectiveDeadline.toISOString(),
-        documentSubtype: deadline.documentSubtype
+        effectiveDeadline: effectiveDeadline.toISOString()
       }
     }
   };
@@ -216,21 +216,117 @@ function handleDeadlineCheckResult(checkResult, req, res, next) {
 
 /**
  * สร้าง Sequelize order clause สำหรับการค้นหา deadline
- * ให้ความสำคัญกับ deadline ที่ระบุ documentSubtype เฉพาะก่อน
- * @param {string} documentSubtype - ประเภทเอกสาร
  * @returns {Array} Sequelize order array
  */
-function buildDeadlineOrderClause(documentSubtype) {
-  const sequelize = require('sequelize');
+function buildDeadlineOrderClause() {
   return [
-    // ให้ความสำคัญกับ deadline ที่ระบุ documentSubtype เฉพาะก่อน
-    [sequelize.literal(`CASE WHEN documentSubtype = '${documentSubtype}' THEN 0 ELSE 1 END`), 'ASC'],
     ['deadlineAt', 'DESC']
   ];
+}
+
+/**
+ * ค้นหา deadline แบบ Hybrid: ลองใช้ mapping ก่อน ถ้าไม่มีใช้ชื่อ
+ * @param {Object} params - { workflowType, documentSubtype, deadlineName, relatedTo, academicYear, semester, deadlineType }
+ * @returns {Promise<Object|null>} ImportantDeadline record หรือ null
+ */
+async function findDeadlineWithFallback(params) {
+  const {
+    workflowType,
+    documentSubtype,
+    deadlineName,
+    relatedTo,
+    academicYear,
+    semester,
+    deadlineType = 'SUBMISSION'
+  } = params;
+
+  // Strategy 1: ลองค้นหาผ่าน DeadlineWorkflowMapping ก่อน (ถ้ามี documentSubtype)
+  if (workflowType && documentSubtype) {
+    try {
+      const { DeadlineWorkflowMapping } = require('../models');
+      
+      const mapping = await DeadlineWorkflowMapping.findOne({
+        where: {
+          workflowType,
+          documentSubtype,
+          active: true
+        },
+        include: [{
+          model: ImportantDeadline,
+          as: 'deadline',
+          where: {
+            relatedTo,
+            academicYear,
+            semester,
+            deadlineType,
+            isPublished: true
+          },
+          required: true
+        }]
+      });
+
+      if (mapping && mapping.deadline) {
+        logger.debug(`Deadline found via mapping: ${mapping.deadline.name}`, {
+          documentSubtype,
+          workflowType
+        });
+        return mapping.deadline;
+      }
+    } catch (error) {
+      logger.warn('Error finding deadline via mapping, falling back to name search', {
+        error: error.message,
+        documentSubtype
+      });
+    }
+  }
+
+  // Strategy 2: Fallback - ค้นหาโดยใช้ชื่อ deadline
+  if (deadlineName) {
+    const deadline = await ImportantDeadline.findOne({
+      where: {
+        name: deadlineName,
+        relatedTo,
+        academicYear,
+        semester,
+        deadlineType,
+        isPublished: true
+      },
+      order: [['deadlineAt', 'DESC']]
+    });
+
+    if (deadline) {
+      logger.debug(`Deadline found via name: ${deadline.name}`, {
+        deadlineName
+      });
+      return deadline;
+    }
+  }
+
+  // Strategy 3: Last Resort - ค้นหาแบบทั่วไป (ไม่ระบุชื่อ)
+  const genericDeadline = await ImportantDeadline.findOne({
+    where: {
+      relatedTo,
+      academicYear,
+      semester,
+      deadlineType,
+      isPublished: true
+    },
+    order: [['deadlineAt', 'DESC']]
+  });
+
+  if (genericDeadline) {
+    logger.debug(`Deadline found (generic): ${genericDeadline.name}`, {
+      relatedTo,
+      deadlineType
+    });
+  }
+
+  return genericDeadline;
 }
 
 module.exports = {
   checkDeadlineStatus,
   handleDeadlineCheckResult,
-  buildDeadlineOrderClause
+  buildDeadlineOrderClause,
+  findDeadlineWithFallback
 };

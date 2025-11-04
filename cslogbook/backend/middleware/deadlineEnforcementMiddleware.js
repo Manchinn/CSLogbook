@@ -15,7 +15,8 @@ const { getWorkflowTypeFromPhase, getDeadlineMappingForPhase } = require('../con
 const { 
   checkDeadlineStatus, 
   handleDeadlineCheckResult,
-  buildDeadlineOrderClause 
+  buildDeadlineOrderClause,
+  findDeadlineWithFallback 
 } = require('../utils/deadlineChecker');
 
 /**
@@ -70,28 +71,15 @@ const checkDeadlineBeforeSubmission = (actionType = 'SUBMISSION') => {
         return next();
       }
 
-      // ดึง deadline จากฐานข้อมูล
-      const whereClause = {
+      // ดึง deadline จากฐานข้อมูล แบบ Hybrid (ลอง mapping ก่อน แล้ว fallback เป็นชื่อ)
+      const deadline = await findDeadlineWithFallback({
+        workflowType: relatedTo,
+        documentSubtype: deadlineMapping.documentSubtype,
+        deadlineName: deadlineMapping.deadlineName,
         relatedTo,
         academicYear: state.project.academicYear,
         semester: state.project.semester,
-        deadlineType: actionType,
-        isPublished: true
-      };
-
-      // Optional: กรอง documentSubtype ถ้ามี
-      if (deadlineMapping.documentSubtype) {
-        whereClause[Op.or] = [
-          { documentSubtype: deadlineMapping.documentSubtype },
-          { documentSubtype: null } // รวม general deadlines
-        ];
-      }
-
-      const deadline = await ImportantDeadline.findOne({
-        where: whereClause,
-        order: deadlineMapping.documentSubtype 
-          ? buildDeadlineOrderClause(deadlineMapping.documentSubtype)
-          : [['deadlineAt', 'DESC']]
+        deadlineType: actionType
       });
 
       if (!deadline) {
