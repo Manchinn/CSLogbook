@@ -221,7 +221,7 @@ class ProjectDocumentService {
         transaction: t
       });
       if (existingActiveMembership) {
-        throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+        throw new Error('นักศึกษาคนนี้มีโครงงานพิเศษที่กำลังดำเนินการอยู่แล้ว');
       }
 
       // สร้าง ProjectDocument (draft) - ไม่บังคับ advisorId ในตอนสร้าง
@@ -342,7 +342,7 @@ class ProjectDocumentService {
         transaction: t
       });
       if (existingActiveMembership) {
-        throw new Error('นักศึกษาคนนี้มีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+        throw new Error('นักศึกษาคนนี้มีโครงงานพิเศษที่กำลังดำเนินการอยู่แล้ว');
       }
 
       await ProjectMember.create({
