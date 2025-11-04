@@ -101,7 +101,7 @@ module.exports = (sequelize) => {
         hooks: {
             beforeSave: (setting) => {
                 // ตรวจสอบความถูกต้องของ notification type
-                const validTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
+                const validTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL', 'MEETING'];
                 if (!validTypes.includes(setting.notificationType)) {
                     throw new Error(`ประเภทการแจ้งเตือนไม่ถูกต้อง: ${setting.notificationType}`);
                 }

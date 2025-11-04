@@ -6,7 +6,6 @@ import {
   FileAddOutlined,
   UploadOutlined,
   TeamOutlined,
-  FileSearchOutlined
 } from '@ant-design/icons';
 import { useStudentProject } from '../../../hooks/useStudentProject';
 import { useStudentEligibility } from '../../../contexts/StudentEligibilityContext';
