@@ -89,7 +89,7 @@ const ProjectReport = () => {
 		return [
 			{ name: 'ผ่านสอบปริญญานิพนธ์', value: thesisExamPassed || 0, fill: CHART_COLORS.success },
 			{ name: 'รอสอบปริญญานิพนธ์', value: thesisExamPending || 0, fill: CHART_COLORS.warning },
-			{ name: 'จบแล้ว', value: completed || 0, fill: '#722ed1' },
+			{ name: 'สำเร็จโครงงานปริญญานิพนธ์', value: completed || 0, fill: '#722ed1' },
 			{ name: 'สอบไม่ผ่าน', value: thesisExamFailed || 0, fill: CHART_COLORS.danger }
 		].filter(item => item.value > 0);
 	}, [reportData]);
