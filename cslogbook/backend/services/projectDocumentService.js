@@ -555,9 +555,9 @@ class ProjectDocumentService {
             model: Student, 
             as: 'student',
             include: [
-              { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
+              { association: Student.associations.user, attributes: ['userId','firstName','lastName','email'] }
             ],
-            attributes: ['studentId','studentCode']
+            attributes: ['studentId','studentCode','phoneNumber']
           }
         ]
       },
@@ -730,6 +730,8 @@ class ProjectDocumentService {
         role: m.role,
         studentCode: m.student?.studentCode || null,
         name: m.student?.user ? `${m.student.user.firstName || ''} ${m.student.user.lastName || ''}`.trim() : null,
+        phone: m.student?.phoneNumber || null,
+        email: m.student?.user?.email || null,
         totalCredits: m.student?.totalCredits ?? null,
         majorCredits: m.student?.majorCredits ?? null
       })),

@@ -48,8 +48,8 @@ const buildStudentInitial = (project, existingPayload) => {
       studentId: member.studentId,
       studentCode: member.studentCode,
       name: member.name || member.studentCode,
-      phone: fallback.phone || '',
-      email: fallback.email || ''
+      phone: member.phone || fallback.phone || '',
+      email: member.email || fallback.email || ''
     };
   });
 };
@@ -419,7 +419,7 @@ const ExamSubmitPage = () => {
               message={meetingRequirement.satisfied ? 'ผ่านเกณฑ์การพบอาจารย์แล้ว' : 'ยังไม่ครบเกณฑ์การพบอาจารย์'}
               description={
                 <div>
-                  <div>บันทึกการพบที่อาจารย์อนุมัติ (หัวหน้าโครงงาน): {meetingRequirement.approved} / {meetingRequirement.required}</div>
+                  <div>บันทึกการพบที่อาจารย์อนุมัติ: {meetingRequirement.approved} / {meetingRequirement.required}</div>
                   {meetingRequirement.totalApproved !== meetingRequirement.approved && (
                     <div>รวมทั้งทีม: {meetingRequirement.totalApproved}</div>
                   )}

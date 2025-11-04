@@ -104,7 +104,6 @@ function computeSubmissionStatus(submittedAt, deadline) {
       gracePeriodMinutes: deadline.gracePeriodMinutes,
       allowLate: deadline.allowLate,
       lockAfterDeadline: deadline.lockAfterDeadline,
-      documentSubtype: deadline.documentSubtype,
       relatedTo: deadline.relatedTo
     }
   };

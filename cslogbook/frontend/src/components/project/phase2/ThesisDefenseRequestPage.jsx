@@ -88,8 +88,8 @@ const ThesisDefenseRequestPage = () => {
         studentId: member.studentId,
         studentCode: member.studentCode,
         name: member.name || member.studentCode,
-        phone: fallback.phone || '',
-        email: fallback.email || ''
+        phone: member.phone || fallback.phone || '',
+        email: member.email || fallback.email || ''
       };
     });
   }, []);
@@ -386,7 +386,7 @@ const ThesisDefenseRequestPage = () => {
                 <Alert
                   type={meetingRequirement.satisfied ? 'success' : 'warning'}
                   showIcon
-                  message={`บันทึกการพบอาจารย์ (หัวหน้าทีม): ${meetingRequirement.approved}/${meetingRequirement.required}`}
+                  message={`บันทึกการพบอาจารย์: ${meetingRequirement.approved}/${meetingRequirement.required}`}
                 />
               </Col>
               <Col span={24}>

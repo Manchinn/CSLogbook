@@ -495,12 +495,12 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                     {record.staffVerifiedBy?.fullName || "-"}
                   </Text>
                   <Text>
-                    หมายเหตุการนัดสอบ (ข้อมูลเดิม):{" "}
+                    หมายเหตุการนัดสอบ:{" "}
                     {record.defenseNote || "ตรวจสอบประกาศจากปฏิทิน"}
                   </Text>
                   <Text>
-                    สถานที่สอบ (ข้อมูลเดิม):{" "}
-                    {record.defenseLocation || "ประกาศผ่านช่องทางภายนอก"}
+                    สถานที่สอบ:{" "}
+                    {record.defenseLocation || "ประกาศผ่านช่องทางแพลตฟอร์มออนไลน์ Facebook Fanpage"}
                   </Text>
                   <Divider style={{ margin: "8px 0" }} />
                   <Space
