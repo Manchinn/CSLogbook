@@ -4,12 +4,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   SettingOutlined, 
   CalendarOutlined, 
-  TeamOutlined, 
   BookOutlined,
-  ToolOutlined,
   BellOutlined,
   FireOutlined,
-  ThunderboltOutlined,
   StarOutlined
 } from '@ant-design/icons';
 import './constants/styles.css';
@@ -43,7 +40,7 @@ const SettingsIndex = () => {
           status: 'จำเป็น'
         }
       ]
-    },
+    },/* 
     essential: {
       title: 'การตั้งค่าระบบงาน',
       subtitle: 'จำเป็นสำหรับการทำงานของระบบ',
@@ -66,7 +63,7 @@ const SettingsIndex = () => {
           status: 'สำคัญ'
         }
       ]
-    },
+    }, */
     optional: {
       title: 'การตั้งค่าเสริม',
       subtitle: 'ปรับแต่งเพื่อเพิ่มประสิทธิภาพการใช้งาน',

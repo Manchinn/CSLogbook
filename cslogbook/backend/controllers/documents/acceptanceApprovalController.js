@@ -47,33 +47,60 @@ exports.listForHead = async (req, res) => {
           as: 'owner',
           attributes: ['userId', 'firstName', 'lastName'],
           include: [{ model: Student, as: 'student', attributes: ['studentId', 'studentCode'] }],
-        },
-        {
-          model: InternshipDocument,
-          as: 'internshipDocument',
-          attributes: ['companyName', 'startDate', 'endDate', 'academicYear', 'semester']
         }
       ],
       order: [['created_at', 'DESC']],
     });
 
-    const data = docs.map((d) => ({
-      documentId: d.documentId,
-      status: d.status,
-      reviewerId: d.reviewerId,
-      reviewDate: d.reviewDate || d.review_date,
-      createdAt: d.created_at,
-      student: {
-        userId: d.owner?.userId,
-        firstName: d.owner?.firstName,
-        lastName: d.owner?.lastName,
-        studentCode: d.owner?.student?.studentCode || null,
-      },
-      companyName: d.internshipDocument?.companyName || '',
-      startDate: d.internshipDocument?.startDate || null,
-      endDate: d.internshipDocument?.endDate || null,
-      academicYear: d.internshipDocument?.academicYear || null,
-      semester: d.internshipDocument?.semester || null,
+    // ดึงข้อมูลบริษัทและวันที่จาก CS05 ของนักศึกษาแต่ละคน
+    const data = await Promise.all(docs.map(async (d) => {
+      let companyName = '';
+      let startDate = null;
+      let endDate = null;
+      let academicYear = null;
+      let semester = null;
+
+      // หา CS05 ที่อนุมัติแล้วของนักศึกษาคนนี้
+      const cs05 = await Document.findOne({
+        where: {
+          userId: d.userId,
+          documentName: 'CS05',
+          status: 'approved'
+        },
+        include: [{
+          model: InternshipDocument,
+          as: 'internshipDocument',
+          attributes: ['companyName', 'internshipPosition', 'startDate', 'endDate', 'academicYear', 'semester']
+        }],
+        order: [['updated_at', 'DESC']]
+      });
+
+      if (cs05?.internshipDocument) {
+        companyName = cs05.internshipDocument.companyName || '';
+        startDate = cs05.internshipDocument.startDate;
+        endDate = cs05.internshipDocument.endDate;
+        academicYear = cs05.internshipDocument.academicYear;
+        semester = cs05.internshipDocument.semester;
+      }
+
+      return {
+        documentId: d.documentId,
+        status: d.status,
+        reviewerId: d.reviewerId,
+        reviewDate: d.reviewDate || d.review_date,
+        createdAt: d.created_at,
+        student: {
+          userId: d.owner?.userId,
+          firstName: d.owner?.firstName,
+          lastName: d.owner?.lastName,
+          studentCode: d.owner?.student?.studentCode || null,
+        },
+        companyName,
+        startDate,
+        endDate,
+        academicYear,
+        semester,
+      };
     }));
 
     return res.json({ success: true, data });

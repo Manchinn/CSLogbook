@@ -41,6 +41,19 @@ export const getOverdueDeadlines = async (params = {}) => {
 };
 
 /**
+ * ดึงรายชื่อนักศึกษาที่ส่งช้า/เลยกำหนด
+ */
+export const getLateSubmissions = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/reports/deadlines/late-submissions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching late submissions:', error);
+    throw error;
+  }
+};
+
+/**
  * ดึงประวัติการส่งงานของนักศึกษา
  */
 export const getStudentDeadlineHistory = async (studentId, params = {}) => {

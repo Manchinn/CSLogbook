@@ -74,5 +74,21 @@ export const internshipApprovalService = {
     return apiClient.get(`/documents/${documentId}/view`, {
       responseType: 'blob'
     });
+  },
+  // ดึงรายละเอียด CS05 สำหรับแสดงในรูปแบบฟอร์ม
+  getCS05Details: async (documentId) => {
+    const res = await apiClient.get(`/internship/cs-05/${documentId}`);
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'ไม่สามารถดึงรายละเอียดเอกสารได้');
+    }
+    return res.data;
+  },
+  // ดึงรายละเอียด Acceptance Letter
+  getAcceptanceDetails: async (documentId) => {
+    const res = await apiClient.get(`/documents/${documentId}`);
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'ไม่สามารถดึงรายละเอียดเอกสารได้');
+    }
+    return res.data;
   }
 };

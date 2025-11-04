@@ -157,7 +157,13 @@ class InternshipManagementService {
       transcriptFilename: document.fileName,
       // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
       rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
-      reviewComment: document.reviewComment
+      reviewComment: document.reviewComment,
+      // ✨ เพิ่มข้อมูล late status สำหรับแสดงสถานะการส่งเอกสาร
+      isLate: document.isLate || false,
+      lateMinutes: document.lateMinutes || null,
+      lateReason: document.lateReason || null,
+      submittedLate: document.submittedLate || false,
+      submissionDelayMinutes: document.submissionDelayMinutes || null
     };
   }
 
@@ -263,7 +269,7 @@ class InternshipManagementService {
   /**
    * บันทึกคำร้องขอฝึกงาน (CS05) พร้อม transcript
    */
-  async submitCS05WithTranscript(userId, fileData, formData) {
+  async submitCS05WithTranscript(userId, fileData, formData, deadlineInfo = {}) {
     const transaction = await sequelize.transaction();
     try {
       // ตรวจสอบว่ามีไฟล์ transcript หรือไม่
@@ -302,7 +308,22 @@ class InternshipManagementService {
         throw new Error("คุณมีคำร้อง CS05 ที่รอการพิจารณาอยู่แล้ว");
       }
 
-      // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript ด้วย
+      // เตรียมข้อมูล late status จาก middleware
+      const isLate = deadlineInfo?.isLate === true;
+      const minutesLateFromDeadlineInfo = deadlineInfo?.deadlineInfo?.minutesLate;
+      const minutesLateFallback = deadlineInfo?.minutesLate;
+      const lateMinutes =
+        typeof minutesLateFromDeadlineInfo === "number"
+          ? minutesLateFromDeadlineInfo
+          : typeof minutesLateFallback === "number"
+          ? minutesLateFallback
+          : null;
+      const submittedLate = isLate; // ใช้ค่าเดียวกับ isLate
+      const submissionDelayMinutes = lateMinutes; // ใช้ค่าเดียวกับ lateMinutes
+      const importantDeadlineId =
+        deadlineInfo?.applicableDeadline?.id ?? deadlineInfo?.deadlineInfo?.id ?? null;
+
+      // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript พร้อม late status
       const document = await Document.create(
         {
           userId,
@@ -314,6 +335,13 @@ class InternshipManagementService {
           fileName: fileData.filename,
           fileSize: fileData.size,
           mimeType: fileData.mimetype,
+          // ✨ บันทึก late status
+          isLate,
+          lateMinutes,
+          submittedLate,
+          submissionDelayMinutes,
+          importantDeadlineId,
+          submittedAt: new Date() // บันทึกเวลาที่ส่ง
         },
         { transaction }
       );
@@ -392,6 +420,11 @@ class InternshipManagementService {
         contactPersonName, // เพิ่มฟิลด์ใหม่
         contactPersonPosition, // เพิ่มฟิลด์ใหม่
         transcriptFilename: fileData.filename,
+        // ✨ ส่งข้อมูล late status กลับไปด้วย
+        isLate,
+        lateMinutes,
+        submittedLate,
+        submissionDelayMinutes
       };
     } catch (error) {
       await transaction.rollback();
@@ -411,14 +444,18 @@ class InternshipManagementService {
       include: [
         {
           model: InternshipDocument,
+          as: 'internshipDocument', // ⚠️ ต้องใช้ as keyword!
           required: true,
         },
         {
-          model: Student,
+          model: User,
+          as: 'owner', // ⚠️ Document belongsTo User as 'owner'
+          attributes: ["firstName", "lastName", "userId"],
           include: [
             {
-              model: User,
-              attributes: ["firstName", "lastName"],
+              model: Student,
+              as: 'student', // ⚠️ User hasOne Student as 'student'
+              attributes: ["studentCode", "totalCredits", "studentId"],
             },
           ],
         },
@@ -430,23 +467,38 @@ class InternshipManagementService {
     }
 
     // ตรวจสอบสิทธิ์การเข้าถึงข้อมูล
-    if (document.userId !== userId && userRole !== "admin") {
+    // อนุญาตให้: เจ้าของเอกสาร, admin, teacher, head
+    const allowedRoles = ["admin", "teacher", "head", "staff"];
+    if (document.userId !== userId && !allowedRoles.includes(userRole)) {
       throw new Error("ไม่มีสิทธิ์เข้าถึงข้อมูล");
     }
 
+    // เข้าถึงข้อมูลผ่าน alias ที่ถูกต้อง
+    const ownerUser = document.owner;
+    const studentData = ownerUser?.student;
+    const internshipDoc = document.internshipDocument;
+
     return {
       documentId: document.documentId,
-      studentName: `${document.Student.User.firstName} ${document.Student.User.lastName}`,
-      studentCode: document.Student.studentCode,
-      companyName: document.InternshipDocument.companyName,
-      companyAddress: document.InternshipDocument.companyAddress,
-      internshipPosition: document.InternshipDocument.internshipPosition, // เพิ่มฟิลด์ใหม่
-      contactPersonName: document.InternshipDocument.contactPersonName, // เพิ่มฟิลด์ใหม่
-      contactPersonPosition: document.InternshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
-      startDate: document.InternshipDocument.startDate,
-      endDate: document.InternshipDocument.endDate,
+      studentName: `${ownerUser?.firstName || ''} ${ownerUser?.lastName || ''}`.trim(),
+      studentCode: studentData?.studentCode,
+      companyName: internshipDoc?.companyName,
+      companyAddress: internshipDoc?.companyAddress,
+      internshipPosition: internshipDoc?.internshipPosition,
+      position: internshipDoc?.internshipPosition, // alias สำหรับ CS05Preview
+      contactPersonName: internshipDoc?.contactPersonName,
+      contactPersonPosition: internshipDoc?.contactPersonPosition,
+      startDate: internshipDoc?.startDate,
+      endDate: internshipDoc?.endDate,
       status: document.status,
       createdAt: document.created_at,
+      // เพิ่มข้อมูลสำหรับ CS05Preview component
+      owner: {
+        student: {
+          studentCode: studentData?.studentCode,
+          totalCredits: studentData?.totalCredits,
+        }
+      }
     };
   }
 

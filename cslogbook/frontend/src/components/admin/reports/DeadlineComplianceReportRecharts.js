@@ -496,6 +496,106 @@ const DeadlineComplianceReportRecharts = () => {
                   />
                 </Card>
               )
+            },
+            {
+              key: 'lateSubmissions',
+              label: `นักศึกษาที่ส่งช้า (${data?.lateSubmissions?.length || 0})`,
+              children: (
+                <Card size="small">
+                  <Alert
+                    type="error"
+                    message={`มีนักศึกษา ${data?.lateSubmissions?.length || 0} คน ที่ส่งเอกสารช้า/เลยกำหนด`}
+                    description="รายชื่อนักศึกษาที่ส่งเอกสารหลังเลยกำหนดเวลาที่กำหนด (รวม Grace Period)"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                  />
+                  <Table
+                    size="small"
+                    loading={loading}
+                    dataSource={data?.lateSubmissions || []}
+                    columns={[
+                      {
+                        title: 'รหัสนักศึกษา',
+                        dataIndex: 'studentId',
+                        key: 'studentId',
+                        width: 120,
+                        render: (text) => <Text strong>{text}</Text>
+                      },
+                      {
+                        title: 'ชื่อ-นามสกุล',
+                        key: 'fullName',
+                        render: (_, record) => (
+                          <Text>{record.firstName} {record.lastName}</Text>
+                        )
+                      },
+                      {
+                        title: 'เอกสาร/Deadline',
+                        dataIndex: 'deadlineName',
+                        key: 'deadlineName',
+                        render: (text, record) => (
+                          <Space direction="vertical" size={0}>
+                            <Text>{text}</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {record.documentType || record.documentSubtype}
+                            </Text>
+                          </Space>
+                        )
+                      },
+                      {
+                        title: 'กำหนดส่ง',
+                        dataIndex: 'deadlineAt',
+                        key: 'deadlineAt',
+                        render: (date) => dayjs(date).tz().format('DD/MM/BBBB HH:mm'),
+                        sorter: (a, b) => new Date(a.deadlineAt) - new Date(b.deadlineAt)
+                      },
+                      {
+                        title: 'ส่งเมื่อ',
+                        dataIndex: 'submittedAt',
+                        key: 'submittedAt',
+                        render: (date) => dayjs(date).tz().format('DD/MM/BBBB HH:mm'),
+                        sorter: (a, b) => new Date(a.submittedAt) - new Date(b.submittedAt)
+                      },
+                      {
+                        title: 'ส่งช้า',
+                        dataIndex: 'daysLate',
+                        key: 'daysLate',
+                        render: (days, record) => {
+                          const hoursLate = record.hoursLate || 0;
+                          if (days > 0) {
+                            return <Tag color="red">{days} วัน {hoursLate % 24} ชม.</Tag>;
+                          } else if (hoursLate > 0) {
+                            return <Tag color="orange">{hoursLate} ชั่วโมง</Tag>;
+                          }
+                          return <Tag color="volcano">ส่งช้า</Tag>;
+                        },
+                        sorter: (a, b) => (a.hoursLate || 0) - (b.hoursLate || 0)
+                      },
+                      {
+                        title: 'สถานะ',
+                        dataIndex: 'status',
+                        key: 'status',
+                        render: (status) => {
+                          const statusMap = {
+                            'late': { color: 'orange', text: 'ส่งช้า (ใน Grace)' },
+                            'very_late': { color: 'red', text: 'ส่งช้ามาก' },
+                            'overdue': { color: 'volcano', text: 'เลยกำหนด' }
+                          };
+                          const config = statusMap[status] || { color: 'default', text: status };
+                          return <Tag color={config.color}>{config.text}</Tag>;
+                        }
+                      }
+                    ]}
+                    rowKey={(record) => `${record.studentId}-${record.documentId}`}
+                    pagination={{ 
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showTotal: (total) => `ทั้งหมด ${total} รายการ`
+                    }}
+                    scroll={{ x: 1400 }}
+                    locale={{ emptyText: <Empty description="ไม่มีนักศึกษาที่ส่งช้า" /> }}
+                  />
+                </Card>
+              )
             }
           ]}
         />

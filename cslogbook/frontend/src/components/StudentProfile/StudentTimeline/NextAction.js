@@ -20,32 +20,34 @@ import useCertificateStatus from "../../../hooks/useCertificateStatus";
 const { Text } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงคำแนะนำการดำเนินการถัดไป
-const NextAction = () => {
-  // ดึงข้อมูลจาก context
+const NextAction = ({ student: propStudent, progress: propProgress }) => {
+  // ดึงข้อมูลจาก context (ใช้เป็น fallback สำหรับข้อมูลบางอย่าง)
   const {
-    cs05Status,
-    internshipStatus,
-    student,
-    loading,
+    cs05Status: contextCs05Status,
+    internshipStatus: contextInternshipStatus,
+    student: contextStudent,
+    loading: contextLoading,
   } = useInternshipStatus();
 
   const {
     supervisorEvaluationStatus,
   } = useCertificateStatus();
 
+  // ใช้ข้อมูลจาก props เป็นหลัก ถ้าไม่มีค่อย fallback ไปใช้ context
+  const student = propStudent || contextStudent;
+  const progress = propProgress || { internship: {}, project: {} };
+  
   // ถ้ายังโหลดข้อมูลอยู่
-  if (loading) return null;
+  if (contextLoading && !propStudent && !propProgress) return null;
 
-  // ใช้ student object จาก context (ถ้ามี)
+  // ใช้ student object จาก props หรือ context (ถ้ามี)
   const requirements = student?.requirements || {};
-  const internshipReqs = getInternshipRequirements(requirements.internship);
+  const internshipReqs = getInternshipRequirements(requirements.internship);    
   const projectReqs = getProjectRequirements(requirements.project);
 
   // ดึงค่าที่จำเป็นจาก student object
   const {
     nextAction,
-    // internshipEligible, // ลบออก
-    // projectEligible, // ลบออก
     projectStatus,
     isEnrolledInternship,
     isEnrolledProject,
@@ -53,6 +55,16 @@ const NextAction = () => {
     studentId,
     studentCode,
   } = student || {};
+
+  // ดึง internshipStatus จาก student object เป็นหลัก ถ้าไม่มีค่อยใช้ context
+  const internshipStatus = student?.internshipStatus || contextInternshipStatus;
+  
+  // ดึง cs05Status จาก context (เพราะข้อมูลนี้มาจาก internship API)
+  const cs05Status = contextCs05Status;
+
+  // ดึง steps จาก progress (ข้อมูลจาก timeline API)
+  const internshipSteps = progress?.internship?.steps || [];
+  const projectSteps = progress?.project?.steps || [];
 
   // ตัวแปรเพื่อคำนวณว่าควรแนะนำให้ทำอะไรต่อไป
   let recommendedAction = nextAction;
@@ -68,19 +80,19 @@ const NextAction = () => {
       'internship-logbook': '/internship-logbook',
       'internship-companyinfo': '/internship-logbook/companyinfo',
       'internship-timesheet': '/internship-logbook/timesheet',
-  'internship-summary': '/internship-summary',
-      
+      'internship-summary': '/internship-summary',
+
       // Routes สำหรับโครงงาน (ตาม Sidebar.js)
       'project-eligibility': '/project-eligibility',
       'project-requirements': '/project-requirements',
-      
+
       // Routes อื่นๆ (ตาม Sidebar.js)
-      'student-profile': `/student-profile/${studentCode || studentId}`,
+      'student-profile': `/student-profile/${studentCode || studentId}`,        
       'dashboard': '/admin/dashboard'
     };
 
     let url = routes[routeName] || '/admin/dashboard';
-    
+
     // เพิ่มพารามิเตอร์ถ้ามี
     if (params.studentId && url.includes(':studentId')) {
       url = url.replace(':studentId', params.studentId);
@@ -88,18 +100,39 @@ const NextAction = () => {
     if (params.studentCode && url.includes(':studentCode')) {
       url = url.replace(':studentCode', params.studentCode);
     }
-    
+
     return url;
   };
 
   // ปรับ flow: เริ่มจาก cs05Status และ internshipStatus
+  // ใช้ข้อมูลจาก progress.steps เพื่อหาขั้นตอนที่ต้องดำเนินการ
   if (!nextAction || nextAction === 'none') {
-    // ถ้ายังไม่ได้ลงทะเบียนคำร้องฝึกงาน (cs05Status ไม่มีหรือเป็น waiting)
-    if (!cs05Status || cs05Status === 'waiting') {
+    // หาขั้นตอน internship ที่รอการดำเนินการจาก progress.steps
+    const pendingInternshipStep = internshipSteps.find(step => 
+      step.status === 'awaiting_student_action' || 
+      step.status === 'in_progress' ||
+      step.status === 'pending'
+    );
+
+    // หาขั้นตอน project ที่รอการดำเนินการจาก progress.steps
+    const pendingProjectStep = projectSteps.find(step => 
+      step.status === 'awaiting_student_action' || 
+      step.status === 'in_progress' ||
+      step.status === 'pending'
+    );
+
+    // ถ้ามีขั้นตอนที่ต้องดำเนินการจาก progress.steps ให้แสดงขั้นตอนนั้น
+    if (pendingInternshipStep) {
+      recommendedAction = 'continue_internship_step';
+    } else if (pendingProjectStep) {
+      recommendedAction = 'continue_project_step';
+    }
+    // ถ้ายังไม่ได้ลงทะเบียนคำร้องฝึกงาน (cs05Status ไม่มีหรือเป็น waiting)     
+    else if (!cs05Status || cs05Status === 'waiting') {
       recommendedAction = 'register_internship';
     }
     // ถ้าฝึกงานอยู่ ให้บันทึก logbook
-    else if (isEnrolledInternship && internshipStatus === 'in_progress') {
+    else if (isEnrolledInternship && internshipStatus === 'in_progress') {      
       recommendedAction = 'daily_log';
     }
     // ถ้าผ่านฝึกงานแล้ว และยังไม่ได้ลงทะเบียนโครงงาน
@@ -110,21 +143,12 @@ const NextAction = () => {
     else if (isEnrolledProject && projectStatus === 'in_progress') {
       recommendedAction = 'continue_project';
     }
-    // ถ้ามีขั้นตอนที่ต้องดำเนินการจาก progress
-    else if (internshipStatus?.steps?.some(step => 
-      step.status === 'awaiting_student_action' || step.status === 'in_progress')) {
-      recommendedAction = 'continue_internship_step';
-    }
-    else if (projectStatus?.steps?.some(step => 
-      step.status === 'awaiting_student_action' || step.status === 'in_progress')) {
-      recommendedAction = 'continue_project_step';
-    }
   }
 
   // เพิ่ม logic สำหรับการประเมินฝึกงาน
   if (isEnrolledInternship && internshipStatus === 'completed') {
     // ถ้ายังไม่ได้ประเมิน หรือรอผู้ควบคุมงานประเมิน
-    if (supervisorEvaluationStatus === "wait" || !supervisorEvaluationStatus) {
+    if (supervisorEvaluationStatus === "wait" || !supervisorEvaluationStatus) { 
       recommendedAction = 'submit_evaluation';
     } else if (supervisorEvaluationStatus === "pending") {
       recommendedAction = 'waiting_evaluation';
@@ -137,17 +161,17 @@ const NextAction = () => {
       actionContent = (
         <Space direction="vertical">
           <Text>คุณมีสิทธิ์ลงทะเบียนฝึกงานแล้ว</Text>
-          <Text type="secondary">ดำเนินการลงทะเบียนและเตรียมเอกสารที่จำเป็น</Text>
+          <Text type="secondary">ดำเนินการลงทะเบียนและเตรียมเอกสารที่จำเป็น</Text>                                                                              
           <Space>
-            <Button 
-              type="primary" 
-              icon={<FormOutlined />} 
+            <Button
+              type="primary"
+              icon={<FormOutlined />}
               href={getRouteUrl('internship-registration')}
             >
               ลงทะเบียนฝึกงาน
             </Button>
-            <Button 
-              icon={<FileTextOutlined />} 
+            <Button
+              icon={<FileTextOutlined />}
               href={getRouteUrl('internship-eligibility')}
             >
               ตรวจสอบคุณสมบัติ
@@ -161,7 +185,7 @@ const NextAction = () => {
       actionContent = (
         <Space direction="vertical">
           <Text>ดำเนินการบันทึกรายงานการฝึกงานประจำวัน</Text>
-          <Text type="secondary">อย่าลืมบันทึกกิจกรรมและความรู้ที่ได้รับเป็นประจำ</Text>
+          <Text type="secondary">อย่าลืมบันทึกกิจกรรมและความรู้ที่ได้รับเป็นประจำ</Text>                                                                        
           <Button
             type="primary"
             icon={<BookOutlined />}
@@ -176,14 +200,14 @@ const NextAction = () => {
     case 'register_project':
       actionContent = (
         <Space direction="vertical">
-          <Text>ยินดีด้วย! คุณผ่านการฝึกงานแล้ว และมีสิทธิ์ลงทะเบียนโครงงานพิเศษ</Text>
-          <Text type="secondary">โมดูลลงทะเบียนโครงงานกำลังอยู่ระหว่างการปรับปรุง โปรดติดต่อเจ้าหน้าที่ภาคเพื่อติดตามขั้นตอน</Text>
+          <Text>ยินดีด้วย! คุณผ่านการฝึกงานแล้ว และมีสิทธิ์ลงทะเบียนโครงงานพิเศษ</Text>                                                                         
+          <Text type="secondary">โมดูลลงทะเบียนโครงงานกำลังอยู่ระหว่างการปรับปรุง โปรดติดต่อเจ้าหน้าที่ภาคเพื่อติดตามขั้นตอน</Text>                                        
           <Space>
-            <Button type="primary" icon={<ExperimentOutlined />} disabled>
+            <Button type="primary" icon={<ExperimentOutlined />} disabled>      
               ลงทะเบียนโครงงาน (กำลังปรับปรุง)
             </Button>
-            <Button 
-              icon={<FileTextOutlined />} 
+            <Button
+              icon={<FileTextOutlined />}
               href={getRouteUrl('project-eligibility')}
             >
               ตรวจสอบคุณสมบัติ
@@ -197,9 +221,9 @@ const NextAction = () => {
       actionContent = (
         <Space direction="vertical">
           <Text>ดำเนินการโครงงานพิเศษต่อ</Text>
-          <Text type="secondary">ระบบติดตามโครงงานกำลังอยู่ระหว่างการปรับปรุง หากต้องการอัปเดตความคืบหน้าให้ติดต่ออาจารย์ที่ปรึกษาโดยตรง</Text>
+          <Text type="secondary">ระบบติดตามโครงงานกำลังอยู่ระหว่างการปรับปรุง หากต้องการอัปเดตความคืบหน้าให้ติดต่ออาจารย์ที่ปรึกษาโดยตรง</Text>                            
           <Space>
-            <Button type="primary" icon={<ExperimentOutlined />} disabled>
+            <Button type="primary" icon={<ExperimentOutlined />} disabled>      
               บันทึก Logbook โครงงาน (กำลังปรับปรุง)
             </Button>
             <Button icon={<FileTextOutlined />} disabled>
@@ -211,21 +235,23 @@ const NextAction = () => {
       break;
 
     case 'continue_internship_step':
-      // หาขั้นตอนที่ต้องดำเนินการจาก progress
-      const pendingInternshipStep = internshipStatus?.steps?.find(step => 
-        step.status === 'awaiting_student_action' || step.status === 'in_progress'
+      // หาขั้นตอนที่ต้องดำเนินการจาก progress.steps
+      const pendingInternshipStep = internshipSteps.find(step =>       
+        step.status === 'awaiting_student_action' || 
+        step.status === 'in_progress' ||
+        step.status === 'pending'
       );
-      
+
       actionContent = (
         <Space direction="vertical">
           <Text>มีขั้นตอนการฝึกงานที่ต้องดำเนินการ</Text>
           {pendingInternshipStep && (
-            <Text type="secondary">{pendingInternshipStep.title || pendingInternshipStep.description}</Text>
+            <Text type="secondary">{pendingInternshipStep.title || pendingInternshipStep.name || pendingInternshipStep.description}</Text>                                                    
           )}
-          <Button 
-            type="primary" 
-            icon={<FormOutlined />} 
-            href={pendingInternshipStep?.actionLink || getRouteUrl('internship-registration')}
+          <Button
+            type="primary"
+            icon={<FormOutlined />}
+            href={pendingInternshipStep?.actionLink || pendingInternshipStep?.actionUrl || getRouteUrl('internship-registration')}                                                                  
           >
             {pendingInternshipStep?.actionText || 'ดำเนินการต่อ'}
           </Button>
@@ -234,20 +260,22 @@ const NextAction = () => {
       break;
 
     case 'continue_project_step':
-      // หาขั้นตอนที่ต้องดำเนินการจาก progress
-      const pendingProjectStep = projectStatus?.steps?.find(step => 
-        step.status === 'awaiting_student_action' || step.status === 'in_progress'
+      // หาขั้นตอนที่ต้องดำเนินการจาก progress.steps
+      const pendingProjectStep = projectSteps.find(step =>
+        step.status === 'awaiting_student_action' || 
+        step.status === 'in_progress' ||
+        step.status === 'pending'
       );
-      
+
       actionContent = (
         <Space direction="vertical">
           <Text>มีขั้นตอนโครงงานที่ต้องดำเนินการ</Text>
           {pendingProjectStep && (
-            <Text type="secondary">{pendingProjectStep.title || pendingProjectStep.description}</Text>
+            <Text type="secondary">{pendingProjectStep.title || pendingProjectStep.name || pendingProjectStep.description}</Text>                                                          
           )}
-          <Button 
-            type="primary" 
-            icon={<ExperimentOutlined />} 
+          <Button
+            type="primary"
+            icon={<ExperimentOutlined />}
             disabled
           >
             กำลังปรับปรุงระบบโครงงาน

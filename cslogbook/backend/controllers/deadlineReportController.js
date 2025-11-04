@@ -99,6 +99,48 @@ exports.getOverdueDeadlines = async (req, res, next) => {
 
 /**
  * @swagger
+ * /api/reports/deadlines/late-submissions:
+ *   get:
+ *     summary: ดึงรายชื่อนักศึกษาที่ส่งช้า/เลยกำหนด
+ *     tags: [Deadline Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: academicYear
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: semester
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: relatedTo
+ *         schema:
+ *           type: string
+ */
+exports.getLateSubmissions = async (req, res, next) => {
+  try {
+    const { academicYear, semester, relatedTo } = req.query;
+    
+    const data = await deadlineReportService.getDeadlineCompliance({
+      academicYear,
+      semester: semester ? parseInt(semester) : undefined,
+      relatedTo
+    });
+
+    res.json({
+      success: true,
+      data: data.lateSubmissions || []
+    });
+  } catch (error) {
+    logger.error('Error in getLateSubmissions:', error);
+    next(error);
+  }
+};
+
+/**
+ * @swagger
  * /api/reports/students/:studentId/deadline-history:
  *   get:
  *     summary: ดึงประวัติการส่งงานตาม deadline ของนักศึกษา

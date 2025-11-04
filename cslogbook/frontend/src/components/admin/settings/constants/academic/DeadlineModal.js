@@ -139,8 +139,15 @@ export default function DeadlineModal({
         {!editing && (
           <Form.Item 
             label="เลือก Template" 
-            tooltip="เลือกจาก template สำเร็จรูปเพื่อความสะดวก"
-            extra="ระบบจะช่วยกรอกข้อมูลให้อัตโนมัติ หรือข้ามเพื่อกรอกเอง"
+            tooltip="เลือก template สำเร็จรูปเพื่อความสะดวก"
+            extra={
+              <>
+                <div>ระบบจะช่วยกรอกข้อมูลให้อัตโนมัติ หรือข้ามเพื่อกรอกเอง</div>
+                <div style={{ color: '#faad14', marginTop: 4 }}>
+                  ⚠️ การฝึกงาน: มี กำหนดการเฉพาะ คพ.05 และ รายงานผล | หนังสือตอบรับไม่มี กำหนดการ
+                </div>
+              </>
+            }
           >
             <Select
               value={formState.templateId || undefined}

@@ -216,30 +216,38 @@ const WorkflowProgressReport = () => {
           items={[
             {
               key: 'funnel',
-              label: 'Funnel Analysis',
+              label: '📊 แผนภูมิการไหล (Funnel)',
               children: (
-                <Card size="small" title="การไหลของนักศึกษาผ่านแต่ละขั้นตอน">
+                <Card size="small" title="การไหลของนักศึกษาผ่านแต่ละขั้นตอน (Funnel Analysis)">
                   {loading ? (
                     <Skeleton active />
                   ) : data?.funnelData?.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <BarChart data={data.funnelData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis 
-                          type="category" 
-                          dataKey="stepTitle" 
-                          width={200}
-                          style={{ fontSize: 12 }}
-                        />
-                        <Tooltip />
-                        <Legend />
+                    <>
+                      <div style={{ marginBottom: 16, padding: '8px 16px', background: '#f0f5ff', borderRadius: 4 }}>
+                        <Text type="secondary">
+                          💡 <strong>แผนภูมิการไหล:</strong> แสดงจำนวนนักศึกษาในแต่ละขั้นตอนของกระบวนการ 
+                          เพื่อดูว่านักศึกษาไหลผ่านแต่ละขั้นตอนอย่างไร และขั้นตอนใดที่มีนักศึกษาลดลงมาก
+                        </Text>
+                      </div>
+                      <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={data.funnelData} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis 
+                            type="category" 
+                            dataKey="stepTitle" 
+                            width={200}
+                            style={{ fontSize: 12 }}
+                          />
+                          <Tooltip />
+                          <Legend />
                         <Bar dataKey="completed" stackId="a" fill={CHART_COLORS.success} name="เสร็จสิ้น" />
                         <Bar dataKey="inProgress" stackId="a" fill={CHART_COLORS.warning} name="กำลังดำเนินการ" />
                         <Bar dataKey="pending" stackId="a" fill={CHART_COLORS.info} name="รอดำเนินการ" />
                         <Bar dataKey="blocked" stackId="a" fill={CHART_COLORS.danger} name="ติดขัด" />
                       </BarChart>
                     </ResponsiveContainer>
+                    </>
                   ) : (
                     <Empty description="ไม่มีข้อมูล" />
                   )}
@@ -248,14 +256,21 @@ const WorkflowProgressReport = () => {
             },
             {
               key: 'bottleneck',
-              label: 'Bottleneck Analysis',
+              label: '🔍 จุดคอขวด (Bottleneck)',
               children: (
                 <Row gutter={[16, 16]}>
                   <Col xs={24} lg={16}>
-                    <Card size="small" title="ขั้นตอนที่นักศึกษาติดมากที่สุด">
+                    <Card size="small" title="ขั้นตอนที่นักศึกษาติดมากที่สุด (Bottleneck Analysis)">
                       {loading ? (
                         <Skeleton active />
                       ) : bottleneckBarData.length > 0 ? (
+                        <>
+                          <div style={{ marginBottom: 16, padding: '8px 16px', background: '#fff7e6', borderRadius: 4 }}>
+                            <Text type="secondary">
+                              💡 <strong>จุดคอขวด:</strong> แสดงเปอร์เซ็นต์ของนักศึกษาที่ติดค้างในแต่ละขั้นตอน 
+                              ช่วยระบุขั้นตอนที่มีปัญหาและต้องให้ความสนใจเป็นพิเศษ
+                            </Text>
+                          </div>
                         <ResponsiveContainer width="100%" height={300}>
                           <BarChart data={bottleneckBarData} layout="horizontal">
                             <CartesianGrid strokeDasharray="3 3" />
@@ -290,6 +305,7 @@ const WorkflowProgressReport = () => {
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
+                        </>
                       ) : (
                         <Empty description="ไม่มีข้อมูล" />
                       )}
@@ -300,6 +316,12 @@ const WorkflowProgressReport = () => {
                       {loading ? (
                         <Skeleton active />
                       ) : statusPieData.length > 0 ? (
+                        <>
+                          <div style={{ marginBottom: 8, padding: '6px 12px', background: '#f6ffed', borderRadius: 4, fontSize: 12 }}>
+                            <Text type="secondary">
+                              💡 แสดงสัดส่วนสถานะของนักศึกษาทั้งหมด
+                            </Text>
+                          </div>
                         <ResponsiveContainer width="100%" height={300}>
                           <PieChart>
                             <Pie
@@ -322,6 +344,7 @@ const WorkflowProgressReport = () => {
                             <Legend />
                           </PieChart>
                         </ResponsiveContainer>
+                        </>
                       ) : (
                         <Empty description="ไม่มีข้อมูล" />
                       )}
@@ -332,7 +355,7 @@ const WorkflowProgressReport = () => {
             },
             {
               key: 'blocked',
-              label: `นักศึกษาที่ติดขัด (${blockedStudents.length})`,
+              label: `⚠️ นักศึกษาที่ติดขัด (${blockedStudents.length})`,
               children: (
                 <Card size="small">
                   <Table

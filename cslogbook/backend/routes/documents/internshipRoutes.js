@@ -166,12 +166,13 @@ router.get(
   internshipController.getCertificateStatus
 );
 
-// ส่งคำขอหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน
+// ส่งคำขอหนังสือรับรอง - ต้องตรวจสอบสิทธิ์ฝึกงาน และ deadline
 router.post(
   "/certificate-request",
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
+  checkInternshipDeadline('report', 'SUBMISSION'), // ตรวจสอบ deadline รายงานผลการฝึกงาน
   internshipController.submitCertificateRequest
 );
 
@@ -236,13 +237,12 @@ router.post(
 
 // ============= เส้นทางสำหรับอัปโหลดหนังสือตอบรับ =============
 
-// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน และ deadline
+// อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน - ต้องตรวจสอบสิทธิ์ฝึกงาน (ไม่มี deadline)
 router.post(
   "/upload-acceptance-letter",
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
-  checkInternshipDeadline('acceptance_letter', 'SUBMISSION'),
   upload.single("acceptanceLetter"), // ใช้ field name เดียวกับ frontend
   internshipController.uploadAcceptanceLetter
 );

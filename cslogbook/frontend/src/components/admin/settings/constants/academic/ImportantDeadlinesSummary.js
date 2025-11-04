@@ -10,7 +10,8 @@ import {
   Checkbox,
   Divider,
   Tabs,
-  message
+  message,
+  
 } from 'antd';
 import {
   DownloadOutlined,
