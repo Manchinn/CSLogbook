@@ -97,7 +97,7 @@ const DocumentManagement = ({ type }) => {
 const OriginalDocumentManagement = ({ type }) => {
   // State สำหรับการกรอง
   const [filters, setFilters] = useState({
-    status: "",
+    status: "pending", // เปลี่ยน default เป็น pending
     search: "",
     academicYear: "all",
     semester: "all",
@@ -481,7 +481,7 @@ const OriginalDocumentManagement = ({ type }) => {
               <Title level={4} style={{ margin: 0 }}>
                 จัดการเอกสารฝึกงาน
               </Title>
-              <Space size={8}>
+              {/* <Space size={8}>
                 {summary.pending > 0 && (
                   <Tooltip title="รอตรวจสอบ">
                     <Badge 
@@ -513,7 +513,7 @@ const OriginalDocumentManagement = ({ type }) => {
                     />
                   </Tooltip>
                 )}
-              </Space>
+              </Space> */}
             </Space>
           </Col>
           <Col>
@@ -623,10 +623,10 @@ const OriginalDocumentManagement = ({ type }) => {
               >
                 รีเฟรช
               </Button>
-              {(filters.status !== "" || filters.search !== "" || filters.academicYear !== "all" || filters.semester !== "all") && (
+              {(filters.status !== "pending" || filters.search !== "" || filters.academicYear !== "all" || filters.semester !== "all") && (
                 <Button
                   onClick={() => {
-                    setFilters({ status: "", search: "", academicYear: "all", semester: "all" });
+                    setFilters({ status: "pending", search: "", academicYear: "all", semester: "all" });
                     setSelectedRowKeys([]);
                   }}
                   size="small"
