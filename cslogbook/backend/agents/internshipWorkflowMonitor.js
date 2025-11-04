@@ -16,6 +16,7 @@ class InternshipWorkflowMonitor {
   constructor() {
     this.task = null;
     this.isRunning = false;
+    this.checkInProgress = false; // ใช้สำหรับป้องกัน concurrent check
   }
 
   /**
@@ -26,6 +27,9 @@ class InternshipWorkflowMonitor {
       logger.warn('InternshipWorkflowMonitor: Agent is already running');
       return;
     }
+
+    // ตั้งสถานะว่ากำลังทำงาน
+    this.isRunning = true;
 
     // ทำงานทุกวันเวลา 02:00 น.
     this.task = cron.schedule('0 2 * * *', async () => {
@@ -44,6 +48,7 @@ class InternshipWorkflowMonitor {
     if (this.task) {
       this.task.stop();
       this.task = null;
+      this.isRunning = false;
       logger.info('InternshipWorkflowMonitor: Agent stopped');
     }
   }
@@ -52,12 +57,12 @@ class InternshipWorkflowMonitor {
    * ตรวจสอบ workflow ของการฝึกงานทั้งหมดที่กำลังดำเนินการ
    */
   async checkInternshipWorkflows() {
-    if (this.isRunning) {
+    if (this.checkInProgress) {
       logger.warn('InternshipWorkflowMonitor: Previous check is still running, skipping...');
       return;
     }
 
-    this.isRunning = true;
+    this.checkInProgress = true;
     logger.info('InternshipWorkflowMonitor: Starting workflow check...');
 
     try {
@@ -117,7 +122,7 @@ class InternshipWorkflowMonitor {
     } catch (error) {
       logger.error('InternshipWorkflowMonitor: Error in checkInternshipWorkflows:', error);
     } finally {
-      this.isRunning = false;
+      this.checkInProgress = false;
     }
   }
 

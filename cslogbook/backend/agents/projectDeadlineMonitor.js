@@ -15,6 +15,7 @@ class ProjectDeadlineMonitor {
   constructor() {
     this.cronJob = null;
     this.isRunning = false;
+    this.checkInProgress = false; // ใช้สำหรับป้องกัน concurrent check
     this.lastRunTime = null;
     this.statistics = {
       totalChecked: 0,
@@ -34,6 +35,9 @@ class ProjectDeadlineMonitor {
       logger.warn('ProjectDeadlineMonitor is already running');
       return;
     }
+
+    // ตั้งสถานะว่ากำลังทำงาน
+    this.isRunning = true;
 
     // รอ startup
     setTimeout(() => {
@@ -60,6 +64,7 @@ class ProjectDeadlineMonitor {
     if (this.cronJob) {
       this.cronJob.stop();
       this.cronJob = null;
+      this.isRunning = false;
       logger.info('ProjectDeadlineMonitor stopped');
     }
   }
@@ -68,12 +73,12 @@ class ProjectDeadlineMonitor {
    * รันการตรวจสอบ deadline ทั้งหมด
    */
   async runCheck() {
-    if (this.isRunning) {
+    if (this.checkInProgress) {
       logger.warn('ProjectDeadlineMonitor: Check already in progress, skipping...');
       return;
     }
 
-    this.isRunning = true;
+    this.checkInProgress = true;
     const startTime = Date.now();
 
     try {
@@ -144,7 +149,7 @@ class ProjectDeadlineMonitor {
     } catch (error) {
       logger.error('ProjectDeadlineMonitor: Fatal error during check:', error);
     } finally {
-      this.isRunning = false;
+      this.checkInProgress = false;
     }
   }
 

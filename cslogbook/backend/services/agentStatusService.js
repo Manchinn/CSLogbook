@@ -152,7 +152,9 @@ class AgentStatusService {
             eligibilityChecker: 'ตัวตรวจสอบสิทธิ์',
             eligibilityScheduler: 'ตัวจัดการสิทธิ์อัตโนมัติ',
             projectPurgeScheduler: 'ตัวล้างข้อมูลโครงงาน',
-            academicSemesterScheduler: 'ตัวจัดการภาคการศึกษา'
+            academicSemesterScheduler: 'ตัวจัดการภาคการศึกษา',
+            projectDeadlineMonitor: 'ตัวตรวจสอบ Deadline โครงงาน',
+            internshipWorkflowMonitor: 'ตัวตรวจสอบ Workflow ฝึกงาน'
         };
         
         return displayNames[agentName] || agentName;
@@ -172,7 +174,9 @@ class AgentStatusService {
             eligibilityChecker: 'ตรวจสอบสิทธิ์ของนักศึกษาในการฝึกงานและทำโครงงาน',
             eligibilityScheduler: 'อัปเดตสิทธิ์ของนักศึกษาอัตโนมัติตามเงื่อนไข',
             projectPurgeScheduler: 'ล้างข้อมูลโครงงานที่หมดอายุออกจากระบบ',
-            academicSemesterScheduler: 'จัดการข้อมูลภาคการศึกษาและปีการศึกษา'
+            academicSemesterScheduler: 'จัดการข้อมูลภาคการศึกษาและปีการศึกษาอัตโนมัติ',
+            projectDeadlineMonitor: 'ตรวจสอบและอัปเดตสถานะโครงงานที่เลย deadline',
+            internshipWorkflowMonitor: 'ตรวจสอบและอัปเดต workflow การฝึกงานที่ใกล้สิ้นสุด'
         };
         
         return descriptions[agentName] || 'ไม่มีคำอธิบาย';
@@ -189,10 +193,12 @@ class AgentStatusService {
             documentMonitor: 'ทุก 30 นาที',
             securityMonitor: 'ทุก 1 ชั่วโมง',
             logbookQualityMonitor: 'ทุก 24 ชั่วโมง',
-            eligibilityChecker: 'เมื่อมีการเปลี่ยนแปลงข้อมูล',
-            eligibilityScheduler: 'ทุกเดือน (วันที่ 1)',
-            projectPurgeScheduler: 'ทุกสัปดาห์',
-            academicSemesterScheduler: 'ทุกเดือน'
+            eligibilityChecker: 'ทุก 7 วัน',
+            eligibilityScheduler: 'ทุกเดือน (วันที่ 1 เวลา 00:00 น.)',
+            projectPurgeScheduler: 'ทุกวัน (เวลา 02:15 น.)',
+            academicSemesterScheduler: 'ทุกวัน (เวลา 00:05 น.)',
+            projectDeadlineMonitor: 'ทุกชั่วโมง',
+            internshipWorkflowMonitor: 'ทุกวัน (เวลา 02:00 น.)'
         };
         
         return schedules[agentName] || 'ไม่ระบุ';
