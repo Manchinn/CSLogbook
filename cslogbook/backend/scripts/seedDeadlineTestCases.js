@@ -199,7 +199,8 @@ async function seedDeadlineTestCases() {
           submittedAt: onTimeSubmission.toDate(),
           advisorApprovedAt: onTimeSubmission.add(1, 'hour').toDate()
         });
-        console.log(`   [คพ.02-1] ✅ ON TIME: ส่งเมื่อ ${onTimeSubmission.format('DD/MM/YYYY HH:mm')} (ก่อน deadline 2 วัน)`);
+        console.log(`   [คพ.02-1] ✅ ON TIME: ${project1.projectCode || `#${project1.projectId}`} - ${project1.thaiTitle || project1.englishTitle || 'ไม่มีชื่อ'}`);
+        console.log(`              ส่งเมื่อ ${onTimeSubmission.format('DD/MM/YYYY HH:mm')} (ก่อน deadline 2 วัน)`);
       }
 
       // Case 2: ส่งช้าแต่ยังใน grace period (12 ชม.หลัง deadline)
@@ -219,7 +220,8 @@ async function seedDeadlineTestCases() {
           submittedAt: lateSubmission.toDate(),
           advisorApprovedAt: lateSubmission.add(1, 'hour').toDate()
         });
-        console.log(`   [คพ.02-2] ⚠️  LATE: ส่งเมื่อ ${lateSubmission.format('DD/MM/YYYY HH:mm')} (หลัง deadline 12 ชม.)`);
+        console.log(`   [คพ.02-2] ⚠️  LATE: ${project2.projectCode || `#${project2.projectId}`} - ${project2.thaiTitle || project2.englishTitle || 'ไม่มีชื่อ'}`);
+        console.log(`              ส่งเมื่อ ${lateSubmission.format('DD/MM/YYYY HH:mm')} (หลัง deadline 12 ชม.)`);
       }
 
       // Case 3: ส่งหลัง grace period (3 วันหลัง deadline)
@@ -239,7 +241,8 @@ async function seedDeadlineTestCases() {
           submittedAt: veryLateSubmission.toDate(),
           advisorApprovedAt: veryLateSubmission.add(1, 'hour').toDate()
         });
-        console.log(`   [คพ.02-3] ⚠️  VERY LATE: ส่งเมื่อ ${veryLateSubmission.format('DD/MM/YYYY HH:mm')} (หลัง grace 1 วัน)`);
+        console.log(`   [คพ.02-3] ⚠️  VERY LATE: ${project3.projectCode || `#${project3.projectId}`} - ${project3.thaiTitle || project3.englishTitle || 'ไม่มีชื่อ'}`);
+        console.log(`              ส่งเมื่อ ${veryLateSubmission.format('DD/MM/YYYY HH:mm')} (หลัง grace 1 วัน)`);
       }
     }
 
@@ -266,7 +269,8 @@ async function seedDeadlineTestCases() {
           submittedAt: onTimeSubmission.toDate(),
           advisorApprovedAt: onTimeSubmission.add(2, 'hour').toDate()
         });
-        console.log(`\n   [คพ.03-1] ✅ ON TIME: ส่งเมื่อ ${onTimeSubmission.format('DD/MM/YYYY HH:mm')} (ก่อน deadline 1 วัน)`);
+        console.log(`\n   [คพ.03-1] ✅ ON TIME: ${project4.projectCode || `#${project4.projectId}`} - ${project4.thaiTitle || project4.englishTitle || 'ไม่มีชื่อ'}`);
+        console.log(`              ส่งเมื่อ ${onTimeSubmission.format('DD/MM/YYYY HH:mm')} (ก่อน deadline 1 วัน)`);
       }
 
       // Case 5: ส่งช้าแต่ยังใน grace period (1 วันหลัง deadline)
@@ -287,7 +291,8 @@ async function seedDeadlineTestCases() {
           submittedAt: lateSubmission.toDate(),
           advisorApprovedAt: lateSubmission.add(2, 'hour').toDate()
         });
-        console.log(`   [คพ.03-2] ⚠️  LATE: ส่งเมื่อ ${lateSubmission.format('DD/MM/YYYY HH:mm')} (หลัง deadline 1 วัน)`);
+        console.log(`   [คพ.03-2] ⚠️  LATE: ${project5.projectCode || `#${project5.projectId}`} - ${project5.thaiTitle || project5.englishTitle || 'ไม่มีชื่อ'}`);
+        console.log(`              ส่งเมื่อ ${lateSubmission.format('DD/MM/YYYY HH:mm')} (หลัง deadline 1 วัน)`);
       }
 
       // Case 6: ส่งหลัง grace period (4 วันหลัง deadline) - จะแสดง tag แดงเพราะ lockAfterDeadline = true
@@ -308,7 +313,8 @@ async function seedDeadlineTestCases() {
           submittedAt: lockedSubmission.toDate(),
           advisorApprovedAt: lockedSubmission.add(2, 'hour').toDate()
         });
-        console.log(`   [คพ.03-3] 🔴 LOCKED: ส่งเมื่อ ${lockedSubmission.format('DD/MM/YYYY HH:mm')} (หลัง grace 1 วัน)`);
+        console.log(`   [คพ.03-3] 🔴 LOCKED: ${project6.projectCode || `#${project6.projectId}`} - ${project6.thaiTitle || project6.englishTitle || 'ไม่มีชื่อ'}`);
+        console.log(`              ส่งเมื่อ ${lockedSubmission.format('DD/MM/YYYY HH:mm')} (หลัง grace 1 วัน)`);
       }
     }
 
