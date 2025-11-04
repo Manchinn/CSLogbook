@@ -23,12 +23,13 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
+import { useStudentEligibility } from "../../../contexts/StudentEligibilityContext";
 
 const { Text, Paragraph } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงส่วนฝึกงาน
 const InternshipSection = () => {
-  // ดึงข้อมูลจาก Context
+  // ดึงข้อมูลจาก InternshipStatusContext (ข้อมูล CS05, dates, etc.)
   const {
     cs05Status,
     internshipDate,
@@ -39,6 +40,21 @@ const InternshipSection = () => {
     error,
     internshipStatus,
   } = useInternshipStatus();
+
+  // ดึงข้อมูลสิทธิ์จาก StudentEligibilityContext (ข้อมูลสิทธิ์ที่ถูกต้อง)
+  const {
+    canRegisterInternship,
+    internshipReason,
+    isLoading: eligibilityLoading,
+  } = useStudentEligibility();
+
+  // Debug: แสดงข้อมูลสิทธิ์
+  console.log('🔍 InternshipSection - Eligibility Data:', {
+    canRegisterInternship,
+    internshipReason,
+    eligibilityLoading,
+    fromContext: 'StudentEligibilityContext'
+  });
   
   // ข้อมูลพื้นฐาน
   const hasInternshipHistory = !!cs05Status;
@@ -60,29 +76,9 @@ const InternshipSection = () => {
   const currentStepDisplay = currentStepIndex !== -1 ? currentStepIndex + 1 : timelineSteps.length;
   const totalStepsDisplay = timelineSteps.length;
 
-  // ตรวจสอบสิทธิ์การฝึกงาน
-  const hasInternshipEligibility = () => {
-    if (student?.eligibility?.internship?.eligible !== undefined) {
-      return student.eligibility.internship.eligible;
-    }
-    if (typeof student?.internshipEligible === 'boolean') {
-      return student.internshipEligible;
-    }
-    return false;
-  };
-  
-  const getEligibilityMessage = () => {
-    if (student?.eligibility?.internship?.message) {
-      return student.eligibility.internship.message;
-    }
-    if (student?.internshipEligibleMessage) {
-      return student.internshipEligibleMessage;
-    }
-    return "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 75 หน่วยกิต";
-  };
-  
-  const isEligible = hasInternshipEligibility();
-  const eligibilityMessage = getEligibilityMessage();
+  // ตรวจสอบสิทธิ์การฝึกงาน (ใช้ข้อมูลจาก StudentEligibilityContext)
+  const isEligible = canRegisterInternship || false;
+  const eligibilityMessage = internshipReason || "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 81 หน่วยกิต";
   const isEnrolledInternship = !!cs05Status || hasInternshipHistory;
   const showEligibilityWarning = !isEligible && !hasInternshipHistory;
 
@@ -101,8 +97,8 @@ const InternshipSection = () => {
   })();
 
 
-  // 6. Loading state
-  if (loading) {
+  // 6. Loading state (รอทั้ง 2 contexts)
+  if (loading || eligibilityLoading) {
     return (
       <Card 
         title={
