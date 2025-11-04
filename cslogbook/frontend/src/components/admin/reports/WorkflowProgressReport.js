@@ -92,16 +92,17 @@ const WorkflowProgressReport = () => {
       dataIndex: 'currentStepStatus',
       key: 'status',
       render: (status) => {
-        const colorMap = {
-          blocked: 'red',
-          pending: 'orange',
-          in_progress: 'blue'
+        const statusMap = {
+          blocked: { color: 'red', label: 'Blocked' },
+          pending: { color: 'orange', label: 'Pending' },
+          in_progress: { color: 'blue', label: 'In Progress' }
         };
-        return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
+        const config = statusMap[status] || { color: 'default', label: status };
+        return <Tag color={config.color}>{config.label}</Tag>;
       }
     },
     {
-      title: 'ติดอยู่นาน (วัน)',
+      title: 'นับจากอัพเดทล่าสุด (วัน)',
       dataIndex: 'daysSinceUpdate',
       key: 'days',
       sorter: (a, b) => a.daysSinceUpdate - b.daysSinceUpdate,
@@ -218,7 +219,7 @@ const WorkflowProgressReport = () => {
               key: 'funnel',
               label: '📊 แผนภูมิการไหล (Funnel)',
               children: (
-                <Card size="small" title="การไหลของนักศึกษาผ่านแต่ละขั้นตอน (Funnel Analysis)">
+                <Card size="small" title="โฟลนักศึกษาผ่านแต่ละขั้นตอน" styles={{ body: {padding:12 }}}>
                   {loading ? (
                     <Skeleton active />
                   ) : data?.funnelData?.length > 0 ? (
@@ -260,15 +261,15 @@ const WorkflowProgressReport = () => {
               children: (
                 <Row gutter={[16, 16]}>
                   <Col xs={24} lg={16}>
-                    <Card size="small" title="ขั้นตอนที่นักศึกษาติดมากที่สุด (Bottleneck Analysis)">
+                    <Card size="small" title="ขั้นตอนที่นักศึกษาค้างนาน (Bottleneck Analysis)">
                       {loading ? (
                         <Skeleton active />
                       ) : bottleneckBarData.length > 0 ? (
                         <>
                           <div style={{ marginBottom: 16, padding: '8px 16px', background: '#fff7e6', borderRadius: 4 }}>
                             <Text type="secondary">
-                              💡 <strong>จุดคอขวด:</strong> แสดงเปอร์เซ็นต์ของนักศึกษาที่ติดค้างในแต่ละขั้นตอน 
-                              ช่วยระบุขั้นตอนที่มีปัญหาและต้องให้ความสนใจเป็นพิเศษ
+                              💡 <strong>จุดคอขวด:</strong> แสดงเปอร์เซ็นต์ของนักศึกษาที่<strong>อยู่ในขั้นตอนนั้นเกิน 30 วัน</strong>โดยไม่มีการอัพเดทสถานะ 
+                              (คำนวณจากวันล่าสุดที่นักศึกษาได้มีการอัปเดตสถานะ) ช่วยระบุขั้นตอนที่นักศึกษาใช้เวลานานและอาจมีปัญหา
                             </Text>
                           </div>
                         <ResponsiveContainer width="100%" height={300}>
@@ -289,10 +290,10 @@ const WorkflowProgressReport = () => {
                             <Tooltip 
                               formatter={(value, name, props) => [
                                 `${value}% (${props.payload.count} คน)`,
-                                'อัตราติดขัด'
+                                'นักศึกษาที่ค้างเกิน 30 วัน'
                               ]}
                             />
-                            <Bar dataKey="value" name="อัตราติดขัด">
+                            <Bar dataKey="value" name="อัตราค้างเกิน 30 วัน">
                               {bottleneckBarData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                               ))}
