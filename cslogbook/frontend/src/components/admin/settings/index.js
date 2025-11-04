@@ -4,12 +4,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   SettingOutlined, 
   CalendarOutlined, 
-  TeamOutlined, 
   BookOutlined,
-  ToolOutlined,
   BellOutlined,
   FireOutlined,
-  ThunderboltOutlined,
   StarOutlined
 } from '@ant-design/icons';
 import './constants/styles.css';

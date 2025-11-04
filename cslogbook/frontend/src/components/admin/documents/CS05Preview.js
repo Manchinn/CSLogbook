@@ -20,11 +20,6 @@ const CS05Preview = ({ data }) => {
   // รองรับทั้งรูปแบบข้อมูลแบบ nested และแบบ flat
   const internshipDocument = documentData?.internshipDocument || {};
   
-  // Helper function to extract filename from full path
-  const getFilenameFromPath = (filePath) => {
-    if (!filePath) return null;
-    return filePath.split(/[\\/]/).pop(); // รองรับทั้ง \ และ /
-  };
   
   // Format date with Buddhist calendar year and Asia/Bangkok timezone
   const formatDate = (dateString) => {
