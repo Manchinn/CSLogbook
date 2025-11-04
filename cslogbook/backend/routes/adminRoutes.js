@@ -14,6 +14,7 @@ const importantDeadlineController = require('../controllers/importantDeadlineCon
 const agentStatusController = require('../controllers/agentStatusController');
 const projectManagementController = require('../controllers/projectManagementController');
 const projectReportController = require('../controllers/projectReportController');
+const internshipAdminController = require('../controllers/internshipAdminController');
 const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
@@ -74,6 +75,14 @@ router.get('/internships/:internshipId/summary', adminAuth, documentController.g
 router.get('/internships/:internshipId/logbook-summary', adminAuth, documentController.getInternshipLogbookSummary);
 router.get('/internships/:internshipId/logbook-summary/pdf', adminAuth, documentController.previewInternshipLogbookSummaryPDF);
 router.get('/internships/:internshipId/logbook-summary/pdf/download', adminAuth, documentController.downloadInternshipLogbookSummaryPDF);
+
+// === Internship Management Routes (Admin) ===
+// ดึงรายการนักศึกษาทั้งหมดพร้อมข้อมูลการฝึกงาน
+router.get('/internships/students', adminAuth, internshipAdminController.getAllInternshipStudents);
+// อัพเดทข้อมูลการฝึกงาน
+router.put('/internships/:internshipId', adminAuth, internshipAdminController.updateInternship);
+// ยกเลิกการฝึกงาน
+router.post('/internships/:internshipId/cancel', adminAuth, internshipAdminController.cancelInternship);
 
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
