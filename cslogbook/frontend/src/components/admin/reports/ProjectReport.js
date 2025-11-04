@@ -1,11 +1,17 @@
 // หน้าแสดงรายงานเฉพาะโครงงาน (Project)
 import React, { useMemo, useRef, useCallback } from 'react';
-import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Empty, Tabs } from 'antd';
+import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Empty, Tabs, Statistic } from 'antd';
+import { 
+	ProjectOutlined, 
+	CheckCircleOutlined,
+	ClockCircleOutlined,
+	FileTextOutlined 
+} from '@ant-design/icons';
 import { SimplePieChart, CHART_COLORS } from './charts/RechartsComponents';
 import { useProjectReport } from './hooks/useProjectReport';
 import { academicYearOptions } from './constants';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const currentAcademicYear = () => {
 	const now = new Date();
@@ -16,7 +22,7 @@ const currentAcademicYear = () => {
 const ProjectReport = () => {
 	const initialYear = currentAcademicYear();
 	const anchorYearRef = useRef(initialYear);
-	const { year, setYear, loading, error, projectStatus, overview } = useProjectReport(initialYear);
+	const { year, setYear, loading, error, projectStatus, advisorLoad, overview } = useProjectReport(initialYear);
 
 	const numberFormatter = useMemo(() => new Intl.NumberFormat('th-TH'), []);
 	const formatNumber = useCallback((value, fallback = '-') => {
@@ -42,10 +48,30 @@ const ProjectReport = () => {
 		if(!projectStatus && !overview) return [];
 		const proposal = projectStatus?.proposal || {};
 		return [
-			{ title:'โครงงานทั้งหมด', value: formatNumber(overview?.projectCount) },
-			{ title:'ข้อเสนอส่งแล้ว', value: formatNumber(proposal.submitted) },
-			{ title:'ข้อเสนออนุมัติ', value: formatNumber(proposal.approved) },
-			{ title:'ข้อเสนอรอพิจารณา', value: formatNumber(proposal.pending) }
+			{ 
+				title:'โครงงานทั้งหมด', 
+				value: formatNumber(overview?.projectCount),
+				icon: <ProjectOutlined />,
+				color: '#1890ff'
+			},
+			{ 
+				title:'ข้อเสนอส่งแล้ว', 
+				value: formatNumber(proposal.submitted),
+				icon: <FileTextOutlined />,
+				color: '#13c2c2'
+			},
+			{ 
+				title:'ข้อเสนออนุมัติ', 
+				value: formatNumber(proposal.approved),
+				icon: <CheckCircleOutlined />,
+				color: '#52c41a'
+			},
+			{ 
+				title:'ข้อเสนอรอพิจารณา', 
+				value: formatNumber(proposal.pending),
+				icon: <ClockCircleOutlined />,
+				color: '#faad14'
+			}
 		];
 	}, [projectStatus, overview, formatNumber]);
 
@@ -71,12 +97,13 @@ const ProjectReport = () => {
 			<Row gutter={[16,16]}>
 				{kpis.map((k,i)=>(
 					<Col xs={12} md={6} key={i}>
-						<Card loading={loading} size="small" styles={{ body: {padding:12 }}}>
-							<Space direction="vertical" size={4}>
-								<span style={{color:'#888',fontSize:12}}>{k.title}</span>
-								<span style={{fontSize:24,fontWeight:600}}>{k.value}</span>
-								{k.extra && <span style={{color:'#8c8c8c',fontSize:12}}>{k.extra}</span>}
-							</Space>
+						<Card loading={loading} size="small">
+							<Statistic
+								title={k.title}
+								value={k.value}
+								prefix={k.icon}
+								valueStyle={{ color: k.color }}
+							/>
 						</Card>
 					</Col>
 				))}
@@ -91,7 +118,7 @@ const ProjectReport = () => {
 						children: (
 							<Row gutter={[16,16]}>
 								<Col xs={24}>
-									<Card size="small" title="สถานะข้อเสนอโครงงาน" styles={{ body: {padding:12 }}}>
+									<Card size="small" title="สถานะข้อเสนอโครงงาน">
 										{loading ? <Skeleton active /> : (
 											hasProposalData ? (
 												<SimplePieChart 
@@ -102,6 +129,55 @@ const ProjectReport = () => {
 													showLegend
 												/>
 											) : <Empty description="ยังไม่มีข้อมูลข้อเสนอโครงงาน" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+										)}
+									</Card>
+								</Col>
+							</Row>
+						)
+					},
+					{
+						key:'advisor',
+						label:'ภาระงานอาจารย์',
+						children: (
+							<Row gutter={[16,16]}>
+								<Col xs={24}>
+									<Card size="small" title="จำนวนโครงงานที่ดูแลต่ออาจารย์">
+										{loading ? <Skeleton active /> : (
+											advisorLoad && advisorLoad.length > 0 ? (
+												<Space direction="vertical" style={{ width: '100%', gap: 12 }}>
+													{advisorLoad.slice(0, 15).map((advisor, index) => (
+														<Row key={index} justify="space-between" align="middle" style={{ 
+															padding: '8px 12px',
+															backgroundColor: advisor.count > 8 ? '#fff1f0' : '#f6ffed',
+															borderRadius: 4,
+															border: `1px solid ${advisor.count > 8 ? '#ffccc7' : '#b7eb8f'}`
+														}}>
+															<Col flex="auto">
+																<Space direction="vertical" size={0}>
+																	<Text strong>{advisor.name || 'ไม่ระบุ'}</Text>
+																	<Text type="secondary" style={{ fontSize: 12 }}>
+																		ที่ปรึกษาหลัก: {advisor.advisorProjectCount || 0} | 
+																		ที่ปรึกษาร่วม: {advisor.coAdvisorProjectCount || 0}
+																	</Text>
+																</Space>
+															</Col>
+															<Col>
+																<Text strong style={{ 
+																	color: advisor.count > 8 ? '#ff4d4f' : '#52c41a',
+																	fontSize: 18
+																}}>
+																	{advisor.count || 0}
+																</Text>
+															</Col>
+														</Row>
+													))}
+													{advisorLoad.length > 15 && (
+														<Text type="secondary" style={{ textAlign: 'center', display: 'block' }}>
+															แสดง 15 จาก {advisorLoad.length} อาจารย์
+														</Text>
+													)}
+												</Space>
+											) : <Empty description="ไม่มีข้อมูลภาระงานอาจารย์" image={Empty.PRESENTED_IMAGE_SIMPLE} />
 										)}
 									</Card>
 								</Col>

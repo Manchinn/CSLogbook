@@ -144,29 +144,6 @@ const AdvisorWorkloadDetailReport = () => {
       }
     },
     {
-      title: 'สถานะ',
-      key: 'status',
-      width: 130,
-      filters: [
-        { text: 'ปกติ', value: 'normal' },
-        { text: 'ใกล้เต็ม', value: 'warning' },
-        { text: 'เต็ม', value: 'full' }
-      ],
-      onFilter: (value, record) => {
-        const total = (record.advisorProjectCount || 0) + (record.coAdvisorProjectCount || 0);
-        if (value === 'normal') return total <= 7;
-        if (value === 'warning') return total > 7 && total <= 10;
-        if (value === 'full') return total > 10;
-        return false;
-      },
-      render: (_, record) => {
-        const total = (record.advisorProjectCount || 0) + (record.coAdvisorProjectCount || 0);
-        if (total > 10) return <Tag color="red">เต็ม</Tag>;
-        if (total > 7) return <Tag color="orange">ใกล้เต็ม</Tag>;
-        return <Tag color="green">ปกติ</Tag>;
-      }
-    },
-    {
       title: '',
       key: 'actions',
       fixed: 'right',

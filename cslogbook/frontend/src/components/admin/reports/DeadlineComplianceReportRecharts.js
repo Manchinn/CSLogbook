@@ -105,7 +105,8 @@ const DeadlineComplianceReportRecharts = () => {
       key: 'relatedTo',
       filters: [
         { text: 'ฝึกงาน', value: 'internship' },
-        { text: 'โครงงาน', value: 'project1' },
+        { text: 'โครงงานพิเศษ 1', value: 'project1' },
+        { text: 'ปริญญานิพนธ์', value: 'project2' },
         { text: 'ทั่วไป', value: 'general' }
       ],
       onFilter: (value, record) => record.relatedTo === value,
@@ -116,7 +117,13 @@ const DeadlineComplianceReportRecharts = () => {
           project2: 'purple',
           general: 'default'
         };
-        return <Tag color={colorMap[type]}>{type}</Tag>;
+        const labelMap = {
+          internship: 'ฝึกงาน',
+          project1: 'โครงงาน 1',
+          project2: 'ปริญญานิพนธ์',
+          general: 'ทั่วไป'
+        };
+        return <Tag color={colorMap[type]}>{labelMap[type] || type}</Tag>;
       }
     },
     {

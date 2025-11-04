@@ -19,7 +19,8 @@ export function useProjectReport(initialYear) {
         getOverview({ year: targetYear })
       ]);
       setProjectStatus(projStatus);
-      setAdvisorLoad(advLoad);
+      // เก็บเฉพาะ advisors array (ไม่เก็บ academicYear)
+      setAdvisorLoad(advLoad?.advisors || []);
       setOverview(ov);
     } catch (e) {
       console.error('Load project report failed', e);
