@@ -14,13 +14,15 @@ import {
   Select,
   Typography,
   Form,
-  Input as AntInput
+  Input as AntInput,
+  Spin
 } from "antd";
-import { EyeOutlined } from "@ant-design/icons";
+import { FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
 import { internshipApprovalService } from "../../../services/internshipApprovalService";
 import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
 import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
 import PDFViewerModal from "../../PDFViewerModal";
+import CS05Preview from "../../admin/documents/CS05Preview";
 
 // สีสำหรับสถานะต่าง ๆ
 const statusColor = {
@@ -102,15 +104,43 @@ export default function ApproveDocuments() {
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const [rejectTarget, setRejectTarget] = useState(null); // เก็บ record ที่จะปฏิเสธ
   const [form] = Form.useForm();
+  
+  // สำหรับแสดงรายละเอียดแบบฟอร์ม
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [documentDetails, setDocumentDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  // สำหรับแสดง PDF
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerTitle, setViewerTitle] = useState("");
   const [viewingDocId, setViewingDocId] = useState(null);
 
-  const handleView = useCallback(async (record) => {
-    const messageKey = `view-doc-${record.documentId}`;
+  // ดูรายละเอียดแบบฟอร์ม (แนะนำ)
+  const handleViewDetails = useCallback(async (record) => {
+    setLoadingDetails(true);
+    setDetailsModalVisible(true);
+    try {
+      const response = activeTab === "request"
+        ? await internshipApprovalService.getCS05Details(record.documentId)
+        : await internshipApprovalService.getAcceptanceDetails(record.documentId);
+      
+      setDocumentDetails(response.data);
+      message.success("โหลดรายละเอียดสำเร็จ", 1);
+    } catch (e) {
+      const errorMessage = e?.message || "ไม่สามารถโหลดรายละเอียดได้";
+      message.error(errorMessage);
+      setDetailsModalVisible(false);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }, [activeTab]);
+
+  // ดู PDF (สำรอง)
+  const handleViewPDF = useCallback(async (record) => {
+    const messageKey = `view-pdf-${record.documentId}`;
     setViewingDocId(record.documentId);
-    message.loading({ content: "กำลังเปิดเอกสาร...", key: messageKey });
+    message.loading({ content: "กำลังเปิด PDF...", key: messageKey });
 
     try {
       if (viewerUrl) {
@@ -129,9 +159,9 @@ export default function ApproveDocuments() {
       setViewerUrl(blobUrl);
       setViewerTitle(studentName ? `${docLabel} - ${studentName}` : docLabel);
       setViewerVisible(true);
-      message.success({ content: "เปิดเอกสารสำเร็จ", key: messageKey, duration: 1.5 });
+      message.success({ content: "เปิด PDF สำเร็จ", key: messageKey, duration: 1.5 });
     } catch (e) {
-      const errorMessage = e?.response?.data?.message || e?.message || "ไม่สามารถเปิดเอกสารได้";
+      const errorMessage = e?.response?.data?.message || e?.message || "ไม่สามารถเปิด PDF ได้";
       message.error({ content: errorMessage, key: messageKey });
     } finally {
       setViewingDocId(null);
@@ -379,20 +409,28 @@ export default function ApproveDocuments() {
         title: "การทำงาน",
         key: "actions",
         render: (_, record) => (
-          <Space>
+          <Space wrap>
             <Button
-              icon={<EyeOutlined />}
-              onClick={() => handleView(record)}
-              loading={viewingDocId === record.documentId}
+              icon={<FileTextOutlined />}
+              onClick={() => handleViewDetails(record)}
+              type="default"
             >
-              ดูเอกสาร
+              ดูรายละเอียด
+            </Button>
+            <Button
+              icon={<FilePdfOutlined />}
+              onClick={() => handleViewPDF(record)}
+              loading={viewingDocId === record.documentId}
+              size="small"
+            >
+              PDF
             </Button>
             <Button
               type="primary"
               onClick={() => handleApprove(record)}
               disabled={!(record.status === 'pending' && !!record.reviewerId)}
             >
-              {activeTab === "request" ? "อนุมัติ" : "อนุมัติ"}
+              อนุมัติ
             </Button>
             <Button
               danger
@@ -405,7 +443,7 @@ export default function ApproveDocuments() {
         ),
       },
     ],
-  [handleApprove, handleReject, handleView, activeTab, viewingDocId]
+  [handleApprove, handleReject, handleViewDetails, handleViewPDF, viewingDocId]
   );
 
   // ไม่มี onSubmitApprove อีกต่อไป เนื่องจากแยกตามแท็บและยืนยันด้วย Modal.confirm
@@ -540,7 +578,63 @@ export default function ApproveDocuments() {
         </Form>
       </Modal>
 
-      {/* ไม่มี Modal เลือกประเภทแล้ว เนื่องจากกำหนดจากแท็บที่เลือก */}
+      {/* Modal แสดงรายละเอียดแบบฟอร์ม คพ.05 */}
+      <Modal
+        title={
+          <Space>
+            <FileTextOutlined style={{ color: '#1890ff' }} />
+            <span style={{ fontSize: 18, fontWeight: 'bold' }}>
+              {activeTab === 'request' ? 'รายละเอียดแบบฟอร์ม คพ.05' : 'รายละเอียดหนังสือตอบรับ'}
+            </span>
+          </Space>
+        }
+        open={detailsModalVisible}
+        onCancel={() => {
+          setDetailsModalVisible(false);
+          setDocumentDetails(null);
+        }}
+        footer={
+          <Space>
+            <Button onClick={() => setDetailsModalVisible(false)}>ปิด</Button>
+          </Space>
+        }
+        centered
+        width="95%"
+        styles={{ 
+          body: { 
+            maxHeight: '85vh', 
+            overflow: 'auto', 
+            padding: '16px 24px',
+            background: '#f5f5f5'
+          } 
+        }}
+        destroyOnClose
+      >
+        {loadingDetails ? (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            minHeight: 400 
+          }}>
+            <Spin size="large" tip="กำลังโหลดรายละเอียด..." />
+          </div>
+        ) : documentDetails ? (
+          activeTab === 'request' ? (
+            <CS05Preview data={documentDetails} />
+          ) : (
+            <div style={{ padding: 16, background: 'white', borderRadius: 8 }}>
+              <Typography.Title level={5}>รายละเอียดหนังสือตอบรับ</Typography.Title>
+              <Typography.Paragraph>
+                ข้อมูลหนังสือตอบรับการฝึกงาน
+              </Typography.Paragraph>
+              {/* TODO: สร้าง component สำหรับแสดงหนังสือตอบรับ */}
+            </div>
+          )
+        ) : null}
+      </Modal>
+
+      {/* Modal แสดง PDF (สำรอง) */}
       {viewerVisible && (
         <PDFViewerModal
           visible={viewerVisible}

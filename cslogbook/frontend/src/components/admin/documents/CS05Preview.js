@@ -158,12 +158,10 @@ const CS05Preview = ({ data }) => {
   
   const createdAt = documentData?.createdAt || documentData?.created_at; // Use only database value
   
-  const transcriptFilename = getFilenameFromPath(documentData?.filePath) || documentData?.fileName;
-
   return (
     <div className="cs05-preview-container" style={{ padding: '20px', backgroundColor: 'white' }}>
       <Card 
-        bordered={false}
+        variant="bordered"
         style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}
       >
         <div style={{ textAlign: 'right', marginBottom: '16px' }}>
@@ -212,7 +210,7 @@ const CS05Preview = ({ data }) => {
             </Paragraph>
             <Card
               size="small"
-              bordered
+              variant="bordered"
               style={{ borderRadius: '4px', backgroundColor: '#f9f9f9' }}
             >
               <Paragraph style={{ margin: 0 }}>{companyName}</Paragraph>
