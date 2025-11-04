@@ -24,7 +24,7 @@ import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
 import PDFViewerModal from "../../PDFViewerModal";
 import CS05Preview from "../../admin/documents/CS05Preview";
 
-// สีสำหรับสถานะต่าง ๆ
+// สีสำหรับสถานะต่าง ๆ (ครอบคลุมทุกสถานะที่เป็นไปได้)
 const statusColor = {
   draft: "default",
   pending: "gold",
@@ -37,16 +37,16 @@ const statusColor = {
   completed: "green",
 };
 
-// ป้ายภาษาไทยสำหรับสถานะ
+// ป้ายภาษาไทยสำหรับสถานะ (ตรงกับ Document.status enum ในฐานข้อมูล)
 const statusLabelTh = {
   draft: "ร่าง",
   pending: "รอดำเนินการ",
   approved: "อนุมัติแล้ว",
   rejected: "ปฏิเสธ",
-  acceptance_approved: "ยืนยันหนังสือตอบรับแล้ว",
-  referral_ready: "พร้อมออกหนังสือส่งตัว",
-  referral_downloaded: "ดาวน์โหลดแล้ว",
-  supervisor_evaluated: "ประเมินโดยผู้ควบคุมงานแล้ว",
+  acceptance_approved: "ยืนยันหนังสือตอบรับแล้ว", // สำหรับ CS05 หลังจาก Acceptance ถูกอนุมัติ
+  referral_ready: "พร้อมออกหนังสือส่งตัว", // สำหรับ CS05 เมื่อพร้อมสร้างหนังสือส่งตัว
+  referral_downloaded: "ดาวน์โหลดหนังสือส่งตัวแล้ว", // สำหรับ CS05 เมื่อดาวน์โหลดหนังสือส่งตัวแล้ว
+  supervisor_evaluated: "ประเมินโดยผู้ควบคุมงานแล้ว", // สำหรับ CS05 หลังจากผู้ควบคุมงานประเมิน
   completed: "เสร็จสิ้น",
 };
 
@@ -258,25 +258,40 @@ export default function ApproveDocuments() {
     openRejectModal(record);
   }, [openRejectModal]);
 
-  // ตัวเลือกสถานะ เปลี่ยนตามแท็บ
+  // ตัวเลือกสถานะ เปลี่ยนตามแท็บ (สร้างจากข้อมูลจริง)
   const statusOptions = useMemo(() => {
+    // รวบรวมสถานะที่มีจริงในข้อมูล
+    const uniqueStatuses = new Set(items.map(r => r.status));
+    const baseOptions = [{ label: "ทั้งหมด", value: "all" }];
+    
     if (activeTab === "request") {
+      // แท็บหนังสือขอความอนุเคราะห์: pending, approved, rejected
+      const requestStatuses = [
+        { status: "pending", label: "รอดำเนินการ" },
+        { status: "approved", label: "อนุมัติแล้ว" },
+        { status: "rejected", label: "ปฏิเสธ" },
+      ];
       return [
-        { label: "ทั้งหมด", value: "all" },
-        { label: "รอดำเนินการ", value: "pending" },
-        { label: "อนุมัติแล้ว", value: "approved" },
-        { label: "ปฏิเสธ", value: "rejected" },
+        ...baseOptions,
+        ...requestStatuses
+          .filter(s => uniqueStatuses.has(s.status))
+          .map(s => ({ label: s.label, value: s.status }))
       ];
     }
-    // แท็บหนังสือส่งตัว: เพิ่มสถานะที่เกี่ยวข้องหลังอนุมัติ
-    return [
-      { label: "ทั้งหมด", value: "all" },
-      { label: "อนุมัติแล้ว", value: "approved" },
-      { label: "ยืนยันหนังสือตอบรับแล้ว", value: "acceptance_approved" },
-      { label: "พร้อมออกหนังสือส่งตัว", value: "referral_ready" },
-      { label: "ดาวน์โหลดแล้ว", value: "referral_downloaded" },
+    
+    // แท็บหนังสือส่งตัวนักศึกษา (Acceptance Letter): pending, approved, rejected
+    const referralStatuses = [
+      { status: "pending", label: "รอดำเนินการ" },
+      { status: "approved", label: "อนุมัติแล้ว" },
+      { status: "rejected", label: "ปฏิเสธ" },
     ];
-  }, [activeTab]);
+    return [
+      ...baseOptions,
+      ...referralStatuses
+        .filter(s => uniqueStatuses.has(s.status))
+        .map(s => ({ label: s.label, value: s.status }))
+    ];
+  }, [activeTab, items]);
 
   // กรองข้อมูลฝั่ง client เพื่อความสะดวก
   const filteredItems = useMemo(() => {
@@ -341,6 +356,31 @@ export default function ApproveDocuments() {
         return sb - sa;
       })
       .map((t) => ({ label: t, value: t }));
+  }, [items]);
+
+  // ตัวเลือกชั้นปี: คำนวณจากข้อมูลจริง
+  const classYearOptions = useMemo(() => {
+    const getEntryYearBEFromCode = (studentCode) => {
+      if (!studentCode) return null;
+      const two = String(studentCode).slice(0, 2);
+      const n = parseInt(two, 10);
+      if (Number.isNaN(n)) return null;
+      return 2500 + n; // 64 -> 2564
+    };
+
+    const classYears = new Set();
+    items.forEach((r) => {
+      const yearBE = r.academicYear;
+      const entryBE = getEntryYearBEFromCode(r.student?.studentCode);
+      const classYear = entryBE && yearBE ? yearBE - entryBE + 1 : null;
+      if (classYear && classYear > 0 && classYear <= 8) {
+        classYears.add(classYear);
+      }
+    });
+
+    return Array.from(classYears)
+      .sort((a, b) => a - b)
+      .map((year) => ({ label: `ปี ${year}`, value: String(year) }));
   }, [items]);
 
   // คำนวณสถิติรวมสำหรับการแสดงบนการ์ด (จากข้อมูลที่กรองแล้ว)
@@ -532,11 +572,7 @@ export default function ApproveDocuments() {
             size="small"
             style={{ width: '100%' }}
             placeholder="ชั้นปี"
-            options={[
-              { label: "ทุกชั้นปี", value: "all" },
-              { label: "ปี 3", value: "3" },
-              { label: "ปี 4", value: "4" },
-            ]}
+            options={[{ label: "ทุกชั้นปี", value: "all" }, ...classYearOptions]}
             value={filters.classYear}
             onChange={(v) => setFilters((f) => ({ ...f, classYear: v }))}
           />
