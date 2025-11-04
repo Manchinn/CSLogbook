@@ -140,19 +140,19 @@ const LoginForm = () => {
             <Title level={3} className="login-title">
               ลงชื่อเข้าใช้ระบบ
             </Title>
-            <Text className="login-subtitle">โปรดใช้บัญชี ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
+            <Text className="login-subtitle">โปรดใช้บัญชีรูปแบบเริ่มต้นของ ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
           </div>
 
           <Form form={form} onFinish={handleSubmit} layout="vertical" className="login-form">
             <Form.Item
               name="username"
               className="login-form-item"
-              rules={[{ required: true, message: 'กรุณากรอก ICIT Account' }]}
+              rules={[{ required: true, message: 'กรุณากรอกชื่อผู้ใช้' }]}
             >
               <Input
                 className="login-input"
                 prefix={<UserOutlined />}
-                placeholder="ICIT Account"
+                placeholder="ชื่อผู้ใช้"
                 size="large"
                 autoComplete="username"
               />

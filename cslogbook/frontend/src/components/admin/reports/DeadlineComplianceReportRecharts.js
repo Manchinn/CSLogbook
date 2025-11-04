@@ -278,7 +278,7 @@ const DeadlineComplianceReportRecharts = () => {
           <Col xs={24} sm={12} md={6}>
             <Card>
               <Statistic
-                title="Deadline ทั้งหมด"
+                title="กำหนดการทั้งหมด"
                 value={data?.summary?.totalDeadlines || 0}
                 prefix={<CalendarOutlined />}
                 loading={loading}
