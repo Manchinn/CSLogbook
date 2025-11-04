@@ -410,21 +410,38 @@ export default function ApproveDocuments() {
         key: "actions",
         render: (_, record) => (
           <Space wrap>
-            <Button
-              icon={<FileTextOutlined />}
-              onClick={() => handleViewDetails(record)}
-              type="default"
-            >
-              ดูรายละเอียด
-            </Button>
-            <Button
-              icon={<FilePdfOutlined />}
-              onClick={() => handleViewPDF(record)}
-              loading={viewingDocId === record.documentId}
-              size="small"
-            >
-              PDF
-            </Button>
+            {/* แท็บหนังสือขอความอนุเคราะห์: แสดงปุ่มดูรายละเอียด + PDF */}
+            {activeTab === 'request' && (
+              <>
+                <Button
+                  icon={<FileTextOutlined />}
+                  onClick={() => handleViewDetails(record)}
+                  type="default"
+                >
+                  ดูรายละเอียด
+                </Button>
+                <Button
+                  icon={<FilePdfOutlined />}
+                  onClick={() => handleViewPDF(record)}
+                  loading={viewingDocId === record.documentId}
+                  size="small"
+                >
+                  PDF
+                </Button>
+              </>
+            )}
+            
+            {/* แท็บหนังสือส่งตัวนักศึกษา: แสดงแค่ปุ่ม PDF */}
+            {activeTab === 'referral' && (
+              <Button
+                icon={<FilePdfOutlined />}
+                onClick={() => handleViewPDF(record)}
+                loading={viewingDocId === record.documentId}
+              >
+                ดูหนังสือตอบรับ
+              </Button>
+            )}
+            
             <Button
               type="primary"
               onClick={() => handleApprove(record)}
@@ -443,7 +460,7 @@ export default function ApproveDocuments() {
         ),
       },
     ],
-  [handleApprove, handleReject, handleViewDetails, handleViewPDF, viewingDocId]
+  [handleApprove, handleReject, handleViewDetails, handleViewPDF, viewingDocId, activeTab]
   );
 
   // ไม่มี onSubmitApprove อีกต่อไป เนื่องจากแยกตามแท็บและยืนยันด้วย Modal.confirm
