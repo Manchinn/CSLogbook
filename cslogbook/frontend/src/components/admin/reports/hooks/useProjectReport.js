@@ -1,27 +1,28 @@
 // Hook สำหรับหน้า ProjectReport
 import { useCallback, useEffect, useState } from 'react';
-import { getProjectStatusSummary, getAdvisorLoad, getOverview } from '../../../../services/reportService';
+import { getAdministrativeReport, getExamTrends } from '../../../../services/projectReportService';
 
 export function useProjectReport(initialYear) {
   const [year, setYear] = useState(initialYear);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [projectStatus, setProjectStatus] = useState(null);
-  const [advisorLoad, setAdvisorLoad] = useState(null);
-  const [overview, setOverview] = useState(null);
+  const [reportData, setReportData] = useState(null);
+  const [examTrends, setExamTrends] = useState(null);
 
   const fetchAll = useCallback(async (targetYear = year) => {
-    setLoading(true); setError(null);
+    setLoading(true); 
+    setError(null);
     try {
-      const [projStatus, advLoad, ov] = await Promise.all([
-        getProjectStatusSummary({ year: targetYear }),
-        getAdvisorLoad({ year: targetYear }),
-        getOverview({ year: targetYear })
-      ]);
-      setProjectStatus(projStatus);
-      // เก็บเฉพาะ advisors array (ไม่เก็บ academicYear)
-      setAdvisorLoad(advLoad?.advisors || []);
-      setOverview(ov);
+      // ดึงรายงานครบถ้วนจาก endpoint ใหม่
+      const report = await getAdministrativeReport({ academicYear: targetYear });
+      setReportData(report);
+
+      // ดึงแนวโน้มการสอบ 3 ปีย้อนหลัง
+      const trends = await getExamTrends({ 
+        startYear: targetYear - 2, 
+        endYear: targetYear 
+      });
+      setExamTrends(trends);
     } catch (e) {
       console.error('Load project report failed', e);
       setError(e);
@@ -30,7 +31,17 @@ export function useProjectReport(initialYear) {
     }
   }, [year]);
 
-  useEffect(()=>{ fetchAll(year); }, [year, fetchAll]);
+  useEffect(() => { 
+    fetchAll(year); 
+  }, [year, fetchAll]);
 
-  return { year, setYear, loading, error, projectStatus, advisorLoad, overview, refresh: fetchAll };
+  return { 
+    year, 
+    setYear, 
+    loading, 
+    error, 
+    reportData,
+    examTrends,
+    refresh: fetchAll 
+  };
 }

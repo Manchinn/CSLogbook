@@ -135,19 +135,24 @@ export const MultiBarChart = ({
 };
 
 /**
- * Simple Line Chart Component
+ * Simple Line Chart Component (Single Line)
  */
 export const SimpleLineChart = ({ 
   data, 
   xKey, 
   yKey,
+  lines, // 🆕 Support for multiple lines: [{ dataKey, stroke, name }]
   height = 250,
   lineColor = CHART_COLORS.primary,
-  showLabel = true,
+  showLabel = false,
+  showLegend = false,
   tooltipFormatter,
   labelFormatter,
   yAxisFormatter
 }) => {
+  // ถ้ามี lines array ให้ใช้ multi-line mode
+  const isMultiLine = Array.isArray(lines) && lines.length > 0;
+
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload || !payload.length) return null;
     const data = payload[0].payload;
@@ -159,7 +164,15 @@ export const SimpleLineChart = ({
     return (
       <div style={defaultTooltipStyle}>
         <div><strong>{data[xKey]}</strong></div>
-        <div>{yKey}: {data[yKey]}</div>
+        {isMultiLine ? (
+          payload.map((entry, index) => (
+            <div key={index} style={{ color: entry.color }}>
+              {entry.name}: {entry.value}
+            </div>
+          ))
+        ) : (
+          <div>{yKey}: {data[yKey]}</div>
+        )}
       </div>
     );
   };
@@ -171,18 +184,36 @@ export const SimpleLineChart = ({
         <XAxis dataKey={xKey} style={{ fontSize: 11 }} />
         <YAxis tickFormatter={yAxisFormatter} />
         <Tooltip content={<CustomTooltip />} />
-        <Line 
-          type="monotone" 
-          dataKey={yKey} 
-          stroke={lineColor}
-          strokeWidth={2}
-          dot={{ fill: lineColor, r: 4 }}
-          label={showLabel ? { 
-            position: 'top',
-            formatter: labelFormatter || ((value) => value),
-            style: { fontSize: 11 }
-          } : false}
-        />
+        {showLegend && <Legend />}
+        
+        {isMultiLine ? (
+          // Multi-line mode
+          lines.map((line, index) => (
+            <Line
+              key={index}
+              type="monotone"
+              dataKey={line.dataKey}
+              stroke={line.stroke || CHART_COLORS.colors[index]}
+              name={line.name || line.dataKey}
+              strokeWidth={2}
+              dot={{ fill: line.stroke || CHART_COLORS.colors[index], r: 4 }}
+            />
+          ))
+        ) : (
+          // Single line mode
+          <Line 
+            type="monotone" 
+            dataKey={yKey} 
+            stroke={lineColor}
+            strokeWidth={2}
+            dot={{ fill: lineColor, r: 4 }}
+            label={showLabel ? { 
+              position: 'top',
+              formatter: labelFormatter || ((value) => value),
+              style: { fontSize: 11 }
+            } : false}
+          />
+        )}
       </LineChart>
     </ResponsiveContainer>
   );

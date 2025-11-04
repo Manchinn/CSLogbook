@@ -13,17 +13,14 @@ import {
   CalendarOutlined
 } from '@ant-design/icons';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { useDeadlineCompliance } from './hooks/useDeadlineCompliance';
 import {
-  DEADLINE_COLORS,
   getComplianceColor,
-  formatPercent,
   renderBarLabel,
   BarChartTooltip,
-  LineChartTooltip,
   PieChartTooltip,
   renderPieLabel,
   preparePieData
@@ -64,15 +61,6 @@ const DeadlineComplianceReportRecharts = () => {
     }));
   }, [data?.deadlineStats]);
 
-  const lineChartData = useMemo(() => {
-    return (data?.trend || []).map(item => ({
-      week: item.week || '',
-      complianceRate: parseFloat(item.complianceRate) || 0,
-      onTime: item.onTime || 0,
-      total: item.totalSubmissions || 0
-    }));
-  }, [data?.trend]);
-
   const pieChartData = useMemo(() => {
     return preparePieData(data?.summary || {});
   }, [data?.summary]);
@@ -80,7 +68,7 @@ const DeadlineComplianceReportRecharts = () => {
   // Deadline Stats Table Columns
   const deadlineColumns = [
     {
-      title: 'ชื่อ Deadline',
+      title: 'ชื่อกำหนดการ',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
@@ -178,7 +166,7 @@ const DeadlineComplianceReportRecharts = () => {
   // Upcoming Deadlines Table
   const upcomingColumns = [
     {
-      title: 'ชื่อ Deadline',
+      title: 'ชื่อกำหนดการ',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
@@ -399,41 +387,6 @@ const DeadlineComplianceReportRecharts = () => {
                       )}
                     </Card>
                   </Col>
-
-                  {/* Line Chart */}
-                  <Col span={24}>
-                    <Card size="small" title="แนวโน้มการปฏิบัติตาม (รายสัปดาห์)">
-                      {loading ? (
-                        <Skeleton active />
-                      ) : lineChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={250}>
-                          <LineChart data={lineChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="week" style={{ fontSize: 11 }} />
-                            <YAxis 
-                              domain={[0, 100]}
-                              tickFormatter={(value) => `${value}%`}
-                            />
-                            <Tooltip content={<LineChartTooltip />} />
-                            <Line 
-                              type="monotone" 
-                              dataKey="complianceRate" 
-                              stroke={DEADLINE_COLORS.primary}
-                              strokeWidth={2}
-                              dot={{ fill: DEADLINE_COLORS.primary, r: 4 }}
-                              label={{ 
-                                position: 'top',
-                                formatter: (value) => formatPercent(value),
-                                style: { fontSize: 11 }
-                              }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <Empty description="ไม่มีข้อมูล" />
-                      )}
-                    </Card>
-                  </Col>
                 </Row>
               )
             },
@@ -478,7 +431,7 @@ const DeadlineComplianceReportRecharts = () => {
                 <Card size="small">
                   <Alert
                     type="warning"
-                    message={`มี ${data?.overdue?.length || 0} Deadline ที่เลยกำหนดแล้ว`}
+                    message={`มี ${data?.overdue?.length || 0} กำหนดการที่เลยมาแล้ว`}
                     showIcon
                     style={{ marginBottom: 16 }}
                   />

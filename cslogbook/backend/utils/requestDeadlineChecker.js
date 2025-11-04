@@ -130,14 +130,14 @@ async function checkDefenseRequestDeadline(request) {
   const project = request.project || {};
   const isThesis = request.defenseType === 'THESIS';
   
-  // กำหนดชื่อ deadline ตาม defenseType (ตรงกับชื่อใน seeder)
+  // กำหนดชื่อ กำหนดการ ตาม defenseType (ตรงกับชื่อใน seeder)
   const deadlineName = isThesis 
     ? 'ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)'  // คพ.03
     : 'ส่งคำร้องขอสอบ (คพ.02)'; // คพ.02
   
   const relatedTo = isThesis ? 'project2' : 'project1';
 
-  // หา deadline ที่เกี่ยวข้อง
+  // หา กำหนดการ ที่เกี่ยวข้อง
   const deadline = await findApplicableDeadline({
     deadlineName,
     relatedTo,
@@ -183,7 +183,7 @@ async function checkSystemTestRequestDeadline(request) {
 
   const projectSnapshot = request.projectSnapshot || {};
   
-  // หา deadline ที่เกี่ยวข้อง (ตรงกับชื่อใน seeder)
+  // หา กำหนดการ ที่เกี่ยวข้อง (ตรงกับชื่อใน seeder)
   const deadline = await findApplicableDeadline({
     deadlineName: 'ยื่นคำขอทดสอบระบบ',
     relatedTo: 'project2',
