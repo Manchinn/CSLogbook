@@ -82,6 +82,10 @@ const LoginForm = () => {
       const errorMessage = error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง';
       console.log('=== Showing error message:', errorMessage);
       
+      // เพิ่ม shake animation เมื่อ login ผิดพลาด
+      setErrorShake(true);
+      setTimeout(() => setErrorShake(false), 600);
+      
       message.error(errorMessage);
     } finally {
       setLoading(false);
