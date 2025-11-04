@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Card,
-  Timeline,
   Tag,
   Button,
   Typography,
@@ -10,48 +9,100 @@ import {
   Space,
   Progress,
   Tooltip,
+  Empty,
+  Timeline,
 } from "antd";
 import { 
   BankOutlined,
   UnlockOutlined, 
   LockOutlined,
   SolutionOutlined,
-  InfoCircleOutlined 
+  InfoCircleOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
-import useCertificateStatus from "../../../hooks/useCertificateStatus";
 
 const { Text, Paragraph } = Typography;
 
+// คอมโพเนนต์สำหรับแสดงส่วนฝึกงาน
 const InternshipSection = () => {
+  // ดึงข้อมูลจาก Context
   const {
     cs05Status,
     internshipDate,
+    summaryCompleted,
     certificateStatus,
     student,
     loading,
     error,
+    internshipStatus,
   } = useInternshipStatus();
+  
+  // ข้อมูลพื้นฐาน
+  const hasInternshipHistory = !!cs05Status;
+  
+  // สร้าง Timeline Steps จากข้อมูล Context
+  const timelineSteps = buildTimelineSteps({
+    cs05Status,
+    internshipDate,
+    summaryCompleted,
+    certificateStatus,
+    student,
+  });
+  
+  // สถานะโดยรวม
+  const overallStatus = internshipStatus || 'not_started';
+  const completedSteps = timelineSteps.filter(s => s.status === 'finish').length;
+  const overallProgress = timelineSteps.length > 0 ? Math.round((completedSteps / timelineSteps.length) * 100) : 0;
+  const currentStepIndex = timelineSteps.findIndex(s => s.status !== 'finish');
+  const currentStepDisplay = currentStepIndex !== -1 ? currentStepIndex + 1 : timelineSteps.length;
+  const totalStepsDisplay = timelineSteps.length;
 
-  const {
-    supervisorEvaluationStatus,
-    loading: certLoading,
-    error: certError,
-  } = useCertificateStatus();
-
-  // ฟังก์ชันช่วยแยก error ที่ควร fallback เป็นสถานะปกติ
-  const isNotFoundError = (errMsg) => {
-    if (!errMsg) return false;
-    return (
-      errMsg.includes("ไม่พบข้อมูล") ||
-      errMsg.includes("ยังไม่มีข้อมูล") ||
-      errMsg.includes("ยังไม่ถึงขั้นตอน") ||
-      errMsg.includes("No internship data")
-    );
+  // ตรวจสอบสิทธิ์การฝึกงาน
+  const hasInternshipEligibility = () => {
+    if (student?.eligibility?.internship?.eligible !== undefined) {
+      return student.eligibility.internship.eligible;
+    }
+    if (typeof student?.internshipEligible === 'boolean') {
+      return student.internshipEligible;
+    }
+    return false;
   };
+  
+  const getEligibilityMessage = () => {
+    if (student?.eligibility?.internship?.message) {
+      return student.eligibility.internship.message;
+    }
+    if (student?.internshipEligibleMessage) {
+      return student.internshipEligibleMessage;
+    }
+    return "ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 75 หน่วยกิต";
+  };
+  
+  const isEligible = hasInternshipEligibility();
+  const eligibilityMessage = getEligibilityMessage();
+  const isEnrolledInternship = !!cs05Status || hasInternshipHistory;
+  const showEligibilityWarning = !isEligible && !hasInternshipHistory;
 
-  // ถ้า loading ให้แสดง spinner
-  if (loading || certLoading) {
+  // 4. Config สำหรับ status tag
+  const statusTagConfig = (() => {
+    switch (overallStatus) {
+      case 'completed':
+        return { color: 'success', label: 'เสร็จสิ้น', icon: <CheckCircleOutlined /> };
+      case 'failed':
+        return { color: 'error', label: 'ไม่ผ่าน', icon: <ExclamationCircleOutlined /> };
+      case 'not_started':
+        return { color: 'default', label: 'ยังไม่เริ่ม', icon: <InfoCircleOutlined /> };
+      default:
+        return { color: 'processing', label: 'กำลังดำเนินการ', icon: <ClockCircleOutlined /> };
+    }
+  })();
+
+
+  // 6. Loading state
+  if (loading) {
     return (
       <Card 
         title={
@@ -64,17 +115,17 @@ const InternshipSection = () => {
       >
         <div style={{ textAlign: "center", padding: "48px 0" }}>
           <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูล...">
-        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div>{/* Loading content */}</div>
-        </div>
-      </Spin>
+            <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div>{/* Loading content */}</div>
+            </div>
+          </Spin>
         </div>
       </Card>
     );
   }
 
-  // แสดง Alert เฉพาะ error จริง (ไม่ใช่ "ไม่พบข้อมูล" หรือ "ยังไม่ถึงขั้นตอน")
-  if ((error && !isNotFoundError(error)) || (certError && !isNotFoundError(certError))) {
+  // 7. Error state
+  if (error) {
     return (
       <Card 
         title={
@@ -88,258 +139,31 @@ const InternshipSection = () => {
         <Alert
           type="error"
           message="เกิดข้อผิดพลาด"
-          description={error || certError}
+          description={error}
           showIcon
         />
       </Card>
     );
   }
 
-  // ถ้า error เป็น "ไม่พบข้อมูล" หรือ "ยังไม่ถึงขั้นตอน" ให้ fallback เป็นค่า default
-  const safeSupervisorEvaluationStatus = isNotFoundError(certError) ? "wait" : supervisorEvaluationStatus;
-  const safeCertificateStatus = isNotFoundError(certError) ? "wait" : certificateStatus;
-
-  // กำหนดขั้นตอนหลักของ timeline
-  const steps = [
-    {
-      key: "cs05",
-      title: "ลงทะเบียนคำร้องฝึกงาน",
-      description: !cs05Status
-        ? (student?.eligibility?.internship?.eligible === false
-            ? "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ"
-            : "ยังไม่ได้ลงทะเบียนคำร้องฝึกงาน")
-        : "ลงทะเบียนคำร้องฝึกงานเรียบร้อยแล้ว",
-      action: !cs05Status && student?.eligibility?.internship?.eligible !== false && (
-        <Button
-          type="primary"
-          href="/internship-registration/flow"
-          style={{ marginTop: 8 }}
-        >
-          ลงทะเบียนคำร้องฝึกงาน
-        </Button>
-      ),
-    },
-    {
-      key: "wait_start",
-      title: "รอเริ่มการฝึกงาน",
-      description: internshipDate?.startDate
-        ? `รอถึงวันเริ่มฝึกงาน (${new Date(
-            internshipDate.startDate
-          ).toLocaleDateString()})`
-        : "ยังไม่มีข้อมูลวันเริ่มฝึกงาน",
-    },
-    {
-      key: "in_progress",
-      title: "อยู่ระหว่างการฝึกงาน",
-      description:
-        internshipDate?.startDate && internshipDate?.endDate
-          ? `ช่วงฝึกงาน: ${new Date(
-              internshipDate.startDate
-            ).toLocaleDateString()} - ${new Date(
-              internshipDate.endDate
-            ).toLocaleDateString()}`
-          : "ยังไม่มีข้อมูลช่วงฝึกงาน",
-    },
-    {
-      key: "evaluation",
-      title: "การประเมินฝึกงาน",
-      description:
-        safeSupervisorEvaluationStatus === "completed"
-          ? "การประเมินฝึกงานเสร็จสมบูรณ์แล้ว"
-          : safeSupervisorEvaluationStatus === "pending"
-          ? "รอผู้ควบคุมงานประเมินฝึกงาน"
-          : "กรุณาส่งแบบประเมินฝึกงานให้ผู้ควบคุมงาน",
-      action: safeSupervisorEvaluationStatus !== "completed" && (
-        <Button
-          type="primary"
-          href="/internship-summary"
-          style={{ marginTop: 8 }}
-        >
-          ส่งแบบประเมินฝึกงาน
-        </Button>
-      ),
-    },
-    {
-      key: "certificate",
-      title: "ขอหนังสือรับรองการฝึกงาน",
-      description:
-        safeCertificateStatus === "ready"
-          ? "ได้รับหนังสือรับรองแล้ว"
-          : safeCertificateStatus === "pending"
-          ? "รอเจ้าหน้าที่อนุมัติหนังสือรับรอง"
-          : "สามารถขอหนังสือรับรองการฝึกงานได้",
-      action: safeCertificateStatus !== "ready" && (
-        <Button
-          type="primary"
-          href="/internship-certificate"
-          style={{ marginTop: 8 }}
-        >
-          ขอหนังสือรับรอง
-        </Button>
-      ),
-    },
-    {
-      key: "done",
-      title: "เสร็จสิ้นการฝึกงาน",
-      description:
-        safeCertificateStatus === "ready"
-          ? "กระบวนการฝึกงานของคุณเสร็จสมบูรณ์แล้ว"
-          : "รอรับหนังสือรับรองการฝึกงาน",
-    },
-  ];
-
-  // ฟังก์ชันแปลงสถานะสำหรับแต่ละ step
-  const getStepStatus = (stepKey) => {
-    switch (stepKey) {
-      case "eligibility":
-        return student?.eligibility?.internship?.eligible ? "finish" : "process";
-      case "cs05":
-        if (!cs05Status) return "wait";
-        if (
-          ["approved", "supervisor_approved", "supervisor_evaluated"].includes(
-            cs05Status
-          )
-        )
-          return "finish";
-        return "process";
-      case "wait_start":
-        if (!internshipDate?.startDate) return "wait";
-        const now = new Date();
-        const start = new Date(internshipDate.startDate);
-        if (now < start) return "process";
-        return "finish";
-      case "in_progress":
-        if (!internshipDate?.startDate) return "wait";
-        const now2 = new Date();
-        const start2 = new Date(internshipDate.startDate);
-        const end2 = new Date(internshipDate.endDate);
-        if (now2 >= start2 && now2 <= end2) return "process";
-        if (now2 > end2) return "finish";
-        return "wait";
-      case "evaluation":
-        if (safeSupervisorEvaluationStatus === "completed") return "finish";
-        if (safeSupervisorEvaluationStatus === "pending") return "process";
-        return "wait";
-      case "certificate":
-        if (safeCertificateStatus === "ready") return "finish";
-        if (safeCertificateStatus === "pending") return "process";
-        return "wait";
-      case "done":
-        if (safeCertificateStatus === "ready") return "finish";
-        return "wait";
-      default:
-        return "wait";
+  // 8. แสดง overall status tag
+  const renderStatusTag = () => {
+    if (showEligibilityWarning) {
+      return <Tag color="error" icon={<LockOutlined />}>ยังไม่มีสิทธิ์</Tag>;
     }
+    
+    return (
+      <Tag color={statusTagConfig.color} icon={statusTagConfig.icon}>
+        {statusTagConfig.label}
+      </Tag>
+    );
   };
 
-  // คำนวณ progress และ current step
-  const calculateProgress = () => {
-    const finishedSteps = steps.filter(step => getStepStatus(step.key) === "finish").length;
-    const totalSteps = steps.length;
-    const progress = Math.round((finishedSteps / totalSteps) * 100);
-    // หา current step (step แรกที่ไม่ใช่ finish)
-    const currentStepIndex = steps.findIndex(step => getStepStatus(step.key) !== "finish");
-    const currentStep = currentStepIndex !== -1 ? currentStepIndex + 1 : totalSteps;
-    return { progress, currentStep, totalSteps };
-  };
-
-  const { progress: overallProgress, currentStep, totalSteps } = calculateProgress();
-
-  // ตรวจสอบสิทธิ์การลงทะเบียนฝึกงาน
-  const isEligible = student?.eligibility?.internship?.eligible !== false;
-  const eligibilityMessage = student?.eligibility?.internship?.message || "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์หรือรอการอนุมัติ";
-  const isEnrolledInternship = !!cs05Status;
-  const isBlocked = !isEligible;
-
-  // ฟังก์ชันแปลงสถานะเป็นสีของ Tag
-  const getColor = (status) => {
-    switch (status) {
-      case "finish":
-        return "green";
-      case "process":
-        return "blue";
-      default:
-        return "gray"; // wait
-    }
-  };
-
-  // ฟังก์ชันแปลงสถานะเป็นข้อความ
-  const getStatusText = (status) => {
-    switch (status) {
-      case "finish":
-        return "เสร็จสิ้น";
-      case "process":
-        return "กำลังดำเนินการ";
-      default:
-        return "รอดำเนินการ"; // wait
-    }
-  };
-
-  return (
-    <Card 
-      title={
-        <Space>
-          <BankOutlined />
-          <span>ฝึกงาน</span>
-          {isBlocked ? (
-            <Tag color="error">ไม่มีสิทธิ์</Tag>
-          ) : !isEnrolledInternship ? (
-            <Tag color="default">ยังไม่เริ่ม</Tag>
-          ) : (
-            <Tag color={overallProgress === 100 ? "success" : "processing"}>
-              {overallProgress === 100 ? "เสร็จสิ้น" : "กำลังดำเนินการ"}
-            </Tag>
-          )}
-        </Space>
-      }
-      extra={
-        <Space>
-          <Progress 
-            type="circle" 
-            percent={overallProgress} 
-            size={40} 
-            format={percent => `${percent}%`}
-          />
-          {totalSteps > 0 && (
-            <Text type="secondary">
-              ขั้นตอนที่ {currentStep}/{totalSteps}
-            </Text>
-          )}
-          {isEligible ? (
-            <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
-          ) : (
-            <Tooltip title={eligibilityMessage}>
-              <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
-            </Tooltip>
-          )}
-        </Space>
-      }
-    >
-      {isEnrolledInternship ? (
-        <Timeline
-          items={steps.map((step) => {
-            const status = getStepStatus(step.key);
-            return {
-              key: step.key,
-              color: getColor(status),
-              children: (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <Typography.Text strong style={{ fontSize: 16 }}>{step.title}</Typography.Text>
-                    <Tag color={getColor(status)} size="small">
-                      {getStatusText(status)}
-                    </Tag>
-                  </div>
-                  <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
-                    {step.description}
-                  </div>
-                  {step.action}
-                </>
-              )
-            };
-          })}
-        />
-      ) : (
+  // Render เนื้อหาส่วนหลัก
+  const renderContent = () => {
+    // กรณีที่ยังไม่ได้ลงทะเบียน
+    if (!isEnrolledInternship && !hasInternshipHistory) {
+      return (
         <div style={{ padding: '32px 0', textAlign: 'center' }}>
           <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
           <Paragraph>คุณยังไม่ได้ลงทะเบียนฝึกงาน</Paragraph>
@@ -356,9 +180,213 @@ const InternshipSection = () => {
             </Paragraph>
           )}
         </div>
-      )}
+      );
+    }
+
+    // กรณีที่มี cs05Status - แสดง Timeline Steps
+    if (cs05Status && timelineSteps.length > 0) {
+      return (
+        <Timeline
+          items={timelineSteps.map((step) => ({
+            key: step.key,
+            color: getStepColor(step.status),
+            children: (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Typography.Text strong style={{ fontSize: 16 }}>{step.title}</Typography.Text>
+                  <Tag color={getStepColor(step.status)} size="small">
+                    {getStepStatusText(step.status)}
+                  </Tag>
+                </div>
+                <div style={{ margin: "6px 0 12px 0", color: "#444", fontSize: 15 }}>
+                  {step.description}
+                </div>
+                {step.action}
+              </>
+            )
+          }))}
+        />
+      );
+    }
+
+    // กรณีอื่นๆ
+    return <Empty description="ยังไม่มีข้อมูลขั้นตอนฝึกงาน" />;
+  };
+
+  return (
+    <Card 
+      title={
+        <Space>
+          <BankOutlined />
+          <span>ฝึกงาน</span>
+          {renderStatusTag()}
+        </Space>
+      }
+      extra={
+        <Space>
+          <Progress 
+            type="circle" 
+            percent={overallProgress} 
+            size={40} 
+            format={percent => `${percent}%`}
+          />
+          {totalStepsDisplay > 0 && (
+            <Text type="secondary">
+              ขั้นตอนที่ {currentStepDisplay}/{totalStepsDisplay}
+            </Text>
+          )}
+          {isEligible ? (
+            <Tag color="success"><UnlockOutlined /> มีสิทธิ์</Tag>
+          ) : (
+            <Tooltip title={eligibilityMessage}>
+              <Tag color="error"><LockOutlined /> ยังไม่มีสิทธิ์</Tag>
+            </Tooltip>
+          )}
+        </Space>
+      }
+    >
+      {renderContent()}
     </Card>
   );
+};
+
+// Helper Functions
+
+// ฟังก์ชันสร้าง Timeline Steps จากข้อมูล Context
+const buildTimelineSteps = ({ cs05Status, internshipDate, summaryCompleted, certificateStatus, student }) => {
+  const steps = [];
+
+  // Step 1: ลงทะเบียนคำร้อง CS05
+  steps.push({
+    key: 'cs05',
+    title: 'ลงทะเบียนคำร้องฝึกงาน',
+    description: !cs05Status
+      ? (student?.eligibility?.internship?.eligible === false
+          ? "คุณยังไม่มีสิทธิ์ลงทะเบียนฝึกงาน กรุณาตรวจสอบเกณฑ์"
+          : "ยังไม่ได้ลงทะเบียนคำร้องฝึกงาน")
+      : `สถานะคำร้อง: ${getCS05StatusText(cs05Status)}`,
+    status: !cs05Status ? 'wait' : 
+            ['approved', 'supervisor_approved', 'supervisor_evaluated'].includes(cs05Status) ? 'finish' : 'process',
+    action: !cs05Status && student?.eligibility?.internship?.eligible !== false && (
+      <Button type="primary" href="/internship-registration/flow" style={{ marginTop: 8 }}>
+        ลงทะเบียนคำร้องฝึกงาน
+      </Button>
+    ),
+  });
+
+  // Step 2: รอเริ่มการฝึกงาน
+  if (internshipDate?.startDate) {
+    const now = new Date();
+    const start = new Date(internshipDate.startDate);
+    steps.push({
+      key: 'wait_start',
+      title: 'รอเริ่มการฝึกงาน',
+      description: `รอถึงวันเริ่มฝึกงาน (${start.toLocaleDateString('th-TH')})`,
+      status: now >= start ? 'finish' : 'process',
+    });
+  }
+
+  // Step 3: อยู่ระหว่างการฝึกงาน
+  if (internshipDate?.startDate && internshipDate?.endDate) {
+    const now = new Date();
+    const start = new Date(internshipDate.startDate);
+    const end = new Date(internshipDate.endDate);
+    steps.push({
+      key: 'in_progress',
+      title: 'อยู่ระหว่างการฝึกงาน',
+      description: `ช่วงฝึกงาน: ${start.toLocaleDateString('th-TH')} - ${end.toLocaleDateString('th-TH')}`,
+      status: now > end ? 'finish' : now >= start ? 'process' : 'wait',
+      action: now >= start && now <= end && (
+        <Button type="primary" href="/internship-logbook" style={{ marginTop: 8 }}>
+          บันทึก Logbook
+        </Button>
+      ),
+    });
+  }
+
+  // Step 4: ส่งสรุปผลการฝึกงาน
+  if (internshipDate?.endDate) {
+    const now = new Date();
+    const end = new Date(internshipDate.endDate);
+    steps.push({
+      key: 'summary',
+      title: 'ส่งสรุปผลการฝึกงาน',
+      description: summaryCompleted
+        ? 'ส่งสรุปผลการฝึกงานเรียบร้อยแล้ว'
+        : 'กรุณาส่งสรุปผลการฝึกงาน',
+      status: summaryCompleted ? 'finish' : now > end ? 'process' : 'wait',
+      action: !summaryCompleted && now > end && (
+        <Button type="primary" href="/internship-summary" style={{ marginTop: 8 }}>
+          ส่งสรุปผล
+        </Button>
+      ),
+    });
+  }
+
+  // Step 5: ขอหนังสือรับรอง
+  if (summaryCompleted || certificateStatus) {
+    steps.push({
+      key: 'certificate',
+      title: 'ขอหนังสือรับรองการฝึกงาน',
+      description: certificateStatus === 'ready'
+        ? 'ได้รับหนังสือรับรองแล้ว'
+        : certificateStatus === 'pending'
+        ? 'รอเจ้าหน้าที่อนุมัติหนังสือรับรอง'
+        : 'สามารถขอหนังสือรับรองการฝึกงานได้',
+      status: certificateStatus === 'ready' ? 'finish' : certificateStatus === 'pending' ? 'process' : 'wait',
+      action: certificateStatus !== 'ready' && summaryCompleted && (
+        <Button type="primary" href="/internship-certificate" style={{ marginTop: 8 }}>
+          ขอหนังสือรับรอง
+        </Button>
+      ),
+    });
+  }
+
+  // Step 6: เสร็จสิ้นการฝึกงาน
+  if (certificateStatus) {
+    steps.push({
+      key: 'done',
+      title: 'เสร็จสิ้นการฝึกงาน',
+      description: certificateStatus === 'ready'
+        ? 'กระบวนการฝึกงานของคุณเสร็จสมบูรณ์แล้ว'
+        : 'รอรับหนังสือรับรองการฝึกงาน',
+      status: certificateStatus === 'ready' ? 'finish' : 'wait',
+    });
+  }
+
+  return steps;
+};
+
+// ฟังก์ชันแปลงสถานะเป็นสี
+const getStepColor = (status) => {
+  switch (status) {
+    case 'finish': return 'green';
+    case 'process': return 'blue';
+    default: return 'gray';
+  }
+};
+
+// ฟังก์ชันแปลงสถานะเป็นข้อความ
+const getStepStatusText = (status) => {
+  switch (status) {
+    case 'finish': return 'เสร็จสิ้น';
+    case 'process': return 'กำลังดำเนินการ';
+    default: return 'รอดำเนินการ';
+  }
+};
+
+// ฟังก์ชันแปลงสถานะ CS05 เป็นภาษาไทย
+const getCS05StatusText = (status) => {
+  const statusMap = {
+    'draft': 'ร่างคำร้อง',
+    'submitted': 'ส่งคำร้องแล้ว',
+    'pending': 'รอการอนุมัติ',
+    'approved': 'อนุมัติแล้ว',
+    'rejected': 'ไม่อนุมัติ',
+    'supervisor_approved': 'อาจารย์ที่ปรึกษาอนุมัติแล้ว',
+    'supervisor_evaluated': 'อาจารย์ที่ปรึกษาประเมินแล้ว'
+  };
+  return statusMap[status] || status;
 };
 
 export default InternshipSection;
