@@ -25,10 +25,12 @@ class AcademicSemesterScheduler {
 
   /**
    * ตรวจสอบว่าเปิดใช้งานฟีเจอร์อัปเดตอัตโนมัติผ่าน ENV หรือไม่
+     * Default: enabled (ปิดได้ด้วยการตั้งค่าเป็น 'false')
    * @returns {boolean}
    */
   isEnabled() {
-    return (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || '').toLowerCase() === 'true';
+    const envValue = (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || 'true').toLowerCase();
+    return envValue !== 'false';
   }
 
   /**
@@ -208,7 +210,8 @@ class AcademicSemesterScheduler {
    */
   start() {
     if (!this.isEnabled()) {
-      logger.info('AcademicSemesterScheduler: ปิดการใช้งาน (ตั้งค่า ACADEMIC_AUTO_UPDATE_ENABLED != true)', AGENT_META);
+      logger.info('AcademicSemesterScheduler: ปิดการใช้งาน (ตั้งค่า ACADEMIC_AUTO_UPDATE_ENABLED=false)', AGENT_META);
+      this.isRunning = false;
       return false;
     }
 

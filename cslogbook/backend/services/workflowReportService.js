@@ -278,12 +278,27 @@ class WorkflowReportService {
         order: [['updated_at', 'ASC']]
       });
 
+      // ดึง step definitions เพื่อแสดง title
+      const stepWhere = {};
+      if (workflowType) stepWhere.workflowType = workflowType;
+      const stepDefinitions = await WorkflowStepDefinition.findAll({
+        where: stepWhere,
+        raw: true
+      });
+
+      // สร้าง map สำหรับค้นหา title
+      const stepMap = stepDefinitions.reduce((acc, step) => {
+        acc[step.stepKey] = step.title;
+        return acc;
+      }, {});
+
       return blocked.map(activity => ({
         studentId: activity.student.studentId,
         studentCode: activity.student.studentCode,
         name: `${activity.student.user.firstName} ${activity.student.user.lastName}`,
         workflowType: activity.workflowType,
-        currentStep: activity.currentStepKey,
+        currentStep: stepMap[activity.currentStepKey] || activity.currentStepKey,
+        currentStepKey: activity.currentStepKey,
         currentStepStatus: activity.currentStepStatus,
         overallStatus: activity.overallWorkflowStatus,
         blockedSince: activity.updatedAt,

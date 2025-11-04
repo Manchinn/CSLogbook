@@ -26,6 +26,8 @@ import {
   FilePdfOutlined,
   ReloadOutlined,
   SearchOutlined,
+  ClockCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import FileSaver from "file-saver";
 import dayjs from "../../../../utils/dayjs";
@@ -360,12 +362,30 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        render: (value) => {
+        render: (value, record) => {
           const meta = STATUS_MAP[value] || {
             color: "default",
             text: value || "-",
           };
-          return <Tag color={meta.color}>{meta.text}</Tag>;
+          
+          // แสดง deadline tag ถ้ามี
+          const deadlineTag = record.deadlineStatus?.tag;
+          
+          return (
+            <Space direction="vertical" size={4}>
+              <Tag color={meta.color}>{meta.text}</Tag>
+              {deadlineTag && (
+                <Tooltip title={deadlineTag.tooltip}>
+                  <Tag 
+                    color={deadlineTag.color} 
+                    icon={deadlineTag.type === 'locked' ? <WarningOutlined /> : <ClockCircleOutlined />}
+                  >
+                    {deadlineTag.text}
+                  </Tag>
+                </Tooltip>
+              )}
+            </Space>
+          );
         },
       },
       {

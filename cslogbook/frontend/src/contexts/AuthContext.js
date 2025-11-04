@@ -74,6 +74,13 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        
+        // ยกเว้น login endpoint ให้จัดการ error เอง
+        const isLoginRequest = originalRequest?.url?.includes('/auth/login');
+        if (isLoginRequest) {
+          return Promise.reject(error);
+        }
+        
         // ถ้าไม่ใช่ 401 หรือเป็น endpoint refresh เอง ให้ reject ตามปกติ
         if (error.response?.status !== 401 || originalRequest._retry) {
           return Promise.reject(error);

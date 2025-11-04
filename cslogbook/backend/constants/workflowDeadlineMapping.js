@@ -20,7 +20,10 @@ const INTERNSHIP_DEADLINE_MAPPING = {
     blockIfLocked: true
   },
   
-  // Phase: Acceptance Letter
+  // ❌ Phase: Acceptance Letter - ลบออกตาม Business Requirement
+  // หนังสือตอบรับจากบริษัทขึ้นอยู่กับกระบวนการของแต่ละบริษัท
+  // ไม่สามารถกำหนดกำหนดเวลาที่ชัดเจนได้
+  /*
   AWAITING_ACCEPTANCE_LETTER: {
     templateId: 'INTERNSHIP_ACCEPTANCE_SUBMISSION',
     relatedTo: 'internship',
@@ -30,6 +33,7 @@ const INTERNSHIP_DEADLINE_MAPPING = {
     isRequired: true,
     blockIfLocked: true
   },
+  */
   
   // Phase: Report Submission
   IN_PROGRESS: {

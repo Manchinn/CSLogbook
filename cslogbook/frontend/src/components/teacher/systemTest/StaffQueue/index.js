@@ -16,14 +16,17 @@ import {
   Table,
   Tag,
   Timeline,
-  Typography
+  Typography,
+  Tooltip
 } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   EyeOutlined,
   ReloadOutlined,
-  SearchOutlined
+  SearchOutlined,
+  ClockCircleOutlined,
+  WarningOutlined
 } from '@ant-design/icons';
 import dayjs from '../../../../utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../../utils/constants';
@@ -265,9 +268,27 @@ const StaffSystemTestQueue = () => {
         title: 'สถานะ',
         dataIndex: 'status',
         key: 'status',
-        render: (status) => {
+        render: (status, record) => {
           const meta = STATUS_MAP[status] || { color: 'default', text: status || '-' };
-          return <Tag color={meta.color}>{meta.text}</Tag>;
+          
+          // แสดง deadline tag ถ้ามี
+          const deadlineTag = record.deadlineStatus?.tag;
+          
+          return (
+            <Space direction="vertical" size={4}>
+              <Tag color={meta.color}>{meta.text}</Tag>
+              {deadlineTag && (
+                <Tooltip title={deadlineTag.tooltip}>
+                  <Tag 
+                    color={deadlineTag.color} 
+                    icon={deadlineTag.type === 'locked' ? <WarningOutlined /> : <ClockCircleOutlined />}
+                  >
+                    {deadlineTag.text}
+                  </Tag>
+                </Tooltip>
+              )}
+            </Space>
+          );
         }
       },
       {

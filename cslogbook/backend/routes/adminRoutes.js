@@ -13,6 +13,7 @@ const workflowStepDefinitionController = require('../controllers/workflowStepDef
 const importantDeadlineController = require('../controllers/importantDeadlineController');
 const agentStatusController = require('../controllers/agentStatusController');
 const projectManagementController = require('../controllers/projectManagementController');
+const projectReportController = require('../controllers/projectReportController');
 const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
@@ -22,6 +23,13 @@ const adminAuth = [authenticateToken, checkRole(['admin', 'teacher']), checkTeac
 // 🆕 Project workflow state dashboard
 const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');
 router.get('/dashboard/project-statistics', adminAuth, projectWorkflowStateController.getAdminDashboardStatistics);
+
+// 🆕 Project Report Routes (รายงานธุรการ)
+router.get('/reports/project/administrative', adminAuth, projectReportController.getAdministrativeReport);
+router.get('/reports/project/project1', adminAuth, projectReportController.getProject1Statistics);
+router.get('/reports/project/project2', adminAuth, projectReportController.getProject2Statistics);
+router.get('/reports/project/students-by-status', adminAuth, projectReportController.getStudentsByStatus);
+router.get('/reports/project/exam-trends', adminAuth, projectReportController.getExamTrends);
 
 // Main dashboard stats
 router.get('/stats', adminAuth, async (req, res, next) => {

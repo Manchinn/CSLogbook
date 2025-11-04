@@ -13,7 +13,6 @@
     "db:check:models": "node scripts/checkModels.js",
     "db:check": "cross-env NODE_ENV=development node scripts/checkDb.js",
     "db:check:all": "npm run db:check && npm run db:check:models",
-    "db:sync": "cross-env NODE_ENV=development node scripts/syncDb.js",
     "migrate": "cross-env NODE_ENV=development sequelize-cli db:migrate",
     "migrate:undo": "cross-env NODE_ENV=development sequelize-cli db:migrate:undo",
     "migrate:create": "cross-env NODE_ENV=development sequelize-cli migration:generate --name",
@@ -25,7 +24,6 @@
     "seed:undo:all": "cross-env NODE_ENV=development sequelize-cli db:seed:undo:all",
     "seed:undo:one": "cross-env NODE_ENV=development sequelize-cli db:seed:undo --seed",
     "seed:prod": "cross-env NODE_ENV=production sequelize-cli db:seed --seed seeders/production/index.js",
-    "seed:prod:undo": "cross-env NODE_ENV=production sequelize-cli db:seed:undo --seed seeders/production/index.js",
     "seed:dev": "cross-env NODE_ENV=development sequelize-cli db:seed --seed seeders/dev/index.js",
     "seed:dev:undo": "cross-env NODE_ENV=development sequelize-cli db:seed:undo --seed seeders/dev/index.js"
   },

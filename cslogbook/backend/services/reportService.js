@@ -209,6 +209,8 @@ module.exports = {
         const user = teacherUserMap[t.userId];
         mergeMap[t.teacherId].name = user ? `${user.firstName} ${user.lastName}` : t.teacherCode;
         mergeMap[t.teacherId].teacherCode = t.teacherCode;
+        // เพิ่ม count เป็นผลรวม (สำหรับ frontend ใช้งานง่าย)
+        mergeMap[t.teacherId].count = mergeMap[t.teacherId].advisorProjectCount + mergeMap[t.teacherId].coAdvisorProjectCount;
       }
     });
 

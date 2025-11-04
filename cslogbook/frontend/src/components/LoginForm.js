@@ -78,19 +78,15 @@ const LoginForm = () => {
         }
       }
     } catch (error) {
-      console.error('Login error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
 
-      // กระตุ้นแอนิเมชันสั่นเพื่อแจ้งเตือนผู้ใช้เมื่อเกิดข้อผิดพลาด
+      const errorMessage = error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง';
+      console.log('=== Showing error message:', errorMessage);
+      
+      // เพิ่ม shake animation เมื่อ login ผิดพลาด
       setErrorShake(true);
       setTimeout(() => setErrorShake(false), 600);
-
-      message.error(
-        error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง',
-      );
+      
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -148,19 +144,19 @@ const LoginForm = () => {
             <Title level={3} className="login-title">
               ลงชื่อเข้าใช้ระบบ
             </Title>
-            <Text className="login-subtitle">โปรดใช้บัญชี ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
+            <Text className="login-subtitle">โปรดใช้บัญชีรูปแบบเริ่มต้นของ ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
           </div>
 
           <Form form={form} onFinish={handleSubmit} layout="vertical" className="login-form">
             <Form.Item
               name="username"
               className="login-form-item"
-              rules={[{ required: true, message: 'กรุณากรอก ICIT Account' }]}
+              rules={[{ required: true, message: 'กรุณากรอกชื่อผู้ใช้' }]}
             >
               <Input
                 className="login-input"
                 prefix={<UserOutlined />}
-                placeholder="ICIT Account"
+                placeholder="ชื่อผู้ใช้"
                 size="large"
                 autoComplete="username"
               />

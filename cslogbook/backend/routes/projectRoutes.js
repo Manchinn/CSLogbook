@@ -84,7 +84,7 @@ router.patch('/:id/meetings/:meetingId/logs/:logId/approval', meetingController.
 const artifactController = require('../controllers/projectArtifactController');
 const { uploadProposal } = require('../config/projectArtifactUpload');
 router.get('/:id/artifacts', checkProjectEligibility, artifactController.list);
-router.post('/:id/proposal', checkProjectEligibility, uploadProposal.single('file'), artifactController.uploadProposal);
+router.post('/:id/proposal', checkProjectEligibility, checkDeadlineBeforeSubmission('SUBMISSION'), uploadProposal.single('file'), artifactController.uploadProposal);
 
 // Tracks (multi-track) - แยก endpoint ชัดเจน - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const projectTracksController = require('../controllers/projectTracksController');
