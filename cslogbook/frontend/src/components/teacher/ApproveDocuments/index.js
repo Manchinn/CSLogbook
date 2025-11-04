@@ -124,7 +124,7 @@ export default function ApproveDocuments() {
 
       const blobUrl = URL.createObjectURL(response.data);
       const studentName = `${record.student?.firstName || ""} ${record.student?.lastName || ""}`.trim();
-      const docLabel = activeTab === "request" ? "หนังสือขอความอนุเคราะห์ (CS05)" : "Acceptance Letter";
+      const docLabel = activeTab === "request" ? "หนังสือขอความอนุเคราะห์" : "หนังสือตอบรับการฝึกงาน";
 
       setViewerUrl(blobUrl);
       setViewerTitle(studentName ? `${docLabel} - ${studentName}` : docLabel);
@@ -534,7 +534,7 @@ export default function ApproveDocuments() {
           </Form.Item>
           {rejectTarget && (
             <div style={{ fontSize: 12, color: '#888' }}>
-              เอกสาร: {activeTab === 'request' ? 'CS05' : 'Acceptance Letter'} | ID: {rejectTarget.documentId}
+              เอกสาร: {activeTab === 'request' ? 'หนังสือขอความอนุเคราะห์' : 'หนังสือตอบรับการฝึกงาน'} | ID: {rejectTarget.documentId}
             </div>
           )}
         </Form>

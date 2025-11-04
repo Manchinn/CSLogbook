@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Alert, Descriptions, Badge } from 'antd';
-import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined, FileTextOutlined, UserOutlined } from '@ant-design/icons';
+import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from '../../../utils/dayjs'; // ใช้ dayjs ที่ตั้งค่า timezone + BE
 import { documentService } from '../../../services/admin/documentService';
 import PDFViewerModal from '../../PDFViewerModal';
@@ -302,9 +302,6 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
         <Descriptions bordered column={1} size="small">
           <Descriptions.Item label="ชื่อเอกสาร">
             {getDocumentDisplayName(data.documentName)}
-          </Descriptions.Item>
-          <Descriptions.Item label="ประเภท">
-            {data.documentType || 'ไม่ระบุ'}
           </Descriptions.Item>
           <Descriptions.Item label="วันที่ส่ง">
             {formatDateTime(data.submittedAt || data.submitted_at || data.created_at)}

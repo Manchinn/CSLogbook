@@ -157,7 +157,13 @@ class InternshipManagementService {
       transcriptFilename: document.fileName,
       // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
       rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
-      reviewComment: document.reviewComment
+      reviewComment: document.reviewComment,
+      // ✨ เพิ่มข้อมูล late status สำหรับแสดงสถานะการส่งเอกสาร
+      isLate: document.isLate || false,
+      lateMinutes: document.lateMinutes || null,
+      lateReason: document.lateReason || null,
+      submittedLate: document.submittedLate || false,
+      submissionDelayMinutes: document.submissionDelayMinutes || null
     };
   }
 
@@ -263,7 +269,7 @@ class InternshipManagementService {
   /**
    * บันทึกคำร้องขอฝึกงาน (CS05) พร้อม transcript
    */
-  async submitCS05WithTranscript(userId, fileData, formData) {
+  async submitCS05WithTranscript(userId, fileData, formData, deadlineInfo = {}) {
     const transaction = await sequelize.transaction();
     try {
       // ตรวจสอบว่ามีไฟล์ transcript หรือไม่
@@ -302,7 +308,22 @@ class InternshipManagementService {
         throw new Error("คุณมีคำร้อง CS05 ที่รอการพิจารณาอยู่แล้ว");
       }
 
-      // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript ด้วย
+      // เตรียมข้อมูล late status จาก middleware
+      const isLate = deadlineInfo?.isLate === true;
+      const minutesLateFromDeadlineInfo = deadlineInfo?.deadlineInfo?.minutesLate;
+      const minutesLateFallback = deadlineInfo?.minutesLate;
+      const lateMinutes =
+        typeof minutesLateFromDeadlineInfo === "number"
+          ? minutesLateFromDeadlineInfo
+          : typeof minutesLateFallback === "number"
+          ? minutesLateFallback
+          : null;
+      const submittedLate = isLate; // ใช้ค่าเดียวกับ isLate
+      const submissionDelayMinutes = lateMinutes; // ใช้ค่าเดียวกับ lateMinutes
+      const importantDeadlineId =
+        deadlineInfo?.applicableDeadline?.id ?? deadlineInfo?.deadlineInfo?.id ?? null;
+
+      // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript พร้อม late status
       const document = await Document.create(
         {
           userId,
@@ -314,6 +335,13 @@ class InternshipManagementService {
           fileName: fileData.filename,
           fileSize: fileData.size,
           mimeType: fileData.mimetype,
+          // ✨ บันทึก late status
+          isLate,
+          lateMinutes,
+          submittedLate,
+          submissionDelayMinutes,
+          importantDeadlineId,
+          submittedAt: new Date() // บันทึกเวลาที่ส่ง
         },
         { transaction }
       );
@@ -392,6 +420,11 @@ class InternshipManagementService {
         contactPersonName, // เพิ่มฟิลด์ใหม่
         contactPersonPosition, // เพิ่มฟิลด์ใหม่
         transcriptFilename: fileData.filename,
+        // ✨ ส่งข้อมูล late status กลับไปด้วย
+        isLate,
+        lateMinutes,
+        submittedLate,
+        submissionDelayMinutes
       };
     } catch (error) {
       await transaction.rollback();

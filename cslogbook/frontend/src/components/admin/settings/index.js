@@ -43,7 +43,7 @@ const SettingsIndex = () => {
           status: 'จำเป็น'
         }
       ]
-    },
+    },/* 
     essential: {
       title: 'การตั้งค่าระบบงาน',
       subtitle: 'จำเป็นสำหรับการทำงานของระบบ',
@@ -66,7 +66,7 @@ const SettingsIndex = () => {
           status: 'สำคัญ'
         }
       ]
-    },
+    }, */
     optional: {
       title: 'การตั้งค่าเสริม',
       subtitle: 'ปรับแต่งเพื่อเพิ่มประสิทธิภาพการใช้งาน',
