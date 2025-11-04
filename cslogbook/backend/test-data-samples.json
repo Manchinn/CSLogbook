@@ -1,6 +1,11 @@
 {
   "description": "Sample test data for Project Deadline Integration Testing",
   "date": "4 November 2568",
+  "usage": {
+    "seeder": "npm run seed:test-deadlines",
+    "script": "npm run seed:test-deadlines-seeder",
+    "documentation": "knowledge/TEST_DEADLINES_SETUP_GUIDE.md"
+  },
   
   "deadlines": {
     "project1_proposal": {

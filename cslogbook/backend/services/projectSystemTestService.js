@@ -15,6 +15,7 @@ const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 const buddhistEra = require('dayjs/plugin/buddhistEra');
 const { Op } = require('sequelize');
+const { checkSystemTestRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -71,7 +72,7 @@ function ensureAdvisor(project, teacherId) {
 }
 
 class ProjectSystemTestService {
-  serialize(instance) {
+  serialize(instance, options = {}) {
     if (!instance) return null;
     const data = instance.get ? instance.get({ plain: true }) : instance;
     const project = data.project || {};
@@ -81,7 +82,7 @@ class ProjectSystemTestService {
     const submittedUser = submittedBy.user || {};
     const staffUser = data.staffUser || {};
 
-    return {
+    const serialized = {
       requestId: data.requestId,
       projectId: data.projectId,
       status: data.status,
@@ -123,6 +124,13 @@ class ProjectSystemTestService {
         evidenceSubmittedAt: data.evidenceSubmittedAt
       }
     };
+
+    // เพิ่มข้อมูล deadline status (ถ้าต้องการ)
+    if (options.includeDeadlineStatus && data._deadlineStatus) {
+      serialized.deadlineStatus = data._deadlineStatus;
+    }
+
+    return serialized;
   }
 
   async findLatest(projectId, options = {}) {
@@ -446,7 +454,27 @@ class ProjectSystemTestService {
       order: [['submittedAt', 'DESC']],
       include
     });
-    return records.map(record => this.serialize(record));
+
+    // เพิ่มการตรวจสอบ deadline status
+    const serializedList = [];
+    for (const record of records) {
+      // ตรวจสอบ deadline status
+      const deadlineStatus = await checkSystemTestRequestDeadline(
+        this.serialize(record)
+      );
+      
+      const deadlineTag = createDeadlineTag(deadlineStatus);
+      
+      // Attach deadline status to record data before serialization
+      record._deadlineStatus = {
+        ...deadlineStatus,
+        tag: deadlineTag
+      };
+
+      serializedList.push(this.serialize(record, { includeDeadlineStatus: true }));
+    }
+    
+    return serializedList;
   }
 }
 

@@ -512,7 +512,7 @@ const DeadlineComplianceReportRecharts = () => {
                   <Alert
                     type="error"
                     message={`มีนักศึกษา ${data?.lateSubmissions?.length || 0} คน ที่ส่งเอกสารช้า/เลยกำหนด`}
-                    description="รายชื่อนักศึกษาที่ส่งเอกสารหลังเลยกำหนดเวลาที่กำหนด (รวม Grace Period)"
+                    description=""
                     showIcon
                     style={{ marginBottom: 16 }}
                   />

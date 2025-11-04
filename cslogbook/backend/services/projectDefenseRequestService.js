@@ -18,6 +18,7 @@ const { Op } = require('sequelize');
 const ExcelJS = require('exceljs');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
+const { checkDefenseRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
 const timezone = require('dayjs/plugin/timezone');
 const buddhistEra = require('dayjs/plugin/buddhistEra');
 require('dayjs/locale/th');
@@ -192,7 +193,7 @@ class ProjectDefenseRequestService {
     };
   }
 
-  serializeRequest(instance) {
+  serializeRequest(instance, options = {}) {
     if (!instance) return null;
     const data = instance.get ? instance.get({ plain: true }) : instance;
     const buildUser = (user) => {
@@ -216,7 +217,7 @@ class ProjectDefenseRequestService {
       };
     };
 
-    return {
+    const serialized = {
       requestId: data.requestId,
       projectId: data.projectId,
       defenseType: data.defenseType,
@@ -259,6 +260,13 @@ class ProjectDefenseRequestService {
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
+
+    // เพิ่มข้อมูล deadline status (ถ้าต้องการ)
+    if (options.includeDeadlineStatus && data._deadlineStatus) {
+      serialized.deadlineStatus = data._deadlineStatus;
+    }
+
+    return serialized;
   }
 
   async attachMeetingMetrics(serializedRequest, { transaction, defenseType } = {}) {
@@ -1058,7 +1066,22 @@ class ProjectDefenseRequestService {
 
     const serializedList = [];
     for (const request of requests) {
-      const serialized = this.serializeRequest(request);
+      // ตรวจสอบ deadline status
+      const deadlineStatus = await checkDefenseRequestDeadline({
+        submittedAt: request.submittedAt,
+        defenseType: request.defenseType,
+        project: request.project
+      });
+      
+      const deadlineTag = createDeadlineTag(deadlineStatus);
+      
+      // Attach deadline status to request data before serialization
+      request._deadlineStatus = {
+        ...deadlineStatus,
+        tag: deadlineTag
+      };
+
+      const serialized = this.serializeRequest(request, { includeDeadlineStatus: true });
       if (withMetrics) {
         await this.attachMeetingMetrics(serialized, { defenseType });
       }
