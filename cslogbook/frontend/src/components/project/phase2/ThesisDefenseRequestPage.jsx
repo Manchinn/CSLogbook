@@ -152,15 +152,16 @@ const ThesisDefenseRequestPage = () => {
     if (!metrics || !Array.isArray(metrics.perStudent)) {
       return { required, approved: 0, satisfied: required === 0 };
     }
-    const leaderApproved = leaderMember
-      ? (metrics.perStudent.find((item) => Number(item.studentId) === Number(leaderMember.studentId))?.approvedLogs || 0)
+    // ✅ ตรวจสอบ meeting logs ของนักศึกษาที่ login อยู่ (ไม่จำเป็นต้องเป็น leader)
+    const currentStudentApproved = currentStudentId
+      ? (metrics.perStudent.find((item) => Number(item.studentId) === Number(currentStudentId))?.approvedLogs || 0)
       : 0;
     return {
       required,
-      approved: leaderApproved,
-      satisfied: leaderApproved >= required
+      approved: currentStudentApproved,
+      satisfied: currentStudentApproved >= required
     };
-  }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2, leaderMember, requestRecord?.meetingMetrics]);
+  }, [activeProject?.meetingMetrics, activeProject?.meetingMetricsPhase2, currentStudentId, requestRecord?.meetingMetrics]);
 
   const statusMeta = useMemo(() => DEFENSE_STATUS_META[requestRecord?.status] || DEFENSE_STATUS_META.default, [requestRecord]);
 
@@ -184,9 +185,10 @@ const ThesisDefenseRequestPage = () => {
     loadRequest();
   }, [loadRequest]);
 
+  // ✅ ทุกคนในทีมสามารถส่งคำร้องได้ (ไม่ต้องเป็น leader)
   const isSubmissionDisabled = useMemo(() => {
-    return !isLeader || !meetingRequirement.satisfied || !systemTestReady;
-  }, [isLeader, meetingRequirement.satisfied, systemTestReady]);
+    return !meetingRequirement.satisfied || !systemTestReady;
+  }, [meetingRequirement.satisfied, systemTestReady]);
 
   const formatDateTime = useCallback((value) => {
     if (!value) return '-';
@@ -283,6 +285,9 @@ const ThesisDefenseRequestPage = () => {
       <Space size="small" wrap>
         <Text strong>สถานะปัจจุบัน:</Text>
         <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+        {requestRecord?.submittedLate && (
+          <Tag color="warning">ส่งช้า</Tag>
+        )}
       </Space>
       <Descriptions bordered size="small" column={1}>
         <Descriptions.Item label="ส่งคำขอเมื่อ">{formatDateTime(requestRecord?.submittedAt)}</Descriptions.Item>
@@ -347,15 +352,6 @@ const ThesisDefenseRequestPage = () => {
           />
         ) : (
           <>
-            {!isLeader && (
-              <Alert
-                type="warning"
-                showIcon
-                style={{ marginBottom: 16 }}
-                message="เฉพาะหัวหน้าโครงงานเท่านั้นที่สามารถยื่นคำขอนี้ได้"
-              />
-            )}
-
             {!meetingRequirement.satisfied && (
               <Alert
                 type="warning"

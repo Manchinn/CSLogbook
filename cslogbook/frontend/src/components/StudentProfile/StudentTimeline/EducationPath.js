@@ -14,17 +14,22 @@ import {
   getProjectRequirements,
 } from "../../../utils/studentUtils";
 import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
+import { getProjectStateWithDeadlines } from "../../../services/projectWorkflowStateService";
 
 const { Step } = Steps;
 const { Text } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงเส้นทางการศึกษาหลัก
-const EducationPath = ({ student }) => {
+const EducationPath = ({ student, progress }) => {
   const { internshipStatus } = useInternshipStatus();
   const [requirements, setRequirements] = useState({
     internship: null,
     project: null,
   });
+
+  // State สำหรับข้อมูล workflow state
+  const [workflowState, setWorkflowState] = useState(null);
+  const [loadingWorkflowState, setLoadingWorkflowState] = useState(false);
 
   // ดึงข้อกำหนดจาก student object หรือ API
   useEffect(() => {
@@ -32,6 +37,31 @@ const EducationPath = ({ student }) => {
       setRequirements(student.requirements);
     }
   }, [student]);
+
+  // ดึง project ID จากข้อมูลนักศึกษา
+  const projectId = student?.projectId || progress?.project?.projectId;
+
+  // ดึงข้อมูล workflow state เมื่อมี projectId
+  useEffect(() => {
+    const fetchWorkflowState = async () => {
+      if (!projectId) return;
+
+      setLoadingWorkflowState(true);
+
+      try {
+        const response = await getProjectStateWithDeadlines(projectId);
+        if (response.success && response.data) {
+          setWorkflowState(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching workflow state in EducationPath:', error);
+      } finally {
+        setLoadingWorkflowState(false);
+      }
+    };
+
+    fetchWorkflowState();
+  }, [projectId]);
 
   // ใช้ utils function แทนการ hardcode
   const internshipReqs = getInternshipRequirements(requirements.internship);
@@ -47,8 +77,11 @@ const EducationPath = ({ student }) => {
     student.internshipStatus === "completed" &&
     student.projectStatus === "completed";
 
-  // คำนวณสถานะโครงงานพิเศษ
-  const projectPhase = determineProjectPhase(student);
+  // คำนวณสถานะโครงงานพิเศษ (ใช้ workflow state ถ้ามี)
+  const projectPhase = determineProjectPhase(student, workflowState);
+  
+  // ข้อมูลจากระบบเดิม (fallback)
+  const overallStatus = progress?.project?.status || 'not_started';
 
   // กำหนด icon สถานะตามสถานะการทำงานในขั้นตอนนั้น
   const getStepIcon = (stepType) => {
@@ -61,15 +94,19 @@ const EducationPath = ({ student }) => {
     }
 
     if (stepType === "project1") {
+      // ถ้า phase > 0 หมายถึงผ่าน CS1 แล้ว (อยู่ CS2 หรือเสร็จสิ้น)
       if (projectPhase > 0) return <CheckCircleOutlined />;
-      if (student.projectStatus === "in_progress" && projectPhase === 0)
+      // ถ้า phase = 0 และมี workflow state แสดงว่ากำลังทำ CS1
+      if (projectPhase === 0 && (overallStatus === "in_progress" || workflowState))
         return <LoadingOutlined />;
       return <ExperimentOutlined />;
     }
 
     if (stepType === "project2") {
+      // ถ้า phase > 1 หมายถึงเสร็จสิ้นทั้งหมดแล้ว
       if (projectPhase > 1) return <CheckCircleOutlined />;
-      if (student.projectStatus === "in_progress" && projectPhase === 1)
+      // ถ้า phase = 1 แสดงว่ากำลังทำ CS2
+      if (projectPhase === 1)
         return <LoadingOutlined />;
       return <BookOutlined />;
     }
@@ -93,7 +130,13 @@ const EducationPath = ({ student }) => {
 
     if (stepType === "project1") {
       if (projectPhase > 0) return "เสร็จสิ้น";
-      if (student.projectStatus === "in_progress" && projectPhase === 0)
+      // ถ้ามี workflow state และอยู่ใน CS1 phase
+      if (projectPhase === 0 && workflowState) {
+        const phase = workflowState.currentPhase;
+        if (phase === 'TOPIC_EXAM_FAILED') return "สอบหัวข้อไม่ผ่าน";
+        return "กำลังดำเนินการ";
+      }
+      if (projectPhase === 0 && overallStatus === "in_progress")
         return "กำลังดำเนินการ";
       if (student.projectEligible) return "พร้อมดำเนินการ";
       return "รอคุณสมบัติ";
@@ -101,9 +144,11 @@ const EducationPath = ({ student }) => {
 
     if (stepType === "project2") {
       if (projectPhase > 1) return "เสร็จสิ้น";
-      if (student.projectStatus === "in_progress" && projectPhase === 1)
-        return "กำลังดำเนินการ";
-      if (projectPhase === 0 && student.projectStatus === "in_progress")
+      // ถ้ากำลังทำ CS2
+      if (projectPhase === 1) return "กำลังดำเนินการ";
+      // ถ้ายังอยู่ CS1 แต่มีโครงงานแล้ว
+      if (projectPhase === 0 && workflowState) return "รอดำเนินการ";
+      if (projectPhase === 0 && overallStatus === "in_progress")
         return "รอดำเนินการ";
       if (student.projectEligible) return "รอดำเนินการ";
       return "รอคุณสมบัติ";
@@ -176,6 +221,12 @@ const EducationPath = ({ student }) => {
     return "";
   };
 
+  // สร้าง student object ที่มี projectPhase เพื่อส่งไปยัง calculateMainProgress
+  const studentWithPhase = {
+    ...student,
+    projectPhase: projectPhase
+  };
+
   return (
     <Card
       title={
@@ -186,7 +237,7 @@ const EducationPath = ({ student }) => {
       variant="borderless"
       styles={{ padding: "24px" }}
     >
-      <Steps current={calculateMainProgress(student)} size="default" responsive>
+      <Steps current={calculateMainProgress(studentWithPhase)} size="default" responsive>
         <Step
           title={
             <Tooltip title={getStepTooltip("internship")}>
@@ -217,7 +268,7 @@ const EducationPath = ({ student }) => {
           status={
             projectPhase > 0
               ? "finish"
-              : student.projectStatus === "in_progress" && projectPhase === 0
+              : (projectPhase === 0 && (workflowState || overallStatus === "in_progress"))
               ? "process"
               : student.projectEligible
               ? "wait"
@@ -236,7 +287,7 @@ const EducationPath = ({ student }) => {
           status={
             projectPhase > 1
               ? "finish"
-              : student.projectStatus === "in_progress" && projectPhase === 1
+              : projectPhase === 1
               ? "process"
               : "wait"
           }
@@ -256,18 +307,50 @@ const EducationPath = ({ student }) => {
   );
 };
 
-// ฟังก์ชันช่วยกำหนดเฟสของการทำโครงงานพิเศษ (0 = CS1, 1 = CS2)
-function determineProjectPhase(student) {
-  // ถ้ามีข้อมูล projectPhase โดยตรง
+// ฟังก์ชันช่วยกำหนดเฟสของการทำโครงงานพิเศษ
+// 0 = CS1 (โครงงานพิเศษ 1)
+// 1 = CS2 (โครงงานพิเศษ 2) 
+// 2 = เสร็จสิ้นทั้งหมด
+function determineProjectPhase(student, workflowState) {
+  // ใช้ข้อมูลจาก workflow state ก่อน (ถ้ามี)
+  if (workflowState && workflowState.currentPhase) {
+    const phase = workflowState.currentPhase;
+    
+    // Phase Mapping จาก ProjectWorkflowState:
+    // CS1 phases (โครงงานพิเศษ 1): DRAFT, ADVISOR_ASSIGNED, TOPIC_SUBMISSION, 
+    //                              TOPIC_EXAM_PENDING, TOPIC_EXAM_SCHEDULED
+    const CS1_PHASES = [
+      'DRAFT', 'ADVISOR_ASSIGNED', 'TOPIC_SUBMISSION', 
+      'TOPIC_EXAM_PENDING', 'TOPIC_EXAM_SCHEDULED', 'TOPIC_EXAM_FAILED'
+    ];
+    
+    // CS2 phases (โครงงานพิเศษ 2): IN_PROGRESS, THESIS_SUBMISSION, 
+    //                              THESIS_EXAM_PENDING, THESIS_EXAM_SCHEDULED
+    const CS2_PHASES = [
+      'IN_PROGRESS', 'THESIS_SUBMISSION', 
+      'THESIS_EXAM_PENDING', 'THESIS_EXAM_SCHEDULED'
+    ];
+    
+    // Completed phases: THESIS_EXAM_PASSED, COMPLETED
+    const COMPLETED_PHASES = ['THESIS_EXAM_PASSED', 'COMPLETED'];
+    
+    if (COMPLETED_PHASES.includes(phase)) {
+      return 2; // เสร็จสิ้นทั้งหมด
+    } else if (CS2_PHASES.includes(phase)) {
+      return 1; // กำลังทำโครงงานพิเศษ 2
+    } else if (CS1_PHASES.includes(phase)) {
+      return 0; // กำลังทำโครงงานพิเศษ 1
+    }
+  }
+
+  // Fallback: ใช้ข้อมูลแบบเดิม
   if (student.projectPhase !== undefined) return student.projectPhase;
 
-  // ถ้ามีข้อมูลที่ระบุว่าทำ CS1 หรือ CS2 เสร็จแล้ว
   if (student.hasCompletedCS1 && student.hasCompletedCS2) return 2;
   if (student.hasCompletedCS1) return 1;
 
   // ตรวจสอบจากข้อมูล timeline steps ถ้ามี
   if (student.projectProgress && student.projectProgress.steps) {
-    // ถ้ามีขั้นตอน "ส่งเล่มรายงานฉบับสมบูรณ์" เสร็จสิ้นแล้ว เป็นระยะที่ 2 (CS2)
     const completedFinal = student.projectProgress.steps.find(
       (step) =>
         step.name.includes("ส่งเล่มรายงานฉบับสมบูรณ์") &&
@@ -275,7 +358,6 @@ function determineProjectPhase(student) {
     );
     if (completedFinal) return 2;
 
-    // ถ้ามีขั้นตอน "สอบหัวข้อโครงงาน" เสร็จสิ้นแล้ว เป็นระยะที่ 1 (CS1)
     const completedProposal = student.projectProgress.steps.find(
       (step) =>
         step.name.includes("สอบหัวข้อโครงงาน") && step.status === "completed"
@@ -283,7 +365,7 @@ function determineProjectPhase(student) {
     if (completedProposal) return 1;
   }
 
-  // ถ้าขั้นตอนโครงงานยังไม่เริ่ม หรือไม่สามารถบอกได้
+  // ถ้าขั้นตอนโครงงานยังไม่เริ่ม
   return 0;
 }
 

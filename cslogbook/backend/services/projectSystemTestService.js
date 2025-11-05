@@ -10,6 +10,7 @@ const {
 } = require('../models');
 const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
+const { calculateSystemTestRequestLate } = require('../utils/lateSubmissionHelper');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -206,9 +207,7 @@ class ProjectSystemTestService {
       if (actor.role !== 'student') {
         throw new Error('อนุญาตเฉพาะนักศึกษาที่เป็นสมาชิกโครงงานในการส่งคำขอทดสอบระบบ');
       }
-      if (!ensureLeader(project, actor.studentId)) {
-        throw new Error('จำกัดเฉพาะหัวหน้าโครงงานในการส่งคำขอนี้');
-      }
+      // ✅ เปลี่ยนจากเฉพาะ leader เป็นอนุญาตสมาชิกทุกคนส่งคำขอได้
       if (!['in_progress', 'completed'].includes(project.status)) {
         throw new Error('โครงงานต้องอยู่ในสถานะกำลังดำเนินการก่อนส่งคำขอทดสอบระบบ');
       }
@@ -246,12 +245,21 @@ class ProjectSystemTestService {
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(project.projectId, students, { transaction: t, phase: 'phase1' });
       const requiredLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
-      const leaderMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < requiredLogs) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < requiredLogs) {
         throw new Error(`ยังไม่ครบเกณฑ์บันทึกการพบอาจารย์: ต้องมีอย่างน้อย ${requiredLogs} รายการที่ได้รับอนุมัติ`);
       }
 
       const relativePath = fileMeta?.path ? buildRelativePath(fileMeta.path) : null;
+      const submittedAt = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateSystemTestRequestLate(submittedAt, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const record = await ProjectTestRequest.create({
         projectId: project.projectId,
         submittedByStudentId: actor.studentId,
@@ -259,10 +267,14 @@ class ProjectSystemTestService {
         requestFilePath: relativePath,
         requestFileName: fileMeta?.originalname || null,
         studentNote: payload.studentNote || null,
-        submittedAt: new Date(),
+        submittedAt,
         testStartDate: startDay.toDate(),
         testDueDate: dueDay.toDate(),
-        advisorTeacherId: project.advisorId || null
+        advisorTeacherId: project.advisorId || null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       }, { transaction: t });
 
       await t.commit();

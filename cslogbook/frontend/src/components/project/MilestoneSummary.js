@@ -4,7 +4,8 @@ import projectService from '../../services/projectService';
 
 const { Text } = Typography;
 
-const MilestoneSummary = ({ project, isLeader }) => {
+// ✅ ยกเลิกการใช้ isLeader - สมาชิกโครงงานทุกคนสามารถเพิ่ม milestone ได้
+const MilestoneSummary = ({ project }) => {
   const projectId = project?.projectId;
   const [loading, setLoading] = useState(false);
   const [milestones, setMilestones] = useState([]);
@@ -55,7 +56,7 @@ const MilestoneSummary = ({ project, isLeader }) => {
   };
 
   return (
-    <Card title={<Space>Milestones <Tag color="blue">{milestones.length}</Tag></Space>} size="small" extra={isLeader && <Button size="small" type="primary" onClick={openCreate}>เพิ่ม</Button>}> 
+    <Card title={<Space>Milestones <Tag color="blue">{milestones.length}</Tag></Space>} size="small" extra={<Button size="small" type="primary" onClick={openCreate}>เพิ่ม</Button>}> 
       {milestones.length === 0 && !loading && (
         <Empty description="ยังไม่มี Milestone" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       )}

@@ -1,11 +1,15 @@
 // หน้าแสดงรายงานเฉพาะฝึกงาน (Internship)
-import React, { useMemo, useRef } from 'react';
-import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Table } from 'antd';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Table, Button, Modal, Form, Input, message, Tag, Tooltip } from 'antd';
+import { EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { SimpleBarChart, SimplePieChart, CHART_COLORS } from './charts/RechartsComponents';
 import { academicYearOptions } from './constants';
 import { useInternshipProgressDashboard } from './hooks/useInternshipProgressDashboard';
+import internshipAdminService from '../../../services/internshipAdminService';
+import { formatThaiDate } from '../../../utils/dateUtils';
 
 const { Title } = Typography;
+const { TextArea } = Input;
 
 const currentAcademicYear = () => {
 	const now = new Date();
@@ -18,6 +22,134 @@ const InternshipReport = () => {
 	const initialYear = currentAcademicYear();
 	const anchorYearRef = useRef(initialYear); // anchor คงที่
 	const { year, setYear, semester, setSemester, loading, error, summary, evaluation, students } = useInternshipProgressDashboard(initialYear);
+
+	// State สำหรับ modal
+	const [editModalVisible, setEditModalVisible] = useState(false);
+	const [cancelModalVisible, setCancelModalVisible] = useState(false);
+	const [selectedRecord, setSelectedRecord] = useState(null);
+	const [submitting, setSubmitting] = useState(false);
+	const [detailedStudents, setDetailedStudents] = useState([]);
+	const [loadingDetails, setLoadingDetails] = useState(false);
+	const [form] = Form.useForm();
+
+	// โหลดข้อมูลรายละเอียดนักศึกษา
+	const loadDetailedStudents = async () => {
+		setLoadingDetails(true);
+		try {
+			const result = await internshipAdminService.getAllInternshipStudents({
+				academicYear: year,
+				semester: semester
+			});
+			if (result.success) {
+				setDetailedStudents(result.data);
+			} else {
+				message.error(result.error || 'ไม่สามารถโหลดข้อมูลได้');
+			}
+		} catch (err) {
+			console.error('Error loading detailed students:', err);
+			message.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+		} finally {
+			setLoadingDetails(false);
+		}
+	};
+
+	// โหลดข้อมูลเมื่อ year หรือ semester เปลี่ยน
+	useEffect(() => {
+		loadDetailedStudents();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [year, semester]);
+
+	// จัดการการแก้ไข
+	const handleEdit = (record) => {
+		setSelectedRecord(record);
+		form.setFieldsValue({
+			companyName: record.companyName,
+			internshipPosition: record.internshipPosition,
+			supervisorName: record.supervisorName,
+			internshipStatus: record.internshipStatus
+		});
+		setEditModalVisible(true);
+	};
+
+	// จัดการการยกเลิก
+	const handleCancel = (record) => {
+		setSelectedRecord(record);
+		form.resetFields(['reason']);
+		setCancelModalVisible(true);
+	};
+
+	// Submit การแก้ไข
+	const handleEditSubmit = async () => {
+		try {
+			const values = await form.validateFields();
+			setSubmitting(true);
+
+			const result = await internshipAdminService.updateInternship(
+				selectedRecord.internshipId,
+				values
+			);
+
+			if (result.success) {
+				message.success('อัพเดทข้อมูลสำเร็จ');
+				setEditModalVisible(false);
+				loadDetailedStudents(); // Reload data
+			} else {
+				message.error(result.error || 'ไม่สามารถอัพเดทข้อมูลได้');
+			}
+		} catch (err) {
+			console.error('Error updating internship:', err);
+			if (err.errorFields) {
+				// Form validation error
+				return;
+			}
+			message.error('เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	// Submit การยกเลิก
+	const handleCancelSubmit = async () => {
+		try {
+			const values = await form.validateFields(['reason']);
+			
+			Modal.confirm({
+				title: 'ยืนยันการยกเลิกการฝึกงาน',
+				icon: <ExclamationCircleOutlined />,
+				content: `คุณแน่ใจหรือไม่ที่จะยกเลิกการฝึกงานของ ${selectedRecord.fullName}? การดำเนินการนี้ไม่สามารถย้อนกลับได้`,
+				okText: 'ยืนยัน',
+				okType: 'danger',
+				cancelText: 'ยกเลิก',
+				onOk: async () => {
+					setSubmitting(true);
+					try {
+						const result = await internshipAdminService.cancelInternship(
+							selectedRecord.internshipId,
+							values.reason
+						);
+
+						if (result.success) {
+							message.success('ยกเลิกการฝึกงานสำเร็จ');
+							setCancelModalVisible(false);
+							loadDetailedStudents(); // Reload data
+						} else {
+							message.error(result.error || 'ไม่สามารถยกเลิกได้');
+						}
+					} catch (err) {
+						console.error('Error cancelling internship:', err);
+						message.error('เกิดข้อผิดพลาดในการยกเลิก');
+					} finally {
+						setSubmitting(false);
+					}
+				}
+			});
+		} catch (err) {
+			if (err.errorFields) {
+				// Form validation error
+				return;
+			}
+		}
+	};
 
 	const yearOptions = academicYearOptions(anchorYearRef.current);
 	const semesterOptions = [
@@ -58,16 +190,141 @@ const InternshipReport = () => {
 	// Filters สำหรับสถานะ
 	const statusFilters = Object.entries(statusTH).map(([value,text])=>({ text, value }));
 
-	// ตารางนักศึกษา: เพิ่ม sorter + filters
-	const studentColumns = [
-		{ title:'รหัส', dataIndex:'studentCode', key:'studentCode', sorter:(a,b)=> (a.studentCode||'').localeCompare(b.studentCode||'') },
-		{ title:'ชื่อ-นามสกุล', key:'name', render:(_,r)=> `${r.firstName || ''} ${r.lastName || ''}` },
-		{ title:'ชั้นปี', dataIndex:'studentYear', key:'studentYear', width:90, sorter:(a,b)=> (a.studentYear||0)-(b.studentYear||0) },
-		{ title:'สถานะฝึกงาน', dataIndex:'internshipStatus', key:'internshipStatus', filters: statusFilters, onFilter:(val,record)=> record.internshipStatus===val, render:(val)=> statusTH[val] || val }
+	// ตารางนักศึกษาแบบละเอียด: เพิ่มคอลัมน์และ action buttons
+	const detailedStudentColumns = [
+		{ 
+			title: 'รหัส', 
+			dataIndex: 'studentCode', 
+			key: 'studentCode', 
+			width: 150,
+			fixed: 'left',
+			sorter: (a,b) => (a.studentCode||'').localeCompare(b.studentCode||'')
+		},
+		{ 
+			title: 'ชื่อ-นามสกุล', 
+			dataIndex: 'fullName',
+			key: 'fullName', 
+			width: 180,
+			fixed: 'left'
+		},
+		{ 
+			title: 'ชั้นปี', 
+			dataIndex: 'studentYear', 
+			key: 'studentYear', 
+			width: 70,
+			align: 'center',
+			sorter: (a,b) => (a.studentYear||0)-(b.studentYear||0)
+		},
+		{ 
+			title: 'สถานะ', 
+			dataIndex: 'internshipStatus', 
+			key: 'internshipStatus',
+			width: 130,
+			filters: statusFilters,
+			onFilter: (val, record) => record.internshipStatus === val,
+			render: (val) => {
+				const colors = {
+					'not_started': 'default',
+					'pending_approval': 'processing',
+					'in_progress': 'warning',
+					'completed': 'success'
+				};
+				return <Tag color={colors[val] || 'default'}>{statusTH[val] || val}</Tag>;
+			}
+		},
+		{ 
+			title: 'บริษัท', 
+			dataIndex: 'companyName', 
+			key: 'companyName',
+			width: 200,
+			ellipsis: { showTitle: false },
+			render: (text) => (
+				<Tooltip title={text}>
+					{text || '-'}
+				</Tooltip>
+			)
+		},
+		{ 
+			title: 'ตำแหน่ง', 
+			dataIndex: 'internshipPosition', 
+			key: 'internshipPosition',
+			width: 150,
+			ellipsis: { showTitle: false },
+			render: (text) => (
+				<Tooltip title={text}>
+					{text || '-'}
+				</Tooltip>
+			)
+		},
+		{ 
+			title: 'พี่เลี้ยง', 
+			dataIndex: 'supervisorName', 
+			key: 'supervisorName',
+			width: 150,
+			render: (text) => text || '-'
+		},
+		{ 
+			title: 'วันเริ่ม', 
+			dataIndex: 'startDate', 
+			key: 'startDate',
+			width: 120,
+			render: (date) => date ? formatThaiDate(date, 'short') : '-'
+		},
+		{ 
+			title: 'วันสิ้นสุด', 
+			dataIndex: 'endDate', 
+			key: 'endDate',
+			width: 120,
+			render: (date) => date ? formatThaiDate(date, 'short') : '-'
+		},
+		{ 
+			title: 'ปี/ภาค', 
+			key: 'academicInfo',
+			width: 90,
+			render: (_, record) => {
+				if (record.academicYear && record.semester) {
+					return `${record.academicYear}/${record.semester}`;
+				}
+				return '-';
+			}
+		},
+		{
+			title: 'จัดการ',
+			key: 'action',
+			width: 120,
+			fixed: 'right',
+			align: 'center',
+			render: (_, record) => (
+				<Space size="small">
+					<Tooltip title="แก้ไข">
+						<Button
+							type="link"
+							icon={<EditOutlined />}
+							onClick={() => handleEdit(record)}
+							disabled={!record.internshipId}
+							size="small"
+						/>
+					</Tooltip>
+					<Tooltip title="ยกเลิก">
+						<Button
+							type="link"
+							danger
+							icon={<DeleteOutlined />}
+							onClick={() => handleCancel(record)}
+							disabled={!record.internshipId || record.internshipStatus === 'completed'}
+							size="small"
+						/>
+					</Tooltip>
+				</Space>
+			)
+		}
 	];
 
-	// Map students (จาก studentService.getAllStudents) -> ตรวจชื่อฟิลด์ที่คาด: studentCode, firstName, lastName, internshipStatus, studentYear
-			const studentData = useMemo(()=> (students || []).map((s,i)=>({ key:i, ...s })), [students]);
+	// Map detailed students data
+	const detailedStudentData = useMemo(() => 
+		(detailedStudents || []).map((s, i) => ({ key: i, ...s })), 
+		[detailedStudents]
+	);
 
 	// เตรียมข้อมูลสำหรับ Bar Chart (คะแนนเฉลี่ยรายหัวข้อ)
 	const criteriaBarData = useMemo(() => {
@@ -118,7 +375,7 @@ const InternshipReport = () => {
 					<Row gutter={[16,16]}>
 						{kpis.map((k,i)=>(
 							<Col xs={12} md={6} key={i}>
-								<Card loading={loading} size="small" headStyle={{minHeight:32}} styles={{ body: {padding:12 }}}>
+								<Card loading={loading} size="small" styles={{ header: {minHeight:32}, body: {padding:12 }}}>
 									<Space direction="vertical" size={0}>
 										<span style={{color:'#888'}}>{k.title}</span>
 										<span style={{fontSize:26,fontWeight:600}}>{k.value}</span>
@@ -160,11 +417,116 @@ const InternshipReport = () => {
 
 			<Row gutter={[16,16]}>
 				<Col span={24}>
-					<Card title="รายชื่อนักศึกษาฝึกงาน" size="small">
-						<Table size="small" loading={loading} dataSource={studentData} columns={studentColumns} pagination={{ pageSize: 15 }} scroll={{ x: 600 }} />
+					<Card 
+						title="รายชื่อนักศึกษาฝึกงานทั้งหมด" 
+						size="small"
+						extra={
+							<Button onClick={loadDetailedStudents} loading={loadingDetails}>
+								รีเฟรช
+							</Button>
+						}
+					>
+						<Table 
+							size="small" 
+							loading={loadingDetails} 
+							dataSource={detailedStudentData} 
+							columns={detailedStudentColumns} 
+							pagination={{ 
+								pageSize: 20,
+								showSizeChanger: true,
+								showTotal: (total) => `ทั้งหมด ${total} รายการ`
+							}} 
+							scroll={{ x: 1500 }}
+						/>
 					</Card>
 				</Col>
 			</Row>
+
+			{/* Modal แก้ไขข้อมูล */}
+			<Modal
+				title="แก้ไขข้อมูลการฝึกงาน"
+				open={editModalVisible}
+				onOk={handleEditSubmit}
+				onCancel={() => {
+					setEditModalVisible(false);
+					form.resetFields();
+				}}
+				confirmLoading={submitting}
+				width={600}
+				okText="บันทึก"
+				cancelText="ยกเลิก"
+			>
+				<Form form={form} layout="vertical">
+					<Form.Item
+						label="ชื่อบริษัท"
+						name="companyName"
+						rules={[{ required: true, message: 'กรุณากรอกชื่อบริษัท' }]}
+					>
+						<Input placeholder="ชื่อบริษัท" />
+					</Form.Item>
+					<Form.Item
+						label="ตำแหน่ง"
+						name="internshipPosition"
+					>
+						<Input placeholder="ตำแหน่งงาน" />
+					</Form.Item>
+					<Form.Item
+						label="ชื่อพี่เลี้ยง"
+						name="supervisorName"
+					>
+						<Input placeholder="ชื่อพี่เลี้ยง" />
+					</Form.Item>
+					<Form.Item
+						label="สถานะการฝึกงาน"
+						name="internshipStatus"
+						rules={[{ required: true, message: 'กรุณาเลือกสถานะ' }]}
+					>
+						<Select placeholder="เลือกสถานะ">
+							<Select.Option value="not_started">ยังไม่เริ่ม</Select.Option>
+							<Select.Option value="pending_approval">รออนุมัติ</Select.Option>
+							<Select.Option value="in_progress">อยู่ระหว่างฝึกงาน</Select.Option>
+							<Select.Option value="completed">เสร็จสิ้น</Select.Option>
+						</Select>
+					</Form.Item>
+				</Form>
+			</Modal>
+
+			{/* Modal ยกเลิกการฝึกงาน */}
+			<Modal
+				title="ยกเลิกการฝึกงาน"
+				open={cancelModalVisible}
+				onOk={handleCancelSubmit}
+				onCancel={() => {
+					setCancelModalVisible(false);
+					form.resetFields(['reason']);
+				}}
+				confirmLoading={submitting}
+				okText="ยืนยันยกเลิก"
+				okButtonProps={{ danger: true }}
+				cancelText="ปิด"
+			>
+				{selectedRecord && (
+					<>
+						<p><strong>นักศึกษา:</strong> {selectedRecord.fullName} ({selectedRecord.studentCode})</p>
+						<p><strong>บริษัท:</strong> {selectedRecord.companyName || '-'}</p>
+						<Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+							<Form.Item
+								label="เหตุผลในการยกเลิก"
+								name="reason"
+								rules={[
+									{ required: true, message: 'กรุณาระบุเหตุผล' },
+									{ min: 10, message: 'กรุณาระบุเหตุผลอย่างน้อย 10 ตัวอักษร' }
+								]}
+							>
+								<TextArea 
+									rows={4} 
+									placeholder="ระบุเหตุผลในการยกเลิกการฝึกงาน (เช่น นักศึกษาขอยกเลิกเพราะ...)" 
+								/>
+							</Form.Item>
+						</Form>
+					</>
+				)}
+			</Modal>
 		</Space>
 		</div>
 	);

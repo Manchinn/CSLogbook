@@ -324,7 +324,7 @@ const StudentTimeline = () => {
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} lg={12}>
-            <InternshipSection student={student} progress={progress} />
+            <InternshipSection />
           </Col>
 
           <Col xs={24} lg={12}>

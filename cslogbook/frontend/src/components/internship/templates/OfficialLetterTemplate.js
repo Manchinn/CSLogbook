@@ -1,17 +1,8 @@
 import React from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import letterStyles from "./styles/letterStyles";
 import { formatThaiDate } from "../../../utils/dateUtils";
-import {
-  cleanText,
-  formatStudentId,
-} from "../../../utils/thaiFormatter";
+import { cleanText, formatStudentId } from "../../../utils/thaiFormatter";
 
 // ตัวอย่างหนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน
 const OfficialLetterTemplate = ({ data }) => {
@@ -32,9 +23,9 @@ const OfficialLetterTemplate = ({ data }) => {
     address = "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
     advisorName = "รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล",
     advisorTitle = "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
-  staffOfficerName = "นายนที ปัญญาประสิทธิ์",
-  staffOfficerEmail = "natee.p@sci.kmutnb.ac.th",
-  staffOfficerPhone = "02-555-2000 ต่อ 4602",
+    staffOfficerName = "นายนที ปัญญาประสิทธิ์",
+    staffOfficerEmail = "natee.p@sci.kmutnb.ac.th",
+    staffOfficerPhone = "02-555-2000 ต่อ 4602",
   } = data || {};
 
   return (
@@ -101,11 +92,12 @@ const OfficialLetterTemplate = ({ data }) => {
         {/* เนื้อหาจดหมาย */}
         <View style={letterStyles.contentContainer}>
           <Text style={letterStyles.paragraph}>
-            {`ด้วยภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ  ทำการสอนหลักสูตรวิทยาการคอมพิวเตอรระดับปริญญาตรี และมีนโยบายที่จะส่งเสริมนักศึกษาให้มีประสบการณ์ทางด้านปฏิบัติงานจริง นอกเหนือจากการเรียนในชั้นเรียน จึงกำหนดให้นักศึกษาในหลักสูตรต้องเข้ารับการฝึกงานในภาคการศึกษาฤดูร้อน ทั้งนี้เพื่อเป็นการวางแผนให้นักศึกษาที่จะสำเร็จการศึกษาออกไปประกอบวิชาชีพ เป็นผู้ที่มีความสามารถในการปฏิบัติงาน ได้อย่างมีประสิทธิภาพ`
-            }
+            {`ด้วยภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ  ทำการสอนหลักสูตรวิทยาการคอมพิวเตอรระดับปริญญาตรี และมีนโยบายที่จะส่งเสริมนักศึกษาให้มีประสบการณ์ทางด้านปฏิบัติงานจริง นอกเหนือจากการเรียนในชั้นเรียน จึงกำหนดให้นักศึกษาในหลักสูตรต้องเข้ารับการฝึกงานในภาคการศึกษาฤดูร้อน ทั้งนี้เพื่อเป็นการวางแผนให้นักศึกษาที่จะสำเร็จการศึกษาออกไปประกอบวิชาชีพ เป็นผู้ที่มีความสามารถในการปฏิบัติงาน ได้อย่างมีประสิทธิภาพ`}
           </Text>
           <Text style={letterStyles.paragraph}>
-            {`ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ได้พิจารณาแล้วเห็นว่าหน่วยงานของท่านเป็นหน่วยงานที่มีประสิทธิภาพทางด้านคอมพิวเตอร์และสารสนเทศ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ จึงใคร่ขอความอนุเคราะห์ทางหน่วยงานของท่าน รับนักศึกษาเพื่อฝึกงาน จำนวน ${studentData.length || 1} คน คือ`}
+            {`ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ได้พิจารณาแล้วเห็นว่าหน่วยงานของท่านเป็นหน่วยงานที่มีประสิทธิภาพทางด้านคอมพิวเตอร์และสารสนเทศ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ จึงใคร่ขอความอนุเคราะห์ทางหน่วยงานของท่าน รับนักศึกษาเพื่อฝึกงาน จำนวน ${
+              studentData.length || 1
+            } คน คือ`}
           </Text>
 
           {/* รายชื่อนักศึกษา */}
@@ -133,9 +125,9 @@ const OfficialLetterTemplate = ({ data }) => {
 
           {/* วันที่ฝึกงาน */}
           <Text style={letterStyles.paragraph}>
-            {`โดยเริ่มตั้งแต่วันที่ ${
-              startDateThai || "2 มกราคม 2568"
-            } ถึง ${endDateThai || "4 มีนาคม 2568"} รวมระยะเวลาทั้งสิ้น ${
+            {`โดยเริ่มตั้งแต่วันที่ ${startDateThai || "2 มกราคม 2568"} ถึง ${
+              endDateThai || "4 มีนาคม 2568"
+            } รวมระยะเวลาทั้งสิ้น ${
               internshipDays || "60"
             } วัน (ไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง) เพื่อให้การจัดตารางฝึกงานของนักศึกษาเป็นไปด้วยความเรียบร้อย ภาควิชาฯใคร่ขอความกรุณาโปรดพิจารณาให้ความอนุเคราะห์จักขอบพระคุณยิ่ง`}
           </Text>
@@ -144,10 +136,16 @@ const OfficialLetterTemplate = ({ data }) => {
           <View style={letterStyles.closingContainer}>
             <Text style={letterStyles.closingText}>ขอแสดงความนับถือ</Text>
             <View style={letterStyles.signatureContainer}>
-              <Image 
+              {/* <Image 
                 src="/assets/images/signature.png"
                 style={letterStyles.signatureImage}
-              />
+              /> */}
+              {/* เส้นสำหรับเซ็นชื่อด้วยมือ */}
+              {/* <View style={letterStyles.signatureLine}>
+                <Text style={{ fontSize: 14, marginBottom: 10 }}>
+                  ลงชื่อ..................................................
+                </Text>
+              </View> */}
               <Text style={letterStyles.signerName}>({advisorName})</Text>
               <Text style={letterStyles.signerPosition}>{advisorTitle}</Text>
             </View>
@@ -157,13 +155,17 @@ const OfficialLetterTemplate = ({ data }) => {
           <View style={letterStyles.footer}>
             <Text style={letterStyles.footerText}>{departmentName}</Text>
             {staffOfficerName && (
-              <Text style={letterStyles.footerText}>เจ้าหน้าที่ภาควิชา: {staffOfficerName}</Text>
+              <Text style={letterStyles.footerText}>
+                เจ้าหน้าที่ภาควิชา: {staffOfficerName}
+              </Text>
             )}
             {staffOfficerEmail && (
-              <Text style={letterStyles.footerText}>อีเมล: {staffOfficerEmail}</Text>
+              <Text style={letterStyles.footerText}>
+                อีเมล: {staffOfficerEmail}
+              </Text>
             )}
             <Text style={letterStyles.footerText}>
-              โทร. {staffOfficerPhone || '02-555-2000 ต่อ 4602'}
+              โทร. {staffOfficerPhone || "02-555-2000 ต่อ 4602"}
             </Text>
           </View>
         </View>

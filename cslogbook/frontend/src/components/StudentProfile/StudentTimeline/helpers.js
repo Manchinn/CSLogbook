@@ -9,14 +9,33 @@ import {
 } from "@ant-design/icons";
 
 // คำนวณสถานะหลักของการศึกษา
+// ใช้สำหรับกำหนด current step ใน Steps component
+// 0 = ฝึกงาน, 1 = โครงงานพิเศษ 1, 2 = โครงงานพิเศษ 2, 3 = สำเร็จการศึกษา
 export const calculateMainProgress = (student) => {
+  // ถ้าเสร็จสิ้นทั้งหมดแล้ว
+  if (student.internshipStatus === "completed" && student.projectStatus === "completed") {
+    return 3; // ขั้นตอนสุดท้าย
+  }
+
+  // ถ้าฝึกงานเสร็จแล้ว
   if (student.internshipStatus === "completed") {
-    return student.projectStatus === "completed" ? 3 : 1;
-  } else if (student.internshipStatus === "in_progress") {
-    return 0;
-  } else {
+    // ถ้ามี projectPhase หรือกำลังทำโครงงาน
+    if (student.projectPhase !== undefined && student.projectPhase > 0) {
+      return 2; // อยู่ที่โครงงานพิเศษ 2
+    }
+    if (student.projectStatus === "in_progress") {
+      return 1; // อยู่ที่โครงงานพิเศษ 1
+    }
+    return 1; // เริ่มต้นโครงงานพิเศษ 1
+  }
+
+  // ถ้ากำลังฝึกงาน
+  if (student.internshipStatus === "in_progress") {
     return 0;
   }
+
+  // ยังไม่เริ่มอะไรเลย
+  return 0;
 };
 
 // รับข้อความสถานะ

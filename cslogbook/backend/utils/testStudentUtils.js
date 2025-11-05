@@ -110,10 +110,10 @@ const testStudentUtils = async () => {
     const yearInfo = calculateStudentYear(mockStudentCode);
     console.log('ข้อมูลชั้นปี:', yearInfo);
     
-    const currentAcademicYear = getCurrentAcademicYear();
+    const currentAcademicYear = await getCurrentAcademicYear();
     console.log('ปีการศึกษาปัจจุบัน:', currentAcademicYear);
     
-    const currentSemester = getCurrentSemester();
+    const currentSemester = await getCurrentSemester();
     console.log('ภาคเรียนปัจจุบัน:', currentSemester);
     
     console.log('\n---------- ทดสอบการตรวจสอบสิทธิ์ฝึกงาน/โครงงาน ----------');

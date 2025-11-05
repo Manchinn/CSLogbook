@@ -69,19 +69,6 @@ const SystemTestRequestPage = () => {
     navigate('/project/phase1');
   }, [navigate]);
 
-  const leaderMember = useMemo(() => {
-    if (!activeProject) return null;
-    return (activeProject.members || []).find(member => member.role === 'leader') || null;
-  }, [activeProject]);
-
-  const isLeader = useMemo(() => {
-    if (!activeProject || !leaderMember) return false;
-    if (currentStudentId) {
-      return Number(currentStudentId) === Number(leaderMember.studentId);
-    }
-    return false;
-  }, [activeProject, leaderMember, currentStudentId]);
-
   const meetingRequirement = useMemo(() => {
     const metrics = activeProject?.meetingMetrics;
     if (!metrics) {
@@ -89,15 +76,16 @@ const SystemTestRequestPage = () => {
     }
     const required = Number(metrics.requiredApprovedLogs) || 0;
     const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
-    const leaderApproved = leaderMember
-      ? Number(perStudent.find(item => Number(item.studentId) === Number(leaderMember.studentId))?.approvedLogs || 0)
+    // ✅ ตรวจสอบ meeting logs ของนักศึกษาที่ login อยู่ (ไม่จำเป็นต้องเป็น leader)
+    const currentStudentApproved = currentStudentId
+      ? Number(perStudent.find(item => Number(item.studentId) === Number(currentStudentId))?.approvedLogs || 0)
       : 0;
     return {
       required,
-      approved: leaderApproved,
-      satisfied: required === 0 || leaderApproved >= required
+      approved: currentStudentApproved,
+      satisfied: required === 0 || currentStudentApproved >= required
     };
-  }, [activeProject?.meetingMetrics, leaderMember]);
+  }, [activeProject?.meetingMetrics, currentStudentId]);
 
   const statusMeta = STATUS_META[requestRecord?.status] || STATUS_META.default;
 
@@ -339,6 +327,9 @@ const SystemTestRequestPage = () => {
                 <Space direction="vertical" size="small" style={{ width: '100%' }}>
                   <Space size="small" wrap>
                     <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                    {requestRecord.submittedLate && (
+                      <Tag color="warning">ส่งช้า</Tag>
+                    )}
                     <Text type="secondary">อัปเดตล่าสุด: {formatThaiDateTime(requestRecord.updatedAt || requestRecord.timeline?.staffDecidedAt || requestRecord.timeline?.submittedAt)}</Text>
                   </Space>
                   <Descriptions bordered size="small" column={1}>
@@ -407,10 +398,6 @@ const SystemTestRequestPage = () => {
                 หากยังไม่มีไฟล์คำขอ (PDF) สามารถส่งคำขอได้เลยและแนบไฟล์ภายหลังได้
               </Paragraph>
 
-              {!isLeader && (
-                <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="เฉพาะหัวหน้าโครงงานเท่านั้นที่สามารถส่งคำขอนี้ได้" />
-              )}
-
               {!meetingRequirement.satisfied && (
                 <Alert
                   type="warning"
@@ -426,7 +413,7 @@ const SystemTestRequestPage = () => {
                   form={form}
                   layout="vertical"
                   onFinish={handleSubmit}
-                  disabled={!isLeader || !meetingRequirement.satisfied || disabledSubmission || loadingRequest}
+                  disabled={!meetingRequirement.satisfied || disabledSubmission || loadingRequest}
                 >
                   <Form.Item
                     label="ช่วงเวลาทดสอบระบบ 30 วัน"
@@ -481,7 +468,7 @@ const SystemTestRequestPage = () => {
                   </Form.Item>
 
                   <Space>
-                    <Button type="primary" htmlType="submit" loading={saving} disabled={!isLeader || !meetingRequirement.satisfied}>
+                    <Button type="primary" htmlType="submit" loading={saving} disabled={!meetingRequirement.satisfied}>
                       ส่งคำขอทดสอบระบบ
                     </Button>
                     {disabledSubmission && (

@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import letterStyles from "./styles/letterStyles";
 import { formatThaiDate } from "../../../utils/dateUtils";
 import {
@@ -38,9 +32,9 @@ const ReferralLetterTemplate = ({ data }) => {
     address = "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
     advisorName = "รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล",
     advisorTitle = "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
-  staffOfficerName = "นายนที ปัญญาประสิทธิ์",
-  staffOfficerEmail = "natee.p@sci.kmutnb.ac.th",
-  staffOfficerPhone = "02-555-2000 ต่อ 4602",
+    staffOfficerName = "นายนที ปัญญาประสิทธิ์",
+    staffOfficerEmail = "natee.p@sci.kmutnb.ac.th",
+    staffOfficerPhone = "02-555-2000 ต่อ 4602",
   } = data || {};
 
   return (
@@ -75,9 +69,7 @@ const ReferralLetterTemplate = ({ data }) => {
         {/* หัวเรื่อง */}
         <View style={letterStyles.subjectContainer}>
           <Text style={letterStyles.subjectLabel}>เรื่อง</Text>
-          <Text style={letterStyles.subjectText}>
-            ส่งตัวนักศึกษาเข้าฝึกงาน
-          </Text>
+          <Text style={letterStyles.subjectText}>ส่งตัวนักศึกษาเข้าฝึกงาน</Text>
         </View>
 
         {/* ผู้รับ */}
@@ -97,11 +89,17 @@ const ReferralLetterTemplate = ({ data }) => {
         {/* เนื้อหาจดหมาย */}
         <View style={letterStyles.contentContainer}>
           <Text style={letterStyles.paragraph}>
-            {`อ้างถึงหนังสือของท่าน ลงวันที่ ${documentDateThai || "..."} เรื่อง การตอบรับนักศึกษาเข้าฝึกงาน ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอขอบพระคุณที่ท่านให้ความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน`}
+            {`อ้างถึงหนังสือของท่าน ลงวันที่ ${
+              documentDateThai || "..."
+            } เรื่อง การตอบรับนักศึกษาเข้าฝึกงาน ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอขอบพระคุณที่ท่านให้ความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน`}
           </Text>
-          
+
           <Text style={letterStyles.paragraph}>
-            {`บัดนี้ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอส่งตัวนักศึกษา จำนวน ${studentData.length || 1} คน เพื่อเข้าฝึกงาน${internshipPosition ? ` ในตำแหน่ง ${internshipPosition}` : ""} ตามรายชื่อดังต่อไปนี้`}
+            {`บัดนี้ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอส่งตัวนักศึกษา จำนวน ${
+              studentData.length || 1
+            } คน เพื่อเข้าฝึกงาน${
+              internshipPosition ? ` ในตำแหน่ง ${internshipPosition}` : ""
+            } ตามรายชื่อดังต่อไปนี้`}
           </Text>
 
           {/* รายชื่อนักศึกษา */}
@@ -143,7 +141,13 @@ const ReferralLetterTemplate = ({ data }) => {
           {/* ข้อมูลผู้ควบคุมงาน (ถ้ามี) */}
           {supervisorName && (
             <Text style={letterStyles.paragraph}>
-              {`โดยมี${supervisorName}${supervisorPosition ? ` ตำแหน่ง ${supervisorPosition}` : ""} เป็นผู้ควบคุมการฝึกงาน${supervisorPhone ? ` โทรศัพท์ ${formatThaiPhoneNumber(supervisorPhone)}` : ""}${supervisorEmail ? ` อีเมล ${supervisorEmail}` : ""}`}
+              {`โดยมี${supervisorName}${
+                supervisorPosition ? ` ตำแหน่ง ${supervisorPosition}` : ""
+              } เป็นผู้ควบคุมการฝึกงาน${
+                supervisorPhone
+                  ? ` โทรศัพท์ ${formatThaiPhoneNumber(supervisorPhone)}`
+                  : ""
+              }${supervisorEmail ? ` อีเมล ${supervisorEmail}` : ""}`}
             </Text>
           )}
 
@@ -159,10 +163,15 @@ const ReferralLetterTemplate = ({ data }) => {
           <View style={letterStyles.closingContainer}>
             <Text style={letterStyles.closingText}>ขอแสดงความนับถือ</Text>
             <View style={letterStyles.signatureContainer}>
-              <Image 
+              {/* <Image 
                 src="/assets/images/signature.png"
                 style={letterStyles.signatureImage}
-              />
+              /> */}
+              {/* <View style={letterStyles.signatureLine}>
+                <Text style={{ fontSize: 14, marginBottom: 10 }}>
+                  ลงชื่อ..................................................
+                </Text>
+              </View> */}
               <Text style={letterStyles.signerName}>({advisorName})</Text>
               <Text style={letterStyles.signerPosition}>{advisorTitle}</Text>
             </View>
@@ -172,12 +181,18 @@ const ReferralLetterTemplate = ({ data }) => {
           <View style={letterStyles.footer}>
             <Text style={letterStyles.footerText}>{departmentName}</Text>
             {staffOfficerName && (
-              <Text style={letterStyles.footerText}>เจ้าหน้าที่ภาควิชา: {staffOfficerName}</Text>
+              <Text style={letterStyles.footerText}>
+                เจ้าหน้าที่ภาควิชา: {staffOfficerName}
+              </Text>
             )}
             {staffOfficerEmail && (
-              <Text style={letterStyles.footerText}>อีเมล: {staffOfficerEmail}</Text>
+              <Text style={letterStyles.footerText}>
+                อีเมล: {staffOfficerEmail}
+              </Text>
             )}
-            <Text style={letterStyles.footerText}>โทร. {staffOfficerPhone || '02-555-2000 ต่อ 4602'}</Text>
+            <Text style={letterStyles.footerText}>
+              โทร. {staffOfficerPhone || "02-555-2000 ต่อ 4602"}
+            </Text>
           </View>
         </View>
       </Page>

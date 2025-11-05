@@ -15,7 +15,8 @@ class NotificationsService {
             'DOCUMENT', 
             'LOGBOOK',
             'EVALUATION',
-            'APPROVAL'
+            'APPROVAL',
+            'MEETING'
         ];
     }
 

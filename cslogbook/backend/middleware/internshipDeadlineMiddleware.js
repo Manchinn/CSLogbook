@@ -62,8 +62,8 @@ const checkInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION') => 
 
       // ถ้าไม่มีข้อมูลจากการลงทะเบียน ใช้ academic year/semester ปัจจุบัน
       if (!academicYear || !semester) {
-        academicYear = getCurrentAcademicYear();
-        semester = getCurrentSemester();
+        academicYear = await getCurrentAcademicYear();
+        semester = await getCurrentSemester();
       }
 
       logger.debug(`checkInternshipDeadline: Checking for ${documentSubtype}/${actionType}`, {
@@ -139,8 +139,8 @@ const checkInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION') => 
 const warnIfPastInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION') => {
   return async (req, res, next) => {
     try {
-      const academicYear = getCurrentAcademicYear();
-      const semester = getCurrentSemester();
+      const academicYear = await getCurrentAcademicYear();
+      const semester = await getCurrentSemester();
       const { DeadlineWorkflowMapping } = require('../models');
 
       // ค้นหา deadline ผ่าน DeadlineWorkflowMapping

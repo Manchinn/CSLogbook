@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Modal, Form, Input, DatePicker, TimePicker, Select, Row, Col, Divider, Alert, Switch, InputNumber, Grid, Typography } from 'antd';
-import moment from 'moment';
 import buddhistLocale from '../../../../../utils/buddhistLocale'; // Import Buddhist Locale
 
 const { Option } = Select;

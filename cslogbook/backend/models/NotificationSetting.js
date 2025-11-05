@@ -46,14 +46,14 @@ module.exports = (sequelize) => {
             field: 'setting_id'
         },
         notificationType: {
-            type: DataTypes.ENUM('LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'),
+            type: DataTypes.ENUM('LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL', 'MEETING'),
             allowNull: false,
             unique: true,
             field: 'notification_type',
             validate: {
                 isIn: {
-                    args: [['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL']],
-                    msg: 'ประเภทการแจ้งเตือนต้องเป็น LOGIN, DOCUMENT, LOGBOOK, EVALUATION หรือ APPROVAL'
+                    args: [['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL', 'MEETING']],
+                    msg: 'ประเภทการแจ้งเตือนต้องเป็น LOGIN, DOCUMENT, LOGBOOK, EVALUATION, APPROVAL หรือ MEETING'
                 }
             }
         },
@@ -101,7 +101,7 @@ module.exports = (sequelize) => {
         hooks: {
             beforeSave: (setting) => {
                 // ตรวจสอบความถูกต้องของ notification type
-                const validTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
+                const validTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL', 'MEETING'];
                 if (!validTypes.includes(setting.notificationType)) {
                     throw new Error(`ประเภทการแจ้งเตือนไม่ถูกต้อง: ${setting.notificationType}`);
                 }

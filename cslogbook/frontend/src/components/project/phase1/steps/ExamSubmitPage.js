@@ -163,30 +163,6 @@ const ExamSubmitPage = () => {
     return prioritizedDeadline.deadline_th || '—';
   }, [prioritizedDeadline, prioritizedDeadlineMoment]);
 
-  const currentStudentCode = useMemo(() => {
-    try {
-      return typeof window !== 'undefined' ? localStorage.getItem('studentCode') : null;
-    } catch (error) {
-      return null;
-    }
-  }, []);
-
-  const leaderMember = useMemo(() => {
-    if (!activeProject) return null;
-    return (activeProject.members || []).find(member => member.role === 'leader') || null;
-  }, [activeProject]);
-
-  const isLeader = useMemo(() => {
-    if (!activeProject || !leaderMember) return false;
-    if (currentStudentId) {
-      return Number(leaderMember.studentId) === Number(currentStudentId);
-    }
-    if (currentStudentCode && leaderMember.studentCode) {
-      return String(leaderMember.studentCode).trim() === String(currentStudentCode).trim();
-    }
-    return false;
-  }, [activeProject, leaderMember, currentStudentId, currentStudentCode]);
-
   const meetingRequirement = useMemo(() => {
     const metrics = activeProject?.meetingMetrics;
     if (!metrics) {
@@ -199,17 +175,18 @@ const ExamSubmitPage = () => {
     }
     const required = Number(metrics.requiredApprovedLogs) || 0;
     const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
-    const leaderApproved = leaderMember
-      ? (perStudent.find(item => Number(item.studentId) === Number(leaderMember.studentId))?.approvedLogs || 0)
+    // ✅ ตรวจสอบ meeting logs ของนักศึกษาที่ login อยู่ (ไม่จำเป็นต้องเป็น leader)
+    const currentStudentApproved = currentStudentId
+      ? (perStudent.find(item => Number(item.studentId) === Number(currentStudentId))?.approvedLogs || 0)
       : 0;
-    const totalApproved = Number(metrics.totalApprovedLogs) || leaderApproved;
+    const totalApproved = Number(metrics.totalApprovedLogs) || currentStudentApproved;
     return {
-      approved: leaderApproved,
+      approved: currentStudentApproved,
       required,
       totalApproved,
-      satisfied: required === 0 || leaderApproved >= required
+      satisfied: required === 0 || currentStudentApproved >= required
     };
-  }, [activeProject, leaderMember]);
+  }, [activeProject, currentStudentId]);
 
   const advisorNameFromList = useMemo(() => {
     if (!activeProject?.advisorId || !Array.isArray(advisors)) return '';
@@ -308,7 +285,8 @@ const ExamSubmitPage = () => {
     return <Alert type="info" message="ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้" showIcon />;
   }
 
-  const disabledSubmission = !isLeader || ['completed', 'archived', 'failed'].includes(activeProject.status) || !meetingRequirement.satisfied;
+  // ✅ ทุกคนในทีมสามารถส่งคำร้องได้ (ไม่ต้องเป็น leader)
+  const disabledSubmission = ['completed', 'archived', 'failed'].includes(activeProject.status) || !meetingRequirement.satisfied;
   const hasSubmitted = !!requestRecord;
 
   return (
@@ -329,6 +307,9 @@ const ExamSubmitPage = () => {
                 <Space size="small" wrap>
                   <Text strong>สถานะปัจจุบัน:</Text>
                   <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                  {requestRecord.submittedLate && (
+                    <Tag color="warning">ส่งช้า</Tag>
+                  )}
                   <Text type="secondary">อัปเดตล่าสุด: {formatDateTime(lastUpdatedAt)}</Text>
                 </Space>
 

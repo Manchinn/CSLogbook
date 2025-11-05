@@ -74,7 +74,7 @@ class InternshipManagementService {
         phoneNumber: student.phoneNumber,
         statusLabel: yearInfo.statusLabel,
         isEligible: eligibilityCheck.eligible,
-        academicYear: getCurrentAcademicYear(),
+        academicYear: await getCurrentAcademicYear(),
         department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
         faculty: "คณะวิทยาศาสตร์ประยุกต์",
         university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
@@ -228,8 +228,8 @@ class InternshipManagementService {
           supervisorPhone,
           supervisorEmail,
           // snapshot academic period
-          academicYear: getCurrentAcademicYear(),
-          semester: getCurrentSemester(),
+          academicYear: await getCurrentAcademicYear(),
+          semester: await getCurrentSemester(),
         },
         { transaction }
       );
@@ -362,8 +362,8 @@ class InternshipManagementService {
           supervisorPosition: null,
           supervisorPhone: null,
           supervisorEmail: null,
-          academicYear: getCurrentAcademicYear(),
-          semester: getCurrentSemester(),
+          academicYear: await getCurrentAcademicYear(),
+          semester: await getCurrentSemester(),
         },
         { transaction }
       );
@@ -905,7 +905,7 @@ class InternshipManagementService {
       yearLevel: yearInfo.error ? "ไม่ระบุ" : `${yearInfo.year}`,
       status: yearInfo.error ? "unknown" : yearInfo.status,
       statusLabel: yearInfo.error ? "ไม่ระบุสถานะ" : yearInfo.statusLabel,
-      academicYear: getCurrentAcademicYear(),
+      academicYear: await getCurrentAcademicYear(),
     };
 
     return {

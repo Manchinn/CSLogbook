@@ -67,7 +67,8 @@ module.exports = (sequelize) => {
         'completed',
         'rejected',
         'skipped',
-        'blocked'
+        'blocked',
+        'cancelled'
       ),
       allowNull: false,
       defaultValue: 'pending',
@@ -82,7 +83,8 @@ module.exports = (sequelize) => {
         'completed',
         'blocked',
         'failed',
-        'archived'
+        'archived',
+        'cancelled'
       ),
       allowNull: false,
       defaultValue: 'not_started',
