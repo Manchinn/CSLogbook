@@ -337,13 +337,40 @@ const AdvisorSystemTestQueue = () => {
                   color: record.advisorDecision?.decidedAt ? 'green' : 'gray',
                   children: (
                     <Space direction="vertical" size={2}>
-                      <Text>อาจารย์พิจารณา: {formatDateTime(record.advisorDecision?.decidedAt)}</Text>
+                      <Text strong>อาจารย์ที่ปรึกษาหลัก:</Text>
+                      <Text>
+                        {record.advisorDecision?.decidedAt 
+                          ? formatDateTime(record.advisorDecision.decidedAt)
+                          : 'รอการพิจารณา'}
+                      </Text>
+                      {record.advisorDecision?.name && (
+                        <Text type="secondary">โดย: {record.advisorDecision.name}</Text>
+                      )}
                       {record.advisorDecision?.note && (
                         <Text type="secondary">หมายเหตุ: {record.advisorDecision.note}</Text>
                       )}
                     </Space>
                   )
                 },
+                record.coAdvisorDecision?.teacherId ? {
+                  color: record.coAdvisorDecision?.decidedAt ? 'green' : 'gray',
+                  children: (
+                    <Space direction="vertical" size={2}>
+                      <Text strong>อาจารย์ที่ปรึกษาร่วม:</Text>
+                      <Text>
+                        {record.coAdvisorDecision?.decidedAt 
+                          ? formatDateTime(record.coAdvisorDecision.decidedAt)
+                          : 'รอการพิจารณา'}
+                      </Text>
+                      {record.coAdvisorDecision?.name && (
+                        <Text type="secondary">โดย: {record.coAdvisorDecision.name}</Text>
+                      )}
+                      {record.coAdvisorDecision?.note && (
+                        <Text type="secondary">หมายเหตุ: {record.coAdvisorDecision.note}</Text>
+                      )}
+                    </Space>
+                  )
+                } : null,
                 {
                   color: record.staffDecision?.decidedAt ? 'green' : 'gray',
                   children: (
@@ -361,7 +388,7 @@ const AdvisorSystemTestQueue = () => {
                     <Text>อัปโหลดหลักฐาน: {formatDateTime(record.evidenceSubmittedAt)}</Text>
                   )
                 }
-              ]}
+              ].filter(item => item !== null)}
             />
           </Card>
         </Col>

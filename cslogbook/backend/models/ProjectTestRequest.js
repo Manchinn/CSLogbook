@@ -15,6 +15,10 @@ module.exports = (sequelize) => {
         foreignKey: 'advisor_teacher_id',
         as: 'advisor'
       });
+      ProjectTestRequest.belongsTo(models.Teacher, {
+        foreignKey: 'co_advisor_teacher_id',
+        as: 'coAdvisor'
+      });
       ProjectTestRequest.belongsTo(models.User, {
         foreignKey: 'staff_user_id',
         as: 'staffUser'
@@ -93,6 +97,21 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'advisor_decided_at'
+    },
+    coAdvisorTeacherId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'co_advisor_teacher_id'
+    },
+    coAdvisorDecisionNote: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'co_advisor_decision_note'
+    },
+    coAdvisorDecidedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'co_advisor_decided_at'
     },
     staffUserId: {
       type: DataTypes.INTEGER,

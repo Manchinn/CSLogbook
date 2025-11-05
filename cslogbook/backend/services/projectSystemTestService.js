@@ -79,6 +79,8 @@ class ProjectSystemTestService {
     const project = data.project || {};
     const advisor = data.advisor || {};
     const advisorUser = advisor.user || {};
+    const coAdvisor = data.coAdvisor || {};
+    const coAdvisorUser = coAdvisor.user || {};
     const submittedBy = data.submittedBy || {};
     const submittedUser = submittedBy.user || {};
     const staffUser = data.staffUser || {};
@@ -97,6 +99,12 @@ class ProjectSystemTestService {
         name: advisorUser.userId ? `${advisorUser.firstName || ''} ${advisorUser.lastName || ''}`.trim() : null,
         decidedAt: data.advisorDecidedAt,
         note: data.advisorDecisionNote || null
+      },
+      coAdvisorDecision: {
+        teacherId: data.coAdvisorTeacherId,
+        name: coAdvisorUser.userId ? `${coAdvisorUser.firstName || ''} ${coAdvisorUser.lastName || ''}`.trim() : null,
+        decidedAt: data.coAdvisorDecidedAt,
+        note: data.coAdvisorDecisionNote || null
       },
       staffDecision: {
         userId: data.staffUserId,
@@ -121,6 +129,7 @@ class ProjectSystemTestService {
       timeline: {
         submittedAt: data.submittedAt,
         advisorDecidedAt: data.advisorDecidedAt,
+        coAdvisorDecidedAt: data.coAdvisorDecidedAt,
         staffDecidedAt: data.staffDecidedAt,
         evidenceSubmittedAt: data.evidenceSubmittedAt
       }
@@ -148,6 +157,12 @@ class ProjectSystemTestService {
       {
         model: Teacher,
         as: 'advisor',
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
         include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       },
       {
@@ -271,6 +286,7 @@ class ProjectSystemTestService {
         testStartDate: startDay.toDate(),
         testDueDate: dueDay.toDate(),
         advisorTeacherId: project.advisorId || null,
+        coAdvisorTeacherId: project.coAdvisorId || null,
         // 🆕 เพิ่มข้อมูลการส่งช้า
         submittedLate: lateStatus.submitted_late,
         submissionDelayMinutes: lateStatus.submission_delay_minutes,
@@ -311,12 +327,46 @@ class ProjectSystemTestService {
         throw new Error('กรุณาเลือกผลการพิจารณาให้ถูกต้อง');
       }
 
-      const update = {
-        advisorTeacherId: actor.teacherId,
-        advisorDecidedAt: new Date(),
-        advisorDecisionNote: payload.note || null,
-        status: decision === 'approve' ? 'pending_staff' : 'advisor_rejected'
-      };
+      const isAdvisor = Number(project.advisorId) === Number(actor.teacherId);
+      const isCoAdvisor = Number(project.coAdvisorId) === Number(actor.teacherId);
+
+      // ตรวจสอบว่ามี co-advisor หรือไม่
+      const hasCoAdvisor = !!project.coAdvisorId;
+      
+      // อัปเดต decision ตาม role
+      const update = {};
+      if (isAdvisor) {
+        update.advisorTeacherId = actor.teacherId;
+        update.advisorDecidedAt = new Date();
+        update.advisorDecisionNote = payload.note || null;
+      } else if (isCoAdvisor) {
+        update.coAdvisorTeacherId = actor.teacherId;
+        update.coAdvisorDecidedAt = new Date();
+        update.coAdvisorDecisionNote = payload.note || null;
+      }
+
+      // ตรวจสอบสถานะการอนุมัติ
+      if (decision === 'reject') {
+        // ถ้าปฏิเสธ ให้ status เป็น advisor_rejected ทันที
+        update.status = 'advisor_rejected';
+      } else {
+        // ถ้าอนุมัติ ให้ตรวจสอบว่าทั้ง 2 คนอนุมัติแล้วหรือยัง
+        // ตรวจสอบจาก record ที่มีอยู่ (ก่อน update) หรือจาก update ที่กำลังจะทำ
+        const advisorApproved = isAdvisor ? true : (!!record.advisorDecidedAt);
+        const coAdvisorApproved = isCoAdvisor ? true : (!!record.coAdvisorDecidedAt);
+        
+        // ถ้ามี co-advisor ต้องรอทั้ง 2 คนอนุมัติ ถ้าไม่มี co-advisor แค่ advisor อนุมัติก็พอ
+        if (hasCoAdvisor) {
+          if (advisorApproved && coAdvisorApproved) {
+            update.status = 'pending_staff';
+          } else {
+            update.status = 'pending_advisor'; // ยังรออีกคนอนุมัติ
+          }
+        } else {
+          // ไม่มี co-advisor แค่ advisor อนุมัติก็ส่งต่อไป staff
+          update.status = 'pending_staff';
+        }
+      }
 
       await record.update(update, { transaction: t });
       await t.commit();
@@ -424,12 +474,27 @@ class ProjectSystemTestService {
         model: Student,
         as: 'submittedBy',
         include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'advisor',
+        required: false,
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       }
     ];
 
     const records = await ProjectTestRequest.findAll({
       where: {
-        advisorTeacherId: teacherId,
+        [Op.or]: [
+          { advisorTeacherId: teacherId },
+          { coAdvisorTeacherId: teacherId }
+        ],
         status: { [Op.in]: ['pending_advisor', 'pending_staff', 'staff_approved'] }
       },
       order: [['submittedAt', 'DESC']],
@@ -457,6 +522,13 @@ class ProjectSystemTestService {
       {
         model: Teacher,
         as: 'advisor',
+        required: false,
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
         include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       }
     ];

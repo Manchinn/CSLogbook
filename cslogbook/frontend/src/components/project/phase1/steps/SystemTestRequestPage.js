@@ -281,7 +281,24 @@ const SystemTestRequestPage = () => {
       entries.push({ key: 'submitted', label: 'ส่งคำขอ', at: requestRecord.timeline.submittedAt, color: 'blue' });
     }
     if (requestRecord.timeline?.advisorDecidedAt) {
-      entries.push({ key: 'advisor', label: 'อาจารย์พิจารณา', at: requestRecord.timeline.advisorDecidedAt, color: 'cyan' });
+      entries.push({ 
+        key: 'advisor', 
+        label: requestRecord.advisorDecision?.name 
+          ? `อาจารย์ที่ปรึกษาหลักพิจารณา (${requestRecord.advisorDecision.name})` 
+          : 'อาจารย์ที่ปรึกษาหลักพิจารณา', 
+        at: requestRecord.timeline.advisorDecidedAt, 
+        color: 'cyan' 
+      });
+    }
+    if (requestRecord.timeline?.coAdvisorDecidedAt) {
+      entries.push({ 
+        key: 'coAdvisor', 
+        label: requestRecord.coAdvisorDecision?.name 
+          ? `อาจารย์ที่ปรึกษาร่วมพิจารณา (${requestRecord.coAdvisorDecision.name})` 
+          : 'อาจารย์ที่ปรึกษาร่วมพิจารณา', 
+        at: requestRecord.timeline.coAdvisorDecidedAt, 
+        color: 'cyan' 
+      });
     }
     if (requestRecord.timeline?.staffDecidedAt) {
       entries.push({ key: 'staff', label: 'เจ้าหน้าที่อนุมัติ', at: requestRecord.timeline.staffDecidedAt, color: 'green' });
@@ -351,7 +368,34 @@ const SystemTestRequestPage = () => {
                       }
                     </Descriptions.Item>
                     <Descriptions.Item label="หมายเหตุที่นักศึกษาบันทึก">{requestRecord.studentNote || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="ผลการพิจารณาอาจารย์">{requestRecord.advisorDecision?.note || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="ผลการพิจารณาอาจารย์ที่ปรึกษาหลัก">
+                      {requestRecord.advisorDecision?.name ? (
+                        <Space direction="vertical" size="small">
+                          <Text strong>{requestRecord.advisorDecision.name}</Text>
+                          <Text type="secondary">{requestRecord.advisorDecision.note || '-'}</Text>
+                          {requestRecord.advisorDecision.decidedAt && (
+                            <Text type="secondary" style={{ fontSize: '12px' }}>
+                              {formatThaiDateTime(requestRecord.advisorDecision.decidedAt)}
+                            </Text>
+                          )}
+                        </Space>
+                      ) : '-'}
+                    </Descriptions.Item>
+                    {requestRecord.coAdvisorDecision?.teacherId && (
+                      <Descriptions.Item label="ผลการพิจารณาอาจารย์ที่ปรึกษาร่วม">
+                        {requestRecord.coAdvisorDecision?.name ? (
+                          <Space direction="vertical" size="small">
+                            <Text strong>{requestRecord.coAdvisorDecision.name}</Text>
+                            <Text type="secondary">{requestRecord.coAdvisorDecision.note || '-'}</Text>
+                            {requestRecord.coAdvisorDecision.decidedAt && (
+                              <Text type="secondary" style={{ fontSize: '12px' }}>
+                                {formatThaiDateTime(requestRecord.coAdvisorDecision.decidedAt)}
+                              </Text>
+                            )}
+                          </Space>
+                        ) : 'รอการพิจารณา'}
+                      </Descriptions.Item>
+                    )}
                     <Descriptions.Item label="ผลการพิจารณาเจ้าหน้าที่">{requestRecord.staffDecision?.note || '-'}</Descriptions.Item>
                     <Descriptions.Item label="หลักฐานการประเมิน">
                       {requestRecord.evidence ? (
