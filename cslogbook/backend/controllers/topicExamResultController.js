@@ -10,7 +10,7 @@ module.exports = {
       if (!['admin','teacher'].includes(req.user.role) || (req.user.role === 'teacher' && req.user.teacherType !== 'support')) {
         return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์บันทึกผลสอบหัวข้อ' });
       }
-      const { result, reason, advisorId, allowOverwrite } = req.body || {};
+      const { result, reason, advisorId, coAdvisorId, allowOverwrite } = req.body || {};
       if (!['passed','failed'].includes(result)) {
         return res.status(400).json({ success: false, message: 'result ต้องเป็น passed หรือ failed' });
       }
@@ -33,11 +33,32 @@ module.exports = {
         validatedAdvisorId = parsedAdvisorId;
       }
 
+      let validatedCoAdvisorId;
+      if (coAdvisorId !== undefined && coAdvisorId !== null && coAdvisorId !== '') {
+        const parsedCoAdvisorId = Number(coAdvisorId);
+        if (!Number.isInteger(parsedCoAdvisorId) || parsedCoAdvisorId <= 0) {
+          return res.status(400).json({ success: false, message: 'coAdvisorId ต้องเป็นเลขจำนวนเต็มบวก' });
+        }
+
+        // ตรวจสอบว่า co-advisor ไม่ซ้ำกับ advisor
+        if (validatedAdvisorId && parsedCoAdvisorId === validatedAdvisorId) {
+          return res.status(400).json({ success: false, message: 'ที่ปรึกษาร่วมต้องไม่ซ้ำกับที่ปรึกษาหลัก' });
+        }
+
+        const coAdvisor = await Teacher.findByPk(parsedCoAdvisorId);
+        if (!coAdvisor) {
+          return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลอาจารย์ที่ปรึกษาร่วมที่เลือก' });
+        }
+
+        validatedCoAdvisorId = parsedCoAdvisorId;
+      }
+
       const projectId = req.params.id;
       const project = await projectDocumentService.setExamResult(projectId, {
         result,
         reason: result === 'failed' ? reason.trim() : null,
         advisorId: validatedAdvisorId,
+        coAdvisorId: validatedCoAdvisorId,
         actorUser: req.user,
         allowOverwrite: Boolean(allowOverwrite) // รองรับการแก้ไขผล
       });
