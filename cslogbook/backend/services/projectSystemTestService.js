@@ -10,6 +10,7 @@ const {
 } = require('../models');
 const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
+const { calculateSystemTestRequestLate } = require('../utils/lateSubmissionHelper');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -251,6 +252,14 @@ class ProjectSystemTestService {
       }
 
       const relativePath = fileMeta?.path ? buildRelativePath(fileMeta.path) : null;
+      const submittedAt = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateSystemTestRequestLate(submittedAt, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const record = await ProjectTestRequest.create({
         projectId: project.projectId,
         submittedByStudentId: actor.studentId,
@@ -258,10 +267,14 @@ class ProjectSystemTestService {
         requestFilePath: relativePath,
         requestFileName: fileMeta?.originalname || null,
         studentNote: payload.studentNote || null,
-        submittedAt: new Date(),
+        submittedAt,
         testStartDate: startDay.toDate(),
         testDueDate: dueDay.toDate(),
-        advisorTeacherId: project.advisorId || null
+        advisorTeacherId: project.advisorId || null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       }, { transaction: t });
 
       await t.commit();

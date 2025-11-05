@@ -49,6 +49,7 @@ const ensureModels = () => {
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
+const { calculateTopicSubmissionLate } = require('../utils/lateSubmissionHelper');
 
 // กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
 const REQUIRED_APPROVED_MEETING_LOGS = 4;
@@ -469,7 +470,22 @@ class ProjectDocumentService {
         throw new Error('ไม่สามารถเปิดใช้งานโครงงานในสถานะนี้ได้');
       }
 
-      await ProjectDocument.update({ status: 'in_progress' }, { where: { projectId }, transaction: t });
+      const activatedAt = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      // บันทึกหัวข้อโครงงานพิเศษ = activateProject
+      const lateStatus = await calculateTopicSubmissionLate(activatedAt, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+
+      await ProjectDocument.update({ 
+        status: 'in_progress',
+        // 🆕 เพิ่มข้อมูลการส่งช้า (ถ้ายังไม่ถูกตั้งค่า)
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
+      }, { where: { projectId }, transaction: t });
 
   await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();

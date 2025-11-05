@@ -163,30 +163,6 @@ const ExamSubmitPage = () => {
     return prioritizedDeadline.deadline_th || '—';
   }, [prioritizedDeadline, prioritizedDeadlineMoment]);
 
-  const currentStudentCode = useMemo(() => {
-    try {
-      return typeof window !== 'undefined' ? localStorage.getItem('studentCode') : null;
-    } catch (error) {
-      return null;
-    }
-  }, []);
-
-  const leaderMember = useMemo(() => {
-    if (!activeProject) return null;
-    return (activeProject.members || []).find(member => member.role === 'leader') || null;
-  }, [activeProject]);
-
-  const isLeader = useMemo(() => {
-    if (!activeProject || !leaderMember) return false;
-    if (currentStudentId) {
-      return Number(leaderMember.studentId) === Number(currentStudentId);
-    }
-    if (currentStudentCode && leaderMember.studentCode) {
-      return String(leaderMember.studentCode).trim() === String(currentStudentCode).trim();
-    }
-    return false;
-  }, [activeProject, leaderMember, currentStudentId, currentStudentCode]);
-
   const meetingRequirement = useMemo(() => {
     const metrics = activeProject?.meetingMetrics;
     if (!metrics) {

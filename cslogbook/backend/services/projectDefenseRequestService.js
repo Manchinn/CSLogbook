@@ -19,6 +19,7 @@ const ExcelJS = require('exceljs');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const { checkDefenseRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
+const { calculateDefenseRequestLate } = require('../utils/lateSubmissionHelper');
 const timezone = require('dayjs/plugin/timezone');
 const buddhistEra = require('dayjs/plugin/buddhistEra');
 require('dayjs/locale/th');
@@ -519,6 +520,13 @@ class ProjectDefenseRequestService {
       }
 
       const now = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateDefenseRequestLate(now, DEFENSE_TYPE_PROJECT1, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const basePayload = {
         formPayload: cleanedPayload,
         status: 'advisor_in_review',
@@ -527,7 +535,11 @@ class ProjectDefenseRequestService {
         advisorApprovedAt: null,
         staffVerifiedAt: null,
         staffVerifiedByUserId: null,
-        staffVerificationNote: null
+        staffVerificationNote: null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       };
 
       if (record) {
@@ -675,6 +687,13 @@ class ProjectDefenseRequestService {
       }
 
       const now = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateDefenseRequestLate(now, DEFENSE_TYPE_THESIS, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const basePayload = {
         formPayload: cleanedPayload,
         status: 'advisor_in_review',
@@ -683,7 +702,11 @@ class ProjectDefenseRequestService {
         advisorApprovedAt: null,
         staffVerifiedAt: null,
         staffVerifiedByUserId: null,
-        staffVerificationNote: null
+        staffVerificationNote: null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       };
 
       if (record) {

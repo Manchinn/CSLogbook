@@ -69,19 +69,6 @@ const SystemTestRequestPage = () => {
     navigate('/project/phase1');
   }, [navigate]);
 
-  const leaderMember = useMemo(() => {
-    if (!activeProject) return null;
-    return (activeProject.members || []).find(member => member.role === 'leader') || null;
-  }, [activeProject]);
-
-  const isLeader = useMemo(() => {
-    if (!activeProject || !leaderMember) return false;
-    if (currentStudentId) {
-      return Number(currentStudentId) === Number(leaderMember.studentId);
-    }
-    return false;
-  }, [activeProject, leaderMember, currentStudentId]);
-
   const meetingRequirement = useMemo(() => {
     const metrics = activeProject?.meetingMetrics;
     if (!metrics) {
