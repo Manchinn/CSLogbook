@@ -81,6 +81,7 @@ const InternshipSummary = () => {
   // ✅ ใช้ useInternshipAccess สำหรับตรวจสอบทั้ง CS05 และ ACCEPTANCE_LETTER
   const {
     canAccess,
+    canEdit,
     cs05Status,
     acceptanceStatus,
     errorMessage,
@@ -344,6 +345,19 @@ const InternshipSummary = () => {
           กลับหน้าหลัก
         </Button>
       ];
+    } else if (cs05Status === 'cancelled') {
+      // ✅ การฝึกงานถูกยกเลิก - อนุญาตให้ดูข้อมูลได้ แต่ไม่สามารถแก้ไขได้
+      resultStatus = 'warning';
+      resultTitle = 'การฝึกงานนี้ถูกยกเลิกแล้ว';
+      resultSubTitle = 'คุณสามารถดูข้อมูลสรุปผลการฝึกงานที่ถูกยกเลิกได้ แต่ไม่สามารถแก้ไขหรือดำเนินการต่อได้';
+      extraButtons = [
+        <Button key="home" type="primary" onClick={() => navigate('/dashboard')}>
+          กลับหน้าหลัก
+        </Button>,
+        <Button key="new" onClick={() => navigate('/internship-registration/flow')}>
+          ยื่นคำร้องใหม่
+        </Button>
+      ];
     } else if (cs05Status === 'rejected') {
       resultStatus = 'error';
       resultTitle = 'คำร้องขอฝึกงาน(คพ.05) ไม่ได้รับการอนุมัติ';
@@ -511,6 +525,7 @@ const InternshipSummary = () => {
           skillCategories={skillCategories}
           skillTags={skillTags}
           summaryData={summaryData}
+          canEdit={canEdit} // ✅ ส่ง canEdit เพื่อปิดการใช้งานปุ่มแก้ไขเมื่อ cancelled
         />
       ),
     },
@@ -620,6 +635,23 @@ const InternshipSummary = () => {
 
   return (
     <div className="internship-summary-container internship-summary-page print-container">
+      {/* ✅ แสดง Alert เมื่อการฝึกงานถูกยกเลิก */}
+      {cs05Status === 'cancelled' && (
+        <Alert
+          message="การฝึกงานนี้ถูกยกเลิกแล้ว"
+          description="คุณสามารถดูข้อมูลสรุปผลการฝึกงานที่ถูกยกเลิกได้ แต่ไม่สามารถแก้ไขหรือดำเนินการต่อได้ หากต้องการยื่นคำร้องใหม่ กรุณาไปที่หน้าส่งคำร้อง คพ.05"
+          type="warning"
+          showIcon
+          closable
+          style={{ marginBottom: 16 }}
+          action={
+            <Button size="small" onClick={() => navigate('/internship-registration/flow')}>
+              ยื่นคำร้องใหม่
+            </Button>
+          }
+        />
+      )}
+      
       <Card className="summary-header-card" variant="borderless">
         <Row gutter={[24, 24]} align="middle">
           <Col xs={24} lg={16}>

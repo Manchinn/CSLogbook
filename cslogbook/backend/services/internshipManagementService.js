@@ -690,33 +690,51 @@ class InternshipManagementService {
         throw new Error("ไม่พบแบบฟอร์ม คพ.05 กรุณายื่นคำร้องขอฝึกงานก่อน");
       }
 
-      // ✅ เปลี่ยนเงื่อนไข: อนุญาตเฉพาะ approved เท่านั้น
-      if (cs05Check.status !== "approved") {
-        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId} - Access denied (only 'approved' allowed)`);
+      // ✅ อนุญาตเฉพาะ approved หรือ cancelled (เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้)
+      if (cs05Check.status !== "approved" && cs05Check.status !== "cancelled") {
+        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId} - Access denied (only 'approved' or 'cancelled' allowed)`);
         throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${cs05Check.status})`);
       }
 
-      // ✅ ตรวจสอบสถานะ หนังสืบตอบรับฝึกงาน
-      const acceptanceCheck = await Document.findOne({
-        where: {
-          userId,
-          documentType: "INTERNSHIP",
-          documentName: "ACCEPTANCE_LETTER",
-        },
-        order: [["created_at", "DESC"]],
-      });
-
-      if (!acceptanceCheck) {
-        logger.warn(`[getInternshipSummary] No ACCEPTANCE_LETTER found for userId: ${userId}`);
-        throw new Error("ไม่สามารถดูสรุปผลได้ เนื่องจากยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท");
+      // ✅ แจ้งเตือนถ้าเป็น cancelled
+      if (cs05Check.status === "cancelled") {
+        logger.info(`[getInternshipSummary] CS05 is cancelled for userId: ${userId} - Allowing access to view cancelled internship data`);
       }
 
-      if (acceptanceCheck.status !== "approved") {
-        logger.warn(`[getInternshipSummary] ACCEPTANCE_LETTER status is '${acceptanceCheck.status}' for userId: ${userId} - Access denied`);
-        throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากหนังสือตอบรับยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${acceptanceCheck.status})`);
-      }
+      // ✅ ตรวจสอบสถานะ หนังสืบตอบรับฝึกงาน (ข้ามถ้า CS05 เป็น cancelled)
+      let acceptanceCheck = null;
+      let acceptanceStatusInfo = "skipped (CS05 cancelled)";
+      
+      if (cs05Check.status !== "cancelled") {
+        acceptanceCheck = await Document.findOne({
+          where: {
+            userId,
+            documentType: "INTERNSHIP",
+            documentName: "ACCEPTANCE_LETTER",
+            status: {
+              [Op.ne]: "cancelled" // ไม่รวม cancelled
+            }
+          },
+          order: [["created_at", "DESC"]],
+        });
 
-      logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}, Acceptance status: ${acceptanceCheck.status}`);
+        if (!acceptanceCheck) {
+          logger.warn(`[getInternshipSummary] No ACCEPTANCE_LETTER found for userId: ${userId}`);
+          throw new Error("ไม่สามารถดูสรุปผลได้ เนื่องจากยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท");
+        }
+
+        if (acceptanceCheck.status !== "approved") {
+          logger.warn(`[getInternshipSummary] ACCEPTANCE_LETTER status is '${acceptanceCheck.status}' for userId: ${userId} - Access denied`);
+          throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากหนังสือตอบรับยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${acceptanceCheck.status})`);
+        }
+        
+        acceptanceStatusInfo = acceptanceCheck.status;
+      } else {
+        // ✅ ถ้า CS05 เป็น cancelled ให้ข้ามการเช็ค Acceptance Letter
+        logger.info(`[getInternshipSummary] CS05 is cancelled - Skipping ACCEPTANCE_LETTER check for userId: ${userId}`);
+      }
+      
+      logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}, Acceptance status: ${acceptanceStatusInfo}`);
     } catch (checkError) {
       logger.error(`[getInternshipSummary] Pre-check failed for userId ${userId}: ${checkError.message}`);
       throw checkError;
@@ -746,7 +764,7 @@ class InternshipManagementService {
           as: "documents",
           where: {
             documentName: "CS05",
-            status: ["approved", "supervisor_approved", "supervisor_evaluated"],
+            status: ["approved", "supervisor_approved", "supervisor_evaluated", "cancelled"], // ✅ เพิ่ม cancelled เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้
           },
           required: true,
           include: [
@@ -2189,9 +2207,13 @@ class InternshipManagementService {
       let requiresApproval = false;
       let statusMessage = "";
 
-      // ✅ ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน)
+      // ✅ ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน และไม่ใช่ cancelled)
       if (cs05Document.status === "approved") {
         canUpload = true;
+      } else if (cs05Document.status === "cancelled") {
+        // ถ้า CS05 เป็น cancelled แสดงว่าเป็นกระบวนการใหม่ที่ยังไม่ได้รับการอนุมัติ
+        statusMessage = "เอกสาร คำร้องขอฝึกงาน ถูกยกเลิก กรุณายื่น คำร้องขอฝึกงาน ใหม่ก่อนอัปโหลดหนังสือตอบรับ";
+        canUpload = false;
       }
 
       // ✅ ตรวจสอบจากข้อมูลจริงในฐานข้อมูล
@@ -2224,6 +2246,14 @@ class InternshipManagementService {
           case "rejected":
             statusMessage = "หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่";
             canUpload = true; // อนุญาตให้อัปโหลดใหม่
+            break;
+          case "cancelled":
+            // ✅ หนังสือตอบรับถูกยกเลิก - ถือว่าเป็นกระบวนการใหม่ อนุญาตให้อัปโหลดใหม่ได้
+            acceptanceStatus = "not_uploaded"; // เปลี่ยนสถานะเป็น not_uploaded เพื่อให้ UI แสดงว่ายังไม่มีการอัปโหลด
+            statusMessage = "หนังสือตอบรับเดิมถูกยกเลิก กรุณาอัปโหลดหนังสือตอบรับใหม่";
+            canUpload = true; // อนุญาตให้อัปโหลดใหม่
+            // ตั้งค่าเป็น null เพื่อให้ระบบถือว่าไม่มี acceptance letter ใหม่
+            acceptanceLetter = null;
             break;
           default:
             statusMessage = `สถานะ: ${acceptanceLetter.status}`;

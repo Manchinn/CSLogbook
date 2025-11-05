@@ -417,6 +417,9 @@ const internshipService = {
           mappedStatus = "approved";
         } else if (data.status === "rejected") {
           mappedStatus = "rejected"; // แสดงสถานะปฏิเสธ
+        } else if (data.status === "cancelled" || data.originalStatus === "cancelled") {
+          // ✅ หนังสือตอบรับถูกยกเลิก - ถือว่าเป็นกระบวนการใหม่
+          mappedStatus = "not_uploaded"; // อนุญาตให้อัปโหลดใหม่
         } else {
           mappedStatus = "uploaded"; // fallback อื่นๆ
         }

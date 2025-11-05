@@ -1,6 +1,12 @@
-const { Document, DocumentLog, User, Student } = require('../../models');
+const { Document, DocumentLog, User, Student, InternshipDocument } = require('../../models');
 const { Op } = require('sequelize');
 const internshipManagementService = require('../../services/internshipManagementService');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 async function loadAcceptance(documentId) {
   const doc = await Document.findOne({
@@ -176,6 +182,56 @@ exports.approveByHead = async (req, res) => {
       await internshipManagementService.getAcceptanceLetterStatus(doc.userId, null);
     } catch (e) {
       console.warn('Acceptance approve sync warning:', e.message);
+    }
+
+    // ✅ อัพเดทสถานะการฝึกงานของนักศึกษาตาม startDate
+    try {
+      const student = await Student.findOne({
+        where: { userId: doc.userId },
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['userId']
+        }]
+      });
+
+      if (student) {
+        // ดึงข้อมูล CS05 ที่อนุมัติแล้วเพื่อหา startDate
+        const cs05Doc = await Document.findOne({
+          where: {
+            userId: doc.userId,
+            documentName: 'CS05',
+            status: 'approved'
+          },
+          include: [{
+            model: InternshipDocument,
+            as: 'internshipDocument',
+            attributes: ['startDate', 'endDate']
+          }],
+          order: [['created_at', 'DESC']]
+        });
+
+        let newStatus = 'pending_approval'; // ค่าเริ่มต้น: รอฝึกงาน
+        
+        if (cs05Doc?.internshipDocument?.startDate) {
+          const startDate = dayjs(cs05Doc.internshipDocument.startDate);
+          const now = dayjs().tz('Asia/Bangkok');
+          
+          // ถ้าถึง startDate แล้ว → เป็น 'in_progress' (อยู่ระหว่างฝึกงาน)
+          if (now.isSameOrAfter(startDate, 'day')) {
+            newStatus = 'in_progress';
+          }
+        }
+
+        // อัพเดทสถานะนักศึกษา
+        if (student.internshipStatus !== newStatus) {
+          await student.update({ internshipStatus: newStatus });
+          console.log(`Updated student ${student.studentId} internship status to ${newStatus} (Acceptance Letter approved)`);
+        }
+      }
+    } catch (statusError) {
+      console.warn('Error updating student internship status after acceptance approval:', statusError.message);
+      // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติ
     }
 
     return res.json({ success: true, message: 'อนุมัติหนังสือตอบรับนักศึกษาสำเร็จ' });

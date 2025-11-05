@@ -53,8 +53,8 @@ export const useInternshipAccess = () => {
         documentId: cs05.documentId
       });
 
-      // 2. ตรวจสอบ CS05 ต้องเป็น approved ก่อน
-      if (cs05.status !== 'approved') {
+      // 2. ตรวจสอบ CS05 ต้องเป็น approved หรือ cancelled (เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้)
+      if (cs05.status !== 'approved' && cs05.status !== 'cancelled') {
         setErrorMessage(
           cs05.status === 'pending' 
             ? 'คำร้อง CS05 อยู่ระหว่างการพิจารณา'
@@ -63,6 +63,13 @@ export const useInternshipAccess = () => {
             : `คำร้อง CS05 ยังไม่พร้อม (สถานะ: ${cs05.status})`
         );
         setAcceptanceStatus(null);
+        return;
+      }
+
+      // ✅ ถ้า CS05 เป็น cancelled ให้ข้ามการเช็ค Acceptance Letter
+      if (cs05.status === 'cancelled') {
+        setErrorMessage('การฝึกงานนี้ถูกยกเลิกแล้ว คุณสามารถดูข้อมูลสรุปผลได้ แต่ไม่สามารถแก้ไขได้');
+        setAcceptanceStatus('cancelled');
         return;
       }
 
@@ -123,9 +130,9 @@ export const useInternshipAccess = () => {
     checkStatus();
   }, [checkStatus]);
 
-  // คำนวณสิทธิ์การเข้าถึง
-  const canAccess = cs05Status === 'approved' && acceptanceStatus === 'approved';
-  const canEdit = canAccess; // ใช้เงื่อนไขเดียวกัน
+  // ✅ คำนวณสิทธิ์การเข้าถึง - อนุญาตทั้ง approved และ cancelled (เพื่อดูข้อมูล)
+  const canAccess = (cs05Status === 'approved' && acceptanceStatus === 'approved') || cs05Status === 'cancelled';
+  const canEdit = cs05Status === 'approved' && acceptanceStatus === 'approved'; // ✅ แก้ไขได้เฉพาะ approved เท่านั้น
 
   // ตรวจสอบแต่ละเงื่อนไข
   const hasCS05 = cs05Status !== null;
