@@ -50,6 +50,12 @@ const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const workflowService = require('./workflowService');
 const { calculateTopicSubmissionLate } = require('../utils/lateSubmissionHelper');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // กำหนดจำนวน log การพบอาจารย์ที่ต้องได้รับการอนุมัติขั้นต่ำก่อนถือว่า "พร้อมสอบ"
 const REQUIRED_APPROVED_MEETING_LOGS = 4;
@@ -138,20 +144,30 @@ class ProjectDocumentService {
       if (!student) throw new Error('ไม่พบนักศึกษา');
 
       // Gating: ป้องกันสร้างหัวข้อใหม่ถ้ามีโครงงานที่สอบไม่ผ่านและเพิ่ง acknowledge รอรอบใหม่
-      // เกณฑ์ง่ายเบื้องต้น: ยังมี project failed+archived ที่ยังไม่ถูก purge (studentAcknowledgedAt != null และ examResult='failed')
-      // สามารถขยายเป็นตรวจ window จริงในอนาคต (เชื่อม ImportantDeadline หรือ Academic window)
+      // หรือมีโครงงานที่ถูกยกเลิก (cancelled) - ต้องรอรอบใหม่
       const blockExisting = await ProjectMember.findOne({
         where: { studentId },
         include: [{
           model: ProjectDocument,
           as: 'project',
           required: true,
-          where: { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } }
+          where: {
+            [Op.or]: [
+              // กรณีสอบไม่ผ่านและ acknowledge แล้ว
+              { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } },
+              // กรณีโครงงานถูกยกเลิก - ต้องรอรอบใหม่
+              { status: 'cancelled' }
+            ]
+          }
         }],
         transaction: t
       });
       if (blockExisting) {
-        throw new Error('คุณเพิ่งรับทราบผลสอบหัวข้อไม่ผ่าน กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่');
+        if (blockExisting.project.status === 'cancelled') {
+          throw new Error('โครงงานของคุณถูกยกเลิก กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่');
+        } else {
+          throw new Error('คุณเพิ่งรับทราบผลสอบหัวข้อไม่ผ่าน กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่');
+        }
       }
 
       // ตรวจ eligibility อีกครั้งแบบง่าย (ใช้ flag isEligibleProject จาก student หรือเรียก service ลึกเพิ่มเติมได้)
@@ -179,20 +195,54 @@ class ProjectDocumentService {
         throw new Error(`นักศึกษายังไม่มีสิทธิ์สร้างโครงงาน: ${denyReason}`);
       }
 
-      // กันการมีโครงงานที่ยังไม่ archived ซ้ำ (ไม่ว่าจะเป็น leader หรือ member)
+      // กันการมีโครงงานที่ยังไม่ archived หรือ cancelled ซ้ำ (ไม่ว่าจะเป็น leader หรือ member)
+      // โครงงานที่ cancelled ต้องรอรอบใหม่ (ตรวจสอบแล้วข้างบน)
       const existing = await ProjectMember.findOne({
         where: { studentId },
-        include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
+        include: [{ 
+          model: ProjectDocument, 
+          as: 'project', 
+          required: true, 
+          where: { 
+            status: { [Op.notIn]: ['archived', 'cancelled'] }
+          } 
+        }],
         transaction: t
       });
       if (existing) {
-        throw new Error('คุณมีโครงงานที่ยังไม่ถูกเก็บถาวรอยู่แล้ว');
+        throw new Error('คุณมีโครงงานที่ยังไม่เสร็จสิ้นอยู่แล้ว');
       }
 
       // Academic ปัจจุบัน
       const academic = await Academic.findOne({ where: { isCurrent: true }, order: [['updated_at','DESC']], transaction: t });
       const academicYear = academic?.academicYear || (new Date().getFullYear() + 543);
       const semester = academic?.currentSemester || 1;
+
+      // ตรวจสอบช่วงเวลาลงทะเบียนโครงงาน (ถ้ามีการตั้งค่า)
+      if (academic?.projectRegistration) {
+        let projectRegistration;
+        try {
+          projectRegistration = typeof academic.projectRegistration === 'string' 
+            ? JSON.parse(academic.projectRegistration) 
+            : academic.projectRegistration;
+        } catch (e) {
+          logger.warn('createProject: Failed to parse projectRegistration JSON', { error: e.message });
+        }
+
+        if (projectRegistration?.startDate && projectRegistration?.endDate) {
+          const now = dayjs().tz('Asia/Bangkok');
+          const startDate = dayjs.tz(projectRegistration.startDate, 'Asia/Bangkok');
+          const endDate = dayjs.tz(projectRegistration.endDate, 'Asia/Bangkok').endOf('day');
+
+          if (now.isBefore(startDate)) {
+            throw new Error(`ช่วงลงทะเบียนโครงงานยังไม่เปิด (เปิดวันที่ ${startDate.format('DD/MM/YYYY')})`);
+          }
+
+          if (now.isAfter(endDate)) {
+            throw new Error(`ช่วงลงทะเบียนโครงงานปิดไปแล้ว (ปิดวันที่ ${endDate.format('DD/MM/YYYY')})`);
+          }
+        }
+      }
 
       // 🆕 เตรียม second member (REQUIRED - โครงงานพิเศษต้องมี 2 คน)
       let secondMember = null;
@@ -215,14 +265,46 @@ class ProjectDocumentService {
       if (!secondMember.isEligibleProject) {
         throw new Error('นักศึกษาคนนี้ยังไม่ผ่านเกณฑ์โครงงานพิเศษ');
       }
-      // ตรวจว่ามีสมาชิกในโครงงานที่ยังไม่ archived อยู่แล้วหรือไม่ (business rule: 1 active project ต่อ 1 นักศึกษา)
+      // ตรวจว่ามีสมาชิกในโครงงานที่ยังไม่ archived หรือ cancelled อยู่แล้วหรือไม่ (business rule: 1 active project ต่อ 1 นักศึกษา)
+      // โครงงานที่ cancelled ต้องรอรอบใหม่ (ตรวจสอบแล้วข้างบน)
       const existingActiveMembership = await ProjectMember.findOne({
         where: { studentId: secondMember.studentId },
-        include: [{ model: ProjectDocument, as: 'project', required: true, where: { status: { [Op.ne]: 'archived' } } }],
+        include: [{ 
+          model: ProjectDocument, 
+          as: 'project', 
+          required: true, 
+          where: { 
+            status: { [Op.notIn]: ['archived', 'cancelled'] }
+          } 
+        }],
         transaction: t
       });
       if (existingActiveMembership) {
         throw new Error('นักศึกษาคนนี้มีโครงงานพิเศษที่กำลังดำเนินการอยู่แล้ว');
+      }
+
+      // ตรวจสอบว่าสมาชิกคนที่ 2 มีโครงงานที่ cancelled หรือ failed+archived ที่ต้องรอรอบใหม่หรือไม่
+      const blockSecondMember = await ProjectMember.findOne({
+        where: { studentId: secondMember.studentId },
+        include: [{
+          model: ProjectDocument,
+          as: 'project',
+          required: true,
+          where: {
+            [Op.or]: [
+              { examResult: 'failed', status: 'archived', studentAcknowledgedAt: { [Op.ne]: null } },
+              { status: 'cancelled' }
+            ]
+          }
+        }],
+        transaction: t
+      });
+      if (blockSecondMember) {
+        if (blockSecondMember.project.status === 'cancelled') {
+          throw new Error('นักศึกษาคนนี้มีโครงงานที่ถูกยกเลิก ต้องรอรอบการยื่นหัวข้อถัดไป');
+        } else {
+          throw new Error('นักศึกษาคนนี้เพิ่งรับทราบผลสอบหัวข้อไม่ผ่าน ต้องรอรอบการยื่นหัวข้อถัดไป');
+        }
       }
 
       // สร้าง ProjectDocument (draft) - ไม่บังคับ advisorId ในตอนสร้าง

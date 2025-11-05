@@ -88,7 +88,7 @@ module.exports = (sequelize) => {
         },
         // Lifecycle fields ที่เพิ่มใน migration
         status: {
-            type: DataTypes.ENUM('draft','advisor_assigned','in_progress','completed','archived'),
+            type: DataTypes.ENUM('draft','advisor_assigned','in_progress','completed','archived','cancelled'),
             allowNull: false,
             defaultValue: 'draft'
         },

@@ -168,5 +168,6 @@ router.get('/advisors', adminAuth, projectManagementController.getAvailableAdvis
 // Dynamic routes (ต้องมาหลัง static routes)
 router.get('/projects/:projectId', adminAuth, projectManagementController.getProjectById);
 router.put('/projects/:projectId', adminAuth, projectManagementController.updateProject);
+router.post('/projects/:projectId/cancel', adminAuth, projectManagementController.cancelProject);
 
 module.exports = router;
