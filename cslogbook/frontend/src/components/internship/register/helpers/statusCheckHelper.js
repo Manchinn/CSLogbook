@@ -35,6 +35,7 @@ const mapBackendStatusToFrontend = (
       approved: "uploaded",
       acceptance_approved: "uploaded",
       rejected: "rejected",
+      cancelled: "not_uploaded", // ✅ หนังสือตอบรับถูกยกเลิก - ถือว่าเป็นกระบวนการใหม่
       referral_ready: "approved",
       referral_downloaded: "approved",
       supervisor_evaluated: "approved",
@@ -46,6 +47,7 @@ const mapBackendStatusToFrontend = (
       pending: "pending",
       approved: "approved",
       rejected: "rejected",
+      cancelled: "cancelled", // ✅ เอกสาร CS05 ถูกยกเลิก
       acceptance_approved: "acceptance_approved",
       referral_ready: "referral_ready",
       referral_downloaded: "referral_downloaded",
@@ -204,7 +206,14 @@ export const checkAcceptanceLetterStatus = async (
     console.log("[DEBUG] 📊 API Response - หนังสือตอบรับ:", response);
 
     if (response.success && response.data) {
-      const acceptanceStatus = response.data.acceptanceStatus;
+      // ✅ ตรวจสอบสถานะ cancelled และแปลงเป็น not_uploaded
+      let acceptanceStatus = response.data.acceptanceStatus || response.data.status;
+      
+      // ✅ ถ้า status เป็น cancelled หรือ originalStatus เป็น cancelled ให้แปลงเป็น not_uploaded
+      if (acceptanceStatus === "cancelled" || response.data.originalStatus === "cancelled") {
+        acceptanceStatus = "not_uploaded";
+        console.log("[DEBUG] ✅ แปลงสถานะ cancelled เป็น not_uploaded");
+      }
       
       // ✅ อัปเดต State ทันที
       setAcceptanceLetterStatus(acceptanceStatus);
@@ -212,7 +221,7 @@ export const checkAcceptanceLetterStatus = async (
         ...response.data,
         status: acceptanceStatus,
         canUpload: response.data.canUpload,
-        statusMessage: response.data.statusMessage,
+        statusMessage: response.data.statusMessage || "หนังสือตอบรับเดิมถูกยกเลิก กรุณาอัปโหลดหนังสือตอบรับใหม่",
       });
 
       // ✅ อัปเดตขั้นตอนตามสถานะ

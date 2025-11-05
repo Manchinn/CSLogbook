@@ -71,15 +71,34 @@ class ProjectWorkflowStateController {
    */
   async getProjectState(req, res) {
     try {
-      const { projectId } = req.params;
+      const projectId = req.params.id || req.params.projectId;
       
-      // Validate projectId
-      const parsedProjectId = parseInt(projectId);
-      if (!projectId || isNaN(parsedProjectId)) {
+      // Validate projectId - ตรวจสอบให้ละเอียดขึ้น
+      if (projectId === undefined || projectId === null || projectId === '') {
+        logger.warn('getProjectState: Missing projectId', {
+          params: req.params,
+          url: req.url,
+          method: req.method
+        });
         return res.status(400).json({
           success: false,
           error: 'projectId ไม่ถูกต้อง',
-          details: 'projectId ต้องเป็นตัวเลขที่ valid'
+          details: 'ไม่พบรหัสโครงงานใน request'
+        });
+      }
+
+      const parsedProjectId = parseInt(projectId, 10);
+      if (isNaN(parsedProjectId) || parsedProjectId <= 0) {
+        logger.warn('getProjectState: Invalid projectId format', {
+          projectId,
+          parsedProjectId,
+          params: req.params,
+          url: req.url
+        });
+        return res.status(400).json({
+          success: false,
+          error: 'projectId ไม่ถูกต้อง',
+          details: `projectId ต้องเป็นตัวเลขที่ valid (ได้รับ: ${projectId})`
         });
       }
       
@@ -130,15 +149,66 @@ class ProjectWorkflowStateController {
    */
   async getProjectStateWithDeadlines(req, res) {
     try {
-      const { projectId } = req.params;
+      const projectId = req.params.id || req.params.projectId;
       
-      // Validate projectId
-      const parsedProjectId = parseInt(projectId);
-      if (!projectId || isNaN(parsedProjectId)) {
+      // Log สำหรับ debugging
+      logger.debug('getProjectStateWithDeadlines: Request received', {
+        projectId,
+        params: req.params,
+        url: req.url,
+        userId: req.user?.userId,
+        studentCode: req.student?.studentCode
+      });
+      
+      // Validate projectId - ตรวจสอบให้ละเอียดขึ้น
+      if (projectId === undefined || projectId === null || projectId === '') {
+        logger.warn('getProjectStateWithDeadlines: Missing projectId', {
+          params: req.params,
+          url: req.url,
+          method: req.method,
+          userId: req.user?.userId,
+          studentCode: req.student?.studentCode
+        });
         return res.status(400).json({
           success: false,
           error: 'projectId ไม่ถูกต้อง',
-          details: 'projectId ต้องเป็นตัวเลขที่ valid'
+          details: 'ไม่พบรหัสโครงงานใน request'
+        });
+      }
+
+      // ตรวจสอบว่า projectId เป็น string ที่ไม่ใช่ตัวเลข เช่น "undefined", "null", "NaN"
+      const projectIdStr = String(projectId).trim();
+      if (projectIdStr === 'undefined' || projectIdStr === 'null' || projectIdStr === 'NaN' || projectIdStr === '') {
+        logger.warn('getProjectStateWithDeadlines: Invalid projectId string value', {
+          projectId,
+          projectIdStr,
+          params: req.params,
+          url: req.url,
+          userId: req.user?.userId,
+          studentCode: req.student?.studentCode
+        });
+        return res.status(400).json({
+          success: false,
+          error: 'projectId ไม่ถูกต้อง',
+          details: `projectId ต้องเป็นตัวเลขที่ valid (ได้รับ: ${projectId})`
+        });
+      }
+
+      const parsedProjectId = parseInt(projectIdStr, 10);
+      if (isNaN(parsedProjectId) || parsedProjectId <= 0) {
+        logger.warn('getProjectStateWithDeadlines: Invalid projectId format', {
+          projectId,
+          projectIdStr,
+          parsedProjectId,
+          params: req.params,
+          url: req.url,
+          userId: req.user?.userId,
+          studentCode: req.student?.studentCode
+        });
+        return res.status(400).json({
+          success: false,
+          error: 'projectId ไม่ถูกต้อง',
+          details: `projectId ต้องเป็นตัวเลขที่ valid (ได้รับ: ${projectId})`
         });
       }
 

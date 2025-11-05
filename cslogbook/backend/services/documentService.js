@@ -785,11 +785,12 @@ class DocumentService {
             });
 
             if (student) {
+                // ✅ เมื่ออนุมัติ CS05 → ตั้งสถานะเป็น 'pending_approval' (รอหนังสือตอบรับ)
                 await student.update({
-                    internshipStatus: 'in_progress',
+                    internshipStatus: 'pending_approval',
                     isEnrolledInternship: 1
                 });
-                logger.info(`Updated student ${student.studentId} internship status to in_progress`);
+                logger.info(`Updated student ${student.studentId} internship status to pending_approval (CS05 approved, waiting for acceptance letter)`);
             }
 
             // อัปเดต workflow activity
@@ -1302,15 +1303,17 @@ class DocumentService {
                 processedBy: processorId,
             });
 
-            // Update workflow - การฝึกงานเสร็จสมบูรณ์
+            // ✅ Update workflow และ Student.internshipStatus - การฝึกงานเสร็จสมบูรณ์
             try {
-                const { Internship } = require('../models');
+                const { Internship, Student } = require('../models');
                 const internship = await Internship.findByPk(request.internshipId, {
                     include: [{ model: Student, as: 'student' }]
                 });
                 
                 if (internship?.student) {
                     const workflowService = require('./workflowService');
+                    
+                    // 1. อัพเดท workflow
                     await workflowService.updateStudentWorkflowActivity(
                         internship.student.studentId,
                         'internship',
@@ -1323,10 +1326,17 @@ class DocumentService {
                             processedBy: processorId 
                         }
                     );
-                    logger.info(`Updated workflow to COMPLETED for student ${internship.student.studentId}`);
+                    
+                    // 2. ✅ อัพเดท Student.internshipStatus เป็น 'completed'
+                    await Student.update(
+                        { internshipStatus: 'completed' },
+                        { where: { studentId: internship.student.studentId } }
+                    );
+                    
+                    logger.info(`Updated workflow and student status to COMPLETED for student ${internship.student.studentId} (certificate approved)`);
                 }
             } catch (workflowError) {
-                logger.error('Error updating workflow after certificate approval:', workflowError);
+                logger.error('Error updating workflow and student status after certificate approval:', workflowError);
                 // ไม่ throw error เพราะ certificate ได้รับการอนุมัติแล้ว
             }
 

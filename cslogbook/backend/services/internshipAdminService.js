@@ -359,15 +359,77 @@ class InternshipAdminService {
 
       const document = internship.document;
       const student = document.owner.student;
+      const userId = document.userId;
 
-      // อัพเดทสถานะเอกสาร CS05 เป็น cancelled
-      await document.update(
-        { 
-          status: 'cancelled',
-          rejectionReason: reason || 'ยกเลิกโดยเจ้าหน้าที่ภาควิชา'
+      // 1. ✅ ยกเลิก CS05 ทั้งหมดของนักศึกษาคนนี้ (เพื่อให้นักศึกษาสามารถส่งคำร้องใหม่ได้)
+      const cs05Documents = await Document.findAll({
+        where: {
+          userId: userId,
+          documentName: 'CS05',
+          status: {
+            [Op.ne]: 'cancelled' // ไม่รวมเอกสารที่ยกเลิกไปแล้ว
+          }
         },
-        { transaction }
-      );
+        transaction
+      });
+
+      if (cs05Documents.length > 0) {
+        await Document.update(
+          {
+            status: 'cancelled',
+            rejectionReason: reason || 'ยกเลิกโดยเจ้าหน้าที่ภาควิชา (ยกเลิกการฝึกงาน)'
+          },
+          {
+            where: {
+              documentId: {
+                [Op.in]: cs05Documents.map(doc => doc.documentId)
+              }
+            },
+            transaction
+          }
+        );
+        logger.info(`[InternshipAdminService] Cancelled ${cs05Documents.length} CS05 document(s) for student ${student.studentId}`);
+      }
+
+      // 2. ✅ ยกเลิกหนังสือตอบรับ (Acceptance Letter) ทั้งหมดของนักศึกษาคนนี้เป็น cancelled (เพื่อให้นักศึกษาสามารถส่งใหม่ได้)
+      const acceptanceLetters = await Document.findAll({
+        where: {
+          userId: userId,
+          documentType: 'INTERNSHIP',
+          documentName: 'ACCEPTANCE_LETTER',
+          // ไม่บังคับ category เพื่อให้ครอบคลุมทุกกรณี
+          status: {
+            [Op.ne]: 'cancelled' // ไม่รวมเอกสารที่ยกเลิกไปแล้ว
+          }
+        },
+        transaction
+      });
+
+      if (acceptanceLetters.length > 0) {
+        await Document.update(
+          {
+            status: 'cancelled',
+            rejectionReason: reason || 'ยกเลิกโดยเจ้าหน้าที่ภาควิชา (ยกเลิกการฝึกงาน)'
+          },
+          {
+            where: {
+              documentId: {
+                [Op.in]: acceptanceLetters.map(doc => doc.documentId)
+              }
+            },
+            transaction
+          }
+        );
+
+        logger.info(`[InternshipAdminService] Cancelled ${acceptanceLetters.length} acceptance letter(s) for student ${student.studentId}`);
+      } else {
+        logger.info(`[InternshipAdminService] No acceptance letters to cancel for student ${student.studentId}`);
+      }
+
+      // ✅ สรุปการยกเลิก
+      const cs05Count = cs05Documents.length;
+      const acceptanceCount = acceptanceLetters.length;
+      logger.info(`[InternshipAdminService] Cancellation summary for student ${student.studentId}: CS05=${cs05Count}, Acceptance=${acceptanceCount}`);
 
       // รีเซ็ตสถานะการฝึกงานของนักศึกษา
       await Student.update(
