@@ -206,9 +206,7 @@ class ProjectSystemTestService {
       if (actor.role !== 'student') {
         throw new Error('อนุญาตเฉพาะนักศึกษาที่เป็นสมาชิกโครงงานในการส่งคำขอทดสอบระบบ');
       }
-      if (!ensureLeader(project, actor.studentId)) {
-        throw new Error('จำกัดเฉพาะหัวหน้าโครงงานในการส่งคำขอนี้');
-      }
+      // ✅ เปลี่ยนจากเฉพาะ leader เป็นอนุญาตสมาชิกทุกคนส่งคำขอได้
       if (!['in_progress', 'completed'].includes(project.status)) {
         throw new Error('โครงงานต้องอยู่ในสถานะกำลังดำเนินการก่อนส่งคำขอทดสอบระบบ');
       }
@@ -246,8 +244,9 @@ class ProjectSystemTestService {
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(project.projectId, students, { transaction: t, phase: 'phase1' });
       const requiredLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
-      const leaderMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < requiredLogs) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < requiredLogs) {
         throw new Error(`ยังไม่ครบเกณฑ์บันทึกการพบอาจารย์: ต้องมีอย่างน้อย ${requiredLogs} รายการที่ได้รับอนุมัติ`);
       }
 

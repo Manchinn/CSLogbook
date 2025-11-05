@@ -302,7 +302,7 @@ class ProjectDocumentService {
 
   /**
    * เพิ่มสมาชิกคนที่สอง
-   * - ตรวจว่า caller เป็น leader
+   * - ตรวจว่า caller เป็นสมาชิกของโครงงาน (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
    * - ตรวจยังมีสมาชิก < 2
    * - ตรวจ eligibility ของสมาชิกใหม่ (isEligibleProject) (ตามที่ตกลง)
    */
@@ -314,9 +314,10 @@ class ProjectDocumentService {
       if (!project) throw new Error('ไม่พบโครงงาน');
 
       const members = await ProjectMember.findAll({ where: { projectId }, transaction: t, lock: t.LOCK.UPDATE });
-      const leader = members.find(m => m.role === 'leader');
-      if (!leader || leader.studentId !== actorStudentId) {
-        throw new Error('เฉพาะหัวหน้าโครงงานเท่านั้นที่เพิ่มสมาชิกได้');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const isMember = members.some(m => Number(m.studentId) === Number(actorStudentId));
+      if (!isMember) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานเท่านั้นที่เพิ่มสมาชิกได้');
       }
       if (members.length >= 2) {
         throw new Error('โครงงานมีสมาชิกครบ 2 คนแล้ว');
@@ -374,10 +375,10 @@ class ProjectDocumentService {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
       if (!project) throw new Error('ไม่พบโครงงาน');
 
-      // ตรวจว่า actor เป็น leader
-      const leader = await ProjectMember.findOne({ where: { projectId, role: 'leader' }, transaction: t });
-      if (!leader || leader.studentId !== actorStudentId) {
-        throw new Error('ไม่มีสิทธิ์แก้ไขข้อมูลโครงงาน');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const member = await ProjectMember.findOne({ where: { projectId, studentId: actorStudentId }, transaction: t });
+      if (!member) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานเท่านั้นที่แก้ไขข้อมูลโครงงาน');
       }
 
       const lockNames = ['advisor_assigned','in_progress','completed','archived'];
@@ -452,8 +453,9 @@ class ProjectDocumentService {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
       if (!project) throw new Error('ไม่พบโครงงาน');
 
-      const leader = await ProjectMember.findOne({ where: { projectId, role: 'leader' }, transaction: t });
-      if (!leader || leader.studentId !== actorStudentId) throw new Error('ไม่มีสิทธิ์');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const member = await ProjectMember.findOne({ where: { projectId, studentId: actorStudentId }, transaction: t });
+      if (!member) throw new Error('อนุญาตเฉพาะสมาชิกโครงงานเท่านั้น');
 
       const members = await ProjectMember.findAll({ where: { projectId }, transaction: t, lock: t.LOCK.UPDATE });
       if (members.length !== 2) throw new Error('ต้องมีสมาชิกครบ 2 คนก่อนเริ่มดำเนินโครงงาน');

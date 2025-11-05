@@ -199,17 +199,18 @@ const ExamSubmitPage = () => {
     }
     const required = Number(metrics.requiredApprovedLogs) || 0;
     const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
-    const leaderApproved = leaderMember
-      ? (perStudent.find(item => Number(item.studentId) === Number(leaderMember.studentId))?.approvedLogs || 0)
+    // ✅ ตรวจสอบ meeting logs ของนักศึกษาที่ login อยู่ (ไม่จำเป็นต้องเป็น leader)
+    const currentStudentApproved = currentStudentId
+      ? (perStudent.find(item => Number(item.studentId) === Number(currentStudentId))?.approvedLogs || 0)
       : 0;
-    const totalApproved = Number(metrics.totalApprovedLogs) || leaderApproved;
+    const totalApproved = Number(metrics.totalApprovedLogs) || currentStudentApproved;
     return {
-      approved: leaderApproved,
+      approved: currentStudentApproved,
       required,
       totalApproved,
-      satisfied: required === 0 || leaderApproved >= required
+      satisfied: required === 0 || currentStudentApproved >= required
     };
-  }, [activeProject, leaderMember]);
+  }, [activeProject, currentStudentId]);
 
   const advisorNameFromList = useMemo(() => {
     if (!activeProject?.advisorId || !Array.isArray(advisors)) return '';
@@ -308,7 +309,8 @@ const ExamSubmitPage = () => {
     return <Alert type="info" message="ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้" showIcon />;
   }
 
-  const disabledSubmission = !isLeader || ['completed', 'archived', 'failed'].includes(activeProject.status) || !meetingRequirement.satisfied;
+  // ✅ ทุกคนในทีมสามารถส่งคำร้องได้ (ไม่ต้องเป็น leader)
+  const disabledSubmission = ['completed', 'archived', 'failed'].includes(activeProject.status) || !meetingRequirement.satisfied;
   const hasSubmitted = !!requestRecord;
 
   return (

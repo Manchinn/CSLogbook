@@ -480,9 +480,10 @@ class ProjectDefenseRequestService {
       }
 
       const members = project.members || [];
-      const leader = members.find(member => member.role === 'leader');
-      if (!leader || leader.studentId !== Number(actorStudentId)) {
-        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const isMember = members.some(member => Number(member.studentId) === Number(actorStudentId));
+      if (!isMember) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานในการยื่นคำขอนี้');
       }
 
       if (!['in_progress', 'completed'].includes(project.status)) {
@@ -495,8 +496,9 @@ class ProjectDefenseRequestService {
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t, phase: 'phase1' });
       const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
-      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actorStudentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < requiredApprovedLogs) {
         throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${requiredApprovedLogs} ครั้ง`);
       }
 
@@ -604,9 +606,10 @@ class ProjectDefenseRequestService {
       }
 
       const members = project.members || [];
-      const leader = members.find(member => member.role === 'leader');
-      if (!leader || leader.studentId !== Number(actorStudentId)) {
-        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const isMember = members.some(member => Number(member.studentId) === Number(actorStudentId));
+      if (!isMember) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานในการยื่นคำขอนี้');
       }
 
       if (!['in_progress', 'completed'].includes(project.status)) {
@@ -630,8 +633,9 @@ class ProjectDefenseRequestService {
         ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t, phase: 'phase2' });
-      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < THESIS_REQUIRED_APPROVED_MEETING_LOGS) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actorStudentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < THESIS_REQUIRED_APPROVED_MEETING_LOGS) {
         throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${THESIS_REQUIRED_APPROVED_MEETING_LOGS} ครั้ง`);
       }
 
