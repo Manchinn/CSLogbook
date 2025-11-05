@@ -196,7 +196,7 @@ const InternshipReport = () => {
 			title: 'รหัส', 
 			dataIndex: 'studentCode', 
 			key: 'studentCode', 
-			width: 100,
+			width: 150,
 			fixed: 'left',
 			sorter: (a,b) => (a.studentCode||'').localeCompare(b.studentCode||'')
 		},
