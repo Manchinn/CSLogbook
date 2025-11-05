@@ -285,6 +285,9 @@ const ThesisDefenseRequestPage = () => {
       <Space size="small" wrap>
         <Text strong>สถานะปัจจุบัน:</Text>
         <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+        {requestRecord?.submittedLate && (
+          <Tag color="warning">ส่งช้า</Tag>
+        )}
       </Space>
       <Descriptions bordered size="small" column={1}>
         <Descriptions.Item label="ส่งคำขอเมื่อ">{formatDateTime(requestRecord?.submittedAt)}</Descriptions.Item>

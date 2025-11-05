@@ -307,6 +307,9 @@ const ExamSubmitPage = () => {
                 <Space size="small" wrap>
                   <Text strong>สถานะปัจจุบัน:</Text>
                   <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                  {requestRecord.submittedLate && (
+                    <Tag color="warning">ส่งช้า</Tag>
+                  )}
                   <Text type="secondary">อัปเดตล่าสุด: {formatDateTime(lastUpdatedAt)}</Text>
                 </Space>
 

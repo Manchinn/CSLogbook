@@ -327,6 +327,9 @@ const SystemTestRequestPage = () => {
                 <Space direction="vertical" size="small" style={{ width: '100%' }}>
                   <Space size="small" wrap>
                     <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                    {requestRecord.submittedLate && (
+                      <Tag color="warning">ส่งช้า</Tag>
+                    )}
                     <Text type="secondary">อัปเดตล่าสุด: {formatThaiDateTime(requestRecord.updatedAt || requestRecord.timeline?.staffDecidedAt || requestRecord.timeline?.submittedAt)}</Text>
                   </Space>
                   <Descriptions bordered size="small" column={1}>

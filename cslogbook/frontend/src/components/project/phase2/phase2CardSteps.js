@@ -15,7 +15,10 @@ export const phase2CardSteps = Object.freeze([
     icon: <FundProjectionScreenOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     requiresPhase2Unlock: true,
-    target: '/project/phase2'
+    target: '/project/phase2',
+    // ไม่มี deadline (ภาพรวมอย่างเดียว)
+    deadlineName: null,
+    relatedTo: null
   },
   {
     key: 'system-test',
@@ -26,7 +29,10 @@ export const phase2CardSteps = Object.freeze([
     icon: <ExperimentOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     requiresPhase2Unlock: true,
-    target: '/project/phase2/system-test'
+    target: '/project/phase2/system-test',
+    // 🆕 Deadline mapping
+    deadlineName: 'ยื่นคำขอทดสอบระบบ',
+    relatedTo: 'project2'
   },
   {
     key: 'thesis-defense-request',
@@ -37,6 +43,9 @@ export const phase2CardSteps = Object.freeze([
     icon: <AuditOutlined style={{ fontSize: 28 }} />,
     implemented: true,
     requiresPhase2Unlock: true,
-    target: '/project/phase2/thesis-defense'
+    target: '/project/phase2/thesis-defense',
+    // 🆕 Deadline mapping
+    deadlineName: 'ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)',
+    relatedTo: 'project2'
   }
 ]);
