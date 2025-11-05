@@ -150,7 +150,11 @@ export default function TopicExamResultPage() {
     setSelectedProject(project);
     passForm.resetFields();
     const defaultAdvisor = project?.advisor?.teacherId ? Number(project.advisor.teacherId) : undefined;
-    passForm.setFieldsValue({ advisorId: defaultAdvisor });
+    const defaultCoAdvisor = project?.coAdvisor?.teacherId ? Number(project.coAdvisor.teacherId) : undefined;
+    passForm.setFieldsValue({ 
+      advisorId: defaultAdvisor,
+      coAdvisorId: defaultCoAdvisor 
+    });
     setPassModalOpen(true);
   }, [passForm]);
 
@@ -164,7 +168,11 @@ export default function TopicExamResultPage() {
         setSubmitting(false);
         return;
       }
-      await recordTopicExamResult(selectedProject.projectId, { result: 'passed', advisorId });
+      const payload = { result: 'passed', advisorId };
+      if (values.coAdvisorId) {
+        payload.coAdvisorId = values.coAdvisorId;
+      }
+      await recordTopicExamResult(selectedProject.projectId, payload);
       message.success(`บันทึกผล: ผ่าน – ${selectedProject?.titleTh || selectedProject?.titleEn || 'หัวข้อไม่มีชื่อ'}`);
       setPassModalOpen(false);
       setSelectedProject(null);
@@ -215,9 +223,11 @@ export default function TopicExamResultPage() {
     // ตั้งค่าเริ่มต้นตามผลปัจจุบัน
     if (project.examResult === 'passed') {
       const defaultAdvisor = project?.advisor?.teacherId ? Number(project.advisor.teacherId) : undefined;
+      const defaultCoAdvisor = project?.coAdvisor?.teacherId ? Number(project.coAdvisor.teacherId) : undefined;
       editForm.setFieldsValue({ 
         result: 'passed',
-        advisorId: defaultAdvisor 
+        advisorId: defaultAdvisor,
+        coAdvisorId: defaultCoAdvisor 
       });
     } else if (project.examResult === 'failed') {
       editForm.setFieldsValue({ 
@@ -243,6 +253,18 @@ export default function TopicExamResultPage() {
           return;
         }
         payload.advisorId = values.advisorId;
+        // coAdvisorId เป็น optional
+        // ถ้าเลือก co-advisor ให้ส่ง coAdvisorId
+        // ถ้าไม่เลือก (undefined/null) และเดิมมี co-advisor อยู่ -> ส่ง null เพื่อลบ
+        // ถ้าไม่เลือก (undefined/null) และเดิมไม่มี co-advisor -> ไม่ต้องส่ง (undefined)
+        const hadCoAdvisor = selectedProject?.coAdvisor?.teacherId;
+        if (values.coAdvisorId !== undefined && values.coAdvisorId !== null) {
+          payload.coAdvisorId = values.coAdvisorId;
+        } else if (hadCoAdvisor) {
+          // เดิมมี co-advisor แต่ลบออก -> ส่ง null เพื่อลบ
+          payload.coAdvisorId = null;
+        }
+        // ถ้าไม่มี co-advisor และไม่เลือก -> ไม่ส่ง coAdvisorId (undefined)
       } else if (values.result === 'failed') {
         payload.reason = values.reason;
       }
@@ -299,10 +321,19 @@ export default function TopicExamResultPage() {
                         {EXAM_STATUS_MAP[record.examResult]?.text}
                       </Tag>
                     </Descriptions.Item>
-                    {record.examResult === 'passed' && record.advisor && (
-                      <Descriptions.Item label="อาจารย์ที่ปรึกษา">
-                        {record.advisor.name}
-                      </Descriptions.Item>
+                    {record.examResult === 'passed' && (
+                      <>
+                        {record.advisor && (
+                          <Descriptions.Item label="อาจารย์ที่ปรึกษา">
+                            {record.advisor.name}
+                          </Descriptions.Item>
+                        )}
+                        {record.coAdvisor && (
+                          <Descriptions.Item label="ที่ปรึกษาร่วม">
+                            {record.coAdvisor.name}
+                          </Descriptions.Item>
+                        )}
+                      </>
                     )}
                     {record.examResult === 'failed' && record.examFailReason && (
                       <Descriptions.Item label="เหตุผลที่ไม่ผ่าน">
@@ -389,11 +420,30 @@ export default function TopicExamResultPage() {
     {
       title: 'อาจารย์ที่ปรึกษา',
       dataIndex: 'advisor',
-      width: 180,
+      width: 200,
       render: (_, record) => {
         if (!record.examResult) return <Text type="secondary">—</Text>;
-        const label = record.advisor?.name;
-        return label ? <Text>{label}</Text> : <Text type="secondary">ยังไม่ระบุ</Text>;
+        const advisorLabel = record.advisor?.name;
+        const coAdvisorLabel = record.coAdvisor?.name;
+        
+        if (!advisorLabel && !coAdvisorLabel) {
+          return <Text type="secondary">ยังไม่ระบุ</Text>;
+        }
+        
+        return (
+          <Space direction="vertical" size={2}>
+            {advisorLabel && (
+              <Text style={{ fontSize: 12 }}>
+                <Text strong>ที่ปรึกษา:</Text> {advisorLabel}
+              </Text>
+            )}
+            {coAdvisorLabel && (
+              <Text style={{ fontSize: 12 }}>
+                <Text strong>ที่ปรึกษาร่วม:</Text> {coAdvisorLabel}
+              </Text>
+            )}
+          </Space>
+        );
       }
     },
     {
@@ -687,6 +737,21 @@ export default function TopicExamResultPage() {
               notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
             />
           </Form.Item>
+          <Form.Item
+            label="ที่ปรึกษาร่วม (ไม่บังคับ)"
+            name="coAdvisorId"
+            tooltip="เลือกอาจารย์ที่ปรึกษาร่วม หากโครงงานมีที่ปรึกษามากกว่า 1 ท่าน"
+          >
+            <Select
+              placeholder="เลือกที่ปรึกษาร่วม (ถ้ามี)"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              options={advisorOptions}
+              loading={advisorLoading}
+              notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
+            />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -757,21 +822,38 @@ export default function TopicExamResultPage() {
               
               if (result === 'passed') {
                 return (
-                  <Form.Item
-                    label="อาจารย์ที่ปรึกษา"
-                    name="advisorId"
-                    rules={[{ required: true, message: 'เลือกอาจารย์ที่ปรึกษา' }]}
-                  >
-                    <Select
-                      placeholder="เลือกอาจารย์ที่ปรึกษา"
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      options={advisorOptions}
-                      loading={advisorLoading}
-                      notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
-                    />
-                  </Form.Item>
+                  <>
+                    <Form.Item
+                      label="อาจารย์ที่ปรึกษา"
+                      name="advisorId"
+                      rules={[{ required: true, message: 'เลือกอาจารย์ที่ปรึกษา' }]}
+                    >
+                      <Select
+                        placeholder="เลือกอาจารย์ที่ปรึกษา"
+                        allowClear
+                        showSearch
+                        optionFilterProp="label"
+                        options={advisorOptions}
+                        loading={advisorLoading}
+                        notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      label="ที่ปรึกษาร่วม (ไม่บังคับ)"
+                      name="coAdvisorId"
+                      tooltip="เลือกอาจารย์ที่ปรึกษาร่วม หากโครงงานมีที่ปรึกษามากกว่า 1 ท่าน"
+                    >
+                      <Select
+                        placeholder="เลือกที่ปรึกษาร่วม (ถ้ามี)"
+                        allowClear
+                        showSearch
+                        optionFilterProp="label"
+                        options={advisorOptions}
+                        loading={advisorLoading}
+                        notFoundContent={advisorLoading ? 'กำลังโหลด...' : 'ไม่พบข้อมูล'}
+                      />
+                    </Form.Item>
+                  </>
                 );
               }
               

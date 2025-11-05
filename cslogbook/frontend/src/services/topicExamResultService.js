@@ -24,11 +24,27 @@ function normalizeAdvisorId(rawAdvisorId) {
 export async function recordTopicExamResult(projectId, payload = {}, isEdit = false) {
   const result = normalizeResult(payload.result ?? payload.examResult);
   const advisorId = normalizeAdvisorId(payload.advisorId ?? payload.selectedAdvisorId);
+  
+  // coAdvisorId: ถ้าเป็น null ตรงๆ (ต้องการลบ) ให้ส่ง null, ถ้าเป็น undefined/empty ให้ normalize, ถ้าเป็น number ให้ส่งไป
+  let coAdvisorId;
+  if (payload.coAdvisorId === null) {
+    // กรณีต้องการลบ co-advisor (ส่ง null ตรงๆ)
+    coAdvisorId = null;
+  } else if (payload.coAdvisorId !== undefined && payload.coAdvisorId !== '') {
+    // กรณีเลือก co-advisor
+    coAdvisorId = normalizeAdvisorId(payload.coAdvisorId ?? payload.selectedCoAdvisorId);
+  }
+  // ถ้าเป็น undefined/empty -> ไม่ส่ง coAdvisorId ใน requestBody
 
   const requestBody = { result };
 
   if (advisorId !== undefined) {
     requestBody.advisorId = advisorId;
+  }
+
+  // coAdvisorId: ถ้าเป็น undefined = ไม่ส่ง, ถ้าเป็น null = ส่ง null (ลบ), ถ้าเป็น number = ส่ง number (ตั้งค่า)
+  if (coAdvisorId !== undefined) {
+    requestBody.coAdvisorId = coAdvisorId;
   }
 
   if (isEdit) {

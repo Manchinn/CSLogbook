@@ -781,7 +781,7 @@ class ProjectDocumentService {
   /**
    * บันทึกผลสอบหัวข้อโครงงาน
    */
-  async setExamResult(projectId, { result, reason, advisorId, actorUser, allowOverwrite = false }) {
+  async setExamResult(projectId, { result, reason, advisorId, coAdvisorId, actorUser, allowOverwrite = false }) {
     ensureModels();
     const t = await sequelize.transaction();
     try {
@@ -800,6 +800,11 @@ class ProjectDocumentService {
 
       if (advisorId !== undefined) {
         updatePayload.advisorId = advisorId;
+      }
+
+      // รองรับ coAdvisorId (optional) - ถ้าส่งค่า null หรือ undefined จะไม่ update
+      if (coAdvisorId !== undefined) {
+        updatePayload.coAdvisorId = coAdvisorId || null;
       }
 
       await ProjectDocument.update(updatePayload, { where: { projectId }, transaction: t });
