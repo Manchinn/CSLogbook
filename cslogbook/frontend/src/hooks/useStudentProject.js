@@ -81,7 +81,19 @@ export function useStudentProject(options = {}) {
         // ดึงรายละเอียดเต็ม + summary
         const full = await projectService.getProjectWithSummary(first.projectId);
         if (full.success && token === lastLoadToken.current) {
-          setActiveProject(full.data);
+          // ตรวจสอบว่าโครงงานไม่ใช่ cancelled (เพิ่มการตรวจสอบเพื่อความปลอดภัย)
+          if (full.data?.status === 'cancelled') {
+            console.warn('Project is cancelled, not setting as active');
+            setActiveProject(null);
+            message.warning('โครงงานนี้ถูกยกเลิกแล้ว');
+          } else {
+            setActiveProject(full.data);
+          }
+        } else if (full.message && full.message.includes('ยกเลิก')) {
+          // จัดการ error เมื่อโครงงานถูกยกเลิก
+          console.warn('Cannot access cancelled project');
+          setActiveProject(null);
+          message.warning('โครงงานนี้ถูกยกเลิกแล้ว คุณไม่สามารถเข้าถึงได้');
         }
       } else {
         setActiveProject(null);

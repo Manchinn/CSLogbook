@@ -608,6 +608,7 @@ class ProjectDocumentService {
    * รายการโครงงานของนักศึกษาที่เกี่ยวข้อง (leader หรือ member)
    */
   async getMyProjects(studentId) {
+    // กรองโครงงานที่ cancelled ออก - นักศึกษาไม่สามารถเข้าถึงโครงงานที่ถูกยกเลิกแล้ว
     const projects = await ProjectDocument.findAll({
       attributes: [
         'projectId','projectCode','status','projectNameTh','projectNameEn',
@@ -615,6 +616,9 @@ class ProjectDocumentService {
         'objective','background','scope','expected_outcome','benefit','methodology','tools','timeline_note','risk','constraints',
         'createdByStudentId','archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
       ], // กำหนด whitelist ป้องกัน Sequelize select column ที่ไม่มี (เช่น student_id เก่า)
+      where: {
+        status: { [Op.ne]: 'cancelled' } // ไม่แสดงโครงงานที่ถูกยกเลิก
+      },
       include: [
         {
           model: ProjectMember,
@@ -696,6 +700,12 @@ class ProjectDocumentService {
       include: includes
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
+    
+    // ตรวจสอบว่าโครงงานถูกยกเลิกแล้ว - นักศึกษาไม่สามารถเข้าถึงได้
+    if (project.status === 'cancelled') {
+      throw new Error('โครงงานนี้ถูกยกเลิกแล้ว คุณไม่สามารถเข้าถึงข้อมูลโครงงานที่ถูกยกเลิกได้');
+    }
+    
     const base = this.serialize(project);
     const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
     const buildMetricsPayload = (metrics, requiredApprovedLogs) => ({

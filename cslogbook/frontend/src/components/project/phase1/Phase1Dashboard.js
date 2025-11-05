@@ -122,6 +122,11 @@ const Phase1Dashboard = () => {
   }), []);
   const projectAccessReason = projectReason || messages?.project || null;
 
+  // ตรวจสอบว่าโครงงานถูกยกเลิกแล้ว (ต้องเรียกก่อน conditional returns)
+  const isProjectCancelled = useMemo(() => {
+    return activeProject?.status === 'cancelled';
+  }, [activeProject?.status]);
+
   const postTopicLockReasons = useMemo(() => {
     if (!activeProject) return [];
     const reasons = [];
@@ -678,6 +683,27 @@ const Phase1Dashboard = () => {
               ย้อนกลับไปหน้าหลัก Phase 1
             </Button>
           </Space>
+        </Card>
+      </div>
+    );
+  }
+
+  // แสดง error message ถ้าโครงงานถูกยกเลิก
+  if (isProjectCancelled) {
+    return (
+      <div style={containerStyle}>
+        <Card>
+          <Alert
+            type="error"
+            showIcon
+            message="โครงงานนี้ถูกยกเลิกแล้ว"
+            description="โครงงานของคุณถูกยกเลิกโดยเจ้าหน้าที่ภาควิชา คุณไม่สามารถเข้าถึงข้อมูลโครงงานที่ถูกยกเลิกได้ กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่"
+            action={
+              <Button type="primary" onClick={() => navigate('/dashboard')}>
+                กลับไปหน้าแรก
+              </Button>
+            }
+          />
         </Card>
       </div>
     );
