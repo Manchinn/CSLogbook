@@ -240,19 +240,83 @@ const Phase1Dashboard = () => {
       return { isOverdue: false, reason: null, deadline: matchingDeadline };
     }
 
-    // 🔹 Soft Lock: เช็คว่าเกิน deadline แต่ยังให้เข้าได้ (แสดง warning)
-    if (now.isAfter(deadlineTime)) {
-      const diffDays = now.diff(deadlineTime, 'day');
-      const allowLate = matchingDeadline.allow_late ?? false;
-      
+    // 🆕 คำนวณ effective deadline (รวม grace period)
+    let effectiveDeadline = deadlineTime;
+    const gracePeriodMinutes = matchingDeadline.grace_period_minutes || matchingDeadline.gracePeriodMinutes || 0;
+    const allowLate = matchingDeadline.allow_late ?? false;
+    const lockAfterDeadline = matchingDeadline.lock_after_deadline ?? matchingDeadline.lockAfterDeadline ?? false;
+
+    if (allowLate && gracePeriodMinutes > 0) {
+      effectiveDeadline = deadlineTime.add(gracePeriodMinutes, 'minute');
+    }
+
+    // 🔹 เช็คว่าเกิน deadline หรือไม่
+    const isAfterDeadline = now.isAfter(deadlineTime);
+    const isAfterEffectiveDeadline = now.isAfter(effectiveDeadline);
+
+    if (!isAfterDeadline) {
+      // ยังไม่ถึง deadline → ไม่ lock
+      return { isOverdue: false, reason: null, deadline: matchingDeadline };
+    }
+
+    // เกิน deadline แล้ว → ตรวจสอบสถานะ
+    const diffDays = now.diff(deadlineTime, 'day');
+    const diffMinutes = now.diff(deadlineTime, 'minute');
+
+    // กรณี 1: เกิน effective deadline และ lock_after_deadline = true → Hard Lock
+    if (isAfterEffectiveDeadline && lockAfterDeadline) {
       return {
         isOverdue: true,
-        allowLate,
-        reason: allowLate 
-          ? `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`
-          : `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+        allowLate: false,
+        isLocked: true,
+        reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
         deadline: matchingDeadline,
-        diffDays
+        diffDays,
+        diffMinutes,
+        effectiveDeadline: effectiveDeadline.toISOString()
+      };
+    }
+
+    // กรณี 2: เกิน deadline แต่ยังไม่เกิน effective deadline และ allow_late = true → Soft Lock (ส่งได้แต่จะถูกบันทึกว่าส่งช้า)
+    if (isAfterDeadline && !isAfterEffectiveDeadline && allowLate) {
+      const graceMinutesLeft = effectiveDeadline.diff(now, 'minute');
+      return {
+        isOverdue: true,
+        allowLate: true,
+        isLocked: false,
+        reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${Math.ceil(graceMinutesLeft / 60)} ชม. แต่จะถูกบันทึกว่าส่งช้า)`,
+        deadline: matchingDeadline,
+        diffDays,
+        diffMinutes,
+        graceMinutesLeft,
+        effectiveDeadline: effectiveDeadline.toISOString()
+      };
+    }
+
+    // กรณี 3: เกิน deadline แต่ allow_late = false → Hard Lock
+    if (isAfterDeadline && !allowLate) {
+      return {
+        isOverdue: true,
+        allowLate: false,
+        isLocked: true,
+        reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+        deadline: matchingDeadline,
+        diffDays,
+        diffMinutes
+      };
+    }
+
+    // กรณี 4: เกิน effective deadline แต่ lock_after_deadline = false → ยังส่งได้ (แต่จะถูกบันทึกว่าส่งช้า)
+    if (isAfterEffectiveDeadline && !lockAfterDeadline && allowLate) {
+      return {
+        isOverdue: true,
+        allowLate: true,
+        isLocked: false,
+        reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
+        deadline: matchingDeadline,
+        diffDays,
+        diffMinutes,
+        effectiveDeadline: effectiveDeadline.toISOString()
       };
     }
 
@@ -730,9 +794,12 @@ const Phase1Dashboard = () => {
                 lockReasonsForStep.push(...phase2GateReasons);
               }
 
-              // 🆕 เช็ค deadline สำหรับ card นี้ (Soft Lock)
+              // 🆕 เช็ค deadline สำหรับ card นี้ (Soft Lock + Grace Period)
               const deadlineStatus = getStepDeadlineStatus(s);
-              if (deadlineStatus.isOverdue && deadlineStatus.reason) {
+              // เพิ่ม reason ครั้งเดียว: ถ้า isLocked ใช้ reason ของ isLocked, ถ้าไม่ lock แต่ overdue ใช้ reason ของ overdue
+              if (deadlineStatus.isLocked && deadlineStatus.reason) {
+                lockReasonsForStep.push(deadlineStatus.reason);
+              } else if (deadlineStatus.isOverdue && deadlineStatus.reason && !deadlineStatus.isLocked) {
                 lockReasonsForStep.push(deadlineStatus.reason);
               }
 

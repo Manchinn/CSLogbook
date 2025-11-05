@@ -197,19 +197,83 @@ const Phase2Dashboard = () => {
       return { isOverdue: false, reason: null, deadline: matchingDeadline };
     }
 
-    // 🔹 Soft Lock: เช็คว่าเกิน deadline แต่ยังให้เข้าได้ (แสดง warning)
-    if (now.isAfter(deadlineTime)) {
-      const diffDays = now.diff(deadlineTime, 'day');
-      const allowLate = matchingDeadline.allow_late ?? false;
-      
+    // 🆕 คำนวณ effective deadline (รวม grace period)
+    let effectiveDeadline = deadlineTime;
+    const gracePeriodMinutes = matchingDeadline.grace_period_minutes || matchingDeadline.gracePeriodMinutes || 0;
+    const allowLate = matchingDeadline.allow_late ?? false;
+    const lockAfterDeadline = matchingDeadline.lock_after_deadline ?? matchingDeadline.lockAfterDeadline ?? false;
+
+    if (allowLate && gracePeriodMinutes > 0) {
+      effectiveDeadline = deadlineTime.add(gracePeriodMinutes, 'minute');
+    }
+
+    // 🔹 เช็คว่าเกิน deadline หรือไม่
+    const isAfterDeadline = now.isAfter(deadlineTime);
+    const isAfterEffectiveDeadline = now.isAfter(effectiveDeadline);
+
+    if (!isAfterDeadline) {
+      // ยังไม่ถึง deadline → ไม่ lock
+      return { isOverdue: false, reason: null, deadline: matchingDeadline };
+    }
+
+    // เกิน deadline แล้ว → ตรวจสอบสถานะ
+    const diffDays = now.diff(deadlineTime, 'day');
+    const diffMinutes = now.diff(deadlineTime, 'minute');
+
+    // กรณี 1: เกิน effective deadline และ lock_after_deadline = true → Hard Lock
+    if (isAfterEffectiveDeadline && lockAfterDeadline) {
       return {
         isOverdue: true,
-        allowLate,
-        reason: allowLate 
-          ? `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`
-          : `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+        allowLate: false,
+        isLocked: true,
+        reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
         deadline: matchingDeadline,
-        diffDays
+        diffDays,
+        diffMinutes,
+        effectiveDeadline: effectiveDeadline.toISOString()
+      };
+    }
+
+    // กรณี 2: เกิน deadline แต่ยังไม่เกิน effective deadline และ allow_late = true → Soft Lock (ส่งได้แต่จะถูกบันทึกว่าส่งช้า)
+    if (isAfterDeadline && !isAfterEffectiveDeadline && allowLate) {
+      const graceMinutesLeft = effectiveDeadline.diff(now, 'minute');
+      return {
+        isOverdue: true,
+        allowLate: true,
+        isLocked: false,
+        reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${Math.ceil(graceMinutesLeft / 60)} ชม. แต่จะถูกบันทึกว่าส่งช้า)`,
+        deadline: matchingDeadline,
+        diffDays,
+        diffMinutes,
+        graceMinutesLeft,
+        effectiveDeadline: effectiveDeadline.toISOString()
+      };
+    }
+
+    // กรณี 3: เกิน deadline แต่ allow_late = false → Hard Lock
+    if (isAfterDeadline && !allowLate) {
+      return {
+        isOverdue: true,
+        allowLate: false,
+        isLocked: true,
+        reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+        deadline: matchingDeadline,
+        diffDays,
+        diffMinutes
+      };
+    }
+
+    // กรณี 4: เกิน effective deadline แต่ lock_after_deadline = false → ยังส่งได้ (แต่จะถูกบันทึกว่าส่งช้า)
+    if (isAfterEffectiveDeadline && !lockAfterDeadline && allowLate) {
+      return {
+        isOverdue: true,
+        allowLate: true,
+        isLocked: false,
+        reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
+        deadline: matchingDeadline,
+        diffDays,
+        diffMinutes,
+        effectiveDeadline: effectiveDeadline.toISOString()
       };
     }
 
@@ -990,10 +1054,22 @@ const Phase2Dashboard = () => {
             {/* 🆕 แสดง warning ถ้าเกิน deadline */}
             {systemTestDeadlineStatus.isOverdue && (
               <Alert
-                type={systemTestDeadlineStatus.allowLate ? 'warning' : 'error'}
+                type={systemTestDeadlineStatus.isLocked ? 'error' : 'warning'}
                 showIcon
-                message={systemTestDeadlineStatus.allowLate ? 'เกินกำหนดส่ง' : 'ปิดรับคำขอแล้ว'}
-                description={systemTestDeadlineStatus.reason}
+                message={
+                  systemTestDeadlineStatus.isLocked 
+                    ? 'ปิดรับคำขอแล้ว' 
+                    : systemTestDeadlineStatus.graceMinutesLeft 
+                      ? `ยังส่งได้อีก ${Math.ceil(systemTestDeadlineStatus.graceMinutesLeft / 60)} ชม.`
+                      : 'เกินกำหนดส่ง'
+                }
+                description={
+                  systemTestDeadlineStatus.isLocked
+                    ? 'หมดเวลาส่งแล้ว'
+                    : systemTestDeadlineStatus.graceMinutesLeft
+                      ? `เกินกำหนด ${systemTestDeadlineStatus.diffDays} วัน - จะถูกบันทึกว่าส่งช้า`
+                      : systemTestDeadlineStatus.reason
+                }
               />
             )}
             {!systemTestSummary ? (
@@ -1004,15 +1080,15 @@ const Phase2Dashboard = () => {
                   message="ยังไม่ยื่นคำขอทดสอบระบบ"
                   description="เมื่อพร้อมทดลองใช้งานจริง สามารถยื่นคำขอผ่านปุ่มด้านล่าง"
                 />
-                <Tooltip title={systemTestDeadlineStatus.isOverdue && !systemTestDeadlineStatus.allowLate ? 'ปิดรับคำขอแล้ว' : undefined}>
+                <Tooltip title={systemTestDeadlineStatus.isLocked ? 'ปิดรับคำขอแล้ว' : (systemTestDeadlineStatus.isOverdue && systemTestDeadlineStatus.allowLate ? systemTestDeadlineStatus.reason : undefined)}>
                   <Button 
                     type="primary" 
                     icon={<LinkOutlined />} 
                     onClick={() => navigate('/project/phase2/system-test')}
-                    disabled={systemTestDeadlineStatus.isOverdue && !systemTestDeadlineStatus.allowLate}
+                    disabled={systemTestDeadlineStatus.isLocked}
                   >
                     เปิดหน้าคำขอทดสอบระบบ
-                    {systemTestDeadlineStatus.isOverdue && systemTestDeadlineStatus.allowLate && ' (ส่งช้า)'}
+                    {systemTestDeadlineStatus.isOverdue && systemTestDeadlineStatus.allowLate && !systemTestDeadlineStatus.isLocked && ' (ส่งช้า)'}
                   </Button>
                 </Tooltip>
               </>
@@ -1115,10 +1191,22 @@ const Phase2Dashboard = () => {
             {/* 🆕 แสดง warning ถ้าเกิน deadline */}
             {thesisDefenseDeadlineStatus.isOverdue && (
               <Alert
-                type={thesisDefenseDeadlineStatus.allowLate ? 'warning' : 'error'}
+                type={thesisDefenseDeadlineStatus.isLocked ? 'error' : 'warning'}
                 showIcon
-                message={thesisDefenseDeadlineStatus.allowLate ? 'เกินกำหนดส่ง' : 'ปิดรับคำขอแล้ว'}
-                description={thesisDefenseDeadlineStatus.reason}
+                message={
+                  thesisDefenseDeadlineStatus.isLocked 
+                    ? 'ปิดรับคำขอแล้ว' 
+                    : thesisDefenseDeadlineStatus.graceMinutesLeft 
+                      ? `ยังส่งได้อีก ${Math.ceil(thesisDefenseDeadlineStatus.graceMinutesLeft / 60)} ชม.`
+                      : 'เกินกำหนดส่ง'
+                }
+                description={
+                  thesisDefenseDeadlineStatus.isLocked
+                    ? 'หมดเวลาส่งแล้ว'
+                    : thesisDefenseDeadlineStatus.graceMinutesLeft
+                      ? `เกินกำหนด ${thesisDefenseDeadlineStatus.diffDays} วัน - จะถูกบันทึกว่าส่งช้า`
+                      : thesisDefenseDeadlineStatus.reason
+                }
               />
             )}
 
@@ -1144,14 +1232,14 @@ const Phase2Dashboard = () => {
               />
             )}
 
-            <Tooltip title={thesisDefenseDeadlineStatus.isOverdue && !thesisDefenseDeadlineStatus.allowLate ? 'ปิดรับคำขอแล้ว' : undefined}>
+            <Tooltip title={thesisDefenseDeadlineStatus.isLocked ? 'ปิดรับคำขอแล้ว' : (thesisDefenseDeadlineStatus.isOverdue && thesisDefenseDeadlineStatus.allowLate ? thesisDefenseDeadlineStatus.reason : undefined)}>
               <Button 
                 type="primary" 
                 onClick={() => navigate('/project/phase2/thesis-defense')}
-                disabled={thesisDefenseDeadlineStatus.isOverdue && !thesisDefenseDeadlineStatus.allowLate}
+                disabled={thesisDefenseDeadlineStatus.isLocked}
               >
                 เปิดหน้าคำขอสอบ คพ.03
-                {thesisDefenseDeadlineStatus.isOverdue && thesisDefenseDeadlineStatus.allowLate && ' (ส่งช้า)'}
+                {thesisDefenseDeadlineStatus.isOverdue && thesisDefenseDeadlineStatus.allowLate && !thesisDefenseDeadlineStatus.isLocked && ' (ส่งช้า)'}
               </Button>
             </Tooltip>
           </Space>
