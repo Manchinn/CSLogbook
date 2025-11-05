@@ -5,8 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Card, Statistic, Row, Col, Tag, Space, Typography } from 'antd';
-import { ClockCircleOutlined } from '@ant-design/icons';
+import { Statistic, Row, Col, Tag, Space, Typography } from 'antd';
 import PropTypes from 'prop-types';
 import { 
   calculateTimeRemaining, 
@@ -16,7 +15,7 @@ import {
 
 const { Text } = Typography;
 
-const DeadlineCountdown = ({ deadline, showCard = true }) => {
+const DeadlineCountdown = ({ deadline }) => {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [status, setStatus] = useState(null);
 
@@ -112,7 +111,7 @@ const DeadlineCountdown = ({ deadline, showCard = true }) => {
     );
   };
 
-  const content = (
+  return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div style={{ textAlign: 'center' }}>
         <Space direction="vertical" size={4}>
@@ -136,28 +135,6 @@ const DeadlineCountdown = ({ deadline, showCard = true }) => {
       )}
     </Space>
   );
-
-  if (!showCard) {
-    return content;
-  }
-
-  return (
-    {/* <Card
-      title={
-        <Space>
-          <ClockCircleOutlined />
-          <Text strong>Deadline ถัดไป</Text>
-        </Space>
-      }
-      bordered
-      style={{ 
-        marginBottom: 16,
-        background: timeRemaining.isOverdue ? '#fff1f0' : undefined
-      }}
-    >
-      {content}
-    </Card> */}
-  );
 };
 
 DeadlineCountdown.propTypes = {
@@ -167,8 +144,7 @@ DeadlineCountdown.propTypes = {
     gracePeriodMinutes: PropTypes.number,
     lockAfterDeadline: PropTypes.bool,
     allowLate: PropTypes.bool
-  }),
-  showCard: PropTypes.bool
+  })
 };
 
 export default DeadlineCountdown;

@@ -5,7 +5,7 @@ import dayjs from '../../utils/dayjs';
 import useStudentProject from '../../hooks/useStudentProject';
 import DeadlineAlert from '../common/DeadlineAlert';
 import DeadlineCountdown from '../common/DeadlineCountdown';
-import UpcomingDeadlines from '../common/UpcomingDeadlines';
+// import UpcomingDeadlines from '../common/UpcomingDeadlines';
 import projectWorkflowStateService from '../../services/projectWorkflowStateService';
 
 const { Title, Text, Paragraph } = Typography;
