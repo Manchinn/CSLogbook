@@ -202,7 +202,7 @@ const ProjectDashboard = () => {
                         <DeadlineCountdown deadline={projectState.deadlines.next} />
                       </Col>
                     )}
-                    {projectState.deadlines.upcoming && projectState.deadlines.upcoming.length > 0 && (
+                    {/* {projectState.deadlines.upcoming && projectState.deadlines.upcoming.length > 0 && (
                       <Col xs={24} lg={projectState.deadlines.next ? 12 : 24}>
                         <UpcomingDeadlines 
                           deadlines={projectState.deadlines.upcoming} 
@@ -210,7 +210,7 @@ const ProjectDashboard = () => {
                           title="Deadline โครงงาน"
                         />
                       </Col>
-                    )}
+                    )} */}
                   </Row>
                 </>
               )}

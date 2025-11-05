@@ -142,7 +142,7 @@ const DeadlineCountdown = ({ deadline, showCard = true }) => {
   }
 
   return (
-    <Card
+    {/* <Card
       title={
         <Space>
           <ClockCircleOutlined />
@@ -156,7 +156,7 @@ const DeadlineCountdown = ({ deadline, showCard = true }) => {
       }}
     >
       {content}
-    </Card>
+    </Card> */}
   );
 };
 
