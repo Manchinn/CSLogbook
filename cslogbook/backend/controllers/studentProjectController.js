@@ -70,6 +70,15 @@ class StudentProjectController {
         });
       }
 
+      // ตรวจสอบว่าโครงงานถูกยกเลิกแล้ว (เพิ่มการตรวจสอบอีกครั้งเพื่อความปลอดภัย)
+      // Note: getProjectById จะ throw error ถ้าโครงงานเป็น cancelled แล้ว แต่เราตรวจสอบอีกครั้งเพื่อความชัดเจน
+      if (project.status === 'cancelled') {
+        return res.status(403).json({
+          success: false,
+          message: 'โครงงานนี้ถูกยกเลิกแล้ว คุณไม่สามารถเข้าถึงข้อมูลโครงงานที่ถูกยกเลิกได้'
+        });
+      }
+
       logger.info('StudentProjectController: ดึงข้อมูลโครงงานตาม ID สำเร็จ', {
         projectId,
         studentId: req.user.studentId

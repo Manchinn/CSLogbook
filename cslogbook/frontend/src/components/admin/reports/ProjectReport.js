@@ -1,6 +1,6 @@
 // หน้าแสดงรายงานเฉพาะโครงงาน (Project) สำหรับงานธุรการ
-import React, { useMemo, useRef, useCallback } from 'react';
-import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Empty, Tabs, Statistic, Progress, Tag } from 'antd';
+import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import { Card, Row, Col, Typography, Select, Space, Skeleton, Alert, Empty, Tabs, Statistic, Progress, Tag, Table, Button, Modal, Input, message, Tooltip } from 'antd';
 import { 
 	ProjectOutlined, 
 	CheckCircleOutlined,
@@ -11,10 +11,13 @@ import {
 	BookOutlined,
 	LineChartOutlined,
 	UserOutlined,
+	SettingOutlined,
+	CloseCircleOutlined,
 } from '@ant-design/icons';
 import { SimplePieChart, SimpleLineChart, CHART_COLORS } from './charts/RechartsComponents';
 import { useProjectReport } from './hooks/useProjectReport';
 import { academicYearOptions } from './constants';
+import projectManagementService from '../../../services/admin/projectManagementService';
 
 const { Title, Text } = Typography;
 
@@ -28,6 +31,26 @@ const ProjectReport = () => {
 	const initialYear = currentAcademicYear();
 	const anchorYearRef = useRef(initialYear);
 	const { year, setYear, loading, error, reportData, examTrends } = useProjectReport(initialYear);
+	
+	// State สำหรับจัดการโครงงาน
+	const [projects, setProjects] = useState([]);
+	const [projectsLoading, setProjectsLoading] = useState(false);
+	const [cancelModalVisible, setCancelModalVisible] = useState(false);
+	const [selectedProject, setSelectedProject] = useState(null);
+	const [cancelReason, setCancelReason] = useState('');
+	const [cancelling, setCancelling] = useState(false);
+	const [projectPagination, setProjectPagination] = useState({
+		current: 1,
+		pageSize: 20,
+		total: 0
+	});
+	const [projectFilters, setProjectFilters] = useState({
+		status: undefined,
+		academicYear: initialYear,
+		semester: undefined,
+		page: 1,
+		limit: 20
+	});
 
 	const numberFormatter = useMemo(() => new Intl.NumberFormat('th-TH'), []);
 	const formatNumber = useCallback((value, fallback = '-') => {
@@ -37,6 +60,174 @@ const ProjectReport = () => {
 	}, [numberFormatter]);
 
 	const yearOptions = academicYearOptions(anchorYearRef.current);
+
+	// ดึงรายการโครงงาน
+	const loadProjects = useCallback(async () => {
+		setProjectsLoading(true);
+		try {
+			const result = await projectManagementService.getAllProjects(projectFilters);
+			if (result.success) {
+				setProjects(result.data?.projects || []);
+				if (result.data?.pagination) {
+					setProjectPagination({
+						current: result.data.pagination.currentPage,
+						pageSize: result.data.pagination.itemsPerPage,
+						total: result.data.pagination.totalItems
+					});
+				}
+			} else {
+				message.error(result.message || 'ไม่สามารถดึงรายการโครงงานได้');
+			}
+		} catch (err) {
+			message.error('เกิดข้อผิดพลาดในการดึงรายการโครงงาน');
+			console.error(err);
+		} finally {
+			setProjectsLoading(false);
+		}
+	}, [projectFilters]);
+
+	useEffect(() => {
+		loadProjects();
+	}, [loadProjects]);
+
+	// จัดการยกเลิกโครงงาน
+	const handleCancelProject = useCallback((project) => {
+		setSelectedProject(project);
+		setCancelReason('');
+		setCancelModalVisible(true);
+	}, []);
+
+	const handleConfirmCancel = useCallback(async () => {
+		if (!selectedProject) return;
+		
+		setCancelling(true);
+		try {
+			const result = await projectManagementService.cancelProject(
+				selectedProject.projectId,
+				cancelReason || 'ยกเลิกโดยเจ้าหน้าที่ภาควิชา'
+			);
+			
+			if (result.success) {
+				message.success('ยกเลิกโครงงานสำเร็จ');
+				setCancelModalVisible(false);
+				setSelectedProject(null);
+				setCancelReason('');
+				await loadProjects();
+			} else {
+				message.error(result.message || 'ไม่สามารถยกเลิกโครงงานได้');
+			}
+		} catch (err) {
+			message.error('เกิดข้อผิดพลาดในการยกเลิกโครงงาน');
+			console.error(err);
+		} finally {
+			setCancelling(false);
+		}
+	}, [selectedProject, cancelReason, loadProjects]);
+
+	// คอลัมน์ตารางโครงงาน
+	const projectColumns = useMemo(() => [
+		{
+			title: 'รหัสโครงงาน',
+			dataIndex: 'projectCode',
+			key: 'projectCode',
+			width: 150,
+		},
+		{
+			title: 'ชื่อโครงงาน',
+			dataIndex: 'projectNameTh',
+			key: 'projectNameTh',
+			width: 300,
+			ellipsis: true,
+		},
+		{
+			title: 'ปีการศึกษา/เทอม',
+			key: 'academic',
+			width: 150,
+			render: (_, record) => (
+				<Text>{record.academicYear || '-'} / {record.semester || '-'}</Text>
+			),
+		},
+		{
+			title: 'สมาชิก',
+			key: 'members',
+			width: 250,
+			render: (_, record) => {
+				const members = record.members || [];
+				return (
+					<Space direction="vertical" size="small">
+						{members.map((member, idx) => (
+							<Text key={idx}>
+								{member.student?.user?.firstName} {member.student?.user?.lastName} ({member.student?.studentCode})
+							</Text>
+						))}
+					</Space>
+				);
+			},
+		},
+		{
+			title: 'อาจารย์ที่ปรึกษา',
+			key: 'advisor',
+			width: 200,
+			render: (_, record) => (
+				<Text>
+					{record.advisor?.user?.firstName} {record.advisor?.user?.lastName}
+				</Text>
+			),
+		},
+		{
+			title: 'สถานะ',
+			dataIndex: 'status',
+			key: 'status',
+			width: 120,
+			render: (status) => {
+				const statusMap = {
+					draft: { color: 'default', text: 'ร่าง' },
+					advisor_assigned: { color: 'blue', text: 'มีที่ปรึกษา' },
+					in_progress: { color: 'processing', text: 'กำลังดำเนินการ' },
+					completed: { color: 'success', text: 'เสร็จสิ้น' },
+					archived: { color: 'default', text: 'เก็บแล้ว' },
+					cancelled: { color: 'error', text: 'ยกเลิก' },
+				};
+				const statusInfo = statusMap[status] || { color: 'default', text: status };
+				return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+			},
+			filters: [
+				{ text: 'ร่าง', value: 'draft' },
+				{ text: 'มีที่ปรึกษา', value: 'advisor_assigned' },
+				{ text: 'กำลังดำเนินการ', value: 'in_progress' },
+				{ text: 'เสร็จสิ้น', value: 'completed' },
+				{ text: 'เก็บแล้ว', value: 'archived' },
+				{ text: 'ยกเลิก', value: 'cancelled' },
+			],
+			onFilter: (value, record) => record.status === value,
+		},
+		{
+			title: 'การจัดการ',
+			key: 'actions',
+			width: 120,
+			fixed: 'right',
+			render: (_, record) => {
+				const canCancel = !['completed', 'archived', 'cancelled'].includes(record.status);
+				return (
+					<Space size="small">
+						{canCancel && (
+							<Tooltip title="ยกเลิกโครงงาน">
+								<Button
+									danger
+									size="small"
+									icon={<CloseCircleOutlined />}
+									onClick={(e) => {
+										e.stopPropagation();
+										handleCancelProject(record);
+									}}
+								/>
+							</Tooltip>
+						)}
+					</Space>
+				);
+			},
+		},
+	], [handleCancelProject]);
 
 	// KPI Cards หลัก
 	const summaryKpis = useMemo(() => {
@@ -291,6 +482,76 @@ const ProjectReport = () => {
 							)
 						},
 						{
+							key:'management',
+							label: <span><SettingOutlined /> จัดการโครงงานพิเศษ</span>,
+							children: (
+								<Card size="small" title="รายการโครงงานพิเศษ">
+									<Space direction="vertical" style={{ width: '100%' }} size="middle">
+										<Row gutter={[16, 16]}>
+											<Col xs={24} sm={12} md={8}>
+												<Select
+													style={{ width: '100%' }}
+													placeholder="กรองตามสถานะ"
+													allowClear
+													value={projectFilters.status}
+													onChange={(value) => setProjectFilters(prev => ({ ...prev, status: value, page: 1 }))}
+													options={[
+														{ label: 'ร่าง', value: 'draft' },
+														{ label: 'มีที่ปรึกษา', value: 'advisor_assigned' },
+														{ label: 'กำลังดำเนินการ', value: 'in_progress' },
+														{ label: 'เสร็จสิ้น', value: 'completed' },
+														{ label: 'เก็บแล้ว', value: 'archived' },
+														{ label: 'ยกเลิก', value: 'cancelled' },
+													]}
+												/>
+											</Col>
+											<Col xs={24} sm={12} md={8}>
+												<Select
+													style={{ width: '100%' }}
+													placeholder="กรองตามปีการศึกษา"
+													allowClear
+													value={projectFilters.academicYear}
+													onChange={(value) => setProjectFilters(prev => ({ ...prev, academicYear: value, page: 1 }))}
+													options={yearOptions.map(y => ({ value: y, label: y }))}
+												/>
+											</Col>
+											<Col xs={24} sm={12} md={8}>
+												<Select
+													style={{ width: '100%' }}
+													placeholder="กรองตามเทอม"
+													allowClear
+													value={projectFilters.semester}
+													onChange={(value) => setProjectFilters(prev => ({ ...prev, semester: value, page: 1 }))}
+													options={[
+														{ label: 'เทอม 1', value: 1 },
+														{ label: 'เทอม 2', value: 2 },
+													]}
+												/>
+											</Col>
+										</Row>
+										<Table
+											columns={projectColumns}
+											dataSource={projects}
+											rowKey="projectId"
+											loading={projectsLoading}
+											pagination={{
+												...projectPagination,
+												showSizeChanger: true,
+												showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+												onChange: (page, pageSize) => {
+													setProjectFilters(prev => ({ ...prev, page, limit: pageSize }));
+												},
+											}}
+											scroll={{ x: 'max-content' }}
+											locale={{
+												emptyText: <Empty description="ไม่พบข้อมูลโครงงาน" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+											}}
+										/>
+									</Space>
+								</Card>
+							)
+						},
+						{
 							key:'additional',
 							label: <span><LineChartOutlined /> สถิติเพิ่มเติม</span>,
 							children: loading ? <Skeleton active /> : (
@@ -364,6 +625,61 @@ const ProjectReport = () => {
 						}
 					]}
 				/>
+
+				{/* Modal ยกเลิกโครงงาน */}
+				<Modal
+					title="ยกเลิกโครงงานพิเศษ"
+					open={cancelModalVisible}
+					onOk={handleConfirmCancel}
+					onCancel={() => {
+						setCancelModalVisible(false);
+						setSelectedProject(null);
+						setCancelReason('');
+					}}
+					confirmLoading={cancelling}
+					okText="ยืนยันยกเลิก"
+					cancelText="ยกเลิก"
+					okButtonProps={{ danger: true }}
+				>
+					{selectedProject && (
+						<Space direction="vertical" style={{ width: '100%' }} size="middle">
+							<Alert
+								message="คำเตือน"
+								description="การยกเลิกโครงงานจะทำให้สถานะโครงงานเป็น 'cancelled' และนักศึกษาทั้งสองคนสามารถส่งเสนอหัวข้อโครงงานพิเศษใหม่ได้ในภาคการศึกษาถัดไป"
+								type="warning"
+								showIcon
+							/>
+							<div>
+								<Text strong>รหัสโครงงาน: </Text>
+								<Text>{selectedProject.projectCode}</Text>
+							</div>
+							<div>
+								<Text strong>ชื่อโครงงาน: </Text>
+								<Text>{selectedProject.projectNameTh}</Text>
+							</div>
+							<div>
+								<Text strong>สมาชิก: </Text>
+								<Space direction="vertical" size="small">
+									{selectedProject.members?.map((member, idx) => (
+										<Text key={idx}>
+											{member.student?.user?.firstName} {member.student?.user?.lastName} ({member.student?.studentCode})
+										</Text>
+									))}
+								</Space>
+							</div>
+							<div>
+								<Text strong>เหตุผลในการยกเลิก (ไม่บังคับ):</Text>
+								<Input.TextArea
+									rows={4}
+									value={cancelReason}
+									onChange={(e) => setCancelReason(e.target.value)}
+									placeholder="ระบุเหตุผลในการยกเลิกโครงงาน (ถ้ามี)"
+									style={{ marginTop: 8 }}
+								/>
+							</div>
+						</Space>
+					)}
+				</Modal>
 			</Space>
 		</div>
 	);

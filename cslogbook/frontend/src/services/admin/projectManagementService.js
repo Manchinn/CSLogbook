@@ -249,6 +249,30 @@ class ProjectManagementService {
       };
     }
   }
+
+  /**
+   * ยกเลิกโครงงานพิเศษ
+   * @param {string} projectId - ID ของโครงงาน
+   * @param {string} reason - เหตุผลในการยกเลิก
+   * @returns {Promise<Object>} - ผลลัพธ์การยกเลิก
+   */
+  async cancelProject(projectId, reason) {
+    try {
+      const response = await this.api.post(`${this.baseURL}/projects/${projectId}/cancel`, { reason });
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('Error cancelling project:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการยกเลิกโครงงาน',
+        error: error.response?.data
+      };
+    }
+  }
 }
 
 // Export singleton instance

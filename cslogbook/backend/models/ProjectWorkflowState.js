@@ -90,14 +90,22 @@ module.exports = (sequelize) => {
      */
     static async updateFromExamResult(projectId, examType, result, options = {}) {
       const { transaction, userId, examDate } = options;
+      const { ProjectDocument } = sequelize.models;
       
       const state = await this.findOne({ where: { projectId }, transaction });
       if (!state) return null;
 
+      // Sync project_status จาก project_documents.status เพื่อป้องกัน NULL
+      const project = await ProjectDocument.findByPk(projectId, {
+        attributes: ['status'],
+        transaction
+      });
+
       const updates = {
         lastActivityAt: new Date(),
         lastActivityType: `${examType.toLowerCase()}_exam_recorded`,
-        lastUpdatedBy: userId || null
+        lastUpdatedBy: userId || null,
+        projectStatus: project?.status || state.projectStatus || 'draft' // ป้องกัน NULL
       };
 
       if (examType === 'PROJECT1') {
@@ -135,14 +143,22 @@ module.exports = (sequelize) => {
      */
     static async updateFromDefenseRequest(projectId, defenseType, requestId, status, options = {}) {
       const { transaction, userId } = options;
+      const { ProjectDocument } = sequelize.models;
       
       const state = await this.findOne({ where: { projectId }, transaction });
       if (!state) return null;
 
+      // Sync project_status จาก project_documents.status เพื่อป้องกัน NULL
+      const project = await ProjectDocument.findByPk(projectId, {
+        attributes: ['status'],
+        transaction
+      });
+
       const updates = {
         lastActivityAt: new Date(),
         lastActivityType: `defense_request_${status}`,
-        lastUpdatedBy: userId || null
+        lastUpdatedBy: userId || null,
+        projectStatus: project?.status || state.projectStatus || 'draft' // ป้องกัน NULL
       };
 
       if (defenseType === 'PROJECT1') {
@@ -174,16 +190,24 @@ module.exports = (sequelize) => {
      */
     static async updateMeetingCount(projectId, meetingCount, approvedCount, options = {}) {
       const { transaction, userId } = options;
+      const { ProjectDocument } = sequelize.models;
       
       const state = await this.findOne({ where: { projectId }, transaction });
       if (!state) return null;
+
+      // Sync project_status จาก project_documents.status เพื่อป้องกัน NULL
+      const project = await ProjectDocument.findByPk(projectId, {
+        attributes: ['status'],
+        transaction
+      });
 
       await state.update({
         meetingCount: meetingCount || 0,
         approvedMeetingCount: approvedCount || 0,
         lastActivityAt: new Date(),
         lastActivityType: 'meeting_updated',
-        lastUpdatedBy: userId || null
+        lastUpdatedBy: userId || null,
+        projectStatus: project?.status || state.projectStatus || 'draft' // ป้องกัน NULL
       }, { transaction });
 
       return state;
@@ -217,7 +241,8 @@ module.exports = (sequelize) => {
         'THESIS_EXAM_SCHEDULED',
         'THESIS_FAILED',
         'COMPLETED',
-        'ARCHIVED'
+        'ARCHIVED',
+        'CANCELLED'
       ),
       allowNull: false,
       defaultValue: 'DRAFT',

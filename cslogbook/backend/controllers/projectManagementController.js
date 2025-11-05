@@ -316,6 +316,63 @@ class ProjectManagementController {
       });
     }
   }
+
+  /**
+   * ยกเลิกโครงงานพิเศษ
+   * POST /api/admin/projects/:projectId/cancel
+   */
+  async cancelProject(req, res) {
+    try {
+      const { projectId } = req.params;
+      const { reason } = req.body;
+
+      if (!projectId || isNaN(projectId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'กรุณาระบุ ID โครงงานที่ถูกต้อง'
+        });
+      }
+
+      const result = await projectManagementService.cancelProject(
+        parseInt(projectId),
+        req.user.userId,
+        reason
+      );
+
+      logger.info('ProjectManagementController: ยกเลิกโครงงานสำเร็จ', {
+        projectId,
+        cancelledBy: req.user.userId,
+        studentIds: result.studentIds
+      });
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: result
+      });
+
+    } catch (error) {
+      logger.error('ProjectManagementController: เกิดข้อผิดพลาดในการยกเลิกโครงงาน', {
+        error: error.message,
+        projectId: req.params.projectId,
+        user: req.user.userId
+      });
+
+      if (error.message.includes('ไม่พบโครงงาน') || 
+          error.message.includes('ถูกยกเลิกไปแล้ว') ||
+          error.message.includes('ไม่สามารถยกเลิก')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'เกิดข้อผิดพลาดในการยกเลิกโครงงาน'
+      });
+    }
+  }
 }
 
 module.exports = new ProjectManagementController();
