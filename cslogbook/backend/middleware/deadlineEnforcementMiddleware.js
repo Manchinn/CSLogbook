@@ -29,16 +29,68 @@ const checkDeadlineBeforeSubmission = (actionType = 'SUBMISSION') => {
     try {
       const projectId = req.params.id || req.params.projectId;
       
+      // Log สำหรับ debugging
+      logger.debug('checkDeadlineBeforeSubmission: Request received', {
+        projectId,
+        params: req.params,
+        url: req.url,
+        method: req.method,
+        actionType,
+        userId: req.user?.userId,
+        studentCode: req.student?.studentCode
+      });
+      
       if (!projectId) {
+        logger.warn('checkDeadlineBeforeSubmission: Missing projectId', {
+          params: req.params,
+          url: req.url,
+          method: req.method
+        });
         return res.status(400).json({
           success: false,
           error: 'ไม่พบรหัสโครงงาน'
         });
       }
 
-      // ดึง workflow state
+      // ตรวจสอบว่า projectId เป็นตัวเลขที่ valid
+      const parsedProjectId = parseInt(projectId, 10);
+      if (isNaN(parsedProjectId) || parsedProjectId <= 0) {
+        logger.warn('checkDeadlineBeforeSubmission: Invalid projectId format', {
+          projectId,
+          parsedProjectId,
+          params: req.params,
+          url: req.url
+        });
+        return res.status(400).json({
+          success: false,
+          error: 'projectId ไม่ถูกต้อง',
+          details: `projectId ต้องเป็นตัวเลขที่ valid (ได้รับ: ${projectId})`
+        });
+      }
+
+      // ตรวจสอบว่า project มีอยู่จริงก่อน
+      const project = await ProjectDocument.findByPk(parsedProjectId, {
+        attributes: ['projectId', 'academicYear', 'semester', 'projectNameTh']
+      });
+
+      if (!project) {
+        logger.warn('checkDeadlineBeforeSubmission: Project not found', {
+          projectId: parsedProjectId,
+          originalProjectId: projectId,
+          url: req.url,
+          userId: req.user?.userId,
+          studentCode: req.student?.studentCode
+        });
+        return res.status(404).json({
+          success: false,
+          error: 'ไม่พบข้อมูลโครงงาน',
+          details: `ไม่พบโครงงาน ID: ${parsedProjectId}`
+        });
+      }
+
+      // ดึง workflow state - ใช้ parsedProjectId ที่ validated แล้ว
       const state = await ProjectWorkflowState.findOne({
-        where: { projectId },
+        where: { projectId: parsedProjectId },
         include: [{
           model: ProjectDocument,
           as: 'project',
@@ -46,10 +98,35 @@ const checkDeadlineBeforeSubmission = (actionType = 'SUBMISSION') => {
         }]
       });
 
-      if (!state || !state.project) {
-        return res.status(404).json({
+      // ถ้าไม่มี state แต่ project มีอยู่ แสดงว่า state ยังไม่ได้ sync
+      if (!state) {
+        logger.warn(`ProjectWorkflowState not found for projectId: ${parsedProjectId} - state may need to be synced`, {
+          projectId: parsedProjectId,
+          url: req.url,
+          userId: req.user?.userId,
+          studentCode: req.student?.studentCode
+        });
+        return res.status(500).json({
           success: false,
-          error: 'ไม่พบข้อมูลโครงงาน'
+          error: 'สถานะโครงงานยังไม่ได้อัปเดต กรุณาติดต่อผู้ดูแลระบบ',
+          code: 'WORKFLOW_STATE_MISSING',
+          details: {
+            projectId: parsedProjectId,
+            message: 'ProjectWorkflowState ยังไม่ได้ถูกสร้างหรือ sync สำหรับโครงงานนี้'
+          }
+        });
+      }
+
+      if (!state.project) {
+        logger.warn(`ProjectWorkflowState found but project association missing for projectId: ${parsedProjectId}`, {
+          projectId: parsedProjectId,
+          url: req.url,
+          userId: req.user?.userId
+        });
+        return res.status(500).json({
+          success: false,
+          error: 'ข้อมูลโครงงานไม่สมบูรณ์ กรุณาติดต่อผู้ดูแลระบบ',
+          code: 'PROJECT_ASSOCIATION_MISSING'
         });
       }
 
@@ -91,7 +168,7 @@ const checkDeadlineBeforeSubmission = (actionType = 'SUBMISSION') => {
       // ใช้ shared utility function ตรวจสอบ deadline
       const checkResult = checkDeadlineStatus(deadline, {
         type: 'project',
-        projectId,
+        projectId: parsedProjectId,
         phase,
         relatedTo,
         userId: req.user?.userId

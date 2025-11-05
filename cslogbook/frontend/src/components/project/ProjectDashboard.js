@@ -117,9 +117,16 @@ const ProjectDashboard = () => {
   useEffect(() => {
     const projectId = activeProject?.projectId;
     
-    // ตรวจสอบว่า projectId เป็นตัวเลขที่ valid
-    if (!projectId || isNaN(Number(projectId))) {
-      console.log('Invalid or missing projectId:', projectId);
+    // ตรวจสอบว่า projectId เป็นตัวเลขที่ valid - ตรวจสอบให้ละเอียดขึ้น
+    if (projectId === undefined || projectId === null) {
+      setProjectState(null);
+      return;
+    }
+
+    // แปลงเป็นตัวเลขและตรวจสอบ
+    const numProjectId = Number(projectId);
+    if (isNaN(numProjectId) || numProjectId <= 0 || !Number.isInteger(numProjectId)) {
+      console.warn('Invalid projectId format:', projectId, 'parsed as:', numProjectId);
       setProjectState(null);
       return;
     }
@@ -128,12 +135,13 @@ const ProjectDashboard = () => {
       try {
         setLoadingDeadlines(true);
         const response = await projectWorkflowStateService.getProjectStateWithDeadlines(
-          Number(projectId)
+          numProjectId
         );
         setProjectState(response.data);
       } catch (error) {
+        // Log error แต่ไม่แสดงให้ user เพื่อไม่รบกวน UX
+        // Error 400 จะถูกจัดการโดย backend validation
         console.error('Error fetching project state with deadlines:', error);
-        // ไม่แสดง error message เพื่อไม่รบกวน UX
         setProjectState(null);
       } finally {
         setLoadingDeadlines(false);
