@@ -95,7 +95,7 @@ const StudentList = () => {
   // ดึงข้อมูลปีการศึกษา
   const fetchAcademicYearOptions = () => {
     const currentYear = new Date().getFullYear() + 543;
-    const options = Array.from({ length: 5 }, (_, i) => ({
+    const options = Array.from({ length: 10 }, (_, i) => ({
       value: currentYear - i,
       label: `${currentYear - i}`,
     }));

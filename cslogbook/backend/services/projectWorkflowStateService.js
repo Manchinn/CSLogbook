@@ -1,4 +1,4 @@
-const { ProjectWorkflowState, ProjectDocument, ProjectMember, Student, User, ImportantDeadline } = require('../models');
+const { ProjectWorkflowState, ProjectDocument, ProjectMember, Student, User, ImportantDeadline, WorkflowStepDefinition } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const dayjs = require('dayjs');
@@ -8,6 +8,42 @@ const {
 } = require('../constants/workflowDeadlineMapping');
 
 class ProjectWorkflowStateService {
+  async getPhaseMapping(currentPhase) {
+    try {
+      if (!currentPhase) return null;
+
+      const workflowType = getWorkflowTypeFromPhase(currentPhase);
+      if (!workflowType) return null;
+
+      const steps = await WorkflowStepDefinition.findAll({
+        where: {
+          workflowType,
+          phaseKey: currentPhase
+        },
+        attributes: ['stepId', 'workflowType', 'stepKey', 'title', 'descriptionTemplate', 'phaseVariant']
+      });
+
+      if (!steps.length) return null;
+
+      const mapping = steps.reduce((acc, step) => {
+        const stepData = step.toJSON();
+        if (step.phaseVariant === 'late') {
+          acc.lateStep = stepData;
+        } else if (step.phaseVariant === 'overdue') {
+          acc.overdueStep = stepData;
+        } else {
+          acc.defaultStep = stepData;
+        }
+        return acc;
+      }, { defaultStep: null, lateStep: null, overdueStep: null });
+
+      return mapping;
+    } catch (error) {
+      logger.error('Error in getPhaseMapping:', error);
+      return null;
+    }
+  }
+
   /**
    * ดึงสถิติภาพรวมของโครงงานทั้งหมด
    */
@@ -115,8 +151,11 @@ class ProjectWorkflowStateService {
       }
 
       // เพิ่ม helper methods ให้ response
+      const phaseMapping = await this.getPhaseMapping(state.currentPhase);
+
       return {
         ...state.toJSON(),
+        workflowStepMapping: phaseMapping,
         canSubmitTopicDefense: state.canSubmitTopicDefense(),
         canSubmitThesisDefense: state.canSubmitThesisDefense(),
         isDocumentSubmissionPhase: state.isDocumentSubmissionPhase(),
@@ -475,6 +514,10 @@ class ProjectWorkflowStateService {
       const state = await this.getProjectState(projectId, options);
       
       if (!state) return null;
+
+      if (!state.workflowStepMapping) {
+        state.workflowStepMapping = await this.getPhaseMapping(state.currentPhase);
+      }
 
       const deadlines = await this.getApplicableDeadlines(projectId, options);
       const overdueCheck = await this.checkOverdue(projectId, options);
