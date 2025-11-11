@@ -41,6 +41,56 @@ export const settingsService = {
     }
   },
 
+  listAcademicSchedules: async (params = {}) => {
+    try {
+      const response = await apiClient.get("/admin/academic/schedules", { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error listing academic schedules:", error);
+      throw error;
+    }
+  },
+
+  getAcademicSchedule: async (id) => {
+    try {
+      const response = await apiClient.get(`/admin/academic/schedules/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching academic schedule:", error);
+      throw error;
+    }
+  },
+
+  createAcademicSchedule: async (payload) => {
+    try {
+      const response = await apiClient.post("/admin/academic/schedules", payload);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating academic schedule:", error);
+      throw error;
+    }
+  },
+
+  updateAcademicSchedule: async (id, payload) => {
+    try {
+      const response = await apiClient.put(`/admin/academic/schedules/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating academic schedule:", error);
+      throw error;
+    }
+  },
+
+  activateAcademicSchedule: async (id) => {
+    try {
+      const response = await apiClient.post(`/admin/academic/schedules/${id}/activate`);
+      return response.data;
+    } catch (error) {
+      console.error("Error activating academic schedule:", error);
+      throw error;
+    }
+  },
+
   getCurriculumMappings: async () => {
     try {
       const response = await apiClient.get("/admin/curriculums/mappings");

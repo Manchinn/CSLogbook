@@ -38,6 +38,12 @@ module.exports = (sequelize) => {
         defaultValue: false,
         field: "is_current",
       },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'draft',
+        field: 'status',
+      },
       semester1Range: {
         type: DataTypes.JSON,
         allowNull: true,

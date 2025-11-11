@@ -177,7 +177,8 @@ const ImportantDeadlinesSummary = ({
   loading = false,
   onRefresh,
   onEditDeadline,
-  onCreateDeadline
+  onCreateDeadline,
+  manualScheduleDeadlines = []
 }) => {
   const [selectedCategories, setSelectedCategories] = useState(ALL_DEADLINE_CATEGORY_KEYS);
 
@@ -206,8 +207,81 @@ const ImportantDeadlinesSummary = ({
     });
   }, [deadlines, selectedCategories]);
 
+  const manualDeadlineRows = useMemo(() => {
+    const allowedSet = new Set(selectedCategories);
+
+    return (manualScheduleDeadlines || [])
+      .filter((item) => {
+        if (!item) return false;
+
+        const semesterMatch =
+          !semesterFilter ||
+          !item.semester ||
+          Number(item.semester) === Number(semesterFilter);
+
+        const yearMatch =
+          !academicYearFilter ||
+          !item.academicYear ||
+          Number(item.academicYear) === Number(academicYearFilter);
+
+        let categoryKey = item.category;
+        if (!categoryKey || !DEADLINE_CATEGORY_OPTIONS.some((opt) => opt.value === categoryKey)) {
+          categoryKey = DEADLINE_CATEGORY_OTHERS_KEY;
+        }
+
+        return (
+          semesterMatch &&
+          yearMatch &&
+          allowedSet.has(categoryKey)
+        );
+      })
+      .map((item) => {
+        const categoryKey = item.category || DEADLINE_CATEGORY_OTHERS_KEY;
+        const categoryLabel = getCategoryLabel(categoryKey);
+        const typeLabel = 'ช่วงเวลา';
+
+        const startDate = item.start ? dayjs(item.start) : null;
+        const endDate = item.end ? dayjs(item.end) : null;
+
+        let scheduleText = '-';
+        if (startDate && endDate) {
+          const sameDay = startDate.isSame(endDate, 'day');
+          const startLabel = startDate.format('D MMMM BBBB');
+          const endLabel = endDate.format('D MMMM BBBB');
+          scheduleText = sameDay
+            ? `วันที่ ${startLabel}`
+            : `วันที่ ${startLabel} ถึง ${endLabel}`;
+        }
+
+        return {
+          key: item.id,
+          name: item.name || '-',
+          categoryKey,
+          categoryLabel,
+          academicYear: item.academicYear,
+          semester: item.semester,
+          deadlineTypeLabel: typeLabel,
+          scheduleText,
+          detailedScheduleText: scheduleText,
+          statusText: 'ตั้งค่าจากหน้า ขั้นตอนที่ 3',
+          notesText: 'ยังไม่บันทึกในระบบกำหนดการ (Draft)',
+          description: item.description || '',
+          academicYearDisplay: item.academicYear
+            ? `${item.academicYear} / ${formatSemesterLabel(item.semester)}`
+            : formatSemesterLabel(item.semester),
+          effectiveSortValue: endDate ? endDate.valueOf() : 0,
+          effectiveTimeSortValue: '',
+        };
+      });
+  }, [
+    manualScheduleDeadlines,
+    selectedCategories,
+    semesterFilter,
+    academicYearFilter,
+  ]);
+
   const enhancedRows = useMemo(() => {
-    return filteredDeadlines
+    return [...filteredDeadlines]
       .map((deadline) => {
         const categoryKey = mapDeadlineToCategory(deadline);
         const categoryLabel = getCategoryLabel(categoryKey);
@@ -468,7 +542,7 @@ const ImportantDeadlinesSummary = ({
 
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Text>
-            แสดง {enhancedRows.length} รายการ
+            แสดง {enhancedRows.length + manualDeadlineRows.length} รายการ
             {selectedCategories.includes(DEADLINE_CATEGORY_OTHERS_KEY) &&
               ` (รวม ${DEADLINE_CATEGORY_OTHERS_LABEL})`}
           </Text>
@@ -491,7 +565,7 @@ const ImportantDeadlinesSummary = ({
               children: (
                 <Table
                   columns={summaryColumns}
-                  dataSource={enhancedRows}
+                  dataSource={[...manualDeadlineRows, ...enhancedRows]}
                   loading={loading}
                   pagination={{ pageSize: 6, showSizeChanger: false }}
                   scroll={{ x: 960 }}
@@ -506,7 +580,7 @@ const ImportantDeadlinesSummary = ({
               children: (
                 <Table
                   columns={fullColumns}
-                  dataSource={enhancedRows}
+                  dataSource={[...manualDeadlineRows, ...enhancedRows]}
                   loading={loading}
                   pagination={false}
                   scroll={{ x: 'max-content' }}

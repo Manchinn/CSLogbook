@@ -82,17 +82,6 @@ export const checkDateOverlap = (values) => {
     }
   }
 
-  // 4. ตรวจสอบการทับซ้อนระหว่างช่วงลงทะเบียนฝึกงานและโครงงาน
-  if (internRegStart && internRegEnd && projectRegStart && projectRegEnd) {
-  const latestStart = dayjs.max(internRegStart, projectRegStart);
-  const earliestEnd = dayjs.min(internRegEnd, projectRegEnd);
-
-    if (latestStart.isBefore(earliestEnd)) {
-      message.warning("ช่วงเวลาลงทะเบียนฝึกงานและโครงงานทับซ้อนกัน");
-      return false;
-    }
-  }
-
   return true;
 };
 
@@ -253,50 +242,56 @@ export const loadCurriculumsProcess = async (getCurriculumsService) => {
   }
 };
 
+export const mapScheduleToFormValues = (data = {}) => {
+  if (!data || typeof data !== "object") return {};
+
+  return {
+    id: data.id,
+    currentAcademicYear: data.academicYear,
+    currentSemester: data.currentSemester,
+    semester1Range: data.semester1Range
+      ? [
+          dayjs(data.semester1Range.start, "YYYY-MM-DD"),
+          dayjs(data.semester1Range.end, "YYYY-MM-DD"),
+        ]
+      : null,
+    semester2Range: data.semester2Range
+      ? [
+          dayjs(data.semester2Range.start, "YYYY-MM-DD"),
+          dayjs(data.semester2Range.end, "YYYY-MM-DD"),
+        ]
+      : null,
+    semester3Range: data.semester3Range
+      ? [
+          dayjs(data.semester3Range.start, "YYYY-MM-DD"),
+          dayjs(data.semester3Range.end, "YYYY-MM-DD"),
+        ]
+      : null,
+    internshipRegistrationOpenDate: data.internshipRegistration?.startDate
+      ? dayjs(data.internshipRegistration.startDate)
+      : null,
+    internshipRegistrationCloseDate: data.internshipRegistration?.endDate
+      ? dayjs(data.internshipRegistration.endDate)
+      : null,
+    projectRegistrationOpenDate: data.projectRegistration?.startDate
+      ? dayjs(data.projectRegistration.startDate)
+      : null,
+    projectRegistrationCloseDate: data.projectRegistration?.endDate
+      ? dayjs(data.projectRegistration.endDate)
+      : null,
+    internshipSemesters: data.internshipSemesters || [3],
+    projectSemesters: data.projectSemesters || [1, 2],
+    activeCurriculumId: data.activeCurriculumId || null,
+    selectedCurriculum: data.activeCurriculumId || null,
+    status: data.status,
+  };
+};
+
 export const loadAcademicSettingsProcess = async (getAcademicSettingsService) => {
   try {
     const response = await getAcademicSettingsService();
     if (response && response.success && response.data) {
-      const data = response.data;
-      const formValues = {
-        id: data.id,
-        currentAcademicYear: data.academicYear,
-        currentSemester: data.currentSemester,
-        semester1Range: data.semester1Range
-          ? [
-        dayjs(data.semester1Range.start, "YYYY-MM-DD"),
-        dayjs(data.semester1Range.end, "YYYY-MM-DD"),
-            ]
-          : null,
-        semester2Range: data.semester2Range
-          ? [
-        dayjs(data.semester2Range.start, "YYYY-MM-DD"),
-        dayjs(data.semester2Range.end, "YYYY-MM-DD"),
-            ]
-          : null,
-        semester3Range: data.semester3Range
-          ? [
-        dayjs(data.semester3Range.start, "YYYY-MM-DD"),
-        dayjs(data.semester3Range.end, "YYYY-MM-DD"),
-            ]
-          : null,
-        internshipRegistrationOpenDate: data.internshipRegistration?.startDate
-          ? dayjs(data.internshipRegistration.startDate)
-          : null,
-        internshipRegistrationCloseDate: data.internshipRegistration?.endDate
-          ? dayjs(data.internshipRegistration.endDate)
-          : null,
-        projectRegistrationOpenDate: data.projectRegistration?.startDate
-          ? dayjs(data.projectRegistration.startDate)
-          : null,
-        projectRegistrationCloseDate: data.projectRegistration?.endDate
-          ? dayjs(data.projectRegistration.endDate)
-          : null,
-        internshipSemesters: data.internshipSemesters || [3],
-        projectSemesters: data.projectSemesters || [1, 2],
-        activeCurriculumId: data.activeCurriculumId || null,
-        selectedCurriculum: data.activeCurriculumId || null,
-      };
+      const formValues = mapScheduleToFormValues(response.data);
       return { formValues, errorMessage: null };
     }
     return { formValues: {}, errorMessage: "ไม่สามารถดึงข้อมูลการตั้งค่าได้" };
@@ -306,33 +301,33 @@ export const loadAcademicSettingsProcess = async (getAcademicSettingsService) =>
   }
 };
 
-const formatDataForSave = (formInstance, values) => {
-  return {
+export const formatDataForSave = (formInstance, values, status) => {
+  const payload = {
     id: formInstance.getFieldValue("id"),
-  academicYear: values.currentAcademicYear,
+    academicYear: values.currentAcademicYear,
     currentSemester: values.currentSemester,
     semesters: {
       1: {
         range: values.semester1Range
           ? {
-        start: dayjs(values.semester1Range[0]).format("YYYY-MM-DD"),
-        end: dayjs(values.semester1Range[1]).format("YYYY-MM-DD"),
+              start: dayjs(values.semester1Range[0]).format("YYYY-MM-DD"),
+              end: dayjs(values.semester1Range[1]).format("YYYY-MM-DD"),
             }
           : null,
       },
       2: {
         range: values.semester2Range
           ? {
-        start: dayjs(values.semester2Range[0]).format("YYYY-MM-DD"),
-        end: dayjs(values.semester2Range[1]).format("YYYY-MM-DD"),
+              start: dayjs(values.semester2Range[0]).format("YYYY-MM-DD"),
+              end: dayjs(values.semester2Range[1]).format("YYYY-MM-DD"),
             }
           : null,
       },
       3: {
         range: values.semester3Range
           ? {
-        start: dayjs(values.semester3Range[0]).format("YYYY-MM-DD"),
-        end: dayjs(values.semester3Range[1]).format("YYYY-MM-DD"),
+              start: dayjs(values.semester3Range[0]).format("YYYY-MM-DD"),
+              end: dayjs(values.semester3Range[1]).format("YYYY-MM-DD"),
             }
           : null,
       },
@@ -357,6 +352,12 @@ const formatDataForSave = (formInstance, values) => {
     projectSemesters: values.projectSemesters || [1, 2],
     activeCurriculumId: values.selectedCurriculum || null,
   };
+
+  if (status) {
+    payload.status = status;
+  }
+
+  return payload;
 };
 
 export const saveAcademicSettingsProcess = async (
