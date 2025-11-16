@@ -35,7 +35,6 @@ import {
 const { Title, Text, Paragraph } = Typography;
 
 const SEMESTER_OPTIONS = [
-  { value: null, label: 'ทุกภาคเรียน' },
   { value: 1, label: 'ภาคเรียนที่ 1' },
   { value: 2, label: 'ภาคเรียนที่ 2' },
   { value: 3, label: 'ภาคฤดูร้อน' }
@@ -504,20 +503,21 @@ const ImportantDeadlinesSummary = ({
               เลือกปีการศึกษาและภาคเรียนเพื่อกรองรายการ พร้อมส่งออกเป็นไฟล์ PDF ได้ทันที
             </Text>
             <Space wrap>
+            <Select
+              style={{ minWidth: 160 }}
+              placeholder="ทุกปีการศึกษา"
+              value={academicYearFilter ?? undefined}
+              onChange={(value) => onAcademicYearChange?.(value ?? null)}
+              options={academicYearOptions}
+              allowClear
+            />
               <Select
                 style={{ minWidth: 160 }}
-                placeholder="เลือกปีการศึกษา"
-                value={academicYearFilter ?? null}
-                onChange={(value) => onAcademicYearChange?.(value ?? null)}
-                options={[{ value: null, label: 'ทุกปีการศึกษา' }, ...academicYearOptions]}
-                allowClear
-              />
-              <Select
-                style={{ minWidth: 160 }}
-                placeholder="เลือกภาคเรียน"
-                value={semesterFilter ?? null}
+                placeholder="ทุกภาคเรียน"
+                value={semesterFilter ?? undefined}
                 onChange={(value) => onSemesterChange?.(value ?? null)}
                 options={SEMESTER_OPTIONS}
+                allowClear
               />
               <Button icon={<RedoOutlined />} onClick={onResetAcademicYear}>
                 ใช้ปีปัจจุบัน

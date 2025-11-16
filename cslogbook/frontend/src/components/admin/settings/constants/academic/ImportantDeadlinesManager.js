@@ -104,9 +104,12 @@ const ImportantDeadlinesManager = ({
     setSaving(true);
     setModalError('');
     try {
+      // ป้องกันกรณี relatedTo หาย/เป็นค่าว่าง ให้ default เป็น 'general'
+      const safeRelatedTo = formState.relatedTo || 'general';
+
       const payload = {
         name: formState.name,
-        relatedTo: formState.relatedTo,
+        relatedTo: safeRelatedTo,
         semester: formState.semester,
         academicYear: formState.academicYear,
         isGlobal: formState.isGlobal,
@@ -177,7 +180,8 @@ const ImportantDeadlinesManager = ({
         }
       }
 
-      if (editing) {
+      // ถ้ามี id จริงค่อยถือว่าเป็นโหมดแก้ไข ไม่เช่นนั้นให้สร้างใหม่
+      if (editing && editing.id) {
         await importantDeadlineService.updateDeadline(editing.id, payload);
       } else {
         await importantDeadlineService.createDeadline(payload);

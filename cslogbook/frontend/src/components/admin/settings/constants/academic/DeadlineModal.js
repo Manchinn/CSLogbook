@@ -125,7 +125,7 @@ export default function DeadlineModal({
       confirmLoading={loading}
       okText="บันทึก"
       cancelText="ยกเลิก"
-      destroyOnClose
+      destroyOnHidden
       centered
       width={modalWidth}
       style={{ top: screens.xs ? 12 : 24, padding: 0, maxWidth: '100%' }}
