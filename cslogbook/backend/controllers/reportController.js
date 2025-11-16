@@ -38,6 +38,16 @@ exports.getAdvisorLoad = async (req, res, next) => {
   }
 };
 
+// รายการปีการศึกษาที่มีข้อมูลฝึกงาน
+exports.getInternshipAcademicYears = async (req, res, next) => {
+  try {
+    const data = await reportService.getInternshipAcademicYears();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Enhanced: ดึงรายละเอียดอาจารย์คนหนึ่ง
 exports.getAdvisorDetail = async (req, res, next) => {
   try {

@@ -220,8 +220,7 @@ module.exports = {
     );
 
     return { academicYear, advisors };
-  }
-  ,
+  },
   /**
    * สรุปสถานะการฝึกงานของนักศึกษา (heuristic)
    * - started: มีเอกสารฝึกงาน (document_type='internship' และ status != 'draft') หรือมี logbook อย่างน้อย 1
@@ -280,8 +279,7 @@ module.exports = {
     const totalStudents = await Student.count();
 
   return { academicYear, semester: sem || null, totalStudents, enrolledCount, started, completed, inProgress, notStarted };
-  }
-  ,
+  },
   /**
    * สรุปผลการประเมินฝึกงาน (Internship Evaluation Summary)
    * NOTE: ยังไม่มีการเก็บ academicYear/semester ในตาราง evaluation -> ตอนนี้นับรวมทั้งหมด แล้วแนบ academicYear ที่ร้องขอ (approximation)
@@ -379,5 +377,23 @@ module.exports = {
       gradeDistribution,
       gradeCounts
     };
+  },
+  /**
+   * ดึงรายการปีการศึกษาที่มีข้อมูลฝึกงาน (distinct academic_year จาก InternshipDocument)
+   * ใช้สำหรับสร้างตัวเลือก filter ปีการศึกษาในหน้า Dashboard/Report
+   */
+  async getInternshipAcademicYears() {
+    const { InternshipDocument } = db;
+    const rows = await InternshipDocument.findAll({
+      attributes: [[fn('DISTINCT', col('academic_year')), 'academicYear']],
+      where: { academic_year: { [Op.ne]: null } },
+      order: [[col('academic_year'), 'DESC']],
+      raw: true
+    });
+
+    // map เป็น array ของปี พ.ศ. (number) และกรอง null/undefined
+    return rows
+      .map(r => parseInt(r.academicYear, 10))
+      .filter(y => !isNaN(y));
   }
 };

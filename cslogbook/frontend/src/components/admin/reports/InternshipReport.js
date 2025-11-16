@@ -5,6 +5,7 @@ import { EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-de
 import { SimpleBarChart, SimplePieChart, CHART_COLORS } from './charts/RechartsComponents';
 import { academicYearOptions } from './constants';
 import { useInternshipProgressDashboard } from './hooks/useInternshipProgressDashboard';
+import { getInternshipAcademicYears } from '../../../services/reportService';
 import internshipAdminService from '../../../services/internshipAdminService';
 import { formatThaiDate } from '../../../utils/dateUtils';
 
@@ -31,6 +32,7 @@ const InternshipReport = () => {
 	const [detailedStudents, setDetailedStudents] = useState([]);
 	const [loadingDetails, setLoadingDetails] = useState(false);
 	const [form] = Form.useForm();
+	const [yearOptions, setYearOptions] = useState([]);
 
 	// โหลดข้อมูลรายละเอียดนักศึกษา
 	const loadDetailedStudents = async () => {
@@ -151,7 +153,27 @@ const InternshipReport = () => {
 		}
 	};
 
-	const yearOptions = academicYearOptions(anchorYearRef.current);
+	// โหลดรายการปีการศึกษาจริงจาก backend (distinct academic_year) และ fallback เป็นช่วงจาก anchorYear
+	useEffect(() => {
+		let isMounted = true;
+		const loadYears = async () => {
+			try {
+				const years = await getInternshipAcademicYears();
+				if (!isMounted) return;
+				if (Array.isArray(years) && years.length > 0) {
+					setYearOptions(years);
+				} else {
+					setYearOptions(academicYearOptions(anchorYearRef.current));
+				}
+			} catch (e) {
+				console.error('Error loading internship academic years', e);
+				if (!isMounted) return;
+				setYearOptions(academicYearOptions(anchorYearRef.current));
+			}
+		};
+		loadYears();
+		return () => { isMounted = false; };
+	}, []);
 	const semesterOptions = [
 		{ value: 1, label: 'ภาค 1' },
 		{ value: 2, label: 'ภาค 2' },
@@ -320,11 +342,22 @@ const InternshipReport = () => {
 		}
 	];
 
-	// Map detailed students data
-	const detailedStudentData = useMemo(() => 
-		(detailedStudents || []).map((s, i) => ({ key: i, ...s })), 
-		[detailedStudents]
-	);
+	// Map & filter detailed students data ให้แสดงเฉพาะปีการศึกษา / ภาคที่เลือก
+	const detailedStudentData = useMemo(() => {
+		return (detailedStudents || [])
+			.filter((s) => {
+				// filter ตามปีการศึกษา
+				if (year && s.academicYear !== year) {
+					return false;
+				}
+				// filter ตามภาคการศึกษา (ถ้าเลือก)
+				if (semester && s.semester !== semester) {
+					return false;
+				}
+				return true;
+			})
+			.map((s, i) => ({ key: i, ...s }));
+	}, [detailedStudents, year, semester]);
 
 	// เตรียมข้อมูลสำหรับ Bar Chart (คะแนนเฉลี่ยรายหัวข้อ)
 	const criteriaBarData = useMemo(() => {
@@ -356,7 +389,13 @@ const InternshipReport = () => {
 				<Col>
 					<Space>
 						<span>ปี:</span>
-						<Select value={year} style={{ width:120 }} onChange={setYear} options={yearOptions.map(y=>({ value:y, label:y }))} />
+						<Select
+							value={year}
+							style={{ width:120 }}
+							onChange={setYear}
+							options={yearOptions.map(y=>({ value:y, label:y }))}
+							placeholder="เลือกปีการศึกษา"
+						/>
 						<span>ภาค:</span>
 						<Select
 							allowClear
