@@ -3,7 +3,7 @@ import { Layout, Button, Typography, Space, Avatar, Badge, Tag, Tooltip } from "
 import { MenuOutlined } from "@ant-design/icons";
 import academicService from "../../../../services/academicService";
 import { getRoleTheme, resolveThemeKey } from '../../../../utils/roleTheme';
-import "./HeaderComponent.css";
+import styles from "./HeaderComponent.module.css";
 
 const { Header } = Layout;
 const { Title, Text } = Typography;
@@ -138,9 +138,9 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
   };
   return (
     <>
-      <Header className="header-container" style={headerStyles.mainHeader}>
+      <Header className={styles.headerContainer} style={headerStyles.mainHeader}>
         {/* Left side */}
-        <div className="header-left" style={{ flex: 1 }}>
+        <div className={styles.headerLeft} style={{ flex: 1 }}>
           <Space
             size={24}
             align="start"
@@ -148,7 +148,7 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
           >
             {isMobile && (
               <Button
-                className="header-menu-button"
+                className={styles.headerMenuButton}
                 type="text"
                 icon={
                   <MenuOutlined
@@ -163,13 +163,13 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
               direction="vertical"
               size={4}
               style={headerStyles.titleContainer}
-              className="header-title-container"
+              className={styles.headerTitleContainer}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
                 <Title
                   level={4}
                   style={headerStyles.mainTitle}
-                  className="header-title"
+                  className={styles.headerTitle}
                 >
                   CS Logbook
                 </Title>
@@ -213,16 +213,16 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
                   </Tag>
                 )}
               </div>
-              <Text style={headerStyles.subtitle} className="header-subtitle">
+              <Text style={headerStyles.subtitle} className={styles.headerSubtitle}>
                 ระบบสมุดบันทึกการฝึกงานและติดตามความคืบหน้าโครงงานพิเศษ
               </Text>
             </Space>
           </Space>
         </div>{" "}
         {/* Right side */}
-        <div className="header-actions" style={{ padding: "12px" }}>
+        <div className={styles.headerActions} style={{ padding: "12px" }}>
           <Space size={16} align="center">
-            <Avatar style={headerStyles.userAvatar} className="header-avatar">
+            <Avatar style={headerStyles.userAvatar} className={styles.headerAvatar}>
               {firstName?.charAt(0)?.toUpperCase()}
             </Avatar>
 
@@ -230,14 +230,14 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
               <Text
                 strong
                 style={headerStyles.userName}
-                className="header-username"
+                className={styles.headerUsername}
               >
                 {firstName} {lastName}
               </Text>
               <Badge
                 count={getRoleTitle(role, teacherType)}
                 style={headerStyles.roleBadge}
-                className="header-role-badge"
+                className={styles.headerRoleBadge}
               />
             </Space>
           </Space>

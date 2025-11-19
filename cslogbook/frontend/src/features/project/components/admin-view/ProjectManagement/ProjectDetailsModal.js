@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal, Descriptions, Tag, Space, Button, Alert, 
   Typography, Row, Col, Card, Spin, message
@@ -20,7 +20,7 @@ const ProjectDetailsModal = ({ visible, onCancel, projectId, onEdit }) => {
   const [projectData, setProjectData] = useState(null);
 
   // Load project details
-  const loadProjectDetails = async () => {
+  const loadProjectDetails = useCallback(async () => {
     if (!projectId) return;
 
     setLoading(true);
@@ -37,7 +37,7 @@ const ProjectDetailsModal = ({ visible, onCancel, projectId, onEdit }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   // Handle edit button click
   const handleEdit = () => {
@@ -51,7 +51,7 @@ const ProjectDetailsModal = ({ visible, onCancel, projectId, onEdit }) => {
     if (visible && projectId) {
       loadProjectDetails();
     }
-  }, [visible, projectId]);
+  }, [visible, projectId, loadProjectDetails]);
 
   // Status color mapping
   const getStatusColor = (status) => {

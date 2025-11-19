@@ -2,6 +2,8 @@ import React from 'react';
 import { Row, Col, Divider, Space, Tag, Empty } from 'antd';
 import { getStatusTags } from '../utils/statusHelpers';
 
+import styles from '../StudentList.module.css';
+
 const StudentDetail = ({ student }) => {
   // ถ้าไม่มีข้อมูลนักศึกษา
   if (!student) {
@@ -9,7 +11,7 @@ const StudentDetail = ({ student }) => {
   }
 
   return (
-    <div className="student-detail">
+    <div className={styles.studentDetail}>
       {/* ข้อมูลพื้นฐาน */}
       <Divider orientation="left">ข้อมูลทั่วไป</Divider>
       <Row gutter={[16, 8]}>

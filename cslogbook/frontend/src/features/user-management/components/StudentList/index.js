@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Row, Col, message, Form, Modal } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 
-import "./styles.css";
+import styles from "./StudentList.module.css";
 
 // นำเข้าคอมโพเนนต์
 import StudentStatistics from "./components/StudentStatistics";
@@ -239,8 +239,8 @@ const StudentList = () => {
   }, [searchText, statusFilter, academicYear]);
 
   return (
-    <div className="admin-student-container">
-      <Row justify="space-between" align="middle" className="filter-section">
+    <div className={styles.adminStudentContainer}>
+      <Row justify="space-between" align="middle">
         <Col>
           <StudentStatistics statistics={displayedStatistics} />
         </Col>

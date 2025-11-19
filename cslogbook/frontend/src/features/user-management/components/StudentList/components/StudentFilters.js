@@ -2,6 +2,8 @@ import React from 'react';
 import { Input, Space, Button, Segmented, Select, Row, Col } from 'antd';
 import { SearchOutlined, ReloadOutlined, UserAddOutlined } from '@ant-design/icons';
 
+import styles from '../StudentList.module.css';
+
 const { Option } = Select;
 
 const StudentFilters = ({ 
@@ -17,7 +19,7 @@ const StudentFilters = ({
   loading
 }) => {
   return (
-    <Row justify="space-between" align="middle" className="filter-section">
+    <Row justify="space-between" align="middle" className={styles.filterSection}>
       <Col>
         <Space size="small" wrap>
           <Input

@@ -3,6 +3,8 @@ import { Table, Space, Button, Tag, Tooltip, Typography } from "antd";
 import { EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getStatusTags } from "../utils/statusHelpers";
 
+import styles from "../StudentList.module.css";
+
 const { Text } = Typography;
 
 const StudentTable = ({ students, loading, onView, onEdit, onDelete, emptyText }) => {
@@ -64,7 +66,7 @@ const StudentTable = ({ students, loading, onView, onEdit, onDelete, emptyText }
       width: 180,
       fixed: "right",
       render: (_, record) => (
-        <Space className="action-buttons">
+        <Space className={styles.actionButtons}>
           <Tooltip title="ดูข้อมูล">
             <Button
               icon={<EyeOutlined />}

@@ -4,13 +4,7 @@ import Sidebar from "./Sidebar/Sidebar";
 import HeaderComponent from "./Header/HeaderComponent";
 import BackgroundParticles from "./BackgroundParticles";
 import { Outlet } from "react-router-dom";
-import "./MainLayout.css";
-import "./ResponsiveAdjustments.css";
-import "./ResponsiveUtilities.css";
-import "./MobileOptimizations.css";
-import "./GlassMorphism.css";
-import "./LayoutFixes.css"; // Import the new layout fixes
-import "./MobileDrawer.css"; // Import mobile drawer optimizations
+import styles from "./MainLayout.module.css";
 
 const { Content } = Layout;
 
@@ -46,35 +40,34 @@ const MainLayout = () => {
     setDrawerVisible(false);
     console.log("ปิด main");
   };
+  const getRoleThemeClass = () => {
+    if (userRole === "student") return styles.studentTheme;
+    if (userRole === "teacher") return styles.teacherTheme;
+    if (userRole === "admin") return styles.adminTheme;
+    return "";
+  };
+
+  const layoutClassName = [styles.layout, getRoleThemeClass()]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <Layout
-      className={`min-h-screen layout ${userRole ? `${userRole}-theme` : ""}`}
+      className={layoutClassName}
       style={{
         background: "transparent", // เปลี่ยนเป็น transparent เพื่อให้เห็น BackgroundParticles
         position: "relative",
       }}
     >
       {/* Add BackgroundParticles component */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0,
-          pointerEvents: "none", // ให้คลิกผ่านทะลุไปยังองค์ประกอบด้านหลังได้
-          overflow: "hidden",
-          width: "100vw",
-          height: "100vh",
-        }}
-      >
+      <div className={styles.backgroundLayer}>
         <BackgroundParticles />
       </div>
 
       {/* Desktop Sidebar */}
       {!isMobile && <Sidebar />}
-      {/* Mobile Drawer */}      <Drawer
+      {/* Mobile Drawer */}
+      <Drawer
         placement="left"
         onClose={onClose}
         open={drawerVisible}
@@ -88,7 +81,7 @@ const MainLayout = () => {
           zIndex: 1100,
           position: 'fixed'
         }}
-        className="mobile-sidebar-drawer"
+        className={styles.mobileSidebarDrawer}
         maskClosable={true}
         destroyOnHidden={false}
       >
@@ -98,31 +91,17 @@ const MainLayout = () => {
         <HeaderComponent isMobile={isMobile} showDrawer={showDrawer} />
         {/* Main Content */}
         <Content
-          className="p-6 responsive-content content-area"
+          className={styles.contentArea}
           style={{
-            marginLeft: isMobile ? 0 : "200px",
             paddingTop: "80px",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: "transparent",
             position: "relative",
             zIndex: 1,
-            // height: '100vh',
-            // overflow: 'hidden',
-            // backdropFilter: 'blur(10px)',
           }}
         >
-          {" "}
-          <div
-            className="rounded-lg shadow-sm p-6"
-            style={{
-              margin: isMobile ? "0.5rem" : "1rem 4rem",
-              transition: "all 0.3s ease",
-              /*                  backgroundColor: "rgba(255, 255, 255, 0.98)", // เพิ่มความทึบให้เหมือนใน #usages มากขึ้น
-                 backdropFilter: "blur(10px)",
-                 border: "1px solid rgba(0, 0, 0, 0.05)" */ // เส้นขอบบางๆ เทาอ่อนตามภาพ #usages
-            }}
-          >
+          <div className={styles.contentCard}>
             <Outlet />
           </div>
         </Content>

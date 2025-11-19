@@ -4,6 +4,8 @@ import { SaveOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import StudentDetail from './StudentDetail';
 import StudentForm from './StudentForm';
 
+import styles from '../StudentList.module.css';
+
 const StudentDrawer = ({
   visible,
   student,
@@ -73,7 +75,7 @@ const StudentDrawer = ({
       width={520}
       onClose={onClose}
       open={visible}
-      className="student-drawer"
+      className={styles.studentDrawer}
       extra={drawerExtra}
     >
       {editMode ? (

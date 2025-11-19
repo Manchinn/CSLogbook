@@ -1,6 +1,8 @@
 import React from 'react';
 import { Form, Input, InputNumber } from 'antd';
 
+import styles from '../StudentList.module.css';
+
 const StudentForm = ({ form, student }) => {
   // ตรวจสอบว่าเป็นการแก้ไข (มีข้อมูล student) หรือเป็นการเพิ่มใหม่
   const isEditing = !!student;
@@ -10,7 +12,7 @@ const StudentForm = ({ form, student }) => {
       form={form}
       layout="vertical"
       initialValues={{ totalCredits: 0, majorCredits: 0 }}
-      className="student-form"
+      className={styles.studentForm}
     >
       <Form.Item
         name="studentCode"

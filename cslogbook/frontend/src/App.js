@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, Spin } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
@@ -9,57 +9,54 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
 import MainLayout from './components/common/Layout/MainLayout';
-import LoginForm from './features/auth/components/LoginForm';
-import Dashboard from './features/admin-dashboard/pages/AdminDashboard';
-import StudentProfile from 'features/user-management/components/StudentProfile';
-import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
-import ProjectManagement from 'features/project/components/student-view/ProjectManagement';
-
-// Import Internship Components
-import TimeSheet from './features/internship/components/student-view/TimeSheet';
-import InternshipSummary from './features/internship/components/student-view/Summary/Summary';
-import CompanyInfoForm from './features/internship/components/shared/CompanyInfoForm';
-import { EligibilityCheck, InternshipRequirements } from './features/internship/components/student-view/EligibilityCheck';
-import { InternshipRegistrationFlow } from './features/internship/components/student-view/RegistrationFlow';
-import InternshipCertificateRequest from './features/internship/components/student-view/CertificateRequest/InternshipCertificateRequest';
-import InternshipCompanyDashboard from './features/internship/components/shared/CompanyDashboard/InternshipCompanyDashboard';
-
-// Import Project Components
-import {
-  ProjectEligibilityCheck,
-  ProjectRequirements,
-} from 'features/project/components/shared/EligibilityCheck';
-import Phase1Dashboard from 'features/project/components/student-view/Phase1Dashboard/Phase1Dashboard';
-import ProjectDraftDetail from 'features/project/components/student-view/Phase1Dashboard/ProjectDraftDetail';
-import TopicSubmitPage from 'features/project/components/student-view/Phase1Dashboard/steps/TopicSubmitPage';
-import TopicExamPage from 'features/project/components/student-view/Phase1Dashboard/steps/TopicExamPage';
-import ProposalRevisionPage from 'features/project/components/student-view/Phase1Dashboard/steps/ProposalRevisionPage';
-import SystemTestRequestPage from 'features/project/components/student-view/Phase1Dashboard/steps/SystemTestRequestPage';
-import ExamSubmitPage from 'features/project/components/student-view/Phase1Dashboard/steps/ExamSubmitPage';
-import ExamDayPage from 'features/project/components/student-view/Phase1Dashboard/steps/ExamDayPage';
-import MeetingLogbookPage from 'features/project/components/student-view/Phase1Dashboard/steps/MeetingLogbookPage';
-import { Phase2Dashboard } from 'features/project/components/student-view/Phase2Dashboard';
-import ThesisDefenseRequestPage from 'features/project/components/student-view/Phase2Dashboard/ThesisDefenseRequestPage';
-
-// Import Admin Components
-import AdminUpload from './components/AdminUpload';
-import AdminRoutes from './components/admin/AdminRoutes';
-import ProjectPairsPage from 'features/user-management/components/ProjectPairs';
-import SupervisorEvaluation from './features/internship/components/teacher-view/SupervisorEvaluation/SupervisorEvaluation';
-import TimesheetApproval from './features/internship/components/teacher-view/TimesheetApproval/TimesheetApproval';
-import ApproveDocuments from './components/teacher/ApproveDocuments';
-import TopicExamOverview from 'features/project/components/teacher-view/TopicExamOverview/TopicExamOverview';
-import MeetingApprovals from './components/teacher/MeetingApprovals';
-import AdvisorKP02Queue from 'features/project/components/teacher-view/AdvisorQueue/AdvisorKP02Queue';
-import StaffKP02Queue from 'features/project/components/teacher-view/AdvisorQueue/StaffKP02Queue';
-import AdvisorThesisQueue from 'features/project/components/teacher-view/ThesisQueue/AdvisorThesisQueue';
-import StaffThesisQueue from 'features/project/components/teacher-view/ThesisQueue/StaffThesisQueue';
-import AdvisorSystemTestQueue from 'features/project/components/teacher-view/SystemTestQueue/AdvisorQueue';
-import StaffSystemTestQueue from 'features/project/components/teacher-view/SystemTestQueue/StaffQueue';
+import { routes } from './routes';
 
 // ตั้งค่า dayjs plugin
 dayjs.extend(buddhistEra);
 dayjs.locale('th');
+
+const {
+  Login,
+  Dashboard,
+  StudentProfile,
+  StudentDeadlineCalendar,
+  InternshipCompanyDashboard,
+  InternshipRegistrationFlow,
+  InternshipEligibilityCheck,
+  InternshipRequirements,
+  InternshipTimeSheet,
+  CompanyInfoForm,
+  InternshipSummary,
+  InternshipCertificateRequest,
+  ProjectManagement,
+  ProjectEligibilityCheck,
+  ProjectRequirements,
+  Phase1Dashboard,
+  ProjectDraftDetail,
+  TopicSubmitPage,
+  TopicExamPage,
+  ProposalRevisionPage,
+  SystemTestRequestPage,
+  ExamSubmitPage,
+  ExamDayPage,
+  MeetingLogbookPage,
+  Phase2Dashboard,
+  ThesisDefenseRequestPage,
+  ProjectPairs,
+  SupervisorEvaluation,
+  TimesheetApproval,
+  TopicExamOverview,
+  AdvisorKP02Queue,
+  StaffKP02Queue,
+  AdvisorThesisQueue,
+  StaffThesisQueue,
+  AdvisorSystemTestQueue,
+  StaffSystemTestQueue,
+  AdminUpload,
+  AdminRoutes,
+  ApproveDocuments,
+  MeetingApprovals,
+} = routes;
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -96,19 +93,26 @@ const App = () => {
         <AuthProvider>
           <StudentEligibilityProvider>
             <InternshipProvider>
-              <Routes>
-                <Route path="/login" element={<LoginForm />} />
-                {/* Add the new public route for supervisor evaluation */}
-                <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
-                <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
+              <Suspense
+                fallback={
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+                    <Spin size="large" />
+                  </div>
+                }
+              >
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  {/* Add the new public route for supervisor evaluation */}
+                  <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
+                  <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
 
-              <Route element={<MainLayout />}>
-                {/* Dashboard Route */}
-                <Route path="/dashboard" element={<Dashboard />} />
+                  <Route element={<MainLayout />}>
+                    {/* Dashboard Route */}
+                    <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* Student Routes */}
-                <Route path="/student-profile/:id" element={<StudentProfile />} />
-                <Route path="/student-deadlines/calendar" element={
+                    {/* Student Routes */}
+                    <Route path="/student-profile/:id" element={<StudentProfile />} />
+                    <Route path="/student-deadlines/calendar" element={
                   <ProtectedRoute roles={['student']}>
                     <StudentDeadlineCalendar />
                   </ProtectedRoute>
@@ -140,7 +144,7 @@ const App = () => {
                 {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดฝึกงาน */}
                 <Route path="/internship-eligibility" element={
                   <ProtectedRoute roles={['student']}>
-                    <EligibilityCheck />
+                    <InternshipEligibilityCheck />
                   </ProtectedRoute>
                 } />
                 <Route path="/internship-requirements" element={
@@ -151,7 +155,7 @@ const App = () => {
                 
                 <Route path="/internship-logbook/timesheet" element={
                   <ProtectedRoute roles={['student']}>
-                    <TimeSheet />
+                    <InternshipTimeSheet />
                   </ProtectedRoute>
                 } />
                 <Route path="/internship-logbook/companyinfo" element={
@@ -247,7 +251,7 @@ const App = () => {
                 } />
                 <Route path="/project-pairs" element={
                   <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
-                    <ProjectPairsPage />
+                    <ProjectPairs />
                   </ProtectedRoute>
                 } />
 
@@ -323,25 +327,24 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/thesis/kp02-queue" element={<Navigate to="/admin/thesis/staff-queue" replace />} />
-                <Route path="/admin/system-test/staff-queue" element={
-                  <ProtectedRoute
-                    roles={['admin', 'teacher']}
-                    condition={(user) =>
-                      user.role === 'admin' ||
-                      user.teacherType === 'support' ||
-                      Boolean(user.canExportProject1)
-                    }
-                  >
-                    <StaffSystemTestQueue />
-                  </ProtectedRoute>
-                } />
-              
-              </Route>
-              
+                    <Route path="/admin/system-test/staff-queue" element={
+                      <ProtectedRoute
+                        roles={['admin', 'teacher']}
+                        condition={(user) =>
+                          user.role === 'admin' ||
+                          user.teacherType === 'support' ||
+                          Boolean(user.canExportProject1)
+                        }
+                      >
+                        <StaffSystemTestQueue />
+                      </ProtectedRoute>
+                    } />
+                  </Route>
 
-              {/* Default Route */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-            </Routes>
+                  {/* Default Route */}
+                  <Route path="/" element={<Navigate to="/login" replace />} />
+                </Routes>
+              </Suspense>
           </InternshipProvider>
         </StudentEligibilityProvider>
       </AuthProvider>

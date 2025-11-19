@@ -27,7 +27,7 @@ import dayjs from 'utils/dayjs';
 import { fetchProjectPairs } from 'features/project/services/projectPairsService';
 import { studentService } from 'features/user-management/services/studentService';
 import AddProjectModal from 'features/project/components/admin-view/ProjectManagement/AddProjectModal';
-import '../StudentList/styles.css';
+import styles from '../StudentList/StudentList.module.css';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -362,10 +362,10 @@ const ProjectPairsPage = () => {
   ], [openDrawer]);
 
   return (
-    <div className="admin-student-container project-pairs-page">
+    <div className={styles.adminStudentContainer}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
-          <Title level={3} className="title">ข้อมูลคู่โปรเจค</Title>
+          <Title level={3} className={styles.sectionTitle}>ข้อมูลคู่โปรเจค</Title>
           <Text type="secondary">สรุปข้อมูลโครงงานและสมาชิกสำหรับเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์</Text>
         </div>
         <Button 
@@ -377,15 +377,15 @@ const ProjectPairsPage = () => {
           เพิ่มโครงงานพิเศษ
         </Button>
       </div>
-      <div className="statistics-chips">
-        <div className="statistic-item" key="total-projects">
+      <div className={styles.statisticsChips}>
+        <div className={styles.statisticItem} key="total-projects">
           <Space direction="vertical" size={0}>
             <Text type="secondary">จำนวนโครงงานทั้งหมด</Text>
             <Title level={4} style={{ margin: 0 }}>{summary.total}</Title>
           </Space>
         </div>
         {statusSummaryItems.map((item) => (
-          <div className="statistic-item" key={item.statusKey}>
+          <div className={styles.statisticItem} key={item.statusKey}>
             <Space direction="vertical" size={0}>
               <Text type="secondary">{item.label}</Text>
               <Title level={4} style={{ margin: 0 }}>{item.value}</Title>
@@ -395,7 +395,7 @@ const ProjectPairsPage = () => {
       </div>
 
       <Card variant="borderless" style={{ padding: 0 }}>
-        <div className="filter-section">
+        <div className={styles.filterSection}>
           {/* แถวแรก: Search, Academic Year, Semester */}
           <Row gutter={[16, 16]} style={{ width: '100%', marginBottom: '16px' }}>
             {/* Search Input */}
@@ -522,7 +522,7 @@ const ProjectPairsPage = () => {
       </Card>
 
       <Drawer
-        className="student-drawer"
+        className={styles.studentDrawer}
         title={`รายละเอียดโครงงาน: ${drawerState.project?.projectNameTh || '-'}`}
         width={720}
         open={drawerState.open}

@@ -2,6 +2,8 @@ import React from 'react';
 import { Typography } from 'antd';
 import { UserAddOutlined, BookOutlined, ProjectOutlined, CloseCircleOutlined } from '@ant-design/icons';
 
+import styles from '../StudentList.module.css';
+
 const { Text } = Typography;
 
 const StudentStatistics = ({ statistics }) => {
@@ -17,9 +19,9 @@ const StudentStatistics = ({ statistics }) => {
   ];
   
   return (
-    <div className="statistics-chips">
+    <div className={styles.statisticsChips}>
       {items.map(item => (
-        <div className="statistic-item" key={item.key}>
+        <div className={styles.statisticItem} key={item.key}>
           {item.icon}
           <Text>{item.text}</Text>
         </div>

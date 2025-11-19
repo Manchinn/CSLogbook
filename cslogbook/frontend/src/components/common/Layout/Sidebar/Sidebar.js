@@ -6,27 +6,25 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { useStudentEligibility } from "../../../../contexts/StudentEligibilityContext";
 import { studentService } from "features/user-management/services/studentService";
-import "./Sidebar.css";
-import "./SidebarStyles.css";
+import styles from "./Sidebar.module.css";
 
 const { Sider } = Layout;
 const { Title } = Typography;
 
 // mapping role -> base theme class (teacher แตกย่อยด้านล่าง)
 const themeConfig = {
-  student: "student-theme",
-  admin: "admin-theme",
-  teacher: "teacher-theme", // fallback หากยังไม่รู้ teacherType
+  student: styles.themeStudent,
+  admin: styles.themeAdmin,
+  teacher: styles.themeTeacher,
 };
 
-// ฟังก์ชันคืนชื่อคลาสธีมตาม role + teacherType
 const resolveThemeClass = (role, teacherType) => {
   if (role === 'teacher') {
-    if (teacherType === 'support') return 'teacher-support-theme';
-    if (teacherType === 'academic') return 'teacher-academic-theme';
-    return 'teacher-theme';
+    if (teacherType === 'support') return styles.themeTeacherSupport;
+    if (teacherType === 'academic') return styles.themeTeacherAcademic;
+    return styles.themeTeacher;
   }
-  return themeConfig[role] || '';
+  return themeConfig[role] || "";
 };
 
 // Tooltip logic ถูกย้าย/ตัดทิ้ง (รวมศูนย์ที่ menuConfig แล้วถ้าจำเป็น)
@@ -211,7 +209,13 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
   return (
     <Sider
       width={230}
-      className={`sider ${resolveThemeClass(userData?.role, userData?.teacherType)} ${inDrawer ? "in-drawer" : ""}`}
+      className={[
+        styles.sider,
+        resolveThemeClass(userData?.role, userData?.teacherType),
+        inDrawer ? styles.inDrawer : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       collapsed={collapsed}
       // Add CSS for proper display when in mobile drawer
       style={
@@ -225,7 +229,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
           : undefined
       }
     >
-      <div className="profile">
+      <div className={styles.profile}>
         <Avatar
           size={64}
           style={{
@@ -261,7 +265,12 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
             selectedKeys={[derivedSelected]}
             defaultSelectedKeys={[derivedSelected]}
             defaultOpenKeys={location.pathname.startsWith('/project/phase') ? ['project-main'] : undefined}
-            className={`menu ${resolveThemeClass(userData?.role, userData?.teacherType)}`}
+            className={[
+              styles.menu,
+              resolveThemeClass(userData?.role, userData?.teacherType),
+            ]
+              .filter(Boolean)
+              .join(" ")}
             onClick={handleMenuClick}
           />
         );

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Row, Col, Form, message, Modal, Typography } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import { userService } from "services/admin/userService";
-import "../StudentList/styles.css";
+import styles from "../StudentList/StudentList.module.css";
 import "./style.css";
 
 // นำเข้าคอมโพเนนต์
@@ -240,12 +240,12 @@ const TeacherList = () => {
   }, [searchText]);
 
   return (
-    <div className="admin-student-container teacher-page">
-      <Row justify="space-between" align="top" className="filter-section">
+    <div className={styles.adminStudentContainer}>
+      <Row justify="space-between" align="top" className={styles.filterSection}>
         <Col xs={24} lg={14}>
-          <div className="statistics-chips">
+          <div className={styles.statisticsChips}>
             {teacherStatistics.map((item) => (
-              <div className="statistic-item" key={item.key}>
+              <div className={styles.statisticItem} key={item.key}>
                 {item.icon}
                 <Text>{item.label}</Text>
               </div>
