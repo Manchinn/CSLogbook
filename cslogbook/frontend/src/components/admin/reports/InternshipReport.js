@@ -6,7 +6,7 @@ import { SimpleBarChart, SimplePieChart, CHART_COLORS } from './charts/RechartsC
 import { academicYearOptions } from './constants';
 import { useInternshipProgressDashboard } from './hooks/useInternshipProgressDashboard';
 import { getInternshipAcademicYears } from '../../../services/reportService';
-import internshipAdminService from '../../../services/internshipAdminService';
+import { internshipAdminService } from 'features/internship/services';
 import { formatThaiDate } from '../../../utils/dateUtils';
 
 const { Title } = Typography;

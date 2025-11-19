@@ -32,7 +32,7 @@ import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
 import dayjs from "../../../utils/dayjs";
 import CertificateManagement from "./CertificateManagement";
-import { internshipApprovalService } from "../../../services/internshipApprovalService";
+import { internshipApprovalService } from "features/internship/services";
 import { documentService } from "../../../services/admin/documentService";
 import { getLateSubmissions } from "../../../services/reports/deadlineReportService";
 

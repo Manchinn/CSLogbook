@@ -12,7 +12,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
 import { studentDocumentService } from './studentDocumentService';
-import internshipService from '../../../services/internshipService';
+import { internshipService } from 'features/internship/services';
 import { prepareFormDataForPDF } from '../../internship/register/helpers/pdfHelper';
 import officialDocumentService from '../../../services/PDFServices/OfficialDocumentService';
 

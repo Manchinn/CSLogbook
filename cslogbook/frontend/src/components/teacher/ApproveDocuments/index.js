@@ -18,7 +18,7 @@ import {
   Spin
 } from "antd";
 import { FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
-import { internshipApprovalService } from "../../../services/internshipApprovalService";
+import { internshipApprovalService } from "features/internship/services";
 import dayjs from "../../../utils/dayjs"; // ใช้ dayjs เวอร์ชันที่ตั้งค่า locale/th
 import { DATE_TIME_FORMAT, DATE_FORMAT_MEDIUM } from "../../../utils/constants";
 import { PDFViewerModal } from "../../common/PDFViewer";

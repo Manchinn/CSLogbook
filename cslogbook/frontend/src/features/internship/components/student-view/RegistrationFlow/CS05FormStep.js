@@ -1,0 +1,639 @@
+import React from 'react';
+import { 
+  Form, Input, Button, DatePicker, Space, Typography, Divider,
+  Row, Col, InputNumber, Alert, Card, Select, // Checkbox, (ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน)
+  message,
+} from 'antd';
+import { 
+  UserOutlined, BankOutlined, PhoneOutlined,
+   HomeOutlined, FileTextOutlined
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+
+import TranscriptUpload from '../common/TranscriptUpload';
+import buddhistLocale from 'utils/buddhistLocale';
+
+// 🔧 แก้ไข import paths ให้ถูกต้อง
+import { formatThaiDate, calculateInternshipDays } from 'utils/dateUtils';
+
+// ตั้งค่า dayjs plugin
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+const { RangePicker } = DatePicker;
+
+// ตัวเลือกห้องเรียน
+const classroomOptions = [
+  { label: 'RA', value: 'RA' },
+  { label: 'RB', value: 'RB' },
+  { label: 'RC', value: 'RC' },
+  { label: 'DA', value: 'DA' },
+  { label: 'DB', value: 'DB' },
+  { label: 'CSB', value: 'CSB' }
+];
+
+const CS05FormStep = ({ 
+  studentData, 
+  formData, 
+  onNext, 
+  loading,
+  existingCS05,
+  transcriptFile,
+  setTranscriptFile,
+  isSubmitted,
+  initialData
+}) => {
+  const [form] = Form.useForm();
+  // const [hasTwoStudents, setHasTwoStudents] = React.useState(formData?.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
+  const [startDate, setStartDate] = React.useState(null);
+  const [endDate, setEndDate] = React.useState(null);
+  
+  // กำหนดค่าเริ่มต้นเมื่อมีข้อมูล
+  React.useEffect(() => {
+    if (studentData) {
+      // กำหนดค่าข้อมูลนักศึกษา
+      form.setFieldsValue({
+        studentData: [
+          {
+            fullName: studentData.fullName,
+            studentId: studentData.studentId,
+            yearLevel: studentData.year || 3,
+            totalCredits: studentData.totalCredits,
+            phoneNumber: studentData.phoneNumber || '',
+            classroom: studentData.classroom || ''
+          }
+        ]
+      });
+    }
+    
+    // กำหนดค่าจากข้อมูล CS05 ที่มีอยู่เดิม (ถ้ามี)
+    if (existingCS05) {
+      const dateRange = existingCS05.startDate && existingCS05.endDate 
+        ? [
+            dayjs(existingCS05.startDate),
+            dayjs(existingCS05.endDate)
+          ] 
+        : undefined;
+      
+      if (dateRange) {
+        setStartDate(dateRange[0]);
+        setEndDate(dateRange[1]);
+      }
+
+      if (existingCS05.transcriptFilename) {
+        setTranscriptFile({
+          name: existingCS05.transcriptFilename,
+          status: 'done',
+          uid: '-1'
+        });
+      }      
+      
+      form.setFieldsValue({
+        companyName: existingCS05.companyName,
+        companyAddress: existingCS05.companyAddress,
+        contactPersonName: existingCS05.contactPersonName,
+        contactPersonPosition: existingCS05.contactPersonPosition,
+        internshipDateRange: dateRange,
+        hasTwoStudents: existingCS05.hasTwoStudents || false,
+        internshipPosition: existingCS05.internshipPosition,
+        jobDescription: existingCS05.jobDescription,
+        additionalRequirements: existingCS05.additionalRequirements,
+        // ✨ เพิ่มการ set ค่า classroom และ phoneNumber จาก existingCS05
+        studentData: [
+          {
+            ...form.getFieldValue(['studentData', 0]),
+            classroom: existingCS05.classroom || studentData?.classroom || '',
+            phoneNumber: existingCS05.phoneNumber || studentData?.phoneNumber || ''
+          }
+        ]
+      });
+      
+      // setHasTwoStudents(existingCS05.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
+      
+      // ถ้ามีข้อมูลนักศึกษาคนที่ 2 (ปิดไว้ชั่วคราว)
+      // if (existingCS05.hasTwoStudents && existingCS05.studentData?.length > 1) {
+      //   form.setFieldsValue({
+      //     studentData: [
+      //       ...form.getFieldValue('studentData'),
+      //       existingCS05.studentData[1]
+      //     ]
+      //   });
+      // }
+    } else if (formData && Object.keys(formData).length > 0) {
+      // กรณีที่มีข้อมูล formData แต่ไม่ใช่จาก existingCS05
+      if (formData.internshipDateRange && formData.internshipDateRange.length === 2) {
+        const dates = [
+          dayjs(formData.internshipDateRange[0]),
+          dayjs(formData.internshipDateRange[1])
+        ];
+        
+        setStartDate(dates[0]);
+        setEndDate(dates[1]);
+        
+        form.setFieldsValue({
+          internshipDateRange: dates,
+          ...formData
+        });
+      } else {
+        form.setFieldsValue(formData);
+      }
+      
+      // setHasTwoStudents(formData.hasTwoStudents || false); // ปิดไว้ชั่วคราว - รอ feature ฝึกงาน 2 คน
+    }
+  }, [form, studentData, formData, existingCS05, setTranscriptFile]);
+
+  // เพิ่ม useEffect เพื่อตั้งค่าฟอร์มเมื่อมีข้อมูลเริ่มต้น
+  React.useEffect(() => {
+    if (initialData) {
+      form.setFieldsValue({
+        companyName: initialData.companyName,
+        companyAddress: initialData.companyAddress,
+        internshipPosition: initialData.internshipPosition || '',
+        contactPersonName: initialData.contactPersonName  || '',
+        contactPersonPosition: initialData.contactPersonPosition || ''
+      });
+    }
+  }, [initialData, form]);
+  
+  // คำนวณจำนวณวันฝึกงาน (ใช้ utils ใหม่)
+  const calculateInternshipDaysLocal = (dates) => {
+    if (!dates || dates.length !== 2) return 0;
+    
+    const start = dates[0];
+    const end = dates[1];
+    
+    if (!start || !end) return 0;
+    
+    // ใช้ utils สำหรับคำนวณจำนวนวัน
+    return calculateInternshipDays(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+  };
+
+  // อัปเดตจำนวนวันเมื่อเลือกช่วงวันฝึกงาน
+  const handleDateRangeChange = (dates) => {
+    if (dates && dates.length === 2) {
+      setStartDate(dates[0]);
+      setEndDate(dates[1]);
+    } else {
+      setStartDate(null);
+      setEndDate(null);
+    }
+  };
+
+  // ตรวจสอบสถานะการส่งเอกสาร
+  const isFieldsDisabled = isSubmitted && existingCS05?.status !== 'rejected';
+
+  // ส่งข้อมูลไปยังขั้นตอนถัดไป
+  const handleFormSubmit = (values) => {
+    // ตรวจสอบว่ามีไฟล์ transcript หรือไม่
+    if (!transcriptFile) {
+      message.error('กรุณาอัปโหลดใบแสดงผลการเรียน (Transcript)');
+      return;
+    }
+    
+    // แปลง DatePicker values เป็น ISO string
+    if (values.internshipDateRange && values.internshipDateRange.length === 2) {
+      values.startDate = values.internshipDateRange[0].format('YYYY-MM-DD');
+      values.endDate = values.internshipDateRange[1].format('YYYY-MM-DD');
+    }
+
+    // เพิ่มจำนวนวันฝึกงาน
+    values.internshipDuration = calculateInternshipDaysLocal(values.internshipDateRange);
+    
+    // เพิ่มข้อมูล transcript
+    values.transcriptFile = transcriptFile;
+    
+    onNext(values);
+  };
+
+  const internshipDays = calculateInternshipDaysLocal([startDate, endDate]);
+
+  return (
+    <div className="cs05-form-container">
+      <Title level={3} style={{ textAlign: 'center' }}>แบบฟอร์มคำร้องขอฝึกงาน (คพ.05)</Title>
+      <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
+  กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
+      </Text>
+
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleFormSubmit}
+        disabled={isFieldsDisabled}
+      >
+        {/* ส่วนที่ 1: ข้อมูลบริษัท */}
+        <Card title="ข้อมูลบริษัท/หน่วยงาน" className="form-card">
+          <Row gutter={16}>
+            <Col xs={24} md={24}>
+              <Form.Item
+                name="companyName"
+                label="ชื่อบริษัท/หน่วยงาน"
+                rules={[
+                  { required: true, message: 'กรุณากรอกชื่อบริษัท' },
+                  { min: 2, message: 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกชื่อบริษัท ห้ามเป็นช่องว่าง' 
+                  }
+                ]}
+              >
+                <Input prefix={<BankOutlined />} placeholder="ชื่อบริษัทหรือหน่วยงานที่ฝึกงาน" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="companyAddress"
+            label="สถานที่ตั้ง"
+            rules={[
+              { required: true, message: 'กรุณากรอกที่อยู่บริษัท' },
+              { min: 10, message: 'ที่อยู่ต้องมีรายละเอียดครบถ้วน (อย่างน้อย 10 ตัวอักษร)' },
+              { 
+                whitespace: true, 
+                message: 'กรุณากรอกที่อยู่บริษัท ห้ามเป็นช่องว่าง' 
+              }
+            ]}
+          >
+            <TextArea
+              placeholder="ที่อยู่บริษัท เลขที่ ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด รหัสไปรษณีย์"
+              autoSize={{ minRows: 2, maxRows: 4 }}
+              prefix={<HomeOutlined />}
+            />
+          </Form.Item>
+
+          {/* ฟิลด์ตำแหน่งฝึกงาน */}
+          <Form.Item
+            label="ตำแหน่งที่ขอฝึกงาน"
+            name="internshipPosition"
+            rules={[
+              { required: true, message: 'กรุณากรอกตำแหน่งที่ขอฝึกงาน' },
+              { min: 2, message: 'ตำแหน่งต้องมีอย่างน้อย 2 ตัวอักษร' }
+            ]}
+          >
+            <Input placeholder="กรอกตำแหน่งที่นักศึกษาต้องการเข้าฝึกงาน (เช่น Web Developer, Data Analyst)" />
+          </Form.Item>      
+
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="contactPersonName"
+                label="เรียนถึง (ชื่อผู้ติดต่อ)"
+                rules={[
+                  { required: true, message: 'กรุณากรอกชื่อผู้ติดต่อหรือ HR' },
+                  { min: 2, message: 'ชื่อผู้ติดต่อต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกชื่อผู้ติดต่อ ห้ามเป็นช่องว่าง' 
+                  }
+                ]}
+              >
+                <Input 
+                  prefix={<UserOutlined />} 
+                  placeholder="เช่น คุณสมชาย ใจดี / แผนก HR" 
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="contactPersonPosition"
+                label="ตำแหน่ง"
+                rules={[
+                  { required: true, message: 'กรุณากรอกตำแหน่ง' },
+                  { min: 2, message: 'ตำแหน่งต้องมีอย่างน้อย 2 ตัวอักษร' },
+                  { 
+                    whitespace: true, 
+                    message: 'กรุณากรอกตำแหน่ง ห้ามเป็นช่องว่าง' 
+                  }
+                ]}
+              >
+                <Input placeholder="เช่น ผู้จัดการฝ่ายบุคคล, HR Manager" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* ส่วนที่ 2: ข้อมูลนักศึกษา */}
+        <Card title="ข้อมูลนักศึกษาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
+          {/* 
+            🚧 Feature: ฝึกงาน 2 คน (ปิดไว้ชั่วคราว)
+            📋 Implementation Plan: ดูที่ IMPLEMENTATION_SIMPLE_TWO_STUDENTS.md
+            📋 Table Analysis: ดูที่ knowledge/TWO_STUDENTS_TABLE_ANALYSIS.md
+            📋 Full Plan: ดูที่ IMPLEMENTATION_PLAN_INTERNSHIP_STUDENTS.md
+            
+            TODO: เปิดใช้งานเมื่อ Backend พร้อม
+            - Migration file: backend/migrations/20251102000000-add-secondary-student-to-internship-documents.js
+            - Model: backend/models/InternshipDocument.js (เพิ่ม secondaryStudentId, hasTwoStudents)
+            - Service: backend/services/internshipManagementService.js (submitCS05WithTranscript, getCurrentCS05)
+          */}
+          {/* <Form.Item name="hasTwoStudents" valuePropName="checked">
+            <Checkbox 
+              onChange={(e) => setHasTwoStudents(e.target.checked)}
+            >
+              ฝึกงาน 2 คน (ในบริษัทเดียวกัน)
+            </Checkbox>
+          </Form.Item> */}
+
+          <Divider orientation="left">ข้อมูลนักศึกษา</Divider>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name={['studentData', 0, 'fullName']}
+                label="ชื่อ-นามสกุล"
+                rules={[
+                  { required: true, message: 'กรุณากรอกชื่อ-นามสกุล' }
+                ]}
+              >
+                <Input disabled prefix={<UserOutlined />} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                name={['studentData', 0, 'yearLevel']}
+                label="ชั้นปีที่"
+                rules={[
+                  { required: true, message: 'กรุณาเลือกชั้นปี' }
+                ]}
+              >
+                <Select placeholder="เลือกชั้นปี" disabled>
+                  <Select.Option value={3}>ปี 3</Select.Option>
+                  <Select.Option value={4}>ปี 4</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                name={['studentData', 0, 'classroom']}
+                label="ห้อง"
+              >
+                <Select 
+                  placeholder="เลือกห้อง (ถ้ามี)"
+                  disabled={existingCS05 && existingCS05.classroom} // ✅ disable เมื่อมีข้อมูลแล้ว
+                >
+                  {classroomOptions.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item
+                name={['studentData', 0, 'studentId']}
+                label="รหัสประจำตัวนักศึกษา"
+                rules={[
+                  { required: true, message: 'กรุณากรอกรหัสนักศึกษา' }
+                ]}
+              >
+                <Input disabled />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item
+                name={['studentData', 0, 'phoneNumber']}
+                label="เบอร์โทรศัพท์"
+              >
+                <Input 
+                  prefix={<PhoneOutlined />} 
+                  placeholder="เช่น 0812345678 (ถ้ามี)" 
+                  maxLength={10}
+                  disabled={existingCS05 && existingCS05.phoneNumber} // ✅ disable เมื่อมีข้อมูลแล้ว
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item
+                name={['studentData', 0, 'totalCredits']}
+                label="หน่วยกิตสะสมทั้งหมด"
+                rules={[
+                  { required: true, message: 'กรุณากรอกหน่วยกิตสะสม' }
+                ]}
+              >
+                <InputNumber 
+                  min={0} 
+                  max={200}
+                  style={{ width: '100%' }}
+                  disabled
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* 🚧 ฟอร์มนักศึกษาคนที่ 2 (ปิดไว้ชั่วคราว - รอ Backend เสร็จ) */}
+          {/* {hasTwoStudents && (
+            <>
+              <Divider orientation="left">นักศึกษาคนที่ 2</Divider>
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['studentData', 1, 'fullName']}
+                    label="ชื่อ-นามสกุล"
+                    rules={[
+                      { required: hasTwoStudents, message: 'กรุณากรอกชื่อ-นามสกุล' },
+                      { min: 3, message: 'ชื่อ-นามสกุลต้องมีอย่างน้อย 3 ตัวอักษร' },
+                      { 
+                        whitespace: true, 
+                        message: 'กรุณากรอกชื่อ-นามสกุล ห้ามเป็นช่องว่าง' 
+                      }
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} placeholder="ชื่อ-นามสกุลนักศึกษาคนที่ 2" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item
+                    name={['studentData', 1, 'yearLevel']}
+                    label="ชั้นปีที่"
+                    rules={[
+                      { required: hasTwoStudents, message: 'กรุณาเลือกชั้นปี' }
+                    ]}
+                  >
+                    <Select placeholder="เลือกชั้นปี">
+                      <Select.Option value={2}>ปี 2</Select.Option>
+                      <Select.Option value={3}>ปี 3</Select.Option>
+                      <Select.Option value={4}>ปี 4</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item
+                    name={['studentData', 1, 'classroom']}
+                    label="ห้อง"
+                  >
+                    <Select placeholder="เลือกห้อง (ถ้ามี)">
+                      {classroomOptions.map(option => (
+                        <Select.Option key={option.value} value={option.value}>
+                          {option.label}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name={['studentData', 1, 'studentId']}
+                    label="รหัสประจำตัวนักศึกษา"
+                    rules={[
+                      { required: hasTwoStudents, message: 'กรุณากรอกรหัสนักศึกษา' },
+                      { 
+                        pattern: /^[0-9]{10}$/, 
+                        message: 'รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก' 
+                      }
+                    ]}
+                  >
+                    <Input placeholder="เช่น 6404101000" maxLength={10} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name={['studentData', 1, 'phoneNumber']}
+                    label="เบอร์โทรศัพท์"
+                  >
+                    <Input 
+                      prefix={<PhoneOutlined />} 
+                      placeholder="เช่น 0812345678 (ถ้ามี)" 
+                      maxLength={10}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name={['studentData', 1, 'totalCredits']}
+                    label="หน่วยกิตสะสมทั้งหมด"
+                    rules={[
+                      { required: hasTwoStudents, message: 'กรุณากรอกหน่วยกิตสะสม' },
+                      { 
+                        type: 'number', 
+                        min: 81, 
+                        message: 'ต้องมีหน่วยกิตสะสมไม่น้อยกว่า 81 หน่วยกิต'
+                      }
+                    ]}
+                  >
+                    <InputNumber 
+                      min={0} 
+                      max={200}
+                      style={{ width: '100%' }}
+                      placeholder="จำนวนหน่วยกิตสะสม (ต้องไม่น้อยกว่า 81)"
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )} */}
+        </Card>
+
+        {/* ส่วนที่ 3: ช่วงเวลาฝึกงาน */}
+        <Card title="ช่วงเวลาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
+          <Alert
+            message="กำหนดระยะเวลาการฝึกงาน"
+            description="ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          
+          <Form.Item
+            name="internshipDateRange"
+            label="ช่วงเวลาฝึกงาน"
+            rules={[
+              { required: true, message: 'กรุณาเลือกช่วงเวลาฝึกงาน' },
+              () => ({
+                validator(_, value) {
+                  if (!value || !value.length) return Promise.resolve();
+                  
+                  const days = calculateInternshipDaysLocal(value);
+                  if (days < 40) {
+                    return Promise.reject(new Error('ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน'));
+                  }
+                  return Promise.resolve();
+                },
+              }),
+            ]}
+          >
+            <RangePicker 
+              style={{ width: '100%' }} 
+              format="D MMMM BBBB"
+              locale={buddhistLocale}
+              onChange={handleDateRangeChange}
+              placeholder={['วันเริ่มต้น', 'วันสิ้นสุด']}
+            />
+          </Form.Item>
+          
+          {(startDate && endDate) && (
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Text type={internshipDays >= 40 ? 'success' : 'danger'}>
+                ระยะเวลาการฝึกงาน: {internshipDays} วัน 
+                {internshipDays < 40 && ' (ไม่ถึง 40 วันตามกำหนด)'}
+              </Text>
+              {/* 🆕 แสดงข้อมูลวันที่ในรูปแบบไทย */}
+              <Text type="secondary">
+                จาก {formatThaiDate(startDate.format('YYYY-MM-DD'), 'DD MMMM BBBB')} 
+                {' ถึง '} 
+                {formatThaiDate(endDate.format('YYYY-MM-DD'), 'DD MMMM BBBB')}
+              </Text>
+            </Space>
+          )}
+        </Card>
+        
+        {/* ส่วนที่ 5: อัปโหลด Transcript */}
+        <Card title="ใบแสดงผลการเรียน (Transcript)" className="form-card" style={{ marginTop: 24 }}>
+          <Alert
+            message="ข้อมูลสำคัญ"
+            description="นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิตสะสม "
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          
+          <Form.Item
+            name="transcript"
+            label="ใบแสดงผลการเรียน"
+            required
+            tooltip="กรุณาอัปโหลดใบแสดงผลการเรียนจากระบบ REG เพื่อยืนยันว่ามีหน่วยกิตเพียงพอ"
+            rules={[{ required: true, message: 'กรุณาอัปโหลดใบแสดงผลการเรียนจากระบบ REG' }]}
+          >
+            <TranscriptUpload
+              value={transcriptFile}
+              onChange={setTranscriptFile}
+              disabled={isFieldsDisabled}
+            />
+          </Form.Item>
+          
+          {existingCS05?.transcriptFilename && (
+            <Alert
+              message="ไฟล์ Transcript ที่อัปโหลดแล้ว"
+              description={
+                <Button
+                  type="link"
+                  onClick={() => window.open(`${process.env.REACT_APP_API_URL}/files/${existingCS05.transcriptFilename}`, '_blank')}
+                >
+                  คลิกที่นี่เพื่อดูไฟล์ ({existingCS05.transcriptFilename})
+                </Button>
+              }
+              type="success"
+              showIcon
+              icon={<FileTextOutlined />}
+            />
+          )}
+        </Card>
+
+        <div style={{ textAlign: 'right', marginTop: 24 }}>
+          <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={isFieldsDisabled}>
+            ถัดไป: ตรวจสอบข้อมูล
+          </Button>
+        </div>
+      </Form>
+    </div>
+  );
+};
+
+export default CS05FormStep;

@@ -16,13 +16,13 @@ import StudentDeadlineCalendar from './components/student/StudentDeadlineCalenda
 import ProjectManagement from './components/student/ProjectManagement';
 
 // Import Internship Components
-import TimeSheet from './components/internship/logbook/TimeSheet/index';
-import InternshipSummary from './components/internship/summary/Summary';
-import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
-import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
-import { InternshipRegistrationFlow } from './components/internship/register';
-import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
-import InternshipCompanyDashboard from './components/internship/companies/InternshipCompanyDashboard';
+import TimeSheet from './features/internship/components/student-view/TimeSheet';
+import InternshipSummary from './features/internship/components/student-view/Summary/Summary';
+import CompanyInfoForm from './features/internship/components/shared/CompanyInfoForm';
+import { EligibilityCheck, InternshipRequirements } from './features/internship/components/student-view/EligibilityCheck';
+import { InternshipRegistrationFlow } from './features/internship/components/student-view/RegistrationFlow';
+import InternshipCertificateRequest from './features/internship/components/student-view/CertificateRequest/InternshipCertificateRequest';
+import InternshipCompanyDashboard from './features/internship/components/shared/CompanyDashboard/InternshipCompanyDashboard';
 
 // Import Project Components
 import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
@@ -42,8 +42,8 @@ import ThesisDefenseRequestPage from './components/project/phase2/ThesisDefenseR
 import AdminUpload from './components/AdminUpload';
 import AdminRoutes from './components/admin/AdminRoutes';
 import ProjectPairsPage from './components/admin/users/projectPairs';
-import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation';
-import TimesheetApproval from './components/internship/approval/TimesheetApproval';
+import SupervisorEvaluation from './features/internship/components/teacher-view/SupervisorEvaluation/SupervisorEvaluation';
+import TimesheetApproval from './features/internship/components/teacher-view/TimesheetApproval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
 import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
 import MeetingApprovals from './components/teacher/MeetingApprovals';

@@ -1,6 +1,6 @@
 // src/contexts/InternshipStatusContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import internshipService from '../services/internshipService';
+import { internshipService } from 'features/internship/services';
 
 const InternshipStatusContext = createContext();
 
