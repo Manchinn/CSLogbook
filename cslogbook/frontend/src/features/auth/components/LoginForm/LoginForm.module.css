@@ -13,9 +13,9 @@
   padding-right: max(var(--spacing-md), env(safe-area-inset-right));
   background: linear-gradient(
     135deg,
-    var(--color-bg-secondary) 0%,
-    var(--color-bg-tertiary) 35%,
-    var(--color-primary-light) 100%
+    #e6f7ff 0%,
+    #ffffff 50%,
+    #bae7ff 100%
   );
   overflow: hidden;
 }

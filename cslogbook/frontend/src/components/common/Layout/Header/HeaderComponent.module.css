@@ -39,14 +39,7 @@
   margin: 0;
   font-size: 24px;
   font-weight: var(--font-weight-semibold);
-  background: linear-gradient(
-    90deg,
-    var(--color-primary),
-    var(--color-secondary-dark)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #1890ff; /* blue - same as student */
 }
 
 .headerSubtitle {
@@ -71,14 +64,6 @@
 .headerUsername {
   font-size: 14px;
   color: var(--color-text-primary);
-}
-
-.headerRoleBadge {
-  background: var(--color-primary-light);
-  color: var(--color-text-primary);
-  border-radius: var(--radius-full);
-  padding: 0 var(--spacing-sm);
-  border: none;
 }
 
 @media (max-width: 768px) {

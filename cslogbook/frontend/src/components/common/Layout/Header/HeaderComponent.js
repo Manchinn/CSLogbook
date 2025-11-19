@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Button, Typography, Space, Avatar, Badge, Tag, Tooltip } from "antd";
+import { Layout, Button, Typography, Space, Avatar, Tag, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import academicService from "../../../../services/academicService";
 import { getRoleTheme, resolveThemeKey } from '../../../../utils/roleTheme';
@@ -45,15 +45,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     fetchAcademicInfo();
   }, []);
 
-  const getRoleTitle = (role, teacherType) => {
-    if (role === 'teacher') {
-      if (teacherType === 'support') return 'เจ้าหน้าที่ภาควิชา';
-      return 'อาจารย์สายวิชาการ';
-    }
-    if (role === 'admin') return 'ผู้ดูแลระบบ';
-    if (role === 'student') return 'นักศึกษา';
-    return 'ผู้ใช้งาน';
-  };
   const buttonStyle = {
     display: "flex",
     alignItems: "center",
@@ -111,13 +102,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
     userName: {
       fontSize: "14px",
       color: theme.text,
-    },
-    roleBadge: {
-      backgroundColor: theme.badge,
-      fontSize: "12px",
-      padding: "0 8px",
-      borderRadius: "6px",
-      top: "-12px",
     },
     secondaryHeader: {
       backgroundColor: "#f5f5f5",
@@ -234,11 +218,6 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
               >
                 {firstName} {lastName}
               </Text>
-              <Badge
-                count={getRoleTitle(role, teacherType)}
-                style={headerStyles.roleBadge}
-                className={styles.headerRoleBadge}
-              />
             </Space>
           </Space>
         </div>
