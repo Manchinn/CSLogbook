@@ -31,10 +31,8 @@ import {
   EyeOutlined,
 } from "@ant-design/icons";
 
-// Import styles
-import "./styles/variables.css";
-import "./styles/index.css";
-import "./styles/Summary.css";
+// Import CSS Module
+import styles from "./Summary.module.css";
 
 // นำเข้า custom hooks
 import { useSummaryData } from "./hooks/useSummaryData";
@@ -558,7 +556,7 @@ const InternshipSummary = () => {
         </span>
       ),
       children: (
-        <Card variant="borderless" className="evaluation-card">
+        <Card variant="borderless" className={styles.evaluationCard}>
           <div
             style={{
               display: "flex",
@@ -590,37 +588,37 @@ const InternshipSummary = () => {
             >
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
-                  <div className="info-item">
-                    <div className="info-label">
+                  <div className={styles.infoItem}>
+                    <div className={styles.infoLabel}>
                       <UserOutlined /> ชื่อ-นามสกุล:
                     </div>
-                    <div className="info-value">
+                    <div className={styles.infoValue}>
                       {summaryData?.supervisorName || "-"}
                     </div>
                   </div>
-                  <div className="info-item">
-                    <div className="info-label">
+                  <div className={styles.infoItem}>
+                    <div className={styles.infoLabel}>
                       <TeamOutlined /> ตำแหน่ง:
                     </div>
-                    <div className="info-value">
+                    <div className={styles.infoValue}>
                       {summaryData?.supervisorPosition || "-"}
                     </div>
                   </div>
                 </Col>
                 <Col xs={24} md={12}>
-                  <div className="info-item">
-                    <div className="info-label">
+                  <div className={styles.infoItem}>
+                    <div className={styles.infoLabel}>
                       <MailOutlined /> อีเมล:
                     </div>
-                    <div className="info-value">
+                    <div className={styles.infoValue}>
                       {summaryData?.supervisorEmail || "-"}
                     </div>
                   </div>
-                  <div className="info-item">
-                    <div className="info-label">
+                  <div className={styles.infoItem}>
+                    <div className={styles.infoLabel}>
                       <PhoneOutlined /> เบอร์โทรศัพท์:
                     </div>
-                    <div className="info-value">
+                    <div className={styles.infoValue}>
                       {summaryData?.supervisorPhone || "-"}
                     </div>
                   </div>
@@ -634,7 +632,7 @@ const InternshipSummary = () => {
   ];
 
   return (
-    <div className="internship-summary-container internship-summary-page print-container">
+    <div className={`${styles.internshipSummaryContainer} print-container`}>
       {/* ✅ แสดง Alert เมื่อการฝึกงานถูกยกเลิก */}
       {cs05Status === 'cancelled' && (
         <Alert
@@ -652,14 +650,14 @@ const InternshipSummary = () => {
         />
       )}
       
-      <Card className="summary-header-card" variant="borderless">
+      <Card className={styles.summaryHeaderCard} variant="borderless">
         <Row gutter={[24, 24]} align="middle">
           <Col xs={24} lg={16}>
-            <div className="summary-header">
-              <div className="company-logo-placeholder">
+            <div className={styles.summaryHeader}>
+              <div className={styles.companyLogoPlaceholder}>
                 <BankOutlined style={{ fontSize: 36 }} />
               </div>
-              <div className="summary-title">
+              <div className={styles.summaryTitle}>
                 <Title level={2} style={{ marginBottom: 8 }}>
                   สรุปผลการฝึกงาน
                 </Title>
@@ -718,19 +716,19 @@ const InternshipSummary = () => {
           </Col>
 
           <Col xs={24} lg={8}>
-            <div className="progress-container">
+            <div className={styles.progressContainer}>
               <Progress
                 type="dashboard"
                 percent={completionStatus.percentage}
                 status={completionStatus.status}
                 format={() => (
-                  <div className="dashboard-inner">
-                    <div className="dashboard-title">ความคืบหน้า</div>
-                    <div className="dashboard-value">
+                  <div className={styles.dashboardInner}>
+                    <div className={styles.dashboardTitle}>ความคืบหน้า</div>
+                    <div className={styles.dashboardValue}>
                       {totalApprovedHours}
-                      <span className="dashboard-unit">ชม.</span>
+                      <span className={styles.dashboardUnit}>ชม.</span>
                     </div>
-                    <div className="dashboard-subtitle">จาก 240 ชั่วโมง</div>
+                    <div className={styles.dashboardSubtitle}>จาก 240 ชั่วโมง</div>
                   </div>
                 )}
                 size={180}
@@ -751,7 +749,7 @@ const InternshipSummary = () => {
         )}
       </Card>
 
-      <div className="summary-tabs" style={{ marginTop: 24 }}>
+      <div className={styles.summaryTabs} style={{ marginTop: 24 }}>
         <Tabs
           activeKey={activeTab}
           onChange={handleTabChange}
@@ -764,7 +762,7 @@ const InternshipSummary = () => {
       </div>
 
       {/* ปรับปรุงส่วน Actions */}
-      <div className="summary-actions no-print">
+      <div className={`${styles.summaryActions} no-print`}>
         <Space size="middle">
           {/* ปุ่ม Preview */}
           <Button

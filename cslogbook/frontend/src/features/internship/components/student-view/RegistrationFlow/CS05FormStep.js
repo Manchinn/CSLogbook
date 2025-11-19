@@ -17,6 +17,7 @@ import buddhistLocale from 'utils/buddhistLocale';
 
 // 🔧 แก้ไข import paths ให้ถูกต้อง
 import { formatThaiDate, calculateInternshipDays } from 'utils/dateUtils';
+import styles from './RegistrationFlow.module.css';
 
 // ตั้งค่า dayjs plugin
 dayjs.extend(buddhistEra);
@@ -212,7 +213,7 @@ const CS05FormStep = ({
   const internshipDays = calculateInternshipDaysLocal([startDate, endDate]);
 
   return (
-    <div className="cs05-form-container">
+    <div className={styles.cs05FormContainer}>
       <Title level={3} style={{ textAlign: 'center' }}>แบบฟอร์มคำร้องขอฝึกงาน (คพ.05)</Title>
       <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
   กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง เพื่อใช้ในการออกหนังสือขอความอนุเคราะห์ฝึกงาน
@@ -225,7 +226,7 @@ const CS05FormStep = ({
         disabled={isFieldsDisabled}
       >
         {/* ส่วนที่ 1: ข้อมูลบริษัท */}
-        <Card title="ข้อมูลบริษัท/หน่วยงาน" className="form-card">
+        <Card title="ข้อมูลบริษัท/หน่วยงาน" className={styles.formCard}>
           <Row gutter={16}>
             <Col xs={24} md={24}>
               <Form.Item
@@ -316,7 +317,7 @@ const CS05FormStep = ({
         </Card>
 
         {/* ส่วนที่ 2: ข้อมูลนักศึกษา */}
-        <Card title="ข้อมูลนักศึกษาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
+        <Card title="ข้อมูลนักศึกษาฝึกงาน" className={styles.formCard} style={{ marginTop: 24 }}>
           {/* 
             🚧 Feature: ฝึกงาน 2 คน (ปิดไว้ชั่วคราว)
             📋 Implementation Plan: ดูที่ IMPLEMENTATION_SIMPLE_TWO_STUDENTS.md
@@ -532,7 +533,7 @@ const CS05FormStep = ({
         </Card>
 
         {/* ส่วนที่ 3: ช่วงเวลาฝึกงาน */}
-        <Card title="ช่วงเวลาฝึกงาน" className="form-card" style={{ marginTop: 24 }}>
+        <Card title="ช่วงเวลาฝึกงาน" className={styles.formCard} style={{ marginTop: 24 }}>
           <Alert
             message="กำหนดระยะเวลาการฝึกงาน"
             description="ระยะเวลาฝึกงานต้องไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง"
@@ -585,7 +586,7 @@ const CS05FormStep = ({
         </Card>
         
         {/* ส่วนที่ 5: อัปโหลด Transcript */}
-        <Card title="ใบแสดงผลการเรียน (Transcript)" className="form-card" style={{ marginTop: 24 }}>
+        <Card title="ใบแสดงผลการเรียน (Transcript)" className={styles.formCard} style={{ marginTop: 24 }}>
           <Alert
             message="ข้อมูลสำคัญ"
             description="นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิตสะสม "

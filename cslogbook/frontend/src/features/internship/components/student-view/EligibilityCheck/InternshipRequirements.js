@@ -9,7 +9,7 @@ import {
   CheckCircleOutlined,
   ExperimentOutlined,
 } from '@ant-design/icons';
-import './styles.css';
+import styles from './EligibilityCheck.module.css';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -76,7 +76,7 @@ const InternshipRequirements = () => {
   ];
 
   return (
-    <div className="requirements-container">
+    <div className={styles.requirementsContainer}>
       <Card title="ข้อกำหนดการฝึกงาน" variant="borderless">
         <Alert
           message="สำคัญ: ข้อกำหนดการฝึกงานนี้ใช้สำหรับนักศึกษาภาควิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ เท่านั้น"

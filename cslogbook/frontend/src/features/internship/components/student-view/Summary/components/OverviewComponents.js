@@ -18,8 +18,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "utils/dayjs"; // ใช้ dayjs ที่มี plugin buddhistEra
 
-// นำเข้า CSS
-import "../styles/OverviewComponents.css";
+// นำเข้า CSS Module
+import styles from "../Summary.module.css";
 
 /**
  * Component แสดงข้อมูลรายสัปดาห์
@@ -37,7 +37,7 @@ const WeeklyOverview = ({ weeklyData }) => {
         }
         style={{ marginTop: 16 }}
         variant="borderless"
-        className="weekly-card"
+        className={styles.weeklyCard}
       >
         <Empty description="ยังไม่มีข้อมูลรายสัปดาห์" />
       </Card>
@@ -78,12 +78,12 @@ const WeeklyOverview = ({ weeklyData }) => {
       ),
       children: (
       <Card
-        className="weekly-item-card"
+        className={styles.weeklyItemCard}
         size="small"
         title={
-        <div className="weekly-title">
-          <span className="week-name">{week.week}</span>
-          <span className="week-date">{week.dateRange}</span>
+        <div className={styles.weeklyTitle}>
+          <span className={styles.weekName}>{week.week}</span>
+          <span className={styles.weekDate}>{week.dateRange}</span>
         </div>
         }
         extra={
@@ -113,7 +113,7 @@ const WeeklyOverview = ({ weeklyData }) => {
         dataSource={week.entries.slice(0, 3)}
         renderItem={(item) => (
           <List.Item>
-          <div className="weekly-log-item" style={{ width: "100%" }}>
+          <div className={styles.weeklyLogItem} style={{ width: "100%" }}>
             <div
             style={{
               display: "flex",
@@ -121,7 +121,7 @@ const WeeklyOverview = ({ weeklyData }) => {
               marginBottom: "4px",
             }}
             >
-            <span className="log-date">
+            <span className={styles.logDate}>
               {item.date || dayjs(item.workDate).format("D MMM BBBB")}
             </span>
             <Tag
@@ -163,7 +163,7 @@ const WeeklyOverview = ({ weeklyData }) => {
         />
         {week.entries.length > 3 && (
         <div
-          className="more-entries"
+          className={styles.moreEntries}
           style={{ paddingLeft: 8, paddingTop: 4 }}
         >
           <span style={{ color: "#8c8c8c" }}>
@@ -215,9 +215,9 @@ const StatsOverview = ({ logEntries, totalApprovedHours }) => {
   // The totalApprovedHours prop is already the sum of hours for approved entries.
 
   return (
-    <Row gutter={[16, 16]} className="stats-row">
+    <Row gutter={[16, 16]} className={styles.statsRow}>
       <Col xs={24} sm={12} lg={6}>
-        <Card className="stat-card" variant="borderless">
+        <Card className={`${styles.statCard} ${styles.statCardDays}`} variant="borderless">
           <Statistic
             title="วันทำงานทั้งหมด"
             value={logEntries.length}
@@ -227,7 +227,7 @@ const StatsOverview = ({ logEntries, totalApprovedHours }) => {
         </Card>
       </Col>
       <Col xs={24} sm={12} lg={6}>
-        <Card className="stat-card" variant="borderless">
+        <Card className={`${styles.statCard} ${styles.statCardHours}`} variant="borderless">
           <Statistic
             title="ชั่วโมงทำงานทั้งหมด"
             value={allEntriesTotalHours}
@@ -238,7 +238,7 @@ const StatsOverview = ({ logEntries, totalApprovedHours }) => {
         </Card>
       </Col>
       <Col xs={24} sm={12} lg={6}>
-        <Card className="stat-card" variant="borderless">
+        <Card className={`${styles.statCard} ${styles.statCardApproved}`} variant="borderless">
           <Statistic
             title="วันที่ได้รับการอนุมัติ"
             value={approvedDaysCount}
@@ -248,7 +248,7 @@ const StatsOverview = ({ logEntries, totalApprovedHours }) => {
         </Card>
       </Col>
       <Col xs={24} sm={12} lg={6}>
-        <Card className="stat-card" variant="borderless">
+        <Card className={`${styles.statCard} ${styles.statCardPending}`} variant="borderless">
           <Statistic
             title="ชั่วโมงที่ได้รับการอนุมัติ"
             value={totalApprovedHours} // This prop should now be correctly calculated from InternshipSummary

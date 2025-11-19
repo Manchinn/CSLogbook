@@ -9,7 +9,7 @@ import {
   BookOutlined 
 } from '@ant-design/icons';
 import { useStudentEligibility } from 'contexts/StudentEligibilityContext';
-import './styles.css';
+import styles from './EligibilityCheck.module.css';
 
 const { Paragraph, Text } = Typography;
 
@@ -98,7 +98,7 @@ const EligibilityCheck = () => {
   ];
 
   return (
-    <div className="eligibility-container">
+    <div className={styles.eligibilityContainer}>
       <Card title="ตรวจสอบคุณสมบัติสำหรับการฝึกงาน" variant="borderless">
         {isLoading || refreshing ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>

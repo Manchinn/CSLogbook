@@ -15,8 +15,7 @@ import CS05FormStep from './CS05FormStep';
 import ReviewDataStep from './ReviewDataStep';
 import SubmissionResultStep from './SubmissionResultStep';
 
-// นำเข้า CSS ที่มีอยู่แล้ว
-import 'features/internship/styles/shared/InternshipStyles.css';
+import styles from './RegistrationFlow.module.css';
 
 const { Text } = Typography;
 
@@ -442,7 +441,7 @@ const InternshipRegistrationFlow = () => {
         {/* Layout หลัก */}
         <Row gutter={24}>
           <Col xs={24} lg={16}>
-            <Card className="internship-form">
+            <Card className={styles.internshipForm}>
               {getStepContent()}
             </Card>
           </Col>

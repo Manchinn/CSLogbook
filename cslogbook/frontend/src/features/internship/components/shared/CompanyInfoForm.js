@@ -5,7 +5,7 @@ import { useInternship } from 'contexts/InternshipContext';
 import internshipService from 'features/internship/services/internshipService';
 import { EditOutlined, WarningOutlined } from '@ant-design/icons';
 import useInternshipAccess from 'features/internship/hooks/useInternshipAccess';
-import './CompanyInfoForm.css';
+import styles from './CompanyInfoForm.module.css';
 
 const { Title, Text } = Typography;
 
@@ -199,8 +199,8 @@ const CompanyForm = () => {
   // ✅ แสดง Skeleton ขณะโหลด
   if (accessLoading) {
     return (
-      <div className="internship-container">
-        <Card className="internship-card">
+      <div className={styles.internshipContainer}>
+        <Card className={styles.internshipCard}>
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
             <Spin size="large" />
             <div style={{ marginTop: 16 }}>
@@ -350,7 +350,7 @@ const CompanyForm = () => {
     }
 
     return (
-      <div className="internship-container">
+      <div className={styles.internshipContainer}>
         {alertComponent}
         <Result
           status={resultStatus}

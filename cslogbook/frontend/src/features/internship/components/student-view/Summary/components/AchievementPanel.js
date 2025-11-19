@@ -8,8 +8,8 @@ import {
   ScheduleOutlined
 } from '@ant-design/icons';
 
-// นำเข้า CSS
-import '../styles/AchievementPanel.css';
+// นำเข้า CSS Module
+import styles from '../Summary.module.css';
 
 const { Title, Paragraph } = Typography;
 
@@ -30,16 +30,16 @@ const AchievementPanel = ({
   summaryData 
 }) => {
   return (
-    <Card variant="borderless" className="achievement-card">
-      <div className="achievement-header">
-        <div className="achievement-icon">
+    <Card variant="borderless" className={styles.achievementCard}>
+      <div className={styles.achievementHeader}>
+        <div className={styles.achievementIcon}>
           {completionStatus.percentage >= 100 ? (
             <SafetyCertificateOutlined style={{ fontSize: 64, color: '#52c41a' }} />
           ) : (
             <CarryOutOutlined style={{ fontSize: 64, color: '#1890ff' }} />
           )}
         </div>
-        <div className="achievement-title">
+        <div className={styles.achievementTitle}>
           <Title level={3}>
             {completionStatus.percentage >= 100 ? 
               'ผ่านการฝึกงานครบตามเกณฑ์' : 
@@ -63,7 +63,7 @@ const AchievementPanel = ({
             size={[undefined, 20]} // เปลี่ยนจาก strokeWidth เป็น size และกำหนดความสูง
             format={percent => `${percent}%`}
           />
-          <div className="hours-labels">
+          <div className={styles.hoursLabels}>
             <span>0 ชั่วโมง</span>
             <span>240 ชั่วโมง</span>
           </div>
@@ -74,7 +74,7 @@ const AchievementPanel = ({
       
       <Row gutter={[24, 24]}>
         <Col xs={24} md={8}>
-          <Card className="summary-metric-card">
+          <Card className={styles.summaryMetricCard}>
             <Statistic
               title="จำนวนวันที่ฝึกงาน"
               value={logEntries.length}
@@ -82,13 +82,13 @@ const AchievementPanel = ({
               prefix={<CalendarOutlined />}
               valueStyle={{ color: '#1890ff' }}
             />
-            <div className="metric-subtitle">
+            <div className={styles.metricSubtitle}>
               จากทั้งหมด {calcDateDiff(summaryData?.startDate, summaryData?.endDate)} วัน
             </div>
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card className="summary-metric-card">
+          <Card className={styles.summaryMetricCard}>
             <Statistic
               title="จำนวนชั่วโมงที่ได้รับการอนุมัติ"
               value={totalApprovedHours}
@@ -96,13 +96,13 @@ const AchievementPanel = ({
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
-            <div className="metric-subtitle">
+            <div className={styles.metricSubtitle}>
               คิดเป็น {Math.round((totalApprovedHours / 240) * 100)}% ของเป้าหมาย
             </div>
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card className="summary-metric-card">
+          <Card className={styles.summaryMetricCard}>
             <Statistic
               title="จำนวนสัปดาห์ที่ฝึกงาน"
               value={weeklyData.length}
@@ -110,7 +110,7 @@ const AchievementPanel = ({
               prefix={<ScheduleOutlined />}
               valueStyle={{ color: '#722ed1' }}
             />
-            <div className="metric-subtitle">
+            <div className={styles.metricSubtitle}>
               เฉลี่ย {Math.round(totalApprovedHours / (weeklyData.length || 1))} ชั่วโมง/สัปดาห์
             </div>
           </Card>

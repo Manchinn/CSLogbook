@@ -3,8 +3,8 @@ import { Card, Table, Button, Tooltip, Tag } from 'antd';
 import { FileProtectOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-// นำเข้า CSS
-import '../styles/LogbookTable.css';
+// นำเข้า CSS Module
+import styles from '../Summary.module.css';
 
 /**
  * Component แสดงตารางบันทึกการฝึกงาน
@@ -104,7 +104,7 @@ const LogbookTable = ({ logEntries, totalApprovedHours }) => {
   
   return (
     <Card 
-      className="logbook-card"
+      className={styles.logbookCard}
       variant="borderless"
       title={<>
         <FileProtectOutlined /> บันทึกการทำงาน

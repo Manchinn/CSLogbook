@@ -1,0 +1,225 @@
+/* CompanyInfoForm.module.css - CSS Module สำหรับ CompanyInfoForm */
+
+.internshipContainer {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  min-height: 55vh;
+  background-color: transparent;
+  padding: var(--spacing-md);
+}
+
+.internshipCard {
+  width: 100%;
+  max-width: 90%;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  margin: var(--spacing-md) auto;
+}
+
+.internshipParagraph {
+  text-align: left;
+  font-size: var(--font-size-md);
+}
+
+.internshipButton {
+  margin-top: 10px;
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-md);
+}
+
+.internshipStepsContainer {
+  width: 100%;
+  padding: 15px 0;
+  background-color: var(--color-bg-secondary);
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.internshipSteps {
+  width: 85%;
+  max-width: 1000px;
+}
+
+.internshipStepTitle {
+  font-weight: var(--font-weight-bold);
+}
+
+.cs05Form,
+.timesheetForm {
+  padding: var(--spacing-md);
+}
+
+:global(.ant-form-item) {
+  margin-bottom: var(--spacing-md);
+}
+
+:global(.ant-btn) {
+  margin-top: var(--spacing-md);
+}
+
+/* Form Section */
+.formSection {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.timeInput {
+  width: 200px;
+}
+
+.textArea {
+  min-height: 120px;
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+}
+
+.internshipSubcard {
+  text-align: left;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Form Styles */
+.internshipForm {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+.internshipForm :global(.ant-form-item) {
+  margin-bottom: var(--spacing-lg);
+}
+
+.internshipForm :global(.ant-input),
+.internshipForm :global(.ant-picker) {
+  height: 40px;
+}
+
+/* TimePicker */
+.internshipForm :global(.ant-picker-time-panel) {
+  width: 180px;
+}
+
+/* TextArea */
+.internshipForm :global(.ant-input-textarea) {
+  min-height: 120px;
+}
+
+/* Button Group */
+.internshipButtonGroup {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-lg);
+}
+
+.timesheetOverview {
+  margin-bottom: var(--spacing-lg);
+}
+
+.statusCard {
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.statusCard:hover {
+  transform: translateY(-3px);
+}
+
+.statusCard.pending {
+  border-left: 3px solid var(--color-warning);
+}
+
+.statusCard.incomplete {
+  border-left: 3px solid var(--color-info);
+}
+
+.statusCard.submitted {
+  border-left: 3px solid var(--color-success);
+}
+
+.statusCard.approved {
+  border-left: 3px solid var(--color-success);
+  background-color: #f6ffed;
+}
+
+.summaryCard {
+  text-align: center;
+  background-color: var(--color-bg-secondary);
+}
+
+:global(.ant-tabs-nav) {
+  margin-bottom: var(--spacing-lg);
+}
+
+.viewDetails {
+  padding: var(--spacing-md);
+}
+
+.viewDetails p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.viewDetails strong {
+  color: var(--color-info);
+}
+
+.statusOverview {
+  margin-bottom: var(--spacing-lg);
+}
+
+.statusSummaryCard {
+  text-align: center;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.statusSummaryCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.statusSummaryCard.total {
+  background-color: var(--color-bg-secondary);
+}
+
+.statusSummaryCard.completed {
+  background-color: #f6ffed;
+  border-left: 4px solid var(--color-success);
+}
+
+.statusSummaryCard.inProgress {
+  background-color: #e6f7ff;
+  border-left: 4px solid var(--color-info);
+}
+
+.statusSummaryCard.pending {
+  background-color: #fff7e6;
+  border-left: 4px solid var(--color-warning);
+}
+
+:global(.ant-statistic-title) {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-md);
+}
+
+:global(.ant-statistic-content) {
+  font-size: 24px;
+}
+
+:global(.ant-statistic-prefix) {
+  margin-right: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+}
+

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, Form, Input, Button } from 'antd';
 
-// นำเข้า CSS
-import '../styles/ReflectionForm.css';
+// นำเข้า CSS Module
+import styles from '../Summary.module.css';
 
 const { TextArea } = Input;
 
@@ -23,13 +23,14 @@ const ReflectionForm = ({ onSave, initialData = {}, readOnly = false }) => {
   };
 
   return (
-    <Card className="reflection-form-card">
+    <Card className={styles.reflectionFormCard}>
       <Form
         form={form}
         layout="vertical"
         initialValues={initialData}
         onFinish={handleSubmit}
         disabled={readOnly}
+        className={styles.reflectionForm}
       >
         <Form.Item
           name="learningOutcome"

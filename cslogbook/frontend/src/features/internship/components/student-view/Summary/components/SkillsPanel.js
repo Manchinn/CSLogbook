@@ -6,8 +6,8 @@ import {
 } from '@ant-design/icons';
 import ReflectionForm from './ReflectionForm';
 
-// นำเข้า CSS
-import '../styles/SkillsPanel.css';
+// นำเข้า CSS Module
+import styles from '../Summary.module.css';
 
 const { Title } = Typography;
 
@@ -52,7 +52,7 @@ const SkillsPanel = ({
   const showAddButton = !reflection && !editingReflection && !isSupervisorEvaluated && canEdit;
 
   return (
-    <Card variant="borderless" className="skills-analysis-card">
+    <Card variant="borderless" className={styles.skillsAnalysisCard}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4}>สรุปทักษะและความรู้ที่ได้รับจากการฝึกงาน</Title>
         

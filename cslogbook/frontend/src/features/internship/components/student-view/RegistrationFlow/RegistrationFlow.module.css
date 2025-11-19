@@ -1,0 +1,69 @@
+/* RegistrationFlow.module.css - Styles for Internship registration flow */
+
+.cs05FormContainer {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.formCard {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
+}
+
+.formCard :global(.ant-card-head) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cs05FormContainer :global(.ant-form-item) {
+  margin-bottom: var(--spacing-lg);
+}
+
+.cs05FormContainer :global(.ant-input),
+.cs05FormContainer :global(.ant-picker),
+.cs05FormContainer :global(.ant-input-textarea textarea) {
+  height: 40px;
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-dark);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.cs05FormContainer :global(.ant-input-textarea textarea) {
+  min-height: 120px;
+}
+
+.cs05FormContainer :global(.ant-btn) {
+  margin-top: var(--spacing-md);
+}
+
+.internshipForm {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+}
+
+.internshipForm :global(.ant-card-body) {
+  padding: var(--spacing-xl);
+}
+
+@media (max-width: 768px) {
+  .cs05FormContainer {
+    padding: var(--spacing-lg);
+  }
+
+  .internshipForm :global(.ant-card-body) {
+    padding: var(--spacing-lg);
+  }
+}
+
