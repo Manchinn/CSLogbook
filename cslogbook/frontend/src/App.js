@@ -10,8 +10,8 @@ import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
 import MainLayout from './components/common/Layout/MainLayout';
 import LoginForm from './features/auth/components/LoginForm';
-import Dashboard from './components/dashboards/Dashboard';
-import StudentProfile from './components/StudentProfile';
+import Dashboard from './features/admin-dashboard/pages/AdminDashboard';
+import StudentProfile from 'features/user-management/components/StudentProfile';
 import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
 import ProjectManagement from 'features/project/components/student-view/ProjectManagement';
 
@@ -44,7 +44,7 @@ import ThesisDefenseRequestPage from 'features/project/components/student-view/P
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
 import AdminRoutes from './components/admin/AdminRoutes';
-import ProjectPairsPage from './components/admin/users/projectPairs';
+import ProjectPairsPage from 'features/user-management/components/ProjectPairs';
 import SupervisorEvaluation from './features/internship/components/teacher-view/SupervisorEvaluation/SupervisorEvaluation';
 import TimesheetApproval from './features/internship/components/teacher-view/TimesheetApproval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Space, Typography, Tag, message, Tooltip, Alert } from 'antd';
 import { useCreateProjectDraft } from '../createContext';
 import projectService from 'features/project/services/projectService';
-import { studentService } from 'services/studentService';
+import { studentService } from 'features/user-management/services/studentService';
 
 const studentCodeRegex = /^[0-9]{5,13}$/;
 

@@ -5,7 +5,7 @@ import { getMenuConfig } from "../menuConfig";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { useStudentEligibility } from "../../../../contexts/StudentEligibilityContext";
-import { studentService } from "../../../../services/studentService";
+import { studentService } from "features/user-management/services/studentService";
 import "./Sidebar.css";
 import "./SidebarStyles.css";
 

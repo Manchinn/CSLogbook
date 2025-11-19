@@ -12,7 +12,7 @@ import {
 import useAllDeadlines from "../../hooks/useAllDeadlines";
 import dayjs from "../../utils/dayjs";
 // NOTE: deadlines ที่มาจาก hook ผ่าน normalize แล้ว มี deadline_at_local, effective_deadline_local, isWindow, windowStartDate/EndDate legacy และ submittedAtLocal
-import { studentService } from "../../services/studentService";
+import { studentService } from "features/user-management/services/studentService";
 
 export default function StudentDeadlineCalendar({ audience = "student" }) {
   const currentYear = dayjs().year();

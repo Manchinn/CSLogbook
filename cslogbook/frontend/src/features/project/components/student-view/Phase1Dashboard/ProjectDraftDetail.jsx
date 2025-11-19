@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Tag, Space, Typography, Button, Spin, message, Divider } from 'antd';
 import projectService from 'features/project/services/projectService';
-import { teacherService } from 'services/teacherService';
+import { teacherService } from 'features/user-management/services/teacherService';
 
 // หน้าแสดงรายละเอียด Draft โครงงาน (หลังสร้างแล้ว)
 // เน้น read-only + ปุ่ม Refresh + ปุ่มกลับไปแก้ไข (Wizard เดิม)

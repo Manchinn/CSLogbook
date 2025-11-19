@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import projectService from '../services/projectService';
-import { teacherService } from 'services/teacherService';
+import { teacherService } from 'features/user-management/services/teacherService';
 import { message } from 'antd';
 import { evaluateProjectReadiness } from 'utils/projectReadiness';
 

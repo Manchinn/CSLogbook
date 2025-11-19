@@ -8,9 +8,13 @@ import DocumentManagement from "./documents";
 import CertificateManagement from "features/internship/components/admin-view/CertificateManagement";
 
 // Lazy loading components
-const Dashboard = lazy(() => import("./dashboard"));
-const StudentList = lazy(() => import("./users/students"));
-const TeacherList = lazy(() => import("./users/teachers"));
+const Dashboard = lazy(() => import("features/admin-dashboard/components/dashboard"));
+const StudentList = lazy(() =>
+  import("features/user-management/components/StudentList")
+);
+const TeacherList = lazy(() =>
+  import("features/user-management/components/TeacherList")
+);
 const AdminUpload = lazy(() => import("../AdminUpload"));
 const ConstantsSettings = lazy(() => import("./settings/constants"));
 

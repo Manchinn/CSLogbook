@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../services/apiClient';
-import { teacherService } from '../services/teacherService';
+import { teacherService } from 'features/user-management/services/teacherService';
 import { message } from 'antd';
 
 export const AuthContext = createContext({
