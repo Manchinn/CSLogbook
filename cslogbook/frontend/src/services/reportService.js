@@ -44,6 +44,12 @@ export async function getInternshipAcademicYears() {
   return res.data.data || [];
 }
 
+// รายการปีการศึกษาที่มีข้อมูลโครงงาน (distinct academic_year)
+export async function getProjectAcademicYears() {
+  const res = await apiClient.get(`/reports/projects/academic-years`);
+  return res.data.data || [];
+}
+
 // รายชื่อนักศึกษาที่ลงทะเบียนฝึกงาน (ลด payload จาก /students ทั้งระบบ)
 export async function getEnrolledInternshipStudents(params = {}) {
   const { year } = params; // ปัจจุบัน backend ยังไม่ filter year แต่ส่งไว้รองรับอนาคต

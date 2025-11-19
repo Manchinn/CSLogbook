@@ -15,6 +15,7 @@ router.get('/internships/enrolled-students', authenticateToken, reportController
 router.get('/internships/academic-years', authenticateToken, reportController.getInternshipAcademicYears);
 router.get('/projects/status-summary', authenticateToken, reportController.getProjectStatusSummary);
 router.get('/projects/advisor-load', authenticateToken, reportController.getAdvisorLoad);
+router.get('/projects/academic-years', authenticateToken, reportController.getProjectAcademicYears);
 
 // === Advisor Workload Enhanced Routes ===
 router.get('/advisors/workload', authenticateToken, reportController.getAdvisorLoad); // Alias for detailed view
@@ -31,6 +32,7 @@ router.get('/deadlines/compliance', authenticateToken, deadlineReportController.
 router.get('/deadlines/upcoming', authenticateToken, deadlineReportController.getUpcomingDeadlines);
 router.get('/deadlines/overdue', authenticateToken, deadlineReportController.getOverdueDeadlines);
 router.get('/deadlines/late-submissions', authenticateToken, deadlineReportController.getLateSubmissions);
+router.get('/deadlines/academic-years', authenticateToken, deadlineReportController.getDeadlineAcademicYears);
 router.get('/students/:studentId/deadline-history', authenticateToken, deadlineReportController.getStudentDeadlineHistory);
 
 module.exports = router;

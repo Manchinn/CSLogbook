@@ -54,6 +54,19 @@ export const getLateSubmissions = async (params = {}) => {
 };
 
 /**
+ * ดึงรายการปีการศึกษาที่มี ImportantDeadline (distinct academic_year)
+ */
+export const getDeadlineAcademicYears = async () => {
+  try {
+    const response = await apiClient.get('/reports/deadlines/academic-years');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching deadline academic years:', error);
+    throw error;
+  }
+};
+
+/**
  * ดึงประวัติการส่งงานของนักศึกษา
  */
 export const getStudentDeadlineHistory = async (studentId, params = {}) => {

@@ -206,7 +206,8 @@ const InternshipReport = () => {
 		'not_started': 'ยังไม่เริ่ม',
 		'pending_approval': 'รออนุมัติ',
 		'in_progress': 'อยู่ระหว่างฝึกงาน',
-		'completed': 'เสร็จสิ้น'
+		'completed': 'เสร็จสิ้น',
+		'cancelled': 'ยกเลิกการฝึกงาน'
 	};
 
 	// Filters สำหรับสถานะ
@@ -249,7 +250,8 @@ const InternshipReport = () => {
 					'not_started': 'default',
 					'pending_approval': 'processing',
 					'in_progress': 'warning',
-					'completed': 'success'
+					'completed': 'success',
+					'cancelled': 'error'
 				};
 				return <Tag color={colors[val] || 'default'}>{statusTH[val] || val}</Tag>;
 			}

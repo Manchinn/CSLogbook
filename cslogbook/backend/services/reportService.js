@@ -395,5 +395,22 @@ module.exports = {
     return rows
       .map(r => parseInt(r.academicYear, 10))
       .filter(y => !isNaN(y));
+  },
+  /**
+   * ดึงรายการปีการศึกษาที่มีข้อมูลโครงงาน (distinct academic_year จาก ProjectDocument)
+   * ใช้สำหรับสร้างตัวเลือก filter ปีการศึกษาในหน้า ProjectReport / Project management
+   */
+  async getProjectAcademicYears() {
+    const { ProjectDocument } = db;
+    const rows = await ProjectDocument.findAll({
+      attributes: [[fn('DISTINCT', col('academic_year')), 'academicYear']],
+      where: { academic_year: { [Op.ne]: null } },
+      order: [[col('academic_year'), 'DESC']],
+      raw: true
+    });
+
+    return rows
+      .map(r => parseInt(r.academicYear, 10))
+      .filter(y => !isNaN(y));
   }
 };

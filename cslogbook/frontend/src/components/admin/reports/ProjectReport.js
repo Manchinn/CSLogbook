@@ -17,6 +17,7 @@ import {
 import { SimplePieChart, SimpleLineChart, CHART_COLORS } from './charts/RechartsComponents';
 import { useProjectReport } from './hooks/useProjectReport';
 import { academicYearOptions } from './constants';
+import { getProjectAcademicYears } from '../../../services/reportService';
 import projectManagementService from '../../../services/admin/projectManagementService';
 
 const { Title, Text } = Typography;
@@ -51,6 +52,7 @@ const ProjectReport = () => {
 		page: 1,
 		limit: 20
 	});
+	const [yearOptionsFromData, setYearOptionsFromData] = useState([]);
 
 	const numberFormatter = useMemo(() => new Intl.NumberFormat('th-TH'), []);
 	const formatNumber = useCallback((value, fallback = '-') => {
@@ -59,7 +61,31 @@ const ProjectReport = () => {
 		return String(value);
 	}, [numberFormatter]);
 
-	const yearOptions = academicYearOptions(anchorYearRef.current);
+	// โหลดรายการปีการศึกษาจริงของโครงงานจาก backend และ fallback เป็นช่วงปีจาก anchorYear
+	useEffect(() => {
+		let isMounted = true;
+		const loadYears = async () => {
+			try {
+				const years = await getProjectAcademicYears();
+				if (!isMounted) return;
+				if (Array.isArray(years) && years.length > 0) {
+					setYearOptionsFromData(years);
+				} else {
+					setYearOptionsFromData(academicYearOptions(anchorYearRef.current));
+				}
+			} catch (e) {
+				console.error('Error loading project academic years', e);
+				if (!isMounted) return;
+				setYearOptionsFromData(academicYearOptions(anchorYearRef.current));
+			}
+		};
+		loadYears();
+		return () => { isMounted = false; };
+	}, []);
+
+	const yearOptions = yearOptionsFromData.length > 0
+		? yearOptionsFromData
+		: academicYearOptions(anchorYearRef.current);
 
 	// ดึงรายการโครงงาน
 	const loadProjects = useCallback(async () => {
@@ -305,7 +331,20 @@ const ProjectReport = () => {
 					<Col>
 						<Space>
 							<span>ปีการศึกษา:</span>
-							<Select value={year} style={{width:120}} onChange={setYear} options={yearOptions.map(y=>({value:y,label:y}))} />
+							<Select
+								value={year}
+								style={{width:120}}
+								onChange={(value) => {
+									setYear(value);
+									// sync filter ของตารางจัดการโครงงานให้ใช้ปีเดียวกัน
+									setProjectFilters(prev => ({
+										...prev,
+										academicYear: value,
+										page: 1
+									}));
+								}}
+								options={yearOptions.map(y=>({value:y,label:y}))}
+							/>
 						</Space>
 					</Col>
 				</Row>

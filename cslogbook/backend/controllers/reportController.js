@@ -48,6 +48,16 @@ exports.getInternshipAcademicYears = async (req, res, next) => {
   }
 };
 
+// รายการปีการศึกษาที่มีข้อมูลโครงงาน
+exports.getProjectAcademicYears = async (req, res, next) => {
+  try {
+    const data = await reportService.getProjectAcademicYears();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Enhanced: ดึงรายละเอียดอาจารย์คนหนึ่ง
 exports.getAdvisorDetail = async (req, res, next) => {
   try {

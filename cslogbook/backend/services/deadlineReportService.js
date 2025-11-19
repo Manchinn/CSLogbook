@@ -551,6 +551,28 @@ class DeadlineReportService {
       throw error;
     }
   }
+
+  /**
+   * ดึงรายการปีการศึกษาที่มี ImportantDeadline (distinct academic_year)
+   * ใช้สำหรับสร้างตัวเลือก filter ปีการศึกษาในรายงาน deadline
+   */
+  async getDeadlineAcademicYears() {
+    try {
+      const rows = await ImportantDeadline.findAll({
+        attributes: [[fn('DISTINCT', col('academic_year')), 'academicYear']],
+        where: { academicYear: { [Op.ne]: null } },
+        order: [[col('academic_year'), 'DESC']],
+        raw: true
+      });
+
+      return rows
+        .map(r => (r.academicYear || '').toString())
+        .filter(v => v);
+    } catch (error) {
+      logger.error('Error in getDeadlineAcademicYears:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new DeadlineReportService();

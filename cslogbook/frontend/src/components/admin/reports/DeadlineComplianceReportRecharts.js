@@ -1,5 +1,5 @@
 // DeadlineComplianceReportRecharts.js
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { 
   Card, Row, Col, Typography, Select, Space, Alert, Table, Tag, Tabs, 
   Skeleton, Empty, Statistic, Badge 
@@ -17,6 +17,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { useDeadlineCompliance } from './hooks/useDeadlineCompliance';
+import { getDeadlineAcademicYears } from '../../../services/reports/deadlineReportService';
 import {
   getComplianceColor,
   renderBarLabel,
@@ -202,15 +203,46 @@ const DeadlineComplianceReportRecharts = () => {
     { value: 'general', label: 'ทั่วไป' }
   ];
 
-  const yearOptions = useMemo(() => {
-    const years = [];
-    for (let i = 0; i < 5; i++) {
-      years.push({ 
-        value: (currentYear - i).toString(), 
-        label: (currentYear - i).toString() 
-      });
-    }
-    return years;
+  const [yearOptions, setYearOptions] = useState([]);
+
+  // โหลดปีการศึกษาจาก ImportantDeadline (ข้อมูลจริง) และ fallback เป็น 5 ปีล่าสุด
+  useEffect(() => {
+    let isMounted = true;
+    const loadYears = async () => {
+      try {
+        const res = await getDeadlineAcademicYears();
+        const years = res?.data || res; // service คืน response.data
+        if (!isMounted) return;
+        if (Array.isArray(years) && years.length > 0) {
+          setYearOptions(
+            years.map(y => ({
+              value: y.toString(),
+              label: y.toString()
+            }))
+          );
+        } else {
+          const fallback = [];
+          for (let i = 0; i < 5; i++) {
+            const y = (currentYear - i).toString();
+            fallback.push({ value: y, label: y });
+          }
+          setYearOptions(fallback);
+        }
+      } catch (e) {
+        console.error('Error loading deadline academic years', e);
+        if (!isMounted) return;
+        const fallback = [];
+        for (let i = 0; i < 5; i++) {
+          const y = (currentYear - i).toString();
+          fallback.push({ value: y, label: y });
+        }
+        setYearOptions(fallback);
+      }
+    };
+    loadYears();
+    return () => {
+      isMounted = false;
+    };
   }, [currentYear]);
 
   const semesterOptions = [

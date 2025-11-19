@@ -139,6 +139,20 @@ exports.getLateSubmissions = async (req, res, next) => {
   }
 };
 
+// รายการปีการศึกษาที่มี ImportantDeadline (distinct academic_year)
+exports.getDeadlineAcademicYears = async (req, res, next) => {
+  try {
+    const data = await deadlineReportService.getDeadlineAcademicYears();
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    logger.error('Error in getDeadlineAcademicYears:', error);
+    next(error);
+  }
+};
+
 /**
  * @swagger
  * /api/reports/students/:studentId/deadline-history:

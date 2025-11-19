@@ -1,5 +1,5 @@
 // WorkflowProgressReport.js
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Card, Row, Col, Typography, Select, Space, Alert, Table, Tag, Tabs, Skeleton, Empty, Statistic } from 'antd';
 import { 
   WarningOutlined, 
@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { CHART_COLORS } from './charts/RechartsComponents';
 import { useWorkflowProgress } from './hooks/useWorkflowProgress';
+import { getInternshipAcademicYears, getProjectAcademicYears } from '../../../services/reportService';
 
 const { Title, Text } = Typography;
 
@@ -27,6 +28,34 @@ const WorkflowProgressReport = () => {
     workflowType: 'internship',
     academicYear: currentYear
   });
+
+  const [internshipYears, setInternshipYears] = useState([]);
+  const [projectYears, setProjectYears] = useState([]);
+
+  // โหลดปีการศึกษาจากข้อมูลจริงของฝึกงาน/โครงงาน เพื่อใช้เป็นตัวเลือกปี
+  useEffect(() => {
+    let isMounted = true;
+    const loadYears = async () => {
+      try {
+        const [internYears, projYears] = await Promise.all([
+          getInternshipAcademicYears(),
+          getProjectAcademicYears()
+        ]);
+        if (!isMounted) return;
+        setInternshipYears(Array.isArray(internYears) ? internYears : []);
+        setProjectYears(Array.isArray(projYears) ? projYears : []);
+      } catch (e) {
+        console.error('Error loading workflow academic years', e);
+        if (!isMounted) return;
+        setInternshipYears([]);
+        setProjectYears([]);
+      }
+    };
+    loadYears();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Prepare Chart Data
   const bottleneckBarData = useMemo(() => {
@@ -50,7 +79,9 @@ const WorkflowProgressReport = () => {
       in_progress: 'กำลังดำเนินการ',
       completed: 'เสร็จสิ้น',
       blocked: 'ติดขัด',
-      failed: 'ไม่ผ่าน'
+      failed: 'ไม่ผ่าน',
+      cancelled: 'ยกเลิก',
+      archived: 'เก็บแล้ว'
     };
     const colorMap = {
       not_started: '#d9d9d9',
@@ -59,7 +90,9 @@ const WorkflowProgressReport = () => {
       in_progress: CHART_COLORS.warning,
       completed: CHART_COLORS.success,
       blocked: CHART_COLORS.danger,
-      failed: CHART_COLORS.danger
+      failed: CHART_COLORS.danger,
+      cancelled: '#fa541c',
+      archived: '#8c8c8c'
     };
     return data.overallStats.map(stat => ({
       name: labelMap[stat.status] || stat.status,
@@ -121,12 +154,29 @@ const WorkflowProgressReport = () => {
   ];
 
   const yearOptions = useMemo(() => {
-    const years = [];
-    for (let i = 0; i < 5; i++) {
-      years.push({ value: currentYear - i, label: (currentYear - i).toString() });
+    // เลือก source ตามประเภท workflow
+    let yearsSource = [];
+    if (filters.workflowType === 'internship') {
+      yearsSource = internshipYears;
+    } else {
+      yearsSource = projectYears;
     }
-    return years;
-  }, [currentYear]);
+
+    if (!Array.isArray(yearsSource) || yearsSource.length === 0) {
+      // fallback 5 ปีล่าสุด
+      const fallback = [];
+      for (let i = 0; i < 5; i++) {
+        const y = currentYear - i;
+        fallback.push({ value: y, label: y.toString() });
+      }
+      return fallback;
+    }
+
+    return yearsSource.map((y) => ({
+      value: y,
+      label: y.toString()
+    }));
+  }, [filters.workflowType, internshipYears, projectYears, currentYear]);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
