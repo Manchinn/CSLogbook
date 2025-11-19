@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Row, Col, Card, Avatar, Tag, Tooltip, Space, Button } from 'antd';
 import { UserOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
 import ContactInfoEditModal from './ContactInfoEditModal';
-import './styles.css';
+import styles from './StudentProfile.module.css';
 
 const StudentAvatar = React.memo(({ student, studentYear, canEdit, onContactInfoUpdated }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -105,7 +105,7 @@ const StudentAvatar = React.memo(({ student, studentYear, canEdit, onContactInfo
   return (
     <Row gutter={[16, 24]}>
       <Col span={24}>
-        <Card className="avatarCard">
+        <Card className={styles.avatarCard}>
           <Avatar size={120} icon={<UserOutlined />} />
           <h2 style={{ marginTop: 16 }}>
             {(student.firstName || student.lastName)

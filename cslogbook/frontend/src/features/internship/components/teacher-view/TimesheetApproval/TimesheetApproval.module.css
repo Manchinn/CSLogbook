@@ -1,98 +1,100 @@
+/* TimesheetApproval.module.css - CSS Module สำหรับ TimesheetApproval component */
+
 .pageContainer {
-  padding: 20px;
-  background-color: #f0f2f5; /* สีพื้นหลังอ่อนๆ */
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
   min-height: 100vh;
 }
 
 .approvalCard {
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09); /* เงาที่ดูนุ่มนวลขึ้น */
-  padding: 24px;
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
 }
 
-.pageHeaderContainer { /* เพิ่ม container สำหรับ header ของหน้า */
+.pageHeaderContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .logoImage {
-  max-width: 180px; /* หรือขนาดที่เหมาะสม */
+  max-width: 180px;
   height: auto;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .pageTitle {
   text-align: center;
-  color: #1a2740; 
+  color: var(--color-secondary-dark);
 }
 
 .sectionTitle {
-  margin-bottom: 16px;
-  color: #30405f;
-  border-bottom: 1px solid #e8e8e8; /* เส้นคั่นบางๆ ใต้หัวข้อ */
-  padding-bottom: 8px;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-secondary-light);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--spacing-sm);
 }
 
 .infoGroup {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .infoRow {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .infoLabel {
-  font-weight: 500; /* น้ำหนักตัวอักษรสำหรับ label */
-  color: #595959;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 .infoValue {
-  color: #262626;
+  color: var(--color-text-primary);
 }
 
 .statusTag {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
   font-size: 0.9em;
 }
 
 .timesheetTable {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .decisionForm {
-  margin-top: 24px;
+  margin-top: var(--spacing-lg);
 }
 
 .decisionTitle {
-  margin-bottom: 16px;
-  color: #30405f;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-secondary-light);
 }
 
 .radioGroup label {
-  display: flex; /* จัดไอคอนกับข้อความให้อยู่ในแนวเดียวกัน */
+  display: flex;
   align-items: center;
 }
 
 .radioIcon {
-  margin-right: 8px; /* ระยะห่างระหว่างไอคอนกับข้อความ */
+  margin-right: var(--spacing-sm);
 }
 
 .commentLabel {
-  font-weight: 500;
-  color: #595959;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 .submitButtonContainer {
   text-align: center;
-  margin-top: 30px;
+  margin-top: 30px; /* ค่าพิเศษ - ยังไม่มีใน design tokens */
 }
 
 .submitButton {
-  min-width: 220px;
-  font-weight: 500;
+  min-width: 220px; /* ค่าพิเศษ - ยังไม่มีใน design tokens */
+  font-weight: var(--font-weight-medium);
 }
 
 /* Styles for loading, error, and submitted states */
@@ -101,24 +103,24 @@
   justify-content: center;
   align-items: center;
   min-height: 80vh;
-  padding: 20px;
+  padding: var(--spacing-lg);
   text-align: center;
 }
 
 .stateCard {
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  padding: 30px; /* ค่าพิเศษ - ยังไม่มีใน design tokens */
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .successIcon {
-  color: #52c41a;
-  font-size: 24px; /* ปรับขนาดไอคอน */
-  margin-right: 8px;
+  color: var(--color-success);
+  font-size: var(--font-size-xl);
+  margin-right: var(--spacing-sm);
 }
 
 .errorIcon {
-  color: #ff4d4f;
-  font-size: 24px;
-  margin-right: 8px;
+  color: var(--color-error);
+  font-size: var(--font-size-xl);
+  margin-right: var(--spacing-sm);
 }

@@ -6,7 +6,7 @@ import {
   isEligibleForProject,
 } from "utils/studentUtils";
 import { useStudentEligibility } from "contexts/StudentEligibilityContext";
-import "./styles.css";
+import styles from "./StudentProfile.module.css";
 
 const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
   const [eligibility, setEligibility] = React.useState({
@@ -77,7 +77,7 @@ const StudentInfo = React.memo(({ student, onEdit, canEdit }) => {
 
   return (
     <Card
-      className="infoCard"
+      className={styles.infoCard}
       title="ข้อมูลการศึกษา"
       extra={
         canEdit && (

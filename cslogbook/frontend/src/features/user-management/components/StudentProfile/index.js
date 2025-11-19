@@ -18,7 +18,7 @@ import {
   FileDoneOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import "./styles.css";
+import styles from "./StudentProfile.module.css";
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -251,7 +251,7 @@ const StudentProfile = () => {
   ];
 
   return (
-    <div className="container">
+    <div className={styles.container}>
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} lg={6}>
           <StudentAvatar 

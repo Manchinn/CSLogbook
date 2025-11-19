@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, createUser } from '../../test-utils/renderWithProviders';
-import Sidebar from '../layout/Sidebar';
+import Sidebar from '../common/Layout/Sidebar/Sidebar';
 
 // Mock context ให้คืนค่า simplified (ไม่ต้องพึ่ง provider จริง)
 jest.mock('../../contexts/StudentEligibilityContext', () => ({

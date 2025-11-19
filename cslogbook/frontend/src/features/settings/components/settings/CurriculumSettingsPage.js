@@ -8,7 +8,7 @@ import {
   InfoCircleOutlined 
 } from '@ant-design/icons';
 import CurriculumSettings from './constants/CurriculumSettings';
-import './constants/styles.css';
+import './constants/Settings.module.css';
 
 const { Title, Text } = Typography;
 

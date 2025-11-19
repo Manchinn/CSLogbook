@@ -3,7 +3,7 @@ import { Card, Typography, Breadcrumb } from 'antd';
 import { Link } from 'react-router-dom';
 import { TeamOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons';
 import StatusSettings from './constants/StatusSettings';
-import './constants/styles.css';
+import './constants/Settings.module.css';
 
 const { Title } = Typography;
 

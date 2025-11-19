@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Typography, Button, Space } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
-import './styles.css';
+import styles from './Settings.module.css';
 
 const { Title } = Typography;
 
@@ -14,18 +14,18 @@ const SettingsLayout = ({
   actions = true
 }) => {
   return (
-    <div className="settings-layout">
+    <div className={styles.settingsLayout}>
       <Card>
-        <div className="settings-header">
+        <div className={styles.settingsHeader}>
           <Title level={4}>{title}</Title>
         </div>
 
-        <div className="settings-content">
+        <div className={styles.settingsContent}>
           {children}
         </div>
 
         {actions && (
-          <div className="setting-actions">
+          <div className={styles.settingActions}>
             <Space>
               <Button 
                 icon={<ReloadOutlined />} 

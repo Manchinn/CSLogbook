@@ -1,7 +1,7 @@
 .layout {
   min-height: 100vh;
   background-image: url('../../../assets/images/login-bg.svg'),
-    linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -58,7 +58,7 @@
 
 .contentCard {
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: blur(8px);

@@ -3,7 +3,7 @@ import React from 'react';
 import { Modal, Row, Col } from 'antd';
 import CreditsImage from "image/Credits.png";
 import CreditsImage2 from "image/Credits2.png";
-import './styles.css';
+// CSS styles are handled by Ant Design Modal component
 
 const CreditsGuideModal = ({ visible, onOk, onCancel }) => {
   return (

@@ -9,7 +9,7 @@ import {
   FireOutlined,
   StarOutlined
 } from '@ant-design/icons';
-import './constants/styles.css';
+import './constants/Settings.module.css';
 
 const { Title, Text } = Typography;
 

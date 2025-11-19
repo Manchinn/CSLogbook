@@ -53,8 +53,8 @@
 
 .skillTags :global(.ant-tag) {
   margin-right: 0;
-  padding: 4px 10px;
-  border-radius: 16px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-xl);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
 }
@@ -79,7 +79,7 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
-  margin-bottom: 2px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .dashboardValue {
@@ -92,19 +92,19 @@
 .dashboardUnit {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
-  margin-left: 2px;
-  color: #457b9d;
+  margin-left: var(--spacing-xs);
+  color: #457b9d; /* สีพิเศษ - ยังไม่มีใน design tokens */
 }
 
 .dashboardSubtitle {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-  margin-top: 2px;
+  margin-top: var(--spacing-xs);
 }
 
 /* Tabs */
 .summaryTabs :global(.ant-tabs-tab) {
-  padding: 12px var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md);
   font-weight: var(--font-weight-medium);
 }
 
@@ -120,7 +120,7 @@
   background: var(--color-bg-primary);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  padding: 1px;
+  padding: var(--spacing-xs);
 }
 
 /* Cards */
@@ -145,7 +145,7 @@
 
 .infoItem {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
 
 .infoLabel {
@@ -182,8 +182,8 @@
 
 .statCard .statUnit {
   font-size: var(--font-size-sm);
-  color: #457b9d;
-  margin-left: 2px;
+  color: #457b9d; /* สีพิเศษ - ยังไม่มีใน design tokens */
+  margin-left: var(--spacing-xs);
 }
 
 /* Logbook Table */
@@ -307,10 +307,10 @@
 }
 
 .achievementMetric .metricValue {
-  font-size: 28px;
+  font-size: 28px; /* ขนาดพิเศษ - ยังไม่มีใน design tokens */
   font-weight: var(--font-weight-bold);
-  color: #1d3557;
-  margin-bottom: 4px;
+  color: #1d3557; /* สีพิเศษ - ยังไม่มีใน design tokens */
+  margin-bottom: var(--spacing-xs);
 }
 
 .achievementMetric .metricLabel {
@@ -374,7 +374,7 @@
 .skillTagsCloud {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
   justify-content: center;
   padding: var(--spacing-md);
@@ -408,7 +408,7 @@
 .reflectionForm :global(.ant-form-item-extra) {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
-  margin-top: 4px;
+  margin-top: var(--spacing-xs);
 }
 
 .reflectionForm :global(.ant-input-textarea) {
@@ -542,7 +542,7 @@
 .weeklyLogItem .description {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-  margin-top: 4px;
+  margin-top: var(--spacing-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -625,7 +625,7 @@
 }
 
 .weeklyItem .progressWrapper {
-  margin-top: 12px;
+  margin-top: var(--spacing-md);
 }
 
 .skillsOverviewCard {
@@ -757,7 +757,7 @@
   font-size: var(--font-size-xs);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .tableSummary {
@@ -779,7 +779,7 @@
 .summaryLabel {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .summaryValue {
@@ -856,7 +856,7 @@
 
 .moreEntries {
   padding-left: var(--spacing-sm);
-  padding-top: 4px;
+  padding-top: var(--spacing-xs);
 }
 
 .achievementCard {
@@ -945,7 +945,7 @@
 }
 
 .certificateSection {
-  margin-top: 32px;
+  margin-top: var(--spacing-xl);
   text-align: center;
 }
 
@@ -994,11 +994,11 @@
   
   .infoLabel {
     width: 100%;
-    margin-bottom: 4px;
+    margin-bottom: var(--spacing-xs);
   }
 
   .skillTagsCloud {
-    padding: 10px;
+    padding: var(--spacing-sm);
   }
   
   .skillTagsCloud :global(.ant-tag) {

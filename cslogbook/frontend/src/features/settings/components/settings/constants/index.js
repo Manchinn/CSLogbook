@@ -5,7 +5,7 @@ import StatusSettings from './StatusSettings';
 import CurriculumSettings from './CurriculumSettings';
 import NotificationSettings from './NotificationSettings'; // เพิ่ม import
 import WorkflowStepManagement from '../WorkflowSteps/WorkflowStepManagement';
-import './styles.css';
+import styles from './Settings.module.css';
 
 const { Title } = Typography;
 
@@ -41,10 +41,10 @@ const ConstantsSettings = () => {
   ];
   
   return (
-    <div className="constants-settings-container">
+    <div className={styles.constantsSettingsContainer}>
       <Card>
         <Title level={4}>การตั้งค่าระบบ</Title>
-        <p className="settings-description">
+        <p className={styles.settingsDescription}>
           จัดการค่าคงที่และการตั้งค่าพื้นฐานของระบบ เลือกโมดูลที่ต้องการแก้ไข
         </p>
         
@@ -53,7 +53,7 @@ const ConstantsSettings = () => {
           activeKey={activeKey} 
           onChange={setActiveKey}
           type="card"
-          className="settings-tabs"
+          className={styles.settingsTabs}
         />
       </Card>
     </div>

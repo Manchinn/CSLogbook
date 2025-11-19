@@ -3,7 +3,7 @@ import { Card, Typography, Alert, Space, Breadcrumb } from 'antd';
 import { Link } from 'react-router-dom';
 import { BellOutlined, HomeOutlined, SettingOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import NotificationSettings from './constants/NotificationSettings';
-import './constants/styles.css';
+import './constants/Settings.module.css';
 
 const { Title, Text } = Typography;
 

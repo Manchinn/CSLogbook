@@ -13,7 +13,7 @@ import {
   FileSearchOutlined
 } from '@ant-design/icons';
 import { getProjectRequirements } from 'utils/studentUtils';
-import './styles.css';
+import styles from './EligibilityCheck.module.css';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -116,7 +116,7 @@ const ProjectRequirements = () => {
   ];
 
   return (
-    <div className="requirements-container">
+    <div className={styles.requirementsContainer}>
       <Card title="ข้อกำหนดโครงงานพิเศษ" variant="borderless">
         <Alert
           message="สำคัญ: ข้อกำหนดโครงงานพิเศษนี้ใช้สำหรับนักศึกษาภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ เท่านั้น"
