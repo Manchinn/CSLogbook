@@ -12,7 +12,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
 
-import TranscriptUpload from '../common/TranscriptUpload';
+import TranscriptUpload from '../../shared/common/TranscriptUpload';
 import buddhistLocale from 'utils/buddhistLocale';
 
 // 🔧 แก้ไข import paths ให้ถูกต้อง

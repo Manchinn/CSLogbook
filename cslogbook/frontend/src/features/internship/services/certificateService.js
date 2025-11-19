@@ -1,9 +1,9 @@
-import apiClient from './apiClient';
+import apiClient from 'services/apiClient';
 
 /**
  * Service สำหรับจัดการหนังสือรับรองการฝึกงาน (Admin)
  */
-export const certificateService = {
+const certificateService = {
   // ดึงรายการคำขอหนังสือรับรองทั้งหมด
   getCertificateRequests: async (params = {}) => {
     try {

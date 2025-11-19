@@ -15,7 +15,7 @@ import {
   getProjectRequirements,
 } from '../../../utils/studentUtils';
 import { useInternshipStatus } from '../../../contexts/InternshipStatusContext';
-import useCertificateStatus from "../../../hooks/useCertificateStatus";
+import useCertificateStatus from "features/internship/hooks/useCertificateStatus";
 
 const { Text } = Typography;
 

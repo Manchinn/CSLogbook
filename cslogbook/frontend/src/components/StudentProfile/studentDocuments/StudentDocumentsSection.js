@@ -13,8 +13,8 @@ import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
 import { studentDocumentService } from './studentDocumentService';
 import { internshipService } from 'features/internship/services';
-import { prepareFormDataForPDF } from '../../internship/register/helpers/pdfHelper';
-import officialDocumentService from '../../../services/PDFServices/OfficialDocumentService';
+import { prepareFormDataForPDF } from 'features/internship/components/student-view/RegistrationFlow/helpers/pdfHelper';
+import officialDocumentService from 'services/PDFServices/OfficialDocumentService';
 
 dayjs.extend(buddhistEra);
 dayjs.locale('th');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import OfficialDocumentService from "../../../services/PDFServices/OfficialDocumentService";
+import OfficialDocumentService from "services/PDFServices/OfficialDocumentService";
 import {
   Table,
   Button,
@@ -28,7 +28,7 @@ import {
   UserOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import certificateService from "../../../services/certificateService"; // ✅ ใช้ service ใหม่
+import { certificateService } from "features/internship/services"; // ✅ ใช้ service ใหม่
 import CertificateRequestReview from "./CertificateRequestReview";
 import dayjs from "utils/dayjs";
 

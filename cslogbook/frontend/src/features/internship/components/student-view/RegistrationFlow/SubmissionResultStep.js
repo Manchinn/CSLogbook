@@ -12,7 +12,7 @@ import { CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
 // dayjs ถูกนำออกเนื่องจากไม่ได้ใช้งานในไฟล์นี้
 import internshipService from 'features/internship/services/internshipService';
 import io from "socket.io-client";
-import officialDocumentService from "../../../services/PDFServices/OfficialDocumentService";
+import officialDocumentService from "services/PDFServices/OfficialDocumentService";
 
 // นำเข้า helper functions จาก helpers directory
 import {

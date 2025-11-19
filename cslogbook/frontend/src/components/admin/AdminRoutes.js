@@ -5,7 +5,7 @@ import { SystemProvider } from "../../contexts/adminContext/SystemContext";
 import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
 import { DocumentProvider } from "../../contexts/adminContext/DocumentContext";
 import DocumentManagement from "./documents";
-import CertificateManagement from "./documents/CertificateManagement";
+import CertificateManagement from "features/internship/components/admin-view/CertificateManagement";
 
 // Lazy loading components
 const Dashboard = lazy(() => import("./dashboard"));

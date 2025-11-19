@@ -7,7 +7,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined 
 } from '@ant-design/icons';
-import useEvaluationStatus from '../hooks/useEvaluationStatus';
+import useEvaluationStatus from 'features/internship/hooks/useEvaluationStatus';
 
 const { Text } = Typography;
 

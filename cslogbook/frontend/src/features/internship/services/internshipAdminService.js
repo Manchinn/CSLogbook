@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient from 'services/apiClient';
 
 /**
  * Service สำหรับจัดการข้อมูลการฝึกงานโดยเจ้าหน้าที่ภาควิชา

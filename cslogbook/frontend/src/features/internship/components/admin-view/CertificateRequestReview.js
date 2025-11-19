@@ -1,5 +1,5 @@
 import React from 'react';
-import { CATEGORY_MAP } from '../../internship/evaluation/evaluationConfig';
+import { CATEGORY_MAP } from 'features/internship/components/teacher-view/SupervisorEvaluation/evaluationConfig';
 import { Card, Descriptions, Space, Tag, Progress, Tooltip, Divider, Table, Skeleton, Button, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dayjs from 'utils/dayjs';

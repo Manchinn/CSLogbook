@@ -2,7 +2,7 @@ import { message } from "antd";
 import officialDocumentService from "services/PDFServices/OfficialDocumentService";
 import pdfService from "services/PDFServices/PDFService";
 import templateDataService from "services/PDFServices/TemplateDataService";
-import { ReferralLetterTemplate } from "../../templates";
+import { ReferralLetterTemplate } from "features/internship/components/shared/Templates";
 
 /**
  * Helper functions สำหรับจัดการ PDF Operations

@@ -50,7 +50,7 @@ import AchievementPanel from "./components/AchievementPanel";
 import SkillsPanel from "./components/SkillsPanel";
 
 // เพิ่ม import EvaluationRequestButton
-import EvaluationRequestButton from "../../EvaluationRequestButton";
+import EvaluationRequestButton from "components/EvaluationRequestButton";
 
 // นำเข้า utility functions
 import { calculateCompletionStatus } from "./utils/skillUtils";

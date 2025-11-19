@@ -1,6 +1,6 @@
-import apiClient from './apiClient';
+import apiClient from 'services/apiClient';
 
-export const internshipApprovalService = {
+const internshipApprovalService = {
   // Head of department queue (supports status filter via query string)
   getHeadQueue: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -92,3 +92,5 @@ export const internshipApprovalService = {
     return res.data;
   }
 };
+
+export default internshipApprovalService;

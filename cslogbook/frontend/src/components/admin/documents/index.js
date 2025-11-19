@@ -31,7 +31,7 @@ import {
 import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
 import dayjs from "../../../utils/dayjs";
-import CertificateManagement from "./CertificateManagement";
+import CertificateManagement from "features/internship/components/admin-view/CertificateManagement";
 import { internshipApprovalService } from "features/internship/services";
 import { documentService } from "../../../services/admin/documentService";
 import { getLateSubmissions } from "../../../services/reports/deadlineReportService";

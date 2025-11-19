@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient from 'services/apiClient';
 
 // Service สำหรับดึงสถิติบริษัทที่รับนักศึกษาฝึกงาน (CS05 approved)
 const internshipStatsService = {
