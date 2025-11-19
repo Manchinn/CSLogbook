@@ -29,9 +29,8 @@
 
 .filterSection {
   padding: var(--spacing-md);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-md);

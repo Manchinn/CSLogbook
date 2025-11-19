@@ -75,12 +75,6 @@
   transition: all var(--transition-base) !important;
 }
 
-/* ปิดการใช้งาน hover effect */
-.statusSummaryCard:hover {
-  transform: none !important;
-  box-shadow: var(--shadow-sm) !important;
-  cursor: default;
-}
 
 .statusSummaryCard.total { 
   border-top: 3px solid var(--color-info) !important; 

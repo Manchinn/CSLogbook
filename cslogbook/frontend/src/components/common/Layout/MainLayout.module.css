@@ -121,10 +121,6 @@
   backdrop-filter: blur(10px);
 }
 
-:global(.ant-card:hover) {
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important;
-}
-
 :global(.ant-input),
 :global(.ant-input-affix-wrapper),
 :global(.ant-select-selector),

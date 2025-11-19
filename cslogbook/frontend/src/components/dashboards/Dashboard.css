@@ -12,11 +12,6 @@
   transition: all var(--transition-speed);
 }
 
-.common-card-style:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
 .common-card-style .ant-card-body {
   flex: 1;
   display: flex;
@@ -72,11 +67,6 @@
   transition: all var(--transition-speed);
   overflow: hidden;
   border: none;
-}
-
-.ant-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
 }
 
 .ant-card-head {
