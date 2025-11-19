@@ -11,9 +11,9 @@ import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext
 import MainLayout from './components/common/Layout/MainLayout';
 import LoginForm from './features/auth/components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
-import StudentProfile from './components/StudentProfile/index';
+import StudentProfile from './components/StudentProfile';
 import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
-import ProjectManagement from './components/student/ProjectManagement';
+import ProjectManagement from 'features/project/components/student-view/ProjectManagement';
 
 // Import Internship Components
 import TimeSheet from './features/internship/components/student-view/TimeSheet';
@@ -25,18 +25,21 @@ import InternshipCertificateRequest from './features/internship/components/stude
 import InternshipCompanyDashboard from './features/internship/components/shared/CompanyDashboard/InternshipCompanyDashboard';
 
 // Import Project Components
-import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
-import Phase1Dashboard from './components/project/phase1/Phase1Dashboard';
-import ProjectDraftDetail from './components/project/phase1/ProjectDraftDetail';
-import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
-import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
-import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
-import SystemTestRequestPage from './components/project/phase1/steps/SystemTestRequestPage';
-import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
-import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
-import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
-import { Phase2Dashboard } from './components/project/phase2';
-import ThesisDefenseRequestPage from './components/project/phase2/ThesisDefenseRequestPage';
+import {
+  ProjectEligibilityCheck,
+  ProjectRequirements,
+} from 'features/project/components/shared/EligibilityCheck';
+import Phase1Dashboard from 'features/project/components/student-view/Phase1Dashboard/Phase1Dashboard';
+import ProjectDraftDetail from 'features/project/components/student-view/Phase1Dashboard/ProjectDraftDetail';
+import TopicSubmitPage from 'features/project/components/student-view/Phase1Dashboard/steps/TopicSubmitPage';
+import TopicExamPage from 'features/project/components/student-view/Phase1Dashboard/steps/TopicExamPage';
+import ProposalRevisionPage from 'features/project/components/student-view/Phase1Dashboard/steps/ProposalRevisionPage';
+import SystemTestRequestPage from 'features/project/components/student-view/Phase1Dashboard/steps/SystemTestRequestPage';
+import ExamSubmitPage from 'features/project/components/student-view/Phase1Dashboard/steps/ExamSubmitPage';
+import ExamDayPage from 'features/project/components/student-view/Phase1Dashboard/steps/ExamDayPage';
+import MeetingLogbookPage from 'features/project/components/student-view/Phase1Dashboard/steps/MeetingLogbookPage';
+import { Phase2Dashboard } from 'features/project/components/student-view/Phase2Dashboard';
+import ThesisDefenseRequestPage from 'features/project/components/student-view/Phase2Dashboard/ThesisDefenseRequestPage';
 
 // Import Admin Components
 import AdminUpload from './components/AdminUpload';
@@ -45,14 +48,14 @@ import ProjectPairsPage from './components/admin/users/projectPairs';
 import SupervisorEvaluation from './features/internship/components/teacher-view/SupervisorEvaluation/SupervisorEvaluation';
 import TimesheetApproval from './features/internship/components/teacher-view/TimesheetApproval/TimesheetApproval';
 import ApproveDocuments from './components/teacher/ApproveDocuments';
-import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
+import TopicExamOverview from 'features/project/components/teacher-view/TopicExamOverview/TopicExamOverview';
 import MeetingApprovals from './components/teacher/MeetingApprovals';
-import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
-import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
-import AdvisorThesisQueue from './components/teacher/thesis/AdvisorThesisQueue';
-import StaffThesisQueue from './components/teacher/thesis/StaffThesisQueue';
-import AdvisorSystemTestQueue from './components/teacher/systemTest/AdvisorQueue';
-import StaffSystemTestQueue from './components/teacher/systemTest/StaffQueue';
+import AdvisorKP02Queue from 'features/project/components/teacher-view/AdvisorQueue/AdvisorKP02Queue';
+import StaffKP02Queue from 'features/project/components/teacher-view/AdvisorQueue/StaffKP02Queue';
+import AdvisorThesisQueue from 'features/project/components/teacher-view/ThesisQueue/AdvisorThesisQueue';
+import StaffThesisQueue from 'features/project/components/teacher-view/ThesisQueue/StaffThesisQueue';
+import AdvisorSystemTestQueue from 'features/project/components/teacher-view/SystemTestQueue/AdvisorQueue';
+import StaffSystemTestQueue from 'features/project/components/teacher-view/SystemTestQueue/StaffQueue';
 
 // ตั้งค่า dayjs plugin
 dayjs.extend(buddhistEra);

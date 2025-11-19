@@ -7,7 +7,7 @@ import {
   ClockCircleOutlined, WarningOutlined
 } from '@ant-design/icons';
 import TimelineItems from './TimelineItems';
-import { getProjectStateWithDeadlines } from '../../../services/projectWorkflowStateService';
+import { getProjectStateWithDeadlines } from 'features/project/services/projectWorkflowStateService';
 
 const { Text, Paragraph } = Typography;
 

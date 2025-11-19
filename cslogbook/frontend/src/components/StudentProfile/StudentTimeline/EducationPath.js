@@ -14,7 +14,7 @@ import {
   getProjectRequirements,
 } from "../../../utils/studentUtils";
 import { useInternshipStatus } from "../../../contexts/InternshipStatusContext";
-import { getProjectStateWithDeadlines } from "../../../services/projectWorkflowStateService";
+import { getProjectStateWithDeadlines } from "features/project/services/projectWorkflowStateService";
 
 const { Step } = Steps;
 const { Text } = Typography;
@@ -29,7 +29,6 @@ const EducationPath = ({ student, progress }) => {
 
   // State สำหรับข้อมูล workflow state
   const [workflowState, setWorkflowState] = useState(null);
-  const [loadingWorkflowState, setLoadingWorkflowState] = useState(false);
 
   // ดึงข้อกำหนดจาก student object หรือ API
   useEffect(() => {
@@ -46,8 +45,6 @@ const EducationPath = ({ student, progress }) => {
     const fetchWorkflowState = async () => {
       if (!projectId) return;
 
-      setLoadingWorkflowState(true);
-
       try {
         const response = await getProjectStateWithDeadlines(projectId);
         if (response.success && response.data) {
@@ -55,8 +52,6 @@ const EducationPath = ({ student, progress }) => {
         }
       } catch (error) {
         console.error('Error fetching workflow state in EducationPath:', error);
-      } finally {
-        setLoadingWorkflowState(false);
       }
     };
 

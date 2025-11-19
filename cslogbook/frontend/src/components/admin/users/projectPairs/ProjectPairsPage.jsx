@@ -23,10 +23,10 @@ import {
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import dayjs from '../../../../utils/dayjs';
-import { fetchProjectPairs } from '../../../../services/projectPairsService';
-import { studentService } from '../../../../services/studentService';
-import AddProjectModal from '../../projects/AddProjectModal';
+import dayjs from 'utils/dayjs';
+import { fetchProjectPairs } from 'features/project/services/projectPairsService';
+import { studentService } from 'services/studentService';
+import AddProjectModal from 'features/project/components/admin-view/ProjectManagement/AddProjectModal';
 import '../students/styles.css';
 
 const { Title, Text, Paragraph } = Typography;

@@ -33,8 +33,8 @@ const WorkflowStepManagementPage = lazy(() =>
 const InternshipReport = lazy(() => import('./reports/InternshipReport.js'));
 const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
 const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
-const Project1ExamResultPage = lazy(() => import('./project/Project1ExamResultPage'));
-const ThesisExamResultPage = lazy(() => import('./project/ThesisExamResultPage'));
+const Project1ExamResultPage = lazy(() => import('features/project/components/admin-view/Project1ExamResultPage'));
+const ThesisExamResultPage = lazy(() => import('features/project/components/admin-view/ThesisExamResultPage'));
 
 // New Reports - 3 หน้ารายงานใหม่
 const WorkflowProgressReport = lazy(() => import('./reports/WorkflowProgressReport'));

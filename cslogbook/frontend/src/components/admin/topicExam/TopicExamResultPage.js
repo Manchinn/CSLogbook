@@ -33,8 +33,8 @@ import {
   EditOutlined
 } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
-import { downloadTopicExamExport } from '../../../services/topicExamService';
-import { recordTopicExamResult } from '../../../services/topicExamResultService';
+import { downloadTopicExamExport } from 'features/project/services/topicExamService';
+import { recordTopicExamResult } from 'features/project/services/topicExamResultService';
 import { teacherService } from '../../../services/teacherService';
 
 const { Title, Text } = Typography;

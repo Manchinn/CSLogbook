@@ -1,7 +1,7 @@
 // frontend/src/hooks/useTopicExamOverview.js
 // Hook สำหรับดึงและจัดการ state ของ Topic Exam Overview
 import { useState, useEffect, useCallback } from 'react';
-import { fetchTopicExamOverview } from '../services/topicExamService';
+import { fetchTopicExamOverview } from 'features/project/services/topicExamService';
 
 const DEFAULT_FILTERS = {
   status: 'draft',
