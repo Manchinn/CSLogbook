@@ -234,3 +234,20 @@
   font-size: var(--font-size-lg);
 }
 
+/* Placeholder color สำหรับ input fields */
+.internshipCard :global(.ant-input::placeholder),
+.internshipCard :global(.ant-input::-webkit-input-placeholder),
+.internshipCard :global(.ant-input::-moz-placeholder) {
+  color: var(--color-text-placeholder);
+}
+
+/* Placeholder color สำหรับ disabled input fields - ใช้สีเดียวกับ disabled text */
+.internshipCard :global(.ant-input-disabled::placeholder),
+.internshipCard :global(.ant-input-disabled::-webkit-input-placeholder),
+.internshipCard :global(.ant-input-disabled::-moz-placeholder),
+.internshipCard :global(.ant-input[disabled]::placeholder),
+.internshipCard :global(.ant-input[disabled]::-webkit-input-placeholder),
+.internshipCard :global(.ant-input[disabled]::-moz-placeholder) {
+  color: var(--color-text-disabled);
+}
+

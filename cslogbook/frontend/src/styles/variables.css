@@ -21,7 +21,8 @@
   /* ===== Text Colors ===== */
   --color-text-primary: #1f1f1f;
   --color-text-secondary: #5a5a5a;
-  --color-text-disabled: #bfbfbf;
+  --color-text-disabled: #858484;
+  --color-text-placeholder: rgba(0, 0, 0, 0.25);
   --color-text-inverse: #ffffff;
 
   /* ===== Background Colors ===== */
@@ -110,8 +111,8 @@
   --container-xxl: 1320px;
 }
 
-@media (prefers-color-scheme: dark) {
+/* TODO: Define dark mode palette in Phase 3 */
+/* @media (prefers-color-scheme: dark) {
   :root {
-    /* TODO: Define dark mode palette in Phase 3 */
   }
-}
+} */

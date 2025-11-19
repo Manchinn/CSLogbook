@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Spin, Layout } from "antd";
+import { Spin } from "antd";
 import { SystemProvider } from "../../contexts/adminContext/SystemContext";
 import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
 import { DocumentProvider } from "../../contexts/adminContext/DocumentContext";
@@ -66,11 +66,8 @@ const AdminRoutes = () => {
   return (
     <SystemProvider>
       <UserManagementProvider>
-        <Layout.Content
-          style={{ padding: "20px", minHeight: "calc(100vh - 64px)" }}
-        >
-          <Suspense fallback={<LoadingComponent />}>
-            <Routes>
+        <Suspense fallback={<LoadingComponent />}>
+          <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/reports/internship" element={<InternshipReport />} />
@@ -138,7 +135,6 @@ const AdminRoutes = () => {
               </Route>
             </Routes>
           </Suspense>
-        </Layout.Content>
       </UserManagementProvider>
     </SystemProvider>
   );
