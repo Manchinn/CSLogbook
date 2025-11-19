@@ -34,7 +34,7 @@ import dayjs from "../../../utils/dayjs";
 import CertificateManagement from "features/internship/components/admin-view/CertificateManagement";
 import { internshipApprovalService } from "features/internship/services";
 import { documentService } from "../../../services/admin/documentService";
-import { getLateSubmissions } from "../../../services/reports/deadlineReportService";
+import { getLateSubmissions } from "features/reports/services/deadlineReportService";
 
 const { Text, Title } = Typography;
 

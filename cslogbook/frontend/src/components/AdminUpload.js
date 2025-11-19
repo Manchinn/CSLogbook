@@ -29,7 +29,7 @@ import {
 } from '@ant-design/icons';
 import { adminService } from '../services/adminService';
 import academicService from '../services/academicService';
-import { settingsService } from '../services/admin/settingsService';
+import { settingsService } from 'features/settings/services/settingsService';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;

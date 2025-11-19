@@ -16,35 +16,39 @@ const TeacherList = lazy(() =>
   import("features/user-management/components/TeacherList")
 );
 const AdminUpload = lazy(() => import("../AdminUpload"));
-const ConstantsSettings = lazy(() => import("./settings/constants"));
+const ConstantsSettings = lazy(() =>
+  import("features/settings/components/settings/constants")
+);
 
 // เพิ่ม imports สำหรับหน้าตั้งค่าใหม่
-const Settings = lazy(() => import("./settings")); // หน้าหลักการตั้งค่า
+const Settings = lazy(() => import("features/settings/components/settings")); // หน้าหลักการตั้งค่า
 const AcademicSettingsPage = lazy(() =>
-  import("./settings/AcademicSettingsPage")
+  import("features/settings/components/settings/AcademicSettingsPage")
 );
-const StatusSettingsPage = lazy(() => import("./settings/StatusSettingsPage"));
+const StatusSettingsPage = lazy(() =>
+  import("features/settings/components/settings/StatusSettingsPage")
+);
 const CurriculumSettingsPage = lazy(() =>
-  import("./settings/CurriculumSettingsPage")
+  import("features/settings/components/settings/CurriculumSettingsPage")
 );
 // เพิ่ม import สำหรับ Notification Settings
 const NotificationSettingsPage = lazy(() =>
-  import("./settings/NotificationSettingsPage")
+  import("features/settings/components/settings/NotificationSettingsPage")
 );
 const WorkflowStepManagementPage = lazy(() =>
-  import("./settings/WorkflowStepsSettingsPage")
+  import("features/settings/components/settings/WorkflowStepsSettingsPage")
 );
-const InternshipReport = lazy(() => import('./reports/InternshipReport.js'));
-const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
+const InternshipReport = lazy(() => import('features/reports/components/reports/InternshipReport'));
+const ProjectReport = lazy(() => import('features/reports/components/reports/ProjectReport'));
 const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
 const Project1ExamResultPage = lazy(() => import('features/project/components/admin-view/Project1ExamResultPage'));
 const ThesisExamResultPage = lazy(() => import('features/project/components/admin-view/ThesisExamResultPage'));
 
 // New Reports - 3 หน้ารายงานใหม่
-const WorkflowProgressReport = lazy(() => import('./reports/WorkflowProgressReport'));
-// const DeadlineComplianceReport = lazy(() => import('./reports/DeadlineComplianceReport'));
-const DeadlineComplianceReport = lazy(() => import('./reports/DeadlineComplianceReportRecharts')); // ใช้ Recharts แทน
-const AdvisorWorkloadDetailReport = lazy(() => import('./reports/AdvisorWorkloadDetailReport'));
+const WorkflowProgressReport = lazy(() => import('features/reports/components/reports/WorkflowProgressReport'));
+// const DeadlineComplianceReport = lazy(() => import('features/reports/components/reports/DeadlineComplianceReport'));
+const DeadlineComplianceReport = lazy(() => import('features/reports/components/reports/DeadlineComplianceReportRecharts')); // ใช้ Recharts แทน
+const AdvisorWorkloadDetailReport = lazy(() => import('features/reports/components/reports/AdvisorWorkloadDetailReport'));
 // ProjectManagement ถูกลบแล้ว - ใช้ ProjectPairsPage แทน
 
 // Loading component
