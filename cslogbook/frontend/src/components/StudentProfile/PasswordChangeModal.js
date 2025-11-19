@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, Space, Alert, Typography, Steps } from 'antd';
 import { MailOutlined, KeyOutlined, CheckCircleTwoTone } from '@ant-design/icons';
-import passwordService from '../../services/passwordService';
+import passwordService from '../../features/auth/services/passwordService';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Updated policy: ต้องมี a-z, A-Z, ตัวเลข ความยาว ≥ 8 (ไม่บังคับอักขระพิเศษ)

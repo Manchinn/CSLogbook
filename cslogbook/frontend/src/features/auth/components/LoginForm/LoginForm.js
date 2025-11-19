@@ -7,9 +7,9 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import apiClient from '../services/apiClient';
-import './LoginForm.css';
+import { useAuth } from '../../../../contexts/AuthContext';
+import apiClient from '../../../../services/apiClient';
+import styles from './LoginForm.module.css';
 
 const { Title, Text, Paragraph } = Typography;
 // ใช้ apiClient (baseURL + interceptors) แทนการเรียก axios ตรง
@@ -92,69 +92,71 @@ const LoginForm = () => {
     }
   };
 
+  const cardClassName = [styles.card, errorShake ? styles.shake : ''].filter(Boolean).join(' ');
+
   return (
-    <div className="login-container">
-      <div className="login-background" aria-hidden="true">
-        <div className="login-gradient" />
-        <div className="login-circle login-circle--one" />
-        <div className="login-circle login-circle--two" />
+    <div className={styles.container}>
+      <div className={styles.background} aria-hidden="true">
+        <div className={styles.gradient} />
+        <div className={`${styles.circle} ${styles.circleOne}`} />
+        <div className={`${styles.circle} ${styles.circleTwo}`} />
       </div>
 
-      <div className="login-layout">
-        <div className="login-brand-panel">
-          <div className="login-brand-header">
-            <img src="/logo.svg" alt="CS Logbook" className="school-logo" />
-            <Title level={1} className="login-brand-title">
+      <div className={styles.layout}>
+        <div className={styles.brandPanel}>
+          <div className={styles.brandHeader}>
+            <img src="/logo.svg" alt="CS Logbook" className={styles.schoolLogo} />
+            <Title level={1} className={styles.brandTitle}>
               CS Logbook
             </Title>
-            <Paragraph className="login-brand-description">
+            <Paragraph className={styles.brandDescription}>
               ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์สำหรับนักศึกษา อาจารย์ และเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
             </Paragraph>
           </div>
 
-          <div className="login-brand-highlights">
-            <div className="login-highlight">
-              <div className="login-highlight-icon">
+          <div className={styles.brandHighlights}>
+            <div className={styles.highlight}>
+              <div className={styles.highlightIcon}>
                 <ScheduleOutlined />
               </div>
               <div>
-                <Text className="login-highlight-title">อัปเดตสถานะฝึกงานเรียลไทม์</Text>
+                <Text className={styles.highlightTitle}>อัปเดตสถานะฝึกงานเรียลไทม์</Text>
                 <Text type="secondary">ดูความคืบหน้าจากทุกบันทึกที่ส่งและสถานะการอนุมัติได้ในหน้าเดียว</Text>
               </div>
             </div>
 
-            <div className="login-highlight">
-              <div className="login-highlight-icon">
+            <div className={styles.highlight}>
+              <div className={styles.highlightIcon}>
                 <TeamOutlined />
               </div>
               <div>
-                <Text className="login-highlight-title">ทำงานร่วมกันได้ราบรื่น</Text>
+                <Text className={styles.highlightTitle}>ทำงานร่วมกันได้ราบรื่น</Text>
                 <Text type="secondary">อาจารย์ที่ปรึกษาและเจ้าหน้าที่สามารถตรวจสอบอนุมัติได้ทันที</Text>
               </div>
             </div>
           </div>
 
-          <div className="login-brand-footer">
+          <div className={styles.brandFooter}>
             <Text type="secondary">ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ • คณะวิทยาศาสตร์ประยุกต์ • มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</Text>
           </div>
         </div>
 
-        <Card className={`login-card ${errorShake ? 'shake' : ''}`} variant={false}>
-          <div className="login-form-header">
-            <Title level={3} className="login-title">
+        <Card className={cardClassName} variant={false}>
+          <div className={styles.formHeader}>
+            <Title level={3} className={styles.title}>
               ลงชื่อเข้าใช้ระบบ
             </Title>
-            <Text className="login-subtitle">โปรดใช้บัญชีรูปแบบเริ่มต้นของ ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
+            <Text className={styles.subtitle}>โปรดใช้บัญชีรูปแบบเริ่มต้นของ ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
           </div>
 
-          <Form form={form} onFinish={handleSubmit} layout="vertical" className="login-form">
+          <Form form={form} onFinish={handleSubmit} layout="vertical" className={styles.form}>
             <Form.Item
               name="username"
-              className="login-form-item"
+              className={styles.formItem}
               rules={[{ required: true, message: 'กรุณากรอกชื่อผู้ใช้' }]}
             >
               <Input
-                className="login-input"
+                className={styles.input}
                 prefix={<UserOutlined />}
                 placeholder="ชื่อผู้ใช้"
                 size="large"
@@ -164,11 +166,11 @@ const LoginForm = () => {
 
             <Form.Item
               name="password"
-              className="login-form-item"
+              className={styles.formItem}
               rules={[{ required: true, message: 'กรุณากรอกรหัสผ่าน' }]}
             >
               <Input.Password
-                className="login-input"
+                className={styles.input}
                 prefix={<LockOutlined />}
                 placeholder="รหัสผ่าน"
                 size="large"
@@ -179,7 +181,7 @@ const LoginForm = () => {
 
             <Form.Item>
               <Button
-                className="login-button"
+                className={styles.button}
                 type="primary"
                 htmlType="submit"
                 loading={loading}
@@ -191,7 +193,7 @@ const LoginForm = () => {
             </Form.Item>
           </Form>
 
-          <div className="login-help">
+          <div className={styles.help}>
             <Text type="secondary">ต้องการความช่วยเหลือ?</Text>{' '}
             <Typography.Link href="mailto:natee.p@sci.kmutnb.ac.th">ติดต่อเจ้าหน้าที่ระบบ</Typography.Link>
           </div>

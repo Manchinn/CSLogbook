@@ -1,9 +1,9 @@
-import apiClient from './apiClient';
+import apiClient from '../../../services/apiClient';
 
 const authService = {
   login: async (credentials) => {
     try {
-  const response = await apiClient.post('/auth/login', credentials);
+      const response = await apiClient.post('/auth/login', credentials);
       const data = response.data;
 
       if (data.success) {
@@ -37,7 +37,7 @@ const authService = {
 
   logout: () => {
     localStorage.clear();
-  }
+  },
 };
 
 export default authService;

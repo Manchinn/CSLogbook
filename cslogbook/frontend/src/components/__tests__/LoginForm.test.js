@@ -2,7 +2,7 @@ import React from 'react';
 import apiClient from '../../services/apiClient';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
-import LoginForm from '../LoginForm';
+import LoginForm from '../../features/auth/components/LoginForm';
 
 // Mock apiClient ให้ตรงกับ __mocks__
 jest.mock('../../services/apiClient');

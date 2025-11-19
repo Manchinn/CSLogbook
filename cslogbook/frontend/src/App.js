@@ -9,7 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
 import MainLayout from './components/common/Layout/MainLayout';
-import LoginForm from './components/LoginForm';
+import LoginForm from './features/auth/components/LoginForm';
 import Dashboard from './components/dashboards/Dashboard';
 import StudentProfile from './components/StudentProfile/index';
 import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';

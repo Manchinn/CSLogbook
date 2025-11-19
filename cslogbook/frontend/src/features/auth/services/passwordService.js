@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient from '../../../services/apiClient';
 
 // Two-step password change (current password + new password -> OTP -> confirm)
 const passwordService = {
