@@ -1,7 +1,7 @@
 .layout {
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-image: url('../../../assets/images/login-bg.svg'), linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -9,15 +9,15 @@
 
 /* Role-specific background themes */
 .layout.student-theme {
-  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%);
+  background-image: url('../../../assets/images/login-bg.svg'), linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%);
 }
 
 .layout.teacher-theme {
-  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #fff7e6 0%, #ffd591 100%);
+  background-image: url('../../../assets/images/login-bg.svg'), linear-gradient(135deg, #fff7e6 0%, #ffd591 100%);
 }
 
 .layout.admin-theme {
-  background-image: url('../../../public/login-bg.svg'), linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%);
+  background-image: url('../../../assets/images/login-bg.svg'), linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%);
 }
 
 .content {

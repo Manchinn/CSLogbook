@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tag, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import { computeDeadlineStatus } from '../../utils/deadlineUtils';
+import { computeDeadlineStatus } from '../../../utils/deadlineUtils';
 
 export default function DeadlineBadge({ deadline, submittedAt, isLate, isSubmitted, locked }) {
   const status = computeDeadlineStatus(deadline, submittedAt, { isLate, isSubmitted, locked });

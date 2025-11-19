@@ -14,7 +14,7 @@ import {
   getCountdownText,
   sortDeadlinesByUrgency,
   getActiveDeadlines
-} from '../../utils/deadlineHelpers';
+} from '../../../utils/deadlineHelpers';
 
 const { Text, Title } = Typography;
 

@@ -3,7 +3,7 @@ import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, S
 import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from '../../../utils/dayjs'; // ใช้ dayjs ที่ตั้งค่า timezone + BE
 import { documentService } from '../../../services/admin/documentService';
-import PDFViewerModal from '../../PDFViewerModal';
+import { PDFViewerModal } from '../../common/PDFViewer';
 import CS05Preview from './CS05Preview';
 
 const { Text } = Typography;

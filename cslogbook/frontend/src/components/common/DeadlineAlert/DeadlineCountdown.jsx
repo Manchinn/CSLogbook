@@ -12,7 +12,7 @@ import {
   calculateTimeRemaining, 
   getDeadlineStatus,
   formatDeadline 
-} from '../../utils/deadlineHelpers';
+} from '../../../utils/deadlineHelpers';
 
 const { Text } = Typography;
 

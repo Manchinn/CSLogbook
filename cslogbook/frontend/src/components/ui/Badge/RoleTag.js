@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tag, Tooltip } from 'antd';
-import { getTagColor } from '../../utils/roleColors';
+import { getTagColor } from '../../../utils/roleColors';
 
 // แสดงป้าย role พร้อม teacherType (สำหรับ teacher)
 const RoleTag = ({ role, teacherType, style }) => {

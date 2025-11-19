@@ -3,9 +3,7 @@ import { Card, Typography, Space, Spin, Tag, List, Avatar, Row, Col } from 'antd
 import { UserOutlined, TeamOutlined, ProfileOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from '../../utils/dayjs';
 import useStudentProject from '../../hooks/useStudentProject';
-import DeadlineAlert from '../common/DeadlineAlert';
-import DeadlineCountdown from '../common/DeadlineCountdown';
-import UpcomingDeadlines from '../common/UpcomingDeadlines';
+import { DeadlineAlert, DeadlineCountdown, UpcomingDeadlines } from '../common/DeadlineAlert';
 import projectWorkflowStateService from '../../services/projectWorkflowStateService';
 
 const { Title, Text, Paragraph } = Typography;

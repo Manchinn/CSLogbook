@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { getParticleColors } from '../../utils/roleColors';
+import { getParticleColors } from '../../../utils/roleColors';
 
 // Particle configuration
 const PARTICLE_CONFIG = {

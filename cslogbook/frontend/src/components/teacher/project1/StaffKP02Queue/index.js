@@ -34,7 +34,7 @@ import dayjs from "../../../../utils/dayjs";
 import { DATE_TIME_FORMAT } from "../../../../utils/constants";
 import projectService from "../../../../services/projectService";
 import { useAuth } from "../../../../contexts/AuthContext";
-import PDFViewerModal from "../../../PDFViewerModal";
+import { PDFViewerModal } from "../../../common/PDFViewer";
 
 const { Text, Title } = Typography;
 

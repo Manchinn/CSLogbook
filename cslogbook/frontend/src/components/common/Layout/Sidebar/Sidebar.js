@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Layout, Menu, Avatar, Typography, message } from "antd";
-import RoleTag from '../common/RoleTag';
-import { getMenuConfig } from './menuConfig';
+import { RoleTag } from "../../../ui/Badge";
+import { getMenuConfig } from "../menuConfig";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { useStudentEligibility } from "../../contexts/StudentEligibilityContext";
-import { studentService } from "../../services/studentService";
+import { useAuth } from "../../../../contexts/AuthContext";
+import { useStudentEligibility } from "../../../../contexts/StudentEligibilityContext";
+import { studentService } from "../../../../services/studentService";
 import "./Sidebar.css";
+import "./SidebarStyles.css";
 
 const { Sider } = Layout;
 const { Title } = Typography;

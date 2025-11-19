@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Drawer } from "antd";
-import Sidebar from "./Sidebar";
-import HeaderComponent from "./HeaderComponent";
+import Sidebar from "./Sidebar/Sidebar";
+import HeaderComponent from "./Header/HeaderComponent";
 import BackgroundParticles from "./BackgroundParticles";
 import { Outlet } from "react-router-dom";
 import "./MainLayout.css";

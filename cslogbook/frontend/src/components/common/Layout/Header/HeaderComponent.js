@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Button, Typography, Space, Avatar, Badge, Tag, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-import academicService from "../../services/academicService";
-import { getRoleTheme, resolveThemeKey } from '../../utils/roleTheme';
+import academicService from "../../../../services/academicService";
+import { getRoleTheme, resolveThemeKey } from '../../../../utils/roleTheme';
 import "./HeaderComponent.css";
 
 const { Header } = Layout;

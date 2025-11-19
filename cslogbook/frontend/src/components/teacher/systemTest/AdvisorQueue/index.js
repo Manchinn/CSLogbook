@@ -28,7 +28,7 @@ import {
 import dayjs from '../../../../utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from '../../../../utils/constants';
 import projectService from '../../../../services/projectService';
-import PDFViewerModal from '../../../PDFViewerModal';
+import { PDFViewerModal } from '../../../common/PDFViewer';
 
 const { Title, Text } = Typography;
 const { Search } = Input;

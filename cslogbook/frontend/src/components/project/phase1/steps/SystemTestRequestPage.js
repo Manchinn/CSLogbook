@@ -22,7 +22,7 @@ import dayjs from '../../../../utils/dayjs';
 import { useNavigate } from 'react-router-dom';
 import useStudentProject from '../../../../hooks/useStudentProject';
 import projectService from '../../../../services/projectService';
-import PDFViewerModal from '../../../PDFViewerModal';
+import { PDFViewerModal } from '../../../common/PDFViewer';
 
 const { RangePicker } = DatePicker;
 const { Title, Text, Paragraph } = Typography;
