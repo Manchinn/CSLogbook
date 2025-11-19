@@ -46,15 +46,16 @@
 
 .student-dashboard, .admin-dashboard, .teacher-dashboard {
   padding: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
 }
 
 .admin-dashboard-container {
   width: 100%;
   padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 /* Dashboard Container */

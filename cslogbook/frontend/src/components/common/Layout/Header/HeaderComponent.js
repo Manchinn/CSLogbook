@@ -104,7 +104,9 @@ const HeaderComponent = ({ isMobile, showDrawer }) => {
       color: theme.text,
     },
     secondaryHeader: {
-      backgroundColor: "#f5f5f5",
+      backgroundColor: "rgba(255, 255, 255, 0.5)",
+      backdropFilter: "blur(8px)",
+      WebkitBackdropFilter: "blur(8px)",
       position: "fixed",
       top: 0,
       left: 0,

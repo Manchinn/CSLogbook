@@ -4,66 +4,36 @@
 .internshipContainer {
   width: 100%;
   max-width: 100%;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0;
+  /* เพิ่ม paddingTop เพื่อไม่ให้ซ้อนทับกับ Header */
+  padding-top: var(--spacing-xl);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  margin: var(--spacing-lg) auto;
+  margin: 0 auto;
   min-height: calc(100vh - 100px);
-  border-radius: var(--radius-lg);
   transition: all var(--transition-base);
   position: relative;
 }
 
 /* Override Ant Design components เฉพาะใน container นี้ */
 .internshipContainer :global(.ant-card) {
-  border-radius: var(--radius-md) !important;
+  border-radius: var(--radius-lg) !important;
   transition: all var(--transition-base) !important;
 }
 
 .internshipContainer :global(.ant-card-body) {
-  padding: var(--spacing-md) !important;
-  background: transparent !important;
+  padding: var(--spacing-lg) !important;
 }
 
-.internshipContainer :global(.ant-input),
-.internshipContainer :global(.ant-input-affix-wrapper),
-.internshipContainer :global(.ant-select-selector) {
-  border: 1px solid var(--color-border-dark) !important;
-  border-radius: 6px !important;
-  background: var(--color-bg-primary) !important;
-}
+/* Input styles จะใช้ global styles จาก MainLayout.module.css */
 
-.internshipContainer :global(.ant-input:focus),
-.internshipContainer :global(.ant-input-affix-wrapper:focus) {
-  border-color: var(--color-info) !important;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
-}
-
-/* Responsive container */
-@media (max-width: 992px) {
-  .internshipContainer {
-    padding: var(--spacing-lg) var(--spacing-lg);
-    gap: var(--spacing-lg);
-  }
-}
-
+/* Responsive container - padding จัดการโดย MainLayout */
 @media (max-width: 768px) {
   .internshipContainer {
-    max-width: 100%;
-    padding: var(--spacing-md);
-    margin: 0;
-    border-radius: 0;
     gap: var(--spacing-md);
-  }
-}
-
-@media (max-width: 576px) {
-  .internshipContainer {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
+    /* ลด paddingTop ใน mobile เพราะ header สั้นกว่า */
+    padding-top: var(--spacing-md);
   }
 }
 

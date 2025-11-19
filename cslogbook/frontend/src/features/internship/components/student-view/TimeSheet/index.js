@@ -28,6 +28,7 @@ import dayjs from "utils/dayjs";
 import { DATE_FORMAT_MEDIUM } from "utils/constants";
 // เปลี่ยนจาก styles.css เป็น CSS Modules
 import styles from "./TimeSheet.module.css";
+// Note: MainLayout.module.css ใช้ global styles (:global()) ดังนั้นไม่จำเป็นต้อง import
 
 const { Text } = Typography;
 
@@ -316,6 +317,7 @@ const TimeSheet = () => {
   }
 
   // เพิ่มการแสดง Banner เตือนว่าอยู่ในโหมดทดสอบ
+  // Note: contentCard class ถูก apply โดย MainLayout แล้ว
   return (
     <div
       className={styles.internshipContainer}

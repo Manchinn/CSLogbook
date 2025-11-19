@@ -36,16 +36,22 @@
 .contentArea {
   padding: var(--spacing-xxl) var(--spacing-xl) var(--spacing-xl);
   margin-left: 230px;
+  margin-right: auto;
   min-height: calc(100vh - 140px);
-  transition: margin-left var(--transition-base);
+  transition: all var(--transition-base);
   position: relative;
   z-index: 1;
+  background: transparent !important;
+  max-width: min(calc(100vw - 230px - var(--spacing-xl) * 2), var(--container-xxl));
+  width: 100%;
 }
 
 @media (max-width: 992px) {
   .contentArea {
     margin-left: 200px;
+    margin-right: auto;
     padding: var(--spacing-xl);
+    max-width: min(calc(100vw - 200px - var(--spacing-xl) * 2), var(--container-xl));
   }
 }
 
@@ -53,19 +59,20 @@
   .contentArea {
     margin-left: 0;
     padding: var(--spacing-lg);
+    max-width: calc(100vw - var(--spacing-lg) * 2);
   }
 }
 
 .contentCard {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--color-border);
+  background: transparent !important;
+  border: none;
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  padding: var(--spacing-xl);
+  box-shadow: none;
+  padding: var(--spacing-xxl);
   min-height: calc(100vh - 200px);
   transition: box-shadow var(--transition-base);
+  max-width: 100%;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -103,13 +110,15 @@
 }
 
 :global(.ant-card) {
-  background: rgba(255, 255, 255, 0.75) !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
   border-radius: var(--radius-lg) !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
   position: relative;
   z-index: 1;
   transition: box-shadow var(--transition-base);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 :global(.ant-card:hover) {
@@ -158,6 +167,16 @@
   position: relative;
   z-index: 1;
   overflow: visible;
+}
+
+/* Override Ant Design Layout and Content background */
+:global(.ant-layout) {
+  background: transparent !important;
+}
+
+:global(.ant-layout-content),
+:global(main.ant-layout-content) {
+  background: transparent !important;
 }
 
 @media (max-width: 768px) {

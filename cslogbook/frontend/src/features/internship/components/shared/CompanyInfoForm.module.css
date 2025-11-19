@@ -2,20 +2,31 @@
 
 .internshipContainer {
   width: 100%;
+  max-width: 100%;
   justify-content: center;
   align-items: center;
   min-height: 55vh;
   background-color: transparent;
-  padding: var(--spacing-md);
+  padding: 0;
+  /* เพิ่ม paddingTop เพื่อไม่ให้ซ้อนทับกับ Header */
+  padding-top: var(--spacing-xl);
+}
+
+/* Responsive styles สำหรับ mobile */
+@media (max-width: 768px) {
+  .internshipContainer {
+    /* ลด paddingTop ใน mobile เพราะ header สั้นกว่า */
+    padding-top: var(--spacing-md);
+  }
 }
 
 .internshipCard {
   width: 100%;
-  max-width: 90%;
-  padding: 10px;
-  border-radius: 10px;
+  max-width: 100%;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  margin: var(--spacing-md) auto;
+  margin: 0 auto;
 }
 
 .internshipParagraph {
@@ -24,16 +35,16 @@
 }
 
 .internshipButton {
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
   font-size: var(--font-size-lg);
   padding: var(--spacing-md);
 }
 
 .internshipStepsContainer {
   width: 100%;
-  padding: 15px 0;
+  padding: var(--spacing-md) 0;
   background-color: var(--color-bg-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   text-align: center;
   display: flex;
   justify-content: center;

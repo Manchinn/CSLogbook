@@ -6,6 +6,7 @@ import internshipService from 'features/internship/services/internshipService';
 import { EditOutlined, WarningOutlined } from '@ant-design/icons';
 import useInternshipAccess from 'features/internship/hooks/useInternshipAccess';
 import styles from './CompanyInfoForm.module.css';
+// Note: MainLayout.module.css ใช้ global styles (:global()) ดังนั้นไม่จำเป็นต้อง import
 
 const { Title, Text } = Typography;
 
@@ -364,8 +365,8 @@ const CompanyForm = () => {
 
   // แสดงฟอร์มเมื่อผ่านการตรวจสอบทุกอย่างแล้ว
   return (
-    <div className="internship-container">
-      <Card className="internship-card">
+    <div className={styles.internshipContainer}>
+      <Card className={styles.internshipCard}>
         <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <Title level={3}>ข้อมูลสถานประกอบการ</Title>
@@ -514,7 +515,7 @@ const CompanyForm = () => {
 
 const CompanyInfoForm = () => {
   return (
-    <div className="internship-container">
+    <div className={styles.internshipContainer}>
       <Suspense fallback={
         <div style={{ textAlign: 'center', padding: '50px 0' }}>
           <Spin size="large" />
