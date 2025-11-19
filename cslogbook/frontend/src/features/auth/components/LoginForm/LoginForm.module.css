@@ -15,7 +15,7 @@
     135deg,
     var(--color-bg-secondary) 0%,
     var(--color-bg-tertiary) 35%,
-    color-mix(in srgb, var(--color-primary-light) 25%, #ffffff) 100%
+    var(--color-primary-light) 100%
   );
   overflow: hidden;
 }
@@ -30,8 +30,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--color-info) 20%, transparent) 0%, transparent 60%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--color-warning) 18%, transparent) 0%, transparent 55%);
+    radial-gradient(circle at top left, rgba(24, 144, 255, 0.2) 0%, transparent 60%),
+    radial-gradient(circle at bottom right, rgba(250, 173, 20, 0.18) 0%, transparent 55%);
 }
 
 .circle {
@@ -92,7 +92,7 @@
 
 .brandDescription {
   font-size: var(--font-size-md) !important;
-  color: color-mix(in srgb, var(--color-secondary-dark) 70%, white) !important;
+  color: var(--color-secondary) !important;
   margin-bottom: 0 !important;
 }
 
@@ -109,7 +109,7 @@
   padding: 18px 20px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid color-mix(in srgb, var(--color-info) 12%, transparent);
+  border: 1px solid rgba(24, 144, 255, 0.12);
   box-shadow: var(--shadow-md);
 }
 
@@ -122,8 +122,8 @@
   border-radius: 14px;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--color-info) 16%, transparent) 0%,
-    color-mix(in srgb, var(--color-info) 35%, transparent) 100%
+    rgba(24, 144, 255, 0.16) 0%,
+    rgba(24, 144, 255, 0.35) 100%
   );
   color: var(--color-info);
   font-size: 26px;
@@ -139,7 +139,7 @@
 
 .brandFooter {
   font-size: var(--font-size-sm);
-  color: color-mix(in srgb, var(--color-secondary) 65%, white);
+  color: rgba(30, 41, 59, 0.65);
 }
 
 .card {
@@ -179,7 +179,7 @@
   height: 50px !important;
   min-height: 44px !important;
   border-radius: var(--radius-lg) !important;
-  border: 1px solid color-mix(in srgb, var(--color-secondary) 12%, transparent) !important;
+  border: 1px solid rgba(30, 41, 59, 0.12) !important;
   transition: all var(--transition-base) !important;
   font-size: var(--font-size-md) !important;
 }
@@ -187,11 +187,11 @@
 .input:hover,
 .input:focus {
   border-color: var(--color-info) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-info) 18%, transparent) !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.18) !important;
 }
 
 .input :global(.ant-input-prefix) {
-  color: color-mix(in srgb, var(--color-secondary) 40%, transparent);
+  color: rgba(30, 41, 59, 0.4);
   margin-right: var(--spacing-xs);
   font-size: 18px;
 }
@@ -206,10 +206,10 @@
   background: linear-gradient(
     135deg,
     var(--color-info) 0%,
-    color-mix(in srgb, var(--color-info) 65%, var(--color-secondary-dark)) 100%
+    var(--color-secondary-dark) 100%
   ) !important;
   border: none !important;
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--color-info) 35%, transparent) !important;
+  box-shadow: 0 12px 24px rgba(24, 144, 255, 0.35) !important;
   transition: transform var(--transition-base) !important;
 }
 
