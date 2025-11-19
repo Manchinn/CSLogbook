@@ -31,6 +31,7 @@ import {
 import { certificateService } from "features/internship/services"; // ✅ ใช้ service ใหม่
 import CertificateRequestReview from "./CertificateRequestReview";
 import dayjs from "utils/dayjs";
+import styles from "./CertificateManagement.module.css";
 
 const { Text, Title } = Typography;
 
@@ -51,13 +52,6 @@ const CertificateManagement = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState(null);
-
-  // Container style for consistent layout
-  const containerStyle = {
-    padding: "24px",
-    background: "#f5f5f5",
-    minHeight: "100vh",
-  };
 
   // ดึงรายการคำขอหนังสือรับรอง
   const fetchCertificateRequests = useCallback(async () => {
@@ -342,18 +336,14 @@ const CertificateManagement = () => {
   ];
 
   return (
-    
-    <div style={containerStyle}>
-      <div style={{ marginBottom: 16 }}>
-        <Title
-          level={4}
-          style={{ margin: 0, display: "flex", alignItems: "center" }}
-        >
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <Title level={4} className={styles.title}>
           จัดการคำขอหนังสือรับรอง
         </Title>
       </div>
       {/* Summary Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} className={styles.statsRow}>
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
@@ -395,7 +385,7 @@ const CertificateManagement = () => {
       {/* Filters Section */}
       <Card
         size="small"
-        style={{ marginBottom: 16, background: "#fafafa" }}
+        className={styles.filterCard}
         title={
           <Space>
             <FilterOutlined />
@@ -481,13 +471,7 @@ const CertificateManagement = () => {
         }}
         scroll={{ x: 1200 }}
         title={() => (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div className={styles.tableTitle}>
             <Text strong>
               รายการคำขอหนังสือรับรอง ({filteredRequests.length} รายการ)
             </Text>
@@ -545,7 +529,7 @@ const CertificateManagement = () => {
             </Descriptions>
 
             {actionType === "reject" && (
-              <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+              <Form form={form} layout="vertical" className={styles.modalForm}>
                 <Form.Item
                   name="remarks"
                   label="เหตุผลการปฏิเสธ"

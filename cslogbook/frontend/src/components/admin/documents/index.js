@@ -35,18 +35,9 @@ import CertificateManagement from "features/internship/components/admin-view/Cer
 import { internshipApprovalService } from "features/internship/services";
 import { documentService } from "../../../services/admin/documentService";
 import { getLateSubmissions } from "features/reports/services/deadlineReportService";
+import styles from "./DocumentManagement.module.css";
 
 const { Text, Title } = Typography;
-
-// Container style ตาม StaffKP02Queue pattern
-const containerStyle = {
-  maxWidth: "1200px",
-  margin: "0 auto",
-  padding: "24px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 24,
-};
 
 const DocumentManagement = ({ type }) => {
   const [activeTab, setActiveTab] = useState("documents");
@@ -80,8 +71,8 @@ const DocumentManagement = ({ type }) => {
   ];
 
   return (
-    <div style={containerStyle}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <div className={styles.container}>
+      <Space direction="vertical" size="large" className={styles.tabsWrapper}>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -472,13 +463,13 @@ const OriginalDocumentManagement = ({ type }) => {
 
   // JSX
   return (
-    <div style={containerStyle}>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <div className={styles.container}>
+      <Space direction="vertical" size={16} className={styles.contentWrapper}>
         {/* Compact Header with Inline Badges */}
         <Row align="middle" justify="space-between">
           <Col>
-            <Space align="center" size={12}>
-              <Title level={4} style={{ margin: 0 }}>
+            <Space align="center" size={12} className={styles.header}>
+              <Title level={4} className={styles.title}>
                 จัดการเอกสารฝึกงาน
               </Title>
               {/* <Space size={8}>
@@ -517,16 +508,16 @@ const OriginalDocumentManagement = ({ type }) => {
             </Space>
           </Col>
           <Col>
-            <Space size={16}>
+            <Space size={16} className={styles.statsText}>
               <Text type="secondary">
                 ทั้งหมด <Text strong>{summary.total}</Text> รายการ
               </Text>
               <Text type="secondary">
-                อนุมัติ <Text strong style={{ color: '#52c41a' }}>{summary.approved}</Text>
+                อนุมัติ <Text strong style={{ color: 'var(--color-success)' }}>{summary.approved}</Text>
               </Text>
               {summary.rejected > 0 && (
                 <Text type="secondary">
-                  ปฏิเสธ <Text strong style={{ color: '#cf1322' }}>{summary.rejected}</Text>
+                  ปฏิเสธ <Text strong style={{ color: 'var(--color-error)' }}>{summary.rejected}</Text>
                 </Text>
               )}
             </Space>
@@ -537,12 +528,7 @@ const OriginalDocumentManagement = ({ type }) => {
         <Row 
           gutter={[12, 12]} 
           align="middle"
-          style={{ 
-            padding: '12px 16px',
-            background: '#fafafa',
-            borderRadius: 8,
-            border: '1px solid #f0f0f0'
-          }}
+          className={styles.filterBar}
         >
           <Col xs={24} sm={12} md={5}>
             <Select
@@ -588,7 +574,7 @@ const OriginalDocumentManagement = ({ type }) => {
               onChange={(e) => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={24} sm={12} md={7} style={{ textAlign: 'right' }}>
+          <Col xs={24} sm={12} md={7} className={styles.filterActions}>
             <Space wrap size="small">
               {filters.status === "pending" && selectedRowKeys.length > 0 && (
                 <>
@@ -642,16 +628,16 @@ const OriginalDocumentManagement = ({ type }) => {
         {/* Main Table - Focus Area */}
         <Card 
           size="small" 
-          bodyStyle={{ padding: 0 }}
+          className={styles.tableCard}
           title={
             <Row align="middle" justify="space-between">
               <Col>
-                <Space size={12}>
+                <Space size={12} className={styles.tableTitleLeft}>
                   <Text strong>รายการเอกสาร</Text>
                   <Badge 
                     count={filteredDocuments.length} 
                     showZero 
-                    style={{ backgroundColor: '#1890ff' }}
+                    style={{ backgroundColor: 'var(--color-info)' }}
                   />
                   {filters.status === "pending" && selectedRowKeys.length > 0 && (
                     <Tag color="blue">เลือก {selectedRowKeys.length} รายการ</Tag>
@@ -659,7 +645,7 @@ const OriginalDocumentManagement = ({ type }) => {
                 </Space>
               </Col>
               <Col>
-                <Space size={8}>
+                <Space size={8} className={styles.tableTitleRight}>
                   {summary.cs05 > 0 && (
                     <Tag icon={<FileTextOutlined />} color="default">
                       คพ.05: {summary.cs05}
@@ -691,9 +677,9 @@ const OriginalDocumentManagement = ({ type }) => {
             size="middle"
             locale={{
               emptyText: (
-                <div style={{ padding: '40px 0' }}>
-                  <FileTextOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
-                  <div style={{ marginTop: 16 }}>
+                <div className={styles.emptyState}>
+                  <FileTextOutlined className={styles.emptyIcon} />
+                  <div className={styles.emptyText}>
                     <Text type="secondary">ไม่มีเอกสารที่ตรงกับเงื่อนไขที่เลือก</Text>
                   </div>
                 </div>
@@ -737,7 +723,7 @@ const OriginalDocumentManagement = ({ type }) => {
               showCount
             />
           </Form.Item>
-          <div style={{ fontSize: 12, color: '#888' }}>
+          <div className={styles.modalFooter}>
             จะปฏิเสธทั้งหมด {selectedRowKeys.length} เอกสาร
           </div>
         </Form>
