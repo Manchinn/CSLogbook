@@ -233,7 +233,7 @@ const Sidebar = ({ inDrawer, onMenuClick }) => {
         <Avatar
           size={64}
           style={{
-            backgroundColor: "var(--active-color)",
+            backgroundColor: "var(--color-info)",
             marginBottom: 12,
             fontSize: "24px",
           }}

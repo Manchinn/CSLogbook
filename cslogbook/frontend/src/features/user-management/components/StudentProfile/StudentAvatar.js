@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Row, Col, Card, Avatar, Tag, Tooltip, Space, Button } from 'antd';
+import { Row, Col, Card, Avatar, Tag, Tooltip, Space, Button, Typography } from 'antd';
 import { UserOutlined, ClockCircleOutlined, EditOutlined } from '@ant-design/icons';
 import ContactInfoEditModal from './ContactInfoEditModal';
 import styles from './StudentProfile.module.css';
+
+const { Text } = Typography;
 
 const StudentAvatar = React.memo(({ student, studentYear, canEdit, onContactInfoUpdated }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -143,13 +145,34 @@ const StudentAvatar = React.memo(({ student, studentYear, canEdit, onContactInfo
           )}
         >
           <p>
-            <strong>อีเมล:</strong> {(student.email && student.email.trim()) ? student.email : "ไม่ระบุอีเมล"}
+            <strong>อีเมล:</strong>{' '}
+            {(student.email && student.email.trim()) ? (
+              <Text ellipsis={{ tooltip: student.email }} style={{ display: 'inline-block', maxWidth: '100%' }}>
+                {student.email}
+              </Text>
+            ) : (
+              "ไม่ระบุอีเมล"
+            )}
           </p>
           <p>
-            <strong>เบอร์โทร:</strong> {(student.phoneNumber && student.phoneNumber.trim()) ? student.phoneNumber : "ไม่ระบุเบอร์โทร"}
+            <strong>เบอร์โทร:</strong>{' '}
+            {(student.phoneNumber && student.phoneNumber.trim()) ? (
+              <Text ellipsis={{ tooltip: student.phoneNumber }} style={{ display: 'inline-block', maxWidth: '100%' }}>
+                {student.phoneNumber}
+              </Text>
+            ) : (
+              "ไม่ระบุเบอร์โทร"
+            )}
           </p>
           <p>
-            <strong>ห้องเรียน:</strong> {(student.classroom && student.classroom.trim()) ? student.classroom : "ไม่ระบุห้องเรียน"}
+            <strong>ห้องเรียน:</strong>{' '}
+            {(student.classroom && student.classroom.trim()) ? (
+              <Text ellipsis={{ tooltip: student.classroom }} style={{ display: 'inline-block', maxWidth: '100%' }}>
+                {student.classroom}
+              </Text>
+            ) : (
+              "ไม่ระบุห้องเรียน"
+            )}
           </p>
         </Card>
       </Col>
