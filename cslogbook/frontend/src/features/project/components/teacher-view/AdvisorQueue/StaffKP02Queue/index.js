@@ -729,6 +729,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
               <Space direction="vertical" size={4}>
                 <Text strong>สถานะคำขอ</Text>
                 <Select
+                  style={{ minWidth: 220 }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
                   onChange={(value) =>
@@ -741,6 +742,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
               <Space direction="vertical" size={4}>
                 <Text strong>ปีการศึกษา</Text>
                 <Select
+                  style={{ minWidth: 220 }}
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.academicYear}
@@ -758,6 +760,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
               <Space direction="vertical" size={4}>
                 <Text strong>ภาคเรียน</Text>
                 <Select
+                  style={{ minWidth: 220 }}
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.semester}
@@ -775,6 +778,7 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
               <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
+                  style={{ minWidth: 220 }}
                   allowClear
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"

@@ -574,7 +574,7 @@ export default function TopicExamResultPage() {
                 <Select
                   placeholder="เลือกปีการศึกษา"
                   allowClear
-                  style={{ width: '100%' }}
+                  style={{ minWidth: 220 }}
                   value={filters.academicYear}
                   options={academicYearOptions}
                   onChange={handleAcademicYearChange}
@@ -587,7 +587,7 @@ export default function TopicExamResultPage() {
                 <Select
                   placeholder="เลือกภาคเรียน"
                   allowClear
-                  style={{ width: '100%' }}
+                  style={{ minWidth: 220 }}
                   value={filters.semester}
                   disabled={!filters.academicYear || !semesterOptions.length}
                   options={semesterOptions}

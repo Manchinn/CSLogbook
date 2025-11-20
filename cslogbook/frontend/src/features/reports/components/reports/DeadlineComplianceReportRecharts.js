@@ -265,18 +265,21 @@ const DeadlineComplianceReportRecharts = () => {
           <Col>
             <Space>
               <Select
+                placeholder="ประเภท"
                 value={filters.relatedTo}
                 style={{ width: 150 }}
                 onChange={(value) => updateFilters({ relatedTo: value })}
                 options={relatedToOptions}
               />
               <Select
+                placeholder="ปีการศึกษา"
                 value={filters.academicYear}
                 style={{ width: 120 }}
                 onChange={(value) => updateFilters({ academicYear: value })}
                 options={yearOptions}
               />
               <Select
+                placeholder="ภาคเรียน"
                 value={filters.semester}
                 style={{ width: 120 }}
                 onChange={(value) => updateFilters({ semester: value })}

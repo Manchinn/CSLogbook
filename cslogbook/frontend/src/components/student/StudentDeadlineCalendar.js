@@ -214,9 +214,10 @@ export default function StudentDeadlineCalendar({ audience = "student" }) {
         </Typography.Title>
         <Space wrap style={{ marginBottom: 16 }}>
           <Select
+            placeholder="เลือกปีการศึกษา"
             value={academicYear}
             onChange={setAcademicYear}
-            style={{ width: 140 }}
+            style={{ width: 160 }}
             options={academicYearOptions}
             loading={filtersLoading}
           />

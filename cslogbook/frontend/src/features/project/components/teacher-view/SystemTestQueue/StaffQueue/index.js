@@ -497,6 +497,7 @@ const StaffSystemTestQueue = () => {
               <Space direction="vertical" size={4}>
                 <Text strong>สถานะคำขอ</Text>
                 <Select
+                  style={{ minWidth: 220 }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
                   onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
@@ -507,6 +508,7 @@ const StaffSystemTestQueue = () => {
               <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
+                  style={{ minWidth: 220 }}
                   allowClear
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา / ชื่ออาจารย์"
