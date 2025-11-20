@@ -22,6 +22,11 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  FolderOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import dayjs from 'utils/dayjs';
 import { fetchProjectPairs } from 'features/project/services/projectPairsService';
@@ -29,7 +34,7 @@ import { studentService } from 'features/user-management/services/studentService
 import AddProjectModal from 'features/project/components/admin-view/ProjectManagement/AddProjectModal';
 import styles from '../StudentList/StudentList.module.css';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 const statusConfig = {
   draft: { label: 'ร่าง', color: 'default' },
@@ -80,8 +85,8 @@ const ProjectPairsPage = () => {
     documentStatus: [],
     trackCodes: [],
     projectType: [],
-    academicYear: '',
-    semester: ''
+    academicYear: null,
+    semester: null
   });
   const [drawerState, setDrawerState] = useState({ open: false, project: null });
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -224,11 +229,22 @@ const ProjectPairsPage = () => {
     });
   }, [filters, projects]);
 
-  const statusSummaryItems = useMemo(() => statusOrder.map((statusKey) => ({
-    statusKey,
-    label: statusConfig[statusKey]?.label || statusKey,
-    value: summary.statusCounts[statusKey] || 0
-  })), [summary.statusCounts]);
+  const statusSummaryItems = useMemo(() => {
+    const iconMap = {
+      draft: <FileTextOutlined />,
+      advisor_assigned: <CheckCircleOutlined />,
+      in_progress: <ClockCircleOutlined />,
+      completed: <FolderOutlined />,
+      archived: <InboxOutlined />
+    };
+    
+    return statusOrder.map((statusKey) => ({
+      statusKey,
+      label: statusConfig[statusKey]?.label || statusKey,
+      value: summary.statusCounts[statusKey] || 0,
+      icon: iconMap[statusKey] || <FileTextOutlined />
+    }));
+  }, [summary.statusCounts]);
 
   const openDrawer = useCallback((project) => {
     setDrawerState({ open: true, project });
@@ -363,87 +379,55 @@ const ProjectPairsPage = () => {
 
   return (
     <div className={styles.adminStudentContainer}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <div>
-          <Title level={3} className={styles.sectionTitle}>ข้อมูลคู่โปรเจค</Title>
-          <Text type="secondary">สรุปข้อมูลโครงงานและสมาชิกสำหรับเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์</Text>
-        </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={handleAddProject}
-        >
-          เพิ่มโครงงานพิเศษ
-        </Button>
-      </div>
+      <Row justify="space-between" align="middle">
+        <Col>
       <div className={styles.statisticsChips}>
         <div className={styles.statisticItem} key="total-projects">
-          <Space direction="vertical" size={0}>
-            <Text type="secondary">จำนวนโครงงานทั้งหมด</Text>
-            <Title level={4} style={{ margin: 0 }}>{summary.total}</Title>
-          </Space>
+          <FileTextOutlined />
+          <Text>จำนวนโครงงานทั้งหมด: {summary.total}</Text>
         </div>
         {statusSummaryItems.map((item) => (
           <div className={styles.statisticItem} key={item.statusKey}>
-            <Space direction="vertical" size={0}>
-              <Text type="secondary">{item.label}</Text>
-              <Title level={4} style={{ margin: 0 }}>{item.value}</Title>
-            </Space>
+            {item.icon}
+            <Text>{item.label}: {item.value}</Text>
           </div>
         ))}
       </div>
-
-      <Card variant="borderless" style={{ padding: 0 }}>
-        <div className={styles.filterSection}>
-          {/* แถวแรก: Search, Academic Year, Semester */}
-          <Row gutter={[16, 16]} style={{ width: '100%', marginBottom: '16px' }}>
-            {/* Search Input */}
-            <Col xs={24} sm={24} md={16} lg={12} xl={16}>
+        </Col>
+        <Col>
+          <Row justify="space-between" align="middle" className={styles.filterSection}>
+            <Col>
+              <Space size="small" wrap>
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
                 placeholder="ค้นหาชื่อโครงงาน รหัสนักศึกษา หรืออาจารย์ที่ปรึกษา"
                 value={filters.query}
                 onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
+                  style={{ width: 250 }}
               />
-            </Col>
-            
-            {/* Academic Year & Semester - ให้พื้นที่มากขึ้น */}
-            <Col xs={12} sm={12} md={4} lg={6} xl={4}>
               <Select
                 value={filters.academicYear}
                 placeholder="ปีการศึกษา"
                 allowClear
                 options={filterOptions.academicYears?.map((year) => ({
-                  label: year.label || `ปีการศึกษา ${year.value}`,
+                    label: year.label || `${year.value}`,
                   value: year.value
                 })) || []}
                 onChange={(value) => setFilters((prev) => ({ ...prev, academicYear: value }))}
-                style={{ width: '100%' }}
-                size="middle"
+                  style={{ minWidth: 150 }}
               />
-            </Col>
-            <Col xs={12} sm={12} md={4} lg={6} xl={4}>
               <Select
                 value={filters.semester}
                 placeholder="ภาคเรียน"
                 allowClear
                 options={filterOptions.semesters?.map((semester) => ({
-                  label: semester.label || `ภาคเรียนที่ ${semester.value}`,
+                    label: semester.label || `${semester.value}`,
                   value: semester.value
                 })) || []}
                 onChange={(value) => setFilters((prev) => ({ ...prev, semester: value }))}
-                style={{ width: '100%' }}
-                size="middle"
+                  style={{ minWidth: 150 }}
               />
-            </Col>
-          </Row>
-
-          {/* แถวที่สอง: Status, Track, Project Type, Refresh Button */}
-          <Row gutter={[16, 16]} style={{ width: '100%' }}>
-            {/* Status Filter */}
-            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Select
                 mode="multiple"
                 value={filters.status}
@@ -454,14 +438,9 @@ const ProjectPairsPage = () => {
                   value: statusKey
                 }))}
                 onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
-                style={{ width: '100%' }}
-                size="middle"
+                  style={{ minWidth: 180 }}
                 maxTagCount="responsive"
               />
-            </Col>
-            
-            {/* Track Filter */}
-            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Select
                 mode="multiple"
                 value={filters.trackCodes}
@@ -469,14 +448,9 @@ const ProjectPairsPage = () => {
                 allowClear
                 options={trackOptions}
                 onChange={(value) => setFilters((prev) => ({ ...prev, trackCodes: value }))}
-                style={{ width: '100%' }}
-                size="middle"
+                  style={{ minWidth: 180 }}
                 maxTagCount="responsive"
               />
-            </Col>
-            
-            {/* Project Type Filter */}
-            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Select
                 mode="multiple"
                 value={filters.projectType}
@@ -484,26 +458,30 @@ const ProjectPairsPage = () => {
                 allowClear
                 options={projectTypeOptions}
                 onChange={(value) => setFilters((prev) => ({ ...prev, projectType: value }))}
-                style={{ width: '100%' }}
-                size="middle"
+                  style={{ minWidth: 180 }}
                 maxTagCount="responsive"
               />
-            </Col>
-            
-            {/* Refresh Button */}
-            <Col xs={24} sm={12} md={8} lg={6} xl={6}>
               <Button
-                block
                 icon={<ReloadOutlined />}
                 onClick={loadProjectPairs}
                 loading={loading}
-                size="middle"
               >
                 รีเฟรช
               </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddProject}
+                >
+                  เพิ่มโครงงานพิเศษ
+                </Button>
+              </Space>
             </Col>
           </Row>
-        </div>
+        </Col>
+      </Row>
+
+      <Card variant="borderless" style={{ padding: 0 }}>
 
         <Table
           rowKey={(record) => record.projectId || record.projectCode || `${record.projectNameTh}-${record.createdAt}`}
