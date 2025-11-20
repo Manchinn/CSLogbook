@@ -241,8 +241,8 @@ const TeacherList = () => {
 
   return (
     <div className={styles.adminStudentContainer}>
-      <Row justify="space-between" align="top" className={styles.filterSection}>
-        <Col xs={24} lg={14}>
+      <Row justify="space-between" align="middle">
+        <Col>
           <div className={styles.statisticsChips}>
             {teacherStatistics.map((item) => (
               <div className={styles.statisticItem} key={item.key}>
@@ -252,7 +252,7 @@ const TeacherList = () => {
             ))}
           </div>
         </Col>
-        <Col xs={24} lg={10} style={{ textAlign: "right" }}>
+        <Col>
           <TeacherFilters
             searchText={searchText}
             onSearchChange={setSearchText}

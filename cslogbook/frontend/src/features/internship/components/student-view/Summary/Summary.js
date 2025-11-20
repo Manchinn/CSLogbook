@@ -48,7 +48,7 @@ import AchievementPanel from "./components/AchievementPanel";
 import SkillsPanel from "./components/SkillsPanel";
 
 // เพิ่ม import EvaluationRequestButton
-import EvaluationRequestButton from "components/EvaluationRequestButton";
+import EvaluationRequestButton from "features/internship/components/shared/EvaluationRequest";
 
 // นำเข้า utility functions
 import { calculateCompletionStatus } from "./utils/skillUtils";

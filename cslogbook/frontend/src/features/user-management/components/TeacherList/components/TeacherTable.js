@@ -32,7 +32,7 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete, emptyText }
       title: "ตำแหน่ง",
       dataIndex: "position",
       key: "position",
-      width: 200,
+      width: 160,
       render: (text) => text || "-"
     },
     {
@@ -48,7 +48,7 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete, emptyText }
       width: 120,
     }, */
     {
-      title: "เข้าถึงรายชื่อหัวข้อโครงงานพิเศษ1",
+      title: "จัดตารางสอบหัวข้อโครงงานพิเศษ1",
       dataIndex: "canAccessTopicExam",
       key: "canAccessTopicExam",
       width: 160,
@@ -59,7 +59,7 @@ const TeacherTable = ({ teachers, loading, onView, onEdit, onDelete, emptyText }
       )
     },
     {
-      title: "เข้ารายชื่อสอบโครงงานพิเศษ1",
+      title: "จัดตารางสอบโครงงานพิเศษ1",
       dataIndex: "canExportProject1",
       key: "canExportProject1",
       width: 160,
