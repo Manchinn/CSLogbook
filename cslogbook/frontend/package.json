@@ -124,7 +124,11 @@
       "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
       "^@react-pdf/renderer$": "<rootDir>/src/__mocks__/@react-pdf/renderer.js",
       "^antd/es/date-picker/locale/th_TH$": "<rootDir>/src/__mocks__/antdDatePickerLocaleMock.js",
-      "^react-pdf/dist/.*\\.css$": "<rootDir>/src/__mocks__/styleMock.js"
+      "^react-pdf/dist/.*\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
+      "^contexts/(.*)$": "<rootDir>/src/contexts/$1",
+      "^test-utils(.*)$": "<rootDir>/src/test-utils$1",
+      "^features/(.*)$": "<rootDir>/src/features/$1",
+      "^services/(.*)$": "<rootDir>/src/services/$1"
     },
     "moduleFileExtensions": [
       "web.js",
