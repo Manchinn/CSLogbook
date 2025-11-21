@@ -32,9 +32,9 @@ exports.updateAcademicSettings = async (req, res) => {
       });
     }
 
-    await academicService.updateAcademicSettings(id, updateData);
+    const updated = await academicService.updateAcademicSettings(id, updateData);
     
-    res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ" });
+    res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ", data: updated });
   } catch (error) {
     logger.error("Error updating academic settings:", error);
     
@@ -85,5 +85,74 @@ exports.deleteAcademicSettings = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: error.message || "เกิดข้อผิดพลาดในการลบข้อมูล" });
+  }
+};
+
+exports.listAcademicSchedules = async (req, res) => {
+  try {
+    const schedules = await academicService.listAcademicSchedules({
+      status: req.query.status,
+    });
+    res.json({ success: true, data: schedules });
+  } catch (error) {
+    logger.error("Error listing academic schedules:", error);
+    res
+      .status(500)
+      .json({ success: false, message: error.message || "ไม่สามารถดึงรายการปีการศึกษาได้" });
+  }
+};
+
+exports.getAcademicScheduleById = async (req, res) => {
+  try {
+    const schedule = await academicService.getAcademicScheduleById(req.params.id);
+    res.json({ success: true, data: schedule });
+  } catch (error) {
+    logger.error("Error fetching academic schedule by ID:", error);
+    const statusCode = error.message.includes("ไม่พบข้อมูล") ? 404 : 500;
+    res
+      .status(statusCode)
+      .json({ success: false, message: error.message || "ไม่สามารถดึงข้อมูลปีการศึกษาได้" });
+  }
+};
+
+exports.createAcademicSchedule = async (req, res) => {
+  try {
+    const schedule = await academicService.createAcademicSchedule(req.body);
+    res.status(201).json({ success: true, data: schedule });
+  } catch (error) {
+    logger.error("Error creating academic schedule:", error);
+    const statusCode = error.message.includes("หลักสูตร") ? 400 : 500;
+    res
+      .status(statusCode)
+      .json({ success: false, message: error.message || "เกิดข้อผิดพลาดในการสร้างปีการศึกษา" });
+  }
+};
+
+exports.updateAcademicSchedule = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const schedule = await academicService.updateAcademicSchedule(id, req.body);
+    res.json({ success: true, data: schedule });
+  } catch (error) {
+    logger.error("Error updating academic schedule:", error);
+    let statusCode = 500;
+    if (error.message.includes("ไม่พบข้อมูล")) statusCode = 404;
+    else if (error.message.includes("ไม่สามารถตั้งสถานะ active")) statusCode = 400;
+    else if (error.message.includes("ID ไม่ถูกต้อง")) statusCode = 400;
+    res.status(statusCode).json({ success: false, message: error.message });
+  }
+};
+
+exports.activateAcademicSchedule = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const schedule = await academicService.activateAcademicSchedule(id);
+    res.json({ success: true, data: schedule });
+  } catch (error) {
+    logger.error("Error activating academic schedule:", error);
+    let statusCode = 500;
+    if (error.message.includes("ไม่พบข้อมูล")) statusCode = 404;
+    else if (error.message.includes("ID ไม่ถูกต้อง")) statusCode = 400;
+    res.status(statusCode).json({ success: false, message: error.message });
   }
 };

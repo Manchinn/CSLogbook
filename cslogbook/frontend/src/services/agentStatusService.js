@@ -66,4 +66,6 @@ class AgentStatusService {
     }
 }
 
-export default new AgentStatusService();
+const agentStatusService = new AgentStatusService();
+
+export default agentStatusService;

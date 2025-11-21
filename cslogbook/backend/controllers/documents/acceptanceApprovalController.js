@@ -1,6 +1,12 @@
-const { Document, DocumentLog, User, Student } = require('../../models');
+const { Document, DocumentLog, User, Student, InternshipDocument } = require('../../models');
 const { Op } = require('sequelize');
 const internshipManagementService = require('../../services/internshipManagementService');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 async function loadAcceptance(documentId) {
   const doc = await Document.findOne({
@@ -14,39 +20,93 @@ async function loadAcceptance(documentId) {
   return doc;
 }
 
-// คิวหัวหน้าภาค: รายการ Acceptance Letter ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
+// คิวหัวหน้าภาค: รายการ Acceptance Letter (รองรับการกรองสถานะเช่นเดียวกับ CS05)
 exports.listForHead = async (req, res) => {
   try {
+    const { InternshipDocument } = require('../../models');
+    
+    // รองรับการกรองสถานะผ่าน query เช่น ?status=pending หรือหลายค่า ?status=pending,approved
+    const statusQuery = (req.query.status || 'pending')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const whereStatus = statusQuery.length > 1 ? { [Op.in]: statusQuery } : statusQuery[0] || 'pending';
+
+    // สร้าง where condition - ถ้าสถานะเป็น pending ต้องมี reviewerId, ถ้าเป็นสถานะอื่นไม่บังคับ
+    const whereCondition = {
+      documentName: 'ACCEPTANCE_LETTER',
+      category: 'acceptance',
+      status: whereStatus
+    };
+
+    // ถ้ากรองเฉพาะ pending ให้ต้องมี reviewerId (ผ่านเจ้าหน้าที่แล้ว)
+    if (statusQuery.length === 1 && statusQuery[0] === 'pending') {
+      whereCondition.reviewerId = { [Op.not]: null };
+    }
+
     const docs = await Document.findAll({
-      where: {
-        documentName: 'ACCEPTANCE_LETTER',
-        category: 'acceptance',
-        status: 'pending',
-        reviewerId: { [Op.not]: null },
-      },
+      where: whereCondition,
       include: [
         {
           model: User,
           as: 'owner',
           attributes: ['userId', 'firstName', 'lastName'],
           include: [{ model: Student, as: 'student', attributes: ['studentId', 'studentCode'] }],
-        },
+        }
       ],
       order: [['created_at', 'DESC']],
     });
 
-    const data = docs.map((d) => ({
-      documentId: d.documentId,
-      status: d.status,
-      reviewerId: d.reviewerId,
-      reviewDate: d.reviewDate || d.review_date,
-      createdAt: d.created_at,
-      student: {
-        userId: d.owner?.userId,
-        firstName: d.owner?.firstName,
-        lastName: d.owner?.lastName,
-        studentCode: d.owner?.student?.studentCode || null,
-      },
+    // ดึงข้อมูลบริษัทและวันที่จาก CS05 ของนักศึกษาแต่ละคน
+    const data = await Promise.all(docs.map(async (d) => {
+      let companyName = '';
+      let startDate = null;
+      let endDate = null;
+      let academicYear = null;
+      let semester = null;
+
+      // หา CS05 ที่อนุมัติแล้วของนักศึกษาคนนี้
+      const cs05 = await Document.findOne({
+        where: {
+          userId: d.userId,
+          documentName: 'CS05',
+          status: 'approved'
+        },
+        include: [{
+          model: InternshipDocument,
+          as: 'internshipDocument',
+          attributes: ['companyName', 'internshipPosition', 'startDate', 'endDate', 'academicYear', 'semester']
+        }],
+        order: [['updated_at', 'DESC']]
+      });
+
+      if (cs05?.internshipDocument) {
+        companyName = cs05.internshipDocument.companyName || '';
+        startDate = cs05.internshipDocument.startDate;
+        endDate = cs05.internshipDocument.endDate;
+        academicYear = cs05.internshipDocument.academicYear;
+        semester = cs05.internshipDocument.semester;
+      }
+
+      return {
+        documentId: d.documentId,
+        status: d.status,
+        reviewerId: d.reviewerId,
+        reviewDate: d.reviewDate || d.review_date,
+        createdAt: d.created_at,
+        student: {
+          userId: d.owner?.userId,
+          firstName: d.owner?.firstName,
+          lastName: d.owner?.lastName,
+          studentCode: d.owner?.student?.studentCode || null,
+        },
+        companyName,
+        startDate,
+        endDate,
+        academicYear,
+        semester,
+      };
     }));
 
     return res.json({ success: true, data });
@@ -124,7 +184,57 @@ exports.approveByHead = async (req, res) => {
       console.warn('Acceptance approve sync warning:', e.message);
     }
 
-    return res.json({ success: true, message: 'อนุมัติ Acceptance Letter สำเร็จ' });
+    // ✅ อัพเดทสถานะการฝึกงานของนักศึกษาตาม startDate
+    try {
+      const student = await Student.findOne({
+        where: { userId: doc.userId },
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['userId']
+        }]
+      });
+
+      if (student) {
+        // ดึงข้อมูล CS05 ที่อนุมัติแล้วเพื่อหา startDate
+        const cs05Doc = await Document.findOne({
+          where: {
+            userId: doc.userId,
+            documentName: 'CS05',
+            status: 'approved'
+          },
+          include: [{
+            model: InternshipDocument,
+            as: 'internshipDocument',
+            attributes: ['startDate', 'endDate']
+          }],
+          order: [['created_at', 'DESC']]
+        });
+
+        let newStatus = 'pending_approval'; // ค่าเริ่มต้น: รอฝึกงาน
+        
+        if (cs05Doc?.internshipDocument?.startDate) {
+          const startDate = dayjs(cs05Doc.internshipDocument.startDate);
+          const now = dayjs().tz('Asia/Bangkok');
+          
+          // ถ้าถึง startDate แล้ว → เป็น 'in_progress' (อยู่ระหว่างฝึกงาน)
+          if (now.isSameOrAfter(startDate, 'day')) {
+            newStatus = 'in_progress';
+          }
+        }
+
+        // อัพเดทสถานะนักศึกษา
+        if (student.internshipStatus !== newStatus) {
+          await student.update({ internshipStatus: newStatus });
+          console.log(`Updated student ${student.studentId} internship status to ${newStatus} (Acceptance Letter approved)`);
+        }
+      }
+    } catch (statusError) {
+      console.warn('Error updating student internship status after acceptance approval:', statusError.message);
+      // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติ
+    }
+
+    return res.json({ success: true, message: 'อนุมัติหนังสือตอบรับนักศึกษาสำเร็จ' });
   } catch (error) {
     console.error('Acceptance approveByHead error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });

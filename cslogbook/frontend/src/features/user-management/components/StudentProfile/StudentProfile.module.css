@@ -1,0 +1,93 @@
+/* StudentProfile.module.css - CSS Module สำหรับ StudentProfile components */
+
+.container {
+  padding: var(--spacing-lg);
+  min-height: calc(100vh - 64px);
+}
+
+.avatarCard {
+  text-align: center;
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-lg);
+}
+
+.infoCard {
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-lg);
+}
+
+.editButton {
+  margin-left: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.modalContent {
+  padding: 10px;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-size: var(--font-size-md);
+}
+
+.alert {
+  margin-bottom: 10px;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+}
+
+/* Media queries for responsive font sizes */
+@media (max-width: 1200px) {
+  .container,
+  .modalContent,
+  .alert {
+    font-size: 0.9rem;
+  }
+  .avatarCard,
+  .infoCard {
+    font-size: var(--font-size-md);
+  }
+  .editButton {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+  }
+  .container,
+  .modalContent,
+  .alert {
+    font-size: 0.8rem;
+  }
+  .avatarCard,
+  .infoCard {
+    font-size: 0.9rem;
+    margin-top: 0px;
+  }
+  .editButton {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container,
+  .modalContent,
+  .alert {
+    font-size: 0.75rem;
+  }
+  .avatarCard,
+  .infoCard {
+    font-size: 0.85rem;
+  }
+  .editButton {
+    font-size: 0.7rem;
+  }
+}
+

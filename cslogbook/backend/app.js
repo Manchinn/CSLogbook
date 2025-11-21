@@ -7,7 +7,7 @@ if (!process.env.NODE_ENV) process.env.NODE_ENV = 'production';
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'test-secret-key-at-least-32-chars-long-for-jest';
 }
-if (!process.env.FRONTEND_URL) process.env.FRONTEND_URL = 'http://localhost:3000';
+if (!process.env.FRONTEND_URL) process.env.FRONTEND_URL = 'http://localhost:3000,http://192.168.14.41:12342';
 if (!process.env.UPLOAD_DIR) process.env.UPLOAD_DIR = 'uploads/';
 if (!process.env.MAX_FILE_SIZE) process.env.MAX_FILE_SIZE = '5242880';
 
@@ -39,12 +39,28 @@ const emailApprovalRoutes = require('./routes/emailApprovalRoutes');
 const projectRoutes = require('./routes/projectRoutes'); // 🆕 Project lifecycle routes
 const topicExamRoutes = require('./routes/topicExamRoutes'); // 🆕 Topic Exam Overview
 const projectMembersRoutes = require('./routes/projectMembersRoutes');
+const projectWorkflowStateRoutes = require('./routes/projectWorkflowStateRoutes'); // 🆕 Workflow state tracking
 
 const app = express();
 
-// Basic CORS & JSON middleware
+// CORS configuration - รองรับหลาย origins สำหรับทั้ง development และ production
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000,http://192.168.14.41:12342'];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: function (origin, callback) {
+    // อนุญาตให้ request ที่ไม่มี origin (เช่น mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
   credentials: true
@@ -87,6 +103,7 @@ app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes);
 app.use('/api/projects', authenticateToken, projectRoutes); // 🆕 mount project routes (auth inside route file)
 app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // mount overview (มี auth ใน route เองแล้ว)
+app.use('/api/projects/workflow-states', projectWorkflowStateRoutes); // 🆕 workflow state API
 app.use('/api/project-members', projectMembersRoutes);
 app.use('/api', uploadRoutes);
 

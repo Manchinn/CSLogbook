@@ -34,20 +34,24 @@
 ตาราง workflow ที่เกี่ยวข้อง: `student_workflow_activities`, `workflow_step_definitions` (ใช้กำหนด step_key / workflow_type)
 
 ## 4. ช่องว่าง (Gaps)
-| หมวด | สิ่งที่ต้องการ | มีแล้ว? | ช่องว่าง |
+| หมวด | สิ่งที่ต้องการ | สถานะ | หมายเหตุ |
 |-------|-----------------|---------|----------|
-ประเภท deadline | ยังไม่มี field แยกประเภท (submission / announcement / manual) | ไม่ | ต้องเพิ่ม ENUM deadline_type |
-Mapping workflow/doc | ไม่มีตาราง mapping ทางการ | ไม่ | สร้าง `deadline_workflow_mappings` |
-Manual completion | ไม่มีที่เก็บ status นักศึกษาสำหรับ deadline ที่ไม่ใช่ document | ไม่ | สร้าง `student_deadline_statuses` |
-Late logic UI | ค่าฟิลด์ allowLate/gracePeriod มี แต่ UI admin ยังไม่เต็ม | บางส่วน | สร้างแบบฟอร์มแก้ไข นโยบาย |
-Grace/Late compute | Backend enrich บาง endpoint ยังไม่คำนวณ late/submitted_late สม่ำเสมอ | Partial | รวม logic กลาง service |
-Lock enforcement | ยังไม่มี middleware บล็อกการส่งเมื่อ locked | ไม่ | เพิ่ม check ใน document upload service |
-Announcement | ใช้ deadline row เหมือนกัน แต่ยังไม่ตีความเฉพาะ | Partial | เพิ่ม deadline_type=ANNOUNCEMENT + flag visibility |
-Visibility / publish | ยังไม่มี publish_at / is_published | ไม่ | เพิ่ม field เพื่อรอประกาศทีหลัง |
-Audit | ไม่มีบันทึกการแก้ไข deadline | ไม่ | สร้าง `important_deadline_audit_logs` |
-Frontend timeline integrate | Timeline ยังไม่แสดง deadline per step | ไม่ | Enrich steps + render badge |
-Backfill script | Mapping เอกสารเก่าที่ยัง null | ไม่ | เขียนสคริปต์ / migration เพิ่ม |
-API student unified | นักศึกษาต้องเรียกหลาย endpoint | Partial | รวม GET /students/important-deadlines (enriched) |
+ประเภท deadline | field deadline_type | ✅ มีแล้ว | มี ENUM deadline_type แล้ว |
+Mapping workflow/doc | ตาราง mapping ทางการ | ✅ มีแล้ว | มีตาราง `deadline_workflow_mappings` |
+Mapping Model | Sequelize model | ✅ เพิ่มแล้ว | เพิ่ม `DeadlineWorkflowMapping.js` (2025-11-02) |
+Auto-assign Service | Logic จับคู่อัตโนมัติ | ✅ เพิ่มแล้ว | เพิ่ม `deadlineAutoAssignService.js` (2025-11-02) |
+Setup Script | Script กำหนด mappings | ✅ เพิ่มแล้ว | `backend/scripts/setupDeadlineMappings.js` |
+Document Service Integration | Auto-assign เมื่ออัปโหลด | ✅ เพิ่มแล้ว | แก้ไข `documentService.uploadDocument()` |
+Manual completion | ที่เก็บ status นักศึกษา | ✅ มีแล้ว | มีตาราง `student_deadline_statuses` |
+Late logic | คำนวณ late/submitted_late | ✅ ทำงานแล้ว | มี logic ใน documentService |
+Lock enforcement | บล็อกการส่งเมื่อ locked | ✅ ทำงานแล้ว | มี check ใน uploadDocument |
+Announcement | deadline_type=ANNOUNCEMENT | ✅ มีแล้ว | มี field แล้ว |
+Visibility / publish | publish_at / is_published | ✅ มีแล้ว | มี field แล้ว |
+Audit | บันทึกการแก้ไข deadline | ✅ มีแล้ว | มีตาราง `important_deadline_audit_logs` |
+Documentation | คู่มือการใช้งาน | ✅ เพิ่มแล้ว | `knowledge/DEADLINE_DOCUMENT_LINKING_GUIDE.md` |
+Backfill script | Mapping เอกสารเก่าที่ยัง null | ⏳ ต้องทำ | ดูตัวอย่างใน guide |
+Frontend timeline integrate | Timeline แสดง deadline per step | ⏳ ต้องทำ | Enrich steps + render badge |
+API student unified | GET /students/important-deadlines | ✅ มีแล้ว | มี enriched API แล้ว |
 
 ## 5. คุณสมบัติที่ต้องเพิ่ม (Required Features)
 ### 5.1 Deadline Types (ENUM)
@@ -60,7 +64,7 @@ deadline_type ENUM('SUBMISSION','ANNOUNCEMENT','MANUAL','MILESTONE')
 - MANUAL: ต้องให้เจ้าหน้าที่ mark complete ต่อ student (เช่น เข้าร่วมปฐมนิเทศ)
 - MILESTONE: ใช้เป็นเหตุการณ์กลาง (อาจกระทบ logic eligibility แต่ไม่ต้องส่งไฟล์)
 
-### 5.2 Mapping Workflow/Documents
+### 5.2 Mapping Workflow/Documents ✅ IMPLEMENTED
 ตารางใหม่ `deadline_workflow_mappings`:
 | คอลัมน์ | ชนิด | หมายเหตุ |
 |---------|------|----------|
@@ -68,12 +72,27 @@ id | PK | |
 important_deadline_id | FK | ไปที่ important_deadlines |
 workflow_type | ENUM('internship','project1','project2') | |
 step_key | VARCHAR(255) | nullable ถ้า match ด้วย document_subtype |
-document_subtype | VARCHAR(100) | nullable |
+document_subtype | VARCHAR(100) | nullable (เช่น KP01, KP05, PROJECT_PROPOSAL) |
 auto_assign | ENUM('on_create','on_submit','on_approve') | default 'on_submit' |
 active | BOOLEAN | default true |
 UNIQUE (workflow_type, step_key, document_subtype)
 
-การทำงาน: เมื่อมีการสร้าง/อัปเดต document หรือ workflow step เปลี่ยนสถานะ → service ตรวจ mapping ถ้า document.importance_deadline_id ว่าง ให้ assign
+**การทำงาน** (✅ Implemented):
+1. Admin สร้าง deadline ผ่าน UI
+2. รัน script `setupDeadlineMappings.js` เพื่อผูก deadline กับ document_subtype
+3. เมื่อนักศึกษาอัปโหลดเอกสาร:
+   - ถ้าส่ง `importantDeadlineId` มา → ใช้เลย (manual)
+   - ถ้าไม่ส่งมา → `deadlineAutoAssignService` หา mapping ที่ตรงกับ:
+     - documentType + category → document_subtype (เช่น INTERNSHIP + final → KP05)
+     - workflowType (เช่น internship)
+     - academicYear + semester ของนักศึกษา
+   - กำหนด `important_deadline_id` อัตโนมัติ
+
+**ไฟล์ที่เกี่ยวข้อง**:
+- Model: `backend/models/DeadlineWorkflowMapping.js`
+- Service: `backend/services/deadlineAutoAssignService.js`
+- Setup Script: `backend/scripts/setupDeadlineMappings.js`
+- Documentation: `knowledge/DEADLINE_DOCUMENT_LINKING_GUIDE.md`
 
 ### 5.3 Manual Completion
 ตาราง `student_deadline_statuses`:

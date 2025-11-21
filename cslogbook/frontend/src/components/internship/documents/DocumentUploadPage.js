@@ -6,7 +6,7 @@ import {
   InboxOutlined, UploadOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import internshipService from '../../../services/internshipService';
+import { internshipService } from 'features/internship/services';
 
 const { Title } = Typography;
 const { Dragger } = Upload;

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { studentService } from '../services/studentService';
-import { teacherService } from '../services/teacherService';
+import { studentService } from 'features/user-management/services/studentService';
+import { teacherService } from 'features/user-management/services/teacherService';
 import { normalizeList } from '../utils/deadlineNormalize';
 
 // hook ดึง deadline ทั้งหมด (สำหรับ Calendar / Progress)

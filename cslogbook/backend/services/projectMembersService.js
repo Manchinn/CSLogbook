@@ -18,15 +18,31 @@ const logger = require('../utils/logger');
 class ProjectMembersService {
   /**
    * ดึงข้อมูลโครงงานและสมาชิกทั้งหมดที่ได้รับการอนุมัติ
+   * @param {Object} filters - ตัวกรองข้อมูล
+   * @param {Array|string} filters.projectStatus - สถานะโครงงาน
+   * @param {Array|string} filters.documentStatus - สถานะเอกสาร
+   * @param {Array|string} filters.trackCodes - รหัสแทร็ก
+   * @param {Array|string} filters.projectType - ประเภทโครงงาน
+   * @param {Array|string} filters.academicYear - ปีการศึกษา
+   * @param {Array|string} filters.semester - ภาคการศึกษา
    * @returns {Array} รายการโครงงานพร้อมข้อมูลสมาชิก
    */
-  async getAllApprovedProjectMembers({ projectStatus, documentStatus, trackCodes, projectType } = {}) {
+  async getAllApprovedProjectMembers({ 
+    projectStatus, 
+    documentStatus, 
+    trackCodes, 
+    projectType,
+    academicYear,
+    semester 
+  } = {}) {
     try {
       logger.info('ProjectMembersService: Fetching project member overview', {
         projectStatus,
         documentStatus,
         trackCodes,
-        projectType
+        projectType,
+        academicYear,
+        semester
       });
 
       const whereClause = {};
@@ -37,6 +53,26 @@ class ProjectMembersService {
       if (projectType) {
         const typeList = Array.isArray(projectType) ? projectType : [projectType];
         whereClause.projectType = { [Op.in]: typeList };
+      }
+      
+      // เพิ่มการ filter ตามปีการศึกษา
+      if (academicYear) {
+        const yearList = Array.isArray(academicYear) ? academicYear : [academicYear];
+        // แปลงเป็น integer เพื่อให้ตรงกับ type ในฐานข้อมูล
+        const yearInts = yearList.map(year => parseInt(year, 10)).filter(year => !isNaN(year));
+        if (yearInts.length > 0) {
+          whereClause.academicYear = { [Op.in]: yearInts };
+        }
+      }
+      
+      // เพิ่มการ filter ตามภาคการศึกษา
+      if (semester) {
+        const semesterList = Array.isArray(semester) ? semester : [semester];
+        // แปลงเป็น integer เพื่อให้ตรงกับ type ในฐานข้อมูล
+        const semesterInts = semesterList.map(sem => parseInt(sem, 10)).filter(sem => !isNaN(sem));
+        if (semesterInts.length > 0) {
+          whereClause.semester = { [Op.in]: semesterInts };
+        }
       }
 
       const documentWhere = {};

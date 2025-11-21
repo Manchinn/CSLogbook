@@ -10,7 +10,7 @@ import {
   ReferralLetterTemplate,
   InternshipLogbookTemplate,
   CertificateTemplate,
-} from "../../components/internship/templates";
+} from "features/internship/components/shared/Templates";
 
 class OfficialDocumentService {
   constructor() {

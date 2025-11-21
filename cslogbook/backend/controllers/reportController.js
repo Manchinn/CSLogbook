@@ -37,6 +37,119 @@ exports.getAdvisorLoad = async (req, res, next) => {
     next(err);
   }
 };
+
+// รายการปีการศึกษาที่มีข้อมูลฝึกงาน
+exports.getInternshipAcademicYears = async (req, res, next) => {
+  try {
+    const data = await reportService.getInternshipAcademicYears();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// รายการปีการศึกษาที่มีข้อมูลโครงงาน
+exports.getProjectAcademicYears = async (req, res, next) => {
+  try {
+    const data = await reportService.getProjectAcademicYears();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Enhanced: ดึงรายละเอียดอาจารย์คนหนึ่ง
+exports.getAdvisorDetail = async (req, res, next) => {
+  try {
+    const { teacherId } = req.params;
+    const { Student, ProjectDocument, ProjectMember, User } = require('../models');
+    
+    // ดึงข้อมูลอาจารย์
+    const Teacher = require('../models').Teacher;
+    const teacher = await Teacher.findByPk(parseInt(teacherId), {
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName', 'email']
+      }]
+    });
+    
+    if (!teacher) {
+      return res.status(404).json({ success: false, error: 'ไม่พบอาจารย์' });
+    }
+
+    // ดึงนักศึกษาที่ดูแล
+    const students = await Student.findAll({
+      where: { advisor_id: parseInt(teacherId) },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName']
+      }],
+      attributes: ['studentId', 'studentCode', 'internshipStatus']
+    });
+
+    // ดึงโครงงานที่เป็นที่ปรึกษา
+    const projects = await ProjectDocument.findAll({
+      where: {
+        [require('sequelize').Op.or]: [
+          { advisor_id: parseInt(teacherId) },
+          { co_advisor_id: parseInt(teacherId) }
+        ]
+      },
+      attributes: ['projectId', 'projectNameTh', 'status', 'advisorId', 'coAdvisorId'],
+      include: [{
+        model: ProjectMember,
+        as: 'members',
+        include: [{
+          model: Student,
+          as: 'student',
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName']
+          }]
+        }]
+      }]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        teacher: {
+          teacherId: teacher.teacherId,
+          teacherCode: teacher.teacherCode,
+          name: teacher.user ? `${teacher.user.firstName} ${teacher.user.lastName}` : teacher.teacherCode,
+          email: teacher.user?.email
+        },
+        students: students.map(s => ({
+          studentId: s.studentId,
+          studentCode: s.studentCode,
+          name: `${s.user.firstName} ${s.user.lastName}`,
+          internshipStatus: s.internshipStatus
+        })),
+        projects: projects.map(p => ({
+          projectId: p.projectId,
+          projectName: p.projectNameTh,
+          status: p.status,
+          role: p.advisorId === parseInt(teacherId) ? 'advisor' : 'co-advisor',
+          members: p.members?.map(m => ({
+            studentCode: m.student?.studentCode,
+            name: m.student?.user ? `${m.student.user.firstName} ${m.student.user.lastName}` : 'N/A'
+          })) || []
+        })),
+        summary: {
+          totalStudents: students.length,
+          totalProjects: projects.length,
+          advisorProjectsCount: projects.filter(p => p.advisorId === parseInt(teacherId)).length,
+          coAdvisorProjectsCount: projects.filter(p => p.coAdvisorId === parseInt(teacherId)).length
+        }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
  
  exports.getInternshipStudentSummary = async (req, res, next) => {
    try {

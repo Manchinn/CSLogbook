@@ -157,19 +157,22 @@ module.exports = {
     };
   },
 
-  // Advisor Load (Project side + student advisee)
+  // Advisor Load (Project side only) - Fixed: ไม่นับ students.advisor_id เพราะซ้ำกับ project_documents.advisor_id
   async getAdvisorLoad({ year }) {
     const academicYear = resolveYear(year);
 
-    // โหลดจำนวนโครงงานที่เป็น advisor / co-advisor
+    // นับจำนวนโครงงานที่เป็น advisor หลัก (ที่ปรึกษาหลัก)
     const projectAdvisor = await db.ProjectDocument.findAll({
       attributes: [
         'advisor_id',
         [fn('COUNT', col('project_id')), 'advisorProjectCount']
       ],
+      where: { advisor_id: { [Op.ne]: null } },
       group: ['advisor_id'],
       raw: true
     });
+    
+    // นับจำนวนโครงงานที่เป็น co-advisor (ที่ปรึกษาร่วม)
     const projectCoAdvisor = await db.ProjectDocument.findAll({
       attributes: [
         'co_advisor_id',
@@ -180,31 +183,44 @@ module.exports = {
       raw: true
     });
 
-    const advisorStudent = await db.Student.findAll({
-      attributes: [
-        'advisor_id',
-        [fn('COUNT', col('student_id')), 'adviseeCount']
-      ],
-      where: { advisor_id: { [Op.ne]: null } },
-      group: ['advisor_id'],
-      raw: true
-    });
-
     // รวมเป็น map ตาม teacherId
     const mergeMap = {};
-    const ensure = (id) => { if(!mergeMap[id]) mergeMap[id] = { teacherId: id, advisorProjectCount:0, coAdvisorProjectCount:0, adviseeCount:0 }; };
-    projectAdvisor.forEach(r=>{ ensure(r.advisor_id); mergeMap[r.advisor_id].advisorProjectCount = parseInt(r.advisorProjectCount,10); });
-    projectCoAdvisor.forEach(r=>{ ensure(r.co_advisor_id); mergeMap[r.co_advisor_id].coAdvisorProjectCount = parseInt(r.coAdvisorProjectCount,10); });
-    advisorStudent.forEach(r=>{ ensure(r.advisor_id); mergeMap[r.advisor_id].adviseeCount = parseInt(r.adviseeCount,10); });
+    const ensure = (id) => { 
+      if (!id || isNaN(parseInt(id, 10))) return;
+      if (!mergeMap[id]) mergeMap[id] = { teacherId: parseInt(id, 10), advisorProjectCount:0, coAdvisorProjectCount:0 }; 
+    };
+    projectAdvisor.forEach(r=>{ if (r.advisor_id) { ensure(r.advisor_id); mergeMap[r.advisor_id].advisorProjectCount = parseInt(r.advisorProjectCount,10); } });
+    projectCoAdvisor.forEach(r=>{ if (r.co_advisor_id) { ensure(r.co_advisor_id); mergeMap[r.co_advisor_id].coAdvisorProjectCount = parseInt(r.coAdvisorProjectCount,10); } });
 
-    const teachers = await db.Teacher.findAll({ where: { teacherId: Object.keys(mergeMap) } });
-    teachers.forEach(t => { if (mergeMap[t.teacherId]) mergeMap[t.teacherId].name = t.teacherCode; });
+    const teacherIds = Object.keys(mergeMap).map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    if (teacherIds.length === 0) {
+      return { academicYear, advisors: [] };
+    }
+    const teachers = await db.Teacher.findAll({ where: { teacherId: teacherIds } });
+    const teacherUserMap = {};
+    const userIds = teachers.map(t => t.userId).filter(Boolean);
+    if (userIds.length) {
+      const users = await db.User.findAll({ where: { userId: userIds }, attributes: ['userId', 'firstName', 'lastName'] });
+      users.forEach(u => { teacherUserMap[u.userId] = u; });
+    }
+    
+    teachers.forEach(t => { 
+      if (mergeMap[t.teacherId]) {
+        const user = teacherUserMap[t.userId];
+        mergeMap[t.teacherId].name = user ? `${user.firstName} ${user.lastName}` : t.teacherCode;
+        mergeMap[t.teacherId].teacherCode = t.teacherCode;
+        // เพิ่ม count เป็นผลรวม (สำหรับ frontend ใช้งานง่าย)
+        mergeMap[t.teacherId].count = mergeMap[t.teacherId].advisorProjectCount + mergeMap[t.teacherId].coAdvisorProjectCount;
+      }
+    });
 
-    const advisors = Object.values(mergeMap).sort((a,b)=> (b.adviseeCount + b.advisorProjectCount) - (a.adviseeCount + a.advisorProjectCount));
+    // เรียงตามภาระงานรวม (ที่ปรึกษาหลัก + ที่ปรึกษาร่วม)
+    const advisors = Object.values(mergeMap).sort((a,b)=> 
+      (b.advisorProjectCount + b.coAdvisorProjectCount) - (a.advisorProjectCount + a.coAdvisorProjectCount)
+    );
 
     return { academicYear, advisors };
-  }
-  ,
+  },
   /**
    * สรุปสถานะการฝึกงานของนักศึกษา (heuristic)
    * - started: มีเอกสารฝึกงาน (document_type='internship' และ status != 'draft') หรือมี logbook อย่างน้อย 1
@@ -263,8 +279,7 @@ module.exports = {
     const totalStudents = await Student.count();
 
   return { academicYear, semester: sem || null, totalStudents, enrolledCount, started, completed, inProgress, notStarted };
-  }
-  ,
+  },
   /**
    * สรุปผลการประเมินฝึกงาน (Internship Evaluation Summary)
    * NOTE: ยังไม่มีการเก็บ academicYear/semester ในตาราง evaluation -> ตอนนี้นับรวมทั้งหมด แล้วแนบ academicYear ที่ร้องขอ (approximation)
@@ -362,5 +377,40 @@ module.exports = {
       gradeDistribution,
       gradeCounts
     };
+  },
+  /**
+   * ดึงรายการปีการศึกษาที่มีข้อมูลฝึกงาน (distinct academic_year จาก InternshipDocument)
+   * ใช้สำหรับสร้างตัวเลือก filter ปีการศึกษาในหน้า Dashboard/Report
+   */
+  async getInternshipAcademicYears() {
+    const { InternshipDocument } = db;
+    const rows = await InternshipDocument.findAll({
+      attributes: [[fn('DISTINCT', col('academic_year')), 'academicYear']],
+      where: { academic_year: { [Op.ne]: null } },
+      order: [[col('academic_year'), 'DESC']],
+      raw: true
+    });
+
+    // map เป็น array ของปี พ.ศ. (number) และกรอง null/undefined
+    return rows
+      .map(r => parseInt(r.academicYear, 10))
+      .filter(y => !isNaN(y));
+  },
+  /**
+   * ดึงรายการปีการศึกษาที่มีข้อมูลโครงงาน (distinct academic_year จาก ProjectDocument)
+   * ใช้สำหรับสร้างตัวเลือก filter ปีการศึกษาในหน้า ProjectReport / Project management
+   */
+  async getProjectAcademicYears() {
+    const { ProjectDocument } = db;
+    const rows = await ProjectDocument.findAll({
+      attributes: [[fn('DISTINCT', col('academic_year')), 'academicYear']],
+      where: { academic_year: { [Op.ne]: null } },
+      order: [[col('academic_year'), 'DESC']],
+      raw: true
+    });
+
+    return rows
+      .map(r => parseInt(r.academicYear, 10))
+      .filter(y => !isNaN(y));
   }
 };

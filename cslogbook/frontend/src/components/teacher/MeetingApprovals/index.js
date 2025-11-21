@@ -54,11 +54,6 @@ const statusLabels = {
   rejected: 'ขอปรับปรุง'
 };
 
-const advisorRoleLabels = {
-  advisor: 'ที่ปรึกษาหลัก',
-  coAdvisor: 'ที่ปรึกษาร่วม'
-};
-
 const initialSummary = { pending: 0, approved: 0, rejected: 0, total: 0 };
 
 const MeetingApprovals = () => {
@@ -279,15 +274,6 @@ const MeetingApprovals = () => {
         return (
           <Space direction="vertical" size={0}>
             <Text strong>{displayName}</Text>
-            <Space size={4} wrap>
-              {project.projectCode && <Tag color="geekblue">{project.projectCode}</Tag>}
-              {record.advisorRole && (
-                <Tag color="purple">{advisorRoleLabels[record.advisorRole] || record.advisorRole}</Tag>
-              )}
-              {typeof record.pendingDurationDays === 'number' && record.pendingDurationDays >= 1 && (
-                <Tag color="volcano">ค้าง {record.pendingDurationDays} วัน</Tag>
-              )}
-            </Space>
           </Space>
         );
       }
@@ -360,7 +346,6 @@ const MeetingApprovals = () => {
           <Button
             icon={<CheckCircleOutlined />}
             type="primary"
-            ghost
             size="small"
             loading={actionLoadingKey === `${record.logId}-approved`}
             disabled={record.approvalStatus === 'approved'}
@@ -373,11 +358,11 @@ const MeetingApprovals = () => {
             danger
             size="small"
             loading={actionLoadingKey === `${record.logId}-rejected`}
-            disabled={record.approvalStatus === 'rejected'}
+            disabled={['rejected','approved'].includes(record.approvalStatus)}
             onClick={() => confirmReject(record)}
           >
             ขอปรับปรุง
-          </Button>
+          </Button>{/* 
           <Button
             icon={<ClockCircleOutlined />}
             size="small"
@@ -386,7 +371,7 @@ const MeetingApprovals = () => {
             onClick={() => handleUpdateStatus(record, 'pending')}
           >
             รีเซ็ตสถานะ
-          </Button>
+          </Button> */}
         </Space>
       )
     }

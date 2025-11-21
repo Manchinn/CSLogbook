@@ -114,11 +114,19 @@ exports.submitCS05 = async (req, res) => {
  */
 exports.submitCS05WithTranscript = async (req, res) => {
   try {
+    // รวมข้อมูล late status จาก middleware (ถ้ามี)
+    const deadlineInfo = {
+      isLate: req.isLateSubmission || false,
+      deadlineInfo: req.deadlineInfo || null,
+      applicableDeadline: req.applicableDeadline || null
+    };
+
     // แก้ไขลำดับพารามิเตอร์ส่ง `req.file` ก่อน `req.body`
     const result = await internshipManagementService.submitCS05WithTranscript(
       req.user.userId,
       req.file, // ส่ง fileData เป็น req.file
-      req.body.formData ? JSON.parse(req.body.formData) : req.body // ส่ง formData
+      req.body.formData ? JSON.parse(req.body.formData) : req.body, // ส่ง formData
+      deadlineInfo // ส่งข้อมูล late status จาก middleware
     );
 
     return res.status(201).json({

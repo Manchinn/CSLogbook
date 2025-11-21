@@ -26,6 +26,30 @@ module.exports = {
     }
   },
 
+  async update(req, res) {
+    try {
+      const { id, meetingId } = req.params;
+      const meeting = await meetingService.updateMeeting(id, meetingId, req.user, req.body || {});
+      return res.json({ success: true, data: meeting });
+    } catch (error) {
+      logger.error('meetingController.update error', { message: error.message, stack: error.stack });
+      const status = error.statusCode || 400;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  },
+
+  async delete(req, res) {
+    try {
+      const { id, meetingId } = req.params;
+      const result = await meetingService.deleteMeeting(id, meetingId, req.user);
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error('meetingController.delete error', { message: error.message, stack: error.stack });
+      const status = error.statusCode || 400;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  },
+
   async createLog(req, res) {
     try {
       const { id, meetingId } = req.params;
@@ -33,6 +57,30 @@ module.exports = {
       return res.status(201).json({ success: true, data: log });
     } catch (error) {
       logger.error('meetingController.createLog error', { message: error.message, stack: error.stack });
+      const status = error.statusCode || 400;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  },
+
+  async updateLog(req, res) {
+    try {
+      const { id, meetingId, logId } = req.params;
+      const log = await meetingService.updateMeetingLog(id, meetingId, logId, req.user, req.body || {});
+      return res.json({ success: true, data: log });
+    } catch (error) {
+      logger.error('meetingController.updateLog error', { message: error.message, stack: error.stack });
+      const status = error.statusCode || 400;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  },
+
+  async deleteLog(req, res) {
+    try {
+      const { id, meetingId, logId } = req.params;
+      const result = await meetingService.deleteMeetingLog(id, meetingId, logId, req.user);
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error('meetingController.deleteLog error', { message: error.message, stack: error.stack });
       const status = error.statusCode || 400;
       return res.status(status).json({ success: false, message: error.message });
     }

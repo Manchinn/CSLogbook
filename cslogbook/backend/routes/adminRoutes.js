@@ -13,11 +13,24 @@ const workflowStepDefinitionController = require('../controllers/workflowStepDef
 const importantDeadlineController = require('../controllers/importantDeadlineController');
 const agentStatusController = require('../controllers/agentStatusController');
 const projectManagementController = require('../controllers/projectManagementController');
+const projectReportController = require('../controllers/projectReportController');
+const internshipAdminController = require('../controllers/internshipAdminController');
 const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
 
 
 // Middleware for admin routes - รองรับทั้ง admin และ teacher support
 const adminAuth = [authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support'])];
+
+// 🆕 Project workflow state dashboard
+const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');
+router.get('/dashboard/project-statistics', adminAuth, projectWorkflowStateController.getAdminDashboardStatistics);
+
+// 🆕 Project Report Routes (รายงานธุรการ)
+router.get('/reports/project/administrative', adminAuth, projectReportController.getAdministrativeReport);
+router.get('/reports/project/project1', adminAuth, projectReportController.getProject1Statistics);
+router.get('/reports/project/project2', adminAuth, projectReportController.getProject2Statistics);
+router.get('/reports/project/students-by-status', adminAuth, projectReportController.getStudentsByStatus);
+router.get('/reports/project/exam-trends', adminAuth, projectReportController.getExamTrends);
 
 // Main dashboard stats
 router.get('/stats', adminAuth, async (req, res, next) => {
@@ -63,6 +76,14 @@ router.get('/internships/:internshipId/logbook-summary', adminAuth, documentCont
 router.get('/internships/:internshipId/logbook-summary/pdf', adminAuth, documentController.previewInternshipLogbookSummaryPDF);
 router.get('/internships/:internshipId/logbook-summary/pdf/download', adminAuth, documentController.downloadInternshipLogbookSummaryPDF);
 
+// === Internship Management Routes (Admin) ===
+// ดึงรายการนักศึกษาทั้งหมดพร้อมข้อมูลการฝึกงาน
+router.get('/internships/students', adminAuth, internshipAdminController.getAllInternshipStudents);
+// อัพเดทข้อมูลการฝึกงาน
+router.put('/internships/:internshipId', adminAuth, internshipAdminController.updateInternship);
+// ยกเลิกการฝึกงาน
+router.post('/internships/:internshipId/cancel', adminAuth, internshipAdminController.cancelInternship);
+
 // === เพิ่ม Admin Student Routes ===
 router.get('/students', adminAuth, studentController.getAllStudents);
 router.get('/students/stats', adminAuth, studentController.getAllStudentStats);
@@ -90,6 +111,11 @@ router.get('/academic', adminAuth, academacController.getAcademicSettings);
 router.post('/academic', adminAuth, academacController.createAcademicSettings);
 router.put('/academic', adminAuth, academacController.updateAcademicSettings);  
 router.delete('/academic/:id', adminAuth, academacController.deleteAcademicSettings);
+router.get('/academic/schedules', adminAuth, academacController.listAcademicSchedules);
+router.get('/academic/schedules/:id', adminAuth, academacController.getAcademicScheduleById);
+router.post('/academic/schedules', adminAuth, academacController.createAcademicSchedule);
+router.put('/academic/schedules/:id', adminAuth, academacController.updateAcademicSchedule);
+router.post('/academic/schedules/:id/activate', adminAuth, academacController.activateAcademicSchedule);
 
 // === เพิ่ม Admin Workflow Step Definition Routes ===
 // ดึงรายการขั้นตอน workflow ทั้งหมด (สำหรับจัดการ)
@@ -147,5 +173,6 @@ router.get('/advisors', adminAuth, projectManagementController.getAvailableAdvis
 // Dynamic routes (ต้องมาหลัง static routes)
 router.get('/projects/:projectId', adminAuth, projectManagementController.getProjectById);
 router.put('/projects/:projectId', adminAuth, projectManagementController.updateProject);
+router.post('/projects/:projectId/cancel', adminAuth, projectManagementController.cancelProject);
 
 module.exports = router;

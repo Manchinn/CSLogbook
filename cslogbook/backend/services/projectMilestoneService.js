@@ -3,16 +3,17 @@ const { ProjectDocument, ProjectMilestone, ProjectMember } = require('../models'
 const logger = require('../utils/logger');
 
 class ProjectMilestoneService {
-  // สร้าง milestone (Phase 1: leader เท่านั้น)
+  // สร้าง milestone (อนุญาตให้สมาชิกโครงงานทุกคนสร้างได้)
   async createMilestone(projectId, actorStudentId, payload) {
     const t = await sequelize.transaction();
     try {
       const project = await ProjectDocument.findByPk(projectId, { transaction: t });
       if (!project) throw new Error('ไม่พบโครงงาน');
 
-      const leader = await ProjectMember.findOne({ where: { projectId, role: 'leader' }, transaction: t });
-      if (!leader || leader.studentId !== actorStudentId) {
-        throw new Error('เฉพาะหัวหน้าโครงงานเท่านั้นที่สร้าง Milestone ได้');
+      // ตรวจสอบว่าเป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const member = await ProjectMember.findOne({ where: { projectId, studentId: actorStudentId }, transaction: t });
+      if (!member) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานเท่านั้นที่สร้าง Milestone ได้');
       }
 
       if (!payload.title || !payload.title.trim()) {

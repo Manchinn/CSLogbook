@@ -74,7 +74,7 @@ class InternshipManagementService {
         phoneNumber: student.phoneNumber,
         statusLabel: yearInfo.statusLabel,
         isEligible: eligibilityCheck.eligible,
-        academicYear: getCurrentAcademicYear(),
+        academicYear: await getCurrentAcademicYear(),
         department: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
         faculty: "คณะวิทยาศาสตร์ประยุกต์",
         university: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
@@ -113,6 +113,18 @@ class InternshipManagementService {
           required: true,
           as: "internshipDocument",
         },
+        {
+          model: User,
+          as: "owner", // ✅ ใช้ alias ที่ถูกต้องตาม Document.associate
+          required: true,
+          include: [
+            {
+              model: Student,
+              as: "student",
+              attributes: ["studentId", "studentCode", "classroom", "phoneNumber"],
+            },
+          ],
+        },
       ],
       order: [["created_at", "DESC"]],
     });
@@ -120,6 +132,10 @@ class InternshipManagementService {
     if (!document) {
       return null;
     }
+
+    // ดึงข้อมูล classroom และ phoneNumber จาก Student
+    const classroom = document.owner?.student?.classroom || "";
+    const phoneNumber = document.owner?.student?.phoneNumber || "";
 
     return {
       documentId: document.documentId,
@@ -134,12 +150,20 @@ class InternshipManagementService {
       internshipPosition: document.internshipDocument.internshipPosition, // เพิ่มฟิลด์ใหม่
       contactPersonName: document.internshipDocument.contactPersonName, // เพิ่มฟิลด์ใหม่
       contactPersonPosition: document.internshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
+      classroom: classroom, // ✨ เพิ่มข้อมูลห้องเรียน
+      phoneNumber: phoneNumber, // ✨ เพิ่มเบอร์โทรศัพท์
       createdAt: document.created_at,
-  // เพิ่มข้อมูลไฟล์ transcript เพื่อให้ฝั่ง frontend แสดงลิงก์ดูไฟล์เดิมได้
-  transcriptFilename: document.fileName,
-  // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
-  rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
-  reviewComment: document.reviewComment
+      // เพิ่มข้อมูลไฟล์ transcript เพื่อให้ฝั่ง frontend แสดงลิงก์ดูไฟล์เดิมได้
+      transcriptFilename: document.fileName,
+      // เหตุผลการปฏิเสธ (ทำให้สอดคล้องกับ Alert ทาง frontend) หาก status = rejected
+      rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
+      reviewComment: document.reviewComment,
+      // ✨ เพิ่มข้อมูล late status สำหรับแสดงสถานะการส่งเอกสาร
+      isLate: document.isLate || false,
+      lateMinutes: document.lateMinutes || null,
+      lateReason: document.lateReason || null,
+      submittedLate: document.submittedLate || false,
+      submissionDelayMinutes: document.submissionDelayMinutes || null
     };
   }
 
@@ -204,8 +228,8 @@ class InternshipManagementService {
           supervisorPhone,
           supervisorEmail,
           // snapshot academic period
-          academicYear: getCurrentAcademicYear(),
-          semester: getCurrentSemester(),
+          academicYear: await getCurrentAcademicYear(),
+          semester: await getCurrentSemester(),
         },
         { transaction }
       );
@@ -245,7 +269,7 @@ class InternshipManagementService {
   /**
    * บันทึกคำร้องขอฝึกงาน (CS05) พร้อม transcript
    */
-  async submitCS05WithTranscript(userId, fileData, formData) {
+  async submitCS05WithTranscript(userId, fileData, formData, deadlineInfo = {}) {
     const transaction = await sequelize.transaction();
     try {
       // ตรวจสอบว่ามีไฟล์ transcript หรือไม่
@@ -266,6 +290,9 @@ class InternshipManagementService {
         internshipPosition, // เพิ่มฟิลด์ใหม่
         contactPersonName, // เพิ่มฟิลด์ใหม่
         contactPersonPosition, // เพิ่มฟิลด์ใหม่
+        studentData, // ข้อมูลนักศึกษา (สำหรับบันทึก phoneNumber และ classroom)
+        phoneNumber, // เบอร์โทรศัพท์นักศึกษาคนที่ 1
+        classroom, // ห้องเรียนนักศึกษาคนที่ 1
       } = formData;
 
       // ตรวจสอบว่ามี CS05 ที่ pending อยู่หรือไม่
@@ -281,7 +308,22 @@ class InternshipManagementService {
         throw new Error("คุณมีคำร้อง CS05 ที่รอการพิจารณาอยู่แล้ว");
       }
 
-      // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript ด้วย
+      // เตรียมข้อมูล late status จาก middleware
+      const isLate = deadlineInfo?.isLate === true;
+      const minutesLateFromDeadlineInfo = deadlineInfo?.deadlineInfo?.minutesLate;
+      const minutesLateFallback = deadlineInfo?.minutesLate;
+      const lateMinutes =
+        typeof minutesLateFromDeadlineInfo === "number"
+          ? minutesLateFromDeadlineInfo
+          : typeof minutesLateFallback === "number"
+          ? minutesLateFallback
+          : null;
+      const submittedLate = isLate; // ใช้ค่าเดียวกับ isLate
+      const submissionDelayMinutes = lateMinutes; // ใช้ค่าเดียวกับ lateMinutes
+      const importantDeadlineId =
+        deadlineInfo?.applicableDeadline?.id ?? deadlineInfo?.deadlineInfo?.id ?? null;
+
+      // 1. สร้าง Document ที่มีข้อมูลไฟล์ transcript พร้อม late status
       const document = await Document.create(
         {
           userId,
@@ -293,6 +335,13 @@ class InternshipManagementService {
           fileName: fileData.filename,
           fileSize: fileData.size,
           mimeType: fileData.mimetype,
+          // ✨ บันทึก late status
+          isLate,
+          lateMinutes,
+          submittedLate,
+          submissionDelayMinutes,
+          importantDeadlineId,
+          submittedAt: new Date() // บันทึกเวลาที่ส่ง
         },
         { transaction }
       );
@@ -313,13 +362,13 @@ class InternshipManagementService {
           supervisorPosition: null,
           supervisorPhone: null,
           supervisorEmail: null,
-          academicYear: getCurrentAcademicYear(),
-          semester: getCurrentSemester(),
+          academicYear: await getCurrentAcademicYear(),
+          semester: await getCurrentSemester(),
         },
         { transaction }
       );
 
-      // 3. อัปเดตสถานะการฝึกงานในตาราง students
+      // 3. อัปเดตสถานะการฝึกงานในตาราง students พร้อมบันทึก phoneNumber และ classroom
       const student = await Student.findOne(
         {
           where: { userId },
@@ -328,13 +377,33 @@ class InternshipManagementService {
       );
 
       if (student) {
-        await student.update(
-          {
-            internshipStatus: "pending_approval",
-            isEnrolledInternship: true,
-          },
-          { transaction }
-        );
+        // เตรียมข้อมูลสำหรับอัปเดต
+        const updateData = {
+          internshipStatus: "pending_approval",
+          isEnrolledInternship: true,
+        };
+
+        // บันทึก phoneNumber ถ้ามี (จากฟิลด์แยก หรือจาก studentData[0])
+        const studentPhoneNumber = phoneNumber || studentData?.[0]?.phoneNumber;
+        if (studentPhoneNumber && studentPhoneNumber.trim() !== '') {
+          updateData.phoneNumber = studentPhoneNumber.trim();
+        }
+
+        // บันทึก classroom ถ้ามี (จากฟิลด์แยก หรือจาก studentData[0])
+        const studentClassroom = classroom || studentData?.[0]?.classroom;
+        if (studentClassroom && studentClassroom.trim() !== '') {
+          updateData.classroom = studentClassroom.trim();
+        }
+
+        await student.update(updateData, { transaction });
+
+        console.log('✅ [submitCS05WithTranscript] อัปเดตข้อมูลนักศึกษา:', {
+          userId,
+          studentId: student.studentId,
+          phoneNumber: updateData.phoneNumber || 'ไม่ได้ระบุ',
+          classroom: updateData.classroom || 'ไม่ได้ระบุ',
+          internshipStatus: 'pending_approval'
+        });
       }
 
       await transaction.commit();
@@ -351,6 +420,11 @@ class InternshipManagementService {
         contactPersonName, // เพิ่มฟิลด์ใหม่
         contactPersonPosition, // เพิ่มฟิลด์ใหม่
         transcriptFilename: fileData.filename,
+        // ✨ ส่งข้อมูล late status กลับไปด้วย
+        isLate,
+        lateMinutes,
+        submittedLate,
+        submissionDelayMinutes
       };
     } catch (error) {
       await transaction.rollback();
@@ -370,14 +444,18 @@ class InternshipManagementService {
       include: [
         {
           model: InternshipDocument,
+          as: 'internshipDocument', // ⚠️ ต้องใช้ as keyword!
           required: true,
         },
         {
-          model: Student,
+          model: User,
+          as: 'owner', // ⚠️ Document belongsTo User as 'owner'
+          attributes: ["firstName", "lastName", "userId"],
           include: [
             {
-              model: User,
-              attributes: ["firstName", "lastName"],
+              model: Student,
+              as: 'student', // ⚠️ User hasOne Student as 'student'
+              attributes: ["studentCode", "totalCredits", "studentId"],
             },
           ],
         },
@@ -389,23 +467,38 @@ class InternshipManagementService {
     }
 
     // ตรวจสอบสิทธิ์การเข้าถึงข้อมูล
-    if (document.userId !== userId && userRole !== "admin") {
+    // อนุญาตให้: เจ้าของเอกสาร, admin, teacher, head
+    const allowedRoles = ["admin", "teacher", "head", "staff"];
+    if (document.userId !== userId && !allowedRoles.includes(userRole)) {
       throw new Error("ไม่มีสิทธิ์เข้าถึงข้อมูล");
     }
 
+    // เข้าถึงข้อมูลผ่าน alias ที่ถูกต้อง
+    const ownerUser = document.owner;
+    const studentData = ownerUser?.student;
+    const internshipDoc = document.internshipDocument;
+
     return {
       documentId: document.documentId,
-      studentName: `${document.Student.User.firstName} ${document.Student.User.lastName}`,
-      studentCode: document.Student.studentCode,
-      companyName: document.InternshipDocument.companyName,
-      companyAddress: document.InternshipDocument.companyAddress,
-      internshipPosition: document.InternshipDocument.internshipPosition, // เพิ่มฟิลด์ใหม่
-      contactPersonName: document.InternshipDocument.contactPersonName, // เพิ่มฟิลด์ใหม่
-      contactPersonPosition: document.InternshipDocument.contactPersonPosition, // เพิ่มฟิลด์ใหม่
-      startDate: document.InternshipDocument.startDate,
-      endDate: document.InternshipDocument.endDate,
+      studentName: `${ownerUser?.firstName || ''} ${ownerUser?.lastName || ''}`.trim(),
+      studentCode: studentData?.studentCode,
+      companyName: internshipDoc?.companyName,
+      companyAddress: internshipDoc?.companyAddress,
+      internshipPosition: internshipDoc?.internshipPosition,
+      position: internshipDoc?.internshipPosition, // alias สำหรับ CS05Preview
+      contactPersonName: internshipDoc?.contactPersonName,
+      contactPersonPosition: internshipDoc?.contactPersonPosition,
+      startDate: internshipDoc?.startDate,
+      endDate: internshipDoc?.endDate,
       status: document.status,
       createdAt: document.created_at,
+      // เพิ่มข้อมูลสำหรับ CS05Preview component
+      owner: {
+        student: {
+          studentCode: studentData?.studentCode,
+          totalCredits: studentData?.totalCredits,
+        }
+      }
     };
   }
 
@@ -439,10 +532,33 @@ class InternshipManagementService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      // ตรวจสอบสถานะ CS05 ว่าสามารถแก้ไขข้อมูลได้หรือไม่
-      if (document.status === "rejected") {
+      // ✅ ตรวจสอบสถานะ CS05 - อนุญาตเฉพาะ approved เท่านั้น
+      if (document.status !== "approved") {
         throw new Error(
-          "ไม่สามารถกรอกข้อมูลได้เนื่องจากคำร้อง CS05 ไม่ได้รับการอนุมัติ"
+          `ไม่สามารถกรอกข้อมูลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${document.status})`
+        );
+      }
+
+      // ✅ ตรวจสอบสถานะ ACCEPTANCE_LETTER - ต้องได้รับการอนุมัติแล้ว
+      const acceptanceLetter = await Document.findOne({
+        where: {
+          userId,
+          documentType: "INTERNSHIP",
+          documentName: "ACCEPTANCE_LETTER",
+        },
+        order: [["created_at", "DESC"]],
+        transaction,
+      });
+
+      if (!acceptanceLetter) {
+        throw new Error(
+          "ไม่สามารถกรอกข้อมูลได้ เนื่องจากยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท"
+        );
+      }
+
+      if (acceptanceLetter.status !== "approved") {
+        throw new Error(
+          `ไม่สามารถกรอกข้อมูลได้ เนื่องจากหนังสือตอบรับยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${acceptanceLetter.status})`
         );
       }
 
@@ -548,6 +664,82 @@ class InternshipManagementService {
   async getInternshipSummary(userId) {
     logger.info(`[getInternshipSummary] Starting for userId: ${userId}`);
 
+    // 🔍 Debug: ตรวจสอบข้อมูลพื้นฐานก่อน
+    try {
+      const userCheck = await User.findByPk(userId);
+      if (!userCheck) {
+        logger.error(`[getInternshipSummary] User not found in database for userId: ${userId}`);
+        throw new Error("ไม่พบข้อมูลผู้ใช้ในระบบ");
+      }
+
+      const studentCheck = await Student.findOne({ where: { userId } });
+      if (!studentCheck) {
+        logger.error(`[getInternshipSummary] Student record not found for userId: ${userId}`);
+        throw new Error("ไม่พบข้อมูลนักศึกษา กรุณาติดต่อเจ้าหน้าที่เพื่อลงทะเบียน");
+      }
+
+      const cs05Check = await Document.findOne({
+        where: { 
+          userId, 
+          documentName: "CS05" 
+        }
+      });
+      
+      if (!cs05Check) {
+        logger.warn(`[getInternshipSummary] No CS05 found for userId: ${userId}`);
+        throw new Error("ไม่พบแบบฟอร์ม คพ.05 กรุณายื่นคำร้องขอฝึกงานก่อน");
+      }
+
+      // ✅ อนุญาตเฉพาะ approved หรือ cancelled (เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้)
+      if (cs05Check.status !== "approved" && cs05Check.status !== "cancelled") {
+        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId} - Access denied (only 'approved' or 'cancelled' allowed)`);
+        throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${cs05Check.status})`);
+      }
+
+      // ✅ แจ้งเตือนถ้าเป็น cancelled
+      if (cs05Check.status === "cancelled") {
+        logger.info(`[getInternshipSummary] CS05 is cancelled for userId: ${userId} - Allowing access to view cancelled internship data`);
+      }
+
+      // ✅ ตรวจสอบสถานะ หนังสืบตอบรับฝึกงาน (ข้ามถ้า CS05 เป็น cancelled)
+      let acceptanceCheck = null;
+      let acceptanceStatusInfo = "skipped (CS05 cancelled)";
+      
+      if (cs05Check.status !== "cancelled") {
+        acceptanceCheck = await Document.findOne({
+          where: {
+            userId,
+            documentType: "INTERNSHIP",
+            documentName: "ACCEPTANCE_LETTER",
+            status: {
+              [Op.ne]: "cancelled" // ไม่รวม cancelled
+            }
+          },
+          order: [["created_at", "DESC"]],
+        });
+
+        if (!acceptanceCheck) {
+          logger.warn(`[getInternshipSummary] No ACCEPTANCE_LETTER found for userId: ${userId}`);
+          throw new Error("ไม่สามารถดูสรุปผลได้ เนื่องจากยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท");
+        }
+
+        if (acceptanceCheck.status !== "approved") {
+          logger.warn(`[getInternshipSummary] ACCEPTANCE_LETTER status is '${acceptanceCheck.status}' for userId: ${userId} - Access denied`);
+          throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากหนังสือตอบรับยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${acceptanceCheck.status})`);
+        }
+        
+        acceptanceStatusInfo = acceptanceCheck.status;
+      } else {
+        // ✅ ถ้า CS05 เป็น cancelled ให้ข้ามการเช็ค Acceptance Letter
+        logger.info(`[getInternshipSummary] CS05 is cancelled - Skipping ACCEPTANCE_LETTER check for userId: ${userId}`);
+      }
+      
+      logger.info(`[getInternshipSummary] Pre-check passed for userId: ${userId}, studentId: ${studentCheck.studentId}, CS05 status: ${cs05Check.status}, Acceptance status: ${acceptanceStatusInfo}`);
+    } catch (checkError) {
+      logger.error(`[getInternshipSummary] Pre-check failed for userId ${userId}: ${checkError.message}`);
+      throw checkError;
+    }
+
     // ดึงข้อมูลครบถ้วนในครั้งเดียวด้วย Sequelize associations
     // เริ่มจาก User เพราะ Document associate กับ User โดยตรง
     const userWithInternship = await User.findOne({
@@ -572,7 +764,7 @@ class InternshipManagementService {
           as: "documents",
           where: {
             documentName: "CS05",
-            status: ["approved", "supervisor_approved", "supervisor_evaluated"],
+            status: ["approved", "supervisor_approved", "supervisor_evaluated", "cancelled"], // ✅ เพิ่ม cancelled เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้
           },
           required: true,
           include: [
@@ -599,9 +791,9 @@ class InternshipManagementService {
     });
 
     if (!userWithInternship) {
-      logger.warn(`[getInternshipSummary] No user found for userId: ${userId}`);
+      logger.error(`[getInternshipSummary] Complex query returned null for userId: ${userId} - likely missing InternshipDocument`);
       throw new Error(
-        "ไม่พบข้อมูลผู้ใช้หรือข้อมูลการฝึกงานที่ได้รับการอนุมัติ"
+        "ไม่พบข้อมูลการฝึกงานที่สมบูรณ์ อาจเป็นเพราะข้อมูลบริษัท/วันที่ฝึกงานยังไม่ครบถ้วน กรุณาติดต่อเจ้าหน้าที่"
       );
     }
 
@@ -634,11 +826,14 @@ class InternshipManagementService {
       (sum, log) => sum + parseFloat(log.workHours || 0),
       0
     );
+    
+    // ✅ แก้ไข Logic การ filter ให้รองรับทั้ง boolean และ integer
     const approvedDays = logbooks.filter(
-      (log) => log.supervisorApproved
+      (log) => log.supervisorApproved === 1 || log.supervisorApproved === true
     ).length;
+    
     const approvedHours = logbooks
-      .filter((log) => log.supervisorApproved)
+      .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
       .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
     // ดึงข้อมูลสรุปทักษะและความรู้ (Reflection) ด้วย field name ที่ถูกต้อง
@@ -728,7 +923,7 @@ class InternshipManagementService {
       yearLevel: yearInfo.error ? "ไม่ระบุ" : `${yearInfo.year}`,
       status: yearInfo.error ? "unknown" : yearInfo.status,
       statusLabel: yearInfo.error ? "ไม่ระบุสถานะ" : yearInfo.statusLabel,
-      academicYear: getCurrentAcademicYear(),
+      academicYear: await getCurrentAcademicYear(),
     };
 
     return {
@@ -853,7 +1048,7 @@ class InternshipManagementService {
   }
 
   /**
-   * ส่งแบบประเมินให้พี่เลี้ยง - แก้ไขการค้นหาเอกสาร
+   * ส่งแบบประเมินให้ผู้ควบคุมงาน - แก้ไขการค้นหาเอกสาร
    */
   async sendEvaluationForm(documentId, userId) {
     const transaction = await sequelize.transaction();
@@ -952,8 +1147,8 @@ class InternshipManagementService {
 
       // 3. สร้างและบันทึก token ใหม่
       const tokenValue = crypto.randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 นาทีหมดอายุ
-      //const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 วันหมดอายุ
+      //const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 นาทีหมดอายุ
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 วันหมดอายุ
 
       await ApprovalToken.create(
         {
@@ -1908,6 +2103,23 @@ class InternshipManagementService {
 
       logger.debug("[DEBUG] Updated CS05 status to acceptance_uploaded");
 
+      // 5. Update workflow - หนังสือตอบรับถูกอัปโหลดแล้ว
+      const workflowService = require('./workflowService');
+      const student = await Student.findOne({ where: { userId }, transaction });
+      
+      if (student) {
+        await workflowService.updateStudentWorkflowActivity(
+          student.studentId,
+          'internship',
+          'INTERNSHIP_COMPANY_RESPONSE_RECEIVED',
+          'completed',
+          'in_progress',
+          { acceptanceLetterDocId: acceptanceDocument.documentId, uploadedAt: new Date().toISOString() },
+          { transaction }
+        );
+        logger.info(`Updated workflow to COMPANY_RESPONSE_RECEIVED for student ${student.studentId}`);
+      }
+
       await transaction.commit();
 
       return {
@@ -1995,9 +2207,13 @@ class InternshipManagementService {
       let requiresApproval = false;
       let statusMessage = "";
 
-      // ✅ ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน)
+      // ✅ ตรวจสอบสิทธิ์ในการอัปโหลด (CS05 ต้องได้รับการอนุมัติก่อน และไม่ใช่ cancelled)
       if (cs05Document.status === "approved") {
         canUpload = true;
+      } else if (cs05Document.status === "cancelled") {
+        // ถ้า CS05 เป็น cancelled แสดงว่าเป็นกระบวนการใหม่ที่ยังไม่ได้รับการอนุมัติ
+        statusMessage = "เอกสาร คำร้องขอฝึกงาน ถูกยกเลิก กรุณายื่น คำร้องขอฝึกงาน ใหม่ก่อนอัปโหลดหนังสือตอบรับ";
+        canUpload = false;
       }
 
       // ✅ ตรวจสอบจากข้อมูลจริงในฐานข้อมูล
@@ -2030,6 +2246,14 @@ class InternshipManagementService {
           case "rejected":
             statusMessage = "หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่";
             canUpload = true; // อนุญาตให้อัปโหลดใหม่
+            break;
+          case "cancelled":
+            // ✅ หนังสือตอบรับถูกยกเลิก - ถือว่าเป็นกระบวนการใหม่ อนุญาตให้อัปโหลดใหม่ได้
+            acceptanceStatus = "not_uploaded"; // เปลี่ยนสถานะเป็น not_uploaded เพื่อให้ UI แสดงว่ายังไม่มีการอัปโหลด
+            statusMessage = "หนังสือตอบรับเดิมถูกยกเลิก กรุณาอัปโหลดหนังสือตอบรับใหม่";
+            canUpload = true; // อนุญาตให้อัปโหลดใหม่
+            // ตั้งค่าเป็น null เพื่อให้ระบบถือว่าไม่มี acceptance letter ใหม่
+            acceptanceLetter = null;
             break;
           default:
             statusMessage = `สถานะ: ${acceptanceLetter.status}`;
@@ -2896,7 +3120,7 @@ class InternshipManagementService {
       // ดึงข้อมูลแบบเดียวกับ getInternshipSummary แต่เพิ่มข้อมูลสำหรับหนังสือรับรอง
       const summaryData = await this.getInternshipSummary(userId);
 
-      // ดึงข้อมูลการประเมินจากพี่เลี้ยง
+      // ดึงข้อมูลการประเมินจากผู้ควบคุมงาน
       const student = await Student.findOne({
         where: { userId },
         include: [
@@ -3120,12 +3344,17 @@ class InternshipManagementService {
         },
       });
 
+      // ✅ คำนวณทั้ง totalHours และ approvedHours
       const totalHours = logbooks.reduce(
         (sum, log) => sum + parseFloat(log.workHours || 0),
         0
       );
+      
+      const approvedHours = logbooks
+        .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+        .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
-      // ตรวจสอบการประเมินจากพี่เลี้ยง
+      // ตรวจสอบการประเมินจากผู้ควบคุมงาน
       const supervisorEvaluation = await InternshipEvaluation.findOne({
         where: {
           studentId: student.studentId,
@@ -3150,11 +3379,11 @@ class InternshipManagementService {
         order: [["created_at", "DESC"]],
       });
 
-  // คำนวณสถานะ (ปรับเกณฑ์: ใช้เฉพาะชั่วโมง + การประเมิน ไม่บังคับ summary แล้ว)
-  const isHoursComplete = totalHours >= 240;
+  // ✅ คำนวณสถานะ (ใช้ approvedHours แทน totalHours)
+  const isHoursComplete = approvedHours >= 240;
   const isEvaluationComplete = !!supervisorEvaluation;
-  const isSummarySubmitted = !!reflection; // คงตรวจแต่ไม่ใช้ในเกณฑ์
-  const canRequestCertificate = isHoursComplete && isEvaluationComplete; // ตัด isSummarySubmitted ออก
+  const isSummarySubmitted = !!reflection;
+  const canRequestCertificate = isHoursComplete && isEvaluationComplete;
 
       let certificateStatus = "not_requested";
       if (certificateRequest) {
@@ -3186,6 +3415,7 @@ class InternshipManagementService {
         contactPersonPosition: internshipDocument.contactPersonPosition || "",
         internshipPosition: internshipDocument.internshipPosition || "",
         totalHours,
+        approvedHours, // ✅ เพิ่ม approved hours ใน internshipInfo
       };
 
       const result = {
@@ -3194,10 +3424,11 @@ class InternshipManagementService {
         canRequestCertificate:
           canRequestCertificate && certificateStatus === "not_requested",
 
-        // ข้อมูลการตรวจสอบเงื่อนไข
+        // ✅ ข้อมูลการตรวจสอบเงื่อนไข (เพิ่ม approvedHours)
         requirements: {
           totalHours: {
             current: totalHours,
+            approved: approvedHours, // ✅ เพิ่ม approved hours
             required: 240,
             completed: isHoursComplete,
           },
@@ -3283,7 +3514,7 @@ class InternshipManagementService {
       const currentStatus = await this.getCertificateStatus(userId);
 
       if (!currentStatus.canRequestCertificate) {
-        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินพี่เลี้ยง)");
+        throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินผู้ควบคุมงาน)");
       }
 
       // ดึงข้อมูลนักศึกษาและเอกสาร CS05
@@ -3310,7 +3541,7 @@ class InternshipManagementService {
         transaction,
       });
 
-      // สร้างคำขอหนังสือรับรอง
+      // ✅ สร้างคำขอหนังสือรับรอง (บันทึก approvedHours ลงฟิลด์ total_hours)
       const certificateRequest = await InternshipCertificateRequest.create(
         {
           studentId: student.studentId,
@@ -3318,9 +3549,10 @@ class InternshipManagementService {
           documentId: cs05Document.documentId,
           requestDate: new Date(requestData.requestDate),
           status: "pending",
+          // ✅ บันทึก approvedHours แทน totalHours (ฟิลด์ยังชื่อ total_hours)
           totalHours:
-            requestData.totalHours ||
-            currentStatus.requirements.totalHours.current,
+            requestData.approvedHours ||
+            currentStatus.requirements.totalHours.approved,
           evaluationStatus: requestData.evaluationStatus || "completed",
           // summaryStatus ไม่บังคับแล้ว ถ้าไม่มีจะตั้งค่าเป็น 'ignored'
           summaryStatus: requestData.summaryStatus || currentStatus.requirements?.summarySubmission?.completed ? 'submitted' : 'ignored',

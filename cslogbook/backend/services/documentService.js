@@ -15,6 +15,7 @@ const {
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
 const logger = require('../utils/logger');
 const projectDocumentService = require('./projectDocumentService');
+const deadlineAutoAssignService = require('./deadlineAutoAssignService');
 
 const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
     'approved',
@@ -74,28 +75,47 @@ class DocumentService {
 
                 if (effectiveDeadlineAt) {
                     if (submittedAt > effectiveDeadlineAt) {
-                        // ส่งหลังเส้น effective แล้ว
-                        if (submittedAt <= graceEnd) {
-                            // ภายใน grace window → late (submitted_late)
-                            if (!deadlineRecord.allowLate) {
-                                throw new Error('ไม่อนุญาตให้ส่งช้า');
-                            }
-                            isLate = true;
-                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
-                        } else {
-                            // หลัง grace window
-                            // ถ้าไม่ allowLate ก่อน ให้แจ้งก่อน (ข้อความเฉพาะ) มาก่อน lock เพื่อสื่อสาเหตุ
-                            if (!deadlineRecord.allowLate) {
-                                throw new Error('ไม่อนุญาตให้ส่งช้า');
-                            }
-                            if (deadlineRecord.lockAfterDeadline) {
-                                throw new Error('หมดเขตรับเอกสารแล้ว');
-                            }
-                            // ยอมรับ (allowLate=true, ไม่ lock)
-                            isLate = true;
-                            lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        // 🆕 Google Classroom Style: อนุญาตให้ส่งเสมอ แต่ track ว่าสาย
+                        // ยกเว้นกรณีที่ acceptingSubmissions = false (ปิดรับเอกสารโดยสิ้นเชิง)
+                        if (!deadlineRecord.acceptingSubmissions) {
+                            throw new Error('ปิดรับเอกสารแล้ว (accepting_submissions = false)');
                         }
+
+                        // คำนวณว่าส่งช้ากี่นาที
+                        isLate = true;
+                        lateMinutes = Math.ceil((submittedAt - effectiveDeadlineAt) / 60000);
+                        
+                        // Log สำหรับ monitoring
+                        logger.warn('[DocumentService] Late submission detected', {
+                            documentType,
+                            category,
+                            deadlineName: deadlineRecord.name,
+                            effectiveDeadline: effectiveDeadlineAt.toISOString(),
+                            submittedAt: submittedAt.toISOString(),
+                            delayMinutes: lateMinutes
+                        });
                     }
+                }
+            }
+
+            // 🆕 Auto-assign deadline ถ้ายังไม่ระบุมา
+            let finalDeadlineId = importantDeadlineId;
+            if (!finalDeadlineId) {
+                try {
+                    // ดึงข้อมูล student เพื่อหา academicYear, semester
+                    const student = await Student.findOne({ where: { userId } });
+                    const autoDeadlineId = await deadlineAutoAssignService.findMatchingDeadline({
+                        documentType,
+                        category,
+                        academicYear: student?.currentAcademicYear,
+                        semester: student?.currentSemester
+                    });
+                    if (autoDeadlineId) {
+                        finalDeadlineId = autoDeadlineId;
+                        logger.info(`[DocumentService] Auto-assigned deadline ${autoDeadlineId} to document`);
+                    }
+                } catch (autoError) {
+                    logger.warn('[DocumentService] Auto-assign deadline failed:', autoError.message);
                 }
             }
 
@@ -110,11 +130,14 @@ class DocumentService {
                 mimeType: fileData.mimetype,
                 fileSize: fileData.size,
                 status: 'pending',
-                importantDeadlineId: importantDeadlineId || null,
+                importantDeadlineId: finalDeadlineId || null,
                 submittedAt,
                 isLate,
                 lateMinutes,
-                dueDate: dueDate || null
+                dueDate: dueDate || null,
+                // 🆕 Google Classroom-style late tracking
+                submittedLate: isLate,
+                submissionDelayMinutes: lateMinutes
             });
 
             logger.info(`Document uploaded successfully: ${document.id} by user ${userId}`);
@@ -183,7 +206,8 @@ class DocumentService {
                     where: { documentId: documentId },
                     attributes: [
                         'internshipId', 'documentId', 'companyName',
-                        'companyAddress', 'supervisorName', 'supervisorPosition',
+                        'companyAddress', 'internshipPosition', 'contactPersonName', 'contactPersonPosition',
+                        'supervisorName', 'supervisorPosition',
                         'supervisorPhone', 'supervisorEmail', 'startDate', 'endDate',
                         'created_at', 'updated_at'
                     ]
@@ -235,7 +259,7 @@ class DocumentService {
      */
     async getDocuments(filters = {}, pagination = {}) {
         try {
-            const { type, status, search } = filters;
+            const { type, status, search, academicYear, semester } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
             // สร้าง query condition พื้นฐาน
@@ -264,8 +288,50 @@ class DocumentService {
                 };
             }
 
-            // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-    const documents = await Document.findAll({
+            // สร้าง include array
+            const includeArray = [
+                {
+                    model: User,
+                    as: 'owner',
+                    attributes: ['firstName', 'lastName'],
+                    include: [{
+                        model: Student,
+                        as: 'student',
+                        attributes: ['studentCode']
+                    }]
+                }
+            ];
+
+            // ถ้ามีการกรองด้วย academicYear หรือ semester (และ type เป็น internship)
+            // ต้อง join กับ InternshipDocument หรือ ProjectDocument
+            if ((academicYear || semester) && type === 'internship') {
+                const internshipDocWhere = {};
+                if (academicYear) internshipDocWhere.academicYear = academicYear;
+                if (semester) internshipDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: InternshipDocument,
+                    as: 'internshipDocument',
+                    attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    where: internshipDocWhere,
+                    required: true, // inner join เพื่อกรองเฉพาะที่ match
+                });
+            } else if ((academicYear || semester) && type === 'project') {
+                const projectDocWhere = {};
+                if (academicYear) projectDocWhere.academicYear = academicYear;
+                if (semester) projectDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: ProjectDocument,
+                    as: 'projectDocument',
+                    attributes: ['projectId', 'projectName', 'academicYear', 'semester'],
+                    where: projectDocWhere,
+                    required: true,
+                });
+            }
+
+            // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง (ใช้ findAndCountAll เพื่อได้ total count)
+            const { rows: documents, count: total } = await Document.findAndCountAll({
                 where: whereCondition,
                 attributes: [
             "documentId",
@@ -277,44 +343,50 @@ class DocumentService {
             "created_at",
             "updated_at"
                 ],
-                include: [
-                    {
-                        model: User,
-                        as: 'owner',
-                        attributes: ['firstName', 'lastName'],
-                        include: [{
-                            model: Student,
-                            as: 'student',
-                            attributes: ['studentCode']
-                        }]
-                    }
-                ],
+                include: includeArray,
                 order: [['created_at', 'DESC']],
                 limit,
-                offset
+                offset,
+                distinct: true // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
             });
 
             // นับสถิติ
             const statistics = await this.getDocumentStatistics();
 
             // จัดรูปแบบข้อมูลก่อนส่งกลับ
-            const formattedDocuments = documents.map(doc => ({
-                id: doc.id || doc.documentId,
-                document_name: doc.documentName,
-                student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
-                student_code: doc.owner.student ? doc.owner.student.studentCode : '',
-                type: doc.documentType.toLowerCase(),
-                created_at: doc.created_at,
-                updated_at: doc.updated_at,
-                status: doc.status,
-                reviewerId: doc.reviewerId || null,
-                reviewDate: doc.reviewDate || null,
-            }));
+            const formattedDocuments = documents.map(doc => {
+                const base = {
+                    id: doc.id || doc.documentId,
+                    document_name: doc.documentName,
+                    student_name: `${doc.owner.firstName} ${doc.owner.lastName}`,
+                    student_code: doc.owner.student ? doc.owner.student.studentCode : '',
+                    type: doc.documentType.toLowerCase(),
+                    created_at: doc.created_at,
+                    updated_at: doc.updated_at,
+                    status: doc.status,
+                    reviewerId: doc.reviewerId || null,
+                    reviewDate: doc.reviewDate || null,
+                };
 
-            logger.info(`Retrieved ${documents.length} documents with filters:`, filters);
+                // เพิ่มข้อมูล academicYear และ semester ถ้ามี
+                if (doc.internshipDocument) {
+                    base.academicYear = doc.internshipDocument.academicYear;
+                    base.semester = doc.internshipDocument.semester;
+                    base.companyName = doc.internshipDocument.companyName;
+                } else if (doc.projectDocument) {
+                    base.academicYear = doc.projectDocument.academicYear;
+                    base.semester = doc.projectDocument.semester;
+                    base.projectName = doc.projectDocument.projectName;
+                }
+
+                return base;
+            });
+
+            logger.info(`Retrieved ${documents.length} documents (total: ${total}) with filters:`, filters);
 
             return {
                 documents: formattedDocuments,
+                total, // Total count สำหรับ pagination
                 statistics
             };
         } catch (error) {
@@ -514,6 +586,60 @@ class DocumentService {
                 reviewDate: new Date()
             });
 
+            // Update workflow สำหรับ ACCEPTANCE_LETTER
+            if (document.documentType === 'INTERNSHIP' && document.documentName === 'ACCEPTANCE_LETTER') {
+                const studentId = document.owner?.student?.studentId;
+                if (studentId) {
+                    // 1. สร้างหนังสือส่งตัว (Referral Letter) พร้อม generate PDF
+                    try {
+                        // หา CS05 ที่อนุมัติแล้วของนักศึกษาคนนี้
+                        const cs05Document = await Document.findOne({
+                            where: {
+                                userId: document.userId,
+                                documentName: 'CS05',
+                                status: 'approved'
+                            },
+                            order: [['updated_at', 'DESC']]
+                        });
+
+                        if (cs05Document) {
+                            // เรียกใช้ service สำหรับ generate PDF หนังสือส่งตัว
+                            const internshipManagementService = require('./internshipManagementService');
+                            const referralLetterResult = await internshipManagementService.generateReferralLetterPDF(
+                                document.userId,
+                                cs05Document.documentId
+                            );
+                            
+                            logger.info(`Generated referral letter PDF for student ${studentId}:`, {
+                                documentId: referralLetterResult.documentId,
+                                filePath: referralLetterResult.filePath
+                            });
+                        } else {
+                            logger.warn(`No approved CS05 found for student ${studentId}, skipping referral letter generation`);
+                        }
+                    } catch (refError) {
+                        logger.error('Error generating referral letter:', refError);
+                        // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติหนังสือตอบรับ
+                    }
+
+                    // 2. Update workflow เป็น AWAITING_START
+                    const workflowService = require('./workflowService');
+                    await workflowService.updateStudentWorkflowActivity(
+                        studentId,
+                        'internship',
+                        'INTERNSHIP_AWAITING_START',
+                        'in_progress',
+                        'in_progress',
+                        { 
+                            acceptanceLetterApprovedAt: new Date().toISOString(), 
+                            approvedBy: reviewerId,
+                            referralLetterGenerated: true
+                        }
+                    );
+                    logger.info(`Updated workflow to AWAITING_START for student ${studentId}`);
+                }
+            }
+
             logger.info(`Document approved: ${documentId} by ${reviewerId}`);
             return { message: 'อนุมัติเอกสารเรียบร้อยแล้ว' };
         } catch (error) {
@@ -661,11 +787,12 @@ class DocumentService {
             });
 
             if (student) {
+                // ✅ เมื่ออนุมัติ CS05 → ตั้งสถานะเป็น 'pending_approval' (รอหนังสือตอบรับ)
                 await student.update({
-                    internshipStatus: 'in_progress',
+                    internshipStatus: 'pending_approval',
                     isEnrolledInternship: 1
                 });
-                logger.info(`Updated student ${student.studentId} internship status to in_progress`);
+                logger.info(`Updated student ${student.studentId} internship status to pending_approval (CS05 approved, waiting for acceptance letter)`);
             }
 
             // อัปเดต workflow activity
@@ -762,46 +889,94 @@ class DocumentService {
      */
     async getCertificateRequests(filters = {}, pagination = {}) {
         try {
-            const { status, studentId } = filters;
+            const { status, studentId, academicYear, semester } = filters;
             const { page = 1, limit = 10 } = pagination;
             
             const whereClause = {};
             if (status) whereClause.status = status;
             if (studentId) whereClause.studentId = { [Op.like]: `%${studentId}%` };
 
-            const { InternshipCertificateRequest } = require('../models');
+            const { InternshipCertificateRequest, InternshipLogbook } = require('../models');
+
+            // สร้าง include สำหรับ internship -> internshipDocument
+            const includeArray = [
+                {
+                    model: Student,
+                    as: 'student',
+                    attributes: ['studentId', 'studentCode'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'user',
+                            attributes: ['firstName', 'lastName'],
+                        },
+                    ],
+                },
+            ];
+
+            // ถ้ามีการกรองด้วย academicYear หรือ semester ต้อง join กับ InternshipDocument
+            if (academicYear || semester) {
+                const internshipDocWhere = {};
+                if (academicYear) internshipDocWhere.academicYear = academicYear;
+                if (semester) internshipDocWhere.semester = semester;
+
+                includeArray.push({
+                    model: InternshipDocument,
+                    as: 'internship',
+                    attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    where: internshipDocWhere,
+                    required: true, // inner join เพื่อกรองเฉพาะที่ match
+                });
+            }
 
             const requests = await InternshipCertificateRequest.findAndCountAll({
                 where: whereClause,
-                include: [
-                    {
-                        model: Student,
-                        as: 'student',
-                        attributes: ['studentId', 'studentCode'],
-                        include: [
-                            {
-                                model: User,
-                                as: 'user',
-                                attributes: ['firstName', 'lastName'],
-                            },
-                        ],
-                    },
-                ],
+                include: includeArray,
                 order: [['requestDate', 'DESC']],
                 limit: parseInt(limit),
                 offset: (parseInt(page) - 1) * parseInt(limit),
             });
 
-            // เพิ่มข้อมูล fullName
-            const formattedData = requests.rows.map(request => ({
-                ...request.toJSON(),
-                student: request.student ? {
-                    ...request.student.toJSON(),
-                    fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
-                } : null,
+            // ✅ คำนวณ approvedHours จริงๆ จาก logbooks แทนที่จะใช้ค่าจาก database
+            const formattedData = await Promise.all(requests.rows.map(async (request) => {
+                const requestJSON = request.toJSON();
+                
+                // คำนวณ approvedHours จริงๆ
+                const logbooks = await InternshipLogbook.findAll({
+                    where: {
+                        studentId: request.studentId,
+                        internshipId: request.internshipId,
+                    },
+                });
+                
+                const approvedHours = logbooks
+                    .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+                    .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+                
+                // ถ้ายังไม่มี internship ใน include (กรณีไม่มีการกรองปีการศึกษา) ให้ดึงเพิ่ม
+                let internshipData = requestJSON.internship || null;
+                if (!internshipData && request.internshipId) {
+                    const internshipDoc = await InternshipDocument.findByPk(request.internshipId, {
+                        attributes: ['internshipId', 'companyName', 'academicYear', 'semester'],
+                    });
+                    if (internshipDoc) {
+                        internshipData = internshipDoc.toJSON();
+                    }
+                }
+                
+                return {
+                    ...requestJSON,
+                    totalHours: approvedHours, // ✅ ใช้ approved hours แทน
+                    _originalTotalHours: requestJSON.totalHours, // เก็บค่าเดิมไว้ (ถ้าต้องการ debug)
+                    internship: internshipData, // ✅ ส่ง academicYear & semester กลับไป
+                    student: request.student ? {
+                        ...request.student.toJSON(),
+                        fullName: `${request.student.user.firstName} ${request.student.user.lastName}`,
+                    } : null,
+                };
             }));
 
-            logger.info(`Retrieved ${requests.count} certificate requests`);
+            logger.info(`Retrieved ${requests.count} certificate requests with calculated approved hours`);
 
             return {
                 data: formattedData,
@@ -951,6 +1126,19 @@ class DocumentService {
 
             const fullName = request.student ? `${request.student.user.firstName} ${request.student.user.lastName}` : null;
 
+            // ✅ คำนวณ approvedHours จริงๆ จาก logbooks
+            const { InternshipLogbook } = require('../models');
+            const logbooks = await InternshipLogbook.findAll({
+                where: {
+                    studentId: request.studentId,
+                    internshipId: request.internshipId,
+                },
+            });
+            
+            const approvedHours = logbooks
+                .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
+                .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
+
             const detail = {
                 id: request.id,
                 status: request.status,
@@ -969,11 +1157,12 @@ class DocumentService {
                     location: internshipDoc?.companyAddress || internshipInfo?.province || null, // ใช้ address เป็นที่ตั้ง
                     startDate: internshipDoc?.startDate || internshipInfo?.startDate || null,
                     endDate: internshipDoc?.endDate || internshipInfo?.endDate || null,
-                    totalHours: request.totalHours,
+                    totalHours: approvedHours, // ✅ ใช้ approved hours แทน
+                    _originalTotalHours: request.totalHours, // เก็บค่าเดิม (ถ้าต้องการ debug)
                     internshipId: request.internshipId || internshipDoc?.internshipId || null,
                 },
                 eligibility: {
-                    hours: { current: Number(request.totalHours), required: 240, passed: Number(request.totalHours) >= 240 },
+                    hours: { current: Number(approvedHours), required: 240, passed: Number(approvedHours) >= 240 },
                     evaluation: {
                         status: request.evaluationStatus,
                         overallScore,
@@ -1115,6 +1304,43 @@ class DocumentService {
                 processedAt: new Date(),
                 processedBy: processorId,
             });
+
+            // ✅ Update workflow และ Student.internshipStatus - การฝึกงานเสร็จสมบูรณ์
+            try {
+                const { Internship, Student } = require('../models');
+                const internship = await Internship.findByPk(request.internshipId, {
+                    include: [{ model: Student, as: 'student' }]
+                });
+                
+                if (internship?.student) {
+                    const workflowService = require('./workflowService');
+                    
+                    // 1. อัพเดท workflow
+                    await workflowService.updateStudentWorkflowActivity(
+                        internship.student.studentId,
+                        'internship',
+                        'INTERNSHIP_COMPLETED',
+                        'completed',
+                        'completed',
+                        { 
+                            certificateApprovedAt: new Date().toISOString(),
+                            certificateNumber: request.certificateNumber,
+                            processedBy: processorId 
+                        }
+                    );
+                    
+                    // 2. ✅ อัพเดท Student.internshipStatus เป็น 'completed'
+                    await Student.update(
+                        { internshipStatus: 'completed' },
+                        { where: { studentId: internship.student.studentId } }
+                    );
+                    
+                    logger.info(`Updated workflow and student status to COMPLETED for student ${internship.student.studentId} (certificate approved)`);
+                }
+            } catch (workflowError) {
+                logger.error('Error updating workflow and student status after certificate approval:', workflowError);
+                // ไม่ throw error เพราะ certificate ได้รับการอนุมัติแล้ว
+            }
 
             // สร้างการแจ้งเตือน
             await this.createCertificateApprovalNotification(request);

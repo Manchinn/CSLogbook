@@ -1,25 +1,19 @@
 require('dotenv').config();
-// เพิ่ม abstraction รองรับหลาย provider (Ethereal/SMTP/SendGrid/Console)
-const emailTransport = require('./emailTransport'); // NEW
-const sgMail = require('@sendgrid/mail'); // เดิม (ยังคงไว้สำหรับอ้างอิง / fallback)
+const emailTransport = require('./emailTransport');
 const fs = require('fs');
 const path = require('path');
 const notificationSettingsService = require('../services/notificationSettingsService');
 const logger = require('./logger');
 
-// OLD: sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-// ย้ายการ setApiKey ไปทำใน emailTransport หาก EMAIL_PROVIDER=sendgrid
-
-// NEW helper ส่งอีเมลกลาง (แทน sgMail.send ตรง ๆ)
+// Helper ส่งอีเมลกลาง
 async function sendEmail(msg) {
     if (!msg.from) msg.from = process.env.EMAIL_SENDER;
     return emailTransport.send(msg);
 }
 
-// NEW helper ดึง messageId ให้เป็นกลาง
+// Helper ดึง messageId
 function extractMessageId(res) {
     if (!res) return undefined;
-    if (Array.isArray(res) && res[0]?.headers) return res[0].headers['x-message-id']; // รูปแบบ sendgrid เดิม
     return res.messageId || res.id;
 }
 

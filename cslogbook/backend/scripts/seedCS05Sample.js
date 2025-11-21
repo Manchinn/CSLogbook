@@ -95,8 +95,8 @@ async function main() {
     }, { transaction: t });
     // อัพเดท snapshot academic period ให้ record ที่ seed ด้วย
     await internshipDoc.update({
-      academicYear: getCurrentAcademicYear(),
-      semester: getCurrentSemester()
+      academicYear: await getCurrentAcademicYear(),
+      semester: await getCurrentSemester()
     }, { transaction: t });
 
     // อัปเดต student internship status เล็กน้อยเพื่อให้ flow ทำงาน

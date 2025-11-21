@@ -6,6 +6,7 @@ const {
   User,
   Teacher,
   ProjectDefenseRequest,
+  ProjectWorkflowState,
   Academic,
   Document,
   sequelize
@@ -112,7 +113,7 @@ class ProjectExamResultService {
     }
   }
 
-  async _getPendingResultsByExamType(examType, { academicYear, semester, search, status } = {}, { includeDocument = false } = {}) {
+  async _getPendingResultsByExamType(examType, { academicYear, semester, search, status, limit, offset } = {}, { includeDocument = false } = {}) {
     const whereClause = {};
 
     if (academicYear) {
@@ -155,11 +156,34 @@ class ProjectExamResultService {
       }
     ];
 
-    const projects = await ProjectDocument.findAll({
-      where: whereClause,
-      include: includes,
-      order: [['projectId', 'ASC']]
-    });
+    // Pagination params
+    const paginationLimit = limit ? parseInt(limit, 10) : undefined;
+    const paginationOffset = offset ? parseInt(offset, 10) : undefined;
+
+    let projects;
+    let total = 0;
+
+    if (paginationLimit !== undefined || paginationOffset !== undefined) {
+      // ใช้ findAndCountAll สำหรับ pagination
+      const { rows, count } = await ProjectDocument.findAndCountAll({
+        where: whereClause,
+        include: includes,
+        order: [['projectId', 'ASC']],
+        limit: paginationLimit,
+        offset: paginationOffset,
+        distinct: true, // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
+      });
+      projects = rows;
+      total = count;
+    } else {
+      // ไม่มี pagination ใช้ findAll
+      projects = await ProjectDocument.findAll({
+        where: whereClause,
+        include: includes,
+        order: [['projectId', 'ASC']]
+      });
+      total = projects.length;
+    }
 
     const normalizedStatus = (status || 'pending').toLowerCase();
 
@@ -192,6 +216,96 @@ class ProjectExamResultService {
       };
     });
 
+    // ถ้ามี pagination และมีการ filter ด้วย status ต้องคำนวณ total ทั้งหมดใหม่
+    let filteredTotal = total;
+    if ((paginationLimit !== undefined || paginationOffset !== undefined) && normalizedStatus !== 'all') {
+      // Query ทั้งหมดใหม่เพื่อนับ total หลัง filter ด้วย status
+      const allProjects = await ProjectDocument.findAll({
+        where: whereClause,
+        include: includes,
+        order: [['projectId', 'ASC']]
+      });
+
+      let allProjectList = allProjects.map((project) => {
+        const json = project.toJSON();
+        const normalizedId = json.projectId ?? json.project_id ?? null;
+        const filteredExamResults = Array.isArray(json.examResults)
+          ? json.examResults
+              .filter((result) => {
+                const resultExamType = result.examType || result.exam_type || null;
+                return !resultExamType || resultExamType === examType;
+              })
+              .sort((a, b) => {
+                const aTime = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+                const bTime = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+                return bTime - aTime;
+              })
+          : [];
+
+        const finalDocument = includeDocument && json.document
+          ? this._normalizeFinalDocument(json.document)
+          : null;
+
+        return {
+          ...json,
+          projectId: normalizedId != null ? Number(normalizedId) : null,
+          examResults: filteredExamResults,
+          finalDocument
+        };
+      });
+
+      // Filter ด้วย status
+      switch (normalizedStatus) {
+        case 'pending':
+          allProjectList = allProjectList.filter((project) => !project.examResults || project.examResults.length === 0);
+          break;
+        case 'passed':
+          allProjectList = allProjectList.filter(
+            (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'PASS'
+          );
+          break;
+        case 'failed':
+          allProjectList = allProjectList.filter(
+            (project) => project.examResults && project.examResults.length > 0 && project.examResults[0].result === 'FAIL'
+          );
+          break;
+      }
+
+      // Filter ด้วย search ถ้ามี
+      if (search && typeof search === 'string' && search.trim()) {
+        const keyword = search.trim().toLowerCase();
+        allProjectList = allProjectList.filter((project) => {
+        const projectFields = [
+          project.projectNameTh,
+          project.projectNameEn,
+          project.projectCode,
+          project.projectId != null ? String(project.projectId) : null
+        ];
+
+        const projectMatches = projectFields.some(
+          (field) => field && field.toLowerCase().includes(keyword)
+        );
+
+        const memberMatches = (project.members || []).some((member) => {
+          const studentCode = member.student?.studentCode;
+          const fullName = member.student?.user
+            ? `${member.student.user.firstName || ''} ${member.student.user.lastName || ''}`.trim()
+            : '';
+
+          return (
+            (studentCode && studentCode.toLowerCase().includes(keyword)) ||
+            (fullName && fullName.toLowerCase().includes(keyword))
+          );
+        });
+
+        return projectMatches || memberMatches;
+      });
+      }
+      // คำนวณ total ใหม่หลังจาก filter ทั้งหมด
+      filteredTotal = allProjectList.length;
+    }
+
+    // Filter ด้วย status (สำหรับ projectList ที่ query มาแล้ว)
     switch (normalizedStatus) {
       case 'pending':
         projectList = projectList.filter((project) => !project.examResults || project.examResults.length === 0);
@@ -213,6 +327,7 @@ class ProjectExamResultService {
         break;
     }
 
+    // Filter ด้วย search (สำหรับ projectList ที่ query มาแล้ว)
     if (search) {
       const keyword = search.trim().toLowerCase();
 
@@ -242,6 +357,11 @@ class ProjectExamResultService {
 
         return projectMatches || memberMatches;
       });
+    }
+
+    // ถ้ามี pagination ส่ง total กลับไปด้วย
+    if (paginationLimit !== undefined || paginationOffset !== undefined) {
+      return { data: projectList, total: filteredTotal };
     }
 
     return projectList;
@@ -372,6 +492,18 @@ class ProjectExamResultService {
         }),
         transaction
       });
+
+      // 🆕 อัปเดต workflow state โดยตรง
+      await ProjectWorkflowState.updateFromExamResult(
+        normalizedProjectId,
+        examType,
+        result,
+        {
+          userId: recordedByUserId,
+          examDate: examRecordedAt,
+          transaction
+        }
+      );
 
       // ซิงก์สถานะ Workflow ให้อัตโนมัติ เพื่อให้นักศึกษามองเห็นสเตตัสล่าสุด
       await projectDocumentService.syncProjectWorkflowState(project.projectId, {

@@ -197,7 +197,38 @@ class InternshipLogbookService {
         );
       }
 
+      // Update workflow เมื่อสร้าง logbook entry แรก (เริ่มฝึกงานแล้ว)
+      if (!existingEntry) {
+        const logbookCount = await InternshipLogbook.count({
+          where: { internshipId },
+          transaction
+        });
+        
+        if (logbookCount === 1) {
+          // Entry แรก = เริ่มฝึกงานแล้ว
+          const workflowService = require('./workflowService');
+          await workflowService.updateStudentWorkflowActivity(
+            student.studentId,
+            'internship',
+            'INTERNSHIP_IN_PROGRESS',
+            'in_progress',
+            'in_progress',
+            { firstLogDate: workDate, logId: entry.logId },
+            { transaction }
+          );
+          logger.info(`Updated workflow to IN_PROGRESS for student ${student.studentId}`);
+        }
+      }
+
       await transaction.commit();
+
+      // ตรวจสอบว่าควร update เป็น SUMMARY_PENDING หรือไม่ (หลัง commit)
+      try {
+        await this.checkAndUpdateSummaryPending(internshipId);
+      } catch (checkError) {
+        logger.error('Error checking summary pending status:', checkError);
+        // ไม่ throw เพราะ logbook save สำเร็จแล้ว
+      }
       logger.info(
         `InternshipLogbookService: บันทึกข้อมูลการฝึกงานสำเร็จ ID: ${entry.logId}`
       );
@@ -1212,7 +1243,7 @@ class InternshipLogbookService {
         doc.moveDown(0.5);
         doc.text(`สถานประกอบการ: ${c.companyName || '-'}`);
         doc.text(`ที่อยู่: ${c.companyAddress || '-'}`);
-        doc.text(`พี่เลี้ยง: ${c.supervisorName || '-'} (${c.supervisorPosition || '-'})`);
+        doc.text(`ผู้ควบคุมงาน: ${c.supervisorName || '-'} (${c.supervisorPosition || '-'})`);
         doc.moveDown(0.5);
         doc.text(`ช่วงฝึกงาน: ${p.startDate || '-'} ถึง ${p.endDate || '-'}`);
         doc.text(`จำนวนวัน: ${stats.totalDays || 0}  ชั่วโมงรวม: ${stats.totalHours || 0}  เฉลี่ยต่อวัน: ${stats.averageHours || 0}`);
@@ -1245,6 +1276,88 @@ class InternshipLogbookService {
       });
     } catch (error) {
       logger.error('InternshipLogbookService: Error in generateInternshipSummaryPDF', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ตรวจสอบและอัปเดต workflow เมื่อใกล้ถึง endDate หรือชั่วโมงครบ
+   * เรียกใช้จาก cron job หรือหลังบันทึก logbook
+   * @param {number} internshipId - ID ของการฝึกงาน
+   */
+  async checkAndUpdateSummaryPending(internshipId) {
+    try {
+      const { Internship } = require('../models');
+      const internship = await Internship.findByPk(internshipId, {
+        include: [{ model: Student, as: 'student' }]
+      });
+
+      if (!internship || !internship.student) {
+        logger.warn(`Internship ${internshipId} not found or no student`);
+        return;
+      }
+
+      // ตรวจสอบ workflow ปัจจุบัน
+      const workflowService = require('./workflowService');
+      const { StudentWorkflowActivity } = require('../models');
+      const activity = await StudentWorkflowActivity.findOne({
+        where: {
+          studentId: internship.student.studentId,
+          workflowType: 'internship'
+        }
+      });
+
+      // ถ้ายังไม่ได้อยู่ในขั้นตอน IN_PROGRESS หรือสูงกว่า ข้าม
+      if (!activity || !['INTERNSHIP_IN_PROGRESS'].includes(activity.currentStepKey)) {
+        return;
+      }
+
+      // เงื่อนไข 1: ใกล้ถึง endDate (เหลือ 7 วัน)
+      let shouldUpdateToSummaryPending = false;
+      const now = dayjs();
+      const endDate = dayjs(internship.endDate);
+      const daysUntilEnd = endDate.diff(now, 'day');
+
+      if (daysUntilEnd <= 7 && daysUntilEnd >= 0) {
+        shouldUpdateToSummaryPending = true;
+        logger.info(`Internship ${internshipId} is ${daysUntilEnd} days from end date`);
+      }
+
+      // เงื่อนไข 2: ชั่วโมงครบ 360 ชั่วโมงขึ้นไป (หรือตามที่กำหนด)
+      const totalHours = await InternshipLogbook.sum('workHours', {
+        where: {
+          internshipId,
+          supervisorApproved: true // นับเฉพาะที่ผู้ควบคุมอนุมัติแล้ว
+        }
+      });
+
+      const REQUIRED_HOURS = 360; // ชั่วโมงขั้นต่ำ
+      if (totalHours >= REQUIRED_HOURS) {
+        shouldUpdateToSummaryPending = true;
+        logger.info(`Internship ${internshipId} has ${totalHours} hours (>= ${REQUIRED_HOURS})`);
+      }
+
+      // Update workflow ถ้าตรงเงื่อนไข
+      if (shouldUpdateToSummaryPending) {
+        await workflowService.updateStudentWorkflowActivity(
+          internship.student.studentId,
+          'internship',
+          'INTERNSHIP_SUMMARY_PENDING',
+          'awaiting_student_action',
+          'in_progress',
+          {
+            totalHours: totalHours || 0,
+            daysUntilEnd,
+            triggeredAt: new Date().toISOString()
+          }
+        );
+        logger.info(`Updated workflow to SUMMARY_PENDING for student ${internship.student.studentId}`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      logger.error('Error in checkAndUpdateSummaryPending:', error);
       throw error;
     }
   }

@@ -1,41 +1,54 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Spin, Layout } from "antd";
+import { Spin } from "antd";
 import { SystemProvider } from "../../contexts/adminContext/SystemContext";
 import { UserManagementProvider } from "../../contexts/adminContext/UserManagementContext";
 import { DocumentProvider } from "../../contexts/adminContext/DocumentContext";
 import DocumentManagement from "./documents";
-import CertificateManagement from "./documents/CertificateManagement";
+import CertificateManagement from "features/internship/components/admin-view/CertificateManagement";
 
 // Lazy loading components
-const Dashboard = lazy(() => import("./dashboard"));
-const StudentList = lazy(() => import("./users/students"));
-const TeacherList = lazy(() => import("./users/teachers"));
+const Dashboard = lazy(() => import("features/admin-dashboard/components/dashboard"));
+const StudentList = lazy(() =>
+  import("features/user-management/components/StudentList")
+);
+const TeacherList = lazy(() =>
+  import("features/user-management/components/TeacherList")
+);
 const AdminUpload = lazy(() => import("../AdminUpload"));
-const ConstantsSettings = lazy(() => import("./settings/constants"));
+const ConstantsSettings = lazy(() =>
+  import("features/settings/components/settings/constants")
+);
 
 // เพิ่ม imports สำหรับหน้าตั้งค่าใหม่
-const Settings = lazy(() => import("./settings")); // หน้าหลักการตั้งค่า
+const Settings = lazy(() => import("features/settings/components/settings")); // หน้าหลักการตั้งค่า
 const AcademicSettingsPage = lazy(() =>
-  import("./settings/AcademicSettingsPage")
+  import("features/settings/components/settings/AcademicSettingsPage")
 );
-const StatusSettingsPage = lazy(() => import("./settings/StatusSettingsPage"));
+const StatusSettingsPage = lazy(() =>
+  import("features/settings/components/settings/StatusSettingsPage")
+);
 const CurriculumSettingsPage = lazy(() =>
-  import("./settings/CurriculumSettingsPage")
+  import("features/settings/components/settings/CurriculumSettingsPage")
 );
 // เพิ่ม import สำหรับ Notification Settings
 const NotificationSettingsPage = lazy(() =>
-  import("./settings/NotificationSettingsPage")
+  import("features/settings/components/settings/NotificationSettingsPage")
 );
 const WorkflowStepManagementPage = lazy(() =>
-  import("./settings/WorkflowStepsSettingsPage")
+  import("features/settings/components/settings/WorkflowStepsSettingsPage")
 );
-const SupportStaffDashboard = lazy(() => import('./reports/SupportStaffDashboard.js'));
-const InternshipReport = lazy(() => import('./reports/InternshipReport.js'));
-const ProjectReport = lazy(() => import('./reports/ProjectReport.js'));
+const InternshipReport = lazy(() => import('features/reports/components/reports/InternshipReport'));
+const ProjectReport = lazy(() => import('features/reports/components/reports/ProjectReport'));
 const TopicExamResultPage = lazy(() => import('./topicExam/TopicExamResultPage'));
-const Project1ExamResultPage = lazy(() => import('./project/Project1ExamResultPage'));
-const ThesisExamResultPage = lazy(() => import('./project/ThesisExamResultPage'));
+const Project1ExamResultPage = lazy(() => import('features/project/components/admin-view/Project1ExamResultPage'));
+const ThesisExamResultPage = lazy(() => import('features/project/components/admin-view/ThesisExamResultPage'));
+
+// New Reports - 3 หน้ารายงานใหม่
+const WorkflowProgressReport = lazy(() => import('features/reports/components/reports/WorkflowProgressReport'));
+// const DeadlineComplianceReport = lazy(() => import('features/reports/components/reports/DeadlineComplianceReport'));
+const DeadlineComplianceReport = lazy(() => import('features/reports/components/reports/DeadlineComplianceReportRecharts')); // ใช้ Recharts แทน
+const AdvisorWorkloadDetailReport = lazy(() => import('features/reports/components/reports/AdvisorWorkloadDetailReport'));
 // ProjectManagement ถูกลบแล้ว - ใช้ ProjectPairsPage แทน
 
 // Loading component
@@ -53,16 +66,18 @@ const AdminRoutes = () => {
   return (
     <SystemProvider>
       <UserManagementProvider>
-        <Layout.Content
-          style={{ padding: "20px", minHeight: "calc(100vh - 64px)" }}
-        >
-          <Suspense fallback={<LoadingComponent />}>
-            <Routes>
+        <Suspense fallback={<LoadingComponent />}>
+          <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/reports/support" element={<SupportStaffDashboard />} />
               <Route path="/reports/internship" element={<InternshipReport />} />
               <Route path="/reports/project" element={<ProjectReport />} />
+              
+              {/* New Reports - 3 หน้ารายงานใหม่ */}
+              <Route path="/reports/workflow-progress" element={<WorkflowProgressReport />} />
+              <Route path="/reports/deadline-compliance" element={<DeadlineComplianceReport />} />
+              <Route path="/reports/advisor-workload" element={<AdvisorWorkloadDetailReport />} />
+              
               <Route path="/topic-exam/results" element={<TopicExamResultPage />} />
               <Route path="/project-exam/results" element={<Project1ExamResultPage />} />
               <Route path="/thesis/exam-results" element={<ThesisExamResultPage />} />
@@ -120,7 +135,6 @@ const AdminRoutes = () => {
               </Route>
             </Routes>
           </Suspense>
-        </Layout.Content>
       </UserManagementProvider>
     </SystemProvider>
   );

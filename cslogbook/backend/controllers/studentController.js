@@ -33,7 +33,19 @@ exports.getAllStudents = async (req, res, next) => {
 
 exports.getStudentById = async (req, res) => {
   try {
-    const data = await studentService.getStudentById(req.params.id);
+    const requestedId = req.params.id;
+    
+    // Validate that the ID looks like a studentCode (starts with digits, typically 13 chars)
+    // This helps catch cases where userId is mistakenly passed instead of studentCode
+    if (!/^\d{13}$/.test(requestedId)) {
+      logger.warn(`getStudentById: Invalid studentCode format: ${requestedId}. Expected 13-digit studentCode, not userId.`);
+      return res.status(400).json({
+        success: false,
+        message: "รูปแบบรหัสนักศึกษาไม่ถูกต้อง กรุณาใช้รหัสนักศึกษา 13 หลัก (เช่น 651050xxx)",
+      });
+    }
+    
+    const data = await studentService.getStudentById(requestedId);
 
     res.json({
       success: true,
@@ -104,12 +116,11 @@ exports.updateStudent = async (req, res) => {
 
 exports.updateContactInfo = async (req, res) => {
   try {
-    const { studentId } = req.params;
+    const studentCode = req.params.id; // รับ studentCode จาก URL parameter
     const { classroom, phoneNumber } = req.body;
     
-    // ตรวจสอบสิทธิ์การเข้าถึง (ต้องเป็นเจ้าของข้อมูลหรือแอดมิน)
-    const userId = req.user.id;
-    const student = await studentService.getStudentByIdWithUserId(studentId);
+    // ค้นหานักศึกษาจาก studentCode
+    const student = await studentService.getStudentById(studentCode);
     
     if (!student) {
       return res.status(404).json({
@@ -118,15 +129,28 @@ exports.updateContactInfo = async (req, res) => {
       });
     }
     
-    if (student.userId !== userId && req.user.role !== 'admin') {
+    // ตรวจสอบสิทธิ์การเข้าถึง (ต้องเป็นเจ้าของข้อมูลหรือแอดมิน/ครู)
+    const userId = req.user.userId;
+    
+    // นักศึกษาสามารถแก้ไขข้อมูลของตัวเองได้ หรือ admin/teacher สามารถแก้ไขได้
+    if (req.user.role === 'student') {
+      // นักศึกษาต้องแก้ไขข้อมูลของตัวเองเท่านั้น
+      if (student.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'ไม่มีสิทธิ์อัพเดทข้อมูลนักศึกษาคนอื่น'
+        });
+      }
+    } else if (req.user.role !== 'admin' && req.user.role !== 'teacher') {
+      // บทบาทอื่นๆ ไม่สามารถแก้ไขได้
       return res.status(403).json({
         success: false,
         message: 'ไม่มีสิทธิ์อัพเดทข้อมูลนี้'
       });
     }
     
-    // เรียกใช้ service แทนการเข้าถึงโมเดลโดยตรง
-    const updatedData = await studentService.updateContactInfo(studentId, {
+    // เรียกใช้ service โดยส่ง studentId (primary key)
+    const updatedData = await studentService.updateContactInfo(student.studentId, {
       classroom,
       phoneNumber
     });

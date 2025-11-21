@@ -1,0 +1,152 @@
+/* EligibilityCheck.module.css - CSS Module สำหรับ Project EligibilityCheck */
+
+.eligibilityContainer,
+.requirementsContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+}
+
+:global(.ant-card) {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+:global(.ant-card-head-title) {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+:global(.ant-statistic-title) {
+  font-size: var(--font-size-sm);
+}
+
+:global(.ant-statistic-content-value) {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+}
+
+:global(.ant-timeline-item-content) {
+  padding-bottom: var(--spacing-md);
+}
+
+:global(.ant-steps-item-description) {
+  font-size: var(--font-size-sm);
+}
+
+:global(.ant-collapse > .ant-collapse-item > .ant-collapse-header) {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-md);
+}
+
+:global(.ant-list-bordered .ant-list-item) {
+  padding: 12px var(--spacing-md);
+}
+
+:global(.ant-divider-inner-text) {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-md);
+}
+
+/* สีสถานะต่างๆ */
+.statusSuccess {
+  color: var(--color-success);
+}
+
+.statusWarning {
+  color: var(--color-warning);
+}
+
+.statusError {
+  color: var(--color-error);
+}
+
+.statusInfo {
+  color: var(--color-info);
+}
+
+/* สไตล์สำหรับการตรวจสอบคุณสมบัติ */
+.eligibilitySection {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.eligibilityTitle {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.eligibilityTitle :global(.anticon) {
+  margin-right: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+}
+
+/* สไตล์สำหรับข้อกำหนดโครงงาน */
+.requirementItem {
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: #f9f9f9;
+  border-radius: var(--radius-sm);
+}
+
+.requirementIcon {
+  margin-right: var(--spacing-sm);
+  font-size: var(--font-size-md);
+}
+
+.requirementTitle {
+  font-weight: var(--font-weight-medium);
+}
+
+.stepDescription {
+  margin-left: var(--spacing-lg);
+  color: rgba(0, 0, 0, 0.65);
+}
+
+/* ปรับแต่ง Timeline */
+:global(.ant-timeline-item-tail) {
+  border-left: 2px solid var(--color-info);
+}
+
+:global(.ant-timeline-item-head-blue) {
+  color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+/* ปรับแต่ง Alert */
+:global(.ant-alert) {
+  margin-bottom: var(--spacing-md);
+}
+
+:global(.ant-alert-message) {
+  font-weight: var(--font-weight-medium);
+}
+
+/* ปรับแต่ง Table */
+:global(.ant-table-thead > tr > th) {
+  background-color: var(--color-bg-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* สไตล์สำหรับอุปกรณ์มือถือ */
+@media (max-width: 768px) {
+  .eligibilityContainer,
+  .requirementsContainer {
+    padding: var(--spacing-md);
+  }
+  
+  :global(.ant-statistic-title) {
+    font-size: var(--font-size-xs);
+  }
+  
+  :global(.ant-statistic-content-value) {
+    font-size: var(--font-size-lg);
+  }
+}
+

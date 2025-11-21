@@ -6,10 +6,19 @@ const {
   User,
   Document,
   ProjectTrack,
+  ProjectDefenseRequest,
+  ProjectWorkflowState,
   sequelize
 } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
+const workflowService = require('./workflowService');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 /**
  * ProjectManagementService - บริการสำหรับจัดการโครงงานพิเศษโดยเจ้าหน้าที่ภาควิชา
@@ -66,14 +75,14 @@ class ProjectManagementService {
         throw new Error(`นักศึกษารหัส ${studentCode} ยังไม่มีสิทธิ์ทำโครงงานพิเศษ`);
       }
 
-      // ตรวจสอบว่านักศึกษาคนที่ 1 ยังไม่มีโครงงานที่ยังไม่เสร็จสิ้น
+      // ตรวจสอบว่านักศึกษาคนที่ 1 ยังไม่มีโครงงานที่ยังไม่เสร็จสิ้น (ไม่รวม cancelled)
       const existingProject1 = await ProjectMember.findOne({
         where: { studentId: student1.studentId },
         include: [{
           model: ProjectDocument,
           as: 'project',
           where: { 
-            status: { [Op.notIn]: ['completed', 'archived'] }
+            status: { [Op.notIn]: ['completed', 'archived', 'cancelled'] }
           }
         }],
         transaction
@@ -105,14 +114,14 @@ class ProjectManagementService {
           throw new Error(`นักศึกษารหัส ${student2Code} ยังไม่มีสิทธิ์ทำโครงงานพิเศษ`);
         }
 
-        // ตรวจสอบว่านักศึกษาคนที่ 2 ยังไม่มีโครงงานที่ยังไม่เสร็จสิ้น
+        // ตรวจสอบว่านักศึกษาคนที่ 2 ยังไม่มีโครงงานที่ยังไม่เสร็จสิ้น (ไม่รวม cancelled)
         const existingProject2 = await ProjectMember.findOne({
           where: { studentId: student2.studentId },
           include: [{
             model: ProjectDocument,
             as: 'project',
             where: { 
-              status: { [Op.notIn]: ['completed', 'archived'] }
+              status: { [Op.notIn]: ['completed', 'archived', 'cancelled'] }
             }
           }],
           transaction
@@ -490,14 +499,14 @@ class ProjectManagementService {
         return null;
       }
 
-      // ตรวจสอบว่ามีโครงงานที่ยังไม่เสร็จสิ้น
+      // ตรวจสอบว่ามีโครงงานที่ยังไม่เสร็จสิ้น (ไม่รวม cancelled)
       const existingProject = await ProjectMember.findOne({
         where: { studentId: student.studentId },
         include: [{
           model: ProjectDocument,
           as: 'project',
           where: { 
-            status: { [Op.notIn]: ['completed', 'archived'] }
+            status: { [Op.notIn]: ['completed', 'archived', 'cancelled'] }
           },
           attributes: ['projectId', 'projectNameTh', 'status']
         }]
@@ -544,6 +553,322 @@ class ProjectManagementService {
       logger.error('ProjectManagementService: เกิดข้อผิดพลาดในการดึงรายการอาจารย์', {
         error: error.message
       });
+      throw error;
+    }
+  }
+
+  /**
+   * ยกเลิกโครงงานพิเศษโดยเจ้าหน้าที่ภาควิชา
+   * @param {number} projectId - ID ของโครงงาน
+   * @param {number} adminId - ID ของเจ้าหน้าที่ที่ยกเลิก
+   * @param {string} reason - เหตุผลในการยกเลิก
+   * @returns {Object} ผลลัพธ์การยกเลิก
+   */
+  async cancelProject(projectId, adminId, reason) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      // ดึงข้อมูลโครงงานพร้อมสมาชิก
+      const project = await ProjectDocument.findByPk(projectId, {
+        include: [
+          {
+            model: ProjectMember,
+            as: 'members',
+            include: [{
+              model: Student,
+              as: 'student',
+              attributes: ['studentId', 'studentCode']
+            }]
+          },
+          {
+            model: ProjectDefenseRequest,
+            as: 'defenseRequests',
+            attributes: ['requestId', 'defenseType', 'status']
+          }
+        ],
+        transaction
+      });
+
+      if (!project) {
+        throw new Error(`ไม่พบโครงงาน ID: ${projectId}`);
+      }
+
+      // ตรวจสอบว่าโครงงานยังไม่ได้ถูกยกเลิกไปแล้ว
+      if (project.status === 'cancelled') {
+        throw new Error('โครงงานนี้ถูกยกเลิกไปแล้ว');
+      }
+
+      // ตรวจสอบว่าโครงงานยังไม่ได้เสร็จสิ้นหรือถูก archive ไปแล้ว
+      if (['completed', 'archived'].includes(project.status)) {
+        throw new Error('ไม่สามารถยกเลิกโครงงานที่เสร็จสิ้นหรือถูก archive แล้ว');
+      }
+
+      const members = project.members || [];
+      const studentIds = members.map(m => m.student.studentId);
+
+      // 1. ยกเลิก ProjectDefenseRequest ทั้งหมด (ถ้ามี)
+      const defenseRequests = project.defenseRequests || [];
+      if (defenseRequests.length > 0) {
+        await ProjectDefenseRequest.update(
+          {
+            status: 'cancelled'
+          },
+          {
+            where: {
+              projectId,
+              status: { [Op.ne]: 'cancelled' }
+            },
+            transaction
+          }
+        );
+        logger.info(`[ProjectManagementService] Cancelled ${defenseRequests.length} defense request(s) for project ${projectId}`);
+      }
+
+      // 2. อัปเดต ProjectWorkflowState เป็น 'CANCELLED' ก่อน (เพื่อป้องกัน sync ที่อาจทำให้ project_status เป็น null)
+      // ใช้ raw query เพื่อหลีกเลี่ยงปัญหา constraint ที่อาจมีใน database
+      const lastActivityAt = dayjs().tz('Asia/Bangkok').toDate();
+      
+      // ตรวจสอบว่ามี workflow state อยู่หรือไม่
+      const [existingState] = await sequelize.query(
+        `SELECT id, project_status FROM project_workflow_states WHERE project_id = ?`,
+        {
+          replacements: [parseInt(projectId)],
+          type: sequelize.QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      if (existingState) {
+        // Update existing workflow state
+        logger.info(`[ProjectManagementService] Updating existing workflow state for project ${projectId}`, {
+          existingProjectStatus: existingState.project_status
+        });
+        
+        // ใช้ raw query โดยระบุ project_status เป็น string literal เพื่อหลีกเลี่ยงปัญหา
+        // ใช้ template literal แทน parameter binding เพื่อให้แน่ใจว่าค่าถูกส่งไป
+        const updateQuery = `
+          UPDATE project_workflow_states 
+          SET current_phase = 'CANCELLED', 
+              project_status = 'cancelled',
+              last_activity_at = ?,
+              last_activity_type = 'project_cancelled',
+              last_updated_by = ?,
+              updated_at = NOW()
+          WHERE project_id = ?
+        `;
+        
+        const [updateResult] = await sequelize.query(updateQuery, {
+          replacements: [
+            lastActivityAt,
+            parseInt(adminId),
+            parseInt(projectId)
+          ],
+          type: sequelize.QueryTypes.UPDATE,
+          transaction
+        });
+        
+        logger.info(`[ProjectManagementService] Updated workflow state for project ${projectId}`, {
+          affectedRows: updateResult
+        });
+      } else {
+        // สร้าง workflow state ใหม่
+        logger.info(`[ProjectManagementService] Creating new workflow state for project ${projectId}`);
+        
+        // ใช้ template literal แทน parameter binding เพื่อหลีกเลี่ยงปัญหา
+        const insertQuery = `
+          INSERT INTO project_workflow_states 
+          (project_id, current_phase, project_status, last_activity_at, last_activity_type, last_updated_by, 
+           meeting_count, approved_meeting_count, is_blocked, is_overdue, created_at, updated_at)
+          VALUES 
+          (?, 'CANCELLED', 'cancelled', ?, 'project_cancelled', ?, 
+           0, 0, false, false, NOW(), NOW())
+        `;
+        
+        await sequelize.query(insertQuery, {
+          replacements: [
+            parseInt(projectId),
+            lastActivityAt,
+            parseInt(adminId)
+          ],
+          type: sequelize.QueryTypes.INSERT,
+          transaction
+        });
+        
+        logger.info(`[ProjectManagementService] Created workflow state for project ${projectId}`);
+      }
+
+      // 3. อัปเดต ProjectDocument status เป็น 'cancelled' หลังจาก workflow state แล้ว
+      // เพื่อป้องกัน sync ที่อาจทำให้ project_status ใน workflow state กลับมาเป็น null
+      await sequelize.query(
+        `UPDATE project_documents 
+         SET status = 'cancelled', updated_at = NOW()
+         WHERE project_id = ?`,
+        {
+          replacements: [parseInt(projectId)],
+          type: sequelize.QueryTypes.UPDATE,
+          transaction
+        }
+      );
+      logger.info(`[ProjectManagementService] Updated project document status to cancelled for project ${projectId}`);
+
+      // ตรวจสอบและยืนยันว่า project_status ใน workflow state ยังเป็น 'cancelled' 
+      // (ป้องกันกรณีที่มี trigger หรือ sync ที่ทำให้เป็น null)
+      const [verifyState] = await sequelize.query(
+        `SELECT project_status FROM project_workflow_states WHERE project_id = ?`,
+        {
+          replacements: [parseInt(projectId)],
+          type: sequelize.QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      if (verifyState && verifyState.project_status !== 'cancelled') {
+        // ถ้า project_status ไม่ใช่ 'cancelled' ให้อัปเดตใหม่
+        logger.warn(`[ProjectManagementService] project_status was changed to '${verifyState.project_status}', forcing to 'cancelled'`);
+        await sequelize.query(
+          `UPDATE project_workflow_states 
+           SET project_status = 'cancelled', updated_at = NOW()
+           WHERE project_id = ?`,
+          {
+            replacements: [parseInt(projectId)],
+            type: sequelize.QueryTypes.UPDATE,
+            transaction
+          }
+        );
+      }
+
+      // 4. รีเซ็ตสถานะโครงงานของนักศึกษาทั้งหมด (ให้นักศึกษาสามารถส่งเสนอหัวข้อใหม่ได้)
+      // ⚠️ project_status เป็น ENUM NOT NULL ไม่สามารถเป็น null ได้ ต้องใช้ 'not_started'
+      await Student.update(
+        {
+          isEnrolledProject: false,
+          projectStatus: 'not_started' // เปลี่ยนจาก null เป็น 'not_started' เพราะ column เป็น NOT NULL
+        },
+        {
+          where: {
+            studentId: { [Op.in]: studentIds }
+          },
+          transaction
+        }
+      );
+
+      // 5. อัปเดต workflow activity ของนักศึกษาทั้งหมดเป็น cancelled
+      for (const studentId of studentIds) {
+        await workflowService.updateStudentWorkflowActivity(
+          studentId,
+          'project1',
+          'PROJECT1_CANCELLED',
+          'cancelled',
+          'cancelled',
+          {
+            cancelledBy: adminId,
+            cancelledAt: dayjs().tz('Asia/Bangkok').toISOString(),
+            reason: reason || 'ยกเลิกโดยเจ้าหน้าที่ภาควิชา',
+            previousProjectId: projectId
+          },
+          { transaction }
+        );
+      }
+
+      // 6. ตรวจสอบครั้งสุดท้ายก่อน commit - บังคับให้ project_status เป็น 'cancelled'
+      // ป้องกันกรณีที่มี code อื่นที่ sync หรือ update ทำให้ project_status เป็น null
+      const [finalCheck] = await sequelize.query(
+        `SELECT 
+          COALESCE(project_status, 'NULL_DETECTED') as project_status, 
+          current_phase 
+         FROM project_workflow_states 
+         WHERE project_id = ?`,
+        {
+          replacements: [parseInt(projectId)],
+          type: sequelize.QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      if (finalCheck) {
+        const currentStatus = finalCheck.project_status;
+        const isNull = currentStatus === 'NULL_DETECTED' || currentStatus === null;
+        
+        if (isNull || (currentStatus !== 'cancelled' || finalCheck.current_phase !== 'CANCELLED')) {
+          logger.warn(`[ProjectManagementService] Final check: forcing project_status='cancelled' and current_phase='CANCELLED' for project ${projectId}`, {
+            currentStatus: isNull ? 'NULL' : currentStatus,
+            currentPhase: finalCheck.current_phase
+          });
+          
+          // บังคับให้ project_status เป็น 'cancelled' โดยใช้ string literal
+          await sequelize.query(
+            `UPDATE project_workflow_states 
+             SET project_status = 'cancelled',
+                 current_phase = 'CANCELLED',
+                 updated_at = NOW()
+             WHERE project_id = ?
+             AND (project_status IS NULL OR project_status != 'cancelled' OR current_phase != 'CANCELLED')`,
+            {
+              replacements: [parseInt(projectId)],
+              type: sequelize.QueryTypes.UPDATE,
+              transaction
+            }
+          );
+        }
+      } else {
+        // ถ้ายังไม่มี workflow state ให้สร้างใหม่
+        logger.warn(`[ProjectManagementService] Final check: workflow state not found, creating new one for project ${projectId}`);
+        const insertQuery = `
+          INSERT INTO project_workflow_states 
+          (project_id, current_phase, project_status, last_activity_at, last_activity_type, last_updated_by, 
+           meeting_count, approved_meeting_count, is_blocked, is_overdue, created_at, updated_at)
+          VALUES 
+          (?, 'CANCELLED', 'cancelled', ?, 'project_cancelled', ?, 
+           0, 0, false, false, NOW(), NOW())
+        `;
+        
+        await sequelize.query(insertQuery, {
+          replacements: [
+            parseInt(projectId),
+            dayjs().tz('Asia/Bangkok').toDate(),
+            parseInt(adminId)
+          ],
+          type: sequelize.QueryTypes.INSERT,
+          transaction
+        });
+      }
+
+      await transaction.commit();
+
+      logger.info(`[ProjectManagementService] Cancelled project ${projectId} for students ${studentIds.join(', ')} by admin ${adminId}`);
+
+      return {
+        success: true,
+        projectId,
+        studentIds,
+        message: 'ยกเลิกโครงงานพิเศษสำเร็จ',
+        details: {
+          cancelledDefenseRequests: defenseRequests.length,
+          cancelledStudents: studentIds.length
+        }
+      };
+
+    } catch (error) {
+      await transaction.rollback();
+      
+      // ตรวจสอบ error message เพื่อ debug
+      logger.error('[ProjectManagementService] Error in cancelProject:', {
+        error: error.message,
+        errorStack: error.stack,
+        projectId,
+        adminId,
+        errorName: error.name,
+        errorCode: error.code
+      });
+      
+      // ถ้า error เกี่ยวกับ project_status ให้ log เพิ่มเติม
+      if (error.message && error.message.includes('project_status')) {
+        logger.error('[ProjectManagementService] project_status related error detected, attempting to check database state:', {
+          projectId,
+          error: error.message
+        });
+      }
+      
       throw error;
     }
   }

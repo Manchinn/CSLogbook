@@ -7,6 +7,7 @@ const {
   ProjectMember,
   ProjectExamResult,
   ProjectTestRequest,
+  ProjectWorkflowState,
   Student,
   Teacher,
   User
@@ -17,6 +18,8 @@ const { Op } = require('sequelize');
 const ExcelJS = require('exceljs');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
+const { checkDefenseRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
+const { calculateDefenseRequestLate } = require('../utils/lateSubmissionHelper');
 const timezone = require('dayjs/plugin/timezone');
 const buddhistEra = require('dayjs/plugin/buddhistEra');
 require('dayjs/locale/th');
@@ -28,8 +31,9 @@ dayjs.tz.setDefault('Asia/Bangkok');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
 const DEFENSE_TYPE_THESIS = 'THESIS';
-const THESIS_REQUIRED_APPROVED_MEETING_LOGS = Math.max(parseInt(process.env.THESIS_REQUIRED_APPROVED_LOGS ?? '4', 10) || 4, 1);
-const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified', 'scheduled'];
+const THESIS_REQUIRED_APPROVED_MEETING_LOGS = 4;
+const STAFF_QUEUE_DEFAULT_STATUSES = ['advisor_approved', 'staff_verified'];
+const EXPORT_DEFAULT_STATUSES = ['completed']; // เฉพาะโครงงานที่พร้อมสอบแล้ว
 
 const DEFENSE_TYPE_LABELS_TH = Object.freeze({
   [DEFENSE_TYPE_PROJECT1]: 'โครงงานพิเศษ 1',
@@ -44,7 +48,7 @@ const DEFENSE_EXPORT_PREFIX = Object.freeze({
 const STAFF_STATUS_LABELS_TH = {
   advisor_in_review: 'รออาจารย์อนุมัติครบ',
   advisor_approved: 'รอเจ้าหน้าที่ตรวจสอบ',
-  staff_verified: 'ตรวจสอบแล้ว (ประกาศผ่านปฏิทิน)',
+  staff_verified: 'ตรวจสอบแล้ว',
   scheduled: 'นัดสอบแล้ว (ระบบเดิม)',
   completed: 'บันทึกผลสอบแล้ว'
 };
@@ -190,7 +194,7 @@ class ProjectDefenseRequestService {
     };
   }
 
-  serializeRequest(instance) {
+  serializeRequest(instance, options = {}) {
     if (!instance) return null;
     const data = instance.get ? instance.get({ plain: true }) : instance;
     const buildUser = (user) => {
@@ -214,7 +218,7 @@ class ProjectDefenseRequestService {
       };
     };
 
-    return {
+    const serialized = {
       requestId: data.requestId,
       projectId: data.projectId,
       defenseType: data.defenseType,
@@ -257,6 +261,13 @@ class ProjectDefenseRequestService {
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
+
+    // เพิ่มข้อมูล deadline status (ถ้าต้องการ)
+    if (options.includeDeadlineStatus && data._deadlineStatus) {
+      serialized.deadlineStatus = data._deadlineStatus;
+    }
+
+    return serialized;
   }
 
   async attachMeetingMetrics(serializedRequest, { transaction, defenseType } = {}) {
@@ -470,9 +481,10 @@ class ProjectDefenseRequestService {
       }
 
       const members = project.members || [];
-      const leader = members.find(member => member.role === 'leader');
-      if (!leader || leader.studentId !== Number(actorStudentId)) {
-        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const isMember = members.some(member => Number(member.studentId) === Number(actorStudentId));
+      if (!isMember) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานในการยื่นคำขอนี้');
       }
 
       if (!['in_progress', 'completed'].includes(project.status)) {
@@ -485,8 +497,9 @@ class ProjectDefenseRequestService {
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t, phase: 'phase1' });
       const requiredApprovedLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
-      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < requiredApprovedLogs) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actorStudentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < requiredApprovedLogs) {
         throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${requiredApprovedLogs} ครั้ง`);
       }
 
@@ -501,11 +514,19 @@ class ProjectDefenseRequestService {
         lock: t.LOCK.UPDATE
       });
 
+      // ตรวจสอบสถานะที่ไม่สามารถแก้ไขได้: 'completed' (บันทึกผลสอบแล้ว) และ 'scheduled' (legacy: ระบบเดิม)
       if (record && ['scheduled', 'completed'].includes(record.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+        throw new Error('ไม่สามารถแก้ไขคำขอได้ เนื่องจากอยู่ในสถานะที่ดำเนินการเรียบร้อยแล้ว');
       }
 
       const now = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateDefenseRequestLate(now, DEFENSE_TYPE_PROJECT1, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const basePayload = {
         formPayload: cleanedPayload,
         status: 'advisor_in_review',
@@ -514,7 +535,11 @@ class ProjectDefenseRequestService {
         advisorApprovedAt: null,
         staffVerifiedAt: null,
         staffVerifiedByUserId: null,
-        staffVerificationNote: null
+        staffVerificationNote: null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       };
 
       if (record) {
@@ -543,6 +568,15 @@ class ProjectDefenseRequestService {
       } else {
         await record.update({ status: 'advisor_approved', advisorApprovedAt: now }, { transaction: t });
       }
+
+      // 🆕 อัปเดต workflow state ทันทีเมื่อยื่นคำขอ
+      await ProjectWorkflowState.updateFromDefenseRequest(
+        projectId,
+        DEFENSE_TYPE_PROJECT1,
+        record.requestId,
+        'submitted',
+        { userId: actorStudentId, transaction: t }
+      );
 
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
       await t.commit();
@@ -584,9 +618,10 @@ class ProjectDefenseRequestService {
       }
 
       const members = project.members || [];
-      const leader = members.find(member => member.role === 'leader');
-      if (!leader || leader.studentId !== Number(actorStudentId)) {
-        throw new Error('อนุญาตเฉพาะหัวหน้าโครงงานในการยื่นคำขอนี้');
+      // ตรวจสอบว่า actor เป็นสมาชิกของโครงงานหรือไม่ (ทั้ง 2 คนมีสิทธิ์เท่ากัน)
+      const isMember = members.some(member => Number(member.studentId) === Number(actorStudentId));
+      if (!isMember) {
+        throw new Error('อนุญาตเฉพาะสมาชิกโครงงานในการยื่นคำขอนี้');
       }
 
       if (!['in_progress', 'completed'].includes(project.status)) {
@@ -610,8 +645,9 @@ class ProjectDefenseRequestService {
         ? await Student.findAll({ where: { studentId: memberStudentIds }, transaction: t })
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(projectId, students, { transaction: t, phase: 'phase2' });
-      const leaderMetrics = meetingMetrics.perStudent?.[leader.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < THESIS_REQUIRED_APPROVED_MEETING_LOGS) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actorStudentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < THESIS_REQUIRED_APPROVED_MEETING_LOGS) {
         throw new Error(`ยังไม่สามารถยื่นคำขอสอบได้ ต้องมีบันทึกการพบอาจารย์ที่ได้รับอนุมัติอย่างน้อย ${THESIS_REQUIRED_APPROVED_MEETING_LOGS} ครั้ง`);
       }
 
@@ -645,11 +681,19 @@ class ProjectDefenseRequestService {
         lock: t.LOCK.UPDATE
       });
 
+      // ตรวจสอบสถานะที่ไม่สามารถแก้ไขได้: 'completed' (บันทึกผลสอบแล้ว) และ 'scheduled' (legacy: ระบบเดิม)
       if (record && ['scheduled', 'completed'].includes(record.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+        throw new Error('ไม่สามารถแก้ไขคำขอได้ เนื่องจากอยู่ในสถานะที่ดำเนินการเรียบร้อยแล้ว');
       }
 
       const now = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateDefenseRequestLate(now, DEFENSE_TYPE_THESIS, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const basePayload = {
         formPayload: cleanedPayload,
         status: 'advisor_in_review',
@@ -658,7 +702,11 @@ class ProjectDefenseRequestService {
         advisorApprovedAt: null,
         staffVerifiedAt: null,
         staffVerifiedByUserId: null,
-        staffVerificationNote: null
+        staffVerificationNote: null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       };
 
       if (record) {
@@ -687,6 +735,15 @@ class ProjectDefenseRequestService {
       } else {
         await record.update({ status: 'advisor_approved', advisorApprovedAt: now }, { transaction: t });
       }
+
+      // 🆕 อัปเดต workflow state ทันทีเมื่อยื่นคำขอ
+      await ProjectWorkflowState.updateFromDefenseRequest(
+        projectId,
+        DEFENSE_TYPE_THESIS,
+        record.requestId,
+        'submitted',
+        { userId: actorStudentId, transaction: t }
+      );
 
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t, projectInstance: project });
       await t.commit();
@@ -814,8 +871,9 @@ class ProjectDefenseRequestService {
       if (!request) {
         throw new Error('ไม่พบคำขอสอบสำหรับโครงงานนี้');
       }
+      // ตรวจสอบสถานะที่ไม่สามารถแก้ไขได้: 'completed' (บันทึกผลสอบแล้ว) และ 'scheduled' (legacy: ระบบเดิม)
       if (['completed', 'scheduled'].includes(request.status)) {
-        throw new Error('ไม่สามารถแก้ไขคำขอหลังจากมีการนัดสอบแล้ว');
+        throw new Error('ไม่สามารถตรวจสอบคำขอได้ เนื่องจากอยู่ในสถานะที่ดำเนินการเรียบร้อยแล้ว');
       }
       if (request.status !== 'advisor_approved' && request.status !== 'staff_verified') {
         throw new Error('คำขอยังไม่ได้รับการอนุมัติจากอาจารย์ครบถ้วน');
@@ -829,6 +887,16 @@ class ProjectDefenseRequestService {
       };
 
       await request.update(updatePayload, { transaction: t });
+      
+      // 🆕 อัปเดต workflow state เมื่อ staff verify
+      await ProjectWorkflowState.updateFromDefenseRequest(
+        projectId,
+        defenseType,
+        request.requestId,
+        'scheduled',
+        { userId: actorUser?.userId || null, transaction: t }
+      );
+      
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
 
@@ -981,7 +1049,9 @@ class ProjectDefenseRequestService {
       semester,
       search,
       withMetrics = false,
-      defenseType = DEFENSE_TYPE_PROJECT1
+      defenseType = DEFENSE_TYPE_PROJECT1,
+      limit,
+      offset
     } = filters;
 
     let statuses = STAFF_QUEUE_DEFAULT_STATUSES;
@@ -1017,71 +1087,107 @@ class ProjectDefenseRequestService {
     }
 
     const include = this.buildRequestInclude({ projectWhere });
-    const requests = await ProjectDefenseRequest.findAll({
-      where,
-      include,
-      order: [['submitted_at', 'ASC']]
-    });
+    
+    // Pagination params
+    const paginationLimit = limit ? parseInt(limit, 10) : undefined;
+    const paginationOffset = offset ? parseInt(offset, 10) : undefined;
+
+    let requests;
+    let total = 0;
+
+    if (paginationLimit !== undefined || paginationOffset !== undefined) {
+      // ใช้ findAndCountAll สำหรับ pagination
+      const { rows, count } = await ProjectDefenseRequest.findAndCountAll({
+        where,
+        include,
+        order: [['submitted_at', 'ASC']],
+        limit: paginationLimit,
+        offset: paginationOffset,
+        distinct: true, // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
+      });
+      requests = rows;
+      total = count;
+    } else {
+      // ไม่มี pagination ใช้ findAll
+      requests = await ProjectDefenseRequest.findAll({
+        where,
+        include,
+        order: [['submitted_at', 'ASC']]
+      });
+      total = requests.length;
+    }
 
     const serializedList = [];
     for (const request of requests) {
-      const serialized = this.serializeRequest(request);
+      // ตรวจสอบ deadline status
+      const deadlineStatus = await checkDefenseRequestDeadline({
+        submittedAt: request.submittedAt,
+        defenseType: request.defenseType,
+        project: request.project
+      });
+      
+      const deadlineTag = createDeadlineTag(deadlineStatus);
+      
+      // Attach deadline status to request data before serialization
+      request._deadlineStatus = {
+        ...deadlineStatus,
+        tag: deadlineTag
+      };
+
+      const serialized = this.serializeRequest(request, { includeDeadlineStatus: true });
       if (withMetrics) {
         await this.attachMeetingMetrics(serialized, { defenseType });
       }
       serializedList.push(serialized);
     }
-    return serializedList;
+    return { data: serializedList, total };
   }
 
   async exportStaffVerificationList(filters = {}) {
     const { defenseType = DEFENSE_TYPE_PROJECT1 } = filters;
-    const records = await this.getStaffVerificationQueue({ ...filters, withMetrics: true });
+    // ใช้สถานะเฉพาะ 'completed' สำหรับการ export เพื่อจัดตารางสอบ
+    const exportFilters = { ...filters, status: EXPORT_DEFAULT_STATUSES, withMetrics: false };
+    const records = await this.getStaffVerificationQueue(exportFilters);
     const workbook = new ExcelJS.Workbook();
-    const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'KP02 Thesis' : 'KP02 Project1';
+    const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'รายชื่อสอบปริญญานิพนธ์' : 'รายชื่อสอบโครงงานพิเศษ 1';
     const worksheet = workbook.addWorksheet(worksheetName);
 
     worksheet.columns = [
-      { header: 'ลำดับ', key: 'index', width: 8 },
-      { header: 'ชื่อโครงงานพิเศษ', key: 'titleTh', width: 40 },
-      { header: 'สมาชิก', key: 'members', width: 40 },
-      { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 28 },
-      { header: 'สถานะคำขอ', key: 'status', width: 18 },
-      { header: 'ยื่นคำขอเมื่อ', key: 'submittedAt', width: 20 },
-      { header: 'อนุมัติอาจารย์เมื่อ', key: 'advisorApprovedAt', width: 20 },
-      { header: 'ตรวจโดยเจ้าหน้าที่เมื่อ', key: 'staffVerifiedAt', width: 20 },
-      { header: 'เจ้าหน้าที่ผู้ตรวจ', key: 'staffVerifiedBy', width: 24 },
-      { header: 'วันสอบที่นัด', key: 'defenseScheduledAt', width: 22 },
-      { header: 'หมายเหตุเจ้าหน้าที่', key: 'staffNote', width: 28 },
+      { header: 'ลำดับ', key: 'index', width: 10 },
+      { header: 'ชื่อโครงงานพิเศษ', key: 'titleTh', width: 50 },
+      { header: 'สมาชิก', key: 'members', width: 45 },
+      { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 30 }
     ];
 
     records.forEach((record, index) => {
       const project = record.project || {};
-      const members = (project.members || []).map((member) => `${member.studentCode || '-'} ${member.name || ''}`.trim()).join('\n');
+      const members = (project.members || [])
+        .map((member) => {
+          const code = member.studentCode || '-';
+          const name = member.name || '';
+          return `${code} ${name}`.trim();
+        })
+        .join('\n');
       const advisorName = project.advisor?.name || '-';
-      const staffName = record.staffVerifiedBy?.fullName || '-';
-      const leaderStudentId = project.members?.find((member) => member.role === 'leader')?.studentId;
-      const leaderMetrics = record.meetingMetrics?.perStudent?.find((item) => item.studentId === leaderStudentId) || { approvedLogs: 0 };
+      
       worksheet.addRow({
         index: index + 1,
-        projectCode: project.projectCode || '-',
         titleTh: project.projectNameTh || '-',
         members: members || '-',
-        advisor: advisorName,
-        status: STAFF_STATUS_LABELS_TH[record.status] || record.status,
-        submittedAt: formatThaiDateTime(record.submittedAt),
-        advisorApprovedAt: formatThaiDateTime(record.advisorApprovedAt),
-        staffVerifiedAt: formatThaiDateTime(record.staffVerifiedAt),
-        staffVerifiedBy: staffName || '-',
-        defenseScheduledAt: formatThaiDateTime(record.defenseScheduledAt),
-        staffNote: record.staffVerificationNote || '-',
-        leaderLogs: leaderMetrics.approvedLogs || 0,
-        requiredLogs: record.meetingMetrics?.requiredApprovedLogs ?? (defenseType === DEFENSE_TYPE_THESIS ? THESIS_REQUIRED_APPROVED_MEETING_LOGS : projectDocumentService.getRequiredApprovedMeetingLogs())
+        advisor: advisorName
       });
     });
 
-    worksheet.eachRow((row) => {
+    worksheet.eachRow((row, rowNumber) => {
       row.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+      if (rowNumber === 1) {
+        row.font = { bold: true };
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+      }
     });
 
     const buffer = await workbook.xlsx.writeBuffer();

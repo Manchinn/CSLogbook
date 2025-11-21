@@ -15,9 +15,18 @@ module.exports = (sequelize) => {
         foreignKey: 'advisor_teacher_id',
         as: 'advisor'
       });
+      ProjectTestRequest.belongsTo(models.Teacher, {
+        foreignKey: 'co_advisor_teacher_id',
+        as: 'coAdvisor'
+      });
       ProjectTestRequest.belongsTo(models.User, {
         foreignKey: 'staff_user_id',
         as: 'staffUser'
+      });
+      // 🆕 Association with ImportantDeadline for late tracking
+      ProjectTestRequest.belongsTo(models.ImportantDeadline, {
+        foreignKey: 'important_deadline_id',
+        as: 'deadline'
       });
     }
   }
@@ -89,6 +98,21 @@ module.exports = (sequelize) => {
       allowNull: true,
       field: 'advisor_decided_at'
     },
+    coAdvisorTeacherId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'co_advisor_teacher_id'
+    },
+    coAdvisorDecisionNote: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'co_advisor_decision_note'
+    },
+    coAdvisorDecidedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'co_advisor_decided_at'
+    },
     staffUserId: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -118,6 +142,28 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'evidence_submitted_at'
+    },
+    // 🆕 Google Classroom-style late tracking
+    submittedLate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'submitted_late',
+      comment: 'ส่งคำขอหลังเวลากำหนดหรือไม่ (Google Classroom style)'
+    },
+    submissionDelayMinutes: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+      field: 'submission_delay_minutes',
+      comment: 'จำนวนนาทีที่ส่งช้า (null = ส่งทันหรือไม่ได้ track)'
+    },
+    importantDeadlineId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+      field: 'important_deadline_id',
+      comment: 'เชื่อมโยงกับ deadline ที่ใช้ตรวจสอบ'
     }
   }, {
     sequelize,

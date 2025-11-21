@@ -10,11 +10,13 @@ const {
 } = require('../models');
 const projectDocumentService = require('./projectDocumentService');
 const logger = require('../utils/logger');
+const { calculateSystemTestRequestLate } = require('../utils/lateSubmissionHelper');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 const buddhistEra = require('dayjs/plugin/buddhistEra');
 const { Op } = require('sequelize');
+const { checkSystemTestRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -71,17 +73,19 @@ function ensureAdvisor(project, teacherId) {
 }
 
 class ProjectSystemTestService {
-  serialize(instance) {
+  serialize(instance, options = {}) {
     if (!instance) return null;
     const data = instance.get ? instance.get({ plain: true }) : instance;
     const project = data.project || {};
     const advisor = data.advisor || {};
     const advisorUser = advisor.user || {};
+    const coAdvisor = data.coAdvisor || {};
+    const coAdvisorUser = coAdvisor.user || {};
     const submittedBy = data.submittedBy || {};
     const submittedUser = submittedBy.user || {};
     const staffUser = data.staffUser || {};
 
-    return {
+    const serialized = {
       requestId: data.requestId,
       projectId: data.projectId,
       status: data.status,
@@ -95,6 +99,12 @@ class ProjectSystemTestService {
         name: advisorUser.userId ? `${advisorUser.firstName || ''} ${advisorUser.lastName || ''}`.trim() : null,
         decidedAt: data.advisorDecidedAt,
         note: data.advisorDecisionNote || null
+      },
+      coAdvisorDecision: {
+        teacherId: data.coAdvisorTeacherId,
+        name: coAdvisorUser.userId ? `${coAdvisorUser.firstName || ''} ${coAdvisorUser.lastName || ''}`.trim() : null,
+        decidedAt: data.coAdvisorDecidedAt,
+        note: data.coAdvisorDecisionNote || null
       },
       staffDecision: {
         userId: data.staffUserId,
@@ -119,10 +129,18 @@ class ProjectSystemTestService {
       timeline: {
         submittedAt: data.submittedAt,
         advisorDecidedAt: data.advisorDecidedAt,
+        coAdvisorDecidedAt: data.coAdvisorDecidedAt,
         staffDecidedAt: data.staffDecidedAt,
         evidenceSubmittedAt: data.evidenceSubmittedAt
       }
     };
+
+    // เพิ่มข้อมูล deadline status (ถ้าต้องการ)
+    if (options.includeDeadlineStatus && data._deadlineStatus) {
+      serialized.deadlineStatus = data._deadlineStatus;
+    }
+
+    return serialized;
   }
 
   async findLatest(projectId, options = {}) {
@@ -139,6 +157,12 @@ class ProjectSystemTestService {
       {
         model: Teacher,
         as: 'advisor',
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
         include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       },
       {
@@ -198,9 +222,7 @@ class ProjectSystemTestService {
       if (actor.role !== 'student') {
         throw new Error('อนุญาตเฉพาะนักศึกษาที่เป็นสมาชิกโครงงานในการส่งคำขอทดสอบระบบ');
       }
-      if (!ensureLeader(project, actor.studentId)) {
-        throw new Error('จำกัดเฉพาะหัวหน้าโครงงานในการส่งคำขอนี้');
-      }
+      // ✅ เปลี่ยนจากเฉพาะ leader เป็นอนุญาตสมาชิกทุกคนส่งคำขอได้
       if (!['in_progress', 'completed'].includes(project.status)) {
         throw new Error('โครงงานต้องอยู่ในสถานะกำลังดำเนินการก่อนส่งคำขอทดสอบระบบ');
       }
@@ -238,12 +260,21 @@ class ProjectSystemTestService {
         : [];
   const meetingMetrics = await projectDocumentService.buildProjectMeetingMetrics(project.projectId, students, { transaction: t, phase: 'phase1' });
       const requiredLogs = projectDocumentService.getRequiredApprovedMeetingLogs();
-      const leaderMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
-      if ((leaderMetrics.approvedLogs || 0) < requiredLogs) {
+      // ตรวจสอบ meeting logs ของสมาชิกที่ส่งคำร้อง (ไม่จำเป็นต้องเป็น leader)
+      const actorMetrics = meetingMetrics.perStudent?.[actor.studentId] || { approvedLogs: 0 };
+      if ((actorMetrics.approvedLogs || 0) < requiredLogs) {
         throw new Error(`ยังไม่ครบเกณฑ์บันทึกการพบอาจารย์: ต้องมีอย่างน้อย ${requiredLogs} รายการที่ได้รับอนุมัติ`);
       }
 
       const relativePath = fileMeta?.path ? buildRelativePath(fileMeta.path) : null;
+      const submittedAt = new Date();
+      
+      // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
+      const lateStatus = await calculateSystemTestRequestLate(submittedAt, {
+        academicYear: project.academicYear,
+        semester: project.semester
+      });
+      
       const record = await ProjectTestRequest.create({
         projectId: project.projectId,
         submittedByStudentId: actor.studentId,
@@ -251,10 +282,15 @@ class ProjectSystemTestService {
         requestFilePath: relativePath,
         requestFileName: fileMeta?.originalname || null,
         studentNote: payload.studentNote || null,
-        submittedAt: new Date(),
+        submittedAt,
         testStartDate: startDay.toDate(),
         testDueDate: dueDay.toDate(),
-        advisorTeacherId: project.advisorId || null
+        advisorTeacherId: project.advisorId || null,
+        coAdvisorTeacherId: project.coAdvisorId || null,
+        // 🆕 เพิ่มข้อมูลการส่งช้า
+        submittedLate: lateStatus.submitted_late,
+        submissionDelayMinutes: lateStatus.submission_delay_minutes,
+        importantDeadlineId: lateStatus.important_deadline_id
       }, { transaction: t });
 
       await t.commit();
@@ -291,12 +327,46 @@ class ProjectSystemTestService {
         throw new Error('กรุณาเลือกผลการพิจารณาให้ถูกต้อง');
       }
 
-      const update = {
-        advisorTeacherId: actor.teacherId,
-        advisorDecidedAt: new Date(),
-        advisorDecisionNote: payload.note || null,
-        status: decision === 'approve' ? 'pending_staff' : 'advisor_rejected'
-      };
+      const isAdvisor = Number(project.advisorId) === Number(actor.teacherId);
+      const isCoAdvisor = Number(project.coAdvisorId) === Number(actor.teacherId);
+
+      // ตรวจสอบว่ามี co-advisor หรือไม่
+      const hasCoAdvisor = !!project.coAdvisorId;
+      
+      // อัปเดต decision ตาม role
+      const update = {};
+      if (isAdvisor) {
+        update.advisorTeacherId = actor.teacherId;
+        update.advisorDecidedAt = new Date();
+        update.advisorDecisionNote = payload.note || null;
+      } else if (isCoAdvisor) {
+        update.coAdvisorTeacherId = actor.teacherId;
+        update.coAdvisorDecidedAt = new Date();
+        update.coAdvisorDecisionNote = payload.note || null;
+      }
+
+      // ตรวจสอบสถานะการอนุมัติ
+      if (decision === 'reject') {
+        // ถ้าปฏิเสธ ให้ status เป็น advisor_rejected ทันที
+        update.status = 'advisor_rejected';
+      } else {
+        // ถ้าอนุมัติ ให้ตรวจสอบว่าทั้ง 2 คนอนุมัติแล้วหรือยัง
+        // ตรวจสอบจาก record ที่มีอยู่ (ก่อน update) หรือจาก update ที่กำลังจะทำ
+        const advisorApproved = isAdvisor ? true : (!!record.advisorDecidedAt);
+        const coAdvisorApproved = isCoAdvisor ? true : (!!record.coAdvisorDecidedAt);
+        
+        // ถ้ามี co-advisor ต้องรอทั้ง 2 คนอนุมัติ ถ้าไม่มี co-advisor แค่ advisor อนุมัติก็พอ
+        if (hasCoAdvisor) {
+          if (advisorApproved && coAdvisorApproved) {
+            update.status = 'pending_staff';
+          } else {
+            update.status = 'pending_advisor'; // ยังรออีกคนอนุมัติ
+          }
+        } else {
+          // ไม่มี co-advisor แค่ advisor อนุมัติก็ส่งต่อไป staff
+          update.status = 'pending_staff';
+        }
+      }
 
       await record.update(update, { transaction: t });
       await t.commit();
@@ -404,12 +474,27 @@ class ProjectSystemTestService {
         model: Student,
         as: 'submittedBy',
         include: [{ association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'advisor',
+        required: false,
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       }
     ];
 
     const records = await ProjectTestRequest.findAll({
       where: {
-        advisorTeacherId: teacherId,
+        [Op.or]: [
+          { advisorTeacherId: teacherId },
+          { coAdvisorTeacherId: teacherId }
+        ],
         status: { [Op.in]: ['pending_advisor', 'pending_staff', 'staff_approved'] }
       },
       order: [['submittedAt', 'DESC']],
@@ -427,8 +512,27 @@ class ProjectSystemTestService {
       where.status = { [Op.in]: ['pending_staff', 'staff_approved'] };
     }
 
+    const projectWhere = {};
+    if (options.academicYear) {
+      const year = Number(options.academicYear);
+      if (Number.isInteger(year)) {
+        projectWhere.academicYear = year;
+      }
+    }
+    if (options.semester) {
+      const sem = Number(options.semester);
+      if ([1, 2, 3].includes(sem)) {
+        projectWhere.semester = sem;
+      }
+    }
+
     const include = [
-      { model: ProjectDocument, as: 'project' },
+      { 
+        model: ProjectDocument, 
+        as: 'project',
+        where: Object.keys(projectWhere).length > 0 ? projectWhere : undefined,
+        required: false
+      },
       {
         model: Student,
         as: 'submittedBy',
@@ -437,16 +541,137 @@ class ProjectSystemTestService {
       {
         model: Teacher,
         as: 'advisor',
+        required: false,
+        include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
+      },
+      {
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
         include: [{ association: Teacher.associations.user, attributes: ['userId', 'firstName', 'lastName'] }]
       }
     ];
 
-    const records = await ProjectTestRequest.findAll({
-      where,
-      order: [['submittedAt', 'DESC']],
-      include
-    });
-    return records.map(record => this.serialize(record));
+    // Pagination params
+    const limit = options.limit ? parseInt(options.limit, 10) : undefined;
+    const offset = options.offset ? parseInt(options.offset, 10) : undefined;
+
+    let records;
+    let total = 0;
+
+    if (limit !== undefined || offset !== undefined) {
+      // ใช้ findAndCountAll สำหรับ pagination
+      const { rows, count } = await ProjectTestRequest.findAndCountAll({
+        where,
+        include,
+        order: [['submittedAt', 'DESC']],
+        limit,
+        offset,
+        distinct: true, // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
+      });
+      records = rows;
+      total = count;
+    } else {
+      // ไม่มี pagination ใช้ findAll
+      records = await ProjectTestRequest.findAll({
+        where,
+        include,
+        order: [['submittedAt', 'DESC']]
+      });
+      total = records.length;
+    }
+
+    // เพิ่มการตรวจสอบ deadline status
+    const serializedList = [];
+    for (const record of records) {
+      // ตรวจสอบ deadline status
+      const deadlineStatus = await checkSystemTestRequestDeadline(
+        this.serialize(record)
+      );
+      
+      const deadlineTag = createDeadlineTag(deadlineStatus);
+      
+      // Attach deadline status to record data before serialization
+      record._deadlineStatus = {
+        ...deadlineStatus,
+        tag: deadlineTag
+      };
+
+      const serialized = this.serialize(record, { includeDeadlineStatus: true });
+
+      // Filter ด้วย search ถ้ามี
+      if (options.search && typeof options.search === 'string' && options.search.trim()) {
+        const keyword = options.search.trim().toLowerCase();
+        const project = serialized.projectSnapshot || {};
+        const applicant = serialized.submittedBy || {};
+        const advisor = serialized.advisorDecision || {};
+        const candidates = [
+          project.projectNameTh,
+          project.projectNameEn,
+          project.projectCode,
+          applicant.studentCode,
+          applicant.name,
+          advisor.name
+        ].filter(Boolean);
+        
+        const matches = candidates.some((text) => String(text).toLowerCase().includes(keyword));
+        if (!matches) {
+          continue; // ข้ามรายการที่ไม่ตรงกับ search
+        }
+      }
+
+      serializedList.push(serialized);
+    }
+
+    // ถ้ามี pagination และมีการ filter ด้วย search ต้องคำนวณ total ใหม่ทั้งหมด
+    let filteredTotal = total;
+    if ((limit !== undefined || offset !== undefined) && options.search && typeof options.search === 'string' && options.search.trim()) {
+      // Query ทั้งหมดใหม่เพื่อนับ total หลัง filter ด้วย search
+      const allRecords = await ProjectTestRequest.findAll({
+        where,
+        include,
+        order: [['submittedAt', 'DESC']]
+      });
+
+      const allSerialized = [];
+      for (const record of allRecords) {
+        const deadlineStatus = await checkSystemTestRequestDeadline(
+          this.serialize(record)
+        );
+        const deadlineTag = createDeadlineTag(deadlineStatus);
+        record._deadlineStatus = {
+          ...deadlineStatus,
+          tag: deadlineTag
+        };
+        const serialized = this.serialize(record, { includeDeadlineStatus: true });
+
+        const keyword = options.search.trim().toLowerCase();
+        const project = serialized.projectSnapshot || {};
+        const applicant = serialized.submittedBy || {};
+        const advisor = serialized.advisorDecision || {};
+        const candidates = [
+          project.projectNameTh,
+          project.projectNameEn,
+          project.projectCode,
+          applicant.studentCode,
+          applicant.name,
+          advisor.name
+        ].filter(Boolean);
+        
+        const matches = candidates.some((text) => String(text).toLowerCase().includes(keyword));
+        if (matches) {
+          allSerialized.push(serialized);
+        }
+      }
+      filteredTotal = allSerialized.length;
+    }
+    
+    // ถ้ามี pagination ส่ง total กลับไปด้วย
+    if (limit !== undefined || offset !== undefined) {
+      return { data: serializedList, total: filteredTotal };
+    }
+
+    return serializedList;
   }
 }
 

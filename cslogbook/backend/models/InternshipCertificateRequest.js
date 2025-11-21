@@ -100,6 +100,12 @@ module.exports = (sequelize) => {
       foreignKey: 'documentId',
       as: 'document',
     });
+
+    InternshipCertificateRequest.belongsTo(models.InternshipDocument, {
+      foreignKey: 'internshipId',
+      targetKey: 'internshipId',
+      as: 'internship',
+    });
   };
 
   return InternshipCertificateRequest;

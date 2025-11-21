@@ -64,6 +64,31 @@ exports.create = async (req, res) => {
   try {
     const translated = translateLegacyPayload(req.body);
     const deadline = await importantDeadlineService.create(translated);
+    
+    // 🆕 Auto-create deadline mapping (ถ้ามี template metadata)
+    if (req.body.templateId && req.body.autoCreateMapping) {
+      try {
+        const { DeadlineWorkflowMapping } = require('../models');
+        const mappingPayload = {
+          importantDeadlineId: deadline.id,
+          workflowType: req.body.workflowType,
+          documentSubtype: req.body.documentSubtype,
+          autoAssign: 'on_submit',
+          active: true
+        };
+        
+        await DeadlineWorkflowMapping.create(mappingPayload);
+        console.log('[DeadlineController] Auto-created mapping:', {
+          deadlineId: deadline.id,
+          templateId: req.body.templateId,
+          documentSubtype: req.body.documentSubtype
+        });
+      } catch (mappingError) {
+        // ไม่ให้ error จาก mapping ทำให้ deadline creation ล้มเหลว
+        console.warn('[DeadlineController] Mapping creation failed:', mappingError.message);
+      }
+    }
+    
     const d = deadline.deadlineAt ? new Date(deadline.deadlineAt) : null;
     let local = null;
     if (d) {

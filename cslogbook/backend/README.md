@@ -173,3 +173,28 @@ Server จะทำการตรวจสอบค่า environment variables
 4. ตรวจสอบขนาดของ JWT_SECRET
 
 หากพบข้อผิดพลาด server จะไม่เริ่มทำงานและแสดงข้อความแจ้งเตือนที่เหมาะสม
+
+## Utility Scripts
+
+### Important Deadlines Management
+
+ระบบมีเครื่องมือสำหรับการจัดการ Important Deadlines และการเชื่อมโยงกับเอกสาร:
+
+```bash
+# ดูรายการ deadlines ทั้งหมด
+node scripts/setupDeadlineMappings.js list-deadlines
+
+# ดูรายการ mappings ที่มีอยู่
+node scripts/setupDeadlineMappings.js list-mappings
+
+# สร้าง mappings ใหม่ (ต้องแก้ไข config ในไฟล์ก่อน)
+node scripts/setupDeadlineMappings.js setup
+
+# Backfill เอกสารเก่า (ต้องสร้างไฟล์ backfillDocumentDeadlines.js ก่อน)
+node scripts/backfillDocumentDeadlines.js
+```
+
+**คู่มือการใช้งาน**:
+- `../knowledge/DEADLINE_LINKING_SUMMARY.md` - สรุประบบและวิธีใช้งาน
+- `../knowledge/DEADLINE_DOCUMENT_LINKING_GUIDE.md` - คู่มือโดยละเอียด
+- `../knowledge/deadlines_system_spec.md` - สเปกระบบฉบับเต็ม

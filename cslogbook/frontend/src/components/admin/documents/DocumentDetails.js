@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Tabs, Alert } from 'antd';
-import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Alert, Descriptions, Badge } from 'antd';
+import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from '../../../utils/dayjs'; // ใช้ dayjs ที่ตั้งค่า timezone + BE
 import { documentService } from '../../../services/admin/documentService';
-import PDFViewerModal from '../../PDFViewerModal';
+import { PDFViewerModal } from '../../common/PDFViewer';
 import CS05Preview from './CS05Preview';
 
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 const DocumentDetails = ({ documentId, open, onClose }) => {
   const [details, setDetails] = useState(null);
@@ -14,7 +14,6 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
   const [error, setError] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false); // เพิ่ม state สำหรับควบคุมการแสดง PDF
   const [pdfUrl, setPdfUrl] = useState(null); // เพิ่ม state สำหรับเก็บ URL ของ PDF
-  const [activeTab, setActiveTab] = useState('details');
   
   useEffect(() => {
     if (!documentId) return;
@@ -137,118 +136,134 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     return d.format(`DD/MM/`) + `${buddhistYear} ` + d.format('HH:mm');
   };
 
-  // (ลบ renderFileList เดิมที่ไม่ถูกใช้งานแล้ว)
-
-  const renderDetailSection = () => {
-    if (!details) return null;
-
-    // แก้ไขการอ่านข้อมูลให้รองรับทั้งโครงสร้างข้อมูลแบบเดิมและแบบใหม่
-    // ตรวจสอบว่าข้อมูลอยู่ใน details หรือ details.data
-    const data = details.data || details;
-    
-    // ตรวจสอบว่าเป็นเอกสาร CS05 หรือไม่
-    const isCS05 = data.documentName === 'CS05' && data.documentType === 'INTERNSHIP';
-
-    // ถ้าเป็นเอกสาร CS05 ให้แสดงในรูปแบบ Tabs
-    if (isCS05) {
-      return (
-        <Card className="detail-card">
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={[
-              {
-                key: 'details',
-                label: 'รายละเอียดเอกสาร',
-                children: renderBasicDetails(data)
-              },
-              {
-                key: 'preview',
-                label: 'แสดงตามแบบฟอร์ม คพ.05',
-                children: <CS05Preview data={data} />
-              }
-            ]}
-          />
-        </Card>
-      );
-    }
-    
-    // ถ้าไม่ใช่ CS05 แสดงแบบปกติ
-    return renderBasicDetails(data);
+  // แปลงชื่อเอกสารเป็นภาษาไทย
+  const getDocumentDisplayName = (name) => {
+    const upper = (name || '').toUpperCase();
+    if (upper === 'CS05') return 'คำร้องขอฝึกงาน (คพ.05)';
+    if (upper === 'ACCEPTANCE_LETTER') return 'หนังสือตอบรับการฝึกงาน';
+    return name || 'ไม่ระบุ';
   };
-  
-  // ย้ายส่วนแสดงรายละเอียดทั่วไปไปยังฟังก์ชันใหม่
-  const renderBasicDetails = (data) => {
-    // แปลชื่อเอกสารเป็นภาษาไทยตาม mapping ใหม่
-    const mapName = (name) => {
-      const upper = (name || '').toUpperCase();
-      if (upper === 'CS05') return 'คำร้องขอฝึกงาน (คพ.05)';
-      if (upper === 'ACCEPTANCE_LETTER') return 'หนังสือตอบรับการฝึกงาน';
-      return name || 'ไม่ระบุ';
-    };
-    const displayName = mapName(data.documentName);
-  const submittedAt = data.submittedAt || data.submitted_at || data.created_at;
+
+  // Render Compact Header Card
+  const renderHeaderCard = (data) => {
+    const displayName = getDocumentDisplayName(data.documentName);
+    const submittedAt = data.submittedAt || data.submitted_at || data.created_at;
     const fileName = data.filePath ? data.filePath.split('\\').pop() : null;
     const fileSizeMB = data.fileSize ? (data.fileSize / 1024 / 1024) : null;
-    return (
-      <Card
-        title={<Title level={4} style={{ margin: 0 }}>รายละเอียดเอกสาร: {displayName}</Title>}
-        variant="outlined"
-        className="detail-card"
-      >
-        <Row gutter={[24, 16]}>
-          <Col xs={24} md={12}>
-            <Paragraph><strong>ชื่อเอกสาร:</strong> {displayName}</Paragraph>
-          </Col>
-          <Col xs={24} md={12}>
-            <Paragraph><strong>วันที่ส่ง:</strong> {formatDateTime(submittedAt)}</Paragraph>
-            <Paragraph><strong>สถานะ:</strong> {renderStatus(data.status)}</Paragraph>
-          </Col>
-        </Row>
 
-        {data.filePath && (
-          <>
-            <Divider style={{ margin: '12px 0' }} />
-            <Title level={5}>ข้อมูลไฟล์</Title>
-            <Row gutter={[24, 16]}>
-              <Col xs={24} md={12}>
-                <Paragraph><strong>ชื่อไฟล์:</strong> {fileName || 'ไม่ระบุ'}</Paragraph>
-                <Paragraph><strong>ขนาดไฟล์:</strong> {fileSizeMB ? `${fileSizeMB.toFixed(fileSizeMB >= 1 ? 2 : 3)} MB` : 'ไม่ระบุ'}</Paragraph>
-              </Col>
-              <Col xs={24} md={12}>
-                <Space>
+    return (
+      <Card 
+        size="small"
+        style={{ marginBottom: 16, background: '#fafafa' }}
+      >
+        <Row align="middle" justify="space-between" gutter={[16, 16]}>
+          {/* ซ้าย: ข้อมูลเอกสาร */}
+          <Col xs={24} lg={14}>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Space align="center" size={12}>
+                <FileTextOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+                <Text strong style={{ fontSize: 16 }}>{displayName}</Text>
+                {renderStatus(data.status)}
+              </Space>
+              <Descriptions size="small" column={2}>
+                <Descriptions.Item label="วันที่ส่ง">
+                  <Text style={{ fontSize: 13 }}>{formatDateTime(submittedAt)}</Text>
+                </Descriptions.Item>
+                {fileName && (
+                  <>
+                    <Descriptions.Item label="ไฟล์">
+                      <Text style={{ fontSize: 13 }} ellipsis>{fileName}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="ขนาด">
+                      <Text style={{ fontSize: 13 }}>
+                        {fileSizeMB ? `${fileSizeMB.toFixed(2)} MB` : 'ไม่ระบุ'}
+                      </Text>
+                    </Descriptions.Item>
+                  </>
+                )}
+              </Descriptions>
+            </Space>
+          </Col>
+          
+          {/* ขวา: ปุ่มดำเนินการ */}
+          <Col xs={24} lg={10} style={{ textAlign: 'right' }}>
+            <Space wrap>
+              {data.filePath && (
+                <>
+                  <Button
+                    icon={<EyeOutlined />}
+                    onClick={handleViewPDF}
+                    size="large"
+                  >
+                    ดูเอกสาร PDF
+                  </Button>
                   <Button
                     type="primary"
                     icon={<DownloadOutlined />}
                     onClick={() => handleDownload(`/api/admin/documents/${data.documentId}/download`, fileName)}
+                    size="large"
                   >
-                    ดาวน์โหลดไฟล์
+                    ดาวน์โหลด
                   </Button>
-                  <Button
-                    type="default"
-                    icon={<EyeOutlined />}
-                    onClick={handleViewPDF}
-                  >
-                    ดูเอกสาร PDF
-                  </Button>
-                </Space>
-              </Col>
-            </Row>
-          </>
-        )}
+                </>
+              )}
+            </Space>
+          </Col>
+        </Row>
 
-        <Divider style={{ margin: '12px 0' }} />
-        <Title level={5}>หมายเหตุ</Title>
-        {data.reviewComment ? (
-          <Paragraph>{data.reviewComment}</Paragraph>
-        ) : (
-          <Text type="secondary">ไม่มีหมายเหตุ</Text>
-        )}
-
-        {data.files && data.files.length > 0 && (
+        {/* หมายเหตุ (ถ้ามี) */}
+        {data.reviewComment && (
           <>
             <Divider style={{ margin: '12px 0' }} />
-            <Title level={5}>ไฟล์แนบ</Title>
+            <Alert
+              type="info"
+              message="หมายเหตุจากการตรวจสอบ"
+              description={data.reviewComment}
+              showIcon
+            />
+          </>
+        )}
+      </Card>
+    );
+  };
+
+  // Render Main Content - รวมทุกอย่างในหน้าเดียว
+  const renderDetailSection = () => {
+    if (!details) return null;
+
+    const data = details.data || details;
+    const isCS05 = data.documentName === 'CS05' && data.documentType === 'INTERNSHIP';
+
+    return (
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        {/* Header Card - ข้อมูลสรุป + Action Buttons */}
+        {renderHeaderCard(data)}
+
+        {/* Main Content Card - แสดงข้อมูลที่นักศึกษากรอก */}
+        <Card 
+          title={
+            <Space>
+              <FileTextOutlined />
+              <Text strong>
+                {isCS05 ? 'รายละเอียดตามแบบฟอร์ม คพ.05' : 'รายละเอียดเอกสาร'}
+              </Text>
+              {isCS05 && <Badge status="processing" text="ตรวจสอบความถูกต้อง" />}
+            </Space>
+          }
+          size="small"
+        >
+          {isCS05 ? (
+            // แสดง CS05 Preview เต็มหน้า
+            <CS05Preview data={data} />
+          ) : (
+            // แสดงข้อมูลเอกสารทั่วไป
+            renderOtherDocumentDetails(data)
+          )}
+        </Card>
+
+        {/* Additional Files (ถ้ามี) */}
+        {data.files && data.files.length > 0 && (
+          <Card title="ไฟล์แนบเพิ่มเติม" size="small">
             <List
               itemLayout="horizontal"
               dataSource={data.files}
@@ -274,9 +289,40 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
                 );
               }}
             />
-          </>
+          </Card>
         )}
-      </Card>
+      </Space>
+    );
+  };
+
+  // Render details สำหรับเอกสารที่ไม่ใช่ CS05
+  const renderOtherDocumentDetails = (data) => {
+    return (
+      <div style={{ padding: 16 }}>
+        <Descriptions bordered column={1} size="small">
+          <Descriptions.Item label="ชื่อเอกสาร">
+            {getDocumentDisplayName(data.documentName)}
+          </Descriptions.Item>
+          <Descriptions.Item label="วันที่ส่ง">
+            {formatDateTime(data.submittedAt || data.submitted_at || data.created_at)}
+          </Descriptions.Item>
+          {data.description && (
+            <Descriptions.Item label="คำอธิบาย">
+              {data.description}
+            </Descriptions.Item>
+          )}
+        </Descriptions>
+        
+        {!data.filePath && (
+          <Alert
+            type="warning"
+            message="ไม่พบไฟล์แนบ"
+            description="เอกสารนี้ยังไม่มีไฟล์แนบ"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        )}
+      </div>
     );
   };
 
@@ -286,7 +332,8 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     const statusConfig = {
       pending: { color: 'orange', text: 'รอตรวจสอบ', icon: <ClockCircleOutlined /> },
       approved: { color: 'green', text: 'อนุมัติ', icon: <CheckCircleOutlined /> },
-      rejected: { color: 'red', text: 'ปฏิเสธ', icon: <CloseCircleOutlined /> }
+      rejected: { color: 'red', text: 'ปฏิเสธ', icon: <CloseCircleOutlined /> },
+      cancelled: { color: 'default', text: 'ยกเลิกการฝึกงาน', icon: <CloseCircleOutlined /> }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -300,14 +347,28 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
 
   return (
     <Modal 
-      title={<Title level={3} style={{ textAlign: 'center', margin: 0 }}>รายละเอียดเอกสาร</Title>}
+      title={
+        <Space>
+          <FileTextOutlined style={{ color: '#1890ff' }} />
+          <Text strong style={{ fontSize: 18 }}>ตรวจสอบเอกสาร</Text>
+        </Space>
+      }
       open={open}
       onCancel={onClose}
-      footer={<Button onClick={onClose}>ปิด</Button>}
+      footer={
+        <div style={{ textAlign: 'right' }}>
+          <Button size="large" onClick={onClose}>ปิด</Button>
+        </div>
+      }
       centered
-      width="90%"
+      width="95%"
       styles={{ 
-        body: { maxHeight: '80vh', overflow: 'auto', padding: '20px' } 
+        body: { 
+          maxHeight: '85vh', 
+          overflow: 'auto', 
+          padding: '16px 24px',
+          background: '#f5f5f5'
+        } 
       }}
       destroyOnHidden={true}
       className="document-detail-modal"
@@ -323,17 +384,20 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
       )}
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-          <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูล...">
-        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div>{/* Loading content */}</div>
-        </div>
-      </Spin>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          minHeight: 400,
+          background: '#fff',
+          borderRadius: 8
+        }}>
+          <Spin size="large" tip="กำลังโหลดข้อมูลเอกสาร...">
+            <div style={{ width: 200, height: 200 }} />
+          </Spin>
         </div>
       ) : (
-        <div className="document-detail-container">
-          {renderDetailSection()}
-        </div>
+        renderDetailSection()
       )}
 
       {/* แสดง PDFViewer ถ้ามีการเลือกไฟล์ PDF */}

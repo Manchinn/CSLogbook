@@ -11,94 +11,49 @@ import {
   Card,
   message,
   Tooltip,
-  Tabs,
   Select,
   Modal,
   Form,
   Input as AntInput,
-  Statistic,
+  Badge,
   Spin,
 } from "antd";
 import {
-  SearchOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
   CloseCircleOutlined,
   FileProtectOutlined,
   EyeOutlined,
+  WarningOutlined,
+  FilterOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import DocumentDetails from "./DocumentDetails";
 import { useDocuments } from "../../../hooks/admin/useDocuments";
 import dayjs from "../../../utils/dayjs";
-import { DATE_TIME_FORMAT } from "../../../utils/constants";
-import CertificateManagement from "./CertificateManagement";
-import { internshipApprovalService } from "../../../services/internshipApprovalService";
+import { internshipApprovalService } from "features/internship/services";
 import { documentService } from "../../../services/admin/documentService";
+import { getLateSubmissions } from "features/reports/services/deadlineReportService";
+import { getInternshipAcademicYears, getProjectAcademicYears } from "features/reports/services/reportService";
+import styles from "./DocumentManagement.module.css";
 
 const { Text, Title } = Typography;
 
-// Container style ตาม StaffKP02Queue pattern
-const containerStyle = {
-  maxWidth: "1200px",
-  margin: "0 auto",
-  padding: "24px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 24,
-};
-
+// DocumentManagement component - แสดงเฉพาะเอกสารฝึกงาน (ไม่มี tabs แล้ว)
 const DocumentManagement = ({ type }) => {
-  const [activeTab, setActiveTab] = useState("documents");
-
-  // หาก type ไม่ใช่ internship ให้แสดงแค่เอกสารปกติ
-  if (type !== "internship") {
-    return <OriginalDocumentManagement type={type} />;
-  }
-
-  const tabItems = [
-    {
-      key: "documents",
-      label: (
-        <span>
-          <FileTextOutlined />
-          เอกสารฝึกงาน
-        </span>
-      ),
-      children: <OriginalDocumentManagement type={type} />,
-    },
-    {
-      key: "certificates",
-      label: (
-        <span>
-          <FileProtectOutlined />
-          หนังสือรับรอง
-        </span>
-      ),
-      children: <CertificateManagement />,
-    },
-  ];
-
-  return (
-    <div style={containerStyle}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={tabItems}
-          size="large"
-        />
-      </Space>
-    </div>
-  );
+  return <OriginalDocumentManagement type={type} />;
 };
 
 // แยก component เดิมออกมา
 const OriginalDocumentManagement = ({ type }) => {
   // State สำหรับการกรอง
   const [filters, setFilters] = useState({
-    status: "",
+    status: "pending", // เปลี่ยน default เป็น pending
     search: "",
+    academicYear: "all",
+    semester: "all",
   });
 
   // State สำหรับการแสดง Modal
@@ -111,21 +66,108 @@ const OriginalDocumentManagement = ({ type }) => {
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const [form] = Form.useForm();
 
+  // State สำหรับ late submissions
+  const [lateSubmissions, setLateSubmissions] = useState([]);
+  const [lateSubmissionsLoading, setLateSubmissionsLoading] = useState(false);
+
+  // State สำหรับปีการศึกษา
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+
+  // State สำหรับ pagination
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
   // ใช้ custom hook
   const {
     documents,
     isLoading,
     rejectDocument,
     refetch,
+    total: totalDocuments,
   } = useDocuments({
     type,
     status: filters.status,
     search: filters.search,
+    academicYear: filters.academicYear !== "all" ? filters.academicYear : undefined,
+    semester: filters.semester !== "all" ? filters.semester : undefined,
+    limit: pagination.pageSize,
+    offset: (pagination.current - 1) * pagination.pageSize,
   });
 
   useEffect(() => {
     console.log("Documents fetched:", documents);
-  }, [documents]);
+    // อัปเดต total ใน pagination state
+    if (totalDocuments !== undefined) {
+      setPagination(prev => ({ ...prev, total: totalDocuments }));
+    }
+  }, [documents, totalDocuments]);
+
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        let years = [];
+        if (type === 'internship') {
+          years = await getInternshipAcademicYears();
+        } else if (type === 'project') {
+          years = await getProjectAcademicYears();
+        }
+        
+        // แปลงเป็น options format
+        const options = Array.isArray(years) 
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error('Error fetching academic years:', error);
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, [type]);
+
+  // Fetch late submissions เมื่อ type เป็น internship
+  const fetchLateSubmissions = useCallback(async () => {
+    if (type !== 'internship') return;
+    
+    setLateSubmissionsLoading(true);
+    try {
+      const params = {
+        relatedTo: 'internship'
+      };
+      
+      if (filters.academicYear !== 'all') {
+        params.academicYear = filters.academicYear;
+      }
+      if (filters.semester !== 'all') {
+        params.semester = filters.semester;
+      }
+      
+      const response = await getLateSubmissions(params);
+      setLateSubmissions(response.data || []);
+    } catch (error) {
+      console.error('Error fetching late submissions:', error);
+      setLateSubmissions([]);
+    } finally {
+      setLateSubmissionsLoading(false);
+    }
+  }, [type, filters.academicYear, filters.semester]);
+
+  useEffect(() => {
+    fetchLateSubmissions();
+  }, [fetchLateSubmissions]);
 
   // ฟังก์ชัน set filters
   const setSearchText = useCallback((text) => {
@@ -135,6 +177,7 @@ const OriginalDocumentManagement = ({ type }) => {
   const setStatusFilter = useCallback((status) => {
     setFilters((prev) => ({ ...prev, status }));
     setSelectedRowKeys([]);
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรกเมื่อเปลี่ยน filter
   }, []);
 
   // ฟังก์ชันจัดการ Modal
@@ -148,7 +191,27 @@ const OriginalDocumentManagement = ({ type }) => {
     setSelectedDocumentId(null);
   }, []);
 
-  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร
+  // ตัวเลือกปีการศึกษา - ใช้จาก API แล้ว (ไม่ต้อง extract จาก documents)
+
+  // ตัวเลือกภาคเรียน
+  const semesterOptions = [
+    { label: "ภาคเรียนที่ 1", value: 1 },
+    { label: "ภาคเรียนที่ 2", value: 2 },
+    { label: "ภาคฤดูร้อน", value: 3 },
+  ];
+
+  // สร้าง Map สำหรับ lookup late submission ตาม documentId
+  const lateSubmissionsMap = useMemo(() => {
+    const map = new Map();
+    lateSubmissions.forEach(late => {
+      if (late.documentId) {
+        map.set(late.documentId, late);
+      }
+    });
+    return map;
+  }, [lateSubmissions]);
+
+  // กรองเอกสารตามสถานะ, คำค้นหา และประเภทเอกสาร (ส่วนใหญ่กรองที่ API แล้ว)
   const filteredDocuments = useMemo(() => {
     return documents.filter(
       (doc) =>
@@ -169,8 +232,27 @@ const OriginalDocumentManagement = ({ type }) => {
     const reviewing = filteredDocuments.filter(doc => doc.status === "pending" && doc.reviewerId).length;
     const approved = filteredDocuments.filter(doc => doc.status === "approved").length;
     const rejected = filteredDocuments.filter(doc => doc.status === "rejected").length;
+    const cancelled = filteredDocuments.filter(doc => doc.status === "cancelled").length;
     const cs05 = filteredDocuments.filter(doc => doc.document_name?.toUpperCase() === "CS05").length;
     const acceptanceLetter = filteredDocuments.filter(doc => doc.document_name?.toUpperCase() === "ACCEPTANCE_LETTER").length;
+    
+    // นับจำนวนเอกสารที่ส่งช้า
+    const late = filteredDocuments.filter(doc => {
+      const lateInfo = lateSubmissionsMap.get(doc.id);
+      return lateInfo && lateInfo.status === 'late';
+    }).length;
+    
+    const veryLate = filteredDocuments.filter(doc => {
+      const lateInfo = lateSubmissionsMap.get(doc.id);
+      return lateInfo && lateInfo.status === 'very_late';
+    }).length;
+    
+    const overdue = filteredDocuments.filter(doc => {
+      const lateInfo = lateSubmissionsMap.get(doc.id);
+      return lateInfo && lateInfo.status === 'overdue';
+    }).length;
+    
+    const totalLate = late + veryLate + overdue;
 
     return {
       total,
@@ -178,82 +260,143 @@ const OriginalDocumentManagement = ({ type }) => {
       reviewing,
       approved,
       rejected,
+      cancelled,
       cs05,
-      acceptanceLetter
+      acceptanceLetter,
+      late,
+      veryLate,
+      overdue,
+      totalLate
     };
-  }, [filteredDocuments]);
+  }, [filteredDocuments, lateSubmissionsMap]);
 
-  // คอลัมน์ตาราง
+  // คอลัมน์ตาราง - เน้นความกระชับและข้อมูลสำคัญ
   const columns = useMemo(
     () => [
       {
-        title: "เอกสาร",
+        title: "เอกสาร / นักศึกษา",
         dataIndex: "document_name",
-        key: "document_name",
+        key: "document_info",
+        width: 150,
         render: (text, record) => {
           const upper = (text || '').toUpperCase();
-          let display = text;
-          if (upper === 'CS05') display = 'คำร้องขอฝึกงาน (คพ.05)';
-          else if (upper === 'ACCEPTANCE_LETTER') display = 'หนังสือตอบรับการฝึกงาน';
+          let docName = text;
+          let docIcon = <FileTextOutlined />;
+          
+          if (upper === 'CS05') {
+            docName = 'คำร้องขอฝึกงาน (คพ.05)';
+            docIcon = <FileTextOutlined style={{ color: '#1890ff' }} />;
+          } else if (upper === 'ACCEPTANCE_LETTER') {
+            docName = 'หนังสือตอบรับการฝึกงาน';
+            docIcon = <FileProtectOutlined style={{ color: '#52c41a' }} />;
+          }
+          
           return (
-            <Button type="link" onClick={() => showDocumentDetails(record.id)}>
-              {display}
-            </Button>
+            <Space direction="vertical" size={2}>
+              <Button 
+                type="link" 
+                onClick={() => showDocumentDetails(record.id)}
+                style={{ padding: 0, height: 'auto', fontWeight: 500 }}
+                icon={docIcon}
+              >
+                {docName}
+              </Button>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {record.student_name}
+              </Text>
+            </Space>
           );
         },
-      },
-      {
-        title: "ชื่อนักศึกษา",
-        dataIndex: "student_name",
-        key: "student_name",
         sorter: (a, b) => a.student_name.localeCompare(b.student_name),
       },
       {
-        title: "วันที่อัปโหลด",
+        title: "วันที่ส่ง",
         dataIndex: "created_at",
         key: "created_at",
-        render: (text) => dayjs(text).format(DATE_TIME_FORMAT),
+        width: 150,
+        render: (text) => (
+          <Text style={{ fontSize: 13 }}>
+            {dayjs(text).format('DD/MM/BBBB HH:mm')}
+          </Text>
+        ),
         sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
+        width: 150,
         render: (status, record) => {
           const isPending = status === "pending";
           const hasReviewer = !!record.reviewerId;
-          const color = isPending ? "orange" : status === "approved" ? "green" : status === "rejected" ? "red" : "default";
+          const color = isPending 
+            ? "orange" 
+            : status === "approved" 
+            ? "green" 
+            : status === "rejected" 
+            ? "red"
+            : status === "cancelled"
+            ? "default"
+            : "default";
           const text = isPending
             ? hasReviewer
-              ? "รอหัวหน้าภาคอนุมัติ"
+              ? "รอหัวหน้าภาค"
               : "รอตรวจสอบ"
             : status === "approved"
             ? "อนุมัติ"
             : status === "rejected"
             ? "ปฏิเสธ"
+            : status === "cancelled"
+            ? "ยกเลิกการฝึกงาน"
             : status;
-          return <Tag color={color}>{text}</Tag>;
+          
+          // ตรวจสอบว่าเอกสารนี้ส่งช้าหรือไม่
+          const lateInfo = lateSubmissionsMap.get(record.id);
+          
+          return (
+            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Tag color={color} style={{ margin: 0 }}>
+                {text}
+              </Tag>
+              {lateInfo && (
+                <Tooltip title={`ส่งช้า ${lateInfo.daysLate} วัน ${lateInfo.hoursLate % 24} ชั่วโมง หลังจากเลยกำหนด`}>
+                  <Tag 
+                    color={
+                      lateInfo.status === 'overdue' ? 'volcano' : 
+                      lateInfo.status === 'very_late' ? 'red' : 
+                      'orange'
+                    }
+                    icon={<WarningOutlined />}
+                    style={{ margin: 0, fontSize: 12 }}
+                  >
+                    {lateInfo.status === 'overdue' ? ' เลยกำหนด' : 
+                     lateInfo.status === 'very_late' ? ' ส่งช้ามาก' : 
+                     ' ส่งช้า'}
+                    {lateInfo.daysLate > 0 && ` ${lateInfo.daysLate}วัน`}
+                  </Tag>
+                </Tooltip>
+              )}
+            </Space>
+          );
         },
       },
       {
-        title: "การจัดการ",
+        title: "",
         key: "actions",
-        width: 120,
+        width: 40,
+        fixed: 'right',
         render: (_, record) => (
-          <Space size="small">
-            <Tooltip title="ดูรายละเอียด">
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                onClick={() => showDocumentDetails(record.id)}
-                size="small"
-              />
-            </Tooltip>
-          </Space>
+          <Tooltip title="ดูรายละเอียด">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => showDocumentDetails(record.id)}
+            />
+          </Tooltip>
         ),
       },
     ],
-    [showDocumentDetails]
+    [showDocumentDetails, lateSubmissionsMap]
   );
 
   // การจัดการเหตุการณ์
@@ -280,11 +423,12 @@ const OriginalDocumentManagement = ({ type }) => {
       message.success("ดำเนินการกับเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
       await refetch();
+      await fetchLateSubmissions();
     } catch (error) {
       console.error(error);
       message.error("เกิดข้อผิดพลาดในการตรวจและส่งต่อเอกสาร");
     }
-  }, [selectedRowKeys, filteredDocuments, refetch]);
+  }, [selectedRowKeys, filteredDocuments, refetch, fetchLateSubmissions]);
 
   const openRejectModal = useCallback(() => {
     if (selectedRowKeys.length === 0) return;
@@ -300,13 +444,14 @@ const OriginalDocumentManagement = ({ type }) => {
       message.success("ปฏิเสธเอกสารที่เลือกเรียบร้อยแล้ว");
       setSelectedRowKeys([]);
       setRejectModalOpen(false);
+      await fetchLateSubmissions();
     } catch (error) {
       if (error?.errorFields) return;
       message.error("เกิดข้อผิดพลาดในการปฏิเสธเอกสาร");
     } finally {
       setRejectSubmitting(false);
     }
-  }, [selectedRowKeys, rejectDocument, form]);
+  }, [selectedRowKeys, rejectDocument, form, fetchLateSubmissions]);
 
   const rowSelection = useMemo(
     () => ({
@@ -317,190 +462,198 @@ const OriginalDocumentManagement = ({ type }) => {
     [selectedRowKeys]
   );
 
+  // Reset filters
+  const handleResetFilters = useCallback(() => {
+    setFilters({ status: "pending", search: "", academicYear: "all", semester: "all" });
+    setSelectedRowKeys([]);
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรก
+  }, []);
 
   // JSX
   return (
-    <div style={containerStyle}>
-      <Space direction="vertical" size={24} style={{ width: "100%" }}>
-        {/* Header */}
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            จัดการเอกสารฝึกงาน
-          </Title>
-          <Text type="secondary">
-            ตรวจสอบและอนุมัติเอกสารฝึกงานของนักศึกษา
-          </Text>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <Title level={4} className={styles.title}>
+          จัดการเอกสารคำร้องขอฝึกงาน
+        </Title>
+      </div>
+      
+      {/* Summary Statistics Chips */}
+      <div className={styles.statisticsChips}>
+        <div className={styles.statisticItem}>
+          <FileTextOutlined />
+          <Text>เอกสารทั้งหมด: {summary.total} รายการ</Text>
         </div>
+        <div className={styles.statisticItem}>
+          <ClockCircleOutlined />
+          <Text>รอตรวจสอบ: {summary.pending} รายการ</Text>
+        </div>
+        <div className={styles.statisticItem}>
+          <CheckCircleOutlined />
+          <Text>อนุมัติแล้ว: {summary.approved} รายการ</Text>
+        </div>
+        {summary.rejected > 0 && (
+          <div className={styles.statisticItem}>
+            <CloseCircleOutlined />
+            <Text>ปฏิเสธแล้ว: {summary.rejected} รายการ</Text>
+          </div>
+        )}
+        {summary.cancelled > 0 && (
+          <div className={styles.statisticItem}>
+            <CloseCircleOutlined />
+            <Text>ยกเลิกการฝึกงาน: {summary.cancelled} รายการ</Text>
+          </div>
+        )}
+      </div>
 
-        {/* Summary Statistics Cards */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="รอตรวจสอบ"
-                value={summary.pending}
-                suffix="รายการ"
-              />
-            </Card>
+      {/* Filters Section */}
+      <Card
+        size="small"
+        className={styles.filterCard}
+        title={
+          <Space>
+            <FilterOutlined />
+            <Text strong>ตัวกรอง</Text>
+          </Space>
+        }
+      >
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Input
+              placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
+              value={filters.search}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+              prefix={<UserOutlined />}
+            />
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="รอหัวหน้าภาคอนุมัติ"
-                value={summary.reviewing}
-                suffix="รายการ"
-              />
-            </Card>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="สถานะ"
+              value={filters.status}
+              onChange={setStatusFilter}
+              options={[
+                { label: "ทั้งหมด", value: "" },
+                { label: "รอตรวจสอบ", value: "pending" },
+                { label: "อนุมัติแล้ว", value: "approved" },
+                { label: "ปฏิเสธแล้ว", value: "rejected" },
+                { label: "ยกเลิกการฝึกงาน", value: "cancelled" },
+              ]}
+            />
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="อนุมัติแล้ว"
-                value={summary.approved}
-                suffix="รายการ"
-              />
-            </Card>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="ปีการศึกษา"
+              options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+              value={filters.academicYear}
+              onChange={(v) => {
+                setFilters((f) => ({ ...f, academicYear: v }));
+                setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรกเมื่อเปลี่ยน filter
+              }}
+              loading={academicYearLoading}
+              allowClear
+            />
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ทั้งหมด"
-                value={summary.total}
-                suffix="รายการ"
-              />
-            </Card>
+          <Col xs={24} sm={12} md={4} lg={3}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="ภาคเรียน"
+              options={[
+                { label: "ทุกภาคเรียน", value: "all" },
+                ...semesterOptions,
+              ]}
+              value={filters.semester}
+              onChange={(v) => {
+                setFilters((f) => ({ ...f, semester: v }));
+                setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรกเมื่อเปลี่ยน filter
+              }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={24} md={24} lg={7}>
+            <Space wrap>
+              {filters.status === "pending" && selectedRowKeys.length > 0 && (
+                <>
+                  <Badge count={selectedRowKeys.length} offset={[-8, 0]}>
+                    <Button
+                      type="primary"
+                      onClick={handleApproveSelectedDocuments}
+                      icon={<CheckCircleOutlined />}
+                    >
+                      ตรวจและส่งต่อ
+                    </Button>
+                  </Badge>
+                  <Button
+                    danger
+                    onClick={openRejectModal}
+                    icon={<CloseCircleOutlined />}
+                  >
+                    ปฏิเสธ
+                  </Button>
+                </>
+              )}
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={() => {
+                  refetch();
+                  fetchLateSubmissions();
+                }}
+                loading={isLoading || lateSubmissionsLoading}
+              >
+                รีเฟรช
+              </Button>
+              <Button onClick={handleResetFilters}>รีเซ็ตตัวกรอง</Button>
+            </Space>
           </Col>
         </Row>
+      </Card>
 
-        {/* Document Type Statistics */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="คำร้องขอฝึกงาน (คพ.05)"
-                value={summary.cs05}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="หนังสือตอบรับ"
-                value={summary.acceptanceLetter}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ปฏิเสธแล้ว"
-                value={summary.rejected}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Filters Section */}
-        <Card size="small" styles={{ body: { padding: 16 } }}>
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} md={6}>
-              <Space direction="vertical" size={4}>
-                <Text strong>สถานะเอกสาร</Text>
-                <Select
-                  style={{ width: "100%" }}
-                  placeholder="เลือกสถานะ"
-                  value={filters.status}
-                  onChange={setStatusFilter}
-                  options={[
-                    { label: "ทั้งหมด", value: "" },
-                    { label: "รอตรวจสอบ", value: "pending" },
-                    { label: "อนุมัติแล้ว", value: "approved" },
-                    { label: "ปฏิเสธแล้ว", value: "rejected" },
-                  ]}
-                  allowClear
-                />
-              </Space>
-            </Col>
-            <Col xs={24} md={6}>
-              <Space direction="vertical" size={4}>
-                <Text strong>ค้นหา</Text>
-                <Input
-                  allowClear
-                  prefix={<SearchOutlined />}
-                  placeholder="ค้นหาเอกสาร หรือชื่อนักศึกษา"
-                  value={filters.search}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-              </Space>
-            </Col>
-            <Col xs={24} md={12} style={{ textAlign: 'right' }}>
-              <Space wrap>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={refetch}
-                >
-                  รีเฟรช
-                </Button>
-                {filters.status === "pending" && (
-                  <>
-                    <Tooltip title={`ตรวจและส่งต่อที่เลือก (${selectedRowKeys.length})`}>
-                      <Button
-                        type="primary"
-                        onClick={handleApproveSelectedDocuments}
-                        disabled={selectedRowKeys.length === 0}
-                        icon={<CheckCircleOutlined />}
-                      >
-                        ตรวจและส่งต่อที่เลือก
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title={`ปฏิเสธที่เลือก (${selectedRowKeys.length})`}>
-                      <Button
-                        danger
-                        onClick={openRejectModal}
-                        disabled={selectedRowKeys.length === 0}
-                        icon={<CloseCircleOutlined />}
-                      >
-                        ปฏิเสธที่เลือก
-                      </Button>
-                    </Tooltip>
-                  </>
-                )}
-                <Button
-                  danger
-                  onClick={() => {
-                    setFilters({ status: "", search: "" });
-                    setSelectedRowKeys([]);
-                  }}
-                >
-                  รีเซ็ตตัวกรอง
-                </Button>
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        {/* Table with Expandable Rows */}
-        <Spin spinning={isLoading} tip="กำลังโหลดข้อมูล">
-          <Table
-            loading={isLoading}
-            rowSelection={filters.status === "pending" ? rowSelection : null}
-            columns={columns}
-            dataSource={filteredDocuments}
-            rowKey="id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50"],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
-            }}
-            bordered
-            title={() => `รายการเอกสาร (${filteredDocuments.length} รายการ)`}
-          />
-        </Spin>
-      </Space>
+      {/* Table */}
+      <Table
+        columns={columns}
+        dataSource={filteredDocuments}
+        loading={isLoading}
+        rowKey="id"
+        rowSelection={filters.status === "pending" ? rowSelection : null}
+        pagination={{
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) =>
+            `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+          pageSizeOptions: ["10", "20", "50", "100"],
+          onChange: (page, pageSize) => {
+            setPagination(prev => ({ ...prev, current: page, pageSize }));
+          },
+          onShowSizeChange: (current, size) => {
+            setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+          },
+        }}
+        scroll={{ x: 1200 }}
+        title={() => (
+          <div className={styles.tableTitle}>
+            <Text strong>
+              รายการเอกสาร ({pagination.total} รายการ)
+            </Text>
+            {isLoading && <Spin size="small" />}
+          </div>
+        )}
+        locale={{
+          emptyText: (
+            <div className={styles.emptyState}>
+              <FileTextOutlined className={styles.emptyIcon} />
+              <div className={styles.emptyText}>
+                <Text type="secondary">ไม่มีเอกสารที่ตรงกับเงื่อนไขที่เลือก</Text>
+              </div>
+            </div>
+          )
+        }}
+      />
 
       {/* Modal แสดงรายละเอียดเอกสาร */}
       <DocumentDetails
@@ -536,7 +689,7 @@ const OriginalDocumentManagement = ({ type }) => {
               showCount
             />
           </Form.Item>
-          <div style={{ fontSize: 12, color: '#888' }}>
+          <div className={styles.modalFooter}>
             จะปฏิเสธทั้งหมด {selectedRowKeys.length} เอกสาร
           </div>
         </Form>
@@ -546,3 +699,4 @@ const OriginalDocumentManagement = ({ type }) => {
 };
 
 export default DocumentManagement;
+

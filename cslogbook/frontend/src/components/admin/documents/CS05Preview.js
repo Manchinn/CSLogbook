@@ -1,26 +1,30 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, Typography, Divider, Space } from 'antd';
-import moment from 'moment';
-import 'moment/locale/th';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
 const { Title, Paragraph, Text } = Typography;
 
 const CS05Preview = ({ data }) => {
-  // Debug ข้อมูลที่ได้รับ
-  useEffect(() => {
-    console.log("CS05Preview received data:", data);
-  }, [data]);
-
   // สนับสนุนทั้งรูปแบบข้อมูลที่มี data.data และไม่มี
   const documentData = data?.data || data;
   
   // รองรับทั้งรูปแบบข้อมูลแบบ nested และแบบ flat
   const internshipDocument = documentData?.internshipDocument || {};
   
-  // Format date with Buddhist calendar year
+  
+  // Format date with Buddhist calendar year and Asia/Bangkok timezone
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return moment(dateString).locale('th').add(543, 'year').format('D MMMM YYYY');
+    return dayjs.tz(dateString, 'Asia/Bangkok').format('D MMMM BBBB');
   };
 
   // รองรับโครงสร้างข้อมูลจากทุก endpoint
@@ -86,7 +90,7 @@ const CS05Preview = ({ data }) => {
           return calculatedYear;
         }
       } catch (e) {
-        console.error("Error calculating student year:", e);
+        // Failed to calculate year from student code
       }
     }
     
@@ -130,6 +134,12 @@ const CS05Preview = ({ data }) => {
     documentData?.companyAddress || 
     internshipDocument?.companyAddress || 
     '-';
+  
+  const position = 
+    internshipDocument?.internshipPosition || 
+    documentData?.internshipPosition || 
+    documentData?.position ||
+    '-';
     
   const startDate = 
     documentData?.startDate || 
@@ -143,12 +153,10 @@ const CS05Preview = ({ data }) => {
   
   const createdAt = documentData?.createdAt || documentData?.created_at; // Use only database value
   
-  const transcriptUrl = documentData?.transcriptFilename || documentData?.fileName;
-
   return (
     <div className="cs05-preview-container" style={{ padding: '20px', backgroundColor: 'white' }}>
       <Card 
-        variant="borderless" 
+        variant="bordered"
         style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}
       >
         <div style={{ textAlign: 'right', marginBottom: '16px' }}>
@@ -197,7 +205,7 @@ const CS05Preview = ({ data }) => {
             </Paragraph>
             <Card
               size="small"
-              bordered
+              variant="bordered"
               style={{ borderRadius: '4px', backgroundColor: '#f9f9f9' }}
             >
               <Paragraph style={{ margin: 0 }}>{companyName}</Paragraph>
@@ -206,7 +214,22 @@ const CS05Preview = ({ data }) => {
 
           <div>
             <Paragraph style={{ fontSize: '16px', marginBottom: '8px' }}>
-              2. สถานที่ตั้ง
+              2. ตำแหน่งที่ขอฝึกงาน
+            </Paragraph>
+            <Card
+              size="small"
+              bordered={false}
+              style={{ borderRadius: '4px', backgroundColor: '#f9f9f9' }}
+            >
+              <Paragraph style={{ margin: 0 }}>
+                {position !== '-' ? position : <Text type="secondary" italic>ไม่ได้ระบุตำแหน่ง</Text>}
+              </Paragraph>
+            </Card>
+          </div>
+
+          <div>
+            <Paragraph style={{ fontSize: '16px', marginBottom: '8px' }}>
+              3. สถานที่ตั้ง
             </Paragraph>
             <Card
               size="small"
@@ -219,7 +242,7 @@ const CS05Preview = ({ data }) => {
 
           <div>
             <Paragraph style={{ fontSize: '16px' }}>
-              ระยะเวลาฝึกงาน <Text underline>{formatDate(startDate)}</Text> ถึง <Text underline>{formatDate(endDate)}</Text>
+              4. ระยะเวลาฝึกงาน <Text underline>{formatDate(startDate)}</Text> ถึง <Text underline>{formatDate(endDate)}</Text>
             </Paragraph>
           </div>
         </Space>
@@ -240,19 +263,6 @@ const CS05Preview = ({ data }) => {
           จึงเรียนมาเพื่อโปรดพิจารณา
         </Paragraph>
       </Card>
-      
-      {transcriptUrl && (
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <a 
-            href={`${process.env.REACT_APP_API_URL}/files/${transcriptUrl}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{ fontSize: '16px' }}
-          >
-            ดูไฟล์ใบแสดงผลการเรียนที่แนบมา (Transcript)
-          </a>
-        </div>
-      )}
     </div>
   );
 };
