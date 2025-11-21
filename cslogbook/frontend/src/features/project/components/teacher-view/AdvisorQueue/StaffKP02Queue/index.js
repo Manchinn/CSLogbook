@@ -13,7 +13,6 @@ import {
   Select,
   Space,
   Spin,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -28,6 +27,7 @@ import {
   SearchOutlined,
   ClockCircleOutlined,
   WarningOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import FileSaver from "file-saver";
 import dayjs from "utils/dayjs";
@@ -35,6 +35,8 @@ import { DATE_TIME_FORMAT } from "utils/constants";
 import projectService from "features/project/services/projectService";
 import { useAuth } from "contexts/AuthContext";
 import { PDFViewerModal } from "components/common/PDFViewer";
+import { getProjectAcademicYears } from "features/reports/services/reportService";
+import styles from "./index.module.css";
 
 const { Text, Title } = Typography;
 
@@ -109,6 +111,13 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
     url: "",
     title: "",
   });
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   const isStaff = useMemo(() => {
     if (!userData) return false;
@@ -153,6 +162,10 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
       if (filters.search) {
         params.search = filters.search;
       }
+      // เพิ่ม pagination params
+      params.limit = pagination.pageSize;
+      params.offset = (pagination.current - 1) * pagination.pageSize;
+
       const response = await projectService.listProject1StaffQueue({
         ...params,
         defenseType,
@@ -162,25 +175,48 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
         return;
       }
       setItems(Array.isArray(response.data) ? response.data : []);
+      // อัปเดต total สำหรับ pagination
+      if (response.total !== undefined) {
+        setPagination(prev => ({ ...prev, total: response.total }));
+      } else {
+        // Fallback ถ้าไม่มี total จาก backend
+        setPagination(prev => ({ ...prev, total: response.data?.length || 0 }));
+      }
     } catch (error) {
       message.error(error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setLoading(false);
     }
-  }, [filters, defenseType]);
+  }, [filters, defenseType, pagination.current, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        const years = await getProjectAcademicYears();
+        const options = Array.isArray(years)
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error("Error fetching academic years:", error);
+        message.error("ไม่สามารถดึงปีการศึกษาได้");
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, []);
 
   useEffect(() => {
     loadQueue();
   }, [loadQueue, reloadToken]);
-
-  const availableAcademicYears = useMemo(() => {
-    const years = new Set();
-    items.forEach((item) => {
-      const year = item.project?.academicYear;
-      if (year) years.add(year);
-    });
-    return Array.from(years).sort((a, b) => b - a);
-  }, [items]);
 
   const formatDateTime = useCallback((value) => {
     if (!value) return "-";
@@ -684,44 +720,31 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           <Text type="secondary">{uiMeta.description}</Text>
         </Space>
 
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="รอเจ้าหน้าที่"
-                value={summary.waiting}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ตรวจสอบแล้ว (รอปฏิทิน)"
-                value={summary.verified}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="บันทึกผลสอบแล้ว"
-                value={summary.completed}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ทั้งหมด"
-                value={summary.total}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-        </Row>
+        {/* Summary Statistics - Chips */}
+        <div className={styles.statisticsChips}>
+          <div className={styles.statisticItem}>
+            <FileTextOutlined />
+            <Text>ทั้งหมด: {summary.total} รายการ</Text>
+          </div>
+          {summary.waiting > 0 && (
+            <div className={styles.statisticItem}>
+              <ClockCircleOutlined />
+              <Text>รอเจ้าหน้าที่: {summary.waiting} รายการ</Text>
+            </div>
+          )}
+          {summary.verified > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>ตรวจสอบแล้ว: {summary.verified} รายการ</Text>
+            </div>
+          )}
+          {summary.completed > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>บันทึกผลสอบแล้ว: {summary.completed} รายการ</Text>
+            </div>
+          )}
+        </div>
 
         <Card size="small" styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]} align="middle">
@@ -732,9 +755,10 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                   style={{ minWidth: 220 }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
-                  onChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value }))
-                  }
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, status: value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -746,13 +770,13 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.academicYear}
-                  options={availableAcademicYears.map((year) => ({
-                    value: year,
-                    label: `${year}`,
-                  }))}
-                  onChange={(value) =>
-                    setFilters((prev) => ({ ...prev, academicYear: value }))
-                  }
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  onChange={(value) => {
+                    const yearValue = value === "all" ? undefined : value;
+                    setFilters((prev) => ({ ...prev, academicYear: yearValue }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                  loading={academicYearLoading}
                 />
               </Space>
             </Col>
@@ -768,9 +792,10 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                     value: sem,
                     label: `ภาคเรียน ${sem}`,
                   }))}
-                  onChange={(value) =>
-                    setFilters((prev) => ({ ...prev, semester: value }))
-                  }
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, semester: value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -783,12 +808,13 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"
                   value={filters.search}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setFilters((prev) => ({
                       ...prev,
                       search: event.target.value,
-                    }))
-                  }
+                    }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -820,14 +846,15 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
                 )}
                 <Button
                   danger
-                  onClick={() =>
+                  onClick={() => {
                     setFilters({
                       status: "all",
                       academicYear: undefined,
                       semester: undefined,
                       search: "",
-                    })
-                  }
+                    });
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 >
                   รีเซ็ตตัวกรอง
                 </Button>
@@ -846,6 +873,22 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
               onExpand: (expanded, record) =>
                 setExpandedRowKey(expanded ? record.requestId : null),
               expandedRowRender,
+            }}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) =>
+                `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              onChange: (page, pageSize) => {
+                setPagination(prev => ({ ...prev, current: page, pageSize }));
+              },
+              onShowSizeChange: (current, size) => {
+                setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+              },
             }}
           />
         </Spin>

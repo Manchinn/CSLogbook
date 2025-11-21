@@ -139,17 +139,25 @@ module.exports = {
       const academicYear = req.query.academicYear ? Number(req.query.academicYear) : undefined;
       const semester = req.query.semester ? Number(req.query.semester) : undefined;
       const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit, 10) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset, 10) : undefined;
 
-      const queue = await projectDefenseRequestService.getStaffVerificationQueue({
+      const result = await projectDefenseRequestService.getStaffVerificationQueue({
         status,
         academicYear,
         semester,
         search,
         withMetrics: true,
-        defenseType
+        defenseType,
+        limit,
+        offset
       });
 
-      return res.json({ success: true, data: queue });
+      return res.json({ 
+        success: true, 
+        data: result.data || result, // รองรับทั้งแบบใหม่ (มี data, total) และแบบเดิม
+        total: result.total || (Array.isArray(result.data) ? result.data.length : result.length || 0)
+      });
     } catch (error) {
       logger.error('getStaffVerificationQueue error', { error: error.message });
       const status = error.statusCode || 400;
