@@ -27,7 +27,7 @@ describe('LoginForm', () => {
       authValue: { userData: null, login: loginSpy }
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/ICIT Account/i), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByPlaceholderText(/ชื่อผู้ใช้/i), { target: { value: 'alice' } });
     fireEvent.change(screen.getByPlaceholderText(/รหัสผ่าน/i), { target: { value: 'secret' } });
     fireEvent.click(screen.getByRole('button', { name: /เข้าสู่ระบบ/i }));
 

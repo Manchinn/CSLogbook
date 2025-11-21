@@ -1,5 +1,15 @@
 import TemplateDataService from '../TemplateDataService';
 
+let consoleWarnSpy;
+
+beforeAll(() => {
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+afterAll(() => {
+  consoleWarnSpy?.mockRestore();
+});
+
 // ชุดทดสอบสำหรับ prepareCS05Data (โครงสร้าง formData ต้องตรงกับ service จริง)
 describe('TemplateDataService.prepareCS05Data', () => {
   test('รวมข้อมูลฟอร์มพื้นฐานเป็น payload สำหรับ CS05 ได้', () => {

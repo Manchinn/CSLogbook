@@ -39,6 +39,21 @@ jest.mock('../hooks/useFormActions', () => ({
   useReflectionForm: () => ({ saveReflection: jest.fn() })
 }));
 
+jest.mock('features/internship/hooks/useInternshipAccess', () => ({
+  __esModule: true,
+  default: () => ({
+    canAccess: true,
+    canEdit: true,
+    cs05Status: 'approved',
+    acceptanceStatus: 'approved',
+    errorMessage: null,
+    hasCS05: true,
+    isCS05Approved: true,
+    hasAcceptance: true,
+    loading: false,
+  }),
+}));
+
 // Mock useAuth ให้คืนค่า user พื้นฐาน (ไฟล์ summary ใช้ user จาก useAuth แบบ user / userData ต่างเวอร์ชัน)
 jest.mock('contexts/AuthContext', () => {
   return {
