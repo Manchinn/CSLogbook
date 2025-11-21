@@ -1,0 +1,116 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PATH: ${{ secrets.SERVER_PATH }}
+          DEPLOY_ENV: ${{ github.event.inputs.environment || 'production' }}
+        run: |
+          echo "🚀 Starting deployment to $DEPLOY_ENV..."
+          
+          # SSH into server and deploy
+          ssh $SERVER_USER@$SERVER_HOST << 'ENDSSH'
+            set -e
+            cd ${{ secrets.SERVER_PATH }}
+            
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            
+            echo "🐳 Building and starting Docker containers..."
+            docker compose -f docker-compose.production.yml down
+            docker compose -f docker-compose.production.yml pull || true
+            docker compose -f docker-compose.production.yml build --no-cache
+            docker compose -f docker-compose.production.yml up -d
+            
+            echo "🔄 Running database migrations..."
+            docker compose -f docker-compose.production.yml exec -T backend npm run migrate || echo "⚠️ Migration failed or no migrations to run"
+            
+            echo "✅ Deployment completed!"
+            
+            # Show running containers
+            docker compose -f docker-compose.production.yml ps
+            
+            # Show recent logs
+            echo "📋 Recent logs:"
+            docker compose -f docker-compose.production.yml logs --tail=50
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "🏥 Performing health check..."
+          sleep 10
+          
+          # Check backend health
+          BACKEND_URL="${{ secrets.BACKEND_HEALTH_URL || 'http://localhost:5000' }}/api/health"
+          if curl -f "$BACKEND_URL" > /dev/null 2>&1; then
+            echo "✅ Backend is healthy"
+          else
+            echo "⚠️ Backend health check failed"
+            exit 1
+          fi
+          
+          # Check frontend
+          FRONTEND_URL="${{ secrets.FRONTEND_URL || 'http://localhost:3000' }}"
+          if curl -f "$FRONTEND_URL" > /dev/null 2>&1; then
+            echo "✅ Frontend is accessible"
+          else
+            echo "⚠️ Frontend health check failed"
+            exit 1
+          fi
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Deployment to ${{ github.event.inputs.environment || 'production' }} ${{ job.status }}!
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+

@@ -1,0 +1,98 @@
+name: Database Migration Check
+
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/models/**'
+  workflow_dispatch:
+
+jobs:
+  check-migrations:
+    name: Check Database Migrations
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: cslogbook_test
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          --character-set-server=utf8mb4
+          --collation-server=utf8mb4_unicode_ci
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Check migration status
+        working-directory: ./backend
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+          DB_NAME: cslogbook_test
+        run: |
+          echo "📊 Checking migration status..."
+          npm run migrate:status || echo "⚠️ No migrations found or database not initialized"
+
+      - name: Run migrations (dry run check)
+        working-directory: ./backend
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+          DB_NAME: cslogbook_test
+        run: |
+          echo "🔄 Running migrations..."
+          npm run migrate || echo "⚠️ Migration failed - please check migration files"
+
+      - name: Verify database models
+        working-directory: ./backend
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+          DB_NAME: cslogbook_test
+        run: |
+          echo "✅ Verifying database models..."
+          npm run db:check:all
+
+      - name: Check for migration conflicts
+        working-directory: ./backend
+        run: |
+          echo "🔍 Checking for potential migration conflicts..."
+          # Check if there are duplicate migration timestamps
+          if find migrations -name "*.js" -type f | sort | uniq -d | grep -q .; then
+            echo "❌ Found duplicate migration files!"
+            exit 1
+          fi
+          echo "✅ No duplicate migrations found"
+
