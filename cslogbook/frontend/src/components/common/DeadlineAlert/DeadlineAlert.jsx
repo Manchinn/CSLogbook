@@ -91,8 +91,8 @@ const DeadlineAlert = ({ deadlines, type = 'overdue', showDetails = true, onClos
                       <Space size="small" wrap>
                         <Text strong>{deadline.name}</Text>
                         <Text type="secondary">-</Text>
-                        <Text style={{ color: status.color }}>
-                          {getCountdownText(deadline.deadlineAt, deadline.gracePeriodMinutes)}
+                        <Text type="secondary">
+                          ครบกำหนด: {formatDeadline(deadline.deadlineAt, { showRelative: false })}
                         </Text>
                         <Tag color={status.tagColor}>{status.label}</Tag>
                       </Space>

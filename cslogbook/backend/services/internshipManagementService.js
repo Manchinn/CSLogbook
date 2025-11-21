@@ -778,7 +778,7 @@ class InternshipManagementService {
                   as: "logbooks",
                   required: false,
                   where: {
-                    student_id: sequelize.col("Student.student_id"), // ใช้ column reference
+                    student_id: sequelize.col("student.student_id"), // แก้ไขให้ตรงกับ alias "student" (ตัวพิมพ์เล็ก)
                   },
                   order: [["work_date", "ASC"]],
                 },
