@@ -23,7 +23,8 @@ const ProjectMember = sequelize.define('ProjectMember', {
 const Student = sequelize.define('Student', {
   studentId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   studentCode: DataTypes.STRING,
-  userId: DataTypes.INTEGER
+  userId: DataTypes.INTEGER,
+  classroom: DataTypes.STRING,
 }, { tableName: 'students' });
 
 const Teacher = sequelize.define('Teacher', {

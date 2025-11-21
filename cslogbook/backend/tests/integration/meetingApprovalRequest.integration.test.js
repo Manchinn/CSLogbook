@@ -1,5 +1,4 @@
 const request = require('supertest');
-const app = require('../../app');
 
 jest.mock('../../middleware/authMiddleware', () => ({
   authenticateToken: (req, _res, next) => {
@@ -17,6 +16,11 @@ jest.mock('../../services/meetingService', () => ({
   createMeeting: jest.fn()
 }));
 
+jest.mock('../../middleware/projectEligibilityMiddleware', () => ({
+  checkProjectEligibility: () => (_req, _res, next) => next(),
+}));
+
+const app = require('../../app');
 const meetingService = require('../../services/meetingService');
 
 describe('POST /api/projects/:id/meetings', () => {

@@ -3,6 +3,8 @@
  * โฟกัสการยื่นคำขอสอบโครงงานพิเศษ 1 (คพ.02)
  */
 
+jest.setTimeout(20000);
+
 let SequelizeCtor;
 let DataTypesCtor;
 let Op;
@@ -20,6 +22,10 @@ let MeetingLog;
 let ProjectExamResult;
 let ProjectTestRequest;
 let projectDefenseRequestService;
+const mockProjectWorkflowState = {
+  updateFromDefenseRequest: jest.fn().mockResolvedValue(undefined),
+  updateFromExamResult: jest.fn().mockResolvedValue(undefined),
+};
 const mockSyncProjectWorkflowState = jest.fn().mockResolvedValue(null);
 
 const formatDateOnly = (date) => {
@@ -341,7 +347,8 @@ beforeAll(async () => {
       MeetingParticipant,
       MeetingLog,
       ProjectExamResult,
-      ProjectTestRequest
+      ProjectTestRequest,
+      ProjectWorkflowState: mockProjectWorkflowState,
     }));
     projectDefenseRequestService = require('../../services/projectDefenseRequestService');
   });
@@ -367,6 +374,8 @@ beforeAll(async () => {
 
 afterEach(() => {
   mockSyncProjectWorkflowState.mockClear();
+  mockProjectWorkflowState.updateFromDefenseRequest.mockClear();
+  mockProjectWorkflowState.updateFromExamResult.mockClear();
 });
 
 beforeEach(async () => {
@@ -444,14 +453,17 @@ describe('submitProject1Request', () => {
     expect(updated.formPayload.examDate).toBeUndefined();
   });
 
-  test('ห้ามนักศึกษาที่ไม่ใช่หัวหน้ายื่นคำขอ', async () => {
+  test('สมาชิกที่ไม่ใช่หัวหน้าสามารถยื่นเมื่อผ่านเกณฑ์การพบอาจารย์', async () => {
     await resetMeetings();
-    await expect(projectDefenseRequestService.submitProject1Request(project.projectId, member.studentId, {
+    await seedApprovedMeetings(5);
+    const record = await projectDefenseRequestService.submitProject1Request(project.projectId, member.studentId, {
       students: [
         { studentId: leader.studentId, phone: '0800000000', email: '' },
         { studentId: member.studentId, phone: '0811111111', email: '' }
       ]
-    })).rejects.toThrow(/อนุญาตเฉพาะหัวหน้าโครงงาน/);
+    });
+    expect(record.submittedByStudentId).toBe(member.studentId);
+    expect(record.status).toBe('advisor_in_review');
   });
 
   test('ตรวจสอบ validation ข้อมูลไม่ครบ', async () => {

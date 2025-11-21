@@ -10,6 +10,11 @@ const sequelize = mockSequelize;
 
 const mockUpdateWorkflowActivity = jest.fn().mockResolvedValue(null);
 const mockLogger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
+const mockProjectWorkflowState = {
+  createForProject: jest.fn().mockResolvedValue(undefined),
+  updateFromDefenseRequest: jest.fn().mockResolvedValue(undefined),
+  updateFromExamResult: jest.fn().mockResolvedValue(undefined),
+};
 
 const mockDatabaseModule = { Sequelize, sequelize: mockSequelize };
 
@@ -18,6 +23,7 @@ const Student = sequelize.define('Student', {
   studentId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'student_id' },
   studentCode: { type: DataTypes.STRING, unique: true, allowNull: false, field: 'student_code' },
   userId: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1, field: 'user_id' },
+  phoneNumber: { type: DataTypes.STRING, allowNull: true, field: 'phone_number' },
   isEligibleProject: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'is_eligible_project' }
 }, { tableName: 'students', underscored: true, timestamps: false });
 
@@ -86,7 +92,8 @@ const Academic = sequelize.define('Academic', {
 const User = sequelize.define('User', {
   userId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'user_id' },
   firstName: { type: DataTypes.STRING, field: 'first_name' },
-  lastName: { type: DataTypes.STRING, field: 'last_name' }
+  lastName: { type: DataTypes.STRING, field: 'last_name' },
+  email: { type: DataTypes.STRING, allowNull: true, field: 'email' }
 }, { tableName: 'users', underscored: true, timestamps: false });
 
 const Teacher = sequelize.define('Teacher', {
@@ -126,7 +133,8 @@ const mockModels = {
   Student,
   ProjectDefenseRequest,
   ProjectDefenseRequestAdvisorApproval,
-  Teacher
+  Teacher,
+  ProjectWorkflowState: mockProjectWorkflowState,
 };
 
 jest.mock('../../config/database', () => mockDatabaseModule);
@@ -145,7 +153,13 @@ async function bootstrap() {
   // create leader
   const user = await User.create({ firstName: 'Leader', lastName: 'One' });
   const leader = await Student.create({ studentCode: '650000000001', userId: user.userId, isEligibleProject: true });
-    const proj = await projectDocumentService.createProject(leader.studentId, { projectNameTh: 'x', projectNameEn:'y' });
+  const partnerUser = await User.create({ firstName: 'Partner', lastName: 'Two' });
+  const partner = await Student.create({ studentCode: '650000000002', userId: partnerUser.userId, isEligibleProject: true });
+  const proj = await projectDocumentService.createProject(leader.studentId, {
+    projectNameTh: 'x',
+    projectNameEn: 'y',
+    secondMemberStudentCode: partner.studentCode,
+  });
   return { leader, proj };
 }
 
@@ -160,6 +174,9 @@ describe('Milestone + Proposal basic', () => {
     mockLogger.info.mockClear();
     mockLogger.error.mockClear();
     mockLogger.warn.mockClear();
+    mockProjectWorkflowState.createForProject.mockClear();
+    mockProjectWorkflowState.updateFromDefenseRequest.mockClear();
+    mockProjectWorkflowState.updateFromExamResult.mockClear();
   });
 
   afterAll(async () => {

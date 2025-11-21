@@ -113,17 +113,29 @@ async function getTopicOverview(query = {}) {
     delete metaWhere.projectId;
   }
 
+  const projectAttrs = ProjectDocument?.rawAttributes || {};
+  const resolveAttr = (...candidates) =>
+    candidates.find((attr) =>
+      Object.prototype.hasOwnProperty.call(projectAttrs, attr)
+    );
+  const createdAttr = resolveAttr("created_at", "createdAt");
+  const updatedAttr = resolveAttr("updated_at", "updatedAt");
+  const defaultOrderField = updatedAttr || createdAttr || "projectId";
+
   const order = [];
   // รองรับ sortBy (minimal)
   if (query.sortBy === "createdAt")
-    order.push(["created_at", query.order === "asc" ? "ASC" : "DESC"]);
+    order.push([
+      createdAttr || defaultOrderField,
+      query.order === "asc" ? "ASC" : "DESC",
+    ]);
   else if (query.sortBy === "memberCount") {
     // จะ sort ภายหลังจาก map เพราะ memberCount มาจาก association
   } else if (query.sortBy === "projectCode") {
     order.push(["projectCode", query.order === "asc" ? "ASC" : "DESC"]);
   } else {
     // default: updatedAt desc
-    order.push(["updated_at", "DESC"]);
+    order.push([defaultOrderField, "DESC"]);
   }
 
   // Pagination params

@@ -10,6 +10,10 @@ const mockLogger = {
 
 const mockSyncProjectWorkflowState = jest.fn();
 const mockUnlockNextPhase = jest.fn();
+const mockProjectWorkflowState = {
+  updateFromExamResult: jest.fn().mockResolvedValue(undefined),
+  updateFromDefenseRequest: jest.fn().mockResolvedValue(undefined),
+};
 
 let projectExamResultService;
 let modelMocks;
@@ -53,6 +57,7 @@ function createModelMocks() {
     Academic: {
       findOne: jest.fn()
     },
+    ProjectWorkflowState: mockProjectWorkflowState,
     sequelize
   };
 }
