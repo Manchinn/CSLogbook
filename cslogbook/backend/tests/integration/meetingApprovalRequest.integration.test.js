@@ -1,29 +1,27 @@
+const express = require('express');
 const request = require('supertest');
-
-jest.mock('../../middleware/authMiddleware', () => ({
-  authenticateToken: (req, _res, next) => {
-    req.user = { userId: 901, role: 'student', studentId: 1001 };
-    next();
-  },
-  checkRole: () => (_req, _res, next) => next(),
-  checkTeacherType: () => (_req, _res, next) => next(),
-  checkTeacherPosition: () => (_req, _res, next) => next(),
-  checkSelfOrAdmin: (_req, _res, next) => next(),
-  checkEligibility: () => (_req, _res, next) => next()
-}));
 
 jest.mock('../../services/meetingService', () => ({
   createMeeting: jest.fn()
 }));
 
-jest.mock('../../middleware/projectEligibilityMiddleware', () => ({
-  checkProjectEligibility: () => (_req, _res, next) => next(),
-}));
-
-const app = require('../../app');
+const meetingController = require('../../controllers/meetingController');
 const meetingService = require('../../services/meetingService');
 
+const buildTestApp = () => {
+  const app = express();
+  app.use(express.json());
+  const fakeAuth = (req, _res, next) => {
+    req.user = { userId: 901, role: 'student', studentId: 1001 };
+    next();
+  };
+  const fakeEligibility = (_req, _res, next) => next();
+  app.post('/api/projects/:id/meetings', fakeAuth, fakeEligibility, meetingController.create);
+  return app;
+};
+
 describe('POST /api/projects/:id/meetings', () => {
+  let app;
   const validPayload = {
     meetingTitle: 'ติดตามความคืบหน้าครั้งที่ 1',
     meetingDate: new Date('2024-08-01T09:00:00.000Z').toISOString(),
@@ -33,6 +31,8 @@ describe('POST /api/projects/:id/meetings', () => {
   };
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    app = buildTestApp();
     meetingService.createMeeting.mockResolvedValue({
       meetingId: 501,
       meetingTitle: validPayload.meetingTitle,
@@ -40,10 +40,6 @@ describe('POST /api/projects/:id/meetings', () => {
       meetingMethod: validPayload.meetingMethod,
       participants: []
     });
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   test('สร้างการประชุมสำเร็จและเรียก service ด้วย payload ที่ส่งมา', async () => {

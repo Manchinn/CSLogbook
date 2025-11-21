@@ -1,5 +1,15 @@
 const importantDeadlineService = require('../services/importantDeadlineService');
 const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
+const { Document } = require('../models');
+
+const resolveDocumentCreatedAttribute = () => {
+  const attrs = Document?.rawAttributes;
+  if (attrs) {
+    if (attrs.createdAt) return 'createdAt';
+    if (attrs.created_at) return 'created_at';
+  }
+  return 'createdAt';
+};
 
 // ดึงกำหนดการสำคัญทั้งหมด (สามารถกรองด้วยปีการศึกษา/ภาคเรียน)
 // Phase publish: ถ้าไม่ส่ง includeAll=true จะกรองเฉพาะที่เผยแพร่แล้ว (isPublished=true หรือ publishAt <= NOW)
@@ -322,15 +332,22 @@ module.exports.getAllForStudent = async (req, res) => {
           where: {
             userId: studentId,
             importantDeadlineId: { [Op.in]: deadlineIds },
-          },
-          order: [['created_at', 'DESC']] // เรียงตามวันที่สร้างล่าสุด
+          }
         }).catch(err => {
           console.error('[getAllForStudent] Document query error', err.message);
           return [];
         });
         
+        const getTimestamp = (record) => {
+          if (!record) return 0;
+          const ts = record.created_at || record.createdAt || record.updated_at || record.updatedAt || record.submittedAt;
+          return ts ? new Date(ts).getTime() : 0;
+        };
+
+        const sortedDocs = docs.sort((a, b) => getTimestamp(b) - getTimestamp(a));
+
         // จัดกลุ่มเอกสารตาม deadline (เอาเอกสารล่าสุดของแต่ละ deadline)
-        for (const doc of docs) {
+        for (const doc of sortedDocs) {
           if (!documentsByDeadline.has(doc.importantDeadlineId)) {
             documentsByDeadline.set(doc.importantDeadlineId, doc);
           }
