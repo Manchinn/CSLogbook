@@ -612,14 +612,15 @@ export default function TopicExamResultPage() {
               <Space direction="vertical" size={4}>
                 <Text strong>ปีการศึกษา</Text>
                 <Select
-                  placeholder="เลือกปีการศึกษา"
-                  allowClear
                   style={{ minWidth: 220 }}
+                  allowClear
+                  placeholder="ทั้งหมด"
                   value={filters.academicYear}
                   options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
                   onChange={(v) => {
                     const value = v === "all" ? null : v;
                     handleAcademicYearChange(value);
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
                   }}
                   loading={academicYearLoading}
                 />
@@ -629,13 +630,16 @@ export default function TopicExamResultPage() {
               <Space direction="vertical" size={4}>
                 <Text strong>ภาคเรียน</Text>
                 <Select
-                  placeholder="เลือกภาคเรียน"
-                  allowClear
                   style={{ minWidth: 220 }}
+                  allowClear
+                  placeholder="ทั้งหมด"
                   value={filters.semester}
                   disabled={!filters.academicYear || !semesterOptions.length}
                   options={semesterOptions}
-                  onChange={handleSemesterChange}
+                  onChange={(value) => {
+                    handleSemesterChange(value);
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -643,9 +647,10 @@ export default function TopicExamResultPage() {
               <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
+                  style={{ minWidth: 220 }}
                   allowClear
                   prefix={<SearchOutlined />}
-                  placeholder="ค้นหาชื่อโครงงาน / รหัสนักศึกษา"
+                  placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"
                   value={filters.search}
                   onChange={(e) => {
                     updateFilters({ search: e.target.value });
@@ -654,7 +659,7 @@ export default function TopicExamResultPage() {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={6} style={{ textAlign: 'right' }}>
+            <Col xs={24} style={{ textAlign: "right" }}>
               <Space wrap>
                 <Button
                   icon={<ReloadOutlined />}

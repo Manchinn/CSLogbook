@@ -535,13 +535,13 @@ const StaffSystemTestQueue = () => {
           )}
         </div>
 
-        <Card size="small" styles={{ body: { padding: 16  }}}>
+        <Card size="small" styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} md={5}>
+            <Col xs={24} md={6}>
               <Space direction="vertical" size={4}>
                 <Text strong>สถานะคำขอ</Text>
                 <Select
-                  style={{ minWidth: 200 }}
+                  style={{ minWidth: 220 }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
                   onChange={(value) => {
@@ -551,11 +551,11 @@ const StaffSystemTestQueue = () => {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={5}>
+            <Col xs={24} md={6}>
               <Space direction="vertical" size={4}>
                 <Text strong>ปีการศึกษา</Text>
                 <Select
-                  style={{ minWidth: 200 }}
+                  style={{ minWidth: 220 }}
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.academicYear}
@@ -569,11 +569,11 @@ const StaffSystemTestQueue = () => {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={4}>
+            <Col xs={24} md={6}>
               <Space direction="vertical" size={4}>
                 <Text strong>ภาคเรียน</Text>
                 <Select
-                  style={{ minWidth: 150 }}
+                  style={{ minWidth: 220 }}
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.semester}
@@ -588,11 +588,11 @@ const StaffSystemTestQueue = () => {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={7}>
+            <Col xs={24} md={6}>
               <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
-                  style={{ minWidth: 200 }}
+                  style={{ minWidth: 220 }}
                   allowClear
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา / ชื่ออาจารย์"
@@ -604,23 +604,20 @@ const StaffSystemTestQueue = () => {
                 />
               </Space>
             </Col>
-            <Col xs={24} md={3} style={{ textAlign: 'right' }}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Text>&nbsp;</Text>
-                <Space wrap>
-                  <Button icon={<ReloadOutlined />} onClick={() => setReloadToken((prev) => prev + 1)}>
-                    รีเฟรช
-                  </Button>
-                  <Button
-                    danger
-                    onClick={() => {
-                      setFilters({ status: 'pending_staff', search: '', academicYear: undefined, semester: undefined });
-                      setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
-                    }}
-                  >
-                    รีเซ็ต
-                  </Button>
-                </Space>
+            <Col xs={24} style={{ textAlign: "right" }}>
+              <Space wrap>
+                <Button icon={<ReloadOutlined />} onClick={() => setReloadToken((prev) => prev + 1)}>
+                  รีเฟรช
+                </Button>
+                <Button
+                  danger
+                  onClick={() => {
+                    setFilters({ status: 'pending_staff', search: '', academicYear: undefined, semester: undefined });
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                >
+                  รีเซ็ตตัวกรอง
+                </Button>
               </Space>
             </Col>
           </Row>

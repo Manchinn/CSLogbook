@@ -500,51 +500,74 @@ const ThesisExamResultPage = () => {
 
         <Card size="small" styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} lg={10}>
-              <Input
-                placeholder="ค้นหาโครงงานหรือชื่อนักศึกษา"
-                value={filters.search}
-                onChange={onSearchChange}
-                prefix={<SearchOutlined />}
-                allowClear
-              />
-            </Col>
-            <Col xs={24} lg={14} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Space size="small" wrap>
+            <Col xs={24} md={6}>
+              <Space direction="vertical" size={4}>
+                <Text strong>สถานะ</Text>
                 <Select
-                  style={{ width: 160 }}
-                  placeholder="สถานะ"
-                  options={STATUS_OPTIONS}
+                  style={{ minWidth: 220 }}
                   value={filters.status}
+                  options={STATUS_OPTIONS}
                   onChange={onStatusChange}
                 />
+              </Space>
+            </Col>
+            <Col xs={24} md={6}>
+              <Space direction="vertical" size={4}>
+                <Text strong>ปีการศึกษา</Text>
                 <Select
-                  style={{ width: 140 }}
-                  placeholder="ปีการศึกษา"
+                  style={{ minWidth: 220 }}
                   allowClear
-                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  placeholder="ทั้งหมด"
                   value={filters.academicYear}
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
                   onChange={onAcademicYearChange}
                   loading={academicYearLoading}
                 />
-              <Select
-                style={{ width: 140 }}
-                placeholder="ภาคเรียน"
-                allowClear
-                options={[
-                  { label: '1', value: 1 },
-                  { label: '2', value: 2 },
-                  { label: '3', value: 3 }
-                ]}
-                value={filters.semester}
-                onChange={onSemesterChange}
-              />
-              <Button icon={<ReloadOutlined />} onClick={handleReload}>
-                รีเฟรช
-              </Button>
-            </Space>
-          </Col>
-        </Row>
+              </Space>
+            </Col>
+            <Col xs={24} md={6}>
+              <Space direction="vertical" size={4}>
+                <Text strong>ภาคเรียน</Text>
+                <Select
+                  style={{ minWidth: 220 }}
+                  allowClear
+                  placeholder="ทั้งหมด"
+                  value={filters.semester}
+                  options={[1, 2, 3].map((sem) => ({ value: sem, label: `ภาคเรียน ${sem}` }))}
+                  onChange={onSemesterChange}
+                />
+              </Space>
+            </Col>
+            <Col xs={24} md={6}>
+              <Space direction="vertical" size={4}>
+                <Text strong>ค้นหา</Text>
+                <Input
+                  style={{ minWidth: 220 }}
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"
+                  value={filters.search}
+                  onChange={onSearchChange}
+                />
+              </Space>
+            </Col>
+            <Col xs={24} style={{ textAlign: "right" }}>
+              <Space wrap>
+                <Button icon={<ReloadOutlined />} onClick={handleReload}>
+                  รีเฟรช
+                </Button>
+                <Button
+                  danger
+                  onClick={() => {
+                    setFilters({ status: 'pending', academicYear: undefined, semester: undefined, search: '' });
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                >
+                  รีเซ็ตตัวกรอง
+                </Button>
+              </Space>
+            </Col>
+          </Row>
         </Card>
 
         <Spin spinning={loading} tip="กำลังโหลดข้อมูล">

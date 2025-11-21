@@ -449,13 +449,13 @@ const Project1ExamResultPage = () => {
         </div>
 
         {/* Filter Panel */}
-        <Card size="small" styles={{ body: { padding: 16  }}}>
+        <Card size="small" styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={6}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Space direction="vertical" size={4}>
                 <Text strong>สถานะ</Text>
                 <Select
-                  style={{ width: '100%' }}
+                  style={{ minWidth: 220 }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
                   onChange={(value) => {
@@ -466,10 +466,10 @@ const Project1ExamResultPage = () => {
               </Space>
             </Col>
             <Col xs={24} md={6}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Space direction="vertical" size={4}>
                 <Text strong>ปีการศึกษา</Text>
                 <Select
-                  style={{ width: '100%' }}
+                  style={{ minWidth: 220 }}
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.academicYear}
@@ -484,10 +484,10 @@ const Project1ExamResultPage = () => {
               </Space>
             </Col>
             <Col xs={24} md={6}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Space direction="vertical" size={4}>
                 <Text strong>ภาคเรียน</Text>
                 <Select
-                  style={{ width: '100%' }}
+                  style={{ minWidth: 220 }}
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.semester}
@@ -500,9 +500,10 @@ const Project1ExamResultPage = () => {
               </Space>
             </Col>
             <Col xs={24} md={6}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
+                  style={{ minWidth: 220 }}
                   allowClear
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"
@@ -514,7 +515,7 @@ const Project1ExamResultPage = () => {
                 />
               </Space>
             </Col>
-            <Col xs={24} style={{ textAlign: 'right' }}>
+            <Col xs={24} style={{ textAlign: "right" }}>
               <Space wrap>
                 <Button icon={<ReloadOutlined />} onClick={() => setReloadToken((prev) => prev + 1)}>
                   รีเฟรช
