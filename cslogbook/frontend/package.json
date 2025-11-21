@@ -121,7 +121,8 @@
     "modulePaths": [],
     "moduleNameMapper": {
       "^react-native$": "react-native-web",
-      "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
+      "^.+\\.module\\.(css|sass|scss)$": "<rootDir>/src/__mocks__/cssModuleMock.js",
+      "^.+\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
       "^@react-pdf/renderer$": "<rootDir>/src/__mocks__/@react-pdf/renderer.js",
       "^antd/es/date-picker/locale/th_TH$": "<rootDir>/src/__mocks__/antdDatePickerLocaleMock.js",
       "^react-pdf/dist/.*\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
