@@ -16,7 +16,6 @@ import {
   Tooltip,
   Drawer,
   Select,
-  Statistic,
   Spin,
   Descriptions,
 } from "antd";
@@ -27,9 +26,12 @@ import {
   FilterOutlined,
   UserOutlined,
   ReloadOutlined,
+  FileProtectOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import { certificateService } from "features/internship/services"; // ✅ ใช้ service ใหม่
 import CertificateRequestReview from "./CertificateRequestReview";
+import { getInternshipAcademicYears } from "features/reports/services/reportService";
 import dayjs from "utils/dayjs";
 import styles from "./CertificateManagement.module.css";
 
@@ -53,13 +55,27 @@ const CertificateManagement = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
+  // State สำหรับปีการศึกษา
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+
+  // State สำหรับ pagination
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
   // ดึงรายการคำขอหนังสือรับรอง
   const fetchCertificateRequests = useCallback(async () => {
     try {
       setLoading(true);
       
       // สร้าง params สำหรับ API
-      const params = {};
+      const params = {
+        page: pagination.current,
+        limit: pagination.pageSize,
+      };
       if (filters.status !== "all") params.status = filters.status;
       if (filters.academicYear !== "all") params.academicYear = filters.academicYear;
       if (filters.semester !== "all") params.semester = filters.semester;
@@ -68,6 +84,10 @@ const CertificateManagement = () => {
 
       if (response.success) {
         setCertificateRequests(response.data || []);
+        // อัปเดต total จาก pagination
+        if (response.pagination?.total !== undefined) {
+          setPagination(prev => ({ ...prev, total: response.pagination.total }));
+        }
       }
     } catch (error) {
       console.error("Error fetching certificate requests:", error);
@@ -75,12 +95,40 @@ const CertificateManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters.status, filters.academicYear, filters.semester]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.academicYear, filters.semester, pagination.current, pagination.pageSize]);
 
   // โหลดข้อมูลเมื่อ component mount หรือเมื่อ filters เปลี่ยน
   useEffect(() => {
     fetchCertificateRequests();
   }, [fetchCertificateRequests]);
+
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        const years = await getInternshipAcademicYears();
+        
+        // แปลงเป็น options format
+        const options = Array.isArray(years) 
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error('Error fetching academic years:', error);
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, []);
 
   // อนุมัติคำขอหนังสือรับรอง
   const handleApproveRequest = async (requestId) => {
@@ -147,19 +195,7 @@ const CertificateManagement = () => {
     };
   }, [certificateRequests]);
 
-  // ตัวเลือกปีการศึกษา (academicYear)
-  const academicYearOptions = useMemo(() => {
-    const years = new Set();
-    (certificateRequests || []).forEach((r) => {
-      if (r.internship?.academicYear) {
-        years.add(r.internship.academicYear);
-      }
-    });
-    return Array.from(years)
-      .filter(Boolean)
-      .sort((a, b) => b - a) // เรียงจากมากไปน้อย
-      .map((year) => ({ label: `${year}`, value: year }));
-  }, [certificateRequests]);
+  // ตัวเลือกปีการศึกษา - ใช้จาก API แล้ว (ไม่ต้อง extract จาก certificateRequests)
 
   // ตัวเลือกภาคเรียน
   const semesterOptions = [
@@ -234,6 +270,7 @@ const CertificateManagement = () => {
   // Reset filters
   const handleResetFilters = useCallback(() => {
     setFilters({ q: "", status: "all", academicYear: "all", semester: "all" });
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรก
   }, []);
 
   // คอลัมน์ตาราง
@@ -339,48 +376,30 @@ const CertificateManagement = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <Title level={4} className={styles.title}>
-          จัดการคำขอหนังสือรับรอง
+          จัดการเอกสารหนังสือรับรองการฝึกงาน
         </Title>
       </div>
-      {/* Summary Statistics Cards */}
-      <Row gutter={[16, 16]} className={styles.statsRow}>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="คำขอทั้งหมด"
-              value={summary.total}
-              suffix="รายการ"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="รอดำเนินการ"
-              value={summary.pending}
-              suffix="รายการ"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="อนุมัติแล้ว"
-              value={summary.approved}
-              suffix="รายการ"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="ปฏิเสธแล้ว"
-              value={summary.rejected}
-              suffix="รายการ"
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* Summary Statistics Chips */}
+      <div className={styles.statisticsChips}>
+        <div className={styles.statisticItem}>
+          <FileProtectOutlined />
+          <Text>คำขอทั้งหมด: {summary.total} รายการ</Text>
+        </div>
+        <div className={styles.statisticItem}>
+          <ClockCircleOutlined />
+          <Text>รอดำเนินการ: {summary.pending} รายการ</Text>
+        </div>
+        <div className={styles.statisticItem}>
+          <CheckCircleOutlined />
+          <Text>อนุมัติแล้ว: {summary.approved} รายการ</Text>
+        </div>
+        {summary.rejected > 0 && (
+          <div className={styles.statisticItem}>
+            <CloseCircleOutlined />
+            <Text>ปฏิเสธแล้ว: {summary.rejected} รายการ</Text>
+          </div>
+        )}
+      </div>
 
       {/* Filters Section */}
       <Card
@@ -408,7 +427,10 @@ const CertificateManagement = () => {
               style={{ width: "100%" }}
               placeholder="สถานะ"
               value={filters.status}
-              onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+              onChange={(v) => {
+                setFilters((f) => ({ ...f, status: v }));
+                setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรกเมื่อเปลี่ยน filter
+              }}
               options={[
                 { label: "ทั้งหมด", value: "all" },
                 { label: "รอดำเนินการ", value: "pending" },
@@ -423,7 +445,11 @@ const CertificateManagement = () => {
               placeholder="ปีการศึกษา"
               options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
               value={filters.academicYear}
-              onChange={(v) => setFilters((f) => ({ ...f, academicYear: v }))}
+              onChange={(v) => {
+                setFilters((f) => ({ ...f, academicYear: v }));
+                setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรกเมื่อเปลี่ยน filter
+              }}
+              loading={academicYearLoading}
               allowClear
             />
           </Col>
@@ -436,7 +462,10 @@ const CertificateManagement = () => {
                 ...semesterOptions,
               ]}
               value={filters.semester}
-              onChange={(v) => setFilters((f) => ({ ...f, semester: v }))}
+              onChange={(v) => {
+                setFilters((f) => ({ ...f, semester: v }));
+                setPagination(prev => ({ ...prev, current: 1 })); // Reset ไปหน้าแรกเมื่อเปลี่ยน filter
+              }}
               allowClear
             />
           </Col>
@@ -463,17 +492,26 @@ const CertificateManagement = () => {
         loading={loading}
         rowKey="id"
         pagination={{
-          pageSize: 10,
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>
             `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+          pageSizeOptions: ["10", "20", "50", "100"],
+          onChange: (page, pageSize) => {
+            setPagination(prev => ({ ...prev, current: page, pageSize }));
+          },
+          onShowSizeChange: (current, size) => {
+            setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+          },
         }}
         scroll={{ x: 1200 }}
         title={() => (
           <div className={styles.tableTitle}>
             <Text strong>
-              รายการคำขอหนังสือรับรอง ({filteredRequests.length} รายการ)
+              รายการคำขอหนังสือรับรอง ({pagination.total} รายการ)
             </Text>
             {loading && <Spin size="small" />}
           </div>

@@ -222,7 +222,14 @@ export const getMenuConfig = ({
             icon: <FileTextOutlined />,
             label: 'จัดการเอกสาร',
             children: [
-              { key: '/admin/documents/internship', label: 'เอกสารฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
+              {
+                key: 'internship-documents',
+                label: 'เอกสารฝึกงาน',
+                children: [
+                  { key: '/admin/documents/internship', label: 'คำร้องขอฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
+                  { key: '/admin/documents/certificates', label: 'หนังสือรับรองการฝึกงาน', onClick: () => navigate('/admin/documents/certificates') },
+                ],
+              },
               {
                 key: '/admin/documents/project',
                 label: 'เอกสารโครงงานพิเศษ',
@@ -285,7 +292,14 @@ export const getMenuConfig = ({
             icon: <FileTextOutlined />,
             label: 'จัดการเอกสาร',
             children: [
-              { key: '/admin/documents/internship', label: 'เอกสารฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
+              {
+                key: 'internship-documents',
+                label: 'เอกสารฝึกงาน',
+                children: [
+                  { key: '/admin/documents/internship', label: 'คำร้องขอฝึกงาน', onClick: () => navigate('/admin/documents/internship') },
+                  { key: '/admin/documents/certificates', label: 'หนังสือรับรองการฝึกงาน', icon: <FileProtectOutlined />, onClick: () => navigate('/admin/documents/certificates') },
+                ],
+              },
               {
                 key: '/admin/documents/project',
                 label: 'เอกสารโครงงานพิเศษ',

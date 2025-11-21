@@ -332,7 +332,8 @@ const DocumentDetails = ({ documentId, open, onClose }) => {
     const statusConfig = {
       pending: { color: 'orange', text: 'รอตรวจสอบ', icon: <ClockCircleOutlined /> },
       approved: { color: 'green', text: 'อนุมัติ', icon: <CheckCircleOutlined /> },
-      rejected: { color: 'red', text: 'ปฏิเสธ', icon: <CloseCircleOutlined /> }
+      rejected: { color: 'red', text: 'ปฏิเสธ', icon: <CloseCircleOutlined /> },
+      cancelled: { color: 'default', text: 'ยกเลิกการฝึกงาน', icon: <CloseCircleOutlined /> }
     };
 
     const config = statusConfig[status] || statusConfig.pending;

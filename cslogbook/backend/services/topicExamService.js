@@ -126,52 +126,77 @@ async function getTopicOverview(query = {}) {
     order.push(["updated_at", "DESC"]);
   }
 
+  // Pagination params
+  const limit = query.limit ? parseInt(query.limit, 10) : undefined;
+  const offset = query.offset ? parseInt(query.offset, 10) : undefined;
+
   let projects;
+  let total = 0;
   try {
-    projects = await ProjectDocument.findAll({
-      where,
-      include: [
-        {
-          model: ProjectMember,
-          as: "members",
-          // ดึง student + user (ชื่อจริงอยู่ใน users)
-          include: [
-            {
-              model: Student,
-              as: "student",
-              attributes: ["studentId", "studentCode", "classroom"],
-              include: [
-                {
-                  model: User,
-                  as: "user",
-                  // ตาราง users มี firstName, lastName เท่านั้น
-                  attributes: ["firstName", "lastName"],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          model: Teacher,
-          as: "advisor",
-          attributes: ["teacherId"],
-          include: [
-            { model: User, as: "user", attributes: ["firstName", "lastName"] },
-          ],
-        },
-        {
-          model: Teacher,
-          as: "coAdvisor",
-          attributes: ["teacherId"],
-          include: [
-            { model: User, as: "user", attributes: ["firstName", "lastName"] },
-          ],
-        },
-      ],
-    });
+    // ใช้ findAndCountAll เพื่อได้ total count สำหรับ pagination
+    const includeArray = [
+      {
+        model: ProjectMember,
+        as: "members",
+        // ดึง student + user (ชื่อจริงอยู่ใน users)
+        include: [
+          {
+            model: Student,
+            as: "student",
+            attributes: ["studentId", "studentCode", "classroom"],
+            include: [
+              {
+                model: User,
+                as: "user",
+                // ตาราง users มี firstName, lastName เท่านั้น
+                attributes: ["firstName", "lastName"],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        model: Teacher,
+        as: "advisor",
+        attributes: ["teacherId"],
+        include: [
+          { model: User, as: "user", attributes: ["firstName", "lastName"] },
+        ],
+      },
+      {
+        model: Teacher,
+        as: "coAdvisor",
+        attributes: ["teacherId"],
+        include: [
+          { model: User, as: "user", attributes: ["firstName", "lastName"] },
+        ],
+      },
+    ];
+
+    if (limit !== undefined || offset !== undefined) {
+      // ใช้ findAndCountAll สำหรับ pagination
+      const { rows, count } = await ProjectDocument.findAndCountAll({
+        where,
+        include: includeArray,
+        order,
+        limit,
+        offset,
+        distinct: true, // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
+      });
+      projects = rows;
+      total = count;
+    } else {
+      // ไม่มี pagination ใช้ findAll
+      projects = await ProjectDocument.findAll({
+        where,
+        include: includeArray,
+        order,
+      });
+      total = projects.length;
+    }
   } catch (err) {
     // หากเกิด error (เช่น unknown column) ให้โยนต่อไปยัง controller และ log เพิ่มเพื่อ debug
-    logger.error(`[TopicExamService] findAll error: ${err.message}`);
+    logger.error(`[TopicExamService] find error: ${err.message}`);
     throw err;
   }
 
@@ -358,9 +383,10 @@ async function getTopicOverview(query = {}) {
     logger.warn(`[TopicExamService] project meta build failed: ${projectMetaErr.message}`);
   }
 
-  logger.info(`[TopicExamService] overview result size=${result.length}`);
+  logger.info(`[TopicExamService] overview result size=${result.length}, total=${total}`);
   return {
     data: result,
+    total, // ส่ง total count สำหรับ pagination
     meta: {
       availableAcademicYears,
       availableSemestersByYear,
