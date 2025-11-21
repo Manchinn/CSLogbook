@@ -33,8 +33,7 @@ const InternshipCertificateRequest = () => {
     isCS05Approved,
     isAcceptanceApproved,
     hasCS05,
-    hasAcceptance,
-    loading: accessLoading
+    hasAcceptance
   } = useInternshipAccess();
 
   // ✅ ใช้ custom hook สำหรับจัดการสถานะ (เพิ่ม approvedHours)

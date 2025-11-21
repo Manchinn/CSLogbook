@@ -38,10 +38,6 @@ export function useTopicExamOverview(initialFilters = {}) {
     setError(null);
     try {
       const params = { ...filters };
-      // เพิ่ม pagination params ถ้ามี
-      if (params.limit !== undefined) params.limit = params.limit;
-      if (params.offset !== undefined) params.offset = params.offset;
-      
       const payload = await fetchTopicExamOverview(params);
       setRecords(payload?.data || []);
       setTotal(payload?.total || payload?.count || (payload?.data?.length || 0));

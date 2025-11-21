@@ -8,7 +8,7 @@ import React from 'react';
 import { Alert, Tag, Space, Typography } from 'antd';
 import { ClockCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
-import { formatDeadline, getDeadlineStatus, getCountdownText } from '../../../utils/deadlineHelpers';
+import { formatDeadline, getDeadlineStatus } from '../../../utils/deadlineHelpers';
 
 const { Text } = Typography;
 

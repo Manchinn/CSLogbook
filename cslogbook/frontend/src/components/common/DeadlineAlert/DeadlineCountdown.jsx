@@ -135,28 +135,6 @@ const DeadlineCountdown = ({ deadline }) => {
       )}
     </Space>
   );
-
-  if (!showCard) {
-    return content;
-  }
-
-  return (
-    <Card
-      title={
-        <Space>
-          <ClockCircleOutlined />
-          <Text strong>Deadline ถัดไป</Text>
-        </Space>
-      }
-      bordered
-      style={{
-        marginBottom: 16,
-        background: timeRemaining.isOverdue ? '#fff1f0' : undefined,
-      }}
-    >
-      {content}
-    </Card>
-  );
 };
 
 DeadlineCountdown.propTypes = {
