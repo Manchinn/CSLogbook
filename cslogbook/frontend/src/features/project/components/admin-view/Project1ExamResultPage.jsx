@@ -10,7 +10,6 @@ import {
   Select,
   Space,
   Spin,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -22,13 +21,17 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
-  UserOutlined
+  UserOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'utils/dayjs';
 import { DATE_TIME_FORMAT } from 'utils/constants';
 import projectExamResultService from 'features/project/services/projectExamResultService';
 import RecordExamResultModal from './RecordExamResultModal';
 import { useAuth } from 'contexts/AuthContext';
+import { getProjectAcademicYears } from 'features/reports/services/reportService';
+import styles from './Project1ExamResultPage.module.css';
 
 const { Text, Title } = Typography;
 
@@ -73,6 +76,13 @@ const Project1ExamResultPage = () => {
   const [actionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   const isStaff = useMemo(() => {
     if (!userData) return false;
@@ -98,31 +108,57 @@ const Project1ExamResultPage = () => {
       if (filters.search) {
         params.search = filters.search;
       }
+      // เพิ่ม pagination params
+      params.limit = pagination.pageSize;
+      params.offset = (pagination.current - 1) * pagination.pageSize;
 
       const response = await projectExamResultService.getProject1PendingResults(params);
       const projectList = response.data || [];
 
       setProjects(projectList);
+      // อัปเดต total สำหรับ pagination
+      if (response.total !== undefined) {
+        setPagination(prev => ({ ...prev, total: response.total }));
+      } else {
+        // Fallback ถ้าไม่มี total จาก backend
+        setPagination(prev => ({ ...prev, total: response.data?.length || 0 }));
+      }
     } catch (error) {
       message.error('ไม่สามารถโหลดข้อมูลโครงงานได้');
       console.error(error);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, pagination.current, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        const years = await getProjectAcademicYears();
+        const options = Array.isArray(years)
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error('Error fetching academic years:', error);
+        message.error('ไม่สามารถดึงปีการศึกษาได้');
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, []);
 
   useEffect(() => {
     fetchPendingProjects();
   }, [fetchPendingProjects, reloadToken]);
-
-  const availableAcademicYears = useMemo(() => {
-    const years = new Set();
-    projects.forEach((project) => {
-      const year = project.academicYear;
-      if (year) years.add(year);
-    });
-    return Array.from(years).sort((a, b) => b - a);
-  }, [projects]);
 
   const formatDateTime = useCallback((value) => {
     if (!value) return '-';
@@ -386,41 +422,31 @@ const Project1ExamResultPage = () => {
           </Text>
         </Space>
 
-        {/* Summary Cards */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="รอบันทึกผล"
-                value={summary.pending}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ผ่าน"
-                value={summary.passed}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ไม่ผ่าน"
-                value={summary.failed}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="ทั้งหมด" value={summary.total} suffix="รายการ" />
-            </Card>
-          </Col>
-        </Row>
+        {/* Summary Statistics - Chips */}
+        <div className={styles.statisticsChips}>
+          <div className={styles.statisticItem}>
+            <FileTextOutlined />
+            <Text>ทั้งหมด: {summary.total} รายการ</Text>
+          </div>
+          {summary.pending > 0 && (
+            <div className={styles.statisticItem}>
+              <ClockCircleOutlined />
+              <Text>รอบันทึกผล: {summary.pending} รายการ</Text>
+            </div>
+          )}
+          {summary.passed > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>ผ่าน: {summary.passed} รายการ</Text>
+            </div>
+          )}
+          {summary.failed > 0 && (
+            <div className={styles.statisticItem}>
+              <CloseCircleOutlined />
+              <Text>ไม่ผ่าน: {summary.failed} รายการ</Text>
+            </div>
+          )}
+        </div>
 
         {/* Filter Panel */}
         <Card size="small" styles={{ body: { padding: 16  }}}>
@@ -432,7 +458,10 @@ const Project1ExamResultPage = () => {
                   style={{ width: '100%' }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, status: value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -444,8 +473,13 @@ const Project1ExamResultPage = () => {
                   allowClear
                   placeholder="ทั้งหมด"
                   value={filters.academicYear}
-                  options={availableAcademicYears.map((year) => ({ value: year, label: `${year}` }))}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, academicYear: value }))}
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  onChange={(value) => {
+                    const yearValue = value === "all" ? undefined : value;
+                    setFilters((prev) => ({ ...prev, academicYear: yearValue }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                  loading={academicYearLoading}
                 />
               </Space>
             </Col>
@@ -458,7 +492,10 @@ const Project1ExamResultPage = () => {
                   placeholder="ทั้งหมด"
                   value={filters.semester}
                   options={[1, 2, 3].map((sem) => ({ value: sem, label: `ภาคเรียน ${sem}` }))}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, semester: value }))}
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, semester: value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -470,7 +507,10 @@ const Project1ExamResultPage = () => {
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"
                   value={filters.search}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+                  onChange={(event) => {
+                    setFilters((prev) => ({ ...prev, search: event.target.value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -481,9 +521,10 @@ const Project1ExamResultPage = () => {
                 </Button>
                 <Button
                   danger
-                  onClick={() =>
-                    setFilters({ status: 'pending', academicYear: undefined, semester: undefined, search: '' })
-                  }
+                  onClick={() => {
+                    setFilters({ status: 'pending', academicYear: undefined, semester: undefined, search: '' });
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 >
                   รีเซ็ตตัวกรอง
                 </Button>
@@ -512,8 +553,20 @@ const Project1ExamResultPage = () => {
               )
             }}
             pagination={{
-              pageSize: 10,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) =>
+                `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              onChange: (page, pageSize) => {
+                setPagination(prev => ({ ...prev, current: page, pageSize }));
+              },
+              onShowSizeChange: (current, size) => {
+                setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+              },
             }}
           />
         </Spin>

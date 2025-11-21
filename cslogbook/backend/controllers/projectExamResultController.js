@@ -12,20 +12,27 @@ class ProjectExamResultController {
    */
   async getProject1PendingResults(req, res) {
     try {
-      const { academicYear, semester, search, status } = req.query;
+      const { academicYear, semester, search, status, limit, offset } = req.query;
 
-      const projects = await projectExamResultService.getProject1PendingResults({
+      const result = await projectExamResultService.getProject1PendingResults({
         academicYear,
         semester,
         search,
-        status
+        status,
+        limit,
+        offset
       });
+
+      // รองรับทั้งแบบใหม่ (มี data, total) และแบบเดิม (array)
+      const projectList = result.data || result;
+      const total = result.total !== undefined ? result.total : (Array.isArray(projectList) ? projectList.length : 0);
 
       res.status(200).json({
         success: true,
         message: 'ดึงรายการโครงงานที่พร้อมบันทึกผลสำเร็จ',
-        data: projects,
-        count: projects.length
+        data: projectList,
+        count: Array.isArray(projectList) ? projectList.length : 0,
+        total: total
       });
     } catch (error) {
       logger.error('Error in getProject1PendingResults:', error);
