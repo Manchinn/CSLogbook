@@ -11,7 +11,6 @@ import {
   Select,
   Space,
   Spin,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -25,7 +24,9 @@ import {
   ReloadOutlined,
   SearchOutlined,
   UserOutlined,
-  FileSyncOutlined
+  FileSyncOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'utils/dayjs';
 import { DATE_TIME_FORMAT } from 'utils/constants';
@@ -33,6 +34,8 @@ import projectExamResultService from 'features/project/services/projectExamResul
 import RecordExamResultModal from './RecordExamResultModal';
 import UpdateFinalDocumentStatusModal from './UpdateFinalDocumentStatusModal';
 import { useAuth } from 'contexts/AuthContext';
+import { getProjectAcademicYears } from 'features/reports/services/reportService';
+import styles from './ThesisExamResultPage.module.css';
 
 const { Text, Title } = Typography;
 
@@ -96,6 +99,13 @@ const ThesisExamResultPage = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [documentModalVisible, setDocumentModalVisible] = useState(false);
   const [documentProject, setDocumentProject] = useState(null);
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   const isStaff = useMemo(() => {
     if (!userData) return false;
@@ -111,30 +121,57 @@ const ThesisExamResultPage = () => {
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await projectExamResultService.getThesisPendingResults(filters);
+      const params = { ...filters };
+      // เพิ่ม pagination params
+      params.limit = pagination.pageSize;
+      params.offset = (pagination.current - 1) * pagination.pageSize;
+
+      const response = await projectExamResultService.getThesisPendingResults(params);
       const list = response?.data || [];
       setProjects(list);
+      // อัปเดต total สำหรับ pagination
+      if (response.total !== undefined) {
+        setPagination(prev => ({ ...prev, total: response.total }));
+      } else {
+        // Fallback ถ้าไม่มี total จาก backend
+        setPagination(prev => ({ ...prev, total: response.data?.length || 0 }));
+      }
     } catch (error) {
       console.error(error);
       message.error('ไม่สามารถโหลดข้อมูลโครงงานได้');
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, pagination.current, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        const years = await getProjectAcademicYears();
+        const options = Array.isArray(years)
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error('Error fetching academic years:', error);
+        message.error('ไม่สามารถดึงปีการศึกษาได้');
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, []);
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects, reloadToken]);
-
-  const availableAcademicYears = useMemo(() => {
-    const years = new Set();
-    projects.forEach((project) => {
-      if (project.academicYear) {
-        years.add(project.academicYear);
-      }
-    });
-    return Array.from(years).sort((a, b) => b - a);
-  }, [projects]);
 
   const summary = useMemo(() => {
     return projects.reduce(
@@ -194,18 +231,23 @@ const ThesisExamResultPage = () => {
 
   const onStatusChange = useCallback((value) => {
     setFilters((prev) => ({ ...prev, status: value || 'all' }));
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
   }, []);
 
   const onAcademicYearChange = useCallback((value) => {
-    setFilters((prev) => ({ ...prev, academicYear: value || undefined }));
+    const yearValue = value === "all" ? undefined : value;
+    setFilters((prev) => ({ ...prev, academicYear: yearValue || undefined }));
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
   }, []);
 
   const onSemesterChange = useCallback((value) => {
     setFilters((prev) => ({ ...prev, semester: value || undefined }));
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
   }, []);
 
   const onSearchChange = useCallback((event) => {
     setFilters((prev) => ({ ...prev, search: event.target.value }));
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
   }, []);
 
   const columns = useMemo(() => {
@@ -424,28 +466,37 @@ const ThesisExamResultPage = () => {
           </Text>
         </Space>
 
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="รอบันทึกผล" value={summary.pending} suffix="รายการ" />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="บันทึกผลแล้ว" value={summary.passed + summary.failed} suffix="รายการ" />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="ผ่าน" value={summary.passed} suffix="รายการ" />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="ไม่ผ่าน" value={summary.failed} suffix="รายการ" />
-            </Card>
-          </Col>
-        </Row>
+        {/* Summary Statistics - Chips */}
+        <div className={styles.statisticsChips}>
+          <div className={styles.statisticItem}>
+            <FileTextOutlined />
+            <Text>ทั้งหมด: {summary.total} รายการ</Text>
+          </div>
+          {summary.pending > 0 && (
+            <div className={styles.statisticItem}>
+              <ClockCircleOutlined />
+              <Text>รอบันทึกผล: {summary.pending} รายการ</Text>
+            </div>
+          )}
+          {(summary.passed + summary.failed) > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>บันทึกผลแล้ว: {summary.passed + summary.failed} รายการ</Text>
+            </div>
+          )}
+          {summary.passed > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>ผ่าน: {summary.passed} รายการ</Text>
+            </div>
+          )}
+          {summary.failed > 0 && (
+            <div className={styles.statisticItem}>
+              <CloseCircleOutlined />
+              <Text>ไม่ผ่าน: {summary.failed} รายการ</Text>
+            </div>
+          )}
+        </div>
 
         <Card size="small" styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]} align="middle">
@@ -469,12 +520,13 @@ const ThesisExamResultPage = () => {
                 />
                 <Select
                   style={{ width: 140 }}
-                placeholder="ปีการศึกษา"
-                allowClear
-                options={availableAcademicYears.map((year) => ({ label: year, value: year }))}
-                value={filters.academicYear}
-                onChange={onAcademicYearChange}
-              />
+                  placeholder="ปีการศึกษา"
+                  allowClear
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  value={filters.academicYear}
+                  onChange={onAcademicYearChange}
+                  loading={academicYearLoading}
+                />
               <Select
                 style={{ width: 140 }}
                 placeholder="ภาคเรียน"
@@ -510,8 +562,20 @@ const ThesisExamResultPage = () => {
               )
             }}
             pagination={{
-              pageSize: 10,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) =>
+                `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              onChange: (page, pageSize) => {
+                setPagination(prev => ({ ...prev, current: page, pageSize }));
+              },
+              onShowSizeChange: (current, size) => {
+                setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+              },
             }}
           />
         </Spin>
