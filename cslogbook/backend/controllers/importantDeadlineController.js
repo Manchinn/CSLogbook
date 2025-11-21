@@ -314,7 +314,7 @@ module.exports.getAllForStudent = async (req, res) => {
     if (studentId && all.length) {
       try {
         const { Document } = require('../models');
-        const { Op } = require('sequelize');
+        const { Op, col } = require('sequelize');
         const deadlineIds = all.map(d => d.id).filter(Boolean);
         
         // ดึงเอกสารทั้งหมดที่เกี่ยวข้องกับ deadline และ student
@@ -323,7 +323,7 @@ module.exports.getAllForStudent = async (req, res) => {
             userId: studentId,
             importantDeadlineId: { [Op.in]: deadlineIds },
           },
-          order: [['created_at', 'DESC']] // เรียงตามวันที่สร้างล่าสุด
+          order: [[col('created_at'), 'DESC']] // เรียงตามวันที่สร้างล่าสุด - ใช้ col() เพื่อหลีกเลี่ยง Literal error
         }).catch(err => {
           console.error('[getAllForStudent] Document query error', err.message);
           return [];

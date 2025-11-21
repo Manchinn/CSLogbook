@@ -11,8 +11,13 @@ export const AuthContext = createContext({
 });
 
 // baseURL อยู่ใน apiClient แล้ว ดังนั้นไม่ต้องสร้างซ้ำ
+// ใน test environment ให้ใช้ค่า default แทนการ throw error
 if (!process.env.REACT_APP_API_URL) {
-  throw new Error('REACT_APP_API_URL is not defined in environment variables');
+  if (process.env.NODE_ENV === 'test' || process.env.CI) {
+    process.env.REACT_APP_API_URL = 'http://localhost:5000/api';
+  } else {
+    throw new Error('REACT_APP_API_URL is not defined in environment variables');
+  }
 }
 
 export const AuthProvider = ({ children }) => {
