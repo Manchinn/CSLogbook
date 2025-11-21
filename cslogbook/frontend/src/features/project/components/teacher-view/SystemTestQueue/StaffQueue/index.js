@@ -12,7 +12,6 @@ import {
   Select,
   Space,
   Spin,
-  Statistic,
   Table,
   Tag,
   Timeline,
@@ -26,13 +25,16 @@ import {
   ReloadOutlined,
   SearchOutlined,
   ClockCircleOutlined,
-  WarningOutlined
+  WarningOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import dayjs from 'utils/dayjs';
 import { DATE_FORMAT_MEDIUM, DATE_TIME_FORMAT } from 'utils/constants';
 import projectService from 'features/project/services/projectService';
 import { useAuth } from 'contexts/AuthContext';
 import { PDFViewerModal } from 'components/common/PDFViewer';
+import { getProjectAcademicYears } from 'features/reports/services/reportService';
+import styles from './index.module.css';
 
 const { Title, Text } = Typography;
 
@@ -65,13 +67,25 @@ const StaffSystemTestQueue = () => {
   const { userData } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ status: 'pending_staff', search: '' });
+  const [filters, setFilters] = useState({ 
+    status: 'pending_staff', 
+    search: '',
+    academicYear: undefined,
+    semester: undefined
+  });
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [expandedRowKey, setExpandedRowKey] = useState(null);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerTitle, setViewerTitle] = useState('');
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   const canDecide = useMemo(() => {
     if (!userData) return false;
@@ -82,6 +96,31 @@ const StaffSystemTestQueue = () => {
     return false;
   }, [userData]);
 
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        const years = await getProjectAcademicYears();
+        const options = Array.isArray(years)
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error('Error fetching academic years:', error);
+        message.error('ไม่สามารถดึงปีการศึกษาได้');
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, []);
+
   const loadQueue = useCallback(async () => {
     try {
       setLoading(true);
@@ -89,18 +128,38 @@ const StaffSystemTestQueue = () => {
       if (filters.status && filters.status !== 'all') {
         params.status = filters.status;
       }
+      if (filters.search) {
+        params.search = filters.search;
+      }
+      if (filters.academicYear) {
+        params.academicYear = filters.academicYear;
+      }
+      if (filters.semester) {
+        params.semester = filters.semester;
+      }
+      // เพิ่ม pagination params
+      params.limit = pagination.pageSize;
+      params.offset = (pagination.current - 1) * pagination.pageSize;
+
       const response = await projectService.listSystemTestStaffQueue(params);
       if (!response?.success) {
         message.error(response?.message || 'ไม่สามารถดึงรายการคำขอได้');
         return;
       }
       setItems(Array.isArray(response.data) ? response.data : []);
+      // อัปเดต total สำหรับ pagination
+      if (response.total !== undefined) {
+        setPagination(prev => ({ ...prev, total: response.total }));
+      } else {
+        // Fallback ถ้าไม่มี total จาก backend
+        setPagination(prev => ({ ...prev, total: response.data?.length || 0 }));
+      }
     } catch (error) {
       message.error(error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
     } finally {
       setLoading(false);
     }
-  }, [filters.status]);
+  }, [filters, pagination.current, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadQueue();
@@ -116,34 +175,10 @@ const StaffSystemTestQueue = () => {
     return dayjs(value).locale('th').format(DATE_TIME_FORMAT);
   }, []);
 
-  const filteredItems = useMemo(() => {
-    const keyword = (filters.search || '').trim().toLowerCase();
-    return items.filter((item) => {
-      // กรองสถานะตามตัวเลือกฟิลเตอร์
-      if (filters.status !== 'all' && item.status !== filters.status) {
-        return false;
-      }
-      if (!keyword) {
-        return true;
-      }
-      // ค้นหาจากชื่อโครงงาน ชื่อ/รหัสนักศึกษา และชื่ออาจารย์ที่ปรึกษา
-      const project = item.projectSnapshot || {};
-      const applicant = item.submittedBy || {};
-      const advisor = item.advisorDecision || {};
-      const candidates = [
-        project.projectNameTh,
-        project.projectNameEn,
-        project.projectCode,
-        applicant.studentCode,
-        applicant.name,
-        advisor.name
-      ].filter(Boolean);
-      return candidates.some((text) => String(text).toLowerCase().includes(keyword));
-    });
-  }, [filters.search, filters.status, items]);
+  // ไม่ต้องใช้ filteredItems แล้ว เพราะทำ filtering ที่ backend
 
   const summary = useMemo(() => {
-    return filteredItems.reduce(
+    return items.reduce(
       (acc, item) => {
         const status = item.status || 'pending_staff';
         acc.total += 1;
@@ -155,7 +190,7 @@ const StaffSystemTestQueue = () => {
       },
       { waiting: 0, approved: 0, rejected: 0, advisorRejected: 0, total: 0 }
     );
-  }, [filteredItems]);
+  }, [items]);
 
   const handlePreview = useCallback((file, title) => {
     if (!file?.url) {
@@ -468,66 +503,124 @@ const StaffSystemTestQueue = () => {
           </Text>
         </Space>
 
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="รอเจ้าหน้าที่" value={summary.waiting} suffix="รายการ" />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="อนุมัติแล้ว" value={summary.approved} suffix="รายการ" />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="ปฏิเสธ" value={summary.rejected} suffix="รายการ" />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic title="อาจารย์ปฏิเสธ" value={summary.advisorRejected} suffix="รายการ" />
-            </Card>
-          </Col>
-        </Row>
+        {/* Summary Statistics - Chips */}
+        <div className={styles.statisticsChips}>
+          <div className={styles.statisticItem}>
+            <FileTextOutlined />
+            <Text>ทั้งหมด: {summary.total} รายการ</Text>
+          </div>
+          {summary.waiting > 0 && (
+            <div className={styles.statisticItem}>
+              <ClockCircleOutlined />
+              <Text>รอเจ้าหน้าที่: {summary.waiting} รายการ</Text>
+            </div>
+          )}
+          {summary.approved > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>อนุมัติแล้ว: {summary.approved} รายการ</Text>
+            </div>
+          )}
+          {summary.rejected > 0 && (
+            <div className={styles.statisticItem}>
+              <CloseCircleOutlined />
+              <Text>ปฏิเสธ: {summary.rejected} รายการ</Text>
+            </div>
+          )}
+          {summary.advisorRejected > 0 && (
+            <div className={styles.statisticItem}>
+              <CloseCircleOutlined />
+              <Text>อาจารย์ปฏิเสธ: {summary.advisorRejected} รายการ</Text>
+            </div>
+          )}
+        </div>
 
         <Card size="small" styles={{ body: { padding: 16  }}}>
           <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} md={7}>
+            <Col xs={24} md={5}>
               <Space direction="vertical" size={4}>
                 <Text strong>สถานะคำขอ</Text>
                 <Select
-                  style={{ minWidth: 220 }}
+                  style={{ minWidth: 200 }}
                   value={filters.status}
                   options={STATUS_OPTIONS}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, status: value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
-            <Col xs={24} md={9}>
+            <Col xs={24} md={5}>
+              <Space direction="vertical" size={4}>
+                <Text strong>ปีการศึกษา</Text>
+                <Select
+                  style={{ minWidth: 200 }}
+                  allowClear
+                  placeholder="ทั้งหมด"
+                  value={filters.academicYear}
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  onChange={(value) => {
+                    const yearValue = value === "all" ? undefined : value;
+                    setFilters((prev) => ({ ...prev, academicYear: yearValue }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                  loading={academicYearLoading}
+                />
+              </Space>
+            </Col>
+            <Col xs={24} md={4}>
+              <Space direction="vertical" size={4}>
+                <Text strong>ภาคเรียน</Text>
+                <Select
+                  style={{ minWidth: 150 }}
+                  allowClear
+                  placeholder="ทั้งหมด"
+                  value={filters.semester}
+                  options={[1, 2, 3].map((sem) => ({
+                    value: sem,
+                    label: `ภาคเรียน ${sem}`,
+                  }))}
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, semester: value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                />
+              </Space>
+            </Col>
+            <Col xs={24} md={7}>
               <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
-                  style={{ minWidth: 220 }}
+                  style={{ minWidth: 200 }}
                   allowClear
                   prefix={<SearchOutlined />}
                   placeholder="ค้นหาโครงงาน / รหัสนักศึกษา / ชื่ออาจารย์"
                   value={filters.search}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+                  onChange={(event) => {
+                    setFilters((prev) => ({ ...prev, search: event.target.value }));
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
-            <Col xs={24} md={8} style={{ textAlign: 'right' }}>
-              <Space wrap>
-                <Button icon={<ReloadOutlined />} onClick={() => setReloadToken((prev) => prev + 1)}>
-                  รีเฟรช
-                </Button>
-                <Button
-                  danger
-                  onClick={() => setFilters({ status: 'pending_staff', search: '' })}
-                >
-                  รีเซ็ตตัวกรอง
-                </Button>
+            <Col xs={24} md={3} style={{ textAlign: 'right' }}>
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text>&nbsp;</Text>
+                <Space wrap>
+                  <Button icon={<ReloadOutlined />} onClick={() => setReloadToken((prev) => prev + 1)}>
+                    รีเฟรช
+                  </Button>
+                  <Button
+                    danger
+                    onClick={() => {
+                      setFilters({ status: 'pending_staff', search: '', academicYear: undefined, semester: undefined });
+                      setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                    }}
+                  >
+                    รีเซ็ต
+                  </Button>
+                </Space>
               </Space>
             </Col>
           </Row>
@@ -536,13 +629,29 @@ const StaffSystemTestQueue = () => {
         <Spin spinning={loading} tip="กำลังโหลดข้อมูล">
           <Table
             rowKey={(record) => record.requestId}
-            dataSource={filteredItems}
+            dataSource={items}
             columns={columns}
             locale={{ emptyText: <Empty description="ไม่พบคำขอ" /> }}
             expandable={{
               expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
               onExpand: (expanded, record) => setExpandedRowKey(expanded ? record.requestId : null),
               expandedRowRender
+            }}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) =>
+                `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              onChange: (page, pageSize) => {
+                setPagination(prev => ({ ...prev, current: page, pageSize }));
+              },
+              onShowSizeChange: (current, size) => {
+                setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+              },
             }}
           />
         </Spin>

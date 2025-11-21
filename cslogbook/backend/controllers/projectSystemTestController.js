@@ -60,12 +60,35 @@ module.exports = {
     return buildResponse(res, projectSystemTestService.advisorQueue(req.user.teacherId));
   },
 
-  staffQueue(req, res) {
-    const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role === 'admin' || req.user.teacherType === 'support' || req.user.canExportProject1);
-    if (!isStaff) {
-      return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงรายการนี้' });
+  async staffQueue(req, res) {
+    try {
+      const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role === 'admin' || req.user.teacherType === 'support' || req.user.canExportProject1);
+      if (!isStaff) {
+        return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงรายการนี้' });
+      }
+      const { status, search, academicYear, semester, limit, offset } = req.query;
+      
+      const result = await projectSystemTestService.staffQueue({ 
+        status, 
+        search, 
+        academicYear, 
+        semester, 
+        limit, 
+        offset 
+      });
+
+      // รองรับทั้งแบบใหม่ (มี data, total) และแบบเดิม (array)
+      const dataList = result.data || result;
+      const total = result.total !== undefined ? result.total : (Array.isArray(dataList) ? dataList.length : 0);
+
+      return res.json({ 
+        success: true, 
+        data: dataList, 
+        total: total
+      });
+    } catch (error) {
+      logger.error('projectSystemTestController error', { error: error.message });
+      return res.status(400).json({ success: false, message: error.message || 'ไม่สามารถดำเนินการได้' });
     }
-    const status = req.query?.status;
-    return buildResponse(res, projectSystemTestService.staffQueue({ status }));
   }
 };
