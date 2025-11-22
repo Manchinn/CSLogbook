@@ -8,15 +8,17 @@
 
 const cron = require('node-cron');
 const logger = require('../utils/logger');
-const { Student, Document, InternshipDocument } = require('../models');
+const { Student, Document, InternshipDocument, User } = require('../models');
 const { Op } = require('sequelize');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
+const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
 const workflowService = require('../services/workflowService');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(isSameOrAfter);
 
 class InternshipStatusMonitor {
   constructor() {
