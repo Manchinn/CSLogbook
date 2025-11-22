@@ -405,7 +405,19 @@ const StaffKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
           };
           
           // แสดง deadline tag ถ้ามี
-          const deadlineTag = record.deadlineStatus?.tag;
+          let deadlineTag = record.deadlineStatus?.tag;
+
+          // Fallback: ถ้าไม่มี tag จาก real-time check แต่ใน database บันทึกว่าส่งช้า
+          if (!deadlineTag && record.submittedLate) {
+             deadlineTag = {
+               color: 'warning',
+               text: 'ส่งช้า',
+               tooltip: record.submissionDelayMinutes 
+                 ? `ส่งช้าประมาณ ${Math.ceil(record.submissionDelayMinutes / 60)} ชม.` 
+                 : 'ส่งเกินกำหนดเวลา',
+               type: 'late'
+             };
+          }
           
           return (
             <Space direction="vertical" size={4}>

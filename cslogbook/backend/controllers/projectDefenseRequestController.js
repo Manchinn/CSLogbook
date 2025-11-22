@@ -51,14 +51,72 @@ module.exports = {
       if (req.user.role !== 'student' || !req.user.studentId) {
         return res.status(403).json({ success: false, message: 'อนุญาตเฉพาะหัวหน้าโครงงาน' });
       }
+      
+      const { id } = req.params;
+      
+      // NEW: Check workflow state for deadline enforcement
+      const { ProjectWorkflowState, WorkflowStepDefinition } = require('../models');
+      const workflowState = await ProjectWorkflowState.findOne({
+        where: { project_id: id },
+        include: [{
+          model: WorkflowStepDefinition,
+          as: 'stepDefinition',
+          attributes: ['step_key', 'phase_variant', 'title', 'phase_key']
+        }]
+      });
+
+      const variant = workflowState?.stepDefinition?.phase_variant;
+      const phaseKey = workflowState?.stepDefinition?.phase_key;
+      
+      // Determine if this is defense or thesis based on phase
+      const isThesisPhase = phaseKey?.includes('thesis') || phaseKey?.includes('final');
+      
+      if (variant === 'overdue') {
+        const phaseName = isThesisPhase ? 'ปริญญานิพนธ์' : 'หัวข้อโครงงาน';
+        logger.warn('Defense request blocked - overdue', { 
+          projectId: id, 
+          studentId: req.user.studentId,
+          phase: phaseKey
+        });
+        return res.status(403).json({ 
+          success: false, 
+          message: `หมดเขตยื่นคำขอสอบ${phaseName}แล้ว กรุณาติดต่อเจ้าหน้าที่ภาควิชา`,
+          code: 'DEADLINE_PASSED',
+          deadlineInfo: {
+            status: 'overdue',
+            phase: phaseKey,
+            currentState: workflowState?.stepDefinition?.title
+          }
+        });
+      }
+
+      const isLate = variant === 'late';
+      
+      if (isLate) {
+        logger.info('Defense request - late submission', { 
+          projectId: id, 
+          studentId: req.user.studentId,
+          phase: phaseKey
+        });
+      }
+      
       const defenseType = resolveDefenseType(req, DEFENSE_TYPE_PROJECT1);
       const payload = { ...(req.body || {}) };
       delete payload.defenseType;
 
       const record = defenseType === DEFENSE_TYPE_THESIS
-        ? await projectDefenseRequestService.submitThesisRequest(req.params.id, req.user.studentId, payload)
-        : await projectDefenseRequestService.submitProject1Request(req.params.id, req.user.studentId, payload);
-      return res.status(200).json({ success: true, data: record });
+        ? await projectDefenseRequestService.submitThesisRequest(id, req.user.studentId, payload)
+        : await projectDefenseRequestService.submitProject1Request(id, req.user.studentId, payload);
+        
+      return res.status(200).json({ 
+        success: true, 
+        data: record,
+        isLateSubmission: isLate,
+        submissionStatus: {
+          variant: variant || 'on-time',
+          message: isLate ? 'ยื่นคำขอหลังกำหนด - จะได้รับการพิจารณาพิเศษ' : null
+        }
+      });
     } catch (error) {
       logger.error('submitProject1Request error', { projectId: req.params.id, error: error.message });
       const status = error.statusCode || 400;

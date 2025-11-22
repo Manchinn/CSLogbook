@@ -1,15 +1,30 @@
 /**
  * Project Deadline Monitor Agent
  * 
- * ตรวจสอบโครงงานที่เลย deadline และอัปเดต isOverdue flag อัตโนมัติ
+ * ตรวจสอบโครงงานที่เลย deadline และอัปเดต workflow state + isOverdue flag อัตโนมัติ
  * รันเป็น scheduled job (cron) เพื่อรักษา data consistency
+ * 
+ * ENHANCED: รวม logic จาก deadlineStatusUpdater - ทำทั้งหมด:
+ * - ตรวจสอบ ImportantDeadline (deadline_at และ end_date)
+ * - เปลี่ยน workflow state → LATE/OVERDUE
+ * - อัพเดท isOverdue flag
+ * - ส่งการแจ้งเตือน
  */
 
 const cron = require('node-cron');
-const { ProjectWorkflowState, ProjectDocument } = require('../models');
+const { ProjectWorkflowState, ProjectDocument, WorkflowStepDefinition, ImportantDeadline } = require('../models');
 const { Op } = require('sequelize');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
 const logger = require('../utils/logger');
 const projectWorkflowStateService = require('../services/projectWorkflowStateService');
+const { getStateMappingForDeadline } = require('../constants/deadlineStateMapping');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isSameOrAfter);
 
 class ProjectDeadlineMonitor {
   constructor() {
@@ -22,6 +37,7 @@ class ProjectDeadlineMonitor {
       newlyOverdue: 0,
       stillOverdue: 0,
       noLongerOverdue: 0,
+      stateTransitions: 0, // NEW: track workflow transitions
       errors: 0
     };
   }
@@ -71,6 +87,7 @@ class ProjectDeadlineMonitor {
 
   /**
    * รันการตรวจสอบ deadline ทั้งหมด
+   * ENHANCED: รวม logic การเปลี่ยน workflow state
    */
   async runCheck() {
     if (this.checkInProgress) {
@@ -90,10 +107,230 @@ class ProjectDeadlineMonitor {
         newlyOverdue: 0,
         stillOverdue: 0,
         noLongerOverdue: 0,
+        stateTransitions: 0, // NEW: track state transitions
         errors: 0
       };
 
-      // ดึงโครงงานที่ยัง active (ไม่ใช่ COMPLETED หรือ ARCHIVED)
+      const now = dayjs().tz('Asia/Bangkok');
+
+      // ========== STEP 1: Process ImportantDeadline state transitions ==========
+      logger.info('ProjectDeadlineMonitor: Step 1 - Processing deadline-based state transitions...');
+      await this.processDeadlineStateTransitions(now);
+
+      // ========== STEP 2: Update isOverdue flags (existing logic) ==========
+      logger.info('ProjectDeadlineMonitor: Step 2 - Updating isOverdue flags...');
+      await this.updateOverdueFlags();
+
+      const duration = Date.now() - startTime;
+      this.lastRunTime = new Date();
+
+      logger.info(`ProjectDeadlineMonitor: Check complete in ${duration}ms`, {
+        ...this.statistics,
+        duration
+      });
+
+    } catch (error) {
+      logger.error('ProjectDeadlineMonitor: Fatal error during check:', error);
+    } finally {
+      this.checkInProgress = false;
+    }
+  }
+
+  /**
+   * NEW METHOD: Process deadline-based workflow state transitions
+   * Logic from deadlineStatusUpdater.js
+   */
+  async processDeadlineStateTransitions(now) {
+    try {
+      // Job 1: Check soft deadlines (deadline_at)
+      await this.processDeadlineAt(now);
+      
+      // Job 2: Check hard deadlines (end_date)
+      await this.processEndDate(now);
+    } catch (error) {
+      logger.error('Error in processDeadlineStateTransitions:', error);
+    }
+  }
+
+  /**
+   * Job 1: Check soft deadline (deadline_at) → move PENDING → LATE_SUBMISSION
+   */
+  async processDeadlineAt(now) {
+    try {
+      // Find deadlines that just passed (within last 24 hours)
+      const passedDeadlines = await ImportantDeadline.findAll({
+        where: {
+          deadlineAt: {
+            [Op.lte]: now.toDate(),
+            [Op.gte]: now.subtract(1, 'day').toDate()
+          },
+          relatedTo: { [Op.in]: ['project1', 'project2'] }
+        }
+      });
+
+      logger.info(`Found ${passedDeadlines.length} deadlines that recently passed (soft)`);
+
+      for (const deadline of passedDeadlines) {
+        try {
+          const mapping = getStateMappingForDeadline(deadline.relatedTo, deadline.name);
+          if (!mapping) continue;
+
+          // Find pending step
+          const pendingStep = await WorkflowStepDefinition.findOne({
+            where: {
+              workflow_type: deadline.relatedTo,
+              step_key: mapping.pendingState
+            }
+          });
+
+          if (!pendingStep) continue;
+
+          // Find late step
+          const lateStep = await WorkflowStepDefinition.findOne({
+            where: {
+              workflow_type: deadline.relatedTo,
+              step_key: mapping.lateState
+            }
+          });
+
+          if (!lateStep) continue;
+
+          // Find projects in pending state
+          const projectsToUpdate = await ProjectWorkflowState.findAll({
+            where: {
+              workflow_step_id: pendingStep.stepId
+            },
+            include: [{
+              model: ProjectDocument,
+              as: 'project',
+              where: {
+                status: { [Op.notIn]: ['completed', 'cancelled', 'archived'] }
+              }
+            }]
+          });
+
+          // Transition to late state
+          for (const projectState of projectsToUpdate) {
+            try {
+              await projectState.update({
+                workflow_step_id: lateStep.stepId,
+                isOverdue: false, // Late but not overdue yet
+                updated_at: new Date()
+              });
+
+              this.statistics.stateTransitions++;
+              logger.info(`Transitioned project ${projectState.project_id} to late: ${mapping.lateState}`);
+            } catch (updateError) {
+              this.statistics.errors++;
+              logger.error(`Error transitioning project ${projectState.project_id}:`, updateError);
+            }
+          }
+        } catch (deadlineError) {
+          this.statistics.errors++;
+          logger.error(`Error processing deadline ${deadline.id}:`, deadlineError);
+        }
+      }
+    } catch (error) {
+      logger.error('Error in processDeadlineAt:', error);
+    }
+  }
+
+  /**
+   * Job 2: Check hard deadline (end_date) → move PENDING/LATE → OVERDUE
+   */
+  async processEndDate(now) {
+    try {
+      // Find deadlines whose end_date just passed
+      const closedDeadlines = await ImportantDeadline.findAll({
+        where: {
+          windowEndAt: {
+            [Op.lte]: now.toDate(),
+            [Op.gte]: now.subtract(1, 'day').toDate()
+          },
+          relatedTo: { [Op.in]: ['project1', 'project2'] }
+        }
+      });
+
+      logger.info(`Found ${closedDeadlines.length} deadlines that recently closed (hard)`);
+
+      for (const deadline of closedDeadlines) {
+        try {
+          const mapping = getStateMappingForDeadline(deadline.relatedTo, deadline.name);
+          if (!mapping) continue;
+
+          // Find overdue step
+          const overdueStep = await WorkflowStepDefinition.findOne({
+            where: {
+              workflow_type: deadline.relatedTo,
+              step_key: mapping.overdueState
+            }
+          });
+
+          if (!overdueStep) continue;
+
+          // Find pending and late steps
+          const pendingStep = await WorkflowStepDefinition.findOne({
+            where: { workflow_type: deadline.relatedTo, step_key: mapping.pendingState }
+          });
+
+          const lateStep = await WorkflowStepDefinition.findOne({
+            where: { workflow_type: deadline.relatedTo, step_key: mapping.lateState }
+          });
+
+          const stepsToCheck = [pendingStep?.stepId, lateStep?.stepId].filter(Boolean);
+
+          if (stepsToCheck.length === 0) continue;
+
+          // Find projects in pending OR late state
+          const projectsToUpdate = await ProjectWorkflowState.findAll({
+            where: {
+              workflow_step_id: { [Op.in]: stepsToCheck }
+            },
+            include: [{
+              model: ProjectDocument,
+              as: 'project',
+              where: {
+                status: { [Op.notIn]: ['completed', 'cancelled', 'archived'] }
+              }
+            }]
+          });
+
+          // Transition to overdue
+          for (const projectState of projectsToUpdate) {
+            try {
+              await projectState.update({
+                workflow_step_id: overdueStep.stepId,
+                isOverdue: true, // Set flag for UI
+                updated_at: new Date()
+              });
+
+              this.statistics.stateTransitions++;
+              this.statistics.newlyOverdue++; // Count as newly overdue
+              logger.warn(`Marked project ${projectState.project_id} as OVERDUE: ${mapping.overdueState}`);
+              
+              // Send notification for overdue
+              await this.notifyOverdue(projectState, [deadline]);
+            } catch (updateError) {
+              this.statistics.errors++;
+              logger.error(`Error marking project ${projectState.project_id} as overdue:`, updateError);
+            }
+          }
+        } catch (deadlineError) {
+          this.statistics.errors++;
+          logger.error(`Error processing deadline ${deadline.id}:`, deadlineError);
+        }
+      }
+    } catch (error) {
+      logger.error('Error in processEndDate:', error);
+    }
+  }
+
+  /**
+   * Update isOverdue flags (existing logic, now Step 2)
+   */
+  async updateOverdueFlags() {
+    try {
+      // ดึงโครงงานที่ยัง active
       const activeStates = await ProjectWorkflowState.findAll({
         where: {
           currentPhase: {
@@ -108,7 +345,7 @@ class ProjectDeadlineMonitor {
         }]
       });
 
-      logger.info(`ProjectDeadlineMonitor: Found ${activeStates.length} active projects`);
+      logger.info(`ProjectDeadlineMonitor: Found ${activeStates.length} active projects for flag update`);
 
       // ตรวจสอบแต่ละโครงงาน
       for (const state of activeStates) {
@@ -120,11 +357,14 @@ class ProjectDeadlineMonitor {
           // ตรวจสอบ overdue
           const result = await projectWorkflowStateService.checkOverdue(state.projectId);
 
-          // นับสถิติ
-          if (result.isOverdue && !wasOverdue) {
+          // Update flag if changed
+          if (result.isOverdue !== wasOverdue) {
+            await state.update({ isOverdue: result.isOverdue });
+          }
+
+          // นับสถิติ (skip if already counted in state transition)
+          if (result.isOverdue && !wasOverdue && !state.workflow_step_id.toString().includes('OVERDUE')) {
             this.statistics.newlyOverdue++;
-            
-            // ส่งแจ้งเตือนสำหรับโครงงานที่เพิ่งเลย deadline
             await this.notifyOverdue(state, result.overdueDeadlines);
           } else if (result.isOverdue && wasOverdue) {
             this.statistics.stillOverdue++;
@@ -137,19 +377,8 @@ class ProjectDeadlineMonitor {
           logger.error(`Error checking project ${state.projectId}:`, error);
         }
       }
-
-      const duration = Date.now() - startTime;
-      this.lastRunTime = new Date();
-
-      logger.info(`ProjectDeadlineMonitor: Check complete in ${duration}ms`, {
-        ...this.statistics,
-        duration
-      });
-
     } catch (error) {
-      logger.error('ProjectDeadlineMonitor: Fatal error during check:', error);
-    } finally {
-      this.checkInProgress = false;
+      logger.error('Error in updateOverdueFlags:', error);
     }
   }
 

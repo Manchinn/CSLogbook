@@ -23,6 +23,7 @@ module.exports = {
         return res.status(403).json({ success: false, message: 'อนุญาตเฉพาะนักศึกษา' });
       }
       const { id } = req.params;
+      
       const artifact = await artifactService.uploadProposal(id, req.user.studentId, req.file);
       return res.status(201).json({ success: true, data: artifact });
     } catch (err) {

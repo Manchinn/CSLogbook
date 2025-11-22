@@ -259,7 +259,9 @@ class ProjectDefenseRequestService {
         };
       }),
       createdAt: data.created_at,
-      updatedAt: data.updated_at
+      updatedAt: data.updated_at,
+      submittedLate: data.submittedLate,
+      submissionDelayMinutes: data.submissionDelayMinutes
     };
 
     // เพิ่มข้อมูล deadline status (ถ้าต้องการ)

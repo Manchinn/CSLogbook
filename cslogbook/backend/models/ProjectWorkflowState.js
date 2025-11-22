@@ -21,6 +21,13 @@ module.exports = (sequelize) => {
         as: 'lastUpdatedByUser'
       });
       
+      // NEW: Association to WorkflowStepDefinition
+      ProjectWorkflowState.belongsTo(models.WorkflowStepDefinition, {
+        foreignKey: 'workflow_step_id',
+        as: 'stepDefinition', // Changed from 'currentStep' to avoid collision
+        constraints: false // Allows null during transition period
+      });
+      
       // Optional: เพิ่ม association ไปยัง defense requests
       ProjectWorkflowState.belongsTo(models.ProjectDefenseRequest, {
         foreignKey: 'topic_defense_request_id',
@@ -253,6 +260,12 @@ module.exports = (sequelize) => {
       allowNull: true,
       field: 'current_step'
     },
+    workflowStepId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'workflow_step_id',
+      comment: 'Foreign key to workflow_step_definitions (new workflow system)'
+    },
     projectStatus: {
       type: DataTypes.STRING(50),
       allowNull: true,
@@ -372,6 +385,7 @@ module.exports = (sequelize) => {
     updatedAt: 'updated_at',
     indexes: [
       { fields: ['current_phase'] },
+      { fields: ['workflow_step_id'] }, // NEW: Index for new workflow system
       { fields: ['is_blocked'] },
       { fields: ['is_overdue'] },
       { fields: ['last_activity_at'] }

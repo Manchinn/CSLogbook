@@ -280,10 +280,24 @@ const AdvisorKP02Queue = ({ defenseType = DEFENSE_TYPE_PROJECT1 }) => {
       render: (value, record) => {
         const requestMeta = STATUS_MAP[value] || {};
         const approvalMeta = APPROVAL_STATUS_MAP[record.myApproval?.status] || APPROVAL_STATUS_MAP.pending;
+        
+        // Check for late submission
+        let deadlineTag = null;
+        if (record.submittedLate) {
+             deadlineTag = (
+               <Tag color="warning">
+                 {record.submissionDelayMinutes 
+                   ? `ส่งช้า ${Math.ceil(record.submissionDelayMinutes / 60)} ชม.` 
+                   : 'ส่งช้า'}
+               </Tag>
+             );
+        }
+
         return (
           <Space direction="vertical" size={4}>
             <Tag color={requestMeta.color || 'default'}>{requestMeta.text || value || '-'}</Tag>
             <Tag color={approvalMeta.color}>{approvalMeta.text}</Tag>
+            {deadlineTag}
           </Space>
         );
       }
