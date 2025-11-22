@@ -5,10 +5,12 @@ import {
 } from 'antd';
 import { 
   FormOutlined, CheckCircleOutlined, SendOutlined,
-  PhoneOutlined 
+  PhoneOutlined, StopOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // เพิ่ม useSearchParams
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import internshipService from 'features/internship/services/internshipService';
+import importantDeadlineStudentService from 'services/student/importantDeadlineStudentService';
+import dayjs from 'dayjs';
 
 // นำเข้า Components ย่อยที่สร้างไว้แล้ว
 import CS05FormStep from './CS05FormStep';
@@ -21,7 +23,7 @@ const { Text } = Typography;
 
 const InternshipRegistrationFlow = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams(); // เพิ่มสำหรับอ่าน query parameters
+  const [searchParams] = useSearchParams();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -31,6 +33,16 @@ const InternshipRegistrationFlow = () => {
   const [existingCS05, setExistingCS05] = useState(null);
   const [transcriptFile, setTranscriptFile] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Deadline State
+  const [deadlineInfo, setDeadlineInfo] = useState({
+    loading: true,
+    isBlocked: false,
+    isLate: false,
+    message: null,
+    type: null, // 'error', 'warning', 'info'
+    deadlineDate: null
+  });
 
   // ขั้นตอนการลงทะเบียนฝึกงาน
   const registrationSteps = [
@@ -54,7 +66,102 @@ const InternshipRegistrationFlow = () => {
     }
   ];
 
-  // ✅ เพิ่ม useEffect สำหรับตรวจสอบ query parameter ตอนเริ่มต้น
+  // ตรวจสอบ Deadline สำหรับ CS05
+  useEffect(() => {
+    const checkDeadline = async () => {
+      try {
+        // ดึงข้อมูลกำหนดการทั้งหมดของนักศึกษา
+        const response = await importantDeadlineStudentService.getStudentDeadlines({
+          relatedTo: 'internship'
+        });
+        
+        if (response.data && response.data.success) {
+          const deadlines = response.data.data;
+          // หา Deadline ที่เป็นของ CS05 (ดูจาก documentSubtype หรือ templateId)
+          const cs05Deadline = deadlines.find(d => 
+            d.documentSubtype === 'CS05' || 
+            d.templateId === 'INTERNSHIP_CS05_SUBMISSION' ||
+            (d.name && d.name.includes('คพ.05'))
+          );
+
+          if (cs05Deadline) {
+            const now = dayjs();
+            const deadlineAt = cs05Deadline.deadlineAt ? dayjs(cs05Deadline.deadlineAt) : null;
+            const windowStart = cs05Deadline.windowStartAt ? dayjs(cs05Deadline.windowStartAt) : null;
+            const windowEnd = cs05Deadline.windowEndAt ? dayjs(cs05Deadline.windowEndAt) : null;
+            
+            // กรณี 1: ยังไม่ถึงเวลาเปิดรับ (Window Start)
+            if (windowStart && now.isBefore(windowStart)) {
+              setDeadlineInfo({
+                loading: false,
+                isBlocked: true,
+                isLate: false,
+                type: 'info',
+                message: `ระบบยังไม่เปิดให้ยื่นคำร้อง (เริ่ม ${windowStart.add(543, 'year').format('D MMMM YYYY HH:mm')})`,
+                deadlineDate: deadlineAt
+              });
+              return;
+            }
+
+            // กรณี 2: เลยกำหนดเวลา (Deadline / Window End)
+            const effectiveDeadline = windowEnd || deadlineAt;
+            if (effectiveDeadline && now.isAfter(effectiveDeadline)) {
+              // ตรวจสอบเงื่อนไขการล็อค
+              if (cs05Deadline.lockAfterDeadline) {
+                setDeadlineInfo({
+                  loading: false,
+                  isBlocked: true,
+                  isLate: true,
+                  type: 'error',
+                  message: `หมดเขตการยื่นคำร้องแล้ว (สิ้นสุด ${effectiveDeadline.add(543, 'year').format('D MMMM YYYY HH:mm')})`,
+                  deadlineDate: effectiveDeadline
+                });
+              } else if (cs05Deadline.allowLate) {
+                setDeadlineInfo({
+                  loading: false,
+                  isBlocked: false,
+                  isLate: true,
+                  type: 'warning',
+                  message: `เลยกำหนดการยื่นคำร้องปกติ (${effectiveDeadline.add(543, 'year').format('D MMMM YYYY HH:mm')}) - การยื่นหลังจากนี้จะถูกบันทึกว่า "ส่งล่าช้า"`,
+                  deadlineDate: effectiveDeadline
+                });
+              } else {
+                // กรณีไม่ allowLate และไม่ lock (ปกติควร lock แต่เผื่อไว้)
+                setDeadlineInfo({
+                  loading: false,
+                  isBlocked: true,
+                  isLate: true,
+                  type: 'error',
+                  message: `หมดเขตการยื่นคำร้องแล้ว (${effectiveDeadline.add(543, 'year').format('D MMMM YYYY HH:mm')})`,
+                  deadlineDate: effectiveDeadline
+                });
+              }
+              return;
+            }
+            
+            // กรณีปกติ
+            setDeadlineInfo({
+              loading: false,
+              isBlocked: false,
+              isLate: false,
+              message: null,
+              deadlineDate: effectiveDeadline
+            });
+          } else {
+            // ไม่พบ Deadline - อนุญาตให้ทำรายการ
+            setDeadlineInfo(prev => ({ ...prev, loading: false }));
+          }
+        }
+      } catch (error) {
+        console.error("Error checking deadline:", error);
+        setDeadlineInfo(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    checkDeadline();
+  }, []);
+
+  // ตรวจสอบ query parameter ตอนเริ่มต้น
   useEffect(() => {
     const viewParam = searchParams.get('view');
     
@@ -114,7 +221,7 @@ const InternshipRegistrationFlow = () => {
           const submittedStatus = cs05Data.status !== 'rejected';
           setIsSubmitted(submittedStatus);
           
-          // ✅ สำคัญ: ถ้ามีการส่งคำร้องแล้ว และไม่ได้มาจาก query parameter ให้ไปที่ step 2
+          // สำคัญ: ถ้ามีการส่งคำร้องแล้ว และไม่ได้มาจาก query parameter ให้ไปที่ step 2
           const viewParam = searchParams.get('view');
           if (submittedStatus && !viewParam) {
             console.log('[DEBUG] พบ CS05 ที่ส่งแล้ว, ไปยังขั้นตอน result');
@@ -141,9 +248,9 @@ const InternshipRegistrationFlow = () => {
     };
 
     fetchData();
-  }, [searchParams]); // เพิ่ม searchParams ใน dependency array
+  }, [searchParams]);
 
-  // ✅ ปรับปรุง getStepContent เพื่อจัดการกรณี view=result
+  // จัดการ getStepContent
   const getStepContent = () => {
     const stepProps = {
       studentData,
@@ -438,35 +545,59 @@ const InternshipRegistrationFlow = () => {
 
         </Card>
 
-        {/* Layout หลัก */}
-        <Row gutter={24}>
-          <Col xs={24} lg={16}>
-            <Card className={styles.internshipForm}>
-              {getStepContent()}
-            </Card>
-          </Col>
-          <Col xs={24} lg={8}>
-            {renderSidebarInfo()}
+        {/* Deadline Alert */}
+        {!deadlineInfo.loading && deadlineInfo.message && (
+          <Alert
+            message={deadlineInfo.isBlocked ? "ไม่สามารถทำรายการได้" : "แจ้งเตือนกำหนดการ"}
+            description={deadlineInfo.message}
+            type={deadlineInfo.type}
+            showIcon
+            style={{ marginBottom: 24 }}
+          />
+        )}
 
-            {/* คำเตือนและข้อมูลสำคัญ */}
-            {currentStep === 0 && (
-              <Alert
-                message="ข้อมูลสำคัญ"
-                description={
-                  <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-                    <li>กรุณาตรวจสอบข้อมูลให้ถูกต้องก่อนส่ง เนื่องจากจะไม่สามารถแก้ไขได้หลังจากส่งแล้ว</li>
-                    <li>การฝึกงานต้องมีระยะเวลาอย่างน้อย 40 วัน หรือ 240 ชั่วโมง</li>
-                    {/* <li>หากฝึกงาน 2 คน นักศึกษาทั้งคู่ต้องเป็นนักศึกษาภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ</li> */}
-                    <li>นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิต</li>
-                  </ul>
-                }
-                type="warning"
-                showIcon
-                style={{ marginTop: 24 }}
-              />
-            )}
-          </Col>
-        </Row>
+        {/* Layout หลัก */}
+        {deadlineInfo.isBlocked && !isSubmitted ? (
+          <Card style={{ textAlign: 'center', padding: '48px 0' }}>
+            <Space direction="vertical" size="large">
+              {deadlineInfo.type === 'info' ? <ClockCircleOutlined style={{ fontSize: 48, color: '#1890ff' }} /> : <StopOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />}
+              <Typography.Title level={4}>
+                {deadlineInfo.type === 'info' ? "ยังไม่เปิดรับคำร้อง" : "หมดเขตรับคำร้อง"}
+              </Typography.Title>
+              <Text type="secondary">{deadlineInfo.message}</Text>
+              <Button onClick={() => navigate('/student/dashboard')}>กลับสู่หน้าหลัก</Button>
+            </Space>
+          </Card>
+        ) : (
+          <Row gutter={24}>
+            <Col xs={24} lg={16}>
+              <Card className={styles.internshipForm}>
+                {getStepContent()}
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              {renderSidebarInfo()}
+
+              {/* คำเตือนและข้อมูลสำคัญ */}
+              {currentStep === 0 && (
+                <Alert
+                  message="ข้อมูลสำคัญ"
+                  description={
+                    <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                      <li>กรุณาตรวจสอบข้อมูลให้ถูกต้องก่อนส่ง เนื่องจากจะไม่สามารถแก้ไขได้หลังจากส่งแล้ว</li>
+                      <li>การฝึกงานต้องมีระยะเวลาอย่างน้อย 40 วัน หรือ 240 ชั่วโมง</li>
+                      {/* <li>หากฝึกงาน 2 คน นักศึกษาทั้งคู่ต้องเป็นนักศึกษาภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ</li> */}
+                      <li>นักศึกษาต้องแนบใบแสดงผลการเรียน (Transcript) เพื่อยืนยันจำนวนหน่วยกิต</li>
+                    </ul>
+                  }
+                  type="warning"
+                  showIcon
+                  style={{ marginTop: 24 }}
+                />
+              )}
+            </Col>
+          </Row>
+        )}
       </div>
     </div>
   );
