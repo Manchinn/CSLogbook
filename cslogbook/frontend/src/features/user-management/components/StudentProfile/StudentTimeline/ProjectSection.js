@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography, Alert } from 'antd';
 import {
   ExperimentOutlined, UnlockOutlined, LockOutlined,
@@ -13,6 +14,7 @@ const { Text, Paragraph } = Typography;
 
 // คอมโพเนนต์สำหรับแสดงส่วนโครงงานพิเศษ (Enhanced Version with Workflow State)
 const ProjectSection = ({ student, progress }) => {
+  const navigate = useNavigate();
   // State สำหรับข้อมูล workflow state
   const [workflowState, setWorkflowState] = useState(null);
   const [loadingWorkflowState, setLoadingWorkflowState] = useState(false);
@@ -109,7 +111,7 @@ const ProjectSection = ({ student, progress }) => {
   // Handler สำหรับการคลิกปุ่มดำเนินการ
   const handleAction = (item) => {
     if (item.actionLink) {
-      window.location.href = item.actionLink;
+      navigate(item.actionLink);
     }
   };
 

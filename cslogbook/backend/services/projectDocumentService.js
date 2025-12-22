@@ -1293,7 +1293,7 @@ class ProjectDocumentService {
     if (isProject2) {
       workflowType = 'project2';
       steps = [
-        { key: 'THESIS_PROPOSAL_SUBMITTED', completed: topicSubmissionComplete },
+        // Start directly at THESIS_IN_PROGRESS after Project 1 transition
         { key: 'THESIS_IN_PROGRESS', completed: projectInProgress },
         { key: 'THESIS_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
         { key: 'THESIS_SYSTEM_TEST', completed: systemTestPassed }, // Or just submitted depending on requirement

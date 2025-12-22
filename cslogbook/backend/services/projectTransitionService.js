@@ -84,7 +84,7 @@ async function transitionToProject2(projectId, options = {}) {
             projectType: 'project2',
             transitioned_to_project2: true,
             transitioned_at: new Date(),
-            currentPhase: 'THESIS_PROPOSAL_SUBMITTED',
+            currentPhase: 'THESIS_IN_PROGRESS',
             status: 'in_progress'
         }, { transaction });
 

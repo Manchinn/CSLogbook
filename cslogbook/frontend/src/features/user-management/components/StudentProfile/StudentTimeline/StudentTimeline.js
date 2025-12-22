@@ -17,13 +17,9 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { timelineService } from "services/timelineService";
 import { DEFAULT_STUDENT_DATA, DEFAULT_PROGRESS_DATA } from "./helpers";
-import NextAction from "./NextAction";
-import Notifications from "./Notifications";
 import EducationPath from "./EducationPath";
 import InternshipSection from "./InternshipSection";
 import ProjectSection from "./ProjectSection";
-import StudyStatistics from "./StudyStatistics";
-import ImportantDeadlines from "./ImportantDeadlines";
 import { SearchOutlined } from '@ant-design/icons';
 import { InternshipStatusProvider } from 'contexts/InternshipStatusContext';
 
@@ -41,8 +37,7 @@ const StudentTimeline = () => {
 
   const [student, setStudent] = useState(DEFAULT_STUDENT_DATA);
   const [progress, setProgress] = useState(DEFAULT_PROGRESS_DATA);
-  const [notifications, setNotifications] = useState([]);
-  const [deadlines, setDeadlines] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showStudentSearchModal, setShowStudentSearchModal] = useState(false);
@@ -61,7 +56,7 @@ const StudentTimeline = () => {
     try {
       // อาจเรียกใช้ API สำหรับตรวจสอบนักศึกษาก่อน
       const studentExists = await timelineService.checkStudentExists(searchStudentId);
-      
+
       if (studentExists && studentExists.success) {
         // ถ้าพบนักศึกษา บันทึกรหัสลงใน localStorage และเปลี่ยนหน้า
         localStorage.setItem("studentId", searchStudentId);
@@ -96,7 +91,7 @@ const StudentTimeline = () => {
             } else if (response.data.student.id) {
               localStorage.setItem("studentId", response.data.student.id);
             }
-            
+
             setStudent((prev) => ({
               ...prev,
               ...response.data.student,
@@ -107,20 +102,14 @@ const StudentTimeline = () => {
             setProgress(response.data.progress);
           }
 
-          if (response.data && response.data.upcomingDeadlines) {
-            setDeadlines(response.data.upcomingDeadlines);
-          }
 
-          if (response.data && response.data.notifications) {
-            setNotifications(response.data.notifications);
-          }
         } else {
           setError(response?.message || "ไม่สามารถโหลดข้อมูล timeline ได้");
           console.log("API response error:", response?.message);
-          
+
           // เมื่อไม่พบข้อมูลนักศึกษา แสดง modal ค้นหา
-          if (response?.message?.includes("ไม่พบนักศึกษา") || 
-              response?.message?.includes("Student not found")) {
+          if (response?.message?.includes("ไม่พบนักศึกษา") ||
+            response?.message?.includes("Student not found")) {
             setShowStudentSearchModal(true);
           }
         }
@@ -151,9 +140,9 @@ const StudentTimeline = () => {
         searchForm.resetFields(); // รีเซ็ต form เมื่อปิด modal
       }}
       footer={[
-        <Button 
-          key="search" 
-          type="primary" 
+        <Button
+          key="search"
+          type="primary"
           icon={<SearchOutlined />}
           loading={searchLoading}
           onClick={searchStudent}
@@ -164,12 +153,12 @@ const StudentTimeline = () => {
     >
       <p>ระบบไม่พบข้อมูลนักศึกษารหัส {studentIdToUse}</p>
       <p>คุณสามารถค้นหาข้อมูลด้วยรหัสนักศึกษาอื่น</p>
-      <Form 
+      <Form
         form={searchForm} // เชื่อมต่อ form กับ useForm
         layout="vertical"
         onFinish={searchStudent} // ใช้ onFinish แทน onClick
       >
-        <Form.Item 
+        <Form.Item
           label="รหัสนักศึกษา"
           name="studentId"
           rules={[
@@ -177,9 +166,9 @@ const StudentTimeline = () => {
             { pattern: /^\d+$/, message: 'รหัสนักศึกษาต้องเป็นตัวเลขเท่านั้น' }
           ]}
         >
-          <Input 
-            placeholder="กรอกรหัสนักศึกษา" 
-            value={searchStudentId} 
+          <Input
+            placeholder="กรอกรหัสนักศึกษา"
+            value={searchStudentId}
             onChange={(e) => setSearchStudentId(e.target.value)}
             onPressEnter={() => searchForm.submit()} // ใช้ form.submit()
           />
@@ -199,14 +188,14 @@ const StudentTimeline = () => {
         }}
       >
         <Spin size="large" spinning={true} tip="กำลังโหลดข้อมูล...">
-        <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div>{/* Loading content */}</div>
-        </div>
-      </Spin>
+          <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div>{/* Loading content */}</div>
+          </div>
+        </Spin>
       </div>
     );
   }
-  
+
   return (
     <InternshipStatusProvider>
       <div className="student-timeline">
@@ -228,11 +217,11 @@ const StudentTimeline = () => {
                         if (!studentYear || studentYear === '-') {
                           return "ชั้นปีที่ไม่ระบุ";
                         }
-                        
+
                         // ใช้ข้อมูลภาคการศึกษาและปีการศึกษาจาก backend
                         let semester = "ภาคการศึกษาไม่ระบุ";
                         let academicYear = "-";
-                        
+
                         if (student && student.academicInfo && !student.academicInfo.error) {
                           semester = student.academicInfo.semesterName || "ภาคการศึกษาไม่ระบุ";
                           academicYear = student.academicInfo.academicYear || "-";
@@ -250,7 +239,7 @@ const StudentTimeline = () => {
                           const thaiYear = currentDate.getFullYear() + 543;
                           academicYear = currentMonth >= 8 ? thaiYear : thaiYear - 1;
                         }
-                        
+
                         return `ชั้นปีที่ ${studentYear} (${semester} / ${academicYear})`;
                       })()}
                     </Text>
@@ -260,24 +249,24 @@ const StudentTimeline = () => {
                           ? "success"
                           : student.status === "EXTENDED" ||
                             student.status === "extended"
-                          ? "warning"
-                          : student.status === "probation"
-                          ? "warning"
-                          : student.status === "retired"
-                          ? "error"
-                          : "warning"
+                            ? "warning"
+                            : student.status === "probation"
+                              ? "warning"
+                              : student.status === "retired"
+                                ? "error"
+                                : "warning"
                       }
                       text={
                         student.status === "normal"
                           ? "นักศึกษาปกติ"
                           : student.status === "EXTENDED" ||
                             student.status === "extended"
-                          ? "นักศึกษาตกค้าง"
-                          : student.status === "probation"
-                          ? "นักศึกษาวิทยทัณฑ์"
-                          : student.status === "retired"
-                          ? "พ้นสภาพนักศึกษา"
-                          : "นักศึกษาตกค้าง"
+                            ? "นักศึกษาตกค้าง"
+                            : student.status === "probation"
+                              ? "นักศึกษาวิทยทัณฑ์"
+                              : student.status === "retired"
+                                ? "พ้นสภาพนักศึกษา"
+                                : "นักศึกษาตกค้าง"
                       }
                     />
                   </Space>
@@ -287,11 +276,7 @@ const StudentTimeline = () => {
           </Col>
         </Row>
 
-        <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-          <Col span={24}>
-            <NextAction student={student} progress={progress} />
-          </Col>
-        </Row>
+
 
         {error && (
           <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
@@ -306,15 +291,7 @@ const StudentTimeline = () => {
           </Row>
         )}
 
-        {notifications && notifications.length > 0 && (
-          <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-            <Col span={24}>
-              <Card>
-                <Notifications notifications={notifications} />
-              </Card>
-            </Col>
-          </Row>
-        )}
+
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col span={24}>
@@ -332,26 +309,12 @@ const StudentTimeline = () => {
           </Col>
         </Row>
 
-        {deadlines && deadlines.length > 0 && (
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            <Col span={24}>
-              <Card>
-                <ImportantDeadlines deadlines={deadlines} />
-              </Card>
-            </Col>
-          </Row>
-        )}
 
-        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col span={24}>
-            <StudyStatistics student={student} progress={progress} />
-          </Col>
-        </Row>
       </div>
-      
+
       {studentSearchModal}
     </InternshipStatusProvider>
-    
+
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
 import { Card, Steps, Alert, Button, Typography, Progress, Spin, message } from "antd";
 import { CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 
@@ -17,6 +18,7 @@ const { Title, Text } = Typography;
 const { Step } = Steps;
 
 const InternshipCertificateRequest = () => {
+  const navigate = useNavigate();
   // const { userData } = useAuth(); // ไม่จำเป็นใน component นี้ตอนนี้
   const [requestLoading, setRequestLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
@@ -51,8 +53,8 @@ const InternshipCertificateRequest = () => {
   } = useCertificateStatus();
 
   // ✅ อัปเดต canRequestCertificate ให้รวมการตรวจสอบ dual status
-  const canRequestCertificate = 
-    hasRequiredApprovals && 
+  const canRequestCertificate =
+    hasRequiredApprovals &&
     canRequestFromHook;
 
   useEffect(() => {
@@ -92,10 +94,10 @@ const InternshipCertificateRequest = () => {
   const handlePreviewCertificate = async () => {
     try {
       setPreviewLoading(true);
-      
+
       // ตรวจสอบสถานะหนังสือรับรอง
       // อนุญาตเมื่อสถานะเป็น ready หรือ approved (บางระบบอาจใช้ approved แทน ready)
-      if (!['ready','approved'].includes(certificateStatus)) {
+      if (!['ready', 'approved'].includes(certificateStatus)) {
         message.warning("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
         return;
       }
@@ -118,19 +120,19 @@ const InternshipCertificateRequest = () => {
       }
 
       console.log('🔄 Using Frontend PDF Generation for preview...');
-      
+
       // ✅ ใช้เฉพาะ Frontend PDF Generation
       const result = await pdfHelper.previewCertificate(certificateData);
-      
+
       if (result.success) {
         message.info(result.message);
       } else {
         throw new Error("ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้");
       }
-      
+
     } catch (error) {
       console.error("Error previewing certificate:", error);
-      
+
       // ✅ จัดการ error แบบเจาะจง
       if (error.message?.includes('ไม่มีข้อมูลหนังสือรับรอง')) {
         message.error("ข้อมูลหนังสือรับรองไม่ครบถ้วน กรุณาตรวจสอบข้อมูลการฝึกงาน");
@@ -150,9 +152,9 @@ const InternshipCertificateRequest = () => {
   const handleDownloadCertificate = async () => {
     try {
       setDownloadLoading(true);
-      
+
       // ตรวจสอบสถานะหนังสือรับรอง
-      if (!['ready','approved'].includes(certificateStatus)) {
+      if (!['ready', 'approved'].includes(certificateStatus)) {
         message.warning("หนังสือรับรองยังไม่พร้อม กรุณารอการดำเนินการจากเจ้าหน้าที่");
         return;
       }
@@ -175,22 +177,22 @@ const InternshipCertificateRequest = () => {
       }
 
       console.log('🔄 Using Frontend PDF Generation for download...');
-      
+
       // ✅ ใช้เฉพาะ Frontend PDF Generation
       const result = await pdfHelper.downloadCertificate(certificateData);
-      
+
       if (result.success) {
         message.success(result.message);
-        
+
         // ✅ อาจจะมีการบันทึกประวัติการดาวน์โหลดในอนาคต
         // await markCertificateDownloaded();
       } else {
         throw new Error("ไม่สามารถดาวน์โหลดหนังสือรับรองได้");
       }
-      
+
     } catch (error) {
       console.error("Error downloading certificate:", error);
-      
+
       // ✅ จัดการ error แบบเจาะจง
       if (error.message?.includes('ไม่มีข้อมูลหนังสือรับรอง')) {
         message.error("ข้อมูลหนังสือรับรองไม่ครบถ้วน กรุณาตรวจสอบข้อมูลการฝึกงาน");
@@ -274,9 +276,9 @@ const InternshipCertificateRequest = () => {
                   ) : (
                     <span style={{ color: '#faad14' }}>⚠️ {
                       !hasCS05 ? 'ยังไม่ได้ส่งคำร้อง' :
-                      cs05Status === 'pending' ? 'รอการพิจารณา' :
-                      cs05Status === 'rejected' ? 'ไม่ได้รับการอนุมัติ' :
-                      cs05Status || 'ไม่ทราบสถานะ'
+                        cs05Status === 'pending' ? 'รอการพิจารณา' :
+                          cs05Status === 'rejected' ? 'ไม่ได้รับการอนุมัติ' :
+                            cs05Status || 'ไม่ทราบสถานะ'
                     }</span>
                   )}
                 </li>
@@ -287,27 +289,27 @@ const InternshipCertificateRequest = () => {
                   ) : (
                     <span style={{ color: '#faad14' }}>⚠️ {
                       !hasAcceptance ? 'ยังไม่ได้อัปโหลด' :
-                      acceptanceStatus === 'pending' ? 'รอการพิจารณา' :
-                      acceptanceStatus === 'rejected' ? 'ไม่ได้รับการอนุมัติ' :
-                      acceptanceStatus || 'ไม่ทราบสถานะ'
+                        acceptanceStatus === 'pending' ? 'รอการพิจารณา' :
+                          acceptanceStatus === 'rejected' ? 'ไม่ได้รับการอนุมัติ' :
+                            acceptanceStatus || 'ไม่ทราบสถานะ'
                     }</span>
                   )}
                 </li>
               </ul>
               {!hasCS05 && (
-                <Button 
-                  type="link" 
+                <Button
+                  type="link"
                   style={{ paddingLeft: 0 }}
-                  onClick={() => window.location.href = '/internship-registration/flow'}
+                  onClick={() => navigate('/internship-registration/flow')}
                 >
                   → ไปยังหน้าส่งคำร้องขอฝึกงาน (คพ.05)
                 </Button>
               )}
               {isCS05Approved && !hasAcceptance && (
-                <Button 
-                  type="link" 
+                <Button
+                  type="link"
                   style={{ paddingLeft: 0 }}
-                  onClick={() => window.location.href = '/internship/status'}
+                  onClick={() => navigate('/internship/status')}
                 >
                   → ไปยังหน้าอัปโหลดหนังสือตอบรับฝึกงาน
                 </Button>
