@@ -40,6 +40,7 @@ const projectRoutes = require('./routes/projectRoutes'); // 🆕 Project lifecyc
 const topicExamRoutes = require('./routes/topicExamRoutes'); // 🆕 Topic Exam Overview
 const projectMembersRoutes = require('./routes/projectMembersRoutes');
 const projectWorkflowStateRoutes = require('./routes/projectWorkflowStateRoutes'); // 🆕 Workflow state tracking
+const projectTransitionRoutes = require('./routes/projectTransitionRoutes'); // 🆕 Project 2 transition routes
 
 const app = express();
 
@@ -52,7 +53,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // อนุญาตให้ request ที่ไม่มี origin (เช่น mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -61,8 +62,8 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json());
@@ -76,7 +77,7 @@ app.get('/api/health', (req, res) => {
 // Swagger (ย่อ config สำหรับ test)
 const swaggerOptions = {
   swaggerDefinition: { openapi: '3.0.0', info: { title: 'CS Logbook API', version: '1.0.0' } },
-  apis: [ path.join(__dirname, './routes/**/*.js') ]
+  apis: [path.join(__dirname, './routes/**/*.js')]
 };
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
@@ -86,7 +87,7 @@ const upload = multer({ dest: process.env.UPLOAD_DIR });
 if (!fs.existsSync(process.env.UPLOAD_DIR)) fs.mkdirSync(process.env.UPLOAD_DIR, { recursive: true });
 // Static files middleware
 // เพิ่มการตั้งค่า MIME type สำหรับไฟล์ .mjs
-express.static.mime.define({'application/javascript': ['mjs']});
+express.static.mime.define({ 'application/javascript': ['mjs'] });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public & protected routes (ส่วนสำคัญเท่านั้น; บาง route อาจพึ่งพา DB จริง ให้ mock ใน test กรณีจำเป็น)
@@ -105,6 +106,7 @@ app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/teachers', authenticateToken, teacherRoutes);
 app.use('/api/academic', authenticateToken, academicRoutes);
 app.use('/api/projects', authenticateToken, projectRoutes); // 🆕 mount project routes (auth inside route file)
+app.use('/api/projects', authenticateToken, projectTransitionRoutes); // 🆕 mount project transition routes
 app.use('/api/projects/topic-exam', authenticateToken, topicExamRoutes); // mount overview (มี auth ใน route เองแล้ว)
 app.use('/api/projects/workflow-states', projectWorkflowStateRoutes); // 🆕 workflow state API
 app.use('/api/project-members', projectMembersRoutes);

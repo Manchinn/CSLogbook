@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Space, Tag, Progress, Tooltip, Empty, Button, Typography, Alert } from 'antd';
-import { 
-  ExperimentOutlined, UnlockOutlined, LockOutlined, 
+import {
+  ExperimentOutlined, UnlockOutlined, LockOutlined,
   SolutionOutlined, InfoCircleOutlined,
   CheckCircleOutlined, ExclamationCircleOutlined,
   ClockCircleOutlined, WarningOutlined
@@ -31,7 +31,7 @@ const ProjectSection = ({ student, progress }) => {
     }
     return false;
   };
-  
+
   const getEligibilityMessage = () => {
     if (student.eligibility?.project?.message) {
       return student.eligibility.project.message;
@@ -44,7 +44,7 @@ const ProjectSection = ({ student, progress }) => {
     }
     return "ต้องมีหน่วยกิตสะสมมากกว่า 95 หน่วยกิต และหน่วยกิตวิชาเอกมากกว่า 47 หน่วยกิต";
   };
-  
+
   const isEligible = hasProjectEligibility();
   const eligibilityMessage = getEligibilityMessage();
 
@@ -55,7 +55,7 @@ const ProjectSection = ({ student, progress }) => {
   const overallProgress = progress?.project?.progress || 0;
   const overallStatus = progress?.project?.status || 'not_started';
   const hasProjectHistory = projectSteps.length > 0;
-  
+
   // ดึง project ID จากข้อมูลนักศึกษา
   const projectId = student?.projectId || progress?.project?.projectId;
 
@@ -159,20 +159,23 @@ const ProjectSection = ({ student, progress }) => {
   };
 
   return (
-    <Card 
+    <Card
       title={
         <Space>
           <ExperimentOutlined />
           <span>โครงงานพิเศษ</span>
+          {workflowState?.workflowType === 'project2' && (
+            <Tag color="purple">ปริญญานิพนธ์ (Thesis)</Tag>
+          )}
           {renderStatusTag()}
         </Space>
       }
       extra={
         <Space>
-          <Progress 
-            type="circle" 
-            percent={overallProgress} 
-            size={40} 
+          <Progress
+            type="circle"
+            percent={overallProgress}
+            size={40}
             format={percent => `${percent}%`}
             status={isOverdue ? 'exception' : undefined}
           />
@@ -194,9 +197,9 @@ const ProjectSection = ({ student, progress }) => {
     >
       {/* แสดง Workflow Error (ถ้ามี) */}
       {workflowError && (
-        <Alert 
-          type="warning" 
-          message="หมายเหตุ" 
+        <Alert
+          type="warning"
+          message="หมายเหตุ"
           description={workflowError}
           closable
           style={{ marginBottom: 16 }}
@@ -214,12 +217,12 @@ const ProjectSection = ({ student, progress }) => {
 
           {/* แสดงข้อมูล Phase ปัจจุบัน (จากระบบใหม่) */}
           {currentPhase && (
-            <div style={{ 
-              marginTop: 16, 
-              padding: 12, 
-              background: isBlocked ? '#fff2e8' : '#f0f5ff', 
+            <div style={{
+              marginTop: 16,
+              padding: 12,
+              background: isBlocked ? '#fff2e8' : '#f0f5ff',
               border: `1px solid ${isBlocked ? '#ffbb96' : '#adc6ff'}`,
-              borderRadius: 4 
+              borderRadius: 4
             }}>
               <Space direction="vertical" size={4} style={{ width: '100%' }}>
                 <Space>
@@ -244,9 +247,9 @@ const ProjectSection = ({ student, progress }) => {
         <div style={{ padding: '32px 0', textAlign: 'center' }}>
           <SolutionOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} />
           <Paragraph>คุณยังไม่ได้ลงทะเบียนโครงงานพิเศษ</Paragraph>
-          <Button 
-            type="primary" 
-            href="/project-registration" 
+          <Button
+            type="primary"
+            href="/project-registration"
             disabled={!isEligible}
           >
             ลงทะเบียนโครงงาน
