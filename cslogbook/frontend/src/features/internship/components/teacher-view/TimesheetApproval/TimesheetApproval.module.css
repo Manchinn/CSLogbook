@@ -1,0 +1,126 @@
+/* TimesheetApproval.module.css - CSS Module สำหรับ TimesheetApproval component */
+
+.pageContainer {
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  min-height: 100vh;
+}
+
+.approvalCard {
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+}
+
+.pageHeaderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.logoImage {
+  max-width: 180px;
+  height: auto;
+  margin-bottom: var(--spacing-md);
+}
+
+.pageTitle {
+  text-align: center;
+  color: var(--color-secondary-dark);
+}
+
+.sectionTitle {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-secondary-light);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--spacing-sm);
+}
+
+.infoGroup {
+  margin-bottom: var(--spacing-lg);
+}
+
+.infoRow {
+  margin-bottom: var(--spacing-sm);
+}
+
+.infoLabel {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.infoValue {
+  color: var(--color-text-primary);
+}
+
+.statusTag {
+  margin-bottom: var(--spacing-md);
+  font-size: 0.9em;
+}
+
+.timesheetTable {
+  margin-bottom: var(--spacing-lg);
+}
+
+.decisionForm {
+  margin-top: var(--spacing-lg);
+}
+
+.decisionTitle {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-secondary-light);
+}
+
+.radioGroup label {
+  display: flex;
+  align-items: center;
+}
+
+.radioIcon {
+  margin-right: var(--spacing-sm);
+}
+
+.commentLabel {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.submitButtonContainer {
+  text-align: center;
+  margin-top: 30px; /* ค่าพิเศษ - ยังไม่มีใน design tokens */
+}
+
+.submitButton {
+  min-width: 220px; /* ค่าพิเศษ - ยังไม่มีใน design tokens */
+  font-weight: var(--font-weight-medium);
+}
+
+/* Styles for loading, error, and submitted states */
+.stateContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.stateCard {
+  padding: 30px; /* ค่าพิเศษ - ยังไม่มีใน design tokens */
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.successIcon {
+  color: var(--color-success);
+  font-size: var(--font-size-xl);
+  margin-right: var(--spacing-sm);
+}
+
+.errorIcon {
+  color: var(--color-error);
+  font-size: var(--font-size-xl);
+  margin-right: var(--spacing-sm);
+}

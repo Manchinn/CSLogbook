@@ -33,8 +33,14 @@ function flattenProjects(projects){
 
 exports.getOverview = async (req, res, next) => {
   try {
-    const { data, meta } = await topicExamService.getTopicOverview(req.query);
-    res.json({ success: true, count: data.length, data, meta });
+    const { data, total, meta } = await topicExamService.getTopicOverview(req.query);
+    res.json({ 
+      success: true, 
+      count: data.length, // จำนวนรายการที่ส่งกลับมา (current page)
+      total: total || data.length, // จำนวนรายการทั้งหมด (สำหรับ pagination)
+      data, 
+      meta 
+    });
   } catch (err) {
     next(err);
   }

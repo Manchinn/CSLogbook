@@ -259,7 +259,9 @@ class ProjectDefenseRequestService {
         };
       }),
       createdAt: data.created_at,
-      updatedAt: data.updated_at
+      updatedAt: data.updated_at,
+      submittedLate: data.submittedLate,
+      submissionDelayMinutes: data.submissionDelayMinutes
     };
 
     // เพิ่มข้อมูล deadline status (ถ้าต้องการ)
@@ -1049,7 +1051,9 @@ class ProjectDefenseRequestService {
       semester,
       search,
       withMetrics = false,
-      defenseType = DEFENSE_TYPE_PROJECT1
+      defenseType = DEFENSE_TYPE_PROJECT1,
+      limit,
+      offset
     } = filters;
 
     let statuses = STAFF_QUEUE_DEFAULT_STATUSES;
@@ -1085,11 +1089,35 @@ class ProjectDefenseRequestService {
     }
 
     const include = this.buildRequestInclude({ projectWhere });
-    const requests = await ProjectDefenseRequest.findAll({
-      where,
-      include,
-      order: [['submitted_at', 'ASC']]
-    });
+    
+    // Pagination params
+    const paginationLimit = limit ? parseInt(limit, 10) : undefined;
+    const paginationOffset = offset ? parseInt(offset, 10) : undefined;
+
+    let requests;
+    let total = 0;
+
+    if (paginationLimit !== undefined || paginationOffset !== undefined) {
+      // ใช้ findAndCountAll สำหรับ pagination
+      const { rows, count } = await ProjectDefenseRequest.findAndCountAll({
+        where,
+        include,
+        order: [['submitted_at', 'ASC']],
+        limit: paginationLimit,
+        offset: paginationOffset,
+        distinct: true, // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
+      });
+      requests = rows;
+      total = count;
+    } else {
+      // ไม่มี pagination ใช้ findAll
+      requests = await ProjectDefenseRequest.findAll({
+        where,
+        include,
+        order: [['submitted_at', 'ASC']]
+      });
+      total = requests.length;
+    }
 
     const serializedList = [];
     for (const request of requests) {
@@ -1114,7 +1142,7 @@ class ProjectDefenseRequestService {
       }
       serializedList.push(serialized);
     }
-    return serializedList;
+    return { data: serializedList, total };
   }
 
   async exportStaffVerificationList(filters = {}) {

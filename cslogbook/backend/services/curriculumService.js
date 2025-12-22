@@ -166,11 +166,6 @@ class CurriculumService {
         project_major_base_credits,
       } = curriculumData;
       
-      // ถ้าหลักสูตรใหม่ตั้งเป็น active ให้ทำหลักสูตรอื่นเป็น inactive
-      if (active === true) {
-        await this.updateActiveStatus(null, t);
-      }
-      
       // สร้างหลักสูตรใหม่
       const newCurriculum = await Curriculum.create(
         {
@@ -242,11 +237,6 @@ class CurriculumService {
         project_base_credits,
         project_major_base_credits,
       } = curriculumData;
-      
-      // ถ้าหลักสูตรถูกเปลี่ยนเป็น active ให้ทำหลักสูตรอื่นเป็น inactive
-      if (active === true && curriculumToUpdate.active === false) {
-        await this.updateActiveStatus(id, t);
-      }
       
       // สร้างข้อมูลสำหรับการอัปเดต
       const updatedCurriculumData = {

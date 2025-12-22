@@ -19,7 +19,6 @@ import {
   Card,
   Col,
   Row,
-  Statistic,
   Spin,
   Descriptions
 } from 'antd';
@@ -30,12 +29,16 @@ import {
   SearchOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  EditOutlined
+  EditOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import { useTopicExamOverview } from '../../../hooks/useTopicExamOverview';
-import { downloadTopicExamExport } from '../../../services/topicExamService';
-import { recordTopicExamResult } from '../../../services/topicExamResultService';
-import { teacherService } from '../../../services/teacherService';
+import { downloadTopicExamExport } from 'features/project/services/topicExamService';
+import { recordTopicExamResult } from 'features/project/services/topicExamResultService';
+import { teacherService } from 'features/user-management/services/teacherService';
+import { getProjectAcademicYears } from 'features/reports/services/reportService';
+import styles from './TopicExamResultPage.module.css';
 
 const { Title, Text } = Typography;
 
@@ -62,7 +65,18 @@ const containerStyle = {
 };
 
 export default function TopicExamResultPage() {
-  const { records, filters, loading, error, reload, updateFilters, meta } = useTopicExamOverview({ status: 'all' });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  // ส่ง pagination params ไป hook
+  const { records, filters, loading, error, reload, updateFilters, meta, total: totalRecords } = useTopicExamOverview({ 
+    status: 'all',
+    limit: pagination.pageSize,
+    offset: (pagination.current - 1) * pagination.pageSize,
+  });
   const [failModalOpen, setFailModalOpen] = useState(false);
   const [passModalOpen, setPassModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -76,6 +90,8 @@ export default function TopicExamResultPage() {
   const [expandedRowKey, setExpandedRowKey] = useState(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -107,6 +123,31 @@ export default function TopicExamResultPage() {
     };
   }, []);
 
+  // ดึงปีการศึกษาจาก API
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      setAcademicYearLoading(true);
+      try {
+        const years = await getProjectAcademicYears();
+        const options = Array.isArray(years)
+          ? years
+              .filter(Boolean)
+              .sort((a, b) => b - a) // เรียงจากมากไปน้อย
+              .map((year) => ({ label: `${year}`, value: year }))
+          : [];
+        setAcademicYearOptions(options);
+      } catch (error) {
+        console.error('Error fetching academic years:', error);
+        message.error('ไม่สามารถดึงปีการศึกษาได้');
+        setAcademicYearOptions([]);
+      } finally {
+        setAcademicYearLoading(false);
+      }
+    };
+
+    fetchAcademicYears();
+  }, []);
+
   // สรุปสถิติ
   const summary = useMemo(() => {
     return records.reduce(
@@ -125,10 +166,21 @@ export default function TopicExamResultPage() {
     );
   }, [records]);
 
-  const academicYearOptions = useMemo(() => {
-    const years = meta?.availableAcademicYears || [];
-    return years.map((year) => ({ value: year, label: `${year}` }));
-  }, [meta?.availableAcademicYears]);
+  // อัปเดต total ใน pagination state เมื่อ totalRecords เปลี่ยนแปลง
+  useEffect(() => {
+    if (totalRecords !== undefined) {
+      setPagination(prev => ({ ...prev, total: totalRecords }));
+    }
+  }, [totalRecords]);
+
+  // อัปเดต filters เมื่อ pagination เปลี่ยน เพื่อให้ hook reload ข้อมูล
+  useEffect(() => {
+    updateFilters({
+      limit: pagination.pageSize,
+      offset: (pagination.current - 1) * pagination.pageSize,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, pagination.pageSize]);
 
   const semesterOptions = useMemo(() => {
     if (!filters.academicYear) return [];
@@ -139,10 +191,12 @@ export default function TopicExamResultPage() {
 
   const handleAcademicYearChange = useCallback((value) => {
     updateFilters({ academicYear: value ?? null, semester: null, projectId: null });
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
   }, [updateFilters]);
 
   const handleSemesterChange = useCallback((value) => {
     updateFilters({ semester: value ?? null });
+    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
   }, [updateFilters]);
 
   // เปิด modal เลือกอาจารย์เมื่อกด "ผ่าน"
@@ -525,45 +579,31 @@ export default function TopicExamResultPage() {
           <Text type="secondary">{UI_META.description}</Text>
         </Space>
 
-        {/* Summary Statistics */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="รอบันทึกผล"
-                value={summary.pending}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ผ่าน"
-                value={summary.passed}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ไม่ผ่าน"
-                value={summary.failed}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} md={6}>
-            <Card size="small">
-              <Statistic
-                title="ทั้งหมด"
-                value={summary.total}
-                suffix="รายการ"
-              />
-            </Card>
-          </Col>
-        </Row>
+        {/* Summary Statistics - Chips */}
+        <div className={styles.statisticsChips}>
+          <div className={styles.statisticItem}>
+            <FileTextOutlined />
+            <Text>ทั้งหมด: {summary.total} รายการ</Text>
+          </div>
+          {summary.pending > 0 && (
+            <div className={styles.statisticItem}>
+              <ClockCircleOutlined />
+              <Text>รอบันทึกผล: {summary.pending} รายการ</Text>
+            </div>
+          )}
+          {summary.passed > 0 && (
+            <div className={styles.statisticItem}>
+              <CheckCircleOutlined />
+              <Text>ผ่าน: {summary.passed} รายการ</Text>
+            </div>
+          )}
+          {summary.failed > 0 && (
+            <div className={styles.statisticItem}>
+              <CloseCircleOutlined />
+              <Text>ไม่ผ่าน: {summary.failed} รายการ</Text>
+            </div>
+          )}
+        </div>
 
         {/* Filters */}
         <Card size="small" styles={{ body: { padding: 16 } }}>
@@ -572,12 +612,17 @@ export default function TopicExamResultPage() {
               <Space direction="vertical" size={4}>
                 <Text strong>ปีการศึกษา</Text>
                 <Select
-                  placeholder="เลือกปีการศึกษา"
+                  style={{ minWidth: 220 }}
                   allowClear
-                  style={{ width: '100%' }}
+                  placeholder="ทั้งหมด"
                   value={filters.academicYear}
-                  options={academicYearOptions}
-                  onChange={handleAcademicYearChange}
+                  options={[{ label: "ทุกปีการศึกษา", value: "all" }, ...academicYearOptions]}
+                  onChange={(v) => {
+                    const value = v === "all" ? null : v;
+                    handleAcademicYearChange(value);
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
+                  loading={academicYearLoading}
                 />
               </Space>
             </Col>
@@ -585,13 +630,16 @@ export default function TopicExamResultPage() {
               <Space direction="vertical" size={4}>
                 <Text strong>ภาคเรียน</Text>
                 <Select
-                  placeholder="เลือกภาคเรียน"
+                  style={{ minWidth: 220 }}
                   allowClear
-                  style={{ width: '100%' }}
+                  placeholder="ทั้งหมด"
                   value={filters.semester}
                   disabled={!filters.academicYear || !semesterOptions.length}
                   options={semesterOptions}
-                  onChange={handleSemesterChange}
+                  onChange={(value) => {
+                    handleSemesterChange(value);
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
@@ -599,15 +647,19 @@ export default function TopicExamResultPage() {
               <Space direction="vertical" size={4}>
                 <Text strong>ค้นหา</Text>
                 <Input
+                  style={{ minWidth: 220 }}
                   allowClear
                   prefix={<SearchOutlined />}
-                  placeholder="ค้นหาชื่อโครงงาน / รหัสนักศึกษา"
+                  placeholder="ค้นหาโครงงาน / รหัสนักศึกษา"
                   value={filters.search}
-                  onChange={(e) => updateFilters({ search: e.target.value })}
+                  onChange={(e) => {
+                    updateFilters({ search: e.target.value });
+                    setPagination(prev => ({ ...prev, current: 1 })); // Reset pagination
+                  }}
                 />
               </Space>
             </Col>
-            <Col xs={24} md={6} style={{ textAlign: 'right' }}>
+            <Col xs={24} style={{ textAlign: "right" }}>
               <Space wrap>
                 <Button
                   icon={<ReloadOutlined />}
@@ -649,9 +701,20 @@ export default function TopicExamResultPage() {
             scroll={{ x: 1100 }}
             loading={loading}
             pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total, range) => `${range[0]}-${range[1]} จาก ${total} รายการ`,
+              showTotal: (total, range) =>
+                `แสดง ${range[0]}-${range[1]} จาก ${total} รายการ`,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              onChange: (page, pageSize) => {
+                setPagination(prev => ({ ...prev, current: page, pageSize }));
+              },
+              onShowSizeChange: (current, size) => {
+                setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
+              },
             }}
             expandable={{
               expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],

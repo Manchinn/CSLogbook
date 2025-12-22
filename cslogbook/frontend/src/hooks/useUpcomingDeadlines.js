@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
 import 'dayjs/locale/th';
-import { studentService } from '../services/studentService';
+import { studentService } from 'features/user-management/services/studentService';
 import { normalizeDeadline } from '../utils/deadlineNormalize';
 
 dayjs.extend(buddhistEra);

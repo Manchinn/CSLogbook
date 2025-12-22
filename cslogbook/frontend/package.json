@@ -68,7 +68,8 @@
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
-    "lint": "node scripts/lint.js"
+    "lint": "node scripts/lint.js",
+    "verify-cleanup": "node scripts/verify-cleanup.js"
   },
   "eslintConfig": {
     "extends": [
@@ -120,10 +121,16 @@
     "modulePaths": [],
     "moduleNameMapper": {
       "^react-native$": "react-native-web",
-      "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
+      "^.+\\.module\\.(css|sass|scss)$": "<rootDir>/src/__mocks__/cssModuleMock.js",
+      "^.+\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
       "^@react-pdf/renderer$": "<rootDir>/src/__mocks__/@react-pdf/renderer.js",
       "^antd/es/date-picker/locale/th_TH$": "<rootDir>/src/__mocks__/antdDatePickerLocaleMock.js",
-      "^react-pdf/dist/.*\\.css$": "<rootDir>/src/__mocks__/styleMock.js"
+      "^react-pdf/dist/.*\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
+      "^contexts/(.*)$": "<rootDir>/src/contexts/$1",
+      "^test-utils(.*)$": "<rootDir>/src/test-utils$1",
+      "^features/(.*)$": "<rootDir>/src/features/$1",
+      "^services/(.*)$": "<rootDir>/src/services/$1",
+      "^utils/(.*)$": "<rootDir>/src/utils/$1"
     },
     "moduleFileExtensions": [
       "web.js",

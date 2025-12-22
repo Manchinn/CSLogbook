@@ -1,7 +1,7 @@
 // frontend/src/hooks/useTopicExamOverview.js
 // Hook สำหรับดึงและจัดการ state ของ Topic Exam Overview
 import { useState, useEffect, useCallback } from 'react';
-import { fetchTopicExamOverview } from '../services/topicExamService';
+import { fetchTopicExamOverview } from 'features/project/services/topicExamService';
 
 const DEFAULT_FILTERS = {
   status: 'draft',
@@ -12,7 +12,9 @@ const DEFAULT_FILTERS = {
   order: 'desc',
   academicYear: null,
   semester: null,
-  projectId: null
+  projectId: null,
+  limit: undefined,
+  offset: undefined
 };
 
 export function useTopicExamOverview(initialFilters = {}) {
@@ -20,6 +22,7 @@ export function useTopicExamOverview(initialFilters = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [records, setRecords] = useState([]);
+  const [total, setTotal] = useState(0);
   const [meta, setMeta] = useState({
     count: 0,
     availableAcademicYears: [],
@@ -34,17 +37,19 @@ export function useTopicExamOverview(initialFilters = {}) {
     setLoading(true);
     setError(null);
     try {
-  const payload = await fetchTopicExamOverview(filters);
-  setRecords(payload?.data || []);
-  setMeta({
-    count: payload?.count || (payload?.data?.length || 0),
-    availableAcademicYears: payload?.meta?.availableAcademicYears || [],
-    availableSemestersByYear: payload?.meta?.availableSemestersByYear || {},
-    defaultAcademicYear: payload?.meta?.defaultAcademicYear ?? null,
-    defaultSemester: payload?.meta?.defaultSemester ?? null,
-    appliedFilters: payload?.meta?.appliedFilters || {},
-    projectsByAcademicYear: payload?.meta?.projectsByAcademicYear || {}
-  });
+      const params = { ...filters };
+      const payload = await fetchTopicExamOverview(params);
+      setRecords(payload?.data || []);
+      setTotal(payload?.total || payload?.count || (payload?.data?.length || 0));
+      setMeta({
+        count: payload?.total || payload?.count || (payload?.data?.length || 0),
+        availableAcademicYears: payload?.meta?.availableAcademicYears || [],
+        availableSemestersByYear: payload?.meta?.availableSemestersByYear || {},
+        defaultAcademicYear: payload?.meta?.defaultAcademicYear ?? null,
+        defaultSemester: payload?.meta?.defaultSemester ?? null,
+        appliedFilters: payload?.meta?.appliedFilters || {},
+        projectsByAcademicYear: payload?.meta?.projectsByAcademicYear || {}
+      });
     } catch (e) {
       setError(e.message || 'Load failed');
     } finally {
@@ -102,5 +107,5 @@ export function useTopicExamOverview(initialFilters = {}) {
 
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
 
-  return { filters, updateFilters, resetFilters, loading, error, records, meta, reload: load };
+  return { filters, updateFilters, resetFilters, loading, error, records, total, meta, reload: load };
 }

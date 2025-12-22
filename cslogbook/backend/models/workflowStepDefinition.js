@@ -40,6 +40,17 @@ module.exports = (sequelize) => {
       allowNull: true,
       field: 'description_template'
     },
+    phaseKey: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      field: 'phase_key'
+    },
+    phaseVariant: {
+      type: DataTypes.ENUM('default', 'late', 'overdue'),
+      allowNull: false,
+      defaultValue: 'default',
+      field: 'phase_variant'
+    },
     // defaultStatusOnReach: { // สถานะเริ่มต้นเมื่อนักศึกษามาถึงขั้นตอนนี้ (อาจจะยังไม่ใช้ในตอนแรก)
     //   type: DataTypes.ENUM('pending', 'in_progress', 'requires_action'),
     //   allowNull: true, // หรือ false ถ้าต้องการให้มีเสมอ
@@ -59,6 +70,10 @@ module.exports = (sequelize) => {
       },
       {
         fields: ['workflow_type', 'step_order']
+      },
+      {
+        fields: ['workflow_type', 'phase_key', 'phase_variant'],
+        name: 'idx_workflow_steps_phase_variant'
       }
     ]
   });

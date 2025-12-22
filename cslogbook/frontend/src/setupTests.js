@@ -4,6 +4,9 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// ตั้งค่า environment variables สำหรับ test
+import './setupEnvTest';
+
 jest.mock('@react-pdf/renderer', () => {
 	const React = require('react');
 	const createBlob = () => {

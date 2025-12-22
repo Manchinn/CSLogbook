@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, Spin } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
@@ -8,55 +8,55 @@ import buddhistLocale from './utils/buddhistLocale';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InternshipProvider } from './contexts/InternshipContext';
 import { StudentEligibilityProvider } from './contexts/StudentEligibilityContext';
-import MainLayout from './components/layout/MainLayout';
-import LoginForm from './components/LoginForm';
-import Dashboard from './components/dashboards/Dashboard';
-import StudentProfile from './components/StudentProfile/index';
-import StudentDeadlineCalendar from './components/student/StudentDeadlineCalendar';
-import ProjectManagement from './components/student/ProjectManagement';
-
-// Import Internship Components
-import TimeSheet from './components/internship/logbook/TimeSheet/index';
-import InternshipSummary from './components/internship/summary/Summary';
-import CompanyInfoForm from './components/internship/logbook/CompanyInfoForm';
-import { EligibilityCheck, InternshipRequirements } from './components/internship/logbook/eligibility';
-import { InternshipRegistrationFlow } from './components/internship/register';
-import InternshipCertificateRequest from './components/internship/certificate/InternshipCertificateRequest';
-import InternshipCompanyDashboard from './components/internship/companies/InternshipCompanyDashboard';
-
-// Import Project Components
-import { ProjectEligibilityCheck, ProjectRequirements } from './components/project/eligibility';
-import Phase1Dashboard from './components/project/phase1/Phase1Dashboard';
-import ProjectDraftDetail from './components/project/phase1/ProjectDraftDetail';
-import TopicSubmitPage from './components/project/phase1/steps/TopicSubmitPage';
-import TopicExamPage from './components/project/phase1/steps/TopicExamPage';
-import ProposalRevisionPage from './components/project/phase1/steps/ProposalRevisionPage';
-import SystemTestRequestPage from './components/project/phase1/steps/SystemTestRequestPage';
-import ExamSubmitPage from './components/project/phase1/steps/ExamSubmitPage';
-import ExamDayPage from './components/project/phase1/steps/ExamDayPage';
-import MeetingLogbookPage from './components/project/phase1/steps/MeetingLogbookPage';
-import { Phase2Dashboard } from './components/project/phase2';
-import ThesisDefenseRequestPage from './components/project/phase2/ThesisDefenseRequestPage';
-
-// Import Admin Components
-import AdminUpload from './components/AdminUpload';
-import AdminRoutes from './components/admin/AdminRoutes';
-import ProjectPairsPage from './components/admin/users/projectPairs';
-import SupervisorEvaluation from './components/internship/evaluation/SupervisorEvaluation';
-import TimesheetApproval from './components/internship/approval/TimesheetApproval';
-import ApproveDocuments from './components/teacher/ApproveDocuments';
-import TopicExamOverview from './components/teacher/topicExam/TopicExamOverview';
-import MeetingApprovals from './components/teacher/MeetingApprovals';
-import AdvisorKP02Queue from './components/teacher/project1/AdvisorKP02Queue';
-import StaffKP02Queue from './components/teacher/project1/StaffKP02Queue';
-import AdvisorThesisQueue from './components/teacher/thesis/AdvisorThesisQueue';
-import StaffThesisQueue from './components/teacher/thesis/StaffThesisQueue';
-import AdvisorSystemTestQueue from './components/teacher/systemTest/AdvisorQueue';
-import StaffSystemTestQueue from './components/teacher/systemTest/StaffQueue';
+import MainLayout from './components/common/Layout/MainLayout';
+import { routes } from './routes';
 
 // ตั้งค่า dayjs plugin
 dayjs.extend(buddhistEra);
 dayjs.locale('th');
+
+const {
+  Login,
+  Dashboard,
+  StudentProfile,
+  StudentDeadlineCalendar,
+  InternshipCompanyDashboard,
+  InternshipRegistrationFlow,
+  InternshipEligibilityCheck,
+  InternshipRequirements,
+  InternshipTimeSheet,
+  CompanyInfoForm,
+  InternshipSummary,
+  InternshipCertificateRequest,
+  ProjectManagement,
+  ProjectEligibilityCheck,
+  ProjectRequirements,
+  Phase1Dashboard,
+  ProjectDraftDetail,
+  TopicSubmitPage,
+  TopicExamPage,
+  ProposalRevisionPage,
+  SystemTestRequestPage,
+  ExamSubmitPage,
+  ExamDayPage,
+  MeetingLogbookPage,
+  Phase2Dashboard,
+  ThesisDefenseRequestPage,
+  ProjectPairs,
+  SupervisorEvaluation,
+  TimesheetApproval,
+  TopicExamOverview,
+  AdvisorKP02Queue,
+  StaffKP02Queue,
+  AdvisorThesisQueue,
+  StaffThesisQueue,
+  AdvisorSystemTestQueue,
+  StaffSystemTestQueue,
+  AdminUpload,
+  AdminRoutes,
+  ApproveDocuments,
+  MeetingApprovals,
+} = routes;
 
 const ProtectedRoute = ({ children, roles, teacherTypes, condition }) => {
   const { isAuthenticated, userData } = useAuth();
@@ -93,19 +93,26 @@ const App = () => {
         <AuthProvider>
           <StudentEligibilityProvider>
             <InternshipProvider>
-              <Routes>
-                <Route path="/login" element={<LoginForm />} />
-                {/* Add the new public route for supervisor evaluation */}
-                <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
-                <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
+              <Suspense
+                fallback={
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+                    <Spin size="large" />
+                  </div>
+                }
+              >
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  {/* Add the new public route for supervisor evaluation */}
+                  <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
+                  <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />
 
-              <Route element={<MainLayout />}>
-                {/* Dashboard Route */}
-                <Route path="/dashboard" element={<Dashboard />} />
+                  <Route element={<MainLayout />}>
+                    {/* Dashboard Route */}
+                    <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* Student Routes */}
-                <Route path="/student-profile/:id" element={<StudentProfile />} />
-                <Route path="/student-deadlines/calendar" element={
+                    {/* Student Routes */}
+                    <Route path="/student-profile/:id" element={<StudentProfile />} />
+                    <Route path="/student-deadlines/calendar" element={
                   <ProtectedRoute roles={['student']}>
                     <StudentDeadlineCalendar />
                   </ProtectedRoute>
@@ -137,7 +144,7 @@ const App = () => {
                 {/* เพิ่มเส้นทางสำหรับตรวจสอบคุณสมบัติและข้อกำหนดฝึกงาน */}
                 <Route path="/internship-eligibility" element={
                   <ProtectedRoute roles={['student']}>
-                    <EligibilityCheck />
+                    <InternshipEligibilityCheck />
                   </ProtectedRoute>
                 } />
                 <Route path="/internship-requirements" element={
@@ -148,7 +155,7 @@ const App = () => {
                 
                 <Route path="/internship-logbook/timesheet" element={
                   <ProtectedRoute roles={['student']}>
-                    <TimeSheet />
+                    <InternshipTimeSheet />
                   </ProtectedRoute>
                 } />
                 <Route path="/internship-logbook/companyinfo" element={
@@ -244,7 +251,7 @@ const App = () => {
                 } />
                 <Route path="/project-pairs" element={
                   <ProtectedRoute roles={['admin', 'teacher']} teacherTypes={['support']}>
-                    <ProjectPairsPage />
+                    <ProjectPairs />
                   </ProtectedRoute>
                 } />
 
@@ -320,25 +327,24 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/thesis/kp02-queue" element={<Navigate to="/admin/thesis/staff-queue" replace />} />
-                <Route path="/admin/system-test/staff-queue" element={
-                  <ProtectedRoute
-                    roles={['admin', 'teacher']}
-                    condition={(user) =>
-                      user.role === 'admin' ||
-                      user.teacherType === 'support' ||
-                      Boolean(user.canExportProject1)
-                    }
-                  >
-                    <StaffSystemTestQueue />
-                  </ProtectedRoute>
-                } />
-              
-              </Route>
-              
+                    <Route path="/admin/system-test/staff-queue" element={
+                      <ProtectedRoute
+                        roles={['admin', 'teacher']}
+                        condition={(user) =>
+                          user.role === 'admin' ||
+                          user.teacherType === 'support' ||
+                          Boolean(user.canExportProject1)
+                        }
+                      >
+                        <StaffSystemTestQueue />
+                      </ProtectedRoute>
+                    } />
+                  </Route>
 
-              {/* Default Route */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-            </Routes>
+                  {/* Default Route */}
+                  <Route path="/" element={<Navigate to="/login" replace />} />
+                </Routes>
+              </Suspense>
           </InternshipProvider>
         </StudentEligibilityProvider>
       </AuthProvider>

@@ -178,7 +178,7 @@ class ProjectDocumentService {
       if (typeof student.checkProjectEligibility === 'function') {
         try {
           const projCheck = await student.checkProjectEligibility();
-            // method ใหม่จะให้ { eligible, canAccessFeature, canRegister, reason }
+          // method ใหม่จะให้ { eligible, canAccessFeature, canRegister, reason }
           canCreate = !!(projCheck.canAccessFeature || projCheck.eligible);
           if (!canCreate && projCheck.reason) denyReason = projCheck.reason;
         } catch (e) {
@@ -199,13 +199,13 @@ class ProjectDocumentService {
       // โครงงานที่ cancelled ต้องรอรอบใหม่ (ตรวจสอบแล้วข้างบน)
       const existing = await ProjectMember.findOne({
         where: { studentId },
-        include: [{ 
-          model: ProjectDocument, 
-          as: 'project', 
-          required: true, 
-          where: { 
+        include: [{
+          model: ProjectDocument,
+          as: 'project',
+          required: true,
+          where: {
             status: { [Op.notIn]: ['archived', 'cancelled'] }
-          } 
+          }
         }],
         transaction: t
       });
@@ -214,7 +214,7 @@ class ProjectDocumentService {
       }
 
       // Academic ปัจจุบัน
-      const academic = await Academic.findOne({ where: { isCurrent: true }, order: [['updated_at','DESC']], transaction: t });
+      const academic = await Academic.findOne({ where: { isCurrent: true }, order: [['updated_at', 'DESC']], transaction: t });
       const academicYear = academic?.academicYear || (new Date().getFullYear() + 543);
       const semester = academic?.currentSemester || 1;
 
@@ -222,8 +222,8 @@ class ProjectDocumentService {
       if (academic?.projectRegistration) {
         let projectRegistration;
         try {
-          projectRegistration = typeof academic.projectRegistration === 'string' 
-            ? JSON.parse(academic.projectRegistration) 
+          projectRegistration = typeof academic.projectRegistration === 'string'
+            ? JSON.parse(academic.projectRegistration)
             : academic.projectRegistration;
         } catch (e) {
           logger.warn('createProject: Failed to parse projectRegistration JSON', { error: e.message });
@@ -269,13 +269,13 @@ class ProjectDocumentService {
       // โครงงานที่ cancelled ต้องรอรอบใหม่ (ตรวจสอบแล้วข้างบน)
       const existingActiveMembership = await ProjectMember.findOne({
         where: { studentId: secondMember.studentId },
-        include: [{ 
-          model: ProjectDocument, 
-          as: 'project', 
-          required: true, 
-          where: { 
+        include: [{
+          model: ProjectDocument,
+          as: 'project',
+          required: true,
+          where: {
             status: { [Op.notIn]: ['archived', 'cancelled'] }
-          } 
+          }
         }],
         transaction: t
       });
@@ -464,7 +464,7 @@ class ProjectDocumentService {
         throw new Error('อนุญาตเฉพาะสมาชิกโครงงานเท่านั้นที่แก้ไขข้อมูลโครงงาน');
       }
 
-      const lockNames = ['advisor_assigned','in_progress','completed','archived'];
+      const lockNames = ['advisor_assigned', 'in_progress', 'completed', 'archived'];
       const nameLocked = lockNames.includes(project.status);
 
       const update = {};
@@ -548,12 +548,12 @@ class ProjectDocumentService {
 
       if (project.status === 'in_progress') return await this.getProjectById(projectId); // idempotent
 
-      if (['completed','archived'].includes(project.status)) {
+      if (['completed', 'archived'].includes(project.status)) {
         throw new Error('ไม่สามารถเปิดใช้งานโครงงานในสถานะนี้ได้');
       }
 
       const activatedAt = new Date();
-      
+
       // 🆕 คำนวณสถานะการส่งช้า (Google Classroom style)
       // บันทึกหัวข้อโครงงานพิเศษ = activateProject
       const lateStatus = await calculateTopicSubmissionLate(activatedAt, {
@@ -561,7 +561,7 @@ class ProjectDocumentService {
         semester: project.semester
       });
 
-      await ProjectDocument.update({ 
+      await ProjectDocument.update({
         status: 'in_progress',
         // 🆕 เพิ่มข้อมูลการส่งช้า (ถ้ายังไม่ถูกตั้งค่า)
         submittedLate: lateStatus.submitted_late,
@@ -569,7 +569,7 @@ class ProjectDocumentService {
         importantDeadlineId: lateStatus.important_deadline_id
       }, { where: { projectId }, transaction: t });
 
-  await this.syncProjectWorkflowState(projectId, { transaction: t });
+      await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       logger.info('activateProject success', { projectId });
       return await this.getProjectById(projectId);
@@ -593,7 +593,7 @@ class ProjectDocumentService {
 
       await ProjectDocument.update({ status: 'archived', archivedAt: new Date() }, { where: { projectId }, transaction: t });
 
-  await this.syncProjectWorkflowState(projectId, { transaction: t });
+      await this.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
       logger.info('archiveProject success', { projectId });
       return await this.getProjectById(projectId);
@@ -611,10 +611,10 @@ class ProjectDocumentService {
     // กรองโครงงานที่ cancelled ออก - นักศึกษาไม่สามารถเข้าถึงโครงงานที่ถูกยกเลิกแล้ว
     const projects = await ProjectDocument.findAll({
       attributes: [
-        'projectId','projectCode','status','projectNameTh','projectNameEn',
-        'projectType','advisorId','coAdvisorId','academicYear','semester',
-        'objective','background','scope','expected_outcome','benefit','methodology','tools','timeline_note','risk','constraints',
-        'createdByStudentId','archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
+        'projectId', 'projectCode', 'status', 'projectNameTh', 'projectNameEn',
+        'projectType', 'advisorId', 'coAdvisorId', 'academicYear', 'semester',
+        'objective', 'background', 'scope', 'expected_outcome', 'benefit', 'methodology', 'tools', 'timeline_note', 'risk', 'constraints',
+        'createdByStudentId', 'archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
       ], // กำหนด whitelist ป้องกัน Sequelize select column ที่ไม่มี (เช่น student_id เก่า)
       where: {
         status: { [Op.ne]: 'cancelled' } // ไม่แสดงโครงงานที่ถูกยกเลิก
@@ -626,20 +626,20 @@ class ProjectDocumentService {
           where: { studentId },
           required: true,
           include: [
-            { 
-              model: Student, 
+            {
+              model: Student,
               as: 'student',
               include: [
-                { association: Student.associations.user, attributes: ['userId','firstName','lastName'] }
+                { association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName'] }
               ],
               // เพิ่ม attributes หน่วยกิตสำหรับนำไปแสดงผลหน้า Draft Detail
-              attributes: ['studentId','studentCode','totalCredits','majorCredits']
+              attributes: ['studentId', 'studentCode', 'totalCredits', 'majorCredits']
             }
           ]
         },
         { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
       ],
-      order: [['updated_at','DESC']]
+      order: [['updated_at', 'DESC']]
     });
     return projects.map(p => this.serialize(p));
   }
@@ -651,17 +651,17 @@ class ProjectDocumentService {
     const includeSummary = !!options.includeSummary;
     ensureModels();
     const includes = [
-      { 
-        model: ProjectMember, 
+      {
+        model: ProjectMember,
         as: 'members',
         include: [
-          { 
-            model: Student, 
+          {
+            model: Student,
             as: 'student',
             include: [
-              { association: Student.associations.user, attributes: ['userId','firstName','lastName','email'] }
+              { association: Student.associations.user, attributes: ['userId', 'firstName', 'lastName', 'email'] }
             ],
-            attributes: ['studentId','studentCode','phoneNumber']
+            attributes: ['studentId', 'studentCode', 'phoneNumber']
           }
         ]
       },
@@ -700,12 +700,12 @@ class ProjectDocumentService {
       include: includes
     });
     if (!project) throw new Error('ไม่พบโครงงาน');
-    
+
     // ตรวจสอบว่าโครงงานถูกยกเลิกแล้ว - นักศึกษาไม่สามารถเข้าถึงได้
     if (project.status === 'cancelled') {
       throw new Error('โครงงานนี้ถูกยกเลิกแล้ว คุณไม่สามารถเข้าถึงข้อมูลโครงงานที่ถูกยกเลิกได้');
     }
-    
+
     const base = this.serialize(project);
     const memberStudentIds = (base.members || []).map(member => member.studentId).filter(Boolean);
     const buildMetricsPayload = (metrics, requiredApprovedLogs) => ({
@@ -775,7 +775,7 @@ class ProjectDocumentService {
       const { ProjectMilestone, ProjectArtifact } = require('../models');
       const [milestoneCount, latestProposal] = await Promise.all([
         ProjectMilestone.count({ where: { projectId: project.projectId } }),
-        ProjectArtifact.findOne({ where: { projectId: project.projectId, type: 'proposal' }, order: [['version','DESC']] })
+        ProjectArtifact.findOne({ where: { projectId: project.projectId, type: 'proposal' }, order: [['version', 'DESC']] })
       ]);
       base.summary = {
         milestoneCount,
@@ -795,13 +795,13 @@ class ProjectDocumentService {
     const finalDocument = normalizeFinalDocument(p.document);
     const examResults = Array.isArray(p.examResults)
       ? p.examResults
-          .map(normalizeExamResult)
-          .filter(Boolean)
-          .sort((a, b) => {
-            const aTime = a?.recordedAt ? new Date(a.recordedAt).getTime() : 0;
-            const bTime = b?.recordedAt ? new Date(b.recordedAt).getTime() : 0;
-            return bTime - aTime;
-          })
+        .map(normalizeExamResult)
+        .filter(Boolean)
+        .sort((a, b) => {
+          const aTime = a?.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+          const bTime = b?.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+          return bTime - aTime;
+        })
       : [];
 
     return {
@@ -911,6 +911,25 @@ class ProjectDocumentService {
         transaction: t
       });
       await this.syncProjectWorkflowState(projectId, { transaction: t });
+
+      // Auto-transition to Project 2 when exam is passed
+      if (result === 'passed') {
+        const transitionService = require('./projectTransitionService');
+        try {
+          await transitionService.transitionToProject2(projectId, {
+            transitionType: 'auto',
+            transitionedBy: actorUser?.userId || null
+          });
+          logger.info('Auto-transitioned project to Project 2', { projectId });
+        } catch (error) {
+          logger.warn('Auto-transition failed, will require manual transition', {
+            projectId,
+            error: error.message
+          });
+          // Don't fail the exam result recording if transition fails
+        }
+      }
+
       await t.commit();
       return this.getProjectById(projectId);
     } catch (error) {
@@ -1007,7 +1026,7 @@ class ProjectDocumentService {
         transaction
       });
 
-  const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
+      const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
 
       // 🆕 อัปเดต meeting count ใน ProjectWorkflowState
       if (meetingMetrics.totalLogs !== undefined || meetingMetrics.approvedLogs !== undefined) {
@@ -1032,7 +1051,7 @@ class ProjectDocumentService {
 
         await workflowService.updateStudentWorkflowActivity(
           student.studentId,
-          'project1',
+          state.workflowType, // Use dynamic workflow type (project1 or project2)
           state.currentStepKey,
           state.currentStepStatus,
           state.overallStatus,
@@ -1219,6 +1238,8 @@ class ProjectDocumentService {
     const isExamFailed = examResult === 'failed';
     const isExamFailedAcknowledged = isExamFailed && acknowledged;
     const defenseRequests = project.defenseRequests || [];
+
+    // Project 1 Defense
     const project1DefenseRequest = defenseRequests.find(request => request.defenseType === 'PROJECT1' && request.status !== 'cancelled') || null;
     const project1DefenseRequestSubmitted = !!project1DefenseRequest;
     const project1DefenseScheduleInfo = project1DefenseRequest && project1DefenseRequest.defenseScheduledAt
@@ -1228,28 +1249,71 @@ class ProjectDocumentService {
         note: project1DefenseRequest.defenseNote
       }
       : null;
-  const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled', 'completed'].includes(project1DefenseRequest.status);
+    const project1DefenseScheduled = project1DefenseRequestSubmitted && ['staff_verified', 'scheduled', 'completed'].includes(project1DefenseRequest.status);
+
+    // Project 2 (Thesis) Defense
+    const thesisDefenseRequest = defenseRequests.find(request => request.defenseType === 'THESIS' && request.status !== 'cancelled') || null;
+    const thesisDefenseRequestSubmitted = !!thesisDefenseRequest;
+    const thesisDefenseScheduleInfo = thesisDefenseRequest && thesisDefenseRequest.defenseScheduledAt
+      ? {
+        scheduledAt: thesisDefenseRequest.defenseScheduledAt,
+        location: thesisDefenseRequest.defenseLocation,
+        note: thesisDefenseRequest.defenseNote
+      }
+      : null;
+    const thesisDefenseScheduled = thesisDefenseRequestSubmitted && ['staff_verified', 'scheduled', 'completed'].includes(thesisDefenseRequest.status);
+
+    // System Test (Project 2)
+    const systemTestRequest = project.systemTestRequest; // Assuming this is populated or we need to fetch it
+    const systemTestSubmitted = !!systemTestRequest;
+    const systemTestPassed = systemTestRequest && systemTestRequest.status === 'passed';
 
     const studentMetrics = meetingMetrics.perStudent?.[student.studentId] || { approvedLogs: 0, attendedMeetings: 0 };
     const approvedMeetingLogs = studentMetrics.approvedLogs || 0;
     const attendedMeetings = studentMetrics.attendedMeetings || 0;
     const hasAnyApprovedMeetingLog = approvedMeetingLogs > 0;
-  // readinessApproved จะเป็น true เมื่อมีบันทึกการพบที่ได้รับอนุมัติครบตามเกณฑ์ เพื่อสะท้อนสถานะ "พร้อมสอบ"
-  const readinessApproved = approvedMeetingLogs >= REQUIRED_APPROVED_MEETING_LOGS;
+
+    // Thresholds
+    const requiredLogs = project.projectType === 'project2' ? THESIS_REQUIRED_APPROVED_MEETING_LOGS : REQUIRED_APPROVED_MEETING_LOGS;
+    const readinessApproved = approvedMeetingLogs >= requiredLogs;
+
     const hasTopicTitles = !!project.projectNameTh && !!project.projectNameEn;
-  // topicSubmissionComplete บ่งบอกว่ามีทีมครบและกรอกข้อมูลสำหรับส่งหัวข้อแล้ว (ไม่บังคับเลือกอาจารย์ล่วงหน้า)
-  const topicSubmissionComplete = !!student.isEligibleProject && membersCount >= 2 && hasTopicTitles;
+    const topicSubmissionComplete = !!student.isEligibleProject && membersCount >= 2 && hasTopicTitles;
     const projectInProgress = ['in_progress', 'completed', 'archived'].includes(status);
 
-    const steps = [
-      { key: 'PROJECT1_TEAM_READY', completed: topicSubmissionComplete },
-      { key: 'PROJECT1_IN_PROGRESS', completed: projectInProgress },
-      { key: 'PROJECT1_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
-      { key: 'PROJECT1_READINESS_REVIEW', completed: projectInProgress && readinessApproved },
-      { key: 'PROJECT1_DEFENSE_REQUEST', completed: project1DefenseRequestSubmitted },
-      { key: 'PROJECT1_DEFENSE_SCHEDULED', completed: project1DefenseScheduled },
-      { key: 'PROJECT1_DEFENSE_RESULT', completed: examResult === 'passed' || (isExamFailed && acknowledged), blocked: isExamFailed && !acknowledged }
-    ];
+    // Determine Workflow Type and Steps
+    let workflowType = 'project1';
+    let steps = [];
+
+    // Based on the current system, let's check projectType.
+    const isProject2 = project.projectType === 'project2' ||
+      (['special_project', 'private'].includes(project.projectType) &&
+        (project.currentPhase?.includes('THESIS') || project.examResult === 'passed'));
+
+    if (isProject2) {
+      workflowType = 'project2';
+      steps = [
+        // Start directly at THESIS_IN_PROGRESS after Project 1 transition
+        { key: 'THESIS_IN_PROGRESS', completed: projectInProgress },
+        { key: 'THESIS_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
+        { key: 'THESIS_SYSTEM_TEST', completed: systemTestPassed }, // Or just submitted depending on requirement
+        { key: 'THESIS_DEFENSE_REQUEST', completed: thesisDefenseRequestSubmitted },
+        // { key: 'THESIS_DEFENSE_SCHEDULED', completed: thesisDefenseScheduled }, // Optional if step exists
+        { key: 'THESIS_DEFENSE_RESULT', completed: examResult === 'passed' || (isExamFailed && acknowledged), blocked: isExamFailed && !acknowledged },
+        { key: 'THESIS_FINAL_SUBMISSION', completed: status === 'completed' } // Assuming 'completed' status means final doc submitted and approved
+      ];
+    } else {
+      // Project 1 Steps
+      steps = [
+        { key: 'PROJECT1_TEAM_READY', completed: topicSubmissionComplete },
+        { key: 'PROJECT1_IN_PROGRESS', completed: projectInProgress },
+        { key: 'PROJECT1_PROGRESS_CHECKINS', completed: projectInProgress && hasAnyApprovedMeetingLog },
+        { key: 'PROJECT1_READINESS_REVIEW', completed: projectInProgress && readinessApproved },
+        { key: 'PROJECT1_DEFENSE_REQUEST', completed: project1DefenseRequestSubmitted },
+        { key: 'PROJECT1_DEFENSE_SCHEDULED', completed: project1DefenseScheduled },
+        { key: 'PROJECT1_DEFENSE_RESULT', completed: examResult === 'passed' || (isExamFailed && acknowledged), blocked: isExamFailed && !acknowledged }
+      ];
+    }
 
     let overallStatus = 'not_started';
     if (status === 'archived' && acknowledged) {
@@ -1262,21 +1326,31 @@ class ProjectDocumentService {
       overallStatus = 'in_progress';
     }
 
-    let currentStepKey = steps[steps.length - 1].key;
-    let currentStepStatus = 'completed';
+    let currentStepKey = steps[0].key; // Default to first step
+    let currentStepStatus = 'pending'; // Default status
 
+    // Find the first incomplete or blocked step
+    let foundCurrent = false;
     for (const step of steps) {
       if (step.blocked) {
         currentStepKey = step.key;
         currentStepStatus = 'blocked';
+        foundCurrent = true;
         break;
       }
 
       if (!step.completed) {
         currentStepKey = step.key;
         currentStepStatus = this.getProjectStepPendingStatus(step.key);
+        foundCurrent = true;
         break;
       }
+    }
+
+    // If all steps are completed
+    if (!foundCurrent && steps.length > 0) {
+      currentStepKey = steps[steps.length - 1].key;
+      currentStepStatus = 'completed';
     }
 
     const isEnrolledProject = status !== 'archived';
@@ -1290,6 +1364,7 @@ class ProjectDocumentService {
     }
 
     return {
+      workflowType, // Return the determined workflow type
       currentStepKey,
       currentStepStatus,
       overallStatus,
@@ -1298,19 +1373,28 @@ class ProjectDocumentService {
       dataPayload: {
         projectId: project.projectId,
         projectStatus: status,
+        projectType: project.projectType,
         examResult,
         membersCount,
         advisorId: project.advisorId,
         archivedAt: project.archivedAt,
         studentAcknowledgedAt: project.studentAcknowledgedAt,
         topicSubmitted: topicSubmissionComplete,
+        // Project 1 specific
         project1DefenseRequestSubmitted,
         project1DefenseScheduled,
         project1DefenseSchedule: project1DefenseScheduleInfo,
+        // Project 2 specific
+        thesisDefenseRequestSubmitted,
+        thesisDefenseScheduled,
+        thesisDefenseSchedule: thesisDefenseScheduleInfo,
+        systemTestSubmitted,
+        systemTestPassed,
+
         failureAcknowledged: isExamFailedAcknowledged,
         meetingMetrics: {
           approvedLogs: approvedMeetingLogs,
-          requiredApprovedLogs: REQUIRED_APPROVED_MEETING_LOGS,
+          requiredApprovedLogs: requiredLogs,
           attendedMeetings,
           totalApprovedLogs: meetingMetrics.totalApprovedLogs || 0,
           totalMeetings: meetingMetrics.totalMeetings || 0,
@@ -1322,6 +1406,7 @@ class ProjectDocumentService {
 
   getProjectStepPendingStatus(stepKey) {
     switch (stepKey) {
+      // Project 1
       case 'PROJECT1_TEAM_READY':
         return 'awaiting_student_action';
       case 'PROJECT1_IN_PROGRESS':
@@ -1336,6 +1421,23 @@ class ProjectDocumentService {
         return 'pending';
       case 'PROJECT1_DEFENSE_RESULT':
         return 'pending';
+
+      // Project 2
+      case 'THESIS_PROPOSAL_SUBMITTED':
+        return 'awaiting_student_action';
+      case 'THESIS_IN_PROGRESS':
+        return 'awaiting_student_action';
+      case 'THESIS_PROGRESS_CHECKINS':
+        return 'in_progress';
+      case 'THESIS_SYSTEM_TEST':
+        return 'awaiting_student_action';
+      case 'THESIS_DEFENSE_REQUEST':
+        return 'awaiting_student_action';
+      case 'THESIS_DEFENSE_RESULT':
+        return 'pending';
+      case 'THESIS_FINAL_SUBMISSION':
+        return 'awaiting_student_action';
+
       default:
         return 'in_progress';
     }

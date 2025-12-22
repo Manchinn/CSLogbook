@@ -63,12 +63,18 @@ describe('documentService late logic', () => {
     expect(out.isLate).toBe(true);
   });
 
-  test('locked after grace', async () => {
+  test('locked after grace returns late flag', async () => {
     const now = Date.now();
-    const eff = new Date(now - 120*60000); // 2 ชม. ที่แล้ว
-  const d = await createDeadline({ deadlineAt: eff, gracePeriodMinutes: 30, lockAfterDeadline: true });
-  await expect(documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'Locked', importantDeadlineId: d.id }))
-      .rejects.toThrow('หมดเขตรับเอกสารแล้ว');
+    const eff = new Date(now - 120 * 60000); // 2 ชม. ที่แล้ว
+    const d = await createDeadline({ deadlineAt: eff, gracePeriodMinutes: 30, lockAfterDeadline: true });
+    const out = await documentService.uploadDocument(1, fakeFile(), {
+      documentType: 'INTERNSHIP',
+      category: 'proposal',
+      documentName: 'Locked',
+      importantDeadlineId: d.id,
+    });
+    expect(out.isLate).toBe(true);
+    expect(out.message).toMatch(/อัปโหลดไฟล์สำเร็จ/);
   });
 
   test('allow late but not lock accepts after grace', async () => {
@@ -79,12 +85,17 @@ describe('documentService late logic', () => {
     expect(out.isLate).toBe(true);
   });
 
-  test('allowLate=false reject when past effective', async () => {
+  test('allowLate=false still records late submission with warning', async () => {
     const now = Date.now();
-    const eff = new Date(now - 10*60000);
-  const d = await createDeadline({ deadlineAt: eff, allowLate: false, gracePeriodMinutes: null });
-    await expect(documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'NoLate', importantDeadlineId: d.id }))
-      .rejects.toThrow('ไม่อนุญาตให้ส่งช้า');
+    const eff = new Date(now - 10 * 60000);
+    const d = await createDeadline({ deadlineAt: eff, allowLate: false, gracePeriodMinutes: null });
+    const out = await documentService.uploadDocument(1, fakeFile(), {
+      documentType: 'INTERNSHIP',
+      category: 'proposal',
+      documentName: 'NoLate',
+      importantDeadlineId: d.id,
+    });
+    expect(out.isLate).toBe(true);
   });
 
   // --- Window based effectiveDeadlineAt cases ---
@@ -103,12 +114,24 @@ describe('documentService late logic', () => {
     const out = await documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'WinLate', importantDeadlineId: d.id });
     expect(out.isLate).toBe(true);
   });
-  test('window: after grace & lock -> reject', async () => {
+  test('window: after grace & lock now returns late result object', async () => {
     const now = Date.now();
-    const end = new Date(now - 120*60000); // 2 ชั่วโมงก่อน
-    const start = new Date(end.getTime() - 60*60000);
-    const d = await createDeadline({ windowStartAt: start, windowEndAt: end, deadlineAt: end, gracePeriodMinutes: 30, lockAfterDeadline: true, date: new Date(end.getTime()+7*60*60*1000).toISOString().slice(0,10) });
-    await expect(documentService.uploadDocument(1, fakeFile(), { documentType: 'INTERNSHIP', category: 'proposal', documentName: 'WinLocked', importantDeadlineId: d.id }))
-      .rejects.toThrow('หมดเขตรับเอกสารแล้ว');
+    const end = new Date(now - 120 * 60000); // 2 ชั่วโมงก่อน
+    const start = new Date(end.getTime() - 60 * 60000);
+    const d = await createDeadline({
+      windowStartAt: start,
+      windowEndAt: end,
+      deadlineAt: end,
+      gracePeriodMinutes: 30,
+      lockAfterDeadline: true,
+      date: new Date(end.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    });
+    const out = await documentService.uploadDocument(1, fakeFile(), {
+      documentType: 'INTERNSHIP',
+      category: 'proposal',
+      documentName: 'WinLocked',
+      importantDeadlineId: d.id,
+    });
+    expect(out.isLate).toBe(true);
   });
 });

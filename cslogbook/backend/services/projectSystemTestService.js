@@ -512,8 +512,27 @@ class ProjectSystemTestService {
       where.status = { [Op.in]: ['pending_staff', 'staff_approved'] };
     }
 
+    const projectWhere = {};
+    if (options.academicYear) {
+      const year = Number(options.academicYear);
+      if (Number.isInteger(year)) {
+        projectWhere.academicYear = year;
+      }
+    }
+    if (options.semester) {
+      const sem = Number(options.semester);
+      if ([1, 2, 3].includes(sem)) {
+        projectWhere.semester = sem;
+      }
+    }
+
     const include = [
-      { model: ProjectDocument, as: 'project' },
+      { 
+        model: ProjectDocument, 
+        as: 'project',
+        where: Object.keys(projectWhere).length > 0 ? projectWhere : undefined,
+        required: false
+      },
       {
         model: Student,
         as: 'submittedBy',
@@ -533,11 +552,34 @@ class ProjectSystemTestService {
       }
     ];
 
-    const records = await ProjectTestRequest.findAll({
-      where,
-      order: [['submittedAt', 'DESC']],
-      include
-    });
+    // Pagination params
+    const limit = options.limit ? parseInt(options.limit, 10) : undefined;
+    const offset = options.offset ? parseInt(options.offset, 10) : undefined;
+
+    let records;
+    let total = 0;
+
+    if (limit !== undefined || offset !== undefined) {
+      // ใช้ findAndCountAll สำหรับ pagination
+      const { rows, count } = await ProjectTestRequest.findAndCountAll({
+        where,
+        include,
+        order: [['submittedAt', 'DESC']],
+        limit,
+        offset,
+        distinct: true, // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
+      });
+      records = rows;
+      total = count;
+    } else {
+      // ไม่มี pagination ใช้ findAll
+      records = await ProjectTestRequest.findAll({
+        where,
+        include,
+        order: [['submittedAt', 'DESC']]
+      });
+      total = records.length;
+    }
 
     // เพิ่มการตรวจสอบ deadline status
     const serializedList = [];
@@ -555,9 +597,80 @@ class ProjectSystemTestService {
         tag: deadlineTag
       };
 
-      serializedList.push(this.serialize(record, { includeDeadlineStatus: true }));
+      const serialized = this.serialize(record, { includeDeadlineStatus: true });
+
+      // Filter ด้วย search ถ้ามี
+      if (options.search && typeof options.search === 'string' && options.search.trim()) {
+        const keyword = options.search.trim().toLowerCase();
+        const project = serialized.projectSnapshot || {};
+        const applicant = serialized.submittedBy || {};
+        const advisor = serialized.advisorDecision || {};
+        const candidates = [
+          project.projectNameTh,
+          project.projectNameEn,
+          project.projectCode,
+          applicant.studentCode,
+          applicant.name,
+          advisor.name
+        ].filter(Boolean);
+        
+        const matches = candidates.some((text) => String(text).toLowerCase().includes(keyword));
+        if (!matches) {
+          continue; // ข้ามรายการที่ไม่ตรงกับ search
+        }
+      }
+
+      serializedList.push(serialized);
+    }
+
+    // ถ้ามี pagination และมีการ filter ด้วย search ต้องคำนวณ total ใหม่ทั้งหมด
+    let filteredTotal = total;
+    if ((limit !== undefined || offset !== undefined) && options.search && typeof options.search === 'string' && options.search.trim()) {
+      // Query ทั้งหมดใหม่เพื่อนับ total หลัง filter ด้วย search
+      const allRecords = await ProjectTestRequest.findAll({
+        where,
+        include,
+        order: [['submittedAt', 'DESC']]
+      });
+
+      const allSerialized = [];
+      for (const record of allRecords) {
+        const deadlineStatus = await checkSystemTestRequestDeadline(
+          this.serialize(record)
+        );
+        const deadlineTag = createDeadlineTag(deadlineStatus);
+        record._deadlineStatus = {
+          ...deadlineStatus,
+          tag: deadlineTag
+        };
+        const serialized = this.serialize(record, { includeDeadlineStatus: true });
+
+        const keyword = options.search.trim().toLowerCase();
+        const project = serialized.projectSnapshot || {};
+        const applicant = serialized.submittedBy || {};
+        const advisor = serialized.advisorDecision || {};
+        const candidates = [
+          project.projectNameTh,
+          project.projectNameEn,
+          project.projectCode,
+          applicant.studentCode,
+          applicant.name,
+          advisor.name
+        ].filter(Boolean);
+        
+        const matches = candidates.some((text) => String(text).toLowerCase().includes(keyword));
+        if (matches) {
+          allSerialized.push(serialized);
+        }
+      }
+      filteredTotal = allSerialized.length;
     }
     
+    // ถ้ามี pagination ส่ง total กลับไปด้วย
+    if (limit !== undefined || offset !== undefined) {
+      return { data: serializedList, total: filteredTotal };
+    }
+
     return serializedList;
   }
 }

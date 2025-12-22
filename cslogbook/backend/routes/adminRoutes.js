@@ -111,6 +111,11 @@ router.get('/academic', adminAuth, academacController.getAcademicSettings);
 router.post('/academic', adminAuth, academacController.createAcademicSettings);
 router.put('/academic', adminAuth, academacController.updateAcademicSettings);  
 router.delete('/academic/:id', adminAuth, academacController.deleteAcademicSettings);
+router.get('/academic/schedules', adminAuth, academacController.listAcademicSchedules);
+router.get('/academic/schedules/:id', adminAuth, academacController.getAcademicScheduleById);
+router.post('/academic/schedules', adminAuth, academacController.createAcademicSchedule);
+router.put('/academic/schedules/:id', adminAuth, academacController.updateAcademicSchedule);
+router.post('/academic/schedules/:id/activate', adminAuth, academacController.activateAcademicSchedule);
 
 // === เพิ่ม Admin Workflow Step Definition Routes ===
 // ดึงรายการขั้นตอน workflow ทั้งหมด (สำหรับจัดการ)

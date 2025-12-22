@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Upload,
   Button,
@@ -28,8 +28,8 @@ import {
   FilterOutlined
 } from '@ant-design/icons';
 import { adminService } from '../services/adminService';
-import curriculumService from '../services/curriculumService';
 import academicService from '../services/academicService';
+import { settingsService } from 'features/settings/services/settingsService';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -72,10 +72,17 @@ const AdminUpload = () => {
     academic: { ready: false, message: '' }
   });
   const [contextLoading, setContextLoading] = useState(true);
+  const [activeCurriculums, setActiveCurriculums] = useState([]);
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
+  const selectedCurriculumRef = useRef(null);
 
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const csvTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-csv-template`;
   const excelTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-excel-template`;
+
+  useEffect(() => {
+    selectedCurriculumRef.current = selectedCurriculumId;
+  }, [selectedCurriculumId]);
 
   const loadContextData = useCallback(async () => {
     setContextLoading(true);
@@ -86,17 +93,47 @@ const AdminUpload = () => {
     };
 
     try {
-      const curriculumResponse = await curriculumService.getActiveCurriculum();
-      const curriculumData = curriculumResponse?.data ?? curriculumResponse;
+      const curriculumListResponse = await settingsService.getCurriculums();
+      if (curriculumListResponse?.success) {
+        const curriculums = Array.isArray(curriculumListResponse.data)
+          ? curriculumListResponse.data
+          : [];
+        const activeList = curriculums.filter((curriculum) => curriculum.active);
+        setActiveCurriculums(activeList);
 
-      if (curriculumResponse?.success === false || !curriculumData) {
-        throw new Error('ไม่พบหลักสูตรที่เปิดใช้งาน');
+        if (activeList.length > 0) {
+          const currentSelectedId = selectedCurriculumRef.current;
+          const getCurriculumId = (curriculum) => curriculum.curriculumId ?? curriculum.id ?? curriculum.curriculumID ?? null;
+
+          let effectiveSelectedId = currentSelectedId;
+          const hasCurrentSelection = effectiveSelectedId
+            ? activeList.some((curriculum) => getCurriculumId(curriculum) === effectiveSelectedId)
+            : false;
+
+          if (!hasCurrentSelection) {
+            effectiveSelectedId = getCurriculumId(activeList[0]);
+            setSelectedCurriculumId(effectiveSelectedId);
+          }
+
+          const selectedCurriculum = activeList.find(
+            (curriculum) => getCurriculumId(curriculum) === effectiveSelectedId
+          );
+
+          nextStatus.curriculum = {
+            ready: true,
+            message: selectedCurriculum
+              ? `กำลังใช้หลักสูตร: ${selectedCurriculum.shortName || selectedCurriculum.name || 'ไม่ระบุ'}`
+              : 'กรุณาเลือกหลักสูตรที่จะใช้เป็นเกณฑ์'
+          };
+        } else {
+          nextStatus.curriculum = {
+            ready: false,
+            message: 'ไม่พบหลักสูตรที่เปิดใช้งาน กรุณาเพิ่มหรือเปิดใช้งานหลักสูตร'
+          };
+        }
+      } else {
+        throw new Error('ไม่สามารถดึงข้อมูลหลักสูตรได้');
       }
-
-      nextStatus.curriculum = {
-        ready: true,
-        message: `หลักสูตรที่ใช้งาน: ${curriculumData.shortName || curriculumData.name || 'ไม่ระบุ'} (เริ่มใช้ปี ${curriculumData.startYear || '-'})`
-      };
     } catch (error) {
       console.error('ไม่สามารถโหลดข้อมูลหลักสูตร:', error);
     }
@@ -128,7 +165,14 @@ const AdminUpload = () => {
     loadContextData();
   }, [loadContextData]);
 
-  const isReadyToUpload = prerequisiteStatus.curriculum.ready && prerequisiteStatus.academic.ready;
+  const selectedCurriculum = useMemo(() => {
+    const getCurriculumId = (curriculum) => curriculum?.curriculumId ?? curriculum?.id ?? curriculum?.curriculumID ?? null;
+    return activeCurriculums.find(
+      (curriculum) => getCurriculumId(curriculum) === selectedCurriculumId
+    );
+  }, [activeCurriculums, selectedCurriculumId]);
+
+  const isReadyToUpload = prerequisiteStatus.curriculum.ready && prerequisiteStatus.academic.ready && !!selectedCurriculum;
 
   const handleBeforeUpload = (file) => {
     if (!isAuthenticated) {
@@ -176,9 +220,15 @@ const AdminUpload = () => {
       return;
     }
 
+    if (!selectedCurriculumId) {
+      message.warning('กรุณาเลือกหลักสูตรที่จะใช้ก่อนอัปโหลด');
+      return;
+    }
+
     setUploading(true);
     const formData = new FormData();
     formData.append('file', fileList[0]);
+    formData.append('curriculumId', selectedCurriculumId);
 
     try {
       // เรียก API ในโหมดตรวจสอบ (preview mode)
@@ -247,9 +297,15 @@ const AdminUpload = () => {
       return;
     }
 
+    if (!selectedCurriculumId) {
+      message.warning('กรุณาเลือกหลักสูตรที่จะใช้ก่อนยืนยันการอัปโหลด');
+      return;
+    }
+
     setConfirming(true);
     const formData = new FormData();
     formData.append('file', fileList[0]);
+    formData.append('curriculumId', selectedCurriculumId);
 
     try {
       // เรียก API ในโหมดอัปโหลดจริง
@@ -368,7 +424,11 @@ const AdminUpload = () => {
       key: 'curriculum',
       title: 'ตั้งค่าหลักสูตรที่ใช้งาน',
       ready: prerequisiteStatus.curriculum.ready,
-      description: prerequisiteStatus.curriculum.message,
+      description: prerequisiteStatus.curriculum.ready
+        ? (selectedCurriculum
+            ? `หลักสูตรที่เลือก: ${selectedCurriculum.shortName || selectedCurriculum.name} (${selectedCurriculum.code || 'ไม่ระบุ'})`
+            : 'กรุณาเลือกหลักสูตรที่จะใช้เป็นเกณฑ์')
+        : prerequisiteStatus.curriculum.message,
       action: { label: 'ไปยังหน้าตั้งค่าหลักสูตร', link: '/admin/settings/curriculum' }
     },
     {
@@ -378,7 +438,7 @@ const AdminUpload = () => {
       description: prerequisiteStatus.academic.message,
       action: { label: 'ไปยังหน้าตั้งค่าปีการศึกษา', link: '/admin/settings/academic' }
     }
-  ]), [prerequisiteStatus]);
+  ]), [prerequisiteStatus, selectedCurriculum]);
 
   return (
     <div
@@ -442,6 +502,39 @@ const AdminUpload = () => {
                         <Text strong>{item.title}</Text>
                       </Space>
                       <Text type={item.ready ? 'success' : 'secondary'}>{item.description}</Text>
+                      {item.key === 'curriculum' && item.ready && (
+                        <Select
+                          value={selectedCurriculumId || undefined}
+                          onChange={(value) => {
+                            setSelectedCurriculumId(value);
+                            const newlySelected = activeCurriculums.find(
+                              (curriculum) => (curriculum.curriculumId ?? curriculum.id ?? curriculum.curriculumID ?? null) === value
+                            );
+                            setPrerequisiteStatus((prev) => ({
+                              ...prev,
+                              curriculum: {
+                                ...prev.curriculum,
+                                message: newlySelected
+                                  ? `กำลังใช้หลักสูตร: ${newlySelected.shortName || newlySelected.name || 'ไม่ระบุ'}`
+                                  : 'กรุณาเลือกหลักสูตรที่จะใช้เป็นเกณฑ์'
+                              }
+                            }));
+                          }}
+                          placeholder="เลือกหลักสูตรที่จะใช้"
+                          style={{ width: '100%', marginTop: 12 }}
+                          allowClear={false}
+                        >
+                          {activeCurriculums.map((curriculum) => {
+                            const curriculumId = curriculum.curriculumId ?? curriculum.id ?? curriculum.curriculumID ?? null;
+                            const label = `${curriculum.code || 'ไม่ระบุ'} - ${curriculum.shortName || curriculum.name || 'ไม่ระบุ'}`;
+                            return (
+                              <Option key={curriculumId} value={curriculumId}>
+                                {label}
+                              </Option>
+                            );
+                          })}
+                        </Select>
+                      )}
                       {!item.ready && (
                         <div style={{ marginTop: 12 }}>
                           <Button

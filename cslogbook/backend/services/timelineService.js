@@ -14,26 +14,26 @@ class TimelineService {
   async getStudentCompleteTimeline(studentId) {
     try {
       logger.info(`TimelineService: กำลังค้นหานักศึกษาด้วย ID/รหัสนักศึกษา: ${studentId}`);
-      
+
       // ค้นหานักศึกษา
       const student = await this.findStudent(studentId);
-      
+
       if (!student) {
         throw new Error(`ไม่พบนักศึกษาที่มีรหัส ${studentId}`);
       }
-      
+
       logger.info(`TimelineService: พบนักศึกษา: ${student.studentId} (รหัสนักศึกษา: ${student.studentCode})`);
-      
+
       // สร้าง timeline สำหรับการฝึกงานและโครงงานแยกกัน
       const [internshipTimeline, projectTimeline] = await Promise.all([
         workflowService.generateStudentTimeline(student.studentId, 'internship'),
-        workflowService.generateStudentTimeline(student.studentId, PROJECT_WORKFLOW_TYPE)
+        this.generateTimelineForType(student.studentId, 'project', student)
       ]);
-      
+
       // เพิ่มการปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
       this.adjustTimelineStatus(internshipTimeline, student, 'internship');
       this.adjustTimelineStatus(projectTimeline, student, 'project');
-      
+
       return {
         student: this.formatStudentData(student),
         progress: {
@@ -42,7 +42,7 @@ class TimelineService {
         },
         summary: this.createTimelineSummary(internshipTimeline, projectTimeline)
       };
-      
+
     } catch (error) {
       logger.error('TimelineService: Error in getStudentCompleteTimeline', error);
       throw error;
@@ -56,23 +56,23 @@ class TimelineService {
    */
   async findStudent(studentId) {
     let student = null;
-    
+
     const numericId = parseInt(studentId);
     if (!isNaN(numericId)) {
       student = await Student.findByPk(numericId, {
-        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
-                  'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
+        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject',
+          'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
       });
     }
-    
+
     if (!student) {
       student = await Student.findOne({
         where: { studentCode: studentId.toString() },
-        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject', 
-                  'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
+        attributes: ['studentId', 'studentCode', 'isEligibleInternship', 'isEligibleProject',
+          'internshipStatus', 'projectStatus', 'isEnrolledInternship', 'isEnrolledProject']
       });
     }
-    
+
     // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ดึงมา
     if (student) {
       logger.info('TimelineService.findStudent: ข้อมูลที่ดึงมาจากฐานข้อมูล:', {
@@ -86,7 +86,7 @@ class TimelineService {
         projectStatus: student.projectStatus
       });
     }
-    
+
     return student;
   }
 
@@ -142,7 +142,7 @@ class TimelineService {
       overallProgress: Math.round((internshipTimeline.progress + projectTimeline.progress) / 2),
       nextAction: this.determineNextAction(internshipTimeline.steps, projectTimeline.steps),
       completedSteps: (internshipTimeline.steps?.filter(s => s.status === 'completed')?.length || 0) +
-                     (projectTimeline.steps?.filter(s => s.status === 'completed')?.length || 0),
+        (projectTimeline.steps?.filter(s => s.status === 'completed')?.length || 0),
       totalSteps: (internshipTimeline.totalStepsDisplay || 0) + (projectTimeline.totalStepsDisplay || 0)
     };
   }
@@ -155,16 +155,16 @@ class TimelineService {
   async getStudentTimeline(studentId) {
     try {
       logger.info(`TimelineService: กำลังค้นหานักศึกษาด้วย ID/รหัสนักศึกษา: ${studentId}`);
-      
+
       // ใช้ findStudent method ที่มีอยู่แล้ว
       const student = await this.findStudent(studentId);
-      
+
       if (!student) {
         throw new Error(`ไม่พบนักศึกษาที่มีรหัส ${studentId}`);
       }
-      
+
       logger.info(`TimelineService: พบนักศึกษา: ${student.studentId} (รหัสนักศึกษา: ${student.studentCode})`);
-      
+
       // เพิ่ม debug log เพื่อตรวจสอบข้อมูลจากฐานข้อมูล
       logger.info('TimelineService: ข้อมูลจากฐานข้อมูล:', {
         studentId: student.studentId,
@@ -176,18 +176,18 @@ class TimelineService {
         isEnrolledProject: student.isEnrolledProject,
         projectStatus: student.projectStatus
       });
-      
+
       // สร้าง timeline สำหรับการฝึกงานและโครงงาน
       const [internshipTimeline, projectTimeline] = await Promise.all([
         this.generateTimelineForType(student.studentId, 'internship', student),
         this.generateTimelineForType(student.studentId, 'project', student)
       ]);
-      
+
       // ดึงปีการศึกษาปัจจุบันจาก Academic
       let currentAcademic = await Academic.findOne({ where: { isCurrent: true } });
       let studentYearInfo = null;
       let academicInfo = null;
-      
+
       if (currentAcademic) {
         studentYearInfo = calculateStudentYear(student.studentCode, currentAcademic.academicYear);
         academicInfo = {
@@ -199,7 +199,7 @@ class TimelineService {
         studentYearInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ', year: null };
         academicInfo = { error: true, message: 'ไม่พบปีการศึกษาปัจจุบันในระบบ' };
       }
-      
+
       const studentData = {
         id: student.studentId,
         studentId: student.studentId,
@@ -214,7 +214,7 @@ class TimelineService {
         studentYearInfo, // เพิ่ม object เต็มสำหรับ debug/frontend
         academicInfo, // เพิ่มข้อมูลภาคการศึกษาและปีการศึกษา
       };
-      
+
       // เพิ่ม debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับไปยัง frontend
       logger.info('TimelineService: ข้อมูลที่ส่งกลับไปยัง frontend:', {
         studentId: studentData.studentId,
@@ -226,7 +226,7 @@ class TimelineService {
         isEnrolledProject: studentData.isEnrolledProject,
         projectStatus: studentData.projectStatus
       });
-      
+
       return {
         student: studentData,
         progress: {
@@ -234,34 +234,50 @@ class TimelineService {
           project: projectTimeline
         }
       };
-      
+
     } catch (error) {
       logger.error('TimelineService: Error in getStudentTimeline', error);
       throw error;
     }
   }
-  
+
   /**
    * สร้าง timeline สำหรับประเภทที่กำหนด
    * @param {number} studentId - ID ของนักศึกษา
-   * @param {string} type - ประเภท timeline ('internship' หรือ 'project')
+   * @param {string} type - ประเภท timeline (' internship' หรือ 'project')
    * @param {Object} student - ข้อมูลนักศึกษา
    * @returns {Object} timeline ที่สร้างขึ้น
    */
   async generateTimelineForType(studentId, type, student) {
     try {
-      const workflowType = type === 'project' ? PROJECT_WORKFLOW_TYPE : type;
+      let workflowType = type === 'project' ? PROJECT_WORKFLOW_TYPE : type;
 
       if (type === 'project') {
         try {
           await projectDocumentService.syncStudentProjectsWorkflow(studentId);
+
+          // Check if student has moved to project2
+          const project2Activity = await this.getWorkflowActivity(studentId, 'project2');
+          logger.info(`TimelineService: Checking project2 activity for student ${studentId}`, {
+            exists: !!project2Activity,
+            overall: project2Activity?.overallWorkflowStatus,
+            current: project2Activity?.currentStepStatus
+          });
+
+          // If project2 activity exists (regardless of status), use project2 workflow
+          if (project2Activity) {
+            workflowType = 'project2';
+            logger.info(`TimelineService: Switching to project2 for student ${studentId}`);
+          } else {
+            logger.info(`TimelineService: Staying on project1 for student ${studentId}`);
+          }
         } catch (syncError) {
           logger.warn('TimelineService: syncStudentProjectsWorkflow failed', { studentId, error: syncError.message });
         }
       }
 
       const timeline = await workflowService.generateStudentTimeline(studentId, workflowType);
-      
+
       // ปรับแต่งสถานะตามข้อมูลในฐานข้อมูล
       if (type === 'internship' && student.isEnrolledInternship && timeline.status === 'not_started') {
         timeline.status = student.internshipStatus || 'in_progress';
@@ -276,11 +292,11 @@ class TimelineService {
           timeline.progress = 100;
         }
       }
-      
+
       return timeline;
     } catch (error) {
       logger.error(`TimelineService: Error generating ${type} timeline:`, error);
-      
+
       // กำหนดค่าเริ่มต้นในกรณีเกิดข้อผิดพลาด
       const statusField = type === 'internship' ? 'internshipStatus' : 'projectStatus';
       return {
@@ -292,7 +308,7 @@ class TimelineService {
       };
     }
   }
-  
+
   /**
    * เริ่มต้น timeline สำหรับนักศึกษา
    * @param {number} studentId - ID ของนักศึกษา
@@ -302,31 +318,33 @@ class TimelineService {
   async initializeStudentTimeline(studentId, timelineType = 'internship') {
     try {
       logger.info(`TimelineService: เริ่มต้น timeline ${timelineType} สำหรับนักศึกษา ${studentId}`);
-      
+
       // ตรวจสอบว่านักศึกษามีอยู่จริง
       const student = await Student.findByPk(studentId);
       if (!student) {
         throw new Error('ไม่พบข้อมูลนักศึกษา');
       }
-      
+
       // กำหนด workflow type
       let workflowType;
       if (timelineType === 'internship') {
         workflowType = 'internship';
-      } else if (timelineType === 'project') {
+      } else if (timelineType === 'project' || timelineType === 'project1') {
         workflowType = 'project1';
+      } else if (timelineType === 'project2') {
+        workflowType = 'project2';
       } else {
-        throw new Error('ประเภท timeline ไม่ถูกต้อง ต้องเป็น "internship" หรือ "project"');
+        throw new Error('ประเภท timeline ไม่ถูกต้อง ต้องเป็น "internship", "project", "project1", หรือ "project2"');
       }
-      
+
       // ดึงขั้นตอนแรกของ workflow
       const stepDefinitions = await workflowService.getWorkflowStepDefinitions(workflowType);
       const firstStep = stepDefinitions.length > 0 ? stepDefinitions[0] : null;
-      
+
       if (!firstStep) {
         throw new Error(`ไม่พบข้อมูลขั้นตอนสำหรับ ${workflowType}`);
       }
-      
+
       // เริ่มต้น workflow activity
       const activity = await workflowService.updateStudentWorkflowActivity(
         studentId,
@@ -336,16 +354,16 @@ class TimelineService {
         'not_started',
         {}
       );
-      
+
       logger.info(`TimelineService: เริ่มต้น ${timelineType} timeline สำเร็จ`);
       return activity;
-      
+
     } catch (error) {
       logger.error('TimelineService: Error in initializeStudentTimeline', error);
       throw error;
     }
   }
-  
+
   /**
    * อัปเดตขั้นตอนใน timeline
    * @param {Object} params - พารามิเตอร์สำหรับอัปเดต
@@ -354,16 +372,16 @@ class TimelineService {
   async updateTimelineStep({ studentId, workflowType, stepKey, status, overallStatus, dataPayload }) {
     try {
       logger.info(`TimelineService: อัปเดตขั้นตอน ${stepKey} สำหรับนักศึกษา ${studentId}`);
-      
+
       // ตรวจสอบว่า stepKey มีอยู่จริงใน workflow
       const stepExists = await sequelize.models.WorkflowStepDefinition.findOne({
         where: { workflowType, stepKey }
       });
-      
+
       if (!stepExists) {
         throw new Error(`ไม่พบขั้นตอน ${stepKey} ใน workflow ${workflowType}`);
       }
-      
+
       // อัปเดต workflow activity
       const activity = await workflowService.updateStudentWorkflowActivity(
         studentId,
@@ -373,19 +391,19 @@ class TimelineService {
         overallStatus || 'in_progress',
         dataPayload || {}
       );
-      
+
       // สร้าง timeline ใหม่หลังจากอัปเดต
       const updatedTimeline = await workflowService.generateStudentTimeline(studentId, workflowType);
-      
+
       logger.info(`TimelineService: อัปเดตขั้นตอน timeline สำเร็จ`);
       return updatedTimeline;
-      
+
     } catch (error) {
       logger.error('TimelineService: Error in updateTimelineStep', error);
       throw error;
     }
   }
-  
+
   /**
    * ดึงข้อมูล timeline ของนักศึกษาทั้งหมด (สำหรับ admin)
    * @returns {Array} รายการ timeline ของนักศึกษาทั้งหมด
@@ -393,24 +411,24 @@ class TimelineService {
   async getAllTimelines() {
     try {
       logger.info('TimelineService: ดึงข้อมูล timeline ทั้งหมด');
-      
+
       // ดึงรายชื่อนักศึกษาทั้งหมด
       const students = await Student.findAll({
         attributes: ['studentId', 'studentCode', 'internshipStatus', 'projectStatus']
       });
-      
+
       // ดึง timeline ของแต่ละนักศึกษา
       const summaries = await Promise.all(students.map(async (student) => {
         const [internshipActivity, projectActivity] = await Promise.all([
           this.getWorkflowActivity(student.studentId, 'internship'),
           this.getWorkflowActivity(student.studentId, 'project1')
         ]);
-        
+
         const [internshipCurrentStep, projectCurrentStep] = await Promise.all([
           this.getCurrentStepTitle(internshipActivity, 'internship'),
           this.getCurrentStepTitle(projectActivity, 'project1')
         ]);
-        
+
         return {
           studentId: student.studentId,
           studentCode: student.studentCode,
@@ -428,16 +446,16 @@ class TimelineService {
           }
         };
       }));
-      
+
       logger.info(`TimelineService: ดึงข้อมูล timeline ของนักศึกษา ${summaries.length} คน`);
       return summaries;
-      
+
     } catch (error) {
       logger.error('TimelineService: Error in getAllTimelines', error);
       throw error;
     }
   }
-  
+
   /**
    * ดึงข้อมูล workflow activity ของนักศึกษา
    * @param {number} studentId - ID ของนักศึกษา
@@ -455,7 +473,7 @@ class TimelineService {
       return null;
     }
   }
-  
+
   /**
    * ดึงชื่อขั้นตอนปัจจุบัน
    * @param {Object} activity - ข้อมูล workflow activity
@@ -465,19 +483,19 @@ class TimelineService {
   async getCurrentStepTitle(activity, workflowType) {
     try {
       if (!activity || !activity.currentStepKey) return null;
-      
+
       const step = await sequelize.models.WorkflowStepDefinition.findOne({
         where: { workflowType, stepKey: activity.currentStepKey },
         attributes: ['title']
       });
-      
+
       return step?.title || null;
     } catch (error) {
       logger.error(`TimelineService: Error getting current step title:`, error);
       return null;
     }
   }
-  
+
   /**
    * คำนวณปีการศึกษาของนักศึกษา
    * @param {string} studentId - รหัสนักศึกษา
@@ -492,7 +510,7 @@ class TimelineService {
       return 0;
     }
   }
-  
+
   /**
    * กำหนด action ถัดไปที่ต้องทำ
    * @param {Array} internshipSteps - ขั้นตอนการฝึกงาน
@@ -503,40 +521,40 @@ class TimelineService {
     try {
       // ตรวจสอบสถานะของการฝึกงาน
       if (internshipSteps && internshipSteps.length > 0) {
-        const currentStep = internshipSteps.find(step => 
+        const currentStep = internshipSteps.find(step =>
           step.status === 'in_progress' || step.status === 'awaiting_student_action');
-          
+
         if (currentStep) {
           if (currentStep.status === 'awaiting_student_action') {
             return `ฝึกงาน: ${currentStep.title}`;
           }
           return `ฝึกงาน: ${currentStep.title} (กำลังดำเนินการ)`;
         }
-        
+
         const nextStep = internshipSteps.find(step => step.status === 'pending');
         if (nextStep) {
           return `ฝึกงาน: รอ${nextStep.title}`;
         }
       }
-      
+
       // ตรวจสอบสถานะของโครงงาน
       if (projectSteps && projectSteps.length > 0) {
-        const currentStep = projectSteps.find(step => 
+        const currentStep = projectSteps.find(step =>
           step.status === 'in_progress' || step.status === 'awaiting_student_action');
-          
+
         if (currentStep) {
           if (currentStep.status === 'awaiting_student_action') {
             return `โครงงาน: ${currentStep.title}`;
           }
           return `โครงงาน: ${currentStep.title} (กำลังดำเนินการ)`;
         }
-        
+
         const nextStep = projectSteps.find(step => step.status === 'pending');
         if (nextStep) {
           return `โครงงาน: รอ${nextStep.title}`;
         }
       }
-      
+
       return "ไม่มีการดำเนินการที่รอคอย";
     } catch (error) {
       logger.error('TimelineService: Error in determineNextAction:', error);

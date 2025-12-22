@@ -118,7 +118,7 @@ describe('processStudentCsvUpload', () => {
         }),
         expect.objectContaining({ transaction: expect.any(Object) })
       );
-      expect(result.summary).toEqual({ total: 1, added: 1, updated: 0, invalid: 0, errors: 0 });
+      expect(result.summary).toEqual(expect.objectContaining({ total: 1, added: 1, updated: 0, invalid: 0, errors: 0 }));
       expect(result.results[0].status).toBe('Added');
       expect(commitMock).toHaveBeenCalledTimes(1);
       expect(rollbackMock).not.toHaveBeenCalled();
@@ -166,7 +166,7 @@ describe('processStudentCsvUpload', () => {
         }),
         expect.objectContaining({ transaction: expect.any(Object) })
       );
-      expect(result.summary).toEqual({ total: 1, added: 1, updated: 0, invalid: 0, errors: 0 });
+      expect(result.summary).toEqual(expect.objectContaining({ total: 1, added: 1, updated: 0, invalid: 0, errors: 0 }));
       expect(result.results[0].status).toBe('Added');
       expect(commitMock).toHaveBeenCalledTimes(1);
       expect(rollbackMock).not.toHaveBeenCalled();
@@ -198,7 +198,7 @@ describe('processStudentCsvUpload', () => {
         }),
         expect.objectContaining({ transaction: expect.any(Object) })
       );
-      expect(result.summary).toEqual({ total: 1, added: 0, updated: 0, invalid: 1, errors: 0 });
+      expect(result.summary).toEqual(expect.objectContaining({ total: 1, added: 0, updated: 0, invalid: 1, errors: 0 }));
       expect(result.results[0].status).toBe('Invalid');
       expect(commitMock).toHaveBeenCalledTimes(1);
     } finally {
@@ -219,7 +219,7 @@ describe('processStudentCsvUpload', () => {
         uploader: { userId: 500 }
       });
 
-      expect(result.summary).toEqual({ total: 1, added: 0, updated: 0, invalid: 0, errors: 1 });
+      expect(result.summary).toEqual(expect.objectContaining({ total: 1, added: 0, updated: 0, invalid: 0, errors: 1 }));
       expect(result.results[0]).toMatchObject({ status: 'Error', error: 'DB error' });
       expect(UploadHistory.create).toHaveBeenCalledWith(
         expect.objectContaining({

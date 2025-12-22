@@ -27,5 +27,11 @@ EXPOSE 5000
 # ลบ build dependency เพื่อให้ image เล็กลงหลังติดตั้ง
 RUN apk del .build-deps
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+
 # คำสั่งเริ่มต้น
 CMD ["node", "server.js"]

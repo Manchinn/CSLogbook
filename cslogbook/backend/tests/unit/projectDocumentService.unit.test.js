@@ -14,6 +14,11 @@ const mockUpdateWorkflowActivity = jest.fn().mockResolvedValue(null);
 
 // mock logger ใช้ตัวเดียวกันทั้งไฟล์เพื่อให้ jest.mock คืนอ็อบเจ็กต์เดิมทุกครั้ง
 const mockLogger = { info: jest.fn(), error: jest.fn(), warn: jest.fn() };
+const mockProjectWorkflowState = {
+  createForProject: jest.fn().mockResolvedValue(undefined),
+  updateFromDefenseRequest: jest.fn().mockResolvedValue(undefined),
+  updateFromExamResult: jest.fn().mockResolvedValue(undefined),
+};
 
 const mockDatabaseModule = { Sequelize, sequelize: mockSequelize };
 
@@ -22,6 +27,7 @@ const Student = sequelize.define('Student', {
   studentId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'student_id' },
   studentCode: { type: DataTypes.STRING, allowNull: false, unique: true, field: 'student_code' },
   userId: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1, field: 'user_id' },
+  phoneNumber: { type: DataTypes.STRING, allowNull: true, field: 'phone_number' },
   totalCredits: { type: DataTypes.INTEGER, defaultValue: 0, field: 'total_credits' },
   majorCredits: { type: DataTypes.INTEGER, defaultValue: 0, field: 'major_credits' },
   isEligibleProject: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'is_eligible_project' },
@@ -105,6 +111,38 @@ const MeetingLog = sequelize.define('MeetingLog', {
   approvedAt: { type: DataTypes.DATE, allowNull: true, field: 'approved_at' }
 }, { tableName: 'meeting_logs', underscored: true, timestamps: false });
 
+const Document = sequelize.define('Document', {
+  documentId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'document_id' },
+  documentName: { type: DataTypes.STRING, allowNull: true, field: 'document_name' },
+  status: { type: DataTypes.STRING, allowNull: true },
+  reviewComment: { type: DataTypes.TEXT, allowNull: true, field: 'review_comment' },
+  reviewDate: { type: DataTypes.DATE, allowNull: true, field: 'review_date' },
+  submittedAt: { type: DataTypes.DATE, allowNull: true, field: 'submitted_at' }
+}, { tableName: 'documents', underscored: true, timestamps: false });
+
+const ProjectExamResult = sequelize.define('ProjectExamResult', {
+  examResultId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'exam_result_id' },
+  projectId: { type: DataTypes.INTEGER, allowNull: false, field: 'project_id' },
+  examType: { type: DataTypes.STRING, allowNull: true, field: 'exam_type' },
+  result: { type: DataTypes.STRING, allowNull: true },
+  score: { type: DataTypes.FLOAT, allowNull: true },
+  notes: { type: DataTypes.TEXT, allowNull: true },
+  requireScopeRevision: { type: DataTypes.BOOLEAN, allowNull: true, field: 'require_scope_revision' },
+  recordedAt: { type: DataTypes.DATE, allowNull: true, field: 'recorded_at' },
+  recordedByUserId: { type: DataTypes.INTEGER, allowNull: true, field: 'recorded_by_user_id' },
+  studentAcknowledgedAt: { type: DataTypes.DATE, allowNull: true, field: 'student_acknowledged_at' }
+}, { tableName: 'project_exam_results', underscored: true, timestamps: false });
+
+const ProjectTestRequest = sequelize.define('ProjectTestRequest', {
+  requestId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'request_id' },
+  projectId: { type: DataTypes.INTEGER, allowNull: false, field: 'project_id' },
+  status: { type: DataTypes.STRING, allowNull: true },
+  submittedAt: { type: DataTypes.DATE, allowNull: true, field: 'submitted_at' },
+  testStartDate: { type: DataTypes.DATE, allowNull: true, field: 'test_start_date' },
+  testDueDate: { type: DataTypes.DATE, allowNull: true, field: 'test_due_date' },
+  evidenceSubmittedAt: { type: DataTypes.DATE, allowNull: true, field: 'evidence_submitted_at' }
+}, { tableName: 'project_test_requests', underscored: true, timestamps: false });
+
 const Academic = sequelize.define('Academic', {
   academicYear: { type: DataTypes.INTEGER, allowNull: true, field: 'academic_year' },
   currentSemester: { type: DataTypes.INTEGER, allowNull: true, field: 'current_semester' },
@@ -117,7 +155,9 @@ const Academic = sequelize.define('Academic', {
 const User = sequelize.define('User', {
   userId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'user_id' },
   firstName: { type: DataTypes.STRING, allowNull: true, field: 'first_name' },
-  lastName: { type: DataTypes.STRING, allowNull: true, field: 'last_name' }
+  lastName: { type: DataTypes.STRING, allowNull: true, field: 'last_name' },
+  email: { type: DataTypes.STRING, allowNull: true, field: 'email' },
+  role: { type: DataTypes.STRING, allowNull: true, field: 'role' },
 }, { tableName: 'users', underscored: true, timestamps: false });
 
 const Teacher = sequelize.define('Teacher', {
@@ -134,6 +174,14 @@ ProjectMember.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_i
 ProjectMember.belongsTo(Student, { as: 'student', foreignKey: 'student_id' });
 ProjectDocument.hasMany(ProjectTrack, { as: 'tracks', foreignKey: 'project_id' });
 ProjectDocument.hasMany(ProjectDefenseRequest, { as: 'defenseRequests', foreignKey: 'project_id' });
+ProjectDocument.hasMany(ProjectExamResult, { as: 'examResults', foreignKey: 'project_id' });
+ProjectExamResult.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
+ProjectExamResult.belongsTo(User, { as: 'recordedBy', foreignKey: 'recorded_by_user_id', constraints: false });
+ProjectDocument.hasMany(ProjectTestRequest, { as: 'testRequests', foreignKey: 'project_id' });
+ProjectTestRequest.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id' });
+ProjectDocument.belongsTo(Document, { as: 'document', foreignKey: 'document_id', constraints: false });
+Document.belongsTo(User, { as: 'owner', foreignKey: 'owner_id', constraints: false });
+Document.belongsTo(User, { as: 'reviewer', foreignKey: 'reviewer_id', constraints: false });
 ProjectDocument.belongsTo(Teacher, { as: 'advisor', foreignKey: 'advisor_id', constraints: false });
 ProjectDocument.belongsTo(Teacher, { as: 'coAdvisor', foreignKey: 'co_advisor_id', constraints: false });
 ProjectDefenseRequest.belongsTo(ProjectDocument, { as: 'project', foreignKey: 'project_id', constraints: false });
@@ -169,7 +217,11 @@ const mockModels = {
   Teacher,
   Meeting,
   MeetingParticipant,
-  MeetingLog
+  MeetingLog,
+  Document,
+  ProjectExamResult,
+  ProjectTestRequest,
+  ProjectWorkflowState: mockProjectWorkflowState,
 };
 
 jest.mock('../../services/workflowService', () => ({
@@ -189,6 +241,9 @@ beforeEach(() => {
   mockLogger.info.mockClear();
   mockLogger.error.mockClear();
   mockLogger.warn.mockClear();
+  mockProjectWorkflowState.createForProject.mockClear();
+  mockProjectWorkflowState.updateFromDefenseRequest.mockClear();
+  mockProjectWorkflowState.updateFromExamResult.mockClear();
 });
 
 afterAll(async () => {
@@ -198,26 +253,42 @@ afterAll(async () => {
 describe('projectDocumentService.createProject', () => {
   test('สร้างโครงงาน draft สำเร็จ (ไม่มี advisor)', async () => {
     const s1 = await createStudent({ code: '640000000001' });
+    const s2 = await createStudent({ code: '640000000101' });
     const result = await projectDocumentService.createProject(s1.studentId, {
       projectNameTh: 'ระบบจัดการ',
-      projectNameEn: 'Management System'
+      projectNameEn: 'Management System',
+      secondMemberStudentCode: s2.studentCode,
     });
     expect(result.projectId).toBeDefined();
     expect(result.status).toBe('draft');
-    expect(result.members).toHaveLength(1);
-    expect(result.members[0].role).toBe('leader');
+    expect(result.members).toHaveLength(2);
+    const roles = result.members.map((m) => m.role).sort();
+    expect(roles).toEqual(['leader', 'member']);
   });
 
   test('ป้องกันสร้างซ้ำเมื่อมี project ยังไม่ archived ในฐานะ leader', async () => {
     const s2 = await createStudent({ code: '640000000002' });
-    await projectDocumentService.createProject(s2.studentId, {});
-    await expect(projectDocumentService.createProject(s2.studentId, {}))
-      .rejects.toThrow(/มีโครงงานที่ยังไม่ถูกเก็บถาวร/);
+    const s2Member = await createStudent({ code: '640000000102' });
+    await projectDocumentService.createProject(s2.studentId, {
+      secondMemberStudentCode: s2Member.studentCode,
+    });
+    const s3Member = await createStudent({ code: '640000000103' });
+    await expect(
+      projectDocumentService.createProject(s2.studentId, {
+        secondMemberStudentCode: s3Member.studentCode,
+      })
+    )
+      .rejects.toThrow(/คุณมีโครงงานที่ยังไม่เสร็จสิ้นอยู่แล้ว/);
   });
 
   test('ห้ามสร้างถ้าไม่ผ่าน eligibility', async () => {
     const s3 = await createStudent({ code: '640000000003', eligibleProject: false });
-    await expect(projectDocumentService.createProject(s3.studentId, {}))
+    const partner = await createStudent({ code: '640000000104' });
+    await expect(
+      projectDocumentService.createProject(s3.studentId, {
+        secondMemberStudentCode: partner.studentCode,
+      })
+    )
       .rejects.toThrow(/ยังไม่มีสิทธิ์/);
   });
 });
@@ -227,7 +298,13 @@ describe('projectDocumentService.addMember', () => {
   beforeAll(async () => {
     leader = await createStudent({ code: '640000000010' });
     memberCandidate = await createStudent({ code: '640000000011' });
-    project = await projectDocumentService.createProject(leader.studentId, { projectNameTh: 'ทดสอบ', projectNameEn: 'Test' });
+    project = await ProjectDocument.create({
+      projectNameTh: 'ทดสอบ',
+      projectNameEn: 'Test',
+      status: 'draft',
+      createdByStudentId: leader.studentId,
+    });
+    await ProjectMember.create({ projectId: project.projectId, studentId: leader.studentId, role: 'leader' });
   });
 
   test('เพิ่มสมาชิกคนที่สองสำเร็จ', async () => {
@@ -245,10 +322,13 @@ describe('projectDocumentService.addMember', () => {
 
   test('ห้ามเพิ่มโดย non-leader', async () => {
     const otherLeader = await createStudent({ code: '640000000013' });
-    const otherProject = await projectDocumentService.createProject(otherLeader.studentId, {});
+    const otherMember = await createStudent({ code: '640000000015' });
+    const otherProject = await projectDocumentService.createProject(otherLeader.studentId, {
+      secondMemberStudentCode: otherMember.studentCode,
+    });
     const candidate = await createStudent({ code: '640000000014' });
     await expect(projectDocumentService.addMember(otherProject.projectId, candidate.studentId, candidate.studentCode))
-      .rejects.toThrow(/เฉพาะหัวหน้าโครงงาน/);
+      .rejects.toThrow(/อนุญาตเฉพาะสมาชิกโครงงานเท่านั้นที่เพิ่มสมาชิกได้/);
   });
 });
 
@@ -257,22 +337,26 @@ describe('projectDocumentService.updateMetadata & activateProject', () => {
   beforeAll(async () => {
     leader = await createStudent({ code: '640000000020' });
     second = await createStudent({ code: '640000000021' });
-    const proj = await projectDocumentService.createProject(leader.studentId, { projectNameTh: 'Draft', projectNameEn: 'Draft EN' });
+    const proj = await projectDocumentService.createProject(leader.studentId, {
+      projectNameTh: 'Draft',
+      projectNameEn: 'Draft EN',
+      secondMemberStudentCode: second.studentCode,
+    });
     projectId = proj.projectId;
   });
 
-  test('ไม่สามารถ activate ถ้ายังไม่ครบเงื่อนไข', async () => {
+  test('ไม่สามารถ activate ถ้ายังไม่ครบเงื่อนไข (ขาด advisor/metadata)', async () => {
     await expect(projectDocumentService.activateProject(projectId, leader.studentId))
-      .rejects.toThrow(/ต้องมีสมาชิกครบ 2 คน/);
+      .rejects.toThrow(/ต้องเลือกอาจารย์ที่ปรึกษาก่อน/);
   });
 
   test('เติมสมาชิกและ metadata แล้ว activate สำเร็จ', async () => {
-    await projectDocumentService.addMember(projectId, leader.studentId, second.studentCode);
+    // second member already added from createProject, ensure metadata update + activate
     await projectDocumentService.updateMetadata(projectId, leader.studentId, {
-      advisorId: 99,
       projectType: 'private',
       track: 'SE'
     });
+    await ProjectDocument.update({ advisorId: 99 }, { where: { projectId } });
     const activated = await projectDocumentService.activateProject(projectId, leader.studentId);
     expect(activated.status).toBe('in_progress');
   });
@@ -293,15 +377,15 @@ describe('projectDocumentService exam result lifecycle', () => {
     member = await createStudent({ code: '640000000031' });
     const project = await projectDocumentService.createProject(leader.studentId, {
       projectNameTh: 'โครงงานทดสอบ',
-      projectNameEn: 'Test Project'
+      projectNameEn: 'Test Project',
+      secondMemberStudentCode: member.studentCode,
     });
     projectId = project.projectId;
-    await projectDocumentService.addMember(projectId, leader.studentId, member.studentCode);
     await projectDocumentService.updateMetadata(projectId, leader.studentId, {
-      advisorId: 501,
       projectType: 'internal',
       track: 'CS'
     });
+    await ProjectDocument.update({ advisorId: 501 }, { where: { projectId } });
     await projectDocumentService.activateProject(projectId, leader.studentId);
   });
 

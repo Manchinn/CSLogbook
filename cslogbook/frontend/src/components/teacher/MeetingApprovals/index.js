@@ -54,11 +54,6 @@ const statusLabels = {
   rejected: 'ขอปรับปรุง'
 };
 
-const advisorRoleLabels = {
-  advisor: 'ที่ปรึกษาหลัก',
-  coAdvisor: 'ที่ปรึกษาร่วม'
-};
-
 const initialSummary = { pending: 0, approved: 0, rejected: 0, total: 0 };
 
 const MeetingApprovals = () => {

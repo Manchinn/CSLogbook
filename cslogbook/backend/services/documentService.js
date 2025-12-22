@@ -330,8 +330,8 @@ class DocumentService {
                 });
             }
 
-            // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง
-    const documents = await Document.findAll({
+            // ดึงข้อมูลเอกสารพร้อมข้อมูลที่เกี่ยวข้อง (ใช้ findAndCountAll เพื่อได้ total count)
+            const { rows: documents, count: total } = await Document.findAndCountAll({
                 where: whereCondition,
                 attributes: [
             "documentId",
@@ -346,7 +346,8 @@ class DocumentService {
                 include: includeArray,
                 order: [['created_at', 'DESC']],
                 limit,
-                offset
+                offset,
+                distinct: true // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
             });
 
             // นับสถิติ
@@ -381,10 +382,11 @@ class DocumentService {
                 return base;
             });
 
-            logger.info(`Retrieved ${documents.length} documents with filters:`, filters);
+            logger.info(`Retrieved ${documents.length} documents (total: ${total}) with filters:`, filters);
 
             return {
                 documents: formattedDocuments,
+                total, // Total count สำหรับ pagination
                 statistics
             };
         } catch (error) {

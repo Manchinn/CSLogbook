@@ -88,7 +88,7 @@ class TemplateDataService {
           defaultOptions.status === "draft" ? "ร่าง" : "อนุมัติแล้ว",
       };
     } catch (error) {
-      console.error("Error preparing CS05 data:", error);
+      console.warn("Error preparing CS05 data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูล CS05 ได้: ${error.message}`);
     }
   }
@@ -164,7 +164,7 @@ class TemplateDataService {
   staffOfficerPhone: "02-555-2000 ต่อ 4602",
       };
     } catch (error) {
-      console.error("Error preparing Official Letter data:", error);
+      console.warn("Error preparing Official Letter data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือได้: ${error.message}`);
     }
   }
@@ -232,7 +232,7 @@ class TemplateDataService {
         departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
       };
     } catch (error) {
-      console.error("Error preparing Student Summary data:", error);
+      console.warn("Error preparing Student Summary data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลสรุปนักศึกษาได้: ${error.message}`);
     }
   }
@@ -332,7 +332,7 @@ class TemplateDataService {
         departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
       };
     } catch (error) {
-      console.error("Error preparing Company Info data:", error);
+      console.warn("Error preparing Company Info data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลบริษัทได้: ${error.message}`);
     }
   }
@@ -372,7 +372,7 @@ class TemplateDataService {
         internshipDays: letterData.internshipDays || 0,
       };
     } catch (error) {
-      console.error("Error preparing acceptance form data:", error);
+      console.warn("Error preparing acceptance form data:", error);
       return {
         documentDate: new Date(),
         studentData: [],
@@ -459,7 +459,7 @@ class TemplateDataService {
   staffOfficerPhone: "02-555-2000 ต่อ 4602",
       };
     } catch (error) {
-      console.error("Error preparing Referral Letter data:", error);
+      console.warn("Error preparing Referral Letter data:", error);
       throw new Error(
         `ไม่สามารถเตรียมข้อมูลหนังสือส่งตัวได้: ${error.message}`
       );
@@ -602,7 +602,7 @@ class TemplateDataService {
         }
       };
     } catch (error) {
-      console.error("Error preparing internship logbook data:", error);
+      console.warn("Error preparing internship logbook data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลบันทึกฝึกงานได้: ${error.message}`);
     }
   }
@@ -1325,7 +1325,7 @@ class TemplateDataService {
       return preparedData;
 
     } catch (error) {
-      console.error("❌ Error preparing certificate data:", error);
+      console.warn("❌ Error preparing certificate data:", error);
       throw new Error(`ไม่สามารถเตรียมข้อมูลหนังสือรับรองได้: ${error.message}`);
     }
   }
