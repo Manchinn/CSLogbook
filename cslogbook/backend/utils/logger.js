@@ -11,13 +11,20 @@ const isJest = Boolean(process.env.JEST_WORKER_ID);
 const isTestEnv = isJest || process.env.NODE_ENV === 'test';
 
 // ตรวจสอบว่ารันบน Vercel หรือไม่ (Vercel file system is read-only)
-const isVercel = process.env.VERCEL === '1';
+// ใช้ let เพื่อเปลี่ยนค่าได้ถ้าตรวจพบว่าเขียนไฟล์ไม่ได้ตอน runtime
+let isVercel = process.env.VERCEL === '1';
 
 // สร้างโฟลเดอร์ logs เฉพาะตอนรันจริง เพื่อลด file handle ค้างใน Jest
 // บน Vercel ห้ามสร้าง folder เพราะ read-only
 const logDir = path.join(__dirname, '../logs');
 if (!isTestEnv && !isVercel && !fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch (error) {
+    // ถ้าสร้างไม่ได้ (เช่น Read-only file system) ให้ถือว่าเป็น environment แบบ Vercel/Serverless
+    console.warn('⚠️  Cannot create logs directory, disabling file logging (assuming read-only environment)');
+    isVercel = true;
+  }
 }
 
 // กำหนดรูปแบบของ log
