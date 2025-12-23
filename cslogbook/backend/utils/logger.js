@@ -10,9 +10,13 @@ const path = require('path');
 const isJest = Boolean(process.env.JEST_WORKER_ID);
 const isTestEnv = isJest || process.env.NODE_ENV === 'test';
 
+// ตรวจสอบว่ารันบน Vercel หรือไม่ (Vercel file system is read-only)
+const isVercel = process.env.VERCEL === '1';
+
 // สร้างโฟลเดอร์ logs เฉพาะตอนรันจริง เพื่อลด file handle ค้างใน Jest
+// บน Vercel ห้ามสร้าง folder เพราะ read-only
 const logDir = path.join(__dirname, '../logs');
-if (!isTestEnv && !fs.existsSync(logDir)) {
+if (!isTestEnv && !isVercel && !fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
@@ -22,7 +26,7 @@ const logFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-    
+
     // เพิ่มข้อมูลเพิ่มเติม (metadata) ถ้ามี โดยจัดการ circular structure
     if (Object.keys(meta).length > 0) {
       try {
@@ -35,12 +39,12 @@ const logFormat = winston.format.combine(
                 return '[Circular Reference]';
               }
               seen.add(value);
-              
+
               // กรอง Sequelize transaction objects และ properties ที่ไม่จำเป็น
               if (value.constructor && value.constructor.name === 'Transaction') {
                 return '[Sequelize Transaction]';
               }
-              
+
               // กรอง Sequelize model instances
               if (value._modelOptions || value.dataValues) {
                 return '[Sequelize Model Instance]';
@@ -49,18 +53,18 @@ const logFormat = winston.format.combine(
             return value;
           });
         };
-        
+
         log += ` ${safeStringify(meta)}`;
       } catch (error) {
         log += ` [Error serializing metadata: ${error.message}]`;
       }
     }
-    
+
     // เพิ่ม stack trace ในกรณีที่เป็น error
     if (stack) {
       log += `\n${stack}`;
     }
-    
+
     return log;
   })
 );
@@ -72,14 +76,19 @@ const resolveConsoleLogging = () => {
   if (isTestEnv) {
     return false;
   }
-  // ใน production ปิด console เพื่อไม่ให้ stdout รก ยกเว้นตั้งค่าเปิดไว้ชัดเจน
+  // บน Vercel ต้องเปิด Console ไว้เพราะ File System เขียนไม่ได้
+  if (isVercel) {
+    return true;
+  }
+  // ใน production ปกติ (เช่น VPS, Railway) อาจปิด console ได้
   return process.env.NODE_ENV !== 'production';
 };
 
 // สร้าง logger ด้วย winston
 const transports = [];
 
-if (!isTestEnv) {
+// เพิ่ม File Transports เฉพาะเมื่อไม่ใช่ Test และไม่ใช่ Vercel
+if (!isTestEnv && !isVercel) {
   transports.push(
     // บันทึก error ลงในไฟล์
     new winston.transports.File({
@@ -139,9 +148,9 @@ const logger = winston.createLogger({
   transports
 });
 
-if (!isTestEnv) {
+if (!isTestEnv && !isVercel) {
   // เพิ่ม transport สำหรับบันทึก log ของการ authentication
-  logger.add(new winston.transports.File({ 
+  logger.add(new winston.transports.File({
     filename: path.join(logDir, 'auth.log'),
     level: 'info',
     maxsize: 5242880, // 5MB
