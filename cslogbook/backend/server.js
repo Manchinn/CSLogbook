@@ -165,27 +165,33 @@ const pool = require('./config/database');
 app.set('trust proxy', 1);
 
 // รายการ Origin ที่อนุญาต
+// รายการ Origin ที่อนุญาต (Normalize: remove trailing slashes)
+const normalizeUrl = (url) => url ? url.replace(/\/$/, '') : null;
+
 const allowedOrigins = [
-  'http://localhost:3000',               // Development
-  'http://192.168.14.41:12342',          // Production
-  process.env.FRONTEND_URL               // จาก environment variable
-].filter(Boolean); // กรองค่า undefined/null
+  'http://localhost:3000',
+  normalizeUrl(process.env.FRONTEND_URL)
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
     // อนุญาตให้ request ที่ไม่มี origin (เช่น mobile apps, curl)
     if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
+
+    // Normalize request origin just in case
+    const normalizedOrigin = normalizeUrl(origin);
+
+    if (allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
-      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`⚠️  CORS blocked origin: ${origin} (Allowed: ${allowedOrigins.join(', ')})`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 
 // ย้าย cors middleware ขึ้นไปก่อน route handlers
@@ -326,7 +332,7 @@ if (!fs.existsSync(ENV.UPLOAD_DIR)) {
 
 // Serve static files from the uploads directory
 // เพิ่มการตั้งค่า MIME type สำหรับไฟล์ .mjs
-express.static.mime.define({'application/javascript': ['mjs']});
+express.static.mime.define({ 'application/javascript': ['mjs'] });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
@@ -355,7 +361,7 @@ app.use('/api/internship', internshipRoutes);
 app.use('/api/internship', internshipCompanyStatsRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
-app.use('/api/workflow', authenticateToken, workflowRoutes); 
+app.use('/api/workflow', authenticateToken, workflowRoutes);
 app.use('/api/reports', authenticateToken, reportRoutes); // เส้นทางรายงาน
 // Topic Exam Overview routes (auth ภายในไฟล์ route เรียกเองแล้ว ไม่ต้องซ้ำที่นี่)
 app.use('/api/projects/topic-exam', topicExamRoutes);
@@ -413,7 +419,7 @@ server.listen(ENV.PORT, () => {
   console.log(`Frontend URL: ${ENV.FRONTEND_URL}`);
   console.log(`Upload directory: ${ENV.UPLOAD_DIR}`);
   console.log(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
-  
+
   // เริ่มการทำงานของ Agent หลังจาก server เริ่มทำงาน
   const enableAllAgents = process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production';
   const enableAcademicSchedulerOnly = !enableAllAgents && (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || '').toLowerCase() === 'true';
@@ -422,14 +428,14 @@ server.listen(ENV.PORT, () => {
     console.log('Starting CSLogbook Agents...');
     // เริ่ม Agent ทุกตัวพร้อมกัน
     agentManager.startAllAgents();
-    
+
     // หรือจะเริ่มทีละ Agent ก็ได้
     // agentManager.startAgent('deadlineReminder');
     // agentManager.startAgent('documentMonitor');
     // agentManager.startAgent('securityMonitor');
     // agentManager.startAgent('logbookQualityMonitor');
     // agentManager.startAgent('eligibilityChecker');
-    
+
     console.log('CSLogbook Agents started successfully');
   } else if (enableAcademicSchedulerOnly) {
     console.log('Starting Academic Semester Scheduler (auto-update only)...');
@@ -445,13 +451,13 @@ server.listen(ENV.PORT, () => {
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   console.info('SIGTERM signal received.');
-  
+
   // หยุดการทำงานของ Agent ก่อนปิด server
   if (agentManager.isRunning) {
     console.log('Stopping CSLogbook Agents...');
     agentManager.stopAllAgents();
   }
-  
+
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
@@ -461,13 +467,13 @@ process.on('SIGTERM', () => {
 // SIGINT handler (Ctrl+C)
 process.on('SIGINT', () => {
   console.info('SIGINT signal received.');
-  
+
   // หยุดการทำงานของ Agent ก่อนปิด server
   if (agentManager.isRunning) {
     console.log('Stopping CSLogbook Agents...');
     agentManager.stopAllAgents();
   }
-  
+
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
