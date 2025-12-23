@@ -31,6 +31,9 @@
   "author": "",
   "license": "ISC",
   "description": "My project with nodemon",
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",
     "axios": "^1.7.7",
