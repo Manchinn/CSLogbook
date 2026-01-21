@@ -12,11 +12,8 @@
     "@react-pdf/renderer": "^4.3.0",
     "@svgr/webpack": "^8.1.0",
     "@tanstack/react-query": "^5.72.0",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
     "antd": "^5.25.1",
     "axios": "^1.7.7",
-    "babel-jest": "^27.4.2",
     "babel-loader": "^8.2.3",
     "babel-preset-react-app": "^10.0.1",
     "bfj": "^7.0.2",
@@ -34,8 +31,6 @@
     "file-saver": "^2.0.5",
     "fs-extra": "^10.0.0",
     "html-webpack-plugin": "^5.5.0",
-    "jest": "^27.4.3",
-    "jest-watch-typeahead": "^1.0.0",
     "mini-css-extract-plugin": "^2.4.5",
     "moment-timezone": "^0.5.47",
     "postcss-flexbugs-fixes": "^5.0.2",
@@ -67,14 +62,12 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
-    "test": "node scripts/test.js",
     "lint": "node scripts/lint.js",
     "verify-cleanup": "node scripts/verify-cleanup.js"
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
     ]
   },
   "browserslist": {
@@ -88,67 +81,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "jest": {
-    "roots": [
-      "<rootDir>/src"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.{js,jsx,ts,tsx}",
-      "!src/**/*.d.ts"
-    ],
-    "setupFiles": [
-      "react-app-polyfill/jsdom",
-      "<rootDir>/src/setupEnvTest.js"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/src/setupTests.js"
-    ],
-    "testMatch": [
-      "<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}",
-      "<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}"
-    ],
-    "testEnvironment": "jsdom",
-    "transform": {
-      "^.+\\.(js|jsx|mjs|cjs|ts|tsx)$": "<rootDir>/config/jest/babelTransform.js",
-      "^.+\\.css$": "<rootDir>/config/jest/cssTransform.js",
-      "^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)": "<rootDir>/config/jest/fileTransform.js"
-    },
-    "transformIgnorePatterns": [
-      "[/\\\\]node_modules[/\\\\].+\\.(js|jsx|mjs|cjs|ts|tsx)$",
-      "^.+\\.module\\.(css|sass|scss)$"
-    ],
-    "modulePaths": [],
-    "moduleNameMapper": {
-      "^react-native$": "react-native-web",
-      "^.+\\.module\\.(css|sass|scss)$": "<rootDir>/src/__mocks__/cssModuleMock.js",
-      "^.+\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
-      "^@react-pdf/renderer$": "<rootDir>/src/__mocks__/@react-pdf/renderer.js",
-      "^antd/es/date-picker/locale/th_TH$": "<rootDir>/src/__mocks__/antdDatePickerLocaleMock.js",
-      "^react-pdf/dist/.*\\.css$": "<rootDir>/src/__mocks__/styleMock.js",
-      "^contexts/(.*)$": "<rootDir>/src/contexts/$1",
-      "^test-utils(.*)$": "<rootDir>/src/test-utils$1",
-      "^features/(.*)$": "<rootDir>/src/features/$1",
-      "^services/(.*)$": "<rootDir>/src/services/$1",
-      "^utils/(.*)$": "<rootDir>/src/utils/$1"
-    },
-    "moduleFileExtensions": [
-      "web.js",
-      "js",
-      "web.ts",
-      "ts",
-      "web.tsx",
-      "tsx",
-      "json",
-      "web.jsx",
-      "jsx",
-      "node"
-    ],
-    "watchPlugins": [
-      "jest-watch-typeahead/filename",
-      "jest-watch-typeahead/testname"
-    ],
-    "resetMocks": true
   },
   "babel": {
     "presets": [
