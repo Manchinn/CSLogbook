@@ -47,7 +47,7 @@ const app = express();
 // CORS configuration - รองรับหลาย origins สำหรับทั้ง development และ production
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000,http://192.168.14.41:12342'];
+  : ['http://localhost:3000', 'http://192.168.14.41:12342'];
 
 app.use(cors({
   origin: function (origin, callback) {
