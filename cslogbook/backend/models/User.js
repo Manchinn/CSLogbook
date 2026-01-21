@@ -88,7 +88,8 @@ module.exports = (sequelize) => {
         },
         password: {
             type: DataTypes.STRING(255),
-            allowNull: false
+            allowNull: true,  // Nullable สำหรับ SSO users
+            comment: 'Password hash - nullable for SSO users'
         },
         email: {
             type: DataTypes.STRING(100),
@@ -120,6 +121,18 @@ module.exports = (sequelize) => {
         lastLogin: {
             type: DataTypes.DATE,
             field: 'last_login'
+        },
+        ssoProvider: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            field: 'sso_provider',
+            comment: 'SSO provider name (e.g., kmutnb)'
+        },
+        ssoId: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            field: 'sso_id',
+            comment: 'User ID from SSO provider'
         }
     }, {
         sequelize,

@@ -72,6 +72,12 @@ router.get('/',
   studentController.getAllStudents
 );
 
+// ดึงตัวเลือกตัวกรอง (วางไว้ก่อน /:id เพื่อไม่ให้ชนกัน)
+router.get('/filter-options', 
+  checkRole(['admin', 'student', 'teacher']),
+  studentController.getFilterOptions
+);
+
 router.get('/:id', 
   checkRole(['admin', 'teacher', 'student']),
   studentController.getStudentById

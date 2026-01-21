@@ -2,6 +2,7 @@ import { lazy } from 'react';
 
 export const routes = {
   Login: lazy(() => import('features/auth/components/LoginForm')),
+  SSOCallback: lazy(() => import('features/auth/components/SSOCallback')),
   Dashboard: lazy(() => import('features/admin-dashboard/pages/AdminDashboard')),
   StudentProfile: lazy(() => import('features/user-management/components/StudentProfile')),
   StudentDeadlineCalendar: lazy(() => import('components/student/StudentDeadlineCalendar')),

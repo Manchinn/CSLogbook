@@ -100,10 +100,11 @@ class AuthService {
         case 'student':
           const studentData = await Student.findOne({
             where: { userId: user.userId },
-            attributes: ['studentCode', 'totalCredits', 'majorCredits', 'isEligibleInternship', 'isEligibleProject']
+            attributes: ['studentId', 'studentCode', 'totalCredits', 'majorCredits', 'isEligibleInternship', 'isEligibleProject']
           });
           
           roleData = {
+            studentId: studentData?.studentId,
             studentCode: studentData?.studentCode,
             totalCredits: studentData?.totalCredits || 0,
             majorCredits: studentData?.majorCredits || 0,
@@ -168,21 +169,34 @@ class AuthService {
       logger.info(`AuthService: Generating token for user: ${user.username}`);
       
       const payload = {
-        userId: user.userId,
-        role: user.role,
-        studentID: user.studentID,
-        isSystemAdmin: user.role === 'admin' || (user.role === 'teacher' && roleData.teacherType === 'support'),
-        department: roleData.department,
-        // เพิ่มข้อมูลพิเศษตามบทบาท
-        ...(user.role === 'student' && { studentCode: roleData.studentCode }),
-        ...(user.role === 'teacher' && { 
-          teacherId: roleData.teacherId,
-          teacherType: roleData.teacherType,
-          canAccessTopicExam: roleData.canAccessTopicExam,
-          canExportProject1: roleData.canExportProject1
-        }),
-        ...(user.role === 'admin' && { adminId: roleData.adminId })
-      };
+      userId: user.userId,
+      role: user.role,
+      studentID: user.studentID,
+      // เพิ่มข้อมูลพื้นฐานของผู้ใช้
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      isSystemAdmin: user.role === 'admin' || (user.role === 'teacher' && roleData.teacherType === 'support'),
+      department: roleData.department,
+      // เพิ่มข้อมูลพิเศษตามบทบาท
+      ...(user.role === 'student' && { 
+        studentCode: roleData.studentCode,
+        studentId: roleData.studentId,
+        totalCredits: roleData.totalCredits,
+        majorCredits: roleData.majorCredits,
+        isEligibleForInternship: roleData.isEligibleForInternship,
+        isEligibleForProject: roleData.isEligibleForProject
+      }),
+      ...(user.role === 'teacher' && { 
+        teacherId: roleData.teacherId,
+        teacherCode: roleData.teacherCode,
+        teacherType: roleData.teacherType,
+        teacherPosition: roleData.position,
+        canAccessTopicExam: roleData.canAccessTopicExam,
+        canExportProject1: roleData.canExportProject1
+      }),
+      ...(user.role === 'admin' && { adminId: roleData.adminId })
+    };
 
       const token = jwt.sign(
         payload,

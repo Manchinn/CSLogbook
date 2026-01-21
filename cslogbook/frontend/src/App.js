@@ -17,6 +17,7 @@ dayjs.locale('th');
 
 const {
   Login,
+  SSOCallback,
   Dashboard,
   StudentProfile,
   StudentDeadlineCalendar,
@@ -102,6 +103,7 @@ const App = () => {
               >
                 <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/auth/sso/callback" element={<SSOCallback />} />
                   {/* Add the new public route for supervisor evaluation */}
                   <Route path="/evaluate/supervisor/:token" element={<SupervisorEvaluation />} /> 
                   <Route path="/approval/timesheet/:token" element={<TimesheetApproval />} />

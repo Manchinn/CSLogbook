@@ -511,6 +511,32 @@ class StudentService {
   }
 
   /**
+   * ดึงตัวเลือกสำหรับตัวกรอง (Filter Options)
+   */
+  async getFilterOptions() {
+    try {
+      // ดึงปีการศึกษาที่มีในระบบ
+      const academicYears = await Academic.findAll({
+        attributes: [
+          [sequelize.fn('DISTINCT', sequelize.col('academic_year')), 'academicYear']
+        ],
+        order: [['academic_year', 'DESC']]
+      });
+      
+      return {
+        academicYears: academicYears.map(a => a.getDataValue('academicYear')),
+        statuses: [
+          { value: 'internship', label: 'มีสิทธิ์ฝึกงาน' },
+          { value: 'project', label: 'มีสิทธิ์ทำโครงงาน' }
+        ]
+      };
+    } catch (error) {
+      logger.error("Error in getFilterOptions service:", error);
+      throw new Error("ไม่สามารถดึงข้อมูล Filter Options ได้");
+    }
+  }
+
+  /**
    * ดึงสถิตินักศึกษาทั้งหมด
    */
   async getAllStudentStats() {

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Typography, message, Card } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Button, Card, Spin, message } from 'antd';
 import {
-  UserOutlined,
-  LockOutlined,
+  LoginOutlined,
   ScheduleOutlined,
   TeamOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -12,87 +12,90 @@ import apiClient from '../../../../services/apiClient';
 import styles from './LoginForm.module.css';
 
 const { Title, Text, Paragraph } = Typography;
-// ใช้ apiClient (baseURL + interceptors) แทนการเรียก axios ตรง
 
+/**
+ * LoginForm - หน้า Login ที่ redirect ไป KMUTNB SSO
+ */
 const LoginForm = () => {
   const [loading, setLoading] = useState(false);
-  const [errorShake, setErrorShake] = useState(false);
+  const [ssoEnabled, setSsoEnabled] = useState(true);
+  const [checkingSSO, setCheckingSSO] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
-  const [form] = Form.useForm();
+  const { isAuthenticated } = useAuth();
 
-  // ดึง path ที่ user พยายามจะเข้าถึง; ถ้าไม่มีให้ใช้ /login เป็นค่าเริ่มต้น
-  const from = location.state?.from?.pathname || '/login';
+  // ดึง path ที่ user พยายามจะเข้าถึง
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleSubmit = async (values) => {
-    setLoading(true);
-    try {
-      // เพิ่ม redirectPath ใน request body
-      const loginData = {
-        ...values,
-        redirectPath: from !== '/login' ? from : undefined
-      };
-      
-      const response = await apiClient.post('/auth/login', loginData);
-
-      const { success, token, finalRedirectPath, ...userData } = response.data;
-
-      if (success) {
-        // รวมข้อมูลผู้ใช้เพื่อเก็บใน context (กัน null/undefined)
-        const loginSuccess = await login({
-          token,
-          userData: {
-            studentID: userData.studentID || null,
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            email: userData.email || '',
-            role: userData.role || '',
-            ...userData,
-          },
-        });
-
-        if (loginSuccess) {
-          message.success('เข้าสู่ระบบสำเร็จ');
-
-          // ใช้ finalRedirectPath จาก backend หรือ fallback ไปยัง dashboard
-          let targetPath = finalRedirectPath || '/dashboard';
-
-          // จัดการเส้นทางปลายทางตามบทบาทผู้ใช้ (เฉพาะกรณีที่เป็น dashboard)
-          if (targetPath === '/dashboard') {
-            const role = userData.role;
-            const teacherType = userData.teacherType;
-
-            if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
-              targetPath = '/admin/dashboard';
-            } else if (role === 'teacher') {
-              targetPath = '/dashboard';
-            } else if (role === 'student') {
-              targetPath = '/dashboard';
-            } else {
-              targetPath = '/dashboard';
-            }
-          }
-
-          navigate(targetPath, { replace: true });
-        }
-      }
-    } catch (error) {
-
-      const errorMessage = error.response?.data?.message || 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง';
-      console.log('=== Showing error message:', errorMessage);
-      
-      // เพิ่ม shake animation เมื่อ login ผิดพลาด
-      setErrorShake(true);
-      setTimeout(() => setErrorShake(false), 600);
-      
-      message.error(errorMessage);
-    } finally {
-      setLoading(false);
+  // ถ้า login แล้ว redirect ไป dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
     }
+  }, [isAuthenticated, navigate]);
+
+  // ตรวจสอบสถานะ SSO
+  useEffect(() => {
+    const checkSSOStatus = async () => {
+      try {
+        const response = await apiClient.get('/auth/sso/status');
+        setSsoEnabled(response.data.ssoEnabled);
+      } catch (error) {
+        console.error('Error checking SSO status:', error);
+        setSsoEnabled(false);
+      } finally {
+        setCheckingSSO(false);
+      }
+    };
+
+    checkSSOStatus();
+  }, []);
+
+  // ตรวจสอบ error จาก URL (กรณี SSO callback error)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const error = params.get('error');
+    
+    if (error) {
+      const errorMessages = {
+        'sso_error': 'เกิดข้อผิดพลาดจากระบบ KMUTNB SSO',
+        'invalid_state': 'Session หมดอายุ กรุณาลองใหม่อีกครั้ง',
+        'no_code': 'ไม่ได้รับรหัสยืนยันจากระบบ SSO',
+        'token_error': 'ไม่สามารถยืนยันตัวตนได้',
+        'userinfo_error': 'ไม่สามารถดึงข้อมูลผู้ใช้ได้',
+        'server_error': 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์'
+      };
+      message.error(errorMessages[error] || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      
+      // ลบ error param ออกจาก URL
+      window.history.replaceState({}, '', '/login');
+    }
+  }, [location.search]);
+
+  /**
+   * Redirect ไป KMUTNB SSO
+   */
+  const handleSSOLogin = () => {
+    setLoading(true);
+    
+    // สร้าง redirect URL พร้อม path ที่ต้องการกลับไปหลัง login
+    const redirectPath = from !== '/login' ? from : '/dashboard';
+    const ssoUrl = `${process.env.REACT_APP_API_URL}/auth/sso/authorize?redirectPath=${encodeURIComponent(redirectPath)}`;
+    
+    // Redirect ไป SSO
+    window.location.href = ssoUrl;
   };
 
-  const cardClassName = [styles.card, errorShake ? styles.shake : ''].filter(Boolean).join(' ');
+  if (checkingSSO) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.content} style={{ textAlign: 'center', padding: '60px' }}>
+          <Spin size="large" />
+          <p style={{ marginTop: '16px', color: '#666' }}>กำลังตรวจสอบระบบ...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -115,6 +118,16 @@ const LoginForm = () => {
           </div>
 
           <div className={styles.brandHighlights}>
+            <div className={styles.highlight}>
+              <div className={styles.highlightIcon}>
+                <SafetyOutlined />
+              </div>
+              <div>
+                <Text className={styles.highlightTitle}>ล็อกอินด้วย KMUTNB SSO</Text>
+                <Text type="secondary">เข้าสู่ระบบด้วยบัญชี ICIT Account เพียงครั้งเดียว ปลอดภัยด้วย Two-Factor Authentication</Text>
+              </div>
+            </div>
+
             <div className={styles.highlight}>
               <div className={styles.highlightIcon}>
                 <ScheduleOutlined />
@@ -141,57 +154,56 @@ const LoginForm = () => {
           </div>
         </div>
 
-        <Card className={cardClassName} variant={false}>
+        <Card className={styles.card} variant={false}>
           <div className={styles.formHeader}>
             <Title level={3} className={styles.title}>
               ลงชื่อเข้าใช้ระบบ
             </Title>
-            <Text className={styles.subtitle}>โปรดใช้บัญชีรูปแบบเริ่มต้นของ ICIT Account ของท่านในการเข้าสู่ระบบ</Text>
+            <Text className={styles.subtitle}>
+              เข้าสู่ระบบด้วยบัญชี KMUTNB (ICIT Account) ของท่าน
+            </Text>
           </div>
 
-          <Form form={form} onFinish={handleSubmit} layout="vertical" className={styles.form}>
-            <Form.Item
-              name="username"
-              className={styles.formItem}
-              rules={[{ required: true, message: 'กรุณากรอกชื่อผู้ใช้' }]}
-            >
-              <Input
-                className={styles.input}
-                prefix={<UserOutlined />}
-                placeholder="ชื่อผู้ใช้"
-                size="large"
-                autoComplete="username"
+          <div className={styles.ssoSection}>
+            {/* KMUTNB SSO Logo */}
+            <div className={styles.ssoLogo}>
+              <img 
+                src="https://sso.kmutnb.ac.th/images/logo_kmutnb.png" 
+                alt="KMUTNB" 
+                className={styles.kmutnbLogo}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
-            </Form.Item>
+            </div>
 
-            <Form.Item
-              name="password"
-              className={styles.formItem}
-              rules={[{ required: true, message: 'กรุณากรอกรหัสผ่าน' }]}
+            <Button
+              className={styles.ssoButton}
+              type="primary"
+              icon={<LoginOutlined />}
+              loading={loading}
+              disabled={!ssoEnabled}
+              onClick={handleSSOLogin}
+              block
+              size="large"
             >
-              <Input.Password
-                className={styles.input}
-                prefix={<LockOutlined />}
-                placeholder="รหัสผ่าน"
-                size="large"
-                autoComplete="current-password"
-                onPressEnter={() => form.submit()}
-              />
-            </Form.Item>
+              {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบด้วย KMUTNB SSO'}
+            </Button>
 
-            <Form.Item>
-              <Button
-                className={styles.button}
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-                size="large"
-              >
-                เข้าสู่ระบบ
-              </Button>
-            </Form.Item>
-          </Form>
+            {!ssoEnabled && (
+              <div className={styles.ssoDisabled}>
+                <Text type="danger">
+                  ระบบ SSO ไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ
+                </Text>
+              </div>
+            )}
+
+            <div className={styles.ssoInfo}>
+              <Text type="secondary" className={styles.ssoInfoText}>
+                ใช้บัญชีเดียวกับ email@kmutnb.ac.th หรือระบบ REG, LMS
+              </Text>
+            </div>
+          </div>
 
           <div className={styles.help}>
             <Text type="secondary">ต้องการความช่วยเหลือ?</Text>{' '}

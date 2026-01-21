@@ -31,6 +31,19 @@ exports.getAllStudents = async (req, res, next) => {
   }
 };
 
+exports.getFilterOptions = async (req, res, next) => {
+  try {
+    const options = await studentService.getFilterOptions();
+    res.json({
+      success: true,
+      data: options
+    });
+  } catch (error) {
+    logger.error("Error in getFilterOptions:", error);
+    next(error);
+  }
+};
+
 exports.getStudentById = async (req, res) => {
   try {
     const requestedId = req.params.id;

@@ -91,6 +91,10 @@ express.static.mime.define({ 'application/javascript': ['mjs'] });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public & protected routes (ส่วนสำคัญเท่านั้น; บาง route อาจพึ่งพา DB จริง ให้ mock ใน test กรณีจำเป็น)
+// SSO Routes (KMUTNB SSO)
+const ssoRoutes = require('./routes/ssoRoutes');
+app.use('/api/auth/sso', ssoRoutes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/curriculums', curriculumRoutes);
 app.use('/api/email-approval', emailApprovalRoutes);
