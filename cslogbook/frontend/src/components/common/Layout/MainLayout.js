@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Layout, Drawer } from "antd";
 import Sidebar from "./Sidebar/Sidebar";
 import HeaderComponent from "./Header/HeaderComponent";
@@ -8,9 +8,35 @@ import styles from "./MainLayout.module.css";
 
 const { Content } = Layout;
 
+// Hoisted static styles to prevent recreation on each render (rendering-hoist-jsx)
+const layoutStyle = {
+  background: "transparent",
+  position: "relative",
+};
+
+const contentStyle = {
+  paddingTop: "80px",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "transparent",
+  position: "relative",
+  zIndex: 1,
+};
+
+const drawerStyle = {
+  zIndex: 1100,
+  position: 'fixed'
+};
+
+const drawerBodyStyle = { 
+  body: { padding: 0 },
+  header: { display: 'none' }
+};
+
 const MainLayout = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  // Use lazy state initialization (rerender-lazy-state-init)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [userRole, setUserRole] = useState("");
 
   // Get user role from localStorage for theme
@@ -31,15 +57,14 @@ const MainLayout = () => {
     };
   }, []);
 
-  const showDrawer = () => {
+  // Use useCallback for stable handler references (rerender-functional-setstate)
+  const showDrawer = useCallback(() => {
     setDrawerVisible(true);
-    console.log("เปิด main");
-  };
+  }, []);
 
-  const onClose = () => {
+  const onClose = useCallback(() => {
     setDrawerVisible(false);
-    console.log("ปิด main");
-  };
+  }, []);
   const getRoleThemeClass = () => {
     if (userRole === "student") return styles.studentTheme;
     if (userRole === "teacher") return styles.teacherTheme;
@@ -54,10 +79,7 @@ const MainLayout = () => {
   return (
     <Layout
       className={layoutClassName}
-      style={{
-        background: "transparent", // เปลี่ยนเป็น transparent เพื่อให้เห็น BackgroundParticles
-        position: "relative",
-      }}
+      style={layoutStyle}
     >
       {/* Add BackgroundParticles component */}
       <div className={styles.backgroundLayer}>
@@ -72,15 +94,9 @@ const MainLayout = () => {
         onClose={onClose}
         open={drawerVisible}
         width={280}
-        styles={{ 
-          body: { padding: 0 },
-          header: { display: 'none' }
-        }}
+        styles={drawerBodyStyle}
         closeIcon={null}
-        style={{ 
-          zIndex: 1100,
-          position: 'fixed'
-        }}
+        style={drawerStyle}
         className={styles.mobileSidebarDrawer}
         maskClosable={true}
         destroyOnHidden={false}
@@ -92,14 +108,7 @@ const MainLayout = () => {
         {/* Main Content */}
         <Content
           className={styles.contentArea}
-          style={{
-            paddingTop: "80px",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "transparent",
-            position: "relative",
-            zIndex: 1,
-          }}
+          style={contentStyle}
         >
           <div className={styles.contentCard}>
             <Outlet />

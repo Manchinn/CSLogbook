@@ -1,28 +1,89 @@
-import { useState, useEffect, useCallback } from "react"; // เพิ่ม useCallback
-import dayjs from 'utils/dayjs'; // ใช้ dayjs ที่มี plugin buddhistEra
+import { useState, useEffect, useCallback, useRef } from "react";
+import dayjs from 'utils/dayjs';
 import internshipService from 'features/internship/services/internshipService';
 import { getThaiDayName } from "../utils/dateUtils";
 
-const DATE_FORMAT_MEDIUM = "D MMM BBBB"; // เปลี่ยนจาก YYYY เป็น BBBB สำหรับแสดงปี พ.ศ.
+const DATE_FORMAT_MEDIUM = "D MMM BBBB";
+
+// Cache configuration
+const CACHE_KEY = 'internshipSummaryDataCache';
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+// Helper functions for sessionStorage cache
+const getCache = () => {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_TTL_MS) {
+      return data;
+    }
+    sessionStorage.removeItem(CACHE_KEY);
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const setCache = (data) => {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch {}
+};
+
+// Clear cache (for use when data changes)
+export const clearSummaryDataCache = () => {
+  try {
+    sessionStorage.removeItem(CACHE_KEY);
+  } catch {}
+};
 
 /**
  * Hook สำหรับดึงข้อมูลสรุปการฝึกงาน
+ * ✅ เพิ่ม sessionStorage cache เพื่อลดการ fetch ซ้ำ
  * @returns {Object} ข้อมูลสรุปการฝึกงาน
  */
 export function useSummaryData() {
-  const [loading, setLoading] = useState(true);
-  const [summaryData, setSummaryData] = useState(null);
-  const [logEntries, setLogEntries] = useState([]);
-  const [error, setError] = useState(null);
-  const [hasCS05, setHasCS05] = useState(false);
-  const [isCS05Approved, setIsCS05Approved] = useState(false);
-  const [totalApprovedHours, setTotalApprovedHours] = useState(0);
-  const [weeklyData, setWeeklyData] = useState([]);
+  const isFetchingRef = useRef(false);
+  
+  // Lazy state initialization from cache
+  const initState = () => {
+    const cached = getCache();
+    if (cached) {
+      return { ...cached, loading: false };
+    }
+    return {
+      loading: true,
+      summaryData: null,
+      logEntries: [],
+      error: null,
+      hasCS05: false,
+      isCS05Approved: false,
+      totalApprovedHours: 0,
+      weeklyData: [],
+      reflection: null,
+      evaluationFormSent: false,
+      evaluationSentDate: null
+    };
+  };
+
+  const [loading, setLoading] = useState(() => initState().loading);
+  const [summaryData, setSummaryData] = useState(() => initState().summaryData);
+  const [logEntries, setLogEntries] = useState(() => initState().logEntries);
+  const [error, setError] = useState(() => initState().error);
+  const [hasCS05, setHasCS05] = useState(() => initState().hasCS05);
+  const [isCS05Approved, setIsCS05Approved] = useState(() => initState().isCS05Approved);
+  const [totalApprovedHours, setTotalApprovedHours] = useState(() => initState().totalApprovedHours);
+  const [weeklyData, setWeeklyData] = useState(() => initState().weeklyData);
   const skillCategories = [];
   const skillTags = [];
-  const [reflection, setReflection] = useState(null);
-  const [evaluationFormSent, setEvaluationFormSent] = useState(false);
-  const [evaluationSentDate, setEvaluationSentDate] = useState(null);
+  const [reflection, setReflection] = useState(() => initState().reflection);
+  const [evaluationFormSent, setEvaluationFormSent] = useState(() => initState().evaluationFormSent);
+  const [evaluationSentDate, setEvaluationSentDate] = useState(() => initState().evaluationSentDate);
+
   // แก้ไขฟังก์ชัน prepareWeeklyData ให้รับ summaryData เป็นพารามิเตอร์
   const prepareWeeklyData = (entries, summary) => {
     console.log("Preparing weekly data with:", {
@@ -156,18 +217,41 @@ export function useSummaryData() {
   /**
    * ดึงข้อมูลสรุปการฝึกงาน
    */
-  const fetchSummaryData = useCallback(async () => { // เพิ่ม useCallback
+  const fetchSummaryData = useCallback(async (force = false) => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current && !force) return;
+
+    // Check cache first (unless forced)
+    if (!force) {
+      const cached = getCache();
+      if (cached) {
+        console.log('useSummaryData: Using cached data');
+        setSummaryData(cached.summaryData);
+        setLogEntries(cached.logEntries || []);
+        setHasCS05(cached.hasCS05);
+        setIsCS05Approved(cached.isCS05Approved);
+        setTotalApprovedHours(cached.totalApprovedHours);
+        setWeeklyData(cached.weeklyData || []);
+        setReflection(cached.reflection);
+        setEvaluationFormSent(cached.evaluationFormSent);
+        setEvaluationSentDate(cached.evaluationSentDate);
+        setLoading(false);
+        return;
+      }
+    }
+
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null); 
     setSummaryData(null);
     setLogEntries([]);
     setReflection(null);
-    setWeeklyData([]); // Reset weeklyData
-    setTotalApprovedHours(0); // Reset totalApprovedHours
-    setHasCS05(false); // Reset hasCS05
-    setIsCS05Approved(false); // Reset isCS05Approved
-    setEvaluationFormSent(false); // Reset evaluationFormSent
-    setEvaluationSentDate(null); // Reset evaluationSentDate
+    setWeeklyData([]);
+    setTotalApprovedHours(0);
+    setHasCS05(false);
+    setIsCS05Approved(false);
+    setEvaluationFormSent(false);
+    setEvaluationSentDate(null);
 
 
     try {
@@ -309,16 +393,36 @@ export function useSummaryData() {
       }
     } catch (err) {
       console.error("Error in fetchSummaryData:", err);
-      // แปลง error เป็น string เพื่อไม่ให้ React crash
       setError(err?.message || err?.toString() || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, []); // เพิ่ม dependency array ว่างเปล่าสำหรับ useCallback เนื่องจาก fetchSummaryData ไม่ได้ขึ้นกับ props หรือ state ภายนอกที่เปลี่ยนบ่อย
+  }, []);
+
+  // Save to cache when data changes successfully
+  useEffect(() => {
+    if (!loading && hasCS05 && summaryData) {
+      setCache({
+        summaryData,
+        logEntries,
+        hasCS05,
+        isCS05Approved,
+        totalApprovedHours,
+        weeklyData,
+        reflection,
+        evaluationFormSent,
+        evaluationSentDate
+      });
+    }
+  }, [loading, hasCS05, summaryData, logEntries, isCS05Approved, totalApprovedHours, weeklyData, reflection, evaluationFormSent, evaluationSentDate]);
 
   useEffect(() => {
-    fetchSummaryData();
-  }, [fetchSummaryData]); // ตอนนี้ fetchSummaryData จะเสถียรแล้ว
+    const cached = getCache();
+    if (!cached) {
+      fetchSummaryData();
+    }
+  }, [fetchSummaryData]);
 
   return {
     loading,
@@ -334,7 +438,7 @@ export function useSummaryData() {
     reflection,
     evaluationFormSent,
     evaluationSentDate,
-    fetchSummaryData, // ให้ฟังก์ชันนี้เพื่อให้สามารถรีเฟรชข้อมูลได้
-    setReflection,    // <<== เพิ่มบรรทัดนี้
+    fetchSummaryData: (force = true) => fetchSummaryData(force),
+    setReflection,
   };
 }

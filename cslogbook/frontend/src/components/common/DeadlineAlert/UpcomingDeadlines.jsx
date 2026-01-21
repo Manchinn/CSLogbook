@@ -6,7 +6,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { List, Tag, Empty, Card, Space, Typography, Skeleton } from 'antd';
-import { ClockCircleOutlined, CalendarOutlined } from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
+import CalendarOutlined from '@ant-design/icons/CalendarOutlined';
 import PropTypes from 'prop-types';
 import { 
   formatDeadline, 

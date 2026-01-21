@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, List, Skeleton, Empty, Button, Tag, Space, Typography, Alert } from 'antd';
-import { ReloadOutlined, CalendarOutlined, ClockCircleOutlined } from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import ReloadOutlined from '@ant-design/icons/ReloadOutlined';
+import CalendarOutlined from '@ant-design/icons/CalendarOutlined';
+import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
 import dayjs from '../../../utils/dayjs';
 import { normalizeList } from '../../../utils/deadlineNormalize';
 import * as importantDeadlineService from '../../../services/admin/importantDeadlineService';

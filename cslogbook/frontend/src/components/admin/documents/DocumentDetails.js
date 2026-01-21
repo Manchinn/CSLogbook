@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Card, Typography, Row, Col, Divider, Button, Space, List, Tag, Spin, message, Avatar, Alert, Descriptions, Badge } from 'antd';
-import { FilePdfOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import FilePdfOutlined from '@ant-design/icons/FilePdfOutlined';
+import DownloadOutlined from '@ant-design/icons/DownloadOutlined';
+import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
+import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
+import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
+import EyeOutlined from '@ant-design/icons/EyeOutlined';
+import FileTextOutlined from '@ant-design/icons/FileTextOutlined';
 import dayjs from '../../../utils/dayjs'; // ใช้ dayjs ที่ตั้งค่า timezone + BE
 import { documentService } from '../../../services/admin/documentService';
 import { PDFViewerModal } from '../../common/PDFViewer';

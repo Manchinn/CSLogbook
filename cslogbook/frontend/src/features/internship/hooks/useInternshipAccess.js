@@ -1,10 +1,49 @@
 /**
  * Helper Hook สำหรับตรวจสอบเงื่อนไขการเข้าถึงระบบฝึกงาน
  * ✅ ตรวจสอบทั้ง CS05 และ ACCEPTANCE_LETTER
+ * ✅ เพิ่ม sessionStorage cache เพื่อลดการ fetch ซ้ำ
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import internshipService from 'features/internship/services/internshipService';
+
+// Cache configuration
+const CACHE_KEY = 'internshipAccessCache';
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes (short for data freshness)
+
+// Helper functions for sessionStorage cache
+const getCache = () => {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_TTL_MS) {
+      return data;
+    }
+    sessionStorage.removeItem(CACHE_KEY);
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const setCache = (data) => {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+// Clear cache (for use when data changes)
+export const clearInternshipAccessCache = () => {
+  try {
+    sessionStorage.removeItem(CACHE_KEY);
+  } catch {}
+};
 
 /**
  * Custom Hook สำหรับตรวจสอบสถานะทั้ง CS05 และ ACCEPTANCE_LETTER
@@ -21,55 +60,92 @@ import internshipService from 'features/internship/services/internshipService';
  * }
  */
 export const useInternshipAccess = () => {
-  const [loading, setLoading] = useState(true);
-  const [cs05Status, setCS05Status] = useState(null);
-  const [acceptanceStatus, setAcceptanceStatus] = useState(null);
-  const [cs05Data, setCS05Data] = useState(null);
-  const [acceptanceData, setAcceptanceData] = useState(null);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const isFetchingRef = useRef(false);
+  
+  // Lazy state initialization from cache
+  const [state, setState] = useState(() => {
+    const cached = getCache();
+    if (cached) {
+      return { ...cached, loading: false };
+    }
+    return {
+      loading: true,
+      cs05Status: null,
+      acceptanceStatus: null,
+      cs05Data: null,
+      acceptanceData: null,
+      errorMessage: null
+    };
+  });
 
   // ฟังก์ชันตรวจสอบสถานะ
-  const checkStatus = useCallback(async () => {
-    try {
-      setLoading(true);
-      setErrorMessage(null);
+  const checkStatus = useCallback(async (force = false) => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current && !force) return;
 
+    // Check cache first (unless forced)
+    if (!force) {
+      const cached = getCache();
+      if (cached) {
+        setState(prev => ({ ...prev, ...cached, loading: false }));
+        return;
+      }
+    }
+
+    isFetchingRef.current = true;
+    setState(prev => ({ ...prev, loading: true, errorMessage: null }));
+
+    try {
       // 1. ตรวจสอบ CS05
       const cs05Response = await internshipService.getCurrentCS05();
       
       if (!cs05Response.success || !cs05Response.data) {
-        setErrorMessage('ไม่พบข้อมูล CS05 กรุณายื่นคำร้องขอฝึกงาน');
-        setCS05Status(null);
-        setAcceptanceStatus(null);
+        const newState = {
+          loading: false,
+          cs05Status: null,
+          acceptanceStatus: null,
+          cs05Data: null,
+          acceptanceData: null,
+          errorMessage: 'ไม่พบข้อมูล CS05 กรุณายื่นคำร้องขอฝึกงาน'
+        };
+        setState(newState);
         return;
       }
 
       const cs05 = cs05Response.data;
-      setCS05Status(cs05.status);
-      setCS05Data(cs05);
+      let newState = {
+        loading: false,
+        cs05Status: cs05.status,
+        cs05Data: cs05,
+        acceptanceStatus: null,
+        acceptanceData: null,
+        errorMessage: null
+      };
 
       console.log('[useInternshipAccess] CS05 Status:', {
         status: cs05.status,
         documentId: cs05.documentId
       });
 
-      // 2. ตรวจสอบ CS05 ต้องเป็น approved หรือ cancelled (เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้)
+      // 2. ตรวจสอบ CS05 ต้องเป็น approved หรือ cancelled
       if (cs05.status !== 'approved' && cs05.status !== 'cancelled') {
-        setErrorMessage(
+        newState.errorMessage = 
           cs05.status === 'pending' 
             ? 'คำร้อง CS05 อยู่ระหว่างการพิจารณา'
             : cs05.status === 'rejected'
             ? 'คำร้อง CS05 ไม่ได้รับการอนุมัติ'
-            : `คำร้อง CS05 ยังไม่พร้อม (สถานะ: ${cs05.status})`
-        );
-        setAcceptanceStatus(null);
+            : `คำร้อง CS05 ยังไม่พร้อม (สถานะ: ${cs05.status})`;
+        setState(newState);
+        setCache(newState);
         return;
       }
 
       // ✅ ถ้า CS05 เป็น cancelled ให้ข้ามการเช็ค Acceptance Letter
       if (cs05.status === 'cancelled') {
-        setErrorMessage('การฝึกงานนี้ถูกยกเลิกแล้ว คุณสามารถดูข้อมูลสรุปผลได้ แต่ไม่สามารถแก้ไขได้');
-        setAcceptanceStatus('cancelled');
+        newState.errorMessage = 'การฝึกงานนี้ถูกยกเลิกแล้ว คุณสามารถดูข้อมูลสรุปผลได้ แต่ไม่สามารถแก้ไขได้';
+        newState.acceptanceStatus = 'cancelled';
+        setState(newState);
+        setCache(newState);
         return;
       }
 
@@ -81,8 +157,8 @@ export const useInternshipAccess = () => {
 
         if (acceptanceResponse.success && acceptanceResponse.data) {
           const acceptance = acceptanceResponse.data;
-          setAcceptanceStatus(acceptance.acceptanceStatus);
-          setAcceptanceData(acceptance);
+          newState.acceptanceStatus = acceptance.acceptanceStatus;
+          newState.acceptanceData = acceptance;
 
           console.log('[useInternshipAccess] Acceptance Status:', {
             status: acceptance.acceptanceStatus,
@@ -91,70 +167,82 @@ export const useInternshipAccess = () => {
 
           // ตั้งข้อความเตือนตามสถานะ
           if (acceptance.acceptanceStatus === 'not_uploaded') {
-            setErrorMessage('ยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท');
+            newState.errorMessage = 'ยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท';
           } else if (acceptance.acceptanceStatus === 'pending') {
-            setErrorMessage('หนังสือตอบรับอยู่ระหว่างการพิจารณา');
+            newState.errorMessage = 'หนังสือตอบรับอยู่ระหว่างการพิจารณา';
           } else if (acceptance.acceptanceStatus === 'rejected') {
-            setErrorMessage('หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่');
+            newState.errorMessage = 'หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่';
           } else if (acceptance.acceptanceStatus === 'approved') {
-            setErrorMessage(null); // ผ่านเงื่อนไขทั้งหมด
+            newState.errorMessage = null; // ผ่านเงื่อนไขทั้งหมด
           }
         } else {
-          setAcceptanceStatus('not_uploaded');
-          setErrorMessage('ยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท');
+          newState.acceptanceStatus = 'not_uploaded';
+          newState.errorMessage = 'ยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท';
         }
       } catch (acceptanceError) {
         console.error('[useInternshipAccess] Acceptance check error:', acceptanceError);
         
         if (acceptanceError.response?.status === 404) {
-          setAcceptanceStatus('not_uploaded');
-          setErrorMessage('ยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท');
+          newState.acceptanceStatus = 'not_uploaded';
+          newState.errorMessage = 'ยังไม่มีการอัปโหลดหนังสือตอบรับจากบริษัท';
         } else {
-          setAcceptanceStatus('error');
-          setErrorMessage('ไม่สามารถตรวจสอบสถานะหนังสือตอบรับได้');
+          newState.acceptanceStatus = 'error';
+          newState.errorMessage = 'ไม่สามารถตรวจสอบสถานะหนังสือตอบรับได้';
         }
       }
 
+      setState(newState);
+      setCache(newState);
+
     } catch (error) {
       console.error('[useInternshipAccess] Error:', error);
-      setErrorMessage(error.message || 'เกิดข้อผิดพลาดในการตรวจสอบสถานะ');
-      setCS05Status(null);
-      setAcceptanceStatus(null);
+      const errorState = {
+        loading: false,
+        cs05Status: null,
+        acceptanceStatus: null,
+        cs05Data: null,
+        acceptanceData: null,
+        errorMessage: error.message || 'เกิดข้อผิดพลาดในการตรวจสอบสถานะ'
+      };
+      setState(errorState);
     } finally {
-      setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 
-  // โหลดข้อมูลครั้งแรก
+  // โหลดข้อมูลครั้งแรก (ถ้าไม่มี cache)
   useEffect(() => {
-    checkStatus();
+    const cached = getCache();
+    if (!cached) {
+      checkStatus();
+    }
   }, [checkStatus]);
 
-  // ✅ คำนวณสิทธิ์การเข้าถึง - อนุญาตทั้ง approved และ cancelled (เพื่อดูข้อมูล)
-  const canAccess = (cs05Status === 'approved' && acceptanceStatus === 'approved') || cs05Status === 'cancelled';
-  const canEdit = cs05Status === 'approved' && acceptanceStatus === 'approved'; // ✅ แก้ไขได้เฉพาะ approved เท่านั้น
+  // ✅ คำนวณสิทธิ์การเข้าถึง
+  const canAccess = (state.cs05Status === 'approved' && state.acceptanceStatus === 'approved') || state.cs05Status === 'cancelled';
+  const canEdit = state.cs05Status === 'approved' && state.acceptanceStatus === 'approved';
 
   // ตรวจสอบแต่ละเงื่อนไข
-  const hasCS05 = cs05Status !== null;
-  const isCS05Approved = cs05Status === 'approved';
-  const isCS05Pending = cs05Status === 'pending';
-  const isCS05Rejected = cs05Status === 'rejected';
+  const hasCS05 = state.cs05Status !== null;
+  const isCS05Approved = state.cs05Status === 'approved';
+  const isCS05Pending = state.cs05Status === 'pending';
+  const isCS05Rejected = state.cs05Status === 'rejected';
 
-  const hasAcceptance = acceptanceStatus !== null && acceptanceStatus !== 'not_uploaded';
-  const isAcceptanceApproved = acceptanceStatus === 'approved';
-  const isAcceptancePending = acceptanceStatus === 'pending';
-  const isAcceptanceRejected = acceptanceStatus === 'rejected';
+  const hasAcceptance = state.acceptanceStatus !== null && state.acceptanceStatus !== 'not_uploaded';
+  const isAcceptanceApproved = state.acceptanceStatus === 'approved';
+  const isAcceptancePending = state.acceptanceStatus === 'pending';
+  const isAcceptanceRejected = state.acceptanceStatus === 'rejected';
 
   return {
-    loading,
-    cs05Status,
-    acceptanceStatus,
+    loading: state.loading,
+    cs05Status: state.cs05Status,
+    acceptanceStatus: state.acceptanceStatus,
     canAccess,
     canEdit,
-    cs05Data,
-    acceptanceData,
-    errorMessage,
-    refresh: checkStatus,
+    cs05Data: state.cs05Data,
+    acceptanceData: state.acceptanceData,
+    errorMessage: state.errorMessage,
+    refresh: (force = true) => checkStatus(force),
     
     // Helper flags
     hasCS05,
@@ -169,3 +257,4 @@ export const useInternshipAccess = () => {
 };
 
 export default useInternshipAccess;
+

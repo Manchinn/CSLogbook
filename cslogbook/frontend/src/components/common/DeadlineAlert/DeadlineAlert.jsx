@@ -6,7 +6,10 @@
 
 import React from 'react';
 import { Alert, Tag, Space, Typography } from 'antd';
-import { ClockCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
+import ExclamationCircleOutlined from '@ant-design/icons/ExclamationCircleOutlined';
+import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
 import PropTypes from 'prop-types';
 import { formatDeadline, getDeadlineStatus } from '../../../utils/deadlineHelpers';
 

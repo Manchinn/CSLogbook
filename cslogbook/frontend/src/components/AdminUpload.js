@@ -16,17 +16,16 @@ import {
   Select,
   Empty
 } from 'antd';
-import {
-  UploadOutlined,
-  ReloadOutlined,
-  DownloadOutlined,
-  InfoCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  FileExcelOutlined,
-  FilterOutlined
-} from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import UploadOutlined from '@ant-design/icons/UploadOutlined';
+import ReloadOutlined from '@ant-design/icons/ReloadOutlined';
+import DownloadOutlined from '@ant-design/icons/DownloadOutlined';
+import InfoCircleOutlined from '@ant-design/icons/InfoCircleOutlined';
+import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
+import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
+import ExclamationCircleOutlined from '@ant-design/icons/ExclamationCircleOutlined';
+import FileExcelOutlined from '@ant-design/icons/FileExcelOutlined';
+import FilterOutlined from '@ant-design/icons/FilterOutlined';
 import { adminService } from '../services/adminService';
 import academicService from '../services/academicService';
 import { settingsService } from 'features/settings/services/settingsService';

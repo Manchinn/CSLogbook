@@ -1,79 +1,31 @@
-import { useState, useEffect } from 'react';
-import { message } from 'antd';
-import apiClient from '../services/apiClient';
-import { useAuth } from '../contexts/AuthContext';
+/**
+ * useStudentPermissions Hook
+ * 
+ * A thin wrapper around StudentEligibilityContext for backward compatibility.
+ * This hook no longer makes its own API calls - it uses the centralized context
+ * to prevent duplicate API requests (client-swr-dedup pattern).
+ * 
+ * @deprecated Consider using useStudentEligibility() directly from contexts/StudentEligibilityContext
+ */
+import { useStudentEligibility } from '../contexts/StudentEligibilityContext';
 
 export const useStudentPermissions = () => {
-  const { userData } = useAuth();
-  const [permissions, setPermissions] = useState({
-    canAccessInternship: false,
-    canAccessProject: false,
-    canRegisterInternship: false,
-    canRegisterProject: false,
-    internshipReason: null,
-    projectReason: null,
-    requirements: null,
-    academicSettings: null,
-    isLoading: true,
-    lastUpdated: null
-  });
-
-  const fetchEligibility = async () => {
-    if (!userData || userData.role !== 'student') {
-      return;
-    }
-
-    try {
-      setPermissions(prev => ({ ...prev, isLoading: true }));
-      
-  // เรียก endpoint ผ่าน apiClient (แนบ token อัตโนมัติจาก interceptor)
-  const response = await apiClient.get('/students/check-eligibility');
-
-      if (response.data.success) {
-        setPermissions({
-          // ใช้ค่า canAccessFeature สำหรับการแสดงเมนู
-          canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
-          canAccessProject: response.data.eligibility.project.canAccessFeature || false,
-          // เก็บค่า canRegister สำหรับการแสดงปุ่มลงทะเบียน
-          canRegisterInternship: response.data.eligibility.internship.canRegister || false,
-          canRegisterProject: response.data.eligibility.project.canRegister || false,
-          internshipReason: response.data.eligibility.internship.reason,
-          projectReason: response.data.eligibility.project.reason,
-          requirements: response.data.requirements,
-          academicSettings: response.data.academicSettings,
-          isLoading: false,
-          lastUpdated: new Date()
-        });
-      } else {
-        setPermissions(prev => ({ ...prev, isLoading: false }));
-      }
-    } catch (error) {
-      console.error('Error fetching eligibility:', error);
-      setPermissions(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        // ตั้งค่าข้อความสำหรับใช้ใน tooltip เมื่อเกิดข้อผิดพลาด
-        internshipReason: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาติดต่อผู้ดูแลระบบ",
-        projectReason: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาติดต่อผู้ดูแลระบบ"
-      }));
-      message.error('ไม่สามารถตรวจสอบสิทธิ์ได้');
-    }
-  };
-
-  useEffect(() => {
-    fetchEligibility();
-    // ตั้งค่าให้อัปเดตทุก 6 ชั่วโมง
-    const intervalId = setInterval(fetchEligibility, 6 * 60 * 60 * 1000);
-    return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData]);
-
+  const eligibility = useStudentEligibility();
+  
+  // Return data in the same shape as before for backward compatibility
   return {
-    ...permissions,
-    messages: {
-      internship: permissions.internshipReason,
-      project: permissions.projectReason
-    },
-    refreshPermissions: fetchEligibility
+    canAccessInternship: eligibility.canAccessInternship,
+    canAccessProject: eligibility.canAccessProject,
+    canRegisterInternship: eligibility.canRegisterInternship,
+    canRegisterProject: eligibility.canRegisterProject,
+    internshipReason: eligibility.internshipReason,
+    projectReason: eligibility.projectReason,
+    requirements: eligibility.requirements,
+    academicSettings: eligibility.academicSettings,
+    isLoading: eligibility.isLoading,
+    lastUpdated: eligibility.lastUpdated,
+    messages: eligibility.messages,
+    // Expose the refresh function from context
+    refreshPermissions: (showMessage = false) => eligibility.refreshEligibility(showMessage, true)
   };
 };

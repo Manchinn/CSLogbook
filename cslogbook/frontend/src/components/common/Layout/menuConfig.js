@@ -1,23 +1,22 @@
 // เมนูถูกรวมศูนย์มาจาก Sidebar เดิม (เวอร์ชันเต็ม) ให้ Sidebar เรียกใช้จากที่นี่ที่เดียว
-import {
-  HomeOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  FormOutlined,
-  BookOutlined,
-  FileDoneOutlined,
-  LogoutOutlined,
-  CheckCircleOutlined,
-  UploadOutlined,
-  SettingOutlined,
-  FileProtectOutlined,
-  ProjectOutlined,
-  BarChartOutlined,
-  CalendarOutlined,
-  DownloadOutlined,
-  FunnelPlotOutlined,
-  ClockCircleOutlined,
-} from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import HomeOutlined from '@ant-design/icons/HomeOutlined';
+import TeamOutlined from '@ant-design/icons/TeamOutlined';
+import FileTextOutlined from '@ant-design/icons/FileTextOutlined';
+import FormOutlined from '@ant-design/icons/FormOutlined';
+import BookOutlined from '@ant-design/icons/BookOutlined';
+import FileDoneOutlined from '@ant-design/icons/FileDoneOutlined';
+import LogoutOutlined from '@ant-design/icons/LogoutOutlined';
+import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
+import UploadOutlined from '@ant-design/icons/UploadOutlined';
+import SettingOutlined from '@ant-design/icons/SettingOutlined';
+import FileProtectOutlined from '@ant-design/icons/FileProtectOutlined';
+import ProjectOutlined from '@ant-design/icons/ProjectOutlined';
+import BarChartOutlined from '@ant-design/icons/BarChartOutlined';
+import CalendarOutlined from '@ant-design/icons/CalendarOutlined';
+import DownloadOutlined from '@ant-design/icons/DownloadOutlined';
+import FunnelPlotOutlined from '@ant-design/icons/FunnelPlotOutlined';
+import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
 import React from 'react';
 
 // สร้างเมนูหลัก (อ้างอิงจาก Sidebar.js ปัจจุบันเป็นแหล่งจริง)

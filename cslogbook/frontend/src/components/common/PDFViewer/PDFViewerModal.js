@@ -1,6 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { Modal, Button, Slider, Space, Typography, Tooltip } from 'antd';
-import { ZoomInOutlined, ZoomOutOutlined, ReloadOutlined, FileOutlined } from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import ZoomInOutlined from '@ant-design/icons/ZoomInOutlined';
+import ZoomOutOutlined from '@ant-design/icons/ZoomOutOutlined';
+import ReloadOutlined from '@ant-design/icons/ReloadOutlined';
+import FileOutlined from '@ant-design/icons/FileOutlined';
 import PDFViewer from './PDFViewer';
 
 const { Text } = Typography;

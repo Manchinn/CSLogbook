@@ -5,64 +5,110 @@ import { useAuth } from './AuthContext';
 
 const StudentEligibilityContext = createContext();
 
+// Cache configuration (js-cache-storage)
+const CACHE_KEY = 'studentEligibilityCache';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+
+// Helper functions for localStorage cache
+const getCache = (studentCode) => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const { data, timestamp, forStudent } = JSON.parse(cached);
+    // Check if cache is for the same student and still valid
+    if (forStudent === studentCode && Date.now() - timestamp < CACHE_TTL_MS) {
+      return data;
+    }
+    // Cache expired or different student, remove it
+    localStorage.removeItem(CACHE_KEY);
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const setCache = (data, studentCode) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      data,
+      timestamp: Date.now(),
+      forStudent: studentCode
+    }));
+  } catch {
+    // Ignore storage errors
+  }
+};
+
 export const useStudentEligibility = () => {
   return useContext(StudentEligibilityContext);
 };
 
-export const StudentEligibilityProvider = ({ children }) => {
-  const { userData } = useAuth();
-  const [eligibility, setEligibility] = useState({
-    canAccessInternship: false,
-    canAccessProject: false,
-    canRegisterInternship: false,
-    canRegisterProject: false,
-    internshipReason: null,
-    projectReason: null,
-    requirements: null,
-    academicSettings: null,
-    // เพิ่ม messages สำหรับให้ Sidebar/หน้า UI ใช้ (คีย์ internship, project)
-    messages: {},
-  // เพิ่มเติม: เก็บข้อมูลสถานะหน่วยกิตและข้อมูลนักศึกษาเพื่อนำไปใช้แสดงผลในหน้า Eligibility
+const defaultEligibility = {
+  canAccessInternship: false,
+  canAccessProject: false,
+  canRegisterInternship: false,
+  canRegisterProject: false,
+  internshipReason: null,
+  projectReason: null,
+  requirements: null,
+  academicSettings: null,
+  messages: {},
   status: null,
   student: null,
-    isLoading: true,
-    lastUpdated: null
-  });
+  isLoading: true,
+  lastUpdated: null
+};
 
-  const lastFetchRef = useRef(null);
+export const StudentEligibilityProvider = ({ children }) => {
+  const { userData } = useAuth();
+  const isFetchingRef = useRef(false);
+  
+  // Lazy state initialization with cache (rerender-lazy-state-init)
+  const [eligibility, setEligibility] = useState(() => {
+    if (userData?.role === 'student' && userData?.studentCode) {
+      const cached = getCache(userData.studentCode);
+      if (cached) {
+        return { ...cached, isLoading: false };
+      }
+    }
+    return defaultEligibility;
+  });
 
   const fetchEligibility = useCallback(async (showMessage = false, force = false) => {
     if (!userData || userData.role !== 'student') {
-      console.log('StudentEligibilityContext: fetchEligibility skipped - no userData or not a student', { userData }); // <--- LOG HERE
       setEligibility(prev => ({
         ...prev,
-        isLoading: false, // Ensure loading is set to false if skipped
-        canAccessInternship: false, // Reset to default if skipped
+        isLoading: false,
+        canAccessInternship: false,
         canAccessProject: false,
-        // ... reset other relevant fields if necessary
       }));
       return;
     }
 
-    // Simple cache: หากเพิ่งดึงภายใน 5 นาทีและไม่ force ให้ข้าม
-    const now = Date.now();
-    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 5 * 60 * 1000)) {
-      console.log('StudentEligibilityContext: Skip fetch (cached, <5m)');
-      if (showMessage) message.info('ข้อมูลสิทธิ์เป็นข้อมูลล่าสุดแล้ว');
-      setEligibility(prev => ({ ...prev, isLoading: false }));
-      return;
+    // Prevent concurrent fetches
+    if (isFetchingRef.current && !force) return;
+
+    // Check localStorage cache first (unless forced)
+    if (!force) {
+      const cached = getCache(userData.studentCode);
+      if (cached) {
+        console.log('StudentEligibilityContext: Using localStorage cache');
+        if (showMessage) message.info('ข้อมูลสิทธิ์เป็นข้อมูลล่าสุดแล้ว');
+        setEligibility({ ...cached, isLoading: false });
+        return;
+      }
     }
 
-    console.log('StudentEligibilityContext: Starting fetchEligibility...'); // <--- LOG HERE
+    isFetchingRef.current = true;
+    console.log('StudentEligibilityContext: Starting fetchEligibility...');
     setEligibility(prev => ({ ...prev, isLoading: true }));
 
     try {
   const response = await apiClient.get('/students/check-eligibility');
 
       if (response.data.success) {
-        console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS):', response.data); // <--- LOG HERE
-        lastFetchRef.current = Date.now();
-        setEligibility({
+        console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS)');
+        const newEligibility = {
           canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
           canAccessProject: response.data.eligibility.project.canAccessFeature || false,
           canRegisterInternship: response.data.eligibility.internship.canRegister || false,
@@ -72,25 +118,22 @@ export const StudentEligibilityProvider = ({ children }) => {
           requirements: response.data.requirements,
           academicSettings: response.data.academicSettings,
           status: response.data.status || null,
-           // เก็บข้อมูลนักศึกษาเพื่อ fallback กรณี status ไม่มีค่า currentCredits
           student: response.data.student || null,
-          // map reason -> messages เพื่อรองรับ component เดิมที่อ้าง messages?.project / messages?.internship
           messages: {
             internship: response.data.eligibility.internship.reason || null,
             project: response.data.eligibility.project.reason || null,
           },
           isLoading: false,
           lastUpdated: new Date()
-        });
-        console.log('StudentEligibilityContext: State AFTER successful setEligibility:', { // <--- LOG HERE
-          canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
-          // ... (log other relevant parts of the new state)
-        });
+        };
+        // Save to localStorage cache
+        setCache(newEligibility, userData.studentCode);
+        setEligibility(newEligibility);
         if (showMessage) {
           message.success('อัพเดตข้อมูลสิทธิ์การเข้าถึงระบบเรียบร้อยแล้ว');
         }
       } else {
-        console.warn('StudentEligibilityContext: Eligibility API call NOT successful:', response.data); // <--- LOG HERE
+        console.warn('StudentEligibilityContext: Eligibility API response not successful');
         setEligibility(prev => ({
           ...prev,
           isLoading: false,
@@ -108,13 +151,13 @@ export const StudentEligibilityProvider = ({ children }) => {
         }
       }
     } catch (error) {
-      console.error('StudentEligibilityContext: Error fetching eligibility:', error.response ? error.response.data : error.message); // <--- LOG HERE (ดู error.response.data ด้วย)
+      console.error('StudentEligibilityContext: Error fetching eligibility:', error.response?.data || error.message);
       setEligibility(prev => ({
         ...prev,
         isLoading: false,
         internshipReason: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
         projectReason: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
-        canAccessInternship: false, // Reset on error
+        canAccessInternship: false,
         canAccessProject: false,
         messages: {
           internship: 'เกิดข้อผิดพลาดในการโหลดข้อมูลสิทธิ์',
@@ -124,13 +167,21 @@ export const StudentEligibilityProvider = ({ children }) => {
       if (showMessage) {
         message.error('เกิดข้อผิดพลาดในการเชื่อมต่อเพื่ออัพเดตข้อมูลสิทธิ์');
       }
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [userData]); // keep stable
+  }, [userData]);
 
   useEffect(() => {
-    console.log('StudentEligibilityContext: useEffect triggered, calling fetchEligibility. userData:', userData); // <--- LOG HERE
-    fetchEligibility();
-    const intervalId = setInterval(() => fetchEligibility(), 6 * 60 * 60 * 1000);
+    // Only fetch if we don't have valid cached data
+    if (userData?.role === 'student' && userData?.studentCode) {
+      const cached = getCache(userData.studentCode);
+      if (!cached) {
+        fetchEligibility();
+      }
+    }
+    // Refresh every 6 hours
+    const intervalId = setInterval(() => fetchEligibility(false, true), 6 * 60 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [userData, fetchEligibility]); // fetchEligibility is stable due to useCallback
 

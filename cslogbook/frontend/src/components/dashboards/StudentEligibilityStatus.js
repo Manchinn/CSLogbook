@@ -1,14 +1,13 @@
 import React from 'react';
 import { Card, Row, Col, Statistic, Button, Divider, Alert, Tag, Typography, Tooltip, Spin, Popover } from 'antd';
-import { 
-  CheckCircleOutlined, 
-  ClockCircleOutlined, 
-  InfoCircleOutlined, 
-  ReloadOutlined,
-  RightOutlined,
-  WarningOutlined,
-  ExclamationCircleOutlined
-} from '@ant-design/icons';
+// Use direct imports instead of barrel files for better performance (bundle-barrel-imports)
+import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
+import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
+import InfoCircleOutlined from '@ant-design/icons/InfoCircleOutlined';
+import ReloadOutlined from '@ant-design/icons/ReloadOutlined';
+import RightOutlined from '@ant-design/icons/RightOutlined';
+import WarningOutlined from '@ant-design/icons/WarningOutlined';
+import ExclamationCircleOutlined from '@ant-design/icons/ExclamationCircleOutlined';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import './Dashboard.css';
@@ -17,7 +16,7 @@ const { Text, Paragraph } = Typography;
 
 /**
  * Component แสดงสถานะสิทธิ์การลงทะเบียนฝึกงานและโครงงานพิเศษของนักศึกษา
- * ใช้ข้อมูลจาก useStudentPermissions hook
+ * ใช้ข้อมูลจาก StudentEligibilityContext
  */
 const StudentEligibilityStatus = ({ 
   canAccessInternship, 
