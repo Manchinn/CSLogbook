@@ -108,12 +108,14 @@ const SSOCallback = () => {
 
           // จัดการเส้นทางปลายทางตามบทบาทผู้ใช้
           let targetPath = redirectPath;
-          if (targetPath === '/dashboard') {
-            const role = payload.role;
-            const teacherType = payload.teacherType;
+          if (!targetPath || targetPath === '/' || targetPath === '/dashboard') {
+            const role = userData.role;
+            const teacherType = userData.teacherType;
 
             if (role === 'admin' || (role === 'teacher' && teacherType === 'support')) {
               targetPath = '/admin/dashboard';
+            } else {
+              targetPath = '/dashboard';
             }
           }
 
