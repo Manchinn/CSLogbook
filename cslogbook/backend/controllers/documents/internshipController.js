@@ -178,29 +178,7 @@ exports.getCS05ById = async (req, res) => {
  */
 exports.submitCompanyInfo = async (req, res) => {
   try {
-    const {
-      documentId,
-      supervisorName,
-      supervisorPosition,
-      supervisorPhone,
-      supervisorEmail,
-    } = req.body;
     const userId = req.user.userId;
-
-    // ตรวจสอบข้อมูลที่จำเป็น
-    if (!documentId) {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่พบรหัสเอกสาร CS05",
-      });
-    }
-
-    if (!supervisorName || !supervisorPhone || !supervisorEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน",
-      });
-    }
 
     // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
     const validatedData = req.validated || req.body;
@@ -213,7 +191,22 @@ exports.submitCompanyInfo = async (req, res) => {
     } = validatedData;
     
     // ใช้ documentId จาก validated หรือ params
-    const finalDocumentId = validatedDocumentId || documentId;
+    const finalDocumentId = validatedDocumentId || req.body?.documentId;
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!finalDocumentId) {
+      return res.status(400).json({
+        success: false,
+        message: "ไม่พบรหัสเอกสาร CS05",
+      });
+    }
+
+    if (!supervisorName || !supervisorPhone || !supervisorEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "กรุณากรอกข้อมูลผู้ควบคุมงานให้ครบถ้วน",
+      });
+    }
     
     // แก้ไข: ส่งพารามิเตอร์ในลำดับที่ถูกต้อง
     const result = await internshipManagementService.submitCompanyInfo(
