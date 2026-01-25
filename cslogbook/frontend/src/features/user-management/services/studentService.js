@@ -1,6 +1,19 @@
 import apiClient from "services/apiClient";
 
 export const studentService = {
+  // ตรวจสอบสิทธิ์การเข้าถึงระบบ (สำหรับ internship และ project)
+  checkEligibility: async () => {
+    try {
+      const response = await apiClient.get('/students/check-eligibility');
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 
+        'ไม่สามารถตรวจสอบสิทธิ์ได้'
+      );
+    }
+  },
+
   // ดึงข้อมูลสิทธิ์และข้อมูลนักศึกษา
   getStudentInfo: async (studentCode) => {
     try {

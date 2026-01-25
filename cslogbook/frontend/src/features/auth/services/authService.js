@@ -38,6 +38,19 @@ const authService = {
   logout: () => {
     localStorage.clear();
   },
+
+  // ตรวจสอบสถานะ SSO
+  checkSSOStatus: async () => {
+    try {
+      const response = await apiClient.get('/auth/sso/status');
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 
+        'ไม่สามารถตรวจสอบสถานะ SSO ได้'
+      );
+    }
+  },
 };
 
 export default authService;

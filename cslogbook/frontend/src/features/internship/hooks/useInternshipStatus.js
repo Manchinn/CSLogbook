@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import apiClient from 'services/apiClient';
+import internshipService from '../services/internshipService';
 
 export const useInternshipStatus = () => {
   const [status, setStatus] = useState([]);
@@ -7,8 +7,8 @@ export const useInternshipStatus = () => {
 
   const fetchStatus = async () => {
     try {
-  const response = await apiClient.get('/internship-registration/flow');
-      setStatus(response.data);
+      const response = await internshipService.getRegistrationFlow();
+      setStatus(response);
     } catch (error) {
       console.error('Error fetching status:', error);
     } finally {

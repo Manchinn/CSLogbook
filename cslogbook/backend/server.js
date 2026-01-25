@@ -98,7 +98,8 @@ const ENV = {
   PORT: parseInt(process.env.PORT, 10),
   FRONTEND_URL: process.env.FRONTEND_URL,
   UPLOAD_DIR: process.env.UPLOAD_DIR,
-  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE, 10)
+  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE, 10),
+  BASE_URL: process.env.BASE_URL // Optional: Set in .env for production
 };
 
 // --- Preflight Migration Check (สำคัญ: ตรวจ schema important_deadlines มี policy fields ก่อน start) ---
@@ -381,14 +382,17 @@ app.post('/upload-with-info', upload.single('file'), (req, res) => {
     return res.status(400).send('No company info provided');
   }
 
-  const fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  // Use BASE_URL from env or construct from request
+  const baseUrl = ENV.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
   res.json({ fileUrl, companyInfo: JSON.parse(companyInfo) });
 });
 
 // API สำหรับดึง URL ของไฟล์ PDF
 app.get('/get-pdf-url', (req, res) => {
   // ตัวอย่างการดึง URL ของไฟล์ PDF จากฐานข้อมูล
-  const fileUrl = 'http://localhost:5000/uploads/11f0792f49b68ca6e50194c134637904';
+  const baseUrl = ENV.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const fileUrl = `${baseUrl}/uploads/11f0792f49b68ca6e50194c134637904`;
   res.json({ fileUrl });
 });
 

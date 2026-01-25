@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
-import apiClient from '../../../../services/apiClient';
+import authService from '../../services/authService';
 import styles from './LoginForm.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -44,8 +44,8 @@ const LoginForm = () => {
   useEffect(() => {
     const checkSSOStatus = async () => {
       try {
-        const response = await apiClient.get('/auth/sso/status');
-        setSsoEnabled(response.data.ssoEnabled);
+        const response = await authService.checkSSOStatus();
+        setSsoEnabled(response.ssoEnabled);
       } catch (error) {
         console.error('Error checking SSO status:', error);
         setSsoEnabled(false);
@@ -100,29 +100,29 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      const result = await apiClient.post('/auth/login', values);
+      const result = await authService.login(values);
 
-      if (result.data.success) {
+      if (result.success) {
         // ใช้ logic เดียวกับ SSOCallback ในการ login
         const userData = {
-          userId: result.data.userId,
-          role: result.data.role,
-          studentId: result.data.studentID, // Note: API returns studentID or teacherId
-          teacherId: result.data.teacherId,
-          teacherType: result.data.teacherType,
-          firstName: result.data.firstName,
-          lastName: result.data.lastName,
-          email: result.data.email,
-          isSystemAdmin: result.data.isSystemAdmin
+          userId: result.userId,
+          role: result.role,
+          studentId: result.studentID, // Note: API returns studentID or teacherId
+          teacherId: result.teacherId,
+          teacherType: result.teacherType,
+          firstName: result.firstName,
+          lastName: result.lastName,
+          email: result.email,
+          isSystemAdmin: result.isSystemAdmin
         };
         
         await login({
-          token: result.data.token,
+          token: result.token,
           userData
         });
         
         // Redirect logic based on role
-        let targetPath = result.data.redirectPath || '/dashboard';
+        let targetPath = result.redirectPath || '/dashboard';
         
         // ถ้าเป็น Admin หรือ เจ้าหน้าที่ (Teacher Type = support) ให้ไป Admin Dashboard
         if (userData.role === 'admin' || (userData.role === 'teacher' && userData.teacherType === 'support')) {

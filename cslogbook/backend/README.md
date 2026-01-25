@@ -1,24 +1,36 @@
 # CS Logbook Backend
 
-ระบบ Backend สำหรับแอพพลิเคชัน CS Logbook
+ระบบ Backend API สำหรับแอพพลิเคชัน CS Logbook  
+สร้างด้วย Node.js + Express.js และ Sequelize ORM
 
-## การติดตั้ง
+## 📋 ภาพรวม
 
-1. Clone repository
+Backend API server ที่ให้บริการ RESTful API สำหรับระบบจัดการเอกสารฝึกงานและโครงงานพิเศษ ใช้ MySQL 8.0 เป็นฐานข้อมูล และรองรับการทำงานแบบ real-time ผ่าน Socket.io
+
+## 🚀 การติดตั้ง
+
+### Prerequisites
+- Node.js >= 18.x
+- MySQL 8.0
+- npm หรือ yarn
+
+### 1. Clone Repository
 ```bash
 git clone <repository-url>
 cd cslogbook/backend
 ```
 
-2. ติดตั้ง dependencies
+### 2. ติดตั้ง Dependencies
 ```bash
 npm install
 ```
 
-3. ตั้งค่า environment variables
+### 3. ตั้งค่า Environment Variables
 ```bash
 npm run setup  # จะทำการ copy .env.example ไปเป็น .env.development
 ```
+
+แก้ไขไฟล์ `.env.development` ตามความเหมาะสม
 
 ## Environment Variables
 
@@ -53,17 +65,98 @@ npm run setup  # จะทำการ copy .env.example ไปเป็น .env
 - `UPLOAD_DIR`: directory สำหรับเก็บไฟล์ที่อัพโหลด (default: uploads/)
 - `MAX_FILE_SIZE`: ขนาดไฟล์สูงสุดที่อัพโหลดได้ในหน่วย bytes (default: 5MB)
 
-## การรัน
+## 💻 การรัน
 
-Development mode:
+### Development Mode
 ```bash
 npm run dev
 ```
+Server จะรันที่ `http://localhost:5000` (หรือตาม PORT ที่กำหนด)
 
-Production mode:
+### Production Mode
 ```bash
 npm run build
 npm start
+```
+
+### Database Setup
+```bash
+# รัน migrations
+npm run migrate
+
+# รัน seeders (ข้อมูลเริ่มต้น)
+npm run seed
+
+# ตรวจสอบการเชื่อมต่อและ models
+npm run db:check:all
+```
+
+## 📁 โครงสร้างโปรเจค
+
+```
+backend/
+├── controllers/          # Request handlers
+│   ├── documents/        # Document controllers
+│   └── logbooks/        # Logbook controllers
+│
+├── services/            # Business logic layer
+│   ├── internshipService.js
+│   ├── projectService.js
+│   ├── workflowService.js
+│   └── ...
+│
+├── models/              # Sequelize models
+│   ├── User.js
+│   ├── Student.js
+│   ├── ProjectDocument.js
+│   └── ...
+│
+├── routes/              # API routes
+│   ├── authRoutes.js
+│   ├── adminRoutes.js
+│   ├── studentRoutes.js
+│   ├── teacherRoutes.js
+│   ├── projectRoutes.js
+│   ├── documents/       # Document routes
+│   └── ...
+│
+├── middleware/          # Express middleware
+│   ├── authMiddleware.js
+│   ├── rateLimiter.js
+│   └── ...
+│
+├── agents/              # Background agents
+│   ├── schedulers/      # Scheduled tasks
+│   ├── monitors/        # System monitors
+│   └── index.js
+│
+├── migrations/          # Database migrations
+│   └── YYYYMMDDHHMMSS-description.js
+│
+├── seeders/             # Database seeders
+│   ├── dev/             # Development seeders
+│   └── production/       # Production seeders
+│
+├── scripts/             # Utility scripts
+│   ├── setupDeadlineMappings.js
+│   └── ...
+│
+├── utils/               # Utility functions
+│   ├── validateEnv.js
+│   └── ...
+│
+├── config/              # Configuration files
+│   ├── database.js
+│   ├── jwt.js
+│   └── ...
+│
+├── templates/           # Email templates
+│   └── *.html
+│
+├── uploads/             # Uploaded files
+├── logs/                # Application logs
+├── app.js               # Express app configuration
+└── server.js            # Server entry point
 ```
 
 ## API Documentation
@@ -174,12 +267,79 @@ Server จะทำการตรวจสอบค่า environment variables
 
 หากพบข้อผิดพลาด server จะไม่เริ่มทำงานและแสดงข้อความแจ้งเตือนที่เหมาะสม
 
-## Utility Scripts
+## 🛠️ Database Management
+
+### Migrations
+```bash
+# รัน migrations ทั้งหมด
+npm run migrate
+
+# Rollback migration ล่าสุด
+npm run migrate:undo
+
+# สร้าง migration ใหม่
+npm run migrate:create <migration-name>
+
+# ตรวจสอบสถานะ migrations
+npm run migrate:status
+```
+
+### Seeders
+```bash
+# รัน seeders ทั้งหมด
+npm run seed
+
+# รัน seeder เฉพาะ
+npm run seed:one <seeder-name>
+
+# Rollback seeder
+npm run seed:undo:one <seeder-name>
+
+# Development seeders
+npm run seed:dev
+
+# Production seeders
+npm run seed:prod
+```
+
+### Database Checks
+```bash
+# ตรวจสอบการเชื่อมต่อ database
+npm run db:check
+
+# ตรวจสอบ models
+npm run db:check:models
+
+# ตรวจสอบทั้งหมด
+npm run db:check:all
+```
+
+## 🤖 Background Agents
+
+ระบบมี Background Agents สำหรับทำงานตามกำหนดเวลา:
+
+### Schedulers
+- **deadlineReminderAgent**: ส่งแจ้งเตือน deadlines
+- **eligibilityScheduler**: อัพเดทคุณสมบัติของนักศึกษา
+- **academicSemesterScheduler**: อัพเดทภาคเรียนปัจจุบันอัตโนมัติ
+- **projectPurgeScheduler**: ลบข้อมูลโครงงานที่หมดอายุ
+
+### Monitors
+- **documentStatusMonitor**: ติดตามสถานะเอกสาร
+- **logbookQualityMonitor**: ติดตามคุณภาพ logbook
+- **securityMonitor**: ติดตามความปลอดภัย
+
+### การเปิดใช้งาน Agents
+ตั้งค่า environment variable:
+```bash
+ENABLE_AGENTS=true
+# หรือเปิดเฉพาะ agent
+ACADEMIC_AUTO_UPDATE_ENABLED=true
+```
+
+## 📜 Utility Scripts
 
 ### Important Deadlines Management
-
-ระบบมีเครื่องมือสำหรับการจัดการ Important Deadlines และการเชื่อมโยงกับเอกสาร:
-
 ```bash
 # ดูรายการ deadlines ทั้งหมด
 node scripts/setupDeadlineMappings.js list-deadlines
@@ -190,7 +350,7 @@ node scripts/setupDeadlineMappings.js list-mappings
 # สร้าง mappings ใหม่ (ต้องแก้ไข config ในไฟล์ก่อน)
 node scripts/setupDeadlineMappings.js setup
 
-# Backfill เอกสารเก่า (ต้องสร้างไฟล์ backfillDocumentDeadlines.js ก่อน)
+# Backfill เอกสารเก่า
 node scripts/backfillDocumentDeadlines.js
 ```
 
@@ -198,3 +358,106 @@ node scripts/backfillDocumentDeadlines.js
 - `../knowledge/DEADLINE_LINKING_SUMMARY.md` - สรุประบบและวิธีใช้งาน
 - `../knowledge/DEADLINE_DOCUMENT_LINKING_GUIDE.md` - คู่มือโดยละเอียด
 - `../knowledge/deadlines_system_spec.md` - สเปกระบบฉบับเต็ม
+
+## 🐳 Docker Deployment
+
+### Development
+```bash
+docker-compose up -d backend
+```
+
+### Production
+```bash
+# Build image
+docker-compose -f docker-compose.production.yml build backend
+
+# Start container
+docker-compose -f docker-compose.production.yml up -d backend
+
+# View logs
+docker-compose -f docker-compose.production.yml logs -f backend
+```
+
+## 📦 Tech Stack
+
+### Core
+- **Node.js**: >= 18.x
+- **Express.js**: 4.21.1
+- **Sequelize**: 6.37.6 (ORM)
+
+### Database
+- **MySQL**: 8.0
+- **mysql2**: 3.13.0
+
+### Authentication & Security
+- **jsonwebtoken**: 9.0.2 (JWT)
+- **bcrypt**: 5.1.1 (Password hashing)
+- **express-rate-limit**: 7.5.0 (Rate limiting)
+- **express-validator**: 7.2.1 (Input validation)
+
+### Email
+- **nodemailer**: 6.9.16
+- **SendGrid**: (via API)
+
+### Real-time
+- **socket.io**: 4.8.0
+
+### File Processing
+- **multer**: 1.4.5-lts.1 (File upload)
+- **pdfkit**: 0.17.1 (PDF generation)
+- **exceljs**: 4.4.0 (Excel processing)
+- **xlsx**: 0.18.5 (Excel parsing)
+
+### Scheduling
+- **node-cron**: 3.0.3
+- **node-schedule**: 2.1.1
+
+### Documentation
+- **swagger-jsdoc**: 6.2.8
+- **swagger-ui-express**: 5.0.1
+
+### Utilities
+- **dayjs**: 1.11.13 (Date manipulation)
+- **moment-timezone**: 0.5.47 (Timezone handling)
+- **joi**: 17.13.3 (Schema validation)
+- **winston**: 3.17.0 (Logging)
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm run test
+
+# Run tests with coverage
+npm run test:cov
+```
+
+## 🔍 Troubleshooting
+
+### Database Connection Issues
+- ตรวจสอบ database credentials ใน `.env.development`
+- ตรวจสอบว่า MySQL service กำลังรันอยู่
+- ตรวจสอบ port และ host
+
+### JWT Errors
+- ตรวจสอบว่า `JWT_SECRET` มีความยาว >= 32 ตัวอักษร
+- ตรวจสอบ token expiration
+
+### File Upload Issues
+- ตรวจสอบ `UPLOAD_DIR` permissions
+- ตรวจสอบ `MAX_FILE_SIZE` setting
+- ตรวจสอบ disk space
+
+### Agent Not Running
+- ตรวจสอบ `ENABLE_AGENTS=true` ใน environment variables
+- ตรวจสอบ logs ใน `logs/` directory
+- ตรวจสอบว่า agents ถูก start ใน `server.js`
+
+## 📝 Important Notes
+
+- ⚠️ **ห้าม commit ไฟล์ `.env` หรือ `.env.development`**
+- ✅ ใช้ `.env.example` เป็น template
+- ✅ ตรวจสอบ environment variables ก่อนรัน server
+- ✅ ใช้ migrations สำหรับการเปลี่ยนแปลง database schema
+- ✅ ใช้ seeders สำหรับข้อมูลเริ่มต้น
+- ✅ ตรวจสอบ logs เมื่อเกิดปัญหา

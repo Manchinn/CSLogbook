@@ -1,5 +1,5 @@
 // AdvisorWorkloadDetailReport.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Card, Row, Col, Typography, Space, Alert, Table, Tag, 
   Skeleton, Empty, Modal, Descriptions, Badge, Button, Statistic
@@ -11,58 +11,35 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import { SimpleBarChart } from './charts/RechartsComponents';
-import apiClient from 'services/apiClient';
+import { useAdvisorWorkload, useAdvisorDetail } from '../../hooks/useAdvisorWorkload';
 
 const { Title, Text } = Typography;
 
 const AdvisorWorkloadDetailReport = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [advisorData, setAdvisorData] = useState([]);
+  const { advisorData, loading, error, refresh } = useAdvisorWorkload();
+  const { 
+    advisorDetail, 
+    detailLoading, 
+    detailError, 
+    loadAdvisorDetail, 
+    clearDetail 
+  } = useAdvisorDetail();
+  
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAdvisor, setSelectedAdvisor] = useState(null);
-  const [advisorDetail, setAdvisorDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
 
-  // Load Advisor Workload
-  const loadAdvisorLoad = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.get('/reports/advisors/workload');
-      console.log('Advisor workload response:', response.data.data); // Debug log
-      const advisors = response.data.data?.advisors || [];
-      console.log('First advisor:', advisors[0]); // Debug log
-      setAdvisorData(advisors);
-    } catch (err) {
-      setError(err.response?.data?.error || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
-    } finally {
-      setLoading(false);
-    }
+  const handleViewDetail = (record) => {
+    console.log('Selected advisor record:', record); // Debug log
+    setSelectedAdvisor(record);
+    setDetailModalVisible(true);
+    loadAdvisorDetail(record.teacherId);
   };
 
-  // Load Advisor Detail
-  const loadAdvisorDetail = async (teacherId) => {
-    if (!teacherId || isNaN(teacherId)) {
-      console.error('Invalid teacherId:', teacherId);
-      setError('รหัสอาจารย์ไม่ถูกต้อง');
-      return;
-    }
-    try {
-      setDetailLoading(true);
-      const response = await apiClient.get(`/reports/advisors/${teacherId}/detail`);
-      setAdvisorDetail(response.data.data);
-    } catch (err) {
-      console.error('Error loading advisor detail:', err);
-      setError(err.response?.data?.error || 'ไม่สามารถโหลดรายละเอียดอาจารย์ได้');
-    } finally {
-      setDetailLoading(false);
-    }
+  const handleCloseModal = () => {
+    setDetailModalVisible(false);
+    setSelectedAdvisor(null);
+    clearDetail();
   };
-
-  useEffect(() => {
-    loadAdvisorLoad();
-  }, []);
 
   // Workload Balance Chart - แสดงเฉพาะที่ปรึกษาหลักและร่วม
   const workloadChartData = useMemo(() => {
@@ -148,16 +125,11 @@ const AdvisorWorkloadDetailReport = () => {
       key: 'actions',
       fixed: 'right',
       width: 100,
-      render: (_, record) => (
+          render: (_, record) => (
         <Button 
           type="link" 
           icon={<EyeOutlined />}
-          onClick={() => {
-            console.log('Selected advisor record:', record); // Debug log
-            setSelectedAdvisor(record);
-            setDetailModalVisible(true);
-            loadAdvisorDetail(record.teacherId);
-          }}
+          onClick={() => handleViewDetail(record)}
         >
           รายละเอียด
         </Button>
@@ -193,14 +165,20 @@ const AdvisorWorkloadDetailReport = () => {
           </Col>
           <Col>
             <ReloadOutlined 
-              onClick={loadAdvisorLoad} 
+              onClick={refresh} 
               style={{ fontSize: 18, cursor: 'pointer', color: '#1890ff' }}
               spin={loading}
             />
           </Col>
         </Row>
 
-        {error && <Alert type="error" message={error} showIcon />}
+        {(error || detailError) && (
+          <Alert 
+            type="error" 
+            message={error || detailError} 
+            showIcon 
+          />
+        )}
 
         {/* Summary Cards */}
         <Row gutter={[16, 16]}>
@@ -295,16 +273,14 @@ const AdvisorWorkloadDetailReport = () => {
           </Space>
         }
         open={detailModalVisible}
-        onCancel={() => {
-          setDetailModalVisible(false);
-          setSelectedAdvisor(null);
-          setAdvisorDetail(null);
-        }}
+        onCancel={handleCloseModal}
         footer={null}
         width={1000}
       >
         {detailLoading ? (
           <Skeleton active />
+        ) : (detailError ? (
+          <Alert type="error" message={detailError} showIcon />
         ) : advisorDetail ? (
           <Space direction="vertical" style={{ width: '100%' }} size="large">
             {/* Teacher Info */}
@@ -424,7 +400,7 @@ const AdvisorWorkloadDetailReport = () => {
           </Space>
         ) : (
           <Empty description="ไม่มีข้อมูล" />
-        )}
+        ))}
       </Modal>
     </div>
   );

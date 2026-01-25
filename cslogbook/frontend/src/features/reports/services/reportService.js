@@ -56,3 +56,15 @@ export async function getEnrolledInternshipStudents(params = {}) {
   const res = await apiClient.get(`/reports/internships/enrolled-students`, { params: { year } });
   return res.data.data;
 }
+
+// รายงานภาระงานอาจารย์ที่ปรึกษา
+export async function getAdvisorWorkload() {
+  const res = await apiClient.get('/reports/advisors/workload');
+  return res.data.data;
+}
+
+// รายละเอียดภาระงานอาจารย์ที่ปรึกษาแต่ละคน
+export async function getAdvisorDetail(teacherId) {
+  const res = await apiClient.get(`/reports/advisors/${teacherId}/detail`);
+  return res.data.data;
+}

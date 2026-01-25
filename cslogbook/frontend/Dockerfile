@@ -13,6 +13,14 @@ RUN npm install
 # คัดลอกโค้ดที่เหลือ
 COPY . .
 
+# รับ Argument จาก docker-compose
+ARG REACT_APP_API_URL
+ARG REACT_APP_UPLOAD_URL
+
+# ตั้งค่า Environment Variable ใน Image (เพื่อให้ npm run build มองเห็น)
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_UPLOAD_URL=$REACT_APP_UPLOAD_URL
+
 # สร้างแอปพลิเคชัน
 RUN npm run build
 

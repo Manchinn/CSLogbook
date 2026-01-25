@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Typography,
@@ -15,13 +15,12 @@ import {
   Modal,
 } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
-import { timelineService } from "services/timelineService";
-import { DEFAULT_STUDENT_DATA, DEFAULT_PROGRESS_DATA } from "./helpers";
+import { SearchOutlined } from '@ant-design/icons';
+import { InternshipStatusProvider } from 'contexts/InternshipStatusContext';
+import { useStudentTimeline } from '../../../hooks/useStudentTimeline';
 import EducationPath from "./EducationPath";
 import InternshipSection from "./InternshipSection";
 import ProjectSection from "./ProjectSection";
-import { SearchOutlined } from '@ant-design/icons';
-import { InternshipStatusProvider } from 'contexts/InternshipStatusContext';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -35,18 +34,22 @@ const StudentTimeline = () => {
     studentIdToUse = parseInt(studentIdToUse);
   }
 
-  const [student, setStudent] = useState(DEFAULT_STUDENT_DATA);
-  const [progress, setProgress] = useState(DEFAULT_PROGRESS_DATA);
+  const {
+    student,
+    progress,
+    loading,
+    error,
+    showStudentSearchModal,
+    setShowStudentSearchModal,
+    searchStudent
+  } = useStudentTimeline(studentIdToUse);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showStudentSearchModal, setShowStudentSearchModal] = useState(false);
   const [searchStudentId, setSearchStudentId] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchForm] = Form.useForm(); // เพิ่ม useForm hook
+  const [searchForm] = Form.useForm();
 
   // ฟังก์ชั่นค้นหานักศึกษาด้วยรหัสใหม่
-  const searchStudent = async () => {
+  const handleSearchStudent = async () => {
     if (!searchStudentId || searchStudentId.trim() === "") {
       message.warning("กรุณากรอกรหัสนักศึกษา");
       return;
@@ -54,15 +57,11 @@ const StudentTimeline = () => {
 
     setSearchLoading(true);
     try {
-      // อาจเรียกใช้ API สำหรับตรวจสอบนักศึกษาก่อน
-      const studentExists = await timelineService.checkStudentExists(searchStudentId);
-
-      if (studentExists && studentExists.success) {
-        // ถ้าพบนักศึกษา บันทึกรหัสลงใน localStorage และเปลี่ยนหน้า
-        localStorage.setItem("studentId", searchStudentId);
+      const result = await searchStudent(searchStudentId);
+      if (result.success) {
         navigate(`/student/timeline/${searchStudentId}`);
       } else {
-        message.error("ไม่พบข้อมูลนักศึกษาในระบบ");
+        message.error(result.message || "ไม่พบข้อมูลนักศึกษาในระบบ");
       }
     } catch (error) {
       message.error("เกิดข้อผิดพลาดในการค้นหา: " + error.message);
@@ -70,65 +69,6 @@ const StudentTimeline = () => {
       setSearchLoading(false);
     }
   };
-
-  useEffect(() => {
-    const fetchTimelineData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        console.log("=== TIMELINE DATA ===");
-        console.log("Fetching timeline for student:", studentIdToUse);
-
-        const response = await timelineService.getStudentTimeline(studentIdToUse);
-        console.log("API Response:", response);
-
-        if (response && response.success) {
-          if (response.data && response.data.student) {
-            // บันทึก studentId จริงลงใน localStorage เพื่อใช้ต่อไป
-            if (response.data.student.studentId) {
-              localStorage.setItem("studentId", response.data.student.studentId);
-            } else if (response.data.student.id) {
-              localStorage.setItem("studentId", response.data.student.id);
-            }
-
-            setStudent((prev) => ({
-              ...prev,
-              ...response.data.student,
-            }));
-          }
-
-          if (response.data && response.data.progress) {
-            setProgress(response.data.progress);
-          }
-
-
-        } else {
-          setError(response?.message || "ไม่สามารถโหลดข้อมูล timeline ได้");
-          console.log("API response error:", response?.message);
-
-          // เมื่อไม่พบข้อมูลนักศึกษา แสดง modal ค้นหา
-          if (response?.message?.includes("ไม่พบนักศึกษา") ||
-            response?.message?.includes("Student not found")) {
-            setShowStudentSearchModal(true);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching timeline data:", error);
-        setError(error.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (studentIdToUse) {
-      fetchTimelineData();
-    } else {
-      setError("ไม่พบรหัสนักศึกษา");
-      setLoading(false);
-      setShowStudentSearchModal(true);
-    }
-  }, [studentIdToUse, navigate]);
 
   // Modal ค้นหานักศึกษา
   const studentSearchModal = (
@@ -145,7 +85,7 @@ const StudentTimeline = () => {
           type="primary"
           icon={<SearchOutlined />}
           loading={searchLoading}
-          onClick={searchStudent}
+          onClick={handleSearchStudent}
         >
           ค้นหา
         </Button>,
@@ -153,10 +93,10 @@ const StudentTimeline = () => {
     >
       <p>ระบบไม่พบข้อมูลนักศึกษารหัส {studentIdToUse}</p>
       <p>คุณสามารถค้นหาข้อมูลด้วยรหัสนักศึกษาอื่น</p>
-      <Form
+        <Form
         form={searchForm} // เชื่อมต่อ form กับ useForm
         layout="vertical"
-        onFinish={searchStudent} // ใช้ onFinish แทน onClick
+        onFinish={handleSearchStudent} // ใช้ onFinish แทน onClick
       >
         <Form.Item
           label="รหัสนักศึกษา"

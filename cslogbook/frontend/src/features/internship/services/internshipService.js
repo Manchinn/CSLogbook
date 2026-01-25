@@ -1620,6 +1620,21 @@ const internshipService = {
   getStudentProfile: async () => {
     return await internshipService.getStudentInfo();
   },
+
+  /**
+   * ดึงข้อมูลสถานะการลงทะเบียนฝึกงาน (flow)
+   */
+  getRegistrationFlow: async () => {
+    try {
+      const response = await apiClient.get('/internship-registration/flow');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching registration flow:', error);
+      throw new Error(
+        error.response?.data?.message || 'ไม่สามารถดึงข้อมูลสถานะการลงทะเบียนได้'
+      );
+    }
+  },
 };
 
 export default internshipService;

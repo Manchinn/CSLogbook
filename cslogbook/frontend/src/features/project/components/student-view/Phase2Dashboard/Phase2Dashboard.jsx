@@ -4,7 +4,7 @@ import { CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, CloseCircleO
 import { useStudentProject } from 'features/project/hooks/useStudentProject';
 import { useStudentEligibility } from 'contexts/StudentEligibilityContext';
 import useProjectDeadlines from 'features/project/hooks/useProjectDeadlines';
-import projectService from 'features/project/services/projectService';
+import { useProjectExamDetail } from 'features/project/hooks/useProjectExamDetail';
 import dayjs from 'utils/dayjs';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { phase2CardSteps } from './phase2CardSteps';
@@ -108,9 +108,7 @@ const Phase2Dashboard = () => {
     loading: projectLoading
   } = useStudentProject({ autoLoad: true });
   const { academicSettings } = useStudentEligibility();
-  const [examDetail, setExamDetail] = useState(null);
-  const [examLoading, setExamLoading] = useState(false);
-  const [examError, setExamError] = useState(null);
+  const { examDetail, examLoading, examError } = useProjectExamDetail(activeProject);
 
   // 🆕 ดึง project deadlines เพื่อใช้เช็คว่า card/button แต่ละใบเกิน deadline หรือไม่
   const projectAcademicYear = useMemo(() => {
@@ -286,42 +284,6 @@ const Phase2Dashboard = () => {
     window.open(url, '_blank', 'noopener');
   }, []);
 
-  useEffect(() => {
-    // ถ้าโครงงานยังไม่ผ่านการสอบหัวข้อ จะไม่ต้องยิง API เพื่อดึงรายละเอียดผลสอบเพิ่มเติม
-    let ignore = false;
-    const loadExamDetail = async () => {
-      if (!activeProject || activeProject.examResult !== 'passed') {
-        setExamDetail(null);
-        setExamError(null);
-        return;
-      }
-      setExamLoading(true);
-      try {
-        const res = await projectService.getProjectExamResult(activeProject.projectId, { examType: 'PROJECT1' });
-        if (!ignore) {
-          if (res?.success) {
-            setExamDetail(res?.data || null);
-            setExamError(null);
-          } else {
-            setExamDetail(null);
-            setExamError(res?.message || 'ไม่สามารถโหลดผลสอบได้');
-          }
-        }
-      } catch (error) {
-        if (!ignore) {
-          setExamDetail(null);
-          setExamError(error.message || 'โหลดผลสอบไม่สำเร็จ');
-        }
-      } finally {
-        if (!ignore) {
-          setExamLoading(false);
-        }
-      }
-    };
-
-    loadExamDetail();
-    return () => { ignore = true; };
-  }, [activeProject]);
 
   const phase2GateReasons = useMemo(() => {
     // คำนวณรายการเหตุผลที่ยังไม่สามารถเข้า Phase 2 ได้ (เช่น หัวข้อยังไม่ผ่าน หรือสถานะโครงงานยังไม่ in_progress)

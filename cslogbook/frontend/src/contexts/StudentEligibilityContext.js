@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { message } from 'antd';
-import apiClient from '../services/apiClient';
+import { studentService } from '../features/user-management/services/studentService';
 import { useAuth } from './AuthContext';
 
 const StudentEligibilityContext = createContext();
@@ -104,24 +104,24 @@ export const StudentEligibilityProvider = ({ children }) => {
     setEligibility(prev => ({ ...prev, isLoading: true }));
 
     try {
-  const response = await apiClient.get('/students/check-eligibility');
+      const response = await studentService.checkEligibility();
 
-      if (response.data.success) {
+      if (response.success) {
         console.log('StudentEligibilityContext: Eligibility data from API (SUCCESS)');
         const newEligibility = {
-          canAccessInternship: response.data.eligibility.internship.canAccessFeature || false,
-          canAccessProject: response.data.eligibility.project.canAccessFeature || false,
-          canRegisterInternship: response.data.eligibility.internship.canRegister || false,
-          canRegisterProject: response.data.eligibility.project.canRegister || false,
-          internshipReason: response.data.eligibility.internship.reason,
-          projectReason: response.data.eligibility.project.reason,
-          requirements: response.data.requirements,
-          academicSettings: response.data.academicSettings,
-          status: response.data.status || null,
-          student: response.data.student || null,
+          canAccessInternship: response.eligibility.internship.canAccessFeature || false,
+          canAccessProject: response.eligibility.project.canAccessFeature || false,
+          canRegisterInternship: response.eligibility.internship.canRegister || false,
+          canRegisterProject: response.eligibility.project.canRegister || false,
+          internshipReason: response.eligibility.internship.reason,
+          projectReason: response.eligibility.project.reason,
+          requirements: response.requirements,
+          academicSettings: response.academicSettings,
+          status: response.status || null,
+          student: response.student || null,
           messages: {
-            internship: response.data.eligibility.internship.reason || null,
-            project: response.data.eligibility.project.reason || null,
+            internship: response.eligibility.internship.reason || null,
+            project: response.eligibility.project.reason || null,
           },
           isLoading: false,
           lastUpdated: new Date()
@@ -137,17 +137,17 @@ export const StudentEligibilityProvider = ({ children }) => {
         setEligibility(prev => ({
           ...prev,
           isLoading: false,
-          internshipReason: response.data.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้',
+          internshipReason: response.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้',
           // Reset access flags if API call was not successful but didn't throw an error
           canAccessInternship: false,
           canAccessProject: false,
           messages: {
-            internship: response.data.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้',
-            project: response.data.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้'
+            internship: response.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้',
+            project: response.message || 'ไม่สามารถโหลดข้อมูลสิทธิ์ได้'
           }
         }));
         if (showMessage) {
-          message.error(response.data.message || 'ไม่สามารถอัพเดตข้อมูลสิทธิ์ได้');
+          message.error(response.message || 'ไม่สามารถอัพเดตข้อมูลสิทธิ์ได้');
         }
       }
     } catch (error) {
