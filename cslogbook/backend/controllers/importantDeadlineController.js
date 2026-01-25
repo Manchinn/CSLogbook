@@ -73,31 +73,7 @@ function translateLegacyPayload(body) {
 exports.create = async (req, res) => {
   try {
     const translated = translateLegacyPayload(req.body);
-    const deadline = await importantDeadlineService.create(translated);
-    
-    // 🆕 Auto-create deadline mapping (ถ้ามี template metadata)
-    if (req.body.templateId && req.body.autoCreateMapping) {
-      try {
-        const { DeadlineWorkflowMapping } = require('../models');
-        const mappingPayload = {
-          importantDeadlineId: deadline.id,
-          workflowType: req.body.workflowType,
-          documentSubtype: req.body.documentSubtype,
-          autoAssign: 'on_submit',
-          active: true
-        };
-        
-        await DeadlineWorkflowMapping.create(mappingPayload);
-        console.log('[DeadlineController] Auto-created mapping:', {
-          deadlineId: deadline.id,
-          templateId: req.body.templateId,
-          documentSubtype: req.body.documentSubtype
-        });
-      } catch (mappingError) {
-        // ไม่ให้ error จาก mapping ทำให้ deadline creation ล้มเหลว
-        console.warn('[DeadlineController] Mapping creation failed:', mappingError.message);
-      }
-    }
+    const deadline = await importantDeadlineService.createWithMapping(translated);
     
     const d = deadline.deadlineAt ? new Date(deadline.deadlineAt) : null;
     let local = null;
@@ -315,52 +291,17 @@ module.exports.getUpcomingForStudent = async (req, res) => {
 module.exports.getAllForStudent = async (req, res) => {
   try {
     const { academicYear } = req.query;
-    const all = await importantDeadlineService.getAll({ academicYear });
-    console.log('[getAllForStudent] raw count:', all.length, 'academicYear param:', academicYear);
-
     const studentId = req.user?.userId || req.user?.id;
-    const documentsByDeadline = new Map();
     
-    if (studentId && all.length) {
-      try {
-        const { Document } = require('../models');
-        const { Op } = require('sequelize');
-        const deadlineIds = all.map(d => d.id).filter(Boolean);
-        
-        // ดึงเอกสารทั้งหมดที่เกี่ยวข้องกับ deadline และ student
-        const docs = await Document.findAll({
-          where: {
-            userId: studentId,
-            importantDeadlineId: { [Op.in]: deadlineIds },
-          }
-        }).catch(err => {
-          console.error('[getAllForStudent] Document query error', err.message);
-          return [];
-        });
-        
-        const getTimestamp = (record) => {
-          if (!record) return 0;
-          const ts = record.created_at || record.createdAt || record.updated_at || record.updatedAt || record.submittedAt;
-          return ts ? new Date(ts).getTime() : 0;
-        };
-
-        const sortedDocs = docs.sort((a, b) => getTimestamp(b) - getTimestamp(a));
-
-        // จัดกลุ่มเอกสารตาม deadline (เอาเอกสารล่าสุดของแต่ละ deadline)
-        for (const doc of sortedDocs) {
-          if (!documentsByDeadline.has(doc.importantDeadlineId)) {
-            documentsByDeadline.set(doc.importantDeadlineId, doc);
-          }
-        }
-        
-        console.log('[getAllForStudent] Found documents for deadlines:', Array.from(documentsByDeadline.keys()));
-      } catch (e) {
-        console.error('[getAllForStudent] enrich documents error', e.message);
-      }
-    }
+    const { deadlines, documentsByDeadline } = await importantDeadlineService.getAllForStudentWithDocuments(
+      { academicYear },
+      studentId
+    );
+    
+    console.log('[getAllForStudent] raw count:', deadlines.length, 'academicYear param:', academicYear);
 
     const now = new Date();
-    const visible = all.filter(d => isPublishedForAudience(d, now));
+    const visible = deadlines.filter(d => isPublishedForAudience(d, now));
 
     const enriched = visible
       .map(d => {

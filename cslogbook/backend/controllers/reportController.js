@@ -62,90 +62,8 @@ exports.getProjectAcademicYears = async (req, res, next) => {
 exports.getAdvisorDetail = async (req, res, next) => {
   try {
     const { teacherId } = req.params;
-    const { Student, ProjectDocument, ProjectMember, User } = require('../models');
-    
-    // ดึงข้อมูลอาจารย์
-    const Teacher = require('../models').Teacher;
-    const teacher = await Teacher.findByPk(parseInt(teacherId), {
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['firstName', 'lastName', 'email']
-      }]
-    });
-    
-    if (!teacher) {
-      return res.status(404).json({ success: false, error: 'ไม่พบอาจารย์' });
-    }
-
-    // ดึงนักศึกษาที่ดูแล
-    const students = await Student.findAll({
-      where: { advisor_id: parseInt(teacherId) },
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['firstName', 'lastName']
-      }],
-      attributes: ['studentId', 'studentCode', 'internshipStatus']
-    });
-
-    // ดึงโครงงานที่เป็นที่ปรึกษา
-    const projects = await ProjectDocument.findAll({
-      where: {
-        [require('sequelize').Op.or]: [
-          { advisor_id: parseInt(teacherId) },
-          { co_advisor_id: parseInt(teacherId) }
-        ]
-      },
-      attributes: ['projectId', 'projectNameTh', 'status', 'advisorId', 'coAdvisorId'],
-      include: [{
-        model: ProjectMember,
-        as: 'members',
-        include: [{
-          model: Student,
-          as: 'student',
-          include: [{
-            model: User,
-            as: 'user',
-            attributes: ['firstName', 'lastName']
-          }]
-        }]
-      }]
-    });
-
-    res.json({
-      success: true,
-      data: {
-        teacher: {
-          teacherId: teacher.teacherId,
-          teacherCode: teacher.teacherCode,
-          name: teacher.user ? `${teacher.user.firstName} ${teacher.user.lastName}` : teacher.teacherCode,
-          email: teacher.user?.email
-        },
-        students: students.map(s => ({
-          studentId: s.studentId,
-          studentCode: s.studentCode,
-          name: `${s.user.firstName} ${s.user.lastName}`,
-          internshipStatus: s.internshipStatus
-        })),
-        projects: projects.map(p => ({
-          projectId: p.projectId,
-          projectName: p.projectNameTh,
-          status: p.status,
-          role: p.advisorId === parseInt(teacherId) ? 'advisor' : 'co-advisor',
-          members: p.members?.map(m => ({
-            studentCode: m.student?.studentCode,
-            name: m.student?.user ? `${m.student.user.firstName} ${m.student.user.lastName}` : 'N/A'
-          })) || []
-        })),
-        summary: {
-          totalStudents: students.length,
-          totalProjects: projects.length,
-          advisorProjectsCount: projects.filter(p => p.advisorId === parseInt(teacherId)).length,
-          coAdvisorProjectsCount: projects.filter(p => p.coAdvisorId === parseInt(teacherId)).length
-        }
-      }
-    });
+    const data = await reportService.getAdvisorDetail(teacherId);
+    res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
@@ -172,37 +90,9 @@ exports.getAdvisorDetail = async (req, res, next) => {
 // รายชื่อนักศึกษาฝึกงานที่ลงทะเบียน (ลด payload จาก /students ทั้งหมด)
 exports.getEnrolledInternshipStudents = async (req, res, next) => {
   try {
-    const { Student, User } = require('../models');
-    // ฟังก์ชันคำนวณชั้นปีแบบ dynamic จากรหัสนักศึกษา (สองหลักแรกเป็นปี พ.ศ. - 2500)
-    // yearParam (พ.ศ.) มาจาก query ?year= ถ้าไม่มีก็ใช้ปีปัจจุบัน (พ.ศ.)
-    const buddhistYear = () => new Date().getFullYear() + 543;
-    const selectedYear = parseInt(req.query.year, 10) || buddhistYear();
-    const calcStudentYear = (studentCode) => {
-      if (!studentCode || studentCode.length < 2) return null;
-      const yy = parseInt(studentCode.substring(0,2),10); // สมมติ 64 หมายถึง 2564
-      if (isNaN(yy)) return null;
-      const admissionYear = 2500 + yy; // แปลงเป็นปี พ.ศ.
-      const year = selectedYear - admissionYear + 1; // ชั้นปี = ปีปัจจุบัน - ปีที่เข้า + 1
-      return year < 1 ? 1 : (year > 8 ? 8 : year); // clamp 1..8
-    };
-    const rows = await Student.findAll({
-      where: { is_enrolled_internship: true },
-      // ไม่อ้างอิง student_year แล้ว เพราะไม่มีคอลัมน์ใน DB
-      attributes: ['studentId','studentCode','internshipStatus','advisor_id','is_enrolled_internship'],
-      include: [{ model: User, as: 'user', attributes: ['firstName','lastName'] }],
-      order: [['studentCode','ASC']]
-    });
-    // map รวมชื่อให้ frontend ใช้ง่าย
-    const mapped = rows.map(r => ({
-      studentId: r.studentId,
-      studentCode: r.studentCode,
-      internshipStatus: r.internshipStatus,
-      advisorId: r.advisor_id,
-      isEnrolledInternship: r.is_enrolled_internship,
-      studentYear: calcStudentYear(r.studentCode), // คำนวณสด
-      firstName: r.user?.firstName || '',
-      lastName: r.user?.lastName || ''
-    }));
-    res.json({ success: true, data: mapped });
-  } catch (err) { next(err); }
+    const data = await reportService.getEnrolledInternshipStudents({ year: req.query.year });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
 };

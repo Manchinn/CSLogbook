@@ -57,6 +57,37 @@ function buildWindowFromLocal(startDate, startTime, endDate, endTime, timezone) 
   return { windowStartAt: start, windowEndAt: end };
 }
 
+// เพิ่มกำหนดการใหม่พร้อม auto-create mapping (ถ้ามี template metadata)
+exports.createWithMapping = async (data) => {
+  const deadline = await exports.create(data);
+  
+  // Auto-create deadline mapping (ถ้ามี template metadata)
+  if (data.templateId && data.autoCreateMapping) {
+    try {
+      const { DeadlineWorkflowMapping } = require('../models');
+      const mappingPayload = {
+        importantDeadlineId: deadline.id,
+        workflowType: data.workflowType,
+        documentSubtype: data.documentSubtype,
+        autoAssign: 'on_submit',
+        active: true
+      };
+      
+      await DeadlineWorkflowMapping.create(mappingPayload);
+      logger.info('Auto-created deadline mapping', {
+        deadlineId: deadline.id,
+        templateId: data.templateId,
+        documentSubtype: data.documentSubtype
+      });
+    } catch (mappingError) {
+      // ไม่ให้ error จาก mapping ทำให้ deadline creation ล้มเหลว
+      logger.warn('Mapping creation failed:', mappingError.message);
+    }
+  }
+  
+  return deadline;
+};
+
 // เพิ่มกำหนดการใหม่ (พร้อม validation + normalization + logging) รองรับ deadlineDate + deadlineTime
 exports.create = async (data) => {
   // priority: deadlineDate + deadlineTime > deadlineAt > date
@@ -234,4 +265,50 @@ exports.getStats = async (id) => {
   const total = await Document.count({ where: { importantDeadlineId: id } });
   const late = await Document.count({ where: { importantDeadlineId: id, isLate: true } });
   return { total, late, onTime: total - late };
+};
+
+// ดึง deadlines ทั้งหมดพร้อม documents สำหรับ student
+exports.getAllForStudentWithDocuments = async (filters = {}, userId) => {
+  const all = await exports.getAll(filters);
+  const documentsByDeadline = new Map();
+  
+  if (userId && all.length) {
+    try {
+      const { Document } = require('../models');
+      const { Op } = require('sequelize');
+      const deadlineIds = all.map(d => d.id).filter(Boolean);
+      
+      // ดึงเอกสารทั้งหมดที่เกี่ยวข้องกับ deadline และ student
+      const docs = await Document.findAll({
+        where: {
+          userId: userId,
+          importantDeadlineId: { [Op.in]: deadlineIds },
+        }
+      }).catch(err => {
+        logger.error('Document query error in getAllForStudentWithDocuments:', err.message);
+        return [];
+      });
+      
+      // จัดกลุ่มเอกสารตาม deadline (เอาเอกสารล่าสุดของแต่ละ deadline)
+      const getTimestamp = (record) => {
+        if (!record) return 0;
+        const ts = record.created_at || record.createdAt || record.updated_at || record.updatedAt || record.submittedAt;
+        return ts ? new Date(ts).getTime() : 0;
+      };
+      
+      const sortedDocs = docs.sort((a, b) => getTimestamp(b) - getTimestamp(a));
+      
+      for (const doc of sortedDocs) {
+        if (!documentsByDeadline.has(doc.importantDeadlineId)) {
+          documentsByDeadline.set(doc.importantDeadlineId, doc);
+        }
+      }
+      
+      logger.debug('Found documents for deadlines:', Array.from(documentsByDeadline.keys()));
+    } catch (e) {
+      logger.error('Error enriching documents in getAllForStudentWithDocuments:', e.message);
+    }
+  }
+  
+  return { deadlines: all, documentsByDeadline };
 };

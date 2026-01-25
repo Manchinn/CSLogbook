@@ -1,5 +1,6 @@
 const projectDefenseRequestService = require('../services/projectDefenseRequestService');
 const projectDocumentService = require('../services/projectDocumentService');
+const projectWorkflowStateService = require('../services/projectWorkflowStateService');
 const logger = require('../utils/logger');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
@@ -58,15 +59,7 @@ module.exports = {
       const requestData = req.validated || req.body || {};
       
       // NEW: Check workflow state for deadline enforcement
-      const { ProjectWorkflowState, WorkflowStepDefinition } = require('../models');
-      const workflowState = await ProjectWorkflowState.findOne({
-        where: { project_id: id },
-        include: [{
-          model: WorkflowStepDefinition,
-          as: 'stepDefinition',
-          attributes: ['step_key', 'phase_variant', 'title', 'phase_key']
-        }]
-      });
+      const workflowState = await projectWorkflowStateService.getWorkflowStateForDefenseRequest(id);
 
       const variant = workflowState?.stepDefinition?.phase_variant;
       const phaseKey = workflowState?.stepDefinition?.phase_key;

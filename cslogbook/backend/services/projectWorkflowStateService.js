@@ -539,6 +539,28 @@ class ProjectWorkflowStateService {
       throw error;
     }
   }
+
+  /**
+   * ดึง workflow state สำหรับตรวจสอบ deadline ก่อน submit defense request
+   * @param {number} projectId - Project ID
+   * @returns {Promise<Object|null>} Workflow state with step definition
+   */
+  async getWorkflowStateForDefenseRequest(projectId) {
+    try {
+      const workflowState = await ProjectWorkflowState.findOne({
+        where: { project_id: projectId },
+        include: [{
+          model: WorkflowStepDefinition,
+          as: 'stepDefinition',
+          attributes: ['step_key', 'phase_variant', 'title', 'phase_key']
+        }]
+      });
+      return workflowState;
+    } catch (error) {
+      logger.error('Error in getWorkflowStateForDefenseRequest:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new ProjectWorkflowStateService();
