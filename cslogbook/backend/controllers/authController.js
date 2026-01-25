@@ -1,37 +1,17 @@
 const authService = require('../services/authService');
-const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const moment = require('moment-timezone');
 
-// Login validation middleware
-exports.validateLogin = [
-    body('username')
-        .trim()
-        .notEmpty().withMessage('กรุณากรอกชื่อผู้ใช้')
-        .isLength({ min: 3 }).withMessage('ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร'),
-    body('password')
-        .notEmpty().withMessage('กรุณากรอกรหัสผ่าน')
-        .isLength({ min: 6 }).withMessage('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
-];
-
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
     try {
         // Add debug logging
         console.log('Login attempt:', {
-            username: req.body.username,
+            username: req.validated?.username || req.body.username,
             timestamp: moment().tz('Asia/Bangkok').format()
         });
 
-        // Validate request body
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                message: errors.array()[0].msg
-            });
-        }
-
-        const { username, password, redirectPath } = req.body;
+        // ใช้ validated data จาก validator middleware
+        const { username, password, redirectPath } = req.validated || req.body;
 
         // Use authService for complete authentication
         const result = await authService.authenticateUser(username, password);
@@ -69,18 +49,12 @@ exports.login = async (req, res) => {
 
     } catch (error) {
         // Enhanced error logging
-        console.error('Login error details:', {
+        logger.error('Login error details:', {
             message: error.message,
             stack: error.stack,
             time: moment().tz('Asia/Bangkok').format()
         });
-
-        res.status(500).json({
-            success: false,
-            message: process.env.NODE_ENV === 'development' 
-                ? `เกิดข้อผิดพลาด: ${error.message}`
-                : 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ'
-        });
+        next(error);
     }
 };
 

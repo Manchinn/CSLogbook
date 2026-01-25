@@ -86,11 +86,22 @@ class InternshipManagementService {
   }
 
   // ============= CS05 Document Management =============
+  // NOTE: Methods moved to services/internship/document.service.js
+  // This service now delegates to the new service for better organization
 
   /**
    * ดึงข้อมูล CS05 ปัจจุบันของนักศึกษา
+   * @deprecated Use internshipDocumentService.getCurrentCS05 instead
    */
   async getCurrentCS05(userId) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.getCurrentCS05(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.getCurrentCS05 instead
+   */
+  async _getCurrentCS05_OLD(userId) {
     // ตรวจสอบว่ามีข้อมูลผู้ใช้หรือไม่
     if (!userId) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
@@ -169,8 +180,17 @@ class InternshipManagementService {
 
   /**
    * บันทึกคำร้องขอฝึกงาน (CS05)
+   * @deprecated Use internshipDocumentService.submitCS05 instead
    */
-  async submitCS05(
+  async submitCS05(userId, formData) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.submitCS05(userId, formData);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.submitCS05 instead
+   */
+  async _submitCS05_OLD(
     userId,
     {
       companyName,
@@ -268,8 +288,17 @@ class InternshipManagementService {
 
   /**
    * บันทึกคำร้องขอฝึกงาน (CS05) พร้อม transcript
+   * @deprecated Use internshipDocumentService.submitCS05WithTranscript instead
    */
   async submitCS05WithTranscript(userId, fileData, formData, deadlineInfo = {}) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.submitCS05WithTranscript(userId, fileData, formData, deadlineInfo);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.submitCS05WithTranscript instead
+   */
+  async _submitCS05WithTranscript_OLD(userId, fileData, formData, deadlineInfo = {}) {
     const transaction = await sequelize.transaction();
     try {
       // ตรวจสอบว่ามีไฟล์ transcript หรือไม่
@@ -434,8 +463,17 @@ class InternshipManagementService {
 
   /**
    * ดึงข้อมูล CS05 ตาม ID
+   * @deprecated Use internshipDocumentService.getCS05ById instead
    */
   async getCS05ById(documentId, userId, userRole) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.getCS05ById(documentId, userId, userRole);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.getCS05ById instead
+   */
+  async _getCS05ById_OLD(documentId, userId, userRole) {
     const document = await Document.findOne({
       where: {
         documentId,
@@ -504,8 +542,17 @@ class InternshipManagementService {
 
   /**
    * บันทึกข้อมูลผู้ควบคุมงาน
+   * @deprecated Use internshipDocumentService.submitCompanyInfo instead
    */
-  async submitCompanyInfo(
+  async submitCompanyInfo(documentId, userId, supervisorData) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.submitCompanyInfo(documentId, userId, supervisorData);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.submitCompanyInfo instead
+   */
+  async _submitCompanyInfo_OLD(
     documentId,
     userId,
     { supervisorName, supervisorPhone, supervisorEmail, supervisorPosition }
@@ -593,8 +640,17 @@ class InternshipManagementService {
 
   /**
    * ดึงข้อมูลผู้ควบคุมงาน
+   * @deprecated Use internshipDocumentService.getCompanyInfo instead
    */
   async getCompanyInfo(documentId, userId) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.getCompanyInfo(documentId, userId);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.getCompanyInfo instead
+   */
+  async _getCompanyInfo_OLD(documentId, userId) {
     const document = await Document.findOne({
       where: {
         documentId,
@@ -630,8 +686,17 @@ class InternshipManagementService {
 
   /**
    * ดึงรายการ CS05 ทั้งหมดของนักศึกษา
+   * @deprecated Use internshipDocumentService.getCS05List instead
    */
   async getCS05List(userId) {
+    const internshipDocumentService = require('./internship/document.service');
+    return internshipDocumentService.getCS05List(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipDocumentService.getCS05List instead
+   */
+  async _getCS05List_OLD(userId) {
     const documents = await Document.findAll({
       where: {
         documentName: "CS05",
@@ -2826,11 +2891,22 @@ class InternshipManagementService {
   }
 
   // ============= Certificate Management (ปรับปรุงใหม่) =============
+  // NOTE: Methods moved to services/internship/certificate.service.js
+  // This service now delegates to the new service for better organization
 
   /**
    * ✅ ปรับปรุง previewCertificatePDF ให้ดีขึ้น
+   * @deprecated Use internshipCertificateService.previewCertificatePDF instead
    */
   async previewCertificatePDF(userId) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.previewCertificatePDF(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.previewCertificatePDF instead
+   */
+  async _previewCertificatePDF_OLD(userId) {
     try {
       logger.debug(`[previewCertificatePDF] Starting for userId: ${userId}`);
 
@@ -2878,8 +2954,17 @@ class InternshipManagementService {
 
   /**
    * ✅ ปรับปรุง downloadCertificatePDF ให้ดีขึ้น
+   * @deprecated Use internshipCertificateService.downloadCertificatePDF instead
    */
   async downloadCertificatePDF(userId) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.downloadCertificatePDF(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.downloadCertificatePDF instead
+   */
+  async _downloadCertificatePDF_OLD(userId) {
     try {
       logger.debug(`[downloadCertificatePDF] Starting for userId: ${userId}`);
 
@@ -2941,8 +3026,17 @@ class InternshipManagementService {
 
   /**
    * ✅ ปรับปรุง createCertificatePDF ให้มีเนื้อหาครบถ้วน
+   * @deprecated Use internshipCertificateService.createCertificatePDF instead
    */
   async createCertificatePDF(certificateData) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.createCertificatePDF(certificateData);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.createCertificatePDF instead
+   */
+  async _createCertificatePDF_OLD(certificateData) {
     const PDFDocument = require("pdfkit");
 
     return new Promise((resolve, reject) => {
@@ -3103,8 +3197,17 @@ class InternshipManagementService {
 
   /**
    * ดึงข้อมูลสำหรับสร้างหนังสือรับรอง (ปรับปรุงให้เหมาะกับ Frontend PDF Generation)
+   * @deprecated Use internshipCertificateService.getCertificateData instead
    */
   async getCertificateData(userId) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.getCertificateData(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.getCertificateData instead
+   */
+  async _getCertificateData_OLD(userId) {
     try {
       logger.debug(`[getCertificateData] Fetching data for userId: ${userId}`);
 
@@ -3249,8 +3352,17 @@ class InternshipManagementService {
 
   /**
    * บันทึกการดาวน์โหลดหนังสือรับรอง (เรียกจาก Frontend หลังดาวน์โหลดสำเร็จ)
+   * @deprecated Use internshipCertificateService.markCertificateDownloaded instead
    */
   async markCertificateDownloaded(userId) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.markCertificateDownloaded(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.markCertificateDownloaded instead
+   */
+  async _markCertificateDownloaded_OLD(userId) {
     try {
       const student = await Student.findOne({
         where: { userId },
@@ -3292,7 +3404,18 @@ class InternshipManagementService {
     }
   }
 
+  /**
+   * @deprecated Use internshipCertificateService.getCertificateStatus instead
+   */
   async getCertificateStatus(userId) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.getCertificateStatus(userId);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.getCertificateStatus instead
+   */
+  async _getCertificateStatus_OLD(userId) {
     try {
       logger.debug(
         `[getCertificateStatus] Checking certificate status for userId: ${userId}`
@@ -3501,8 +3624,18 @@ class InternshipManagementService {
     }
   }
 
-  // คงเดิม - ไม่เปลี่ยนแปลง
+  /**
+   * @deprecated Use internshipCertificateService.submitCertificateRequest instead
+   */
   async submitCertificateRequest(userId, requestData) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.submitCertificateRequest(userId, requestData);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.submitCertificateRequest instead
+   */
+  async _submitCertificateRequest_OLD(userId, requestData) {
     const transaction = await sequelize.transaction();
 
     try {
@@ -3586,8 +3719,18 @@ class InternshipManagementService {
     }
   }
 
-  // คงเดิม - สำหรับการสร้างหมายเลขหนังสือรับรอง
+  /**
+   * @deprecated Use internshipCertificateService.generateCertificateNumber instead
+   */
   generateCertificateNumber(studentCode) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.generateCertificateNumber(studentCode);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.generateCertificateNumber instead
+   */
+  _generateCertificateNumber_OLD(studentCode) {
     const year = new Date().getFullYear() + 543; // พ.ศ.
     const month = String(new Date().getMonth() + 1).padStart(2, "0");
     const studentYear = studentCode.substring(0, 2);
@@ -3595,8 +3738,18 @@ class InternshipManagementService {
     return `อว 7105(16)/${studentYear}${month}${year.toString().slice(-2)}`;
   }
 
-  // คงเดิม - สำหรับการจัดรูปแบบวันที่ไทย
+  /**
+   * @deprecated Use internshipCertificateService.formatThaiDate instead
+   */
   formatThaiDate(date) {
+    const internshipCertificateService = require('./internship/certificate.service');
+    return internshipCertificateService.formatThaiDate(date);
+  }
+  
+  /**
+   * @deprecated Use internshipCertificateService.formatThaiDate instead
+   */
+  _formatThaiDate_OLD(date) {
     const thaiMonths = [
       "มกราคม",
       "กุมภาพันธ์",

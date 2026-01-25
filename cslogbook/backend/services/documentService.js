@@ -227,7 +227,57 @@ class DocumentService {
     }
 
     /**
-     * อัพเดทสถานะเอกสาร
+     * อัพเดทสถานะเอกสาร (พร้อม transaction และ DocumentLog)
+     */
+    async updateStatus(documentId, status, comment, userId) {
+        const { sequelize } = require('../config/database');
+        const transaction = await sequelize.transaction();
+        try {
+            const document = await Document.findByPk(documentId);
+
+            if (!document) {
+                throw new Error('ไม่พบเอกสาร');
+            }
+
+            const oldStatus = document.status;
+
+            // อัพเดทสถานะ
+            await document.update({
+                status,
+                reviewerId: userId,
+                reviewDate: new Date(),
+                reviewComment: comment
+            }, { transaction });
+
+            // บันทึก Log
+            await DocumentLog.create({
+                documentId: documentId,
+                userId: userId,
+                actionType: status === 'approved' ? 'approve' : 'reject',
+                previousStatus: oldStatus,
+                newStatus: status,
+                comment
+            }, { transaction });
+
+            await transaction.commit();
+
+            // Sync project completion (outside transaction)
+            await this._syncProjectCompletionFromDocument(document);
+
+            logger.info(`Document status updated: ${documentId} to ${status} by ${userId}`);
+            return {
+                success: true,
+                message: 'อัพเดทสถานะเอกสารสำเร็จ'
+            };
+        } catch (error) {
+            await transaction.rollback();
+            logger.error('Error updating document status:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * อัพเดทสถานะเอกสาร (legacy method - ใช้สำหรับ backward compatibility)
      */
     async updateDocumentStatus(documentId, status, reviewerId, comment = null) {
         try {

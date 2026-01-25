@@ -8,7 +8,9 @@ module.exports = {
       if (req.user.role !== 'student' || !req.user.studentId) {
         return res.status(403).json({ success: false, message: 'อนุญาตเฉพาะนักศึกษา' });
       }
-  const project = await projectDocumentService.createProject(req.user.studentId, req.body || {});
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const projectData = req.validated || req.body || {};
+  const project = await projectDocumentService.createProject(req.user.studentId, projectData);
   return res.status(201).json({ success: true, data: project, project }); // project (legacy), data (standard)
     } catch (error) {
       logger.error('createProject error', { error: error.message });
@@ -49,7 +51,9 @@ module.exports = {
       if (req.user.role !== 'student' || !req.user.studentId) {
         return res.status(403).json({ success: false, message: 'อนุญาตเฉพาะนักศึกษา (leader)' });
       }
-  const project = await projectDocumentService.updateMetadata(req.params.id, req.user.studentId, req.body || {});
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const projectData = req.validated || req.body || {};
+  const project = await projectDocumentService.updateMetadata(req.params.id, req.user.studentId, projectData);
   return res.json({ success: true, data: project, project });
     } catch (error) {
       logger.error('updateProject error', { error: error.message });
@@ -62,7 +66,8 @@ module.exports = {
       if (req.user.role !== 'student' || !req.user.studentId) {
         return res.status(403).json({ success: false, message: 'อนุญาตเฉพาะหัวหน้าโครงงาน' });
       }
-      const { studentCode } = req.body || {};
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const { studentCode } = req.validated || req.body || {};
       if (!studentCode) return res.status(400).json({ success: false, message: 'กรุณาระบุ studentCode' });
   const project = await projectDocumentService.addMember(req.params.id, req.user.studentId, studentCode);
   return res.json({ success: true, data: project, project });

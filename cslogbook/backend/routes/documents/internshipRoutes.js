@@ -15,6 +15,14 @@ const {
 } = require("../../middleware/authMiddleware");
 const { checkInternshipEligibility } = require("../../middleware/internshipEligibilityMiddleware");
 const { checkInternshipDeadline } = require("../../middleware/internshipDeadlineMiddleware");
+const {
+  validateSubmitCS05,
+  validateSubmitCS05WithTranscript,
+  validateSubmitCompanyInfo,
+  validateSendEvaluationForm,
+  validateSubmitCertificateRequest,
+  validateUploadAcceptanceLetter
+} = require("../../validators/internshipValidators");
 // Note: checkDeadlineBeforeSubmission is for PROJECT workflows only
 
 // ============= เส้นทางสำหรับข้อมูลนักศึกษา =============
@@ -44,6 +52,7 @@ router.post(
   checkRole(["student"]),
   checkInternshipEligibility,
   checkInternshipDeadline('CS05', 'SUBMISSION'),
+  validateSubmitCS05,
   internshipController.submitCS05
 );
 
@@ -55,6 +64,7 @@ router.post(
   checkInternshipEligibility,
   checkInternshipDeadline('CS05', 'SUBMISSION'),
   upload.single("transcript"),
+  validateSubmitCS05WithTranscript,
   internshipController.submitCS05WithTranscript
 );
 
@@ -67,18 +77,7 @@ router.post(
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
-  (req, res, next) => {
-    // Validate required fields
-    const { documentId, supervisorName, supervisorPhone, supervisorEmail } =
-      req.body;
-    if (!documentId) {
-      return res.status(400).json({
-        success: false,
-        message: "กรุณาระบุ Document ID",
-      });
-    }
-    next();
-  },
+  validateSubmitCompanyInfo,
   internshipController.submitCompanyInfo
 );
 
@@ -118,6 +117,7 @@ router.post(
   authenticateToken,
   checkRole(["student"]),
   checkInternshipEligibility,
+  validateSendEvaluationForm,
   internshipController.sendEvaluationForm
 );
 
@@ -173,6 +173,7 @@ router.post(
   checkRole(["student"]),
   checkInternshipEligibility,
   checkInternshipDeadline('report', 'SUBMISSION'), // ตรวจสอบ deadline รายงานผลการฝึกงาน
+  validateSubmitCertificateRequest,
   internshipController.submitCertificateRequest
 );
 
@@ -244,6 +245,7 @@ router.post(
   checkRole(["student"]),
   checkInternshipEligibility,
   upload.single("acceptanceLetter"), // ใช้ field name เดียวกับ frontend
+  validateUploadAcceptanceLetter,
   internshipController.uploadAcceptanceLetter
 );
 

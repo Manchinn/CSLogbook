@@ -1,44 +1,22 @@
 // controllers/documents/documentStatusController.js
+const documentService = require('../../services/documentService');
+
 const documentStatusController = {
-    updateStatus: async (req, res) => {
-        const transaction = await sequelize.transaction();
+    updateStatus: async (req, res, next) => {
         try {
             const { id } = req.params;
             const { status, comment } = req.body;
-
-            const document = await Document.findByPk(id);
-            const oldStatus = document.status;
-
-            // อัพเดทสถานะ
-            await document.update({
+            const result = await documentService.updateStatus(
+                id,
                 status,
-                reviewerId: req.user.userId,
-                reviewDate: new Date(),
-                reviewComment: comment
-            }, { transaction });
-
-            // บันทึก Log
-            await DocumentLog.create({
-                documentId: id,
-                userId: req.user.userId,
-                actionType: status === 'approved' ? 'approve' : 'reject',
-                previousStatus: oldStatus,
-                newStatus: status,
-                comment
-            }, { transaction });
-
-            await transaction.commit();
-            res.json({
-                success: true,
-                message: 'อัพเดทสถานะเอกสารสำเร็จ'
-            });
-
+                comment,
+                req.user.userId
+            );
+            res.json(result);
         } catch (error) {
-            await transaction.rollback();
-            res.status(500).json({
-                success: false,
-                message: 'เกิดข้อผิดพลาดในการอัพเดทสถานะ'
-            });
+            next(error);
         }
     }
 };
+
+module.exports = documentStatusController;

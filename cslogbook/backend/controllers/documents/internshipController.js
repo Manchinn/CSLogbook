@@ -73,6 +73,7 @@ exports.getCurrentCS05 = async (req, res) => {
  */
 exports.submitCS05 = async (req, res) => {
   try {
+    // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
     const {
       companyName,
       companyAddress,
@@ -81,7 +82,7 @@ exports.submitCS05 = async (req, res) => {
       internshipPosition, // เพิ่มฟิลด์ใหม่
       contactPersonName, // เพิ่มฟิลด์ใหม่
       contactPersonPosition, // เพิ่มฟิลด์ใหม่
-    } = req.body;
+    } = req.validated || req.body;
 
     const result = await internshipManagementService.submitCS05(
       req.user.userId,
@@ -201,9 +202,22 @@ exports.submitCompanyInfo = async (req, res) => {
       });
     }
 
+    // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+    const validatedData = req.validated || req.body;
+    const {
+      documentId: validatedDocumentId,
+      supervisorName,
+      supervisorPosition,
+      supervisorPhone,
+      supervisorEmail,
+    } = validatedData;
+    
+    // ใช้ documentId จาก validated หรือ params
+    const finalDocumentId = validatedDocumentId || documentId;
+    
     // แก้ไข: ส่งพารามิเตอร์ในลำดับที่ถูกต้อง
     const result = await internshipManagementService.submitCompanyInfo(
-      documentId, // พารามิเตอร์แรก
+      finalDocumentId, // พารามิเตอร์แรก
       userId, // พารามิเตอร์ที่สอง
       {
         // พารามิเตอร์ที่สาม
@@ -566,7 +580,8 @@ exports.submitSupervisorEvaluation = async (req, res) => {
 exports.uploadAcceptanceLetter = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { documentId } = req.body; // CS05 document ID
+    // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body/params (backward compatibility)
+    const documentId = (req.validated?.documentId) || req.body?.documentId || req.params?.documentId;
     const uploadedFile = req.file;
 
     // ตรวจสอบข้อมูลที่จำเป็น
@@ -1224,7 +1239,8 @@ exports.getCertificateStatus = async (req, res) => {
 exports.submitCertificateRequest = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const requestData = req.body;
+    // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+    const requestData = req.validated || req.body;
 
     console.log(
       `[submitCertificateRequest] Processing certificate request for userId: ${userId}`

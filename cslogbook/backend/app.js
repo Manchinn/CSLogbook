@@ -122,7 +122,15 @@ app.use('/template', templateRoutes);
 
 // Fallback 404
 app.use((req, res) => {
-  res.status(404).json({ success: false, error: 'Not Found' });
+  res.status(404).json({ 
+    success: false, 
+    code: 'NOT_FOUND',
+    message: 'ไม่พบ endpoint ที่ต้องการ' 
+  });
 });
+
+// Centralized error handler (must be last)
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 module.exports = app;

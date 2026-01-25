@@ -3,6 +3,14 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { checkProjectEligibility } = require('../middleware/projectEligibilityMiddleware');
 const { checkDeadlineBeforeSubmission } = require('../middleware/deadlineEnforcementMiddleware');
+const { 
+  validateCreateProject, 
+  validateUpdateProject, 
+  validateSubmitProject1Request,
+  validateCreateMeeting,
+  validateUpdateMeeting,
+  validateAddMember
+} = require('../validators/projectValidators');
 const controller = require('../controllers/projectDocumentController');
 const topicExamResultController = require('../controllers/topicExamResultController');
 const projectExamResultController = require('../controllers/projectExamResultController');
@@ -15,7 +23,7 @@ const { uploadSystemTestRequest, uploadSystemTestEvidence } = require('../config
 router.use(authenticateToken);
 
 // สร้างโครงงาน (นักศึกษา) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.post('/', checkProjectEligibility, controller.createProject);
+router.post('/', checkProjectEligibility, validateCreateProject, controller.createProject);
 
 // รายการของฉัน - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 router.get('/mine', checkProjectEligibility, controller.getMyProjects);
@@ -42,7 +50,7 @@ router.get('/kp02/staff-queue/export', projectDefenseRequestController.exportSta
 
 // คำขอสอบโครงงานพิเศษ 1 (KP02 Project1) และ Thesis
 router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
-router.post('/:id/kp02', checkDeadlineBeforeSubmission('SUBMISSION'), projectDefenseRequestController.submitProject1Request);
+router.post('/:id/kp02', checkDeadlineBeforeSubmission('SUBMISSION'), validateSubmitProject1Request, projectDefenseRequestController.submitProject1Request);
 router.post('/:id/kp02/advisor-approve', projectDefenseRequestController.submitAdvisorDecision);
 router.post('/:id/kp02/verify', projectDefenseRequestController.verifyProject1Request);
 router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
@@ -92,10 +100,10 @@ router.get('/:id/tracks', checkProjectEligibility, projectTracksController.list)
 router.post('/:id/tracks', checkProjectEligibility, projectTracksController.replace); // replace ทั้งชุด
 
 // อัปเดต metadata (leader) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.patch('/:id', checkProjectEligibility, controller.updateProject);
+router.patch('/:id', checkProjectEligibility, validateUpdateProject, controller.updateProject);
 
 // เพิ่มสมาชิกคนที่สอง - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.post('/:id/members', checkProjectEligibility, controller.addMember);
+router.post('/:id/members', checkProjectEligibility, validateAddMember, controller.addMember);
 
 // Promote -> in_progress - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 router.post('/:id/activate', checkProjectEligibility, controller.activateProject);

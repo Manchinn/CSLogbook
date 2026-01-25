@@ -54,6 +54,9 @@ module.exports = {
       
       const { id } = req.params;
       
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const requestData = req.validated || req.body || {};
+      
       // NEW: Check workflow state for deadline enforcement
       const { ProjectWorkflowState, WorkflowStepDefinition } = require('../models');
       const workflowState = await ProjectWorkflowState.findOne({
@@ -101,7 +104,8 @@ module.exports = {
       }
       
       const defenseType = resolveDefenseType(req, DEFENSE_TYPE_PROJECT1);
-      const payload = { ...(req.body || {}) };
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const payload = { ...(req.validated || req.body || {}) };
       delete payload.defenseType;
 
       const record = defenseType === DEFENSE_TYPE_THESIS

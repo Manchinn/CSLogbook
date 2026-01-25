@@ -396,26 +396,8 @@ app.get('/get-pdf-url', (req, res) => {
   res.json({ fileUrl });
 });
 
-// Enhanced error handling
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-
-  // Handle specific errors
-  if (err instanceof multer.MulterError) {
-    return res.status(400).json({
-      success: false,
-      error: 'File upload error',
-      details: ENV.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-
-  // Default error response
-  res.status(err.status || 500).json({
-    success: false,
-    error: ENV.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-    details: ENV.NODE_ENV === 'development' ? err.stack : undefined
-  });
-});
+// Enhanced error handling (moved to middleware/errorHandler.js)
+// Note: Error handler is now in app.js to ensure it's the last middleware
 
 // Start server (แยกจาก app เพื่อให้ supertest ใช้ app โดยตรง)
 server.listen(ENV.PORT, () => {

@@ -17,7 +17,9 @@ module.exports = {
   async create(req, res) {
     try {
       const { id } = req.params;
-      const meeting = await meetingService.createMeeting(id, req.user, req.body || {});
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const meetingData = req.validated || req.body || {};
+      const meeting = await meetingService.createMeeting(id, req.user, meetingData);
       return res.status(201).json({ success: true, data: meeting });
     } catch (error) {
       logger.error('meetingController.create error', { message: error.message, stack: error.stack });
@@ -29,7 +31,9 @@ module.exports = {
   async update(req, res) {
     try {
       const { id, meetingId } = req.params;
-      const meeting = await meetingService.updateMeeting(id, meetingId, req.user, req.body || {});
+      // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
+      const meetingData = req.validated || req.body || {};
+      const meeting = await meetingService.updateMeeting(id, meetingId, req.user, meetingData);
       return res.json({ success: true, data: meeting });
     } catch (error) {
       logger.error('meetingController.update error', { message: error.message, stack: error.stack });
