@@ -145,22 +145,6 @@ function buildAuthUser(params: {
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  if (featureFlags.enableMockAuth) {
-    const role = payload.role ?? "student";
-    return {
-      token: "mock-token",
-      user: {
-        id: "mock-user",
-        email: payload.username,
-        role,
-        name: payload.username || "Mock User",
-        teacherType: role === "teacher" ? "academic" : undefined,
-        isSystemAdmin: role === "admin",
-      },
-      redirectPath: "/app",
-    };
-  }
-
   const response = await apiFetch<BackendLoginResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({

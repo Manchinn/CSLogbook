@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./AppShell.module.css";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,21 +10,55 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-const primaryMenu = [
+const PRIMARY_MENU_BASE = [
   { label: "App Home", href: "/app" },
-  { label: "Student Dashboard", href: "/dashboard/student" },
-  { label: "Teacher Dashboard", href: "/dashboard/teacher" },
-  { label: "Admin Dashboard", href: "/dashboard/admin" },
+  { label: "Student Dashboard", href: "/dashboard/student", roles: ["student"] as const },
+  { label: "Teacher Dashboard", href: "/dashboard/teacher", roles: ["teacher"] as const, teacherTypes: ["academic"] },
+  { label: "Admin Dashboard", href: "/dashboard/admin", roles: ["admin", "teacher"] as const, teacherTypes: ["support"] },
 ];
 
-const utilityMenu = [
-  { label: "Timeline", href: "/dashboard/admin" },
-  { label: "Settings", href: "/dashboard/admin" },
+const UTILITY_MENU_BASE = [
+  { label: "Timeline", href: "/dashboard/admin", roles: ["admin", "teacher"] as const, teacherTypes: ["support"] },
+  { label: "Settings", href: "/dashboard/admin", roles: ["admin", "teacher"] as const, teacherTypes: ["support"] },
 ];
 
 export function AppShell({ children }: AppShellProps) {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const router = useRouter();
+
+  const primaryMenu = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+
+    return PRIMARY_MENU_BASE.filter((item) => {
+      if (!item.roles) return true;
+      if (!item.roles.includes(user.role)) return false;
+
+      if (item.teacherTypes && user.role === "teacher") {
+        return item.teacherTypes.includes(user.teacherType ?? "");
+      }
+
+      return true;
+    });
+  }, [user]);
+
+  const utilityMenu = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+
+    return UTILITY_MENU_BASE.filter((item) => {
+      if (!item.roles) return true;
+      if (!item.roles.includes(user.role)) return false;
+
+      if (item.teacherTypes && user.role === "teacher") {
+        return item.teacherTypes.includes(user.teacherType ?? "");
+      }
+
+      return true;
+    });
+  }, [user]);
 
   const handleLogout = () => {
     signOut();
