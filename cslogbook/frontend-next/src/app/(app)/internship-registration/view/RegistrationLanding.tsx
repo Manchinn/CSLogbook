@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
-import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
+import {
+  getCurrentCS05,
+  getInternshipStudentInfo,
+  type CS05Document,
+  type InternshipStudent,
+} from "@/lib/services/internshipService";
+import RegistrationForm from "./RegistrationForm";
 import styles from "./registrationLanding.module.css";
 
 export default function RegistrationLanding() {
@@ -17,22 +23,55 @@ export default function RegistrationLanding() {
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
 
   const { data: eligibility, isLoading: eligibilityLoading } = useStudentEligibility(token, queriesEnabled);
-  const {
-    data: internshipStatus,
-    isLoading: internshipLoading,
-    error: internshipError,
-  } = useStudentInternshipStatus(token, queriesEnabled);
+
+  const [student, setStudent] = useState<InternshipStudent | null>(null);
+  const [currentCS05, setCurrentCS05] = useState<CS05Document | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [initLoading, setInitLoading] = useState(false);
 
   useEffect(() => {
-    if (!queriesEnabled || internshipLoading || internshipError) return;
-    if (internshipStatus?.summary) {
-      router.replace("/internship-registration/flow");
-    }
-  }, [queriesEnabled, internshipLoading, internshipStatus, router, internshipError]);
+    if (!queriesEnabled) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setInitLoading(true);
+        setInitError(null);
+        const [studentRes, cs05] = await Promise.all([
+          getInternshipStudentInfo(token ?? ""),
+          getCurrentCS05(token ?? ""),
+        ]);
+
+        if (cancelled) return;
+
+        if (studentRes.student) {
+          setStudent(studentRes.student);
+        }
+
+        if (cs05) {
+          setCurrentCS05(cs05);
+          router.replace("/internship-registration/flow");
+          return;
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "โหลดข้อมูลไม่สำเร็จ";
+        setInitError(message);
+      } finally {
+        if (!cancelled) {
+          setInitLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [queriesEnabled, token, router]);
 
   const eligibilityStatus = eligibility?.status.internship;
   const checkingEligibility = !hydrated || !queriesEnabled || eligibilityLoading;
-  const checkingStatus = !hydrated || !queriesEnabled || internshipLoading;
+  const checkingStatus = !hydrated || !queriesEnabled || initLoading;
 
   const cards = useMemo(
     () => [
@@ -52,9 +91,11 @@ export default function RegistrationLanding() {
 
   const statusText = checkingStatus
     ? "กำลังตรวจสอบสถานะ..."
-    : internshipError
-      ? "ตรวจสอบไม่สำเร็จ"
-      : "ไม่พบคำร้องฝึกงาน";
+    : initError
+      ? initError
+      : currentCS05
+        ? "พบคำร้องแล้ว กำลังพาไปหน้า timeline"
+        : "ไม่พบคำร้องฝึกงาน";
 
   return (
     <div className={styles.page}>
@@ -113,6 +154,8 @@ export default function RegistrationLanding() {
           </li>
         </ul>
       </section>
+
+      <RegistrationForm student={student} onSubmitted={setCurrentCS05} />
     </div>
   );
 }

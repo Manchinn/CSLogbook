@@ -8,12 +8,13 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const { token, headers, ...rest } = options;
   const fallbackToken = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
   const effectiveToken = token ?? fallbackToken;
-  const hasBody = Boolean(rest.body);
+  const hasBody = Object.prototype.hasOwnProperty.call(rest, "body");
+  const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
 
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...rest,
     headers: {
-      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...(hasBody && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
       ...headers,
     },
