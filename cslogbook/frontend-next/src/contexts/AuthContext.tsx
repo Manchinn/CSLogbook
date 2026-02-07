@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
-import { login, type AuthUser, type LoginPayload } from "@/lib/api/authService";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { login, verifyToken, type AuthUser, type LoginPayload } from "@/lib/api/authService";
 import { MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
 
 const AUTH_TOKEN_KEY = "cslogbook:auth-token";
@@ -13,6 +13,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (payload: LoginPayload) => Promise<AuthUser>;
+  completeSsoLogin: (token: string) => Promise<AuthUser>;
   signOut: () => void;
 };
 
@@ -35,30 +36,39 @@ function getInitialSession() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initialSession = getInitialSession();
-
   const [user, setUser] = useState<AuthUser | null>(initialSession.user);
   const [token, setToken] = useState<string | null>(initialSession.token);
 
-  const signIn = async (payload: LoginPayload) => {
+  const persistSession = useCallback((nextToken: string, nextUser: AuthUser) => {
+    setToken(nextToken);
+    setUser(nextUser);
+
+    window.localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
+    window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
+    window.localStorage.setItem(MOCK_ROLE_KEY, nextUser.role);
+  }, []);
+
+  const signIn = useCallback(async (payload: LoginPayload) => {
     const result = await login(payload);
 
-    setToken(result.token);
-    setUser(result.user);
-
-    window.localStorage.setItem(AUTH_TOKEN_KEY, result.token);
-    window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(result.user));
-    window.localStorage.setItem(MOCK_ROLE_KEY, result.user.role);
+    persistSession(result.token, result.user);
 
     return result.user;
-  };
+  }, [persistSession]);
 
-  const signOut = () => {
+  const completeSsoLogin = useCallback(async (nextToken: string) => {
+    const profile = await verifyToken(nextToken);
+    persistSession(nextToken, profile);
+    return profile;
+  }, [persistSession]);
+
+  const signOut = useCallback(() => {
     setToken(null);
     setUser(null);
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
     window.localStorage.removeItem(AUTH_USER_KEY);
     window.localStorage.removeItem(MOCK_ROLE_KEY);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -67,9 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(user && token),
       isLoading: false,
       signIn,
+      completeSsoLogin,
       signOut,
     }),
-    [token, user],
+    [completeSsoLogin, signIn, signOut, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

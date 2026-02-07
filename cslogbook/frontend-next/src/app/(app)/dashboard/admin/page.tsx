@@ -1,4 +1,5 @@
 import { DashboardRoleView } from "../DashboardRoleView";
+import { AdminStatsWidget } from "@/components/dashboard/AdminStatsWidget";
 
 const stats = [
   { label: "Active Students", value: "128" },
@@ -12,6 +13,8 @@ export default function AdminDashboardPage() {
       roleLabel="Admin"
       summary="ภาพรวมการจัดการเอกสารและ workflow ของทั้งระบบ"
       stats={stats}
-    />
+    >
+      <AdminStatsWidget />
+    </DashboardRoleView>
   );
 }

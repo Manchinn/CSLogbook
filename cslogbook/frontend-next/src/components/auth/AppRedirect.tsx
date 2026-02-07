@@ -14,9 +14,14 @@ export function AppRedirect() {
       return;
     }
 
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
     const target = getDashboardPathByRole(user?.role);
     router.replace(target);
-  }, [isLoading, router, user?.role]);
+  }, [isLoading, router, user]);
 
   return <p>กำลังพาไปยังหน้าที่เหมาะสมกับสิทธิ์ผู้ใช้...</p>;
 }

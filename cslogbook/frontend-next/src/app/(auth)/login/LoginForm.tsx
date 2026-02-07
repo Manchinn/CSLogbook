@@ -5,6 +5,8 @@ import { FormEvent, useState } from "react";
 import styles from "./page.module.css";
 import { AppRole } from "@/lib/auth/mockSession";
 import { useAuth } from "@/contexts/AuthContext";
+import { featureFlags } from "@/lib/config/featureFlags";
+import { getSsoAuthorizeUrl } from "@/lib/api/authService";
 
 export function LoginForm() {
   const router = useRouter();
@@ -19,11 +21,11 @@ export function LoginForm() {
 
     try {
       const formData = new FormData(event.currentTarget);
-      const email = String(formData.get("email") ?? "");
+      const username = String(formData.get("username") ?? "");
       const password = String(formData.get("password") ?? "");
       const role = String(formData.get("role") ?? "student") as AppRole;
 
-      await signIn({ email, password, role });
+      await signIn({ username, password, role });
       router.push("/app");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed");
@@ -34,10 +36,10 @@ export function LoginForm() {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      <label className={styles.label} htmlFor="email">
-        Email
+      <label className={styles.label} htmlFor="username">
+        Username / Email
       </label>
-      <input id="email" name="email" type="email" required className={styles.input} />
+      <input id="username" name="username" required className={styles.input} />
 
       <label className={styles.label} htmlFor="password">
         Password
@@ -50,20 +52,30 @@ export function LoginForm() {
         className={styles.input}
       />
 
-      <label className={styles.label} htmlFor="role">
-        Role (Mock)
-      </label>
-      <select id="role" name="role" defaultValue="student" className={styles.select}>
-        <option value="student">Student</option>
-        <option value="teacher">Teacher</option>
-        <option value="admin">Admin</option>
-      </select>
+      {featureFlags.enableMockAuth ? (
+        <>
+          <label className={styles.label} htmlFor="role">
+            Role (Mock)
+          </label>
+          <select id="role" name="role" defaultValue="student" className={styles.select}>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+        </>
+      ) : null}
 
       {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
 
       <button className={styles.submitButton} type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Signing in..." : "Sign in"}
       </button>
+
+      {featureFlags.enableSSO ? (
+        <a className={styles.secondaryButton} href={getSsoAuthorizeUrl("/app")}>
+          Continue with KMUTNB SSO
+        </a>
+      ) : null}
     </form>
   );
 }

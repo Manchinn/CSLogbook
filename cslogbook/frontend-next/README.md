@@ -93,7 +93,7 @@ export default function DashboardPage() {
 - แยก UI components ไว้ใน `src/components/`
 - แยก API services ไว้ใน `src/services/`
 - กำหนด route ตามโมดูล เช่น `src/app/(student)/...`, `src/app/(admin)/...`
-- เพิ่มระบบ state/data fetching เช่น React Query เมื่อต้องเรียก API จริง
+- ใช้ React Query ผ่าน `AppProviders` สำหรับ state/data fetching จาก API จริง
 
 ---
 
@@ -184,6 +184,7 @@ npm run dev -- --port 3001
 ตัวอย่าง env (ดู `env.example`):
 ```bash
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
+NEXT_PUBLIC_ENABLE_SSO=false
 NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
 NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
 ```
@@ -193,3 +194,20 @@ NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
 2. ย้าย dashboard widgets จาก frontend เดิมเข้ามาทีละ role
 3. ย้าย shared services/hooks ที่ใช้งานจริงก่อน
 4. ค่อย ๆ ปิดหน้าเดิมด้วย feature flags
+
+---
+
+## 13) Phase 3 Progress (Real Auth endpoint + SSO callback + React Query)
+
+สิ่งที่เพิ่มแล้ว:
+- Login ฝั่งจริงเรียก `/auth/login` ด้วย payload `username/password` (mock auth ยังเปิดได้ด้วย flag)
+- เพิ่ม flow SSO callback ที่ route `/auth/sso/callback` เพื่อรับ `token` จาก backend แล้วสร้าง session ฝั่ง Next.js
+- ติดตั้งและตั้งค่า `@tanstack/react-query` ใน `AppProviders`
+- ย้าย widget สถิติ admin จาก frontend เดิมบางส่วน: สร้าง `adminService` + `useAdminStats` และ render ในหน้า `/dashboard/admin`
+
+ค่า env ที่เกี่ยวข้อง:
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
+NEXT_PUBLIC_ENABLE_SSO=true
+```

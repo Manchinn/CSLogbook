@@ -6,19 +6,26 @@ type RequestOptions = RequestInit & {
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
+  const hasBody = Boolean(rest.body);
 
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...rest,
     headers: {
-      "Content-Type": "application/json",
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "API request failed");
+    const errorBody = await response.text();
+
+    try {
+      const parsed = JSON.parse(errorBody) as { message?: string };
+      throw new Error(parsed.message ?? "API request failed");
+    } catch {
+      throw new Error(errorBody || "API request failed");
+    }
   }
 
   return (await response.json()) as T;

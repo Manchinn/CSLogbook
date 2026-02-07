@@ -5,9 +5,10 @@ type DashboardRoleViewProps = {
   roleLabel: string;
   summary: string;
   stats: Array<{ label: string; value: string }>;
+  children?: React.ReactNode;
 };
 
-export function DashboardRoleView({ roleLabel, summary, stats }: DashboardRoleViewProps) {
+export function DashboardRoleView({ roleLabel, summary, stats, children }: DashboardRoleViewProps) {
   return (
     <section className={styles.wrapper}>
       <div className={styles.hero}>
@@ -21,6 +22,8 @@ export function DashboardRoleView({ roleLabel, summary, stats }: DashboardRoleVi
           <StatCard key={item.label} label={item.label} value={item.value} />
         ))}
       </div>
+
+      {children}
     </section>
   );
 }
