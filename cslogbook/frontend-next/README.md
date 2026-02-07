@@ -133,3 +133,21 @@ npm run dev -- --port 3001
 - `src/components/layout/AppShell.module.css`
 - `src/app/globals.css`
 - `src/app/page.tsx`
+
+---
+
+
+## 10) Refactor Sprint: Login + Dashboard
+
+สิ่งที่เพิ่มในรอบนี้:
+- หน้า `\`/login\`` สำหรับเริ่ม flow authentication (UI prototype)
+- หน้า `\`/dashboard\`` สำหรับ UX/UI โครงหลักของระบบหลัง login
+- แยก route group เป็น `(auth)` และ `(app)` เพื่อควบคุม layout ตาม best practices
+
+โครงสร้างใหม่ที่สำคัญ:
+- `src/app/(auth)/login/page.tsx`
+- `src/app/(auth)/login/LoginForm.tsx`
+- `src/app/(app)/layout.tsx`
+- `src/app/(app)/dashboard/page.tsx`
+
+หมายเหตุ: ตอนนี้ยังเป็น mock login (กด Sign in แล้วไป dashboard) เพื่อเตรียมต่อ API จริงในขั้นถัดไป

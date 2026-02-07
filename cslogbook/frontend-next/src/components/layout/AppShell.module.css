@@ -121,3 +121,16 @@
     border-bottom: 1px solid var(--color-border);
   }
 }
+
+.logoutLink {
+  margin-top: auto;
+  display: block;
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.logoutLink:hover {
+  background: #fee2e2;
+}

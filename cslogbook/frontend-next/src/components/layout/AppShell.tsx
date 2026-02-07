@@ -6,15 +6,15 @@ type AppShellProps = {
 };
 
 const primaryMenu = [
-  { label: "Dashboard", href: "/" },
-  { label: "Internship", href: "/" },
-  { label: "Project", href: "/" },
-  { label: "Documents", href: "/" },
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Internship", href: "/dashboard" },
+  { label: "Project", href: "/dashboard" },
+  { label: "Documents", href: "/dashboard" },
 ];
 
 const utilityMenu = [
-  { label: "Timeline", href: "/" },
-  { label: "Settings", href: "/" },
+  { label: "Timeline", href: "/dashboard" },
+  { label: "Settings", href: "/dashboard" },
 ];
 
 export function AppShell({ children }: AppShellProps) {
@@ -51,6 +51,10 @@ export function AppShell({ children }: AppShellProps) {
             ))}
           </ul>
         </nav>
+
+        <Link href="/login" className={styles.logoutLink}>
+          Log out
+        </Link>
       </aside>
 
       <div className={styles.contentArea}>
