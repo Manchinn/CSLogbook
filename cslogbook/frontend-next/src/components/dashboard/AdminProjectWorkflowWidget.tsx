@@ -92,7 +92,7 @@ export function AdminProjectWorkflowWidget({ enabled = true }: { enabled?: boole
           ) : (
             <ul className={styles.list}>
               {data.blockedProjects.map((project) => (
-                <li key={project.projectId ?? project.projectCode ?? Math.random()} className={styles.listItem}>
+                <li key={project.projectId ?? project.projectCode} className={styles.listItem}>
                   <span>{project.projectCode || project.projectTitle || "โครงงาน"}</span>
                 </li>
               ))}
@@ -109,7 +109,7 @@ export function AdminProjectWorkflowWidget({ enabled = true }: { enabled?: boole
           ) : (
             <ul className={styles.list}>
               {data.overdueProjects.map((project) => (
-                <li key={project.projectId ?? project.projectCode ?? Math.random()} className={styles.listItem}>
+                <li key={project.projectId ?? project.projectCode} className={styles.listItem}>
                   <span>{project.projectCode || project.projectTitle || "โครงงาน"}</span>
                 </li>
               ))}

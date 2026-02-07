@@ -37,6 +37,24 @@ export type LoginResponse = {
   redirectPath?: string;
 };
 
+export async function changePasswordInit(token: string, currentPassword: string, newPassword: string) {
+  return apiFetch<{ success: boolean; message?: string }>("/auth/password/change/init", {
+    method: "POST",
+    token,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export async function confirmPasswordChange(token: string, otp: string) {
+  return apiFetch<{ success: boolean; message?: string }>("/auth/password/change/confirm", {
+    method: "POST",
+    token,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ otp }),
+  });
+}
+
 type BackendLoginResponse = {
   token: string;
   userId: string;

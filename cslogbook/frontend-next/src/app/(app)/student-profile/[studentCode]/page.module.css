@@ -134,6 +134,38 @@
   font-size: 0.95rem;
 }
 
+.docList {
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0;
+}
+
+.docItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 0.55rem;
+}
+
+.docName {
+  font-weight: 700;
+}
+
+.docMeta {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.docActions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 .deadlineList {
   list-style: none;
   display: grid;
@@ -209,12 +241,26 @@
   font-weight: 700;
 }
 
+.success {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.actionRow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .linkButton {
   border: none;
   background: transparent;
   color: #2563eb;
   font-weight: 600;
   cursor: pointer;
+}
+.linkButton:hover {
+  text-decoration: underline;
 }
 
 .modalBackdrop {

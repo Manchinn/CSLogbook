@@ -1,15 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentDeadlines } from "@/hooks/useStudentDeadlines";
 import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
+import { useStudentDocuments } from "@/hooks/useStudentDocuments";
 import type { StudentDeadline, StudentProfile } from "@/lib/services/studentService";
 import { updateStudentContactInfo } from "@/lib/services/studentService";
+import { changePasswordInit, confirmPasswordChange } from "@/lib/api/authService";
+import { downloadDocument, viewDocument, type DocumentItem } from "@/lib/services/documentService";
+import { featureFlags } from "@/lib/config/featureFlags";
 import styles from "./page.module.css";
 
 type Tone = "positive" | "danger" | "muted";
@@ -62,10 +66,54 @@ function DeadlineList({ deadlines }: { deadlines: StudentDeadline[] }) {
   );
 }
 
+function DocumentList({
+  documents,
+  onView,
+  onDownload,
+  loading,
+  error,
+}: {
+  documents: DocumentItem[];
+  onView: (doc: DocumentItem) => void;
+  onDownload: (doc: DocumentItem) => void;
+  loading: boolean;
+  error: string | null;
+}) {
+  if (error) return <p className={styles.error}>{error}</p>;
+  if (loading) return <p className={styles.muted}>กำลังโหลดเอกสาร...</p>;
+  if (!documents.length) return <p className={styles.muted}>ยังไม่มีเอกสาร</p>;
+
+  return (
+    <ul className={styles.docList}>
+      {documents.map((doc) => {
+        const id = doc.documentId ?? doc.id ?? "";
+        const name = doc.name || doc.documentName || "ไม่ระบุ";
+        return (
+          <li key={`${name}-${id}`} className={styles.docItem}>
+            <div>
+              <p className={styles.docName}>{name}</p>
+              <p className={styles.docMeta}>{doc.status || "ไม่ระบุสถานะ"}</p>
+            </div>
+            <div className={styles.docActions}>
+              <button type="button" className={styles.secondaryButton} onClick={() => onView(doc)} disabled={!id}>
+                ดูตัวอย่าง
+              </button>
+              <button type="button" className={styles.primaryButton} onClick={() => onDownload(doc)} disabled={!id}>
+                ดาวน์โหลด
+              </button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function StudentProfilePage() {
   const params = useParams<{ studentCode?: string | string[] }>();
-  const { user, token } = useAuth();
+  const { user, token, signOut } = useAuth();
   const hydrated = useHydrated();
+  const router = useRouter();
 
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [contactForm, setContactForm] = useState({
@@ -74,6 +122,19 @@ export default function StudentProfilePage() {
   });
   const [contactError, setContactError] = useState<string | null>(null);
   const [contactSaving, setContactSaving] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState<string | null>(null);
+
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordStep, setPasswordStep] = useState<"init" | "otp">("init");
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+    otp: "",
+  });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   const rawStudentCode = Array.isArray(params?.studentCode) ? params?.studentCode?.[0] : params?.studentCode;
   const resolvedStudentCode = useMemo(() => {
@@ -89,6 +150,7 @@ export default function StudentProfilePage() {
   const deadlinesQuery = useStudentDeadlines(token, 14, hydrated && canUseStudentEndpoints);
   const internshipQuery = useStudentInternshipStatus(token, hydrated && canUseStudentEndpoints);
   const projectQuery = useStudentProjectStatus(token, hydrated && canUseStudentEndpoints);
+  const documentsQuery = useStudentDocuments(token, hydrated && canUseStudentEndpoints, { type: "internship", lettersOnly: 1 });
 
   const handleOpenEdit = () => {
     if (!profileQuery.data) return;
@@ -97,6 +159,7 @@ export default function StudentProfilePage() {
       classroom: profileQuery.data.classroom ?? "",
     });
     setContactError(null);
+    setContactSuccess(null);
     setIsEditingContact(true);
   };
 
@@ -108,10 +171,63 @@ export default function StudentProfilePage() {
       await updateStudentContactInfo(resolvedStudentCode, token, contactForm);
       await profileQuery.refetch();
       setIsEditingContact(false);
+      setContactSuccess("บันทึกข้อมูลติดต่อเรียบร้อยแล้ว");
     } catch (error) {
       setContactError(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
     } finally {
       setContactSaving(false);
+    }
+  };
+
+  const handleStartPasswordChange = async () => {
+    if (!token) return;
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+      setPasswordError("ยืนยันรหัสผ่านไม่ตรงกัน");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await changePasswordInit(token, passwordForm.currentPassword, passwordForm.newPassword);
+      setPasswordStep("otp");
+      setPasswordSuccess("ส่ง OTP ไปยังอีเมลแล้ว กรุณากรอกรหัสยืนยัน");
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "ไม่สามารถส่ง OTP ได้");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleConfirmPassword = async () => {
+    if (!token) return;
+    setPasswordSaving(true);
+    setPasswordError(null);
+    setPasswordSuccess(null);
+    try {
+      await confirmPasswordChange(token, passwordForm.otp);
+      setPasswordSuccess("เปลี่ยนรหัสผ่านสำเร็จ กำลังออกจากระบบ...");
+      setTimeout(() => {
+        setIsChangingPassword(false);
+        signOut();
+        const legacyLoginUrl = process.env.NEXT_PUBLIC_LEGACY_FRONTEND_URL;
+        if (featureFlags.useLegacyFrontend && legacyLoginUrl) {
+          router.push(legacyLoginUrl);
+        } else {
+          router.push("/login");
+        }
+      }, 800);
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "ยืนยันรหัสผ่านไม่สำเร็จ");
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -150,6 +266,39 @@ export default function StudentProfilePage() {
   );
 
   const deadlines = deadlinesQuery.data ?? [];
+  const documents = documentsQuery.data?.documents ?? [];
+
+  const handleViewDoc = async (doc: DocumentItem) => {
+    if (!token) return;
+    const id = doc.documentId ?? doc.id;
+    if (!id) return;
+    try {
+      const blob = await viewDocument(id, token);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error(error);
+      alert("ไม่สามารถเปิดเอกสารได้");
+    }
+  };
+
+  const handleDownloadDoc = async (doc: DocumentItem) => {
+    if (!token) return;
+    const id = doc.documentId ?? doc.id;
+    if (!id) return;
+    try {
+      const blob = await downloadDocument(id, token);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${doc.name || doc.documentName || "document"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("ไม่สามารถดาวน์โหลดเอกสารได้");
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -161,6 +310,19 @@ export default function StudentProfilePage() {
         error={contactError}
         form={contactForm}
         setForm={setContactForm}
+      />
+
+      <PasswordChangeModal
+        open={isChangingPassword}
+        onClose={() => setIsChangingPassword(false)}
+        onStart={handleStartPasswordChange}
+        onConfirm={handleConfirmPassword}
+        step={passwordStep}
+        saving={passwordSaving}
+        error={passwordError}
+        success={passwordSuccess}
+        form={passwordForm}
+        setForm={setPasswordForm}
       />
 
       <section className={styles.hero}>
@@ -217,9 +379,24 @@ export default function StudentProfilePage() {
               <h3 className={styles.cardTitle}>ข้อมูลติดต่อ</h3>
             </div>
             {canUseStudentEndpoints && resolvedStudentCode === (user?.studentCode ?? "") ? (
-              <button type="button" className={styles.linkButton} onClick={handleOpenEdit}>
-                แก้ไขข้อมูลติดต่อ
-              </button>
+              <div className={styles.actionRow}>
+                <button type="button" className={styles.linkButton} onClick={handleOpenEdit}>
+                  แก้ไขข้อมูลติดต่อ
+                </button>
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={() => {
+                    setIsChangingPassword(true);
+                    setPasswordStep("init");
+                    setPasswordForm({ currentPassword: "", newPassword: "", confirmNewPassword: "", otp: "" });
+                    setPasswordError(null);
+                    setPasswordSuccess(null);
+                  }}
+                >
+                  เปลี่ยนรหัสผ่าน
+                </button>
+              </div>
             ) : null}
           </header>
           <dl className={styles.detailList}>
@@ -236,6 +413,7 @@ export default function StudentProfilePage() {
               <dd>{profile.classroom || "ไม่ระบุ"}</dd>
             </div>
           </dl>
+          {contactSuccess ? <p className={styles.success}>{contactSuccess}</p> : null}
         </article>
 
         <article className={styles.card}>
@@ -286,6 +464,24 @@ export default function StudentProfilePage() {
             ) : (
               <DeadlineList deadlines={deadlines.slice(0, 5)} />
             )}
+          </article>
+        ) : null}
+
+        {canUseStudentEndpoints ? (
+          <article className={styles.card}>
+            <header className={styles.cardHeader}>
+              <div>
+                <p className={styles.cardEyebrow}>Documents</p>
+                <h3 className={styles.cardTitle}>เอกสารฝึกงาน</h3>
+              </div>
+            </header>
+            <DocumentList
+              documents={documents}
+              onView={handleViewDoc}
+              onDownload={handleDownloadDoc}
+              loading={documentsQuery.isLoading}
+              error={documentsQuery.isError ? "ไม่สามารถโหลดเอกสารได้" : null}
+            />
           </article>
         ) : null}
       </section>
@@ -351,6 +547,102 @@ function ContactEditModal({
           <button type="button" className={styles.primaryButton} onClick={onSave} disabled={saving}>
             {saving ? "กำลังบันทึก..." : "บันทึก"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PasswordChangeModal({
+  open,
+  onClose,
+  onStart,
+  onConfirm,
+  step,
+  saving,
+  error,
+  success,
+  form,
+  setForm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onStart: () => Promise<void>;
+  onConfirm: () => Promise<void>;
+  step: "init" | "otp";
+  saving: boolean;
+  error: string | null;
+  success: string | null;
+  form: { currentPassword: string; newPassword: string; confirmNewPassword: string; otp: string };
+  setForm: (next: { currentPassword: string; newPassword: string; confirmNewPassword: string; otp: string }) => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className={styles.modalBackdrop}>
+      <div className={styles.modal}>
+        <div className={styles.modalHeader}>
+          <h3>เปลี่ยนรหัสผ่าน</h3>
+          <button type="button" className={styles.closeButton} onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {step === "init" ? (
+          <>
+            <label className={styles.field}>
+              <span>รหัสผ่านปัจจุบัน</span>
+              <input
+                type="password"
+                value={form.currentPassword}
+                onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+              />
+            </label>
+            <label className={styles.field}>
+              <span>รหัสผ่านใหม่</span>
+              <input
+                type="password"
+                value={form.newPassword}
+                onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+              />
+            </label>
+            <label className={styles.field}>
+              <span>ยืนยันรหัสผ่านใหม่</span>
+              <input
+                type="password"
+                value={form.confirmNewPassword}
+                onChange={(e) => setForm({ ...form, confirmNewPassword: e.target.value })}
+              />
+            </label>
+          </>
+        ) : (
+          <label className={styles.field}>
+            <span>OTP ที่ได้รับทางอีเมล</span>
+            <input
+              type="text"
+              value={form.otp}
+              onChange={(e) => setForm({ ...form, otp: e.target.value })}
+              placeholder="กรอกรหัส 6 หลัก"
+            />
+          </label>
+        )}
+
+        {error ? <p className={styles.error}>{error}</p> : null}
+        {success ? <p className={styles.success}>{success}</p> : null}
+
+        <div className={styles.modalActions}>
+          <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving}>
+            ยกเลิก
+          </button>
+          {step === "init" ? (
+            <button type="button" className={styles.primaryButton} onClick={onStart} disabled={saving}>
+              {saving ? "กำลังส่ง OTP..." : "ส่ง OTP"}
+            </button>
+          ) : (
+            <button type="button" className={styles.primaryButton} onClick={onConfirm} disabled={saving}>
+              {saving ? "กำลังยืนยัน..." : "ยืนยันรหัส"}
+            </button>
+          )}
         </div>
       </div>
     </div>
