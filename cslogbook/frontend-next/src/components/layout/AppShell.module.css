@@ -48,6 +48,19 @@
   gap: 0.35rem;
 }
 
+.navChildList {
+  list-style: none;
+  display: grid;
+  gap: 0.2rem;
+  padding-left: 0.9rem;
+  border-left: 1px dashed var(--color-border);
+}
+
+.navItem {
+  display: grid;
+  gap: 0.15rem;
+}
+
 .navLink,
 .navLinkMuted {
   display: block;
@@ -68,6 +81,21 @@
 .navLink:hover,
 .navLinkMuted:hover {
   background: var(--color-bg-subtle);
+}
+
+.navGroupLabel {
+  padding: 0.35rem 0.25rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.navLabel {
+  font-size: 0.95rem;
+}
+
+.navExternal {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 .contentArea {

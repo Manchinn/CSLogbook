@@ -1,69 +1,63 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./AppShell.module.css";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudentEligibility } from "@/hooks/useStudentEligibility";
+import { getMenuGroups, type MenuLink, type MenuNode } from "@/lib/navigation/menuConfig";
 
 type AppShellProps = {
   children: React.ReactNode;
 };
 
-const PRIMARY_MENU_BASE = [
-  { label: "App Home", href: "/app" },
-  { label: "Student Dashboard", href: "/dashboard/student", roles: ["student"] as const },
-  { label: "Teacher Dashboard", href: "/dashboard/teacher", roles: ["teacher"] as const, teacherTypes: ["academic"] },
-  { label: "Admin Dashboard", href: "/dashboard/admin", roles: ["admin", "teacher"] as const, teacherTypes: ["support"] },
-];
-
-const UTILITY_MENU_BASE = [
-  { label: "Timeline", href: "/dashboard/admin", roles: ["admin", "teacher"] as const, teacherTypes: ["support"] },
-  { label: "Settings", href: "/dashboard/admin", roles: ["admin", "teacher"] as const, teacherTypes: ["support"] },
-];
-
 export function AppShell({ children }: AppShellProps) {
-  const { signOut, user } = useAuth();
+  const { signOut, user, token } = useAuth();
   const router = useRouter();
+  const { data: eligibilityData } = useStudentEligibility(token, user?.role === "student");
 
-  const primaryMenu = useMemo(() => {
-    if (!user) {
-      return [];
-    }
+  const canAccessInternship = eligibilityData?.eligibility.internship.canAccessFeature ?? null;
+  const canAccessProject = eligibilityData?.eligibility.project.canAccessFeature ?? null;
 
-    return PRIMARY_MENU_BASE.filter((item) => {
-      if (!item.roles) return true;
-      if (!item.roles.includes(user.role)) return false;
+  const menuGroups = useMemo(
+    () => getMenuGroups({ user: user ?? null, canAccessInternship, canAccessProject }),
+    [user, canAccessInternship, canAccessProject]
+  );
 
-      if (item.teacherTypes && user.role === "teacher") {
-        return item.teacherTypes.includes(user.teacherType ?? "");
-      }
-
-      return true;
-    });
-  }, [user]);
-
-  const utilityMenu = useMemo(() => {
-    if (!user) {
-      return [];
-    }
-
-    return UTILITY_MENU_BASE.filter((item) => {
-      if (!item.roles) return true;
-      if (!item.roles.includes(user.role)) return false;
-
-      if (item.teacherTypes && user.role === "teacher") {
-        return item.teacherTypes.includes(user.teacherType ?? "");
-      }
-
-      return true;
-    });
-  }, [user]);
+  const isLink = (item: MenuNode): item is MenuLink => item.kind === "link";
 
   const handleLogout = () => {
     signOut();
     router.push("/login");
   };
+
+  const handleNavigate = (item: MenuLink) => {
+    if (item.external) {
+      window.location.href = item.href;
+      return;
+    }
+    router.push(item.href);
+  };
+
+  const renderNodes = (items: MenuNode[], isChild?: boolean) => (
+    <ul className={isChild ? styles.navChildList : styles.navList}>
+      {items.map((item) => (
+        <li key={item.key} className={styles.navItem}>
+          {isLink(item) ? (
+            <button type="button" className={styles.navLink} onClick={() => handleNavigate(item)}>
+              <span className={styles.navLabel}>{item.label}</span>
+              {item.external ? <span className={styles.navExternal}>เปิดหน้าระบบเดิม</span> : null}
+            </button>
+          ) : (
+            <div className={styles.navGroupLabel}>
+              <span className={styles.navLabel}>{item.label}</span>
+            </div>
+          )}
+          {item.children ? renderNodes(item.children, true) : null}
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <div className={styles.shell}>
@@ -73,31 +67,12 @@ export function AppShell({ children }: AppShellProps) {
           <h1 className={styles.brandTitle}>Frontend Base</h1>
         </div>
 
-        <nav className={styles.navSection}>
-          <p className={styles.sectionLabel}>Main Menu</p>
-          <ul className={styles.navList}>
-            {primaryMenu.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} className={styles.navLink}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <nav className={styles.navSection}>
-          <p className={styles.sectionLabel}>System</p>
-          <ul className={styles.navList}>
-            {utilityMenu.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} className={styles.navLinkMuted}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {menuGroups.map((group) => (
+          <nav key={group.key} className={styles.navSection}>
+            <p className={styles.sectionLabel}>{group.label}</p>
+            {renderNodes(group.items)}
+          </nav>
+        ))}
 
         <button type="button" className={styles.logoutLink} onClick={handleLogout}>
           Log out
