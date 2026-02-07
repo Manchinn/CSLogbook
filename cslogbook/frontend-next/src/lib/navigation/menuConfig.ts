@@ -45,7 +45,7 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
 
   const items: MenuNode[] = [
     { key: "student-dashboard", label: "แดชบอร์ด", kind: "link", ...link("/dashboard/student", true) },
-    { key: "student-profile", label: "ประวัตินักศึกษา", kind: "link", ...link(`/student-profile/${studentCode}`) },
+    { key: "student-profile", label: "ประวัตินักศึกษา", kind: "link", ...link(`/student-profile/${studentCode}`, featureFlags.enableStudentProfilePage) },
     { key: "student-calendar", label: "ปฏิทินกำหนดการ", kind: "link", ...link("/student-deadlines/calendar") },
     { key: "student-deadlines", label: "กำหนดส่งทั้งหมด", kind: "link", ...link("/deadlines", featureFlags.enableDeadlinesPage) },
   ];
@@ -112,23 +112,42 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
   const canExportThesis = Boolean((user as any).canExportThesis ?? user.canExportProject1);
   const canApproveDocuments = isAcademic && (user as any).teacherPosition === "หัวหน้าภาควิชา";
 
+  const privilegedChildren: MenuNode[] = [];
+
+  if (canSeeTopicExam) {
+    privilegedChildren.push({
+      key: "topic-overview",
+      label: "รายชื่อหัวข้อโครงงาน",
+      kind: "link",
+      ...link("/teacher/topic-exam/overview"),
+    });
+  }
+
+  if (canExportProject1) {
+    privilegedChildren.push({
+      key: "kp02-queue",
+      label: "รายชื่อสอบโครงงานพิเศษ",
+      kind: "link",
+      ...link("/admin/project1/kp02-queue"),
+    });
+  }
+
+  if (canExportThesis) {
+    privilegedChildren.push({
+      key: "thesis-queue",
+      label: "รายชื่อสอบปริญญานิพนธ์",
+      kind: "link",
+      ...link("/admin/thesis/staff-queue"),
+    });
+  }
+
   const privileged: MenuGroupNode | null =
-    canSeeTopicExam || canExportProject1 || canExportThesis
+    privilegedChildren.length > 0
       ? {
           key: "teacher-privileged",
           label: "สำหรับอาจารย์ที่มีสิทธิ์",
           kind: "group",
-          children: [
-            ...(canSeeTopicExam
-              ? [{ key: "topic-overview", label: "รายชื่อหัวข้อโครงงาน", kind: "link", ...link("/teacher/topic-exam/overview") }]
-              : []),
-            ...(canExportProject1
-              ? [{ key: "kp02-queue", label: "รายชื่อสอบโครงงานพิเศษ", kind: "link", ...link("/admin/project1/kp02-queue") }]
-              : []),
-            ...(canExportThesis
-              ? [{ key: "thesis-queue", label: "รายชื่อสอบปริญญานิพนธ์", kind: "link", ...link("/admin/thesis/staff-queue") }]
-              : []),
-          ],
+          children: privilegedChildren,
         }
       : null;
 

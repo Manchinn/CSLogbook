@@ -61,6 +61,35 @@ export type StudentEligibilityResponse = {
   };
 };
 
+export type StudentProfile = {
+  studentId: number;
+  studentCode: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  classroom?: string | null;
+  studentYear?: number | { year?: number | null } | null;
+  totalCredits?: number | null;
+  majorCredits?: number | null;
+  requirements?: {
+    internshipBaseCredits?: number | null;
+    projectBaseCredits?: number | null;
+    projectMajorBaseCredits?: number | null;
+  } | null;
+  eligibility?: {
+    internship?: { eligible?: boolean; message?: string | null } | null;
+    project?: { eligible?: boolean; message?: string | null } | null;
+  } | null;
+  isEligibleInternship?: boolean | null;
+  isEligibleProject?: boolean | null;
+  isEnrolledInternship?: boolean | null;
+  internshipStatus?: string | null;
+  isEnrolledProject?: boolean | null;
+  projectStatus?: string | null;
+  updatedAt?: string | null;
+};
+
 export async function getStudentEligibility(token: string) {
   return apiFetch<StudentEligibilityResponse>("/students/check-eligibility", {
     method: "GET",
@@ -303,4 +332,46 @@ export async function getStudentProjectStatus(token: string): Promise<StudentPro
     console.warn("Failed to load project workflow state", error);
     return { project, workflow: null };
   }
+}
+
+export type UpdateContactInfoPayload = {
+  classroom?: string | null;
+  phoneNumber?: string | null;
+};
+
+export async function updateStudentContactInfo(studentCode: string, token: string, payload: UpdateContactInfoPayload) {
+  const response = await apiFetch<{ success: boolean; message?: string; data?: StudentProfile }>(
+    `/students/${studentCode}/contact-info`,
+    {
+      method: "PUT",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.success) {
+    throw new Error(response.message ?? "อัปเดตข้อมูลติดต่อไม่สำเร็จ");
+  }
+
+  return response.data ?? null;
+}
+
+type StudentProfileResponse = {
+  success: boolean;
+  data: StudentProfile | null;
+  message?: string;
+};
+
+export async function getStudentProfile(studentCode: string, token: string) {
+  const response = await apiFetch<StudentProfileResponse>(`/students/${studentCode}`, {
+    method: "GET",
+    token,
+  });
+
+  if (!response.success || !response.data) {
+    throw new Error(response.message ?? "ไม่สามารถโหลดข้อมูลนักศึกษาได้");
+  }
+
+  return response.data;
 }

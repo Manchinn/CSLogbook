@@ -14,6 +14,7 @@ export const featureFlags = {
   enableStudentProjectWidget:
     process.env.NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET === "true" ||
     process.env.NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION === "true",
+  enableStudentProfilePage: process.env.NEXT_PUBLIC_ENABLE_STUDENT_PROFILE_PAGE === "true",
   enableProjectPhase1Page: process.env.NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE === "true",
   enableProjectPhase2Page: process.env.NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE === "true",
   enableInternshipFlowPage: process.env.NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE === "true",

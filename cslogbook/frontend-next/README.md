@@ -72,6 +72,7 @@ NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
 NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
+NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 
 # Page rollouts (fallback -> legacy when false)
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
@@ -288,11 +289,12 @@ NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 - ตรวจสอบ token expiry ใน `AuthProvider` + auto logout + verify token on mount
 - `AuthGuard`/`RoleGuard` รอ auth loading และ fallback ไป legacy login เมื่อเปิด flag
 - เพิ่ม feature flags ครอบ widget/admin/report/settings/page-level + legacy link resolver
-- Stub หน้าตามเมนูใหม่ (มี guard + fallback legacy):
-  - `/project/phase1`, `/project/phase2`
-  - `/internship-registration/flow`, `/internship/logbook`, `/internship/certificate`
-  - `/deadlines`, `/reports`, `/settings`, `/meetings`
+- Stub หน้าตามเมนูใหม่ (มี guard + fallback legacy) พร้อมเติมเนื้อหาจริงให้:
+  - `/project/phase1` (สถานะโครงงาน, member, deadlines, workflow timeline)
+  - `/internship-registration/flow` (eligibility, status, deadlines, workflow timeline)
+  - `/project/phase2`, `/internship/logbook`, `/internship/certificate`, `/deadlines`, `/reports`, `/settings`, `/meetings` (ยังเป็น stub/legacy fallback)
 - เมนูปรับให้รู้จัก flag/page ใหม่ และส่งไป legacy อัตโนมัติเมื่อยังไม่เปิดใช้
+- ย้าย widget admin/teacher เพิ่มเติม: Teacher overview widget ฉบับเต็ม, Admin project workflow widget (flag แยก) ที่ดึงสถิติ phase/ผลสอบ/blocked/overdue
 
 ค่า env ที่เกี่ยวข้อง (ตัวอย่าง):
 ```bash
@@ -300,8 +302,9 @@ NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
 NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
 NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
 NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
+NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 ```
 
 แผนถัดไป:
-1) เติมเนื้อหาจริงใน stub pages เริ่มที่ `/internship-registration/flow` และ `/project/phase1`
-2) ย้าย teacher/admin widgets เพิ่มเติมภายใต้ flags แล้วค่อยเปิดใช้จริง
+1) Rollout widget ใหม่ตาม flag บน dashboard จริง และเสริมรายงาน/ตั้งค่าอื่น ๆ
+2) เติมเนื้อหาหน้า stub ที่เหลือ (/project/phase2, /internship/logbook, /internship/certificate, รายงาน/ตั้งค่า)
