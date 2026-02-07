@@ -60,11 +60,9 @@ frontend-next/
 # URL ของ backend API (ฝั่ง browser ใช้ NEXT_PUBLIC_)
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
-# Auth / Legacy
+# Auth
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
 NEXT_PUBLIC_ENABLE_SSO=false
-NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
-NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
 
 # Dashboard widget rollouts
 NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
@@ -74,7 +72,7 @@ NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
 NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 
-# Page rollouts (fallback -> legacy when false)
+# Page rollouts (false = redirect to /app)
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=false
 NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
@@ -204,14 +202,12 @@ npm run dev -- --port 3001
 - `authService` + `apiFetch` เพื่อรองรับ API login จริง และ mock auth ผ่าน feature flag
 - แยก dashboard ตาม role: `/dashboard/student`, `/dashboard/teacher`, `/dashboard/admin`
 - เพิ่มจุด redirect กลาง `/app` เพื่อส่งต่อไป dashboard ตาม role จาก session
-- เพิ่ม feature flags สำหรับเปิด/ปิด mock auth และ legacy frontend
+- เพิ่ม feature flags สำหรับเปิด/ปิด mock auth
 
 ตัวอย่าง env (ดู `env.example`):
 ```bash
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
 NEXT_PUBLIC_ENABLE_SSO=false
-NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
-NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
 ```
 
 แผนถัดไป:
@@ -287,20 +283,19 @@ NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 
 สิ่งที่เพิ่มแล้ว:
 - ตรวจสอบ token expiry ใน `AuthProvider` + auto logout + verify token on mount
-- `AuthGuard`/`RoleGuard` รอ auth loading และ fallback ไป legacy login เมื่อเปิด flag
-- เพิ่ม feature flags ครอบ widget/admin/report/settings/page-level + legacy link resolver
-- Stub หน้าตามเมนูใหม่ (มี guard + fallback legacy) พร้อมเติมเนื้อหาจริงให้:
+- `AuthGuard`/`RoleGuard` รอ auth loading และ redirect ไป `/login` เมื่อไม่ผ่าน
+- เพิ่ม feature flags ครอบ widget/admin/report/settings/page-level
+- Stub หน้าตามเมนูใหม่ (มี guard + redirect ไป `/app` เมื่อปิด flag) พร้อมเติมเนื้อหาจริงให้:
   - `/project/phase1` (สถานะโครงงาน, member, deadlines, workflow timeline)
   - `/internship-registration/flow` (eligibility, status, deadlines, workflow timeline)
-  - `/project/phase2`, `/internship/logbook`, `/internship/certificate`, `/deadlines`, `/reports`, `/settings`, `/meetings` (ยังเป็น stub/legacy fallback)
-- เมนูปรับให้รู้จัก flag/page ใหม่ และส่งไป legacy อัตโนมัติเมื่อยังไม่เปิดใช้
+  - `/project/phase2`, `/internship/logbook`, `/internship/certificate`, `/deadlines`, `/reports`, `/settings`, `/meetings` (ยังเป็น stub + redirect ไป `/app` เมื่อปิด flag)
+- เมนูปรับให้รู้จัก flag/page ใหม่ และซ่อนหรือ redirect ไปหน้าใหม่ตาม flag
 - ย้าย widget admin/teacher เพิ่มเติม: Teacher overview widget ฉบับเต็ม, Admin project workflow widget (flag แยก) ที่ดึงสถิติ phase/ผลสอบ/blocked/overdue
 
 ค่า env ที่เกี่ยวข้อง (ตัวอย่าง):
 ```bash
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
 NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
-NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
 NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
 NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 ```
