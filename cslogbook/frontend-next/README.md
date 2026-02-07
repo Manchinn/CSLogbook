@@ -183,7 +183,7 @@ npm run dev -- --port 3001
 
 ตัวอย่าง env (ดู `env.example`):
 ```bash
-NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
 NEXT_PUBLIC_ENABLE_SSO=false
 NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
 NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login

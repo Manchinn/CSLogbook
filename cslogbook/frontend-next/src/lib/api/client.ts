@@ -6,13 +6,15 @@ type RequestOptions = RequestInit & {
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
+  const fallbackToken = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+  const effectiveToken = token ?? fallbackToken;
   const hasBody = Boolean(rest.body);
 
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...rest,
     headers: {
       ...(hasBody ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
       ...headers,
     },
   });
