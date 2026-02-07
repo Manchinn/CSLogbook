@@ -151,7 +151,7 @@
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .empty {

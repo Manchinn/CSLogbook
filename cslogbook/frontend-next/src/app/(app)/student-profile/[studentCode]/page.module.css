@@ -209,9 +209,9 @@
 }
 
 .badgeDanger {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-color: #f97316;
+  background: rgba(255, 77, 79, 0.08);
+  color: var(--color-error);
+  border-color: rgba(255, 77, 79, 0.26);
 }
 
 .badgeMuted {
@@ -237,7 +237,7 @@
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--color-error);
   font-weight: 700;
 }
 

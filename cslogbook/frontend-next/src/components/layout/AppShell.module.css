@@ -8,10 +8,11 @@
 .sidebar {
   border-right: 1px solid var(--color-border);
   background: var(--color-bg);
-  padding: 1.25rem;
+  padding: 1.25rem 1.35rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.04);
 }
 
 .brandBlock {
@@ -67,7 +68,7 @@
   border-radius: 0.625rem;
   padding: 0.625rem 0.75rem;
   font-weight: 500;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .navLink {
@@ -80,7 +81,8 @@
 
 .navLink:hover,
 .navLinkMuted:hover {
-  background: var(--color-bg-subtle);
+  background: var(--color-primary-weak);
+  color: var(--color-primary-strong);
 }
 
 .navGroupLabel {
@@ -111,6 +113,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 
 .headerLabel {
@@ -129,10 +132,11 @@
   border: none;
   border-radius: 0.625rem;
   padding: 0.625rem 0.875rem;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 10px 24px rgba(211, 47, 47, 0.18);
 }
 
 .mainContent {
@@ -161,9 +165,9 @@
   border-radius: 0.625rem;
   padding: 0.625rem 0.75rem;
   font-weight: 600;
-  color: #b91c1c;
+  color: var(--color-primary-strong);
 }
 
 .logoutLink:hover {
-  background: #fee2e2;
+  background: var(--color-primary-weak);
 }

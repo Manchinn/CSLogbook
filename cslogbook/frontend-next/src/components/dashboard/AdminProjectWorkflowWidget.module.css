@@ -1,12 +1,13 @@
 .wrapper {
-  background: #0f172a;
-  color: #e2e8f0;
-  border: 1px solid #1f2937;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
 
 .header {
@@ -19,14 +20,14 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-primary);
   margin: 0;
 }
 
 .title {
   margin: 4px 0 0 0;
   font-size: 20px;
-  color: #e2e8f0;
+  color: var(--color-text);
 }
 
 .grid {
@@ -36,14 +37,14 @@
 }
 
 .card {
-  background: linear-gradient(145deg, #111827, #0b1222);
-  border: 1px solid #1f2937;
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px;
 }
 
 .label {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin: 0 0 4px 0;
   font-size: 13px;
 }
@@ -52,7 +53,7 @@
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--color-text);
 }
 
 .split {
@@ -62,13 +63,14 @@
 }
 
 .panel {
-  background: #0b1020;
-  border: 1px solid #1f2937;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
 }
 
 .panelHeader {
@@ -80,7 +82,7 @@
 .panelTitle {
   margin: 0;
   font-size: 14px;
-  color: #cbd5e1;
+  color: var(--color-text);
 }
 
 .list {
@@ -97,22 +99,22 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #0f172a;
+  background: var(--color-bg-subtle);
 }
 
 .badge {
-  background: #22d3ee33;
-  color: #67e8f9;
-  border: 1px solid #22d3ee55;
+  background: #f6ffed;
+  color: #237804;
+  border: 1px solid #b7eb8f;
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 12px;
 }
 
 .muted {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin: 4px 0 0 0;
 }
 
@@ -123,19 +125,19 @@
 }
 
 .examCard {
-  background: #0f172a;
-  border: 1px solid #1f2937;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 10px;
 }
 
 .examLine {
   margin: 2px 0;
-  color: #e2e8f0;
+  color: var(--color-text);
   font-size: 13px;
 }
 
 .error {
-  color: #ef4444;
+  color: #a8071a;
   margin: 0;
 }

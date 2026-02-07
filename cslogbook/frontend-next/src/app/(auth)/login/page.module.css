@@ -83,7 +83,7 @@
 }
 
 .errorText {
-  color: #b91c1c;
+  color: var(--color-error);
   font-size: 0.875rem;
 }
 

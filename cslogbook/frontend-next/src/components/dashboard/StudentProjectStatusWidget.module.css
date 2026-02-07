@@ -56,9 +56,9 @@
 }
 
 .chipNegative {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecdd3;
+  background: rgba(255, 77, 79, 0.08);
+  color: var(--color-error);
+  border-color: rgba(255, 77, 79, 0.26);
 }
 
 .grid {
@@ -138,7 +138,7 @@
 
 .blockNote {
   margin: 0.4rem 0 0;
-  color: #b91c1c;
+  color: var(--color-error);
   font-weight: 600;
 }
 
@@ -150,7 +150,7 @@
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .empty {

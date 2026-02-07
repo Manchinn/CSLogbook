@@ -76,12 +76,12 @@
 }
 
 .badgeDanger {
-  color: #b91c1c;
+  color: var(--color-error);
   font-weight: 700;
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .empty {

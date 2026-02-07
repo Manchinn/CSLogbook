@@ -1,10 +1,32 @@
 :root {
-  --color-bg: #ffffff;
-  --color-bg-subtle: #f7f8fa;
-  --color-text: #18202a;
-  --color-text-muted: #6f7b8c;
-  --color-border: #e3e7ee;
+  /* Legacy palette (frontend old version) with blue primary */
   --color-primary: #2563eb;
+  --color-primary-strong: #1d4ed8;
+  --color-primary-weak: #e5edff;
+  --color-secondary: #1e293b;
+  --color-secondary-light: #475569;
+  --color-secondary-dark: #0f172a;
+
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-error: #ff4d4f;
+  --color-info: #1890ff;
+
+  --color-text: #1f1f1f;
+  --color-text-muted: #5a5a5a;
+  --color-text-disabled: #858484;
+  --color-text-placeholder: rgba(0, 0, 0, 0.25);
+  --color-text-inverse: #ffffff;
+
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-bg-subtle: #f5f7fa;
+  --color-bg-tertiary: #e4e9f2;
+  --color-bg-overlay: rgba(0, 0, 0, 0.45);
+
+  --color-border: #f0f0f0;
+  --color-border-light: #fafafa;
+  --color-border-strong: #d9d9d9;
 }
 
 * {
@@ -32,6 +54,11 @@ body {
 }
 
 a {
-  color: inherit;
+  color: var(--color-primary);
   text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--color-primary-strong);
 }
