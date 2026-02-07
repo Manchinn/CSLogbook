@@ -204,10 +204,12 @@ NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
 - เพิ่ม flow SSO callback ที่ route `/auth/sso/callback` เพื่อรับ `token` จาก backend แล้วสร้าง session ฝั่ง Next.js
 - ติดตั้งและตั้งค่า `@tanstack/react-query` ใน `AppProviders`
 - ย้าย widget สถิติ admin จาก frontend เดิมบางส่วน: สร้าง `adminService` + `useAdminStats` และ render ในหน้า `/dashboard/admin`
+- เพิ่มการย้าย teacher overview widget ชุดแรกจาก endpoint `/teachers/academic/dashboard` ผ่าน `teacherService` + `useTeacherOverview`
 
 ค่า env ที่เกี่ยวข้อง:
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
 NEXT_PUBLIC_ENABLE_SSO=true
+NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
 ```

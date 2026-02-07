@@ -142,6 +142,7 @@ const swaggerUi = require('swagger-ui-express');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const ssoRoutes = require('./routes/ssoRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const uploadRoutes = require('./routes/upload'); // 
@@ -338,6 +339,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/sso', ssoRoutes);
 app.use('/api/curriculums', curriculumRoutes);
 // เพิ่มเส้นทางสำหรับช่วงเปลี่ยนผ่านชั่วคราว - จะถูกลบออกในอนาคต
 app.use('/api/timeline/public', timelineRoutes);

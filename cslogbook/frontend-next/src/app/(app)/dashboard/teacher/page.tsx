@@ -1,4 +1,6 @@
 import { DashboardRoleView } from "../DashboardRoleView";
+import { TeacherOverviewWidget } from "@/components/dashboard/TeacherOverviewWidget";
+import { featureFlags } from "@/lib/config/featureFlags";
 
 const stats = [
   { label: "Assigned Students", value: "38" },
@@ -12,6 +14,8 @@ export default function TeacherDashboardPage() {
       roleLabel="Teacher"
       summary="ภาพรวมงานที่ต้องตรวจและนัดหมายที่ต้องดูแลวันนี้"
       stats={stats}
-    />
+    >
+      <TeacherOverviewWidget enabled={featureFlags.enableTeacherWidgetMigration} />
+    </DashboardRoleView>
   );
 }
