@@ -1,12 +1,33 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { login, verifyToken, type AuthUser, type LoginPayload } from "@/lib/api/authService";
 import { MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
 
 const AUTH_TOKEN_KEY = "cslogbook:auth-token";
 const AUTH_USER_KEY = "cslogbook:auth-user";
 const LEGACY_TOKEN_KEY = "token";
+
+function parseTokenPayload(token: string) {
+  try {
+    const [, payload] = token.split(".");
+    return JSON.parse(atob(payload)) as { exp?: number };
+  } catch (error) {
+    console.warn("Failed to parse token payload", error);
+    return {};
+  }
+}
+
+function getTokenExpiryMs(token: string): number | null {
+  const payload = parseTokenPayload(token);
+  if (!payload.exp) return null;
+  return payload.exp * 1000;
+}
+
+function isTokenExpired(token: string): boolean {
+  const expiryMs = getTokenExpiryMs(token);
+  return typeof expiryMs === "number" ? Date.now() >= expiryMs : false;
+}
 
 type AuthContextType = {
   user: AuthUser | null;
@@ -33,6 +54,13 @@ function getInitialSession() {
     return { token: null as string | null, user: null as AuthUser | null };
   }
 
+  if (isTokenExpired(token)) {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_KEY);
+    return { token: null as string | null, user: null as AuthUser | null };
+  }
+
   return { token, user: JSON.parse(rawUser) as AuthUser };
 }
 
@@ -40,6 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initialSession = getInitialSession();
   const [user, setUser] = useState<AuthUser | null>(initialSession.user);
   const [token, setToken] = useState<string | null>(initialSession.token);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const clearSession = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_KEY);
+    window.localStorage.removeItem(MOCK_ROLE_KEY);
+  }, []);
 
   const persistSession = useCallback((nextToken: string, nextUser: AuthUser) => {
     setToken(nextToken);
@@ -66,25 +104,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persistSession]);
 
   const signOut = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    window.localStorage.removeItem(AUTH_TOKEN_KEY);
-    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
-    window.localStorage.removeItem(AUTH_USER_KEY);
-    window.localStorage.removeItem(MOCK_ROLE_KEY);
-  }, []);
+    clearSession();
+  }, [clearSession]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!token) {
+      setIsLoading(false);
+      return undefined;
+    }
+
+    if (isTokenExpired(token)) {
+      clearSession();
+      setIsLoading(false);
+      return undefined;
+    }
+
+    const expiryMs = getTokenExpiryMs(token);
+    const timeoutId = typeof expiryMs === "number" ? window.setTimeout(clearSession, Math.max(expiryMs - Date.now(), 0)) : undefined;
+
+    verifyToken(token)
+      .then((profile) => {
+        if (cancelled) return;
+        persistSession(token, profile);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearSession();
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [clearSession, persistSession, token]);
 
   const value = useMemo(
     () => ({
       user,
       token,
       isAuthenticated: Boolean(user && token),
-      isLoading: false,
+      isLoading,
       signIn,
       completeSsoLogin,
       signOut,
     }),
-    [completeSsoLogin, signIn, signOut, token, user],
+    [completeSsoLogin, isLoading, signIn, signOut, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

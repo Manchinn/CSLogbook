@@ -5,10 +5,18 @@ import { useAdminStats } from "@/hooks/useAdminStats";
 import { useHydrated } from "@/hooks/useHydrated";
 import styles from "./AdminStatsWidget.module.css";
 
-export function AdminStatsWidget() {
+type AdminStatsWidgetProps = {
+  enabled?: boolean;
+};
+
+export function AdminStatsWidget({ enabled = true }: AdminStatsWidgetProps) {
   const hydrated = useHydrated();
   const { token } = useAuth();
   const { data, isLoading, error } = useAdminStats(hydrated ? token : null);
+
+  if (!enabled) {
+    return null;
+  }
 
   if (!hydrated) {
     return <p>Loading admin metrics...</p>;

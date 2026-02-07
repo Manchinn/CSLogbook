@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import type { AppRole } from "@/lib/auth/mockSession";
+import { featureFlags } from "@/lib/config/featureFlags";
 
 type RoleGuardProps = {
   roles?: AppRole[];
@@ -14,11 +15,22 @@ type RoleGuardProps = {
 
 export function RoleGuard({ roles, teacherTypes, redirectPath = "/app", children }: RoleGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [canRender, setCanRender] = useState(false);
 
+  const legacyLoginUrl = process.env.NEXT_PUBLIC_LEGACY_FRONTEND_URL;
+
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
+      if (featureFlags.useLegacyFrontend && legacyLoginUrl) {
+        router.replace(legacyLoginUrl);
+        return;
+      }
+
       router.replace("/login");
       return;
     }
@@ -40,7 +52,7 @@ export function RoleGuard({ roles, teacherTypes, redirectPath = "/app", children
     }
 
     setCanRender(true);
-  }, [isAuthenticated, redirectPath, roles, router, teacherTypes, user]);
+  }, [isAuthenticated, isLoading, legacyLoginUrl, redirectPath, roles, router, teacherTypes, user]);
 
   if (!canRender) {
     return null;

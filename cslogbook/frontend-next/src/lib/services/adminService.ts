@@ -22,3 +22,30 @@ export async function getAdminStats(token: string) {
     token,
   });
 }
+
+export type AdminProjectStats = {
+  overview: {
+    totalProjects: number;
+    activeProjects: number;
+    completedProjects: number;
+  };
+  byPhase: Record<string, number>;
+  examResults: {
+    project1: { pending: number; pass: number; fail: number };
+    thesis: { pending: number; pass: number; fail: number };
+  };
+  blockedProjects: Array<{ projectId?: number | null; projectCode?: string | null; projectTitle?: string | null }>;
+  overdueProjects: Array<{ projectId?: number | null; projectCode?: string | null; projectTitle?: string | null }>;
+};
+
+export async function getAdminProjectStats(token: string) {
+  const response = await apiFetch<{ success: boolean; data: AdminProjectStats }>(
+    "/admin/dashboard/project-statistics",
+    {
+      method: "GET",
+      token,
+    }
+  );
+
+  return response.data;
+}

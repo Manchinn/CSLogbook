@@ -21,6 +21,7 @@ export type AuthUser = {
   name: string;
   firstName?: string;
   lastName?: string;
+  studentId?: number;
   studentCode?: string;
   teacherId?: number;
   teacherCode?: string;
@@ -43,6 +44,7 @@ type BackendLoginResponse = {
   lastName?: string;
   email?: string;
   role: AppRole;
+  studentId?: number;
   studentCode?: string;
   teacherId?: number;
   teacherCode?: string;
@@ -60,6 +62,7 @@ type VerifyTokenResponse = {
     email?: string;
     firstName?: string;
     lastName?: string;
+    studentId?: number;
     studentCode?: string;
     teacherId?: number;
     teacherCode?: string;
@@ -76,6 +79,7 @@ type TokenClaims = {
   email?: string;
   firstName?: string;
   lastName?: string;
+  studentId?: number;
   studentCode?: string;
   teacherId?: number;
   teacherCode?: string;
@@ -96,6 +100,7 @@ function decodeTokenClaims(token: string): TokenClaims {
       email: decoded.email,
       firstName: decoded.firstName,
       lastName: decoded.lastName,
+      studentId: decoded.studentId,
       studentCode: decoded.studentCode,
       teacherId: decoded.teacherId,
       teacherCode: decoded.teacherCode,
@@ -116,6 +121,7 @@ function buildAuthUser(params: {
   email?: string;
   firstName?: string;
   lastName?: string;
+  studentId?: number;
   studentCode?: string;
   teacherId?: number;
   teacherCode?: string;
@@ -134,6 +140,7 @@ function buildAuthUser(params: {
     name: fullName || params.email || params.id,
     firstName: params.firstName,
     lastName: params.lastName,
+    studentId: params.studentId,
     studentCode: params.studentCode,
     teacherId: params.teacherId,
     teacherCode: params.teacherCode,
@@ -160,6 +167,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     email: response.email ?? payload.username,
     firstName: response.firstName,
     lastName: response.lastName,
+    studentId: response.studentId,
     studentCode: response.studentCode,
     teacherId: response.teacherId,
     teacherCode: response.teacherCode,
@@ -190,6 +198,7 @@ export async function verifyToken(token: string): Promise<AuthUser> {
     email: response.user.email ?? claims.email,
     firstName: response.user.firstName ?? claims.firstName,
     lastName: response.user.lastName ?? claims.lastName,
+    studentId: response.user.studentId ?? claims.studentId,
     studentCode: response.user.studentCode ?? claims.studentCode,
     teacherId: response.user.teacherId ?? claims.teacherId,
     teacherCode: response.user.teacherCode ?? claims.teacherCode,

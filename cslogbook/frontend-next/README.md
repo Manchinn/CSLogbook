@@ -59,11 +59,30 @@ frontend-next/
 ```bash
 # URL ของ backend API (ฝั่ง browser ใช้ NEXT_PUBLIC_)
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
-# Feature flags (migration rollout)
+
+# Auth / Legacy
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
+NEXT_PUBLIC_ENABLE_SSO=false
+NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
+NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
+
+# Dashboard widget rollouts
 NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
 NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
 NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
+NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
+
+# Page rollouts (fallback -> legacy when false)
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=false
+NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
+NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=false
+NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=false
+NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=false
+NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=false
+NEXT_PUBLIC_ENABLE_REPORTS_PAGE=false
+NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
 ```
 
 > ถ้าจะใช้งานตัวแปรใน client component ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เท่านั้น
@@ -260,3 +279,29 @@ NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
 NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 ```
+
+---
+
+## 17) Phase 7 Progress (Auth Hardening + Routes Stubs)
+
+สิ่งที่เพิ่มแล้ว:
+- ตรวจสอบ token expiry ใน `AuthProvider` + auto logout + verify token on mount
+- `AuthGuard`/`RoleGuard` รอ auth loading และ fallback ไป legacy login เมื่อเปิด flag
+- เพิ่ม feature flags ครอบ widget/admin/report/settings/page-level + legacy link resolver
+- Stub หน้าตามเมนูใหม่ (มี guard + fallback legacy):
+  - `/project/phase1`, `/project/phase2`
+  - `/internship-registration/flow`, `/internship/logbook`, `/internship/certificate`
+  - `/deadlines`, `/reports`, `/settings`, `/meetings`
+- เมนูปรับให้รู้จัก flag/page ใหม่ และส่งไป legacy อัตโนมัติเมื่อยังไม่เปิดใช้
+
+ค่า env ที่เกี่ยวข้อง (ตัวอย่าง):
+```bash
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
+NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
+NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
+NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
+```
+
+แผนถัดไป:
+1) เติมเนื้อหาจริงใน stub pages เริ่มที่ `/internship-registration/flow` และ `/project/phase1`
+2) ย้าย teacher/admin widgets เพิ่มเติมภายใต้ flags แล้วค่อยเปิดใช้จริง
