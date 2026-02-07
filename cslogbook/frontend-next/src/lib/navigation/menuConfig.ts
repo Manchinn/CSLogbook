@@ -1,6 +1,5 @@
 import { featureFlags } from "@/lib/config/featureFlags";
 import type { AuthUser } from "@/lib/api/authService";
-import { resolveAppLink } from "@/lib/navigation/legacyNavigation";
 
 type MenuBase = {
   key: string;
@@ -34,7 +33,7 @@ type BuildOptions = {
 };
 
 function link(path: string, enabled = false) {
-  return resolveAppLink(path, { enabled });
+  return { href: path, external: false } as const;
 }
 
 function buildStudentMenu(options: BuildOptions): MenuNode[] {
@@ -46,7 +45,7 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
   const items: MenuNode[] = [
     { key: "student-dashboard", label: "แดชบอร์ด", kind: "link", ...link("/dashboard/student", true) },
     { key: "student-profile", label: "ประวัตินักศึกษา", kind: "link", ...link(`/student-profile/${studentCode}`, featureFlags.enableStudentProfilePage) },
-    { key: "student-calendar", label: "ปฏิทินกำหนดการ", kind: "link", ...link("/student-deadlines/calendar") },
+    { key: "student-calendar", label: "ปฏิทินกำหนดการ", kind: "link", ...link("/student-deadlines/calendar", featureFlags.enableDeadlinesPage) },
     { key: "student-deadlines", label: "กำหนดส่งทั้งหมด", kind: "link", ...link("/deadlines", featureFlags.enableDeadlinesPage) },
   ];
 

@@ -18,11 +18,9 @@ function formatDate(value?: string | null) {
   return dateFormatter.format(d);
 }
 
-type ProjectPhase1ContentProps = {
-  legacyHref?: string | null;
-};
+type ProjectPhase1ContentProps = Record<string, never>;
 
-export default function ProjectPhase1Content({ legacyHref }: ProjectPhase1ContentProps) {
+export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   const { token, user } = useAuth();
   const hydrated = useHydrated();
   const studentId = user?.studentId ?? user?.id;
@@ -78,11 +76,6 @@ export default function ProjectPhase1Content({ legacyHref }: ProjectPhase1Conten
           <h1 className={styles.title}>ขั้นตอนโครงงานพิเศษ (Phase 1)</h1>
           <p className={styles.lead}>ติดตามความคืบหน้า, สิทธิ์ยื่นสอบ, และ timeline โครงงานพิเศษ 1</p>
         </div>
-        {legacyHref ? (
-          <a className={styles.legacyLink} href={legacyHref} rel="noopener noreferrer">
-            เปิดหน้าระบบเดิม
-          </a>
-        ) : null}
       </header>
 
       <section className={styles.grid}>

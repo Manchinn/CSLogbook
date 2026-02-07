@@ -24,11 +24,9 @@ function formatHours(value?: number | null) {
   return value.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 }
 
-type InternshipFlowContentProps = {
-  legacyHref?: string | null;
-};
+type InternshipFlowContentProps = Record<string, never>;
 
-export default function InternshipFlowContent({ legacyHref }: InternshipFlowContentProps) {
+export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   const { token, user } = useAuth();
   const hydrated = useHydrated();
   const studentId = user?.studentId ?? user?.id;
@@ -85,11 +83,6 @@ export default function InternshipFlowContent({ legacyHref }: InternshipFlowCont
           <h1 className={styles.title}>เส้นทางลงทะเบียนฝึกงาน</h1>
           <p className={styles.lead}>ดูสถานะ คพ.05, หนังสือตอบรับ, timeline และกำหนดส่งสำคัญ</p>
         </div>
-        {legacyHref ? (
-          <a className={styles.legacyLink} href={legacyHref} rel="noopener noreferrer">
-            เปิดหน้าระบบเดิม
-          </a>
-        ) : null}
       </header>
 
       <section className={styles.grid}>

@@ -6,7 +6,6 @@ import { MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
 
 const AUTH_TOKEN_KEY = "cslogbook:auth-token";
 const AUTH_USER_KEY = "cslogbook:auth-user";
-const LEGACY_TOKEN_KEY = "token";
 
 function parseTokenPayload(token: string) {
   try {
@@ -46,8 +45,7 @@ function getInitialSession() {
     return { token: null as string | null, user: null as AuthUser | null };
   }
 
-  const token =
-    window.localStorage.getItem(AUTH_TOKEN_KEY) ?? window.localStorage.getItem(LEGACY_TOKEN_KEY);
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
   const rawUser = window.localStorage.getItem(AUTH_USER_KEY);
 
   if (!token || !rawUser) {
@@ -74,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
-    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
     window.localStorage.removeItem(AUTH_USER_KEY);
     window.localStorage.removeItem(MOCK_ROLE_KEY);
   }, []);
@@ -84,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(nextUser);
 
     window.localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
-    window.localStorage.setItem(LEGACY_TOKEN_KEY, nextToken);
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
     window.localStorage.setItem(MOCK_ROLE_KEY, nextUser.role);
   }, []);

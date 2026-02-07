@@ -33,15 +33,6 @@
   color: #cbd5e1;
 }
 
-.legacyLink {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #1f2937;
-  color: #e2e8f0;
-  text-decoration: none;
-  background: #111827;
-}
-
 .grid {
   display: grid;
   gap: 12px;

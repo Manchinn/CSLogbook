@@ -6,7 +6,6 @@ import styles from "./AppShell.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
 import { getMenuGroups, type MenuLink, type MenuNode } from "@/lib/navigation/menuConfig";
-import { featureFlags } from "@/lib/config/featureFlags";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -29,12 +28,6 @@ export function AppShell({ children }: AppShellProps) {
 
   const handleLogout = () => {
     signOut();
-    const legacyLoginUrl = process.env.NEXT_PUBLIC_LEGACY_FRONTEND_URL;
-    if (featureFlags.useLegacyFrontend && legacyLoginUrl) {
-      router.push(legacyLoginUrl);
-      return;
-    }
-
     router.push("/login");
   };
 

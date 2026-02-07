@@ -1,5 +1,4 @@
 export const featureFlags = {
-  useLegacyFrontend: process.env.NEXT_PUBLIC_USE_LEGACY_FRONTEND === "true",
   enableMockAuth: process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === "true",
   enableSSO: process.env.NEXT_PUBLIC_ENABLE_SSO === "true",
   enableAdminWidgetMigration: process.env.NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION === "true",

@@ -13,7 +13,6 @@ import type { StudentDeadline, StudentProfile } from "@/lib/services/studentServ
 import { updateStudentContactInfo } from "@/lib/services/studentService";
 import { changePasswordInit, confirmPasswordChange } from "@/lib/api/authService";
 import { downloadDocument, viewDocument, type DocumentItem } from "@/lib/services/documentService";
-import { featureFlags } from "@/lib/config/featureFlags";
 import styles from "./page.module.css";
 
 type Tone = "positive" | "danger" | "muted";
@@ -217,12 +216,7 @@ export default function StudentProfilePage() {
       setTimeout(() => {
         setIsChangingPassword(false);
         signOut();
-        const legacyLoginUrl = process.env.NEXT_PUBLIC_LEGACY_FRONTEND_URL;
-        if (featureFlags.useLegacyFrontend && legacyLoginUrl) {
-          router.push(legacyLoginUrl);
-        } else {
-          router.push("/login");
-        }
+        router.push("/login");
       }, 800);
     } catch (error) {
       setPasswordError(error instanceof Error ? error.message : "ยืนยันรหัสผ่านไม่สำเร็จ");

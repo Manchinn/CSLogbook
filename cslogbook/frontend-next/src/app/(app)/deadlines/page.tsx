@@ -1,22 +1,11 @@
-import { FeaturePlaceholder } from "@/components/common/FeaturePlaceholder";
-import { AuthGuard } from "@/components/auth/AuthGuard";
+import { redirect } from "next/navigation";
 import { featureFlags } from "@/lib/config/featureFlags";
-import { buildLegacyHref } from "@/lib/navigation/legacyNavigation";
 import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
 
 export default function DeadlinesPage() {
-  const enabled = featureFlags.enableDeadlinesPage && !featureFlags.useLegacyFrontend;
-  const legacyHref = buildLegacyHref("/student-deadlines/calendar");
+  const enabled = featureFlags.enableDeadlinesPage;
 
-  guardFeatureRoute(enabled, "/student-deadlines/calendar");
+  guardFeatureRoute(enabled, "/app");
 
-  return (
-    <AuthGuard>
-      <FeaturePlaceholder
-        title="กำหนดส่งทั้งหมด"
-        description="ศูนย์รวมกำหนดส่งจากทุก workflow (internship, project, meeting)"
-        legacyHref={legacyHref}
-      />
-    </AuthGuard>
-  );
+  redirect("/student-deadlines/calendar");
 }

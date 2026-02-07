@@ -112,6 +112,40 @@ export type StudentDeadline = {
   gracePeriodMinutes?: number | null;
 };
 
+export type StudentDeadlineSubmission = {
+  submitted: boolean;
+  submittedAt: string | null;
+  late: boolean;
+  status: string | null;
+};
+
+export type StudentDeadlineDetail = StudentDeadline & {
+  status?: string | null;
+  locked?: boolean;
+  effectiveDeadlineAt?: string | null;
+  windowStartAt?: string | null;
+  windowEndAt?: string | null;
+  windowStartDate?: string | null;
+  windowStartTime?: string | null;
+  windowEndDate?: string | null;
+  windowEndTime?: string | null;
+  isWindow?: boolean;
+  acceptingSubmissions?: boolean;
+  hasSubmission?: boolean;
+  documentId?: number | null;
+  documentStatus?: string | null;
+  submittedAtLocal?: string | null;
+  submission?: StudentDeadlineSubmission;
+  academicYear?: number | string | null;
+  semester?: number | null;
+  description?: string | null;
+  isCritical?: boolean;
+  allDay?: boolean | null;
+  visibilityScope?: string | null;
+  publishAt?: string | null;
+  isPublished?: boolean;
+};
+
 type StudentDeadlinesResponse = {
   success: boolean;
   data: StudentDeadline[];
@@ -120,6 +154,24 @@ type StudentDeadlinesResponse = {
 export async function getStudentUpcomingDeadlines(token: string, days = 7) {
   const response = await apiFetch<StudentDeadlinesResponse>(
     `/students/important-deadlines/upcoming?days=${days}`,
+    {
+      method: "GET",
+      token,
+    }
+  );
+
+  return response.data;
+}
+
+export async function getStudentDeadlineCalendar(token: string, academicYear?: string | number | null) {
+  const params = new URLSearchParams();
+  if (academicYear) {
+    params.set("academicYear", String(academicYear));
+  }
+
+  const queryString = params.toString();
+  const response = await apiFetch<{ success: boolean; data: StudentDeadlineDetail[] }>(
+    `/students/important-deadlines${queryString ? `?${queryString}` : ""}`,
     {
       method: "GET",
       token,

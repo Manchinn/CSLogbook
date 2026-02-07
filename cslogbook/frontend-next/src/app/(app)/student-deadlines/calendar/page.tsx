@@ -5,15 +5,17 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { featureFlags } from "@/lib/config/featureFlags";
 import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
 
-const ProjectPhase1Content = dynamic(() => import("./view/ProjectPhase1Content"), { ssr: false });
+const StudentDeadlineCalendar = dynamic(() => import("./view/StudentDeadlineCalendar"), {
+  ssr: false,
+});
 
-export default function ProjectPhase1Page() {
-  const enabled = featureFlags.enableProjectPhase1Page;
+export default function StudentDeadlineCalendarPage() {
+  const enabled = featureFlags.enableDeadlinesPage;
   guardFeatureRoute(enabled, "/app");
 
   return (
     <RoleGuard roles={["student"]}>
-      <ProjectPhase1Content />
+      <StudentDeadlineCalendar />
     </RoleGuard>
   );
 }

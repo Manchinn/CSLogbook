@@ -308,3 +308,15 @@ NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 แผนถัดไป:
 1) Rollout widget ใหม่ตาม flag บน dashboard จริง และเสริมรายงาน/ตั้งค่าอื่น ๆ
 2) เติมเนื้อหาหน้า stub ที่เหลือ (/project/phase2, /internship/logbook, /internship/certificate, รายงาน/ตั้งค่า)
+
+## 18) Phase 8 Progress (Student Deadlines Calendar)
+
+สิ่งที่เพิ่มแล้ว:
+- หน้า `/student-deadlines/calendar` แสดงปฏิทินกำหนดการนักศึกษาพร้อมสถานะ submission และตัวกรองปีการศึกษา
+- `/deadlines` เปลี่ยนเป็น redirect ไปหน้าใหม่เมื่อเปิด flag เพื่อให้ลิงก์เมนูใช้ UI เดียวกัน
+- เพิ่ม service/hook สำหรับดึงทุกกำหนดการ (important deadlines) ให้ React Query ใช้งาน
+
+ค่า env ที่เกี่ยวข้อง:
+```bash
+NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
+```

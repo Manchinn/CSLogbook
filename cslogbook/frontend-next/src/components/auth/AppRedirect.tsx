@@ -4,8 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getDashboardPathByRole } from "@/lib/auth/mockSession";
 import { useAuth } from "@/contexts/AuthContext";
-import { featureFlags } from "@/lib/config/featureFlags";
-import { buildLegacyHref } from "@/lib/navigation/legacyNavigation";
 
 export function AppRedirect() {
   const router = useRouter();
@@ -22,14 +20,6 @@ export function AppRedirect() {
     }
 
     const target = getDashboardPathByRole(user?.role, user?.teacherType);
-
-    if (featureFlags.useLegacyFrontend) {
-      const legacyHref = buildLegacyHref(target);
-      if (legacyHref) {
-        router.replace(legacyHref);
-        return;
-      }
-    }
 
     router.replace(target);
   }, [isLoading, router, user]);
