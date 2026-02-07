@@ -217,7 +217,7 @@ export default function InternshipCompaniesView() {
 
       <aside
         className={`${styles.drawer} ${selectedCompany ? styles.drawerOpen : ""}`}
-        aria-hidden={!selectedCompany}
+        aria-hidden={selectedCompany ? "false" : "true"}
         aria-label="รายละเอียดสถานประกอบการ"
         role="dialog"
       >

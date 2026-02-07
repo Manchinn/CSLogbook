@@ -433,7 +433,7 @@ export default function InternshipCertificateView() {
           <div className={styles.stepCard}>
             <p className={styles.stepNumber}>02</p>
             <p className={styles.stepTitle}>ส่งคำขอหนังสือรับรอง</p>
-            <p className={styles.stepText}>เมื่อผ่านเงื่อนไขแล้วกดปุ่ม "ส่งคำขอ" ระบบจะส่งข้อมูลให้เจ้าหน้าที่</p>
+            <p className={styles.stepText}>เมื่อผ่านเงื่อนไขแล้วกดปุ่ม &quot;ส่งคำขอ&quot; ระบบจะส่งข้อมูลให้เจ้าหน้าที่</p>
           </div>
           <div className={styles.stepCard}>
             <p className={styles.stepNumber}>03</p>

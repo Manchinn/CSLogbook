@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import styles from "../supervisor-evaluation.module.css";
@@ -40,17 +40,17 @@ export default function SupervisorEvaluationPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token;
 
-  const [supervisorName, setSupervisorName] = useState("");
-  const [supervisorPosition, setSupervisorPosition] = useState("");
-  const [supervisorEmail, setSupervisorEmail] = useState("");
-  const [supervisorPhone, setSupervisorPhone] = useState("");
+  const [supervisorName, setSupervisorName] = useState<string | null>(null);
+  const [supervisorPosition, setSupervisorPosition] = useState<string | null>(null);
+  const [supervisorEmail, setSupervisorEmail] = useState<string | null>(null);
+  const [supervisorPhone, setSupervisorPhone] = useState<string | null>(null);
   const [strengths, setStrengths] = useState("");
   const [improvements, setImprovements] = useState("");
   const [additionalComments, setAdditionalComments] = useState("");
   const [decision, setDecision] = useState<"pass" | "fail" | null>(null);
   const [scores, setScores] = useState<Record<EvaluationCategoryKey, [number, number, number, number]>>(initialScores);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedLocal, setSubmittedLocal] = useState(false);
 
   const detailsQuery = useQuery({
     queryKey: ["supervisor-evaluation", token],
@@ -61,23 +61,12 @@ export default function SupervisorEvaluationPage() {
 
   const details = detailsQuery.data?.data;
 
-  useEffect(() => {
-    if (!details) return;
-    if (details.evaluationDetails?.status && details.evaluationDetails.status !== "pending") {
-      setSubmitted(true);
-    }
-    if (details.internshipInfo) {
-      if (details.internshipInfo.supervisorName) setSupervisorName((prev) => prev || details.internshipInfo.supervisorName || "");
-      if (details.internshipInfo.supervisorPosition) setSupervisorPosition((prev) => prev || details.internshipInfo.supervisorPosition || "");
-      if (details.internshipInfo.supervisorEmail) setSupervisorEmail((prev) => prev || details.internshipInfo.supervisorEmail || "");
-      if (details.internshipInfo.supervisorPhone) setSupervisorPhone((prev) => prev || details.internshipInfo.supervisorPhone || "");
-    }
-  }, [details]);
+  const submitted = submittedLocal || (details?.evaluationDetails?.status && details.evaluationDetails.status !== "pending");
 
   const mutation = useMutation({
     mutationFn: (payload: SupervisorEvaluationSubmission) => submitSupervisorEvaluation(token as string, payload),
     onSuccess: () => {
-      setSubmitted(true);
+      setSubmittedLocal(true);
       setLocalError(null);
     },
     onError: (error: unknown) => {
@@ -86,11 +75,10 @@ export default function SupervisorEvaluationPage() {
     },
   });
 
-  const isExpired = useMemo(() => {
-    if (!details?.evaluationDetails?.expiresAt) return false;
-    const expiresAt = new Date(details.evaluationDetails.expiresAt).getTime();
-    return Number.isFinite(expiresAt) && expiresAt < Date.now();
-  }, [details?.evaluationDetails?.expiresAt]);
+  const resolvedSupervisorName = supervisorName ?? details?.internshipInfo?.supervisorName ?? "";
+  const resolvedSupervisorPosition = supervisorPosition ?? details?.internshipInfo?.supervisorPosition ?? "";
+  const resolvedSupervisorEmail = supervisorEmail ?? details?.internshipInfo?.supervisorEmail ?? "";
+  const resolvedSupervisorPhone = supervisorPhone ?? details?.internshipInfo?.supervisorPhone ?? "";
 
   const subtotals = useMemo(() => {
     return (Object.keys(scores) as EvaluationCategoryKey[]).reduce<Record<EvaluationCategoryKey, number>>((acc, key) => {
@@ -130,8 +118,8 @@ export default function SupervisorEvaluationPage() {
       setLocalError("ไม่พบลิงก์สำหรับการประเมิน");
       return;
     }
-    const trimmedName = supervisorName.trim();
-    const trimmedPosition = supervisorPosition.trim();
+    const trimmedName = resolvedSupervisorName.trim();
+    const trimmedPosition = resolvedSupervisorPosition.trim();
     const trimmedStrengths = strengths.trim();
     const trimmedImprovements = improvements.trim();
 
@@ -151,8 +139,8 @@ export default function SupervisorEvaluationPage() {
     const payload: SupervisorEvaluationSubmission = {
       supervisorName: trimmedName,
       supervisorPosition: trimmedPosition,
-      supervisorEmail: supervisorEmail.trim() || undefined,
-      supervisorPhone: supervisorPhone.trim() || undefined,
+      supervisorEmail: resolvedSupervisorEmail.trim() || undefined,
+      supervisorPhone: resolvedSupervisorPhone.trim() || undefined,
       supervisorDecision: decision === "pass",
       categories: scores,
       strengths: trimmedStrengths,
@@ -195,11 +183,14 @@ export default function SupervisorEvaluationPage() {
 
   if (errorState) {
     const message = (detailsQuery.error as Error | undefined)?.message || "ไม่สามารถดึงข้อมูลแบบประเมินได้";
+    const isExpiredError = message.includes("หมดอายุ");
     return (
       <div className={styles.page}>
         <div className={styles.shell}>
           <div className={styles.statusCard}>
-            <div className={styles.statusTitle}>ไม่พบข้อมูลการประเมิน</div>
+            <div className={styles.statusTitle}>
+              {isExpiredError ? "ลิงก์หมดอายุแล้ว" : "ไม่พบข้อมูลการประเมิน"}
+            </div>
             <div className={styles.statusMeta}>{message}</div>
           </div>
         </div>
@@ -223,21 +214,6 @@ export default function SupervisorEvaluationPage() {
             </div>
             <div className={styles.statusMeta}>
               หากต้องการแก้ไข กรุณาติดต่อเจ้าหน้าที่เพื่อลิงก์ใหม่
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isExpired) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.shell}>
-          <div className={styles.statusCard}>
-            <div className={styles.statusTitle}>ลิงก์หมดอายุแล้ว</div>
-            <div className={styles.statusMeta}>
-              หมดอายุเมื่อ {formatDate(details.evaluationDetails?.expiresAt)} กรุณาติดต่อเจ้าหน้าที่เพื่อขอลิงก์ใหม่
             </div>
           </div>
         </div>
@@ -300,7 +276,7 @@ export default function SupervisorEvaluationPage() {
               <div className={styles.fieldLabel}>ชื่อ-สกุล ผู้ประเมิน *</div>
               <input
                 className={styles.textInput}
-                value={supervisorName}
+                value={resolvedSupervisorName}
                 onChange={(e) => setSupervisorName(e.target.value)}
                 placeholder="เช่น นายสมศักดิ์ ใจดี"
               />
@@ -309,7 +285,7 @@ export default function SupervisorEvaluationPage() {
               <div className={styles.fieldLabel}>ตำแหน่ง *</div>
               <input
                 className={styles.textInput}
-                value={supervisorPosition}
+                value={resolvedSupervisorPosition}
                 onChange={(e) => setSupervisorPosition(e.target.value)}
                 placeholder="เช่น Senior Software Engineer"
               />
@@ -320,7 +296,7 @@ export default function SupervisorEvaluationPage() {
               <div className={styles.fieldLabel}>อีเมล</div>
               <input
                 className={styles.textInput}
-                value={supervisorEmail}
+                value={resolvedSupervisorEmail}
                 onChange={(e) => setSupervisorEmail(e.target.value)}
                 placeholder="supervisor@example.com"
               />
@@ -329,7 +305,7 @@ export default function SupervisorEvaluationPage() {
               <div className={styles.fieldLabel}>เบอร์ติดต่อ</div>
               <input
                 className={styles.textInput}
-                value={supervisorPhone}
+                value={resolvedSupervisorPhone}
                 onChange={(e) => setSupervisorPhone(e.target.value)}
                 placeholder="02-123-4567"
               />
@@ -448,7 +424,7 @@ export default function SupervisorEvaluationPage() {
             <div className={styles.alert}>{localError}</div>
           ) : (
             <div className={`${styles.alert} ${styles.alertInfo}`}>
-              เกณฑ์ผ่าน: คะแนนรวมไม่น้อยกว่า 70 และเลือก "ผ่าน"
+              เกณฑ์ผ่าน: คะแนนรวมไม่น้อยกว่า 70 และเลือก &quot;ผ่าน&quot;
             </div>
           )}
 

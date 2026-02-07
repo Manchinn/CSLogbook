@@ -521,9 +521,10 @@ export default function InternshipLogbookView() {
               <form className={styles.form} onSubmit={handleSubmit}>
                 <div className={styles.gridTwo}>
                   <div className={styles.field}>
-                    <label className={styles.label}>เวลาเข้างาน *</label>
+                    <label className={styles.label} htmlFor="logbook-time-in">เวลาเข้างาน *</label>
                     <input
                       className={styles.input}
+                      id="logbook-time-in"
                       type="time"
                       value={formState.timeIn}
                       onChange={(e) => handleTimeChange("timeIn", e.target.value)}
@@ -531,9 +532,10 @@ export default function InternshipLogbookView() {
                     />
                   </div>
                   <div className={styles.field}>
-                    <label className={styles.label}>เวลาออกงาน *</label>
+                    <label className={styles.label} htmlFor="logbook-time-out">เวลาออกงาน *</label>
                     <input
                       className={styles.input}
+                      id="logbook-time-out"
                       type="time"
                       value={formState.timeOut}
                       onChange={(e) => handleTimeChange("timeOut", e.target.value)}
@@ -543,9 +545,10 @@ export default function InternshipLogbookView() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>หัวข้อ / งานที่รับผิดชอบ *</label>
+                  <label className={styles.label} htmlFor="logbook-title">หัวข้อ / งานที่รับผิดชอบ *</label>
                   <input
                     className={styles.input}
+                    id="logbook-title"
                     type="text"
                     value={formState.logTitle}
                     onChange={(e) => setFormState((prev) => ({ ...prev, logTitle: e.target.value }))}
@@ -554,9 +557,10 @@ export default function InternshipLogbookView() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>รายละเอียดงาน *</label>
+                  <label className={styles.label} htmlFor="logbook-description">รายละเอียดงาน *</label>
                   <textarea
                     className={styles.textarea}
+                    id="logbook-description"
                     value={formState.workDescription}
                     onChange={(e) => setFormState((prev) => ({ ...prev, workDescription: e.target.value }))}
                     rows={3}
@@ -565,9 +569,10 @@ export default function InternshipLogbookView() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>สิ่งที่ได้เรียนรู้ *</label>
+                  <label className={styles.label} htmlFor="logbook-learning">สิ่งที่ได้เรียนรู้ *</label>
                   <textarea
                     className={styles.textarea}
+                    id="logbook-learning"
                     value={formState.learningOutcome}
                     onChange={(e) => setFormState((prev) => ({ ...prev, learningOutcome: e.target.value }))}
                     rows={2}
@@ -577,18 +582,20 @@ export default function InternshipLogbookView() {
 
                 <div className={styles.gridTwo}>
                   <div className={styles.field}>
-                    <label className={styles.label}>ปัญหา/อุปสรรค</label>
+                    <label className={styles.label} htmlFor="logbook-problems">ปัญหา/อุปสรรค</label>
                     <textarea
                       className={styles.textarea}
+                      id="logbook-problems"
                       value={formState.problems}
                       onChange={(e) => setFormState((prev) => ({ ...prev, problems: e.target.value }))}
                       rows={2}
                     />
                   </div>
                   <div className={styles.field}>
-                    <label className={styles.label}>แนวทางแก้ไข</label>
+                    <label className={styles.label} htmlFor="logbook-solutions">แนวทางแก้ไข</label>
                     <textarea
                       className={styles.textarea}
+                      id="logbook-solutions"
                       value={formState.solutions}
                       onChange={(e) => setFormState((prev) => ({ ...prev, solutions: e.target.value }))}
                       rows={2}
@@ -597,8 +604,14 @@ export default function InternshipLogbookView() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>ชั่วโมงที่ระบบคำนวณ</label>
-                  <input className={styles.input} type="text" value={`${formatHours(formState.workHours)} ชม.`} readOnly />
+                  <label className={styles.label} htmlFor="logbook-hours">ชั่วโมงที่ระบบคำนวณ</label>
+                  <input
+                    className={styles.input}
+                    id="logbook-hours"
+                    type="text"
+                    value={`${formatHours(formState.workHours)} ชม.`}
+                    readOnly
+                  />
                 </div>
 
                 {formError ? <p className={styles.error}>{formError}</p> : null}

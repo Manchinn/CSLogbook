@@ -282,9 +282,10 @@ export default function CompanyInfoView() {
 
           <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.field}>
-              <label className={styles.label}>ชื่อสถานประกอบการ</label>
+              <label className={styles.label} htmlFor="company-name">ชื่อสถานประกอบการ</label>
               <input
                 className={styles.input}
+                id="company-name"
                 type="text"
                 value={formState.companyName}
                 disabled
@@ -295,9 +296,10 @@ export default function CompanyInfoView() {
 
             <div className={styles.gridTwo}>
               <div className={styles.field}>
-                <label className={styles.label}>ชื่อผู้ควบคุมงาน *</label>
+                <label className={styles.label} htmlFor="supervisor-name">ชื่อผู้ควบคุมงาน *</label>
                 <input
                   className={styles.input}
+                  id="supervisor-name"
                   type="text"
                   value={formState.supervisorName}
                   onChange={(e) => setFormState((prev) => ({ ...prev, supervisorName: e.target.value }))}
@@ -306,9 +308,10 @@ export default function CompanyInfoView() {
                 />
               </div>
               <div className={styles.field}>
-                <label className={styles.label}>ตำแหน่ง</label>
+                <label className={styles.label} htmlFor="supervisor-position">ตำแหน่ง</label>
                 <input
                   className={styles.input}
+                  id="supervisor-position"
                   type="text"
                   value={formState.supervisorPosition}
                   onChange={(e) => setFormState((prev) => ({ ...prev, supervisorPosition: e.target.value }))}
@@ -319,9 +322,10 @@ export default function CompanyInfoView() {
 
             <div className={styles.gridTwo}>
               <div className={styles.field}>
-                <label className={styles.label}>เบอร์โทรศัพท์ *</label>
+                <label className={styles.label} htmlFor="supervisor-phone">เบอร์โทรศัพท์ *</label>
                 <input
                   className={styles.input}
+                  id="supervisor-phone"
                   type="tel"
                   value={formState.supervisorPhone}
                   onChange={(e) => setFormState((prev) => ({ ...prev, supervisorPhone: e.target.value }))}
@@ -333,9 +337,10 @@ export default function CompanyInfoView() {
                 <p className={styles.helper}>ตัวเลข 9-10 หลัก เช่น 0812345678</p>
               </div>
               <div className={styles.field}>
-                <label className={styles.label}>อีเมลผู้ควบคุมงาน *</label>
+                <label className={styles.label} htmlFor="supervisor-email">อีเมลผู้ควบคุมงาน *</label>
                 <input
                   className={styles.input}
+                  id="supervisor-email"
                   type="email"
                   value={formState.supervisorEmail}
                   onChange={(e) => setFormState((prev) => ({ ...prev, supervisorEmail: e.target.value }))}

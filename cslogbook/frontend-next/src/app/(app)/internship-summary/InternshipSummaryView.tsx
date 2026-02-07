@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -53,6 +53,15 @@ function entryStatusLabel(entry?: TimesheetEntry | null) {
   if (entry.supervisorApproved === -1) return "ถูกปฏิเสธ";
   if (entry.timeIn || entry.workHours) return "บันทึกแล้ว";
   return "ร่าง";
+}
+
+function buildReflectionDraft(source: ReflectionResponse | null): ReflectionPayload {
+  return {
+    learningOutcome: source?.learningOutcome ?? "",
+    keyLearnings: source?.keyLearnings ?? "",
+    futureApplication: source?.futureApplication ?? "",
+    improvements: source?.improvements ?? "",
+  };
 }
 
 export default function InternshipSummaryView() {
@@ -119,17 +128,7 @@ export default function InternshipSummaryView() {
 
   const reflectionData = reflectionQuery.data ?? null;
   const stats = timesheetStatsQuery.data ?? statsFromStatus ?? null;
-
-  useEffect(() => {
-    if (reflectionData && !editingReflection) {
-      setReflectionDraft({
-        learningOutcome: reflectionData.learningOutcome ?? "",
-        keyLearnings: reflectionData.keyLearnings ?? "",
-        futureApplication: reflectionData.futureApplication ?? "",
-        improvements: reflectionData.improvements ?? "",
-      });
-    }
-  }, [reflectionData, editingReflection]);
+  const reflectionDraftSeed = buildReflectionDraft(reflectionData);
 
   if (!enabled) {
     return <div className={styles.card}>กำลังเตรียมข้อมูล...</div>;
@@ -312,7 +311,15 @@ export default function InternshipSummaryView() {
           </div>
           <button
             className={styles.secondaryButton}
-            onClick={() => setEditingReflection((v) => !v)}
+            onClick={() =>
+              setEditingReflection((v) => {
+                const next = !v;
+                if (next) {
+                  setReflectionDraft(reflectionDraftSeed);
+                }
+                return next;
+              })
+            }
             type="button"
           >
             {editingReflection ? "ยกเลิก" : "แก้ไข"}

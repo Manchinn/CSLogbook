@@ -80,9 +80,12 @@ export function WorkflowTimeline({ title, subtitle, timeline, isLoading, error }
         </div>
       </header>
 
-      <div className={styles.progressBar} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-        <div className={styles.progressFill} style={{ width: `${progress}%` }} />
-      </div>
+      <progress
+        className={styles.progressBar}
+        value={progress}
+        max={100}
+        aria-label="ความคืบหน้า"
+      />
 
       <ol className={styles.stepList}>
         {timeline.steps.map((step) => {
