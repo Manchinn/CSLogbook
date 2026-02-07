@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
@@ -27,6 +28,7 @@ function formatHours(value?: number | null) {
 type InternshipFlowContentProps = Record<string, never>;
 
 export default function InternshipFlowContent({}: InternshipFlowContentProps) {
+  const router = useRouter();
   const { token, user } = useAuth();
   const hydrated = useHydrated();
   const studentId = user?.studentId ?? user?.id;

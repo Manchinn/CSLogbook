@@ -1,7 +1,7 @@
-import { FeaturePlaceholder } from "@/components/common/FeaturePlaceholder";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { featureFlags } from "@/lib/config/featureFlags";
 import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
+import InternshipCertificateView from "./InternshipCertificateView";
 
 export default function InternshipCertificatePage() {
   const enabled = featureFlags.enableInternshipCertificatePage;
@@ -10,10 +10,7 @@ export default function InternshipCertificatePage() {
 
   return (
     <RoleGuard roles={["student"]}>
-      <FeaturePlaceholder
-        title="หนังสือรับรองฝึกงาน"
-        description="ตรวจสอบสถานะคำร้องหนังสือรับรองฝึกงาน และดาวน์โหลดเอกสาร"
-      />
+      <InternshipCertificateView />
     </RoleGuard>
   );
 }
