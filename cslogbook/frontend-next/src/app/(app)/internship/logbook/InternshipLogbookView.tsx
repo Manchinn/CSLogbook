@@ -12,6 +12,10 @@ import {
   useTimesheetMutations,
   useTimesheetStats,
 } from "@/hooks/useInternshipLogbook";
+import {
+  useInternshipEvaluationStatus,
+  useSendEvaluationRequest,
+} from "@/hooks/useInternshipEvaluation";
 import type { TimesheetEntry } from "@/lib/services/internshipLogbookService";
 import styles from "./logbook.module.css";
 
@@ -97,6 +101,9 @@ export default function InternshipLogbookView() {
   const entriesQuery = useTimesheetEntries(token, queriesEnabled && Boolean(documentId));
   const dateRangeQuery = useInternshipDateRange(token, queriesEnabled && Boolean(documentId));
   const { saveMutation, updateMutation } = useTimesheetMutations(token);
+
+  const evaluationStatusQuery = useInternshipEvaluationStatus(token, queriesEnabled && Boolean(documentId));
+  const sendEvaluationMutation = useSendEvaluationRequest(token, documentId);
 
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [formState, setFormState] = useState({
@@ -273,6 +280,10 @@ export default function InternshipLogbookView() {
 
   const stats = statsQuery.data;
   const dateRange = dateRangeQuery.data;
+  const evaluationStatus = evaluationStatusQuery.data;
+
+  const approvedHours = stats?.approvedBySupervisor ?? stats?.totalHours ?? 0;
+  const canSendEvaluation = approvedHours >= 240;
 
   return (
     <div className={styles.page}>
@@ -359,6 +370,87 @@ export default function InternshipLogbookView() {
                 <p className={styles.statHint}>วันที่พี่เลี้ยงอนุมัติ</p>
               </div>
             </div>
+          </section>
+
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.panelKicker}>การประเมิน</p>
+                <h2 className={styles.sectionTitle}>ส่งคำขอประเมินไปยังพี่เลี้ยง</h2>
+                <p className={styles.formHint}>ระบบจะส่งอีเมลลิงก์แบบประเมินให้พี่เลี้ยง</p>
+              </div>
+              <div className={styles.sectionBadges}>
+                <span className={`${styles.badge} ${approvedHours >= 240 ? styles.badgePositive : styles.badgeWarning}`}>
+                  ชั่วโมงที่บันทึก {formatHours(approvedHours)}/240 ชม.
+                </span>
+                <span className={`${styles.badge} ${evaluationStatus?.evaluationStatus === "completed" ? styles.badgePositive : styles.badgeInfo}`}>
+                  สถานะ: {evaluationStatus?.evaluationStatus ?? (evaluationStatus?.isSent ? "sent" : "not_sent")}
+                </span>
+              </div>
+            </div>
+
+            {evaluationStatusQuery.isError && (
+              <div className={`${styles.callout} ${styles.calloutDanger}`}>
+                <div>
+                  <p className={styles.calloutTitle}>โหลดสถานะการประเมินไม่สำเร็จ</p>
+                  <p className={styles.calloutText}>กรุณาลองใหม่หรือแจ้งเจ้าหน้าที่</p>
+                </div>
+              </div>
+            )}
+
+            <div className={styles.statGrid}>
+              <div className={styles.statCard}>
+                <p className={styles.statLabel}>อีเมลพี่เลี้ยง</p>
+                <p className={styles.statValue}>{evaluationStatus?.supervisorEmail ?? "-"}</p>
+                <p className={styles.statHint}>กำหนดในคำร้อง คพ.05</p>
+              </div>
+              <div className={styles.statCard}>
+                <p className={styles.statLabel}>ส่งล่าสุด</p>
+                <p className={styles.statValue}>{evaluationStatus?.lastSentDate ? formatDate(evaluationStatus.lastSentDate) : "ยังไม่ส่ง"}</p>
+                <p className={styles.statHint}>จะปิดเมื่อครบกำหนดหรือส่งสำเร็จ</p>
+              </div>
+            </div>
+
+            <div className={styles.callout}>
+              <div>
+                <p className={styles.calloutTitle}>เงื่อนไขการส่ง</p>
+                <p className={styles.calloutText}>
+                  ต้องมีชั่วโมงที่บันทึกและอนุมัติแล้วอย่างน้อย 240 ชั่วโมงก่อนส่งคำขอประเมิน
+                </p>
+              </div>
+              <div className={styles.calloutActions}>
+                <button
+                  className={styles.primaryButton}
+                  onClick={() => sendEvaluationMutation.mutateAsync().catch((error) => console.error(error))}
+                  disabled={!canSendEvaluation || sendEvaluationMutation.isPending || evaluationStatusQuery.isLoading}
+                >
+                  {sendEvaluationMutation.isPending ? "กำลังส่ง..." : "ส่งอีเมลคำขอประเมิน"}
+                </button>
+                {!canSendEvaluation && (
+                  <span className={styles.calloutText}>ต้องครบ 240 ชั่วโมงก่อน</span>
+                )}
+              </div>
+            </div>
+
+            {sendEvaluationMutation.isSuccess && (
+              <div className={`${styles.callout} ${styles.calloutInfo}`}>
+                <div>
+                  <p className={styles.calloutTitle}>ส่งคำขอแล้ว</p>
+                  <p className={styles.calloutText}>{sendEvaluationMutation.data?.message ?? "ระบบได้ส่งอีเมลไปยังพี่เลี้ยงแล้ว"}</p>
+                </div>
+              </div>
+            )}
+
+            {sendEvaluationMutation.isError && (
+              <div className={`${styles.callout} ${styles.calloutDanger}`}>
+                <div>
+                  <p className={styles.calloutTitle}>ส่งคำขอไม่สำเร็จ</p>
+                  <p className={styles.calloutText}>
+                    {(sendEvaluationMutation.error as Error)?.message || "ไม่สามารถส่งอีเมลคำขอประเมินได้"}
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
 
           <section className={styles.sectionCard}>
