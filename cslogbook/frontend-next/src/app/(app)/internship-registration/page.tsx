@@ -1,17 +1,11 @@
-"use client";
-
-import { RoleGuard } from "@/components/auth/RoleGuard";
+import { redirect } from "next/navigation";
 import { featureFlags } from "@/lib/config/featureFlags";
-import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
-import RegistrationLanding from "./view/RegistrationLanding";
+import LandingPageClient from "./LandingPageClient";
 
 export default function InternshipRegistrationPage() {
-  const enabled = featureFlags.enableInternshipFlowPage;
-  guardFeatureRoute(enabled, "/app");
+  if (!featureFlags.enableInternshipFlowPage) {
+    redirect("/app");
+  }
 
-  return (
-    <RoleGuard roles={["student"]}>
-      <RegistrationLanding />
-    </RoleGuard>
-  );
+  return <LandingPageClient />;
 }

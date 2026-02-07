@@ -59,12 +59,6 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   const stats = internshipStatus?.stats;
   const certificate = internshipStatus?.certificateStatus;
 
-  useEffect(() => {
-    if (!queriesEnabled || internshipLoading || internshipError) return;
-    if (!summary) {
-      router.replace("/internship-registration");
-    }
-  }, [queriesEnabled, internshipLoading, internshipError, summary, router]);
 
   const cards = [
     {
