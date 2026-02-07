@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./AppShell.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
 import { getMenuGroups, type MenuLink, type MenuNode } from "@/lib/navigation/menuConfig";
+import { getCurrentAcademicInfo, type AcademicInfo } from "@/lib/services/academicService";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -19,6 +20,8 @@ export function AppShell({ children }: AppShellProps) {
     user?.role === "student"
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [academicInfo, setAcademicInfo] = useState<AcademicInfo | null>(null);
+  const [isAcademicLoading, setIsAcademicLoading] = useState(false);
 
   const canAccessInternship = eligibilityData?.eligibility.internship.canAccessFeature ?? null;
   const canAccessProject = eligibilityData?.eligibility.project.canAccessFeature ?? null;
@@ -77,6 +80,34 @@ export function AppShell({ children }: AppShellProps) {
     </ul>
   );
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAcademicInfo = async () => {
+      setIsAcademicLoading(true);
+      try {
+        const info = await getCurrentAcademicInfo();
+        if (isMounted) {
+          setAcademicInfo(info);
+        }
+      } catch {
+        if (isMounted) {
+          setAcademicInfo(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsAcademicLoading(false);
+        }
+      }
+    };
+
+    fetchAcademicInfo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div className={styles.shell}>
       <aside
@@ -84,8 +115,10 @@ export function AppShell({ children }: AppShellProps) {
         aria-label="แถบนำทางหลัก"
       >
         <div className={styles.brandBlock}>
-          <p className={styles.brandCaption}>CSLogbook</p>
-          <h1 className={styles.brandTitle}>Frontend Base</h1>
+          <div className={styles.brandMark} aria-hidden="true">
+            <span className={styles.brandLogo}>CS</span>
+            <p className={styles.brandCaption}>CSLogbook</p>
+          </div>
         </div>
 
         <div className={styles.navSections}>
@@ -119,8 +152,16 @@ export function AppShell({ children }: AppShellProps) {
       <div className={styles.contentArea}>
         <header className={styles.header}>
           <div>
-            <p className={styles.headerLabel}>Academic Workflow</p>
-            <h2 className={styles.headerTitle}>CSLogbook UX/UI Foundation</h2>
+            <p className={styles.headerLabel}>
+              {isAcademicLoading
+                ? "ภาคเรียน กำลังโหลด..."
+                : academicInfo?.displayText
+                  ? `ภาคเรียน ${academicInfo.displayText.replace("*", "")}`
+                  : "ภาคเรียน -"}
+            </p>
+            <h2 className={styles.headerTitle}>
+              ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
+            </h2>
           </div>
           <button type="button" className={styles.logoutLink} onClick={handleLogout}>
             Log out
