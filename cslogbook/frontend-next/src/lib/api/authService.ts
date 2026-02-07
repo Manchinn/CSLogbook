@@ -173,20 +173,22 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     }),
   });
 
+  const claims = decodeTokenClaims(response.token);
+
   const user = buildAuthUser({
-    id: response.userId,
-    role: response.role,
-    email: response.email ?? payload.username,
-    firstName: response.firstName,
-    lastName: response.lastName,
-    studentId: response.studentId,
-    studentCode: response.studentCode,
-    teacherId: response.teacherId,
-    teacherCode: response.teacherCode,
-    teacherType: response.teacherType,
-    canAccessTopicExam: response.canAccessTopicExam,
-    canExportProject1: response.canExportProject1,
-    isSystemAdmin: response.isSystemAdmin,
+    id: response.userId ?? claims.userId ?? "",
+    role: response.role ?? claims.role ?? payload.role ?? "student",
+    email: response.email ?? claims.email ?? payload.username,
+    firstName: response.firstName ?? claims.firstName,
+    lastName: response.lastName ?? claims.lastName,
+    studentId: response.studentId ?? claims.studentId,
+    studentCode: response.studentCode ?? claims.studentCode,
+    teacherId: response.teacherId ?? claims.teacherId,
+    teacherCode: response.teacherCode ?? claims.teacherCode,
+    teacherType: response.teacherType ?? claims.teacherType,
+    canAccessTopicExam: response.canAccessTopicExam ?? claims.canAccessTopicExam,
+    canExportProject1: response.canExportProject1 ?? claims.canExportProject1,
+    isSystemAdmin: response.isSystemAdmin ?? claims.isSystemAdmin,
   });
 
   return {

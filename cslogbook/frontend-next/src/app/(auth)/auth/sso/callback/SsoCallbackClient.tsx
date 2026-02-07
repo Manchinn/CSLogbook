@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDashboardPathByRole } from "@/lib/auth/mockSession";
 
 type SsoCallbackClientProps = {
   token?: string;
@@ -26,7 +27,15 @@ export function SsoCallbackClient({ token, redirectPath, error }: SsoCallbackCli
     }
 
     completeSsoLogin(token)
-      .then(() => router.replace(redirectPath || "/app"))
+      .then((profile) => {
+        const fallbackTarget = getDashboardPathByRole(
+          profile.role,
+          profile.teacherType,
+          profile.isSystemAdmin
+        );
+        const target = redirectPath && redirectPath !== "/app" ? redirectPath : fallbackTarget;
+        router.replace(target);
+      })
       .catch((authError) => {
         const message = authError instanceof Error ? authError.message : "sso_callback_failed";
         router.replace(`/login?error=${encodeURIComponent(message)}`);

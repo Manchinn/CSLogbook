@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import styles from "./page.module.css";
-import { AppRole } from "@/lib/auth/mockSession";
+import { AppRole, getDashboardPathByRole } from "@/lib/auth/mockSession";
 import { useAuth } from "@/contexts/AuthContext";
 import { featureFlags } from "@/lib/config/featureFlags";
 import { getSsoAuthorizeUrl } from "@/lib/api/authService";
@@ -25,8 +25,9 @@ export function LoginForm() {
       const password = String(formData.get("password") ?? "");
       const role = String(formData.get("role") ?? "student") as AppRole;
 
-      await signIn({ username, password, role });
-      router.push("/app");
+      const profile = await signIn({ username, password, role });
+      const target = getDashboardPathByRole(profile.role, profile.teacherType, profile.isSystemAdmin);
+      router.replace(target);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed");
     } finally {

@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { AppRedirect } from "@/components/auth/AppRedirect";
 
 export default function DashboardEntryPage() {
-  redirect("/app");
+  return <AppRedirect />;
 }

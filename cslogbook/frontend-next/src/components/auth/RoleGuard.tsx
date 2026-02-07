@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import type { AppRole } from "@/lib/auth/mockSession";
+import { getDashboardPathByRole, type AppRole } from "@/lib/auth/mockSession";
 
 type RoleGuardProps = {
   roles?: AppRole[];
@@ -14,27 +14,43 @@ type RoleGuardProps = {
 
 export function RoleGuard({ roles, teacherTypes, redirectPath = "/app", children }: RoleGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, isLoading, user } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace("/login");
+      if (pathname !== "/login") {
+        router.replace("/login");
+      }
       return;
     }
 
     if (!user) return;
 
-    if (roles && !roles.includes(user.role)) {
-      router.replace(redirectPath);
+    if (user.role === "teacher" && teacherTypes && !user.teacherType && !user.isSystemAdmin) {
       return;
     }
 
-    if (teacherTypes && user.role === "teacher" && !teacherTypes.includes(user.teacherType ?? "")) {
-      router.replace(redirectPath);
+    const fallbackTarget =
+      getDashboardPathByRole(user.role, user.teacherType, user.isSystemAdmin) || redirectPath;
+
+    if (roles && !roles.includes(user.role)) {
+      if (pathname !== fallbackTarget) {
+        router.replace(fallbackTarget);
+      }
+      return;
     }
-  }, [isAuthenticated, isLoading, redirectPath, roles, router, teacherTypes, user]);
+
+    const allowSupportOverride = Boolean(user.isSystemAdmin) && teacherTypes?.includes("support");
+
+    if (teacherTypes && user.role === "teacher" && !teacherTypes.includes(user.teacherType ?? "") && !allowSupportOverride) {
+      if (pathname !== fallbackTarget) {
+        router.replace(fallbackTarget);
+      }
+    }
+  }, [isAuthenticated, isLoading, pathname, redirectPath, roles, router, teacherTypes, user]);
 
   if (isLoading || !isAuthenticated || !user) {
     return null;
