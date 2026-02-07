@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -129,26 +129,16 @@ export default function InternshipSummaryView() {
   });
 
   const reflectionData = reflectionQuery.data ?? null;
-  const stats = timesheetStatsQuery.data ?? statsFromStatus ?? null;
-  const reflectionDraftSeed = buildReflectionDraft(reflectionData);
+  const stats = useMemo(
+    () => timesheetStatsQuery.data ?? statsFromStatus ?? null,
+    [statsFromStatus, timesheetStatsQuery.data]
+  );
+  const reflectionDraftSeed = useMemo(
+    () => buildReflectionDraft(reflectionData),
+    [reflectionData]
+  );
 
-  if (!enabled) {
-    return <div className={styles.card}>กำลังเตรียมข้อมูล...</div>;
-  }
-
-  if (statusQuery.isLoading) {
-    return <div className={styles.card}>กำลังโหลดข้อมูลสรุปการฝึกงาน...</div>;
-  }
-
-  if (statusQuery.isError) {
-    return (
-      <div className={`${styles.card} ${styles.calloutDanger}`}>
-        โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่
-      </div>
-    );
-  }
-
-  const guard = (() => {
+  const guard = useMemo(() => {
     if (cs05Query.isLoading) {
       return { title: "กำลังตรวจสอบคำร้อง คพ.05", body: "กรุณารอสักครู่", tone: "info" as const };
     }
@@ -205,7 +195,53 @@ export default function InternshipSummaryView() {
       }
     }
     return null;
-  })();
+  }, [
+    acceptanceQuery.isLoading,
+    acceptanceStatus,
+    cs05,
+    cs05Query.isLoading,
+    cs05Status,
+  ]);
+
+  const companyName = summary?.companyName || "สถานประกอบการ";
+  const supervisorContact = useMemo(
+    () => [summary?.supervisorPhone, summary?.supervisorEmail].filter(Boolean).join(" | ") || "-",
+    [summary?.supervisorEmail, summary?.supervisorPhone]
+  );
+
+  const entries = useMemo(
+    () => timesheetEntriesQuery.data ?? [],
+    [timesheetEntriesQuery.data]
+  );
+  const averageHours = stats?.averageHoursPerDay ?? null;
+  const remainingDays = stats?.remainingDays ?? null;
+  const approvedHours = summary?.approvedHours ?? 0;
+  const completionPct = useMemo(
+    () => Math.min(100, Math.round(((approvedHours ?? 0) / REQUIRED_INTERNSHIP_HOURS) * 100)),
+    [approvedHours]
+  );
+  const evaluationSent = evaluationStatusQuery.data?.isSent ?? false;
+
+  const canRequestEvaluation = useMemo(
+    () => approvedHours >= REQUIRED_INTERNSHIP_HOURS && !evaluationSent && !sendEvaluationMutation.isPending,
+    [approvedHours, evaluationSent, sendEvaluationMutation.isPending]
+  );
+
+  if (!enabled) {
+    return <div className={styles.card}>กำลังเตรียมข้อมูล...</div>;
+  }
+
+  if (statusQuery.isLoading) {
+    return <div className={styles.card}>กำลังโหลดข้อมูลสรุปการฝึกงาน...</div>;
+  }
+
+  if (statusQuery.isError) {
+    return (
+      <div className={`${styles.card} ${styles.calloutDanger}`}>
+        โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่
+      </div>
+    );
+  }
 
   if (!summary || guard) {
     return (
@@ -224,20 +260,6 @@ export default function InternshipSummaryView() {
       </div>
     );
   }
-
-  const companyName = summary.companyName || "สถานประกอบการ";
-  const supervisorContact = [summary.supervisorPhone, summary.supervisorEmail]
-    .filter(Boolean)
-    .join(" | ") || "-";
-
-  const entries = timesheetEntriesQuery.data ?? [];
-  const averageHours = stats?.averageHoursPerDay ?? null;
-  const remainingDays = stats?.remainingDays ?? null;
-  const approvedHours = summary.approvedHours ?? 0;
-  const completionPct = Math.min(100, Math.round(((approvedHours ?? 0) / REQUIRED_INTERNSHIP_HOURS) * 100));
-  const evaluationSent = evaluationStatusQuery.data?.isSent ?? false;
-
-  const canRequestEvaluation = approvedHours >= REQUIRED_INTERNSHIP_HOURS && !evaluationSent && !sendEvaluationMutation.isPending;
 
   return (
     <div className={styles.page}>

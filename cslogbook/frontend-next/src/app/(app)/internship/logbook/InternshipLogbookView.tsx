@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
@@ -194,9 +194,12 @@ export default function InternshipLogbookView() {
   }, [entriesByDate, workdaysQuery.data]);
 
   const canEdit = cs05Status === "approved" && acceptanceStatus === "approved";
-  const loadingAny = statsQuery.isLoading || workdaysQuery.isLoading || entriesQuery.isLoading;
+  const loadingAny = useMemo(
+    () => statsQuery.isLoading || workdaysQuery.isLoading || entriesQuery.isLoading,
+    [entriesQuery.isLoading, statsQuery.isLoading, workdaysQuery.isLoading]
+  );
 
-  const handleSelectDate = (date: string) => {
+  const handleSelectDate = useCallback((date: string) => {
     const entry = entriesByDate.get(date) ?? null;
     setEditingDate(date);
     setFormError(null);
@@ -211,9 +214,9 @@ export default function InternshipLogbookView() {
       timeOut: entry?.timeOut ?? "",
       workHours: entry?.workHours ? Number(entry.workHours) : 0,
     });
-  };
+  }, [entriesByDate]);
 
-  const handleTimeChange = (field: "timeIn" | "timeOut", value: string) => {
+  const handleTimeChange = useCallback((field: "timeIn" | "timeOut", value: string) => {
     setFormState((prev) => {
       const next = { ...prev, [field]: value };
       if (next.timeIn && next.timeOut) {
@@ -221,9 +224,9 @@ export default function InternshipLogbookView() {
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingDate) return;
 
@@ -278,14 +281,20 @@ export default function InternshipLogbookView() {
       const message = error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้";
       setFormError(message);
     }
-  };
+  }, [editingDate, entriesByDate, formState, saveMutation, updateMutation]);
 
   const stats = statsQuery.data;
   const dateRange = dateRangeQuery.data;
   const evaluationStatus = evaluationStatusQuery.data;
 
-  const approvedHours = stats?.approvedBySupervisor ?? stats?.totalHours ?? 0;
-  const canSendEvaluation = approvedHours >= REQUIRED_INTERNSHIP_HOURS;
+  const approvedHours = useMemo(
+    () => stats?.approvedBySupervisor ?? stats?.totalHours ?? 0,
+    [stats?.approvedBySupervisor, stats?.totalHours]
+  );
+  const canSendEvaluation = useMemo(
+    () => approvedHours >= REQUIRED_INTERNSHIP_HOURS,
+    [approvedHours]
+  );
 
   return (
     <div className={styles.page}>

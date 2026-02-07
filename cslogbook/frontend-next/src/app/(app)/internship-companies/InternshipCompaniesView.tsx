@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import styles from "./internshipCompanies.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -54,29 +54,42 @@ export default function InternshipCompaniesView() {
   const statsQuery = useInternshipCompanyStats(token, filters, queriesEnabled);
   const detailQuery = useInternshipCompanyDetail(token, selectedCompany ?? "", queriesEnabled && Boolean(selectedCompany));
 
-  const rows = statsQuery.data?.rows ?? [];
-  const meta = statsQuery.data?.meta;
-  const generatedLabel = meta?.generatedAt ? dateTimeFormatter.format(new Date(meta.generatedAt)) : null;
+  const statsData = statsQuery.data ?? null;
+  const rows = useMemo(
+    () => statsData?.rows ?? [],
+    [statsData]
+  );
+  const meta = statsData?.meta ?? null;
+  const generatedLabel = useMemo(
+    () => (meta?.generatedAt ? dateTimeFormatter.format(new Date(meta.generatedAt)) : null),
+    [meta]
+  );
 
   const yearOptions = useMemo(() => buildYearOptions(), []);
-  const fullCount = rows.filter((row) => row.capacityStatus === "full").length;
-  const topStudents = rows.reduce((sum, row) => sum + (row.totalStudents ?? 0), 0);
+  const fullCount = useMemo(
+    () => rows.filter((row) => row.capacityStatus === "full").length,
+    [rows]
+  );
+  const topStudents = useMemo(
+    () => rows.reduce((sum, row) => sum + (row.totalStudents ?? 0), 0),
+    [rows]
+  );
 
-  const limitMax = isStaff ? 200 : 20;
-  const handleLimitChange = (value: string) => {
+  const limitMax = useMemo(() => (isStaff ? 200 : 20), [isStaff]);
+  const handleLimitChange = useCallback((value: string) => {
     const next = Number(value);
     if (Number.isNaN(next)) return;
     const clamped = Math.min(Math.max(next, 1), limitMax);
     setLimit(clamped);
-  };
+  }, [limitMax]);
 
-  const handleView = (companyName: string) => {
+  const handleView = useCallback((companyName: string) => {
     setSelectedCompany(companyName);
-  };
+  }, []);
 
-  const handleCloseDrawer = () => {
+  const handleCloseDrawer = useCallback(() => {
     setSelectedCompany(null);
-  };
+  }, []);
 
   const statsError = statsQuery.error instanceof Error ? statsQuery.error.message : null;
   const detailError = detailQuery.error instanceof Error ? detailQuery.error.message : null;
@@ -221,7 +234,7 @@ export default function InternshipCompaniesView() {
 
       <aside
         className={`${styles.drawer} ${selectedCompany ? styles.drawerOpen : ""}`}
-        aria-hidden={selectedCompany ? "false" : "true"}
+        aria-hidden={!selectedCompany}
         aria-label="รายละเอียดสถานประกอบการ"
         role="dialog"
       >
