@@ -2,11 +2,17 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminStats } from "@/hooks/useAdminStats";
+import { useHydrated } from "@/hooks/useHydrated";
 import styles from "./AdminStatsWidget.module.css";
 
 export function AdminStatsWidget() {
+  const hydrated = useHydrated();
   const { token } = useAuth();
-  const { data, isLoading, error } = useAdminStats(token);
+  const { data, isLoading, error } = useAdminStats(hydrated ? token : null);
+
+  if (!hydrated) {
+    return <p>Loading admin metrics...</p>;
+  }
 
   if (isLoading) {
     return <p>Loading admin metrics...</p>;

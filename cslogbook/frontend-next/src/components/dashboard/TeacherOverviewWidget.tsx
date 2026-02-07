@@ -2,14 +2,20 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeacherOverview } from "@/hooks/useTeacherOverview";
+import { useHydrated } from "@/hooks/useHydrated";
 import styles from "./TeacherOverviewWidget.module.css";
 
 export function TeacherOverviewWidget({ enabled }: { enabled: boolean }) {
+  const hydrated = useHydrated();
   const { token } = useAuth();
-  const { data, isLoading, error } = useTeacherOverview(token, enabled);
+  const { data, isLoading, error } = useTeacherOverview(token, enabled && hydrated);
 
   if (!enabled) {
     return null;
+  }
+
+  if (!hydrated) {
+    return <p>Loading teacher overview...</p>;
   }
 
   if (isLoading) {

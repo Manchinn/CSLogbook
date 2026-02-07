@@ -9,5 +9,6 @@ export function useAdminStats(token: string | null) {
     queryFn: () => getAdminStats(token ?? ""),
     enabled: Boolean(token),
     refetchInterval: 1000 * 60 * 3,
+    retry: 1,
   });
 }

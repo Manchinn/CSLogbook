@@ -9,5 +9,6 @@ export function useTeacherOverview(token: string | null, enabled: boolean) {
     queryFn: () => getTeacherOverview(token ?? ""),
     enabled: Boolean(token) && enabled,
     refetchInterval: 1000 * 60 * 3,
+    retry: 1,
   });
 }
