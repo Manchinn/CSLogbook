@@ -6,6 +6,7 @@ const {
   InternshipLogbook,
   InternshipLogbookReflection,
 } = require("../models");
+const { Op } = require("sequelize");
 const { sequelize } = require("../config/database");
 const {
   calculateStudentYear,

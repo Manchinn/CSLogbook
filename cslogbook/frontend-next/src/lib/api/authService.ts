@@ -1,5 +1,4 @@
 import { apiFetch } from "./client";
-import { featureFlags } from "@/lib/config/featureFlags";
 import type { AppRole } from "@/lib/auth/mockSession";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;

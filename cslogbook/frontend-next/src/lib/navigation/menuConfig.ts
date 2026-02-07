@@ -32,7 +32,7 @@ type BuildOptions = {
   canAccessProject?: boolean | null;
 };
 
-function link(path: string, enabled = false) {
+function link(path: string) {
   return { href: path, external: false } as const;
 }
 
@@ -108,8 +108,9 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
   const isSupport = user.teacherType === "support";
   const canSeeTopicExam = Boolean(user.canAccessTopicExam);
   const canExportProject1 = Boolean(user.canExportProject1);
-  const canExportThesis = Boolean((user as any).canExportThesis ?? user.canExportProject1);
-  const canApproveDocuments = isAcademic && (user as any).teacherPosition === "หัวหน้าภาควิชา";
+  const canExportThesis = Boolean((user as { canExportThesis?: boolean }).canExportThesis ?? user.canExportProject1);
+  const teacherPosition = (user as { teacherPosition?: string }).teacherPosition;
+  const canApproveDocuments = isAcademic && teacherPosition === "หัวหน้าภาควิชา";
 
   const privilegedChildren: MenuNode[] = [];
 

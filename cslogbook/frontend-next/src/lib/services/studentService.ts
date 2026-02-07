@@ -255,7 +255,7 @@ export async function getStudentInternshipSummary(token: string) {
 
 export async function getStudentInternshipTimesheetStats(token: string) {
   const response = await apiFetch<{ success: boolean; data: InternshipTimesheetStats | null; message?: string }>(
-    "/logbooks/internship/timesheet/stats",
+    "/internship/logbook/timesheet/stats",
     {
       method: "GET",
       token,

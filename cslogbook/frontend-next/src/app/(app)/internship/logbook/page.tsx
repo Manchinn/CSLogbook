@@ -1,7 +1,7 @@
-import { FeaturePlaceholder } from "@/components/common/FeaturePlaceholder";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { featureFlags } from "@/lib/config/featureFlags";
 import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
+import InternshipLogbookView from "./InternshipLogbookView";
 
 export default function InternshipLogbookPage() {
   const enabled = featureFlags.enableInternshipLogbookPage;
@@ -10,10 +10,7 @@ export default function InternshipLogbookPage() {
 
   return (
     <RoleGuard roles={["student"]}>
-      <FeaturePlaceholder
-        title="บันทึกประจำวันฝึกงาน"
-        description="หน้ารวม logbook และ timesheet ฝึกงาน พร้อมสรุปสถิติ"
-      />
+      <InternshipLogbookView />
     </RoleGuard>
   );
 }

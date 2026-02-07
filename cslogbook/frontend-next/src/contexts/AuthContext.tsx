@@ -66,11 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initialSession = getInitialSession();
   const [user, setUser] = useState<AuthUser | null>(initialSession.user);
   const [token, setToken] = useState<string | null>(initialSession.token);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(initialSession.token));
 
   const clearSession = useCallback(() => {
     setToken(null);
     setUser(null);
+    setIsLoading(false);
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
     window.localStorage.removeItem(AUTH_USER_KEY);
     window.localStorage.removeItem(MOCK_ROLE_KEY);
@@ -104,35 +105,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSession]);
 
   useEffect(() => {
+    if (!token) return undefined;
+
     let cancelled = false;
-
-    if (!token) {
-      setIsLoading(false);
-      return undefined;
-    }
-
-    if (isTokenExpired(token)) {
-      clearSession();
-      setIsLoading(false);
-      return undefined;
-    }
-
     const expiryMs = getTokenExpiryMs(token);
     const timeoutId = typeof expiryMs === "number" ? window.setTimeout(clearSession, Math.max(expiryMs - Date.now(), 0)) : undefined;
 
-    verifyToken(token)
-      .then((profile) => {
+    const syncSession = async () => {
+      try {
+        const profile = await verifyToken(token);
         if (cancelled) return;
         persistSession(token, profile);
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
         clearSession();
-      })
-      .finally(() => {
+      } finally {
         if (cancelled) return;
         setIsLoading(false);
-      });
+      }
+    };
+
+    syncSession();
 
     return () => {
       cancelled = true;
