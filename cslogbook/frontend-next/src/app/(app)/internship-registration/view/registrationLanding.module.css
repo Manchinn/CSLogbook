@@ -1,0 +1,207 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0f172a, #0b1221);
+  border: 1px solid #1f2937;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+.title {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 28px;
+}
+
+.lead {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #f8fafc;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25);
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 34px rgba(37, 99, 235, 0.32);
+}
+
+.secondary {
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  background: #0f172a;
+}
+
+.secondary:hover {
+  border-color: #475569;
+  transform: translateY(-1px);
+}
+
+.statusCard {
+  align-self: stretch;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  background: #0b1221;
+}
+
+.statusLabel {
+  margin: 0 0 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.statusValue {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.statusHint {
+  margin: 6px 0 0;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  background: #0b1221;
+}
+
+.cardLabel {
+  margin: 0 0 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.cardValue {
+  margin: 0;
+  font-size: 20px;
+  color: #f8fafc;
+}
+
+.cardHint {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.panel {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.panelKicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.panelTitle {
+  margin: 4px 0 0;
+  color: #f8fafc;
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.step {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+  background: #0b1221;
+}
+
+.stepTitle {
+  margin: 0;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.stepHint {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .statusCard {
+    order: -1;
+  }
+}

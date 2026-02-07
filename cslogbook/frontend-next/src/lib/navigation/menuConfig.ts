@@ -56,7 +56,7 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
         kind: "group",
         children: [
           { key: "internship-companies", label: "สถานประกอบการ (สถิติ)", kind: "link", ...link("/internship-companies") },
-          { key: "internship-flow", label: "ลงทะเบียนคำร้องฝึกงาน", kind: "link", ...link("/internship-registration/flow", featureFlags.enableInternshipFlowPage) },
+          { key: "internship-flow", label: "ลงทะเบียนคำร้องฝึกงาน", kind: "link", ...link("/internship-registration", featureFlags.enableInternshipFlowPage) },
           { key: "internship-companyinfo", label: "ข้อมูลสถานประกอบการ", kind: "link", ...link("/internship-logbook/companyinfo") },
           { key: "internship-timesheet", label: "บันทึกประจำวัน", kind: "link", ...link("/internship/logbook", featureFlags.enableInternshipLogbookPage) },
           { key: "internship-summary", label: "สรุปผลฝึกงาน", kind: "link", ...link("/internship-summary") },
