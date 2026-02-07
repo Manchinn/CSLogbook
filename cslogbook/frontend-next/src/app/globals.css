@@ -1,4 +1,6 @@
 :root {
+  --font-sans: var(--font-inter), var(--font-thai), "Segoe UI", Arial, sans-serif;
+
   /* Legacy palette (frontend old version) with blue primary */
   --color-primary: #2563eb;
   --color-primary-strong: #1d4ed8;
@@ -48,7 +50,7 @@ body {
 body {
   background: var(--color-bg-subtle);
   color: var(--color-text);
-  font-family: "Inter", "Noto Sans Thai", "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }

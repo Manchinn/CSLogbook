@@ -327,3 +327,15 @@ NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
 
 ค่า env ที่เกี่ยวข้อง:
 - ใช้ `NEXT_PUBLIC_API_URL` + token เดิม ไม่มี flag เพิ่มเติม
+
+---
+
+## 20) Phase 10 Progress (Supervisor Evaluation Public Form)
+
+สิ่งที่เพิ่มแล้ว:
+- หน้า public `/evaluate/supervisor/[token]` สำหรับผู้ควบคุมงานกรอกประเมินด้วย token จากอีเมล
+- Service/hook ใหม่เรียก backend `GET/POST /internship/supervisor/evaluation/:token` พร้อม validation/expired/used handling
+- UI ให้คะแนน 5 หมวด (4 รายการ/หมวด), รวมคะแนนอัตโนมัติ และสรุป pass/fail
+
+ค่า env ที่เกี่ยวข้อง:
+- ใช้ `NEXT_PUBLIC_API_URL` สำหรับ backend URL (ไม่ต้องใช้ auth token บนหน้านี้)

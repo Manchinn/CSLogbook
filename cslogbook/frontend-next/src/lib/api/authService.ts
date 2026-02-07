@@ -1,11 +1,6 @@
 import { apiFetch } from "./client";
 import type { AppRole } from "@/lib/auth/mockSession";
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-if (!apiBaseUrl) {
-  throw new Error("NEXT_PUBLIC_API_URL is required");
-}
+import { env } from "@/lib/config/env";
 
 export type LoginPayload = {
   username: string;
@@ -227,7 +222,7 @@ export async function verifyToken(token: string): Promise<AuthUser> {
 }
 
 export function getSsoAuthorizeUrl(redirectPath = "/app") {
-  const authorizeUrl = new URL(`${apiBaseUrl}/auth/sso/authorize`);
+  const authorizeUrl = new URL(`${env.apiUrl}/auth/sso/authorize`);
   authorizeUrl.searchParams.set("redirectPath", redirectPath);
   return authorizeUrl.toString();
 }

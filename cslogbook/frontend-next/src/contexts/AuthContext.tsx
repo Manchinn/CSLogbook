@@ -2,10 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { login, verifyToken, type AuthUser, type LoginPayload } from "@/lib/api/authService";
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY, LEGACY_TOKEN_KEY } from "@/lib/auth/storageKeys";
 import { MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
-
-const AUTH_TOKEN_KEY = "cslogbook:auth-token";
-const AUTH_USER_KEY = "cslogbook:auth-user";
 
 function parseTokenPayload(token: string) {
   try {

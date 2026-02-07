@@ -1,4 +1,5 @@
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+import { env } from "@/lib/config/env";
+import { AUTH_TOKEN_KEY, LEGACY_TOKEN_KEY } from "@/lib/auth/storageKeys";
 
 type RequestOptions = RequestInit & {
   token?: string;
@@ -6,12 +7,15 @@ type RequestOptions = RequestInit & {
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
-  const fallbackToken = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+  const fallbackToken =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem(AUTH_TOKEN_KEY) ?? window.localStorage.getItem(LEGACY_TOKEN_KEY)
+      : null;
   const effectiveToken = token ?? fallbackToken;
   const hasBody = Object.prototype.hasOwnProperty.call(rest, "body");
   const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${env.apiUrl}${path}`, {
     ...rest,
     headers: {
       ...(hasBody && !isFormData ? { "Content-Type": "application/json" } : {}),
@@ -31,5 +35,14 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     }
   }
 
-  return (await response.json()) as T;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as T;
+  }
+
+  return (await response.text()) as unknown as T;
 }
