@@ -17,4 +17,3 @@ export default function ReportsPage() {
     </RoleGuard>
   );
 }
-}

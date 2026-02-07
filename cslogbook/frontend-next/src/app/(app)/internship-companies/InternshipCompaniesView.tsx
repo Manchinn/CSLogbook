@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styles from "./internshipCompanies.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -40,14 +40,6 @@ export default function InternshipCompaniesView() {
   const [academicYear, setAcademicYear] = useState<number | "all">(deriveCurrentAcademicYear());
   const [limit, setLimit] = useState<number>(() => (isStaff ? 50 : 10));
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const [initializedLimit, setInitializedLimit] = useState(false);
-
-  useEffect(() => {
-    if (!initializedLimit && user) {
-      setLimit(isStaff ? 50 : 10);
-      setInitializedLimit(true);
-    }
-  }, [initializedLimit, isStaff, user]);
 
   const filters = useMemo(
     () => ({

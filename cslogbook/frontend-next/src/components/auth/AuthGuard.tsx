@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,22 +11,14 @@ type AuthGuardProps = {
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
-  const [canRender, setCanRender] = useState(false);
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.replace("/login");
-      return;
     }
-
-    setCanRender(true);
   }, [isAuthenticated, isLoading, router]);
 
-  if (!canRender) {
+  if (isLoading || !isAuthenticated) {
     return null;
   }
 

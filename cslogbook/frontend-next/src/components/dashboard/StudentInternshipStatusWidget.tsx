@@ -27,8 +27,6 @@ export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStat
   const { token } = useAuth();
   const { data, isLoading, error } = useStudentInternshipStatus(token, enabled && hydrated);
 
-  if (!enabled) return null;
-
   const summary = data?.summary;
   const stats = data?.stats;
   const certificate = data?.certificateStatus;
@@ -41,6 +39,10 @@ export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStat
   }, [certificate?.companyInfo?.approvedHours, certificate?.requirements?.totalHours?.required, stats?.totalHours, summary?.approvedHours, summary?.totalHours]);
 
   const statusChip = certificate?.status ?? summary?.status ?? "pending";
+
+  if (!enabled) {
+    return null;
+  }
 
   if (!hydrated || isLoading) {
     return (

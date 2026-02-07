@@ -33,7 +33,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const handleNavigate = (item: MenuLink) => {
     if (item.external) {
-      window.location.href = item.href;
+      window.location.assign(item.href);
       return;
     }
     router.push(item.href);
