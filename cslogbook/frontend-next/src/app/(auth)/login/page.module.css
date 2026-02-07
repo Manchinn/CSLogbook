@@ -81,3 +81,23 @@
   outline: 2px solid #bfdbfe;
   border-color: var(--color-primary);
 }
+
+.errorText {
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.legacyHint {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.legacyHint a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}

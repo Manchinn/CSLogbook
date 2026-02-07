@@ -125,6 +125,11 @@
 .logoutLink {
   margin-top: auto;
   display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
   border-radius: 0.625rem;
   padding: 0.625rem 0.75rem;
   font-weight: 600;

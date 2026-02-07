@@ -3,9 +3,9 @@ export const MOCK_ROLE_KEY = "cslogbook:mock-role";
 export type AppRole = "student" | "teacher" | "admin";
 
 export const dashboardByRole: Record<AppRole, string> = {
-  student: "/dashboard?role=student",
-  teacher: "/dashboard?role=teacher",
-  admin: "/dashboard?role=admin",
+  student: "/dashboard/student",
+  teacher: "/dashboard/teacher",
+  admin: "/dashboard/admin",
 };
 
 export function getDashboardPathByRole(role: string | null | undefined) {

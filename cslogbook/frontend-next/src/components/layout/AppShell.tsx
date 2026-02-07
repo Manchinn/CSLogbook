@@ -1,23 +1,35 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "./AppShell.module.css";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AppShellProps = {
   children: React.ReactNode;
 };
 
 const primaryMenu = [
-  { label: "Dashboard", href: "/app" },
-  { label: "Internship", href: "/dashboard" },
-  { label: "Project", href: "/dashboard" },
-  { label: "Documents", href: "/dashboard" },
+  { label: "App Home", href: "/app" },
+  { label: "Student Dashboard", href: "/dashboard/student" },
+  { label: "Teacher Dashboard", href: "/dashboard/teacher" },
+  { label: "Admin Dashboard", href: "/dashboard/admin" },
 ];
 
 const utilityMenu = [
-  { label: "Timeline", href: "/dashboard" },
-  { label: "Settings", href: "/dashboard" },
+  { label: "Timeline", href: "/dashboard/admin" },
+  { label: "Settings", href: "/dashboard/admin" },
 ];
 
 export function AppShell({ children }: AppShellProps) {
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    signOut();
+    router.push("/login");
+  };
+
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar} aria-label="แถบนำทางหลัก">
@@ -52,9 +64,9 @@ export function AppShell({ children }: AppShellProps) {
           </ul>
         </nav>
 
-        <Link href="/login" className={styles.logoutLink}>
+        <button type="button" className={styles.logoutLink} onClick={handleLogout}>
           Log out
-        </Link>
+        </button>
       </aside>
 
       <div className={styles.contentArea}>

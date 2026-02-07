@@ -1,21 +1,35 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import styles from "./page.module.css";
-import { AppRole, MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
+import { AppRole } from "@/lib/auth/mockSession";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function LoginForm() {
   const router = useRouter();
+  const { signIn } = useAuth();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setErrorMessage(null);
+    setIsSubmitting(true);
 
-    const formData = new FormData(event.currentTarget);
-    const role = String(formData.get("role") ?? "student") as AppRole;
+    try {
+      const formData = new FormData(event.currentTarget);
+      const email = String(formData.get("email") ?? "");
+      const password = String(formData.get("password") ?? "");
+      const role = String(formData.get("role") ?? "student") as AppRole;
 
-    window.localStorage.setItem(MOCK_ROLE_KEY, role);
-    router.push("/app");
+      await signIn({ email, password, role });
+      router.push("/app");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Login failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -45,8 +59,10 @@ export function LoginForm() {
         <option value="admin">Admin</option>
       </select>
 
-      <button className={styles.submitButton} type="submit">
-        Sign in
+      {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
+
+      <button className={styles.submitButton} type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Signing in..." : "Sign in"}
       </button>
     </form>
   );

@@ -169,3 +169,27 @@ npm run dev -- --port 3001
 2. ย้าย Dashboard ของแต่ละ role แบบทีละหน้า
 3. ย้าย shared components และ services ตามลำดับการใช้งานจริง
 4. เปิดใช้งาน feature flags แล้วค่อยปิด frontend เดิม
+
+---
+
+## 12) Phase 2 Progress (AuthContext + Role Dashboards + Feature Flags)
+
+สิ่งที่เพิ่มแล้ว:
+- `AuthProvider` + `useAuth` สำหรับจัดการ session ฝั่ง frontend-next
+- `authService` + `apiFetch` เพื่อรองรับ API login จริง และ mock auth ผ่าน feature flag
+- แยก dashboard ตาม role: `/dashboard/student`, `/dashboard/teacher`, `/dashboard/admin`
+- เพิ่มจุด redirect กลาง `/app` เพื่อส่งต่อไป dashboard ตาม role จาก session
+- เพิ่ม feature flags สำหรับเปิด/ปิด mock auth และ legacy frontend
+
+ตัวอย่าง env (ดู `env.example`):
+```bash
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
+NEXT_PUBLIC_USE_LEGACY_FRONTEND=false
+NEXT_PUBLIC_LEGACY_FRONTEND_URL=http://localhost:3000/login
+```
+
+แผนถัดไป:
+1. ผูก endpoint จริง `/auth/login` และ SSO callback
+2. ย้าย dashboard widgets จาก frontend เดิมเข้ามาทีละ role
+3. ย้าย shared services/hooks ที่ใช้งานจริงก่อน
+4. ค่อย ๆ ปิดหน้าเดิมด้วย feature flags

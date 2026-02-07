@@ -2,16 +2,21 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getDashboardPathByRole, MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
+import { getDashboardPathByRole } from "@/lib/auth/mockSession";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppRedirect() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    const savedRole = window.localStorage.getItem(MOCK_ROLE_KEY);
-    const target = getDashboardPathByRole(savedRole);
+    if (isLoading) {
+      return;
+    }
+
+    const target = getDashboardPathByRole(user?.role);
     router.replace(target);
-  }, [router]);
+  }, [isLoading, router, user?.role]);
 
   return <p>กำลังพาไปยังหน้าที่เหมาะสมกับสิทธิ์ผู้ใช้...</p>;
 }
