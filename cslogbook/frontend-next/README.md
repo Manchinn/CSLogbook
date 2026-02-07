@@ -62,6 +62,8 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 # Feature flags (migration rollout)
 NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
 NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
+NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
+NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 ```
 
 > ถ้าจะใช้งานตัวแปรใน client component ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เท่านั้น
@@ -244,4 +246,17 @@ NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 ค่า env ที่เกี่ยวข้อง:
 ```bash
 NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
+```
+
+## 16) Phase 6 Progress (Student Internship/Project Status Widgets)
+
+สิ่งที่เพิ่มแล้ว:
+- StudentInternshipStatusWidget แสดงบริษัท/ช่วงฝึกงาน/ชั่วโมงที่อนุมัติ ดึงจาก `/internship/summary`, `/logbooks/internship/timesheet/stats`, `/internship/certificate-status`
+- StudentProjectStatusWidget แสดง phase ปัจจุบัน + สิทธิ์ยื่นสอบ ดึงจาก `/projects/mine` และ `/projects/:id/workflow-state`
+- เพิ่ม service/hook (`getStudentInternshipStatus`, `useStudentInternshipStatus`, `getStudentProjectStatus`, `useStudentProjectStatus`) พร้อม per-widget feature flags
+
+ค่า env ที่เกี่ยวข้อง:
+```bash
+NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
+NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 ```
