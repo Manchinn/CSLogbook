@@ -1,21 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  getAcceptanceLetterStatus,
-  getCompanyInfo,
-  getCurrentCS05,
-} from "@/lib/services/internshipService";
-
-export function useCurrentCS05(token: string | null, enabled: boolean) {
-  return useQuery({
-    queryKey: ["internship-current-cs05", token],
-    queryFn: () => getCurrentCS05(token ?? ""),
-    enabled: Boolean(token) && enabled,
-    staleTime: 1000 * 60 * 2,
-    retry: 1,
-  });
-}
+import { getAcceptanceLetterStatus, getCompanyInfo } from "@/lib/services/internshipService";
 
 export function useAcceptanceLetterStatus(token: string | null, documentId: number | null, enabled: boolean) {
   return useQuery({

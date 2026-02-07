@@ -4,7 +4,8 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
-import { useAcceptanceLetterStatus, useCurrentCS05 } from "@/hooks/useInternshipCompanyInfo";
+import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
+import { useAcceptanceLetterStatus } from "@/hooks/useInternshipCompanyInfo";
 import {
   useInternshipDateRange,
   useInternshipWorkdays,
@@ -17,6 +18,7 @@ import {
   useSendEvaluationRequest,
 } from "@/hooks/useInternshipEvaluation";
 import type { TimesheetEntry } from "@/lib/services/internshipLogbookService";
+import { REQUIRED_INTERNSHIP_HOURS } from "@/lib/constants/internship";
 import styles from "./logbook.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -283,7 +285,7 @@ export default function InternshipLogbookView() {
   const evaluationStatus = evaluationStatusQuery.data;
 
   const approvedHours = stats?.approvedBySupervisor ?? stats?.totalHours ?? 0;
-  const canSendEvaluation = approvedHours >= 240;
+  const canSendEvaluation = approvedHours >= REQUIRED_INTERNSHIP_HOURS;
 
   return (
     <div className={styles.page}>
@@ -398,7 +400,7 @@ export default function InternshipLogbookView() {
               </div>
               <div className={styles.sectionBadges}>
                 <span className={`${styles.badge} ${approvedHours >= 240 ? styles.badgePositive : styles.badgeWarning}`}>
-                  ชั่วโมงที่บันทึก {formatHours(approvedHours)}/240 ชม.
+                  ชั่วโมงที่บันทึก {formatHours(approvedHours)}/{REQUIRED_INTERNSHIP_HOURS} ชม.
                 </span>
                 <span className={`${styles.badge} ${evaluationStatus?.evaluationStatus === "completed" ? styles.badgePositive : styles.badgeInfo}`}>
                   สถานะ: {evaluationStatus?.evaluationStatus ?? (evaluationStatus?.isSent ? "sent" : "not_sent")}
@@ -445,7 +447,7 @@ export default function InternshipLogbookView() {
                   {sendEvaluationMutation.isPending ? "กำลังส่ง..." : "ส่งอีเมลคำขอประเมิน"}
                 </button>
                 {!canSendEvaluation && (
-                  <span className={styles.calloutText}>ต้องครบ 240 ชั่วโมงก่อน</span>
+                  <span className={styles.calloutText}>ต้องครบ {REQUIRED_INTERNSHIP_HOURS} ชั่วโมงก่อน</span>
                 )}
               </div>
             </div>

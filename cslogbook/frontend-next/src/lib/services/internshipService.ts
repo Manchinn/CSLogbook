@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, apiFetchData } from "@/lib/api/client";
 
 export type InternshipStudent = {
   studentId: string;
@@ -48,7 +48,7 @@ export type CS05Document = {
 };
 
 export async function getCurrentCS05(token: string) {
-  const response = await apiFetch<{ success: boolean; data: CS05Document | null; message?: string }>(
+  const data = await apiFetchData<CS05Document | null>(
     "/internship/current-cs05",
     {
       method: "GET",
@@ -56,7 +56,7 @@ export async function getCurrentCS05(token: string) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function submitCS05WithTranscript(token: string, formData: FormData) {
@@ -87,16 +87,15 @@ export type AcceptanceLetterStatus = {
 };
 
 export async function getAcceptanceLetterStatus(token: string, documentId: number) {
-  const response = await apiFetch<{
-    success: boolean;
-    data?: AcceptanceLetterStatus | null;
-    message?: string;
-  }>(`/internship/acceptance-letter-status/${documentId}` as const, {
-    method: "GET",
-    token,
-  });
+  const data = await apiFetchData<AcceptanceLetterStatus | null>(
+    `/internship/acceptance-letter-status/${documentId}` as const,
+    {
+      method: "GET",
+      token,
+    }
+  );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export type CompanyInfo = {
@@ -109,7 +108,7 @@ export type CompanyInfo = {
 };
 
 export async function getCompanyInfo(token: string, documentId: number) {
-  const response = await apiFetch<{ success: boolean; data?: CompanyInfo | null; message?: string }>(
+  const data = await apiFetchData<CompanyInfo | null>(
     `/internship/company-info/${documentId}`,
     {
       method: "GET",
@@ -117,7 +116,7 @@ export async function getCompanyInfo(token: string, documentId: number) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export type SubmitCompanyInfoPayload = {
@@ -145,7 +144,7 @@ export type EvaluationStatus = {
 };
 
 export async function getEvaluationStatus(token: string) {
-  const response = await apiFetch<{ success: boolean; data?: EvaluationStatus | null; message?: string }>(
+  const data = await apiFetchData<EvaluationStatus | null>(
     "/internship/evaluation/status",
     {
       method: "GET",
@@ -153,7 +152,7 @@ export async function getEvaluationStatus(token: string) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function sendEvaluationRequest(token: string, documentId: number) {

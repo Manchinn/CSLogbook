@@ -32,8 +32,8 @@ type BuildOptions = {
   canAccessProject?: boolean | null;
 };
 
-function link(path: string) {
-  return { href: path, external: false } as const;
+function link(path: string, external = false) {
+  return { href: path, external } as const;
 }
 
 function buildStudentMenu(options: BuildOptions): MenuNode[] {

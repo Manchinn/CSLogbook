@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { getDashboardPathByRole, type AppRole } from "@/lib/auth/mockSession";
+import { resolveDashboardPath, type AppRole } from "@/lib/auth/mockSession";
 
 type RoleGuardProps = {
   roles?: AppRole[];
@@ -34,7 +34,11 @@ export function RoleGuard({ roles, teacherTypes, redirectPath = "/app", children
     }
 
     const fallbackTarget =
-      getDashboardPathByRole(user.role, user.teacherType, user.isSystemAdmin) || redirectPath;
+      resolveDashboardPath({
+        role: user.role,
+        teacherType: user.teacherType ?? null,
+        isSystemAdmin: user.isSystemAdmin ?? null,
+      }) || redirectPath;
 
     if (roles && !roles.includes(user.role)) {
       if (pathname !== fallbackTarget) {

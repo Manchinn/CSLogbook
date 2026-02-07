@@ -5,6 +5,12 @@ type RequestOptions = RequestInit & {
   token?: string;
 };
 
+export type ApiSuccessResponse<T> = {
+  success: boolean;
+  data?: T;
+  message?: string;
+};
+
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
   const fallbackToken =
@@ -45,4 +51,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 
   return (await response.text()) as unknown as T;
+}
+
+export async function apiFetchData<T>(path: string, options: RequestOptions = {}): Promise<T | null> {
+  const response = await apiFetch<ApiSuccessResponse<T>>(path, options);
+  return response.data ?? null;
 }

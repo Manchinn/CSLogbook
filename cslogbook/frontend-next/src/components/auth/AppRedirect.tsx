@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getDashboardPathByRole } from "@/lib/auth/mockSession";
+import { resolveDashboardPath } from "@/lib/auth/mockSession";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AppRedirect() {
@@ -22,11 +22,15 @@ export function AppRedirect() {
       return;
     }
 
-    if (user.role === "teacher" && !user.teacherType && !user.isSystemAdmin) {
+    const target = resolveDashboardPath({
+      role: user.role,
+      teacherType: user.teacherType ?? null,
+      isSystemAdmin: user.isSystemAdmin ?? null,
+    });
+
+    if (!target) {
       return;
     }
-
-    const target = getDashboardPathByRole(user?.role, user?.teacherType, user?.isSystemAdmin);
     if (pathname !== target) {
       router.replace(target);
     }

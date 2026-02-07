@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, apiFetchData } from "@/lib/api/client";
 
 export type AdminStats = {
   students: {
@@ -39,7 +39,7 @@ export type AdminProjectStats = {
 };
 
 export async function getAdminProjectStats(token: string) {
-  const response = await apiFetch<{ success: boolean; data: AdminProjectStats }>(
+  const data = await apiFetchData<AdminProjectStats>(
     "/admin/dashboard/project-statistics",
     {
       method: "GET",
@@ -47,5 +47,9 @@ export async function getAdminProjectStats(token: string) {
     }
   );
 
-  return response.data;
+  if (!data) {
+    throw new Error("ไม่พบข้อมูลสถิติโครงงาน");
+  }
+
+  return data;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import type { CS05Document, InternshipStudent } from "@/lib/services/internshipService";
@@ -52,6 +52,15 @@ export default function RegistrationForm({ student, onSubmitted }: RegistrationF
   const studentSummary = useMemo(() => {
     if (!student) return null;
     return `${student.studentId} • ${student.fullName || "นักศึกษา"}`;
+  }, [student]);
+
+  useEffect(() => {
+    if (!student) return;
+    setForm((prev) => ({
+      ...prev,
+      phoneNumber: prev.phoneNumber || student.phoneNumber || "",
+      classroom: prev.classroom || student.classroom || "",
+    }));
   }, [student]);
 
   const handleChange = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

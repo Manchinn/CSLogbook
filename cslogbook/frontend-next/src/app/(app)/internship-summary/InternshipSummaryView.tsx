@@ -6,7 +6,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
-import { useAcceptanceLetterStatus, useCurrentCS05 } from "@/hooks/useInternshipCompanyInfo";
+import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
+import { useAcceptanceLetterStatus } from "@/hooks/useInternshipCompanyInfo";
 import { useTimesheetEntries, useTimesheetStats } from "@/hooks/useInternshipLogbook";
 import {
   getReflection,
@@ -20,6 +21,7 @@ import {
   sendEvaluationRequest,
   type EvaluationStatus,
 } from "@/lib/services/internshipService";
+import { REQUIRED_INTERNSHIP_HOURS } from "@/lib/constants/internship";
 import styles from "./summary.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -232,10 +234,10 @@ export default function InternshipSummaryView() {
   const averageHours = stats?.averageHoursPerDay ?? null;
   const remainingDays = stats?.remainingDays ?? null;
   const approvedHours = summary.approvedHours ?? 0;
-  const completionPct = Math.min(100, Math.round(((approvedHours ?? 0) / 240) * 100));
+  const completionPct = Math.min(100, Math.round(((approvedHours ?? 0) / REQUIRED_INTERNSHIP_HOURS) * 100));
   const evaluationSent = evaluationStatusQuery.data?.isSent ?? false;
 
-  const canRequestEvaluation = approvedHours >= 240 && !evaluationSent && !sendEvaluationMutation.isPending;
+  const canRequestEvaluation = approvedHours >= REQUIRED_INTERNSHIP_HOURS && !evaluationSent && !sendEvaluationMutation.isPending;
 
   return (
     <div className={styles.page}>
@@ -259,7 +261,7 @@ export default function InternshipSummaryView() {
           <div className={styles.label}>ชั่วโมงที่อนุมัติแล้ว</div>
           <div className={styles.statValue}>{formatNumber(summary.approvedHours)}</div>
           <div className={styles.statLabel}>
-            จากทั้งหมด {formatNumber(summary.totalHours)} ชั่วโมง (เกณฑ์ผ่านขั้นต่ำ 240 ชั่วโมง)
+            จากทั้งหมด {formatNumber(summary.totalHours)} ชั่วโมง (เกณฑ์ผ่านขั้นต่ำ {REQUIRED_INTERNSHIP_HOURS} ชั่วโมง)
           </div>
         </div>
         <div className={styles.card}>
@@ -282,11 +284,11 @@ export default function InternshipSummaryView() {
         <div className={styles.label}>สถานะคำร้อง</div>
         <div className={styles.meta}>คพ.05: {statusBadge(cs05Status)} | หนังสือตอบรับ: {statusBadge(acceptanceStatus)}</div>
         <div className={styles.progressRow}>
-          <div className={styles.progressLabel}>ชั่วโมงที่ได้รับอนุมัติ (ต้องครบ 240 ชั่วโมง)</div>
+          <div className={styles.progressLabel}>ชั่วโมงที่ได้รับอนุมัติ (ต้องครบ {REQUIRED_INTERNSHIP_HOURS} ชั่วโมง)</div>
           <div className={styles.progressBar}>
             <div className={styles.progressFill} style={{ width: `${completionPct}%` }} />
           </div>
-          <div className={styles.meta}>{approvedHours} / 240 ชม.</div>
+          <div className={styles.meta}>{approvedHours} / {REQUIRED_INTERNSHIP_HOURS} ชม.</div>
         </div>
       </div>
 

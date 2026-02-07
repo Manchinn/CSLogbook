@@ -5,10 +5,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./companyInfo.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
 import {
   useAcceptanceLetterStatus,
   useCompanyInfo,
-  useCurrentCS05,
 } from "@/hooks/useInternshipCompanyInfo";
 import { submitCompanyInfo } from "@/lib/services/internshipService";
 

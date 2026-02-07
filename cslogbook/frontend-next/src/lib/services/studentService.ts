@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, apiFetchData } from "@/lib/api/client";
 
 export type EligibilityItem = {
   isEligible: boolean;
@@ -146,13 +146,9 @@ export type StudentDeadlineDetail = StudentDeadline & {
   isPublished?: boolean;
 };
 
-type StudentDeadlinesResponse = {
-  success: boolean;
-  data: StudentDeadline[];
-};
 
 export async function getStudentUpcomingDeadlines(token: string, days = 7) {
-  const response = await apiFetch<StudentDeadlinesResponse>(
+  const data = await apiFetchData<StudentDeadline[]>(
     `/students/important-deadlines/upcoming?days=${days}`,
     {
       method: "GET",
@@ -160,7 +156,7 @@ export async function getStudentUpcomingDeadlines(token: string, days = 7) {
     }
   );
 
-  return response.data;
+  return data ?? [];
 }
 
 export async function getStudentDeadlineCalendar(token: string, academicYear?: string | number | null) {
@@ -170,7 +166,7 @@ export async function getStudentDeadlineCalendar(token: string, academicYear?: s
   }
 
   const queryString = params.toString();
-  const response = await apiFetch<{ success: boolean; data: StudentDeadlineDetail[] }>(
+  const data = await apiFetchData<StudentDeadlineDetail[]>(
     `/students/important-deadlines${queryString ? `?${queryString}` : ""}`,
     {
       method: "GET",
@@ -178,7 +174,7 @@ export async function getStudentDeadlineCalendar(token: string, academicYear?: s
     }
   );
 
-  return response.data;
+  return data ?? [];
 }
 
 export type InternshipSummary = {
@@ -242,7 +238,7 @@ export type InternshipCertificateStatus = {
 };
 
 export async function getStudentInternshipSummary(token: string) {
-  const response = await apiFetch<{ success: boolean; data: InternshipSummary | null }>(
+  const data = await apiFetchData<InternshipSummary | null>(
     "/internship/summary",
     {
       method: "GET",
@@ -250,11 +246,11 @@ export async function getStudentInternshipSummary(token: string) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function getStudentInternshipTimesheetStats(token: string) {
-  const response = await apiFetch<{ success: boolean; data: InternshipTimesheetStats | null; message?: string }>(
+  const data = await apiFetchData<InternshipTimesheetStats | null>(
     "/internship/logbook/timesheet/stats",
     {
       method: "GET",
@@ -262,12 +258,11 @@ export async function getStudentInternshipTimesheetStats(token: string) {
     }
   );
 
-  if (!response.success) return null;
-  return response.data;
+  return data ?? null;
 }
 
 export async function getStudentCertificateStatus(token: string) {
-  const response = await apiFetch<{ success: boolean; data: InternshipCertificateStatus | null }>(
+  const data = await apiFetchData<InternshipCertificateStatus | null>(
     "/internship/certificate-status",
     {
       method: "GET",
@@ -275,7 +270,7 @@ export async function getStudentCertificateStatus(token: string) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function getStudentInternshipStatus(token: string) {
@@ -358,7 +353,7 @@ export async function getStudentProjects(token: string) {
 }
 
 export async function getProjectWorkflowState(token: string, projectId: number) {
-  const response = await apiFetch<{ success: boolean; data: ProjectWorkflowStateSummary }>(
+  const data = await apiFetchData<ProjectWorkflowStateSummary>(
     `/projects/${projectId}/workflow-state`,
     {
       method: "GET",
@@ -366,7 +361,11 @@ export async function getProjectWorkflowState(token: string, projectId: number) 
     }
   );
 
-  return response.data;
+  if (!data) {
+    throw new Error("ไม่พบข้อมูลสถานะ workflow");
+  }
+
+  return data;
 }
 
 export async function getStudentProjectStatus(token: string): Promise<StudentProjectStatus> {
@@ -392,7 +391,7 @@ export type UpdateContactInfoPayload = {
 };
 
 export async function updateStudentContactInfo(studentCode: string, token: string, payload: UpdateContactInfoPayload) {
-  const response = await apiFetch<{ success: boolean; message?: string; data?: StudentProfile }>(
+  const data = await apiFetchData<StudentProfile>(
     `/students/${studentCode}/contact-info`,
     {
       method: "PUT",
@@ -402,28 +401,22 @@ export async function updateStudentContactInfo(studentCode: string, token: strin
     }
   );
 
-  if (!response.success) {
-    throw new Error(response.message ?? "อัปเดตข้อมูลติดต่อไม่สำเร็จ");
+  if (!data) {
+    throw new Error("อัปเดตข้อมูลติดต่อไม่สำเร็จ");
   }
 
-  return response.data ?? null;
+  return data;
 }
 
-type StudentProfileResponse = {
-  success: boolean;
-  data: StudentProfile | null;
-  message?: string;
-};
-
 export async function getStudentProfile(studentCode: string, token: string) {
-  const response = await apiFetch<StudentProfileResponse>(`/students/${studentCode}`, {
+  const data = await apiFetchData<StudentProfile>(`/students/${studentCode}`, {
     method: "GET",
     token,
   });
 
-  if (!response.success || !response.data) {
-    throw new Error(response.message ?? "ไม่สามารถโหลดข้อมูลนักศึกษาได้");
+  if (!data) {
+    throw new Error("ไม่สามารถโหลดข้อมูลนักศึกษาได้");
   }
 
-  return response.data;
+  return data;
 }

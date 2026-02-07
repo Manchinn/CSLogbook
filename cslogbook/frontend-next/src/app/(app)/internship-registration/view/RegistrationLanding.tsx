@@ -1,17 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
-import {
-  getCurrentCS05,
-  getInternshipStudentInfo,
-  type CS05Document,
-  type InternshipStudent,
-} from "@/lib/services/internshipService";
+import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
+import { useInternshipStudentInfo } from "@/hooks/useInternshipStudentInfo";
 import RegistrationForm from "./RegistrationForm";
 import styles from "./registrationLanding.module.css";
 
@@ -22,77 +18,70 @@ export default function RegistrationLanding() {
   const studentId = user?.studentId ?? user?.id;
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
 
-  const { data: eligibility, isLoading: eligibilityLoading } = useStudentEligibility(token, queriesEnabled);
+  const {
+    data: eligibility,
+    isLoading: eligibilityLoading,
+    error: eligibilityError,
+  } = useStudentEligibility(token, queriesEnabled);
+  const {
+    data: studentInfo,
+    isLoading: studentLoading,
+    error: studentError,
+  } = useInternshipStudentInfo(token, queriesEnabled);
+  const {
+    data: currentCS05,
+    isLoading: cs05Loading,
+    error: cs05Error,
+  } = useCurrentCS05(token, queriesEnabled);
 
-  const [student, setStudent] = useState<InternshipStudent | null>(null);
-  const [currentCS05, setCurrentCS05] = useState<CS05Document | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [initLoading, setInitLoading] = useState(false);
+  const student = studentInfo?.student ?? null;
 
   useEffect(() => {
-    if (!queriesEnabled) return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setInitLoading(true);
-        setInitError(null);
-        const [studentRes, cs05] = await Promise.all([
-          getInternshipStudentInfo(token ?? ""),
-          getCurrentCS05(token ?? ""),
-        ]);
-
-        if (cancelled) return;
-
-        if (studentRes.student) {
-          setStudent(studentRes.student);
-        }
-
-        if (cs05) {
-          setCurrentCS05(cs05);
-          router.replace("/internship-registration/flow");
-          return;
-        }
-      } catch (err) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : "โหลดข้อมูลไม่สำเร็จ";
-        setInitError(message);
-      } finally {
-        if (!cancelled) {
-          setInitLoading(false);
-        }
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [queriesEnabled, token, router]);
+    if (currentCS05) {
+      router.replace("/internship-registration/flow");
+    }
+  }, [currentCS05, router]);
 
   const eligibilityStatus = eligibility?.status.internship;
   const checkingEligibility = !hydrated || !queriesEnabled || eligibilityLoading;
-  const checkingStatus = !hydrated || !queriesEnabled || initLoading;
+  const checkingStatus = !hydrated || !queriesEnabled || cs05Loading || studentLoading;
+  const initError = cs05Error ?? studentError;
+  const initErrorMessage = initError instanceof Error ? initError.message : "โหลดข้อมูลไม่สำเร็จ";
 
   const cards = useMemo(
     () => [
       {
         label: "สิทธิ์เข้าระบบ",
-        value: checkingEligibility ? "กำลังตรวจสอบ..." : eligibilityStatus?.canAccess ? "ผ่าน" : "ยังไม่ผ่าน",
-        hint: eligibilityStatus?.reason ?? "ระบบจะตรวจสอบสิทธิ์จากข้อมูลล่าสุด",
+        value: checkingEligibility
+          ? "กำลังตรวจสอบ..."
+          : eligibilityError
+            ? "ตรวจสอบไม่สำเร็จ"
+            : eligibilityStatus?.canAccess
+              ? "ผ่าน"
+              : "ยังไม่ผ่าน",
+        hint: eligibilityError ? "โปรดลองใหม่ภายหลัง" : eligibilityStatus?.reason ?? "ระบบจะตรวจสอบสิทธิ์จากข้อมูลล่าสุด",
       },
       {
         label: "สิทธิ์ลงทะเบียน",
-        value: checkingEligibility ? "กำลังตรวจสอบ..." : eligibilityStatus?.canRegister ? "พร้อมลงทะเบียน" : "รอตรวจสอบ",
-        hint: eligibilityStatus?.registrationReason ?? "ต้องผ่านเงื่อนไขเครดิตและช่วงเวลาเปิดลงทะเบียน",
+        value: checkingEligibility
+          ? "กำลังตรวจสอบ..."
+          : eligibilityError
+            ? "ตรวจสอบไม่สำเร็จ"
+            : eligibilityStatus?.canRegister
+              ? "พร้อมลงทะเบียน"
+              : "รอตรวจสอบ",
+        hint: eligibilityError
+          ? "โปรดลองใหม่ภายหลัง"
+          : eligibilityStatus?.registrationReason ?? "ต้องผ่านเงื่อนไขเครดิตและช่วงเวลาเปิดลงทะเบียน",
       },
     ],
-    [eligibilityStatus, checkingEligibility]
+    [eligibilityError, eligibilityStatus, checkingEligibility]
   );
 
   const statusText = checkingStatus
     ? "กำลังตรวจสอบสถานะ..."
     : initError
-      ? initError
+      ? initErrorMessage
       : currentCS05
         ? "พบคำร้องแล้ว กำลังพาไปหน้า timeline"
         : "ไม่พบคำร้องฝึกงาน";
@@ -155,7 +144,7 @@ export default function RegistrationLanding() {
         </ul>
       </section>
 
-      <RegistrationForm student={student} onSubmitted={setCurrentCS05} />
+      <RegistrationForm student={student} />
     </div>
   );
 }

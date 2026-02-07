@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { useHydrated } from "@/hooks/useHydrated";
+import { WidgetState } from "@/components/dashboard/WidgetState";
 import styles from "./AdminStatsWidget.module.css";
 
 type AdminStatsWidgetProps = {
@@ -14,22 +15,6 @@ export function AdminStatsWidget({ enabled = true }: AdminStatsWidgetProps) {
   const { token } = useAuth();
   const { data, isLoading, error } = useAdminStats(hydrated ? token : null);
 
-  if (!enabled) {
-    return null;
-  }
-
-  if (!hydrated) {
-    return <p>Loading admin metrics...</p>;
-  }
-
-  if (isLoading) {
-    return <p>Loading admin metrics...</p>;
-  }
-
-  if (error) {
-    return <p className={styles.error}>ไม่สามารถโหลด widget สถิติ admin ได้</p>;
-  }
-
   const cards = [
     { label: "นักศึกษาทั้งหมด", value: data?.students.total ?? 0 },
     { label: "พร้อมฝึกงาน", value: data?.students.internshipEligible ?? 0 },
@@ -38,16 +23,25 @@ export function AdminStatsWidget({ enabled = true }: AdminStatsWidgetProps) {
   ];
 
   return (
-    <section>
-      <h2>Admin Widgets (migrated)</h2>
-      <div className={styles.grid}>
-        {cards.map((card) => (
-          <article key={card.label} className={styles.card}>
-            <p className={styles.label}>{card.label}</p>
-            <p className={styles.value}>{card.value.toLocaleString()}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+    <WidgetState
+      enabled={enabled}
+      hydrated={hydrated}
+      isLoading={isLoading}
+      error={error}
+      loadingFallback={<p>Loading admin metrics...</p>}
+      errorFallback={<p className={styles.error}>ไม่สามารถโหลด widget สถิติ admin ได้</p>}
+    >
+      <section>
+        <h2>Admin Widgets (migrated)</h2>
+        <div className={styles.grid}>
+          {cards.map((card) => (
+            <article key={card.label} className={styles.card}>
+              <p className={styles.label}>{card.label}</p>
+              <p className={styles.value}>{card.value.toLocaleString()}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </WidgetState>
   );
 }

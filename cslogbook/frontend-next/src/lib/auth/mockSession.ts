@@ -8,6 +8,12 @@ export const dashboardByRole: Record<AppRole, string> = {
   admin: "/dashboard/admin",
 };
 
+type DashboardTargetInput = {
+  role?: string | null;
+  teacherType?: string | null;
+  isSystemAdmin?: boolean | null;
+};
+
 export function getDashboardPathByRole(
   role: string | null | undefined,
   teacherType?: string | null,
@@ -29,4 +35,13 @@ export function getDashboardPathByRole(
   }
 
   return dashboardByRole.student;
+}
+
+export function resolveDashboardPath(input: DashboardTargetInput) {
+  const role = input.role ?? null;
+
+  if (!role) return null;
+  if (role === "teacher" && !input.teacherType && !input.isSystemAdmin) return null;
+
+  return getDashboardPathByRole(role, input.teacherType ?? null, input.isSystemAdmin ?? null);
 }

@@ -32,7 +32,11 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   const studentId = user?.studentId ?? user?.id;
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
 
-  const { data: eligibility } = useStudentEligibility(token, queriesEnabled);
+  const {
+    data: eligibility,
+    isLoading: eligibilityLoading,
+    error: eligibilityError,
+  } = useStudentEligibility(token, queriesEnabled);
   const {
     data: internshipStatus,
     isLoading: internshipLoading,
@@ -43,7 +47,11 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
     isLoading: timelineLoading,
     error: timelineError,
   } = useWorkflowTimeline(token, "internship", studentId ?? null, queriesEnabled);
-  const { data: deadlines } = useStudentDeadlines(token, 21, queriesEnabled);
+  const {
+    data: deadlines,
+    isLoading: deadlinesLoading,
+    error: deadlinesError,
+  } = useStudentDeadlines(token, 21, queriesEnabled);
 
   const filteredDeadlines = useMemo(() => {
     if (!deadlines) return [];
@@ -55,26 +63,41 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   const eligibilityStatus = eligibility?.status.internship;
   const requiredCredits =
     eligibilityStatus?.requiredCredits ?? eligibility?.requirements?.internship?.totalCredits ?? null;
+  const requiredCreditsText = eligibilityLoading ? "กำลังโหลด..." : requiredCredits ?? "—";
   const summary = internshipStatus?.summary;
   const stats = internshipStatus?.stats;
   const certificate = internshipStatus?.certificateStatus;
-
+  const checkingEligibility = !hydrated || !queriesEnabled || eligibilityLoading;
 
   const cards = [
     {
       label: "สิทธิ์เข้าระบบ",
-      value: eligibilityStatus?.canAccess ? "ผ่าน" : "ยังไม่ผ่าน",
-      hint: eligibilityStatus?.reason ?? "ตรวจสอบข้อมูลสิทธิ์จากระบบ",
+      value: checkingEligibility
+        ? "กำลังตรวจสอบ..."
+        : eligibilityError
+          ? "ตรวจสอบไม่สำเร็จ"
+          : eligibilityStatus?.canAccess
+            ? "ผ่าน"
+            : "ยังไม่ผ่าน",
+      hint: eligibilityError ? "โปรดลองใหม่ภายหลัง" : eligibilityStatus?.reason ?? "ตรวจสอบข้อมูลสิทธิ์จากระบบ",
     },
     {
       label: "สิทธิ์ลงทะเบียน",
-      value: eligibilityStatus?.canRegister ? "พร้อมลงทะเบียน" : "รอตรวจสอบ",
-      hint: eligibilityStatus?.registrationReason ?? "ระบบจะอัปเดตสิทธิ์อัตโนมัติ",
+      value: checkingEligibility
+        ? "กำลังตรวจสอบ..."
+        : eligibilityError
+          ? "ตรวจสอบไม่สำเร็จ"
+          : eligibilityStatus?.canRegister
+            ? "พร้อมลงทะเบียน"
+            : "รอตรวจสอบ",
+      hint: eligibilityError
+        ? "โปรดลองใหม่ภายหลัง"
+        : eligibilityStatus?.registrationReason ?? "ระบบจะอัปเดตสิทธิ์อัตโนมัติ",
     },
     {
       label: "สถานะฝึกงาน",
-      value: summary?.status ?? "ไม่พบข้อมูล",
-      hint: summary?.companyName || "ยังไม่เลือกสถานประกอบการ",
+      value: internshipLoading ? "กำลังโหลด..." : summary?.status ?? "ไม่พบข้อมูล",
+      hint: internshipError ? "โหลดข้อมูลไม่สำเร็จ" : summary?.companyName || "ยังไม่เลือกสถานประกอบการ",
     },
   ];
 
@@ -86,7 +109,7 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
           <h1 className={styles.title}>เส้นทางลงทะเบียนฝึกงาน</h1>
           <p className={styles.lead}>สรุปสถานะ คพ.05, หนังสือตอบรับ, ขั้นตอนยื่นคำร้อง และเดดไลน์สำคัญ</p>
           <p className={styles.note}>
-            เกณฑ์เดิมอ้างอิงจากระบบเก่า: ต้องมีหน่วยกิตรวมอย่างน้อย {requiredCredits ?? 81} หน่วยกิต
+            เกณฑ์เดิมอ้างอิงจากระบบเก่า: ต้องมีหน่วยกิตรวมอย่างน้อย {requiredCreditsText} หน่วยกิต
           </p>
         </div>
       </header>
@@ -178,7 +201,13 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
             </div>
           </div>
           {filteredDeadlines.length === 0 ? (
-            <p className={styles.cardHint}>ยังไม่พบกำหนดส่งที่เกี่ยวข้องใน 21 วัน</p>
+            deadlinesLoading ? (
+              <p className={styles.cardHint}>กำลังโหลดเดดไลน์...</p>
+            ) : deadlinesError ? (
+              <p className={styles.error}>โหลดเดดไลน์ไม่สำเร็จ</p>
+            ) : (
+              <p className={styles.cardHint}>ยังไม่พบกำหนดส่งที่เกี่ยวข้องใน 21 วัน</p>
+            )
           ) : (
             <ul className={styles.deadlineList}>
               {filteredDeadlines.map((deadline) => (

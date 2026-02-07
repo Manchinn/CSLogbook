@@ -1,0 +1,1 @@
+export const REQUIRED_INTERNSHIP_HOURS = 240;

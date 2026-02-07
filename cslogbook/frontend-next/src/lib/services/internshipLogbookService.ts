@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, apiFetchData } from "@/lib/api/client";
 import type { InternshipTimesheetStats } from "@/lib/services/studentService";
 
 export type InternshipDateRange = {
@@ -54,7 +54,7 @@ export type SaveTimesheetPayload = {
 };
 
 export async function getInternshipDateRange(token: string) {
-  const response = await apiFetch<{ success: boolean; data?: InternshipDateRange | null; message?: string }>(
+  const data = await apiFetchData<InternshipDateRange | null>(
     "/internship/logbook/cs05/date-range",
     {
       method: "GET",
@@ -62,7 +62,7 @@ export async function getInternshipDateRange(token: string) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function generateInternshipWorkdays(token: string) {
@@ -99,7 +99,7 @@ export async function getTimesheetEntries(token: string) {
 }
 
 export async function getTimesheetStats(token: string) {
-  const response = await apiFetch<{ success: boolean; data?: InternshipTimesheetStats | null; message?: string }>(
+  const data = await apiFetchData<InternshipTimesheetStats | null>(
     "/internship/logbook/timesheet/stats",
     {
       method: "GET",
@@ -107,8 +107,7 @@ export async function getTimesheetStats(token: string) {
     }
   );
 
-  if (!response.success) return null;
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function saveTimesheetEntry(token: string, payload: SaveTimesheetPayload) {
@@ -134,7 +133,7 @@ export async function updateTimesheetEntry(token: string, logId: number, payload
 }
 
 export async function getReflection(token: string) {
-  const response = await apiFetch<{ success: boolean; data?: ReflectionResponse | null; message?: string }>(
+  const data = await apiFetchData<ReflectionResponse | null>(
     "/internship/logbook/reflection",
     {
       method: "GET",
@@ -142,7 +141,7 @@ export async function getReflection(token: string) {
     }
   );
 
-  return response.data ?? null;
+  return data ?? null;
 }
 
 export async function saveReflection(token: string, payload: ReflectionPayload) {

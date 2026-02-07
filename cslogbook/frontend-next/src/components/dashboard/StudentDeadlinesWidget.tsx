@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentDeadlines } from "@/hooks/useStudentDeadlines";
 import { StudentDeadline } from "@/lib/services/studentService";
+import { WidgetState } from "@/components/dashboard/WidgetState";
 import styles from "./StudentDeadlinesWidget.module.css";
 
 type StudentDeadlinesWidgetProps = {
@@ -48,52 +49,45 @@ export function StudentDeadlinesWidget({ enabled, days = 7, limit = 5 }: Student
     return sorted.slice(0, limit);
   }, [data, limit]);
 
-  if (!enabled) {
-    return null;
-  }
-
-  if (!hydrated) {
-    return <p>Loading student deadlines...</p>;
-  }
-
-  if (isLoading) {
-    return <p>Loading student deadlines...</p>;
-  }
-
-  if (error) {
-    return <p className={styles.error}>ไม่สามารถโหลดกำหนดส่งได้</p>;
-  }
-
   return (
-    <section className={styles.wrapper}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>กำหนดส่งที่ใกล้ถึง (ภายใน {days} วัน)</h3>
-        <p className={styles.meta}>ดึงจาก /students/important-deadlines/upcoming</p>
-      </div>
-
-      {deadlines.length === 0 ? (
-        <p className={styles.empty}>ยังไม่มีกำหนดส่งในช่วงนี้</p>
-      ) : (
-        <div className={styles.list}>
-          {deadlines.map((deadline) => (
-            <article key={deadline.id} className={styles.item}>
-              <div className={styles.itemHeader}>
-                <p className={styles.name}>{deadline.name}</p>
-                {deadline.deadlineType ? <span className={styles.chip}>{deadline.deadlineType}</span> : null}
-              </div>
-              <p className={styles.datetime}>{formatDateTime(deadline.deadlineAt)}</p>
-              <p className={styles.countdown}>
-                <span className={styles.badgeDanger}>{formatCountdown(deadline)}</span>
-              </p>
-              <div className={styles.flags}>
-                {deadline.lockAfterDeadline ? <span>⚠️ ล็อกหลังครบกำหนด</span> : null}
-                {deadline.allowLate && !deadline.lockAfterDeadline ? <span>อนุญาตยื่นสาย</span> : null}
-                {deadline.gracePeriodMinutes ? <span>Grace {deadline.gracePeriodMinutes} นาที</span> : null}
-              </div>
-            </article>
-          ))}
+    <WidgetState
+      enabled={enabled}
+      hydrated={hydrated}
+      isLoading={isLoading}
+      error={error}
+      loadingFallback={<p>Loading student deadlines...</p>}
+      errorFallback={<p className={styles.error}>ไม่สามารถโหลดกำหนดส่งได้</p>}
+    >
+      <section className={styles.wrapper}>
+        <div className={styles.header}>
+          <h3 className={styles.title}>กำหนดส่งที่ใกล้ถึง (ภายใน {days} วัน)</h3>
+          <p className={styles.meta}>ดึงจาก /students/important-deadlines/upcoming</p>
         </div>
-      )}
-    </section>
+
+        {deadlines.length === 0 ? (
+          <p className={styles.empty}>ยังไม่มีกำหนดส่งในช่วงนี้</p>
+        ) : (
+          <div className={styles.list}>
+            {deadlines.map((deadline) => (
+              <article key={deadline.id} className={styles.item}>
+                <div className={styles.itemHeader}>
+                  <p className={styles.name}>{deadline.name}</p>
+                  {deadline.deadlineType ? <span className={styles.chip}>{deadline.deadlineType}</span> : null}
+                </div>
+                <p className={styles.datetime}>{formatDateTime(deadline.deadlineAt)}</p>
+                <p className={styles.countdown}>
+                  <span className={styles.badgeDanger}>{formatCountdown(deadline)}</span>
+                </p>
+                <div className={styles.flags}>
+                  {deadline.lockAfterDeadline ? <span>⚠️ ล็อกหลังครบกำหนด</span> : null}
+                  {deadline.allowLate && !deadline.lockAfterDeadline ? <span>อนุญาตยื่นสาย</span> : null}
+                  {deadline.gracePeriodMinutes ? <span>Grace {deadline.gracePeriodMinutes} นาที</span> : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </WidgetState>
   );
 }

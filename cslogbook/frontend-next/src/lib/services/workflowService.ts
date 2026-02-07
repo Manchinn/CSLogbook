@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetchData } from "@/lib/api/client";
 
 export type WorkflowStep = {
   id: string;
@@ -24,7 +24,7 @@ export async function getWorkflowTimeline(
   workflowType: "internship" | "project",
   studentId: string | number
 ): Promise<WorkflowTimeline> {
-  const response = await apiFetch<{ success: boolean; data: WorkflowTimeline }>(
+  const data = await apiFetchData<WorkflowTimeline>(
     `/workflow/timeline/${studentId}/${workflowType}`,
     {
       method: "GET",
@@ -32,9 +32,9 @@ export async function getWorkflowTimeline(
     }
   );
 
-  if (!response) {
+  if (!data) {
     throw new Error("ไม่พบข้อมูล timeline");
   }
 
-  return response.data;
+  return data;
 }

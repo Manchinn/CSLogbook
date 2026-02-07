@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetchData } from "@/lib/api/client";
 
 export type TeacherDeadline = {
   id: number;
@@ -89,7 +89,7 @@ export type TeacherDashboardData = {
 };
 
 export async function getTeacherOverview(token: string) {
-  const response = await apiFetch<{ success: boolean; data: TeacherDashboardData }>(
+  const data = await apiFetchData<TeacherDashboardData>(
     "/teachers/academic/dashboard",
     {
       method: "GET",
@@ -97,5 +97,9 @@ export async function getTeacherOverview(token: string) {
     }
   );
 
-  return response.data;
+  if (!data) {
+    throw new Error("ไม่พบข้อมูลแดชบอร์ดอาจารย์");
+  }
+
+  return data;
 }

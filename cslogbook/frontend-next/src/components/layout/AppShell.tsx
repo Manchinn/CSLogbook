@@ -46,7 +46,6 @@ export function AppShell({ children }: AppShellProps) {
           {isLink(item) ? (
             <button type="button" className={styles.navLink} onClick={() => handleNavigate(item)}>
               <span className={styles.navLabel}>{item.label}</span>
-              {item.external ? <span className={styles.navExternal}>เปิดหน้าระบบเดิม</span> : null}
             </button>
           ) : (
             <div className={styles.navGroupLabel}>

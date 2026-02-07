@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
-import { useAcceptanceLetterStatus, useCurrentCS05 } from "@/hooks/useInternshipCompanyInfo";
+import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
+import { useAcceptanceLetterStatus } from "@/hooks/useInternshipCompanyInfo";
 import {
   useCertificateStatus,
   useDownloadCertificate,
