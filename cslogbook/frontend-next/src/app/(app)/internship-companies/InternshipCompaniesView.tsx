@@ -36,6 +36,7 @@ export default function InternshipCompaniesView() {
   const { token, user } = useAuth();
   const hydrated = useHydrated();
   const isStaff = user?.role === "teacher" || user?.role === "admin";
+  const isStudent = user?.role === "student";
 
   const [academicYear, setAcademicYear] = useState<number | "all">(deriveCurrentAcademicYear());
   const [limit, setLimit] = useState<number>(() => (isStaff ? 50 : 10));
@@ -83,12 +84,12 @@ export default function InternshipCompaniesView() {
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
-        <p className={styles.kicker}>Internship Insights (legacy data)</p>
+        <p className={styles.kicker}>ข้อมูลจากระบบเดิม</p>
         <h1 className={styles.title}>สถานประกอบการฝึกงาน</h1>
-        <p className={styles.lead}>ดูจำนวนผู้ฝึกงานต่อบริษัทจากคำร้อง CS05 ที่ได้รับอนุมัติ โดยอ้างอิงข้อมูลเดียวกับระบบเดิม</p>
+        <p className={styles.lead}>ตารางสรุปบริษัท ฝึกงานที่อนุมัติแล้ว พร้อมสถานะความจุของแต่ละบริษัท</p>
         <div className={styles.heroMeta}>
           <span className={styles.badge}>ปีการศึกษา: {academicYear === "all" ? "ทั้งหมด" : academicYear}</span>
-          <span className={styles.badge}>ขีดจำกัดต่อบริษัท (legacy): 2 คน</span>
+          <span className={styles.badge}>ขีดจำกัดต่อบริษัท: 2 คน</span>
           {generatedLabel ? <span className={styles.badge}>อัปเดตล่าสุด {generatedLabel}</span> : null}
         </div>
       </section>
@@ -173,6 +174,9 @@ export default function InternshipCompaniesView() {
             <span className={`${styles.statusPill} ${styles.statusFull}`}>เต็ม (≥ 2 คน)</span>
           </div>
         </div>
+        {meta && meta.totalAllCompanies > meta.totalCompanies ? (
+          <p className={styles.helper}>แสดง {formatNumber(meta.totalCompanies)} บริษัทแรกจากทั้งหมด {formatNumber(meta.totalAllCompanies)}</p>
+        ) : null}
         <div className={styles.tableWrap}>
           {statsQuery.isLoading ? (
             <div className={styles.loading}>กำลังโหลดข้อมูล...</div>
@@ -251,16 +255,22 @@ export default function InternshipCompaniesView() {
                     className={styles.internCard}
                     key={`intern-${intern.studentCode ?? intern.userId ?? idx}`}
                   >
-                    <div className={styles.internName}>
-                      <span>
-                        {intern.firstName ?? "-"} {intern.lastName ?? ""}
-                      </span>
-                      <span className={styles.internCode}>{intern.studentCode ?? intern.userId ?? ""}</span>
-                    </div>
-                    <p className={styles.internMeta}>
-                      ตำแหน่ง: {intern.internshipPosition || "-"} • ระยะเวลา {formatDate(intern.startDate)} - {formatDate(intern.endDate)}
-                      {intern.internshipDays ? ` (${intern.internshipDays} วัน)` : ""}
-                    </p>
+                    {isStudent ? (
+                      <p className={styles.internMeta}>ตำแหน่ง: {intern.internshipPosition || "-"}</p>
+                    ) : (
+                      <>
+                        <div className={styles.internName}>
+                          <span>
+                            {intern.firstName ?? "-"} {intern.lastName ?? ""}
+                          </span>
+                          <span className={styles.internCode}>{intern.studentCode ?? intern.userId ?? ""}</span>
+                        </div>
+                        <p className={styles.internMeta}>
+                          ตำแหน่ง: {intern.internshipPosition || "-"} • ระยะเวลา {formatDate(intern.startDate)} - {formatDate(intern.endDate)}
+                          {intern.internshipDays ? ` (${intern.internshipDays} วัน)` : ""}
+                        </p>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>

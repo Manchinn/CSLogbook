@@ -13,10 +13,14 @@ type WorkflowTimelineProps = {
 
 function statusLabel(status: string) {
   switch (status) {
+    case "not_started":
+      return "ยังไม่เริ่ม";
     case "completed":
       return "เสร็จแล้ว";
     case "pending":
     case "awaiting_action":
+    case "awaiting_student_action":
+    case "awaiting_admin_action":
       return "รอดำเนินการ";
     case "in_progress":
       return "กำลังดำเนินการ";
@@ -60,7 +64,7 @@ export function WorkflowTimeline({ title, subtitle, timeline, isLoading, error }
           <p className={styles.eyebrow}>{title}</p>
           {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
         </header>
-        <p className={styles.empty}>ยังไม่มีข้อมูล timeline</p>
+        <p className={styles.empty}>ยังไม่มีข้อมูลไทม์ไลน์</p>
       </section>
     );
   }
@@ -75,7 +79,7 @@ export function WorkflowTimeline({ title, subtitle, timeline, isLoading, error }
           {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
         </div>
         <div className={styles.badges}>
-          <span className={styles.chip}>สถานะ: {timeline.status}</span>
+          <span className={styles.chip}>สถานะ: {statusLabel(timeline.status)}</span>
           <span className={styles.chip}>ความคืบหน้า: {progress}%</span>
         </div>
       </header>

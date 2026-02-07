@@ -25,6 +25,7 @@ type FormState = {
 type GuardMessage = {
   title: string;
   body: string;
+  detail?: string;
   tone?: "warning" | "danger" | "info";
 };
 
@@ -162,6 +163,7 @@ export default function CompanyInfoView() {
       return {
         title: "ต้องได้รับการอนุมัติหนังสือตอบรับก่อน",
         body,
+        detail: "ขั้นตอนถัดไป: 1) พิมพ์หนังสือขอความอนุเคราะห์ไปยื่นต่อบริษัท 2) อัปโหลดหนังสือตอบรับ 3) รออนุมัติ 4) บันทึกข้อมูลผู้ควบคุมงาน",
         tone: acceptanceStatus === "rejected" ? "danger" : "warning",
       };
     }
@@ -223,7 +225,7 @@ export default function CompanyInfoView() {
         <div>
           <p className={styles.kicker}>Internship Logbook</p>
           <h1 className={styles.title}>ข้อมูลสถานประกอบการ</h1>
-          <p className={styles.lead}>กรอกข้อมูลผู้ควบคุมงานหลังคำร้อง คพ.05 และหนังสือตอบรับได้รับอนุมัติ</p>
+          <p className={styles.lead}>กรอกข้อมูลผู้ควบคุมงานหลังคำร้อง คพ.05 และหนังสือตอบรับได้รับอนุมัติ (ใช้ในสมุดบันทึกและหนังสือรับรอง)</p>
         </div>
         <div className={styles.heroMeta}>
           <span className={`${styles.badge} ${toneClass(statusLabel(cs05Status).tone)}`}>
@@ -261,6 +263,7 @@ export default function CompanyInfoView() {
           <div>
             <p className={styles.calloutTitle}>{guard.title}</p>
             <p className={styles.calloutText}>{guard.body}</p>
+            {guard.detail ? <p className={styles.calloutText}>{guard.detail}</p> : null}
           </div>
           <div className={styles.calloutActions}>
             <Link className={styles.secondaryButton} href="/dashboard">กลับแดชบอร์ด</Link>

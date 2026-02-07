@@ -244,7 +244,7 @@ export default function InternshipSummaryView() {
           <div className={styles.overline}>สรุปผลการฝึกงาน</div>
           <h1 className={styles.heading}>{companyName}</h1>
           <p className={styles.subhead}>
-            ช่วงฝึกงาน {formatDate(summary.startDate)} - {formatDate(summary.endDate)}
+            ช่วงฝึกงาน {formatDate(summary.startDate)} - {formatDate(summary.endDate)} (ข้อมูลจาก คพ.05)
           </p>
         </div>
         <div className={styles.actions}>
@@ -259,7 +259,7 @@ export default function InternshipSummaryView() {
           <div className={styles.label}>ชั่วโมงที่อนุมัติแล้ว</div>
           <div className={styles.statValue}>{formatNumber(summary.approvedHours)}</div>
           <div className={styles.statLabel}>
-            จากทั้งหมด {formatNumber(summary.totalHours)} ชั่วโมง
+            จากทั้งหมด {formatNumber(summary.totalHours)} ชั่วโมง (เกณฑ์ผ่านขั้นต่ำ 240 ชั่วโมง)
           </div>
         </div>
         <div className={styles.card}>
@@ -282,7 +282,7 @@ export default function InternshipSummaryView() {
         <div className={styles.label}>สถานะคำร้อง</div>
         <div className={styles.meta}>คพ.05: {statusBadge(cs05Status)} | หนังสือตอบรับ: {statusBadge(acceptanceStatus)}</div>
         <div className={styles.progressRow}>
-          <div className={styles.progressLabel}>ชั่วโมงที่ได้รับอนุมัติ</div>
+          <div className={styles.progressLabel}>ชั่วโมงที่ได้รับอนุมัติ (ต้องครบ 240 ชั่วโมง)</div>
           <div className={styles.progressBar}>
             <div className={styles.progressFill} style={{ width: `${completionPct}%` }} />
           </div>
@@ -412,7 +412,7 @@ export default function InternshipSummaryView() {
         <div className={styles.sectionHeader}>
           <div>
             <div className={styles.label}>ส่งประเมินไปยังผู้ควบคุมงาน</div>
-            <div className={styles.meta}>จำเป็นหลังสะสมชั่วโมงครบ 240</div>
+            <div className={styles.meta}>ส่งลิงก์แบบประเมินหลังสะสมชั่วโมงครบ 240</div>
           </div>
           <button
             className={styles.linkButton}
@@ -426,6 +426,9 @@ export default function InternshipSummaryView() {
         <div className={styles.meta}>
           สถานะการส่ง: {evaluationSent ? "ส่งแล้ว" : "ยังไม่ส่ง"}
           {evaluationStatusQuery.data?.sentDate ? ` (ส่งเมื่อ ${formatDate(evaluationStatusQuery.data.sentDate)})` : ""}
+        </div>
+        <div className={styles.meta}>
+          ลิงก์แบบประเมินมีอายุ 7 วัน หลังส่งคำขอ
         </div>
         <div className={styles.meta} style={{ marginTop: 8 }}>
           ผู้ควบคุมงาน: {summary.supervisorName || "-"} ({summary.supervisorEmail || "ไม่มีอีเมล"})

@@ -34,10 +34,48 @@
   color: var(--color-text-muted);
 }
 
+.note {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 .grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stepGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stepCard {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+}
+
+.stepNumber {
+  margin: 0 0 6px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stepTitle {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stepText {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
 }
 
 .card {

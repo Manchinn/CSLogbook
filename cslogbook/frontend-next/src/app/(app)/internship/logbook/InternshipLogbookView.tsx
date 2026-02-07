@@ -291,7 +291,7 @@ export default function InternshipLogbookView() {
         <div>
           <p className={styles.kicker}>Internship Logbook</p>
           <h1 className={styles.title}>บันทึกประจำวันฝึกงาน</h1>
-          <p className={styles.lead}>กรอกชั่วโมงการฝึกงาน รายละเอียดงาน และติดตามสถานะการอนุมัติ</p>
+          <p className={styles.lead}>บันทึกการปฏิบัติงานประจำวันตามลักษณะงานที่ได้รับมอบหมาย และติดตามสถานะการอนุมัติ</p>
         </div>
         <div className={styles.heroMeta}>
           <span className={`${styles.badge} ${cs05Status === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
@@ -322,6 +322,23 @@ export default function InternshipLogbookView() {
           <p className={styles.statusValue}>{stats ? `${stats.completed}/${stats.total}` : "-"}</p>
           <p className={styles.statusHint}>เหลือ {stats ? stats.pending : "-"} วัน</p>
         </article>
+      </section>
+
+      <section className={styles.sectionCard}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.panelKicker}>คำชี้แจง</p>
+            <h2 className={styles.sectionTitle}>แนวทางการบันทึกการฝึกงาน</h2>
+            <p className={styles.formHint}>อ้างอิงคำชี้แจงจากระบบเดิม</p>
+          </div>
+        </div>
+        <ul className={styles.instructionList}>
+          <li>นักศึกษาทุกคนต้องบันทึกการปฏิบัติงานทุกวันตามลักษณะงานที่มอบหมาย</li>
+          <li>แบบบันทึกเป็นหลักฐานให้ภาควิชาฯ ตรวจสอบความคืบหน้าและความเหมาะสมของงาน</li>
+          <li>การบันทึกควรเขียนให้สะอาด อ่านง่าย และเรียงลำดับตามวันที่</li>
+          <li>ต้องปฏิบัติงานรวมอย่างน้อย 240 ชั่วโมงขึ้นไป (สามารถบันทึกเกินได้)</li>
+        </ul>
+        <p className={styles.formHint}>ข้อปฏิบัติ: แต่งกายตามระเบียบ ปฏิบัติตามกฎสถานประกอบการ และแจ้งหัวหน้างานเมื่อมีเหตุจำเป็น</p>
       </section>
 
       {guard ? (
@@ -415,8 +432,9 @@ export default function InternshipLogbookView() {
               <div>
                 <p className={styles.calloutTitle}>เงื่อนไขการส่ง</p>
                 <p className={styles.calloutText}>
-                  ต้องมีชั่วโมงที่บันทึกและอนุมัติแล้วอย่างน้อย 240 ชั่วโมงก่อนส่งคำขอประเมิน
+                    ต้องมีชั่วโมงที่บันทึกและอนุมัติแล้วอย่างน้อย 240 ชั่วโมงก่อนส่งคำขอประเมิน
                 </p>
+                <p className={styles.calloutText}>ลิงก์แบบประเมินมีอายุ 7 วันหลังจากส่งคำขอ</p>
               </div>
               <div className={styles.calloutActions}>
                 <button

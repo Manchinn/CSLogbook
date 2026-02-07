@@ -53,6 +53,8 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   }, [deadlines]);
 
   const eligibilityStatus = eligibility?.status.internship;
+  const requiredCredits =
+    eligibilityStatus?.requiredCredits ?? eligibility?.requirements?.internship?.totalCredits ?? null;
   const summary = internshipStatus?.summary;
   const stats = internshipStatus?.stats;
   const certificate = internshipStatus?.certificateStatus;
@@ -82,7 +84,10 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
         <div>
           <p className={styles.kicker}>Internship Registration</p>
           <h1 className={styles.title}>เส้นทางลงทะเบียนฝึกงาน</h1>
-          <p className={styles.lead}>ดูสถานะ คพ.05, หนังสือตอบรับ, timeline และกำหนดส่งสำคัญ</p>
+          <p className={styles.lead}>สรุปสถานะ คพ.05, หนังสือตอบรับ, ขั้นตอนยื่นคำร้อง และเดดไลน์สำคัญ</p>
+          <p className={styles.note}>
+            เกณฑ์เดิมอ้างอิงจากระบบเก่า: ต้องมีหน่วยกิตรวมอย่างน้อย {requiredCredits ?? 81} หน่วยกิต
+          </p>
         </div>
       </header>
 
@@ -94,6 +99,24 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
             <p className={styles.cardHint}>{card.hint}</p>
           </article>
         ))}
+      </section>
+
+      <section className={styles.stepGrid}>
+        <article className={styles.stepCard}>
+          <p className={styles.stepNumber}>01</p>
+          <p className={styles.stepTitle}>กรอกข้อมูล คพ.05</p>
+          <p className={styles.stepText}>กรอกข้อมูลบริษัท นักศึกษา และอัปโหลดเอกสารประกอบให้ครบถ้วน</p>
+        </article>
+        <article className={styles.stepCard}>
+          <p className={styles.stepNumber}>02</p>
+          <p className={styles.stepTitle}>ตรวจสอบข้อมูล</p>
+          <p className={styles.stepText}>ตรวจสอบความถูกต้องก่อนยืนยันส่งคำร้องเข้าระบบ</p>
+        </article>
+        <article className={styles.stepCard}>
+          <p className={styles.stepNumber}>03</p>
+          <p className={styles.stepTitle}>ส่งคำร้อง</p>
+          <p className={styles.stepText}>ระบบจะส่งคำร้องให้เจ้าหน้าที่ตรวจสอบและอนุมัติ</p>
+        </article>
       </section>
 
       <section className={styles.split}>

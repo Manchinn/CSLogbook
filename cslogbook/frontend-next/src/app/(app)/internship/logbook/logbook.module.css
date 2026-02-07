@@ -202,6 +202,15 @@
   margin: 0;
 }
 
+.instructionList {
+  margin: 10px 0;
+  padding-left: 18px;
+  color: var(--color-text);
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
 .sectionBadges {
   display: flex;
   gap: 6px;
