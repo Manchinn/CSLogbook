@@ -8,9 +8,16 @@ export const dashboardByRole: Record<AppRole, string> = {
   admin: "/dashboard/admin",
 };
 
-export function getDashboardPathByRole(role: string | null | undefined) {
-  if (role === "teacher" || role === "admin" || role === "student") {
-    return dashboardByRole[role];
+export function getDashboardPathByRole(role: string | null | undefined, teacherType?: string | null) {
+  if (role === "admin") {
+    return dashboardByRole.admin;
+  }
+
+  if (role === "teacher") {
+    if (teacherType === "support") {
+      return dashboardByRole.admin;
+    }
+    return dashboardByRole.teacher;
   }
 
   return dashboardByRole.student;

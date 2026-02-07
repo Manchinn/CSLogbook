@@ -1,5 +1,8 @@
+"use client";
+
 import { DashboardRoleView } from "../DashboardRoleView";
 import { AdminStatsWidget } from "@/components/dashboard/AdminStatsWidget";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 
 const stats = [
   { label: "Active Students", value: "128" },
@@ -9,12 +12,14 @@ const stats = [
 
 export default function AdminDashboardPage() {
   return (
-    <DashboardRoleView
-      roleLabel="Admin"
-      summary="ภาพรวมการจัดการเอกสารและ workflow ของทั้งระบบ"
-      stats={stats}
-    >
-      <AdminStatsWidget />
-    </DashboardRoleView>
+    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
+      <DashboardRoleView
+        roleLabel="Admin"
+        summary="ภาพรวมการจัดการเอกสารและ workflow ของทั้งระบบ"
+        stats={stats}
+      >
+        <AdminStatsWidget />
+      </DashboardRoleView>
+    </RoleGuard>
   );
 }

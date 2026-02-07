@@ -1,4 +1,8 @@
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+if (!apiBaseUrl) {
+  throw new Error("NEXT_PUBLIC_API_URL is required");
+}
 
 type RequestOptions = RequestInit & {
   token?: string;

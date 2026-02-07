@@ -59,6 +59,9 @@ frontend-next/
 ```bash
 # URL ของ backend API (ฝั่ง browser ใช้ NEXT_PUBLIC_)
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
+# Feature flags (migration rollout)
+NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
+NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 ```
 
 > ถ้าจะใช้งานตัวแปรใน client component ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เท่านั้น
@@ -212,4 +215,33 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
 NEXT_PUBLIC_ENABLE_SSO=true
 NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
+NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
+```
+
+---
+
+## 14) Phase 4 Progress (Student Eligibility Widget Migration)
+
+สิ่งที่เพิ่มแล้ว:
+- ย้าย student eligibility widget ชุดแรกจาก endpoint `/students/check-eligibility` ผ่าน `studentService` + `useStudentEligibility`
+- เพิ่ม `StudentEligibilityWidget` (hydration-safe + loading/error state) แสดงสิทธิ์ฝึกงาน/โครงงาน และเครดิตรวม/วิชาเอกจากข้อมูลจริง
+- ผูก widget เข้า `/dashboard/student` และควบคุม rollout ด้วย feature flag `NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION`
+
+ค่า env ที่เกี่ยวข้อง:
+```bash
+NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
+```
+
+---
+
+## 15) Phase 5 Progress (Student Deadlines Widget)
+
+สิ่งที่เพิ่มแล้ว:
+- ย้าย widget กำหนดส่งนักศึกษาจาก endpoint `/students/important-deadlines/upcoming` (Hydration-safe + loading/error/empty)
+- เพิ่ม service/hook (`getStudentUpcomingDeadlines` + `useStudentDeadlines`) และ render บน `/dashboard/student`
+- ใช้ feature flag `NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION` ในการเปิดใช้งาน
+
+ค่า env ที่เกี่ยวข้อง:
+```bash
+NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 ```

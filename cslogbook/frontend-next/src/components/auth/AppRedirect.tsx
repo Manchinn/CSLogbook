@@ -19,7 +19,7 @@ export function AppRedirect() {
       return;
     }
 
-    const target = getDashboardPathByRole(user?.role);
+    const target = getDashboardPathByRole(user?.role, user?.teacherType);
     router.replace(target);
   }, [isLoading, router, user]);
 
