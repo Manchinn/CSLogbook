@@ -315,3 +315,15 @@ NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 ```bash
 NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
 ```
+
+---
+
+## 19) Phase 9 Progress (Internship Companies Stats)
+
+สิ่งที่เพิ่มแล้ว:
+- หน้า `/internship-companies` (student/teacher/admin) ย้าย UI สถิติสถานประกอบการจาก frontend เดิม โดยใช้ endpoint เดิม `/internship/company-stats` และ `/internship/company-stats/:companyName/detail`
+- ตัวกรองปีการศึกษา + limit (student ค่าเริ่มต้น 10, staff 50 พร้อม hard cap 20/200 ตาม backend) พร้อมปุ่มรีเฟรช
+- Drawer รายละเอียดบริษัทแสดงรายชื่อนักศึกษา/ช่วงฝึกงานจาก CS05 ที่ได้รับอนุมัติ และ capacity rule 2 คน/บริษัท (legacy)
+
+ค่า env ที่เกี่ยวข้อง:
+- ใช้ `NEXT_PUBLIC_API_URL` + token เดิม ไม่มี flag เพิ่มเติม
