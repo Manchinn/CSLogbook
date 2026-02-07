@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./AppShell.module.css";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +14,11 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const { signOut, user, token } = useAuth();
   const router = useRouter();
-  const { data: eligibilityData } = useStudentEligibility(token, user?.role === "student");
+  const { data: eligibilityData, isLoading: isEligibilityLoading } = useStudentEligibility(
+    token,
+    user?.role === "student"
+  );
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const canAccessInternship = eligibilityData?.eligibility.internship.canAccessFeature ?? null;
   const canAccessProject = eligibilityData?.eligibility.project.canAccessFeature ?? null;
@@ -28,6 +32,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const handleLogout = () => {
     signOut();
+    setIsSidebarOpen(false);
     router.push("/login");
   };
 
@@ -36,8 +41,22 @@ export function AppShell({ children }: AppShellProps) {
       window.location.assign(item.href);
       return;
     }
+    setIsSidebarOpen(false);
     router.push(item.href);
   };
+
+  const renderSkeleton = () => (
+    <div className={styles.navSkeleton} aria-hidden="true">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={`section-${index}`} className={styles.navSkeletonSection}>
+          <div className={styles.navSkeletonLabel} />
+          <div className={styles.navSkeletonItem} />
+          <div className={styles.navSkeletonItem} />
+          <div className={styles.navSkeletonItem} />
+        </div>
+      ))}
+    </div>
+  );
 
   const renderNodes = (items: MenuNode[], isChild?: boolean) => (
     <ul className={isChild ? styles.navChildList : styles.navList}>
@@ -60,23 +79,42 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className={styles.shell}>
-      <aside className={styles.sidebar} aria-label="แถบนำทางหลัก">
+      <aside
+        className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ""}`}
+        aria-label="แถบนำทางหลัก"
+      >
         <div className={styles.brandBlock}>
           <p className={styles.brandCaption}>CSLogbook</p>
           <h1 className={styles.brandTitle}>Frontend Base</h1>
         </div>
 
-        {menuGroups.map((group) => (
-          <nav key={group.key} className={styles.navSection}>
-            <p className={styles.sectionLabel}>{group.label}</p>
-            {renderNodes(group.items)}
-          </nav>
-        ))}
+        <div className={styles.navSections}>
+          {isEligibilityLoading && user?.role === "student"
+            ? renderSkeleton()
+            : menuGroups.map((group) => (
+                <nav key={group.key} className={styles.navSection}>
+                  <p className={styles.sectionLabel}>{group.label}</p>
+                  {renderNodes(group.items)}
+                </nav>
+              ))}
+        </div>
 
-        <button type="button" className={styles.logoutLink} onClick={handleLogout}>
-          Log out
-        </button>
       </aside>
+
+      <button
+        type="button"
+        className={`${styles.backdrop} ${isSidebarOpen ? styles.backdropVisible : ""}`}
+        onClick={() => setIsSidebarOpen(false)}
+        aria-label="ปิดเมนู"
+      />
+      <button
+        type="button"
+        className={`${styles.sidebarTrigger} ${isSidebarOpen ? styles.sidebarTriggerAttached : ""}`}
+        onClick={() => setIsSidebarOpen(true)}
+        aria-label="เปิดเมนู"
+      >
+        ≡
+      </button>
 
       <div className={styles.contentArea}>
         <header className={styles.header}>
@@ -84,8 +122,8 @@ export function AppShell({ children }: AppShellProps) {
             <p className={styles.headerLabel}>Academic Workflow</p>
             <h2 className={styles.headerTitle}>CSLogbook UX/UI Foundation</h2>
           </div>
-          <button type="button" className={styles.headerButton}>
-            + New Task
+          <button type="button" className={styles.logoutLink} onClick={handleLogout}>
+            Log out
           </button>
         </header>
 
