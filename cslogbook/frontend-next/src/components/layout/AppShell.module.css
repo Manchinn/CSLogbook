@@ -1,0 +1,123 @@
+.shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--color-bg-subtle);
+}
+
+.sidebar {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.brandBlock {
+  padding: 0.25rem;
+}
+
+.brandCaption {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.brandTitle {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+}
+
+.navSection {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.navList {
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.navLink,
+.navLinkMuted {
+  display: block;
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.navLink {
+  color: var(--color-text);
+}
+
+.navLinkMuted {
+  color: var(--color-text-muted);
+}
+
+.navLink:hover,
+.navLinkMuted:hover {
+  background: var(--color-bg-subtle);
+}
+
+.contentArea {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.header {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.headerLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.headerTitle {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+}
+
+.headerButton {
+  border: none;
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mainContent {
+  padding: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+}

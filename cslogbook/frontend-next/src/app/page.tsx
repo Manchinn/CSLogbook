@@ -1,36 +1,40 @@
 import styles from "./page.module.css";
 
+const basePrinciples = [
+  {
+    title: "Design Tokens",
+    description: "กำหนดสี spacing และ typography เป็นระบบเดียวเพื่อขยายฟีเจอร์ได้ง่าย",
+  },
+  {
+    title: "Accessible Navigation",
+    description: "มีโครงสร้าง header/sidebar ที่ชัดเจนพร้อม semantic landmarks",
+  },
+  {
+    title: "Scalable Layout",
+    description: "รองรับ desktop และ tablet/mobile ตั้งแต่เริ่มต้นด้วย responsive grid",
+  },
+];
+
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <div className={styles.intro}>
-          <h1>CSLogbook Frontend Starter</h1>
-          <p>
-            โปรเจกต์เริ่มต้นสำหรับพัฒนา frontend ด้วย Next.js และ TypeScript
-            เพื่อใช้เป็นฐานสำหรับระบบ CSLogbook เวอร์ชันใหม่
-          </p>
-        </div>
+    <section className={styles.wrapper}>
+      <div className={styles.hero}>
+        <p className={styles.badge}>Refactor Phase 1</p>
+        <h1>Frontend Setup + UX/UI Base พร้อมเริ่มพัฒนาฟีเจอร์จริง</h1>
+        <p>
+          โครงสร้างนี้เป็นฐานกลางสำหรับ CSLogbook เพื่อให้ทีมต่อยอดหน้า Student,
+          Teacher และ Admin ด้วยมาตรฐานเดียวกัน
+        </p>
+      </div>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://nextjs.org/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Next.js Docs
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://www.typescriptlang.org/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            TypeScript Docs
-          </a>
-        </div>
-      </main>
-    </div>
+      <div className={styles.grid}>
+        {basePrinciples.map((item) => (
+          <article key={item.title} className={styles.card}>
+            <h2>{item.title}</h2>
+            <p>{item.description}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
