@@ -151,3 +151,21 @@ npm run dev -- --port 3001
 - `src/app/(app)/dashboard/page.tsx`
 
 หมายเหตุ: ตอนนี้ยังเป็น mock login (กด Sign in แล้วไป dashboard) เพื่อเตรียมต่อ API จริงในขั้นถัดไป
+
+---
+
+
+## 11) Migration Plan (React เก่า -> frontend-next)
+
+ตอบคำถาม: **ย้ายทั้งหมดมา frontend-next ได้** แต่ควรทำแบบเป็นเฟสเพื่อลดความเสี่ยง
+
+เฟสที่เริ่มแล้วในรอบนี้:
+- สร้าง `AppRedirect` component สำหรับ redirect เข้า dashboard ตาม role
+- route `/app` ทำหน้าที่เป็นจุดเข้าแอปหลัง login แล้ว redirect ต่ออัตโนมัติ
+- login form รองรับ role แบบ mock เพื่อทดสอบ flow ระหว่าง `(auth)` และ `(app)`
+
+เฟสถัดไปที่แนะนำ:
+1. ย้าย `AuthContext` และ API login จริง (JWT/SSO)
+2. ย้าย Dashboard ของแต่ละ role แบบทีละหน้า
+3. ย้าย shared components และ services ตามลำดับการใช้งานจริง
+4. เปิดใช้งาน feature flags แล้วค่อยปิด frontend เดิม

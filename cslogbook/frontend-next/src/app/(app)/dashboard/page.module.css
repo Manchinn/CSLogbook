@@ -19,6 +19,17 @@
   margin-top: 0.25rem;
 }
 
+.roleBadge {
+  margin-top: 0.75rem;
+  width: fit-content;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -6,7 +6,7 @@ type AppShellProps = {
 };
 
 const primaryMenu = [
-  { label: "Dashboard", href: "/dashboard" },
+  { label: "Dashboard", href: "/app" },
   { label: "Internship", href: "/dashboard" },
   { label: "Project", href: "/dashboard" },
   { label: "Documents", href: "/dashboard" },

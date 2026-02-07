@@ -8,7 +8,7 @@ export default function LoginPage() {
         <div className={styles.header}>
           <p className={styles.badge}>CSLogbook</p>
           <h1>เข้าสู่ระบบ</h1>
-          <p>ล็อกอินเพื่อเข้าใช้งานระบบฝึกงานและโครงงาน</p>
+          <p>ล็อกอินเพื่อเข้าใช้งานระบบ (เวอร์ชันทดลอง: เลือก role แล้ว redirect อัตโนมัติ)</p>
         </div>
 
         <LoginForm />
