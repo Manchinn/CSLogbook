@@ -27,6 +27,20 @@ export type TimesheetEntry = {
   updatedAt?: string;
 };
 
+export type ReflectionPayload = {
+  learningOutcome: string;
+  keyLearnings: string;
+  futureApplication: string;
+  improvements?: string;
+};
+
+export type ReflectionResponse = {
+  learningOutcome?: string;
+  keyLearnings?: string;
+  futureApplication?: string;
+  improvements?: string;
+};
+
 export type SaveTimesheetPayload = {
   workDate: string;
   timeIn: string;
@@ -113,6 +127,29 @@ export async function updateTimesheetEntry(token: string, logId: number, payload
     `/internship/logbook/timesheet/${logId}`,
     {
       method: "PUT",
+      token,
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function getReflection(token: string) {
+  const response = await apiFetch<{ success: boolean; data?: ReflectionResponse | null; message?: string }>(
+    "/internship/logbook/reflection",
+    {
+      method: "GET",
+      token,
+    }
+  );
+
+  return response.data ?? null;
+}
+
+export async function saveReflection(token: string, payload: ReflectionPayload) {
+  return apiFetch<{ success: boolean; data?: ReflectionResponse | null; message?: string }>(
+    "/internship/logbook/reflection",
+    {
+      method: "POST",
       token,
       body: JSON.stringify(payload),
     }

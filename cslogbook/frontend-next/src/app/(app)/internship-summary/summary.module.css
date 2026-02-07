@@ -110,6 +110,105 @@
   margin-top: 4px;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.secondaryButton {
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: #111827;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.formGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.formField textarea {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 90px;
+  font-family: inherit;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tableHead, .tableRow {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px 120px;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.tableHead {
+  font-weight: 700;
+  color: #111827;
+}
+
+.tableRow {
+  padding: 8px 0;
+  border-top: 1px solid #f3f4f6;
+  align-items: center;
+}
+
+.tag {
+  display: inline-flex;
+  padding: 4px 8px;
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 999px;
+  font-weight: 600;
+  justify-content: center;
+}
+
+.progressRow {
+  display: grid;
+  grid-template-columns: 160px 1fr 120px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.progressLabel {
+  color: #374151;
+  font-weight: 600;
+}
+
+.progressBar {
+  height: 10px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
 .callout {
   border-left: 4px solid #f59e0b;
   background: #fff7ed;

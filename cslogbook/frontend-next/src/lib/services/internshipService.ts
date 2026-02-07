@@ -138,3 +138,30 @@ export async function submitCompanyInfo(token: string, payload: SubmitCompanyInf
     }
   );
 }
+
+export type EvaluationStatus = {
+  isSent?: boolean;
+  sentDate?: string | null;
+};
+
+export async function getEvaluationStatus(token: string) {
+  const response = await apiFetch<{ success: boolean; data?: EvaluationStatus | null; message?: string }>(
+    "/internship/evaluation/status",
+    {
+      method: "GET",
+      token,
+    }
+  );
+
+  return response.data ?? null;
+}
+
+export async function sendEvaluationRequest(token: string, documentId: number) {
+  return apiFetch<{ success: boolean; message?: string }>(
+    `/internship/request-evaluation/send/${documentId}`,
+    {
+      method: "POST",
+      token,
+    }
+  );
+}
