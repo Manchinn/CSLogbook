@@ -134,6 +134,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   const { token, user } = useAuth();
   const hydrated = useHydrated();
   const [ackLoading, setAckLoading] = useState(false);
+  const [activePhaseTab, setActivePhaseTab] = useState<"all" | "phase1" | "phase2">("all");
   const studentId = user?.studentId ?? user?.id;
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
 
@@ -437,120 +438,14 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     return statuses;
   }, [project, meetingProgress, project1DefenseRequest, thesisDefenseRequest, phase2GateReasons]);
 
-  const getStepDeadlineStatus = useCallback(
-    (step: ProjectStep) => {
-      if (!step.deadlineName || !step.relatedTo) {
-        return { isOverdue: false, isLocked: false, reason: null as string | null, deadline: null };
-      }
-
-      const extractKeywords = (text: string) => {
-        return text
-          .replace(/วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.|\(|\)/g, " ")
-          .split(/\s+/)
-          .filter((word) => word.length > 1)
-          .map((word) => word.toLowerCase());
-      };
-
-      const matchingDeadline = projectDeadlines.find((deadline) => {
-        const deadlineName = String(deadline.name || "").trim();
-        const stepDeadlineName = String(step.deadlineName || "").trim();
-        const relatedToMatch = String(deadline.relatedTo || "").toLowerCase() === step.relatedTo?.toLowerCase();
-        if (!relatedToMatch) return false;
-        if (deadlineName === stepDeadlineName) return true;
-        if (deadlineName.includes(stepDeadlineName) || stepDeadlineName.includes(deadlineName)) return true;
-
-        const deadlineKeywords = extractKeywords(deadlineName);
-        const stepKeywords = extractKeywords(stepDeadlineName);
-        const common = deadlineKeywords.filter((keyword) => stepKeywords.includes(keyword));
-        return common.length >= 2;
-      });
-
-      if (!matchingDeadline) {
-        return { isOverdue: false, isLocked: false, reason: null, deadline: null };
-      }
-
-      const baseTime =
-        matchingDeadline.effectiveDeadlineAt ??
-        matchingDeadline.deadlineAt ??
-        (matchingDeadline.deadlineDate
-          ? `${matchingDeadline.deadlineDate}T${matchingDeadline.deadlineTime ?? "00:00:00"}`
-          : null);
-
-      if (!baseTime) {
-        return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
-      }
-
-      const deadlineTime = new Date(baseTime);
-      if (Number.isNaN(deadlineTime.getTime())) {
-        return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
-      }
-
-      const now = new Date();
-      const allowLate = Boolean(matchingDeadline.allowLate);
-      const lockAfterDeadline = Boolean(matchingDeadline.lockAfterDeadline);
-      const gracePeriodMinutes = Number(matchingDeadline.gracePeriodMinutes ?? 0);
-      const effectiveDeadline = new Date(deadlineTime.getTime() + gracePeriodMinutes * 60000);
-      const isAfterDeadline = now.getTime() > deadlineTime.getTime();
-      const isAfterEffectiveDeadline = now.getTime() > effectiveDeadline.getTime();
-
-      if (!isAfterDeadline) {
-        return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
-      }
-
-      const diffDays = Math.floor((now.getTime() - deadlineTime.getTime()) / (1000 * 60 * 60 * 24));
-      const diffMinutes = Math.floor((now.getTime() - deadlineTime.getTime()) / (1000 * 60));
-
-      if (isAfterEffectiveDeadline && lockAfterDeadline) {
-        return {
-          isOverdue: true,
-          isLocked: true,
-          reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
-          deadline: matchingDeadline,
-          diffDays,
-          diffMinutes,
-        };
-      }
-
-      if (isAfterDeadline && !isAfterEffectiveDeadline && allowLate) {
-        const graceMinutesLeft = Math.max(0, Math.floor((effectiveDeadline.getTime() - now.getTime()) / 60000));
-        return {
-          isOverdue: true,
-          isLocked: false,
-          reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${Math.ceil(graceMinutesLeft / 60)} ชม.)`,
-          deadline: matchingDeadline,
-          diffDays,
-          diffMinutes,
-        };
-      }
-
-      if (isAfterDeadline && !allowLate) {
-        return {
-          isOverdue: true,
-          isLocked: true,
-          reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
-          deadline: matchingDeadline,
-          diffDays,
-          diffMinutes,
-        };
-      }
-
-      if (isAfterEffectiveDeadline && allowLate) {
-        return {
-          isOverdue: true,
-          isLocked: false,
-          reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
-          deadline: matchingDeadline,
-          diffDays,
-          diffMinutes,
-        };
-      }
-
-      return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
-    },
-    [projectDeadlines]
-  );
-
   const allSteps = useMemo(() => [phase2Steps[0], ...phase1Steps, ...phase2Steps.slice(1)], []);
+  const visibleSteps = useMemo(() => {
+    if (activePhaseTab === "all") return allSteps;
+    if (activePhaseTab === "phase2") {
+      return allSteps.filter((step) => step.phase === "phase2" && step.key !== "phase2-overview");
+    }
+    return allSteps.filter((step) => step.phase === activePhaseTab);
+  }, [activePhaseTab, allSteps]);
 
   const handleOpen = useCallback(
     (stepKey: string) => {
@@ -559,12 +454,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
       const lockReasons: string[] = [];
       if (meta.requiresPostTopicUnlock) lockReasons.push(...postTopicGateReasons);
-      if (meta.requiresPhase2Unlock) lockReasons.push(...phase2GateReasons);
-
-      const deadlineStatus = getStepDeadlineStatus(meta);
-      if (deadlineStatus.isLocked && deadlineStatus.reason) lockReasons.push(deadlineStatus.reason);
-      if (!deadlineStatus.isLocked && deadlineStatus.isOverdue && deadlineStatus.reason) {
-        lockReasons.push(deadlineStatus.reason);
+      const overviewAlwaysEnabled = activePhaseTab === "all" && meta.key === "phase2-overview";
+      if (meta.requiresPhase2Unlock && !overviewAlwaysEnabled) {
+        lockReasons.push(...phase2GateReasons);
       }
 
       if (!meta.implemented) {
@@ -579,7 +471,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         router.push(meta.target);
       }
     },
-    [allSteps, postTopicGateReasons, phase2GateReasons, getStepDeadlineStatus, router]
+    [activePhaseTab, allSteps, postTopicGateReasons, phase2GateReasons, router]
   );
 
   const showAck = Boolean(project && project.examResult === "failed" && !project.studentAcknowledgedAt);
@@ -619,9 +511,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.kicker}>Project 1</p>
-          <h1 className={styles.title}>ขั้นตอนโครงงานพิเศษ (Phase 1)</h1>
-          <p className={styles.lead}>ติดตามความคืบหน้า, สิทธิ์ยื่นสอบ, และ timeline โครงงานพิเศษ 1</p>
+          <p className={styles.kicker}>Project Workflow</p>
+          <h1 className={styles.title}>ระบบโครงงานพิเศษ</h1>
+          <p className={styles.lead}>ภาพรวมโครงงานพิเศษ 1 และ โครงงานพิเศษ 2 (ปริญญานิพนธ์)</p>
         </div>
       </header>
 
@@ -713,15 +605,35 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
       {showPhaseContent ? (
         <section className={styles.stepGrid}>
-          {allSteps.map((step) => {
+          <div className={styles.tabs}>
+            <button
+              type="button"
+              className={`${styles.tabButton} ${activePhaseTab === "all" ? styles.tabButtonActive : ""}`}
+              onClick={() => setActivePhaseTab("all")}
+            >
+              ทั้งหมด
+            </button>
+            <button
+              type="button"
+              className={`${styles.tabButton} ${activePhaseTab === "phase1" ? styles.tabButtonActive : ""}`}
+              onClick={() => setActivePhaseTab("phase1")}
+            >
+              โครงงานพิเศษ 1
+            </button>
+            <button
+              type="button"
+              className={`${styles.tabButton} ${activePhaseTab === "phase2" ? styles.tabButtonActive : ""}`}
+              onClick={() => setActivePhaseTab("phase2")}
+            >
+              โครงงานพิเศษ 2
+            </button>
+          </div>
+          {visibleSteps.map((step) => {
             const lockReasons: string[] = [];
             if (step.requiresPostTopicUnlock) lockReasons.push(...postTopicGateReasons);
-            if (step.requiresPhase2Unlock) lockReasons.push(...phase2GateReasons);
-
-            const deadlineStatus = getStepDeadlineStatus(step);
-            if (deadlineStatus.isLocked && deadlineStatus.reason) lockReasons.push(deadlineStatus.reason);
-            if (!deadlineStatus.isLocked && deadlineStatus.isOverdue && deadlineStatus.reason) {
-              lockReasons.push(deadlineStatus.reason);
+            const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
+            if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
+              lockReasons.push(...phase2GateReasons);
             }
 
             const isDisabled = !step.implemented || lockReasons.length > 0;
@@ -750,14 +662,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
                         {step.phaseLabel}
                       </span>
                     ) : null}
-                    {deadlineStatus.isOverdue ? (
-                      <span className={`${styles.tag} ${deadlineStatus.isLocked ? styles.tagDanger : styles.tagWarning}`}>
-                        {deadlineStatus.isLocked ? "เกินกำหนด" : "เกินกำหนด (ส่งได้)"}
-                      </span>
-                    ) : null}
                     {!step.implemented ? (
                       <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
-                    ) : lockReasons.length > 0 && !deadlineStatus.isOverdue ? (
+                    ) : lockReasons.length > 0 ? (
                       <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
                     ) : status ? (
                       <span
@@ -856,8 +763,8 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
       {showPhaseContent ? (
         <WorkflowTimeline
-          title="Timeline โครงงานพิเศษ 1"
-          subtitle="สอดคล้องกับ workflow state และผลสอบ"
+          title="Timeline โครงงานพิเศษ"
+          subtitle="ครอบคลุม Phase 1 และ Phase 2 ตาม workflow"
           timeline={timeline}
           isLoading={timelineLoading}
           error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}

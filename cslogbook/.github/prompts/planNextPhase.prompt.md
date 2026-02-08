@@ -21,3 +21,7 @@ Guidelines:
 - Avoid project-specific file names unless supplied in context; refer generically (e.g., "new page route", "dashboard widget").
 - Keep wording crisp; no filler; max 12 words per bullet.
 - If info is insufficient, ask up to 2 targeted questions instead of guessing.
+
+Project system notes:
+- Phase 1 and Phase 2 are the same workflow system.
+- Separate phases exist for clarity, not separate workflows.
