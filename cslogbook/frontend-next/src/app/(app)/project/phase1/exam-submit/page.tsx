@@ -43,6 +43,10 @@ function formatDateTime(value?: string | null) {
   return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
+function getBangkokDateString(value = new Date()) {
+  return value.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+}
+
 export default function ExamSubmitPage() {
   guardFeatureRoute(featureFlags.enableProjectPhase1Page, "/app");
   const { token, user } = useAuth();
@@ -52,6 +56,7 @@ export default function ExamSubmitPage() {
   const [request, setRequest] = useState<ProjectDefenseRequest | null>(null);
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     advisorName: "",
     coAdvisorName: "",
@@ -63,6 +68,7 @@ export default function ExamSubmitPage() {
     const loadRequest = async () => {
       if (!token || !project?.projectId) return;
       setLoadingRequest(true);
+      setErrorMessage(null);
       try {
         const data = await getProject1DefenseRequest(token, project.projectId);
         setRequest(data ?? null);
@@ -77,6 +83,8 @@ export default function ExamSubmitPage() {
             setStudents(payload.students as Array<Record<string, string>>);
           }
         }
+      } catch (error) {
+        setErrorMessage("โหลดข้อมูลคำขอสอบไม่สำเร็จ กรุณาลองใหม่");
       } finally {
         setLoadingRequest(false);
       }
@@ -86,17 +94,33 @@ export default function ExamSubmitPage() {
 
   useEffect(() => {
     if (!project) return;
-    const baseStudents = (project.members || []).map((member) => ({
-      studentId: String(member.studentId),
-      studentCode: member.studentCode || "",
-      name: member.name || member.studentCode || "",
-      phone: member.phone || "",
-      email: member.email || "",
-    }));
-    if (baseStudents.length) {
-      setStudents(baseStudents);
+    const members = project.members || [];
+    if (members.length === 0) return;
+
+    const existingById = new Map(students.map((student) => [String(student.studentId), student]));
+    const nextStudents = members.map((member) => {
+      const memberId = String(member.studentId);
+      const existing = existingById.get(memberId);
+      if (existing) return existing;
+      return {
+        studentId: memberId,
+        studentCode: member.studentCode || "",
+        name: member.name || member.studentCode || "",
+        phone: member.phone || "",
+        email: member.email || "",
+      };
+    });
+
+    const memberIds = new Set(members.map((member) => String(member.studentId)));
+    const shouldUpdate =
+      students.length === 0 ||
+      nextStudents.length !== students.length ||
+      students.some((student) => !memberIds.has(String(student.studentId)));
+
+    if (shouldUpdate) {
+      setStudents(nextStudents);
     }
-  }, [project]);
+  }, [project, students]);
 
   const meetingRequirement = useMemo(() => {
     const metrics = project?.meetingMetrics ?? project?.meetingMetricsPhase1;
@@ -170,8 +194,9 @@ export default function ExamSubmitPage() {
     if (!token || !project?.projectId) return;
     try {
       setSaving(true);
+      setErrorMessage(null);
       const payload = {
-        requestDate: new Date().toISOString().slice(0, 10),
+        requestDate: getBangkokDateString(),
         advisorName: form.advisorName,
         coAdvisorName: form.coAdvisorName,
         additionalNotes: form.additionalNotes,
@@ -184,6 +209,8 @@ export default function ExamSubmitPage() {
       };
       const response = await submitProject1DefenseRequest(token, project.projectId, payload);
       setRequest(response.data ?? null);
+    } catch (error) {
+      setErrorMessage("บันทึกคำขอสอบไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setSaving(false);
     }
@@ -196,6 +223,8 @@ export default function ExamSubmitPage() {
           <h1 className={styles.title}>คำขอสอบโครงงานพิเศษ 1 (คพ.02)</h1>
           <p className={styles.subtitle}>บันทึกข้อมูลคำขอและติดตามสถานะคำร้อง</p>
         </section>
+
+        {errorMessage ? <p className={styles.notice}>{errorMessage}</p> : null}
 
         <section className={styles.card}>
           <div className={styles.tagRow}>

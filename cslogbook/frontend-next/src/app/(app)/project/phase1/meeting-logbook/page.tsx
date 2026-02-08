@@ -62,6 +62,12 @@ function formatDateTime(value?: string | null) {
   return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
+function toLocalDateTimeString(value: string) {
+  const [datePart, timePart] = value.split("T");
+  if (!datePart || !timePart) return value;
+  return `${datePart}T${timePart}:00`;
+}
+
 export default function MeetingLogbookPage() {
   guardFeatureRoute(featureFlags.enableProjectPhase1Page, "/app");
   const { token } = useAuth();
@@ -70,6 +76,7 @@ export default function MeetingLogbookPage() {
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
   const [stats, setStats] = useState<MeetingStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState<"phase1" | "phase2">("phase1");
 
   const [meetingForm, setMeetingForm] = useState({
@@ -164,10 +171,13 @@ export default function MeetingLogbookPage() {
   const loadMeetings = useCallback(async () => {
     if (!token || !project?.projectId || isPostTopicLocked) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       const response = await listMeetings(token, project.projectId);
       setMeetings(Array.isArray(response.data) ? response.data : []);
       setStats((response as { stats?: MeetingStats }).stats ?? null);
+    } catch (error) {
+      setErrorMessage("โหลดข้อมูลการประชุมไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setLoading(false);
     }
@@ -191,42 +201,56 @@ export default function MeetingLogbookPage() {
 
   const handleCreateMeeting = async () => {
     if (!token || !project?.projectId || isPostTopicLocked) return;
-    await createMeeting(token, project.projectId, {
-      meetingTitle: meetingForm.meetingTitle,
-      meetingDate: meetingForm.meetingDate ? new Date(meetingForm.meetingDate).toISOString() : null,
-      meetingMethod: meetingForm.meetingMethod,
-      meetingLocation: meetingForm.meetingLocation || null,
-      meetingLink: meetingForm.meetingLink || null,
-      phase: meetingForm.phase,
-    });
-    setMeetingForm({
-      meetingTitle: "",
-      meetingDate: "",
-      meetingMethod: "onsite",
-      meetingLocation: "",
-      meetingLink: "",
-      phase: canAccessPhase2 ? activePhase : "phase1",
-    });
-    await loadMeetings();
+    if (!meetingForm.meetingDate) {
+      setErrorMessage("กรุณาระบุวันและเวลาการประชุม");
+      return;
+    }
+    setErrorMessage(null);
+    try {
+      await createMeeting(token, project.projectId, {
+        meetingTitle: meetingForm.meetingTitle,
+        meetingDate: meetingForm.meetingDate ? toLocalDateTimeString(meetingForm.meetingDate) : null,
+        meetingMethod: meetingForm.meetingMethod,
+        meetingLocation: meetingForm.meetingLocation || null,
+        meetingLink: meetingForm.meetingLink || null,
+        phase: meetingForm.phase,
+      });
+      setMeetingForm({
+        meetingTitle: "",
+        meetingDate: "",
+        meetingMethod: "onsite",
+        meetingLocation: "",
+        meetingLink: "",
+        phase: canAccessPhase2 ? activePhase : "phase1",
+      });
+      await loadMeetings();
+    } catch (error) {
+      setErrorMessage("สร้างการประชุมไม่สำเร็จ กรุณาลองใหม่");
+    }
   };
 
   const handleCreateLog = async () => {
     if (!token || !project?.projectId || isPostTopicLocked) return;
     if (!logForm.meetingId) return;
-    await createMeetingLog(token, project.projectId, Number(logForm.meetingId), {
-      discussionTopic: logForm.discussionTopic,
-      currentProgress: logForm.currentProgress,
-      problemsIssues: logForm.problemsIssues || null,
-      nextActionItems: logForm.nextActionItems,
-    });
-    setLogForm({
-      meetingId: "",
-      discussionTopic: "",
-      currentProgress: "",
-      problemsIssues: "",
-      nextActionItems: "",
-    });
-    await loadMeetings();
+    setErrorMessage(null);
+    try {
+      await createMeetingLog(token, project.projectId, Number(logForm.meetingId), {
+        discussionTopic: logForm.discussionTopic,
+        currentProgress: logForm.currentProgress,
+        problemsIssues: logForm.problemsIssues || null,
+        nextActionItems: logForm.nextActionItems,
+      });
+      setLogForm({
+        meetingId: "",
+        discussionTopic: "",
+        currentProgress: "",
+        problemsIssues: "",
+        nextActionItems: "",
+      });
+      await loadMeetings();
+    } catch (error) {
+      setErrorMessage("เพิ่มบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
+    }
   };
 
   const handleOpenEditMeeting = (meeting: MeetingRecord) => {
@@ -243,23 +267,33 @@ export default function MeetingLogbookPage() {
 
   const handleUpdateMeeting = async () => {
     if (!token || !project?.projectId || !editMeeting) return;
-    await updateMeeting(token, project.projectId, editMeeting.meetingId, {
-      meetingTitle: editMeetingForm.meetingTitle,
-      meetingDate: editMeetingForm.meetingDate ? new Date(editMeetingForm.meetingDate).toISOString() : null,
-      meetingMethod: editMeetingForm.meetingMethod,
-      meetingLocation: editMeetingForm.meetingLocation || null,
-      meetingLink: editMeetingForm.meetingLink || null,
-      phase: editMeetingForm.phase,
-    });
-    setEditMeeting(null);
-    await loadMeetings();
+    setErrorMessage(null);
+    try {
+      await updateMeeting(token, project.projectId, editMeeting.meetingId, {
+        meetingTitle: editMeetingForm.meetingTitle,
+        meetingDate: editMeetingForm.meetingDate ? toLocalDateTimeString(editMeetingForm.meetingDate) : null,
+        meetingMethod: editMeetingForm.meetingMethod,
+        meetingLocation: editMeetingForm.meetingLocation || null,
+        meetingLink: editMeetingForm.meetingLink || null,
+        phase: editMeetingForm.phase,
+      });
+      setEditMeeting(null);
+      await loadMeetings();
+    } catch (error) {
+      setErrorMessage("อัปเดตการประชุมไม่สำเร็จ กรุณาลองใหม่");
+    }
   };
 
   const handleDeleteMeeting = async (meetingId: number) => {
     if (!token || !project?.projectId) return;
     if (!window.confirm("ยืนยันลบการประชุมนี้?")) return;
-    await deleteMeeting(token, project.projectId, meetingId);
-    await loadMeetings();
+    setErrorMessage(null);
+    try {
+      await deleteMeeting(token, project.projectId, meetingId);
+      await loadMeetings();
+    } catch (error) {
+      setErrorMessage("ลบการประชุมไม่สำเร็จ กรุณาลองใหม่");
+    }
   };
 
   const handleOpenEditLog = (meetingId: number, log: MeetingLogRecord) => {
@@ -275,22 +309,32 @@ export default function MeetingLogbookPage() {
 
   const handleUpdateLog = async () => {
     if (!token || !project?.projectId || !editLog || !editLogMeetingId) return;
-    await updateMeetingLog(token, project.projectId, editLogMeetingId, editLog.logId, {
-      discussionTopic: editLogForm.discussionTopic,
-      currentProgress: editLogForm.currentProgress,
-      problemsIssues: editLogForm.problemsIssues || null,
-      nextActionItems: editLogForm.nextActionItems,
-    });
-    setEditLog(null);
-    setEditLogMeetingId(null);
-    await loadMeetings();
+    setErrorMessage(null);
+    try {
+      await updateMeetingLog(token, project.projectId, editLogMeetingId, editLog.logId, {
+        discussionTopic: editLogForm.discussionTopic,
+        currentProgress: editLogForm.currentProgress,
+        problemsIssues: editLogForm.problemsIssues || null,
+        nextActionItems: editLogForm.nextActionItems,
+      });
+      setEditLog(null);
+      setEditLogMeetingId(null);
+      await loadMeetings();
+    } catch (error) {
+      setErrorMessage("อัปเดตบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
+    }
   };
 
   const handleDeleteLog = async (meetingId: number, logId: number) => {
     if (!token || !project?.projectId) return;
     if (!window.confirm("ยืนยันลบบันทึกนี้?")) return;
-    await deleteMeetingLog(token, project.projectId, meetingId, logId);
-    await loadMeetings();
+    setErrorMessage(null);
+    try {
+      await deleteMeetingLog(token, project.projectId, meetingId, logId);
+      await loadMeetings();
+    } catch (error) {
+      setErrorMessage("ลบบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
+    }
   };
 
   return (
@@ -300,6 +344,8 @@ export default function MeetingLogbookPage() {
           <h1 className={styles.title}>บันทึกการพบอาจารย์</h1>
           <p className={styles.subtitle}>จัดการการประชุมและบันทึก log การพบอาจารย์</p>
         </section>
+
+        {errorMessage ? <p className={styles.notice}>{errorMessage}</p> : null}
 
         {!project ? <div className={styles.notice}>ยังไม่มีโครงงานในระบบ</div> : null}
 
