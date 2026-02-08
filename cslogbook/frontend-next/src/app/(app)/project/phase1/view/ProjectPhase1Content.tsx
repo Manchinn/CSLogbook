@@ -10,10 +10,23 @@ import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDeadlineCalendar } from "@/hooks/useStudentDeadlineCalendar";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
 import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
+import { acknowledgeTopicExamResult } from "@/lib/services/studentService";
 import {
-  acknowledgeTopicExamResult,
-  type StudentDeadlineDetail,
-} from "@/lib/services/studentService";
+  extractDeadlineKeywords,
+  getDeadlineBaseTime,
+  getDeadlineSortTime,
+  parseDateValue,
+} from "@/lib/project/deadlineUtils";
+import { phase1Steps, phase2Steps, type ProjectStep } from "./projectPhase1Steps";
+import {
+  AcknowledgeModal,
+  AcknowledgeNotice,
+  EligibilityNotices,
+  PhaseStepsGrid,
+  ProjectLockNotices,
+  ProjectOverviewPanels,
+  SummaryCards,
+} from "./ProjectPhase1Sections";
 import styles from "./phase1.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -32,153 +45,6 @@ function formatThaiDate(value?: string | null) {
   if (Number.isNaN(d.getTime())) return "-";
   return thaiDateFormatter.format(d);
 }
-
-function parseDateValue(value?: string | null) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
-}
-
-function getDeadlineBaseTime(deadline: StudentDeadlineDetail) {
-  if (deadline.deadlineAt) return parseDateValue(deadline.deadlineAt);
-  if (deadline.deadlineDate) {
-    const time = deadline.deadlineTime ?? "00:00:00";
-    return parseDateValue(`${deadline.deadlineDate}T${time}`);
-  }
-  return null;
-}
-
-function getDeadlineSortTime(deadline: StudentDeadlineDetail) {
-  const effective = parseDateValue(deadline.effectiveDeadlineAt ?? null);
-  const base = effective ?? getDeadlineBaseTime(deadline);
-  return base ? base.getTime() : Number.POSITIVE_INFINITY;
-}
-
-function extractDeadlineKeywords(text: string) {
-  return text
-    .replace(/วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.|\(|\)/g, " ")
-    .split(/\s+/)
-    .filter((word) => word.length > 1)
-    .map((word) => word.toLowerCase());
-}
-
-
-type ProjectStep = {
-  key: string;
-  phase: "phase1" | "phase2";
-  phaseLabel?: string | null;
-  title: string;
-  desc: string;
-  icon: string;
-  implemented: boolean;
-  comingSoon?: boolean;
-  requiresPostTopicUnlock?: boolean;
-  requiresPhase2Unlock?: boolean;
-  target?: string | null;
-  deadlineName?: string | null;
-  relatedTo?: string | null;
-};
-
-const phase1Steps: ProjectStep[] = [
-  {
-    key: "topic-submit",
-    phase: "phase1",
-    phaseLabel: "โครงงานพิเศษ 1",
-    title: "เสนอหัวข้อโครงงานพิเศษ",
-    desc: "ส่งหัวข้อและข้อมูลโครงงานเพื่อเข้าสู่ขั้นตอนถัดไป",
-    icon: "KP01",
-    implemented: true,
-    target: "/project/phase1/topic-submit",
-    deadlineName: "ส่งหัวข้อโครงงานพิเศษ 1",
-    relatedTo: "project1",
-  },
-  {
-    key: "topic-exam",
-    phase: "phase1",
-    phaseLabel: "โครงงานพิเศษ 1",
-    title: "ติดตามผลสอบหัวข้อ",
-    desc: "ดูตารางสอบและสถานะผลสอบหัวข้อ",
-    icon: "EXM",
-    implemented: true,
-    target: "/project/phase1/topic-exam",
-  },
-  {
-    key: "proposal-revision",
-    phase: "phase1",
-    phaseLabel: "โครงงานพิเศษ 1",
-    title: "อัปโหลด Proposal ฉบับแก้ไข",
-    desc: "ส่งเอกสาร Proposal ตามข้อเสนอแนะ",
-    icon: "REV",
-    implemented: true,
-    requiresPostTopicUnlock: true,
-    target: "/project/phase1/proposal-revision",
-  },
-  {
-    key: "meeting-logbook",
-    phase: "phase1",
-    phaseLabel: "โครงงานพิเศษ 1",
-    title: "บันทึกการพบอาจารย์",
-    desc: "จองและบันทึกการประชุม พร้อมส่งอีเมลแจ้งเตือน",
-    icon: "LOG",
-    implemented: true,
-    requiresPostTopicUnlock: true,
-    target: "/project/phase1/meeting-logbook",
-  },
-  {
-    key: "exam-submit",
-    phase: "phase1",
-    phaseLabel: "โครงงานพิเศษ 1",
-    title: "ส่งเอกสารสอบ",
-    desc: "ส่งคำขอสอบ คพ.02 และเอกสารประกอบการสอบ",
-    icon: "KP02",
-    implemented: true,
-    requiresPostTopicUnlock: true,
-    target: "/project/phase1/exam-submit",
-    deadlineName: "ส่งคำร้องขอสอบ (คพ.02)",
-    relatedTo: "project1",
-  },
-];
-
-const phase2Steps: ProjectStep[] = [
-  {
-    key: "phase2-overview",
-    phase: "phase2",
-    phaseLabel: "ภาพรวม",
-    title: "โครงงานพิเศษ & ปริญญานิพนธ์ – ภาพรวม",
-    desc: "ติดตามสถานะและไทม์ไลน์โครงงานพิเศษ 2",
-    icon: "OVR",
-    implemented: true,
-    requiresPhase2Unlock: true,
-    target: "/project/phase2",
-  },
-  {
-    key: "system-test",
-    phase: "phase2",
-    phaseLabel: "โครงงานพิเศษ 2",
-    title: "ขอทดสอบระบบ 30 วัน",
-    desc: "ส่งคำขอทดสอบระบบและติดตามสถานะอนุมัติ",
-    icon: "TEST",
-    implemented: true,
-    requiresPhase2Unlock: true,
-    target: "/project/phase2/system-test",
-    deadlineName: "ยื่นคำขอทดสอบระบบ",
-    relatedTo: "project2",
-  },
-  {
-    key: "thesis-defense-request",
-    phase: "phase2",
-    phaseLabel: "โครงงานพิเศษ 2",
-    title: "ยื่นคำขอสอบ คพ.03",
-    desc: "ส่งคำขอสอบโครงงานพิเศษ 2 พร้อมหลักฐานสำคัญ",
-    icon: "KP03",
-    implemented: true,
-    requiresPhase2Unlock: true,
-    target: "/project/phase2/thesis-defense",
-    deadlineName: "ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)",
-    relatedTo: "project2",
-  },
-];
 
 type ProjectPhase1ContentProps = Record<string, never>;
 
@@ -776,270 +642,50 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         </div>
       </header>
 
-      <section className={styles.grid}>
-        {cards.map((card) => (
-          <article key={card.label} className={styles.card}>
-            <p className={styles.cardLabel}>{card.label}</p>
-            <p className={styles.cardValue}>{card.value}</p>
-            <p className={styles.cardHint}>{card.hint}</p>
-          </article>
-        ))}
-      </section>
+      <SummaryCards cards={cards} />
 
-      {eligibilityLoading ? (
-        <section className={styles.notice}>
-          <p className={styles.noticeTitle}>กำลังตรวจสอบสิทธิ์โครงงานของคุณ</p>
-          <p className={styles.noticeBody}>ระบบกำลังตรวจสอบสิทธิ์และข้อกำหนดล่าสุด</p>
-        </section>
-      ) : null}
+      <EligibilityNotices
+        eligibilityLoading={eligibilityLoading}
+        canAccessProject={canAccessProject}
+        projectAccessReason={projectAccessReason}
+        eligibilitySnapshot={eligibilitySnapshot}
+      />
 
-      {!eligibilityLoading && !canAccessProject ? (
-        <section className={styles.notice}>
-          <p className={styles.noticeTitle}>ยังไม่สามารถใช้งานโครงงานพิเศษ</p>
-          <p className={styles.noticeBody}>ตรวจสอบสถานะล่าสุดและเตรียมข้อมูลให้พร้อม</p>
-          {projectAccessReason ? (
-            <p className={styles.noticeReason}>{projectAccessReason}</p>
-          ) : null}
-        </section>
-      ) : null}
+      <AcknowledgeNotice
+        showAck={showAck}
+        ackLoading={ackLoading}
+        examFailReason={projectDetailData?.examFailReason}
+        onOpen={() => setAckModalOpen(true)}
+      />
 
-      {eligibilitySnapshot ? (
-        <section className={styles.notice}>
-          <p className={styles.noticeTitle}>สรุปคุณสมบัติ</p>
-          <dl className={styles.metaGrid}>
-            <div>
-              <dt>หน่วยกิตรวม</dt>
-              <dd>
-                {eligibilitySnapshot.currentCredits}
-                {eligibilitySnapshot.requiredCredits ? ` / ${eligibilitySnapshot.requiredCredits}` : ""}
-              </dd>
-            </div>
-            <div>
-              <dt>หน่วยกิตภาควิชา</dt>
-              <dd>
-                {eligibilitySnapshot.currentMajorCredits}
-                {eligibilitySnapshot.requiredMajorCredits ? ` / ${eligibilitySnapshot.requiredMajorCredits}` : ""}
-              </dd>
-            </div>
-            <div>
-              <dt>สิทธิ์ลงทะเบียน</dt>
-              <dd>{eligibilitySnapshot.canRegister ? "พร้อม" : "ยังไม่พร้อม"}</dd>
-            </div>
-          </dl>
-        </section>
-      ) : null}
+      <ProjectLockNotices
+        projectExists={Boolean(project)}
+        postTopicLockReasons={postTopicLockReasons}
+        isProjectCancelled={isProjectCancelled}
+        onBackToDashboard={() => router.push("/dashboard/student")}
+      />
 
-      {showAck ? (
-        <section className={styles.noticeDanger}>
-          <p className={styles.noticeTitle}>ผลสอบหัวข้อ: ไม่ผ่าน</p>
-          <p className={styles.noticeBody}>คุณต้องรับทราบผลเพื่อให้ระบบเก็บหัวข้อนี้</p>
-          {projectDetailData?.examFailReason ? (
-            <p className={styles.noticeReason}>เหตุผล: {projectDetailData.examFailReason}</p>
-          ) : null}
-          <div className={styles.noticeActions}>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => setAckModalOpen(true)}
-              disabled={ackLoading}
-            >
-              {ackLoading ? "กำลังบันทึก..." : "รับทราบผล"}
-            </button>
-          </div>
-        </section>
-      ) : null}
+      <PhaseStepsGrid
+        showPhaseContent={showPhaseContent}
+        activePhaseTab={activePhaseTab}
+        onTabChange={setActivePhaseTab}
+        visibleSteps={visibleSteps}
+        stepStatusMap={stepStatusMap}
+        getStepDeadlineStatus={getStepDeadlineStatus}
+        buildLockReasons={buildLockReasons}
+        onOpenStep={handleOpen}
+      />
 
-      {project && postTopicLockReasons.length > 0 ? (
-        <section className={styles.noticeWarning}>
-          <p className={styles.noticeTitle}>ขั้นตอนหลังสอบหัวข้อยังไม่พร้อมใช้งาน</p>
-          <ul className={styles.noticeList}>
-            {postTopicLockReasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {isProjectCancelled ? (
-        <section className={styles.noticeDanger}>
-          <p className={styles.noticeTitle}>โครงงานนี้ถูกยกเลิกแล้ว</p>
-          <p className={styles.noticeBody}>กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่</p>
-          <div className={styles.noticeActions}>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => router.push("/dashboard/student")}
-            >
-              กลับไปหน้าแรก
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {showPhaseContent ? (
-        <section className={styles.stepGrid}>
-          <div className={styles.tabs}>
-            <button
-              type="button"
-              className={`${styles.tabButton} ${activePhaseTab === "all" ? styles.tabButtonActive : ""}`}
-              onClick={() => setActivePhaseTab("all")}
-            >
-              ทั้งหมด
-            </button>
-            <button
-              type="button"
-              className={`${styles.tabButton} ${activePhaseTab === "phase1" ? styles.tabButtonActive : ""}`}
-              onClick={() => setActivePhaseTab("phase1")}
-            >
-              โครงงานพิเศษ 1
-            </button>
-            <button
-              type="button"
-              className={`${styles.tabButton} ${activePhaseTab === "phase2" ? styles.tabButtonActive : ""}`}
-              onClick={() => setActivePhaseTab("phase2")}
-            >
-              โครงงานพิเศษ 2
-            </button>
-          </div>
-          {visibleSteps.map((step) => {
-            const deadlineStatus = getStepDeadlineStatus(step);
-            const lockReasons = buildLockReasons(step, deadlineStatus);
-            const isDisabled = !step.implemented || lockReasons.length > 0;
-            const status = stepStatusMap[step.key];
-            return (
-              <article
-                key={step.key}
-                className={`${styles.stepCard} ${isDisabled ? styles.stepCardDisabled : ""}`}
-              >
-                <button
-                  type="button"
-                  className={styles.stepButton}
-                  onClick={() => handleOpen(step, lockReasons)}
-                  disabled={isDisabled}
-                >
-                  <div className={styles.stepHeader}>
-                    <span className={styles.stepIcon}>{step.icon}</span>
-                    <div>
-                      <p className={styles.stepTitle}>{step.title}</p>
-                      <p className={styles.stepDesc}>{step.desc}</p>
-                    </div>
-                  </div>
-                  <div className={styles.stepTags}>
-                    {step.phaseLabel ? (
-                      <span className={`${styles.tag} ${step.phase === "phase2" ? styles.tagPhase2 : styles.tagPhase1}`}>
-                        {step.phaseLabel}
-                      </span>
-                    ) : null}
-                    {!step.implemented ? (
-                      <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
-                    ) : lockReasons.length > 0 ? (
-                      <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
-                    ) : status ? (
-                      <span
-                        className={`${styles.tag} ${
-                          status.tone === "success"
-                            ? styles.tagSuccess
-                            : status.tone === "danger"
-                              ? styles.tagDanger
-                              : status.tone === "warning"
-                                ? styles.tagWarning
-                                : status.tone === "info"
-                                  ? styles.tagInfo
-                                  : styles.tagMuted
-                        }`}
-                      >
-                        {status.label}
-                      </span>
-                    ) : null}
-                    {deadlineStatus.isOverdue ? (
-                      <span
-                        className={`${styles.tag} ${
-                          deadlineStatus.allowLate ? styles.tagWarning : styles.tagDanger
-                        }`}
-                      >
-                        {deadlineStatus.allowLate ? "เกินกำหนด (ส่งได้)" : "เกินกำหนด"}
-                      </span>
-                    ) : null}
-                    {step.comingSoon && !step.implemented ? (
-                      <span className={`${styles.tag} ${styles.tagMuted}`}>Coming Soon</span>
-                    ) : null}
-                  </div>
-                  {lockReasons.length > 0 ? (
-                    <p className={styles.stepHint}>{lockReasons.join(" • ")}</p>
-                  ) : null}
-                </button>
-              </article>
-            );
-          })}
-        </section>
-      ) : null}
-
-      {showPhaseContent ? (
-        <section className={styles.split}>
-        <article className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <p className={styles.panelKicker}>รายละเอียดโครงงาน</p>
-              <h2 className={styles.panelTitle}>{project?.projectNameTh || project?.projectNameEn || "ยังไม่ตั้งชื่อ"}</h2>
-            </div>
-          </div>
-
-          {projectError ? <p className={styles.error}>โหลดข้อมูลโครงงานไม่สำเร็จ</p> : null}
-          {projectLoading || projectDetailLoading ? <div className={styles.skeleton} /> : null}
-
-          {project ? (
-            <dl className={styles.metaGrid}>
-              <div>
-                <dt>ชื่อ (EN)</dt>
-                <dd>{project.projectNameEn || "-"}</dd>
-              </div>
-              <div>
-                <dt>ภาคการศึกษา</dt>
-                <dd>
-                  {project.academicYear ?? "-"}/{project.semester ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt>อาจารย์ที่ปรึกษา</dt>
-                <dd>{project.advisorId ? `ID ${project.advisorId}` : "ยังไม่ระบุ"}</dd>
-              </div>
-              <div>
-                <dt>อัปเดตล่าสุด</dt>
-                <dd>{workflow?.lastActivityAt ? formatDate(workflow.lastActivityAt) : "-"}</dd>
-              </div>
-            </dl>
-          ) : (
-            !projectLoading && <p className={styles.cardHint}>ยังไม่มีโครงงานในระบบ</p>
-          )}
-        </article>
-
-        <article className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <p className={styles.panelKicker}>เดดไลน์</p>
-              <h2 className={styles.panelTitle}>กำหนดส่งที่เกี่ยวข้อง</h2>
-            </div>
-          </div>
-          {upcomingDeadlines.length === 0 ? (
-            <p className={styles.cardHint}>ยังไม่พบกำหนดส่งที่เกี่ยวข้องใน 30 วัน</p>
-          ) : (
-            <ul className={styles.deadlineList}>
-              {upcomingDeadlines.map((deadline) => (
-                <li key={deadline.id} className={styles.deadlineItem}>
-                  <div>
-                    <p className={styles.deadlineName}>{deadline.name}</p>
-                    <p className={styles.deadlineMeta}>
-                      {deadline.relatedTo ?? "-"} • เหลือ {deadline.daysLeft ?? "-"} วัน
-                    </p>
-                  </div>
-                  <span className={styles.deadlineDate}>{formatDate(deadline.deadlineAt ?? deadline.deadlineDate)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </article>
-        </section>
-      ) : null}
+      <ProjectOverviewPanels
+        showPhaseContent={showPhaseContent}
+        project={project}
+        workflow={workflow}
+        projectError={Boolean(projectError)}
+        projectLoading={projectLoading}
+        projectDetailLoading={projectDetailLoading}
+        upcomingDeadlines={upcomingDeadlines}
+        formatDate={formatDate}
+      />
 
       {showPhaseContent ? (
         <WorkflowTimeline
@@ -1051,39 +697,13 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         />
       ) : null}
 
-      {ackModalOpen ? (
-        <div className={styles.modalOverlay} role="presentation">
-          <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="ack-title">
-            <div className={styles.modalHeader}>
-              <h2 id="ack-title" className={styles.modalTitle}>ยืนยันการรับทราบผลสอบไม่ผ่าน</h2>
-            </div>
-            <div className={styles.modalBody}>
-              <p>เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร และไม่สามารถย้อนกลับได้</p>
-              {projectDetailData?.examFailReason ? (
-                <p className={styles.modalHint}>เหตุผล: {projectDetailData.examFailReason}</p>
-              ) : null}
-            </div>
-            <div className={styles.modalActions}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => setAckModalOpen(false)}
-                disabled={ackLoading}
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                className={styles.dangerButton}
-                onClick={handleAcknowledge}
-                disabled={ackLoading}
-              >
-                {ackLoading ? "กำลังบันทึก..." : "ยืนยันรับทราบ"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <AcknowledgeModal
+        ackModalOpen={ackModalOpen}
+        ackLoading={ackLoading}
+        examFailReason={projectDetailData?.examFailReason}
+        onClose={() => setAckModalOpen(false)}
+        onConfirm={handleAcknowledge}
+      />
     </div>
   );
 }

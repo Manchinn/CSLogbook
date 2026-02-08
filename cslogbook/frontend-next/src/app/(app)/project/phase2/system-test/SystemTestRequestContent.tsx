@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
 import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
+import { getPhase2GateReasons } from "@/lib/project/phase2Gate";
 import {
   getSystemTestRequest,
   submitSystemTestRequest,
@@ -58,88 +59,10 @@ export default function SystemTestRequestContent() {
   const queriesEnabled = hydrated && Boolean(token);
   const { data: project } = useStudentProjectDetail(token, queriesEnabled);
   const { data: eligibility } = useStudentEligibility(token, queriesEnabled);
-
-  const academicSettings = eligibility?.academicSettings ?? null;
-  const currentSemester =
-    academicSettings?.currentSemester !== undefined && academicSettings?.currentSemester !== null
-      ? Number(academicSettings.currentSemester)
-      : null;
-
-  const allowedPhase2Semesters = useMemo(() => {
-    const rawSemesters = eligibility?.requirements?.project?.allowedSemesters;
-    if (!rawSemesters) return null;
-
-    const normalize = (value: unknown) => {
-      if (value === null || value === undefined) return [];
-      if (Array.isArray(value)) return value;
-      if (typeof value === "object") return Object.values(value as Record<string, unknown>).flat();
-      if (typeof value === "string") {
-        try {
-          const parsed = JSON.parse(value);
-          if (Array.isArray(parsed)) return parsed;
-          if (typeof parsed === "object" && parsed !== null) {
-            return Object.values(parsed as Record<string, unknown>).flat();
-          }
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    };
-
-    return normalize(rawSemesters)
-      .map((item) => Number(item))
-      .filter((semester) => Number.isInteger(semester));
-  }, [eligibility?.requirements?.project?.allowedSemesters]);
-
-  const projectRegistrationStartDate = useMemo(() => {
-    const registration = academicSettings?.projectRegistrationPeriod ?? null;
-    if (!registration) return null;
-    if (typeof registration === "string") {
-      try {
-        const parsed = JSON.parse(registration);
-        return parsed?.startDate ?? null;
-      } catch {
-        return null;
-      }
-    }
-    if (typeof registration === "object") {
-      const value = registration as { startDate?: string | null };
-      return value.startDate ?? null;
-    }
-    return null;
-  }, [academicSettings?.projectRegistrationPeriod]);
-
-  const phase2GateReasons = useMemo(() => {
-    if (!project) return ["ยังไม่มีข้อมูลโครงงาน"];
-    const reasons: string[] = [];
-    if (project.examResult !== "passed") {
-      reasons.push("ผลสอบหัวข้อยังไม่ผ่าน");
-    }
-    if (!project.status || !["in_progress", "completed"].includes(project.status)) {
-      reasons.push("สถานะโครงงานยังไม่อยู่ในขั้น \"กำลังดำเนินการ\"");
-    }
-
-    if (allowedPhase2Semesters && allowedPhase2Semesters.length > 0 && typeof currentSemester === "number") {
-      if (!allowedPhase2Semesters.includes(currentSemester)) {
-        reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบโครงงานพิเศษ 2`);
-      }
-    }
-
-    if (projectRegistrationStartDate) {
-      const startDate = new Date(projectRegistrationStartDate);
-      if (!Number.isNaN(startDate.getTime()) && new Date() < startDate) {
-        const displayDate = formatDate(projectRegistrationStartDate);
-        reasons.push(
-          displayDate !== "-"
-            ? `ภาคเรียนถัดไปจะเปิดให้ยื่นสอบโครงงานพิเศษ 2 ในวันที่ ${displayDate}`
-            : "ภาคเรียนถัดไปยังไม่เปิดให้ยื่นสอบโครงงานพิเศษ 2"
-        );
-      }
-    }
-
-    return reasons;
-  }, [project, allowedPhase2Semesters, currentSemester, projectRegistrationStartDate]);
+  const phase2GateReasons = useMemo(
+    () => getPhase2GateReasons({ project, eligibility, formatDate }),
+    [project, eligibility]
+  );
 
   const loadRequest = useCallback(async () => {
     if (!token || !project?.projectId) return;
