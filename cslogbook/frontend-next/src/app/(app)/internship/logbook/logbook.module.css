@@ -329,12 +329,52 @@
   cursor: pointer;
 }
 
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .formCard {
   background: #ffffff;
   border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 16px 44px rgba(15, 23, 42, 0.12);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modalContent {
+  width: min(860px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.28);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.paginationInfo {
+  font-weight: 700;
+  color: var(--color-text-muted);
 }
 
 .formHeader {

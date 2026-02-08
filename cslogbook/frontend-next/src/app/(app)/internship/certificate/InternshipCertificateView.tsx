@@ -194,7 +194,7 @@ export default function InternshipCertificateView() {
         totalHours,
         approvedHours,
         evaluationStatus: evaluationDone ? "completed" : "pending",
-        summaryStatus: summaryDone ? "submitted" : "not_submitted",
+        summaryStatus: summaryDone ? "submitted" : "ignored",
       };
       const res = await submitRequest.mutateAsync(payload);
       setActionMessage(res?.message || "ส่งคำขอแล้ว");

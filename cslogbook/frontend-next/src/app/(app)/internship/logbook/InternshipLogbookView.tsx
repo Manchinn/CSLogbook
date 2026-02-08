@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
@@ -22,6 +22,7 @@ import { REQUIRED_INTERNSHIP_HOURS } from "@/lib/constants/internship";
 import styles from "./logbook.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
+const PAGE_SIZE = 10;
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -108,6 +109,8 @@ export default function InternshipLogbookView() {
   const sendEvaluationMutation = useSendEvaluationRequest(token, documentId);
 
   const [editingDate, setEditingDate] = useState<string | null>(null);
+  const timeInRef = useRef<HTMLInputElement | null>(null);
+  const [page, setPage] = useState(1);
   const [formState, setFormState] = useState({
     logTitle: "",
     workDescription: "",
@@ -216,6 +219,31 @@ export default function InternshipLogbookView() {
     });
   }, [entriesByDate]);
 
+  const handleCloseModal = useCallback(() => {
+    setEditingDate(null);
+    setFormError(null);
+    setFormSuccess(null);
+  }, []);
+
+  useEffect(() => {
+    if (!editingDate) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleCloseModal();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    const focusTimer = window.setTimeout(() => {
+      timeInRef.current?.focus();
+    }, 0);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+      window.clearTimeout(focusTimer);
+    };
+  }, [editingDate, handleCloseModal]);
+
   const handleTimeChange = useCallback((field: "timeIn" | "timeOut", value: string) => {
     setFormState((prev) => {
       const next = { ...prev, [field]: value };
@@ -295,6 +323,17 @@ export default function InternshipLogbookView() {
     () => approvedHours >= REQUIRED_INTERNSHIP_HOURS,
     [approvedHours]
   );
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const displayedRows = useMemo(() => {
+    const startIndex = (page - 1) * PAGE_SIZE;
+    return rows.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [page, rows]);
 
   return (
     <div className={styles.page}>
@@ -503,7 +542,7 @@ export default function InternshipLogbookView() {
                 <span>ชั่วโมง</span>
                 <span>การดำเนินการ</span>
               </div>
-              {rows.map((row) => (
+              {displayedRows.map((row) => (
                 <div key={row.date} className={styles.tableRow}>
                   <div>
                     <p className={styles.rowTitle}>{formatDate(row.date)}</p>
@@ -528,132 +567,181 @@ export default function InternshipLogbookView() {
                   </div>
                 </div>
               ))}
+              {rows.length > PAGE_SIZE ? (
+                <p className={styles.cardHint}>แสดง {PAGE_SIZE} วันต่อหน้า (ทั้งหมด {rows.length} วัน)</p>
+              ) : null}
               {rows.length === 0 && !loadingAny ? <p className={styles.cardHint}>ยังไม่มีช่วงวันที่ให้บันทึก</p> : null}
             </div>
+            {rows.length > PAGE_SIZE ? (
+              <div className={styles.pagination}>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => setPage(1)}
+                  disabled={page === 1}
+                >
+                  หน้าแรก
+                </button>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page === 1}
+                >
+                  ก่อนหน้า
+                </button>
+                <span className={styles.paginationInfo}>หน้า {page} / {totalPages}</span>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={page === totalPages}
+                >
+                  ถัดไป
+                </button>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => setPage(totalPages)}
+                  disabled={page === totalPages}
+                >
+                  ท้ายสุด
+                </button>
+              </div>
+            ) : null}
           </section>
 
           {editingDate ? (
-            <section className={styles.formCard}>
-              <div className={styles.formHeader}>
-                <div>
-                  <p className={styles.panelKicker}>บันทึก {formatDate(editingDate)}</p>
-                  <h3 className={styles.formTitle}>กรอกข้อมูลการฝึกงาน</h3>
-                  <p className={styles.formHint}>ระบบจะคำนวณชั่วโมงจากเวลาเข้า-ออกงานอัตโนมัติ</p>
+            <div className={styles.modalOverlay} onClick={handleCloseModal} role="presentation">
+              <div
+                className={styles.modalContent}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="logbook-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className={styles.formHeader}>
+                  <div>
+                    <p className={styles.panelKicker}>บันทึก {formatDate(editingDate)}</p>
+                    <h3 className={styles.formTitle} id="logbook-modal-title">กรอกข้อมูลการฝึกงาน</h3>
+                    <p className={styles.formHint}>ระบบจะคำนวณชั่วโมงจากเวลาเข้า-ออกงานอัตโนมัติ</p>
+                  </div>
+                  <div className={styles.calloutActions}>
+                    <button className={styles.secondaryButton} type="button" onClick={handleCloseModal}>
+                      ปิดแบบฟอร์ม
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.calloutActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={() => setEditingDate(null)}>
-                    ปิดแบบฟอร์ม
-                  </button>
-                </div>
+
+                <form className={styles.form} onSubmit={handleSubmit}>
+                  <div className={styles.gridTwo}>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="logbook-time-in">เวลาเข้างาน *</label>
+                      <input
+                        className={styles.input}
+                        id="logbook-time-in"
+                        type="time"
+                        ref={timeInRef}
+                        value={formState.timeIn}
+                        onChange={(e) => handleTimeChange("timeIn", e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="logbook-time-out">เวลาออกงาน *</label>
+                      <input
+                        className={styles.input}
+                        id="logbook-time-out"
+                        type="time"
+                        value={formState.timeOut}
+                        onChange={(e) => handleTimeChange("timeOut", e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="logbook-title">หัวข้อ / งานที่รับผิดชอบ *</label>
+                    <input
+                      className={styles.input}
+                      id="logbook-title"
+                      type="text"
+                      value={formState.logTitle}
+                      onChange={(e) => setFormState((prev) => ({ ...prev, logTitle: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="logbook-description">รายละเอียดงาน *</label>
+                    <textarea
+                      className={styles.textarea}
+                      id="logbook-description"
+                      value={formState.workDescription}
+                      onChange={(e) => setFormState((prev) => ({ ...prev, workDescription: e.target.value }))}
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="logbook-learning">สิ่งที่ได้เรียนรู้ *</label>
+                    <textarea
+                      className={styles.textarea}
+                      id="logbook-learning"
+                      value={formState.learningOutcome}
+                      onChange={(e) => setFormState((prev) => ({ ...prev, learningOutcome: e.target.value }))}
+                      rows={2}
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.gridTwo}>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="logbook-problems">ปัญหา/อุปสรรค</label>
+                      <textarea
+                        className={styles.textarea}
+                        id="logbook-problems"
+                        value={formState.problems}
+                        onChange={(e) => setFormState((prev) => ({ ...prev, problems: e.target.value }))}
+                        rows={2}
+                      />
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="logbook-solutions">แนวทางแก้ไข</label>
+                      <textarea
+                        className={styles.textarea}
+                        id="logbook-solutions"
+                        value={formState.solutions}
+                        onChange={(e) => setFormState((prev) => ({ ...prev, solutions: e.target.value }))}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="logbook-hours">ชั่วโมงที่ระบบคำนวณ</label>
+                    <input
+                      className={styles.input}
+                      id="logbook-hours"
+                      type="text"
+                      value={`${formatHours(formState.workHours)} ชม.`}
+                      readOnly
+                    />
+                  </div>
+
+                  {formError ? <p className={styles.error}>{formError}</p> : null}
+                  {formSuccess ? <p className={styles.success}>{formSuccess}</p> : null}
+
+                  <div className={styles.actions}>
+                    <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าแดชบอร์ด</Link>
+                    <button className={styles.primaryButton} type="submit" disabled={saveMutation.isPending || updateMutation.isPending}>
+                      {saveMutation.isPending || updateMutation.isPending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+                    </button>
+                  </div>
+                </form>
               </div>
-
-              <form className={styles.form} onSubmit={handleSubmit}>
-                <div className={styles.gridTwo}>
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-time-in">เวลาเข้างาน *</label>
-                    <input
-                      className={styles.input}
-                      id="logbook-time-in"
-                      type="time"
-                      value={formState.timeIn}
-                      onChange={(e) => handleTimeChange("timeIn", e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-time-out">เวลาออกงาน *</label>
-                    <input
-                      className={styles.input}
-                      id="logbook-time-out"
-                      type="time"
-                      value={formState.timeOut}
-                      onChange={(e) => handleTimeChange("timeOut", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="logbook-title">หัวข้อ / งานที่รับผิดชอบ *</label>
-                  <input
-                    className={styles.input}
-                    id="logbook-title"
-                    type="text"
-                    value={formState.logTitle}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, logTitle: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="logbook-description">รายละเอียดงาน *</label>
-                  <textarea
-                    className={styles.textarea}
-                    id="logbook-description"
-                    value={formState.workDescription}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, workDescription: e.target.value }))}
-                    rows={3}
-                    required
-                  />
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="logbook-learning">สิ่งที่ได้เรียนรู้ *</label>
-                  <textarea
-                    className={styles.textarea}
-                    id="logbook-learning"
-                    value={formState.learningOutcome}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, learningOutcome: e.target.value }))}
-                    rows={2}
-                    required
-                  />
-                </div>
-
-                <div className={styles.gridTwo}>
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-problems">ปัญหา/อุปสรรค</label>
-                    <textarea
-                      className={styles.textarea}
-                      id="logbook-problems"
-                      value={formState.problems}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, problems: e.target.value }))}
-                      rows={2}
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-solutions">แนวทางแก้ไข</label>
-                    <textarea
-                      className={styles.textarea}
-                      id="logbook-solutions"
-                      value={formState.solutions}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, solutions: e.target.value }))}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="logbook-hours">ชั่วโมงที่ระบบคำนวณ</label>
-                  <input
-                    className={styles.input}
-                    id="logbook-hours"
-                    type="text"
-                    value={`${formatHours(formState.workHours)} ชม.`}
-                    readOnly
-                  />
-                </div>
-
-                {formError ? <p className={styles.error}>{formError}</p> : null}
-                {formSuccess ? <p className={styles.success}>{formSuccess}</p> : null}
-
-                <div className={styles.actions}>
-                  <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าแดชบอร์ด</Link>
-                  <button className={styles.primaryButton} type="submit" disabled={saveMutation.isPending || updateMutation.isPending}>
-                    {saveMutation.isPending || updateMutation.isPending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-                  </button>
-                </div>
-              </form>
-            </section>
+            </div>
           ) : null}
         </>
       )}
