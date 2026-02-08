@@ -176,7 +176,7 @@ export default function MeetingLogbookPage() {
       const response = await listMeetings(token, project.projectId);
       setMeetings(Array.isArray(response.data) ? response.data : []);
       setStats((response as { stats?: MeetingStats }).stats ?? null);
-    } catch (error) {
+    } catch {
       setErrorMessage("โหลดข้อมูลการประชุมไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setLoading(false);
@@ -224,7 +224,7 @@ export default function MeetingLogbookPage() {
         phase: canAccessPhase2 ? activePhase : "phase1",
       });
       await loadMeetings();
-    } catch (error) {
+    } catch {
       setErrorMessage("สร้างการประชุมไม่สำเร็จ กรุณาลองใหม่");
     }
   };
@@ -248,7 +248,7 @@ export default function MeetingLogbookPage() {
         nextActionItems: "",
       });
       await loadMeetings();
-    } catch (error) {
+    } catch {
       setErrorMessage("เพิ่มบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
     }
   };
@@ -279,7 +279,7 @@ export default function MeetingLogbookPage() {
       });
       setEditMeeting(null);
       await loadMeetings();
-    } catch (error) {
+    } catch {
       setErrorMessage("อัปเดตการประชุมไม่สำเร็จ กรุณาลองใหม่");
     }
   };
@@ -291,7 +291,7 @@ export default function MeetingLogbookPage() {
     try {
       await deleteMeeting(token, project.projectId, meetingId);
       await loadMeetings();
-    } catch (error) {
+    } catch {
       setErrorMessage("ลบการประชุมไม่สำเร็จ กรุณาลองใหม่");
     }
   };
@@ -320,7 +320,7 @@ export default function MeetingLogbookPage() {
       setEditLog(null);
       setEditLogMeetingId(null);
       await loadMeetings();
-    } catch (error) {
+    } catch {
       setErrorMessage("อัปเดตบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
     }
   };
@@ -332,7 +332,7 @@ export default function MeetingLogbookPage() {
     try {
       await deleteMeetingLog(token, project.projectId, meetingId, logId);
       await loadMeetings();
-    } catch (error) {
+    } catch {
       setErrorMessage("ลบบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
     }
   };

@@ -325,15 +325,12 @@ export default function InternshipLogbookView() {
   );
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const clampedPage = Math.min(page, totalPages);
 
   const displayedRows = useMemo(() => {
-    const startIndex = (page - 1) * PAGE_SIZE;
+    const startIndex = (clampedPage - 1) * PAGE_SIZE;
     return rows.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [page, rows]);
+  }, [clampedPage, rows]);
 
   return (
     <div className={styles.page}>
@@ -578,24 +575,24 @@ export default function InternshipLogbookView() {
                   className={styles.secondaryButton}
                   type="button"
                   onClick={() => setPage(1)}
-                  disabled={page === 1}
+                  disabled={clampedPage === 1}
                 >
                   หน้าแรก
                 </button>
                 <button
                   className={styles.secondaryButton}
                   type="button"
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                  disabled={page === 1}
+                  onClick={() => setPage((prev) => Math.max(1, Math.min(totalPages, prev - 1)))}
+                  disabled={clampedPage === 1}
                 >
                   ก่อนหน้า
                 </button>
-                <span className={styles.paginationInfo}>หน้า {page} / {totalPages}</span>
+                <span className={styles.paginationInfo}>หน้า {clampedPage} / {totalPages}</span>
                 <button
                   className={styles.secondaryButton}
                   type="button"
-                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={page === totalPages}
+                  onClick={() => setPage((prev) => Math.min(totalPages, Math.max(1, prev + 1)))}
+                  disabled={clampedPage === totalPages}
                 >
                   ถัดไป
                 </button>
@@ -603,7 +600,7 @@ export default function InternshipLogbookView() {
                   className={styles.secondaryButton}
                   type="button"
                   onClick={() => setPage(totalPages)}
-                  disabled={page === totalPages}
+                  disabled={clampedPage === totalPages}
                 >
                   ท้ายสุด
                 </button>

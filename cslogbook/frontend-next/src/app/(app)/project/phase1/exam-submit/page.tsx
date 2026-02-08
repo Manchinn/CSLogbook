@@ -83,7 +83,7 @@ export default function ExamSubmitPage() {
             setStudents(payload.students as Array<Record<string, string>>);
           }
         }
-      } catch (error) {
+      } catch {
         setErrorMessage("โหลดข้อมูลคำขอสอบไม่สำเร็จ กรุณาลองใหม่");
       } finally {
         setLoadingRequest(false);
@@ -140,30 +140,6 @@ export default function ExamSubmitPage() {
     };
   }, [project?.meetingMetrics, project?.meetingMetricsPhase1, user?.studentId]);
 
-  if (!project) {
-    return (
-      <RoleGuard roles={["student"]}>
-        <div className={styles.notice}>ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้</div>
-      </RoleGuard>
-    );
-  }
-
-  const status = String(request?.status || "");
-  const meta = statusMeta[status] ?? statusMeta.default;
-  const statusClass =
-    meta.tone === "success"
-      ? styles.tagSuccess
-      : meta.tone === "warning"
-        ? styles.tagWarning
-        : meta.tone === "danger"
-          ? styles.tagDanger
-          : meta.tone === "info"
-            ? styles.tagInfo
-            : styles.tagDefault;
-  const formLocked = ["staff_verified", "scheduled", "completed"].includes(status);
-  const disabledSubmission =
-    ["completed", "archived", "failed"].includes(project.status ?? "") || !meetingRequirement.satisfied;
-
   const timelineItems = useMemo(() => {
     if (!request) return [] as Array<{ key: string; label: string; timestamp?: string | null; extra?: string } >;
     const items = [] as Array<{ key: string; label: string; timestamp?: string | null; extra?: string }>;
@@ -190,6 +166,30 @@ export default function ExamSubmitPage() {
 
   const advisorApprovals = Array.isArray(request?.advisorApprovals) ? request?.advisorApprovals : [];
 
+  if (!project) {
+    return (
+      <RoleGuard roles={["student"]}>
+        <div className={styles.notice}>ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้</div>
+      </RoleGuard>
+    );
+  }
+
+  const status = String(request?.status || "");
+  const meta = statusMeta[status] ?? statusMeta.default;
+  const statusClass =
+    meta.tone === "success"
+      ? styles.tagSuccess
+      : meta.tone === "warning"
+        ? styles.tagWarning
+        : meta.tone === "danger"
+          ? styles.tagDanger
+          : meta.tone === "info"
+            ? styles.tagInfo
+            : styles.tagDefault;
+  const formLocked = ["staff_verified", "scheduled", "completed"].includes(status);
+  const disabledSubmission =
+    ["completed", "archived", "failed"].includes(project.status ?? "") || !meetingRequirement.satisfied;
+
   const handleSubmit = async () => {
     if (!token || !project?.projectId) return;
     try {
@@ -209,7 +209,7 @@ export default function ExamSubmitPage() {
       };
       const response = await submitProject1DefenseRequest(token, project.projectId, payload);
       setRequest(response.data ?? null);
-    } catch (error) {
+    } catch {
       setErrorMessage("บันทึกคำขอสอบไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setSaving(false);

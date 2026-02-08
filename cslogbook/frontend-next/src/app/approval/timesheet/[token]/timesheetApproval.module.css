@@ -1,0 +1,248 @@
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+
+.page {
+  --ink: #111827;
+  --muted: #5b6b7c;
+  --line: #dbe3ee;
+  --accent: #1d4ed8;
+  --warn: #f59e0b;
+  --danger: #dc2626;
+  min-height: 100vh;
+  padding: 32px 24px 56px;
+  background: radial-gradient(circle at top, #f1f6ff 0%, #f8fafc 45%, #ffffff 100%);
+  font-family: "Sarabun", "Segoe UI", sans-serif;
+  color: var(--ink);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.kicker {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.title {
+  font-size: clamp(24px, 3vw, 36px);
+  margin: 0;
+}
+
+.lead {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 680px;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroMetaSecondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #ffffff;
+}
+
+.badgePositive {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #047857;
+}
+
+.badgeWarning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #b45309;
+}
+
+.badgeDanger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.badgeInfo {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+.badgeMuted {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.tableWrap {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 13px;
+}
+
+.table th {
+  background: #f8fafc;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.emptyCell {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.calloutDanger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.calloutInfo {
+  border-color: #bae6fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.form {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.radioGroup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.radioCard {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+  background: #f8fafc;
+}
+
+.radioCard input {
+  accent-color: var(--accent);
+}
+
+.radioSelected {
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+.fieldLabel {
+  font-weight: 600;
+}
+
+.textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: "Sarabun", "Segoe UI", sans-serif;
+}
+
+.error {
+  color: var(--danger);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.success {
+  color: #047857;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.primaryButton {
+  background: linear-gradient(120deg, #1d4ed8, #3b82f6);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primaryButton:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.25);
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 24px 16px 40px;
+  }
+
+  .table {
+    min-width: 640px;
+  }
+}
