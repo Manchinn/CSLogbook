@@ -53,3 +53,38 @@ export async function getAdminProjectStats(token: string) {
 
   return data;
 }
+
+export type UploadStudentResult = {
+  studentID?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  status?: "Added" | "Updated" | "Invalid" | "Error" | string;
+  errors?: string[];
+  error?: string;
+};
+
+export type UploadStudentSummary = {
+  total?: number;
+  added?: number;
+  updated?: number;
+  invalid?: number;
+  errors?: number;
+  fileError?: string;
+};
+
+export type UploadStudentResponse = {
+  success: boolean;
+  results?: UploadStudentResult[];
+  summary?: UploadStudentSummary;
+  message?: string;
+  error?: string;
+};
+
+export async function uploadStudentCSV(formData: FormData, token: string) {
+  return apiFetch<UploadStudentResponse>("/upload-csv", {
+    method: "POST",
+    body: formData,
+    token,
+  });
+}

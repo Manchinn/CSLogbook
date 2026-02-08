@@ -30,7 +30,17 @@ router.get('/verify-token', authenticateToken, (req, res) => {
         user: {
             userId: req.user.userId,
             role: req.user.role,
-            studentID: req.user.studentID
+            email: req.user.email,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            studentId: req.user.studentId,
+            studentCode: req.user.studentCode,
+            teacherId: req.user.teacherId,
+            teacherCode: req.user.teacherCode,
+            teacherType: req.user.teacherType,
+            canAccessTopicExam: req.user.canAccessTopicExam,
+            canExportProject1: req.user.canExportProject1,
+            isSystemAdmin: req.user.isSystemAdmin
         }
     });
 });

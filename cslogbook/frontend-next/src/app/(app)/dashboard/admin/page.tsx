@@ -1,15 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import { DashboardRoleView } from "../DashboardRoleView";
 import { AdminStatsWidget } from "@/components/dashboard/AdminStatsWidget";
 import { AdminProjectWorkflowWidget } from "@/components/dashboard/AdminProjectWorkflowWidget";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { featureFlags } from "@/lib/config/featureFlags";
+import styles from "./page.module.css";
 
-const stats = [
-  { label: "Active Students", value: "128" },
-  { label: "Pending Reviews", value: "24" },
-  { label: "Open Requests", value: "9" },
+const quickActions = [
+  {
+    key: "upload",
+    title: "อัปโหลดรายชื่อนักศึกษา",
+    description: "นำเข้าข้อมูลนักศึกษาแบบไฟล์",
+    href: "/admin/upload",
+  },
+  {
+    key: "internship-docs",
+    title: "เอกสารฝึกงาน",
+    description: "ตรวจสอบและจัดการคำร้อง",
+    href: "/admin/documents/internship",
+  },
 ];
 
 export default function AdminDashboardPage() {
@@ -18,8 +29,22 @@ export default function AdminDashboardPage() {
       <DashboardRoleView
         roleLabel="Admin"
         summary="ภาพรวมการจัดการเอกสารและ workflow ของทั้งระบบ"
-        stats={stats}
+        stats={[]}
       >
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>งานด่วนสำหรับผู้ดูแลระบบ</h2>
+          <div className={styles.actions}>
+            {quickActions.map((action) => (
+              <Link key={action.key} href={action.href} className={styles.actionCard}>
+                <div>
+                  <strong>{action.title}</strong>
+                  <p className={styles.actionMeta}>{action.description}</p>
+                </div>
+                <span className={styles.actionArrow}>→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
         <AdminStatsWidget enabled={featureFlags.enableAdminWidgetMigration} />
         <AdminProjectWorkflowWidget
           enabled={featureFlags.enableAdminProjectWorkflowWidget}

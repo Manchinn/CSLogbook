@@ -19,7 +19,10 @@ export function AdminStatsWidget({ enabled = true }: AdminStatsWidgetProps) {
     { label: "นักศึกษาทั้งหมด", value: data?.students.total ?? 0 },
     { label: "พร้อมฝึกงาน", value: data?.students.internshipEligible ?? 0 },
     { label: "พร้อมทำโครงงาน", value: data?.students.projectEligible ?? 0 },
-    { label: "เอกสารรอดำเนินการ", value: data?.documents.pending ?? 0 },
+    {
+      label: "เอกสารรอดำเนินการ",
+      value: `${data?.documents.pending ?? 0} / ${data?.documents.total ?? 0}`,
+    },
   ];
 
   return (
@@ -32,12 +35,14 @@ export function AdminStatsWidget({ enabled = true }: AdminStatsWidgetProps) {
       errorFallback={<p className={styles.error}>ไม่สามารถโหลด widget สถิติ admin ได้</p>}
     >
       <section>
-        <h2>Admin Widgets (migrated)</h2>
+        <h2>สถิติภาพรวมผู้ดูแลระบบ</h2>
         <div className={styles.grid}>
           {cards.map((card) => (
             <article key={card.label} className={styles.card}>
               <p className={styles.label}>{card.label}</p>
-              <p className={styles.value}>{card.value.toLocaleString()}</p>
+              <p className={styles.value}>
+                {typeof card.value === "number" ? card.value.toLocaleString() : card.value}
+              </p>
             </article>
           ))}
         </div>

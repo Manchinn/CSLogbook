@@ -3,33 +3,82 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeacherOverview } from "@/hooks/useTeacherOverview";
 import { useHydrated } from "@/hooks/useHydrated";
-import type { TeacherMeetingLogItem, TeacherDeadline, TeacherMeeting, TeacherQuickAction } from "@/lib/services/teacherService";
+import type {
+  TeacherDashboardData,
+  TeacherMeetingLogItem,
+  TeacherDeadline,
+  TeacherMeeting,
+  TeacherQuickAction,
+} from "@/lib/services/teacherService";
 import { WidgetState } from "@/components/dashboard/WidgetState";
 import styles from "./TeacherOverviewWidget.module.css";
 
-export function TeacherOverviewWidget({ enabled }: { enabled: boolean }) {
+type TeacherOverviewWidgetProps = {
+  enabled: boolean;
+  data?: TeacherDashboardData | null;
+  isLoading?: boolean;
+  error?: unknown;
+  skipFetch?: boolean;
+};
+
+export function TeacherOverviewWidget({
+  enabled,
+  data,
+  isLoading,
+  error,
+  skipFetch = false,
+}: TeacherOverviewWidgetProps) {
   const hydrated = useHydrated();
   const { token } = useAuth();
-  const { data, isLoading, error } = useTeacherOverview(token, enabled && hydrated);
+  const shouldFetch = enabled && hydrated && !skipFetch && !data;
+  const { data: fetchedData, isLoading: fetchedLoading, error: fetchedError } = useTeacherOverview(
+    token,
+    shouldFetch
+  );
 
-  const pendingMeetingItems: TeacherMeetingLogItem[] = data?.queues.meetingLogs.items.slice(0, 3) ?? [];
-  const deadlines: TeacherDeadline[] = data?.deadlines.slice(0, 3) ?? [];
-  const upcomingMeetings: TeacherMeeting[] = data?.upcomingMeetings.slice(0, 3) ?? [];
-  const quickActions: TeacherQuickAction[] = data?.quickActions ?? [];
+  const resolvedData = data ?? fetchedData;
+  const resolvedLoading = data ? false : fetchedLoading;
+  const resolvedError = data ? null : fetchedError;
+
+  const pendingMeetingItems: TeacherMeetingLogItem[] = resolvedData?.queues.meetingLogs.items.slice(0, 3) ?? [];
+  const deadlines: TeacherDeadline[] = resolvedData?.deadlines.slice(0, 3) ?? [];
+  const upcomingMeetings: TeacherMeeting[] = resolvedData?.upcomingMeetings.slice(0, 3) ?? [];
+  const quickActions: TeacherQuickAction[] = resolvedData?.quickActions ?? [];
+  const fallbackActions: TeacherQuickAction[] = [
+    {
+      key: "meetingApprovals",
+      label: "บันทึกการพบ",
+      description: "ตรวจสอบบันทึกการพบจากนักศึกษา",
+      path: "/teacher/meeting-approvals",
+    },
+    {
+      key: "documentApprovals",
+      label: "เอกสารที่รออนุมัติ",
+      description: "ติดตามคำขอและไฟล์ที่รออนุมัติ",
+      path: "/approve-documents",
+    },
+    {
+      key: "deadlines",
+      label: "กำหนดส่งสำคัญ",
+      description: "ดูปฏิทินเส้นตายที่เกี่ยวข้อง",
+      path: "/teacher/deadlines/calendar",
+    },
+  ];
+  const resolvedActions = quickActions.length > 0 ? quickActions : fallbackActions;
 
   const cards = [
-    { label: "นักศึกษาทั้งหมด", value: data?.advisees.total ?? 0 },
-    { label: "ฝึกงานกำลังดำเนินการ", value: data?.advisees.internshipInProgress ?? 0 },
-    { label: "โครงงานกำลังดำเนินการ", value: data?.advisees.projectInProgress ?? 0 },
-    { label: "โปรเจกต์ที่ active", value: data?.projects.active ?? 0 },
+    { label: "นักศึกษาทั้งหมด", value: resolvedData?.advisees.total ?? 0 },
+    { label: "ฝึกงานกำลังดำเนินการ", value: resolvedData?.advisees.internshipInProgress ?? 0 },
+    { label: "โครงงานกำลังดำเนินการ", value: resolvedData?.advisees.projectInProgress ?? 0 },
+    { label: "โปรเจกต์ที่ active", value: resolvedData?.projects.active ?? 0 },
   ];
 
   return (
     <WidgetState
       enabled={enabled}
       hydrated={hydrated}
-      isLoading={isLoading}
-      error={error}
+      isLoading={isLoading ?? resolvedLoading}
+      error={error ?? resolvedError}
       loadingFallback={<p>Loading teacher overview...</p>}
       errorFallback={<p className={styles.error}>ไม่สามารถโหลด teacher widget ได้</p>}
     >
@@ -37,12 +86,14 @@ export function TeacherOverviewWidget({ enabled }: { enabled: boolean }) {
         <header className={styles.header}>
           <div>
             <p className={styles.eyebrow}>Advisor Overview</p>
-            <h2 className={styles.title}>{data?.teacher.name || "Teacher Dashboard"}</h2>
-            <p className={styles.subtitle}>{data?.teacher.position || "อาจารย์"}</p>
+            <h2 className={styles.title}>{resolvedData?.teacher.name || "Teacher Dashboard"}</h2>
+            <p className={styles.subtitle}>{resolvedData?.teacher.position || "อาจารย์"}</p>
           </div>
           <div className={styles.badges}>
-            <span className={styles.chip}>บันทึกการพบที่รอ: {data?.queues.meetingLogs.pending ?? 0}</span>
-            <span className={styles.chip}>เอกสารรอ: {data?.queues.documents.pending ?? 0}</span>
+            <span className={styles.chip}>
+              บันทึกการพบที่รอ: {resolvedData?.queues.meetingLogs.pending ?? 0}
+            </span>
+            <span className={styles.chip}>เอกสารรอ: {resolvedData?.queues.documents.pending ?? 0}</span>
           </div>
         </header>
 
@@ -59,7 +110,7 @@ export function TeacherOverviewWidget({ enabled }: { enabled: boolean }) {
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
               <p className={styles.panelTitle}>บันทึกการพบที่รออนุมัติ</p>
-              <span className={styles.count}>{data?.queues.meetingLogs.pending ?? 0}</span>
+              <span className={styles.count}>{resolvedData?.queues.meetingLogs.pending ?? 0}</span>
             </div>
             {pendingMeetingItems.length === 0 ? (
               <p className={styles.muted}>ยังไม่มีคิวรออนุมัติ</p>
@@ -132,7 +183,7 @@ export function TeacherOverviewWidget({ enabled }: { enabled: boolean }) {
               <p className={styles.muted}>ยังไม่มี quick action</p>
             ) : (
               <div className={styles.actions}>
-                {quickActions.map((action) => (
+                {resolvedActions.map((action) => (
                   <a key={action.key} href={action.path} className={styles.actionButton}>
                     <span>
                       <strong>{action.label}</strong>

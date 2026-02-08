@@ -1,0 +1,48 @@
+.section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.actionCard {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.actionCard:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 12px 24px -18px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+
+.actionMeta {
+  margin-top: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.actionArrow {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2563eb;
+}
