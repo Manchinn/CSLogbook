@@ -10,11 +10,17 @@ import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDeadlineCalendar } from "@/hooks/useStudentDeadlineCalendar";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
 import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
-import { acknowledgeTopicExamResult } from "@/lib/services/studentService";
+import {
+  acknowledgeTopicExamResult,
+  type StudentDeadlineDetail,
+} from "@/lib/services/studentService";
 import styles from "./phase1.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
 const thaiDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
+const ONE_MINUTE_MS = 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const DEADLINE_KEYWORD_FILTER = /วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.|\(|\)/g;
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -28,6 +34,144 @@ function formatThaiDate(value?: string | null) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "-";
   return thaiDateFormatter.format(d);
+}
+
+type StepDeadlineStatus = {
+  isOverdue: boolean;
+  isLocked: boolean;
+  allowLate: boolean;
+  reason: string | null;
+  deadline: StudentDeadlineDetail | null;
+};
+
+function parseDateValue(value?: string | null) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function extractKeywords(value: string) {
+  return value
+    .replace(DEADLINE_KEYWORD_FILTER, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 1)
+    .map((word) => word.toLowerCase());
+}
+
+function getDeadlineBaseTime(deadline: StudentDeadlineDetail) {
+  if (deadline.deadlineAt) return parseDateValue(deadline.deadlineAt);
+  if (deadline.deadlineDate) {
+    const time = deadline.deadlineTime ?? "00:00:00";
+    return parseDateValue(`${deadline.deadlineDate}T${time}`);
+  }
+  return null;
+}
+
+function getEffectiveDeadline(deadline: StudentDeadlineDetail, base: Date | null) {
+  const effective = parseDateValue(deadline.effectiveDeadlineAt ?? null);
+  if (effective) return effective;
+  if (!base) return null;
+  const graceMinutes = deadline.gracePeriodMinutes ?? 0;
+  if (deadline.allowLate && graceMinutes > 0) {
+    return new Date(base.getTime() + graceMinutes * ONE_MINUTE_MS);
+  }
+  return base;
+}
+
+function getDeadlineSortTime(deadline: StudentDeadlineDetail) {
+  const effective = parseDateValue(deadline.effectiveDeadlineAt ?? null);
+  const base = effective ?? getDeadlineBaseTime(deadline);
+  return base ? base.getTime() : Number.POSITIVE_INFINITY;
+}
+
+function isDeadlineMatch(step: ProjectStep, deadline: StudentDeadlineDetail) {
+  if (!step.deadlineName || !step.relatedTo) return false;
+  const deadlineName = String(deadline.name || "").trim();
+  const stepDeadlineName = String(step.deadlineName || "").trim();
+  const relatedToMatch = String(deadline.relatedTo || "").toLowerCase() === step.relatedTo.toLowerCase();
+
+  if (!relatedToMatch) return false;
+  if (deadlineName === stepDeadlineName) return true;
+
+  const deadlineKeywords = extractKeywords(deadlineName);
+  const stepKeywords = extractKeywords(stepDeadlineName);
+  const commonKeywords = deadlineKeywords.filter((keyword) => stepKeywords.includes(keyword));
+  if (commonKeywords.length >= 2) return true;
+
+  return deadlineName.includes(stepDeadlineName) || stepDeadlineName.includes(deadlineName);
+}
+
+function getStepDeadlineStatus(step: ProjectStep, deadlines: StudentDeadlineDetail[]): StepDeadlineStatus {
+  if (!step.deadlineName || !step.relatedTo) {
+    return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null };
+  }
+
+  const matchingDeadline = deadlines.find((deadline) => isDeadlineMatch(step, deadline)) ?? null;
+  if (!matchingDeadline) {
+    return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null };
+  }
+
+  const now = new Date();
+  const deadlineTime = getDeadlineBaseTime(matchingDeadline);
+  if (!deadlineTime) {
+    return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: matchingDeadline };
+  }
+
+  const effectiveDeadline = getEffectiveDeadline(matchingDeadline, deadlineTime) ?? deadlineTime;
+  const allowLate = Boolean(matchingDeadline.allowLate);
+  const lockAfterDeadline = Boolean(matchingDeadline.lockAfterDeadline);
+  const isAfterDeadline = now.getTime() > deadlineTime.getTime();
+  const isAfterEffectiveDeadline = now.getTime() > effectiveDeadline.getTime();
+
+  if (!isAfterDeadline) {
+    return { isOverdue: false, isLocked: false, allowLate, reason: null, deadline: matchingDeadline };
+  }
+
+  const diffDays = Math.max(0, Math.floor((now.getTime() - deadlineTime.getTime()) / ONE_DAY_MS));
+
+  if (isAfterEffectiveDeadline && lockAfterDeadline) {
+    return {
+      isOverdue: true,
+      allowLate: false,
+      isLocked: true,
+      reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+      deadline: matchingDeadline,
+    };
+  }
+
+  if (isAfterDeadline && !isAfterEffectiveDeadline && allowLate) {
+    const graceMinutesLeft = Math.max(0, Math.floor((effectiveDeadline.getTime() - now.getTime()) / ONE_MINUTE_MS));
+    return {
+      isOverdue: true,
+      allowLate: true,
+      isLocked: false,
+      reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${Math.ceil(graceMinutesLeft / 60)} ชม. แต่จะถูกบันทึกว่าส่งช้า)`,
+      deadline: matchingDeadline,
+    };
+  }
+
+  if (isAfterDeadline && !allowLate) {
+    return {
+      isOverdue: true,
+      allowLate: false,
+      isLocked: true,
+      reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+      deadline: matchingDeadline,
+    };
+  }
+
+  if (isAfterEffectiveDeadline && !lockAfterDeadline && allowLate) {
+    return {
+      isOverdue: true,
+      allowLate: true,
+      isLocked: false,
+      reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
+      deadline: matchingDeadline,
+    };
+  }
+
+  return { isOverdue: false, isLocked: false, allowLate, reason: null, deadline: matchingDeadline };
 }
 
 type ProjectStep = {
@@ -134,6 +278,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   const { token, user } = useAuth();
   const hydrated = useHydrated();
   const [ackLoading, setAckLoading] = useState(false);
+  const [ackModalOpen, setAckModalOpen] = useState(false);
   const [activePhaseTab, setActivePhaseTab] = useState<"all" | "phase1" | "phase2">("all");
   const studentId = user?.studentId ?? user?.id;
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
@@ -169,20 +314,16 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
   const projectDeadlines = useMemo(() => {
     if (!deadlines) return [];
-    const list = deadlines.filter((d) => String(d.relatedTo || "").toLowerCase().startsWith("project"));
-    const getTime = (value: typeof list[number]) => {
-      const base =
-        value.effectiveDeadlineAt ??
-        value.deadlineAt ??
-        (value.deadlineDate ? `${value.deadlineDate}T${value.deadlineTime ?? "00:00:00"}` : null);
-      if (!base) return Number.POSITIVE_INFINITY;
-      const parsed = new Date(base).getTime();
-      return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
-    };
-    return list.slice().sort((a, b) => getTime(a) - getTime(b));
+    const list = deadlines.filter((deadline) =>
+      String(deadline.relatedTo || "").toLowerCase().startsWith("project")
+    );
+    return list.slice().sort((a, b) => getDeadlineSortTime(a) - getDeadlineSortTime(b));
   }, [deadlines]);
 
-  const upcomingDeadlines = useMemo(() => projectDeadlines.slice(0, 4), [projectDeadlines]);
+  const upcomingDeadlines = useMemo(() => {
+    const now = Date.now();
+    return projectDeadlines.filter((deadline) => getDeadlineSortTime(deadline) >= now).slice(0, 4);
+  }, [projectDeadlines]);
 
   const project = projectDetail ?? projectStatus?.project ?? null;
   const workflow = projectStatus?.workflow ?? null;
@@ -447,31 +588,39 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     return allSteps.filter((step) => step.phase === activePhaseTab);
   }, [activePhaseTab, allSteps]);
 
+  const deadlineStatusByKey = useMemo(() => {
+    const statusMap: Record<string, StepDeadlineStatus> = {};
+    allSteps.forEach((step) => {
+      statusMap[step.key] = getStepDeadlineStatus(step, projectDeadlines);
+    });
+    return statusMap;
+  }, [allSteps, projectDeadlines]);
+
+  const buildLockReasons = useCallback(
+    (step: ProjectStep, deadlineStatus: StepDeadlineStatus) => {
+      const reasons: string[] = [];
+      if (step.requiresPostTopicUnlock) reasons.push(...postTopicGateReasons);
+      const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
+      if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
+        reasons.push(...phase2GateReasons);
+      }
+      if ((deadlineStatus.isLocked || deadlineStatus.isOverdue) && deadlineStatus.reason) {
+        reasons.push(deadlineStatus.reason);
+      }
+      return reasons;
+    },
+    [activePhaseTab, postTopicGateReasons, phase2GateReasons]
+  );
+
   const handleOpen = useCallback(
-    (stepKey: string) => {
-      const meta = allSteps.find((step) => step.key === stepKey);
-      if (!meta) return;
-
-      const lockReasons: string[] = [];
-      if (meta.requiresPostTopicUnlock) lockReasons.push(...postTopicGateReasons);
-      const overviewAlwaysEnabled = activePhaseTab === "all" && meta.key === "phase2-overview";
-      if (meta.requiresPhase2Unlock && !overviewAlwaysEnabled) {
-        lockReasons.push(...phase2GateReasons);
-      }
-
-      if (!meta.implemented) {
-        return;
-      }
-
-      if (lockReasons.length > 0) {
-        return;
-      }
-
-      if (meta.target) {
-        router.push(meta.target);
+    (step: ProjectStep, lockReasons: string[]) => {
+      if (!step.implemented) return;
+      if (lockReasons.length > 0) return;
+      if (step.target) {
+        router.push(step.target);
       }
     },
-    [activePhaseTab, allSteps, postTopicGateReasons, phase2GateReasons, router]
+    [router]
   );
 
   const showAck = Boolean(project && project.examResult === "failed" && !project.studentAcknowledgedAt);
@@ -479,15 +628,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
   const handleAcknowledge = useCallback(async () => {
     if (!project?.projectId || !token) return;
-    if (!window.confirm("ยืนยันการรับทราบผลสอบไม่ผ่าน?")) return;
     try {
       setAckLoading(true);
       await acknowledgeTopicExamResult(token, project.projectId);
-      await Promise.all([refetchProjectDetail(), projectStatus ? Promise.resolve() : Promise.resolve()]);
+      await refetchProjectDetail();
     } finally {
       setAckLoading(false);
+      setAckModalOpen(false);
     }
-  }, [project?.projectId, token, refetchProjectDetail, projectStatus]);
+  }, [project?.projectId, token, refetchProjectDetail]);
 
   const cards = [
     {
@@ -574,14 +723,19 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         <section className={styles.noticeDanger}>
           <p className={styles.noticeTitle}>ผลสอบหัวข้อ: ไม่ผ่าน</p>
           <p className={styles.noticeBody}>คุณต้องรับทราบผลเพื่อให้ระบบเก็บหัวข้อนี้</p>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={handleAcknowledge}
-            disabled={ackLoading}
-          >
-            {ackLoading ? "กำลังบันทึก..." : "รับทราบผล"}
-          </button>
+          {project?.examFailReason ? (
+            <p className={styles.noticeReason}>เหตุผล: {project.examFailReason}</p>
+          ) : null}
+          <div className={styles.noticeActions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setAckModalOpen(true)}
+              disabled={ackLoading}
+            >
+              {ackLoading ? "กำลังบันทึก..." : "รับทราบผล"}
+            </button>
+          </div>
         </section>
       ) : null}
 
@@ -600,6 +754,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         <section className={styles.noticeDanger}>
           <p className={styles.noticeTitle}>โครงงานนี้ถูกยกเลิกแล้ว</p>
           <p className={styles.noticeBody}>กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่</p>
+          <div className={styles.noticeActions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => router.push("/dashboard/student")}
+            >
+              กลับไปหน้าแรก
+            </button>
+          </div>
         </section>
       ) : null}
 
@@ -629,13 +792,10 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
             </button>
           </div>
           {visibleSteps.map((step) => {
-            const lockReasons: string[] = [];
-            if (step.requiresPostTopicUnlock) lockReasons.push(...postTopicGateReasons);
-            const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
-            if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
-              lockReasons.push(...phase2GateReasons);
-            }
-
+            const deadlineStatus =
+              deadlineStatusByKey[step.key] ??
+              ({ isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null } as StepDeadlineStatus);
+            const lockReasons = buildLockReasons(step, deadlineStatus);
             const isDisabled = !step.implemented || lockReasons.length > 0;
             const status = stepStatusMap[step.key];
             return (
@@ -646,7 +806,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
                 <button
                   type="button"
                   className={styles.stepButton}
-                  onClick={() => handleOpen(step.key)}
+                  onClick={() => handleOpen(step, lockReasons)}
                   disabled={isDisabled}
                 >
                   <div className={styles.stepHeader}>
@@ -662,9 +822,16 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
                         {step.phaseLabel}
                       </span>
                     ) : null}
+                    {deadlineStatus.isOverdue ? (
+                      <span
+                        className={`${styles.tag} ${deadlineStatus.allowLate ? styles.tagWarning : styles.tagDanger}`}
+                      >
+                        {deadlineStatus.allowLate ? "เกินกำหนด (ส่งได้)" : "เกินกำหนด"}
+                      </span>
+                    ) : null}
                     {!step.implemented ? (
                       <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
-                    ) : lockReasons.length > 0 ? (
+                    ) : lockReasons.length > 0 && !deadlineStatus.isOverdue ? (
                       <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
                     ) : status ? (
                       <span
@@ -682,6 +849,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
                       >
                         {status.label}
                       </span>
+                    ) : null}
+                    {step.comingSoon && !step.implemented ? (
+                      <span className={`${styles.tag} ${styles.tagMuted}`}>Coming Soon</span>
                     ) : null}
                   </div>
                   {lockReasons.length > 0 ? (
@@ -769,6 +939,40 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
           isLoading={timelineLoading}
           error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}
         />
+      ) : null}
+
+      {ackModalOpen ? (
+        <div className={styles.modalOverlay} role="presentation">
+          <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="ack-title">
+            <div className={styles.modalHeader}>
+              <h2 id="ack-title" className={styles.modalTitle}>ยืนยันการรับทราบผลสอบไม่ผ่าน</h2>
+            </div>
+            <div className={styles.modalBody}>
+              <p>เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร และไม่สามารถย้อนกลับได้</p>
+              {project?.examFailReason ? (
+                <p className={styles.modalHint}>เหตุผล: {project.examFailReason}</p>
+              ) : null}
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setAckModalOpen(false)}
+                disabled={ackLoading}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={handleAcknowledge}
+                disabled={ackLoading}
+              >
+                {ackLoading ? "กำลังบันทึก..." : "ยืนยันรับทราบ"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

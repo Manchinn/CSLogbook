@@ -25,3 +25,6 @@ Guidelines:
 Project system notes:
 - Phase 1 and Phase 2 are the same workflow system.
 - Separate phases exist for clarity, not separate workflows.
+- Phase 1 migration should preserve step cards, gating, and deadline locks.
+- Highlight any missing data needed for Phase 1 parity (meeting metrics, defense requests, system test, deadlines).
+- Feature flag to mention when relevant: NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE.
