@@ -58,6 +58,24 @@ export default function NotificationSettingsPage() {
     (value?: string | null) => (value ? new Date(value).toLocaleString("th-TH") : "-"),
     []
   );
+  const renderStats = (data: Record<string, unknown> | null) => {
+    if (!data || !Object.keys(data).length) {
+      return <div className={styles.cardMeta}>ไม่มีข้อมูล</div>;
+    }
+
+    return (
+      <table className={styles.table}>
+        <tbody>
+          {Object.entries(data).map(([key, value]) => (
+            <tr key={key}>
+              <td>{key}</td>
+              <td>{String(value ?? "-")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
 
   const handleToggle = async (type: string, enabled: boolean) => {
     setLoading(true);
@@ -195,15 +213,15 @@ export default function NotificationSettingsPage() {
           <div className={styles.grid}>
             <div className={styles.card}>
               <div className={styles.cardTitle}>ระบบ Agent</div>
-              <pre className={styles.cardMeta}>{JSON.stringify(agentStats, null, 2)}</pre>
+              {renderStats(agentStats)}
             </div>
             <div className={styles.card}>
               <div className={styles.cardTitle}>อีเมลสรุป</div>
-              <pre className={styles.cardMeta}>{JSON.stringify(agentEmailStats, null, 2)}</pre>
+              {renderStats(agentEmailStats)}
             </div>
             <div className={styles.card}>
               <div className={styles.cardTitle}>สถิติแจ้งเตือน</div>
-              <pre className={styles.cardMeta}>{JSON.stringify(agentNotifyStats, null, 2)}</pre>
+              {renderStats(agentNotifyStats)}
             </div>
           </div>
         </section>

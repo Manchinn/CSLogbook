@@ -230,11 +230,9 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
           label: "ตั้งค่าระบบ",
           kind: "group",
           children: [
-            { key: "settings-overview", label: "ภาพรวมการตั้งค่า", kind: "link", ...link("/admin/settings") },
             { key: "curriculum", label: "หลักสูตร", kind: "link", ...link("/admin/settings/curriculum") },
             { key: "academic", label: "ปีการศึกษา/ภาคเรียน", kind: "link", ...link("/admin/settings/academic") },
             { key: "notification", label: "การแจ้งเตือน", kind: "link", ...link("/admin/settings/notification-settings") },
-            { key: "settings-new", label: "ตั้งค่า (ใหม่)", kind: "link", ...link("/settings", featureFlags.enableSettingsPage) },
           ],
         },
       ]
@@ -305,7 +303,6 @@ function buildAdminMenu(): MenuNode[] {
       label: "ตั้งค่าระบบ",
       kind: "group",
       children: [
-        { key: "settings-overview", label: "ภาพรวมการตั้งค่า", kind: "link", ...link("/admin/settings") },
         { key: "curriculum", label: "หลักสูตรการศึกษา", kind: "link", ...link("/admin/settings/curriculum") },
         { key: "academic", label: "ปีการศึกษา/ภาคเรียน", kind: "link", ...link("/admin/settings/academic") },
         { key: "status", label: "สถานะนักศึกษา", kind: "link", ...link("/admin/settings/status") },
