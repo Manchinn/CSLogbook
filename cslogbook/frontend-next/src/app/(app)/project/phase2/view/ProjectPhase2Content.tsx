@@ -421,6 +421,7 @@ export default function ProjectPhase2Content() {
         {steps.map((step) => {
           const deadlineStatus = getStepDeadlineStatus(step, projectDeadlines);
           const lockReasons: string[] = [];
+          if (phase2GateReasons.length > 0) lockReasons.push(...phase2GateReasons);
           if (step.key === "thesis-defense" && !systemTestReady) {
             lockReasons.push("ต้องผ่านการทดสอบระบบครบ 30 วันก่อนยื่น คพ.03");
           }

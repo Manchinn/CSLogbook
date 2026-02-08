@@ -1,0 +1,31 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+.notice {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}

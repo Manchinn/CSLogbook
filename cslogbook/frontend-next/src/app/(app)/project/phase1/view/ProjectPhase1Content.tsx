@@ -55,6 +55,14 @@ function getDeadlineSortTime(deadline: StudentDeadlineDetail) {
   return base ? base.getTime() : Number.POSITIVE_INFINITY;
 }
 
+function extractDeadlineKeywords(text: string) {
+  return text
+    .replace(/วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.|\(|\)/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 1)
+    .map((word) => word.toLowerCase());
+}
+
 
 type ProjectStep = {
   key: string;
@@ -84,6 +92,27 @@ const phase1Steps: ProjectStep[] = [
     target: "/project/phase1/topic-submit",
     deadlineName: "ส่งหัวข้อโครงงานพิเศษ 1",
     relatedTo: "project1",
+  },
+  {
+    key: "topic-exam",
+    phase: "phase1",
+    phaseLabel: "โครงงานพิเศษ 1",
+    title: "ติดตามผลสอบหัวข้อ",
+    desc: "ดูตารางสอบและสถานะผลสอบหัวข้อ",
+    icon: "EXM",
+    implemented: true,
+    target: "/project/phase1/topic-exam",
+  },
+  {
+    key: "proposal-revision",
+    phase: "phase1",
+    phaseLabel: "โครงงานพิเศษ 1",
+    title: "อัปโหลด Proposal ฉบับแก้ไข",
+    desc: "ส่งเอกสาร Proposal ตามข้อเสนอแนะ",
+    icon: "REV",
+    implemented: true,
+    requiresPostTopicUnlock: true,
+    target: "/project/phase1/proposal-revision",
   },
   {
     key: "meeting-logbook",
@@ -199,6 +228,107 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     );
     return list.slice().sort((a, b) => getDeadlineSortTime(a) - getDeadlineSortTime(b));
   }, [deadlines]);
+
+  const getStepDeadlineStatus = useCallback(
+    (step: ProjectStep) => {
+      if (!step.deadlineName || !step.relatedTo) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: null, allowLate: false };
+      }
+
+      const match = projectDeadlines.find((deadline) => {
+        const deadlineName = String(deadline.name || "").trim();
+        const stepDeadlineName = String(step.deadlineName || "").trim();
+        const relatedToMatch =
+          String(deadline.relatedTo || "").toLowerCase() === step.relatedTo.toLowerCase();
+
+        if (!relatedToMatch) return false;
+        if (deadlineName === stepDeadlineName) return true;
+
+        const deadlineKeywords = extractDeadlineKeywords(deadlineName);
+        const stepKeywords = extractDeadlineKeywords(stepDeadlineName);
+        const common = deadlineKeywords.filter((keyword) => stepKeywords.includes(keyword));
+        if (common.length >= 2) return true;
+
+        if (deadlineName.includes(stepDeadlineName) || stepDeadlineName.includes(deadlineName)) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (!match) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: null, allowLate: false };
+      }
+
+      const baseDate = getDeadlineBaseTime(match);
+      if (!baseDate) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: match, allowLate: false };
+      }
+
+      const allowLate = Boolean(match.allowLate);
+      const lockAfterDeadline = Boolean(match.lockAfterDeadline);
+      const graceMinutes = Number(match.gracePeriodMinutes ?? 0);
+      const baseMs = baseDate.getTime();
+      const effectiveDate =
+        parseDateValue(match.effectiveDeadlineAt ?? null) ??
+        (allowLate && graceMinutes > 0 ? new Date(baseMs + graceMinutes * 60 * 1000) : baseDate);
+      const effectiveMs = effectiveDate.getTime();
+      const nowMs = Date.now();
+      const isAfterDeadline = nowMs > baseMs;
+      const isAfterEffective = nowMs > effectiveMs;
+
+      if (!isAfterDeadline) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: match, allowLate };
+      }
+
+      const diffDays = Math.max(0, Math.floor((nowMs - baseMs) / (24 * 60 * 60 * 1000)));
+
+      if (isAfterEffective && lockAfterDeadline) {
+        return {
+          isOverdue: true,
+          isLocked: true,
+          allowLate: false,
+          reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+          deadline: match,
+        };
+      }
+
+      if (isAfterDeadline && !isAfterEffective && allowLate) {
+        const graceMinutesLeft = Math.max(0, Math.ceil((effectiveMs - nowMs) / (60 * 1000)));
+        const graceHoursLeft = Math.max(1, Math.ceil(graceMinutesLeft / 60));
+        return {
+          isOverdue: true,
+          isLocked: false,
+          allowLate: true,
+          reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${graceHoursLeft} ชม. แต่จะถูกบันทึกว่าส่งช้า)`,
+          deadline: match,
+        };
+      }
+
+      if (isAfterDeadline && !allowLate) {
+        return {
+          isOverdue: true,
+          isLocked: true,
+          allowLate: false,
+          reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+          deadline: match,
+        };
+      }
+
+      if (isAfterEffective && !lockAfterDeadline && allowLate) {
+        return {
+          isOverdue: true,
+          isLocked: false,
+          allowLate: true,
+          reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
+          deadline: match,
+        };
+      }
+
+      return { isOverdue: false, isLocked: false, reason: null, deadline: match, allowLate };
+    },
+    [projectDeadlines]
+  );
 
   const upcomingDeadlines = useMemo(() => {
     const now = Date.now();
@@ -400,14 +530,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     if (!project) {
       [
         "topic-submit",
+        "topic-exam",
+        "proposal-revision",
         "meeting-logbook",
         "exam-submit",
+        "exam-day",
         "phase2-overview",
         "system-test",
         "thesis-defense-request",
-      ].forEach((key) =>
-        setStatus(key, "ยังไม่มีโครงงาน", "default")
-      );
+      ].forEach((key) => setStatus(key, "ยังไม่มีโครงงาน", "default"));
       return statuses;
     }
 
@@ -427,6 +558,37 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("topic-submit", "ยังไม่เริ่ม", "default");
     }
 
+    const project1Status = project1DefenseRequest?.status;
+    if (project.examResult === "passed") {
+      setStatus("topic-exam", "ผ่านการสอบหัวข้อ", "success");
+    } else if (project.examResult === "failed") {
+      setStatus(
+        "topic-exam",
+        projectDetailData?.studentAcknowledgedAt ? "ไม่ผ่าน (รับทราบแล้ว)" : "ไม่ผ่าน",
+        "danger"
+      );
+    } else if (project1Status) {
+      if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+        setStatus("topic-exam", "คำขอถูกส่งกลับ", "danger");
+      } else if (["staff_verified", "scheduled"].includes(project1Status)) {
+        setStatus("topic-exam", "รอวันสอบ", "info");
+      } else if (project1Status === "completed") {
+        setStatus("topic-exam", "รอประกาศผล", "info");
+      } else {
+        setStatus("topic-exam", "อยู่ระหว่างพิจารณา", "info");
+      }
+    } else {
+      setStatus("topic-exam", "ยังไม่ยื่นคำขอสอบ", "default");
+    }
+
+    if (project.examResult === "failed") {
+      setStatus("proposal-revision", "ยังไม่ผ่านหัวข้อ", "danger");
+    } else if (project.examResult === "passed") {
+      setStatus("proposal-revision", "พร้อมอัปโหลด", "success");
+    } else {
+      setStatus("proposal-revision", "รอผลสอบหัวข้อ", "default");
+    }
+
     if (meetingProgress.required > 0) {
       if (meetingProgress.satisfied) {
         setStatus("meeting-logbook", `ครบเกณฑ์ ${meetingProgress.approved}/${meetingProgress.required}`, "success");
@@ -441,7 +603,6 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("meeting-logbook", "พร้อมบันทึก", "default");
     }
 
-    const project1Status = project1DefenseRequest?.status;
     if (!project1Status) {
       setStatus("exam-submit", "ยังไม่ยื่นคำขอ", "default");
     } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
@@ -452,6 +613,18 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("exam-submit", "อาจารย์อนุมัติครบ", "warning");
     } else {
       setStatus("exam-submit", "รอการอนุมัติ", "info");
+    }
+
+    if (!project1Status) {
+      setStatus("exam-day", "ยังไม่ยื่นคำขอ", "default");
+    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+      setStatus("exam-day", "คำขอถูกส่งกลับ", "danger");
+    } else if (["staff_verified", "scheduled"].includes(project1Status)) {
+      setStatus("exam-day", "รอวันสอบ", "info");
+    } else if (project1Status === "completed") {
+      setStatus("exam-day", "บันทึกผลสอบแล้ว", "success");
+    } else {
+      setStatus("exam-day", "รอการอนุมัติ", "info");
     }
 
     if (phase2GateReasons.length > 0) {
@@ -527,15 +700,23 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   }, [activePhaseTab, allSteps]);
 
   const buildLockReasons = useCallback(
-    (step: ProjectStep) => {
+    (
+      step: ProjectStep,
+      deadlineStatus: { isOverdue: boolean; isLocked: boolean; reason: string | null }
+    ) => {
       const reasons: string[] = [];
       if (step.requiresPostTopicUnlock) reasons.push(...postTopicGateReasons);
-      if (step.phase !== "phase2") {
-        const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
-        if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
-          reasons.push(...phase2GateReasons);
-        }
+      const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
+      if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
+        reasons.push(...phase2GateReasons);
       }
+
+      if (deadlineStatus.isLocked && deadlineStatus.reason) {
+        reasons.push(deadlineStatus.reason);
+      } else if (deadlineStatus.isOverdue && deadlineStatus.reason) {
+        reasons.push(deadlineStatus.reason);
+      }
+
       return reasons;
     },
     [activePhaseTab, postTopicGateReasons, phase2GateReasons]
@@ -721,7 +902,8 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
             </button>
           </div>
           {visibleSteps.map((step) => {
-            const lockReasons = buildLockReasons(step);
+            const deadlineStatus = getStepDeadlineStatus(step);
+            const lockReasons = buildLockReasons(step, deadlineStatus);
             const isDisabled = !step.implemented || lockReasons.length > 0;
             const status = stepStatusMap[step.key];
             return (
@@ -767,6 +949,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
                         }`}
                       >
                         {status.label}
+                      </span>
+                    ) : null}
+                    {deadlineStatus.isOverdue ? (
+                      <span
+                        className={`${styles.tag} ${
+                          deadlineStatus.allowLate ? styles.tagWarning : styles.tagDanger
+                        }`}
+                      >
+                        {deadlineStatus.allowLate ? "เกินกำหนด (ส่งได้)" : "เกินกำหนด"}
                       </span>
                     ) : null}
                     {step.comingSoon && !step.implemented ? (

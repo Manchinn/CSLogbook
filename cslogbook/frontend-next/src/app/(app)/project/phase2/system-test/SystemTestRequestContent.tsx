@@ -22,6 +22,14 @@ const statusLabels: Record<string, string> = {
   staff_approved: "เจ้าหน้าที่อนุมัติแล้ว",
 };
 
+const statusTones: Record<string, "default" | "info" | "warning" | "success" | "danger"> = {
+  pending_advisor: "info",
+  advisor_rejected: "danger",
+  pending_staff: "info",
+  staff_rejected: "danger",
+  staff_approved: "success",
+};
+
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function formatDate(value?: string | null) {
@@ -167,6 +175,37 @@ export default function SystemTestRequestContent() {
   }, [request]);
 
   const statusLabel = statusLabels[request?.status ?? ""] ?? "ยังไม่เคยส่งคำขอ";
+  const statusTone = statusTones[request?.status ?? ""] ?? "default";
+  const statusClass =
+    statusTone === "success"
+      ? styles.tagSuccess
+      : statusTone === "warning"
+        ? styles.tagWarning
+        : statusTone === "danger"
+          ? styles.tagDanger
+          : statusTone === "info"
+            ? styles.tagInfo
+            : styles.tagDefault;
+
+  const timelineItems = useMemo(() => {
+    const timeline = request?.timeline;
+    if (!timeline) return [] as Array<{ key: string; label: string; timestamp?: string | null }>;
+    const items: Array<{ key: string; label: string; timestamp?: string | null }> = [];
+    if (timeline.submittedAt) items.push({ key: "submitted", label: "ส่งคำขอ", timestamp: timeline.submittedAt });
+    if (timeline.advisorDecidedAt) {
+      items.push({ key: "advisor", label: "อาจารย์ที่ปรึกษาตัดสิน", timestamp: timeline.advisorDecidedAt });
+    }
+    if (timeline.coAdvisorDecidedAt) {
+      items.push({ key: "co-advisor", label: "อาจารย์ร่วมตัดสิน", timestamp: timeline.coAdvisorDecidedAt });
+    }
+    if (timeline.staffDecidedAt) {
+      items.push({ key: "staff", label: "เจ้าหน้าที่ตรวจสอบ", timestamp: timeline.staffDecidedAt });
+    }
+    if (timeline.evidenceSubmittedAt) {
+      items.push({ key: "evidence", label: "อัปโหลดหลักฐาน", timestamp: timeline.evidenceSubmittedAt });
+    }
+    return items;
+  }, [request?.timeline]);
 
   const handleSubmit = async () => {
     if (!token || !project?.projectId) return;
@@ -235,7 +274,7 @@ export default function SystemTestRequestContent() {
 
       <section className={styles.card}>
         <div className={styles.tagRow}>
-          <span className={styles.tag}>สถานะคำขอ: {statusLabel}</span>
+          <span className={`${styles.tag} ${statusClass}`}>สถานะคำขอ: {statusLabel}</span>
           {request?.submittedLate ? <span className={styles.tagWarning}>ส่งช้า</span> : null}
         </div>
         <div className={styles.metaGrid}>
@@ -257,7 +296,69 @@ export default function SystemTestRequestContent() {
             เปิดไฟล์คำขอ
           </a>
         ) : null}
+        {request?.evidence?.url ? (
+          <a className={styles.link} href={request.evidence.url} target="_blank" rel="noreferrer">
+            เปิดไฟล์หลักฐานการประเมิน
+          </a>
+        ) : null}
       </section>
+
+      {(request?.advisorDecision || request?.coAdvisorDecision || request?.staffDecision) && (
+        <section className={styles.card}>
+          <h3>รายละเอียดการอนุมัติ</h3>
+          <div className={styles.decisionList}>
+            {request?.advisorDecision ? (
+              <div className={styles.decisionItem}>
+                <div>
+                  <p className={styles.decisionTitle}>อาจารย์ที่ปรึกษา</p>
+                  <p className={styles.decisionMeta}>{request.advisorDecision.name || "-"}</p>
+                </div>
+                <div>
+                  <p className={styles.decisionMeta}>{request.advisorDecision.note || "ไม่มีหมายเหตุ"}</p>
+                  <p className={styles.decisionMeta}>{formatDate(request.advisorDecision.decidedAt)}</p>
+                </div>
+              </div>
+            ) : null}
+            {request?.coAdvisorDecision ? (
+              <div className={styles.decisionItem}>
+                <div>
+                  <p className={styles.decisionTitle}>อาจารย์ที่ปรึกษาร่วม</p>
+                  <p className={styles.decisionMeta}>{request.coAdvisorDecision.name || "-"}</p>
+                </div>
+                <div>
+                  <p className={styles.decisionMeta}>{request.coAdvisorDecision.note || "ไม่มีหมายเหตุ"}</p>
+                  <p className={styles.decisionMeta}>{formatDate(request.coAdvisorDecision.decidedAt)}</p>
+                </div>
+              </div>
+            ) : null}
+            {request?.staffDecision ? (
+              <div className={styles.decisionItem}>
+                <div>
+                  <p className={styles.decisionTitle}>เจ้าหน้าที่ภาควิชา</p>
+                  <p className={styles.decisionMeta}>{request.staffDecision.note || "ไม่มีหมายเหตุ"}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      )}
+
+      {timelineItems.length > 0 ? (
+        <section className={styles.card}>
+          <h3>ไทม์ไลน์คำขอ</h3>
+          <ul className={styles.timeline}>
+            {timelineItems.map((item) => (
+              <li key={item.key} className={styles.timelineItem}>
+                <span className={styles.timelineDot} />
+                <div>
+                  <p className={styles.timelineTitle}>{item.label}</p>
+                  <p className={styles.timelineMeta}>{formatDate(item.timestamp)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className={styles.card}>
         <h3>บันทึกคำขอทดสอบระบบ</h3>

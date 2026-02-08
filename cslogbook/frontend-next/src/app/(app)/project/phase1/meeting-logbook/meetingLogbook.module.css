@@ -142,3 +142,131 @@
   background: #fff7e6;
   color: #ad4e00;
 }
+
+.noticeWarning {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #f5a623;
+  background: #fff7e6;
+  color: #ad4e00;
+}
+
+.noticeTitle {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.noticeList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.dangerButton {
+  background: #cf1322;
+  color: #fff;
+}
+
+.dangerButton[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tagDanger {
+  background: #fff1f0;
+  color: #a8071a;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tabButton {
+  border-radius: 999px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tabButtonActive {
+  background: #e6f7ff;
+  color: #0050b3;
+  border-color: #91caff;
+}
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.logList {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.logItem {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.logTitle {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.noticeInline {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.modalTitle {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
