@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getNotificationSettings,
@@ -22,7 +22,7 @@ export default function NotificationSettingsPage() {
   const [agentEmailStats, setAgentEmailStats] = useState<Record<string, unknown> | null>(null);
   const [agentNotifyStats, setAgentNotifyStats] = useState<Record<string, unknown> | null>(null);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
@@ -34,31 +34,30 @@ export default function NotificationSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadAgentStats = async () => {
-    try {
-      const [systemStatus, emailStats, notifyStats] = await Promise.all([
-        getAgentSystemStatus(),
-        getAgentEmailStats(),
-        getAgentNotificationStats(),
-      ]);
-      setAgentStats(systemStatus ?? null);
-      setAgentEmailStats(emailStats ?? null);
-      setAgentNotifyStats(notifyStats ?? null);
-    } catch {
-      setAgentStats(null);
-      setAgentEmailStats(null);
-      setAgentNotifyStats(null);
-    }
-  };
-
-  useEffect(() => {
-    loadSettings();
-    loadAgentStats();
   }, []);
 
+  const loadAgentStats = useCallback(async () => {
+    const [systemResult, emailResult, notifyResult] = await Promise.allSettled([
+      getAgentSystemStatus(),
+      getAgentEmailStats(),
+      getAgentNotificationStats(),
+    ]);
+
+    setAgentStats(systemResult.status === "fulfilled" ? systemResult.value ?? null : null);
+    setAgentEmailStats(emailResult.status === "fulfilled" ? emailResult.value ?? null : null);
+    setAgentNotifyStats(notifyResult.status === "fulfilled" ? notifyResult.value ?? null : null);
+  }, []);
+
+  useEffect(() => {
+    void loadSettings();
+    void loadAgentStats();
+  }, [loadSettings, loadAgentStats]);
+
   const items = useMemo(() => Object.entries(settings), [settings]);
+  const formatDateTime = useCallback(
+    (value?: string | null) => (value ? new Date(value).toLocaleString("th-TH") : "-"),
+    []
+  );
 
   const handleToggle = async (type: string, enabled: boolean) => {
     setLoading(true);
@@ -167,7 +166,7 @@ export default function NotificationSettingsPage() {
                         {item.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                       </span>
                     </td>
-                    <td>{item.lastUpdated ? new Date(item.lastUpdated).toLocaleString("th-TH") : "-"}</td>
+                    <td>{formatDateTime(item.lastUpdated)}</td>
                     <td>
                       <div className={styles.actions}>
                         <button

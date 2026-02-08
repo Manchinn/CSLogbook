@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   listWorkflowSteps,
@@ -35,6 +35,17 @@ const emptyForm: StepForm = {
   dependencies: "",
 };
 
+const parseDependenciesInput = (value: string) => {
+  if (!value) {
+    return { value: null, error: null };
+  }
+  try {
+    return { value: JSON.parse(value), error: null };
+  } catch {
+    return { value: null, error: "รูปแบบ dependencies ไม่ถูกต้อง (ต้องเป็น JSON)" };
+  }
+};
+
 export default function WorkflowStepsSettingsPage() {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [formState, setFormState] = useState<StepForm>(emptyForm);
@@ -46,7 +57,7 @@ export default function WorkflowStepsSettingsPage() {
   const [orderMap, setOrderMap] = useState<Record<number, number>>({});
   const [stepStats, setStepStats] = useState<Record<string, unknown> | null>(null);
 
-  const loadSteps = async () => {
+  const loadSteps = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
@@ -65,11 +76,11 @@ export default function WorkflowStepsSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, workflowType]);
 
   useEffect(() => {
-    loadSteps();
-  }, []);
+    void loadSteps();
+  }, [loadSteps]);
 
   const updateField = (key: keyof StepForm, value: string | boolean) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -97,15 +108,11 @@ export default function WorkflowStepsSettingsPage() {
       return;
     }
 
-    let dependencies: unknown = null;
-    if (formState.dependencies) {
-      try {
-        dependencies = JSON.parse(formState.dependencies);
-      } catch {
-        setMessageTone("warning");
-        setMessage("รูปแบบ dependencies ไม่ถูกต้อง (ต้องเป็น JSON) ");
-        return;
-      }
+    const parsed = parseDependenciesInput(formState.dependencies);
+    if (parsed.error) {
+      setMessageTone("warning");
+      setMessage(parsed.error);
+      return;
     }
 
     const payload = {
@@ -115,7 +122,7 @@ export default function WorkflowStepsSettingsPage() {
       title: formState.title,
       descriptionTemplate: formState.descriptionTemplate || undefined,
       isRequired: formState.isRequired,
-      dependencies,
+      dependencies: parsed.value,
     };
 
     setLoading(true);

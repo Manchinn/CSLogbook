@@ -38,6 +38,8 @@ type CurriculumRow = {
   active: boolean;
 };
 
+type CurriculumMappings = unknown[];
+
 const emptyForm: CurriculumFormState = {
   id: null,
   code: "",
@@ -82,12 +84,11 @@ export default function CurriculumSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
-  const [mappings, setMappings] = useState<Record<string, unknown> | null>(null);
+  const [mappings, setMappings] = useState<CurriculumMappings | null>(null);
 
   const rawRows = useMemo<CurriculumRow[]>(() => {
     if (!mappings) return [];
-    const list = Array.isArray(mappings) ? mappings : [];
-    return list.map((item) => {
+    return mappings.map((item) => {
       const record = item as Record<string, unknown>;
       const idValue = record.curriculumId ?? record.id ?? record.curriculumID ?? null;
       return {
@@ -134,28 +135,49 @@ export default function CurriculumSettingsPage() {
     });
   }, [rawRowMap, rawRows, rows]);
 
+  const editableRowMap = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof mapCurriculum>>();
+    rows.forEach((row) => {
+      if (row.id != null) {
+        map.set(`id:${row.id}`, row);
+      }
+      if (row.code) {
+        map.set(`code:${row.code}`, row);
+      }
+    });
+    return map;
+  }, [rows]);
+
   const activeCount = useMemo(() => rows.filter((row) => row.active).length, [rows]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setMessage(null);
 
-    try {
-      const data = await getCurriculums();
-      setRows(data.map(mapCurriculum));
-    } catch (error) {
+    const [curriculumResult, mappingsResult] = await Promise.allSettled([
+      getCurriculums(),
+      getCurriculumMappings(),
+    ]);
+
+    if (curriculumResult.status === "fulfilled") {
+      setRows(curriculumResult.value.map(mapCurriculum));
+    } else {
       setMessageTone("warning");
-      setMessage(error instanceof Error ? error.message : "ไม่สามารถดึงข้อมูลหลักสูตรได้");
-    } finally {
-      setLoading(false);
+      setMessage(
+        curriculumResult.reason instanceof Error
+          ? curriculumResult.reason.message
+          : "ไม่สามารถดึงข้อมูลหลักสูตรได้"
+      );
     }
 
-    try {
-      const mappingData = await getCurriculumMappings();
-      setMappings(mappingData ?? null);
-    } catch {
+    if (mappingsResult.status === "fulfilled") {
+      const mappingData = mappingsResult.value;
+      setMappings(Array.isArray(mappingData) ? mappingData : null);
+    } else {
       setMappings(null);
     }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -198,21 +220,24 @@ export default function CurriculumSettingsPage() {
       return;
     }
 
+    const toNullableNumber = (value: number | "") => (value === "" ? null : value);
+    const toNullableString = (value: string) => (value.trim() ? value.trim() : null);
+
     setLoading(true);
     try {
       const payload = {
         code: formState.code,
         name: formState.name,
-        shortName: formState.shortName || null,
-        startYear: formState.startYear || null,
-        endYear: formState.endYear || null,
+        shortName: toNullableString(formState.shortName),
+        startYear: toNullableNumber(formState.startYear),
+        endYear: toNullableNumber(formState.endYear),
         active: formState.active,
-        maxCredits: formState.maxCredits || null,
-        totalCredits: formState.totalCredits || null,
-        majorCredits: formState.majorCredits || null,
-        internshipBaseCredits: formState.internshipBaseCredits || null,
-        projectBaseCredits: formState.projectBaseCredits || null,
-        projectMajorBaseCredits: formState.projectMajorBaseCredits || null,
+        maxCredits: toNullableNumber(formState.maxCredits),
+        totalCredits: toNullableNumber(formState.totalCredits),
+        majorCredits: toNullableNumber(formState.majorCredits),
+        internshipBaseCredits: toNullableNumber(formState.internshipBaseCredits),
+        projectBaseCredits: toNullableNumber(formState.projectBaseCredits),
+        projectMajorBaseCredits: toNullableNumber(formState.projectMajorBaseCredits),
       };
 
       if (formState.id) {
@@ -442,7 +467,10 @@ export default function CurriculumSettingsPage() {
               </thead>
               <tbody>
                 {listRows.map((row) => {
-                  const editableRow = rows.find((item) => item.id === row.id || item.code === row.code) ?? null;
+                  const editableRow =
+                    (row.id != null ? editableRowMap.get(`id:${row.id}`) : null) ??
+                    editableRowMap.get(`code:${row.code}`) ??
+                    null;
                   return (
                     <tr key={row.id ?? row.code}>
                       <td>{row.code}</td>

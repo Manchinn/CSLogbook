@@ -94,7 +94,7 @@ export default function AdminUploadPage() {
       } else {
         nextStatus.curriculum = resolveCurriculumStatus(activeList, null);
       }
-    } catch (error) {
+    } catch {
       nextStatus.curriculum = {
         ready: false,
         message: "ไม่สามารถโหลดข้อมูลหลักสูตรได้",
@@ -110,7 +110,7 @@ export default function AdminUploadPage() {
             (academicInfo.isFromDatabase ? "" : " (คำนวณอัตโนมัติ)"),
         };
       }
-    } catch (error) {
+    } catch {
       nextStatus.academic = { ready: false, message: "ไม่สามารถโหลดข้อมูลปีการศึกษาได้" };
     }
 

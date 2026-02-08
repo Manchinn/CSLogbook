@@ -8,14 +8,15 @@ Current state recap:
 - Phase 1 step pages are implemented for topic submit, topic exam, meeting logbook, and KP02 exam submit; proposal revision remains a placeholder route.
 - Topic submit wizard supports draft create/update with core fields, but legacy draft detail view and extended fields (scope, expectedOutcome, tools, etc.) are not yet carried over.
 - Phase 2 actions remain partially stubbed (OVR refactor, system test request, KP03 request), with the Phase 2 overview card in place.
-- Dashboard migration is partial; student/teacher/admin dashboards are only partly moved, with teacher/admin still relying heavily on legacy.
-- Reports and Settings are partially migrated behind flags; admin lists (users/students/teachers/project-pairs), document queues (KP02/KP03/system test/exam results), and bulk tools remain legacy-first.
+- Dashboards, Reports, and Settings are partially migrated; teacher/admin views still rely heavily on legacy.
+- Admin lists (users/students/teachers/project-pairs), document queues (KP02/KP03/system test/exam results), and bulk tools remain legacy-first.
 
 Next steps (priority order):
 - Prioritize teacher/admin dashboard parity: port core widgets, KPI cards, queue summaries, and navigation parity before further student-facing polish.
 - Migrate admin lists (users/students/teachers/project-pairs) into Next.js and align filters/sorting/export with legacy.
 - Migrate admin document queues (KP02/KP03/system test/exam results) with status/timeline parity and approval actions.
 - Bring Reports and Settings to parity with legacy before widening feature flags.
+- Then finish remaining student polish items after admin parity is stable.
 - Decide whether Phase 1 should surface the topic exam card (legacy dashboard commented it out) and align the card list accordingly.
 - Expand topic submit to include legacy draft fields (scope, expectedOutcome, tools, methodology, timelineNote, risk, constraints) and add a draft detail view (read-only + refresh) for parity.
 - Add proposal revision page or remove the step from Phase 1 if it is not part of the current curriculum scope.

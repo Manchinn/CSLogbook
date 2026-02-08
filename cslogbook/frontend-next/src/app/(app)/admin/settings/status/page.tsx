@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getStudentStatuses,
@@ -38,7 +38,7 @@ export default function StatusSettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
 
-  const loadStatuses = async () => {
+  const loadStatuses = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
@@ -50,17 +50,19 @@ export default function StatusSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadStatuses();
-  }, []);
+    void loadStatuses();
+  }, [loadStatuses]);
 
   const updateField = (key: keyof StatusForm, value: string | boolean) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
   const resetForm = () => setFormState(emptyForm);
+
+  const toNullableNumber = (value: string) => (value === "" ? null : Number(value));
 
   const handleEdit = (row: StudentStatus) => {
     setFormState({
@@ -88,7 +90,7 @@ export default function StatusSettingsPage() {
       color: formState.color,
       active: formState.active,
       conditions: {
-        maxStudyYears: formState.maxStudyYears ? Number(formState.maxStudyYears) : null,
+        maxStudyYears: toNullableNumber(formState.maxStudyYears),
       },
     };
 

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getAcademicSettings,
-  createAcademicSettings,
   updateAcademicSettings,
   listAcademicSchedules,
   createAcademicSchedule,
@@ -149,12 +148,12 @@ export default function AcademicSettingsPage() {
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [deadlineIssues, setDeadlineIssues] = useState<string[]>([]);
 
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     const data = await listAcademicSchedules();
     setSchedules(data ?? []);
-  };
+  }, []);
 
-  const loadCurrent = async () => {
+  const loadCurrent = useCallback(async () => {
     try {
       const data = await getAcademicSettings();
       setCurrentSettings(data ?? null);
@@ -185,44 +184,54 @@ export default function AcademicSettingsPage() {
           projectSemesters: data.projectSemesters?.join(", ") ?? "",
         });
       }
-    } catch (error) {
+    } catch {
       setCurrentSettings(null);
     }
-  };
+  }, []);
 
-  const loadCurriculums = async () => {
+  const loadCurriculums = useCallback(async () => {
     try {
       const data = await getCurriculums();
       setCurriculums(data);
     } catch {
       setCurriculums([]);
     }
-  };
+  }, []);
 
-  const loadDeadlines = async (filters: { academicYear?: string; semester?: string } = {}) => {
+  const loadDeadlines = useCallback(async (filters: { academicYear?: string; semester?: string } = {}) => {
     const params: Record<string, unknown> = {};
     if (filters.academicYear) params.academicYear = filters.academicYear;
     if (filters.semester) params.semester = filters.semester;
 
     const data = await listImportantDeadlines(params);
     setDeadlines(data ?? []);
-  };
+  }, []);
 
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       setMessage(null);
-      try {
-        await Promise.all([loadCurrent(), loadSchedules(), loadCurriculums(), loadDeadlines()]);
-      } catch (error) {
+
+      const results = await Promise.allSettled([
+        loadCurrent(),
+        loadSchedules(),
+        loadCurriculums(),
+        loadDeadlines(),
+      ]);
+
+      const rejected = results.find((result) => result.status === "rejected");
+      if (rejected && rejected.status === "rejected") {
         setMessageTone("warning");
-        setMessage(error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลได้");
-      } finally {
-        setLoading(false);
+        setMessage(
+          rejected.reason instanceof Error ? rejected.reason.message : "ไม่สามารถโหลดข้อมูลได้"
+        );
       }
+
+      setLoading(false);
     };
-    init();
-  }, []);
+
+    void init();
+  }, [loadCurrent, loadSchedules, loadCurriculums, loadDeadlines]);
 
   useEffect(() => {
     const issues: string[] = [];
