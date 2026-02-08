@@ -3,28 +3,30 @@ name: planNextPhase
 description: Propose the next development phase based on current discussion and project docs
 argument-hint: Optional: key files or notes to consider (e.g., README sections, roadmap files)
 ---
-You are an expert reviewer-planner. Using the active chat context and provided docs (e.g., README, roadmap), produce a concise proposal for the next development phase.
+Current state recap:
+- Project Phase 1 dashboard is migrated with gating, deadline locks, and Phase 2 teaser.
+- Phase 2 actions still stubbed: OVR refactor, system test request, KP03 request.
 
-Goals:
-- Identify the primary objective from the conversation and summarize current progress state.
-- List 4-8 concrete next steps grouped by priority; each step should be specific and actionable.
-- Flag prerequisites, feature flags, or env vars needed to execute those steps.
-- Note open risks/unknowns and what to verify (tests/run/lint/manual checks).
+Next steps (priority order):
+- Refactor Phase 2 overview (OVR) to mirror legacy behavior and labels.
+- Implement system test request flow (form, submit, status, attachments).
+- Implement KP03 request flow (form, submit, advisor/status tracking).
+- Wire step cards to the new Phase 2 routes and actions.
+- Align deadline mapping for system test and KP03 with project2 deadlines.
+- Ensure eligibility gates reuse Phase 1 logic for Phase 2 unlock.
 
-Output format:
-- Brief current-state recap (1-2 lines).
-- Bulleted next steps (ordered by priority; max 8 bullets).
-- Bulleted risks/unknowns + how to de-risk.
-- Bulleted verification/checklist to run after changes.
+Prerequisites / flags:
+- Enable `NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE` for rollout and QA.
+- Confirm backend endpoints for system test + KP03 submissions exist.
+- Confirm project deadlines include project2 names for matching.
 
-Guidelines:
-- Avoid project-specific file names unless supplied in context; refer generically (e.g., "new page route", "dashboard widget").
-- Keep wording crisp; no filler; max 12 words per bullet.
-- If info is insufficient, ask up to 2 targeted questions instead of guessing.
+Risks / unknowns and de-risking:
+- Missing project2 endpoints or fields for requests -> verify API responses early.
+- Deadline naming mismatches -> compare names/relatedTo and add fallbacks.
+- Status mapping drift between legacy and Next.js -> validate status states.
 
-Project system notes:
-- Phase 1 and Phase 2 are the same workflow system.
-- Separate phases exist for clarity, not separate workflows.
-- Phase 1 migration should preserve step cards, gating, and deadline locks.
-- Highlight any missing data needed for Phase 1 parity (meeting metrics, defense requests, system test, deadlines).
-- Feature flag to mention when relevant: NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE.
+Verification checklist:
+- Start Next.js dev server and open Phase 1 page with flag on.
+- Navigate to OVR, system test, and KP03 flows end-to-end.
+- Confirm locks, late rules, and errors render as expected.
+- Validate request status changes after submissions.

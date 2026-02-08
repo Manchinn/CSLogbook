@@ -1,0 +1,203 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fef6e4 0%, #fffaf0 50%, #f5faff 100%);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.kicker {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #ad4e00;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.lead {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+.heroMeta {
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.heroLabel {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.heroValue {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.heroHint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.cardLabel {
+  margin: 0 0 6px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.cardValue {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.cardHint {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.notice,
+.noticeWarning {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.noticeWarning {
+  border-color: #f5a623;
+  background: #fff7e6;
+  color: #ad4e00;
+}
+
+.noticeTitle {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.noticeList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.stepGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.stepCard {
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.stepHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.stepTitle {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.stepDesc {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.stepBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e6f7ff;
+  color: #0050b3;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.stepMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.stepAlert {
+  color: #ad4e00;
+}
+
+.stepList {
+  margin: 0;
+  padding-left: 16px;
+  color: #ad4e00;
+  font-size: 12px;
+}
+
+.primaryButton {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #0050b3;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}

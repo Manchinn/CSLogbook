@@ -18,9 +18,6 @@ import styles from "./phase1.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
 const thaiDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
-const ONE_MINUTE_MS = 60 * 1000;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const DEADLINE_KEYWORD_FILTER = /วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.|\(|\)/g;
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -36,27 +33,11 @@ function formatThaiDate(value?: string | null) {
   return thaiDateFormatter.format(d);
 }
 
-type StepDeadlineStatus = {
-  isOverdue: boolean;
-  isLocked: boolean;
-  allowLate: boolean;
-  reason: string | null;
-  deadline: StudentDeadlineDetail | null;
-};
-
 function parseDateValue(value?: string | null) {
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
-}
-
-function extractKeywords(value: string) {
-  return value
-    .replace(DEADLINE_KEYWORD_FILTER, " ")
-    .split(/\s+/)
-    .filter((word) => word.length > 1)
-    .map((word) => word.toLowerCase());
 }
 
 function getDeadlineBaseTime(deadline: StudentDeadlineDetail) {
@@ -68,111 +49,12 @@ function getDeadlineBaseTime(deadline: StudentDeadlineDetail) {
   return null;
 }
 
-function getEffectiveDeadline(deadline: StudentDeadlineDetail, base: Date | null) {
-  const effective = parseDateValue(deadline.effectiveDeadlineAt ?? null);
-  if (effective) return effective;
-  if (!base) return null;
-  const graceMinutes = deadline.gracePeriodMinutes ?? 0;
-  if (deadline.allowLate && graceMinutes > 0) {
-    return new Date(base.getTime() + graceMinutes * ONE_MINUTE_MS);
-  }
-  return base;
-}
-
 function getDeadlineSortTime(deadline: StudentDeadlineDetail) {
   const effective = parseDateValue(deadline.effectiveDeadlineAt ?? null);
   const base = effective ?? getDeadlineBaseTime(deadline);
   return base ? base.getTime() : Number.POSITIVE_INFINITY;
 }
 
-function isDeadlineMatch(step: ProjectStep, deadline: StudentDeadlineDetail) {
-  if (!step.deadlineName || !step.relatedTo) return false;
-  const deadlineName = String(deadline.name || "").trim();
-  const stepDeadlineName = String(step.deadlineName || "").trim();
-  const relatedToMatch = String(deadline.relatedTo || "").toLowerCase() === step.relatedTo.toLowerCase();
-
-  if (!relatedToMatch) return false;
-  if (deadlineName === stepDeadlineName) return true;
-
-  const deadlineKeywords = extractKeywords(deadlineName);
-  const stepKeywords = extractKeywords(stepDeadlineName);
-  const commonKeywords = deadlineKeywords.filter((keyword) => stepKeywords.includes(keyword));
-  if (commonKeywords.length >= 2) return true;
-
-  return deadlineName.includes(stepDeadlineName) || stepDeadlineName.includes(deadlineName);
-}
-
-function getStepDeadlineStatus(step: ProjectStep, deadlines: StudentDeadlineDetail[]): StepDeadlineStatus {
-  if (!step.deadlineName || !step.relatedTo) {
-    return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null };
-  }
-
-  const matchingDeadline = deadlines.find((deadline) => isDeadlineMatch(step, deadline)) ?? null;
-  if (!matchingDeadline) {
-    return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null };
-  }
-
-  const now = new Date();
-  const deadlineTime = getDeadlineBaseTime(matchingDeadline);
-  if (!deadlineTime) {
-    return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: matchingDeadline };
-  }
-
-  const effectiveDeadline = getEffectiveDeadline(matchingDeadline, deadlineTime) ?? deadlineTime;
-  const allowLate = Boolean(matchingDeadline.allowLate);
-  const lockAfterDeadline = Boolean(matchingDeadline.lockAfterDeadline);
-  const isAfterDeadline = now.getTime() > deadlineTime.getTime();
-  const isAfterEffectiveDeadline = now.getTime() > effectiveDeadline.getTime();
-
-  if (!isAfterDeadline) {
-    return { isOverdue: false, isLocked: false, allowLate, reason: null, deadline: matchingDeadline };
-  }
-
-  const diffDays = Math.max(0, Math.floor((now.getTime() - deadlineTime.getTime()) / ONE_DAY_MS));
-
-  if (isAfterEffectiveDeadline && lockAfterDeadline) {
-    return {
-      isOverdue: true,
-      allowLate: false,
-      isLocked: true,
-      reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
-      deadline: matchingDeadline,
-    };
-  }
-
-  if (isAfterDeadline && !isAfterEffectiveDeadline && allowLate) {
-    const graceMinutesLeft = Math.max(0, Math.floor((effectiveDeadline.getTime() - now.getTime()) / ONE_MINUTE_MS));
-    return {
-      isOverdue: true,
-      allowLate: true,
-      isLocked: false,
-      reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${Math.ceil(graceMinutesLeft / 60)} ชม. แต่จะถูกบันทึกว่าส่งช้า)`,
-      deadline: matchingDeadline,
-    };
-  }
-
-  if (isAfterDeadline && !allowLate) {
-    return {
-      isOverdue: true,
-      allowLate: false,
-      isLocked: true,
-      reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
-      deadline: matchingDeadline,
-    };
-  }
-
-  if (isAfterEffectiveDeadline && !lockAfterDeadline && allowLate) {
-    return {
-      isOverdue: true,
-      allowLate: true,
-      isLocked: false,
-      reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
-      deadline: matchingDeadline,
-    };
-  }
-
-  return { isOverdue: false, isLocked: false, allowLate, reason: null, deadline: matchingDeadline };
-}
 
 type ProjectStep = {
   key: string;
@@ -248,10 +130,9 @@ const phase2Steps: ProjectStep[] = [
     title: "ขอทดสอบระบบ 30 วัน",
     desc: "ส่งคำขอทดสอบระบบและติดตามสถานะอนุมัติ",
     icon: "TEST",
-    implemented: false,
-    comingSoon: true,
+    implemented: true,
     requiresPhase2Unlock: true,
-    target: "/project/phase2",
+    target: "/project/phase2/system-test",
     deadlineName: "ยื่นคำขอทดสอบระบบ",
     relatedTo: "project2",
   },
@@ -262,10 +143,9 @@ const phase2Steps: ProjectStep[] = [
     title: "ยื่นคำขอสอบ คพ.03",
     desc: "ส่งคำขอสอบโครงงานพิเศษ 2 พร้อมหลักฐานสำคัญ",
     icon: "KP03",
-    implemented: false,
-    comingSoon: true,
+    implemented: true,
     requiresPhase2Unlock: true,
-    target: "/project/phase2",
+    target: "/project/phase2/thesis-defense",
     deadlineName: "ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)",
     relatedTo: "project2",
   },
@@ -325,7 +205,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     return projectDeadlines.filter((deadline) => getDeadlineSortTime(deadline) >= now).slice(0, 4);
   }, [projectDeadlines]);
 
-  const project = projectDetail ?? projectStatus?.project ?? null;
+  const projectDetailData = projectDetail ?? null;
+  const projectSummary = projectStatus?.project ?? null;
+  const project = projectDetailData ?? projectSummary ?? null;
   const workflow = projectStatus?.workflow ?? null;
 
   const canAccessProject =
@@ -432,7 +314,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       reasons.push("สถานะโครงงานยังไม่อยู่ในขั้น \"กำลังดำเนินการ\"");
     }
 
-    if (allowedPhase2Semesters && allowedPhase2Semesters.length > 0 && Number.isInteger(currentSemester)) {
+    if (allowedPhase2Semesters && allowedPhase2Semesters.length > 0 && typeof currentSemester === "number") {
       if (!allowedPhase2Semesters.includes(currentSemester)) {
         reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบโครงงานพิเศษ 2`);
       }
@@ -459,15 +341,17 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   }, [project]);
 
   const meetingProgress = useMemo(() => {
-    if (!project) {
+    if (!projectDetailData) {
       return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
     }
-    const metrics = project.meetingMetrics ?? project.meetingMetricsPhase1 ?? null;
+    const metrics = projectDetailData.meetingMetrics ?? projectDetailData.meetingMetricsPhase1 ?? null;
     if (!metrics) {
       return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
     }
     const required = Number(metrics.requiredApprovedLogs) || 0;
-    const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
+    const perStudent = Array.isArray(metrics.perStudent)
+      ? metrics.perStudent
+      : ([] as Array<{ studentId: number; approvedLogs?: number }>);
     const leaderId = leaderMember?.studentId;
     const leaderApproved = leaderId
       ? Number(perStudent.find((item) => Number(item.studentId) === Number(leaderId))?.approvedLogs || 0)
@@ -479,25 +363,27 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       totalApproved,
       satisfied: required === 0 || leaderApproved >= required,
     };
-  }, [project, leaderMember]);
+  }, [projectDetailData, leaderMember]);
 
   const project1DefenseRequest = useMemo(() => {
-    if (!Array.isArray(project?.defenseRequests)) return null;
+    if (!Array.isArray(projectDetailData?.defenseRequests)) return null;
     return (
-      project.defenseRequests.find(
+      projectDetailData.defenseRequests.find(
         (request) => request.defenseType === "PROJECT1" && request.status !== "cancelled"
       ) ?? null
     );
-  }, [project?.defenseRequests]);
+  }, [projectDetailData?.defenseRequests]);
 
   const thesisDefenseRequest = useMemo(() => {
-    if (!Array.isArray(project?.defenseRequests)) return null;
+    if (!Array.isArray(projectDetailData?.defenseRequests)) return null;
     return (
-      project.defenseRequests.find(
+      projectDetailData.defenseRequests.find(
         (request) => request.defenseType === "THESIS" && request.status !== "cancelled"
       ) ?? null
     );
-  }, [project?.defenseRequests]);
+  }, [projectDetailData?.defenseRequests]);
+
+  const systemTestSummary = projectDetailData?.systemTestRequest ?? null;
 
   const stepStatusMap = useMemo(() => {
     const statuses: Record<string, { label: string; tone: "default" | "info" | "success" | "warning" | "danger" }>
@@ -512,7 +398,14 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     };
 
     if (!project) {
-      ["topic-submit", "meeting-logbook", "exam-submit", "phase2-overview"].forEach((key) =>
+      [
+        "topic-submit",
+        "meeting-logbook",
+        "exam-submit",
+        "phase2-overview",
+        "system-test",
+        "thesis-defense-request",
+      ].forEach((key) =>
         setStatus(key, "ยังไม่มีโครงงาน", "default")
       );
       return statuses;
@@ -521,7 +414,8 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     const members = Array.isArray(project.members) ? project.members : [];
     const membersCount = members.length;
     const hasTopicTitles = Boolean(project.projectNameTh) && Boolean(project.projectNameEn);
-    const isFailedArchived = project.examResult === "failed" && Boolean(project.studentAcknowledgedAt);
+    const isFailedArchived =
+      project.examResult === "failed" && Boolean(projectDetailData?.studentAcknowledgedAt);
 
     if (isFailedArchived) {
       setStatus("topic-submit", "ต้องยื่นใหม่", "danger");
@@ -576,8 +470,52 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("phase2-overview", "พร้อมเริ่ม Phase 2", "info");
     }
 
+    if (phase2GateReasons.length > 0) {
+      setStatus("system-test", "รอปลดล็อก", "warning");
+    } else if (!systemTestSummary) {
+      setStatus("system-test", "ยังไม่ยื่นคำขอ", "default");
+    } else if (["advisor_rejected", "staff_rejected"].includes(systemTestSummary.status || "")) {
+      setStatus("system-test", "คำขอถูกส่งกลับ", "danger");
+    } else if (systemTestSummary.status === "staff_approved") {
+      if (systemTestSummary.evidenceSubmittedAt) {
+        setStatus("system-test", "อนุมัติครบแล้ว", "success");
+      } else {
+        setStatus("system-test", "รออัปโหลดหลักฐาน", "warning");
+      }
+    } else if (systemTestSummary.status === "pending_staff") {
+      setStatus("system-test", "รอเจ้าหน้าที่ตรวจสอบ", "info");
+    } else if (systemTestSummary.status === "pending_advisor") {
+      setStatus("system-test", "รออาจารย์อนุมัติ", "info");
+    } else {
+      setStatus("system-test", "กำลังดำเนินการ", "info");
+    }
+
+    if (phase2GateReasons.length > 0) {
+      setStatus("thesis-defense-request", "รอปลดล็อก", "warning");
+    } else if (!thesisDefenseRequest) {
+      setStatus("thesis-defense-request", "ยังไม่ยื่นคำขอ", "default");
+    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
+      setStatus("thesis-defense-request", "คำขอถูกส่งกลับ", "danger");
+    } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
+      setStatus("thesis-defense-request", "รอสอบโครงงานพิเศษ 2", "info");
+    } else if (thesisDefenseRequest.status === "completed") {
+      setStatus("thesis-defense-request", "บันทึกผลสอบแล้ว", "success");
+    } else if (thesisDefenseRequest.status === "advisor_approved") {
+      setStatus("thesis-defense-request", "อาจารย์อนุมัติครบ", "warning");
+    } else {
+      setStatus("thesis-defense-request", "รอการอนุมัติ", "info");
+    }
+
     return statuses;
-  }, [project, meetingProgress, project1DefenseRequest, thesisDefenseRequest, phase2GateReasons]);
+  }, [
+    project,
+    meetingProgress,
+    project1DefenseRequest,
+    thesisDefenseRequest,
+    phase2GateReasons,
+    systemTestSummary,
+    projectDetailData?.studentAcknowledgedAt,
+  ]);
 
   const allSteps = useMemo(() => [phase2Steps[0], ...phase1Steps, ...phase2Steps.slice(1)], []);
   const visibleSteps = useMemo(() => {
@@ -588,24 +526,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     return allSteps.filter((step) => step.phase === activePhaseTab);
   }, [activePhaseTab, allSteps]);
 
-  const deadlineStatusByKey = useMemo(() => {
-    const statusMap: Record<string, StepDeadlineStatus> = {};
-    allSteps.forEach((step) => {
-      statusMap[step.key] = getStepDeadlineStatus(step, projectDeadlines);
-    });
-    return statusMap;
-  }, [allSteps, projectDeadlines]);
-
   const buildLockReasons = useCallback(
-    (step: ProjectStep, deadlineStatus: StepDeadlineStatus) => {
+    (step: ProjectStep) => {
       const reasons: string[] = [];
       if (step.requiresPostTopicUnlock) reasons.push(...postTopicGateReasons);
-      const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
-      if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
-        reasons.push(...phase2GateReasons);
-      }
-      if ((deadlineStatus.isLocked || deadlineStatus.isOverdue) && deadlineStatus.reason) {
-        reasons.push(deadlineStatus.reason);
+      if (step.phase !== "phase2") {
+        const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
+        if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
+          reasons.push(...phase2GateReasons);
+        }
       }
       return reasons;
     },
@@ -623,7 +552,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     [router]
   );
 
-  const showAck = Boolean(project && project.examResult === "failed" && !project.studentAcknowledgedAt);
+  const showAck = Boolean(project && project.examResult === "failed" && !projectDetailData?.studentAcknowledgedAt);
   const showPhaseContent = canAccessProject && !eligibilityLoading && !isProjectCancelled;
 
   const handleAcknowledge = useCallback(async () => {
@@ -723,8 +652,8 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         <section className={styles.noticeDanger}>
           <p className={styles.noticeTitle}>ผลสอบหัวข้อ: ไม่ผ่าน</p>
           <p className={styles.noticeBody}>คุณต้องรับทราบผลเพื่อให้ระบบเก็บหัวข้อนี้</p>
-          {project?.examFailReason ? (
-            <p className={styles.noticeReason}>เหตุผล: {project.examFailReason}</p>
+          {projectDetailData?.examFailReason ? (
+            <p className={styles.noticeReason}>เหตุผล: {projectDetailData.examFailReason}</p>
           ) : null}
           <div className={styles.noticeActions}>
             <button
@@ -792,10 +721,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
             </button>
           </div>
           {visibleSteps.map((step) => {
-            const deadlineStatus =
-              deadlineStatusByKey[step.key] ??
-              ({ isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null } as StepDeadlineStatus);
-            const lockReasons = buildLockReasons(step, deadlineStatus);
+            const lockReasons = buildLockReasons(step);
             const isDisabled = !step.implemented || lockReasons.length > 0;
             const status = stepStatusMap[step.key];
             return (
@@ -822,16 +748,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
                         {step.phaseLabel}
                       </span>
                     ) : null}
-                    {deadlineStatus.isOverdue ? (
-                      <span
-                        className={`${styles.tag} ${deadlineStatus.allowLate ? styles.tagWarning : styles.tagDanger}`}
-                      >
-                        {deadlineStatus.allowLate ? "เกินกำหนด (ส่งได้)" : "เกินกำหนด"}
-                      </span>
-                    ) : null}
                     {!step.implemented ? (
                       <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
-                    ) : lockReasons.length > 0 && !deadlineStatus.isOverdue ? (
+                    ) : lockReasons.length > 0 ? (
                       <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
                     ) : status ? (
                       <span
@@ -949,8 +868,8 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
             </div>
             <div className={styles.modalBody}>
               <p>เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร และไม่สามารถย้อนกลับได้</p>
-              {project?.examFailReason ? (
-                <p className={styles.modalHint}>เหตุผล: {project.examFailReason}</p>
+              {projectDetailData?.examFailReason ? (
+                <p className={styles.modalHint}>เหตุผล: {projectDetailData.examFailReason}</p>
               ) : null}
             </div>
             <div className={styles.modalActions}>

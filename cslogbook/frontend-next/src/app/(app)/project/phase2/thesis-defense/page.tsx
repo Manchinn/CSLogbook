@@ -5,15 +5,14 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { featureFlags } from "@/lib/config/featureFlags";
 import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
 
-const ProjectPhase2Content = dynamic(() => import("./view/ProjectPhase2Content"), { ssr: false });
+const ThesisDefenseRequestContent = dynamic(() => import("./ThesisDefenseRequestContent"), { ssr: false });
 
-export default function ProjectPhase2Page() {
-  const enabled = featureFlags.enableProjectPhase2Page;
-  guardFeatureRoute(enabled, "/app");
+export default function ThesisDefenseRequestPage() {
+  guardFeatureRoute(featureFlags.enableProjectPhase2Page, "/app");
 
   return (
     <RoleGuard roles={["student"]}>
-      <ProjectPhase2Content />
+      <ThesisDefenseRequestContent />
     </RoleGuard>
   );
 }

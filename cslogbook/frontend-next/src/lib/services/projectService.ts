@@ -2,6 +2,42 @@ import { apiFetch, apiFetchData } from "@/lib/api/client";
 import type { ProjectDetail } from "@/lib/services/studentService";
 
 const DEFENSE_TYPE_PROJECT1 = "PROJECT1";
+const DEFENSE_TYPE_THESIS = "THESIS";
+
+type DefenseType = typeof DEFENSE_TYPE_PROJECT1 | typeof DEFENSE_TYPE_THESIS;
+
+type ProjectFile = {
+  name?: string | null;
+  url?: string | null;
+};
+
+export type SystemTestRequest = {
+  requestId: number;
+  status?: string | null;
+  submittedAt?: string | null;
+  updatedAt?: string | null;
+  testStartDate?: string | null;
+  testDueDate?: string | null;
+  studentNote?: string | null;
+  requestFile?: ProjectFile | null;
+  evidence?: ProjectFile | null;
+  evidenceSubmittedAt?: string | null;
+  submittedLate?: boolean | null;
+  timeline?: {
+    submittedAt?: string | null;
+    advisorDecidedAt?: string | null;
+    coAdvisorDecidedAt?: string | null;
+    staffDecidedAt?: string | null;
+    evidenceSubmittedAt?: string | null;
+  };
+  advisorDecision?: { name?: string | null; note?: string | null; decidedAt?: string | null } | null;
+  coAdvisorDecision?: { name?: string | null; note?: string | null; decidedAt?: string | null } | null;
+  staffDecision?: { note?: string | null } | null;
+};
+
+function resolveDefenseType(defenseType?: DefenseType) {
+  return defenseType === DEFENSE_TYPE_THESIS ? DEFENSE_TYPE_THESIS : DEFENSE_TYPE_PROJECT1;
+}
 
 export type ProjectCreatePayload = {
   projectNameTh?: string | null;
@@ -97,11 +133,37 @@ export async function activateProject(token: string, projectId: number) {
   );
 }
 
-export async function getProject1DefenseRequest(token: string, projectId: number) {
-  return apiFetchData<ProjectDefenseRequest>(`/projects/${projectId}/kp02?defenseType=${DEFENSE_TYPE_PROJECT1}`, {
+export async function getProjectDefenseRequest(
+  token: string,
+  projectId: number,
+  defenseType?: DefenseType
+) {
+  const resolvedType = resolveDefenseType(defenseType);
+  return apiFetchData<ProjectDefenseRequest>(`/projects/${projectId}/kp02?defenseType=${resolvedType}`, {
     method: "GET",
     token,
   });
+}
+
+export async function submitProjectDefenseRequest(
+  token: string,
+  projectId: number,
+  payload: Record<string, unknown>,
+  defenseType?: DefenseType
+) {
+  const resolvedType = resolveDefenseType(defenseType);
+  return apiFetch<{ success: boolean; data?: ProjectDefenseRequest; message?: string }>(
+    `/projects/${projectId}/kp02?defenseType=${resolvedType}`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function getProject1DefenseRequest(token: string, projectId: number) {
+  return getProjectDefenseRequest(token, projectId, DEFENSE_TYPE_PROJECT1);
 }
 
 export async function submitProject1DefenseRequest(
@@ -109,12 +171,68 @@ export async function submitProject1DefenseRequest(
   projectId: number,
   payload: Record<string, unknown>
 ) {
-  return apiFetch<{ success: boolean; data?: ProjectDefenseRequest; message?: string }>(
-    `/projects/${projectId}/kp02?defenseType=${DEFENSE_TYPE_PROJECT1}`,
+  return submitProjectDefenseRequest(token, projectId, payload, DEFENSE_TYPE_PROJECT1);
+}
+
+export async function getThesisDefenseRequest(token: string, projectId: number) {
+  return getProjectDefenseRequest(token, projectId, DEFENSE_TYPE_THESIS);
+}
+
+export async function submitThesisDefenseRequest(
+  token: string,
+  projectId: number,
+  payload: Record<string, unknown>
+) {
+  return submitProjectDefenseRequest(token, projectId, payload, DEFENSE_TYPE_THESIS);
+}
+
+export async function getSystemTestRequest(token: string, projectId: number) {
+  return apiFetchData<SystemTestRequest>(`/projects/${projectId}/system-test/request`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function submitSystemTestRequest(
+  token: string,
+  projectId: number,
+  payload: {
+    testStartDate: string;
+    testDueDate: string;
+    studentNote?: string | null;
+    requestFile?: File | null;
+  }
+) {
+  const formData = new FormData();
+  formData.append("testStartDate", payload.testStartDate);
+  formData.append("testDueDate", payload.testDueDate);
+  if (payload.studentNote) {
+    formData.append("studentNote", payload.studentNote);
+  }
+  if (payload.requestFile) {
+    formData.append("requestFile", payload.requestFile);
+  }
+
+  return apiFetch<{ success: boolean; data?: SystemTestRequest; message?: string }>(
+    `/projects/${projectId}/system-test/request`,
     {
       method: "POST",
       token,
-      body: JSON.stringify(payload),
+      body: formData,
+    }
+  );
+}
+
+export async function uploadSystemTestEvidence(token: string, projectId: number, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFetch<{ success: boolean; data?: SystemTestRequest; message?: string }>(
+    `/projects/${projectId}/system-test/request/evidence`,
+    {
+      method: "POST",
+      token,
+      body: formData,
     }
   );
 }
