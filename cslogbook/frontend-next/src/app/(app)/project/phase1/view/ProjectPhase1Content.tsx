@@ -195,6 +195,17 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     eligibility?.eligibility?.project?.reason ??
     null;
 
+  const eligibilitySnapshot = useMemo(() => {
+    if (!eligibility) return null;
+    return {
+      currentCredits: eligibility.student?.totalCredits ?? 0,
+      currentMajorCredits: eligibility.student?.majorCredits ?? 0,
+      requiredCredits: eligibility.requirements?.project?.totalCredits ?? null,
+      requiredMajorCredits: eligibility.requirements?.project?.majorCredits ?? null,
+      canRegister: eligibility.status?.project?.canRegister ?? null,
+    };
+  }, [eligibility]);
+
   const academicSettings = eligibility?.academicSettings ?? null;
   const currentSemester =
     academicSettings?.currentSemester !== undefined && academicSettings?.currentSemester !== null
@@ -432,6 +443,14 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         return { isOverdue: false, isLocked: false, reason: null as string | null, deadline: null };
       }
 
+      const extractKeywords = (text: string) => {
+        return text
+          .replace(/วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.|\(|\)/g, " ")
+          .split(/\s+/)
+          .filter((word) => word.length > 1)
+          .map((word) => word.toLowerCase());
+      };
+
       const matchingDeadline = projectDeadlines.find((deadline) => {
         const deadlineName = String(deadline.name || "").trim();
         const stepDeadlineName = String(step.deadlineName || "").trim();
@@ -439,7 +458,11 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         if (!relatedToMatch) return false;
         if (deadlineName === stepDeadlineName) return true;
         if (deadlineName.includes(stepDeadlineName) || stepDeadlineName.includes(deadlineName)) return true;
-        return false;
+
+        const deadlineKeywords = extractKeywords(deadlineName);
+        const stepKeywords = extractKeywords(stepDeadlineName);
+        const common = deadlineKeywords.filter((keyword) => stepKeywords.includes(keyword));
+        return common.length >= 2;
       });
 
       if (!matchingDeadline) {
@@ -626,6 +649,32 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
           {projectAccessReason ? (
             <p className={styles.noticeReason}>{projectAccessReason}</p>
           ) : null}
+        </section>
+      ) : null}
+
+      {eligibilitySnapshot ? (
+        <section className={styles.notice}>
+          <p className={styles.noticeTitle}>สรุปคุณสมบัติ</p>
+          <dl className={styles.metaGrid}>
+            <div>
+              <dt>หน่วยกิตรวม</dt>
+              <dd>
+                {eligibilitySnapshot.currentCredits}
+                {eligibilitySnapshot.requiredCredits ? ` / ${eligibilitySnapshot.requiredCredits}` : ""}
+              </dd>
+            </div>
+            <div>
+              <dt>หน่วยกิตภาควิชา</dt>
+              <dd>
+                {eligibilitySnapshot.currentMajorCredits}
+                {eligibilitySnapshot.requiredMajorCredits ? ` / ${eligibilitySnapshot.requiredMajorCredits}` : ""}
+              </dd>
+            </div>
+            <div>
+              <dt>สิทธิ์ลงทะเบียน</dt>
+              <dd>{eligibilitySnapshot.canRegister ? "พร้อม" : "ยังไม่พร้อม"}</dd>
+            </div>
+          </dl>
         </section>
       ) : null}
 
