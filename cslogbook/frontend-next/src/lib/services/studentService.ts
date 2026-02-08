@@ -313,6 +313,48 @@ export type ProjectSummary = {
   members?: ProjectMemberSummary[];
 };
 
+export type ProjectDefenseRequestSummary = {
+  requestId: number;
+  defenseType?: string | null;
+  status?: string | null;
+  submittedByStudentId?: number | null;
+  submittedAt?: string | null;
+  defenseScheduledAt?: string | null;
+  defenseLocation?: string | null;
+  defenseNote?: string | null;
+};
+
+export type ProjectMeetingMetrics = {
+  requiredApprovedLogs?: number;
+  totalMeetings?: number;
+  totalApprovedLogs?: number;
+  lastApprovedLogAt?: string | null;
+  perStudent?: Array<{
+    studentId: number;
+    approvedLogs?: number;
+    attendedMeetings?: number;
+  }>;
+};
+
+export type ProjectSystemTestSummary = {
+  requestId: number;
+  status?: string | null;
+  submittedAt?: string | null;
+  testStartDate?: string | null;
+  testDueDate?: string | null;
+  evidenceSubmittedAt?: string | null;
+};
+
+export type ProjectDetail = ProjectSummary & {
+  examFailReason?: string | null;
+  studentAcknowledgedAt?: string | null;
+  meetingMetrics?: ProjectMeetingMetrics | null;
+  meetingMetricsPhase1?: ProjectMeetingMetrics | null;
+  meetingMetricsPhase2?: ProjectMeetingMetrics | null;
+  defenseRequests?: ProjectDefenseRequestSummary[];
+  systemTestRequest?: ProjectSystemTestSummary | null;
+};
+
 export type ProjectWorkflowStateSummary = {
   projectId: number;
   currentPhase?: string;
@@ -352,6 +394,29 @@ export async function getStudentProjects(token: string) {
   return response.data ?? response.projects ?? [];
 }
 
+export async function getProjectById(token: string, projectId: number) {
+  const data = await apiFetchData<ProjectDetail>(`/projects/${projectId}`, {
+    method: "GET",
+    token,
+  });
+
+  if (!data) {
+    throw new Error("ไม่พบข้อมูลโครงงาน");
+  }
+
+  return data;
+}
+
+export async function acknowledgeTopicExamResult(token: string, projectId: number) {
+  return apiFetch<{ success: boolean; message?: string }>(
+    `/projects/${projectId}/topic-exam-result/ack`,
+    {
+      method: "PATCH",
+      token,
+    }
+  );
+}
+
 export async function getProjectWorkflowState(token: string, projectId: number) {
   const data = await apiFetchData<ProjectWorkflowStateSummary>(
     `/projects/${projectId}/workflow-state`,
@@ -383,6 +448,17 @@ export async function getStudentProjectStatus(token: string): Promise<StudentPro
     console.warn("Failed to load project workflow state", error);
     return { project, workflow: null };
   }
+}
+
+export async function getStudentProjectDetail(token: string) {
+  const projects = await getStudentProjects(token);
+  const project = projects[0] ?? null;
+
+  if (!project?.projectId) {
+    return null;
+  }
+
+  return getProjectById(token, project.projectId);
 }
 
 export type UpdateContactInfoPayload = {

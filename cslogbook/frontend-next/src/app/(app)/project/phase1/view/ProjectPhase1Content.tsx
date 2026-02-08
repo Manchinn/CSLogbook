@@ -1,15 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useStudentEligibility } from "@/hooks/useStudentEligibility";
+import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
-import { useStudentDeadlines } from "@/hooks/useStudentDeadlines";
+import { useStudentDeadlineCalendar } from "@/hooks/useStudentDeadlineCalendar";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
 import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
+import { acknowledgeTopicExamResult } from "@/lib/services/studentService";
 import styles from "./phase1.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
+const thaiDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -18,13 +23,124 @@ function formatDate(value?: string | null) {
   return dateFormatter.format(d);
 }
 
+function formatThaiDate(value?: string | null) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  return thaiDateFormatter.format(d);
+}
+
+type ProjectStep = {
+  key: string;
+  phase: "phase1" | "phase2";
+  phaseLabel?: string | null;
+  title: string;
+  desc: string;
+  icon: string;
+  implemented: boolean;
+  comingSoon?: boolean;
+  requiresPostTopicUnlock?: boolean;
+  requiresPhase2Unlock?: boolean;
+  target?: string | null;
+  deadlineName?: string | null;
+  relatedTo?: string | null;
+};
+
+const phase1Steps: ProjectStep[] = [
+  {
+    key: "topic-submit",
+    phase: "phase1",
+    phaseLabel: "โครงงานพิเศษ 1",
+    title: "เสนอหัวข้อโครงงานพิเศษ",
+    desc: "ส่งหัวข้อและข้อมูลโครงงานเพื่อเข้าสู่ขั้นตอนถัดไป",
+    icon: "KP01",
+    implemented: true,
+    target: "/project/phase1/topic-submit",
+    deadlineName: "ส่งหัวข้อโครงงานพิเศษ 1",
+    relatedTo: "project1",
+  },
+  {
+    key: "meeting-logbook",
+    phase: "phase1",
+    phaseLabel: "โครงงานพิเศษ 1",
+    title: "บันทึกการพบอาจารย์",
+    desc: "จองและบันทึกการประชุม พร้อมส่งอีเมลแจ้งเตือน",
+    icon: "LOG",
+    implemented: true,
+    requiresPostTopicUnlock: true,
+    target: "/project/phase1/meeting-logbook",
+  },
+  {
+    key: "exam-submit",
+    phase: "phase1",
+    phaseLabel: "โครงงานพิเศษ 1",
+    title: "ส่งเอกสารสอบ",
+    desc: "ส่งคำขอสอบ คพ.02 และเอกสารประกอบการสอบ",
+    icon: "KP02",
+    implemented: true,
+    requiresPostTopicUnlock: true,
+    target: "/project/phase1/exam-submit",
+    deadlineName: "ส่งคำร้องขอสอบ (คพ.02)",
+    relatedTo: "project1",
+  },
+];
+
+const phase2Steps: ProjectStep[] = [
+  {
+    key: "phase2-overview",
+    phase: "phase2",
+    phaseLabel: "ภาพรวม",
+    title: "โครงงานพิเศษ & ปริญญานิพนธ์ – ภาพรวม",
+    desc: "ติดตามสถานะและไทม์ไลน์โครงงานพิเศษ 2",
+    icon: "OVR",
+    implemented: true,
+    requiresPhase2Unlock: true,
+    target: "/project/phase2",
+  },
+  {
+    key: "system-test",
+    phase: "phase2",
+    phaseLabel: "โครงงานพิเศษ 2",
+    title: "ขอทดสอบระบบ 30 วัน",
+    desc: "ส่งคำขอทดสอบระบบและติดตามสถานะอนุมัติ",
+    icon: "TEST",
+    implemented: false,
+    comingSoon: true,
+    requiresPhase2Unlock: true,
+    target: "/project/phase2",
+    deadlineName: "ยื่นคำขอทดสอบระบบ",
+    relatedTo: "project2",
+  },
+  {
+    key: "thesis-defense-request",
+    phase: "phase2",
+    phaseLabel: "โครงงานพิเศษ 2",
+    title: "ยื่นคำขอสอบ คพ.03",
+    desc: "ส่งคำขอสอบโครงงานพิเศษ 2 พร้อมหลักฐานสำคัญ",
+    icon: "KP03",
+    implemented: false,
+    comingSoon: true,
+    requiresPhase2Unlock: true,
+    target: "/project/phase2",
+    deadlineName: "ส่งคำร้องขอสอบปริญญานิพนธ์ (คพ.03)",
+    relatedTo: "project2",
+  },
+];
+
 type ProjectPhase1ContentProps = Record<string, never>;
 
 export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
+  const router = useRouter();
   const { token, user } = useAuth();
   const hydrated = useHydrated();
+  const [ackLoading, setAckLoading] = useState(false);
   const studentId = user?.studentId ?? user?.id;
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
+
+  const {
+    data: eligibility,
+    isLoading: eligibilityLoading,
+  } = useStudentEligibility(token, queriesEnabled);
 
   const {
     data: projectStatus,
@@ -33,22 +149,430 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   } = useStudentProjectStatus(token, queriesEnabled);
 
   const {
+    data: projectDetail,
+    isLoading: projectDetailLoading,
+    refetch: refetchProjectDetail,
+  } = useStudentProjectDetail(token, queriesEnabled);
+
+  const {
     data: timeline,
     isLoading: timelineLoading,
     error: timelineError,
   } = useWorkflowTimeline(token, "project", studentId ?? null, queriesEnabled);
 
-  const { data: deadlines } = useStudentDeadlines(token, 30, queriesEnabled);
+  const { data: deadlines } = useStudentDeadlineCalendar(
+    token,
+    projectDetail?.academicYear ?? null,
+    queriesEnabled
+  );
 
-  const filteredDeadlines = useMemo(() => {
+  const projectDeadlines = useMemo(() => {
     if (!deadlines) return [];
-    return deadlines
-      .filter((d) => (d.relatedTo || "").toLowerCase().includes("project"))
-      .slice(0, 4);
+    const list = deadlines.filter((d) => String(d.relatedTo || "").toLowerCase().startsWith("project"));
+    const getTime = (value: typeof list[number]) => {
+      const base =
+        value.effectiveDeadlineAt ??
+        value.deadlineAt ??
+        (value.deadlineDate ? `${value.deadlineDate}T${value.deadlineTime ?? "00:00:00"}` : null);
+      if (!base) return Number.POSITIVE_INFINITY;
+      const parsed = new Date(base).getTime();
+      return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+    };
+    return list.slice().sort((a, b) => getTime(a) - getTime(b));
   }, [deadlines]);
 
-  const project = projectStatus?.project;
-  const workflow = projectStatus?.workflow;
+  const upcomingDeadlines = useMemo(() => projectDeadlines.slice(0, 4), [projectDeadlines]);
+
+  const project = projectDetail ?? projectStatus?.project ?? null;
+  const workflow = projectStatus?.workflow ?? null;
+
+  const canAccessProject =
+    eligibility?.status?.project?.canAccess ??
+    eligibility?.eligibility?.project?.canAccessFeature ??
+    false;
+  const projectAccessReason =
+    eligibility?.status?.project?.reason ??
+    eligibility?.eligibility?.project?.reason ??
+    null;
+
+  const academicSettings = eligibility?.academicSettings ?? null;
+  const currentSemester =
+    academicSettings?.currentSemester !== undefined && academicSettings?.currentSemester !== null
+      ? Number(academicSettings.currentSemester)
+      : null;
+
+  const allowedPhase2Semesters = useMemo(() => {
+    const rawSemesters = eligibility?.requirements?.project?.allowedSemesters;
+    if (!rawSemesters) return null;
+
+    const normalize = (value: unknown) => {
+      if (value === null || value === undefined) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === "object") return Object.values(value as Record<string, unknown>).flat();
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value);
+          if (Array.isArray(parsed)) return parsed;
+          if (typeof parsed === "object" && parsed !== null) {
+            return Object.values(parsed as Record<string, unknown>).flat();
+          }
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    return normalize(rawSemesters)
+      .map((item) => Number(item))
+      .filter((semester) => Number.isInteger(semester));
+  }, [eligibility?.requirements?.project?.allowedSemesters]);
+
+  const projectRegistrationStartDate = useMemo(() => {
+    const registration = academicSettings?.projectRegistrationPeriod ?? null;
+    if (!registration) return null;
+    if (typeof registration === "string") {
+      try {
+        const parsed = JSON.parse(registration);
+        return parsed?.startDate ?? null;
+      } catch {
+        return null;
+      }
+    }
+    if (typeof registration === "object") {
+      const value = registration as { startDate?: string | null };
+      return value.startDate ?? null;
+    }
+    return null;
+  }, [academicSettings?.projectRegistrationPeriod]);
+
+  const isProjectCancelled = project?.status === "cancelled";
+
+  const postTopicLockReasons = useMemo(() => {
+    if (!project) return [];
+    const reasons: string[] = [];
+    if (!project.examResult) {
+      reasons.push("เจ้าหน้าที่ภาควิชายังไม่ได้บันทึกผลสอบหัวข้อในระบบ");
+    } else if (project.examResult !== "passed") {
+      reasons.push("ผลสอบหัวข้อยังไม่ผ่าน จึงไม่สามารถดำเนินขั้นตอนถัดไปได้");
+    }
+    if (!project.status || !["in_progress", "completed"].includes(project.status)) {
+      reasons.push("สถานะโครงงานยังไม่เป็น \"กำลังดำเนินการ\"");
+    }
+    return reasons;
+  }, [project]);
+
+  const postTopicGateReasons = useMemo(() => {
+    if (!project) {
+      return ["ยังไม่มีข้อมูลโครงงานที่เจ้าหน้าที่ภาควิชาบันทึกในระบบ"];
+    }
+    return postTopicLockReasons;
+  }, [project, postTopicLockReasons]);
+
+  const phase2GateReasons = useMemo(() => {
+    if (!project) return ["ยังไม่มีข้อมูลโครงงาน"]; 
+    const reasons: string[] = [];
+    if (project.examResult !== "passed") {
+      reasons.push("ผลสอบหัวข้อยังไม่ผ่าน");
+    }
+    if (!project.status || !["in_progress", "completed"].includes(project.status)) {
+      reasons.push("สถานะโครงงานยังไม่อยู่ในขั้น \"กำลังดำเนินการ\"");
+    }
+
+    if (allowedPhase2Semesters && allowedPhase2Semesters.length > 0 && Number.isInteger(currentSemester)) {
+      if (!allowedPhase2Semesters.includes(currentSemester)) {
+        reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบโครงงานพิเศษ 2`);
+      }
+    }
+
+    if (projectRegistrationStartDate) {
+      const startDate = new Date(projectRegistrationStartDate);
+      if (!Number.isNaN(startDate.getTime()) && new Date() < startDate) {
+        const displayDate = formatThaiDate(projectRegistrationStartDate);
+        reasons.push(
+          displayDate !== "-"
+            ? `ภาคเรียนถัดไปจะเปิดให้ยื่นสอบโครงงานพิเศษ 2 ในวันที่ ${displayDate}`
+            : "ภาคเรียนถัดไปยังไม่เปิดให้ยื่นสอบโครงงานพิเศษ 2"
+        );
+      }
+    }
+
+    return reasons;
+  }, [project, allowedPhase2Semesters, currentSemester, projectRegistrationStartDate]);
+
+  const leaderMember = useMemo(() => {
+    if (!project || !Array.isArray(project.members)) return null;
+    return project.members.find((member) => member.role === "leader") ?? null;
+  }, [project]);
+
+  const meetingProgress = useMemo(() => {
+    if (!project) {
+      return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
+    }
+    const metrics = project.meetingMetrics ?? project.meetingMetricsPhase1 ?? null;
+    if (!metrics) {
+      return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
+    }
+    const required = Number(metrics.requiredApprovedLogs) || 0;
+    const perStudent = Array.isArray(metrics.perStudent) ? metrics.perStudent : [];
+    const leaderId = leaderMember?.studentId;
+    const leaderApproved = leaderId
+      ? Number(perStudent.find((item) => Number(item.studentId) === Number(leaderId))?.approvedLogs || 0)
+      : 0;
+    const totalApproved = Number(metrics.totalApprovedLogs) || leaderApproved;
+    return {
+      required,
+      approved: leaderApproved,
+      totalApproved,
+      satisfied: required === 0 || leaderApproved >= required,
+    };
+  }, [project, leaderMember]);
+
+  const project1DefenseRequest = useMemo(() => {
+    if (!Array.isArray(project?.defenseRequests)) return null;
+    return (
+      project.defenseRequests.find(
+        (request) => request.defenseType === "PROJECT1" && request.status !== "cancelled"
+      ) ?? null
+    );
+  }, [project?.defenseRequests]);
+
+  const thesisDefenseRequest = useMemo(() => {
+    if (!Array.isArray(project?.defenseRequests)) return null;
+    return (
+      project.defenseRequests.find(
+        (request) => request.defenseType === "THESIS" && request.status !== "cancelled"
+      ) ?? null
+    );
+  }, [project?.defenseRequests]);
+
+  const stepStatusMap = useMemo(() => {
+    const statuses: Record<string, { label: string; tone: "default" | "info" | "success" | "warning" | "danger" }>
+      = {};
+
+    const setStatus = (
+      key: string,
+      label: string,
+      tone: "default" | "info" | "success" | "warning" | "danger" = "default"
+    ) => {
+      statuses[key] = { label, tone };
+    };
+
+    if (!project) {
+      ["topic-submit", "meeting-logbook", "exam-submit", "phase2-overview"].forEach((key) =>
+        setStatus(key, "ยังไม่มีโครงงาน", "default")
+      );
+      return statuses;
+    }
+
+    const members = Array.isArray(project.members) ? project.members : [];
+    const membersCount = members.length;
+    const hasTopicTitles = Boolean(project.projectNameTh) && Boolean(project.projectNameEn);
+    const isFailedArchived = project.examResult === "failed" && Boolean(project.studentAcknowledgedAt);
+
+    if (isFailedArchived) {
+      setStatus("topic-submit", "ต้องยื่นใหม่", "danger");
+    } else if (membersCount >= 2 && hasTopicTitles) {
+      setStatus("topic-submit", "เสร็จสิ้น", "success");
+    } else if (membersCount > 0 || hasTopicTitles) {
+      setStatus("topic-submit", "กำลังดำเนินการ", "info");
+    } else {
+      setStatus("topic-submit", "ยังไม่เริ่ม", "default");
+    }
+
+    if (meetingProgress.required > 0) {
+      if (meetingProgress.satisfied) {
+        setStatus("meeting-logbook", `ครบเกณฑ์ ${meetingProgress.approved}/${meetingProgress.required}`, "success");
+      } else if (meetingProgress.approved > 0) {
+        setStatus("meeting-logbook", `อนุมัติแล้ว ${meetingProgress.approved}/${meetingProgress.required}`, "info");
+      } else {
+        setStatus("meeting-logbook", `ยังไม่บันทึก (${meetingProgress.required})`, "default");
+      }
+    } else if (meetingProgress.approved > 0) {
+      setStatus("meeting-logbook", `บันทึกแล้ว ${meetingProgress.approved}`, "info");
+    } else {
+      setStatus("meeting-logbook", "พร้อมบันทึก", "default");
+    }
+
+    const project1Status = project1DefenseRequest?.status;
+    if (!project1Status) {
+      setStatus("exam-submit", "ยังไม่ยื่นคำขอ", "default");
+    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+      setStatus("exam-submit", "คำขอถูกส่งกลับ", "danger");
+    } else if (["staff_verified", "scheduled", "completed"].includes(project1Status)) {
+      setStatus("exam-submit", "ส่งเรียบร้อย", "success");
+    } else if (project1Status === "advisor_approved") {
+      setStatus("exam-submit", "อาจารย์อนุมัติครบ", "warning");
+    } else {
+      setStatus("exam-submit", "รอการอนุมัติ", "info");
+    }
+
+    if (phase2GateReasons.length > 0) {
+      setStatus("phase2-overview", "รอปลดล็อก", "warning");
+    } else if (thesisDefenseRequest?.status === "completed") {
+      setStatus("phase2-overview", "เสร็จสิ้น Phase 2", "success");
+    } else if (thesisDefenseRequest) {
+      if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
+        setStatus("phase2-overview", "คำขอสอบ 2 ถูกส่งกลับ", "danger");
+      } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
+        setStatus("phase2-overview", "รอสอบโครงงานพิเศษ 2", "info");
+      } else {
+        setStatus("phase2-overview", "กำลังยื่นสอบ Phase 2", "info");
+      }
+    } else {
+      setStatus("phase2-overview", "พร้อมเริ่ม Phase 2", "info");
+    }
+
+    return statuses;
+  }, [project, meetingProgress, project1DefenseRequest, thesisDefenseRequest, phase2GateReasons]);
+
+  const getStepDeadlineStatus = useCallback(
+    (step: ProjectStep) => {
+      if (!step.deadlineName || !step.relatedTo) {
+        return { isOverdue: false, isLocked: false, reason: null as string | null, deadline: null };
+      }
+
+      const matchingDeadline = projectDeadlines.find((deadline) => {
+        const deadlineName = String(deadline.name || "").trim();
+        const stepDeadlineName = String(step.deadlineName || "").trim();
+        const relatedToMatch = String(deadline.relatedTo || "").toLowerCase() === step.relatedTo?.toLowerCase();
+        if (!relatedToMatch) return false;
+        if (deadlineName === stepDeadlineName) return true;
+        if (deadlineName.includes(stepDeadlineName) || stepDeadlineName.includes(deadlineName)) return true;
+        return false;
+      });
+
+      if (!matchingDeadline) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: null };
+      }
+
+      const baseTime =
+        matchingDeadline.effectiveDeadlineAt ??
+        matchingDeadline.deadlineAt ??
+        (matchingDeadline.deadlineDate
+          ? `${matchingDeadline.deadlineDate}T${matchingDeadline.deadlineTime ?? "00:00:00"}`
+          : null);
+
+      if (!baseTime) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
+      }
+
+      const deadlineTime = new Date(baseTime);
+      if (Number.isNaN(deadlineTime.getTime())) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
+      }
+
+      const now = new Date();
+      const allowLate = Boolean(matchingDeadline.allowLate);
+      const lockAfterDeadline = Boolean(matchingDeadline.lockAfterDeadline);
+      const gracePeriodMinutes = Number(matchingDeadline.gracePeriodMinutes ?? 0);
+      const effectiveDeadline = new Date(deadlineTime.getTime() + gracePeriodMinutes * 60000);
+      const isAfterDeadline = now.getTime() > deadlineTime.getTime();
+      const isAfterEffectiveDeadline = now.getTime() > effectiveDeadline.getTime();
+
+      if (!isAfterDeadline) {
+        return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
+      }
+
+      const diffDays = Math.floor((now.getTime() - deadlineTime.getTime()) / (1000 * 60 * 60 * 24));
+      const diffMinutes = Math.floor((now.getTime() - deadlineTime.getTime()) / (1000 * 60));
+
+      if (isAfterEffectiveDeadline && lockAfterDeadline) {
+        return {
+          isOverdue: true,
+          isLocked: true,
+          reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+          deadline: matchingDeadline,
+          diffDays,
+          diffMinutes,
+        };
+      }
+
+      if (isAfterDeadline && !isAfterEffectiveDeadline && allowLate) {
+        const graceMinutesLeft = Math.max(0, Math.floor((effectiveDeadline.getTime() - now.getTime()) / 60000));
+        return {
+          isOverdue: true,
+          isLocked: false,
+          reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้อีก ${Math.ceil(graceMinutesLeft / 60)} ชม.)`,
+          deadline: matchingDeadline,
+          diffDays,
+          diffMinutes,
+        };
+      }
+
+      if (isAfterDeadline && !allowLate) {
+        return {
+          isOverdue: true,
+          isLocked: true,
+          reason: `เกินกำหนด ${diffDays} วัน (ปิดรับแล้ว)`,
+          deadline: matchingDeadline,
+          diffDays,
+          diffMinutes,
+        };
+      }
+
+      if (isAfterEffectiveDeadline && allowLate) {
+        return {
+          isOverdue: true,
+          isLocked: false,
+          reason: `เกินกำหนด ${diffDays} วัน (ยังส่งได้แต่จะถูกบันทึกว่าส่งช้า)`,
+          deadline: matchingDeadline,
+          diffDays,
+          diffMinutes,
+        };
+      }
+
+      return { isOverdue: false, isLocked: false, reason: null, deadline: matchingDeadline };
+    },
+    [projectDeadlines]
+  );
+
+  const allSteps = useMemo(() => [phase2Steps[0], ...phase1Steps, ...phase2Steps.slice(1)], []);
+
+  const handleOpen = useCallback(
+    (stepKey: string) => {
+      const meta = allSteps.find((step) => step.key === stepKey);
+      if (!meta) return;
+
+      const lockReasons: string[] = [];
+      if (meta.requiresPostTopicUnlock) lockReasons.push(...postTopicGateReasons);
+      if (meta.requiresPhase2Unlock) lockReasons.push(...phase2GateReasons);
+
+      const deadlineStatus = getStepDeadlineStatus(meta);
+      if (deadlineStatus.isLocked && deadlineStatus.reason) lockReasons.push(deadlineStatus.reason);
+      if (!deadlineStatus.isLocked && deadlineStatus.isOverdue && deadlineStatus.reason) {
+        lockReasons.push(deadlineStatus.reason);
+      }
+
+      if (!meta.implemented) {
+        return;
+      }
+
+      if (lockReasons.length > 0) {
+        return;
+      }
+
+      if (meta.target) {
+        router.push(meta.target);
+      }
+    },
+    [allSteps, postTopicGateReasons, phase2GateReasons, getStepDeadlineStatus, router]
+  );
+
+  const showAck = Boolean(project && project.examResult === "failed" && !project.studentAcknowledgedAt);
+  const showPhaseContent = canAccessProject && !eligibilityLoading && !isProjectCancelled;
+
+  const handleAcknowledge = useCallback(async () => {
+    if (!project?.projectId || !token) return;
+    if (!window.confirm("ยืนยันการรับทราบผลสอบไม่ผ่าน?")) return;
+    try {
+      setAckLoading(true);
+      await acknowledgeTopicExamResult(token, project.projectId);
+      await Promise.all([refetchProjectDetail(), projectStatus ? Promise.resolve() : Promise.resolve()]);
+    } finally {
+      setAckLoading(false);
+    }
+  }, [project?.projectId, token, refetchProjectDetail, projectStatus]);
 
   const cards = [
     {
@@ -88,7 +612,134 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         ))}
       </section>
 
-      <section className={styles.split}>
+      {eligibilityLoading ? (
+        <section className={styles.notice}>
+          <p className={styles.noticeTitle}>กำลังตรวจสอบสิทธิ์โครงงานของคุณ</p>
+          <p className={styles.noticeBody}>ระบบกำลังตรวจสอบสิทธิ์และข้อกำหนดล่าสุด</p>
+        </section>
+      ) : null}
+
+      {!eligibilityLoading && !canAccessProject ? (
+        <section className={styles.notice}>
+          <p className={styles.noticeTitle}>ยังไม่สามารถใช้งานโครงงานพิเศษ</p>
+          <p className={styles.noticeBody}>ตรวจสอบสถานะล่าสุดและเตรียมข้อมูลให้พร้อม</p>
+          {projectAccessReason ? (
+            <p className={styles.noticeReason}>{projectAccessReason}</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {showAck ? (
+        <section className={styles.noticeDanger}>
+          <p className={styles.noticeTitle}>ผลสอบหัวข้อ: ไม่ผ่าน</p>
+          <p className={styles.noticeBody}>คุณต้องรับทราบผลเพื่อให้ระบบเก็บหัวข้อนี้</p>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={handleAcknowledge}
+            disabled={ackLoading}
+          >
+            {ackLoading ? "กำลังบันทึก..." : "รับทราบผล"}
+          </button>
+        </section>
+      ) : null}
+
+      {project && postTopicLockReasons.length > 0 ? (
+        <section className={styles.noticeWarning}>
+          <p className={styles.noticeTitle}>ขั้นตอนหลังสอบหัวข้อยังไม่พร้อมใช้งาน</p>
+          <ul className={styles.noticeList}>
+            {postTopicLockReasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {isProjectCancelled ? (
+        <section className={styles.noticeDanger}>
+          <p className={styles.noticeTitle}>โครงงานนี้ถูกยกเลิกแล้ว</p>
+          <p className={styles.noticeBody}>กรุณารอรอบการยื่นหัวข้อถัดไปก่อนสร้างหัวข้อใหม่</p>
+        </section>
+      ) : null}
+
+      {showPhaseContent ? (
+        <section className={styles.stepGrid}>
+          {allSteps.map((step) => {
+            const lockReasons: string[] = [];
+            if (step.requiresPostTopicUnlock) lockReasons.push(...postTopicGateReasons);
+            if (step.requiresPhase2Unlock) lockReasons.push(...phase2GateReasons);
+
+            const deadlineStatus = getStepDeadlineStatus(step);
+            if (deadlineStatus.isLocked && deadlineStatus.reason) lockReasons.push(deadlineStatus.reason);
+            if (!deadlineStatus.isLocked && deadlineStatus.isOverdue && deadlineStatus.reason) {
+              lockReasons.push(deadlineStatus.reason);
+            }
+
+            const isDisabled = !step.implemented || lockReasons.length > 0;
+            const status = stepStatusMap[step.key];
+            return (
+              <article
+                key={step.key}
+                className={`${styles.stepCard} ${isDisabled ? styles.stepCardDisabled : ""}`}
+              >
+                <button
+                  type="button"
+                  className={styles.stepButton}
+                  onClick={() => handleOpen(step.key)}
+                  disabled={isDisabled}
+                >
+                  <div className={styles.stepHeader}>
+                    <span className={styles.stepIcon}>{step.icon}</span>
+                    <div>
+                      <p className={styles.stepTitle}>{step.title}</p>
+                      <p className={styles.stepDesc}>{step.desc}</p>
+                    </div>
+                  </div>
+                  <div className={styles.stepTags}>
+                    {step.phaseLabel ? (
+                      <span className={`${styles.tag} ${step.phase === "phase2" ? styles.tagPhase2 : styles.tagPhase1}`}>
+                        {step.phaseLabel}
+                      </span>
+                    ) : null}
+                    {deadlineStatus.isOverdue ? (
+                      <span className={`${styles.tag} ${deadlineStatus.isLocked ? styles.tagDanger : styles.tagWarning}`}>
+                        {deadlineStatus.isLocked ? "เกินกำหนด" : "เกินกำหนด (ส่งได้)"}
+                      </span>
+                    ) : null}
+                    {!step.implemented ? (
+                      <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
+                    ) : lockReasons.length > 0 && !deadlineStatus.isOverdue ? (
+                      <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
+                    ) : status ? (
+                      <span
+                        className={`${styles.tag} ${
+                          status.tone === "success"
+                            ? styles.tagSuccess
+                            : status.tone === "danger"
+                              ? styles.tagDanger
+                              : status.tone === "warning"
+                                ? styles.tagWarning
+                                : status.tone === "info"
+                                  ? styles.tagInfo
+                                  : styles.tagMuted
+                        }`}
+                      >
+                        {status.label}
+                      </span>
+                    ) : null}
+                  </div>
+                  {lockReasons.length > 0 ? (
+                    <p className={styles.stepHint}>{lockReasons.join(" • ")}</p>
+                  ) : null}
+                </button>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
+
+      {showPhaseContent ? (
+        <section className={styles.split}>
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
@@ -98,7 +749,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
           </div>
 
           {projectError ? <p className={styles.error}>โหลดข้อมูลโครงงานไม่สำเร็จ</p> : null}
-          {projectLoading ? <div className={styles.skeleton} /> : null}
+          {projectLoading || projectDetailLoading ? <div className={styles.skeleton} /> : null}
 
           {project ? (
             <dl className={styles.metaGrid}>
@@ -133,11 +784,11 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
               <h2 className={styles.panelTitle}>กำหนดส่งที่เกี่ยวข้อง</h2>
             </div>
           </div>
-          {filteredDeadlines.length === 0 ? (
+          {upcomingDeadlines.length === 0 ? (
             <p className={styles.cardHint}>ยังไม่พบกำหนดส่งที่เกี่ยวข้องใน 30 วัน</p>
           ) : (
             <ul className={styles.deadlineList}>
-              {filteredDeadlines.map((deadline) => (
+              {upcomingDeadlines.map((deadline) => (
                 <li key={deadline.id} className={styles.deadlineItem}>
                   <div>
                     <p className={styles.deadlineName}>{deadline.name}</p>
@@ -151,15 +802,18 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
             </ul>
           )}
         </article>
-      </section>
+        </section>
+      ) : null}
 
-      <WorkflowTimeline
-        title="Timeline โครงงานพิเศษ 1"
-        subtitle="สอดคล้องกับ workflow state และผลสอบ"
-        timeline={timeline}
-        isLoading={timelineLoading}
-        error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}
-      />
+      {showPhaseContent ? (
+        <WorkflowTimeline
+          title="Timeline โครงงานพิเศษ 1"
+          subtitle="สอดคล้องกับ workflow state และผลสอบ"
+          timeline={timeline}
+          isLoading={timelineLoading}
+          error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}
+        />
+      ) : null}
     </div>
   );
 }
