@@ -180,6 +180,21 @@
   background: color-mix(in srgb, var(--color-warning) 14%, var(--surface-default));
 }
 
+.tagOk {
+  color: color-mix(in srgb, var(--color-success) 78%, black);
+  background: color-mix(in srgb, var(--color-success) 14%, var(--surface-default));
+}
+
+.tagDanger {
+  color: color-mix(in srgb, var(--color-danger) 78%, black);
+  background: color-mix(in srgb, var(--color-danger) 14%, var(--surface-default));
+}
+
+.tagWarning {
+  color: color-mix(in srgb, var(--color-warning) 80%, black);
+  background: color-mix(in srgb, var(--color-warning) 14%, var(--surface-default));
+}
+
 .empty {
   margin: 0;
   color: var(--text-secondary);
@@ -258,6 +273,34 @@
   margin: 0;
   font-size: 0.95rem;
   color: var(--text-primary);
+}
+
+.list {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.timeline {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.timeline li {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.55rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.timelineTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .rawSection {

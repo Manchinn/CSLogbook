@@ -62,9 +62,33 @@ export type DefenseQueueRecord = {
   };
   meetingMetrics?: {
     requiredApprovedLogs?: number;
+    totalMeetings?: number;
     totalApprovedLogs?: number;
     lastApprovedLogAt?: string | null;
+    perStudent?: Array<{
+      studentId?: number | null;
+      approvedLogs?: number;
+      attendedMeetings?: number;
+    }>;
   } | null;
+  advisorApprovals?: Array<{
+    approvalId?: number | null;
+    teacherRole?: string | null;
+    status?: string | null;
+    note?: string | null;
+    approvedAt?: string | null;
+    teacher?: {
+      teacherId?: number | null;
+      name?: string | null;
+    } | null;
+  }> | null;
+  requestDate?: string | null;
+  intendedDefenseDate?: string | null;
+  additionalNotes?: string | null;
+  additionalMaterials?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
   thesisSystemTestSnapshot?: {
     status?: string | null;
     testStartDate?: string | null;
@@ -147,6 +171,8 @@ function normalizeQueueRecord(value: unknown): DefenseQueueRecord {
   const meetingMetrics = isRecord(raw.meetingMetrics) ? raw.meetingMetrics : null;
   const payload = isRecord(raw.formPayload) ? raw.formPayload : {};
   const systemTestSnapshot = isRecord(payload.systemTestSnapshot) ? payload.systemTestSnapshot : null;
+  const advisorApprovals = Array.isArray(raw.advisorApprovals) ? raw.advisorApprovals : [];
+  const additionalMaterials = Array.isArray(payload.additionalMaterials) ? payload.additionalMaterials : [];
 
   return {
     requestId: toNumberOrNull(raw.requestId) ?? 0,
@@ -175,10 +201,48 @@ function normalizeQueueRecord(value: unknown): DefenseQueueRecord {
     meetingMetrics: meetingMetrics
       ? {
           requiredApprovedLogs: toNumberOrNull(meetingMetrics.requiredApprovedLogs) ?? undefined,
+          totalMeetings: toNumberOrNull(meetingMetrics.totalMeetings) ?? undefined,
           totalApprovedLogs: toNumberOrNull(meetingMetrics.totalApprovedLogs) ?? undefined,
           lastApprovedLogAt: toStringOrNull(meetingMetrics.lastApprovedLogAt),
+          perStudent: Array.isArray(meetingMetrics.perStudent)
+            ? meetingMetrics.perStudent.map((item) => {
+                const student = isRecord(item) ? item : {};
+                return {
+                  studentId: toNumberOrNull(student.studentId),
+                  approvedLogs: toNumberOrNull(student.approvedLogs) ?? undefined,
+                  attendedMeetings: toNumberOrNull(student.attendedMeetings) ?? undefined,
+                };
+              })
+            : undefined,
         }
       : null,
+    advisorApprovals: advisorApprovals.map((approval) => {
+      const item = isRecord(approval) ? approval : {};
+      const teacher = isRecord(item.teacher) ? item.teacher : {};
+      return {
+        approvalId: toNumberOrNull(item.approvalId),
+        teacherRole: toStringOrNull(item.teacherRole),
+        status: toStringOrNull(item.status),
+        note: toStringOrNull(item.note),
+        approvedAt: toStringOrNull(item.approvedAt),
+        teacher: toNumberOrNull(teacher.teacherId)
+          ? {
+              teacherId: toNumberOrNull(teacher.teacherId),
+              name: toStringOrNull(teacher.name),
+            }
+          : null,
+      };
+    }),
+    requestDate: toStringOrNull(payload.requestDate),
+    intendedDefenseDate: toStringOrNull(payload.intendedDefenseDate),
+    additionalNotes: toStringOrNull(payload.additionalNotes),
+    additionalMaterials: additionalMaterials.map((entry) => {
+      const item = isRecord(entry) ? entry : {};
+      return {
+        label: toStringOrNull(item.label),
+        value: toStringOrNull(item.value),
+      };
+    }),
     thesisSystemTestSnapshot: systemTestSnapshot
       ? {
           status: toStringOrNull(systemTestSnapshot.status),
@@ -281,7 +345,8 @@ export async function exportDefenseQueue(defenseType: DefenseType, filters: Omit
 
 export async function getProjectDefenseDetail(projectId: number, defenseType: DefenseType) {
   const params = new URLSearchParams({ defenseType });
-  return apiFetch<DataResponse>(`/projects/${projectId}/kp02?${params.toString()}`);
+  const response = await apiFetch<DataResponse>(`/projects/${projectId}/kp02?${params.toString()}`);
+  return normalizeQueueRecord(response.data);
 }
 
 export async function getProjectAcademicYearsForDefenseQueue() {

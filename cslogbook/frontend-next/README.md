@@ -755,27 +755,33 @@ shared UI:
 
 เสร็จแล้ว:
 - ผูกเมนู admin ไปยัง route กลุ่มเอกสารโครงงานพิเศษครบใน `menuConfig`
-- เริ่มย้ายหน้า `/admin/topic-exam/results` แล้ว (Next.js route + service + hooks + UI พื้นฐาน)
-- ปรับ parity หน้า `topic-exam/results` ให้ใกล้ legacy เพิ่ม:
+- ย้ายหน้า `/admin/topic-exam/results` ด้วย route + service + hooks + UI ที่ต่อ API จริงครบ
+- ปรับ parity หน้า `topic-exam/results` ใกล้ legacy เพิ่ม:
   - เพิ่ม preview ก่อน export
   - เพิ่มคอลัมน์ลำดับ + metadata ปีการศึกษา/ภาคเรียนในตาราง
   - ปรับ action state (บันทึกแล้ว/แก้ไขผล) และแสดงเหตุผลไม่ผ่านใน list
   - เพิ่มปุ่มรีเฟรชข้อมูลจาก server
+  - เก็บ detail parity เพิ่มใน drawer (layout รายละเอียดโครงงาน/ผลสอบ/สมาชิก + copy เฉพาะจุด)
 - ต่อ API จริงสำหรับ topic exam แล้ว:
   - `GET /projects/topic-exam/overview`
   - `GET /projects/topic-exam/export`
   - `POST /projects/:id/topic-exam-result`
   - `GET /admin/advisors`
   - `GET /reports/projects/academic-years`
-- เริ่มย้ายคิวคำขอสอบแล้วด้วยแกนร่วม `defenseType`:
+- ย้ายคิวคำขอสอบด้วยแกนร่วม `defenseType`:
   - `/admin/project1/kp02-queue`
   - `/admin/thesis/staff-queue`
   - ต่อ API: `GET /projects/kp02/staff-queue`, `POST /projects/:id/kp02/verify`, `GET /projects/:id/kp02`, `GET /projects/kp02/staff-queue/export`
+  - เก็บ parity เชิงลึกของ queue เพิ่ม: meeting metrics (รวม per-student), timeline การพิจารณา, และ system test snapshot rendering
+- ย้ายหน้า exam results ฝั่ง admin ครบ 2 route:
+  - `/admin/project-exam/results`
+  - `/admin/thesis/exam-results`
+  - ต่อ API: `GET /projects/exam-results/project1/pending`, `GET /projects/exam-results/thesis/pending`, `POST /projects/:id/exam-result`, `GET /projects/:id/exam-result`
+  - ปิด flow อัปเดตสถานะเล่มปริญญานิพนธ์: `PATCH /projects/:id/final-document/status` + fallback `PATCH /documents/:documentId/status`
 
 สถานะตอนนี้:
-- route อื่นในกลุ่ม (`/admin/project-exam/results`, `/admin/system-test/staff-queue`, `/admin/thesis/exam-results`) ยังรอย้าย
+- route ที่ยังรอย้ายในกลุ่มนี้เหลือ `/admin/system-test/staff-queue`
 
 งานถัดไป (parity deepen):
-1. เก็บ parity รายละเอียดใน `topic-exam/results` เพิ่ม (expand/detail layout และ copy เฉพาะจุด)
-2. เก็บ parity เชิงลึกของ queue (meeting metrics + timeline + system test snapshot rendering)
-3. ปิดท้าย `project-exam/results` และ `thesis/exam-results` พร้อม final document status flow
+1. ย้าย `/admin/system-test/staff-queue` ให้ครบ parity พร้อม timeline/evidence preview ตาม legacy
+2. เก็บ final parity pass เทียบ legacy ทั้ง 6 route และทำ regression check เมนู admin เดิม

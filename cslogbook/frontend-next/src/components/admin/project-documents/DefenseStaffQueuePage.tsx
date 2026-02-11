@@ -36,6 +36,29 @@ function statusLabel(status: string) {
   return status || "-";
 }
 
+function approvalStatusLabel(status: string | null | undefined) {
+  const normalized = (status || "").toLowerCase();
+  if (normalized === "approved") return "อนุมัติแล้ว";
+  if (normalized === "rejected") return "ปฏิเสธ";
+  if (normalized === "pending") return "รอพิจารณา";
+  return status || "รอพิจารณา";
+}
+
+function teacherRoleLabel(role: string | null | undefined) {
+  if (role === "advisor") return "อาจารย์ที่ปรึกษาหลัก";
+  if (role === "co_advisor") return "อาจารย์ที่ปรึกษาร่วม";
+  return "อาจารย์ที่ปรึกษา";
+}
+
+function systemTestStatusMeta(status: string | null | undefined) {
+  if (status === "pending_advisor") return { text: "รออาจารย์อนุมัติ", className: styles.tagWarning };
+  if (status === "advisor_rejected") return { text: "อาจารย์ส่งกลับ", className: styles.tagDanger };
+  if (status === "pending_staff") return { text: "รอเจ้าหน้าที่ตรวจสอบ", className: styles.tagWarning };
+  if (status === "staff_rejected") return { text: "เจ้าหน้าที่ส่งกลับ", className: styles.tagDanger };
+  if (status === "staff_approved") return { text: "อนุมัติครบ (รอหลักฐาน)", className: styles.tagOk };
+  return { text: "ยังไม่ยื่นคำขอ", className: styles.tagStatus };
+}
+
 type DefenseStaffQueuePageProps = {
   defenseType: DefenseType;
 };
@@ -100,6 +123,8 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
       ),
     [rows],
   );
+  const activeRecord = useMemo(() => detailQuery.data ?? selected, [detailQuery.data, selected]);
+  const perStudentMetrics = activeRecord?.meetingMetrics?.perStudent ?? [];
 
   const pageTitle = defenseType === DEFENSE_TYPE_THESIS ? "คำร้องขอสอบปริญญานิพนธ์ (คพ.03)" : "คำร้องขอสอบโครงงานพิเศษ 1 (คพ.02)";
   const pageSubtitle =
@@ -397,7 +422,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             <header className={styles.drawerHeader}>
               <div>
                 <p className={styles.drawerTitle}>รายละเอียดคำขอสอบ</p>
-                <p className={styles.subText}>{selected.project.projectNameTh || selected.project.projectNameEn || "-"}</p>
+                <p className={styles.subText}>{activeRecord?.project.projectNameTh || activeRecord?.project.projectNameEn || "-"}</p>
               </div>
               <button type="button" className={styles.button} onClick={closeDrawer}>
                 ปิด
@@ -407,46 +432,105 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
               {detailQuery.isLoading ? <p className={styles.empty}>กำลังโหลดรายละเอียด...</p> : null}
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>ภาพรวมคำขอ</h3>
-                <p>สถานะคำขอ: {statusLabel(selected.status)}</p>
-                <p>วันที่ยื่นคำขอ: {formatDateTime(selected.submittedAt)}</p>
-                <p>หมายเหตุเจ้าหน้าที่: {selected.staffVerificationNote || "-"}</p>
-                <p>ผู้ตรวจล่าสุด: {selected.staffVerifiedByName || "-"}</p>
+                <p>สถานะคำขอ: {statusLabel(activeRecord?.status || "")}</p>
+                <p>วันที่ยื่นคำขอ: {formatDateTime(activeRecord?.submittedAt)}</p>
+                <p>วันที่จากฟอร์มคำขอ: {formatDateTime(activeRecord?.requestDate)}</p>
+                {defenseType === DEFENSE_TYPE_THESIS ? (
+                  <p>วันที่คาดว่าจะสอบ: {formatDateTime(activeRecord?.intendedDefenseDate)}</p>
+                ) : null}
+                <p>หมายเหตุจากคำขอ: {activeRecord?.additionalNotes || "-"}</p>
+                <p>หมายเหตุเจ้าหน้าที่: {activeRecord?.staffVerificationNote || "-"}</p>
+                <p>ผู้ตรวจล่าสุด: {activeRecord?.staffVerifiedByName || "-"}</p>
               </section>
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>ข้อมูลโครงงาน</h3>
-                <p>ชื่อโครงงาน: {selected.project.projectNameTh || selected.project.projectNameEn || "-"}</p>
-                <p>อาจารย์ที่ปรึกษา: {selected.project.advisor?.name || "-"}</p>
-                <p>อาจารย์ร่วม: {selected.project.coAdvisor?.name || "-"}</p>
+                <p>ชื่อโครงงาน: {activeRecord?.project.projectNameTh || activeRecord?.project.projectNameEn || "-"}</p>
+                <p>อาจารย์ที่ปรึกษา: {activeRecord?.project.advisor?.name || "-"}</p>
+                <p>อาจารย์ร่วม: {activeRecord?.project.coAdvisor?.name || "-"}</p>
+                <p>สถานที่สอบ: {activeRecord?.defenseLocation || "ติดตามผ่านปฏิทินภาควิชา"}</p>
+                <p>หมายเหตุนัดสอบ: {activeRecord?.defenseNote || "-"}</p>
+                {activeRecord?.additionalMaterials?.length ? (
+                  <>
+                    <p className={styles.subText}>เอกสารแนบจากคำขอ:</p>
+                    <ul className={styles.list}>
+                      {activeRecord.additionalMaterials.map((item, index) => (
+                        <li key={`${item.label}-${item.value}-${index}`}>
+                          {(item.label || "เอกสาร")} {item.value || "-"}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
               </section>
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>Meeting Metrics</h3>
-                <p>ต้องมีขั้นต่ำ: {selected.meetingMetrics?.requiredApprovedLogs ?? "-"}</p>
-                <p>อนุมัติแล้ว: {selected.meetingMetrics?.totalApprovedLogs ?? "-"}</p>
-                <p>อนุมัติล่าสุด: {formatDateTime(selected.meetingMetrics?.lastApprovedLogAt ?? null)}</p>
+                <p>ต้องมีขั้นต่ำ: {activeRecord?.meetingMetrics?.requiredApprovedLogs ?? "-"}</p>
+                <p>จำนวน meeting ทั้งหมด: {activeRecord?.meetingMetrics?.totalMeetings ?? "-"}</p>
+                <p>อนุมัติแล้ว: {activeRecord?.meetingMetrics?.totalApprovedLogs ?? "-"}</p>
+                <p>อนุมัติล่าสุด: {formatDateTime(activeRecord?.meetingMetrics?.lastApprovedLogAt ?? null)}</p>
+                {perStudentMetrics.length ? (
+                  <>
+                    <p className={styles.subText}>รายละเอียดต่อสมาชิก:</p>
+                    <ul className={styles.list}>
+                      {perStudentMetrics.map((item, index) => {
+                        const members = activeRecord?.project.members ?? [];
+                        const memberName =
+                          members.find((member) => member.studentId === item.studentId)?.name || "-";
+                        return (
+                          <li key={`${item.studentId}-${index}`}>
+                            {memberName}: อนุมัติ {item.approvedLogs ?? 0} ครั้ง / เข้าพบ {item.attendedMeetings ?? 0} ครั้ง
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                ) : null}
+              </section>
+              <section className={styles.detailSection}>
+                <h3 className={styles.detailTitle}>Timeline การพิจารณา</h3>
+                <ul className={styles.timeline}>
+                  <li>
+                    <p className={styles.timelineTitle}>ส่งคำขอ</p>
+                    <p className={styles.subText}>{formatDateTime(activeRecord?.submittedAt)}</p>
+                  </li>
+                  {(activeRecord?.advisorApprovals ?? []).map((approval, index) => (
+                    <li key={`${approval.approvalId ?? index}-${approval.teacher?.teacherId ?? index}`}>
+                      <p className={styles.timelineTitle}>{teacherRoleLabel(approval.teacherRole)}</p>
+                      <p className={styles.subText}>
+                        {approval.teacher?.name || "-"}: {approvalStatusLabel(approval.status)}
+                      </p>
+                      <p className={styles.subText}>เวลา: {formatDateTime(approval.approvedAt)}</p>
+                      {approval.note ? <p className={styles.subText}>หมายเหตุ: {approval.note}</p> : null}
+                    </li>
+                  ))}
+                  <li>
+                    <p className={styles.timelineTitle}>เจ้าหน้าที่ตรวจสอบ</p>
+                    <p className={styles.subText}>{formatDateTime(activeRecord?.staffVerifiedAt)}</p>
+                    <p className={styles.subText}>ผู้ตรวจ: {activeRecord?.staffVerifiedByName || "-"}</p>
+                  </li>
+                </ul>
               </section>
               {defenseType === DEFENSE_TYPE_THESIS ? (
                 <section className={styles.detailSection}>
                   <h3 className={styles.detailTitle}>System Test Snapshot</h3>
-                  <p>สถานะ: {selected.thesisSystemTestSnapshot?.status || "-"}</p>
-                  <p>ช่วงทดสอบ: {formatDateTime(selected.thesisSystemTestSnapshot?.testStartDate)} - {formatDateTime(selected.thesisSystemTestSnapshot?.testDueDate)}</p>
-                  <p>อัปโหลดหลักฐาน: {formatDateTime(selected.thesisSystemTestSnapshot?.evidenceSubmittedAt)}</p>
-                  {selected.thesisSystemTestSnapshot?.evidence?.url ? (
+                  <span className={`${styles.tag} ${systemTestStatusMeta(activeRecord?.thesisSystemTestSnapshot?.status).className}`}>
+                    {systemTestStatusMeta(activeRecord?.thesisSystemTestSnapshot?.status).text}
+                  </span>
+                  <p>ช่วงทดสอบ: {formatDateTime(activeRecord?.thesisSystemTestSnapshot?.testStartDate)} - {formatDateTime(activeRecord?.thesisSystemTestSnapshot?.testDueDate)}</p>
+                  <p>อนุมัติล่าสุด: {formatDateTime(activeRecord?.thesisSystemTestSnapshot?.staffDecidedAt)}</p>
+                  <p>อัปโหลดหลักฐาน: {formatDateTime(activeRecord?.thesisSystemTestSnapshot?.evidenceSubmittedAt)}</p>
+                  {activeRecord?.thesisSystemTestSnapshot?.evidence?.url ? (
                     <a
                       className={styles.link}
-                      href={selected.thesisSystemTestSnapshot.evidence.url}
+                      href={activeRecord.thesisSystemTestSnapshot.evidence.url}
                       target="_blank"
                       rel="noreferrer"
                     >
-                      เปิดไฟล์หลักฐาน
+                      เปิดไฟล์หลักฐาน {activeRecord.thesisSystemTestSnapshot.evidence.name ? `(${activeRecord.thesisSystemTestSnapshot.evidence.name})` : ""}
                     </a>
-                  ) : null}
-                </section>
-              ) : null}
-              {detailQuery.data ? (
-                <section className={`${styles.detailSection} ${styles.rawSection}`}>
-                  <h3 className={styles.detailTitle}>ข้อมูลแบบคำขอ (raw)</h3>
-                  <p className={styles.rawHint}>แสดง payload ดิบจาก API สำหรับเทียบ parity กับ legacy</p>
-                  <pre className={styles.rawBlock}>{JSON.stringify(detailQuery.data, null, 2)}</pre>
+                  ) : (
+                    <p className={styles.subText}>ยังไม่มีไฟล์หลักฐาน</p>
+                  )}
                 </section>
               ) : null}
             </div>

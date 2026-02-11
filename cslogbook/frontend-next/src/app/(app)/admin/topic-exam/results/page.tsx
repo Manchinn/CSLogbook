@@ -361,13 +361,13 @@ export default function AdminTopicExamResultsPage() {
               <tbody>
                 {overviewQuery.isLoading ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <p className={styles.empty}>กำลังโหลดข้อมูล...</p>
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <p className={styles.empty}>ไม่พบข้อมูลโครงงาน</p>
                     </td>
                   </tr>
@@ -499,7 +499,7 @@ export default function AdminTopicExamResultsPage() {
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>ตัวอย่างรายชื่อก่อนส่งออก</h3>
-            <p className={styles.subText}>รายการนี้ใช้ตัวกรองเดียวกับหน้าหลัก</p>
+            <p className={styles.subText}>รายการนี้ใช้ตัวกรองเดียวกับหน้าหลัก และเหมาะสำหรับตรวจทานก่อนสร้างไฟล์</p>
             <div className={styles.tableWrap}>
               <table className={styles.table}>
                 <thead>
@@ -563,13 +563,21 @@ export default function AdminTopicExamResultsPage() {
               </header>
               <div className={styles.drawerBody}>
                 <section className={styles.detailSection}>
-                  <h3 className={styles.detailTitle}>ข้อมูลผลสอบ</h3>
+                  <h3 className={styles.detailTitle}>รายละเอียดโครงงาน</h3>
+                  <p>ชื่อโครงงาน (ไทย): {selected.titleTh || "-"}</p>
+                  <p>ชื่อโครงงาน (อังกฤษ): {selected.titleEn || "-"}</p>
+                  <p>รหัสโครงงาน: {selected.projectCode || "-"}</p>
+                  <p>ปีการศึกษา / ภาคเรียน: {selected.academicYear || "-"} / {selected.semester || "-"}</p>
+                  <p>สถานะโครงงาน: {selected.status || "-"}</p>
+                </section>
+                <section className={styles.detailSection}>
+                  <h3 className={styles.detailTitle}>ข้อมูลผลสอบหัวข้อ</h3>
                   <p>สถานะผลสอบ: {resultLabel(selected.examResult)}</p>
                   <p>วันที่บันทึกผล: {formatDateTime(selected.examResultAt)}</p>
                   <p>เหตุผลไม่ผ่าน: {selected.examFailReason || "-"}</p>
                 </section>
                 <section className={styles.detailSection}>
-                  <h3 className={styles.detailTitle}>อาจารย์ที่ปรึกษา</h3>
+                  <h3 className={styles.detailTitle}>ผู้ดูแลโครงงาน</h3>
                   <p>ที่ปรึกษาหลัก: {selected.advisor?.name || "-"}</p>
                   <p>ที่ปรึกษาร่วม: {selected.coAdvisor?.name || "-"}</p>
                 </section>
@@ -586,6 +594,7 @@ export default function AdminTopicExamResultsPage() {
                   ) : (
                     <p>-</p>
                   )}
+                  <p className={styles.subText}>หมายเหตุ: หน้านี้ใช้ข้อมูลเดียวกับตารางหลักเพื่อเทียบความถูกต้องก่อนบันทึก/แก้ไขผลสอบ</p>
                 </section>
               </div>
             </aside>
