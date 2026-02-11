@@ -36,6 +36,17 @@ function getEligibilityTags(student: AdminStudent) {
   tags.push({ text: internship ? "มีสิทธิ์ฝึกงาน" : "ยังไม่ผ่านฝึกงาน", ok: internship });
   tags.push({ text: project ? "มีสิทธิ์โครงงาน" : "ยังไม่ผ่านโครงงาน", ok: project });
 
+  const status = (student.status ?? "").toLowerCase();
+  if (status === "in_progress_internship") {
+    tags.push({ text: "กำลังฝึกงาน", ok: true });
+  } else if (status === "in_progress_project") {
+    tags.push({ text: "กำลังทำโครงงาน", ok: true });
+  } else if (status === "completed_internship") {
+    tags.push({ text: "ฝึกงานเสร็จสิ้น", ok: true });
+  } else if (status === "completed_project") {
+    tags.push({ text: "โครงงานเสร็จสิ้น", ok: true });
+  }
+
   return tags;
 }
 
@@ -54,6 +65,7 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [academicYear, setAcademicYear] = useState("");
+  const [semester, setSemester] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selected, setSelected] = useState<AdminStudent | null>(null);
@@ -65,8 +77,9 @@ export default function AdminStudentsPage() {
       search: search.trim() || undefined,
       status: status || undefined,
       academicYear: academicYear || undefined,
+      semester: semester || undefined,
     }),
-    [academicYear, search, status],
+    [academicYear, search, semester, status],
   );
 
   const studentsQuery = useAdminStudents(filters);
@@ -86,6 +99,55 @@ export default function AdminStudentsPage() {
     }).length;
     return { total, internshipEligible, projectEligible, noEligibility };
   }, [students]);
+
+  const academicYearOptions = useMemo(() => {
+    const source = optionsQuery.data?.academicYears ?? [];
+    const seen = new Set<string>();
+
+    return source
+      .map((item, index) => {
+        const rawValue = item?.value;
+        const value = rawValue === undefined || rawValue === null ? "" : String(rawValue);
+        const label = item?.label ?? value;
+        const key = `${value || "empty"}-${label}-${index}`;
+        return { key, value, label };
+      })
+      .filter((item) => {
+        // กัน option ว่างซ้ำกับค่า default "ทุกปีการศึกษา"
+        if (!item.value) return false;
+        if (seen.has(item.value)) return false;
+        seen.add(item.value);
+        return true;
+      });
+  }, [optionsQuery.data?.academicYears]);
+
+  const semesterOptions = useMemo(() => {
+    const source = optionsQuery.data?.semesters ?? [];
+    const seen = new Set<string>();
+
+    return source
+      .map((item, index) => {
+        const rawValue = item?.value;
+        const value = rawValue === undefined || rawValue === null ? "" : String(rawValue);
+        const label = item?.label ?? value;
+        const key = `${value || "empty"}-${label}-${index}`;
+        return { key, value, label };
+      })
+      .filter((item) => {
+        if (!item.value) return false;
+        if (seen.has(item.value)) return false;
+        seen.add(item.value);
+        return true;
+      });
+  }, [optionsQuery.data?.semesters]);
+
+  const emptyMessage = useMemo(() => {
+    if (search.trim()) return `ไม่พบนักศึกษาที่ตรงกับคำค้นหา "${search.trim()}"`;
+    if (status) return `ไม่พบนักศึกษาที่มีสถานะ "${status === "internship" ? "มีสิทธิ์ฝึกงาน" : "มีสิทธิ์โครงงาน"}"`;
+    if (academicYear) return `ไม่พบนักศึกษาของปีการศึกษา ${academicYear}`;
+    if (semester) return `ไม่พบนักศึกษาของภาคเรียน ${semester}`;
+    return "ไม่พบข้อมูลนักศึกษา";
+  }, [academicYear, search, semester, status]);
 
   const closeDrawer = () => {
     setDrawerOpen(false);
@@ -187,7 +249,9 @@ export default function AdminStudentsPage() {
   };
 
   const handleDelete = async (studentCode: string) => {
-    const confirmed = window.confirm(`ยืนยันการลบนักศึกษารหัส ${studentCode} ?`);
+    const confirmed = window.confirm(
+      `ยืนยันการลบข้อมูล\n\nคุณต้องการลบข้อมูลนักศึกษารหัส ${studentCode} ใช่หรือไม่?`,
+    );
     if (!confirmed) return;
 
     try {
@@ -212,7 +276,16 @@ export default function AdminStudentsPage() {
             <p className={styles.subtitle}>เริ่มย้ายจาก legacy เป็น Next.js โดยคง API flow เดิมและรองรับ CRUD ครบชุด</p>
           </div>
           <div className={styles.buttonRow}>
-            <button type="button" className={styles.button} onClick={() => studentsQuery.refetch()}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() => {
+                setSearch("");
+                setStatus("");
+                setAcademicYear("");
+                setSemester("");
+              }}
+            >
               รีเฟรช
             </button>
             <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={openCreate}>
@@ -263,9 +336,17 @@ export default function AdminStudentsPage() {
             </select>
             <select className={styles.select} value={academicYear} onChange={(event) => setAcademicYear(event.target.value)}>
               <option value="">ทุกปีการศึกษา</option>
-              {(optionsQuery.data?.academicYears ?? []).map((year) => (
-                <option key={String(year.value)} value={String(year.value)}>
+              {academicYearOptions.map((year) => (
+                <option key={year.key} value={year.value}>
                   {year.label}
+                </option>
+              ))}
+            </select>
+            <select className={styles.select} value={semester} onChange={(event) => setSemester(event.target.value)}>
+              <option value="">ทุกภาคเรียน</option>
+              {semesterOptions.map((item) => (
+                <option key={item.key} value={item.value}>
+                  {item.label}
                 </option>
               ))}
             </select>
@@ -276,6 +357,7 @@ export default function AdminStudentsPage() {
                 setSearch("");
                 setStatus("");
                 setAcademicYear("");
+                setSemester("");
               }}
             >
               ล้างตัวกรอง
@@ -305,7 +387,7 @@ export default function AdminStudentsPage() {
                 ) : students.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
-                      <p className={styles.empty}>ไม่พบข้อมูลนักศึกษา</p>
+                      <p className={styles.empty}>{emptyMessage}</p>
                     </td>
                   </tr>
                 ) : (
@@ -371,12 +453,31 @@ export default function AdminStudentsPage() {
                 {!isEditMode ? (
                   selected ? (
                     <>
-                      <p className={styles.name}>{formatName(selected)}</p>
-                      <p className={styles.subText}>รหัส: {selected.studentCode}</p>
-                      <p className={styles.subText}>อีเมล: {selected.email || "-"}</p>
-                      <p className={styles.subText}>
-                        หน่วยกิตสะสม: {selected.totalCredits ?? 0} | หน่วยกิตภาควิชา: {selected.majorCredits ?? 0}
-                      </p>
+                      <div className={styles.detailSection}>
+                        <p className={styles.detailTitle}>ข้อมูลทั่วไป</p>
+                        <p className={styles.name}>{formatName(selected)}</p>
+                        <p className={styles.subText}>รหัส: {selected.studentCode}</p>
+                        <p className={styles.subText}>อีเมล: {selected.email || "-"}</p>
+                        <p className={styles.subText}>ห้องเรียน: {selected.classroom || "-"}</p>
+                      </div>
+                      <div className={styles.detailSection}>
+                        <p className={styles.detailTitle}>ข้อมูลการศึกษา</p>
+                        <p className={styles.subText}>
+                          หน่วยกิตสะสม: {selected.totalCredits ?? 0} | หน่วยกิตภาควิชา: {selected.majorCredits ?? 0}
+                        </p>
+                        <p className={styles.subText}>ปีการศึกษา: {selected.academicYear || "-"}</p>
+                        <p className={styles.subText}>ภาคเรียน: {selected.semester || "-"}</p>
+                      </div>
+                      <div className={styles.detailSection}>
+                        <p className={styles.detailTitle}>สถานะการมีสิทธิ์</p>
+                        <div className={styles.tagRow}>
+                          {getEligibilityTags(selected).map((tag) => (
+                            <span key={`${selected.studentCode}-${tag.text}`} className={`${styles.tag} ${tag.ok ? styles.tagOk : styles.tagMuted}`}>
+                              {tag.text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <p className={styles.empty}>ไม่พบข้อมูลนักศึกษา</p>

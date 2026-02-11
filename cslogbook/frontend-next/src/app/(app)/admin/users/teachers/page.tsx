@@ -1,31 +1,576 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import { AdminRouteScaffold } from "@/components/admin/scaffold/AdminRouteScaffold";
+import { useAdminTeacherMutations, useAdminTeachers } from "@/hooks/useAdminTeachers";
+import type { AdminTeacher, TeacherFilters } from "@/lib/services/adminTeacherService";
+import styles from "./page.module.css";
 
-const apiChecklist = [
-  "GET /admin/teachers",
-  "POST /admin/teachers",
-  "PUT /admin/teachers/:id",
-  "DELETE /admin/teachers/:id",
+type FormState = {
+  teacherCode: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  contactExtension: string;
+  position: string;
+  teacherType: string;
+  canAccessTopicExam: boolean;
+  canExportProject1: boolean;
+};
+
+const emptyForm: FormState = {
+  teacherCode: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  contactExtension: "",
+  position: "คณาจารย์",
+  teacherType: "academic",
+  canAccessTopicExam: false,
+  canExportProject1: false,
+};
+
+const positionOptions = [
+  { value: "หัวหน้าภาควิชา", label: "หัวหน้าภาควิชา", teacherType: "academic" },
+  { value: "คณาจารย์", label: "คณาจารย์", teacherType: "academic" },
+  { value: "เจ้าหน้าที่ภาควิชา", label: "เจ้าหน้าที่ภาควิชา", teacherType: "support" },
 ];
 
-const implementationChecklist = [
-  "Scaffold list view + filters (search, position, teacher type).",
-  "Wire React Query for list and mutation flows.",
-  "Add drawer/form for create and update.",
-  "Keep parity for teacher permission fields (canAccessTopicExam, canExportProject1).",
-  "Match legacy empty/loading/error states.",
+const teacherTypeOptions = [
+  { value: "academic", label: "สายวิชาการ" },
+  { value: "support", label: "เจ้าหน้าที่ภาควิชา" },
 ];
+
+function teacherTypeFromPosition(position: string) {
+  return positionOptions.find((item) => item.value === position)?.teacherType ?? "academic";
+}
+
+function formatName(teacher: AdminTeacher) {
+  return [teacher.firstName, teacher.lastName].filter(Boolean).join(" ").trim() || "-";
+}
+
+function toFormState(teacher: AdminTeacher): FormState {
+  const nextPosition = teacher.position || "คณาจารย์";
+  return {
+    teacherCode: teacher.teacherCode ?? "",
+    firstName: teacher.firstName ?? "",
+    lastName: teacher.lastName ?? "",
+    email: teacher.email ?? "",
+    contactExtension: teacher.contactExtension ?? "",
+    position: nextPosition,
+    teacherType: teacher.teacherType ?? teacherTypeFromPosition(nextPosition),
+    canAccessTopicExam: Boolean(teacher.canAccessTopicExam),
+    canExportProject1: Boolean(teacher.canExportProject1),
+  };
+}
 
 export default function AdminTeachersPage() {
+  const [search, setSearch] = useState("");
+  const [positionFilters, setPositionFilters] = useState<string[]>([]);
+  const [teacherTypeFilters, setTeacherTypeFilters] = useState<string[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selected, setSelected] = useState<AdminTeacher | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+
+  const filters: TeacherFilters = useMemo(
+    () => ({
+      search: search.trim() || undefined,
+      // Keep backend query simple, then apply multi-filter client-side for parity with legacy.
+    }),
+    [search],
+  );
+
+  const teachersQuery = useAdminTeachers(filters);
+  const { createTeacher, updateTeacher, deleteTeacher } = useAdminTeacherMutations();
+
+  const teachers = useMemo(() => teachersQuery.data ?? [], [teachersQuery.data]);
+
+  const filteredTeachers = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return teachers.filter((teacher) => {
+      const normalizedTeacherType = teacher.teacherType ?? teacherTypeFromPosition(teacher.position ?? "");
+
+      if (positionFilters.length && !positionFilters.includes(teacher.position ?? "")) return false;
+      if (teacherTypeFilters.length && !teacherTypeFilters.includes(normalizedTeacherType)) return false;
+
+      if (!keyword) return true;
+
+      const fields = [
+        teacher.teacherCode,
+        teacher.firstName,
+        teacher.lastName,
+        `${teacher.firstName ?? ""} ${teacher.lastName ?? ""}`,
+        teacher.email,
+        teacher.position,
+      ];
+      return fields.filter(Boolean).some((field) => String(field).toLowerCase().includes(keyword));
+    });
+  }, [positionFilters, search, teacherTypeFilters, teachers]);
+
+  const stats = useMemo(
+    () => ({
+      total: teachers.length,
+      filtered: filteredTeachers.length,
+      support: filteredTeachers.filter((teacher) => (teacher.teacherType ?? teacherTypeFromPosition(teacher.position ?? "")) === "support")
+        .length,
+      academic: filteredTeachers.filter((teacher) => (teacher.teacherType ?? teacherTypeFromPosition(teacher.position ?? "")) === "academic")
+        .length,
+    }),
+    [filteredTeachers, teachers.length],
+  );
+
+  const emptyMessage = useMemo(() => {
+    if (search.trim()) return `ไม่พบอาจารย์ที่ตรงกับคำค้นหา "${search.trim()}"`;
+    if (positionFilters.length) return `ไม่พบอาจารย์ในตำแหน่งที่เลือก`;
+    if (teacherTypeFilters.length) return `ไม่พบอาจารย์ประเภทบุคลากรที่เลือก`;
+    return "ไม่พบข้อมูลอาจารย์";
+  }, [positionFilters.length, search, teacherTypeFilters.length]);
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setIsEditMode(false);
+    setSelected(null);
+    setForm(emptyForm);
+  };
+
+  const openCreate = () => {
+    setFeedback(null);
+    setSelected(null);
+    setIsEditMode(true);
+    setForm(emptyForm);
+    setDrawerOpen(true);
+  };
+
+  const openView = (teacher: AdminTeacher) => {
+    setFeedback(null);
+    setSelected(teacher);
+    setIsEditMode(false);
+    setForm(toFormState(teacher));
+    setDrawerOpen(true);
+  };
+
+  const openEdit = (teacher: AdminTeacher) => {
+    setFeedback(null);
+    setSelected(teacher);
+    setIsEditMode(true);
+    setForm(toFormState(teacher));
+    setDrawerOpen(true);
+  };
+
+  const onChangeField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handlePositionChange = (value: string) => {
+    onChangeField("position", value);
+    onChangeField("teacherType", teacherTypeFromPosition(value));
+  };
+
+  const validateForm = () => {
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      return "กรุณากรอกชื่อและนามสกุล";
+    }
+    if (!form.email.trim()) {
+      return "กรุณากรอกอีเมล";
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      return "กรุณากรอกอีเมลที่ถูกต้อง";
+    }
+    if (!selected && !form.teacherCode.trim()) {
+      return "กรุณากรอกรหัสอาจารย์";
+    }
+    if (!form.position) {
+      return "กรุณาเลือกตำแหน่ง";
+    }
+    return null;
+  };
+
+  const handleSave = async () => {
+    const validationError = validateForm();
+    if (validationError) {
+      setFeedback({ tone: "warning", message: validationError });
+      return;
+    }
+
+    const payload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
+      contactExtension: form.contactExtension.trim() || undefined,
+      position: form.position,
+      teacherType: form.teacherType,
+      canAccessTopicExam: form.canAccessTopicExam,
+      canExportProject1: form.canExportProject1,
+    };
+
+    try {
+      if (selected?.teacherId) {
+        await updateTeacher.mutateAsync({
+          teacherId: selected.teacherId,
+          payload: { teacherCode: form.teacherCode.trim(), ...payload },
+        });
+        setFeedback({ tone: "success", message: "อัปเดตข้อมูลอาจารย์เรียบร้อยแล้ว" });
+      } else {
+        await createTeacher.mutateAsync({
+          teacherCode: form.teacherCode.trim(),
+          ...payload,
+        });
+        setFeedback({ tone: "success", message: "เพิ่มอาจารย์เรียบร้อยแล้ว" });
+      }
+      closeDrawer();
+    } catch (error) {
+      setFeedback({
+        tone: "warning",
+        message: error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลอาจารย์ได้",
+      });
+    }
+  };
+
+  const handleDelete = async (teacherId: number, teacherCode: string) => {
+    const confirmed = window.confirm(
+      `ยืนยันการลบข้อมูล\n\nคุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลอาจารย์ ${teacherCode}?\nการดำเนินการนี้ไม่สามารถเรียกคืนได้`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteTeacher.mutateAsync(teacherId);
+      setFeedback({ tone: "success", message: "ลบข้อมูลอาจารย์เรียบร้อยแล้ว" });
+    } catch (error) {
+      setFeedback({
+        tone: "warning",
+        message: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลอาจารย์ได้",
+      });
+    }
+  };
+
+  const isSaving = createTeacher.isPending || updateTeacher.isPending;
+
   return (
     <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
-      <AdminRouteScaffold
-        title="จัดการข้อมูลอาจารย์"
-        description="Scaffold หน้าจัดการข้อมูลอาจารย์ในระบบใหม่ พร้อม checklist สำหรับ migration แบบ parity-first."
-        legacyPath="frontend/src/features/user-management/components/TeacherList"
-        apiChecklist={apiChecklist}
-        implementationChecklist={implementationChecklist}
-      />
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <h1 className={styles.title}>จัดการข้อมูลอาจารย์</h1>
+            <p className={styles.subtitle}>รองรับ CRUD อาจารย์และสิทธิ์ใช้งานโครงงานตาม flow API เดิม</p>
+          </div>
+          <div className={styles.buttonRow}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() => {
+                setSearch("");
+                setPositionFilters([]);
+                setTeacherTypeFilters([]);
+              }}
+            >
+              รีเฟรช
+            </button>
+            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={openCreate}>
+              เพิ่มอาจารย์
+            </button>
+          </div>
+        </header>
+
+        {feedback ? (
+          <div className={`${styles.alert} ${feedback.tone === "success" ? styles.alertSuccess : styles.alertWarning}`}>
+            {feedback.message}
+          </div>
+        ) : null}
+
+        <section className={styles.card}>
+          <div className={styles.stats}>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>อาจารย์ทั้งหมด</p>
+              <p className={styles.statValue}>{stats.total}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>ผลลัพธ์ตามตัวกรอง</p>
+              <p className={styles.statValue}>{stats.filtered}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>สายวิชาการ</p>
+              <p className={styles.statValue}>{stats.academic}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>เจ้าหน้าที่ภาควิชา</p>
+              <p className={styles.statValue}>{stats.support}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.filters}>
+            <input
+              className={styles.input}
+              placeholder="ค้นหารหัส, ชื่อ, นามสกุล, อีเมล"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <select
+              className={styles.select}
+              multiple
+              value={positionFilters}
+              onChange={(event) => setPositionFilters(Array.from(event.target.selectedOptions).map((item) => item.value))}
+            >
+              {positionOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.select}
+              multiple
+              value={teacherTypeFilters}
+              onChange={(event) => setTeacherTypeFilters(Array.from(event.target.selectedOptions).map((item) => item.value))}
+            >
+              {teacherTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.buttonGhost}`}
+              onClick={() => {
+                setSearch("");
+                setPositionFilters([]);
+                setTeacherTypeFilters([]);
+              }}
+            >
+              ล้างตัวกรอง
+            </button>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>รหัสอาจารย์</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>ตำแหน่ง</th>
+                  <th>สิทธิ์โครงงาน</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teachersQuery.isLoading ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <p className={styles.empty}>กำลังโหลดข้อมูลอาจารย์...</p>
+                    </td>
+                  </tr>
+                ) : filteredTeachers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <p className={styles.empty}>{emptyMessage}</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTeachers.map((teacher) => {
+                    const normalizedTeacherType = teacher.teacherType ?? teacherTypeFromPosition(teacher.position ?? "");
+                    return (
+                      <tr key={teacher.teacherId ?? teacher.teacherCode}>
+                        <td>{teacher.teacherCode}</td>
+                        <td>
+                          <p className={styles.name}>{formatName(teacher)}</p>
+                          <p className={styles.subText}>{teacher.email || "-"}</p>
+                          <p className={styles.subText}>เบอร์ภายใน: {teacher.contactExtension || "-"}</p>
+                        </td>
+                        <td>
+                          <p className={styles.name}>{teacher.position || "-"}</p>
+                          <p className={styles.subText}>
+                            {normalizedTeacherType === "support" ? "เจ้าหน้าที่ภาควิชา" : "สายวิชาการ"}
+                          </p>
+                        </td>
+                        <td>
+                          <div className={styles.tagRow}>
+                            <span className={`${styles.tag} ${teacher.canAccessTopicExam ? styles.tagOk : styles.tagMuted}`}>
+                              {teacher.canAccessTopicExam ? "เปิดสิทธิ์หัวข้อสอบ" : "ปิดสิทธิ์หัวข้อสอบ"}
+                            </span>
+                            <span className={`${styles.tag} ${teacher.canExportProject1 ? styles.tagOk : styles.tagMuted}`}>
+                              {teacher.canExportProject1 ? "เปิดสิทธิ์รายชื่อสอบ" : "ปิดสิทธิ์รายชื่อสอบ"}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.buttonRow}>
+                            <button type="button" className={styles.button} onClick={() => openView(teacher)}>
+                              ดู
+                            </button>
+                            <button type="button" className={styles.button} onClick={() => openEdit(teacher)}>
+                              แก้ไข
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.button} ${styles.buttonDanger}`}
+                              onClick={() => handleDelete(Number(teacher.teacherId), teacher.teacherCode)}
+                              disabled={deleteTeacher.isPending || !teacher.teacherId}
+                            >
+                              ลบ
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {drawerOpen ? (
+          <div className={styles.drawerOverlay} onClick={closeDrawer}>
+            <aside className={styles.drawer} onClick={(event) => event.stopPropagation()}>
+              <header className={styles.drawerHeader}>
+                <strong>{isEditMode ? (selected ? "แก้ไขข้อมูลอาจารย์" : "เพิ่มอาจารย์") : "ข้อมูลอาจารย์"}</strong>
+                <button type="button" className={styles.button} onClick={closeDrawer}>
+                  ปิด
+                </button>
+              </header>
+
+              <div className={styles.drawerBody}>
+                {!isEditMode ? (
+                  selected ? (
+                    <>
+                      <p className={styles.name}>{formatName(selected)}</p>
+                      <p className={styles.subText}>รหัส: {selected.teacherCode}</p>
+                      <p className={styles.subText}>อีเมล: {selected.email || "-"}</p>
+                      <p className={styles.subText}>เบอร์ภายใน: {selected.contactExtension || "-"}</p>
+                      <p className={styles.subText}>ตำแหน่ง: {selected.position || "-"}</p>
+                      <div className={styles.tagRow}>
+                        <span className={`${styles.tag} ${selected.canAccessTopicExam ? styles.tagOk : styles.tagMuted}`}>
+                          สิทธิ์หัวข้อสอบ: {selected.canAccessTopicExam ? "เปิด" : "ปิด"}
+                        </span>
+                        <span className={`${styles.tag} ${selected.canExportProject1 ? styles.tagOk : styles.tagMuted}`}>
+                          สิทธิ์รายชื่อสอบ: {selected.canExportProject1 ? "เปิด" : "ปิด"}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className={styles.empty}>ไม่พบข้อมูลอาจารย์</p>
+                  )
+                ) : (
+                  <div className={styles.formGrid}>
+                    <label className={styles.field}>
+                      รหัสอาจารย์
+                      <input
+                        className={styles.input}
+                        value={form.teacherCode}
+                        disabled={Boolean(selected)}
+                        onChange={(event) => onChangeField("teacherCode", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      อีเมล
+                      <input
+                        className={styles.input}
+                        value={form.email}
+                        onChange={(event) => onChangeField("email", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      เบอร์ภายใน
+                      <input
+                        className={styles.input}
+                        value={form.contactExtension}
+                        onChange={(event) => onChangeField("contactExtension", event.target.value)}
+                        placeholder="เช่น 1234"
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      ชื่อ
+                      <input
+                        className={styles.input}
+                        value={form.firstName}
+                        onChange={(event) => onChangeField("firstName", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      นามสกุล
+                      <input
+                        className={styles.input}
+                        value={form.lastName}
+                        onChange={(event) => onChangeField("lastName", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      ตำแหน่ง
+                      <select className={styles.select} value={form.position} onChange={(event) => handlePositionChange(event.target.value)}>
+                        {positionOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      ประเภทอาจารย์
+                      <input
+                        className={styles.input}
+                        value={form.teacherType === "support" ? "เจ้าหน้าที่ภาควิชา" : "สายวิชาการ"}
+                        readOnly
+                      />
+                    </label>
+                    <div className={`${styles.field} ${styles.fieldFull}`}>
+                      <div className={styles.switchGroup}>
+                        <label className={styles.switchRow}>
+                          <input
+                            type="checkbox"
+                            checked={form.canAccessTopicExam}
+                            onChange={(event) => onChangeField("canAccessTopicExam", event.target.checked)}
+                          />
+                          เปิดสิทธิ์การเข้าถึงหัวข้อสอบโครงงานพิเศษ
+                        </label>
+                        <label className={styles.switchRow}>
+                          <input
+                            type="checkbox"
+                            checked={form.canExportProject1}
+                            onChange={(event) => onChangeField("canExportProject1", event.target.checked)}
+                          />
+                          เปิดสิทธิ์ส่งออกรายชื่อสอบโครงงานพิเศษ
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <footer className={styles.drawerFooter}>
+                <div className={styles.buttonRow}>
+                  {!isEditMode ? (
+                    selected ? (
+                      <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => setIsEditMode(true)}>
+                        แก้ไข
+                      </button>
+                    ) : null
+                  ) : (
+                    <>
+                      <button type="button" className={styles.button} onClick={closeDrawer}>
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.button} ${styles.buttonPrimary}`}
+                        onClick={handleSave}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? "กำลังบันทึก..." : "บันทึก"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </footer>
+            </aside>
+          </div>
+        ) : null}
+      </div>
     </RoleGuard>
   );
 }

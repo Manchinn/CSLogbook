@@ -488,3 +488,25 @@ shared UI:
 - API flow ตาม legacy ทำงานครบ CRUD/read flow
 - ผ่าน lint และไม่มี regression ที่หน้า admin settings / upload / dashboard เดิม
 - มี migration notes สั้น ๆ ใน README ทุกครั้งที่ปิดงานย่อยของ 3 หน้านี้
+
+### 24.7 Implementation Progress (Current)
+
+เสร็จแล้ว:
+- `/admin/users/students`
+  - ต่อ API จริงผ่าน `GET /students`, `GET /students/filter-options`, `POST/PUT/DELETE /students`
+  - มี list + filters + statistics + drawer view/edit/create + delete flow
+  - parity เชิงลึกเพิ่ม: สถานะ tags ตาม workflow (`in_progress/completed`), empty-state message ตาม context, detail sections (ข้อมูลทั่วไป/การศึกษา/สิทธิ์) และ filter ภาคเรียน
+- `/admin/users/teachers`
+  - ต่อ API จริงผ่าน `GET/POST/PUT/DELETE /admin/teachers`
+  - มี list + filters + drawer view/edit/create + teacher permission fields (`canAccessTopicExam`, `canExportProject1`)
+  - parity เชิงลึกเพิ่ม: multi-filter ตำแหน่ง/ประเภทบุคลากร, `contactExtension`, email validation, detail view ใกล้ legacy
+- `/project-pairs`
+  - ต่อ API จริงผ่าน `GET /project-members`
+  - มี list + filters + summary + drawer รายละเอียดโครงงาน
+  - เพิ่ม Add Project Modal (student lookup + advisor + tracks + create manually)
+  - เพิ่ม update/cancel flow จากหน้า detail และใช้ข้อความ validation ชุดเดียวกับ legacy
+
+รอบถัดไป (parity deepen):
+1. ปรับ UX modal/drawer ให้ใกล้เคียง legacy มากขึ้น (layout, badge, helper text) ✅
+2. เพิ่ม field parity เชิงลึกสำหรับรายละเอียดโครงงาน (objective/background/scope/expectedOutcome/benefit/methodology/timeline/risk) และส่ง payload update ครบชุด ✅
+3. งานถัดไป: เก็บ parity workflow flags/policy message เฉพาะทางเพิ่มตามข้อมูลจริงจาก backend ใน production scenarios
