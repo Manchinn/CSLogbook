@@ -495,17 +495,12 @@ shared UI:
 - `/admin/users/students`
   - ต่อ API จริงผ่าน `GET /students`, `GET /students/filter-options`, `POST/PUT/DELETE /students`
   - มี list + filters + statistics + drawer view/edit/create + delete flow
-  - เพิ่ม pagination ฝั่งหน้าเว็บ `20 รายการ/หน้า` สำหรับตารางรายการนักศึกษา
-  - parity เชิงลึกเพิ่ม: สถานะ tags ตาม workflow (`in_progress/completed`), empty-state message ตาม context, detail sections (ข้อมูลทั่วไป/การศึกษา/สิทธิ์) และ filter ภาคเรียน
 - `/admin/users/teachers`
   - ต่อ API จริงผ่าน `GET/POST/PUT/DELETE /admin/teachers`
   - มี list + filters + drawer view/edit/create + teacher permission fields (`canAccessTopicExam`, `canExportProject1`)
-  - เพิ่ม pagination ฝั่งหน้าเว็บ `20 รายการ/หน้า` สำหรับตารางรายการอาจารย์
-  - parity เชิงลึกเพิ่ม: multi-filter ตำแหน่ง/ประเภทบุคลากร, `contactExtension`, email validation, detail view ใกล้ legacy
 - `/project-pairs`
   - ต่อ API จริงผ่าน `GET /project-members`
   - มี list + filters + summary + drawer รายละเอียดโครงงาน
-  - เพิ่ม pagination ฝั่งหน้าเว็บ `20 รายการ/หน้า` สำหรับตารางรายการโครงงาน
   - เพิ่ม Add Project Modal (student lookup + advisor + tracks + create manually)
   - เพิ่ม update/cancel flow จากหน้า detail และใช้ข้อความ validation ชุดเดียวกับ legacy
 
@@ -513,3 +508,128 @@ shared UI:
 1. ปรับ UX modal/drawer ให้ใกล้เคียง legacy มากขึ้น (layout, badge, helper text) ✅
 2. เพิ่ม field parity เชิงลึกสำหรับรายละเอียดโครงงาน (objective/background/scope/expectedOutcome/benefit/methodology/timeline/risk) และส่ง payload update ครบชุด ✅
 3. งานถัดไป: เก็บ parity workflow flags/policy message เฉพาะทางเพิ่มตามข้อมูลจริงจาก backend ใน production scenarios
+
+---
+
+## 25) Next Focus: Admin Document Management Refactor (Internship Requests / Internship Certificates)
+
+เป้าหมายเฟสถัดไป:
+- ย้ายหน้า admin จัดการ `เอกสารฝึกงาน` จาก legacy มา Next.js แบบ parity-first โดยเน้น 2 หน้า:
+  - `/admin/documents/internship` (คำร้องขอฝึกงาน)
+  - `/admin/documents/certificates` (หนังสือรับรองการฝึกงาน)
+- คง flow API เดิม, สถานะเอกสารเดิม, และข้อความ error หลักเดิมให้ครบก่อน แล้วค่อย optimize UX ในรอบถัดไป
+- วางโครง service + hook + page component ให้ reusable, testable, และสอดคล้องกับแนวทาง React Query ปัจจุบันของโปรเจกต์
+
+### 25.1 Scope (Legacy -> Next)
+
+1. คำร้องขอฝึกงาน (legacy: `src/components/admin/documents/index.js`)
+- ตารางเอกสาร + search/filter (status, academicYear, semester)
+- summary chips (pending/reviewing/approved/rejected/cancelled + late indicators)
+- bulk action สำหรับ pending:
+  - ตรวจและส่งต่อ (staff review)
+  - ปฏิเสธพร้อมเหตุผล
+- modal รายละเอียดเอกสาร (`DocumentDetails`) และ preview ฟอร์ม CS05
+- รองรับดู/ดาวน์โหลดไฟล์เอกสาร
+
+2. หนังสือรับรองการฝึกงาน (legacy: `features/internship/components/admin-view/CertificateManagement.js`)
+- ตารางคำขอ + search/filter + pagination
+- summary chips (pending/approved/rejected/total)
+- drawer review รายละเอียดคำขอ (`CertificateRequestReview`)
+- approve/reject flow พร้อม certificate number / remarks
+- logbook summary preview (ใช้ endpoint admin logbook summary)
+
+### 25.2 API Flow ที่ต้องยึดตาม Legacy
+
+คำร้องขอฝึกงาน:
+- `GET /admin/documents` (params: `type=internship`, `status`, `search`, `academicYear`, `semester`, `limit`, `offset`)
+- `GET /admin/documents/:documentId` (detail สำหรับ modal)
+- `POST /internship/cs-05/:documentId/review` (staff review เอกสาร CS05)
+- `POST /internship/acceptance/:documentId/review` (staff review เอกสาร acceptance letter)
+- `POST /admin/documents/:documentId/reject` (reject พร้อม `reason`)
+- `POST /admin/documents/:documentId/approve` (fallback สำหรับเอกสารประเภทอื่น)
+- `GET /admin/documents/:documentId/view` และ `GET /admin/documents/:documentId/download` (preview/download)
+- `GET /reports/deadlines/late-submissions` (params: `relatedTo=internship`, `academicYear`, `semester`) สำหรับ badge ส่งช้า
+- `GET /reports/internships/academic-years` สำหรับ filter ปีการศึกษา
+
+หนังสือรับรองการฝึกงาน:
+- `GET /admin/certificate-requests` (params: `page`, `limit`, `status`, `academicYear`, `semester`)
+- `GET /admin/certificate-requests/:requestId/detail`
+- `POST /admin/certificate-requests/:requestId/approve` (payload: `certificateNumber`)
+- `POST /admin/certificate-requests/:requestId/reject` (payload: `remarks`)
+- `GET /admin/certificate-requests/:requestId/download`
+- `GET /admin/internships/:internshipId/logbook-summary`
+- `GET /reports/internships/academic-years` (shared filter source)
+
+### 25.3 Recommended Next.js Structure
+
+routes:
+- `src/app/(app)/admin/documents/internship/page.tsx`
+- `src/app/(app)/admin/documents/certificates/page.tsx`
+
+services:
+- `src/lib/services/adminInternshipDocumentsService.ts`
+- `src/lib/services/adminInternshipCertificatesService.ts`
+
+hooks:
+- `src/hooks/useAdminInternshipDocuments.ts`
+- `src/hooks/useAdminInternshipCertificates.ts`
+
+shared UI:
+- `src/components/admin/documents/internship/*`
+- `src/components/admin/documents/certificates/*`
+
+### 25.4 Best Practices (ต้องคงไว้ระหว่างย้าย)
+
+- ใช้ React Query แยก `queryKey` ตามโมดูล + filter + pagination และ invalidate แบบเจาะจง
+- แยก mapper/normalizer สำหรับ payload document/certificate เพื่อรองรับ response shape ที่ไม่สม่ำเสมอจาก legacy endpoints
+- แยก action mutation ตามชนิดเอกสาร (CS05, acceptance letter, certificate request) เพื่อลด conditional ซ้อนใน component
+- คง loading/error/empty state ครบใน table, modal, drawer, และ action buttons
+- จำกัด optimistic update เฉพาะเคสปลอดภัย และ refetch server หลัง approve/reject/review ทุกครั้ง
+- รักษา role guard เดิม (admin/teacher-support ตาม policy เดิม) และไม่เปิด route ตรงให้ role ที่ไม่เกี่ยวข้อง
+- คงข้อความ validation/error ที่ผู้ใช้คุ้นเคยจาก legacy เป็นลำดับแรก ก่อนปรับ copywriting
+
+### 25.5 Migration Sequence (แนะนำ)
+
+1. Internship documents list/filter/pagination + summary chips
+2. Internship document detail modal + CS05 preview + file view/download
+3. Bulk review/reject flows + late submission badges
+4. Certificate requests list/filter + detail drawer + approve/reject
+5. Logbook summary preview + parity pass เทียบ legacy + regression check เมนู admin เดิม
+
+### 25.6 Definition of Done (เฟสนี้)
+
+- เมนู admin ใช้งาน route จริงได้ครบ:
+  - `/admin/documents/internship`
+  - `/admin/documents/certificates`
+- API flow ตาม legacy ทำงานครบทั้ง read + review + approve/reject + download
+- parity สำคัญครบ:
+  - filters/pagination
+  - summary chips
+  - detail modal/drawer
+  - action feedback (success/error/loading)
+- ผ่าน lint และไม่กระทบ regression หน้าที่ refactor เสร็จแล้ว (`/admin/users/*`, `/project-pairs`, `/admin/settings/*`, `/admin/upload`)
+- มี migration notes เพิ่มใน README ทุกครั้งที่ปิดงานย่อยของ 2 หน้านี้
+
+### 25.7 Implementation Progress (Current)
+
+เสร็จแล้ว:
+- สร้าง route ใหม่ใน Next.js:
+  - `/admin/documents/internship`
+  - `/admin/documents/certificates`
+- ต่อ API จริงผ่าน service + hooks แยกโมดูล:
+  - documents: list/detail/review/reject/preview/download + late submissions + academic years
+  - certificates: list/detail/approve/reject/download
+- หน้า internship documents:
+  - list/filter/pagination + summary + late badge
+  - bulk action (review/reject) และ single action จากตาราง/drawer
+  - reject modal แยกเหตุผล (แทน prompt)
+- หน้า certificates:
+  - list/filter/pagination + drawer detail
+  - approve/reject modal (กำหนด certificate number / remarks) + download flow
+- ปรับ preview เอกสารให้เปิดแท็บใหม่ (ไม่บังคับดาวน์โหลดทันที)
+- ผ่าน lint ล่าสุดใน `frontend-next`
+
+งานถัดไป (parity deepen):
+1. เติม detail parity ให้ใกล้ legacy เพิ่ม (CS05 preview block, evaluation breakdown แบบละเอียด) ✅
+2. เพิ่มการเชื่อม logbook summary preview สำหรับ certificate review flow ✅
+3. เก็บ regression pass เทียบ behavior เดิมทุกสถานะเอกสาร (pending/reviewing/approved/rejected/cancelled)
