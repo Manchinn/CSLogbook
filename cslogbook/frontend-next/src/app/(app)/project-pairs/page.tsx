@@ -66,12 +66,14 @@ const toEdit = (p: ProjectPairRecord): EditForm => ({
   risk: p.risk || "",
 });
 const roleLabel = (role?: string | null) => (role === "leader" ? "หัวหน้าทีม" : "สมาชิก");
+const PAGE_SIZE = 20;
 
 export default function ProjectPairsPage() {
   const [query, setQuery] = useState("");
   const [projectStatus, setProjectStatus] = useState("");
   const [projectType, setProjectType] = useState("");
   const [trackCode, setTrackCode] = useState("");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<ProjectPairRecord | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>(emptyEdit);
@@ -97,6 +99,12 @@ export default function ProjectPairsPage() {
     if (!k) return projects;
     return projects.filter((p) => [p.projectNameTh, p.projectNameEn, p.projectCode, p.advisor?.fullName, ...(p.members ?? []).flatMap((m) => [m.fullName, m.studentCode])].filter(Boolean).some((v) => String(v).toLowerCase().includes(k)));
   }, [projects, query]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedProjects = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [currentPage, filtered]);
 
   const statusOptions = useMemo(() => Array.from(new Set(projects.map((p) => p.status).filter(Boolean))) as string[], [projects]);
   const trackOptions = useMemo(() => Array.from(new Set(projects.flatMap((p) => p.tracks ?? []))), [projects]);
@@ -209,7 +217,7 @@ export default function ProjectPairsPage() {
             <p className={styles.subtitle}>เพิ่ม/แก้ไข/ยกเลิกโครงงาน พร้อม validation message ตาม legacy</p>
           </div>
           <div className={styles.buttonRow}>
-            <button className={styles.button} onClick={() => listQuery.refetch()}>รีเฟรช</button>
+            <button className={styles.button} onClick={() => { setPage(1); void listQuery.refetch(); }}>รีเฟรช</button>
             <button className={styles.button} onClick={() => setAddOpen(true)}>เพิ่มโครงงานพิเศษ</button>
           </div>
         </header>
@@ -227,11 +235,11 @@ export default function ProjectPairsPage() {
 
         <section className={styles.card}>
           <div className={styles.filters}>
-            <input className={styles.input} placeholder="ค้นหาโครงงาน, รหัสนักศึกษา, อาจารย์ที่ปรึกษา" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <select className={styles.select} value={projectStatus} onChange={(e) => setProjectStatus(e.target.value)}><option value="">ทุกสถานะ</option>{statusOptions.map((s) => <option key={s} value={s}>{statusLabels[s] ?? s}</option>)}</select>
-            <select className={styles.select} value={projectType} onChange={(e) => setProjectType(e.target.value)}><option value="">ทุกประเภท</option>{projectTypeOptions.filter(Boolean).map((t) => <option key={t} value={t}>{t}</option>)}</select>
-            <select className={styles.select} value={trackCode} onChange={(e) => setTrackCode(e.target.value)}><option value="">ทุกแทร็ก</option>{trackOptions.map((t) => <option key={t} value={t}>{t}</option>)}</select>
-            <button className={`${styles.button} ${styles.buttonGhost}`} onClick={() => { setQuery(""); setProjectStatus(""); setProjectType(""); setTrackCode(""); }}>ล้างตัวกรอง</button>
+            <input className={styles.input} placeholder="ค้นหาโครงงาน, รหัสนักศึกษา, อาจารย์ที่ปรึกษา" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} />
+            <select className={styles.select} value={projectStatus} onChange={(e) => { setProjectStatus(e.target.value); setPage(1); }}><option value="">ทุกสถานะ</option>{statusOptions.map((s) => <option key={s} value={s}>{statusLabels[s] ?? s}</option>)}</select>
+            <select className={styles.select} value={projectType} onChange={(e) => { setProjectType(e.target.value); setPage(1); }}><option value="">ทุกประเภท</option>{projectTypeOptions.filter(Boolean).map((t) => <option key={t} value={t}>{t}</option>)}</select>
+            <select className={styles.select} value={trackCode} onChange={(e) => { setTrackCode(e.target.value); setPage(1); }}><option value="">ทุกแทร็ก</option>{trackOptions.map((t) => <option key={t} value={t}>{t}</option>)}</select>
+            <button className={`${styles.button} ${styles.buttonGhost}`} onClick={() => { setQuery(""); setProjectStatus(""); setProjectType(""); setTrackCode(""); setPage(1); }}>ล้างตัวกรอง</button>
           </div>
         </section>
 
@@ -242,7 +250,7 @@ export default function ProjectPairsPage() {
               <tbody>
                 {listQuery.isLoading ? <tr><td colSpan={5}><p className={styles.empty}>กำลังโหลดข้อมูลโครงงาน...</p></td></tr> : null}
                 {!listQuery.isLoading && filtered.length === 0 ? <tr><td colSpan={5}><p className={styles.empty}>ไม่พบข้อมูลโครงงาน</p></td></tr> : null}
-                {filtered.map((p) => (
+                {pagedProjects.map((p) => (
                   <tr key={p.projectId ?? `${p.projectCode}-${p.projectNameTh}`}>
                     <td><p className={styles.name}>{projectName(p)}</p><p className={styles.subText}>{p.projectNameEn || "-"}</p></td>
                     <td><span className={`${styles.tag} ${p.status === "completed" ? styles.tagOk : styles.tagMuted}`}>{statusLabels[p.status ?? ""] ?? p.status ?? "-"}</span></td>
@@ -254,6 +262,29 @@ export default function ProjectPairsPage() {
               </tbody>
             </table>
           </div>
+          {!listQuery.isLoading && filtered.length > 0 ? (
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage <= 1}
+              >
+                ก่อนหน้า
+              </button>
+              <span className={styles.paginationInfo}>
+                หน้า {currentPage} / {totalPages} ({filtered.length} รายการ)
+              </span>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+              >
+                ถัดไป
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {selected ? (

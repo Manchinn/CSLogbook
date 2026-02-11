@@ -495,14 +495,17 @@ shared UI:
 - `/admin/users/students`
   - ต่อ API จริงผ่าน `GET /students`, `GET /students/filter-options`, `POST/PUT/DELETE /students`
   - มี list + filters + statistics + drawer view/edit/create + delete flow
+  - เพิ่ม pagination ฝั่งหน้าเว็บ `20 รายการ/หน้า` สำหรับตารางรายการนักศึกษา
   - parity เชิงลึกเพิ่ม: สถานะ tags ตาม workflow (`in_progress/completed`), empty-state message ตาม context, detail sections (ข้อมูลทั่วไป/การศึกษา/สิทธิ์) และ filter ภาคเรียน
 - `/admin/users/teachers`
   - ต่อ API จริงผ่าน `GET/POST/PUT/DELETE /admin/teachers`
   - มี list + filters + drawer view/edit/create + teacher permission fields (`canAccessTopicExam`, `canExportProject1`)
+  - เพิ่ม pagination ฝั่งหน้าเว็บ `20 รายการ/หน้า` สำหรับตารางรายการอาจารย์
   - parity เชิงลึกเพิ่ม: multi-filter ตำแหน่ง/ประเภทบุคลากร, `contactExtension`, email validation, detail view ใกล้ legacy
 - `/project-pairs`
   - ต่อ API จริงผ่าน `GET /project-members`
   - มี list + filters + summary + drawer รายละเอียดโครงงาน
+  - เพิ่ม pagination ฝั่งหน้าเว็บ `20 รายการ/หน้า` สำหรับตารางรายการโครงงาน
   - เพิ่ม Add Project Modal (student lookup + advisor + tracks + create manually)
   - เพิ่ม update/cancel flow จากหน้า detail และใช้ข้อความ validation ชุดเดียวกับ legacy
 

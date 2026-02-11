@@ -24,6 +24,8 @@ const emptyForm: FormState = {
   majorCredits: "0",
 };
 
+const PAGE_SIZE = 20;
+
 function formatName(student: AdminStudent) {
   return [student.firstName, student.lastName].filter(Boolean).join(" ").trim() || "-";
 }
@@ -66,6 +68,7 @@ export default function AdminStudentsPage() {
   const [status, setStatus] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
+  const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selected, setSelected] = useState<AdminStudent | null>(null);
@@ -87,6 +90,12 @@ export default function AdminStudentsPage() {
   const { createStudent, updateStudent, deleteStudent } = useAdminStudentMutations();
 
   const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
+  const totalPages = Math.max(1, Math.ceil(students.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedStudents = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return students.slice(start, start + PAGE_SIZE);
+  }, [currentPage, students]);
 
   const stats = useMemo(() => {
     const total = students.length;
@@ -284,6 +293,7 @@ export default function AdminStudentsPage() {
                 setStatus("");
                 setAcademicYear("");
                 setSemester("");
+                setPage(1);
               }}
             >
               รีเฟรช
@@ -327,14 +337,31 @@ export default function AdminStudentsPage() {
               className={styles.input}
               placeholder="ค้นหารหัส, ชื่อ, นามสกุล, อีเมล"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
             />
-            <select className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>
+            <select
+              className={styles.select}
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value);
+                setPage(1);
+              }}
+            >
               <option value="">ทุกสถานะ</option>
               <option value="internship">มีสิทธิ์ฝึกงาน</option>
               <option value="project">มีสิทธิ์โครงงาน</option>
             </select>
-            <select className={styles.select} value={academicYear} onChange={(event) => setAcademicYear(event.target.value)}>
+            <select
+              className={styles.select}
+              value={academicYear}
+              onChange={(event) => {
+                setAcademicYear(event.target.value);
+                setPage(1);
+              }}
+            >
               <option value="">ทุกปีการศึกษา</option>
               {academicYearOptions.map((year) => (
                 <option key={year.key} value={year.value}>
@@ -342,7 +369,14 @@ export default function AdminStudentsPage() {
                 </option>
               ))}
             </select>
-            <select className={styles.select} value={semester} onChange={(event) => setSemester(event.target.value)}>
+            <select
+              className={styles.select}
+              value={semester}
+              onChange={(event) => {
+                setSemester(event.target.value);
+                setPage(1);
+              }}
+            >
               <option value="">ทุกภาคเรียน</option>
               {semesterOptions.map((item) => (
                 <option key={item.key} value={item.value}>
@@ -358,6 +392,7 @@ export default function AdminStudentsPage() {
                 setStatus("");
                 setAcademicYear("");
                 setSemester("");
+                setPage(1);
               }}
             >
               ล้างตัวกรอง
@@ -391,7 +426,7 @@ export default function AdminStudentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  students.map((student) => (
+                  pagedStudents.map((student) => (
                     <tr key={student.studentId ?? student.userId ?? student.studentCode}>
                       <td>{student.studentCode}</td>
                       <td>
@@ -435,6 +470,29 @@ export default function AdminStudentsPage() {
               </tbody>
             </table>
           </div>
+          {!studentsQuery.isLoading && students.length > 0 ? (
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage <= 1}
+              >
+                ก่อนหน้า
+              </button>
+              <span className={styles.paginationInfo}>
+                หน้า {currentPage} / {totalPages} ({students.length} รายการ)
+              </span>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+              >
+                ถัดไป
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {drawerOpen ? (

@@ -41,6 +41,8 @@ const teacherTypeOptions = [
   { value: "support", label: "เจ้าหน้าที่ภาควิชา" },
 ];
 
+const PAGE_SIZE = 20;
+
 function teacherTypeFromPosition(position: string) {
   return positionOptions.find((item) => item.value === position)?.teacherType ?? "academic";
 }
@@ -68,6 +70,7 @@ export default function AdminTeachersPage() {
   const [search, setSearch] = useState("");
   const [positionFilters, setPositionFilters] = useState<string[]>([]);
   const [teacherTypeFilters, setTeacherTypeFilters] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selected, setSelected] = useState<AdminTeacher | null>(null);
@@ -108,6 +111,12 @@ export default function AdminTeachersPage() {
       return fields.filter(Boolean).some((field) => String(field).toLowerCase().includes(keyword));
     });
   }, [positionFilters, search, teacherTypeFilters, teachers]);
+  const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTeachers = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredTeachers.slice(start, start + PAGE_SIZE);
+  }, [currentPage, filteredTeachers]);
 
   const stats = useMemo(
     () => ({
@@ -263,6 +272,7 @@ export default function AdminTeachersPage() {
                 setSearch("");
                 setPositionFilters([]);
                 setTeacherTypeFilters([]);
+                setPage(1);
               }}
             >
               รีเฟรช
@@ -306,13 +316,19 @@ export default function AdminTeachersPage() {
               className={styles.input}
               placeholder="ค้นหารหัส, ชื่อ, นามสกุล, อีเมล"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
             />
             <select
               className={styles.select}
               multiple
               value={positionFilters}
-              onChange={(event) => setPositionFilters(Array.from(event.target.selectedOptions).map((item) => item.value))}
+              onChange={(event) => {
+                setPositionFilters(Array.from(event.target.selectedOptions).map((item) => item.value));
+                setPage(1);
+              }}
             >
               {positionOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -324,7 +340,10 @@ export default function AdminTeachersPage() {
               className={styles.select}
               multiple
               value={teacherTypeFilters}
-              onChange={(event) => setTeacherTypeFilters(Array.from(event.target.selectedOptions).map((item) => item.value))}
+              onChange={(event) => {
+                setTeacherTypeFilters(Array.from(event.target.selectedOptions).map((item) => item.value));
+                setPage(1);
+              }}
             >
               {teacherTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -339,6 +358,7 @@ export default function AdminTeachersPage() {
                 setSearch("");
                 setPositionFilters([]);
                 setTeacherTypeFilters([]);
+                setPage(1);
               }}
             >
               ล้างตัวกรอง
@@ -372,7 +392,7 @@ export default function AdminTeachersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTeachers.map((teacher) => {
+                  pagedTeachers.map((teacher) => {
                     const normalizedTeacherType = teacher.teacherType ?? teacherTypeFromPosition(teacher.position ?? "");
                     return (
                       <tr key={teacher.teacherId ?? teacher.teacherCode}>
@@ -423,6 +443,29 @@ export default function AdminTeachersPage() {
               </tbody>
             </table>
           </div>
+          {!teachersQuery.isLoading && filteredTeachers.length > 0 ? (
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage <= 1}
+              >
+                ก่อนหน้า
+              </button>
+              <span className={styles.paginationInfo}>
+                หน้า {currentPage} / {totalPages} ({filteredTeachers.length} รายการ)
+              </span>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+              >
+                ถัดไป
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {drawerOpen ? (
