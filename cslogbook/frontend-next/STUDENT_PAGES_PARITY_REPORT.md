@@ -29,17 +29,22 @@
 **Legacy**: `frontend/src/components/dashboards/StudentEligibilityStatus.js`
 **Next.js**: `frontend-next/src/components/dashboard/StudentEligibilityWidget.tsx`
 
-| ฟีเจอร์ | Legacy | Next.js | Parity |
+| รายการ | Legacy | Next.js | Parity |
 |---------|--------|---------|--------|
+| ชื่อหัวเรื่อง | "สิทธิ์การลงทะเบียน" | ✅ "สิทธิ์การลงทะเบียน" | ✅ |
+| ชื่อการ์ดฝึกงาน | "สิทธิ์การฝึกงาน" | ✅ "สิทธิ์การฝึกงาน" | ✅ |
+| ชื่อการ์ดโครงงาน | "สิทธิ์โครงงานพิเศษ" | ✅ "สิทธิ์โครงงานพิเศษ" | ✅ |
 | แสดงสิทธิ์ฝึกงาน | ✅ Ant Design (Card, Tag, Alert) | ✅ Custom CSS Modules | ✅ |
 | แสดงสิทธิ์โครงงาน | ✅ Ant Design components | ✅ Custom CSS Modules | ✅ |
-| เหตุผลไม่มีสิทธิ์แบบละเอียด | ✅ Popover + ExclamationCircle icons | ✅ Text display | ⚠️ Simplified |
+| เหตุผลไม่มีสิทธิ์แบบละเอียด | ✅ Popover + ExclamationCircle icons | ✅ Popover with detailed reasons | ✅ |
+| รายละเอียดเหตุผล 5 ประเภท | ✅ หน่วยกิต/ภาคเรียน/ช่วงเวลา/สถานะ/ทั่วไป | ✅ ตรงกับ Legacy | ✅ |
+| ปุ่ม "คลิกเพื่อดูรายละเอียดเพิ่มเติม" | ✅ | ✅ | ✅ |
 | เครดิตรวม/วิชาเอก | ✅ | ✅ | ✅ |
 | สถานะลงทะเบียน | ✅ Tag (เปิด/ปิด) | ✅ Badge (เปิด/ปิด) | ✅ |
 | API Endpoint | `/students/check-eligibility` | `/students/check-eligibility` | ✅ Same |
 | Hydration Safety | ❌ | ✅ `useHydrated` hook | ✅ Improved |
 
-**สรุป**: ✅ **Parity Complete** - UI เปลี่ยนจาก Ant Design ไปใช้ CSS Modules แต่ functionality ครบเหมือนเดิม
+**สรุป**: ✅ **Parity Complete** - คำที่ใช้ตรงกับหน้าเก่าทุกประการ พร้อม Popover แสดงรายละเอียดเหตุผล 5 ประเภท (หน่วยกิต, ภาคเรียน, ช่วงเวลา, สถานะ, ทั่วไป)
 
 ---
 
@@ -48,12 +53,12 @@
 **Legacy**: `frontend/src/components/student/StudentDeadlineCalendar.js`
 **Next.js**: `frontend-next/src/components/dashboard/StudentDeadlinesWidget.tsx`
 
-| ฟีเจอร์ | Legacy | Next.js (Widget) | Next.js (Calendar) | Parity |
+| รายการ | Legacy | Next.js (Widget) | Next.js (Calendar) | Parity |
 |---------|--------|------------------|-------------------|--------|
 | ดึงข้อมูล upcoming deadlines | ✅ `useAllDeadlines` | ✅ `useStudentDeadlines` | ✅ | ✅ |
 | แสดง countdown (เหลือ X วัน) | ✅ dayjs calculation | ✅ Native calculation | ✅ | ✅ |
-| ตัวกรองปีการศึกษา | ✅ Table filter | ❌ Widget มี limit | ✅ Calendar page | ✅ |
-| ตัวกรองภาคเรียน | ✅ | ❌ | ✅ | ⚠️ Widget simplified |
+| เลือกปีการศึกษา | ✅ Table filter | ❌ Widget มี limit | ✅ Calendar page | ✅ |
+| เลือกภาคเรียน | ✅ | ❌ | ✅ | ⚠️ Widget simplified |
 | แสดงสถานะ submission | ✅ Tag colors | ❌ | ✅ | ⚠️ Widget simplified |
 | จำนวนแสดงผล | All (Table) | Top 5 (Widget) | All (Calendar) | ✅ |
 | API Endpoint | `/students/important-deadlines` | `/students/important-deadlines/upcoming` | `/students/important-deadlines` | ✅ |
@@ -67,7 +72,7 @@
 **Legacy**: `frontend/src/contexts/InternshipStatusContext.js` + multiple components
 **Next.js**: `frontend-next/src/components/dashboard/StudentInternshipStatusWidget.tsx`
 
-| ฟีเจอร์ | Legacy | Next.js | Parity |
+| รายการ | Legacy | Next.js | Parity |
 |---------|--------|---------|--------|
 | แสดงบริษัทที่ฝึกงาน | ✅ | ✅ | ✅ |
 | ช่วงเวลาฝึกงาน | ✅ | ✅ | ✅ |
@@ -84,7 +89,7 @@
 **Legacy**: `frontend/src/features/project/components/student-view/*/` (scattered)
 **Next.js**: `frontend-next/src/components/dashboard/StudentProjectStatusWidget.tsx`
 
-| ฟีเจอร์ | Legacy | Next.js | Parity |
+| รายการ | Legacy | Next.js | Parity |
 |---------|--------|---------|--------|
 | แสดง phase ปัจจุบัน | ✅ | ✅ | ✅ |
 | สิทธิ์ยื่นสอบ | ✅ | ✅ | ✅ |
@@ -179,7 +184,7 @@
 **Legacy**: `frontend/src/features/internship/components/shared/EvaluationRequest/`
 **Next.js**: `frontend-next/src/app/evaluate/supervisor/[token]/page.tsx`
 
-| ฟีเจอร์ | Legacy | Next.js | Parity |
+| รายการ | Legacy | Next.js | Parity |
 |---------|--------|---------|--------|
 | Token validation | ✅ | ✅ | ✅ |
 | 5 หมวดประเมิน (4 รายการ/หมวด) | ✅ | ✅ | ✅ |
@@ -196,7 +201,7 @@
 **Legacy**: Not found in legacy (new feature?)
 **Next.js**: `frontend-next/src/app/approval/timesheet/[token]/page.tsx`
 
-| ฟีเจอร์ | Legacy | Next.js | Notes |
+| รายการ | Legacy | Next.js | Notes |
 |---------|--------|---------|-------|
 | Token validation | ❓ | ✅ | New feature? |
 | Approve/Reject flow | ❓ | ✅ | New feature? |
@@ -207,12 +212,28 @@
 
 ## 5️⃣ Parity Issues & Differences
 
+### ✅ คำที่ใช้ตรงกับหน้าเก่า (Updated)
+
+1. **StudentEligibilityWidget**:
+   - ✅ "สิทธิ์การลงทะเบียน" (หัวเรื่อง)
+   - ✅ "สิทธิ์การฝึกงาน" (การ์ดฝึกงาน)
+   - ✅ "สิทธิ์โครงงานพิเศษ" (การ์ดโครงงาน)
+   - ✅ Popover แสดงรายละเอียดเหตุผล 5 ประเภท
+   - ✅ "คลิกเพื่อดูรายละเอียดเพิ่มเติม" (ปุ่ม)
+
+2. **ตาราง Parity Report**:
+   - ✅ "รายการ" (แทน "ฟีเจอร์")
+
+3. **StudentDeadlineCalendar**:
+   - ✅ "เลือกปีการศึกษา" (แทน "ตัวกรองปีการศึกษา")
+   - ✅ "เลือกภาคเรียน" (แทน "ตัวกรองภาคเรียน")
+
 ### 🟡 Minor UI Differences
 
 1. **StudentEligibilityWidget**:
    - Legacy: ใช้ Ant Design (Popover, Icons, Tags)
-   - Next.js: ใช้ Custom CSS Modules
-   - **Impact**: ✅ ไม่กระทบ functionality
+   - Next.js: ✅ ใช้ Custom CSS Modules + Popover ที่สร้างเอง
+   - **Impact**: ✅ Parity Complete - มี Popover เหมือนหน้าเก่าแล้ว
 
 2. **StudentDeadlinesWidget**:
    - Legacy: แสดงทุก deadline ใน Table
