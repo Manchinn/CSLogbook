@@ -29,6 +29,18 @@
   --color-border: #f0f0f0;
   --color-border-light: #fafafa;
   --color-border-strong: #d9d9d9;
+
+  /* Compatibility aliases for module-level design tokens */
+  --surface-default: var(--color-surface);
+  --surface-raised: #ffffff;
+  --surface-hover: #f8fafc;
+
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-muted);
+
+  --border-subtle: var(--color-border-strong);
+
+  --color-danger: var(--color-error);
 }
 
 * {

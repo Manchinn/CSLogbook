@@ -633,3 +633,149 @@ shared UI:
 1. เติม detail parity ให้ใกล้ legacy เพิ่ม (CS05 preview block, evaluation breakdown แบบละเอียด) ✅
 2. เพิ่มการเชื่อม logbook summary preview สำหรับ certificate review flow ✅
 3. เก็บ regression pass เทียบ behavior เดิมทุกสถานะเอกสาร (pending/reviewing/approved/rejected/cancelled)
+
+---
+
+## 26) Next Focus: Admin Project Document Management Refactor (Topic Exam / KP02 / Project Exam / System Test / Thesis)
+
+เป้าหมายเฟสถัดไป:
+- ย้ายหน้า admin กลุ่ม `เอกสารโครงงานพิเศษ` จาก legacy มา Next.js แบบ parity-first ตามเมนูที่เปิดใช้งานจริง
+- คง flow API เดิม, เงื่อนไขสิทธิ์เดิม, และข้อความ error สำคัญเดิมก่อน แล้วค่อยปรับ UX ในรอบถัดไป
+- วาง service + hooks + page components ให้ reusable และลด logic ซ้อนในหน้าเดียว
+
+### 26.1 Scope (Legacy -> Next)
+
+1. ผลสอบหัวข้อโครงงานพิเศษ
+- route: `/admin/topic-exam/results`
+- ฟีเจอร์หลัก: list/filter/pagination, summary chips, record pass/fail, edit result, export
+
+2. คำร้องขอสอบ คพ.02 (staff queue)
+- route: `/admin/project1/kp02-queue`
+- ฟีเจอร์หลัก: list/filter/pagination, detail expand, verify flow, export queue
+
+3. บันทึกผลสอบโครงงานพิเศษ 1
+- route: `/admin/project-exam/results`
+- ฟีเจอร์หลัก: pending list + filter, record exam result, view result detail
+
+4. คำขอทดสอบระบบ (staff queue)
+- route: `/admin/system-test/staff-queue`
+- ฟีเจอร์หลัก: list/filter/pagination, review decision, evidence/attachment preview
+
+5. คำร้องขอสอบ คพ.03 (thesis staff queue)
+- route: `/admin/thesis/staff-queue`
+- ฟีเจอร์หลัก: list/filter/pagination, verify flow (defenseType=THESIS), export queue
+
+6. บันทึกผลสอบปริญญานิพนธ์
+- route: `/admin/thesis/exam-results`
+- ฟีเจอร์หลัก: pending list + record result + update final document status
+
+### 26.2 API Flow ที่ต้องยึดตาม Legacy
+
+ผลสอบหัวข้อ:
+- `GET /projects/topic-exam/overview`
+- `GET /projects/topic-exam/export`
+- `POST /projects/:id/topic-exam-result`
+
+คำร้อง คพ.02 / คพ.03:
+- `GET /projects/kp02/staff-queue` (ใช้ `defenseType=PROJECT1|THESIS`)
+- `GET /projects/kp02/staff-queue/export` (ใช้ `defenseType=PROJECT1|THESIS`)
+- `POST /projects/:id/kp02/verify` (รองรับ `defenseType`)
+- `GET /projects/:id/kp02` (detail)
+
+ผลสอบโครงงานพิเศษ 1 / ปริญญานิพนธ์:
+- `GET /projects/exam-results/project1/pending`
+- `GET /projects/exam-results/thesis/pending`
+- `POST /projects/:id/exam-result`
+- `GET /projects/:id/exam-result`
+
+คำขอทดสอบระบบ:
+- `GET /projects/system-test/staff-queue`
+- `GET /projects/:id/system-test/request`
+- `POST /projects/:id/system-test/request/staff-decision`
+- `POST /projects/:id/system-test/request/evidence`
+
+สถานะเล่มปริญญานิพนธ์:
+- `PATCH /projects/:id/final-document/status`
+- `PATCH /documents/:documentId/status` (fallback เมื่อมี documentId)
+
+shared filters:
+- `GET /reports/projects/academic-years`
+
+### 26.3 Recommended Next.js Structure
+
+routes:
+- `src/app/(app)/admin/topic-exam/results/page.tsx`
+- `src/app/(app)/admin/project1/kp02-queue/page.tsx`
+- `src/app/(app)/admin/project-exam/results/page.tsx`
+- `src/app/(app)/admin/system-test/staff-queue/page.tsx`
+- `src/app/(app)/admin/thesis/staff-queue/page.tsx`
+- `src/app/(app)/admin/thesis/exam-results/page.tsx`
+
+services:
+- `src/lib/services/adminTopicExamService.ts`
+- `src/lib/services/adminDefenseQueueService.ts`
+- `src/lib/services/adminProjectExamResultService.ts`
+- `src/lib/services/adminSystemTestService.ts`
+
+hooks:
+- `src/hooks/useAdminTopicExam.ts`
+- `src/hooks/useAdminDefenseQueues.ts`
+- `src/hooks/useAdminProjectExamResults.ts`
+- `src/hooks/useAdminSystemTestQueue.ts`
+
+shared UI:
+- `src/components/admin/project-documents/topic-exam/*`
+- `src/components/admin/project-documents/kp02/*`
+- `src/components/admin/project-documents/exam-results/*`
+- `src/components/admin/project-documents/system-test/*`
+
+### 26.4 Migration Sequence (แนะนำ)
+
+1. Topic exam results (`/admin/topic-exam/results`)
+2. KP02 staff queue + KP03 staff queue (share component + `defenseType`)
+3. Project exam results (`/admin/project-exam/results`) + thesis exam results (`/admin/thesis/exam-results`)
+4. System test staff queue (`/admin/system-test/staff-queue`)
+5. Final parity pass + regression check เมนู admin เดิม
+
+### 26.5 Definition of Done (เฟสนี้)
+
+- route กลุ่มเอกสารโครงงานพิเศษเปิดได้จริงครบ:
+  - `/admin/topic-exam/results`
+  - `/admin/project1/kp02-queue`
+  - `/admin/project-exam/results`
+  - `/admin/system-test/staff-queue`
+  - `/admin/thesis/staff-queue`
+  - `/admin/thesis/exam-results`
+- API flow หลักครบทั้ง list/filter/detail + verify/review + record result + export
+- มี loading/error/empty/success feedback ครบใน table, drawer/modal, และ action buttons
+- ผ่าน lint และไม่กระทบ regression หน้าที่เสร็จแล้วก่อนหน้า (`/admin/users/*`, `/project-pairs`, `/admin/documents/*`, `/admin/settings/*`, `/admin/upload`)
+- มี migration notes เพิ่มใน README ทุกครั้งที่ปิดงานย่อยของกลุ่มเอกสารโครงงานพิเศษ
+
+### 26.6 Implementation Progress (Current)
+
+เสร็จแล้ว:
+- ผูกเมนู admin ไปยัง route กลุ่มเอกสารโครงงานพิเศษครบใน `menuConfig`
+- เริ่มย้ายหน้า `/admin/topic-exam/results` แล้ว (Next.js route + service + hooks + UI พื้นฐาน)
+- ปรับ parity หน้า `topic-exam/results` ให้ใกล้ legacy เพิ่ม:
+  - เพิ่ม preview ก่อน export
+  - เพิ่มคอลัมน์ลำดับ + metadata ปีการศึกษา/ภาคเรียนในตาราง
+  - ปรับ action state (บันทึกแล้ว/แก้ไขผล) และแสดงเหตุผลไม่ผ่านใน list
+  - เพิ่มปุ่มรีเฟรชข้อมูลจาก server
+- ต่อ API จริงสำหรับ topic exam แล้ว:
+  - `GET /projects/topic-exam/overview`
+  - `GET /projects/topic-exam/export`
+  - `POST /projects/:id/topic-exam-result`
+  - `GET /admin/advisors`
+  - `GET /reports/projects/academic-years`
+- เริ่มย้ายคิวคำขอสอบแล้วด้วยแกนร่วม `defenseType`:
+  - `/admin/project1/kp02-queue`
+  - `/admin/thesis/staff-queue`
+  - ต่อ API: `GET /projects/kp02/staff-queue`, `POST /projects/:id/kp02/verify`, `GET /projects/:id/kp02`, `GET /projects/kp02/staff-queue/export`
+
+สถานะตอนนี้:
+- route อื่นในกลุ่ม (`/admin/project-exam/results`, `/admin/system-test/staff-queue`, `/admin/thesis/exam-results`) ยังรอย้าย
+
+งานถัดไป (parity deepen):
+1. เก็บ parity รายละเอียดใน `topic-exam/results` เพิ่ม (expand/detail layout และ copy เฉพาะจุด)
+2. เก็บ parity เชิงลึกของ queue (meeting metrics + timeline + system test snapshot rendering)
+3. ปิดท้าย `project-exam/results` และ `thesis/exam-results` พร้อม final document status flow

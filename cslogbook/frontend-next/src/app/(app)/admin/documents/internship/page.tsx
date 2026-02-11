@@ -94,6 +94,7 @@ export default function AdminInternshipDocumentsPage() {
   const lateMap = useMemo(() => {
     const map = new Map<number, { status: string; daysLate?: number; hoursLate?: number }>();
     (lateSubmissionsQuery.data ?? []).forEach((item) => {
+      if (!item) return;
       map.set(item.documentId, { status: item.status, daysLate: item.daysLate, hoursLate: item.hoursLate });
     });
     return map;
