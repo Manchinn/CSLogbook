@@ -32,8 +32,8 @@ type BuildOptions = {
   canAccessProject?: boolean | null;
 };
 
-function link(path: string, external = false) {
-  return { href: path, external } as const;
+function menuLink(key: string, label: string, href: string, external = false): MenuLink {
+  return { key, label, kind: "link", href, external };
 }
 
 function buildStudentMenu(options: BuildOptions): MenuNode[] {
@@ -43,10 +43,10 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
   const projectAllowed = canAccessProject ?? true;
 
   const items: MenuNode[] = [
-    { key: "student-dashboard", label: "แดชบอร์ด", kind: "link", ...link("/dashboard/student", true) },
-    { key: "student-profile", label: "ประวัตินักศึกษา", kind: "link", ...link(`/student-profile/${studentCode}`, featureFlags.enableStudentProfilePage) },
-    { key: "student-calendar", label: "ปฏิทินกำหนดการ", kind: "link", ...link("/student-deadlines/calendar", featureFlags.enableDeadlinesPage) },
-    { key: "student-deadlines", label: "กำหนดส่งทั้งหมด", kind: "link", ...link("/deadlines", featureFlags.enableDeadlinesPage) },
+    menuLink("student-dashboard", "แดชบอร์ด", "/dashboard/student", true),
+    menuLink("student-profile", "ประวัตินักศึกษา", `/student-profile/${studentCode}`, featureFlags.enableStudentProfilePage),
+    menuLink("student-calendar", "ปฏิทินกำหนดการ", "/student-deadlines/calendar", featureFlags.enableDeadlinesPage),
+    menuLink("student-deadlines", "กำหนดส่งทั้งหมด", "/deadlines", featureFlags.enableDeadlinesPage),
   ];
 
   const internshipMenu: MenuGroupNode = internshipAllowed
@@ -55,12 +55,12 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
         label: "ระบบฝึกงาน",
         kind: "group",
         children: [
-          { key: "internship-companies", label: "สถานประกอบการ (สถิติ)", kind: "link", ...link("/internship-companies") },
-          { key: "internship-flow", label: "ลงทะเบียนคำร้องฝึกงาน", kind: "link", ...link("/internship-registration", featureFlags.enableInternshipFlowPage) },
-          { key: "internship-companyinfo", label: "ข้อมูลสถานประกอบการ", kind: "link", ...link("/internship-logbook/companyinfo") },
-          { key: "internship-timesheet", label: "บันทึกประจำวัน", kind: "link", ...link("/internship/logbook", featureFlags.enableInternshipLogbookPage) },
-          { key: "internship-summary", label: "สรุปผลฝึกงาน", kind: "link", ...link("/internship-summary") },
-          { key: "internship-certificate", label: "หนังสือรับรองฝึกงาน", kind: "link", ...link("/internship/certificate", featureFlags.enableInternshipCertificatePage) },
+          menuLink("internship-companies", "สถานประกอบการ (สถิติ)", "/internship-companies"),
+          menuLink("internship-flow", "ลงทะเบียนคำร้องฝึกงาน", "/internship-registration", featureFlags.enableInternshipFlowPage),
+          menuLink("internship-companyinfo", "ข้อมูลสถานประกอบการ", "/internship-logbook/companyinfo"),
+          menuLink("internship-timesheet", "บันทึกประจำวัน", "/internship/logbook", featureFlags.enableInternshipLogbookPage),
+          menuLink("internship-summary", "สรุปผลฝึกงาน", "/internship-summary"),
+          menuLink("internship-certificate", "หนังสือรับรองฝึกงาน", "/internship/certificate", featureFlags.enableInternshipCertificatePage),
         ],
       }
     : {
@@ -68,8 +68,8 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
         label: "ระบบฝึกงาน",
         kind: "group",
         children: [
-          { key: "internship-eligibility", label: "ตรวจสอบคุณสมบัติ", kind: "link", ...link("/internship-eligibility") },
-          { key: "internship-requirements", label: "ข้อกำหนดฝึกงาน", kind: "link", ...link("/internship-requirements") },
+          menuLink("internship-eligibility", "ตรวจสอบคุณสมบัติ", "/internship-eligibility"),
+          menuLink("internship-requirements", "ข้อกำหนดฝึกงาน", "/internship-requirements"),
         ],
       };
 
@@ -82,8 +82,8 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
           label: "โครงงานพิเศษ",
           kind: "group",
           children: [
-            { key: "project-phase1", label: "ขั้นตอนโครงงานพิเศษ", kind: "link", ...link("/project/phase1", featureFlags.enableProjectPhase1Page) },
-            { key: "project-phase2", label: "โครงงานพิเศษ 2", kind: "link", ...link("/project/phase2", featureFlags.enableProjectPhase2Page) },
+            menuLink("project-phase1", "ขั้นตอนโครงงานพิเศษ", "/project/phase1", featureFlags.enableProjectPhase1Page),
+            menuLink("project-phase2", "โครงงานพิเศษ 2", "/project/phase2", featureFlags.enableProjectPhase2Page),
           ],
         }
       : {
@@ -91,8 +91,8 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
           label: "โครงงานพิเศษ",
           kind: "group",
           children: [
-            { key: "project-eligibility", label: "ตรวจสอบคุณสมบัติ", kind: "link", ...link("/project-eligibility") },
-            { key: "project-requirements", label: "ข้อกำหนดโครงงาน", kind: "link", ...link("/project-requirements") },
+            menuLink("project-eligibility", "ตรวจสอบคุณสมบัติ", "/project-eligibility"),
+            menuLink("project-requirements", "ข้อกำหนดโครงงาน", "/project-requirements"),
           ],
         }
   );
@@ -115,30 +115,21 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
   const privilegedChildren: MenuNode[] = [];
 
   if (canSeeTopicExam) {
-    privilegedChildren.push({
-      key: "topic-overview",
-      label: "รายชื่อหัวข้อโครงงาน",
-      kind: "link",
-      ...link("/teacher/topic-exam/overview"),
-    });
+    privilegedChildren.push(
+      menuLink("topic-overview", "รายชื่อหัวข้อโครงงาน", "/teacher/topic-exam/overview")
+    );
   }
 
   if (canExportProject1) {
-    privilegedChildren.push({
-      key: "kp02-queue",
-      label: "รายชื่อสอบโครงงานพิเศษ",
-      kind: "link",
-      ...link("/admin/project1/kp02-queue"),
-    });
+    privilegedChildren.push(
+      menuLink("kp02-queue", "รายชื่อสอบโครงงานพิเศษ", "/admin/project1/kp02-queue")
+    );
   }
 
   if (canExportThesis) {
-    privilegedChildren.push({
-      key: "thesis-queue",
-      label: "รายชื่อสอบปริญญานิพนธ์",
-      kind: "link",
-      ...link("/admin/thesis/staff-queue"),
-    });
+    privilegedChildren.push(
+      menuLink("thesis-queue", "รายชื่อสอบปริญญานิพนธ์", "/admin/thesis/staff-queue")
+    );
   }
 
   const privileged: MenuGroupNode | null =
@@ -153,32 +144,32 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
 
   const academicItems: MenuNode[] = isAcademic
     ? [
-        { key: "teacher-dashboard", label: "แดชบอร์ด", kind: "link", ...link("/dashboard/teacher", true) },
-        { key: "teacher-calendar", label: "ปฏิทินกำหนดการ", kind: "link", ...link("/teacher/deadlines/calendar") },
-        { key: "meetings", label: "การนัดหมาย/บันทึก", kind: "link", ...link("/meetings", featureFlags.enableMeetingsPage) },
-        { key: "meeting-approvals", label: "อนุมัติบันทึกการพบ", kind: "link", ...link("/teacher/meeting-approvals") },
-        { key: "advisor-queue", label: "คำขอสอบ คพ.02", kind: "link", ...link("/teacher/project1/advisor-queue") },
-        { key: "thesis-advisor-queue", label: "คำขอสอบ คพ.03", kind: "link", ...link("/teacher/thesis/advisor-queue") },
-        { key: "system-test-advisor", label: "คำขอทดสอบระบบ", kind: "link", ...link("/teacher/system-test/advisor-queue") },
+        menuLink("teacher-dashboard", "แดชบอร์ด", "/dashboard/teacher", true),
+        menuLink("teacher-calendar", "ปฏิทินกำหนดการ", "/teacher/deadlines/calendar"),
+        menuLink("meetings", "การนัดหมาย/บันทึก", "/meetings", featureFlags.enableMeetingsPage),
+        menuLink("meeting-approvals", "อนุมัติบันทึกการพบ", "/teacher/meeting-approvals"),
+        menuLink("advisor-queue", "คำขอสอบ คพ.02", "/teacher/project1/advisor-queue"),
+        menuLink("thesis-advisor-queue", "คำขอสอบ คพ.03", "/teacher/thesis/advisor-queue"),
+        menuLink("system-test-advisor", "คำขอทดสอบระบบ", "/teacher/system-test/advisor-queue"),
         ...(privileged ? [privileged] : []),
         ...(canApproveDocuments
-          ? [{ key: "approve-documents", label: "อนุมัติเอกสาร", kind: "link", ...link("/approve-documents") }]
+          ? [menuLink("approve-documents", "อนุมัติเอกสาร", "/approve-documents")]
           : []),
       ]
     : [];
 
   const supportItems: MenuNode[] = isSupport
     ? [
-        { key: "teacher-dashboard", label: "แดชบอร์ด", kind: "link", ...link("/dashboard/admin", true) },
+        menuLink("teacher-dashboard", "แดชบอร์ด", "/dashboard/admin", true),
         ...(privileged ? [privileged] : []),
         {
           key: "manage",
           label: "จัดการข้อมูล",
           kind: "group",
           children: [
-            { key: "students", label: "นักศึกษา", kind: "link", ...link("/admin/users/students") },
-            { key: "teachers", label: "อาจารย์", kind: "link", ...link("/admin/users/teachers") },
-            { key: "project-pairs", label: "นักศึกษาโครงงานพิเศษ", kind: "link", ...link("/project-pairs") },
+            menuLink("students", "นักศึกษา", "/admin/users/students"),
+            menuLink("teachers", "อาจารย์", "/admin/users/teachers"),
+            menuLink("project-pairs", "นักศึกษาโครงงานพิเศษ", "/project-pairs"),
           ],
         },
         {
@@ -191,8 +182,8 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
               label: "เอกสารฝึกงาน",
               kind: "group",
               children: [
-                { key: "admin-internship", label: "คำร้องขอฝึกงาน", kind: "link", ...link("/admin/documents/internship") },
-                { key: "admin-cert", label: "หนังสือรับรองฝึกงาน", kind: "link", ...link("/admin/documents/certificates") },
+                menuLink("admin-internship", "คำร้องขอฝึกงาน", "/admin/documents/internship"),
+                menuLink("admin-cert", "หนังสือรับรองฝึกงาน", "/admin/documents/certificates"),
               ],
             },
             {
@@ -200,12 +191,12 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
               label: "เอกสารโครงงานพิเศษ",
               kind: "group",
               children: [
-                { key: "topic-results", label: "ผลสอบหัวข้อ", kind: "link", ...link("/admin/topic-exam/results") },
-                { key: "kp02", label: "คำร้อง คพ.02", kind: "link", ...link("/admin/project1/kp02-queue") },
-                { key: "project-exam", label: "ผลสอบโครงงานพิเศษ 1", kind: "link", ...link("/admin/project-exam/results") },
-                { key: "system-test", label: "คำขอทดสอบระบบ", kind: "link", ...link("/admin/system-test/staff-queue") },
-                { key: "thesis-queue", label: "คำร้อง คพ.03", kind: "link", ...link("/admin/thesis/staff-queue") },
-                { key: "thesis-results", label: "ผลสอบปริญญานิพนธ์", kind: "link", ...link("/admin/thesis/exam-results") },
+                menuLink("topic-results", "ผลสอบหัวข้อ", "/admin/topic-exam/results"),
+                menuLink("kp02", "คำร้อง คพ.02", "/admin/project1/kp02-queue"),
+                menuLink("project-exam", "ผลสอบโครงงานพิเศษ 1", "/admin/project-exam/results"),
+                menuLink("system-test", "คำขอทดสอบระบบ", "/admin/system-test/staff-queue"),
+                menuLink("thesis-queue", "คำร้อง คพ.03", "/admin/thesis/staff-queue"),
+                menuLink("thesis-results", "ผลสอบปริญญานิพนธ์", "/admin/thesis/exam-results"),
               ],
             },
           ],
@@ -215,24 +206,24 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
           label: "รายงาน",
           kind: "group",
           children: [
-            { key: "internship-companies", label: "สถานประกอบการ", kind: "link", ...link("/internship-companies") },
-            { key: "internship-report", label: "รายงานฝึกงาน", kind: "link", ...link("/admin/reports/internship") },
-            { key: "project-report", label: "รายงานโครงงาน", kind: "link", ...link("/admin/reports/project") },
-            { key: "workflow-progress", label: "ความคืบหน้า Workflow", kind: "link", ...link("/admin/reports/workflow-progress") },
-            { key: "deadline-compliance", label: "การปฏิบัติตามกำหนด", kind: "link", ...link("/admin/reports/deadline-compliance") },
-            { key: "advisor-workload", label: "ภาระงานอาจารย์", kind: "link", ...link("/admin/reports/advisor-workload") },
-            { key: "reports-new", label: "รายงาน (ใหม่)", kind: "link", ...link("/reports", featureFlags.enableReportsPage) },
+            menuLink("internship-companies", "สถานประกอบการ", "/internship-companies"),
+            menuLink("internship-report", "รายงานฝึกงาน", "/admin/reports/internship"),
+            menuLink("project-report", "รายงานโครงงาน", "/admin/reports/project"),
+            menuLink("workflow-progress", "ความคืบหน้า Workflow", "/admin/reports/workflow-progress"),
+            menuLink("deadline-compliance", "การปฏิบัติตามกำหนด", "/admin/reports/deadline-compliance"),
+            menuLink("advisor-workload", "ภาระงานอาจารย์", "/admin/reports/advisor-workload"),
+            menuLink("reports-new", "รายงาน (ใหม่)", "/reports", featureFlags.enableReportsPage),
           ],
         },
-        { key: "upload", label: "อัปโหลดรายชื่อนักศึกษา", kind: "link", ...link("/admin/upload") },
+        menuLink("upload", "อัปโหลดรายชื่อนักศึกษา", "/admin/upload"),
         {
           key: "settings",
           label: "ตั้งค่าระบบ",
           kind: "group",
           children: [
-            { key: "curriculum", label: "หลักสูตร", kind: "link", ...link("/admin/settings/curriculum") },
-            { key: "academic", label: "ปีการศึกษา/ภาคเรียน", kind: "link", ...link("/admin/settings/academic") },
-            { key: "notification", label: "การแจ้งเตือน", kind: "link", ...link("/admin/settings/notification-settings") },
+            menuLink("curriculum", "หลักสูตร", "/admin/settings/curriculum"),
+            menuLink("academic", "ปีการศึกษา/ภาคเรียน", "/admin/settings/academic"),
+            menuLink("notification", "การแจ้งเตือน", "/admin/settings/notification-settings"),
           ],
         },
       ]
@@ -243,15 +234,15 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
 
 function buildAdminMenu(): MenuNode[] {
   return [
-    { key: "admin-dashboard", label: "แดชบอร์ด", kind: "link", ...link("/dashboard/admin", true) },
+    menuLink("admin-dashboard", "แดชบอร์ด", "/dashboard/admin", true),
     {
       key: "manage",
       label: "จัดการข้อมูล",
       kind: "group",
       children: [
-        { key: "students", label: "นักศึกษา", kind: "link", ...link("/admin/users/students") },
-        { key: "teachers", label: "อาจารย์", kind: "link", ...link("/admin/users/teachers") },
-        { key: "project-pairs", label: "นักศึกษาโครงงานพิเศษ", kind: "link", ...link("/project-pairs") },
+        menuLink("students", "นักศึกษา", "/admin/users/students"),
+        menuLink("teachers", "อาจารย์", "/admin/users/teachers"),
+        menuLink("project-pairs", "นักศึกษาโครงงานพิเศษ", "/project-pairs"),
       ],
     },
     {
@@ -264,8 +255,8 @@ function buildAdminMenu(): MenuNode[] {
           label: "เอกสารฝึกงาน",
           kind: "group",
           children: [
-            { key: "internship-requests", label: "คำร้องขอฝึกงาน", kind: "link", ...link("/admin/documents/internship") },
-            { key: "internship-certificates", label: "หนังสือรับรอง", kind: "link", ...link("/admin/documents/certificates") },
+            menuLink("internship-requests", "คำร้องขอฝึกงาน", "/admin/documents/internship"),
+            menuLink("internship-certificates", "หนังสือรับรอง", "/admin/documents/certificates"),
           ],
         },
         {
@@ -273,12 +264,12 @@ function buildAdminMenu(): MenuNode[] {
           label: "เอกสารโครงงานพิเศษ",
           kind: "group",
           children: [
-            { key: "topic-results", label: "ผลสอบหัวข้อ", kind: "link", ...link("/admin/topic-exam/results") },
-            { key: "kp02", label: "คำร้อง คพ.02", kind: "link", ...link("/admin/project1/kp02-queue") },
-            { key: "project-exam", label: "ผลสอบโครงงานพิเศษ 1", kind: "link", ...link("/admin/project-exam/results") },
-            { key: "system-test", label: "คำขอทดสอบระบบ", kind: "link", ...link("/admin/system-test/staff-queue") },
-            { key: "thesis-queue", label: "คำร้อง คพ.03", kind: "link", ...link("/admin/thesis/staff-queue") },
-            { key: "thesis-results", label: "ผลสอบปริญญานิพนธ์", kind: "link", ...link("/admin/thesis/exam-results") },
+            menuLink("topic-results", "ผลสอบหัวข้อ", "/admin/topic-exam/results"),
+            menuLink("kp02", "คำร้อง คพ.02", "/admin/project1/kp02-queue"),
+            menuLink("project-exam", "ผลสอบโครงงานพิเศษ 1", "/admin/project-exam/results"),
+            menuLink("system-test", "คำขอทดสอบระบบ", "/admin/system-test/staff-queue"),
+            menuLink("thesis-queue", "คำร้อง คพ.03", "/admin/thesis/staff-queue"),
+            menuLink("thesis-results", "ผลสอบปริญญานิพนธ์", "/admin/thesis/exam-results"),
           ],
         },
       ],
@@ -288,27 +279,27 @@ function buildAdminMenu(): MenuNode[] {
       label: "รายงาน",
       kind: "group",
       children: [
-        { key: "internship-companies", label: "บริษัทฝึกงาน (สถิติ)", kind: "link", ...link("/internship-companies") },
-        { key: "internship-report", label: "รายงานฝึกงาน", kind: "link", ...link("/admin/reports/internship") },
-        { key: "project-report", label: "รายงานโครงงาน", kind: "link", ...link("/admin/reports/project") },
-        { key: "workflow-progress", label: "ความคืบหน้า Workflow", kind: "link", ...link("/admin/reports/workflow-progress") },
-        { key: "deadline-compliance", label: "การปฏิบัติตาม Deadline", kind: "link", ...link("/admin/reports/deadline-compliance") },
-        { key: "advisor-workload", label: "ภาระงานอาจารย์", kind: "link", ...link("/admin/reports/advisor-workload") },
-        { key: "reports-new", label: "รายงาน (ใหม่)", kind: "link", ...link("/reports", featureFlags.enableReportsPage) },
+        menuLink("internship-companies", "บริษัทฝึกงาน (สถิติ)", "/internship-companies"),
+        menuLink("internship-report", "รายงานฝึกงาน", "/admin/reports/internship"),
+        menuLink("project-report", "รายงานโครงงาน", "/admin/reports/project"),
+        menuLink("workflow-progress", "ความคืบหน้า Workflow", "/admin/reports/workflow-progress"),
+        menuLink("deadline-compliance", "การปฏิบัติตาม Deadline", "/admin/reports/deadline-compliance"),
+        menuLink("advisor-workload", "ภาระงานอาจารย์", "/admin/reports/advisor-workload"),
+        menuLink("reports-new", "รายงาน (ใหม่)", "/reports", featureFlags.enableReportsPage),
       ],
     },
-    { key: "upload", label: "อัปโหลดรายชื่อนักศึกษา", kind: "link", ...link("/admin/upload") },
+    menuLink("upload", "อัปโหลดรายชื่อนักศึกษา", "/admin/upload"),
     {
       key: "settings",
       label: "ตั้งค่าระบบ",
       kind: "group",
       children: [
-        { key: "curriculum", label: "หลักสูตรการศึกษา", kind: "link", ...link("/admin/settings/curriculum") },
-        { key: "academic", label: "ปีการศึกษา/ภาคเรียน", kind: "link", ...link("/admin/settings/academic") },
-        { key: "status", label: "สถานะนักศึกษา", kind: "link", ...link("/admin/settings/status") },
-        { key: "notification", label: "การแจ้งเตือน", kind: "link", ...link("/admin/settings/notification-settings") },
-        { key: "workflow-steps", label: "ขั้นตอนการทำงาน", kind: "link", ...link("/admin/settings/workflow-steps") },
-        { key: "settings-new", label: "ตั้งค่า (ใหม่)", kind: "link", ...link("/settings", featureFlags.enableSettingsPage) },
+        menuLink("curriculum", "หลักสูตรการศึกษา", "/admin/settings/curriculum"),
+        menuLink("academic", "ปีการศึกษา/ภาคเรียน", "/admin/settings/academic"),
+        menuLink("status", "สถานะนักศึกษา", "/admin/settings/status"),
+        menuLink("notification", "การแจ้งเตือน", "/admin/settings/notification-settings"),
+        menuLink("workflow-steps", "ขั้นตอนการทำงาน", "/admin/settings/workflow-steps"),
+        menuLink("settings-new", "ตั้งค่า (ใหม่)", "/settings", featureFlags.enableSettingsPage),
       ],
     },
   ];

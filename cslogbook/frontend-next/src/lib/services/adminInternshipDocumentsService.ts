@@ -278,12 +278,14 @@ export async function getInternshipLateSubmissions(filters: {
       const raw = isRecord(item) ? item : {};
       const documentId = toNumberOrNull(raw.documentId);
       if (!documentId) return null;
+      const daysLate = toNumberOrNull(raw.daysLate) ?? undefined;
+      const hoursLate = toNumberOrNull(raw.hoursLate) ?? undefined;
       return {
         documentId,
         status: toStringOrEmpty(raw.status),
-        daysLate: toNumberOrNull(raw.daysLate) ?? undefined,
-        hoursLate: toNumberOrNull(raw.hoursLate) ?? undefined,
-      } satisfies LateSubmissionRecord;
+        ...(daysLate !== undefined && { daysLate }),
+        ...(hoursLate !== undefined && { hoursLate }),
+      } as LateSubmissionRecord;
     })
     .filter((item): item is LateSubmissionRecord => item !== null);
 }

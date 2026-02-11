@@ -193,8 +193,8 @@ function normalizeQueueRecord(value: unknown): DefenseQueueRecord {
       ? {
           text: toStringOrEmpty(deadlineTag.text),
           color: toStringOrEmpty(deadlineTag.color),
-          tooltip: toStringOrNull(deadlineTag.tooltip),
-          type: toStringOrNull(deadlineTag.type),
+          tooltip: toStringOrNull(deadlineTag.tooltip) ?? undefined,
+          type: toStringOrNull(deadlineTag.type) ?? undefined,
         }
       : null,
     project,
