@@ -779,9 +779,72 @@ shared UI:
   - ต่อ API: `GET /projects/exam-results/project1/pending`, `GET /projects/exam-results/thesis/pending`, `POST /projects/:id/exam-result`, `GET /projects/:id/exam-result`
   - ปิด flow อัปเดตสถานะเล่มปริญญานิพนธ์: `PATCH /projects/:id/final-document/status` + fallback `PATCH /documents/:documentId/status`
 
-สถานะตอนนี้:
-- route ที่ยังรอย้ายในกลุ่มนี้เหลือ `/admin/system-test/staff-queue`
+- ย้าย `/admin/system-test/staff-queue` ครบ parity พร้อม timeline/evidence preview:
+  - สร้าง `adminSystemTestService.ts` + `useAdminSystemTestQueue.ts` hooks
+  - สร้าง `SystemTestStaffQueuePage` component แบบ parity เต็มรูปกับ legacy
+  - ต่อ API: `GET /projects/system-test/staff-queue`, `GET /projects/:id/system-test/request`, `POST /projects/:id/system-test/request/staff-decision`
+  - ฟีเจอร์หลัก ครบ:
+    - list/filter/pagination แบบเดียวกับ defense queue
+    - timeline preview แสดงครบทั้ง advisor → co-advisor → staff decision workflow
+    - evidence/attachment preview ด้วย inline PDF viewer modal
+    - approve/reject decision flow พร้อม note
+    - statistics dashboard แยกตามสถานะ (pending/approved/rejected)
+    - deadline tags with tooltips
+  - parity สำคัญ:
+    - ระบบอนุมัติ 3 layer (advisor → co-advisor → staff) ต่างจาก defense queue
+    - รองรับการแสดงไฟล์หลักฐาน (evidence) แยกจากไฟล์คำขอ (requestFile)
+    - แสดงช่วงเวลาทดสอบ (testStartDate + testDueDate) ในตาราง
 
-งานถัดไป (parity deepen):
-1. ย้าย `/admin/system-test/staff-queue` ให้ครบ parity พร้อม timeline/evidence preview ตาม legacy
-2. เก็บ final parity pass เทียบ legacy ทั้ง 6 route และทำ regression check เมนู admin เดิม
+สถานะตอนนี้:
+- ✅ ย้ายครบทั้ง 6 route ในกลุ่ม "เอกสารโครงงานพิเศษ" แล้ว:
+  1. `/admin/topic-exam/results`
+  2. `/admin/project1/kp02-queue`
+  3. `/admin/project-exam/results`
+  4. `/admin/system-test/staff-queue`
+  5. `/admin/thesis/staff-queue`
+  6. `/admin/thesis/exam-results`
+- ผ่าน lint และ type check
+
+งานถัดไป (final parity pass):
+1. ทำ regression check เมนู admin เดิมทั้งหมด ให้แน่ใจไม่กระทบหน้าเก่า
+2. เปรียบเทียบ behavior ทั้ง 6 route กับ legacy อีกรอบ (edge cases, error handling, permission)
+3. ทดสอบ end-to-end workflow แต่ละ route กับ API จริง
+4. อัปเดต documentation และ migration notes สำหรับ deploy production
+
+---
+
+## 27) Admin Project Documents - Phase Complete ✅
+
+**สถานะ**: เสร็จสมบูรณ์ (2026-02-11)
+
+ย้ายครบทั้ง 6 route ในกลุ่ม "เอกสารโครงงานพิเศษ" จาก legacy มา Next.js:
+
+✅ **Route Implementation Status**:
+1. `/admin/topic-exam/results` - ผลสอบหัวข้อโครงงานพิเศษ
+2. `/admin/project1/kp02-queue` - คำร้องขอสอบ คพ.02
+3. `/admin/project-exam/results` - บันทึกผลสอบโครงงานพิเศษ 1
+4. `/admin/system-test/staff-queue` - คำขอทดสอบระบบ (System Test)
+5. `/admin/thesis/staff-queue` - คำร้องขอสอบ คพ.03
+6. `/admin/thesis/exam-results` - บันทึกผลสอบปริญญานิพนธ์
+
+✅ **Key Features Implemented**:
+- Timeline preview ทุก route ที่มี workflow อนุมัติ
+- Evidence/Document preview ด้วย inline PDF viewer
+- Filtering, pagination, และ search
+- Statistics dashboard
+- Permission checking
+- Loading/Error/Empty states
+- Decision flows (approve/reject/verify)
+- Export functionality (topic-exam, defense queues)
+
+✅ **Code Quality**:
+- ผ่าน ESLint และ TypeScript checks
+- ใช้ React Query สำหรับ data fetching
+- Reusable components และ hooks
+- Consistent styling ด้วย CSS modules
+
+**Files Added**:
+- Services: `adminSystemTestService.ts`
+- Hooks: `useAdminSystemTestQueue.ts`
+- Components: `SystemTestStaffQueuePage.tsx`
+- Routes: 6 page.tsx files ครบถ้วน
