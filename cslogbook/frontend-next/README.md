@@ -848,3 +848,237 @@ shared UI:
 - Hooks: `useAdminSystemTestQueue.ts`
 - Components: `SystemTestStaffQueuePage.tsx`
 - Routes: 6 page.tsx files ครบถ้วน
+
+---
+
+## 28) Student Pages Migration - Summary
+
+**สถานะโดยรวม**: หน้าหลักของนักศึกษาถูกย้ายมาครบแล้ว แบ่งออกเป็น 4 กลุ่มใหญ่
+
+### 28.1 Dashboard & Widgets (Phases 4-6)
+
+✅ **Student Dashboard** (`/dashboard/student`):
+- **StudentEligibilityWidget** - แสดงสิทธิ์ฝึกงาน/โครงงาน + เครดิตรวม/วิชาเอก
+  - API: `GET /students/check-eligibility`
+  - Feature flag: `NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION`
+- **StudentDeadlinesWidget** - กำหนดส่งที่ใกล้ถึง
+  - API: `GET /students/important-deadlines/upcoming`
+  - Feature flag: `NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION`
+- **StudentInternshipStatusWidget** - สถานะฝึกงานปัจจุบัน
+  - APIs: `GET /internship/summary`, `/logbooks/internship/timesheet/stats`, `/internship/certificate-status`
+  - Feature flag: `NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET`
+- **StudentProjectStatusWidget** - สถานะโครงงาน/ปริญญานิพนธ์ปัจจุบัน
+  - APIs: `GET /projects/mine`, `GET /projects/:id/workflow-state`
+  - Feature flag: `NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET`
+
+**ไฟล์หลัก**:
+- `src/app/(app)/dashboard/student/page.tsx`
+- `src/components/dashboard/StudentEligibilityWidget.tsx`
+- `src/components/dashboard/StudentDeadlinesWidget.tsx`
+- `src/components/dashboard/StudentInternshipStatusWidget.tsx`
+- `src/components/dashboard/StudentProjectStatusWidget.tsx`
+- `src/lib/services/studentService.ts`
+- `src/hooks/useStudentEligibility.ts`, `useStudentDeadlines.ts`, `useStudentInternshipStatus.ts`, `useStudentProjectStatus.ts`
+
+---
+
+### 28.2 Internship Flow (Phases 7-12, 19, 20)
+
+✅ **Internship Registration** (`/internship-registration/*`):
+- `/internship-registration/flow` - อธิบาย workflow และ eligibility check
+  - Feature flag: `NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE`
+- `/internship-registration` - ฟอร์มยื่น CS05 + แนบ transcript
+  - API: `POST /internship/cs-05`
+
+✅ **Internship Management**:
+- `/internship/logbook` - สมุดบันทึกฝึกงาน + timesheet
+  - Feature flag: `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE`
+- `/internship/certificate` - หนังสือรับรองการฝึกงาน
+  - Feature flag: `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE`
+- `/internship-logbook/companyinfo` - จัดการข้อมูลบริษัท
+- `/internship-summary` - สรุปสถานะฝึกงาน
+- `/internship-eligibility` - ตรวจสอบสิทธิ์ฝึกงาน
+- `/internship-requirements` - ข้อกำหนดและหลักเกณฑ์
+
+✅ **Company Stats** (`/internship-companies`):
+- สถิติสถานประกอบการ (student/teacher/admin)
+- APIs: `GET /internship/company-stats`, `GET /internship/company-stats/:companyName/detail`
+- ตัวกรองปีการศึกษา + limit
+- Drawer รายละเอียดบริษัท + capacity rule
+
+✅ **Public Forms**:
+- `/evaluate/supervisor/[token]` - ฟอร์มประเมินผู้ควบคุมงาน (public)
+  - APIs: `GET/POST /internship/supervisor/evaluation/:token`
+- `/approval/timesheet/[token]` - อนุมัติ timesheet (public)
+
+**ไฟล์หลัก**:
+- `src/app/(app)/internship-registration/flow/page.tsx`
+- `src/app/(app)/internship-registration/page.tsx`
+- `src/app/(app)/internship/logbook/InternshipLogbookView.tsx`
+- `src/app/(app)/internship/certificate/InternshipCertificateView.tsx`
+- `src/app/(app)/internship-companies/page.tsx`
+- `src/app/evaluate/supervisor/[token]/page.tsx`
+- `src/app/approval/timesheet/[token]/page.tsx`
+
+---
+
+### 28.3 Project Flow (Phases 7, 12)
+
+✅ **Project Phase 1** (`/project/phase1/*`):
+- `/project/phase1` - ภาพรวม workflow + สถานะโครงงาน
+  - Feature flag: `NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE`
+- `/project/phase1/topic-submit` - ยื่นหัวข้อโครงงาน
+- `/project/phase1/topic-exam` - สอบหัวข้อ
+- `/project/phase1/proposal-revision` - แก้ไข proposal
+- `/project/phase1/meeting-logbook` - บันทึกการประชุม
+- `/project/phase1/exam-submit` - ยื่นสอบโครงงานพิเศษ 1
+- `/project/phase1/exam-day` - วันสอบ + ผลสอบ
+- `/project/phase1/[step]` - dynamic route สำหรับ step อื่นๆ
+
+✅ **Project Phase 2** (`/project/phase2/*`):
+- `/project/phase2` - ภาพรวม workflow ปริญญานิพนธ์
+  - Feature flag: `NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE`
+- `/project/phase2/system-test` - ขอทดสอบระบบ
+- `/project/phase2/thesis-defense` - ยื่นสอบปริญญานิพนธ์
+
+**ไฟล์หลัก**:
+- `src/app/(app)/project/phase1/page.tsx`
+- `src/app/(app)/project/phase1/view/ProjectPhase1Content.tsx`
+- `src/app/(app)/project/phase1/[step]/page.tsx`
+- `src/app/(app)/project/phase2/page.tsx`
+- `src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx`
+
+---
+
+### 28.4 Utilities & Tools (Phase 8)
+
+✅ **Deadlines & Calendar**:
+- `/student-deadlines/calendar` - ปฏิทินกำหนดการพร้อมสถานะ submission
+  - API: `GET /students/important-deadlines`
+  - ตัวกรองปีการศึกษา
+- `/deadlines` - redirect ไป `/student-deadlines/calendar` เมื่อเปิด flag
+  - Feature flag: `NEXT_PUBLIC_ENABLE_DEADLINES_PAGE`
+
+✅ **Student Profile**:
+- `/student-profile/[studentCode]` - ดูโปรไฟล์นักศึกษา (admin/teacher view)
+
+✅ **Placeholder Pages** (ยังเป็น stub):
+- `/meetings` - การประชุม (redirect to `/app` when flag off)
+- `/reports` - รายงาน
+- `/settings` - ตั้งค่า
+
+**ไฟล์หลัก**:
+- `src/app/(app)/student-deadlines/calendar/page.tsx`
+- `src/app/(app)/deadlines/page.tsx`
+- `src/app/(app)/student-profile/[studentCode]/page.tsx`
+
+---
+
+### 28.5 API Services & Hooks (Student-Specific)
+
+**Services**:
+- `src/lib/services/studentService.ts` - eligibility, deadlines
+- `src/lib/services/internshipService.ts` - internship summary, timesheet, certificate
+- `src/lib/services/projectService.ts` - project status, workflow
+- `src/lib/services/internshipCompanyService.ts` - company stats
+- `src/lib/services/supervisorEvaluationService.ts` - supervisor evaluation
+
+**Hooks**:
+- `src/hooks/useStudentEligibility.ts`
+- `src/hooks/useStudentDeadlines.ts`
+- `src/hooks/useStudentInternshipStatus.ts`
+- `src/hooks/useStudentProjectStatus.ts`
+- `src/hooks/useInternshipCompanies.ts`
+
+---
+
+### 28.6 Feature Flags Summary
+
+```bash
+# Dashboard Widgets
+NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
+NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
+NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
+
+# Page-Level Flags
+NEXT_PUBLIC_ENABLE_STUDENT_PROFILE_PAGE=true
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=false
+NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
+NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=false
+NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=false
+NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
+NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=false
+NEXT_PUBLIC_ENABLE_REPORTS_PAGE=false
+NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
+```
+
+---
+
+### 28.7 Migration Status
+
+✅ **Complete (Production-Ready)**:
+- Dashboard + 4 widgets
+- Internship registration flow
+- Project phase1 overview + key steps
+- Deadlines calendar
+- Company stats
+- Public forms (supervisor evaluation, timesheet approval)
+
+⚠️ **Partial (Stub/Feature Flagged)**:
+- Project phase2 (some pages incomplete)
+- Internship logbook (feature flagged)
+- Internship certificate (feature flagged)
+- Meetings, Reports, Settings (placeholder)
+
+🔄 **Next Steps**:
+1. เปิด feature flags สำหรับ logbook/certificate pages
+2. เติมเนื้อหาหน้า phase2 ที่เหลือ
+3. ย้าย meetings/reports/settings จาก stub เป็นหน้าจริง
+4. ทดสอบ end-to-end workflow ทุก flow
+5. ปิด legacy student pages หลังทดสอบครบ
+
+---
+
+### 28.8 Code Quality & Best Practices
+
+✅ **Implementation Quality**:
+- Hydration-safe components (no client-side-only rendering on mount)
+- Loading/Error/Empty states ครบทุกหน้า
+- React Query สำหรับ data fetching
+- Feature flags ควบคุม rollout
+- RoleGuard สำหรับ permission checking
+- Responsive design (desktop/tablet/mobile)
+- CSS Modules สำหรับ styling isolation
+
+✅ **API Integration**:
+- ต่อ backend APIs เดิมครบถ้วน
+- Error handling ที่ดี
+- Optimistic updates ตามความเหมาะสม
+- Cache invalidation ที่ถูกต้อง
+
+---
+
+### 28.9 Route Summary Table
+
+| Route | Status | Feature Flag | Phase |
+|-------|--------|--------------|-------|
+| `/dashboard/student` | ✅ Complete | `ENABLE_STUDENT_WIDGET_MIGRATION` | 4-6 |
+| `/student-deadlines/calendar` | ✅ Complete | `ENABLE_DEADLINES_PAGE` | 8 |
+| `/internship-companies` | ✅ Complete | - | 9 |
+| `/internship-registration/*` | ✅ Complete | `ENABLE_INTERNSHIP_FLOW_PAGE` | 7, 12 |
+| `/internship/logbook` | ⚠️ Feature Flagged | `ENABLE_INTERNSHIP_LOGBOOK_PAGE` | 12 |
+| `/internship/certificate` | ⚠️ Feature Flagged | `ENABLE_INTERNSHIP_CERTIFICATE_PAGE` | 12 |
+| `/project/phase1/*` | ✅ Complete | `ENABLE_PROJECT_PHASE1_PAGE` | 7, 12 |
+| `/project/phase2/*` | ⚠️ Partial | `ENABLE_PROJECT_PHASE2_PAGE` | 7, 12 |
+| `/student-profile/[code]` | ✅ Complete | `ENABLE_STUDENT_PROFILE_PAGE` | 7 |
+| `/evaluate/supervisor/[token]` | ✅ Complete | - | 10 |
+| `/approval/timesheet/[token]` | ✅ Complete | - | 12 |
+| `/meetings` | 🔄 Stub | `ENABLE_MEETINGS_PAGE` | - |
+| `/reports` | 🔄 Stub | `ENABLE_REPORTS_PAGE` | - |
+| `/settings` | 🔄 Stub | `ENABLE_SETTINGS_PAGE` | - |
+
+**Legend**:
+- ✅ Complete: ใช้งานได้เต็มรูปแบบ
+- ⚠️ Feature Flagged: ทำเสร็จแต่ปิด flag ไว้ก่อน
+- 🔄 Stub: มีหน้าแต่ยังไม่มีเนื้อหาจริง
