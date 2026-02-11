@@ -70,15 +70,15 @@ NEXT_PUBLIC_ENABLE_STUDENT_WIDGET_MIGRATION=true
 NEXT_PUBLIC_ENABLE_STUDENT_INTERNSHIP_WIDGET=true
 NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
-NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET=false
 
 # Page rollouts (false = redirect to /app)
+NEXT_PUBLIC_ENABLE_STUDENT_PROFILE_PAGE=true
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=false
 NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
 NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=false
 NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=false
-NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=false
+NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
 NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=false
 NEXT_PUBLIC_ENABLE_REPORTS_PAGE=false
 NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
@@ -339,3 +339,152 @@ NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
 
 ค่า env ที่เกี่ยวข้อง:
 - ใช้ `NEXT_PUBLIC_API_URL` สำหรับ backend URL (ไม่ต้องใช้ auth token บนหน้านี้)
+
+---
+
+## 21) Phase 11 Progress (Teacher/Admin Parity: Upload + Settings)
+
+สิ่งที่เพิ่มแล้ว:
+- ย้ายหน้า `/admin/upload` พร้อม prerequisite checks ก่อนอัปโหลด (หลักสูตร + ปีการศึกษา), รองรับไฟล์ `.csv/.xlsx`, สรุปผลนำเข้า และ filter รายการผลลัพธ์
+- ย้ายชุดหน้า `/admin/settings/*` เป็นหน้าใช้งานจริงสำหรับ support/admin:
+  - `curriculum`: CRUD หลักสูตร + เกณฑ์หน่วยกิต
+  - `academic`: จัดการปีการศึกษา/ภาคเรียน + important deadlines + policy
+  - `status`: CRUD สถานะนักศึกษา
+  - `notification-settings`: toggle การแจ้งเตือน + ตารางสถานะ agent
+  - `workflow-steps`: CRUD/reorder ขั้นตอน workflow + ดูสถิติ
+- ปรับเมนูให้ใช้งาน route ใหม่ของ admin settings โดยไม่พึ่งหน้า overview เดิม
+
+ไฟล์หลักที่เกี่ยวข้อง:
+- `src/app/(app)/admin/upload/page.tsx`
+- `src/app/(app)/admin/settings/curriculum/page.tsx`
+- `src/app/(app)/admin/settings/academic/page.tsx`
+- `src/app/(app)/admin/settings/status/page.tsx`
+- `src/app/(app)/admin/settings/notification-settings/page.tsx`
+- `src/app/(app)/admin/settings/workflow-steps/page.tsx`
+
+---
+
+## 22) Phase 12 Progress (Student/App Flows + Public Approval Links)
+
+สิ่งที่เพิ่มแล้ว:
+- เพิ่ม public approval link สำหรับอนุมัติ timesheet: `/approval/timesheet/[token]` (approve/reject + ตรวจสถานะลิงก์)
+- ขยาย flow ฝั่ง student:
+  - `/internship-registration` มีฟอร์มยื่น CS05 + แนบ transcript
+  - `/internship/logbook` และ `/internship/certificate` มี view จริง (เปิด/ปิดด้วย feature flags)
+  - `/project/phase1` และ `/project/phase2` มี content จริง และแตกย่อยบางขั้นตอนแล้ว
+- Dashboard migration ยังคงใช้งานได้ต่อเนื่อง (student/teacher/admin widgets)
+
+ไฟล์หลักที่เกี่ยวข้อง:
+- `src/app/approval/timesheet/[token]/page.tsx`
+- `src/app/(app)/internship-registration/view/RegistrationForm.tsx`
+- `src/app/(app)/internship/logbook/InternshipLogbookView.tsx`
+- `src/app/(app)/internship/certificate/InternshipCertificateView.tsx`
+- `src/app/(app)/project/phase1/view/ProjectPhase1Content.tsx`
+- `src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx`
+
+---
+
+## 23) Current Refactor Snapshot
+
+สถานะปัจจุบันโดยรวม:
+- หน้าหลักของ role student/teacher/admin และ admin settings สำคัญ ถูกย้ายมา Next.js แล้วในระดับใช้งานจริง
+- บางหน้าในเมนูหลักยังเป็น placeholder ภายใต้ feature flags (`/meetings`, `/reports`, `/settings`) เพื่อ rollout แบบค่อยเป็นค่อยไป
+- แนวทาง migration ปัจจุบันยังยึด parity-first: ย้ายตามโมดูล, คุมความเสี่ยงด้วย flags, และเชื่อม backend เดิมให้ครบก่อนปิดหน้า legacy
+
+---
+
+## 24) Next Focus: Admin User Management Refactor (Students / Teachers / Project Pairs)
+
+เป้าหมายเฟสถัดไป:
+- ย้ายหน้า admin จัดการข้อมูล `นักศึกษา`, `อาจารย์`, `นักศึกษาโครงงานพิเศษ` จาก legacy มา Next.js แบบ parity-first
+- คง flow API เดิมและ behavior เดิมให้ครบก่อน แล้วค่อย optimize UX/โค้ดในรอบถัดไป
+- วางโครงสร้าง service + hook + page ที่ reusable และทดสอบง่ายตาม best practices
+
+### 24.1 Scope (Legacy -> Next)
+
+1. นักศึกษา (legacy: `features/user-management/components/StudentList`)
+- รายการ + search/filter (search, status, academicYear)
+- สรุปสถิติย่อ (total / eligible internship / eligible project / no eligibility)
+- Drawer ดูรายละเอียด, เพิ่ม, แก้ไข, ลบ
+
+2. อาจารย์ (legacy: `features/user-management/components/TeacherList`)
+- รายการ + search/filter (position, teacherType)
+- Drawer ดูรายละเอียด, เพิ่ม, แก้ไข, ลบ
+- รองรับ field สิทธิ์เฉพาะอาจารย์ (`canAccessTopicExam`, `canExportProject1`)
+
+3. นักศึกษาโครงงานพิเศษ (legacy: `features/user-management/components/ProjectPairs`)
+- รายการโครงงาน + summary ตามสถานะ
+- filter หลายมิติ (projectStatus, documentStatus, trackCodes, projectType, academicYear, semester)
+- Drawer รายละเอียดโครงงาน
+- Modal เพิ่มโครงงาน (ค้นหานักศึกษา, ตรวจสิทธิ์, เลือกอาจารย์ที่ปรึกษา/track)
+
+### 24.2 API Flow ที่ต้องยึดตาม Legacy
+
+นักศึกษา:
+- `GET /students` (รองรับ `search`, `status`, `academicYear`, `semester`)
+- `GET /students/filter-options`
+- `POST /students`
+- `PUT /students/:id` (legacy ส่ง `studentCode` เป็น id)
+- `DELETE /students/:id`
+
+อาจารย์:
+- `GET /admin/teachers`
+- `POST /admin/teachers`
+- `PUT /admin/teachers/:id`
+- `DELETE /admin/teachers/:id`
+
+นักศึกษาโครงงานพิเศษ:
+- `GET /project-members` (project pair list + filters)
+- `GET /admin/projects/student/:studentCode` (lookup นักศึกษาใน modal เพิ่มโครงงาน)
+- `GET /admin/advisors`
+- `GET /admin/projects/tracks`
+- `POST /admin/projects/create-manually` (หรือ `/admin/projects/manual` ตาม backend route ที่เปิดใช้งาน)
+- `PUT /admin/projects/:projectId` และ `POST /admin/projects/:projectId/cancel` (สำหรับรอบแก้ไข/ยกเลิก)
+
+### 24.3 Recommended Next.js Structure
+
+routes:
+- `src/app/(app)/admin/users/students/page.tsx`
+- `src/app/(app)/admin/users/teachers/page.tsx`
+- `src/app/(app)/project-pairs/page.tsx`
+
+services:
+- `src/lib/services/adminStudentService.ts`
+- `src/lib/services/adminTeacherService.ts`
+- `src/lib/services/projectPairsService.ts`
+
+hooks:
+- `src/hooks/useAdminStudents.ts`
+- `src/hooks/useAdminTeachers.ts`
+- `src/hooks/useProjectPairs.ts`
+
+shared UI:
+- `src/components/admin/users/*`
+- `src/components/admin/project-pairs/*`
+
+### 24.4 Best Practices (ต้องคงไว้ระหว่างย้าย)
+
+- ใช้ React Query แยก `queryKey` ต่อโมดูล/ตัวกรอง และ invalidate เฉพาะ scope ที่เกี่ยวข้อง
+- แยก `DTO/normalizer` สำหรับข้อมูลจาก API เพื่อกันผลกระทบจาก payload ที่ไม่สม่ำเสมอ
+- ใช้ client/server component ให้เหมาะสม (table/filter/form เป็น client component)
+- ใส่ loading/error/empty state ให้ครบทุก list และทุก drawer/modal
+- รักษา role guard เดิม (admin + teacher support) ผ่าน `RoleGuard`
+- ลด optimistic update ที่เสี่ยง และ refresh จาก server หลัง mutation สำคัญ (add/update/delete)
+- เก็บข้อความ error จาก backend ให้ใกล้เคียง legacy เพื่อไม่เปลี่ยนพฤติกรรมผู้ใช้ปลายทาง
+
+### 24.5 Migration Sequence (แนะนำ)
+
+1. Students page (พื้นฐาน CRUD + filters + statistics)
+2. Teachers page (CRUD + position/teacherType + permission flags)
+3. Project pairs page (list/filter/drawer) แล้วปิดท้ายด้วย add-project modal
+4. เก็บ parity pass รอบสุดท้ายเทียบ legacy และเช็คเมนูนำทางครบ
+
+### 24.6 Definition of Done (เฟสนี้)
+
+- เส้นทางในเมนู admin เปิดใช้งานได้จริง:
+  - `/admin/users/students`
+  - `/admin/users/teachers`
+  - `/project-pairs`
+- API flow ตาม legacy ทำงานครบ CRUD/read flow
+- ผ่าน lint และไม่มี regression ที่หน้า admin settings / upload / dashboard เดิม
+- มี migration notes สั้น ๆ ใน README ทุกครั้งที่ปิดงานย่อยของ 3 หน้านี้

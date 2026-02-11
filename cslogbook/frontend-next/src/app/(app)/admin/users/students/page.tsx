@@ -1,0 +1,476 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { RoleGuard } from "@/components/auth/RoleGuard";
+import { useAdminStudentFilterOptions, useAdminStudentMutations, useAdminStudents } from "@/hooks/useAdminStudents";
+import type { AdminStudent, StudentFilters } from "@/lib/services/adminStudentService";
+import styles from "./page.module.css";
+
+type FormState = {
+  studentCode: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  totalCredits: string;
+  majorCredits: string;
+};
+
+const emptyForm: FormState = {
+  studentCode: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  totalCredits: "0",
+  majorCredits: "0",
+};
+
+function formatName(student: AdminStudent) {
+  return [student.firstName, student.lastName].filter(Boolean).join(" ").trim() || "-";
+}
+
+function getEligibilityTags(student: AdminStudent) {
+  const tags: Array<{ text: string; ok: boolean }> = [];
+  const internship = Boolean(student.isEligibleForInternship ?? student.isEligibleInternship);
+  const project = Boolean(student.isEligibleForProject ?? student.isEligibleProject);
+
+  tags.push({ text: internship ? "มีสิทธิ์ฝึกงาน" : "ยังไม่ผ่านฝึกงาน", ok: internship });
+  tags.push({ text: project ? "มีสิทธิ์โครงงาน" : "ยังไม่ผ่านโครงงาน", ok: project });
+
+  return tags;
+}
+
+function toFormState(student: AdminStudent): FormState {
+  return {
+    studentCode: student.studentCode ?? "",
+    firstName: student.firstName ?? "",
+    lastName: student.lastName ?? "",
+    email: student.email ?? "",
+    totalCredits: String(student.totalCredits ?? 0),
+    majorCredits: String(student.majorCredits ?? 0),
+  };
+}
+
+export default function AdminStudentsPage() {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [academicYear, setAcademicYear] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selected, setSelected] = useState<AdminStudent | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+
+  const filters: StudentFilters = useMemo(
+    () => ({
+      search: search.trim() || undefined,
+      status: status || undefined,
+      academicYear: academicYear || undefined,
+    }),
+    [academicYear, search, status],
+  );
+
+  const studentsQuery = useAdminStudents(filters);
+  const optionsQuery = useAdminStudentFilterOptions();
+  const { createStudent, updateStudent, deleteStudent } = useAdminStudentMutations();
+
+  const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
+
+  const stats = useMemo(() => {
+    const total = students.length;
+    const internshipEligible = students.filter((s) => Boolean(s.isEligibleForInternship ?? s.isEligibleInternship)).length;
+    const projectEligible = students.filter((s) => Boolean(s.isEligibleForProject ?? s.isEligibleProject)).length;
+    const noEligibility = students.filter((s) => {
+      const internship = Boolean(s.isEligibleForInternship ?? s.isEligibleInternship);
+      const project = Boolean(s.isEligibleForProject ?? s.isEligibleProject);
+      return !internship && !project;
+    }).length;
+    return { total, internshipEligible, projectEligible, noEligibility };
+  }, [students]);
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setIsEditMode(false);
+    setSelected(null);
+    setForm(emptyForm);
+  };
+
+  const openCreate = () => {
+    setFeedback(null);
+    setSelected(null);
+    setIsEditMode(true);
+    setForm(emptyForm);
+    setDrawerOpen(true);
+  };
+
+  const openView = (student: AdminStudent) => {
+    setFeedback(null);
+    setSelected(student);
+    setIsEditMode(false);
+    setForm(toFormState(student));
+    setDrawerOpen(true);
+  };
+
+  const openEdit = (student: AdminStudent) => {
+    setFeedback(null);
+    setSelected(student);
+    setIsEditMode(true);
+    setForm(toFormState(student));
+    setDrawerOpen(true);
+  };
+
+  const onChangeField = (key: keyof FormState, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const validateForm = () => {
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      return "กรุณากรอกชื่อและนามสกุล";
+    }
+
+    if (!form.email.trim()) {
+      return "กรุณากรอกอีเมล";
+    }
+
+    if (!isEditMode || !selected) {
+      if (!/^\d{13}$/.test(form.studentCode.trim())) {
+        return "รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก";
+      }
+    }
+
+    const totalCredits = Number(form.totalCredits || 0);
+    const majorCredits = Number(form.majorCredits || 0);
+
+    if (Number.isNaN(totalCredits) || Number.isNaN(majorCredits) || totalCredits < 0 || majorCredits < 0) {
+      return "หน่วยกิตต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป";
+    }
+
+    if (majorCredits > totalCredits) {
+      return "หน่วยกิตภาควิชาต้องน้อยกว่าหรือเท่ากับหน่วยกิตรวม";
+    }
+
+    return null;
+  };
+
+  const handleSave = async () => {
+    const validationError = validateForm();
+    if (validationError) {
+      setFeedback({ tone: "warning", message: validationError });
+      return;
+    }
+
+    const payload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
+      totalCredits: Number(form.totalCredits || 0),
+      majorCredits: Number(form.majorCredits || 0),
+    };
+
+    try {
+      if (selected?.studentCode) {
+        await updateStudent.mutateAsync({ studentCode: selected.studentCode, payload });
+        setFeedback({ tone: "success", message: "อัปเดตข้อมูลนักศึกษาเรียบร้อยแล้ว" });
+      } else {
+        await createStudent.mutateAsync({
+          studentCode: form.studentCode.trim(),
+          ...payload,
+        });
+        setFeedback({ tone: "success", message: "เพิ่มนักศึกษาเรียบร้อยแล้ว" });
+      }
+      closeDrawer();
+    } catch (error) {
+      setFeedback({
+        tone: "warning",
+        message: error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลนักศึกษาได้",
+      });
+    }
+  };
+
+  const handleDelete = async (studentCode: string) => {
+    const confirmed = window.confirm(`ยืนยันการลบนักศึกษารหัส ${studentCode} ?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteStudent.mutateAsync(studentCode);
+      setFeedback({ tone: "success", message: "ลบข้อมูลนักศึกษาเรียบร้อยแล้ว" });
+    } catch (error) {
+      setFeedback({
+        tone: "warning",
+        message: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลนักศึกษาได้",
+      });
+    }
+  };
+
+  const isSaving = createStudent.isPending || updateStudent.isPending;
+
+  return (
+    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <h1 className={styles.title}>จัดการข้อมูลนักศึกษา</h1>
+            <p className={styles.subtitle}>เริ่มย้ายจาก legacy เป็น Next.js โดยคง API flow เดิมและรองรับ CRUD ครบชุด</p>
+          </div>
+          <div className={styles.buttonRow}>
+            <button type="button" className={styles.button} onClick={() => studentsQuery.refetch()}>
+              รีเฟรช
+            </button>
+            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={openCreate}>
+              เพิ่มนักศึกษา
+            </button>
+          </div>
+        </header>
+
+        {feedback ? (
+          <div className={`${styles.alert} ${feedback.tone === "success" ? styles.alertSuccess : styles.alertWarning}`}>
+            {feedback.message}
+          </div>
+        ) : null}
+
+        <section className={styles.card}>
+          <div className={styles.stats}>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>นักศึกษาทั้งหมด</p>
+              <p className={styles.statValue}>{stats.total}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>มีสิทธิ์ฝึกงาน</p>
+              <p className={styles.statValue}>{stats.internshipEligible}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>มีสิทธิ์โครงงาน</p>
+              <p className={styles.statValue}>{stats.projectEligible}</p>
+            </div>
+            <div className={styles.statItem}>
+              <p className={styles.statLabel}>ยังไม่มีสิทธิ์</p>
+              <p className={styles.statValue}>{stats.noEligibility}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.filters}>
+            <input
+              className={styles.input}
+              placeholder="ค้นหารหัส, ชื่อ, นามสกุล, อีเมล"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <select className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="">ทุกสถานะ</option>
+              <option value="internship">มีสิทธิ์ฝึกงาน</option>
+              <option value="project">มีสิทธิ์โครงงาน</option>
+            </select>
+            <select className={styles.select} value={academicYear} onChange={(event) => setAcademicYear(event.target.value)}>
+              <option value="">ทุกปีการศึกษา</option>
+              {(optionsQuery.data?.academicYears ?? []).map((year) => (
+                <option key={String(year.value)} value={String(year.value)}>
+                  {year.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.buttonGhost}`}
+              onClick={() => {
+                setSearch("");
+                setStatus("");
+                setAcademicYear("");
+              }}
+            >
+              ล้างตัวกรอง
+            </button>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>รหัสนักศึกษา</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>หน่วยกิต</th>
+                  <th>สถานะสิทธิ์</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentsQuery.isLoading ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <p className={styles.empty}>กำลังโหลดข้อมูลนักศึกษา...</p>
+                    </td>
+                  </tr>
+                ) : students.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <p className={styles.empty}>ไม่พบข้อมูลนักศึกษา</p>
+                    </td>
+                  </tr>
+                ) : (
+                  students.map((student) => (
+                    <tr key={student.studentId ?? student.userId ?? student.studentCode}>
+                      <td>{student.studentCode}</td>
+                      <td>
+                        <p className={styles.name}>{formatName(student)}</p>
+                        <p className={styles.subText}>{student.email || "-"}</p>
+                      </td>
+                      <td>
+                        <p className={styles.name}>สะสม {student.totalCredits ?? 0}</p>
+                        <p className={styles.subText}>ภาควิชา {student.majorCredits ?? 0}</p>
+                      </td>
+                      <td>
+                        <div className={styles.tagRow}>
+                          {getEligibilityTags(student).map((tag) => (
+                            <span key={tag.text} className={`${styles.tag} ${tag.ok ? styles.tagOk : styles.tagMuted}`}>
+                              {tag.text}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <div className={styles.buttonRow}>
+                          <button type="button" className={styles.button} onClick={() => openView(student)}>
+                            ดู
+                          </button>
+                          <button type="button" className={styles.button} onClick={() => openEdit(student)}>
+                            แก้ไข
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.button} ${styles.buttonDanger}`}
+                            onClick={() => handleDelete(student.studentCode)}
+                            disabled={deleteStudent.isPending}
+                          >
+                            ลบ
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {drawerOpen ? (
+          <div className={styles.drawerOverlay} onClick={closeDrawer}>
+            <aside className={styles.drawer} onClick={(event) => event.stopPropagation()}>
+              <header className={styles.drawerHeader}>
+                <strong>
+                  {isEditMode ? (selected ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา") : "ข้อมูลนักศึกษา"}
+                </strong>
+                <button type="button" className={styles.button} onClick={closeDrawer}>
+                  ปิด
+                </button>
+              </header>
+
+              <div className={styles.drawerBody}>
+                {!isEditMode ? (
+                  selected ? (
+                    <>
+                      <p className={styles.name}>{formatName(selected)}</p>
+                      <p className={styles.subText}>รหัส: {selected.studentCode}</p>
+                      <p className={styles.subText}>อีเมล: {selected.email || "-"}</p>
+                      <p className={styles.subText}>
+                        หน่วยกิตสะสม: {selected.totalCredits ?? 0} | หน่วยกิตภาควิชา: {selected.majorCredits ?? 0}
+                      </p>
+                    </>
+                  ) : (
+                    <p className={styles.empty}>ไม่พบข้อมูลนักศึกษา</p>
+                  )
+                ) : (
+                  <div className={styles.formGrid}>
+                    <label className={styles.field}>
+                      รหัสนักศึกษา
+                      <input
+                        className={styles.input}
+                        value={form.studentCode}
+                        disabled={Boolean(selected)}
+                        onChange={(event) => onChangeField("studentCode", event.target.value)}
+                        placeholder="ตัวเลข 13 หลัก"
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      อีเมล
+                      <input
+                        className={styles.input}
+                        value={form.email}
+                        onChange={(event) => onChangeField("email", event.target.value)}
+                        placeholder="example@kmutnb.ac.th"
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      ชื่อ
+                      <input
+                        className={styles.input}
+                        value={form.firstName}
+                        onChange={(event) => onChangeField("firstName", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      นามสกุล
+                      <input
+                        className={styles.input}
+                        value={form.lastName}
+                        onChange={(event) => onChangeField("lastName", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      หน่วยกิตรวม
+                      <input
+                        type="number"
+                        className={styles.input}
+                        min={0}
+                        value={form.totalCredits}
+                        onChange={(event) => onChangeField("totalCredits", event.target.value)}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      หน่วยกิตภาควิชา
+                      <input
+                        type="number"
+                        className={styles.input}
+                        min={0}
+                        value={form.majorCredits}
+                        onChange={(event) => onChangeField("majorCredits", event.target.value)}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <footer className={styles.drawerFooter}>
+                <div className={styles.buttonRow}>
+                  {!isEditMode ? (
+                    selected ? (
+                      <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => setIsEditMode(true)}>
+                        แก้ไข
+                      </button>
+                    ) : null
+                  ) : (
+                    <>
+                      <button type="button" className={styles.button} onClick={closeDrawer}>
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.button} ${styles.buttonPrimary}`}
+                        onClick={handleSave}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? "กำลังบันทึก..." : "บันทึก"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </footer>
+            </aside>
+          </div>
+        ) : null}
+      </div>
+    </RoleGuard>
+  );
+}
