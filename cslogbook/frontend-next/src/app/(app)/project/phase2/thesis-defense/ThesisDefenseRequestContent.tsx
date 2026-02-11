@@ -44,7 +44,7 @@ export default function ThesisDefenseRequestContent() {
   const { data: project } = useStudentProjectDetail(token, queriesEnabled);
   const { data: eligibility } = useStudentEligibility(token, queriesEnabled);
   const phase2GateReasons = useMemo(
-    () => getPhase2GateReasons({ project, eligibility, formatDate }),
+    () => getPhase2GateReasons({ project: project ?? null, eligibility: eligibility ?? null, formatDate }),
     [project, eligibility]
   );
 

@@ -110,6 +110,17 @@ export type UpdateProjectPayload = {
   advisorId?: number | null;
   coAdvisorId?: number | null;
   trackCodes?: string[];
+  objective?: string | null;
+  background?: string | null;
+  scope?: string | null;
+  expectedOutcome?: string | null;
+  benefit?: string | null;
+  methodology?: string | null;
+  tools?: string | null;
+  timeline?: string | null;
+  timelineNote?: string | null;
+  constraints?: string | null;
+  risk?: string | null;
 };
 
 type ProjectPairsResponse = {

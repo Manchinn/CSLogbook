@@ -47,7 +47,8 @@ export function useAdminTopicExamMutations() {
   });
 
   const exportOverview = useMutation({
-    mutationFn: exportAdminTopicExamOverview,
+    mutationFn: (filters?: Omit<AdminTopicExamFilters, "limit" | "offset">) =>
+      exportAdminTopicExamOverview(filters),
   });
 
   return {

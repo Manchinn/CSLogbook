@@ -105,7 +105,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         const deadlineName = String(deadline.name || "").trim();
         const stepDeadlineName = String(step.deadlineName || "").trim();
         const relatedToMatch =
-          String(deadline.relatedTo || "").toLowerCase() === step.relatedTo.toLowerCase();
+          String(deadline.relatedTo || "").toLowerCase() === (step.relatedTo?.toLowerCase() ?? "");
 
         if (!relatedToMatch) return false;
         if (deadlineName === stepDeadlineName) return true;

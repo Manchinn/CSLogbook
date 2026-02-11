@@ -142,7 +142,7 @@ export default function ProjectPhase2Content() {
   }, [deadlines]);
 
   const phase2GateReasons = useMemo(
-    () => getPhase2GateReasons({ project, eligibility, formatDate: formatShortDate }),
+    () => getPhase2GateReasons({ project: project ?? null, eligibility: eligibility ?? null, formatDate: formatShortDate }),
     [project, eligibility]
   );
 

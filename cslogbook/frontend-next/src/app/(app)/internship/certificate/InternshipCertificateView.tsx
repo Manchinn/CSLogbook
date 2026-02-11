@@ -79,7 +79,7 @@ function computeProgress(requirements: InternshipCertificateStatus["requirements
 }
 
 export default function InternshipCertificateView() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const hydrated = useHydrated();
   const queriesEnabled = hydrated && Boolean(token);
 
@@ -189,7 +189,7 @@ export default function InternshipCertificateView() {
     setActionError(null);
     try {
       const payload = {
-        studentId: certificate.studentInfo?.studentId || "",
+        studentId: user?.studentCode || user?.studentId?.toString() || "",
         requestDate: new Date().toISOString(),
         totalHours,
         approvedHours,

@@ -126,8 +126,8 @@ export default function StudentDeadlineCalendar({}: StudentDeadlineCalendarProps
         if (!eventDate) return null;
         return { ...item, eventDate } as CalendarItem;
       })
-      .filter(Boolean)
-      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime()) as CalendarItem[];
+      .filter((item): item is CalendarItem => item !== null)
+      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
   }, [data]);
 
   const availableYears = useMemo(() => {

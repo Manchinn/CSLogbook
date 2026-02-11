@@ -447,8 +447,8 @@ export default function InternshipLogbookView() {
                 <span className={`${styles.badge} ${approvedHours >= 240 ? styles.badgePositive : styles.badgeWarning}`}>
                   ชั่วโมงที่บันทึก {formatHours(approvedHours)}/{REQUIRED_INTERNSHIP_HOURS} ชม.
                 </span>
-                <span className={`${styles.badge} ${evaluationStatus?.evaluationStatus === "completed" ? styles.badgePositive : styles.badgeInfo}`}>
-                  สถานะ: {evaluationStatus?.evaluationStatus ?? (evaluationStatus?.isSent ? "sent" : "not_sent")}
+                <span className={`${styles.badge} ${evaluationStatus?.isSent ? styles.badgePositive : styles.badgeInfo}`}>
+                  สถานะ: {evaluationStatus?.isSent ? "ส่งแล้ว" : "ยังไม่ส่ง"}
                 </span>
               </div>
             </div>
@@ -464,13 +464,8 @@ export default function InternshipLogbookView() {
 
             <div className={styles.statGrid}>
               <div className={styles.statCard}>
-                <p className={styles.statLabel}>อีเมลพี่เลี้ยง</p>
-                <p className={styles.statValue}>{evaluationStatus?.supervisorEmail ?? "-"}</p>
-                <p className={styles.statHint}>กำหนดในคำร้อง คพ.05</p>
-              </div>
-              <div className={styles.statCard}>
                 <p className={styles.statLabel}>ส่งล่าสุด</p>
-                <p className={styles.statValue}>{evaluationStatus?.lastSentDate ? formatDate(evaluationStatus.lastSentDate) : "ยังไม่ส่ง"}</p>
+                <p className={styles.statValue}>{evaluationStatus?.sentDate ? formatDate(evaluationStatus.sentDate) : "ยังไม่ส่ง"}</p>
                 <p className={styles.statHint}>จะปิดเมื่อครบกำหนดหรือส่งสำเร็จ</p>
               </div>
             </div>

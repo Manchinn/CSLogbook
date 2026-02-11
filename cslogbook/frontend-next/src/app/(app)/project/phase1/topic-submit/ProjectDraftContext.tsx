@@ -57,14 +57,14 @@ type DraftContextValue = {
 const DraftContext = createContext<DraftContextValue | undefined>(undefined);
 
 const defaultState = {
-  basic: { projectNameTh: "", projectNameEn: "", projectType: null },
-  classification: { tracks: [] },
-  members: { secondMemberCode: "", syncing: false, synced: false, validated: false, error: null },
-  details: { background: "", objective: "", benefit: "" },
+  basic: { projectNameTh: "", projectNameEn: "", projectType: null } as DraftBasic,
+  classification: { tracks: [] } as DraftClassification,
+  members: { secondMemberCode: "", syncing: false, synced: false, validated: false, error: null } as DraftMembers,
+  details: { background: "", objective: "", benefit: "" } as DraftDetails,
   projectId: null as number | null,
   projectStatus: "draft",
   projectMembers: [] as DraftContextValue["projectMembers"],
-  status: { creating: false, saving: false, refreshing: false },
+  status: { creating: false, saving: false, refreshing: false } as DraftStatus,
 };
 
 export function ProjectDraftProvider({ children }: { children: React.ReactNode }) {
@@ -108,12 +108,12 @@ export function ProjectDraftProvider({ children }: { children: React.ReactNode }
         projectType: project.projectType ?? null,
       });
       setClassificationState({
-        tracks: Array.isArray(project.tracks) ? project.tracks : [],
+        tracks: [],
       });
       setDetailsState({
-        background: project.background || "",
-        objective: project.objective || "",
-        benefit: project.benefit || "",
+        background: "",
+        objective: "",
+        benefit: "",
       });
 
       const secondMember = (project.members || []).find((member) => member.role === "member");

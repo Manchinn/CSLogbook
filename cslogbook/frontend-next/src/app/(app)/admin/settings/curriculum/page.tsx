@@ -201,15 +201,15 @@ export default function CurriculumSettingsPage() {
       code: row.code,
       name: row.name,
       shortName: row.shortName ?? "",
-      startYear: row.startYear ?? "",
-      endYear: row.endYear ?? "",
+      startYear: (row.startYear ?? "") as number | "",
+      endYear: (row.endYear ?? "") as number | "",
       active: row.active,
-      maxCredits: row.maxCredits ?? "",
-      totalCredits: row.totalCredits ?? "",
-      majorCredits: row.majorCredits ?? "",
-      internshipBaseCredits: row.internshipBaseCredits ?? "",
-      projectBaseCredits: row.projectBaseCredits ?? "",
-      projectMajorBaseCredits: row.projectMajorBaseCredits ?? "",
+      maxCredits: (row.maxCredits ?? "") as number | "",
+      totalCredits: (row.totalCredits ?? "") as number | "",
+      majorCredits: (row.majorCredits ?? "") as number | "",
+      internshipBaseCredits: (row.internshipBaseCredits ?? "") as number | "",
+      projectBaseCredits: (row.projectBaseCredits ?? "") as number | "",
+      projectMajorBaseCredits: (row.projectMajorBaseCredits ?? "") as number | "",
     });
   };
 
