@@ -9,10 +9,19 @@ type RoleGuardProps = {
   roles?: AppRole[];
   teacherTypes?: string[];
   redirectPath?: string;
+  requireHeadOfDepartment?: boolean;
+  requireTopicExamAccess?: boolean;
   children: React.ReactNode;
 };
 
-export function RoleGuard({ roles, teacherTypes, redirectPath = "/app", children }: RoleGuardProps) {
+export function RoleGuard({
+  roles,
+  teacherTypes,
+  redirectPath = "/app",
+  requireHeadOfDepartment = false,
+  requireTopicExamAccess = false,
+  children
+}: RoleGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -53,8 +62,31 @@ export function RoleGuard({ roles, teacherTypes, redirectPath = "/app", children
       if (pathname !== fallbackTarget) {
         router.replace(fallbackTarget);
       }
+      return;
     }
-  }, [isAuthenticated, isLoading, pathname, redirectPath, roles, router, teacherTypes, user]);
+
+    // Check head of department requirement
+    if (requireHeadOfDepartment && user.role === "teacher") {
+      const teacherPosition = (user as { teacherPosition?: string }).teacherPosition;
+      if (teacherPosition !== "หัวหน้าภาควิชา") {
+        if (pathname !== fallbackTarget) {
+          router.replace(fallbackTarget);
+        }
+        return;
+      }
+    }
+
+    // Check topic exam access requirement
+    if (requireTopicExamAccess && user.role === "teacher") {
+      const canAccessTopicExam = Boolean(user.canAccessTopicExam);
+      if (!canAccessTopicExam) {
+        if (pathname !== fallbackTarget) {
+          router.replace(fallbackTarget);
+        }
+        return;
+      }
+    }
+  }, [isAuthenticated, isLoading, pathname, redirectPath, roles, router, teacherTypes, user, requireHeadOfDepartment, requireTopicExamAccess]);
 
   if (isLoading || !isAuthenticated || !user) {
     return null;
