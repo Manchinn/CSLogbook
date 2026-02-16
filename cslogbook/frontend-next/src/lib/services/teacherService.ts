@@ -359,13 +359,21 @@ export type InternshipDocument = {
   id: number;
   documentId: string;
   studentCode: string;
+  studentId: string;
   studentName: string;
   companyName: string;
   documentType: "cs05" | "acceptance";
   status: "pending" | "approved" | "rejected";
   submittedAt: string;
+  submittedDate: string;
   academicYear: string;
   semester: string;
+  pdfFile?: {
+    url: string;
+    filename: string;
+  };
+  comment?: string;
+  rejectionReason?: string;
 };
 
 export type ApproveDocumentsFilters = {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { TeacherPageScaffold } from "@/components/teacher/TeacherPageScaffold";
 import { AdvisorQueueTable, DecisionModal } from "@/components/teacher/AdvisorQueueTable";
+import { PDFPreviewModal } from "@/components/teacher/PDFPreviewModal";
 import {
   useAdvisorSystemTestQueue,
   useSubmitSystemTestAdvisorDecision,
@@ -14,6 +15,11 @@ export default function AdvisorSystemTestQueuePage() {
   const [selectedRequest, setSelectedRequest] = useState<SystemTestRequest | null>(null);
   const [modalMode, setModalMode] = useState<"approve" | "reject" | null>(null);
   const [note, setNote] = useState("");
+  const [pdfModal, setPdfModal] = useState<{ isOpen: boolean; url: string; fileName: string }>({
+    isOpen: false,
+    url: "",
+    fileName: "",
+  });
 
   const { data = [], isLoading, error } = useAdvisorSystemTestQueue();
   const submitDecision = useSubmitSystemTestAdvisorDecision();
@@ -28,6 +34,14 @@ export default function AdvisorSystemTestQueuePage() {
     setSelectedRequest(request);
     setModalMode("reject");
     setNote("");
+  };
+
+  const handleViewPDF = (url: string, fileName: string) => {
+    setPdfModal({ isOpen: true, url, fileName });
+  };
+
+  const handleClosePDF = () => {
+    setPdfModal({ isOpen: false, url: "", fileName: "" });
   };
 
   const handleSubmit = async () => {
@@ -65,6 +79,7 @@ export default function AdvisorSystemTestQueuePage() {
           error={error}
           onApprove={handleApprove}
           onReject={handleReject}
+          onViewPDF={handleViewPDF}
           emptyMessage="ไม่มีคำขอทดสอบระบบที่รออนุมัติในขณะนี้"
           showTestDates
         />
@@ -78,6 +93,14 @@ export default function AdvisorSystemTestQueuePage() {
           onCancel={handleCancel}
           isPending={submitDecision.isPending}
           title="คำขอทดสอบระบบ"
+        />
+
+        <PDFPreviewModal
+          isOpen={pdfModal.isOpen}
+          onClose={handleClosePDF}
+          pdfUrl={pdfModal.url}
+          fileName={pdfModal.fileName}
+          title="เอกสารคำขอทดสอบระบบ"
         />
       </TeacherPageScaffold>
     </RoleGuard>

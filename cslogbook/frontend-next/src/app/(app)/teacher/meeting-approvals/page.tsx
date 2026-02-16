@@ -11,9 +11,19 @@ export default function MeetingApprovalsPage() {
   const [selectedLog, setSelectedLog] = useState<MeetingLogApproval | null>(null);
   const [modalMode, setModalMode] = useState<"approve" | "reject" | null>(null);
   const [note, setNote] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const { data: meetings = [], isLoading, error } = useTeacherMeetingApprovals();
   const updateApproval = useUpdateMeetingLogApproval();
+
+  // Ensure meetings is always an array
+  const meetingsArray = Array.isArray(meetings) ? meetings : [];
+
+  // Filter pending meetings for batch operations
+  const pendingMeetings = meetingsArray.filter((m) => m.status === "pending");
+  const selectedCount = selectedIds.size;
+  const allPendingSelected =
+    pendingMeetings.length > 0 && selectedIds.size === pendingMeetings.length;
 
   const handleApprove = (log: MeetingLogApproval) => {
     setSelectedLog(log);
@@ -27,17 +37,60 @@ export default function MeetingApprovalsPage() {
     setNote("");
   };
 
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (allPendingSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingMeetings.map((m) => m.id)));
+    }
+  };
+
+  const handleBulkAction = (action: "approve" | "reject") => {
+    setModalMode(action);
+    setNote("");
+  };
+
   const handleSubmit = async () => {
-    if (!selectedLog || !modalMode) return;
+    if (!modalMode) return;
 
     try {
-      await updateApproval.mutateAsync({
-        projectId: selectedLog.projectId,
-        meetingId: selectedLog.meetingId,
-        logId: selectedLog.id,
-        decision: modalMode,
-        note: note || undefined,
-      });
+      if (selectedLog) {
+        // Single approval
+        await updateApproval.mutateAsync({
+          projectId: selectedLog.projectId,
+          meetingId: selectedLog.meetingId,
+          logId: selectedLog.id,
+          decision: modalMode,
+          note: note || undefined,
+        });
+      } else if (selectedIds.size > 0) {
+        // Bulk approval
+        const selectedMeetings = meetings.filter((m) => selectedIds.has(m.id));
+        await Promise.all(
+          selectedMeetings.map((meeting) =>
+            updateApproval.mutateAsync({
+              projectId: meeting.projectId,
+              meetingId: meeting.meetingId,
+              logId: meeting.id,
+              decision: modalMode,
+              note: note || undefined,
+            })
+          )
+        );
+        setSelectedIds(new Set());
+      }
       setModalMode(null);
       setSelectedLog(null);
       setNote("");
@@ -75,23 +128,106 @@ export default function MeetingApprovalsPage() {
         )}
 
         {!isLoading && !error && meetings.length > 0 && (
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>รหัสโครงงาน</th>
-                  <th>ชื่อโครงงาน</th>
-                  <th>นักศึกษา</th>
-                  <th>หัวข้อการประชุม</th>
-                  <th>วันที่ประชุม</th>
-                  <th>วันที่ส่งบันทึก</th>
-                  <th>สถานะ</th>
-                  <th>การดำเนินการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meetings.map((meeting) => (
-                  <tr key={meeting.id}>
+          <>
+            {/* Bulk Action Bar */}
+            {selectedCount > 0 && (
+              <div className={styles.bulkActionBar}>
+                <div className={styles.bulkActionInfo}>
+                  <span className={styles.bulkActionCount}>เลือก {selectedCount} รายการ</span>
+                  <button
+                    type="button"
+                    className={styles.btnClearSelection}
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    ล้างการเลือก
+                  </button>
+                </div>
+                <div className={styles.bulkActionButtons}>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnBulkApprove}`}
+                    onClick={() => handleBulkAction("approve")}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    อนุมัติทั้งหมด ({selectedCount})
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnBulkReject}`}
+                    onClick={() => handleBulkAction("reject")}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    ปฏิเสธทั้งหมด ({selectedCount})
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ width: "40px" }}>
+                      {pendingMeetings.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allPendingSelected}
+                          onChange={handleToggleSelectAll}
+                          className={styles.checkbox}
+                          title={
+                            allPendingSelected
+                              ? "ยกเลิกการเลือกทั้งหมด"
+                              : "เลือกทั้งหมด"
+                          }
+                        />
+                      )}
+                    </th>
+                    <th>รหัสโครงงาน</th>
+                    <th>ชื่อโครงงาน</th>
+                    <th>นักศึกษา</th>
+                    <th>หัวข้อการประชุม</th>
+                    <th>วันที่ประชุม</th>
+                    <th>วันที่ส่งบันทึก</th>
+                    <th>สถานะ</th>
+                    <th>การดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meetings.map((meeting) => (
+                    <tr key={meeting.id} className={selectedIds.has(meeting.id) ? styles.selectedRow : ""}>
+                      <td>
+                        {meeting.status === "pending" && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(meeting.id)}
+                            onChange={() => handleToggleSelect(meeting.id)}
+                            className={styles.checkbox}
+                          />
+                        )}
+                      </td>
                     <td>
                       {meeting.projectCode ? (
                         <span className={styles.projectCodeBadge}>{meeting.projectCode}</span>
@@ -165,25 +301,40 @@ export default function MeetingApprovalsPage() {
               </tbody>
             </table>
           </div>
+        </>
         )}
 
-        {modalMode && selectedLog && (
+        {modalMode && (selectedLog || selectedIds.size > 0) && (
           <div className={styles.modal}>
             <div className={styles.modalBackdrop} onClick={handleCancel} />
             <div className={styles.modalContent}>
               <h2 className={styles.modalTitle}>
-                {modalMode === "approve" ? "อนุมัติบันทึกการพบ" : "ปฏิเสธบันทึกการพบ"}
+                {modalMode === "approve"
+                  ? selectedIds.size > 0
+                    ? `อนุมัติบันทึกการพบ (${selectedIds.size} รายการ)`
+                    : "อนุมัติบันทึกการพบ"
+                  : selectedIds.size > 0
+                  ? `ปฏิเสธบันทึกการพบ (${selectedIds.size} รายการ)`
+                  : "ปฏิเสธบันทึกการพบ"}
               </h2>
               <div className={styles.modalBody}>
-                <p>
-                  <strong>โครงงาน:</strong> {selectedLog.projectTitle}
-                </p>
-                <p>
-                  <strong>นักศึกษา:</strong> {selectedLog.studentName} ({selectedLog.studentCode})
-                </p>
-                <p>
-                  <strong>หัวข้อ:</strong> {selectedLog.topic}
-                </p>
+                {selectedLog ? (
+                  <>
+                    <p>
+                      <strong>โครงงาน:</strong> {selectedLog.projectTitle}
+                    </p>
+                    <p>
+                      <strong>นักศึกษา:</strong> {selectedLog.studentName} ({selectedLog.studentCode})
+                    </p>
+                    <p>
+                      <strong>หัวข้อ:</strong> {selectedLog.topic}
+                    </p>
+                  </>
+                ) : (
+                  <p>
+                    <strong>คุณกำลังจะดำเนินการกับ {selectedIds.size} รายการ</strong>
+                  </p>
+                )}
                 <div className={styles.formGroup}>
                   <label htmlFor="note">
                     หมายเหตุ {modalMode === "reject" && <span className={styles.required}>*</span>}

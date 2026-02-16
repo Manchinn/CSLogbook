@@ -12,6 +12,7 @@ type AdvisorQueueTableProps<T extends QueueItem> = {
   error: Error | null;
   onApprove: (item: T) => void;
   onReject: (item: T) => void;
+  onViewPDF?: (url: string, fileName: string) => void;
   emptyMessage?: string;
   showTestDates?: boolean;
 };
@@ -45,7 +46,7 @@ function getProjectTitle(item: QueueItem): string {
 }
 
 // Component for expandable row details
-function ExpandedRowDetails({ item }: { item: QueueItem }) {
+function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: (url: string, fileName: string) => void }) {
   const isDefenseRequest = "project" in item;
   const isSystemTest = "testStartDate" in item;
 
@@ -219,6 +220,36 @@ function ExpandedRowDetails({ item }: { item: QueueItem }) {
                 </div>
               )}
             </div>
+
+            {/* PDF View Button */}
+            {item.pdfFile && onViewPDF && (
+              <div className={styles.pdfSection}>
+                <button
+                  type="button"
+                  className={styles.btnViewPDF}
+                  onClick={() => onViewPDF(item.pdfFile!.url, item.pdfFile!.filename)}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  <span>ดูเอกสาร PDF</span>
+                  <span className={styles.fileNameBadge}>{item.pdfFile.filename}</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -266,6 +297,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
   error,
   onApprove,
   onReject,
+  onViewPDF,
   emptyMessage = "ไม่มีคำขอที่รออนุมัติในขณะนี้",
   showTestDates = false,
 }: AdvisorQueueTableProps<T>) {
@@ -418,7 +450,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
                 {isExpanded && (
                   <tr key={`${item.id}-expanded`} className={styles.expandedRow}>
                     <td colSpan={showTestDates ? 8 : 6}>
-                      <ExpandedRowDetails item={item} />
+                      <ExpandedRowDetails item={item} onViewPDF={onViewPDF} />
                     </td>
                   </tr>
                 )}

@@ -364,6 +364,38 @@
   border-top: 1px solid var(--color-border-light, #f3f4f6);
 }
 
+/* View Document Button */
+.btnViewDoc {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+}
+
+.btnViewDoc:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+}
+
+.btnViewDoc svg {
+  flex-shrink: 0;
+}
+
+.noDocument {
+  color: var(--color-text-secondary, #9ca3af);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .filters {
