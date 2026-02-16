@@ -90,11 +90,19 @@ export default function MeetingApprovalsPage() {
               <tbody>
                 {meetings.map((meeting) => (
                   <tr key={meeting.id}>
-                    <td>{meeting.projectTitle}</td>
                     <td>
-                      {meeting.studentCode}
-                      <br />
-                      <span className={styles.studentName}>{meeting.studentName}</span>
+                      <div className={styles.projectInfo}>
+                        {meeting.projectCode && (
+                          <span className={styles.projectCode}>{meeting.projectCode}</span>
+                        )}
+                        <div className={styles.projectTitle}>{meeting.projectTitle}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className={styles.studentInfo}>
+                        <div className={styles.studentName}>{meeting.studentName}</div>
+                        <div className={styles.studentCode}>{meeting.studentCode}</div>
+                      </div>
                     </td>
                     <td>{meeting.topic}</td>
                     <td>{new Date(meeting.meetingDate).toLocaleDateString("th-TH")}</td>

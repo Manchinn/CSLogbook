@@ -96,7 +96,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
           </tr>
         </thead>
         <tbody>
-          {data.map((item) => {
+          {data.map((item, idx) => {
             const studentNames = getStudentNames(item);
             const projectTitle = getProjectTitle(item);
             const requestDate = item.requestDate || item.submittedAt || "";
@@ -108,7 +108,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
               (item as DefenseRequest).myApproval?.status === "pending";
 
             return (
-              <tr key={item.id}>
+              <tr key={`${item.id}-${idx}`}>
                 <td>
                   <div className={styles.projectTitle}>{projectTitle}</div>
                 </td>

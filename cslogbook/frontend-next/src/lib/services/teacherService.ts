@@ -112,11 +112,13 @@ export type MeetingLogApproval = {
   id: number;
   meetingId: number;
   projectId: number;
+  projectCode?: string;
   studentCode: string;
   studentName: string;
   projectTitle: string;
   topic: string;
   meetingDate: string;
+  submittedAt?: string;
   status: "pending" | "approved" | "rejected";
   advisorNotes?: string;
 };
@@ -182,6 +184,33 @@ export type ProjectMember = {
   name: string;
 };
 
+export type AdvisorApproval = {
+  teacherId: number;
+  teacherName: string;
+  role: "advisor" | "co_advisor";
+  status: "pending" | "approved" | "rejected";
+  note?: string;
+  approvedAt?: string;
+};
+
+export type MeetingMetrics = {
+  totalMeetings: number;
+  approvedLogs: number;
+  minimumRequired: number;
+  lastApprovalDate?: string;
+};
+
+export type StaffVerification = {
+  staffName?: string;
+  verifiedAt?: string;
+  note?: string;
+};
+
+export type DefenseSchedule = {
+  scheduledDate?: string;
+  location?: string;
+};
+
 export type DefenseRequest = {
   id: number;
   projectId: number;
@@ -194,13 +223,19 @@ export type DefenseRequest = {
     members?: ProjectMember[];
   };
   requestDate: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "advisor_in_review" | "advisor_approved" | "staff_verified" | "scheduled" | "completed";
   advisorStatus?: "pending" | "approved" | "rejected";
   coAdvisorStatus?: "pending" | "approved" | "rejected";
   myApproval?: {
     status: "pending" | "approved" | "rejected";
+    note?: string;
   };
   submittedAt?: string;
+  submittedLate?: boolean;
+  advisors?: AdvisorApproval[];
+  meetingMetrics?: MeetingMetrics;
+  staffVerification?: StaffVerification;
+  defenseSchedule?: DefenseSchedule;
 };
 
 /**
@@ -250,6 +285,14 @@ export async function getAdvisorThesisQueue(token: string): Promise<DefenseReque
 // System Test Advisor Queue
 // =====================
 
+export type SystemTestTimeline = {
+  step: "submitted" | "advisor" | "co_advisor" | "staff" | "evidence_uploaded";
+  status: "completed" | "pending";
+  completedAt?: string;
+  note?: string;
+  actorName?: string;
+};
+
 export type SystemTestRequest = {
   id: number | string; // requestId
   projectId: number;
@@ -271,6 +314,13 @@ export type SystemTestRequest = {
   status: "pending" | "approved" | "rejected" | "pending_advisor" | "pending_staff" | "staff_approved";
   advisorStatus?: "pending" | "approved" | "rejected";
   coAdvisorStatus?: "pending" | "approved" | "rejected";
+  studentNote?: string;
+  pdfFile?: {
+    filename: string;
+    url: string;
+  };
+  advisors?: AdvisorApproval[];
+  timeline?: SystemTestTimeline[];
 };
 
 /**
