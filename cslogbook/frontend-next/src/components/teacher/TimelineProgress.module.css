@@ -1,0 +1,157 @@
+.timelineContainer {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+/* Progress Bar */
+.progressBar {
+  margin-bottom: 2rem;
+}
+
+.progressBarBg {
+  height: 8px;
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(to right, #3b82f6, #10b981);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timelineStep {
+  display: flex;
+  gap: 1rem;
+  min-height: 80px;
+}
+
+.stepConnector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.stepDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--color-surface, #fff);
+  box-shadow: 0 0 0 2px var(--color-border, #e5e7eb);
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.stepLine {
+  width: 3px;
+  flex: 1;
+  background-color: #e5e7eb;
+  margin: 4px 0;
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 1rem;
+  flex: 1;
+}
+
+.stepLabel {
+  font-size: 0.938rem;
+  font-weight: 600;
+  color: var(--color-text, #111827);
+}
+
+.stepStatus {
+  font-size: 0.813rem;
+  font-weight: 500;
+}
+
+.stepDate {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.stepNote {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--color-gray-50, #f9fafb);
+  border-left: 3px solid var(--color-border, #e5e7eb);
+  font-size: 0.813rem;
+  color: var(--color-text-secondary, #6b7280);
+  border-radius: 4px;
+}
+
+/* Overall Status */
+.overallStatus {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pending,
+.status-pending_advisor,
+.status-pending_staff {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .timelineContainer {
+    padding: 1rem;
+  }
+
+  .stepLabel {
+    font-size: 0.875rem;
+  }
+
+  .stepStatus {
+    font-size: 0.75rem;
+  }
+
+  .stepDate {
+    font-size: 0.688rem;
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { DefenseRequest, SystemTestRequest } from "@/lib/services/teacherService";
 import styles from "./AdvisorQueue.module.css";
 
@@ -43,6 +44,222 @@ function getProjectTitle(item: QueueItem): string {
   return item.projectTitle || "ไม่ระบุชื่อโครงงาน";
 }
 
+// Component for expandable row details
+function ExpandedRowDetails({ item }: { item: QueueItem }) {
+  const isDefenseRequest = "project" in item;
+  const isSystemTest = "testStartDate" in item;
+
+  return (
+    <div className={styles.expandedDetails}>
+      {/* Timeline for System Test */}
+      {isSystemTest && (
+        <div className={styles.timelineSection}>
+          <h4 className={styles.detailTitle}>สถานะการอนุมัติ</h4>
+          <div className={styles.timelineMiniContainer}>
+            {/* Mini timeline visualization */}
+            <div className={styles.miniTimeline}>
+              <div className={styles.miniTimelineItem}>
+                <div className={`${styles.miniTimelineDot} ${styles.miniTimelineDotCompleted}`} />
+                <span className={styles.miniTimelineLabel}>ยื่นคำขอ</span>
+              </div>
+
+              {item.advisors?.map((advisor, idx) => (
+                <div key={idx} className={styles.miniTimelineItem}>
+                  <div
+                    className={`${styles.miniTimelineDot} ${
+                      advisor.status === "approved"
+                        ? styles.miniTimelineDotCompleted
+                        : advisor.status === "rejected"
+                        ? styles.miniTimelineDotRejected
+                        : styles.miniTimelineDotPending
+                    }`}
+                  />
+                  <span className={styles.miniTimelineLabel}>{advisor.teacherName}</span>
+                </div>
+              ))}
+
+              {(item.status === "staff_approved" || item.status === "pending_staff") && (
+                <div className={styles.miniTimelineItem}>
+                  <div
+                    className={`${styles.miniTimelineDot} ${
+                      item.status === "staff_approved"
+                        ? styles.miniTimelineDotCompleted
+                        : styles.miniTimelineDotPending
+                    }`}
+                  />
+                  <span className={styles.miniTimelineLabel}>เจ้าหน้าที่</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={styles.detailsGrid}>
+        {/* Timeline Section for Defense Requests */}
+        {isDefenseRequest && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>Timeline</h4>
+            <div className={styles.timelineContainer}>
+              <div className={styles.timelineItem}>
+                <div className={styles.timelineDot}></div>
+                <div className={styles.timelineContent}>
+                  <div className={styles.timelineLabel}>ยื่นคำขอ</div>
+                  <div className={styles.timelineDate}>
+                    {item.requestDate || item.submittedAt
+                      ? new Date(item.requestDate || item.submittedAt!).toLocaleString("th-TH")
+                      : "-"}
+                  </div>
+                </div>
+              </div>
+
+              {isDefenseRequest && (item as DefenseRequest).myApproval && (
+                <div className={styles.timelineItem}>
+                  <div
+                    className={`${styles.timelineDot} ${
+                      (item as DefenseRequest).myApproval.status === "approved"
+                        ? styles.timelineDotApproved
+                        : styles.timelineDotPending
+                    }`}
+                  ></div>
+                  <div className={styles.timelineContent}>
+                    <div className={styles.timelineLabel}>การอนุมัติของฉัน</div>
+                    <div className={styles.timelineDate}>
+                      {(item as DefenseRequest).myApproval.status === "approved"
+                        ? "อนุมัติแล้ว"
+                        : "รออนุมัติ"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {item.status === "approved" && (
+                <div className={styles.timelineItem}>
+                  <div className={`${styles.timelineDot} ${styles.timelineDotApproved}`}></div>
+                  <div className={styles.timelineContent}>
+                    <div className={styles.timelineLabel}>อนุมัติสมบูรณ์</div>
+                    <div className={styles.timelineDate}>
+                      {item.approvedAt ? new Date(item.approvedAt).toLocaleString("th-TH") : "-"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Meeting Metrics (for Defense Requests) */}
+        {isDefenseRequest && (item as DefenseRequest).project && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>ข้อมูลโครงงาน</h4>
+            <div className={styles.metrics}>
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>รหัสโครงงาน:</span>
+                <span className={styles.metricValue}>
+                  {(item as DefenseRequest).project.projectCode || "-"}
+                </span>
+              </div>
+              {(item as DefenseRequest).project?.members && (
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>จำนวนสมาชิก:</span>
+                  <span className={styles.metricValue}>
+                    {(item as DefenseRequest).project.members.length} คน
+                  </span>
+                </div>
+              )}
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>ประเภท:</span>
+                <span className={styles.metricValue}>
+                  {(item as DefenseRequest).requestType === "defense_request"
+                    ? "สอบป้องกัน"
+                    : "อื่นๆ"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Staff Verification Notes */}
+        {item.staffNote && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>หมายเหตุจากเจ้าหน้าที่</h4>
+            <div className={styles.noteBox}>{item.staffNote}</div>
+          </div>
+        )}
+
+        {/* Approval Notes */}
+        {item.advisorNote && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>หมายเหตุจากอาจารย์</h4>
+            <div className={styles.noteBox}>{item.advisorNote}</div>
+          </div>
+        )}
+
+        {/* System Test Specific Info */}
+        {isSystemTest && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>ข้อมูลการทดสอบระบบ</h4>
+            <div className={styles.metrics}>
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>วันเริ่มทดสอบ:</span>
+                <span className={styles.metricValue}>
+                  {item.testStartDate ? new Date(item.testStartDate).toLocaleDateString("th-TH") : "-"}
+                </span>
+              </div>
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>วันสิ้นสุด:</span>
+                <span className={styles.metricValue}>
+                  {item.testDueDate ? new Date(item.testDueDate).toLocaleDateString("th-TH") : "-"}
+                </span>
+              </div>
+              {item.projectSnapshot?.projectCode && (
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>รหัสโครงงาน:</span>
+                  <span className={styles.metricValue}>{item.projectSnapshot.projectCode}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Advisor Approvals Timeline */}
+        {item.advisors && item.advisors.length > 0 && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>สถานะการอนุมัติของอาจารย์</h4>
+            <div className={styles.advisorList}>
+              {item.advisors.map((advisor, idx) => (
+                <div key={idx} className={styles.advisorItem}>
+                  <div className={styles.advisorHeader}>
+                    <span className={styles.advisorName}>{advisor.teacherName}</span>
+                    <span
+                      className={`${styles.advisorBadge} ${styles[`badge-${advisor.status}`]}`}
+                    >
+                      {advisor.status === "approved" && "อนุมัติแล้ว"}
+                      {advisor.status === "rejected" && "ปฏิเสธแล้ว"}
+                      {advisor.status === "pending" && "รออนุมัติ"}
+                    </span>
+                  </div>
+                  <div className={styles.advisorRole}>
+                    {advisor.role === "advisor" ? "อาจารย์ที่ปรึกษา" : "อาจารย์ที่ปรึกษาร่วม"}
+                  </div>
+                  {advisor.approvedAt && (
+                    <div className={styles.advisorDate}>
+                      {new Date(advisor.approvedAt).toLocaleString("th-TH")}
+                    </div>
+                  )}
+                  {advisor.note && (
+                    <div className={styles.advisorNote}>หมายเหตุ: {advisor.note}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AdvisorQueueTable<T extends QueueItem>({
   data,
   isLoading,
@@ -52,6 +269,19 @@ export function AdvisorQueueTable<T extends QueueItem>({
   emptyMessage = "ไม่มีคำขอที่รออนุมัติในขณะนี้",
   showTestDates = false,
 }: AdvisorQueueTableProps<T>) {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (id: number) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
   if (isLoading) {
     return (
       <div className={styles.loadingState}>
@@ -82,6 +312,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
       <table className={styles.table}>
         <thead>
           <tr>
+            <th style={{ width: "40px" }}></th>
             <th>โครงงาน</th>
             <th>นักศึกษา</th>
             <th>วันที่ยื่นคำขอ</th>
@@ -107,70 +338,91 @@ export function AdvisorQueueTable<T extends QueueItem>({
               item.status === "pending_advisor" ||
               (item as DefenseRequest).myApproval?.status === "pending";
 
+            const isExpanded = expandedRows.has(item.id);
+
             return (
-              <tr key={`${item.id}-${idx}`}>
-                <td>
-                  <div className={styles.projectTitle}>{projectTitle}</div>
-                </td>
-                <td>
-                  <div className={styles.students}>
-                    {studentNames.length > 0 ? (
-                      studentNames.map((name, idx) => (
-                        <div key={idx} className={styles.studentName}>
-                          {name}
-                        </div>
-                      ))
-                    ) : (
-                      <div className={styles.studentName}>-</div>
-                    )}
-                  </div>
-                </td>
-                <td>{requestDate ? new Date(requestDate).toLocaleDateString("th-TH") : "-"}</td>
-                {showTestDates && "testStartDate" in item && (
-                  <>
-                    <td>
-                      {item.testStartDate
-                        ? new Date(item.testStartDate).toLocaleDateString("th-TH")
-                        : "-"}
-                    </td>
-                    <td>
-                      {item.testDueDate
-                        ? new Date(item.testDueDate).toLocaleDateString("th-TH")
-                        : "-"}
-                    </td>
-                  </>
-                )}
-                <td>
-                  <span className={`${styles.badge} ${styles[`badge-${item.status}`]}`}>
-                    {item.status === "pending" && "รออนุมัติ"}
-                    {item.status === "pending_advisor" && "รออาจารย์พิจารณา"}
-                    {item.status === "approved" && "อนุมัติแล้ว"}
-                    {item.status === "rejected" && "ปฏิเสธแล้ว"}
-                    {item.status === "pending_staff" && "รอเจ้าหน้าที่"}
-                    {item.status === "staff_approved" && "เจ้าหน้าที่อนุมัติแล้ว"}
-                  </span>
-                </td>
-                <td>
-                  {isPending && (
-                    <div className={styles.actions}>
-                      <button
-                        type="button"
-                        className={`${styles.btn} ${styles.btnApprove}`}
-                        onClick={() => onApprove(item)}
-                      >
-                        อนุมัติ
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.btn} ${styles.btnReject}`}
-                        onClick={() => onReject(item)}
-                      >
-                        ปฏิเสธ
-                      </button>
+              <>
+                <tr key={`${item.id}-${idx}`}>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.expandBtn}
+                      onClick={() => toggleExpand(item.id)}
+                      aria-label={isExpanded ? "ย่อรายละเอียด" : "ขยายรายละเอียด"}
+                    >
+                      {isExpanded ? "▼" : "▶"}
+                    </button>
+                  </td>
+                  <td>
+                    <div className={styles.projectTitle}>{projectTitle}</div>
+                  </td>
+                  <td>
+                    <div className={styles.students}>
+                      {studentNames.length > 0 ? (
+                        studentNames.map((name, idx) => (
+                          <div key={idx} className={styles.studentName}>
+                            {name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className={styles.studentName}>-</div>
+                      )}
                     </div>
+                  </td>
+                  <td>{requestDate ? new Date(requestDate).toLocaleDateString("th-TH") : "-"}</td>
+                  {showTestDates && "testStartDate" in item && (
+                    <>
+                      <td>
+                        {item.testStartDate
+                          ? new Date(item.testStartDate).toLocaleDateString("th-TH")
+                          : "-"}
+                      </td>
+                      <td>
+                        {item.testDueDate
+                          ? new Date(item.testDueDate).toLocaleDateString("th-TH")
+                          : "-"}
+                      </td>
+                    </>
                   )}
-                </td>
-              </tr>
+                  <td>
+                    <span className={`${styles.badge} ${styles[`badge-${item.status}`]}`}>
+                      {item.status === "pending" && "รออนุมัติ"}
+                      {item.status === "pending_advisor" && "รออาจารย์พิจารณา"}
+                      {item.status === "approved" && "อนุมัติแล้ว"}
+                      {item.status === "rejected" && "ปฏิเสธแล้ว"}
+                      {item.status === "pending_staff" && "รอเจ้าหน้าที่"}
+                      {item.status === "staff_approved" && "เจ้าหน้าที่อนุมัติแล้ว"}
+                    </span>
+                  </td>
+                  <td>
+                    {isPending && (
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${styles.btnApprove}`}
+                          onClick={() => onApprove(item)}
+                        >
+                          อนุมัติ
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${styles.btnReject}`}
+                          onClick={() => onReject(item)}
+                        >
+                          ปฏิเสธ
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr key={`${item.id}-expanded`} className={styles.expandedRow}>
+                    <td colSpan={showTestDates ? 8 : 6}>
+                      <ExpandedRowDetails item={item} />
+                    </td>
+                  </tr>
+                )}
+              </>
             );
           })}
         </tbody>

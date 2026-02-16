@@ -79,10 +79,12 @@ export default function MeetingApprovalsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>โครงงาน</th>
+                  <th>รหัสโครงงาน</th>
+                  <th>ชื่อโครงงาน</th>
                   <th>นักศึกษา</th>
-                  <th>หัวข้อ</th>
+                  <th>หัวข้อการประชุม</th>
                   <th>วันที่ประชุม</th>
+                  <th>วันที่ส่งบันทึก</th>
                   <th>สถานะ</th>
                   <th>การดำเนินการ</th>
                 </tr>
@@ -91,12 +93,14 @@ export default function MeetingApprovalsPage() {
                 {meetings.map((meeting) => (
                   <tr key={meeting.id}>
                     <td>
-                      <div className={styles.projectInfo}>
-                        {meeting.projectCode && (
-                          <span className={styles.projectCode}>{meeting.projectCode}</span>
-                        )}
-                        <div className={styles.projectTitle}>{meeting.projectTitle}</div>
-                      </div>
+                      {meeting.projectCode ? (
+                        <span className={styles.projectCodeBadge}>{meeting.projectCode}</span>
+                      ) : (
+                        <span className={styles.noCode}>-</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className={styles.projectTitle}>{meeting.projectTitle}</div>
                     </td>
                     <td>
                       <div className={styles.studentInfo}>
@@ -104,8 +108,31 @@ export default function MeetingApprovalsPage() {
                         <div className={styles.studentCode}>{meeting.studentCode}</div>
                       </div>
                     </td>
-                    <td>{meeting.topic}</td>
-                    <td>{new Date(meeting.meetingDate).toLocaleDateString("th-TH")}</td>
+                    <td>
+                      <div className={styles.meetingTopic}>{meeting.topic}</div>
+                    </td>
+                    <td>
+                      <div className={styles.dateCell}>
+                        {new Date(meeting.meetingDate).toLocaleDateString("th-TH", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    </td>
+                    <td>
+                      {meeting.submittedAt ? (
+                        <div className={styles.dateCell}>
+                          {new Date(meeting.submittedAt).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      ) : (
+                        <span className={styles.noData}>-</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge-${meeting.status}`]}`}>
                         {meeting.status === "pending" && "รออนุมัติ"}
