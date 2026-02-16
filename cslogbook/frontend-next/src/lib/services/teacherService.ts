@@ -130,77 +130,120 @@ export type MeetingApprovalFilters = {
 
 /**
  * ดึงรายการบันทึกการพบที่รออนุมัติ
- * TODO: implement when backend API is ready
  */
 export async function getTeacherMeetingApprovals(
-  _token: string,
-  _filters?: MeetingApprovalFilters
+  token: string,
+  filters?: MeetingApprovalFilters
 ): Promise<MeetingLogApproval[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+  const params = new URLSearchParams();
+  if (filters?.academicYear) params.append("academicYear", filters.academicYear);
+  if (filters?.semester) params.append("semester", filters.semester);
+  if (filters?.projectId) params.append("projectId", filters.projectId);
+  if (filters?.status) params.append("status", filters.status);
+
+  const queryString = params.toString();
+  const url = queryString ? `/teachers/meeting-approvals?${queryString}` : "/teachers/meeting-approvals";
+
+  const data = await apiFetchData<MeetingLogApproval[]>(url, {
+    method: "GET",
+    token,
+  });
+
+  return data || [];
 }
 
 /**
- * อนุมัติบันทึกการพบ
- * TODO: implement when backend API is ready
+ * อนุมัติหรือปฏิเสธบันทึกการพบ
  */
-export async function approveMeetingLog(
-  _token: string,
-  _projectId: number,
-  _meetingId: number,
-  _logId: number,
-  _notes?: string
+export async function updateMeetingLogApproval(
+  token: string,
+  projectId: number,
+  meetingId: number,
+  logId: number,
+  decision: "approve" | "reject",
+  note?: string
 ): Promise<void> {
-  // Placeholder - will implement when API is ready
-  return;
-}
-
-/**
- * ปฏิเสธบันทึกการพบ
- * TODO: implement when backend API is ready
- */
-export async function rejectMeetingLog(
-  _token: string,
-  _projectId: number,
-  _meetingId: number,
-  _logId: number,
-  _notes: string
-): Promise<void> {
-  // Placeholder - will implement when API is ready
-  return;
+  await apiFetchData<void>(
+    `/projects/${projectId}/meetings/${meetingId}/logs/${logId}/approval`,
+    {
+      method: "PATCH",
+      token,
+      body: { decision, note },
+    }
+  );
 }
 
 // =====================
 // Advisor Queues
 // =====================
 
+export type ProjectMember = {
+  studentCode: string;
+  name: string;
+};
+
 export type DefenseRequest = {
   id: number;
   projectId: number;
   projectTitle: string;
-  studentNames: string[];
+  project?: {
+    projectId: number;
+    projectCode?: string;
+    projectNameTh?: string;
+    projectNameEn?: string;
+    members?: ProjectMember[];
+  };
   requestDate: string;
   status: "pending" | "approved" | "rejected";
   advisorStatus?: "pending" | "approved" | "rejected";
   coAdvisorStatus?: "pending" | "approved" | "rejected";
+  myApproval?: {
+    status: "pending" | "approved" | "rejected";
+  };
+  submittedAt?: string;
 };
 
 /**
- * ดึงคำขอสอบ คพ.02 (Advisor Queue)
- * TODO: implement when backend API is ready
+ *ดึงคำขอสอบ คพ.02 (Advisor Queue)
  */
-export async function getAdvisorKP02Queue(_token: string): Promise<DefenseRequest[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+export async function getAdvisorKP02Queue(token: string): Promise<DefenseRequest[]> {
+  const data = await apiFetchData<DefenseRequest[]>("/projects/kp02/advisor-queue", {
+    method: "GET",
+    token,
+  });
+
+  return data || [];
+}
+
+/**
+ * อนุมัติหรือปฏิเสธคำขอสอบ คพ.02
+ */
+export async function submitKP02AdvisorDecision(
+  token: string,
+  projectId: number,
+  decision: "approve" | "reject",
+  note?: string
+): Promise<void> {
+  await apiFetchData<void>(`/projects/${projectId}/kp02/advisor-approve`, {
+    method: "POST",
+    token,
+    body: { decision, note },
+  });
 }
 
 /**
  * ดึงคำขอสอบ คพ.03 (Thesis Advisor Queue)
- * TODO: implement when backend API is ready
  */
-export async function getAdvisorThesisQueue(_token: string): Promise<DefenseRequest[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+export async function getAdvisorThesisQueue(token: string): Promise<DefenseRequest[]> {
+  const data = await apiFetchData<DefenseRequest[]>(
+    "/projects/kp02/advisor-queue?defenseType=THESIS",
+    {
+      method: "GET",
+      token,
+    }
+  );
+
+  return data || [];
 }
 
 // =====================
@@ -208,27 +251,54 @@ export async function getAdvisorThesisQueue(_token: string): Promise<DefenseRequ
 // =====================
 
 export type SystemTestRequest = {
-  id: number;
+  id: number | string; // requestId
   projectId: number;
   projectTitle: string;
-  studentNames: string[];
+  projectSnapshot?: {
+    projectId: number;
+    projectCode?: string;
+    projectNameTh?: string;
+    projectNameEn?: string;
+  };
+  submittedBy?: {
+    studentCode: string;
+    name: string;
+  };
   requestDate: string;
+  submittedAt?: string;
   testStartDate?: string;
   testDueDate?: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "pending_advisor" | "pending_staff" | "staff_approved";
   advisorStatus?: "pending" | "approved" | "rejected";
   coAdvisorStatus?: "pending" | "approved" | "rejected";
 };
 
 /**
  * ดึงคำขอทดสอบระบบ (Advisor Queue)
- * TODO: implement when backend API is ready
  */
-export async function getAdvisorSystemTestQueue(
-  _token: string
-): Promise<SystemTestRequest[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+export async function getAdvisorSystemTestQueue(token: string): Promise<SystemTestRequest[]> {
+  const data = await apiFetchData<SystemTestRequest[]>("/projects/system-test/advisor-queue", {
+    method: "GET",
+    token,
+  });
+
+  return data || [];
+}
+
+/**
+ * อนุมัติหรือปฏิเสธคำขอทดสอบระบบ
+ */
+export async function submitSystemTestAdvisorDecision(
+  token: string,
+  projectId: number,
+  decision: "approve" | "reject",
+  note?: string
+): Promise<void> {
+  await apiFetchData<void>(`/projects/${projectId}/system-test/request/advisor-decision`, {
+    method: "POST",
+    token,
+    body: { decision, note },
+  });
 }
 
 // =====================
@@ -257,26 +327,114 @@ export type ApproveDocumentsFilters = {
 
 /**
  * ดึงคิวเอกสาร CS05 (หัวหน้าภาค)
- * TODO: implement when backend API is ready
  */
 export async function getCS05HeadQueue(
-  _token: string,
-  _filters?: ApproveDocumentsFilters
+  token: string,
+  filters?: ApproveDocumentsFilters
 ): Promise<InternshipDocument[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+  const params = new URLSearchParams();
+  if (filters?.status) params.append("status", filters.status);
+  if (filters?.academicYear) params.append("academicYear", filters.academicYear);
+  if (filters?.semester) params.append("semester", filters.semester);
+  if (filters?.studentYear) params.append("studentYear", filters.studentYear);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `/documents/internship/cs-05/head/queue?${queryString}`
+    : "/documents/internship/cs-05/head/queue";
+
+  const data = await apiFetchData<InternshipDocument[]>(url, {
+    method: "GET",
+    token,
+  });
+
+  return data || [];
+}
+
+/**
+ * อนุมัติเอกสาร CS05
+ */
+export async function approveCS05Document(
+  token: string,
+  documentId: string,
+  comment?: string,
+  letterType?: string
+): Promise<void> {
+  await apiFetchData<void>(`/documents/internship/cs-05/${documentId}/approve`, {
+    method: "POST",
+    token,
+    body: { comment, letterType },
+  });
+}
+
+/**
+ * ปฏิเสธเอกสาร CS05
+ */
+export async function rejectCS05Document(
+  token: string,
+  documentId: string,
+  reason: string
+): Promise<void> {
+  await apiFetchData<void>(`/documents/internship/cs-05/${documentId}/reject`, {
+    method: "POST",
+    token,
+    body: { reason },
+  });
 }
 
 /**
  * ดึงคิวหนังสือส่งตัว (หัวหน้าภาค)
- * TODO: implement when backend API is ready
  */
 export async function getAcceptanceLetterHeadQueue(
-  _token: string,
-  _filters?: ApproveDocumentsFilters
+  token: string,
+  filters?: ApproveDocumentsFilters
 ): Promise<InternshipDocument[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+  const params = new URLSearchParams();
+  if (filters?.status) params.append("status", filters.status);
+  if (filters?.academicYear) params.append("academicYear", filters.academicYear);
+  if (filters?.semester) params.append("semester", filters.semester);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `/documents/internship/acceptance/head/queue?${queryString}`
+    : "/documents/internship/acceptance/head/queue";
+
+  const data = await apiFetchData<InternshipDocument[]>(url, {
+    method: "GET",
+    token,
+  });
+
+  return data || [];
+}
+
+/**
+ * อนุมัติหนังสือส่งตัว
+ */
+export async function approveAcceptanceLetter(
+  token: string,
+  documentId: string,
+  comment?: string
+): Promise<void> {
+  await apiFetchData<void>(`/documents/internship/acceptance/${documentId}/approve`, {
+    method: "POST",
+    token,
+    body: { comment },
+  });
+}
+
+/**
+ * ปฏิเสธหนังสือส่งตัว
+ */
+export async function rejectAcceptanceLetter(
+  token: string,
+  documentId: string,
+  reason: string
+): Promise<void> {
+  await apiFetchData<void>(`/documents/internship/acceptance/${documentId}/reject`, {
+    method: "POST",
+    token,
+    body: { reason },
+  });
 }
 
 // =====================
@@ -297,13 +455,41 @@ export type TopicExamProject = {
 
 /**
  * ดึงรายชื่อหัวข้อโครงงานพิเศษ
- * TODO: implement when backend API is ready
  */
 export async function getTopicExamOverview(
-  _token: string,
-  _academicYear?: string,
-  _semester?: string
+  token: string,
+  academicYear?: string,
+  semester?: string
 ): Promise<TopicExamProject[]> {
-  // Placeholder - will implement when API is ready
-  return [];
+  const params = new URLSearchParams();
+  if (academicYear) params.append("academicYear", academicYear);
+  if (semester) params.append("semester", semester);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `/projects/topic-exam/overview?${queryString}`
+    : "/projects/topic-exam/overview";
+
+  const response = await apiFetchData<{ data: TopicExamProject[]; total: number }>(url, {
+    method: "GET",
+    token,
+  });
+
+  return response?.data || [];
+}
+
+// =====================
+// Teacher Deadlines
+// =====================
+
+/**
+ * ดึงรายการกำหนดการสำคัญสำหรับอาจารย์
+ */
+export async function getTeacherImportantDeadlines(token: string): Promise<TeacherDeadline[]> {
+  const data = await apiFetchData<TeacherDeadline[]>("/teachers/important-deadlines", {
+    method: "GET",
+    token,
+  });
+
+  return data || [];
 }

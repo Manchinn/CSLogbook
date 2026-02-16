@@ -1,0 +1,146 @@
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--color-surface, #fff);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 150px;
+}
+
+.filterGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.loadingState,
+.errorState {
+  padding: 3rem;
+  text-align: center;
+}
+
+.errorState {
+  color: var(--color-error, #dc2626);
+}
+
+.tableContainer {
+  overflow-x: auto;
+  background: var(--color-surface, #fff);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table thead {
+  background-color: var(--color-gray-50, #f9fafb);
+  border-bottom: 2px solid var(--color-border, #e5e7eb);
+}
+
+.table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  white-space: nowrap;
+}
+
+.table th:first-child {
+  width: 50px;
+}
+
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+  vertical-align: top;
+}
+
+.table tbody tr:hover {
+  background-color: var(--color-gray-50, #f9fafb);
+}
+
+.projectTitle {
+  font-weight: 500;
+  color: var(--color-text, #111827);
+}
+
+.students {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.studentName {
+  color: var(--color-text, #111827);
+  font-size: 0.875rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge-pass {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-fail {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+@media (max-width: 768px) {
+  .filters {
+    flex-direction: column;
+  }
+
+  .filterGroup {
+    width: 100%;
+  }
+
+  .table {
+    font-size: 0.813rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.75rem 0.5rem;
+  }
+}

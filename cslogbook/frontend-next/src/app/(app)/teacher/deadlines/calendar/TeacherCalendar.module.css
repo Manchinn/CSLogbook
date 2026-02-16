@@ -1,0 +1,230 @@
+.loadingState,
+.errorState {
+  padding: 3rem;
+  text-align: center;
+}
+
+.errorState {
+  color: var(--color-error, #dc2626);
+}
+
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.emptyMessage {
+  font-size: 1rem;
+  color: var(--color-text-dim, #6b7280);
+  margin: 0;
+}
+
+.deadlinesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.deadlineCard {
+  background: var(--color-surface, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.deadlineCard:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Status-based card border colors */
+.status-overdue {
+  border-left-color: #dc2626;
+}
+
+.status-today {
+  border-left-color: #f59e0b;
+}
+
+.status-urgent {
+  border-left-color: #ef4444;
+}
+
+.status-soon {
+  border-left-color: #f59e0b;
+}
+
+.status-normal {
+  border-left-color: #10b981;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+}
+
+.deadlineTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text, #111827);
+  line-height: 1.4;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-overdue {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-today {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-urgent {
+  background-color: #fecaca;
+  color: #b91c1c;
+}
+
+.badge-soon {
+  background-color: #fed7aa;
+  color: #c2410c;
+}
+
+.badge-normal {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.cardBody {
+  padding: 1.25rem;
+}
+
+.dateSection,
+.daysLeftSection,
+.topicSection,
+.descriptionSection {
+  margin-bottom: 1rem;
+}
+
+.dateSection:last-child,
+.daysLeftSection:last-child,
+.topicSection:last-child,
+.descriptionSection:last-child {
+  margin-bottom: 0;
+}
+
+.dateLabel,
+.daysLeftLabel,
+.topicLabel,
+.descriptionLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.dateValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text, #111827);
+}
+
+.daysLeftValue {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.days-overdue {
+  color: #dc2626;
+}
+
+.days-today {
+  color: #f59e0b;
+}
+
+.days-urgent {
+  color: #ef4444;
+}
+
+.days-soon {
+  color: #f59e0b;
+}
+
+.days-normal {
+  color: #10b981;
+}
+
+.topicValue {
+  font-size: 0.875rem;
+  color: var(--color-text, #111827);
+  font-weight: 500;
+}
+
+.descriptionValue {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6b7280);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .deadlinesList {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .cardHeader {
+    padding: 1rem 1rem 0.75rem;
+  }
+
+  .cardBody {
+    padding: 1rem;
+  }
+
+  .deadlineTitle {
+    font-size: 1rem;
+  }
+
+  .dateValue {
+    font-size: 0.875rem;
+  }
+
+  .daysLeftValue {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .badge {
+    align-self: flex-start;
+  }
+}

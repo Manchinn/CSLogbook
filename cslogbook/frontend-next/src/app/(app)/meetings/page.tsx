@@ -1,19 +1,22 @@
-import { FeaturePlaceholder } from "@/components/common/FeaturePlaceholder";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/auth/AuthGuard";
-import { featureFlags } from "@/lib/config/featureFlags";
-import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
 
 export default function MeetingsPage() {
-  const enabled = featureFlags.enableMeetingsPage;
+  const router = useRouter();
 
-  guardFeatureRoute(enabled, "/app");
+  useEffect(() => {
+    // Redirect to the new meeting approvals page
+    router.replace("/teacher/meeting-approvals");
+  }, [router]);
 
   return (
     <AuthGuard>
-      <FeaturePlaceholder
-        title="การนัดหมาย / Meeting Logs"
-        description="คิวการนัดหมาย การอนุมัติบันทึกการพบ และสรุปการประชุม"
-      />
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <p>กำลังเปลี่ยนเส้นทาง...</p>
+      </div>
     </AuthGuard>
   );
 }

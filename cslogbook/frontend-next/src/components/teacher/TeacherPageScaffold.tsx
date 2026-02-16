@@ -4,7 +4,7 @@ import styles from "./TeacherPageScaffold.module.css";
 
 type TeacherPageScaffoldProps = {
   title: string;
-  description: string;
+  description?: string;
   children?: React.ReactNode;
   actions?: React.ReactNode;
 };
@@ -15,7 +15,7 @@ export function TeacherPageScaffold({ title, description, children, actions }: T
       <div className={styles.header}>
         <div className={styles.headerContent}>
           <h1 className={styles.title}>{title}</h1>
-          <p className={styles.description}>{description}</p>
+          {description && <p className={styles.description}>{description}</p>}
         </div>
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>
@@ -24,10 +24,10 @@ export function TeacherPageScaffold({ title, description, children, actions }: T
   );
 }
 
-export function TeacherEmptyState({ message }: { message: string }) {
+export function TeacherEmptyState({ message, icon = "📋" }: { message: string; icon?: string }) {
   return (
     <div className={styles.emptyState}>
-      <div className={styles.emptyIcon}>📋</div>
+      <div className={styles.emptyIcon}>{icon}</div>
       <p className={styles.emptyMessage}>{message}</p>
     </div>
   );

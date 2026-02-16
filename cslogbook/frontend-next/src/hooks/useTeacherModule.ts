@@ -26,9 +26,9 @@ export function useTeacherMeetingApprovals(
 }
 
 /**
- * Hook สำหรับอนุมัติบันทึกการพบ
+ * Hook สำหรับอนุมัติหรือปฏิเสธบันทึกการพบ
  */
-export function useApproveMeetingLog() {
+export function useUpdateMeetingLogApproval() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
 
@@ -37,44 +37,17 @@ export function useApproveMeetingLog() {
       projectId,
       meetingId,
       logId,
-      notes,
+      decision,
+      note,
     }: {
       projectId: number;
       meetingId: number;
       logId: number;
-      notes?: string;
+      decision: "approve" | "reject";
+      note?: string;
     }) => {
       if (!token) throw new Error("No authentication token");
-      return teacherService.approveMeetingLog(token, projectId, meetingId, logId, notes);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teacher", "meeting-approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
-    },
-  });
-}
-
-/**
- * Hook สำหรับปฏิเสธบันทึกการพบ
- */
-export function useRejectMeetingLog() {
-  const { token } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      projectId,
-      meetingId,
-      logId,
-      notes,
-    }: {
-      projectId: number;
-      meetingId: number;
-      logId: number;
-      notes: string;
-    }) => {
-      if (!token) throw new Error("No authentication token");
-      return teacherService.rejectMeetingLog(token, projectId, meetingId, logId, notes);
+      return teacherService.updateMeetingLogApproval(token, projectId, meetingId, logId, decision, note);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher", "meeting-approvals"] });
@@ -100,6 +73,33 @@ export function useAdvisorKP02Queue(enabled = true) {
       return teacherService.getAdvisorKP02Queue(token);
     },
     enabled: enabled && !!token,
+  });
+}
+
+/**
+ * Hook สำหรับอนุมัติหรือปฏิเสธคำขอสอบ คพ.02
+ */
+export function useSubmitKP02AdvisorDecision() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      decision,
+      note,
+    }: {
+      projectId: number;
+      decision: "approve" | "reject";
+      note?: string;
+    }) => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.submitKP02AdvisorDecision(token, projectId, decision, note);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher", "advisor-queue", "kp02"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
+    },
   });
 }
 
@@ -139,6 +139,33 @@ export function useAdvisorSystemTestQueue(enabled = true) {
   });
 }
 
+/**
+ * Hook สำหรับอนุมัติหรือปฏิเสธคำขอทดสอบระบบ
+ */
+export function useSubmitSystemTestAdvisorDecision() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      decision,
+      note,
+    }: {
+      projectId: number;
+      decision: "approve" | "reject";
+      note?: string;
+    }) => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.submitSystemTestAdvisorDecision(token, projectId, decision, note);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher", "advisor-queue", "system-test"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
+    },
+  });
+}
+
 // =====================
 // Approve Documents
 // =====================
@@ -163,6 +190,58 @@ export function useCS05HeadQueue(
 }
 
 /**
+ * Hook สำหรับอนุมัติเอกสาร CS05
+ */
+export function useApproveCS05Document() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      comment,
+      letterType,
+    }: {
+      documentId: string;
+      comment?: string;
+      letterType?: string;
+    }) => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.approveCS05Document(token, documentId, comment, letterType);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher", "approve-documents", "cs05"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
+    },
+  });
+}
+
+/**
+ * Hook สำหรับปฏิเสธเอกสาร CS05
+ */
+export function useRejectCS05Document() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      reason,
+    }: {
+      documentId: string;
+      reason: string;
+    }) => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.rejectCS05Document(token, documentId, reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher", "approve-documents", "cs05"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
+    },
+  });
+}
+
+/**
  * Hook สำหรับดึงคิวหนังสือส่งตัว
  */
 export function useAcceptanceLetterHeadQueue(
@@ -178,6 +257,56 @@ export function useAcceptanceLetterHeadQueue(
       return teacherService.getAcceptanceLetterHeadQueue(token, filters);
     },
     enabled: enabled && !!token,
+  });
+}
+
+/**
+ * Hook สำหรับอนุมัติหนังสือส่งตัว
+ */
+export function useApproveAcceptanceLetter() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      comment,
+    }: {
+      documentId: string;
+      comment?: string;
+    }) => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.approveAcceptanceLetter(token, documentId, comment);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher", "approve-documents", "acceptance"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
+    },
+  });
+}
+
+/**
+ * Hook สำหรับปฏิเสธหนังสือส่งตัว
+ */
+export function useRejectAcceptanceLetter() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      reason,
+    }: {
+      documentId: string;
+      reason: string;
+    }) => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.rejectAcceptanceLetter(token, documentId, reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher", "approve-documents", "acceptance"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
+    },
   });
 }
 
@@ -200,6 +329,26 @@ export function useTopicExamOverview(
     queryFn: () => {
       if (!token) throw new Error("No authentication token");
       return teacherService.getTopicExamOverview(token, academicYear, semester);
+    },
+    enabled: enabled && !!token,
+  });
+}
+
+// =====================
+// Teacher Deadlines
+// =====================
+
+/**
+ * Hook สำหรับดึงกำหนดการสำคัญสำหรับอาจารย์
+ */
+export function useTeacherImportantDeadlines(enabled = true) {
+  const { token } = useAuth();
+
+  return useQuery({
+    queryKey: ["teacher", "important-deadlines"],
+    queryFn: () => {
+      if (!token) throw new Error("No authentication token");
+      return teacherService.getTeacherImportantDeadlines(token);
     },
     enabled: enabled && !!token,
   });

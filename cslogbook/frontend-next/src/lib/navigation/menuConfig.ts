@@ -146,7 +146,6 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
     ? [
         menuLink("teacher-dashboard", "แดชบอร์ด", "/dashboard/teacher", true),
         menuLink("teacher-calendar", "ปฏิทินกำหนดการ", "/teacher/deadlines/calendar"),
-        menuLink("meetings", "การนัดหมาย/บันทึก", "/meetings", featureFlags.enableMeetingsPage),
         menuLink("meeting-approvals", "อนุมัติบันทึกการพบ", "/teacher/meeting-approvals"),
         menuLink("advisor-queue", "คำขอสอบ คพ.02", "/teacher/project1/advisor-queue"),
         menuLink("thesis-advisor-queue", "คำขอสอบ คพ.03", "/teacher/thesis/advisor-queue"),

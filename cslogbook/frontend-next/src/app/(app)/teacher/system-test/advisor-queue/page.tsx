@@ -1,16 +1,84 @@
 "use client";
 
+import { useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import { TeacherPageScaffold, TeacherEmptyState } from "@/components/teacher/TeacherPageScaffold";
+import { TeacherPageScaffold } from "@/components/teacher/TeacherPageScaffold";
+import { AdvisorQueueTable, DecisionModal } from "@/components/teacher/AdvisorQueueTable";
+import {
+  useAdvisorSystemTestQueue,
+  useSubmitSystemTestAdvisorDecision,
+} from "@/hooks/useTeacherModule";
+import type { SystemTestRequest } from "@/lib/services/teacherService";
 
 export default function AdvisorSystemTestQueuePage() {
+  const [selectedRequest, setSelectedRequest] = useState<SystemTestRequest | null>(null);
+  const [modalMode, setModalMode] = useState<"approve" | "reject" | null>(null);
+  const [note, setNote] = useState("");
+
+  const { data = [], isLoading, error } = useAdvisorSystemTestQueue();
+  const submitDecision = useSubmitSystemTestAdvisorDecision();
+
+  const handleApprove = (request: SystemTestRequest) => {
+    setSelectedRequest(request);
+    setModalMode("approve");
+    setNote("");
+  };
+
+  const handleReject = (request: SystemTestRequest) => {
+    setSelectedRequest(request);
+    setModalMode("reject");
+    setNote("");
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedRequest || !modalMode) return;
+
+    try {
+      await submitDecision.mutateAsync({
+        projectId: selectedRequest.projectId,
+        decision: modalMode,
+        note: note || undefined,
+      });
+      setModalMode(null);
+      setSelectedRequest(null);
+      setNote("");
+    } catch (err) {
+      console.error("Failed to submit decision:", err);
+    }
+  };
+
+  const handleCancel = () => {
+    setModalMode(null);
+    setSelectedRequest(null);
+    setNote("");
+  };
+
   return (
     <RoleGuard roles={["teacher"]} teacherTypes={["academic"]}>
       <TeacherPageScaffold
         title="คำขอทดสอบระบบ"
-        description="ดูและอนุมัติคำขอทดสอบระบบของนักศึกษาที่คุณเป็นอาจารย์ที่ปรึกษา"
+        description="อนุมัติคำขอทดสอบระบบของนักศึกษาที่คุณเป็นอาจารย์ที่ปรึกษา"
       >
-        <TeacherEmptyState message="กำลังพัฒนาฟีเจอร์นี้ - ระบบจะเปิดใช้งานในเร็วๆ นี้" />
+        <AdvisorQueueTable
+          data={data}
+          isLoading={isLoading}
+          error={error}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          emptyMessage="ไม่มีคำขอทดสอบระบบที่รออนุมัติในขณะนี้"
+          showTestDates
+        />
+
+        <DecisionModal
+          item={selectedRequest}
+          mode={modalMode}
+          note={note}
+          onNoteChange={setNote}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isPending={submitDecision.isPending}
+          title="คำขอทดสอบระบบ"
+        />
       </TeacherPageScaffold>
     </RoleGuard>
   );
