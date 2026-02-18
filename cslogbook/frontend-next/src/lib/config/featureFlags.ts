@@ -6,7 +6,6 @@ function readFlag(name: string, defaultValue = false) {
 }
 
 export const featureFlags = {
-  enableMockAuth: readFlag("NEXT_PUBLIC_ENABLE_MOCK_AUTH"),
   enableSSO: readFlag("NEXT_PUBLIC_ENABLE_SSO"),
   enableAdminWidgetMigration: readFlag("NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION"),
   enableAdminProjectWorkflowWidget:

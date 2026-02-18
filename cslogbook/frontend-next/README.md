@@ -62,7 +62,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 # Auth
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
-NEXT_PUBLIC_ENABLE_SSO=false
+NEXT_PUBLIC_ENABLE_SSO=true
 
 # Dashboard widget rollouts
 NEXT_PUBLIC_ENABLE_TEACHER_WIDGET_MIGRATION=true
@@ -207,7 +207,7 @@ npm run dev -- --port 3001
 ตัวอย่าง env (ดู `env.example`):
 ```bash
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
-NEXT_PUBLIC_ENABLE_SSO=false
+NEXT_PUBLIC_ENABLE_SSO=true
 ```
 
 แผนถัดไป:

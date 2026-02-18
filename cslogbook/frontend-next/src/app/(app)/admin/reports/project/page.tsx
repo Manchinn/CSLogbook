@@ -249,9 +249,19 @@ export default function AdminProjectReportPage() {
                         <span className={styles.tag}>{PROJECT_STATUS_LABELS[p.status ?? ""] ?? p.status ?? "-"}</span>
                       </td>
                       <td>
-                        {p.members?.map((m) => (
-                          <div key={m.studentCode}>{m.studentCode} - {m.name}</div>
-                        )) ?? "-"}
+                        {p.members?.map((m, memberIndex) => {
+                          const memberKey = [
+                            p.projectId ?? p.projectCode ?? "project",
+                            m.studentId ?? m.studentCode ?? m.name ?? "member",
+                            memberIndex,
+                          ].join("-");
+
+                          return (
+                            <div key={memberKey}>
+                              {m.studentCode} - {m.name}
+                            </div>
+                          );
+                        }) ?? "-"}
                       </td>
                       <td>{p.advisorName ?? "-"}</td>
                       <td>
