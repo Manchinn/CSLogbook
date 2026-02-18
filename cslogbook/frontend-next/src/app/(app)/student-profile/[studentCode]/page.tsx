@@ -320,7 +320,7 @@ export default function StudentProfilePage() {
       />
 
       <section className={styles.hero}>
-        <div>
+        <div className={styles.heroContent}>
           <p className={styles.eyebrow}>Student record</p>
           <h1 className={styles.title}>{name}</h1>
           <p className={styles.subtitle}>รหัสนักศึกษา {profile.studentCode}</p>
@@ -337,7 +337,7 @@ export default function StudentProfilePage() {
       </section>
 
       <section className={styles.grid}>
-        <article className={styles.card}>
+        <article className={`${styles.card} ${styles.cardCredits}`}>
           <header className={styles.cardHeader}>
             <div>
               <p className={styles.cardEyebrow}>Credits</p>
@@ -366,7 +366,7 @@ export default function StudentProfilePage() {
           </div>
         </article>
 
-        <article className={styles.card}>
+        <article className={`${styles.card} ${styles.cardContact}`}>
           <header className={styles.cardHeader}>
             <div>
               <p className={styles.cardEyebrow}>Contact</p>
@@ -410,7 +410,7 @@ export default function StudentProfilePage() {
           {contactSuccess ? <p className={styles.success}>{contactSuccess}</p> : null}
         </article>
 
-        <article className={styles.card}>
+        <article className={`${styles.card} ${styles.cardInternship} ${styles.statusCard}`}>
           <header className={styles.cardHeader}>
             <div>
               <p className={styles.cardEyebrow}>Internship</p>
@@ -426,7 +426,7 @@ export default function StudentProfilePage() {
           ) : null}
         </article>
 
-        <article className={styles.card}>
+        <article className={`${styles.card} ${styles.cardProject} ${styles.statusCard}`}>
           <header className={styles.cardHeader}>
             <div>
               <p className={styles.cardEyebrow}>Project</p>
@@ -443,7 +443,7 @@ export default function StudentProfilePage() {
         </article>
 
         {canUseStudentEndpoints ? (
-          <article className={styles.card}>
+          <article className={`${styles.card} ${styles.cardDeadlines}`}>
             <header className={styles.cardHeader}>
               <div>
                 <p className={styles.cardEyebrow}>Deadlines</p>
@@ -462,7 +462,7 @@ export default function StudentProfilePage() {
         ) : null}
 
         {canUseStudentEndpoints ? (
-          <article className={styles.card}>
+          <article className={`${styles.card} ${styles.cardDocuments}`}>
             <header className={styles.cardHeader}>
               <div>
                 <p className={styles.cardEyebrow}>Documents</p>

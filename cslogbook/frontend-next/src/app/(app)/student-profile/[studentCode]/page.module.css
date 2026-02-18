@@ -1,56 +1,86 @@
 .page {
+  position: relative;
   display: grid;
-  gap: 1.25rem;
+  gap: 1.1rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.35rem 0 1rem;
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: -24px -12px auto;
+  height: 220px;
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 14% 26%, rgba(6, 95, 70, 0.09), transparent 45%),
+    radial-gradient(circle at 82% 18%, rgba(14, 165, 233, 0.13), transparent 40%),
+    linear-gradient(180deg, #f8fbff 0%, rgba(248, 251, 255, 0) 100%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .hero {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-radius: 1rem;
-  border: 1px solid var(--color-border);
-  background: linear-gradient(120deg, #e0f2fe, #eef2ff);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05);
+  gap: 1.4rem;
+  padding: 1.4rem 1.55rem;
+  border-radius: 1.2rem;
+  border: 1px solid #dce8f9;
+  background:
+    radial-gradient(circle at 15% 22%, rgba(13, 148, 136, 0.12), transparent 45%),
+    linear-gradient(128deg, #f1f9ff 0%, #ecf7ff 52%, #edf3ff 100%);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.heroContent {
+  max-width: 660px;
 }
 
 .eyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+  letter-spacing: 0.11em;
+  font-size: 0.75rem;
+  color: #4b5563;
+  font-weight: 700;
 }
 
 .title {
-  margin-top: 0.35rem;
-  font-size: 1.8rem;
-  line-height: 1.2;
+  margin-top: 0.3rem;
+  font-size: clamp(1.7rem, 2.2vw, 2.15rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
   margin-top: 0.25rem;
-  color: var(--color-text-muted);
+  color: #475569;
 }
 
 .heroBadges {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.55rem;
   align-items: flex-start;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
+  max-width: 420px;
 }
 
 .grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 
 .card {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  padding: 1rem 1.1rem;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+  position: relative;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+  border: 1px solid #e6ebf2;
+  border-radius: 1.1rem;
+  padding: 1rem 1.05rem 1.05rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
   display: grid;
   gap: 0.75rem;
 }
@@ -64,74 +94,105 @@
 
 .cardEyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
+  letter-spacing: 0.09em;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 700;
 }
 
 .cardTitle {
-  font-size: 1.15rem;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
 }
 
 .cardTitle + .subtitle {
   margin-top: 0.1rem;
 }
 
+.cardCredits {
+  grid-column: span 4;
+}
+
+.cardContact {
+  grid-column: span 3;
+}
+
+.cardInternship,
+.cardProject {
+  grid-column: span 2;
+}
+
+.cardDeadlines,
+.cardDocuments {
+  grid-column: span 4;
+}
+
 .statGrid {
   display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .statBlock {
-  background: linear-gradient(180deg, #f8fafc, #fff);
-  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, #f8fbff, #fefeff);
+  border: 1px solid #e6edf6;
   border-radius: 0.9rem;
-  padding: 0.75rem;
+  padding: 0.75rem 0.8rem;
 }
 
 .statLabel {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.88rem;
 }
 
 .statValue {
   margin-top: 0.25rem;
-  font-size: 1.4rem;
+  font-size: 1.85rem;
+  line-height: 1.1;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .detailList {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .detailRow {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
-  border-bottom: 1px dashed var(--color-border);
-  padding-bottom: 0.35rem;
+  gap: 0.65rem;
+  border-bottom: 1px dashed #dce3ec;
+  padding: 0.45rem 0;
 }
 
 .detailRow dt {
-  color: var(--color-text-muted);
+  color: #64748b;
   font-weight: 600;
 }
 
 .detailRow dd {
   margin: 0;
   text-align: right;
+  font-weight: 600;
 }
 
 .statusText {
-  font-size: 1.1rem;
+  font-size: 1.95rem;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   font-weight: 700;
 }
 
 .note {
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
+  color: #55647a;
+  font-size: 0.93rem;
+}
+
+.statusCard {
+  align-content: space-between;
+  min-height: 280px;
 }
 
 .docList {
@@ -145,10 +206,10 @@
 .docItem {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.7rem;
   align-items: center;
-  border-bottom: 1px dashed var(--color-border);
-  padding-bottom: 0.55rem;
+  border-bottom: 1px dashed #dce3ec;
+  padding: 0.35rem 0 0.6rem;
 }
 
 .docName {
@@ -156,13 +217,13 @@
 }
 
 .docMeta {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.88rem;
 }
 
 .docActions {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.45rem;
   flex-wrap: wrap;
 }
 
@@ -177,9 +238,9 @@
 .deadlineItem {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.65rem 0.5rem;
-  border-bottom: 1px dashed var(--color-border);
+  gap: 0.65rem;
+  padding: 0.62rem 0.35rem;
+  border-bottom: 1px dashed #dce3ec;
 }
 
 .deadlineName {
@@ -187,100 +248,109 @@
 }
 
 .deadlineMeta {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.87rem;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.65rem;
+  padding: 0.37rem 0.74rem;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   border: 1px solid transparent;
+  backdrop-filter: blur(1px);
+  white-space: nowrap;
 }
 
 .badgePositive {
-  background: #ecfdf3;
+  background: #ecfdf3cc;
   color: #166534;
-  border-color: #22c55e;
+  border-color: #34d399;
 }
 
 .badgeDanger {
-  background: rgba(255, 77, 79, 0.08);
-  color: var(--color-error);
-  border-color: rgba(255, 77, 79, 0.26);
+  background: rgba(254, 226, 226, 0.92);
+  color: #991b1b;
+  border-color: #fca5a5;
 }
 
 .badgeMuted {
-  background: #f5f5f5;
-  color: #4b5563;
-  border-color: #e5e7eb;
+  background: #f1f5f9cc;
+  color: #475569;
+  border-color: #cbd5e1;
 }
 
 .badgeNeutral {
-  background: #eef2ff;
-  color: #3730a3;
-  border-color: #c7d2fe;
+  background: #ecfeffcc;
+  color: #155e75;
+  border-color: #67e8f9;
 }
 
 .badgeWarning {
-  background: #fff7ed;
+  background: #fff7edcc;
   color: #b45309;
   border-color: #fdba74;
 }
 
 .muted {
-  color: var(--color-text-muted);
+  color: #64748b;
 }
 
 .error {
-  color: var(--color-error);
+  color: #b91c1c;
   font-weight: 700;
 }
 
 .success {
-  color: #15803d;
+  color: #166534;
   font-weight: 600;
 }
 
 .actionRow {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .linkButton {
-  border: none;
-  background: transparent;
-  color: #2563eb;
+  border: 1px solid #dbe7fb;
+  background: #f8fbff;
+  color: #1d4ed8;
   font-weight: 600;
+  border-radius: 999px;
+  padding: 0.35rem 0.64rem;
+  font-size: 0.86rem;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+
 .linkButton:hover {
-  text-decoration: underline;
+  border-color: #bfdbfe;
+  background: #eff6ff;
 }
 
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.45);
   display: grid;
   place-items: center;
-  z-index: 10;
+  z-index: 20;
+  padding: 1rem;
 }
 
 .modal {
-  background: var(--color-bg);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
   border-radius: 1rem;
-  padding: 1.25rem;
+  padding: 1.15rem;
   width: min(420px, 90vw);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
+  border: 1px solid #dce6f6;
+  box-shadow: 0 26px 66px rgba(15, 23, 42, 0.18);
   display: grid;
-  gap: 0.85rem;
+  gap: 0.8rem;
 }
 
 .modalHeader {
@@ -290,9 +360,12 @@
 }
 
 .closeButton {
-  border: none;
-  background: transparent;
-  font-size: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
@@ -302,15 +375,22 @@
 }
 
 .field span {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .field input {
-  border: 1px solid var(--color-border);
+  border: 1px solid #d6deeb;
   border-radius: 0.65rem;
-  padding: 0.65rem 0.75rem;
-  font-size: 1rem;
+  padding: 0.63rem 0.74rem;
+  font-size: 0.97rem;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22);
 }
 
 .modalActions {
@@ -321,26 +401,71 @@
 
 .secondaryButton,
 .primaryButton {
-  border: 1px solid var(--color-border);
-  border-radius: 0.65rem;
-  padding: 0.55rem 0.95rem;
+  border: 1px solid #d8e1ef;
+  border-radius: 0.72rem;
+  padding: 0.55rem 0.93rem;
   font-weight: 700;
   cursor: pointer;
+  transition: filter 0.2s ease;
 }
 
 .secondaryButton {
   background: #f8fafc;
+  color: #0f172a;
 }
 
 .primaryButton {
-  background: #2563eb;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
   color: #fff;
-  border-color: #1d4ed8;
+  border-color: #2563eb;
+}
+
+.secondaryButton:hover,
+.primaryButton:hover {
+  filter: brightness(0.97);
+}
+
+.secondaryButton:disabled,
+.primaryButton:disabled,
+.linkButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
+  .page {
+    padding-top: 0.1rem;
+  }
+
   .hero {
     flex-direction: column;
+    padding: 1.15rem 1rem;
+  }
+
+  .heroBadges {
+    justify-content: flex-start;
+    max-width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardCredits,
+  .cardContact,
+  .cardInternship,
+  .cardProject,
+  .cardDeadlines,
+  .cardDocuments {
+    grid-column: auto;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statusCard {
+    min-height: auto;
   }
 
   .detailRow {
@@ -350,5 +475,25 @@
 
   .detailRow dd {
     text-align: left;
+  }
+
+  .docItem,
+  .deadlineItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .cardCredits,
+  .cardContact,
+  .cardDeadlines,
+  .cardDocuments {
+    grid-column: span 6;
+  }
+
+  .cardInternship,
+  .cardProject {
+    grid-column: span 6;
   }
 }
