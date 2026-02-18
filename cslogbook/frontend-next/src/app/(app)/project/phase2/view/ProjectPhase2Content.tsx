@@ -12,7 +12,7 @@ import type { StudentDeadlineDetail } from "@/lib/services/studentService";
 import { getDeadlineBaseTime, getEffectiveDeadline, isDeadlineMatch } from "@/lib/project/deadlineUtils";
 import { getPhase2GateReasons } from "@/lib/project/phase2Gate";
 import { phase2Steps, type ProjectStep } from "./projectPhase2Steps";
-import { Phase2GateNotice, StepGrid, SummaryCards } from "./ProjectPhase2Sections";
+import { MeetingLogbookSection, Phase2GateNotice, StepGrid, SummaryCards } from "./ProjectPhase2Sections";
 import styles from "./phase2.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -146,6 +146,40 @@ export default function ProjectPhase2Content() {
     [project, eligibility]
   );
 
+  // Meeting logbook metrics (Phase 2 specific, falls back to general metrics)
+  const meetingMetrics = projectDetailData?.meetingMetricsPhase2 ?? projectDetailData?.meetingMetrics ?? null;
+  const meetingRequirement = useMemo(() => {
+    if (!meetingMetrics) return { required: 0, totalApproved: 0, satisfied: true };
+    const required = Number(meetingMetrics.requiredApprovedLogs) || 0;
+    const totalApproved = Number(meetingMetrics.totalApprovedLogs) || 0;
+    return { required, totalApproved, satisfied: required === 0 || totalApproved >= required };
+  }, [meetingMetrics]);
+
+  const meetingBreakdown = useMemo(() => {
+    const members = Array.isArray(projectDetailData?.members) ? projectDetailData.members : [];
+    const perStudentMap = new Map<number, { approvedLogs: number; attendedMeetings: number }>();
+    if (Array.isArray(meetingMetrics?.perStudent)) {
+      for (const entry of meetingMetrics.perStudent) {
+        if (entry?.studentId == null) continue;
+        perStudentMap.set(Number(entry.studentId), {
+          approvedLogs: Number(entry.approvedLogs) || 0,
+          attendedMeetings: Number(entry.attendedMeetings) || 0,
+        });
+      }
+    }
+    return members.map((member) => {
+      const counts = perStudentMap.get(Number(member.studentId)) ?? { approvedLogs: 0, attendedMeetings: 0 };
+      return {
+        studentId: member.studentId,
+        name: member.name || member.studentCode || "สมาชิก",
+        studentCode: member.studentCode || "-",
+        role: member.role || "member",
+        approvedLogs: counts.approvedLogs,
+        attendedMeetings: counts.attendedMeetings,
+      };
+    });
+  }, [projectDetailData?.members, meetingMetrics]);
+
   const systemTestSummary = projectDetailData?.systemTestRequest ?? null;
   const thesisDefenseRequest = useMemo(() => {
     if (!Array.isArray(projectDetailData?.defenseRequests)) return null;
@@ -242,6 +276,13 @@ export default function ProjectPhase2Content() {
       <SummaryCards cards={cardSummary} />
 
       <Phase2GateNotice eligibilityLoading={eligibilityLoading} phase2GateReasons={phase2GateReasons} />
+
+      <MeetingLogbookSection
+        meetingRequirement={meetingRequirement}
+        meetingBreakdown={meetingBreakdown}
+        lastApprovedLogAt={meetingMetrics?.lastApprovedLogAt ?? null}
+        formatDate={formatDate}
+      />
 
       <StepGrid
         steps={phase2Steps}

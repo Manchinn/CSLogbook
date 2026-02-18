@@ -1082,3 +1082,47 @@ NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
 - ✅ Complete: ใช้งานได้เต็มรูปแบบ
 - ⚠️ Feature Flagged: ทำเสร็จแต่ปิด flag ไว้ก่อน
 - 🔄 Stub: มีหน้าแต่ยังไม่มีเนื้อหาจริง
+
+---
+
+## 29) Phase 13 Progress (Admin Reports + Project Documents + Settings Hub)
+
+สิ่งที่เพิ่มแล้ว:
+- ย้ายหน้ารายงาน admin กลุ่มใหม่ ครบ 5 route ผ่าน `reportService.ts`:
+  - `/admin/reports/internship` - สรุปสถานะฝึกงาน/ผลประเมิน + แก้ไข/ยกเลิกการฝึกงาน
+  - `/admin/reports/project` - สถิติสถานะโครงงาน + รายการ + ยกเลิกโครงงาน
+  - `/admin/reports/advisor-workload` - ภาระงานที่ปรึกษา + drilldown รายบุคคล
+  - `/admin/reports/deadline-compliance` - อัตราการส่งงานตรงเวลา + นักศึกษาส่งช้า
+  - `/admin/reports/workflow-progress` - ติดตาม bottleneck แต่ละ workflow (internship/project1/project2)
+- ย้ายหน้าจัดการเอกสารโครงงาน:
+  - `/admin/documents/project` - รายการ/ตรวจ/อนุมัติ/ปฏิเสธเอกสารโครงงานที่นักศึกษายื่น + preview/download
+- เพิ่ม settings hub:
+  - `/admin/settings/constants` - หน้านำทางสู่ sub-modules ของการตั้งค่าระบบ (Curriculum, Academic, Status, Notifications, Workflow Steps)
+
+API ใหม่ที่เชื่อมผ่าน `reportService.ts`:
+- `GET /reports/internships/student-summary` / `evaluations/summary` / `enrolled-students` / `academic-years`
+- `PUT /internships/:internshipId`, `POST /internships/:internshipId/cancel`
+- `GET /reports/projects/status-summary` / `academic-years`, `GET /admin/projects`, `POST /projects/:projectId/cancel`
+- `GET /reports/workflow/progress` (param: `workflowType`)
+- `GET /reports/deadlines/compliance`
+- `GET /reports/advisors/workload`, `GET /reports/advisors/:teacherId/detail`
+
+API ที่เชื่อมผ่าน `adminProjectDocumentsService.ts`:
+- `GET /admin/project-documents`
+- `POST /admin/project-documents/:documentId/review`
+- `POST /admin/project-documents/:documentId/reject`
+- `GET /admin/project-documents/:documentId/view`
+- `GET /admin/project-documents/:documentId/download`
+
+ไฟล์หลักที่เกี่ยวข้อง:
+- `src/app/(app)/admin/reports/internship/page.tsx`
+- `src/app/(app)/admin/reports/project/page.tsx`
+- `src/app/(app)/admin/reports/advisor-workload/page.tsx`
+- `src/app/(app)/admin/reports/deadline-compliance/page.tsx`
+- `src/app/(app)/admin/reports/workflow-progress/page.tsx`
+- `src/app/(app)/admin/documents/project/page.tsx`
+- `src/app/(app)/admin/settings/constants/page.tsx`
+- `src/lib/services/reportService.ts`
+- `src/lib/services/adminProjectDocumentsService.ts`
+
+---

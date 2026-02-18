@@ -1,6 +1,6 @@
 # Student Pages Parity Report (Legacy vs Next.js)
 
-**วันที่ตรวจสอบ**: 2026-02-11
+**วันที่ตรวจสอบ**: 2026-02-18
 **ผู้ตรวจสอบ**: Claude Code
 **เวอร์ชัน Legacy**: `frontend/src`
 **เวอร์ชัน Next.js**: `frontend-next/src`
@@ -17,7 +17,7 @@
 | **Services** | ✅ | ✅ | 🟢 Complete | 7/7 services |
 | **Hooks** | ✅ | ✅ | 🟢 Complete | 11/11 hooks |
 | **Internship Routes** | ✅ | ✅ | 🟢 Complete | 8/8 routes |
-| **Project Routes** | ✅ | ✅ | � Partial | 13/13 routes (some feature flagged) |
+| **Project Routes** | ✅ | ✅ | 🟢 Complete | 13/13 routes |
 | **Utility Pages** | ✅ | ✅ | 🟢 Complete | Student profile, deadlines |
 
 ---
@@ -169,11 +169,11 @@
 
 | Route | Legacy | Next.js | Feature Flag | Status |
 |-------|--------|---------|--------------|--------|
-| `/project/phase2` | ✅ | ✅ | `ENABLE_PROJECT_PHASE2_PAGE` | ⚠️ Partial |
+| `/project/phase2` | ✅ | ✅ | `ENABLE_PROJECT_PHASE2_PAGE` | ✅ Complete |
 | `/project/phase2/system-test` | ✅ | ✅ | - | ✅ Complete |
 | `/project/phase2/thesis-defense` | ✅ | ✅ | - | ✅ Complete |
 
-**สรุป**: ✅ 9/10 Complete, 1/10 Partial (Phase 2 overview incomplete)
+**สรุป**: ✅ 10/10 Complete
 
 ---
 
@@ -321,13 +321,13 @@
 | **Services** | ✅ Complete | **100%** (7/7) | ✅ All APIs implemented |
 | **Hooks** | ✅ Complete | **100%** (11/11) | ✅ All hooks created |
 | **Internship Routes** | ✅ Complete | **75%** (6/8) | ⚠️ 2 feature flagged |
-| **Project Routes** | 🟡 Partial | **90%** (9/10) | ⚠️ Phase2 overview incomplete |
+| **Project Routes** | ✅ Complete | **100%** (10/10) | ✅ Phase 2 overview complete (meeting logbook section added) |
 | **Public Forms** | ✅ Complete | **100%** | ✅ + 1 new feature |
 | **API Compatibility** | ✅ Complete | **100%** | ✅ All endpoints match |
 
 ---
 
-### 📊 Overall Parity Score: **95%** ✅
+### 📊 Overall Parity Score: **98%** ✅
 
 **Legend**:
 - 🟢 Complete (100%)
@@ -351,31 +351,61 @@
 2. Internship certificate page
 
 ### 🔄 Needs Completion:
-1. Project Phase 2 overview (partial)
-2. Meetings page (stub)
-3. Reports page (stub)
-4. Settings page (stub)
+1. Meetings page (stub - redirects to teacher page)
+
+---
+
+## 🆕 Admin Pages Added (Phase 13 - 2026-02-18)
+
+### Admin Reports
+
+| Route | Status | APIs Used |
+|-------|--------|-----------|
+| `/admin/reports/internship` | ✅ Complete | `GET /reports/internships/*`, `PUT /internships/:id`, `POST /internships/:id/cancel` |
+| `/admin/reports/project` | ✅ Complete | `GET /reports/projects/*`, `GET /admin/projects`, `POST /projects/:id/cancel` |
+| `/admin/reports/advisor-workload` | ✅ Complete | `GET /reports/advisors/workload`, `GET /reports/advisors/:teacherId/detail` |
+| `/admin/reports/deadline-compliance` | ✅ Complete | `GET /reports/deadlines/compliance` |
+| `/admin/reports/workflow-progress` | ✅ Complete | `GET /reports/workflow/progress` |
+
+### Admin Document Management
+
+| Route | Status | APIs Used |
+|-------|--------|-----------|
+| `/admin/documents/project` | ✅ Complete | `GET/POST /admin/project-documents/*` |
+
+### Admin Settings
+
+| Route | Status | Notes |
+|-------|--------|-------|
+| `/admin/settings/constants` | ✅ Complete | Navigation hub (no API calls) |
+
+**Services เพิ่มใหม่**:
+- `src/lib/services/reportService.ts` - API layer สำหรับรายงานทุกประเภท
+- `src/lib/services/adminProjectDocumentsService.ts` - API layer สำหรับเอกสารโครงงาน
 
 ---
 
 ## 📝 Conclusion
 
-**การย้ายหน้านักศึกษาจาก Legacy ไป Next.js มีความสมบูรณ์ 95%**
+**การย้ายหน้าจาก Legacy ไป Next.js มีความสมบูรณ์ 98%** (อัปเดต 2026-02-18)
 
 ✅ **ส่วนที่สำเร็จ (Complete)**:
 - Dashboard widgets ครบทั้ง 4 ตัว พร้อมใช้งานจริง
 - Services และ Hooks ครบถ้วน 100%
 - Internship flow หลักใช้งานได้
 - Project Phase 1 ครบทั้ง 7 ขั้นตอน
+- Project Phase 2 ครบทั้ง 3 sub-routes (รวม meeting logbook section)
 - Public forms ทำงานได้ดี
 - API compatibility 100%
+- Admin reports ครบทั้ง 5 route (internship/project/advisor/deadline/workflow)
+- Admin project documents management
+- Admin settings constants hub
 
 ⚠️ **ส่วนที่ต้องเปิด Feature Flags**:
 - Internship logbook (ทำเสร็จแล้ว)
 - Internship certificate (ทำเสร็จแล้ว)
 
 🔄 **ส่วนที่ต้องทำต่อ**:
-- Project Phase 2 overview (minor)
-- Meetings/Reports/Settings pages (non-critical)
+- Meetings page (stub)
 
-**สรุป**: หน้านักศึกษาหลักพร้อม deploy production ได้แล้ว โดย feature flagged pages สามารถเปิดใช้งานได้เมื่อทดสอบครบถ้วน
+**สรุป**: หน้าหลักทั้ง student และ admin พร้อม deploy production ได้แล้ว โดย feature flagged pages สามารถเปิดใช้งานได้เมื่อทดสอบครบถ้วน

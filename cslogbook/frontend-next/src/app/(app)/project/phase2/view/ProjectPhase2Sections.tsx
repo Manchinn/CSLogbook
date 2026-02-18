@@ -135,3 +135,71 @@ export function StepGrid({
     </section>
   );
 }
+
+type MeetingBreakdownEntry = {
+  studentId: number;
+  name: string;
+  studentCode: string;
+  role: string;
+  approvedLogs: number;
+  attendedMeetings: number;
+};
+
+type MeetingLogbookSectionProps = {
+  meetingRequirement: { required: number; totalApproved: number; satisfied: boolean };
+  meetingBreakdown: MeetingBreakdownEntry[];
+  lastApprovedLogAt: string | null | undefined;
+  formatDate: (value?: string | null) => string;
+};
+
+export function MeetingLogbookSection({
+  meetingRequirement,
+  meetingBreakdown,
+  lastApprovedLogAt,
+  formatDate,
+}: MeetingLogbookSectionProps) {
+  const { required, totalApproved, satisfied } = meetingRequirement;
+  const showRequired = required > 0;
+
+  return (
+    <section className={styles.meetingSection}>
+      <header className={styles.meetingHeader}>
+        <p className={styles.meetingTitle}>บันทึกการพบอาจารย์ (Phase 2)</p>
+        {showRequired ? (
+          <span className={satisfied ? styles.badgeSuccess : styles.badgeWarning}>
+            {totalApproved}/{required} ครั้ง
+          </span>
+        ) : null}
+      </header>
+
+      <div className={satisfied ? styles.noticeSuccess : styles.noticeWarning}>
+        <p className={styles.noticeLine}>
+          {satisfied ? "บันทึกการพบครบตามเกณฑ์แล้ว" : "ยังไม่ครบเกณฑ์บันทึกการพบ"}
+        </p>
+        {showRequired ? (
+          <p className={styles.noticeSub}>
+            ได้รับอนุมัติ {totalApproved}/{required} ครั้ง
+            {lastApprovedLogAt ? ` · ครั้งล่าสุดเมื่อ ${formatDate(lastApprovedLogAt)}` : ""}
+          </p>
+        ) : (
+          <p className={styles.noticeSub}>ยังไม่มีข้อมูลเกณฑ์การพบ</p>
+        )}
+      </div>
+
+      {meetingBreakdown.length > 0 ? (
+        <ul className={styles.meetingList}>
+          {meetingBreakdown.map((entry) => (
+            <li key={entry.studentId} className={styles.meetingItem}>
+              <div>
+                <span className={styles.meetingName}>{entry.name}</span>
+                {entry.role === "leader" ? <span className={styles.leaderBadge}>หัวหน้า</span> : null}
+                <span className={styles.meetingCode}>{entry.studentCode}</span>
+              </div>
+              <span className={styles.meetingCount}>อนุมัติ {entry.approvedLogs} ครั้ง</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
