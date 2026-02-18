@@ -16,8 +16,8 @@
 | **Dashboard Widgets** | ✅ | ✅ | 🟢 Complete | 4/4 widgets |
 | **Services** | ✅ | ✅ | 🟢 Complete | 7/7 services |
 | **Hooks** | ✅ | ✅ | 🟢 Complete | 11/11 hooks |
-| **Internship Routes** | ✅ | ✅ | 🟢 Complete | 8/8 routes |
-| **Project Routes** | ✅ | ✅ | 🟢 Complete | 13/13 routes |
+| **Internship Routes** | ✅ | ✅ | 🟡 Partial | 6/8 complete, 2 feature flagged |
+| **Project Routes** | ✅ | ✅ | 🟡 Partial | routes migrated, Phase 2 ยัง partial |
 | **Utility Pages** | ✅ | ✅ | 🟢 Complete | Student profile, deadlines |
 
 ---
@@ -140,8 +140,8 @@
 |-------|--------|---------|--------------|--------|
 | `/internship-registration/flow` | ✅ | ✅ | `ENABLE_INTERNSHIP_FLOW_PAGE` | ✅ Complete |
 | `/internship-registration` | ✅ | ✅ | - | ✅ Complete |
-| `/internship/logbook` | ✅ | ✅ | `ENABLE_INTERNSHIP_LOGBOOK_PAGE` | ⚠️ Feature flagged |
-| `/internship/certificate` | ✅ | ✅ | `ENABLE_INTERNSHIP_CERTIFICATE_PAGE` | ⚠️ Feature flagged |
+| `/internship/logbook` | ✅ | ✅ | `ENABLE_INTERNSHIP_LOGBOOK_PAGE` | ✅ Complete |
+| `/internship/certificate` | ✅ | ✅ | `ENABLE_INTERNSHIP_CERTIFICATE_PAGE` | ✅ Complete |
 | `/internship-companies` | ✅ | ✅ | - | ✅ Complete |
 | `/internship-summary` | ✅ | ✅ | - | ✅ Complete |
 | `/internship-eligibility` | ✅ | ✅ | - | ✅ Complete |
@@ -169,11 +169,11 @@
 
 | Route | Legacy | Next.js | Feature Flag | Status |
 |-------|--------|---------|--------------|--------|
-| `/project/phase2` | ✅ | ✅ | `ENABLE_PROJECT_PHASE2_PAGE` | ✅ Complete |
+| `/project/phase2` | ✅ | ✅ | `ENABLE_PROJECT_PHASE2_PAGE` | ⚠️ Partial |
 | `/project/phase2/system-test` | ✅ | ✅ | - | ✅ Complete |
 | `/project/phase2/thesis-defense` | ✅ | ✅ | - | ✅ Complete |
 
-**สรุป**: ✅ 10/10 Complete
+**สรุป**: ⚠️ **Partial Parity** - โครง route ครบ แต่ `/project/phase2` ยังมีบางส่วนที่ต้องเก็บ parity เพิ่ม
 
 ---
 
@@ -253,25 +253,23 @@
 
 ---
 
-### ⚠️ Feature Flagged Pages (ทำเสร็จแต่ยังปิด flag)
+### ⚠️ Rollout-Controlled Pages (ทำเสร็จและคุมการเปิดด้วย flag)
 
-1. `/internship/logbook` - `ENABLE_INTERNSHIP_LOGBOOK_PAGE=false`
-2. `/internship/certificate` - `ENABLE_INTERNSHIP_CERTIFICATE_PAGE=false`
-3. `/project/phase2` (partial) - `ENABLE_PROJECT_PHASE2_PAGE=false`
+1. `/internship/logbook` - `ENABLE_INTERNSHIP_LOGBOOK_PAGE=true` (แนะนำ production default)
+2. `/internship/certificate` - `ENABLE_INTERNSHIP_CERTIFICATE_PAGE=true` (แนะนำ production default)
+3. `/project/phase2` (partial) - `ENABLE_PROJECT_PHASE2_PAGE=true` (เปิดใช้ได้ แต่ยังมี parity gap บางส่วน)
 
-**Recommendation**: ทดสอบและเปิด flags เมื่อพร้อม deploy
+**Recommendation**: เปิดใช้ตามค่า default และ keep monitoring เฉพาะ `/project/phase2`
 
 ---
 
-## 6️⃣ Missing Features (จาก Legacy)
+## 6️⃣ Remaining Gaps (จาก Legacy)
 
-### 🔴 Features ที่ยังไม่ได้ย้าย:
+### 🔴 Features ที่ยังต้องเก็บ parity เพิ่ม:
 
-1. **Meetings Page**: ยังเป็น stub (redirect to `/app`)
-2. **Reports Page**: ยังเป็น stub
-3. **Settings Page**: ยังเป็น stub
+1. **Project Phase 2**: มี route ใช้งานจริง แต่ยังต้องเก็บ parity เพิ่มในบาง workflow/detail
 
-**Recommendation**: ย้ายในเฟสถัดไป (ไม่ critical สำหรับ core student workflow)
+**Recommendation**: ทำ parity pass เฉพาะ Phase 2 และ regression test กับ API จริง
 
 ---
 
@@ -320,8 +318,8 @@
 | **Dashboard Widgets** | ✅ Complete | **100%** (4/4) | ✅ All functional parity maintained |
 | **Services** | ✅ Complete | **100%** (7/7) | ✅ All APIs implemented |
 | **Hooks** | ✅ Complete | **100%** (11/11) | ✅ All hooks created |
-| **Internship Routes** | ✅ Complete | **75%** (6/8) | ⚠️ 2 feature flagged |
-| **Project Routes** | ✅ Complete | **100%** (10/10) | ✅ Phase 2 overview complete (meeting logbook section added) |
+| **Internship Routes** | ✅ Complete | **100%** (8/8) | ✅ เปิดใช้งานได้ครบใน production default |
+| **Project Routes** | ⚠️ Partial | **Partial** | ⚠️ Phase 1 ครบ, แต่ Phase 2 ยังต้องเก็บ parity เพิ่ม |
 | **Public Forms** | ✅ Complete | **100%** | ✅ + 1 new feature |
 | **API Compatibility** | ✅ Complete | **100%** | ✅ All endpoints match |
 
@@ -346,12 +344,12 @@
 5. Public evaluation forms
 6. Student deadlines calendar
 
-### ⚠️ Ready but Feature Flagged (test then enable):
-1. Internship logbook page
-2. Internship certificate page
+### ⚠️ Ready with Controlled Rollout:
+1. Internship logbook page (เปิดใช้แล้วใน production default)
+2. Internship certificate page (เปิดใช้แล้วใน production default)
 
 ### 🔄 Needs Completion:
-1. Meetings page (stub - redirects to teacher page)
+1. Project Phase 2 parity deepening (edge cases + full regression)
 
 ---
 
@@ -394,18 +392,18 @@
 - Services และ Hooks ครบถ้วน 100%
 - Internship flow หลักใช้งานได้
 - Project Phase 1 ครบทั้ง 7 ขั้นตอน
-- Project Phase 2 ครบทั้ง 3 sub-routes (รวม meeting logbook section)
+- Project Phase 2 อยู่ในสถานะ partial และควบคุมด้วย feature flag
 - Public forms ทำงานได้ดี
 - API compatibility 100%
 - Admin reports ครบทั้ง 5 route (internship/project/advisor/deadline/workflow)
 - Admin project documents management
 - Admin settings constants hub
 
-⚠️ **ส่วนที่ต้องเปิด Feature Flags**:
-- Internship logbook (ทำเสร็จแล้ว)
-- Internship certificate (ทำเสร็จแล้ว)
+⚠️ **ส่วนที่ควร monitor หลังเปิด production default**:
+- Internship logbook
+- Internship certificate
 
 🔄 **ส่วนที่ต้องทำต่อ**:
-- Meetings page (stub)
+- Project Phase 2 parity deepening (edge cases + full regression)
 
 **สรุป**: หน้าหลักทั้ง student และ admin พร้อม deploy production ได้แล้ว โดย feature flagged pages สามารถเปิดใช้งานได้เมื่อทดสอบครบถ้วน

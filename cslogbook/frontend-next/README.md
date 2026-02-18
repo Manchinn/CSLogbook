@@ -74,14 +74,14 @@ NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=false
 # Page rollouts (false = redirect to /app)
 NEXT_PUBLIC_ENABLE_STUDENT_PROFILE_PAGE=true
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
-NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=false
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=true
 NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
-NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=false
-NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=false
+NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=true
+NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=true
 NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
-NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=false
-NEXT_PUBLIC_ENABLE_REPORTS_PAGE=false
-NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
+NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=true
+NEXT_PUBLIC_ENABLE_REPORTS_PAGE=true
+NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=true
 ```
 
 > ถ้าจะใช้งานตัวแปรใน client component ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เท่านั้น
@@ -962,10 +962,10 @@ shared UI:
 ✅ **Student Profile**:
 - `/student-profile/[studentCode]` - ดูโปรไฟล์นักศึกษา (admin/teacher view)
 
-✅ **Placeholder Pages** (ยังเป็น stub):
-- `/meetings` - การประชุม (redirect to `/app` when flag off)
-- `/reports` - รายงาน
-- `/settings` - ตั้งค่า
+✅ **Global Entry Pages**:
+- `/meetings` - redirect ตาม role (`student -> /project/phase1/meeting-logbook`, `teacher academic -> /teacher/meeting-approvals`)
+- `/reports` - redirect ไป `/admin/reports/internship`
+- `/settings` - redirect ไป `/admin/settings/constants`
 
 **ไฟล์หลัก**:
 - `src/app/(app)/student-deadlines/calendar/page.tsx`
@@ -1003,14 +1003,14 @@ NEXT_PUBLIC_ENABLE_STUDENT_PROJECT_WIDGET=true
 # Page-Level Flags
 NEXT_PUBLIC_ENABLE_STUDENT_PROFILE_PAGE=true
 NEXT_PUBLIC_ENABLE_PROJECT_PHASE1_PAGE=true
-NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=false
+NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=true
 NEXT_PUBLIC_ENABLE_INTERNSHIP_FLOW_PAGE=true
-NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=false
-NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=false
+NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=true
+NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=true
 NEXT_PUBLIC_ENABLE_DEADLINES_PAGE=true
-NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=false
-NEXT_PUBLIC_ENABLE_REPORTS_PAGE=false
-NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
+NEXT_PUBLIC_ENABLE_MEETINGS_PAGE=true
+NEXT_PUBLIC_ENABLE_REPORTS_PAGE=true
+NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=true
 ```
 
 ---
@@ -1027,16 +1027,14 @@ NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
 
 ⚠️ **Partial (Stub/Feature Flagged)**:
 - Project phase2 (some pages incomplete)
-- Internship logbook (feature flagged)
-- Internship certificate (feature flagged)
-- Meetings, Reports, Settings (placeholder)
+- Internship logbook (rollout ผ่าน flag ได้)
+- Internship certificate (rollout ผ่าน flag ได้)
 
 🔄 **Next Steps**:
-1. เปิด feature flags สำหรับ logbook/certificate pages
+1. ทดสอบและยืนยัน workflow logbook/certificate บน production env
 2. เติมเนื้อหาหน้า phase2 ที่เหลือ
-3. ย้าย meetings/reports/settings จาก stub เป็นหน้าจริง
-4. ทดสอบ end-to-end workflow ทุก flow
-5. ปิด legacy student pages หลังทดสอบครบ
+3. ทดสอบ end-to-end workflow ทุก flow
+4. ปิด legacy student pages หลังทดสอบครบ
 
 ---
 
@@ -1067,20 +1065,20 @@ NEXT_PUBLIC_ENABLE_SETTINGS_PAGE=false
 | `/student-deadlines/calendar` | ✅ Complete | `ENABLE_DEADLINES_PAGE` | 8 |
 | `/internship-companies` | ✅ Complete | - | 9 |
 | `/internship-registration/*` | ✅ Complete | `ENABLE_INTERNSHIP_FLOW_PAGE` | 7, 12 |
-| `/internship/logbook` | ⚠️ Feature Flagged | `ENABLE_INTERNSHIP_LOGBOOK_PAGE` | 12 |
-| `/internship/certificate` | ⚠️ Feature Flagged | `ENABLE_INTERNSHIP_CERTIFICATE_PAGE` | 12 |
+| `/internship/logbook` | ✅ Complete | `ENABLE_INTERNSHIP_LOGBOOK_PAGE` | 12 |
+| `/internship/certificate` | ✅ Complete | `ENABLE_INTERNSHIP_CERTIFICATE_PAGE` | 12 |
 | `/project/phase1/*` | ✅ Complete | `ENABLE_PROJECT_PHASE1_PAGE` | 7, 12 |
 | `/project/phase2/*` | ⚠️ Partial | `ENABLE_PROJECT_PHASE2_PAGE` | 7, 12 |
 | `/student-profile/[code]` | ✅ Complete | `ENABLE_STUDENT_PROFILE_PAGE` | 7 |
 | `/evaluate/supervisor/[token]` | ✅ Complete | - | 10 |
 | `/approval/timesheet/[token]` | ✅ Complete | - | 12 |
-| `/meetings` | 🔄 Stub | `ENABLE_MEETINGS_PAGE` | - |
-| `/reports` | 🔄 Stub | `ENABLE_REPORTS_PAGE` | - |
-| `/settings` | 🔄 Stub | `ENABLE_SETTINGS_PAGE` | - |
+| `/meetings` | ✅ Redirect Entry | `ENABLE_MEETINGS_PAGE` | - |
+| `/reports` | ✅ Redirect Entry | `ENABLE_REPORTS_PAGE` | - |
+| `/settings` | ✅ Redirect Entry | `ENABLE_SETTINGS_PAGE` | - |
 
 **Legend**:
 - ✅ Complete: ใช้งานได้เต็มรูปแบบ
-- ⚠️ Feature Flagged: ทำเสร็จแต่ปิด flag ไว้ก่อน
+- ⚠️ Feature Flagged: ทำเสร็จและคุม rollout ด้วย flag
 - 🔄 Stub: มีหน้าแต่ยังไม่มีเนื้อหาจริง
 
 ---

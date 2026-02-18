@@ -40,10 +40,6 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   const handleNavigate = (item: MenuLink) => {
-    if (item.external) {
-      window.location.assign(item.href);
-      return;
-    }
     setIsSidebarOpen(false);
     router.push(item.href);
   };

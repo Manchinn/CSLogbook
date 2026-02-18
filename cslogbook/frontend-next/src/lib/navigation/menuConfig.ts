@@ -9,7 +9,7 @@ type MenuBase = {
 export type MenuLink = MenuBase & {
   kind: "link";
   href: string;
-  external?: boolean;
+  enabled?: boolean;
   children?: MenuNode[];
 };
 
@@ -32,8 +32,24 @@ type BuildOptions = {
   canAccessProject?: boolean | null;
 };
 
-function menuLink(key: string, label: string, href: string, external = false): MenuLink {
-  return { key, label, kind: "link", href, external };
+function menuLink(key: string, label: string, href: string, enabled = true): MenuLink {
+  return { key, label, kind: "link", href, enabled };
+}
+
+function filterMenuNodes(items: MenuNode[]): MenuNode[] {
+  return items
+    .flatMap((item) => {
+      if (item.kind === "link") {
+        return item.enabled === false ? [] : [{ ...item, children: item.children ? filterMenuNodes(item.children) : undefined }];
+      }
+
+      const children = filterMenuNodes(item.children);
+      if (children.length === 0) {
+        return [];
+      }
+
+      return [{ ...item, children }];
+    });
 }
 
 function buildStudentMenu(options: BuildOptions): MenuNode[] {
@@ -322,5 +338,5 @@ export function getMenuGroups(options: BuildOptions): MenuGroup[] {
     groups.push({ key: "admin", label: "ผู้ดูแลระบบ", items: buildAdminMenu() });
   }
 
-  return groups;
+  return groups.map((group) => ({ ...group, items: filterMenuNodes(group.items) }));
 }
