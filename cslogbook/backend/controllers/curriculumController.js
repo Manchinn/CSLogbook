@@ -3,7 +3,9 @@ const logger = require('../utils/logger');
 
 exports.getCurriculums = async (req, res) => {
   try {
-    const curriculums = await curriculumService.getAllCurriculums();
+    // Query parameter: ?activeOnly=true จะดึงเฉพาะหลักสูตรที่ active = true
+    const activeOnly = req.query.activeOnly === 'false' ? false : true;
+    const curriculums = await curriculumService.getAllCurriculums(activeOnly);
     res.json({ success: true, data: curriculums });
   } catch (error) {
     logger.error("Error fetching curriculums:", error);

@@ -154,8 +154,9 @@ export default function CurriculumSettingsPage() {
     setLoading(true);
     setMessage(null);
 
+    // ดึงหลักสูตรทั้งหมด (รวม inactive) เพื่อให้สามารถแก้ไขได้
     const [curriculumResult, mappingsResult] = await Promise.allSettled([
-      getCurriculums(),
+      getCurriculums(false),
       getCurriculumMappings(),
     ]);
 

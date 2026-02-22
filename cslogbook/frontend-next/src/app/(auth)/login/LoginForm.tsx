@@ -53,7 +53,7 @@ export function LoginForm() {
         className={styles.input}
       />
 
-      {featureFlags.enableMockAuth ? (
+      {false ? (
         <>
           <label className={styles.label} htmlFor="role">
             Role (Mock)

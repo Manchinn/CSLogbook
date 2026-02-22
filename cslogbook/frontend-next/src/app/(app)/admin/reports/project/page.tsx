@@ -252,7 +252,7 @@ export default function AdminProjectReportPage() {
                         {p.members?.map((m, memberIndex) => {
                           const memberKey = [
                             p.projectId ?? p.projectCode ?? "project",
-                            m.studentId ?? m.studentCode ?? m.name ?? "member",
+                            m.studentCode ?? m.name ?? "member",
                             memberIndex,
                           ].join("-");
 

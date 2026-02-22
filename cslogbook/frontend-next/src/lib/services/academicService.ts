@@ -4,6 +4,7 @@ type AcademicSettings = {
   academicYear?: number | null;
   currentSemester?: number | null;
   semester?: number | null;
+  activeCurriculumId?: number | null;
 };
 
 export type AcademicInfo = {
@@ -11,6 +12,7 @@ export type AcademicInfo = {
   semester: number;
   displayText: string;
   isFromDatabase: boolean;
+  activeCurriculumId?: number | null;
 };
 
 export async function getCurrentAcademicSettings(): Promise<AcademicSettings | null> {
@@ -26,6 +28,7 @@ export async function getCurrentAcademicInfo(): Promise<AcademicInfo | null> {
 
   let academicYear = settings.academicYear ?? null;
   let semester = settings.currentSemester ?? settings.semester ?? null;
+  const activeCurriculumId = settings.activeCurriculumId ?? null;
 
   if (semester == null) {
     const now = new Date();
@@ -39,6 +42,7 @@ export async function getCurrentAcademicInfo(): Promise<AcademicInfo | null> {
       semester,
       displayText: `${academicYear}/${semester}*`,
       isFromDatabase: false,
+      activeCurriculumId,
     };
   }
 
@@ -51,5 +55,6 @@ export async function getCurrentAcademicInfo(): Promise<AcademicInfo | null> {
     semester,
     displayText: `${academicYear}/${semester}`,
     isFromDatabase: true,
+    activeCurriculumId,
   };
 }

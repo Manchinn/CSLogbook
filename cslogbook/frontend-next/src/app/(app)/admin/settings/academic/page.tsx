@@ -191,7 +191,8 @@ export default function AcademicSettingsPage() {
 
   const loadCurriculums = useCallback(async () => {
     try {
-      const data = await getCurriculums();
+      // ดึงหลักสูตรทั้งหมด (รวม inactive) เพื่อให้สามารถเลือกเป็น activeCurriculumId ได้
+      const data = await getCurriculums(false);
       setCurriculums(data);
     } catch {
       setCurriculums([]);

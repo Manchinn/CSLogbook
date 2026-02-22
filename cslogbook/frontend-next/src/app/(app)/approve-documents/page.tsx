@@ -96,25 +96,25 @@ export default function ApproveDocumentsPage() {
       if (activeTab === "cs05") {
         if (modalMode === "approve") {
           await approveCS05.mutateAsync({
-            documentId: selectedDocument.id,
+            documentId: String(selectedDocument.id),
             comment: comment || undefined,
             letterType: letterType || undefined,
           });
         } else {
           await rejectCS05.mutateAsync({
-            documentId: selectedDocument.id,
+            documentId: String(selectedDocument.id),
             reason,
           });
         }
       } else {
         if (modalMode === "approve") {
           await approveAcceptanceLetter.mutateAsync({
-            documentId: selectedDocument.id,
+            documentId: String(selectedDocument.id),
             comment: comment || undefined,
           });
         } else {
           await rejectAcceptanceLetter.mutateAsync({
-            documentId: selectedDocument.id,
+            documentId: String(selectedDocument.id),
             reason,
           });
         }

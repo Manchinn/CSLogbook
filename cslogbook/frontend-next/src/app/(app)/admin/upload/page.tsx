@@ -5,7 +5,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { env } from "@/lib/config/env";
 import { getCurrentAcademicInfo } from "@/lib/services/academicService";
-import { getCurriculums, type CurriculumRecord } from "@/lib/services/settingsService";
+import { getCurriculumById, getCurriculums, type CurriculumRecord } from "@/lib/services/settingsService";
 import { uploadStudentCSV, type UploadStudentResult, type UploadStudentSummary } from "@/lib/services/adminService";
 import styles from "./page.module.css";
 
@@ -68,7 +68,8 @@ export default function AdminUploadPage() {
 
       return {
         ready: true,
-        message: `กำลังใช้หลักสูตร: ${selected.shortName || selected.name || "ไม่ระบุ"}`,
+        message: `กำลังใช้หลักสูตร: ${selected.shortName || selected.name || "ไม่ระบุ"}` +
+          (selected.active === false ? " (ยังไม่ได้เปิดใช้งาน)" : ""),
       };
     },
     []
@@ -81,37 +82,57 @@ export default function AdminUploadPage() {
       academic: { ready: false, message: "กรุณาตั้งค่าปีการศึกษา/ภาคการศึกษาในเมนูตั้งค่าระบบ" },
     };
 
-    try {
-      const curriculums = await getCurriculums();
-      const activeList = curriculums.filter((curriculum) => curriculum.active);
-      setActiveCurriculums(activeList);
+    let nextAcademicCurriculumId: number | null = null;
 
-      if (activeList.length > 0) {
-        const fallbackId = getCurriculumId(activeList[0]);
-        const nextSelectedId = selectedCurriculumRef.current ?? fallbackId ?? null;
+    try {
+      const academicInfo = await getCurrentAcademicInfo();
+      if (academicInfo) {
+        nextAcademicCurriculumId = academicInfo.activeCurriculumId ?? null;
+        nextStatus.academic = {
+          ready: true,
+          message:
+            `ปีการศึกษา/ภาคเรียนปัจจุบัน: ${academicInfo.displayText}` +
+            (academicInfo.isFromDatabase ? "" : " (คำนวณอัตโนมัติ)"),
+        };
+      }
+    } catch {
+      nextStatus.academic = { ready: false, message: "ไม่สามารถโหลดข้อมูลปีการศึกษาได้" };
+    }
+
+    try {
+      // getCurriculums() จะดึงเฉพาะหลักสูตรที่ active = true อยู่แล้ว
+      const curriculums = await getCurriculums();
+      let nextCurriculums = curriculums;
+
+      if (nextAcademicCurriculumId && !curriculums.some((item) => getCurriculumId(item) === nextAcademicCurriculumId)) {
+        const academicCurriculum = await getCurriculumById(nextAcademicCurriculumId);
+        if (academicCurriculum) {
+          nextCurriculums = [academicCurriculum, ...curriculums];
+        }
+      }
+
+      setActiveCurriculums(nextCurriculums);
+
+      if (nextCurriculums.length > 0) {
+        const fallbackId = getCurriculumId(nextCurriculums[0]);
+        const academicMatch = nextCurriculums.find(
+          (curriculum) => getCurriculumId(curriculum) === nextAcademicCurriculumId
+        );
+        const nextSelectedId =
+          (academicMatch ? getCurriculumId(academicMatch) : null) ??
+          selectedCurriculumRef.current ??
+          fallbackId ??
+          null;
         setSelectedCurriculumId(nextSelectedId);
-        nextStatus.curriculum = resolveCurriculumStatus(activeList, nextSelectedId);
+        nextStatus.curriculum = resolveCurriculumStatus(nextCurriculums, nextSelectedId);
       } else {
-        nextStatus.curriculum = resolveCurriculumStatus(activeList, null);
+        nextStatus.curriculum = resolveCurriculumStatus(nextCurriculums, null);
       }
     } catch {
       nextStatus.curriculum = {
         ready: false,
         message: "ไม่สามารถโหลดข้อมูลหลักสูตรได้",
       };
-    }
-
-    try {
-      const academicInfo = await getCurrentAcademicInfo();
-      if (academicInfo) {
-        nextStatus.academic = {
-          ready: true,
-          message: `ปีการศึกษา/ภาคเรียนปัจจุบัน: ${academicInfo.displayText}` +
-            (academicInfo.isFromDatabase ? "" : " (คำนวณอัตโนมัติ)"),
-        };
-      }
-    } catch {
-      nextStatus.academic = { ready: false, message: "ไม่สามารถโหลดข้อมูลปีการศึกษาได้" };
     }
 
     setPrerequisiteStatus(nextStatus);

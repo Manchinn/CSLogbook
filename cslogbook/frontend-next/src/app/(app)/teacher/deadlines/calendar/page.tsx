@@ -80,7 +80,7 @@ export default function TeacherDeadlinesCalendarPage() {
       >
         <div className={styles.deadlinesList}>
           {deadlines.map((deadline) => {
-            const daysLeft = getDaysLeft(deadline.date);
+            const daysLeft = getDaysLeft(deadline.dueAt || "");
             const status = getDeadlineStatus(daysLeft);
 
             return (
@@ -100,7 +100,7 @@ export default function TeacherDeadlinesCalendarPage() {
                   <div className={styles.dateSection}>
                     <div className={styles.dateLabel}>วันที่</div>
                     <div className={styles.dateValue}>
-                      {new Date(deadline.date).toLocaleDateString("th-TH", {
+                      {new Date(deadline.dueAt || "").toLocaleDateString("th-TH", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
@@ -117,17 +117,17 @@ export default function TeacherDeadlinesCalendarPage() {
                     </div>
                   </div>
 
-                  {deadline.relatedTopic && (
+                  {deadline.relatedTo && (
                     <div className={styles.topicSection}>
                       <div className={styles.topicLabel}>หัวข้อที่เกี่ยวข้อง</div>
-                      <div className={styles.topicValue}>{deadline.relatedTopic}</div>
+                      <div className={styles.topicValue}>{deadline.relatedTo}</div>
                     </div>
                   )}
 
-                  {deadline.description && (
+                  {deadline.relatedTo && (
                     <div className={styles.descriptionSection}>
                       <div className={styles.descriptionLabel}>รายละเอียด</div>
-                      <div className={styles.descriptionValue}>{deadline.description}</div>
+                      <div className={styles.descriptionValue}>{deadline.relatedTo}</div>
                     </div>
                   )}
                 </div>

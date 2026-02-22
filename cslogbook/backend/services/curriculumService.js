@@ -9,13 +9,15 @@ const { Op } = require('sequelize');
 class CurriculumService {
   /**
    * ดึงข้อมูลหลักสูตรทั้งหมด
-   * @returns {Array} รายการหลักสูตรทั้งหมด
+   * @param {boolean} activeOnly - หากเป็น true จะดึงเฉพาะหลักสูตรที่ active = true (ค่าเริ่มต้น: true)
+   * @returns {Array} รายการหลักสูตร
    */
-  async getAllCurriculums() {
+  async getAllCurriculums(activeOnly = true) {
     try {
-      logger.info('CurriculumService: Fetching all curriculums');
+      logger.info(`CurriculumService: Fetching curriculums (activeOnly: ${activeOnly})`);
       
-      const curriculums = await Curriculum.findAll();
+      const options = activeOnly ? { where: { active: true } } : {};
+      const curriculums = await Curriculum.findAll(options);
       
       logger.info(`CurriculumService: Found ${curriculums.length} curriculums`);
       return curriculums;

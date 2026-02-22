@@ -118,7 +118,7 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
                 <div className={styles.timelineItem}>
                   <div
                     className={`${styles.timelineDot} ${
-                      (item as DefenseRequest).myApproval.status === "approved"
+                      (item as DefenseRequest).myApproval?.status === "approved"
                         ? styles.timelineDotApproved
                         : styles.timelineDotPending
                     }`}
@@ -126,7 +126,7 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
                   <div className={styles.timelineContent}>
                     <div className={styles.timelineLabel}>การอนุมัติของฉัน</div>
                     <div className={styles.timelineDate}>
-                      {(item as DefenseRequest).myApproval.status === "approved"
+                      {(item as DefenseRequest).myApproval?.status === "approved"
                         ? "อนุมัติแล้ว"
                         : "รออนุมัติ"}
                     </div>

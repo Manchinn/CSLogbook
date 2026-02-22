@@ -23,8 +23,14 @@ type CurriculumResponse = {
   data?: CurriculumRecord[];
 };
 
-export async function getCurriculums() {
-  const response = await apiFetchData<CurriculumResponse>("/admin/curriculums");
+/**
+ * ดึงรายการหลักสูตร
+ * @param activeOnly - หาก true จะดึงเฉพาะหลักสูตรที่ active=true (ค่าเริ่มต้น: true)
+ */
+export async function getCurriculums(activeOnly: boolean = true) {
+  const response = await apiFetchData<CurriculumResponse>(
+    `/admin/curriculums?activeOnly=${activeOnly}`
+  );
   return response?.data ?? [];
 }
 
