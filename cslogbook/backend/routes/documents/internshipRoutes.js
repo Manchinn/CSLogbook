@@ -7,12 +7,8 @@ const cp05ApprovalController = require("../../controllers/documents/cp05Approval
 const acceptanceApprovalController = require("../../controllers/documents/acceptanceApprovalController");
 const documentController = require("../../controllers/documents/documentController");
 const internshipController = require("../../controllers/documents/internshipController");
-const {
-  authenticateToken,
-  checkRole,
-  checkTeacherType,
-  checkTeacherPosition,
-} = require("../../middleware/authMiddleware");
+const { authenticateToken } = require("../../middleware/authMiddleware");
+const authorize = require("../../middleware/authorize");
 const { checkInternshipEligibility } = require("../../middleware/internshipEligibilityMiddleware");
 const { checkInternshipDeadline } = require("../../middleware/internshipDeadlineMiddleware");
 const {
@@ -30,7 +26,7 @@ const {
 router.get(
   "/student/info",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   internshipController.getStudentInfo
 );
 
@@ -40,7 +36,7 @@ router.get(
 router.get(
   "/current-cs05",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.getCurrentCS05
 );
@@ -49,7 +45,7 @@ router.get(
 router.post(
   "/cs-05/submit",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   checkInternshipDeadline('CS05', 'SUBMISSION'),
   validateSubmitCS05,
@@ -60,7 +56,7 @@ router.post(
 router.post(
   "/cs-05/submit-with-transcript",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   checkInternshipDeadline('CS05', 'SUBMISSION'),
   upload.single("transcript"),
@@ -75,7 +71,7 @@ router.get("/cs-05/:id", authenticateToken, internshipController.getCS05ById);
 router.post(
   "/company-info/submit",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   validateSubmitCompanyInfo,
   internshipController.submitCompanyInfo
@@ -85,7 +81,7 @@ router.post(
 router.get(
   "/company-info/:documentId",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.getCompanyInfo
 );
@@ -96,7 +92,7 @@ router.get(
 router.get(
   "/summary",
   authenticateToken,
-  checkRole(["student", "teacher"]),
+  authorize("internship", "summary"),
   internshipController.getInternshipSummary
 );
 
@@ -106,7 +102,7 @@ router.get(
 router.get(
   "/evaluation/status",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.getEvaluationStatus
 );
@@ -115,7 +111,7 @@ router.get(
 router.post(
   "/request-evaluation/send/:documentId",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   validateSendEvaluationForm,
   internshipController.sendEvaluationForm
@@ -143,7 +139,7 @@ router.post(
 router.get(
   "/certificate/preview",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.previewCertificate
 );
@@ -152,7 +148,7 @@ router.get(
 router.get(
   "/certificate/download",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.downloadCertificate
 );
@@ -161,7 +157,7 @@ router.get(
 router.get(
   "/certificate-status",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.getCertificateStatus
 );
@@ -170,7 +166,7 @@ router.get(
 router.post(
   "/certificate-request",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   checkInternshipDeadline('report', 'SUBMISSION'), // ตรวจสอบ deadline รายงานผลการฝึกงาน
   validateSubmitCertificateRequest,
@@ -181,7 +177,7 @@ router.post(
 router.post(
   "/certificate-downloaded",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.markCertificateDownloaded
 );
@@ -191,7 +187,7 @@ router.post(
 router.post(
   "/upload-transcript",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   upload.single("file"),
   async (req, res) => {
@@ -242,7 +238,7 @@ router.post(
 router.post(
   "/upload-acceptance-letter",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   upload.single("acceptanceLetter"), // ใช้ field name เดียวกับ frontend
   validateUploadAcceptanceLetter,
@@ -253,7 +249,7 @@ router.post(
 router.get(
   "/acceptance-letter-status/:documentId",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.getAcceptanceLetterStatus
 );
@@ -262,7 +258,7 @@ router.get(
 router.get(
   "/download-acceptance-letter/:documentId",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.downloadAcceptanceLetter
 );
@@ -273,7 +269,7 @@ router.get(
 router.get(
   "/referral-letter-status/:documentId",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.getReferralLetterStatus
 );
@@ -282,7 +278,7 @@ router.get(
 router.get(
   "/download-referral-letter/:documentId",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.downloadReferralLetter
 );
@@ -291,7 +287,7 @@ router.get(
 router.patch(
   "/referral-letter/:documentId/mark-downloaded",
   authenticateToken,
-  checkRole(["student"]),
+  authorize("internship", "student"),
   checkInternshipEligibility,
   internshipController.markReferralLetterDownloaded
 );
@@ -303,8 +299,7 @@ module.exports = router;
 router.get(
   "/cs-05/head/queue",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  authorize("internship", "cp05Head"),
   cp05ApprovalController.listForHead
 );
 
@@ -312,8 +307,7 @@ router.get(
 router.post(
   "/cs-05/:id/review",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherType(["support"]),
+  authorize("internship", "cp05Staff"),
   cp05ApprovalController.reviewByStaff
 );
 
@@ -321,8 +315,7 @@ router.post(
 router.post(
   "/cs-05/:id/approve",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  authorize("internship", "cp05Head"),
   cp05ApprovalController.approveByHead
 );
 
@@ -330,7 +323,7 @@ router.post(
 router.post(
   "/cs-05/:id/reject",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
+  authorize("internship", "cp05Reviewer"),
   cp05ApprovalController.reject
 );
 
@@ -338,8 +331,7 @@ router.post(
 router.get(
   "/cs-05/:id/view",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  authorize("internship", "cp05Head"),
   documentController.viewDocument
 );
 
@@ -348,8 +340,7 @@ router.get(
 router.get(
   "/acceptance/head/queue",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  authorize("internship", "acceptanceHead"),
   acceptanceApprovalController.listForHead
 );
 
@@ -357,8 +348,7 @@ router.get(
 router.post(
   "/acceptance/:id/review",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherType(["support"]),
+  authorize("internship", "acceptanceStaff"),
   acceptanceApprovalController.reviewByStaff
 );
 
@@ -366,8 +356,7 @@ router.post(
 router.post(
   "/acceptance/:id/approve",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
-  checkTeacherPosition(["หัวหน้าภาควิชา"]),
+  authorize("internship", "acceptanceHead"),
   acceptanceApprovalController.approveByHead
 );
 
@@ -375,6 +364,7 @@ router.post(
 router.post(
   "/acceptance/:id/reject",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
+  authorize("internship", "acceptanceReviewer"),
   acceptanceApprovalController.reject
 );
+

@@ -15,11 +15,12 @@ const agentStatusController = require('../controllers/agentStatusController');
 const projectManagementController = require('../controllers/projectManagementController');
 const projectReportController = require('../controllers/projectReportController');
 const internshipAdminController = require('../controllers/internshipAdminController');
-const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const authorize = require('../middleware/authorize');
 
 
 // Middleware for admin routes - รองรับทั้ง admin และ teacher support
-const adminAuth = [authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support'])];
+const adminAuth = [authenticateToken, authorize('admin', 'access')];
 
 // 🆕 Project workflow state dashboard
 const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');

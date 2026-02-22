@@ -3,17 +3,14 @@
 const express = require('express');
 const router = express.Router();
 const emailApprovalController = require('../controllers/logbooks/emailApprovalController');
-const authMiddleware = require('../middleware/authMiddleware');
-const {
-    authenticateToken,
-    checkRole,
-  } = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
+const authorize = require("../middleware/authorize");
 
 // Routes สำหรับดึงข้อมูลการอนุมัติ
 router.get('/details/:token', emailApprovalController.getApprovalDetails);
 
 // Routes สำหรับนักศึกษาส่งคำขออนุมัติ (ต้องล็อกอินเป็นนักศึกษา)
-router.post('/request/:studentId', authenticateToken, checkRole(['student']), emailApprovalController.sendApprovalRequest);
+router.post('/request/:studentId', authenticateToken, authorize('emailApproval', 'request'), emailApprovalController.sendApprovalRequest);
 
 // ===============================
 // Routes สำหรับ Email Links (HTML responses) - สำหรับคลิกจากอีเมล

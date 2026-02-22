@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
+const authorize = require('../middleware/authorize');
 const { checkProjectEligibility } = require('../middleware/projectEligibilityMiddleware');
 const { checkDeadlineBeforeSubmission } = require('../middleware/deadlineEnforcementMiddleware');
 const { 
@@ -23,10 +24,10 @@ const { uploadSystemTestRequest, uploadSystemTestEvidence } = require('../config
 router.use(authenticateToken);
 
 // สร้างโครงงาน (นักศึกษา) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.post('/', checkProjectEligibility, validateCreateProject, controller.createProject);
+router.post('/', authorize('project', 'create'), checkProjectEligibility, validateCreateProject, controller.createProject);
 
 // รายการของฉัน - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.get('/mine', checkProjectEligibility, controller.getMyProjects);
+router.get('/mine', authorize('project', 'viewMine'), checkProjectEligibility, controller.getMyProjects);
 
 // ผลสอบโครงงานพิเศษ - routes ที่ไม่มี :id (ต้องอยู่ก่อน)
 router.get('/exam-results/project1/pending', projectExamResultController.getProject1PendingResults);
@@ -34,28 +35,28 @@ router.get('/exam-results/thesis/pending', projectExamResultController.getThesis
 router.get('/exam-results/statistics', projectExamResultController.getExamStatistics);
 
 // System test request (ก่อนยื่นสอบโครงงานพิเศษ)
-router.get('/system-test/advisor-queue', projectSystemTestController.advisorQueue);
-router.get('/system-test/staff-queue', projectSystemTestController.staffQueue);
+router.get('/system-test/advisor-queue', authorize('project', 'systemTestAdvisorQueue'), projectSystemTestController.advisorQueue);
+router.get('/system-test/staff-queue', authorize('project', 'systemTestStaffQueue'), projectSystemTestController.staffQueue);
 
 router.get('/:id/system-test/request', projectSystemTestController.getLatestRequest);
 router.post('/:id/system-test/request', checkDeadlineBeforeSubmission('SUBMISSION'), uploadSystemTestRequest.single('requestFile'), projectSystemTestController.submitRequest);
-router.post('/:id/system-test/request/advisor-decision', projectSystemTestController.submitAdvisorDecision);
-router.post('/:id/system-test/request/staff-decision', projectSystemTestController.submitStaffDecision);
+router.post('/:id/system-test/request/advisor-decision', authorize('project', 'systemTestAdvisorDecision'), projectSystemTestController.submitAdvisorDecision);
+router.post('/:id/system-test/request/staff-decision', authorize('project', 'systemTestStaffDecision'), projectSystemTestController.submitStaffDecision);
 router.post('/:id/system-test/request/evidence', uploadSystemTestEvidence.single('evidenceFile'), projectSystemTestController.uploadEvidence);
 
 // KP02 queues & actions (ต้องอยู่ก่อน path ที่มี :id เพื่อไม่ให้ชน routing)
-router.get('/kp02/advisor-queue', projectDefenseRequestController.getAdvisorQueue);
-router.get('/kp02/staff-queue', projectDefenseRequestController.getStaffVerificationQueue);
-router.get('/kp02/staff-queue/export', projectDefenseRequestController.exportStaffVerificationList);
+router.get('/kp02/advisor-queue', authorize('project', 'kp02AdvisorQueue'), projectDefenseRequestController.getAdvisorQueue);
+router.get('/kp02/staff-queue', authorize('project', 'kp02StaffQueue'), projectDefenseRequestController.getStaffVerificationQueue);
+router.get('/kp02/staff-queue/export', authorize('project', 'kp02Export'), projectDefenseRequestController.exportStaffVerificationList);
 
 // คำขอสอบโครงงานพิเศษ 1 (KP02 Project1) และ Thesis
 router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
-router.post('/:id/kp02', checkDeadlineBeforeSubmission('SUBMISSION'), validateSubmitProject1Request, projectDefenseRequestController.submitProject1Request);
-router.post('/:id/kp02/advisor-approve', projectDefenseRequestController.submitAdvisorDecision);
-router.post('/:id/kp02/verify', projectDefenseRequestController.verifyProject1Request);
-router.post('/:id/kp02/schedule', projectDefenseRequestController.scheduleProject1Defense);
+router.post('/:id/kp02', authorize('project', 'kp02Submit'), checkDeadlineBeforeSubmission('SUBMISSION'), validateSubmitProject1Request, projectDefenseRequestController.submitProject1Request);
+router.post('/:id/kp02/advisor-approve', authorize('project', 'kp02AdvisorDecision'), projectDefenseRequestController.submitAdvisorDecision);
+router.post('/:id/kp02/verify', authorize('project', 'kp02StaffVerify'), projectDefenseRequestController.verifyProject1Request);
+router.post('/:id/kp02/schedule', authorize('project', 'kp02Schedule'), projectDefenseRequestController.scheduleProject1Defense);
 
-router.patch('/:id/final-document/status', projectExamResultController.updateFinalDocumentStatus);
+router.patch('/:id/final-document/status', authorize('project', 'finalDocumentStatus'), projectExamResultController.updateFinalDocumentStatus);
 
 // Workflow state - เพิ่มเข้ามาก่อน route /:id เพื่อไม่ให้ชน
 const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');
@@ -76,7 +77,7 @@ router.get('/:id', checkProjectEligibility, async (req, res, next) => {
 // Milestones - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const milestoneController = require('../controllers/projectMilestoneController');
 router.get('/:id/milestones', checkProjectEligibility, milestoneController.list);
-router.post('/:id/milestones', checkProjectEligibility, milestoneController.create);
+router.post('/:id/milestones', authorize('project', 'milestoneManage'), checkProjectEligibility, milestoneController.create);
 
 // Meetings & Logs - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 router.get('/:id/meetings', checkProjectEligibility, meetingController.list);
@@ -92,32 +93,33 @@ router.patch('/:id/meetings/:meetingId/logs/:logId/approval', meetingController.
 const artifactController = require('../controllers/projectArtifactController');
 const { uploadProposal } = require('../config/projectArtifactUpload');
 router.get('/:id/artifacts', checkProjectEligibility, artifactController.list);
-router.post('/:id/proposal', checkProjectEligibility, checkDeadlineBeforeSubmission('SUBMISSION'), uploadProposal.single('file'), artifactController.uploadProposal);
+router.post('/:id/proposal', authorize('project', 'artifactManage'), checkProjectEligibility, checkDeadlineBeforeSubmission('SUBMISSION'), uploadProposal.single('file'), artifactController.uploadProposal);
 
 // Tracks (multi-track) - แยก endpoint ชัดเจน - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const projectTracksController = require('../controllers/projectTracksController');
 router.get('/:id/tracks', checkProjectEligibility, projectTracksController.list);
-router.post('/:id/tracks', checkProjectEligibility, projectTracksController.replace); // replace ทั้งชุด
+router.post('/:id/tracks', authorize('project', 'trackManage'), checkProjectEligibility, projectTracksController.replace); // replace ทั้งชุด
 
 // อัปเดต metadata (leader) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 router.patch('/:id', checkProjectEligibility, validateUpdateProject, controller.updateProject);
+router.patch('/:id', authorize('project', 'updateOwn'), checkProjectEligibility, validateUpdateProject, controller.updateProject);
 
 // เพิ่มสมาชิกคนที่สอง - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.post('/:id/members', checkProjectEligibility, validateAddMember, controller.addMember);
+router.post('/:id/members', authorize('project', 'addMember'), checkProjectEligibility, validateAddMember, controller.addMember);
 
 // Promote -> in_progress - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.post('/:id/activate', checkProjectEligibility, controller.activateProject);
+router.post('/:id/activate', authorize('project', 'activate'), checkProjectEligibility, controller.activateProject);
 
 // Archive (admin)
-router.post('/:id/archive', controller.archiveProject);
+router.post('/:id/archive', authorize('project', 'archive'), controller.archiveProject);
 
 // บันทึกผลสอบหัวข้อ (staff/admin) - เดิม
-router.post('/:id/topic-exam-result', topicExamResultController.recordResult);
-router.patch('/:id/topic-exam-result/ack', checkProjectEligibility, topicExamResultController.acknowledgeFailed);
+router.post('/:id/topic-exam-result', authorize('project', 'topicExamRecord'), topicExamResultController.recordResult);
+router.patch('/:id/topic-exam-result/ack', authorize('project', 'topicExamAcknowledge'), checkProjectEligibility, topicExamResultController.acknowledgeFailed);
 
 // บันทึกผลสอบโครงงานพิเศษ 1 และ Thesis (staff/admin)
-router.post('/:id/exam-result', projectExamResultController.recordExamResult);
+router.post('/:id/exam-result', authorize('project', 'examRecord'), projectExamResultController.recordExamResult);
 router.get('/:id/exam-result', checkProjectEligibility, projectExamResultController.getExamResult);
-router.patch('/:id/exam-result/acknowledge', checkProjectEligibility, projectExamResultController.acknowledgeExamResult);
+router.patch('/:id/exam-result/acknowledge', authorize('project', 'examAcknowledge'), checkProjectEligibility, projectExamResultController.acknowledgeExamResult);
 
 module.exports = router;

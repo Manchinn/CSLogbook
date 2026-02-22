@@ -2,26 +2,27 @@ const express = require('express');
 const router = express.Router();
 const { upload } = require('../../config/uploadConfig');
 const projectDocController = require('../controllers/projectDocumentController');
-const { authenticateToken, checkRole } = require('../../middleware/authMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
+const authorize = require('../../middleware/authorize');
 
 // CS-02 Routes (แบบฟอร์มขอสอบ)
 router.post('/cs-02/submit',
     authenticateToken,
-    checkRole(['student']),
+    authorize('documents', 'studentSubmit'),
     projectDocController.submitCS02
 );
 
 // CS-04 Routes (หนังสือรับรองการทดสอบ)
 router.post('/cs-04/submit',
     authenticateToken,
-    checkRole(['student']),
+    authorize('documents', 'studentSubmit'),
     projectDocController.submitCS04
 );
 
 // Logbook Routes
 router.post('/logbook/entry',
     authenticateToken,
-    checkRole(['student']),
+    authorize('documents', 'studentSubmit'),
     projectDocController.addLogbookEntry
 );
 
@@ -55,19 +56,19 @@ router.get('/:id/download',
 // Admin/Teacher Routes
 router.patch('/:id/status',
     authenticateToken,
-    checkRole(['admin', 'teacher']),
+    authorize('documents', 'staffReview'),
     projectDocController.updateStatus
 );
 
 router.post('/:id/approve',
     authenticateToken,
-    checkRole(['admin', 'teacher']),
+    authorize('documents', 'staffReview'),
     projectDocController.approveDocument
 );
 
 router.post('/:id/reject',
     authenticateToken,
-    checkRole(['admin', 'teacher']),
+    authorize('documents', 'staffReview'),
     projectDocController.rejectDocument
 );
 

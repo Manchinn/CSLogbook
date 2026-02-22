@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, checkRole } = require('../../middleware/authMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
+const authorize = require('../../middleware/authorize');
 const { upload } = require('../../config/uploadConfig');
 const projectController = require('../../controllers/documents/projectController');
 const statusController = require('../../controllers/documents/statusController');
@@ -13,7 +14,7 @@ router.get('/',
 
 router.post('/submit',
     authenticateToken,
-    checkRole(['student']),
+    authorize('documents', 'studentSubmit'),
     upload.single('file'),
     projectController.submitDocument
 );
@@ -26,19 +27,19 @@ router.get('/:id',
 // Status Management Routes
 router.patch('/:id/status',
     authenticateToken,
-    checkRole(['admin', 'teacher']),
+    authorize('documents', 'staffReview'),
     statusController.updateStatus
 );
 
 router.post('/:id/approve',
     authenticateToken,
-    checkRole(['admin', 'teacher']),
+    authorize('documents', 'staffReview'),
     statusController.approveDocument
 );
 
 router.post('/:id/reject',
     authenticateToken,
-    checkRole(['admin', 'teacher']),
+    authorize('documents', 'staffReview'),
     statusController.rejectDocument
 );
 

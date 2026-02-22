@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
 const studentProjectController = require('../controllers/studentProjectController');
-const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const authorize = require('../middleware/authorize');
 const importantDeadlineController = require('../controllers/importantDeadlineController');
 
 // Public routes (ถ้ามี)
@@ -12,98 +13,88 @@ router.use(authenticateToken);
 
 // Student eligibility check route (สำหรับนักศึกษาตรวจสอบสิทธิ์ของตนเอง)
 router.get('/check-eligibility', 
-  checkRole(['student']), 
+  authorize('students', 'selfService'),
   studentController.checkStudentEligibility
 );
 
 // Upcoming important deadlines (student view)
 router.get('/important-deadlines/upcoming',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   importantDeadlineController.getUpcomingForStudent
 );
 router.get('/important-deadlines',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   importantDeadlineController.getAllForStudent
 );
 
 // Student project management routes
 // ดูโครงงานของนักศึกษา
 router.get('/projects',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   studentProjectController.getMyProjects
 );
 
 // ดูรายละเอียดโครงงานเฉพาะ
 router.get('/projects/:id',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   studentProjectController.getProjectById
 );
 
 // แก้ไขข้อมูลโครงงาน
 router.put('/projects/:id',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   studentProjectController.updateProject
 );
 
 // เพิ่มสมาชิกในโครงงาน
 router.post('/projects/:id/members',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   studentProjectController.addMember
 );
 
 // เปิดใช้งานโครงงาน
 router.put('/projects/:id/activate',
-  checkRole(['student']),
+  authorize('students', 'selfService'),
   studentProjectController.activateProject
 );
 
 // Admin/Support Staff routes
 // เพิ่มนักศึกษา: อนุญาต admin หรืออาจารย์ประเภท support
 router.post('/', 
-  checkRole(['admin', 'teacher']),
-  require('../middleware/authMiddleware').checkTeacherType(['support']),
+  authorize('students', 'manage'),
   studentController.addStudent
 );
 
 // ดูรายการนักศึกษา: อนุญาต admin หรืออาจารย์ประเภท support
 router.get('/', 
-  checkRole(['admin', 'teacher']),
-  require('../middleware/authMiddleware').checkTeacherType(['support']),
+  authorize('students', 'manage'),
   studentController.getAllStudents
 );
 
 // ดึงตัวเลือกตัวกรอง (วางไว้ก่อน /:id เพื่อไม่ให้ชนกัน)
 router.get('/filter-options', 
-  checkRole(['admin', 'student', 'teacher']),
+  authorize('students', 'read'),
   studentController.getFilterOptions
 );
 
 router.get('/:id', 
-  checkRole(['admin', 'teacher', 'student']),
+  authorize('students', 'read'),
   studentController.getStudentById
 );
 
 // อัปเดตข้อมูลติดต่อ (เบอร์โทรและห้องเรียน) - นักศึกษาสามารถแก้ไขข้อมูลของตัวเองได้
 router.put('/:id/contact-info',
-  checkRole(['admin', 'student', 'teacher']),
+  authorize('students', 'updateContact'),
   studentController.updateContactInfo
 );
 
 router.put('/:id',
-  checkRole(['admin', 'student', 'teacher']),
-  // ถ้าเป็นครู ให้ตรวจสอบว่าเป็นประเภท support เท่านั้น; ถ้าเป็น admin/student ให้ข้ามได้
-  (req, res, next) => {
-    if (req.user?.role === 'teacher') {
-      return require('../middleware/authMiddleware').checkTeacherType(['support'])(req, res, next);
-    }
-    return next();
-  },
+  authorize('students', 'updateProfile'),
   studentController.updateStudent
 );
 
 router.delete('/:id',
-  checkRole(['admin', 'teacher']),
-  require('../middleware/authMiddleware').checkTeacherType(['support']),
+  authorize('students', 'manage'),
   studentController.deleteStudent
 );
 

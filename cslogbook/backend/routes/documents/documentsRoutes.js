@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path'); // เพิ่ม path เพราะใช้งานใน filename แต่ยังไม่ได้ import
-const { authenticateToken, checkRole } = require('../../middleware/authMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
+const authorize = require('../../middleware/authorize');
 const documentController = require('../../controllers/documents/documentController');
 require('../swagger/documents')
 
@@ -38,9 +39,9 @@ router.get('/:id', documentController.getDocumentById);
 // ใช้ uploadDocument แทน submitDocument (ฟังก์ชันมีอยู่จริงใน controller)
 router.post('/submit', authenticateToken, upload.single('file'), documentController.uploadDocument);
 // เฉพาะเจ้าหน้าที่ภาค / อาจารย์เท่านั้นที่อนุมัติ/ปฏิเสธได้
-router.post('/:id/approve', authenticateToken, checkRole(['admin','teacher']), documentController.approveDocument);
-router.post('/:id/reject', authenticateToken, checkRole(['admin','teacher']), documentController.rejectDocument);
+router.post('/:id/approve', authenticateToken, authorize('documents', 'staffReview'), documentController.approveDocument);
+router.post('/:id/reject', authenticateToken, authorize('documents', 'staffReview'), documentController.rejectDocument);
 // ใช้ชื่อฟังก์ชันที่ถูกต้องใน controller คือ updateDocumentStatus
-router.patch('/:id/status', authenticateToken, checkRole(['admin', 'teacher']), documentController.updateDocumentStatus);
+router.patch('/:id/status', authenticateToken, authorize('documents', 'staffReview'), documentController.updateDocumentStatus);
 
 module.exports = router;

@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const projectTransitionService = require('../services/projectTransitionService');
 const logger = require('../utils/logger');
+const authorize = require('../middleware/authorize');
 
 /**
  * GET /api/projects/:id/transition-status
  * Check transition eligibility for a project
  * Accessible to: All authenticated users
  */
-router.get('/:id/transition-status', async (req, res) => {
+router.get('/:id/transition-status', authorize('projectTransition', 'read'), async (req, res) => {
     try {
         const projectId = parseInt(req.params.id);
 
@@ -46,16 +47,8 @@ router.get('/:id/transition-status', async (req, res) => {
  * Manually transition a project to Project 2
  * Accessible to: Admin only
  */
-router.post('/:id/transition-to-project2', async (req, res) => {
+router.post('/:id/transition-to-project2', authorize('projectTransition', 'manage'), async (req, res) => {
     try {
-        // Check if user is admin
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                error: 'Only admin can manually transition projects'
-            });
-        }
-
         const projectId = parseInt(req.params.id);
 
         if (isNaN(projectId)) {
@@ -96,16 +89,8 @@ router.post('/:id/transition-to-project2', async (req, res) => {
  * Batch auto-transition all eligible projects
  * Accessible to: Admin only
  */
-router.post('/auto-transition', async (req, res) => {
+router.post('/auto-transition', authorize('projectTransition', 'manage'), async (req, res) => {
     try {
-        // Check if user is admin
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                error: 'Only admin can trigger auto-transition'
-            });
-        }
-
         const result = await projectTransitionService.autoTransitionEligibleProjects();
 
         return res.json({

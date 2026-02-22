@@ -1,7 +1,8 @@
 // backend/routes/logbookRoutes.js
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, checkRole } = require('../../middleware/authMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
+const authorize = require('../../middleware/authorize');
 const internshipLogbookController = require('../../controllers/logbooks/internshipLogbookController');
 
 // ============= เส้นทางสำหรับการดึงข้อมูล =============
@@ -13,7 +14,7 @@ const internshipLogbookController = require('../../controllers/logbooks/internsh
  */
 router.get('/timesheet',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.getTimeSheetEntries
 );
 
@@ -24,7 +25,7 @@ router.get('/timesheet',
  */
 router.get('/timesheet/stats',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.getTimeSheetStats
 );
 
@@ -35,7 +36,7 @@ router.get('/timesheet/stats',
  */
 router.get('/cs05/date-range',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.getInternshipDateRange
 );
 
@@ -46,7 +47,7 @@ router.get('/cs05/date-range',
  */
 router.get('/workdays',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.generateInternshipDates
 );
 
@@ -59,7 +60,7 @@ router.get('/workdays',
  */
 router.post('/timesheet',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.saveTimeSheetEntry
 );
 
@@ -70,7 +71,7 @@ router.post('/timesheet',
  */
 router.post('/check-in',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.checkIn
 );
 
@@ -81,7 +82,7 @@ router.post('/check-in',
  */
 router.post('/check-out',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.checkOut
 );
 
@@ -92,7 +93,7 @@ router.post('/check-out',
  */
 router.get('/timesheet/:id',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.getTimeSheetEntryById
 );
 
@@ -103,7 +104,7 @@ router.get('/timesheet/:id',
  */
 router.put('/timesheet/:id',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.updateTimeSheetEntry
 );
 
@@ -116,7 +117,7 @@ router.put('/timesheet/:id',
  */
 router.put('/timesheet/:id/approve',
     authenticateToken,
-    checkRole(['teacher']),
+    authorize('logbook', 'teacherApprove'),
     internshipLogbookController.approveTimeSheetEntry
 );
 
@@ -129,7 +130,7 @@ router.put('/timesheet/:id/approve',
  */
 router.post('/reflection',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.saveReflection
 );
 
@@ -140,7 +141,7 @@ router.post('/reflection',
  */
 router.get('/reflection',
     authenticateToken,
-    checkRole(['student']),
+    authorize('logbook', 'student'),
     internshipLogbookController.getReflection
 );
 

@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const timelineController = require("../controllers/timelineController");
-const {
-  authenticateToken,
-  checkRole,
-} = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
+const authorize = require("../middleware/authorize");
 
 /**
  * @route   GET /api/timeline/student/:studentId
@@ -14,7 +12,7 @@ const {
 router.get(
   "/student/:studentId",
   authenticateToken,
-  checkRole(["student", "teacher", "admin"]),
+  authorize("timeline", "readStudent"),
   timelineController.getStudentTimeline
 );
 
@@ -26,7 +24,7 @@ router.get(
 router.post(
   "/student/:studentId/init",
   authenticateToken,
-  checkRole(["student", "teacher", "admin"]),
+  authorize("timeline", "initStudent"),
   timelineController.initializeStudentTimeline
 );
 
@@ -38,7 +36,7 @@ router.post(
 router.put(
   "/step/:stepId",
   authenticateToken,
-  checkRole(["teacher", "admin"]),
+  authorize("timeline", "updateStep"),
   timelineController.updateTimelineStep
 );
 
@@ -50,7 +48,7 @@ router.put(
 router.get(
   "/all",
   authenticateToken,
-  checkRole(["admin"]),
+  authorize("timeline", "readAll"),
   timelineController.getAllTimelines
 );
 

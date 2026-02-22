@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { getProjectMembers, updateProjectMembers } = require('../controllers/projectMembersController');
-const { authenticateToken, checkRole, checkTeacherType } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const authorize = require('../middleware/authorize');
 
 // เส้นทางสำหรับการดึงข้อมูลคู่โปรเจค
-router.get('/', authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support']), getProjectMembers);
+router.get('/', authenticateToken, authorize('projectMembers', 'manage'), getProjectMembers);
 
 // เส้นทางสำหรับการอัปเดตข้อมูลคู่โปรเจค
-router.put('/update', authenticateToken, checkRole(['admin', 'teacher']), checkTeacherType(['support']), updateProjectMembers);
+router.put('/update', authenticateToken, authorize('projectMembers', 'manage'), updateProjectMembers);
 
 module.exports = router;

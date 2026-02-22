@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const academicController = require("../controllers/academicController");
-const {
-  authenticateToken,
-  checkRole,
-} = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
+const authorize = require("../middleware/authorize");
 
 // ดึงข้อมูลปีการศึกษาปัจจุบัน (สำหรับทุกคน)
 router.get(
@@ -17,7 +15,7 @@ router.get(
 router.get(
   "/",
   authenticateToken,
-  checkRole(["admin"]),
+  authorize("academic", "manage"),
   academicController.getAcademicSettings
 );
 
@@ -31,7 +29,7 @@ router.get(
 router.post(
   "/",
   authenticateToken,
-  checkRole(["admin"]),
+  authorize("academic", "manage"),
   academicController.createAcademicSettings
 );
 
@@ -39,7 +37,7 @@ router.post(
 router.put(
   "/",
   authenticateToken,
-  checkRole(["admin"]),
+  authorize("academic", "manage"),
   academicController.updateAcademicSettings
 );
 
@@ -47,7 +45,7 @@ router.put(
 router.delete(
   "/:id",
   authenticateToken,
-  checkRole(["admin"]),
+  authorize("academic", "manage"),
   academicController.deleteAcademicSettings
 );
 
