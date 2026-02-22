@@ -29,6 +29,23 @@ class CurriculumService {
   }
 
   /**
+   * ดึงข้อมูลหลักสูตรทั้งหมดสำหรับการทำ mapping/แสดงผล (รวม inactive)
+   * @returns {Array} รายการหลักสูตร
+   */
+  async getCurriculumMappings() {
+    try {
+      const curriculums = await Curriculum.findAll({
+        order: [['startYear', 'DESC'], ['code', 'ASC']]
+      });
+
+      return curriculums;
+    } catch (error) {
+      logger.error('CurriculumService: Error fetching curriculum mappings', error);
+      throw new Error('ไม่สามารถดึงข้อมูลหลักสูตรสำหรับ mapping ได้: ' + error.message);
+    }
+  }
+
+  /**
    * ดึงข้อมูลหลักสูตรตาม ID
    * @param {number} id - รหัสหลักสูตร
    * @returns {Object|null} ข้อมูลหลักสูตรหรือ null หากไม่พบ

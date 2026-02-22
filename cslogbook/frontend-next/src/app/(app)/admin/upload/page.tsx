@@ -5,7 +5,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { env } from "@/lib/config/env";
 import { getCurrentAcademicInfo } from "@/lib/services/academicService";
-import { getCurriculumById, getCurriculums, type CurriculumRecord } from "@/lib/services/settingsService";
+import { getCurriculumById, getCurriculumMappings, type CurriculumRecord } from "@/lib/services/settingsService";
 import { uploadStudentCSV, type UploadStudentResult, type UploadStudentSummary } from "@/lib/services/adminService";
 import styles from "./page.module.css";
 
@@ -100,8 +100,7 @@ export default function AdminUploadPage() {
     }
 
     try {
-      // getCurriculums() จะดึงเฉพาะหลักสูตรที่ active = true อยู่แล้ว
-      const curriculums = await getCurriculums();
+      const curriculums = await getCurriculumMappings();
       let nextCurriculums = curriculums;
 
       if (nextAcademicCurriculumId && !curriculums.some((item) => getCurriculumId(item) === nextAcademicCurriculumId)) {
@@ -114,7 +113,8 @@ export default function AdminUploadPage() {
       setActiveCurriculums(nextCurriculums);
 
       if (nextCurriculums.length > 0) {
-        const fallbackId = getCurriculumId(nextCurriculums[0]);
+        const preferredCurriculum = nextCurriculums.find((item) => item.active) ?? nextCurriculums[0];
+        const fallbackId = getCurriculumId(preferredCurriculum);
         const academicMatch = nextCurriculums.find(
           (curriculum) => getCurriculumId(curriculum) === nextAcademicCurriculumId
         );

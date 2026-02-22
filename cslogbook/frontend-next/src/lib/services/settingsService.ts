@@ -59,7 +59,8 @@ export async function deleteCurriculum(id: number) {
 }
 
 export async function getCurriculumMappings() {
-  return apiFetchData<Record<string, unknown>>("/admin/curriculums");
+  const response = await apiFetchData<CurriculumRecord[]>("/admin/curriculums/mappings");
+  return response ?? [];
 }
 
 export async function getCurriculumSettings() {

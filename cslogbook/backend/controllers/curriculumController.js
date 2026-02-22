@@ -87,6 +87,18 @@ exports.getCurriculumById = async (req, res) => {
   }
 };
 
+exports.getCurriculumMappings = async (req, res) => {
+  try {
+    const curriculums = await curriculumService.getCurriculumMappings();
+    res.json({ success: true, data: curriculums });
+  } catch (error) {
+    logger.error('Error fetching curriculum mappings:', error);
+    res
+      .status(500)
+      .json({ success: false, message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลหลักสูตร' });
+  }
+};
+
 // เพิ่มฟังก์ชันเพื่อดึงหลักสูตรที่ใช้งานอยู่
 
 /**

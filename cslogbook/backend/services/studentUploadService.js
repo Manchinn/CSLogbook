@@ -5,7 +5,7 @@ const iconv = require('iconv-lite');
 const ExcelJS = require('exceljs');
 const bcrypt = require('bcrypt');
 const { validateCSVRowEnhanced } = require('../utils/csvParser');
-const { User, Student, UploadHistory } = require('../models');
+const { User, Student, UploadHistory, Curriculum, Academic } = require('../models');
 const { sequelize } = require('../config/database');
 
 const SUPPORTED_EXTENSIONS = ['.csv', '.xlsx'];
@@ -300,18 +300,67 @@ const validateExcelStructure = async (filePath) => {
 /**
  * ประมวลผลไฟล์ CSV หรือ Excel (.xlsx) สำหรับอัปโหลดรายชื่อนักศึกษา
  */
-const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => {
+const processStudentCsvUpload = async ({ filePath, originalName, uploader, curriculumId }) => {
   const transaction = await sequelize.transaction();
 
   try {
     const results = [];
     const extension = determineExtension(filePath, originalName);
     const normalizedExtension = SUPPORTED_EXTENSIONS.includes(extension) ? extension : '.csv';
+    let resolvedCurriculumId = null;
+    let curriculumError = null;
+
+    const parsedCurriculumId =
+      curriculumId !== null && curriculumId !== undefined && curriculumId !== ''
+        ? Number(curriculumId)
+        : null;
+    const hasExplicitCurriculum = parsedCurriculumId !== null;
+
+    if (parsedCurriculumId !== null && !Number.isFinite(parsedCurriculumId)) {
+      curriculumError = 'รูปแบบรหัสหลักสูตรไม่ถูกต้อง';
+    } else if (Number.isFinite(parsedCurriculumId)) {
+      const curriculum = await Curriculum.findByPk(parsedCurriculumId, { transaction });
+      if (!curriculum) {
+        curriculumError = 'ไม่พบหลักสูตรที่เลือก';
+      } else {
+        resolvedCurriculumId = curriculum.curriculumId;
+      }
+    } else {
+      const currentAcademic = await Academic.findOne({
+        where: { isCurrent: true },
+        order: [['created_at', 'DESC']],
+        transaction
+      });
+
+      if (currentAcademic?.activeCurriculumId) {
+        const activeCurriculum = await Curriculum.findByPk(currentAcademic.activeCurriculumId, {
+          transaction
+        });
+        resolvedCurriculumId = activeCurriculum?.curriculumId ?? null;
+      }
+    }
+
+    if (curriculumError) {
+      await transaction.rollback();
+      return {
+        results: [],
+        summary: {
+          total: 0,
+          added: 0,
+          updated: 0,
+          invalid: 0,
+          errors: 1,
+          warnings: 0,
+          fileError: curriculumError
+        }
+      };
+    }
 
     // Validate file structure before processing
     const structureValidation = await validateFileStructure(filePath, normalizedExtension);
     if (!structureValidation.isValid) {
       // Return soft error instead of throwing
+      await transaction.rollback();
       return {
         results: [],
         summary: {
@@ -370,7 +419,8 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => 
               classroom: normalizedData.classroom || null,
               studyType: 'regular',
               isEligibleInternship: false,
-              isEligibleProject: false
+              isEligibleProject: false,
+              curriculumId: resolvedCurriculumId
             },
             transaction
           });
@@ -389,6 +439,9 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => 
             }
             if (normalizedData.classroom !== null) {
               updateData.classroom = normalizedData.classroom;
+            }
+            if (resolvedCurriculumId && (hasExplicitCurriculum || !student.curriculumId)) {
+              updateData.curriculumId = resolvedCurriculumId;
             }
             
             await student.update(updateData, { transaction });
@@ -446,6 +499,7 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader }) => 
           summary,
           processedAt: new Date().toISOString(),
           fileFormat: normalizedExtension.replace('.', ''),
+          curriculumId: resolvedCurriculumId,
           uploader: {
             userId: uploader.userId,
             username: uploader.username || null

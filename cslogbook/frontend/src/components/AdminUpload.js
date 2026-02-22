@@ -92,29 +92,29 @@ const AdminUpload = () => {
     };
 
     try {
-      const curriculumListResponse = await settingsService.getCurriculums();
+      const curriculumListResponse = await settingsService.getCurriculumMappings();
       if (curriculumListResponse?.success) {
         const curriculums = Array.isArray(curriculumListResponse.data)
           ? curriculumListResponse.data
           : [];
-        const activeList = curriculums.filter((curriculum) => curriculum.active);
-        setActiveCurriculums(activeList);
+        setActiveCurriculums(curriculums);
 
-        if (activeList.length > 0) {
+        if (curriculums.length > 0) {
           const currentSelectedId = selectedCurriculumRef.current;
           const getCurriculumId = (curriculum) => curriculum.curriculumId ?? curriculum.id ?? curriculum.curriculumID ?? null;
 
           let effectiveSelectedId = currentSelectedId;
           const hasCurrentSelection = effectiveSelectedId
-            ? activeList.some((curriculum) => getCurriculumId(curriculum) === effectiveSelectedId)
+            ? curriculums.some((curriculum) => getCurriculumId(curriculum) === effectiveSelectedId)
             : false;
 
           if (!hasCurrentSelection) {
-            effectiveSelectedId = getCurriculumId(activeList[0]);
+            const preferred = curriculums.find((curriculum) => curriculum.active) || curriculums[0];
+            effectiveSelectedId = getCurriculumId(preferred);
             setSelectedCurriculumId(effectiveSelectedId);
           }
 
-          const selectedCurriculum = activeList.find(
+          const selectedCurriculum = curriculums.find(
             (curriculum) => getCurriculumId(curriculum) === effectiveSelectedId
           );
 
@@ -127,7 +127,7 @@ const AdminUpload = () => {
         } else {
           nextStatus.curriculum = {
             ready: false,
-            message: 'ไม่พบหลักสูตรที่เปิดใช้งาน กรุณาเพิ่มหรือเปิดใช้งานหลักสูตร'
+            message: 'ไม่พบข้อมูลหลักสูตร กรุณาเพิ่มหลักสูตรก่อนอัปโหลด'
           };
         }
       } else {

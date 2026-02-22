@@ -102,6 +102,7 @@ router.delete('/teachers/:id', adminAuth, teacherController.deleteTeacher);
 
 // === เพิ่ม Admin Curriculum Routes ===
 router.get('/curriculums', adminAuth, curriculumController.getCurriculums);
+router.get('/curriculums/mappings', adminAuth, curriculumController.getCurriculumMappings);
 router.get('/curriculums/:id', adminAuth, curriculumController.getCurriculumById);
 router.post('/curriculums', adminAuth, curriculumController.createCurriculum);
 router.put('/curriculums/:id', adminAuth, curriculumController.updateCurriculum);

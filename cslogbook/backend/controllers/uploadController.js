@@ -15,10 +15,12 @@ const uploadCSV = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+    const curriculumId = req.body?.curriculumId ?? null;
     const { results, summary } = await processStudentCsvUpload({
       filePath: req.file.path,
       originalName: req.file.originalname,
-      uploader: req.user
+      uploader: req.user,
+      curriculumId
     });
 
     res.json({ success: true, results, summary });
