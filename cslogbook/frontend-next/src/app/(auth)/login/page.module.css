@@ -160,6 +160,54 @@
   gap: 0.65rem;
 }
 
+.ssoPrimaryButton {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: 0.625rem;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.ssoPrimaryButton:hover {
+  opacity: 0.9;
+}
+
+.divider {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.ctaSecondary {
+  display: block;
+  width: 100%;
+  border: 1px dashed var(--color-border);
+  border-radius: 0.625rem;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.ctaSecondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.credentialForm {
+  display: grid;
+  gap: 0.65rem;
+}
+
 .label {
   font-size: 0.875rem;
   font-weight: 500;
@@ -206,7 +254,8 @@
   font-size: 0.875rem;
 }
 
-.submitButton:disabled {
+.submitButton:disabled,
+.secondaryButton:disabled {
   opacity: 0.7;
   cursor: wait;
 }
@@ -220,6 +269,8 @@
   text-decoration: none;
   font-weight: 600;
   padding: 0.65rem 0.9rem;
+  cursor: pointer;
+  background: transparent;
 }
 
 @media (max-width: 980px) {
