@@ -236,3 +236,38 @@ export async function uploadSystemTestEvidence(token: string, projectId: number,
     }
   );
 }
+
+export type ProjectArtifact = {
+  artifactId: number;
+  projectId: number;
+  type: string;
+  filePath: string;
+  originalName: string;
+  mimeType?: string;
+  size?: number;
+  version?: number;
+  uploadedByStudentId?: number;
+  uploadedAt?: string;
+};
+
+export async function getProjectArtifacts(token: string, projectId: number, type?: string) {
+  const query = type ? `?type=${encodeURIComponent(type)}` : "";
+  return apiFetchData<ProjectArtifact[]>(`/projects/${projectId}/artifacts${query}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function uploadProposalFile(token: string, projectId: number, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFetch<{ success: boolean; data?: ProjectArtifact; message?: string }>(
+    `/projects/${projectId}/proposal`,
+    {
+      method: "POST",
+      token,
+      body: formData,
+    }
+  );
+}

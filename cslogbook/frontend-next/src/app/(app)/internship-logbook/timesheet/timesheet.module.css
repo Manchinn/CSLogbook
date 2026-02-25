@@ -1,0 +1,80 @@
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+
+.page {
+  --ink: #142033;
+  --muted: #5b6b7c;
+  --line: #dbe3ee;
+  --accent: #1f6feb;
+  --accent-soft: #e8f1ff;
+  min-height: 100vh;
+  padding: 32px 24px 56px;
+  background: radial-gradient(circle at top, #f2f7ff 0%, #f6f8fb 45%, #ffffff 100%);
+  color: var(--ink);
+  font-family: "Sarabun", "Segoe UI", sans-serif;
+}
+
+.hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.kicker { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+.title  { font-size: clamp(22px, 2.8vw, 34px); margin: 8px 0 0; }
+.lead   { max-width: 640px; color: var(--muted); font-size: 16px; }
+.heroMeta { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+
+/* stats */
+.statGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.statCard { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.statCardWide { grid-column: span 2; }
+.statLabel { font-size: 13px; color: var(--muted); margin: 0; }
+.statValue { font-size: 26px; font-weight: 700; margin: 6px 0 4px; }
+.statHint  { font-size: 12px; color: var(--muted); margin: 0; }
+
+.progressBar  { height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+.progressFill { height: 100%; background: linear-gradient(90deg, #1f6feb, #3b82f6); border-radius: 999px; transition: width 0.4s ease; }
+
+/* section cards */
+.sectionCard  { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
+.panelKicker  { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+.sectionTitle { font-size: 18px; margin: 0 0 14px; }
+.formHint     { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+
+/* callouts */
+.callout { border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 20px 22px; margin-bottom: 24px; }
+.calloutInfo  { border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+.calloutTitle { font-weight: 600; margin: 0 0 6px; }
+.calloutText  { color: var(--muted); margin: 0; font-size: 14px; }
+.noteList     { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 4px; }
+
+/* form */
+.formRow { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+.label   { font-size: 14px; font-weight: 500; display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
+.input   { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+.success { color: #047857; font-size: 13px; margin: 6px 0; }
+.error   { color: #b91c1c; font-size: 13px; margin: 6px 0; }
+
+/* buttons */
+.primaryButton {
+  background: linear-gradient(120deg, #1f6feb, #3b82f6);
+  color: #fff; border: none; border-radius: 999px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.primaryButton:disabled { opacity: 0.6; cursor: not-allowed; }
+.secondaryButton {
+  background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 999px;
+  padding: 9px 18px; font-size: 13px; cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+
+/* badges */
+.badgeDanger  { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+.badgeWarning { background: #fff7ed; border: 1px solid #fed7aa; color: #b45309; border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+.badgeInfo    { background: var(--accent-soft); border: 1px solid #c7ddff; color: #1d4ed8; border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+.badgeMuted   { background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280; border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+
+/* entry table */
+.entryTable { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.entryHead { display: grid; grid-template-columns: 1fr 2fr 120px; background: #f8fafc; padding: 9px 14px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.entryRow  { display: grid; grid-template-columns: 1fr 2fr 120px; padding: 11px 14px; border-top: 1px solid var(--line); background: #fff; font-size: 14px; align-items: center; }
+
+@media (max-width: 720px) {
+  .page { padding: 24px 16px 40px; }
+  .statCardWide { grid-column: span 1; }
+  .entryHead, .entryRow { grid-template-columns: 1fr 1fr; }
+  .entryHead span:last-child, .entryRow span:last-child { display: none; }
+}

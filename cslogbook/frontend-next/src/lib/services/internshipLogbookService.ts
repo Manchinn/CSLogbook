@@ -154,3 +154,42 @@ export async function saveReflection(token: string, payload: ReflectionPayload) 
     }
   );
 }
+
+export type TimesheetApprovalRequestPayload = {
+  type: "full" | "weekly";
+  startDate?: string;
+  endDate?: string;
+};
+
+export type TimesheetApprovalRequestResponse = {
+  success: boolean;
+  emailSent?: boolean;
+  reason?: string | null;
+  message?: string | null;
+};
+
+export async function sendTimesheetApprovalRequest(
+  token: string,
+  studentId: number,
+  payload: TimesheetApprovalRequestPayload
+) {
+  return apiFetch<TimesheetApprovalRequestResponse>(
+    `/email-approval/request/${studentId}`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function getApprovalHistory(token: string, studentId: number) {
+  const data = await apiFetchData<Array<Record<string, unknown>> | null>(
+    `/email-approval/history/${studentId}`,
+    {
+      method: "GET",
+      token,
+    }
+  );
+  return data ?? [];
+}

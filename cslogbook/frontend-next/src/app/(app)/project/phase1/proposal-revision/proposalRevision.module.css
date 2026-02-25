@@ -1,0 +1,158 @@
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+
+.page {
+  --ink: #142033;
+  --muted: #5b6b7c;
+  --line: #dbe3ee;
+  --accent: #1f6feb;
+  min-height: 100vh;
+  padding: 32px 24px 56px;
+  background: radial-gradient(circle at top, #f2f7ff 0%, #f6f8fb 45%, #ffffff 100%);
+  color: var(--ink);
+  font-family: "Sarabun", "Segoe UI", sans-serif;
+}
+
+/* ── Typography ── */
+.kicker { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.title  { font-size: clamp(22px, 2.8vw, 34px); margin: 8px 0 0; }
+.lead   { color: var(--muted); font-size: 15px; margin: 4px 0 0; max-width: 560px; }
+
+/* ── Hero ── */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ── Info bar ── */
+.infoBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.infoLabel { color: var(--muted); font-weight: 600; }
+.infoValue { font-weight: 500; flex: 1; min-width: 0; }
+
+/* ── Badge ── */
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  white-space: nowrap;
+}
+
+/* ── Buttons ── */
+.btnRow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+.primaryButton {
+  display: inline-block;
+  background: linear-gradient(120deg, #1f6feb, #3b82f6);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.primaryButton:disabled { opacity: 0.6; cursor: not-allowed; }
+.primaryButton:not(:disabled):hover { opacity: 0.9; }
+
+.secondaryButton {
+  display: inline-block;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.secondaryButton:hover { background: #f6f8fb; }
+
+/* ── Callout ── */
+.callout {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.calloutTitle { font-weight: 600; margin: 0; }
+
+/* ── Section cards ── */
+.sectionCard {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+.panelKicker  { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.sectionTitle { font-size: 16px; margin: 0 0 16px; }
+.formHint     { color: var(--muted); font-size: 13px; margin: 0; }
+
+/* ── File upload ── */
+.uploadArea {
+  border: 2px dashed var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.fileInput { position: absolute; opacity: 0; width: 0; height: 0; }
+.uploadLabel {
+  display: block;
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.uploadLabel:hover { background: #f0f4ff; color: var(--accent); }
+
+/* ── Feedback ── */
+.error   { color: #b91c1c; font-size: 13px; margin: 8px 0 0; }
+.success { color: #047857; font-size: 13px; font-weight: 600; margin: 8px 0 0; }
+
+/* ── Version list ── */
+.versionList { display: grid; gap: 10px; }
+.versionItem {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #f8fafc;
+}
+.versionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.versionName  { font-weight: 600; font-size: 14px; word-break: break-all; }
+.versionMeta  { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .page { padding: 20px 16px 40px; }
+  .hero { flex-direction: column; }
+  .infoBar { flex-direction: column; align-items: flex-start; }
+}
