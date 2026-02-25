@@ -5,7 +5,6 @@ import { FormEvent, useState } from "react";
 import styles from "./page.module.css";
 import { AppRole, getDashboardPathByRole } from "@/lib/auth/mockSession";
 import { useAuth } from "@/contexts/AuthContext";
-import { featureFlags } from "@/lib/config/featureFlags";
 import { getSsoAuthorizeUrl } from "@/lib/api/authService";
 
 export function LoginForm() {
@@ -72,11 +71,9 @@ export function LoginForm() {
         {isSubmitting ? "Signing in..." : "Sign in"}
       </button>
 
-      {featureFlags.enableSSO ? (
-        <a className={styles.secondaryButton} href={getSsoAuthorizeUrl("/app")}>
-          Continue with KMUTNB SSO
-        </a>
-      ) : null}
+      <a className={styles.secondaryButton} href={getSsoAuthorizeUrl("/app")}>
+        Continue with KMUTNB SSO
+      </a>
     </form>
   );
 }

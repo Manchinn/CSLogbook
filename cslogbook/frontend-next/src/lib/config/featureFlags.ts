@@ -6,7 +6,7 @@ function readFlag(name: string, defaultValue = false) {
 }
 
 export const featureFlags = {
-  enableSSO: readFlag("NEXT_PUBLIC_ENABLE_SSO"),
+  enableSSO: true, // เปิดใช้งาน KMUTNB SSO ตลอด (ไม่ใช้ env flag)
   enableAdminWidgetMigration: readFlag("NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION"),
   enableAdminProjectWorkflowWidget:
     readFlag("NEXT_PUBLIC_ENABLE_ADMIN_PROJECT_WORKFLOW_WIDGET") ||

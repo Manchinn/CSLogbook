@@ -45,16 +45,26 @@ const projectTransitionRoutes = require('./routes/projectTransitionRoutes'); // 
 const app = express();
 
 // CORS configuration - รองรับหลาย origins สำหรับทั้ง development และ production
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000', 'http://192.168.14.41:12342'];
+const frontendUrls = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim()).filter(Boolean)
+  : [];
+const extraOrigins = process.env.CORS_EXTRA_ORIGINS
+  ? process.env.CORS_EXTRA_ORIGINS.split(',').map((url) => url.trim()).filter(Boolean)
+  : [];
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  ...frontendUrls,
+  ...extraOrigins
+];
 
 app.use(cors({
   origin: function (origin, callback) {
     // อนุญาตให้ request ที่ไม่มี origin (เช่น mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    const normalized = origin.replace(/\/$/, '');
+    if (allowedOrigins.some((o) => o.replace(/\/$/, '') === normalized)) {
       callback(null, true);
     } else {
       console.warn(`⚠️  CORS blocked origin: ${origin}`);
@@ -63,8 +73,9 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
