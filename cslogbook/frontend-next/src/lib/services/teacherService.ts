@@ -170,7 +170,7 @@ export async function updateMeetingLogApproval(
     {
       method: "PATCH",
       token,
-      body: { decision, note },
+      body: JSON.stringify({ decision, note }),
     }
   );
 }
@@ -262,7 +262,7 @@ export async function submitKP02AdvisorDecision(
   await apiFetchData<void>(`/projects/${projectId}/kp02/advisor-approve`, {
     method: "POST",
     token,
-    body: { decision, note },
+    body: JSON.stringify({ decision, note }),
   });
 }
 
@@ -347,7 +347,7 @@ export async function submitSystemTestAdvisorDecision(
   await apiFetchData<void>(`/projects/${projectId}/system-test/request/advisor-decision`, {
     method: "POST",
     token,
-    body: { decision, note },
+    body: JSON.stringify({ decision, note }),
   });
 }
 
@@ -421,7 +421,7 @@ export async function approveCS05Document(
   await apiFetchData<void>(`/documents/internship/cs-05/${documentId}/approve`, {
     method: "POST",
     token,
-    body: { comment, letterType },
+    body: JSON.stringify({ comment, letterType }),
   });
 }
 
@@ -436,7 +436,7 @@ export async function rejectCS05Document(
   await apiFetchData<void>(`/documents/internship/cs-05/${documentId}/reject`, {
     method: "POST",
     token,
-    body: { reason },
+    body: JSON.stringify({ reason }),
   });
 }
 
@@ -476,7 +476,7 @@ export async function approveAcceptanceLetter(
   await apiFetchData<void>(`/documents/internship/acceptance/${documentId}/approve`, {
     method: "POST",
     token,
-    body: { comment },
+    body: JSON.stringify({ comment }),
   });
 }
 
@@ -491,7 +491,7 @@ export async function rejectAcceptanceLetter(
   await apiFetchData<void>(`/documents/internship/acceptance/${documentId}/reject`, {
     method: "POST",
     token,
-    body: { reason },
+    body: JSON.stringify({ reason }),
   });
 }
 

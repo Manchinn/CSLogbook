@@ -38,7 +38,7 @@ function menuLink(key: string, label: string, href: string, enabled = true): Men
 
 function filterMenuNodes(items: MenuNode[]): MenuNode[] {
   return items
-    .flatMap((item) => {
+    .flatMap((item): MenuNode[] => {
       if (item.kind === "link") {
         return item.enabled === false ? [] : [{ ...item, children: item.children ? filterMenuNodes(item.children) : undefined }];
       }

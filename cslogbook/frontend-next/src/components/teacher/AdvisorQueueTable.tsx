@@ -140,7 +140,9 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
                   <div className={styles.timelineContent}>
                     <div className={styles.timelineLabel}>อนุมัติสมบูรณ์</div>
                     <div className={styles.timelineDate}>
-                      {item.approvedAt ? new Date(item.approvedAt).toLocaleString("th-TH") : "-"}
+                      {(item as { approvedAt?: string }).approvedAt
+                        ? new Date((item as { approvedAt?: string }).approvedAt!).toLocaleString("th-TH")
+                        : "-"}
                     </div>
                   </div>
                 </div>
@@ -157,21 +159,21 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
               <div className={styles.metricItem}>
                 <span className={styles.metricLabel}>รหัสโครงงาน:</span>
                 <span className={styles.metricValue}>
-                  {(item as DefenseRequest).project.projectCode || "-"}
+                  {(item as DefenseRequest).project?.projectCode || "-"}
                 </span>
               </div>
               {(item as DefenseRequest).project?.members && (
                 <div className={styles.metricItem}>
                   <span className={styles.metricLabel}>จำนวนสมาชิก:</span>
                   <span className={styles.metricValue}>
-                    {(item as DefenseRequest).project.members.length} คน
+                    {(item as DefenseRequest).project?.members?.length ?? 0} คน
                   </span>
                 </div>
               )}
               <div className={styles.metricItem}>
                 <span className={styles.metricLabel}>ประเภท:</span>
                 <span className={styles.metricValue}>
-                  {(item as DefenseRequest).requestType === "defense_request"
+                  {(item as DefenseRequest & { requestType?: string }).requestType === "defense_request"
                     ? "สอบป้องกัน"
                     : "อื่นๆ"}
                 </span>
@@ -181,18 +183,18 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
         )}
 
         {/* Staff Verification Notes */}
-        {item.staffNote && (
+        {(item as QueueItem & { staffNote?: string }).staffNote && (
           <div className={styles.detailSection}>
             <h4 className={styles.detailTitle}>หมายเหตุจากเจ้าหน้าที่</h4>
-            <div className={styles.noteBox}>{item.staffNote}</div>
+            <div className={styles.noteBox}>{(item as QueueItem & { staffNote?: string }).staffNote}</div>
           </div>
         )}
 
         {/* Approval Notes */}
-        {item.advisorNote && (
+        {(item as QueueItem & { advisorNote?: string }).advisorNote && (
           <div className={styles.detailSection}>
             <h4 className={styles.detailTitle}>หมายเหตุจากอาจารย์</h4>
-            <div className={styles.noteBox}>{item.advisorNote}</div>
+            <div className={styles.noteBox}>{(item as QueueItem & { advisorNote?: string }).advisorNote}</div>
           </div>
         )}
 
@@ -301,9 +303,9 @@ export function AdvisorQueueTable<T extends QueueItem>({
   emptyMessage = "ไม่มีคำขอที่รออนุมัติในขณะนี้",
   showTestDates = false,
 }: AdvisorQueueTableProps<T>) {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<number | string>>(new Set());
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: number | string) => {
     setExpandedRows((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
