@@ -3,7 +3,7 @@ set -e
 
 # Run migrations
 echo "Running database migrations..."
-npx sequelize-cli db:migrate
+npm run migrate:prod
 
 # Execute the main container command
 echo "Starting application..."
