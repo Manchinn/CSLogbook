@@ -62,7 +62,6 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
     menuLink("student-dashboard", "แดชบอร์ด", "/dashboard/student", true),
     menuLink("student-profile", "ประวัตินักศึกษา", `/student-profile/${studentCode}`, featureFlags.enableStudentProfilePage),
     menuLink("student-calendar", "ปฏิทินกำหนดการ", "/student-deadlines/calendar", featureFlags.enableDeadlinesPage),
-    menuLink("student-deadlines", "กำหนดส่งทั้งหมด", "/deadlines", featureFlags.enableDeadlinesPage),
   ];
 
   const internshipMenu: MenuGroupNode = internshipAllowed

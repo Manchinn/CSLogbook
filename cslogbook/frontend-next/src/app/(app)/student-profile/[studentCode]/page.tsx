@@ -4,13 +4,12 @@ import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
-import { useStudentDeadlines } from "@/hooks/useStudentDeadlines";
 import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDocuments } from "@/hooks/useStudentDocuments";
-import type { StudentDeadline, StudentProfile } from "@/lib/services/studentService";
-import { updateStudentContactInfo } from "@/lib/services/studentService";
+import type { StudentProfile } from "@/lib/services/studentService";
+import { updateStudentContactInfo, updateStudentCredits } from "@/lib/services/studentService";
 import { changePasswordInit, confirmPasswordChange } from "@/lib/api/authService";
 import { downloadDocument, viewDocument, type DocumentItem } from "@/lib/services/documentService";
 import styles from "./page.module.css";
@@ -37,32 +36,45 @@ function buildEligibilityBadge(eligible?: boolean | null): { tone: Tone; label: 
   return { tone: "muted", label: "ไม่มีข้อมูล" };
 }
 
-function formatStatus(status?: string | null) {
-  if (!status) return "ยังไม่มีสถานะ";
-  const normalized = status.replace(/_/g, " ");
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+function normalizeEmail(email?: string | null) {
+  const value = (email ?? "").trim();
+  if (!value) return null;
+
+  const lowered = value.toLowerCase();
+  if (lowered === "undefined" || lowered === "null" || lowered === "none") return null;
+  if (lowered.startsWith("undefined@") || lowered.startsWith("null@")) return null;
+  if (!value.includes("@")) return null;
+
+  return value;
 }
 
-function DeadlineList({ deadlines }: { deadlines: StudentDeadline[] }) {
-  if (!deadlines.length) {
-    return <p className={styles.muted}>ยังไม่มีกำหนดส่งในช่วงนี้</p>;
-  }
+function formatStatusThai(status?: string | null) {
+  if (!status) return "ยังไม่มีสถานะ";
 
-  return (
-    <ul className={styles.deadlineList}>
-      {deadlines.map((deadline) => (
-        <li key={deadline.id} className={styles.deadlineItem}>
-          <div>
-            <p className={styles.deadlineName}>{deadline.name}</p>
-            <p className={styles.deadlineMeta}>{new Date(deadline.deadlineAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", hour12: false })}</p>
-          </div>
-          <span className={`${styles.badge} ${styles.badgeWarning}`}>
-            {deadline.deadlineType ? deadline.deadlineType : "กำหนดส่ง"}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
+  const key = status.trim().toLowerCase();
+  const statusMap: Record<string, string> = {
+    not_started: "ยังไม่เริ่ม",
+    in_progress: "กำลังดำเนินการ",
+    completed: "เสร็จสิ้น",
+    pending: "รอดำเนินการ",
+    pending_approval: "รออนุมัติ",
+    approved: "อนุมัติแล้ว",
+    rejected: "ไม่ผ่าน",
+    failed: "ไม่ผ่าน",
+    passed: "ผ่าน",
+    draft: "ฉบับร่าง",
+    archived: "จัดเก็บแล้ว",
+    advisor_assigned: "มอบหมายอาจารย์ที่ปรึกษาแล้ว",
+    advisor_in_review: "อาจารย์กำลังพิจารณา",
+    advisor_approved: "อาจารย์อนุมัติแล้ว",
+    staff_verified: "เจ้าหน้าที่ตรวจสอบแล้ว",
+    phase1: "โครงงานพิเศษ 1",
+    phase2: "โครงงานพิเศษ 2",
+    thesis: "ปริญญานิพนธ์",
+  };
+
+  if (statusMap[key]) return statusMap[key];
+  return status.replace(/_/g, " ");
 }
 
 function DocumentList({
@@ -123,6 +135,11 @@ export default function StudentProfilePage() {
   const [contactSaving, setContactSaving] = useState(false);
   const [contactSuccess, setContactSuccess] = useState<string | null>(null);
 
+  const [isEditingCredits, setIsEditingCredits] = useState(false);
+  const [creditsForm, setCreditsForm] = useState({ totalCredits: 0, majorCredits: 0 });
+  const [creditsError, setCreditsError] = useState<string | null>(null);
+  const [creditsSaving, setCreditsSaving] = useState(false);
+
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordStep, setPasswordStep] = useState<"init" | "otp">("init");
   const [passwordForm, setPasswordForm] = useState({
@@ -134,6 +151,7 @@ export default function StudentProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"education" | "timeline" | "documents">("education");
 
   const rawStudentCode = Array.isArray(params?.studentCode) ? params?.studentCode?.[0] : params?.studentCode;
   const resolvedStudentCode = useMemo(() => {
@@ -146,7 +164,6 @@ export default function StudentProfilePage() {
   const canUseStudentEndpoints = user?.role === "student";
 
   const profileQuery = useStudentProfile(resolvedStudentCode || null, token, hydrated);
-  const deadlinesQuery = useStudentDeadlines(token, 14, hydrated && canUseStudentEndpoints);
   const internshipQuery = useStudentInternshipStatus(token, hydrated && canUseStudentEndpoints);
   const projectQuery = useStudentProjectStatus(token, hydrated && canUseStudentEndpoints);
   const documentsQuery = useStudentDocuments(token, hydrated && canUseStudentEndpoints, { type: "internship", lettersOnly: 1 });
@@ -205,6 +222,36 @@ export default function StudentProfilePage() {
     }
   };
 
+  const handleOpenCreditsEdit = () => {
+    if (!profileQuery.data) return;
+    setCreditsForm({
+      totalCredits: Number(profileQuery.data.totalCredits ?? 0),
+      majorCredits: Number(profileQuery.data.majorCredits ?? 0),
+    });
+    setCreditsError(null);
+    setIsEditingCredits(true);
+  };
+
+  const handleCancelCredits = () => {
+    setIsEditingCredits(false);
+    setCreditsError(null);
+  };
+
+  const handleSaveCredits = async () => {
+    if (!token || !resolvedStudentCode) return;
+    setCreditsSaving(true);
+    setCreditsError(null);
+    try {
+      await updateStudentCredits(resolvedStudentCode, token, creditsForm);
+      await profileQuery.refetch();
+      setIsEditingCredits(false);
+    } catch (error) {
+      setCreditsError(error instanceof Error ? error.message : "บันทึกหน่วยกิตไม่สำเร็จ");
+    } finally {
+      setCreditsSaving(false);
+    }
+  };
+
   const handleConfirmPassword = async () => {
     if (!token) return;
     setPasswordSaving(true);
@@ -252,14 +299,21 @@ export default function StudentProfilePage() {
     profile.eligibility?.project?.eligible ?? profile.isEligibleProject
   );
 
-  const internshipStatus = formatStatus(
+  const internshipStatusThai = formatStatusThai(
     profile.internshipStatus || internshipQuery.data?.summary?.status || (profile.isEnrolledInternship ? "in_progress" : "")
   );
-  const projectStatus = formatStatus(
+  const projectStatusThai = formatStatusThai(
     profile.projectStatus || projectQuery.data?.workflow?.projectStatus || projectQuery.data?.workflow?.currentPhase
   );
+  const displayEmail = normalizeEmail(profile.email) ?? normalizeEmail(user?.email) ?? "ไม่ระบุ";
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-  const deadlines = deadlinesQuery.data ?? [];
   const documents = documentsQuery.data?.documents ?? [];
 
   const handleViewDoc = async (doc: DocumentItem) => {
@@ -319,61 +373,46 @@ export default function StudentProfilePage() {
         setForm={setPasswordForm}
       />
 
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
-          <p className={styles.eyebrow}>Student record</p>
-          <h1 className={styles.title}>{name}</h1>
-          <p className={styles.subtitle}>รหัสนักศึกษา {profile.studentCode}</p>
-        </div>
-        <div className={styles.heroBadges}>
-          <span className={`${styles.badge} ${toneClass("neutral")}`}>ชั้นปี {year}</span>
-          <span className={`${styles.badge} ${toneClass(internshipEligibility.tone)}`}>
-            ฝึกงาน: {internshipEligibility.label}
-          </span>
-          <span className={`${styles.badge} ${toneClass(projectEligibility.tone)}`}>
-            โครงงาน: {projectEligibility.label}
-          </span>
-        </div>
-      </section>
+      <div className={styles.layout}>
+        <aside className={styles.sidebar}>
+          <section className={`${styles.card} ${styles.profileCard}`}>
+            <div className={styles.avatar}>{initials || "?"}</div>
+            <h1 className={styles.profileName}>{name}</h1>
+            <p className={styles.profileCode}>{profile.studentCode}</p>
+            <div className={styles.profileBadges}>
+              <span className={`${styles.badge} ${toneClass("neutral")}`}>ชั้นปี {year}</span>
+              <span className={`${styles.badge} ${toneClass(internshipEligibility.tone)}`}>
+                {internshipEligibility.label}
+              </span>
+              <span className={`${styles.badge} ${toneClass(projectEligibility.tone)}`}>
+                {projectEligibility.label}
+              </span>
+            </div>
+          </section>
 
-      <section className={styles.grid}>
-        <article className={`${styles.card} ${styles.cardCredits}`}>
-          <header className={styles.cardHeader}>
-            <div>
-              <p className={styles.cardEyebrow}>Credits</p>
-              <h3 className={styles.cardTitle}>สรุปหน่วยกิต</h3>
-            </div>
-          </header>
-          <div className={styles.statGrid}>
-            <div className={styles.statBlock}>
-              <p className={styles.statLabel}>รวมทั้งหมด</p>
-              <p className={styles.statValue}>{profile.totalCredits ?? 0}</p>
-            </div>
-            <div className={styles.statBlock}>
-              <p className={styles.statLabel}>วิชาเอก</p>
-              <p className={styles.statValue}>{profile.majorCredits ?? 0}</p>
-            </div>
-            <div className={styles.statBlock}>
-              <p className={styles.statLabel}>เกณฑ์ฝึกงาน</p>
-              <p className={styles.statValue}>{profile.requirements?.internshipBaseCredits ?? "—"}</p>
-            </div>
-            <div className={styles.statBlock}>
-              <p className={styles.statLabel}>เกณฑ์โครงงาน</p>
-              <p className={styles.statValue}>
-                {profile.requirements?.projectBaseCredits ?? "—"} / วิชาเอก {profile.requirements?.projectMajorBaseCredits ?? "—"}
-              </p>
-            </div>
-          </div>
-        </article>
-
-        <article className={`${styles.card} ${styles.cardContact}`}>
-          <header className={styles.cardHeader}>
-            <div>
-              <p className={styles.cardEyebrow}>Contact</p>
-              <h3 className={styles.cardTitle}>ข้อมูลติดต่อ</h3>
-            </div>
+          <article className={`${styles.card} ${styles.cardContact}`}>
+            <header className={styles.cardHeader}>
+              <div>
+                <p className={styles.cardEyebrow}>Contact</p>
+                <h3 className={styles.cardTitle}>ข้อมูลติดต่อ</h3>
+              </div>
+            </header>
+            <dl className={styles.detailList}>
+              <div className={styles.detailRow}>
+                <dt>อีเมล</dt>
+                <dd>{displayEmail}</dd>
+              </div>
+              <div className={styles.detailRow}>
+                <dt>เบอร์โทร</dt>
+                <dd>{profile.phoneNumber || "ไม่ระบุ"}</dd>
+              </div>
+              <div className={styles.detailRow}>
+                <dt>ห้องเรียน</dt>
+                <dd>{profile.classroom || "ไม่ระบุ"}</dd>
+              </div>
+            </dl>
             {canUseStudentEndpoints && resolvedStudentCode === (user?.studentCode ?? "") ? (
-              <div className={styles.actionRow}>
+              <div className={`${styles.actionRow} ${styles.actionRowBottom}`}>
                 <button type="button" className={styles.linkButton} onClick={handleOpenEdit}>
                   แก้ไขข้อมูลติดต่อ
                 </button>
@@ -392,93 +431,159 @@ export default function StudentProfilePage() {
                 </button>
               </div>
             ) : null}
-          </header>
-          <dl className={styles.detailList}>
-            <div className={styles.detailRow}>
-              <dt>อีเมล</dt>
-              <dd>{profile.email || "ไม่ระบุ"}</dd>
-            </div>
-            <div className={styles.detailRow}>
-              <dt>เบอร์โทร</dt>
-              <dd>{profile.phoneNumber || "ไม่ระบุ"}</dd>
-            </div>
-            <div className={styles.detailRow}>
-              <dt>ห้องเรียน</dt>
-              <dd>{profile.classroom || "ไม่ระบุ"}</dd>
-            </div>
-          </dl>
-          {contactSuccess ? <p className={styles.success}>{contactSuccess}</p> : null}
-        </article>
-
-        <article className={`${styles.card} ${styles.cardInternship} ${styles.statusCard}`}>
-          <header className={styles.cardHeader}>
-            <div>
-              <p className={styles.cardEyebrow}>Internship</p>
-              <h3 className={styles.cardTitle}>สถานะฝึกงาน</h3>
-            </div>
-            <span className={`${styles.badge} ${toneClass(internshipEligibility.tone)}`}>
-              {internshipEligibility.label}
-            </span>
-          </header>
-          <p className={styles.statusText}>{internshipStatus}</p>
-          {profile.eligibility?.internship?.message ? (
-            <p className={styles.note}>{profile.eligibility.internship.message}</p>
-          ) : null}
-        </article>
-
-        <article className={`${styles.card} ${styles.cardProject} ${styles.statusCard}`}>
-          <header className={styles.cardHeader}>
-            <div>
-              <p className={styles.cardEyebrow}>Project</p>
-              <h3 className={styles.cardTitle}>สถานะโครงงาน</h3>
-            </div>
-            <span className={`${styles.badge} ${toneClass(projectEligibility.tone)}`}>
-              {projectEligibility.label}
-            </span>
-          </header>
-          <p className={styles.statusText}>{projectStatus}</p>
-          {profile.eligibility?.project?.message ? (
-            <p className={styles.note}>{profile.eligibility.project.message}</p>
-          ) : null}
-        </article>
-
-        {canUseStudentEndpoints ? (
-          <article className={`${styles.card} ${styles.cardDeadlines}`}>
-            <header className={styles.cardHeader}>
-              <div>
-                <p className={styles.cardEyebrow}>Deadlines</p>
-                <h3 className={styles.cardTitle}>กำหนดส่งที่ใกล้ถึง</h3>
-              </div>
-              <span className={`${styles.badge} ${toneClass("neutral")}`}>14 วัน</span>
-            </header>
-            {deadlinesQuery.isLoading ? (
-              <p className={styles.muted}>กำลังโหลดกำหนดส่ง...</p>
-            ) : deadlinesQuery.isError ? (
-              <p className={styles.error}>โหลดกำหนดส่งไม่สำเร็จ</p>
-            ) : (
-              <DeadlineList deadlines={deadlines.slice(0, 5)} />
-            )}
+            {contactSuccess ? <p className={styles.success}>{contactSuccess}</p> : null}
           </article>
-        ) : null}
+        </aside>
 
-        {canUseStudentEndpoints ? (
-          <article className={`${styles.card} ${styles.cardDocuments}`}>
-            <header className={styles.cardHeader}>
-              <div>
-                <p className={styles.cardEyebrow}>Documents</p>
-                <h3 className={styles.cardTitle}>เอกสารฝึกงาน</h3>
+        <main className={styles.main}>
+          <nav className={styles.tabs}>
+            <button
+              type="button"
+              className={`${styles.tab} ${activeTab === "education" ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab("education")}
+            >
+              ข้อมูลการศึกษา
+            </button>
+            <button
+              type="button"
+              className={`${styles.tab} ${activeTab === "timeline" ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab("timeline")}
+            >
+              ไทม์ไลน์
+            </button>
+            <button
+              type="button"
+              className={`${styles.tab} ${activeTab === "documents" ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab("documents")}
+            >
+              เอกสาร
+            </button>
+          </nav>
+
+          <section className={styles.grid}>
+            {activeTab === "education" ? (
+              <article className={`${styles.card} ${styles.cardCredits}`}>
+              <header className={styles.cardHeader}>
+                <div>
+                  <p className={styles.cardEyebrow}>Credits</p>
+                  <h3 className={styles.cardTitle}>ข้อมูลการศึกษา</h3>
+                  <p className={styles.subtitle}>การแก้ไขข้อมูลคือการเปลี่ยนค่าหน่วยกิต</p>
+                </div>
+                {canUseStudentEndpoints && resolvedStudentCode === (user?.studentCode ?? "") ? (
+                  isEditingCredits ? (
+                    <div className={styles.actionRow}>
+                      <button type="button" className={styles.secondaryButton} onClick={handleCancelCredits} disabled={creditsSaving}>
+                        ยกเลิก
+                      </button>
+                      <button type="button" className={styles.primaryButton} onClick={handleSaveCredits} disabled={creditsSaving}>
+                        {creditsSaving ? "กำลังบันทึก..." : "บันทึกหน่วยกิต"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className={styles.primaryButton} onClick={handleOpenCreditsEdit}>
+                      แก้ไขหน่วยกิต
+                    </button>
+                  )
+                ) : null}
+              </header>
+              <div className={styles.statGrid}>
+                <div className={styles.statBlock}>
+                  <p className={styles.statLabel}>หน่วยกิตรวมสะสม</p>
+                  {isEditingCredits ? (
+                    <div className={styles.creditInputRow}>
+                      <input
+                        type="number"
+                        min={0}
+                        className={styles.creditInput}
+                        value={creditsForm.totalCredits}
+                        onChange={(e) => setCreditsForm((prev) => ({ ...prev, totalCredits: Number(e.target.value) }))}
+                      />
+                      <span className={styles.creditUnit}>หน่วยกิต</span>
+                    </div>
+                  ) : (
+                    <p className={styles.statValue}>{profile.totalCredits ?? 0} หน่วยกิต</p>
+                  )}
+                  <p className={styles.statHint}>สิทธิ์ฝึกงาน</p>
+                </div>
+                <div className={styles.statBlock}>
+                  <p className={styles.statLabel}>หน่วยกิตภาควิชา</p>
+                  {isEditingCredits ? (
+                    <div className={styles.creditInputRow}>
+                      <input
+                        type="number"
+                        min={0}
+                        className={styles.creditInput}
+                        value={creditsForm.majorCredits}
+                        onChange={(e) => setCreditsForm((prev) => ({ ...prev, majorCredits: Number(e.target.value) }))}
+                      />
+                      <span className={styles.creditUnit}>หน่วยกิต</span>
+                    </div>
+                  ) : (
+                    <p className={styles.statValue}>{profile.majorCredits ?? 0} หน่วยกิต</p>
+                  )}
+                  <p className={styles.statHint}>สิทธิ์ทำโครงงานพิเศษ</p>
+                </div>
               </div>
-            </header>
-            <DocumentList
-              documents={documents}
-              onView={handleViewDoc}
-              onDownload={handleDownloadDoc}
-              loading={documentsQuery.isLoading}
-              error={documentsQuery.isError ? "ไม่สามารถโหลดเอกสารได้" : null}
-            />
-          </article>
-        ) : null}
-      </section>
+              {creditsError ? <p className={styles.error}>{creditsError}</p> : null}
+            </article>
+            ) : null}
+
+            {activeTab === "timeline" ? (
+              <>
+                <article className={`${styles.card} ${styles.cardInternship} ${styles.statusCard}`}>
+              <header className={styles.cardHeader}>
+                <div>
+                  <p className={styles.cardEyebrow}>Internship</p>
+                  <h3 className={styles.cardTitle}>สถานะฝึกงาน</h3>
+                </div>
+                <span className={`${styles.badge} ${toneClass(internshipEligibility.tone)}`}>
+                  {internshipEligibility.label}
+                </span>
+              </header>
+              <p className={styles.statusText}>{internshipStatusThai}</p>
+              {profile.eligibility?.internship?.message ? (
+                <p className={styles.note}>{profile.eligibility.internship.message}</p>
+              ) : null}
+            </article>
+
+            <article className={`${styles.card} ${styles.cardProject} ${styles.statusCard}`}>
+              <header className={styles.cardHeader}>
+                <div>
+                  <p className={styles.cardEyebrow}>Project</p>
+                  <h3 className={styles.cardTitle}>สถานะโครงงาน</h3>
+                </div>
+                <span className={`${styles.badge} ${toneClass(projectEligibility.tone)}`}>
+                  {projectEligibility.label}
+                </span>
+              </header>
+              <p className={styles.statusText}>{projectStatusThai}</p>
+              {profile.eligibility?.project?.message ? (
+                <p className={styles.note}>{profile.eligibility.project.message}</p>
+              ) : null}
+            </article>
+              </>
+            ) : null}
+
+            {activeTab === "documents" && canUseStudentEndpoints ? (
+              <article className={`${styles.card} ${styles.cardDocuments}`}>
+              <header className={styles.cardHeader}>
+                <div>
+                  <p className={styles.cardEyebrow}>Documents</p>
+                  <h3 className={styles.cardTitle}>เอกสารฝึกงาน</h3>
+                </div>
+              </header>
+              <DocumentList
+                documents={documents}
+                onView={handleViewDoc}
+                onDownload={handleDownloadDoc}
+                loading={documentsQuery.isLoading}
+                error={documentsQuery.isError ? "ไม่สามารถโหลดเอกสารได้" : null}
+              />
+            </article>
+            ) : null}
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

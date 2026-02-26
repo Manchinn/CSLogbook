@@ -21,57 +21,93 @@
   z-index: -1;
 }
 
-.hero {
-  display: flex;
-  justify-content: space-between;
+.layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 1.4rem;
-  padding: 1.4rem 1.55rem;
-  border-radius: 1.2rem;
-  border: 1px solid #dce8f9;
-  background:
-    radial-gradient(circle at 15% 22%, rgba(13, 148, 136, 0.12), transparent 45%),
-    linear-gradient(128deg, #f1f9ff 0%, #ecf7ff 52%, #edf3ff 100%);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+  align-items: start;
 }
 
-.heroContent {
-  max-width: 660px;
+.sidebar {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
 }
 
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.11em;
-  font-size: 0.75rem;
-  color: #4b5563;
+.main {
+  display: grid;
+  gap: 1.4rem;
+  padding-top: 0.15rem;
+  min-width: 0;
+  padding-left: .5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.tab {
+  border: 1px solid #dbe7fb;
+  background: #f8fbff;
+  color: #475569;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.12);
+}
+
+.profileCard {
+  text-align: center;
+  gap: 0.65rem;
+  padding: 1.2rem 1.1rem 1.1rem;
+}
+
+.avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  margin: 0 auto;
+  background: #e2e8f0;
+  color: #64748b;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
   font-weight: 700;
 }
 
-.title {
-  margin-top: 0.3rem;
-  font-size: clamp(1.7rem, 2.2vw, 2.15rem);
-  line-height: 1.12;
-  letter-spacing: -0.02em;
+.profileName {
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
-.subtitle {
-  margin-top: 0.25rem;
+.profileCode {
   color: #475569;
+  font-weight: 600;
 }
 
-.heroBadges {
-  display: flex;
-  gap: 0.55rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-content: flex-start;
-  max-width: 420px;
+.profileBadges {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
 }
 
 .grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(12, minmax(0, 1fr));
+  width: 100%;
 }
 
 .card {
@@ -111,21 +147,16 @@
 }
 
 .cardCredits {
-  grid-column: span 4;
-}
-
-.cardContact {
-  grid-column: span 3;
+  grid-column: span 12;
 }
 
 .cardInternship,
 .cardProject {
-  grid-column: span 2;
+  grid-column: span 6;
 }
 
-.cardDeadlines,
 .cardDocuments {
-  grid-column: span 4;
+  grid-column: span 12;
 }
 
 .statGrid {
@@ -152,6 +183,40 @@
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.statHint {
+  margin-top: 0.25rem;
+  color: #16a34a;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.creditInputRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.creditInput {
+  width: 120px;
+  border: 1px solid #d6deeb;
+  border-radius: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.creditInput:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22);
+}
+
+.creditUnit {
+  color: #64748b;
+  font-weight: 600;
 }
 
 .detailList {
@@ -261,7 +326,6 @@
   font-weight: 700;
   font-size: 0.82rem;
   border: 1px solid transparent;
-  backdrop-filter: blur(1px);
   white-space: nowrap;
 }
 
@@ -313,6 +377,11 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.actionRowBottom {
+  margin-top: 0.5rem;
+  justify-content: flex-start;
 }
 
 .linkButton {
@@ -437,14 +506,8 @@
     padding-top: 0.1rem;
   }
 
-  .hero {
-    flex-direction: column;
-    padding: 1.15rem 1rem;
-  }
-
-  .heroBadges {
-    justify-content: flex-start;
-    max-width: 100%;
+  .layout {
+    grid-template-columns: 1fr;
   }
 
   .grid {
@@ -452,10 +515,8 @@
   }
 
   .cardCredits,
-  .cardContact,
   .cardInternship,
   .cardProject,
-  .cardDeadlines,
   .cardDocuments {
     grid-column: auto;
   }
@@ -485,15 +546,13 @@
 }
 
 @media (min-width: 769px) and (max-width: 1180px) {
-  .cardCredits,
-  .cardContact,
-  .cardDeadlines,
-  .cardDocuments {
-    grid-column: span 6;
+  .layout {
+    grid-template-columns: 280px minmax(0, 1fr);
   }
 
   .cardInternship,
-  .cardProject {
-    grid-column: span 6;
+  .cardProject,
+  .cardDocuments {
+    grid-column: span 12;
   }
 }

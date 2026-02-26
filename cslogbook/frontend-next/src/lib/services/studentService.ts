@@ -466,6 +466,11 @@ export type UpdateContactInfoPayload = {
   phoneNumber?: string | null;
 };
 
+export type UpdateCreditsPayload = {
+  totalCredits: number;
+  majorCredits: number;
+};
+
 export async function updateStudentContactInfo(studentCode: string, token: string, payload: UpdateContactInfoPayload) {
   const data = await apiFetchData<StudentProfile>(
     `/students/${studentCode}/contact-info`,
@@ -482,6 +487,15 @@ export async function updateStudentContactInfo(studentCode: string, token: strin
   }
 
   return data;
+}
+
+export async function updateStudentCredits(studentCode: string, token: string, payload: UpdateCreditsPayload) {
+  return apiFetch(`/students/${studentCode}`, {
+    method: "PUT",
+    token,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getStudentProfile(studentCode: string, token: string) {
