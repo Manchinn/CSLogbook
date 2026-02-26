@@ -8,12 +8,6 @@ import { StudentProjectStatusWidget } from "@/components/dashboard/StudentProjec
 import { featureFlags } from "@/lib/config/featureFlags";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 
-const stats = [
-  { label: "My Tasks", value: "12" },
-  { label: "Pending Submissions", value: "3" },
-  { label: "Upcoming Deadlines", value: "2" },
-];
-
 export default function StudentDashboardPage() {
   const studentWidgetsEnabled = featureFlags.enableStudentWidgetMigration;
   const internshipWidgetEnabled = featureFlags.enableStudentInternshipWidget;
@@ -24,7 +18,6 @@ export default function StudentDashboardPage() {
       <DashboardRoleView
         roleLabel="Student"
         summary="ติดตามงานฝึกงาน/โครงงาน และกำหนดส่งที่ใกล้ถึง"
-        stats={stats}
       >
         <StudentEligibilityWidget enabled={studentWidgetsEnabled} />
         <StudentDeadlinesWidget enabled={studentWidgetsEnabled} />

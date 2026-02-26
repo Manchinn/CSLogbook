@@ -59,7 +59,6 @@ export function StudentProjectStatusWidget({ enabled }: StudentProjectStatusWidg
         <div>
           <p className={styles.eyebrow}>Project</p>
           <h3 className={styles.title}>สถานะโครงงาน</h3>
-          <p className={styles.subtitle}>ข้อมูลจาก /projects/mine และ /projects/:id/workflow-state</p>
         </div>
         <div className={styles.badges}>
           <span className={styles.chip}>Phase: {phaseChip}</span>

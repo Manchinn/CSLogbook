@@ -95,7 +95,6 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
             <div>
               <p className={styles.eyebrow}>Student widgets</p>
               <h2>สิทธิ์การลงทะเบียน</h2>
-              <p className={styles.subtitle}>ดึงข้อมูลจริงจาก /students/check-eligibility</p>
             </div>
             <div className={styles.badges}>
               <span

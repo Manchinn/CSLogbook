@@ -75,7 +75,6 @@ export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStat
         <div>
           <p className={styles.eyebrow}>Internship</p>
           <h3 className={styles.title}>สถานะฝึกงาน</h3>
-          <p className={styles.subtitle}>ข้อมูลจาก /internship/summary และ /logbooks/internship/timesheet/stats</p>
         </div>
         <div className={styles.badges}>
           <span className={styles.chip}>สถานะ: {statusChip}</span>

@@ -61,7 +61,6 @@ export function StudentDeadlinesWidget({ enabled, days = 7, limit = 5 }: Student
       <section className={styles.wrapper}>
         <div className={styles.header}>
           <h3 className={styles.title}>กำหนดส่งที่ใกล้ถึง (ภายใน {days} วัน)</h3>
-          <p className={styles.meta}>ดึงจาก /students/important-deadlines/upcoming</p>
         </div>
 
         {deadlines.length === 0 ? (

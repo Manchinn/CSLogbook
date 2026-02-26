@@ -86,6 +86,32 @@ class SSOService {
         }
       );
 
+      // บางผู้ให้บริการอาจตอบ 200 แต่ body เป็น OAuth error
+      if (response.data?.error) {
+        logger.error('SSOService: Token endpoint returned OAuth error', {
+          error: response.data.error,
+          errorDescription: response.data.error_description
+        });
+
+        return {
+          success: false,
+          error: response.data.error_description || 'ไม่สามารถแลก token ได้',
+          errorCode: response.data.error
+        };
+      }
+
+      if (!response.data?.access_token) {
+        logger.error('SSOService: Token endpoint did not return access_token', {
+          tokenKeys: Object.keys(response.data || {})
+        });
+
+        return {
+          success: false,
+          error: 'Token response ไม่มี access_token',
+          errorCode: 'missing_access_token'
+        };
+      }
+
       logger.info('SSOService: Token exchange successful');
       return {
         success: true,
@@ -113,6 +139,17 @@ class SSOService {
    */
   async getUserInfo(accessToken) {
     try {
+      if (!accessToken || typeof accessToken !== 'string') {
+        logger.error('SSOService: Missing or invalid access token before userinfo request', {
+          hasToken: !!accessToken,
+          tokenType: typeof accessToken
+        });
+        return {
+          success: false,
+          error: 'access_token ไม่ถูกต้องหรือไม่มีค่า'
+        };
+      }
+
       logger.info('SSOService: Fetching user info from SSO');
 
       const response = await axios.get(SSO_CONFIG.userInfoEndpoint, {
@@ -134,7 +171,8 @@ class SSOService {
     } catch (error) {
       logger.error('SSOService: Failed to fetch user info', {
         error: error.response?.data || error.message,
-        status: error.response?.status
+        status: error.response?.status,
+        wwwAuthenticate: error.response?.headers?.['www-authenticate']
       });
 
       return {

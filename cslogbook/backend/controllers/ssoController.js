@@ -96,7 +96,17 @@ exports.callback = async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=token_error`);
     }
 
-    const tokenData = tokenResult.data;
+    const tokenData = tokenResult.data || {};
+
+    // Guard: บางผู้ให้บริการอาจไม่คืน access_token ใน root object
+    if (!tokenData.access_token || typeof tokenData.access_token !== 'string') {
+      logger.error('SSO Controller: Missing access_token in token response', {
+        tokenKeys: Object.keys(tokenData),
+        hasIdToken: !!tokenData.id_token,
+        hasRefreshToken: !!tokenData.refresh_token
+      });
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=token_missing_access_token`);
+    }
 
     // ดึงข้อมูลผู้ใช้จาก SSO
     const userInfoResult = await ssoService.getUserInfo(tokenData.access_token);
