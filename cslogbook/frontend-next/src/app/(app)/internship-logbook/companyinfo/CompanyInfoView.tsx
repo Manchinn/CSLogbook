@@ -127,21 +127,21 @@ export default function CompanyInfoView() {
   const guard: GuardMessage | null = useMemo(() => {
     if (!hydrated) return { title: "กำลังเตรียมข้อมูล", body: "กรุณารอสักครู่", tone: "info" };
     if (cs05Query.isError) {
-      return { title: "โหลดข้อมูล CS05 ไม่สำเร็จ", body: "กรุณาลองรีเฟรชหรือกลับไปยังหน้าลงทะเบียน", tone: "danger" };
+      return { title: "โหลดข้อมูลหนังสือคำร้องขอฝึกงานไม่สำเร็จ", body: "กรุณาลองรีเฟรชหรือกลับไปยังหน้าลงทะเบียน", tone: "danger" };
     }
     if (!cs05 && !cs05Query.isLoading) {
       return {
-        title: "ยังไม่มีคำร้อง คพ.05",
-        body: "กรุณายื่นคำร้องฝึกงาน (คพ.05) และรอการอนุมัติ ก่อนบันทึกข้อมูลสถานประกอบการ",
+        title: "ยังไม่มีหนังสือคำร้องขอฝึกงาน",
+        body: "กรุณายื่นหนังสือคำร้องขอฝึกงานและรอการอนุมัติ ก่อนบันทึกข้อมูลสถานประกอบการ",
         tone: "warning",
       };
     }
     if (cs05Status && cs05Status !== "approved") {
       const body = cs05Status === "pending"
-        ? "คำร้อง คพ.05 อยู่ระหว่างการพิจารณา"
+        ? "หนังสือคำร้องขอฝึกงานอยู่ระหว่างการพิจารณา"
         : cs05Status === "rejected"
-        ? "คำร้อง คพ.05 ไม่ได้รับการอนุมัติ กรุณาแก้ไขและส่งใหม่"
-        : "คำร้อง คพ.05 ยังไม่พร้อมสำหรับขั้นตอนนี้";
+        ? "หนังสือคำร้องขอฝึกงานไม่ได้รับการอนุมัติ กรุณาแก้ไขและส่งใหม่"
+        : "หนังสือคำร้องขอฝึกงานยังไม่พร้อมสำหรับขั้นตอนนี้";
       return {
         title: "ยังไม่สามารถบันทึกข้อมูลผู้ควบคุมงาน",
         body,
@@ -176,7 +176,7 @@ export default function CompanyInfoView() {
     setSubmitSuccess(null);
 
     if (!token || !documentId) {
-      setSubmitError("ไม่พบข้อมูลคำร้อง คพ.05");
+      setSubmitError("ไม่พบข้อมูลหนังสือคำร้องขอฝึกงาน");
       return;
     }
 
@@ -225,24 +225,21 @@ export default function CompanyInfoView() {
         <div>
           <p className={styles.kicker}>Internship Logbook</p>
           <h1 className={styles.title}>ข้อมูลสถานประกอบการ</h1>
-          <p className={styles.lead}>กรอกข้อมูลผู้ควบคุมงานหลังคำร้อง คพ.05 และหนังสือตอบรับได้รับอนุมัติ (ใช้ในสมุดบันทึกและหนังสือรับรอง)</p>
+          <p className={styles.lead}>กรอกข้อมูลผู้ควบคุมงานหลังหนังสือคำร้องขอฝึกงานและหนังสือตอบรับได้รับอนุมัติ (ใช้ในสมุดบันทึกและหนังสือรับรอง)</p>
         </div>
         <div className={styles.heroMeta}>
           <span className={`${styles.badge} ${toneClass(statusLabel(cs05Status).tone)}`}>
-            CS05: {statusLabel(cs05Status).label}
+            หนังสือคำร้องขอฝึกงาน: {statusLabel(cs05Status).label}
           </span>
           <span className={`${styles.badge} ${toneClass(statusLabel(acceptanceStatus).tone)}`}>
             หนังสือตอบรับ: {statusLabel(acceptanceStatus).label}
-          </span>
-          <span className={`${styles.badge} ${styles.badgeNeutral}`}>
-            Document ID: {documentId ?? "-"}
           </span>
         </div>
       </section>
 
       <section className={styles.statusGrid}>
         <div className={styles.statusCard}>
-          <p className={styles.statusLabel}>สถานะ คพ.05</p>
+          <p className={styles.statusLabel}>หนังสือคำร้องขอฝึกงาน</p>
           <p className={styles.statusValue}>{statusLabel(cs05Status).label}</p>
           <p className={styles.statusHint}>{cs05?.companyName || "ยังไม่มีข้อมูลบริษัท"}</p>
         </div>
@@ -294,7 +291,7 @@ export default function CompanyInfoView() {
                 disabled
                 aria-readonly
               />
-              <p className={styles.helper}>ดึงจากคำร้อง คพ.05</p>
+              <p className={styles.helper}>ดึงจากหนังสือคำร้องขอฝึกงาน</p>
             </div>
 
             <div className={styles.gridTwo}>

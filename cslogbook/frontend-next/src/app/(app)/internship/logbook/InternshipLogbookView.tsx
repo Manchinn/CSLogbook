@@ -13,12 +13,7 @@ import {
   useTimesheetMutations,
   useTimesheetStats,
 } from "@/hooks/useInternshipLogbook";
-import {
-  useInternshipEvaluationStatus,
-  useSendEvaluationRequest,
-} from "@/hooks/useInternshipEvaluation";
 import type { TimesheetEntry } from "@/lib/services/internshipLogbookService";
-import { REQUIRED_INTERNSHIP_HOURS } from "@/lib/constants/internship";
 import styles from "./logbook.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -78,6 +73,25 @@ function statusLabel(status: RowStatus) {
   }
 }
 
+function approvalStatusLabel(status?: string | null) {
+  switch (status) {
+    case "approved":
+      return "อนุมัติแล้ว";
+    case "pending":
+      return "รอพิจารณา";
+    case "rejected":
+      return "ไม่อนุมัติ";
+    case "cancelled":
+      return "ยกเลิก";
+    case "uploaded":
+      return "อัปโหลดแล้ว (รออนุมัติ)";
+    case "not_uploaded":
+      return "ยังไม่อัปโหลด";
+    default:
+      return "ไม่พบข้อมูล";
+  }
+}
+
 function calculateWorkHours(timeIn: string, timeOut: string) {
   const [hIn, mIn] = timeIn.split(":").map((v) => Number.parseInt(v, 10));
   const [hOut, mOut] = timeOut.split(":").map((v) => Number.parseInt(v, 10));
@@ -105,9 +119,6 @@ export default function InternshipLogbookView() {
   const dateRangeQuery = useInternshipDateRange(token, queriesEnabled && Boolean(documentId));
   const { saveMutation, updateMutation } = useTimesheetMutations(token);
 
-  const evaluationStatusQuery = useInternshipEvaluationStatus(token, queriesEnabled && Boolean(documentId));
-  const sendEvaluationMutation = useSendEvaluationRequest(token, documentId);
-
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const timeInRef = useRef<HTMLInputElement | null>(null);
   const [page, setPage] = useState(1);
@@ -129,21 +140,21 @@ export default function InternshipLogbookView() {
       return { title: "กำลังเตรียมข้อมูล", body: "กรุณารอสักครู่", tone: "info" };
     }
     if (cs05Query.isError) {
-      return { title: "โหลดข้อมูล คพ.05 ไม่สำเร็จ", body: "กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่", tone: "danger" };
+      return { title: "โหลดข้อมูลหนังสือคำร้องขอฝึกงานไม่สำเร็จ", body: "กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่", tone: "danger" };
     }
     if (!cs05 && !cs05Query.isLoading) {
       return {
-        title: "ยังไม่มีคำร้อง คพ.05",
+        title: "ยังไม่มีหนังสือคำร้องขอฝึกงาน",
         body: "ต้องยื่นคำร้องและรออนุมัติจึงจะบันทึก Logbook ได้",
         tone: "warning",
       };
     }
     if (cs05Status && cs05Status !== "approved") {
       const body = cs05Status === "pending"
-        ? "คำร้อง คพ.05 อยู่ระหว่างการพิจารณา"
+        ? "หนังสือคำร้องขอฝึกงานอยู่ระหว่างการพิจารณา"
         : cs05Status === "rejected"
-        ? "คำร้อง คพ.05 ไม่ได้รับการอนุมัติ"
-        : "คำร้อง คพ.05 ยังไม่พร้อมสำหรับขั้นตอนนี้";
+          ? "หนังสือคำร้องขอฝึกงานไม่ได้รับการอนุมัติ"
+          : "หนังสือคำร้องขอฝึกงานยังไม่พร้อมสำหรับขั้นตอนนี้";
       return {
         title: "ยังไม่สามารถบันทึก Logbook",
         body,
@@ -151,7 +162,7 @@ export default function InternshipLogbookView() {
       };
     }
     if (!documentId) {
-      return { title: "กำลังเตรียมข้อมูล", body: "กำลังโหลดข้อมูลคำร้อง คพ.05", tone: "info" };
+      return { title: "กำลังเตรียมข้อมูล", body: "กำลังโหลดข้อมูลหนังสือคำร้องขอฝึกงาน", tone: "info" };
     }
     if (acceptanceQuery.isError) {
       return { title: "ตรวจสอบหนังสือตอบรับไม่สำเร็จ", body: "กรุณาลองใหม่", tone: "danger" };
@@ -163,8 +174,8 @@ export default function InternshipLogbookView() {
       const body = acceptanceStatus === "pending"
         ? "หนังสือตอบรับอยู่ระหว่างการพิจารณา"
         : acceptanceStatus === "rejected"
-        ? "หนังสือตอบรับไม่ได้รับการอนุมัติ"
-        : "ต้องอัปโหลดหนังสือตอบรับจากบริษัทก่อน";
+          ? "หนังสือตอบรับไม่ได้รับการอนุมัติ"
+          : "ต้องอัปโหลดหนังสือตอบรับจากบริษัทก่อน";
       return {
         title: "ต้องได้รับการอนุมัติหนังสือตอบรับก่อน",
         body,
@@ -313,17 +324,6 @@ export default function InternshipLogbookView() {
 
   const stats = statsQuery.data;
   const dateRange = dateRangeQuery.data;
-  const evaluationStatus = evaluationStatusQuery.data;
-
-  const approvedHours = useMemo(
-    () => stats?.approvedBySupervisor ?? stats?.totalHours ?? 0,
-    [stats?.approvedBySupervisor, stats?.totalHours]
-  );
-  const canSendEvaluation = useMemo(
-    () => approvedHours >= REQUIRED_INTERNSHIP_HOURS,
-    [approvedHours]
-  );
-
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
 
@@ -342,13 +342,10 @@ export default function InternshipLogbookView() {
         </div>
         <div className={styles.heroMeta}>
           <span className={`${styles.badge} ${cs05Status === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
-            CS05: {cs05Status ?? "ไม่พบข้อมูล"}
+            หนังสือคำร้องขอฝึกงาน: {approvalStatusLabel(cs05Status)}
           </span>
           <span className={`${styles.badge} ${acceptanceStatus === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
-            หนังสือตอบรับ: {acceptanceStatus ?? "ไม่พบข้อมูล"}
-          </span>
-          <span className={`${styles.badge} ${styles.badgeNeutral}`}>
-            Document ID: {documentId ?? "-"}
+            หนังสือตอบรับ: {approvalStatusLabel(acceptanceStatus)}
           </span>
         </div>
       </header>
@@ -357,12 +354,10 @@ export default function InternshipLogbookView() {
         <article className={styles.statusCard}>
           <p className={styles.statusLabel}>ช่วงฝึกงาน</p>
           <p className={styles.statusValue}>{dateRange ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}` : "-"}</p>
-          <p className={styles.statusHint}>ดึงจากข้อมูล คพ.05</p>
         </article>
         <article className={styles.statusCard}>
           <p className={styles.statusLabel}>ชั่วโมงสะสม</p>
           <p className={styles.statusValue}>{formatHours(stats?.totalHours ?? null)} ชม.</p>
-          <p className={styles.statusHint}>อนุมัติแล้ว {formatHours(stats?.approvedBySupervisor ?? null)} ชม.</p>
         </article>
         <article className={styles.statusCard}>
           <p className={styles.statusLabel}>รายการบันทึก</p>
@@ -376,7 +371,6 @@ export default function InternshipLogbookView() {
           <div>
             <p className={styles.panelKicker}>คำชี้แจง</p>
             <h2 className={styles.sectionTitle}>แนวทางการบันทึกการฝึกงาน</h2>
-            <p className={styles.formHint}>อ้างอิงคำชี้แจงจากระบบเดิม</p>
           </div>
         </div>
         <ul className={styles.instructionList}>
@@ -406,7 +400,6 @@ export default function InternshipLogbookView() {
               <div>
                 <p className={styles.panelKicker}>ภาพรวม</p>
                 <h2 className={styles.sectionTitle}>สถิติการบันทึก</h2>
-                <p className={styles.formHint}>ข้อมูลจาก /logbooks/internship/timesheet/stats</p>
               </div>
               <div className={styles.sectionBadges}>
                 <span className={`${styles.badge} ${styles.badgeMuted}`}>ข้อมูลอัปเดตอัตโนมัติทุก 5 นาที</span>
@@ -416,7 +409,7 @@ export default function InternshipLogbookView() {
               <div className={styles.statCard}>
                 <p className={styles.statLabel}>วันทั้งหมด</p>
                 <p className={styles.statValue}>{stats?.total ?? "-"}</p>
-                <p className={styles.statHint}>รวมวันทำงานตาม คพ.05</p>
+                <p className={styles.statHint}>รวมวันทำงานตามหนังสือคำร้องขอฝึกงาน</p>
               </div>
               <div className={styles.statCard}>
                 <p className={styles.statLabel}>บันทึกแล้ว</p>
@@ -434,83 +427,6 @@ export default function InternshipLogbookView() {
                 <p className={styles.statHint}>วันที่พี่เลี้ยงอนุมัติ</p>
               </div>
             </div>
-          </section>
-
-          <section className={styles.sectionCard}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.panelKicker}>การประเมิน</p>
-                <h2 className={styles.sectionTitle}>ส่งคำขอประเมินไปยังพี่เลี้ยง</h2>
-                <p className={styles.formHint}>ระบบจะส่งอีเมลลิงก์แบบประเมินให้พี่เลี้ยง</p>
-              </div>
-              <div className={styles.sectionBadges}>
-                <span className={`${styles.badge} ${approvedHours >= 240 ? styles.badgePositive : styles.badgeWarning}`}>
-                  ชั่วโมงที่บันทึก {formatHours(approvedHours)}/{REQUIRED_INTERNSHIP_HOURS} ชม.
-                </span>
-                <span className={`${styles.badge} ${evaluationStatus?.isSent ? styles.badgePositive : styles.badgeInfo}`}>
-                  สถานะ: {evaluationStatus?.isSent ? "ส่งแล้ว" : "ยังไม่ส่ง"}
-                </span>
-              </div>
-            </div>
-
-            {evaluationStatusQuery.isError && (
-              <div className={`${styles.callout} ${styles.calloutDanger}`}>
-                <div>
-                  <p className={styles.calloutTitle}>โหลดสถานะการประเมินไม่สำเร็จ</p>
-                  <p className={styles.calloutText}>กรุณาลองใหม่หรือแจ้งเจ้าหน้าที่</p>
-                </div>
-              </div>
-            )}
-
-            <div className={styles.statGrid}>
-              <div className={styles.statCard}>
-                <p className={styles.statLabel}>ส่งล่าสุด</p>
-                <p className={styles.statValue}>{evaluationStatus?.sentDate ? formatDate(evaluationStatus.sentDate) : "ยังไม่ส่ง"}</p>
-                <p className={styles.statHint}>จะปิดเมื่อครบกำหนดหรือส่งสำเร็จ</p>
-              </div>
-            </div>
-
-            <div className={styles.callout}>
-              <div>
-                <p className={styles.calloutTitle}>เงื่อนไขการส่ง</p>
-                <p className={styles.calloutText}>
-                    ต้องมีชั่วโมงที่บันทึกและอนุมัติแล้วอย่างน้อย 240 ชั่วโมงก่อนส่งคำขอประเมิน
-                </p>
-                <p className={styles.calloutText}>ลิงก์แบบประเมินมีอายุ 7 วันหลังจากส่งคำขอ</p>
-              </div>
-              <div className={styles.calloutActions}>
-                <button
-                  className={styles.primaryButton}
-                  onClick={() => sendEvaluationMutation.mutateAsync().catch((error) => console.error(error))}
-                  disabled={!canSendEvaluation || sendEvaluationMutation.isPending || evaluationStatusQuery.isLoading}
-                >
-                  {sendEvaluationMutation.isPending ? "กำลังส่ง..." : "ส่งอีเมลคำขอประเมิน"}
-                </button>
-                {!canSendEvaluation && (
-                  <span className={styles.calloutText}>ต้องครบ {REQUIRED_INTERNSHIP_HOURS} ชั่วโมงก่อน</span>
-                )}
-              </div>
-            </div>
-
-            {sendEvaluationMutation.isSuccess && (
-              <div className={`${styles.callout} ${styles.calloutInfo}`}>
-                <div>
-                  <p className={styles.calloutTitle}>ส่งคำขอแล้ว</p>
-                  <p className={styles.calloutText}>{sendEvaluationMutation.data?.message ?? "ระบบได้ส่งอีเมลไปยังพี่เลี้ยงแล้ว"}</p>
-                </div>
-              </div>
-            )}
-
-            {sendEvaluationMutation.isError && (
-              <div className={`${styles.callout} ${styles.calloutDanger}`}>
-                <div>
-                  <p className={styles.calloutTitle}>ส่งคำขอไม่สำเร็จ</p>
-                  <p className={styles.calloutText}>
-                    {(sendEvaluationMutation.error as Error)?.message || "ไม่สามารถส่งอีเมลคำขอประเมินได้"}
-                  </p>
-                </div>
-              </div>
-            )}
           </section>
 
           <section className={styles.sectionCard}>
@@ -618,11 +534,6 @@ export default function InternshipLogbookView() {
                     <h3 className={styles.formTitle} id="logbook-modal-title">กรอกข้อมูลการฝึกงาน</h3>
                     <p className={styles.formHint}>ระบบจะคำนวณชั่วโมงจากเวลาเข้า-ออกงานอัตโนมัติ</p>
                   </div>
-                  <div className={styles.calloutActions}>
-                    <button className={styles.secondaryButton} type="button" onClick={handleCloseModal}>
-                      ปิดแบบฟอร์ม
-                    </button>
-                  </div>
                 </div>
 
                 <form className={styles.form} onSubmit={handleSubmit}>
@@ -726,7 +637,9 @@ export default function InternshipLogbookView() {
                   {formSuccess ? <p className={styles.success}>{formSuccess}</p> : null}
 
                   <div className={styles.actions}>
-                    <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าแดชบอร์ด</Link>
+                    <button className={styles.secondaryButton} type="button" onClick={handleCloseModal}>
+                      ปิดแบบฟอร์ม
+                    </button>
                     <button className={styles.primaryButton} type="submit" disabled={saveMutation.isPending || updateMutation.isPending}>
                       {saveMutation.isPending || updateMutation.isPending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                     </button>

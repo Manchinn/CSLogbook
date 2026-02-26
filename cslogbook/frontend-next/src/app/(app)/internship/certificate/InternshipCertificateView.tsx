@@ -54,6 +54,25 @@ function statusLabel(status: string | null | undefined): StatusLabel {
   }
 }
 
+function approvalStatusLabel(status?: string | null) {
+  switch (status) {
+    case "approved":
+      return "อนุมัติแล้ว";
+    case "pending":
+      return "รอพิจารณา";
+    case "rejected":
+      return "ไม่อนุมัติ";
+    case "cancelled":
+      return "ยกเลิก";
+    case "uploaded":
+      return "อัปโหลดแล้ว (รออนุมัติ)";
+    case "not_uploaded":
+      return "ยังไม่อัปโหลด";
+    default:
+      return "ไม่พบข้อมูล";
+  }
+}
+
 function toneClass(tone: GuardMessage["tone"]) {
   if (tone === "warning") return styles.calloutWarning;
   if (tone === "danger") return styles.calloutDanger;
@@ -113,22 +132,22 @@ export default function InternshipCertificateView() {
       return { title: "กำลังเตรียมข้อมูล", body: "กรุณารอสักครู่", tone: "info" };
     }
     if (cs05Query.isError) {
-      return { title: "โหลดข้อมูล คพ.05 ไม่สำเร็จ", body: "กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่", tone: "danger" };
+      return { title: "โหลดข้อมูลหนังสือคำร้องขอฝึกงานไม่สำเร็จ", body: "กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่", tone: "danger" };
     }
     if (!cs05 && !cs05Query.isLoading) {
       return {
-        title: "ยังไม่มีคำร้อง คพ.05",
+        title: "ยังไม่มีหนังสือคำร้องขอฝึกงาน",
         body: "ต้องยื่นคำร้องและรออนุมัติจึงจะขอหนังสือรับรองได้",
         tone: "warning",
       };
     }
     if (cs05Status && cs05Status !== "approved") {
       const body = cs05Status === "pending"
-        ? "คำร้อง คพ.05 อยู่ระหว่างการพิจารณา"
+        ? "หนังสือคำร้องขอฝึกงานอยู่ระหว่างการพิจารณา"
         : cs05Status === "rejected"
-        ? "คำร้อง คพ.05 ไม่ได้รับการอนุมัติ"
-        : "คำร้อง คพ.05 ยังไม่พร้อมสำหรับขั้นตอนนี้";
-      return { title: "ยังไม่ผ่านเงื่อนไข คพ.05", body, tone: cs05Status === "rejected" ? "danger" : "warning" };
+        ? "หนังสือคำร้องขอฝึกงานไม่ได้รับการอนุมัติ"
+        : "หนังสือคำร้องขอฝึกงานยังไม่พร้อมสำหรับขั้นตอนนี้";
+      return { title: "ยังไม่ผ่านเงื่อนไขหนังสือคำร้องขอฝึกงาน", body, tone: cs05Status === "rejected" ? "danger" : "warning" };
     }
     if (!documentId) {
       return { title: "กำลังโหลดข้อมูลฝึกงาน", body: "กรุณารอสักครู่", tone: "info" };
@@ -242,10 +261,10 @@ export default function InternshipCertificateView() {
               สถานะ: {statusMeta.text}
             </span>
             <span className={`${styles.badge} ${cs05Status === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
-              คำร้อง คพ.05: {cs05Status ?? "-"}
+              หนังสือคำร้องขอฝึกงาน: {approvalStatusLabel(cs05Status)}
             </span>
             <span className={`${styles.badge} ${acceptanceStatus === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
-              หนังสือตอบรับ: {acceptanceStatus ?? "-"}
+              หนังสือตอบรับ: {approvalStatusLabel(acceptanceStatus)}
             </span>
           </div>
         </div>
@@ -337,7 +356,7 @@ export default function InternshipCertificateView() {
             <div className={styles.statCard}>
               <p className={styles.statLabel}>รายงานสรุปผล</p>
               <p className={styles.statValue}>{summaryDone ? "ส่งแล้ว" : "รอดำเนินการ"}</p>
-              <p className={styles.statHint}>ระบบตรวจสอบการส่ง Logbook Reflection</p>
+              <p className={styles.statHint}>ระบบตรวจสอบการส่งแบบประเมินการฝึกงาน</p>
             </div>
           </div>
           <ul className={styles.requirementList}>
@@ -396,7 +415,6 @@ export default function InternshipCertificateView() {
               <p className={styles.panelKicker}>ข้อมูลการฝึกงาน</p>
               <h2 className={styles.cardTitle}>สถานประกอบการ & ระยะเวลา</h2>
             </div>
-            <span className={`${styles.badge} ${styles.badgeMuted}`}>{cs05?.documentId ? `Document ID ${cs05.documentId}` : "-"}</span>
           </div>
           <div className={styles.infoGrid}>
             <div>
@@ -411,9 +429,6 @@ export default function InternshipCertificateView() {
               <p className={styles.infoLabel}>สถานะ</p>
               <p className={styles.infoValue}>{statusMeta.text}</p>
             </div>
-          </div>
-          <div className={styles.helperBoxMuted}>
-            <p className={styles.helperText}>ข้อมูลนี้ดึงจาก คพ.05 และคำขอหนังสือรับรองล่าสุด</p>
           </div>
         </article>
       </section>

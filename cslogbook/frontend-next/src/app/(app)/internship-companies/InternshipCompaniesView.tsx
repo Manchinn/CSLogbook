@@ -39,7 +39,7 @@ export default function InternshipCompaniesView() {
   const isStudent = user?.role === "student";
 
   const [academicYear, setAcademicYear] = useState<number | "all">(deriveCurrentAcademicYear());
-  const [limit, setLimit] = useState<number>(() => (isStaff ? 50 : 10));
+  const limit = useMemo(() => (isStaff ? 50 : 10), [isStaff]);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   const filters = useMemo(
@@ -66,22 +66,10 @@ export default function InternshipCompaniesView() {
   );
 
   const yearOptions = useMemo(() => buildYearOptions(), []);
-  const fullCount = useMemo(
-    () => rows.filter((row) => row.capacityStatus === "full").length,
-    [rows]
-  );
   const topStudents = useMemo(
     () => rows.reduce((sum, row) => sum + (row.totalStudents ?? 0), 0),
     [rows]
   );
-
-  const limitMax = useMemo(() => (isStaff ? 200 : 20), [isStaff]);
-  const handleLimitChange = useCallback((value: string) => {
-    const next = Number(value);
-    if (Number.isNaN(next)) return;
-    const clamped = Math.min(Math.max(next, 1), limitMax);
-    setLimit(clamped);
-  }, [limitMax]);
 
   const handleView = useCallback((companyName: string) => {
     setSelectedCompany(companyName);
@@ -97,7 +85,6 @@ export default function InternshipCompaniesView() {
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
-        <p className={styles.kicker}>ข้อมูลจากระบบเดิม</p>
         <h1 className={styles.title}>สถานประกอบการฝึกงาน</h1>
         <p className={styles.lead}>ตารางสรุปบริษัท ฝึกงานที่อนุมัติแล้ว พร้อมสถานะความจุของแต่ละบริษัท</p>
         <div className={styles.heroMeta}>
@@ -123,20 +110,6 @@ export default function InternshipCompaniesView() {
           </select>
         </div>
 
-        <div className={styles.control}>
-          <label className={styles.label} htmlFor="limit">จำนวนบริษัทสูงสุด (1-{limitMax})</label>
-          <input
-            id="limit"
-            className={styles.input}
-            type="number"
-            min={1}
-            max={limitMax}
-            value={limit}
-            onChange={(e) => handleLimitChange(e.target.value)}
-          />
-          <span className={styles.helper}>นักศึกษาเห็นสูงสุด 20 บริษัท, staff เห็นได้สูงสุด 200</span>
-        </div>
-
         <button
           className={styles.buttonPrimary}
           type="button"
@@ -152,29 +125,6 @@ export default function InternshipCompaniesView() {
         >
           ปิดรายละเอียด
         </button>
-      </section>
-
-      <section className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>บริษัทที่ดึงมา</p>
-          <p className={styles.statValue}>{formatNumber(meta?.totalCompanies)}</p>
-          <p className={styles.statSub}>จากทั้งหมด {formatNumber(meta?.totalAllCompanies)} บริษัท</p>
-        </div>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>จำนวนนักศึกษาที่แสดง</p>
-          <p className={styles.statValue}>{formatNumber(topStudents)}</p>
-          <p className={styles.statSub}>รวมทั้งหมด {formatNumber(meta?.totalAllStudents)} คน</p>
-        </div>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>สถานะความจุ</p>
-          <p className={styles.statValue}>{formatNumber(fullCount)} เต็ม</p>
-          <p className={styles.statSub}>{formatNumber(rows.length - fullCount)} ว่าง</p>
-        </div>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>Snapshot</p>
-          <p className={styles.statValue}>{meta?.academicYear ?? "ทุกปี"}</p>
-          <p className={styles.statSub}>อัปเดต {generatedLabel ?? "-"}</p>
-        </div>
       </section>
 
       <section className={styles.tableCard}>

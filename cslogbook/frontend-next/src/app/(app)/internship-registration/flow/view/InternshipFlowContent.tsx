@@ -106,11 +106,8 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
       <header className={styles.hero}>
         <div>
           <p className={styles.kicker}>Internship Registration</p>
-          <h1 className={styles.title}>เส้นทางลงทะเบียนฝึกงาน</h1>
-          <p className={styles.lead}>สรุปสถานะ คพ.05, หนังสือตอบรับ, ขั้นตอนยื่นคำร้อง และเดดไลน์สำคัญ</p>
-          <p className={styles.note}>
-            เกณฑ์เดิมอ้างอิงจากระบบเก่า: ต้องมีหน่วยกิตรวมอย่างน้อย {requiredCreditsText} หน่วยกิต
-          </p>
+          <h1 className={styles.title}>ลงทะเบียนฝึกงาน</h1>
+          
         </div>
       </header>
 
