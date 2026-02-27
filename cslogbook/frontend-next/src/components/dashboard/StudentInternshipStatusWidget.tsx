@@ -22,6 +22,21 @@ function formatHours(value?: number | null) {
   return value.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  not_requested: "ยังไม่ร้องขอ",
+  pending: "รอดำเนินการ",
+  approved: "อนุมัติแล้ว",
+  rejected: "ไม่อนุมัติ",
+  ready: "พร้อมใช้งาน",
+  active: "กำลังฝึกงาน",
+  completed: "เสร็จสิ้น",
+};
+
+function labelStatus(value?: string | null, fallback = "-") {
+  if (!value) return fallback;
+  return STATUS_LABELS[value] ?? value;
+}
+
 export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStatusWidgetProps) {
   const hydrated = useHydrated();
   const { token } = useAuth();
@@ -77,11 +92,11 @@ export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStat
           <h3 className={styles.title}>สถานะฝึกงาน</h3>
         </div>
         <div className={styles.badges}>
-          <span className={styles.chip}>สถานะ: {statusChip}</span>
+          <span className={styles.chip}>สถานะ: {labelStatus(statusChip)}</span>
           <span
             className={`${styles.chip} ${certificate?.status === "ready" ? styles.chipPositive : styles.chipMuted}`}
           >
-            ใบรับรอง: {certificate?.status ? certificate.status : "ยังไม่ร้องขอ"}
+            ใบรับรอง: {labelStatus(certificate?.status, "ยังไม่ร้องขอ")}
           </span>
         </div>
       </div>

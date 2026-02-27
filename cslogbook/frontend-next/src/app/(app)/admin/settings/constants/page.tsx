@@ -28,6 +28,11 @@ const SETTINGS_MODULES = [
     title: "ขั้นตอน Workflow",
     description: "จัดการลำดับขั้นตอนการดำเนินงานในระบบ",
   },
+  {
+    href: "/admin/settings/compatibility",
+    title: "Compatibility APIs",
+    description: "ทดสอบและเรียกใช้งาน Do Not Remove endpoints ผ่านหน้า UI กลาง",
+  },
 ];
 
 export default function AdminConstantsSettingsPage() {

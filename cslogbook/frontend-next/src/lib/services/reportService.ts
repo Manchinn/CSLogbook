@@ -1,4 +1,15 @@
 import { apiFetch } from "@/lib/api/client";
+import {
+  getDeadlineAcademicYearsCompatibility,
+  getDeadlineOverdueCompatibility,
+  getDeadlineUpcomingCompatibility,
+  getInternshipLogbookComplianceCompatibility,
+  getProjectsAdvisorLoadCompatibility,
+  getReportsOverviewCompatibility,
+  getStudentDeadlineHistoryCompatibility,
+  getWorkflowBlockedStudentsCompatibility,
+  getWorkflowBottlenecksCompatibility,
+} from "@/lib/services/compatibilityService";
 
 // ---- Types ----
 
@@ -157,6 +168,32 @@ export type AdvisorDetail = {
   }> | null;
 };
 
+export type ReportsOverviewData = {
+  totalStudents?: number;
+  totalProjects?: number;
+  totalInternships?: number;
+};
+
+export type InternshipLogbookComplianceData = {
+  totalStudents?: number;
+  compliantStudents?: number;
+  nonCompliantStudents?: number;
+  complianceRate?: number;
+};
+
+export type StudentDeadlineHistoryData = {
+  studentCode?: string;
+  fullName?: string;
+  history?: Array<{
+    deadlineId?: number;
+    deadlineName?: string;
+    submittedAt?: string | null;
+    dueDate?: string | null;
+    daysLate?: number | null;
+    status?: string | null;
+  }>;
+};
+
 // ---- Service Functions ----
 
 export async function getInternshipStudentSummary(params: { year?: number; semester?: number } = {}): Promise<InternshipStudentSummary | null> {
@@ -190,6 +227,11 @@ export async function getInternshipAcademicYears(): Promise<number[]> {
   return Array.isArray(res.data) ? res.data : [];
 }
 
+export async function getDeadlineAcademicYears(): Promise<number[]> {
+  const years = await getDeadlineAcademicYearsCompatibility();
+  return Array.isArray(years) ? years : [];
+}
+
 export async function getProjectAcademicYears(): Promise<number[]> {
   const res = await apiFetch<{ success: boolean; data: number[] }>("/reports/projects/academic-years");
   return Array.isArray(res.data) ? res.data : [];
@@ -205,10 +247,12 @@ export async function getProjectStatusSummary(params: { year?: number } = {}): P
 
 export async function getProjectList(params: { year?: number; status?: string } = {}): Promise<ProjectListItem[]> {
   const query = new URLSearchParams();
-  if (params.year) query.set("year", String(params.year));
+  if (params.year) query.set("academicYear", String(params.year));
   if (params.status) query.set("status", params.status);
   const qs = query.toString();
-  const res = await apiFetch<{ success: boolean; data: ProjectListItem[] }>(`/reports/projects/list${qs ? `?${qs}` : ""}`);
+  const res = await apiFetch<{ success: boolean; data: { projects?: ProjectListItem[] } | ProjectListItem[] }>(`/admin/projects${qs ? `?${qs}` : ""}`);
+  if (Array.isArray(res.data)) return res.data;
+  if (res.data && Array.isArray(res.data.projects)) return res.data.projects;
   return Array.isArray(res.data) ? res.data : [];
 }
 
@@ -216,8 +260,35 @@ export async function getWorkflowProgress(params: { workflowType?: string } = {}
   const query = new URLSearchParams();
   if (params.workflowType) query.set("workflowType", params.workflowType);
   const qs = query.toString();
-  const res = await apiFetch<{ success: boolean; data: WorkflowProgressData }>(`/reports/workflow/progress${qs ? `?${qs}` : ""}`);
-  return res.data ?? null;
+  const res = await apiFetch<{ success: boolean; data: WorkflowProgressData }>(`/reports/workflow/progress${qs ? `?${qs}` : ""}`).catch(() => null);
+  if (res?.data) return res.data;
+
+  const [blockedStudents, bottlenecks] = await Promise.all([
+    getWorkflowBlockedStudentsCompatibility(params.workflowType ? { workflowType: params.workflowType } : undefined),
+    getWorkflowBottlenecksCompatibility(params.workflowType ? { workflowType: params.workflowType } : undefined),
+  ]);
+
+  const blockedCount = Array.isArray(blockedStudents) ? blockedStudents.length : 0;
+  return {
+    summary: {
+      blocked: blockedCount,
+    },
+    bottlenecks: Array.isArray(bottlenecks)
+      ? bottlenecks.map((item) => ({
+          stepName: item.stepName ?? "-",
+          stuckCount: item.stuckCount ?? 0,
+          avgDaysStuck: item.avgDaysStuck ?? null,
+        }))
+      : [],
+    blockedStudents: Array.isArray(blockedStudents)
+      ? blockedStudents.map((item) => ({
+          studentCode: item.studentCode ?? null,
+          fullName: item.fullName ?? null,
+          stuckStepName: item.stuckStepName ?? null,
+          daysSinceLastUpdate: item.daysSinceLastUpdate ?? null,
+        }))
+      : [],
+  };
 }
 
 export async function getDeadlineCompliance(params: { year?: number; semester?: number } = {}): Promise<DeadlineComplianceReport | null> {
@@ -225,11 +296,52 @@ export async function getDeadlineCompliance(params: { year?: number; semester?: 
   if (params.year) query.set("year", String(params.year));
   if (params.semester) query.set("semester", String(params.semester));
   const qs = query.toString();
-  const res = await apiFetch<{ success: boolean; data: DeadlineComplianceReport }>(`/reports/deadlines/compliance${qs ? `?${qs}` : ""}`);
-  return res.data ?? null;
+  const res = await apiFetch<{ success: boolean; data: DeadlineComplianceReport }>(`/reports/deadlines/compliance${qs ? `?${qs}` : ""}`).catch(() => null);
+  if (res?.data) return res.data;
+
+  const queryObj = {
+    year: params.year,
+    semester: params.semester,
+  };
+  const [overdue, upcoming] = await Promise.all([
+    getDeadlineOverdueCompatibility(queryObj),
+    getDeadlineUpcomingCompatibility(queryObj),
+  ]);
+
+  return {
+    upcomingCount: Array.isArray(upcoming) ? upcoming.length : 0,
+    overdueCount: Array.isArray(overdue) ? overdue.length : 0,
+    upcomingDeadlines: Array.isArray(upcoming)
+      ? upcoming.map((item, index) => ({
+          deadlineId: item.deadlineId ?? index,
+          deadlineName: item.deadlineName ?? "-",
+          deadlineDate: item.deadlineDate ?? "",
+          daysUntil: item.daysUntil ?? 0,
+        }))
+      : [],
+    overdueDeadlines: Array.isArray(overdue)
+      ? overdue.map((item, index) => ({
+          deadlineId: item.deadlineId ?? index,
+          deadlineName: item.deadlineName ?? "-",
+          deadlineDate: item.deadlineDate ?? "",
+          daysOverdue: item.daysOverdue ?? 0,
+        }))
+      : [],
+  };
 }
 
 export async function getAdvisorWorkload(): Promise<AdvisorWorkloadItem[]> {
+  const data = await getProjectsAdvisorLoadCompatibility();
+  if (Array.isArray(data)) {
+    return data.map((item) => ({
+      teacherId: item.teacherId ?? null,
+      teacherCode: item.teacherCode ?? null,
+      name: item.name ?? null,
+      advisorProjectCount: item.advisorProjectCount ?? 0,
+      coAdvisorProjectCount: item.coAdvisorProjectCount ?? 0,
+    }));
+  }
+
   const res = await apiFetch<{ success: boolean; data: AdvisorWorkloadItem[] }>("/reports/advisors/workload");
   return Array.isArray(res.data) ? res.data : [];
 }
@@ -239,22 +351,50 @@ export async function getAdvisorDetail(teacherId: number): Promise<AdvisorDetail
   return res.data ?? null;
 }
 
+export async function getReportsOverview(params: { year?: number; semester?: number } = {}): Promise<ReportsOverviewData | null> {
+  const data = await getReportsOverviewCompatibility(params);
+  return data
+    ? {
+        totalStudents: typeof data.totalStudents === "number" ? data.totalStudents : undefined,
+        totalProjects: typeof data.totalProjects === "number" ? data.totalProjects : undefined,
+        totalInternships: typeof data.totalInternships === "number" ? data.totalInternships : undefined,
+      }
+    : null;
+}
+
+export async function getInternshipLogbookCompliance(params: { year?: number; semester?: number } = {}): Promise<InternshipLogbookComplianceData | null> {
+  const data = await getInternshipLogbookComplianceCompatibility(params);
+  return data
+    ? {
+        totalStudents: typeof data.totalStudents === "number" ? data.totalStudents : undefined,
+        compliantStudents: typeof data.compliantStudents === "number" ? data.compliantStudents : undefined,
+        nonCompliantStudents: typeof data.nonCompliantStudents === "number" ? data.nonCompliantStudents : undefined,
+        complianceRate: typeof data.complianceRate === "number" ? data.complianceRate : undefined,
+      }
+    : null;
+}
+
+export async function getStudentDeadlineHistory(studentId: string | number): Promise<StudentDeadlineHistoryData | null> {
+  const data = await getStudentDeadlineHistoryCompatibility(studentId);
+  return data ?? null;
+}
+
 export async function cancelInternship(internshipId: number, reason: string): Promise<void> {
-  await apiFetch(`/internships/${internshipId}/cancel`, {
+  await apiFetch(`/admin/internships/${internshipId}/cancel`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });
 }
 
 export async function updateInternship(internshipId: number, data: Record<string, unknown>): Promise<void> {
-  await apiFetch(`/internships/${internshipId}`, {
+  await apiFetch(`/admin/internships/${internshipId}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function cancelProject(projectId: number, reason: string): Promise<void> {
-  await apiFetch(`/projects/${projectId}/cancel`, {
+  await apiFetch(`/admin/projects/${projectId}/cancel`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });

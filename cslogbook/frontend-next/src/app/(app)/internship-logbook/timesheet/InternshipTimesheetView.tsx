@@ -47,7 +47,7 @@ export default function InternshipTimesheetView() {
   const entriesQuery = useTimesheetEntries(token, queriesEnabled && Boolean(documentId));
 
   const stats    = statsQuery.data;
-  const entries  = entriesQuery.data ?? [];
+  const entries  = useMemo(() => entriesQuery.data ?? [], [entriesQuery.data]);
 
   /* approval form state */
   const [approvalType, setApprovalType] = useState<ApprovalType>("full");

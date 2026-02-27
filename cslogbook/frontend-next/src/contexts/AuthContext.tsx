@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { login, verifyToken, type AuthUser, type LoginPayload } from "@/lib/api/authService";
+import { login, logout, verifyToken, type AuthUser, type LoginPayload } from "@/lib/api/authService";
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY, LEGACY_TOKEN_KEY } from "@/lib/auth/storageKeys";
 import { MOCK_ROLE_KEY } from "@/lib/auth/mockSession";
 
@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persistSession]);
 
   const signOut = useCallback(() => {
+    void logout().catch(() => undefined);
     clearSession();
   }, [clearSession]);
 

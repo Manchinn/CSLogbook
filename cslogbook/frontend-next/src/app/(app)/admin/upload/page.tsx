@@ -5,6 +5,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { env } from "@/lib/config/env";
 import { getCurrentAcademicInfo } from "@/lib/services/academicService";
+import { getTemplateDownloadPath } from "@/lib/services/compatibilityService";
 import { getCurriculumById, getCurriculumMappings, type CurriculumRecord } from "@/lib/services/settingsService";
 import { uploadStudentCSV, type UploadStudentResult, type UploadStudentSummary } from "@/lib/services/adminService";
 import styles from "./page.module.css";
@@ -243,8 +244,8 @@ export default function AdminUploadPage() {
     }
   };
 
-  const csvTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-csv-template`;
-  const excelTemplateDownloadUrl = `${getBackendBaseUrl()}/template/download-excel-template`;
+  const csvTemplateDownloadUrl = `${getBackendBaseUrl()}${getTemplateDownloadPath("csv")}`;
+  const excelTemplateDownloadUrl = `${getBackendBaseUrl()}${getTemplateDownloadPath("excel")}`;
 
   const filteredResults = useMemo(() => {
     if (statusFilter === "all") return results;

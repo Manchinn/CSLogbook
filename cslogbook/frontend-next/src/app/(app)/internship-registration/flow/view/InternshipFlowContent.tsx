@@ -61,9 +61,6 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   }, [deadlines]);
 
   const eligibilityStatus = eligibility?.status.internship;
-  const requiredCredits =
-    eligibilityStatus?.requiredCredits ?? eligibility?.requirements?.internship?.totalCredits ?? null;
-  const requiredCreditsText = eligibilityLoading ? "กำลังโหลด..." : requiredCredits ?? "—";
   const summary = internshipStatus?.summary;
   const stats = internshipStatus?.stats;
   const certificate = internshipStatus?.certificateStatus;

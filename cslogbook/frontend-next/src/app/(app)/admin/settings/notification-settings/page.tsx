@@ -10,7 +10,11 @@ import {
   getAgentNotificationStats,
   type NotificationSetting,
 } from "@/lib/services/notificationSettingsService";
-import { getAgentSystemStatus, getAgentEmailStats } from "@/lib/services/agentStatusService";
+import {
+  getAgentSystemStatus,
+  getAgentEmailStats,
+  type AgentEmailStats,
+} from "@/lib/services/agentStatusService";
 import styles from "../settings.module.css";
 
 export default function NotificationSettingsPage() {
@@ -19,7 +23,7 @@ export default function NotificationSettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
   const [agentStats, setAgentStats] = useState<Record<string, unknown> | null>(null);
-  const [agentEmailStats, setAgentEmailStats] = useState<Record<string, unknown> | null>(null);
+  const [agentEmailStats, setAgentEmailStats] = useState<AgentEmailStats | null>(null);
   const [agentNotifyStats, setAgentNotifyStats] = useState<Record<string, unknown> | null>(null);
 
   const loadSettings = useCallback(async () => {

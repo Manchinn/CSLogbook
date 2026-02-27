@@ -32,13 +32,14 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (!response.ok) {
     const errorBody = await response.text();
-
+    let message = "API request failed";
     try {
       const parsed = JSON.parse(errorBody) as { message?: string };
-      throw new Error(parsed.message ?? "API request failed");
+      message = parsed.message ?? message;
     } catch {
-      throw new Error(errorBody || "API request failed");
+      message = errorBody || message;
     }
+    throw new Error(message);
   }
 
   if (response.status === 204) {

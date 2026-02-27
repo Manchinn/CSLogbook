@@ -1,5 +1,13 @@
 import { apiFetch } from "./client";
 import type { AppRole } from "@/lib/auth/mockSession";
+import {
+  getSsoAuthorizeCompatibility,
+  getSsoCallbackCompatibility,
+  getSsoStatusCompatibility,
+  getSsoUrlCompatibility,
+  logoutCompatibility,
+  refreshTokenCompatibility,
+} from "@/lib/services/compatibilityService";
 import { env } from "@/lib/config/env";
 
 export type LoginPayload = {
@@ -227,4 +235,28 @@ export function getSsoAuthorizeUrl(redirectPath = "/app") {
   const authorizeUrl = new URL(`${env.apiUrl}/auth/sso/authorize`);
   authorizeUrl.searchParams.set("redirectPath", redirectPath);
   return authorizeUrl.toString();
+}
+
+export async function getSsoStatus() {
+  return getSsoStatusCompatibility();
+}
+
+export async function getSsoUrl() {
+  return getSsoUrlCompatibility();
+}
+
+export async function getSsoAuthorize(params: { redirectPath?: string } = {}) {
+  return getSsoAuthorizeCompatibility(params);
+}
+
+export async function getSsoCallback(params: { code?: string; state?: string } = {}) {
+  return getSsoCallbackCompatibility(params);
+}
+
+export async function refreshAuthToken(refreshToken?: string) {
+  return refreshTokenCompatibility(refreshToken);
+}
+
+export async function logout() {
+  return logoutCompatibility();
 }

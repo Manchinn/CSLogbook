@@ -151,8 +151,8 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
               <div className={styles.metaGrid}>
                 <span>สิทธิ์เข้าระบบ: {data.eligibility.internship.canAccessFeature ? "ได้" : "ไม่ได้"}</span>
                 <span>ลงทะเบียน: {data.status.internship.canRegister ? "ได้" : "ไม่ได้"}</span>
-                <span>เครดิตที่ใช้ตรวจ: {data.status.internship.currentCredits?.toLocaleString() ?? "—"}</span>
-                <span>เครดิตวิชาเอก: {data.status.internship.currentMajorCredits?.toLocaleString() ?? "—"}</span>
+                <span>หน่วยกิตสะสมขั้นต่ำ: {data.status.internship.currentCredits?.toLocaleString() ?? "—"}</span>
+                <span>หน่วยกิตภาควิชา: {data.status.internship.currentMajorCredits?.toLocaleString() ?? "—"}</span>
               </div>
             </article>
 
@@ -196,8 +196,8 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
                 <span>
                   ต้องผ่านฝึกงานก่อน: {data.status.project.requiresInternshipCompletion ? "ใช่" : "ไม่จำเป็น"}
                 </span>
-                <span>เครดิตที่ใช้ตรวจ: {data.status.project.currentCredits?.toLocaleString() ?? "—"}</span>
-                <span>เครดิตวิชาเอก: {data.status.project.currentMajorCredits?.toLocaleString() ?? "—"}</span>
+                <span>หน่วยกิตสะสมขั้นต่ำ: {data.status.project.currentCredits?.toLocaleString() ?? "—"}</span>
+                <span>หน่วยกิตภาควิชา: {data.status.project.currentMajorCredits?.toLocaleString() ?? "—"}</span>
               </div>
             </article>
 
@@ -209,16 +209,16 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
                   <strong>{data.student.totalCredits.toLocaleString()}</strong>
                 </div>
                 <div className={styles.statRow}>
-                  <span>วิชาเอก</span>
+                  <span>หน่วยกิตภาควิชา</span>
                   <strong>{data.student.majorCredits.toLocaleString()}</strong>
                 </div>
               </div>
               <div className={styles.requirements}>
                 <span>
-                  เกณฑ์ฝึกงาน: {data.requirements.internship.totalCredits ?? "—"} หน่วยกิต (วิชาเอก {data.requirements.internship.majorCredits ?? "—"})
+                  เกณฑ์ฝึกงาน: {data.requirements.internship.totalCredits ?? "—"} หน่วยกิต (หน่วยกิตภาควิชา {data.requirements.internship.majorCredits ?? "—"})
                 </span>
                 <span>
-                  เกณฑ์โครงงาน: {data.requirements.project.totalCredits ?? "—"} หน่วยกิต (วิชาเอก {data.requirements.project.majorCredits ?? "—"})
+                  เกณฑ์โครงงาน: {data.requirements.project.totalCredits ?? "—"} หน่วยกิต (หน่วยกิตภาควิชา {data.requirements.project.majorCredits ?? "—"})
                 </span>
                 {data.requirements.project.requireInternship !== undefined && (
                   <span>ต้องผ่านฝึกงานก่อนขอโครงงาน: {data.requirements.project.requireInternship ? "ใช่" : "ไม่จำเป็น"}</span>

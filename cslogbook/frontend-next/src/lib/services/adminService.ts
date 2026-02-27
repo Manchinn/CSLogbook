@@ -1,4 +1,11 @@
 import { apiFetch, apiFetchData } from "@/lib/api/client";
+import {
+  downloadCsvTemplateCompatibility,
+  downloadExcelTemplateCompatibility,
+  downloadGenericTemplateCompatibility,
+  getUploadCsvHistoryCompatibility,
+  type UploadCsvHistoryItem,
+} from "@/lib/services/compatibilityService";
 
 export type AdminStats = {
   students: {
@@ -87,4 +94,21 @@ export async function uploadStudentCSV(formData: FormData, token: string) {
     body: formData,
     token,
   });
+}
+
+export async function getUploadCsvHistory(params: { page?: number; limit?: number } = {}) {
+  const data = await getUploadCsvHistoryCompatibility(params);
+  return Array.isArray(data) ? (data as UploadCsvHistoryItem[]) : [];
+}
+
+export async function downloadCsvTemplate() {
+  return downloadCsvTemplateCompatibility();
+}
+
+export async function downloadExcelTemplate() {
+  return downloadExcelTemplateCompatibility();
+}
+
+export async function downloadGenericTemplate() {
+  return downloadGenericTemplateCompatibility();
 }

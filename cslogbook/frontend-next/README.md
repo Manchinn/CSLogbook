@@ -5,6 +5,96 @@
 
 ---
 
+## 30) Frontend-Next Route Inventory (Current)
+
+อัปเดตล่าสุดจากโค้ดจริงใน `src/app` (ณ วันที่ 2026-02-27):
+- จำนวนหน้า `page.tsx` ทั้งหมด: **72 หน้า**
+- แบ่งเป็น:
+  - Public/Auth: 5 หน้า
+  - Student/Shared app routes: 31 หน้า
+  - Teacher routes: 6 หน้า
+  - Admin routes: 30 หน้า
+
+### 30.1 Public + Auth
+- `/`
+- `/login`
+- `/auth/sso/callback`
+- `/evaluate/supervisor/[token]`
+- `/approval/timesheet/[token]`
+
+### 30.2 Shared + Student
+- `/app`
+- `/dashboard`
+- `/dashboard/student`
+- `/deadlines`
+- `/meetings`
+- `/reports`
+- `/settings`
+- `/student-deadlines/calendar`
+- `/student-profile/[studentCode]`
+- `/student/projects`
+- `/internship-registration`
+- `/internship-registration/flow`
+- `/internship/logbook`
+- `/internship/certificate`
+- `/internship-summary`
+- `/internship-eligibility`
+- `/internship-requirements`
+- `/internship-logbook/companyinfo`
+- `/internship-logbook/timesheet`
+- `/internship-companies`
+- `/project/phase1`
+- `/project/phase1/[step]`
+- `/project/phase1/topic-submit`
+- `/project/phase1/topic-exam`
+- `/project/phase1/proposal-revision`
+- `/project/phase1/meeting-logbook`
+- `/project/phase1/exam-submit`
+- `/project/phase1/exam-day`
+- `/project/phase1/draft/[id]`
+- `/project/phase2`
+- `/project/phase2/system-test`
+- `/project/phase2/thesis-defense`
+- `/project-eligibility`
+- `/project-requirements`
+- `/project-pairs`
+- `/approve-documents`
+
+### 30.3 Teacher
+- `/dashboard/teacher`
+- `/teacher/deadlines/calendar`
+- `/teacher/meeting-approvals`
+- `/teacher/topic-exam/overview`
+- `/teacher/project1/advisor-queue`
+- `/teacher/system-test/advisor-queue`
+- `/teacher/thesis/advisor-queue`
+
+### 30.4 Admin
+- `/dashboard/admin`
+- `/admin/upload`
+- `/admin/users/students`
+- `/admin/users/teachers`
+- `/admin/settings/constants`
+- `/admin/settings/curriculum`
+- `/admin/settings/academic`
+- `/admin/settings/status`
+- `/admin/settings/notification-settings`
+- `/admin/settings/workflow-steps`
+- `/admin/reports/internship`
+- `/admin/reports/project`
+- `/admin/reports/advisor-workload`
+- `/admin/reports/deadline-compliance`
+- `/admin/reports/workflow-progress`
+- `/admin/documents/internship`
+- `/admin/documents/certificates`
+- `/admin/documents/project`
+- `/admin/topic-exam/results`
+- `/admin/project1/kp02-queue`
+- `/admin/project-exam/results`
+- `/admin/system-test/staff-queue`
+- `/admin/thesis/staff-queue`
+- `/admin/thesis/exam-results`
+
 ## 1) เริ่มใช้งานอย่างเร็ว (Quick Start)
 
 ### สิ่งที่ต้องมี

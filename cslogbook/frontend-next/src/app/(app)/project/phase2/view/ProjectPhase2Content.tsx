@@ -134,6 +134,7 @@ export default function ProjectPhase2Content() {
   const projectDetailData = projectDetail ?? null;
   const projectSummary = projectStatus?.project ?? null;
   const project = projectDetailData ?? projectSummary ?? null;
+  const projectMembers = projectDetailData?.members ?? null;
   const workflow = projectStatus?.workflow ?? null;
 
   const projectDeadlines = useMemo(() => {
@@ -156,7 +157,7 @@ export default function ProjectPhase2Content() {
   }, [meetingMetrics]);
 
   const meetingBreakdown = useMemo(() => {
-    const members = Array.isArray(projectDetailData?.members) ? projectDetailData.members : [];
+    const members = Array.isArray(projectMembers) ? projectMembers : [];
     const perStudentMap = new Map<number, { approvedLogs: number; attendedMeetings: number }>();
     if (Array.isArray(meetingMetrics?.perStudent)) {
       for (const entry of meetingMetrics.perStudent) {
@@ -178,7 +179,7 @@ export default function ProjectPhase2Content() {
         attendedMeetings: counts.attendedMeetings,
       };
     });
-  }, [projectDetailData?.members, meetingMetrics]);
+  }, [projectMembers, meetingMetrics]);
 
   const systemTestSummary = projectDetailData?.systemTestRequest ?? null;
   const thesisDefenseRequest = useMemo(() => {

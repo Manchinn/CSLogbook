@@ -398,8 +398,8 @@ export async function getCS05HeadQueue(
 
   const queryString = params.toString();
   const url = queryString
-    ? `/documents/internship/cs-05/head/queue?${queryString}`
-    : "/documents/internship/cs-05/head/queue";
+    ? `/internship/cs-05/head/queue?${queryString}`
+    : "/internship/cs-05/head/queue";
 
   const data = await apiFetchData<InternshipDocument[]>(url, {
     method: "GET",
@@ -418,7 +418,7 @@ export async function approveCS05Document(
   comment?: string,
   letterType?: string
 ): Promise<void> {
-  await apiFetchData<void>(`/documents/internship/cs-05/${documentId}/approve`, {
+  await apiFetchData<void>(`/internship/cs-05/${documentId}/approve`, {
     method: "POST",
     token,
     body: JSON.stringify({ comment, letterType }),
@@ -433,7 +433,7 @@ export async function rejectCS05Document(
   documentId: string,
   reason: string
 ): Promise<void> {
-  await apiFetchData<void>(`/documents/internship/cs-05/${documentId}/reject`, {
+  await apiFetchData<void>(`/internship/cs-05/${documentId}/reject`, {
     method: "POST",
     token,
     body: JSON.stringify({ reason }),
@@ -454,8 +454,8 @@ export async function getAcceptanceLetterHeadQueue(
 
   const queryString = params.toString();
   const url = queryString
-    ? `/documents/internship/acceptance/head/queue?${queryString}`
-    : "/documents/internship/acceptance/head/queue";
+    ? `/internship/acceptance/head/queue?${queryString}`
+    : "/internship/acceptance/head/queue";
 
   const data = await apiFetchData<InternshipDocument[]>(url, {
     method: "GET",
@@ -473,7 +473,7 @@ export async function approveAcceptanceLetter(
   documentId: string,
   comment?: string
 ): Promise<void> {
-  await apiFetchData<void>(`/documents/internship/acceptance/${documentId}/approve`, {
+  await apiFetchData<void>(`/internship/acceptance/${documentId}/approve`, {
     method: "POST",
     token,
     body: JSON.stringify({ comment }),
@@ -488,7 +488,7 @@ export async function rejectAcceptanceLetter(
   documentId: string,
   reason: string
 ): Promise<void> {
-  await apiFetchData<void>(`/documents/internship/acceptance/${documentId}/reject`, {
+  await apiFetchData<void>(`/internship/acceptance/${documentId}/reject`, {
     method: "POST",
     token,
     body: JSON.stringify({ reason }),

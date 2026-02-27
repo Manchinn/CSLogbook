@@ -1,81 +1,76 @@
-import { apiFetch, type ApiSuccessResponse } from "@/lib/api/client";
+import {
+  getEmailApproveByEmailCompatibility,
+  getEmailRejectByEmailCompatibility,
+  getEmailApprovalDetailsCompatibility,
+  postEmailApproveByEmailCompatibility,
+  postEmailRejectByEmailCompatibility,
+  postEmailApproveByWebCompatibility,
+  postEmailRejectByWebCompatibility,
+  type EmailApprovalActionResult,
+  type EmailApprovalDetails,
+  type TimesheetApprovalEntryCompat,
+} from "@/lib/services/compatibilityService";
 
-export type TimesheetApprovalEntry = {
-  logId: number;
-  workDate?: string | null;
-  timeIn?: string | null;
-  timeOut?: string | null;
-  workHours?: number | null;
-  logTitle?: string | null;
-  workDescription?: string | null;
-  supervisorApproved?: number | boolean | null;
-  advisorApproved?: boolean | null;
+export type TimesheetApprovalEntry = TimesheetApprovalEntryCompat & {
   studentName?: string | null;
   companyName?: string | null;
 };
 
-export type TimesheetApprovalDetails = {
-  token: string;
-  status: string | null;
-  type: string | null;
-  studentId?: number | string | null;
-  studentName?: string | null;
-  studentCode?: string | null;
-  companyName?: string | null;
+export type TimesheetApprovalDetails = Omit<EmailApprovalDetails, "timesheetEntries"> & {
   timesheetEntries: TimesheetApprovalEntry[];
-  createdAt?: string | null;
-  updatedAt?: string | null;
-  expiresAt?: string | null;
 };
 
-export type TimesheetApprovalAction = {
-  token?: string;
-  status?: string | null;
-  processedAt?: string | null;
-  comment?: string | null;
-};
+export type TimesheetApprovalAction = EmailApprovalActionResult;
 
-async function fetchApprovalResponse<T>(path: string, options: RequestInit) {
-  const response = await apiFetch<ApiSuccessResponse<T>>(path, options);
+export async function getTimesheetApprovalDetails(token: string) {
+  const data = await getEmailApprovalDetailsCompatibility(token);
+
+  if (!data) {
+    throw new Error("ไม่พบข้อมูลการอนุมัติ");
+  }
+
+  return {
+    ...data,
+    timesheetEntries: Array.isArray(data.timesheetEntries) ? data.timesheetEntries : [],
+  };
+}
+
+export async function approveTimesheet(token: string, comment?: string) {
+  const response = await postEmailApproveByWebCompatibility(token, comment ?? "");
   if (!response.success) {
     throw new Error(response.message ?? "ไม่สามารถดำเนินการได้");
   }
   return response.data ?? null;
 }
 
-export async function getTimesheetApprovalDetails(token: string) {
-  const data = await fetchApprovalResponse<TimesheetApprovalDetails>(
-    `/email-approval/details/${token}`,
-    { method: "GET" }
-  );
-
-  if (!data) {
-    throw new Error("ไม่พบข้อมูลการอนุมัติ");
-  }
-
-  return data;
-}
-
-export async function approveTimesheet(token: string, comment?: string) {
-  const data = await fetchApprovalResponse<TimesheetApprovalAction>(
-    `/email-approval/web/approve/${token}`,
-    {
-      method: "POST",
-      body: JSON.stringify({ comment: comment ?? "" }),
-    }
-  );
-
-  return data;
-}
-
 export async function rejectTimesheet(token: string, comment: string) {
-  const data = await fetchApprovalResponse<TimesheetApprovalAction>(
-    `/email-approval/web/reject/${token}`,
-    {
-      method: "POST",
-      body: JSON.stringify({ comment }),
-    }
-  );
+  const response = await postEmailRejectByWebCompatibility(token, comment);
+  if (!response.success) {
+    throw new Error(response.message ?? "ไม่สามารถดำเนินการได้");
+  }
+  return response.data ?? null;
+}
 
-  return data;
+export async function previewApproveByEmail(token: string) {
+  return getEmailApproveByEmailCompatibility(token);
+}
+
+export async function approveByEmail(token: string, comment?: string) {
+  const response = await postEmailApproveByEmailCompatibility(token, comment ?? "");
+  if (!response.success) {
+    throw new Error(response.message ?? "ไม่สามารถดำเนินการได้");
+  }
+  return response.data ?? null;
+}
+
+export async function previewRejectByEmail(token: string) {
+  return getEmailRejectByEmailCompatibility(token);
+}
+
+export async function rejectByEmail(token: string, comment?: string) {
+  const response = await postEmailRejectByEmailCompatibility(token, comment ?? "");
+  if (!response.success) {
+    throw new Error(response.message ?? "ไม่สามารถดำเนินการได้");
+  }
+  return response.data ?? null;
 }

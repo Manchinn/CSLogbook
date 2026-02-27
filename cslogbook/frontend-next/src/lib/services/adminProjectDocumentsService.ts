@@ -37,6 +37,7 @@ export type AdminProjectDocumentListResult = {
 
 export async function listAdminProjectDocuments(filters: AdminProjectDocumentListFilters = {}): Promise<AdminProjectDocumentListResult> {
   const query = new URLSearchParams();
+  query.set("type", "project");
   if (filters.status) query.set("status", String(filters.status));
   if (filters.search) query.set("search", String(filters.search));
   if (filters.academicYear) query.set("academicYear", String(filters.academicYear));
@@ -45,17 +46,17 @@ export async function listAdminProjectDocuments(filters: AdminProjectDocumentLis
   if (filters.offset != null) query.set("offset", String(filters.offset));
   const qs = query.toString();
   const res = await apiFetch<{ success: boolean; data: AdminProjectDocumentListResult }>(
-    `/admin/project-documents${qs ? `?${qs}` : ""}`
+    `/admin/documents${qs ? `?${qs}` : ""}`
   );
   return res.data ?? { documents: [], total: 0 };
 }
 
 export async function reviewAdminProjectDocument(documentId: number): Promise<void> {
-  await apiFetch(`/admin/project-documents/${documentId}/review`, { method: "POST" });
+  await apiFetch(`/admin/documents/${documentId}/approve`, { method: "POST" });
 }
 
 export async function rejectAdminProjectDocument(documentId: number, reason: string): Promise<void> {
-  await apiFetch(`/admin/project-documents/${documentId}/reject`, {
+  await apiFetch(`/admin/documents/${documentId}/reject`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });
@@ -76,14 +77,14 @@ async function fetchDocumentBlob(path: string): Promise<Blob> {
 }
 
 export async function previewAdminProjectDocument(documentId: number): Promise<void> {
-  const blob = await fetchDocumentBlob(`/admin/project-documents/${documentId}/view`);
+  const blob = await fetchDocumentBlob(`/admin/documents/${documentId}/view`);
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 export async function downloadAdminProjectDocument(documentId: number): Promise<void> {
-  const blob = await fetchDocumentBlob(`/admin/project-documents/${documentId}/download`);
+  const blob = await fetchDocumentBlob(`/admin/documents/${documentId}/download`);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

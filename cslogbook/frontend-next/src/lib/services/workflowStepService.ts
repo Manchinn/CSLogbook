@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchData } from "@/lib/api/client";
+import { getWorkflowStepCompatibility } from "@/lib/services/compatibilityService";
 
 export type WorkflowStep = {
   stepId: number;
@@ -34,6 +35,10 @@ export async function listWorkflowSteps(params: Record<string, unknown> = {}) {
 
 export async function getWorkflowStep(stepId: number) {
   return apiFetchData<WorkflowStep>(`/admin/workflow-steps/${stepId}`);
+}
+
+export async function getWorkflowRuntimeStep(stepId: number | string) {
+  return getWorkflowStepCompatibility(stepId);
 }
 
 export async function getWorkflowStepStats(stepId: number) {
