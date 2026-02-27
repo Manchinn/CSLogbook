@@ -1447,8 +1447,8 @@ class DocumentService {
 
             const request = await InternshipCertificateRequest.findByPk(requestId, {
                 include: [
-                    { 
-                        model: Student, 
+                    {
+                        model: Student,
                         as: 'student',
                         include: [
                             {
@@ -1457,6 +1457,11 @@ class DocumentService {
                                 attributes: ['firstName', 'lastName'],
                             },
                         ],
+                    },
+                    {
+                        model: InternshipDocument,
+                        as: 'internship',
+                        attributes: ['startDate', 'endDate', 'companyName'],
                     },
                 ],
             });
@@ -1475,8 +1480,8 @@ class DocumentService {
                 studentName: `${request.student.user.firstName} ${request.student.user.lastName}`,
                 studentId: request.student.studentCode,
                 totalHours: request.totalHours,
-                startDate: request.startDate,
-                endDate: request.endDate,
+                startDate: request.internship?.startDate,
+                endDate: request.internship?.endDate,
                 issueDate: request.processedAt,
             };
 
@@ -1552,16 +1557,24 @@ class DocumentService {
      * สร้างเนื้อหา PDF หนังสือรับรอง (placeholder)
      */
     createCertificatePDFContent(data) {
+        const thaiMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+        const formatThaiDate = (d) => {
+            if (!d) return '-';
+            const dt = new Date(d);
+            if (isNaN(dt.getTime())) return '-';
+            return `${dt.getDate()} ${thaiMonths[dt.getMonth()]} พ.ศ. ${dt.getFullYear() + 543}`;
+        };
+
         // TODO: ใช้ PDF template system ที่มีอยู่
         return `
         หนังสือรับรองการฝึกงาน
         หมายเลข: ${data.certificateNumber}
-        
+
         ขอรับรองว่า ${data.studentName} รหัสนักศึกษา ${data.studentId}
         ได้เข้าร่วมการฝึกงานครบ ${data.totalHours} ชั่วโมง
-        ตั้งแต่วันที่ ${data.startDate} ถึง ${data.endDate}
-        
-        ออกให้ ณ วันที่ ${data.issueDate}
+        ตั้งแต่วันที่ ${formatThaiDate(data.startDate)} ถึง ${formatThaiDate(data.endDate)}
+
+        ออกให้ ณ วันที่ ${formatThaiDate(data.issueDate)}
         `;
     }
 

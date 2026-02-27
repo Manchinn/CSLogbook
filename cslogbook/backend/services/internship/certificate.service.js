@@ -500,9 +500,15 @@ class InternshipCertificateService {
         doc.moveDown(3);
 
         // ลายเซ็นและตรายาง
-        doc.text("ออกให้ ณ วันที่ " + this.formatThaiDate(new Date()), {
-          align: "center",
-        });
+        doc.text(
+          "ออกให้ ณ วันที่ " +
+            this.formatThaiDate(
+              certificateData.documentInfo?.issueDate ||
+              certificateData.approvalInfo?.approvedDate ||
+              new Date()
+            ),
+          { align: "center" }
+        );
 
         doc.moveDown(2);
 
