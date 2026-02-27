@@ -146,12 +146,12 @@ export async function getTeacherMeetingApprovals(
   const queryString = params.toString();
   const url = queryString ? `/teachers/meeting-approvals?${queryString}` : "/teachers/meeting-approvals";
 
-  const data = await apiFetchData<MeetingLogApproval[]>(url, {
+  const data = await apiFetchData<{ items: MeetingLogApproval[] }>(url, {
     method: "GET",
     token,
   });
 
-  return data || [];
+  return data?.items || [];
 }
 
 /**

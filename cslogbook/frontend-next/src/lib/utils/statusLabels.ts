@@ -1,0 +1,68 @@
+/**
+ * Centralized label maps for all status enum values used in the app.
+ * Always use labelStatus() instead of rendering raw enum values in JSX.
+ */
+
+export const STATUS_LABELS: Record<string, string> = {
+  // Internship / Certificate
+  not_requested: "ยังไม่ร้องขอ",
+  pending:       "รอดำเนินการ",
+  approved:      "อนุมัติแล้ว",
+  rejected:      "ไม่อนุมัติ",
+  ready:         "พร้อมใช้งาน",
+  active:        "ใช้งานอยู่",
+  inactive:      "ไม่ใช้งาน",
+  completed:     "เสร็จสิ้น",
+  cancelled:     "ยกเลิก",
+
+  // Internship workflow
+  not_started:       "ยังไม่เริ่ม",
+  in_progress:       "กำลังดำเนินการ",
+  pending_approval:  "รอการอนุมัติ",
+
+  // Academic schedule
+  draft: "ร่าง",
+
+  // Document / Deadline
+  open:   "เปิดรับ",
+  closed: "ปิดรับ",
+  late:   "เลยกำหนด",
+  overdue: "เกินกำหนด",
+
+  // Project workflow
+  submitted:         "ส่งแล้ว",
+  advisor_in_review: "อาจารย์กำลังตรวจ",
+  advisor_approved:  "อาจารย์อนุมัติ",
+  staff_verified:    "เจ้าหน้าที่ตรวจแล้ว",
+  scheduled:         "นัดหมายแล้ว",
+
+  // Internship status for students
+  not_eligible:   "ไม่ผ่านเกณฑ์",
+  eligible:       "ผ่านเกณฑ์",
+};
+
+/**
+ * Returns a human-readable Thai label for a raw status enum value.
+ * Falls back to the raw value itself if no mapping is found,
+ * so unknown statuses are still visible rather than silently hidden.
+ *
+ * @param value  Raw status string from the API (e.g. "not_requested")
+ * @param fallback  Shown when value is null/undefined/empty (default: "-")
+ */
+export function labelStatus(value?: string | null, fallback = "-"): string {
+  if (!value) return fallback;
+  return STATUS_LABELS[value] ?? value;
+}
+
+/**
+ * Formats remaining days into a human-readable string.
+ * Shows "หมดระยะเวลาแล้ว" when days is negative (period already ended).
+ *
+ * @param days  Remaining days (can be negative)
+ */
+export function formatRemainingDays(days?: number | null): string {
+  if (days === undefined || days === null) return "-";
+  if (days < 0) return "หมดระยะเวลาแล้ว";
+  if (days === 0) return "ภายในวันนี้";
+  return `เหลือ ${days} วัน`;
+}

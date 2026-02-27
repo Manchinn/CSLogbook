@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import styles from "./StudentInternshipStatusWidget.module.css";
+import { labelStatus, formatRemainingDays } from "@/lib/utils/statusLabels";
 
 type StudentInternshipStatusWidgetProps = {
   enabled: boolean;
@@ -20,21 +21,6 @@ function formatDate(value?: string | null) {
 function formatHours(value?: number | null) {
   if (value === undefined || value === null) return "-";
   return value.toLocaleString("th-TH", { maximumFractionDigits: 1 });
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  not_requested: "ยังไม่ร้องขอ",
-  pending: "รอดำเนินการ",
-  approved: "อนุมัติแล้ว",
-  rejected: "ไม่อนุมัติ",
-  ready: "พร้อมใช้งาน",
-  active: "กำลังฝึกงาน",
-  completed: "เสร็จสิ้น",
-};
-
-function labelStatus(value?: string | null, fallback = "-") {
-  if (!value) return fallback;
-  return STATUS_LABELS[value] ?? value;
 }
 
 export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStatusWidgetProps) {
@@ -141,7 +127,7 @@ export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStat
             </div>
           </div>
           <div className={styles.metaGrid}>
-            <span>เหลือวันฝึกงาน: {stats?.remainingDays ?? "-"}</span>
+            <span>วันฝึกงาน: {formatRemainingDays(stats?.remainingDays)}</span>
             <span>อนุมัติแล้ว: {stats?.approvedBySupervisor ?? summary.approvedDays ?? 0} วัน</span>
             <span>เฉลี่ยต่อวัน: {formatHours(stats?.averageHoursPerDay)} ชม.</span>
           </div>
