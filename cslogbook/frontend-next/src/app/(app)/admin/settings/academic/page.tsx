@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getAcademicSettings,
@@ -806,7 +807,7 @@ export default function AcademicSettingsPage() {
                     <td>{schedule.currentSemester ?? "-"}</td>
                     <td>
                       <span className={`${styles.badge} ${schedule.status === "active" ? styles.badgeSuccess : styles.badgeMuted}`}>
-                        {schedule.status ?? "draft"}
+                        {labelStatus(schedule.status, "ร่าง")}
                       </span>
                     </td>
                     <td>{schedule.activeCurriculumId ?? "-"}</td>
@@ -1074,7 +1075,7 @@ export default function AcademicSettingsPage() {
                     <td>{deadline.relatedTo ?? "-"}</td>
                     <td>{deadline.deadlineDate ?? "-"}</td>
                     <td>
-                      <span className={styles.badge}>{deadline.status ?? "-"}</span>
+                      <span className={styles.badge}>{labelStatus(deadline.status)}</span>
                     </td>
                     <td>
                       <div className={styles.actions}>

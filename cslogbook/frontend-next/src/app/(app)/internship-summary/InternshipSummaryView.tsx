@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatRemainingDays } from "@/lib/utils/statusLabels";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -297,7 +298,7 @@ export default function InternshipSummaryView() {
           <div className={styles.label}>ค่าเฉลี่ยชั่วโมง/วัน</div>
           <div className={styles.statValue}>{formatNumber(averageHours)}</div>
           <div className={styles.statLabel}>
-            เหลืออีก {formatNumber(remainingDays)} วัน
+            {formatRemainingDays(remainingDays)}
           </div>
         </div>
       </div>

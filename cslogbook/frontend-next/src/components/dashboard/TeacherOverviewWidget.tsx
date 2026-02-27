@@ -70,7 +70,7 @@ export function TeacherOverviewWidget({
     { label: "นักศึกษาทั้งหมด", value: resolvedData?.advisees.total ?? 0 },
     { label: "ฝึกงานกำลังดำเนินการ", value: resolvedData?.advisees.internshipInProgress ?? 0 },
     { label: "โครงงานกำลังดำเนินการ", value: resolvedData?.advisees.projectInProgress ?? 0 },
-    { label: "โปรเจกต์ที่ active", value: resolvedData?.projects.active ?? 0 },
+    { label: "โปรเจกต์ที่ใช้งานอยู่", value: resolvedData?.projects.active ?? 0 },
   ];
 
   return (
