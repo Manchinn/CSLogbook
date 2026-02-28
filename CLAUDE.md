@@ -423,6 +423,18 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | Pass `defenseType: "THESIS"` ใน thesis advisor queue page | `teacher/thesis/advisor-queue/page.tsx` |
 | Pass `defenseType: "PROJECT1"` ใน project1 advisor queue page | `teacher/project1/advisor-queue/page.tsx` |
 
+#### Session 3 — Phase 2 Overview Page Parity (2026-02-28)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| แก้ raw `currentPhase` enum แสดงเป็น Thai labels (`IN_PROGRESS` → "กำลังดำเนินการ") | `ProjectPhase2Content.tsx` |
+| เพิ่ม thesis exam result card (ผ่าน=เขียว/ไม่ผ่าน=แดง) เมื่อ `thesisExamResult` มีค่า | `ProjectPhase2Content.tsx`, `phase2.module.css` |
+| อัปเกรด step badges เป็น tone-aware (success/danger/warning/info) | `ProjectPhase2Sections.tsx`, `phase2.module.css` |
+| เพิ่ม `canSubmitThesisDefense` gating — ล็อก thesis step เมื่อ workflow state ไม่อนุญาต | `ProjectPhase2Sections.tsx`, `ProjectPhase2Content.tsx` |
+| เพิ่มปุ่ม "ไปยังบันทึกการพบ" ใน meeting logbook section | `ProjectPhase2Sections.tsx`, `phase2.module.css` |
+| เพิ่ม loading state + empty "ยังไม่มีโครงงาน" notice | `ProjectPhase2Content.tsx` |
+| ใช้ shared `DEFAULT_DEADLINE_KEYWORD_FILTER` แทน local copy | `ProjectPhase2Content.tsx` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -432,15 +444,17 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 - `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
 - ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
 
-#### 2. Project Phase 2 Parity — Overview Page
-- `/project/phase2` (overview) ยังเป็น `⚠️ Partial` ใน parity report
-- ต้องทำ: audit `ProjectPhase2Content.tsx` เทียบกับ legacy และเก็บ edge cases
-- ไฟล์: `src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx`
+#### 2. Phase 2 Advisor Name Display (ต้องแก้ Backend)
+- Overview page ยังไม่แสดงชื่ออาจารย์ที่ปรึกษา
+- `ProjectSummary` มีแค่ `advisorId`/`coAdvisorId` (ตัวเลข ไม่มีชื่อ)
+- ต้องแก้ backend `getProjectById()` ให้ include advisor names
+- Staging test plan ต้องการ "Advisor information displays"
 
 #### 3. Staging / Regression Testing
 - ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
 - เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
 - ยืนยันว่า `defenseType` fix ทำงานถูกต้องใน environment จริง
+- ยืนยัน Phase 2 parity fixes: labels, tones, gating, loading state
 
 #### 4. Feature Flags ที่ยังปิดอยู่ (ถ้าต้องการเปิด)
 - `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE` — ทำเสร็จแล้ว รอเปิด production
@@ -456,6 +470,8 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | `src/lib/utils/statusLabels.ts` | Shared status label utility — ใช้ `labelStatus()` แทน raw enum ทุกที่ |
 | `src/lib/services/teacherService.ts` | Teacher API layer — `submitKP02AdvisorDecision` ต้องส่ง `defenseType` |
 | `src/hooks/useTeacherModule.ts` | Teacher hooks — `useSubmitKP02AdvisorDecision` รองรับ defenseType แล้ว |
-| `docs/STUDENT_PAGES_PARITY_REPORT.md` | Parity tracking — ดู section "🔄 ส่วนที่ต้องทำต่อ" |
+| `ProjectPhase2Content.tsx` | Phase 2 overview — มี `PHASE_LABELS`, `labelPhase()`, tone-aware `stepStatuses`, loading/empty guards |
+| `ProjectPhase2Sections.tsx` | Phase 2 presentational — `StepStatus` type, `canSubmitThesisDefense` gating, meeting nav button |
+| `docs/STUDENT_PAGES_PARITY_REPORT.md` | Parity tracking — Phase 2 overview ควรอัปเดตเป็น ✅ Done (เหลือ advisor name) |
 | `docs/STAGING_TEST_PLAN.md` | Test checklist สำหรับ staging |
 | `docs/compatibility/` | Route usage, deprecation lists — อย่าลบ API ที่อยู่ใน DO_NOT_REMOVE |
