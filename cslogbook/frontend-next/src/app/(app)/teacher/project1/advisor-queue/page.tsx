@@ -35,6 +35,7 @@ export default function AdvisorKP02QueuePage() {
         projectId: selectedRequest.projectId,
         decision: modalMode,
         note: note || undefined,
+        defenseType: "PROJECT1",
       });
       setModalMode(null);
       setSelectedRequest(null);

@@ -35,6 +35,7 @@ export default function AdvisorThesisQueuePage() {
         projectId: selectedRequest.projectId,
         decision: modalMode,
         note: note || undefined,
+        defenseType: "THESIS",
       });
       setModalMode(null);
       setSelectedRequest(null);

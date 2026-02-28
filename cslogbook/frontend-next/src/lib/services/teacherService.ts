@@ -251,18 +251,19 @@ export async function getAdvisorKP02Queue(token: string): Promise<DefenseRequest
 }
 
 /**
- * อนุมัติหรือปฏิเสธคำขอสอบ คพ.02
+ * อนุมัติหรือปฏิเสธคำขอสอบ คพ.02 หรือ คพ.03
  */
 export async function submitKP02AdvisorDecision(
   token: string,
   projectId: number,
   decision: "approve" | "reject",
-  note?: string
+  note?: string,
+  defenseType: "PROJECT1" | "THESIS" = "PROJECT1"
 ): Promise<void> {
   await apiFetchData<void>(`/projects/${projectId}/kp02/advisor-approve`, {
     method: "POST",
     token,
-    body: JSON.stringify({ decision, note }),
+    body: JSON.stringify({ decision, note, defenseType }),
   });
 }
 
