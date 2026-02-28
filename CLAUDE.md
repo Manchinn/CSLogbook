@@ -386,3 +386,76 @@ Located in `.github/instructions/`:
 | `copilot.instructions.md` | AI coding guidelines |
 
 Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-sheet (Thai).
+
+---
+
+## Session Progress Log
+
+### Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
+
+---
+
+### ✅ งานที่ทำเสร็จแล้ว
+
+#### Session 1 — Bug Fixes & Quality (2026-02-27)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Fix login error แสดง raw JSON แทนข้อความภาษาไทย | `src/lib/api/client.ts` |
+| Fix dashboard status badges แสดง raw enum (`not_requested` → `ยังไม่ร้องขอ`) | `StudentInternshipStatusWidget.tsx` |
+| สร้าง shared utility `statusLabels.ts` | `src/lib/utils/statusLabels.ts` (ใหม่) |
+| Fix teacher dashboard label "โปรเจกต์ที่ active" → "โปรเจกต์ที่ใช้งานอยู่" | `TeacherOverviewWidget.tsx` |
+| Fix teacher meeting-approvals page แสดงหน้าว่าง (type mismatch) | `teacherService.ts` |
+| ขยาย `labelStatus()` ไปยัง TopicExamContent, StudentDeadlineCalendar, InternshipSummaryView, admin academic page | 4 ไฟล์ |
+| Fix certificate PDF: เพิ่ม Thai font (Loma) ให้ render ภาษาไทยได้ | `certificate.service.js`, `Dockerfile`, `fonts/` |
+| Fix certificate PDF: แก้การแสดงวันที่ผิด | `documentService.js` |
+| Fix certificate-request validator: อนุญาต `studentId` + `totalHours` | `internshipValidators.js` |
+| เพิ่ม compatibility docs (ROUTE_USAGE_REPORT, SAFE_DEPRECATION_LIST, DO_NOT_REMOVE_API_USAGE, ROUTE_CLEAN_LIST) | `frontend-next/docs/compatibility/` |
+| เพิ่ม CLAUDE.md project instructions | `CLAUDE.md` |
+| ลบ PATCH_PLAN_SETTINGS_ENDPOINTS.md (deferred to backlog) | — |
+
+#### Session 2 — Phase 2 Teacher/Staff Approval Fix (2026-02-28)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Fix `submitKP02AdvisorDecision` ไม่ส่ง `defenseType` → backend fallback เป็น PROJECT1 เสมอ (bug ทำให้ thesis approval ทำงานผิด) | `teacherService.ts` |
+| อัปเดต `useSubmitKP02AdvisorDecision` hook ให้รับและส่ง `defenseType` พร้อม fix cache invalidation ให้ครอบคลุมทั้ง kp02 และ thesis queue | `useTeacherModule.ts` |
+| Pass `defenseType: "THESIS"` ใน thesis advisor queue page | `teacher/thesis/advisor-queue/page.tsx` |
+| Pass `defenseType: "PROJECT1"` ใน project1 advisor queue page | `teacher/project1/advisor-queue/page.tsx` |
+
+---
+
+### ❌ งานที่ยังต้องทำต่อ
+
+#### 1. Admin Settings Endpoints (Deferred — Backlog)
+- `GET/PUT /api/admin/settings/eligibility` — ไม่มี frontend consumer ที่ active
+- `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
+- ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
+
+#### 2. Project Phase 2 Parity — Overview Page
+- `/project/phase2` (overview) ยังเป็น `⚠️ Partial` ใน parity report
+- ต้องทำ: audit `ProjectPhase2Content.tsx` เทียบกับ legacy และเก็บ edge cases
+- ไฟล์: `src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx`
+
+#### 3. Staging / Regression Testing
+- ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
+- เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
+- ยืนยันว่า `defenseType` fix ทำงานถูกต้องใน environment จริง
+
+#### 4. Feature Flags ที่ยังปิดอยู่ (ถ้าต้องการเปิด)
+- `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE` — ทำเสร็จแล้ว รอเปิด production
+- `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE` — ทำเสร็จแล้ว รอเปิด production
+- `NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE` — เปิดแล้ว (default true)
+
+---
+
+### 📁 ไฟล์สำคัญที่ต้องรู้
+
+| ไฟล์ | หมายเหตุ |
+|---|---|
+| `src/lib/utils/statusLabels.ts` | Shared status label utility — ใช้ `labelStatus()` แทน raw enum ทุกที่ |
+| `src/lib/services/teacherService.ts` | Teacher API layer — `submitKP02AdvisorDecision` ต้องส่ง `defenseType` |
+| `src/hooks/useTeacherModule.ts` | Teacher hooks — `useSubmitKP02AdvisorDecision` รองรับ defenseType แล้ว |
+| `docs/STUDENT_PAGES_PARITY_REPORT.md` | Parity tracking — ดู section "🔄 ส่วนที่ต้องทำต่อ" |
+| `docs/STAGING_TEST_PLAN.md` | Test checklist สำหรับ staging |
+| `docs/compatibility/` | Route usage, deprecation lists — อย่าลบ API ที่อยู่ใน DO_NOT_REMOVE |
