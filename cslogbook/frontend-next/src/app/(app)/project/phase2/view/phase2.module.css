@@ -83,6 +83,18 @@
   color: var(--color-text);
 }
 
+.cardValueSuccess {
+  margin: 0;
+  font-size: 18px;
+  color: #237804;
+}
+
+.cardValueDanger {
+  margin: 0;
+  font-size: 18px;
+  color: #a8071a;
+}
+
 .cardHint {
   margin: 6px 0 0;
   color: var(--color-text-muted);
@@ -161,6 +173,42 @@
   white-space: nowrap;
 }
 
+.stepBadgeSuccess {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f6ffed;
+  color: #237804;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.stepBadgeDanger {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff1f0;
+  color: #a8071a;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.stepBadgeWarning {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #ad4e00;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.stepBadgeInfo {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e6f7ff;
+  color: #0050b3;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .stepMeta {
   display: flex;
   flex-direction: column;
@@ -194,6 +242,22 @@
 .primaryButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.secondaryButton {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  border-color: #0050b3;
+  color: #0050b3;
 }
 
 /* Meeting logbook section */

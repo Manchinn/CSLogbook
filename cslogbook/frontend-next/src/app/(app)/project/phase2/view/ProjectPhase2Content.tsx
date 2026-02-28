@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -9,7 +9,7 @@ import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDeadlineCalendar } from "@/hooks/useStudentDeadlineCalendar";
 import type { StudentDeadlineDetail } from "@/lib/services/studentService";
-import { getDeadlineBaseTime, getEffectiveDeadline, isDeadlineMatch } from "@/lib/project/deadlineUtils";
+import { DEFAULT_DEADLINE_KEYWORD_FILTER, getDeadlineBaseTime, getEffectiveDeadline, isDeadlineMatch } from "@/lib/project/deadlineUtils";
 import { getPhase2GateReasons } from "@/lib/project/phase2Gate";
 import { phase2Steps, type ProjectStep } from "./projectPhase2Steps";
 import { MeetingLogbookSection, Phase2GateNotice, StepGrid, SummaryCards } from "./ProjectPhase2Sections";
@@ -18,7 +18,25 @@ import styles from "./phase2.module.css";
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
 const shortDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const DEADLINE_KEYWORD_FILTER = /วันสุดท้าย|ของ|การ|เอกสาร|คำ|ขอ|โครงงานพิเศษ|คพ\.\s*\(|\(|\)/g;
+
+const PHASE_LABELS: Record<string, string> = {
+  IN_PROGRESS: "กำลังดำเนินการ",
+  THESIS_SUBMISSION: "ส่งเล่มปริญญานิพนธ์",
+  THESIS_EXAM_PENDING: "รอนัดสอบ คพ.03",
+  THESIS_EXAM_SCHEDULED: "นัดสอบ คพ.03 แล้ว",
+  THESIS_FAILED: "ไม่ผ่านการสอบ",
+  COMPLETED: "สำเร็จ",
+  ARCHIVED: "เก็บถาวร",
+  in_progress: "กำลังดำเนินการ",
+  completed: "สำเร็จ",
+  cancelled: "ยกเลิก",
+  archived: "เก็บถาวร",
+};
+
+function labelPhase(value?: string | null): string {
+  if (!value) return "ไม่พบข้อมูล";
+  return PHASE_LABELS[value] ?? value;
+}
 
 type StepDeadlineStatus = {
   isOverdue: boolean;
@@ -47,7 +65,7 @@ function getStepDeadlineStatus(step: ProjectStep, deadlines: StudentDeadlineDeta
     return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null };
   }
 
-  const matchingDeadline = deadlines.find((deadline) => isDeadlineMatch(step, deadline, DEADLINE_KEYWORD_FILTER)) ?? null;
+  const matchingDeadline = deadlines.find((deadline) => isDeadlineMatch(step, deadline, DEFAULT_DEADLINE_KEYWORD_FILTER)) ?? null;
   if (!matchingDeadline) {
     return { isOverdue: false, isLocked: false, allowLate: false, reason: null, deadline: null };
   }
@@ -122,8 +140,8 @@ export default function ProjectPhase2Content() {
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
 
   const { data: eligibility, isLoading: eligibilityLoading } = useStudentEligibility(token, queriesEnabled);
-  const { data: projectStatus } = useStudentProjectStatus(token, queriesEnabled);
-  const { data: projectDetail } = useStudentProjectDetail(token, queriesEnabled);
+  const { data: projectStatus, isLoading: projectStatusLoading } = useStudentProjectStatus(token, queriesEnabled);
+  const { data: projectDetail, isLoading: projectDetailLoading } = useStudentProjectDetail(token, queriesEnabled);
 
   const { data: deadlines } = useStudentDeadlineCalendar(
     token,
@@ -136,6 +154,9 @@ export default function ProjectPhase2Content() {
   const project = projectDetailData ?? projectSummary ?? null;
   const projectMembers = projectDetailData?.members ?? null;
   const workflow = projectStatus?.workflow ?? null;
+
+  const isDataLoading = !hydrated || eligibilityLoading || projectStatusLoading || projectDetailLoading;
+  const hasNoProject = !isDataLoading && !project;
 
   const projectDeadlines = useMemo(() => {
     if (!deadlines) return [];
@@ -233,31 +254,72 @@ export default function ProjectPhase2Content() {
   }, [thesisDefenseRequest]);
 
   const stepStatuses = useMemo(() => {
-    const result: Record<string, string> = {};
-    result["system-test"] = systemTestStatusLabel;
-    result["thesis-defense"] = thesisStatusLabel;
-    return result;
-  }, [systemTestStatusLabel, thesisStatusLabel]);
+    type StepStatus = { label: string; tone: "default" | "info" | "success" | "warning" | "danger" };
+    const result: Record<string, StepStatus> = {};
 
-  const cardSummary = [
-    {
-      label: "สถานะ Phase",
-      value: workflow?.currentPhase ?? project?.status ?? "ไม่พบข้อมูล",
-      hint: workflow?.isBlocked ? `ถูกบล็อก: ${workflow.blockReason || ""}` : "พร้อมดำเนินการ",
-    },
-    {
-      label: "สถานะทดสอบระบบ",
-      value: systemTestStatusLabel,
-      hint: systemTestSummary?.testDueDate
-        ? `ครบกำหนด 30 วัน: ${formatDate(systemTestSummary.testDueDate)}`
-        : "ยังไม่มีวันครบกำหนด",
-    },
-    {
-      label: "สถานะคำขอสอบ คพ.03",
-      value: thesisStatusLabel,
-      hint: systemTestReady ? "พร้อมยื่นสอบ คพ.03" : "รอทดสอบระบบครบ 30 วัน",
-    },
-  ];
+    if (!systemTestSummary) {
+      result["system-test"] = { label: "ยังไม่ยื่นคำขอ", tone: "default" };
+    } else if (["advisor_rejected", "staff_rejected"].includes(systemTestSummary.status ?? "")) {
+      result["system-test"] = { label: systemTestStatusLabel, tone: "danger" };
+    } else if (systemTestSummary.status === "staff_approved" && systemTestSummary.evidenceSubmittedAt) {
+      result["system-test"] = { label: systemTestStatusLabel, tone: "success" };
+    } else if (systemTestSummary.status === "staff_approved") {
+      result["system-test"] = { label: systemTestStatusLabel, tone: "warning" };
+    } else {
+      result["system-test"] = { label: systemTestStatusLabel, tone: "info" };
+    }
+
+    if (!thesisDefenseRequest) {
+      result["thesis-defense"] = { label: "ยังไม่ยื่นคำขอ", tone: "default" };
+    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status ?? "")) {
+      result["thesis-defense"] = { label: thesisStatusLabel, tone: "danger" };
+    } else if (thesisDefenseRequest.status === "completed") {
+      result["thesis-defense"] = { label: thesisStatusLabel, tone: "success" };
+    } else if (thesisDefenseRequest.status === "advisor_approved") {
+      result["thesis-defense"] = { label: thesisStatusLabel, tone: "warning" };
+    } else {
+      result["thesis-defense"] = { label: thesisStatusLabel, tone: "info" };
+    }
+
+    return result;
+  }, [systemTestSummary, systemTestStatusLabel, thesisDefenseRequest, thesisStatusLabel]);
+
+  const cardSummary = useMemo(() => {
+    const cards: Array<{ label: string; value: React.ReactNode; hint?: React.ReactNode }> = [
+      {
+        label: "สถานะ Phase",
+        value: labelPhase(workflow?.currentPhase ?? project?.status),
+        hint: workflow?.isBlocked ? `ถูกบล็อก: ${workflow.blockReason || ""}` : "พร้อมดำเนินการ",
+      },
+      {
+        label: "สถานะทดสอบระบบ",
+        value: systemTestStatusLabel,
+        hint: systemTestSummary?.testDueDate
+          ? `ครบกำหนด 30 วัน: ${formatDate(systemTestSummary.testDueDate)}`
+          : "ยังไม่มีวันครบกำหนด",
+      },
+      {
+        label: "สถานะคำขอสอบ คพ.03",
+        value: thesisStatusLabel,
+        hint: systemTestReady ? "พร้อมยื่นสอบ คพ.03" : "รอทดสอบระบบครบ 30 วัน",
+      },
+    ];
+
+    if (workflow?.thesisExamResult) {
+      const passed = workflow.thesisExamResult === "PASS";
+      cards.push({
+        label: "ผลสอบปริญญานิพนธ์ (คพ.03)",
+        value: passed
+          ? <span className={styles.cardValueSuccess}>ผ่านการสอบ</span>
+          : <span className={styles.cardValueDanger}>ไม่ผ่านการสอบ</span>,
+        hint: passed
+          ? "ยินดีด้วย! ผ่านการสอบปริญญานิพนธ์เรียบร้อยแล้ว"
+          : "กรุณาติดต่ออาจารย์ที่ปรึกษาเพื่อดำเนินการต่อ",
+      });
+    }
+
+    return cards;
+  }, [workflow, project?.status, systemTestStatusLabel, systemTestSummary?.testDueDate, thesisStatusLabel, systemTestReady]);
 
   return (
     <div className={styles.page}>
@@ -274,27 +336,40 @@ export default function ProjectPhase2Content() {
         </div>
       </header>
 
-      <SummaryCards cards={cardSummary} />
+      {isDataLoading ? (
+        <section className={styles.notice}>กำลังโหลดข้อมูล Phase 2...</section>
+      ) : hasNoProject ? (
+        <section className={styles.noticeWarning}>
+          <p className={styles.noticeTitle}>ยังไม่มีโครงงาน</p>
+          <p>ยังไม่พบข้อมูลโครงงานพิเศษในระบบ กรุณาติดต่ออาจารย์ที่ปรึกษาหรือเจ้าหน้าที่ภาควิชา</p>
+        </section>
+      ) : (
+        <>
+          <SummaryCards cards={cardSummary} />
 
-      <Phase2GateNotice eligibilityLoading={eligibilityLoading} phase2GateReasons={phase2GateReasons} />
+          <Phase2GateNotice eligibilityLoading={eligibilityLoading} phase2GateReasons={phase2GateReasons} />
 
-      <MeetingLogbookSection
-        meetingRequirement={meetingRequirement}
-        meetingBreakdown={meetingBreakdown}
-        lastApprovedLogAt={meetingMetrics?.lastApprovedLogAt ?? null}
-        formatDate={formatDate}
-      />
+          <MeetingLogbookSection
+            meetingRequirement={meetingRequirement}
+            meetingBreakdown={meetingBreakdown}
+            lastApprovedLogAt={meetingMetrics?.lastApprovedLogAt ?? null}
+            formatDate={formatDate}
+            onNavigateToMeetings={() => router.push("/meetings")}
+          />
 
-      <StepGrid
-        steps={phase2Steps}
-        stepStatuses={stepStatuses}
-        phase2GateReasons={phase2GateReasons}
-        systemTestReady={systemTestReady}
-        projectDeadlines={projectDeadlines}
-        getStepDeadlineStatus={getStepDeadlineStatus}
-        onOpenStep={(target) => router.push(target)}
-        formatDate={formatDate}
-      />
+          <StepGrid
+            steps={phase2Steps}
+            stepStatuses={stepStatuses}
+            phase2GateReasons={phase2GateReasons}
+            systemTestReady={systemTestReady}
+            canSubmitThesisDefense={workflow?.canSubmitThesisDefense}
+            projectDeadlines={projectDeadlines}
+            getStepDeadlineStatus={getStepDeadlineStatus}
+            onOpenStep={(target) => router.push(target)}
+            formatDate={formatDate}
+          />
+        </>
+      )}
     </div>
   );
 }
