@@ -305,24 +305,6 @@
   font-weight: 700;
 }
 
-.alert {
-  border: 1px solid;
-  border-radius: 0.75rem;
-  padding: 0.7rem 0.9rem;
-}
-
-.alertSuccess {
-  border-color: #6ee7b7;
-  background: #ecfdf5;
-  color: #065f46;
-}
-
-.alertWarning {
-  border-color: #facc15;
-  background: #fffbeb;
-  color: #92400e;
-}
-
 @media (max-width: 960px) {
   .filters {
     grid-template-columns: 1fr;

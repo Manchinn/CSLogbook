@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   listAdminProjectDocuments,
+  getAdminProjectDocumentDetail,
   reviewAdminProjectDocument,
   rejectAdminProjectDocument,
   previewAdminProjectDocument,
@@ -28,6 +29,18 @@ function formatDateTime(value: string | null | undefined) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function documentNameLabel(name: string | null | undefined): string {
+  if (!name) return "-";
+  const map: Record<string, string> = {
+    KP01: "KP-01 (ขออนุมัติหัวข้อ)",
+    KP02: "KP-02 (รายงานความก้าวหน้า)",
+    PROJECT_REPORT: "รายงานโครงงาน",
+    THESIS_PROPOSAL: "โครงร่างปริญญานิพนธ์",
+    THESIS_REPORT: "รายงานปริญญานิพนธ์",
+  };
+  return map[name] ?? name;
 }
 
 function canSelectRow(document: AdminProjectDocument) {
@@ -81,6 +94,17 @@ export default function AdminProjectDocumentsPage() {
   const downloadMutation = useMutation({
     mutationFn: (documentId: number) => downloadAdminProjectDocument(documentId),
   });
+
+  const detailQuery = useQuery({
+    queryKey: ["admin-project-document-detail", selected?.id],
+    queryFn: () => getAdminProjectDocumentDetail(selected!.id),
+    enabled: drawerOpen && !!selected?.id,
+  });
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setSelected(null);
+  };
 
   const listResult = documentsQuery.data;
   const rows = useMemo(() => listResult?.documents ?? [], [listResult?.documents]);
@@ -139,6 +163,7 @@ export default function AdminProjectDocumentsPage() {
     try {
       await reviewMutation.mutateAsync(doc.id);
       setFeedback({ tone: "success", message: "ส่งต่อเอกสารเรียบร้อยแล้ว" });
+      if (drawerOpen) closeDrawer();
     } catch (error) {
       setFeedback({ tone: "warning", message: error instanceof Error ? error.message : "ไม่สามารถดำเนินการได้" });
     }
@@ -162,6 +187,7 @@ export default function AdminProjectDocumentsPage() {
       setRejectReason("");
       setRejectIds([]);
       setFeedback({ tone: "success", message: "ปฏิเสธเอกสารเรียบร้อยแล้ว" });
+      if (drawerOpen) closeDrawer();
     } catch (error) {
       setFeedback({ tone: "warning", message: error instanceof Error ? error.message : "ไม่สามารถปฏิเสธเอกสารได้" });
     }
@@ -173,7 +199,7 @@ export default function AdminProjectDocumentsPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>จัดการเอกสารโครงงาน</h1>
-            <p className={styles.subtitle}>ตรวจสอบและอนุมัติเอกสารที่เกี่ยวกับโครงงานพิเศษ/วิทยานิพนธ์</p>
+            <p className={styles.subtitle}>ตรวจสอบและอนุมัติเอกสารที่เกี่ยวกับโครงงานพิเศษและปริญญานิพนธ์</p>
           </div>
           <button type="button" className={styles.button} onClick={onReset}>รีเซ็ตตัวกรอง</button>
         </header>
@@ -242,7 +268,7 @@ export default function AdminProjectDocumentsPage() {
                         />
                       </td>
                       <td>
-                        <p className={styles.name}>{row.documentName || "-"}</p>
+                        <p className={styles.name}>{documentNameLabel(row.documentName)}</p>
                         <p className={styles.subText}>{row.studentName || "-"}</p>
                       </td>
                       <td>
@@ -262,8 +288,12 @@ export default function AdminProjectDocumentsPage() {
                               <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={() => handleSingleReject(row.id)} disabled={isBulkBusy}>ปฏิเสธ</button>
                             </>
                           ) : null}
-                          <button type="button" className={styles.button} onClick={() => previewMutation.mutate(row.id)} disabled={isFileBusy}>ดูไฟล์</button>
-                          <button type="button" className={styles.button} onClick={() => downloadMutation.mutate(row.id)} disabled={isFileBusy}>ดาวน์โหลด</button>
+                          <button type="button" className={styles.iconButton} onClick={() => previewMutation.mutate(row.id)} disabled={isFileBusy} title="ดูไฟล์">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          </button>
+                          <button type="button" className={styles.iconButton} onClick={() => downloadMutation.mutate(row.id)} disabled={isFileBusy} title="ดาวน์โหลด">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -292,30 +322,51 @@ export default function AdminProjectDocumentsPage() {
               <header className={styles.drawerHeader}>
                 <div>
                   <p className={styles.drawerTitle}>รายละเอียดเอกสาร</p>
-                  <p className={styles.subText}>{selected.documentName} / {selected.studentName}</p>
+                  <p className={styles.subText}>{documentNameLabel(selected.documentName)} / {selected.studentName}</p>
                 </div>
-                <button type="button" className={styles.button} onClick={() => { setDrawerOpen(false); setSelected(null); }}>ปิด</button>
+                <button type="button" className={styles.button} onClick={closeDrawer}>ปิด</button>
               </header>
               <div className={styles.drawerBody}>
-                <section className={styles.detailSection}>
-                  <h3 className={styles.detailTitle}>ข้อมูลเอกสาร</h3>
-                  <p>ชื่อเอกสาร: {selected.documentName || "-"}</p>
-                  <p>สถานะ: {statusLabel(selected.status)}</p>
-                  <p>วันที่ส่ง: {formatDateTime(selected.createdAt)}</p>
-                  {selected.reviewComment ? <p>ความเห็น: {selected.reviewComment}</p> : null}
-                  {selected.projectCode ? <p>รหัสโครงงาน: {selected.projectCode}</p> : null}
-                  {selected.projectTitle ? <p>ชื่อโครงงาน: {selected.projectTitle}</p> : null}
-                </section>
+                {detailQuery.isLoading ? (
+                  <p className={styles.subText}>กำลังโหลด...</p>
+                ) : detailQuery.isError ? (
+                  <p className={styles.subText}>ไม่สามารถโหลดข้อมูลได้</p>
+                ) : (
+                  <section className={styles.detailSection}>
+                    <h3 className={styles.detailTitle}>ข้อมูลเอกสาร</h3>
+                    <p>ชื่อเอกสาร: {documentNameLabel(detailQuery.data?.documentName ?? selected.documentName)}</p>
+                    <p>นักศึกษา: {detailQuery.data?.studentName || selected.studentName || "-"}</p>
+                    {detailQuery.data?.studentCode ? <p>รหัสนักศึกษา: {detailQuery.data.studentCode}</p> : null}
+                    <p>สถานะ: {statusLabel(detailQuery.data?.status ?? selected.status)}</p>
+                    <p>วันที่ส่ง: {formatDateTime(detailQuery.data?.createdAt ?? selected.createdAt)}</p>
+                    {detailQuery.data?.reviewDate ? <p>วันที่ตรวจสอบ: {formatDateTime(detailQuery.data.reviewDate)}</p> : null}
+                    {(detailQuery.data?.reviewComment ?? selected.reviewComment) ? (
+                      <p>ความเห็น: {detailQuery.data?.reviewComment ?? selected.reviewComment}</p>
+                    ) : null}
+                    {(detailQuery.data?.projectCode ?? selected.projectCode) ? (
+                      <p>รหัสโครงงาน: {detailQuery.data?.projectCode ?? selected.projectCode}</p>
+                    ) : null}
+                    {(detailQuery.data?.projectTitle ?? selected.projectTitle) ? (
+                      <p>ชื่อโครงงาน: {detailQuery.data?.projectTitle ?? selected.projectTitle}</p>
+                    ) : null}
+                  </section>
+                )}
+              </div>
+              <div className={styles.drawerFooter}>
+                <div className={styles.buttonRow}>
+                  <button type="button" className={styles.iconButton} onClick={() => previewMutation.mutate(selected.id)} disabled={isFileBusy} title="ดูไฟล์">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  </button>
+                  <button type="button" className={styles.iconButton} onClick={() => downloadMutation.mutate(selected.id)} disabled={isFileBusy} title="ดาวน์โหลด">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  </button>
+                </div>
                 {canSelectRow(selected) ? (
                   <div className={styles.buttonRow}>
                     <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => handleSingleReview(selected)} disabled={isBulkBusy}>ส่งต่อ</button>
                     <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={() => handleSingleReject(selected.id)} disabled={isBulkBusy}>ปฏิเสธ</button>
                   </div>
                 ) : null}
-                <div className={styles.buttonRow}>
-                  <button type="button" className={styles.button} onClick={() => previewMutation.mutate(selected.id)} disabled={isFileBusy}>ดูไฟล์</button>
-                  <button type="button" className={styles.button} onClick={() => downloadMutation.mutate(selected.id)} disabled={isFileBusy}>ดาวน์โหลด</button>
-                </div>
               </div>
             </aside>
           </div>

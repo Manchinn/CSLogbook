@@ -282,7 +282,7 @@ export default function AdminStudentsPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>จัดการข้อมูลนักศึกษา</h1>
-            <p className={styles.subtitle}>เริ่มย้ายจาก legacy เป็น Next.js โดยคง API flow เดิมและรองรับ CRUD ครบชุด</p>
+            <p className={styles.subtitle}>จัดการข้อมูลนักศึกษา ตรวจสอบ และแก้ไขสถานะการใช้งานระบบ</p>
           </div>
           <div className={styles.buttonRow}>
             <button

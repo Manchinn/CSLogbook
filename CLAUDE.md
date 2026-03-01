@@ -500,6 +500,36 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | แก้ menuConfig: รองรับ "หัวหน้าภาควิชา" และ "หัวหน้าภาค" | `frontend/src/lib/navigation/menuConfig.ts` |
 | แก้ RoleGuard: รองรับ requireHeadOfDepartment สำหรับ "หัวหน้าภาควิชา"/"หัวหน้าภาค" | `frontend/src/components/auth/RoleGuard.tsx` |
 
+#### Session 10 — Admin Pages Audit: 6 Routes (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Fix missing `"use client"` + `RoleGuard` บน system-test/staff-queue | `admin/system-test/staff-queue/page.tsx` |
+| Fix subtitle dev text "flow เดิม" ใน topic-exam/results | `admin/topic-exam/results/page.tsx` |
+| Fix raw status enum ใน drawer → ใช้ `labelStatus()` | `admin/topic-exam/results/page.tsx` |
+| Audit 4 หน้าที่เหลือ (ปกติ): project1/kp02-queue, project-exam/results, thesis/staff-queue, thesis/exam-results | — |
+
+#### Session 9 — Admin Project Documents Flow Fix (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม `AdminProjectDocumentDetail` type + `getAdminProjectDocumentDetail()` function | `adminProjectDocumentsService.ts` |
+| เพิ่ม `detailQuery` (useQuery) fetch detail เมื่อ drawer เปิด | `admin/documents/project/page.tsx` |
+| Enrich drawer: แสดง `studentCode`, `reviewDate`, loading/error state | `admin/documents/project/page.tsx` |
+| ปิด drawer อัตโนมัติหลัง approve/reject จาก drawer | `admin/documents/project/page.tsx` |
+| เพิ่ม `documentNameLabel()` helper (KP01, KP02, PROJECT_REPORT, etc.) | `admin/documents/project/page.tsx` |
+| Fix subtitle "วิทยานิพนธ์" → "ปริญญานิพนธ์" | `admin/documents/project/page.tsx` |
+| เพิ่ม `closeDrawer()` helper (extract ออกจาก inline onClick) | `admin/documents/project/page.tsx` |
+
+#### Session 8 — Admin UI Cleanup (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม `.drawerFooter` + เปลี่ยน drawer grid เป็น `auto 1fr auto` | `admin/documents/internship/page.module.css` |
+| แก้ project documents: icon buttons ใน table + drawer footer + ย้าย action buttons | `admin/documents/project/page.tsx` |
+| แก้ students page subtitle จาก dev text เป็น user-facing | `admin/users/students/page.tsx` |
+| ลบ duplicate `.alert` CSS rules (lines 308-324) | `admin/users/teachers/page.module.css` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ

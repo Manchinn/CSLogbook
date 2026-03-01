@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import {
   useAdminTopicExamAcademicYears,
   useAdminTopicExamAdvisors,
@@ -238,7 +239,7 @@ export default function AdminTopicExamResultsPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>บันทึกผลสอบหัวข้อโครงงานพิเศษ</h1>
-            <p className={styles.subtitle}>รายการหัวข้อโครงงานพร้อมบันทึกผลสอบและส่งออกข้อมูลตาม flow เดิม</p>
+            <p className={styles.subtitle}>รายการโครงงานพิเศษที่พร้อมบันทึกผลสอบหัวข้อ</p>
           </div>
           <div className={styles.buttonRow}>
             <button
@@ -568,7 +569,7 @@ export default function AdminTopicExamResultsPage() {
                   <p>ชื่อโครงงาน (อังกฤษ): {selected.titleEn || "-"}</p>
                   <p>รหัสโครงงาน: {selected.projectCode || "-"}</p>
                   <p>ปีการศึกษา / ภาคเรียน: {selected.academicYear || "-"} / {selected.semester || "-"}</p>
-                  <p>สถานะโครงงาน: {selected.status || "-"}</p>
+                  <p>สถานะโครงงาน: {labelStatus(selected.status)}</p>
                 </section>
                 <section className={styles.detailSection}>
                   <h3 className={styles.detailTitle}>ข้อมูลผลสอบหัวข้อ</h3>
