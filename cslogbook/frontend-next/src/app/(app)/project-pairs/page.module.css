@@ -93,6 +93,18 @@
   cursor: pointer;
 }
 
+.buttonPrimary {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.buttonDanger {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
 .buttonGhost {
   background: #f8fafc;
 }
@@ -170,13 +182,30 @@
 }
 
 .tagMuted {
-  background: #e2e8f0;
   color: #475569;
 }
 
 .empty {
   margin: 0;
   color: var(--color-text-muted);
+}
+
+.alert {
+  border: 1px solid;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.alertSuccess {
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.alertWarning {
+  border-color: #facc15;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 .drawerOverlay {
@@ -193,7 +222,7 @@
   height: 100%;
   background: #fff;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   border-left: 1px solid var(--color-border);
 }
 
@@ -212,15 +241,22 @@
   gap: 1rem;
 }
 
-.detailCard {
+.detailSection {
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   padding: 0.85rem;
+  background: #f8fafc;
 }
 
 .detailTitle {
   margin: 0 0 0.5rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.drawerFooter {
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
 }
 
 .detailList {

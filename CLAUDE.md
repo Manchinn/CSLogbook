@@ -452,6 +452,24 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | เพิ่ม `advisorName?`, `coAdvisorName?` fields ใน `ProjectSummary` type | `src/lib/services/studentService.ts` |
 | แสดงชื่ออาจารย์ที่ปรึกษา (+ ร่วม) ใน hero card ของ Phase 2 overview | `ProjectPhase2Content.tsx` |
 
+#### Session 5 — Admin UI Pattern Refactor (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| แก้ teachers drawer view mode: เพิ่ม `detailSection` grouping (ข้อมูลทั่วไป / ตำแหน่ง / สิทธิ์การใช้งาน) | `admin/users/teachers/page.tsx` |
+| แก้ teachers subtitle จาก dev text เป็น user-facing | `admin/users/teachers/page.tsx` |
+| เพิ่ม `.detailSection`, `.detailTitle`, `.alert*` ใน teachers CSS | `admin/users/teachers/page.module.css` |
+| แก้ project-pairs feedback banner ให้ใช้ `.alert.alertSuccess/alertWarning` แทน tagOk/tagMuted | `project-pairs/page.tsx` |
+| แก้ "เพิ่มโครงงานพิเศษ" button เป็น `buttonPrimary` (blue) | `project-pairs/page.tsx` |
+| แก้ project-pairs subtitle จาก dev text เป็น user-facing | `project-pairs/page.tsx` |
+| เพิ่ม `type="button"` ทุกปุ่มใน project-pairs | `project-pairs/page.tsx` |
+| แก้ drawer structure: เพิ่ม `drawerFooter` — ย้าย action buttons ออกจาก drawerBody | `project-pairs/page.tsx` |
+| ใช้ `detailSection` grouping ใน drawer view mode (เหมือน students) | `project-pairs/page.tsx` |
+| Expand one-liner JSX เป็น readable multi-line | `project-pairs/page.tsx` |
+| เพิ่ม `.alert*`, `.buttonPrimary`, `.buttonDanger`, `.drawerFooter`, `.detailSection` | `project-pairs/page.module.css` |
+| อัปเดต `.drawer` grid: `auto 1fr` → `auto 1fr auto` | `project-pairs/page.module.css` |
+| สร้าง docs/claudefix/admin-ui-pattern-refactor.md | `docs/claudefix/admin-ui-pattern-refactor.md` (ใหม่) |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -486,3 +504,4 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | `docs/STUDENT_PAGES_PARITY_REPORT.md` | Parity tracking — Phase 2 overview ควรอัปเดตเป็น ✅ Done (เหลือ advisor name) |
 | `docs/STAGING_TEST_PLAN.md` | Test checklist สำหรับ staging |
 | `docs/compatibility/` | Route usage, deprecation lists — อย่าลบ API ที่อยู่ใน DO_NOT_REMOVE |
+| `docs/claudefix/admin-ui-pattern-refactor.md` | Admin UI pattern refactor log (Session 5) |

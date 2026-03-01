@@ -262,7 +262,7 @@ export default function AdminTeachersPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>จัดการข้อมูลอาจารย์</h1>
-            <p className={styles.subtitle}>รองรับ CRUD อาจารย์และสิทธิ์ใช้งานโครงงานตาม flow API เดิม</p>
+            <p className={styles.subtitle}>จัดการข้อมูลอาจารย์ ตำแหน่ง และสิทธิ์การใช้งานระบบ</p>
           </div>
           <div className={styles.buttonRow}>
             <button
@@ -482,18 +482,30 @@ export default function AdminTeachersPage() {
                 {!isEditMode ? (
                   selected ? (
                     <>
-                      <p className={styles.name}>{formatName(selected)}</p>
-                      <p className={styles.subText}>รหัส: {selected.teacherCode}</p>
-                      <p className={styles.subText}>อีเมล: {selected.email || "-"}</p>
-                      <p className={styles.subText}>เบอร์ภายใน: {selected.contactExtension || "-"}</p>
-                      <p className={styles.subText}>ตำแหน่ง: {selected.position || "-"}</p>
-                      <div className={styles.tagRow}>
-                        <span className={`${styles.tag} ${selected.canAccessTopicExam ? styles.tagOk : styles.tagMuted}`}>
-                          สิทธิ์หัวข้อสอบ: {selected.canAccessTopicExam ? "เปิด" : "ปิด"}
-                        </span>
-                        <span className={`${styles.tag} ${selected.canExportProject1 ? styles.tagOk : styles.tagMuted}`}>
-                          สิทธิ์รายชื่อสอบ: {selected.canExportProject1 ? "เปิด" : "ปิด"}
-                        </span>
+                      <div className={styles.detailSection}>
+                        <p className={styles.detailTitle}>ข้อมูลทั่วไป</p>
+                        <p className={styles.name}>{formatName(selected)}</p>
+                        <p className={styles.subText}>รหัส: {selected.teacherCode}</p>
+                        <p className={styles.subText}>อีเมล: {selected.email || "-"}</p>
+                        <p className={styles.subText}>เบอร์ภายใน: {selected.contactExtension || "-"}</p>
+                      </div>
+                      <div className={styles.detailSection}>
+                        <p className={styles.detailTitle}>ตำแหน่ง</p>
+                        <p className={styles.subText}>ตำแหน่ง: {selected.position || "-"}</p>
+                        <p className={styles.subText}>
+                          ประเภท: {(selected.teacherType ?? teacherTypeFromPosition(selected.position ?? "")) === "support" ? "เจ้าหน้าที่ภาควิชา" : "สายวิชาการ"}
+                        </p>
+                      </div>
+                      <div className={styles.detailSection}>
+                        <p className={styles.detailTitle}>สิทธิ์การใช้งาน</p>
+                        <div className={styles.tagRow}>
+                          <span className={`${styles.tag} ${selected.canAccessTopicExam ? styles.tagOk : styles.tagMuted}`}>
+                            สิทธิ์หัวข้อสอบ: {selected.canAccessTopicExam ? "เปิด" : "ปิด"}
+                          </span>
+                          <span className={`${styles.tag} ${selected.canExportProject1 ? styles.tagOk : styles.tagMuted}`}>
+                            สิทธิ์รายชื่อสอบ: {selected.canExportProject1 ? "เปิด" : "ปิด"}
+                          </span>
+                        </div>
                       </div>
                     </>
                   ) : (
