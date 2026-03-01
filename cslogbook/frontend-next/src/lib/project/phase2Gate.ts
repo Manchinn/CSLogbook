@@ -81,7 +81,7 @@ export function getPhase2GateReasons({ project, eligibility, formatDate }: GateC
 
   if (allowedSemesters.length > 0 && typeof currentSemester === "number") {
     if (!allowedSemesters.includes(currentSemester)) {
-      reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบโครงงานพิเศษ 2`);
+      reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบปริญญานิพนธ์`);
     }
   }
 
@@ -93,8 +93,8 @@ export function getPhase2GateReasons({ project, eligibility, formatDate }: GateC
       const displayDate = format(projectRegistrationStartDate);
       reasons.push(
         displayDate !== "-"
-          ? `ภาคเรียนถัดไปจะเปิดให้ยื่นสอบโครงงานพิเศษ 2 ในวันที่ ${displayDate}`
-          : "ภาคเรียนถัดไปยังไม่เปิดให้ยื่นสอบโครงงานพิเศษ 2"
+          ? `ภาคเรียนถัดไปจะเปิดให้ยื่นสอบปริญญานิพนธ์ ในวันที่ ${displayDate}`
+          : "ภาคเรียนถัดไปยังไม่เปิดให้ยื่นสอบปริญญานิพนธ์"
       );
     }
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -26,10 +26,34 @@ import {
   ProjectLockNotices,
   ProjectOverviewPanels,
 } from "./ProjectPhase1Sections";
+import {
+  MeetingLogbookSection,
+  Phase2GateNotice,
+  SummaryCards,
+} from "../../phase2/view/ProjectPhase2Sections";
 import styles from "./phase1.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
-const thaiDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
+const shortDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
+
+const PHASE_LABELS: Record<string, string> = {
+  IN_PROGRESS: "กำลังดำเนินการ",
+  THESIS_SUBMISSION: "ส่งเล่มปริญญานิพนธ์",
+  THESIS_EXAM_PENDING: "รอนัดสอบ คพ.03",
+  THESIS_EXAM_SCHEDULED: "นัดสอบ คพ.03 แล้ว",
+  THESIS_FAILED: "ไม่ผ่านการสอบ",
+  COMPLETED: "สำเร็จ",
+  ARCHIVED: "เก็บถาวร",
+  in_progress: "กำลังดำเนินการ",
+  completed: "สำเร็จ",
+  cancelled: "ยกเลิก",
+  archived: "เก็บถาวร",
+};
+
+function labelPhase(value?: string | null): string {
+  if (!value) return "ไม่พบข้อมูล";
+  return PHASE_LABELS[value] ?? value;
+}
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -38,16 +62,14 @@ function formatDate(value?: string | null) {
   return dateFormatter.format(d);
 }
 
-function formatThaiDate(value?: string | null) {
+function formatShortDate(value?: string | null) {
   if (!value) return "-";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "-";
-  return thaiDateFormatter.format(d);
+  return shortDateFormatter.format(d);
 }
 
-type ProjectPhase1ContentProps = Record<string, never>;
-
-export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
+export default function ProjectContent() {
   const router = useRouter();
   const { token, user } = useAuth();
   const hydrated = useHydrated();
@@ -57,35 +79,37 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   const studentId = user?.studentId ?? user?.id;
   const queriesEnabled = hydrated && Boolean(token) && Boolean(studentId);
 
-  const {
-    data: eligibility,
-    isLoading: eligibilityLoading,
-  } = useStudentEligibility(token, queriesEnabled);
-
+  // ── Data fetching ──────────────────────────────────────────────────────────
+  const { data: eligibility, isLoading: eligibilityLoading } = useStudentEligibility(token, queriesEnabled);
   const {
     data: projectStatus,
     isLoading: projectLoading,
     error: projectError,
   } = useStudentProjectStatus(token, queriesEnabled);
-
   const {
     data: projectDetail,
     isLoading: projectDetailLoading,
     refetch: refetchProjectDetail,
   } = useStudentProjectDetail(token, queriesEnabled);
-
   const {
     data: timeline,
     isLoading: timelineLoading,
     error: timelineError,
   } = useWorkflowTimeline(token, "project", studentId ?? null, queriesEnabled);
-
   const { data: deadlines } = useStudentDeadlineCalendar(
     token,
     projectDetail?.academicYear ?? null,
     queriesEnabled
   );
 
+  // ── Core data ──────────────────────────────────────────────────────────────
+  const projectDetailData = projectDetail ?? null;
+  const projectSummary = projectStatus?.project ?? null;
+  const project = projectDetailData ?? projectSummary ?? null;
+  const projectMembers = projectDetailData?.members ?? null;
+  const workflow = projectStatus?.workflow ?? null;
+
+  // ── Deadlines ──────────────────────────────────────────────────────────────
   const projectDeadlines = useMemo(() => {
     if (!deadlines) return [];
     const list = deadlines.filter((deadline) =>
@@ -200,11 +224,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     return projectDeadlines.filter((deadline) => getDeadlineSortTime(deadline) >= now).slice(0, 4);
   }, [projectDeadlines]);
 
-  const projectDetailData = projectDetail ?? null;
-  const projectSummary = projectStatus?.project ?? null;
-  const project = projectDetailData ?? projectSummary ?? null;
-  const workflow = projectStatus?.workflow ?? null;
-
+  // ── Eligibility ────────────────────────────────────────────────────────────
   const canAccessProject =
     eligibility?.status?.project?.canAccess ??
     eligibility?.eligibility?.project?.canAccessFeature ??
@@ -276,6 +296,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     return null;
   }, [academicSettings?.projectRegistrationPeriod]);
 
+  // ── Project lock states ────────────────────────────────────────────────────
   const isProjectCancelled = project?.status === "cancelled";
 
   const postTopicLockReasons = useMemo(() => {
@@ -300,7 +321,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
   }, [project, postTopicLockReasons]);
 
   const phase2GateReasons = useMemo(() => {
-    if (!project) return ["ยังไม่มีข้อมูลโครงงาน"]; 
+    if (!project) return ["ยังไม่มีข้อมูลโครงงาน"];
     const reasons: string[] = [];
     if (project.examResult !== "passed") {
       reasons.push("ผลสอบหัวข้อยังไม่ผ่าน");
@@ -308,17 +329,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     if (!project.status || !["in_progress", "completed"].includes(project.status)) {
       reasons.push("สถานะโครงงานยังไม่อยู่ในขั้น \"กำลังดำเนินการ\"");
     }
-
     if (allowedPhase2Semesters && allowedPhase2Semesters.length > 0 && typeof currentSemester === "number") {
       if (!allowedPhase2Semesters.includes(currentSemester)) {
         reasons.push(`ภาคเรียนที่ ${currentSemester} ยังไม่เปิดยื่นสอบปริญญานิพนธ์`);
       }
     }
-
     if (projectRegistrationStartDate) {
       const startDate = new Date(projectRegistrationStartDate);
       if (!Number.isNaN(startDate.getTime()) && new Date() < startDate) {
-        const displayDate = formatThaiDate(projectRegistrationStartDate);
+        const displayDate = formatShortDate(projectRegistrationStartDate);
         reasons.push(
           displayDate !== "-"
             ? `ภาคเรียนถัดไปจะเปิดให้ยื่นสอบปริญญานิพนธ์ ในวันที่ ${displayDate}`
@@ -326,23 +345,21 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         );
       }
     }
-
     return reasons;
   }, [project, allowedPhase2Semesters, currentSemester, projectRegistrationStartDate]);
 
+  const phase2Unlocked = phase2GateReasons.length === 0;
+
+  // ── Meeting progress Phase 1 ───────────────────────────────────────────────
   const leaderMember = useMemo(() => {
     if (!project || !Array.isArray(project.members)) return null;
     return project.members.find((member) => member.role === "leader") ?? null;
   }, [project]);
 
   const meetingProgress = useMemo(() => {
-    if (!projectDetailData) {
-      return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
-    }
+    if (!projectDetailData) return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
     const metrics = projectDetailData.meetingMetrics ?? projectDetailData.meetingMetricsPhase1 ?? null;
-    if (!metrics) {
-      return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
-    }
+    if (!metrics) return { required: 0, approved: 0, totalApproved: 0, satisfied: true };
     const required = Number(metrics.requiredApprovedLogs) || 0;
     const perStudent = Array.isArray(metrics.perStudent)
       ? metrics.perStudent
@@ -359,6 +376,9 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       satisfied: required === 0 || leaderApproved >= required,
     };
   }, [projectDetailData, leaderMember]);
+
+  // ── Phase 2 specific data ──────────────────────────────────────────────────
+  const systemTestSummary = projectDetailData?.systemTestRequest ?? null;
 
   const project1DefenseRequest = useMemo(() => {
     if (!Array.isArray(projectDetailData?.defenseRequests)) return null;
@@ -378,11 +398,122 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     );
   }, [projectDetailData?.defenseRequests]);
 
-  const systemTestSummary = projectDetailData?.systemTestRequest ?? null;
+  const systemTestReady = useMemo(() => {
+    if (!systemTestSummary) return false;
+    if (systemTestSummary.status !== "staff_approved") return false;
+    if (!systemTestSummary.evidenceSubmittedAt) return false;
+    if (!systemTestSummary.testDueDate) return false;
+    const due = new Date(systemTestSummary.testDueDate);
+    if (Number.isNaN(due.getTime())) return false;
+    return new Date() >= due;
+  }, [systemTestSummary]);
 
+  const systemTestStatusLabel = useMemo(() => {
+    if (!systemTestSummary) return "ยังไม่ยื่นคำขอ";
+    if (systemTestSummary.status === "staff_approved" && systemTestSummary.evidenceSubmittedAt) {
+      return "อนุมัติครบและอัปโหลดหลักฐานครบแล้ว";
+    }
+    const mapping: Record<string, string> = {
+      pending_advisor: "รออาจารย์อนุมัติ",
+      advisor_rejected: "อาจารย์ส่งกลับ",
+      pending_staff: "รอเจ้าหน้าที่ตรวจสอบ",
+      staff_rejected: "เจ้าหน้าที่ส่งกลับ",
+      staff_approved: "อนุมัติครบ (รอหลักฐาน)",
+    };
+    return mapping[systemTestSummary.status ?? ""] ?? "กำลังดำเนินการ";
+  }, [systemTestSummary]);
+
+  const thesisStatusLabel = useMemo(() => {
+    if (!thesisDefenseRequest) return "ยังไม่ยื่นคำขอ";
+    const mapping: Record<string, string> = {
+      submitted: "ยื่นคำขอแล้ว",
+      advisor_in_review: "รออาจารย์อนุมัติ",
+      advisor_approved: "อาจารย์อนุมัติครบ",
+      staff_verified: "เจ้าหน้าที่ตรวจสอบแล้ว",
+      scheduled: "นัดสอบแล้ว",
+      completed: "บันทึกผลสอบแล้ว",
+      cancelled: "คำขอถูกยกเลิก",
+      advisor_rejected: "อาจารย์ไม่อนุมัติ",
+      staff_returned: "เจ้าหน้าที่ส่งกลับ",
+    };
+    return mapping[thesisDefenseRequest.status ?? ""] ?? "กำลังดำเนินการ";
+  }, [thesisDefenseRequest]);
+
+  const cardSummaryPhase2 = useMemo(() => {
+    const cards: Array<{ label: string; value: React.ReactNode; hint?: React.ReactNode }> = [
+      {
+        label: "สถานะ Phase",
+        value: labelPhase(workflow?.currentPhase ?? project?.status),
+        hint: workflow?.isBlocked ? `ถูกบล็อก: ${workflow.blockReason || ""}` : "พร้อมดำเนินการ",
+      },
+      {
+        label: "สถานะทดสอบระบบ",
+        value: systemTestStatusLabel,
+        hint: systemTestSummary?.testDueDate
+          ? `ครบกำหนด 30 วัน: ${formatDate(systemTestSummary.testDueDate)}`
+          : "ยังไม่มีวันครบกำหนด",
+      },
+      {
+        label: "สถานะคำขอสอบ คพ.03",
+        value: thesisStatusLabel,
+        hint: systemTestReady ? "พร้อมยื่นสอบ คพ.03" : "รอทดสอบระบบครบ 30 วัน",
+      },
+    ];
+
+    if (workflow?.thesisExamResult) {
+      const passed = workflow.thesisExamResult === "PASS";
+      cards.push({
+        label: "ผลสอบปริญญานิพนธ์ (คพ.03)",
+        value: passed
+          ? <span className={styles.cardValueSuccess}>ผ่านการสอบ</span>
+          : <span className={styles.cardValueDanger}>ไม่ผ่านการสอบ</span>,
+        hint: passed
+          ? "ยินดีด้วย! ผ่านการสอบปริญญานิพนธ์เรียบร้อยแล้ว"
+          : "กรุณาติดต่ออาจารย์ที่ปรึกษาเพื่อดำเนินการต่อ",
+      });
+    }
+
+    return cards;
+  }, [workflow, project?.status, systemTestStatusLabel, systemTestSummary?.testDueDate, thesisStatusLabel, systemTestReady]);
+
+  // ── Meeting logbook Phase 2 ────────────────────────────────────────────────
+  const meetingMetricsP2 = projectDetailData?.meetingMetricsPhase2 ?? null;
+
+  const meetingRequirementP2 = useMemo(() => {
+    if (!meetingMetricsP2) return { required: 0, totalApproved: 0, satisfied: true };
+    const required = Number(meetingMetricsP2.requiredApprovedLogs) || 0;
+    const totalApproved = Number(meetingMetricsP2.totalApprovedLogs) || 0;
+    return { required, totalApproved, satisfied: required === 0 || totalApproved >= required };
+  }, [meetingMetricsP2]);
+
+  const meetingBreakdownP2 = useMemo(() => {
+    const members = Array.isArray(projectMembers) ? projectMembers : [];
+    const perStudentMap = new Map<number, { approvedLogs: number; attendedMeetings: number }>();
+    if (Array.isArray(meetingMetricsP2?.perStudent)) {
+      for (const entry of meetingMetricsP2.perStudent) {
+        if (entry?.studentId == null) continue;
+        perStudentMap.set(Number(entry.studentId), {
+          approvedLogs: Number(entry.approvedLogs) || 0,
+          attendedMeetings: Number(entry.attendedMeetings) || 0,
+        });
+      }
+    }
+    return members.map((member) => {
+      const counts = perStudentMap.get(Number(member.studentId)) ?? { approvedLogs: 0, attendedMeetings: 0 };
+      return {
+        studentId: member.studentId,
+        name: member.name || member.studentCode || "สมาชิก",
+        studentCode: member.studentCode || "-",
+        role: member.role || "member",
+        approvedLogs: counts.approvedLogs,
+        attendedMeetings: counts.attendedMeetings,
+      };
+    });
+  }, [projectMembers, meetingMetricsP2]);
+
+  // ── Step status map ────────────────────────────────────────────────────────
   const stepStatusMap = useMemo(() => {
-    const statuses: Record<string, { label: string; tone: "default" | "info" | "success" | "warning" | "danger" }>
-      = {};
+    const statuses: Record<string, { label: string; tone: "default" | "info" | "success" | "warning" | "danger" }> = {};
 
     const setStatus = (
       key: string,
@@ -400,7 +531,6 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         "meeting-logbook",
         "exam-submit",
         "exam-day",
-        "phase2-overview",
         "system-test",
         "thesis-defense-request",
       ].forEach((key) => setStatus(key, "ยังไม่มีโครงงาน", "default"));
@@ -408,16 +538,15 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     }
 
     const members = Array.isArray(project.members) ? project.members : [];
-    const membersCount = members.length;
     const hasTopicTitles = Boolean(project.projectNameTh) && Boolean(project.projectNameEn);
     const isFailedArchived =
       project.examResult === "failed" && Boolean(projectDetailData?.studentAcknowledgedAt);
 
     if (isFailedArchived) {
       setStatus("topic-submit", "ต้องยื่นใหม่", "danger");
-    } else if (membersCount >= 2 && hasTopicTitles) {
+    } else if (members.length >= 2 && hasTopicTitles) {
       setStatus("topic-submit", "เสร็จสิ้น", "success");
-    } else if (membersCount > 0 || hasTopicTitles) {
+    } else if (members.length > 0 || hasTopicTitles) {
       setStatus("topic-submit", "กำลังดำเนินการ", "info");
     } else {
       setStatus("topic-submit", "ยังไม่เริ่ม", "default");
@@ -492,23 +621,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("exam-day", "รอการอนุมัติ", "info");
     }
 
-    if (phase2GateReasons.length > 0) {
-      setStatus("phase2-overview", "รอปลดล็อก", "warning");
-    } else if (thesisDefenseRequest?.status === "completed") {
-      setStatus("phase2-overview", "เสร็จสิ้นปริญญานิพนธ์", "success");
-    } else if (thesisDefenseRequest) {
-      if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
-        setStatus("phase2-overview", "คำขอสอบ 2 ถูกส่งกลับ", "danger");
-      } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
-        setStatus("phase2-overview", "รอสอบปริญญานิพนธ์", "info");
-      } else {
-        setStatus("phase2-overview", "กำลังยื่นสอบปริญญานิพนธ์", "info");
-      }
-    } else {
-      setStatus("phase2-overview", "พร้อมเริ่มปริญญานิพนธ์", "info");
-    }
-
-    if (phase2GateReasons.length > 0) {
+    if (!phase2Unlocked) {
       setStatus("system-test", "รอปลดล็อก", "warning");
     } else if (!systemTestSummary) {
       setStatus("system-test", "ยังไม่ยื่นคำขอ", "default");
@@ -528,14 +641,14 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("system-test", "กำลังดำเนินการ", "info");
     }
 
-    if (phase2GateReasons.length > 0) {
+    if (!phase2Unlocked) {
       setStatus("thesis-defense-request", "รอปลดล็อก", "warning");
     } else if (!thesisDefenseRequest) {
       setStatus("thesis-defense-request", "ยังไม่ยื่นคำขอ", "default");
     } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
       setStatus("thesis-defense-request", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
-      setStatus("thesis-defense-request", "รอสอบปริญญานิพนธ์", "info");
+      setStatus("thesis-defense-request", "รอสอบโครงงานพิเศษ 2", "info");
     } else if (thesisDefenseRequest.status === "completed") {
       setStatus("thesis-defense-request", "บันทึกผลสอบแล้ว", "success");
     } else if (thesisDefenseRequest.status === "advisor_approved") {
@@ -550,18 +663,22 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     meetingProgress,
     project1DefenseRequest,
     thesisDefenseRequest,
-    phase2GateReasons,
+    phase2Unlocked,
     systemTestSummary,
     projectDetailData?.studentAcknowledgedAt,
   ]);
 
-  const allSteps = useMemo(() => [phase2Steps[0], ...phase1Steps, ...phase2Steps.slice(1)], []);
+  // ── Step visibility ────────────────────────────────────────────────────────
+  // "phase2-overview" is replaced by a section divider — excluded from allSteps
+  const allSteps = useMemo(
+    () => [...phase1Steps, ...phase2Steps.filter((s) => s.key !== "phase2-overview")],
+    []
+  );
+
   const visibleSteps = useMemo(() => {
     if (activePhaseTab === "all") return allSteps;
-    if (activePhaseTab === "phase2") {
-      return allSteps.filter((step) => step.phase === "phase2" && step.key !== "phase2-overview");
-    }
-    return allSteps.filter((step) => step.phase === activePhaseTab);
+    if (activePhaseTab === "phase2") return allSteps.filter((s) => s.phase === "phase2");
+    return allSteps.filter((s) => s.phase === activePhaseTab);
   }, [activePhaseTab, allSteps]);
 
   const buildLockReasons = useCallback(
@@ -571,33 +688,27 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     ) => {
       const reasons: string[] = [];
       if (step.requiresPostTopicUnlock) reasons.push(...postTopicGateReasons);
-      const overviewAlwaysEnabled = activePhaseTab === "all" && step.key === "phase2-overview";
-      if (step.requiresPhase2Unlock && !overviewAlwaysEnabled) {
-        reasons.push(...phase2GateReasons);
-      }
-
+      if (step.requiresPhase2Unlock) reasons.push(...phase2GateReasons);
       if (deadlineStatus.isLocked && deadlineStatus.reason) {
         reasons.push(deadlineStatus.reason);
       } else if (deadlineStatus.isOverdue && deadlineStatus.reason) {
         reasons.push(deadlineStatus.reason);
       }
-
       return reasons;
     },
-    [activePhaseTab, postTopicGateReasons, phase2GateReasons]
+    [postTopicGateReasons, phase2GateReasons]
   );
 
   const handleOpen = useCallback(
     (step: ProjectStep, lockReasons: string[]) => {
       if (!step.implemented) return;
       if (lockReasons.length > 0) return;
-      if (step.target) {
-        router.push(step.target);
-      }
+      if (step.target) router.push(step.target);
     },
     [router]
   );
 
+  // ── UI helpers ─────────────────────────────────────────────────────────────
   const showAck = Boolean(project && project.examResult === "failed" && !projectDetailData?.studentAcknowledgedAt);
   const showPhaseContent = canAccessProject && !eligibilityLoading && !isProjectCancelled;
 
@@ -617,9 +728,25 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.kicker}>Project Workflow</p>
-          <h1 className={styles.title}>ระบบโครงงานพิเศษ</h1>
-          <p className={styles.lead}>ภาพรวมโครงงานพิเศษ 1 และ ปริญญานิพนธ์</p>
+          <p className={styles.kicker}>โครงงานพิเศษ & ปริญญานิพนธ์</p>
+          <h1 className={styles.title}>{project?.projectNameTh || "ระบบโครงงานพิเศษ"}</h1>
+          <p className={styles.lead}>{project?.projectNameEn || "ภาพรวมโครงงานพิเศษ 1 และ ปริญญานิพนธ์"}</p>
+        </div>
+        <div className={styles.heroMeta}>
+          <p className={styles.heroLabel}>อาจารย์ที่ปรึกษา</p>
+          <p className={styles.heroValue}>{project?.advisorName || "ยังไม่ระบุ"}</p>
+          {project?.coAdvisorName && (
+            <>
+              <p className={styles.heroLabel} style={{ marginTop: 6 }}>อาจารย์ที่ปรึกษาร่วม</p>
+              <p className={styles.heroHint}>{project.coAdvisorName}</p>
+            </>
+          )}
+          <p className={styles.heroLabel} style={{ marginTop: 10 }}>ภาคการศึกษา</p>
+          <p className={styles.heroHint}>
+            {project?.academicYear && project?.semester
+              ? `${project.academicYear}/${project.semester}`
+              : "ยังไม่ระบุ"}
+          </p>
         </div>
       </header>
 
@@ -644,6 +771,14 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         onBackToDashboard={() => router.push("/dashboard/student")}
       />
 
+      {showPhaseContent && phase2Unlocked && (
+        <SummaryCards cards={cardSummaryPhase2} />
+      )}
+
+      {showPhaseContent && (
+        <Phase2GateNotice eligibilityLoading={eligibilityLoading} phase2GateReasons={phase2GateReasons} />
+      )}
+
       <PhaseStepsGrid
         showPhaseContent={showPhaseContent}
         activePhaseTab={activePhaseTab}
@@ -653,7 +788,18 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         getStepDeadlineStatus={getStepDeadlineStatus}
         buildLockReasons={buildLockReasons}
         onOpenStep={handleOpen}
+        showSectionDividers
       />
+
+      {showPhaseContent && phase2Unlocked && (
+        <MeetingLogbookSection
+          meetingRequirement={meetingRequirementP2}
+          meetingBreakdown={meetingBreakdownP2}
+          lastApprovedLogAt={meetingMetricsP2?.lastApprovedLogAt ?? null}
+          formatDate={formatDate}
+          onNavigateToMeetings={() => router.push("/meetings")}
+        />
+      )}
 
       <ProjectOverviewPanels
         showPhaseContent={showPhaseContent}
@@ -669,7 +815,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       {showPhaseContent ? (
         <WorkflowTimeline
           title="Timeline โครงงานพิเศษ"
-          subtitle="ครอบคลุมโครงงานพิเศษ 1 และ ปริญญานิพนธ์ ตาม workflow"
+          subtitle="ครอบคลุม Phase 1 และ ปริญญานิพนธ์ ตาม workflow"
           timeline={timeline}
           isLoading={timelineLoading}
           error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}

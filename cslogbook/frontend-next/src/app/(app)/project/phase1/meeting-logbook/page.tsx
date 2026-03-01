@@ -382,7 +382,7 @@ export default function MeetingLogbookPage() {
             onClick={() => setActivePhase("phase2")}
             disabled={!canAccessPhase2}
           >
-            โครงงานพิเศษ 2
+            ปริญญานิพนธ์
           </button>
         </div>
 
@@ -451,7 +451,7 @@ export default function MeetingLogbookPage() {
                 >
                   <option value="phase1">โครงงานพิเศษ 1</option>
                   <option value="phase2" disabled={!canAccessPhase2}>
-                    โครงงานพิเศษ 2
+                    ปริญญานิพนธ์
                   </option>
                 </select>
               </div>
@@ -529,7 +529,7 @@ export default function MeetingLogbookPage() {
         </section>
 
         <section className={styles.card}>
-          <h3>รายการประชุม ({activePhase === "phase1" ? "โครงงานพิเศษ 1" : "โครงงานพิเศษ 2"})</h3>
+          <h3>รายการประชุม ({activePhase === "phase1" ? "โครงงานพิเศษ 1" : "ปริญญานิพนธ์"})</h3>
           {loading ? <div className={styles.notice}>กำลังโหลดข้อมูล...</div> : null}
           {activeMeetings.length === 0 && !loading ? <div className={styles.notice}>ยังไม่มีการประชุม</div> : null}
           <div className={styles.list}>

@@ -69,7 +69,7 @@ function formatStatusThai(status?: string | null) {
     advisor_approved: "อาจารย์อนุมัติแล้ว",
     staff_verified: "เจ้าหน้าที่ตรวจสอบแล้ว",
     phase1: "โครงงานพิเศษ 1",
-    phase2: "โครงงานพิเศษ 2",
+    phase2: "ปริญญานิพนธ์",
     thesis: "ปริญญานิพนธ์",
   };
 

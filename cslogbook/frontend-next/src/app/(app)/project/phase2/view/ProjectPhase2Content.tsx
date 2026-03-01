@@ -325,9 +325,9 @@ export default function ProjectPhase2Content() {
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.kicker}>Phase 2 Overview</p>
-          <h1 className={styles.title}>โครงงานพิเศษ 2 & ปริญญานิพนธ์</h1>
-          <p className={styles.lead}>ติดตามความพร้อมและจัดการคำขอสำคัญของ Phase 2</p>
+          <p className={styles.kicker}>ปริญญานิพนธ์</p>
+          <h1 className={styles.title}>โครงงานพิเศษ & ปริญญานิพนธ์</h1>
+          <p className={styles.lead}>ติดตามความพร้อมและจัดการคำขอสำคัญ</p>
         </div>
         <div className={styles.heroMeta}>
           <p className={styles.heroLabel}>โครงงาน</p>
@@ -349,7 +349,7 @@ export default function ProjectPhase2Content() {
       </header>
 
       {isDataLoading ? (
-        <section className={styles.notice}>กำลังโหลดข้อมูล Phase 2...</section>
+        <section className={styles.notice}>กำลังโหลดข้อมูลปริญญานิพนธ์...</section>
       ) : hasNoProject ? (
         <section className={styles.noticeWarning}>
           <p className={styles.noticeTitle}>ยังไม่มีโครงงาน</p>

@@ -40,14 +40,14 @@ function formatNumber(value?: number | null) {
 }
 
 
-function entryStatusLabel(entry?: TimesheetEntry | null) {
-  if (!entry) return "ยังไม่บันทึก";
+function entryStatusInfo(entry?: TimesheetEntry | null): { label: string; tone: "success" | "danger" | "muted" | "default" } {
+  if (!entry) return { label: "ยังไม่บันทึก", tone: "muted" };
   if (entry.supervisorApproved === 1 || entry.supervisorApproved === true || entry.advisorApproved) {
-    return "อนุมัติแล้ว";
+    return { label: "อนุมัติแล้ว", tone: "success" };
   }
-  if (entry.supervisorApproved === -1) return "ถูกปฏิเสธ";
-  if (entry.timeIn || entry.workHours) return "บันทึกแล้ว";
-  return "ร่าง";
+  if (entry.supervisorApproved === -1) return { label: "ถูกปฏิเสธ", tone: "danger" };
+  if (entry.timeIn || entry.workHours) return { label: "บันทึกแล้ว", tone: "default" };
+  return { label: "ร่าง", tone: "muted" };
 }
 
 function buildReflectionDraft(source: ReflectionResponse | null): ReflectionPayload {
@@ -385,8 +385,23 @@ export default function InternshipSummaryView() {
             </div>
           </form>
         ) : (
-          <div className={styles.value}>
-            {reflectionData?.learningOutcome || summary.learningOutcome || "ยังไม่มีข้อมูล"}
+          <div className={styles.reflectionView}>
+            {[
+              { label: "สิ่งที่ได้เรียนรู้", value: reflectionData?.learningOutcome || summary.learningOutcome },
+              { label: "ทักษะ/บทเรียนสำคัญ", value: reflectionData?.keyLearnings },
+              { label: "การนำไปใช้ในอนาคต", value: reflectionData?.futureApplication },
+              { label: "สิ่งที่อยากปรับปรุง", value: reflectionData?.improvements },
+            ].map(({ label, value }) =>
+              value ? (
+                <div key={label} className={styles.reflectionField}>
+                  <div className={styles.reflectionFieldLabel}>{label}</div>
+                  <div className={styles.value}>{value}</div>
+                </div>
+              ) : null
+            )}
+            {!reflectionData?.learningOutcome && !summary.learningOutcome && (
+              <div className={styles.meta}>ยังไม่มีข้อมูล</div>
+            )}
           </div>
         )}
       </div>
@@ -413,14 +428,18 @@ export default function InternshipSummaryView() {
               <span>ชั่วโมง</span>
               <span>สถานะ</span>
             </div>
-            {entries.map((entry) => (
-              <div key={entry.logId ?? entry.workDate} className={styles.tableRow}>
-                <span>{formatDate(entry.workDate)}</span>
-                <span>{entry.logTitle || entry.workDescription || "-"}</span>
-                <span>{formatNumber(entry.workHours ?? null)}</span>
-                <span className={styles.tag}>{entryStatusLabel(entry)}</span>
-              </div>
-            ))}
+            {entries.map((entry) => {
+              const { label, tone } = entryStatusInfo(entry);
+              const tagClass = tone === "success" ? styles.tagSuccess : tone === "danger" ? styles.tagDanger : tone === "muted" ? styles.tagMuted : styles.tag;
+              return (
+                <div key={entry.logId ?? entry.workDate} className={styles.tableRow}>
+                  <span>{formatDate(entry.workDate)}</span>
+                  <span>{entry.logTitle || entry.workDescription || "-"}</span>
+                  <span>{formatNumber(entry.workHours ?? null)}</span>
+                  <span className={`${styles.tag} ${tagClass}`}>{label}</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

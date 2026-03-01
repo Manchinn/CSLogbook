@@ -171,7 +171,13 @@
 .tableRow {
   padding: 8px 0;
   border-top: 1px solid #f3f4f6;
-  align-items: center;
+  align-items: start;
+}
+
+.tableRow > span {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding-top: 2px;
 }
 
 .tag {
@@ -182,6 +188,40 @@
   border-radius: 999px;
   font-weight: 600;
   justify-content: center;
+}
+
+.tagSuccess {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tagDanger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.tagMuted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.reflectionView {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reflectionField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reflectionFieldLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
 }
 
 .progressRow {

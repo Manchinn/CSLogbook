@@ -44,12 +44,12 @@ export function Phase2GateNotice({ eligibilityLoading, phase2GateReasons }: Phas
   return (
     <>
       {eligibilityLoading ? (
-        <section className={styles.notice}>กำลังตรวจสอบสิทธิ์และข้อมูล Phase 2...</section>
+        <section className={styles.notice}>กำลังตรวจสอบสิทธิ์ปริญญานิพนธ์...</section>
       ) : null}
 
       {phase2GateReasons.length > 0 ? (
         <section className={styles.noticeWarning}>
-          <p className={styles.noticeTitle}>Phase 2 ยังไม่ปลดล็อก</p>
+          <p className={styles.noticeTitle}>ปริญญานิพนธ์ยังไม่ปลดล็อก</p>
           <ul className={styles.noticeList}>
             {phase2GateReasons.map((reason) => (
               <li key={reason}>{reason}</li>
@@ -184,7 +184,7 @@ export function MeetingLogbookSection({
   return (
     <section className={styles.meetingSection}>
       <header className={styles.meetingHeader}>
-        <p className={styles.meetingTitle}>บันทึกการพบอาจารย์ (Phase 2)</p>
+        <p className={styles.meetingTitle}>บันทึกการพบอาจารย์ (ปริญญานิพนธ์)</p>
         {showRequired ? (
           <span className={satisfied ? styles.badgeSuccess : styles.badgeWarning}>
             {totalApproved}/{required} ครั้ง
