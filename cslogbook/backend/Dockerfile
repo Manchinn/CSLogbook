@@ -2,9 +2,6 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install Thai font support for PDF generation
-RUN apk add --no-cache font-thai-tlwg
-
 # Copy package files
 COPY package*.json ./
 
