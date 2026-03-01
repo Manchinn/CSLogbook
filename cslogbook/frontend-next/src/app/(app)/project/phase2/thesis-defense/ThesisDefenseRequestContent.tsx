@@ -140,7 +140,7 @@ export default function ThesisDefenseRequestContent() {
     <div className={styles.page}>
       <section className={styles.header}>
         <div>
-          <h1 className={styles.title}>คำขอสอบโครงงานพิเศษ 2 (คพ.03)</h1>
+          <h1 className={styles.title}>คำขอสอบปริญญานิพนธ์ (คพ.03)</h1>
           <p className={styles.subtitle}>บันทึกข้อมูลคำขอสอบและติดตามสถานะคำร้อง</p>
         </div>
         <button type="button" className={styles.secondaryButton} onClick={() => router.push("/project/phase2")}> 
@@ -150,7 +150,7 @@ export default function ThesisDefenseRequestContent() {
 
       {phase2GateReasons.length > 0 ? (
         <section className={styles.noticeWarning}>
-          <p className={styles.noticeTitle}>Phase 2 ยังไม่ปลดล็อก</p>
+          <p className={styles.noticeTitle}>ปริญญานิพนธ์ยังไม่ปลดล็อก</p>
           <ul className={styles.noticeList}>
             {phase2GateReasons.map((reason) => (
               <li key={reason}>{reason}</li>

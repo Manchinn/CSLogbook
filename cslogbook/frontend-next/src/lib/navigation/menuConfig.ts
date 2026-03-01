@@ -98,7 +98,6 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
           kind: "group",
           children: [
             menuLink("project-phase1", "ขั้นตอนโครงงานพิเศษ", "/project/phase1", featureFlags.enableProjectPhase1Page),
-            menuLink("project-phase2", "โครงงานพิเศษ 2", "/project/phase2", featureFlags.enableProjectPhase2Page),
           ],
         }
       : {

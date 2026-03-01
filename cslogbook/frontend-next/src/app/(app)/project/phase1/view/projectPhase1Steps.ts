@@ -78,9 +78,9 @@ export const phase2Steps: ProjectStep[] = [
   {
     key: "phase2-overview",
     phase: "phase2",
-    phaseLabel: "ภาพรวม",
+    phaseLabel: "ปริญญานิพนธ์",
     title: "โครงงานพิเศษ & ปริญญานิพนธ์ – ภาพรวม",
-    desc: "ติดตามสถานะและไทม์ไลน์โครงงานพิเศษ 2",
+    desc: "ติดตามสถานะและไทม์ไลน์ปริญญานิพนธ์",
     icon: "OVR",
     implemented: true,
     requiresPhase2Unlock: true,
@@ -89,7 +89,7 @@ export const phase2Steps: ProjectStep[] = [
   {
     key: "system-test",
     phase: "phase2",
-    phaseLabel: "โครงงานพิเศษ 2",
+    phaseLabel: "ปริญญานิพนธ์",
     title: "ขอทดสอบระบบ 30 วัน",
     desc: "ส่งคำขอทดสอบระบบและติดตามสถานะอนุมัติ",
     icon: "TEST",
@@ -102,9 +102,9 @@ export const phase2Steps: ProjectStep[] = [
   {
     key: "thesis-defense-request",
     phase: "phase2",
-    phaseLabel: "โครงงานพิเศษ 2",
+    phaseLabel: "ปริญญานิพนธ์",
     title: "ยื่นคำขอสอบ คพ.03",
-    desc: "ส่งคำขอสอบโครงงานพิเศษ 2 พร้อมหลักฐานสำคัญ",
+    desc: "ส่งคำขอสอบปริญญานิพนธ์ พร้อมหลักฐานสำคัญ",
     icon: "KP03",
     implemented: true,
     requiresPhase2Unlock: true,

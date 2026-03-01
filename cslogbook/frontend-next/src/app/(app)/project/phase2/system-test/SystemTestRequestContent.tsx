@@ -186,7 +186,7 @@ export default function SystemTestRequestContent() {
 
       {phase2GateReasons.length > 0 ? (
         <section className={styles.noticeWarning}>
-          <p className={styles.noticeTitle}>Phase 2 ยังไม่ปลดล็อก</p>
+          <p className={styles.noticeTitle}>ปริญญานิพนธ์ยังไม่ปลดล็อก</p>
           <ul className={styles.noticeList}>
             {phase2GateReasons.map((reason) => (
               <li key={reason}>{reason}</li>

@@ -200,7 +200,83 @@ type PhaseStepsGridProps = {
   getStepDeadlineStatus: (step: ProjectStep) => DeadlineStatus;
   buildLockReasons: (step: ProjectStep, deadlineStatus: DeadlineStatus) => string[];
   onOpenStep: (step: ProjectStep, lockReasons: string[]) => void;
+  showSectionDividers?: boolean;
 };
+
+function StepCard({
+  step,
+  stepStatusMap,
+  getStepDeadlineStatus,
+  buildLockReasons,
+  onOpenStep,
+}: {
+  step: ProjectStep;
+  stepStatusMap: Record<string, StepStatus | undefined>;
+  getStepDeadlineStatus: (step: ProjectStep) => DeadlineStatus;
+  buildLockReasons: (step: ProjectStep, deadlineStatus: DeadlineStatus) => string[];
+  onOpenStep: (step: ProjectStep, lockReasons: string[]) => void;
+}) {
+  const deadlineStatus = getStepDeadlineStatus(step);
+  const lockReasons = buildLockReasons(step, deadlineStatus);
+  const isDisabled = !step.implemented || lockReasons.length > 0;
+  const status = stepStatusMap[step.key];
+
+  return (
+    <article key={step.key} className={`${styles.stepCard} ${isDisabled ? styles.stepCardDisabled : ""}`}>
+      <button
+        type="button"
+        className={styles.stepButton}
+        onClick={() => onOpenStep(step, lockReasons)}
+        disabled={isDisabled}
+      >
+        <div className={styles.stepHeader}>
+          <span className={styles.stepIcon}>{step.icon}</span>
+          <div>
+            <p className={styles.stepTitle}>{step.title}</p>
+            <p className={styles.stepDesc}>{step.desc}</p>
+          </div>
+        </div>
+        <div className={styles.stepTags}>
+          {step.phaseLabel ? (
+            <span className={`${styles.tag} ${step.phase === "phase2" ? styles.tagPhase2 : styles.tagPhase1}`}>
+              {step.phaseLabel}
+            </span>
+          ) : null}
+          {!step.implemented ? (
+            <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
+          ) : lockReasons.length > 0 ? (
+            <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
+          ) : status ? (
+            <span
+              className={`${styles.tag} ${
+                status.tone === "success"
+                  ? styles.tagSuccess
+                  : status.tone === "danger"
+                    ? styles.tagDanger
+                    : status.tone === "warning"
+                      ? styles.tagWarning
+                      : status.tone === "info"
+                        ? styles.tagInfo
+                        : styles.tagMuted
+              }`}
+            >
+              {status.label}
+            </span>
+          ) : null}
+          {deadlineStatus.isOverdue ? (
+            <span className={`${styles.tag} ${deadlineStatus.allowLate ? styles.tagWarning : styles.tagDanger}`}>
+              {deadlineStatus.allowLate ? "เกินกำหนด (ส่งได้)" : "เกินกำหนด"}
+            </span>
+          ) : null}
+          {step.comingSoon && !step.implemented ? (
+            <span className={`${styles.tag} ${styles.tagMuted}`}>Coming Soon</span>
+          ) : null}
+        </div>
+        {lockReasons.length > 0 ? <p className={styles.stepHint}>{lockReasons.join(" • ")}</p> : null}
+      </button>
+    </article>
+  );
+}
 
 export function PhaseStepsGrid({
   showPhaseContent,
@@ -211,8 +287,42 @@ export function PhaseStepsGrid({
   getStepDeadlineStatus,
   buildLockReasons,
   onOpenStep,
+  showSectionDividers,
 }: PhaseStepsGridProps) {
   if (!showPhaseContent) return null;
+
+  const stepCardProps = { stepStatusMap, getStepDeadlineStatus, buildLockReasons, onOpenStep };
+
+  const renderSteps = () => {
+    if (showSectionDividers && activePhaseTab === "all") {
+      const phase1 = visibleSteps.filter((s) => s.phase === "phase1");
+      const phase2 = visibleSteps.filter((s) => s.phase === "phase2");
+      return (
+        <>
+          {phase1.length > 0 && (
+            <div className={styles.sectionDividerRow}>
+              <span className={styles.sectionDividerLine} />
+              <span className={styles.sectionDividerLabel}>โครงงานพิเศษ 1</span>
+              <span className={styles.sectionDividerLine} />
+            </div>
+          )}
+          {phase1.map((step) => <StepCard key={step.key} step={step} {...stepCardProps} />)}
+          {phase2.length > 0 && (
+            <>
+              <div className={styles.sectionDividerArrow}>↓</div>
+              <div className={styles.sectionDividerRow}>
+                <span className={styles.sectionDividerLine} />
+                <span className={styles.sectionDividerLabel}>ปริญญานิพนธ์</span>
+                <span className={styles.sectionDividerLine} />
+              </div>
+            </>
+          )}
+          {phase2.map((step) => <StepCard key={step.key} step={step} {...stepCardProps} />)}
+        </>
+      );
+    }
+    return visibleSteps.map((step) => <StepCard key={step.key} step={step} {...stepCardProps} />);
+  };
 
   return (
     <section className={styles.stepGrid}>
@@ -236,72 +346,11 @@ export function PhaseStepsGrid({
           className={`${styles.tabButton} ${activePhaseTab === "phase2" ? styles.tabButtonActive : ""}`}
           onClick={() => onTabChange("phase2")}
         >
-          โครงงานพิเศษ 2
+          ปริญญานิพนธ์
         </button>
       </div>
 
-      {visibleSteps.map((step) => {
-        const deadlineStatus = getStepDeadlineStatus(step);
-        const lockReasons = buildLockReasons(step, deadlineStatus);
-        const isDisabled = !step.implemented || lockReasons.length > 0;
-        const status = stepStatusMap[step.key];
-
-        return (
-          <article key={step.key} className={`${styles.stepCard} ${isDisabled ? styles.stepCardDisabled : ""}`}>
-            <button
-              type="button"
-              className={styles.stepButton}
-              onClick={() => onOpenStep(step, lockReasons)}
-              disabled={isDisabled}
-            >
-              <div className={styles.stepHeader}>
-                <span className={styles.stepIcon}>{step.icon}</span>
-                <div>
-                  <p className={styles.stepTitle}>{step.title}</p>
-                  <p className={styles.stepDesc}>{step.desc}</p>
-                </div>
-              </div>
-              <div className={styles.stepTags}>
-                {step.phaseLabel ? (
-                  <span className={`${styles.tag} ${step.phase === "phase2" ? styles.tagPhase2 : styles.tagPhase1}`}>
-                    {step.phaseLabel}
-                  </span>
-                ) : null}
-                {!step.implemented ? (
-                  <span className={`${styles.tag} ${styles.tagMuted}`}>กำลังพัฒนา</span>
-                ) : lockReasons.length > 0 ? (
-                  <span className={`${styles.tag} ${styles.tagWarning}`}>รอปลดล็อก</span>
-                ) : status ? (
-                  <span
-                    className={`${styles.tag} ${
-                      status.tone === "success"
-                        ? styles.tagSuccess
-                        : status.tone === "danger"
-                          ? styles.tagDanger
-                          : status.tone === "warning"
-                            ? styles.tagWarning
-                            : status.tone === "info"
-                              ? styles.tagInfo
-                              : styles.tagMuted
-                    }`}
-                  >
-                    {status.label}
-                  </span>
-                ) : null}
-                {deadlineStatus.isOverdue ? (
-                  <span className={`${styles.tag} ${deadlineStatus.allowLate ? styles.tagWarning : styles.tagDanger}`}>
-                    {deadlineStatus.allowLate ? "เกินกำหนด (ส่งได้)" : "เกินกำหนด"}
-                  </span>
-                ) : null}
-                {step.comingSoon && !step.implemented ? (
-                  <span className={`${styles.tag} ${styles.tagMuted}`}>Coming Soon</span>
-                ) : null}
-              </div>
-              {lockReasons.length > 0 ? <p className={styles.stepHint}>{lockReasons.join(" • ")}</p> : null}
-            </button>
-          </article>
-        );
-      })}
+      {renderSteps()}
     </section>
   );
 }
