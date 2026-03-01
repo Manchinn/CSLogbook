@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import styles from "./calendar.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -219,7 +220,7 @@ export default function StudentDeadlineCalendar({}: StudentDeadlineCalendarProps
             {item.submission?.submitted ? (
               <p className={styles.submissionOk}>
                 ส่งแล้ว • {item.submission.late ? "ช้า" : "ตรงเวลา"}
-                {item.submission.status ? ` • ${item.submission.status}` : ""}
+                {item.submission.status ? ` • ${labelStatus(item.submission.status)}` : ""}
               </p>
             ) : (
               <p className={styles.submissionPending}>ยังไม่ส่ง ({item.acceptingSubmissions === false ? "ปิดรับ" : "เปิดรับ"})</p>
