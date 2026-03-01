@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAdminStudentFilterOptions, useAdminStudentMutations, useAdminStudents } from "@/hooks/useAdminStudents";
+import { useConfirmDialog } from "@/components/common/ConfirmDialog";
+import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import type { AdminStudent, StudentFilters } from "@/lib/services/adminStudentService";
 import styles from "./page.module.css";
 
@@ -88,6 +90,7 @@ export default function AdminStudentsPage() {
   const studentsQuery = useAdminStudents(filters);
   const optionsQuery = useAdminStudentFilterOptions();
   const { createStudent, updateStudent, deleteStudent } = useAdminStudentMutations();
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
 
   const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
   const totalPages = Math.max(1, Math.ceil(students.length / PAGE_SIZE));
@@ -258,20 +261,24 @@ export default function AdminStudentsPage() {
   };
 
   const handleDelete = async (studentCode: string) => {
-    const confirmed = window.confirm(
-      `ยืนยันการลบข้อมูล\n\nคุณต้องการลบข้อมูลนักศึกษารหัส ${studentCode} ใช่หรือไม่?`,
+    confirm(
+      {
+        title: "ยืนยันการลบข้อมูล",
+        message: `คุณต้องการลบข้อมูลนักศึกษารหัส ${studentCode} ใช่หรือไม่?`,
+        variant: "danger",
+      },
+      async () => {
+        try {
+          await deleteStudent.mutateAsync(studentCode);
+          setFeedback({ tone: "success", message: "ลบข้อมูลนักศึกษาเรียบร้อยแล้ว" });
+        } catch (error) {
+          setFeedback({
+            tone: "warning",
+            message: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลนักศึกษาได้",
+          });
+        }
+      },
     );
-    if (!confirmed) return;
-
-    try {
-      await deleteStudent.mutateAsync(studentCode);
-      setFeedback({ tone: "success", message: "ลบข้อมูลนักศึกษาเรียบร้อยแล้ว" });
-    } catch (error) {
-      setFeedback({
-        tone: "warning",
-        message: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลนักศึกษาได้",
-      });
-    }
   };
 
   const isSaving = createStudent.isPending || updateStudent.isPending;
@@ -311,24 +318,28 @@ export default function AdminStudentsPage() {
         ) : null}
 
         <section className={styles.card}>
-          <div className={styles.stats}>
-            <div className={styles.statItem}>
-              <p className={styles.statLabel}>นักศึกษาทั้งหมด</p>
-              <p className={styles.statValue}>{stats.total}</p>
+          {studentsQuery.isLoading ? (
+            <StatSkeleton count={4} />
+          ) : (
+            <div className={styles.stats}>
+              <div className={styles.statItem}>
+                <p className={styles.statLabel}>นักศึกษาทั้งหมด</p>
+                <p className={styles.statValue}>{stats.total}</p>
+              </div>
+              <div className={styles.statItem}>
+                <p className={styles.statLabel}>มีสิทธิ์ฝึกงาน</p>
+                <p className={styles.statValue}>{stats.internshipEligible}</p>
+              </div>
+              <div className={styles.statItem}>
+                <p className={styles.statLabel}>มีสิทธิ์โครงงาน</p>
+                <p className={styles.statValue}>{stats.projectEligible}</p>
+              </div>
+              <div className={styles.statItem}>
+                <p className={styles.statLabel}>ยังไม่มีสิทธิ์</p>
+                <p className={styles.statValue}>{stats.noEligibility}</p>
+              </div>
             </div>
-            <div className={styles.statItem}>
-              <p className={styles.statLabel}>มีสิทธิ์ฝึกงาน</p>
-              <p className={styles.statValue}>{stats.internshipEligible}</p>
-            </div>
-            <div className={styles.statItem}>
-              <p className={styles.statLabel}>มีสิทธิ์โครงงาน</p>
-              <p className={styles.statValue}>{stats.projectEligible}</p>
-            </div>
-            <div className={styles.statItem}>
-              <p className={styles.statLabel}>ยังไม่มีสิทธิ์</p>
-              <p className={styles.statValue}>{stats.noEligibility}</p>
-            </div>
-          </div>
+          )}
         </section>
 
         <section className={styles.card}>
@@ -414,11 +425,7 @@ export default function AdminStudentsPage() {
               </thead>
               <tbody>
                 {studentsQuery.isLoading ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <p className={styles.empty}>กำลังโหลดข้อมูลนักศึกษา...</p>
-                    </td>
-                  </tr>
+                  <TableSkeleton rows={5} columns={5} />
                 ) : students.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
@@ -542,9 +549,10 @@ export default function AdminStudentsPage() {
                   )
                 ) : (
                   <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      รหัสนักศึกษา
+                    <label className={styles.field} htmlFor="studentCode">
+                      <span>รหัสนักศึกษา</span>
                       <input
+                        id="studentCode"
                         className={styles.input}
                         value={form.studentCode}
                         disabled={Boolean(selected)}
@@ -552,34 +560,39 @@ export default function AdminStudentsPage() {
                         placeholder="ตัวเลข 13 หลัก"
                       />
                     </label>
-                    <label className={styles.field}>
-                      อีเมล
+                    <label className={styles.field} htmlFor="email">
+                      <span>อีเมล</span>
                       <input
+                        id="email"
+                        type="email"
                         className={styles.input}
                         value={form.email}
                         onChange={(event) => onChangeField("email", event.target.value)}
                         placeholder="example@kmutnb.ac.th"
                       />
                     </label>
-                    <label className={styles.field}>
-                      ชื่อ
+                    <label className={styles.field} htmlFor="firstName">
+                      <span>ชื่อ</span>
                       <input
+                        id="firstName"
                         className={styles.input}
                         value={form.firstName}
                         onChange={(event) => onChangeField("firstName", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      นามสกุล
+                    <label className={styles.field} htmlFor="lastName">
+                      <span>นามสกุล</span>
                       <input
+                        id="lastName"
                         className={styles.input}
                         value={form.lastName}
                         onChange={(event) => onChangeField("lastName", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      หน่วยกิตรวม
+                    <label className={styles.field} htmlFor="totalCredits">
+                      <span>หน่วยกิตรวม</span>
                       <input
+                        id="totalCredits"
                         type="number"
                         className={styles.input}
                         min={0}
@@ -587,9 +600,10 @@ export default function AdminStudentsPage() {
                         onChange={(event) => onChangeField("totalCredits", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      หน่วยกิตภาควิชา
+                    <label className={styles.field} htmlFor="majorCredits">
+                      <span>หน่วยกิตภาควิชา</span>
                       <input
+                        id="majorCredits"
                         type="number"
                         className={styles.input}
                         min={0}
@@ -630,6 +644,7 @@ export default function AdminStudentsPage() {
           </div>
         ) : null}
       </div>
+      <ConfirmDialogComponent />
     </RoleGuard>
   );
 }

@@ -578,25 +578,28 @@ export default function ProjectPairsPage() {
                 ) : (
                   <div className={styles.detailSection}>
                     <div className={styles.formGrid}>
-                      <label className={styles.field}>
-                        ชื่อโครงงาน (ไทย)
+                      <label className={styles.field} htmlFor="projectNameTh">
+                        <span>ชื่อโครงงาน (ไทย)</span>
                         <input
+                          id="projectNameTh"
                           className={styles.input}
                           value={editForm.projectNameTh}
                           onChange={(e) => setEditForm((p) => ({ ...p, projectNameTh: e.target.value }))}
                         />
                       </label>
-                      <label className={styles.field}>
-                        ชื่อโครงงาน (อังกฤษ)
+                      <label className={styles.field} htmlFor="projectNameEn">
+                        <span>ชื่อโครงงาน (อังกฤษ)</span>
                         <input
+                          id="projectNameEn"
                           className={styles.input}
                           value={editForm.projectNameEn}
                           onChange={(e) => setEditForm((p) => ({ ...p, projectNameEn: e.target.value }))}
                         />
                       </label>
-                      <label className={styles.field}>
-                        ประเภท
+                      <label className={styles.field} htmlFor="projectType">
+                        <span>ประเภท</span>
                         <select
+                          id="projectType"
                           className={styles.select}
                           value={editForm.projectType}
                           onChange={(e) => setEditForm((p) => ({ ...p, projectType: e.target.value }))}
@@ -608,9 +611,10 @@ export default function ProjectPairsPage() {
                           ))}
                         </select>
                       </label>
-                      <label className={styles.field}>
-                        อาจารย์ที่ปรึกษาหลัก
+                      <label className={styles.field} htmlFor="advisorId">
+                        <span>อาจารย์ที่ปรึกษาหลัก</span>
                         <select
+                          id="advisorId"
                           className={styles.select}
                           value={editForm.advisorId}
                           onChange={(e) => setEditForm((p) => ({ ...p, advisorId: e.target.value }))}
@@ -623,9 +627,10 @@ export default function ProjectPairsPage() {
                           ))}
                         </select>
                       </label>
-                      <label className={styles.field}>
-                        อาจารย์ที่ปรึกษาร่วม
+                      <label className={styles.field} htmlFor="coAdvisorId">
+                        <span>อาจารย์ที่ปรึกษาร่วม</span>
                         <select
+                          id="coAdvisorId"
                           className={styles.select}
                           value={editForm.coAdvisorId}
                           onChange={(e) => setEditForm((p) => ({ ...p, coAdvisorId: e.target.value }))}
@@ -638,9 +643,10 @@ export default function ProjectPairsPage() {
                           ))}
                         </select>
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        Track
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="trackCodes">
+                        <span>Track</span>
                         <select
+                          id="trackCodes"
                           className={styles.select}
                           multiple
                           value={editForm.trackCodes}
@@ -658,73 +664,82 @@ export default function ProjectPairsPage() {
                           ))}
                         </select>
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        ที่มา/ปัญหา
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="background">
+                        <span>ที่มา/ปัญหา</span>
                         <textarea
+                          id="background"
                           className={styles.textarea}
                           value={editForm.background}
                           onChange={(e) => setEditForm((p) => ({ ...p, background: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        วัตถุประสงค์
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="objective">
+                        <span>วัตถุประสงค์</span>
                         <textarea
+                          id="objective"
                           className={styles.textarea}
                           value={editForm.objective}
                           onChange={(e) => setEditForm((p) => ({ ...p, objective: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        ขอบเขตงาน
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="scope">
+                        <span>ขอบเขตงาน</span>
                         <textarea
+                          id="scope"
                           className={styles.textarea}
                           value={editForm.scope}
                           onChange={(e) => setEditForm((p) => ({ ...p, scope: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        ผลลัพธ์ที่คาดหวัง
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="expectedOutcome">
+                        <span>ผลลัพธ์ที่คาดหวัง</span>
                         <textarea
+                          id="expectedOutcome"
                           className={styles.textarea}
                           value={editForm.expectedOutcome}
                           onChange={(e) => setEditForm((p) => ({ ...p, expectedOutcome: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        ประโยชน์ที่คาดว่าจะได้รับ
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="benefit">
+                        <span>ประโยชน์ที่คาดว่าจะได้รับ</span>
                         <textarea
+                          id="benefit"
                           className={styles.textarea}
                           value={editForm.benefit}
                           onChange={(e) => setEditForm((p) => ({ ...p, benefit: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        กระบวนการ/เทคโนโลยีที่ใช้
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="methodology">
+                        <span>กระบวนการ/เทคโนโลยีที่ใช้</span>
                         <textarea
+                          id="methodology"
                           className={styles.textarea}
                           value={editForm.methodology}
                           onChange={(e) => setEditForm((p) => ({ ...p, methodology: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        Timeline/หมายเหตุ
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="timelineNote">
+                        <span>Timeline/หมายเหตุ</span>
                         <textarea
+                          id="timelineNote"
                           className={styles.textarea}
                           value={editForm.timelineNote}
                           onChange={(e) => setEditForm((p) => ({ ...p, timelineNote: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        ข้อจำกัด
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="constraints">
+                        <span>ข้อจำกัด</span>
                         <textarea
+                          id="constraints"
                           className={styles.textarea}
                           value={editForm.constraints}
                           onChange={(e) => setEditForm((p) => ({ ...p, constraints: e.target.value }))}
                         />
                       </label>
-                      <label className={`${styles.field} ${styles.fieldFull}`}>
-                        ความเสี่ยง
+                      <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="risk">
+                        <span>ความเสี่ยง</span>
                         <textarea
+                          id="risk"
                           className={styles.textarea}
                           value={editForm.risk}
                           onChange={(e) => setEditForm((p) => ({ ...p, risk: e.target.value }))}
@@ -791,9 +806,10 @@ export default function ProjectPairsPage() {
 
               <div className={styles.cardLite}>
                 <div className={styles.formGrid}>
-                  <label className={styles.field}>
-                    รหัสนักศึกษาคนที่ 1
+                  <label className={styles.field} htmlFor="addStudentCode">
+                    <span>รหัสนักศึกษาคนที่ 1</span>
                     <input
+                      id="addStudentCode"
                       className={styles.input}
                       value={addForm.studentCode}
                       onChange={(e) => {
@@ -805,9 +821,10 @@ export default function ProjectPairsPage() {
                       ค้นหา
                     </button>
                   </label>
-                  <label className={styles.field}>
-                    รหัสนักศึกษาคนที่ 2 (ไม่บังคับ)
+                  <label className={styles.field} htmlFor="addStudent2Code">
+                    <span>รหัสนักศึกษาคนที่ 2 (ไม่บังคับ)</span>
                     <input
+                      id="addStudent2Code"
                       className={styles.input}
                       value={addForm.student2Code}
                       onChange={(e) => {
@@ -843,25 +860,28 @@ export default function ProjectPairsPage() {
 
               <div className={styles.cardLite}>
                 <div className={styles.formGrid}>
-                  <label className={styles.field}>
-                    ชื่อโครงงาน (ไทย)
+                  <label className={styles.field} htmlFor="addProjectNameTh">
+                    <span>ชื่อโครงงาน (ไทย)</span>
                     <input
+                      id="addProjectNameTh"
                       className={styles.input}
                       value={addForm.projectNameTh}
                       onChange={(e) => setAddForm((p) => ({ ...p, projectNameTh: e.target.value }))}
                     />
                   </label>
-                  <label className={styles.field}>
-                    ชื่อโครงงาน (อังกฤษ)
+                  <label className={styles.field} htmlFor="addProjectNameEn">
+                    <span>ชื่อโครงงาน (อังกฤษ)</span>
                     <input
+                      id="addProjectNameEn"
                       className={styles.input}
                       value={addForm.projectNameEn}
                       onChange={(e) => setAddForm((p) => ({ ...p, projectNameEn: e.target.value }))}
                     />
                   </label>
-                  <label className={styles.field}>
-                    ประเภท
+                  <label className={styles.field} htmlFor="addProjectType">
+                    <span>ประเภท</span>
                     <select
+                      id="addProjectType"
                       className={styles.select}
                       value={addForm.projectType}
                       onChange={(e) => setAddForm((p) => ({ ...p, projectType: e.target.value }))}
@@ -873,9 +893,10 @@ export default function ProjectPairsPage() {
                       ))}
                     </select>
                   </label>
-                  <label className={styles.field}>
-                    อาจารย์ที่ปรึกษาหลัก
+                  <label className={styles.field} htmlFor="addAdvisorId">
+                    <span>อาจารย์ที่ปรึกษาหลัก</span>
                     <select
+                      id="addAdvisorId"
                       className={styles.select}
                       value={addForm.advisorId}
                       onChange={(e) => setAddForm((p) => ({ ...p, advisorId: e.target.value }))}
@@ -888,9 +909,10 @@ export default function ProjectPairsPage() {
                       ))}
                     </select>
                   </label>
-                  <label className={styles.field}>
-                    อาจารย์ที่ปรึกษาร่วม
+                  <label className={styles.field} htmlFor="addCoAdvisorId">
+                    <span>อาจารย์ที่ปรึกษาร่วม</span>
                     <select
+                      id="addCoAdvisorId"
                       className={styles.select}
                       value={addForm.coAdvisorId}
                       onChange={(e) => setAddForm((p) => ({ ...p, coAdvisorId: e.target.value }))}
@@ -903,9 +925,10 @@ export default function ProjectPairsPage() {
                       ))}
                     </select>
                   </label>
-                  <label className={`${styles.field} ${styles.fieldFull}`}>
-                    Track
+                  <label className={`${styles.field} ${styles.fieldFull}`} htmlFor="addTrackCodes">
+                    <span>Track</span>
                     <select
+                      id="addTrackCodes"
                       className={styles.select}
                       multiple
                       value={addForm.trackCodes}

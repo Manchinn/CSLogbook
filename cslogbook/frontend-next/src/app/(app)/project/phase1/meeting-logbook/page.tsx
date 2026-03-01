@@ -7,6 +7,7 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
 import { guardFeatureRoute } from "@/lib/navigation/routeGuards";
 import { featureFlags } from "@/lib/config/featureFlags";
+import { useConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   createMeeting,
   createMeetingLog,
@@ -73,6 +74,7 @@ export default function MeetingLogbookPage() {
   const { token } = useAuth();
   const hydrated = useHydrated();
   const { data: project } = useStudentProjectDetail(token, hydrated && Boolean(token));
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
   const [stats, setStats] = useState<MeetingStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -286,14 +288,22 @@ export default function MeetingLogbookPage() {
 
   const handleDeleteMeeting = async (meetingId: number) => {
     if (!token || !project?.projectId) return;
-    if (!window.confirm("ยืนยันลบการประชุมนี้?")) return;
-    setErrorMessage(null);
-    try {
-      await deleteMeeting(token, project.projectId, meetingId);
-      await loadMeetings();
-    } catch {
-      setErrorMessage("ลบการประชุมไม่สำเร็จ กรุณาลองใหม่");
-    }
+    confirm(
+      {
+        title: "ยืนยันลบการประชุม",
+        message: "คุณต้องการลบการประชุมนี้ใช่หรือไม่?",
+        variant: "danger",
+      },
+      async () => {
+        setErrorMessage(null);
+        try {
+          await deleteMeeting(token, project.projectId, meetingId);
+          await loadMeetings();
+        } catch {
+          setErrorMessage("ลบการประชุมไม่สำเร็จ กรุณาลองใหม่");
+        }
+      },
+    );
   };
 
   const handleOpenEditLog = (meetingId: number, log: MeetingLogRecord) => {
@@ -327,14 +337,22 @@ export default function MeetingLogbookPage() {
 
   const handleDeleteLog = async (meetingId: number, logId: number) => {
     if (!token || !project?.projectId) return;
-    if (!window.confirm("ยืนยันลบบันทึกนี้?")) return;
-    setErrorMessage(null);
-    try {
-      await deleteMeetingLog(token, project.projectId, meetingId, logId);
-      await loadMeetings();
-    } catch {
-      setErrorMessage("ลบบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
-    }
+    confirm(
+      {
+        title: "ยืนยันลบบันทึก",
+        message: "คุณต้องการลบบันทึกนี้ใช่หรือไม่?",
+        variant: "danger",
+      },
+      async () => {
+        setErrorMessage(null);
+        try {
+          await deleteMeetingLog(token, project.projectId, meetingId, logId);
+          await loadMeetings();
+        } catch {
+          setErrorMessage("ลบบันทึกการพบไม่สำเร็จ กรุณาลองใหม่");
+        }
+      },
+    );
   };
 
   return (
@@ -758,6 +776,7 @@ export default function MeetingLogbookPage() {
           </div>
         ) : null}
       </div>
+      <ConfirmDialogComponent />
     </RoleGuard>
   );
 }

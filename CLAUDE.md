@@ -403,6 +403,58 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 
 ---
 
+### UX/UI Audit (2026-03-02)
+
+| Metric | Score | Notes |
+|--------|-------|-------|
+| Overall UX Maturity | 5/10 | Mid-level - has foundations but lacks systemization |
+| Design System | 3/10 | No component library; custom CSS everywhere |
+| Consistency | 4/10 | Patterns exist but not enforced |
+| Accessibility | 2/10 | Minimal ARIA, browser dialogs, no keyboard testing |
+| Maintainability | 6/10 | Good code organization, hooks pattern solid |
+
+#### Critical Issues Found & Fixed
+
+| Priority | Issue | Location | Fix | Status |
+|----------|-------|----------|-----|--------|
+| 1 | Form labels not associated with inputs | admin/students, admin/teachers, project-pairs | Add `htmlFor`/`id` | ✅ Done |
+| 2 | `window.confirm()` for destructive actions | 3 files | Create ConfirmDialog component | ✅ Done |
+| 3 | No skeleton loading states | admin/students | Create TableSkeleton, StatSkeleton | ✅ Done |
+| 4 | Table overflow on mobile | Admin tables | Add responsive styles | Pending |
+| 5 | No error boundaries | Entire app | Add ErrorBoundary wrapper | Pending |
+| 6 | Inconsistent spacing scale | CSS modules | Define spacing constants | Pending |
+| 7 | Duplicated button CSS | ~15 files | Extract Button component | Pending |
+| 8 | No focus management after actions | All drawers | Add focus ref management | Pending |
+
+#### Spacing Inconsistency Evidence
+
+| Scale | Used Values | Problem |
+|-------|-------------|---------|
+| Base unit | 0.5rem, 0.55rem, 0.65rem, 0.75rem, 1rem | No systematic scale |
+| Cards | 1rem, 20px | Mixed px/rem |
+| Buttons | 0.5rem 0.85rem | Not standardized |
+
+#### Recommended Roadmap
+
+**Immediate (1-2 days):**
+- Add form label accessibility
+- Replace window.confirm with custom dialog
+- Add basic error boundary
+
+**Medium-term (1-2 weeks):**
+- Extract admin CRUD to shared component
+- Create Button, Tag, Alert UI components
+- Add skeleton loading states
+- Fix focus management
+
+**Long-term (1+ month):**
+- Migrate to antd (already in package.json)
+- Create design tokens in dedicated theme config
+- Comprehensive responsive design
+- WCAG 2.1 AA compliance audit
+
+---
+
 ### ✅ งานที่ทำเสร็จแล้ว
 
 #### Session 1 — Bug Fixes & Quality (2026-02-27)
@@ -529,20 +581,6 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | แก้ project documents: icon buttons ใน table + drawer footer + ย้าย action buttons | `admin/documents/project/page.tsx` |
 | แก้ students page subtitle จาก dev text เป็น user-facing | `admin/users/students/page.tsx` |
 | ลบ duplicate `.alert` CSS rules (lines 308-324) | `admin/users/teachers/page.module.css` |
-
----
-
-### ❌ งานที่ยังต้องทำต่อ
-
-#### 1. Admin Settings Endpoints (Deferred — Backlog)
-- `GET/PUT /api/admin/settings/eligibility` — ไม่มี frontend consumer ที่ active
-- `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
-- ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
-
-#### 2. Feature Flags (เปิดแล้ว)
-- `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE` — เปิดแล้ว (default true ในโค้ด)
-- `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE` — เปิดแล้ว (default true ในโค้ด)
-- `NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE` — เปิดแล้ว (default true)
 
 ---
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAdminTeacherMutations, useAdminTeachers } from "@/hooks/useAdminTeachers";
+import { useConfirmDialog } from "@/components/common/ConfirmDialog";
 import type { AdminTeacher, TeacherFilters } from "@/lib/services/adminTeacherService";
 import styles from "./page.module.css";
 
@@ -87,6 +88,7 @@ export default function AdminTeachersPage() {
 
   const teachersQuery = useAdminTeachers(filters);
   const { createTeacher, updateTeacher, deleteTeacher } = useAdminTeacherMutations();
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
 
   const teachers = useMemo(() => teachersQuery.data ?? [], [teachersQuery.data]);
 
@@ -238,20 +240,24 @@ export default function AdminTeachersPage() {
   };
 
   const handleDelete = async (teacherId: number, teacherCode: string) => {
-    const confirmed = window.confirm(
-      `ยืนยันการลบข้อมูล\n\nคุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลอาจารย์ ${teacherCode}?\nการดำเนินการนี้ไม่สามารถเรียกคืนได้`,
+    confirm(
+      {
+        title: "ยืนยันการลบข้อมูล",
+        message: `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลอาจารย์ ${teacherCode}? การดำเนินการนี้ไม่สามารถเรียกคืนได้`,
+        variant: "danger",
+      },
+      async () => {
+        try {
+          await deleteTeacher.mutateAsync(teacherId);
+          setFeedback({ tone: "success", message: "ลบข้อมูลอาจารย์เรียบร้อยแล้ว" });
+        } catch (error) {
+          setFeedback({
+            tone: "warning",
+            message: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลอาจารย์ได้",
+          });
+        }
+      },
     );
-    if (!confirmed) return;
-
-    try {
-      await deleteTeacher.mutateAsync(teacherId);
-      setFeedback({ tone: "success", message: "ลบข้อมูลอาจารย์เรียบร้อยแล้ว" });
-    } catch (error) {
-      setFeedback({
-        tone: "warning",
-        message: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลอาจารย์ได้",
-      });
-    }
   };
 
   const isSaving = createTeacher.isPending || updateTeacher.isPending;
@@ -513,51 +519,57 @@ export default function AdminTeachersPage() {
                   )
                 ) : (
                   <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      รหัสอาจารย์
+                    <label className={styles.field} htmlFor="teacherCode">
+                      <span>รหัสอาจารย์</span>
                       <input
+                        id="teacherCode"
                         className={styles.input}
                         value={form.teacherCode}
                         disabled={Boolean(selected)}
                         onChange={(event) => onChangeField("teacherCode", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      อีเมล
+                    <label className={styles.field} htmlFor="email">
+                      <span>อีเมล</span>
                       <input
+                        id="email"
+                        type="email"
                         className={styles.input}
                         value={form.email}
                         onChange={(event) => onChangeField("email", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      เบอร์ภายใน
+                    <label className={styles.field} htmlFor="contactExtension">
+                      <span>เบอร์ภายใน</span>
                       <input
+                        id="contactExtension"
                         className={styles.input}
                         value={form.contactExtension}
                         onChange={(event) => onChangeField("contactExtension", event.target.value)}
                         placeholder="เช่น 1234"
                       />
                     </label>
-                    <label className={styles.field}>
-                      ชื่อ
+                    <label className={styles.field} htmlFor="firstName">
+                      <span>ชื่อ</span>
                       <input
+                        id="firstName"
                         className={styles.input}
                         value={form.firstName}
                         onChange={(event) => onChangeField("firstName", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      นามสกุล
+                    <label className={styles.field} htmlFor="lastName">
+                      <span>นามสกุล</span>
                       <input
+                        id="lastName"
                         className={styles.input}
                         value={form.lastName}
                         onChange={(event) => onChangeField("lastName", event.target.value)}
                       />
                     </label>
-                    <label className={styles.field}>
-                      ตำแหน่ง
-                      <select className={styles.select} value={form.position} onChange={(event) => handlePositionChange(event.target.value)}>
+                    <label className={styles.field} htmlFor="position">
+                      <span>ตำแหน่ง</span>
+                      <select id="position" className={styles.select} value={form.position} onChange={(event) => handlePositionChange(event.target.value)}>
                         {positionOptions.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
@@ -565,9 +577,10 @@ export default function AdminTeachersPage() {
                         ))}
                       </select>
                     </label>
-                    <label className={styles.field}>
-                      ประเภทอาจารย์
+                    <label className={styles.field} htmlFor="teacherType">
+                      <span>ประเภทอาจารย์</span>
                       <input
+                        id="teacherType"
                         className={styles.input}
                         value={form.teacherType === "support" ? "เจ้าหน้าที่ภาควิชา" : "สายวิชาการ"}
                         readOnly
@@ -575,16 +588,18 @@ export default function AdminTeachersPage() {
                     </label>
                     <div className={`${styles.field} ${styles.fieldFull}`}>
                       <div className={styles.switchGroup}>
-                        <label className={styles.switchRow}>
+                        <label className={styles.switchRow} htmlFor="canAccessTopicExam">
                           <input
+                            id="canAccessTopicExam"
                             type="checkbox"
                             checked={form.canAccessTopicExam}
                             onChange={(event) => onChangeField("canAccessTopicExam", event.target.checked)}
                           />
                           เปิดสิทธิ์การเข้าถึงหัวข้อสอบโครงงานพิเศษ
                         </label>
-                        <label className={styles.switchRow}>
+                        <label className={styles.switchRow} htmlFor="canExportProject1">
                           <input
+                            id="canExportProject1"
                             type="checkbox"
                             checked={form.canExportProject1}
                             onChange={(event) => onChangeField("canExportProject1", event.target.checked)}
@@ -626,6 +641,7 @@ export default function AdminTeachersPage() {
           </div>
         ) : null}
       </div>
+      <ConfirmDialogComponent />
     </RoleGuard>
   );
 }

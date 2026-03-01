@@ -261,6 +261,12 @@
   gap: 0.3rem;
 }
 
+.field span {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
 .fieldFull {
   grid-column: 1 / -1;
 }
