@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { formatRemainingDays } from "@/lib/utils/statusLabels";
+import { labelStatus, formatRemainingDays } from "@/lib/utils/statusLabels";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,14 +39,6 @@ function formatNumber(value?: number | null) {
   return value.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 }
 
-function statusBadge(status?: string | null) {
-  if (!status) return "ข้อมูลไม่ครบ";
-  if (status === "approved") return "อนุมัติแล้ว";
-  if (status === "pending") return "รอดำเนินการ";
-  if (status === "rejected") return "ถูกปฏิเสธ";
-  if (status === "cancelled") return "ถูกยกเลิก";
-  return status;
-}
 
 function entryStatusLabel(entry?: TimesheetEntry | null) {
   if (!entry) return "ยังไม่บันทึก";
@@ -305,7 +297,7 @@ export default function InternshipSummaryView() {
 
       <div className={styles.card}>
         <div className={styles.label}>สถานะคำร้อง</div>
-        <div className={styles.meta}>คพ.05: {statusBadge(cs05Status)} | หนังสือตอบรับ: {statusBadge(acceptanceStatus)}</div>
+        <div className={styles.meta}>คพ.05: {labelStatus(cs05Status, "ข้อมูลไม่ครบ")} | หนังสือตอบรับ: {labelStatus(acceptanceStatus, "ข้อมูลไม่ครบ")}</div>
         <div className={styles.progressRow}>
           <div className={styles.progressLabel}>ชั่วโมงที่ได้รับอนุมัติ (ต้องครบ {REQUIRED_INTERNSHIP_HOURS} ชั่วโมง)</div>
           <div className={styles.progressBar}>

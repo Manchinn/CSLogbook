@@ -25,7 +25,6 @@ import {
   PhaseStepsGrid,
   ProjectLockNotices,
   ProjectOverviewPanels,
-  SummaryCards,
 } from "./ProjectPhase1Sections";
 import styles from "./phase1.module.css";
 
@@ -614,24 +613,6 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     }
   }, [project?.projectId, token, refetchProjectDetail]);
 
-  const cards = [
-    {
-      label: "สถานะ Phase",
-      value: workflow?.currentPhase ?? project?.status ?? "ไม่พบข้อมูล",
-      hint: workflow?.isBlocked ? `ถูกบล็อก: ${workflow.blockReason || ""}` : "พร้อมดำเนินการ",
-    },
-    {
-      label: "สิทธิ์ยื่นสอบหัวข้อ",
-      value: workflow?.canSubmitTopicDefense ? "พร้อม" : "ยังไม่ครบ",
-      hint: workflow?.topicExamResult ? `ผลสอบหัวข้อ: ${workflow.topicExamResult}` : "รอผลสอบหรือ log meeting",
-    },
-    {
-      label: "สมาชิกในกลุ่ม",
-      value: project?.members?.length ? `${project.members.length} คน` : "ยังไม่ตั้งกลุ่ม",
-      hint: project?.projectCode ? `รหัสโครงงาน ${project.projectCode}` : "สร้างโครงงานเพื่อรับรหัส",
-    },
-  ];
-
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -641,8 +622,6 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
           <p className={styles.lead}>ภาพรวมโครงงานพิเศษ 1 และ โครงงานพิเศษ 2 (ปริญญานิพนธ์)</p>
         </div>
       </header>
-
-      <SummaryCards cards={cards} />
 
       <EligibilityNotices
         eligibilityLoading={eligibilityLoading}

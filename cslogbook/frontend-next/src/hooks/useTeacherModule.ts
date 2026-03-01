@@ -77,7 +77,7 @@ export function useAdvisorKP02Queue(enabled = true) {
 }
 
 /**
- * Hook สำหรับอนุมัติหรือปฏิเสธคำขอสอบ คพ.02
+ * Hook สำหรับอนุมัติหรือปฏิเสธคำขอสอบ คพ.02 หรือ คพ.03
  */
 export function useSubmitKP02AdvisorDecision() {
   const { token } = useAuth();
@@ -88,16 +88,18 @@ export function useSubmitKP02AdvisorDecision() {
       projectId,
       decision,
       note,
+      defenseType = "PROJECT1",
     }: {
       projectId: number;
       decision: "approve" | "reject";
       note?: string;
+      defenseType?: "PROJECT1" | "THESIS";
     }) => {
       if (!token) throw new Error("No authentication token");
-      return teacherService.submitKP02AdvisorDecision(token, projectId, decision, note);
+      return teacherService.submitKP02AdvisorDecision(token, projectId, decision, note, defenseType);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teacher", "advisor-queue", "kp02"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher", "advisor-queue"] });
       queryClient.invalidateQueries({ queryKey: ["teacher", "overview"] });
     },
   });

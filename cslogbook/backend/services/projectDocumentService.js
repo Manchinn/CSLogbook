@@ -13,6 +13,7 @@ let ProjectTestRequest;
 let ProjectExamResult;
 let Document;
 let User;
+let Teacher;
 
 const resolveModelsPath = () => require.resolve('../models');
 const IS_JEST = Boolean(process.env.JEST_WORKER_ID);
@@ -37,7 +38,8 @@ const attachModels = () => {
     ProjectTestRequest,
     ProjectExamResult,
     Document,
-    User
+    User,
+    Teacher
   } = require('../models'));
 };
 
@@ -669,6 +671,23 @@ class ProjectDocumentService {
       { model: ProjectDefenseRequest, as: 'defenseRequests' }
     ];
 
+    if (Teacher) {
+      includes.push({
+        model: Teacher,
+        as: 'advisor',
+        required: false,
+        attributes: ['teacherId', 'teacherCode'],
+        include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+      });
+      includes.push({
+        model: Teacher,
+        as: 'coAdvisor',
+        required: false,
+        attributes: ['teacherId', 'teacherCode'],
+        include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+      });
+    }
+
     if (Document) {
       const documentInclude = [];
       if (User) {
@@ -816,7 +835,9 @@ class ProjectDocumentService {
       topicSubmittedAt: p.createdAt || p.created_at || null,
       tracks: (p.tracks || []).map(t => t.trackCode),
       advisorId: p.advisorId,
+      advisorName: p.advisor?.user ? `${p.advisor.user.firstName || ''} ${p.advisor.user.lastName || ''}`.trim() || null : null,
       coAdvisorId: p.coAdvisorId,
+      coAdvisorName: p.coAdvisor?.user ? `${p.coAdvisor.user.firstName || ''} ${p.coAdvisor.user.lastName || ''}`.trim() || null : null,
       objective: p.objective,
       background: p.background,
       scope: p.scope,

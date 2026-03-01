@@ -1,4 +1,5 @@
 // services/internship/certificate.service.js
+const path = require("path");
 const {
   Document,
   InternshipDocument,
@@ -11,6 +12,10 @@ const {
 } = require("../../models");
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
+
+// Thai font paths — bundled in repo → ใช้งานได้ทั้ง dev และ Docker
+const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
+const FONT_BOLD = path.join(__dirname, "../../fonts/Loma-Bold.otf");
 
 /**
  * Service สำหรับจัดการหนังสือรับรองการฝึกงาน
@@ -393,81 +398,70 @@ class InternshipCertificateService {
           resolve(pdfBuffer);
         });
 
-        // เขียนเนื้อหาหนังสือรับรอง
-        doc.font("Helvetica");
+        // ลงทะเบียน Thai font
+        doc.registerFont("Thai", FONT_REGULAR);
+        doc.registerFont("Thai-Bold", FONT_BOLD);
 
         // หัวข้อเอกสาร
-        doc.fontSize(20).text("หนังสือรับรองการฝึกงาน", {
+        doc.font("Thai-Bold").fontSize(20).text("หนังสือรับรองการฝึกงาน", {
           align: "center",
         });
 
         doc.moveDown();
 
         // เลขที่เอกสารและวันที่
-        doc.fontSize(12);
+        doc.font("Thai").fontSize(12);
         doc.text(
           `เลขที่: ${
             certificateData.documentInfo?.certificateNumber ||
             "CS-CERT-" + Date.now()
           }`,
-          {
-            align: "left",
-          }
+          { align: "left" }
         );
         doc.text(
           `วันที่: ${this.formatThaiDate(
             certificateData.documentInfo?.issueDate || new Date()
           )}`,
-          {
-            align: "right",
-          }
+          { align: "right" }
         );
 
         doc.moveDown();
 
         // เนื้อหาหนังสือรับรอง
-        doc.fontSize(14);
+        doc.font("Thai").fontSize(14);
         doc.text("ข้าพเจ้าขอรับรองว่า", { align: "left" });
 
         doc.moveDown(0.5);
 
-        doc.text(`นาย/นาง/นางสาว ${certificateData.studentInfo.fullName}`, {
-          align: "left",
-          underline: true,
-        });
+        doc.font("Thai-Bold").text(
+          `นาย/นาง/นางสาว ${certificateData.studentInfo.fullName}`,
+          { align: "left", underline: true }
+        );
 
-        doc.text(`รหัสนักศึกษา ${certificateData.studentInfo.studentId}`, {
-          align: "left",
-          underline: true,
-        });
-
-        doc.moveDown(0.5);
-
-        doc.text("นักศึกษาสาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", {
-          align: "left",
-        });
-
-        doc.text(`${certificateData.studentInfo.faculty}`, {
-          align: "left",
-        });
-
-        doc.text(`${certificateData.studentInfo.university}`, {
-          align: "left",
-        });
-
-        doc.moveDown();
-
-        doc.text(
-          `ได้เข้าฝึกงาน ณ ${certificateData.internshipInfo.companyName}`,
-          {
-            align: "left",
-            underline: true,
-          }
+        doc.font("Thai-Bold").text(
+          `รหัสนักศึกษา ${certificateData.studentInfo.studentId}`,
+          { align: "left", underline: true }
         );
 
         doc.moveDown(0.5);
 
-        doc.text(
+        doc.font("Thai").text("นักศึกษาสาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", {
+          align: "left",
+        });
+
+        doc.text(`${certificateData.studentInfo.faculty}`, { align: "left" });
+        doc.text(`${certificateData.studentInfo.university}`, { align: "left" });
+
+        doc.moveDown();
+
+        doc.font("Thai-Bold").text(
+          `ได้เข้าฝึกงาน ณ ${certificateData.internshipInfo.companyName}`,
+          { align: "left", underline: true }
+        );
+
+        doc.moveDown(0.5);
+
+        doc.font("Thai").text(
           `ตั้งแต่วันที่ ${this.formatThaiDate(
             certificateData.internshipInfo.startDate
           )} ` +
@@ -487,39 +481,37 @@ class InternshipCertificateService {
 
         doc.moveDown();
 
-        doc.text("โดยมีผลการปฏิบัติงานในระดับที่น่าพอใจ", {
-          align: "left",
-        });
+        doc.text("โดยมีผลการปฏิบัติงานในระดับที่น่าพอใจ", { align: "left" });
 
         doc.moveDown();
 
-        doc.text("จึงออกหนังสือรับรองนี้ให้ไว้เป็นหลักฐาน", {
-          align: "left",
-        });
+        doc.text("จึงออกหนังสือรับรองนี้ให้ไว้เป็นหลักฐาน", { align: "left" });
 
         doc.moveDown(3);
 
         // ลายเซ็นและตรายาง
-        doc.text("ออกให้ ณ วันที่ " + this.formatThaiDate(new Date()), {
-          align: "center",
-        });
+        doc.text(
+          "ออกให้ ณ วันที่ " +
+            this.formatThaiDate(
+              certificateData.documentInfo?.issueDate ||
+              certificateData.approvalInfo?.approvedDate ||
+              new Date()
+            ),
+          { align: "center" }
+        );
 
         doc.moveDown(2);
 
-        doc.text(
+        doc.font("Thai-Bold").text(
           certificateData.approvalInfo?.approvedBy ||
             "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
-          {
-            align: "center",
-          }
+          { align: "center" }
         );
 
-        doc.text(
+        doc.font("Thai").text(
           certificateData.approvalInfo?.approverTitle ||
             "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
-          {
-            align: "center",
-          }
+          { align: "center" }
         );
 
         // ปิด PDF

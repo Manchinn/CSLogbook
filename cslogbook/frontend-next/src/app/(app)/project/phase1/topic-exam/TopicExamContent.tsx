@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
@@ -115,7 +116,7 @@ export default function TopicExamContent() {
                 <p className={styles.deadlineMeta}>{formatDeadline(deadline)}</p>
               </div>
               <div className={styles.tagRow}>
-                {deadline.status ? <span className={styles.tag}>{deadline.status}</span> : null}
+                {deadline.status ? <span className={styles.tag}>{labelStatus(deadline.status)}</span> : null}
                 {typeof deadline.daysLeft === "number" ? (
                   <span className={styles.tag}>เหลือ {deadline.daysLeft} วัน</span>
                 ) : null}

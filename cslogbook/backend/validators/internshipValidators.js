@@ -174,7 +174,9 @@ exports.validateSendEvaluationForm = (req, res, next) => {
  */
 exports.validateSubmitCertificateRequest = (req, res, next) => {
   const schema = Joi.object({
+    studentId: Joi.string().optional(),
     requestDate: Joi.date().iso().optional().default(() => new Date()),
+    totalHours: Joi.number().min(0).max(10000).optional(),
     approvedHours: Joi.number().min(0).max(10000).optional(),
     evaluationStatus: Joi.string().valid('completed', 'pending').optional().default('completed'),
     summaryStatus: Joi.string().valid('submitted', 'ignored').optional()

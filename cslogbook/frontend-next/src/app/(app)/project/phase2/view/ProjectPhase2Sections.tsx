@@ -61,11 +61,17 @@ export function Phase2GateNotice({ eligibilityLoading, phase2GateReasons }: Phas
   );
 }
 
+type StepStatus = {
+  label: string;
+  tone: "default" | "info" | "success" | "warning" | "danger";
+};
+
 type StepGridProps = {
   steps: ProjectStep[];
-  stepStatuses: Record<string, string>;
+  stepStatuses: Record<string, StepStatus | undefined>;
   phase2GateReasons: string[];
   systemTestReady: boolean;
+  canSubmitThesisDefense?: boolean;
   projectDeadlines: StudentDeadlineDetail[];
   getStepDeadlineStatus: (step: ProjectStep, deadlines: StudentDeadlineDetail[]) => StepDeadlineStatus;
   onOpenStep: (target: string) => void;
@@ -77,6 +83,7 @@ export function StepGrid({
   stepStatuses,
   phase2GateReasons,
   systemTestReady,
+  canSubmitThesisDefense,
   projectDeadlines,
   getStepDeadlineStatus,
   onOpenStep,
@@ -91,6 +98,17 @@ export function StepGrid({
         if (step.key === "thesis-defense" && !systemTestReady) {
           lockReasons.push("ต้องผ่านการทดสอบระบบครบ 30 วันก่อนยื่น คพ.03");
         }
+        if (step.key === "thesis-defense" && canSubmitThesisDefense === false) {
+          lockReasons.push("ยังไม่พร้อมยื่นสอบ คพ.03 ในขั้นตอนปัจจุบัน");
+        }
+
+        const status = stepStatuses[step.key];
+        const badgeClass =
+          !status || status.tone === "default" ? styles.stepBadge
+          : status.tone === "success" ? styles.stepBadgeSuccess
+          : status.tone === "danger" ? styles.stepBadgeDanger
+          : status.tone === "warning" ? styles.stepBadgeWarning
+          : styles.stepBadgeInfo;
 
         return (
           <article key={step.key} className={styles.stepCard}>
@@ -99,7 +117,7 @@ export function StepGrid({
                 <p className={styles.stepTitle}>{step.title}</p>
                 <p className={styles.stepDesc}>{step.desc}</p>
               </div>
-              <span className={styles.stepBadge}>{stepStatuses[step.key] ?? "รออัปเดต"}</span>
+              <span className={badgeClass}>{status?.label ?? "รออัปเดต"}</span>
             </div>
 
             {deadlineStatus.deadline ? (
@@ -150,6 +168,7 @@ type MeetingLogbookSectionProps = {
   meetingBreakdown: MeetingBreakdownEntry[];
   lastApprovedLogAt: string | null | undefined;
   formatDate: (value?: string | null) => string;
+  onNavigateToMeetings?: () => void;
 };
 
 export function MeetingLogbookSection({
@@ -157,6 +176,7 @@ export function MeetingLogbookSection({
   meetingBreakdown,
   lastApprovedLogAt,
   formatDate,
+  onNavigateToMeetings,
 }: MeetingLogbookSectionProps) {
   const { required, totalApproved, satisfied } = meetingRequirement;
   const showRequired = required > 0;
@@ -199,6 +219,12 @@ export function MeetingLogbookSection({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {onNavigateToMeetings ? (
+        <button type="button" className={styles.secondaryButton} onClick={onNavigateToMeetings}>
+          ไปยังบันทึกการพบ
+        </button>
       ) : null}
     </section>
   );
