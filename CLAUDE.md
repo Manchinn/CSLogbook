@@ -493,15 +493,9 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 - `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
 - ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
 
-#### 2. Staging / Regression Testing
-- ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
-- เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
-- ยืนยันว่า `defenseType` fix ทำงานถูกต้องใน environment จริง
-- ยืนยัน Phase 2 parity fixes: labels, tones, gating, loading state
-
-#### 3. Feature Flags ที่ยังปิดอยู่ (ถ้าต้องการเปิด)
-- `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE` — ทำเสร็จแล้ว รอเปิด production
-- `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE` — ทำเสร็จแล้ว รอเปิด production
+#### 2. Feature Flags (เปิดแล้ว)
+- `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE` — เปิดแล้ว (default true ในโค้ด)
+- `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE` — เปิดแล้ว (default true ในโค้ด)
 - `NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE` — เปิดแล้ว (default true)
 
 ---
