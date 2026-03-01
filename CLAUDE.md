@@ -484,6 +484,22 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | แก้ `InternshipSummaryView`: text wrapping + tone-aware status tags | `InternshipSummaryView.tsx`, `summary.module.css` |
 | สร้าง docs/claudefix/project-unified-redesign.md | `docs/claudefix/project-unified-redesign.md` (ใหม่) |
 
+#### Session 7 — Admin Documents UI & Teacher Position (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| แก้ table padding ให้เป็นมาตรฐาน (0.65rem 0.55rem) | `admin/settings/settings.module.css` |
+| Clean legacy subtitle ในเอกสารฝึกงาน | `admin/documents/internship/page.tsx` |
+| Clean legacy subtitle ในหนังสือรับรอง | `admin/documents/certificates/page.tsx` |
+| เปลี่ยนปุ่ม ดูไฟล์/ดาวน์โหล็น icon buttons | `admin/documents/internด เปship/page.tsx`, `page.module.css` |
+| เพิ่ม documentNameLabel() mapping (CS05, ACCEPTANCE_LETTER) | `admin/documents/internship/page.tsx` |
+| Fix React key warning ใน approve-documents | `approve-documents/page.tsx` |
+| เพิ่ม teacherPosition ใน auth flow: Backend authService.js | `backend/services/authService.js` |
+| เพิ่ม teacherPosition ใน verify-token response | `backend/routes/authRoutes.js` |
+| เพิ่ม teacherPosition ใน login และ verifyToken | `frontend/src/lib/api/authService.ts` |
+| แก้ menuConfig: รองรับ "หัวหน้าภาควิชา" และ "หัวหน้าภาค" | `frontend/src/lib/navigation/menuConfig.ts` |
+| แก้ RoleGuard: รองรับ requireHeadOfDepartment สำหรับ "หัวหน้าภาควิชา"/"หัวหน้าภาค" | `frontend/src/components/auth/RoleGuard.tsx` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
