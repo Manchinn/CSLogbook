@@ -38,7 +38,17 @@ export function RoleGuard({
 
     if (!user) return;
 
-    if (user.role === "teacher" && teacherTypes && !user.teacherType && !user.isSystemAdmin) {
+    if (user.role === "teacher" && teacherTypes && !user.teacherType && user.isSystemAdmin !== true) {
+      // ถ้า teacherType ไม่มี แต่เป็น support (isSystemAdmin) ก็ให้ผ่าน
+      // ถ้าไม่ใช่ ให้ redirect ไป dashboard
+      const fallbackTarget = resolveDashboardPath({
+        role: user.role,
+        teacherType: user.teacherType ?? null,
+        isSystemAdmin: user.isSystemAdmin ?? null,
+      }) || redirectPath;
+      if (pathname !== fallbackTarget) {
+        router.replace(fallbackTarget);
+      }
       return;
     }
 
@@ -68,7 +78,7 @@ export function RoleGuard({
     // Check head of department requirement
     if (requireHeadOfDepartment && user.role === "teacher") {
       const teacherPosition = (user as { teacherPosition?: string }).teacherPosition;
-      if (teacherPosition !== "หัวหน้าภาควิชา") {
+      if (teacherPosition !== "หัวหน้าภาควิชา" && teacherPosition !== "หัวหน้าภาค") {
         if (pathname !== fallbackTarget) {
           router.replace(fallbackTarget);
         }

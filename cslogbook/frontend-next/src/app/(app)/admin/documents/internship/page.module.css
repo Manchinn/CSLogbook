@@ -113,6 +113,28 @@
   color: #b91c1c;
 }
 
+.iconButton {
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.45rem;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.iconButton:hover {
+  border-color: var(--color-primary);
+  background: #f8fafc;
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .button:disabled {
   opacity: 0.6;
   cursor: not-allowed;

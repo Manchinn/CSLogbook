@@ -28,6 +28,7 @@ export type AuthUser = {
   teacherId?: number;
   teacherCode?: string;
   teacherType?: string;
+  teacherPosition?: string;
   canAccessTopicExam?: boolean;
   canExportProject1?: boolean;
   isSystemAdmin?: boolean;
@@ -69,6 +70,7 @@ type BackendLoginResponse = {
   teacherId?: number;
   teacherCode?: string;
   teacherType?: string;
+  teacherPosition?: string;
   canAccessTopicExam?: boolean;
   canExportProject1?: boolean;
   isSystemAdmin?: boolean;
@@ -104,6 +106,7 @@ type TokenClaims = {
   teacherId?: number;
   teacherCode?: string;
   teacherType?: string;
+  teacherPosition?: string;
   canAccessTopicExam?: boolean;
   canExportProject1?: boolean;
   isSystemAdmin?: boolean;
@@ -125,6 +128,7 @@ function decodeTokenClaims(token: string): TokenClaims {
       teacherId: decoded.teacherId,
       teacherCode: decoded.teacherCode,
       teacherType: decoded.teacherType,
+      teacherPosition: decoded.teacherPosition,
       canAccessTopicExam: decoded.canAccessTopicExam,
       canExportProject1: decoded.canExportProject1,
       isSystemAdmin: decoded.isSystemAdmin,
@@ -146,6 +150,7 @@ function buildAuthUser(params: {
   teacherId?: number;
   teacherCode?: string;
   teacherType?: string;
+  teacherPosition?: string;
   canAccessTopicExam?: boolean;
   canExportProject1?: boolean;
   isSystemAdmin?: boolean;
@@ -194,6 +199,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     teacherId: response.teacherId ?? claims.teacherId,
     teacherCode: response.teacherCode ?? claims.teacherCode,
     teacherType: response.teacherType ?? claims.teacherType,
+    teacherPosition: response.teacherPosition ?? claims.teacherPosition,
     canAccessTopicExam: response.canAccessTopicExam ?? claims.canAccessTopicExam,
     canExportProject1: response.canExportProject1 ?? claims.canExportProject1,
     isSystemAdmin: response.isSystemAdmin ?? claims.isSystemAdmin,
@@ -225,6 +231,7 @@ export async function verifyToken(token: string): Promise<AuthUser> {
     teacherId: response.user.teacherId ?? claims.teacherId,
     teacherCode: response.user.teacherCode ?? claims.teacherCode,
     teacherType: response.user.teacherType ?? claims.teacherType,
+    teacherPosition: response.user.teacherPosition ?? claims.teacherPosition,
     canAccessTopicExam: response.user.canAccessTopicExam ?? claims.canAccessTopicExam,
     canExportProject1: response.user.canExportProject1 ?? claims.canExportProject1,
     isSystemAdmin: response.user.isSystemAdmin ?? claims.isSystemAdmin,

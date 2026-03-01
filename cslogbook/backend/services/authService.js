@@ -131,13 +131,14 @@ class AuthService {
         case 'teacher':
           const teacherData = await Teacher.findOne({
             where: { userId: user.userId },
-            attributes: ['teacherId', 'teacherCode', 'teacherType', 'canAccessTopicExam', 'canExportProject1']
+            attributes: ['teacherId', 'teacherCode', 'teacherType', 'position', 'canAccessTopicExam', 'canExportProject1']
           });
-          
+
           roleData = {
             teacherId: teacherData?.teacherId,
             teacherCode: teacherData?.teacherCode,
             teacherType: teacherData?.teacherType || 'academic',
+            position: teacherData?.position || 'คณาจารย์',
             isSystemAdmin: teacherData?.teacherType === 'support',
             canAccessTopicExam: Boolean(teacherData?.canAccessTopicExam),
             canExportProject1: Boolean(teacherData?.canExportProject1)

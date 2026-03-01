@@ -25,7 +25,7 @@ router.post('/password/change/confirm', authenticateToken, passwordController.co
 
 // Token verification route
 router.get('/verify-token', authenticateToken, (req, res) => {
-    res.json({ 
+    res.json({
         valid: true,
         user: {
             userId: req.user.userId,
@@ -38,6 +38,7 @@ router.get('/verify-token', authenticateToken, (req, res) => {
             teacherId: req.user.teacherId,
             teacherCode: req.user.teacherCode,
             teacherType: req.user.teacherType,
+            teacherPosition: req.user.teacherPosition,
             canAccessTopicExam: req.user.canAccessTopicExam,
             canExportProject1: req.user.canExportProject1,
             isSystemAdmin: req.user.isSystemAdmin
