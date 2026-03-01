@@ -306,7 +306,9 @@ export type ProjectSummary = {
   projectNameEn?: string | null;
   projectType?: string | null;
   advisorId?: number | null;
+  advisorName?: string | null;
   coAdvisorId?: number | null;
+  coAdvisorName?: string | null;
   academicYear?: number | null;
   semester?: number | null;
   examResult?: string | null;

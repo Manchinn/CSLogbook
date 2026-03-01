@@ -37,6 +37,7 @@ type ProjectSummary = {
   academicYear?: string | number | null;
   semester?: string | number | null;
   advisorId?: string | number | null;
+  advisorName?: string | null;
 };
 
 type WorkflowSummary = {
@@ -355,7 +356,7 @@ export function ProjectOverviewPanels({
             </div>
             <div>
               <dt>อาจารย์ที่ปรึกษา</dt>
-              <dd>{project.advisorId ? `ID ${project.advisorId}` : "ยังไม่ระบุ"}</dd>
+              <dd>{project.advisorName || "ยังไม่ระบุ"}</dd>
             </div>
             <div>
               <dt>อัปเดตล่าสุด</dt>

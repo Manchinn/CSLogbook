@@ -333,6 +333,18 @@ export default function ProjectPhase2Content() {
           <p className={styles.heroLabel}>โครงงาน</p>
           <p className={styles.heroValue}>{project?.projectNameTh || "ยังไม่มีหัวข้อ"}</p>
           <p className={styles.heroHint}>{project?.projectCode ? `รหัส ${project.projectCode}` : "ยังไม่กำหนดรหัส"}</p>
+          <p className={styles.heroLabel} style={{ marginTop: 10 }}>อาจารย์ที่ปรึกษา</p>
+          <p className={styles.heroHint} style={{ color: "var(--color-text)" }}>
+            {project?.advisorName || "—"}
+          </p>
+          {project?.coAdvisorName && (
+            <>
+              <p className={styles.heroLabel} style={{ marginTop: 6 }}>อาจารย์ที่ปรึกษาร่วม</p>
+              <p className={styles.heroHint} style={{ color: "var(--color-text)" }}>
+                {project.coAdvisorName}
+              </p>
+            </>
+          )}
         </div>
       </header>
 

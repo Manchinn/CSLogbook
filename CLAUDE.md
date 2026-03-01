@@ -1,5 +1,13 @@
 # CLAUDE.md — CSLogbook
 
+## Working Branch
+
+**Always work on branch `claude/claude-md-mm56ik11ksjo6flh-JgWXL`**
+
+ทุก session ให้เริ่มทำงานบน branch นี้โดยตรง ห้าม commit ลง `master` โดยตรง
+
+---
+
 ## Project Overview
 
 **CSLogbook** is a full-stack Student Activity Management System for the Computer Science and Information department. It manages internship and project workflows, document submissions, logbooks, meetings, deadlines, and student progress tracking.
@@ -435,6 +443,15 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | เพิ่ม loading state + empty "ยังไม่มีโครงงาน" notice | `ProjectPhase2Content.tsx` |
 | ใช้ shared `DEFAULT_DEADLINE_KEYWORD_FILTER` แทน local copy | `ProjectPhase2Content.tsx` |
 
+#### Session 4 — Phase 2 Advisor Name Display (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม `Teacher` include (advisor + coAdvisor) ใน `projectDocumentService.getProjectById()` | `backend/services/projectDocumentService.js` |
+| เพิ่ม `advisorName`, `coAdvisorName` ใน `serialize()` | `backend/services/projectDocumentService.js` |
+| เพิ่ม `advisorName?`, `coAdvisorName?` fields ใน `ProjectSummary` type | `src/lib/services/studentService.ts` |
+| แสดงชื่ออาจารย์ที่ปรึกษา (+ ร่วม) ใน hero card ของ Phase 2 overview | `ProjectPhase2Content.tsx` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -444,19 +461,13 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 - `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
 - ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
 
-#### 2. Phase 2 Advisor Name Display (ต้องแก้ Backend)
-- Overview page ยังไม่แสดงชื่ออาจารย์ที่ปรึกษา
-- `ProjectSummary` มีแค่ `advisorId`/`coAdvisorId` (ตัวเลข ไม่มีชื่อ)
-- ต้องแก้ backend `getProjectById()` ให้ include advisor names
-- Staging test plan ต้องการ "Advisor information displays"
-
-#### 3. Staging / Regression Testing
+#### 2. Staging / Regression Testing
 - ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
 - เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
 - ยืนยันว่า `defenseType` fix ทำงานถูกต้องใน environment จริง
 - ยืนยัน Phase 2 parity fixes: labels, tones, gating, loading state
 
-#### 4. Feature Flags ที่ยังปิดอยู่ (ถ้าต้องการเปิด)
+#### 3. Feature Flags ที่ยังปิดอยู่ (ถ้าต้องการเปิด)
 - `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE` — ทำเสร็จแล้ว รอเปิด production
 - `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE` — ทำเสร็จแล้ว รอเปิด production
 - `NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE` — เปิดแล้ว (default true)
