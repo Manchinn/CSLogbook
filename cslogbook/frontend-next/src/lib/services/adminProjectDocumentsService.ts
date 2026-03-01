@@ -15,6 +15,20 @@ export type AdminProjectDocument = {
   projectCode?: string | null;
 };
 
+export type AdminProjectDocumentDetail = {
+  id: number;
+  documentName: string;
+  studentName: string;
+  studentCode: string | null;
+  status: string;
+  createdAt: string | null;
+  reviewDate: string | null;
+  reviewComment: string | null;
+  filePath: string | null;
+  projectTitle?: string | null;
+  projectCode?: string | null;
+};
+
 export type AdminProjectDocumentListFilters = {
   status?: string;
   search?: string;
@@ -49,6 +63,26 @@ export async function listAdminProjectDocuments(filters: AdminProjectDocumentLis
     `/admin/documents${qs ? `?${qs}` : ""}`
   );
   return res.data ?? { documents: [], total: 0 };
+}
+
+export async function getAdminProjectDocumentDetail(documentId: number): Promise<AdminProjectDocumentDetail> {
+  const res = await apiFetch<{ success: boolean; data: Record<string, unknown> }>(`/admin/documents/${documentId}`);
+  const d = res.data ?? {};
+  const owner = d.owner as Record<string, unknown> | undefined;
+  const student = owner?.student as Record<string, unknown> | undefined;
+  return {
+    id: (d.documentId ?? d.id ?? documentId) as number,
+    documentName: (d.documentName ?? d.document_name ?? "") as string,
+    studentName: owner ? `${owner.firstName ?? ""} ${owner.lastName ?? ""}`.trim() : ((d.studentName ?? "") as string),
+    studentCode: (student?.studentCode ?? null) as string | null,
+    status: (d.status ?? "") as string,
+    createdAt: (d.createdAt ?? d.created_at ?? null) as string | null,
+    reviewDate: (d.reviewDate ?? d.review_date ?? null) as string | null,
+    reviewComment: (d.reviewComment ?? d.review_comment ?? null) as string | null,
+    filePath: (d.filePath ?? d.file_path ?? null) as string | null,
+    projectTitle: (d.projectTitle ?? null) as string | null,
+    projectCode: (d.projectCode ?? null) as string | null,
+  };
 }
 
 export async function reviewAdminProjectDocument(documentId: number): Promise<void> {

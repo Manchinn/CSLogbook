@@ -39,6 +39,14 @@ function lateLabel(status: string) {
   return "ส่งช้า";
 }
 
+function documentNameLabel(documentName: string | null | undefined): string {
+  if (!documentName) return "-";
+  const normalized = documentName.toUpperCase();
+  if (normalized === "CS05") return "แบบคำร้องขอฝึกงาน";
+  if (normalized === "ACCEPTANCE_LETTER") return "หนังสือตอบรับการฝึกงาน";
+  return documentName;
+}
+
 function canSelectRow(document: AdminInternshipDocument) {
   return document.status === "pending" && !document.reviewerId;
 }
@@ -262,7 +270,7 @@ export default function AdminInternshipDocumentsPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>จัดการเอกสารคำร้องขอฝึกงาน</h1>
-            <p className={styles.subtitle}>ย้ายจาก legacy โดยคง flow ตรวจและส่งต่อเอกสารตามสถานะเดิม</p>
+            <p className={styles.subtitle}>จัดการคำร้องขอฝึกงานของนักศึกษา ตรวจสอบ และอนุมัติเอกสาร</p>
           </div>
           <div className={styles.buttonRow}>
             <button type="button" className={styles.button} onClick={onResetFilters}>
@@ -413,7 +421,7 @@ export default function AdminInternshipDocumentsPage() {
                           />
                         </td>
                         <td>
-                          <p className={styles.name}>{row.documentName || "-"}</p>
+                          <p className={styles.name}>{documentNameLabel(row.documentName)}</p>
                           <p className={styles.subText}>{row.studentName || "-"}</p>
                         </td>
                         <td>{formatDateTime(row.createdAt)}</td>
@@ -453,19 +461,28 @@ export default function AdminInternshipDocumentsPage() {
                             ) : null}
                             <button
                               type="button"
-                              className={styles.button}
+                              className={styles.iconButton}
                               onClick={() => handlePreview(row.id)}
                               disabled={isFileBusy}
+                              title="ดูไฟล์"
                             >
-                              ดูไฟล์
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
                             </button>
                             <button
                               type="button"
-                              className={styles.button}
+                              className={styles.iconButton}
                               onClick={() => handleDownload(row.id)}
                               disabled={isFileBusy}
+                              title="ดาวน์โหลด"
                             >
-                              ดาวน์โหลด
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                              </svg>
                             </button>
                           </div>
                         </td>
@@ -531,7 +548,7 @@ export default function AdminInternshipDocumentsPage() {
                 <div>
                   <p className={styles.drawerTitle}>รายละเอียดเอกสาร</p>
                   <p className={styles.subText}>
-                    {selected?.documentName || "-"} / {selected?.studentName || "-"}
+                    {documentNameLabel(selected?.documentName)} / {selected?.studentName || "-"}
                   </p>
                 </div>
                 <button type="button" className={styles.button} onClick={closeDrawer}>
@@ -544,7 +561,7 @@ export default function AdminInternshipDocumentsPage() {
                   <>
                     <section className={styles.detailSection}>
                       <h3 className={styles.detailTitle}>ข้อมูลเอกสาร</h3>
-                      <p>ชื่อเอกสาร: {detail.documentName || "-"}</p>
+                      <p>ชื่อเอกสาร: {documentNameLabel(detail.documentName)}</p>
                       <p>สถานะ: {statusLabel(detail.status ?? "", selected?.reviewerId ?? null)}</p>
                       <p>วันที่ส่ง: {formatDateTime(detail.submittedAt)}</p>
                       <p>หมายเหตุ: {typeof detail.reviewComment === "string" && detail.reviewComment ? detail.reviewComment : "-"}</p>
@@ -594,19 +611,28 @@ export default function AdminInternshipDocumentsPage() {
                         ) : null}
                         <button
                           type="button"
-                          className={styles.button}
+                          className={styles.iconButton}
                           onClick={() => handlePreview(selected.id)}
                           disabled={isFileBusy}
+                          title="ดูไฟล์"
                         >
-                          ดูไฟล์
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
                         </button>
                         <button
                           type="button"
-                          className={styles.button}
+                          className={styles.iconButton}
                           onClick={() => handleDownload(selected.id)}
                           disabled={isFileBusy}
+                          title="ดาวน์โหลด"
                         >
-                          ดาวน์โหลด
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
                         </button>
                       </div>
                     ) : null}

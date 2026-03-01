@@ -179,7 +179,7 @@ export default function AdminInternshipCertificatesPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>จัดการหนังสือรับรองการฝึกงาน</h1>
-            <p className={styles.subtitle}>รองรับ review queue แบบเดิม พร้อม approve/reject และดาวน์โหลดเอกสาร</p>
+            <p className={styles.subtitle}>จัดการคำร้องหนังสือรับรองการฝึกงาน ตรวจสอบและอนุมัติตามลำดับ</p>
           </div>
           <div className={styles.buttonRow}>
             <button

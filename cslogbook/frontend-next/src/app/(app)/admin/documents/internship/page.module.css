@@ -66,6 +66,24 @@
   border-radius: 0.55rem;
   padding: 0.5rem 0.65rem;
   background: #fff;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  padding-right: 2rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.select:hover {
+  border-color: var(--color-primary);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-weak);
 }
 
 .buttonRow {
@@ -93,6 +111,28 @@
   background: #fee2e2;
   border-color: #fecaca;
   color: #b91c1c;
+}
+
+.iconButton {
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.45rem;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.iconButton:hover {
+  border-color: var(--color-primary);
+  background: #f8fafc;
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .button:disabled {
@@ -204,7 +244,7 @@
   height: 100%;
   background: #fff;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   border-left: 1px solid var(--color-border);
 }
 
@@ -227,6 +267,14 @@
   overflow: auto;
   display: grid;
   gap: 0.75rem;
+}
+
+.drawerFooter {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .detailSection {

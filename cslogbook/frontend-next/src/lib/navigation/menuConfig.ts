@@ -124,7 +124,7 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
   const canExportProject1 = Boolean(user.canExportProject1);
   const canExportThesis = Boolean((user as { canExportThesis?: boolean }).canExportThesis ?? user.canExportProject1);
   const teacherPosition = (user as { teacherPosition?: string }).teacherPosition;
-  const canApproveDocuments = isAcademic && teacherPosition === "หัวหน้าภาควิชา";
+  const canApproveDocuments = isAcademic && (teacherPosition === "หัวหน้าภาควิชา" || teacherPosition === "หัวหน้าภาค");
 
   const privilegedChildren: MenuNode[] = [];
 

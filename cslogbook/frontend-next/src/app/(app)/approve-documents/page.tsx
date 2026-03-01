@@ -241,8 +241,8 @@ export default function ApproveDocumentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {currentData.map((doc) => (
-                  <tr key={doc.id}>
+                {currentData.map((doc, index) => (
+                  <tr key={doc.id ?? `doc-${index}`}>
                     <td>
                       <div className={styles.studentInfo}>
                         <div className={styles.studentName}>{doc.studentName}</div>
