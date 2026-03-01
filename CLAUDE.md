@@ -470,6 +470,20 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | อัปเดต `.drawer` grid: `auto 1fr` → `auto 1fr auto` | `project-pairs/page.module.css` |
 | สร้าง docs/claudefix/admin-ui-pattern-refactor.md | `docs/claudefix/admin-ui-pattern-refactor.md` (ใหม่) |
 
+#### Session 6 — Unified Project Page Redesign & Naming Audit (2026-03-01)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| สร้าง `ProjectContent.tsx` — unified component รวม Phase 1 + Phase 2 ในหน้าเดียว | `project/phase1/view/ProjectContent.tsx` (ใหม่) |
+| `PhaseStepsGrid`: เพิ่ม `showSectionDividers` prop + section dividers ระหว่าง phase1/phase2 | `ProjectPhase1Sections.tsx` |
+| เพิ่ม CSS สำหรับ section dividers | `phase1.module.css` |
+| `phase1/page.tsx`: เปลี่ยน import เป็น `ProjectContent` | `project/phase1/page.tsx` |
+| `phase2/page.tsx`: เปลี่ยนเป็น `redirect("/project/phase1")` แบบ clean | `project/phase2/page.tsx` |
+| ลบ phase2 ออกจาก navigation menu | `src/lib/navigation/menuConfig.ts` |
+| Naming audit ครบ 10 ไฟล์: `"โครงงานพิเศษ 2"` → `"ปริญญานิพนธ์"` ทุกที่ | หลายไฟล์ (ดู doc) |
+| แก้ `InternshipSummaryView`: text wrapping + tone-aware status tags | `InternshipSummaryView.tsx`, `summary.module.css` |
+| สร้าง docs/claudefix/project-unified-redesign.md | `docs/claudefix/project-unified-redesign.md` (ใหม่) |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -499,9 +513,13 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | `src/lib/utils/statusLabels.ts` | Shared status label utility — ใช้ `labelStatus()` แทน raw enum ทุกที่ |
 | `src/lib/services/teacherService.ts` | Teacher API layer — `submitKP02AdvisorDecision` ต้องส่ง `defenseType` |
 | `src/hooks/useTeacherModule.ts` | Teacher hooks — `useSubmitKP02AdvisorDecision` รองรับ defenseType แล้ว |
-| `ProjectPhase2Content.tsx` | Phase 2 overview — มี `PHASE_LABELS`, `labelPhase()`, tone-aware `stepStatuses`, loading/empty guards |
-| `ProjectPhase2Sections.tsx` | Phase 2 presentational — `StepStatus` type, `canSubmitThesisDefense` gating, meeting nav button |
-| `docs/STUDENT_PAGES_PARITY_REPORT.md` | Parity tracking — Phase 2 overview ควรอัปเดตเป็น ✅ Done (เหลือ advisor name) |
+| `project/phase1/view/ProjectContent.tsx` | **Main project page component** — unified Phase 1 + Phase 2 flow |
+| `ProjectPhase1Sections.tsx` | `PhaseStepsGrid` — `showSectionDividers` prop, section dividers, renamed tabs |
+| `ProjectPhase1Content.tsx` | Legacy (unused) — ไม่ mount แล้ว แต่เก็บไว้ |
+| `ProjectPhase2Content.tsx` | Legacy (unused) — ไม่ mount แล้ว แต่เก็บไว้ |
+| `ProjectPhase2Sections.tsx` | Active — `SummaryCards`, `Phase2GateNotice`, `MeetingLogbookSection` ใช้ใน ProjectContent |
+| `src/lib/project/phase2Gate.ts` | Phase 2 gate reasons — ชื่อภาษาไทยอ้างอิง "ปริญญานิพนธ์" ทั้งหมด |
 | `docs/STAGING_TEST_PLAN.md` | Test checklist สำหรับ staging |
 | `docs/compatibility/` | Route usage, deprecation lists — อย่าลบ API ที่อยู่ใน DO_NOT_REMOVE |
 | `docs/claudefix/admin-ui-pattern-refactor.md` | Admin UI pattern refactor log (Session 5) |
+| `docs/claudefix/project-unified-redesign.md` | Project page unified redesign log (Session 6) |
