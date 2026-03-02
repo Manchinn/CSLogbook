@@ -317,83 +317,35 @@ exports.getAcademicDashboard = async (req, res) => {
 };
 
 exports.submitEvaluation = async (req, res) => {
-  try {
-    const { studentId, evaluationData } = req.body;
-    
-    // TODO: เพิ่มลอจิกสำหรับการส่งการประเมินผล
-    res.json({
-      success: true,
-      message: 'ส่งการประเมินผลสำเร็จ',
-      data: { studentId, evaluationData }
-    });
-  } catch (error) {
-    logger.error('Error in submitEvaluation:', error);
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการส่งการประเมินผล'
-    });
-  }
+  return res.status(501).json({
+    success: false,
+    code: 'NOT_IMPLEMENTED',
+    message: 'ฟีเจอร์การส่งการประเมินผลยังไม่พร้อมใช้งาน'
+  });
 };
 
 // ฟังก์ชันสำหรับเจ้าหน้าที่ภาควิชา (Support)
 exports.getSupportDashboard = async (req, res) => {
-  try {
-    // TODO: เพิ่มลอจิกสำหรับ dashboard ของเจ้าหน้าที่ภาควิชา
-    res.json({
-      success: true,
-      message: 'Dashboard สำหรับเจ้าหน้าที่ภาควิชา',
-      data: {
-        totalStudents: 0,
-        totalTeachers: 0,
-        pendingApprovals: 0,
-        systemStats: {}
-      }
-    });
-  } catch (error) {
-    logger.error('Error in getSupportDashboard:', error);
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
-    });
-  }
+  return res.status(501).json({
+    success: false,
+    code: 'NOT_IMPLEMENTED',
+    message: 'Dashboard สำหรับเจ้าหน้าที่ภาควิชายังไม่พร้อมใช้งาน'
+  });
 };
 
 exports.createAnnouncement = async (req, res) => {
-  try {
-    const { title, content, targetAudience } = req.body;
-    
-    // TODO: เพิ่มลอจิกสำหรับการสร้างประกาศ
-    res.json({
-      success: true,
-      message: 'สร้างประกาศสำเร็จ',
-      data: { title, content, targetAudience }
-    });
-  } catch (error) {
-    logger.error('Error in createAnnouncement:', error);
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการสร้างประกาศ'
-    });
-  }
+  return res.status(501).json({
+    success: false,
+    code: 'NOT_IMPLEMENTED',
+    message: 'ฟีเจอร์การสร้างประกาศยังไม่พร้อมใช้งาน'
+  });
 };
 
 // ฟังก์ชันที่ทั้งสองประเภทเข้าถึงได้
 exports.getDocuments = async (req, res) => {
-  try {
-    // TODO: เพิ่มลอจิกสำหรับการดึงเอกสาร
-    res.json({
-      success: true,
-      message: 'ดึงข้อมูลเอกสารสำเร็จ',
-      data: {
-        documents: [],
-        totalCount: 0
-      }
-    });
-  } catch (error) {
-    logger.error('Error in getDocuments:', error);
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร'
-    });
-  }
+  return res.status(501).json({
+    success: false,
+    code: 'NOT_IMPLEMENTED',
+    message: 'ฟีเจอร์การดึงเอกสารอาจารย์ยังไม่พร้อมใช้งาน'
+  });
 };

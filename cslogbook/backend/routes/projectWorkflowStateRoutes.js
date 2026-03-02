@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const projectWorkflowStateController = require('../controllers/projectWorkflowStateController');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const authorize = require('../middleware/authorize');
 
 /**
  * Public/General Routes
@@ -37,7 +38,7 @@ router.get(
 router.get(
   '/admin/statistics',
   authenticateToken,
-  // TODO: เพิ่ม middleware checkRole(['admin', 'staff'])
+  authorize.fromAllowed(['admin', 'teacher:support']),
   projectWorkflowStateController.getAdminDashboardStatistics
 );
 

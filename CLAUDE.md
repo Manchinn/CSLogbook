@@ -484,6 +484,19 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | แก้ `InternshipSummaryView`: text wrapping + tone-aware status tags | `InternshipSummaryView.tsx`, `summary.module.css` |
 | สร้าง docs/claudefix/project-unified-redesign.md | `docs/claudefix/project-unified-redesign.md` (ใหม่) |
 
+#### Session 11 — Cross-Layer System Audit & Critical Fixes (2026-03-03)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| SECURITY: เพิ่ม RBAC middleware (`authorize.fromAllowed`) บน admin workflow statistics endpoint | `backend/routes/projectWorkflowStateRoutes.js` |
+| เปลี่ยน 4 TODO stub controllers เป็น 501 Not Implemented (ป้องกัน fake success) | `backend/controllers/teacherController.js` |
+| Extract hardcoded `passScore = 70` เป็น `config/scoring.js` กลาง | `backend/config/scoring.js` (ใหม่) |
+| อัปเดต documentService ใช้ `PASS_SCORE` จาก config | `backend/services/documentService.js` |
+| อัปเดต evaluation.service ใช้ `PASS_SCORE` จาก config | `backend/services/internship/evaluation.service.js` |
+| อัปเดต reportService ใช้ `SCORE_BUCKETS` + `scoreToBucket()` จาก config | `backend/services/reportService.js` |
+| ลบ orphaned route files (duplicate ที่ mount แล้วใน adminRoutes + dead files) | ลบ 4 ไฟล์: `notificationSettingsRoutes.js`, `workflowStepDefinitionRoutes.js`, `studentpairsRoutes.js`, `internship-status-update.js` |
+| ลบ unused backend code | ลบ: `services/projectEventService.js`, `controllers/documents/documentStatusController.js` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -510,6 +523,7 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 
 | ไฟล์ | หมายเหตุ |
 |---|---|
+| `backend/config/scoring.js` | เกณฑ์คะแนนกลาง: `PASS_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` — ใช้แทน hardcoded values |
 | `src/lib/utils/statusLabels.ts` | Shared status label utility — ใช้ `labelStatus()` แทน raw enum ทุกที่ |
 | `src/lib/services/teacherService.ts` | Teacher API layer — `submitKP02AdvisorDecision` ต้องส่ง `defenseType` |
 | `src/hooks/useTeacherModule.ts` | Teacher hooks — `useSubmitKP02AdvisorDecision` รองรับ defenseType แล้ว |

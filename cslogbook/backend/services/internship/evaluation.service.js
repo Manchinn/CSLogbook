@@ -543,7 +543,8 @@ class InternshipEvaluationService {
       const overallScore = disciplineScore + behaviorScore + performanceScore + methodScore + relationScore; // 0-100
 
       const supervisorPassDecision = !!evaluationData.supervisorDecision; // boolean
-      const passFail = (overallScore >= 70 && supervisorPassDecision) ? 'pass' : 'fail';
+      const { PASS_SCORE } = require('../../config/scoring');
+      const passFail = (overallScore >= PASS_SCORE && supervisorPassDecision) ? 'pass' : 'fail';
       const evaluatedAt = new Date();
 
       // เตรียม evaluationItems array

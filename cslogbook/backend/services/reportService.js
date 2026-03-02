@@ -346,18 +346,13 @@ module.exports = {
     // ดึงทุก evaluation เพื่อคำนวณ distribution (อาจพิจารณา paginate ถ้าข้อมูลใหญ่)
   const evaluations = await InternshipEvaluation.findAll({ attributes: ['overall_score'], where: { student_id: docStudentIds }, raw: true });
 
+    const { SCORE_BUCKETS, scoreToBucket } = require('../config/scoring');
     const gradeCounts = {};
-    const scoreBuckets = { '>=80':0, '70-79':0, '60-69':0, '50-59':0, '<50':0 };
+    const scoreBuckets = Object.fromEntries(SCORE_BUCKETS.map(b => [b.range, 0]));
     evaluations.forEach(ev => {
-  // เลิกใช้ overall_grade -> คง logic bucket เฉพาะคะแนน
-  const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
-
+      const score = ev.overall_score != null ? parseFloat(ev.overall_score) : null;
       if (score != null) {
-        if (score >= 80) scoreBuckets['>=80']++;
-        else if (score >= 70) scoreBuckets['70-79']++;
-        else if (score >= 60) scoreBuckets['60-69']++;
-        else if (score >= 50) scoreBuckets['50-59']++;
-        else scoreBuckets['<50']++;
+        scoreBuckets[scoreToBucket(score)]++;
       }
     });
 
