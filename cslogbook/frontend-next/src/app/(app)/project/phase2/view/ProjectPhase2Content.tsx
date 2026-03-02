@@ -203,14 +203,15 @@ export default function ProjectPhase2Content() {
   }, [projectMembers, meetingMetrics]);
 
   const systemTestSummary = projectDetailData?.systemTestRequest ?? null;
+  const defenseRequests = projectDetailData?.defenseRequests;
   const thesisDefenseRequest = useMemo(() => {
-    if (!Array.isArray(projectDetailData?.defenseRequests)) return null;
+    if (!Array.isArray(defenseRequests)) return null;
     return (
-      projectDetailData.defenseRequests.find(
+      defenseRequests.find(
         (request) => request.defenseType === "THESIS" && request.status !== "cancelled"
       ) ?? null
     );
-  }, [projectDetailData?.defenseRequests]);
+  }, [defenseRequests]);
 
   const systemTestReady = useMemo(() => {
     if (!systemTestSummary) return false;
@@ -319,7 +320,7 @@ export default function ProjectPhase2Content() {
     }
 
     return cards;
-  }, [workflow, project?.status, systemTestStatusLabel, systemTestSummary?.testDueDate, thesisStatusLabel, systemTestReady]);
+  }, [workflow, project?.status, systemTestStatusLabel, systemTestSummary, thesisStatusLabel, systemTestReady]);
 
   return (
     <div className={styles.page}>

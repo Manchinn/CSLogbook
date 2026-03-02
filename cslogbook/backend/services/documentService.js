@@ -1097,7 +1097,7 @@ class DocumentService {
             }
 
             const overallScore = evaluationRecord?.overallScore != null ? Number(evaluationRecord.overallScore) : null;
-            const passScore = 70; // ปรับเป็น 70 ตามเกณฑ์ที่ระบบใช้ (TODO: ย้ายไป config ภายหลัง)
+            const { PASS_SCORE: passScore } = require('../config/scoring');
             let evaluationPassed = false;
             if (typeof overallScore === 'number') {
                 evaluationPassed = overallScore >= passScore;
