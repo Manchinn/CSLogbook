@@ -1,5 +1,6 @@
 import { LoginForm } from "./LoginForm";
 import styles from "./page.module.css";
+import { CSLogbookLogo } from "@/components/common/Logo";
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -20,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className={styles.layout}>
         <div className={styles.brandPanel}>
           <div className={styles.brandHeader}>
-            <div className={styles.logoBadge}>CS</div>
+            <CSLogbookLogo size={52} className={styles.logoBadge} />
             <h1 className={styles.brandTitle}>CS Logbook</h1>
             <p className={styles.brandDescription}>
               ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์สำหรับนักศึกษา อาจารย์

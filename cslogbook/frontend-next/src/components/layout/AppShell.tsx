@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
 import { getMenuGroups, type MenuLink, type MenuNode } from "@/lib/navigation/menuConfig";
 import { getCurrentAcademicInfo, type AcademicInfo } from "@/lib/services/academicService";
+import { CSLogbookLogo } from "@/components/common/Logo";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -112,8 +113,8 @@ export function AppShell({ children }: AppShellProps) {
       >
         <div className={styles.brandBlock}>
           <div className={styles.brandMark} aria-hidden="true">
-            <span className={styles.brandLogo}>CS</span>
-            <p className={styles.brandCaption}>CSLogbook</p>
+            <CSLogbookLogo size={40} className={styles.brandLogo} />
+            <p className={styles.brandCaption}>CS Logbook</p>
           </div>
         </div>
 

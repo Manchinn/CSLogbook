@@ -49,7 +49,7 @@
   border-radius: 1.75rem;
   background: rgba(255, 255, 255, 0.75);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .brandPanel {
@@ -64,15 +64,9 @@
 }
 
 .logoBadge {
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: #1d82f5;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.95rem;
+  display: block;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
 }
 
 .brandTitle {

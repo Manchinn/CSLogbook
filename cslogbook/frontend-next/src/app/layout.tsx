@@ -16,8 +16,8 @@ const notoSansThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "CSLogbook Frontend",
-  description: "Next.js + TypeScript starter for CSLogbook frontend",
+  title: "CS Logbook",
+  description: "ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์",
 };
 
 export default function RootLayout({
