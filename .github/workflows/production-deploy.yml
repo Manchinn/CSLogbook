@@ -19,6 +19,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Normalize owner to lowercase — GHCR rejects uppercase in image names
+      - name: Set lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       # Step 2 — Login to GHCR using automatic GITHUB_TOKEN (no PAT needed)
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -31,8 +35,8 @@ jobs:
       - name: Build backend Docker image
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/cslogbook-backend:latest \
-            -t ghcr.io/${{ github.repository_owner }}/cslogbook-backend:${{ github.sha }} \
+            -t ghcr.io/${{ env.OWNER }}/cslogbook-backend:latest \
+            -t ghcr.io/${{ env.OWNER }}/cslogbook-backend:${{ github.sha }} \
             ./cslogbook/backend
 
       # Step 4 — Build frontend image (bake NEXT_PUBLIC_API_URL into bundle at build time)
@@ -40,20 +44,20 @@ jobs:
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:latest \
-            -t ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:${{ github.sha }} \
+            -t ghcr.io/${{ env.OWNER }}/cslogbook-frontend:latest \
+            -t ghcr.io/${{ env.OWNER }}/cslogbook-frontend:${{ github.sha }} \
             ./cslogbook/frontend-next
 
       # Step 5 — Push both images (both tags) to GHCR
       - name: Push backend image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-backend:latest
-          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-backend:${{ github.sha }}
+          docker push ghcr.io/${{ env.OWNER }}/cslogbook-backend:latest
+          docker push ghcr.io/${{ env.OWNER }}/cslogbook-backend:${{ github.sha }}
 
       - name: Push frontend image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:latest
-          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:${{ github.sha }}
+          docker push ghcr.io/${{ env.OWNER }}/cslogbook-frontend:latest
+          docker push ghcr.io/${{ env.OWNER }}/cslogbook-frontend:${{ github.sha }}
 
       # Steps 6 & 7 — SSH into VPS, pull pre-built images, zero-downtime restart
       - name: Deploy to production VPS
