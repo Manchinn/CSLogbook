@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { DefenseRequest, SystemTestRequest } from "@/lib/services/teacherService";
 import styles from "./AdvisorQueue.module.css";
 
@@ -375,8 +375,8 @@ export function AdvisorQueueTable<T extends QueueItem>({
             const isExpanded = expandedRows.has(item.id);
 
             return (
-              <>
-                <tr key={`${item.id}-${idx}`}>
+              <Fragment key={`${item.id}-${idx}`}>
+                <tr>
                   <td>
                     <button
                       type="button"
@@ -456,7 +456,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
