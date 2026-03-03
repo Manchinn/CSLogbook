@@ -163,7 +163,7 @@ const academicRoutes = require('./routes/academicRoutes'); // เพิ่ม ac
 const curriculumRoutes = require('./routes/curriculumRoutes');
 const reportRoutes = require('./routes/reportRoutes'); // รายงานใหม่
 const topicExamRoutes = require('./routes/topicExamRoutes'); // NEW: topic exam overview
-// ใช้ app ที่แยกใน app.js สำหรับ test-friendly
+// ใช้ app ที่แยกใน app.js สำหรับ test-friendly (CORS mount ใน app.js แล้ว)
 const app = require('./app');
 const server = http.createServer(app);
 const pool = require('./config/database');
@@ -171,45 +171,9 @@ const pool = require('./config/database');
 // เพิ่มก่อน middleware อื่นๆ
 app.set('trust proxy', 1);
 
-// สร้าง allowedOrigins จาก ALLOWED_ORIGINS env var (ใช้ร่วมกันทั้ง Express CORS + Socket.io)
-// ALLOWED_ORIGINS = comma-separated list เช่น https://cslogbook.me,https://www.cslogbook.me
-const buildAllowedOrigins = () => {
-  const fromEnv = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim().replace(/\/$/, '')).filter(Boolean)
-    : [];
-  // fallback dev origins ถ้าไม่ได้ตั้งค่า ALLOWED_ORIGINS
-  const devFallback = fromEnv.length === 0
-    ? ['http://localhost:3000', 'http://127.0.0.1:3000']
-    : [];
-  return [...new Set([...fromEnv, ...devFallback])];
-};
-
+// ดึง allowedOrigins จาก shared config — ใช้กับ Socket.io CORS ด้านล่าง
+const { buildAllowedOrigins } = require('./config/corsOrigins');
 const allowedOrigins = buildAllowedOrigins();
-
-// แสดง allowed origins ตอน startup เพื่อ debug production ได้ง่าย
-console.log('🌍 Allowed Origins:', allowedOrigins);
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // อนุญาต request ที่ไม่มี origin (mobile apps, Postman, curl)
-    if (!origin) return callback(null, true);
-
-    // Normalize trailing slash ก่อน compare
-    const normalizedOrigin = origin.replace(/\/$/, '');
-
-    if (allowedOrigins.includes(normalizedOrigin)) {
-      callback(null, true);
-    } else {
-      console.warn(`⚠️  CORS blocked origin: ${origin}`);
-      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
 
 // express.json, urlencoded, routes ทั้งหมด mount ใน app.js แล้ว (single source of truth)
 

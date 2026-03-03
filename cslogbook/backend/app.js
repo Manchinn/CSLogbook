@@ -11,11 +11,13 @@ if (!process.env.UPLOAD_DIR) process.env.UPLOAD_DIR = 'uploads/';
 if (!process.env.MAX_FILE_SIZE) process.env.MAX_FILE_SIZE = '5242880';
 
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const { buildAllowedOrigins } = require('./config/corsOrigins');
 
 // Routes & middleware
 const { authenticateToken } = require('./middleware/authMiddleware');
@@ -42,7 +44,29 @@ const projectTransitionRoutes = require('./routes/projectTransitionRoutes'); // 
 
 const app = express();
 
-// CORS จัดการที่ server.js เพียงที่เดียว (ไม่ซ้ำที่นี่)
+// CORS middleware — ต้อง mount ก่อน routes ทุกตัว
+const allowedOrigins = buildAllowedOrigins();
+console.log('🌍 Allowed Origins:', allowedOrigins);
+app.use(cors({
+  origin: function (origin, callback) {
+    // อนุญาต request ที่ไม่มี origin (mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+    // Normalize trailing slash ก่อน compare
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
