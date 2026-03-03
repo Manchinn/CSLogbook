@@ -46,6 +46,7 @@ services:
       PORT: 5000
       BASE_URL: ${BASE_URL}
       FRONTEND_URL: ${FRONTEND_URL}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     volumes:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs

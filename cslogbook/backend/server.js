@@ -61,6 +61,11 @@ const validateServerEnv = () => {
     MAX_FILE_SIZE: (val) => !isNaN(val) && val > 0
   };
 
+  // ตรวจ ALLOWED_ORIGINS (เพิ่มเตือน production ถ้าไม่ได้ตั้งค่า)
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
+    console.warn('⚠️  ALLOWED_ORIGINS not set in production — CORS and Socket.io will only allow localhost');
+  }
+
   const warnings = [];
   Object.entries(serverVars).forEach(([key, validator]) => {
     const value = process.env[key];
@@ -166,27 +171,37 @@ const pool = require('./config/database');
 // เพิ่มก่อน middleware อื่นๆ
 app.set('trust proxy', 1);
 
-// รายการ Origin ที่อนุญาต
-// รายการ Origin ที่อนุญาต (Normalize: remove trailing slashes)
-const normalizeUrl = (url) => url ? url.replace(/\/$/, '') : null;
+// สร้าง allowedOrigins จาก ALLOWED_ORIGINS env var (ใช้ร่วมกันทั้ง Express CORS + Socket.io)
+// ALLOWED_ORIGINS = comma-separated list เช่น https://cslogbook.me,https://www.cslogbook.me
+const buildAllowedOrigins = () => {
+  const fromEnv = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim().replace(/\/$/, '')).filter(Boolean)
+    : [];
+  // fallback dev origins ถ้าไม่ได้ตั้งค่า ALLOWED_ORIGINS
+  const devFallback = fromEnv.length === 0
+    ? ['http://localhost:3000', 'http://127.0.0.1:3000']
+    : [];
+  return [...new Set([...fromEnv, ...devFallback])];
+};
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  normalizeUrl(process.env.FRONTEND_URL)
-].filter(Boolean);
+const allowedOrigins = buildAllowedOrigins();
+
+// แสดง allowed origins ตอน startup เพื่อ debug production ได้ง่าย
+console.log('🌍 Allowed Origins:', allowedOrigins);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // อนุญาตให้ request ที่ไม่มี origin (เช่น mobile apps, curl)
+    // อนุญาต request ที่ไม่มี origin (mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
 
-    // Normalize request origin just in case
-    const normalizedOrigin = normalizeUrl(origin);
+    // Normalize trailing slash ก่อน compare
+    const normalizedOrigin = origin.replace(/\/$/, '');
 
     if (allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
-      console.warn(`⚠️  CORS blocked origin: ${origin} (Allowed: ${allowedOrigins.join(', ')})`);
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -258,7 +273,8 @@ app.use((err, req, res, next) => {
 // Socket.IO setup with validated FRONTEND_URL + auth room binding
 const io = new Server(server, {
   cors: {
-    origin: ENV.FRONTEND_URL,
+    // ใช้ allowedOrigins เดียวกันกับ Express CORS (ไม่ใช้ FRONTEND_URL single string)
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
