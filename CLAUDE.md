@@ -536,51 +536,31 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | แก้ `InternshipSummaryView`: text wrapping + tone-aware status tags | `InternshipSummaryView.tsx`, `summary.module.css` |
 | สร้าง docs/claudefix/project-unified-redesign.md | `docs/claudefix/project-unified-redesign.md` (ใหม่) |
 
-#### Session 7 — Admin Documents UI & Teacher Position (2026-03-01)
+#### Session 7 — Admin Documents UI + Teacher Position Flow (2026-03-01)
 
 | งาน | ไฟล์ที่เปลี่ยน |
 |---|---|
-| แก้ table padding ให้เป็นมาตรฐาน (0.65rem 0.55rem) | `admin/settings/settings.module.css` |
-| Clean legacy subtitle ในเอกสารฝึกงาน | `admin/documents/internship/page.tsx` |
-| Clean legacy subtitle ในหนังสือรับรอง | `admin/documents/certificates/page.tsx` |
-| เปลี่ยนปุ่ม ดูไฟล์/ดาวน์โหล็น icon buttons | `admin/documents/internด เปship/page.tsx`, `page.module.css` |
-| เพิ่ม documentNameLabel() mapping (CS05, ACCEPTANCE_LETTER) | `admin/documents/internship/page.tsx` |
-| Fix React key warning ใน approve-documents | `approve-documents/page.tsx` |
-| เพิ่ม teacherPosition ใน auth flow: Backend authService.js | `backend/services/authService.js` |
-| เพิ่ม teacherPosition ใน verify-token response | `backend/routes/authRoutes.js` |
-| เพิ่ม teacherPosition ใน login และ verifyToken | `frontend/src/lib/api/authService.ts` |
-| แก้ menuConfig: รองรับ "หัวหน้าภาควิชา" และ "หัวหน้าภาค" | `frontend/src/lib/navigation/menuConfig.ts` |
-| แก้ RoleGuard: รองรับ requireHeadOfDepartment สำหรับ "หัวหน้าภาควิชา"/"หัวหน้าภาค" | `frontend/src/components/auth/RoleGuard.tsx` |
+| เพิ่ม custom select dropdown styles (SVG arrow, hover/focus) ทุก admin page | `admin/documents/certificates/page.module.css`, `admin/documents/internship/page.module.css`, `admin/settings/settings.module.css`, `admin/topic-exam/results/page.module.css`, `admin/upload/page.module.css`, `admin/users/students/page.module.css`, `admin/users/teachers/page.module.css` |
+| เพิ่ม `teacherPosition` ใน token generation + verify-token response | `backend/services/authService.js`, `backend/routes/authRoutes.js` |
+| อัปเดต `authService.ts` frontend ให้รับ `teacherPosition` จาก login/verifyToken | `src/lib/api/authService.ts` |
+| อัปเดต `menuConfig.ts`: `canApproveDocuments` ใช้ `teacherPosition` แทน role | `src/lib/navigation/menuConfig.ts` |
+| อัปเดต `RoleGuard.tsx`: `requireHeadOfDepartment` ตรวจ `teacherPosition` | `src/components/auth/RoleGuard.tsx` |
+| ปรับ admin documents internship page — icon buttons + UI improvements | `admin/documents/internship/page.tsx`, `admin/documents/internship/page.module.css` |
+| ปรับ admin documents certificates page | `admin/documents/certificates/page.tsx` |
+| ปรับ approve-documents page | `approve-documents/page.tsx` |
+| เพิ่ม admin project documents detailed view + สร้าง service | `admin/documents/project/page.tsx`, `src/lib/services/adminProjectDocumentsService.ts` |
+| ปรับ admin system-test staff-queue + topic-exam results + students pages | `admin/system-test/staff-queue/page.tsx`, `admin/topic-exam/results/page.tsx`, `admin/users/students/page.tsx` |
 
-#### Session 10 — Admin Pages Audit: 6 Routes (2026-03-01)
-
-| งาน | ไฟล์ที่เปลี่ยน |
-|---|---|
-| Fix missing `"use client"` + `RoleGuard` บน system-test/staff-queue | `admin/system-test/staff-queue/page.tsx` |
-| Fix subtitle dev text "flow เดิม" ใน topic-exam/results | `admin/topic-exam/results/page.tsx` |
-| Fix raw status enum ใน drawer → ใช้ `labelStatus()` | `admin/topic-exam/results/page.tsx` |
-| Audit 4 หน้าที่เหลือ (ปกติ): project1/kp02-queue, project-exam/results, thesis/staff-queue, thesis/exam-results | — |
-
-#### Session 9 — Admin Project Documents Flow Fix (2026-03-01)
+#### Session 8 — UX/UI Audit: ConfirmDialog + Skeleton Loading (2026-03-02)
 
 | งาน | ไฟล์ที่เปลี่ยน |
 |---|---|
-| เพิ่ม `AdminProjectDocumentDetail` type + `getAdminProjectDocumentDetail()` function | `adminProjectDocumentsService.ts` |
-| เพิ่ม `detailQuery` (useQuery) fetch detail เมื่อ drawer เปิด | `admin/documents/project/page.tsx` |
-| Enrich drawer: แสดง `studentCode`, `reviewDate`, loading/error state | `admin/documents/project/page.tsx` |
-| ปิด drawer อัตโนมัติหลัง approve/reject จาก drawer | `admin/documents/project/page.tsx` |
-| เพิ่ม `documentNameLabel()` helper (KP01, KP02, PROJECT_REPORT, etc.) | `admin/documents/project/page.tsx` |
-| Fix subtitle "วิทยานิพนธ์" → "ปริญญานิพนธ์" | `admin/documents/project/page.tsx` |
-| เพิ่ม `closeDrawer()` helper (extract ออกจาก inline onClick) | `admin/documents/project/page.tsx` |
-
-#### Session 8 — Admin UI Cleanup (2026-03-01)
-
-| งาน | ไฟล์ที่เปลี่ยน |
-|---|---|
-| เพิ่ม `.drawerFooter` + เปลี่ยน drawer grid เป็น `auto 1fr auto` | `admin/documents/internship/page.module.css` |
-| แก้ project documents: icon buttons ใน table + drawer footer + ย้าย action buttons | `admin/documents/project/page.tsx` |
-| แก้ students page subtitle จาก dev text เป็น user-facing | `admin/users/students/page.tsx` |
-| ลบ duplicate `.alert` CSS rules (lines 308-324) | `admin/users/teachers/page.module.css` |
+| สร้าง `ConfirmDialog` component — แทน `window.confirm` ทุกที่ | `src/components/common/ConfirmDialog.tsx` (ใหม่) |
+| สร้าง `Skeleton` component + CSS — skeleton loading สำหรับ table/card | `src/components/common/Skeleton.tsx` (ใหม่), `src/components/common/Skeleton.module.css` (ใหม่) |
+| แทนที่ `window.confirm` ด้วย `ConfirmDialog` ใน admin students/teachers delete | `admin/users/students/page.tsx`, `admin/users/teachers/page.tsx` |
+| แทนที่ `window.confirm` ด้วย `ConfirmDialog` ใน meeting logbook deletion | `project/phase1/meeting-logbook/page.tsx` |
+| เพิ่ม skeleton loading ใน AdminStudentsPage, AdminTeachersPage, ProjectPairsPage | `admin/users/students/page.tsx`, `admin/users/teachers/page.tsx`, `project-pairs/page.tsx` |
+| CSS improvements สำหรับ form fields | `admin/users/students/page.module.css`, `admin/users/teachers/page.module.css`, `project-pairs/page.module.css` |
 
 #### Session 11 — Cross-Layer System Audit & Critical Fixes (2026-03-03)
 
@@ -594,7 +574,51 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | อัปเดต reportService ใช้ `SCORE_BUCKETS` + `scoreToBucket()` จาก config | `backend/services/reportService.js` |
 | ลบ orphaned route files (duplicate ที่ mount แล้วใน adminRoutes + dead files) | ลบ 4 ไฟล์: `notificationSettingsRoutes.js`, `workflowStepDefinitionRoutes.js`, `studentpairsRoutes.js`, `internship-status-update.js` |
 | ลบ unused backend code | ลบ: `services/projectEventService.js`, `controllers/documents/documentStatusController.js` |
-| Fix React Compiler memoization errors | `ProjectPhase2Content.tsx` |
+
+#### Session 12 — Multi-Layer Audit + Bug Fixes (2026-03-03)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| อัปเดต CLAUDE.md เพิ่ม Session 7 และ Session 8 ที่ขาดหายไป | `CLAUDE.md` |
+| Fix P1: แก้ query key mismatch — `useTeacherOverview` ใช้ `["teacher-overview", token]` แต่ mutations invalidate `["teacher", "overview"]` → dashboard ไม่ refresh หลัง approve | `src/hooks/useTeacherOverview.ts` |
+| Fix console error: `<>` ใน `.map()` ไม่รับ `key` prop → เปลี่ยนเป็น `<Fragment key={...}>` | `src/components/teacher/AdvisorQueueTable.tsx` |
+| Revert P2 (incorrect fix): field name `note` ถูกต้องอยู่แล้วทั้ง backend และ frontend — ไม่ใช่ `comments` ตามที่ audit ครั้งก่อนระบุผิด | `src/lib/services/teacherService.ts` |
+| Security Audit: teacher API endpoints — พบ IDOR risk ใน `PUT /teachers/:id`, dead routes 5 ตัว, report endpoints ไม่มี role check | (audit only) |
+| Integration Audit: cross-layer teacher frontend↔backend — พบ cache key mismatch (fixed), unverified internship endpoints 6 ตัว | (audit only) |
+| Approval Flow Audit: ตรวจสอบ 6 document types ครบ — Topic Exam, คพ.02, Project1 Result, System Test, คพ.03, Thesis Result | (audit only) |
+
+---
+
+### ❌ งานที่ยังต้องทำต่อ
+
+#### 1. Admin Settings Endpoints (Deferred — Backlog)
+- `GET/PUT /api/admin/settings/eligibility` — ไม่มี frontend consumer ที่ active
+- `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
+- ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
+
+#### 2. Staging / Regression Testing
+- ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
+- เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
+- ยืนยัน Phase 2 parity fixes: labels, tones, gating, loading state
+
+#### 3. Dead Routes ใน teacherRoutes.js (Security Backlog)
+- `GET /api/teachers/advisors`, `GET /api/teachers/me/profile`, `GET /api/teachers/user/:userId` — ไม่มี frontend consumer
+- `PUT /api/teachers/:id`, `DELETE /api/teachers/:id` — duplicate กับ admin routes + IDOR risk
+- พิจารณาลบหรือ consolidate เมื่อมีเวลา
+
+#### 4. Report Endpoints ไม่มี Role Check (Security Backlog)
+- `GET /api/reports/advisors/workload` และ `GET /api/reports/advisors/:teacherId/detail` — authenticated แต่ไม่มี authorize middleware
+- พิจารณาเพิ่ม role check ถ้าข้อมูลมี sensitivity
+
+#### 5. ⚠️ ยืนยัน 7 Unverified Endpoints (Frontend เรียกแต่ยังไม่ยืนยัน Backend)
+- `GET/POST /api/internship/cs-05/head/queue` + approve/reject
+- `GET/POST /api/internship/acceptance/head/queue` + approve/reject
+- `GET /api/projects/topic-exam/overview`
+- ตรวจใน `internshipRoutes.js` และ `topicExamRoutes.js` ว่า route มีอยู่จริง
+
+#### 6. Student Result Pages (Out of Scope — ไม่ได้อยู่ในขอบเขตงาน)
+- `/project/phase1/exam-day` — ยังเป็น stub ("กำลังเตรียมฟีเจอร์") — **ตั้งใจ ไม่ใช่ bug**
+- Thesis exam result detail page — นักศึกษาเห็นแค่ hero badge — **ตั้งใจ ไม่ใช่ bug**
 
 ---
 
