@@ -67,14 +67,11 @@ export function StepReview() {
     if (readOnly) return;
     try {
       setStatus({ saving: true });
+      // backend validateUpdateProject รับแค่ projectNameTh, projectNameEn, description
+      // field อื่น (projectType, tracks, background ฯลฯ) ถูก Joi ปฏิเสธ
       await updateProject(token, projectId, {
-        projectNameTh: lockedCore ? undefined : basic.projectNameTh,
-        projectNameEn: lockedCore ? undefined : basic.projectNameEn,
-        projectType: basic.projectType,
-        tracks: classification.tracks,
-        background: details.background,
-        objective: details.objective,
-        benefit: details.benefit,
+        projectNameTh: lockedCore ? undefined : basic.projectNameTh || undefined,
+        projectNameEn: lockedCore ? undefined : basic.projectNameEn || undefined,
       });
     } finally {
       setStatus({ saving: false });
@@ -93,36 +90,59 @@ export function StepReview() {
   };
 
   return (
-    <div className={styles.panel}>
-      <h3 className={styles.title}>สรุปข้อมูล</h3>
-      <div className={styles.notice}>ตรวจสอบความครบถ้วนก่อนสร้างโครงงาน</div>
+    <div className={styles.sectionContent}>
+      {/* ── ข้อมูลสรุป ─────────────────────────────── */}
       <div className={styles.formGrid}>
         <div className={styles.field}>
-          <label>ชื่อโครงงานภาษาไทย</label>
-          <div>{basic.projectNameTh || "-"}</div>
+          <label>ชื่อโครงงาน (ไทย)</label>
+          <div className={styles.fieldValue}>{basic.projectNameTh || <span className={styles.fieldEmpty}>ยังไม่ระบุ</span>}</div>
         </div>
         <div className={styles.field}>
-          <label>ชื่อโครงงานภาษาอังกฤษ</label>
-          <div>{basic.projectNameEn || "-"}</div>
+          <label>ชื่อโครงงาน (อังกฤษ)</label>
+          <div className={styles.fieldValue}>{basic.projectNameEn || <span className={styles.fieldEmpty}>ยังไม่ระบุ</span>}</div>
         </div>
         <div className={styles.field}>
           <label>ประเภทโครงงาน</label>
-          <div>{basic.projectType || "-"}</div>
+          <div className={styles.fieldValue}>{basic.projectType || <span className={styles.fieldEmpty}>ยังไม่ระบุ</span>}</div>
         </div>
         <div className={styles.field}>
-          <label>หมวด</label>
-          <div>{classification.tracks.join(", ") || "-"}</div>
+          <label>หมวด (Track)</label>
+          <div className={styles.fieldValue}>
+            {classification.tracks.length > 0
+              ? classification.tracks.join(", ")
+              : <span className={styles.fieldEmpty}>ยังไม่เลือก</span>}
+          </div>
         </div>
       </div>
 
-      <div className={styles.tagRow}>
+      {/* ── ผลตรวจสอบความครบถ้วน ────────────────── */}
+      <div className={styles.readinessGrid}>
         {readiness.map((item) => (
-          <span key={item.key} className={`${styles.tag} ${item.pass ? styles.tagSuccess : styles.tagWarning}`}>
-            {item.pass ? "ผ่าน" : "ยังไม่ครบ"} - {item.label}
-          </span>
+          <div
+            key={item.key}
+            className={`${styles.readinessBadge} ${item.pass ? styles.readinessBadgePass : styles.readinessBadgeFail}`}
+          >
+            <span className={styles.readinessIcon}>{item.pass ? "✓" : "✗"}</span>
+            <span className={styles.readinessLabel}>{item.label}</span>
+          </div>
         ))}
       </div>
 
+      {/* ── สมาชิกที่ sync แล้ว ─────────────────── */}
+      {projectMembers.length > 0 ? (
+        <div className={styles.memberBadgeRow}>
+          {projectMembers.map((member) => (
+            <span
+              key={`${member.studentId}-${member.role}`}
+              className={`${styles.memberBadge} ${styles.memberBadgeOk}`}
+            >
+              👤 สมาชิก: {member.name || member.studentCode}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {/* ── Actions ──────────────────────────────── */}
       <div className={styles.actions}>
         {!projectId ? (
           <button type="button" className={styles.primaryButton} onClick={handleCreate}>
@@ -142,18 +162,8 @@ export function StepReview() {
         )}
       </div>
 
-      {projectMembers.length > 0 ? (
-        <div className={styles.tagRow}>
-          {projectMembers.map((member) => (
-            <span key={`${member.studentId}-${member.role}`} className={styles.tag}>
-              {member.role === "leader" ? "Leader" : "Member"}: {member.name || member.studentCode}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
       {projectId && readinessMap.member2 && !members.synced ? (
-        <div className={styles.notice}>ระบบจะซิงค์สมาชิกคนที่ 2 หลังสร้าง Draft</div>
+        <p className={styles.sectionHint}>ระบบจะซิงค์สมาชิกคนที่ 2 หลังสร้าง Draft เรียบร้อยแล้ว</p>
       ) : null}
     </div>
   );

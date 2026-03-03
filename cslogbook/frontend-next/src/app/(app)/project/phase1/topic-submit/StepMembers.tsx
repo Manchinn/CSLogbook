@@ -61,36 +61,48 @@ export function StepMembers() {
   };
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.notice}>โครงงานพิเศษต้องมีสมาชิก 2 คน</div>
-      <div className={styles.field}>
-        <label>รหัสนักศึกษาคนที่ 2 (บังคับ)</label>
-        <input
-          value={member2}
-          onChange={(event) => setMember2(event.target.value)}
-          placeholder="กรอกรหัสนักศึกษา 13 หลัก"
-          disabled={memberLocked}
-        />
+    <div className={styles.sectionContent}>
+      <p className={styles.sectionHint}>โครงงานพิเศษต้องมีสมาชิก 2 คน</p>
+      <div className={styles.formGrid}>
+        <div className={styles.field}>
+          <label htmlFor="member2-input">รหัสนักศึกษาคนที่ 2 (บังคับ)</label>
+          <input
+            id="member2-input"
+            value={member2}
+            onChange={(event) => setMember2(event.target.value)}
+            placeholder="กรอกรหัสนักศึกษา 5–13 หลัก"
+            disabled={memberLocked}
+          />
+        </div>
       </div>
-      {errors.length > 0 ? <div className={styles.notice}>{errors.join(" ")}</div> : null}
-      {!memberLocked ? (
-        <button
-          type="button"
-          className={styles.primaryButton}
-          onClick={handleApply}
-          disabled={errors.length > 0 || loading}
-        >
-          {loading ? "กำลังบันทึก..." : projectId ? "บันทึก & Sync" : "บันทึกในดราฟท์"}
-        </button>
+      {errors.length > 0 ? (
+        <p className={styles.fieldError}>{errors.join(" ")}</p>
       ) : null}
-      <div className={styles.tagRow}>
-        <span className={styles.tag}>คนที่ 1 (คุณ)</span>
+      {!memberLocked ? (
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={handleApply}
+            disabled={errors.length > 0 || loading}
+          >
+            {loading ? "กำลังตรวจสอบ..." : projectId ? "บันทึก & ซิงค์" : "ตรวจสอบรหัสนักศึกษา"}
+          </button>
+        </div>
+      ) : null}
+      <div className={styles.memberBadgeRow}>
+        <span className={`${styles.memberBadge} ${styles.memberBadgeOk}`}>👤 สมาชิก: (คุณ)</span>
         {members.secondMemberCode ? (
-          <span className={`${styles.tag} ${styles.tagSuccess}`}>คนที่ 2: {members.secondMemberCode}</span>
+          <span className={`${styles.memberBadge} ${members.validated ? styles.memberBadgeOk : styles.memberBadgePending}`}>
+            👤 คนที่ 2: {members.secondMemberCode}
+            {members.validated ? " ✓" : " (รอตรวจสอบ)"}
+          </span>
         ) : (
-          <span className={styles.tag}>ยังไม่มีสมาชิกเพิ่ม</span>
+          <span className={styles.memberBadge}>คนที่ 2: ยังไม่ระบุ</span>
         )}
-        {members.error ? <span className={`${styles.tag} ${styles.tagWarning}`}>{members.error}</span> : null}
+        {members.error ? (
+          <span className={`${styles.memberBadge} ${styles.memberBadgeError}`}>⚠ {members.error}</span>
+        ) : null}
       </div>
     </div>
   );

@@ -19,8 +19,8 @@ export function StepClassification() {
   };
 
   return (
-    <div className={styles.panel}>
-      <p className={styles.subtitle}>เลือกแทร็กอย่างน้อย 1 สาย</p>
+    <div className={styles.sectionContent}>
+      <p className={styles.sectionHint}>เลือกแทร็กอย่างน้อย 1 สาย (กดเพื่อเลือก/ยกเลิก)</p>
       <div className={styles.tagRow}>
         {PROJECT_TRACKS.map((track) => {
           const selected = classification.tracks.includes(track.code);
@@ -28,18 +28,16 @@ export function StepClassification() {
             <button
               key={track.code}
               type="button"
-              className={`${styles.tag} ${selected ? styles.tagSuccess : ""}`}
+              className={`${styles.trackButton} ${selected ? styles.trackButtonSelected : ""}`}
               onClick={() => toggleTrack(track.code)}
               disabled={tracksReadOnly}
             >
-              {track.label}
+              {selected ? "✓ " : ""}{track.label}
             </button>
           );
         })}
       </div>
-      <div className={styles.notice}>
-        อาจารย์ที่ปรึกษาจะถูกกำหนดโดยเจ้าหน้าที่ภาควิชาหลังสอบหัวข้อ
-      </div>
+      <p className={styles.sectionHint}>อาจารย์ที่ปรึกษาจะถูกกำหนดโดยเจ้าหน้าที่ภาควิชาหลังสอบหัวข้อ</p>
     </div>
   );
 }

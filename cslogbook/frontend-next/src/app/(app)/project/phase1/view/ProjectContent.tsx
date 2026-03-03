@@ -69,6 +69,10 @@ function formatShortDate(value?: string | null) {
   return shortDateFormatter.format(d);
 }
 
+// TODO: TEMP FLAG — ตั้งค่าเป็น true เพื่อปลดล็อก card ทั้งหมดชั่วคราวสำหรับทดสอบ UI ภายใน
+// sync กับ FORCE_ENABLE_CARD ใน ProjectPhase1Sections.tsx — เปลี่ยนกลับเป็น false ทั้งสองไฟล์พร้อมกัน
+const FORCE_ENABLE_CARD = false;
+
 export default function ProjectContent() {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -701,8 +705,10 @@ export default function ProjectContent() {
 
   const handleOpen = useCallback(
     (step: ProjectStep, lockReasons: string[]) => {
-      if (!step.implemented) return;
-      if (lockReasons.length > 0) return;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!step.implemented && !FORCE_ENABLE_CARD) return;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (lockReasons.length > 0 && !FORCE_ENABLE_CARD) return;
       if (step.target) router.push(step.target);
     },
     [router]

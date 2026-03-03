@@ -203,6 +203,10 @@ type PhaseStepsGridProps = {
   showSectionDividers?: boolean;
 };
 
+// TODO: TEMP FLAG — ตั้งค่าเป็น true เพื่อปลดล็อก card ทั้งหมดชั่วคราวสำหรับทดสอบ UI ภายใน
+// เปลี่ยนกลับเป็น false เมื่อทดสอบเสร็จ
+const FORCE_ENABLE_CARD = false;
+
 function StepCard({
   step,
   stepStatusMap,
@@ -218,7 +222,8 @@ function StepCard({
 }) {
   const deadlineStatus = getStepDeadlineStatus(step);
   const lockReasons = buildLockReasons(step, deadlineStatus);
-  const isDisabled = !step.implemented || lockReasons.length > 0;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const isDisabled = (!step.implemented || lockReasons.length > 0) && !FORCE_ENABLE_CARD;
   const status = stepStatusMap[step.key];
 
   return (

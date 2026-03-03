@@ -14,9 +14,10 @@ function TopicSubmitInner() {
   const searchParams = useSearchParams();
   const editPid = searchParams.get("pid");
   const { data: projectDetail } = useStudentProjectDetail(token, Boolean(token));
-  const { hydrateFromProject, projectStatus } = useProjectDraft();
+  const { hydrateFromProject, projectStatus, basic, projectId } = useProjectDraft();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -46,18 +47,88 @@ function TopicSubmitInner() {
 
   const readOnly = useMemo(() => ["completed", "archived"].includes(projectStatus), [projectStatus]);
 
+  // label ปุ่มเปิด modal
+  const openLabel = useMemo(() => {
+    if (loading) return "กำลังโหลด...";
+    if (projectId) return "แก้ไขข้อมูลโครงงาน";
+    return "เริ่มเสนอหัวข้อ";
+  }, [loading, projectId]);
+
+  const closeModal = () => setModalOpen(false);
+
   return (
     <div className={styles.page}>
+      {/* ─── ส่วนหัวหน้า ─────────────────────────────────────── */}
       <section className={styles.header}>
-        <h1 className={styles.title}>เสนอหัวข้อโครงงานพิเศษ</h1>
-        <p className={styles.subtitle}>กรอกข้อมูลทีละขั้น สามารถกลับมาแก้ไขได้ภายหลัง</p>
+        <div className={styles.headerRow}>
+          <div>
+            <h1 className={styles.title}>เสนอหัวข้อโครงงานพิเศษ</h1>
+            <p className={styles.subtitle}>กรอกข้อมูลในฟอร์มเดียวได้เลย สามารถกลับมาแก้ไขได้ภายหลัง</p>
+          </div>
+          {!readOnly ? (
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setModalOpen(true)}
+              disabled={loading}
+            >
+              {openLabel}
+            </button>
+          ) : null}
+        </div>
       </section>
-      {loading ? <div className={styles.notice}>กำลังโหลดข้อมูล...</div> : null}
+
+      {/* ─── สรุปสถานะปัจจุบัน (เมื่อมีโครงงานอยู่แล้ว) ────── */}
       {error ? <div className={styles.notice}>{error}</div> : null}
       {readOnly ? (
         <div className={styles.notice}>โครงงานนี้ผ่านการสอบหัวข้อแล้ว ไม่สามารถแก้ไขได้</div>
       ) : null}
-      <CreateWizard />
+      {!loading && projectId ? (
+        <div className={styles.panel}>
+          <div className={styles.formGrid}>
+            <div className={styles.field}>
+              <label>ชื่อโครงงานภาษาไทย</label>
+              <div>{basic.projectNameTh || "-"}</div>
+            </div>
+            <div className={styles.field}>
+              <label>ชื่อโครงงานภาษาอังกฤษ</label>
+              <div>{basic.projectNameEn || "-"}</div>
+            </div>
+            <div className={styles.field}>
+              <label>สถานะ</label>
+              <div>{projectStatus}</div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {!loading && !projectId && !readOnly ? (
+        <div className={styles.notice}>ยังไม่มีโครงงาน กดปุ่ม "เริ่มเสนอหัวข้อ" เพื่อเปิดฟอร์ม</div>
+      ) : null}
+      {loading ? <div className={styles.notice}>กำลังโหลดข้อมูล...</div> : null}
+
+      {/* ─── Modal ───────────────────────────────────────────── */}
+      {modalOpen ? (
+        <>
+          {/* backdrop */}
+          <div
+            className={styles.modalOverlay}
+            role="presentation"
+            onClick={closeModal}
+          />
+          {/* dialog */}
+          <div className={styles.modal} role="dialog" aria-modal="true" aria-label="ฟอร์มเสนอหัวข้อโครงงาน">
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>เสนอหัวข้อโครงงานพิเศษ</h2>
+              <button type="button" className={styles.modalClose} onClick={closeModal} aria-label="ปิด">
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <CreateWizard />
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
