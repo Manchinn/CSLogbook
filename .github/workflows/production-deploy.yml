@@ -1,0 +1,80 @@
+name: Build, Push & Deploy to Production
+
+on:
+  push:
+    branches:
+      - master
+
+# grant GITHUB_TOKEN write access to push images to GHCR
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Login to GHCR using automatic GITHUB_TOKEN (no PAT needed)
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 3 — Build backend image (tagged :latest + :<sha> for rollback)
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/cslogbook-backend:latest \
+            -t ghcr.io/${{ github.repository_owner }}/cslogbook-backend:${{ github.sha }} \
+            ./cslogbook/backend
+
+      # Step 4 — Build frontend image (bake NEXT_PUBLIC_API_URL into bundle at build time)
+      - name: Build frontend Docker image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            -t ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:latest \
+            -t ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:${{ github.sha }} \
+            ./cslogbook/frontend-next
+
+      # Step 5 — Push both images (both tags) to GHCR
+      - name: Push backend image to GHCR
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-backend:latest
+          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-backend:${{ github.sha }}
+
+      - name: Push frontend image to GHCR
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:latest
+          docker push ghcr.io/${{ github.repository_owner }}/cslogbook-frontend:${{ github.sha }}
+
+      # Steps 6 & 7 — SSH into VPS, pull pre-built images, zero-downtime restart
+      - name: Deploy to production VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true  # fail workflow if any server command exits non-zero
+          ssh_extra_args: -o StrictHostKeyChecking=accept-new  # safe: rejects key changes, no blind skip
+          script: |
+            cd /home/deploy/app/cslogbook
+
+            # Pull updated compose file (image: refs) from repo before pulling images
+            git pull
+
+            # Pull latest pre-built images from GHCR (zero build time on server)
+            docker compose --env-file .env.production -f docker-compose.production.yml pull
+
+            # Zero-downtime restart — remove orphaned containers from removed services
+            docker compose --env-file .env.production -f docker-compose.production.yml up -d --remove-orphans
+
+            # Prune dangling layers only (keeps :latest + :<sha> tags for rollback)
+            docker image prune -f

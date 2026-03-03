@@ -292,8 +292,6 @@ router.patch(
   internshipController.markReferralLetterDownloaded
 );
 
-module.exports = router;
-
 // ============= เส้นทางสำหรับการอนุมัติ คพ.05 (CP.05 Approval Flow) =============
 // หัวหน้าภาค: ดึงคิวเอกสาร CS05 ที่รออนุมัติ
 router.get(
@@ -368,3 +366,4 @@ router.post(
   acceptanceApprovalController.reject
 );
 
+module.exports = router;

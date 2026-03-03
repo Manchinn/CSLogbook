@@ -1,20 +1,25 @@
-FROM node:18-alpine
+# Stage 1: Install production dependencies only (keeps npm cache out of final image)
+FROM node:18-alpine AS deps
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Stage 2: Production runner image
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies (production only)
-RUN npm ci --omit=dev
-
-# Copy source code
+# Copy application source first
 COPY . .
 
-# Create directories for uploads and logs
+# Override node_modules with clean production-only install from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Create runtime directories
 RUN mkdir -p uploads logs
 
-# Use entrypoint to run migrations before start
+# Place entrypoint at root path to match ENTRYPOINT reference
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

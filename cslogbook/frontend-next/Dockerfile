@@ -21,6 +21,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 # Copy standalone build (standalone ไม่รวม public และ static)
 COPY --from=builder /app/.next/standalone ./

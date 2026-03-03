@@ -1,4 +1,4 @@
-# CSLogbook Production - VPS 119.59.124.67
+# CSLogbook Production - VPS 168.144.38.167
 # MySQL + Backend (Node.js) + Frontend (Next.js)
 
 services:
@@ -31,9 +31,7 @@ services:
           memory: 512M
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/${GHCR_OWNER}/cslogbook-backend:latest
     container_name: cslogbook-backend
     restart: unless-stopped
     depends_on:
@@ -60,11 +58,7 @@ services:
           memory: 512M
 
   frontend:
-    build:
-      context: ./frontend-next
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    image: ghcr.io/${GHCR_OWNER}/cslogbook-frontend:latest
     container_name: cslogbook-frontend
     restart: unless-stopped
     depends_on:
