@@ -100,7 +100,7 @@ export default function RegistrationLanding() {
               ฉันลงทะเบียนแล้ว ลองตรวจสอบอีกครั้ง
             </Link>
             <Link className={styles.secondary} href="/app">
-              กลับแดชบอร์ด
+              กลับหน้าหลัก
             </Link>
           </div>
         </div>

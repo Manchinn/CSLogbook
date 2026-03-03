@@ -98,7 +98,7 @@ export async function getTeacherOverview(token: string) {
   );
 
   if (!data) {
-    throw new Error("ไม่พบข้อมูลแดชบอร์ดอาจารย์");
+    throw new Error("ไม่พบข้อมูลหน้าหลักอาจารย์");
   }
 
   return data;

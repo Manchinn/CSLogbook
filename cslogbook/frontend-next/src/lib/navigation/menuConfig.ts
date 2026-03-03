@@ -59,7 +59,7 @@ function buildStudentMenu(options: BuildOptions): MenuNode[] {
   const projectAllowed = canAccessProject ?? true;
 
   const items: MenuNode[] = [
-    menuLink("student-dashboard", "แดชบอร์ด", "/dashboard/student", true),
+    menuLink("student-dashboard", "หน้าหลัก", "/dashboard/student", true),
     menuLink("student-profile", "ประวัตินักศึกษา", `/student-profile/${studentCode}`, featureFlags.enableStudentProfilePage),
     menuLink("student-calendar", "ปฏิทินกำหนดการ", "/student-deadlines/calendar", featureFlags.enableDeadlinesPage),
   ];
@@ -158,7 +158,7 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
 
   const academicItems: MenuNode[] = isAcademic
     ? [
-        menuLink("teacher-dashboard", "แดชบอร์ด", "/dashboard/teacher", true),
+        menuLink("teacher-dashboard", "หน้าหลัก", "/dashboard/teacher", true),
         menuLink("teacher-calendar", "ปฏิทินกำหนดการ", "/teacher/deadlines/calendar"),
         menuLink("meeting-approvals", "อนุมัติบันทึกการพบ", "/teacher/meeting-approvals"),
         menuLink("advisor-queue", "คำขอสอบ คพ.02", "/teacher/project1/advisor-queue"),
@@ -173,7 +173,7 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
 
   const supportItems: MenuNode[] = isSupport
     ? [
-        menuLink("teacher-dashboard", "แดชบอร์ด", "/dashboard/admin", true),
+        menuLink("teacher-dashboard", "หน้าหลัก", "/dashboard/admin", true),
         ...(privileged ? [privileged] : []),
         {
           key: "manage",
@@ -222,10 +222,6 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
             menuLink("internship-companies", "สถานประกอบการ", "/internship-companies"),
             menuLink("internship-report", "รายงานฝึกงาน", "/admin/reports/internship"),
             menuLink("project-report", "รายงานโครงงาน", "/admin/reports/project"),
-            menuLink("workflow-progress", "ความคืบหน้ากระบวนการ", "/admin/reports/workflow-progress"),
-            menuLink("deadline-compliance", "การปฏิบัติตามกำหนดการ", "/admin/reports/deadline-compliance"),
-            menuLink("advisor-workload", "ภาระงานอาจารย์", "/admin/reports/advisor-workload"),
-            menuLink("reports-new", "รายงาน", "/reports", featureFlags.enableReportsPage),
           ],
         },
         menuLink("upload", "อัปโหลดรายชื่อนักศึกษา", "/admin/upload"),
@@ -248,7 +244,7 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
 
 function buildAdminMenu(): MenuNode[] {
   return [
-    menuLink("admin-dashboard", "แดชบอร์ด", "/dashboard/admin", true),
+    menuLink("admin-dashboard", "หน้าหลัก", "/dashboard/admin", true),
     {
       key: "manage",
       label: "จัดการข้อมูล",
@@ -296,10 +292,6 @@ function buildAdminMenu(): MenuNode[] {
         menuLink("internship-companies", "สถานประกอบการ (สถิติ)", "/internship-companies"),
         menuLink("internship-report", "รายงานฝึกงาน", "/admin/reports/internship"),
         menuLink("project-report", "รายงานโครงงาน", "/admin/reports/project"),
-        menuLink("workflow-progress", "ความคืบหน้ากระบวนการ", "/admin/reports/workflow-progress"),
-        menuLink("deadline-compliance", "การปฏิบัติตามกำหนดการ", "/admin/reports/deadline-compliance"),
-        menuLink("advisor-workload", "ภาระงานอาจารย์", "/admin/reports/advisor-workload"),
-        menuLink("reports-new", "รายงาน", "/reports", featureFlags.enableReportsPage),
       ],
     },
     menuLink("upload", "อัปโหลดรายชื่อนักศึกษา", "/admin/upload"),

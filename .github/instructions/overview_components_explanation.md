@@ -1,6 +1,6 @@
 # คำอธิบาย Components ใน `OverviewComponents.js`
 
-เอกสารนี้อธิบายการทำงานของ React components ที่อยู่ในไฟล์ `OverviewComponents.js` ซึ่งใช้สำหรับแสดงผลสรุปข้อมูลการฝึกงานในหน้าแดชบอร์ดหรือหน้าสรุปผล
+เอกสารนี้อธิบายการทำงานของ React components ที่อยู่ในไฟล์ `OverviewComponents.js` ซึ่งใช้สำหรับแสดงผลสรุปข้อมูลการฝึกงานในหน้าหลักหรือหน้าสรุปผล
 
 ## 1. `WeeklyOverview` Component
 

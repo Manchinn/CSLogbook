@@ -263,7 +263,7 @@ export default function CompanyInfoView() {
             {guard.detail ? <p className={styles.calloutText}>{guard.detail}</p> : null}
           </div>
           <div className={styles.calloutActions}>
-            <Link className={styles.secondaryButton} href="/dashboard">กลับแดชบอร์ด</Link>
+            <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าหลัก</Link>
             <Link className={styles.primaryButton} href="/internship-registration/flow">ไปหน้าลงทะเบียนฝึกงาน</Link>
           </div>
         </section>
@@ -354,7 +354,7 @@ export default function CompanyInfoView() {
             {submitSuccess ? <p className={styles.success}>{submitSuccess}</p> : null}
 
             <div className={styles.actions}>
-              <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าแดชบอร์ด</Link>
+              <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าหลัก</Link>
               {canEdit && mode === "edit" ? (
                 <button className={styles.primaryButton} type="submit" disabled={saving}>
                   {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}

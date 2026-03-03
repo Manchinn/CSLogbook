@@ -22,7 +22,7 @@ export function DashboardRoleView({ roleLabel, summary, stats, children }: Dashb
   return (
     <section className={styles.wrapper}>
       <div className={styles.hero}>
-        <h1>แดชบอร์ด{displayLabel}</h1>
+        <h1>หน้าหลัก{displayLabel}</h1>
         <p>{summary}</p>
         <p className={styles.roleBadge}>สิทธิ์การเข้าถึง: {displayLabel}</p>
       </div>

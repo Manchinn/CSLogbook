@@ -476,7 +476,7 @@ class TeacherService {
   }
 
   /**
-   * รวมข้อมูลสรุปสำหรับแดชบอร์ดอาจารย์สายวิชาการ
+   * รวมข้อมูลสรุปสำหรับหน้าหลักอาจารย์สายวิชาการ
    */
   async getAcademicDashboardOverview(userId) {
     const now = new Date();

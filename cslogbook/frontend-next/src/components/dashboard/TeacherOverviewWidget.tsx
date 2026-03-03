@@ -86,7 +86,7 @@ export function TeacherOverviewWidget({
         <header className={styles.header}>
           <div>
             <p className={styles.eyebrow}>ภาพรวมการควบคุม</p>
-            <h2 className={styles.title}>{resolvedData?.teacher.name || "แดชบอร์ดอาจารย์"}</h2>
+            <h2 className={styles.title}>{resolvedData?.teacher.name || "หน้าหลักอาจารย์"}</h2>
             <p className={styles.subtitle}>{resolvedData?.teacher.position || "อาจารย์"}</p>
           </div>
           <div className={styles.badges}>

@@ -389,7 +389,7 @@ export default function InternshipLogbookView() {
             <p className={styles.calloutText}>{guard.body}</p>
           </div>
           <div className={styles.calloutActions}>
-            <Link className={styles.secondaryButton} href="/dashboard">กลับแดชบอร์ด</Link>
+            <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าหลัก</Link>
             <Link className={styles.primaryButton} href="/internship-registration/flow">ไปหน้าลงทะเบียนฝึกงาน</Link>
           </div>
         </section>

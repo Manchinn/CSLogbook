@@ -83,7 +83,7 @@ cslogbook/
           ...
         
         student/               # หน้าสำหรับนักศึกษา
-          Dashboard.js         # หน้าแดชบอร์ดของนักศึกษา
+          Dashboard.js         # หน้าหลักของนักศึกษา
           Profile.js           # หน้าโปรไฟล์ของนักศึกษา
           Internship/          # หน้าเกี่ยวกับการฝึกงาน
             Overview.js        # ภาพรวมการฝึกงาน
@@ -92,12 +92,12 @@ cslogbook/
           ...
         
         admin/                 # หน้าสำหรับผู้ดูแลระบบ
-          Dashboard.js         # หน้าแดชบอร์ดของผู้ดูแลระบบ
+          Dashboard.js         # หน้าหลักของผู้ดูแลระบบ
           StudentManagement.js # หน้าจัดการนักศึกษา
           ...
         
         teacher/               # หน้าสำหรับอาจารย์
-          Dashboard.js         # หน้าแดชบอร์ดของอาจารย์
+          Dashboard.js         # หน้าหลักของอาจารย์
           StudentProgress.js   # หน้าติดตามความก้าวหน้าของนักศึกษา
           ...
         
