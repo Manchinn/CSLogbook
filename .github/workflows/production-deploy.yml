@@ -40,12 +40,19 @@ jobs:
             ./cslogbook/backend
 
       # Step 4 — Build frontend image (bake NEXT_PUBLIC_API_URL into bundle at build time)
+      # NEXT_PUBLIC_API_URL must be injected here — Next.js bakes it into the client bundle
+      # during `next build`. It is NOT available at runtime from env — only at build time.
       - name: Build frontend Docker image
+        shell: bash
+        env:
+          # Expose secret as env var first — avoids shell injection and handles special chars safely
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
+          set -euo pipefail
           docker build \
-            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ghcr.io/${{ env.OWNER }}/cslogbook-frontend:latest \
-            -t ghcr.io/${{ env.OWNER }}/cslogbook-frontend:${{ github.sha }} \
+            --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
+            -t "ghcr.io/${{ env.OWNER }}/cslogbook-frontend:latest" \
+            -t "ghcr.io/${{ env.OWNER }}/cslogbook-frontend:${{ github.sha }}" \
             ./cslogbook/frontend-next
 
       # Step 5 — Push both images (both tags) to GHCR
