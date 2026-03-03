@@ -55,6 +55,7 @@ export default function SystemTestRequestContent() {
   });
   const [requestFile, setRequestFile] = useState<File | null>(null);
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const queriesEnabled = hydrated && Boolean(token);
   const { data: project } = useStudentProjectDetail(token, queriesEnabled);
@@ -130,17 +131,35 @@ export default function SystemTestRequestContent() {
     return items;
   }, [request?.timeline]);
 
+  const dateRangeDays = useMemo(() => {
+    if (!form.startDate || !form.endDate) return null;
+    const s = new Date(form.startDate);
+    const e = new Date(form.endDate);
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return null;
+    return Math.floor((e.getTime() - s.getTime()) / ONE_DAY_MS);
+  }, [form.startDate, form.endDate]);
+
   const handleSubmit = async () => {
     if (!token || !project?.projectId) return;
-    if (!form.startDate || !form.endDate) return;
+    if (!form.startDate || !form.endDate) {
+      setErrorMessage("กรุณาระบุวันที่เริ่มและสิ้นสุดการทดสอบ");
+      return;
+    }
 
     const start = new Date(form.startDate);
     const end = new Date(form.endDate);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      setErrorMessage("วันที่ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
+      return;
+    }
 
     const diffDays = Math.floor((end.getTime() - start.getTime()) / ONE_DAY_MS);
-    if (diffDays < 29) return;
+    if (diffDays < 29) {
+      setErrorMessage(`ระยะเวลาต้องไม่น้อยกว่า 30 วัน (ตอนนี้: ${diffDays} วัน — กรุณาปรับวันสิ้นสุด)`);
+      return;
+    }
 
+    setErrorMessage(null);
     setSaving(true);
     try {
       const response = await submitSystemTestRequest(token, project.projectId, {
@@ -193,6 +212,19 @@ export default function SystemTestRequestContent() {
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {allowNewRequest && request && ["advisor_rejected", "staff_rejected"].includes(String(request.status ?? "")) ? (
+        <section className={styles.noticeRejection}>
+          <p className={styles.noticeTitle}>
+            {request.status === "advisor_rejected" ? "อาจารย์ส่งคำขอกลับแล้ว" : "เจ้าหน้าที่ส่งคำขอกลับแล้ว"}
+          </p>
+          <p>กรุณาตรวจสอบหมายเหตุในรายละเอียดการอนุมัติ และแก้ไขข้อมูลแล้วส่งใหม่ได้เลย</p>
+        </section>
+      ) : null}
+
+      {errorMessage ? (
+        <section className={styles.noticeError}>{errorMessage}</section>
       ) : null}
 
       <section className={styles.card}>
@@ -293,12 +325,22 @@ export default function SystemTestRequestContent() {
                 type="date"
                 id="system-test-start"
                 value={form.startDate}
-                onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))}
+                onChange={(event) => {
+                const newStart = event.target.value;
+                const autoEnd = newStart
+                  ? new Date(new Date(newStart).getTime() + 30 * ONE_DAY_MS)
+                      .toISOString()
+                      .slice(0, 10)
+                  : "";
+                setForm((prev) => ({ ...prev, startDate: newStart, endDate: autoEnd }));
+              }}
                 disabled={!allowNewRequest || phase2GateReasons.length > 0}
               />
             </div>
             <div className={styles.field}>
-              <label htmlFor="system-test-end">ครบกำหนด 30 วัน</label>
+              <label htmlFor="system-test-end">
+                วันสิ้นสุด 30 วัน
+              </label>
               <input
                 type="date"
                 id="system-test-end"
@@ -306,6 +348,11 @@ export default function SystemTestRequestContent() {
                 onChange={(event) => setForm((prev) => ({ ...prev, endDate: event.target.value }))}
                 disabled={!allowNewRequest || phase2GateReasons.length > 0}
               />
+              {dateRangeDays !== null ? (
+                <p className={`${styles.fieldHint} ${dateRangeDays < 29 ? styles.fieldHintError : ""}`}>
+                  ระยะเวลา: {dateRangeDays} วัน{dateRangeDays >= 29 ? " ✓" : " (ต้องไม่น้อยกว่า 30 วัน)"}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className={styles.field}>
@@ -340,8 +387,10 @@ export default function SystemTestRequestContent() {
           </button>
           {loadingRequest ? <span className={styles.loadingText}>กำลังโหลดข้อมูลคำขอ...</span> : null}
         </div>
-        {!allowNewRequest ? (
-          <p className={styles.noticeInline}>สามารถส่งคำขอใหม่ได้เมื่อถูกส่งกลับเท่านั้น</p>
+        {!allowNewRequest && request ? (
+          <p className={styles.noticeInline}>คำขอนี้อยู่ระหว่างดำเนินการ — สามารถส่งใหม่ได้หลังถูกส่งกลับ</p>
+        ) : phase2GateReasons.length > 0 ? (
+          <p className={styles.buttonHint}>ปริญญานิพนธ์ยังไม่ปลดล็อก — ตรวจสอบเงื่อนไขด้านบน</p>
         ) : null}
       </section>
 

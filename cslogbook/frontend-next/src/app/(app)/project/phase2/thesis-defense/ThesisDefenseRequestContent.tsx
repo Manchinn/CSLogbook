@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DefenseRequestStepper } from "@/components/common/DefenseRequestStepper";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
@@ -23,6 +25,18 @@ const statusLabels: Record<string, string> = {
   cancelled: "คำขอถูกยกเลิก",
   advisor_rejected: "อาจารย์ไม่อนุมัติ",
   staff_returned: "เจ้าหน้าที่ส่งกลับ",
+};
+
+const statusTones: Record<string, "default" | "info" | "warning" | "success" | "danger"> = {
+  submitted: "info",
+  advisor_in_review: "info",
+  advisor_approved: "warning",
+  staff_verified: "success",
+  scheduled: "info",
+  completed: "success",
+  cancelled: "danger",
+  advisor_rejected: "danger",
+  staff_returned: "danger",
 };
 
 function formatDate(value?: string | null) {
@@ -132,6 +146,17 @@ export default function ThesisDefenseRequestContent() {
 
   const status = String(request?.status || "");
   const statusLabel = statusLabels[status] || "ยังไม่พบสถานะคำขอ";
+  const statusTone = statusTones[status] ?? "default";
+  const statusClass =
+    statusTone === "success"
+      ? styles.tagSuccess
+      : statusTone === "warning"
+        ? styles.tagWarning
+        : statusTone === "danger"
+          ? styles.tagDanger
+          : statusTone === "info"
+            ? styles.tagInfo
+            : styles.tagDefault;
   const formLocked = ["staff_verified", "scheduled", "completed"].includes(status);
   const disabledSubmission =
     phase2GateReasons.length > 0 || !meetingRequirement.satisfied || !systemTestReady || formLocked;
@@ -148,6 +173,8 @@ export default function ThesisDefenseRequestContent() {
         </button>
       </section>
 
+      <DefenseRequestStepper status={status} />
+
       {phase2GateReasons.length > 0 ? (
         <section className={styles.noticeWarning}>
           <p className={styles.noticeTitle}>ปริญญานิพนธ์ยังไม่ปลดล็อก</p>
@@ -161,7 +188,7 @@ export default function ThesisDefenseRequestContent() {
 
       <section className={styles.card}>
         <div className={styles.tagRow}>
-          <span className={styles.tag}>สถานะคำขอ: {statusLabel}</span>
+          <span className={`${styles.tag} ${statusClass}`}>สถานะคำขอ: {statusLabel}</span>
           {!meetingRequirement.satisfied ? (
             <span className={styles.tagWarning}>
               ยังไม่ครบ log ({meetingRequirement.approved}/{meetingRequirement.required})
@@ -182,15 +209,34 @@ export default function ThesisDefenseRequestContent() {
         </div>
       </section>
 
+      {["advisor_rejected", "staff_returned"].includes(status) ? (
+        <section className={styles.noticeRejection}>
+          <p className={styles.noticeTitle}>
+            {status === "advisor_rejected" ? "อาจารย์ส่งคำขอกลับแล้ว" : "เจ้าหน้าที่ส่งคำขอกลับแล้ว"}
+          </p>
+          <p>กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งใหม่ได้เลย</p>
+        </section>
+      ) : null}
+
       {!systemTestReady ? (
         <section className={styles.noticeWarning}>
-          ยังไม่ครบเงื่อนไขทดสอบระบบ 30 วันและหลักฐานการประเมิน
+          <p className={styles.noticeTitle}>ยังไม่ครบเงื่อนไขทดสอบระบบ 30 วัน</p>
+          <p>
+            ต้องทดสอบระบบให้ครบและอัปโหลดหลักฐานก่อนยื่นคำขอนี้{" "}
+            <Link href="/project/phase2/system-test" className={styles.link}>ไปหน้าทดสอบระบบ →</Link>
+          </p>
         </section>
       ) : null}
 
       <section className={styles.card}>
         <h3>ข้อมูลนักศึกษา</h3>
         <div className={styles.table}>
+          <div className={styles.tableHeader}>
+            <span className={styles.tableHeaderCell}>รหัสนักศึกษา</span>
+            <span className={styles.tableHeaderCell}>ชื่อ-นามสกุล</span>
+            <span className={styles.tableHeaderCell}>เบอร์โทรศัพท์</span>
+            <span className={styles.tableHeaderCell}>อีเมล</span>
+          </div>
           {students.map((student, index) => (
             <div key={`${student.studentId}-${index}`} className={styles.row}>
               <input value={student.studentCode || ""} disabled aria-label="รหัสนักศึกษา" />
@@ -229,6 +275,23 @@ export default function ThesisDefenseRequestContent() {
         >
           {saving ? "กำลังบันทึก..." : "บันทึกคำขอสอบ"}
         </button>
+        {disabledSubmission && !formLocked ? (
+          <div className={styles.buttonHint}>
+            <p>ส่งคำขอไม่ได้เนื่องจาก:</p>
+            <ul className={styles.buttonHintList}>
+              {phase2GateReasons.length > 0 ? <li>ปริญญานิพนธ์ยังไม่ปลดล็อก</li> : null}
+              {!meetingRequirement.satisfied ? (
+                <li>
+                  บันทึกการพบอาจารย์ยังไม่ครบ ({meetingRequirement.approved}/{meetingRequirement.required} ครั้ง){" "}
+                  <Link href="/project/phase1/meeting-logbook" className={styles.link}>ไปบันทึก →</Link>
+                </li>
+              ) : null}
+              {!systemTestReady ? <li>เงื่อนไขทดสอบระบบ 30 วันยังไม่ครบสมบูรณ์</li> : null}
+            </ul>
+          </div>
+        ) : formLocked ? (
+          <p className={styles.noticeInline}>คำขอนี้ถูกล็อกแล้ว — ไม่สามารถแก้ไขได้หลังเจ้าหน้าที่รับเรื่อง</p>
+        ) : null}
       </section>
     </div>
   );

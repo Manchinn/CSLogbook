@@ -50,6 +50,11 @@ type MeetingStats = {
   phaseBreakdown?: Record<string, MeetingStats>;
 };
 
+const phaseLabels: Record<string, string> = {
+  phase1: "โครงงานพิเศษ 1",
+  phase2: "ปริญญานิพนธ์",
+};
+
 const meetingStatusLabels: Record<string, string> = {
   pending: "รออนุมัติ",
   approved: "อนุมัติแล้ว",
@@ -91,12 +96,14 @@ export default function MeetingLogbookPage() {
   });
 
   const [logForm, setLogForm] = useState({
-    meetingId: "",
     discussionTopic: "",
     currentProgress: "",
     problemsIssues: "",
     nextActionItems: "",
   });
+
+  // meetingId ที่กำลัง expand inline log form อยู่ (null = ไม่มี form เปิด)
+  const [activeLogMeetingId, setActiveLogMeetingId] = useState<number | null>(null);
 
   const [editMeeting, setEditMeeting] = useState<MeetingRecord | null>(null);
   const [editMeetingForm, setEditMeetingForm] = useState({
@@ -203,6 +210,10 @@ export default function MeetingLogbookPage() {
 
   const handleCreateMeeting = async () => {
     if (!token || !project?.projectId || isPostTopicLocked) return;
+    if (!meetingForm.meetingTitle.trim()) {
+      setErrorMessage("กรุณาใส่ชื่อหัวข้อการประชุม เพื่อให้สามารถแยกแยะแต่ละครั้งได้");
+      return;
+    }
     if (!meetingForm.meetingDate) {
       setErrorMessage("กรุณาระบุวันและเวลาการประชุม");
       return;
@@ -231,19 +242,19 @@ export default function MeetingLogbookPage() {
     }
   };
 
-  const handleCreateLog = async () => {
+  // รับ meetingId โดยตรงจาก meeting ที่ expand form อยู่ — ไม่ต้องใช้ dropdown อีกต่อไป
+  const handleCreateLog = async (meetingId: number) => {
     if (!token || !project?.projectId || isPostTopicLocked) return;
-    if (!logForm.meetingId) return;
     setErrorMessage(null);
     try {
-      await createMeetingLog(token, project.projectId, Number(logForm.meetingId), {
+      await createMeetingLog(token, project.projectId, meetingId, {
         discussionTopic: logForm.discussionTopic,
         currentProgress: logForm.currentProgress,
         problemsIssues: logForm.problemsIssues || null,
         nextActionItems: logForm.nextActionItems,
       });
+      setActiveLogMeetingId(null);
       setLogForm({
-        meetingId: "",
         discussionTopic: "",
         currentProgress: "",
         problemsIssues: "",
@@ -380,9 +391,8 @@ export default function MeetingLogbookPage() {
 
         {stats ? (
           <div className={styles.tagRow}>
-            <span className={styles.tag}>จำนวนประชุม: {String(stats.totalMeetings ?? 0)}</span>
             <span className={styles.tag}>บันทึกทั้งหมด: {String(stats.totalLogs ?? 0)}</span>
-            <span className={styles.tagSuccess}>อนุมัติ: {String(stats.approvedLogs ?? 0)}</span>
+            <span className={styles.tagSuccess}>อนุมัติแล้ว: {String(stats.approvedLogs ?? 0)}</span>
           </div>
         ) : null}
 
@@ -406,9 +416,18 @@ export default function MeetingLogbookPage() {
 
         <section className={styles.tagRow}>
           <span className={styles.tag}>ประชุม: {String(activeStats.totalMeetings ?? 0)}</span>
-          <span className={styles.tag}>บันทึก: {String(activeStats.totalLogs ?? 0)}</span>
-          <span className={styles.tagSuccess}>อนุมัติ: {String(activeStats.approvedLogs ?? 0)}</span>
-          <span className={styles.tagWarning}>รออนุมัติ: {String(activeStats.pendingLogs ?? 0)}</span>
+          <span
+            className={
+              Number(activeStats.approvedLogs ?? 0) >= 4
+                ? styles.tagSuccess
+                : styles.tagWarning
+            }
+          >
+            ผ่านการอนุมัติ: {String(activeStats.approvedLogs ?? 0)}/4
+          </span>
+          {Number(activeStats.pendingLogs ?? 0) > 0 ? (
+            <span className={styles.tagWarning}>รออนุมัติ: {String(activeStats.pendingLogs ?? 0)}</span>
+          ) : null}
         </section>
 
         <section className={styles.grid}>
@@ -416,9 +435,10 @@ export default function MeetingLogbookPage() {
             <h3>สร้างการประชุม</h3>
             <div className={styles.form}>
               <div className={styles.field}>
-                <label>หัวข้อการประชุม</label>
+                <label>หัวข้อการประชุม <span aria-hidden="true" style={{color:"#ff4d4f"}}>*</span></label>
                 <input
                   value={meetingForm.meetingTitle}
+                  placeholder="ตั้งชื่อที่จำง่าย เช่น 'ปรึกษา Prototype ครั้งที่ 2'"
                   onChange={(event) => setMeetingForm((prev) => ({ ...prev, meetingTitle: event.target.value }))}
                   disabled={!canManage || isPostTopicLocked}
                 />
@@ -461,7 +481,7 @@ export default function MeetingLogbookPage() {
                 />
               </div>
               <div className={styles.field}>
-                <label>Phase</label>
+                <label>ช่วงโครงงาน</label>
                 <select
                   value={meetingForm.phase}
                   onChange={(event) => setMeetingForm((prev) => ({ ...prev, phase: event.target.value }))}
@@ -477,73 +497,13 @@ export default function MeetingLogbookPage() {
                 type="button"
                 className={styles.primaryButton}
                 onClick={handleCreateMeeting}
-                disabled={!project || !canManage || isPostTopicLocked}
+                disabled={!project || !canManage || isPostTopicLocked || !meetingForm.meetingTitle.trim()}
               >
                 บันทึกการประชุม
               </button>
             </div>
           </div>
 
-          <div className={styles.card}>
-            <h3>บันทึก log การพบอาจารย์</h3>
-            <div className={styles.form}>
-              <div className={styles.field}>
-                <label>เลือกการประชุม</label>
-                <select
-                  value={logForm.meetingId}
-                  onChange={(event) => setLogForm((prev) => ({ ...prev, meetingId: event.target.value }))}
-                  disabled={!canManage || isPostTopicLocked}
-                >
-                  <option value="">เลือกการประชุม</option>
-                  {activeMeetings.map((meeting) => (
-                    <option key={String(meeting.meetingId)} value={String(meeting.meetingId)}>
-                      {String(meeting.meetingTitle || "การประชุม")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={styles.field}>
-                <label>หัวข้อที่สนทนา</label>
-                <textarea
-                  value={logForm.discussionTopic}
-                  onChange={(event) => setLogForm((prev) => ({ ...prev, discussionTopic: event.target.value }))}
-                  disabled={!canManage || isPostTopicLocked}
-                />
-              </div>
-              <div className={styles.field}>
-                <label>ความคืบหน้าปัจจุบัน</label>
-                <textarea
-                  value={logForm.currentProgress}
-                  onChange={(event) => setLogForm((prev) => ({ ...prev, currentProgress: event.target.value }))}
-                  disabled={!canManage || isPostTopicLocked}
-                />
-              </div>
-              <div className={styles.field}>
-                <label>ปัญหา/อุปสรรค</label>
-                <textarea
-                  value={logForm.problemsIssues}
-                  onChange={(event) => setLogForm((prev) => ({ ...prev, problemsIssues: event.target.value }))}
-                  disabled={!canManage || isPostTopicLocked}
-                />
-              </div>
-              <div className={styles.field}>
-                <label>งานถัดไป</label>
-                <textarea
-                  value={logForm.nextActionItems}
-                  onChange={(event) => setLogForm((prev) => ({ ...prev, nextActionItems: event.target.value }))}
-                  disabled={!canManage || isPostTopicLocked}
-                />
-              </div>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={handleCreateLog}
-                disabled={!project || !canManage || isPostTopicLocked || !logForm.meetingId}
-              >
-                บันทึก log
-              </button>
-            </div>
-          </div>
         </section>
 
         <section className={styles.card}>
@@ -557,9 +517,21 @@ export default function MeetingLogbookPage() {
                   <div>
                     <strong>{String(meeting.meetingTitle || "การประชุม")}</strong>
                     <div className={styles.meta}>{formatDateTime(meeting.meetingDate)}</div>
-                    <div className={styles.meta}>Phase: {String(meeting.phase || "phase1")}</div>
+                    <div className={styles.meta}>{phaseLabels[meeting.phase ?? "phase1"] ?? meeting.phase}</div>
                   </div>
                   <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.addLogButton}
+                      onClick={() =>
+                        setActiveLogMeetingId((prev) =>
+                          prev === meeting.meetingId ? null : meeting.meetingId
+                        )
+                      }
+                      disabled={!canManage || isPostTopicLocked}
+                    >
+                      {activeLogMeetingId === meeting.meetingId ? "✕ ยกเลิก" : "+ เพิ่มบันทึก"}
+                    </button>
                     <button
                       type="button"
                       className={styles.secondaryButton}
@@ -578,6 +550,75 @@ export default function MeetingLogbookPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* inline log form — expand เมื่อกด [+ เพิ่มบันทึก] เป็น meeting นี้ */}
+                {activeLogMeetingId === meeting.meetingId ? (
+                  <div className={styles.logFormInline}>
+                    <div className={styles.form}>
+                      <div className={styles.field}>
+                        <label htmlFor={`log-topic-${meeting.meetingId}`}>หัวข้อที่สนทนา</label>
+                        <textarea
+                          id={`log-topic-${meeting.meetingId}`}
+                          value={logForm.discussionTopic}
+                          placeholder="เช่น ทบทวนสรุปบทที่ 2, ปรับ ERD ตามคำแนะนำ"
+                          onChange={(event) =>
+                            setLogForm((prev) => ({ ...prev, discussionTopic: event.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label htmlFor={`log-progress-${meeting.meetingId}`}>ความคืบหน้าปัจจุบัน</label>
+                        <textarea
+                          id={`log-progress-${meeting.meetingId}`}
+                          value={logForm.currentProgress}
+                          placeholder="เช่น ออกแบบหน้าจอเสร็จ 70%, เชื่อมต่อ API แล้ว"
+                          onChange={(event) =>
+                            setLogForm((prev) => ({ ...prev, currentProgress: event.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label htmlFor={`log-problems-${meeting.meetingId}`}>ปัญหา/อุปสรรค</label>
+                        <textarea
+                          id={`log-problems-${meeting.meetingId}`}
+                          value={logForm.problemsIssues}
+                          placeholder="เช่น โครงสร้าง DB ยังไม่นิ่ง (สามารถเว้นว่างไว้)"
+                          onChange={(event) =>
+                            setLogForm((prev) => ({ ...prev, problemsIssues: event.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label htmlFor={`log-next-${meeting.meetingId}`}>งานถัดไป</label>
+                        <textarea
+                          id={`log-next-${meeting.meetingId}`}
+                          value={logForm.nextActionItems}
+                          placeholder="เช่น เขียน unit test, สรุปบทที่ 3 ภายใน 2 สัปดาห์"
+                          onChange={(event) =>
+                            setLogForm((prev) => ({ ...prev, nextActionItems: event.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          className={styles.primaryButton}
+                          onClick={() => handleCreateLog(meeting.meetingId)}
+                          disabled={!logForm.discussionTopic.trim()}
+                        >
+                          บันทึก log
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => setActiveLogMeetingId(null)}
+                        >
+                          ยกเลิก
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {meeting.logs && meeting.logs.length > 0 ? (
                   <div className={styles.logList}>
@@ -689,7 +730,7 @@ export default function MeetingLogbookPage() {
                   />
                 </div>
                 <div className={styles.field}>
-                  <label>Phase</label>
+                  <label>ช่วงโครงงาน</label>
                   <select
                     value={editMeetingForm.phase}
                     onChange={(event) =>
@@ -698,7 +739,7 @@ export default function MeetingLogbookPage() {
                   >
                     <option value="phase1">โครงงานพิเศษ 1</option>
                     <option value="phase2" disabled={!canAccessPhase2}>
-                      โครงงานพิเศษ 2
+                      ปริญญานิพนธ์
                     </option>
                   </select>
                 </div>

@@ -156,3 +156,76 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.tagDanger {
+  background: #fff1f0;
+  color: #a8071a;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.tagInfo {
+  background: #e6f7ff;
+  color: #0050b3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.tagDefault {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
+}
+
+.tableHeaderCell {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.noticeRejection {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #ffa39e;
+  background: #fff1f0;
+  color: #a8071a;
+}
+
+.buttonHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.buttonHintList {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+.noticeInline {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.link {
+  color: #0050b3;
+  text-decoration: none;
+  cursor: pointer;
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { DefenseRequestStepper } from "@/components/common/DefenseRequestStepper";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -224,7 +226,18 @@ export default function ExamSubmitPage() {
           <p className={styles.subtitle}>บันทึกข้อมูลคำขอและติดตามสถานะคำร้อง</p>
         </section>
 
+        <DefenseRequestStepper status={status} />
+
         {errorMessage ? <p className={styles.notice}>{errorMessage}</p> : null}
+
+        {["advisor_rejected", "staff_returned"].includes(status) ? (
+          <section className={styles.noticeRejection}>
+            <p className={styles.sectionTitle}>
+              {status === "advisor_rejected" ? "อาจารย์ส่งคำขอกลับแล้ว" : "เจ้าหน้าที่ส่งคำขอกลับแล้ว"}
+            </p>
+            <p>กรุณาตรวจสอบสถานะอาจารย์ด้านล่าง แก้ไขข้อมูลแล้วส่งใหม่ได้เลย</p>
+          </section>
+        ) : null}
 
         <section className={styles.card}>
           <div className={styles.tagRow}>
@@ -287,7 +300,12 @@ export default function ExamSubmitPage() {
                 const approvalStatus = approval.status ? approvalMeta[approval.status] : approvalMeta.pending;
                 return (
                   <div key={String(approval.advisorId)} className={styles.listItem}>
-                    <span>อาจารย์ #{approval.advisorId}</span>
+                    <div>
+                      <span>{approval.name ? String(approval.name) : `อาจารย์ที่ปรึกษา`}</span>
+                      {approval.status === "rejected" && approval.comment ? (
+                        <p className={styles.approvalNote}>เหตุผล: {String(approval.comment)}</p>
+                      ) : null}
+                    </div>
                     <span
                       className={`${styles.tag} ${
                         approvalStatus.tone === "success"
@@ -339,6 +357,12 @@ export default function ExamSubmitPage() {
         <section className={styles.card}>
           <h3 className={styles.sectionTitle}>ข้อมูลนักศึกษา</h3>
           <div className={styles.table}>
+            <div className={styles.tableHeader}>
+              <span className={styles.tableHeaderCell}>รหัสนักศึกษา</span>
+              <span className={styles.tableHeaderCell}>ชื่อ-นามสกุล</span>
+              <span className={styles.tableHeaderCell}>เบอร์โทรศัพท์</span>
+              <span className={styles.tableHeaderCell}>อีเมล</span>
+            </div>
             {students.map((student, index) => (
               <div key={`${student.studentId}-${index}`} className={styles.row}>
                 <input value={student.studentCode || ""} disabled />
@@ -375,6 +399,14 @@ export default function ExamSubmitPage() {
           >
             {saving ? "กำลังบันทึก..." : "บันทึกคำขอสอบ"}
           </button>
+          {!meetingRequirement.satisfied && !formLocked ? (
+            <div className={styles.buttonHint}>
+              บันทึกการพบอาจารย์ยังไม่ครบ ({meetingRequirement.approved}/{meetingRequirement.required} ครั้ง){" "}
+              <Link href="/project/phase1/meeting-logbook" className={styles.link}>ไปบันทึกการพบ →</Link>
+            </div>
+          ) : formLocked ? (
+            <p className={styles.noticeInline}>คำขออยู่ระหว่างดำเนินการ — ไม่สามารถแก้ไขได้</p>
+          ) : null}
         </section>
       </div>
     </RoleGuard>

@@ -224,3 +224,64 @@
   background: var(--color-bg-subtle);
   align-items: center;
 }
+
+.noticeWarning {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #f5a623;
+  background: #fff7e6;
+  color: #ad4e00;
+}
+
+.noticeRejection {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #ffa39e;
+  background: #fff1f0;
+  color: #a8071a;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
+}
+
+.tableHeaderCell {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.buttonHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.approvalNote {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: #a8071a;
+  background: #fff1f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.link {
+  color: #0050b3;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.noticeInline {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

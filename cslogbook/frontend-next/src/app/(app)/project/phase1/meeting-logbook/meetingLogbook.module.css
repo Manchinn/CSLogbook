@@ -270,3 +270,38 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* inline log form ที่ expand ใต้แต่ละ meeting card */
+.logFormInline {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  display: grid;
+  gap: 10px;
+}
+
+/* ปุ่ม [+ เพิ่มบันทึก] / [✕ ยกเลิก] ต่อ meeting */
+.addLogButton {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid #0050b3;
+  background: transparent;
+  color: #0050b3;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.addLogButton:hover:not(:disabled) {
+  background: #e6f7ff;
+}
+
+.addLogButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
