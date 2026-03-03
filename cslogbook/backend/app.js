@@ -79,6 +79,8 @@ app.use('/api/internship', internshipRoutes);
 app.use('/api/internship', internshipCompanyStatsRoutes);
 app.use('/api/internship/logbook', logbookRoutes);
 app.use('/api/documents', documentsRoutes);
+// Public timeline endpoint (ไม่ต้อง auth) — ต้องมาก่อน authenticated timeline
+app.use('/api/timeline/public', timelineRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes);
 app.use('/api/reports', authenticateToken, reportRoutes);

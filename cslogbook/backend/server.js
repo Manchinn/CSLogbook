@@ -211,15 +211,7 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// ย้าย cors middleware ขึ้นไปก่อน route handlers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Mount email approval routes early to ensure they are not overridden by broader /api routes
-app.use('/api/email-approval', emailApprovalRoutes);
-
-// Mount API routes
-// Example: app.use('/api/auth', authRoutes); // Assuming other routes are mounted similarly
+// express.json, urlencoded, routes ทั้งหมด mount ใน app.js แล้ว (single source of truth)
 
 // Swagger setup
 const swaggerOptions = {
@@ -260,14 +252,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerDocs);
-});
-
-// Error handling database
-app.use((err, req, res, next) => {
-  if (err.code === 'ECONNREFUSED') {
-    return res.status(500).json({ error: 'Database connection failed' });
-  }
-  next(err);
 });
 
 // Socket.IO setup with validated FRONTEND_URL + auth room binding
@@ -348,46 +332,8 @@ if (!fs.existsSync(ENV.UPLOAD_DIR)) {
   fs.mkdirSync(ENV.UPLOAD_DIR, { recursive: true });
 }
 
-// Serve static files from the uploads directory
-// เพิ่มการตั้งค่า MIME type สำหรับไฟล์ .mjs
-express.static.mime.define({ 'application/javascript': ['mjs'] });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Public routes
-app.use('/api/auth', authRoutes);
-app.use('/api/auth/sso', ssoRoutes);
-app.use('/api/curriculums', curriculumRoutes);
-// เพิ่มเส้นทางสำหรับช่วงเปลี่ยนผ่านชั่วคราว - จะถูกลบออกในอนาคต
-app.use('/api/timeline/public', timelineRoutes);
-
-// Protected routes
-app.use('/api/admin', authenticateToken, adminRoutes);
-app.use('/api/students', authenticateToken, studentRoutes);
-app.use('/api/teachers', authenticateToken, teacherRoutes);
-app.use('/api/academic', authenticateToken, academicRoutes); // เพิ่ม academic routes
-//app.use('/api/project-pairs', authenticateToken, studentPairsRoutes); // ใช้ route
-//app.use('/api/project-proposals', authenticateToken, projectProposalsRoutes); // ใช้ route
-app.use('/api/documents', documentsRoutes); // ✅ เปิดใช้งาน documents (ภายในไฟล์ route มี authenticateToken เฉพาะ endpoint ที่จำเป็นอยู่แล้ว)
-//app.use('/api/internship-documents', authenticateToken, internshipDocumentsRoutes);
-//app.use('/api/logbooks', authenticateToken, logbookRoutes); // ใช้ route
-
-// Protected upload route - เฉพาะ admin เท่านั้น
-app.use('/api', uploadRoutes); // ใช้ route
-
-// Add routes
-app.use('/api/internship', internshipRoutes);
-// สถิติบริษัทฝึกงาน (company-stats) - แยกไฟล์ route ใหม่
-app.use('/api/internship', internshipCompanyStatsRoutes);
-app.use('/api/internship/logbook', logbookRoutes);
-app.use('/api/timeline', authenticateToken, timelineRoutes);
-app.use('/api/workflow', authenticateToken, workflowRoutes);
-app.use('/api/reports', authenticateToken, reportRoutes); // เส้นทางรายงาน
-// Topic Exam Overview routes (auth ภายในไฟล์ route เรียกเองแล้ว ไม่ต้องซ้ำที่นี่)
-app.use('/api/projects/topic-exam', topicExamRoutes);
-
-// Template routes
-const templateRoutes = require('./routes/template');
-app.use('/template', templateRoutes);
+// Routes และ static files (/uploads, /api/*, /template) mount ครบใน app.js แล้ว
+// server.js จัดการเฉพาะ: Socket.io, swagger (ใช้ BASE_URL จริง), server.listen
 
 // API สำหรับอัปโหลดไฟล์พร้อมข้อมูล companyInfo
 app.post('/upload-with-info', upload.single('file'), (req, res) => {
