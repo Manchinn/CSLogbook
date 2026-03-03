@@ -110,28 +110,20 @@ class AcademicSemesterScheduler {
   }
 
   /**
-   * แปลงปี ค.ศ. ให้เป็นปี พ.ศ. หากข้อมูลถูกต้อง
-   * @param {{start: dayjs.Dayjs}|null} range
-   * @param {number|null} fallbackYear
-   * @param {number} semester
+   * คำนวณปีการศึกษา (พ.ศ.) จาก semester1Range เสมอ ไม่ว่าภาคเรียนใดจะ active อยู่
+   * เพื่อป้องกันกรณีที่ record ใหม่เริ่มต้นจากภาคเรียน 2 แล้ว academicYear ไม่ถูกคำนวณ
+   * @param {{start: dayjs.Dayjs}|null} semester1Range - range ของภาคเรียนที่ 1 (ใช้ start.year())
+   * @param {number|null} fallbackYear - ค่าเดิมใน DB (ใช้เมื่อ semester1Range ไม่มีข้อมูล)
    * @returns {number|null}
    */
-  calculateAcademicYear(range, fallbackYear, semester) {
-    if (!range || !range.start || !range.start.isValid()) {
-      return fallbackYear || null;
+  calculateAcademicYear(semester1Range, fallbackYear) {
+    if (semester1Range && semester1Range.start && semester1Range.start.isValid()) {
+      const gregorianYear = semester1Range.start.year();
+      if (!Number.isNaN(gregorianYear)) {
+        return gregorianYear + 543;
+      }
     }
-
-    // อัปเดตปีการศึกษาเฉพาะเมื่อเป็นภาคเรียนที่ 1 เพื่อหลีกเลี่ยงปีข้ามกัน
-    if (semester !== 1) {
-      return fallbackYear || null;
-    }
-
-    const gregorianYear = range.start.year();
-    if (Number.isNaN(gregorianYear)) {
-      return fallbackYear || null;
-    }
-
-    return gregorianYear + 543;
+    return fallbackYear || null;
   }
 
   /**
@@ -175,7 +167,9 @@ class AcademicSemesterScheduler {
         updates.currentSemester = active.semester;
       }
 
-      const computedAcademicYear = this.calculateAcademicYear(active.range, current.academicYear, active.semester);
+      // คำนวณ academicYear จาก semester1Range เสมอ ไม่ว่าจะ active ภาคเรียนใด
+      const semester1Range = ranges[0].range;
+      const computedAcademicYear = this.calculateAcademicYear(semester1Range, current.academicYear);
       if (computedAcademicYear && current.academicYear !== computedAcademicYear) {
         updates.academicYear = computedAcademicYear;
       }

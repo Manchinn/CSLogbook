@@ -157,6 +157,64 @@ class AcademicService {
     );
   }
 
+  /**
+   * ตรวจว่ามีปีการศึกษาโดยตรงสถานะ active อยู่แล้วหรือไม่ (ป้องกัน duplicate active year)
+   * @param {number} academicYear - ปีการศึกษา (พ.ศ.)
+   * @param {number|null} excludeId - ID ที่จะยกเว้น (เช่น record ที่กำลังแก้ไข)
+   * @param {Object} transaction
+   */
+  async validateNoDuplicateActiveYear(academicYear, excludeId = null, transaction = null) {
+    if (!academicYear) return; // ไม่มีปี ตรวจไม่ได้
+
+    const where = {
+      academicYear,
+      status: ACADEMIC_STATUSES.ACTIVE,
+    };
+
+    if (excludeId) {
+      where.id = { [Op.ne]: excludeId };
+    }
+
+    const options = { where };
+    if (transaction) options.transaction = transaction;
+
+    const existing = await Academic.findOne(options);
+    if (existing) {
+      throw new Error(`ปีการศึกษา ${academicYear} มี record ที่ active อยู่แล้ว (ID: ${existing.id})`)
+    }
+  }
+
+  /**
+   * ตรวจว่า semester ranges ไม่ overlap กัน
+   * @param {Object} attrs - attributes ที่ผ่าน buildScheduleAttributes แล้ว
+   */
+  validateSemesterRangesNoOverlap(attrs) {
+    const parseRange = (rangeObj) => {
+      if (!rangeObj || !rangeObj.start || !rangeObj.end) return null;
+      const start = new Date(rangeObj.start);
+      const end = new Date(rangeObj.end);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+      return { start, end };
+    };
+
+    const s1 = parseRange(attrs.semester1Range);
+    const s2 = parseRange(attrs.semester2Range);
+    const s3 = parseRange(attrs.semester3Range);
+
+    const pairs = [
+      { label: 'ภาคเรียน 1 และ 2', a: s1, b: s2 },
+      { label: 'ภาคเรียน 1 และ 3', a: s1, b: s3 },
+      { label: 'ภาคเรียน 2 และ 3', a: s2, b: s3 },
+    ];
+
+    for (const { label, a, b } of pairs) {
+      if (!a || !b) continue;
+      if (a.start <= b.end && b.start <= a.end) {
+        throw new Error(`ช่วง${label}ซ้อนทับกัน`);
+      }
+    }
+  }
+
   async listAcademicSchedules({ status } = {}) {
     const where = {};
     if (status) {
@@ -199,6 +257,14 @@ class AcademicService {
 
       const status = normalizeStatus(scheduleData.status);
       const attributes = await this.buildScheduleAttributes(scheduleData, transaction);
+
+      // ตรวจว่าช่วงภาคเรียนไม่ overlap กัน
+      this.validateSemesterRangesNoOverlap(attributes);
+
+      // ถ้าตั้งเป็น active ตรวจว่าไม่มีปีเดียวกันที่ active อยู่แล้ว
+      if (status === ACADEMIC_STATUSES.ACTIVE && attributes.academicYear) {
+        await this.validateNoDuplicateActiveYear(attributes.academicYear, null, transaction);
+      }
 
       const payload = {
         ...attributes,
@@ -311,6 +377,11 @@ class AcademicService {
         throw new Error('ไม่พบข้อมูลปีการศึกษาที่ต้องการตั้งให้ใช้งาน');
       }
 
+      // ตรวจว่าไม่มีปีการศึกษาเดียวกันที่ active อยู่แล้ว
+      if (schedule.academicYear) {
+        await this.validateNoDuplicateActiveYear(schedule.academicYear, schedule.id, transaction);
+      }
+
       await this.demoteOtherActiveSchedules(schedule.id, transaction);
 
       await schedule.update(
@@ -336,14 +407,14 @@ class AcademicService {
 
   /**
    * ฟังก์ชันช่วยเพื่อคงความเข้ากันได้กับระบบเดิม
+   * createAcademicSchedule() จัดการ demote + isCurrent ใน single transaction อยู่แล้ว
+   * ไม่เรียก activateAcademicSchedule() ซ้ำเพื่อป้องกัน double activation race
    */
   async createAcademicSettings(academicData) {
-    const schedule = await this.createAcademicSchedule({
+    return this.createAcademicSchedule({
       ...academicData,
       status: ACADEMIC_STATUSES.ACTIVE,
     });
-    await this.activateAcademicSchedule(schedule.id);
-    return schedule;
   }
 
   async updateAcademicSettings(id, academicData) {

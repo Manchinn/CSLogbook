@@ -2,6 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { labelStatus } from "@/lib/utils/statusLabels";
+import {
+  formatThaiDateTime,
+  bangkokLocalInputToISO,
+  isoToBangkokLocalInput,
+  academicYearPlaceholder,
+  validateBuddhistYear,
+  ensureBuddhistYear,
+} from "@/lib/utils/thaiDateUtils";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getAcademicSettings,
@@ -247,6 +255,12 @@ export default function AcademicSettingsPage() {
       issues.push("กรุณาระบุภาคเรียนปัจจุบัน");
     }
 
+    // ตรวจปีการศึกษา (พ.ศ.)
+    if (scheduleForm.academicYear) {
+      const yearErr = validateBuddhistYear(scheduleForm.academicYear);
+      if (yearErr) issues.push(`ปีการศึกษา: ${yearErr}`);
+    }
+
     const ranges = [
       { label: "ภาคเรียน 1", start: scheduleForm.semester1Start, end: scheduleForm.semester1End },
       { label: "ภาคเรียน 2", start: scheduleForm.semester2Start, end: scheduleForm.semester2End },
@@ -266,6 +280,24 @@ export default function AcademicSettingsPage() {
         issues.push(`${range.label}: วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น`);
       }
     });
+
+    // ตรวจ overlap ระหว่างภาคเรียน 1/2/3
+    const semesterRanges = [
+      { label: "ภาคเรียน 1", start: scheduleForm.semester1Start, end: scheduleForm.semester1End },
+      { label: "ภาคเรียน 2", start: scheduleForm.semester2Start, end: scheduleForm.semester2End },
+      { label: "ภาคฤดูร้อน", start: scheduleForm.semester3Start, end: scheduleForm.semester3End },
+    ];
+    for (let i = 0; i < semesterRanges.length; i++) {
+      for (let j = i + 1; j < semesterRanges.length; j++) {
+        const a = semesterRanges[i];
+        const b = semesterRanges[j];
+        if (a.start && a.end && b.start && b.end) {
+          if (a.start <= b.end && b.start <= a.end) {
+            issues.push(`ช่วงเวลาของ${a.label}และ${b.label}ซ้อนทับกัน`);
+          }
+        }
+      }
+    }
 
     setValidationIssues(issues);
   }, [
@@ -461,7 +493,8 @@ export default function AcademicSettingsPage() {
       lockAfterDeadline: deadlineForm.lockAfterDeadline,
       visibilityScope: deadlineForm.visibilityScope,
       isPublished: deadlineForm.isPublished,
-      publishAt: deadlineForm.publishAt || undefined,
+      // แปลง datetime-local → ISO +07:00 ก่อนส่ง backend เพื่อป้องกัน UTC shifting
+      publishAt: deadlineForm.publishAt ? bangkokLocalInputToISO(deadlineForm.publishAt) : undefined,
       windowStartDate: deadlineForm.windowStartDate || undefined,
       windowStartTime: deadlineForm.windowStartTime || undefined,
       windowEndDate: deadlineForm.windowEndDate || undefined,
@@ -512,7 +545,8 @@ export default function AcademicSettingsPage() {
       lockAfterDeadline: Boolean(deadline.lockAfterDeadline),
       visibilityScope: deadline.visibilityScope ?? "ALL",
       isPublished: deadline.isPublished ?? true,
-      publishAt: deadline.publishAt ?? "",
+      // แปลง ISO จาก backend → local datetime-local value (Bangkok time)
+      publishAt: deadline.publishAt ? isoToBangkokLocalInput(deadline.publishAt) : "",
       windowStartDate: deadline.windowStartDate ?? "",
       windowStartTime: deadline.windowStartTime ?? "",
       windowEndDate: deadline.windowEndDate ?? "",
@@ -550,7 +584,9 @@ export default function AcademicSettingsPage() {
 
   const currentScheduleLabel = useMemo(() => {
     if (!currentSettings) return "ยังไม่กำหนดปีการศึกษาปัจจุบัน";
-    return `ปีการศึกษา ${currentSettings.academicYear ?? "-"} / ภาคเรียน ${currentSettings.currentSemester ?? "-"}`;
+    // แสดงปีเป็น พ.ศ. เสมอ (รองรับกรณีที่ DB เก็บเป็น ค.ศ. โดยไม่ตั้งใจ)
+    const displayYear = ensureBuddhistYear(currentSettings.academicYear) ?? "-";
+    return `ปีการศึกษา ${displayYear}/ ภาคเรียน ${currentSettings.currentSemester ?? "-"}`;
   }, [currentSettings]);
 
   return (
@@ -581,187 +617,176 @@ export default function AcademicSettingsPage() {
             <span className={styles.badge}>{currentScheduleLabel}</span>
           </div>
 
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>Wizard (Legacy Flow)</div>
-            <div className={styles.cardMeta}>1) เลือกหลักสูตร/ปีการศึกษา 2) ตั้งช่วงภาคเรียน 3) ตั้งช่วงลงทะเบียน</div>
-            {validationIssues.length > 0 ? (
-              <ul className={styles.cardMeta}>
-                {validationIssues.map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
-              </ul>
-            ) : (
-              <div className={styles.cardMeta}>ข้อมูลครบถ้วน พร้อมบันทึก</div>
-            )}
+          {/* Validation summary */}
+          {validationIssues.length > 0 && (
+            <div className={`${styles.alert} ${styles.alertWarning}`}>
+              {validationIssues.join(" · ")}
+            </div>
+          )}
+
+          {/* ━━ กลุ่ม 1: ข้อมูลหลัก ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>ข้อมูลหลัก</div>
+            <div className={styles.fieldGridInfo}>
+              <label className={styles.field}>
+                ปีการศึกษา (พ.ศ.)
+                <input
+                  type="number"
+                  className={styles.input}
+                  placeholder={academicYearPlaceholder()}
+                  value={scheduleForm.academicYear}
+                  onChange={(event) => handleScheduleField("academicYear", event.target.value)}
+                />
+                {validateBuddhistYear(scheduleForm.academicYear) ? (
+                  <span className={styles.fieldWarn}>{validateBuddhistYear(scheduleForm.academicYear)}</span>
+                ) : scheduleForm.academicYear ? (
+                  <span className={styles.fieldHint}></span>
+                ) : null}
+              </label>
+              <label className={styles.field}>
+                ภาคเรียนปัจจุบัน
+                <input
+                  type="number"
+                  className={styles.input}
+                  placeholder="เช่น 1"
+                  min={1}
+                  max={3}
+                  value={scheduleForm.currentSemester}
+                  onChange={(event) => handleScheduleField("currentSemester", event.target.value)}
+                />
+              </label>
+              <label className={styles.field}>
+                หลักสูตรที่ใช้งาน
+                <select
+                  className={styles.select}
+                  value={scheduleForm.activeCurriculumId}
+                  onChange={(event) => handleScheduleField("activeCurriculumId", event.target.value)}
+                >
+                  <option value="">เลือกหลักสูตร</option>
+                  {curriculums.map((curriculum) => {
+                    const id = getCurriculumId(curriculum);
+                    return (
+                      <option key={id ?? curriculum.code} value={id ?? ""}>
+                        {curriculum.code ?? "-"} — {curriculum.shortName ?? curriculum.name ?? "-"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label className={styles.field}>
+                สถานะ
+                <select
+                  className={styles.select}
+                  value={scheduleForm.status}
+                  onChange={(event) => handleScheduleField("status", event.target.value)}
+                >
+                  <option value="draft">ร่าง (Draft)</option>
+                  <option value="published">เผยแพร่ (Published)</option>
+                  <option value="active">ใช้งาน (Active)</option>
+                </select>
+              </label>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              ปีการศึกษา
-              <input
-                type="number"
-                className={styles.input}
-                value={scheduleForm.academicYear}
-                onChange={(event) => handleScheduleField("academicYear", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคเรียนปัจจุบัน
-              <input
-                type="number"
-                className={styles.input}
-                value={scheduleForm.currentSemester}
-                onChange={(event) => handleScheduleField("currentSemester", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              หลักสูตรที่ใช้งาน
-              <select
-                className={styles.select}
-                value={scheduleForm.activeCurriculumId}
-                onChange={(event) => handleScheduleField("activeCurriculumId", event.target.value)}
-              >
-                <option value="">เลือกหลักสูตร</option>
-                {curriculums.map((curriculum) => {
-                  const id = getCurriculumId(curriculum);
-                  return (
-                    <option key={id ?? curriculum.code} value={id ?? ""}>
-                      {curriculum.code ?? "-"} - {curriculum.shortName ?? curriculum.name ?? "-"}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-            <label className={styles.field}>
-              สถานะ
-              <select
-                className={styles.select}
-                value={scheduleForm.status}
-                onChange={(event) => handleScheduleField("status", event.target.value)}
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="active">Active</option>
-              </select>
-            </label>
+          {/* ━━ กลุ่ม 2: ช่วงเวลาภาคเรียน ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>ช่วงเวลาภาคเรียน</div>
+            <div className={styles.fieldGrid3}>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ภาคเรียน 1</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันเริ่มต้น
+                    <input type="date" className={styles.input} value={scheduleForm.semester1Start}
+                      onChange={(e) => handleScheduleField("semester1Start", e.target.value)} />
+                  </label>
+                  <label>วันสิ้นสุด
+                    <input type="date" className={styles.input} value={scheduleForm.semester1End}
+                      onChange={(e) => handleScheduleField("semester1End", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ภาคเรียน 2</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันเริ่มต้น
+                    <input type="date" className={styles.input} value={scheduleForm.semester2Start}
+                      onChange={(e) => handleScheduleField("semester2Start", e.target.value)} />
+                  </label>
+                  <label>วันสิ้นสุด
+                    <input type="date" className={styles.input} value={scheduleForm.semester2End}
+                      onChange={(e) => handleScheduleField("semester2End", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ภาคฤดูร้อน</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันเริ่มต้น
+                    <input type="date" className={styles.input} value={scheduleForm.semester3Start}
+                      onChange={(e) => handleScheduleField("semester3Start", e.target.value)} />
+                  </label>
+                  <label>วันสิ้นสุด
+                    <input type="date" className={styles.input} value={scheduleForm.semester3End}
+                      onChange={(e) => handleScheduleField("semester3End", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              ภาคเรียน 1 (เริ่ม)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.semester1Start}
-                onChange={(event) => handleScheduleField("semester1Start", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคเรียน 1 (สิ้นสุด)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.semester1End}
-                onChange={(event) => handleScheduleField("semester1End", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคเรียน 2 (เริ่ม)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.semester2Start}
-                onChange={(event) => handleScheduleField("semester2Start", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคเรียน 2 (สิ้นสุด)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.semester2End}
-                onChange={(event) => handleScheduleField("semester2End", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคฤดูร้อน (เริ่ม)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.semester3Start}
-                onChange={(event) => handleScheduleField("semester3Start", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคฤดูร้อน (สิ้นสุด)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.semester3End}
-                onChange={(event) => handleScheduleField("semester3End", event.target.value)}
-              />
-            </label>
+          {/* ━━ กลุ่ม 3: ช่วงลงทะเบียน ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>ช่วงลงทะเบียน</div>
+            <div className={styles.fieldGrid2}>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ลงทะเบียนฝึกงาน</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันเริ่มต้น
+                    <input type="date" className={styles.input} value={scheduleForm.internshipStart}
+                      onChange={(e) => handleScheduleField("internshipStart", e.target.value)} />
+                  </label>
+                  <label>วันสิ้นสุด
+                    <input type="date" className={styles.input} value={scheduleForm.internshipEnd}
+                      onChange={(e) => handleScheduleField("internshipEnd", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ลงทะเบียนโครงงาน</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันเริ่มต้น
+                    <input type="date" className={styles.input} value={scheduleForm.projectStart}
+                      onChange={(e) => handleScheduleField("projectStart", e.target.value)} />
+                  </label>
+                  <label>วันสิ้นสุด
+                    <input type="date" className={styles.input} value={scheduleForm.projectEnd}
+                      onChange={(e) => handleScheduleField("projectEnd", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              ลงทะเบียนฝึกงาน (เริ่ม)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.internshipStart}
-                onChange={(event) => handleScheduleField("internshipStart", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ลงทะเบียนฝึกงาน (สิ้นสุด)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.internshipEnd}
-                onChange={(event) => handleScheduleField("internshipEnd", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ลงทะเบียนโครงงาน (เริ่ม)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.projectStart}
-                onChange={(event) => handleScheduleField("projectStart", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ลงทะเบียนโครงงาน (สิ้นสุด)
-              <input
-                type="date"
-                className={styles.input}
-                value={scheduleForm.projectEnd}
-                onChange={(event) => handleScheduleField("projectEnd", event.target.value)}
-              />
-            </label>
+          {/* ━━ กลุ่ม 4: ภาคเรียนที่อนุญาต ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>ภาคเรียนที่อนุญาต</div>
+            <div className={styles.fieldGrid2}>
+              <label className={styles.field}>
+                ฝึกงาน (ระบุหมายเลข คั่นด้วยจุลภาค)
+                <input className={styles.input} placeholder="เช่น 1, 2"
+                  value={scheduleForm.internshipSemesters}
+                  onChange={(event) => handleScheduleField("internshipSemesters", event.target.value)} />
+              </label>
+              <label className={styles.field}>
+                โครงงาน (ระบุหมายเลข คั่นด้วยจุลภาค)
+                <input className={styles.input} placeholder="เช่น 1, 2"
+                  value={scheduleForm.projectSemesters}
+                  onChange={(event) => handleScheduleField("projectSemesters", event.target.value)} />
+              </label>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              ภาคเรียนที่อนุญาตฝึกงาน (เช่น 1,2)
-              <input
-                className={styles.input}
-                value={scheduleForm.internshipSemesters}
-                onChange={(event) => handleScheduleField("internshipSemesters", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคเรียนที่อนุญาตโครงงาน (เช่น 1,2)
-              <input
-                className={styles.input}
-                value={scheduleForm.projectSemesters}
-                onChange={(event) => handleScheduleField("projectSemesters", event.target.value)}
-              />
-            </label>
-          </div>
-
-          <div className={styles.actions}>
+          <div className={styles.actionsRight}>
             <button type="button" className={styles.button} onClick={() => setScheduleForm(emptyScheduleForm)}>
               ล้างฟอร์ม
             </button>
@@ -803,7 +828,8 @@ export default function AcademicSettingsPage() {
               <tbody>
                 {schedules.map((schedule) => (
                   <tr key={schedule.id}>
-                    <td>{schedule.academicYear ?? "-"}</td>
+                    {/* แสดงปีเป็น พ.ศ. เสมอ (รองรับกรณี DB เก็บ ค.ศ.) */}
+                    <td>{ensureBuddhistYear(schedule.academicYear) ?? "-"} พ.ศ.</td>
                     <td>{schedule.currentSemester ?? "-"}</td>
                     <td>
                       <span className={`${styles.badge} ${schedule.status === "active" ? styles.badgeSuccess : styles.badgeMuted}`}>
@@ -882,179 +908,159 @@ export default function AcademicSettingsPage() {
             </div>
           </div>
 
-          {deadlineIssues.length > 0 ? (
+          {deadlineIssues.length > 0 && (
             <div className={`${styles.alert} ${styles.alertWarning}`}>
-              {deadlineIssues.join(" / ")}
+              {deadlineIssues.join(" · ")}
             </div>
-          ) : null}
+          )}
 
-          <div className={styles.fieldRow}>
+          {/* ━━ กลุ่ม A: ข้อมูลกำหนดการ ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>ข้อมูลกำหนดการ</div>
             <label className={styles.field}>
               ชื่อกำหนดการ
               <input
                 className={styles.input}
+                placeholder="เช่น วันสุดท้ายของการส่งเอกสารออกโรงงาน"
                 value={deadlineForm.name}
                 onChange={(event) => handleDeadlineField("name", event.target.value)}
               />
             </label>
-            <label className={styles.field}>
-              หมวด
-              <select
-                className={styles.select}
-                value={deadlineForm.relatedTo}
-                onChange={(event) => handleDeadlineField("relatedTo", event.target.value)}
-              >
-                <option value="project">โครงงาน</option>
-                <option value="project1">Project 1</option>
-                <option value="project2">Project 2</option>
-                <option value="internship">ฝึกงาน</option>
-                <option value="general">ทั่วไป</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              ปีการศึกษา
-              <input
-                type="number"
-                className={styles.input}
-                value={deadlineForm.academicYear}
-                onChange={(event) => handleDeadlineField("academicYear", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ภาคเรียน
-              <input
-                type="number"
-                className={styles.input}
-                value={deadlineForm.semester}
-                onChange={(event) => handleDeadlineField("semester", event.target.value)}
-              />
-            </label>
+            <div className={styles.fieldGrid3}>
+              <label className={styles.field}>
+                หมวด
+                <select className={styles.select} value={deadlineForm.relatedTo}
+                  onChange={(event) => handleDeadlineField("relatedTo", event.target.value)}>
+                  <option value="project">โครงงาน</option>
+                  <option value="project1">Project 1</option>
+                  <option value="project2">Project 2</option>
+                  <option value="internship">ฝึกงาน</option>
+                  <option value="general">ทั่วไป</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                ปีการศึกษา
+                <input type="number" className={styles.input} placeholder={academicYearPlaceholder()}
+                  value={deadlineForm.academicYear}
+                  onChange={(event) => handleDeadlineField("academicYear", event.target.value)} />
+                {validateBuddhistYear(deadlineForm.academicYear) ? (
+                  <span className={styles.fieldWarn}>{validateBuddhistYear(deadlineForm.academicYear)}</span>
+                ) : deadlineForm.academicYear ? (
+                  <span className={styles.fieldHint}></span>
+                ) : null}
+              </label>
+              <label className={styles.field}>
+                ภาคเรียน
+                <input type="number" className={styles.input} placeholder="เช่น 1"
+                  min={1} max={3}
+                  value={deadlineForm.semester}
+                  onChange={(event) => handleDeadlineField("semester", event.target.value)} />
+              </label>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              วันครบกำหนด
-              <input
-                type="date"
-                className={styles.input}
-                value={deadlineForm.deadlineDate}
-                onChange={(event) => handleDeadlineField("deadlineDate", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              เวลา
-              <input
-                type="time"
-                className={styles.input}
-                value={deadlineForm.deadlineTime}
-                onChange={(event) => handleDeadlineField("deadlineTime", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              เผยแพร่
-              <select
-                className={styles.select}
-                value={deadlineForm.isPublished ? "true" : "false"}
-                onChange={(event) => handleDeadlineField("isPublished", event.target.value === "true")}
-              >
-                <option value="true">เผยแพร่</option>
-                <option value="false">ยังไม่เผยแพร่</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              Publish At (optional)
-              <input
-                type="datetime-local"
-                className={styles.input}
-                value={deadlineForm.publishAt}
-                onChange={(event) => handleDeadlineField("publishAt", event.target.value)}
-              />
-            </label>
+          {/* ━━ กลุ่ม B: วันและเวลาครบกำหนด ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>วันและเวลาครบกำหนด</div>
+            <div className={styles.fieldGrid4}>
+              <label className={styles.field}>
+                วันครบกำหนด
+                <input type="date" className={styles.input} value={deadlineForm.deadlineDate}
+                  onChange={(event) => handleDeadlineField("deadlineDate", event.target.value)} />
+              </label>
+              <label className={styles.field}>
+                เวลา
+                <input type="time" className={styles.input} value={deadlineForm.deadlineTime}
+                  onChange={(event) => handleDeadlineField("deadlineTime", event.target.value)} />
+              </label>
+              <label className={styles.field}>
+                สถานะการเผยแพร่
+                <select className={styles.select}
+                  value={deadlineForm.isPublished ? "true" : "false"}
+                  onChange={(event) => handleDeadlineField("isPublished", event.target.value === "true")}>
+                  <option value="true">เผยแพร่แล้ว</option>
+                  <option value="false">ยังไม่เผยแพร่</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                เผยแพร่อัตโนมัติเมื่อ
+                <input type="datetime-local" className={styles.input} value={deadlineForm.publishAt}
+                  onChange={(event) => handleDeadlineField("publishAt", event.target.value)} />
+              </label>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              หน้าต่างเปิดส่ง (เริ่ม)
-              <input
-                type="date"
-                className={styles.input}
-                value={deadlineForm.windowStartDate}
-                onChange={(event) => handleDeadlineField("windowStartDate", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              เวลาเริ่ม
-              <input
-                type="time"
-                className={styles.input}
-                value={deadlineForm.windowStartTime}
-                onChange={(event) => handleDeadlineField("windowStartTime", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              หน้าต่างเปิดส่ง (สิ้นสุด)
-              <input
-                type="date"
-                className={styles.input}
-                value={deadlineForm.windowEndDate}
-                onChange={(event) => handleDeadlineField("windowEndDate", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              เวลาสิ้นสุด
-              <input
-                type="time"
-                className={styles.input}
-                value={deadlineForm.windowEndTime}
-                onChange={(event) => handleDeadlineField("windowEndTime", event.target.value)}
-              />
-            </label>
+          {/* ━━ กลุ่ม C: หน้าต่างการส่ง (optional) ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>หน้าต่างการส่ง (ไม่บังคับ)</div>
+            <div className={styles.fieldGrid2}>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ช่วงเปิดรับ — เริ่มต้น</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันที่
+                    <input type="date" className={styles.input} value={deadlineForm.windowStartDate}
+                      onChange={(e) => handleDeadlineField("windowStartDate", e.target.value)} />
+                  </label>
+                  <label>เวลา
+                    <input type="time" className={styles.input} value={deadlineForm.windowStartTime}
+                      onChange={(e) => handleDeadlineField("windowStartTime", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+              <div className={styles.semesterBlock}>
+                <div className={styles.semesterBlockLabel}>ช่วงเปิดรับ — สิ้นสุด</div>
+                <div className={styles.semesterDatePair}>
+                  <label>วันที่
+                    <input type="date" className={styles.input} value={deadlineForm.windowEndDate}
+                      onChange={(e) => handleDeadlineField("windowEndDate", e.target.value)} />
+                  </label>
+                  <label>เวลา
+                    <input type="time" className={styles.input} value={deadlineForm.windowEndTime}
+                      onChange={(e) => handleDeadlineField("windowEndTime", e.target.value)} />
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              อนุญาตส่งล่าช้า
-              <select
-                className={styles.select}
-                value={deadlineForm.allowLate ? "true" : "false"}
-                onChange={(event) => handleDeadlineField("allowLate", event.target.value === "true")}
-              >
-                <option value="true">อนุญาต</option>
-                <option value="false">ไม่อนุญาต</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              Grace Period (นาที)
-              <input
-                type="number"
-                className={styles.input}
-                value={deadlineForm.gracePeriodMinutes}
-                onChange={(event) => handleDeadlineField("gracePeriodMinutes", event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              ปิดรับหลังหมดเวลา
-              <select
-                className={styles.select}
-                value={deadlineForm.lockAfterDeadline ? "true" : "false"}
-                onChange={(event) => handleDeadlineField("lockAfterDeadline", event.target.value === "true")}
-              >
-                <option value="true">ปิดรับ</option>
-                <option value="false">ไม่ปิดรับ</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              การมองเห็น
-              <select
-                className={styles.select}
-                value={deadlineForm.visibilityScope}
-                onChange={(event) => handleDeadlineField("visibilityScope", event.target.value)}
-              >
-                <option value="ALL">ทั้งหมด</option>
-                <option value="INTERNSHIP_ONLY">ฝึกงานเท่านั้น</option>
-                <option value="PROJECT_ONLY">โครงงานเท่านั้น</option>
-              </select>
-            </label>
+          {/* ━━ กลุ่ม D: นโยบาย ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>นโยบายกำหนดส่ง</div>
+            <div className={styles.fieldGrid4}>
+              <label className={styles.field}>
+                อนุญาตส่งล่าช้า
+                <select className={styles.select}
+                  value={deadlineForm.allowLate ? "true" : "false"}
+                  onChange={(event) => handleDeadlineField("allowLate", event.target.value === "true")}>
+                  <option value="true">อนุญาต</option>
+                  <option value="false">ไม่อนุญาต</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                Grace Period (นาที)
+                <input type="number" className={styles.input} value={deadlineForm.gracePeriodMinutes}
+                  onChange={(event) => handleDeadlineField("gracePeriodMinutes", event.target.value)} />
+                <span className={styles.fieldHint}>ใช้เมื่ออนุญาตส่งล่าช้าเท่านั้น</span>
+              </label>
+              <label className={styles.field}>
+                ปิดรับหลังหมดเวลา
+                <select className={styles.select}
+                  value={deadlineForm.lockAfterDeadline ? "true" : "false"}
+                  onChange={(event) => handleDeadlineField("lockAfterDeadline", event.target.value === "true")}>
+                  <option value="true">ล็อก — ไม่รับอีก</option>
+                  <option value="false">ไม่ล็อก</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                การมองเห็น
+                <select className={styles.select} value={deadlineForm.visibilityScope}
+                  onChange={(event) => handleDeadlineField("visibilityScope", event.target.value)}>
+                  <option value="ALL">ทุกกลุ่ม</option>
+                  <option value="INTERNSHIP_ONLY">ฝึกงานเท่านั้น</option>
+                  <option value="PROJECT_ONLY">โครงงานเท่านั้น</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <div className={styles.tableWrap}>
@@ -1073,7 +1079,8 @@ export default function AcademicSettingsPage() {
                   <tr key={deadline.id}>
                     <td>{deadline.name}</td>
                     <td>{deadline.relatedTo ?? "-"}</td>
-                    <td>{deadline.deadlineDate ?? "-"}</td>
+                    {/* แสดงวันที่-เวลาในรูปแบบไทย DD/MM/YYYY (พ.ศ.) HH:mm */}
+                    <td>{formatThaiDateTime(deadline.deadlineDate, deadline.deadlineTime)}</td>
                     <td>
                       <span className={styles.badge}>{labelStatus(deadline.status)}</span>
                     </td>

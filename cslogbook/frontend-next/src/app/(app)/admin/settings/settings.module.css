@@ -140,10 +140,154 @@
   gap: 0.35rem;
 }
 
+/* hint text ใต้ input (เช่น "พ.ศ. เช่น 2568") */
+.fieldHint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 0.1rem;
+  line-height: 1.4;
+}
+
+/* คำเตือน inline ใต้ input (เช่น ปีดูเหมือน ค.ศ.) */
+.fieldWarn {
+  font-size: 0.78rem;
+  color: #b45309;
+  margin-top: 0.1rem;
+  line-height: 1.4;
+}
+
+/* wrapper สำหรับ input + ป้ายกำกับขวา (เช่น "+07:00") */
+.fieldInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fieldInputGroup .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ป้าย timezone / หน่วย ติดขวา input */
+.fieldSuffix {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #64748b);
+  white-space: nowrap;
+  background: #f1f5f9;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.5rem;
+}
+
+/* grid แถวพื้นฐาน — ใช้แค่กรณีที่ไม่มี col จำนวนตายตัว */
 .fieldRow {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+/* grid 2 คอลัมน์เท่ากัน */
+.fieldGrid2 {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* grid 3 คอลัมน์เท่ากัน */
+.fieldGrid3 {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* grid 4 คอลัมน์เท่ากัน */
+.fieldGrid4 {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+/* grid 3 คอลัมน์ (สำหรับ info row: ปี | ภาค | หลักสูตร[กว้าง] | สถานะ) */
+.fieldGridInfo {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 140px 120px 1fr 140px;
+}
+
+/* sub-section ภายใน section — มีเส้นบางๆ และ bg จางๆ เพื่อแบ่งกลุ่ม */
+.formGroup {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  display: grid;
+  gap: 0.65rem;
+}
+
+/* label ชื่อกลุ่ม (เช่น "ช่วงเวลาภาคเรียน") */
+.formGroupLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ใช้สำหรับ block เดี่ยวของภาคเรียน เช่น "ภาคเรียน 1 — เริ่ม + สิ้นสุด" */
+.semesterBlock {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.semesterBlockLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.semesterDatePair {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.semesterDatePair label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* divider เล็กๆ ระหว่าง sub-section */
+.formDivider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 0.25rem 0;
+}
+
+/* แถว actions ล่าง section (justify ขวา) */
+.actionsRight {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .fieldGridInfo {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fieldGrid3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fieldGrid4 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .semesterDatePair {
+    grid-template-columns: 1fr;
+  }
 }
 
 .alert {

@@ -17,6 +17,11 @@ const projectReportController = require('../controllers/projectReportController'
 const internshipAdminController = require('../controllers/internshipAdminController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const authorize = require('../middleware/authorize');
+const {
+  academicScheduleRules,
+  updateAcademicSettingsRules,
+  idParamRules,
+} = require('../validators/academicValidators');
 
 
 // Middleware for admin routes - รองรับทั้ง admin และ teacher support
@@ -110,14 +115,14 @@ router.delete('/curriculums/:id', adminAuth, curriculumController.deleteCurricul
 
 // === เพิ่ม Admin Academic Routes ===
 router.get('/academic', adminAuth, academacController.getAcademicSettings);
-router.post('/academic', adminAuth, academacController.createAcademicSettings);
-router.put('/academic', adminAuth, academacController.updateAcademicSettings);  
-router.delete('/academic/:id', adminAuth, academacController.deleteAcademicSettings);
+router.post('/academic', adminAuth, academicScheduleRules, academacController.createAcademicSettings);
+router.put('/academic', adminAuth, updateAcademicSettingsRules, academacController.updateAcademicSettings);
+router.delete('/academic/:id', adminAuth, idParamRules, academacController.deleteAcademicSettings);
 router.get('/academic/schedules', adminAuth, academacController.listAcademicSchedules);
-router.get('/academic/schedules/:id', adminAuth, academacController.getAcademicScheduleById);
-router.post('/academic/schedules', adminAuth, academacController.createAcademicSchedule);
-router.put('/academic/schedules/:id', adminAuth, academacController.updateAcademicSchedule);
-router.post('/academic/schedules/:id/activate', adminAuth, academacController.activateAcademicSchedule);
+router.get('/academic/schedules/:id', adminAuth, idParamRules, academacController.getAcademicScheduleById);
+router.post('/academic/schedules', adminAuth, academicScheduleRules, academacController.createAcademicSchedule);
+router.put('/academic/schedules/:id', adminAuth, idParamRules, academicScheduleRules, academacController.updateAcademicSchedule);
+router.post('/academic/schedules/:id/activate', adminAuth, idParamRules, academacController.activateAcademicSchedule);
 
 // === เพิ่ม Admin Workflow Step Definition Routes ===
 // ดึงรายการขั้นตอน workflow ทั้งหมด (สำหรับจัดการ)

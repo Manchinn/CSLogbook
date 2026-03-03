@@ -18,20 +18,16 @@ type CurriculumRecord = {
   projectMajorBaseCredits?: number | null;
 };
 
-type CurriculumResponse = {
-  success?: boolean;
-  data?: CurriculumRecord[];
-};
-
 /**
  * ดึงรายการหลักสูตร
  * @param activeOnly - หาก true จะดึงเฉพาะหลักสูตรที่ active=true (ค่าเริ่มต้น: true)
  */
 export async function getCurriculums(activeOnly: boolean = true) {
-  const response = await apiFetchData<CurriculumResponse>(
+  // apiFetchData unwraps { success, data } envelope แล้ว — data ที่ได้คือ CurriculumRecord[] โดยตรง
+  const data = await apiFetchData<CurriculumRecord[]>(
     `/admin/curriculums?activeOnly=${activeOnly}`
   );
-  return response?.data ?? [];
+  return data ?? [];
 }
 
 export async function getCurriculumById(id: number) {
