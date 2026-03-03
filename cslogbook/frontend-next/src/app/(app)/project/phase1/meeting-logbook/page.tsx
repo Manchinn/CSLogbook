@@ -430,7 +430,6 @@ export default function MeetingLogbookPage() {
 
         <section className={styles.statsSection}>
           <div className={styles.tagRow}>
-            <span className={styles.tag}>ประชุม: {String(activeStats.totalMeetings ?? 0)}</span>
             {Number(activeStats.pendingLogs ?? 0) > 0 ? (
               <span className={styles.tagWarning}>รออนุมัติ: {String(activeStats.pendingLogs ?? 0)}</span>
             ) : null}
@@ -516,7 +515,7 @@ export default function MeetingLogbookPage() {
               </div>
               <button
                 type="button"
-                className={styles.primaryButton}
+                className={styles.btnPrimary}
                 onClick={handleCreateMeeting}
                 disabled={!project || !canManage || isPostTopicLocked || !meetingForm.meetingTitle.trim()}
               >
@@ -543,7 +542,7 @@ export default function MeetingLogbookPage() {
                   <div className={styles.actions}>
                     <button
                       type="button"
-                      className={styles.addLogButton}
+                      className={styles.btnGhost}
                       onClick={() =>
                         setActiveLogMeetingId((prev) =>
                           prev === meeting.meetingId ? null : meeting.meetingId
@@ -555,7 +554,7 @@ export default function MeetingLogbookPage() {
                     </button>
                     <button
                       type="button"
-                      className={styles.secondaryButton}
+                      className={styles.btnSecondary}
                       onClick={() => handleOpenEditMeeting(meeting)}
                       disabled={!canManage}
                     >
@@ -563,7 +562,7 @@ export default function MeetingLogbookPage() {
                     </button>
                     <button
                       type="button"
-                      className={styles.dangerButton}
+                      className={styles.btnDanger}
                       onClick={() => handleDeleteMeeting(meeting.meetingId)}
                       disabled={!canManage}
                     >
@@ -623,7 +622,7 @@ export default function MeetingLogbookPage() {
                       <div className={styles.actions}>
                         <button
                           type="button"
-                          className={styles.primaryButton}
+                          className={`${styles.btnPrimary} ${styles.btnSm}`}
                           onClick={() => handleCreateLog(meeting.meetingId)}
                           disabled={!logForm.discussionTopic.trim()}
                         >
@@ -631,7 +630,7 @@ export default function MeetingLogbookPage() {
                         </button>
                         <button
                           type="button"
-                          className={styles.secondaryButton}
+                          className={styles.btnText}
                           onClick={() => setActiveLogMeetingId(null)}
                         >
                           ยกเลิก
@@ -669,7 +668,7 @@ export default function MeetingLogbookPage() {
                         <div className={styles.actions}>
                           <button
                             type="button"
-                            className={styles.secondaryButton}
+                            className={`${styles.btnSecondary} ${styles.btnSm}`}
                             onClick={() => handleOpenEditLog(meeting.meetingId, log)}
                             disabled={!canManage}
                           >
@@ -677,7 +676,7 @@ export default function MeetingLogbookPage() {
                           </button>
                           <button
                             type="button"
-                            className={styles.dangerButton}
+                            className={`${styles.btnDanger} ${styles.btnSm}`}
                             onClick={() => handleDeleteLog(meeting.meetingId, log.logId)}
                             disabled={!canManage}
                           >
@@ -766,10 +765,10 @@ export default function MeetingLogbookPage() {
                 </div>
               </div>
               <div className={styles.modalActions}>
-                <button type="button" className={styles.secondaryButton} onClick={() => setEditMeeting(null)}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setEditMeeting(null)}>
                   ยกเลิก
                 </button>
-                <button type="button" className={styles.primaryButton} onClick={handleUpdateMeeting}>
+                <button type="button" className={styles.btnPrimary} onClick={handleUpdateMeeting}>
                   บันทึกการแก้ไข
                 </button>
               </div>
@@ -822,7 +821,7 @@ export default function MeetingLogbookPage() {
               <div className={styles.modalActions}>
                 <button
                   type="button"
-                  className={styles.secondaryButton}
+                  className={styles.btnSecondary}
                   onClick={() => {
                     setEditLog(null);
                     setEditLogMeetingId(null);
@@ -830,7 +829,7 @@ export default function MeetingLogbookPage() {
                 >
                   ยกเลิก
                 </button>
-                <button type="button" className={styles.primaryButton} onClick={handleUpdateLog}>
+                <button type="button" className={styles.btnPrimary} onClick={handleUpdateLog}>
                   บันทึกการแก้ไข
                 </button>
               </div>

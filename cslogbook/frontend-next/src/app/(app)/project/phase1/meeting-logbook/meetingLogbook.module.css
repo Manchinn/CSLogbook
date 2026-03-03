@@ -75,31 +75,128 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.primaryButton,
-.secondaryButton {
-  border-radius: 999px;
-  padding: 8px 16px;
-  border: none;
+/* ─── Base button shared styles ─── */
+.btnPrimary,
+.btnSecondary,
+.btnGhost,
+.btnDanger,
+.btnDangerFilled {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--btn-radius);
+  padding: var(--btn-padding);
+  min-height: var(--btn-min-height);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  line-height: 1;
   cursor: pointer;
-  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
-.primaryButton {
-  background: #0050b3;
+.btnPrimary,
+.btnSecondary,
+.btnGhost,
+.btnDanger,
+.btnDangerFilled {
+  &:focus-visible {
+    outline: 2px solid var(--btn-primary-bg);
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Tier 1: Primary ─── */
+.btnPrimary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: 1px solid transparent;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--btn-primary-bg-hover);
+}
+
+/* ─── Tier 2: Secondary ─── */
+.btnSecondary {
+  background: var(--color-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--btn-secondary-border);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: var(--btn-secondary-bg-hover);
+}
+
+/* ─── Tier 3: Ghost (outline) ─── */
+.btnGhost {
+  background: transparent;
+  color: var(--btn-ghost-text);
+  border: 1px solid var(--btn-ghost-border);
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--btn-ghost-bg-hover);
+}
+
+/* ─── Tier 4: Danger (outline default, filled for confirm modal) ─── */
+.btnDanger {
+  background: transparent;
+  color: var(--btn-danger-text);
+  border: 1px solid var(--btn-danger-border);
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: var(--btn-danger-bg-hover);
+}
+
+.btnDangerFilled {
+  background: var(--btn-danger-bg-filled);
   color: #fff;
+  border: 1px solid transparent;
 }
 
-.secondaryButton {
-  background: #f0f0f0;
-  color: #1f1f1f;
+.btnDangerFilled:hover:not(:disabled) {
+  background: var(--btn-danger-bg-filled-hover);
 }
 
-.primaryButton[disabled],
-.secondaryButton[disabled] {
-  opacity: 0.6;
+/* ─── Size modifier: small (nested log-item actions) ─── */
+.btnSm {
+  padding: var(--btn-padding-sm);
+  min-height: var(--btn-min-height-sm);
+  font-size: var(--btn-font-size-sm);
+}
+
+/* ─── Text link button (inline form cancel) ─── */
+.btnText {
+  background: none;
+  border: none;
+  padding: var(--btn-padding);
+  min-height: var(--btn-min-height);
+  font-size: var(--btn-font-size);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btnText:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+/* ─── Disabled: unified across all tiers ─── */
+.btnPrimary:disabled,
+.btnSecondary:disabled,
+.btnGhost:disabled,
+.btnDanger:disabled,
+.btnDangerFilled:disabled,
+.btnText:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .list {
@@ -122,25 +219,72 @@
 .tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
 }
 
+/* Base badge */
 .tag {
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--color-border-strong);
   background: var(--color-bg-subtle);
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
+/* Dot prefix shared across semantic variants */
+.tagSuccess::before,
+.tagWarning::before,
+.tagDanger::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Self-contained: ใช้ได้ทั้งแบบ .tag.tagSuccess และ .tagSuccess เดี่ยวๆ */
 .tagSuccess {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   background: #f6ffed;
   color: #237804;
+  border: 1px solid #b7eb8f;
+}
+
+.tagSuccess::before {
+  background: #52c41a;
 }
 
 .tagWarning {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   background: #fff7e6;
   color: #ad4e00;
+  border: 1px solid #ffd591;
+}
+
+.tagWarning::before {
+  background: #fa8c16;
 }
 
 .noticeWarning {
@@ -163,19 +307,24 @@
   font-size: 13px;
 }
 
-.dangerButton {
-  background: #cf1322;
-  color: #fff;
-}
-
-.dangerButton[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* .dangerButton removed — use .btnDanger or .btnDangerFilled  */
 
 .tagDanger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   background: #fff1f0;
   color: #a8071a;
+  border: 1px solid #ffa39e;
+}
+
+.tagDanger::before {
+  background: #ff4d4f;
 }
 
 .tabs {
@@ -282,29 +431,7 @@
   gap: 10px;
 }
 
-/* ปุ่ม [+ เพิ่มบันทึก] / [✕ ยกเลิก] ต่อ meeting */
-.addLogButton {
-  padding: 5px 12px;
-  border-radius: 8px;
-  border: 1px solid #0050b3;
-  background: transparent;
-  color: #0050b3;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.addLogButton:hover:not(:disabled) {
-  background: #e6f7ff;
-}
-
-.addLogButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  border-color: var(--color-border);
-  color: var(--color-text-muted);
-}
+/* .addLogButton removed — use .btnGhost */
 
 /* ─── Progress bar: บันทึกที่ผ่านการอนุมัติ per phase ─── */
 .statsSection {
