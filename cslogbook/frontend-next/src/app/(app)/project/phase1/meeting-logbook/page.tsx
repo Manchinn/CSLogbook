@@ -74,6 +74,9 @@ function toLocalDateTimeString(value: string) {
   return `${datePart}T${timePart}:00`;
 }
 
+// จำนวนบันทึกที่ต้องผ่านอนุมัติต่อ phase
+const REQUIRED_LOGS = 4;
+
 export default function MeetingLogbookPage() {
   guardFeatureRoute(featureFlags.enableProjectPhase1Page, "/app");
   const { token } = useAuth();
@@ -176,6 +179,17 @@ export default function MeetingLogbookPage() {
 
   const activeMeetings = meetingsByPhase[activePhase];
   const activeStats = statsByPhase[activePhase] ?? {};
+
+  // คำนวณ progress bar สำหรับ approved logs ของ phase ที่ active อยู่
+  const approvedCount = Number(activeStats.approvedLogs ?? 0);
+  const progressFillClass =
+    approvedCount >= REQUIRED_LOGS
+      ? styles.progressFillDone
+      : approvedCount > 0
+        ? styles.progressFillPartial
+        : styles.progressFillEmpty;
+  const progressCountClass =
+    approvedCount >= REQUIRED_LOGS ? styles.progressCountDone : styles.progressCountPending;
 
   const loadMeetings = useCallback(async () => {
     if (!token || !project?.projectId || isPostTopicLocked) return;
@@ -414,20 +428,27 @@ export default function MeetingLogbookPage() {
           </button>
         </div>
 
-        <section className={styles.tagRow}>
-          <span className={styles.tag}>ประชุม: {String(activeStats.totalMeetings ?? 0)}</span>
-          <span
-            className={
-              Number(activeStats.approvedLogs ?? 0) >= 4
-                ? styles.tagSuccess
-                : styles.tagWarning
-            }
-          >
-            ผ่านการอนุมัติ: {String(activeStats.approvedLogs ?? 0)}/4
-          </span>
-          {Number(activeStats.pendingLogs ?? 0) > 0 ? (
-            <span className={styles.tagWarning}>รออนุมัติ: {String(activeStats.pendingLogs ?? 0)}</span>
-          ) : null}
+        <section className={styles.statsSection}>
+          <div className={styles.tagRow}>
+            <span className={styles.tag}>ประชุม: {String(activeStats.totalMeetings ?? 0)}</span>
+            {Number(activeStats.pendingLogs ?? 0) > 0 ? (
+              <span className={styles.tagWarning}>รออนุมัติ: {String(activeStats.pendingLogs ?? 0)}</span>
+            ) : null}
+          </div>
+          <div className={styles.progressSection}>
+            <div className={styles.progressLabel}>
+              <span>บันทึกที่ผ่านการอนุมัติ</span>
+              <span className={progressCountClass}>
+                {approvedCount} / {REQUIRED_LOGS}
+              </span>
+            </div>
+            <div className={styles.progressTrack}>
+              <div
+                className={`${styles.progressFill} ${progressFillClass}`}
+                style={{ width: `${Math.min((approvedCount / REQUIRED_LOGS) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
         </section>
 
         <section className={styles.grid}>
