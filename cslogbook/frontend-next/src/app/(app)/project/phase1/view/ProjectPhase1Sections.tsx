@@ -222,7 +222,6 @@ function StepCard({
 }) {
   const deadlineStatus = getStepDeadlineStatus(step);
   const lockReasons = buildLockReasons(step, deadlineStatus);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const isDisabled = (!step.implemented || lockReasons.length > 0) && !FORCE_ENABLE_CARD;
   const status = stepStatusMap[step.key];
 

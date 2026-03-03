@@ -102,7 +102,7 @@ function TopicSubmitInner() {
         </div>
       ) : null}
       {!loading && !projectId && !readOnly ? (
-        <div className={styles.notice}>ยังไม่มีโครงงาน กดปุ่ม "เริ่มเสนอหัวข้อ" เพื่อเปิดฟอร์ม</div>
+        <div className={styles.notice}>ยังไม่มีโครงงาน กดปุ่ม &ldquo;เริ่มเสนอหัวข้อ&rdquo; เพื่อเปิดฟอร์ม</div>
       ) : null}
       {loading ? <div className={styles.notice}>กำลังโหลดข้อมูล...</div> : null}
 

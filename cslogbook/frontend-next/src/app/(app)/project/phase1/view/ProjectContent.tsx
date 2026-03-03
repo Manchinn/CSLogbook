@@ -705,9 +705,7 @@ export default function ProjectContent() {
 
   const handleOpen = useCallback(
     (step: ProjectStep, lockReasons: string[]) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!step.implemented && !FORCE_ENABLE_CARD) return;
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (lockReasons.length > 0 && !FORCE_ENABLE_CARD) return;
       if (step.target) router.push(step.target);
     },
