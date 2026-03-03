@@ -29,7 +29,7 @@ export function LoginForm() {
       const target = getDashboardPathByRole(profile.role, profile.teacherType, profile.isSystemAdmin);
       router.replace(target);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Login failed");
+      setErrorMessage(error instanceof Error ? error.message : "ไม่สามารถเข้าสู่ระบบได้");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,12 +46,12 @@ export function LoginForm() {
       {showCredentialForm ? (
         <form onSubmit={handleSubmit} className={styles.credentialForm}>
           <label className={styles.label} htmlFor="username">
-            Username / Email
+            ชื่อผู้ใช้ / อีเมล
           </label>
           <input id="username" name="username" required className={styles.input} />
 
           <label className={styles.label} htmlFor="password">
-            Password
+            รหัสผ่าน
           </label>
           <input
             id="password"
@@ -77,7 +77,7 @@ export function LoginForm() {
           {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
 
           <button className={styles.secondaryButton} type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
           </button>
         </form>
       ) : (

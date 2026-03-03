@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAdminTeacherMutations, useAdminTeachers } from "@/hooks/useAdminTeachers";
 import { useConfirmDialog } from "@/components/common/ConfirmDialog";
+import { TableSkeleton } from "@/components/common/Skeleton";
 import type { AdminTeacher, TeacherFilters } from "@/lib/services/adminTeacherService";
 import styles from "./page.module.css";
 
@@ -386,11 +387,7 @@ export default function AdminTeachersPage() {
               </thead>
               <tbody>
                 {teachersQuery.isLoading ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <p className={styles.empty}>กำลังโหลดข้อมูลอาจารย์...</p>
-                    </td>
-                  </tr>
+                  <TableSkeleton rows={5} columns={5} />
                 ) : filteredTeachers.length === 0 ? (
                   <tr>
                     <td colSpan={5}>

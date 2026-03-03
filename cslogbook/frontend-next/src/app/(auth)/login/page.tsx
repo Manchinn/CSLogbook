@@ -73,7 +73,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p>เข้าสู่ระบบด้วยบัญชี KMUTNB (ICIT Account) ของท่าน</p>
           </div>
 
-          {errorMessage ? <p className={styles.errorText}>Login error: {errorMessage}</p> : null}
+          {errorMessage ? <p className={styles.errorText}>เกิดข้อผิดพลาด: {errorMessage}</p> : null}
 
           <LoginForm />
         </div>

@@ -269,7 +269,7 @@ function StepCard({
             </span>
           ) : null}
           {step.comingSoon && !step.implemented ? (
-            <span className={`${styles.tag} ${styles.tagMuted}`}>Coming Soon</span>
+            <span className={`${styles.tag} ${styles.tagMuted}`}>เร็วๆ นี้</span>
           ) : null}
         </div>
         {lockReasons.length > 0 ? <p className={styles.stepHint}>{lockReasons.join(" • ")}</p> : null}

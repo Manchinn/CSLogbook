@@ -160,7 +160,7 @@ export function AppShell({ children }: AppShellProps) {
             </h2>
           </div>
           <button type="button" className={styles.logoutLink} onClick={handleLogout}>
-            Log out
+            ออกจากระบบ
           </button>
         </header>
 

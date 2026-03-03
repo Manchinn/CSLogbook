@@ -74,7 +74,7 @@ export function StudentInternshipStatusWidget({ enabled }: StudentInternshipStat
     <section className={styles.wrapper}>
       <div className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Internship</p>
+          <p className={styles.eyebrow}>การฝึกงาน</p>
           <h3 className={styles.title}>สถานะฝึกงาน</h3>
         </div>
         <div className={styles.badges}>

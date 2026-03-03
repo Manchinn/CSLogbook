@@ -12,17 +12,10 @@ import {
   type AdminProjectDocument,
 } from "@/lib/services/adminProjectDocumentsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import styles from "../internship/page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-function statusLabel(status: string) {
-  if (status === "pending") return "รอตรวจสอบ";
-  if (status === "approved") return "อนุมัติ";
-  if (status === "rejected") return "ปฏิเสธ";
-  if (status === "cancelled") return "ยกเลิก";
-  return status || "-";
-}
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "-";
@@ -34,8 +27,8 @@ function formatDateTime(value: string | null | undefined) {
 function documentNameLabel(name: string | null | undefined): string {
   if (!name) return "-";
   const map: Record<string, string> = {
-    KP01: "KP-01 (ขออนุมัติหัวข้อ)",
-    KP02: "KP-02 (รายงานความก้าวหน้า)",
+    KP01: "คพ.01 (เสนอหัวข้อโครงงานพิเศษ)",
+    KP02: "คพ.02 (คำร้องขอสอบโครงงานพิเศษ 1)",
     PROJECT_REPORT: "รายงานโครงงาน",
     THESIS_PROPOSAL: "โครงร่างปริญญานิพนธ์",
     THESIS_REPORT: "รายงานปริญญานิพนธ์",
@@ -277,7 +270,7 @@ export default function AdminProjectDocumentsPage() {
                       </td>
                       <td>{formatDateTime(row.createdAt)}</td>
                       <td>
-                        <span className={`${styles.tag} ${styles.tagStatus}`}>{statusLabel(row.status)}</span>
+                        <span className={`${styles.tag} ${styles.tagStatus}`}>{labelStatus(row.status)}</span>
                       </td>
                       <td>
                         <div className={styles.buttonRow}>
@@ -337,7 +330,7 @@ export default function AdminProjectDocumentsPage() {
                     <p>ชื่อเอกสาร: {documentNameLabel(detailQuery.data?.documentName ?? selected.documentName)}</p>
                     <p>นักศึกษา: {detailQuery.data?.studentName || selected.studentName || "-"}</p>
                     {detailQuery.data?.studentCode ? <p>รหัสนักศึกษา: {detailQuery.data.studentCode}</p> : null}
-                    <p>สถานะ: {statusLabel(detailQuery.data?.status ?? selected.status)}</p>
+                    <p>สถานะ: {labelStatus(detailQuery.data?.status ?? selected.status)}</p>
                     <p>วันที่ส่ง: {formatDateTime(detailQuery.data?.createdAt ?? selected.createdAt)}</p>
                     {detailQuery.data?.reviewDate ? <p>วันที่ตรวจสอบ: {formatDateTime(detailQuery.data.reviewDate)}</p> : null}
                     {(detailQuery.data?.reviewComment ?? selected.reviewComment) ? (

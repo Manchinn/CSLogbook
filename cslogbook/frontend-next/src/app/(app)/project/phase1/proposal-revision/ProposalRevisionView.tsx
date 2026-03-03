@@ -106,7 +106,7 @@ export default function ProposalRevisionView() {
       <div className={styles.page}>
         <div className={styles.callout}>
           <p className={styles.calloutTitle}>ไม่พบข้อมูลโครงงาน</p>
-          <p className={styles.formHint}>กรุณาลงทะเบียนโครงงานก่อนอัปโหลด Proposal</p>
+          <p className={styles.formHint}>กรุณาลงทะเบียนโครงงานก่อนอัปโหลดข้อเสนอโครงงาน</p>
           <Link href="/student/projects" className={styles.primaryButton}>
             ไปหน้าโครงงาน
           </Link>
@@ -122,10 +122,10 @@ export default function ProposalRevisionView() {
       {/* Header */}
       <header className={styles.hero}>
         <div>
-          <p className={styles.kicker}>Phase 1 · Proposal</p>
-          <h1 className={styles.title}>อัปโหลด Proposal</h1>
+          <p className={styles.kicker}>โครงงานพิเศษ 1 · ข้อเสนอโครงงาน</p>
+          <h1 className={styles.title}>อัปโหลดข้อเสนอโครงงาน</h1>
           <p className={styles.lead}>
-            อัปโหลดเอกสาร Proposal ในรูปแบบ PDF (ไม่เกิน 10 MB)
+            อัปโหลดเอกสารข้อเสนอโครงงานในรูปแบบ PDF (ไม่เกิน 10 MB)
           </p>
         </div>
         <Link href="/project/phase1" className={styles.secondaryButton}>
@@ -166,7 +166,7 @@ export default function ProposalRevisionView() {
 
         {uploadError && <p className={styles.error}>{uploadError}</p>}
         {uploadSuccess && (
-          <p className={styles.success}>อัปโหลด Proposal สำเร็จแล้ว</p>
+          <p className={styles.success}>อัปโหลดเอกสารสำเร็จแล้ว</p>
         )}
 
         <div className={styles.btnRow} style={{ marginTop: 16 }}>
@@ -195,7 +195,7 @@ export default function ProposalRevisionView() {
         ) : artifactsError ? (
           <p className={styles.error}>โหลดข้อมูลไม่สำเร็จ</p>
         ) : proposalList.length === 0 ? (
-          <p className={styles.formHint}>ยังไม่เคยอัปโหลด Proposal</p>
+          <p className={styles.formHint}>ยังไม่เคยอัปโหลดเอกสารข้อเสนอโครงงาน</p>
         ) : (
           <div className={styles.versionList}>
             {proposalList.map((a) => (

@@ -79,14 +79,14 @@ export function TeacherOverviewWidget({
       hydrated={hydrated}
       isLoading={isLoading ?? resolvedLoading}
       error={error ?? resolvedError}
-      loadingFallback={<p>Loading teacher overview...</p>}
-      errorFallback={<p className={styles.error}>ไม่สามารถโหลด teacher widget ได้</p>}
+      loadingFallback={<p>กำลังโหลดข้อมูล...</p>}
+      errorFallback={<p className={styles.error}>ไม่สามารถโหลดข้อมูลได้</p>}
     >
       <section className={styles.wrapper}>
         <header className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Advisor Overview</p>
-            <h2 className={styles.title}>{resolvedData?.teacher.name || "Teacher Dashboard"}</h2>
+            <p className={styles.eyebrow}>ภาพรวมการควบคุม</p>
+            <h2 className={styles.title}>{resolvedData?.teacher.name || "แดชบอร์ดอาจารย์"}</h2>
             <p className={styles.subtitle}>{resolvedData?.teacher.position || "อาจารย์"}</p>
           </div>
           <div className={styles.badges}>

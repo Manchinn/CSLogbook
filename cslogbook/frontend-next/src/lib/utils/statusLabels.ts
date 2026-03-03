@@ -34,7 +34,29 @@ export const STATUS_LABELS: Record<string, string> = {
   advisor_in_review: "อาจารย์กำลังตรวจ",
   advisor_approved:  "อาจารย์อนุมัติ",
   staff_verified:    "เจ้าหน้าที่ตรวจแล้ว",
-  scheduled:         "นัดหมายแล้ว",
+  scheduled:         "นัดสอบแล้ว",
+
+  // Project defense / system test workflow
+  advisor_assigned:   "มีอาจารย์ที่ปรึกษาแล้ว",
+  pending_staff:      "รอเจ้าหน้าที่ตรวจสอบ",
+  staff_rejected:     "เจ้าหน้าที่ส่งกลับ",
+  staff_approved:     "อนุมัติ (รอหลักฐาน)",
+  advisor_rejected:   "อาจารย์ส่งกลับ",
+  evidence_submitted: "ส่งหลักฐานแล้ว",
+  pending_advisor:    "รออาจารย์ตรวจสอบ",
+
+  // Exam / evaluation results
+  passed: "ผ่าน",
+  failed: "ไม่ผ่าน",
+
+  // Deadline / document timeliness
+  very_late: "ส่งช้ามาก",
+
+  // Student eligibility compound states
+  in_progress_internship: "กำลังฝึกงาน",
+  in_progress_project:    "กำลังทำโครงงาน",
+  completed_internship:   "ฝึกงานเสร็จสิ้น",
+  completed_project:      "โครงงานเสร็จสิ้น",
 
   // Internship status for students
   not_eligible:   "ไม่ผ่านเกณฑ์",

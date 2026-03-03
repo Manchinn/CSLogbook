@@ -28,7 +28,7 @@ function statusLabel(status: string, reviewerId: number | null) {
   if (status === "pending" && reviewerId) return "รอหัวหน้าภาค";
   if (status === "pending") return "รอตรวจสอบ";
   if (status === "approved") return "อนุมัติ";
-  if (status === "rejected") return "ปฏิเสธ";
+  if (status === "rejected") return "ไม่อนุมัติ";
   if (status === "cancelled") return "ยกเลิกการฝึกงาน";
   return status || "-";
 }

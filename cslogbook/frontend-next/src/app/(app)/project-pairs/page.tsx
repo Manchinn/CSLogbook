@@ -126,6 +126,9 @@ export default function ProjectPairsPage() {
   const [student1, setStudent1] = useState<ProjectStudentLookup | null>(null);
   const [student2, setStudent2] = useState<ProjectStudentLookup | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  // state สำหรับ dialog ยืนยันการยกเลิกโครงงาน
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const filters: ProjectPairFilters = useMemo(
     () => ({
@@ -280,12 +283,18 @@ export default function ProjectPairsPage() {
     }
   };
 
-  const onCancelProject = async () => {
+  const onCancelProject = () => {
     if (!selected?.projectId) return;
-    const reason = window.prompt("ระบุเหตุผลการยกเลิกโครงงาน (ไม่บังคับ)", "");
-    if (reason === null) return;
+    // เปิด dialog แทนการใช้ window.prompt()
+    setCancelReason("");
+    setCancelDialogOpen(true);
+  };
+
+  const executeCancelProject = async () => {
+    if (!selected?.projectId) return;
+    setCancelDialogOpen(false);
     try {
-      const res = await cancelProject.mutateAsync({ projectId: selected.projectId, reason });
+      const res = await cancelProject.mutateAsync({ projectId: selected.projectId, reason: cancelReason || undefined });
       setFeedback({ tone: "success", message: res.message || "ยกเลิกโครงงานพิเศษสำเร็จ" });
       setSelected(null);
       await listQuery.refetch();
@@ -960,6 +969,48 @@ export default function ProjectPairsPage() {
                   disabled={createProject.isPending || Boolean(addValidationMessage)}
                 >
                   {createProject.isPending ? "กำลังเพิ่ม..." : "เพิ่มโครงงานพิเศษ"}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {/* Cancel project dialog — แทน window.prompt() */}
+        {cancelDialogOpen ? (
+          <div className={styles.modalOverlay} onClick={() => setCancelDialogOpen(false)}>
+            <section className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>ยืนยันการยกเลิกโครงงาน</h3>
+                <button type="button" className={styles.button} onClick={() => setCancelDialogOpen(false)}>×</button>
+              </div>
+              <div className={styles.cardLite}>
+                <p style={{ marginBottom: 12 }}>
+                  ต้องการยกเลิกโครงงานนี้ใช่ไหม? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                </p>
+                <label htmlFor="cancel-reason" style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>
+                  เหตุผลการยกเลิก (ไม่บังคับ)
+                </label>
+                <textarea
+                  id="cancel-reason"
+                  className={styles.input}
+                  rows={3}
+                  placeholder="ระบุเหตุผล..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  style={{ width: "100%", resize: "vertical" }}
+                />
+              </div>
+              <div className={styles.drawerFooter}>
+                <button type="button" className={styles.button} onClick={() => setCancelDialogOpen(false)}>
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.buttonDanger}`}
+                  onClick={() => void executeCancelProject()}
+                  disabled={cancelProject.isPending}
+                >
+                  {cancelProject.isPending ? "กำลังดำเนินการ..." : "ยืนยันยกเลิก"}
                 </button>
               </div>
             </section>

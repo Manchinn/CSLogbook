@@ -10,6 +10,7 @@ import {
   useAdminInternshipLogbookSummary,
 } from "@/hooks/useAdminInternshipCertificates";
 import type { AdminCertificateRequest } from "@/lib/services/adminInternshipCertificatesService";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import styles from "./page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -30,13 +31,6 @@ function generateCertificateNumber() {
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const random = String(Math.floor(Math.random() * 9999)).padStart(4, "0");
   return `ว ${buddhistYear}/${month}/${random}`;
-}
-
-function statusLabel(status: string) {
-  if (status === "pending") return "รอดำเนินการ";
-  if (status === "approved") return "อนุมัติแล้ว";
-  if (status === "rejected") return "ปฏิเสธ";
-  return status || "-";
 }
 
 export default function AdminInternshipCertificatesPage() {
@@ -299,7 +293,7 @@ export default function AdminInternshipCertificatesPage() {
                       <td>{row.internship.companyName || "-"}</td>
                       <td>{formatDateTime(row.requestDate)}</td>
                       <td>
-                        <span className={styles.tag}>{statusLabel(row.status)}</span>
+                        <span className={styles.tag}>{labelStatus(row.status)}</span>
                       </td>
                       <td>
                         <div className={styles.buttonRow}>
@@ -401,7 +395,7 @@ export default function AdminInternshipCertificatesPage() {
                   <>
                     <section className={styles.detailSection}>
                       <h3 className={styles.detailTitle}>ข้อมูลคำขอ</h3>
-                      <p>สถานะ: {statusLabel(detail.status ?? "")}</p>
+                      <p>สถานะ: {labelStatus(detail.status)}</p>
                       <p>วันที่ยื่น: {formatDateTime(detail.requestDate)}</p>
                       <p>บริษัท: {detail.internship?.companyName || "-"}</p>
                       <p>ชั่วโมงฝึกงาน: {detail.internship?.totalHours ?? "-"}</p>
@@ -471,7 +465,7 @@ export default function AdminInternshipCertificatesPage() {
                           className={styles.button}
                           onClick={() => setLogbookModalOpen(true)}
                         >
-                          ดูสรุป Logbook
+                          ดูสรุปบันทึกการฝึกงาน
                         </button>
                       ) : null}
                       {selected?.status === "pending" ? (
@@ -565,7 +559,7 @@ export default function AdminInternshipCertificatesPage() {
         {logbookModalOpen ? (
           <div className={styles.modalOverlay}>
             <div className={styles.modal}>
-              <h3 className={styles.modalTitle}>สรุป Logbook การฝึกงาน</h3>
+              <h3 className={styles.modalTitle}>สรุปบันทึกการฝึกงาน</h3>
               {logbookSummaryQuery.isLoading ? <p className={styles.empty}>กำลังโหลดข้อมูล logbook...</p> : null}
               {logbookSummaryQuery.isError ? <p className={styles.empty}>ไม่สามารถโหลดข้อมูล logbook summary</p> : null}
               {logbookSummaryQuery.data ? (
@@ -581,11 +575,11 @@ export default function AdminInternshipCertificatesPage() {
                     <p>ชั่วโมงอนุมัติ: {logbookSummaryQuery.data.statistics?.approvedHours ?? "-"}</p>
                   </section>
                   <section className={styles.detailSection}>
-                    <h3 className={styles.detailTitle}>Reflection</h3>
-                    <p>Learning Outcome: {logbookSummaryQuery.data.reflection?.learningOutcome || "-"}</p>
-                    <p>Key Learnings: {logbookSummaryQuery.data.reflection?.keyLearnings || "-"}</p>
-                    <p>Future Application: {logbookSummaryQuery.data.reflection?.futureApplication || "-"}</p>
-                    <p>Improvements: {logbookSummaryQuery.data.reflection?.improvements || "-"}</p>
+                    <h3 className={styles.detailTitle}>บทสะท้อนการเรียนรู้</h3>
+                    <p>ผลการเรียนรู้: {logbookSummaryQuery.data.reflection?.learningOutcome || "-"}</p>
+                    <p>สิ่งที่ได้เรียนรู้: {logbookSummaryQuery.data.reflection?.keyLearnings || "-"}</p>
+                    <p>การนำไปประยุกต์ใช้: {logbookSummaryQuery.data.reflection?.futureApplication || "-"}</p>
+                    <p>ข้อควรพัฒนา: {logbookSummaryQuery.data.reflection?.improvements || "-"}</p>
                   </section>
                 </>
               ) : null}
