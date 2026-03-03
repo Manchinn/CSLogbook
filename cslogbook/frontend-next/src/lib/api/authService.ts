@@ -89,6 +89,7 @@ type VerifyTokenResponse = {
     teacherId?: number;
     teacherCode?: string;
     teacherType?: string;
+    teacherPosition?: string;
     canAccessTopicExam?: boolean;
     canExportProject1?: boolean;
     isSystemAdmin?: boolean;
