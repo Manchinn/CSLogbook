@@ -1,14 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
 import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import { useStudentDeadlines } from "@/hooks/useStudentDeadlines";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
+import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
+import { useReferralLetterStatus, useDownloadReferralLetter } from "@/hooks/useInternshipReferralLetter";
+import { useAcceptanceLetterStatus, useUploadAcceptanceLetter } from "@/hooks/useInternshipCompanyInfo";
 import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
 import styles from "./flow.module.css";
+
+/** CS05 status ที่แสดง download panel (ทุก status หลัง approved ขึ้นไป) */
+const STATUSES_WITH_DOWNLOADS = new Set([
+  "approved",
+  "acceptance_pending",
+  "acceptance_approved",
+  "referral_letter_pending",
+  "referral_letter_ready",
+  "active",
+  "completed",
+  // รองรับ status ทั่วไปของ Document model
+  "supervisor_approved",
+  "supervisor_evaluated",
+]);
+
+const acceptanceTemplateUrl =
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/internship/acceptance-letter-template`
+    : "/api/internship/acceptance-letter-template";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
 
@@ -65,6 +87,35 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
   const stats = internshipStatus?.stats;
   const certificate = internshipStatus?.certificateStatus;
   const checkingEligibility = !hydrated || !queriesEnabled || eligibilityLoading;
+
+  // ดึงข้อมูล CS05 โดยตรง — ไม่มี pre-check เรื่อง acceptance letter
+  // (ใช้ summary.documentId ไม่ได้ เพราะ /internship/summary จะ throw เมื่อ acceptance letter ยังไม่ approved)
+  const { data: cs05Data } = useCurrentCS05(token, queriesEnabled);
+
+  // แสดง download panel ทันทีแต่ CS05 ได้รับการอนุมัติ (ไม่ต้องรอ acceptance letter approved)
+  const documentId = cs05Data?.documentId ?? null;
+  const showDownloadPanel =
+    Boolean(documentId) && STATUSES_WITH_DOWNLOADS.has(cs05Data?.status ?? "");
+
+  // ดึงสถานะหนังสือส่งตัว — เปิดใช้เฉพาะเมื่อ showDownloadPanel = true
+  const { data: referralStatus, isLoading: referralLoading } = useReferralLetterStatus(
+    token,
+    documentId,
+    queriesEnabled && showDownloadPanel
+  );
+  const downloadReferralMutation = useDownloadReferralLetter(token);
+
+  // สถานะหนังสือตอบรับ + upload mutation
+  const { data: acceptanceStatus } = useAcceptanceLetterStatus(
+    token,
+    documentId,
+    queriesEnabled && showDownloadPanel
+  );
+  const uploadAcceptanceMutation = useUploadAcceptanceLetter(token);
+
+  // state สำหรับ file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const cards = [
     {
@@ -219,6 +270,141 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
           )}
         </article>
       </section>
+
+      {/* ========= Step 4: ดาวน์โหลดเอกสาร (แสดงเฉพาะเมื่อ CS05 อนุมัติแล้ว) ========= */}
+      {showDownloadPanel && (
+        <section className={styles.downloadPanel}>
+          <p className={styles.downloadPanelKicker}>Step 4 — รอหนังสือตอบรับ</p>
+          <h2 className={styles.downloadPanelTitle}>เอกสารที่ต้องดาวน์โหลด</h2>
+          <p className={styles.cardHint}>
+            ดาวน์โหลดหนังสือส่งตัวเพื่อนำไปยื่นต่อสถานประกอบการ และดาวน์โหลดแบบฟอร์มหนังสือตอบรับ
+          </p>
+
+          <div className={styles.downloadBtnRow}>
+            {/* ปุ่มดาวน์โหลดหนังสือส่งตัวนักศึกษา */}
+            {referralStatus?.isReady ? (
+              <button
+                type="button"
+                className={styles.downloadBtn}
+                disabled={downloadReferralMutation.isPending}
+                onClick={() => documentId && downloadReferralMutation.mutate(documentId)}
+              >
+                {downloadReferralMutation.isPending ? "กำลังดาวน์โหลด..." : "ดาวน์โหลดหนังสือขอความอนุเคราะห์ฝึกงาน"}
+              </button>
+            ) : (
+              <span className={styles.downloadBtnDisabled}>
+                ดาวน์โหลดหนังสือขอความอนุเคราะห์ฝึกงาน
+                <span className={styles.downloadBadge}>
+                  {referralLoading ? "กำลังตรวจสอบ" : "รอออกหนังสือ"}
+                </span>
+              </span>
+            )}
+
+            {/* ปุ่มดาวน์โหลดแบบฟอร์มหนังสือตอบรับ (เปิดได้เสมอ) */}
+            <button
+              type="button"
+              className={styles.downloadBtnSecondary}
+              onClick={() => window.open(acceptanceTemplateUrl, "_blank")}
+            >
+              ดาวน์โหลดแบบฟอร์มหนังสือตอบรับ
+            </button>
+          </div>
+
+          {/* แสดง error ถ้าดาวน์โหลดไม่สำเร็จ */}
+          {downloadReferralMutation.isError && (
+            <p className={styles.downloadError}>
+              {downloadReferralMutation.error?.message ?? "ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่"}
+            </p>
+          )}
+
+          {/* ===== อัปโหลดหนังสือตอบรับ ===== */}
+          <div className={styles.uploadDivider} />
+          <p className={styles.uploadSectionTitle}>อัปโหลดหนังสือตอบรับจากสถานประกอบการ</p>
+
+          {/* แสดงสถานะปัจจุบัน */}
+          {acceptanceStatus && (
+            <div className={styles.uploadStatusRow}>
+              <span className={styles.uploadStatusLabel}>สถานะปัจจุบัน:</span>
+              <span
+                className={
+                  acceptanceStatus.acceptanceStatus === "approved"
+                    ? styles.statusBadgeApproved
+                    : acceptanceStatus.acceptanceStatus === "rejected"
+                      ? styles.statusBadgeRejected
+                      : acceptanceStatus.acceptanceStatus === "pending"
+                        ? styles.statusBadgePending
+                        : styles.statusBadgeDefault
+                }
+              >
+                {acceptanceStatus.acceptanceStatus === "approved"
+                  ? "✓ อนุมัติแล้ว"
+                  : acceptanceStatus.acceptanceStatus === "rejected"
+                    ? "✗ ไม่ผ่าน"
+                    : acceptanceStatus.acceptanceStatus === "pending"
+                      ? "⏳ รอตรวจสอบ"
+                      : "ยังไม่อัปโหลด"}
+              </span>
+              {acceptanceStatus.fileName && (
+                <span className={styles.uploadFileName}>{acceptanceStatus.fileName}</span>
+              )}
+            </div>
+          )}
+
+          {/* เหตุผลที่ไม่ผ่าน (rejection reason) */}
+          {acceptanceStatus?.acceptanceStatus === "rejected" &&
+            acceptanceStatus.rejectionReason && (
+              <p className={styles.downloadError}>
+                เหตุผล: {acceptanceStatus.rejectionReason}
+              </p>
+            )}
+
+          {/* แสดง file picker + upload button เมื่อยังไม่ approved */}
+          {acceptanceStatus?.acceptanceStatus !== "approved" && (
+            <div className={styles.uploadRow}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                className={styles.fileInputHidden}
+                aria-label="เลือกไฟล์หนังสือตอบรับ PDF"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                className={styles.downloadBtnSecondary}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {selectedFile ? selectedFile.name : "เลือกไฟล์ PDF"}
+              </button>
+              <button
+                type="button"
+                className={selectedFile ? styles.downloadBtn : styles.downloadBtnDisabled}
+                disabled={!selectedFile || uploadAcceptanceMutation.isPending}
+                onClick={() => {
+                  if (selectedFile && documentId) {
+                    uploadAcceptanceMutation.mutate(
+                      { documentId, file: selectedFile },
+                      {
+                        onSuccess: () => setSelectedFile(null),
+                      }
+                    );
+                  }
+                }}
+              >
+                {uploadAcceptanceMutation.isPending ? "กำลังอัปโหลด..." : "อัปโหลดหนังสือตอบรับ"}
+              </button>
+            </div>
+          )}
+          {uploadAcceptanceMutation.isSuccess && (
+            <p className={styles.uploadSuccess}>อัปโหลดสำเร็จ รอเจ้าหน้าที่ตรวจสอบ</p>
+          )}
+          {uploadAcceptanceMutation.isError && (
+            <p className={styles.downloadError}>
+              {uploadAcceptanceMutation.error?.message ?? "อัปโหลดไม่สำเร็จ กรุณาลองใหม่"}
+            </p>
+          )}
+        </section>
+      )}
 
       <WorkflowTimeline
         title="Timeline ฝึกงาน"

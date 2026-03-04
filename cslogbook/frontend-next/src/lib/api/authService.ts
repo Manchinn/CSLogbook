@@ -171,6 +171,7 @@ function buildAuthUser(params: {
     teacherId: params.teacherId,
     teacherCode: params.teacherCode,
     teacherType: params.teacherType,
+    teacherPosition: params.teacherPosition,
     canAccessTopicExam: params.canAccessTopicExam,
     canExportProject1: params.canExportProject1,
     isSystemAdmin,

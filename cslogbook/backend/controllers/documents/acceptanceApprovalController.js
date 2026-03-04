@@ -1,6 +1,28 @@
 const { Document, DocumentLog, User, Student, InternshipDocument } = require('../../models');
 const { Op } = require('sequelize');
+const path = require('path');
 const internshipManagementService = require('../../services/internshipManagementService');
+
+// root ของ uploads directory (รองรับทั้ง env var และ default)
+const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
+
+/**
+ * แปลง filePath ที่อาจเป็น absolute path (Windows/Linux) หรือ relative path
+ * ให้กลายเป็น { url, filename } ที่ใช้กับ /uploads/ static route ได้
+ */
+function buildPdfFileInfo(filePath) {
+  if (!filePath) return null;
+  try {
+    const abs = path.isAbsolute(filePath)
+      ? filePath
+      : path.resolve(UPLOADS_ROOT, filePath);
+    const rel = path.relative(UPLOADS_ROOT, abs).replace(/\\/g, '/');
+    if (rel.startsWith('..') || rel === '') return null;
+    return { url: `/uploads/${rel}`, filename: path.basename(filePath) };
+  } catch {
+    return null;
+  }
+}
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -90,22 +112,26 @@ exports.listForHead = async (req, res) => {
       }
 
       return {
+        // id และ documentId ตรงกันเพื่อให้ frontend ใช้ได้ทั้งสองฟิลด์
+        id: d.documentId,
         documentId: d.documentId,
-        status: d.status,
-        reviewerId: d.reviewerId,
-        reviewDate: d.reviewDate || d.review_date,
-        createdAt: d.created_at,
-        student: {
-          userId: d.owner?.userId,
-          firstName: d.owner?.firstName,
-          lastName: d.owner?.lastName,
-          studentCode: d.owner?.student?.studentCode || null,
-        },
+        // ข้อมูลนักศึกษา (flatten จาก nested student object)
+        studentId: d.owner?.student?.studentId || '',
+        studentCode: d.owner?.student?.studentCode || '',
+        studentName: `${d.owner?.firstName || ''} ${d.owner?.lastName || ''}`.trim(),
         companyName,
-        startDate,
-        endDate,
+        documentType: 'acceptance',
+        status: d.status,
+        // วันที่ยื่น (ใช้ submittedAt ถ้ามี ไม่งั้นใช้ created_at)
+        submittedAt: d.submittedAt || d.created_at,
+        submittedDate: d.submittedAt || d.created_at,
         academicYear,
         semester,
+        // ไฟล์ PDF — แปลง absolute/relative filePath → URL ที่เข้าถึงได้ผ่าน static route
+        pdfFile: buildPdfFileInfo(d.filePath),
+        // ความเห็นและเหตุผลปฏิเสธ
+        comment: d.status !== 'rejected' ? (d.reviewComment || null) : null,
+        rejectionReason: d.status === 'rejected' ? (d.reviewComment || null) : null,
       };
     }));
 

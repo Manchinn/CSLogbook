@@ -123,7 +123,8 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
   const canSeeTopicExam = Boolean(user.canAccessTopicExam);
   const canExportProject1 = Boolean(user.canExportProject1);
   const canExportThesis = Boolean((user as { canExportThesis?: boolean }).canExportThesis ?? user.canExportProject1);
-  const teacherPosition = (user as { teacherPosition?: string }).teacherPosition;
+  // teacherPosition มีอยู่ใน AuthUser โดยตรง ไม่ต้อง cast
+  const teacherPosition = user.teacherPosition;
   const canApproveDocuments = isAcademic && (teacherPosition === "หัวหน้าภาควิชา" || teacherPosition === "หัวหน้าภาค");
 
   const privilegedChildren: MenuNode[] = [];
@@ -165,8 +166,19 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
         menuLink("thesis-advisor-queue", "คำขอสอบ คพ.03", "/teacher/thesis/advisor-queue"),
         menuLink("system-test-advisor", "คำขอทดสอบระบบ", "/teacher/system-test/advisor-queue"),
         ...(privileged ? [privileged] : []),
+        // แสดงกลุ่ม "อนุมัติเอกสาร" พร้อม sub-items เฉพาะหัวหน้าภาควิชา/หัวหน้าภาค
         ...(canApproveDocuments
-          ? [menuLink("approve-documents", "อนุมัติเอกสาร", "/approve-documents")]
+          ? [
+              {
+                key: "approve-documents",
+                label: "อนุมัติเอกสารฝึกงาน",
+                kind: "group" as const,
+                children: [
+                  menuLink("approve-cs05", "หนังสือขอความอนุเคราะห์", "/approve-documents?tab=cs05"),
+                  menuLink("approve-acceptance", "หนังสือส่งตัวนักศึกษา", "/approve-documents?tab=acceptance-letter"),
+                ],
+              } satisfies MenuGroupNode,
+            ]
           : []),
       ]
     : [];

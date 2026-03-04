@@ -164,3 +164,97 @@ export async function sendEvaluationRequest(token: string, documentId: number) {
     }
   );
 }
+
+/**
+ * อัปโหลดหนังสือตอบรับจากสถานประกอบการ (PDF)
+ * POST /internship/upload-acceptance-letter
+ * FormData fields: acceptanceLetter (file), cs05DocumentId (number)
+ */
+export async function uploadAcceptanceLetter(token: string, documentId: number, file: File) {
+  const formData = new FormData();
+  formData.append("acceptanceLetter", file);
+  formData.append("cs05DocumentId", String(documentId));
+  return apiFetch<{ success: boolean; message?: string; data?: unknown }>(
+    "/internship/upload-acceptance-letter",
+    {
+      method: "POST",
+      token,
+      body: formData,
+    }
+  );
+}
+
+// ============= หนังสือส่งตัวนักศึกษาฝึกงาน (Referral Letter) =============
+
+const _apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+/** สถานะหนังสือส่งตัวที่ backend ส่งกลับมา */
+export type ReferralLetterStatus = {
+  isReady: boolean;
+  isDownloaded: boolean;
+  status: string;
+  statusMessage?: string | null;
+  referralLetterPath?: string | null;
+};
+
+/**
+ * ตรวจสอบว่าหนังสือส่งตัวพร้อมให้ดาวน์โหลดหรือยัง
+ * GET /internship/referral-letter-status/:documentId
+ */
+export async function getReferralLetterStatus(token: string, documentId: number) {
+  const data = await apiFetchData<ReferralLetterStatus | null>(
+    `/internship/referral-letter-status/${documentId}`,
+    {
+      method: "GET",
+      token,
+    }
+  );
+  return data ?? null;
+}
+
+/**
+ * ดาวน์โหลดหนังสือส่งตัวนักศึกษา → trigger browser download
+ * GET /internship/download-referral-letter/:documentId
+ */
+export async function downloadReferralLetter(token: string, documentId: number) {
+  if (!_apiBaseUrl) {
+    throw new Error("API base URL is not configured");
+  }
+
+  const response = await fetch(
+    `${_apiBaseUrl}/internship/download-referral-letter/${documentId}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    try {
+      const body = await response.json();
+      throw new Error(body?.message || "ไม่สามารถดาวน์โหลดหนังสือส่งตัวได้");
+    } catch (err) {
+      if (err instanceof Error) throw err;
+      throw new Error("ไม่สามารถดาวน์โหลดหนังสือส่งตัวได้");
+    }
+  }
+
+  const blob = await response.blob();
+  if (!blob || blob.size === 0) {
+    throw new Error("ไม่พบไฟล์ PDF จากเซิร์ฟเวอร์");
+  }
+
+  // trigger browser download
+  const filename = `หนังสือส่งตัวฝึกงาน-${documentId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  return { success: true, message: "ดาวน์โหลดหนังสือส่งตัวแล้ว", filename };
+}

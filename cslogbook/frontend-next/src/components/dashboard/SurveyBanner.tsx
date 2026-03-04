@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useHydrated } from "@/hooks/useHydrated";
 import styles from "./SurveyBanner.module.css";
 
 // เปลี่ยน URL นี้เป็น Google Form URL จริงเมื่อสร้างฟอร์มเสร็จ
@@ -10,14 +9,9 @@ const SURVEY_URL = "https://forms.gle/PLACEHOLDER";
 type Mode = "popup" | "banner" | "hidden";
 
 export function SurveyBanner() {
-  const hydrated = useHydrated();
   // แสดง popup ทุกครั้งที่ login (state อยู่ใน memory เท่านั้น รีเซ็ตทุกครั้งที่โหลดหน้าใหม่)
-  const [mode, setMode] = useState<Mode>("hidden");
-
-  // แสดง popup หลัง hydration เสร็จ (ป้องกัน SSR mismatch)
-  useEffect(() => {
-    if (hydrated) setMode("popup");
-  }, [hydrated]);
+  // เริ่มต้นเป็น "popup" ทันที — "use client" component, server/client ตกลงกัน ไม่มี hydration mismatch
+  const [mode, setMode] = useState<Mode>("popup");
 
   // ล็อก scroll เมื่อ popup เปิด
   useEffect(() => {

@@ -1,6 +1,29 @@
 const { Document, DocumentLog, User, InternshipDocument, Student } = require('../../models');
 const { Op } = require('sequelize');
+const path = require('path');
 const internshipService = require('../../services/internshipService');
+
+// root ของ uploads directory (รองรับทั้ง env var และ default)
+const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
+
+/**
+ * แปลง filePath ที่อาจเป็น absolute path (Windows/Linux) หรือ relative path
+ * ให้กลายเป็น { url, filename } ที่ใช้กับ /uploads/ static route ได้
+ */
+function buildPdfFileInfo(filePath) {
+  if (!filePath) return null;
+  try {
+    const abs = path.isAbsolute(filePath)
+      ? filePath
+      : path.resolve(UPLOADS_ROOT, filePath);
+    const rel = path.relative(UPLOADS_ROOT, abs).replace(/\\/g, '/');
+    // ถ้า rel เริ่มด้วย '..' แสดงว่าไฟล์อยู่นอก uploads dir
+    if (rel.startsWith('..') || rel === '') return null;
+    return { url: `/uploads/${rel}`, filename: path.basename(filePath) };
+  } catch {
+    return null;
+  }
+}
 
 // Helper to load CS05 document with minimal validation
 async function loadCS05(documentId) {
@@ -57,24 +80,26 @@ exports.listForHead = async (req, res) => {
     });
 
     const data = docs.map((d) => ({
+      // id และ documentId ตรงกันเพื่อให้ frontend ใช้ได้ทั้งสองฟิลด์
+      id: d.documentId,
       documentId: d.documentId,
-      status: d.status,
-      // ส่งต่อข้อมูลผู้ตรวจจากเจ้าหน้าที่ภาค เพื่อให้ฝั่งหัวหน้าภาคเปิดปุ่มอนุมัติได้
-      // หมายเหตุ: reviewerId จะมีค่าเสมอในคิวนี้ เพราะเรา where reviewerId != null อยู่แล้ว
-      reviewerId: d.reviewerId,
-      reviewDate: d.review_date,
-      createdAt: d.created_at,
-      student: {
-        userId: d.owner?.userId,
-        firstName: d.owner?.firstName,
-        lastName: d.owner?.lastName,
-        studentCode: d.owner?.student?.studentCode || null
-      },
+      // ข้อมูลนักศึกษา (flatten จาก nested student object)
+      studentId: d.owner?.student?.studentId || '',
+      studentCode: d.owner?.student?.studentCode || '',
+      studentName: `${d.owner?.firstName || ''} ${d.owner?.lastName || ''}`.trim(),
       companyName: d.internshipDocument?.companyName || '',
-      startDate: d.internshipDocument?.startDate || null,
-      endDate: d.internshipDocument?.endDate || null,
+      documentType: 'cs05',
+      status: d.status,
+      // วันที่ยื่น (ใช้ submittedAt ถ้ามี ไม่งั้นใช้ created_at)
+      submittedAt: d.submittedAt || d.created_at,
+      submittedDate: d.submittedAt || d.created_at,
       academicYear: d.internshipDocument?.academicYear || null,
-      semester: d.internshipDocument?.semester || null
+      semester: d.internshipDocument?.semester || null,
+      // ไฟล์ PDF — แปลง absolute/relative filePath → URL ที่เข้าถึงได้ผ่าน static route
+      pdfFile: buildPdfFileInfo(d.filePath),
+      // ความเห็นและเหตุผลปฏิเสธ (ใช้ reviewComment จาก Document model)
+      comment: d.status !== 'rejected' ? (d.reviewComment || null) : null,
+      rejectionReason: d.status === 'rejected' ? (d.reviewComment || null) : null,
     }));
 
   return res.json({ success: true, data });

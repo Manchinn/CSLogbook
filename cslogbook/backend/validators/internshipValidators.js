@@ -61,6 +61,21 @@ exports.validateSubmitCS05WithTranscript = (req, res, next) => {
     });
   }
 
+  // รองรับทั้ง 2 รูปแบบ:
+  // 1. ส่งแต่ละ field โดยตรงใน FormData (req.body.companyName, ...)
+  // 2. ส่ง JSON string รวมใน field "formData" (req.body.formData = JSON.stringify({...}))
+  let bodyData = req.body;
+  if (req.body.formData && typeof req.body.formData === 'string') {
+    try {
+      bodyData = JSON.parse(req.body.formData);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        message: 'ข้อมูลฟอร์มไม่ถูกต้อง (JSON parse error)'
+      });
+    }
+  }
+
   // Validate form data (เหมือน submitCS05)
   const schema = Joi.object({
     companyName: Joi.string().min(2).max(255).required().messages({
@@ -86,10 +101,11 @@ exports.validateSubmitCS05WithTranscript = (req, res, next) => {
     contactPersonName: Joi.string().max(255).optional().allow('', null),
     contactPersonPosition: Joi.string().max(255).optional().allow('', null),
     phoneNumber: Joi.string().optional().allow('', null),
-    classroom: Joi.string().optional().allow('', null)
+    classroom: Joi.string().optional().allow('', null),
+    studentData: Joi.array().optional()
   });
   
-  const { error, value } = schema.validate(req.body);
+  const { error, value } = schema.validate(bodyData, { allowUnknown: true });
   if (error) {
     return res.status(400).json({
       success: false,

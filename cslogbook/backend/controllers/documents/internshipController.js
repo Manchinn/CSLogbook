@@ -573,8 +573,14 @@ exports.submitSupervisorEvaluation = async (req, res) => {
 exports.uploadAcceptanceLetter = async (req, res) => {
   try {
     const userId = req.user.userId;
-    // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body/params (backward compatibility)
-    const documentId = (req.validated?.documentId) || req.body?.documentId || req.params?.documentId;
+    // validator ใช้ field name "cs05DocumentId" → req.validated.cs05DocumentId
+    // รองรับทั้ง cs05DocumentId และ documentId เพื่อ backward compatibility
+    const documentId =
+      req.validated?.cs05DocumentId ||
+      req.validated?.documentId ||
+      req.body?.cs05DocumentId ||
+      req.body?.documentId ||
+      req.params?.documentId;
     const uploadedFile = req.file;
 
     // ตรวจสอบข้อมูลที่จำเป็น

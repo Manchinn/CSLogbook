@@ -357,14 +357,14 @@ export async function submitSystemTestAdvisorDecision(
 // =====================
 
 export type InternshipDocument = {
-  id: number;
-  documentId: string;
+  id: number;         // ตรงกับ documentId (integer PK) — ใช้ id ก็ได้ documentId ก็ได้
+  documentId: number; // integer PK ของตาราง documents
   studentCode: string;
   studentId: string;
   studentName: string;
   companyName: string;
   documentType: "cs05" | "acceptance";
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "acceptance_approved" | "referral_ready" | "referral_downloaded" | "completed" | "cancelled";
   submittedAt: string;
   submittedDate: string;
   academicYear: string;

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+const path = require("path");
 const { upload } = require("../../config/uploadConfig");
 const { Document } = require("../../models");
 const cp05ApprovalController = require("../../controllers/documents/cp05ApprovalController");
@@ -20,6 +21,21 @@ const {
   validateUploadAcceptanceLetter
 } = require("../../validators/internshipValidators");
 // Note: checkDeadlineBeforeSubmission is for PROJECT workflows only
+
+// ============= เส้นทางสาธารณะ (ไม่ต้อง auth) =============
+
+// ดาวน์โหลดแบบฟอร์มหนังสือตอบรับ (template PDF สาธารณะ — ไม่ต้อง auth)
+router.get("/acceptance-letter-template", (req, res) => {
+  const templatePath = path.join(__dirname, "../../public/forms/acceptance-letter-template.pdf");
+  res.sendFile(templatePath, (err) => {
+    if (err) {
+      res.status(404).json({
+        success: false,
+        message: "ไม่พบไฟล์แบบฟอร์มหนังสือตอบรับ กรุณาติดต่อเจ้าหน้าที่",
+      });
+    }
+  });
+});
 
 // ============= เส้นทางสำหรับข้อมูลนักศึกษา =============
 // ดึงข้อมูลนักศึกษาและสิทธิ์การฝึกงาน

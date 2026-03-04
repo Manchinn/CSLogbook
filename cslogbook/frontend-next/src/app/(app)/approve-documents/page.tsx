@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { TeacherPageScaffold } from "@/components/teacher/TeacherPageScaffold";
-import { PDFPreviewModal } from "@/components/teacher/PDFPreviewModal";
 import {
   useCS05HeadQueue,
   useApproveCS05Document,
@@ -18,7 +18,20 @@ import styles from "./ApproveDocuments.module.css";
 type TabType = "cs05" | "acceptance-letter";
 
 export default function ApproveDocumentsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>("cs05");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  // อ่าน tab จาก URL query string (?tab=cs05 หรือ ?tab=acceptance-letter)
+  // ใช้ URL เป็น source of truth — ไม่ต้องมี local state สำหรับ tab
+  const tabParam = searchParams.get("tab") as TabType | null;
+  const activeTab: TabType = tabParam === "acceptance-letter" ? "acceptance-letter" : "cs05";
+
+  // เปลี่ยน tab โดย push URL แทนการเรียก setState โดยตรง
+  function setActiveTab(tab: TabType) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.push(`?${params.toString()}`);
+  }
+
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [academicYearFilter, setAcademicYearFilter] = useState<string>("");
   const [semesterFilter, setSemesterFilter] = useState<string>("");
@@ -29,13 +42,6 @@ export default function ApproveDocumentsPage() {
   const [comment, setComment] = useState("");
   const [letterType, setLetterType] = useState("");
   const [reason, setReason] = useState("");
-
-  // PDF Preview Modal state
-  const [pdfModal, setPdfModal] = useState<{ isOpen: boolean; url: string; fileName: string }>({
-    isOpen: false,
-    url: "",
-    fileName: "",
-  });
 
   // Build filters
   const filters = {
@@ -81,14 +87,6 @@ export default function ApproveDocumentsPage() {
     setReason("");
   };
 
-  const handleViewPDF = (url: string, fileName: string) => {
-    setPdfModal({ isOpen: true, url, fileName });
-  };
-
-  const handleClosePDF = () => {
-    setPdfModal({ isOpen: false, url: "", fileName: "" });
-  };
-
   const handleSubmit = async () => {
     if (!selectedDocument || !modalMode) return;
 
@@ -96,25 +94,25 @@ export default function ApproveDocumentsPage() {
       if (activeTab === "cs05") {
         if (modalMode === "approve") {
           await approveCS05.mutateAsync({
-            documentId: String(selectedDocument.id),
+            documentId: String(selectedDocument.documentId),
             comment: comment || undefined,
             letterType: letterType || undefined,
           });
         } else {
           await rejectCS05.mutateAsync({
-            documentId: String(selectedDocument.id),
+            documentId: String(selectedDocument.documentId),
             reason,
           });
         }
       } else {
         if (modalMode === "approve") {
           await approveAcceptanceLetter.mutateAsync({
-            documentId: String(selectedDocument.id),
+            documentId: String(selectedDocument.documentId),
             comment: comment || undefined,
           });
         } else {
           await rejectAcceptanceLetter.mutateAsync({
-            documentId: String(selectedDocument.id),
+            documentId: String(selectedDocument.documentId),
             reason,
           });
         }
@@ -144,7 +142,7 @@ export default function ApproveDocumentsPage() {
     <RoleGuard roles={["teacher"]} teacherTypes={["academic"]} requireHeadOfDepartment>
       <TeacherPageScaffold
         title="อนุมัติเอกสาร"
-        description="อนุมัติหนังสือขอความอนุเคราะห์ (CS05) และหนังสือส่งตัวนักศึกษาจากหัวหน้าภาค"
+        description="อนุมัติหนังสือขอความอนุเคราะห์ฝึกงานและหนังสือส่งตัวนักศึกษา"
       >
         {/* Tabs */}
         <div className={styles.tabs}>
@@ -153,7 +151,7 @@ export default function ApproveDocumentsPage() {
             className={`${styles.tab} ${activeTab === "cs05" ? styles.tabActive : ""}`}
             onClick={() => setActiveTab("cs05")}
           >
-            หนังสือขอความอนุเคราะห์ (CS05)
+            หนังสือขอความอนุเคราะห์
           </button>
           <button
             type="button"
@@ -235,14 +233,13 @@ export default function ApproveDocumentsPage() {
                   <th>บริษัท/หน่วยงาน</th>
                   <th>ปี/ภาค</th>
                   <th>วันที่ยื่น</th>
-                  <th>เอกสาร</th>
                   <th>สถานะ</th>
                   <th>การดำเนินการ</th>
                 </tr>
               </thead>
               <tbody>
                 {currentData.map((doc, index) => (
-                  <tr key={doc.id ?? `doc-${index}`}>
+                  <tr key={doc.documentId ?? `doc-${index}`}>
                     <td>
                       <div className={styles.studentInfo}>
                         <div className={styles.studentName}>{doc.studentName}</div>
@@ -258,35 +255,6 @@ export default function ApproveDocumentsPage() {
                       </div>
                     </td>
                     <td>{new Date(doc.submittedDate).toLocaleDateString("th-TH")}</td>
-                    <td>
-                      {doc.pdfFile ? (
-                        <button
-                          type="button"
-                          className={styles.btnViewDoc}
-                          onClick={() => handleViewPDF(doc.pdfFile!.url, doc.pdfFile!.filename)}
-                        >
-                          <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                            <polyline points="10 9 9 9 8 9" />
-                          </svg>
-                          ดูเอกสาร
-                        </button>
-                      ) : (
-                        <span className={styles.noDocument}>-</span>
-                      )}
-                    </td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge-${doc.status}`]}`}>
                         {doc.status === "pending" && "รออนุมัติ"}
@@ -426,14 +394,6 @@ export default function ApproveDocumentsPage() {
           </div>
         )}
 
-        {/* PDF Preview Modal */}
-        <PDFPreviewModal
-          isOpen={pdfModal.isOpen}
-          onClose={handleClosePDF}
-          pdfUrl={pdfModal.url}
-          fileName={pdfModal.fileName}
-          title={activeTab === "cs05" ? "หนังสือขอความอนุเคราะห์ (CS05)" : "หนังสือส่งตัวนักศึกษา"}
-        />
       </TeacherPageScaffold>
     </RoleGuard>
   );

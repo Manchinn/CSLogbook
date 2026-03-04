@@ -211,3 +211,195 @@
     background-position: -200% 0;
   }
 }
+
+/* ============= Download Panel — Step 4 (รอหนังสือตอบรับ) ============= */
+
+.downloadPanel {
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.downloadPanelTitle {
+  margin: 0 0 4px;
+  color: var(--color-text);
+}
+
+.downloadPanelKicker {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+.downloadBtnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.downloadBtn:hover {
+  opacity: 0.88;
+}
+
+.downloadBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.downloadBtnSecondary:hover {
+  opacity: 0.75;
+}
+
+.downloadBtnDisabled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #d9d9d9;
+  color: #8c8c8c;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.downloadBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.downloadError {
+  margin-top: 8px;
+  color: #a8071a;
+  font-size: 13px;
+}
+
+/* ============= Upload Section ============= */
+
+.uploadDivider {
+  margin: 16px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.uploadSectionTitle {
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.uploadStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.uploadStatusLabel {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.uploadFileName {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.statusBadgeApproved {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  background: #d9f7be;
+  color: #237804;
+  border: 1px solid #b7eb8f;
+  font-weight: 500;
+}
+
+.statusBadgePending {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  font-weight: 500;
+}
+
+.statusBadgeRejected {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  background: #fff1f0;
+  color: #a8071a;
+  border: 1px solid #ffa39e;
+  font-weight: 500;
+}
+
+.statusBadgeDefault {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  background: #f5f5f5;
+  color: #595959;
+  border: 1px solid #d9d9d9;
+  font-weight: 500;
+}
+
+.uploadRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+.uploadSuccess {
+  margin-top: 8px;
+  color: #237804;
+  font-size: 13px;
+}
