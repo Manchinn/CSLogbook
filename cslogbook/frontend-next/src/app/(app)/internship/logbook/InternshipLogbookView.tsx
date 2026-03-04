@@ -7,13 +7,14 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
 import { useAcceptanceLetterStatus } from "@/hooks/useInternshipCompanyInfo";
 import {
+  useApprovalRequest,
   useInternshipDateRange,
   useInternshipWorkdays,
   useTimesheetEntries,
   useTimesheetMutations,
   useTimesheetStats,
 } from "@/hooks/useInternshipLogbook";
-import type { TimesheetEntry } from "@/lib/services/internshipLogbookService";
+import type { TimesheetEntry, TimesheetApprovalRequestPayload } from "@/lib/services/internshipLogbookService";
 import styles from "./logbook.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -101,7 +102,7 @@ function calculateWorkHours(timeIn: string, timeOut: string) {
 }
 
 export default function InternshipLogbookView() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const hydrated = useHydrated();
   const queriesEnabled = hydrated && Boolean(token);
 
@@ -118,8 +119,15 @@ export default function InternshipLogbookView() {
   const entriesQuery = useTimesheetEntries(token, queriesEnabled && Boolean(documentId));
   const dateRangeQuery = useInternshipDateRange(token, queriesEnabled && Boolean(documentId));
   const { saveMutation, updateMutation } = useTimesheetMutations(token);
+  const approvalMutation = useApprovalRequest(token, user?.studentId);
 
   const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvalType, setApprovalType] = useState<"full" | "weekly">("full");
+  const [approvalStartDate, setApprovalStartDate] = useState("");
+  const [approvalEndDate, setApprovalEndDate] = useState("");
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [approvalSuccess, setApprovalSuccess] = useState<string | null>(null);
   const timeInRef = useRef<HTMLInputElement | null>(null);
   const [page, setPage] = useState(1);
   const [formState, setFormState] = useState({
@@ -322,6 +330,58 @@ export default function InternshipLogbookView() {
     }
   }, [editingDate, entriesByDate, formState, saveMutation, updateMutation]);
 
+  const handleOpenApproval = useCallback(() => {
+    setApprovalType("full");
+    setApprovalStartDate("");
+    setApprovalEndDate("");
+    setApprovalError(null);
+    setApprovalSuccess(null);
+    setShowApprovalModal(true);
+  }, []);
+
+  const handleCloseApproval = useCallback(() => {
+    setShowApprovalModal(false);
+    setApprovalError(null);
+  }, []);
+
+  const handleSubmitApproval = useCallback(async () => {
+    setApprovalError(null);
+    setApprovalSuccess(null);
+
+    if (approvalType === "weekly" && (!approvalStartDate || !approvalEndDate)) {
+      setApprovalError("กรุณาระบุวันเริ่มต้นและวันสิ้นสุด");
+      return;
+    }
+
+    const payload: TimesheetApprovalRequestPayload = { type: approvalType };
+    if (approvalType === "weekly") {
+      payload.startDate = approvalStartDate;
+      payload.endDate = approvalEndDate;
+    }
+
+    try {
+      await approvalMutation.mutateAsync(payload);
+      setApprovalSuccess("ส่งคำขออนุมัติเรียบร้อยแล้ว ระบบจะส่งอีเมลไปยังผู้ควบคุมงาน");
+      setTimeout(() => setShowApprovalModal(false), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ไม่สามารถส่งคำขออนุมัติได้";
+      setApprovalError(message);
+    }
+  }, [approvalType, approvalStartDate, approvalEndDate, approvalMutation]);
+
+  useEffect(() => {
+    if (!showApprovalModal) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleCloseApproval();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [showApprovalModal, handleCloseApproval]);
+
   const stats = statsQuery.data;
   const dateRange = dateRangeQuery.data;
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -403,6 +463,15 @@ export default function InternshipLogbookView() {
               </div>
               <div className={styles.sectionBadges}>
                 <span className={`${styles.badge} ${styles.badgeMuted}`}>ข้อมูลอัปเดตอัตโนมัติทุก 5 นาที</span>
+                {canEdit ? (
+                  <button
+                    className={styles.approvalButton}
+                    type="button"
+                    onClick={handleOpenApproval}
+                  >
+                    ส่งคำขออนุมัติ
+                  </button>
+                ) : null}
               </div>
             </div>
             <div className={styles.statGrid}>
@@ -645,6 +714,96 @@ export default function InternshipLogbookView() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          ) : null}
+
+          {showApprovalModal ? (
+            <div className={styles.modalOverlay} onClick={handleCloseApproval} role="presentation">
+              <div
+                className={styles.approvalModalContent}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="approval-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className={styles.formHeader}>
+                  <div>
+                    <p className={styles.panelKicker}>คำขออนุมัติ</p>
+                    <h3 className={styles.formTitle} id="approval-modal-title">ส่งคำขออนุมัติบันทึกการฝึกงาน</h3>
+                    <p className={styles.formHint}>ระบบจะส่งอีเมลไปยังผู้ควบคุมงานเพื่อตรวจสอบและอนุมัติ</p>
+                  </div>
+                </div>
+
+                <div className={styles.form}>
+                  <fieldset className={styles.radioGroup}>
+                    <legend className={styles.label}>ประเภทการส่ง</legend>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="approvalType"
+                        value="full"
+                        checked={approvalType === "full"}
+                        onChange={() => setApprovalType("full")}
+                      />
+                      <span>ส่งทั้งหมด — ส่ง timesheet ทั้งหมดที่ยังไม่ได้อนุมัติ</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="approvalType"
+                        value="weekly"
+                        checked={approvalType === "weekly"}
+                        onChange={() => setApprovalType("weekly")}
+                      />
+                      <span>ส่งตามช่วงวันที่ — เลือกวันเริ่มต้นและสิ้นสุด</span>
+                    </label>
+                  </fieldset>
+
+                  {approvalType === "weekly" ? (
+                    <div className={styles.gridTwo}>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="approval-start">วันเริ่มต้น *</label>
+                        <input
+                          className={styles.input}
+                          id="approval-start"
+                          type="date"
+                          value={approvalStartDate}
+                          onChange={(e) => setApprovalStartDate(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="approval-end">วันสิ้นสุด *</label>
+                        <input
+                          className={styles.input}
+                          id="approval-end"
+                          type="date"
+                          value={approvalEndDate}
+                          onChange={(e) => setApprovalEndDate(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {approvalError ? <p className={styles.error}>{approvalError}</p> : null}
+                  {approvalSuccess ? <p className={styles.success}>{approvalSuccess}</p> : null}
+
+                  <div className={styles.actions}>
+                    <button className={styles.secondaryButton} type="button" onClick={handleCloseApproval}>
+                      ยกเลิก
+                    </button>
+                    <button
+                      className={styles.approvalButton}
+                      type="button"
+                      disabled={approvalMutation.isPending || Boolean(approvalSuccess)}
+                      onClick={handleSubmitApproval}
+                    >
+                      {approvalMutation.isPending ? "กำลังส่ง..." : "ยืนยันส่งคำขออนุมัติ"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}
