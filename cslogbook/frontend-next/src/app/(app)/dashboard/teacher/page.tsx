@@ -7,6 +7,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useTeacherOverview } from "@/hooks/useTeacherOverview";
+import { SurveyBanner } from "@/components/dashboard/SurveyBanner";
 
 export default function TeacherDashboardPage() {
   const { token } = useAuth();
@@ -27,6 +28,7 @@ export default function TeacherDashboardPage() {
         summary="ภาพรวมงานที่ต้องตรวจและนัดหมายที่ต้องดูแลวันนี้"
         stats={stats}
       >
+        <SurveyBanner />
         <TeacherOverviewWidget
           enabled={enabled}
           data={data}

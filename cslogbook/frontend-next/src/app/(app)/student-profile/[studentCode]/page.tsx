@@ -467,7 +467,6 @@ export default function StudentProfilePage() {
                 <div>
                   <p className={styles.cardEyebrow}>Credits</p>
                   <h3 className={styles.cardTitle}>ข้อมูลการศึกษา</h3>
-                  <p className={styles.subtitle}>การแก้ไขข้อมูลคือการเปลี่ยนค่าหน่วยกิต</p>
                 </div>
                 {canUseStudentEndpoints && resolvedStudentCode === (user?.studentCode ?? "") ? (
                   isEditingCredits ? (
@@ -503,7 +502,6 @@ export default function StudentProfilePage() {
                   ) : (
                     <p className={styles.statValue}>{profile.totalCredits ?? 0} หน่วยกิต</p>
                   )}
-                  <p className={styles.statHint}>สิทธิ์ฝึกงาน</p>
                 </div>
                 <div className={styles.statBlock}>
                   <p className={styles.statLabel}>หน่วยกิตภาควิชา</p>
@@ -521,7 +519,6 @@ export default function StudentProfilePage() {
                   ) : (
                     <p className={styles.statValue}>{profile.majorCredits ?? 0} หน่วยกิต</p>
                   )}
-                  <p className={styles.statHint}>สิทธิ์ทำโครงงานพิเศษ</p>
                 </div>
               </div>
               {creditsError ? <p className={styles.error}>{creditsError}</p> : null}

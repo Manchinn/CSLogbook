@@ -231,6 +231,7 @@ class StudentService {
         },
         // เพิ่มข้อมูลสำหรับ StudentAvatar
         isEligibleInternship: student.isEligibleInternship || false,
+        isEligibleProject: student.isEligibleProject || false,
         isEnrolledInternship: student.isEnrolledInternship || false,
         internshipStatus: student.internshipStatus || 'not_started',
         projectStatus: student.projectStatus || 'not_started',

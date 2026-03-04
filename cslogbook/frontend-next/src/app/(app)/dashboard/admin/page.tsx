@@ -5,6 +5,7 @@ import { DashboardRoleView } from "../DashboardRoleView";
 import { AdminStatsWidget } from "@/components/dashboard/AdminStatsWidget";
 import { AdminProjectWorkflowWidget } from "@/components/dashboard/AdminProjectWorkflowWidget";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { SurveyBanner } from "@/components/dashboard/SurveyBanner";
 import { featureFlags } from "@/lib/config/featureFlags";
 import styles from "./page.module.css";
 
@@ -31,6 +32,7 @@ export default function AdminDashboardPage() {
         summary="ภาพรวมการจัดการเอกสารและ workflow ของทั้งระบบ"
         stats={[]}
       >
+        <SurveyBanner />
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>งานด่วนสำหรับผู้ดูแลระบบ</h2>
           <div className={styles.actions}>
