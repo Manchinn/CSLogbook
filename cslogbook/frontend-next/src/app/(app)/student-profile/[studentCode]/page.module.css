@@ -26,12 +26,14 @@
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 1.4rem;
   align-items: start;
+  min-width: 0;
 }
 
 .sidebar {
   display: grid;
   gap: 1rem;
   align-content: start;
+  min-width: 0;
 }
 
 .main {
@@ -105,8 +107,8 @@
 
 .grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   width: 100%;
 }
 
@@ -144,19 +146,6 @@
 
 .cardTitle + .subtitle {
   margin-top: 0.1rem;
-}
-
-.cardCredits {
-  grid-column: span 12;
-}
-
-.cardInternship,
-.cardProject {
-  grid-column: span 6;
-}
-
-.cardDocuments {
-  grid-column: span 12;
 }
 
 .statGrid {
@@ -232,6 +221,15 @@
   padding: 0.45rem 0;
 }
 
+.detailRowStacked {
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detailRowStacked dd {
+  text-align: left;
+}
+
 .detailRow dt {
   color: #64748b;
   font-weight: 600;
@@ -241,6 +239,9 @@
   margin: 0;
   text-align: right;
   font-weight: 600;
+  min-width: 0;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .statusText {
@@ -514,13 +515,6 @@
     grid-template-columns: 1fr;
   }
 
-  .cardCredits,
-  .cardInternship,
-  .cardProject,
-  .cardDocuments {
-    grid-column: auto;
-  }
-
   .statGrid {
     grid-template-columns: 1fr;
   }
@@ -548,11 +542,5 @@
 @media (min-width: 769px) and (max-width: 1180px) {
   .layout {
     grid-template-columns: 280px minmax(0, 1fr);
-  }
-
-  .cardInternship,
-  .cardProject,
-  .cardDocuments {
-    grid-column: span 12;
   }
 }

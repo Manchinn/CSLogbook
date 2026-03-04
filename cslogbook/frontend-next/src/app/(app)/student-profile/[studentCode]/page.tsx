@@ -398,7 +398,7 @@ export default function StudentProfilePage() {
               </div>
             </header>
             <dl className={styles.detailList}>
-              <div className={styles.detailRow}>
+              <div className={`${styles.detailRow} ${styles.detailRowStacked}`}>
                 <dt>อีเมล</dt>
                 <dd>{displayEmail}</dd>
               </div>

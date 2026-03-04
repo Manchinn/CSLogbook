@@ -202,10 +202,10 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
             </article>
 
             <article className={styles.card}>
-              <p className={styles.cardTitle}>หน่วยกิตสะสม</p>
+              <p className={styles.cardTitle}>หน่วยกิต</p>
               <div className={styles.statList}>
                 <div className={styles.statRow}>
-                  <span>รวมทั้งหมด</span>
+                  <span>หน่วยกิตสะสม</span>
                   <strong>{data.student.totalCredits.toLocaleString()}</strong>
                 </div>
                 <div className={styles.statRow}>
