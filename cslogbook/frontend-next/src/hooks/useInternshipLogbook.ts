@@ -7,9 +7,11 @@ import {
   getTimesheetEntries,
   getTimesheetStats,
   saveTimesheetEntry,
+  sendTimesheetApprovalRequest,
   updateTimesheetEntry,
   type SaveTimesheetPayload,
   type TimesheetEntry,
+  type TimesheetApprovalRequestPayload,
   type InternshipDateRange,
 } from "@/lib/services/internshipLogbookService";
 
@@ -79,4 +81,20 @@ export function useTimesheetMutations(token: string | null) {
   });
 
   return { saveMutation, updateMutation };
+}
+
+export function useApprovalRequest(token: string | null, studentId: number | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: TimesheetApprovalRequestPayload) => {
+      if (!token) throw new Error("missing token");
+      if (!studentId) throw new Error("missing studentId");
+      return sendTimesheetApprovalRequest(token, studentId, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["internship-timesheet-entries", token] });
+      queryClient.invalidateQueries({ queryKey: ["internship-timesheet-stats", token] });
+    },
+  });
 }
