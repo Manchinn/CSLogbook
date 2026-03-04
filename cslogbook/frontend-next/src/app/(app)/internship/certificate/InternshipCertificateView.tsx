@@ -306,7 +306,7 @@ export default function InternshipCertificateView() {
           </div>
           <div className={styles.calloutActions}>
             <Link className={styles.secondaryButton} href="/dashboard">กลับหน้าหลัก</Link>
-            <Link className={styles.ghostButton} href="/internship-registration/flow">ไปหน้าลงทะเบียนฝึกงาน</Link>
+            <Link className={styles.ghostButton} href="/internship-registration">ไปหน้าลงทะเบียนฝึกงาน</Link>
           </div>
         </section>
       ) : null}

@@ -436,7 +436,15 @@ export async function getProjectWorkflowState(token: string, projectId: number) 
 }
 
 export async function getStudentProjectStatus(token: string): Promise<StudentProjectStatus> {
-  const projects = await getStudentProjects(token);
+  // ครอบ try-catch ทั้งหมดเพื่อป้องกัน error แสดงบน dashboard เมื่อนักศึกษายังไม่มีโครงงาน
+  let projects: ProjectSummary[];
+  try {
+    projects = await getStudentProjects(token);
+  } catch (error) {
+    console.warn("Failed to load student projects", error);
+    return { project: null, workflow: null };
+  }
+
   const project = projects[0] ?? null;
 
   if (!project?.projectId) {

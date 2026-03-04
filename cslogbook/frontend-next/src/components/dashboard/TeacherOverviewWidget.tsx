@@ -134,6 +134,7 @@ export function TeacherOverviewWidget({
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
               <p className={styles.panelTitle}>กำหนดส่งที่เกี่ยวข้อง</p>
+              <a href="/teacher/deadlines/calendar" className={styles.panelMoreLink}>ดูทั้งหมด →</a>
             </div>
             {deadlines.length === 0 ? (
               <p className={styles.muted}>ยังไม่พบกำหนดส่งที่เกี่ยวข้อง</p>
@@ -145,7 +146,14 @@ export function TeacherOverviewWidget({
                       <p className={styles.listTitle}>{deadline.name}</p>
                       <p className={styles.listMeta}>{deadline.relatedTo ?? "-"}</p>
                     </div>
-                    <span className={styles.badgeLight}>เหลือ {deadline.daysLeft ?? "-"} วัน</span>
+                    {/* แสดงสีแดงเมื่อเหลือ 0 วันหรือเกินกำหนด */}
+                    <span
+                      className={`${styles.badgeLight} ${
+                        (deadline.daysLeft ?? 1) <= 0 ? styles.badgeLightDanger : ""
+                      }`}
+                    >
+                      เหลือ {deadline.daysLeft ?? "-"} วัน
+                    </span>
                   </li>
                 ))}
               </ul>

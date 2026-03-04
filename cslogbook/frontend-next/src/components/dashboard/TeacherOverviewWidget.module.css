@@ -153,6 +153,25 @@
   white-space: nowrap;
 }
 
+.badgeLightDanger {
+  background: #fff0f0;
+  border-color: #fca5a5;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.panelMoreLink {
+  font-size: 0.8rem;
+  color: var(--color-primary, #2563eb);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.panelMoreLink:hover {
+  text-decoration: underline;
+}
+
 .badge {
   min-width: 24px;
   text-align: center;

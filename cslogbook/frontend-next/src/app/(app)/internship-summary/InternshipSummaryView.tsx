@@ -141,7 +141,7 @@ export default function InternshipSummaryView() {
         body: "ต้องยื่นคำร้องและรออนุมัติจึงจะดูสรุปผลฝึกงานได้",
         tone: "warning" as const,
         actions: [
-          { href: "/internship-registration/flow", label: "ยื่นคำร้อง คพ.05" },
+          { href: "/internship-registration", label: "ยื่นคำร้อง คพ.05" },
           { href: "/dashboard/student", label: "กลับหน้าหลัก" },
         ],
       };

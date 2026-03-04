@@ -426,6 +426,9 @@ export function AdvisorQueueTable<T extends QueueItem>({
                       {item.status === "rejected" && "ปฏิเสธแล้ว"}
                       {item.status === "pending_staff" && "รอเจ้าหน้าที่"}
                       {item.status === "staff_approved" && "เจ้าหน้าที่อนุมัติแล้ว"}
+                      {/* fallback สำหรับ status ที่ยังไม่ได้ map */}
+                      {!["pending", "pending_advisor", "approved", "rejected", "pending_staff", "staff_approved"].includes(item.status ?? "") &&
+                        (item.status ?? "ไม่ทราบสถานะ")}
                     </span>
                   </td>
                   <td>
