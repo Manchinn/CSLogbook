@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "./SurveyBanner.module.css";
 
 // เปลี่ยน URL นี้เป็น Google Form URL จริงเมื่อสร้างฟอร์มเสร็จ
-const SURVEY_URL = "https://forms.gle/PLACEHOLDER";
+const SURVEY_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeqH_APGVtiwvdJnKwGWdbKY_VAMGLLOgjyzceKisN4P_joKw/viewform?usp=dialog";
 
 type Mode = "popup" | "banner" | "hidden";
 

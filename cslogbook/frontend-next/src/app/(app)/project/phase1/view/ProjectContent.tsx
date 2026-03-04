@@ -71,7 +71,7 @@ function formatShortDate(value?: string | null) {
 
 // TODO: TEMP FLAG — ตั้งค่าเป็น true เพื่อปลดล็อก card ทั้งหมดชั่วคราวสำหรับทดสอบ UI ภายใน
 // sync กับ FORCE_ENABLE_CARD ใน ProjectPhase1Sections.tsx — เปลี่ยนกลับเป็น false ทั้งสองไฟล์พร้อมกัน
-const FORCE_ENABLE_CARD = false;
+const FORCE_ENABLE_CARD = true;
 
 export default function ProjectContent() {
   const router = useRouter();
