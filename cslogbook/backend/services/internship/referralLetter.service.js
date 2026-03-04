@@ -4,10 +4,10 @@ const {
   InternshipDocument,
   Student,
   User,
-  Academic,
 } = require("../../models");
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
+const { calculateStudentYear } = require("../../utils/studentUtils");
 
 /**
  * Service สำหรับจัดการหนังสือส่งตัวนักศึกษา
@@ -200,11 +200,6 @@ class InternshipReferralLetterService {
             as: "user",
             attributes: ["firstName", "lastName", "email"],
           },
-          {
-            model: Academic,
-            as: "academic",
-            attributes: ["year", "classroom"],
-          },
         ],
       });
 
@@ -213,6 +208,7 @@ class InternshipReferralLetterService {
       }
 
       // 5. เตรียมข้อมูลสำหรับ PDF
+      const yearInfo = calculateStudentYear(student.studentCode);
       const pdfData = {
         // ข้อมูลเอกสาร
         documentNumber: `CS05/${new Date().getFullYear()}/${documentId}`,
@@ -223,8 +219,8 @@ class InternshipReferralLetterService {
           {
             fullName: `${student.user.firstName} ${student.user.lastName}`,
             studentId: student.studentCode,
-            yearLevel: student.academic?.year || 3,
-            classroom: student.academic?.classroom || "",
+            yearLevel: yearInfo?.error ? 3 : yearInfo.year,
+            classroom: student.classroom || "",
             phoneNumber: student.phoneNumber || "",
             email: student.user.email,
             totalCredits: student.totalCredits || 0,
