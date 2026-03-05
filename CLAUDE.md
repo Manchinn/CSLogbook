@@ -587,14 +587,51 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | Integration Audit: cross-layer teacher frontend↔backend — พบ cache key mismatch (fixed), unverified internship endpoints 6 ตัว | (audit only) |
 | Approval Flow Audit: ตรวจสอบ 6 document types ครบ — Topic Exam, คพ.02, Project1 Result, System Test, คพ.03, Thesis Result | (audit only) |
 
+#### Session 13 (user, 2026-03-03) — CI/CD Pipeline & Infrastructure
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| CI/CD pipeline with GitHub Actions for zero-downtime deployment | `.github/workflows/production-deploy.yml` |
+| Fix: normalize image owner to lowercase for GHCR compatibility | `.github/workflows/production-deploy.yml` |
+| Fix: frontend image build step with env handling | `.github/workflows/production-deploy.yml` |
+| เพิ่ม `ALLOWED_ORIGINS` env var สำหรับ CORS configuration | `backend/.env.example`, `backend/app.js`, `backend/server.js`, `docker-compose.production.yml` |
+| เพิ่ม public timeline endpoint + restructure Nginx configuration | `backend/app.js`, `backend/server.js`, `nginx/cslogbook.conf` |
+| เพิ่ม healthcheck สำหรับ backend service | `docker-compose.production.yml` |
+| CORS middleware with dynamic allowed origins | `backend/app.js`, `backend/config/corsOrigins.js` (ใหม่), `backend/server.js` |
+| Fix: เพิ่ม `teacherPosition` field ใน `VerifyTokenResponse` type | `src/lib/api/authService.ts` |
+| Enhance status labels and translations ทั่ว frontend | หลายไฟล์ (17 ไฟล์) |
+| เปลี่ยนคำว่า "แดชบอร์ด" → "หน้าหลัก" ทั้ง frontend + docs | หลายไฟล์ (12 ไฟล์) |
+| Enhance admin settings UI and validation (academic semester) | `backend/agents/schedulers/academicSemesterScheduler.js`, `backend/routes/adminRoutes.js`, `backend/services/academicService.js`, `backend/validators/academicValidators.js`, frontend admin settings |
+
+#### Session 14 (user + claude, 2026-03-04) — Features, UI Polish & Internship
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม CSLogbook logo component + update branding in layout | `src/components/layout/` |
+| Enhance exam submission and meeting logbook features + DefenseRequestStepper | `project/phase1/exam-submit/`, `project/phase1/meeting-logbook/`, `project/phase2/system-test/`, `project/phase2/thesis-defense/`, `src/components/common/DefenseRequestStepper.tsx` (ใหม่) |
+| เพิ่ม progress bar for approved logs in meeting logbook | `project/phase1/meeting-logbook/page.tsx` |
+| Refactor button styles + introduce design tokens (`globals.css`) | `src/app/globals.css`, `project/phase1/meeting-logbook/` |
+| Refactor CreateWizard to single form layout + enhance Step components | `project/phase1/topic-submit/CreateWizard.tsx`, `StepClassification.tsx`, `StepMembers.tsx`, `StepReview.tsx`, `TopicSubmitContent.tsx` |
+| Update Thai language strings for improved clarity | `ProjectContent.tsx`, `ProjectPhase1Sections.tsx`, `TopicSubmitContent.tsx` |
+| Enhance `ProjectDefenseRequest` type — เพิ่ม advisor name + comment fields | `src/lib/services/projectService.ts` |
+| Update internship registration links + เพิ่ม NotFound page | `not-found.tsx` (ใหม่), internship views (4 ไฟล์) |
+| Update CSS styles for student profile + eligibility widget | `student-profile/page.tsx`, `StudentEligibilityWidget.tsx` |
+| เพิ่ม SurveyBanner component ใน admin/student/teacher dashboards | `src/components/dashboard/SurveyBanner.tsx` (ใหม่), dashboard pages (3 ไฟล์) |
+| เพิ่ม hooks สำหรับ internship referral letter status + download | `src/hooks/useInternshipReferralLetter.ts` (ใหม่), `backend/routes/documents/internshipRoutes.js`, `backend/controllers/documents/internshipController.js` |
+| เพิ่ม acceptance letter template PDF | `backend/public/forms/acceptance-letter-template.pdf` (ใหม่) |
+| (claude) เพิ่ม approval request button + modal ใน internship logbook page | `internship/logbook/InternshipLogbookView.tsx`, `logbook.module.css`, `useInternshipLogbook.ts` |
+| (claude) Fix: remove invalid Academic association from referral letter query | `backend/services/internship/referralLetter.service.js` |
+
+#### Session 15 (user, 2026-03-05) — Survey & Timesheet
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Fix SURVEY_URL to actual Google Form link + enable card display | `SurveyBanner.tsx`, `ProjectContent.tsx`, `ProjectPhase1Sections.tsx` |
+| เพิ่ม delete functionality for timesheet entries with confirmation dialog | `backend/controllers/logbooks/internshipLogbookController.js`, `backend/routes/documents/logbookRoutes.js`, `backend/services/internshipLogbookService.js`, frontend timesheet view + hook + service |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
-
-#### 1. Admin Settings Endpoints (Deferred — Backlog)
-- `GET/PUT /api/admin/settings/eligibility` — ไม่มี frontend consumer ที่ active
-- `GET/POST/PUT/DELETE /api/admin/settings/student-statuses` — backend ยังไม่มี route
-- ยังไม่ implement จนกว่าจะมีความต้องการชัดเจน
 
 #### 2. Staging / Regression Testing
 - ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
@@ -640,3 +677,10 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | `docs/compatibility/` | Route usage, deprecation lists — อย่าลบ API ที่อยู่ใน DO_NOT_REMOVE |
 | `docs/claudefix/admin-ui-pattern-refactor.md` | Admin UI pattern refactor log (Session 5) |
 | `docs/claudefix/project-unified-redesign.md` | Project page unified redesign log (Session 6) |
+| `backend/config/corsOrigins.js` | CORS dynamic allowed origins — ใช้ `ALLOWED_ORIGINS` env var |
+| `src/app/globals.css` | Design tokens (CSS custom properties) — เพิ่มใน Session 14 |
+| `src/components/common/DefenseRequestStepper.tsx` | Shared defense request stepper component |
+| `src/components/dashboard/SurveyBanner.tsx` | Survey banner component — แสดงใน admin/student/teacher dashboards |
+| `src/hooks/useInternshipReferralLetter.ts` | Hooks สำหรับ referral letter status + download |
+| `src/app/not-found.tsx` | Custom 404 Not Found page |
+| `.github/workflows/production-deploy.yml` | CI/CD pipeline — zero-downtime deployment via GitHub Actions |

@@ -10,6 +10,22 @@ const logger = require("../../utils/logger");
 const { calculateStudentYear } = require("../../utils/studentUtils");
 
 /**
+ * Status ของ CS05 ที่ถือว่า "ได้รับการอนุมัติแล้ว" (ผ่าน approved ไปแล้ว)
+ * ต้องตรงกับ STATUSES_WITH_DOWNLOADS ใน frontend/InternshipFlowContent.tsx
+ */
+const CS05_POST_APPROVAL_STATUSES = new Set([
+  "approved",
+  "acceptance_pending",
+  "acceptance_approved",
+  "referral_letter_pending",
+  "referral_letter_ready",
+  "active",
+  "completed",
+  "supervisor_approved",
+  "supervisor_evaluated",
+]);
+
+/**
  * Service สำหรับจัดการหนังสือส่งตัวนักศึกษา
  */
 class InternshipReferralLetterService {
@@ -60,8 +76,10 @@ class InternshipReferralLetterService {
       let isDownloaded = false;
 
       // 4. ✅ ตรวจสอบเงื่อนไขการพร้อมใช้งาน
+      // ใช้ CS05_POST_APPROVAL_STATUSES แทน strict "approved"
+      // เพราะ CS05 อาจเปลี่ยน status เป็น active/completed หลังจาก acceptance approved แล้ว
       if (
-        cs05Document.status === "approved" &&
+        CS05_POST_APPROVAL_STATUSES.has(cs05Document.status) &&
         acceptanceLetter &&
         acceptanceLetter.status === "approved"
       ) {
@@ -539,8 +557,9 @@ class InternshipReferralLetterService {
         );
       }
 
-      // 3. ตรวจสอบสถานะ CS05 (ต้องเป็น approved)
-      if (cs05Document.status !== "approved") {
+      // 3. ตรวจสอบสถานะ CS05 (ต้องผ่าน approved แล้ว)
+      // รองรับ status ที่เกิดหลัง approved เช่น active, completed ฯลฯ
+      if (!CS05_POST_APPROVAL_STATUSES.has(cs05Document.status)) {
         throw new Error(
           "เอกสาร CS05 ต้องได้รับการอนุมัติก่อนจึงจะดาวน์โหลดหนังสือส่งตัวได้"
         );
