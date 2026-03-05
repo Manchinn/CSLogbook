@@ -9,6 +9,7 @@ import {
   saveTimesheetEntry,
   sendTimesheetApprovalRequest,
   updateTimesheetEntry,
+  deleteTimesheetEntry,
   type SaveTimesheetPayload,
   type TimesheetEntry,
   type TimesheetApprovalRequestPayload,
@@ -80,7 +81,15 @@ export function useTimesheetMutations(token: string | null) {
     onSuccess: invalidateTimesheet,
   });
 
-  return { saveMutation, updateMutation };
+  const deleteMutation = useMutation({
+    mutationFn: async (logId: number) => {
+      if (!token) throw new Error("missing token");
+      return deleteTimesheetEntry(token, logId);
+    },
+    onSuccess: invalidateTimesheet,
+  });
+
+  return { saveMutation, updateMutation, deleteMutation };
 }
 
 export function useApprovalRequest(token: string | null, studentId: number | undefined) {

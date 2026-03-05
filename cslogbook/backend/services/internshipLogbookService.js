@@ -328,6 +328,60 @@ class InternshipLogbookService {
   }
 
   /**
+   * ลบข้อมูลบันทึกการฝึกงาน
+   * @param {number} userId - ID ของผู้ใช้
+   * @param {number} logId - ID ของบันทึก
+   */
+  async deleteTimeSheetEntry(userId, logId) {
+    const transaction = await sequelize.transaction();
+    try {
+      logger.info(
+        `InternshipLogbookService: ลบบันทึกการฝึกงาน ID: ${logId}`
+      );
+
+      const student = await Student.findOne({
+        where: { userId },
+      });
+
+      if (!student) {
+        throw new Error("ไม่พบข้อมูลนักศึกษา");
+      }
+
+      // ดึงข้อมูลบันทึกที่ต้องการลบ
+      const entry = await InternshipLogbook.findOne({
+        where: {
+          logId,
+          studentId: student.studentId,
+        },
+        transaction,
+      });
+
+      if (!entry) {
+        throw new Error("ไม่พบข้อมูลบันทึกการฝึกงาน");
+      }
+
+      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ ถ้าอนุมัติแล้วห้ามลบ
+      if (entry.supervisorApproved || entry.advisorApproved) {
+        throw new Error("ไม่สามารถลบบันทึกที่ได้รับการอนุมัติแล้ว");
+      }
+
+      await entry.destroy({ transaction });
+      await transaction.commit();
+      logger.info(
+        `InternshipLogbookService: ลบบันทึกการฝึกงานสำเร็จ ID: ${logId}`
+      );
+      return true;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error(
+        "InternshipLogbookService: Error in deleteTimeSheetEntry",
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * ดึงข้อมูลสถิติการฝึกงาน
    * @param {number} userId - ID ของผู้ใช้
    * @returns {Object} สถิติการฝึกงาน

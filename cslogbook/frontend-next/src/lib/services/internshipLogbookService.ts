@@ -132,6 +132,16 @@ export async function updateTimesheetEntry(token: string, logId: number, payload
   );
 }
 
+export async function deleteTimesheetEntry(token: string, logId: number) {
+  return apiFetch<{ success: boolean; message?: string }>(
+    `/internship/logbook/timesheet/${logId}`,
+    {
+      method: "DELETE",
+      token,
+    }
+  );
+}
+
 export async function getReflection(token: string) {
   const data = await apiFetchData<ReflectionResponse | null>(
     "/internship/logbook/reflection",

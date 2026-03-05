@@ -108,6 +108,17 @@ router.put('/timesheet/:id',
     internshipLogbookController.updateTimeSheetEntry
 );
 
+/**
+ * @route DELETE /api/logbooks/internship/timesheet/:id
+ * @desc ลบบันทึกการฝึกงานประจำวัน (เฉพาะที่ยังไม่ได้รับอนุมัติ)
+ * @access Private (Student)
+ */
+router.delete('/timesheet/:id',
+    authenticateToken,
+    authorize('logbook', 'student'),
+    internshipLogbookController.deleteTimeSheetEntry
+);
+
 // ============= เส้นทางสำหรับอาจารย์ที่ปรึกษา =============
 
 /**

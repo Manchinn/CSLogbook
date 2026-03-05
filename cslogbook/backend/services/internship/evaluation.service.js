@@ -192,6 +192,16 @@ class InternshipEvaluationService {
         );
       }
 
+      // ตรวจสอบว่าบันทึกประจำวันครบทุกวันแล้วหรือไม่ก่อนส่งแบบประเมิน
+      // ใช้ lazy require เพื่อหลีกเลี่ยง circular dependency
+      const internshipLogbookService = require("../internshipLogbookService");
+      const logbookStats = await internshipLogbookService.getTimeSheetStats(userId);
+      if (logbookStats && logbookStats.total > 0 && logbookStats.completed < logbookStats.total) {
+        throw new Error(
+          `กรุณาบันทึกข้อมูลประจำวันให้ครบก่อนส่งแบบประเมิน (บันทึกแล้ว ${logbookStats.completed}/${logbookStats.total} วัน)`
+        );
+      }
+
       // 2. ตรวจสอบว่ามี token ที่ยังไม่หมดอายุอยู่หรือไม่
       const existingToken = await ApprovalToken.findOne({
         where: {

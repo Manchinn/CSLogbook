@@ -110,6 +110,48 @@ exports.updateTimeSheetEntry = async (req, res) => {
     }
 };
 
+exports.deleteTimeSheetEntry = async (req, res) => {
+    try {
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'ไม่พบข้อมูลผู้ใช้ โปรดเข้าสู่ระบบใหม่'
+            });
+        }
+
+        const logId = req.params.id;
+        await internshipLogbookService.deleteTimeSheetEntry(req.user.userId, logId);
+
+        return res.json({
+            success: true,
+            message: 'ลบบันทึกการฝึกงานเรียบร้อย'
+        });
+
+    } catch (error) {
+        logger.error('Delete TimeSheet Entry Error:', error);
+
+        if (error.message === 'ไม่พบข้อมูลบันทึกการฝึกงาน') {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        if (error.message === 'ไม่สามารถลบบันทึกที่ได้รับการอนุมัติแล้ว') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'เกิดข้อผิดพลาดในการลบบันทึกการฝึกงาน',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
 /**
  * ดึงข้อมูลสถิติการฝึกงาน
  */

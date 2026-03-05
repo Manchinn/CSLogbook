@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useInternshipLogbook";
 import {
   sendTimesheetApprovalRequest,
+  deleteTimesheetEntry,
   type TimesheetEntry,
 } from "@/lib/services/internshipLogbookService";
 import styles from "./timesheet.module.css";
@@ -55,6 +56,28 @@ export default function InternshipTimesheetView() {
   const [endDate, setEndDate]           = useState("");
   const [approvalMsg, setApprovalMsg]   = useState<string | null>(null);
   const [approvalErr, setApprovalErr]   = useState<string | null>(null);
+
+  /* delete state */
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId]     = useState<number | null>(null);
+  const [deleteErr, setDeleteErr]       = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (logId: number) => deleteTimesheetEntry(token ?? "", logId),
+    onSuccess: () => {
+      setDeletingId(null);
+      setDeleteErr(null);
+      queryClient.invalidateQueries({ queryKey: ["internship-timesheet-entries", token] });
+      queryClient.invalidateQueries({ queryKey: ["internship-timesheet-stats", token] });
+    },
+    onError: (err: Error) => {
+      setDeleteErr(err.message ?? "ไม่สามารถลบบันทึกได้");
+    },
+  });
+
+  const handleDeleteClick = (logId: number) => setDeletingId(logId);
+  const handleDeleteConfirm = () => { if (deletingId !== null) deleteMutation.mutate(deletingId); };
+  const handleDeleteCancel = () => { setDeletingId(null); setDeleteErr(null); };
 
   const approvalMutation = useMutation({
     mutationFn: () => {
@@ -214,6 +237,23 @@ export default function InternshipTimesheetView() {
       </section>
 
       {/* Entries that need attention */}
+      {/* Delete confirmation inline dialog */}
+      {deletingId !== null && (
+        <div className={styles.calloutDanger}>
+          <p className={styles.calloutDangerTitle}>ยืนยันการลบบันทึก</p>
+          <p className={styles.calloutText}>ต้องการลบบันทึกวันที่นี้หรือไม่? ไม่สามารถย้อนกลับได้</p>
+          {deleteErr && <p className={styles.error}>{deleteErr}</p>}
+          <div className={styles.deleteConfirmActions}>
+            <button type="button" className={styles.btnDeleteConfirm}
+              disabled={deleteMutation.isPending}
+              onClick={handleDeleteConfirm}>
+              {deleteMutation.isPending ? "กำลังลบ..." : "ยืนยันลบ"}
+            </button>
+            <button type="button" className={styles.secondaryButton} onClick={handleDeleteCancel}>ยกเลิก</button>
+          </div>
+        </div>
+      )}
+
       {pendingEntries.length > 0 && (
         <section className={styles.sectionCard}>
           <p className={styles.panelKicker}>ต้องดำเนินการ</p>
@@ -223,9 +263,11 @@ export default function InternshipTimesheetView() {
               <span>วันที่</span>
               <span>หัวข้อ</span>
               <span>สถานะ</span>
+              <span>จัดการ</span>
             </div>
             {pendingEntries.slice(0, 10).map((entry) => {
               const status = getEntryStatus(entry);
+              const canDelete = Boolean(entry.logId) && status !== "approved";
               return (
                 <div key={entry.logId ?? entry.workDate} className={styles.entryRow}>
                   <span>{formatDate(entry.workDate)}</span>
@@ -235,6 +277,19 @@ export default function InternshipTimesheetView() {
                     {status === "submitted" && <span className={styles.badgeInfo}>รอพิจารณา</span>}
                     {status === "incomplete" && <span className={styles.badgeWarning}>ไม่สมบูรณ์</span>}
                     {status === "pending" && <span className={styles.badgeMuted}>รอบันทึก</span>}
+                  </span>
+                  <span>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        className={styles.btnDelete}
+                        disabled={deleteMutation.isPending}
+                        onClick={() => handleDeleteClick(entry.logId!)}
+                        title="ลบบันทึก"
+                      >
+                        ลบ
+                      </button>
+                    )}
                   </span>
                 </div>
               );
