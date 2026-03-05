@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import { TeacherPageScaffold, TeacherEmptyState } from "@/components/teacher/TeacherPageScaffold";
+import { TeacherPageScaffold } from "@/components/teacher/TeacherPageScaffold";
 import { useTeacherMeetingApprovals, useUpdateMeetingLogApproval } from "@/hooks/useTeacherModule";
 import type { MeetingLogApproval } from "@/lib/services/teacherService";
 import styles from "./MeetingApprovals.module.css";
@@ -15,8 +15,11 @@ export default function MeetingApprovalsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   const filters = statusFilter ? { status: statusFilter } : undefined;
-  const { data: meetings = [], isLoading, error } = useTeacherMeetingApprovals(filters);
+  const { data: response, isLoading, error } = useTeacherMeetingApprovals(filters);
   const updateApproval = useUpdateMeetingLogApproval();
+
+  const meetings = response?.items || [];
+  const summary = response?.summary || { pending: 0, approved: 0, rejected: 0, total: 0 };
 
   // Ensure meetings is always an array
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
@@ -131,6 +134,23 @@ export default function MeetingApprovalsPage() {
           </select>
         </div>
 
+        {summary.total > 0 && (
+          <div className={styles.summaryBar}>
+            <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
+              ทั้งหมด {summary.total}
+            </span>
+            <span className={`${styles.summaryBadge} ${styles.summaryPending}`}>
+              รออนุมัติ {summary.pending}
+            </span>
+            <span className={`${styles.summaryBadge} ${styles.summaryApproved}`}>
+              อนุมัติแล้ว {summary.approved}
+            </span>
+            <span className={`${styles.summaryBadge} ${styles.summaryRejected}`}>
+              ปฏิเสธแล้ว {summary.rejected}
+            </span>
+          </div>
+        )}
+
         {isLoading && (
           <div className={styles.loadingState}>
             <p>กำลังโหลดข้อมูล...</p>
@@ -143,14 +163,7 @@ export default function MeetingApprovalsPage() {
           </div>
         )}
 
-        {!isLoading && !error && meetings.length === 0 && (
-          <TeacherEmptyState
-            message={statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : "ไม่มีบันทึกการพบที่รออนุมัติในขณะนี้"}
-            icon="✓"
-          />
-        )}
-
-        {!isLoading && !error && meetings.length > 0 && (
+        {!isLoading && !error && (
           <>
             {/* Bulk Action Bar */}
             {selectedCount > 0 && (
@@ -239,6 +252,13 @@ export default function MeetingApprovalsPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {meetings.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className={styles.emptyRow}>
+                        {statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : "ไม่มีบันทึกการพบที่รออนุมัติในขณะนี้"}
+                      </td>
+                    </tr>
+                  )}
                   {meetings.map((meeting) => (
                     <tr key={meeting.id} className={selectedIds.has(meeting.id) ? styles.selectedRow : ""}>
                       <td>

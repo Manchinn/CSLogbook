@@ -130,13 +130,25 @@ export type MeetingApprovalFilters = {
   status?: string;
 };
 
+export type QueueSummary = {
+  pending: number;
+  approved: number;
+  rejected: number;
+  total: number;
+};
+
+export type MeetingApprovalsResponse = {
+  items: MeetingLogApproval[];
+  summary: QueueSummary;
+};
+
 /**
  * ดึงรายการบันทึกการพบที่รออนุมัติ
  */
 export async function getTeacherMeetingApprovals(
   token: string,
   filters?: MeetingApprovalFilters
-): Promise<MeetingLogApproval[]> {
+): Promise<MeetingApprovalsResponse> {
   const params = new URLSearchParams();
   if (filters?.academicYear) params.append("academicYear", filters.academicYear);
   if (filters?.semester) params.append("semester", filters.semester);
@@ -146,12 +158,15 @@ export async function getTeacherMeetingApprovals(
   const queryString = params.toString();
   const url = queryString ? `/teachers/meeting-approvals?${queryString}` : "/teachers/meeting-approvals";
 
-  const data = await apiFetchData<{ items: MeetingLogApproval[] }>(url, {
+  const data = await apiFetchData<{ items: MeetingLogApproval[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
-  return data?.items || [];
+  return {
+    items: data?.items || [],
+    summary: data?.summary || { pending: 0, approved: 0, rejected: 0, total: 0 },
+  };
 }
 
 /**

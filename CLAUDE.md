@@ -640,9 +640,26 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | อัปเดต hooks + services ให้รับ filter params ทั้ง 4 หน้า | `useTeacherModule.ts`, `teacherService.ts` |
 | เพิ่ม `AdvisorQueueFilters` type + ส่ง status filter จาก 3 advisor queue pages | `project1/advisor-queue/page.tsx`, `thesis/advisor-queue/page.tsx`, `system-test/advisor-queue/page.tsx` |
 
+#### Session 17 (claude, 2026-03-06) — Teacher Queue Always-Show Table + Summary Stats
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม `QueueSummary` + `MeetingApprovalsResponse` types — service คืน `{ items, summary }` แทน array | `src/lib/services/teacherService.ts` |
+| อัปเดต `useTeacherMeetingApprovals` hook รองรับ response shape ใหม่ | `src/hooks/useTeacherModule.ts` |
+| เพิ่ม `summary` prop ใน `AdvisorQueueTable` — แสดง summary badges (total/pending/approved/rejected) | `src/components/teacher/AdvisorQueueTable.tsx` |
+| Table แสดงเสมอ — empty row message แทนการซ่อน table ทั้งหมด | `src/components/teacher/AdvisorQueueTable.tsx` |
+| เพิ่ม CSS: `.summaryBar`, `.summaryBadge`, `.emptyRow` | `src/components/teacher/AdvisorQueue.module.css` |
+| Meeting-approvals page: ใช้ summary จาก API + table แสดงเสมอ + ลบ `TeacherEmptyState` | `teacher/meeting-approvals/page.tsx` |
+| เพิ่ม CSS: summary bar + empty row สำหรับ meeting-approvals | `teacher/meeting-approvals/MeetingApprovals.module.css` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
+
+#### 1. Advisor Queue Summary Stats (Backend)
+- KP02/thesis/system-test advisor queue backend ยังคืน flat array — ไม่มี summary counts
+- ต้องเพิ่ม summary (pending/approved/rejected/total) ใน `projectDefenseRequestService.getAdvisorApprovalQueue()` และ `projectSystemTestService.advisorQueue()`
+- แล้ว pass `summary` prop ไปยัง `AdvisorQueueTable` ใน 3 advisor queue pages
 
 #### 2. Staging / Regression Testing
 - ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`

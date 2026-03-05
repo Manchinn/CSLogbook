@@ -37,6 +37,50 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
+.summaryBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.summaryBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.summaryTotal {
+  background-color: var(--color-gray-100, #f3f4f6);
+  color: var(--color-text-secondary, #4b5563);
+}
+
+.summaryPending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.summaryApproved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.summaryRejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.emptyRow {
+  text-align: center;
+  padding: 3rem 1rem !important;
+  color: var(--color-text-dim, #6b7280);
+  font-style: italic;
+}
+
 .loadingState,
 .errorState {
   padding: 3rem;

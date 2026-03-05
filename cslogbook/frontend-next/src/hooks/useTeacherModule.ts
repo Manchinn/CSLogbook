@@ -8,6 +8,7 @@ import * as teacherService from "@/lib/services/teacherService";
 
 /**
  * Hook สำหรับดึงรายการบันทึกการพบที่รออนุมัติ
+ * Returns { items, summary } from the API
  */
 export function useTeacherMeetingApprovals(
   filters?: teacherService.MeetingApprovalFilters,

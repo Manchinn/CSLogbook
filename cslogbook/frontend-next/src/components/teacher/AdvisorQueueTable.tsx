@@ -6,6 +6,13 @@ import styles from "./AdvisorQueue.module.css";
 
 type QueueItem = DefenseRequest | SystemTestRequest;
 
+type QueueSummary = {
+  pending: number;
+  approved: number;
+  rejected: number;
+  total: number;
+};
+
 type AdvisorQueueTableProps<T extends QueueItem> = {
   data: T[];
   isLoading: boolean;
@@ -17,6 +24,7 @@ type AdvisorQueueTableProps<T extends QueueItem> = {
   showTestDates?: boolean;
   statusFilter?: string;
   onStatusFilterChange?: (status: string) => void;
+  summary?: QueueSummary;
 };
 
 // Helper function to get student names from either type
@@ -306,6 +314,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
   showTestDates = false,
   statusFilter,
   onStatusFilterChange,
+  summary,
 }: AdvisorQueueTableProps<T>) {
   const [expandedRows, setExpandedRows] = useState<Set<number | string>>(new Set());
 
@@ -339,10 +348,30 @@ export function AdvisorQueueTable<T extends QueueItem>({
     </div>
   ) : null;
 
+  const summaryBar = summary && summary.total > 0 ? (
+    <div className={styles.summaryBar}>
+      <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
+        ทั้งหมด {summary.total}
+      </span>
+      <span className={`${styles.summaryBadge} ${styles.summaryPending}`}>
+        รออนุมัติ {summary.pending}
+      </span>
+      <span className={`${styles.summaryBadge} ${styles.summaryApproved}`}>
+        อนุมัติแล้ว {summary.approved}
+      </span>
+      <span className={`${styles.summaryBadge} ${styles.summaryRejected}`}>
+        ปฏิเสธแล้ว {summary.rejected}
+      </span>
+    </div>
+  ) : null;
+
+  const colCount = showTestDates ? 8 : 6;
+
   if (isLoading) {
     return (
       <>
         {filterBar}
+        {summaryBar}
         <div className={styles.loadingState}>
           <p>กำลังโหลดข้อมูล...</p>
         </div>
@@ -354,22 +383,9 @@ export function AdvisorQueueTable<T extends QueueItem>({
     return (
       <>
         {filterBar}
+        {summaryBar}
         <div className={styles.errorState}>
           <p>เกิดข้อผิดพลาด: {error.message || "ไม่สามารถโหลดข้อมูลได้"}</p>
-        </div>
-      </>
-    );
-  }
-
-  if (data.length === 0) {
-    return (
-      <>
-        {filterBar}
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>✓</div>
-          <p className={styles.emptyMessage}>
-            {statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : emptyMessage}
-          </p>
         </div>
       </>
     );
@@ -378,6 +394,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
   return (
     <>
     {filterBar}
+    {summaryBar}
     <div className={styles.tableContainer}>
       <table className={styles.table}>
         <thead>
@@ -397,6 +414,13 @@ export function AdvisorQueueTable<T extends QueueItem>({
           </tr>
         </thead>
         <tbody>
+          {data.length === 0 && (
+            <tr>
+              <td colSpan={colCount} className={styles.emptyRow}>
+                {statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : emptyMessage}
+              </td>
+            </tr>
+          )}
           {data.map((item, idx) => {
             const studentNames = getStudentNames(item);
             const projectTitle = getProjectTitle(item);
