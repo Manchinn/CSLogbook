@@ -652,16 +652,31 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | Meeting-approvals page: ใช้ summary จาก API + table แสดงเสมอ + ลบ `TeacherEmptyState` | `teacher/meeting-approvals/page.tsx` |
 | เพิ่ม CSS: summary bar + empty row สำหรับ meeting-approvals | `teacher/meeting-approvals/MeetingApprovals.module.css` |
 
+#### Session 18 (claude, 2026-03-06) — Advisor Queue Summary Stats (Backend + Frontend)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Backend: เพิ่ม summary aggregation (COUNT GROUP BY status) ใน `getAdvisorApprovalQueue()` — คืน `{ items, summary }` แทน flat array | `backend/services/projectDefenseRequestService.js` |
+| Backend: เพิ่ม summary aggregation ใน `advisorQueue()` — map system-test statuses เป็น pending/approved/rejected | `backend/services/projectSystemTestService.js` |
+| Frontend: เพิ่ม `AdvisorQueueResponse<T>` type + อัปเดต 3 service functions ให้คืน `{ items, summary }` | `src/lib/services/teacherService.ts` |
+| Frontend: อัปเดต 3 advisor queue pages ให้ destructure `{ items, summary }` + pass `summary` prop ไปยัง `AdvisorQueueTable` | `teacher/project1/advisor-queue/page.tsx`, `teacher/thesis/advisor-queue/page.tsx`, `teacher/system-test/advisor-queue/page.tsx` |
+
+#### Session 19 (claude, 2026-03-06) — Teacher Queue UI Redesign + Meeting Approvals Bug Fix
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Fix: meeting-approvals React key warning — backend returns `logId` but frontend used `id`; เพิ่ม data mapping layer ใน service | `src/lib/services/teacherService.ts` |
+| Redesign: AdvisorQueue CSS — elevated summary badges, gradient table header, status dot indicators, spring-curve button animations, modal backdrop blur + slide-in, expanded row fade-in | `src/components/teacher/AdvisorQueue.module.css` |
+| Redesign: MeetingApprovals CSS — consistent design language กับ AdvisorQueue, polished bulk action bar + slide-in animation | `teacher/meeting-approvals/MeetingApprovals.module.css` |
+| Refactor: รวม filter + summary เป็น `.toolbar` flex row (summary pushed right) ใน AdvisorQueueTable | `src/components/teacher/AdvisorQueueTable.tsx` |
+| Refactor: รวม filter + summary เป็น `.toolbar` flex row ใน meeting-approvals page | `teacher/meeting-approvals/page.tsx` |
+| Accessibility: เพิ่ม `aria-label` บน checkboxes, `sr-only` text บน expand column, ลบ inline styles | `AdvisorQueueTable.tsx`, `meeting-approvals/page.tsx` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
 
-#### 1. Advisor Queue Summary Stats (Backend)
-- KP02/thesis/system-test advisor queue backend ยังคืน flat array — ไม่มี summary counts
-- ต้องเพิ่ม summary (pending/approved/rejected/total) ใน `projectDefenseRequestService.getAdvisorApprovalQueue()` และ `projectSystemTestService.advisorQueue()`
-- แล้ว pass `summary` prop ไปยัง `AdvisorQueueTable` ใน 3 advisor queue pages
-
-#### 2. Staging / Regression Testing
+#### 1. Staging / Regression Testing
 - ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
 - เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
 - ยืนยัน Phase 2 parity fixes: labels, tones, gating, loading state

@@ -158,13 +158,34 @@ export async function getTeacherMeetingApprovals(
   const queryString = params.toString();
   const url = queryString ? `/teachers/meeting-approvals?${queryString}` : "/teachers/meeting-approvals";
 
-  const data = await apiFetchData<{ items: MeetingLogApproval[]; summary?: QueueSummary }>(url, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
+  // Map backend nested structure to flat MeetingLogApproval shape
+  const items: MeetingLogApproval[] = (data?.items || []).map((item) => {
+    const students = Array.isArray(item.students) ? item.students : [];
+    const firstStudent = students[0];
+    return {
+      id: item.logId,
+      meetingId: item.meeting?.meetingId ?? item.meetingId,
+      projectId: item.project?.projectId ?? item.meeting?.projectId,
+      projectCode: item.project?.projectCode,
+      studentCode: firstStudent?.studentCode ?? "",
+      studentName: firstStudent?.fullName ?? "",
+      projectTitle: item.project?.projectNameTh ?? "",
+      topic: item.discussionTopic ?? "",
+      meetingDate: item.meeting?.meetingDate ?? "",
+      submittedAt: item.createdAt,
+      status: item.approvalStatus ?? "pending",
+      advisorNotes: item.approvalNote ?? item.advisorComment,
+    };
+  });
+
   return {
-    items: data?.items || [],
+    items,
     summary: data?.summary || { pending: 0, approved: 0, rejected: 0, total: 0 },
   };
 }
@@ -260,18 +281,28 @@ export type AdvisorQueueFilters = {
 /**
  *ดึงคำขอสอบ คพ.02 (Advisor Queue)
  */
-export async function getAdvisorKP02Queue(token: string, filters?: AdvisorQueueFilters): Promise<DefenseRequest[]> {
+export type AdvisorQueueResponse<T> = {
+  items: T[];
+  summary: QueueSummary;
+};
+
+const DEFAULT_SUMMARY: QueueSummary = { pending: 0, approved: 0, rejected: 0, total: 0 };
+
+export async function getAdvisorKP02Queue(token: string, filters?: AdvisorQueueFilters): Promise<AdvisorQueueResponse<DefenseRequest>> {
   const params = new URLSearchParams();
   if (filters?.status) params.append("status", filters.status);
   const query = params.toString();
   const url = query ? `/projects/kp02/advisor-queue?${query}` : "/projects/kp02/advisor-queue";
 
-  const data = await apiFetchData<DefenseRequest[]>(url, {
+  const data = await apiFetchData<{ items: DefenseRequest[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
-  return data || [];
+  return {
+    items: data?.items || [],
+    summary: data?.summary || DEFAULT_SUMMARY,
+  };
 }
 
 /**
@@ -294,17 +325,20 @@ export async function submitKP02AdvisorDecision(
 /**
  * ดึงคำขอสอบ คพ.03 (Thesis Advisor Queue)
  */
-export async function getAdvisorThesisQueue(token: string, filters?: AdvisorQueueFilters): Promise<DefenseRequest[]> {
+export async function getAdvisorThesisQueue(token: string, filters?: AdvisorQueueFilters): Promise<AdvisorQueueResponse<DefenseRequest>> {
   const params = new URLSearchParams({ defenseType: "THESIS" });
   if (filters?.status) params.append("status", filters.status);
   const url = `/projects/kp02/advisor-queue?${params.toString()}`;
 
-  const data = await apiFetchData<DefenseRequest[]>(url, {
+  const data = await apiFetchData<{ items: DefenseRequest[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
-  return data || [];
+  return {
+    items: data?.items || [],
+    summary: data?.summary || DEFAULT_SUMMARY,
+  };
 }
 
 // =====================
@@ -352,18 +386,21 @@ export type SystemTestRequest = {
 /**
  * ดึงคำขอทดสอบระบบ (Advisor Queue)
  */
-export async function getAdvisorSystemTestQueue(token: string, filters?: AdvisorQueueFilters): Promise<SystemTestRequest[]> {
+export async function getAdvisorSystemTestQueue(token: string, filters?: AdvisorQueueFilters): Promise<AdvisorQueueResponse<SystemTestRequest>> {
   const params = new URLSearchParams();
   if (filters?.status) params.append("status", filters.status);
   const query = params.toString();
   const url = query ? `/projects/system-test/advisor-queue?${query}` : "/projects/system-test/advisor-queue";
 
-  const data = await apiFetchData<SystemTestRequest[]>(url, {
+  const data = await apiFetchData<{ items: SystemTestRequest[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
-  return data || [];
+  return {
+    items: data?.items || [],
+    summary: data?.summary || DEFAULT_SUMMARY,
+  };
 }
 
 /**

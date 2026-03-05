@@ -330,48 +330,50 @@ export function AdvisorQueueTable<T extends QueueItem>({
     });
   };
 
-  const filterBar = onStatusFilterChange ? (
-    <div className={styles.filterBar}>
-      <label htmlFor="advisorStatusFilter" className={styles.filterLabel}>สถานะ</label>
-      <select
-        id="advisorStatusFilter"
-        className={styles.filterSelect}
-        value={statusFilter || ""}
-        onChange={(e) => onStatusFilterChange(e.target.value)}
-      >
-        <option value="">ทั้งหมด</option>
-        <option value="pending,pending_advisor">รออนุมัติ</option>
-        <option value="approved,staff_approved">อนุมัติแล้ว</option>
-        <option value="rejected">ปฏิเสธแล้ว</option>
-        {showTestDates && <option value="pending_staff">รอเจ้าหน้าที่</option>}
-      </select>
+  const toolbarContent = (
+    <div className={styles.toolbar}>
+      {onStatusFilterChange && (
+        <div className={styles.filterBar}>
+          <label htmlFor="advisorStatusFilter" className={styles.filterLabel}>สถานะ</label>
+          <select
+            id="advisorStatusFilter"
+            className={styles.filterSelect}
+            value={statusFilter || ""}
+            onChange={(e) => onStatusFilterChange(e.target.value)}
+          >
+            <option value="">ทั้งหมด</option>
+            <option value="pending,pending_advisor">รออนุมัติ</option>
+            <option value="approved,staff_approved">อนุมัติแล้ว</option>
+            <option value="rejected">ปฏิเสธแล้ว</option>
+            {showTestDates && <option value="pending_staff">รอเจ้าหน้าที่</option>}
+          </select>
+        </div>
+      )}
+      {summary && summary.total > 0 && (
+        <div className={styles.summaryBar}>
+          <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
+            ทั้งหมด {summary.total}
+          </span>
+          <span className={`${styles.summaryBadge} ${styles.summaryPending}`}>
+            รออนุมัติ {summary.pending}
+          </span>
+          <span className={`${styles.summaryBadge} ${styles.summaryApproved}`}>
+            อนุมัติแล้ว {summary.approved}
+          </span>
+          <span className={`${styles.summaryBadge} ${styles.summaryRejected}`}>
+            ปฏิเสธแล้ว {summary.rejected}
+          </span>
+        </div>
+      )}
     </div>
-  ) : null;
-
-  const summaryBar = summary && summary.total > 0 ? (
-    <div className={styles.summaryBar}>
-      <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
-        ทั้งหมด {summary.total}
-      </span>
-      <span className={`${styles.summaryBadge} ${styles.summaryPending}`}>
-        รออนุมัติ {summary.pending}
-      </span>
-      <span className={`${styles.summaryBadge} ${styles.summaryApproved}`}>
-        อนุมัติแล้ว {summary.approved}
-      </span>
-      <span className={`${styles.summaryBadge} ${styles.summaryRejected}`}>
-        ปฏิเสธแล้ว {summary.rejected}
-      </span>
-    </div>
-  ) : null;
+  );
 
   const colCount = showTestDates ? 8 : 6;
 
   if (isLoading) {
     return (
       <>
-        {filterBar}
-        {summaryBar}
+        {toolbarContent}
         <div className={styles.loadingState}>
           <p>กำลังโหลดข้อมูล...</p>
         </div>
@@ -382,8 +384,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
   if (error) {
     return (
       <>
-        {filterBar}
-        {summaryBar}
+        {toolbarContent}
         <div className={styles.errorState}>
           <p>เกิดข้อผิดพลาด: {error.message || "ไม่สามารถโหลดข้อมูลได้"}</p>
         </div>
@@ -393,13 +394,12 @@ export function AdvisorQueueTable<T extends QueueItem>({
 
   return (
     <>
-    {filterBar}
-    {summaryBar}
+    {toolbarContent}
     <div className={styles.tableContainer}>
       <table className={styles.table}>
         <thead>
           <tr>
-            <th style={{ width: "40px" }}></th>
+            <th className={styles.expandCol}><span className="sr-only">รายละเอียด</span></th>
             <th>โครงงาน</th>
             <th>นักศึกษา</th>
             <th>วันที่ยื่นคำขอ</th>

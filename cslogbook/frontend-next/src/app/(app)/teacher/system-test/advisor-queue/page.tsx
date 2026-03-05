@@ -24,7 +24,9 @@ export default function AdvisorSystemTestQueuePage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   const filters = statusFilter ? { status: statusFilter } : undefined;
-  const { data = [], isLoading, error } = useAdvisorSystemTestQueue(filters);
+  const { data: response, isLoading, error } = useAdvisorSystemTestQueue(filters);
+  const data = response?.items || [];
+  const summary = response?.summary || { pending: 0, approved: 0, rejected: 0, total: 0 };
   const submitDecision = useSubmitSystemTestAdvisorDecision();
 
   const handleApprove = (request: SystemTestRequest) => {
@@ -87,6 +89,7 @@ export default function AdvisorSystemTestQueuePage() {
           showTestDates
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
+          summary={summary}
         />
 
         <DecisionModal

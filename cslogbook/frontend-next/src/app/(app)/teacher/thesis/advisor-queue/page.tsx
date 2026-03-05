@@ -14,7 +14,9 @@ export default function AdvisorThesisQueuePage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   const filters = statusFilter ? { status: statusFilter } : undefined;
-  const { data = [], isLoading, error } = useAdvisorThesisQueue(filters);
+  const { data: response, isLoading, error } = useAdvisorThesisQueue(filters);
+  const data = response?.items || [];
+  const summary = response?.summary || { pending: 0, approved: 0, rejected: 0, total: 0 };
   const submitDecision = useSubmitKP02AdvisorDecision();
 
   const handleApprove = (request: DefenseRequest) => {
@@ -68,6 +70,7 @@ export default function AdvisorThesisQueuePage() {
           emptyMessage="ไม่มีคำขอสอบ คพ.03 ที่รออนุมัติในขณะนี้"
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
+          summary={summary}
         />
 
         <DecisionModal

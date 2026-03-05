@@ -954,7 +954,36 @@ class ProjectDefenseRequestService {
       }
       results.push(serialized);
     }
-    return results;
+
+    // Summary counts (unfiltered by status — always count all statuses for this teacher+defenseType)
+    const summaryRows = await ProjectDefenseRequestAdvisorApproval.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('ProjectDefenseRequestAdvisorApproval.approval_id')), 'count']
+      ],
+      include: [{
+        model: ProjectDefenseRequest,
+        as: 'request',
+        attributes: [],
+        where: { defenseType },
+        required: true
+      }],
+      where: { teacherId },
+      group: ['ProjectDefenseRequestAdvisorApproval.status'],
+      raw: true
+    });
+
+    const summary = { pending: 0, approved: 0, rejected: 0, total: 0 };
+    for (const row of summaryRows) {
+      const s = row.status;
+      const count = Number(row.count || 0);
+      if (s === 'approved') summary.approved = count;
+      else if (s === 'rejected') summary.rejected = count;
+      else if (s === 'pending') summary.pending = count;
+    }
+    summary.total = summary.pending + summary.approved + summary.rejected;
+
+    return { items: results, summary };
   }
 
   async submitAdvisorDecision(projectId, teacherId, { decision, note } = {}, { defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {

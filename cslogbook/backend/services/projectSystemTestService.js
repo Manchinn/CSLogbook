@@ -508,7 +508,35 @@ class ProjectSystemTestService {
       order: [['submittedAt', 'DESC']],
       include
     });
-    return records.map(record => this.serialize(record));
+    const items = records.map(record => this.serialize(record));
+
+    // Summary counts (unfiltered — count all statuses for this teacher)
+    const summaryRows = await ProjectTestRequest.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('request_id')), 'count']
+      ],
+      where: {
+        [Op.or]: [
+          { advisorTeacherId: teacherId },
+          { coAdvisorTeacherId: teacherId }
+        ]
+      },
+      group: ['status'],
+      raw: true
+    });
+
+    const summary = { pending: 0, approved: 0, rejected: 0, total: 0 };
+    for (const row of summaryRows) {
+      const s = row.status;
+      const count = Number(row.count || 0);
+      if (s === 'pending_advisor') summary.pending += count;
+      else if (s === 'pending_staff' || s === 'staff_approved') summary.approved += count;
+      else if (s === 'advisor_rejected') summary.rejected += count;
+    }
+    summary.total = summary.pending + summary.approved + summary.rejected;
+
+    return { items, summary };
   }
 
   async staffQueue(options = {}) {

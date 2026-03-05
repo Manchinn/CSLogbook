@@ -116,40 +116,42 @@ export default function MeetingApprovalsPage() {
         title="อนุมัติบันทึกการพบ"
         description="อนุมัติหรือปฏิเสธบันทึกการประชุมของนักศึกษา"
       >
-        <div className={styles.filterBar}>
-          <label htmlFor="statusFilter" className={styles.filterLabel}>สถานะ</label>
-          <select
-            id="statusFilter"
-            className={styles.filterSelect}
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setSelectedIds(new Set());
-            }}
-          >
-            <option value="">ทั้งหมด</option>
-            <option value="pending">รออนุมัติ</option>
-            <option value="approved">อนุมัติแล้ว</option>
-            <option value="rejected">ปฏิเสธแล้ว</option>
-          </select>
-        </div>
-
-        {summary.total > 0 && (
-          <div className={styles.summaryBar}>
-            <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
-              ทั้งหมด {summary.total}
-            </span>
-            <span className={`${styles.summaryBadge} ${styles.summaryPending}`}>
-              รออนุมัติ {summary.pending}
-            </span>
-            <span className={`${styles.summaryBadge} ${styles.summaryApproved}`}>
-              อนุมัติแล้ว {summary.approved}
-            </span>
-            <span className={`${styles.summaryBadge} ${styles.summaryRejected}`}>
-              ปฏิเสธแล้ว {summary.rejected}
-            </span>
+        <div className={styles.toolbar}>
+          <div className={styles.filterBar}>
+            <label htmlFor="statusFilter" className={styles.filterLabel}>สถานะ</label>
+            <select
+              id="statusFilter"
+              className={styles.filterSelect}
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setSelectedIds(new Set());
+              }}
+            >
+              <option value="">ทั้งหมด</option>
+              <option value="pending">รออนุมัติ</option>
+              <option value="approved">อนุมัติแล้ว</option>
+              <option value="rejected">ปฏิเสธแล้ว</option>
+            </select>
           </div>
-        )}
+
+          {summary.total > 0 && (
+            <div className={styles.summaryBar}>
+              <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
+                ทั้งหมด {summary.total}
+              </span>
+              <span className={`${styles.summaryBadge} ${styles.summaryPending}`}>
+                รออนุมัติ {summary.pending}
+              </span>
+              <span className={`${styles.summaryBadge} ${styles.summaryApproved}`}>
+                อนุมัติแล้ว {summary.approved}
+              </span>
+              <span className={`${styles.summaryBadge} ${styles.summaryRejected}`}>
+                ปฏิเสธแล้ว {summary.rejected}
+              </span>
+            </div>
+          )}
+        </div>
 
         {isLoading && (
           <div className={styles.loadingState}>
@@ -226,13 +228,18 @@ export default function MeetingApprovalsPage() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th style={{ width: "40px" }}>
+                    <th className={styles.checkboxCol}>
                       {pendingMeetings.length > 0 && (
                         <input
                           type="checkbox"
                           checked={allPendingSelected}
                           onChange={handleToggleSelectAll}
                           className={styles.checkbox}
+                          aria-label={
+                            allPendingSelected
+                              ? "ยกเลิกการเลือกทั้งหมด"
+                              : "เลือกทั้งหมด"
+                          }
                           title={
                             allPendingSelected
                               ? "ยกเลิกการเลือกทั้งหมด"
@@ -268,6 +275,7 @@ export default function MeetingApprovalsPage() {
                             checked={selectedIds.has(meeting.id)}
                             onChange={() => handleToggleSelect(meeting.id)}
                             className={styles.checkbox}
+                            aria-label={`เลือก ${meeting.projectTitle}`}
                           />
                         )}
                       </td>
