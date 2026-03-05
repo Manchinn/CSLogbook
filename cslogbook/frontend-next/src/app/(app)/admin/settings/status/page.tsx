@@ -9,6 +9,7 @@ import {
   deleteStudentStatus,
   type StudentStatus,
 } from "@/lib/services/settingsService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
 type StatusForm = {
@@ -160,12 +161,12 @@ export default function StatusSettingsPage() {
           <div className={styles.sectionHeader}>
             <strong>{formState.id ? "แก้ไขสถานะ" : "เพิ่มสถานะใหม่"}</strong>
             <div className={styles.actions}>
-              <button type="button" className={styles.button} onClick={resetForm}>
+              <button type="button" className={btn.button} onClick={resetForm}>
                 ล้างฟอร์ม
               </button>
               <button
                 type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
+                className={`${btn.button} ${btn.buttonPrimary}`}
                 onClick={handleSave}
                 disabled={loading}
               >
@@ -234,7 +235,7 @@ export default function StatusSettingsPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <strong>รายการสถานะนักศึกษา</strong>
-            <button type="button" className={styles.button} onClick={loadStatuses} disabled={loading}>
+            <button type="button" className={btn.button} onClick={loadStatuses} disabled={loading}>
               รีเฟรช
             </button>
           </div>
@@ -265,12 +266,12 @@ export default function StatusSettingsPage() {
                     </td>
                     <td>
                       <div className={styles.actions}>
-                        <button type="button" className={styles.button} onClick={() => handleEdit(row)}>
+                        <button type="button" className={btn.button} onClick={() => handleEdit(row)}>
                           แก้ไข
                         </button>
                         <button
                           type="button"
-                          className={`${styles.button} ${styles.buttonDanger}`}
+                          className={`${btn.button} ${btn.buttonDanger}`}
                           onClick={() => handleDelete(row)}
                         >
                           ลบ

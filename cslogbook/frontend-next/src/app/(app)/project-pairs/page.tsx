@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useProjectPairMeta, useProjectPairMutations, useProjectPairs, useProjectStudentLookup } from "@/hooks/useProjectPairs";
 import type { ProjectPairFilters, ProjectPairRecord, ProjectStudentLookup } from "@/lib/services/projectPairsService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 type AddForm = {
@@ -129,6 +131,7 @@ export default function ProjectPairsPage() {
   // state สำหรับ dialog ยืนยันการยกเลิกโครงงาน
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const { containerRef: drawerRef, saveTrigger } = useFocusTrap(selected !== null);
 
   const filters: ProjectPairFilters = useMemo(
     () => ({
@@ -324,10 +327,10 @@ export default function ProjectPairsPage() {
             <h1 className={styles.title}>นักศึกษาโครงงานพิเศษ</h1>
             <p className={styles.subtitle}>จัดการคู่โครงงานพิเศษ เพิ่ม แก้ไข และยกเลิกโครงงานของนักศึกษา</p>
           </div>
-          <div className={styles.buttonRow}>
+          <div className={btn.buttonRow}>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               onClick={() => {
                 setPage(1);
                 void listQuery.refetch();
@@ -337,7 +340,7 @@ export default function ProjectPairsPage() {
             </button>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonPrimary}`}
+              className={`${btn.button} ${btn.buttonPrimary}`}
               onClick={() => setAddOpen(true)}
             >
               เพิ่มโครงงานพิเศษ
@@ -430,7 +433,7 @@ export default function ProjectPairsPage() {
             </select>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonGhost}`}
+              className={`${btn.button} ${btn.buttonGhost}`}
               onClick={() => {
                 setQuery("");
                 setProjectStatus("");
@@ -493,8 +496,9 @@ export default function ProjectPairsPage() {
                       <td>
                         <button
                           type="button"
-                          className={styles.button}
+                          className={btn.button}
                           onClick={() => {
+                            saveTrigger();
                             setSelected(p);
                             setEditForm(toEdit(p));
                             setIsEditMode(false);
@@ -513,7 +517,7 @@ export default function ProjectPairsPage() {
             <div className={styles.pagination}>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage <= 1}
               >
@@ -524,7 +528,7 @@ export default function ProjectPairsPage() {
               </span>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage >= totalPages}
               >
@@ -536,10 +540,10 @@ export default function ProjectPairsPage() {
 
         {selected ? (
           <div className={styles.drawerOverlay} onClick={closeDrawer}>
-            <aside className={styles.drawer} onClick={(e) => e.stopPropagation()}>
+            <aside ref={drawerRef} className={styles.drawer} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEditMode ? "แก้ไขโครงงานพิเศษ" : "รายละเอียดโครงงาน"}>
               <header className={styles.drawerHeader}>
                 <strong>{isEditMode ? "แก้ไขโครงงานพิเศษ" : "รายละเอียดโครงงาน"}</strong>
-                <button type="button" className={styles.button} onClick={closeDrawer}>
+                <button type="button" className={btn.button} onClick={closeDrawer}>
                   ปิด
                 </button>
               </header>
@@ -760,19 +764,19 @@ export default function ProjectPairsPage() {
               </div>
 
               <footer className={styles.drawerFooter}>
-                <div className={styles.buttonRow}>
+                <div className={btn.buttonRow}>
                   {!isEditMode ? (
                     <>
                       <button
                         type="button"
-                        className={`${styles.button} ${styles.buttonPrimary}`}
+                        className={`${btn.button} ${btn.buttonPrimary}`}
                         onClick={() => setIsEditMode(true)}
                       >
                         แก้ไขข้อมูล
                       </button>
                       <button
                         type="button"
-                        className={`${styles.button} ${styles.buttonDanger}`}
+                        className={`${btn.button} ${btn.buttonDanger}`}
                         onClick={onCancelProject}
                         disabled={
                           cancelProject.isPending ||
@@ -784,12 +788,12 @@ export default function ProjectPairsPage() {
                     </>
                   ) : (
                     <>
-                      <button type="button" className={styles.button} onClick={() => setIsEditMode(false)}>
+                      <button type="button" className={btn.button} onClick={() => setIsEditMode(false)}>
                         ย้อนกลับ
                       </button>
                       <button
                         type="button"
-                        className={`${styles.button} ${styles.buttonPrimary}`}
+                        className={`${btn.button} ${btn.buttonPrimary}`}
                         onClick={onUpdate}
                         disabled={updateProject.isPending}
                       >
@@ -808,7 +812,7 @@ export default function ProjectPairsPage() {
             <section className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
               <div className={styles.modalHeader}>
                 <h3 className={styles.sectionTitle}>เพิ่มโครงงานพิเศษใหม่</h3>
-                <button type="button" className={styles.button} onClick={closeAddModal}>
+                <button type="button" className={btn.button} onClick={closeAddModal}>
                   ปิด
                 </button>
               </div>
@@ -826,7 +830,7 @@ export default function ProjectPairsPage() {
                         setStudent1(null);
                       }}
                     />
-                    <button type="button" className={styles.button} onClick={() => lookup(1)}>
+                    <button type="button" className={btn.button} onClick={() => lookup(1)}>
                       ค้นหา
                     </button>
                   </label>
@@ -841,7 +845,7 @@ export default function ProjectPairsPage() {
                         setStudent2(null);
                       }}
                     />
-                    <button type="button" className={styles.button} onClick={() => lookup(2)}>
+                    <button type="button" className={btn.button} onClick={() => lookup(2)}>
                       ค้นหา
                     </button>
                   </label>
@@ -958,13 +962,13 @@ export default function ProjectPairsPage() {
                 </div>
               </div>
 
-              <div className={styles.buttonRow}>
-                <button type="button" className={styles.button} onClick={closeAddModal}>
+              <div className={btn.buttonRow}>
+                <button type="button" className={btn.button} onClick={closeAddModal}>
                   ยกเลิก
                 </button>
                 <button
                   type="button"
-                  className={`${styles.button} ${styles.buttonPrimary}`}
+                  className={`${btn.button} ${btn.buttonPrimary}`}
                   onClick={onCreate}
                   disabled={createProject.isPending || Boolean(addValidationMessage)}
                 >
@@ -981,7 +985,7 @@ export default function ProjectPairsPage() {
             <section className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
               <div className={styles.modalHeader}>
                 <h3>ยืนยันการยกเลิกโครงงาน</h3>
-                <button type="button" className={styles.button} onClick={() => setCancelDialogOpen(false)}>×</button>
+                <button type="button" className={btn.button} onClick={() => setCancelDialogOpen(false)}>×</button>
               </div>
               <div className={styles.cardLite}>
                 <p style={{ marginBottom: 12 }}>
@@ -1001,12 +1005,12 @@ export default function ProjectPairsPage() {
                 />
               </div>
               <div className={styles.drawerFooter}>
-                <button type="button" className={styles.button} onClick={() => setCancelDialogOpen(false)}>
+                <button type="button" className={btn.button} onClick={() => setCancelDialogOpen(false)}>
                   ยกเลิก
                 </button>
                 <button
                   type="button"
-                  className={`${styles.button} ${styles.buttonDanger}`}
+                  className={`${btn.button} ${btn.buttonDanger}`}
                   onClick={() => void executeCancelProject()}
                   disabled={cancelProject.isPending}
                 >

@@ -11,6 +11,7 @@ import {
   updateInternship,
   type EnrolledInternshipStudent,
 } from "@/lib/services/reportService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -183,8 +184,8 @@ export default function AdminInternshipReportPage() {
             <h1 className={styles.title}>รายงานการฝึกงาน</h1>
             <p className={styles.subtitle}>ข้อมูลนักศึกษาฝึกงานและผลการประเมิน</p>
           </div>
-          <div className={styles.buttonRow}>
-            <button type="button" className={styles.button} onClick={() => loadData(year, semester)} disabled={loading}>
+          <div className={btn.buttonRow}>
+            <button type="button" className={btn.button} onClick={() => loadData(year, semester)} disabled={loading}>
               {loading ? "กำลังโหลด..." : "รีเฟรช"}
             </button>
           </div>
@@ -305,12 +306,12 @@ export default function AdminInternshipReportPage() {
                       <td>{formatDate(s.startDate)}</td>
                       <td>{formatDate(s.endDate)}</td>
                       <td>
-                        <div className={styles.buttonRow}>
-                          <button type="button" className={styles.button} onClick={() => openEdit(s)}>
+                        <div className={btn.buttonRow}>
+                          <button type="button" className={btn.button} onClick={() => openEdit(s)}>
                             แก้ไข
                           </button>
                           {s.internshipStatus !== "cancelled" ? (
-                            <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={() => openCancel(s)}>
+                            <button type="button" className={`${btn.button} ${btn.buttonDanger}`} onClick={() => openCancel(s)}>
                               ยกเลิก
                             </button>
                           ) : null}
@@ -362,11 +363,11 @@ export default function AdminInternshipReportPage() {
                   />
                 </label>
               </div>
-              <div className={styles.buttonRow}>
-                <button type="button" className={styles.button} onClick={() => setEditTarget(null)} disabled={editBusy}>
+              <div className={btn.buttonRow}>
+                <button type="button" className={btn.button} onClick={() => setEditTarget(null)} disabled={editBusy}>
                   ยกเลิก
                 </button>
-                <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={submitEdit} disabled={editBusy}>
+                <button type="button" className={`${btn.button} ${btn.buttonPrimary}`} onClick={submitEdit} disabled={editBusy}>
                   {editBusy ? "กำลังบันทึก..." : "บันทึก"}
                 </button>
               </div>
@@ -390,11 +391,11 @@ export default function AdminInternshipReportPage() {
                   placeholder="กรุณาระบุเหตุผล"
                 />
               </label>
-              <div className={styles.buttonRow}>
-                <button type="button" className={styles.button} onClick={() => setCancelTarget(null)} disabled={cancelBusy}>
+              <div className={btn.buttonRow}>
+                <button type="button" className={btn.button} onClick={() => setCancelTarget(null)} disabled={cancelBusy}>
                   ปิด
                 </button>
-                <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={submitCancel} disabled={cancelBusy}>
+                <button type="button" className={`${btn.button} ${btn.buttonDanger}`} onClick={submitCancel} disabled={cancelBusy}>
                   {cancelBusy ? "กำลังยกเลิก..." : "ยืนยันยกเลิก"}
                 </button>
               </div>

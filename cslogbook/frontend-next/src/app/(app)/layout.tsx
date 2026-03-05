@@ -1,4 +1,5 @@
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AppShell } from "@/components/layout/AppShell";
 
 export default function AppLayout({
@@ -8,7 +9,9 @@ export default function AppLayout({
 }>) {
   return (
     <AuthGuard>
-      <AppShell>{children}</AppShell>
+      <ErrorBoundary>
+        <AppShell>{children}</AppShell>
+      </ErrorBoundary>
     </AuthGuard>
   );
 }

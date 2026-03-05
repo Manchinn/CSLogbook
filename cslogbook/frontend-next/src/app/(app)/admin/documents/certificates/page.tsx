@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useAdminInternshipCertificates";
 import type { AdminCertificateRequest } from "@/lib/services/adminInternshipCertificatesService";
 import { labelStatus } from "@/lib/utils/statusLabels";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -175,10 +176,10 @@ export default function AdminInternshipCertificatesPage() {
             <h1 className={styles.title}>จัดการหนังสือรับรองการฝึกงาน</h1>
             <p className={styles.subtitle}>จัดการคำร้องหนังสือรับรองการฝึกงาน ตรวจสอบและอนุมัติตามลำดับ</p>
           </div>
-          <div className={styles.buttonRow}>
+          <div className={btn.buttonRow}>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               onClick={() => {
                 setSearch("");
                 setStatus("");
@@ -296,15 +297,15 @@ export default function AdminInternshipCertificatesPage() {
                         <span className={styles.tag}>{labelStatus(row.status)}</span>
                       </td>
                       <td>
-                        <div className={styles.buttonRow}>
-                          <button type="button" className={styles.button} onClick={() => openDetail(row)}>
+                        <div className={btn.buttonRow}>
+                          <button type="button" className={btn.button} onClick={() => openDetail(row)}>
                             รายละเอียด
                           </button>
                           {row.status === "pending" ? (
                             <>
                               <button
                                 type="button"
-                                className={`${styles.button} ${styles.buttonPrimary}`}
+                                className={`${btn.button} ${btn.buttonPrimary}`}
                                 onClick={() => openApproveModal(row.id)}
                                 disabled={isActionPending}
                               >
@@ -312,7 +313,7 @@ export default function AdminInternshipCertificatesPage() {
                               </button>
                               <button
                                 type="button"
-                                className={`${styles.button} ${styles.buttonDanger}`}
+                                className={`${btn.button} ${btn.buttonDanger}`}
                                 onClick={() => openRejectModal(row.id)}
                                 disabled={isActionPending}
                               >
@@ -355,7 +356,7 @@ export default function AdminInternshipCertificatesPage() {
             </select>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               disabled={page <= 1}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             >
@@ -363,7 +364,7 @@ export default function AdminInternshipCertificatesPage() {
             </button>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               disabled={page >= totalPages}
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             >
@@ -385,7 +386,7 @@ export default function AdminInternshipCertificatesPage() {
                     {selected?.student.fullName || "-"} ({selected?.student.studentCode || "-"})
                   </p>
                 </div>
-                <button type="button" className={styles.button} onClick={closeDrawer}>
+                <button type="button" className={btn.button} onClick={closeDrawer}>
                   ปิด
                 </button>
               </header>
@@ -448,11 +449,11 @@ export default function AdminInternshipCertificatesPage() {
                         <p>หมายเหตุเพิ่มเติม: {detail.evaluationDetail?.additionalComments || "-"}</p>
                       </section>
                     ) : null}
-                    <div className={styles.buttonRow}>
+                    <div className={btn.buttonRow}>
                       {selected ? (
                         <button
                           type="button"
-                          className={styles.button}
+                          className={btn.button}
                           onClick={() => handleDownload(selected.id)}
                           disabled={isActionPending}
                         >
@@ -462,7 +463,7 @@ export default function AdminInternshipCertificatesPage() {
                       {detail?.internship?.internshipId ? (
                         <button
                           type="button"
-                          className={styles.button}
+                          className={btn.button}
                           onClick={() => setLogbookModalOpen(true)}
                         >
                           ดูสรุปบันทึกการฝึกงาน
@@ -472,7 +473,7 @@ export default function AdminInternshipCertificatesPage() {
                         <>
                           <button
                             type="button"
-                            className={`${styles.button} ${styles.buttonPrimary}`}
+                            className={`${btn.button} ${btn.buttonPrimary}`}
                             onClick={() => openApproveModal(selected.id)}
                             disabled={isActionPending}
                           >
@@ -480,7 +481,7 @@ export default function AdminInternshipCertificatesPage() {
                           </button>
                           <button
                             type="button"
-                            className={`${styles.button} ${styles.buttonDanger}`}
+                            className={`${btn.button} ${btn.buttonDanger}`}
                             onClick={() => openRejectModal(selected.id)}
                             disabled={isActionPending}
                           >
@@ -525,10 +526,10 @@ export default function AdminInternshipCertificatesPage() {
                   />
                 </label>
               )}
-              <div className={styles.buttonRow}>
+              <div className={btn.buttonRow}>
                 <button
                   type="button"
-                  className={styles.button}
+                  className={btn.button}
                   onClick={() => {
                     if (isActionPending) return;
                     setActionModalOpen(false);
@@ -538,7 +539,7 @@ export default function AdminInternshipCertificatesPage() {
                 </button>
                 <button
                   type="button"
-                  className={`${styles.button} ${actionType === "approve" ? styles.buttonPrimary : styles.buttonDanger}`}
+                  className={`${btn.button} ${actionType === "approve" ? btn.buttonPrimary : btn.buttonDanger}`}
                   disabled={isActionPending || !actionRequestId}
                   onClick={() => {
                     if (!actionRequestId) return;
@@ -583,10 +584,10 @@ export default function AdminInternshipCertificatesPage() {
                   </section>
                 </>
               ) : null}
-              <div className={styles.buttonRow}>
+              <div className={btn.buttonRow}>
                 <button
                   type="button"
-                  className={styles.button}
+                  className={btn.button}
                   onClick={() => setLogbookModalOpen(false)}
                 >
                   ปิด

@@ -15,6 +15,7 @@ import {
   getAgentEmailStats,
   type AgentEmailStats,
 } from "@/lib/services/agentStatusService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
 export default function NotificationSettingsPage() {
@@ -155,13 +156,13 @@ export default function NotificationSettingsPage() {
           <div className={styles.sectionHeader}>
             <strong>การแจ้งเตือน</strong>
             <div className={styles.actions}>
-              <button type="button" className={styles.button} onClick={loadSettings} disabled={loading}>
+              <button type="button" className={btn.button} onClick={loadSettings} disabled={loading}>
                 รีเฟรช
               </button>
-              <button type="button" className={styles.button} onClick={handleEnableAll} disabled={loading}>
+              <button type="button" className={btn.button} onClick={handleEnableAll} disabled={loading}>
                 เปิดทั้งหมด
               </button>
-              <button type="button" className={styles.button} onClick={handleDisableAll} disabled={loading}>
+              <button type="button" className={btn.button} onClick={handleDisableAll} disabled={loading}>
                 ปิดทั้งหมด
               </button>
             </div>
@@ -193,7 +194,7 @@ export default function NotificationSettingsPage() {
                       <div className={styles.actions}>
                         <button
                           type="button"
-                          className={styles.button}
+                          className={btn.button}
                           onClick={() => handleToggle(key, !item.enabled)}
                         >
                           {item.enabled ? "ปิด" : "เปิด"}
@@ -210,7 +211,7 @@ export default function NotificationSettingsPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <strong>Agent Status</strong>
-            <button type="button" className={styles.button} onClick={loadAgentStats} disabled={loading}>
+            <button type="button" className={btn.button} onClick={loadAgentStats} disabled={loading}>
               รีเฟรชสถานะ
             </button>
           </div>

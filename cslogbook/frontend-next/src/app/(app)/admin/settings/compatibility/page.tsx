@@ -40,6 +40,7 @@ import {
 import { getWorkflowRuntimeStep } from "@/lib/services/workflowStepService";
 import { getUploadCsvHistory } from "@/lib/services/adminService";
 import { getTemplateDownloadPath } from "@/lib/services/compatibilityService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
 function toPretty(value: unknown) {
@@ -140,63 +141,63 @@ export default function CompatibilityEndpointsPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}><strong>Auth + SSO</strong></div>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={() => run("sso-status", () => getSsoStatus())} disabled={!!loadingKey}>GET /api/auth/sso/status</button>
-            <button className={styles.button} onClick={() => run("sso-url", () => getSsoUrl())} disabled={!!loadingKey}>GET /api/auth/sso/url</button>
-            <button className={styles.button} onClick={() => run("sso-authorize", () => getSsoAuthorize({ redirectPath: "/app" }))} disabled={!!loadingKey}>GET /api/auth/sso/authorize</button>
-            <button className={styles.button} onClick={() => run("sso-callback", () => getSsoCallback({ state: "debug", code: "debug" }))} disabled={!!loadingKey}>GET /api/auth/sso/callback</button>
-            <button className={styles.button} onClick={() => run("refresh-token", () => refreshAuthToken())} disabled={!!loadingKey}>POST /api/auth/refresh-token</button>
+            <button className={btn.button} onClick={() => run("sso-status", () => getSsoStatus())} disabled={!!loadingKey}>GET /api/auth/sso/status</button>
+            <button className={btn.button} onClick={() => run("sso-url", () => getSsoUrl())} disabled={!!loadingKey}>GET /api/auth/sso/url</button>
+            <button className={btn.button} onClick={() => run("sso-authorize", () => getSsoAuthorize({ redirectPath: "/app" }))} disabled={!!loadingKey}>GET /api/auth/sso/authorize</button>
+            <button className={btn.button} onClick={() => run("sso-callback", () => getSsoCallback({ state: "debug", code: "debug" }))} disabled={!!loadingKey}>GET /api/auth/sso/callback</button>
+            <button className={btn.button} onClick={() => run("refresh-token", () => refreshAuthToken())} disabled={!!loadingKey}>POST /api/auth/refresh-token</button>
           </div>
         </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}><strong>Agent + Email Approval</strong></div>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={() => run("agent-system", () => getAgentSystemStatus())} disabled={!!loadingKey}>GET /api/admin/agent-status</button>
-            <button className={styles.button} onClick={() => run("agent-email-stats", () => getAgentEmailStats())} disabled={!!loadingKey}>GET /api/admin/agent-status/email-stats</button>
-            <button className={styles.button} onClick={() => run("agent-restart", () => restartAgent(agentId))} disabled={!!loadingKey}>POST /api/admin/agent-status/:id/restart</button>
-            <button className={styles.button} onClick={() => run("approval-details", () => getTimesheetApprovalDetails(tokenId))} disabled={!!loadingKey || !tokenId}>GET /api/email-approval/details/:id</button>
-            <button className={styles.button} onClick={() => run("email-approve-get", () => previewApproveByEmail(tokenId))} disabled={!!loadingKey || !tokenId}>GET /api/email-approval/email/approve/:id</button>
-            <button className={styles.button} onClick={() => run("email-approve-post", () => approveByEmail(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/email/approve/:id</button>
-            <button className={styles.button} onClick={() => run("email-reject-get", () => previewRejectByEmail(tokenId))} disabled={!!loadingKey || !tokenId}>GET /api/email-approval/email/reject/:id</button>
-            <button className={styles.button} onClick={() => run("email-reject-post", () => rejectByEmail(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/email/reject/:id</button>
-            <button className={styles.button} onClick={() => run("web-approve-post", () => approveTimesheet(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/web/approve/:id</button>
-            <button className={styles.button} onClick={() => run("web-reject-post", () => rejectTimesheet(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/web/reject/:id</button>
+            <button className={btn.button} onClick={() => run("agent-system", () => getAgentSystemStatus())} disabled={!!loadingKey}>GET /api/admin/agent-status</button>
+            <button className={btn.button} onClick={() => run("agent-email-stats", () => getAgentEmailStats())} disabled={!!loadingKey}>GET /api/admin/agent-status/email-stats</button>
+            <button className={btn.button} onClick={() => run("agent-restart", () => restartAgent(agentId))} disabled={!!loadingKey}>POST /api/admin/agent-status/:id/restart</button>
+            <button className={btn.button} onClick={() => run("approval-details", () => getTimesheetApprovalDetails(tokenId))} disabled={!!loadingKey || !tokenId}>GET /api/email-approval/details/:id</button>
+            <button className={btn.button} onClick={() => run("email-approve-get", () => previewApproveByEmail(tokenId))} disabled={!!loadingKey || !tokenId}>GET /api/email-approval/email/approve/:id</button>
+            <button className={btn.button} onClick={() => run("email-approve-post", () => approveByEmail(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/email/approve/:id</button>
+            <button className={btn.button} onClick={() => run("email-reject-get", () => previewRejectByEmail(tokenId))} disabled={!!loadingKey || !tokenId}>GET /api/email-approval/email/reject/:id</button>
+            <button className={btn.button} onClick={() => run("email-reject-post", () => rejectByEmail(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/email/reject/:id</button>
+            <button className={btn.button} onClick={() => run("web-approve-post", () => approveTimesheet(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/web/approve/:id</button>
+            <button className={btn.button} onClick={() => run("web-reject-post", () => rejectTimesheet(tokenId, comment))} disabled={!!loadingKey || !tokenId}>POST /api/email-approval/web/reject/:id</button>
           </div>
         </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}><strong>Reports</strong></div>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={() => run("deadline-years", () => getDeadlineAcademicYears())} disabled={!!loadingKey}>GET /api/reports/deadlines/academic-years</button>
-            <button className={styles.button} onClick={() => run("deadline-compliance", () => getDeadlineCompliance(query))} disabled={!!loadingKey}>GET /api/reports/deadlines/overdue + upcoming</button>
-            <button className={styles.button} onClick={() => run("internship-logbook-compliance", () => getInternshipLogbookCompliance(query))} disabled={!!loadingKey}>GET /api/reports/internships/logbook-compliance</button>
-            <button className={styles.button} onClick={() => run("reports-overview", () => getReportsOverview(query))} disabled={!!loadingKey}>GET /api/reports/overview</button>
-            <button className={styles.button} onClick={() => run("advisor-load", () => getAdvisorWorkload())} disabled={!!loadingKey}>GET /api/reports/projects/advisor-load</button>
-            <button className={styles.button} onClick={() => run("student-deadline-history", () => getStudentDeadlineHistory(studentId))} disabled={!!loadingKey}>GET /api/reports/students/:id/deadline-history</button>
-            <button className={styles.button} onClick={() => run("workflow-progress", () => getWorkflowProgress({ workflowType }))} disabled={!!loadingKey}>GET /api/reports/workflow/*</button>
+            <button className={btn.button} onClick={() => run("deadline-years", () => getDeadlineAcademicYears())} disabled={!!loadingKey}>GET /api/reports/deadlines/academic-years</button>
+            <button className={btn.button} onClick={() => run("deadline-compliance", () => getDeadlineCompliance(query))} disabled={!!loadingKey}>GET /api/reports/deadlines/overdue + upcoming</button>
+            <button className={btn.button} onClick={() => run("internship-logbook-compliance", () => getInternshipLogbookCompliance(query))} disabled={!!loadingKey}>GET /api/reports/internships/logbook-compliance</button>
+            <button className={btn.button} onClick={() => run("reports-overview", () => getReportsOverview(query))} disabled={!!loadingKey}>GET /api/reports/overview</button>
+            <button className={btn.button} onClick={() => run("advisor-load", () => getAdvisorWorkload())} disabled={!!loadingKey}>GET /api/reports/projects/advisor-load</button>
+            <button className={btn.button} onClick={() => run("student-deadline-history", () => getStudentDeadlineHistory(studentId))} disabled={!!loadingKey}>GET /api/reports/students/:id/deadline-history</button>
+            <button className={btn.button} onClick={() => run("workflow-progress", () => getWorkflowProgress({ workflowType }))} disabled={!!loadingKey}>GET /api/reports/workflow/*</button>
           </div>
         </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}><strong>Timeline + Workflow</strong></div>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={() => run("timeline-all", () => getAllTimelines())} disabled={!!loadingKey}>GET /api/timeline/all</button>
-            <button className={styles.button} onClick={() => run("timeline-student", () => getStudentTimeline(studentId))} disabled={!!loadingKey}>GET /api/timeline/student/:id</button>
-            <button className={styles.button} onClick={() => run("timeline-student-init", () => initStudentTimeline(studentId, { source: "compat-ui" }))} disabled={!!loadingKey}>POST /api/timeline/student/:id/init</button>
-            <button className={styles.button} onClick={() => run("timeline-step-update", () => updateTimelineStep(stepId, { status: "in_progress" }))} disabled={!!loadingKey}>PUT /api/timeline/step/:id</button>
-            <button className={styles.button} onClick={() => run("workflow-step", () => getWorkflowRuntimeStep(stepId))} disabled={!!loadingKey}>GET /api/workflow/steps/:id</button>
-            <button className={styles.button} onClick={() => run("workflow-update", () => updateWorkflow({ workflowType, studentId, action: "sync" }))} disabled={!!loadingKey}>PUT /api/workflow/update</button>
-            <button className={styles.button} onClick={() => run("workflow-timeline", () => getWorkflowTimeline("", workflowType, studentId))} disabled={!!loadingKey}>GET /api/reports/workflow/student-timeline/:id</button>
+            <button className={btn.button} onClick={() => run("timeline-all", () => getAllTimelines())} disabled={!!loadingKey}>GET /api/timeline/all</button>
+            <button className={btn.button} onClick={() => run("timeline-student", () => getStudentTimeline(studentId))} disabled={!!loadingKey}>GET /api/timeline/student/:id</button>
+            <button className={btn.button} onClick={() => run("timeline-student-init", () => initStudentTimeline(studentId, { source: "compat-ui" }))} disabled={!!loadingKey}>POST /api/timeline/student/:id/init</button>
+            <button className={btn.button} onClick={() => run("timeline-step-update", () => updateTimelineStep(stepId, { status: "in_progress" }))} disabled={!!loadingKey}>PUT /api/timeline/step/:id</button>
+            <button className={btn.button} onClick={() => run("workflow-step", () => getWorkflowRuntimeStep(stepId))} disabled={!!loadingKey}>GET /api/workflow/steps/:id</button>
+            <button className={btn.button} onClick={() => run("workflow-update", () => updateWorkflow({ workflowType, studentId, action: "sync" }))} disabled={!!loadingKey}>PUT /api/workflow/update</button>
+            <button className={btn.button} onClick={() => run("workflow-timeline", () => getWorkflowTimeline("", workflowType, studentId))} disabled={!!loadingKey}>GET /api/reports/workflow/student-timeline/:id</button>
           </div>
         </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}><strong>Upload + Template</strong></div>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={() => run("upload-history", () => getUploadCsvHistory())} disabled={!!loadingKey}>GET /api/upload-csv/history</button>
-            <button className={styles.button} onClick={() => openTemplate("csv")} disabled={!!loadingKey}>GET /template/download-csv-template</button>
-            <button className={styles.button} onClick={() => openTemplate("excel")} disabled={!!loadingKey}>GET /template/download-excel-template</button>
-            <button className={styles.button} onClick={() => openTemplate("generic")} disabled={!!loadingKey}>GET /template/download-template</button>
+            <button className={btn.button} onClick={() => run("upload-history", () => getUploadCsvHistory())} disabled={!!loadingKey}>GET /api/upload-csv/history</button>
+            <button className={btn.button} onClick={() => openTemplate("csv")} disabled={!!loadingKey}>GET /template/download-csv-template</button>
+            <button className={btn.button} onClick={() => openTemplate("excel")} disabled={!!loadingKey}>GET /template/download-excel-template</button>
+            <button className={btn.button} onClick={() => openTemplate("generic")} disabled={!!loadingKey}>GET /template/download-template</button>
           </div>
         </section>
 

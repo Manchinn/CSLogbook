@@ -8,6 +8,7 @@ import { getCurrentAcademicInfo } from "@/lib/services/academicService";
 import { getTemplateDownloadPath } from "@/lib/services/compatibilityService";
 import { getCurriculumById, getCurriculumMappings, type CurriculumRecord } from "@/lib/services/settingsService";
 import { uploadStudentCSV, type UploadStudentResult, type UploadStudentSummary } from "@/lib/services/adminService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 type PrerequisiteStatus = {
@@ -285,7 +286,7 @@ export default function AdminUploadPage() {
               <span className={`${styles.badge} ${!isReadyToUpload ? styles.badgeWarning : ""}`}>
                 {isReadyToUpload ? "พร้อมอัปโหลด" : "ต้องตั้งค่าก่อน"}
               </span>
-              <button type="button" className={styles.button} onClick={loadContext}>
+              <button type="button" className={btn.button} onClick={loadContext}>
                 รีเฟรชสถานะ
               </button>
             </div>
@@ -319,7 +320,7 @@ export default function AdminUploadPage() {
                   </select>
                 ) : (
                   <div className={styles.actionRow}>
-                    <a href="/admin/settings/curriculum" className={styles.button}>
+                    <a href="/admin/settings/curriculum" className={btn.button}>
                       ไปยังหน้าตั้งค่าหลักสูตร
                     </a>
                   </div>
@@ -331,7 +332,7 @@ export default function AdminUploadPage() {
                 <div className={styles.statusText}>{prerequisiteStatus.academic.message}</div>
                 {!prerequisiteStatus.academic.ready ? (
                   <div className={styles.actionRow}>
-                    <a href="/admin/settings/academic" className={styles.button}>
+                    <a href="/admin/settings/academic" className={btn.button}>
                       ไปยังหน้าตั้งค่าปีการศึกษา
                     </a>
                   </div>
@@ -360,16 +361,16 @@ export default function AdminUploadPage() {
           <div className={styles.actionRow}>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonPrimary}`}
+              className={`${btn.button} ${btn.buttonPrimary}`}
               onClick={handleUpload}
               disabled={uploading || !file || !isReadyToUpload}
             >
               {uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์"}
             </button>
-            <button type="button" className={styles.button} onClick={() => window.open(csvTemplateDownloadUrl, "_blank")}>
+            <button type="button" className={btn.button} onClick={() => window.open(csvTemplateDownloadUrl, "_blank")}>
               ดาวน์โหลดเทมเพลต CSV
             </button>
-            <button type="button" className={styles.button} onClick={() => window.open(excelTemplateDownloadUrl, "_blank")}>
+            <button type="button" className={btn.button} onClick={() => window.open(excelTemplateDownloadUrl, "_blank")}>
               ดาวน์โหลดเทมเพลต Excel
             </button>
           </div>

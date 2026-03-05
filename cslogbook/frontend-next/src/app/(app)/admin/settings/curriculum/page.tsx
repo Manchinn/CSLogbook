@@ -10,6 +10,7 @@ import {
   getCurriculumMappings,
   type CurriculumRecord,
 } from "@/lib/services/settingsService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
 type CurriculumFormState = {
@@ -311,12 +312,12 @@ export default function CurriculumSettingsPage() {
           <div className={styles.sectionHeader}>
             <strong>{formState.id ? "แก้ไขหลักสูตร" : "เพิ่มหลักสูตรใหม่"}</strong>
             <div className={styles.actions}>
-              <button type="button" className={styles.button} onClick={resetForm} disabled={loading}>
+              <button type="button" className={btn.button} onClick={resetForm} disabled={loading}>
                 ล้างฟอร์ม
               </button>
               <button
                 type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
+                className={`${btn.button} ${btn.buttonPrimary}`}
                 onClick={handleSubmit}
                 disabled={loading}
               >
@@ -449,7 +450,7 @@ export default function CurriculumSettingsPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <strong>รายการหลักสูตร</strong>
-            <button type="button" className={styles.button} onClick={loadData} disabled={loading}>
+            <button type="button" className={btn.button} onClick={loadData} disabled={loading}>
               รีเฟรช
             </button>
           </div>
@@ -488,7 +489,7 @@ export default function CurriculumSettingsPage() {
                         <div className={styles.actions}>
                           <button
                             type="button"
-                            className={styles.button}
+                            className={btn.button}
                             onClick={() => editableRow && handleEdit(editableRow)}
                             disabled={!editableRow}
                           >
@@ -496,7 +497,7 @@ export default function CurriculumSettingsPage() {
                           </button>
                           <button
                             type="button"
-                            className={`${styles.button} ${styles.buttonDanger}`}
+                            className={`${btn.button} ${btn.buttonDanger}`}
                             onClick={() => editableRow && handleDelete(editableRow.id)}
                             disabled={!editableRow}
                           >

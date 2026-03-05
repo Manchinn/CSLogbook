@@ -10,6 +10,7 @@ import {
   useAdminInternshipLateSubmissions,
 } from "@/hooks/useAdminInternshipDocuments";
 import type { AdminInternshipDocument } from "@/lib/services/adminInternshipDocumentsService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -272,8 +273,8 @@ export default function AdminInternshipDocumentsPage() {
             <h1 className={styles.title}>จัดการเอกสารคำร้องขอฝึกงาน</h1>
             <p className={styles.subtitle}>จัดการคำร้องขอฝึกงานของนักศึกษา ตรวจสอบ และอนุมัติเอกสาร</p>
           </div>
-          <div className={styles.buttonRow}>
-            <button type="button" className={styles.button} onClick={onResetFilters}>
+          <div className={btn.buttonRow}>
+            <button type="button" className={btn.button} onClick={onResetFilters}>
               รีเซ็ตตัวกรอง
             </button>
           </div>
@@ -364,10 +365,10 @@ export default function AdminInternshipDocumentsPage() {
               <option value="2">ภาคเรียนที่ 2</option>
               <option value="3">ภาคฤดูร้อน</option>
             </select>
-            <div className={styles.buttonRow}>
+            <div className={btn.buttonRow}>
               <button
                 type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
+                className={`${btn.button} ${btn.buttonPrimary}`}
                 onClick={handleBulkReview}
                 disabled={!selectedCount || isBulkBusy}
               >
@@ -375,7 +376,7 @@ export default function AdminInternshipDocumentsPage() {
               </button>
               <button
                 type="button"
-                className={`${styles.button} ${styles.buttonDanger}`}
+                className={`${btn.button} ${btn.buttonDanger}`}
                 onClick={handleBulkReject}
                 disabled={!selectedCount || isBulkBusy}
               >
@@ -435,15 +436,15 @@ export default function AdminInternshipDocumentsPage() {
                           ) : null}
                         </td>
                         <td>
-                          <div className={styles.buttonRow}>
-                            <button type="button" className={styles.button} onClick={() => openDetail(row)}>
+                          <div className={btn.buttonRow}>
+                            <button type="button" className={btn.button} onClick={() => openDetail(row)}>
                               รายละเอียด
                             </button>
                             {canSelectRow(row) ? (
                               <>
                                 <button
                                   type="button"
-                                  className={`${styles.button} ${styles.buttonPrimary}`}
+                                  className={`${btn.button} ${btn.buttonPrimary}`}
                                   onClick={() => handleSingleReview(row)}
                                   disabled={isBulkBusy}
                                 >
@@ -451,7 +452,7 @@ export default function AdminInternshipDocumentsPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  className={`${styles.button} ${styles.buttonDanger}`}
+                                  className={`${btn.button} ${btn.buttonDanger}`}
                                   onClick={() => handleSingleReject(row.id)}
                                   disabled={isBulkBusy}
                                 >
@@ -521,7 +522,7 @@ export default function AdminInternshipDocumentsPage() {
             </select>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               disabled={page <= 1}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             >
@@ -529,7 +530,7 @@ export default function AdminInternshipDocumentsPage() {
             </button>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               disabled={page >= totalPages}
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             >
@@ -551,7 +552,7 @@ export default function AdminInternshipDocumentsPage() {
                     {documentNameLabel(selected?.documentName)} / {selected?.studentName || "-"}
                   </p>
                 </div>
-                <button type="button" className={styles.button} onClick={closeDrawer}>
+                <button type="button" className={btn.button} onClick={closeDrawer}>
                   ปิด
                 </button>
               </header>
@@ -588,12 +589,12 @@ export default function AdminInternshipDocumentsPage() {
                       </section>
                     ) : null}
                     {selected ? (
-                      <div className={styles.buttonRow}>
+                      <div className={btn.buttonRow}>
                         {canActionSelected ? (
                           <>
                             <button
                               type="button"
-                              className={`${styles.button} ${styles.buttonPrimary}`}
+                              className={`${btn.button} ${btn.buttonPrimary}`}
                               onClick={() => handleSingleReview(selected)}
                               disabled={isBulkBusy}
                             >
@@ -601,7 +602,7 @@ export default function AdminInternshipDocumentsPage() {
                             </button>
                             <button
                               type="button"
-                              className={`${styles.button} ${styles.buttonDanger}`}
+                              className={`${btn.button} ${btn.buttonDanger}`}
                               onClick={() => handleSingleReject(selected.id)}
                               disabled={isBulkBusy}
                             >
@@ -657,10 +658,10 @@ export default function AdminInternshipDocumentsPage() {
                 onChange={(event) => setRejectReason(event.target.value)}
                 placeholder="กรอกเหตุผลอย่างน้อย 10 ตัวอักษร"
               />
-              <div className={styles.buttonRow}>
+              <div className={btn.buttonRow}>
                 <button
                   type="button"
-                  className={styles.button}
+                  className={btn.button}
                   onClick={() => {
                     if (isBulkBusy) return;
                     setRejectModalOpen(false);
@@ -670,7 +671,7 @@ export default function AdminInternshipDocumentsPage() {
                 </button>
                 <button
                   type="button"
-                  className={`${styles.button} ${styles.buttonDanger}`}
+                  className={`${btn.button} ${btn.buttonDanger}`}
                   onClick={submitReject}
                   disabled={isBulkBusy}
                 >

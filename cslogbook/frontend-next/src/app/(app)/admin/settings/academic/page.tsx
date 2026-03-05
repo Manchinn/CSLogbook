@@ -32,6 +32,7 @@ import {
   getImportantDeadlineStats,
   type ImportantDeadline,
 } from "@/lib/services/importantDeadlineService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
 type ScheduleFormState = {
@@ -787,18 +788,18 @@ export default function AcademicSettingsPage() {
           </div>
 
           <div className={styles.actionsRight}>
-            <button type="button" className={styles.button} onClick={() => setScheduleForm(emptyScheduleForm)}>
+            <button type="button" className={btn.button} onClick={() => setScheduleForm(emptyScheduleForm)}>
               ล้างฟอร์ม
             </button>
-            <button type="button" className={styles.button} onClick={handleCreateSchedule} disabled={loading}>
+            <button type="button" className={btn.button} onClick={handleCreateSchedule} disabled={loading}>
               สร้างปีการศึกษาใหม่
             </button>
-            <button type="button" className={styles.button} onClick={handleUpdateSchedule} disabled={loading}>
+            <button type="button" className={btn.button} onClick={handleUpdateSchedule} disabled={loading}>
               อัปเดตรายการที่เลือก
             </button>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonPrimary}`}
+              className={`${btn.button} ${btn.buttonPrimary}`}
               onClick={handleSaveCurrent}
               disabled={loading}
             >
@@ -810,7 +811,7 @@ export default function AcademicSettingsPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <strong>รายการปีการศึกษา</strong>
-            <button type="button" className={styles.button} onClick={loadSchedules} disabled={loading}>
+            <button type="button" className={btn.button} onClick={loadSchedules} disabled={loading}>
               รีเฟรช
             </button>
           </div>
@@ -841,7 +842,7 @@ export default function AcademicSettingsPage() {
                       <div className={styles.actions}>
                         <button
                           type="button"
-                          className={styles.button}
+                          className={btn.button}
                           onClick={() => {
                             setScheduleForm({
                               id: schedule.id,
@@ -868,7 +869,7 @@ export default function AcademicSettingsPage() {
                         </button>
                         <button
                           type="button"
-                          className={`${styles.button} ${styles.buttonPrimary}`}
+                          className={`${btn.button} ${btn.buttonPrimary}`}
                           onClick={() => handleActivateSchedule(schedule.id)}
                         >
                           Activate
@@ -888,18 +889,18 @@ export default function AcademicSettingsPage() {
             <div className={styles.actions}>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => loadDeadlines({ academicYear: deadlineForm.academicYear, semester: deadlineForm.semester })}
                 disabled={loading}
               >
                 รีเฟรช
               </button>
-              <button type="button" className={styles.button} onClick={() => setDeadlineForm(emptyDeadlineForm)}>
+              <button type="button" className={btn.button} onClick={() => setDeadlineForm(emptyDeadlineForm)}>
                 ล้างฟอร์ม
               </button>
               <button
                 type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
+                className={`${btn.button} ${btn.buttonPrimary}`}
                 onClick={handleDeadlineSave}
                 disabled={loading}
               >
@@ -1086,19 +1087,19 @@ export default function AcademicSettingsPage() {
                     </td>
                     <td>
                       <div className={styles.actions}>
-                        <button type="button" className={styles.button} onClick={() => handleDeadlineEdit(deadline)}>
+                        <button type="button" className={btn.button} onClick={() => handleDeadlineEdit(deadline)}>
                           แก้ไข
                         </button>
                         <button
                           type="button"
-                          className={styles.button}
+                          className={btn.button}
                           onClick={() => handleDeadlineStats(deadline.id)}
                         >
                           ดูสถิติ
                         </button>
                         <button
                           type="button"
-                          className={`${styles.button} ${styles.buttonDanger}`}
+                          className={`${btn.button} ${btn.buttonDanger}`}
                           onClick={() => handleDeadlineDelete(deadline.id)}
                         >
                           ลบ

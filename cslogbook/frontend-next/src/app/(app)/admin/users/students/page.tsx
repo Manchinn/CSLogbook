@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAdminStudentFilterOptions, useAdminStudentMutations, useAdminStudents } from "@/hooks/useAdminStudents";
 import { useConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import type { AdminStudent, StudentFilters } from "@/lib/services/adminStudentService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 type FormState = {
@@ -76,6 +78,7 @@ export default function AdminStudentsPage() {
   const [selected, setSelected] = useState<AdminStudent | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  const { containerRef: drawerRef, saveTrigger } = useFocusTrap(drawerOpen);
 
   const filters: StudentFilters = useMemo(
     () => ({
@@ -169,6 +172,7 @@ export default function AdminStudentsPage() {
   };
 
   const openCreate = () => {
+    saveTrigger();
     setFeedback(null);
     setSelected(null);
     setIsEditMode(true);
@@ -177,6 +181,7 @@ export default function AdminStudentsPage() {
   };
 
   const openView = (student: AdminStudent) => {
+    saveTrigger();
     setFeedback(null);
     setSelected(student);
     setIsEditMode(false);
@@ -185,6 +190,7 @@ export default function AdminStudentsPage() {
   };
 
   const openEdit = (student: AdminStudent) => {
+    saveTrigger();
     setFeedback(null);
     setSelected(student);
     setIsEditMode(true);
@@ -291,10 +297,10 @@ export default function AdminStudentsPage() {
             <h1 className={styles.title}>จัดการข้อมูลนักศึกษา</h1>
             <p className={styles.subtitle}>จัดการข้อมูลนักศึกษา ตรวจสอบ และแก้ไขสถานะการใช้งานระบบ</p>
           </div>
-          <div className={styles.buttonRow}>
+          <div className={btn.buttonRow}>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               onClick={() => {
                 setSearch("");
                 setStatus("");
@@ -305,7 +311,7 @@ export default function AdminStudentsPage() {
             >
               รีเฟรช
             </button>
-            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={openCreate}>
+            <button type="button" className={`${btn.button} ${btn.buttonPrimary}`} onClick={openCreate}>
               เพิ่มนักศึกษา
             </button>
           </div>
@@ -397,7 +403,7 @@ export default function AdminStudentsPage() {
             </select>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonGhost}`}
+              className={`${btn.button} ${btn.buttonGhost}`}
               onClick={() => {
                 setSearch("");
                 setStatus("");
@@ -454,16 +460,16 @@ export default function AdminStudentsPage() {
                         </div>
                       </td>
                       <td>
-                        <div className={styles.buttonRow}>
-                          <button type="button" className={styles.button} onClick={() => openView(student)}>
+                        <div className={btn.buttonRow}>
+                          <button type="button" className={btn.button} onClick={() => openView(student)}>
                             ดู
                           </button>
-                          <button type="button" className={styles.button} onClick={() => openEdit(student)}>
+                          <button type="button" className={btn.button} onClick={() => openEdit(student)}>
                             แก้ไข
                           </button>
                           <button
                             type="button"
-                            className={`${styles.button} ${styles.buttonDanger}`}
+                            className={`${btn.button} ${btn.buttonDanger}`}
                             onClick={() => handleDelete(student.studentCode)}
                             disabled={deleteStudent.isPending}
                           >
@@ -481,7 +487,7 @@ export default function AdminStudentsPage() {
             <div className={styles.pagination}>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage <= 1}
               >
@@ -492,7 +498,7 @@ export default function AdminStudentsPage() {
               </span>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage >= totalPages}
               >
@@ -504,12 +510,12 @@ export default function AdminStudentsPage() {
 
         {drawerOpen ? (
           <div className={styles.drawerOverlay} onClick={closeDrawer}>
-            <aside className={styles.drawer} onClick={(event) => event.stopPropagation()}>
+            <aside ref={drawerRef} className={styles.drawer} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEditMode ? (selected ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา") : "ข้อมูลนักศึกษา"}>
               <header className={styles.drawerHeader}>
                 <strong>
                   {isEditMode ? (selected ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มนักศึกษา") : "ข้อมูลนักศึกษา"}
                 </strong>
-                <button type="button" className={styles.button} onClick={closeDrawer}>
+                <button type="button" className={btn.button} onClick={closeDrawer}>
                   ปิด
                 </button>
               </header>
@@ -616,21 +622,21 @@ export default function AdminStudentsPage() {
               </div>
 
               <footer className={styles.drawerFooter}>
-                <div className={styles.buttonRow}>
+                <div className={btn.buttonRow}>
                   {!isEditMode ? (
                     selected ? (
-                      <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => setIsEditMode(true)}>
+                      <button type="button" className={`${btn.button} ${btn.buttonPrimary}`} onClick={() => setIsEditMode(true)}>
                         แก้ไข
                       </button>
                     ) : null
                   ) : (
                     <>
-                      <button type="button" className={styles.button} onClick={closeDrawer}>
+                      <button type="button" className={btn.button} onClick={closeDrawer}>
                         ยกเลิก
                       </button>
                       <button
                         type="button"
-                        className={`${styles.button} ${styles.buttonPrimary}`}
+                        className={`${btn.button} ${btn.buttonPrimary}`}
                         onClick={handleSave}
                         disabled={isSaving}
                       >

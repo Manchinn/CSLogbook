@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useAdminTeacherMutations, useAdminTeachers } from "@/hooks/useAdminTeachers";
 import { useConfirmDialog } from "@/components/common/ConfirmDialog";
 import { TableSkeleton } from "@/components/common/Skeleton";
 import type { AdminTeacher, TeacherFilters } from "@/lib/services/adminTeacherService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
 type FormState = {
@@ -78,6 +80,7 @@ export default function AdminTeachersPage() {
   const [selected, setSelected] = useState<AdminTeacher | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  const { containerRef: drawerRef, saveTrigger } = useFocusTrap(drawerOpen);
 
   const filters: TeacherFilters = useMemo(
     () => ({
@@ -148,6 +151,7 @@ export default function AdminTeachersPage() {
   };
 
   const openCreate = () => {
+    saveTrigger();
     setFeedback(null);
     setSelected(null);
     setIsEditMode(true);
@@ -156,6 +160,7 @@ export default function AdminTeachersPage() {
   };
 
   const openView = (teacher: AdminTeacher) => {
+    saveTrigger();
     setFeedback(null);
     setSelected(teacher);
     setIsEditMode(false);
@@ -164,6 +169,7 @@ export default function AdminTeachersPage() {
   };
 
   const openEdit = (teacher: AdminTeacher) => {
+    saveTrigger();
     setFeedback(null);
     setSelected(teacher);
     setIsEditMode(true);
@@ -271,10 +277,10 @@ export default function AdminTeachersPage() {
             <h1 className={styles.title}>จัดการข้อมูลอาจารย์</h1>
             <p className={styles.subtitle}>จัดการข้อมูลอาจารย์ ตำแหน่ง และสิทธิ์การใช้งานระบบ</p>
           </div>
-          <div className={styles.buttonRow}>
+          <div className={btn.buttonRow}>
             <button
               type="button"
-              className={styles.button}
+              className={btn.button}
               onClick={() => {
                 setSearch("");
                 setPositionFilters([]);
@@ -284,7 +290,7 @@ export default function AdminTeachersPage() {
             >
               รีเฟรช
             </button>
-            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={openCreate}>
+            <button type="button" className={`${btn.button} ${btn.buttonPrimary}`} onClick={openCreate}>
               เพิ่มอาจารย์
             </button>
           </div>
@@ -360,7 +366,7 @@ export default function AdminTeachersPage() {
             </select>
             <button
               type="button"
-              className={`${styles.button} ${styles.buttonGhost}`}
+              className={`${btn.button} ${btn.buttonGhost}`}
               onClick={() => {
                 setSearch("");
                 setPositionFilters([]);
@@ -422,16 +428,16 @@ export default function AdminTeachersPage() {
                           </div>
                         </td>
                         <td>
-                          <div className={styles.buttonRow}>
-                            <button type="button" className={styles.button} onClick={() => openView(teacher)}>
+                          <div className={btn.buttonRow}>
+                            <button type="button" className={btn.button} onClick={() => openView(teacher)}>
                               ดู
                             </button>
-                            <button type="button" className={styles.button} onClick={() => openEdit(teacher)}>
+                            <button type="button" className={btn.button} onClick={() => openEdit(teacher)}>
                               แก้ไข
                             </button>
                             <button
                               type="button"
-                              className={`${styles.button} ${styles.buttonDanger}`}
+                              className={`${btn.button} ${btn.buttonDanger}`}
                               onClick={() => handleDelete(Number(teacher.teacherId), teacher.teacherCode)}
                               disabled={deleteTeacher.isPending || !teacher.teacherId}
                             >
@@ -450,7 +456,7 @@ export default function AdminTeachersPage() {
             <div className={styles.pagination}>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage <= 1}
               >
@@ -461,7 +467,7 @@ export default function AdminTeachersPage() {
               </span>
               <button
                 type="button"
-                className={styles.button}
+                className={btn.button}
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage >= totalPages}
               >
@@ -473,10 +479,10 @@ export default function AdminTeachersPage() {
 
         {drawerOpen ? (
           <div className={styles.drawerOverlay} onClick={closeDrawer}>
-            <aside className={styles.drawer} onClick={(event) => event.stopPropagation()}>
+            <aside ref={drawerRef} className={styles.drawer} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEditMode ? (selected ? "แก้ไขข้อมูลอาจารย์" : "เพิ่มอาจารย์") : "ข้อมูลอาจารย์"}>
               <header className={styles.drawerHeader}>
                 <strong>{isEditMode ? (selected ? "แก้ไขข้อมูลอาจารย์" : "เพิ่มอาจารย์") : "ข้อมูลอาจารย์"}</strong>
-                <button type="button" className={styles.button} onClick={closeDrawer}>
+                <button type="button" className={btn.button} onClick={closeDrawer}>
                   ปิด
                 </button>
               </header>
@@ -610,21 +616,21 @@ export default function AdminTeachersPage() {
               </div>
 
               <footer className={styles.drawerFooter}>
-                <div className={styles.buttonRow}>
+                <div className={btn.buttonRow}>
                   {!isEditMode ? (
                     selected ? (
-                      <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => setIsEditMode(true)}>
+                      <button type="button" className={`${btn.button} ${btn.buttonPrimary}`} onClick={() => setIsEditMode(true)}>
                         แก้ไข
                       </button>
                     ) : null
                   ) : (
                     <>
-                      <button type="button" className={styles.button} onClick={closeDrawer}>
+                      <button type="button" className={btn.button} onClick={closeDrawer}>
                         ยกเลิก
                       </button>
                       <button
                         type="button"
-                        className={`${styles.button} ${styles.buttonPrimary}`}
+                        className={`${btn.button} ${btn.buttonPrimary}`}
                         onClick={handleSave}
                         disabled={isSaving}
                       >

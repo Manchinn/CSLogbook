@@ -11,6 +11,7 @@ import {
   getWorkflowStepStats,
   type WorkflowStep,
 } from "@/lib/services/workflowStepService";
+import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
 type StepForm = {
@@ -229,12 +230,12 @@ export default function WorkflowStepsSettingsPage() {
           <div className={styles.sectionHeader}>
             <strong>{formState.stepId ? "แก้ไขขั้นตอน" : "สร้างขั้นตอนใหม่"}</strong>
             <div className={styles.actions}>
-              <button type="button" className={styles.button} onClick={resetForm}>
+              <button type="button" className={btn.button} onClick={resetForm}>
                 ล้างฟอร์ม
               </button>
               <button
                 type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
+                className={`${btn.button} ${btn.buttonPrimary}`}
                 onClick={handleSave}
                 disabled={loading}
               >
@@ -333,10 +334,10 @@ export default function WorkflowStepsSettingsPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <button type="button" className={styles.button} onClick={loadSteps} disabled={loading}>
+              <button type="button" className={btn.button} onClick={loadSteps} disabled={loading}>
                 รีเฟรช
               </button>
-              <button type="button" className={styles.button} onClick={handleReorder} disabled={loading}>
+              <button type="button" className={btn.button} onClick={handleReorder} disabled={loading}>
                 บันทึกลำดับใหม่
               </button>
             </div>
@@ -376,15 +377,15 @@ export default function WorkflowStepsSettingsPage() {
                     <td>{step.isRequired ? "Yes" : "No"}</td>
                     <td>
                       <div className={styles.actions}>
-                        <button type="button" className={styles.button} onClick={() => handleEdit(step)}>
+                        <button type="button" className={btn.button} onClick={() => handleEdit(step)}>
                           แก้ไข
                         </button>
-                        <button type="button" className={styles.button} onClick={() => handleStats(step.stepId)}>
+                        <button type="button" className={btn.button} onClick={() => handleStats(step.stepId)}>
                           สถิติ
                         </button>
                         <button
                           type="button"
-                          className={`${styles.button} ${styles.buttonDanger}`}
+                          className={`${btn.button} ${btn.buttonDanger}`}
                           onClick={() => handleDelete(step.stepId)}
                         >
                           ลบ
