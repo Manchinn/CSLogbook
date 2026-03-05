@@ -316,18 +316,10 @@ export function AdvisorQueueTable<T extends QueueItem>({
   onStatusFilterChange,
   summary,
 }: AdvisorQueueTableProps<T>) {
-  const [expandedRows, setExpandedRows] = useState<Set<number | string>>(new Set());
+  const [expandedRow, setExpandedRow] = useState<number | string | null>(null);
 
   const toggleExpand = (id: number | string) => {
-    setExpandedRows((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
+    setExpandedRow((prev) => (prev === id ? null : id));
   };
 
   const toolbarContent = (
@@ -432,7 +424,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
               item.status === "pending_advisor" ||
               (item as DefenseRequest).myApproval?.status === "pending";
 
-            const isExpanded = expandedRows.has(item.id);
+            const isExpanded = expandedRow === item.id;
 
             return (
               <Fragment key={`${item.id}-${idx}`}>
@@ -486,8 +478,10 @@ export function AdvisorQueueTable<T extends QueueItem>({
                       {item.status === "rejected" && "ปฏิเสธแล้ว"}
                       {item.status === "pending_staff" && "รอเจ้าหน้าที่"}
                       {item.status === "staff_approved" && "เจ้าหน้าที่อนุมัติแล้ว"}
+                      {item.status === "completed" && "เสร็จสิ้น"}
+                      {item.status === "advisor_rejected" && "อาจารย์ปฏิเสธ"}
                       {/* fallback สำหรับ status ที่ยังไม่ได้ map */}
-                      {!["pending", "pending_advisor", "approved", "rejected", "pending_staff", "staff_approved"].includes(item.status ?? "") &&
+                      {!["pending", "pending_advisor", "approved", "rejected", "pending_staff", "staff_approved", "completed", "advisor_rejected"].includes(item.status ?? "") &&
                         (item.status ?? "ไม่ทราบสถานะ")}
                     </span>
                   </td>

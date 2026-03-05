@@ -499,8 +499,6 @@ class ProjectSystemTestService {
     if (options.status) {
       const statuses = Array.isArray(options.status) ? options.status : String(options.status).split(',');
       where.status = { [Op.in]: statuses };
-    } else {
-      where.status = { [Op.in]: ['pending_advisor', 'pending_staff', 'staff_approved'] };
     }
 
     const records = await ProjectTestRequest.findAll({

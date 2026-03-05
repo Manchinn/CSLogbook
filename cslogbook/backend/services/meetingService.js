@@ -820,7 +820,7 @@ class MeetingService {
 
     const allowedStatuses = new Set(['pending', 'approved', 'rejected', 'all']);
     const requestedStatusRaw = typeof filters.status === 'string' ? filters.status.trim().toLowerCase() : null;
-    const requestedStatus = allowedStatuses.has(requestedStatusRaw) ? requestedStatusRaw : 'pending';
+    const requestedStatus = allowedStatuses.has(requestedStatusRaw) ? requestedStatusRaw : 'all';
 
     const logWhere = {};
     if (requestedStatus !== 'all') {

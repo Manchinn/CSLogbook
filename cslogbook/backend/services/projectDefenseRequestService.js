@@ -921,13 +921,14 @@ class ProjectDefenseRequestService {
     return this.verifyDefenseRequest(projectId, payload, actorUser, DEFENSE_TYPE_THESIS);
   }
 
-  async getAdvisorApprovalQueue(teacherId, { status = ['pending'], withMetrics = false, defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {
-    const statusFilter = Array.isArray(status) ? status : [status];
+  async getAdvisorApprovalQueue(teacherId, { status, withMetrics = false, defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {
+    const where = { teacherId };
+    if (status) {
+      const statusFilter = Array.isArray(status) ? status : [status];
+      where.status = { [Op.in]: statusFilter };
+    }
     const approvals = await ProjectDefenseRequestAdvisorApproval.findAll({
-      where: {
-        teacherId,
-        status: { [Op.in]: statusFilter }
-      },
+      where,
       include: [{
         model: ProjectDefenseRequest,
         as: 'request',

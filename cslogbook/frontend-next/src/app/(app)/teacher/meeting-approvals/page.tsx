@@ -248,7 +248,6 @@ export default function MeetingApprovalsPage() {
                         />
                       )}
                     </th>
-                    <th>รหัสโครงงาน</th>
                     <th>ชื่อโครงงาน</th>
                     <th>นักศึกษา</th>
                     <th>หัวข้อการประชุม</th>
@@ -261,7 +260,7 @@ export default function MeetingApprovalsPage() {
                 <tbody>
                   {meetings.length === 0 && (
                     <tr>
-                      <td colSpan={9} className={styles.emptyRow}>
+                      <td colSpan={8} className={styles.emptyRow}>
                         {statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : "ไม่มีบันทึกการพบที่รออนุมัติในขณะนี้"}
                       </td>
                     </tr>
@@ -279,13 +278,6 @@ export default function MeetingApprovalsPage() {
                           />
                         )}
                       </td>
-                    <td>
-                      {meeting.projectCode ? (
-                        <span className={styles.projectCodeBadge}>{meeting.projectCode}</span>
-                      ) : (
-                        <span className={styles.noCode}>-</span>
-                      )}
-                    </td>
                     <td>
                       <div className={styles.projectTitle}>{meeting.projectTitle}</div>
                     </td>
