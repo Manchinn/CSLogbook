@@ -11,6 +11,7 @@ import {
   ensureBuddhistYear,
 } from "@/lib/utils/thaiDateUtils";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   getAcademicSettings,
   updateAcademicSettings,
@@ -63,6 +64,9 @@ type DeadlineFormState = {
   semester: string;
   deadlineDate: string;
   deadlineTime: string;
+  deadlineType: string;
+  isCritical: boolean;
+  acceptingSubmissions: boolean;
   allowLate: boolean;
   gracePeriodMinutes: string;
   lockAfterDeadline: boolean;
@@ -103,6 +107,9 @@ const emptyDeadlineForm: DeadlineFormState = {
   semester: "",
   deadlineDate: "",
   deadlineTime: "",
+  deadlineType: "SUBMISSION",
+  isCritical: false,
+  acceptingSubmissions: true,
   allowLate: false,
   gracePeriodMinutes: "",
   lockAfterDeadline: false,
@@ -155,6 +162,7 @@ export default function AcademicSettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
   const [deadlineStats, setDeadlineStats] = useState<Record<string, unknown> | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [deadlineIssues, setDeadlineIssues] = useState<string[]>([]);
 
@@ -489,6 +497,9 @@ export default function AcademicSettingsPage() {
       semester: toNumber(deadlineForm.semester),
       deadlineDate: deadlineForm.deadlineDate || undefined,
       deadlineTime: deadlineForm.deadlineTime || undefined,
+      deadlineType: deadlineForm.deadlineType || undefined,
+      isCritical: deadlineForm.isCritical,
+      acceptingSubmissions: deadlineForm.acceptingSubmissions,
       allowLate: deadlineForm.allowLate,
       gracePeriodMinutes: toNumber(deadlineForm.gracePeriodMinutes),
       lockAfterDeadline: deadlineForm.lockAfterDeadline,
@@ -541,6 +552,9 @@ export default function AcademicSettingsPage() {
       semester: deadline.semester ? String(deadline.semester) : "",
       deadlineDate: deadline.deadlineDate ?? "",
       deadlineTime: deadline.deadlineTime ?? "",
+      deadlineType: deadline.deadlineType ?? "SUBMISSION",
+      isCritical: Boolean(deadline.isCritical),
+      acceptingSubmissions: deadline.acceptingSubmissions !== false,
       allowLate: Boolean(deadline.allowLate),
       gracePeriodMinutes: deadline.gracePeriodMinutes ? String(deadline.gracePeriodMinutes) : "",
       lockAfterDeadline: Boolean(deadline.lockAfterDeadline),
@@ -555,11 +569,13 @@ export default function AcademicSettingsPage() {
     });
   };
 
-  const handleDeadlineDelete = async (id: number) => {
+  const handleDeadlineDeleteConfirmed = async () => {
+    if (!confirmDeleteId) return;
+    setConfirmDeleteId(null);
     setLoading(true);
     setMessage(null);
     try {
-      await deleteImportantDeadline(id);
+      await deleteImportantDeadline(confirmDeleteId);
       setMessageTone("success");
       setMessage("ลบกำหนดการสำเร็จ");
       await loadDeadlines({
@@ -932,9 +948,9 @@ export default function AcademicSettingsPage() {
                 หมวด
                 <select className={styles.select} value={deadlineForm.relatedTo}
                   onChange={(event) => handleDeadlineField("relatedTo", event.target.value)}>
-                  <option value="project">โครงงาน</option>
-                  <option value="project1">Project 1</option>
-                  <option value="project2">Project 2</option>
+                  <option value="project">โครงงานพิเศษ</option>
+                  <option value="project1">โครงงานพิเศษ 1</option>
+                  <option value="project2">ปริญญานิพนธ์</option>
                   <option value="internship">ฝึกงาน</option>
                   <option value="general">ทั่วไป</option>
                 </select>
@@ -956,6 +972,36 @@ export default function AcademicSettingsPage() {
                   min={1} max={3}
                   value={deadlineForm.semester}
                   onChange={(event) => handleDeadlineField("semester", event.target.value)} />
+              </label>
+            </div>
+            <div className={styles.fieldGrid4}>
+              <label className={styles.field}>
+                ประเภท
+                <select className={styles.select} value={deadlineForm.deadlineType}
+                  onChange={(event) => handleDeadlineField("deadlineType", event.target.value)}>
+                  <option value="SUBMISSION">ส่งเอกสาร</option>
+                  <option value="ANNOUNCEMENT">ประกาศ</option>
+                  <option value="MILESTONE">ไมล์สโตน</option>
+                  <option value="MANUAL">กำหนดเอง</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                สำคัญ (Critical)
+                <select className={styles.select}
+                  value={deadlineForm.isCritical ? "true" : "false"}
+                  onChange={(event) => handleDeadlineField("isCritical", event.target.value === "true")}>
+                  <option value="false">ปกติ</option>
+                  <option value="true">สำคัญ</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                เปิดรับงาน
+                <select className={styles.select}
+                  value={deadlineForm.acceptingSubmissions ? "true" : "false"}
+                  onChange={(event) => handleDeadlineField("acceptingSubmissions", event.target.value === "true")}>
+                  <option value="true">เปิดรับ</option>
+                  <option value="false">ไม่เปิดรับ</option>
+                </select>
               </label>
             </div>
           </div>
@@ -1100,7 +1146,7 @@ export default function AcademicSettingsPage() {
                         <button
                           type="button"
                           className={`${btn.button} ${btn.buttonDanger}`}
-                          onClick={() => handleDeadlineDelete(deadline.id)}
+                          onClick={() => setConfirmDeleteId(deadline.id)}
                         >
                           ลบ
                         </button>
@@ -1115,11 +1161,30 @@ export default function AcademicSettingsPage() {
           {deadlineStats ? (
             <div className={styles.card}>
               <div className={styles.cardTitle}>สถิติการส่งเอกสาร</div>
-              <pre className={styles.cardMeta}>{JSON.stringify(deadlineStats, null, 2)}</pre>
+              <div className={styles.actions}>
+                {deadlineStats.total !== undefined && (
+                  <span className={styles.badge}>ทั้งหมด: {String(deadlineStats.total)}</span>
+                )}
+                {deadlineStats.onTime !== undefined && (
+                  <span className={`${styles.badge} ${styles.badgeSuccess}`}>ตรงเวลา: {String(deadlineStats.onTime)}</span>
+                )}
+                {deadlineStats.late !== undefined && (
+                  <span className={`${styles.badge} ${styles.badgeWarning}`}>ช้า: {String(deadlineStats.late)}</span>
+                )}
+              </div>
             </div>
           ) : null}
         </section>
 
+        <ConfirmDialog
+          open={confirmDeleteId !== null}
+          title="ยืนยันการลบกำหนดการ"
+          message="กำหนดการนี้จะถูกลบออกจากระบบถาวร ต้องการดำเนินการต่อหรือไม่?"
+          confirmText="ลบ"
+          variant="danger"
+          onConfirm={handleDeadlineDeleteConfirmed}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       </div>
     </RoleGuard>
   );

@@ -9,6 +9,9 @@ export type ImportantDeadline = {
   deadlineAt?: string | null;
   deadlineDate?: string | null;
   deadlineTime?: string | null;
+  deadlineType?: string | null;
+  isCritical?: boolean | null;
+  acceptingSubmissions?: boolean | null;
   allowLate?: boolean | null;
   gracePeriodMinutes?: number | null;
   lockAfterDeadline?: boolean | null;

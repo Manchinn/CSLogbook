@@ -86,8 +86,8 @@ function statusTone(status?: string | null) {
 function relatedLabel(relatedTo?: string | null) {
   if (!relatedTo) return "ทั่วไป";
   if (relatedTo.toLowerCase().includes("internship")) return "ฝึกงาน";
-  if (relatedTo.toLowerCase().includes("project2")) return "โครงงาน 2";
-  if (relatedTo.toLowerCase().includes("project1")) return "โครงงาน 1";
+  if (relatedTo.toLowerCase().includes("project2")) return "ปริญญานิพนธ์";
+  if (relatedTo.toLowerCase().includes("project1")) return "โครงงานพิเศษ 1";
   if (relatedTo.toLowerCase().includes("project")) return "โครงงานพิเศษ";
   return "ทั่วไป";
 }

@@ -5,12 +5,25 @@ export type TeacherDeadline = {
   name: string;
   relatedTo?: string | null;
   isCritical?: boolean;
-  dueAt?: string | null;
+  deadlineAt?: string | null;
+  deadlineDate?: string | null;
+  deadlineTime?: string | null;
+  effectiveDeadlineAt?: string | null;
+  isWindow?: boolean;
+  windowStartDate?: string | null;
+  windowStartTime?: string | null;
+  windowEndDate?: string | null;
+  windowEndTime?: string | null;
   status?: string | null;
+  locked?: boolean;
   daysLeft?: number | null;
-  hoursLeft?: number | null;
   academicYear?: number | null;
   semester?: number | null;
+  deadlineType?: string | null;
+  acceptingSubmissions?: boolean;
+  allowLate?: boolean;
+  lockAfterDeadline?: boolean;
+  visibilityScope?: string | null;
 };
 
 export type TeacherMeetingStudent = {
@@ -259,7 +272,7 @@ export type DefenseRequest = {
     members?: ProjectMember[];
   };
   requestDate: string;
-  status: "pending" | "approved" | "rejected" | "advisor_in_review" | "advisor_approved" | "staff_verified" | "scheduled" | "completed";
+  status: "pending" | "approved" | "rejected" | "advisor_in_review" | "advisor_approved" | "advisor_rejected" | "staff_verified" | "scheduled" | "completed";
   advisorStatus?: "pending" | "approved" | "rejected";
   coAdvisorStatus?: "pending" | "approved" | "rejected";
   myApproval?: {
@@ -371,7 +384,7 @@ export type SystemTestRequest = {
   submittedAt?: string;
   testStartDate?: string;
   testDueDate?: string;
-  status: "pending" | "approved" | "rejected" | "pending_advisor" | "pending_staff" | "staff_approved";
+  status: "pending" | "approved" | "rejected" | "advisor_rejected" | "pending_advisor" | "pending_staff" | "staff_approved";
   advisorStatus?: "pending" | "approved" | "rejected";
   coAdvisorStatus?: "pending" | "approved" | "rejected";
   studentNote?: string;
