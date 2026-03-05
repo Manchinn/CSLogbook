@@ -63,14 +63,17 @@ export function useUpdateMeetingLogApproval() {
 /**
  * Hook สำหรับดึงคำขอสอบ คพ.02
  */
-export function useAdvisorKP02Queue(enabled = true) {
+export function useAdvisorKP02Queue(
+  filters?: teacherService.AdvisorQueueFilters,
+  enabled = true
+) {
   const { token } = useAuth();
 
   return useQuery({
-    queryKey: ["teacher", "advisor-queue", "kp02"],
+    queryKey: ["teacher", "advisor-queue", "kp02", filters],
     queryFn: () => {
       if (!token) throw new Error("No authentication token");
-      return teacherService.getAdvisorKP02Queue(token);
+      return teacherService.getAdvisorKP02Queue(token, filters);
     },
     enabled: enabled && !!token,
   });
@@ -108,14 +111,17 @@ export function useSubmitKP02AdvisorDecision() {
 /**
  * Hook สำหรับดึงคำขอสอบ คพ.03
  */
-export function useAdvisorThesisQueue(enabled = true) {
+export function useAdvisorThesisQueue(
+  filters?: teacherService.AdvisorQueueFilters,
+  enabled = true
+) {
   const { token } = useAuth();
 
   return useQuery({
-    queryKey: ["teacher", "advisor-queue", "thesis"],
+    queryKey: ["teacher", "advisor-queue", "thesis", filters],
     queryFn: () => {
       if (!token) throw new Error("No authentication token");
-      return teacherService.getAdvisorThesisQueue(token);
+      return teacherService.getAdvisorThesisQueue(token, filters);
     },
     enabled: enabled && !!token,
   });
@@ -128,14 +134,17 @@ export function useAdvisorThesisQueue(enabled = true) {
 /**
  * Hook สำหรับดึงคำขอทดสอบระบบ
  */
-export function useAdvisorSystemTestQueue(enabled = true) {
+export function useAdvisorSystemTestQueue(
+  filters?: teacherService.AdvisorQueueFilters,
+  enabled = true
+) {
   const { token } = useAuth();
 
   return useQuery({
-    queryKey: ["teacher", "advisor-queue", "system-test"],
+    queryKey: ["teacher", "advisor-queue", "system-test", filters],
     queryFn: () => {
       if (!token) throw new Error("No authentication token");
-      return teacherService.getAdvisorSystemTestQueue(token);
+      return teacherService.getAdvisorSystemTestQueue(token, filters);
     },
     enabled: enabled && !!token,
   });

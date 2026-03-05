@@ -15,6 +15,8 @@ type AdvisorQueueTableProps<T extends QueueItem> = {
   onViewPDF?: (url: string, fileName: string) => void;
   emptyMessage?: string;
   showTestDates?: boolean;
+  statusFilter?: string;
+  onStatusFilterChange?: (status: string) => void;
 };
 
 // Helper function to get student names from either type
@@ -302,6 +304,8 @@ export function AdvisorQueueTable<T extends QueueItem>({
   onViewPDF,
   emptyMessage = "ไม่มีคำขอที่รออนุมัติในขณะนี้",
   showTestDates = false,
+  statusFilter,
+  onStatusFilterChange,
 }: AdvisorQueueTableProps<T>) {
   const [expandedRows, setExpandedRows] = useState<Set<number | string>>(new Set());
 
@@ -316,32 +320,64 @@ export function AdvisorQueueTable<T extends QueueItem>({
       return newSet;
     });
   };
+
+  const filterBar = onStatusFilterChange ? (
+    <div className={styles.filterBar}>
+      <label htmlFor="advisorStatusFilter" className={styles.filterLabel}>สถานะ</label>
+      <select
+        id="advisorStatusFilter"
+        className={styles.filterSelect}
+        value={statusFilter || ""}
+        onChange={(e) => onStatusFilterChange(e.target.value)}
+      >
+        <option value="">ทั้งหมด</option>
+        <option value="pending,pending_advisor">รออนุมัติ</option>
+        <option value="approved,staff_approved">อนุมัติแล้ว</option>
+        <option value="rejected">ปฏิเสธแล้ว</option>
+        {showTestDates && <option value="pending_staff">รอเจ้าหน้าที่</option>}
+      </select>
+    </div>
+  ) : null;
+
   if (isLoading) {
     return (
-      <div className={styles.loadingState}>
-        <p>กำลังโหลดข้อมูล...</p>
-      </div>
+      <>
+        {filterBar}
+        <div className={styles.loadingState}>
+          <p>กำลังโหลดข้อมูล...</p>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className={styles.errorState}>
-        <p>เกิดข้อผิดพลาด: {error.message || "ไม่สามารถโหลดข้อมูลได้"}</p>
-      </div>
+      <>
+        {filterBar}
+        <div className={styles.errorState}>
+          <p>เกิดข้อผิดพลาด: {error.message || "ไม่สามารถโหลดข้อมูลได้"}</p>
+        </div>
+      </>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className={styles.emptyState}>
-        <div className={styles.emptyIcon}>✓</div>
-        <p className={styles.emptyMessage}>{emptyMessage}</p>
-      </div>
+      <>
+        {filterBar}
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>✓</div>
+          <p className={styles.emptyMessage}>
+            {statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : emptyMessage}
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
+    <>
+    {filterBar}
     <div className={styles.tableContainer}>
       <table className={styles.table}>
         <thead>
@@ -465,6 +501,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

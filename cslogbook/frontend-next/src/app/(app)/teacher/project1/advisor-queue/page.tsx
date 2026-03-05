@@ -11,8 +11,10 @@ export default function AdvisorKP02QueuePage() {
   const [selectedRequest, setSelectedRequest] = useState<DefenseRequest | null>(null);
   const [modalMode, setModalMode] = useState<"approve" | "reject" | null>(null);
   const [note, setNote] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const { data = [], isLoading, error } = useAdvisorKP02Queue();
+  const filters = statusFilter ? { status: statusFilter } : undefined;
+  const { data = [], isLoading, error } = useAdvisorKP02Queue(filters);
   const submitDecision = useSubmitKP02AdvisorDecision();
 
   const handleApprove = (request: DefenseRequest) => {
@@ -64,6 +66,8 @@ export default function AdvisorKP02QueuePage() {
           onApprove={handleApprove}
           onReject={handleReject}
           emptyMessage="ไม่มีคำขอสอบ คพ.02 ที่รออนุมัติในขณะนี้"
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
         />
 
         <DecisionModal

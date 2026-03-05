@@ -21,7 +21,10 @@ export default function AdvisorSystemTestQueuePage() {
     fileName: "",
   });
 
-  const { data = [], isLoading, error } = useAdvisorSystemTestQueue();
+  const [statusFilter, setStatusFilter] = useState("");
+
+  const filters = statusFilter ? { status: statusFilter } : undefined;
+  const { data = [], isLoading, error } = useAdvisorSystemTestQueue(filters);
   const submitDecision = useSubmitSystemTestAdvisorDecision();
 
   const handleApprove = (request: SystemTestRequest) => {
@@ -82,6 +85,8 @@ export default function AdvisorSystemTestQueuePage() {
           onViewPDF={handleViewPDF}
           emptyMessage="ไม่มีคำขอทดสอบระบบที่รออนุมัติในขณะนี้"
           showTestDates
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
         />
 
         <DecisionModal

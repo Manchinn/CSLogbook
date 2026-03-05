@@ -238,11 +238,20 @@ export type DefenseRequest = {
   defenseSchedule?: DefenseSchedule;
 };
 
+export type AdvisorQueueFilters = {
+  status?: string;
+};
+
 /**
  *ดึงคำขอสอบ คพ.02 (Advisor Queue)
  */
-export async function getAdvisorKP02Queue(token: string): Promise<DefenseRequest[]> {
-  const data = await apiFetchData<DefenseRequest[]>("/projects/kp02/advisor-queue", {
+export async function getAdvisorKP02Queue(token: string, filters?: AdvisorQueueFilters): Promise<DefenseRequest[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append("status", filters.status);
+  const query = params.toString();
+  const url = query ? `/projects/kp02/advisor-queue?${query}` : "/projects/kp02/advisor-queue";
+
+  const data = await apiFetchData<DefenseRequest[]>(url, {
     method: "GET",
     token,
   });
@@ -270,14 +279,15 @@ export async function submitKP02AdvisorDecision(
 /**
  * ดึงคำขอสอบ คพ.03 (Thesis Advisor Queue)
  */
-export async function getAdvisorThesisQueue(token: string): Promise<DefenseRequest[]> {
-  const data = await apiFetchData<DefenseRequest[]>(
-    "/projects/kp02/advisor-queue?defenseType=THESIS",
-    {
-      method: "GET",
-      token,
-    }
-  );
+export async function getAdvisorThesisQueue(token: string, filters?: AdvisorQueueFilters): Promise<DefenseRequest[]> {
+  const params = new URLSearchParams({ defenseType: "THESIS" });
+  if (filters?.status) params.append("status", filters.status);
+  const url = `/projects/kp02/advisor-queue?${params.toString()}`;
+
+  const data = await apiFetchData<DefenseRequest[]>(url, {
+    method: "GET",
+    token,
+  });
 
   return data || [];
 }
@@ -327,8 +337,13 @@ export type SystemTestRequest = {
 /**
  * ดึงคำขอทดสอบระบบ (Advisor Queue)
  */
-export async function getAdvisorSystemTestQueue(token: string): Promise<SystemTestRequest[]> {
-  const data = await apiFetchData<SystemTestRequest[]>("/projects/system-test/advisor-queue", {
+export async function getAdvisorSystemTestQueue(token: string, filters?: AdvisorQueueFilters): Promise<SystemTestRequest[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append("status", filters.status);
+  const query = params.toString();
+  const url = query ? `/projects/system-test/advisor-queue?${query}` : "/projects/system-test/advisor-queue";
+
+  const data = await apiFetchData<SystemTestRequest[]>(url, {
     method: "GET",
     token,
   });

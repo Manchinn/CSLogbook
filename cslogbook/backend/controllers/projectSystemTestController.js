@@ -57,7 +57,8 @@ module.exports = {
     if (req.user.role !== 'teacher' || !req.user.teacherId) {
       return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงรายการนี้' });
     }
-    return buildResponse(res, projectSystemTestService.advisorQueue(req.user.teacherId));
+    const { status } = req.query;
+    return buildResponse(res, projectSystemTestService.advisorQueue(req.user.teacherId, { status }));
   },
 
   async staffQueue(req, res) {

@@ -12,8 +12,10 @@ export default function MeetingApprovalsPage() {
   const [modalMode, setModalMode] = useState<"approve" | "reject" | null>(null);
   const [note, setNote] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
-  const { data: meetings = [], isLoading, error } = useTeacherMeetingApprovals();
+  const filters = statusFilter ? { status: statusFilter } : undefined;
+  const { data: meetings = [], isLoading, error } = useTeacherMeetingApprovals(filters);
   const updateApproval = useUpdateMeetingLogApproval();
 
   // Ensure meetings is always an array
@@ -111,6 +113,24 @@ export default function MeetingApprovalsPage() {
         title="อนุมัติบันทึกการพบ"
         description="อนุมัติหรือปฏิเสธบันทึกการประชุมของนักศึกษา"
       >
+        <div className={styles.filterBar}>
+          <label htmlFor="statusFilter" className={styles.filterLabel}>สถานะ</label>
+          <select
+            id="statusFilter"
+            className={styles.filterSelect}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setSelectedIds(new Set());
+            }}
+          >
+            <option value="">ทั้งหมด</option>
+            <option value="pending">รออนุมัติ</option>
+            <option value="approved">อนุมัติแล้ว</option>
+            <option value="rejected">ปฏิเสธแล้ว</option>
+          </select>
+        </div>
+
         {isLoading && (
           <div className={styles.loadingState}>
             <p>กำลังโหลดข้อมูล...</p>
@@ -124,7 +144,10 @@ export default function MeetingApprovalsPage() {
         )}
 
         {!isLoading && !error && meetings.length === 0 && (
-          <TeacherEmptyState message="ไม่มีบันทึกการพบที่รออนุมัติในขณะนี้" icon="✓" />
+          <TeacherEmptyState
+            message={statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : "ไม่มีบันทึกการพบที่รออนุมัติในขณะนี้"}
+            icon="✓"
+          />
         )}
 
         {!isLoading && !error && meetings.length > 0 && (
