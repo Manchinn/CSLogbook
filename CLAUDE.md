@@ -629,6 +629,17 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | Fix SURVEY_URL to actual Google Form link + enable card display | `SurveyBanner.tsx`, `ProjectContent.tsx`, `ProjectPhase1Sections.tsx` |
 | เพิ่ม delete functionality for timesheet entries with confirmation dialog | `backend/controllers/logbooks/internshipLogbookController.js`, `backend/routes/documents/logbookRoutes.js`, `backend/services/internshipLogbookService.js`, frontend timesheet view + hook + service |
 
+#### Session 16 (claude, 2026-03-06) — Teacher Queue Status Filters & Endpoint Verification
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| ยืนยัน 7 Unverified Endpoints — ทุก route มีอยู่จริงใน backend + มี RBAC ครบ | (audit only — ลบออกจาก backlog) |
+| Backend: เพิ่ม status query param support ใน system-test advisor queue | `backend/controllers/projectSystemTestController.js`, `backend/services/projectSystemTestService.js` |
+| Frontend: เพิ่ม status filter dropdown ใน meeting-approvals page | `teacher/meeting-approvals/page.tsx`, `MeetingApprovals.module.css` |
+| Frontend: เพิ่ม status filter ใน AdvisorQueueTable shared component | `components/teacher/AdvisorQueueTable.tsx`, `AdvisorQueue.module.css` |
+| อัปเดต hooks + services ให้รับ filter params ทั้ง 4 หน้า | `useTeacherModule.ts`, `teacherService.ts` |
+| เพิ่ม `AdvisorQueueFilters` type + ส่ง status filter จาก 3 advisor queue pages | `project1/advisor-queue/page.tsx`, `thesis/advisor-queue/page.tsx`, `system-test/advisor-queue/page.tsx` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -647,13 +658,7 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 - `GET /api/reports/advisors/workload` และ `GET /api/reports/advisors/:teacherId/detail` — authenticated แต่ไม่มี authorize middleware
 - พิจารณาเพิ่ม role check ถ้าข้อมูลมี sensitivity
 
-#### 5. ⚠️ ยืนยัน 7 Unverified Endpoints (Frontend เรียกแต่ยังไม่ยืนยัน Backend)
-- `GET/POST /api/internship/cs-05/head/queue` + approve/reject
-- `GET/POST /api/internship/acceptance/head/queue` + approve/reject
-- `GET /api/projects/topic-exam/overview`
-- ตรวจใน `internshipRoutes.js` และ `topicExamRoutes.js` ว่า route มีอยู่จริง
-
-#### 6. Student Result Pages (Out of Scope — ไม่ได้อยู่ในขอบเขตงาน)
+#### 5. Student Result Pages (Out of Scope — ไม่ได้อยู่ในขอบเขตงาน)
 - `/project/phase1/exam-day` — ยังเป็น stub ("กำลังเตรียมฟีเจอร์") — **ตั้งใจ ไม่ใช่ bug**
 - Thesis exam result detail page — นักศึกษาเห็นแค่ hero badge — **ตั้งใจ ไม่ใช่ bug**
 
