@@ -425,7 +425,7 @@ export default function CurriculumSettingsPage() {
               />
             </label>
             <label className={styles.field}>
-              หน่วยกิตโครงงานเอกขั้นต่ำ
+              หน่วยกิตภาคโครงงานขั้นต่ำ
               <input
                 type="number"
                 className={styles.input}
