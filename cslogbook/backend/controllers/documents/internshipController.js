@@ -450,10 +450,6 @@ exports.sendEvaluationForm = async (req, res) => {
       });
     }
 
-    console.log(
-      `Sending evaluation form for documentId: ${documentId}, userId: ${userId}`
-    );
-
     const result = await internshipManagementService.sendEvaluationForm(
       documentId,
       userId
@@ -752,12 +748,6 @@ exports.getReferralLetterStatus = async (req, res) => {
     const userId = req.user.userId;
     const { documentId } = req.params;
 
-    console.log("[DEBUG] Controller getReferralLetterStatus:", {
-      userId,
-      documentId,
-      params: req.params,
-    });
-
     // ตรวจสอบข้อมูลที่จำเป็น
     if (!documentId) {
       return res.status(400).json({
@@ -782,8 +772,6 @@ exports.getReferralLetterStatus = async (req, res) => {
       userId,
       documentIdInt
     );
-
-    console.log("[DEBUG] Controller getReferralLetterStatus Result:", result);
 
     // ✅ เพิ่มข้อมูล mapping info สำหรับ Frontend
     const responseData = {
@@ -857,12 +845,6 @@ exports.markReferralLetterDownloaded = async (req, res) => {
     const userId = req.user.userId;
     const { documentId } = req.params;
 
-    console.log("[DEBUG] Mark Referral Downloaded Request:", {
-      userId,
-      documentId,
-      params: req.params,
-    });
-
     if (!documentId) {
       return res.status(400).json({
         success: false,
@@ -876,8 +858,6 @@ exports.markReferralLetterDownloaded = async (req, res) => {
         userId,
         parseInt(documentId)
       );
-
-    console.log("[DEBUG] Mark Referral Downloaded Result:", result);
 
     return res.json({
       success: true,
@@ -934,9 +914,6 @@ exports.downloadReferralLetter = async (req, res) => {
       await internshipManagementService.markReferralLetterDownloaded(
         userId,
         documentId
-      );
-      console.log(
-        `✅ อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว documentId: ${documentId}`
       );
     } catch (markError) {
       console.warn(
@@ -1052,10 +1029,6 @@ exports.getCertificateData = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    console.log(
-      `[getCertificateData] Fetching certificate data for userId: ${userId}`
-    );
-
     const certificateData =
       await internshipManagementService.getCertificateData(userId);
 
@@ -1085,8 +1058,6 @@ exports.previewCertificate = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    console.log(`[previewCertificate] Controller called for userId: ${userId}`);
-
     const result = await internshipManagementService.previewCertificatePDF(
       userId
     );
@@ -1113,10 +1084,6 @@ exports.downloadCertificate = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    console.log(
-      `[downloadCertificate] Controller called for userId: ${userId}`
-    );
-
     const result = await internshipManagementService.downloadCertificatePDF(
       userId
     );
@@ -1139,10 +1106,6 @@ exports.downloadCertificate = async (req, res) => {
 exports.previewCertificateData = async (req, res) => {
   try {
     const userId = req.user.userId;
-
-    console.log(
-      `[previewCertificateData] Fetching preview data for userId: ${userId}`
-    );
 
     const certificateData =
       await internshipManagementService.getCertificateData(userId);
@@ -1177,10 +1140,6 @@ exports.previewCertificateData = async (req, res) => {
 exports.markCertificateDownloaded = async (req, res) => {
   try {
     const userId = req.user.userId;
-
-    console.log(
-      `[markCertificateDownloaded] Recording download for userId: ${userId}`
-    );
 
     const result = await internshipManagementService.markCertificateDownloaded(
       userId
@@ -1240,10 +1199,6 @@ exports.submitCertificateRequest = async (req, res) => {
     const userId = req.user.userId;
     // ใช้ validated data จาก validator middleware (ถ้ามี) หรือ req.body (backward compatibility)
     const requestData = req.validated || req.body;
-
-    console.log(
-      `[submitCertificateRequest] Processing certificate request for userId: ${userId}`
-    );
 
     // ตรวจสอบข้อมูลที่จำเป็น
     if (!requestData.studentId || !requestData.requestDate) {

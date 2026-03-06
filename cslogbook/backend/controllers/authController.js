@@ -4,12 +4,6 @@ const moment = require('moment-timezone');
 
 exports.login = async (req, res, next) => {
     try {
-        // Add debug logging
-        console.log('Login attempt:', {
-            username: req.validated?.username || req.body.username,
-            timestamp: moment().tz('Asia/Bangkok').format()
-        });
-
         // ใช้ validated data จาก validator middleware
         const { username, password, redirectPath } = req.validated || req.body;
 

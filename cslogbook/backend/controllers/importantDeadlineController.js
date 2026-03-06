@@ -298,8 +298,6 @@ module.exports.getAllForStudent = async (req, res) => {
       studentId
     );
     
-    console.log('[getAllForStudent] raw count:', deadlines.length, 'academicYear param:', academicYear);
-
     const now = new Date();
     const visible = deadlines.filter(d => isPublishedForAudience(d, now));
 
@@ -340,15 +338,6 @@ module.exports.getAllForStudent = async (req, res) => {
       })
       .sort((a, b) => new Date(a.deadlineAt) - new Date(b.deadlineAt));
 
-    console.log('[getAllForStudent] enriched preview:', enriched.slice(0,3).map(x => ({ 
-      id: x.id, 
-      name: x.name, 
-      hasSubmission: x.hasSubmission,
-      submission: x.submission, 
-      deadlineDate: x.deadlineDate, 
-      deadlineTime: x.deadlineTime 
-    })));
-    
     res.json({ success: true, data: enriched });
   } catch (error) {
     console.error('[getAllForStudent] Error:', error);

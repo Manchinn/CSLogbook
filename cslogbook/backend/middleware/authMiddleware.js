@@ -50,13 +50,6 @@ const authMiddleware = {
         }
       }
 
-      // เพิ่ม console.log เพื่อตรวจสอบข้อมูล
-      console.log('Auth Token data:', { 
-        userId: decoded.userId,
-        role: decoded.role,
-        studentId: decoded.studentId || 'N/A'
-      });
-
       req.user = decoded;
       next();
     } catch (err) {
@@ -85,13 +78,6 @@ const authMiddleware = {
 
   checkSelfOrAdmin: async (req, res, next) => {
     try {
-      // เพิ่ม debug logging
-      console.log('Auth Check:', {
-        user: req.user,
-        params: req.params,
-        headers: req.headers
-      });
-
       // ตรวจสอบการ authenticate
       if (!req.user) {
         return res.status(401).json({ message: 'User not authenticated' });
