@@ -1,461 +1,296 @@
-# Frontend-Next Staging Testing Plan
+# Staging / Regression Test Plan
 
-**Last Updated**: 2026-02-15
-**Target**: Feature flags rollout testing before production deployment
-**Environment**: Staging (with `.env.staging` configuration)
-
----
-
-## 🎯 Testing Objectives
-
-1. Verify all newly enabled features work correctly
-2. Test integration with backend APIs
-3. Confirm no regressions in existing features
-4. Validate permission and role-based access control
-5. Check responsive design and UX consistency
+**Last Updated**: 2026-03-06
+**Sessions Covered**: 1-19 (all changes since 2026-02-27)
+**Environment**: Staging (backend + frontend running locally or on VPS)
 
 ---
 
-## 🚦 Newly Enabled Features (Priority Testing)
+## Summary of Changes to Test
 
-### 1. ✅ Internship Logbook Page
-**Route**: `/internship/logbook`
-**Flag**: `NEXT_PUBLIC_ENABLE_INTERNSHIP_LOGBOOK_PAGE=true`
+### Architecture Changes
+- Unified Project Page: Phase 1 + Phase 2 merged into `/project/phase1`
+- `/project/phase2` now redirects to `/project/phase1`
+- Feature flags removed — all features enabled by default
+- CI/CD pipeline via GitHub Actions (`production-deploy.yml`)
+- CORS dynamic origins via `ALLOWED_ORIGINS` env var
+- Design tokens (CSS custom properties) in `globals.css`
 
-**Test Cases**:
-- [ ] Page renders without errors for students
-- [ ] Company info section displays correctly
-- [ ] Logbook entries list loads with pagination
-- [ ] Timesheet stats display accurately
-- [ ] Add new logbook entry form works
-- [ ] Edit existing entry works
-- [ ] Delete entry triggers confirmation and works
-- [ ] Hour calculation is accurate
-- [ ] Date validation works (no future dates, within internship period)
-- [ ] File attachments upload successfully
-- [ ] Timesheet summary shows correct totals
-- [ ] Supervisor approval status displays correctly
-- [ ] Loading states show during API calls
-- [ ] Error states show appropriate messages
-- [ ] Empty state shows when no entries exist
-- [ ] Permission check: Non-students cannot access
-- [ ] API endpoints:
-  - [ ] `GET /internship/logbook`
-  - [ ] `POST /internship/logbook/entry`
-  - [ ] `PUT /internship/logbook/entry/:id`
-  - [ ] `DELETE /internship/logbook/entry/:id`
-  - [ ] `GET /logbooks/internship/timesheet/stats`
+### Bug Fixes (Sessions 1-2, 12, 14, 19)
+- Login error messages now show Thai text instead of raw JSON
+- Status badges use `labelStatus()` instead of raw enum strings
+- `submitKP02AdvisorDecision` sends `defenseType` correctly
+- Teacher overview query key mismatch fixed (dashboard refreshes after approve)
+- Meeting-approvals `logId` → `id` mapping fixed (no React key warnings)
+- Certificate PDF renders Thai font (Loma)
+- Referral letter query fixed (removed invalid Academic association)
 
-**Expected Issues**: None (feature is complete)
+### New Features (Sessions 3-19)
+- Phase 2 overview: thesis exam result card, tone-aware badges, gate notice
+- Advisor name display in project hero card
+- Admin UI: drawers with detailSection grouping, ConfirmDialog, Skeleton loading
+- Teacher queue: status filters, summary stats (total/pending/approved/rejected)
+- Teacher queue UI redesign: toolbar layout, gradient headers, animations
+- DefenseRequestStepper shared component
+- SurveyBanner in dashboards
+- Internship logbook approval request button + modal
+- Referral letter status + download hooks
+- Timesheet entry delete with confirmation
+- Custom 404 Not Found page
+- CSLogbook logo branding
 
----
-
-### 2. ✅ Internship Certificate Page
-**Route**: `/internship/certificate`
-**Flag**: `NEXT_PUBLIC_ENABLE_INTERNSHIP_CERTIFICATE_PAGE=true`
-
-**Test Cases**:
-- [ ] Page renders without errors for students
-- [ ] Certificate request status displays correctly
-- [ ] Request form shows when no request exists
-- [ ] Form validation works (required fields, file types)
-- [ ] File upload works for certificate documents
-- [ ] Submit request triggers backend API
-- [ ] Success message shows after submission
-- [ ] Certificate number displays after approval
-- [ ] Download certificate button works (if approved)
-- [ ] Request details show (submission date, status, reviewer)
-- [ ] Status badge shows correct color (pending, approved, rejected)
-- [ ] Rejection reason displays if rejected
-- [ ] Loading states work correctly
-- [ ] Error handling works
-- [ ] Permission check: Only eligible students can access
-- [ ] API endpoints:
-  - [ ] `GET /internship/certificate-status`
-  - [ ] `POST /internship/certificate/request`
-  - [ ] `GET /internship/certificate/download`
-
-**Expected Issues**: None (feature is complete)
+### Security Fixes (Sessions 11-12)
+- RBAC on admin workflow statistics endpoint
+- TODO stub controllers return 501 instead of fake success
+- Centralized scoring config (`config/scoring.js`)
+- Orphaned route files removed
 
 ---
 
-### 3. ✅ Project Phase 2 Page (Enhanced)
-**Route**: `/project/phase2`
-**Flag**: `NEXT_PUBLIC_ENABLE_PROJECT_PHASE2_PAGE=true`
+## P0: Critical Path Testing
 
-**Test Cases**:
-- [ ] Main overview page renders
-- [ ] Workflow timeline displays correctly
-- [ ] Current phase status shows
-- [ ] System test step content works
-- [ ] Thesis defense step content works
-- [ ] Navigation between steps works
-- [ ] Deadlines display correctly
-- [ ] Member information shows
-- [ ] Advisor information displays
-- [ ] Permission check: Only students with projects can access
-- [ ] API endpoints:
-  - [ ] `GET /projects/mine`
-  - [ ] `GET /projects/:id/workflow-state`
-  - [ ] `GET /projects/:id/system-test/request`
+### 1. Authentication Flow
+- [ ] Normal login with valid credentials
+- [ ] Login error shows Thai message (not raw JSON)
+- [ ] Token persists on page refresh
+- [ ] Logout clears session
+- [ ] Expired token redirects to login
+- [ ] SSO login callback works (if configured)
+- [ ] `teacherPosition` included in token (teacher login)
 
-**Expected Issues**: Main overview page may need content refinement (partial implementation)
+### 2. Student Project Flow (Unified Page)
+**Route**: `/project/phase1`
+- [ ] Page loads with unified Phase 1 + Phase 2 content
+- [ ] `/project/phase2` redirects to `/project/phase1`
+- [ ] Advisor name + co-advisor name display in hero card
+- [ ] Phase labels show Thai text (not raw enum)
+- [ ] Section dividers between Phase 1 and Phase 2 steps
+- [ ] Step badges show tone-aware colors (success/danger/warning/info)
+- [ ] Phase 2 gate notice shows when workflow state blocks thesis
+- [ ] Thesis exam result card shows pass (green) / fail (red) when available
+- [ ] "ปริญญานิพนธ์" used everywhere (never "โครงงานพิเศษ 2")
+- [ ] Meeting logbook link button works
+- [ ] SurveyBanner displays when configured
+- [ ] Loading state shows while fetching
+- [ ] Empty state shows "ยังไม่มีโครงงาน" when no project
+
+### 3. Topic Submit (CreateWizard)
+**Route**: `/project/phase1/topic-submit`
+- [ ] Single form layout renders (refactored from wizard steps)
+- [ ] Classification step works
+- [ ] Members step works
+- [ ] Review step works
+- [ ] Form submission creates project
+
+### 4. Exam Submit + Defense Request
+**Route**: `/project/phase1/exam-submit`
+- [ ] DefenseRequestStepper renders correctly
+- [ ] Request submission works
+- [ ] Status updates reflect in stepper
+
+### 5. Meeting Logbook
+**Route**: `/project/phase1/meeting-logbook`
+- [ ] Logbook entries list loads
+- [ ] Progress bar for approved logs displays
+- [ ] Add new entry works
+- [ ] Delete entry shows ConfirmDialog (not window.confirm)
+- [ ] Delete works after confirmation
+
+### 6. System Test + Thesis Defense (Phase 2 sub-pages)
+**Route**: `/project/phase2/system-test`, `/project/phase2/thesis-defense`
+- [ ] DefenseRequestStepper renders
+- [ ] Request submission includes correct `defenseType`
+- [ ] Advisor name + comment fields display
 
 ---
 
-### 4. ✅ Admin Widget Migration
-**Route**: `/dashboard/admin`
-**Flag**: `NEXT_PUBLIC_ENABLE_ADMIN_WIDGET_MIGRATION=true`
+## P1: Teacher Module
 
-**Test Cases**:
-- [ ] Admin dashboard shows all widgets
-- [ ] Admin stats widget displays (students, internships, projects counts)
-- [ ] Project workflow widget shows phase statistics
-- [ ] Loading states work
-- [ ] Error states work
-- [ ] Refresh button works
-- [ ] Widgets are responsive
-- [ ] Permission check: Only admin can access
-- [ ] API endpoints:
-  - [ ] `GET /admin/dashboard-stats`
-  - [ ] `GET /admin/projects/workflow-stats`
+### 7. Teacher Dashboard
+**Route**: `/dashboard/teacher`
+- [ ] Overview widget loads and shows accurate stats
+- [ ] Dashboard refreshes after approving items (query key fix verified)
+- [ ] SurveyBanner displays
 
-**Expected Issues**: None
+### 8. Meeting Approvals
+**Route**: `/teacher/meeting-approvals`
+- [ ] Table always shows (even when empty — empty row message)
+- [ ] Status filter dropdown works (all/pending/approved/rejected)
+- [ ] Summary badges show correct counts (total/pending/approved/rejected)
+- [ ] Toolbar layout: filter left, summary right
+- [ ] Bulk action bar works (select multiple → approve/reject)
+- [ ] No React key warnings in console (logId mapping fix)
+- [ ] Approve/reject individual items works
+- [ ] Expanded row shows details with fade-in animation
+
+### 9. Advisor Queue — Project1 (คพ.02)
+**Route**: `/teacher/project1/advisor-queue`
+- [ ] Table always shows (empty row when no items)
+- [ ] Status filter dropdown works
+- [ ] Summary badges from backend (`{ items, summary }` response)
+- [ ] `defenseType: "PROJECT1"` sent on approve/reject
+- [ ] Expanded row details display correctly
+- [ ] Approve/reject modal with backdrop blur + slide-in
+
+### 10. Advisor Queue — Thesis
+**Route**: `/teacher/thesis/advisor-queue`
+- [ ] Same as Project1 queue but with `defenseType: "THESIS"`
+- [ ] Summary badges show correct thesis-specific counts
+- [ ] Table + filter + summary all work
+
+### 11. Advisor Queue — System Test
+**Route**: `/teacher/system-test/advisor-queue`
+- [ ] Status filter sends query param to backend
+- [ ] Summary maps system-test statuses → pending/approved/rejected
+- [ ] Table renders with status dot indicators
 
 ---
 
-## 📋 Regression Testing (Existing Features)
+## P1: Admin Module
 
-### Student Module
-
-**Dashboard** (`/dashboard/student`):
-- [ ] All 4 widgets render correctly
-- [ ] Eligibility widget shows accurate data
-- [ ] Deadlines widget shows upcoming deadlines
-- [ ] Internship status widget displays correctly
-- [ ] Project status widget displays correctly
-- [ ] No layout breaks
-
-**Internship Registration** (`/internship-registration`):
-- [ ] Flow page explains process correctly
-- [ ] Registration form loads
-- [ ] CS05 form submission works
-- [ ] Transcript upload works
-- [ ] Validation works
-- [ ] Success/error feedback works
-
-**Project Phase 1** (`/project/phase1/*`):
-- [ ] Overview page shows workflow
-- [ ] All 7 step pages accessible
-- [ ] Topic submit works
-- [ ] Meeting logbook accessible
-- [ ] Exam submit works
-- [ ] No regressions from Phase 2 changes
-
-**Deadlines Calendar** (`/student-deadlines/calendar`):
-- [ ] Calendar renders
-- [ ] Deadlines display correctly
-- [ ] Filter by academic year works
-- [ ] Status indicators work
-- [ ] Responsive on mobile
-
-**Company Stats** (`/internship-companies`):
-- [ ] Table renders
+### 12. Admin User Management
+**Route**: `/admin/users/students`, `/admin/users/teachers`
+- [ ] Skeleton loading shows during fetch
+- [ ] Table loads with data
 - [ ] Search/filter works
-- [ ] Pagination works
-- [ ] Company detail drawer opens
-- [ ] Student list in drawer displays
-- [ ] Responsive layout
+- [ ] Add/Edit drawer opens with detailSection grouping
+- [ ] Form labels associated with inputs (htmlFor/id)
+- [ ] Delete shows ConfirmDialog (not window.confirm)
+- [ ] Custom select dropdown styles render correctly (SVG arrow)
+- [ ] Teacher drawer: sections for ข้อมูลทั่วไป / ตำแหน่ง / สิทธิ์การใช้งาน
+
+### 13. Project Pairs
+**Route**: `/project-pairs`
+- [ ] Skeleton loading shows
+- [ ] Feedback banner uses `.alert.alertSuccess/alertWarning` styling
+- [ ] "เพิ่มโครงงานพิเศษ" button is blue (buttonPrimary)
+- [ ] Drawer has drawerFooter (action buttons separate from body)
+- [ ] View mode uses detailSection grouping
+
+### 14. Admin Documents
+- [ ] `/admin/documents/internship` — icon buttons, UI improvements work
+- [ ] `/admin/documents/certificates` — approve/reject flow works
+- [ ] `/admin/documents/project` — detailed view renders (adminProjectDocumentsService)
+- [ ] `/approve-documents` — teacherPosition-based access works
+
+### 15. Admin Settings
+- [ ] Academic semester settings load and save
+- [ ] Validation works on semester form
+
+### 16. Admin Dashboard
+**Route**: `/dashboard/admin`
+- [ ] All widgets render
+- [ ] SurveyBanner displays
+- [ ] Workflow statistics endpoint has RBAC (non-admin gets 403)
 
 ---
 
-### Admin Module
+## P1: Student Internship Module
 
-**User Management**:
-- `/admin/users/students`:
-  - [ ] List loads
-  - [ ] Search/filter works
-  - [ ] Add student works
-  - [ ] Edit student works
-  - [ ] Delete student works
-  - [ ] Statistics display correctly
+### 17. Internship Logbook
+**Route**: `/internship/logbook`
+- [ ] Logbook entries load
+- [ ] Approval request button + modal works
+- [ ] Timesheet stats display
 
-- `/admin/users/teachers`:
-  - [ ] List loads
-  - [ ] CRUD operations work
-  - [ ] Permission toggles work
+### 18. Internship Timesheet
+- [ ] Timesheet entries list
+- [ ] Delete entry shows ConfirmDialog
+- [ ] Delete works after confirmation
 
-- `/project-pairs`:
-  - [ ] List loads
-  - [ ] Filter works
-  - [ ] Add project modal works
-  - [ ] Update project works
-  - [ ] Cancel project works
+### 19. Internship Certificate
+**Route**: `/internship/certificate`
+- [ ] Certificate request flow works
+- [ ] PDF renders Thai text correctly (Loma font)
+- [ ] Date display is correct
 
-**Document Management**:
-- `/admin/documents/internship`:
-  - [ ] List loads
-  - [ ] Filter works
-  - [ ] Bulk review works
-  - [ ] Reject modal works
-  - [ ] Document preview works
-  - [ ] Late submission badges show
+### 20. Referral Letter
+- [ ] Status check works (`useInternshipReferralLetter` hook)
+- [ ] Download works
 
-- `/admin/documents/certificates`:
-  - [ ] List loads
-  - [ ] Detail drawer works
-  - [ ] Approve with certificate number works
-  - [ ] Reject with remarks works
-  - [ ] Download works
-
-**Project Documents** (6 pages):
-- `/admin/topic-exam/results`:
-  - [ ] List loads
-  - [ ] Record result works
-  - [ ] Edit result works
-  - [ ] Export works
-
-- `/admin/project1/kp02-queue`:
-  - [ ] Queue loads
-  - [ ] Verify flow works
-  - [ ] Export works
-
-- `/admin/project-exam/results`:
-  - [ ] Pending list loads
-  - [ ] Record result works
-
-- `/admin/system-test/staff-queue`:
-  - [ ] Queue loads
-  - [ ] Decision flow works
-  - [ ] Evidence preview works
-
-- `/admin/thesis/staff-queue`:
-  - [ ] Queue loads
-  - [ ] Verify flow works
-
-- `/admin/thesis/exam-results`:
-  - [ ] Pending list loads
-  - [ ] Record result works
-  - [ ] Final document status update works
-
-**Settings** (5 pages):
-- [ ] `/admin/settings/curriculum` - CRUD works
-- [ ] `/admin/settings/academic` - Year/semester management works
-- [ ] `/admin/settings/status` - Status types management works
-- [ ] `/admin/settings/notification-settings` - Toggle works
-- [ ] `/admin/settings/workflow-steps` - CRUD/reorder works
-
-**Upload**:
-- `/admin/upload`:
-  - [ ] Prerequisite checks work
-  - [ ] File upload works
-  - [ ] Import summary displays
-  - [ ] Filter results works
+### 21. Internship Summary View
+**Route**: `/internship-registration/view`
+- [ ] Status tags show tone-aware colors
+- [ ] Text wrapping works (no overflow)
+- [ ] `labelStatus()` used for all status displays
 
 ---
 
-### Teacher Module
+## P2: Cross-Cutting Concerns
 
-**Dashboard** (`/dashboard/teacher`):
-- [ ] Teacher overview widget displays
-- [ ] Statistics accurate
-- [ ] Refresh works
+### 22. Status Label Consistency
+- [ ] All status badges use `labelStatus()` — no raw enum strings anywhere
+- [ ] "หน้าหลัก" used everywhere (not "แดชบอร์ด")
+- [ ] "ปริญญานิพนธ์" used for project2 (not "โครงงานพิเศษ 2")
 
----
+### 23. UI Components
+- [ ] ConfirmDialog works across all pages (students, teachers, meeting-logbook, timesheet)
+- [ ] Skeleton loading shows on admin pages during fetch
+- [ ] DefenseRequestStepper renders in exam-submit, system-test, thesis-defense
+- [ ] SurveyBanner shows in student/teacher/admin dashboards
+- [ ] 404 Not Found page renders for invalid routes
 
-### Public Pages
-
-**Supervisor Evaluation** (`/evaluate/supervisor/[token]`):
-- [ ] Form loads with valid token
-- [ ] Expired token shows error
-- [ ] Used token shows error
-- [ ] Form validation works
-- [ ] Submission works
-- [ ] Success message shows
-
-**Timesheet Approval** (`/approval/timesheet/[token]`):
-- [ ] Approval page loads
-- [ ] Approve works
-- [ ] Reject works
-- [ ] Token status checked
-
----
-
-## 🔒 Permission & Security Testing
-
-### Role-Based Access
-- [ ] Student routes blocked for non-students
-- [ ] Admin routes blocked for non-admins
+### 24. Security
+- [ ] Admin-only routes return 403 for non-admin users
 - [ ] Teacher routes blocked for non-teachers
-- [ ] Public routes accessible without login
-- [ ] AuthGuard redirects to login properly
-- [ ] RoleGuard shows appropriate error messages
+- [ ] Student routes blocked for non-students
+- [ ] `teacherPosition` controls document approval menu visibility
+- [ ] RBAC on workflow statistics endpoint
+- [ ] Scoring uses centralized config (no hardcoded `70`)
 
-### Authentication
-- [ ] SSO login works (if enabled)
-- [ ] Normal login works
-- [ ] Token refresh works
-- [ ] Logout works
-- [ ] Session persistence works
-- [ ] Expired token handling works
+### 25. CORS & Infrastructure
+- [ ] `ALLOWED_ORIGINS` env var works for dynamic CORS
+- [ ] Healthcheck endpoint responds
+- [ ] Backend logs no CORS errors for configured origins
 
 ---
 
-## 🎨 UI/UX Testing
+## P3: UI/UX Quality
 
-### Responsive Design
-- [ ] Desktop (1920x1080)
-- [ ] Laptop (1366x768)
-- [ ] Tablet (768x1024)
-- [ ] Mobile (375x667)
+### 26. Responsive Design
+- [ ] Desktop (1920x1080) — no layout breaks
+- [ ] Laptop (1366x768) — tables readable
+- [ ] Mobile (375x667) — basic usability
 
-### Browser Compatibility
-- [ ] Chrome (latest)
-- [ ] Firefox (latest)
-- [ ] Safari (latest)
-- [ ] Edge (latest)
+### 27. Console Errors
+- [ ] No React key warnings
+- [ ] No hydration mismatches
+- [ ] No uncaught promise rejections
 
-### UI Consistency
-- [ ] Loading states consistent across pages
-- [ ] Error messages consistent
-- [ ] Success messages show appropriately
-- [ ] Modal/Drawer behavior consistent
-- [ ] Form validation feedback consistent
-- [ ] Typography consistent
-- [ ] Color scheme consistent
-- [ ] Spacing/padding consistent
+### 28. Design Consistency
+- [ ] Design tokens from `globals.css` applied consistently
+- [ ] Teacher queue gradient headers + status dots render
+- [ ] Admin select dropdowns have custom SVG arrow styling
+- [ ] Button animations work (spring-curve on teacher queue)
 
 ---
 
-## 🐛 Known Issues to Watch
+## Test Session Template
 
-1. **Project Phase 2 Overview**:
-   - Main content may be incomplete
-   - Workflow state may not update properly
-   - Needs content refinement
+| Field | Value |
+|-------|-------|
+| Date | _________ |
+| Tester | _________ |
+| Environment | Staging / Local |
+| Backend commit | _________ |
+| Frontend commit | _________ |
 
-2. **Hydration Warnings**:
-   - Check browser console for hydration mismatches
-   - Ensure `useHydrated` hook is used where needed
+### Results
 
-3. **API Integration**:
-   - Backend must be running with correct endpoints
-   - Database must have test data
-   - CORS settings must allow staging origin
-
----
-
-## 📊 Performance Testing
-
-- [ ] Time to Interactive (TTI) < 3s
-- [ ] First Contentful Paint (FCP) < 1.5s
-- [ ] Largest Contentful Paint (LCP) < 2.5s
-- [ ] No memory leaks when navigating
-- [ ] Images load optimally
-- [ ] API response times reasonable
-
----
-
-## 🚀 Deployment Checklist
-
-### Pre-Deployment
-- [ ] All priority test cases pass
-- [ ] No critical regressions
-- [ ] Performance metrics acceptable
-- [ ] Security audit passed
-- [ ] Feature flags configured correctly
-
-### Staging Deployment
-- [ ] Copy `.env.staging` to `.env` on staging server
-- [ ] Run `npm install` (if dependencies changed)
-- [ ] Run `npm run build`
-- [ ] Start server with `npm run start`
-- [ ] Verify app loads correctly
-- [ ] Test one flow end-to-end
-- [ ] Check logs for errors
-
-### Production Rollout Plan
-**Phase 1** (Week 1):
-- [ ] Enable `ENABLE_INTERNSHIP_LOGBOOK_PAGE=true`
-- [ ] Monitor for 2-3 days
-- [ ] Collect user feedback
-
-**Phase 2** (Week 1-2):
-- [ ] Enable `ENABLE_INTERNSHIP_CERTIFICATE_PAGE=true`
-- [ ] Monitor for 2-3 days
-
-**Phase 3** (Week 2):
-- [ ] Enable `ENABLE_PROJECT_PHASE2_PAGE=true`
-- [ ] Monitor for 2-3 days
-
-**Phase 4** (Week 2-3):
-- [ ] Enable `ENABLE_ADMIN_WIDGET_MIGRATION=true`
-- [ ] Monitor for 2-3 days
-
-**Phase 5** (Week 3-4):
-- [ ] Full production rollout
-- [ ] Disable legacy routes gradually
-- [ ] Monitor metrics
-
----
-
-## 📝 Test Results Template
-
-### Test Session Info
-- **Date**: _________
-- **Tester**: _________
-- **Environment**: Staging
-- **Backend Version**: _________
-- **Frontend Version**: _________
-
-### Summary
-- **Total Tests**: _________
-- **Passed**: _________
-- **Failed**: _________
-- **Blocked**: _________
+| Priority | Total | Pass | Fail | Blocked |
+|----------|-------|------|------|---------|
+| P0 | | | | |
+| P1 | | | | |
+| P2 | | | | |
+| P3 | | | | |
 
 ### Failed Tests
-| Test Case | Expected | Actual | Severity | Notes |
-|-----------|----------|--------|----------|-------|
-|           |          |        |          |       |
 
-### Recommendations
+| # | Test Case | Expected | Actual | Severity |
+|---|-----------|----------|--------|----------|
+| | | | | |
+
+### Verdict
 - [ ] Ready for production
-- [ ] Needs minor fixes
-- [ ] Needs major fixes
-- [ ] Blocked (requires external dependency)
-
----
-
-## 📞 Support & Escalation
-
-**For Issues Found**:
-1. Check console for errors
-2. Check network tab for API failures
-3. Check browser compatibility
-4. Document steps to reproduce
-5. Report in issue tracker with:
-   - Environment details
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Screenshots/videos
-   - Console logs
-
-**Critical Issues**:
-- Authentication failures
-- Data loss
-- Permission bypass
-- API crashes
-- Security vulnerabilities
-
-**Non-Critical Issues**:
-- UI misalignments
-- Missing translations
-- Performance degradation
-- UX improvements
-
----
-
-**Testing Status**: 🟡 In Progress
-
-**Next Update**: After staging testing complete
+- [ ] Needs minor fixes (list issues)
+- [ ] Needs major fixes (list blockers)

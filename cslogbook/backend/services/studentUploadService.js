@@ -38,7 +38,7 @@ const HEADER_ALIAS_MAP = {
   'หน่วยกิตรวม': 'Total Credits',
   'หน่วยกิตสะสม': 'Total Credits',
   'หน่วยกิต': 'Total Credits',
-  'หน่วยกิตวิชาเอก': 'Major Credits',
+  'หน่วยกิตวิชาภาค': 'Major Credits',
   'หน่วยกิตเอก': 'Major Credits',
   'ห้องเรียน': 'Classroom',
   'ห้อง': 'Classroom',

@@ -146,7 +146,7 @@ const authMiddleware = {
             condition: +student.User.studentId.substring(0, 2) >= 62 &&
                       student.totalCredits >= CONSTANTS.PROJECT.MIN_TOTAL_CREDITS &&
                       student.majorCredits >= CONSTANTS.PROJECT.MIN_MAJOR_CREDITS,
-            message: `ต้องมีหน่วยกิตรวมไม่น้อยกว่า ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต และหน่วยกิตวิชาเอกไม่น้อยกว่า ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`
+            message: `ต้องมีหน่วยกิตรวมไม่น้อยกว่า ${CONSTANTS.PROJECT.MIN_TOTAL_CREDITS} หน่วยกิต และหน่วยกิตวิชาภาคไม่น้อยกว่า ${CONSTANTS.PROJECT.MIN_MAJOR_CREDITS} หน่วยกิต`
           }
         };
 

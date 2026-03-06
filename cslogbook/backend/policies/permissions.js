@@ -74,10 +74,7 @@ module.exports = {
     academicOnly: ['teacher:academic'],
     advisorList: ['student', 'teacher', 'admin'],
     manage: ['admin', 'teacher:support'],
-    read: ['admin', 'teacher'],
-    selfProfile: ['teacher'],
-    supportOnly: ['teacher:support'],
-    teacherOnly: ['teacher']
+    read: ['admin', 'teacher']
   },
 
   timeline: {

@@ -146,7 +146,7 @@ module.exports = (sequelize) => {
                     if (this.majorCredits < requiredMajorCreditsForInternship) {
                         return {
                             eligible: false,
-                            reason: `หน่วยกิตวิชาเอกไม่เพียงพอ (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCreditsForInternship} ของหลักสูตร: ${curriculumName})`,
+                            reason: `หน่วยกิตวิชาภาคไม่เพียงพอ (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCreditsForInternship} ของหลักสูตร: ${curriculumName})`,
                             canAccessFeature: false,
                             canRegister: false
                         };
@@ -230,7 +230,7 @@ module.exports = (sequelize) => {
                     return { eligible: false, reason: 'ระบบไม่สามารถกำหนดเกณฑ์หน่วยกิตโครงงานได้' };
                 }
                 if (requiredMajorCredits === undefined || requiredMajorCredits === null) {
-                    console.warn('Student.js: ไม่ได้กำหนดเกณฑ์หน่วยกิตวิชาเอกสำหรับโครงงานในหลักสูตรนี้ จะไม่นำมาพิจารณา');
+                    console.warn('Student.js: ไม่ได้กำหนดเกณฑ์หน่วยกิตวิชาภาคสำหรับโครงงานในหลักสูตรนี้ จะไม่นำมาพิจารณา');
                 }
 
                 console.log('Student.js - checkProjectEligibility (using specific/fallback curriculum):', {
@@ -254,7 +254,7 @@ module.exports = (sequelize) => {
                     if (this.majorCredits < requiredMajorCredits) {
                         return {
                             eligible: false,
-                            reason: `หน่วยกิตวิชาเอกไม่เพียงพอสำหรับโครงงาน (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCredits} ของหลักสูตร: ${curriculumName})`,
+                            reason: `หน่วยกิตวิชาภาคไม่เพียงพอสำหรับโครงงาน (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCredits} ของหลักสูตร: ${curriculumName})`,
                             canAccessFeature: false,
                             canRegister: false,
                         };

@@ -11,11 +11,11 @@ const logger = require('../utils/logger');
  * 4. dynamic check จะพิจารณาจาก:
  *    - ชั้นปี (yearLevel >= 3)
  *    - หน่วยกิตรวม (totalCredits >= internshipBaseCredits) - **บังคับ**
- *    - หน่วยกิตวิชาเอก (majorCredits >= internshipMajorBaseCredits) - **ตรวจถ้า curriculum กำหนดไว้**
+ *    - หน่วยกิตวิชาภาค (majorCredits >= internshipMajorBaseCredits) - **ตรวจถ้า curriculum กำหนดไว้**
  * 
  * หมายเหตุ: 
  * - หน่วยกิตรวม (internshipBaseCredits) เป็นเกณฑ์บังคับ
- * - หน่วยกิตวิชาเอก (internshipMajorBaseCredits) เป็นเกณฑ์เสริม (optional)
+ * - หน่วยกิตวิชาภาค (internshipMajorBaseCredits) เป็นเกณฑ์เสริม (optional)
  *   จะตรวจสอบก็ต่อเมื่อหลักสูตรกำหนดค่าไว้ (ไม่ใช่ null/undefined)
  * 
  * ข้อมูลที่เพิ่มเข้า req:

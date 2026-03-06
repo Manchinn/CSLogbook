@@ -218,7 +218,7 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
               children: [
                 menuLink("topic-results", "ผลสอบหัวข้อ", "/admin/topic-exam/results"),
                 menuLink("kp02", "คำร้อง คพ.02", "/admin/project1/kp02-queue"),
-                menuLink("project-exam", "ผลสอบโครงงานพิเศษ 1", "/admin/project-exam/results"),
+                menuLink("project-exam", "ผลสอบโครงงานพิเศษ", "/admin/project-exam/results"),
                 menuLink("system-test", "คำขอทดสอบระบบ", "/admin/system-test/staff-queue"),
                 menuLink("thesis-queue", "คำร้อง คพ.03", "/admin/thesis/staff-queue"),
                 menuLink("thesis-results", "ผลสอบปริญญานิพนธ์", "/admin/thesis/exam-results"),
@@ -288,7 +288,7 @@ function buildAdminMenu(): MenuNode[] {
           children: [
             menuLink("topic-results", "ผลสอบหัวข้อ", "/admin/topic-exam/results"),
             menuLink("kp02", "คำร้อง คพ.02", "/admin/project1/kp02-queue"),
-            menuLink("project-exam", "ผลสอบโครงงานพิเศษ 1", "/admin/project-exam/results"),
+            menuLink("project-exam", "ผลสอบโครงงานพิเศษ", "/admin/project-exam/results"),
             menuLink("system-test", "คำขอทดสอบระบบ", "/admin/system-test/staff-queue"),
             menuLink("thesis-queue", "คำร้อง คพ.03", "/admin/thesis/staff-queue"),
             menuLink("thesis-results", "ผลสอบปริญญานิพนธ์", "/admin/thesis/exam-results"),

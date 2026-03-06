@@ -391,7 +391,7 @@ export default function CurriculumSettingsPage() {
               />
             </label>
             <label className={styles.field}>
-              หน่วยกิตวิชาเอก
+              หน่วยกิตวิชาภาค
               <input
                 type="number"
                 className={styles.input}
