@@ -492,11 +492,46 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .modalTitle {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-text);
+}
+
+.modalCloseBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+  transition: background var(--transition-default), color var(--transition-default);
+}
+
+.modalCloseBtn:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* ─── Inline icon inside button ─── */
+.btnIcon {
+  vertical-align: -2px;
+  margin-right: 4px;
 }
 
 /* ─── Form ─── */

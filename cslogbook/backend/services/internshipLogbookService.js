@@ -1207,7 +1207,7 @@ class InternshipLogbookService {
         where: { internship_id: internshipId, student_id: student.studentId }
       });
 
-      const totalHours = logEntries.reduce((sum,e)=> sum + (e.workHours || 0), 0);
+      const totalHours = logEntries.reduce((sum,e)=> sum + (parseFloat(e.workHours) || 0), 0);
       const totalDays = logEntries.length;
       const averageHours = totalDays ? (totalHours/totalDays).toFixed(1) : 0;
 

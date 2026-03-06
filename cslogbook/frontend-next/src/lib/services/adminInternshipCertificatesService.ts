@@ -247,5 +247,54 @@ export async function downloadAdminCertificateRequest(requestId: number, token?:
 export async function getAdminInternshipLogbookSummary(internshipId: number): Promise<AdminInternshipLogbookSummary | null> {
   const response = await apiFetch<LogbookSummaryApiResponse>(`/admin/internships/${internshipId}/logbook-summary`);
   if (!isRecord(response.data)) return null;
-  return response.data as AdminInternshipLogbookSummary;
+  const raw = response.data as Record<string, unknown>;
+
+  // backend ส่ง studentInfo/companyInfo/internshipPeriod/statistics — map ให้ตรงกับ frontend type
+  const studentInfo = isRecord(raw.studentInfo) ? raw.studentInfo : null;
+  const companyInfo = isRecord(raw.companyInfo) ? raw.companyInfo : null;
+  const period = isRecord(raw.internshipPeriod) ? raw.internshipPeriod : null;
+  const stats = isRecord(raw.statistics) ? raw.statistics : null;
+  const reflection = isRecord(raw.reflection) ? raw.reflection : null;
+  const entries = Array.isArray(raw.logEntries) ? raw.logEntries : null;
+
+  return {
+    student: studentInfo
+      ? {
+          fullName: [studentInfo.firstName, studentInfo.lastName].filter(Boolean).join(" ") || null,
+          studentCode: toStringOrEmpty(studentInfo.studentId) || null,
+        }
+      : null,
+    internship: companyInfo || period
+      ? {
+          internshipId: toNumberOrNull(raw.internshipId ?? internshipId),
+          companyName: toStringOrEmpty(companyInfo?.companyName) || null,
+          startDate: toStringOrEmpty(period?.startDate) || null,
+          endDate: toStringOrEmpty(period?.endDate) || null,
+        }
+      : null,
+    statistics: stats
+      ? {
+          totalEntries: toNumberOrNull(stats.totalDays) ?? undefined,
+          totalHours: toNumberOrNull(stats.totalHours) ?? undefined,
+          approvedHours: toNumberOrNull(stats.approvedHours) ?? undefined,
+          workingDays: toNumberOrNull(stats.totalDays) ?? undefined,
+        }
+      : null,
+    reflection: reflection
+      ? {
+          learningOutcome: toStringOrEmpty(reflection.learningOutcome) || null,
+          keyLearnings: toStringOrEmpty(reflection.keyLearnings) || null,
+          futureApplication: toStringOrEmpty(reflection.futureApplication) || null,
+          improvements: toStringOrEmpty(reflection.improvements) || null,
+        }
+      : null,
+    entries: entries
+      ? entries.map((e: Record<string, unknown>) => ({
+          workDate: toStringOrEmpty(e?.workDate) || null,
+          logTitle: toStringOrEmpty(e?.logTitle) || null,
+          workDescription: toStringOrEmpty(e?.workDescription) || null,
+          workHours: toNumberOrNull(e?.workHours) ?? null,
+        }))
+      : null,
+  };
 }
