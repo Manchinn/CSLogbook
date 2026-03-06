@@ -272,6 +272,17 @@
 | Hotfix: เพิ่ม `getAcademicDashboard` controller กลับ — ถูกลบผิดใน Session 21 (false positive: frontend ยังใช้ `/teachers/academic/dashboard`) | `backend/controllers/teacherController.js` |
 | Hotfix: เพิ่ม route `GET /academic/dashboard` กลับ พร้อม RBAC `teachers.academicOnly` | `backend/routes/teacherRoutes.js` |
 
+#### Session 23 (claude, 2026-03-06) — Code Quality Audit & Debug Log Cleanup
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Code quality audit: ตรวจ console.log, TypeScript errors, ESLint ทั้ง frontend + backend | (audit) |
+| Frontend สะอาด: ไม่มี type errors, ไม่มี ESLint warnings, console.warn เฉพาะ error handling ที่สมเหตุสมผล | (ไม่มีไฟล์ต้องแก้) |
+| SECURITY: ลบ login attempt console.log (log username ตอน login) | `backend/controllers/authController.js` |
+| SECURITY: ลบ auth token data + request headers console.log | `backend/middleware/authMiddleware.js` |
+| ลบ debug console.log 2 จุด (deadline data logging) | `backend/controllers/importantDeadlineController.js` |
+| ลบ debug console.log 15 จุด ([DEBUG] tags, certificate/referral letter logs) | `backend/controllers/documents/internshipController.js` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
