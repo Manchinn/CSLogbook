@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import type { DefenseRequest, SystemTestRequest } from "@/lib/services/teacherService";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./AdvisorQueue.module.css";
 
 type QueueItem = DefenseRequest | SystemTestRequest;
@@ -394,11 +395,11 @@ export function AdvisorQueueTable<T extends QueueItem>({
             <th className={styles.expandCol}><span className="sr-only">รายละเอียด</span></th>
             <th>โครงงาน</th>
             <th>นักศึกษา</th>
-            <th>วันที่ยื่นคำขอ</th>
+            <th className={responsive.hideOnMobile}>วันที่ยื่นคำขอ</th>
             {showTestDates && (
               <>
-                <th>วันเริ่มทดสอบ</th>
-                <th>วันสิ้นสุด</th>
+                <th className={responsive.hideOnMobile}>วันเริ่มทดสอบ</th>
+                <th className={responsive.hideOnMobile}>วันสิ้นสุด</th>
               </>
             )}
             <th>สถานะ</th>
@@ -455,15 +456,15 @@ export function AdvisorQueueTable<T extends QueueItem>({
                       )}
                     </div>
                   </td>
-                  <td>{requestDate ? new Date(requestDate).toLocaleDateString("th-TH") : "-"}</td>
+                  <td className={responsive.hideOnMobile}>{requestDate ? new Date(requestDate).toLocaleDateString("th-TH") : "-"}</td>
                   {showTestDates && "testStartDate" in item && (
                     <>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         {item.testStartDate
                           ? new Date(item.testStartDate).toLocaleDateString("th-TH")
                           : "-"}
                       </td>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         {item.testDueDate
                           ? new Date(item.testDueDate).toLocaleDateString("th-TH")
                           : "-"}

@@ -10,6 +10,7 @@ import {
   useAdminTopicExamOverview,
 } from "@/hooks/useAdminTopicExam";
 import type { AdminTopicExamRecord } from "@/lib/services/adminTopicExamService";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -351,10 +352,10 @@ export default function AdminTopicExamResultsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>ลำดับ</th>
+                  <th className={responsive.hideOnMobile}>ลำดับ</th>
                   <th>โครงงาน</th>
-                  <th>สมาชิก</th>
-                  <th>อาจารย์ที่ปรึกษา</th>
+                  <th className={responsive.hideOnMobile}>สมาชิก</th>
+                  <th className={responsive.hideOnMobile}>อาจารย์ที่ปรึกษา</th>
                   <th>ผลสอบหัวข้อ</th>
                   <th>จัดการ</th>
                 </tr>
@@ -375,7 +376,7 @@ export default function AdminTopicExamResultsPage() {
                 ) : (
                   rows.map((row, index) => (
                     <tr key={row.projectId}>
-                      <td>{(page - 1) * pageSize + index + 1}</td>
+                      <td className={responsive.hideOnMobile}>{(page - 1) * pageSize + index + 1}</td>
                       <td>
                         <p className={styles.name}>{row.titleTh || row.titleEn || "-"}</p>
                         <p className={styles.subText}>
@@ -384,7 +385,7 @@ export default function AdminTopicExamResultsPage() {
                         </p>
                         {row.titleEn && row.titleEn !== row.titleTh ? <p className={styles.subText}>{row.titleEn}</p> : null}
                       </td>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         <div className={styles.memberList}>
                           {row.members.length ? (
                             row.members.map((member) => (
@@ -397,7 +398,7 @@ export default function AdminTopicExamResultsPage() {
                           )}
                         </div>
                       </td>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         <p className={styles.subText}>หลัก: {row.advisor?.name || "-"}</p>
                         <p className={styles.subText}>ร่วม: {row.coAdvisor?.name || "-"}</p>
                       </td>

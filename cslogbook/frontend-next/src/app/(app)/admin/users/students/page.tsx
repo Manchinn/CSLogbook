@@ -8,6 +8,7 @@ import { useConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import type { AdminStudent, StudentFilters } from "@/lib/services/adminStudentService";
 import btn from "@/styles/shared/buttons.module.css";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
 
 type FormState = {
@@ -424,7 +425,7 @@ export default function AdminStudentsPage() {
                 <tr>
                   <th>รหัสนักศึกษา</th>
                   <th>ชื่อ-นามสกุล</th>
-                  <th>หน่วยกิต</th>
+                  <th className={responsive.hideOnMobile}>หน่วยกิต</th>
                   <th>สถานะสิทธิ์</th>
                   <th>จัดการ</th>
                 </tr>
@@ -446,7 +447,7 @@ export default function AdminStudentsPage() {
                         <p className={styles.name}>{formatName(student)}</p>
                         <p className={styles.subText}>{student.email || "-"}</p>
                       </td>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         <p className={styles.name}>สะสม {student.totalCredits ?? 0}</p>
                         <p className={styles.subText}>ภาควิชา {student.majorCredits ?? 0}</p>
                       </td>

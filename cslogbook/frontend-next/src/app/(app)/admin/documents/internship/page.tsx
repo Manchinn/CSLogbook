@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useAdminInternshipDocuments";
 import type { AdminInternshipDocument } from "@/lib/services/adminInternshipDocumentsService";
 import btn from "@/styles/shared/buttons.module.css";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -399,7 +400,7 @@ export default function AdminInternshipDocumentsPage() {
                     />
                   </th>
                   <th>เอกสาร/นักศึกษา</th>
-                  <th>วันที่ส่ง</th>
+                  <th className={responsive.hideOnMobile}>วันที่ส่ง</th>
                   <th>สถานะ</th>
                   <th>การดำเนินการ</th>
                 </tr>
@@ -425,7 +426,7 @@ export default function AdminInternshipDocumentsPage() {
                           <p className={styles.name}>{documentNameLabel(row.documentName)}</p>
                           <p className={styles.subText}>{row.studentName || "-"}</p>
                         </td>
-                        <td>{formatDateTime(row.createdAt)}</td>
+                        <td className={responsive.hideOnMobile}>{formatDateTime(row.createdAt)}</td>
                         <td>
                           <span className={`${styles.tag} ${styles.tagStatus}`}>{statusLabel(row.status, row.reviewerId)}</span>
                           {lateInfo ? (

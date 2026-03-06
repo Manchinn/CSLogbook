@@ -6,7 +6,7 @@
 
 .header {
   display: grid;
-  gap: 0.4rem;
+  gap: var(--space-2);
 }
 
 .header h1 {
@@ -48,7 +48,7 @@
   padding: 1rem;
   background: #f8fafc;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .cardTitle {
@@ -75,7 +75,7 @@
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
-  padding: 0.45rem 0.6rem;
+  padding: var(--space-2) var(--space-2);
   font-size: 0.95rem;
   background: #fff;
 }
@@ -108,7 +108,7 @@
 
 .field {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 /* hint text ใต้ input (เช่น "พ.ศ. เช่น 2568") */
@@ -131,7 +131,7 @@
 .fieldInputGroup {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-2);
 }
 
 .fieldInputGroup .input {
@@ -148,7 +148,7 @@
   background: #f1f5f9;
   border: 1px solid var(--color-border);
   border-radius: 0.4rem;
-  padding: 0.3rem 0.5rem;
+  padding: var(--space-1) var(--space-2);
 }
 
 /* grid แถวพื้นฐาน — ใช้แค่กรณีที่ไม่มี col จำนวนตายตัว */
@@ -190,10 +190,10 @@
 .formGroup {
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
+  padding: var(--space-3) 1rem;
   background: #f8fafc;
   display: grid;
-  gap: 0.65rem;
+  gap: var(--space-3);
 }
 
 /* label ชื่อกลุ่ม (เช่น "ช่วงเวลาภาคเรียน") */
@@ -208,7 +208,7 @@
 /* ใช้สำหรับ block เดี่ยวของภาคเรียน เช่น "ภาคเรียน 1 — เริ่ม + สิ้นสุด" */
 .semesterBlock {
   display: grid;
-  gap: 0.45rem;
+  gap: var(--space-2);
 }
 
 .semesterBlockLabel {
@@ -219,13 +219,13 @@
 
 .semesterDatePair {
   display: grid;
-  gap: 0.45rem;
+  gap: var(--space-2);
   grid-template-columns: 1fr 1fr;
 }
 
 .semesterDatePair label {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
   font-size: 0.8rem;
   color: var(--color-text-muted);
 }
@@ -234,7 +234,7 @@
 .formDivider {
   border: none;
   border-top: 1px solid #e2e8f0;
-  margin: 0.25rem 0;
+  margin: var(--space-1) 0;
 }
 
 /* แถว actions ล่าง section (justify ขวา) */
@@ -298,7 +298,7 @@
 .table th,
 .table td {
   text-align: left;
-  padding: 0.65rem 0.55rem;
+  padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--color-border);
   vertical-align: top;
 }
@@ -312,8 +312,8 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.15rem 0.6rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;

@@ -8,6 +8,7 @@ import { useConfirmDialog } from "@/components/common/ConfirmDialog";
 import { TableSkeleton } from "@/components/common/Skeleton";
 import type { AdminTeacher, TeacherFilters } from "@/lib/services/adminTeacherService";
 import btn from "@/styles/shared/buttons.module.css";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
 
 type FormState = {
@@ -386,8 +387,8 @@ export default function AdminTeachersPage() {
                 <tr>
                   <th>รหัสอาจารย์</th>
                   <th>ชื่อ-นามสกุล</th>
-                  <th>ตำแหน่ง</th>
-                  <th>สิทธิ์โครงงาน</th>
+                  <th className={responsive.hideOnMobile}>ตำแหน่ง</th>
+                  <th className={responsive.hideOnMobile}>สิทธิ์โครงงาน</th>
                   <th>จัดการ</th>
                 </tr>
               </thead>
@@ -411,13 +412,13 @@ export default function AdminTeachersPage() {
                           <p className={styles.subText}>{teacher.email || "-"}</p>
                           <p className={styles.subText}>เบอร์ภายใน: {teacher.contactExtension || "-"}</p>
                         </td>
-                        <td>
+                        <td className={responsive.hideOnMobile}>
                           <p className={styles.name}>{teacher.position || "-"}</p>
                           <p className={styles.subText}>
                             {normalizedTeacherType === "support" ? "เจ้าหน้าที่ภาควิชา" : "สายวิชาการ"}
                           </p>
                         </td>
-                        <td>
+                        <td className={responsive.hideOnMobile}>
                           <div className={styles.tagRow}>
                             <span className={`${styles.tag} ${teacher.canAccessTopicExam ? styles.tagOk : styles.tagMuted}`}>
                               {teacher.canAccessTopicExam ? "เปิดสิทธิ์หัวข้อสอบ" : "ปิดสิทธิ์หัวข้อสอบ"}

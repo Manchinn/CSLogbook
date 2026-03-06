@@ -6,7 +6,7 @@
 
 .header h1 {
   font-size: 1.6rem;
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--space-1);
 }
 
 .subtitle {
@@ -38,7 +38,7 @@
 
 .badge {
   border-radius: 999px;
-  padding: 0.2rem 0.7rem;
+  padding: var(--space-1) var(--space-3);
   font-size: 0.85rem;
   font-weight: 600;
   background: #e0f2fe;
@@ -59,10 +59,10 @@
 .statusCard {
   border: 1px solid var(--color-border);
   border-radius: 0.85rem;
-  padding: 0.9rem;
+  padding: var(--space-4);
   background: #f8fafc;
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 .statusTitle {
@@ -97,7 +97,7 @@
 
 .select {
   width: 100%;
-  padding: 0.45rem 0.6rem;
+  padding: var(--space-2) var(--space-2);
   border-radius: 0.5rem;
   border: 1px solid var(--color-border);
   -webkit-appearance: none;
@@ -152,11 +152,11 @@
 
 .summaryCard {
   border-radius: 0.75rem;
-  padding: 0.85rem;
+  padding: var(--space-3);
   background: #f8fafc;
   border: 1px solid var(--color-border);
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 .summaryValue {
@@ -176,7 +176,7 @@
 .table th,
 .table td {
   text-align: left;
-  padding: 0.65rem 0.75rem;
+  padding: var(--space-3) var(--space-3);
   border-bottom: 1px solid var(--color-border);
   vertical-align: top;
 }
@@ -190,8 +190,8 @@
 .statusTag {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.15rem 0.5rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;

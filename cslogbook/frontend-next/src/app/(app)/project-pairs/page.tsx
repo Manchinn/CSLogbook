@@ -6,6 +6,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useProjectPairMeta, useProjectPairMutations, useProjectPairs, useProjectStudentLookup } from "@/hooks/useProjectPairs";
 import type { ProjectPairFilters, ProjectPairRecord, ProjectStudentLookup } from "@/lib/services/projectPairsService";
 import btn from "@/styles/shared/buttons.module.css";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
 
 type AddForm = {
@@ -454,8 +455,8 @@ export default function ProjectPairsPage() {
                 <tr>
                   <th>โครงงาน</th>
                   <th>สถานะ</th>
-                  <th>สมาชิก</th>
-                  <th>ที่ปรึกษา</th>
+                  <th className={responsive.hideOnMobile}>สมาชิก</th>
+                  <th className={responsive.hideOnMobile}>ที่ปรึกษา</th>
                   <th>จัดการ</th>
                 </tr>
               </thead>
@@ -484,12 +485,12 @@ export default function ProjectPairsPage() {
                           {statusLabels[p.status ?? ""] ?? p.status ?? "-"}
                         </span>
                       </td>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         {(p.members ?? [])
                           .map((m) => `${m.fullName || "-"}${m.studentCode ? ` (${m.studentCode})` : ""}`)
                           .join(", ") || "-"}
                       </td>
-                      <td>
+                      <td className={responsive.hideOnMobile}>
                         {p.advisor?.fullName || "-"}
                         {p.coAdvisor?.fullName ? ` / ร่วม: ${p.coAdvisor.fullName}` : ""}
                       </td>

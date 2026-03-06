@@ -1,0 +1,14 @@
+/* --- Shared responsive utilities ---
+   Follows the same import pattern as buttons.module.css:
+   import responsive from "@/styles/shared/responsive.module.css";
+*/
+
+.hideOnMobile {
+  /* visible at desktop */
+}
+
+@media (max-width: 768px) {
+  .hideOnMobile {
+    display: none !important;
+  }
+}

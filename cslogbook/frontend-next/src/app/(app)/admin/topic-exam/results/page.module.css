@@ -18,7 +18,7 @@
 }
 
 .subtitle {
-  margin: 0.35rem 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--text-secondary);
 }
 
@@ -49,7 +49,7 @@
 }
 
 .statValue {
-  margin: 0.3rem 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -66,7 +66,7 @@
 .textarea {
   border: 1px solid var(--border-subtle);
   border-radius: 0.55rem;
-  padding: 0.55rem 0.7rem;
+  padding: var(--space-2) var(--space-3);
   font: inherit;
   color: var(--text-primary);
   background: var(--surface-default);
@@ -124,19 +124,19 @@
 }
 
 .subText {
-  margin: 0.2rem 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
 
 .memberList {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .buttonRow {
   display: flex;
-  gap: 0.45rem;
+  gap: var(--space-2);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -144,7 +144,7 @@
 .button {
   border: 1px solid var(--border-subtle);
   border-radius: 0.55rem;
-  padding: 0.4rem 0.7rem;
+  padding: var(--space-2) var(--space-3);
   background: var(--surface-default);
   color: var(--text-primary);
   font: inherit;
@@ -174,9 +174,9 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.6rem;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  margin-top: 0.8rem;
+  margin-top: var(--space-3);
 }
 
 .paginationInfo {
@@ -189,7 +189,7 @@
   align-items: center;
   border-radius: 999px;
   border: 1px solid var(--border-subtle);
-  padding: 0.18rem 0.55rem;
+  padding: var(--space-1) var(--space-2);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -215,7 +215,7 @@
 }
 
 .failReason {
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 0.82rem;
   color: color-mix(in srgb, var(--color-danger) 80%, black);
 }
@@ -228,7 +228,7 @@
 .alert {
   border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
-  padding: 0.75rem 0.9rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .alertSuccess {
@@ -280,15 +280,15 @@
   padding: 1rem;
   overflow-y: auto;
   display: grid;
-  gap: 0.9rem;
+  gap: var(--space-4);
 }
 
 .detailSection {
   border: 1px solid var(--border-subtle);
   border-radius: 0.65rem;
-  padding: 0.75rem;
+  padding: var(--space-3);
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 .detailTitle {
@@ -316,7 +316,7 @@
   background: var(--surface-default);
   padding: 1rem;
   display: grid;
-  gap: 0.8rem;
+  gap: var(--space-3);
 }
 
 .modalTitle {
@@ -327,7 +327,7 @@
 
 .field {
   display: grid;
-  gap: 0.4rem;
+  gap: var(--space-2);
   color: var(--text-primary);
 }
 

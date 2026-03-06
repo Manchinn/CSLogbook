@@ -5,6 +5,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { TeacherPageScaffold } from "@/components/teacher/TeacherPageScaffold";
 import { useTeacherMeetingApprovals, useUpdateMeetingLogApproval } from "@/hooks/useTeacherModule";
 import type { MeetingLogApproval } from "@/lib/services/teacherService";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./MeetingApprovals.module.css";
 
 export default function MeetingApprovalsPage() {
@@ -250,9 +251,9 @@ export default function MeetingApprovalsPage() {
                     </th>
                     <th>ชื่อโครงงาน</th>
                     <th>นักศึกษา</th>
-                    <th>หัวข้อการประชุม</th>
+                    <th className={responsive.hideOnMobile}>หัวข้อการประชุม</th>
                     <th>วันที่ประชุม</th>
-                    <th>วันที่ส่งบันทึก</th>
+                    <th className={responsive.hideOnMobile}>วันที่ส่งบันทึก</th>
                     <th>สถานะ</th>
                     <th>การดำเนินการ</th>
                   </tr>
@@ -287,7 +288,7 @@ export default function MeetingApprovalsPage() {
                         <div className={styles.studentCode}>{meeting.studentCode}</div>
                       </div>
                     </td>
-                    <td>
+                    <td className={responsive.hideOnMobile}>
                       <div className={styles.meetingTopic}>{meeting.topic}</div>
                     </td>
                     <td>
@@ -299,7 +300,7 @@ export default function MeetingApprovalsPage() {
                         })}
                       </div>
                     </td>
-                    <td>
+                    <td className={responsive.hideOnMobile}>
                       {meeting.submittedAt ? (
                         <div className={styles.dateCell}>
                           {new Date(meeting.submittedAt).toLocaleDateString("th-TH", {

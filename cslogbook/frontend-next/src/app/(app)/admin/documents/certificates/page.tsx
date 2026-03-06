@@ -12,6 +12,7 @@ import {
 import type { AdminCertificateRequest } from "@/lib/services/adminInternshipCertificatesService";
 import { labelStatus } from "@/lib/utils/statusLabels";
 import btn from "@/styles/shared/buttons.module.css";
+import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -279,8 +280,8 @@ export default function AdminInternshipCertificatesPage() {
                 <tr>
                   <th>รหัสนักศึกษา</th>
                   <th>ชื่อ-นามสกุล</th>
-                  <th>บริษัท</th>
-                  <th>วันที่ขอ</th>
+                  <th className={responsive.hideOnMobile}>บริษัท</th>
+                  <th className={responsive.hideOnMobile}>วันที่ขอ</th>
                   <th>สถานะ</th>
                   <th>การดำเนินการ</th>
                 </tr>
@@ -291,8 +292,8 @@ export default function AdminInternshipCertificatesPage() {
                     <tr key={row.id}>
                       <td>{row.student.studentCode || "-"}</td>
                       <td>{row.student.fullName || "-"}</td>
-                      <td>{row.internship.companyName || "-"}</td>
-                      <td>{formatDateTime(row.requestDate)}</td>
+                      <td className={responsive.hideOnMobile}>{row.internship.companyName || "-"}</td>
+                      <td className={responsive.hideOnMobile}>{formatDateTime(row.requestDate)}</td>
                       <td>
                         <span className={styles.tag}>{labelStatus(row.status)}</span>
                       </td>
