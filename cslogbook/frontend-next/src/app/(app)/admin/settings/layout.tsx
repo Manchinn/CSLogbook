@@ -8,10 +8,7 @@ import styles from "./settings.module.css";
 const SETTINGS_TABS = [
   { href: "/admin/settings/academic", label: "ปีการศึกษา" },
   { href: "/admin/settings/curriculum", label: "หลักสูตร" },
-  { href: "/admin/settings/status", label: "สถานะนักศึกษา" },
   { href: "/admin/settings/notification-settings", label: "การแจ้งเตือน" },
-  { href: "/admin/settings/workflow-steps", label: "Workflow" },
-  { href: "/admin/settings/compatibility", label: "APIs" },
 ] as const;
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
