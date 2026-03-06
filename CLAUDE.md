@@ -672,25 +672,45 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | Refactor: รวม filter + summary เป็น `.toolbar` flex row ใน meeting-approvals page | `teacher/meeting-approvals/page.tsx` |
 | Accessibility: เพิ่ม `aria-label` บน checkboxes, `sr-only` text บน expand column, ลบ inline styles | `AdvisorQueueTable.tsx`, `meeting-approvals/page.tsx` |
 
+#### Session 20 (claude, 2026-03-06) — Staging / Regression Test Plan Update
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| อัปเดต `STAGING_TEST_PLAN.md` ให้ครอบคลุม Sessions 1-19 (เดิมเป็น version 2026-02-15 ยังใช้ feature flags) | `docs/STAGING_TEST_PLAN.md` |
+| จัดหมวดหมู่ test cases ตาม priority: P0 (critical path), P1 (module-level), P2 (cross-cutting), P3 (UI quality) | `docs/STAGING_TEST_PLAN.md` |
+| เพิ่ม test cases ใหม่สำหรับ: teacher queue redesign, summary stats, ConfirmDialog, Skeleton, DefenseRequestStepper, SurveyBanner, referral letter, timesheet delete, 404 page | `docs/STAGING_TEST_PLAN.md` |
+| อัปเดต CLAUDE.md — เพิ่ม Session 20, ย้าย staging testing เป็น "Planned" | `CLAUDE.md` |
+
+#### Session 21 (claude, 2026-03-06) — Dead Routes Cleanup & Report RBAC
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| ลบ 9 dead routes จาก teacherRoutes.js: `/me/profile`, `/user/:userId`, `PUT /:id` (IDOR risk), `DELETE /:id`, + 4 stub routes (support/documents) | `backend/routes/teacherRoutes.js` |
+| ลบ 6 dead controller functions: `getMyTeacherProfile`, `getTeacherByUserId`, `getAdvisees`, `submitEvaluation`, `getSupportDashboard`, `createAnnouncement`, `getDocuments` | `backend/controllers/teacherController.js` |
+| ⚠️ **False positive:** ลบ `getAcademicDashboard` route + controller ผิด — frontend teacher dashboard ยังใช้อยู่ → แก้ไขแล้วใน Session 22 | — |
+| SECURITY: เพิ่ม RBAC (`authorize.fromAllowed(['admin', 'teacher'])`) บน report routes ทั้ง 17 เส้น — เดิม student สามารถดู admin reports ได้ | `backend/routes/reportRoutes.js` |
+| ลบ unused permission policies: `selfProfile`, `supportOnly`, `teacherOnly` | `backend/policies/permissions.js` |
+
+#### Session 22 (claude, 2026-03-06) — Hotfix: Restore Teacher Dashboard Endpoint
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Hotfix: เพิ่ม `getAcademicDashboard` controller กลับ — ถูกลบผิดใน Session 21 (false positive: frontend ยังใช้ `/teachers/academic/dashboard`) | `backend/controllers/teacherController.js` |
+| Hotfix: เพิ่ม route `GET /academic/dashboard` กลับ พร้อม RBAC `teachers.academicOnly` | `backend/routes/teacherRoutes.js` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
 
-#### 1. Staging / Regression Testing
-- ทดสอบ end-to-end ใน staging ตาม `docs/STAGING_TEST_PLAN.md`
-- เน้น: Phase 2 flow (system-test → thesis-defense → admin queues)
-- ยืนยัน Phase 2 parity fixes: labels, tones, gating, loading state
+#### 1. Staging / Regression Testing — PLANNED
 
-#### 3. Dead Routes ใน teacherRoutes.js (Security Backlog)
-- `GET /api/teachers/advisors`, `GET /api/teachers/me/profile`, `GET /api/teachers/user/:userId` — ไม่มี frontend consumer
-- `PUT /api/teachers/:id`, `DELETE /api/teachers/:id` — duplicate กับ admin routes + IDOR risk
-- พิจารณาลบหรือ consolidate เมื่อมีเวลา
+- ทดสอบ end-to-end ตาม `docs/STAGING_TEST_PLAN.md` (อัปเดตแล้ว 2026-03-06)
+- **P0 Critical Path** (6 test groups): Auth, Unified Project Page, Topic Submit, Exam/Defense, Meeting Logbook, Phase 2 sub-pages
+- **P1 Module-Level** (10 test groups): Teacher dashboard/queues (4), Admin users/pairs/docs/settings/dashboard (5), Student internship (4)
+- **P2 Cross-Cutting** (4 test groups): Status labels, UI components, Security/RBAC, CORS/Infra
+- **P3 UI Quality** (3 test groups): Responsive, Console errors, Design consistency
 
-#### 4. Report Endpoints ไม่มี Role Check (Security Backlog)
-- `GET /api/reports/advisors/workload` และ `GET /api/reports/advisors/:teacherId/detail` — authenticated แต่ไม่มี authorize middleware
-- พิจารณาเพิ่ม role check ถ้าข้อมูลมี sensitivity
-
-#### 5. Student Result Pages (Out of Scope — ไม่ได้อยู่ในขอบเขตงาน)
+#### 2. Student Result Pages (Out of Scope — ไม่ได้อยู่ในขอบเขตงาน)
 - `/project/phase1/exam-day` — ยังเป็น stub ("กำลังเตรียมฟีเจอร์") — **ตั้งใจ ไม่ใช่ bug**
 - Thesis exam result detail page — นักศึกษาเห็นแค่ hero badge — **ตั้งใจ ไม่ใช่ bug**
 

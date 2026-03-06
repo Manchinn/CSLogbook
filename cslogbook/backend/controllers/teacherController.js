@@ -76,45 +76,6 @@ exports.getTeacherById = async (req, res) => {
   }
 };
 
-// สำหรับดึงข้อมูลอาจารย์ของผู้ใช้ที่ล็อกอินอยู่
-exports.getMyTeacherProfile = async (req, res) => {
-  try {
-    const data = await teacherService.getTeacherByUserId(req.user.userId);
-    res.json({ success: true, data });
-  } catch (error) {
-    logger.error('Error in getMyTeacherProfile:', error);
-    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
-      return res.status(404).json({ success: false, message: error.message });
-    }
-    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
-  }
-};
-
-exports.getTeacherByUserId = async (req, res) => {
-  try {
-    const data = await teacherService.getTeacherByUserId(req.params.userId);
-
-    res.json({
-      success: true,
-      data
-    });
-  } catch (error) {
-    logger.error('Error in getTeacherByUserId:', error);
-    
-    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
-    });
-  }
-};
-
 exports.addTeacher = async (req, res) => {
   try {
     const {
@@ -254,32 +215,16 @@ exports.deleteTeacher = async (req, res) => {
   }
 };
 
-exports.getAdvisees = async (req, res) => {
+// ดึงข้อมูล dashboard สำหรับอาจารย์สายวิชาการ
+exports.getAcademicDashboard = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const advisees = await teacherService.getAdvisees(id);
-
-    res.json({
-      success: true,
-      data: advisees,
-      message: 'ดึงข้อมูลนักศึกษาในที่ปรึกษาสำเร็จ'
-    });
-
+    const data = await teacherService.getAcademicDashboardOverview(req.user.userId);
+    res.json({ success: true, data });
   } catch (error) {
-    logger.error('Error in getAdvisees:', error);
-    
-    if (error.message === 'ไม่พบข้อมูลอาจารย์') {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-
+    logger.error('Error in getAcademicDashboard:', error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษาในที่ปรึกษา',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
     });
   }
 };
@@ -299,53 +244,3 @@ exports.getMeetingApprovalQueue = async (req, res) => {
   }
 };
 
-// ฟังก์ชันสำหรับอาจารย์สายวิชาการ (Academic)
-exports.getAcademicDashboard = async (req, res) => {
-  try {
-    const data = await teacherService.getAcademicDashboardOverview(req.user.userId);
-    res.json({
-      success: true,
-      data
-    });
-  } catch (error) {
-    logger.error('Error in getAcademicDashboard:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล dashboard'
-    });
-  }
-};
-
-exports.submitEvaluation = async (req, res) => {
-  return res.status(501).json({
-    success: false,
-    code: 'NOT_IMPLEMENTED',
-    message: 'ฟีเจอร์การส่งการประเมินผลยังไม่พร้อมใช้งาน'
-  });
-};
-
-// ฟังก์ชันสำหรับเจ้าหน้าที่ภาควิชา (Support)
-exports.getSupportDashboard = async (req, res) => {
-  return res.status(501).json({
-    success: false,
-    code: 'NOT_IMPLEMENTED',
-    message: 'Dashboard สำหรับเจ้าหน้าที่ภาควิชายังไม่พร้อมใช้งาน'
-  });
-};
-
-exports.createAnnouncement = async (req, res) => {
-  return res.status(501).json({
-    success: false,
-    code: 'NOT_IMPLEMENTED',
-    message: 'ฟีเจอร์การสร้างประกาศยังไม่พร้อมใช้งาน'
-  });
-};
-
-// ฟังก์ชันที่ทั้งสองประเภทเข้าถึงได้
-exports.getDocuments = async (req, res) => {
-  return res.status(501).json({
-    success: false,
-    code: 'NOT_IMPLEMENTED',
-    message: 'ฟีเจอร์การดึงเอกสารอาจารย์ยังไม่พร้อมใช้งาน'
-  });
-};
