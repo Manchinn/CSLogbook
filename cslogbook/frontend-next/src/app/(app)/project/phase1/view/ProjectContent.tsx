@@ -816,7 +816,7 @@ export default function ProjectContent() {
         formatDate={formatDate}
       />
 
-      {showPhaseContent ? (
+      {/* {showPhaseContent ? (
         <WorkflowTimeline
           title="Timeline โครงงานพิเศษ"
           subtitle="ครอบคลุม Phase 1 และ ปริญญานิพนธ์ ตาม workflow"
@@ -824,7 +824,7 @@ export default function ProjectContent() {
           isLoading={timelineLoading}
           error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}
         />
-      ) : null}
+      ) : null} */}
 
       <AcknowledgeModal
         ackModalOpen={ackModalOpen}

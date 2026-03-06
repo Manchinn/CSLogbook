@@ -666,16 +666,6 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         formatDate={formatDate}
       />
 
-      {showPhaseContent ? (
-        <WorkflowTimeline
-          title="Timeline โครงงานพิเศษ"
-          subtitle="ครอบคลุมโครงงานพิเศษ 1 และ ปริญญานิพนธ์ ตาม workflow"
-          timeline={timeline}
-          isLoading={timelineLoading}
-          error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}
-        />
-      ) : null}
-
       <AcknowledgeModal
         ackModalOpen={ackModalOpen}
         ackLoading={ackLoading}
