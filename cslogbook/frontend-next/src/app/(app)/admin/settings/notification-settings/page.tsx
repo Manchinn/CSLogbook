@@ -7,26 +7,20 @@ import {
   toggleNotification,
   enableAllNotifications,
   disableAllNotifications,
-  getAgentNotificationStats,
   type NotificationSetting,
 } from "@/lib/services/notificationSettingsService";
-import {
-  getAgentSystemStatus,
-  getAgentEmailStats,
-  type AgentEmailStats,
-} from "@/lib/services/agentStatusService";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
+import ns from "./notification.module.css";
 
 export default function NotificationSettingsPage() {
   const [settings, setSettings] = useState<Record<string, NotificationSetting>>({});
   const [loading, setLoading] = useState(false);
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
-  const [agentStats, setAgentStats] = useState<Record<string, unknown> | null>(null);
-  const [agentEmailStats, setAgentEmailStats] = useState<AgentEmailStats | null>(null);
-  const [agentNotifyStats, setAgentNotifyStats] = useState<Record<string, unknown> | null>(null);
 
+  /* ─── Loaders ─── */
   const loadSettings = useCallback(async () => {
     setLoading(true);
     setMessage(null);
@@ -41,49 +35,20 @@ export default function NotificationSettingsPage() {
     }
   }, []);
 
-  const loadAgentStats = useCallback(async () => {
-    const [systemResult, emailResult, notifyResult] = await Promise.allSettled([
-      getAgentSystemStatus(),
-      getAgentEmailStats(),
-      getAgentNotificationStats(),
-    ]);
-
-    setAgentStats(systemResult.status === "fulfilled" ? systemResult.value ?? null : null);
-    setAgentEmailStats(emailResult.status === "fulfilled" ? emailResult.value ?? null : null);
-    setAgentNotifyStats(notifyResult.status === "fulfilled" ? notifyResult.value ?? null : null);
-  }, []);
-
   useEffect(() => {
     void loadSettings();
-    void loadAgentStats();
-  }, [loadSettings, loadAgentStats]);
+  }, [loadSettings]);
 
   const items = useMemo(() => Object.entries(settings), [settings]);
+
   const formatDateTime = useCallback(
     (value?: string | null) => (value ? new Date(value).toLocaleString("th-TH") : "-"),
     []
   );
-  const renderStats = (data: Record<string, unknown> | null) => {
-    if (!data || !Object.keys(data).length) {
-      return <div className={styles.cardMeta}>ไม่มีข้อมูล</div>;
-    }
 
-    return (
-      <table className={styles.table}>
-        <tbody>
-          {Object.entries(data).map(([key, value]) => (
-            <tr key={key}>
-              <td>{key}</td>
-              <td>{String(value ?? "-")}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  };
-
+  /* ─── Handlers ─── */
   const handleToggle = async (type: string, enabled: boolean) => {
-    setLoading(true);
+    setTogglingKey(type);
     setMessage(null);
     try {
       await toggleNotification(type, enabled);
@@ -94,50 +59,39 @@ export default function NotificationSettingsPage() {
       setMessageTone("warning");
       setMessage(error instanceof Error ? error.message : "ไม่สามารถอัปเดตการแจ้งเตือนได้");
     } finally {
-      setLoading(false);
+      setTogglingKey(null);
     }
   };
 
-  const handleEnableAll = async () => {
+  const handleBulk = async (action: "enable" | "disable") => {
     setLoading(true);
     setMessage(null);
     try {
-      await enableAllNotifications();
+      if (action === "enable") await enableAllNotifications();
+      else await disableAllNotifications();
       setMessageTone("success");
-      setMessage("เปิดการแจ้งเตือนทั้งหมดแล้ว");
+      setMessage(action === "enable" ? "เปิดการแจ้งเตือนทั้งหมดแล้ว" : "ปิดการแจ้งเตือนทั้งหมดแล้ว");
       await loadSettings();
     } catch (error) {
       setMessageTone("warning");
-      setMessage(error instanceof Error ? error.message : "ไม่สามารถเปิดการแจ้งเตือนทั้งหมดได้");
+      setMessage(error instanceof Error ? error.message : "ไม่สามารถดำเนินการได้");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDisableAll = async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      await disableAllNotifications();
-      setMessageTone("success");
-      setMessage("ปิดการแจ้งเตือนทั้งหมดแล้ว");
-      await loadSettings();
-    } catch (error) {
-      setMessageTone("warning");
-      setMessage(error instanceof Error ? error.message : "ไม่สามารถปิดการแจ้งเตือนทั้งหมดได้");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const enabledCount = items.filter(([, v]) => v.enabled).length;
 
   return (
     <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
+        {/* ─── Header ─── */}
         <header className={styles.header}>
           <h1>การตั้งค่าการแจ้งเตือน</h1>
-          <p className={styles.subtitle}>ควบคุมการเปิด/ปิดการแจ้งเตือนและตรวจสอบสถานะระบบแจ้งเตือน</p>
+          <p className={styles.subtitle}>ควบคุมการเปิด/ปิดการแจ้งเตือนของระบบ</p>
         </header>
 
+        {/* ─── Alert ─── */}
         {message ? (
           <div
             className={`${styles.alert} ${
@@ -152,85 +106,65 @@ export default function NotificationSettingsPage() {
           </div>
         ) : null}
 
+        {/* ═══ Notification Settings ═══ */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <strong>การแจ้งเตือน</strong>
+            <strong>การแจ้งเตือน ({enabledCount}/{items.length} เปิดใช้งาน)</strong>
             <div className={styles.actions}>
               <button type="button" className={btn.button} onClick={loadSettings} disabled={loading}>
                 รีเฟรช
               </button>
-              <button type="button" className={btn.button} onClick={handleEnableAll} disabled={loading}>
+              <button
+                type="button"
+                className={btn.button}
+                onClick={() => handleBulk("enable")}
+                disabled={loading}
+              >
                 เปิดทั้งหมด
               </button>
-              <button type="button" className={btn.button} onClick={handleDisableAll} disabled={loading}>
+              <button
+                type="button"
+                className={btn.button}
+                onClick={() => handleBulk("disable")}
+                disabled={loading}
+              >
                 ปิดทั้งหมด
               </button>
             </div>
           </div>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>ประเภท</th>
-                  <th>คำอธิบาย</th>
-                  <th>สถานะ</th>
-                  <th>อัปเดตล่าสุด</th>
-                  <th>จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(([key, item]) => (
-                  <tr key={key}>
-                    <td>{key}</td>
-                    <td>{item.description ?? "-"}</td>
-                    <td>
-                      <span className={`${styles.badge} ${item.enabled ? styles.badgeSuccess : styles.badgeMuted}`}>
-                        {item.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                      </span>
-                    </td>
-                    <td>{formatDateTime(item.lastUpdated)}</td>
-                    <td>
-                      <div className={styles.actions}>
-                        <button
-                          type="button"
-                          className={btn.button}
-                          onClick={() => handleToggle(key, !item.enabled)}
-                        >
-                          {item.enabled ? "ปิด" : "เปิด"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {items.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyStateText}>ยังไม่มีการตั้งค่าการแจ้งเตือน</div>
+            </div>
+          ) : (
+            <div className={ns.notifList}>
+              {items.map(([key, item]) => (
+                <div key={key} className={ns.notifRow}>
+                  <div className={ns.notifInfo}>
+                    <div className={ns.notifType}>{key}</div>
+                    {item.description ? (
+                      <div className={ns.notifDesc}>{item.description}</div>
+                    ) : null}
+                  </div>
+                  <div className={ns.notifControls}>
+                    <span className={ns.notifMeta}>{formatDateTime(item.lastUpdated)}</span>
+                    <label className={ns.toggle}>
+                      <input
+                        type="checkbox"
+                        checked={item.enabled}
+                        disabled={togglingKey === key || loading}
+                        onChange={() => handleToggle(key, !item.enabled)}
+                        aria-label={`สลับการแจ้งเตือน ${key}`}
+                      />
+                      <span className={ns.toggleTrack} />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <strong>Agent Status</strong>
-            <button type="button" className={btn.button} onClick={loadAgentStats} disabled={loading}>
-              รีเฟรชสถานะ
-            </button>
-          </div>
-          <div className={styles.grid}>
-            <div className={styles.card}>
-              <div className={styles.cardTitle}>ระบบ Agent</div>
-              {renderStats(agentStats)}
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardTitle}>อีเมลสรุป</div>
-              {renderStats(agentEmailStats)}
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardTitle}>สถิติแจ้งเตือน</div>
-              {renderStats(agentNotifyStats)}
-            </div>
-          </div>
-        </section>
-
       </div>
     </RoleGuard>
   );

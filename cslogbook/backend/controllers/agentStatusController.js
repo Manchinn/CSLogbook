@@ -108,27 +108,19 @@ class AgentStatusController {
                 });
             }
             
-            // ดึงสถิติการแจ้งเตือนที่เป็นอีเมล
-            const notificationStats = await agentStatusService.getAgentNotificationStats(days);
-            
-            // คำนวณสถิติอีเมลเฉพาะ
+            // สถิติอีเมล — ยังไม่มี email log table จริง จึงแสดงสถานะ config เท่านั้น
+            const agentCfg = require('../agents/config');
             const emailStats = {
-                totalEmailsSent: notificationStats.totalNotifications,
-                byEmailType: {
-                    deadline: notificationStats.byType.DEADLINE || 0,
-                    document: notificationStats.byType.DOCUMENT || 0,
-                    logbook: notificationStats.byType.LOGBOOK || 0,
-                    evaluation: notificationStats.byType.EVALUATION || 0,
-                    approval: notificationStats.byType.APPROVAL || 0
-                },
-                dailyStats: notificationStats.dailyStats,
+                emailEnabled: agentCfg.notifications?.emailEnabled ?? false,
+                pushNotificationEnabled: agentCfg.notifications?.pushNotificationEnabled ?? false,
+                note: 'ระบบยังไม่มี email log — แสดงเฉพาะ config ปัจจุบัน',
                 period: {
                     days,
                     from: new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(),
                     to: new Date().toISOString()
                 }
             };
-            
+
             res.json({
                 success: true,
                 data: emailStats

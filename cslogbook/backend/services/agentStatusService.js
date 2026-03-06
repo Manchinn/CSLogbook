@@ -54,66 +54,36 @@ class AgentStatusService {
     }
 
     /**
-     * ดึงสถิติการแจ้งเตือนของ agents
+     * ดึงสถิติการแจ้งเตือนของ agents จาก DB
      * @param {number} days จำนวนวันที่ต้องการดูย้อนหลัง
      * @returns {Object} สถิติการแจ้งเตือน
      */
     async getAgentNotificationStats(days = 7) {
         try {
-            // ใช้ข้อมูลจาก agent status แทนการดึงจากฐานข้อมูล
+            const since = new Date();
+            since.setDate(since.getDate() - days);
+
+            // นับ notifications จาก DB จริง
+            const totalNotifications = await NotificationSetting.count({
+                where: { created_at: { [Op.gte]: since } }
+            }).catch(() => null);
+
             const status = agentManager.getStatus();
             const agentList = agentManager.getAgentList();
-            
-            // สร้างสถิติ mock จาก agent status
-            const stats = {
-                totalNotifications: 0,
-                byAgent: {},
-                byType: {
-                    'DEADLINE_REMINDER': 0,
-                    'DOCUMENT_STATUS': 0,
-                    'SECURITY_ALERT': 0,
-                    'LOGBOOK_QUALITY': 0
-                },
-                dailyStats: this.generateMockDailyStats(days)
+
+            // สรุปจำนวน agent ที่ทำงานอยู่
+            const runningAgents = agentList.filter(name => status.agents[name]?.isRunning);
+
+            return {
+                period: `${days} วันย้อนหลัง`,
+                totalSettings: totalNotifications,
+                runningAgents: runningAgents.length,
+                totalAgents: agentList.length,
             };
-            
-            // สร้างสถิติจาก agent ที่กำลังทำงาน
-            agentList.forEach(agentName => {
-                const agentStatus = status.agents[agentName];
-                if (agentStatus && agentStatus.isRunning) {
-                    const agentKey = `agent_${agentName}`;
-                    stats.byAgent[agentKey] = Math.floor(Math.random() * 10) + 1; // Mock data
-                    stats.totalNotifications += stats.byAgent[agentKey];
-                }
-            });
-            
-            return stats;
         } catch (error) {
             logger.error('Error getting agent notification stats:', error);
             throw new Error(`ไม่สามารถดึงสถิติการแจ้งเตือนได้: ${error.message}`);
         }
-    }
-
-    /**
-     * สร้างสถิติการแจ้งเตือนรายวัน (mock data)
-     * @param {number} days จำนวนวัน
-     * @returns {Array} สถิติรายวัน
-     */
-    generateMockDailyStats(days) {
-        const stats = [];
-        const today = new Date();
-        
-        for (let i = days - 1; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            
-            stats.push({
-                date: date.toISOString().split('T')[0],
-                count: Math.floor(Math.random() * 5) + 1
-            });
-        }
-        
-        return stats;
     }
 
     /**
@@ -154,9 +124,10 @@ class AgentStatusService {
             projectPurgeScheduler: 'ตัวล้างข้อมูลโครงงาน',
             academicSemesterScheduler: 'ตัวจัดการภาคการศึกษา',
             projectDeadlineMonitor: 'ตัวตรวจสอบ Deadline โครงงาน',
-            internshipWorkflowMonitor: 'ตัวตรวจสอบ Workflow ฝึกงาน'
+            internshipWorkflowMonitor: 'ตัวตรวจสอบ Workflow ฝึกงาน',
+            internshipStatusMonitor: 'ตัวตรวจสอบสถานะฝึกงาน'
         };
-        
+
         return displayNames[agentName] || agentName;
     }
 
@@ -176,9 +147,10 @@ class AgentStatusService {
             projectPurgeScheduler: 'ล้างข้อมูลโครงงานที่หมดอายุออกจากระบบ',
             academicSemesterScheduler: 'จัดการข้อมูลภาคการศึกษาและปีการศึกษาอัตโนมัติ',
             projectDeadlineMonitor: 'ตรวจสอบและอัปเดตสถานะโครงงานที่เลย deadline',
-            internshipWorkflowMonitor: 'ตรวจสอบและอัปเดต workflow การฝึกงานที่ใกล้สิ้นสุด'
+            internshipWorkflowMonitor: 'ตรวจสอบและอัปเดต workflow การฝึกงานที่ใกล้สิ้นสุด',
+            internshipStatusMonitor: 'ตรวจสอบและอัปเดตสถานะการฝึกงานอัตโนมัติ'
         };
-        
+
         return descriptions[agentName] || 'ไม่มีคำอธิบาย';
     }
 
@@ -198,9 +170,10 @@ class AgentStatusService {
             projectPurgeScheduler: 'ทุกวัน (เวลา 02:15 น.)',
             academicSemesterScheduler: 'ทุกวัน (เวลา 00:05 น.)',
             projectDeadlineMonitor: 'ทุกชั่วโมง',
-            internshipWorkflowMonitor: 'ทุกวัน (เวลา 02:00 น.)'
+            internshipWorkflowMonitor: 'ทุกวัน (เวลา 02:00 น.)',
+            internshipStatusMonitor: 'ทุกวัน (เวลา 02:00 น.)'
         };
-        
+
         return schedules[agentName] || 'ไม่ระบุ';
     }
 
@@ -211,17 +184,12 @@ class AgentStatusService {
      */
     async getAgentLastActivity(agentName) {
         try {
-            const status = agentManager.getStatus();
-            const agentStatus = status.agents[agentName];
-            
-            if (agentStatus && agentStatus.isRunning) {
-                // ส่งคืนเวลาปัจจุบันลบด้วยเวลาสุ่ม (mock data)
-                const now = new Date();
-                const randomMinutes = Math.floor(Math.random() * 60) + 1;
-                now.setMinutes(now.getMinutes() - randomMinutes);
-                return now;
+            // ดึง lastRunTime จาก agent ที่รองรับ (เช่น projectDeadlineMonitor)
+            const agent = agentManager.agents?.[agentName];
+            if (agent && typeof agent.lastRunTime !== 'undefined') {
+                return agent.lastRunTime;
             }
-            
+            // agent อื่นยังไม่มี tracking — return null ตรงๆ
             return null;
         } catch (error) {
             logger.error(`Error getting last activity for agent ${agentName}:`, error);
