@@ -13,7 +13,8 @@ import {
   useAdminDefenseQueue,
   useAdminDefenseQueueMutations,
 } from "@/hooks/useAdminDefenseQueue";
-import styles from "./DefenseStaffQueuePage.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
+import local from "./DefenseStaffQueuePage.local.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -452,7 +453,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
                 {activeRecord?.additionalMaterials?.length ? (
                   <>
                     <p className={styles.subText}>เอกสารแนบจากคำขอ:</p>
-                    <ul className={styles.list}>
+                    <ul className={local.list}>
                       {activeRecord.additionalMaterials.map((item, index) => (
                         <li key={`${item.label}-${item.value}-${index}`}>
                           {(item.label || "เอกสาร")} {item.value || "-"}
@@ -471,7 +472,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
                 {perStudentMetrics.length ? (
                   <>
                     <p className={styles.subText}>รายละเอียดต่อสมาชิก:</p>
-                    <ul className={styles.list}>
+                    <ul className={local.list}>
                       {perStudentMetrics.map((item, index) => {
                         const members = activeRecord?.project.members ?? [];
                         const memberName =
@@ -488,14 +489,14 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
               </section>
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>Timeline การพิจารณา</h3>
-                <ul className={styles.timeline}>
+                <ul className={local.timeline}>
                   <li>
-                    <p className={styles.timelineTitle}>ส่งคำขอ</p>
+                    <p className={local.timelineTitle}>ส่งคำขอ</p>
                     <p className={styles.subText}>{formatDateTime(activeRecord?.submittedAt)}</p>
                   </li>
                   {(activeRecord?.advisorApprovals ?? []).map((approval, index) => (
                     <li key={`${approval.approvalId ?? index}-${approval.teacher?.teacherId ?? index}`}>
-                      <p className={styles.timelineTitle}>{teacherRoleLabel(approval.teacherRole)}</p>
+                      <p className={local.timelineTitle}>{teacherRoleLabel(approval.teacherRole)}</p>
                       <p className={styles.subText}>
                         {approval.teacher?.name || "-"}: {approvalStatusLabel(approval.status)}
                       </p>
@@ -504,7 +505,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
                     </li>
                   ))}
                   <li>
-                    <p className={styles.timelineTitle}>เจ้าหน้าที่ตรวจสอบ</p>
+                    <p className={local.timelineTitle}>เจ้าหน้าที่ตรวจสอบ</p>
                     <p className={styles.subText}>{formatDateTime(activeRecord?.staffVerifiedAt)}</p>
                     <p className={styles.subText}>ผู้ตรวจ: {activeRecord?.staffVerifiedByName || "-"}</p>
                   </li>

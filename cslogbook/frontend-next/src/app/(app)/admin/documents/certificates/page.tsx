@@ -13,7 +13,7 @@ import type { AdminCertificateRequest } from "@/lib/services/adminInternshipCert
 import { labelStatus } from "@/lib/utils/statusLabels";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
-import styles from "./page.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 

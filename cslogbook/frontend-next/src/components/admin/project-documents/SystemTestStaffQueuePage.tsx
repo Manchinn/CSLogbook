@@ -9,7 +9,8 @@ import {
   useAdminSystemTestDetail,
   useAdminSystemTestMutations,
 } from "@/hooks/useAdminSystemTestQueue";
-import styles from "./DefenseStaffQueuePage.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
+import local from "./DefenseStaffQueuePage.local.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -477,16 +478,16 @@ export function SystemTestStaffQueuePage() {
 
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>Timeline การพิจารณา</h3>
-                <ul className={styles.timeline}>
+                <ul className={local.timeline}>
                   {activeRecord?.timeline?.submittedAt ? (
                     <li>
-                      <p className={styles.timelineTitle}>📤 ยื่นคำขอ</p>
+                      <p className={local.timelineTitle}>📤 ยื่นคำขอ</p>
                       <p className={styles.subText}>{formatDateTime(activeRecord.timeline.submittedAt)}</p>
                     </li>
                   ) : null}
                   {activeRecord?.advisorDecision ? (
                     <li>
-                      <p className={styles.timelineTitle}>👨‍🏫 อาจารย์ที่ปรึกษาหลัก</p>
+                      <p className={local.timelineTitle}>👨‍🏫 อาจารย์ที่ปรึกษาหลัก</p>
                       <p className={styles.subText}>ผู้พิจารณา: {activeRecord.advisorDecision.name || "-"}</p>
                       <p className={styles.subText}>เวลา: {formatDateTime(activeRecord.advisorDecision.decidedAt)}</p>
                       {activeRecord.advisorDecision.note ? <p className={styles.subText}>หมายเหตุ: {activeRecord.advisorDecision.note}</p> : null}
@@ -494,7 +495,7 @@ export function SystemTestStaffQueuePage() {
                   ) : null}
                   {activeRecord?.coAdvisorDecision ? (
                     <li>
-                      <p className={styles.timelineTitle}>👨‍🏫 อาจารย์ที่ปรึกษาร่วม</p>
+                      <p className={local.timelineTitle}>👨‍🏫 อาจารย์ที่ปรึกษาร่วม</p>
                       <p className={styles.subText}>ผู้พิจารณา: {activeRecord.coAdvisorDecision.name || "-"}</p>
                       <p className={styles.subText}>เวลา: {formatDateTime(activeRecord.coAdvisorDecision.decidedAt)}</p>
                       {activeRecord.coAdvisorDecision.note ? (
@@ -504,7 +505,7 @@ export function SystemTestStaffQueuePage() {
                   ) : null}
                   {activeRecord?.staffDecision ? (
                     <li>
-                      <p className={styles.timelineTitle}>👔 เจ้าหน้าที่</p>
+                      <p className={local.timelineTitle}>👔 เจ้าหน้าที่</p>
                       <p className={styles.subText}>ผู้พิจารณา: {activeRecord.staffDecision.name || "-"}</p>
                       <p className={styles.subText}>เวลา: {formatDateTime(activeRecord.staffDecision.decidedAt)}</p>
                       {activeRecord.staffDecision.note ? <p className={styles.subText}>หมายเหตุ: {activeRecord.staffDecision.note}</p> : null}
@@ -512,7 +513,7 @@ export function SystemTestStaffQueuePage() {
                   ) : null}
                   {activeRecord?.timeline?.evidenceSubmittedAt ? (
                     <li>
-                      <p className={styles.timelineTitle}>📎 อัปโหลดหลักฐาน</p>
+                      <p className={local.timelineTitle}>📎 อัปโหลดหลักฐาน</p>
                       <p className={styles.subText}>{formatDateTime(activeRecord.timeline.evidenceSubmittedAt)}</p>
                     </li>
                   ) : null}
