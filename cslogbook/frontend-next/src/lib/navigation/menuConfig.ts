@@ -245,7 +245,6 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
             menuLink("curriculum", "หลักสูตร", "/admin/settings/curriculum"),
             menuLink("academic", "ปีการศึกษา/ภาคเรียน", "/admin/settings/academic"),
             menuLink("notification", "การแจ้งเตือน", "/admin/settings/notification-settings"),
-            menuLink("compatibility", "API เชื่อมต่อ", "/admin/settings/compatibility"),
           ],
         },
       ]
@@ -314,10 +313,7 @@ function buildAdminMenu(): MenuNode[] {
       children: [
         menuLink("curriculum", "หลักสูตรการศึกษา", "/admin/settings/curriculum"),
         menuLink("academic", "ปีการศึกษา/ภาคเรียน", "/admin/settings/academic"),
-        menuLink("status", "สถานะนักศึกษา", "/admin/settings/status"),
         menuLink("notification", "การแจ้งเตือน", "/admin/settings/notification-settings"),
-            menuLink("compatibility", "API เชื่อมต่อ", "/admin/settings/compatibility"),
-            menuLink("workflow-steps", "ขั้นตอนการทำงาน", "/admin/settings/workflow-steps"),
             menuLink("settings-new", "ตั้งค่า", "/settings", featureFlags.enableSettingsPage),
       ],
     },
